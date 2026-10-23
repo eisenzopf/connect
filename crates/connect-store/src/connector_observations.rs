@@ -17,6 +17,7 @@ fn identifier(id: &str) -> bool {
     !id.is_empty() && id.len() <= 256 && !id.chars().any(char::is_control)
 }
 fn authorize_route(c: &Connection, route: &Route) -> Result<()> {
+    crate::provider_message_endpoints::current(c, route)?;
     let delegate = actor_from_connection(c, &route.credential_id)?;
     delegate.require("send")?;
     if !route.enabled || authorized_conversation(c, &delegate, &route.conversation_id)?.closed {
@@ -24,7 +25,11 @@ fn authorize_route(c: &Connection, route: &Route) -> Result<()> {
     }
     Ok(())
 }
-fn authorized_job(c: &Connection, id: &str, connector: &str) -> Result<(ProviderJob, String)> {
+pub(crate) fn authorized_job(
+    c: &Connection,
+    id: &str,
+    connector: &str,
+) -> Result<(ProviderJob, String)> {
     let (rid, body, credential, state): (String,String,String,String) = c.query_row(
         "SELECT j.route_id,m.body,j.credential_id,j.state FROM provider_jobs j JOIN messages m ON m.id=j.message_id WHERE j.id=?1", [id],
         |r| Ok((r.get(0)?,r.get(1)?,r.get(2)?,r.get(3)?)),
@@ -39,6 +44,28 @@ fn authorized_job(c: &Connection, id: &str, connector: &str) -> Result<(Provider
     if authorized_conversation(c, &actor, &r.conversation_id)?.closed {
         return Err(Error::forbidden());
     }
+    let message: String = c
+        .query_row(
+            "SELECT message_id FROM provider_jobs WHERE id=?1",
+            [id],
+            |r| r.get(0),
+        )
+        .map_err(|_| Error::storage())?;
+    crate::audience::require_original(
+        c,
+        &actor,
+        &r.conversation_id,
+        connect_protocol::membership::ContentKind::Message,
+        &message,
+    )?;
+    let delegate = actor_from_connection(c, &r.credential_id)?;
+    crate::audience::require_original(
+        c,
+        &delegate,
+        &r.conversation_id,
+        connect_protocol::membership::ContentKind::Message,
+        &message,
+    )?;
     // This admits an observation/communication about an already dispatched
     // effect, not another task mutation. Task continuation is still checked at
     // claim/dispatch. provider_task_reply verifies the original effect/question
@@ -58,16 +85,22 @@ fn authorized_job(c: &Connection, id: &str, connector: &str) -> Result<(Provider
             body,
             previous_chat_id: None,
             context,
+            claim_token: None,
         },
         state,
     ))
 }
 impl Store {
-    /// Protected read admission before asking the provider about an existing effect.
+    /// Inspect protected metadata for an existing effect. This grants no I/O
+    /// authority; status transports require admit_provider_reconciliation.
     /// A terminal task cannot authorize a new send, but does not erase an owned
     /// remote effect or the recipient's current communication authority.
     /// Does not change the job to pending/sending or create another remote effect.
-    pub fn connector_reconciliation_job(&self, id: &str, connector: &str) -> Result<ProviderJob> {
+    pub fn inspect_connector_reconciliation_job(
+        &self,
+        id: &str,
+        connector: &str,
+    ) -> Result<ProviderJob> {
         let c = self.connection()?;
         let (job, state) = authorized_job(&c, id, connector)?;
         if !["uncertain", "accepted", "completed", "delivered", "failed"].contains(&state.as_str())
@@ -84,11 +117,31 @@ impl Store {
         connector: &str,
         receipt: &MessageReceipt,
     ) -> Result<Apply> {
+        let authority = self.runtime_query_authority(
+            crate::authority_admission::runtime::PROVIDER_JOB,
+            &[&receipt.observation.mutation_id],
+        )?;
         let mut c = self.connection()?;
         let tx = c
             .transaction_with_behavior(TransactionBehavior::Immediate)
             .map_err(|_| Error::storage())?;
-        let (job, current) = authorized_job(&tx, &receipt.observation.mutation_id, connector)?;
+        self.require_runtime_query(
+            &tx,
+            &authority,
+            crate::authority_admission::runtime::PROVIDER_JOB,
+            &[&receipt.observation.mutation_id],
+        )?;
+        let applied = self.apply_connector_receipt_tx(&tx, connector, receipt)?;
+        tx.commit().map_err(|_| Error::storage())?;
+        Ok(applied)
+    }
+    pub(crate) fn apply_connector_receipt_tx(
+        &self,
+        tx: &Connection,
+        connector: &str,
+        receipt: &MessageReceipt,
+    ) -> Result<Apply> {
+        let (job, current) = authorized_job(tx, &receipt.observation.mutation_id, connector)?;
         let State::Message(observed_state) = receipt.observation.state else {
             return Err(invalid());
         };
@@ -132,7 +185,7 @@ impl Store {
         if self.connector(connector)?.sms && receipt.reply.is_some() {
             let source = job.route.source.as_deref().unwrap_or_default();
             let allowed = match crate::tasks::task_sms_decision(
-                &tx,
+                tx,
                 &job.id,
                 &job.route.target,
                 source,
@@ -140,7 +193,7 @@ impl Store {
             )? {
                 Some(decision) => decision,
                 None => crate::sms_eligibility::eligible(
-                    &tx,
+                    tx,
                     &job.route.target,
                     source,
                     &job.route.conversation_id,
@@ -171,8 +224,8 @@ impl Store {
                     |r| r.get(0),
                 )
                 .map_err(|_| Error::storage())?;
-            actor_from_connection(&tx, &credential)?.require("context_view")?;
-            actor_from_connection(&tx, &job.route.credential_id)?.require("context_view")?;
+            actor_from_connection(tx, &credential)?.require("context_view")?;
+            actor_from_connection(tx, &job.route.credential_id)?.require("context_view")?;
             let selected =
                 HostContext::decode(job.context.as_deref().ok_or_else(invalid)?, 1024 * 1024)
                     .and_then(|v| v.messaging_items())
@@ -228,9 +281,9 @@ impl Store {
             )
         {
             if let Some(body) = &receipt.reply {
-                let actor = actor_from_connection(&tx, &job.route.credential_id)?;
-                if crate::tasks::provider_task_reply(&tx, &actor, &job.id, body, self)?.is_none() {
-                    self.insert_provider_message(&tx, &job.route, body)?;
+                let actor = actor_from_connection(tx, &job.route.credential_id)?;
+                if crate::tasks::provider_task_reply(tx, &actor, &job.id, body, self)?.is_none() {
+                    self.insert_provider_reply(tx, &job.route, &job.id, body)?;
                 }
                 reply_committed = true;
             }
@@ -252,8 +305,25 @@ impl Store {
             // Receipt order is not Conversation turn order. A late observation
             // or reconciliation of an older turn may retain its own answer and
             // provenance, but cannot replace a newer completed turn's chat.
-            tx.execute("INSERT INTO provider_context(route_id,chat_id) SELECT ?1,?2 WHERE NOT EXISTS(SELECT 1 FROM provider_jobs newer JOIN provider_jobs current ON current.id=?3 WHERE newer.route_id=?1 AND newer.sequence>current.sequence AND (newer.state='completed' OR newer.provider_id=(SELECT chat_id FROM provider_context WHERE route_id=?1))) ON CONFLICT(route_id) DO UPDATE SET chat_id=excluded.chat_id", params![job.route.id,external,job.id]).map_err(|_| Error::storage())?;
+            tx.execute("INSERT INTO provider_context(route_id,chat_id,authority_policy) SELECT ?1,?2,(SELECT authority_policy FROM provider_jobs WHERE id=?3) WHERE NOT EXISTS(SELECT 1 FROM provider_jobs newer JOIN provider_jobs current ON current.id=?3 WHERE newer.route_id=?1 AND newer.sequence>current.sequence AND (newer.state='completed' OR newer.provider_id=(SELECT chat_id FROM provider_context WHERE route_id=?1))) ON CONFLICT(route_id) DO UPDATE SET chat_id=excluded.chat_id,authority_policy=excluded.authority_policy", params![job.route.id,external,job.id]).map_err(|_| Error::storage())?;
         }
+        use connect_protocol::receipts::DeliveryState;
+        let fact = match projection.state {
+            State::Message(MessageState::Delivered) => DeliveryState::Delivered,
+            State::Message(MessageState::Accepted) => DeliveryState::Accepted,
+            State::Message(MessageState::Failed) => DeliveryState::Failed,
+            _ => DeliveryState::Unknown,
+        };
+        crate::recipient_receipts::provider_fact(
+            tx,
+            &job.id,
+            fact,
+            if receipt.observation.verification == Verification::LocalAttempt {
+                "local_attempt"
+            } else {
+                "provider_observation"
+            },
+        )?;
         tx.execute(
             "UPDATE provider_jobs SET state=?2,provider_id=?3 WHERE id=?1",
             params![job.id, state, projection.external_id],
@@ -297,7 +367,30 @@ impl Store {
             params![job.id, receipt.observation.event_id, encoded],
         )
         .map_err(|_| Error::storage())?;
-        tx.commit().map_err(|_| Error::storage())?;
+        // A signed final callback can arrive before the authenticated send
+        // response. Only the original route's retained fact may settle this job.
+        if connector == "telnyx" && state == "accepted" {
+            if let Some(pid) = projection.external_id.as_deref() {
+                for final_state in ["delivered", "failed"] {
+                    let key = crate::providers::sms_final_key(tx, &job.route.id, pid, final_state)?;
+                    let seen: bool = tx
+                        .query_row(
+                            "SELECT EXISTS(SELECT 1 FROM provider_events WHERE id=?1)",
+                            [&key],
+                            |r| r.get(0),
+                        )
+                        .map_err(|_| Error::storage())?;
+                    if seen {
+                        self.apply_connector_receipt_tx(
+                            tx,
+                            connector,
+                            &crate::providers::sms_final_receipt(&job.id, pid, &key, final_state),
+                        )?;
+                        break;
+                    }
+                }
+            }
+        }
         Ok(applied)
     }
     /// Protected ingress after adapter authentication, mapped to a configured route.
@@ -308,10 +401,18 @@ impl Store {
         route_id: &str,
         message: &IncomingMessage,
     ) -> Result<String> {
+        let authority =
+            self.runtime_query_authority(crate::authority_admission::runtime::ROUTE, &[&route_id])?;
         let mut c = self.connection()?;
         let tx = c
             .transaction_with_behavior(TransactionBehavior::Immediate)
             .map_err(|_| Error::storage())?;
+        self.require_runtime_query(
+            &tx,
+            &authority,
+            crate::authority_admission::runtime::ROUTE,
+            &[&route_id],
+        )?;
         let r = route(&tx, route_id)?;
         if r.connector != connector || self.connector(connector)?.sms {
             return Err(Error::forbidden());
@@ -329,6 +430,13 @@ impl Store {
         let encoded = serde_json::to_string(message).map_err(|_| Error::storage())?;
         let prior: Option<(String,String)> = tx.query_row("SELECT message_json,message_id FROM connector_incoming WHERE route_id=?1 AND mutation_id=?2", params![route_id,message.mutation_id], |r| Ok((r.get(0)?,r.get(1)?))).optional().map_err(|_| Error::storage())?;
         if let Some((old, id)) = prior {
+            crate::audience::require_original(
+                &tx,
+                &crate::identity::actor_from_connection(&tx, &r.credential_id)?,
+                &r.conversation_id,
+                connect_protocol::membership::ContentKind::Message,
+                &id,
+            )?;
             return if old == encoded {
                 Ok(id)
             } else {

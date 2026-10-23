@@ -47,6 +47,15 @@ impl Store {
         runtime: &DiscoveryRuntime,
         clock: Clock,
     ) -> Result<TaskOutcome> {
+        let authority = self.stable_authority(
+            &crate::AuthorityWait::new(crate::authority_fences::DEFAULT_WAIT),
+            || {
+                let c = self.connection()?;
+                let timestamp = clock.read();
+                let (actor, _) = admission::authorize(&c, invocation, request, timestamp)?;
+                super::super::authority_fences::request_scopes(&c, &actor, request, timestamp, self)
+            },
+        )?;
         let mut c = self.connection()?;
         let tx = c
             .transaction_with_behavior(TransactionBehavior::Immediate)
@@ -62,6 +71,7 @@ impl Store {
                     store: self,
                     runtime,
                     timestamp,
+                    authority: Some(&authority),
                 },
                 request,
                 Some(&invocation.grant_id),

@@ -52,7 +52,9 @@ async fn browser_and_sip_share_one_durable_session_and_duplex_media_bridge() {
             &app_key.id,
             &Operation::Create {
                 request_id: "interop-create".into(),
-                participants: vec![agent.identity_id.clone()],
+                request: connect_protocol::conversations::CreateRequest::persistent(vec![agent
+                    .identity_id
+                    .clone()]),
             },
         )
         .unwrap()
@@ -243,7 +245,9 @@ async fn browser_and_native_quic_share_one_durable_session_and_duplex_media_brid
             &app_key.id,
             &Operation::Create {
                 request_id: "native-interop-create".into(),
-                participants: vec![agent.identity_id.clone()],
+                request: connect_protocol::conversations::CreateRequest::persistent(vec![agent
+                    .identity_id
+                    .clone()]),
             },
         )
         .unwrap()

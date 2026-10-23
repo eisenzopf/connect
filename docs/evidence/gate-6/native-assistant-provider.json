@@ -1,0 +1,350 @@
+{
+  "kind": "gate6-component-evidence",
+  "task": "G6-042",
+  "status": "in-progress",
+  "passed": true,
+  "recorded_at": "2026-10-20T19:13:05.333495+00:00",
+  "scope": "Local macOS arm64 Store and actual signed-native/designated-loopback HTTP-WebSocket context transport. Captured public provider creation/export/receipt/cleanup bound to a real registered native incarnation; the public context transport does not attach a native audio adapter or establish public provider audio readiness.",
+  "platform": {
+    "system": "Darwin",
+    "machine": "arm64"
+  },
+  "schema_version": 62,
+  "pinned_patches": 123,
+  "source_lock": {
+    "path": "dependencies/source-lock.json",
+    "sha256": "79806adf28f4720a562879e62ab52d47144c0369e2053f626f7c3d3ebe84eba4"
+  },
+  "fresh_distinct_passed_tests": 708,
+  "verification": [
+    {
+      "name": "Full Store library",
+      "passed": 660,
+      "ignored": 3,
+      "arguments": "--test-threads=2",
+      "log": {
+        "path": ".local/gate-6/assistant-provider-store-qualified.log",
+        "sha256": "49d865277f9167dcd4322c0a824c61ac014502d7f6d4f6cdf025e9cb45f4a84a"
+      },
+      "binary": {
+        "path": "target/debug/deps/connect_store-500690b8d898aed1",
+        "sha256": "fa83472198f36b4537d32b6ab00eff7cd45b173944e9e4d8d938c6d2174e1ba7"
+      }
+    },
+    {
+      "name": "Actual native/private-provider runtime including public context profiles",
+      "passed": 21,
+      "ignored": 0,
+      "arguments": "production_private_ai --test-threads=2 --nocapture",
+      "log": {
+        "path": ".local/gate-6/assistant-provider-runtime-qualified.log",
+        "sha256": "47ace126b230b30761f6e32a41de9b7fc495c77c6506f940cd1705d60677cb5b"
+      },
+      "binary": {
+        "path": "target/debug/deps/gate6_canonical_runtime-2e3e18c2008aaebe",
+        "sha256": "0c3e409bbc85bfea472eb564ce77b322836a891d30720b5096226ab04fc2868a"
+      },
+      "internal_public_context_profiles": [
+        "Ack",
+        "Truncated",
+        "Missing",
+        "Rejected",
+        "LostCreation",
+        "Revoked",
+        "SocketLost",
+        "EndedBeforeAck",
+        "ReusedReference"
+      ],
+      "internal_profiles_are_not_additional_test_count": true
+    },
+    {
+      "name": "Store discovery/artifact/membership/provider-chat and canonical manifest/SDK initialization",
+      "passed": 27,
+      "ignored": 0,
+      "per_suite": [
+        1,
+        3,
+        18,
+        4,
+        1
+      ],
+      "arguments": "--test-threads=2",
+      "log": {
+        "path": ".local/gate-6/assistant-provider-integration-verified.log",
+        "sha256": "5c2dc096aad70704b49084fb7153fede685fc0ac32458e4c15d947decc172e14"
+      },
+      "binaries": [
+        {
+          "path": "target/debug/deps/discovery-29e30d59e2e04812",
+          "sha256": "3bb21f5f4cbd08b8dec9f01e492f9fd3cddf21b7fc4d89ccb71f9b53a7914417"
+        },
+        {
+          "path": "target/debug/deps/gate3_artifact_lifecycle-308eefe6235f22d7",
+          "sha256": "b3dd998578d43a962ae0a489b300639f1066e23307cd560cc98c70ed73fd94a0"
+        },
+        {
+          "path": "target/debug/deps/gate6_membership-4d421da469a65046",
+          "sha256": "9c99369b147585d09f06cce48ceabdcfe40ffd40b054671f50ce58de085291f9"
+        },
+        {
+          "path": "target/debug/deps/provider_chat_context-acfdcf128ad00b27",
+          "sha256": "42b0898485d143231b888ea3fe28b1fe59c8dab14ef18aa650176b06e7d0c666"
+        },
+        {
+          "path": "target/debug/deps/provider_context_manifest-79a965dcbdf0b3fc",
+          "sha256": "0c79509d3f9f120b358c7f6b557a4efb659a0af10d153173dee8a6cce3861db0"
+        }
+      ]
+    }
+  ],
+  "qualification_method": "Final broad Store and native-provider suites run in separate phases, retaining two test threads per suite. Focused Store tests and actual AI-caller/profile runs are counted only once through their full suites. Three ignored Store subprocess entrypoints are intentionally invoked by their parent tests.",
+  "inputs": {
+    "path": ".local/gate-6/assistant-provider-inputs-qualified.json",
+    "sha256": "68326cc5732e4a399ab5021f67c0fdd3cb449c739cdb3e1bf7875a22b5428eb7"
+  },
+  "input_count": 786,
+  "inputs_unchanged_during_qualification": true,
+  "sources": [
+    {
+      "path": "crates/connect-store/migrations/062_native_assistant_providers.sql",
+      "sha256": "5482818751edc6298f6cb74b54c86199be4aa640619d01ff09f4f9022098a88a"
+    },
+    {
+      "path": "crates/connect-store/src/lib.rs",
+      "sha256": "b8d8bd4f4cea0acce3a591910bfa47c1f24ae845edf79d6dde737af788861cef"
+    },
+    {
+      "path": "crates/connect-store/src/recovery.rs",
+      "sha256": "188687d0c60af63703314017de72a0a67e7c961834135153d81abe9bd89eb6c5"
+    },
+    {
+      "path": "crates/connect-store/src/context.rs",
+      "sha256": "cccadc13ef0199e37e7162a8c39686d43d835eb7fa1bad35d6333bdec1046928"
+    },
+    {
+      "path": "crates/connect-store/src/peer_authority/connection_media/assistant.rs",
+      "sha256": "9c1c7057e45b4e74e3fa878e9375fc31c722b7bbd98aa954d8a7f2911678fa57"
+    },
+    {
+      "path": "crates/connect-store/src/peer_authority/connection_media/assistant/provider.rs",
+      "sha256": "89daba53b88ccaea34860d33bb291eebe27c472e7a08ba6f76b4d4c36d07ad89"
+    },
+    {
+      "path": "crates/connect-store/src/peer_authority/connection_media/assistant/provider/observations.rs",
+      "sha256": "f822eae31ca92f962da0a9ca93bdf9afe354ff972382012bc28f4659ade29c87"
+    },
+    {
+      "path": "crates/connect-store/src/peer_authority/connection_media.rs",
+      "sha256": "faafb4c0b8f87c8ec29d040e42313829681858f55a78128735819f7d7e1bd73d"
+    },
+    {
+      "path": "crates/connect-store/src/peer_authority.rs",
+      "sha256": "92931f2a16e4b4ba5d31a72b07f8a93b673ab83dab241414dcb4a4b7900bbdd7"
+    },
+    {
+      "path": "crates/connect-store/src/private_provider/mod.rs",
+      "sha256": "c1070ffe54039d9d1e001d792d075a2d92052de1ef84ab0564ffcbea6dbdb3d7"
+    },
+    {
+      "path": "crates/connect-store/src/connection_control/tests/assistant_context.rs",
+      "sha256": "480373b38736998f20c787bf92fb13a1fcda8fe1d09b7ad7b53b1652bd110d9c"
+    },
+    {
+      "path": "crates/connect-store/src/connection_control/tests/replacement_sources/telephone/runtime/media.rs",
+      "sha256": "497bdf53f08de8743e74c078e84ee02561039dafcf48aa401206a1d5583a9ed0"
+    },
+    {
+      "path": "crates/connect-store/src/connection_control/tests/replacement_sources/telephone/runtime/media/continuation.rs",
+      "sha256": "6b94eef6cfe411570f7aa0676571368f6cbd946fec7d51d97b1214922294e620"
+    },
+    {
+      "path": "crates/connect-service/src/assistant_context.rs",
+      "sha256": "84c47b8a0ad0351ab2619715285e208e6f23f2ec75e164cb294be4ab08f027f7"
+    },
+    {
+      "path": "crates/connect-service/src/lib.rs",
+      "sha256": "953c899bbc128778fe92f2e853ed587de90b7db7575b2715343a74bcf8d69dcc"
+    },
+    {
+      "path": "crates/connect-server/src/assistant_vapi.rs",
+      "sha256": "1592474fdc8a0726a62830a5d7279792b9e86f95dd1c936bf4d2188c00ab5842"
+    },
+    {
+      "path": "crates/connect-server/src/lib.rs",
+      "sha256": "e249ce6d6e159863c51e939836b77887709746eb5628696706a3c2174400a15c"
+    },
+    {
+      "path": "crates/connect-server/src/private_vapi/mod.rs",
+      "sha256": "8374d1ee3ed534e19453c91ed500076b43a9c50c4f8eb22a9c58bf30928920e6"
+    },
+    {
+      "path": "crates/connect-server/src/private_vapi/transport.rs",
+      "sha256": "7df76b6d14e2487d6a18ab2dd0d05b6114b3d28b8024c6e2fb9621f2da358a37"
+    },
+    {
+      "path": "crates/connect-server/tests/support/canonical_native_connections/consultation/provider.rs",
+      "sha256": "ed271686536ad102503a9945b39a797cf26bbe4f47634ba84e840b054c56aecf"
+    },
+    {
+      "path": "crates/connect-server/tests/support/canonical_native_connections/consultation/provider/public_context.rs",
+      "sha256": "1cc492b3064af107f073068a5e798d49bc313f44ecefbcb12bbb98a3b037c8e8"
+    },
+    {
+      "path": "crates/connect-server/tests/support/canonical_native_connections/consultation/provider/initialization_failure.rs",
+      "sha256": "5ab6acf649856cfc4f8691391220a8649ccfa64f10cde31545f4cf9fdff2da18"
+    },
+    {
+      "path": "docs/developer/assistant-context.md",
+      "sha256": "7f9c3c7b5f3a0036af75b01cdb780ad9a5e49b6e9fa3b288f0a391d40fe918ed"
+    }
+  ],
+  "behavior": [
+    "Schema62 fixes each public provider reservation to one context owner/stable logical operation ID, original context credential, exact native Connection/generation/runtime, verified Vapi Endpoint, complete listener epochs and historical selection. Replay preserves the reservation and cannot redirect it with another credential or source incarnation.",
+    "Preparation consumes the original reader, releases its interval before metadata writers, and resolves current authority again. Creation/export acquire independent current complete intervals. Service checks actual native liveness and activation without nested Store permission acquisition during IO.",
+    "Creation and export each reserve one attempt before possible IO. The original selected body is revalidated at its saved watermark, so newer history cannot replace it. Raw context in the provider reader requires a captured reference; the export capability accepts only the exact echoed body. Generic receipt completion cannot manufacture delivery.",
+    "Public and private creation observers now share a transaction-bound freshness check across captured context deliveries, provider jobs, voice calls, private provider contexts and native public contexts. A failing-before regression admitted older pair-only model memory despite a safe new public selection. The fixed regression refuses the reference before export or cleanup, and a real HTTP duplicate-reference profile records uncertainty without a WebSocket export or end command to that foreign reference.",
+    "Exact acknowledgment records delivered; definite rejection and observed truncation record failure. Missing acknowledgment or an unusable creation response remains uncertain. Actual provider termination before acknowledgment records uncertain/incomplete context and captured closure without another end command. Captured observations remain recordable after context credential revocation but cannot authorize further data IO.",
+    "Cleanup reserves one end attempt for the captured call. Successful terminal status/exchange records closure; lost transport keeps cleanup uncertain. Native source liveness and original opaque-memory source permissions are revalidated while the owned context session is active. Provider cleanup retains the original native source.",
+    "Journal observations carry original listener epochs, delivery source ID, state/problem, captured reference and provider lifecycle flags. Recovery batches at most1000 rows, retains possible effects as uncertain, distinguishes definitely unstarted work, fences foreign runtimes, and never resumes external IO or adopts an old capability. Snapshot digests cover the new table.",
+    "The real signed-native AI-caller fixture exercises nine public provider profiles on generation1, exact attributed public context, private-source exclusion, one HTTP creation and no repeated creation/export on logical replay. It then completes the existing private-only purpose with actual duplex audio and return. This does not qualify public provider-native audio forwarding.",
+    "Existing discovery, artifact, membership, provider-chat, escaped >128KB canonical HTTP/real SDK initialization, private consultation lifecycle and failure/recovery behavior pass in their recorded profiles. Store owns authorization and durable records, Service owns actual native checks, and Server owns provider IO. No upstream source edit, compatibility restoration or publication occurred."
+  ],
+  "preliminary_observations": [
+    "Initial module compilation exposed macro visibility; initial reservation exposed an invalid Conversation column on Connections. The binding now joins the authoritative Session. A duplicate owner audience insertion was replaced with idempotent insertion because the existing delivery trigger already freezes that owner.",
+    "A refactor initially inverted the runtime stop condition; source review corrected it before runtime qualification. An actual fixture needed the WebSocket SinkExt trait import. These preliminary failures are not passes.",
+    "One parallel-suite provider cohort passed20 and timed out in the existing cancel-during-export fixture while waiting for its export frame. A direct same-binary rerun passed10.27seconds. Its cause is not established. The final complete provider cohort passes with the same two-test-thread setting; the original timing failure is retained, and no general load or latency SLA is claimed.",
+    "The first full Store qualification after the freshness change passed659 and exposed a randomized new-fixture assumption: the historical first Session target could be System rather than the other AI. The fixture now derives that exact target from authoritative stored state. All privacy assertions remain. Targeted and final full Store runs pass.",
+    "The before-fix memory-reuse regression failed because record_created accepted an existing pair-private provider reference. The shared freshness check and real duplicate-reference profile now refuse it without touching that instance.",
+    "A later CLI linker exhausted build space after the two integration binaries linked. Superseded compiler archives were pruned while holding Cargo build lock, preserving389 exact current link input names and the newest two variants per workspace crate. All source, patches, source-lock, test binaries, packages and raw logs were retained. The final complete build passes; cleanup is cache maintenance, not an upstream source change."
+  ],
+  "preliminary_logs": [
+    {
+      "path": ".local/gate-6/assistant-provider-store-1.log",
+      "sha256": "0aedb7772fc77dc148bf535a371a1d6cabc7c313e5eb56218e5654650a3c9bfc"
+    },
+    {
+      "path": ".local/gate-6/assistant-provider-store-2.log",
+      "sha256": "8a7124421e4b59e72859e36ad6febe999eafbcd682b3a12a1726d5242abc480b"
+    },
+    {
+      "path": ".local/gate-6/assistant-provider-store-4.log",
+      "sha256": "64197cdb87e5114a5767e5f6f68c5cbab43dd5d502bdf5de08295a66a924f991"
+    },
+    {
+      "path": ".local/gate-6/assistant-provider-server-build-1.log",
+      "sha256": "31f5526fb6f41c757e7fd69c9203007964e8c7e392c3dbcc905f45b94e0c6eb2"
+    },
+    {
+      "path": ".local/gate-6/assistant-provider-memory-reuse-before.log",
+      "sha256": "85b4b52cb8a2bc6ce91efa4b3a23ab9164a05cc1ef508a421524a1aa7cc49fc0"
+    },
+    {
+      "path": ".local/gate-6/assistant-provider-memory-reuse-after.log",
+      "sha256": "a20ba9cc75e61c3c49ef8ffa1beeb45bd6b5674eb65125b29e153bfa7dd79ca5"
+    },
+    {
+      "path": ".local/gate-6/assistant-provider-runtime-final.log",
+      "sha256": "bec9ccf0c7712053b17db8aa71fef0fd2f4bc1b3c9170051bbb9114106251dea"
+    },
+    {
+      "path": ".local/gate-6/assistant-provider-cancel-export-rerun.log",
+      "sha256": "7dcf5ebd1dab23c1a092ca28ca32a62329d86e832cb12aef5ad5dba26b898702"
+    },
+    {
+      "path": ".local/gate-6/assistant-provider-store-verified.log",
+      "sha256": "1ce8d3255ee97ba6f73ab2382fe4c8552fdc85c3da7c4aa408f5cd122ae94ec6"
+    },
+    {
+      "path": ".local/gate-6/assistant-provider-server-build-verified.log",
+      "sha256": "ac4cc120675199be7e3c76360654b4d696b69e1749cccb3c2639b221aad5e7ba"
+    },
+    {
+      "path": ".local/gate-6/assistant-provider-actual-verified.log",
+      "sha256": "1de02684478b9500a7ff1c3e91bbbc3cb4d818536acdac25c8ce446fed4b8daa"
+    }
+  ],
+  "builds": [
+    {
+      "path": ".local/gate-6/assistant-provider-store-build-verified.log",
+      "sha256": "1dfe845463fe70082d59e441d022395a2156ff04dc6ab3fc39310bf036f25e4e"
+    },
+    {
+      "path": ".local/gate-6/assistant-provider-server-build-complete.log",
+      "sha256": "11a479758cdb7953ea6b054a356cd30d0a8ebc4be48067abc02717209a0f7eaf"
+    },
+    {
+      "path": ".local/gate-6/assistant-provider-fixture-build.log",
+      "sha256": "cb8e6973d6f8a6e44924c07194e125296af225f366563bef43739ed23b5377eb"
+    }
+  ],
+  "cache_cleanup": [
+    {
+      "path": ".local/gate-6/assistant-provider-cache-cleanup.json",
+      "sha256": "caaefbb2107376867ae331597422966e521ed4ba4050b014f181a450cdee087f"
+    },
+    {
+      "path": ".local/gate-6/assistant-provider-local-cache-cleanup.json",
+      "sha256": "1cc3036a5e3a7be8f38d9d72a4fb925a395837ed0c1db96fefb451869ec96f77"
+    },
+    {
+      "path": ".local/gate-6/assistant-provider-post-build-cache-cleanup.json",
+      "sha256": "ca198c556b1ac83905afab4c4c1a9739a8352ac6944346e43d382475ef278178"
+    },
+    {
+      "path": ".local/gate-6/assistant-provider-final-build-cache-cleanup.json",
+      "sha256": "cec604850db5e6fa83edcc5c78f4b3be5a5e828caaaf1936fdb7f4de480224d1"
+    },
+    {
+      "path": ".local/gate-6/assistant-provider-final-superseded-sessions.json",
+      "sha256": "0093491b5adcad44914e2276c0c1f1df2ddd8376eb00c9d4abbaf1c27c9e7183"
+    },
+    {
+      "path": ".local/gate-6/assistant-provider-freshness-build-cache-cleanup.json",
+      "sha256": "28dab480a19f5137b2cc984b26586c091c0b8f17a3122dd3701affa197cbaacf"
+    },
+    {
+      "path": ".local/gate-6/assistant-provider-superseded-libraries-cleanup.json",
+      "sha256": "2566330bca6c31672cd958f1f844e8e13c875016e2158fa150b3e6ffaaac6bf6"
+    }
+  ],
+  "checks": {
+    "format": {
+      "path": ".local/gate-6/assistant-provider-format-qualified.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "contracts": {
+      "path": ".local/gate-6/assistant-provider-contracts-qualified.log",
+      "sha256": "2c29557f8945b4bb522a5436f85876aa8ab90eca617dcf64588af05e9a81b1bc"
+    },
+    "http": {
+      "path": ".local/gate-6/assistant-provider-http-qualified.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "dependencies": {
+      "path": ".local/gate-6/assistant-provider-dependencies-qualified.log",
+      "sha256": "fd9d7b181e3ccba9b643af55a186cf132c60aac99c734b2ee4e4e549afe5ffc2"
+    },
+    "progress": {
+      "path": ".local/gate-6/assistant-provider-progress-qualified.log",
+      "sha256": "d2862144e346af612e59d056ca366093aea477e78bc07ddd61db37efedd5c787"
+    },
+    "diff": {
+      "path": ".local/gate-6/assistant-provider-diff-qualified.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  },
+  "remaining": [
+    "Owned fresh public native SDK audio peer/provider forwarding and context/media readiness integration. Current public fixture validates control context delivery on a real registered source, while that source audio remains driven by the native fixture.",
+    "Voice initialization-time history profiles and updates to existing voice-provider instances, preserving current original opaque-memory policy and exact delivery observations.",
+    "Public read-surface audit/extension for explicit native destination, generation and problem/lifecycle receipt fields; generic ContextDelivery currently exposes its existing state/reference fields. SQLite assertions do not qualify every public read interface.",
+    "Complete authorized public-context call -> private-only consultation -> attributable follow-up after restart with the same logical AI and fresh physical provider/native sessions. Preserve private purpose restrictions while implementing follow-up.",
+    "Full installed public coordinator/shutdown composition and broader crash/provider repair matrix; later Linux/browser/remote/live-provider rehearsals use their task dependencies and explicit bounded G6-093 configuration. No Gate6 acceptance closure or publication."
+  ],
+  "progress": {
+    "done": 41,
+    "in_progress": 1,
+    "not_started": 63,
+    "acceptance_closed": 0,
+    "total": 105
+  }
+}

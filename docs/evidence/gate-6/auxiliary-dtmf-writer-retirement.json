@@ -1,0 +1,301 @@
+{
+  "task": "G6-046",
+  "title": "Retire partial native DTMF physical IO before reader release and uncertainty publication",
+  "recorded_at": "2026-10-22T21:38:52.196871+00:00",
+  "status": "native-writer-ordering-repaired; healthy-recipient-pre-IO-refusal-open",
+  "full_task_complete": false,
+  "full_goal_complete": false,
+  "acceptance_qualified": false,
+  "schema_version": 91,
+  "pinned_patches": 144,
+  "platform": {
+    "os": "Darwin",
+    "architecture": "arm64"
+  },
+  "source_lock": {
+    "path": "dependencies/source-lock.json",
+    "sha256": "0f4b641f71c972f6e5f3a12010e79d8d793173ddf83f229db8abff4fa0827805"
+  },
+  "compiled_inputs": {
+    "path": ".local/gate-6/dtmf-credit-boundary/build-inputs-final.json",
+    "sha256": "e09eb376854771f9a95a2c0bbd133bd5fa57d63a6ee3424b6b6384353e6f490b"
+  },
+  "prepared_upstream": {
+    "path": ".local/gate-6/dtmf-credit-boundary/upstream-inputs-final.json",
+    "sha256": "210699cd77f78f395a07bab88a0e369ecba293d4fcdd413ddc75e071c8dba83e"
+  },
+  "inputs_unchanged_after_tests": true,
+  "source_inputs": [
+    {
+      "path": "patches/rvoip/gate6-dtmf-retirement-before-receipt.patch",
+      "sha256": "99b04f01669b8fd3c9b94948760e03b3ff1942245a85aa3ee5f35dfb19c65330"
+    },
+    {
+      "path": "crates/connect-server/tests/support/canonical_native_connections/dtmf.rs",
+      "sha256": "0eba8eb89ffad86033e17b677dc17ec0869a6de8a00c904ec10506cc66a4be24"
+    },
+    {
+      "path": "crates/connect-server/tests/support/canonical_native_connections/capability_quic.rs",
+      "sha256": "94e17f7924014b06be42802182ddb5199d006517519f1e81ae887e732efc003c"
+    },
+    {
+      "path": "contracts/native-signals-profile.md",
+      "sha256": "78fdf3d9fc3432b357156f230a200a749f69ddac0f4e3f2b6f49aba36e586344"
+    },
+    {
+      "path": "docs/developer/native-dtmf-journal.md",
+      "sha256": "d5d1c50ce4634112212ef4697bf706888bbd9f996cf904db63b9b07d817b2076"
+    },
+    {
+      "path": "scripts/generate-canonical-http-openapi.py",
+      "sha256": "7779068e1e5c338c6ef7beceabc7f6b9017d2c1c1ea338b406e624cc4a9a6f8d"
+    },
+    {
+      "path": "contracts/openapi-canonical-http.json",
+      "sha256": "ca2530ccf2c9c8cb9c5d133bb51eed543f9042339b798a6e9820ec3a4fba8ca9"
+    }
+  ],
+  "binaries": [
+    {
+      "path": "target/debug/deps/rvoip_uctp-2b962aac6c4c4270",
+      "sha256": "1e56ec25af1b9d2f460985eede892364d7d8d64366b6477d47bc7ddfdcedc82d"
+    },
+    {
+      "path": "target/debug/deps/gate6_canonical_runtime-f39476f2f6c7ff5d",
+      "sha256": "a6b33e143c00b143ba9762d6788a8283167e046e53852f0c3ef4dfd7c879882c"
+    },
+    {
+      "path": "target/debug/deps/gate6_auxiliary-0342ca629847fff9",
+      "sha256": "546afcffefd53985ef435b39893201eef8fd177f17b792f40a093a076ac8d7e0"
+    }
+  ],
+  "red_green": {
+    "red": {
+      "path": ".local/gate-6/dtmf-credit-boundary/upstream-red.log",
+      "sha256": "b67f3c2639646f29315bc171808e2b16eaa7ff9449afaed2cd0d8a7e1b212476"
+    },
+    "red_source_lock": {
+      "path": ".local/gate-6/dtmf-credit-boundary/source-lock-red.json",
+      "sha256": "89f0a0940b286e757e773890d76953d8857feaa7b5f993344dfc6a170c5ca9c1"
+    },
+    "red_source_inputs": {
+      "path": ".local/gate-6/dtmf-credit-boundary/upstream-red.json",
+      "sha256": "43d38ef01e3c3bb57dc5c97d15cce7ce3b65fd0bd86930ed5f9f8f569c64c41b"
+    },
+    "red_prepared_directory": "/Users/jonathaneisenzopf/.local/share/connect/deps-g6-dtmf-retirement-red-v1",
+    "red_scope": "The143-patch production writer with new synchronous receipt-wake assertions. The pending-write test fails on its cancellation branch and the dropped-future test fails because physical retirement follows receipt wakeup. The failing pending-write test does not execute its later deadline/fence branches; all three branches pass with the final repair.",
+    "green": {
+      "path": ".local/gate-6/dtmf-credit-boundary/upstream-writer-final.log",
+      "sha256": "a068d5cb8f18c294ba2374489dcc12aaba827047b13b512aa189cbfa76ec5743"
+    },
+    "stronger_green_assertion": "The actual permission-reader owner records whether the physical route was cancelled while its reader was still owned. The synchronous receipt waker checks that fact, actual sink destruction, cancelled physical token and stopped readers. It cannot pass by waiting for the overall writer future to return."
+  },
+  "implementation": [
+    "A locally owned SignalIo destroys a retained partial sink and synchronously cancels its physical route inside the actual write-lease future. Cancellation therefore precedes source/recipient reader release even when the future is dropped.",
+    "Successful writes return the healthy sink before SignalIo drops. Known pre-IO refusals never take the sink. Unknown completion also cancels the physical token before waking its receipt as a defensive ordering guarantee.",
+    "The production credit fixture completes real authentication, native resource confirmation and a reliable barrier using256-byte receive windows. Its reader remains active to drain and verify other frames, then pauses after192 bytes of the actual first DTMF frame. The full frame exceeds all remaining credit; the observed partial frame ID must equal the durable original target frame ID. All four fault modes require real partial IO, uncertainty, guard custody and no logical replay delivery. Known refusal never substitutes for partial IO.",
+    "There is no Store schema, HTTP command, authorization, audience or logical operation identity change. Current source/recipient authorization and immutable receipts remain authoritative."
+  ],
+  "verification_repairs": {
+    "intermediate_loaded_runs": [
+      {
+        "path": ".local/gate-6/dtmf-credit-boundary/production-dtmf-loaded-v1.log",
+        "sha256": "66fa96825f8ab3201f77cdfa3541ce5edb6c7674d891a5b8137e29f6de0ee49f"
+      },
+      {
+        "path": ".local/gate-6/dtmf-credit-boundary/production-dtmf-loaded-v2.log",
+        "sha256": "6721c8f88e33e2d3f7c1b90dbe21666dd05abc6b525ad5f4a296409bb908897d"
+      }
+    ],
+    "intermediate_result": "Both narrower-window-only loaded runs passed14/15. They retained a fresh-command failure or stopped before actual DTMF IO. Passing isolated runs was not treated as resolution.",
+    "final_fixture": "Keep reading until the actual DTMF frame prefix is observed, pause within that frame and match its ID to the journal. This explicitly targets the intended writer without accepting a known pre-IO refusal.",
+    "initial_build": {
+      "path": ".local/gate-6/dtmf-credit-boundary/runtime-build-v1.log",
+      "sha256": "d6583857cd0497801a2dacac950f4b5a295fe04ec29645e131db014002fe83fa"
+    },
+    "diagnostic_build": {
+      "path": ".local/gate-6/dtmf-credit-boundary/runtime-build-v2.log",
+      "sha256": "d124fc628ed90944119a019f4bf90da8aab7995448075f0a6eab99fff47359cc"
+    },
+    "final_build": {
+      "path": ".local/gate-6/dtmf-credit-boundary/runtime-build-v3.log",
+      "sha256": "76e213760d9b7e02019f1d0fcdfa4fe5833ec9b1c695e1480a9a7ec93b499b65"
+    }
+  },
+  "previous_failure_evidence": "docs/evidence/gate-6/auxiliary-codec-lifecycle-pair.json#regression_risks",
+  "predecessor_diagnostic": {
+    "evidence": {
+      "path": ".local/gate-6/dtmf-credit-boundary/diagnostic-v1.log",
+      "sha256": "78eec968b245e2637755fc48cf12ff7017b13a0021546ef6a580a4edb26dbf9a"
+    },
+    "passed": 15,
+    "failed": 0,
+    "meaning": "The predecessor broad suite also passed with tracing, confirming that the original broader failures were intermittent. This pass alone was not treated as a repair."
+  },
+  "results": [
+    {
+      "name": "upstream-writer",
+      "passed": 3,
+      "failed": 0,
+      "evidence": {
+        "path": ".local/gate-6/dtmf-credit-boundary/upstream-writer-final.log",
+        "sha256": "a068d5cb8f18c294ba2374489dcc12aaba827047b13b512aa189cbfa76ec5743"
+      }
+    },
+    {
+      "name": "upstream-exchange",
+      "passed": 9,
+      "failed": 0,
+      "evidence": {
+        "path": ".local/gate-6/dtmf-credit-boundary/upstream-exchange-final.log",
+        "sha256": "2f37f60fcd1bdaf3c22f1f731ff9060006eeefcc5d8a196e7c76afb07ef455cd"
+      }
+    },
+    {
+      "name": "production-dtmf-loaded",
+      "passed": 15,
+      "failed": 0,
+      "evidence": {
+        "path": ".local/gate-6/dtmf-credit-boundary/production-dtmf-loaded-final.log",
+        "sha256": "052d9aa32299edd0c89aa75dbbb91f227378d56d12d53e9cea394f044e6d14fc"
+      }
+    },
+    {
+      "name": "production-pair",
+      "passed": 1,
+      "failed": 0,
+      "evidence": {
+        "path": ".local/gate-6/dtmf-credit-boundary/production-pair-final.log",
+        "sha256": "6e3b3e5103f36371b0a9620dccd2bded9ed20aefc482bafd1739b186c0652503"
+      }
+    },
+    {
+      "name": "production-lifecycle",
+      "passed": 1,
+      "failed": 0,
+      "evidence": {
+        "path": ".local/gate-6/dtmf-credit-boundary/production-lifecycle-final.log",
+        "sha256": "c965ed848c22b15f5870a722a288f242c83009ea19eb93e0e514fc6eba8d64ee"
+      }
+    },
+    {
+      "name": "production-codec",
+      "passed": 1,
+      "failed": 0,
+      "evidence": {
+        "path": ".local/gate-6/dtmf-credit-boundary/production-codec-final.log",
+        "sha256": "f9a7b3e5caed3873d9c3e913cd78e92d704fea66b85ecf2713608444a53d59d8"
+      }
+    },
+    {
+      "name": "production-auxiliary",
+      "passed": 10,
+      "failed": 0,
+      "evidence": {
+        "path": ".local/gate-6/dtmf-credit-boundary/production-auxiliary-final.log",
+        "sha256": "30d8faeb519cee8c8617b0319629b76df2212ab5a9c1d72c71e1e6787bca5fc2"
+      }
+    },
+    {
+      "name": "production-caller-cancellation",
+      "passed": 2,
+      "failed": 0,
+      "evidence": {
+        "path": ".local/gate-6/dtmf-credit-boundary/production-caller-cancellation-final.log",
+        "sha256": "da1e7cdaf4ce2e84f5a7d48ad93fef5960a2515453caea13ce6e3baa244db408"
+      }
+    },
+    {
+      "name": "production-records",
+      "passed": 1,
+      "failed": 0,
+      "evidence": {
+        "path": ".local/gate-6/dtmf-credit-boundary/production-records-final.log",
+        "sha256": "0b72062bee775f129f6f8c706bdd3d39e0ade6532a0fd3a809ca55c2262a273f"
+      }
+    },
+    {
+      "name": "production-dtmf-ordinary",
+      "passed": 14,
+      "failed": 1,
+      "evidence": {
+        "path": ".local/gate-6/dtmf-credit-boundary/production-dtmf-final.log",
+        "sha256": "bb5b2d9c5b5738c64feaa44ad9e1839f4f54f00138413a626aaf454eca540c52"
+      }
+    }
+  ],
+  "checks": [
+    {
+      "name": "dependencies",
+      "exit_code": 0,
+      "evidence": {
+        "path": ".local/gate-6/dtmf-credit-boundary/dependencies-final.log",
+        "sha256": "fd9d7b181e3ccba9b643af55a186cf132c60aac99c734b2ee4e4e549afe5ffc2"
+      }
+    },
+    {
+      "name": "format",
+      "exit_code": 0,
+      "evidence": {
+        "path": ".local/gate-6/dtmf-credit-boundary/format-final.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    {
+      "name": "upstream-format",
+      "exit_code": 0,
+      "evidence": {
+        "path": ".local/gate-6/dtmf-credit-boundary/upstream-format-final.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    {
+      "name": "http-reference",
+      "exit_code": 0,
+      "evidence": {
+        "path": ".local/gate-6/dtmf-credit-boundary/http-reference-final.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    {
+      "name": "event-reference",
+      "exit_code": 0,
+      "evidence": {
+        "path": ".local/gate-6/dtmf-credit-boundary/event-reference-final.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    {
+      "name": "progress",
+      "exit_code": 0,
+      "evidence": {
+        "path": ".local/gate-6/dtmf-credit-boundary/progress-final.log",
+        "sha256": "fedbc03549729d27ac031eee0766ae72281991ae1e9494232887c3160cf754cc"
+      }
+    },
+    {
+      "name": "diff",
+      "exit_code": 0,
+      "evidence": {
+        "path": ".local/gate-6/dtmf-credit-boundary/diff-final.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    }
+  ],
+  "limits": [
+    "G6-046 remains24/61 assigned clauses locally qualified, with37 remaining. This repairs affected native integration verification; no additional DTMF clause or entire task is claimed complete.",
+    "One full15-case production DTMF run passes alongside affected checks; a subsequent ordinary run passes14/15 and fails a fresh healthy-recipient command before IO after partial cancellation. The broader DTMF regression is not resolved. Controlled synchronous ordering assertions establish only the specific physical writer retirement repair.",
+    "SIP/WebRTC provenance and composition, remaining private/queued fault vectors, Session lifecycle and other unqualified auxiliary behavior remain open.",
+    "Local macOS arm64 only. No Linux, remote/browser/provider, named G6-093 rehearsal, acceptance qualification or publication."
+  ],
+  "regression_risks": {
+    "status": "open-fresh-healthy-recipient-pre-IO-refusal-after-partial-cancellation",
+    "evidence": {
+      "path": ".local/gate-6/dtmf-credit-boundary/production-dtmf-final.log",
+      "sha256": "bb5b2d9c5b5738c64feaa44ad9e1839f4f54f00138413a626aaf454eca540c52"
+    },
+    "observed": "The slow retired peer is absent from the new frozen audience. Only codec-source remains, but it reports not_started with no frame ID and signal-not-submitted. The cancelled logical operation remains unknown and is not replayed. This is distinct from the repaired physical writer retirement ordering.",
+    "static_audit_next_step": "Core prepare_dtmf_route uses try-locks and returns NotReady on transient metadata contention. route_dtmf also calls synchronous check_current before its existing wait_current path. Connect currently records any route preparation error as final not_started. Determine the actual failing stage, then add bounded metadata-only waiting for the same immutable source/target before any possible IO; preserve refusal and uncertainty once work may have started.",
+    "causality": "The transient NotReady path is an identified source gap and next investigation target, not yet a verified cause of this observed failure."
+  }
+}

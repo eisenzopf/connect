@@ -1,0 +1,184 @@
+{
+  "kind": "gate6-component-evidence",
+  "task": "G6-041",
+  "status": "in-progress",
+  "passed": true,
+  "recorded_at": "2026-10-20T13:54:08.321327+00:00",
+  "schema_version": 61,
+  "pinned_patches": 120,
+  "source_lock": {
+    "path": "dependencies/source-lock.json",
+    "sha256": "6493d464739925eaf371f86fa1d8f0bc3d116f91f5a1de405b9a8daef871fa3d"
+  },
+  "scope": "Local macOS arm64 configured telephone graceful restart and server-owner drop during private duplex and after actual movement, late old-dialog INFO/RTP, real discarded HTTP reply and once-only callback recovery; all previous telephone movement/failure cases remain in the fresh suite.",
+  "verification": [
+    {
+      "name": "telephone-public",
+      "command": "RUST_LOG=connect_service=debug target/debug/deps/gate6_canonical_runtime-2e3e18c2008aaebe production_telephone_ --test-threads=2 --nocapture",
+      "passed": 20,
+      "ignored": 0,
+      "exit_code": 0,
+      "log": {
+        "path": ".local/gate-6/telephone-restart-runtime-final.log",
+        "sha256": "a992b05449a6feef58d812917052410f88675db5271154f56d3710663d3969db"
+      },
+      "test_binary": {
+        "path": "target/debug/deps/gate6_canonical_runtime-2e3e18c2008aaebe",
+        "sha256": "506406775b84e069e15ba6c69fc7ffbf1b28b79b774cc6287609e342f9ce63a4"
+      }
+    }
+  ],
+  "fresh_distinct_passed_tests": 20,
+  "telephone_actual_managed_moves": 5,
+  "telephone_strict_native_audio_probes": 53,
+  "static_checks": [
+    {
+      "name": "dependencies",
+      "exit_code": 0,
+      "log": {
+        "path": ".local/gate-6/telephone-restart-static-dependencies.log",
+        "sha256": "fd9d7b181e3ccba9b643af55a186cf132c60aac99c734b2ee4e4e549afe5ffc2"
+      }
+    },
+    {
+      "name": "format",
+      "exit_code": 0,
+      "log": {
+        "path": ".local/gate-6/telephone-restart-static-format.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    {
+      "name": "contracts",
+      "exit_code": 0,
+      "log": {
+        "path": ".local/gate-6/telephone-restart-static-contracts.log",
+        "sha256": "2c29557f8945b4bb522a5436f85876aa8ab90eca617dcf64588af05e9a81b1bc"
+      }
+    },
+    {
+      "name": "http",
+      "exit_code": 0,
+      "log": {
+        "path": ".local/gate-6/telephone-restart-static-http.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    {
+      "name": "progress",
+      "exit_code": 0,
+      "log": {
+        "path": ".local/gate-6/telephone-restart-static-progress.log",
+        "sha256": "3c9a42760866b510a9b7fc81b2b57b9bf6791a239d0bf0de8cdf06058e513f78"
+      }
+    },
+    {
+      "name": "diff",
+      "exit_code": 0,
+      "log": {
+        "path": ".local/gate-6/telephone-restart-static-diff.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    }
+  ],
+  "cli_binary": {
+    "path": "target/debug/connect",
+    "sha256": "0dbba2fe92b5668f602b3a5acd249a7f9b262cf89412d0ebe23723b1a8945ac0"
+  },
+  "production_sources_changed": false,
+  "upstream_inputs": {
+    "path": ".local/gate-6/telephone-movement-upstream-inputs.json",
+    "sha256": "7b8f78f1f27f9e9cbbd50299b1d3ae7d6e3fafa96907ee52e6da3fc86a32a4a6"
+  },
+  "upstream_input_count": 2789,
+  "source_input_count": 1438,
+  "previous_checkpoint": {
+    "path": "docs/evidence/gate-6/telephone-configured.json",
+    "sha256": "8162c04a67ac61e59eb85ae0d8cfd1a35d4df30c9dacc545bd3bc0abc2d62c96"
+  },
+  "behavior": [
+    "Configured graceful shutdown and restart during actual private decoded duplex retain known resource/phase observations and once-only attempt IDs, create no public candidate connection, and recover the root as unknown.",
+    "Configured graceful restart after an actual generation2 compound move retains the same completed record/result. The public connection is retired or interrupted at generation3 with observed runtime/readiness cleared; receipt history does not assert current physical readiness.",
+    "Server-owner drop exercises retirement before metadata cleanup. An exclusive successor fences the completed telephone ready claim as interrupted/generation3. Its historical lifetime retains the old epoch and unconfirmed cleanup flag, rather than accepting writes from the retired owner or claiming remote absence.",
+    "Actual late old-dialog SIP INFO 55# and old RTP are delivered to the restarted host after private and completed phases. They produce zero new programme output, no preparation/connection/media reader in the new runtime, no changed known captures or attempt IDs, and no new INVITE.",
+    "A real canonical HTTP request remains unread until actual SIP INVITE proves admission and submission. The socket is then discarded without reading any HTTP reply or acceptance ACK. Public SDK replay under the same operation ID retains preparing and one actual call; no-answer expiry yields unknown, CANCEL/ACK, replay without redial and preserved original native duplex.",
+    "All twenty actual telephone cases pass together: five moves (including PCMU/PCMA and configured ownership), refusal of early/wrong/retransmitted confirmation, voicemail-style audio, private/ringing cancellation, no-answer deadline, route/Endpoint loss, installed startup/drop/shutdown cleanup and current independent media lifetime."
+  ],
+  "preliminary_observations": [
+    "New restart variants initially missed an exhaustive test match arm and the new explicit drop-mode argument at the existing ringing call site. Both were corrected before runtime qualification.",
+    "The first discarded-reply fixture polled protected operation status before its asynchronous raw request was admitted and received the expected private forbidden/not-found response. The fixture now waits for that exact owner/operation ledger admission before status polling; it never reads the discarded response.",
+    "The first two graceful and four graceful/drop targeted restart runs passed. Their overlapping counts are not added to the final all-twenty run."
+  ],
+  "preliminary_logs": [
+    {
+      "path": ".local/gate-6/telephone-restart-build-1.log",
+      "sha256": "9895333f42c23b5b94e50689df506c291e863ada392b537958e79d7c50d54d2a"
+    },
+    {
+      "path": ".local/gate-6/telephone-restart-build-2.log",
+      "sha256": "871c1f775ce52002b2f8bf7de3b3d17b7dbd03576220840cd676f34e7147e05d"
+    },
+    {
+      "path": ".local/gate-6/telephone-restart-build-3.log",
+      "sha256": "e4caf6b3e1c8a6578e6fde3717a53bb657b4502fa3f12d9c74e4edb3e48d0563"
+    },
+    {
+      "path": ".local/gate-6/telephone-restart-build-4.log",
+      "sha256": "72f5211bcb6a899ea977cfe41b0f9f470477e77916a2d45cb7e4430facc3ba46"
+    },
+    {
+      "path": ".local/gate-6/telephone-restart-build-5.log",
+      "sha256": "a4b80a3b1706a8b84153cc8c378b3e04dcff3c3f9a3083b2901ed81bfa8d5de1"
+    },
+    {
+      "path": ".local/gate-6/telephone-restart-runtime-1.log",
+      "sha256": "097ee788cd794f694c9c49705bb31f2b279161a308c9414a6e45080dbd23225d"
+    },
+    {
+      "path": ".local/gate-6/telephone-restart-runtime-2.log",
+      "sha256": "e204080bc77cec42884b5f7d4a7b7e99ec0124d16c2869bcf5faa9206b4e77d9"
+    },
+    {
+      "path": ".local/gate-6/telephone-restart-lost-reply.log",
+      "sha256": "abb7705149b444e07fca504190d5c8d2f900dd518449e1c84544c5182bd74ea8"
+    },
+    {
+      "path": ".local/gate-6/telephone-restart-lost-reply-2.log",
+      "sha256": "fea637ee6e02448b9d9829d4bbd200f6ef9124f6b5b4aabec9ca000916a5ac35"
+    }
+  ],
+  "final_build": {
+    "path": ".local/gate-6/telephone-restart-build-6.log",
+    "sha256": "bf0972c8168ba0de2decff9db550ed20cd272151ddd50a9eddf6609b83fd7c1a"
+  },
+  "not_qualified": [
+    "These are real graceful and server-object-drop restarts, not process kill/power loss. The full submit/answer/ready/commit/retirement kill/provider reconciliation matrix remains assigned to G6-047.",
+    "Telephone-source movement to another endpoint, mixed native/telephone selector/role/private-context integration and established outbound refresh INVITE wire qualification remain required. General audience-safe assistant context belongs to G6-042.",
+    "Canonical optional trunk/registration, provider/PSTN/Linux/browser/remote/performance/independent acceptance/publication are not qualified. Earlier Store/Core/Service/CLI suite totals remain historical and are not added."
+  ],
+  "task_counts": {
+    "done": 40,
+    "in_progress": 1,
+    "not_started": 64,
+    "acceptance_closed": 0
+  },
+  "all_105_tasks_remain_in_scope": true,
+  "goal_status": "active",
+  "progress": {
+    "path": ".local/gate-6/telephone-restart-static-progress-final.log",
+    "sha256": "3c9a42760866b510a9b7fc81b2b57b9bf6791a239d0bf0de8cdf06058e513f78"
+  },
+  "diff": {
+    "path": ".local/gate-6/telephone-restart-static-diff-final.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "source_inputs": {
+    "path": ".local/gate-6/telephone-restart-inputs-final.json",
+    "sha256": "f56f9659bcd093ad5c791bf2fb781e41f6d717da096268f919f48359c2794cd6"
+  },
+  "post_verification_changes": [
+    "contracts/device-replacement.md",
+    "docs/connect-gate-6-implementation.html",
+    "docs/developer/telephone-replacement.md"
+  ]
+}

@@ -85,7 +85,9 @@ async fn native_language_helper_carries_raw_audio_over_real_quic() {
             &app_key.id,
             &Operation::Create {
                 request_id: "helper-create".into(),
-                participants: vec![agent.identity_id.clone()],
+                request: connect_protocol::conversations::CreateRequest::persistent(vec![agent
+                    .identity_id
+                    .clone()]),
             },
         )
         .unwrap()

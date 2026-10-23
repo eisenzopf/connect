@@ -27,9 +27,12 @@ async fn one_reusable_credential_has_native_receipts_in_two_conversations_after_
     for request_id in ["redwood-room", "courier-room"] {
         let op = Operation::Create {
             request_id: request_id.into(),
-            participants: vec![f.peer.identity_id.clone()],
+            request: connect_protocol::conversations::CreateRequest::persistent(vec![f
+                .peer
+                .identity_id
+                .clone()]),
         };
-        let args = json!({"request_id":request_id,"participants":[f.peer.identity_id]});
+        let args = json!({"request_id":request_id,"request":serde_json::to_value(&op).unwrap()["request"]});
         let result = outcome(call(&client, "connect_create", args).await);
         assert_eq!(native.request(op).await.unwrap(), result);
         conversations.push(conversation(result));
@@ -51,7 +54,7 @@ async fn one_reusable_credential_has_native_receipts_in_two_conversations_after_
             call(
                 &client,
                 "connect_send",
-                json!({"request_id":request_id,"conversation_id":conversation.id,"body":body}),
+                json!({"request_id":request_id,"conversation_id":conversation.id,"message": connect_protocol::messages::MessageDraft::text_all(body)}),
             )
             .await,
         );
@@ -60,7 +63,7 @@ async fn one_reusable_credential_has_native_receipts_in_two_conversations_after_
                 .request(Operation::Send {
                     request_id: request_id.into(),
                     conversation_id: conversation.id.clone(),
-                    body: body.into(),
+                    message: connect_protocol::messages::MessageDraft::text_all(body),
                 })
                 .await
                 .unwrap(),
@@ -95,8 +98,7 @@ async fn one_reusable_credential_has_native_receipts_in_two_conversations_after_
         "connect_send",
         json!({
             "request_id":"redwood-window","conversation_id":conversations[1].id,
-            "body":"A retry must not move the original message into another conversation."
-        }),
+            "message": connect_protocol::messages::MessageDraft::text_all("A retry must not move the original message into another conversation.")}),
     )
     .await;
     assert_eq!(mcp::error(conflict).code, "conflict");
@@ -118,8 +120,7 @@ async fn one_reusable_credential_has_native_receipts_in_two_conversations_after_
                     &client,
                     "connect_send",
                     json!({
-                        "request_id":request_id,"conversation_id":conversation.id,"body":body
-                    })
+                        "request_id":request_id,"conversation_id":conversation.id,"message": connect_protocol::messages::MessageDraft::text_all(body)})
                 )
                 .await
             ),
@@ -203,8 +204,7 @@ async fn independent_incoming_contact_is_visible_and_answered_without_a_task_gra
             &client,
             "connect_send",
             json!({
-                "request_id":"incoming-answer","conversation_id":conversation.id,"body":answer
-            }),
+                "request_id":"incoming-answer","conversation_id":conversation.id,"message": connect_protocol::messages::MessageDraft::text_all(&answer)}),
         )
         .await,
     );
@@ -303,8 +303,7 @@ async fn ordinary_history_recovers_old_context_beyond_the_recent_projection() {
             &client,
             "connect_send",
             json!({
-                "request_id":"retained-answer","conversation_id":conversation.id,"body":answer
-            }),
+                "request_id":"retained-answer","conversation_id":conversation.id,"message": connect_protocol::messages::MessageDraft::text_all(&answer)}),
         )
         .await,
     );

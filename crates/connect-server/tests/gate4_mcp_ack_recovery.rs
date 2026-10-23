@@ -17,7 +17,7 @@ async fn abandoned_accepted_response_recovers_same_receipt_and_one_message() {
     let f = fixture::Fixture::start_permitted(true, vec![TaskPermission::Send]).await;
     let proxy = proxy::Proxy::start(f.server.mcp_address.unwrap()).await;
     let client = mcp::client_from_grant(proxy.address, f.issued.expose_secret()).await;
-    let args = json!({"request_id":"lost-ack-once","step_id":"draft","body":"One accepted communication effect."});
+    let args = json!({"request_id":"lost-ack-once","step_id":"draft","message": connect_protocol::messages::MessageDraft::text_all(("One accepted communication effect.").to_string())});
     let (call, accepted) = tokio::join!(
         tokio::time::timeout(
             Duration::from_secs(2),

@@ -39,6 +39,7 @@ impl Enrollment {
             target: PHONE.into(),
             source: Some(SENDER.into()),
             enabled: true,
+            incoming_to: connect_protocol::messages::MessageAudience::all(),
         };
         h.server
             .store
@@ -131,7 +132,9 @@ pub fn question(task: &TaskRecord, cid: &str, id: &str) -> TaskCommand {
         operation: Box::new(Operation::Send {
             request_id: id.into(),
             conversation_id: cid.into(),
-            body: format!("Requested draft review: {id}"),
+            message: connect_protocol::messages::MessageDraft::text_all(format!(
+                "Requested draft review: {id}"
+            )),
         }),
         reply_to: None,
         wait_for_reply: false,
@@ -144,7 +147,9 @@ pub async fn queue(client: &mut ConnectClient, command: TaskCommand) {
     ));
 }
 pub async fn dispatch(h: &mut Harness, driver: Arc<Telnyx>, jobs: usize) -> Vec<ProviderDelivery> {
-    let worker = Worker::with_drivers(h.server.service.clone(), vec![driver]).unwrap();
+    let worker = Worker::with_drivers(h.server.service.clone(), vec![driver])
+        .await
+        .unwrap();
     let observed = tokio::time::timeout(Duration::from_secs(5), async {
         loop {
             let observed = h.owner.provider_status(&h.cid).await.unwrap();

@@ -51,7 +51,7 @@ async fn explicit_mcp_consumption_frees_capacity_and_replays_once_across_restart
             "connect_task_send",
             json!({"task_id":task.id,
         "request_id":"consume-followup","step_id":"consume-followup","conversation_id":cid,
-        "body":"I have handled this answer.","reply_to":first.event_id}),
+        "message": connect_protocol::messages::MessageDraft::text_all(("I have handled this answer.").to_string()),"reply_to":first.event_id}),
         )
         .await,
     );

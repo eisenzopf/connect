@@ -91,7 +91,7 @@ async fn fresh_owner_inspection_discovers_effects_and_runs_documented_cli_after_
         "connect_task_send",
         json!({"task_id":task.id,
         "conversation_id":cid,"request_id":"revoked-task-effect","step_id":"revoked-task-effect",
-        "body":"Must remain denied."}),
+        "message": connect_protocol::messages::MessageDraft::text_all(("Must remain denied.").to_string())}),
     )
     .await;
     assert_eq!(mcp::error(denied).code, "unauthorized");

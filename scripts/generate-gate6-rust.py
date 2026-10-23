@@ -140,7 +140,8 @@ def generate(destination):
         kind = branch['if']['properties']['type']['const']
         then = branch['then']
         model = then['properties']['payload']['$ref'].rsplit('/', 1)[-1]
-        registry.append((kind, model, then['required']))
+        required = then['required'] + then.get('anyOf', [{}])[0].get('required', [])
+        registry.append((kind, model, required))
     lines.extend(['/// Checked typed wire payloads. Unknown optional fields are ignored for execution.',
                   '#[derive(Debug, Clone, Serialize, Deserialize)]',
                   '#[serde(tag = "type", content = "payload")]', 'pub enum Payload {'])

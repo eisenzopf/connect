@@ -155,10 +155,18 @@ pub struct VoiceRequest {
 pub trait MessageExtension: Send + Sync {
     /// Read authoritative status for the original logical effect. Never create
     /// a second send to discover whether the first succeeded.
-    async fn message_status(&self, _mutation_id: &str) -> Result<MessageReceipt, crate::Failure> {
+    async fn message_status(
+        &self,
+        _mutation_id: &str,
+        _permit: crate::DispatchPermit,
+    ) -> Result<MessageReceipt, crate::Failure> {
         Err(crate::Failure::Rejected)
     }
-    async fn send(&self, request: &MessageRequest) -> Result<MessageReceipt, crate::Failure>;
+    async fn send(
+        &self,
+        request: &MessageRequest,
+        permit: crate::DispatchPermit,
+    ) -> Result<MessageReceipt, crate::Failure>;
 }
 #[async_trait::async_trait]
 pub trait MediaExtension: Send + Sync {

@@ -98,7 +98,7 @@ async fn narrow_native_grant_negotiates_exact_task_and_enforces_current_scope_on
         Operation::Send {
             request_id: "wider".into(),
             conversation_id: h.cid.clone(),
-            body: "must not send".into(),
+            message: connect_protocol::messages::MessageDraft::text_all("must not send"),
         },
     );
     assert_eq!(code(client.task(wider).await.unwrap_err()), "forbidden");

@@ -1,0 +1,1902 @@
+diff --git a/Cargo.lock b/Cargo.lock
+index d6b8df7..8a24a31 100644
+--- a/Cargo.lock
++++ b/Cargo.lock
+@@ -7710,11 +7710,13 @@ dependencies = [
+  "sha2 0.10.9",
+  "thiserror 1.0.69",
+  "tokio",
++ "tokio-tungstenite 0.29.0",
+  "tokio-util",
+  "tracing",
+  "tracing-subscriber",
+  "url",
+  "uuid",
++ "web-transport-quinn",
+  "x509-parser 0.18.1",
+ ]
+ 
+diff --git a/crates/uctp/rvoip-quic/src/canonical.rs b/crates/uctp/rvoip-quic/src/canonical.rs
+new file mode 100644
+index 0000000..f8ff15c
+--- /dev/null
++++ b/crates/uctp/rvoip-quic/src/canonical.rs
+@@ -0,0 +1,64 @@
++//! Canonical connect/2 signaling on an already TLS-negotiated QUIC connection.
++use rvoip_uctp::v2::{
++    auth_dispatch::DispatchError,
++    auth_peer::AUTHENTICATION_TIMEOUT,
++    reachability::PeerTransport,
++    server::{CanonicalProfile, ProfileServer},
++    RAW_QUIC_ALPN,
++};
++use tokio::sync::mpsc;
++
++struct Close(quinn::Connection);
++impl Drop for Close {
++    fn drop(&mut self) {
++        self.0.close(0u32.into(), b"canonical-peer-retired");
++    }
++}
++
++/// The endpoint owner feeds accepted connections here and retains endpoint
++/// ownership. This server owns and closes each admitted physical connection.
++pub fn start(
++    incoming: mpsc::Receiver<quinn::Connection>,
++    profile: CanonicalProfile,
++    contact: String,
++) -> Result<ProfileServer, DispatchError> {
++    ProfileServer::spawn(
++        incoming,
++        profile.max_connections(),
++        move |connection, cancel| {
++            let profile = profile.clone();
++            let contact = contact.clone();
++            async move {
++                let _close = Close(connection.clone());
++                let alpn = connection
++                    .handshake_data()
++                    .and_then(|data| data.downcast::<quinn::crypto::rustls::HandshakeData>().ok())
++                    .and_then(|data| data.protocol.clone());
++                if alpn.as_deref() != Some(RAW_QUIC_ALPN) {
++                    return Err(DispatchError::Unsupported);
++                }
++                let deadline = tokio::time::Instant::now() + AUTHENTICATION_TIMEOUT;
++                let peer = profile.peer(PeerTransport::Quic, &contact, cancel.clone())?;
++                let (mut writer, reader) = tokio::select! {
++                    biased;
++                    _=cancel.cancelled()=>return Err(DispatchError::Closed),
++                    result=tokio::time::timeout_at(deadline,connection.accept_bi())=>result.map_err(|_|DispatchError::Closed)?.map_err(|_|DispatchError::Closed)?,
++                };
++                let result = peer
++                    .run(reader, &mut writer, profile.handler.as_ref())
++                    .await;
++                // FIN and bounded acknowledgement precede CONNECTION_CLOSE;
++                // closing immediately can discard the final signed auth.bye.
++                if writer.finish().is_ok() {
++                    tokio::select! {
++                        biased;
++                        _=cancel.cancelled()=>{},
++                        _=tokio::time::timeout(std::time::Duration::from_secs(1),writer.stopped())=>{},
++                    }
++                }
++                result
++            }
++        },
++        |connection| connection.close(0u32.into(), b"canonical-admission-closed"),
++    )
++}
+diff --git a/crates/uctp/rvoip-quic/src/lib.rs b/crates/uctp/rvoip-quic/src/lib.rs
+index e47fdc1..5298ec7 100644
+--- a/crates/uctp/rvoip-quic/src/lib.rs
++++ b/crates/uctp/rvoip-quic/src/lib.rs
+@@ -44,3 +44,5 @@ pub fn apply_encoded_video_transport_budget(transport: &mut quinn::TransportConf
+     ));
+     capacity
+ }
++
++pub mod canonical;
+diff --git a/crates/uctp/rvoip-uctp/Cargo.toml b/crates/uctp/rvoip-uctp/Cargo.toml
+index ce5b363..ec8b1f6 100644
+--- a/crates/uctp/rvoip-uctp/Cargo.toml
++++ b/crates/uctp/rvoip-uctp/Cargo.toml
+@@ -53,6 +53,8 @@ metrics.workspace = true
+ thiserror.workspace = true
+ 
+ [dev-dependencies]
++web-transport-quinn.workspace = true
++tokio-tungstenite.workspace = true
+ tokio = { workspace = true, features = ["full", "test-util"] }
+ tracing-subscriber.workspace = true
+ # Browser and bridge examples negotiate Opus and must exercise the real
+@@ -64,7 +66,7 @@ rvoip-core = { workspace = true, features = ["opus"] }
+ # the published manifest rather than requiring them on crates.io. See rvoip-core.
+ rvoip-quic = { path = "../rvoip-quic" }
+ rvoip-webtransport = { path = "../rvoip-webtransport" }
+-rvoip-websocket = { path = "../rvoip-websocket" }
++rvoip-websocket = { path = "../rvoip-websocket", features = ["wss"] }
+ rvoip-sip = { path = "../../sip/rvoip-sip" }
+ rvoip-media-core.workspace = true
+ url = "2"
+diff --git a/crates/uctp/rvoip-uctp/src/v2/auth_peer.rs b/crates/uctp/rvoip-uctp/src/v2/auth_peer.rs
+index 9d9f488..62c9b38 100644
+--- a/crates/uctp/rvoip-uctp/src/v2/auth_peer.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/auth_peer.rs
+@@ -13,7 +13,7 @@ use super::{
+ };
+ use async_trait::async_trait;
+ use bytes::Bytes;
+-use futures::{SinkExt, StreamExt};
++use futures::{Sink, SinkExt, Stream, StreamExt};
+ use rvoip_auth_core::{
+     bearer::{opaque_session_token_matches, AuthenticatedPrincipal, ValidatedBearer},
+     sig9421::{Sig9421Signer, Sig9421Verifier},
+@@ -675,9 +675,9 @@ impl CanonicalPeer {
+         self.signed(value)
+     }
+ 
+-    async fn write_output<W: AsyncWrite + Send + Unpin>(
++    async fn write_output<W: Sink<Bytes, Error = DispatchError> + Send + Unpin>(
+         &self,
+-        writer: &mut FramedWrite<W, tokio_util::codec::LengthDelimitedCodec>,
++        writer: &mut W,
+         output: &PeerOutput,
+     ) -> Result<(), DispatchError> {
+         for envelope in output.envelopes() {
+@@ -701,7 +701,7 @@ impl CanonicalPeer {
+     /// reliable stream. Its caller must enforce ALPN/profile ownership and TLS.
+     /// EOF, expiry, cancellation and write failure retire this peer's lifetime.
+     pub async fn run<R, W>(
+-        mut self,
++        self,
+         reader: R,
+         writer: W,
+         handler: &dyn AuthenticatedHandler,
+@@ -709,10 +709,33 @@ impl CanonicalPeer {
+     where
+         R: AsyncRead + Send + Unpin,
+         W: AsyncWrite + Send + Unpin,
++    {
++        let reader =
++            FramedRead::new(reader, crate::substrate::length_prefixed_codec()).map(|frame| {
++                frame
++                    .map(|bytes| bytes.freeze())
++                    .map_err(|_| DispatchError::Closed)
++            });
++        let writer = FramedWrite::new(writer, crate::substrate::length_prefixed_codec())
++            .sink_map_err(|_| DispatchError::Closed);
++        self.run_frames(Box::pin(reader), Box::pin(writer), handler)
++            .await
++    }
++
++    /// Shared single-owner state machine for transport-validated whole JSON
++    /// frames. Drivers must bound allocation, validate TLS/profile and provide
++    /// exactly one owner for each ordered reader/writer.
++    pub async fn run_frames<R, W>(
++        mut self,
++        mut reader: R,
++        mut writer: W,
++        handler: &dyn AuthenticatedHandler,
++    ) -> Result<(), DispatchError>
++    where
++        R: Stream<Item = Result<Bytes, DispatchError>> + Send + Unpin,
++        W: Sink<Bytes, Error = DispatchError> + Send + Unpin,
+     {
+         let mut outbound = self.outbound.take();
+-        let mut reader = FramedRead::new(reader, crate::substrate::length_prefixed_codec());
+-        let mut writer = FramedWrite::new(writer, crate::substrate::length_prefixed_codec());
+         loop {
+             if let Some(output) = self.drain_step_up_failures()? {
+                 self.write_output(&mut writer, &output).await?;
+@@ -770,7 +793,10 @@ impl CanonicalPeer {
+             let Some(frame) = frame else {
+                 return Ok(());
+             };
+-            let frame = frame.map_err(|_| DispatchError::Closed)?;
++            let frame = frame?;
++            if frame.len() > super::MAX_ENVELOPE_BYTES {
++                return Err(DispatchError::Wire(super::WireError::TooLarge));
++            }
+             let output = match self
+                 .handle(&frame, handler, Instant::now() + MAX_DISPATCH_WAIT)
+                 .await
+diff --git a/crates/uctp/rvoip-uctp/src/v2/mod.rs b/crates/uctp/rvoip-uctp/src/v2/mod.rs
+index 1248a42..4797b8b 100644
+--- a/crates/uctp/rvoip-uctp/src/v2/mod.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/mod.rs
+@@ -10,6 +10,7 @@ pub mod auth_dispatch;
+ pub mod auth_peer;
+ pub mod reachability;
+ mod replay;
++pub mod server;
+ pub use auth_peer::AssuranceRequirement;
+ pub mod payloads;
+ mod validation;
+diff --git a/crates/uctp/rvoip-uctp/src/v2/server.rs b/crates/uctp/rvoip-uctp/src/v2/server.rs
+new file mode 100644
+index 0000000..4e7dfff
+--- /dev/null
++++ b/crates/uctp/rvoip-uctp/src/v2/server.rs
+@@ -0,0 +1,235 @@
++//! Shared canonical profile construction and retained transport task supervision.
++use super::{
++    auth_dispatch::{AuthenticatedHandler, DispatchError},
++    auth_peer::{CanonicalPeer, PeerConfig},
++    reachability::{PeerTransport, ReachabilityRegistry, RouteAuthority, TrustedPeerRoute},
++};
++use futures::{
++    future::{BoxFuture, Shared},
++    FutureExt,
++};
++use std::{
++    future::Future,
++    sync::{
++        atomic::{AtomicUsize, Ordering},
++        Arc,
++    },
++    time::Duration,
++};
++use tokio::{
++    sync::{mpsc, Semaphore},
++    task::JoinSet,
++};
++use tokio_util::sync::CancellationToken;
++
++#[derive(Clone)]
++pub struct CanonicalProfile {
++    peer: Arc<PeerConfig>,
++    pub handler: Arc<dyn AuthenticatedHandler>,
++    max_connections: usize,
++    routes: Option<(
++        Arc<ReachabilityRegistry>,
++        Arc<dyn RouteAuthority>,
++        Duration,
++        u16,
++    )>,
++}
++impl CanonicalProfile {
++    pub fn new(
++        peer: Arc<PeerConfig>,
++        handler: Arc<dyn AuthenticatedHandler>,
++        max_connections: usize,
++    ) -> Result<Self, DispatchError> {
++        if max_connections == 0 || max_connections > 4096 {
++            return Err(DispatchError::Capacity);
++        }
++        Ok(Self {
++            peer,
++            handler,
++            max_connections,
++            routes: None,
++        })
++    }
++    pub fn with_reachability(
++        mut self,
++        registry: Arc<ReachabilityRegistry>,
++        authority: Arc<dyn RouteAuthority>,
++        lease: Duration,
++        priority: u16,
++    ) -> Result<Self, DispatchError> {
++        TrustedPeerRoute::new(PeerTransport::Quic, "configured-contact", priority, lease)?;
++        self.routes = Some((registry, authority, lease, priority));
++        Ok(self)
++    }
++    pub fn peer(
++        &self,
++        transport: PeerTransport,
++        contact: &str,
++        parent: CancellationToken,
++    ) -> Result<CanonicalPeer, DispatchError> {
++        match &self.routes {
++            Some((registry, authority, lease, priority)) => CanonicalPeer::with_reachability(
++                self.peer.clone(),
++                parent,
++                registry.clone(),
++                TrustedPeerRoute::new(transport, contact, *priority, *lease)?,
++                authority.clone(),
++            ),
++            None => CanonicalPeer::new(self.peer.clone(), parent),
++        }
++    }
++    pub fn max_connections(&self) -> usize {
++        self.max_connections
++    }
++}
++
++#[derive(Default)]
++struct Counters {
++    accepted: AtomicUsize,
++    rejected: AtomicUsize,
++    active: AtomicUsize,
++}
++#[derive(Clone, Copy, Debug, PartialEq, Eq)]
++pub struct ServerStats {
++    pub accepted_physical: usize,
++    pub rejected_physical: usize,
++    pub active_physical: usize,
++}
++struct Active(Arc<Counters>);
++impl Drop for Active {
++    fn drop(&mut self) {
++        self.0.active.fetch_sub(1, Ordering::AcqRel);
++    }
++}
++struct Inner {
++    drain: CancellationToken,
++    shutdown: CancellationToken,
++    join: Shared<BoxFuture<'static, Result<(), DispatchError>>>,
++    counters: Arc<Counters>,
++}
++impl Drop for Inner {
++    fn drop(&mut self) {
++        self.drain.cancel();
++        self.shutdown.cancel();
++    }
++}
++
++/// Clones share one owner. Dropping the last control cancels the supervisor;
++/// explicit shutdown retains/awaits its task even if a previous wait is dropped.
++#[derive(Clone)]
++pub struct ProfileServer {
++    inner: Arc<Inner>,
++}
++impl ProfileServer {
++    pub fn spawn<A, F, Fut, G>(
++        mut incoming: mpsc::Receiver<A>,
++        max: usize,
++        serve: F,
++        reject: G,
++    ) -> Result<Self, DispatchError>
++    where
++        A: Send + 'static,
++        F: Fn(A, CancellationToken) -> Fut + Send + Sync + 'static,
++        Fut: Future<Output = Result<(), DispatchError>> + Send + 'static,
++        G: Fn(A) + Send + 'static,
++    {
++        if max == 0 || max > 4096 || incoming.max_capacity() > 4096 {
++            return Err(DispatchError::Capacity);
++        }
++        let drain = CancellationToken::new();
++        let shutdown = CancellationToken::new();
++        let d = drain.clone();
++        let s = shutdown.clone();
++        let counters = Arc::new(Counters::default());
++        let counts = counters.clone();
++        let serve = Arc::new(serve);
++        let task = tokio::spawn(async move {
++            let slots = Arc::new(Semaphore::new(max));
++            let mut peers = JoinSet::new();
++            let mut admitting = true;
++            let mut failed = false;
++            loop {
++                tokio::select! {
++                    biased;
++                    _=s.cancelled()=>break,
++                    _=d.cancelled(),if admitting=>{admitting=false;incoming.close();while let Ok(peer)=incoming.try_recv(){counts.rejected.fetch_add(1,Ordering::AcqRel);reject(peer);}},
++                    completed=peers.join_next(),if !peers.is_empty()=>{if completed.is_some_and(|result|result.is_err()){failed=true;s.cancel();}},
++                    peer=incoming.recv(),if admitting=>match peer {
++                        Some(peer)=>{
++                            let permit=match slots.clone().try_acquire_owned(){Ok(permit)=>permit,Err(_)=>{counts.rejected.fetch_add(1,Ordering::AcqRel);reject(peer);continue;}};
++                            counts.accepted.fetch_add(1,Ordering::AcqRel);counts.active.fetch_add(1,Ordering::AcqRel);let active=Active(counts.clone());let serve=serve.clone();let cancel=s.child_token();
++                            peers.spawn(async move{let _permit=permit;let _active=active;serve(peer,cancel).await});
++                        }
++                        None=>{admitting=false;},
++                    },
++                    else=>break,
++                }
++                if !admitting && peers.is_empty() {
++                    break;
++                }
++            }
++            incoming.close();
++            while let Ok(peer) = incoming.try_recv() {
++                counts.rejected.fetch_add(1, Ordering::AcqRel);
++                reject(peer);
++            }
++            s.cancel();
++            let drained = tokio::time::timeout(Duration::from_secs(2), async {
++                while peers.join_next().await.is_some() {}
++            })
++            .await;
++            if drained.is_err() {
++                peers.abort_all();
++                while peers.join_next().await.is_some() {}
++            }
++            if failed {
++                Err(DispatchError::Closed)
++            } else {
++                Ok(())
++            }
++        });
++        let join = async move { task.await.map_err(|_| DispatchError::Closed)? }
++            .boxed()
++            .shared();
++        Ok(Self {
++            inner: Arc::new(Inner {
++                drain,
++                shutdown,
++                join,
++                counters,
++            }),
++        })
++    }
++    /// Stop admission while active peers retain their own normal lifetime.
++    pub fn begin_drain(&self) {
++        self.inner.drain.cancel();
++    }
++    pub fn is_draining(&self) -> bool {
++        self.inner.drain.is_cancelled()
++    }
++    pub async fn shutdown(&self) -> Result<(), DispatchError> {
++        self.inner.drain.cancel();
++        self.inner.shutdown.cancel();
++        self.inner.join.clone().await
++    }
++    pub fn stats(&self) -> ServerStats {
++        ServerStats {
++            accepted_physical: self.inner.counters.accepted.load(Ordering::Acquire),
++            rejected_physical: self.inner.counters.rejected.load(Ordering::Acquire),
++            active_physical: self.inner.counters.active.load(Ordering::Acquire),
++        }
++    }
++}
++
++/// Exact origin checking shared by HTTP upgrade drivers. A native deployment
++/// may explicitly use None; configured browser origins require one exact value.
++pub fn origin_allowed<'a>(
++    origins: impl IntoIterator<Item = &'a str>,
++    allowed: Option<&std::collections::HashSet<String>>,
++) -> bool {
++    let Some(allowed) = allowed else {
++        return true;
++    };
++    let mut origins = origins.into_iter();
++    matches!(origins.next(),Some(origin) if allowed.contains(origin)) && origins.next().is_none()
++}
+diff --git a/crates/uctp/rvoip-uctp/tests/v2_canonical_transports.rs b/crates/uctp/rvoip-uctp/tests/v2_canonical_transports.rs
+new file mode 100644
+index 0000000..0e42a1a
+--- /dev/null
++++ b/crates/uctp/rvoip-uctp/tests/v2_canonical_transports.rs
+@@ -0,0 +1,1114 @@
++//! Real canonical transport drivers, shared auth and retained shutdown.
++#![allow(dead_code)]
++use async_trait::async_trait;
++use bytes::Bytes;
++use chrono::Utc;
++use futures::{SinkExt, StreamExt};
++use ring::signature::{Ed25519KeyPair, KeyPair};
++use rvoip_auth_core::{
++    bearer::{
++        AuthenticatedPrincipal, AuthenticationMethod, BearerAuthError, BearerValidator,
++        ValidatedBearer,
++    },
++    sig9421::{KeyResolver, ResolvedVerificationKey, Sig9421Signer, Sig9421Verifier},
++};
++use rvoip_core::identity::{CredentialKind, IdentityAssurance};
++use rvoip_uctp::v2::{
++    auth_dispatch::*, auth_peer::*, payloads::Device, Envelope, Identifier, Scope, RAW_QUIC_ALPN,
++};
++use serde_json::{json, Value};
++use std::{
++    collections::HashSet,
++    sync::{
++        atomic::{AtomicBool, AtomicUsize, Ordering},
++        Arc,
++    },
++    time::Duration,
++};
++use tokio::{
++    sync::{Notify, RwLock},
++    time::Instant,
++};
++use tokio_util::{
++    codec::{FramedRead, FramedWrite},
++    sync::CancellationToken,
++};
++
++fn deadline() -> Instant {
++    Instant::now() + Duration::from_secs(3)
++}
++fn envelope(kind: &str, payload: Value) -> Value {
++    json!({"v":2,"type":kind,"id":format!("env_{}",uuid::Uuid::new_v4().simple()),"ts":Utc::now(),"payload":payload})
++}
++fn hello() -> Value {
++    envelope(
++        "auth.hello",
++        json!({"device":{"id":"device-alice","kind":"desktop","platform":"fixture","sdk_version":"fixture"},"auth_methods":["unknown","bearer","aauth"],"application_profiles":["connect/2"]}),
++    )
++}
++fn response(challenge: &Envelope, token: &str) -> Value {
++    let mut v = envelope(
++        "auth.response",
++        json!({"method":"bearer","credential":token}),
++    );
++    v["in_reply_to"] = json!(challenge.id());
++    v
++}
++fn command() -> Value {
++    let mut v = envelope("connection.update", json!({"action":"hold"}));
++    v["cid"] = json!("conversation");
++    v["sid"] = json!("session");
++    v["connid"] = json!("connection");
++    v["operation_id"] = json!("logical-op");
++    v["expected_revision"] = json!(1);
++    v
++}
++fn principal(token: &str) -> AuthenticatedPrincipal {
++    let mut p = AuthenticatedPrincipal {
++        subject: "alice".into(),
++        tenant: Some("tenant".into()),
++        issuer: Some("issuer".into()),
++        scopes: vec!["control".into()],
++        expires_at: Some(Utc::now() + chrono::Duration::hours(1)),
++        method: AuthenticationMethod::Bearer,
++        assurance: IdentityAssurance::Identified {
++            credential_kind: CredentialKind::Oidc,
++        },
++    };
++    match token {
++        "bob" => p.subject = "bob".into(),
++        "other-tenant" => p.tenant = Some("other".into()),
++        "other-issuer" => p.issuer = Some("other".into()),
++        "expired" => p.expires_at = Some(Utc::now() - chrono::Duration::seconds(1)),
++        "no-expiry" => p.expires_at = None,
++        "short" => p.expires_at = Some(Utc::now() + chrono::Duration::seconds(1)),
++        "reduced" => p.scopes.clear(),
++        "user" | "user-new" => {
++            p.assurance = IdentityAssurance::UserAuthorized {
++                identity: rvoip_core::IdentityId::from_string("identity-alice"),
++                user_id: rvoip_core::IdentityId::from_string("user-alice"),
++                scopes: vec!["control".into()],
++            }
++        }
++        "wrong-user" => {
++            p.assurance = IdentityAssurance::UserAuthorized {
++                identity: rvoip_core::IdentityId::from_string("identity-alice"),
++                user_id: rvoip_core::IdentityId::from_string("user-bob"),
++                scopes: vec!["control".into()],
++            }
++        }
++        _ => {}
++    };
++    p
++}
++struct Validator {
++    calls: AtomicUsize,
++    hold: AtomicBool,
++    entered: Notify,
++    release: Notify,
++}
++#[async_trait]
++impl BearerValidator for Validator {
++    async fn validate(&self, token: &str) -> Result<IdentityAssurance, BearerAuthError> {
++        Ok(principal(token).assurance)
++    }
++    async fn validate_credential(&self, token: &str) -> Result<ValidatedBearer, BearerAuthError> {
++        self.calls.fetch_add(1, Ordering::SeqCst);
++        if self.hold.load(Ordering::SeqCst) {
++            self.entered.notify_one();
++            self.release.notified().await;
++        }
++        if token == "unavailable" {
++            return Err(BearerAuthError::Unavailable(
++                "private-provider-detail".into(),
++            ));
++        }
++        ValidatedBearer::new(
++            principal(token),
++            Some(token.into()),
++            Some(std::time::SystemTime::now() - Duration::from_secs(1)),
++        )
++    }
++}
++#[derive(Default)]
++struct Policy {
++    revoked: Arc<RwLock<HashSet<String>>>,
++    deny_refresh: AtomicBool,
++    calls: AtomicUsize,
++}
++impl Policy {
++    async fn guard(
++        &self,
++        c: &ValidatedBearer,
++        device: &Device,
++        id: &Identifier,
++        env: &Envelope,
++    ) -> Result<AuthorityLease, DispatchError> {
++        self.calls.fetch_add(1, Ordering::SeqCst);
++        let guard = self.revoked.clone().read_owned().await;
++        if c.token_id
++            .as_ref()
++            .is_none_or(|token| guard.contains(token))
++            || c.issued_at.is_none()
++            || c.principal.is_expired()
++            || device.id.as_str() != "device-alice"
++            || id.as_str() != "identity-alice"
++            || (env.kind() == "connection.update" && !c.principal.has_scope("control"))
++        {
++            return Err(DispatchError::Authority);
++        }
++        Ok(AuthorityLease::holding(guard))
++    }
++}
++#[async_trait]
++impl PeerAuthority for Policy {
++    async fn identity(&self, c: &ValidatedBearer, d: &Device) -> Result<Identifier, DispatchError> {
++        if c.principal.subject != "alice" || d.id.as_str() != "device-alice" {
++            return Err(DispatchError::Authority);
++        }
++        Identifier::try_from("identity-alice".to_owned()).map_err(DispatchError::from)
++    }
++    async fn acquire(
++        &self,
++        c: &ValidatedBearer,
++        d: &Device,
++        i: &Identifier,
++        e: &Envelope,
++    ) -> Result<AuthorityLease, DispatchError> {
++        self.guard(c, d, i, e).await
++    }
++    async fn refresh(
++        &self,
++        old: &ValidatedBearer,
++        new: &ValidatedBearer,
++        d: &Device,
++        i: &Identifier,
++        e: &Envelope,
++    ) -> Result<AuthorityLease, DispatchError> {
++        if self.deny_refresh.load(Ordering::SeqCst) {
++            return Err(DispatchError::Authority);
++        }
++        let lease = self.guard(new, d, i, e).await?;
++        if old.token_id.as_ref().is_none_or(|token| {
++            self.revoked
++                .try_read()
++                .map_or(true, |set| set.contains(token))
++        }) {
++            return Err(DispatchError::Authority);
++        }
++        Ok(lease)
++    }
++}
++struct Keys {
++    client: Vec<u8>,
++    server: Vec<u8>,
++}
++impl KeyResolver for Keys {
++    fn resolve(&self, _: &str) -> Option<Vec<u8>> {
++        None
++    }
++    fn resolve_for_principal(
++        &self,
++        p: &AuthenticatedPrincipal,
++        k: &str,
++        a: &str,
++        _: chrono::DateTime<Utc>,
++    ) -> Option<ResolvedVerificationKey> {
++        if p.tenant.as_deref() != Some("tenant")
++            || p.issuer.as_deref() != Some("issuer")
++            || a != "EdDSA"
++        {
++            return None;
++        }
++        let bytes = match (p.subject.as_str(), k) {
++            ("alice", "client") => self.client.clone(),
++            ("server", "server") => self.server.clone(),
++            _ => return None,
++        };
++        Some(ResolvedVerificationKey {
++            public_key: bytes,
++            algorithm: "EdDSA".into(),
++            not_before: None,
++            expires_at: None,
++            revoked: false,
++        })
++    }
++}
++#[derive(Default)]
++struct Handler {
++    calls: AtomicUsize,
++}
++#[async_trait]
++impl AuthenticatedHandler for Handler {
++    async fn handle(&self, env: AuthorizedEnvelope) -> Result<Envelope, DispatchError> {
++        assert_eq!(env.principal().subject, "alice");
++        self.calls.fetch_add(1, Ordering::SeqCst);
++        Envelope::from_value(envelope("ack", json!({}))).map_err(DispatchError::from)
++    }
++}
++struct Fixture {
++    config: Arc<PeerConfig>,
++    client: Sig9421Signer,
++    server_verify: Sig9421Verifier,
++    policy: Arc<Policy>,
++    validator: Arc<Validator>,
++}
++impl Fixture {
++    fn new() -> Self {
++        let client_key = Ed25519KeyPair::generate_pkcs8(&ring::rand::SystemRandom::new()).unwrap();
++        let server_key = Ed25519KeyPair::generate_pkcs8(&ring::rand::SystemRandom::new()).unwrap();
++        let client = Sig9421Signer::ed25519("client", client_key.as_ref()).unwrap();
++        let server = Sig9421Signer::ed25519("server", server_key.as_ref()).unwrap();
++        let resolver = Arc::new(Keys {
++            client: Ed25519KeyPair::from_pkcs8(client_key.as_ref())
++                .unwrap()
++                .public_key()
++                .as_ref()
++                .to_vec(),
++            server: Ed25519KeyPair::from_pkcs8(server_key.as_ref())
++                .unwrap()
++                .public_key()
++                .as_ref()
++                .to_vec(),
++        });
++        let validator = Arc::new(Validator {
++            calls: AtomicUsize::new(0),
++            hold: AtomicBool::new(false),
++            entered: Notify::new(),
++            release: Notify::new(),
++        });
++        let policy = Arc::new(Policy::default());
++        let config = Arc::new(PeerConfig {
++            methods: Arc::new(AuthenticationMethods::new(Some(validator.clone()))),
++            verifier: Arc::new(Sig9421Verifier::new(resolver.clone())),
++            signer: Arc::new(server),
++            authority: policy.clone(),
++            pending_capacity: 2,
++        });
++        Self {
++            config,
++            client,
++            server_verify: Sig9421Verifier::new(resolver),
++            policy,
++            validator,
++        }
++    }
++    fn peer(&self) -> CanonicalPeer {
++        CanonicalPeer::new(self.config.clone(), CancellationToken::new()).unwrap()
++    }
++    fn sign(&self, v: Value) -> Vec<u8> {
++        serde_json::to_vec(&self.client.sign(&v).unwrap()).unwrap()
++    }
++    async fn authenticate(&self, peer: &mut CanonicalPeer, token: &str) -> Envelope {
++        let output = peer
++            .handle(
++                &serde_json::to_vec(&hello()).unwrap(),
++                &Handler::default(),
++                deadline(),
++            )
++            .await
++            .unwrap();
++        let challenge = output.envelopes()[0].clone();
++        drop(output);
++        let output = peer
++            .handle(
++                &self.sign(response(&challenge, token)),
++                &Handler::default(),
++                deadline(),
++            )
++            .await
++            .unwrap();
++        output.envelopes()[0].clone()
++    }
++    async fn verify_server(&self, env: &Envelope) {
++        let mut p = principal("old");
++        p.subject = "server".into();
++        self.server_verify
++            .verify_for_principal(env.original(), &p)
++            .await
++            .unwrap();
++    }
++}
++
++use futures::{Sink, Stream};
++use rvoip_uctp::v2::server::{CanonicalProfile, ProfileServer};
++use tokio::sync::mpsc;
++type Reader = std::pin::Pin<Box<dyn Stream<Item = Result<Bytes, DispatchError>> + Send>>;
++type Writer = std::pin::Pin<Box<dyn Sink<Bytes, Error = DispatchError> + Send>>;
++struct Wire {
++    reader: Reader,
++    writer: Writer,
++    server: ProfileServer,
++    quic: Option<(quinn::Endpoint, quinn::Endpoint, quinn::Connection)>,
++    wt: Option<web_transport_quinn::Session>,
++}
++impl Wire {
++    async fn send(&mut self, value: Vec<u8>) {
++        self.writer.send(Bytes::from(value)).await.unwrap();
++    }
++    async fn read(&mut self) -> Envelope {
++        let bytes = tokio::time::timeout(Duration::from_secs(3), self.reader.next())
++            .await
++            .expect("driver read deadline")
++            .expect("driver EOF")
++            .unwrap();
++        Envelope::parse(&bytes).unwrap()
++    }
++    async fn retired(&self) {
++        tokio::time::timeout(Duration::from_secs(3), async {
++            while self.server.stats().active_physical != 0 {
++                tokio::task::yield_now().await;
++            }
++        })
++        .await
++        .unwrap();
++    }
++}
++async fn pair(
++    alpn: &[u8],
++) -> (
++    quinn::Endpoint,
++    quinn::Endpoint,
++    quinn::Connection,
++    quinn::Connection,
++) {
++    use rvoip_uctp::substrate::{
++        dev_client_config_trusting, make_server_endpoint, self_signed_for_dev,
++    };
++    let _ = rustls::crypto::ring::default_provider().install_default();
++    let (cert, key) = self_signed_for_dev(&["localhost".into()]).unwrap();
++    let mut tls = rustls::ServerConfig::builder()
++        .with_no_client_auth()
++        .with_single_cert(vec![cert.clone()], key)
++        .unwrap();
++    tls.alpn_protocols = vec![alpn.to_vec()];
++    let server = make_server_endpoint(
++        "127.0.0.1:0".parse().unwrap(),
++        Arc::new(tls),
++        quinn::TransportConfig::default(),
++    )
++    .unwrap();
++    let mut tls = dev_client_config_trusting(&cert).unwrap();
++    tls.alpn_protocols = vec![alpn.to_vec()];
++    let mut client = quinn::Endpoint::client("127.0.0.1:0".parse().unwrap()).unwrap();
++    client.set_default_client_config(quinn::ClientConfig::new(Arc::new(
++        quinn::crypto::rustls::QuicClientConfig::try_from(tls).unwrap(),
++    )));
++    let connect = client
++        .connect(server.local_addr().unwrap(), "localhost")
++        .unwrap();
++    let accept = async { server.accept().await.unwrap().await.unwrap() };
++    let (remote, host) = tokio::join!(connect, accept);
++    (server, client, host, remote.unwrap())
++}
++async fn wire(
++    kind: &str,
++    profile: CanonicalProfile,
++    path: &str,
++    origin: Option<&str>,
++) -> Result<Wire, DispatchError> {
++    if kind == "quic" || kind == "wt" {
++        let (send, receive) = mpsc::channel(4);
++        let (host_ep, remote_ep, host, remote) =
++            pair(if kind == "quic" { RAW_QUIC_ALPN } else { b"h3" }).await;
++        let server = if kind == "quic" {
++            rvoip_quic::canonical::start(receive, profile, "quic://localhost:443".into())?
++        } else {
++            rvoip_webtransport::canonical::start(
++                receive,
++                profile,
++                "https://localhost/uctp".into(),
++                "/uctp".into(),
++                Some(HashSet::from(["https://allowed.example".into()])),
++            )?
++        };
++        send.send(host).await.unwrap();
++        let wt = if kind == "wt" {
++            let mut request = web_transport_quinn::proto::ConnectRequest::from(
++                url::Url::parse(&format!("https://localhost{path}")).unwrap(),
++            );
++            if let Some(origin) = origin {
++                request.headers.insert("origin", origin.parse().unwrap());
++            }
++            match tokio::time::timeout(
++                Duration::from_secs(3),
++                web_transport_quinn::Session::connect(remote.clone(), request),
++            )
++            .await
++            .unwrap()
++            {
++                Ok(session) => Some(session),
++                Err(_) => {
++                    server.shutdown().await?;
++                    return Err(DispatchError::Authority);
++                }
++            }
++        } else {
++            None
++        };
++        if let Some(session) = wt {
++            let (writer, reader) = session.open_bi().await.unwrap();
++            // Client fixture also uses the native read API and explicit bounds.
++            let reader = futures::stream::unfold(
++                (reader, Vec::<u8>::new()),
++                |(mut reader, mut buffered)| async move {
++                    loop {
++                        if buffered.len() >= 4 {
++                            let length =
++                                u32::from_be_bytes(buffered[..4].try_into().unwrap()) as usize;
++                            if length > 1024 * 1024 {
++                                return Some((Err(DispatchError::Closed), (reader, buffered)));
++                            }
++                            if buffered.len() >= length + 4 {
++                                let bytes = Bytes::copy_from_slice(&buffered[4..4 + length]);
++                                buffered.drain(..4 + length);
++                                return Some((Ok(bytes), (reader, buffered)));
++                            }
++                        }
++                        let mut chunk = [0u8; 65536];
++                        match reader.read(&mut chunk).await {
++                            Ok(Some(n)) => buffered.extend_from_slice(&chunk[..n]),
++                            _ => return None,
++                        }
++                    }
++                },
++            );
++            let writer = futures::sink::unfold(writer, |mut writer, bytes: Bytes| async move {
++                let mut frame = Vec::new();
++                frame.extend_from_slice(&(bytes.len() as u32).to_be_bytes());
++                frame.extend_from_slice(&bytes);
++                writer
++                    .write_all(&frame)
++                    .await
++                    .map_err(|_| DispatchError::Closed)?;
++                tokio::io::AsyncWriteExt::flush(&mut writer)
++                    .await
++                    .map_err(|_| DispatchError::Closed)?;
++                Ok(writer)
++            });
++            Ok(Wire {
++                reader: Box::pin(reader),
++                writer: Box::pin(writer),
++                server,
++                quic: Some((host_ep, remote_ep, remote)),
++                wt: Some(session),
++            })
++        } else {
++            let (writer, reader) = remote.open_bi().await.unwrap();
++            let reader = FramedRead::new(reader, rvoip_uctp::substrate::length_prefixed_codec())
++                .map(|frame| {
++                    frame
++                        .map(|bytes| bytes.freeze())
++                        .map_err(|_| DispatchError::Closed)
++                });
++            let writer = FramedWrite::new(writer, rvoip_uctp::substrate::length_prefixed_codec())
++                .sink_map_err(|_| DispatchError::Closed);
++            Ok(Wire {
++                reader: Box::pin(reader),
++                writer: Box::pin(writer),
++                server,
++                quic: Some((host_ep, remote_ep, remote)),
++                wt: None,
++            })
++        }
++    } else {
++        let (send, receive) = mpsc::channel(4);
++        use rvoip_uctp::substrate::{dev_client_config_trusting, self_signed_for_dev};
++        use tokio_tungstenite::{
++            tungstenite::{client::IntoClientRequest, Message},
++            Connector,
++        };
++        let _ = rustls::crypto::ring::default_provider().install_default();
++        let (cert, key) = self_signed_for_dev(&["localhost".into()]).unwrap();
++        let tls = rustls::ServerConfig::builder()
++            .with_no_client_auth()
++            .with_single_cert(vec![cert.clone()], key)
++            .unwrap();
++        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
++        let addr = listener.local_addr().unwrap();
++        let server = rvoip_websocket::canonical::start(
++            receive,
++            Arc::new(tls),
++            profile,
++            "wss://localhost/uctp".into(),
++            "/uctp".into(),
++            Some(HashSet::from(["https://allowed.example".into()])),
++        )?;
++        let mut request = format!("wss://localhost:{}{path}", addr.port())
++            .into_client_request()
++            .unwrap();
++        if let Some(origin) = origin {
++            request
++                .headers_mut()
++                .insert("origin", origin.parse().unwrap());
++        }
++        let connect = tokio_tungstenite::connect_async_tls_with_config(
++            request,
++            None,
++            false,
++            Some(Connector::Rustls(Arc::new(
++                dev_client_config_trusting(&cert).unwrap(),
++            ))),
++        );
++        let accept = async {
++            let (socket, _) = listener.accept().await.unwrap();
++            send.send(socket).await.unwrap();
++        };
++        let (connected, _) = tokio::join!(connect, accept);
++        let (ws, _) = match connected {
++            Ok(pair) => pair,
++            Err(_) => {
++                server.shutdown().await?;
++                return Err(DispatchError::Authority);
++            }
++        };
++        let (writer, reader) = ws.split();
++        let reader = reader.map(|message| match message {
++            Ok(Message::Text(text)) => Ok(Bytes::copy_from_slice(text.as_bytes())),
++            _ => Err(DispatchError::Closed),
++        });
++        let writer = writer
++            .with(|bytes: Bytes| async move {
++                Ok::<_, tokio_tungstenite::tungstenite::Error>(Message::Text(
++                    String::from_utf8(bytes.to_vec()).unwrap().into(),
++                ))
++            })
++            .sink_map_err(|_| DispatchError::Closed);
++        Ok(Wire {
++            reader: Box::pin(reader),
++            writer: Box::pin(writer),
++            server,
++            quic: None,
++            wt: None,
++        })
++    }
++}
++async fn authenticate_wire(wire: &mut Wire, f: &Fixture) -> Envelope {
++    wire.send(serde_json::to_vec(&hello()).unwrap()).await;
++    let challenge = wire.read().await;
++    assert_eq!(challenge.kind(), "auth.challenge");
++    f.verify_server(&challenge).await;
++    wire.send(f.sign(response(&challenge, "old"))).await;
++    let session = wire.read().await;
++    assert_eq!(session.kind(), "auth.session");
++    f.verify_server(&session).await;
++    session
++}
++async fn lifecycle(kind: &str) {
++    let f = Fixture::new();
++    let handler = Arc::new(Handler::default());
++    let profile = CanonicalProfile::new(f.config.clone(), handler.clone(), 8).unwrap();
++    let mut wire = wire(kind, profile, "/uctp", Some("https://allowed.example"))
++        .await
++        .unwrap();
++    let session = authenticate_wire(&mut wire, &f).await;
++    wire.send(f.sign(command())).await;
++    let reply = wire.read().await;
++    f.verify_server(&reply).await;
++    assert_eq!(handler.calls.load(Ordering::SeqCst), 1);
++    wire.send(f.sign(envelope(
++        "auth.refresh",
++        json!({"method":"bearer","credential":"new"}),
++    )))
++    .await;
++    let next = wire.read().await;
++    assert_eq!(next.kind(), "auth.session");
++    f.verify_server(&next).await;
++    assert_ne!(
++        session.original()["payload"]["session_token"],
++        next.original()["payload"]["session_token"]
++    );
++    wire.server.begin_drain();
++    assert!(wire.server.is_draining());
++    wire.send(f.sign(command())).await;
++    let _ = wire.read().await;
++    assert_eq!(handler.calls.load(Ordering::SeqCst), 2);
++    wire.server.shutdown().await.unwrap();
++    wire.retired().await;
++    assert_eq!(wire.server.stats().accepted_physical, 1);
++}
++#[tokio::test]
++async fn quic_canonical_driver_auth_control_refresh_drain_shutdown() {
++    lifecycle("quic").await;
++}
++#[tokio::test]
++async fn wt_canonical_bidi_driver_auth_control_refresh_drain_shutdown() {
++    lifecycle("wt").await;
++}
++#[tokio::test]
++async fn wss_canonical_text_driver_auth_control_refresh_drain_shutdown() {
++    lifecycle("ws").await;
++}
++#[tokio::test]
++async fn http_upgrades_reject_wrong_origin_missing_origin_and_mount_before_auth() {
++    for kind in ["wt", "ws"] {
++        for (path, origin) in [
++            ("/uctp", Some("https://evil.example")),
++            ("/uctp", None),
++            ("/wrong", Some("https://allowed.example")),
++        ] {
++            let f = Fixture::new();
++            let handler = Arc::new(Handler::default());
++            let profile = CanonicalProfile::new(f.config.clone(), handler.clone(), 8).unwrap();
++            assert!(wire(kind, profile, path, origin).await.is_err());
++            assert_eq!(f.validator.calls.load(Ordering::SeqCst), 0);
++            assert_eq!(handler.calls.load(Ordering::SeqCst), 0);
++        }
++    }
++}
++#[tokio::test]
++async fn quic_driver_refuses_actual_legacy_alpn_before_auth() {
++    let f = Fixture::new();
++    let handler = Arc::new(Handler::default());
++    let profile = CanonicalProfile::new(f.config.clone(), handler.clone(), 1).unwrap();
++    let (_host_ep, _remote_ep, host, remote) = pair(b"uctp/1").await;
++    let (send, receive) = mpsc::channel(1);
++    let server = rvoip_quic::canonical::start(receive, profile, "quic://localhost".into()).unwrap();
++    send.send(host).await.unwrap();
++    tokio::time::timeout(Duration::from_secs(3), remote.closed())
++        .await
++        .unwrap();
++    server.shutdown().await.unwrap();
++    assert_eq!(handler.calls.load(Ordering::SeqCst), 0);
++    assert_eq!(f.validator.calls.load(Ordering::SeqCst), 0);
++}
++#[tokio::test]
++async fn supervisor_bounds_admission_and_retains_shutdown_after_cancelled_wait() {
++    let (send, receive) = mpsc::channel(4);
++    let entered = Arc::new(Notify::new());
++    let entry = entered.clone();
++    let stopping = Arc::new(Notify::new());
++    let stopped = stopping.clone();
++    let release = Arc::new(Notify::new());
++    let released = release.clone();
++    let server = ProfileServer::spawn(
++        receive,
++        1,
++        move |_: (), cancel| {
++            let entry = entry.clone();
++            let stopped = stopped.clone();
++            let released = released.clone();
++            async move {
++                entry.notify_one();
++                cancel.cancelled().await;
++                stopped.notify_one();
++                released.notified().await;
++                Ok(())
++            }
++        },
++        |_| {},
++    )
++    .unwrap();
++    send.send(()).await.unwrap();
++    entered.notified().await;
++    send.send(()).await.unwrap();
++    tokio::time::timeout(Duration::from_secs(3), async {
++        while server.stats().rejected_physical != 1 {
++            tokio::task::yield_now().await;
++        }
++    })
++    .await
++    .unwrap();
++    let control = server.clone();
++    let waiter = tokio::spawn(async move { control.shutdown().await });
++    stopping.notified().await;
++    waiter.abort();
++    let _ = waiter.await;
++    assert_eq!(server.stats().active_physical, 1);
++    release.notify_one();
++    server.shutdown().await.unwrap();
++    assert_eq!(server.stats().active_physical, 0);
++    assert_eq!(server.stats().accepted_physical, 1);
++    assert_eq!(server.stats().rejected_physical, 1);
++}
++
++use rvoip_uctp::v2::reachability::{ReachabilityRegistry, RouteAuthority, RouteHandle};
++struct RoutePolicy {
++    policy: Arc<Policy>,
++    tokens: std::sync::Mutex<std::collections::HashMap<(String, String), CancellationToken>>,
++    deny: AtomicBool,
++    deny_lifetime: AtomicBool,
++    hold: AtomicBool,
++    entered: Notify,
++    release: Notify,
++    deliveries: AtomicUsize,
++}
++impl RoutePolicy {
++    fn new(policy: Arc<Policy>) -> Arc<Self> {
++        Arc::new(Self {
++            policy,
++            tokens: std::sync::Mutex::new(std::collections::HashMap::new()),
++            deny: AtomicBool::new(false),
++            deny_lifetime: AtomicBool::new(false),
++            hold: AtomicBool::new(false),
++            entered: Notify::new(),
++            release: Notify::new(),
++            deliveries: AtomicUsize::new(0),
++        })
++    }
++    fn revoke(&self, token: &str, device: &str) {
++        if let Some(token) = self
++            .tokens
++            .lock()
++            .unwrap()
++            .get(&(token.into(), device.into()))
++        {
++            token.cancel();
++        }
++    }
++}
++#[async_trait]
++impl RouteAuthority for RoutePolicy {
++    fn lifetime(
++        &self,
++        c: &ValidatedBearer,
++        d: &Device,
++        _: &Identifier,
++    ) -> Result<CancellationToken, DispatchError> {
++        if self.deny_lifetime.load(Ordering::SeqCst) {
++            return Err(DispatchError::Authority);
++        }
++        let key = (
++            c.token_id.clone().ok_or(DispatchError::Authority)?,
++            d.id.as_str().to_owned(),
++        );
++        Ok(self.tokens.lock().unwrap().entry(key).or_default().clone())
++    }
++    async fn delivery(
++        &self,
++        c: &ValidatedBearer,
++        d: &Device,
++        i: &Identifier,
++        e: &Envelope,
++    ) -> Result<AuthorityLease, DispatchError> {
++        self.deliveries.fetch_add(1, Ordering::SeqCst);
++        self.entered.notify_one();
++        if self.hold.load(Ordering::SeqCst) {
++            self.release.notified().await;
++        }
++        if self.deny.load(Ordering::SeqCst)
++            || !c.principal.has_scope("control")
++            || e.scope(Scope::Conversation) != Some("conversation")
++        {
++            return Err(DispatchError::Authority);
++        }
++        self.policy.guard(c, d, i, e).await
++    }
++}
++fn owner() -> rvoip_auth_core::PrincipalOwnershipKey {
++    principal("old").ownership_key()
++}
++fn identity() -> Identifier {
++    Identifier::try_from("identity-alice".to_owned()).unwrap()
++}
++fn event() -> Envelope {
++    let mut value = envelope(
++        "conversation.event",
++        json!({"event_id":"event-fixture","cursor":"cursor-fixture","kind":"fixture","revision":1,"data":{"text":"guarded-route-payload"}}),
++    );
++    value["cid"] = json!("conversation");
++    value["operation_id"] = json!("logical-route-operation");
++    Envelope::from_value(value).unwrap()
++}
++fn routes(registry: &ReachabilityRegistry) -> Vec<RouteHandle> {
++    registry.routes_for(&owner(), &identity()).unwrap()
++}
++async fn routed_lifecycle(kind: &str) {
++    let f = Fixture::new();
++    let handler = Arc::new(Handler::default());
++    let registry = ReachabilityRegistry::new(8).unwrap();
++    let policy = RoutePolicy::new(f.policy.clone());
++    let profile = CanonicalProfile::new(f.config.clone(), handler, 8)
++        .unwrap()
++        .with_reachability(
++            registry.clone(),
++            policy.clone(),
++            Duration::from_secs(30),
++            10,
++        )
++        .unwrap();
++    let mut wire = wire(kind, profile, "/uctp", Some("https://allowed.example"))
++        .await
++        .unwrap();
++    assert!(routes(&registry).is_empty());
++    let session = authenticate_wire(&mut wire, &f).await;
++    assert_eq!(
++        session.original()["payload"]["reachability"][0]["transport"],
++        match kind {
++            "quic" => "quic",
++            "wt" => "webtransport",
++            _ => "websocket",
++        }
++    );
++    let old = routes(&registry).pop().unwrap();
++    let sent = old.submit(event(), deadline()).await.unwrap();
++    let observed = wire.read().await;
++    assert_eq!(observed.id(), sent.envelope_id().as_str());
++    assert_eq!(observed.kind(), "conversation.event");
++    f.verify_server(&observed).await;
++    policy.deny.store(true, Ordering::SeqCst);
++    assert!(matches!(
++        old.submit(event(), deadline()).await,
++        Err(DispatchError::Authority)
++    ));
++    policy.deny.store(false, Ordering::SeqCst);
++    wire.send(f.sign(envelope(
++        "auth.refresh",
++        json!({"method":"bearer","credential":"new"}),
++    )))
++    .await;
++    assert_eq!(wire.read().await.kind(), "auth.session");
++    assert!(old.submit(event(), deadline()).await.is_err());
++    assert_eq!(routes(&registry).len(), 1);
++    let current = routes(&registry).pop().unwrap();
++    current.submit(event(), deadline()).await.unwrap();
++    let observed = wire.read().await;
++    f.verify_server(&observed).await;
++    policy.revoke("new", "device-alice");
++    let bye = wire.read().await;
++    assert_eq!(bye.kind(), "auth.bye");
++    f.verify_server(&bye).await;
++    wire.retired().await;
++    assert!(routes(&registry).is_empty());
++    assert!(current.submit(event(), deadline()).await.is_err());
++    wire.server.shutdown().await.unwrap();
++}
++#[tokio::test]
++async fn quic_driver_registry_submission_refresh_revocation_cleanup() {
++    routed_lifecycle("quic").await;
++}
++#[tokio::test]
++async fn wt_driver_registry_submission_refresh_revocation_cleanup() {
++    routed_lifecycle("wt").await;
++}
++#[tokio::test]
++async fn wss_driver_registry_submission_refresh_revocation_cleanup() {
++    routed_lifecycle("ws").await;
++}
++#[tokio::test]
++async fn wt_wss_reject_oversized_frames_and_retire_routes() {
++    for kind in ["wt", "ws"] {
++        let f = Fixture::new();
++        let registry = ReachabilityRegistry::new(8).unwrap();
++        let policy = RoutePolicy::new(f.policy.clone());
++        let profile = CanonicalProfile::new(f.config.clone(), Arc::new(Handler::default()), 8)
++            .unwrap()
++            .with_reachability(registry.clone(), policy, Duration::from_secs(30), 10)
++            .unwrap();
++        let mut wire = wire(kind, profile, "/uctp", Some("https://allowed.example"))
++            .await
++            .unwrap();
++        authenticate_wire(&mut wire, &f).await;
++        assert_eq!(routes(&registry).len(), 1);
++        let _ = wire
++            .writer
++            .send(Bytes::from(vec![b' '; 1024 * 1024 + 1]))
++            .await;
++        wire.retired().await;
++        assert!(routes(&registry).is_empty());
++        wire.server.shutdown().await.unwrap();
++    }
++}
++#[tokio::test]
++async fn transport_drivers_reject_old_envelopes_without_authentication_effects() {
++    for kind in ["quic", "wt", "ws"] {
++        let f = Fixture::new();
++        let handler = Arc::new(Handler::default());
++        let profile = CanonicalProfile::new(f.config.clone(), handler.clone(), 8).unwrap();
++        let mut wire = wire(kind, profile, "/uctp", Some("https://allowed.example"))
++            .await
++            .unwrap();
++        let mut old = hello();
++        old["v"] = json!(1);
++        wire.send(serde_json::to_vec(&old).unwrap()).await;
++        let problem = wire.read().await;
++        assert_eq!(problem.kind(), "error");
++        assert_eq!(f.validator.calls.load(Ordering::SeqCst), 0);
++        assert_eq!(handler.calls.load(Ordering::SeqCst), 0);
++        wire.server.shutdown().await.unwrap();
++    }
++}
++
++#[tokio::test]
++async fn quic_driver_oversized_prefix_and_truncated_frame_retire_without_handler() {
++    for bytes in [
++        ((1024 * 1024 + 1) as u32).to_be_bytes().to_vec(),
++        vec![0, 0, 0, 20, b'{'],
++    ] {
++        let f = Fixture::new();
++        let handler = Arc::new(Handler::default());
++        let profile = CanonicalProfile::new(f.config.clone(), handler.clone(), 8).unwrap();
++        let (_host_ep, _remote_ep, host, remote) = pair(RAW_QUIC_ALPN).await;
++        let (send, receive) = mpsc::channel(1);
++        let server =
++            rvoip_quic::canonical::start(receive, profile, "quic://localhost".into()).unwrap();
++        send.send(host).await.unwrap();
++        let (mut writer, _reader) = remote.open_bi().await.unwrap();
++        writer.write_all(&bytes).await.unwrap();
++        writer.finish().unwrap();
++        tokio::time::timeout(Duration::from_secs(3), remote.closed())
++            .await
++            .unwrap();
++        server.shutdown().await.unwrap();
++        assert_eq!(handler.calls.load(Ordering::SeqCst), 0);
++        assert_eq!(f.validator.calls.load(Ordering::SeqCst), 0);
++    }
++}
++#[tokio::test]
++async fn wss_binary_message_is_rejected_before_authentication() {
++    use rvoip_uctp::substrate::{dev_client_config_trusting, self_signed_for_dev};
++    use tokio_tungstenite::{
++        tungstenite::{client::IntoClientRequest, Message},
++        Connector,
++    };
++    let _ = rustls::crypto::ring::default_provider().install_default();
++    let (cert, key) = self_signed_for_dev(&["localhost".into()]).unwrap();
++    let tls = rustls::ServerConfig::builder()
++        .with_no_client_auth()
++        .with_single_cert(vec![cert.clone()], key)
++        .unwrap();
++    let f = Fixture::new();
++    let handler = Arc::new(Handler::default());
++    let profile = CanonicalProfile::new(f.config.clone(), handler.clone(), 8).unwrap();
++    let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
++    let addr = listener.local_addr().unwrap();
++    let (send, receive) = mpsc::channel(1);
++    let server = rvoip_websocket::canonical::start(
++        receive,
++        Arc::new(tls),
++        profile,
++        "wss://localhost/uctp".into(),
++        "/uctp".into(),
++        None,
++    )
++    .unwrap();
++    let request = format!("wss://localhost:{}/uctp", addr.port())
++        .into_client_request()
++        .unwrap();
++    let connect = tokio_tungstenite::connect_async_tls_with_config(
++        request,
++        None,
++        false,
++        Some(Connector::Rustls(Arc::new(
++            dev_client_config_trusting(&cert).unwrap(),
++        ))),
++    );
++    let accept = async {
++        let (socket, _) = listener.accept().await.unwrap();
++        send.send(socket).await.unwrap();
++    };
++    let (connected, _) = tokio::join!(connect, accept);
++    let (mut socket, _) = connected.unwrap();
++    socket
++        .send(Message::Binary(
++            serde_json::to_vec(&hello()).unwrap().into(),
++        ))
++        .await
++        .unwrap();
++    let end = tokio::time::timeout(Duration::from_secs(3), socket.next())
++        .await
++        .unwrap();
++    assert!(!matches!(end, Some(Ok(Message::Text(_)))));
++    server.shutdown().await.unwrap();
++    assert_eq!(f.validator.calls.load(Ordering::SeqCst), 0);
++    assert_eq!(handler.calls.load(Ordering::SeqCst), 0);
++    assert_eq!(server.stats().active_physical, 0);
++}
++#[tokio::test]
++async fn quic_driver_bounds_wait_for_first_signaling_stream() {
++    let f = Fixture::new();
++    let profile = CanonicalProfile::new(f.config.clone(), Arc::new(Handler::default()), 8).unwrap();
++    let (_host_ep, _remote_ep, host, remote) = pair(RAW_QUIC_ALPN).await;
++    let (send, receive) = mpsc::channel(1);
++    let server = rvoip_quic::canonical::start(receive, profile, "quic://localhost".into()).unwrap();
++    send.send(host).await.unwrap();
++    tokio::time::timeout(Duration::from_secs(12), remote.closed())
++        .await
++        .expect("ten-second first-stream deadline");
++    server.shutdown().await.unwrap();
++    assert_eq!(f.validator.calls.load(Ordering::SeqCst), 0);
++    assert_eq!(server.stats().active_physical, 0);
++}
++#[tokio::test]
++async fn supervisor_reports_panicked_peer_and_drains_siblings() {
++    let (send, receive) = mpsc::channel(2);
++    let server = ProfileServer::spawn(
++        receive,
++        2,
++        |panic: bool, cancel| async move {
++            if panic {
++                panic!("fixture peer panic");
++            }
++            cancel.cancelled().await;
++            Ok(())
++        },
++        |_| {},
++    )
++    .unwrap();
++    send.send(false).await.unwrap();
++    send.send(true).await.unwrap();
++    tokio::time::timeout(Duration::from_secs(3), async {
++        while server.stats().accepted_physical != 2 || server.stats().active_physical != 0 {
++            tokio::task::yield_now().await;
++        }
++    })
++    .await
++    .unwrap();
++    assert_eq!(server.shutdown().await, Err(DispatchError::Closed));
++}
++#[test]
++fn configured_http_origins_require_exactly_one_header() {
++    use rvoip_uctp::v2::server::origin_allowed;
++    let allowed = HashSet::from(["https://allowed.example".into()]);
++    assert!(origin_allowed(["https://allowed.example"], Some(&allowed)));
++    assert!(!origin_allowed([], Some(&allowed)));
++    assert!(!origin_allowed(
++        ["https://allowed.example", "https://allowed.example"],
++        Some(&allowed)
++    ));
++    assert!(!origin_allowed(
++        ["https://allowed.example.evil"],
++        Some(&allowed)
++    ));
++    assert!(origin_allowed([], None));
++}
++
++#[tokio::test(start_paused = true)]
++async fn last_server_control_drop_aborts_and_joins_noncooperative_peer() {
++    struct NotifyDrop(Arc<Notify>);
++    impl Drop for NotifyDrop {
++        fn drop(&mut self) {
++            self.0.notify_one();
++        }
++    }
++    let entered = Arc::new(Notify::new());
++    let entry = entered.clone();
++    let retired = Arc::new(Notify::new());
++    let retirement = retired.clone();
++    let (send, receive) = mpsc::channel(1);
++    let server = ProfileServer::spawn(
++        receive,
++        1,
++        move |_: (), _| {
++            let entry = entry.clone();
++            let retirement = retirement.clone();
++            async move {
++                let _guard = NotifyDrop(retirement);
++                entry.notify_one();
++                std::future::pending::<()>().await;
++                Ok(())
++            }
++        },
++        |_| {},
++    )
++    .unwrap();
++    send.send(()).await.unwrap();
++    entered.notified().await;
++    let remaining = server.clone();
++    drop(server);
++    assert_eq!(remaining.stats().active_physical, 1);
++    drop(remaining);
++    tokio::time::timeout(Duration::from_secs(3), retired.notified())
++        .await
++        .expect("retained supervisor aborted peer after bounded cleanup");
++}
+diff --git a/crates/uctp/rvoip-websocket/src/canonical.rs b/crates/uctp/rvoip-websocket/src/canonical.rs
+new file mode 100644
+index 0000000..0bd2f31
+--- /dev/null
++++ b/crates/uctp/rvoip-websocket/src/canonical.rs
+@@ -0,0 +1,115 @@
++//! Canonical connect/2 text frames over TLS WebSocket, without a v1 coordinator.
++use bytes::Bytes;
++use futures::{SinkExt, StreamExt};
++use rvoip_uctp::v2::{
++    auth_dispatch::DispatchError,
++    auth_peer::AUTHENTICATION_TIMEOUT,
++    reachability::PeerTransport,
++    server::{origin_allowed, CanonicalProfile, ProfileServer},
++    MAX_ENVELOPE_BYTES,
++};
++use std::{collections::HashSet, sync::Arc};
++use tokio::{net::TcpStream, sync::mpsc};
++use tokio_tungstenite::{
++    accept_hdr_async_with_config,
++    tungstenite::{
++        handshake::server::{ErrorResponse, Request, Response},
++        protocol::{Message, WebSocketConfig},
++    },
++};
++
++/// Feed raw accepted TCP streams; this driver owns TLS, HTTP upgrade, canonical
++/// authentication and physical retirement. The listener stays caller-owned.
++pub fn start(
++    incoming: mpsc::Receiver<TcpStream>,
++    tls: Arc<rustls::ServerConfig>,
++    profile: CanonicalProfile,
++    contact: String,
++    mount: String,
++    origins: Option<HashSet<String>>,
++) -> Result<ProfileServer, DispatchError> {
++    if !mount.starts_with('/') || mount.contains(['?', '#']) {
++        return Err(DispatchError::Unsupported);
++    }
++    let origins = Arc::new(origins);
++    ProfileServer::spawn(
++        incoming,
++        profile.max_connections(),
++        move |socket, cancel| {
++            let tls = tls.clone();
++            let profile = profile.clone();
++            let contact = contact.clone();
++            let mount = mount.clone();
++            let origins = origins.clone();
++            async move {
++                let deadline = tokio::time::Instant::now() + AUTHENTICATION_TIMEOUT;
++                let peer = profile.peer(PeerTransport::WebSocket, &contact, cancel.clone())?;
++                let upgrade = async move {
++                    let socket = tokio_rustls::TlsAcceptor::from(tls)
++                        .accept(socket)
++                        .await
++                        .map_err(|_| DispatchError::Closed)?;
++                    let callback = move |request: &Request,
++                                         response: Response|
++                          -> Result<Response, ErrorResponse> {
++                        let valid_origin = origin_allowed(
++                            request
++                                .headers()
++                                .get_all("origin")
++                                .iter()
++                                .map(|value| value.to_str().unwrap_or("")),
++                            origins.as_ref().as_ref(),
++                        );
++                        if request.uri().path() != mount || !valid_origin {
++                            let status = if !valid_origin { 403 } else { 404 };
++                            return Err(Response::builder()
++                                .status(status)
++                                .body(Some("upgrade denied".into()))
++                                .expect("static HTTP response"));
++                        }
++                        Ok(response)
++                    };
++                    accept_hdr_async_with_config(
++                        socket,
++                        callback,
++                        Some(
++                            WebSocketConfig::default()
++                                .max_message_size(Some(MAX_ENVELOPE_BYTES))
++                                .max_frame_size(Some(MAX_ENVELOPE_BYTES)),
++                        ),
++                    )
++                    .await
++                    .map_err(|_| DispatchError::Closed)
++                };
++                let websocket = tokio::select! {
++                    biased;
++                    _=cancel.cancelled()=>return Err(DispatchError::Closed),
++                    result=tokio::time::timeout_at(deadline,upgrade)=>result.map_err(|_|DispatchError::Closed)??,
++                };
++                let (writer, reader) = websocket.split();
++                let reader = futures::stream::unfold(reader, |mut reader| async move {
++                    loop {
++                        match reader.next().await {
++                            Some(Ok(Message::Text(text))) => {
++                                return Some((Ok(Bytes::copy_from_slice(text.as_bytes())), reader))
++                            }
++                            Some(Ok(Message::Ping(_) | Message::Pong(_))) => continue,
++                            Some(Ok(Message::Close(_))) | None => return None,
++                            _ => return Some((Err(DispatchError::Closed), reader)),
++                        }
++                    }
++                });
++                let writer = writer
++                    .with(|bytes: Bytes| async move {
++                        String::from_utf8(bytes.to_vec())
++                            .map(|text| Message::Text(text.into()))
++                            .map_err(|_| tokio_tungstenite::tungstenite::Error::ConnectionClosed)
++                    })
++                    .sink_map_err(|_| DispatchError::Closed);
++                peer.run_frames(Box::pin(reader), Box::pin(writer), profile.handler.as_ref())
++                    .await
++            }
++        },
++        drop,
++    )
++}
+diff --git a/crates/uctp/rvoip-websocket/src/lib.rs b/crates/uctp/rvoip-websocket/src/lib.rs
+index 2386c34..17502ef 100644
+--- a/crates/uctp/rvoip-websocket/src/lib.rs
++++ b/crates/uctp/rvoip-websocket/src/lib.rs
+@@ -31,3 +31,6 @@ pub use client::UctpWsClient;
+ pub use errors::{Result, UctpWsError};
+ pub use media_bridge::{BridgeRole, WebRtcMediaBridge};
+ pub use server::UctpWsServer;
++
++#[cfg(feature = "wss")]
++pub mod canonical;
+diff --git a/crates/uctp/rvoip-webtransport/src/canonical.rs b/crates/uctp/rvoip-webtransport/src/canonical.rs
+new file mode 100644
+index 0000000..f97bae3
+--- /dev/null
++++ b/crates/uctp/rvoip-webtransport/src/canonical.rs
+@@ -0,0 +1,133 @@
++//! Canonical connect/2 over one bidirectional WebTransport signaling stream.
++use bytes::Bytes;
++use rvoip_uctp::v2::{
++    auth_dispatch::DispatchError,
++    auth_peer::AUTHENTICATION_TIMEOUT,
++    reachability::PeerTransport,
++    server::{origin_allowed, CanonicalProfile, ProfileServer},
++    MAX_ENVELOPE_BYTES,
++};
++use std::{collections::HashSet, sync::Arc};
++use tokio::sync::mpsc;
++
++struct Close(quinn::Connection);
++impl Drop for Close {
++    fn drop(&mut self) {
++        self.0.close(0u32.into(), b"canonical-peer-retired");
++    }
++}
++
++/// A configured allowlist requires exactly one matching Origin. None explicitly
++/// enables a native deployment without browser Origin enforcement.
++pub fn start(
++    incoming: mpsc::Receiver<quinn::Connection>,
++    profile: CanonicalProfile,
++    contact: String,
++    mount: String,
++    origins: Option<HashSet<String>>,
++) -> Result<ProfileServer, DispatchError> {
++    if !mount.starts_with('/') || mount.contains(['?', '#']) {
++        return Err(DispatchError::Unsupported);
++    }
++    let origins = Arc::new(origins);
++    ProfileServer::spawn(
++        incoming,
++        profile.max_connections(),
++        move |connection, cancel| {
++            let profile = profile.clone();
++            let contact = contact.clone();
++            let mount = mount.clone();
++            let origins = origins.clone();
++            async move {
++                let _close = Close(connection.clone());
++                let alpn = connection
++                    .handshake_data()
++                    .and_then(|data| data.downcast::<quinn::crypto::rustls::HandshakeData>().ok())
++                    .and_then(|data| data.protocol.clone());
++                if alpn.as_deref() != Some(b"h3".as_slice()) {
++                    return Err(DispatchError::Unsupported);
++                }
++                let deadline = tokio::time::Instant::now() + AUTHENTICATION_TIMEOUT;
++                let peer = profile.peer(PeerTransport::WebTransport, &contact, cancel.clone())?;
++                let upgrade = async {
++                    let request = web_transport_quinn::Request::accept(connection)
++                        .await
++                        .map_err(|_| DispatchError::Closed)?;
++                    let valid_origin = origin_allowed(
++                        request
++                            .headers
++                            .get_all(http::header::ORIGIN)
++                            .iter()
++                            .map(|value| value.to_str().unwrap_or("")),
++                        origins.as_ref().as_ref(),
++                    );
++                    if request.url.path() != mount || !valid_origin {
++                        let status = if !valid_origin {
++                            http::StatusCode::FORBIDDEN
++                        } else {
++                            http::StatusCode::NOT_FOUND
++                        };
++                        let _ = request.reject(status).await;
++                        return Err(DispatchError::Authority);
++                    }
++                    let session = request.ok().await.map_err(|_| DispatchError::Closed)?;
++                    let (writer, reader) = session
++                        .accept_bi()
++                        .await
++                        .map_err(|_| DispatchError::Closed)?;
++                    Ok((session, writer, reader))
++                };
++                let (_session, mut transport_writer, reader) = tokio::select! {
++                    biased;
++                    _=cancel.cancelled()=>return Err(DispatchError::Closed),
++                    result=tokio::time::timeout_at(deadline,upgrade)=>result.map_err(|_|DispatchError::Closed)??,
++                };
++                // Retain the native read API: the Tokio adapter can lose the wake
++                // after consuming a coalesced WebTransport stream header.
++                let reader = futures::stream::unfold(
++                    crate::framing::EnvelopeReader::new(reader),
++                    |mut reader| async move {
++                        match reader.next_bytes().await {
++                            Ok(Some(bytes)) => Some((Ok(bytes), reader)),
++                            Ok(None) => None,
++                            Err(_) => Some((Err(DispatchError::Closed), reader)),
++                        }
++                    },
++                );
++                let writer = futures::sink::unfold(
++                    &mut transport_writer,
++                    |writer, bytes: Bytes| async move {
++                        if bytes.len() > MAX_ENVELOPE_BYTES {
++                            return Err(DispatchError::Closed);
++                        }
++                        let mut frame = Vec::with_capacity(4 + bytes.len());
++                        frame.extend_from_slice(&(bytes.len() as u32).to_be_bytes());
++                        frame.extend_from_slice(&bytes);
++                        writer
++                            .write_all(&frame)
++                            .await
++                            .map_err(|_| DispatchError::Closed)?;
++                        tokio::io::AsyncWriteExt::flush(writer)
++                            .await
++                            .map_err(|_| DispatchError::Closed)?;
++                        Ok(writer)
++                    },
++                );
++                let result = peer
++                    .run_frames(Box::pin(reader), Box::pin(writer), profile.handler.as_ref())
++                    .await;
++                // Keep the CONNECT session and physical connection until the
++                // signaling FIN is acknowledged, bounded by shutdown/one second.
++                if transport_writer.finish().is_ok() {
++                    tokio::select! {
++                        biased;
++                        _=cancel.cancelled()=>{},
++                        _=tokio::time::timeout(std::time::Duration::from_secs(1),transport_writer.stopped())=>{},
++                    }
++                }
++                result
++            }
++        },
++        |connection| connection.close(0u32.into(), b"canonical-admission-closed"),
++    )
++}
+diff --git a/crates/uctp/rvoip-webtransport/src/framing.rs b/crates/uctp/rvoip-webtransport/src/framing.rs
+index 5d455be..5a4cc53 100644
+--- a/crates/uctp/rvoip-webtransport/src/framing.rs
++++ b/crates/uctp/rvoip-webtransport/src/framing.rs
+@@ -8,7 +8,7 @@
+ //! could otherwise leave the first envelope parked until the authentication
+ //! deadline closed the peer.
+ 
+-use bytes::{Buf, BytesMut};
++use bytes::{Buf, Bytes, BytesMut};
+ use rvoip_uctp::envelope::UctpEnvelope;
+ 
+ use crate::errors::{Result, UctpWtError};
+@@ -31,6 +31,16 @@ impl EnvelopeReader {
+     }
+ 
+     pub(crate) async fn next(&mut self) -> Result<Option<UctpEnvelope>> {
++        self.next_bytes()
++            .await?
++            .map(|payload| {
++                serde_json::from_slice(&payload)
++                    .map_err(|_| UctpWtError::Session("invalid envelope JSON".into()))
++            })
++            .transpose()
++    }
++
++    pub(crate) async fn next_bytes(&mut self) -> Result<Option<Bytes>> {
+         loop {
+             if self.buffered.len() >= 4 {
+                 let length = u32::from_be_bytes(
+@@ -44,14 +54,7 @@ impl EnvelopeReader {
+                 if self.buffered.len() >= 4 + length {
+                     self.buffered.advance(4);
+                     let payload = self.buffered.split_to(length);
+-                    let envelope: UctpEnvelope = serde_json::from_slice(&payload)
+-                        .map_err(|_| UctpWtError::Session("invalid envelope JSON".into()))?;
+-                    tracing::trace!(
+-                        envelope = envelope.msg_type.diagnostic_label(),
+-                        frame_bytes = length,
+-                        "decoded WebTransport envelope frame"
+-                    );
+-                    return Ok(Some(envelope));
++                    return Ok(Some(payload.freeze()));
+                 }
+             }
+ 
+diff --git a/crates/uctp/rvoip-webtransport/src/lib.rs b/crates/uctp/rvoip-webtransport/src/lib.rs
+index cfaa6d6..37db3d1 100644
+--- a/crates/uctp/rvoip-webtransport/src/lib.rs
++++ b/crates/uctp/rvoip-webtransport/src/lib.rs
+@@ -21,3 +21,5 @@ pub use media_stream::{
+     WebTransportDatagramMediaStream,
+ };
+ pub use server::UctpWtServer;
++
++pub mod canonical;

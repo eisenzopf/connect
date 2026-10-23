@@ -1,0 +1,823 @@
+--- a/crates/foundation/rvoip-core/src/records/projection.rs
++++ b/crates/foundation/rvoip-core/src/records/projection.rs
+@@ -213,6 +213,355 @@
+     pub uuid: Uuid,
+     pub revision: u64,
+ }
++struct ProjectedData {
++    body: Bytes,
++    hash: String,
++    sources: Vec<(RecordSource, bool)>,
++    url_expiries: Vec<DateTime<Utc>>,
++    signed_by: Vec<String>,
++}
++
++/// Canonical projected snapshot data. This owns no authorization or storage
++/// reservation and cannot authorize delivery or later provider-memory reuse.
++/// A host must retain its actual source authority through IO, bound it by
++/// `valid_until`, and rebuild/compare the original selection before later use.
++pub struct RecordContextSnapshot {
++    body: Bytes,
++    content_hash: String,
++    valid_until: Option<DateTime<Utc>>,
++}
++impl RecordContextSnapshot {
++    pub fn body(&self) -> &Bytes {
++        &self.body
++    }
++    pub fn content_hash(&self) -> &str {
++        &self.content_hash
++    }
++    pub fn valid_until(&self) -> Option<DateTime<Utc>> {
++        self.valid_until
++    }
++}
++impl fmt::Debug for RecordContextSnapshot {
++    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
++        f.write_str("RecordContextSnapshot(redacted)")
++    }
++}
++
++/// Pure projection for an already protected host context selection. Source
++/// IDs are an input ceiling, not a grant. The viewer, full manifest, source
++/// dependency pruning and retention use the same algorithm as fetch. Context
++/// never follows, forwards or mints a media URL and has no signing fallback.
++pub fn project_context_snapshot(
++    record: &VconRecord,
++    request: &RecordViewRequest,
++    allowed: &BTreeSet<String>,
++) -> RecordViewResult<RecordContextSnapshot> {
++    if record.uuid() != request.uuid()
++        || crate::store::vcon_store::stored_content_hash(record.body()) != request.body_hash()
++        || record
++            .manifest_hash()
++            .map_err(|_| RecordViewError::Integrity)?
++            != request.manifest_hash()
++    {
++        return Err(RecordViewError::Integrity);
++    }
++    let now = Utc::now();
++    let data = project_data(record, request, allowed, |_, _, _| Ok(None), |_| Ok(None))?;
++    let valid_until = data
++        .sources
++        .iter()
++        .flat_map(|(source, _)| [source.metadata_retention(), source.content_retention()])
++        .filter_map(|retention| match retention {
++            RecordRetention::Until(until) if until > now => Some(until),
++            _ => None,
++        })
++        .min();
++    if valid_until.is_some_and(|until| until <= Utc::now()) {
++        return Err(RecordViewError::Authority);
++    }
++    Ok(RecordContextSnapshot {
++        body: data.body,
++        content_hash: data.hash,
++        valid_until,
++    })
++}
++
++fn project_data(
++    record: &VconRecord,
++    request: &RecordViewRequest,
++    allowed: &BTreeSet<String>,
++    media_reference: impl Fn(
++        &RecordSource,
++        &str,
++        &Value,
++    ) -> RecordViewResult<Option<AuthorizedRecordUrl>>,
++    sign_projection: impl Fn(&rvoip_vcon::Vcon) -> RecordViewResult<Option<RecordSignature>>,
++) -> RecordViewResult<ProjectedData> {
++    let vcon: rvoip_vcon::Vcon =
++        serde_json::from_slice(record.body()).map_err(|_| RecordViewError::Invalid)?;
++    vcon.validate_with_supported_extensions(std::iter::empty::<&str>())
++        .map_err(|_| RecordViewError::Unsupported)?;
++    let raw: Value = serde_json::from_slice(record.body()).map_err(|_| RecordViewError::Invalid)?;
++    let rules = record.manifest().sources();
++    let now = Utc::now();
++    let positions: BTreeMap<_, _> = rules
++        .iter()
++        .enumerate()
++        .map(|(i, s)| (s.target(), i))
++        .collect();
++    let ids: BTreeMap<_, _> = rules.iter().enumerate().map(|(i, s)| (s.id(), i)).collect();
++    let mut keep: Vec<bool> = rules
++        .iter()
++        .map(|s| {
++            allowed.contains(s.id())
++                && s.admits(request.viewer())
++                && s.metadata_retention().permits(now)
++        })
++        .collect();
++    let mut content: Vec<bool> = rules
++        .iter()
++        .map(|s| s.state() == RecordSourceState::Available && s.content_retention().permits(now))
++        .collect();
++    let mut references: BTreeMap<usize, AuthorizedRecordUrl> = BTreeMap::new();
++    let mut causes: BTreeMap<usize, &str> = BTreeMap::new();
++    for (i, source) in rules.iter().enumerate() {
++        if !keep[i] {
++            continue;
++        }
++        if !content[i] {
++            causes.insert(i, "retention");
++            continue;
++        }
++        let item = match source.target() {
++            RecordTarget::Dialog(n) => &raw["dialog"][n as usize],
++            RecordTarget::Analysis(n) => &raw["analysis"][n as usize],
++            RecordTarget::Attachment(n) => &raw["attachments"][n as usize],
++            _ => &Value::Null,
++        };
++        if let Some(url) = item.get("url").and_then(Value::as_str) {
++            match media_reference(
++                source,
++                url,
++                item.get("content_hash").unwrap_or(&Value::Null),
++            )? {
++                Some(reference) => {
++                    references.insert(i, reference);
++                }
++                None => {
++                    content[i] = false;
++                    causes.insert(i, "media-reference-unavailable");
++                }
++            }
++        }
++    }
++    let mut reverse = vec![vec![]; rules.len()];
++    let mut edges = 0;
++    for (i, source) in rules.iter().enumerate() {
++        let mut dependencies = Vec::new();
++        for reference in source.references() {
++            dependencies.push(
++                *ids.get(reference.as_str())
++                    .ok_or(RecordViewError::Invalid)?,
++            );
++        }
++        for target in dependencies_for(source.target(), &raw)? {
++            dependencies.push(*positions.get(&target).ok_or(RecordViewError::Invalid)?);
++        }
++        dependencies.sort_unstable();
++        dependencies.dedup();
++        edges += dependencies.len();
++        if edges > MAX_RECORD_SOURCES * 64 {
++            return Err(RecordViewError::Invalid);
++        }
++        for dependency in dependencies {
++            reverse[dependency].push(i);
++        }
++        if let RecordTarget::Dialog(index) = source.target() {
++            let dialog = &raw["dialog"][index as usize];
++            if dialog["type"] == "recording-set" {
++                for child in numbers(&dialog["recordings"])? {
++                    if !content[*positions
++                        .get(&RecordTarget::Dialog(child))
++                        .ok_or(RecordViewError::Invalid)?]
++                    {
++                        keep[i] = false;
++                    }
++                }
++            }
++            if dialog["type"] == "transfer" {
++                for child in numbers(&dialog["original"])? {
++                    if !content[*positions
++                        .get(&RecordTarget::Dialog(child))
++                        .ok_or(RecordViewError::Invalid)?]
++                    {
++                        keep[i] = false;
++                    }
++                }
++            }
++        }
++    }
++    let mut queue: VecDeque<_> = keep
++        .iter()
++        .enumerate()
++        .filter_map(|(i, k)| (!k).then_some(i))
++        .collect();
++    while let Some(hidden) = queue.pop_front() {
++        for &dependent in &reverse[hidden] {
++            if keep[dependent] {
++                keep[dependent] = false;
++                queue.push_back(dependent);
++            }
++        }
++    }
++    if !keep[*positions
++        .get(&RecordTarget::Document)
++        .ok_or(RecordViewError::Invalid)?]
++    {
++        return Err(RecordViewError::Authority);
++    }
++    let mut party_map = BTreeMap::new();
++    let mut dialog_map = BTreeMap::new();
++    let mut attachment_map = BTreeMap::new();
++    for (name, kind, map) in [
++        (
++            "parties",
++            RecordTarget::Party as fn(u32) -> RecordTarget,
++            &mut party_map,
++        ),
++        ("dialog", RecordTarget::Dialog, &mut dialog_map),
++        ("attachments", RecordTarget::Attachment, &mut attachment_map),
++    ] {
++        if let Some(items) = raw.get(name).and_then(Value::as_array) {
++            for i in 0..items.len() {
++                if keep[positions[&kind(i as u32)]] {
++                    map.insert(i as u32, map.len() as u32);
++                }
++            }
++        }
++    }
++    let mut output = json!({"uuid":raw["uuid"],"created_at":raw["created_at"]});
++    if let Some(version) = raw.get("vcon") {
++        output["vcon"] = version.clone();
++    }
++    // Schema declarations are metadata; retained child extension fields
++    // still require them even when the document's own content is removed.
++    if let Some(extensions) = raw.get("extensions") {
++        output["extensions"] = extensions.clone();
++    }
++    let doc_position = positions[&RecordTarget::Document];
++    if content[doc_position] {
++        for field in ["subject", "updated_at"] {
++            if let Some(value) = raw.get(field) {
++                output[field] = value.clone();
++            }
++        }
++    }
++    let mut expiries = vec![];
++    let mut unavailable = vec![];
++    for (name, kind) in [
++        ("parties", RecordTarget::Party as fn(u32) -> RecordTarget),
++        ("dialog", RecordTarget::Dialog),
++        ("analysis", RecordTarget::Analysis),
++        ("attachments", RecordTarget::Attachment),
++    ] {
++        let mut items = vec![];
++        if let Some(original) = raw.get(name).and_then(Value::as_array) {
++            for (index, item) in original.iter().enumerate() {
++                let rule_index = positions[&kind(index as u32)];
++                if !keep[rule_index] {
++                    continue;
++                }
++                let source = &rules[rule_index];
++                let mut value = item.clone();
++                rewrite(
++                    kind(index as u32),
++                    &mut value,
++                    &party_map,
++                    &dialog_map,
++                    &attachment_map,
++                )?;
++                if let Some(reference) = references.remove(&rule_index) {
++                    expiries.push(reference.expires_at);
++                    value["url"] = Value::String(reference.url);
++                }
++                if let Some(cause) = causes.get(&rule_index).copied() {
++                    unavailable.push(json!({"source":source.id(),"reason":cause}));
++                    make_unavailable(kind(index as u32), &mut value, cause);
++                }
++                items.push(value);
++            }
++        }
++        if !items.is_empty() {
++            output[name] = Value::Array(items);
++        }
++    }
++    // If expired media became incomplete, no surviving recording-set or
++    // transfer may retain a reference that falsely calls it a recording.
++    let refs:Vec<_>=rules.iter().enumerate().filter(|(i,_)|keep[*i]).map(|(i,s)| {
++            let mut provenance=s.provenance().clone();
++            let producer_visible=provenance.producing_participant.as_ref().is_some_and(|pid|raw.get("parties").and_then(Value::as_array).is_some_and(|parties|parties.iter().enumerate().any(|(index,party)|party.get("uuid").and_then(Value::as_str)==Some(pid.as_str()) && party_map.contains_key(&(index as u32)))));
++            if !producer_visible {provenance.producing_participant=None;provenance.connection=None;provenance.connection_generation=None;provenance.correlation=None;}
++            json!({"source_id":s.id(),"source_revision":s.revision(),"category":s.category(),"provenance":provenance,"content_available":content[i]})
++        }).collect();
++    let annotation = json!({"type":"connect.record-projection","vendor":"rvoip","mediatype":"application/json","encoding":"json",
++            "body":{"record_revision":request.revision(),"correlation_id":request.correlation(),"capture_complete":false,"omissions":keep.iter().any(|k|!*k),"sources":refs,"unavailable":unavailable}});
++    output
++        .as_object_mut()
++        .ok_or(RecordViewError::Invalid)?
++        .entry("analysis")
++        .or_insert_with(|| json!([]))
++        .as_array_mut()
++        .ok_or(RecordViewError::Invalid)?
++        .push(annotation);
++    let projected: rvoip_vcon::Vcon =
++        serde_json::from_value(output).map_err(|_| RecordViewError::Invalid)?;
++    projected.validate().map_err(|_| RecordViewError::Invalid)?;
++    let unsigned = serde_json::to_vec(&projected).map_err(|_| RecordViewError::Invalid)?;
++    let (body, signed_by) = match sign_projection(&projected)? {
++        None => (Bytes::from(unsigned), vec![]),
++        Some(signature) => {
++            if !id(&signature.signer)
++                || signature.document.payload != rvoip_vcon::encode_base64url(&unsigned)
++                || !signature.document.extra.is_empty()
++            {
++                return Err(RecordViewError::Integrity);
++            }
++            let verified = rvoip_vcon::verify_jws(
++                &signature.document,
++                &signature.trusted_key.key,
++                signature.trusted_key.algorithm,
++            )
++            .map_err(|_| RecordViewError::Integrity)?;
++            if serde_json::to_vec(&verified).map_err(|_| RecordViewError::Integrity)? != unsigned {
++                return Err(RecordViewError::Integrity);
++            }
++            (
++                Bytes::from(
++                    serde_json::to_vec(&signature.document)
++                        .map_err(|_| RecordViewError::Integrity)?,
++                ),
++                vec![signature.signer],
++            )
++        }
++    };
++    if body.len() > MAX_RECORD_BYTES {
++        return Err(RecordViewError::Invalid);
++    }
++    let hash = crate::store::vcon_store::stored_content_hash(&body);
++    let sources = rules
++        .iter()
++        .enumerate()
++        .filter_map(|(i, s)| keep[i].then_some((s.clone(), content[i])))
++        .collect();
++    Ok(ProjectedData {
++        body,
++        hash,
++        sources,
++        url_expiries: expiries,
++        signed_by,
++    })
++}
++
+ impl RecordProjection {
+     pub fn prepare(read: VconRead, control: RecordViewControl) -> RecordViewResult<Self> {
+         let request = &control.request;
+@@ -225,276 +574,21 @@
+             return Err(RecordViewError::Authority);
+         }
+         let allowed = control.current()?;
+-        let vcon: rvoip_vcon::Vcon =
+-            serde_json::from_slice(read.body()).map_err(|_| RecordViewError::Invalid)?;
+-        vcon.validate_with_supported_extensions(std::iter::empty::<&str>())
+-            .map_err(|_| RecordViewError::Unsupported)?;
+-        let raw: Value =
+-            serde_json::from_slice(read.body()).map_err(|_| RecordViewError::Invalid)?;
+-        let rules = read.record().manifest().sources();
+-        let now = Utc::now();
+-        let positions: BTreeMap<_, _> = rules
+-            .iter()
+-            .enumerate()
+-            .map(|(i, s)| (s.target(), i))
+-            .collect();
+-        let ids: BTreeMap<_, _> = rules.iter().enumerate().map(|(i, s)| (s.id(), i)).collect();
+-        let mut keep: Vec<bool> = rules
+-            .iter()
+-            .map(|s| {
+-                allowed.contains(s.id())
+-                    && s.admits(request.viewer())
+-                    && s.metadata_retention().permits(now)
+-            })
+-            .collect();
+-        let mut content: Vec<bool> = rules
+-            .iter()
+-            .map(|s| {
+-                s.state() == RecordSourceState::Available && s.content_retention().permits(now)
+-            })
+-            .collect();
+-        let mut references: BTreeMap<usize, AuthorizedRecordUrl> = BTreeMap::new();
+-        let mut causes: BTreeMap<usize, &str> = BTreeMap::new();
+-        for (i, source) in rules.iter().enumerate() {
+-            if !keep[i] {
+-                continue;
+-            }
+-            if !content[i] {
+-                causes.insert(i, "retention");
+-                continue;
+-            }
+-            let item = match source.target() {
+-                RecordTarget::Dialog(n) => &raw["dialog"][n as usize],
+-                RecordTarget::Analysis(n) => &raw["analysis"][n as usize],
+-                RecordTarget::Attachment(n) => &raw["attachments"][n as usize],
+-                _ => &Value::Null,
+-            };
+-            if let Some(url) = item.get("url").and_then(Value::as_str) {
+-                match control.lease.media_reference(
+-                    request,
+-                    source,
+-                    url,
+-                    item.get("content_hash").unwrap_or(&Value::Null),
+-                )? {
+-                    Some(reference) => {
+-                        references.insert(i, reference);
+-                    }
+-                    None => {
+-                        content[i] = false;
+-                        causes.insert(i, "media-reference-unavailable");
+-                    }
+-                }
+-            }
+-        }
+-        let mut reverse = vec![vec![]; rules.len()];
+-        let mut edges = 0;
+-        for (i, source) in rules.iter().enumerate() {
+-            let mut dependencies = Vec::new();
+-            for reference in source.references() {
+-                dependencies.push(
+-                    *ids.get(reference.as_str())
+-                        .ok_or(RecordViewError::Invalid)?,
+-                );
+-            }
+-            for target in dependencies_for(source.target(), &raw)? {
+-                dependencies.push(*positions.get(&target).ok_or(RecordViewError::Invalid)?);
+-            }
+-            dependencies.sort_unstable();
+-            dependencies.dedup();
+-            edges += dependencies.len();
+-            if edges > MAX_RECORD_SOURCES * 64 {
+-                return Err(RecordViewError::Invalid);
+-            }
+-            for dependency in dependencies {
+-                reverse[dependency].push(i);
+-            }
+-            if let RecordTarget::Dialog(index) = source.target() {
+-                let dialog = &raw["dialog"][index as usize];
+-                if dialog["type"] == "recording-set" {
+-                    for child in numbers(&dialog["recordings"])? {
+-                        if !content[*positions
+-                            .get(&RecordTarget::Dialog(child))
+-                            .ok_or(RecordViewError::Invalid)?]
+-                        {
+-                            keep[i] = false;
+-                        }
+-                    }
+-                }
+-                if dialog["type"] == "transfer" {
+-                    for child in numbers(&dialog["original"])? {
+-                        if !content[*positions
+-                            .get(&RecordTarget::Dialog(child))
+-                            .ok_or(RecordViewError::Invalid)?]
+-                        {
+-                            keep[i] = false;
+-                        }
+-                    }
+-                }
+-            }
+-        }
+-        let mut queue: VecDeque<_> = keep
+-            .iter()
+-            .enumerate()
+-            .filter_map(|(i, k)| (!k).then_some(i))
+-            .collect();
+-        while let Some(hidden) = queue.pop_front() {
+-            for &dependent in &reverse[hidden] {
+-                if keep[dependent] {
+-                    keep[dependent] = false;
+-                    queue.push_back(dependent);
+-                }
+-            }
+-        }
+-        if !keep[*positions
+-            .get(&RecordTarget::Document)
+-            .ok_or(RecordViewError::Invalid)?]
+-        {
+-            return Err(RecordViewError::Authority);
+-        }
+-        let mut party_map = BTreeMap::new();
+-        let mut dialog_map = BTreeMap::new();
+-        let mut attachment_map = BTreeMap::new();
+-        for (name, kind, map) in [
+-            (
+-                "parties",
+-                RecordTarget::Party as fn(u32) -> RecordTarget,
+-                &mut party_map,
+-            ),
+-            ("dialog", RecordTarget::Dialog, &mut dialog_map),
+-            ("attachments", RecordTarget::Attachment, &mut attachment_map),
+-        ] {
+-            if let Some(items) = raw.get(name).and_then(Value::as_array) {
+-                for i in 0..items.len() {
+-                    if keep[positions[&kind(i as u32)]] {
+-                        map.insert(i as u32, map.len() as u32);
+-                    }
+-                }
+-            }
+-        }
+-        let mut output = json!({"uuid":raw["uuid"],"created_at":raw["created_at"]});
+-        if let Some(version) = raw.get("vcon") {
+-            output["vcon"] = version.clone();
+-        }
+-        // Schema declarations are metadata; retained child extension fields
+-        // still require them even when the document's own content is removed.
+-        if let Some(extensions) = raw.get("extensions") {
+-            output["extensions"] = extensions.clone();
+-        }
+-        let doc_position = positions[&RecordTarget::Document];
+-        if content[doc_position] {
+-            for field in ["subject", "updated_at"] {
+-                if let Some(value) = raw.get(field) {
+-                    output[field] = value.clone();
+-                }
+-            }
+-        }
+-        let mut expiries = vec![];
+-        let mut unavailable = vec![];
+-        for (name, kind) in [
+-            ("parties", RecordTarget::Party as fn(u32) -> RecordTarget),
+-            ("dialog", RecordTarget::Dialog),
+-            ("analysis", RecordTarget::Analysis),
+-            ("attachments", RecordTarget::Attachment),
+-        ] {
+-            let mut items = vec![];
+-            if let Some(original) = raw.get(name).and_then(Value::as_array) {
+-                for (index, item) in original.iter().enumerate() {
+-                    let rule_index = positions[&kind(index as u32)];
+-                    if !keep[rule_index] {
+-                        continue;
+-                    }
+-                    let source = &rules[rule_index];
+-                    let mut value = item.clone();
+-                    rewrite(
+-                        kind(index as u32),
+-                        &mut value,
+-                        &party_map,
+-                        &dialog_map,
+-                        &attachment_map,
+-                    )?;
+-                    if let Some(reference) = references.remove(&rule_index) {
+-                        expiries.push(reference.expires_at);
+-                        value["url"] = Value::String(reference.url);
+-                    }
+-                    if let Some(cause) = causes.get(&rule_index).copied() {
+-                        unavailable.push(json!({"source":source.id(),"reason":cause}));
+-                        make_unavailable(kind(index as u32), &mut value, cause);
+-                    }
+-                    items.push(value);
+-                }
+-            }
+-            if !items.is_empty() {
+-                output[name] = Value::Array(items);
+-            }
+-        }
+-        // If expired media became incomplete, no surviving recording-set or
+-        // transfer may retain a reference that falsely calls it a recording.
+-        let refs:Vec<_>=rules.iter().enumerate().filter(|(i,_)|keep[*i]).map(|(i,s)| {
+-            let mut provenance=s.provenance().clone();
+-            let producer_visible=provenance.producing_participant.as_ref().is_some_and(|pid|raw.get("parties").and_then(Value::as_array).is_some_and(|parties|parties.iter().enumerate().any(|(index,party)|party.get("uuid").and_then(Value::as_str)==Some(pid.as_str()) && party_map.contains_key(&(index as u32)))));
+-            if !producer_visible {provenance.producing_participant=None;provenance.connection=None;provenance.connection_generation=None;provenance.correlation=None;}
+-            json!({"source_id":s.id(),"source_revision":s.revision(),"category":s.category(),"provenance":provenance,"content_available":content[i]})
+-        }).collect();
+-        let annotation = json!({"type":"connect.record-projection","vendor":"rvoip","mediatype":"application/json","encoding":"json",
+-            "body":{"record_revision":request.revision(),"correlation_id":request.correlation(),"capture_complete":false,"omissions":keep.iter().any(|k|!*k),"sources":refs,"unavailable":unavailable}});
+-        output
+-            .as_object_mut()
+-            .ok_or(RecordViewError::Invalid)?
+-            .entry("analysis")
+-            .or_insert_with(|| json!([]))
+-            .as_array_mut()
+-            .ok_or(RecordViewError::Invalid)?
+-            .push(annotation);
+-        let projected: rvoip_vcon::Vcon =
+-            serde_json::from_value(output).map_err(|_| RecordViewError::Invalid)?;
+-        projected.validate().map_err(|_| RecordViewError::Invalid)?;
+-        let unsigned = serde_json::to_vec(&projected).map_err(|_| RecordViewError::Invalid)?;
+-        let (body, signed_by) = match control.lease.sign_projection(request, &projected)? {
+-            None => (Bytes::from(unsigned), vec![]),
+-            Some(signature) => {
+-                if !id(&signature.signer)
+-                    || signature.document.payload != rvoip_vcon::encode_base64url(&unsigned)
+-                    || !signature.document.extra.is_empty()
+-                {
+-                    return Err(RecordViewError::Integrity);
+-                }
+-                let verified = rvoip_vcon::verify_jws(
+-                    &signature.document,
+-                    &signature.trusted_key.key,
+-                    signature.trusted_key.algorithm,
+-                )
+-                .map_err(|_| RecordViewError::Integrity)?;
+-                if serde_json::to_vec(&verified).map_err(|_| RecordViewError::Integrity)?
+-                    != unsigned
+-                {
+-                    return Err(RecordViewError::Integrity);
+-                }
+-                (
+-                    Bytes::from(
+-                        serde_json::to_vec(&signature.document)
+-                            .map_err(|_| RecordViewError::Integrity)?,
+-                    ),
+-                    vec![signature.signer],
+-                )
+-            }
+-        };
+-        if body.len() > MAX_RECORD_BYTES {
+-            return Err(RecordViewError::Invalid);
+-        }
+-        let hash = crate::store::vcon_store::stored_content_hash(&body);
+-        let sources = rules
+-            .iter()
+-            .enumerate()
+-            .filter_map(|(i, s)| keep[i].then_some((s.clone(), content[i])))
+-            .collect();
++        let data = project_data(
++            read.record(),
++            request,
++            &allowed,
++            |source, url, hashes| control.lease.media_reference(request, source, url, hashes),
++            |document| control.lease.sign_projection(request, document),
++        )?;
+         let value = Self {
+             read,
+             control,
+-            body,
+-            hash,
+-            sources,
+-            url_expiries: expiries,
+-            signed_by,
++            body: data.body,
++            hash: data.hash,
++            sources: data.sources,
++            url_expiries: data.url_expiries,
++            signed_by: data.signed_by,
+         };
+         value.view()?;
+         Ok(value)
+--- a/crates/foundation/rvoip-core/src/records/tests.rs
++++ b/crates/foundation/rvoip-core/src/records/tests.rs
+@@ -1048,3 +1048,173 @@
+     })
+     .is_err());
+ }
++
++fn context_request(
++    record: &VconRecord,
++    viewer: ParticipantId,
++    owner: VconScope,
++) -> RecordViewRequest {
++    RecordViewRequest::new(
++        owner,
++        RecordViewer::Participant {
++            participant: viewer,
++            membership_epoch: 1,
++        },
++        record.uuid(),
++        1,
++        crate::store::vcon_store::stored_content_hash(record.body()),
++        record.manifest_hash().unwrap(),
++        "view-correlation".into(),
++    )
++    .unwrap()
++}
++#[tokio::test]
++async fn context_snapshot_matches_guarded_fetch_and_never_forwards_private_or_media_urls() {
++    let (record, _, viewer, _) = fixture();
++    let owner = scope();
++    let request = context_request(&record, viewer.clone(), owner.clone());
++    let allowed = record
++        .manifest()
++        .sources()
++        .iter()
++        .map(|s| s.id().to_owned())
++        .collect();
++    let snapshot = project_context_snapshot(&record, &request, &allowed).unwrap();
++    let (current, _, _) = control(&record, owner.clone(), viewer).await;
++    let store = MemoryVconStore::new();
++    let handle = store.put(&owner, record).await.unwrap();
++    let projected =
++        RecordProjection::prepare(store.get(&owner, &handle).await.unwrap().unwrap(), current)
++            .unwrap();
++    let view = projected.view().unwrap();
++    assert_eq!(snapshot.body(), view.body);
++    assert_eq!(snapshot.content_hash(), view.content_hash);
++    assert_eq!(snapshot.valid_until(), None);
++    let text = String::from_utf8(snapshot.body().to_vec()).unwrap();
++    for secret in [
++        "private-dialog-canary",
++        "private-transcript-canary",
++        "derived-private-canary",
++        "private-attachment-canary",
++        "private-consultant-canary",
++        "https://provider.invalid/private-original-media",
++    ] {
++        assert!(!text.contains(secret), "{secret}");
++    }
++    assert!(text.contains("public-dialog"));
++    assert!(text.contains("media-reference-unavailable"));
++    assert!(!format!("{snapshot:?}").contains("public-dialog"));
++}
++#[test]
++fn context_snapshot_requires_exact_record_and_manifest_and_source_ceiling() {
++    let (record, _, viewer, _) = fixture();
++    let (other, _, _, _) = fixture();
++    let allowed = record
++        .manifest()
++        .sources()
++        .iter()
++        .map(|s| s.id().to_owned())
++        .collect();
++    let owner = scope();
++    for (body_hash, manifest_hash) in [
++        (
++            crate::store::vcon_store::stored_content_hash(other.body()),
++            record.manifest_hash().unwrap(),
++        ),
++        (
++            crate::store::vcon_store::stored_content_hash(record.body()),
++            other.manifest_hash().unwrap(),
++        ),
++    ] {
++        let request = RecordViewRequest::new(
++            owner.clone(),
++            RecordViewer::Participant {
++                participant: viewer.clone(),
++                membership_epoch: 1,
++            },
++            record.uuid(),
++            1,
++            body_hash,
++            manifest_hash,
++            "view-correlation".into(),
++        )
++        .unwrap();
++        assert!(matches!(
++            project_context_snapshot(&record, &request, &allowed),
++            Err(RecordViewError::Integrity)
++        ));
++    }
++    let request = context_request(&record, viewer, owner);
++    assert!(matches!(
++        project_context_snapshot(&record, &request, &BTreeSet::new()),
++        Err(RecordViewError::Authority)
++    ));
++    let document = record
++        .manifest()
++        .sources()
++        .iter()
++        .find(|s| s.target() == RecordTarget::Document)
++        .unwrap()
++        .id()
++        .to_owned();
++    let minimal = project_context_snapshot(&record, &request, &BTreeSet::from([document])).unwrap();
++    assert!(!String::from_utf8(minimal.body().to_vec())
++        .unwrap()
++        .contains("public-dialog"));
++    assert_ne!(
++        minimal.content_hash(),
++        project_context_snapshot(&record, &request, &allowed)
++            .unwrap()
++            .content_hash()
++    );
++}
++#[test]
++fn context_snapshot_exposes_exact_future_retention_cutoff_and_rebuilds_expired_content() {
++    let (record, _, viewer, _) = fixture();
++    let cutoff = Utc::now() + chrono::Duration::seconds(30);
++    let metadata = cutoff + chrono::Duration::seconds(30);
++    let sources = record
++        .manifest()
++        .sources()
++        .iter()
++        .cloned()
++        .map(|mut s| {
++            s.content_retention = RecordRetention::Until(cutoff);
++            s.metadata_retention = RecordRetention::Until(metadata);
++            s
++        })
++        .collect();
++    let manifest = RecordManifest::new("explicit-fixture-capture".into(), sources).unwrap();
++    let record = VconRecord::new(record.body().clone(), manifest).unwrap();
++    let request = context_request(&record, viewer.clone(), scope());
++    let allowed = record
++        .manifest()
++        .sources()
++        .iter()
++        .map(|s| s.id().to_owned())
++        .collect();
++    let snapshot = project_context_snapshot(&record, &request, &allowed).unwrap();
++    assert_eq!(snapshot.valid_until(), Some(cutoff));
++    let sources = record
++        .manifest()
++        .sources()
++        .iter()
++        .cloned()
++        .map(|mut s| {
++            s.content_retention = RecordRetention::Until(Utc::now() - chrono::Duration::seconds(1));
++            s
++        })
++        .collect();
++    let expired = VconRecord::new(
++        record.body().clone(),
++        RecordManifest::new("explicit-fixture-capture".into(), sources).unwrap(),
++    )
++    .unwrap();
++    let request = context_request(&expired, viewer, scope());
++    let next = project_context_snapshot(&expired, &request, &allowed).unwrap();
++    assert_eq!(next.valid_until(), Some(metadata));
++    assert_ne!(snapshot.content_hash(), next.content_hash());
++    assert!(!String::from_utf8(next.body().to_vec())
++        .unwrap()
++        .contains("public-dialog"));
++}

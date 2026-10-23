@@ -29,7 +29,9 @@ fn fixture() -> Fixture {
             &key,
             &Operation::Create {
                 request_id: "create".into(),
-                participants: vec![bot.clone()],
+                request: connect_protocol::conversations::CreateRequest::persistent(vec![
+                    bot.clone()
+                ]),
             },
         )
         .unwrap()
@@ -48,6 +50,7 @@ fn fixture() -> Fixture {
                 target: "12345678-1234-1234-1234-123456789012".into(),
                 source: None,
                 enabled: true,
+                incoming_to: connect_protocol::messages::MessageAudience::all(),
             },
         )
         .unwrap();
@@ -65,7 +68,9 @@ fn turn(f: &Fixture, id: &str) -> ProviderJob {
             &Operation::Send {
                 request_id: id.into(),
                 conversation_id: f.conversation.clone(),
-                body: format!("Question {id}"),
+                message: connect_protocol::messages::MessageDraft::text_all(format!(
+                    "Question {id}"
+                )),
             },
         )
         .unwrap();

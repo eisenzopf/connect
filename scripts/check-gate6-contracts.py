@@ -44,7 +44,7 @@ def main():
   valid=validator.is_valid(vector['envelope'])
   assert valid==vector['valid'],vector['id']
  positive={v['envelope']['type'] for v in vectors if v['valid']}
- assert len(positive)==65 and set(e['type'] for e in ledger['envelopes'])<=positive
+ assert len(positive)==66 and set(e['type'] for e in ledger['envelopes'])<=positive
  # Security and concurrency boundaries go beyond generated shape roundtrips.
  handoff=next(copy.deepcopy(v['envelope']) for v in vectors if v['id']=='schema-session.handoff')
  cases=[]
@@ -68,6 +68,15 @@ def main():
  private['payload']['private_participants']=['part_one','part_one']
  assert not validator.is_valid(private),'duplicate private audience'
  cases.append('duplicate-consultation-audience')
+ returning=next(copy.deepcopy(v['envelope']) for v in vectors if v['id']=='schema-session.consult.return')
+ for key in ('consultation_record_id','retained_connid'):
+  invalid_return=copy.deepcopy(returning);invalid_return['payload'].pop(key)
+  assert not validator.is_valid(invalid_return),'return requires '+key
+  cases.append('return-needs-'+key)
+ invalid_return=copy.deepcopy(returning);invalid_return.pop('connid')
+ assert not validator.is_valid(invalid_return),'return requires explicit original primary'
+ cases.append('return-needs-explicit-primary')
+
  change=next(copy.deepcopy(v['envelope']) for v in vectors if v['id']=='schema-session.update')
  change['payload']['kind']='arbitrary-topology-change'
  assert not validator.is_valid(change),'session updates must use known semantics'

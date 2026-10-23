@@ -1,0 +1,1185 @@
+diff --git a/crates/sip/rvoip-sip/src/adapter.rs b/crates/sip/rvoip-sip/src/adapter.rs
+--- a/crates/sip/rvoip-sip/src/adapter.rs
++++ b/crates/sip/rvoip-sip/src/adapter.rs
+@@ -3732,6 +3732,9 @@
+     let mut builder = coordinator
+         .invite(Some(from), route.target.clone())
+         .with_reserved_session_id(route.session_id.clone());
++    if let Some(authority) = route.context.request_write_authority() {
++        builder = builder.with_request_write_authority(authority);
++    }
+     if let Some(auth) = route.context.auth() {
+         builder = builder.with_auth(auth.clone());
+     }
+diff --git a/crates/sip/rvoip-sip/src/adapters/dialog_adapter.rs b/crates/sip/rvoip-sip/src/adapters/dialog_adapter.rs
+--- a/crates/sip/rvoip-sip/src/adapters/dialog_adapter.rs
++++ b/crates/sip/rvoip-sip/src/adapters/dialog_adapter.rs
+@@ -3060,6 +3060,7 @@
+             supported_100rel: false,
+             registered_flow_routes: Vec::new(),
+             extra_headers,
++            request_write_authority: None,
+         };
+         self.send_initial_invite_staged(
+             session_id,
+diff --git a/crates/sip/rvoip-sip/src/api/send/outbound_call.rs b/crates/sip/rvoip-sip/src/api/send/outbound_call.rs
+--- a/crates/sip/rvoip-sip/src/api/send/outbound_call.rs
++++ b/crates/sip/rvoip-sip/src/api/send/outbound_call.rs
+@@ -116,6 +116,11 @@
+     /// application facade. Empty uses normal RFC 3263 routing.
+     #[doc(hidden)]
+     pub registered_flow_routes: Vec<rvoip_sip_transport::TransportRoute>,
++    /// Optional current per-transaction-write policy. Retained metadata only;
++    /// each initial send, retransmission and authentication retry acquires anew.
++    pub request_write_authority: Option<
++        std::sync::Arc<dyn rvoip_sip_dialog::transaction::egress::ClientRequestWriteAuthority>,
++    >,
+ }
+ 
+ impl fmt::Debug for OutboundCallOptionsSnapshot {
+@@ -177,6 +182,9 @@
+     topology_hiding: bool,
+     registered_flow_routes: Vec<rvoip_sip_transport::TransportRoute>,
+     session_id: Option<CallId>,
++    request_write_authority: Option<
++        std::sync::Arc<dyn rvoip_sip_dialog::transaction::egress::ClientRequestWriteAuthority>,
++    >,
+ }
+ 
+ impl OutboundCallBuilder {
+@@ -205,7 +213,21 @@
+             topology_hiding: false,
+             registered_flow_routes: Vec::new(),
+             session_id: None,
++            request_write_authority: None,
+         }
++    }
++
++    /// Install current authorization at each actual initial-INVITE transport
++    /// write, including retransmissions and authentication retries. The policy
++    /// must not retain a permission guard between writes or while awaiting answer.
++    pub fn with_request_write_authority(
++        mut self,
++        authority: std::sync::Arc<
++            dyn rvoip_sip_dialog::transaction::egress::ClientRequestWriteAuthority,
++        >,
++    ) -> Self {
++        self.request_write_authority = Some(authority);
++        self
+     }
+ 
+     /// Attach an SDP offer.
+@@ -449,6 +471,7 @@
+             extra_headers,
+             topology_hiding: self.topology_hiding,
+             registered_flow_routes: self.registered_flow_routes,
++            request_write_authority: self.request_write_authority,
+         });
+ 
+         // Validate the complete wire-facing option set before allocating a
+@@ -573,6 +596,7 @@
+             )],
+             topology_hiding: true,
+             registered_flow_routes: Vec::new(),
++            request_write_authority: None,
+         };
+ 
+         let debug = format!("{snapshot:?}");
+diff --git a/crates/sip/rvoip-sip/src/originate.rs b/crates/sip/rvoip-sip/src/originate.rs
+--- a/crates/sip/rvoip-sip/src/originate.rs
++++ b/crates/sip/rvoip-sip/src/originate.rs
+@@ -336,12 +336,35 @@
+     auth: Option<SipClientAuth>,
+     initial_headers: SipInitialHeaders,
+     registered_flow_routes: Vec<rvoip_sip_registrar::RegisteredFlowRoute>,
++    request_write_authority: Option<
++        std::sync::Arc<dyn rvoip_sip_dialog::transaction::egress::ClientRequestWriteAuthority>,
++    >,
+ }
+ 
+ impl SipOriginateContext {
+     /// Construct empty SIP options that inherit the adapter configuration.
+     pub fn new() -> Self {
+         Self::default()
++    }
++
++    /// Install an application-owned policy for each actual initial INVITE
++    /// write. The same policy is retained through retransmissions and auth
++    /// retries without retaining an idle permission guard.
++    pub fn with_request_write_authority(
++        mut self,
++        authority: std::sync::Arc<
++            dyn rvoip_sip_dialog::transaction::egress::ClientRequestWriteAuthority,
++        >,
++    ) -> Self {
++        self.request_write_authority = Some(authority);
++        self
++    }
++    pub(crate) fn request_write_authority(
++        &self,
++    ) -> Option<
++        std::sync::Arc<dyn rvoip_sip_dialog::transaction::egress::ClientRequestWriteAuthority>,
++    > {
++        self.request_write_authority.clone()
+     }
+ 
+     /// Select one exact server-installed SIP profile revision.
+diff --git a/crates/sip/rvoip-sip/src/session_store/state.rs b/crates/sip/rvoip-sip/src/session_store/state.rs
+--- a/crates/sip/rvoip-sip/src/session_store/state.rs
++++ b/crates/sip/rvoip-sip/src/session_store/state.rs
+@@ -1679,6 +1679,7 @@
+             extra_headers: vec![secret_header()],
+             topology_hiding: true,
+             registered_flow_routes: Vec::new(),
++            request_write_authority: None,
+         }));
+         session.pending_register_options = Some(Arc::new(
+             rvoip_sip_dialog::api::unified::RegisterRequestOptions {
+diff --git a/crates/sip/rvoip-sip/src/state_machine/actions.rs b/crates/sip/rvoip-sip/src/state_machine/actions.rs
+--- a/crates/sip/rvoip-sip/src/state_machine/actions.rs
++++ b/crates/sip/rvoip-sip/src/state_machine/actions.rs
+@@ -1563,6 +1563,7 @@
+         outbound_proxy_uri,
+         supported_100rel: snapshot.supported_100rel,
+         registered_flow_routes: snapshot.registered_flow_routes.clone(),
++        request_write_authority: snapshot.request_write_authority.clone(),
+         extra_headers: extras,
+     };
+     Ok((opts, suppress_global_proxy))
+@@ -3673,6 +3674,7 @@
+                             outbound_proxy_uri: invite_opts.outbound_proxy_uri,
+                             supported_100rel: invite_opts.supported_100rel,
+                             registered_flow_routes: invite_opts.registered_flow_routes,
++                        request_write_authority: invite_opts.request_write_authority,
+                         },
+                         apply_global_proxy,
+                     )
+@@ -4264,6 +4266,7 @@
+                         outbound_proxy_uri: invite_opts.outbound_proxy_uri,
+                         supported_100rel: invite_opts.supported_100rel,
+                         registered_flow_routes: invite_opts.registered_flow_routes,
++                        request_write_authority: invite_opts.request_write_authority,
+                     },
+                     apply_global_proxy,
+                     min_se,
+diff --git a/crates/sip/rvoip-sip/tests/guarded_invite_submission.rs b/crates/sip/rvoip-sip/tests/guarded_invite_submission.rs
+new file mode 100644
+--- /dev/null
++++ b/crates/sip/rvoip-sip/tests/guarded_invite_submission.rs
+@@ -0,0 +1,356 @@
++//! Actual UDP INVITE writes through the shared current-authority transaction seam.
++use async_trait::async_trait;
++use rvoip_sip::{types::Credentials, Config, SipClientAuth, UnifiedCoordinator};
++use rvoip_sip_core::{
++    parser::parse_message,
++    prelude::{HeaderName, Message, Method, StatusCode, TypedHeader},
++    types::header::HeaderValue,
++};
++use rvoip_sip_dialog::transaction::{egress::*, utils::response_builders::create_response};
++use std::{
++    net::SocketAddr,
++    sync::{
++        atomic::{AtomicBool, AtomicUsize, Ordering},
++        Arc, Mutex,
++    },
++    time::Duration,
++};
++use tokio::{net::UdpSocket, sync::Notify};
++
++struct Policy {
++    target: SocketAddr,
++    allowed: Arc<AtomicBool>,
++    calls: AtomicUsize,
++    readers: Arc<AtomicUsize>,
++    authenticated: AtomicUsize,
++    lose_receipt: bool,
++    entered: Notify,
++    release: Option<Arc<Notify>>,
++}
++struct Reader(Arc<AtomicUsize>);
++impl Drop for Reader {
++    fn drop(&mut self) {
++        self.0.fetch_sub(1, Ordering::SeqCst);
++    }
++}
++#[async_trait]
++impl ClientRequestWriteAuthority for Policy {
++    async fn write(
++        &self,
++        scope: &ClientRequestWriteScope<'_>,
++        io: ClientRequestWriteFuture<'_>,
++    ) -> rvoip_sip_transport::Result<rvoip_sip_transport::TransportRoute> {
++        assert!(matches!(scope.message, Message::Request(r) if r.method() == Method::Invite));
++        if let Message::Request(request) = scope.message {
++            if request
++                .headers
++                .iter()
++                .any(|h| h.name() == HeaderName::Authorization)
++            {
++                self.authenticated.fetch_add(1, Ordering::SeqCst);
++            }
++        }
++        let ordinal = self.calls.fetch_add(1, Ordering::SeqCst);
++        self.entered.notify_one();
++        if ordinal == 0 {
++            if let Some(release) = &self.release {
++                release.notified().await;
++            }
++        }
++        if !self.allowed.load(Ordering::SeqCst)
++            || scope.route.destination != self.target
++            || !matches!(scope.message, Message::Request(r) if r.method()==Method::Invite)
++        {
++            return Err(rvoip_sip_transport::Error::InvalidState(
++                "fixture INVITE authority refused".into(),
++            ));
++        }
++        self.readers.fetch_add(1, Ordering::SeqCst);
++        let _reader = Reader(self.readers.clone());
++        let route = io.await?;
++        if self.lose_receipt {
++            Err(rvoip_sip_transport::Error::InvalidState(
++                "fixture lost write receipt after IO".into(),
++            ))
++        } else {
++            Ok(route)
++        }
++    }
++}
++struct Peer {
++    address: SocketAddr,
++    invites: Arc<AtomicUsize>,
++    acknowledged: Arc<AtomicUsize>,
++    methods: Arc<Mutex<Vec<Method>>>,
++    task: tokio::task::JoinHandle<()>,
++}
++impl Peer {
++    async fn new(challenge: bool, allowed: Arc<AtomicBool>) -> Self {
++        let socket = UdpSocket::bind("127.0.0.1:0").await.unwrap();
++        let address = socket.local_addr().unwrap();
++        let invites = Arc::new(AtomicUsize::new(0));
++        let methods = Arc::new(Mutex::new(Vec::new()));
++        let acknowledged = Arc::new(AtomicUsize::new(0));
++        let seen_acks = acknowledged.clone();
++        let seen = invites.clone();
++        let seen_methods = methods.clone();
++        let task = tokio::spawn(async move {
++            let mut bytes = vec![0u8; 16384];
++            let mut original = None;
++            loop {
++                let Ok((n, from)) = socket.recv_from(&mut bytes).await else {
++                    break;
++                };
++                let Ok(Message::Request(request)) = parse_message(&bytes[..n]) else {
++                    continue;
++                };
++                seen_methods.lock().unwrap().push(request.method());
++                match request.method() {
++                    Method::Invite => {
++                        let first = seen.fetch_add(1, Ordering::SeqCst) == 0;
++                        if first {
++                            original = Some(request.clone());
++                            if challenge {
++                                // Revoke before the 401 can trigger its automatic retry.
++                                allowed.store(false, Ordering::SeqCst);
++                                let mut response =
++                                    create_response(&request, StatusCode::Unauthorized);
++                                if let Some(TypedHeader::To(to)) = response
++                                    .headers
++                                    .iter_mut()
++                                    .find(|h| matches!(h, TypedHeader::To(_)))
++                                {
++                                    to.set_tag("invite-auth-fixture");
++                                }
++                                response.headers.push(TypedHeader::Other(HeaderName::WwwAuthenticate,HeaderValue::Raw(
++                                    br#"Digest realm="fixture", nonce="invite-test", algorithm=MD5, qop="auth""#.to_vec())));
++                                socket
++                                    .send_to(&Message::Response(response).to_bytes(), from)
++                                    .await
++                                    .unwrap();
++                            }
++                        }
++                    }
++                    Method::Ack => {
++                        let original = original
++                            .as_ref()
++                            .expect("ACK must follow this peer's INVITE");
++                        assert_eq!(
++                            request.call_id().unwrap().value(),
++                            original.call_id().unwrap().value()
++                        );
++                        assert_eq!(request.cseq().unwrap().seq, original.cseq().unwrap().seq);
++                        seen_acks.fetch_add(1, Ordering::SeqCst);
++                    }
++                    Method::Cancel => {
++                        socket
++                            .send_to(
++                                &Message::Response(create_response(&request, StatusCode::Ok))
++                                    .to_bytes(),
++                                from,
++                            )
++                            .await
++                            .unwrap();
++                        if let Some(invite) = &original {
++                            socket
++                                .send_to(
++                                    &Message::Response(create_response(
++                                        invite,
++                                        StatusCode::RequestTerminated,
++                                    ))
++                                    .to_bytes(),
++                                    from,
++                                )
++                                .await
++                                .unwrap();
++                        }
++                    }
++                    Method::Bye => {
++                        socket
++                            .send_to(
++                                &Message::Response(create_response(&request, StatusCode::Ok))
++                                    .to_bytes(),
++                                from,
++                            )
++                            .await
++                            .unwrap();
++                    }
++                    _ => {}
++                }
++            }
++        });
++        Self {
++            address,
++            invites,
++            acknowledged,
++            methods,
++            task,
++        }
++    }
++}
++impl Drop for Peer {
++    fn drop(&mut self) {
++        self.task.abort();
++    }
++}
++async fn until(predicate: impl Fn() -> bool) {
++    tokio::time::timeout(Duration::from_secs(4), async {
++        while !predicate() {
++            tokio::time::sleep(Duration::from_millis(5)).await;
++        }
++    })
++    .await
++    .unwrap();
++}
++fn policy(peer: &Peer, allowed: Arc<AtomicBool>, release: Option<Arc<Notify>>) -> Arc<Policy> {
++    Arc::new(Policy {
++        target: peer.address,
++        allowed,
++        calls: AtomicUsize::new(0),
++        authenticated: AtomicUsize::new(0),
++        lose_receipt: false,
++        readers: Arc::new(AtomicUsize::new(0)),
++        entered: Notify::new(),
++        release,
++    })
++}
++
++#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
++async fn queued_invite_rechecks_before_physical_io_and_holds_no_idle_reader() {
++    let allowed = Arc::new(AtomicBool::new(true));
++    let peer = Peer::new(false, allowed.clone()).await;
++    let release = Arc::new(Notify::new());
++    let policy = policy(&peer, allowed.clone(), Some(release.clone()));
++    let coordinator = UnifiedCoordinator::new(Config::local("queued-invite", 0))
++        .await
++        .unwrap();
++    let send = tokio::spawn({
++        let c = coordinator.clone();
++        let p = policy.clone();
++        let address = peer.address;
++        async move {
++            c.invite(None, format!("sip:target@{address}"))
++                .with_request_write_authority(p)
++                .send()
++                .await
++        }
++    });
++    policy.entered.notified().await;
++    assert_eq!(policy.readers.load(Ordering::SeqCst), 0);
++    assert!(peer.methods.lock().unwrap().is_empty());
++    allowed.store(false, Ordering::SeqCst);
++    release.notify_one();
++    assert!(tokio::time::timeout(Duration::from_secs(5), send)
++        .await
++        .unwrap()
++        .unwrap()
++        .is_err());
++    tokio::time::sleep(Duration::from_millis(100)).await;
++    assert!(
++        peer.methods.lock().unwrap().is_empty(),
++        "refused initial request caused wire traffic"
++    );
++    assert_eq!(policy.readers.load(Ordering::SeqCst), 0);
++    coordinator
++        .shutdown_gracefully(Some(Duration::from_secs(3)))
++        .await
++        .unwrap();
++}
++
++#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
++async fn invite_retransmission_reacquires_permission_without_a_reader_during_ringing() {
++    let allowed = Arc::new(AtomicBool::new(true));
++    let peer = Peer::new(false, allowed.clone()).await;
++    let policy = policy(&peer, allowed.clone(), None);
++    let coordinator = UnifiedCoordinator::new(Config::local("invite-retry", 0))
++        .await
++        .unwrap();
++    coordinator
++        .invite(None, format!("sip:target@{}", peer.address))
++        .with_request_write_authority(policy.clone())
++        .send()
++        .await
++        .unwrap();
++    until(|| peer.invites.load(Ordering::SeqCst) == 1).await;
++    until(|| policy.readers.load(Ordering::SeqCst) == 0).await;
++    allowed.store(false, Ordering::SeqCst);
++    until(|| policy.calls.load(Ordering::SeqCst) >= 2).await;
++    tokio::time::sleep(Duration::from_millis(100)).await;
++    assert_eq!(peer.invites.load(Ordering::SeqCst), 1);
++    assert_eq!(policy.readers.load(Ordering::SeqCst), 0);
++    coordinator
++        .shutdown_gracefully(Some(Duration::from_secs(3)))
++        .await
++        .unwrap();
++}
++
++#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
++async fn authenticated_initial_invite_retry_retains_the_same_current_write_policy() {
++    let _ = tracing_subscriber::fmt()
++        .with_env_filter("rvoip_sip=trace,rvoip_sip_dialog=trace")
++        .with_test_writer()
++        .try_init();
++    let allowed = Arc::new(AtomicBool::new(true));
++    let peer = Peer::new(true, allowed.clone()).await;
++    let policy = policy(&peer, allowed, None);
++    let coordinator = UnifiedCoordinator::new(Config::local("invite-auth", 0))
++        .await
++        .unwrap();
++    coordinator
++        .invite(None, format!("sip:target@{}", peer.address))
++        .with_auth(SipClientAuth::Digest(Credentials {
++            username: "fixture".into(),
++            password: "fixture-only".into(),
++            realm: Some("fixture".into()),
++        }))
++        .with_request_write_authority(policy.clone())
++        .send()
++        .await
++        .unwrap();
++    until(|| policy.authenticated.load(Ordering::SeqCst) >= 1).await;
++    assert!(policy.calls.load(Ordering::SeqCst) >= 2);
++    assert_eq!(
++        peer.invites.load(Ordering::SeqCst),
++        1,
++        "auth retry bypassed the installed policy"
++    );
++    assert_eq!(policy.readers.load(Ordering::SeqCst), 0);
++    coordinator
++        .shutdown_gracefully(Some(Duration::from_secs(3)))
++        .await
++        .unwrap();
++}
++
++#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
++async fn invite_lost_write_receipt_retains_uncertainty_and_cancels_the_actual_call() {
++    let _ = tracing_subscriber::fmt()
++        .with_env_filter("rvoip_sip=trace,rvoip_sip_dialog=trace")
++        .with_test_writer()
++        .try_init();
++    let allowed = Arc::new(AtomicBool::new(true));
++    let peer = Peer::new(false, allowed.clone()).await;
++    let mut policy = policy(&peer, allowed, None);
++    Arc::get_mut(&mut policy).unwrap().lose_receipt = true;
++    let coordinator = UnifiedCoordinator::new(Config::local("invite-unknown", 0))
++        .await
++        .unwrap();
++    assert!(tokio::time::timeout(
++        Duration::from_secs(5),
++        coordinator
++            .invite(None, format!("sip:target@{}", peer.address))
++            .with_request_write_authority(policy.clone())
++            .send()
++    )
++    .await
++    .unwrap()
++    .is_err());
++    until(|| peer.invites.load(Ordering::SeqCst) == 1).await;
++    until(|| peer.methods.lock().unwrap().contains(&Method::Cancel)).await;
++    until(|| peer.acknowledged.load(Ordering::SeqCst) >= 1).await;
++    assert_eq!(peer.invites.load(Ordering::SeqCst), 1);
++    assert_eq!(policy.readers.load(Ordering::SeqCst), 0);
++    coordinator
++        .shutdown_gracefully(Some(Duration::from_secs(3)))
++        .await
++        .unwrap();
++}
+diff --git a/crates/sip/sip-dialog/src/api/unified.rs b/crates/sip/sip-dialog/src/api/unified.rs
+--- a/crates/sip/sip-dialog/src/api/unified.rs
++++ b/crates/sip/sip-dialog/src/api/unified.rs
+@@ -423,6 +423,11 @@
+     pub registered_flow_routes: Vec<rvoip_sip_transport::TransportRoute>,
+     /// Headers appended after the stack stamps Call-ID/CSeq/Via/Max-Forwards.
+     pub extra_headers: Vec<TypedHeader>,
++    /// Per-write policy installed before initial transaction publication and
++    /// retained for retransmissions and authenticated initial-INVITE retries.
++    /// The policy carries no idle authority grant.
++    pub request_write_authority:
++        Option<Arc<dyn crate::transaction::egress::ClientRequestWriteAuthority>>,
+ }
+ 
+ /// Structural inputs for an authenticated retry of an initial INVITE.
+@@ -442,6 +447,11 @@
+     /// Exact registered-flow routes retained across 401/407 and 422 retries.
+     #[doc(hidden)]
+     pub registered_flow_routes: Vec<rvoip_sip_transport::TransportRoute>,
++    /// Per-write policy installed before initial transaction publication and
++    /// retained for retransmissions and authenticated initial-INVITE retries.
++    /// The policy carries no idle authority grant.
++    pub request_write_authority:
++        Option<Arc<dyn crate::transaction::egress::ClientRequestWriteAuthority>>,
+ }
+ 
+ fn is_stack_owned_initial_invite_header(header: &TypedHeader) -> bool {
+@@ -958,6 +968,8 @@
+             supported_100rel: true,
+             registered_flow_routes: Vec::new(),
+             extra_headers: vec![secret_header()],
++
++            request_write_authority: None,
+         };
+         let subscribe = SubscribeRequestOptions {
+             event: SECRET.into(),
+diff --git a/crates/sip/sip-dialog/src/manager/transaction_integration.rs b/crates/sip/sip-dialog/src/manager/transaction_integration.rs
+--- a/crates/sip/sip-dialog/src/manager/transaction_integration.rs
++++ b/crates/sip/sip-dialog/src/manager/transaction_integration.rs
+@@ -33,6 +33,50 @@
+ use std::sync::Arc;
+ use std::time::{Duration, Instant};
+ use tracing::{debug, error, info, warn};
++
++// The application policy owns INVITE submission permission. Generated non-2xx
++// ACKs complete the already admitted transaction and do not originate a call.
++// The monotonic bit records polling the exact transport future, not queue entry.
++struct InitialInviteWritePolicy {
++    authority: Arc<dyn crate::transaction::egress::ClientRequestWriteAuthority>,
++    attempted: Arc<std::sync::atomic::AtomicBool>,
++    refused: Arc<std::sync::atomic::AtomicBool>,
++}
++#[async_trait::async_trait]
++impl crate::transaction::egress::ClientRequestWriteAuthority for InitialInviteWritePolicy {
++    async fn write(
++        &self,
++        scope: &crate::transaction::egress::ClientRequestWriteScope<'_>,
++        io: crate::transaction::egress::ClientRequestWriteFuture<'_>,
++    ) -> rvoip_sip_transport::Result<rvoip_sip_transport::TransportRoute> {
++        match scope.message {
++            rvoip_sip_core::Message::Request(request) if request.method() == Method::Invite => {
++                let result = self
++                    .authority
++                    .write(
++                        scope,
++                        Box::pin(async {
++                            self.attempted.store(true, Ordering::Release);
++                            io.await
++                        }),
++                    )
++                    .await;
++                // Only a completed refusal proves zero-wire. Cancelling the
++                // send observer while the policy waits does not prove this.
++                if result.is_err() && !self.attempted.load(Ordering::Acquire) {
++                    self.refused.store(true, Ordering::Release);
++                }
++                result
++            }
++            rvoip_sip_core::Message::Request(request) if request.method() == Method::Ack => {
++                io.await
++            }
++            _ => Err(rvoip_sip_transport::Error::InvalidState(
++                "unexpected initial INVITE transaction write".into(),
++            )),
++        }
++    }
++}
+ 
+ fn safe_operation_failure(operation: &'static str, error_class: &'static str) -> String {
+     format!("operation={operation}; error_class={error_class}")
+@@ -968,6 +1012,8 @@
+     pub provisional_seen: bool,
+     pub attempts: Vec<InviteFailoverAttempt>,
+     pub setup_deadline: Instant,
++    request_write_authority:
++        Option<Arc<dyn crate::transaction::egress::ClientRequestWriteAuthority>>,
+ }
+ 
+ impl InviteFailoverActivePayload {
+@@ -989,7 +1035,15 @@
+             provisional_seen: false,
+             attempts: Vec::new(),
+             setup_deadline,
+-        }
++            request_write_authority: None,
++        }
++    }
++    fn with_write_authority(
++        mut self,
++        authority: Option<Arc<dyn crate::transaction::egress::ClientRequestWriteAuthority>>,
++    ) -> Self {
++        self.request_write_authority = authority;
++        self
+     }
+ }
+ 
+@@ -1357,6 +1411,8 @@
+     wire_plan: CandidateWirePlan,
+     setup_deadline: Instant,
+     remaining_candidate_count: usize,
++    request_write_authority:
++        Option<Arc<dyn crate::transaction::egress::ClientRequestWriteAuthority>>,
+ }
+ 
+ fn transport_route_for_invite_candidate(
+@@ -2919,7 +2975,7 @@
+         assert_eq!(canonical.matches("InviteBuilder::new()").count(), 1);
+         assert_eq!(
+             canonical
+-                .matches("send_request_with_candidate_wire_plan(")
++                .matches("send_request_with_candidate_wire_plan_authorized(")
+                 .count(),
+             1
+         );
+@@ -3276,6 +3332,22 @@
+                     || plan.phase != InviteFailoverPlanPhase::WireUnknown
+                 {
+                     continue;
++                }
++                // An immutable completion outcome can already hold a local
++                // transport failure. The exact delivered 487 is independent
++                // later factual knowledge, not a rewrite of that first outcome.
++                if let Some(transaction) = plan.current_transaction.as_ref() {
++                    if self
++                        .invite_failover_attempts
++                        .get(transaction.as_ref())
++                        .is_some_and(|attempt| {
++                            attempt.plan_id == plan.id
++                                && attempt.dialog_id == plan.dialog_id
++                                && attempt.cancel_terminal_delivery.is_delivered()
++                        })
++                    {
++                        return true;
++                    }
+                 }
+                 plan.current_transaction.clone()
+             };
+@@ -4558,10 +4630,15 @@
+                     }
+                 } else {
+                     Self::set_invite_attempt_outcome(&mut plan, transaction_id, outcome);
+-                    self.close_active_invite_failover_plan(
+-                        &mut plan,
+-                        InviteFailoverPlanPhase::Closed,
+-                    );
++                    // A transport failure/timeout is not a final SIP answer.
++                    // Keep the exact possible wire generation cancellable even
++                    // if this event wins the race with the send observer.
++                    let terminal = if plan.wire_attempted {
++                        InviteFailoverPlanPhase::WireUnknown
++                    } else {
++                        InviteFailoverPlanPhase::Closed
++                    };
++                    self.close_active_invite_failover_plan(&mut plan, terminal);
+                     InviteFailoverEventDisposition::Continue
+                 }
+             }
+@@ -4755,41 +4832,27 @@
+         })?;
+         self.send_invite_with_auth_options(
+             dialog_id,
+-            body,
+-            vec![authorization],
+-            extras,
+-            from_display,
+-            contact_override,
+-            None,
+-            false,
++            crate::api::unified::InviteAuthRetryOptions {
++                sdp: body.map(|bytes| String::from_utf8_lossy(&bytes).into_owned()),
++                authorization_headers: vec![authorization],
++                extra_headers: extras,
++                from_display,
++                contact_uri: contact_override,
++                ..Default::default()
++            },
+         )
+         .await
+     }
+ 
+-    #[allow(clippy::too_many_arguments)]
++    /// Retain the complete original options at the canonical retry boundary.
+     pub async fn send_invite_with_auth_options(
+         &self,
+         dialog_id: &DialogId,
+-        body: Option<bytes::Bytes>,
+-        authorization_headers: Vec<TypedHeader>,
+-        extras: Vec<TypedHeader>,
+-        from_display: Option<String>,
+-        contact_override: Option<String>,
+-        outbound_proxy_uri: Option<rvoip_sip_core::types::uri::Uri>,
+-        supported_100rel: bool,
++        opts: crate::api::unified::InviteAuthRetryOptions,
+     ) -> DialogResult<TransactionKey> {
+         self.send_initial_invite_attempt_with_options(
+             dialog_id,
+-            crate::api::unified::InviteAuthRetryOptions {
+-                sdp: body.map(|bytes| String::from_utf8_lossy(&bytes).into_owned()),
+-                authorization_headers,
+-                extra_headers: extras,
+-                from_display,
+-                contact_uri: contact_override,
+-                outbound_proxy_uri,
+-                supported_100rel,
+-                registered_flow_routes: Vec::new(),
+-            },
++            opts,
+             InitialInviteTimerPolicy::Configured,
+         )
+         .await
+@@ -4882,6 +4945,7 @@
+                 outbound_proxy_uri: opts.outbound_proxy_uri.clone(),
+                 supported_100rel: opts.supported_100rel,
+                 registered_flow_routes: opts.registered_flow_routes.clone(),
++                request_write_authority: opts.request_write_authority.clone(),
+                 extra_headers: preview_headers,
+             },
+         )
+@@ -5013,8 +5077,14 @@
+ 
+         // RFC 3263 §4.3 multi-candidate failover. STIR/SHAKEN re-signs per
+         // attempt inside the helper because every attempt carries a new CSeq.
+-        let (transaction_id, _addr) = self
+-            .send_request_with_candidate_wire_plan(request, candidates, Some(dialog_id), wire_plan)
++        let (transaction_id, _addr, _) = self
++            .send_request_with_candidate_wire_plan_authorized(
++                request,
++                candidates,
++                Some(dialog_id),
++                wire_plan,
++                opts.request_write_authority,
++            )
+             .await?;
+ 
+         debug!(dialog=%dialog_id, transaction=%crate::transaction::safe_diagnostics::SafeTransactionKey::new(&transaction_id), ?timer_policy, "Initial INVITE sent via candidate failover path");
+@@ -5059,6 +5129,7 @@
+             outbound_proxy_uri,
+             supported_100rel,
+             Vec::new(),
++            None,
+         )
+         .await
+     }
+@@ -5074,6 +5145,9 @@
+         outbound_proxy_uri: Option<rvoip_sip_core::types::uri::Uri>,
+         supported_100rel: bool,
+         registered_flow_routes: Vec<rvoip_sip_transport::TransportRoute>,
++        request_write_authority: Option<
++            Arc<dyn crate::transaction::egress::ClientRequestWriteAuthority>,
++        >,
+     ) -> DialogResult<TransactionKey> {
+         self.send_initial_invite_attempt_with_options(
+             dialog_id,
+@@ -5086,6 +5160,7 @@
+                 outbound_proxy_uri,
+                 supported_100rel,
+                 registered_flow_routes,
++                request_write_authority,
+             },
+             InitialInviteTimerPolicy::Configured,
+         )
+@@ -5108,6 +5183,9 @@
+         outbound_proxy_uri: Option<rvoip_sip_core::types::uri::Uri>,
+         supported_100rel: bool,
+         registered_flow_routes: Vec<rvoip_sip_transport::TransportRoute>,
++        request_write_authority: Option<
++            Arc<dyn crate::transaction::egress::ClientRequestWriteAuthority>,
++        >,
+     ) -> Result<TransactionKey, InitialInviteSendFailure> {
+         match self
+             .send_initial_invite_with_registered_flow_routes(
+@@ -5119,6 +5197,7 @@
+                 outbound_proxy_uri,
+                 supported_100rel,
+                 registered_flow_routes,
++                request_write_authority,
+             )
+             .await
+         {
+@@ -5148,6 +5227,9 @@
+         request: Request,
+         candidates: Vec<rvoip_sip_transport::resolver::ResolvedTarget>,
+         wire_plan: CandidateWirePlan,
++        request_write_authority: Option<
++            Arc<dyn crate::transaction::egress::ClientRequestWriteAuthority>,
++        >,
+     ) -> DialogResult<std::sync::Arc<tokio::sync::Mutex<InviteFailoverPlan>>> {
+         // Retained plans are already reaped by the manager's one-second
+         // maintenance task and by the bounded insert cadence below. Scanning
+@@ -5229,12 +5311,15 @@
+             let plan = std::sync::Arc::new(tokio::sync::Mutex::new(InviteFailoverPlan {
+                 id: plan_id,
+                 dialog_id: dialog_id.clone(),
+-                active_payload: Some(Box::new(InviteFailoverActivePayload::new(
+-                    request,
+-                    candidates,
+-                    wire_plan,
+-                    setup_deadline,
+-                ))),
++                active_payload: Some(Box::new(
++                    InviteFailoverActivePayload::new(
++                        request,
++                        candidates,
++                        wire_plan,
++                        setup_deadline,
++                    )
++                    .with_write_authority(request_write_authority.clone()),
++                )),
+                 reserved_attempt_slots: reserved_candidate_count,
+                 current_transaction: None,
+                 wire_attempted: false,
+@@ -5593,6 +5678,7 @@
+                 wire_plan,
+                 setup_deadline: active_payload.setup_deadline,
+                 remaining_candidate_count,
++                request_write_authority: active_payload.request_write_authority.clone(),
+             }
+         };
+         let mut cancellation_guard =
+@@ -5663,6 +5749,15 @@
+             )));
+         };
+         let attempt_timeout = remaining_setup_budget / (lease.remaining_candidate_count as u32);
++        let physical_write_attempted = Arc::new(std::sync::atomic::AtomicBool::new(false));
++        let physical_write_refused = Arc::new(std::sync::atomic::AtomicBool::new(false));
++        let write_authority = lease.request_write_authority.as_ref().map(|authority| {
++            Arc::new(InitialInviteWritePolicy {
++                authority: authority.clone(),
++                attempted: physical_write_attempted.clone(),
++                refused: physical_write_refused.clone(),
++            }) as Arc<dyn crate::transaction::egress::ClientRequestWriteAuthority>
++        });
+         let transaction_id = match tokio::time::timeout_at(
+             tokio::time::Instant::from_std(lease.setup_deadline),
+             self.transaction_manager
+@@ -5670,6 +5765,7 @@
+                     request,
+                     request_route,
+                     attempt_timeout,
++                    write_authority,
+                 ),
+         )
+         .await
+@@ -5777,6 +5873,7 @@
+             ));
+         }
+ 
++        let mut prior_wire_attempted = true;
+         let stale_before_wire = {
+             let mut plan = plan.lock().await;
+             if !plan
+@@ -5807,6 +5904,7 @@
+             } else {
+                 // Monotonic boundary: after this store, even an immediate
+                 // transport error is conservatively wire-unknown.
++                prior_wire_attempted = plan.wire_attempted;
+                 plan.wire_attempted = true;
+                 false
+             }
+@@ -5878,6 +5976,36 @@
+                 }
+             }
+             Ok(Err(_error)) => {
++                // A completed policy refusal before polling the exact IO is
++                // proven zero-wire, unlike a timeout of independently owned IO.
++                let zero_wire = if lease.request_write_authority.is_some()
++                    && !prior_wire_attempted
++                    && physical_write_refused.load(Ordering::Acquire)
++                {
++                    let mut state = plan.lock().await;
++                    if state.current_transaction.as_deref() == Some(&transaction_id) {
++                        state.wire_attempted = false;
++                        self.close_active_invite_failover_plan(
++                            &mut state,
++                            InviteFailoverPlanPhase::Closed,
++                        );
++                        true
++                    } else {
++                        false
++                    }
++                } else {
++                    false
++                };
++                if zero_wire {
++                    self.compensate_invite_candidate_transaction(&transaction_id, true)
++                        .await;
++                    cancellation_guard.disarm();
++                    return Err(InviteCandidateSendError::Fatal(
++                        crate::errors::DialogError::TransactionError {
++                            message: safe_operation_failure("invite_candidate_send", "zero_wire"),
++                        },
++                    ));
++                }
+                 self.retain_wire_unknown_invite_candidate(
+                     plan,
+                     lease.generation,
+@@ -5916,9 +6044,18 @@
+         request: Request,
+         candidates: Vec<rvoip_sip_transport::resolver::ResolvedTarget>,
+         wire_plan: CandidateWirePlan,
++        request_write_authority: Option<
++            Arc<dyn crate::transaction::egress::ClientRequestWriteAuthority>,
++        >,
+     ) -> DialogResult<(TransactionKey, SocketAddr)> {
+         let plan = self
+-            .register_invite_failover_plan(dialog_id, request, candidates, wire_plan)
++            .register_invite_failover_plan(
++                dialog_id,
++                request,
++                candidates,
++                wire_plan,
++                request_write_authority,
++            )
+             .await?;
+         match self.send_invite_failover_candidate(&plan).await {
+             Ok(sent) => Ok(sent),
+@@ -6039,11 +6176,6 @@
+             }
+         })?;
+         let method = request.method();
+-        if write_authority.is_some() && method != Method::Info {
+-            return Err(crate::errors::DialogError::protocol_error(
+-                "owned write policy requires INFO",
+-            ));
+-        }
+         if candidates.is_empty() {
+             return Err(crate::errors::DialogError::routing_error(
+                 "No address candidates for the exact request next hop",
+@@ -6054,15 +6186,27 @@
+             && request
+                 .to()
+                 .is_some_and(|to_header| to_header.tag().is_none());
++        if write_authority.is_some()
++            && method != Method::Info
++            && !(is_initial_invite && tx_to_dialog.is_some())
++        {
++            return Err(crate::errors::DialogError::protocol_error(
++                "owned write policy requires INFO or an owned initial INVITE",
++            ));
++        }
+         if let (true, Some(dialog_id)) = (is_initial_invite, tx_to_dialog) {
+             // Keep the retained-plan state machine off callers' concrete
+             // async frames. Several high-level state machines await this
+             // helper from large match expressions; embedding the complete
+             // failover future there can exhaust Tokio's default worker stack
+             // even when the runtime takes a different match arm.
+-            return Box::pin(
+-                self.send_initial_invite_plan(dialog_id, request, candidates, wire_plan),
+-            )
++            return Box::pin(self.send_initial_invite_plan(
++                dialog_id,
++                request,
++                candidates,
++                wire_plan,
++                write_authority,
++            ))
+             .await
+             .map(|(transaction_id, destination)| (transaction_id, destination, None));
+         }
+diff --git a/crates/sip/sip-dialog/src/manager/unified.rs b/crates/sip/sip-dialog/src/manager/unified.rs
+--- a/crates/sip/sip-dialog/src/manager/unified.rs
++++ b/crates/sip/sip-dialog/src/manager/unified.rs
+@@ -1404,6 +1404,7 @@
+                 options.outbound_proxy_uri,
+                 options.supported_100rel,
+                 options.registered_flow_routes,
++                options.request_write_authority,
+             )
+             .await;
+ 
+@@ -2363,6 +2364,8 @@
+                     supported_100rel,
+                     registered_flow_routes,
+                     extra_headers,
++
++                    request_write_authority: None,
+                 },
+             )
+             .await?;
+@@ -2920,18 +2923,10 @@
+         dialog_id: &DialogId,
+         opts: crate::api::unified::InviteAuthRetryOptions,
+     ) -> ApiResult<TransactionKey> {
+-        let body = opts.sdp.map(bytes::Bytes::from);
++        // Forward the complete immutable options, including physical write
++        // authority and registered flow custody, without a lossy reconstruction.
+         self.core
+-            .send_invite_with_auth_options(
+-                dialog_id,
+-                body,
+-                opts.authorization_headers,
+-                opts.extra_headers,
+-                opts.from_display,
+-                opts.contact_uri,
+-                opts.outbound_proxy_uri,
+-                opts.supported_100rel,
+-            )
++            .send_invite_with_auth_options(dialog_id, opts)
+             .await
+             .map_err(ApiError::from)
+     }
+diff --git a/crates/sip/sip-dialog/src/transaction/manager/handlers.rs b/crates/sip/sip-dialog/src/transaction/manager/handlers.rs
+--- a/crates/sip/sip-dialog/src/transaction/manager/handlers.rs
++++ b/crates/sip/sip-dialog/src/transaction/manager/handlers.rs
+@@ -1519,6 +1519,40 @@
+                         .await
+                         .ok();
+                     } else {
++                        // A possibly written INVITE may already have retired
++                        // after transport failure. Its authenticated final
++                        // response still requires the transaction ACK before
++                        // terminal delivery. Capture request, route and admission
++                        // owner together; never reconstruct from a new generation.
++                        if key.method() == &Method::Invite && !self.stateful_proxy_tu_mode() {
++                            let retired = self
++                                .with_client_response_route_state(&key, |state| {
++                                    state.retired().cloned()
++                                })
++                                .flatten();
++                            if let Some(retired) = retired {
++                                let request =
++                                    super::RetiredClientTransaction::original_request_from_wire(
++                                        &retired.request_wire,
++                                    )?;
++                                let ack = crate::transaction::utils::create_ack_from_invite(
++                                    &request, &response,
++                                )?;
++                                self.transport
++                                    .send_message_on_route(
++                                        Message::Request(ack),
++                                        retired.route.clone(),
++                                    )
++                                    .await
++                                    .map_err(|error| {
++                                        Error::transport_error(
++                                            error,
++                                            "Failed retired INVITE terminal ACK",
++                                        )
++                                    })?;
++                                drop(retired);
++                            }
++                        }
+                         // 3xx, 4xx, 5xx, 6xx failure response
+                         send_transaction_event(
+                             &self.events_tx,
+diff --git a/crates/sip/sip-dialog/src/transaction/manager/mod.rs b/crates/sip/sip-dialog/src/transaction/manager/mod.rs
+--- a/crates/sip/sip-dialog/src/transaction/manager/mod.rs
++++ b/crates/sip/sip-dialog/src/transaction/manager/mod.rs
+@@ -7353,6 +7353,7 @@
+         request: Request,
+         request_route: TransportRoute,
+         transaction_timeout: Duration,
++        write_authority: Option<Arc<dyn crate::transaction::egress::ClientRequestWriteAuthority>>,
+     ) -> Result<(TransactionKey, TransactionAdmissionOwner)> {
+         let mut timer_settings = self.timer_settings.clone();
+         timer_settings.transaction_timeout = transaction_timeout.max(Duration::from_millis(1));
+@@ -7360,7 +7361,7 @@
+             request,
+             request_route,
+             Some(timer_settings),
+-            None,
++            write_authority,
+         )
+         .await
+         .map(|(key, owner, _completion)| (key, owner))
+diff --git a/crates/uctp/rvoip-uctp/tests/support/canonical_media/guarded_mixer/replacement/adapter/sip.rs b/crates/uctp/rvoip-uctp/tests/support/canonical_media/guarded_mixer/replacement/adapter/sip.rs
+--- a/crates/uctp/rvoip-uctp/tests/support/canonical_media/guarded_mixer/replacement/adapter/sip.rs
++++ b/crates/uctp/rvoip-uctp/tests/support/canonical_media/guarded_mixer/replacement/adapter/sip.rs
+@@ -246,6 +246,15 @@
+         expires: Option<chrono::DateTime<Utc>>,
+         digits: &str,
+     ) -> Self {
++        Self::new_with_options(s, peer, expires, digits, SipOriginateContext::default()).await
++    }
++    async fn new_with_options(
++        s: &Scene,
++        peer: &Peer,
++        expires: Option<chrono::DateTime<Utc>>,
++        digits: &str,
++        options: SipOriginateContext,
++    ) -> Self {
+         let old = s.grants.0.read().await.owners[&s.live[0].leg.id].clone();
+         let principal = named_actor("alice");
+         let identity = IdentityBinding::from_authenticated(
+@@ -329,13 +338,7 @@
+             target_principal.expires_at = Some(expires);
+         }
+         let context = adapter
+-            .device_replacement_context(
+-                &s.core.orch,
+-                &pending,
+-                target_principal,
+-                endpoint,
+-                SipOriginateContext::default(),
+-            )
++            .device_replacement_context(&s.core.orch, &pending, target_principal, endpoint, options)
+             .unwrap();
+         assert!(context.prepared_call_reference().is_err());
+         let signals = context.take_signals().unwrap();
+@@ -994,3 +997,40 @@
+         .unwrap();
+     assert_eq!(peer.calls(), 1);
+ }
++
++// Exercise the public SIP originate context through Core's real dormant route.
++struct RefuseInvite;
++#[async_trait::async_trait]
++impl rvoip_sip_dialog::transaction::egress::ClientRequestWriteAuthority for RefuseInvite {}
++#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
++async fn actual_sip_replacement_refused_invite_authority_keeps_original_audio_and_zero_wire() {
++    let s = Scene::new_replacement("quic").await;
++    let peer = Peer::new(true).await;
++    let policy = Arc::new(RefuseInvite);
++    let c = Candidate::new_with_options(
++        &s,
++        &peer,
++        None,
++        "5",
++        SipOriginateContext::default().with_request_write_authority(policy.clone()),
++    )
++    .await;
++    let g = grant(&s, c.pending.intent(), &c.principal, Approval::Start).await;
++    assert!(tokio::time::timeout(
++        Duration::from_secs(5),
++        s.core
++            .orch
++            .start_adapter_device_replacement_with_held(&c.pending, &g)
++    )
++    .await
++    .unwrap()
++    .is_err());
++    drop(g);
++    assert!(peer.methods.lock().unwrap().is_empty());
++    assert_eq!(peer.calls(), 0);
++    c.stop(&peer, None).await;
++    assert_eq!(c.coordinator.allocated_media_port_count().await, 0);
++    s.tone(0, 1).await;
++    s.tone(1, 0).await;
++    s.stop().await;
++}

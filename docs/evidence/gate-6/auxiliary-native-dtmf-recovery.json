@@ -1,0 +1,175 @@
+{
+  "task": "G6-046",
+  "title": "Production native DTMF owned SDK, private audience and fault/recovery paths",
+  "recorded_at": "2026-10-22T10:22:22.718602+00:00",
+  "status": "native-dtmf-private-and-recovery-local-component-qualified",
+  "full_task_complete": false,
+  "full_goal_complete": false,
+  "acceptance_qualified": false,
+  "scope": "Isolated local macOS arm64 production Store/service/Core/server and public Rust SDK on signed native QUIC. Each of13 named cases runs EdDSA and ES256. The low-credit peer is a real authenticated negotiated QUIC recipient with fixed4KiB receive credit. Faults act on actual Store or transport boundaries, without replacement IO factories. No named remote/provider profile or remote playback claim.",
+  "schema_version": 84,
+  "source_lock": {
+    "path": "dependencies/source-lock.json",
+    "patches": 134,
+    "sha256": "723bc141df69599f9ec97fe413af59eca6fd022bbc97f24e9592cccd1ca4a5b5"
+  },
+  "implementation": [
+    "All three owned audio types expose send_dtmf through the common owned physical peer. Source IDs come from that peer; the caller retains the original logical ID and explicit optional revision. No automatic newer-revision substitution or additional grant.",
+    "Fixed original registration candidates are selected once. Selection and source-observation freezing retry only transient contention during one <=2s preparation window capped by original expiry. No successful batch is reconstructed; no recipient IO starts before durable freezing.",
+    "Current Core audience metadata is acquired before current Store readers, with bounded metadata try-lock waiting. The resulting original/current scene fence remains mandatory during IO with sealed native source/target fences and fresh independent named source/receiver permission.",
+    "Actual frame reservation uses the same already-signed frame. Temporary reservation contention releases media owners and Store readers before waiting, then reacquires complete current authority. Closed flight admission prevents late execution; all actual IO leases stop before local outcomes are journaled.",
+    "Actual HTTP operation status exposes the recorded local summary. Authorized same-owner metadata replay after restart may return the original unknown result; it must not create another job or effect. Captured but unrecorded submission recovers unknown, never replayed as a new delivery.",
+    "No production default credential scope, upstream patch, schema version, native writer/transport deadline or test assertion was weakened."
+  ],
+  "verification": {
+    "distinct_current_runtime_checks_passed": 13,
+    "new_named_runtime_cases": 8,
+    "dtmf_module": {
+      "passed": 12,
+      "failed": 0,
+      "ignored": 0,
+      "seconds": 27.03,
+      "log": ".local/gate-6/native-dtmf-fault-actual-v3.log",
+      "total_executable_cases": 181,
+      "not_requalified_by_this_filter": 169
+    },
+    "private_journey": {
+      "passed": 1,
+      "failed": 0,
+      "ignored": 0,
+      "seconds": 46.54,
+      "log": ".local/gate-6/native-dtmf-fault-private-v2.log",
+      "total_executable_cases": 181,
+      "not_requalified_by_this_filter": 180,
+      "scope": "Existing real decoded private/public audio and return journey plus bidirectional private DTMF. Explicit named receive grants on retained remote and same-Participant public consultant make their exclusion an actual audience check. After return, completed original replay cannot emit; fresh current signal goes only to restored remote."
+    },
+    "cases": [
+      "Signed raw SDK delivery and exact original replay/conflict behavior; preserved queued events, actual provenance and named receive refusal.",
+      "Actual HTTP physical-source refusal and actual HTTP operation.get result projection. Two parsed HTTP payloads, result summaries and signed received frames validate against published schemas.",
+      "Owned public-audio source send and receive_signaling while preserving a queued incoming signal across another owned SDK command and completed replay.",
+      "Finite-credit pending native write settles unknown with original frame reservation; original replay has no further effect and a fresh signal uses the released control slot.",
+      "Source and recipient identity writers cannot overtake a real sustained write guard; current credential revocation waits for sink retirement. Original source work cannot revive, and revoking one recipient does not revoke the other recipient credential.",
+      "Cancellation after actual pending IO preserves possible effects and stops later work; no resubmission under uncertainty.",
+      "Server restart after actual received submission and injected outcome-storage cutoff preserves record ID, frame ID and unknown. Readonly same-owner replay cannot redeliver, and independently admitted fresh owned source/recipient peers can submit a new signal.",
+      "Private bidirectional delivery, public same-Participant Connection exclusion, restored-public fresh delivery and original private completed replay non-publication."
+    ],
+    "http_schema": {
+      "scope": "Final-source actual parsed HTTP status/results and actual signed native received frames from isolated production tests, no synthetic runtime substitution.",
+      "algorithms": [
+        "EdDSA",
+        "ES256"
+      ],
+      "http_operation_payloads": 2,
+      "actual_result_summaries": 2,
+      "actual_signed_received_frames": 2
+    },
+    "server_cli_and_test_build": {
+      "result": "passed locked offline single-job compile/link",
+      "log": ".local/gate-6/native-dtmf-fault-build-v8.log",
+      "seconds": 377,
+      "command": "CARGO_INCREMENTAL=0 cargo test -p connect-server --test gate6_canonical_runtime canonical_native_connections::dtmf:: --no-run -j1 --locked --offline"
+    },
+    "reference_and_format": "scripts/format.sh applied before final build; generated canonical HTTP reference --check and focused git diff --check pass. Plan integrity is checked after evidence update."
+  },
+  "inputs": {
+    "path": ".local/gate-6/native-dtmf-fault-inputs-v8.json",
+    "entries": 1390,
+    "sha256": "f1cf64bbe16bf952ac07d7f8eb37a17e98868c9de85196ba822961a20e0c944b"
+  },
+  "source_verification": {
+    "all_compiled_code_contracts_patches_and_lock_unchanged": true,
+    "changed_since_compiled_inputs": [
+      "docs/developer/native-dtmf-journal.md"
+    ],
+    "scope": "Only developer documentation changed before this report. Task evidence/notes update below does not change task work/verify/dependency contracts or clause IDs/statuses."
+  },
+  "compiled_binary": {
+    "path": "target/debug/deps/gate6_canonical_runtime-f39476f2f6c7ff5d",
+    "archive": ".local/gate-6/native-dtmf-recovery-artifacts-v1/gate6_canonical_runtime-f39476f2f6c7ff5d-0e820d9f6e24.gz",
+    "bytes": 362745560,
+    "sha256": "0e820d9f6e240b8f17edb0f2cb3253624a16e61fdb4d45a385f64b10a27c7cd5",
+    "gzip_bytes": 70653294,
+    "archive_sha256": "6b6427057a47764e91f8ff0fcf25470994453c84fd2d2c2bcf5f53875738e1ad",
+    "restored_bytes_verified": true
+  },
+  "initial_attempts": [
+    {
+      "source_inputs": ".local/gate-6/native-dtmf-fault-inputs-v1.json",
+      "log": ".local/gate-6/native-dtmf-fault-actual-v1.log",
+      "passed": 7,
+      "failed": 5,
+      "findings": [
+        "Actual HTTP result/schema and owned wrapper cases pass.",
+        "Wait for explicit local_work_complete when cancel/common recovery exposes unknown before stopped writer facts.",
+        "Restart metadata replay by another authenticated same-owner peer is allowed and must preserve unknown without another effect; earlier test incorrectly required refusal.",
+        "Credit tests need distinguish a durable attempted reservation from an actually held pending IO lease; exact failed/no-effect summary is now logged."
+      ]
+    },
+    {
+      "source_inputs": ".local/gate-6/native-dtmf-fault-inputs-v2.json",
+      "log": ".local/gate-6/native-dtmf-fault-credit-diagnostic-v1.log",
+      "result": "Summary absent at unwrap; changed fixture to read actual source stream revision after adding recipient and log full result."
+    },
+    {
+      "source_inputs": ".local/gate-6/native-dtmf-fault-inputs-v3.json",
+      "log": ".local/gate-6/native-dtmf-fault-credit-diagnostic-v2.log",
+      "result": "Actual failed/partial-submission at signal-credit-0: normal codec-source locally submitted; capability-slow not_started with frame_id null. Route outcome Refused/touched=false; no fresh-signal-read rejection. Added specific scope/owner/activation/audience stages to locate it before choosing any runtime change."
+    },
+    {
+      "log": ".local/gate-6/native-dtmf-fault-credit-diagnostic-v3.log",
+      "source_inputs": ".local/gate-6/native-dtmf-fault-inputs-v4.json",
+      "finding": "Source capture reports Dispatch(StorageUnavailable), but handler previously permanently failed forbidden before sealing source/recipients. Capture now reuses exact original metadata candidates and retries only source NotReady/temporary Store errors before accepted freeze, under the original bounded invocation, for <=2s and original expiry. Original request and grants are not widened; downstream queue still retains no invocation readers."
+    },
+    {
+      "log": ".local/gate-6/native-dtmf-fault-credit-diagnostic-v4.log",
+      "source_inputs": ".local/gate-6/native-dtmf-fault-inputs-v5.json",
+      "finding": "Real signal-credit-4 failure: recipient native policy reached audience helper, which returned Media(NotReady), with touched=false and no reserved frame. Source capture retries already allowed preceding4 actual frames. Current code waits bounded metadata try-locks BEFORE fresh domain readers/owners, then retains the same audience fence through fresh Store read and actual guarded IO."
+    },
+    {
+      "log": ".local/gate-6/native-dtmf-fault-credit-diagnostic-v5.log",
+      "source_inputs": ".local/gate-6/native-dtmf-fault-inputs-v6.json",
+      "finding": "Recipient selection failed authority-busy before source capture, so no local summary existed. Selection now retries temporary authority/storage contention with an immutable registry snapshot; selection plus source freeze share one <=2s/original-expiry budget. No prepared or attempted delivery is retried."
+    },
+    {
+      "log": ".local/gate-6/native-dtmf-fault-credit-diagnostic-v6.log",
+      "source_inputs": ".local/gate-6/native-dtmf-fault-inputs-v7.json",
+      "finding": "EdDSA actual credit exhaustion reached OutcomeUnknown/touched=true, original replay did not submit and fresh operation completed. ES256 earlier recipient was refused before frame reservation; reservation try-lock had no retry, now retries same signed frame after dropping readers/owners."
+    },
+    {
+      "log": ".local/gate-6/native-dtmf-fault-actual-v2.log",
+      "source_inputs": ".local/gate-6/native-dtmf-fault-inputs-v7.json",
+      "passed": 8,
+      "failed": 4,
+      "finding": "Restart and all positive HTTP/owned/raw tests pass both algorithms. Credit tests partly reached real unknown but one 15ms injection sample missed later slow-target IO. Observer now waits for the same attempted pending child and both source/target readers to remain held25ms, then injects while original200ms IO bound remains."
+    },
+    {
+      "log": ".local/gate-6/native-dtmf-fault-private-v1.log",
+      "source_inputs": ".local/gate-6/native-dtmf-fault-inputs-v7.json",
+      "passed": 1,
+      "failed": 0,
+      "seconds": 46.96,
+      "scope": "Actual EdDSA+ES256 private consultation bidirectional DTMF excludes remote and same-Participant public Connection with named receive grants, then original completed replay does not publish and fresh public delivery goes only to restored remote. Includes existing actual audio/return checks."
+    },
+    {
+      "log": ".local/gate-6/native-dtmf-fault-actual-v2.log",
+      "source_inputs": ".local/gate-6/native-dtmf-fault-inputs-v7.json",
+      "passed": 8,
+      "failed": 4,
+      "scope": "13th private journey passed separately. One15ms injection observation was not proof of active later target IO; final observer requires the attempted pending recipient and both actual source/recipient readers held continuously25ms before fault injection.200ms IO bound unchanged."
+    },
+    {
+      "log": ".local/gate-6/native-dtmf-fault-private-v1.log",
+      "passed": 1,
+      "failed": 0,
+      "scope": "Earlier private pass is repeated against final unchanged source and counted only once."
+    }
+  ],
+  "not_qualified": [
+    "An unfinished original private DTMF signal crossing consultation return; this phase proves completed private replay non-publication and current actual private/public delivery, not that queued-tail case.",
+    "Full pre-IO queued credential/key/Device/Endpoint/membership/expiry/capacity fault matrix, mixed non-audio recipients, and DTMF after actual handoff/replacement generations.",
+    "PrivateNativeAudio and PreparedHandoffNativeAudio send facade runtime combinations. The shared facade compiles; actual public facade and raw private journey are qualified separately.",
+    "Installed SIP/WebRTC/general received-source journal and audience composition; WebTransport/browser/Linux/remote profiles; remote playback.",
+    "Real assurance/step-up, exact61 auxiliary vectors, earlier unresolved retention/primary-return refusal, full G6-046 and remaining59 tasks, all Gate6 acceptance and publication."
+  ],
+  "next": "Continue queued private-tail/current authority/generation and remaining installed source/profile cases, then assurance/step-up and exact assigned vectors before closing G6-046. The full105-task goal remains active."
+}

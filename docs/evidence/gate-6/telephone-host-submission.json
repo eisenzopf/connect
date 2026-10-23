@@ -1,0 +1,263 @@
+{
+  "kind": "gate6-component-evidence",
+  "task": "G6-041",
+  "status": "in-progress",
+  "passed": true,
+  "recorded_at": "2026-10-20T10:50:23.786187+00:00",
+  "scope": "Local macOS arm64 canonical Service/Store/Core composition with a protected installed SIP adapter, public HTTP Endpoint replacement, actual UDP ringing/cleanup and retained native decoded audio. Controlled isolated endpoints only.",
+  "pinned_patches": 118,
+  "upstream_changed": false,
+  "schema_version": 58,
+  "source_lock": {
+    "path": "dependencies/source-lock.json",
+    "sha256": "936c135bc7bf8a6f7c7052280722a2c4836e3d01729fae83b246ed849e541823"
+  },
+  "verification": [
+    {
+      "name": "store",
+      "command": "target/debug/deps/connect_store-500690b8d898aed1 --test-threads=2",
+      "exit_code": 0,
+      "passed": 627,
+      "ignored": 3,
+      "log": {
+        "path": ".local/gate-6/telephone-host-store-full-final.log",
+        "sha256": "974080ad430f326c9a7cf06c462a558972730645c4d13d166d42b31915b9b514"
+      },
+      "test_binary": {
+        "path": "target/debug/deps/connect_store-500690b8d898aed1",
+        "sha256": "e9797daa1adb2b94874caa1a690f92135daab03048daf6528c8e0dba43edb368"
+      }
+    },
+    {
+      "name": "service",
+      "command": "cargo test --locked --offline -j2 -p connect-service --lib -- --test-threads=2",
+      "exit_code": 0,
+      "passed": 22,
+      "ignored": 0,
+      "log": {
+        "path": ".local/gate-6/telephone-host-service-final.log",
+        "sha256": "24f0af7bf7955553b98b0e3feb3abbabc31b4c6a2d6faa50763f40c7abf10e9a"
+      },
+      "test_binary": {
+        "path": "target/debug/deps/connect_service-ea774b1cfc228d6b",
+        "sha256": "57a410911791703b7b6d2e65becc663080b36eac4dcbef552d79356bde7769db"
+      }
+    },
+    {
+      "name": "telephone",
+      "command": "RUST_LOG=connect_service=debug cargo test --locked --offline -j2 -p connect-server --test gate6_canonical_runtime production_telephone_replacement_ -- --test-threads=1 --nocapture",
+      "exit_code": 0,
+      "passed": 4,
+      "ignored": 0,
+      "log": {
+        "path": ".local/gate-6/telephone-host-runtime-matrix-3.log",
+        "sha256": "50a3cb5cd175c4a87c0bde6f65c8ceda475e5fafd620fc48fa5908634c16b894"
+      },
+      "test_binary": {
+        "path": "target/debug/deps/gate6_canonical_runtime-2e3e18c2008aaebe",
+        "sha256": "f5cf2cca910b20c87dffc9bf5f89d6b3aa13e5a11591e49b9daa102d52baa931"
+      }
+    },
+    {
+      "name": "native",
+      "command": "RUST_LOG=connect_service=debug target/debug/deps/gate6_canonical_runtime-2e3e18c2008aaebe production_replacement_ --test-threads=2 --nocapture",
+      "exit_code": 0,
+      "passed": 6,
+      "ignored": 0,
+      "log": {
+        "path": ".local/gate-6/telephone-host-native-final.log",
+        "sha256": "112a6f4b119a308ccadc1492864ca9f66ed63fd7694964e0e405d1a68277c6ae"
+      },
+      "test_binary": {
+        "path": "target/debug/deps/gate6_canonical_runtime-2e3e18c2008aaebe",
+        "sha256": "f5cf2cca910b20c87dffc9bf5f89d6b3aa13e5a11591e49b9daa102d52baa931"
+      }
+    }
+  ],
+  "fresh_distinct_passed_tests": 659,
+  "static_checks": [
+    {
+      "name": "dependencies",
+      "command": [
+        "bash",
+        "scripts/prepare-dependencies.sh"
+      ],
+      "exit_code": 0,
+      "log": {
+        "path": ".local/gate-6/telephone-host-static-dependencies-final.log",
+        "sha256": "fd9d7b181e3ccba9b643af55a186cf132c60aac99c734b2ee4e4e549afe5ffc2"
+      }
+    },
+    {
+      "name": "format",
+      "command": [
+        "bash",
+        "scripts/format.sh",
+        "--check"
+      ],
+      "exit_code": 0,
+      "log": {
+        "path": ".local/gate-6/telephone-host-static-format-final.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    {
+      "name": "http",
+      "command": [
+        "python3",
+        "scripts/generate-canonical-http-openapi.py",
+        "--check"
+      ],
+      "exit_code": 0,
+      "log": {
+        "path": ".local/gate-6/telephone-host-static-http-final.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    {
+      "name": "contracts",
+      "command": [
+        ".local/gate-6/verification-venv/bin/python",
+        "scripts/check-gate6-contracts.py"
+      ],
+      "exit_code": 0,
+      "log": {
+        "path": ".local/gate-6/telephone-host-static-contracts-final.log",
+        "sha256": "2c29557f8945b4bb522a5436f85876aa8ab90eca617dcf64588af05e9a81b1bc"
+      }
+    },
+    {
+      "name": "diff",
+      "command": [
+        "git",
+        "diff",
+        "--check"
+      ],
+      "exit_code": 0,
+      "log": {
+        "path": ".local/gate-6/telephone-host-static-diff-final.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    }
+  ],
+  "implemented": [
+    "Before physical intake, the protected host installs its SIP adapter on the same canonical Core. Unique configured route references select a verified independent route account and bounded callback policy; public commands supply only provisioned Endpoint IDs. Host configuration is immutable after first native intake.",
+    "The trusted resolver binds the current independently authenticated route account to the verified logical membership and Endpoint. It does not fake a native peer or borrow the old native credential. Original operator/source/retained grants and route dial/recipient permissions are independently checked.",
+    "Actual Core preparation/allocation supplies the binding and planned SIP Call-ID. The peer verifies durable allocation plus begun start correlation before it counts or answers any INVITE. Start begins once and retains metadata during ringing. Each physical INVITE reacquires an immediate current interval and matches actual Call-ID plus the complete parsed destination URI before polling the supplied IO future.",
+    "Core pre/post start checks use a separate short current reader outside registry locks. SQL and authority facts are revalidated under the complete scope set. The transport reader refuses SQL contention immediately. Only metadata read acquisition retries; no Core/transport effect is retried after ambiguity, and no current reader survives ringing.",
+    "Four actual public replacement fixtures cover independent route credential revocation, Endpoint revocation, public cancellation and no-answer deadline. Each requires one unique Call-ID, real CANCEL/487/ACK cleanup, candidate liveness removal, no second call on replay and strict decoded original native audio in both directions.",
+    "Exact unstarted preparation reservations can settle a definite refusal without Core IO. A begun attempt cannot be reclassified or begun twice. Current control/write readers refuse revoked accounts and do not create another effect. Native origin, writer-token and subscription preflights retry transient metadata contention before engine entry, within the same invocation/deadline; engine effects remain once-only."
+  ],
+  "preliminary_runs": [
+    {
+      "path": ".local/gate-6/telephone-host-store-1.log",
+      "sha256": "55aeff163d9135ca41fdbac73b58ab51d559c6b26a3b508f555aaac6b76824fd"
+    },
+    {
+      "path": ".local/gate-6/telephone-host-runtime-1.log",
+      "sha256": "3915541f3409d4bfe9b31ce904d8b077c2667719b7eceadaf3bd90ef26c20557"
+    },
+    {
+      "path": ".local/gate-6/telephone-host-runtime-2.log",
+      "sha256": "92864d9d9dc68973e71e9aaff7bb58a40e39ec125dbeac25b04a2c40e6234b3d"
+    },
+    {
+      "path": ".local/gate-6/telephone-host-runtime-3.log",
+      "sha256": "4fff57e12d9214aae4e4e1d6d503dfff17525c17c9026c5af9946798d7b07d1d"
+    },
+    {
+      "path": ".local/gate-6/telephone-host-runtime-4.log",
+      "sha256": "84e56921db0e7f83d9836e595d77296708fd78380325ceee51296a4640517ecd"
+    },
+    {
+      "path": ".local/gate-6/telephone-host-runtime-5.log",
+      "sha256": "27ddf220b5a5ed8dc96ffc67ad36385a9e25e9ba0d6478ba15e201c2bf5a9ca5"
+    },
+    {
+      "path": ".local/gate-6/telephone-host-runtime-6.log",
+      "sha256": "e35b2e227f9a37ce7a44cb026a8f20d556e0cfa13ef65fbbc96510cadc16852c"
+    },
+    {
+      "path": ".local/gate-6/telephone-host-runtime-7.log",
+      "sha256": "060ac17d08485f0dc713fedbfedb7fd2316a77ed417b33232c95cce3ef6f5e56"
+    },
+    {
+      "path": ".local/gate-6/telephone-host-runtime-8.log",
+      "sha256": "e322741ac0360215bd516730c6c49c79a8834cec967844d373bcbb46fa4b1013"
+    },
+    {
+      "path": ".local/gate-6/telephone-host-runtime-9.log",
+      "sha256": "3fc6f426d9cc559a1a9bb5f92ac82bf3aeb370bf9b68b7ef61c1305c3f306430"
+    },
+    {
+      "path": ".local/gate-6/telephone-host-runtime-10.log",
+      "sha256": "246e8ed0a792e770ab2b51acb0b54bcf1c017615f139fe840fb6a78211997e43"
+    },
+    {
+      "path": ".local/gate-6/telephone-host-runtime-11.log",
+      "sha256": "9dc91a7f62c4fe97ea5a2009c466cb68a7fbb44530c2006a3e36c44df2aba0cf"
+    },
+    {
+      "path": ".local/gate-6/telephone-host-runtime-12.log",
+      "sha256": "951021f926c765b4d508323fd4b67d0ea50e6e67c70c1a4584bf1bb564bb67c1"
+    },
+    {
+      "path": ".local/gate-6/telephone-host-runtime-13.log",
+      "sha256": "e36fa289028b682cbedb964e6276ebf380db6628a0c13460eeb2b00e73f24416"
+    },
+    {
+      "path": ".local/gate-6/telephone-host-runtime-14.log",
+      "sha256": "c77684721900f9f4fa12e808b5a72e188466b0f2415449a63b1119d859716630"
+    },
+    {
+      "path": ".local/gate-6/telephone-host-runtime-matrix-1.log",
+      "sha256": "3e40d16dc8c8fe50412fac194211442ddfc578aefb32273c57fb9ccfa757d66c"
+    }
+  ],
+  "deadline_fence": "The physical INVITE guard checks its monotonic preparation deadline before reader acquisition and every exact IO poll; the effective IO deadline is the earlier of preparation and current read expiry. It does not depend solely on delayed watcher cancellation.",
+  "preliminary_findings": [
+    "Initial compilation caught two test callsites after borrowing the opaque lease; fixed without adding public Clone or weakening the once-only ledger.",
+    "Native fixture metadata reads at origin/configure/subscription setup sometimes returned authority-busy. Named read paths now use bounded fresh metadata retry before engine calls. Other initial signed admission 503 occurrences were not independently localized; this does not claim that contention can never produce an unavailable response.",
+    "The credential renewal helper correctly rejected a different route principal. Trusted Store membership resolution now constructs that explicit account-to-logical-membership binding; Core renewal ownership checks remain unchanged.",
+    "Submission preflight and Core current checks initially refused ordinary SQL contention. The control read now waits outside Core registry locks; transport reads still refuse contention and reacquire the complete bounded interval. No uncertain Core start is replayed.",
+    "An actual INVITE had the correct Call-ID and source authority but failed raw destination string equality because SIP escapes E.164 leading plus. Exact parsed URI equality fixes the false refusal while preserving parameter/header matching. The actual peer asserts the decoded telephone number and selected authority.",
+    "The first four-case matrix passed three cases; Endpoint case failed during native origin setup before telephone IO. The origin metadata retry fixed that path. The final matrix additionally requires real ACK and candidate physical absence."
+  ],
+  "ignored_helpers": [
+    "authority_fences::tests::process_worker: explicitly invoked by passing cross-process parent tests",
+    "installation_ownership::tests::process_worker: explicitly invoked by passing ownership/process-death parent tests",
+    "transitions::tests::crash_worker: explicitly invoked by passing crash/administration parent tests"
+  ],
+  "unqualified": [
+    "Answered telephone media resources/private duplex, configured attributed DTMF application, final movement and independent established telephone ownership are not yet wired in Connect. No public ready/completed movement is claimed from ringing or submission.",
+    "The server-owned adapter installation is a protected embedding API exercised before native intake; installed production server configuration/construction and its failure cleanup remain required.",
+    "The complete voicemail/rejected-confirmation/late-old-event/unknown/restart matrix, later telephone-to-other-device movement and retargeted selector/private-context churn remain required. Store recovery tests do not qualify physical restart or redial behavior.",
+    "Late non-487 terminal responses after initial local transport failure remain unqualified. No provider/PSTN/Linux/browser/remote/performance or acceptance qualification and no publication. Historical broader upstream totals are not added to current tests."
+  ],
+  "task_counts": {
+    "done": 40,
+    "in_progress": 1,
+    "not_started": 64,
+    "acceptance_closed": 0
+  },
+  "all_105_tasks_remain_in_scope": true,
+  "goal_status": "active",
+  "progress": {
+    "path": ".local/gate-6/telephone-host-static-progress-final.log",
+    "sha256": "3c9a42760866b510a9b7fc81b2b57b9bf6791a239d0bf0de8cdf06058e513f78"
+  },
+  "diff": {
+    "path": ".local/gate-6/telephone-host-static-diff-final.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "source_inputs": {
+    "path": ".local/gate-6/telephone-host-app-inputs.json",
+    "sha256": "5cc2fe47f091bbd39b254ad095515aa4b27b9aa8b26ceed58004358b1e0759c9"
+  },
+  "source_input_count": 1338,
+  "unchanged_upstream_inputs": {
+    "path": ".local/gate-6/sip-invite-authority-upstream-inputs.json",
+    "sha256": "735ee7c56c0b63c261cb13aa819d4a6762b41793d8ad57cc7d83b7807a61357b"
+  },
+  "upstream_input_count": 2684
+}

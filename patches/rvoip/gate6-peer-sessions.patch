@@ -1,0 +1,1726 @@
+diff --git a/crates/foundation/rvoip-core/src/orchestrator.rs b/crates/foundation/rvoip-core/src/orchestrator.rs
+index 3338a4e..8a73c5c 100644
+--- a/crates/foundation/rvoip-core/src/orchestrator.rs
++++ b/crates/foundation/rvoip-core/src/orchestrator.rs
+@@ -11,6 +11,7 @@
+ //! (CARVE_PLAN §3) land in subsequent steps.
+ 
+ pub mod participant_control;
++pub mod peer_sessions;
+ 
+ use crate::adapter::{
+     AdapterEvent, AdapterLifecycleSink, ConnectionAdapter, ConnectionHandle, EndReason,
+@@ -1521,6 +1522,7 @@ pub struct Orchestrator {
+     /// Session (via the auto-end path in `detach_connection_from_session`)
+     /// or on explicit [`end_session`] + later close.
+     sessions: Arc<DashMap<SessionId, Arc<RwLock<Session>>>>,
++    peer_sessions: Arc<Mutex<peer_sessions::PeerSessionRegistry>>,
+     participant_sessions:
+         Arc<DashMap<SessionId, Arc<participant_control::ManagedParticipantSession>>>,
+     managed_participant_connections:
+@@ -1907,6 +1909,7 @@ impl Orchestrator {
+             subscriber_streams: Arc::new(DashMap::new()),
+             conversations: Arc::new(DashMap::new()),
+             sessions: Arc::new(DashMap::new()),
++            peer_sessions: Arc::new(Mutex::new(Default::default())),
+             participant_sessions: Arc::new(DashMap::new()),
+             managed_participant_connections: Arc::new(DashMap::new()),
+             externally_projected_sessions: Arc::new(Mutex::new(HashSet::new())),
+@@ -1986,6 +1989,7 @@ impl Orchestrator {
+             subscriber_streams: Arc::new(DashMap::new()),
+             conversations: Arc::new(DashMap::new()),
+             sessions: Arc::new(DashMap::new()),
++            peer_sessions: Arc::new(Mutex::new(Default::default())),
+             participant_sessions: Arc::new(DashMap::new()),
+             managed_participant_connections: Arc::new(DashMap::new()),
+             externally_projected_sessions: Arc::new(Mutex::new(HashSet::new())),
+@@ -5281,6 +5285,15 @@ impl Orchestrator {
+             .externally_projected_sessions
+             .lock()
+             .expect("external projection lock poisoned");
++        if self
++            .peer_sessions
++            .lock()
++            .unwrap_or_else(|p| p.into_inner())
++            .closing
++            .contains(&conversation_id)
++        {
++            return Err(RvoipError::InvalidState("conversation closing"));
++        }
+         if let Some(existing) = self.sessions.get(&session_id) {
+             let current = existing.read().expect("session lock poisoned");
+             if !projected.contains(&session_id)
+@@ -5692,32 +5705,46 @@ impl Orchestrator {
+             .map(|e| Arc::clone(e.value()))
+             .ok_or_else(|| RvoipError::ConversationNotFound(id.clone()))?;
+ 
+-        let active_sessions: Vec<SessionId> = {
++        let (active_sessions, _closing) = {
++            let _serial = self
++                .externally_projected_sessions
++                .lock()
++                .expect("external projection lock poisoned");
++            let mut registry = self.peer_sessions.lock().unwrap_or_else(|p| p.into_inner());
+             let conv = conv_arc.read().expect("conversation lock poisoned");
+             if conv.state == ConversationState::Closed {
+                 return Ok(());
+             }
+-            conv.sessions
++            if registry.closing.contains(&id) {
++                return Err(RvoipError::InvalidState("conversation closing"));
++            }
++            let sessions = conv
++                .sessions
+                 .iter()
+                 .filter(|sid| {
+-                    self.sessions
+-                        .get(sid)
+-                        .map(|s| {
+-                            let st = s.value().read().expect("session lock poisoned").state;
+-                            !matches!(st, SessionState::Ended | SessionState::Failed)
+-                        })
+-                        .unwrap_or(false)
++                    self.sessions.get(*sid).is_some_and(|session| {
++                        !matches!(
++                            session.read().expect("session lock poisoned").state,
++                            SessionState::Ended | SessionState::Failed
++                        )
++                    })
+                 })
+                 .cloned()
+-                .collect()
++                .collect::<Vec<_>>();
++            if !sessions.is_empty() && !force {
++                return Err(RvoipError::InvalidState(
++                    "close_conversation: active sessions exist; pass force=true to end them",
++                ));
++            }
++            registry.closing.insert(id.clone());
++            (
++                sessions,
++                peer_sessions::ClosingConversation {
++                    registry: self.peer_sessions.clone(),
++                    conversation: id.clone(),
++                },
++            )
+         };
+-
+-        if !active_sessions.is_empty() && !force {
+-            return Err(RvoipError::InvalidState(
+-                "close_conversation: active sessions exist; pass force=true to end them",
+-            ));
+-        }
+-
+         if force {
+             for sid in active_sessions {
+                 let _ = self.end_session(sid, EndReason::Normal).await;
+@@ -5746,6 +5773,19 @@ impl Orchestrator {
+             .get(&id)
+             .map(|e| Arc::clone(e.value()))
+             .ok_or_else(|| RvoipError::ConversationNotFound(id.clone()))?;
++        let _serial = self
++            .externally_projected_sessions
++            .lock()
++            .expect("external projection lock poisoned");
++        if self
++            .peer_sessions
++            .lock()
++            .unwrap_or_else(|p| p.into_inner())
++            .closing
++            .contains(&id)
++        {
++            return Err(RvoipError::InvalidState("conversation closing"));
++        }
+         let now = Utc::now();
+         {
+             let mut conv = conv_arc.write().expect("conversation lock poisoned");
+@@ -5775,6 +5815,23 @@ impl Orchestrator {
+         conversation_id: ConversationId,
+         medium: SessionMedium,
+         invitees: Vec<ParticipantId>,
++    ) -> Result<SessionId> {
++        let _serial = self
++            .externally_projected_sessions
++            .lock()
++            .expect("external projection lock poisoned");
++        let registry = self.peer_sessions.lock().unwrap_or_else(|p| p.into_inner());
++        if registry.closing.contains(&conversation_id) {
++            return Err(RvoipError::InvalidState("conversation closing"));
++        }
++        self.insert_runtime_session(conversation_id, medium, invitees, SessionId::new())
++    }
++    fn insert_runtime_session(
++        &self,
++        conversation_id: ConversationId,
++        medium: SessionMedium,
++        invitees: Vec<ParticipantId>,
++        sid: SessionId,
+     ) -> Result<SessionId> {
+         let conv_arc = self
+             .conversations
+@@ -5782,18 +5839,11 @@ impl Orchestrator {
+             .map(|e| Arc::clone(e.value()))
+             .ok_or_else(|| RvoipError::ConversationNotFound(conversation_id.clone()))?;
+ 
+-        {
+-            let conv = conv_arc.read().expect("conversation lock poisoned");
+-            if conv.state != ConversationState::Open {
+-                return Err(RvoipError::InvalidState(
+-                    "start_session: conversation is not Open",
+-                ));
+-            }
+-        }
+-        // P6 — quota check.
+         self.check_session_quota(&conversation_id)?;
+-
+-        let sid = SessionId::new();
++        let mut conv = conv_arc.write().expect("conversation lock poisoned");
++        if conv.state != ConversationState::Open || self.sessions.contains_key(&sid) {
++            return Err(RvoipError::InvalidState("session creation conflicts"));
++        }
+         let now = Utc::now();
+         #[cfg(feature = "vcon")]
+         let vcon_invitees = invitees.clone();
+@@ -5828,12 +5878,9 @@ impl Orchestrator {
+             self.session_vcons.insert(sid.clone(), builder);
+         }
+ 
+-        {
+-            let mut conv = conv_arc.write().expect("conversation lock poisoned");
+-            conv.sessions.push(sid.clone());
+-            conv.last_activity_at = now;
+-        }
+-
++        conv.sessions.push(sid.clone());
++        conv.last_activity_at = now;
++        drop(conv);
+         self.emit(Event::SessionStarted {
+             session_id: sid.clone(),
+             conversation_id,
+@@ -5866,6 +5913,7 @@ impl Orchestrator {
+             sess.conversation_id.clone()
+         };
+ 
++        self.retire_session_views(&session_id);
+         self.end_managed_participant_session(&session_id).await;
+ 
+         // Multi-party cleanup + reverse-index cleanup.
+@@ -6314,7 +6362,13 @@ impl Orchestrator {
+             .lock()
+             .expect("external projection lock poisoned")
+             .contains(&sid);
+-        let externally_owned = externally_owned || self.participant_sessions.contains_key(&sid);
++        let externally_owned = externally_owned
++            || self.participant_sessions.contains_key(&sid)
++            || self
++                .peer_sessions
++                .lock()
++                .unwrap_or_else(|p| p.into_inner())
++                .owns(&sid);
+         let (auto_end, external_idle, conv_id) = {
+             let mut sess = sess_arc.write().expect("session lock poisoned");
+             sess.connections.remove(conn);
+@@ -6343,6 +6397,7 @@ impl Orchestrator {
+             sess.ended_at = Some(now);
+             sess.end_reason = Some(EndReason::Normal);
+         }
++        self.retire_session_views(&sid);
+         self.drop_session_subscriptions(&sid);
+         if let Some(conv_arc) = self
+             .conversations
+diff --git a/crates/foundation/rvoip-core/src/orchestrator/peer_sessions.rs b/crates/foundation/rvoip-core/src/orchestrator/peer_sessions.rs
+new file mode 100644
+index 0000000..7dbbd27
+--- /dev/null
++++ b/crates/foundation/rvoip-core/src/orchestrator/peer_sessions.rs
+@@ -0,0 +1,423 @@
++//! Physical Session views, including pending invitations without Connections.
++//! These are bounded runtime associations, not a durable invitation journal.
++//! The application selects stable IDs and supplies its already-held current
++//! authority lease. No second policy read is performed inside a Core call.
++use super::*;
++use crate::{
++    identity::AuthenticatedPrincipal,
++    ids::IdentityId,
++    peer_admission::{PeerAdmission, PeerAdmissionError, PeerSessionPermit},
++    relationships::Membership,
++};
++use uuid::Uuid;
++
++/// IDs come from the trusted application mapping/journal, never wire aliases.
++#[derive(Clone, Debug, PartialEq, Eq)]
++pub struct PeerSessionStart {
++    pub session: SessionId,
++    pub conversation: ConversationId,
++    pub medium: SessionMedium,
++    pub invitees: Vec<ParticipantId>,
++}
++
++/// Resolved under the caller's current policy guard. Roles alone grant nothing.
++pub struct PeerSessionAuthority {
++    pub actor: Membership,
++    pub invitees: Vec<Membership>,
++    pub may_create: bool,
++    pub may_attach: bool,
++}
++/// Trusted composition boundary: hold current membership/grants and revocation
++/// protection through this synchronous call. A cached boolean is not a lease.
++pub trait PeerSessionAuthorityLease {
++    fn authority(&self) -> &PeerSessionAuthority;
++}
++#[derive(Clone, Copy, Debug, PartialEq, Eq, thiserror::Error)]
++pub enum PeerSessionError {
++    #[error("current Session authority denied")]
++    Authority,
++    #[error("Session resource capacity exhausted")]
++    Capacity,
++    #[error("Session intent conflicts")]
++    Conflict,
++    #[error("Session or physical peer closed")]
++    Closed,
++    #[error("Session runtime rejected creation")]
++    Runtime,
++}
++impl From<PeerAdmissionError> for PeerSessionError {
++    fn from(value: PeerAdmissionError) -> Self {
++        match value {
++            PeerAdmissionError::Authority => Self::Authority,
++            PeerAdmissionError::Capacity => Self::Capacity,
++            PeerAdmissionError::Conflict => Self::Conflict,
++            PeerAdmissionError::Closed => Self::Closed,
++        }
++    }
++}
++#[derive(Clone, PartialEq, Eq)]
++struct MemberEpoch {
++    participant: ParticipantId,
++    identity: IdentityId,
++    epoch: u64,
++}
++impl From<&Membership> for MemberEpoch {
++    fn from(member: &Membership) -> Self {
++        Self {
++            participant: member.participant().clone(),
++            identity: member.identity().clone(),
++            epoch: member.epoch(),
++        }
++    }
++}
++struct CreationOrigin {
++    physical: Uuid,
++    intent: PeerSessionStart,
++    creator: MemberEpoch,
++    invitees: Vec<MemberEpoch>,
++}
++pub(super) struct PeerSessionRegistry {
++    views: HashMap<(SessionId, Uuid), Arc<PeerSessionPermit>>,
++    origins: HashMap<SessionId, CreationOrigin>,
++    retention_limit: usize,
++    pub(super) closing: HashSet<ConversationId>,
++}
++impl PeerSessionRegistry {
++    pub(super) fn owns(&self, session: &SessionId) -> bool {
++        self.origins.contains_key(session)
++    }
++}
++impl Default for PeerSessionRegistry {
++    fn default() -> Self {
++        Self {
++            views: HashMap::new(),
++            origins: HashMap::new(),
++            retention_limit: 10_000,
++            closing: HashSet::new(),
++        }
++    }
++}
++/// Pending close excludes new Sessions while asynchronous media cleanup runs.
++/// Cancellation releases the fence; already-ended Sessions stay terminal.
++pub(super) struct ClosingConversation {
++    pub(super) registry: Arc<Mutex<PeerSessionRegistry>>,
++    pub(super) conversation: ConversationId,
++}
++impl Drop for ClosingConversation {
++    fn drop(&mut self) {
++        self.registry
++            .lock()
++            .unwrap_or_else(|p| p.into_inner())
++            .closing
++            .remove(&self.conversation);
++    }
++}
++fn identifier(value: &str) -> bool {
++    !value.is_empty()
++        && value.len() <= 128
++        && value
++            .bytes()
++            .all(|b| b.is_ascii_alphanumeric() || b"._~-".contains(&b))
++}
++fn normalized(
++    intent: &PeerSessionStart,
++    authority: &PeerSessionAuthority,
++) -> std::result::Result<(PeerSessionStart, Vec<MemberEpoch>), PeerSessionError> {
++    if !identifier(intent.session.as_str())
++        || !identifier(intent.conversation.as_str())
++        || intent.invitees.len() > 256
++        || authority.invitees.len() != intent.invitees.len()
++    {
++        return Err(PeerSessionError::Conflict);
++    }
++    let mut intent = intent.clone();
++    intent.invitees.sort_by(|a, b| a.as_str().cmp(b.as_str()));
++    if intent.invitees.windows(2).any(|pair| pair[0] == pair[1])
++        || intent.invitees.iter().any(|id| !identifier(id.as_str()))
++    {
++        return Err(PeerSessionError::Conflict);
++    }
++    let mut members = Vec::with_capacity(intent.invitees.len());
++    for member in &authority.invitees {
++        if !member.is_active()
++            || member.conversation() != &intent.conversation
++            || member.tenant() != authority.actor.tenant()
++        {
++            return Err(PeerSessionError::Authority);
++        }
++        members.push(MemberEpoch::from(member));
++    }
++    members.sort_by(|a, b| a.participant.as_str().cmp(b.participant.as_str()));
++    if members
++        .iter()
++        .map(|m| &m.participant)
++        .ne(intent.invitees.iter())
++    {
++        return Err(PeerSessionError::Authority);
++    }
++    Ok((intent, members))
++}
++impl Orchestrator {
++    fn check_peer_session_actor(
++        &self,
++        peer: &PeerAdmission,
++        principal: &AuthenticatedPrincipal,
++        conversation: &ConversationId,
++        authority: &PeerSessionAuthority,
++    ) -> std::result::Result<(), PeerSessionError> {
++        peer.check_member(principal, &authority.actor)?;
++        if authority.actor.conversation() != conversation {
++            return Err(PeerSessionError::Authority);
++        }
++        let current = self
++            .conversations
++            .get(conversation)
++            .ok_or(PeerSessionError::Authority)?;
++        if &current
++            .read()
++            .expect("conversation lock poisoned")
++            .tenant_id
++            != authority.actor.tenant()
++        {
++            return Err(PeerSessionError::Authority);
++        }
++        Ok(())
++    }
++    /// Set a finite retained origin budget before the first peer Session. Ended
++    /// origins are retained: exhaustion rejects new IDs instead of evicting an
++    /// old tombstone and resurrecting an uncertain logical request.
++    pub fn set_peer_session_retention_limit(
++        &self,
++        limit: usize,
++    ) -> std::result::Result<(), PeerSessionError> {
++        if !(1..=10_000).contains(&limit) {
++            return Err(PeerSessionError::Capacity);
++        }
++        let mut registry = self.peer_sessions.lock().unwrap_or_else(|p| p.into_inner());
++        if !registry.origins.is_empty() {
++            return Err(PeerSessionError::Conflict);
++        }
++        registry.retention_limit = limit;
++        Ok(())
++    }
++    /// Reserve the physical view before creating the real Core Session or
++    /// emitting SessionStarted. Requested invitees remain pending targets;
++    /// they are not active Participants, media recipients, or delivered invites.
++    pub fn start_peer_session(
++        self: &Arc<Self>,
++        peer: Arc<PeerAdmission>,
++        principal: &AuthenticatedPrincipal,
++        intent: &PeerSessionStart,
++        lease: &dyn PeerSessionAuthorityLease,
++    ) -> std::result::Result<SessionId, PeerSessionError> {
++        let authority = lease.authority();
++        self.check_peer_session_actor(&peer, principal, &intent.conversation, authority)?;
++        if !authority.may_create {
++            return Err(PeerSessionError::Authority);
++        }
++        let (intent, invitees) = normalized(intent, authority)?;
++        let creator = MemberEpoch::from(&authority.actor);
++        // Same order as administrative/external creation and Conversation close.
++        let _serial = self
++            .externally_projected_sessions
++            .lock()
++            .expect("external projection lock poisoned");
++        let mut registry = self.peer_sessions.lock().unwrap_or_else(|p| p.into_inner());
++        if let Some(origin) = registry.origins.get(&intent.session) {
++            if origin.physical != peer.incarnation()
++                || origin.intent != intent
++                || origin.creator != creator
++                || origin.invitees != invitees
++            {
++                return Err(PeerSessionError::Conflict);
++            }
++            // Read-only replay never recreates a released view or ended Session.
++            peer.validate_principal(principal)?;
++            return Ok(intent.session);
++        }
++        if registry.closing.contains(&intent.conversation) {
++            return Err(PeerSessionError::Closed);
++        }
++        if self
++            .conversations
++            .get(&intent.conversation)
++            .ok_or(PeerSessionError::Authority)?
++            .read()
++            .expect("conversation lock poisoned")
++            .state
++            != ConversationState::Open
++        {
++            return Err(PeerSessionError::Closed);
++        }
++        if self.sessions.contains_key(&intent.session) {
++            return Err(PeerSessionError::Conflict);
++        }
++        if registry.origins.len() >= registry.retention_limit {
++            return Err(PeerSessionError::Capacity);
++        }
++        let permit = peer.reserve_session(self, &intent.session)?;
++        let sid = self
++            .insert_runtime_session(
++                intent.conversation.clone(),
++                intent.medium,
++                vec![],
++                intent.session.clone(),
++            )
++            .map_err(|_| PeerSessionError::Runtime)?;
++        registry
++            .views
++            .insert((sid.clone(), peer.incarnation()), permit);
++        registry.origins.insert(
++            sid.clone(),
++            CreationOrigin {
++                physical: peer.incarnation(),
++                intent,
++                creator,
++                invitees,
++            },
++        );
++        Ok(sid)
++    }
++    /// Associate an authorized physical recipient with an existing live Session.
++    /// This creates no Participant presence and accepts no Connection/media.
++    pub fn attach_peer_session(
++        self: &Arc<Self>,
++        peer: Arc<PeerAdmission>,
++        principal: &AuthenticatedPrincipal,
++        session: &SessionId,
++        lease: &dyn PeerSessionAuthorityLease,
++    ) -> std::result::Result<(), PeerSessionError> {
++        let authority = lease.authority();
++        if !authority.may_attach {
++            return Err(PeerSessionError::Authority);
++        }
++        let _serial = self
++            .externally_projected_sessions
++            .lock()
++            .expect("external projection lock poisoned");
++        let mut registry = self.peer_sessions.lock().unwrap_or_else(|p| p.into_inner());
++        let current = self
++            .sessions
++            .get(session)
++            .ok_or(PeerSessionError::Conflict)?;
++        let current = current.read().expect("session lock poisoned");
++        self.check_peer_session_actor(&peer, principal, &current.conversation_id, authority)?;
++        if matches!(
++            current.state,
++            SessionState::Ended | SessionState::Failed | SessionState::Ending
++        ) || registry.closing.contains(&current.conversation_id)
++        {
++            return Err(PeerSessionError::Closed);
++        }
++        let conversation = self
++            .conversations
++            .get(&current.conversation_id)
++            .ok_or(PeerSessionError::Authority)?;
++        if conversation
++            .read()
++            .expect("conversation lock poisoned")
++            .state
++            != ConversationState::Open
++        {
++            return Err(PeerSessionError::Closed);
++        }
++        if let Some(origin) = registry.origins.get(session) {
++            let actor = MemberEpoch::from(&authority.actor);
++            if actor != origin.creator && !origin.invitees.contains(&actor) {
++                return Err(PeerSessionError::Authority);
++            }
++        }
++        let key = (session.clone(), peer.incarnation());
++        if !registry.views.contains_key(&key) {
++            registry
++                .views
++                .insert(key, peer.reserve_session(self, session)?);
++        }
++        Ok(())
++    }
++    /// Resource cleanup only, scoped by the immutable physical incarnation.
++    /// Connection permits keep their Session charge through uncertain cleanup.
++    pub fn release_peer_session_view(&self, peer: &PeerAdmission, session: &SessionId) {
++        self.peer_sessions
++            .lock()
++            .unwrap_or_else(|p| p.into_inner())
++            .views
++            .remove(&(session.clone(), peer.incarnation()));
++    }
++    pub(crate) fn retire_peer_session_views(&self, physical: Uuid) {
++        self.peer_sessions
++            .lock()
++            .unwrap_or_else(|p| p.into_inner())
++            .views
++            .retain(|(_, id), _| *id != physical);
++    }
++    pub(super) fn retire_session_views(&self, session: &SessionId) {
++        self.peer_sessions
++            .lock()
++            .unwrap_or_else(|p| p.into_inner())
++            .views
++            .retain(|(sid, _), _| sid != session);
++    }
++}
++
++#[cfg(test)]
++mod tests {
++    use super::*;
++    #[tokio::test]
++    async fn cancelling_pending_close_guard_releases_all_creation_fences() {
++        let core = Orchestrator::new(crate::config::Config::default());
++        let cid = core
++            .open_conversation(
++                TenantId::new(),
++                ConversationPolicy::Persistent,
++                HashMap::new(),
++            )
++            .await
++            .unwrap();
++        let registry = core.peer_sessions.clone();
++        let conversation = cid.clone();
++        let entered = Arc::new(tokio::sync::Notify::new());
++        let signal = entered.clone();
++        let task = tokio::spawn(async move {
++            registry
++                .lock()
++                .unwrap()
++                .closing
++                .insert(conversation.clone());
++            let _closing = ClosingConversation {
++                registry,
++                conversation,
++            };
++            signal.notify_one();
++            std::future::pending::<()>().await;
++        });
++        entered.notified().await;
++        assert!(core
++            .start_session(cid.clone(), SessionMedium::Voice, vec![])
++            .await
++            .is_err());
++        assert!(core
++            .project_external_session(
++                cid.clone(),
++                SessionId::new(),
++                TenantId::new(),
++                SessionMedium::Voice,
++                vec![]
++            )
++            .is_err());
++        assert!(core.reopen_conversation(cid.clone()).await.is_err());
++        assert!(core
++            .conversation(&cid)
++            .unwrap()
++            .read()
++            .unwrap()
++            .sessions
++            .is_empty());
++        task.abort();
++        assert!(task.await.unwrap_err().is_cancelled());
++        core.start_session(cid.clone(), SessionMedium::Voice, vec![])
++            .await
++            .unwrap();
++        core.close_conversation(cid, true).await.unwrap();
++    }
++}
+diff --git a/crates/foundation/rvoip-core/src/peer_admission.rs b/crates/foundation/rvoip-core/src/peer_admission.rs
+index b0878d7..22e077d 100644
+--- a/crates/foundation/rvoip-core/src/peer_admission.rs
++++ b/crates/foundation/rvoip-core/src/peer_admission.rs
+@@ -55,6 +55,7 @@ struct Record {
+ struct State {
+     core: Option<Weak<Orchestrator>>,
+     routes: HashMap<ConnectionId, Record>,
++    sessions: HashMap<SessionId, Uuid>,
+ }
+ pub struct PeerAdmission {
+     id: Uuid,
+@@ -113,6 +114,7 @@ impl PeerAdmissionOwner {
+                 state: Mutex::new(State {
+                     core: None,
+                     routes: HashMap::new(),
++                    sessions: HashMap::new(),
+                 }),
+             }),
+         })
+@@ -194,6 +196,7 @@ impl PeerAdmission {
+                 .routes
+                 .values()
+                 .map(|r| &r.session)
++                .chain(state.sessions.keys())
+                 .collect::<HashSet<_>>()
+                 .len(),
+             connections: state.routes.len(),
+@@ -248,6 +251,7 @@ impl PeerAdmission {
+             .routes
+             .values()
+             .map(|r| &r.session)
++            .chain(state.sessions.keys())
+             .collect::<HashSet<_>>();
+         if state.routes.len() >= self.limits.connections
+             || (!sessions.contains(session) && sessions.len() >= self.limits.sessions)
+@@ -270,6 +274,58 @@ impl PeerAdmission {
+             transport,
+         }))
+     }
++    pub(crate) fn check_member(
++        &self,
++        principal: &AuthenticatedPrincipal,
++        member: &Membership,
++    ) -> Result<(), PeerAdmissionError> {
++        self.validate_principal(principal)?;
++        member
++            .revalidate_principal(principal, chrono::Utc::now())
++            .map_err(|_| PeerAdmissionError::Authority)?;
++        if member.identity() != &self.identity {
++            return Err(PeerAdmissionError::Authority);
++        }
++        Ok(())
++    }
++    pub(crate) fn reserve_session(
++        self: &Arc<Self>,
++        core: &Arc<Orchestrator>,
++        session: &SessionId,
++    ) -> Result<Arc<PeerSessionPermit>, PeerAdmissionError> {
++        let mut state = self.state.lock().unwrap_or_else(|p| p.into_inner());
++        if self.is_closed() {
++            return Err(PeerAdmissionError::Closed);
++        }
++        let weak = Arc::downgrade(core);
++        if state
++            .core
++            .as_ref()
++            .is_some_and(|old| !Weak::ptr_eq(old, &weak))
++        {
++            return Err(PeerAdmissionError::Authority);
++        }
++        if state.sessions.contains_key(session) {
++            return Err(PeerAdmissionError::Conflict);
++        }
++        let sessions = state
++            .routes
++            .values()
++            .map(|r| &r.session)
++            .chain(state.sessions.keys())
++            .collect::<HashSet<_>>();
++        if !sessions.contains(session) && sessions.len() >= self.limits.sessions {
++            return Err(PeerAdmissionError::Capacity);
++        }
++        let nonce = Uuid::new_v4();
++        state.core = Some(weak);
++        state.sessions.insert(session.clone(), nonce);
++        Ok(Arc::new(PeerSessionPermit {
++            peer: self.clone(),
++            session: session.clone(),
++            nonce,
++        }))
++    }
+     fn close(&self) {
+         self.lifetime.cancel();
+         let (core, routes) = {
+@@ -283,6 +339,7 @@ impl PeerAdmission {
+             for connection in routes {
+                 core.retire_peer_admission_route(&connection, self.id);
+             }
++            core.retire_peer_session_views(self.id);
+         }
+     }
+ }
+@@ -314,3 +371,17 @@ impl Drop for PeerRoutePermit {
+         }
+     }
+ }
++
++pub(crate) struct PeerSessionPermit {
++    peer: Arc<PeerAdmission>,
++    session: SessionId,
++    nonce: Uuid,
++}
++impl Drop for PeerSessionPermit {
++    fn drop(&mut self) {
++        let mut state = self.peer.state.lock().unwrap_or_else(|p| p.into_inner());
++        if state.sessions.get(&self.session) == Some(&self.nonce) {
++            state.sessions.remove(&self.session);
++        }
++    }
++}
+diff --git a/crates/foundation/rvoip-core/tests/peer_sessions.rs b/crates/foundation/rvoip-core/tests/peer_sessions.rs
+new file mode 100644
+index 0000000..6c100b0
+--- /dev/null
++++ b/crates/foundation/rvoip-core/tests/peer_sessions.rs
+@@ -0,0 +1,517 @@
++//! Managed core admission, including actual mixer and adapter acceptance.
++#[path = "support/participant_control_fixture.rs"]
++#[allow(dead_code)]
++mod fixture;
++use fixture::*;
++use rvoip_core::{
++    identity::{AuthenticatedPrincipal, CredentialKind, IdentityAssurance},
++    ids::{DeviceId, EndpointId, IdentityId},
++    orchestrator::participant_control::*,
++    participant_transitions::*,
++    peer_admission::*,
++    relationships::{EndpointBinding, IdentityBinding},
++};
++use std::{sync::atomic::Ordering, time::Duration};
++use tokio_util::sync::CancellationToken;
++fn actor(name: &str) -> AuthenticatedPrincipal {
++    let mut p = principal(name);
++    p.expires_at = Some(chrono::Utc::now() + chrono::Duration::hours(1));
++    p.assurance = IdentityAssurance::Identified {
++        credential_kind: CredentialKind::Oidc,
++    };
++    p
++}
++fn scope_owner(
++    name: &str,
++    limits: PeerAdmissionLimits,
++    parent: CancellationToken,
++) -> PeerAdmissionOwner {
++    PeerAdmissionOwner::new(
++        &actor(name),
++        IdentityId::from_string(format!("id_{name}")),
++        DeviceId::from_string(format!("device_{name}")),
++        parent,
++        limits,
++    )
++    .unwrap()
++}
++async fn connection(
++    f: &Fixture,
++    name: &str,
++    ready: bool,
++) -> (rvoip_core::ConnectionId, std::sync::Arc<TestStream>) {
++    let (id, stream) = f.connection(name, ready).await;
++    let p = actor(name);
++    let binding = IdentityBinding::from_authenticated(
++        &p,
++        IdentityId::from_string(format!("id_{name}")),
++        chrono::Utc::now(),
++    )
++    .unwrap();
++    let mut endpoint = EndpointBinding::provision(
++        binding.clone(),
++        EndpointId::new(),
++        DeviceId::from_string(format!("device_{name}")),
++        rvoip_core::Transport::Sip,
++        "sip:fixture.invalid".into(),
++    )
++    .unwrap();
++    endpoint
++        .verify(&binding, "controlled-proof".into(), chrono::Utc::now())
++        .unwrap();
++    f.policy
++        .0
++        .write()
++        .unwrap()
++        .endpoints
++        .insert(id.clone(), endpoint);
++    f.adapter.authenticate(&id, p).await;
++    until(|| f.orch.connection_principal(&id).is_ok()).await;
++    (id, stream)
++}
++async fn admit(
++    f: &Fixture,
++    peer: &std::sync::Arc<PeerAdmission>,
++    session: &rvoip_core::SessionId,
++    name: &str,
++    id: &rvoip_core::ConnectionId,
++) -> ControlResult<ParticipantObservation> {
++    let mutation = f.intent(
++        session,
++        name,
++        &format!("op_{}", uuid::Uuid::new_v4().simple()),
++        ParticipantChange::Admit {
++            connection: id.clone(),
++            role_override: None,
++        },
++    );
++    f.orch
++        .admit_peer_session_connection(
++            peer.clone(),
++            session,
++            actor(name),
++            mutation,
++            tokio::time::Instant::now() + Duration::from_secs(3),
++            CancellationToken::new(),
++        )
++        .await
++}
++use rvoip_core::{
++    adapter::EndReason,
++    events::Event,
++    orchestrator::peer_sessions::*,
++    session::{SessionMedium, SessionState},
++    SessionId,
++};
++struct Lease<'a> {
++    _guard: std::sync::RwLockReadGuard<'a, PolicyState>,
++    authority: PeerSessionAuthority,
++}
++impl PeerSessionAuthorityLease for Lease<'_> {
++    fn authority(&self) -> &PeerSessionAuthority {
++        &self.authority
++    }
++}
++fn lease<'a>(f: &'a Fixture, name: &str, invitees: &[&str]) -> Lease<'a> {
++    let state = f.policy.0.read().unwrap();
++    let authority = PeerSessionAuthority {
++        actor: state.members[&participant(name)].clone(),
++        invitees: invitees
++            .iter()
++            .map(|name| state.members[&participant(name)].clone())
++            .collect(),
++        may_create: !state.denied,
++        may_attach: !state.denied,
++    };
++    Lease {
++        _guard: state,
++        authority,
++    }
++}
++fn intent(f: &Fixture, invitees: &[&str]) -> PeerSessionStart {
++    PeerSessionStart {
++        session: SessionId::new(),
++        conversation: f.conversation.clone(),
++        medium: SessionMedium::Voice,
++        invitees: invitees.iter().map(|name| participant(name)).collect(),
++    }
++}
++fn start(
++    f: &Fixture,
++    peer: &std::sync::Arc<PeerAdmission>,
++    intent: &PeerSessionStart,
++) -> Result<SessionId, PeerSessionError> {
++    f.orch.start_peer_session(
++        peer.clone(),
++        &actor("alice"),
++        intent,
++        &lease(f, "alice", &["bob"]),
++    )
++}
++fn count_started(rx: &mut tokio::sync::broadcast::Receiver<Event>) -> usize {
++    let mut n = 0;
++    while let Ok(ev) = rx.try_recv() {
++        if matches!(ev, Event::SessionStarted { .. }) {
++            n += 1;
++        }
++    }
++    n
++}
++#[tokio::test]
++async fn pending_zero_connection_sessions_reserve_before_core_state_and_event_effects() {
++    let f = Fixture::new().await;
++    let owner = scope_owner("alice", Default::default(), CancellationToken::new());
++    let peer = owner.peer();
++    let mut events = f.orch.subscribe_events();
++    for _ in 0..32 {
++        let sid = start(&f, &peer, &intent(&f, &["bob"])).unwrap();
++        let s = f.orch.session(&sid).unwrap();
++        let s = s.read().unwrap();
++        assert_eq!(s.state, SessionState::Initiating);
++        assert!(s.participants.is_empty());
++        assert!(s.connections.is_empty());
++    }
++    assert_eq!(peer.snapshot().sessions, 32);
++    assert_eq!(peer.snapshot().connections, 0);
++    assert_eq!(count_started(&mut events), 32);
++    let denied = intent(&f, &["bob"]);
++    assert_eq!(start(&f, &peer, &denied), Err(PeerSessionError::Capacity));
++    assert!(f.orch.session(&denied.session).is_none());
++    assert_eq!(count_started(&mut events), 0);
++    assert_eq!(
++        f.orch
++            .conversation(&f.conversation)
++            .unwrap()
++            .read()
++            .unwrap()
++            .sessions
++            .len(),
++        33
++    );
++    assert_eq!(f.adapter.accepted.load(Ordering::Acquire), 0);
++    drop(owner);
++    assert_eq!(peer.snapshot().sessions, 0);
++}
++#[tokio::test]
++async fn invitation_and_connection_union_charges_once_and_uncertain_cleanup_keeps_charge() {
++    let f = Fixture::new().await;
++    let owner = scope_owner(
++        "alice",
++        PeerAdmissionLimits {
++            sessions: 1,
++            connections: 2,
++        },
++        CancellationToken::new(),
++    );
++    let peer = owner.peer();
++    let sid = start(&f, &peer, &intent(&f, &["bob"])).unwrap();
++    f.orch
++        .enable_participant_control(&sid, f.policy.clone(), Default::default())
++        .unwrap();
++    let (id, _) = connection(&f, "alice", true).await;
++    admit(&f, &peer, &sid, "alice", &id).await.unwrap();
++    assert_eq!(peer.snapshot().sessions, 1);
++    assert_eq!(peer.snapshot().connections, 1);
++    f.adapter.fail_end.store(true, Ordering::Release);
++    f.orch.release_peer_session_view(&peer, &sid);
++    assert_eq!(peer.snapshot().sessions, 1);
++    f.orch
++        .end_session(sid.clone(), EndReason::Normal)
++        .await
++        .unwrap();
++    assert_eq!(peer.snapshot().sessions, 1);
++    assert_eq!(
++        start(&f, &peer, &intent(&f, &["bob"])),
++        Err(PeerSessionError::Capacity)
++    );
++    f.adapter.fail_end.store(false, Ordering::Release);
++    f.adapter.terminate(&id).await;
++    until(|| peer.snapshot().sessions == 0).await;
++    start(&f, &peer, &intent(&f, &["bob"])).unwrap();
++    assert_eq!(peer.snapshot().sessions, 1);
++}
++#[tokio::test]
++async fn same_physical_creation_replay_is_read_only_and_conflicting_or_other_peer_intent_denied() {
++    let f = Fixture::new().await;
++    let owner = scope_owner("alice", Default::default(), CancellationToken::new());
++    let peer = owner.peer();
++    let original = intent(&f, &["bob"]);
++    let sid = start(&f, &peer, &original).unwrap();
++    let mut events = f.orch.subscribe_events();
++    assert_eq!(start(&f, &peer, &original).unwrap(), sid);
++    assert_eq!(peer.snapshot().sessions, 1);
++    assert_eq!(count_started(&mut events), 0);
++    let mut changed = original.clone();
++    changed.medium = SessionMedium::Video;
++    assert_eq!(start(&f, &peer, &changed), Err(PeerSessionError::Conflict));
++    let other = scope_owner("alice", Default::default(), CancellationToken::new());
++    assert_eq!(
++        start(&f, &other.peer(), &original),
++        Err(PeerSessionError::Conflict)
++    );
++    assert_eq!(other.peer().snapshot().sessions, 0);
++    f.orch.release_peer_session_view(&peer, &sid);
++    assert_eq!(start(&f, &peer, &original).unwrap(), sid);
++    assert_eq!(peer.snapshot().sessions, 0);
++    f.orch
++        .end_session(sid.clone(), EndReason::Normal)
++        .await
++        .unwrap();
++    assert_eq!(start(&f, &peer, &original).unwrap(), sid);
++    assert_eq!(peer.snapshot().sessions, 0);
++    assert_eq!(
++        f.orch.session(&sid).unwrap().read().unwrap().state,
++        SessionState::Ended
++    );
++    assert_eq!(count_started(&mut events), 0);
++    assert_eq!(
++        f.orch
++            .attach_peer_session(peer, &actor("alice"), &sid, &lease(&f, "alice", &[])),
++        Err(PeerSessionError::Closed)
++    );
++}
++#[tokio::test]
++async fn frozen_invitee_epoch_and_identity_bind_attachment_without_activating_participants() {
++    let f = Fixture::new().await;
++    let a = scope_owner("alice", Default::default(), CancellationToken::new());
++    let sid = start(&f, &a.peer(), &intent(&f, &["bob"])).unwrap();
++    let b = scope_owner("bob", Default::default(), CancellationToken::new());
++    let c = scope_owner("carol", Default::default(), CancellationToken::new());
++    f.orch
++        .attach_peer_session(b.peer(), &actor("bob"), &sid, &lease(&f, "bob", &[]))
++        .unwrap();
++    assert_eq!(b.peer().snapshot().sessions, 1);
++    assert_eq!(
++        f.orch
++            .attach_peer_session(c.peer(), &actor("carol"), &sid, &lease(&f, "carol", &[])),
++        Err(PeerSessionError::Authority)
++    );
++    f.orch.release_peer_session_view(&b.peer(), &sid);
++    {
++        let mut state = f.policy.0.write().unwrap();
++        let member = state.members.get_mut(&participant("bob")).unwrap();
++        member.remove(member.revision()).unwrap();
++        let p = actor("bob");
++        let binding = IdentityBinding::from_authenticated(
++            &p,
++            IdentityId::from_string("id_bob"),
++            chrono::Utc::now(),
++        )
++        .unwrap();
++        member.readmit(&binding, member.revision()).unwrap();
++    }
++    assert_eq!(
++        f.orch
++            .attach_peer_session(b.peer(), &actor("bob"), &sid, &lease(&f, "bob", &[])),
++        Err(PeerSessionError::Authority)
++    );
++    assert!(f
++        .orch
++        .session(&sid)
++        .unwrap()
++        .read()
++        .unwrap()
++        .participants
++        .is_empty());
++}
++#[tokio::test]
++async fn creator_eof_releases_only_physical_view_and_shared_logical_session_survives() {
++    let f = Fixture::new().await;
++    let a = scope_owner("alice", Default::default(), CancellationToken::new());
++    let p = a.peer();
++    let sid = start(&f, &p, &intent(&f, &["bob"])).unwrap();
++    let b = scope_owner("bob", Default::default(), CancellationToken::new());
++    f.orch
++        .attach_peer_session(b.peer(), &actor("bob"), &sid, &lease(&f, "bob", &[]))
++        .unwrap();
++    drop(a);
++    assert!(p.is_closed());
++    assert_eq!(p.snapshot().sessions, 0);
++    assert_eq!(b.peer().snapshot().sessions, 1);
++    assert_eq!(
++        f.orch.session(&sid).unwrap().read().unwrap().state,
++        SessionState::Initiating
++    );
++    assert_eq!(
++        f.orch
++            .conversation(&f.conversation)
++            .unwrap()
++            .read()
++            .unwrap()
++            .state,
++        rvoip_core::conversation::ConversationState::Open
++    );
++    let successor = scope_owner("alice", Default::default(), CancellationToken::new());
++    f.orch
++        .attach_peer_session(
++            successor.peer(),
++            &actor("alice"),
++            &sid,
++            &lease(&f, "alice", &[]),
++        )
++        .unwrap();
++    f.orch.release_peer_session_view(&p, &sid);
++    assert_eq!(successor.peer().snapshot().sessions, 1);
++    f.orch.end_session(sid, EndReason::Normal).await.unwrap();
++    assert_eq!(successor.peer().snapshot().sessions, 0);
++    assert_eq!(b.peer().snapshot().sessions, 0);
++}
++#[tokio::test]
++async fn retained_creation_origins_reject_new_ids_after_end_without_resurrecting_tombstones() {
++    let f = Fixture::new().await;
++    f.orch.set_peer_session_retention_limit(2).unwrap();
++    let a = scope_owner("alice", Default::default(), CancellationToken::new());
++    let first = intent(&f, &["bob"]);
++    let one = start(&f, &a.peer(), &first).unwrap();
++    f.orch
++        .end_session(one.clone(), EndReason::Normal)
++        .await
++        .unwrap();
++    let two = start(&f, &a.peer(), &intent(&f, &["bob"])).unwrap();
++    f.orch.end_session(two, EndReason::Normal).await.unwrap();
++    assert_eq!(
++        start(&f, &a.peer(), &intent(&f, &["bob"])),
++        Err(PeerSessionError::Capacity)
++    );
++    assert_eq!(start(&f, &a.peer(), &first).unwrap(), one);
++    assert_eq!(a.peer().snapshot().sessions, 0);
++    assert_eq!(
++        f.orch.set_peer_session_retention_limit(3),
++        Err(PeerSessionError::Conflict)
++    );
++}
++#[tokio::test]
++async fn current_authority_wrong_owner_issuer_expiry_and_invalid_targets_deny_before_effects() {
++    let f = Fixture::new().await;
++    let a = scope_owner("alice", Default::default(), CancellationToken::new());
++    let v = intent(&f, &["bob"]);
++    let mut events = f.orch.subscribe_events();
++    for wrong in ["bob", "issuer", "tenant", "expiry"] {
++        let mut p = actor("alice");
++        match wrong {
++            "bob" => p.subject = "bob".into(),
++            "issuer" => p.issuer = Some("other".into()),
++            "tenant" => p.tenant = Some("other".into()),
++            _ => p.expires_at = Some(chrono::Utc::now() - chrono::Duration::seconds(1)),
++        };
++        assert_eq!(
++            f.orch
++                .start_peer_session(a.peer(), &p, &v, &lease(&f, "alice", &["bob"])),
++            Err(PeerSessionError::Authority)
++        );
++    }
++    let mut bad = v.clone();
++    bad.invitees.push(participant("bob"));
++    assert_eq!(start(&f, &a.peer(), &bad), Err(PeerSessionError::Conflict));
++    {
++        f.policy.0.write().unwrap().denied = true;
++    }
++    assert_eq!(start(&f, &a.peer(), &v), Err(PeerSessionError::Authority));
++    assert!(f.orch.session(&v.session).is_none());
++    assert_eq!(a.peer().snapshot().sessions, 0);
++    assert_eq!(count_started(&mut events), 0);
++}
++#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
++async fn concurrent_pending_creation_admits_exactly_one_bounded_union() {
++    let f = std::sync::Arc::new(Fixture::new().await);
++    let a = scope_owner("alice", Default::default(), CancellationToken::new());
++    let mut tasks = vec![];
++    for _ in 0..48 {
++        let f = f.clone();
++        let p = a.peer();
++        tasks.push(tokio::task::spawn_blocking(move || {
++            start(&f, &p, &intent(&f, &["bob"]))
++        }));
++    }
++    let mut accepted = 0;
++    let mut rejected = 0;
++    for task in tasks {
++        match task.await.unwrap() {
++            Ok(_) => accepted += 1,
++            Err(PeerSessionError::Capacity) => rejected += 1,
++            other => panic!("{other:?}"),
++        }
++    }
++    assert_eq!((accepted, rejected), (32, 16));
++    assert_eq!(a.peer().snapshot().sessions, 32);
++    assert_eq!(
++        f.orch
++            .conversation(&f.conversation)
++            .unwrap()
++            .read()
++            .unwrap()
++            .sessions
++            .len(),
++        33
++    );
++}
++#[tokio::test]
++async fn forced_conversation_close_retires_all_views_and_external_projection_cannot_replace_origin()
++{
++    let f = Fixture::new().await;
++    let a = scope_owner("alice", Default::default(), CancellationToken::new());
++    let v = intent(&f, &["bob"]);
++    let sid = start(&f, &a.peer(), &v).unwrap();
++    assert!(f
++        .orch
++        .project_external_session(
++            f.conversation.clone(),
++            sid.clone(),
++            rvoip_core::TenantId::from_string("tenant_test"),
++            SessionMedium::Voice,
++            vec![]
++        )
++        .is_err());
++    assert!(f
++        .orch
++        .close_conversation(f.conversation.clone(), false)
++        .await
++        .is_err());
++    f.orch
++        .close_conversation(f.conversation.clone(), true)
++        .await
++        .unwrap();
++    assert_eq!(a.peer().snapshot().sessions, 0);
++    assert_eq!(
++        f.orch.session(&sid).unwrap().read().unwrap().state,
++        SessionState::Ended
++    );
++    assert!(start(&f, &a.peer(), &intent(&f, &["bob"])).is_err());
++    f.orch
++        .reopen_conversation(f.conversation.clone())
++        .await
++        .unwrap();
++    assert_eq!(start(&f, &a.peer(), &v).unwrap(), sid);
++    assert_eq!(a.peer().snapshot().sessions, 0);
++    start(&f, &a.peer(), &intent(&f, &["bob"])).unwrap();
++}
++#[tokio::test]
++async fn view_attachment_and_connection_only_sessions_share_the_same_limit() {
++    let f = Fixture::new().await;
++    let a = scope_owner(
++        "alice",
++        PeerAdmissionLimits {
++            sessions: 1,
++            connections: 2,
++        },
++        CancellationToken::new(),
++    );
++    let p = a.peer();
++    let (id, _) = connection(&f, "alice", true).await;
++    admit(&f, &p, &f.session, "alice", &id).await.unwrap();
++    f.orch
++        .attach_peer_session(
++            p.clone(),
++            &actor("alice"),
++            &f.session,
++            &lease(&f, "alice", &[]),
++        )
++        .unwrap();
++    assert_eq!(p.snapshot().sessions, 1);
++    assert_eq!(
++        start(&f, &p, &intent(&f, &["bob"])),
++        Err(PeerSessionError::Capacity)
++    );
++    f.orch.release_peer_session_view(&p, &f.session);
++    assert_eq!(p.snapshot().sessions, 1);
++}
+diff --git a/crates/uctp/rvoip-uctp/src/v2/auth_dispatch.rs b/crates/uctp/rvoip-uctp/src/v2/auth_dispatch.rs
+index c0be38e..d39bf23 100644
+--- a/crates/uctp/rvoip-uctp/src/v2/auth_dispatch.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/auth_dispatch.rs
+@@ -83,7 +83,7 @@ impl From<WireError> for DispatchError {
+ /// and signing-key revocation, effective grant and current resource scope. Never wrap a stale
+ /// boolean authorization result. Construction is trusted backend composition.
+ pub struct AuthorityLease {
+-    _guard: Arc<dyn Send + Sync>,
++    _guard: Arc<dyn std::any::Any + Send + Sync>,
+ }
+ impl AuthorityLease {
+     pub(super) fn retained(&self) -> Self {
+@@ -127,6 +127,11 @@ impl AuthorizedEnvelope {
+     pub(super) fn retain_authority(&self) -> AuthorityLease {
+         self._lease.retained()
+     }
++    /// Trusted handler access to the current owned lease's typed authority.
++    /// The view is borrowed from this invocation; it is not a future grant.
++    pub fn authority<T: std::any::Any + Send + Sync>(&self) -> Option<&T> {
++        self._lease._guard.downcast_ref()
++    }
+     pub fn envelope(&self) -> &Envelope {
+         &self.envelope
+     }
+diff --git a/crates/uctp/rvoip-uctp/src/v2/auth_peer/step_up.rs b/crates/uctp/rvoip-uctp/src/v2/auth_peer/step_up.rs
+index 0a9dcea..8bb68ca 100644
+--- a/crates/uctp/rvoip-uctp/src/v2/auth_peer/step_up.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/auth_peer/step_up.rs
+@@ -153,6 +153,10 @@ impl CanonicalPeer {
+                 return Ok(output(vec![challenge], Some(lease)));
+             }
+         }
++        // One current owned guard spans handler effects and reply delivery.
++        // Releasing it and rereading policy would allow a queued writer to
++        // revoke between an authorized commit and its correlated response.
++        let lease = authorized.retain_authority();
+         match binding
+             .dispatch
+             .dispatch_authorized(authorized, handler, deadline)
+@@ -160,16 +164,6 @@ impl CanonicalPeer {
+         {
+             DispatchOutcome::ReplyDelivered => Ok(output(Vec::new(), None)),
+             DispatchOutcome::Handled(reply) => {
+-                let lease = self
+-                    .config
+-                    .authority
+-                    .acquire(
+-                        &binding.credential,
+-                        &binding.device,
+-                        &binding.identity,
+-                        envelope,
+-                    )
+-                    .await?;
+                 let reply = self.handler_reply(reply, envelope)?;
+                 Ok(output(vec![reply], Some(lease)))
+             }
+diff --git a/crates/uctp/rvoip-uctp/tests/support/peer_sessions.rs b/crates/uctp/rvoip-uctp/tests/support/peer_sessions.rs
+new file mode 100644
+index 0000000..151fb7f
+--- /dev/null
++++ b/crates/uctp/rvoip-uctp/tests/support/peer_sessions.rs
+@@ -0,0 +1,349 @@
++//! Canonical wire-to-Core mapping with one typed current authority lease.
++use super::*;
++use rvoip_core::{
++    ids::SessionId,
++    orchestrator::peer_sessions::*,
++    relationships::Membership,
++    session::{SessionMedium, SessionState},
++};
++use std::collections::HashMap;
++struct Grants {
++    denied: bool,
++    actor: Membership,
++    recipient: Membership,
++    sessions: HashMap<String, SessionId>,
++}
++struct Prepared {
++    _base: AuthorityLease,
++    _guard: tokio::sync::OwnedRwLockReadGuard<Grants>,
++    authority: PeerSessionAuthority,
++    intent: Option<PeerSessionStart>,
++}
++impl PeerSessionAuthorityLease for Prepared {
++    fn authority(&self) -> &PeerSessionAuthority {
++        &self.authority
++    }
++}
++struct SessionPolicy {
++    base: Arc<Policy>,
++    grants: Arc<RwLock<Grants>>,
++    conversation: rvoip_core::ConversationId,
++}
++impl SessionPolicy {
++    async fn lease(
++        &self,
++        c: &ValidatedBearer,
++        d: &Device,
++        i: &Identifier,
++        e: &Envelope,
++    ) -> Result<AuthorityLease, DispatchError> {
++        let base = self.base.guard(c, d, i, e).await?;
++        self.prepare(base, e).await
++    }
++    async fn prepare(
++        &self,
++        base: AuthorityLease,
++        e: &Envelope,
++    ) -> Result<AuthorityLease, DispatchError> {
++        let guard = self.grants.clone().read_owned().await;
++        if guard.denied {
++            return Err(DispatchError::Authority);
++        }
++        let intent = if e.kind() == "session.invite" {
++            if e.scope(Scope::Conversation) != Some("conversation")
++                || e.original()["payload"]["to"] != json!(["recipient-bob"])
++                || e.original()["payload"]["medium"] != "voice"
++            {
++                return Err(DispatchError::Authority);
++            }
++            let session = guard
++                .sessions
++                .get(e.scope(Scope::Session).ok_or(DispatchError::Authority)?)
++                .ok_or(DispatchError::Authority)?
++                .clone();
++            Some(PeerSessionStart {
++                session,
++                conversation: self.conversation.clone(),
++                medium: SessionMedium::Voice,
++                invitees: vec![guard.recipient.participant().clone()],
++            })
++        } else {
++            None
++        };
++        let authority = PeerSessionAuthority {
++            actor: guard.actor.clone(),
++            invitees: vec![guard.recipient.clone()],
++            may_create: true,
++            may_attach: true,
++        };
++        Ok(AuthorityLease::holding(Prepared {
++            _base: base,
++            _guard: guard,
++            authority,
++            intent,
++        }))
++    }
++}
++#[async_trait]
++impl PeerAuthority for SessionPolicy {
++    async fn identity(&self, c: &ValidatedBearer, d: &Device) -> Result<Identifier, DispatchError> {
++        self.base.identity(c, d).await
++    }
++    async fn acquire(
++        &self,
++        c: &ValidatedBearer,
++        d: &Device,
++        i: &Identifier,
++        e: &Envelope,
++    ) -> Result<AuthorityLease, DispatchError> {
++        self.lease(c, d, i, e).await
++    }
++    async fn refresh(
++        &self,
++        old: &ValidatedBearer,
++        new: &ValidatedBearer,
++        d: &Device,
++        i: &Identifier,
++        e: &Envelope,
++    ) -> Result<AuthorityLease, DispatchError> {
++        // Retain the old credential guard too; no re-read of the grant lock.
++        let lease = self.base.refresh(old, new, d, i, e).await?;
++        self.prepare(lease, e).await
++    }
++}
++struct SessionHandler {
++    core: Arc<core_fixture::Fixture>,
++    peer: std::sync::Mutex<Option<Arc<PeerAdmission>>>,
++    pause: AtomicBool,
++    entered: Notify,
++    release: Notify,
++    calls: AtomicUsize,
++}
++#[async_trait]
++impl AuthenticatedHandler for SessionHandler {
++    async fn handle(&self, authorized: AuthorizedEnvelope) -> Result<Envelope, DispatchError> {
++        assert!(authorized.authority::<u64>().is_none());
++        let proof = authorized
++            .authority::<Prepared>()
++            .ok_or(DispatchError::Authority)?;
++        let intent = proof.intent.as_ref().ok_or(DispatchError::Authority)?;
++        let peer = authorized
++            .peer_admission()
++            .ok_or(DispatchError::Authority)?
++            .clone();
++        {
++            let mut first = self.peer.lock().unwrap();
++            if let Some(first) = &*first {
++                assert!(Arc::ptr_eq(first, &peer));
++            } else {
++                *first = Some(peer.clone());
++            }
++        }
++        let request = authorized.envelope();
++        let mut reply = envelope("ack", json!({"details":{"reserved":true}}));
++        for field in ["cid", "sid", "operation_id"] {
++            reply[field] = request.original()[field].clone();
++        }
++        reply["in_reply_to"] = json!(request.id());
++        let reply = Envelope::from_value(reply)?;
++        if self.pause.swap(false, Ordering::SeqCst) {
++            self.entered.notify_one();
++            self.release.notified().await;
++        }
++        self.core
++            .orch
++            .start_peer_session(peer, authorized.principal(), intent, proof)
++            .map_err(|e| match e {
++                PeerSessionError::Capacity => DispatchError::Capacity,
++                _ => DispatchError::Authority,
++            })?;
++        self.calls.fetch_add(1, Ordering::SeqCst);
++        Ok(reply)
++    }
++}
++async fn setup() -> (Fixture, Arc<SessionHandler>, Arc<SessionPolicy>) {
++    let mut f = Fixture::new();
++    let core = Arc::new(core_fixture::Fixture::new().await);
++    let (actor, recipient) = {
++        let state = core.policy.0.read().unwrap();
++        (
++            state.members[&core_fixture::participant("alice")].clone(),
++            state.members[&core_fixture::participant("bob")].clone(),
++        )
++    };
++    let policy = Arc::new(SessionPolicy {
++        base: f.policy.clone(),
++        grants: Arc::new(RwLock::new(Grants {
++            denied: false,
++            actor,
++            recipient,
++            sessions: (0..33)
++                .map(|i| (format!("pending_{i}"), SessionId::new()))
++                .collect(),
++        })),
++        conversation: core.conversation.clone(),
++    });
++    Arc::get_mut(&mut f.config).unwrap().authority = policy.clone();
++    let handler = Arc::new(SessionHandler {
++        core,
++        peer: std::sync::Mutex::new(None),
++        pause: AtomicBool::new(false),
++        entered: Notify::new(),
++        release: Notify::new(),
++        calls: AtomicUsize::new(0),
++    });
++    (f, handler, policy)
++}
++fn invite(index: usize) -> Value {
++    let mut v = envelope(
++        "session.invite",
++        json!({"from":"asserted-actor","to":["recipient-bob"],"medium":"voice","intent":"call","capabilities_offer":{}}),
++    );
++    v["cid"] = json!("conversation");
++    v["sid"] = json!(format!("pending_{index}"));
++    v["operation_id"] = json!(format!("reserve_{index}"));
++    v
++}
++#[tokio::test]
++async fn local_tls_pending_sessions_share_one_quota_across_refresh_and_physical_eof() {
++    for kind in ["quic", "wt", "ws"] {
++        let (f, h, policy) = setup().await;
++        let profile = CanonicalProfile::new(f.config.clone(), h.clone(), 8).unwrap();
++        let mut wire = wire(kind, profile, "/uctp", Some("https://allowed.example"))
++            .await
++            .unwrap();
++        authenticate_wire(&mut wire, &f).await;
++        for i in 0..32 {
++            if i == 16 {
++                wire.send(f.sign(envelope(
++                    "auth.refresh",
++                    json!({"method":"bearer","credential":"new"}),
++                )))
++                .await;
++                let session = wire.read().await;
++                assert_eq!(session.kind(), "auth.session");
++                f.verify_server(&session).await;
++            }
++            wire.send(f.sign(invite(i))).await;
++            let ack = wire.read().await;
++            assert_eq!(ack.kind(), "ack");
++            f.verify_server(&ack).await;
++        }
++        let peer = h.peer.lock().unwrap().clone().unwrap();
++        assert_eq!(peer.snapshot().sessions, 32);
++        assert_eq!(peer.snapshot().connections, 0);
++        assert_eq!(h.calls.load(Ordering::SeqCst), 32);
++        assert_eq!(h.core.adapter.accepted.load(Ordering::Acquire), 0);
++        wire.send(f.sign(invite(0))).await;
++        assert_eq!(wire.read().await.kind(), "ack");
++        assert_eq!(peer.snapshot().sessions, 32);
++        wire.server.shutdown().await.unwrap();
++        assert!(peer.is_closed());
++        assert_eq!(peer.snapshot().sessions, 0);
++        for sid in policy.grants.read().await.sessions.values() {
++            if let Some(session) = h.core.orch.session(sid) {
++                let s = session.read().unwrap();
++                assert_eq!(s.state, SessionState::Initiating);
++                assert!(s.connections.is_empty());
++                assert!(s.participants.is_empty());
++            }
++        }
++    }
++}
++#[tokio::test]
++async fn queued_grant_writer_waits_through_core_commit_and_output_then_denies_next_invocation() {
++    use std::future::Future;
++    let (f, h, policy) = setup().await;
++    let mut peer = f.peer();
++    f.authenticate(&mut peer, "old").await;
++    h.pause.store(true, Ordering::SeqCst);
++    let raw = f.sign(invite(0));
++    let handler = h.clone();
++    let task = tokio::spawn(async move {
++        let out = peer
++            .handle(&raw, handler.as_ref(), deadline())
++            .await
++            .unwrap();
++        (peer, out)
++    });
++    h.entered.notified().await;
++    let queued = Arc::new(Notify::new());
++    let signal = queued.clone();
++    let grants = policy.grants.clone();
++    let writer = tokio::spawn(async move {
++        let mut future = Box::pin(grants.write_owned());
++        let mut guard = futures::future::poll_fn(|cx| {
++            let result = future.as_mut().poll(cx);
++            if result.is_pending() {
++                signal.notify_one();
++            }
++            result
++        })
++        .await;
++        guard.denied = true;
++    });
++    queued.notified().await;
++    assert!(!writer.is_finished());
++    h.release.notify_one();
++    let (mut peer, out) = tokio::time::timeout(Duration::from_secs(2), task)
++        .await
++        .expect("Core call must reuse the held lease, despite queued writer")
++        .unwrap();
++    assert_eq!(h.calls.load(Ordering::SeqCst), 1);
++    assert!(!writer.is_finished());
++    drop(out);
++    tokio::time::timeout(Duration::from_secs(2), writer)
++        .await
++        .unwrap()
++        .unwrap();
++    assert!(peer
++        .handle(&f.sign(invite(1)), h.as_ref(), deadline())
++        .await
++        .is_err());
++    assert_eq!(h.calls.load(Ordering::SeqCst), 1);
++    let context = h.peer.lock().unwrap().clone().unwrap();
++    assert_eq!(context.snapshot().sessions, 1);
++    drop(peer);
++    assert_eq!(context.snapshot().sessions, 0);
++}
++#[tokio::test]
++async fn mismatched_authority_type_denies_before_any_core_session_effect() {
++    let (f, h, _) = setup().await;
++    let plain = Fixture::new();
++    let mut config = PeerConfig {
++        methods: plain.config.methods.clone(),
++        verifier: f.config.verifier.clone(),
++        signer: f.config.signer.clone(),
++        authority: plain.policy.clone(),
++        pending_capacity: 2,
++    };
++    // Same trusted keys, but a backend which provides no Prepared Session lease.
++    config.methods = f.config.methods.clone();
++    let mut peer = CanonicalPeer::new(Arc::new(config), CancellationToken::new()).unwrap();
++    f.authenticate(&mut peer, "old").await;
++    let before = h
++        .core
++        .orch
++        .conversation(&h.core.conversation)
++        .unwrap()
++        .read()
++        .unwrap()
++        .sessions
++        .len();
++    assert!(peer
++        .handle(&f.sign(invite(0)), h.as_ref(), deadline())
++        .await
++        .is_err());
++    assert_eq!(h.calls.load(Ordering::SeqCst), 0);
++    assert_eq!(
++        h.core
++            .orch
++            .conversation(&h.core.conversation)
++            .unwrap()
++            .read()
++            .unwrap()
++            .sessions
++            .len(),
++        before
++    );
++}
+diff --git a/crates/uctp/rvoip-uctp/tests/v2_peer_admission.rs b/crates/uctp/rvoip-uctp/tests/v2_peer_admission.rs
+index 5f37869..761ed42 100644
+--- a/crates/uctp/rvoip-uctp/tests/v2_peer_admission.rs
++++ b/crates/uctp/rvoip-uctp/tests/v2_peer_admission.rs
+@@ -785,3 +785,6 @@ async fn failed_refresh_does_not_retire_or_replace_the_engine_peer_context() {
+     core_fixture::until(|| context.snapshot().connections == 0).await;
+     assert!(context.is_closed());
+ }
++
++#[path = "support/peer_sessions.rs"]
++mod peer_sessions;

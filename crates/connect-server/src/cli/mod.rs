@@ -1,3 +1,4 @@
+pub mod canonical_init;
 mod client_errors;
 mod connected_app_init;
 pub mod credentials;
@@ -11,6 +12,7 @@ pub mod stdio;
 
 pub mod agent_access;
 pub mod presence;
+pub mod provisioning;
 pub mod request;
 pub mod task_access;
 pub mod task_diagnostics;

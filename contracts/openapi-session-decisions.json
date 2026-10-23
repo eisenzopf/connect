@@ -1,0 +1,238 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Connect pending invitation decisions",
+    "version": "schema-34",
+    "description": "Historical DTO component reference for the earlier invitation-decision checkpoint. Its Operation HTTP route is retired. Current canonical session.reject/session.cancel use POST /v2/commands; see openapi-canonical-http.json. No compatibility endpoint is advertised by this file."
+  },
+  "paths": {},
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer"
+      }
+    },
+    "schemas": {
+      "Operation": {
+        "type": "object",
+        "properties": {
+          "op": {
+            "const": "session_decision"
+          },
+          "request": {
+            "$ref": "#/components/schemas/DecisionRequest"
+          }
+        },
+        "required": [
+          "op",
+          "request"
+        ],
+        "additionalProperties": false
+      },
+      "DecisionRequest": {
+        "type": "object",
+        "properties": {
+          "operation_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128,
+            "pattern": "^[A-Za-z0-9._~-]+$"
+          },
+          "conversation_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128,
+            "pattern": "^[A-Za-z0-9._~-]+$"
+          },
+          "session_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128,
+            "pattern": "^[A-Za-z0-9._~-]+$"
+          },
+          "decision": {
+            "enum": [
+              "reject",
+              "cancel"
+            ]
+          },
+          "by_participant": {
+            "anyOf": [
+              {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128,
+                "pattern": "^[A-Za-z0-9._~-]+$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "expected_revision": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "reason_code": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 65535
+          },
+          "reason": {
+            "type": "string",
+            "maxLength": 256,
+            "description": "At most 256 UTF-8 bytes; control characters are refused."
+          }
+        },
+        "required": [
+          "operation_id",
+          "conversation_id",
+          "session_id",
+          "decision",
+          "reason_code",
+          "reason"
+        ],
+        "additionalProperties": false
+      },
+      "DecisionOutcome": {
+        "type": "object",
+        "properties": {
+          "operation_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128,
+            "pattern": "^[A-Za-z0-9._~-]+$"
+          },
+          "conversation_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128,
+            "pattern": "^[A-Za-z0-9._~-]+$"
+          },
+          "session_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128,
+            "pattern": "^[A-Za-z0-9._~-]+$"
+          },
+          "state": {
+            "enum": [
+              "rejected",
+              "cancelled"
+            ]
+          },
+          "revision": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9007199254740991
+          },
+          "reason_code": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 65535
+          },
+          "reason": {
+            "type": "string",
+            "maxLength": 256,
+            "description": "At most 256 UTF-8 bytes; control characters are refused."
+          }
+        },
+        "required": [
+          "operation_id",
+          "conversation_id",
+          "session_id",
+          "state",
+          "revision",
+          "reason_code",
+          "reason"
+        ],
+        "additionalProperties": false
+      },
+      "Outcome": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "const": "session_decision"
+          },
+          "data": {
+            "$ref": "#/components/schemas/DecisionOutcome"
+          }
+        },
+        "required": [
+          "kind",
+          "data"
+        ],
+        "additionalProperties": false
+      },
+      "Error": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "maxLength": 128
+          },
+          "message": {
+            "type": "string",
+            "maxLength": 1024
+          }
+        },
+        "required": [
+          "code",
+          "message"
+        ],
+        "additionalProperties": false
+      },
+      "Response": {
+        "type": "object",
+        "properties": {
+          "profile": {
+            "const": "connect-control/1"
+          },
+          "result": {
+            "oneOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "Ok": {
+                    "$ref": "#/components/schemas/Outcome"
+                  }
+                },
+                "required": [
+                  "Ok"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "Err": {
+                    "$ref": "#/components/schemas/Error"
+                  }
+                },
+                "required": [
+                  "Err"
+                ],
+                "additionalProperties": false
+              }
+            ]
+          }
+        },
+        "required": [
+          "profile",
+          "result"
+        ],
+        "additionalProperties": false
+      }
+    }
+  },
+  "x-current-reference": "openapi-canonical-http.json"
+}

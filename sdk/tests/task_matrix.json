@@ -193,7 +193,16 @@
           "op": "send",
           "request_id": "${prefix}-ask",
           "conversation_id": "${cid}",
-          "body": "Approve the violet draft?"
+          "message": {
+            "to": "all",
+            "content_type": "text/plain",
+            "body": "Approve the violet draft?",
+            "body_encoding": "utf8",
+            "label": "connect-messages",
+            "attachments": [],
+            "in_reply_to_msg": null,
+            "msg_id": null
+          }
         },
         "reply_to": null,
         "wait_for_reply": true
@@ -223,7 +232,16 @@
           "op": "send",
           "request_id": "${prefix}-ask",
           "conversation_id": "${cid}",
-          "body": "Approve the violet draft?"
+          "message": {
+            "to": "all",
+            "content_type": "text/plain",
+            "body": "Approve the violet draft?",
+            "body_encoding": "utf8",
+            "label": "connect-messages",
+            "attachments": [],
+            "in_reply_to_msg": null,
+            "msg_id": null
+          }
         },
         "reply_to": null,
         "wait_for_reply": true
@@ -391,7 +409,16 @@
           "op": "send",
           "request_id": "${prefix}-ask",
           "conversation_id": "${cid}",
-          "body": "Approve the violet draft?"
+          "message": {
+            "to": "all",
+            "content_type": "text/plain",
+            "body": "Approve the violet draft?",
+            "body_encoding": "utf8",
+            "label": "connect-messages",
+            "attachments": [],
+            "in_reply_to_msg": null,
+            "msg_id": null
+          }
         },
         "reply_to": null,
         "wait_for_reply": true
@@ -501,7 +528,16 @@
         "op": "send",
         "request_id": "${prefix}-unassigned",
         "conversation_id": "${cid}",
-        "body": "Please assign this answer explicitly."
+        "message": {
+          "to": "all",
+          "content_type": "text/plain",
+          "body": "Please assign this answer explicitly.",
+          "body_encoding": "utf8",
+          "label": "connect-messages",
+          "attachments": [],
+          "in_reply_to_msg": null,
+          "msg_id": null
+        }
       },
       "expect": {
         "paths": {
@@ -667,7 +703,16 @@
           "op": "send",
           "request_id": "${prefix}-late",
           "conversation_id": "${cid}",
-          "body": "Approve the violet draft?"
+          "message": {
+            "to": "all",
+            "content_type": "text/plain",
+            "body": "Approve the violet draft?",
+            "body_encoding": "utf8",
+            "label": "connect-messages",
+            "attachments": [],
+            "in_reply_to_msg": null,
+            "msg_id": null
+          }
         },
         "reply_to": null,
         "wait_for_reply": true

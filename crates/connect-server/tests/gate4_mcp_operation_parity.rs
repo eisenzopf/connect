@@ -11,7 +11,7 @@ use connect_protocol::tasks::TaskCommand;
 use serde_json::json;
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
-async fn all_twenty_three_communication_tools_match_native_outcomes_and_known_denials() {
+async fn all_communication_tools_match_native_outcomes_and_known_denials() {
     let f = fixture::Fixture::start_permitted(true, mcp::permissions()).await;
     let mcp = mcp::client(&f).await;
     let mut native = ConnectClient::open(f.owner.clone()).await.unwrap();
@@ -20,7 +20,7 @@ async fn all_twenty_three_communication_tools_match_native_outcomes_and_known_de
         .await
         .unwrap();
     let cases = operations::cases(&f.task.conversation_id, &f.peer.identity_id);
-    assert_eq!(cases.len(), 23);
+    assert_eq!(cases.len(), 29);
     let mut succeeded = 0;
     let mut denied = 0;
     for operation in cases {
@@ -82,7 +82,7 @@ async fn all_twenty_three_communication_tools_match_native_outcomes_and_known_de
         }
     }
     assert_eq!(succeeded, 7);
-    assert_eq!(denied, 16);
+    assert_eq!(denied, 22);
     eprintln!("MCP/native parity: {succeeded} positive outcomes, {denied} known denials");
     native.close().await;
     mcp.cancel().await.unwrap();

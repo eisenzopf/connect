@@ -25,7 +25,7 @@ pub fn initialize(
     );
     init::initialize(directory, false, bind)?;
     let server = crate::config::ServerConfig::load(&directory.join("server.toml"))?;
-    let store = Store::open(&server.database, server.limits)?;
+    let store = Store::open_administration(&server.database, server.limits)?;
     let operator = ClientConfig::load(&directory.join("operator.toml"))?;
     let authority = store.authenticate(&operator.credential)?;
     let human = store.create_identity("human")?;
@@ -65,7 +65,9 @@ pub fn initialize(
         &human_config.credential_id,
         &Operation::Create {
             request_id: "presence-conversation".into(),
-            participants: vec![assistant_config.identity_id.clone()],
+            request: connect_protocol::conversations::CreateRequest::persistent(vec![
+                assistant_config.identity_id.clone(),
+            ]),
         },
     )? {
         Outcome::Conversation(c) => c,
@@ -82,6 +84,7 @@ pub fn initialize(
             target: assistant_id.into(),
             source: None,
             enabled: true,
+            incoming_to: connect_protocol::messages::MessageAudience::all(),
         },
     )?;
     if let (Some(human), Some(source)) = (human_number, connect_number) {
@@ -96,6 +99,7 @@ pub fn initialize(
                 target: human.into(),
                 source: Some(source.into()),
                 enabled: true,
+                incoming_to: connect_protocol::messages::MessageAudience::all(),
             },
         )?;
     }

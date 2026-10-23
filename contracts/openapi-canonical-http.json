@@ -1,0 +1,5365 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Connect canonical HTTP commands",
+    "version": "connect/2",
+    "description": "Current isolated local macOS arm64 control surface. POST a normative unsigned UCTP v2 envelope using an explicit current bearer. Native QUIC and HTTP use the same service parsers, result builders, current Store policy and durable operation ledger. This is not a signed physical-peer grant and never falls back to another dialect. General Session/media installation and Linux/remote/browser operating profiles remain their assigned work. Protected optional public assistant hosting can react to an AI participant's own committed session.accept. The Session receipt confirms admission, not provider context delivery or media readiness. No HTTP command installs a provider profile or grants model execution authority. Canonical server TOML can select protected public native Vapi hosts. Named participant routing and capability reads use the same constructed Endpoint and current credential/key bindings; sharing a transport or secret reference does not configure an unrelated Endpoint. These configuration facts do not assert provider reachability."
+  },
+  "paths": {
+    "/v2/commands": {
+      "post": {
+        "operationId": "canonicalCommand",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "description": "Installed: conversation.create/list/get/close/subscribe (finite HTTP catch-up with explicit live:false), record discovery through conversation.get record items and recording.vcon-ready hints on finite catch-up (current record_get plus Session source access; pending/ready/unavailable metadata, UUID/revision only; recording.vcon-fetch uses an explicit closing HTTP/1.1 response with current bearer/source/record custody through actual socket IO; inline views up to128KiB, exact projected digest and conditional reads; HTTP/2/upgrades refused; larger views use the optional pinned authenticated expiring HTTPS endpoint), participant.add/update/remove, message.send/history/read, operation.get/cancel/reconcile, session.consult/handoff, session.consult.return and connection.replace durable admission (current original source/provisioned-endpoint metadata, bounded independent physical preparation authority and once-only durable actual Core preparation are installed for live native QUIC or established provisioned telephone sources and independently signed native targets; original audio/roles remain intact and cancel/current authority loss releases the owned preparation; independently signed native targets allocate the exact Core reservation once through the public SDK, negotiate generation-two resources, attach a closed muted private audience and prove actual discarded input plus completed local output while public media stays closed. the native continuation now performs one actual managed movement after current private duplex readiness and configured native confirmation, carries exact existing resource confirmation and adopts the actual committed next-generation binding. Schema58 records independent target lifetime, old-only retirement, topology, journal and captured audience stream revisions so later controls stay current. Original execution/source revocation cannot end the established target, and current target loss cleans only its route. Provisioned telephone callback uses configured attributed answer-DTMF, real private duplex and one managed movement. Independent established SIP authority, PCMU/PCMA, ringing/private cancellation, voicemail/refused confirmation/deadline, discarded-response recovery, restart/drop fencing, selectors and mixed physical roles are locally qualified. A confirmed telephone source can move to a separately signed native target at the next lineage generation. Established refresh and rejected-refresh ACK preserve current duplex; replay cannot redial. Browser/remote/provider and the wider fault matrix remain assigned integration qualifications.), general session.invite/accept/reject/cancel/update/end control, including explicit existing-Session invitations, scoped appearance/role decisions and unconnected capability changes. Consult admission excludes the retained remote from its private participant set, requires an explicit primary to be private, and recognizes native ready routes only through their current confirmed original lifetime; initial admission alone performs no media IO. Once a trusted registered private candidate completes signed muted preparation, exact authenticated replay can queue one actual private audio audience application and silent remote hold. Native human completion additionally requires actual decoded audio, exact private preparation and current physical incarnations. Its atomic local commit installs a separate active private lifetime, increments the Session topology revision once and releases the execution lease. Current peer credentials, Devices, Endpoints and original membership epochs govern established media independently of the original execution credential. The named session.consult.return permission admits a new operation bound to the original consultation record, explicit primary and retained remote at the current Session revision. Its fresh current native scene authorizes one actual restoration using the original scene-issued handle. Confirmed restoration removes only the primary floor; private candidate content stays isolated and completion waits for its observed native retirement. The result reports retained/retired Connections, Session revision and remote_continuing; known remote EOF cannot assert a continuing call. Current authorization is checked on replay, which never repeats an attempted media effect. Schema52 adds an internal Store boundary for separately captured provider creation and context export: private JSON is unavailable before a unique fresh provider instance is recorded. AI audience preparation/begin and completion require independent confirmed context initialization, with decoded media still separately required. Private transcripts retain original Connection/audience provenance and public provider projections exclude them. These Store APIs are not public HTTP commands. The protected server library private Vapi bridge owns a fresh signed native peer, separate actual HTTP/WebSocket call, exact-message context acknowledgment and PCMU forwarding, with current history policy independently gating native candidate packets. Its designated local provider fixtures are separate from live-provider qualification. The installed stock automatic coordinator has separate configuration and qualification records. Internal native consultation audience effects reserve one exact plan and attempt; a confirmed audience application is not consulting audio readiness or operation completion. HTTP exposes current authorized status/cancellation, not a native worker permit. Trusted native consultation invitation registration now pins a fresh candidate context before allocation; its signed offer is muted and quarantined before managed scene publication. This audio-only preparation precedes the private audience switch; it is not consulting readiness or provider initialization. The primary private original-audience floor is installed before audience IO, legacy whole-Session provider transcript/context paths permanently require Connection-bound context after a private candidate exists, and actual media interruption preserves known applied effects and private floors. Decoded audio is separate historical progress; a native human can complete only through the verified active-lifetime commit. AI roots remain preparing without a result until fresh private provider context is ready. A competing consultation cannot adopt an occupied private slot. Native connection.offer, connection.end, connection.update(codec-renegotiate), stream.subscribe/unsubscribe and Session/Connection-scoped message.send require their actual signed QUIC physical peer and return explicit 501 unsupported responses over HTTP; current operation status and cancellation remain available here. Explicit screen acceptance and additive upgrades use their own VP8 capability intersection; video permission does not grant screen. Accepted additive media upgrades may retain settled current native Connections; actual new media still requires signed QUIC Connection negotiation. Reliable data uses the Session reliable-ordered delivery class with separately negotiated native formats; trusted admission now retains one durable message and original audience, with exact signed physical-source/active-format preflight, one Core queue publication, fresh original-message/audience authorization and reserved historical local writer facts. Native text/json/binary formats are installed; local writes and crash uncertainty never assert remote consumption. Participant camera/screen/data selectors and automatic signed native reoffers are installed. Server materialization has an internal stream.reconcile operation record with its subscription_record_id, server_reconciliation marker and actual local outcome; current operation status/cancellation are available here, but stream.reconcile is not an accepted wire/HTTP command. Signed native connection.update(codec-renegotiate) requires separate current connection.update permission, the original physical peer, current accepted Session/endpoint/profile capabilities and exact stream revision. Actual negotiated codec bindings and the resulting stream revision are historical observations; replay never reapplies native work. Other connection.update actions remain explicit unsupported commands under their assigned tasks. Terminal ended/rejected/cancelled/failed Session state releases its native runtime; persistent Conversations close only by explicit policy when active work has ended. Accepted optional transition payload fields remain in the original durable digest, including nested values, array order and explicit nulls; changed or omitted extensions conflict under the same operation ID. The original-private-human-target native handoff profile now uses actual managed participant/media commit for observe or leave, retains the remote Connection and applies current per-physical-peer audio authority after commit. Session scope changes that engagement; Conversation scope also changes the two role defaults. The signed native target-owned connect-handoff-preparation-v1 audio profile now permits current named session.handoff holders to prepare their own muted, closed Connection before any caller handoff exists. Its immutable signed offer record is the later policy_ref; it grants neither decoded readiness nor role promotion. Human, AI and Observer preparation retain their current roles. HTTP connection.offer remains unsupported. Generic prepared native human/AI takeover is installed: the server captures the real closed admission, decodes and discards isolated input under a separate current grant, and generates neutral silence through its exact negotiated codec and guarded writer. Actual duplex IO mints sealed readiness; the preparation receipt or enqueued output cannot substitute. The managed role/media commit consumes that exact capability and unmutes only the incoming Connection, including atomic promotion of an initially Observer audio consumer. Four actual native scenarios qualify both identity directions, observe/Session and leave/Conversation scope with retained remote/Main Session and one attempt. A bounded owned wait retries planning-only readiness misses under fresh current authority, without holding readers or role fences while idle; late target input can complete the original request without replay. An occupied transition footprint refuses competing admission before ledger effects. Actual public native checks cover cancellation before IO, controller revocation with original duplex preserved, fresh same-owner source recovery for the same unchanged-expiry intention, and stale topology refusal. Repeated distinct handoffs consume the current scene-issued audience by committed source membership and audience revision. Prior observers are closed out unless selected by the new audience, and metadata follows the latest applied receiver programme. Still-closed independent preparations obtain fresh actual output after another audience commit invalidates old readiness; the bounded worker retains no idle grant. Completed operation replay never restores an earlier audience. This native endpoint qualification does not assert opaque provider-memory freshness; remaining failure/recovery and remote-profile qualification stay explicit. Definitive preflight refusal before any native effect records failed with an attributable problem and preserves the original private audio/hold; status and replay retain the same problem. This refusal cannot settle prepared or possibly submitted work, and missing decoded audio is not a definitive policy refusal. Preserve original logical IDs across uncertainty. ACK terminates the response, not media or asynchronous work. Old canonical Operation bodies and transport signatures are refused. Named application/admin/task APIs remain independently scoped.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HttpEnvelope"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Correlated canonical reply envelopes through ACK.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReplyBatch"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Malformed request or bounded application refusal.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/ReplyBatch"
+                    },
+                    {
+                      "$ref": "#/components/schemas/Rejection"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Current bearer expired, revoked or invalid.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/ReplyBatch"
+                    },
+                    {
+                      "$ref": "#/components/schemas/Rejection"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Current floor, recipient, Participant or resource authority refused.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/ReplyBatch"
+                    },
+                    {
+                      "$ref": "#/components/schemas/Rejection"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Authorized record selector is unavailable; correlated recording error.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/ReplyBatch"
+                    },
+                    {
+                      "$ref": "#/components/schemas/Rejection"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Original intent, revision or cursor conflicts.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/ReplyBatch"
+                    },
+                    {
+                      "$ref": "#/components/schemas/Rejection"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Encoded request exceeds 65536 bytes.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/ReplyBatch"
+                    },
+                    {
+                      "$ref": "#/components/schemas/Rejection"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Request capacity or bounded reply batch exhausted.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/ReplyBatch"
+                    },
+                    {
+                      "$ref": "#/components/schemas/Rejection"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "488": {
+            "description": "Requested media capabilities have no usable intersection.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/ReplyBatch"
+                    },
+                    {
+                      "$ref": "#/components/schemas/Rejection"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "501": {
+            "description": "Recognized but uninstalled command or unsupported HTTP live mode.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/ReplyBatch"
+                    },
+                    {
+                      "$ref": "#/components/schemas/Rejection"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Authority or storage unavailable; retain the original logical ID.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/ReplyBatch"
+                    },
+                    {
+                      "$ref": "#/components/schemas/Rejection"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "x-max-encoded-request-bytes": 65536,
+        "x-max-encoded-response-bytes": 2097152,
+        "x-response-cache-control": "no-store",
+        "x-native-subscriptions": {
+          "transport": "Signed current original native QUIC peer only; HTTP may inspect operation outcomes but cannot install a native receive route.",
+          "selectors": "Exact strm_id, from_participant, or from_participant with an explicit kinds list. Omitted kinds selects compatible declared receiver kinds within the installed profile, including later admitted sources of that pinned member epoch. A source supporting fewer kinds does not reject the wildcard when at least one kind is compatible and authorized. Unsupported source kinds remain future intent, without granting IO; explicit kinds are required exactly. It does not request unsupported screen/data or grant media capability.",
+          "authority": "Current stream.subscribe, original Device/key/Connection, membership and source/recipient authorization remain required. Every future source and actual forwarding reacquires its own current authority.",
+          "unsubscribe": "stream.unsubscribe strm_ids removes routes toward this Connection and records exceptions to retained Participant selectors. Exact replay returns the original outcome; a fresh repeated removal is a no-op with unchanged stream revision. Explicit resubscription clears the exception.",
+          "outcome": "The shared operation ledger retains the exact original payload and expected revision. Successful selection terminates with ACK. Unknown current sources terminate with correlated error 404; incompatible media capabilities terminate with correlated error 488. A preceding operation.updated and operation.get retain the durable failed result. Exact replay returns that failure under current authorization. Refusal creates no native effect and does not partially install a mixed selector list."
+        },
+        "x-native-active-speaker": {
+          "emission": "Disabled in the installed default profile; advisory hints are optional and never authority or durable Session state.",
+          "scope": [
+            "cid",
+            "sid"
+          ],
+          "connection-scope": "Optional connid",
+          "active_participant": "Required Participant identifier or explicit null for silence/no dominant speaker; omission is invalid.",
+          "reference": "docs/developer/native-subscriptions.md"
+        },
+        "x-session-codec-preferences": {
+          "command": "session.update / codec-renegotiate",
+          "admission": "Current Session owner/manager, named permission and expected topology revision; currently requires no connected or pending media.",
+          "negotiation": "New native offers use the latest Session preference order within current accepted Endpoint and Session capabilities and the original peer-offered formats; unavailable preferences fall back to usable peer order. The signed offer and advertised capabilities remain intact.",
+          "replay": "Original recorded outcome cannot reset newer preferences or existing bindings.",
+          "live": "Session-wide switching of established Connections remains unavailable; use the current separately scoped connection.update coordinator.",
+          "reference": "docs/developer/general-sessions.md"
+        },
+        "x-native-runtime-controls": {
+          "transport": "Signed current original native QUIC peer only; HTTP may inspect/cancel the operation but cannot apply a native runtime gate.",
+          "command": "connection.update",
+          "actions": [
+            "hold",
+            "resume",
+            "mute",
+            "unmute"
+          ],
+          "required-scope": [
+            "cid",
+            "sid",
+            "connid",
+            "operation_id",
+            "expected_revision"
+          ],
+          "selection": "hold/resume select an optional exact streams list, defaulting to all current bindings. mute/unmute require a nonempty exact streams list. All lists are bounded to32 unique logical Stream IDs.",
+          "semantics": "Default hold permits endpoint receive only. hold details.direction may select endpoint sendonly, recvonly or inactive. resume clears hold/pause while preserving independent source mute. mute/unmute change endpoint publication without changing its receive route or hold state.",
+          "authority": "Current connection.update plus original source/Device/key/physical owner and current endpoint/member/recipient authority. The held engine command must match the exact planned action, Stream set, Connection and revision. No negotiation, codec change, new handle or Session role grant.",
+          "result": "An actual returned engine outcome advances stream revision once and records resources_changed:false, action, Connection generation and gate_streams. Observed binding/held directions use the server perspective. readiness_json.last_gate is only the latest bounded partial observation for a matching live generation.",
+          "recovery": "Exact operation replay returns historical outcome without reapplying a gate or resetting newer controls. Captured success retries durable metadata after journal failure without retaining idle readers or repeating Core. Cancellation cannot erase an already committed local control. Historical completion does not revive retirement; successor runtime refuses an old captured receipt.",
+          "reference": "docs/developer/native-runtime-controls.md"
+        },
+        "x-native-quality-configuration": {
+          "transport": "Signed original physical native QUIC peer only; HTTP does not acquire native control authority.",
+          "command": "connection.update",
+          "action": "quality",
+          "required-permission": "connection.update",
+          "interval-ms": {
+            "minimum": 100,
+            "maximum": 60000,
+            "default": 5000
+          },
+          "required-scope": [
+            "cid",
+            "sid",
+            "connid",
+            "operation_id",
+            "expected_revision"
+          ],
+          "completion": "A captured actual local configuration result names the original Connection generation, unchanged stream revision and applied quality_interval_ms; resources_changed is false. Media bindings, stream handles and RTP clocks do not change.",
+          "replay": "The complete original payload and expected revision remain immutable. Completed replay returns its original historical receipt without reapplying cadence, including after another operation selects a newer interval. Current authority remains required.",
+          "recovery": "Record a captured success after storage recovery without retaining idle source readers or calling the engine again. Missing actual outcome remains uncertain; never recreate a retired Connection from its saved interval."
+        },
+        "x-record-response-profile": {
+          "http-version": "1.1",
+          "connection": "close",
+          "inline-vcon-bytes": 131072,
+          "max-inflight-seconds": 30,
+          "custody": "Current bearer/source fences and exact record retained through actual socket IO, including copied/buffered Body bytes; deadline bounded by credential expiry; cancellation/retirement abort IO.",
+          "larger-views": "Optional authenticated HTTPS references; explicit record_delivery_unavailable when no live endpoint is installed.",
+          "url-selector": "Live server-issued HTTPS URL plus optional condition selects a fresh current authorized view; Conversation/Session/UUID must agree; unknown/expired/foreign URLs are local misses without network IO. GET remains bound to its original view/expiry."
+        },
+        "x-native-capability-advertisement": {
+          "transport": "Signed original physical native QUIC peer only; HTTP cannot declare capabilities for a native Connection.",
+          "command": "capability.advertise",
+          "required-permission": "capability.advertise",
+          "required-scope": [
+            "cid",
+            "sid",
+            "connid",
+            "operation_id",
+            "expected_revision"
+          ],
+          "payload": [
+            "by_participant",
+            "capabilities",
+            "trigger"
+          ],
+          "trigger": [
+            "endpoint-change",
+            "operator-policy",
+            "renegotiation-requested",
+            "network-adapt"
+          ],
+          "descriptor-bounds": {
+            "encoded-bytes": 16384,
+            "codec-list-entries": 32,
+            "max-streams-per-connection": 32,
+            "json-depth": 8
+          },
+          "authority": "Current original participant/member epoch, Identity, credential/key, Device, Endpoint, runtime generation, stream revision and actual physical owner. A declared assurance label cannot replace or overstate the authenticated assurance.",
+          "completion": "Descriptor replacement and operation completion commit atomically. The receipt carries the original Connection generation, unchanged stream revision, exact descriptor/participant/trigger and advertisement record. No binding, codec, route or media permission changes.",
+          "replay": "Original logical intent is immutable. Replay returns its original historical result without replacing a newer descriptor; delayed recording cannot recreate retired media.",
+          "future-negotiation": "The latest authorized complete declaration governs subsequent explicit codec updates and new stream choices within current Endpoint, Session and local engine limits. Gained codecs require an independent real negotiation; withdrawn formats cannot be newly selected. Existing confirmed bindings and their source selectors remain usable. Original completed replay does not restore an older declaration; prepared requests must match the current declaration generation.",
+          "listener-delivery": {
+            "transport": "Unsolicited signed capability.advertise on the exact current recipient native physical writer; cid/sid/connid identify the source, without operation_id or in_reply_to.",
+            "journal": "Queue only after durable completion. Pending descriptors coalesce to the latest source declaration; completed replay never republishes.",
+            "audience": "Require the original source disclosure audience and current private scene, exact source/recipient lifecycle and credential incarnations, and fresh joint source/recipient Store permission through actual reliable IO.",
+            "custody": "Queued items retain metadata only. Actual unfinished reliable sink is retired before fresh source/recipient readers are released; a healthy in-flight frame finishes before a queued replacement."
+          },
+          "observation": "Server receipt does not confirm delivery to another peer or trigger automatic codec renegotiation. Local listener qualification and unresolved checks are recorded separately in auxiliary-native-capability-delivery.json."
+        },
+        "x-native-codec-lifecycle": {
+          "delivery": "Native codec replacement publishes adjacent signed stream.closed and stream.opened observations as one guarded physical-writer batch after confirmed fresh replacement flow.",
+          "timestamps": "closed_at preserves the earlier observed retirement time; both envelope ts values identify their common publication.",
+          "authority": "One current original-source guard covers both exact old/new bindings through actual IO, with revision/flow/credential checks before every poll. Partial second-write interruption retires the sink before releasing the guard and remains uncertain.",
+          "http": "These physical-native observations are not HTTP command responses; the ordinary journal and operation receipt remain authoritative."
+        },
+        "x-session-cancel-boundary": {
+          "state": "A fresh session.cancel is permitted only while the Session is invited, before any invitee accepts. After acceptance use session.end; remaining pending invitees do not reopen cancellation.",
+          "atomicity": "A rejected post-acceptance cancellation preserves accepted and pending appearances and the topology revision.",
+          "replay": "Exact completed cancellation replay returns its original decision under current receipt authority. A late fresh accept cannot revive the cancelled Session.",
+          "native-observation": "Within an active bounded server invitation exchange, successful native or HTTP cancellation can emit session.cancel on each exact original native recipient route. in_reply_to is its actual signed forwarded invitation ID; immutable original by/reason values and fresh current recipient/source/key authority govern the reliable write.",
+          "native-caller-reference": "The signed native cancel_session_invitation helper asserts the original caller invitation wire ID through in_reply_to, with its own logical cancellation operation ID. Exact physical admission and original CID/SID metadata must match before ordinary mutation. Current permission, configured human-consent step-up, source/membership/recipient ceilings and topology checks remain required. Metadata is registered before the invitation ACK and survives only a bounded physical lifetime. Logical invitation replay supplies a fresh current reference after reconnect; the same logical cancellation then recovers its immutable receipt.",
+          "limits": "Unsigned HTTP rejects native in_reply_to references and uses ordinary logical cancellation with the same current authority and ledger. The journal/snapshot remains authoritative; broader profiles remain assigned."
+        },
+        "x-session-end-authority": {
+          "permission": "session.end",
+          "participants": "A current present Session Participant may end the logical Session without session.manage. The authenticated by assertion, current membership epoch, topology revision, original Session source access and all affected recipient ceilings remain required. Pending invitations and departed appearances grant no end authority. Existing creator/explicit manager authority remains available.",
+          "replay": "Exact operation replay checks current named permission and original source/membership authority and never emits a second terminal fact."
+        },
+        "x-session-terminal-observation": {
+          "wire": "Finite conversation.subscribe catch-up includes session.ended before its original cursor-bearing conversation.event. Native live subscriptions use the same original metadata and current source authority.",
+          "scope": "cid/sid identify the ended Session; in_reply_to identifies the subscription request. No connid or operation_id is added to the typed hint.",
+          "payload": "Original ended_at, known by Participant or null, supplied reason_code/reason. Runtime unspecified numeric reasons use0; missing text is unspecified. No provider status is inferred.",
+          "journal": "session_ended data contains the original shared Session snapshot, known actor epoch, reason and time. Independent immutable metadata survives release/retention of a larger vCon record.",
+          "record": "Asynchronous vCon finalization uses separate recording.vcon-ready; a terminal hint does not invent a ready handle or audio capture.",
+          "authority": "Current session_get and original/current Session source access, membership epoch, recipient ceiling and actual query delivery readers remain required."
+        },
+        "x-owned-session-invitations": {
+          "delivery": "After a completed ordinary Session invite, a bounded worker forwards the immutable original offer to current authenticated native live routes. No media Connection or Conversation subscription is required. Actual writer custody reacquires one exact current credential/Device/key/source read union.",
+          "media": [
+            "voice",
+            "video",
+            "voice+video",
+            "screen-share",
+            "text-chat",
+            "mixed"
+          ],
+          "response": "A signed session.accept/session.reject observation must match the exact physical waiter, final server wire id, CID/SID and server invitation source correlation. It never enters ordinary command dispatch. A dedicated source decision enforces the same configured human-consent floor, then rechecks the original pending target slot, epochs, current named action, recipient ceiling and physical lifetime before atomic journal/decision commit. No ordinary caller operation is created for a response.",
+          "limits": "Original accept/reject decisions can be relayed to an exact registered native caller under fresh original receipt/epoch/source/key authority; native logical replay re-correlates a stored decision after disconnect. Designated interop URI targets, task-origin policy, Linux and remote/browser/provider qualification remain open. A local metadata submission or ACK does not assert recipient acceptance or Connection/media readiness."
+        },
+        "x-session-invitation-targets": {
+          "single-participant": "The initiator is implicit. An initial session.invite with to:[] admits one present Participant with accepted capability intent, no outbound invitation and no claim of Active Session or media readiness. Current named permission, membership, Session source and capacity still apply. A fresh invitation on an existing Session requires at least one target; exact original solo replay keeps its initial receipt even after later participants join.",
+          "accepted-references": [
+            "current Conversation Participant ID",
+            "current Conversation member Identity ID"
+          ],
+          "resolution": "Resolve each reference to its current Participant and membership epoch under the same Store resource authority. Identity resolution grants no implicit Conversation admission or Session acceptance.",
+          "authority": "The named session.invite permission and current resolved recipient ceiling are required. Removed, revoked, foreign, ambiguous and unadmitted targets refuse; duplicate aliases of one Participant refuse before mutation.",
+          "replay": "Preserve original requested references in the immutable logical intent. Changing an Identity ID to its Participant ID under the same operation ID conflicts; exact replay does not reinvite or rewrite current presence.",
+          "durable-source": "Successful local admission captures immutable inviter/target membership epochs and a current per-target pending slot. Protected runtime metadata readers do not authorize physical delivery, response mutation or media.",
+          "limits": "Task-origin policy and designated interop URI targets remain open under G6-046. Installed native owned invitations/decisions do not assert Connection or media readiness."
+        },
+        "x-native-flow-facts": {
+          "scope": "Schema92 installation-owned historical native readiness source; no public fact query or mutation command.",
+          "authority": "A non-deserializable engine witness captures exact controller/credential revision, confirmed native epoch and direction-appropriate flow under current active port custody. The host reacquires the original current source read independently; the fact never grants IO.",
+          "ordering": "The first fact for a Connection generation/runtime is immutable and retained before its connection.ready hint is permitted. Storage failure retries metadata only, with no idle permission reader or extra media submission. Hint output uncertainty cannot rewrite a committed source fact.",
+          "limits": "Schema93 atomically starts the accepted/ready Session on its first verified public native flow. Private preparation does not activate a Session. Participant joined/left and loss/reconnect grace remain open. Packet silence is not a Connection loss observation."
+        },
+        "x-session-participant-observations": {
+          "source": "Schema94 distinguishes admitted Session presence from verified public connected presence. First actual public readiness joins an appearance; more Connections do not duplicate it. Pending/replacement Connections preserve the appearance until terminal settlement. Explicit Session leave, removal and confirmed native retirement reconcile departures atomically with their source mutations.",
+          "wire": "session.participant.joined contains original participant_id/identity_id/kind/Session role/display_name/joined_at and via_connection. session.participant.left contains original participant_id/left_at and explicit-leave, all-connections-ended, kicked or transferred-out. No connid/operation_id/reply scope on unsolicited native hints.",
+          "ordering": "One bounded metadata worker reads durable start/join/left references in source order and independently authorizes every actual recipient writer. No idle media/permission reader; no historical unsolicited replay on startup. Journal catch-up supplies original typed hints before cursor facts.",
+          "identity": "Original role/name, membership epoch and via-Connection provenance never change with later labels, duplicate readiness, reconnect, replay or end. Facts do not authorize media or grant history.",
+          "limits": "Implementation verification in progress under G6-046. Full Session grace, promotion/restart/loss matrix and browser/SIP/remote qualifications remain separate."
+        },
+        "x-session-started": {
+          "source": "Schema93 first public verified native flow, Active Session, immutable original snapshot and per-Participant journal rows commit atomically. Acceptance and negotiation alone do not start a Session.",
+          "payload": "Original started_at, admitted participants_present, observed active_connections with connid/participant_id/transport, and actual negotiated_capabilities. Later topology and replay do not rewrite the snapshot.",
+          "delivery": "Bounded unsolicited native multicast independently reauthorizes each current physical recipient credential, signing key, Device, source, membership epoch and recipient ceiling. No media Connection or subscription is required. No connid/operation_id/in_reply_to envelope scope.",
+          "http": "Finite conversation.subscribe catch-up includes the original session.started before its conversation.event, correlated to the subscription request. Journal recovery applies current source and epoch access.",
+          "failure": "Journal/storage failure rolls back flow fact, phase and start snapshot; metadata retry requires no additional media. Hints remain best effort; the journal is authoritative.",
+          "limits": "Native local first-start implementation only; Participant joined/left, loss/reconnect grace and browser/SIP/remote profiles retain their assigned qualification work."
+        },
+        "x-native-dtmf": {
+          "transport": "dtmf.send requires its original signed physical native QUIC peer. HTTP cannot supply native source custody; use operation.get/cancel/reconcile for the existing logical operation.",
+          "required-permission": "dtmf.send",
+          "recipient-permission": "dtmf.receive",
+          "required-scope": [
+            "cid",
+            "sid",
+            "connid",
+            "operation_id"
+          ],
+          "optional-scope": [
+            "expected_revision"
+          ],
+          "payload": {
+            "digits": "1..32 ASCII telephone digits, exact spelling retained",
+            "method": [
+              "rfc4733",
+              "info"
+            ],
+            "duration_ms": "RFC4733 40..6000; INFO100..5000; complete schedule <=30 seconds including70ms gaps",
+            "extensions": "Preserved as logical retry identity; source/observation claims never supply authenticated provenance."
+          },
+          "receipt": "operation.updated preparing records original custody. Reconcile the same logical ID for per-recipient local outcomes; ACK is not a playback receipt.",
+          "delivery": "Signed unsolicited dtmf.received on each exact original/current permitted native recipient writer, with original operation_id, actual source received_at and source=uctp-native. Queues retain metadata; every write needs fresh named source/recipient permission and original/current private audience.",
+          "outcome": "One actual output frame per frozen recipient. Local outcomes are not_started/local_submitted/outcome_unknown. Completed uses result; other final states use problem.signal. Any possible partial IO stays unknown; replay/restart never resubmits.",
+          "metadata-admission": "Busy Core or native-source metadata defers only the same original sealed source and frozen recipient before writer allocation, at most two seconds and original expiry. No idle permission readers; fresh policy still gates actual IO once. Pre-IO deadline/cancellation records not_started and replay never sends.",
+          "partial-io": "Destroy the native sink and cancel its physical route before releasing actual IO readers or waking uncertainty. Abort has the same retirement ordering. Definite pre-IO refusal preserves the healthy writer. HTTP status never authorizes resubmission.",
+          "reference": "openapi-operations.json#/components/schemas/NativeDtmfSubmission",
+          "qualification": "Service integration is in progress under G6-046; runtime evidence is required separately. No remote playback claim."
+        },
+        "x-user-assurance": {
+          "policy": "Protected server TOML user_assurance rules bind exact Conversation, command and required user_id. The required granular operation follows that command. Policy is immutable for this runtime and shared with signed peers and HTTP.",
+          "native": "Current signed preflight may suspend one original logical mutation and emit identity.step-up-request. Explicit supplied successor must prove the configured user and required scope, preserve Identity/issuer/installation/Device, and have the same separately enrolled signing key. Both credentials and original resource authorization remain current under execution/delivery custody. Original operation/revision are never replaced.",
+          "http": "HTTP commands never initiate native step-up and cannot bypass a configured floor. Supply an already current explicitly consented credential; an ordinary identified bearer is refused.",
+          "limits": "User-authorized consent is implemented separately from task-scoped delegation; canonical ctg1 task grants and owned-audio assurance transitions remain unqualified. Runtime evidence is recorded under G6-046."
+        }
+      }
+    },
+    "/v2/user-delegations": {
+      "post": {
+        "operationId": "issueUserDelegation",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "description": "Explicit human consent, authenticated before bounded JSON decoding. The consenting current ordinary credential must have credential.delegate and every requested operation/recipient. User Identity is derived from that credential, never accepted from the body. Target must be current in the same tenant. No wildcards, admin, re-delegation or synthetic assurance label. Issuance atomically persists immutable consent and a narrow successor credential. Exact retry by the original current issuer and operation ID returns the same secret/expiry; changed intent conflicts and revoked/expired authority refuses replay. Enroll the successor Device/signing-key binding separately before native use. Consenting credential/Identity revocation waits for existing delegated subject IO and invalidates every affected successor; independently issued credentials remain independent. No remote publication or provider access is implied.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UserDelegationRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Same immutable consent and protected successor secret. Do not log or share the body.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserDelegationResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid or unsupported explicit consent.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserDelegationResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Current consenting bearer unavailable.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserDelegationResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Human provenance or current operation/recipient/tenant/expiry ceiling denied.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserDelegationResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Original operation has different intent.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserDelegationResponse"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "JSON exceeds65536 bytes.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserDelegationResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Active or retained consent capacity exhausted.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserDelegationResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Authority/storage unavailable or acceptance uncertain; retain the original complete request.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserDelegationResponse"
+                }
+              }
+            }
+          }
+        },
+        "x-cache-control": "no-store",
+        "x-max-input-bytes": 65536,
+        "x-automatic-retries": 0
+      }
+    },
+    "/v2/record-references/{token}": {
+      "get": {
+        "operationId": "downloadRecordReference",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "description": "Optional separately bound pinned TLS HTTP/1.1 listener. Authenticate the current bearer before locator lookup; derive fresh explicit record_get, original Session/source access and viewer authority; require the exact record revision, body/manifest binding and projected digest. Tokens hold metadata only and never grant access. Stop/restart invalidates references. Close/no-store response retains guards through actual TLS/socket IO; expiry, cancellation or retirement aborts remaining writes.",
+        "parameters": [
+          {
+            "name": "token",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{32}$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Exact current authorized vCon bytes; maximum 16 MiB.",
+            "content": {
+              "application/vcon+json": {
+                "schema": {
+                  "type": "string",
+                  "maxLength": 16777216
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Malformed request.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Rejection"
+                }
+              }
+            }
+          },
+          "501": {
+            "description": "Unsupported HTTP version or upgrade.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Rejection"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Current bearer invalid, expired or revoked.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Rejection"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Current resource/viewer/source authority denied.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Rejection"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Reference or record unavailable.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Rejection"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Reference expired or its record/projected view changed.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Rejection"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Active download capacity exhausted.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Rejection"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Storage, authority or endpoint unavailable.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Rejection"
+                }
+              }
+            }
+          }
+        },
+        "x-http-version": "1.1",
+        "x-connection": "close",
+        "x-cache-control": "no-store",
+        "x-max-reference-ttl-seconds": 300,
+        "x-max-inflight-seconds": 30
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer"
+      }
+    },
+    "schemas": {
+      "WireIdentifier": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 128,
+        "pattern": "^[A-Za-z0-9._~-]+$"
+      },
+      "WireBodyEncoding": {
+        "enum": [
+          "utf8",
+          "base64"
+        ]
+      },
+      "WireConversationPolicy": {
+        "enum": [
+          "ephemeral",
+          "persistent"
+        ]
+      },
+      "WireDataReliability": {
+        "type": "object",
+        "properties": {
+          "mode": {
+            "const": "reliable_ordered"
+          }
+        },
+        "required": [
+          "mode"
+        ],
+        "additionalProperties": true
+      },
+      "WireAuthHello": {
+        "type": "object",
+        "properties": {
+          "device": {
+            "$ref": "#/components/schemas/WireDevice"
+          },
+          "auth_methods": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "minItems": 0,
+            "maxItems": 256,
+            "uniqueItems": true
+          },
+          "capabilities": {},
+          "application_profiles": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            },
+            "minItems": 1,
+            "maxItems": 16,
+            "uniqueItems": true
+          }
+        },
+        "required": [
+          "device",
+          "auth_methods",
+          "application_profiles"
+        ],
+        "additionalProperties": true
+      },
+      "WireAuthChallenge": {
+        "type": "object",
+        "properties": {
+          "nonce": {
+            "type": "string"
+          },
+          "accepted_methods": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "minItems": 0,
+            "maxItems": 256,
+            "uniqueItems": true
+          },
+          "server_capabilities": {}
+        },
+        "required": [
+          "nonce",
+          "accepted_methods"
+        ],
+        "additionalProperties": true
+      },
+      "WireAuthResponse": {
+        "type": "object",
+        "properties": {
+          "method": {
+            "type": "string"
+          },
+          "credential": {
+            "type": "string"
+          },
+          "actor_token": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "method",
+          "credential"
+        ],
+        "additionalProperties": true
+      },
+      "WireAuthSession": {
+        "type": "object",
+        "properties": {
+          "identity_id": {
+            "$ref": "#/components/schemas/WireIdentifier"
+          },
+          "participant_id": {
+            "$ref": "#/components/schemas/WireIdentifier"
+          },
+          "session_token": {
+            "type": "string"
+          },
+          "expires_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "assurance": {
+            "type": "string"
+          },
+          "reachability": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/WireReachabilityHint"
+            },
+            "minItems": 0,
+            "maxItems": 256,
+            "uniqueItems": true
+          },
+          "application_profile": {
+            "const": "connect/2"
+          }
+        },
+        "required": [
+          "identity_id",
+          "session_token",
+          "expires_at",
+          "assurance",
+          "application_profile"
+        ],
+        "additionalProperties": true
+      },
+      "WireAuthKeepalive": {
+        "type": "object",
+        "properties": {
+          "session_token": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "session_token"
+        ],
+        "additionalProperties": true
+      },
+      "WireAuthBye": {
+        "type": "object",
+        "properties": {
+          "reason": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "reason"
+        ],
+        "additionalProperties": true
+      },
+      "WireAuthRefresh": {
+        "type": "object",
+        "properties": {
+          "method": {
+            "type": "string"
+          },
+          "credential": {
+            "type": "string"
+          },
+          "actor_token": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "method",
+          "credential"
+        ],
+        "additionalProperties": true
+      },
+      "WireDevice": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/WireIdentifier"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "platform": {
+            "type": "string"
+          },
+          "sdk_version": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "kind",
+          "platform",
+          "sdk_version"
+        ],
+        "additionalProperties": true
+      },
+      "WireReachabilityHint": {
+        "type": "object",
+        "properties": {
+          "transport": {
+            "type": "string"
+          },
+          "address": {
+            "type": "string"
+          },
+          "expires_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "priority": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 4294967295
+          },
+          "device_id": {
+            "$ref": "#/components/schemas/WireIdentifier"
+          }
+        },
+        "required": [
+          "transport",
+          "address",
+          "expires_at",
+          "priority",
+          "device_id"
+        ],
+        "additionalProperties": true
+      },
+      "WireCapabilityAdvertise": {
+        "type": "object",
+        "properties": {
+          "by_participant": {
+            "$ref": "#/components/schemas/WireIdentifier"
+          },
+          "capabilities": {},
+          "trigger": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "capabilities",
+          "trigger"
+        ],
+        "additionalProperties": true
+      },
+      "WireConnectionOffer": {
+        "type": "object",
+        "properties": {
+          "by_participant": {
+            "$ref": "#/components/schemas/WireIdentifier"
+          },
+          "substrate": {
+            "type": "string"
+          },
+          "capabilities": {},
+          "streams_offered": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/WireStreamOffer"
+            },
+            "minItems": 0,
+            "maxItems": 256,
+            "uniqueItems": true
+          },
+          "substrate_setup": {},
+          "handoff_preparation": {
+            "$ref": "#/components/schemas/WireHandoffPreparation"
+          }
+        },
+        "required": [
+          "substrate",
+          "capabilities",
+          "streams_offered"
+        ],
+        "additionalProperties": true,
+        "allOf": [
+          {
+            "if": {
+              "required": [
+                "handoff_preparation"
+              ]
+            },
+            "then": {
+              "not": {
+                "required": [
+                  "private_consultation"
+                ]
+              },
+              "properties": {
+                "streams_offered": {
+                  "type": "array",
+                  "minItems": 1,
+                  "maxItems": 1,
+                  "items": {
+                    "allOf": [
+                      {
+                        "$ref": "#/components/schemas/WireStreamOffer"
+                      },
+                      {
+                        "properties": {
+                          "kind": {
+                            "const": "audio"
+                          },
+                          "direction": {
+                            "const": "sendrecv"
+                          }
+                        }
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        ]
+      },
+      "WireConnectionAnswer": {
+        "type": "object",
+        "properties": {
+          "by_participant": {
+            "$ref": "#/components/schemas/WireIdentifier"
+          },
+          "substrate": {
+            "type": "string"
+          },
+          "capabilities": {},
+          "streams_answered": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/WireStreamAnswer"
+            },
+            "minItems": 0,
+            "maxItems": 256,
+            "uniqueItems": true
+          },
+          "substrate_setup": {}
+        },
+        "required": [
+          "substrate",
+          "capabilities",
+          "streams_answered"
+        ],
+        "additionalProperties": true
+      },
+      "WireConnectionUpdate": {
+        "type": "object",
+        "properties": {
+          "action": {
+            "enum": [
+              "hold",
+              "resume",
+              "mute",
+              "unmute",
+              "codec-renegotiate",
+              "quality"
+            ]
+          },
+          "streams": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "minItems": 0,
+            "maxItems": 256,
+            "uniqueItems": true
+          },
+          "codec_preferences": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "minItems": 0,
+            "maxItems": 256,
+            "uniqueItems": true
+          },
+          "details": {},
+          "quality_interval_ms": {
+            "type": "integer",
+            "minimum": 100,
+            "maximum": 60000
+          }
+        },
+        "required": [
+          "action"
+        ],
+        "additionalProperties": true,
+        "allOf": [
+          {
+            "if": {
+              "required": [
+                "action"
+              ],
+              "properties": {
+                "action": {
+                  "const": "quality"
+                }
+              }
+            },
+            "then": {
+              "required": [
+                "quality_interval_ms"
+              ],
+              "not": {
+                "anyOf": [
+                  {
+                    "required": [
+                      "streams"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "codec_preferences"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "details"
+                    ]
+                  }
+                ]
+              }
+            },
+            "else": {
+              "not": {
+                "required": [
+                  "quality_interval_ms"
+                ]
+              }
+            }
+          }
+        ]
+      },
+      "WireConnectionEnd": {
+        "type": "object",
+        "properties": {
+          "reason_code": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 65535
+          },
+          "reason": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "reason_code",
+          "reason"
+        ],
+        "additionalProperties": true
+      },
+      "WireConnectionQuality": {
+        "type": "object",
+        "properties": {
+          "interval_ms": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 4294967295
+          },
+          "streams": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/WireStreamQuality"
+            },
+            "minItems": 0,
+            "maxItems": 256,
+            "uniqueItems": true
+          }
+        },
+        "required": [
+          "interval_ms",
+          "streams"
+        ],
+        "additionalProperties": true
+      },
+      "WireStreamOffer": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/WireIdentifier"
+          },
+          "kind": {
+            "enum": [
+              "audio",
+              "video",
+              "screen",
+              "data"
+            ]
+          },
+          "direction": {
+            "enum": [
+              "sendrecv",
+              "sendonly",
+              "recvonly",
+              "inactive"
+            ]
+          },
+          "codec_preferences": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "minItems": 0,
+            "maxItems": 256,
+            "uniqueItems": true
+          }
+        },
+        "required": [
+          "id",
+          "kind",
+          "direction",
+          "codec_preferences"
+        ],
+        "additionalProperties": true
+      },
+      "WireStreamAnswer": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/WireIdentifier"
+          },
+          "kind": {
+            "enum": [
+              "audio",
+              "video",
+              "screen",
+              "data"
+            ]
+          },
+          "direction": {
+            "enum": [
+              "sendrecv",
+              "sendonly",
+              "recvonly",
+              "inactive"
+            ]
+          },
+          "codec": {}
+        },
+        "required": [
+          "id",
+          "kind",
+          "direction",
+          "codec"
+        ],
+        "additionalProperties": true
+      },
+      "WireWebRtcSubstrateSetup": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string"
+          },
+          "sdp": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "sdp"
+        ],
+        "additionalProperties": true
+      },
+      "WireIceCandidateInit": {
+        "type": "object",
+        "properties": {
+          "candidate": {
+            "type": "string"
+          },
+          "sdp_m_line_index": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 65535
+          },
+          "sdp_mid": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "candidate",
+          "sdp_m_line_index",
+          "sdp_mid"
+        ],
+        "additionalProperties": true
+      },
+      "WireStreamQuality": {
+        "type": "object",
+        "properties": {
+          "strm_id": {
+            "$ref": "#/components/schemas/WireIdentifier"
+          },
+          "loss_pct": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 100
+          },
+          "jitter_ms": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 4294967295
+          },
+          "rtt_ms": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 4294967295
+          },
+          "mos": {
+            "type": "number",
+            "minimum": 1,
+            "maximum": 5
+          },
+          "bitrate_bps": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "packets_sent": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "packets_received": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          }
+        },
+        "required": [
+          "strm_id",
+          "bitrate_bps",
+          "packets_sent",
+          "packets_received"
+        ],
+        "additionalProperties": true
+      },
+      "WireDtmfSend": {
+        "type": "object",
+        "properties": {
+          "digits": {
+            "type": "string"
+          },
+          "duration_ms": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 4294967295
+          },
+          "method": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "digits",
+          "duration_ms",
+          "method"
+        ],
+        "additionalProperties": true
+      },
+      "WireDtmfReceived": {
+        "type": "object",
+        "properties": {
+          "digits": {
+            "type": "string"
+          },
+          "duration_ms": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 4294967295
+          },
+          "received_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "source": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "digits",
+          "duration_ms",
+          "received_at",
+          "source"
+        ],
+        "additionalProperties": true
+      },
+      "WireIdentityAssuranceChanged": {
+        "type": "object",
+        "properties": {
+          "previous": {
+            "type": "string"
+          },
+          "current": {
+            "type": "string"
+          },
+          "reason": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "previous",
+          "current",
+          "reason"
+        ],
+        "additionalProperties": true
+      },
+      "WireIdentityStepUpRequest": {
+        "type": "object",
+        "properties": {
+          "required": {
+            "type": "string"
+          },
+          "allowed_methods": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "minItems": 0,
+            "maxItems": 256,
+            "uniqueItems": true
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "required"
+        ],
+        "additionalProperties": true
+      },
+      "WireIdentityStepUpResponse": {
+        "type": "object",
+        "properties": {
+          "method": {
+            "type": "string"
+          },
+          "credential": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "method",
+          "credential"
+        ],
+        "additionalProperties": true
+      },
+      "WireError": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 65535
+          },
+          "category": {
+            "type": "string"
+          },
+          "reason": {
+            "type": "string"
+          },
+          "details": {}
+        },
+        "required": [
+          "code",
+          "category",
+          "reason"
+        ],
+        "additionalProperties": true
+      },
+      "WireAck": {
+        "type": "object",
+        "properties": {
+          "details": {},
+          "next_cursor": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 2048,
+            "pattern": "^[A-Za-z0-9._~-]+$"
+          }
+        },
+        "required": [],
+        "additionalProperties": true
+      },
+      "WireRecordingVconReady": {
+        "type": "object",
+        "properties": {
+          "vcon_handle": {},
+          "encrypted": {
+            "type": "boolean"
+          },
+          "signed_by": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "minItems": 0,
+            "maxItems": 256,
+            "uniqueItems": true
+          }
+        },
+        "required": [
+          "vcon_handle",
+          "encrypted",
+          "signed_by"
+        ],
+        "additionalProperties": true
+      },
+      "WireRecordingVconFetch": {
+        "type": "object",
+        "properties": {
+          "uuid": {
+            "anyOf": [
+              {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 36
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "url": {
+            "anyOf": [
+              {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 2048
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "content_hash": {
+            "anyOf": [
+              {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 512
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [],
+        "additionalProperties": true,
+        "anyOf": [
+          {
+            "required": [
+              "uuid"
+            ],
+            "properties": {
+              "uuid": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          },
+          {
+            "required": [
+              "url"
+            ],
+            "properties": {
+              "url": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          }
+        ]
+      },
+      "WireRecordingVconFetched": {
+        "type": "object",
+        "properties": {
+          "delivery": {
+            "type": "string",
+            "enum": [
+              "inline",
+              "url"
+            ]
+          },
+          "vcon": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "expires_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "content_hash": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 512,
+            "description": "Digest of these exact authorized projected bytes; never the full source digest for a filtered view."
+          }
+        },
+        "required": [
+          "delivery",
+          "content_hash"
+        ],
+        "additionalProperties": true,
+        "oneOf": [
+          {
+            "required": [
+              "vcon"
+            ],
+            "properties": {
+              "delivery": {
+                "const": "inline"
+              },
+              "vcon": {
+                "type": "string",
+                "minLength": 1
+              }
+            },
+            "not": {
+              "anyOf": [
+                {
+                  "required": [
+                    "url"
+                  ]
+                },
+                {
+                  "required": [
+                    "expires_at"
+                  ]
+                }
+              ]
+            }
+          },
+          {
+            "required": [
+              "url",
+              "expires_at"
+            ],
+            "properties": {
+              "delivery": {
+                "const": "url"
+              },
+              "url": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 2048
+              }
+            },
+            "not": {
+              "required": [
+                "vcon"
+              ]
+            }
+          }
+        ]
+      },
+      "WireConversationCreate": {
+        "type": "object",
+        "properties": {
+          "tenant_id": {
+            "$ref": "#/components/schemas/WireIdentifier"
+          },
+          "policy": {
+            "$ref": "#/components/schemas/WireConversationPolicy"
+          },
+          "idle_close_secs": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 4294967295
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "metadata": {},
+          "initial_participants": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/WireInitialParticipant"
+            },
+            "minItems": 0,
+            "maxItems": 256,
+            "uniqueItems": true
+          }
+        },
+        "required": [
+          "tenant_id",
+          "policy"
+        ],
+        "additionalProperties": true
+      },
+      "WireConversationOpened": {
+        "type": "object",
+        "properties": {
+          "tenant_id": {
+            "$ref": "#/components/schemas/WireIdentifier"
+          },
+          "policy": {
+            "$ref": "#/components/schemas/WireConversationPolicy"
+          },
+          "idle_close_secs": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 4294967295
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "participants": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/WireParticipant"
+            },
+            "minItems": 0,
+            "maxItems": 256,
+            "uniqueItems": true
+          },
+          "opened_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "metadata": {}
+        },
+        "required": [
+          "tenant_id",
+          "policy",
+          "participants",
+          "opened_at"
+        ],
+        "additionalProperties": true
+      },
+      "WireConversationClosed": {
+        "type": "object",
+        "properties": {
+          "reason_code": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 65535
+          },
+          "reason": {
+            "type": "string"
+          },
+          "closed_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "reason_code",
+          "reason",
+          "closed_at"
+        ],
+        "additionalProperties": true
+      },
+      "WireConversationClose": {
+        "type": "object",
+        "properties": {
+          "reason_code": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 65535
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [],
+        "additionalProperties": true
+      },
+      "WireConversationList": {
+        "type": "object",
+        "properties": {
+          "filter": {},
+          "cursor": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 2048,
+            "pattern": "^[A-Za-z0-9._~-]+$"
+          },
+          "limit": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 4294967295
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [],
+        "additionalProperties": true
+      },
+      "WireInitialParticipant": {
+        "type": "object",
+        "properties": {
+          "identity_id": {
+            "$ref": "#/components/schemas/WireIdentifier"
+          },
+          "role": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "identity_id",
+          "role"
+        ],
+        "additionalProperties": true
+      },
+      "WireParticipant": {
+        "type": "object",
+        "properties": {
+          "participant_id": {
+            "$ref": "#/components/schemas/WireIdentifier"
+          },
+          "identity_id": {
+            "$ref": "#/components/schemas/WireIdentifier"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "role": {
+            "type": "string"
+          },
+          "display_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "participant_id",
+          "identity_id",
+          "kind",
+          "role"
+        ],
+        "additionalProperties": true
+      },
+      "WireMessageSend": {
+        "type": "object",
+        "properties": {
+          "msg_id": {
+            "$ref": "#/components/schemas/WireIdentifier"
+          },
+          "from": {
+            "$ref": "#/components/schemas/WireIdentifier"
+          },
+          "to": {
+            "oneOf": [
+              {
+                "const": "all"
+              },
+              {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/WireIdentifier"
+                },
+                "minItems": 1,
+                "maxItems": 256,
+                "uniqueItems": true
+              }
+            ]
+          },
+          "content_type": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 255
+          },
+          "label": {
+            "type": "string"
+          },
+          "reliability": {
+            "$ref": "#/components/schemas/WireDataReliability"
+          },
+          "body": {
+            "type": "string",
+            "maxLength": 87384,
+            "description": "Runtime enforces 64 KiB decoded UTF-8/binary bytes, independently of JSON character length."
+          },
+          "body_encoding": {
+            "$ref": "#/components/schemas/WireBodyEncoding"
+          },
+          "attachments": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/WireAttachment"
+            },
+            "minItems": 0,
+            "maxItems": 256,
+            "uniqueItems": true
+          },
+          "in_reply_to_msg": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/WireIdentifier"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "msg_id",
+          "to",
+          "content_type",
+          "body"
+        ],
+        "additionalProperties": true
+      },
+      "WireMessageDelivered": {
+        "type": "object",
+        "properties": {
+          "msg_id": {
+            "$ref": "#/components/schemas/WireIdentifier"
+          },
+          "to_participant": {
+            "$ref": "#/components/schemas/WireIdentifier"
+          },
+          "delivered_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "via_connection": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/WireIdentifier"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "msg_id",
+          "to_participant",
+          "delivered_at"
+        ],
+        "additionalProperties": true
+      },
+      "WireMessageRead": {
+        "type": "object",
+        "properties": {
+          "msg_id": {
+            "$ref": "#/components/schemas/WireIdentifier"
+          },
+          "by_participant": {
+            "$ref": "#/components/schemas/WireIdentifier"
+          },
+          "read_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "msg_id",
+          "read_at"
+        ],
+        "additionalProperties": true
+      },
+      "WireMessageHistory": {
+        "type": "object",
+        "properties": {
+          "since": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "until": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "since_msg_id": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/WireIdentifier"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "cursor": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 2048,
+            "pattern": "^[A-Za-z0-9._~-]+$"
+          },
+          "limit": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 4294967295
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "include_attachments": {
+            "type": "boolean"
+          }
+        },
+        "required": [],
+        "additionalProperties": true
+      },
+      "WireAttachment": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/WireIdentifier"
+          },
+          "content_type": {
+            "type": "string"
+          },
+          "url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "size_bytes": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          }
+        },
+        "required": [
+          "id",
+          "content_type",
+          "size_bytes"
+        ],
+        "additionalProperties": true
+      },
+      "WireSessionInvite": {
+        "type": "object",
+        "properties": {
+          "from": {
+            "$ref": "#/components/schemas/WireIdentifier"
+          },
+          "to": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/WireIdentifier"
+            },
+            "minItems": 0,
+            "maxItems": 256,
+            "uniqueItems": true
+          },
+          "medium": {
+            "type": "string"
+          },
+          "intent": {
+            "type": "string"
+          },
+          "capabilities_offer": {}
+        },
+        "required": [
+          "to",
+          "medium",
+          "intent",
+          "capabilities_offer"
+        ],
+        "additionalProperties": true
+      },
+      "WireSessionAccept": {
+        "type": "object",
+        "properties": {
+          "by": {
+            "$ref": "#/components/schemas/WireIdentifier"
+          },
+          "capabilities_answer": {}
+        },
+        "required": [
+          "capabilities_answer"
+        ],
+        "additionalProperties": true
+      },
+      "WireSessionReject": {
+        "type": "object",
+        "properties": {
+          "by": {
+            "$ref": "#/components/schemas/WireIdentifier"
+          },
+          "reason_code": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 65535
+          },
+          "reason": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "reason_code",
+          "reason"
+        ],
+        "additionalProperties": true
+      },
+      "WireSessionEnd": {
+        "type": "object",
+        "properties": {
+          "by": {
+            "$ref": "#/components/schemas/WireIdentifier"
+          },
+          "reason_code": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 65535
+          },
+          "reason": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "reason_code",
+          "reason"
+        ],
+        "additionalProperties": true
+      },
+      "WireSessionUpdate": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "enum": [
+              "participant-leave",
+              "role-change",
+              "medium-upgrade",
+              "codec-renegotiate"
+            ]
+          },
+          "details": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "kind",
+          "details"
+        ],
+        "additionalProperties": true,
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "kind": {
+                  "const": "participant-leave"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "details": {
+                  "type": "object",
+                  "properties": {
+                    "participant_id": {
+                      "$ref": "#/components/schemas/WireIdentifier"
+                    }
+                  },
+                  "required": [
+                    "participant_id"
+                  ],
+                  "additionalProperties": true
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "kind": {
+                  "const": "role-change"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "details": {
+                  "type": "object",
+                  "properties": {
+                    "participant_id": {
+                      "$ref": "#/components/schemas/WireIdentifier"
+                    },
+                    "role": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 64
+                    }
+                  },
+                  "required": [
+                    "participant_id",
+                    "role"
+                  ],
+                  "additionalProperties": true
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "kind": {
+                  "const": "medium-upgrade"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "details": {
+                  "type": "object",
+                  "properties": {
+                    "media": {
+                      "type": "array",
+                      "items": {
+                        "enum": [
+                          "audio",
+                          "video",
+                          "screen",
+                          "data"
+                        ]
+                      },
+                      "minItems": 1,
+                      "maxItems": 256,
+                      "uniqueItems": true
+                    }
+                  },
+                  "required": [
+                    "media"
+                  ],
+                  "additionalProperties": true
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "kind": {
+                  "const": "codec-renegotiate"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "details": {
+                  "type": "object",
+                  "properties": {
+                    "codec_preferences": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "minItems": 1,
+                      "maxItems": 256,
+                      "uniqueItems": true
+                    }
+                  },
+                  "required": [
+                    "codec_preferences"
+                  ],
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        ]
+      },
+      "WireSessionCancel": {
+        "type": "object",
+        "properties": {
+          "by": {
+            "$ref": "#/components/schemas/WireIdentifier"
+          },
+          "reason_code": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 65535
+          },
+          "reason": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "reason_code",
+          "reason"
+        ],
+        "additionalProperties": true
+      },
+      "WireSessionStarted": {
+        "type": "object",
+        "properties": {
+          "started_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "participants_present": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/WireIdentifier"
+            },
+            "minItems": 0,
+            "maxItems": 256,
+            "uniqueItems": true
+          },
+          "active_connections": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/WireActiveConnection"
+            },
+            "minItems": 0,
+            "maxItems": 256,
+            "uniqueItems": true
+          },
+          "negotiated_capabilities": {}
+        },
+        "required": [
+          "started_at",
+          "participants_present",
+          "active_connections",
+          "negotiated_capabilities"
+        ],
+        "additionalProperties": true
+      },
+      "WireSessionEnded": {
+        "type": "object",
+        "properties": {
+          "ended_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "by": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/WireIdentifier"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "reason_code": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 65535
+          },
+          "reason": {
+            "type": "string"
+          },
+          "vcon_handle": {
+            "anyOf": [
+              {},
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "ended_at",
+          "reason_code",
+          "reason"
+        ],
+        "additionalProperties": true
+      },
+      "WireSessionParticipantJoined": {
+        "type": "object",
+        "properties": {
+          "participant": {
+            "$ref": "#/components/schemas/WireJoinedParticipant"
+          },
+          "via_connection": {
+            "$ref": "#/components/schemas/WireIdentifier"
+          }
+        },
+        "required": [
+          "participant",
+          "via_connection"
+        ],
+        "additionalProperties": true
+      },
+      "WireSessionParticipantLeft": {
+        "type": "object",
+        "properties": {
+          "participant_id": {
+            "$ref": "#/components/schemas/WireIdentifier"
+          },
+          "left_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "reason": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "participant_id",
+          "left_at",
+          "reason"
+        ],
+        "additionalProperties": true
+      },
+      "WireActiveConnection": {
+        "type": "object",
+        "properties": {
+          "connid": {
+            "$ref": "#/components/schemas/WireIdentifier"
+          },
+          "participant_id": {
+            "$ref": "#/components/schemas/WireIdentifier"
+          },
+          "transport": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "connid",
+          "participant_id",
+          "transport"
+        ],
+        "additionalProperties": true
+      },
+      "WireJoinedParticipant": {
+        "type": "object",
+        "properties": {
+          "participant_id": {
+            "$ref": "#/components/schemas/WireIdentifier"
+          },
+          "identity_id": {
+            "$ref": "#/components/schemas/WireIdentifier"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "role": {
+            "type": "string"
+          },
+          "display_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "joined_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "participant_id",
+          "identity_id",
+          "kind",
+          "role",
+          "joined_at"
+        ],
+        "additionalProperties": true
+      },
+      "WireStreamOpened": {
+        "type": "object",
+        "properties": {
+          "stream": {
+            "$ref": "#/components/schemas/WireStreamInfo"
+          }
+        },
+        "required": [
+          "stream"
+        ],
+        "additionalProperties": true
+      },
+      "WireStreamClosed": {
+        "type": "object",
+        "properties": {
+          "strm_id": {
+            "$ref": "#/components/schemas/WireIdentifier"
+          },
+          "closed_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "reason_code": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 65535
+          },
+          "reason": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "strm_id",
+          "closed_at",
+          "reason_code",
+          "reason"
+        ],
+        "additionalProperties": true
+      },
+      "WireStreamSubscribe": {
+        "type": "object",
+        "properties": {
+          "by_participant": {
+            "$ref": "#/components/schemas/WireIdentifier"
+          },
+          "subscriptions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/WireStreamSubscription"
+            },
+            "minItems": 0,
+            "maxItems": 256,
+            "uniqueItems": true
+          }
+        },
+        "required": [
+          "subscriptions"
+        ],
+        "additionalProperties": true
+      },
+      "WireStreamUnsubscribe": {
+        "type": "object",
+        "properties": {
+          "strm_ids": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/WireIdentifier"
+            },
+            "minItems": 0,
+            "maxItems": 256,
+            "uniqueItems": true
+          }
+        },
+        "required": [
+          "strm_ids"
+        ],
+        "additionalProperties": true
+      },
+      "WireStreamActiveSpeaker": {
+        "type": "object",
+        "properties": {
+          "active_participant": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/WireIdentifier"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "strm_id": {
+            "$ref": "#/components/schemas/WireIdentifier"
+          },
+          "changed_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "active_participant",
+          "strm_id",
+          "changed_at"
+        ],
+        "additionalProperties": true
+      },
+      "WireStreamInfo": {
+        "type": "object",
+        "properties": {
+          "strm_id": {
+            "$ref": "#/components/schemas/WireIdentifier"
+          },
+          "kind": {
+            "enum": [
+              "audio",
+              "video",
+              "screen",
+              "data"
+            ]
+          },
+          "codec": {},
+          "direction": {
+            "enum": [
+              "sendrecv",
+              "sendonly",
+              "recvonly",
+              "inactive"
+            ]
+          },
+          "stream_local_id": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 65535
+          },
+          "opened_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "strm_id",
+          "kind",
+          "codec",
+          "direction",
+          "stream_local_id",
+          "opened_at"
+        ],
+        "additionalProperties": true
+      },
+      "WireStreamSubscription": {
+        "type": "object",
+        "properties": {
+          "strm_id": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/WireIdentifier"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "from_participant": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/WireIdentifier"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "kinds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "minItems": 0,
+            "maxItems": 256,
+            "uniqueItems": true
+          }
+        },
+        "required": [],
+        "additionalProperties": true,
+        "oneOf": [
+          {
+            "required": [
+              "strm_id"
+            ],
+            "not": {
+              "anyOf": [
+                {
+                  "required": [
+                    "from_participant"
+                  ]
+                },
+                {
+                  "required": [
+                    "kinds"
+                  ]
+                }
+              ]
+            }
+          },
+          {
+            "required": [
+              "from_participant"
+            ],
+            "not": {
+              "required": [
+                "strm_id"
+              ]
+            }
+          }
+        ]
+      },
+      "WireReadyStreamBinding": {
+        "type": "object",
+        "properties": {
+          "strm_id": {
+            "$ref": "#/components/schemas/WireIdentifier"
+          },
+          "kind": {
+            "enum": [
+              "audio",
+              "video",
+              "screen",
+              "data"
+            ]
+          },
+          "codec": {},
+          "direction": {
+            "enum": [
+              "sendrecv",
+              "sendonly",
+              "recvonly",
+              "inactive"
+            ]
+          },
+          "stream_local_id": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 65535
+          }
+        },
+        "required": [
+          "strm_id",
+          "kind",
+          "codec",
+          "direction",
+          "stream_local_id"
+        ],
+        "additionalProperties": true
+      },
+      "WireConnectionReady": {
+        "type": "object",
+        "properties": {
+          "streams": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/WireReadyStreamBinding"
+            },
+            "minItems": 1,
+            "maxItems": 256,
+            "uniqueItems": true
+          }
+        },
+        "required": [
+          "streams"
+        ],
+        "additionalProperties": true
+      },
+      "WireHandoffPreparation": {
+        "type": "object",
+        "properties": {
+          "profile": {
+            "const": "connect-handoff-preparation-v1"
+          }
+        },
+        "required": [
+          "profile"
+        ],
+        "additionalProperties": false
+      },
+      "WireOperationState": {
+        "enum": [
+          "accepted",
+          "preparing",
+          "ready",
+          "committing",
+          "completed",
+          "cancelled",
+          "failed",
+          "interrupted",
+          "unknown"
+        ]
+      },
+      "WireOperationUpdated": {
+        "type": "object",
+        "properties": {
+          "operation_id": {
+            "$ref": "#/components/schemas/WireIdentifier"
+          },
+          "record_id": {
+            "$ref": "#/components/schemas/WireIdentifier"
+          },
+          "state": {
+            "$ref": "#/components/schemas/WireOperationState"
+          },
+          "revision": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "result": {},
+          "problem": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "operation_id",
+          "state",
+          "revision"
+        ],
+        "additionalProperties": true,
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "state": {
+                  "not": {
+                    "const": "completed"
+                  }
+                }
+              }
+            },
+            "then": {
+              "not": {
+                "required": [
+                  "result"
+                ]
+              }
+            }
+          }
+        ]
+      },
+      "WireMemberAdd": {
+        "type": "object",
+        "properties": {
+          "identity_id": {
+            "$ref": "#/components/schemas/WireIdentifier"
+          },
+          "kind": {
+            "enum": [
+              "human",
+              "ai",
+              "system",
+              "external"
+            ]
+          },
+          "role": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64
+          }
+        },
+        "required": [
+          "identity_id",
+          "kind",
+          "role"
+        ],
+        "additionalProperties": true
+      },
+      "WireMemberUpdate": {
+        "type": "object",
+        "properties": {
+          "participant_id": {
+            "$ref": "#/components/schemas/WireIdentifier"
+          },
+          "role": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64
+          }
+        },
+        "required": [
+          "participant_id",
+          "role"
+        ],
+        "additionalProperties": true
+      },
+      "WireMemberRemove": {
+        "type": "object",
+        "properties": {
+          "participant_id": {
+            "$ref": "#/components/schemas/WireIdentifier"
+          },
+          "reason": {
+            "type": "string",
+            "maxLength": 512
+          }
+        },
+        "required": [
+          "participant_id"
+        ],
+        "additionalProperties": true
+      },
+      "WireMemberChanged": {
+        "type": "object",
+        "properties": {
+          "participant_id": {
+            "$ref": "#/components/schemas/WireIdentifier"
+          },
+          "kind": {
+            "enum": [
+              "added",
+              "updated",
+              "removed"
+            ]
+          },
+          "membership_epoch": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9007199254740991
+          }
+        },
+        "required": [
+          "participant_id",
+          "kind",
+          "membership_epoch"
+        ],
+        "additionalProperties": true
+      },
+      "WireSessionConsult": {
+        "type": "object",
+        "properties": {
+          "retained_connid": {
+            "$ref": "#/components/schemas/WireIdentifier"
+          },
+          "private_participants": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/WireIdentifier"
+            },
+            "minItems": 2,
+            "maxItems": 256,
+            "uniqueItems": true
+          },
+          "hold_treatment": {
+            "enum": [
+              "silence",
+              "configured-media"
+            ]
+          }
+        },
+        "required": [
+          "retained_connid",
+          "private_participants"
+        ],
+        "additionalProperties": true
+      },
+      "WireSessionConsultReturn": {
+        "type": "object",
+        "properties": {
+          "consultation_record_id": {
+            "$ref": "#/components/schemas/WireIdentifier"
+          },
+          "retained_connid": {
+            "$ref": "#/components/schemas/WireIdentifier"
+          }
+        },
+        "required": [
+          "consultation_record_id",
+          "retained_connid"
+        ],
+        "additionalProperties": true
+      },
+      "WireSessionHandoff": {
+        "type": "object",
+        "properties": {
+          "source_participant": {
+            "$ref": "#/components/schemas/WireIdentifier"
+          },
+          "target_participant": {
+            "$ref": "#/components/schemas/WireIdentifier"
+          },
+          "retained_connid": {
+            "$ref": "#/components/schemas/WireIdentifier"
+          },
+          "candidate_connid": {
+            "$ref": "#/components/schemas/WireIdentifier"
+          },
+          "outgoing": {
+            "enum": [
+              "leave",
+              "observe"
+            ]
+          },
+          "role_scope": {
+            "enum": [
+              "conversation",
+              "session"
+            ]
+          },
+          "expected_conversation_revision": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          }
+        },
+        "required": [
+          "source_participant",
+          "target_participant",
+          "retained_connid",
+          "outgoing"
+        ],
+        "additionalProperties": true,
+        "allOf": [
+          {
+            "if": {
+              "required": [
+                "role_scope"
+              ],
+              "properties": {
+                "role_scope": {
+                  "const": "session"
+                }
+              }
+            },
+            "then": {},
+            "else": {
+              "required": [
+                "expected_conversation_revision"
+              ]
+            }
+          }
+        ]
+      },
+      "WireConnectionReplace": {
+        "type": "object",
+        "properties": {
+          "endpoint_id": {
+            "$ref": "#/components/schemas/WireIdentifier"
+          },
+          "candidate_connid": {
+            "$ref": "#/components/schemas/WireIdentifier"
+          },
+          "retained_connid": {
+            "$ref": "#/components/schemas/WireIdentifier"
+          }
+        },
+        "required": [
+          "retained_connid"
+        ],
+        "additionalProperties": true,
+        "oneOf": [
+          {
+            "required": [
+              "endpoint_id"
+            ],
+            "not": {
+              "required": [
+                "candidate_connid"
+              ]
+            }
+          },
+          {
+            "required": [
+              "candidate_connid"
+            ],
+            "not": {
+              "required": [
+                "endpoint_id"
+              ]
+            }
+          }
+        ]
+      },
+      "WireOperationGet": {
+        "type": "object",
+        "properties": {
+          "operation_id": {
+            "$ref": "#/components/schemas/WireIdentifier"
+          }
+        },
+        "required": [
+          "operation_id"
+        ],
+        "additionalProperties": true
+      },
+      "WireOperationCancel": {
+        "type": "object",
+        "properties": {
+          "operation_id": {
+            "$ref": "#/components/schemas/WireIdentifier"
+          },
+          "reason": {
+            "type": "string",
+            "maxLength": 512
+          }
+        },
+        "required": [
+          "operation_id"
+        ],
+        "additionalProperties": true
+      },
+      "WireOperationReconcile": {
+        "type": "object",
+        "properties": {
+          "operation_id": {
+            "$ref": "#/components/schemas/WireIdentifier"
+          },
+          "outcome": {
+            "enum": [
+              "completed",
+              "cancelled",
+              "failed"
+            ]
+          },
+          "evidence_id": {
+            "$ref": "#/components/schemas/WireIdentifier"
+          }
+        },
+        "required": [
+          "operation_id",
+          "outcome",
+          "evidence_id"
+        ],
+        "additionalProperties": true
+      },
+      "WireConversationGet": {
+        "type": "object",
+        "properties": {
+          "page": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 2048,
+            "pattern": "^[A-Za-z0-9._~-]+$"
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 127
+          }
+        },
+        "required": [],
+        "additionalProperties": true
+      },
+      "WireConversationSubscribe": {
+        "type": "object",
+        "properties": {
+          "after": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 2048,
+            "pattern": "^[A-Za-z0-9._~-]+$"
+          },
+          "live": {
+            "type": "boolean"
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 500
+          },
+          "lease_seconds": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 30
+          }
+        },
+        "required": [],
+        "additionalProperties": true
+      },
+      "WireConversationSnapshot": {
+        "type": "object",
+        "properties": {
+          "revision": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "cursor": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 2048,
+            "pattern": "^[A-Za-z0-9._~-]+$"
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            },
+            "minItems": 0,
+            "maxItems": 500,
+            "uniqueItems": true
+          },
+          "has_more": {
+            "type": "boolean"
+          },
+          "next_page": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 2048,
+            "pattern": "^[A-Za-z0-9._~-]+$"
+          }
+        },
+        "required": [
+          "revision",
+          "cursor",
+          "items",
+          "has_more"
+        ],
+        "additionalProperties": true
+      },
+      "WireConversationEvent": {
+        "type": "object",
+        "properties": {
+          "event_id": {
+            "$ref": "#/components/schemas/WireIdentifier"
+          },
+          "cursor": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 2048,
+            "pattern": "^[A-Za-z0-9._~-]+$"
+          },
+          "kind": {
+            "type": "string",
+            "minLength": 1
+          },
+          "revision": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "data": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "event_id",
+          "cursor",
+          "kind",
+          "revision",
+          "data"
+        ],
+        "additionalProperties": true
+      },
+      "WireSessionObservation": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "enum": [
+              "transcript",
+              "speech",
+              "action-request"
+            ]
+          },
+          "participant_id": {
+            "$ref": "#/components/schemas/WireIdentifier"
+          },
+          "source": {
+            "type": "string",
+            "minLength": 1
+          },
+          "correlation_id": {
+            "$ref": "#/components/schemas/WireIdentifier"
+          },
+          "data": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "kind",
+          "participant_id",
+          "source",
+          "correlation_id",
+          "data"
+        ],
+        "additionalProperties": true
+      },
+      "WireSignature": {
+        "type": "object",
+        "properties": {
+          "keyid": {
+            "type": "string",
+            "minLength": 1
+          },
+          "alg": {
+            "enum": [
+              "EdDSA",
+              "ES256",
+              "PS256",
+              "RS256"
+            ]
+          },
+          "sig": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "required": [
+          "keyid",
+          "alg",
+          "sig"
+        ],
+        "additionalProperties": true
+      },
+      "Envelope": {
+        "title": "Gate 6 UCTP envelope / connect/2 target",
+        "description": "Schema conformance does not establish authorization, active media, provider effects or runtime qualification.",
+        "type": "object",
+        "properties": {
+          "v": {
+            "const": 2
+          },
+          "type": {
+            "enum": [
+              "auth.hello",
+              "auth.challenge",
+              "auth.response",
+              "auth.session",
+              "auth.keepalive",
+              "auth.bye",
+              "auth.refresh",
+              "conversation.create",
+              "conversation.opened",
+              "conversation.closed",
+              "conversation.close",
+              "conversation.list",
+              "session.invite",
+              "session.accept",
+              "session.reject",
+              "session.cancel",
+              "session.end",
+              "session.started",
+              "session.ended",
+              "session.update",
+              "session.participant.joined",
+              "session.participant.left",
+              "connection.offer",
+              "connection.answer",
+              "connection.ready",
+              "connection.update",
+              "connection.end",
+              "connection.ice-candidate",
+              "stream.opened",
+              "stream.closed",
+              "stream.subscribe",
+              "stream.unsubscribe",
+              "stream.active-speaker",
+              "message.send",
+              "message.delivered",
+              "message.read",
+              "message.history",
+              "capability.advertise",
+              "dtmf.send",
+              "dtmf.received",
+              "recording.vcon-ready",
+              "recording.vcon-fetch",
+              "recording.vcon-fetched",
+              "connection.quality",
+              "identity.assurance-changed",
+              "identity.step-up-request",
+              "identity.step-up-response",
+              "error",
+              "ack",
+              "conversation.get",
+              "conversation.participant.add",
+              "conversation.participant.update",
+              "conversation.participant.remove",
+              "conversation.participant.changed",
+              "conversation.subscribe",
+              "conversation.snapshot",
+              "conversation.event",
+              "session.consult",
+              "session.handoff",
+              "connection.replace",
+              "operation.get",
+              "operation.cancel",
+              "operation.reconcile",
+              "operation.updated",
+              "session.observation",
+              "session.consult.return"
+            ]
+          },
+          "id": {
+            "$ref": "#/components/schemas/WireIdentifier"
+          },
+          "ts": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "payload": {
+            "type": "object"
+          },
+          "cid": {
+            "$ref": "#/components/schemas/WireIdentifier"
+          },
+          "sid": {
+            "$ref": "#/components/schemas/WireIdentifier"
+          },
+          "connid": {
+            "$ref": "#/components/schemas/WireIdentifier"
+          },
+          "in_reply_to": {
+            "$ref": "#/components/schemas/WireIdentifier"
+          },
+          "operation_id": {
+            "$ref": "#/components/schemas/WireIdentifier"
+          },
+          "expected_revision": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "signature": {
+            "$ref": "#/components/schemas/WireSignature"
+          }
+        },
+        "required": [
+          "v",
+          "type",
+          "id",
+          "ts",
+          "payload"
+        ],
+        "additionalProperties": true,
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "type": {
+                  "const": "auth.hello"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "payload": {
+                  "$ref": "#/components/schemas/WireAuthHello"
+                }
+              },
+              "required": []
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "type": {
+                  "const": "auth.challenge"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "payload": {
+                  "$ref": "#/components/schemas/WireAuthChallenge"
+                }
+              },
+              "required": []
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "type": {
+                  "const": "auth.response"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "payload": {
+                  "$ref": "#/components/schemas/WireAuthResponse"
+                }
+              },
+              "required": []
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "type": {
+                  "const": "auth.session"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "payload": {
+                  "$ref": "#/components/schemas/WireAuthSession"
+                }
+              },
+              "required": [],
+              "allOf": [
+                {
+                  "if": {
+                    "properties": {
+                      "payload": {
+                        "required": [
+                          "participant_id"
+                        ]
+                      }
+                    }
+                  },
+                  "then": {
+                    "required": [
+                      "cid"
+                    ]
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "type": {
+                  "const": "auth.keepalive"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "payload": {
+                  "$ref": "#/components/schemas/WireAuthKeepalive"
+                }
+              },
+              "required": []
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "type": {
+                  "const": "auth.bye"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "payload": {
+                  "$ref": "#/components/schemas/WireAuthBye"
+                }
+              },
+              "required": []
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "type": {
+                  "const": "auth.refresh"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "payload": {
+                  "$ref": "#/components/schemas/WireAuthRefresh"
+                }
+              },
+              "required": []
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "type": {
+                  "const": "conversation.create"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "payload": {
+                  "$ref": "#/components/schemas/WireConversationCreate"
+                }
+              },
+              "required": [],
+              "anyOf": [
+                {
+                  "required": [
+                    "operation_id"
+                  ]
+                },
+                {
+                  "required": [
+                    "in_reply_to"
+                  ]
+                }
+              ]
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "type": {
+                  "const": "conversation.opened"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "payload": {
+                  "$ref": "#/components/schemas/WireConversationOpened"
+                }
+              },
+              "required": [
+                "cid"
+              ]
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "type": {
+                  "const": "conversation.closed"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "payload": {
+                  "$ref": "#/components/schemas/WireConversationClosed"
+                }
+              },
+              "required": [
+                "cid"
+              ]
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "type": {
+                  "const": "conversation.close"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "payload": {
+                  "$ref": "#/components/schemas/WireConversationClose"
+                }
+              },
+              "required": [
+                "cid"
+              ],
+              "anyOf": [
+                {
+                  "required": [
+                    "operation_id"
+                  ]
+                },
+                {
+                  "required": [
+                    "in_reply_to"
+                  ]
+                }
+              ]
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "type": {
+                  "const": "conversation.list"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "payload": {
+                  "$ref": "#/components/schemas/WireConversationList"
+                }
+              },
+              "required": []
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "type": {
+                  "const": "session.invite"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "payload": {
+                  "$ref": "#/components/schemas/WireSessionInvite"
+                }
+              },
+              "required": [
+                "cid",
+                "sid"
+              ],
+              "anyOf": [
+                {
+                  "required": [
+                    "operation_id"
+                  ]
+                },
+                {
+                  "required": [
+                    "in_reply_to"
+                  ]
+                }
+              ]
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "type": {
+                  "const": "session.accept"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "payload": {
+                  "$ref": "#/components/schemas/WireSessionAccept"
+                }
+              },
+              "required": [
+                "cid",
+                "sid"
+              ],
+              "anyOf": [
+                {
+                  "required": [
+                    "operation_id"
+                  ]
+                },
+                {
+                  "required": [
+                    "in_reply_to"
+                  ]
+                }
+              ]
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "type": {
+                  "const": "session.reject"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "payload": {
+                  "$ref": "#/components/schemas/WireSessionReject"
+                }
+              },
+              "required": [
+                "cid",
+                "sid"
+              ],
+              "anyOf": [
+                {
+                  "required": [
+                    "operation_id"
+                  ]
+                },
+                {
+                  "required": [
+                    "in_reply_to"
+                  ]
+                }
+              ]
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "type": {
+                  "const": "session.cancel"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "payload": {
+                  "$ref": "#/components/schemas/WireSessionCancel"
+                }
+              },
+              "required": [
+                "cid",
+                "sid"
+              ],
+              "anyOf": [
+                {
+                  "required": [
+                    "operation_id"
+                  ]
+                },
+                {
+                  "required": [
+                    "in_reply_to"
+                  ]
+                }
+              ]
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "type": {
+                  "const": "session.end"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "payload": {
+                  "$ref": "#/components/schemas/WireSessionEnd"
+                }
+              },
+              "required": [
+                "cid",
+                "sid"
+              ],
+              "anyOf": [
+                {
+                  "required": [
+                    "operation_id"
+                  ]
+                },
+                {
+                  "required": [
+                    "in_reply_to"
+                  ]
+                }
+              ]
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "type": {
+                  "const": "session.started"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "payload": {
+                  "$ref": "#/components/schemas/WireSessionStarted"
+                }
+              },
+              "required": [
+                "cid",
+                "sid"
+              ]
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "type": {
+                  "const": "session.ended"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "payload": {
+                  "$ref": "#/components/schemas/WireSessionEnded"
+                }
+              },
+              "required": [
+                "cid",
+                "sid"
+              ]
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "type": {
+                  "const": "session.update"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "payload": {
+                  "$ref": "#/components/schemas/WireSessionUpdate"
+                }
+              },
+              "required": [
+                "cid",
+                "sid"
+              ],
+              "anyOf": [
+                {
+                  "required": [
+                    "operation_id",
+                    "expected_revision"
+                  ]
+                },
+                {
+                  "required": [
+                    "in_reply_to"
+                  ]
+                }
+              ]
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "type": {
+                  "const": "session.participant.joined"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "payload": {
+                  "$ref": "#/components/schemas/WireSessionParticipantJoined"
+                }
+              },
+              "required": [
+                "cid",
+                "sid"
+              ]
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "type": {
+                  "const": "session.participant.left"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "payload": {
+                  "$ref": "#/components/schemas/WireSessionParticipantLeft"
+                }
+              },
+              "required": [
+                "cid",
+                "sid"
+              ]
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "type": {
+                  "const": "connection.offer"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "payload": {
+                  "$ref": "#/components/schemas/WireConnectionOffer"
+                }
+              },
+              "required": [
+                "cid",
+                "sid",
+                "connid"
+              ],
+              "anyOf": [
+                {
+                  "required": [
+                    "operation_id"
+                  ]
+                },
+                {
+                  "required": [
+                    "in_reply_to"
+                  ]
+                }
+              ]
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "type": {
+                  "const": "connection.answer"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "payload": {
+                  "$ref": "#/components/schemas/WireConnectionAnswer"
+                }
+              },
+              "required": [
+                "cid",
+                "sid",
+                "connid"
+              ],
+              "anyOf": [
+                {
+                  "required": [
+                    "operation_id"
+                  ]
+                },
+                {
+                  "required": [
+                    "in_reply_to"
+                  ]
+                }
+              ]
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "type": {
+                  "const": "connection.ready"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "payload": {
+                  "$ref": "#/components/schemas/WireConnectionReady"
+                }
+              },
+              "required": [
+                "cid",
+                "sid",
+                "connid"
+              ]
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "type": {
+                  "const": "connection.update"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "payload": {
+                  "$ref": "#/components/schemas/WireConnectionUpdate"
+                }
+              },
+              "required": [
+                "cid",
+                "sid",
+                "connid"
+              ],
+              "anyOf": [
+                {
+                  "required": [
+                    "operation_id",
+                    "expected_revision"
+                  ]
+                },
+                {
+                  "required": [
+                    "in_reply_to"
+                  ]
+                }
+              ]
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "type": {
+                  "const": "connection.end"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "payload": {
+                  "$ref": "#/components/schemas/WireConnectionEnd"
+                }
+              },
+              "required": [
+                "cid",
+                "sid",
+                "connid"
+              ],
+              "anyOf": [
+                {
+                  "required": [
+                    "operation_id"
+                  ]
+                },
+                {
+                  "required": [
+                    "in_reply_to"
+                  ]
+                }
+              ]
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "type": {
+                  "const": "connection.ice-candidate"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "payload": {
+                  "$ref": "#/components/schemas/WireIceCandidateInit"
+                }
+              },
+              "required": [
+                "cid",
+                "sid",
+                "connid"
+              ]
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "type": {
+                  "const": "stream.opened"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "payload": {
+                  "$ref": "#/components/schemas/WireStreamOpened"
+                }
+              },
+              "required": [
+                "cid",
+                "sid",
+                "connid"
+              ]
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "type": {
+                  "const": "stream.closed"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "payload": {
+                  "$ref": "#/components/schemas/WireStreamClosed"
+                }
+              },
+              "required": [
+                "cid",
+                "sid",
+                "connid"
+              ]
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "type": {
+                  "const": "stream.subscribe"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "payload": {
+                  "$ref": "#/components/schemas/WireStreamSubscribe"
+                }
+              },
+              "required": [
+                "cid",
+                "sid",
+                "connid"
+              ],
+              "anyOf": [
+                {
+                  "required": [
+                    "operation_id",
+                    "expected_revision"
+                  ]
+                },
+                {
+                  "required": [
+                    "in_reply_to"
+                  ]
+                }
+              ]
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "type": {
+                  "const": "stream.unsubscribe"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "payload": {
+                  "$ref": "#/components/schemas/WireStreamUnsubscribe"
+                }
+              },
+              "required": [
+                "cid",
+                "sid",
+                "connid"
+              ],
+              "anyOf": [
+                {
+                  "required": [
+                    "operation_id",
+                    "expected_revision"
+                  ]
+                },
+                {
+                  "required": [
+                    "in_reply_to"
+                  ]
+                }
+              ]
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "type": {
+                  "const": "stream.active-speaker"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "payload": {
+                  "$ref": "#/components/schemas/WireStreamActiveSpeaker"
+                }
+              },
+              "required": [
+                "cid",
+                "sid"
+              ]
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "type": {
+                  "const": "message.send"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "payload": {
+                  "$ref": "#/components/schemas/WireMessageSend"
+                }
+              },
+              "required": [
+                "cid"
+              ],
+              "anyOf": [
+                {
+                  "required": [
+                    "operation_id"
+                  ]
+                },
+                {
+                  "required": [
+                    "in_reply_to"
+                  ]
+                }
+              ]
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "type": {
+                  "const": "message.delivered"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "payload": {
+                  "$ref": "#/components/schemas/WireMessageDelivered"
+                }
+              },
+              "required": [
+                "cid"
+              ]
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "type": {
+                  "const": "message.read"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "payload": {
+                  "$ref": "#/components/schemas/WireMessageRead"
+                }
+              },
+              "required": [
+                "cid"
+              ],
+              "anyOf": [
+                {
+                  "required": [
+                    "operation_id"
+                  ]
+                },
+                {
+                  "required": [
+                    "in_reply_to"
+                  ]
+                }
+              ]
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "type": {
+                  "const": "message.history"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "payload": {
+                  "$ref": "#/components/schemas/WireMessageHistory"
+                }
+              },
+              "required": [
+                "cid"
+              ]
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "type": {
+                  "const": "capability.advertise"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "payload": {
+                  "$ref": "#/components/schemas/WireCapabilityAdvertise"
+                }
+              },
+              "required": []
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "type": {
+                  "const": "dtmf.send"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "payload": {
+                  "$ref": "#/components/schemas/WireDtmfSend"
+                }
+              },
+              "required": [
+                "cid",
+                "sid",
+                "connid"
+              ],
+              "anyOf": [
+                {
+                  "required": [
+                    "operation_id"
+                  ]
+                },
+                {
+                  "required": [
+                    "in_reply_to"
+                  ]
+                }
+              ]
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "type": {
+                  "const": "dtmf.received"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "payload": {
+                  "$ref": "#/components/schemas/WireDtmfReceived"
+                }
+              },
+              "required": [
+                "cid",
+                "sid",
+                "connid"
+              ]
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "type": {
+                  "const": "recording.vcon-ready"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "payload": {
+                  "$ref": "#/components/schemas/WireRecordingVconReady"
+                }
+              },
+              "required": [
+                "cid",
+                "sid"
+              ]
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "type": {
+                  "const": "recording.vcon-fetch"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "payload": {
+                  "$ref": "#/components/schemas/WireRecordingVconFetch"
+                }
+              },
+              "required": [
+                "cid",
+                "sid"
+              ]
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "type": {
+                  "const": "recording.vcon-fetched"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "payload": {
+                  "$ref": "#/components/schemas/WireRecordingVconFetched"
+                }
+              },
+              "required": [
+                "cid",
+                "sid"
+              ]
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "type": {
+                  "const": "connection.quality"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "payload": {
+                  "$ref": "#/components/schemas/WireConnectionQuality"
+                }
+              },
+              "required": [
+                "cid",
+                "sid",
+                "connid"
+              ]
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "type": {
+                  "const": "identity.assurance-changed"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "payload": {
+                  "$ref": "#/components/schemas/WireIdentityAssuranceChanged"
+                }
+              },
+              "required": []
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "type": {
+                  "const": "identity.step-up-request"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "payload": {
+                  "$ref": "#/components/schemas/WireIdentityStepUpRequest"
+                }
+              },
+              "required": []
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "type": {
+                  "const": "identity.step-up-response"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "payload": {
+                  "$ref": "#/components/schemas/WireIdentityStepUpResponse"
+                }
+              },
+              "required": []
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "type": {
+                  "const": "error"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "payload": {
+                  "$ref": "#/components/schemas/WireError"
+                }
+              },
+              "required": []
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "type": {
+                  "const": "ack"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "payload": {
+                  "$ref": "#/components/schemas/WireAck"
+                }
+              },
+              "required": []
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "type": {
+                  "const": "conversation.get"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "payload": {
+                  "$ref": "#/components/schemas/WireConversationGet"
+                }
+              },
+              "required": [
+                "cid"
+              ]
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "type": {
+                  "const": "conversation.participant.add"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "payload": {
+                  "$ref": "#/components/schemas/WireMemberAdd"
+                }
+              },
+              "required": [
+                "cid"
+              ],
+              "anyOf": [
+                {
+                  "required": [
+                    "operation_id",
+                    "expected_revision"
+                  ]
+                },
+                {
+                  "required": [
+                    "in_reply_to"
+                  ]
+                }
+              ]
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "type": {
+                  "const": "conversation.participant.update"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "payload": {
+                  "$ref": "#/components/schemas/WireMemberUpdate"
+                }
+              },
+              "required": [
+                "cid"
+              ],
+              "anyOf": [
+                {
+                  "required": [
+                    "operation_id",
+                    "expected_revision"
+                  ]
+                },
+                {
+                  "required": [
+                    "in_reply_to"
+                  ]
+                }
+              ]
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "type": {
+                  "const": "conversation.participant.remove"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "payload": {
+                  "$ref": "#/components/schemas/WireMemberRemove"
+                }
+              },
+              "required": [
+                "cid"
+              ],
+              "anyOf": [
+                {
+                  "required": [
+                    "operation_id",
+                    "expected_revision"
+                  ]
+                },
+                {
+                  "required": [
+                    "in_reply_to"
+                  ]
+                }
+              ]
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "type": {
+                  "const": "conversation.participant.changed"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "payload": {
+                  "$ref": "#/components/schemas/WireMemberChanged"
+                }
+              },
+              "required": [
+                "cid"
+              ]
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "type": {
+                  "const": "conversation.subscribe"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "payload": {
+                  "$ref": "#/components/schemas/WireConversationSubscribe"
+                }
+              },
+              "required": [
+                "cid"
+              ]
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "type": {
+                  "const": "conversation.snapshot"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "payload": {
+                  "$ref": "#/components/schemas/WireConversationSnapshot"
+                }
+              },
+              "required": [
+                "cid"
+              ]
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "type": {
+                  "const": "conversation.event"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "payload": {
+                  "$ref": "#/components/schemas/WireConversationEvent"
+                }
+              },
+              "required": [
+                "cid"
+              ]
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "type": {
+                  "const": "session.consult"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "payload": {
+                  "$ref": "#/components/schemas/WireSessionConsult"
+                }
+              },
+              "required": [
+                "cid",
+                "sid"
+              ],
+              "anyOf": [
+                {
+                  "required": [
+                    "operation_id",
+                    "expected_revision"
+                  ]
+                },
+                {
+                  "required": [
+                    "in_reply_to"
+                  ]
+                }
+              ]
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "type": {
+                  "const": "session.handoff"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "payload": {
+                  "$ref": "#/components/schemas/WireSessionHandoff"
+                }
+              },
+              "required": [
+                "cid",
+                "sid"
+              ],
+              "anyOf": [
+                {
+                  "required": [
+                    "operation_id",
+                    "expected_revision"
+                  ]
+                },
+                {
+                  "required": [
+                    "in_reply_to"
+                  ]
+                }
+              ]
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "type": {
+                  "const": "connection.replace"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "payload": {
+                  "$ref": "#/components/schemas/WireConnectionReplace"
+                }
+              },
+              "required": [
+                "cid",
+                "sid",
+                "connid"
+              ],
+              "anyOf": [
+                {
+                  "required": [
+                    "operation_id",
+                    "expected_revision"
+                  ]
+                },
+                {
+                  "required": [
+                    "in_reply_to"
+                  ]
+                }
+              ]
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "type": {
+                  "const": "operation.get"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "payload": {
+                  "$ref": "#/components/schemas/WireOperationGet"
+                }
+              },
+              "required": []
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "type": {
+                  "const": "operation.cancel"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "payload": {
+                  "$ref": "#/components/schemas/WireOperationCancel"
+                }
+              },
+              "required": [],
+              "anyOf": [
+                {
+                  "required": [
+                    "operation_id"
+                  ]
+                },
+                {
+                  "required": [
+                    "in_reply_to"
+                  ]
+                }
+              ]
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "type": {
+                  "const": "operation.reconcile"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "payload": {
+                  "$ref": "#/components/schemas/WireOperationReconcile"
+                }
+              },
+              "required": [],
+              "anyOf": [
+                {
+                  "required": [
+                    "operation_id"
+                  ]
+                },
+                {
+                  "required": [
+                    "in_reply_to"
+                  ]
+                }
+              ]
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "type": {
+                  "const": "operation.updated"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "payload": {
+                  "$ref": "#/components/schemas/WireOperationUpdated"
+                }
+              },
+              "required": []
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "type": {
+                  "const": "session.observation"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "payload": {
+                  "$ref": "#/components/schemas/WireSessionObservation"
+                }
+              },
+              "required": [
+                "cid",
+                "sid"
+              ]
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "type": {
+                  "const": "session.consult.return"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "payload": {
+                  "$ref": "#/components/schemas/WireSessionConsultReturn"
+                }
+              },
+              "required": [
+                "cid",
+                "sid",
+                "connid"
+              ],
+              "anyOf": [
+                {
+                  "required": [
+                    "operation_id",
+                    "expected_revision"
+                  ]
+                },
+                {
+                  "required": [
+                    "in_reply_to"
+                  ]
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "HttpEnvelope": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/Envelope"
+          },
+          {
+            "not": {
+              "required": [
+                "signature"
+              ]
+            }
+          }
+        ]
+      },
+      "Problem": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "enum": [
+              400,
+              401,
+              403,
+              404,
+              409,
+              413,
+              429,
+              488,
+              501,
+              503
+            ]
+          },
+          "category": {
+            "enum": [
+              "auth",
+              "validation",
+              "unsupported",
+              "state",
+              "storage",
+              "authorization",
+              "capacity",
+              "conflict",
+              "media"
+            ]
+          },
+          "reason": {
+            "type": "string",
+            "maxLength": 64
+          }
+        },
+        "required": [
+          "code",
+          "category",
+          "reason"
+        ],
+        "additionalProperties": false
+      },
+      "ReplyBatch": {
+        "type": "object",
+        "properties": {
+          "profile": {
+            "const": "connect/2"
+          },
+          "request_id": {
+            "$ref": "#/components/schemas/WireIdentifier"
+          },
+          "envelopes": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 128,
+            "items": {
+              "allOf": [
+                {
+                  "$ref": "#/components/schemas/HttpEnvelope"
+                },
+                {
+                  "required": [
+                    "in_reply_to"
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        "required": [
+          "profile",
+          "request_id",
+          "envelopes"
+        ],
+        "additionalProperties": false
+      },
+      "Rejection": {
+        "type": "object",
+        "properties": {
+          "profile": {
+            "const": "connect/2"
+          },
+          "problem": {
+            "$ref": "#/components/schemas/Problem"
+          }
+        },
+        "required": [
+          "profile",
+          "problem"
+        ],
+        "additionalProperties": false
+      },
+      "UserDelegationRequest": {
+        "type": "object",
+        "properties": {
+          "operation_id": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9_.:-]{1,128}$"
+          },
+          "identity_id": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9_.:-]{1,128}$"
+          },
+          "operations": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 64,
+            "items": {
+              "allOf": [
+                {
+                  "type": "string",
+                  "pattern": "^[A-Za-z0-9_.:-]{1,128}$"
+                },
+                {
+                  "not": {
+                    "enum": [
+                      "admin",
+                      "credential.delegate"
+                    ]
+                  }
+                }
+              ]
+            }
+          },
+          "recipients": {
+            "type": "array",
+            "maxItems": 128,
+            "items": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9_.:-]{1,128}$"
+            }
+          },
+          "expires_at": {
+            "type": "integer",
+            "minimum": 1
+          }
+        },
+        "required": [
+          "operation_id",
+          "identity_id",
+          "operations",
+          "recipients",
+          "expires_at"
+        ],
+        "additionalProperties": false
+      },
+      "UserDelegationOutcome": {
+        "type": "object",
+        "properties": {
+          "operation_id": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9_.:-]{1,128}$"
+          },
+          "credential_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "identity_id": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9_.:-]{1,128}$"
+          },
+          "user_id": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9_.:-]{1,128}$"
+          },
+          "operations": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 64,
+            "items": {
+              "allOf": [
+                {
+                  "type": "string",
+                  "pattern": "^[A-Za-z0-9_.:-]{1,128}$"
+                },
+                {
+                  "not": {
+                    "enum": [
+                      "admin",
+                      "credential.delegate"
+                    ]
+                  }
+                }
+              ]
+            }
+          },
+          "recipients": {
+            "type": "array",
+            "maxItems": 128,
+            "items": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9_.:-]{1,128}$"
+            }
+          },
+          "expires_at": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "credential": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$",
+            "description": "Protected successor secret returned only to the current authenticated consenting issuer."
+          }
+        },
+        "required": [
+          "operation_id",
+          "credential_id",
+          "identity_id",
+          "user_id",
+          "operations",
+          "recipients",
+          "expires_at",
+          "credential"
+        ],
+        "additionalProperties": false
+      },
+      "UserDelegationResponse": {
+        "type": "object",
+        "properties": {
+          "profile": {
+            "const": "connect/2"
+          },
+          "result": {
+            "oneOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "Ok": {
+                    "$ref": "#/components/schemas/UserDelegationOutcome"
+                  }
+                },
+                "required": [
+                  "Ok"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "Err": {
+                    "type": "object",
+                    "properties": {
+                      "code": {
+                        "type": "string"
+                      },
+                      "message": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "code",
+                      "message"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "required": [
+                  "Err"
+                ],
+                "additionalProperties": false
+              }
+            ]
+          }
+        },
+        "required": [
+          "profile",
+          "result"
+        ],
+        "additionalProperties": false
+      }
+    }
+  }
+}

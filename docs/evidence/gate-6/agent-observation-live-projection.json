@@ -1,0 +1,323 @@
+{
+  "kind": "gate6-component-evidence",
+  "task": "G6-043",
+  "status": "in-progress",
+  "passed": true,
+  "recorded_at": "2026-10-20T22:32:19.608476+00:00",
+  "platform": {
+    "system": "Darwin",
+    "machine": "arm64"
+  },
+  "schema_version": 63,
+  "pinned_patches": 124,
+  "source_lock": {
+    "path": "dependencies/source-lock.json",
+    "sha256": "5d120c35bb38597b4ddc12292dc770856ea09c084c0d4065e373dcd61e379826"
+  },
+  "qualification_inputs": {
+    "path": ".local/gate-6/agent-observation-projection/inputs-qualified.json",
+    "sha256": "b5606093b3f326b690cd000a488dcdf927bb9955b46400dde0d728534dda8a49",
+    "paths": 907
+  },
+  "fresh_distinct_passed_tests": 178,
+  "verification": [
+    {
+      "name": "Store focused observations/assistant/private custody",
+      "passed": 73,
+      "ignored": 0,
+      "tests": [
+        "connection_control::tests::assistant_context::assistant_provider_captured_observation_survives_revocation_but_never_authorizes_more_io",
+        "connection_control::tests::assistant_context::assistant_provider_cannot_adopt_old_pair_memory_even_when_its_new_selection_is_public",
+        "connection_control::tests::assistant_context::assistant_provider_preserves_one_creation_original_selection_and_exact_ack",
+        "connection_control::tests::assistant_context::assistant_provider_failure_observations_are_visible_and_cannot_be_overwritten_by_an_ack",
+        "connection_control::tests::assistant_context::native_assistant_context_holds_one_complete_interval_behind_queued_revocation",
+        "connection_control::tests::assistant_context::native_assistant_context_never_borrows_the_context_owners_target_permission",
+        "connection_control::tests::assistant_context::native_assistant_context_uses_exact_ai_incarnation_and_every_current_listener",
+        "connection_control::tests::assistant_context::observation_sources::activity_busy_preserves_cursor_and_synchronous_closure_hides_buffer_without_cleanup_sql",
+        "connection_control::tests::assistant_context::observation_sources::observation_source_is_captured_generation_audience_and_cannot_be_rebound_as_generic",
+        "connection_control::tests::assistant_context::observation_sources::original_memory_interval_publishes_without_reentering_behind_a_waiting_writer",
+        "connection_control::tests::assistant_context::observation_sources::provider_end_stops_publishing_and_hides_buffer_while_native_connection_remains_current",
+        "connection_control::tests::assistant_context::observation_sources::revoked_history_hides_already_buffered_derived_content_without_retiring_native_source",
+        "connection_control::tests::assistant_context::observation_sources::source_requires_committed_exact_ack_and_cannot_borrow_another_instance_receipt",
+        "connection_control::tests::assistant_context::observation_sources::uncertain_update_blocks_observation_reads_even_when_initial_receipt_stays_delivered",
+        "connection_control::tests::assistant_context::phases::every_earlier_update_remains_authorized_when_its_source_falls_out_of_latest_context",
+        "connection_control::tests::assistant_context::phases::failed_or_uncertain_update_blocks_memory_and_exact_late_observations_never_create_another_attempt",
+        "connection_control::tests::assistant_context::phases::initialization_reserves_inline_export_before_reference_and_never_repeats_or_downgrades",
+        "connection_control::tests::assistant_context::phases::unknown_inline_creation_keeps_possible_export_visible_without_an_adoptable_instance",
+        "connection_control::tests::assistant_context::assistant_provider_recovery_never_repeats_possible_effects_or_changes_logical_identity",
+        "connection_control::tests::assistant_context::phases::updates_freeze_independent_receipts_and_replay_without_overwriting_initial_selection",
+        "connection_control::tests::private_provider::a_fresh_private_context_recalls_authorized_private_history_without_exporting_it_to_public_memory",
+        "connection_control::tests::assistant_context::phases::update_recovery_is_metadata_only_and_distinguishes_zero_io_from_possible_export",
+        "connection_control::tests::private_provider::ai_owned_private_context_requires_every_private_listener_for_all_sources",
+        "connection_control::tests::private_provider::expired_unstarted_native_preparation_keeps_unconfirmed_provider_cleanup_unknown",
+        "connection_control::tests::private_provider::captured_initialization_failure_records_only_an_exact_zero_io_intention",
+        "connection_control::tests::private_provider::initialization_failure_receipt_survives_source_revocation_and_rolls_back_recording_failure",
+        "connection_control::tests::private_provider::native_consultation_cannot_turn_an_existing_public_context_into_a_private_attempt",
+        "connection_control::tests::private_provider::initialization_cancellation_settles_only_after_captured_provider_close_without_native_io",
+        "connection_control::tests::private_provider::observation_sources::captured_private_source_keeps_exact_pair_and_closes_without_retiring_native_metadata",
+        "connection_control::tests::private_provider::observation_sources::private_buffer_is_hidden_when_original_human_listener_loses_exported_history",
+        "connection_control::tests::private_provider::observation_sources::private_source_requires_committed_exact_receipt_and_reuses_interval_before_waiting_writer",
+        "connection_control::tests::private_provider::private_ai_completion_requires_independent_context_and_decoded_audio_then_follows_current_physical_grants",
+        "connection_control::tests::private_provider::observation_sources::private_source_rejects_uncertain_memory_and_stale_generation_before_buffer_replay",
+        "connection_control::tests::private_provider::private_context_receipt_keeps_original_native_generation_and_private_audience",
+        "connection_control::tests::private_provider::private_provider_capture_rolls_back_recording_failure_then_records_exact_result_once",
+        "connection_control::tests::private_provider::private_provider_captured_delivery_survives_revocation_but_cannot_authorize_new_transcripts",
+        "connection_control::tests::private_provider::private_provider_changed_session_revision_settles_stopped_preparation_without_claiming_provider_cleanup",
+        "connection_control::tests::private_provider::private_provider_confirmed_initialization_allows_one_native_ai_preparation",
+        "connection_control::tests::private_provider::private_provider_context_precedes_native_ai_audience_attempt_and_cancellation_preserves_uncertainty",
+        "connection_control::tests::private_provider::private_provider_context_source_loss_recovery_distinguishes_unstarted_from_possible_creation",
+        "connection_control::tests::private_provider::private_provider_current_export_reader_blocks_revocation_then_releases_it_without_idle_grants",
+        "connection_control::tests::private_provider::private_provider_context_requires_current_private_source_and_verified_ai_destination_before_reservation",
+        "connection_control::tests::private_provider::private_provider_exact_selection_and_one_attempt_cannot_complete_through_generic_context_api",
+        "connection_control::tests::private_provider::private_provider_final_transcripts_keep_original_audience_and_never_enter_public_provider_memory",
+        "connection_control::tests::private_provider::private_provider_late_export_ack_records_only_the_original_reserved_instance_after_uncertainty",
+        "connection_control::tests::private_provider::private_provider_native_policy_memo_tracks_foreign_sqlite_writes_and_clock_expiry",
+        "connection_control::tests::private_provider::private_provider_opaque_memory_and_new_transcripts_require_current_history_recipient_policy",
+        "connection_control::tests::private_provider::private_provider_reused_public_memory_refuses_before_private_json_is_exportable",
+        "connection_control::tests::private_provider::private_provider_lost_creation_worker_expires_as_uncertain_without_repeating_creation",
+        "connection_control::tests::private_provider::protected_initializer_target_is_current_original_member_metadata_without_an_idle_grant",
+        "connection_control::tests::private_provider::private_provider_uncertainty_reserves_the_original_context_and_never_reexports",
+        "events::tests::agent_capabilities_and_reported_results_do_not_execute_or_confirm_effects",
+        "events::tests::agent_metadata_rejects_forged_bindings_incomplete_gaps_and_oversized_encoded_content",
+        "events::tests::agent_wire_preserves_large_partial_role_and_repeated_provider_ids_without_operations",
+        "events::tests::artifact_and_receipt_events_use_original_resource_versions_and_real_provenance",
+        "events::tests::backup_preserves_retention_floors_and_cursors_newer_than_restored_state_require_resync",
+        "events::tests::conversation_close_records_its_real_revision_and_failed_mutations_leave_no_context",
+        "events::tests::durable_retention_gaps_resync_but_filtered_gaps_and_duplicate_reads_do_not",
+        "events::tests::encoded_event_pages_resume_every_escaped_message_without_exceeding_the_byte_budget",
+        "events::tests::encrypted_cursors_reject_cross_identity_conversation_purpose_and_tampering",
+        "events::tests::eviction_and_restart_invalidate_bounded_snapshots_without_pinning_database_state",
+        "events::tests::identity_churn_cannot_pin_more_than_the_global_snapshot_slot_budget",
+        "connection_control::tests::private_provider::stopped_native_preparation_keeps_provider_uncertainty_until_actual_captured_termination",
+        "events::tests::operation_progress_preserves_original_fact_state_and_is_not_a_public_room_event",
+        "events::tests::original_resource_versions_provenance_and_owner_correlation_survive_later_changes",
+        "events::tests::private_audiences_and_current_recipient_ceilings_are_filtered_before_page_limits",
+        "events::tests::queued_observations_and_old_publishers_fail_after_connection_generation_or_credential_changes",
+        "events::tests::queued_snapshot_pages_recheck_revocation_membership_epochs_and_hidden_items",
+        "events::tests::snapshot_pages_freeze_one_revision_and_watermark_while_new_facts_catch_up",
+        "events::tests::speech_observations_are_explicit_and_membership_readmission_cannot_reopen_a_frozen_route",
+        "events::tests::slow_observation_consumers_resync_with_bounded_memory_without_private_gap_counts",
+        "events::tests::transient_sources_bind_scope_provenance_private_audience_and_declared_capabilities",
+        "events::tests::subscription_lease_expires_explicitly_and_resuming_with_a_fresh_exchange_is_bounded"
+      ],
+      "log": {
+        "path": ".local/gate-6/agent-observation-projection-store-qualified.log",
+        "sha256": "067ab33e8f216aa5fe68e85a908f8acc05606afa8d0b6fa09a57cab6b9d30fd5"
+      },
+      "binary": {
+        "path": "target/debug/deps/connect_store-500690b8d898aed1",
+        "sha256": "bef2b9dea3a81e70415867d6f2b350b4003aa334c2955c219de235aa3136f0b9"
+      },
+      "command": "target/debug/deps/connect_store-500690b8d898aed1 events::tests assistant_context private_provider --test-threads=2"
+    },
+    {
+      "name": "Shared captured-call decoder",
+      "passed": 4,
+      "ignored": 0,
+      "tests": [
+        "foreign_call_assertions_cannot_supply_terminal_or_action_observations",
+        "documented_tool_forms_preserve_requests_results_and_repeated_ids_without_executing",
+        "partial_final_and_missing_provider_data_remain_distinct_and_attributed_as_reported",
+        "invalid_metadata_and_oversized_batches_never_return_a_valid_action_prefix"
+      ],
+      "log": {
+        "path": ".local/gate-6/agent-observation-projection-decoder-qualified.log",
+        "sha256": "ee4fce2bcd7546b1435a7f4d9ae476de052d6bcdb261f9f4c1fcd71a1864adee"
+      },
+      "binary": {
+        "path": "target/debug/deps/gate6_agent_observations-2b8c57953278d28a",
+        "sha256": "1d46297740b8e97d643a0544c90c6e10e4cd1a12bacfd45fe6d4bbc3f8ac5c25"
+      },
+      "command": "target/debug/deps/gate6_agent_observations-2b8c57953278d28a --test-threads=2"
+    },
+    {
+      "name": "Bounded queue and optional capabilities",
+      "passed": 2,
+      "ignored": 0,
+      "tests": [
+        "agent_observations::tests::undeclared_model_capabilities_publish_unavailable_without_untrusted_body",
+        "agent_observations::tests::stalled_capture_queue_drops_without_blocking_and_next_delivery_reports_exact_loss"
+      ],
+      "log": {
+        "path": ".local/gate-6/agent-observation-projection-queue-qualified.log",
+        "sha256": "a5fd1bb0f271937ba1a691843f3831f497afde387843a7d00eb74a1777df19ca"
+      },
+      "binary": {
+        "path": "target/debug/deps/connect_server-616f548a437d1869",
+        "sha256": "b45895948b2f14c0d00c6c9097ba94d6ade0bd584f673ffc516eff5592fe83ca"
+      },
+      "command": "target/debug/deps/connect_server-616f548a437d1869 agent_observations::tests --test-threads=2"
+    },
+    {
+      "name": "Actual signed native/public-private HTTP-WS projection and restart journey",
+      "passed": 1,
+      "ignored": 0,
+      "tests": [
+        "canonical_native_connections::consultation::production_private_ai_automatic_ai_caller_uses_own_context_grant_and_independent_owner_return"
+      ],
+      "log": {
+        "path": ".local/gate-6/agent-observation-projection-runtime-qualified.log",
+        "sha256": "a715f37829625804e6aadbec6bfc23740215f55e3fb68e99785c9d8c05e4bedb"
+      },
+      "binary": {
+        "path": "target/debug/deps/gate6_canonical_runtime-2e3e18c2008aaebe",
+        "sha256": "812c81a92b64179c0490c5a0abf88ad871da84978585fddba9ea6e19c71b98a7"
+      },
+      "command": "target/debug/deps/gate6_canonical_runtime-2e3e18c2008aaebe production_private_ai_automatic_ai_caller_uses_own_context_grant_and_independent_owner_return --test-threads=1 --nocapture"
+    },
+    {
+      "name": "Node SDK shared event vectors and decoder bounds",
+      "passed": 94,
+      "ignored": 0,
+      "log": {
+        "path": ".local/gate-6/agent-observation-projection-ts-tests.log",
+        "sha256": "8dd27a79a0bc3ac6fa7da2485767885803e20b7cbf940aad7bb140a99e295c60"
+      },
+      "command": "node --test sdk/tests/events.test.mjs"
+    },
+    {
+      "name": "Python SDK shared event vectors and decoder bounds",
+      "passed": 4,
+      "ignored": 0,
+      "log": {
+        "path": ".local/gate-6/agent-observation-projection-python-tests.log",
+        "sha256": "5d8a174d448d59185fd227bcbab9c964e39b10a9c2e28965972cfb0c833dd854"
+      },
+      "command": "PYTHONPATH=sdk/python python3 -m unittest discover -s sdk/tests -p test_events.py",
+      "counting": "Four test functions; shared vector iterations are not added again to the total."
+    }
+  ],
+  "scope": "Explicit public/private provider job capture, typed protocol/HTTP/SDK projection, bounded nonblocking capture and current source custody in local macOS arm64 signed-native and loopback provider HTTP/WebSocket fixtures. No trusted task/effect/decision binding, worker handoff/replay closure or remote provider qualification claim.",
+  "observations": [
+    "ObservationDraft::Agent preserves optional provider session/event/tool references, producer-bound outer Participant/Connection/generation, provider speaker role, partial/final/unavailable completeness, requested vs reported-result phases, captured time, local sequence and known local loss. capture_complete is always false. Provider user/other/missing roles do not supply a human identity or operation authority.",
+    "Inner observations are at most65536 encoded UTF-8 bytes, references at most512 nonblank/control-free UTF-8 bytes, and local counters stay within exact JavaScript integers. The wrapped agent draft is at most70KiB; generic adapter drafts retain16KiB. Invalid/oversized/unsupported content is unavailable, never a valid-looking prefix. Protocol and both SDKs enforce closed typed metadata and current route capabilities.",
+    "Explicit host AgentObservationConfig requires a separate publisher credential and declared capabilities. Public/private jobs bind owned captured sources only after the exact initial context acknowledgment is committed. Model payloads never receive publisher credentials. Without configuration, no observation source/publication is installed; unsupported capabilities remain optional.",
+    "Configured action names install only asynchronous client function proposals, with no tool server URL, empty server-message subscriptions and no built-in transfer/end tool or tool-result sender. Actual fixture HTTP payload checks verify the shape for both public and private creation. No code dispatches a Core action from these observations.",
+    "The media/control loop uses a32-item bounded try_send queue (at most2MiB inner data), with independent local frame keys even for repeated provider IDs. The worker obtains fresh original-memory authority for each publication; busy/storage retry is bounded to five seconds. Queue overflow/refused publication is reported as a missing local interval on the next successful observation, without blocking media on Store publication. Worker failure closes its source.",
+    "Owned sources close before asynchronous provider cleanup, and normal exits drain the capture worker. Current publisher permission, frozen original memory/update history, original audience/epochs, exact native generation and actual host activity still gate publication and buffered reads. Provider/source closure cannot leave buffered body data readable merely because cleanup recording is delayed. Buffer/cursor mutations occur after successful validation snapshot commit.",
+    "The actual journey projects public12/private13 typed observations through the current public HTTP API, including partial/missing/final transcript metadata, missing/unknown final speaker roles, speech, two identical provider/tool IDs as distinct local sequences, reported tool result, unsupported optional event and escaped content above the generic16KiB bound. The source Participant remains the producing AI. Final callbacks without supported archival metadata remain observations and no longer terminate private media forwarding.",
+    "The native journey also retains existing foreign update ACK/terminal rejection, two public context timing/audio/update phases, actual isolated private duplex, independent human owner return and same logical assistant/Session outcome recall after real host restart. No provider event acts as a readiness/authorization/completion receipt.",
+    "Node and Python SDK readers accept both authorized runtime HTTP API result samples, including optional final speaker fields and large escaped data. Nine new agent vectors and both result samples validate against the generated HTTP schemas. This is focused result decoding, not installed-package/network parity for every SDK surface."
+  ],
+  "extra_checks": {
+    "sdk_runtime_result_checks": 4,
+    "http_schema_checks": 11,
+    "samples": [
+      {
+        "label": "public",
+        "agent_observations": 12,
+        "sample": {
+          "path": ".local/gate-6/agent-observation-projection/samples/public.json",
+          "sha256": "d6898a37239702f94940e40f9f563772b3431f99aee45b410d90bdc24af66cf0"
+        }
+      },
+      {
+        "label": "private",
+        "agent_observations": 13,
+        "sample": {
+          "path": ".local/gate-6/agent-observation-projection/samples/private.json",
+          "sha256": "4aa52d0bb80eaef8f87449d970303432554184fff19bd7660b82bdf522270718"
+        }
+      }
+    ],
+    "node_results": {
+      "path": ".local/gate-6/agent-observation-projection-ts-http-qualified.log",
+      "sha256": "c64201d01f53530b293a15b580c323c46547eaf731f8e4e408a94d9bc848de44"
+    },
+    "python_results": {
+      "path": ".local/gate-6/agent-observation-projection-python-http-qualified.log",
+      "sha256": "e42a068452a5ecbc4fb4d4a112b2391d669484285d26531dc233eb957ee92c68"
+    },
+    "http_schemas": {
+      "path": ".local/gate-6/agent-observation-projection-http-qualification.log",
+      "sha256": "128d5ac6f68ea85bca200f612585bf4ec39c88551d42f2f5fcf1e875789c42b6"
+    },
+    "http_reference": {
+      "path": "contracts/openapi-events.json",
+      "sha256": "2ea315d96cde7f2dbbc52adb31a556245c8425cfba48837e0452c5bb7013870f"
+    },
+    "http_generator": {
+      "path": "scripts/generate-gate6-event-reference.py",
+      "sha256": "4c7df587b7a94cc3949429dd423c40ea9cd7bb3b1b1c4e292addcf25bdbe9dc3"
+    }
+  },
+  "preparation": {
+    "path": ".local/gate-6/agent-observation-projection-prepare.log",
+    "sha256": "fd9d7b181e3ccba9b643af55a186cf132c60aac99c734b2ee4e4e549afe5ffc2"
+  },
+  "store_build": {
+    "path": ".local/gate-6/agent-observation-projection-store-build-qualified.log",
+    "sha256": "7370ea6ae7d2c5b8c2ff67a469b2eb45508b31a3b3766e5d548601c8767ec8ee"
+  },
+  "server_build": {
+    "path": ".local/gate-6/agent-observation-projection-build-final.log",
+    "sha256": "64e65cba1a9de9f7205045739f685eb1af39a3ed58c15cc24a1e6839004f125e"
+  },
+  "node_build": {
+    "path": ".local/gate-6/agent-observation-projection-ts-build.log",
+    "sha256": "f6ea279e1bcf369805db5e0aaea8d5b71fdac16bad265e77d5b6ff179cbeed02"
+  },
+  "format": {
+    "path": ".local/gate-6/agent-observation-projection-format-check.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "node_format": {
+    "path": ".local/gate-6/agent-observation-projection-ts-format-check.log",
+    "sha256": "8d4ec0df15c1f8dbdbc865ba9d335d9d6ad0834a99cca34c327676862370885c"
+  },
+  "patch_whitespace": {
+    "path": ".local/gate-6/agent-observation-projection-diff-check.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "preliminary_observations": [
+    {
+      "path": ".local/gate-6/agent-observation-projection-runtime-first.log",
+      "sha256": "28d158fe90bd116f6fb0ede728e9b895a8d3fcc2a4e9078c750c7e544b3cb322",
+      "observation": "An initial runtime probe used a build predating the configured proposal payload, while the fixture expected it; creation fixture failed. The consistent rebuilt profile passed."
+    },
+    {
+      "path": ".local/gate-6/agent-observation-projection-runtime-second.log",
+      "sha256": "a87fe95e01969bd0a513c331f1928e63317a573ea72f0600638f440694a4fdf0",
+      "observation": "Public projection passed; private probe waited for telemetry before driving the native input required to finish preparation. It timed out with zero projected private observations."
+    },
+    {
+      "path": ".local/gate-6/agent-observation-projection-runtime-diagnostic.log",
+      "sha256": "b8f78392e13c91e4a33aa4e7abfab506692799d74d2b499485a47723b54d7375",
+      "observation": "The retained diagnostic run showed private publication reads busy, provider ContextReady, committed delivered/private native ready metadata and parent operation still preparing. The probe was moved after the original clocked audio/decoded completion, preserving authority guards and all original isolation checks."
+    },
+    {
+      "path": ".local/gate-6/agent-observation-projection-runtime-audio.log",
+      "sha256": "109adf3940aa15f8549ed00666869fe618fa7e0aeb3e95ca899bbde25383187c",
+      "observation": "After corrected probe ordering, the whole public/private projection/native/restart journey passed. This is preliminary to the final additional missing/unknown-final-field production fix and final passing run."
+    }
+  ],
+  "known_sdk_contract_gap": {
+    "audit": {
+      "path": ".local/gate-6/agent-observation-projection/shared-matrix-schema-audit.json",
+      "sha256": "1db28566b4d9d02a4d643e0cbcdcc75d5f39dea5ec77ee57a564c20fa6d9c2cc"
+    },
+    "failed_vector": "versioned-session-snapshot",
+    "finding": "The existing SDK SessionSnapshot type/validators/vector retain the older Session fields, while the current generated HTTP SessionSnapshot follows SessionView. The broad shared-matrix HTTP-schema audit therefore fails this pre-existing vector. All new agent shapes and both actual observation results pass. Reconcile the shared contract/types/validators/vectors in G6-059/G6-062/G6-063 without a compatibility/downgrade branch."
+  },
+  "provider_form_references": [
+    "https://docs.vapi.ai/tools/client-side-websdk",
+    "https://docs.vapi.ai/api-reference/assistants/get",
+    "https://docs.vapi.ai/calls/websocket-transport"
+  ],
+  "remaining_work": [
+    "Bind trusted task/effect/question/decision correlation independently of provider IDs and model arguments, using existing current task authority and effect records.",
+    "Demonstrate an external worker responding through current public operations with stable logical mutation IDs across repeated/changed provider IDs, partial transcripts and Session-end races; prove no duplicate handoffs before completing G6-043.",
+    "Automatic stock public provider job installation, supervision and remaining actual shutdown/native-loss rehearsals belong to dependent G6-044 integration.",
+    "Reconcile the discovered pre-existing SDK SessionSnapshot drift in the shared SDK contract/Node/Python tasks."
+  ],
+  "not_run": [
+    "Full Store681 runnable tests, other58 server library tests, other117 native runtime cases and unselected workspace/profile targets were not rerun. Earlier699/75/69 scopes remain historical.",
+    "No live provider/account rehearsal, Linux/browser/remote/installed-package parity, independent acceptance, commit, push or publication."
+  ],
+  "plan_counts": {
+    "done": 42,
+    "in-progress": 1,
+    "not-started": 62,
+    "acceptance_done": 0
+  }
+}

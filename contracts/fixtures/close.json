@@ -7,6 +7,11 @@
     "profile": "connect-control/1",
     "op": "close",
     "request_id": "close-1",
-    "conversation_id": "conversation-1"
+    "conversation_id": "conversation-1",
+    "options": {
+      "expected_revision": null,
+      "reason_code": null,
+      "reason": null
+    }
   }
 }

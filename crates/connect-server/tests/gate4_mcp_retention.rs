@@ -21,7 +21,7 @@ async fn expired_artifact_replay_and_reconnect_keep_references_without_returning
         call(
             &client,
             "connect_artifact_begin",
-            json!({
+            json!({"to":"all",
                 "request_id":"expiring-begin", "step_id":"file", "name":"expires.txt",
                 "media_type":"text/plain", "size":bytes.len(),
                 "sha256":hex::encode(Sha256::digest(bytes)), "expires_at":expires_at

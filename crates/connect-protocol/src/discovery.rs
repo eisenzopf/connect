@@ -33,6 +33,9 @@ pub struct Capabilities {
     pub extensions: Vec<String>,
     pub identity_id: String,
     pub conversation_id: Option<String>,
+    /// Conversation appearance for participant-based routing; absent without
+    /// a selected Conversation. An Identity ID is not a Participant ID.
+    pub participant_id: Option<String>,
     pub routes: Vec<RouteCapability>,
     /// Only present when the caller has availability_get authority.
     pub availability: Option<Availability>,

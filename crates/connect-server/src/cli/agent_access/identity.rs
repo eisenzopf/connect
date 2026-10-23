@@ -24,7 +24,7 @@ pub fn create(
     let id = request_id
         .map(str::to_owned)
         .unwrap_or_else(|| format!("identity-create-{alias}"));
-    let store = connect_store::Store::open(&server.database, server.limits)?;
+    let store = connect_store::Store::open_administration(&server.database, server.limits)?;
     let identity = store.create_identity_as(&actor, &id, alias).context(
         "Identity setup was not confirmed; reuse the original alias and request ID for recovery",
     )?;

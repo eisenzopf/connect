@@ -1,0 +1,383 @@
+diff --git a/crates/extensions/rvoip-vapi/src/client.rs b/crates/extensions/rvoip-vapi/src/client.rs
+--- a/crates/extensions/rvoip-vapi/src/client.rs
++++ b/crates/extensions/rvoip-vapi/src/client.rs
+@@ -61,10 +61,7 @@
+             if let Some(admission) = &options.admission {
+                 admission.admit().await?;
+             }
+-            let mut response = request
+-                .send()
+-                .await
+-                .map_err(|_| VapiError::Http)?;
++            let mut response = request.send().await.map_err(|_| VapiError::Http)?;
+             let status = response.status();
+             if !status.is_success() {
+                 return Err(VapiError::HttpStatus(status.as_u16()));
+diff --git a/crates/foundation/rvoip-core/src/clock_route.rs b/crates/foundation/rvoip-core/src/clock_route.rs
+--- a/crates/foundation/rvoip-core/src/clock_route.rs
++++ b/crates/foundation/rvoip-core/src/clock_route.rs
+@@ -1,7 +1,7 @@
+ //! Route-scoped clock liveness. Payload queues never keep a retired clock alive.
+ use std::sync::{
++    atomic::{AtomicBool, Ordering},
+     Arc,
+-    atomic::{AtomicBool, Ordering},
+ };
+ 
+ pub(crate) struct ClockRouteLease(Arc<AtomicBool>);
+diff --git a/crates/uctp/rvoip-uctp/src/application.rs b/crates/uctp/rvoip-uctp/src/application.rs
+--- a/crates/uctp/rvoip-uctp/src/application.rs
++++ b/crates/uctp/rvoip-uctp/src/application.rs
+@@ -27,7 +27,10 @@
+ 
+ impl ApplicationError {
+     pub fn new(code: u16, reason: impl Into<String>) -> Self {
+-        Self { code, reason: reason.into() }
++        Self {
++            code,
++            reason: reason.into(),
++        }
+     }
+ }
+ 
+@@ -36,7 +39,9 @@
+     /// Explicit opt-in in `payload.profile`, advertised in auth.challenge.
+     fn profile(&self) -> &'static str;
+ 
+-    fn required_scope(&self) -> &'static str { "uctp:conversation-control" }
++    fn required_scope(&self) -> &'static str {
++        "uctp:conversation-control"
++    }
+ 
+     /// Authorize the principal's access to every referenced object before
+     /// executing a typed protocol command. Persist idempotency before effects.
+diff --git a/crates/uctp/rvoip-websocket/src/adapter.rs b/crates/uctp/rvoip-websocket/src/adapter.rs
+--- a/crates/uctp/rvoip-websocket/src/adapter.rs
++++ b/crates/uctp/rvoip-websocket/src/adapter.rs
+@@ -136,7 +136,10 @@
+         }
+     }
+ 
+-    pub fn with_application_handler(mut self, handler: Arc<dyn rvoip_uctp::application::ApplicationHandler>) -> Self {
++    pub fn with_application_handler(
++        mut self,
++        handler: Arc<dyn rvoip_uctp::application::ApplicationHandler>,
++    ) -> Self {
+         self.application_handler = Some(handler);
+         self
+     }
+@@ -260,7 +263,9 @@
+         principal: &rvoip_auth_core::AuthenticatedPrincipal,
+     ) -> Option<(Option<String>, String, String)> {
+         let route = self.routes.get(connection_id)?;
+-        route.binding.is_owned_by(principal)
++        route
++            .binding
++            .is_owned_by(principal)
+             .then(|| (route.cid.clone(), route.sid.clone(), route.medium.clone()))
+     }
+ 
+diff --git a/crates/uctp/rvoip-websocket/src/server.rs b/crates/uctp/rvoip-websocket/src/server.rs
+--- a/crates/uctp/rvoip-websocket/src/server.rs
++++ b/crates/uctp/rvoip-websocket/src/server.rs
+@@ -224,7 +224,7 @@
+     sig9421: Option<rvoip_uctp::state::Sig9421Config>,
+     orchestrator: Option<Arc<rvoip_core::Orchestrator>>,
+     conversation_create_hook: Option<Arc<dyn crate::adapter::ConversationCreateHook>>,
+-        application_handler: Option<Arc<dyn rvoip_uctp::application::ApplicationHandler>>,
++    application_handler: Option<Arc<dyn rvoip_uctp::application::ApplicationHandler>>,
+ ) where
+     S: tokio::io::AsyncRead + tokio::io::AsyncWrite + Unpin + Send + 'static,
+ {
+@@ -276,7 +276,9 @@
+     // Gap plan §4.2 v1 punch list — capture the coordinator's
+     // `Pending` correlator so per-Route adapter code can await
+     // typed responses.
+-    if let Some(handler) = application_handler { coord.set_application_handler(handler); }
++    if let Some(handler) = application_handler {
++        coord.set_application_handler(handler);
++    }
+     let pending = coord.pending();
+     let auth_guard =
+         rvoip_uctp::state::spawn_auth_lifecycle_guard(Arc::clone(&coord), authentication_deadline);
+@@ -480,7 +482,13 @@
+                             detail: "bearer".into(),
+                         })
+                     }
+-                    UctpSessionEvent::InboundInvite { cid, sid, from, medium, .. } => {
++                    UctpSessionEvent::InboundInvite {
++                        cid,
++                        sid,
++                        from,
++                        medium,
++                        ..
++                    } => {
+                         let Some(principal) = coord_for_translator.authenticated_principal() else {
+                             warn!(sid = ?CorrelationIdDiagnostic::new(sid.as_str()), "authenticated invite missing retained principal; refusing route");
+                             continue;
+diff --git a/crates/webrtc/rvoip-rtc/src/peer_connection/handler/first_audio_feedback_tests.rs b/crates/webrtc/rvoip-rtc/src/peer_connection/handler/first_audio_feedback_tests.rs
+--- a/crates/webrtc/rvoip-rtc/src/peer_connection/handler/first_audio_feedback_tests.rs
++++ b/crates/webrtc/rvoip-rtc/src/peer_connection/handler/first_audio_feedback_tests.rs
+@@ -341,7 +341,11 @@
+         );
+     }
+     if ambiguous {
+-        assert_eq!(feedback, vec![(10, 1)], "multiple codecs defer until the authenticated payload is known, before hop feedback");
++        assert_eq!(
++            feedback,
++            vec![(10, 1)],
++            "multiple codecs defer until the authenticated payload is known, before hop feedback"
++        );
+         packet.header.sequence_number += 1;
+         packet
+             .header
+diff --git a/crates/webrtc/rvoip-rtc/src/peer_connection/handler/interceptor/source_clock_activation_tests.rs b/crates/webrtc/rvoip-rtc/src/peer_connection/handler/interceptor/source_clock_activation_tests.rs
+--- a/crates/webrtc/rvoip-rtc/src/peer_connection/handler/interceptor/source_clock_activation_tests.rs
++++ b/crates/webrtc/rvoip-rtc/src/peer_connection/handler/interceptor/source_clock_activation_tests.rs
+@@ -199,7 +199,13 @@
+     let mut stats = RTCStatsAccumulator::new();
+     let mut transceivers = Vec::new();
+     let media_engine = crate::peer_connection::configuration::media_engine::MediaEngine::default();
+-    let mut h = InterceptorHandler::new(&mut ctx, &mut chain, &mut stats, &mut transceivers, &media_engine);
++    let mut h = InterceptorHandler::new(
++        &mut ctx,
++        &mut chain,
++        &mut stats,
++        &mut transceivers,
++        &media_engine,
++    );
+     h.handle_read(msg(vec![
+         Box::new(ReceiverReport::default()),
+         unknown_source_with_known_report_target(),
+diff --git a/crates/webrtc/rvoip-webrtc/src/client/audio_cpal.rs b/crates/webrtc/rvoip-webrtc/src/client/audio_cpal.rs
+--- a/crates/webrtc/rvoip-webrtc/src/client/audio_cpal.rs
++++ b/crates/webrtc/rvoip-webrtc/src/client/audio_cpal.rs
+@@ -22,7 +22,7 @@
+ use chrono::Utc;
+ use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
+ use parking_lot::Mutex;
+-use tokio::sync::{Mutex as AsyncMutex, mpsc};
++use tokio::sync::{mpsc, Mutex as AsyncMutex};
+ 
+ use rvoip_core::ids::StreamId;
+ use rvoip_core::stream::{MediaFrame, StreamKind};
+diff --git a/crates/webrtc/rvoip-webrtc/src/client/media_source.rs b/crates/webrtc/rvoip-webrtc/src/client/media_source.rs
+--- a/crates/webrtc/rvoip-webrtc/src/client/media_source.rs
++++ b/crates/webrtc/rvoip-webrtc/src/client/media_source.rs
+@@ -23,7 +23,7 @@
+ use rvoip_core::stream::{MediaFrame, StreamKind};
+ 
+ use crate::errors::Result;
+-use crate::media::pump::{OPUS_PT_DEFAULT, silent_opus_payload};
++use crate::media::pump::{silent_opus_payload, OPUS_PT_DEFAULT};
+ 
+ /// Source of outbound audio frames. Implementations return one RTP-ready
+ /// `MediaFrame` per call and pace themselves (the runner enforces the
+diff --git a/crates/webrtc/rvoip-webrtc/src/media/video.rs b/crates/webrtc/rvoip-webrtc/src/media/video.rs
+--- a/crates/webrtc/rvoip-webrtc/src/media/video.rs
++++ b/crates/webrtc/rvoip-webrtc/src/media/video.rs
+@@ -13,11 +13,11 @@
+     stream::{MediaFrame, StreamKind},
+ };
+ use std::{
+-    sync::{Arc, atomic::AtomicUsize},
++    sync::{atomic::AtomicUsize, Arc},
+     time::Duration,
+ };
+ use tokio::{
+-    sync::{Notify, mpsc},
++    sync::{mpsc, Notify},
+     task::JoinHandle,
+ };
+ use webrtc::media_stream::{
+diff --git a/crates/webrtc/rvoip-webrtc/src/media/video_reorder.rs b/crates/webrtc/rvoip-webrtc/src/media/video_reorder.rs
+--- a/crates/webrtc/rvoip-webrtc/src/media/video_reorder.rs
++++ b/crates/webrtc/rvoip-webrtc/src/media/video_reorder.rs
+@@ -171,12 +171,10 @@
+         let mut reorder = PacketReorder::default();
+         assert_eq!(sequences(reorder.push(packet(65534, 7, now), now)), [65534]);
+         assert!(reorder.push(packet(0, 7, now), now).packets.is_empty());
+-        assert!(
+-            reorder
+-                .expire(now + REORDER_DELAY - Duration::from_nanos(1))
+-                .packets
+-                .is_empty()
+-        );
++        assert!(reorder
++            .expire(now + REORDER_DELAY - Duration::from_nanos(1))
++            .packets
++            .is_empty());
+         let expired = reorder.expire(now + REORDER_DELAY);
+         assert_eq!(expired.expired, 1);
+         assert_eq!(sequences(expired), [0]);
+@@ -233,12 +231,10 @@
+                 let mut reorder = PacketReorder::default();
+                 assert_eq!(reorder.push(packet(base, now), now).packets.len(), 1);
+                 for offset in 3..=66 {
+-                    assert!(
+-                        reorder
+-                            .push(packet(base.wrapping_add(offset), now), now)
+-                            .packets
+-                            .is_empty()
+-                    );
++                    assert!(reorder
++                        .push(packet(base.wrapping_add(offset), now), now)
++                        .packets
++                        .is_empty());
+                 }
+                 assert_eq!(reorder.pending.len(), REORDER_LIMIT);
+                 let released = reorder.push(packet(base.wrapping_add(incoming_offset), now), now);
+diff --git a/crates/webrtc/rvoip-webrtc/src/peer/session/initial_source_report_tests.rs b/crates/webrtc/rvoip-webrtc/src/peer/session/initial_source_report_tests.rs
+--- a/crates/webrtc/rvoip-webrtc/src/peer/session/initial_source_report_tests.rs
++++ b/crates/webrtc/rvoip-webrtc/src/peer/session/initial_source_report_tests.rs
+@@ -1,12 +1,12 @@
+ //! Actual UDP/SRTCP -> hop interceptors -> endpoint -> callback -> SourceClock.
+ use super::*;
+ use rtc::rtcp::{
+-    Packet,
+     reception_report::ReceptionReport,
+     sender_report::SenderReport,
+     source_description::{
+         SdesType, SourceDescription, SourceDescriptionChunk, SourceDescriptionItem,
+     },
++    Packet,
+ };
+ fn chunk(ssrc: u32, cname: &str) -> SourceDescriptionChunk {
+     SourceDescriptionChunk {
+diff --git a/crates/webrtc/rvoip-webrtc/src/peer/session/source_clock_activation_tests.rs b/crates/webrtc/rvoip-webrtc/src/peer/session/source_clock_activation_tests.rs
+--- a/crates/webrtc/rvoip-webrtc/src/peer/session/source_clock_activation_tests.rs
++++ b/crates/webrtc/rvoip-webrtc/src/peer/session/source_clock_activation_tests.rs
+@@ -1,13 +1,13 @@
+ //! Actual UDP/SRTCP -> hop interceptors -> endpoint -> callback -> SourceClock.
+ use super::*;
+ use rtc::rtcp::{
+-    Packet,
+     receiver_report::ReceiverReport,
+     reception_report::ReceptionReport,
+     sender_report::SenderReport,
+     source_description::{
+         SdesType, SourceDescription, SourceDescriptionChunk, SourceDescriptionItem,
+     },
++    Packet,
+ };
+ fn chunk(ssrc: u32, cname: &str) -> SourceDescriptionChunk {
+     SourceDescriptionChunk {
+diff --git a/crates/webrtc/rvoip-webrtc/tests/loopback.rs b/crates/webrtc/rvoip-webrtc/tests/loopback.rs
+--- a/crates/webrtc/rvoip-webrtc/tests/loopback.rs
++++ b/crates/webrtc/rvoip-webrtc/tests/loopback.rs
+@@ -8,7 +8,7 @@
+ use rvoip_core::stream::MediaStream;
+ use rvoip_webrtc::config::WebRtcConfig;
+ use rvoip_webrtc::media::{from_tracks, silent_opus_payload};
+-use rvoip_webrtc::peer::{RvoipPeerConnection, connect_loopback};
++use rvoip_webrtc::peer::{connect_loopback, RvoipPeerConnection};
+ use tokio::sync::Notify;
+ 
+ #[tokio::test]
+diff --git a/crates/webrtc/rvoip-webrtc/tests/lossy_turn_nack.rs b/crates/webrtc/rvoip-webrtc/tests/lossy_turn_nack.rs
+--- a/crates/webrtc/rvoip-webrtc/tests/lossy_turn_nack.rs
++++ b/crates/webrtc/rvoip-webrtc/tests/lossy_turn_nack.rs
+@@ -23,10 +23,10 @@
+ use rvoip_core::capability::CodecInfo;
+ use rvoip_core::ids::StreamId;
+ use rvoip_core::stream::MediaStream;
+-use rvoip_webrtc::WebRtcConfig;
+ use rvoip_webrtc::config::IceTransportPolicy;
+ use rvoip_webrtc::media::{from_tracks, silent_opus_payload};
+-use rvoip_webrtc::peer::{RvoipPeerConnection, connect_loopback};
++use rvoip_webrtc::peer::{connect_loopback, RvoipPeerConnection};
++use rvoip_webrtc::WebRtcConfig;
+ use support::lossy_turn_fixture::LossyTurnFixture;
+ use tokio::sync::Notify;
+ 
+diff --git a/crates/webrtc/rvoip-webrtc/tests/outbound_whip_originating.rs b/crates/webrtc/rvoip-webrtc/tests/outbound_whip_originating.rs
+--- a/crates/webrtc/rvoip-webrtc/tests/outbound_whip_originating.rs
++++ b/crates/webrtc/rvoip-webrtc/tests/outbound_whip_originating.rs
+@@ -2,16 +2,16 @@
+ 
+ #![cfg(feature = "signaling-whip")]
+ 
++use std::sync::atomic::{AtomicUsize, Ordering};
+ use std::sync::Arc;
+-use std::sync::atomic::{AtomicUsize, Ordering};
+ use std::time::Duration;
+ 
+-use axum::Router;
+ use axum::extract::State;
+ use axum::http::header::{CONTENT_TYPE, ETAG, LOCATION};
+ use axum::http::{HeaderValue, StatusCode};
+ use axum::response::{IntoResponse, Response};
+ use axum::routing::{delete, post};
++use axum::Router;
+ use rvoip_core::adapter::{AdapterEvent, ConnectionAdapter, EndReason, OriginateRequest};
+ use rvoip_core::connection::Direction;
+ use rvoip_core::ids::{ConnectionId, ParticipantId, SessionId};
+diff --git a/crates/webrtc/rvoip-webrtc/tests/secure_outbound_signaling.rs b/crates/webrtc/rvoip-webrtc/tests/secure_outbound_signaling.rs
+--- a/crates/webrtc/rvoip-webrtc/tests/secure_outbound_signaling.rs
++++ b/crates/webrtc/rvoip-webrtc/tests/secure_outbound_signaling.rs
+@@ -10,18 +10,17 @@
+     feature = "signaling-ws"
+ ))]
+ 
++use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
+ use std::sync::Arc;
+-use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
+ use std::time::Duration;
+ 
+-use axum::Router;
+ use axum::extract::State;
+ use axum::http::header::{AUTHORIZATION, LOCATION};
+ use axum::http::{HeaderMap, HeaderValue, StatusCode};
+ use axum::response::{IntoResponse, Response};
+ use axum::routing::{any, post};
++use axum::Router;
+ use rcgen::generate_simple_self_signed;
+-use rvoip_core::DataMessage;
+ use rvoip_core::adapter::{AdapterEvent, ConnectionAdapter, EndReason, OriginateRequest};
+ use rvoip_core::config::Config as CoreConfig;
+ use rvoip_core::connection::Direction;
+@@ -31,6 +30,7 @@
+ use rvoip_core::orchestrator::Orchestrator;
+ use rvoip_core::session::SessionMedium;
+ use rvoip_core::stream::{MediaFrame, StreamKind};
++use rvoip_core::DataMessage;
+ use rvoip_webrtc::signaling::auth::BearerStaticTokenAuth;
+ use rvoip_webrtc::signaling::whip::WhepServerMode;
+ use rvoip_webrtc::tls::TlsConfig;
+diff --git a/crates/webrtc/rvoip-webrtc/tests/turn_relay_e2e.rs b/crates/webrtc/rvoip-webrtc/tests/turn_relay_e2e.rs
+--- a/crates/webrtc/rvoip-webrtc/tests/turn_relay_e2e.rs
++++ b/crates/webrtc/rvoip-webrtc/tests/turn_relay_e2e.rs
+@@ -13,10 +13,10 @@
+ use rvoip_core::capability::CodecInfo;
+ use rvoip_core::ids::StreamId;
+ use rvoip_core::stream::MediaStream;
+-use rvoip_webrtc::WebRtcConfig;
+ use rvoip_webrtc::config::IceTransportPolicy;
+ use rvoip_webrtc::media::{from_tracks, silent_opus_payload};
+-use rvoip_webrtc::peer::{PeerRole, RvoipPeerConnection, connect_loopback};
++use rvoip_webrtc::peer::{connect_loopback, PeerRole, RvoipPeerConnection};
++use rvoip_webrtc::WebRtcConfig;
+ use support::coturn_fixture::CoturnFixture;
+ use tokio::sync::Notify;
+ 
+diff --git a/crates/webrtc/rvoip-webrtc/tests/webrtc_quic_bridge_e2e.rs b/crates/webrtc/rvoip-webrtc/tests/webrtc_quic_bridge_e2e.rs
+--- a/crates/webrtc/rvoip-webrtc/tests/webrtc_quic_bridge_e2e.rs
++++ b/crates/webrtc/rvoip-webrtc/tests/webrtc_quic_bridge_e2e.rs
+@@ -9,7 +9,7 @@
+ use std::time::Duration;
+ 
+ use chrono::Utc;
+-use quic_leg::{QuicLegHarness, install_crypto_provider};
++use quic_leg::{install_crypto_provider, QuicLegHarness};
+ use rvoip_core::adapter::{ConnectionAdapter, OriginateRequest};
+ use rvoip_core::capability::CodecInfo;
+ use rvoip_core::commands::InboundAction;
+@@ -21,7 +21,7 @@
+ use rvoip_core::orchestrator::Orchestrator;
+ use rvoip_core::session::SessionMedium;
+ use rvoip_core::stream::{MediaFrame, MediaStream, StreamKind};
+-use rvoip_quic::{QuicDatagramMediaStream, spawn_datagram_reader};
++use rvoip_quic::{spawn_datagram_reader, QuicDatagramMediaStream};
+ use rvoip_webrtc::media::silent_opus_payload;
+ use rvoip_webrtc::peer::RvoipPeerConnection;
+ use rvoip_webrtc::{WebRtcAdapter, WebRtcConfig, WebRtcServerBuilder};

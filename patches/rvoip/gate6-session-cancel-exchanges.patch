@@ -1,0 +1,32 @@
+--- a/crates/uctp/rvoip-uctp/src/v2/reachability.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/reachability.rs
+@@ -286,10 +286,19 @@
+         envelope: Envelope,
+         requested: Instant,
+     ) -> Result<VerifiedRouteReply, DispatchError> {
+-        self.submit_inner(envelope, requested, true)
++        self.begin_request(envelope, requested)
+             .await?
+             .wait_reply()
+             .await
++    }
++    /// Submit an exchange and expose its final signed wire ID before awaiting
++    /// the decision. The ticket retains no idle resource authority reader.
++    pub async fn begin_request(
++        &self,
++        envelope: Envelope,
++        requested: Instant,
++    ) -> Result<LocalSubmission, DispatchError> {
++        self.submit_inner(envelope, requested, true).await
+     }
+     async fn submit_inner(
+         &self,
+@@ -350,7 +359,7 @@
+     pub fn envelope_id(&self) -> &Identifier {
+         &self.envelope_id
+     }
+-    async fn wait_reply(mut self) -> Result<VerifiedRouteReply, DispatchError> {
++    pub async fn wait_reply(mut self) -> Result<VerifiedRouteReply, DispatchError> {
+         let waiter = self.waiter.take().ok_or(DispatchError::Unsupported)?;
+         let reply = tokio::select! {
+             biased;

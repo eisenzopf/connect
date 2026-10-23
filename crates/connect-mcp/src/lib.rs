@@ -1,3 +1,4 @@
+#![recursion_limit = "256"]
 //! Identity communication and optional task-authenticated MCP over Connect.
 //!
 //! The official MCP SDK owns JSON-RPC and Streamable HTTP. This crate owns

@@ -19,7 +19,9 @@ pub(super) fn setup() -> (Fixture, IssuedCredential, String) {
             &f.key.id,
             &Operation::Create {
                 request_id: "shared-conversation".into(),
-                participants: vec![human.clone()],
+                request: connect_protocol::conversations::CreateRequest::persistent(vec![
+                    human.clone()
+                ]),
             },
         )
         .unwrap()
@@ -51,7 +53,7 @@ pub(super) fn incoming(f: &Fixture, human: &IssuedCredential, id: &str) -> Strin
             &Operation::Send {
                 request_id: id.into(),
                 conversation_id: f.cid.clone(),
-                body: format!("reply {id}"),
+                message: connect_protocol::messages::MessageDraft::text_all(format!("reply {id}")),
             },
         )
         .unwrap()

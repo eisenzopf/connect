@@ -60,3 +60,66 @@ See [canonical mapping](../../contracts/connect-uctp.md),
 [events](../../contracts/connect-events.md),
 [media](../../contracts/connect-media-v2.md) and
 [records](../../contracts/connect-records.md).
+
+## Checked participant engine integration
+
+The G6-019 engine primitive starts with
+`Orchestrator::enable_participant_control` on an empty initiating Session.
+`change_session_participant` accepts a typed `ParticipantMutation` with a logical
+operation ID, expected Session revision and target Participant. Its policy resolves
+the authenticated actor, target membership and endpoint from current authority;
+payload-selected roles and identifiers do not establish permission. A policy lease
+holds that authority stable for a synchronous commit and must not call back into
+the Orchestrator while holding the same authority lock elsewhere.
+
+Admission reserves both participant and connection capacity before adapter
+signaling. Pending candidates count against the six-connection default together
+with admitted routes. Signaling acceptance does not mark the Session active:
+negotiated duplex stream readiness, the exact connection lifecycle generation,
+current endpoint verification and configured endpoint confirmation are checked
+before the mixer and Session projection commit together. The policy is acquired
+again after asynchronous preparation. Dropping or cancelling preparation retires
+only its candidate and releases its reservation.
+
+The mixer bounds frame collection per tick and holds exact-generation delivery
+leases across that tick. Explicit
+departure removes only the target Participant's routes; Conversation membership,
+other Participants and concurrent Sessions remain. Speaking permission is explicit
+policy independent of the Session role. Session role changes preserve Conversation
+defaults and other Sessions' admitted roles. Raw join/leave, takeover and bridge
+helpers cannot take over a checked participant route. Terminal route loss preserves
+membership and lets the owning Session apply its reconnect policy.
+
+A successful result and its retained receipt describe a local engine transition.
+Correlated joined/connection-added/left/removed/role-changed observations are
+available through the bounded process-internal participant event stream. Matching
+replay returns its original observation after checking current authority; it does
+not accept a physical route again. Changed intent conflicts. Receipts and retired
+connection IDs remain bounded without eviction that would permit reuse. These
+engine receipts are process-local; Connect journal admission, durable operation
+recovery and public audience-filtered events remain G6-035/G6-036/G6-038 work.
+
+Local route retirement does not assert a confirmed provider hangup. Adapter cleanup
+runs under the bounded lifecycle supervisor, and uncertain cleanup retains its
+quarantine. Explicit Session end cancels candidates, stops its mixer and fences
+later admission. The engine fixture qualification uses encoded/decoded PCMU audio;
+remote transport, browser, video/screen/data and live provider qualification remain
+separate tasks. Run
+`CARGO_TARGET_DIR=target python3 scripts/check-gate6-rvoip.py --component orchestration`
+for the scoped engine tests and recorded source/binary digests.
+
+## Durable membership policy
+
+G6-031 implements serialized invitations and membership changes with a current
+tenant/credential/epoch check and revision-bound receipts. Original content
+audiences remain immutable decisions; explicit history shares record their own
+source references, target epochs and provenance. Removal fences current access
+and logical presence; readmission preserves the Participant ID with a new epoch.
+Role labels do not change permissions or Session role snapshots. The common
+policy applies to replay, source projections, file reads and queued dispatch.
+
+Model context is an audience intersection, including after asynchronous voice
+preparation. A saved selection or opaque provider chat reference is not a grant.
+The [membership implementation guide](../developer/membership.md) documents the
+facades, current projection rules and the boundary between durable policy and
+later canonical Session/event/record integration.

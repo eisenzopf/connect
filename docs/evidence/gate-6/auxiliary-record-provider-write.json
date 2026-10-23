@@ -1,0 +1,325 @@
+{
+  "task": "G6-046",
+  "title": "Actual private-provider record socket WRITE custody, source expiry and bounded exact acknowledgement",
+  "created_at": "2026-10-22T01:22:54.197866+00:00",
+  "status": "local-provider-write-component-qualified",
+  "full_task_complete": false,
+  "full_goal_complete": false,
+  "acceptance_qualified": false,
+  "scope": "Local macOS arm64, actual signed native EdDSA peers plus public HTTP ApplicationClient and one designated loopback HTTP/WebSocket provider. Actual native Session invitation/cancellation/discovery supplies the original metadata record. Trusted12KiB escaping metadata changes transport size only, with original audiences/epochs and canonical body below32KiB. No live captured media, real provider account, remote/browser/Linux or publication qualification.",
+  "schema_version": 81,
+  "pinned_patches": 131,
+  "production_change": {
+    "path": "crates/connect-server/src/private_vapi/transport.rs",
+    "behavior": "Private initialization uses the existing512KiB provider-control socket limit rather than64KiB, so a valid bounded ContextView expanded by nested JSON escaping can receive its exact conversation-update acknowledgement. Raw32KiB context budget, exact ACK validation, original source/current authority and five-second IO maximum remain unchanged. Cleanup/default small socket remains64KiB. Upstream decoder already bounds control at1MiB; no upstream edit was required."
+  },
+  "behavior": [
+    "The positive case receives only the actual masked WebSocket length and16 payload bytes while the producer writes107989 bytes. Actual sender+receiver queues18402 plus a full negotiated segment/header slack640 are less than the outstanding frame both before and after a real authority writer queues. No complete export has reached the provider.",
+    "Public cancellation records intent before an independently authorized ApplicationClient exact RecordDelete queues. All-current-member read probes prove the writer reservation and deletion remains unfinished during partial IO and after the complete frame until the exact original ACK. Delivery is then recorded; deletion commits revision3 and immutable replay returns the original receipt.",
+    "The positive frame contains exact original UUID/Session/revision2/available state and a matching unsigned canonical SHA512 digest with source body below32KiB. Provider creation contains no record UUID. One creation, one export, one owned close, zero native consultation attempts and zero private provider audio; original consultation replay stays cancelled.",
+    "The separate expiry case uses the frozen original30sec metadata retention and begins export four seconds before its wire cutoff, earlier than the unchanged five-second IO maximum. No cancellation request is sent. Actual partial frame retires at source expiry; fewer than its declared bytes arrive, no complete provider export/delivery/native effect occurs and the queued Identity writer releases. The ledger and original logical replay remain failed.",
+    "After original source expiry, the independently owned retention sweep commits durable unavailability; fresh public HTTP fetch returns exact not-found. Source credentials remain current. Both cases independently observe usable original public native audio in both directions."
+  ],
+  "fixture_custody": [
+    "Safe Unix nix descriptor inspection matches exact sender and receiver socket tuples before limiting only that sender buffer. Atomic duplicate descriptors are immediately closed, so instrumentation cannot keep a cancelled production socket alive.",
+    "Darwin uses lsof for the current test child PID and exact socket descriptors, reading producer queues before receiver queues to avoid undercounting transferred bytes. Overlap is conservatively counted twice; one complete negotiated MSS plus header slack remains outside the count. Linux proc implementation is present but has not been run.",
+    "A child process applies TCP_NOOPT before the designated127.0.0.1/port SYN via a test-only compiled C dyld interposer. It checks socket type and exact registered port, forwards original connect without address/application-byte changes and writes an option-application marker. Listener options are set through an owned socket passed only as child stdin. No host sysctl, production socket hook or Rust unsafe-code relaxation is used.",
+    "The two physical cases use the ordinary test thread stack and Tokio current-thread profile. Runtime C compilation and isolated child execution require local macOS development tooling. The90sec outer fixture bound does not alter source retention or production IO deadlines."
+  ],
+  "qualification_inputs": {
+    "path": ".local/gate-6/provider-record-write-inputs-final-v18.json",
+    "sha256": "11839d4a08ed560670523dbb6a4b0c536d1c923ea18b31e53840bb0a5ea9c528"
+  },
+  "qualification_input_count": 1326,
+  "changed_since_private_tls": [
+    "Cargo.lock",
+    "crates/connect-server/Cargo.toml",
+    "crates/connect-server/src/private_vapi/transport.rs",
+    "crates/connect-server/tests/support/canonical_native_connections/consultation.rs",
+    "crates/connect-server/tests/support/canonical_native_connections/consultation/provider.rs",
+    "crates/connect-server/tests/support/canonical_native_connections/consultation/provider/write_custody.rs",
+    "crates/connect-server/tests/support/provider_socket_options.py",
+    "crates/connect-server/tests/support/provider_socket_profile.c",
+    "docs/developer/record-context.md"
+  ],
+  "source_lock": {
+    "path": "dependencies/source-lock.json",
+    "sha256": "7e6bbe02467fdd28b09b51cab033459a4e84c5906cd27b3ba976e0a773b0f7e6"
+  },
+  "verification": {
+    "distinct_current_connect_passes": 76,
+    "server_library": {
+      "path": ".local/gate-6/provider-record-write-server-v9.log",
+      "sha256": "6938a5f5a466428326cc9f512d7692ba158ab45ba08874040f32a11b13a1c0d8",
+      "passed": 66,
+      "failed": 0,
+      "ignored": 0,
+      "filtered": 0,
+      "seconds": 17.89,
+      "cases": [
+        "agent_observations::tests::stalled_capture_queue_drops_without_blocking_and_next_delivery_reports_exact_loss",
+        "agent_observations::tests::undeclared_model_capabilities_publish_unavailable_without_untrusted_body",
+        "canonical::tests::configuration_errors_do_not_echo_private_file_contents",
+        "canonical_assistants::tests::configured_assistant_assets_require_private_regular_files_without_echoing_contents",
+        "canonical_assistants::tests::public_profile_never_enables_insecure_nonfixture_transport_or_duplicate_proposal_tools",
+        "canonical_assistants::tests::strict_host_configuration_preserves_explicit_paths_policy_and_rejects_unknown_fields",
+        "cli::agent_access::tests::changed_credential_assets_or_access_mode_cannot_resume_an_existing_installation",
+        "cli::agent_access::tests::export_rejects_admin_revoked_and_mismatched_authority_before_creating_output",
+        "cli::agent_access::tests::identity_setup_replays_original_receipt_and_denies_conflict_or_non_admin",
+        "cli::agent_access::tests::regular_export_keeps_one_agent_key_without_task_grants_or_admin_secret",
+        "cli::agent_access::tests::regular_host_resumes_exact_session_and_redacts_its_key_without_grant_refresh",
+        "cli::agent_access::tests::removal_deletes_only_verified_connect_configuration_and_preserves_other_files",
+        "cli::agent_access::tests::unknown_host_or_missing_model_auth_preserves_installation_and_does_not_launch",
+        "cli::canonical_init::tests::destination_created_after_preflight_is_preserved_even_when_empty",
+        "cli::media_stdio::tests::framing_is_bounded_and_binary_safe",
+        "cli::media_stdio::tests::input_reader_preserves_a_frame_when_next_is_cancelled",
+        "cli::task_access::codex_host::diagnostics::tests::concurrent_state_change_never_combines_session_metadata_or_retains_probe_lock",
+        "cli::task_access::codex_host::group_status::tests::native_snapshot_rejects_live_group_and_accepts_its_unreaped_zombie",
+        "cli::vapi_task::manifest::tests::rejects_ambiguous_modes_public_binding_and_callback_credentials",
+        "cli::vapi_task::manifest::tests::rejects_oversized_or_nonregular_private_inputs",
+        "cli::vapi_task::manifest::tests::supported_modes_resolve_state_beside_private_manifest",
+        "config::tests::outbound_sip_fields_reject_ambiguous_input",
+        "config::tests::wildcard_sip_requires_a_concrete_media_bind_interface",
+        "media_transports::tests::outbound_trunk_fails_closed_without_a_password",
+        "media_transports::tests::outbound_trunk_uses_environment_secret_without_logging_it",
+        "private_vapi::audio::tests::expired_partial_speech_cannot_be_combined_with_a_fresh_provider_message",
+        "private_vapi::audio::tests::forwarding_stall_expires_complete_speech_and_replaces_it_with_silence",
+        "private_vapi::audio::tests::provider_message_boundaries_do_not_split_pcmu_frames",
+        "private_vapi::audio::tests::queued_audio_keeps_only_the_newest_bounded_frames_and_partial",
+        "private_vapi::transcripts::tests::archive_retries_same_callback_only_after_busy_store_result",
+        "private_vapi::transcripts::tests::cancellation_drains_admitted_write_and_does_not_start_queued_callback",
+        "private_vapi::transcripts::tests::pending_archive_does_not_block_media_ticks_and_preserves_order_and_capacity",
+        "private_vapi::transport::tests::private_receiver_must_bind_the_captured_call_and_exact_configured_origin",
+        "private_vapi::transport::tests::private_transport_requires_explicit_secure_or_numeric_loopback_origins",
+        "registration_monitor::tests::accepted_lease_refreshes_after_idle_and_rejected_refresh_can_recover_on_restart",
+        "registration_monitor::tests::dropped_refresh_does_not_leave_an_expired_binding_ready",
+        "secrets::tests::explicit_missing_or_locked_provider_reference_cannot_read_ambient_key",
+        "secrets::tests::provider_api_key_whitespace_preserves_legacy_headers_and_password_bytes",
+        "secrets::tests::references_and_debug_never_contain_secret_values",
+        "setup_vault::discovery_tests::unselected_provider_credentials_are_never_resolved",
+        "sip_outbound::tests::a_late_worker_outcome_cannot_replace_an_observed_terminal_connection",
+        "sip_outbound::tests::cancellation::active_hangup_waits_for_cleanup_and_keeps_failure_uncertain",
+        "sip_outbound::tests::cancellation::cancellation_callback_and_successful_cleanup_have_one_result_in_either_order",
+        "sip_outbound::tests::cancellation::cancellation_callback_cannot_conceal_failed_cleanup_in_either_order",
+        "sip_outbound::tests::cancellation::cancellation_event_for_an_active_leg_without_owned_cleanup_settles_ended",
+        "sip_outbound::tests::cancellation::normal_remote_end_and_failure_remain_authoritative_during_cancellation",
+        "sip_outbound::tests::failed_cancellation_cleanup_is_uncertain_and_cannot_be_redispatched",
+        "sip_outbound::tests::lost_authority_during_activation_runs_cleanup_and_persists_cancellation",
+        "sip_outbound::tests::stalled_cancellation_cleanup_is_bounded_and_does_not_detach_activation",
+        "sip_registration::tests::carrier_registration_authenticates_and_shutdown_removes_binding",
+        "sip_registration::tests::rejected_registration_does_not_report_ready",
+        "sms_authority::synchronization_tests::authenticated_snapshot_rejects_redirects_and_revision_replay",
+        "sms_authority::tests::reject_unsafe_authority_configuration",
+        "startup::tests::failed_startup_releases_endpoint_owned_by_a_pending_accept_task",
+        "startup::tests::successful_startup_keeps_accept_open_for_runtime_ownership",
+        "transports::http::tests::browser_origins_are_limited_to_loopback_http",
+        "vapi_bootstrap::call_failure::tests::diagnostics_expose_only_the_stage_even_with_a_sensitive_cause",
+        "vapi_bootstrap::voice_model::tests::absent_tools_are_supported_but_malformed_saved_models_are_rejected",
+        "vapi_bootstrap::voice_model::tests::scoped_mcp_discovery_preserves_saved_model_and_other_tools",
+        "vapi_observer::tests::cancelling_observer_drain_does_not_detach_the_receiver",
+        "vapi_observer::tests::queued_provider_report_is_not_replaced_by_missing_status",
+        "vapi_observer::tests::teardown_drains_queued_transcripts_and_records_missing_report",
+        "worker::tests::cancelling_shutdown_aborts_owned_tasks",
+        "worker::tests::failure_does_not_detach_a_stalled_sibling",
+        "worker::tests::panic_is_reported_and_other_tasks_are_still_drained",
+        "worker::tests::supervised_panic_wakes_readiness_without_waiting_for_shutdown"
+      ]
+    },
+    "physical_write_cases": {
+      "path": ".local/gate-6/provider-record-write-focused-v18.log",
+      "sha256": "4e27fa91f18c9d2648f687a1d8dff43281dad91c47b857913d6c7c5edc98145e",
+      "passed": 2,
+      "failed": 0,
+      "ignored": 0,
+      "filtered": 148,
+      "seconds": 49.01,
+      "cases": [
+        "canonical_native_connections::consultation::production_private_ai_record_context_actual_socket_write_retains_erasure_and_cancel_custody",
+        "canonical_native_connections::consultation::production_private_ai_record_context_source_expiry_retires_partial_socket_write_and_preserves_public_audio"
+      ]
+    },
+    "affected_private_provider_regression": {
+      "path": ".local/gate-6/provider-record-write-regression-v18.log",
+      "sha256": "535c3ecbc04467c87f29c28b6a196be24c00b76d91f0eb77693b41639a0a25cd",
+      "passed": 8,
+      "failed": 0,
+      "ignored": 0,
+      "filtered": 142,
+      "seconds": 119.81,
+      "cases": [
+        "canonical_native_connections::consultation::production_private_ai_missing_context_ack_does_not_apply_audience_or_repeat_creation",
+        "canonical_native_connections::consultation::production_private_ai_record_context_cancel_pending_export_retains_erasure_custody",
+        "canonical_native_connections::consultation::production_private_ai_record_context_erasure_stops_memory_and_preserves_return",
+        "canonical_native_connections::consultation::production_private_ai_record_context_listener_share_revocation_stops_original_memory",
+        "canonical_native_connections::consultation::production_private_ai_record_context_permission_has_no_execution_owner_fallback",
+        "canonical_native_connections::consultation::production_private_ai_record_context_requires_actual_listener_original_audience",
+        "canonical_native_connections::consultation::production_private_ai_record_context_retention_stops_memory_and_preserves_return",
+        "canonical_native_connections::consultation::production_private_ai_wrong_context_ack_preserves_public_audio_and_closes_only_reserved_call"
+      ]
+    },
+    "test_threads": 1,
+    "runtime_binary": {
+      "path": "target/debug/deps/gate6_canonical_runtime-ae570db7f267119a",
+      "sha256": "36fa80da17013edd1dd477943c11e77cb466ef83a375a6f8312d13438c109f49"
+    },
+    "server_library_binary": {
+      "path": "target/debug/deps/connect_server-18033c837ac334e7",
+      "sha256": "1288c3aaf7d68cdfa5e0930dd2618a8ea54a09b5761591cd7a32258e949fd36c"
+    },
+    "scope": "Server66 ran after the production ACK-limit change. Subsequent source changes affect fixture files and documentation only. Two physical cases and eight affected existing private-provider cases pass on the final rebuilt150-case executable. Other140 runtime cases were not requalified. Child one-case summaries are not counted a second time."
+  },
+  "builds": [
+    {
+      "path": ".local/gate-6/provider-record-write-build-v18.log",
+      "sha256": "5d01500706086fcc41ab15c6c1f8ee1496efc2686711628c819292329e91b4e0",
+      "exit": 0
+    }
+  ],
+  "checks": [
+    {
+      "path": ".local/gate-6/provider-record-write-prepare-v18.log",
+      "sha256": "fd9d7b181e3ccba9b643af55a186cf132c60aac99c734b2ee4e4e549afe5ffc2"
+    },
+    {
+      "path": ".local/gate-6/provider-record-write-format-v18.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": ".local/gate-6/provider-record-write-diff-check-v18.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": ".local/gate-6/provider-record-write-diff-check-final-v18.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": ".local/gate-6/provider-record-write-progress-check-v18.log",
+      "sha256": "fedbc03549729d27ac031eee0766ae72281991ae1e9494232887c3160cf754cc"
+    }
+  ],
+  "intermediate_runs": [
+    {
+      "path": ".local/gate-6/provider-record-write-build-v1.log",
+      "sha256": "59995fc5021a704e351573d182a80470b1a1b7634a4842b192f15b9d27c35dc7",
+      "disposition": "Build refused missing SinkExt/StreamExt imports; corrected imports."
+    },
+    {
+      "path": ".local/gate-6/provider-record-write-focused-v2.log",
+      "sha256": "72917c582706830a9c53053d9aa9137e947fa7f63223f04461218f1c9ca52606",
+      "disposition": "Stack overflow before fixture initialization. New fixture branches subsequently boxed."
+    },
+    {
+      "path": ".local/gate-6/provider-record-write-focused-v3.log",
+      "sha256": "cce18838e19633914f321c29f520ff8b002e987dc4eaef43910c67e268c22221",
+      "disposition": "Stack overflow before fixture initialization. Boxed existing provider case at its test boundary and used ordinary current-thread Tokio profile for the two new cases; no stack enlargement."
+    },
+    {
+      "path": ".local/gate-6/provider-record-write-focused-v4.log",
+      "sha256": "1b8095621246f482a2948ba12bfaa8f7aea8d9a740f3c08a755d335da0b85d95",
+      "disposition": "Darwin listener TCP MSS setter refused EINVAL; platform-specific listener MSS remains Linux only."
+    },
+    {
+      "path": ".local/gate-6/provider-record-write-focused-v5.log",
+      "sha256": "63bdaf73db37f0557830a4473486ef8b3e1034158eb5c6e5bb4197ac8cbeee5a",
+      "disposition": "Whole-frame/highwater inequality refused; actual queue occupancy replaces capacity, which is not TCP receive credit on Darwin."
+    },
+    {
+      "path": ".local/gate-6/provider-record-write-focused-v6.log",
+      "sha256": "cb074599eaf9d47282575985f377e48ce2fbb1791355f7b0094de7356808a100",
+      "disposition": "Earlier smaller-frame intermediate positive pass only; superseded by stricter full-segment queue proof."
+    },
+    {
+      "path": ".local/gate-6/provider-record-write-focused-v7.log",
+      "sha256": "0878633f4555a13984570b0f219ebc8f6da52288ae6df306d96fd16fbcbce97d",
+      "disposition": "Both cases refused insufficient whole-MSS slack. Kept the stronger inequality and selected valid escaping metadata instead."
+    },
+    {
+      "path": ".local/gate-6/provider-record-write-focused-v8.log",
+      "sha256": "22fa7a610a2bfaa96757ab93214ddad35e8b92ec80cb4f15c0ed1d3f8644a36c",
+      "disposition": "Production bug reproduced: actual107989-byte record-bearing frame fits the unchanged32KiB canonical source budget, but exact nested acknowledgement exceeds64KiB. Delivery was not confirmed."
+    },
+    {
+      "path": ".local/gate-6/provider-record-write-build-v9.log",
+      "sha256": "eb085e91b1ad5399ec03f9b8e4c0be3180f476d50eb32078a1e3c551e1495f04",
+      "disposition": "LLVM ENOSPC after main production library completed. Only documented inactive/completed generated compiler incrementals were evicted; source, binaries, reports and logs retained."
+    },
+    {
+      "path": ".local/gate-6/provider-record-write-focused-v9.log",
+      "sha256": "5752f028de87d389fe1d789902974c1e3eeab899f212749156c43bc19560e0d1",
+      "disposition": "Positive large exact acknowledgement passes after512KiB fix. Source case mistakenly cancelled before expiry; causality corrected, not qualified."
+    },
+    {
+      "path": ".local/gate-6/provider-record-write-source-v10.log",
+      "sha256": "f31c6f4cbc185e376fe30fdf9a3ba6f0ec57b0b04ce38186be0c6ac23df21a49",
+      "disposition": "Original source cutoff arrived during preflight, before queue inspection. Start preflight six seconds before source cutoff and hold creation response until four seconds before it; original source cutoff and five-second IO cap unchanged."
+    },
+    {
+      "path": ".local/gate-6/provider-record-write-focused-v11.log",
+      "sha256": "0454c3ce130c8ff7c34d761045f32a596efbc01cd4751824ea78c67ab39693ce",
+      "disposition": "Positive passed. Initial source write was blocked but TCP later accepted the complete frame; this proves ACK expiry, not partial-WRITE expiry. Correctly refused qualification."
+    },
+    {
+      "path": ".local/gate-6/provider-record-write-focused-v12.log",
+      "sha256": "b79b9f3f083c4b067aa7178ddc32f1d1d0119224c4df9497745093db6c2df969",
+      "disposition": "Darwin TCP_NOOPT getter returns flag8 rather than normalized1; fixture validation corrected to nonzero."
+    },
+    {
+      "path": ".local/gate-6/provider-record-write-focused-v13.log",
+      "sha256": "a594869eefb3cf07054d340471674cb3d51b572464fe01eebe5a562bde8f7c94",
+      "disposition": "Positive passed. Listener-only TCP option did not stop initiating peer window scaling; source received a complete buffered frame and was correctly refused."
+    },
+    {
+      "path": ".local/gate-6/provider-record-write-focused-v14.log",
+      "sha256": "dcb72be911b9510630148fb04bc7d0a7cb6f8a82e34613b02802a2f6d8ccb717",
+      "disposition": "Isolated child C shim recursed via dlsym(RTLD_NEXT,connect); changed to dyld original-image connect reference and verified a separate smoke connect."
+    },
+    {
+      "path": ".local/gate-6/provider-record-write-focused-v15.log",
+      "sha256": "ca3e4a610a5276df5ea9f0fc8640233ad042c0742df19a4cd4d7fa77bb80b433",
+      "disposition": "Positive passed and source partial-WRITE expiry succeeded. Final test expected cancelled/intenttrue after definitive natural failure; corrected expiry expectation to failed/intentfalse with no cancellation request."
+    },
+    {
+      "path": ".local/gate-6/provider-record-write-focused-v16.log",
+      "sha256": "9d849a2cf141fc3e531548cfb3c4e092d2be54ebbb317508292d5c40dde76959",
+      "disposition": "Physical expiry/guard release and failed replay passed; immediate fresh read expected not-found before asynchronous durable retention sweep committed."
+    },
+    {
+      "path": ".local/gate-6/provider-record-write-source-v17.log",
+      "sha256": "3bebe96142337922f40a74acf01f91e70f0694e271d0dcb3065353b4b7307777",
+      "disposition": "Diagnostic confirmed safe refusal storage-unavailable in the pre-sweep interval. Match existing retention fixture: await independently owned sweep commit, then assert exact not-found. Physical expiry assertion still occurs before this wait."
+    }
+  ],
+  "assigned_clause_audit": {
+    "path": "docs/evidence/gate-6/auxiliary-protocol-scope.json",
+    "sha256": "1e178eb5caf3e30104c10a5fe2d72efb5c71a866d40cb9db8668800c10f758ae"
+  },
+  "earlier_components": [
+    {
+      "path": "docs/evidence/gate-6/record-context-private-provider.json",
+      "sha256": "fa0355ede2a3d716854a61b3e187c42dabd640c9946dd7f55ab079d98fe5e395"
+    },
+    {
+      "path": "docs/evidence/gate-6/auxiliary-native-record-quic.json",
+      "sha256": "6dea08c294296a87888816fca6a155728557aed573b2eeb220f6649a71edeea0"
+    },
+    {
+      "path": "docs/evidence/gate-6/auxiliary-record-private-links.json",
+      "sha256": "8c7ff8d4633ec7a68712fce53ad9a87152f59597189665ae1a990ec3fc2fdbad"
+    }
+  ],
+  "unresolved": [
+    "Earlier retention/primary-return Accepted-with-no-effect failures remain unexplained despite later scoped passing cohorts. Detailed refusal diagnostics are installed, but no functional return fix or general reliability qualification is claimed."
+  ],
+  "remaining": [
+    "Reconcile all61 assigned auxiliary clause/case IDs against actual Connect integration evidence, preserving mandatory scope and explicitly tracking unsupported or unrun behavior.",
+    "Complete required assurance, step-up, DTMF, quality and capability behavior through current Service/Store authority and the SDK contract.",
+    "Qualify remaining approved audience/privacy behavior including private captured-source profiles where applicable, and resolve the older primary-return refusal before full reliability qualification.",
+    "Continue all remaining Gate6 tasks in the approved dependency graph; named remote/provider profiles require G6-093 bounded configuration."
+  ],
+  "plan_counts": {
+    "done": 45,
+    "in_progress": 1,
+    "not_started": 59,
+    "acceptance_qualified": 0
+  }
+}

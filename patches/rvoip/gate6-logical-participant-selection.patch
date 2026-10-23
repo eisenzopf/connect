@@ -1,0 +1,187 @@
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/selection_intent.rs b/crates/foundation/rvoip-core/src/staged_streams/selection_intent.rs
+--- a/crates/foundation/rvoip-core/src/staged_streams/selection_intent.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/selection_intent.rs
+@@ -8,7 +8,6 @@
+ #[derive(Clone)]
+ pub(super) struct ParticipantSelection {
+     pub member: Membership,
+-    pub owner: Arc<AuthenticatedPrincipal>,
+     pub media: BTreeSet<Medium>,
+ }
+ impl ParticipantSelection {
+@@ -16,15 +15,15 @@
+         self.member.identity() == source.origin_member.identity()
+             && self.member.participant() == source.origin_member.participant()
+             && self.member.epoch() == source.origin_member.epoch()
+-            && self
+-                .owner
+-                .has_same_owner(&source.credential_snapshot().principal)
++            && self.member.tenant() == source.origin_member.tenant()
++            && self.member.conversation() == source.origin_member.conversation()
+     }
+     fn same(&self, other: &Self) -> bool {
+         self.member.identity() == other.member.identity()
+             && self.member.participant() == other.member.participant()
+             && self.member.epoch() == other.member.epoch()
+-            && self.owner.has_same_owner(&other.owner)
++            && self.member.tenant() == other.member.tenant()
++            && self.member.conversation() == other.member.conversation()
+             && self.media == other.media
+     }
+ }
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/subscription_plan.rs b/crates/foundation/rvoip-core/src/staged_streams/subscription_plan.rs
+--- a/crates/foundation/rvoip-core/src/staged_streams/subscription_plan.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/subscription_plan.rs
+@@ -220,7 +220,6 @@
+                             .ok_or(StreamControlError::NotReady)?;
+                         let request = ParticipantSelection {
+                             member: source.controller.origin_member.clone(),
+-                            owner: source.controller.credential_snapshot().principal,
+                             media: media.clone(),
+                         };
+                         if members.values().any(|s| {
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/tests/private_consult/replacement.rs b/crates/foundation/rvoip-core/src/staged_streams/tests/private_consult/replacement.rs
+--- a/crates/foundation/rvoip-core/src/staged_streams/tests/private_consult/replacement.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/private_consult/replacement.rs
+@@ -4,6 +4,7 @@
+     EndpointConfirmationPolicy, ParticipantChange, ParticipantMutation,
+     ParticipantReplacementMutation, ParticipantSession,
+ };
++use crate::staged_streams::media_subscriptions::MediaSubscriptionChange;
+ use crate::staged_streams::{device_replacement::*, local_audio::LocalAudioPurpose};
+ struct Move {
+     room: Room,
+@@ -70,6 +71,13 @@
+         Self::with_route_actor(closed, "alice").await
+     }
+     async fn with_route_actor(closed: bool, route_actor: &str) -> Self {
++        Self::with_route_actor_and_selection(closed, route_actor, false).await
++    }
++    async fn with_route_actor_and_selection(
++        closed: bool,
++        route_actor: &str,
++        logical: bool,
++    ) -> Self {
+         let mut room = Room::new().await;
+         let source = room.domain.base.0.read().await.owners["alice"].clone();
+         let mut other = source.clone();
+@@ -111,6 +119,42 @@
+             ))],
+         )
+         .await;
++        if logical {
++            use crate::staged_streams::selection_intent::{
++                ParticipantSelection, SelectionMutation, SelectionProgram,
++            };
++            let bob = &room.nodes["bob"].controller;
++            let request = ParticipantSelection {
++                member: source.member.clone(),
++                media: BTreeSet::from([Medium::Audio]),
++            };
++            let mut next = SelectionProgram::default();
++            next.participants
++                .insert(source.member.participant().clone(), request.clone());
++            // This audio fixture deliberately reuses its stream IDs. Commit the
++            // retained logical intent directly; the public planner is exercised
++            // by the unique-stream scene and signed public transport tests.
++            let intent =
++                SelectionMutation::new(&room.scene, bob, bob.revision(), None, next, vec![request])
++                    .unwrap();
++            room.scene
++                .change_media_subscriptions(
++                    &bob.connection,
++                    bob.revision(),
++                    MediaSubscriptionChange {
++                        selection: Some(intent),
++                        audio: Some(AudioSubscriptionChange::Subscribe(vec![
++                            AudioSubscription::Participant(source.member.participant().clone()),
++                        ])),
++                        direct: None,
++                    },
++                    deadline(),
++                    CancellationToken::new(),
++                    None,
++                )
++                .await
++                .unwrap();
++        }
+         let mut model = ParticipantSession::new(
+             TenantId::from_string("tenant"),
+             source.member.conversation().clone(),
+@@ -593,3 +637,76 @@
+     f.room.tick();
+     f.room.heard("public", 1800).await;
+ }
++
++#[tokio::test]
++async fn retained_media_participant_reconciles_after_distinct_route_replacement_without_lending_old_principal(
++) {
++    use crate::staged_streams::selection_intent::SelectionMutation;
++    let mut f = Move::with_route_actor_and_selection(false, "sip-account", true).await;
++    f.io().await;
++    f.confirm().await;
++    let plan = f.plan().unwrap();
++    f.commit(plan).await.unwrap();
++    // The host publishes the current physical owner derived from the actual
++    // committed resource proof, rather than keeping a provisional fixture row.
++    let current = {
++        let guard = f.room.domain.base.0.read().await;
++        f.room
++            .domain
++            .resource_owner(&guard, guard.owners["device"].clone())
++            .unwrap()
++    };
++    f.room
++        .domain
++        .base
++        .0
++        .write()
++        .await
++        .owners
++        .insert("device".into(), current);
++    let bob = &f.room.nodes["bob"].controller;
++    let previous = f
++        .room
++        .scene
++        .selections
++        .lock()
++        .unwrap()
++        .get(&bob.connection)
++        .unwrap()
++        .clone();
++    let request = previous.participants.values().next().unwrap().clone();
++    assert!(request.matches(&f.room.nodes["device"].controller));
++    let intent = SelectionMutation::new(
++        &f.room.scene,
++        bob,
++        bob.revision(),
++        Some(previous.clone()),
++        (*previous).clone(),
++        vec![request],
++    )
++    .unwrap();
++    f.room
++        .scene
++        .change_media_subscriptions(
++            &bob.connection,
++            bob.revision(),
++            MediaSubscriptionChange {
++                selection: Some(intent),
++                audio: None,
++                direct: None,
++            },
++            deadline(),
++            CancellationToken::new(),
++            None,
++        )
++        .await
++        .unwrap();
++    f.room.publish("device", 5200).unwrap();
++    f.room.tick();
++    f.room.heard("bob", 5200).await;
++    f.room.domain.base.0.write().await.owners.remove("device");
++    assert!(f.room.publish("device", 5200).is_err());
++    f.room.publish("other", 1800).unwrap();
++    f.room.tick();
++    f.room.heard("bob", 1800).await;
++}

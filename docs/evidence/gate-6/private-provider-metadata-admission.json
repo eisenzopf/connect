@@ -1,0 +1,132 @@
+{
+  "task": "G6-046",
+  "title": "Bounded private-provider metadata admission",
+  "recorded_at": "2026-10-22",
+  "status": "local-serial-provider-initialization-qualified; independent-media-rebind-failure-open",
+  "full_task_complete": false,
+  "full_goal_complete": false,
+  "acceptance_qualified": false,
+  "trigger": {
+    "artifact": {
+      "path": ".local/gate-6/auxiliary-owned-refresh-regression-v1.log",
+      "sha256": "e5bc931d7aff748d68024dfab22185507c56541230b95e041563882ca7808fe0",
+      "bytes": 28230
+    },
+    "passed": 9,
+    "failed": 2,
+    "observation": "Both initialization failures stop with authority-busy before their expected provider creation observations. Static phase diagnostics locate them in provider initialization, not native return execution. A sample captures repeated private provider read/authority resolution. Exact contention incidence remains load-dependent."
+  },
+  "implementation": [
+    "Store private_provider_read(context, AuthorityWait) queues metadata work for SQL/authority on a blocking worker and repeats current authorization, exact physical/private selection, complete audience and content checks under the resulting owned fence.",
+    "The immediate try_private_provider_read API shares the same final validation. Packet/media callbacks retain their existing immediate admission.",
+    "Server creation/export reads use one original five-second preflight deadline, cancellation-linked AuthorityWait and timeout. Late blocking completions cannot start IO. Creation/export begin tokens, actual network calls and captured observations are not retried."
+  ],
+  "store_verification": {
+    "artifact": {
+      "path": ".local/gate-6/private-provider-metadata-store-serial-v3.log",
+      "sha256": "1d1ad0b4337bc8820788d60a31470ccc2e2c5349b6e2df696ebd45e073bfa7e9",
+      "bytes": 5658
+    },
+    "passed": 36,
+    "failed": 0,
+    "ignored": 0,
+    "filtered": 852,
+    "seconds": 70.31,
+    "test_threads": 1,
+    "scope": "Private provider and related observation/cleanup tests. New SQL-queue test verifies current revocation refusal after waiting; canceled admission cannot mark creation/export started."
+  },
+  "earlier_parallel_store_run": {
+    "artifact": {
+      "path": ".local/gate-6/private-provider-metadata-store-v2.log",
+      "sha256": "7884995112b68ad2e6424f45808d7c902e1b295f1a0f1cd4cf494ef3c71b87e0",
+      "bytes": 10878
+    },
+    "passed": 29,
+    "failed": 7,
+    "seconds": 92.87,
+    "test_threads": "default",
+    "qualification": false,
+    "observation": "Includes expired/unauthorized, forbidden and bounded authority-busy failures. The serial result does not qualify this parallel load. No credential lifetime, wait bound or runtime profile was increased."
+  },
+  "initial_compile_attempt": {
+    "artifact": {
+      "path": ".local/gate-6/private-provider-metadata-store-v1.log",
+      "sha256": "f26117851e2e3550aa2d5819afd755a82d27a82fdeb7e12cff84d74db39854ba",
+      "bytes": 517
+    },
+    "result": "New test accessed the private context delivery field; corrected to the existing delivery_id accessor."
+  },
+  "source_inputs": {
+    "path": ".local/gate-6/private-provider-metadata-inputs-v3.json",
+    "sha256": "5d16e290e742963b529f24ac5168fc0761e0c3ac2d49368a7c635cf2d76322a9",
+    "bytes": 176714
+  },
+  "source_lock": {
+    "path": "dependencies/source-lock.json",
+    "sha256": "723bc141df69599f9ec97fe413af59eca6fd022bbc97f24e9592cccd1ca4a5b5",
+    "bytes": 59548
+  },
+  "schema_version": 85,
+  "pinned_patches": 134,
+  "production_verification": {
+    "artifact": {
+      "path": ".local/gate-6/private-provider-metadata-production-v3.log",
+      "sha256": "31bb703a007e5388a2001b6913779d5a026e5cd8ba59a1271a51df8868543cda",
+      "bytes": 30422
+    },
+    "passed": 12,
+    "failed": 1,
+    "ignored": 0,
+    "filtered": 170,
+    "seconds": 190.73,
+    "test_threads": 1,
+    "private_provider_cases_passed": 8,
+    "native_and_owned_dtmf_regressions_passed": 3,
+    "owned_signaling_expiry_case_passed": 1,
+    "known_failing_case": "production_owned_audio_refresh_keeps_signed_reader_and_current_signal_authority",
+    "meaning": "Both previously authority-busy provider initialization cases now pass in the unchanged-bound cohort. All8 original provider/record/cancel/retention-return cases pass. The sole failure is the separately recorded missing existing-media credential rebind. This is not a full G6-046 or a general load/retention-return reliability claim."
+  },
+  "remaining": [
+    "Default parallel Store qualification remains unresolved; the serial/current bounded production result does not override the29-pass/7-failure parallel run.",
+    "The two earlier retention/primary-return refusals remain unresolved; queued initialization reads are not a proven fix for that historical return predicate.",
+    "Existing native media credential rebind still fails its new production test; owned step-up, cross-substrate DTMF and all61 clause qualification remain open."
+  ],
+  "plan_counts": {
+    "done": 45,
+    "in_progress": 1,
+    "not_started": 59,
+    "acceptance": 0
+  },
+  "build_verification": {
+    "artifact": {
+      "path": ".local/gate-6/private-provider-metadata-server-build-v3.log",
+      "sha256": "d088f85989842b4bc965bab97189fc8a0306148a5fddf88691e45171f8af315f",
+      "bytes": 2760
+    },
+    "result": "pass",
+    "duration": "6m34s",
+    "targets": [
+      "gate6_canonical_runtime",
+      "connect"
+    ],
+    "warnings": "Existing upstream dead/private-interface and linker unwind-table warnings remain recorded."
+  },
+  "compiled_binary_archive": {
+    "path": ".local/gate-6/auxiliary-owned-refresh-final-binaries-v3.json",
+    "sha256": "fa70977ca4e756523967d0eaee68274d929f92d2cc3f3b07c168d08b9ed5d3b6",
+    "independently_decompressed": true
+  },
+  "source_verification": {
+    "path": ".local/gate-6/private-provider-metadata-source-verification-v3.json",
+    "sha256": "644e34390e7cdead3bff9a552703c92f483c66ac6b2b9a0094b92dfecadec882"
+  },
+  "native_credential_refresh_continuation": {
+    "evidence": "docs/evidence/gate-6/native-credential-refresh.json",
+    "recorded_at": "2026-10-22T14:05:11.718294+00:00",
+    "schema_version": 86,
+    "pinned_patches": 135,
+    "production_refresh_tests": 3,
+    "production_regression_tests": 11,
+    "meaning": "The previously failing existing-media refresh path now passes explicit Store epoch/Core revision checks, successor DTMF send/receive and independently decoded RTP after original expiry for both signing algorithms. Earlier results remain historical; full G6-046 and broader profiles remain open."
+  }
+}

@@ -1,0 +1,15 @@
+# Protected record reads and local deletion
+
+G6-027 remains in progress. This increment provides storage custody and revision-checked local deletion; per-source audience projection, retention, capture provenance and canonical fetch integration still have to enforce [the record contract](../../contracts/connect-records.md).
+
+`VconHandle` includes a revision. `VconStore::get(&scope, &handle)` returns `Option<VconRead>`, with the exact owner, revision, digest and body. The backend-owned reservation remains live until `VconRead` is dropped. Keep it alongside current audience/credential authorization through the actual response write. Copying body bytes does not copy the reservation or grant future access. This is local write custody, not remote receipt or proof that a human saw the data.
+
+Memory records use independent fair read/write locks. Deletion waits for existing reads and prevents new readers from passing the queued writer. Another record remains usable. Cancelling a deletion while it waits releases writer intent without changing the record. Index guards are released before waiting on a record.
+
+Construct `VconDeletion::new(original_operation_id, expected_handle)` once and preserve it across an uncertain outcome. `VconStore::delete(&scope, &intent)` checks exact owner, revision and digest before removing the stored body and committing a tombstone. Repeating the same original intent returns the original fact, including its timestamp; a different operation or altered expectation conflicts. Callers must enforce current authorization on every replay. Unknown/foreign locations return `None`. Deleted handles cannot retrieve bytes or appear in live record lists. `tombstone(&scope, location)` exposes only a scoped local deletion fact. It makes no claim about provider copies.
+
+The optional Postgres bridge retains a row-share transaction in the read object and uses a row lock plus one atomic transaction for deletion. Tombstones retain the exact local operation and expected revision. Generic unscoped overwrite/delete cannot bypass scoped Core record mutations. The current schema is installed atomically under a named contract; incompatible or partial historical schemas are refused, with no automatic data migration. A caller must supply a fresh isolated database for the explicit live lane.
+
+`python3 scripts/check-gate6-record-lifecycle.py` checks preparation and formatting, compiles the full affected feature profile (including the live database fixture), runs local storage/delivery/recovery and existing engine/voice/export cases, and checks locked Connect server integration. The live Postgres case is deliberately ignored without its designated database lane and is never counted as a pass. Exact source/assets, executables, cases and qualification limits are recorded separately from the earlier scoped-storage profile.
+
+The engine read is not public audience permission. The public wire and HTTP boundaries remain [Connect UCTP](../../contracts/connect-uctp.md) and [the event HTTP reference](../../contracts/openapi-events.json); this increment adds no public HTTP route.

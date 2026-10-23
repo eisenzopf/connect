@@ -11,7 +11,7 @@ use axum::{
 use connect_protocol::{provisioning::*, Error};
 
 #[derive(Clone)]
-pub(super) struct AdminCredential(String);
+pub(super) struct AdminCredential(pub(super) String);
 pub(super) async fn admit(
     State(state): State<HttpState>,
     mut request: Request,
@@ -65,7 +65,7 @@ pub(super) async fn admit(
 fn interrupted() -> Response {
     response(Err(Error::new(
         "transport-uncertain",
-        "Provisioning interrupted; retry the same logical operation ID",
+        "Administration interrupted; retry the same logical operation ID",
     )))
 }
 fn decode(
@@ -127,6 +127,27 @@ pub(super) async fn scoped(
     };
     let path = uri.path();
     let matches = match &command {
+        ProvisioningCommand::RecordReadRole { identity_id, .. } => {
+            identity_id == &id
+                && path.starts_with("/v2/identities/")
+                && path.ends_with("/record-read-role")
+        }
+        ProvisioningCommand::RevokeCredential { credential_id, .. } => {
+            credential_id == &id
+                && path.starts_with("/v2/credentials/")
+                && path.ends_with("/revoke")
+        }
+        ProvisioningCommand::SigningKey { identity_id, .. } => {
+            identity_id == &id
+                && path.starts_with("/v2/identities/")
+                && path.ends_with("/signing-keys")
+        }
+        ProvisioningCommand::RevokeSigningKey { key_id, .. } => {
+            key_id == &id && path.starts_with("/v2/signing-keys/") && path.ends_with("/revoke")
+        }
+        ProvisioningCommand::RevokeDevice { device_id, .. } => {
+            device_id == &id && path.starts_with("/v2/devices/") && path.ends_with("/revoke")
+        }
         ProvisioningCommand::Participant {
             conversation_id, ..
         } => {
@@ -171,9 +192,11 @@ fn response(result: connect_protocol::Result<ProvisioningOutcome>) -> Response {
             "forbidden" => StatusCode::FORBIDDEN,
             "conflict" => StatusCode::CONFLICT,
             "gone" => StatusCode::GONE,
-            "capacity-exceeded" | "storage-unavailable" | "transport-uncertain" => {
-                StatusCode::SERVICE_UNAVAILABLE
-            }
+            "capacity-exceeded"
+            | "storage-unavailable"
+            | "transport-uncertain"
+            | "authority-busy"
+            | "authority-unavailable" => StatusCode::SERVICE_UNAVAILABLE,
             _ => StatusCode::BAD_REQUEST,
         },
     };

@@ -1,0 +1,80 @@
+diff --git a/crates/extensions/rvoip-vapi/src/agent_observations.rs b/crates/extensions/rvoip-vapi/src/agent_observations.rs
+--- a/crates/extensions/rvoip-vapi/src/agent_observations.rs
++++ b/crates/extensions/rvoip-vapi/src/agent_observations.rs
+@@ -6,6 +6,68 @@
+ 
+ pub(crate) const MAX_PROVIDER_EVENT_BYTES: usize = 1_048_576;
+ const MAX_ACTIONS_PER_EVENT: usize = 32;
++
++/// A bounded provider frame decoded against its actual captured route.
++/// Provider speaker roles and requested actions are observations, never grants.
++pub struct DecodedAgentEvent {
++    provider_event_id: Option<String>,
++    contents: Vec<AgentObservationContent>,
++    terminal: bool,
++}
++impl std::fmt::Debug for DecodedAgentEvent {
++    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
++        f.write_str("DecodedAgentEvent(redacted)")
++    }
++}
++impl DecodedAgentEvent {
++    pub fn provider_event_id(&self) -> Option<&str> {
++        self.provider_event_id.as_deref()
++    }
++    pub fn contents(&self) -> &[AgentObservationContent] {
++        &self.contents
++    }
++    pub fn is_terminal(&self) -> bool {
++        self.terminal
++    }
++}
++/// Pure normalization for a host-owned WebSocket route. Validates every item
++/// before returning any prefix; performs no provider IO, dispatch or binding.
++/// A missing asserted call ID remains bound to the actual route. Contradictory
++/// IDs, including a foreign terminal report, return MismatchedSession.
++pub fn decode_agent_event(
++    frame: &str,
++    expected_session: &str,
++) -> std::result::Result<DecodedAgentEvent, AgentObservationIssue> {
++    if frame.len() > MAX_PROVIDER_EVENT_BYTES {
++        return Err(AgentObservationIssue::MalformedEvent);
++    }
++    let value: Value =
++        serde_json::from_str(frame).map_err(|_| AgentObservationIssue::MalformedEvent)?;
++    if !belongs_to_call(&value, expected_session) {
++        return Err(AgentObservationIssue::MismatchedSession);
++    }
++    if value.get("eventId").is_some_and(|v| !v.is_string()) {
++        return Err(AgentObservationIssue::MalformedEvent);
++    }
++    let event_id = provider_event_id(&value);
++    let contents = normalize(&value);
++    for (index, content) in contents.iter().enumerate() {
++        AgentObservation::new(
++            index as u64 + 1,
++            Some(expected_session.to_owned()),
++            event_id.clone(),
++            content.clone(),
++        )
++        .map_err(|_| AgentObservationIssue::MalformedEvent)?;
++    }
++    let terminal = value["type"] == "end-of-call-report"
++        || value["type"] == "status-update" && value["status"] == "ended";
++    Ok(DecodedAgentEvent {
++        provider_event_id: event_id,
++        contents,
++        terminal,
++    })
++}
+ 
+ fn string(value: &Value, key: &str) -> Option<String> {
+     value.get(key).and_then(Value::as_str).map(str::to_owned)
+diff --git a/crates/extensions/rvoip-vapi/src/lib.rs b/crates/extensions/rvoip-vapi/src/lib.rs
+--- a/crates/extensions/rvoip-vapi/src/lib.rs
++++ b/crates/extensions/rvoip-vapi/src/lib.rs
+@@ -33,3 +33,4 @@
+ };
+ 
+ mod agent_observations;
++pub use agent_observations::{decode_agent_event, DecodedAgentEvent};

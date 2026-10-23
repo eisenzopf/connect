@@ -34,7 +34,9 @@ async fn alternative_authority_keeps_stop_start_and_replay_at_one_boundary() {
             &operator.id,
             &Operation::Create {
                 request_id: "conversation".into(),
-                participants: vec![b.id.clone()],
+                request: connect_protocol::conversations::CreateRequest::persistent(vec![b
+                    .id
+                    .clone()]),
             },
         )
         .unwrap()
@@ -53,13 +55,14 @@ async fn alternative_authority_keeps_stop_start_and_replay_at_one_boundary() {
                 target: "+15555550101".into(),
                 source: Some("+15555550102".into()),
                 enabled: true,
+                incoming_to: connect_protocol::messages::MessageAudience::all(),
             },
         )
         .unwrap();
     let send = |id: &str| Operation::Send {
         request_id: id.into(),
         conversation_id: c.id.clone(),
-        body: "fixture draft".into(),
+        message: connect_protocol::messages::MessageDraft::text_all("fixture draft"),
     };
     store.execute(&operator.id, &send("unapproved")).unwrap();
     assert!(store.claim_provider_job().unwrap().is_none());

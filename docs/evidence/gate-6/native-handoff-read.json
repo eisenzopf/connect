@@ -1,0 +1,174 @@
+{
+  "kind": "gate6-component-evidence",
+  "recorded_at": "2026-10-19T20:28:47.624310+00:00",
+  "task": "G6-040",
+  "status": "in-progress",
+  "passed": true,
+  "scope": "Controlled current target policy and native media planning authority. No actual native handoff or role commit.",
+  "schema_version": 53,
+  "pinned_patches": 108,
+  "source_lock": {
+    "path": "dependencies/source-lock.json",
+    "sha256": "2551a048c489fb816770a7147e5fe2d525e493261b4c297fee4002a0b1e38d5e"
+  },
+  "verification": [
+    {
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "--offline",
+        "-j1",
+        "-p",
+        "connect-store",
+        "--lib",
+        "--",
+        "--test-threads=2"
+      ],
+      "path": ".local/gate-6/handoff-read-final-store-all.log",
+      "sha256": "ac99d016ec4fc789a1a75128e784c8cbef76b571c6b38af356f85c7b009699b7",
+      "exit_code": 0,
+      "passed": 529,
+      "ignored": 3,
+      "ignored_note": "Crash helpers invoked by passing parent tests; not standalone passes",
+      "test_binary": {
+        "path": "target/debug/deps/connect_store-500690b8d898aed1",
+        "sha256": "f024356ab57f662834fcfd48d81e478171012a54b221da52f0cb8a9bc25a25bc"
+      }
+    }
+  ],
+  "static_checks": [
+    {
+      "name": "format",
+      "command": [
+        "bash",
+        "scripts/format.sh",
+        "--",
+        "--check"
+      ],
+      "path": ".local/gate-6/handoff-read-final-format.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "exit_code": 0
+    },
+    {
+      "name": "wire-reference",
+      "command": [
+        "python3",
+        "scripts/generate-gate6-schemas.py",
+        "--check"
+      ],
+      "path": ".local/gate-6/handoff-read-final-wire-reference.log",
+      "sha256": "1a8d88a87dbfff6b08aed7a95b3a2664a83c7a9182374d71af8be32ba618e108",
+      "exit_code": 0
+    },
+    {
+      "name": "event-reference",
+      "command": [
+        "python3",
+        "scripts/generate-gate6-event-reference.py",
+        "--check"
+      ],
+      "path": ".local/gate-6/handoff-read-final-event-reference.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "exit_code": 0
+    },
+    {
+      "name": "http-reference",
+      "command": [
+        "python3",
+        "scripts/generate-canonical-http-openapi.py",
+        "--check"
+      ],
+      "path": ".local/gate-6/handoff-read-final-http-reference.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "exit_code": 0
+    },
+    {
+      "name": "contracts",
+      "command": [
+        ".local/gate-6/verification-venv/bin/python",
+        "scripts/check-gate6-contracts.py",
+        "--output",
+        ".local/gate-6/handoff-read-final-contracts.json"
+      ],
+      "path": ".local/gate-6/handoff-read-final-contracts.log",
+      "sha256": "78cfc70fabfe40c258a81a74c0024b55e339db8c2bfff88d01f70f5b89f49d39",
+      "exit_code": 0
+    },
+    {
+      "name": "dependencies",
+      "command": [
+        "bash",
+        "scripts/prepare-dependencies.sh"
+      ],
+      "path": ".local/gate-6/handoff-read-final-dependencies.log",
+      "sha256": "fd9d7b181e3ccba9b643af55a186cf132c60aac99c734b2ee4e4e549afe5ffc2",
+      "exit_code": 0
+    },
+    {
+      "name": "diff",
+      "command": [
+        "git",
+        "diff",
+        "--check"
+      ],
+      "path": ".local/gate-6/handoff-read-final-diff.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "exit_code": 0
+    },
+    {
+      "name": "progress",
+      "command": [
+        "python3",
+        "scripts/check-gate6-progress.py"
+      ],
+      "path": ".local/gate-6/handoff-read-final-progress.log",
+      "sha256": "f3b9b4aefb902a70b4b09f47531c703f1026a2ea42e13759c3e88205978e6125",
+      "exit_code": 0
+    }
+  ],
+  "implemented": [
+    "Independent current incoming native offer policy with named target handoff permission",
+    "Complete current native roster and exact physical/key/device/endpoint/member bindings",
+    "Bounded owned readers and current bilateral recipient/subscription/observation grants",
+    "Incoming/retained and all-outgoing observer/leave purpose-bound planning pairs",
+    "Own-context-only private replacement; unrelated held remote refusal; separate public AI target with private leg quarantined",
+    "Current exact metadata origins remain idle-reader-free; no role/history widening"
+  ],
+  "not_implemented": [
+    "Durable native handoff attempt custody and generic-worker exclusion",
+    "Actual Core duplex-ready role/media commit and captured result journaling",
+    "Native runtime public dispatch and actual AI/human/failure/recovery behavior"
+  ],
+  "tested_source_snapshot": {
+    "path": ".local/gate-6/handoff-read-final-inputs.json",
+    "sha256": "67bc0e8f2794b3a6bb412e8fa2b5b415c74856ce045f109704d9400bec473ddb",
+    "inputs": 1160
+  },
+  "post_test_documentation_delta": {
+    "docs/connect-gate-6-implementation.html": {
+      "before": "88b330f2461366224d7b056e149ae1b3386e032b4a13b833eedbc0e70bf04cf2",
+      "after": "291db27ed5f9f25d43e6659dc17fcedcf0266b371ffe1006d13c10d9c32a0962"
+    }
+  },
+  "production_and_rust_test_inputs_unchanged": true,
+  "previous_checkpoint": {
+    "path": "docs/evidence/gate-6/native-handoff-source.json",
+    "sha256": "416c488342f5c7a9071b93e613b31e79afdaa78d68002f6fbde94b5e3cc92661"
+  },
+  "next_requirements": {
+    "path": ".local/gate-6/handoff-read-next.json",
+    "sha256": "624534a545595f21199022c3def1e167265667603b3b8cc519bfddfe470c16e8"
+  },
+  "diagnostics": [
+    "An intermediate test run was terminated after a test held the Store mutex while calling revalidate; fixed test lock lifetime.",
+    "Intermediate private AI tests exposed missing fixture provider readiness. Incoming private AI now refuses before provider use; an unselected own private candidate uses current physical closure facts with no handoff routes.",
+    "Review added the reverse private-candidate outgoing observer/leave case; the final full Store suite covers the corrected distinction."
+  ],
+  "not_claimed": [
+    "Actual handoff execution, incoming decoded readiness or a new human consent gesture",
+    "Live model memory/provider, Linux/browser/remote/performance/acceptance qualification",
+    "Full workspace test run, commit, push or publication"
+  ],
+  "all_started_processes_terminal": true
+}

@@ -292,11 +292,11 @@ def scenario(args, work, mode):
     result = {'status': 'running', 'case': mode}
     with Server(state, binary=args.server_binary, log_path=work / 'server.log'):
         first = fixture.native_request(state, 'reviews', {'op': 'send', 'request_id': 'before-cleanup',
-            'conversation_id': conversation, 'body': 'History before native cleanup'}, args.server_binary)
+            'conversation_id': conversation, "message": {'to': 'all', 'content_type': 'text/plain', 'body': 'History before native cleanup', 'body_encoding': 'utf8', 'label': 'connect-messages', 'attachments': [], 'in_reply_to_msg': None, 'msg_id': None}}, args.server_binary)
         result['fault'] = pair(args, state, identities, conversation, session, work / 'fault', mode)
         result['continuity'] = continuity(state, conversation, session, args, [first['message_id']])
         followup = fixture.native_request(state, 'agent', {'op': 'send', 'request_id': 'after-cleanup',
-            'conversation_id': conversation, 'body': 'Conversation continues after native cleanup'}, args.server_binary)
+            'conversation_id': conversation, "message": {'to': 'all', 'content_type': 'text/plain', 'body': 'Conversation continues after native cleanup', 'body_encoding': 'utf8', 'label': 'connect-messages', 'attachments': [], 'in_reply_to_msg': None, 'msg_id': None}}, args.server_binary)
         ids = [first['message_id'], followup['message_id']]
         result['continued_communication'] = continuity(state, conversation, session, args, ids)
         result['fresh_reattachment'] = pair(args, state, identities, conversation, session,

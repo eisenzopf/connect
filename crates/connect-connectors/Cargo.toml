@@ -7,6 +7,7 @@ license.workspace = true
 publish = false
 [dependencies]
 connect-connector-api.workspace = true
+connect-connector-http.workspace = true
 reqwest.workspace = true
 async-trait.workspace = true
 serde.workspace = true

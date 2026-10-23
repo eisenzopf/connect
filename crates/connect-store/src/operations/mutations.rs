@@ -1,21 +1,55 @@
 //! Existing mutation implementations; network dispatch remains outside SQLite.
 use super::invalid;
-use crate::conversations::{authorized_conversation, capacity, insert_event};
 use crate::{Actor, Store};
-use connect_protocol::{Conversation, Error, Operation, Outcome, Result};
-use rusqlite::{params, Connection};
+use connect_protocol::{Operation, Outcome, Result};
+use rusqlite::Connection;
 pub(super) fn apply(
     c: &Connection,
     actor: &Actor,
     operation: &Operation,
     resources: &[String],
     store: &Store,
+    create_id: Option<&str>,
 ) -> Result<Outcome> {
     let credential_id = actor.credential_id.as_str();
     let request_id = operation
         .request_id()
         .ok_or_else(|| invalid("Logical request ID is required"))?;
     match operation {
+        Operation::ConnectionPrepare { request } => {
+            crate::connection_control::apply(c, actor, request, store)
+        }
+        Operation::SessionControl { request } => {
+            crate::session_control::apply(c, actor, request, store)
+        }
+        Operation::SessionDecision { request } => {
+            crate::session_decisions::apply(c, actor, request, resources, store)
+                .map(Outcome::SessionDecision)
+        }
+        Operation::Membership { request } => {
+            crate::membership::control::apply(c, actor, request, store).map(Outcome::Membership)
+        }
+        Operation::MessageReceipt {
+            conversation_id,
+            message_id,
+            state,
+            ..
+        } => crate::recipient_receipts::acknowledge(
+            c,
+            actor,
+            conversation_id,
+            message_id,
+            *state,
+            store,
+        ),
+        Operation::ReceiptPreferencesSet {
+            conversation_id,
+            delivery,
+            read,
+            ..
+        } => {
+            crate::recipient_receipts::set_preferences(c, actor, conversation_id, *delivery, *read)
+        }
         Operation::ContactPairingStart {
             peer_identity_id,
             expires_at,
@@ -108,7 +142,7 @@ pub(super) fn apply(
             actor,
             conversation_id,
             session_id,
-            crate::sessions::Transition::Cancel,
+            crate::sessions::Transition::Cancel(None),
             resources,
             store,
         )
@@ -184,6 +218,13 @@ pub(super) fn apply(
             offset,
             data,
             ..
+        }
+        | Operation::ArtifactLinkAppend {
+            conversation_id,
+            artifact_id,
+            offset,
+            data,
+            ..
         } => crate::artifacts::append(c, actor, conversation_id, artifact_id, *offset, data, store)
             .map(Outcome::Artifact),
         Operation::ArtifactFinish {
@@ -198,106 +239,34 @@ pub(super) fn apply(
             ..
         } => crate::artifacts::delete(c, actor, conversation_id, artifact_id, resources, store)
             .map(Outcome::Artifact),
-        Operation::Create { .. } => {
-            if capacity(c, resources.len() as u64, 0, store)? {
-                let id = uuid::Uuid::new_v4().to_string();
-                c.execute("INSERT INTO conversations(id) VALUES(?1)", [&id])
-                    .map_err(|_| Error::storage())?;
-                for member in resources {
-                    c.execute(
-                        "INSERT INTO participants(conversation_id,identity_id) VALUES(?1,?2)",
-                        params![id, member],
-                    )
-                    .map_err(|_| Error::storage())?;
-                    insert_event(c, member, &id, "conversation_created", None)?;
-                }
-                Ok(Outcome::Conversation(Conversation {
-                    id,
-                    participants: resources.to_vec(),
-                    closed: false,
-                }))
-            } else {
-                Err(Error::new(
-                    "capacity-exceeded",
-                    "Durable event capacity exceeded",
-                ))
-            }
-        }
+        Operation::Create { request, .. } => crate::conversation_control::create(
+            c,
+            actor,
+            create_id.ok_or_else(connect_protocol::Error::forbidden)?,
+            request,
+            resources,
+            store,
+        )
+        .map(Outcome::Conversation),
         Operation::Send {
             conversation_id,
-            body,
+            message,
             ..
         } => {
-            let conversation = authorized_conversation(c, actor, conversation_id)?;
-            if conversation.closed {
-                Err(Error::new(
-                    "conversation-closed",
-                    "Conversation no longer accepts messages",
-                ))
-            } else if body.is_empty() || body.len() > store.limits.message_bytes {
-                Err(invalid(
-                    "Message must be nonempty and within the byte limit",
-                ))
-            } else if !capacity(c, resources.len() as u64, body.len() as u64, store)? {
-                Err(Error::new(
-                    "capacity-exceeded",
-                    "Durable message or event capacity exceeded",
-                ))
-            } else {
-                let id = uuid::Uuid::new_v4().to_string();
-                c.execute(
-                    "INSERT INTO messages(id,conversation_id,sender,body) VALUES(?1,?2,?3,?4)",
-                    params![id, conversation_id, actor.identity_id, body],
-                )
-                .map_err(|_| Error::storage())?;
-                for member in resources {
-                    insert_event(c, member, conversation_id, "message", Some(&id))?;
-                }
-                crate::providers::enqueue(
-                    c,
-                    &id,
-                    conversation_id,
-                    &actor.identity_id,
-                    credential_id,
-                    store.limits.operation_receipts,
-                )?;
-                Ok(Outcome::Accepted {
-                    request_id: request_id.into(),
-                    message_id: id,
-                    conversation_id: conversation_id.clone(),
-                })
-            }
+            let id = crate::messages::write(c, actor, conversation_id, message.clone(), store)?;
+            Ok(Outcome::Accepted {
+                receipt: None,
+                request_id: request_id.into(),
+                message_id: id,
+                conversation_id: conversation_id.clone(),
+            })
         }
         Operation::Close {
-            conversation_id, ..
-        } => {
-            let conversation = authorized_conversation(c, actor, conversation_id)?;
-            if conversation.closed {
-                Ok(Outcome::Conversation(conversation))
-            } else if let Err(error) =
-                crate::sessions::ensure_conversation_closable(c, conversation_id)
-            {
-                Err(error)
-            } else if !capacity(c, resources.len() as u64, 0, store)? {
-                Err(Error::new(
-                    "capacity-exceeded",
-                    "Durable event capacity exceeded",
-                ))
-            } else {
-                c.execute(
-                    "UPDATE conversations SET closed=1 WHERE id=?1",
-                    [conversation_id],
-                )
-                .map_err(|_| Error::storage())?;
-                for member in resources {
-                    insert_event(c, member, conversation_id, "conversation_closed", None)?;
-                }
-                Ok(Outcome::Conversation(Conversation {
-                    closed: true,
-                    ..conversation
-                }))
-            }
-        }
+            conversation_id,
+            options,
+            ..
+        } => crate::conversation_control::close(c, actor, conversation_id, options, store)
+            .map(Outcome::Conversation),
         _ => Err(invalid("Unsupported mutation")),
     }
 }

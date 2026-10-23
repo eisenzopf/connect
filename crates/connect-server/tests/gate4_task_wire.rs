@@ -42,7 +42,9 @@ async fn cached_task_support_cannot_borrow_a_revoked_backing_credential() {
             operation: Box::new(Operation::Send {
                 request_id: "revoked-send".into(),
                 conversation_id: h.cid.clone(),
-                body: "Must not reach the peer.".into(),
+                message: connect_protocol::messages::MessageDraft::text_all(
+                    "Must not reach the peer.",
+                ),
             }),
             reply_to: None,
             wait_for_reply: false,
@@ -123,7 +125,7 @@ async fn another_conversation_and_nested_task_command_cannot_escape_task_scope()
             Operation::Send {
                 request_id: "cross-conversation".into(),
                 conversation_id: other.id.clone(),
-                body: "must not send".into(),
+                message: connect_protocol::messages::MessageDraft::text_all("must not send"),
             },
         ),
         (

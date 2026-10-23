@@ -1,0 +1,698 @@
+diff --git a/Cargo.lock b/Cargo.lock
+--- a/Cargo.lock
++++ b/Cargo.lock
+@@ -7938,6 +7938,7 @@
+  "rustls",
+  "rvoip-auth-core",
+  "rvoip-core",
++ "rvoip-media-core",
+  "rvoip-uctp",
+  "rvoip-webrtc",
+  "serde",
+diff --git a/crates/uctp/rvoip-websocket/Cargo.toml b/crates/uctp/rvoip-websocket/Cargo.toml
+--- a/crates/uctp/rvoip-websocket/Cargo.toml
++++ b/crates/uctp/rvoip-websocket/Cargo.toml
+@@ -66,6 +66,7 @@
+ required-features = ["wss"]
+ 
+ [dev-dependencies]
++rvoip-media-core = { workspace = true, features = ["opus"] }
+ rvoip-webrtc.workspace = true
+ rustls.workspace = true
+ tokio = { workspace = true, features = ["full", "test-util"] }
+diff --git a/crates/uctp/rvoip-websocket/src/media_bridge.rs b/crates/uctp/rvoip-websocket/src/media_bridge.rs
+--- a/crates/uctp/rvoip-websocket/src/media_bridge.rs
++++ b/crates/uctp/rvoip-websocket/src/media_bridge.rs
+@@ -79,10 +79,12 @@
+     use rvoip_core::stream::MediaStream;
+     use rvoip_uctp::payloads::connection::{IceCandidateInit, WebRtcSubstrateSetup};
+     use rvoip_webrtc::config::{MdnsCandidatePolicy, WebRtcConfig};
+-    use rvoip_webrtc::media::{from_tracks, WebRtcMediaStream};
++    use rvoip_webrtc::media::{from_tracks_with_audio_queue_capacity, WebRtcMediaStream};
+     use rvoip_webrtc::peer::{PeerRole, RvoipPeerConnection};
+     use rvoip_webrtc::sdp::default_webrtc_capabilities;
+     use rvoip_webrtc::RTCIceCandidateInit;
++    use tokio::task::JoinHandle;
++    use tokio_util::sync::CancellationToken;
+ 
+     use super::{BridgeRole, Result, UctpWsError};
+ 
+@@ -91,7 +93,10 @@
+         role: BridgeRole,
+         stream_id: StreamId,
+         codec: CodecInfo,
+-        media: Mutex<Option<Arc<WebRtcMediaStream>>>,
++        media: Arc<Mutex<Option<Arc<WebRtcMediaStream>>>>,
++        cancel: CancellationToken,
++        closed: tokio::sync::Mutex<bool>,
++        track_attacher: Mutex<Option<JoinHandle<()>>>,
+         remote_offer_applied: Mutex<bool>,
+     }
+ 
+@@ -135,7 +140,10 @@
+                 role,
+                 stream_id: StreamId::new(),
+                 codec,
+-                media: Mutex::new(None),
++                media: Arc::new(Mutex::new(None)),
++                cancel: CancellationToken::new(),
++                closed: tokio::sync::Mutex::new(false),
++                track_attacher: Mutex::new(None),
+                 remote_offer_applied: Mutex::new(false),
+             })
+         }
+@@ -256,10 +264,11 @@
+ 
+         /// Wait for ICE/DTLS to reach connected, then ensure media pumps are wired.
+         pub async fn wait_connected(&self, timeout: Duration) -> Result<()> {
++            if self.cancel.is_cancelled() {
++                return Err(UctpWsError::WebRtc("media bridge is closed".into()));
++            }
+             self.peer.wait_connected(timeout).await?;
+-            self.ensure_media_stream().await?;
+-            self.attach_remote_if_ready(Duration::from_secs(2)).await;
+-            Ok(())
++            self.ensure_media_stream().await
+         }
+ 
+         /// Access the bridged voip-3 media stream (after setup + connect).
+@@ -268,19 +277,34 @@
+         }
+ 
+         pub async fn close(&self) -> Result<()> {
++            // Serialize cleanup and retain completion for repeated callers.
++            let mut closed = self.closed.lock().await;
++            if *closed {
++                return Ok(());
++            }
+             // Drop the parking_lot guard before any .await — guards are
+             // !Send and would prevent close() from being .spawn()ed.
++            self.cancel.cancel();
+             let media = self.media.lock().take();
++            let task = self.track_attacher.lock().take();
++            if let Some(task) = task {
++                task.abort();
++                let _ = task.await;
++            }
+             if let Some(stream) = media {
+                 stream.close().await.ok();
+             }
+             self.peer.close().await?;
++            *closed = true;
+             Ok(())
+         }
+ 
+         async fn ensure_media_stream(&self) -> Result<()> {
+             // Take any potentially-blocking work (track waits) outside the
+             // sync mutex; only hold the guard for the actual slot mutation.
++            if self.cancel.is_cancelled() {
++                return Err(UctpWsError::WebRtc("media bridge is closed".into()));
++            }
+             if self.media.lock().is_some() {
+                 return Ok(());
+             }
+@@ -294,45 +318,76 @@
+                 .local_audio_ssrc()
+                 .ok_or_else(|| UctpWsError::WebRtc("no local audio ssrc".into()))?;
+ 
+-            let remote = self
+-                .peer
+-                .wait_remote_track(Duration::from_millis(500))
+-                .await
+-                .or(self.peer.try_recv_remote_track().await);
+-
+             // PT 111 is the Opus default carried by `default_webrtc_capabilities`
+             // and registered in `peer::builder`; aligned with the QUIC/WT
+             // adapters' codec_to_pt mapping.
+             const OPUS_PT: u8 = 111;
+ 
+             let mut guard = self.media.lock();
++            if self.cancel.is_cancelled() {
++                return Err(UctpWsError::WebRtc("media bridge is closed".into()));
++            }
+             if guard.is_some() {
+                 return Ok(());
+             }
+-            *guard = Some(from_tracks(
++            *guard = Some(from_tracks_with_audio_queue_capacity(
+                 self.stream_id.clone(),
+                 self.codec.clone(),
+                 local,
+                 local_ssrc,
+                 OPUS_PT,
+-                remote,
++                None,
++                // Gate 6: at most ten 20 ms audio frames in either queue.
++                std::num::NonZeroUsize::new(10).expect("nonzero audio queue bound"),
+             ));
++            // Install the one owned attacher under the media slot lock. Close
++            // removes that slot before joining/closing pumps, so no late task
++            // can attach a new inbound pump after shutdown has drained them.
++            let peer = Arc::downgrade(&self.peer);
++            let media = Arc::downgrade(&self.media);
++            let cancel = self.cancel.clone();
++            *self.track_attacher.lock() = Some(tokio::spawn(async move {
++                loop {
++                    let Some(peer) = peer.upgrade() else {
++                        return;
++                    };
++                    let remote = tokio::select! {
++                        biased;
++                        _ = cancel.cancelled() => return,
++                        track = peer.wait_remote_track(Duration::from_millis(100)) => track,
++                    };
++                    drop(peer);
++                    if let Some(remote) = remote {
++                        let Some(media) = media.upgrade() else {
++                            return;
++                        };
++                        let slot = media.lock();
++                        if cancel.is_cancelled() {
++                            return;
++                        }
++                        let Some(stream) = slot.as_ref() else {
++                            return;
++                        };
++                        // WebRtcMediaStream deduplicates physical track identity;
++                        // transceiver discovery also survives a consumed hint.
++                        stream.attach_remote(remote);
++                    }
++                    tokio::select! {
++                        biased;
++                        _ = cancel.cancelled() => return,
++                        _ = tokio::time::sleep(Duration::from_millis(20)) => {},
++                    }
++                }
++            }));
+             Ok(())
+         }
+-
+-        async fn attach_remote_if_ready(&self, timeout: Duration) {
+-            let remote = self
+-                .peer
+-                .wait_remote_track(timeout)
+-                .await
+-                .or(self.peer.try_recv_remote_track().await);
+-
+-            let Some(remote) = remote else {
+-                return;
+-            };
+-
+-            if let Some(stream) = self.media.lock().as_ref() {
+-                stream.attach_remote(remote);
++    }
++
++    impl Drop for WebRtcMediaBridge {
++        fn drop(&mut self) {
++            self.cancel.cancel();
++            if let Some(task) = self.track_attacher.get_mut().take() {
++                task.abort();
+             }
+         }
+     }
+diff --git a/crates/uctp/rvoip-websocket/tests/media_bridge_loopback.rs b/crates/uctp/rvoip-websocket/tests/media_bridge_loopback.rs
+--- a/crates/uctp/rvoip-websocket/tests/media_bridge_loopback.rs
++++ b/crates/uctp/rvoip-websocket/tests/media_bridge_loopback.rs
+@@ -64,3 +64,155 @@
+     offerer.close().await.ok();
+     answerer.close().await.ok();
+ }
++
++/// Media must start through the public stream after signaling is ready; no
++/// test-owned on_track polling, track priming or manual attach is permitted.
++#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
++async fn delayed_bidirectional_opus_is_automatically_attached_and_decodes_after_connection_wait() {
++    use rvoip_core::stream::{MediaFrame, MediaStream, StreamKind};
++    use rvoip_media_core::{codec::factory::CodecFactory, AudioFrame};
++    use std::sync::Arc;
++    let _ = rustls::crypto::ring::default_provider().install_default();
++    let a = WebRtcMediaBridge::new_offerer().await.unwrap();
++    let b = WebRtcMediaBridge::new_answerer().await.unwrap();
++    b.set_remote_substrate_setup(a.local_substrate_setup().await.unwrap())
++        .await
++        .unwrap();
++    a.set_remote_substrate_setup(b.local_substrate_setup().await.unwrap())
++        .await
++        .unwrap();
++    let (ar, br) = tokio::join!(
++        a.wait_connected(Duration::from_secs(10)),
++        b.wait_connected(Duration::from_secs(10))
++    );
++    ar.unwrap();
++    br.unwrap();
++    // No media has flowed during the initial bounded track wait. This is
++    // deliberately after wait_connected returns, as a real idle caller does.
++    tokio::time::sleep(Duration::from_millis(150)).await;
++    let sa = a.media_stream().unwrap();
++    let sb = b.media_stream().unwrap();
++    let mut ia = sa.try_frames_in().unwrap();
++    let mut ib = sb.try_frames_in().unwrap();
++    assert_eq!(sa.frames_out().max_capacity(), 10);
++    assert_eq!(sb.frames_out().max_capacity(), 10);
++    assert_eq!(ia.max_capacity(), 10);
++    assert_eq!(ib.max_capacity(), 10);
++    assert!(tokio::time::timeout(Duration::from_millis(30), ia.recv())
++        .await
++        .is_err());
++    assert!(tokio::time::timeout(Duration::from_millis(30), ib.recv())
++        .await
++        .is_err());
++    for (source, destination) in [(&sa, &mut ib), (&sb, &mut ia)] {
++        let mut encoder = CodecFactory::create_codec(111, Some(48_000), Some(1)).unwrap();
++        let mut decoder = CodecFactory::create_codec(111, Some(48_000), Some(1)).unwrap();
++        let mut decoded = Vec::new();
++        for n in 0..5usize {
++            let samples = (0..960)
++                .map(|i| {
++                    let sample = ((std::f64::consts::TAU * 440.0 * (n * 960 + i) as f64 / 48_000.0)
++                        .sin()
++                        * 7000.0) as i16;
++                    sample
++                })
++                .collect();
++            let body = encoder
++                .encode(&AudioFrame {
++                    samples,
++                    sample_rate: 48_000,
++                    channels: 1,
++                    duration: Duration::from_millis(20),
++                    timestamp: (n * 960) as u32,
++                })
++                .unwrap();
++            source
++                .frames_out()
++                .send(MediaFrame {
++                    source_clock: None,
++                    stream_id: source.id(),
++                    kind: StreamKind::Audio,
++                    payload: body.clone().into(),
++                    timestamp_rtp: (n * 960) as u32,
++                    captured_at: chrono::Utc::now(),
++                    payload_type: None,
++                })
++                .await
++                .unwrap();
++            let frame = tokio::time::timeout(Duration::from_secs(2), destination.recv())
++                .await
++                .expect("late track was not automatically attached")
++                .expect("receiver closed");
++            assert_eq!(frame.payload.as_ref(), body.as_slice());
++            assert_eq!(frame.timestamp_rtp, (n * 960) as u32);
++            assert_eq!(frame.kind, StreamKind::Audio);
++            let pcm = decoder.decode(&frame.payload).unwrap();
++            assert_eq!(
++                (pcm.sample_rate, pcm.channels, pcm.samples.len()),
++                (48_000, 1, 960)
++            );
++            if n > 0 {
++                decoded.extend(pcm.samples);
++            }
++        }
++        let mean = decoded.iter().map(|s| f64::from(*s).abs()).sum::<f64>() / decoded.len() as f64;
++        let crossings = decoded.windows(2).filter(|v| v[0] < 0 && v[1] >= 0).count();
++        let hz = crossings as f64 * 48_000.0 / decoded.len() as f64;
++        assert!(mean > 500.0, "silent audio");
++        assert!(
++            (380.0..500.0).contains(&hz),
++            "wrong decoded frequency: {hz}"
++        );
++    }
++    // Repeated setup cannot create another pump or change the receiver owner.
++    a.wait_connected(Duration::from_secs(2)).await.unwrap();
++    b.wait_connected(Duration::from_secs(2)).await.unwrap();
++    assert!(Arc::ptr_eq(&sa, &a.media_stream().unwrap()));
++    assert!(sa.try_frames_in().is_err());
++    a.close().await.unwrap();
++    b.close().await.unwrap();
++    assert!(a.media_stream().is_none() && b.media_stream().is_none());
++    assert!(sa.frames_out().is_closed() && sb.frames_out().is_closed());
++}
++
++#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
++async fn closing_idle_bridge_joins_track_attacher_and_cannot_recreate_media() {
++    use std::sync::Arc;
++    let _ = rustls::crypto::ring::default_provider().install_default();
++    let a = WebRtcMediaBridge::new_offerer().await.unwrap();
++    let b = WebRtcMediaBridge::new_answerer().await.unwrap();
++    b.set_remote_substrate_setup(a.local_substrate_setup().await.unwrap())
++        .await
++        .unwrap();
++    a.set_remote_substrate_setup(b.local_substrate_setup().await.unwrap())
++        .await
++        .unwrap();
++    let (ar, br) = tokio::join!(
++        a.wait_connected(Duration::from_secs(10)),
++        b.wait_connected(Duration::from_secs(10))
++    );
++    ar.unwrap();
++    br.unwrap();
++    let weak_peer = Arc::downgrade(a.peer());
++    tokio::time::timeout(Duration::from_secs(2), a.close())
++        .await
++        .unwrap()
++        .unwrap();
++    assert!(a.media_stream().is_none());
++    assert!(tokio::time::timeout(
++        Duration::from_millis(100),
++        a.wait_connected(Duration::from_secs(2))
++    )
++    .await
++    .unwrap()
++    .is_err());
++    assert!(a.local_substrate_setup().await.is_err());
++    assert!(a.media_stream().is_none());
++    a.close().await.unwrap();
++    b.close().await.unwrap();
++    drop(a);
++    assert!(
++        weak_peer.upgrade().is_none(),
++        "owned attacher retained closed peer"
++    );
++}
+diff --git a/crates/uctp/rvoip-websocket/tests/ws_bridge_flow.rs b/crates/uctp/rvoip-websocket/tests/ws_bridge_flow.rs
+--- a/crates/uctp/rvoip-websocket/tests/ws_bridge_flow.rs
++++ b/crates/uctp/rvoip-websocket/tests/ws_bridge_flow.rs
+@@ -1,38 +1,8 @@
+-//! WS↔WS end-to-end bridge proof (Phase G3).
+-//!
+-//! Verifies the gap-completion claim that with `rvoip-webrtc` in place,
+-//! WebSocket connections under a single Orchestrator can be bridged
+-//! end-to-end with real audio flowing across the cross-transport pump.
+-//!
+-//! Architecture:
+-//!
+-//! 1. **One** `UctpWsAdapter` (server) registered on an `Orchestrator`.
+-//! 2. **Two** `UctpWsClient`s dial in over plain ws:// — they drive the
+-//!    UCTP bearer-auth handshake + send `session.invite`. The server's
+-//!    coordinator emits an `InboundConnection` event per client.
+-//! 3. Under `media-webrtc`, the server's InboundInvite handler kicks off
+-//!    a per-Connection `WebRtcMediaBridge::new_answerer()` construction
+-//!    task. The test waits on `adapter.wait_bridge_for(...)` to obtain
+-//!    each answerer handle.
+-//! 4. The test creates two offerer `WebRtcMediaBridge`s client-side, then
+-//!    drives the substrate_setup SDP exchange directly against each
+-//!    answerer (offerer.local → answerer.set_remote → answerer.local →
+-//!    offerer.set_remote). This is the in-test analog of the production
+-//!    `connection.offer` / `connection.answer` envelope round-trip; v0.x
+-//!    will move the SDP exchange into envelope interception inside the
+-//!    WS server. For v0 the direct-access path proves the audio plane
+-//!    works end-to-end.
+-//! 5. After both peer connections reach `wait_connected`, the server's
+-//!    ready-watcher (spawned by `spawn_bridge_setup`) inserts each
+-//!    answerer's `WebRtcMediaStream` into the `Route.streams` map, which
+-//!    makes `adapter.streams(conn_id)` return a non-empty Vec.
+-//! 6. `orchestrator.bridge_connections(a, b)` resolves both audio streams
+-//!    and spawns the cross-transport frame pump.
+-//! 7. Frames injected at `offerer_1.media_stream().frames_out()` flow
+-//!    over SRTP → answerer_1 → pump → answerer_2 → SRTP → and arrive at
+-//!    `offerer_2.media_stream().frames_in()`. The test asserts 10 frames
+-//!    are delivered in order with payload bytes preserved (Opus PT 111
+-//!    passthrough; no transcoding).
++//! WS control with co-located SRTP media, bridged through public Core streams.
++//! This engine fixture uses the existing isolated bearer-stub/legacy envelope
++//! helper and direct SDP exchange; it does not qualify production canonical
++//! Store/journal/service installation. Media uses real encoded mono Opus,
++//! with no priming packets, manual track attachment, or test-owned on_track reads.
+ 
+ #![cfg(feature = "media-webrtc")]
+ 
+@@ -46,10 +16,10 @@
+ use rvoip_core::ids::ConnectionId;
+ use rvoip_core::stream::{MediaFrame, MediaStream, StreamKind};
+ use rvoip_core::{Config, Orchestrator};
++use rvoip_media_core::{codec::factory::CodecFactory, AudioFrame};
+ use rvoip_uctp::envelope::UctpEnvelope;
+ use rvoip_uctp::payloads::{auth, session::SessionInvite};
+ use rvoip_uctp::types::MessageType;
+-use rvoip_webrtc::peer::RvoipPeerConnection;
+ use rvoip_websocket::{UctpWsAdapter, UctpWsClient, UctpWsConfig, WebRtcMediaBridge};
+ use tokio::net::TcpListener;
+ use url::Url;
+@@ -127,7 +97,7 @@
+ 
+ #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+ async fn ws_to_ws_bridge_flows_frames_end_to_end() {
+-    let _ = tracing_subscriber::fmt::try_init();
++    let _ = tracing_subscriber::fmt().with_test_writer().try_init();
+     install_crypto_provider();
+ 
+     // --- Server ---
+@@ -265,36 +235,6 @@
+     a1.expect("answerer 1 connected");
+     a2.expect("answerer 2 connected");
+     eprintln!("✓ all 4 peers DTLS-connected");
+-
+-    // --- Prime the forward-direction tracks so answerer_1 + offerer_2 see
+-    // their `on_track` events. webrtc-rs fires `on_track` only after the
+-    // receiver sees its first inbound RTP packet; `WebRtcMediaBridge::wait_connected`
+-    // does a brief `attach_remote_if_ready`, but no RTP has flowed yet at
+-    // that point so the track isn't attached.
+-    //
+-    // For the A→B direction we need:
+-    //   1. answerer_1.attach_remote(track from offerer_1) — primed below.
+-    //   2. offerer_2.attach_remote(track from answerer_2) — primed AFTER
+-    //      bridge_connections, because answerer_2 only sends RTP once the
+-    //      bridge pump writes to its frames_out_tx. (Priming offerer_2
+-    //      directly from answerer_2 would work, but the WebRTC peer
+-    //      connection only has one inbound audio track and the bridge
+-    //      pump's pushed frames would race the prime helper for it.)
+-    //
+-    // The B→A direction (offerer_2 → answerer_2 → bridge → answerer_1 →
+-    // offerer_1) is not exercised by this test; we leave those tracks
+-    // unattached. ---
+-    let prime_timeout = Duration::from_secs(10);
+-    let a1_remote =
+-        RvoipPeerConnection::prime_remote_track(offerer_1.peer(), answerer_1.peer(), prime_timeout)
+-            .await
+-            .expect("answerer 1 receives offerer 1 track");
+-
+-    eprintln!("✓ primed offerer_1 → answerer_1; attaching remote");
+-    answerer_1
+-        .media_stream()
+-        .expect("answerer 1 stream")
+-        .attach_remote(a1_remote);
+ 
+     // --- Wait for the server's ready-watcher to push streams into routes.
+     //     `bridge_connections` polls internally too, but we explicitly verify
+@@ -327,100 +267,69 @@
+         .expect("bridge succeeds — both sides have streams");
+     eprintln!("✓ orchestrator bridge created");
+ 
+-    // --- After bridge_connections, the orchestrator's frame pump starts
+-    // consuming answerer_1.frames_in() and forwarding to answerer_2.frames_out().
+-    // The priming silent-RTP packets that landed in answerer_1.frames_in
+-    // (during the earlier prime_remote_track call) now flow through the
+-    // bridge: answerer_2 sends them via WebRTC to offerer_2. Once offerer_2
+-    // sees the first inbound RTP packet, its on_track event fires; we then
+-    // attach the remote to offerer_2's MediaStream so its inbound pump
+-    // begins emitting frames into frames_in_rx.
+-    //
+-    // Poll up to 5s for the on_track event. ---
+-    let o2_remote = {
+-        let deadline = tokio::time::Instant::now() + Duration::from_secs(5);
+-        let mut found = None;
+-        while tokio::time::Instant::now() < deadline {
+-            if let Some(t) = offerer_2.peer().try_recv_remote_track().await {
+-                found = Some(t);
+-                break;
+-            }
+-            tokio::time::sleep(Duration::from_millis(50)).await;
+-        }
+-        found.expect("offerer_2 never observed remote track from answerer_2")
+-    };
+-    eprintln!("✓ offerer_2 observed remote track from answerer_2; attaching");
+-    offerer_2
+-        .media_stream()
+-        .expect("offerer 2 stream")
+-        .attach_remote(o2_remote);
+-
+-    // --- Inject 10 frames at offerer_1; observe on offerer_2 ---
+     let stream_1 = offerer_1.media_stream().expect("offerer 1 media stream");
+     let stream_2 = offerer_2.media_stream().expect("offerer 2 media stream");
+ 
+     let out_1 = rvoip_core::stream::MediaStream::frames_out(stream_1.as_ref());
+     let mut in_2 = stream_2.try_frames_in().expect("media receiver two");
+ 
+-    // Drain any priming-related frames already queued in offerer_2.frames_in
+-    // (silent RTP from the prime_remote_track step that flowed through the
+-    // bridge). We wait up to 500ms of quiescence to be confident the drain
+-    // is complete before injecting our test markers.
+-    let mut drained = 0;
+-    loop {
+-        match tokio::time::timeout(Duration::from_millis(500), in_2.recv()).await {
+-            Ok(Some(_)) => {
+-                drained += 1;
+-                continue;
+-            }
+-            _ => break,
++    let mut encoder = CodecFactory::create_codec(111, Some(48_000), Some(1)).unwrap();
++    let mut decoder = CodecFactory::create_codec(111, Some(48_000), Some(1)).unwrap();
++    let mut expected = Vec::new();
++    for n in 0..10usize {
++        let samples = (0..960)
++            .map(|i| {
++                let v = ((std::f64::consts::TAU * 440.0 * (n * 960 + i) as f64 / 48_000.0).sin()
++                    * 7000.0) as i16;
++                v
++            })
++            .collect();
++        let payload = encoder
++            .encode(&AudioFrame {
++                samples,
++                sample_rate: 48_000,
++                channels: 1,
++                duration: Duration::from_millis(20),
++                timestamp: (n * 960) as u32,
++            })
++            .unwrap();
++        expected.push(payload.clone());
++        out_1
++            .send(MediaFrame {
++                source_clock: None,
++                stream_id: stream_1.id(),
++                kind: StreamKind::Audio,
++                payload: payload.into(),
++                timestamp_rtp: (n * 960) as u32,
++                captured_at: Utc::now(),
++                payload_type: None,
++            })
++            .await
++            .unwrap();
++    }
++    let mut decoded = Vec::new();
++    for (n, want) in expected.into_iter().enumerate() {
++        let frame = tokio::time::timeout(Duration::from_secs(5), in_2.recv())
++            .await
++            .expect("Core WS/SRTP bridge did not attach delayed media")
++            .expect("recipient closed");
++        assert_eq!(frame.payload.as_ref(), want.as_slice(), "frame {n} changed");
++        let pcm = decoder.decode(&frame.payload).unwrap();
++        assert_eq!(
++            (pcm.sample_rate, pcm.channels, pcm.samples.len()),
++            (48_000, 1, 960)
++        );
++        if n > 0 {
++            decoded.extend(pcm.samples);
+         }
+     }
+-    eprintln!(
+-        "✓ drained {} priming frames; injecting test markers",
+-        drained
+-    );
+-
+-    // Inject codec payloads directly. `MediaFrame::payload` is deliberately
+-    // transport-neutral: the outbound WebRTC boundary wraps these bytes in
+-    // RTP, the remote inbound boundary strips RTP again, and the bridge keeps
+-    // the marker payload opaque throughout.
+-    for i in 0u8..10 {
+-        let marker = bytes::Bytes::from(vec![0xFA, 0xCE, 0xFE, 0xED, i]);
+-        let frame = MediaFrame {
+-            source_clock: None,
+-            stream_id: stream_1.id(),
+-            kind: StreamKind::Audio,
+-            payload: marker,
+-            timestamp_rtp: (100 + i as u32) * 960,
+-            captured_at: Utc::now(),
+-            payload_type: None,
+-        };
+-        out_1.send(frame).await.expect("inject");
+-    }
+-
+-    // Collect 10 marker frames, filtering out any stray priming packets
+-    // that race past our drain window (unlikely but defensive).
+-    let mut received: Vec<Vec<u8>> = Vec::new();
+-    while received.len() < 10 {
+-        let frame = tokio::time::timeout(Duration::from_secs(15), in_2.recv())
+-            .await
+-            .expect("timed out waiting for bridged frame on offerer_2")
+-            .expect("offerer_2 stream closed");
+-        let payload = frame.payload.to_vec();
+-        // Skip stray priming packets — markers start with 0xFA 0xCE 0xFE 0xED.
+-        if payload.len() == 5 && payload[..4] == [0xFA, 0xCE, 0xFE, 0xED] {
+-            received.push(payload);
+-        }
+-    }
+-
+-    for (i, payload) in received.iter().enumerate() {
+-        assert_eq!(
+-            payload,
+-            &vec![0xFA, 0xCE, 0xFE, 0xED, i as u8],
+-            "WS→WS frame {} corrupted or out of order: {:?}",
+-            i,
+-            payload
+-        );
+-    }
+-}
++    let mean = decoded.iter().map(|s| f64::from(*s).abs()).sum::<f64>() / decoded.len() as f64;
++    let crossings = decoded.windows(2).filter(|p| p[0] < 0 && p[1] >= 0).count();
++    let hz = crossings as f64 * 48_000.0 / decoded.len() as f64;
++    assert!(mean > 500.0);
++    assert!((380.0..500.0).contains(&hz), "wrong decoded frequency {hz}");
++    offerer_1.close().await.unwrap();
++    offerer_2.close().await.unwrap();
++    answerer_1.close().await.unwrap();
++    answerer_2.close().await.unwrap();
++}
+diff --git a/crates/webrtc/rvoip-webrtc/src/media/mod.rs b/crates/webrtc/rvoip-webrtc/src/media/mod.rs
+--- a/crates/webrtc/rvoip-webrtc/src/media/mod.rs
++++ b/crates/webrtc/rvoip-webrtc/src/media/mod.rs
+@@ -8,8 +8,8 @@
+ pub mod stats;
+ pub mod stream;
+ pub(crate) mod video;
++pub(crate) mod video_normalize;
+ pub(crate) mod video_reorder;
+-pub(crate) mod video_normalize;
+ 
+ pub use fixtures::{
+     opus_rtp_packet_for_ssrc, send_fixture_media_burst, vp8_rtp_packet_for_ssrc,
+@@ -20,7 +20,8 @@
+     CandidatePairStats, InboundStats, OutboundStats, WebRtcStatsSnapshot, FRAME_CHANNEL_CAP,
+ };
+ pub use stream::{
+-    from_tracks, from_tracks_with_dtmf_codecs, from_tracks_with_dtmf_events, WebRtcMediaStream,
++    from_tracks, from_tracks_with_audio_queue_capacity, from_tracks_with_dtmf_codecs,
++    from_tracks_with_dtmf_events, WebRtcMediaStream,
+ };
+ 
+ pub(crate) mod clock;
+diff --git a/crates/webrtc/rvoip-webrtc/src/media/stream.rs b/crates/webrtc/rvoip-webrtc/src/media/stream.rs
+--- a/crates/webrtc/rvoip-webrtc/src/media/stream.rs
++++ b/crates/webrtc/rvoip-webrtc/src/media/stream.rs
+@@ -179,6 +179,36 @@
+     remote: Option<Arc<dyn TrackRemote>>,
+ ) -> Arc<WebRtcMediaStream> {
+     from_tracks_with_dtmf_events(id, codec, local, local_ssrc, payload_type, remote, None)
++}
++
++/// Build an audio stream with an explicit frame bound in each direction.
++/// Uses the existing owned RTP writer and 200 ms local send deadline.
++#[allow(clippy::too_many_arguments)]
++pub fn from_tracks_with_audio_queue_capacity(
++    id: StreamId,
++    codec: CodecInfo,
++    local: Arc<TrackLocalStaticRTP>,
++    local_ssrc: u32,
++    payload_type: u8,
++    remote: Option<Arc<dyn TrackRemote>>,
++    capacity: std::num::NonZeroUsize,
++) -> Arc<WebRtcMediaStream> {
++    from_tracks_with_dtmf_events_and_task_counter(
++        id,
++        codec,
++        local,
++        local_ssrc,
++        payload_type,
++        remote,
++        None,
++        vec![TelephoneEventCodec::default()],
++        None,
++        None,
++        Some(capacity),
++        None,
++        None,
++        None,
++    )
+ }
+ 
+ /// Build a media stream and route inbound RFC 4733 telephone-events to

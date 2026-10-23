@@ -104,7 +104,9 @@ async fn current_grant_revoke_cancel_and_expiry_close_actual_task_audio_peers() 
                     Operation::Send {
                         request_id: "after-leg".into(),
                         conversation_id: f.h.cid.clone(),
-                        body: "The leg ended; the task and conversation continue".into(),
+                        message: connect_protocol::messages::MessageDraft::text_all(
+                            "The leg ended; the task and conversation continue",
+                        ),
                     },
                 ))
                 .await

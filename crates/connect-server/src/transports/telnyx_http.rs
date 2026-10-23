@@ -44,6 +44,7 @@ pub(super) async fn webhook(
     };
     let digest = connect_store::provider_event_digest(&event_bytes);
     let store = state.service.store.clone();
+    let routes = state.provider_routes.clone();
     let result = tokio::task::spawn_blocking(move || {
         let required = |field: &serde_json::Value| {
             field
@@ -79,6 +80,17 @@ pub(super) async fn webhook(
                             "SMS controls require provider occurred_at",
                         )
                     })?;
+                    if let Some(routes) = &routes {
+                        return store.receive_sms_control_for_routes(
+                            &format!("telnyx:{id}"),
+                            &digest,
+                            &from,
+                            &to,
+                            control,
+                            at,
+                            routes,
+                        );
+                    }
                     return store.receive_sms_control(
                         &format!("telnyx:{id}"),
                         &digest,
@@ -94,7 +106,21 @@ pub(super) async fn webhook(
                 {
                     return Ok(false);
                 }
-                store.receive_sms(&format!("telnyx:{id}"), &digest, &from, &to, &body)
+                let provider_id = required(&payload["id"])?;
+                let event_id = format!("telnyx:{id}");
+                let incoming = connect_store::SmsObservation {
+                    event_id: &event_id,
+                    event_digest: &digest,
+                    provider_id: &provider_id,
+                    from: &from,
+                    to: &to,
+                    body: &body,
+                    occurred_at,
+                };
+                if let Some(routes) = &routes {
+                    return store.receive_sms_for_routes(&incoming, routes);
+                }
+                store.receive_sms(&incoming)
             }
             "message.finalized" => {
                 let provider_id = required(&payload["id"])?;
@@ -107,6 +133,19 @@ pub(super) async fn webhook(
                         Ok(connect_connector_api::lifecycle::MessageState::Failed) => "failed",
                         _ => return Ok(false),
                     };
+                if let Some(routes) = &routes {
+                    let pair = payload["from"]["phone_number"]
+                        .as_str()
+                        .zip(payload["to"][0]["phone_number"].as_str());
+                    return store.delivery_sms_for_routes(
+                        &format!("telnyx:{id}"),
+                        &digest,
+                        &provider_id,
+                        final_state,
+                        routes,
+                        pair,
+                    );
+                }
                 store.delivery_sms(&format!("telnyx:{id}"), &digest, &provider_id, final_state)
             }
             _ => Ok(false),

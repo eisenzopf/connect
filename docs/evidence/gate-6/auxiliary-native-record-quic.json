@@ -1,0 +1,662 @@
+{
+  "task": "G6-046",
+  "title": "Actual native Record QUIC write custody and source-expiry wakeup",
+  "status": "component-qualified",
+  "component_passed": true,
+  "full_task_complete": false,
+  "full_goal_complete": false,
+  "created_at": "2026-10-22T00:00:21.030459+00:00",
+  "schema_version": 81,
+  "platform": "local macOS arm64",
+  "scope": "Isolated loopback signed native Record frames, current affected Connect regressions and Core/protocol record projection and reference regressions. No remote, Linux, browser or captured-media qualification.",
+  "source_lock": {
+    "path": "dependencies/source-lock.json",
+    "sha256": "7e6bbe02467fdd28b09b51cab033459a4e84c5906cd27b3ba976e0a773b0f7e6"
+  },
+  "pinned_patches": 131,
+  "patch": {
+    "path": "patches/rvoip/gate6-record-source-io-deadline.patch",
+    "sha256": "6c7d74c10bc918b5e8f2daea1387468c6c69cae58c3216a9f4244cd75566cfef"
+  },
+  "qualification_inputs": {
+    "path": ".local/gate-6/native-record-quic-inputs-final-v5.json",
+    "sha256": "551f018625153d8276118f3a7cc68c59bb85f943db5f152d9f5fa3013a8c29e3"
+  },
+  "qualification_input_count": 1322,
+  "fresh_distinct_connect_passed_tests": 215,
+  "fresh_distinct_upstream_passed_tests": 34,
+  "ignored_top_level_subprocess_helpers": 1,
+  "verification": [
+    {
+      "name": "client",
+      "binary": {
+        "path": "target/debug/deps/connect_client-6875aa276d41ab90",
+        "sha256": "67c368bfd9ea0363f0159942aa69938ff0a5fb5ccc727305cad42b61ef58cbff"
+      },
+      "arguments": [
+        "--test-threads=1"
+      ],
+      "exit_code": 0,
+      "passed": 56,
+      "failed": 0,
+      "ignored": 0,
+      "measured": 0,
+      "filtered_out": 0,
+      "seconds": 2.78,
+      "tests": [
+        "application::tests::application_configuration_rejects_header_controls_and_command_input_rejects_authority_claims",
+        "application::tests::application_errors_never_echo_untrusted_server_reason_or_code",
+        "application::tests::application_partial_cancellation_is_explicit_and_retry_preserves_logical_id",
+        "application::tests::application_preflight_cancellation_expiry_and_task_discovery_have_no_network_effect",
+        "application::tests::application_redirects_do_not_forward_the_credential",
+        "application::tests::application_responses_require_matching_profile_kind_and_success_status",
+        "application::tests::application_size_bounds_cover_announced_and_chunked_bodies",
+        "application::tests::canonical_commands_cannot_be_constructed_as_application_operations",
+        "application::tests::credential_revocation_correlates_immutable_target_and_requires_revoked_state",
+        "application::tests::incoming_contacts::incoming_decisions_correlate_original_contact_candidate_operation_state_and_kind",
+        "application::tests::incoming_contacts::incoming_invalid_cancelled_and_expired_commands_have_no_http_effect",
+        "application::tests::incoming_contacts::incoming_provider_errors_are_sanitized_and_never_retried_with_another_operation",
+        "application::tests::protected_application_task_grant_replaces_owner_and_cannot_extend_original_expiry",
+        "application::tests::provisioning_correlates_target_revision_revocation_profile_kind_and_status",
+        "application::tests::provisioning_preflight_rejects_path_injection_cancellation_expiry_and_oversize_without_network",
+        "application::tests::provisioning_uses_bounded_streaming_and_sanitized_errors_without_retry",
+        "application::tests::ready_http_chunks_cannot_extend_deadline_or_original_expiry",
+        "canonical::native::tests::native_confirmation_is_fresh_and_binds_every_original_resource",
+        "canonical::records::tests::record_decoder_does_not_accept_schema_invalid_json_with_a_valid_digest",
+        "canonical::records::tests::record_decoder_rejects_changed_condition_reference_and_oversize_without_fetching",
+        "canonical::records::tests::record_decoder_requires_exact_view_bytes_digest_and_selected_uuid",
+        "canonical::records::tests::record_discovery_rejects_unbounded_or_malformed_ready_metadata",
+        "canonical::records::tests::record_reference_origin_refuses_bearer_exfiltration_and_ambiguous_paths",
+        "canonical::tests::atomic_native_datagram_wait_does_not_retire_signed_control_peer",
+        "canonical::tests::auth_refresh::canonical_refresh_correlated_refusal_preserves_the_previous_binding_without_echoing_backend_text",
+        "canonical::tests::auth_refresh::canonical_refresh_invalid_input_and_pre_cancelled_intent_send_no_command",
+        "canonical::tests::auth_refresh::canonical_refresh_missing_foreign_and_streaming_replies_cannot_extend_the_old_absolute_deadline",
+        "canonical::tests::auth_refresh::canonical_refresh_validates_signed_owner_profile_assurance_expiry_and_rotated_token",
+        "canonical::tests::cancellation_after_signed_partial_batch_retires_physical_peer",
+        "canonical::tests::canonical_cursor_facts_bind_outer_resources_to_the_authoritative_journal_event",
+        "canonical::tests::original_command_values_preserve_extensions_without_bypassing_validation_or_auth",
+        "canonical::tests::original_credential_and_server_pin_expiry_bound_the_entire_batch",
+        "canonical::tests::signed_foreign_scope_retires_collector_peer",
+        "canonical::tests::signed_live_inbox_count_and_byte_bounds_retire_collector_peer",
+        "canonical::tests::signed_missing_completion_times_out_without_reporting_logical_success",
+        "canonical::tests::signed_ready_stream_cannot_extend_absolute_batch_deadline",
+        "canonical::tests::signed_reply_count_and_byte_bounds_retire_collector_peer",
+        "canonical::tests::typed_operation_get_keeps_signed_unknown_state_after_batch_ack",
+        "media::frame_debug_tests::frame_debug_exposes_metadata_without_recorded_media",
+        "media_end::tests::terminal_events_require_the_current_binding_and_valid_payload",
+        "task_diagnostics::readiness_tests::ready_server_never_masks_stopped_unknown_or_unconfigured_execution",
+        "task_diagnostics::readiness_tests::server_failure_and_sample_changes_remain_explicit_without_mutating_original_views",
+        "task_diagnostics::tests::arbitrary_text_is_removed_but_reconciliation_and_source_ids_are_retained",
+        "video::assembly::tests::a_missing_fragment_and_a_conflicting_duplicate_never_complete",
+        "video::assembly::tests::expired_frame_cannot_restart_its_deadline_or_reconstruct_from_late_fragments",
+        "video::assembly::tests::many_partial_sources_keep_observed_usage_inside_frozen_limits",
+        "video::assembly::tests::marker_without_a_start_packet_cannot_publish_sequence_metadata",
+        "video::assembly::tests::reordered_wrap_and_duplicate_packets_complete_once_without_losing_bytes",
+        "video::assembly::tests::sequence_metadata_uses_buffered_marker_and_clears_before_an_incomplete_or_invalid_push",
+        "video::assembly::tests::sources_and_timestamps_cannot_contaminate_each_other",
+        "video::packet::tests::caller_mutation_cannot_panic_the_fragment_parser",
+        "video::packet::tests::rejects_oversized_and_truncated_packet_extensions",
+        "video::signaling::tests::negotiation_errors_require_current_request_or_exact_connection",
+        "video::signaling::tests::selected_codec_metadata_cannot_silently_change_the_fixed_profile",
+        "video::timebase::tests::muted_or_stalled_capture_resumes_in_the_same_audio_video_epoch",
+        "video::timebase::tests::queued_capture_and_rtp_wrap_never_run_the_clock_backwards"
+      ],
+      "log": {
+        "path": ".local/gate-6/native-record-quic-client-v3.log",
+        "sha256": "7c535d17c385d3374402f899d825648f8612c9db4b0a46c4e7261b20373bbbc6"
+      }
+    },
+    {
+      "name": "service",
+      "binary": {
+        "path": "target/debug/deps/connect_service-0c9533d243d07904",
+        "sha256": "379d060d2e46d750585d9599cd9036f49abde70fab4466b0bf8d9b121e9108a7"
+      },
+      "arguments": [
+        "--test-threads=1"
+      ],
+      "exit_code": 0,
+      "passed": 44,
+      "failed": 0,
+      "ignored": 1,
+      "measured": 0,
+      "filtered_out": 0,
+      "seconds": 10.06,
+      "tests": [
+        "canonical_conversations::tests::canonical_conversation_assertions_and_unknown_filter_fields_are_not_discarded",
+        "canonical_media::tests::assistant_registry_contention_is_retryable_without_claiming_a_missing_source",
+        "canonical_media::tests::canonical_reliable_data_class_keeps_native_format_intersection_explicit",
+        "canonical_media::tests::native_plan_refuses_missing_current_acceptance_endpoint_or_original_offer_codec",
+        "canonical_media::tests::native_plan_selects_accepted_fallback_before_unaccepted_preferred_codec",
+        "canonical_media::tests::screen_planning_requires_each_explicit_screen_floor_instead_of_camera_permission",
+        "canonical_receipts::tests::read_report_parsing_keeps_diagnostic_claim_exact_and_rejects_other_resource_assertions",
+        "canonical_records::outcomes::tests::maximum_metadata_profile_retains_all_sources_within_manifest_bound",
+        "canonical_records::tests::durable_failed_transform_and_wrong_digests_preserve_original_record_and_snapshot",
+        "canonical_records::tests::durable_read_retains_cross_process_custody_until_delivery_drop",
+        "canonical_records::tests::durable_record_read_fences_other_handle_writer_while_independent_record_proceeds",
+        "canonical_records::tests::durable_record_reopens_exact_bytes_manifest_and_local_selector_scope",
+        "canonical_records::tests::durable_redaction_and_deletion_recover_original_facts_without_resurrection",
+        "canonical_records::tests::frozen_named_metadata_retention_expires_canonical_outcome_and_never_resurrects_on_restart",
+        "canonical_records::tests::pending_content_expiry_keeps_original_selection_then_separately_erases_expired_source_metadata",
+        "canonical_records::tests::record_context_chat_custody_blocks_erasure_and_changed_record_starts_fresh_memory",
+        "canonical_records::tests::record_context_deleted_bytes_invalidate_copied_selection_before_export",
+        "canonical_records::tests::record_context_selection_has_exact_projection_and_independent_permission_and_task_ceiling",
+        "canonical_records::tests::record_context_shares_ready_and_future_records_with_original_revocation_and_no_new_mutation_rights",
+        "canonical_records::tests::terminal_session_without_core_or_media_recovers_one_original_metadata_outcome",
+        "canonical_session_decisions::tests::legacy_application_profile_cannot_dispatch_new_invitation_decisions",
+        "canonical_session_decisions::tests::session_decision_parser_refuses_extra_resources_missing_ids_and_oversized_reason",
+        "canonical_session_decisions::tests::session_decision_parser_retains_every_typed_field",
+        "canonical_sessions::http_projection_tests::ordinary_http_decision_projects_a_checked_empty_core_under_its_existing_fence",
+        "canonical_subscriptions::tests::receipt_hints_precede_cursor_facts_within_batch_budget_and_require_data_floor",
+        "canonical_subscriptions::tests::record_ready_hints_preserve_session_scope_and_fit_full_subscription_budget",
+        "canonical_subscriptions::tests::subscription_parser_bounds_batch_lease_and_rejects_extra_resource_assertions",
+        "event_tests::closing_a_physical_peer_cancels_both_journal_and_observation_waits",
+        "event_tests::event_catchup_requeries_the_journal_after_missing_or_duplicate_wake_hints",
+        "event_tests::event_wait_reauthorizes_before_delivering_after_membership_removal",
+        "messages::authority_tests::cancelled_handler_retains_authority_until_uncancellable_store_work_settles",
+        "readiness::tests::optional_absence_does_not_mask_failure_or_claim_operational_readiness",
+        "record_context::tests::canonical_context_bridge_preserves_exact_projection_attribution_and_visible_deadline",
+        "record_context::tests::canonical_context_bridge_refuses_changed_bytes_manifest_and_cross_tenant_role",
+        "session_bindings::tests::native_resource_projection_checks_origin_binding_and_current_authority",
+        "session_bindings::tests::native_video_grant_admits_exact_profile_and_rejects_duplicate_unsupported_streams",
+        "session_init::tests::dropping_final_service_cancels_host_job_retaining_runtime",
+        "session_init::tests::host_registry_refuses_duplicate_names_capacity_and_retired_runtime",
+        "session_init::tests::independent_hosts_receive_exact_committed_metadata_and_one_failure_does_not_skip_another",
+        "session_init::tests::queued_snapshot_cannot_add_work_after_host_closure",
+        "tasks::tests::commit_between_task_catchup_and_wait_is_not_lost_for_owner_or_grant",
+        "tasks::tests::revocation_during_wait_is_rechecked_before_returning_events",
+        "tests::commit_between_catchup_and_wait_is_not_lost",
+        "tests::inbox_wait_is_bounded_and_cancelled_with_physical_peer"
+      ],
+      "log": {
+        "path": ".local/gate-6/native-record-quic-service-v3.log",
+        "sha256": "2457a78f34e6084855edd6c6834944bd26599f32786c70f75b2417c18d43b233"
+      }
+    },
+    {
+      "name": "server",
+      "binary": {
+        "path": "target/debug/deps/connect_server-5fdf14b3529ba638",
+        "sha256": "f5b7f8c01db7b73d4130035b17844c334ff2b906739bfb8dd98d608939338501"
+      },
+      "arguments": [
+        "--test-threads=1"
+      ],
+      "exit_code": 0,
+      "passed": 66,
+      "failed": 0,
+      "ignored": 0,
+      "measured": 0,
+      "filtered_out": 0,
+      "seconds": 19.87,
+      "tests": [
+        "agent_observations::tests::stalled_capture_queue_drops_without_blocking_and_next_delivery_reports_exact_loss",
+        "agent_observations::tests::undeclared_model_capabilities_publish_unavailable_without_untrusted_body",
+        "canonical::tests::configuration_errors_do_not_echo_private_file_contents",
+        "canonical_assistants::tests::configured_assistant_assets_require_private_regular_files_without_echoing_contents",
+        "canonical_assistants::tests::public_profile_never_enables_insecure_nonfixture_transport_or_duplicate_proposal_tools",
+        "canonical_assistants::tests::strict_host_configuration_preserves_explicit_paths_policy_and_rejects_unknown_fields",
+        "cli::agent_access::tests::changed_credential_assets_or_access_mode_cannot_resume_an_existing_installation",
+        "cli::agent_access::tests::export_rejects_admin_revoked_and_mismatched_authority_before_creating_output",
+        "cli::agent_access::tests::identity_setup_replays_original_receipt_and_denies_conflict_or_non_admin",
+        "cli::agent_access::tests::regular_export_keeps_one_agent_key_without_task_grants_or_admin_secret",
+        "cli::agent_access::tests::regular_host_resumes_exact_session_and_redacts_its_key_without_grant_refresh",
+        "cli::agent_access::tests::removal_deletes_only_verified_connect_configuration_and_preserves_other_files",
+        "cli::agent_access::tests::unknown_host_or_missing_model_auth_preserves_installation_and_does_not_launch",
+        "cli::canonical_init::tests::destination_created_after_preflight_is_preserved_even_when_empty",
+        "cli::media_stdio::tests::framing_is_bounded_and_binary_safe",
+        "cli::media_stdio::tests::input_reader_preserves_a_frame_when_next_is_cancelled",
+        "cli::task_access::codex_host::diagnostics::tests::concurrent_state_change_never_combines_session_metadata_or_retains_probe_lock",
+        "cli::task_access::codex_host::group_status::tests::native_snapshot_rejects_live_group_and_accepts_its_unreaped_zombie",
+        "cli::vapi_task::manifest::tests::rejects_ambiguous_modes_public_binding_and_callback_credentials",
+        "cli::vapi_task::manifest::tests::rejects_oversized_or_nonregular_private_inputs",
+        "cli::vapi_task::manifest::tests::supported_modes_resolve_state_beside_private_manifest",
+        "config::tests::outbound_sip_fields_reject_ambiguous_input",
+        "config::tests::wildcard_sip_requires_a_concrete_media_bind_interface",
+        "media_transports::tests::outbound_trunk_fails_closed_without_a_password",
+        "media_transports::tests::outbound_trunk_uses_environment_secret_without_logging_it",
+        "private_vapi::audio::tests::expired_partial_speech_cannot_be_combined_with_a_fresh_provider_message",
+        "private_vapi::audio::tests::forwarding_stall_expires_complete_speech_and_replaces_it_with_silence",
+        "private_vapi::audio::tests::provider_message_boundaries_do_not_split_pcmu_frames",
+        "private_vapi::audio::tests::queued_audio_keeps_only_the_newest_bounded_frames_and_partial",
+        "private_vapi::transcripts::tests::archive_retries_same_callback_only_after_busy_store_result",
+        "private_vapi::transcripts::tests::cancellation_drains_admitted_write_and_does_not_start_queued_callback",
+        "private_vapi::transcripts::tests::pending_archive_does_not_block_media_ticks_and_preserves_order_and_capacity",
+        "private_vapi::transport::tests::private_receiver_must_bind_the_captured_call_and_exact_configured_origin",
+        "private_vapi::transport::tests::private_transport_requires_explicit_secure_or_numeric_loopback_origins",
+        "registration_monitor::tests::accepted_lease_refreshes_after_idle_and_rejected_refresh_can_recover_on_restart",
+        "registration_monitor::tests::dropped_refresh_does_not_leave_an_expired_binding_ready",
+        "secrets::tests::explicit_missing_or_locked_provider_reference_cannot_read_ambient_key",
+        "secrets::tests::provider_api_key_whitespace_preserves_legacy_headers_and_password_bytes",
+        "secrets::tests::references_and_debug_never_contain_secret_values",
+        "setup_vault::discovery_tests::unselected_provider_credentials_are_never_resolved",
+        "sip_outbound::tests::a_late_worker_outcome_cannot_replace_an_observed_terminal_connection",
+        "sip_outbound::tests::cancellation::active_hangup_waits_for_cleanup_and_keeps_failure_uncertain",
+        "sip_outbound::tests::cancellation::cancellation_callback_and_successful_cleanup_have_one_result_in_either_order",
+        "sip_outbound::tests::cancellation::cancellation_callback_cannot_conceal_failed_cleanup_in_either_order",
+        "sip_outbound::tests::cancellation::cancellation_event_for_an_active_leg_without_owned_cleanup_settles_ended",
+        "sip_outbound::tests::cancellation::normal_remote_end_and_failure_remain_authoritative_during_cancellation",
+        "sip_outbound::tests::failed_cancellation_cleanup_is_uncertain_and_cannot_be_redispatched",
+        "sip_outbound::tests::lost_authority_during_activation_runs_cleanup_and_persists_cancellation",
+        "sip_outbound::tests::stalled_cancellation_cleanup_is_bounded_and_does_not_detach_activation",
+        "sip_registration::tests::carrier_registration_authenticates_and_shutdown_removes_binding",
+        "sip_registration::tests::rejected_registration_does_not_report_ready",
+        "sms_authority::synchronization_tests::authenticated_snapshot_rejects_redirects_and_revision_replay",
+        "sms_authority::tests::reject_unsafe_authority_configuration",
+        "startup::tests::failed_startup_releases_endpoint_owned_by_a_pending_accept_task",
+        "startup::tests::successful_startup_keeps_accept_open_for_runtime_ownership",
+        "transports::http::tests::browser_origins_are_limited_to_loopback_http",
+        "vapi_bootstrap::call_failure::tests::diagnostics_expose_only_the_stage_even_with_a_sensitive_cause",
+        "vapi_bootstrap::voice_model::tests::absent_tools_are_supported_but_malformed_saved_models_are_rejected",
+        "vapi_bootstrap::voice_model::tests::scoped_mcp_discovery_preserves_saved_model_and_other_tools",
+        "vapi_observer::tests::cancelling_observer_drain_does_not_detach_the_receiver",
+        "vapi_observer::tests::queued_provider_report_is_not_replaced_by_missing_status",
+        "vapi_observer::tests::teardown_drains_queued_transcripts_and_records_missing_report",
+        "worker::tests::cancelling_shutdown_aborts_owned_tasks",
+        "worker::tests::failure_does_not_detach_a_stalled_sibling",
+        "worker::tests::panic_is_reported_and_other_tasks_are_still_drained",
+        "worker::tests::supervised_panic_wakes_readiness_without_waiting_for_shutdown"
+      ],
+      "log": {
+        "path": ".local/gate-6/native-record-quic-server-v3.log",
+        "sha256": "999339ac1f5c6927898a664e8f7994d5e82b631939351357545c6fb8bbbc9ed5"
+      }
+    },
+    {
+      "name": "auxiliary",
+      "binary": {
+        "path": "target/debug/deps/gate6_auxiliary-e7e5210218c4ce12",
+        "sha256": "6cf56f62160283fc3900de54820e5dc22ca26a9478ca4fa3408270d507b2d6e7"
+      },
+      "arguments": [
+        "--test-threads=1"
+      ],
+      "exit_code": 0,
+      "passed": 24,
+      "failed": 0,
+      "ignored": 0,
+      "measured": 0,
+      "filtered_out": 0,
+      "seconds": 95.16,
+      "tests": [
+        "canonical_record_http::actual_http_backpressure_retains_credential_and_exact_record_until_socket_finishes",
+        "canonical_record_http::actual_http_disconnect_releases_record_custody_without_recreating_or_deleting_data",
+        "canonical_record_http::actual_http_expiry_aborts_stalled_body_and_releases_authority_and_capacity",
+        "canonical_record_http::actual_http_shutdown_cancels_stalled_record_io_before_runtime_retirement",
+        "canonical_record_http::actual_https_backpressure_retains_source_and_record_through_tls_socket_io",
+        "canonical_record_http::actual_https_reference_expiry_and_shutdown_abort_stalled_tls_and_release_guards",
+        "canonical_record_http::expired_issued_url_cannot_be_reused_as_a_control_selector",
+        "canonical_record_http::issued_https_url_selectors_use_fresh_native_and_http_source_authority",
+        "canonical_record_http::named_retention_worker_expires_public_metadata_and_keeps_unavailable_after_restart",
+        "canonical_record_http::public_http_record_fetch_matches_native_digest_and_current_attenuated_sources",
+        "canonical_record_http::public_record_erasure_uses_semantic_sources_and_replays_after_deletion_and_restart",
+        "canonical_record_http::public_record_https_reference_downloads_with_native_and_explicit_http_pins",
+        "canonical_record_http::quic::actual_quic_record_backpressure_retains_credential_and_exact_record_until_frame_finishes",
+        "canonical_record_http::quic::actual_quic_record_credential_expiry_closes_partial_write_and_releases_capacity",
+        "canonical_record_http::quic::actual_quic_record_peer_and_stream_cancellation_release_partial_write_custody",
+        "canonical_record_http::quic::actual_quic_record_source_expiry_closes_partial_write_without_revoking_identity",
+        "canonical_record_http::record_context::record_context_http_preserves_source_identity_permission_digest_and_erasure",
+        "canonical_record_http::record_https_reference_rejects_changed_deleted_expired_and_restarted_views",
+        "canonical_record_http::tenant_readers::tenant_role_reads_native_http_and_tls_without_membership_and_revalidates_role_revision",
+        "canonical_record_http::tenant_readers::tenant_role_revocation_waits_for_actual_tls_body_then_invalidates_issued_view",
+        "public_cancel_before_media_is_finalized_by_owned_worker_and_survives_restart",
+        "public_native_record_fetch_uses_current_sources_and_exact_projected_digest",
+        "public_refresh_cannot_borrow_an_unbound_successor_or_another_owner",
+        "public_signed_refresh_preserves_owner_and_narrows_scope_beyond_the_predecessor_expiry"
+      ],
+      "log": {
+        "path": ".local/gate-6/native-record-quic-auxiliary-v3.log",
+        "sha256": "5fbd9aed420bc4950abeda86caae133afd74f5910cabaeed23eb6b46773474a9"
+      }
+    },
+    {
+      "name": "store",
+      "binary": {
+        "path": "target/debug/deps/connect_store-34efc355090fb9eb",
+        "sha256": "ffbfd9f45393548b211597ecc3ab254d0ff07e9fd56fe0009c37039193c07b65"
+      },
+      "arguments": [
+        "records::",
+        "--test-threads=1"
+      ],
+      "exit_code": 0,
+      "passed": 25,
+      "failed": 0,
+      "ignored": 0,
+      "measured": 0,
+      "filtered_out": 826,
+      "seconds": 6.52,
+      "tests": [
+        "records::mutations::tests::expiry_during_transform_rolls_back_every_fact_and_new_credential_can_retry",
+        "records::mutations::tests::journal_capacity_failure_rolls_back_bytes_receipt_authority_and_original_retry",
+        "records::mutations::tests::replay_rechecks_current_scope_recipient_ceiling_owner_and_revocation",
+        "records::mutations::tests::source_erasure_checks_actual_changes_and_exact_replay_after_later_deletion",
+        "records::outcomes::tests::finalization_commits_record_epochs_and_snapshot_release_or_rolls_back_all_of_them",
+        "records::outcomes::tests::initial_terminal_insert_freezes_only_original_prescribed_session_audience",
+        "records::outcomes::tests::outcome_slot_remains_available_at_the_ordinary_record_capacity",
+        "records::outcomes::tests::pending_discovery_and_atomic_ready_journal_survive_reopen_without_duplicate_finalization",
+        "records::outcomes::tests::readiness_journal_capacity_refusal_rolls_back_bytes_and_retries_original_intent",
+        "records::outcomes::tests::terminal_intent_is_atomic_stable_and_frozen_for_every_terminal_state",
+        "records::read::tests::bearer_record_policy_reuses_only_original_complete_owned_read_authority",
+        "records::read::tests::cached_discovery_rechecks_deletion_and_fresh_snapshot_explains_unavailability",
+        "records::read::tests::discovery_disappears_after_rejoined_membership",
+        "records::read::tests::discovery_requires_explicit_record_permission_and_omits_private_topology_and_digests",
+        "records::read::tests::independent_tenant_role_is_explicit_source_filtered_and_never_membership_or_erasure",
+        "records::read::tests::only_complete_authorized_zero_omission_metadata_exposes_capture_diagnostics",
+        "records::read::tests::queued_role_revocation_waits_for_original_read_and_policy_does_not_reenter_guard",
+        "records::read::tests::rejoined_membership_and_foreign_scope_cannot_borrow_original_record_epoch",
+        "records::read::tests::shared_tenant_role_preserves_member_sources_and_full_read_role_does_not_elevate_member_erasure",
+        "records::read::tests::source_policy_applies_subject_ceiling_and_hides_private_lineage_and_diagnostics",
+        "records::read::tests::tenant_role_cas_replay_revocation_recovery_and_cross_tenant_refusal",
+        "records::retention::tests::concurrent_new_revision_supersedes_frozen_decision_without_overwriting_new_bytes",
+        "records::retention::tests::original_decision_cutoff_and_id_recover_after_restart_without_reselection_or_duplicate_journal",
+        "records::retention::tests::quota_failure_rolls_back_expiry_and_receipt_but_retains_original_decision_for_retry",
+        "records::retention::tests::terminal_policy_freezes_before_materialization_and_survives_configuration_change"
+      ],
+      "log": {
+        "path": ".local/gate-6/native-record-quic-store-v3.log",
+        "sha256": "79cb301540e19438cebd05fc6226ba88c1d5dba4fa890f8b24f0403a546b4edc"
+      }
+    },
+    {
+      "name": "core-records",
+      "binary": {
+        "path": "/Volumes/D2-2019/Developer/Connect/target/debug/deps/rvoip_core-b246957d03e6d177",
+        "sha256": "d413afa8684eae3e41dca03fc32fb81140ad0a25b5ed2c535ca7c62da3ebca4b"
+      },
+      "arguments": [
+        "records::",
+        "--test-threads=1"
+      ],
+      "exit_code": 0,
+      "passed": 18,
+      "failed": 0,
+      "ignored": 0,
+      "measured": 0,
+      "filtered_out": 425,
+      "seconds": 0.12,
+      "tests": [
+        "records::capture::retention_tests::independent_named_retention_and_external_audio_reference_never_invent_captured_bytes",
+        "records::capture::tests::bounded_capture_reports_omissions_and_never_widens_frozen_audience",
+        "records::tests::audience_projection_prunes_private_dependencies_remaps_all_public_refs_and_withholds_raw_media_urls",
+        "records::tests::cancelled_redaction_writer_releases_intent_and_real_delivery_fences_lost_response_recovery",
+        "records::tests::context_snapshot_exposes_exact_future_retention_cutoff_and_rebuilds_expired_content",
+        "records::tests::context_snapshot_matches_guarded_fetch_and_never_forwards_private_or_media_urls",
+        "records::tests::context_snapshot_requires_exact_record_and_manifest_and_source_ceiling",
+        "records::tests::expired_source_content_cannot_survive_in_unknown_extension_fields",
+        "records::tests::explicit_canonical_source_capture_projects_real_inline_media_and_transcript_without_session_audience_inference",
+        "records::tests::local_lookup_reserves_current_revision_and_never_follows_network_or_mismatched_selectors",
+        "records::tests::persisted_complete_manifest_roundtrips_and_never_invents_audience_or_source_identity",
+        "records::tests::policy_guard_and_record_read_survive_preparation_and_cancelled_or_foreign_views_cannot_borrow_them",
+        "records::tests::projection_io_deadline_uses_visible_live_content_and_the_original_control_bound",
+        "records::tests::retention_is_independent_and_expired_media_keeps_valid_unavailable_metadata",
+        "records::tests::retention_selection_physically_clears_only_expired_content_then_deletes_expired_document",
+        "records::tests::selective_redaction_cascades_private_metadata_preserves_other_sources_and_replays_after_delete",
+        "records::tests::tenant_role_viewer_keeps_private_source_policy_and_tenant_scope_explicit",
+        "records::tests::transfer_channel_history_and_analysis_indices_are_remapped_after_hidden_leading_party_and_dialog"
+      ],
+      "log": {
+        "path": ".local/gate-6/native-record-quic-core-records-v1.log",
+        "sha256": "4cb355fb51867a5673484cb07346f9de3f349d564b94c08e2a59e07481534047"
+      }
+    },
+    {
+      "name": "core-capture",
+      "binary": {
+        "path": "/Volumes/D2-2019/Developer/Connect/target/debug/deps/messaging-f50427ac724d76cc",
+        "sha256": "5548315d5894fda7da260fd4e6b311595b358a238db7ab670cb18b76fcea410f"
+      },
+      "arguments": [
+        "gate6_explicit_record_capture",
+        "--test-threads=1"
+      ],
+      "exit_code": 0,
+      "passed": 1,
+      "failed": 0,
+      "ignored": 0,
+      "measured": 0,
+      "filtered_out": 16,
+      "seconds": 0.11,
+      "tests": [
+        "gate6_explicit_record_capture_preserves_private_frozen_message_audience_and_outcome"
+      ],
+      "log": {
+        "path": ".local/gate-6/native-record-quic-core-capture-v1.log",
+        "sha256": "d4e9e6ce3b66ece98307741d89831acf4fffdf2f27a6a8d05b649557710bc88a"
+      }
+    },
+    {
+      "name": "uctp-records",
+      "binary": {
+        "path": "/Volumes/D2-2019/Developer/Connect/target/debug/deps/v2_auth_peer-9eb8fdc7a16aef6b",
+        "sha256": "7fa1300aabf8c2ba76db2b2c3ae00a076d4d2768b06e30936a61961bb9580463"
+      },
+      "arguments": [
+        "record_fetch::",
+        "--test-threads=1"
+      ],
+      "exit_code": 0,
+      "passed": 6,
+      "failed": 0,
+      "ignored": 0,
+      "measured": 0,
+      "filtered_out": 37,
+      "seconds": 0.24,
+      "tests": [
+        "record_fetch::canonical_fetch_missing_store_failed_and_wrong_projected_digest_are_explicit_and_correlated",
+        "record_fetch::canonical_fetch_projects_private_record_and_retains_both_guards_through_blocked_physical_reply",
+        "record_fetch::canonical_signed_fetch_verifies_exact_private_projection_before_physical_delivery",
+        "record_fetch::configured_record_signing_rejects_tamper_wrong_payload_algorithm_and_failure_without_unsigned_fallback",
+        "record_fetch::issued_reference_never_lends_old_audience_and_expires_without_holding_a_grant",
+        "record_fetch::large_record_reference_rechecks_authority_scope_revision_and_owns_actual_body_io"
+      ],
+      "log": {
+        "path": ".local/gate-6/native-record-quic-uctp-records-v1.log",
+        "sha256": "c56bc263f6d8e1bec9a811740f2397c3661a421a413c20cbdd35ec5bfcf67a49"
+      }
+    },
+    {
+      "name": "uctp-writer",
+      "binary": {
+        "path": "/Volumes/D2-2019/Developer/Connect/target/debug/deps/v2_auth_peer-9eb8fdc7a16aef6b",
+        "sha256": "7fa1300aabf8c2ba76db2b2c3ae00a076d4d2768b06e30936a61961bb9580463"
+      },
+      "arguments": [
+        "blocked_writer",
+        "--test-threads=1"
+      ],
+      "exit_code": 0,
+      "passed": 3,
+      "failed": 0,
+      "ignored": 0,
+      "measured": 0,
+      "filtered_out": 40,
+      "seconds": 3.04,
+      "tests": [
+        "assurance_retirement::key_retirement_interrupts_blocked_writer_without_claiming_terminal_delivery",
+        "subscription_blocked_writer_uses_live_end_instead_of_terminal_grace_and_releases_actual_authority",
+        "subscription_receipt_blocked_writer_uses_live_deadline_and_releases_actual_guard"
+      ],
+      "log": {
+        "path": ".local/gate-6/native-record-quic-uctp-writer-v1.log",
+        "sha256": "e028c63985b9fd8bfcc0244cc73257bd7e715602927aa376faba70b33e353527"
+      }
+    },
+    {
+      "name": "uctp-io",
+      "binary": {
+        "path": "/Volumes/D2-2019/Developer/Connect/target/debug/deps/rvoip_uctp-9abc50a01d07531e",
+        "sha256": "57b97083f41317e45577ed9456559793c468c8c8bca3cc7815b1a1d22cc85890"
+      },
+      "arguments": [
+        "v2::auth_peer::exchange::tests::",
+        "--test-threads=1"
+      ],
+      "exit_code": 0,
+      "passed": 6,
+      "failed": 0,
+      "ignored": 0,
+      "measured": 0,
+      "filtered_out": 89,
+      "seconds": 0.18,
+      "tests": [
+        "v2::auth_peer::exchange::tests::abort_or_deadline_destroys_owned_sink_before_releasing_actual_authority_reader",
+        "v2::auth_peer::exchange::tests::native_lifecycle_revision_or_credential_retirement_aborts_sink_before_releasing_reader",
+        "v2::auth_peer::exchange::tests::native_lifecycle_stale_dequeued_fence_refuses_io_and_preserves_the_physical_writer",
+        "v2::auth_peer::exchange::tests::native_request_cancellation_destroys_pending_sink_before_fresh_reply_authority_releases",
+        "v2::auth_peer::exchange::tests::native_request_stale_dequeue_never_marks_submission_or_touches_writer",
+        "v2::auth_peer::exchange::tests::offer_answer_abort_or_deadline_destroys_sink_before_owned_reader"
+      ],
+      "log": {
+        "path": ".local/gate-6/native-record-quic-uctp-io-v1.log",
+        "sha256": "e30039275642f84ffbd304c9bf1ff53aa1c454dbc69198aca27957c16611e737"
+      }
+    }
+  ],
+  "focused_verification": {
+    "name": "native-quic-focused",
+    "binary": {
+      "path": "target/debug/deps/gate6_auxiliary-e7e5210218c4ce12",
+      "sha256": "6cf56f62160283fc3900de54820e5dc22ca26a9478ca4fa3408270d507b2d6e7"
+    },
+    "arguments": [
+      "canonical_record_http::quic::",
+      "--test-threads=1",
+      "--nocapture"
+    ],
+    "exit_code": 0,
+    "passed": 4,
+    "failed": 0,
+    "ignored": 0,
+    "measured": 0,
+    "filtered_out": 20,
+    "seconds": 18.78,
+    "tests": [],
+    "log": {
+      "path": ".local/gate-6/native-record-quic-focused-v3.log",
+      "sha256": "72a71b077449beb281636212f5fa2021d050ed866bd8ad6fc0c8dcb1c34815d9"
+    }
+  },
+  "focused_is_duplicate_of_complete_auxiliary": true,
+  "checks": {
+    "format": {
+      "exit_code": 0,
+      "log": {
+        "path": ".local/gate-6/native-record-quic-format-v3.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    "upstream-format": {
+      "exit_code": 0,
+      "log": {
+        "path": ".local/gate-6/native-record-quic-upstream-format-v3.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    "whitespace": {
+      "exit_code": 0,
+      "log": {
+        "path": ".local/gate-6/native-record-quic-whitespace-v3.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    "prepare_dependencies": {
+      "exit_code": 0,
+      "log": {
+        "path": ".local/gate-6/native-record-quic-prepare-final-v4.log",
+        "sha256": "fd9d7b181e3ccba9b643af55a186cf132c60aac99c734b2ee4e4e549afe5ffc2"
+      }
+    }
+  },
+  "build_logs": [
+    {
+      "exit_code": 0,
+      "log": {
+        "path": ".local/gate-6/native-record-quic-build-v3c.log",
+        "sha256": "cda2b4f3fee94b1b85f394032657242af2313617307b85fbafb643108a6fe8e6"
+      }
+    },
+    {
+      "exit_code": 0,
+      "log": {
+        "path": ".local/gate-6/native-record-quic-upstream-build-v1.log",
+        "sha256": "10465fdebc6a5c16b723d4c6b552a5eb1961f3c80c6fb0f8f8002f50f06b0962"
+      }
+    }
+  ],
+  "implementation": [
+    "Core RecordProjection.deadline validates the original held projection and clips its original control bound to the earliest visible metadata, actually exported content and authorized URL expiry. Hidden sources and already unavailable content cannot shorten a permitted metadata view.",
+    "The recording dispatcher carries that bound in its retained AuthorityLease; the actual native IO job already sleeps on that lease deadline. Guarded reference bodies use the same source bound. No source guard is dropped/reacquired, no SQL policy reentry, no wire/schema/API compatibility fallback.",
+    "Recorded upstream patch131 is source-lock pinned and was applied by the official dependency preparation workflow in a fresh tree. Only three upstream Rust files changed; the prior130 tree is preserved.",
+    "The shared retention fixture now updates its native endpoint after restarting the server; its HTTP address was already current. Test writer admission uses an explicit eight-second AuthorityWait rather than the two-second credential-issuance default."
+  ],
+  "behavior": [
+    "Real public SDK Session invite/cancel/discovery supplies the original metadata record. A documented trusted backend CAS adds100KiB allowed metadata solely for transport pressure; no fabricated audience, readiness or captured-media claim.",
+    "The raw authenticated peer pins TLS/name/ALPN and verifies server signatures/correlations. Both stream and connection receive windows are4096bytes and no eager read pump runs. Reading only the four-byte length prefix of a frame over80KiB proves the physical write cannot finish under Quinn flow control.",
+    "EdDSA and ES256: queued credential revocation and exact record deletion remain unfinished until the complete original signed frame is consumed and verified against the public HTTP SDK view and digest; subsequent access refuses.",
+    "Receive-stream STOP_SENDING and physical peer closure each release partial write custody and a queued actual Identity writer; fresh public HTTP reads preserve the original record.",
+    "A short protected bound credential expires during the blocked frame. The partial frame retires, the actual Identity writer completes and an original still-current credential reuses the single admission slot and reads the unchanged record.",
+    "A named eight-second source metadata policy is frozen before Session end and current defaults are restored. The test uses the exact stored manifest cutoff, not the ceil-rounded SQL sweep index. Source expiry retires the partial frame and releases the writer while the original credential remains current; conversation access still works and record retrieval refuses.",
+    "New Core unit coverage distinguishes visible live-content cutoff from hidden source cutoff, and excludes expired unexported content while retaining the original control bound."
+  ],
+  "intermediate_runs": [
+    {
+      "log": {
+        "path": ".local/gate-6/native-record-quic-focused-v1.log",
+        "sha256": "c6aae183f89aa82fb20607a400abe5db878b4d6d6ec9a97a25c6791fabecad50"
+      },
+      "exit_code": 101,
+      "passed": 2,
+      "failed": 2,
+      "reason": "Fixture used a stale native endpoint after retention restart; identity writer used credential issuance with a two-second wait despite four-second expiry. Both fixture errors were corrected without relaxing authority or frame assertions."
+    },
+    {
+      "log": {
+        "path": ".local/gate-6/native-record-quic-focused-v2.log",
+        "sha256": "d9c9ad47b075e6d8f3bc6509f2453c4f800d0e4362ea01ffc2d9fd6db26aa24f"
+      },
+      "exit_code": 101,
+      "passed": 3,
+      "failed": 1,
+      "reason": "Actual blocked native source-expiry write retained authority beyond cutoff. Projection current predicate had no wakeup while the IO future slept on flow control. This established the production bug fixed by patch131."
+    },
+    {
+      "log": {
+        "path": ".local/gate-6/native-record-quic-build-v3.log",
+        "sha256": "a694e3d80e7840601ed54bfd9bc34f9e3380a6d0daf4319f8f36753313a175bf"
+      },
+      "exit_code": 101,
+      "reason": "ENOSPC building server archive; completed generated compiler state cleared, source/evidence retained."
+    },
+    {
+      "log": {
+        "path": ".local/gate-6/native-record-quic-build-v3b.log",
+        "sha256": "8bba2042e2a69ca5cfdb1b05a6863b31db097c7fb4d5f5ce15542acf5c899616"
+      },
+      "exit_code": 101,
+      "reason": "ENOSPC building server unit executable; completed generated compiler state cleared and unused binaries preserved in verified compressed archives."
+    },
+    {
+      "log": {
+        "path": ".local/gate-6/native-record-quic-core-build-v1.log",
+        "sha256": "82845c0e7c83479b713fd722c547f71e8f940933e66cffda6bb86498466b59da"
+      },
+      "exit_code": 101,
+      "reason": "Cargo cannot test a dependency with dev-dependencies from the parent workspace; used the pinned upstream workspace manifest instead."
+    }
+  ],
+  "skipped_or_unqualified": [
+    "The previous private-provider retention-return Accepted/no-effect refusal remains unresolved; passing later cohorts did not establish a functional repair or general reliability qualification.",
+    "Native tests use real Session metadata with explicit trusted padding, not live recorded audio or provider media references.",
+    "Actual unfinished provider socket WRITE custody, mixed private captured-source floors for every listener and actual private-source TLS-link invalidation remain separate work.",
+    "Assurance, step-up, DTMF, quality, capability and every assigned auxiliary clause still require reconciliation and remaining Connect behavior evidence.",
+    "Historical patch130 reports retain their recorded scope; earlier aggregate1068Connect/153SDK results are not relabeled current patch131 runs.",
+    "No named remote/provider, Linux, browser, publication or overall Gate6 acceptance qualification."
+  ],
+  "plan_counts": {
+    "done": 45,
+    "in_progress": 1,
+    "not_started": 59,
+    "acceptance_qualified": 0
+  }
+}

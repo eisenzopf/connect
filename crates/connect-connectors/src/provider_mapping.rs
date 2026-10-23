@@ -70,6 +70,7 @@ pub fn vapi_telephone_manifest() -> Manifest {
         ConnectorOperation::VoiceStart,
         ConnectorOperation::VoiceDiscover,
         ConnectorOperation::VoiceStatus,
+        ConnectorOperation::VoiceReconcile,
         ConnectorOperation::VoiceEnd,
     ]
     .into();

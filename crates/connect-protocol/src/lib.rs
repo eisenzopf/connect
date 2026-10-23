@@ -1,10 +1,32 @@
 //! Transport-independent Connect application contract carried by UCTP envelopes.
+pub mod application_api;
+pub mod canonical_http;
+pub mod connection_control;
+pub mod conversations;
+pub mod native_capabilities;
+pub mod native_data;
+pub mod native_dtmf;
+pub mod native_gates;
+pub mod native_streams;
+pub mod record_mutations;
+pub use conversations::Conversation;
 
+pub mod attachments;
 pub mod contacts;
 mod discovery;
+pub mod events;
+pub mod incoming_contacts;
 pub mod media_profile;
+pub mod membership;
+pub mod messages;
 pub mod provisioning;
+pub mod receipts;
+pub mod routing;
+pub mod session_control;
+pub mod session_decisions;
 pub mod tasks;
+pub mod transitions;
+pub mod user_delegation;
 pub mod video_profile;
 pub use discovery::*;
 
@@ -46,6 +68,37 @@ impl Request {
 #[derive(Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(tag = "op", rename_all = "snake_case", deny_unknown_fields)]
 pub enum Operation {
+    ConnectionPrepare {
+        request: connection_control::PrepareRequest,
+    },
+    SessionControl {
+        request: session_control::Request,
+    },
+    SessionDecision {
+        request: session_decisions::Request,
+    },
+    SessionObservations {
+        conversation_id: String,
+        session_id: String,
+        query: events::ObservationQuery,
+    },
+    ConversationSnapshot {
+        conversation_id: String,
+        query: events::SnapshotQuery,
+    },
+    ConversationEvents {
+        conversation_id: String,
+        query: events::EventQuery,
+    },
+    Transition {
+        request: Box<transitions::TransitionRequest>,
+    },
+    DurableOperation {
+        request: transitions::OperationAction,
+    },
+    ParticipantRoute {
+        request: routing::ParticipantRouteRequest,
+    },
     /// Native authenticated pairing verifies an identity only, never SMS consent.
     ContactPairingStart {
         request_id: String,
@@ -89,12 +142,46 @@ pub enum Operation {
     },
     Create {
         request_id: String,
-        participants: Vec<String>,
+        request: conversations::CreateRequest,
+    },
+    Membership {
+        request: membership::MembershipRequest,
+    },
+    MembershipSnapshot {
+        conversation_id: String,
+    },
+    MembershipInvitations {
+        after: Option<String>,
+        limit: u32,
+    },
+    Conversations {
+        query: conversations::ListQuery,
     },
     Send {
         request_id: String,
         conversation_id: String,
-        body: String,
+        message: messages::MessageDraft,
+    },
+    MessageReceipts {
+        conversation_id: String,
+        message_id: String,
+        after: Option<String>,
+        limit: u32,
+    },
+    MessageReceipt {
+        request_id: String,
+        conversation_id: String,
+        message_id: String,
+        state: receipts::ClientReceiptState,
+    },
+    ReceiptPreferencesGet {
+        conversation_id: String,
+    },
+    ReceiptPreferencesSet {
+        request_id: String,
+        conversation_id: String,
+        delivery: bool,
+        read: bool,
     },
     History {
         conversation_id: String,
@@ -112,6 +199,7 @@ pub enum Operation {
     Close {
         request_id: String,
         conversation_id: String,
+        options: conversations::CloseOptions,
     },
     ProviderStatus {
         conversation_id: String,
@@ -192,6 +280,7 @@ pub enum Operation {
         identity_id: String,
     },
     ArtifactBegin {
+        to: messages::MessageAudience,
         request_id: String,
         conversation_id: String,
         name: String,
@@ -219,6 +308,36 @@ pub enum Operation {
         offset: u64,
         limit: u32,
     },
+    ArtifactInspect {
+        conversation_id: String,
+        artifact_id: String,
+    },
+    ArtifactUploadLink {
+        conversation_id: String,
+        artifact_id: String,
+        expires_in: u32,
+    },
+    ArtifactDownloadLink {
+        conversation_id: String,
+        artifact_id: String,
+        message_id: String,
+        expires_in: u32,
+    },
+    ArtifactLinkGet {
+        conversation_id: String,
+        artifact_id: String,
+        link: String,
+        offset: u64,
+        limit: u32,
+    },
+    ArtifactLinkAppend {
+        request_id: String,
+        conversation_id: String,
+        artifact_id: String,
+        link: String,
+        offset: u64,
+        data: String,
+    },
     ArtifactDelete {
         request_id: String,
         conversation_id: String,
@@ -240,6 +359,32 @@ impl Operation {
     /// Canonical conversation routing metadata for UCTP envelopes.
     pub fn conversation_id(&self) -> Option<&str> {
         match self {
+            Self::ConnectionPrepare { request } => Some(&request.intent.conversation_id),
+            Self::SessionControl { request } => Some(&request.conversation_id),
+            Self::SessionDecision { request } => Some(&request.conversation_id),
+            Self::Membership { request } => Some(&request.conversation_id),
+            Self::MembershipSnapshot { conversation_id } => Some(conversation_id),
+            Self::SessionObservations {
+                conversation_id, ..
+            } => Some(conversation_id),
+            Self::ConversationSnapshot {
+                conversation_id, ..
+            }
+            | Self::ConversationEvents {
+                conversation_id, ..
+            } => Some(conversation_id),
+            Self::Transition { request } => Some(&request.conversation_id),
+            Self::MessageReceipts {
+                conversation_id, ..
+            }
+            | Self::MessageReceipt {
+                conversation_id, ..
+            }
+            | Self::ReceiptPreferencesGet { conversation_id }
+            | Self::ReceiptPreferencesSet {
+                conversation_id, ..
+            } => Some(conversation_id),
+            Self::ParticipantRoute { request } => Some(&request.conversation_id),
             Self::Task { request } => request.command.conversation_id(),
             Self::Capabilities {
                 conversation_id, ..
@@ -305,6 +450,21 @@ impl Operation {
             | Self::ArtifactGet {
                 conversation_id, ..
             }
+            | Self::ArtifactInspect {
+                conversation_id, ..
+            }
+            | Self::ArtifactUploadLink {
+                conversation_id, ..
+            }
+            | Self::ArtifactDownloadLink {
+                conversation_id, ..
+            }
+            | Self::ArtifactLinkGet {
+                conversation_id, ..
+            }
+            | Self::ArtifactLinkAppend {
+                conversation_id, ..
+            }
             | Self::ArtifactDelete {
                 conversation_id, ..
             }
@@ -319,6 +479,19 @@ impl Operation {
     }
     pub fn name(&self) -> &'static str {
         match self {
+            Self::ConnectionPrepare { .. } => "connection.offer",
+            Self::SessionControl { request } => request.action.required_scope(),
+            Self::SessionDecision { request } => request.decision.required_scope(),
+            Self::SessionObservations { .. } => "session_observations",
+            Self::ConversationSnapshot { .. } => "conversation_snapshot",
+            Self::ConversationEvents { .. } => "conversation_events",
+            Self::Transition { .. } => "transition",
+            Self::DurableOperation { .. } => "durable_operation",
+            Self::MessageReceipts { .. } => "message_receipts",
+            Self::MessageReceipt { .. } => "message_receipt",
+            Self::ReceiptPreferencesGet { .. } => "receipt_preferences_get",
+            Self::ReceiptPreferencesSet { .. } => "receipt_preferences_set",
+            Self::ParticipantRoute { .. } => "participant_route",
             Self::ContactPairingStart { .. } => "contact_pairing_start",
             Self::ContactPairingComplete { .. } => "contact_pairing_complete",
             Self::ContactPairingRevoke { .. } => "contact_pairing_revoke",
@@ -328,7 +501,11 @@ impl Operation {
             Self::Capabilities { .. } => "capabilities",
             Self::BrowserBinding { .. } => "browser_binding",
             Self::ContextDeliveries { .. } => "context_deliveries",
+            Self::Membership { request } => request.required_scope(),
+            Self::MembershipSnapshot { .. } => "conversation.get",
+            Self::MembershipInvitations { .. } => "conversation.participant.add",
             Self::Create { .. } => "create",
+            Self::Conversations { .. } => "conversation.list",
             Self::Send { .. } => "send",
             Self::History { .. } => "history",
             Self::Inbox { .. } => "inbox",
@@ -354,6 +531,11 @@ impl Operation {
             Self::ArtifactAppend { .. } => "artifact_append",
             Self::ArtifactFinish { .. } => "artifact_finish",
             Self::ArtifactGet { .. } => "artifact_get",
+            Self::ArtifactInspect { .. } => "artifact_inspect",
+            Self::ArtifactUploadLink { .. } => "artifact_upload_link",
+            Self::ArtifactDownloadLink { .. } => "artifact_download_link",
+            Self::ArtifactLinkGet { .. } => "artifact_link_get",
+            Self::ArtifactLinkAppend { .. } => "artifact_link_append",
             Self::ArtifactDelete { .. } => "artifact_delete",
             Self::Health {} => "health",
         }
@@ -361,6 +543,24 @@ impl Operation {
     /// Additive read APIs use the existing authority for the information they expose.
     pub fn required_scope(&self) -> &'static str {
         match self {
+            Self::SessionObservations { .. } => "session.observation",
+            Self::ConversationSnapshot { .. } => "conversation.get",
+            Self::ConversationEvents { .. } => "conversation.subscribe",
+            Self::Transition { request } => request.intent.required_scope(),
+            Self::DurableOperation { request } => match request {
+                transitions::OperationAction::Get { .. } => "operation.get",
+                transitions::OperationAction::Cancel { .. } => "operation.cancel",
+                transitions::OperationAction::Reconcile { .. } => "operation.reconcile",
+            },
+            Self::MessageReceipts { .. }
+            | Self::MessageReceipt { .. }
+            | Self::ReceiptPreferencesGet { .. }
+            | Self::ReceiptPreferencesSet { .. } => "history",
+            Self::ArtifactInspect { .. }
+            | Self::ArtifactDownloadLink { .. }
+            | Self::ArtifactLinkGet { .. } => "artifact_get",
+            Self::ArtifactUploadLink { .. } | Self::ArtifactLinkAppend { .. } => "artifact_append",
+            Self::ParticipantRoute { .. } => "resolve",
             Self::ContactPairingStart { .. }
             | Self::ContactPairingComplete { .. }
             | Self::ContactPairingRevoke { .. }
@@ -374,10 +574,24 @@ impl Operation {
     }
     pub fn request_id(&self) -> Option<&str> {
         match self {
+            Self::ConnectionPrepare { request } => Some(&request.preparation_id),
+            Self::SessionControl { request } => Some(&request.operation_id),
+            Self::SessionDecision { request } => Some(&request.operation_id),
+            Self::Transition { request } => Some(&request.operation_id),
+            Self::DurableOperation { request } => match request {
+                transitions::OperationAction::Get { .. } => None,
+                transitions::OperationAction::Cancel { operation_id, .. }
+                | transitions::OperationAction::Reconcile { operation_id, .. } => {
+                    Some(operation_id)
+                }
+            },
+            Self::MessageReceipt { request_id, .. }
+            | Self::ReceiptPreferencesSet { request_id, .. } => Some(request_id),
             Self::ContactPairingStart { request_id, .. }
             | Self::ContactPairingComplete { request_id, .. }
             | Self::ContactPairingRevoke { request_id, .. } => Some(request_id),
             Self::Task { request } => request.command.request_id(),
+            Self::Membership { request } => Some(&request.operation_id),
             Self::Create { request_id, .. }
             | Self::Send { request_id, .. }
             | Self::CallStart { request_id, .. }
@@ -392,6 +606,7 @@ impl Operation {
             | Self::AvailabilitySet { request_id, .. }
             | Self::ArtifactBegin { request_id, .. }
             | Self::ArtifactAppend { request_id, .. }
+            | Self::ArtifactLinkAppend { request_id, .. }
             | Self::ArtifactFinish { request_id, .. }
             | Self::ArtifactDelete { request_id, .. }
             | Self::Close { request_id, .. } => Some(request_id),
@@ -408,19 +623,27 @@ pub struct Identity {
     pub capabilities: Vec<String>,
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
-pub struct Conversation {
-    pub id: String,
-    pub participants: Vec<String>,
-    pub closed: bool,
-}
-
-#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct Message {
     pub id: String,
     pub conversation_id: String,
     pub sender: String,
     pub body: String,
+    pub sender_participant_id: Option<String>,
+    pub audience: Vec<messages::MessageRecipient>,
+    pub content_type: String,
+    pub body_encoding: messages::BodyEncoding,
+    pub label: String,
+    pub attachments: Vec<messages::AttachmentRef>,
+    pub in_reply_to_msg: Option<String>,
+    pub accepted_at: Option<i64>,
+}
+impl std::fmt::Debug for Message {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Message")
+            .field("id", &self.id)
+            .finish_non_exhaustive()
+    }
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
@@ -436,6 +659,8 @@ pub struct Event {
     pub session: Option<Session>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub artifact: Option<Artifact>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub receipt: Option<receipts::RecipientReceipt>,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
@@ -490,6 +715,27 @@ pub struct ContextItem {
     pub source_id: String,
     pub actor_id: String,
     pub body: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub record: Option<ContextRecord>,
+}
+/// Exact authorized record projection. Raw whole-record/manifest fingerprints
+/// remain private to the server. This reference is data and grants no access.
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(deny_unknown_fields)]
+pub struct ContextRecord {
+    pub uuid: String,
+    pub session_id: String,
+    pub revision: u64,
+    pub state: ContextRecordState,
+    pub content_hash: Option<String>,
+    pub valid_until: Option<i64>,
+}
+#[derive(Clone, Copy, Debug, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum ContextRecordState {
+    Available,
+    Unavailable,
+    Deleted,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
@@ -502,6 +748,53 @@ pub struct ContextDelivery {
     pub provider_ref: Option<String>,
     pub created_at: i64,
     pub updated_at: i64,
+    pub destination: Option<ContextDeliveryDestination>,
+    pub problem: Option<ContextDeliveryProblem>,
+    pub lifecycle: Option<ContextDeliveryLifecycle>,
+}
+/// Captured native destination. This describes the original export and grants no access.
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(deny_unknown_fields)]
+pub struct ContextDeliveryDestination {
+    pub connection_id: String,
+    pub generation: u64,
+    pub purpose: ContextDeliveryPurpose,
+}
+#[derive(Clone, Copy, Debug, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum ContextDeliveryPurpose {
+    PublicSession,
+    PrivateConsultation,
+}
+#[derive(Clone, Copy, Debug, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum ContextDeliveryProblem {
+    Rejected,
+    Truncated,
+    Incomplete,
+    Unknown,
+}
+#[derive(Clone, Copy, Debug, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum ContextDeliveryPhase {
+    Initialization,
+    PostCreation,
+    Update,
+}
+/// Observed control lifecycle, independent of media readiness. None means that
+/// lane does not record an independently admitted cleanup phase.
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(deny_unknown_fields)]
+pub struct ContextDeliveryLifecycle {
+    pub phase: ContextDeliveryPhase,
+    pub parent_delivery_id: Option<String>,
+    pub creation_admitted: bool,
+    pub creation_confirmed: bool,
+    pub export_admitted: bool,
+    pub delivery_confirmed: bool,
+    pub cleanup_admitted: Option<bool>,
+    pub cleanup_uncertain: Option<bool>,
+    pub closed: bool,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
@@ -576,6 +869,8 @@ pub struct ProviderDelivery {
     /// Opaque reference to the reviewed enrollment evidence used at dispatch.
     #[serde(default)]
     pub sms_grant_id: Option<String>,
+    /// Terminal refusal before external dispatch, when a connector cannot carry the content.
+    pub refusal_code: Option<String>,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
@@ -585,6 +880,15 @@ pub struct ProviderDelivery {
 // to reduce stack size; all wire responses retain their protocol size limits.
 #[allow(clippy::large_enum_variant)]
 pub enum Outcome {
+    SessionControl(session_control::ControlOutcome),
+    ConnectionPrepared(connection_control::PreparedConnection),
+    SessionDecision(session_decisions::DecisionOutcome),
+    SessionObservations(events::ObservationPage),
+    ConversationSnapshot(events::SnapshotPage),
+    ConversationEvents(events::EventPage),
+    DurableOperation(transitions::OperationRecord),
+    ArtifactLink(attachments::ArtifactLink),
+    ParticipantRoute(routing::ParticipantRoute),
     Contact(contacts::ContactState),
     ContactPairing(contacts::Pairing),
     /// Task results retain their own pending/uncertain semantics and provenance.
@@ -597,11 +901,20 @@ pub enum Outcome {
     SipLeg(SipLeg),
     Availability(Availability),
     ContextView(ContextView),
+    MessageReceipts(receipts::ReceiptPage),
+    ReceiptAcknowledged(receipts::ReceiptAcknowledgement),
+    ReceiptPreferences(receipts::ReceiptPreferences),
     Artifact(Artifact),
     ArtifactChunk(ArtifactChunk),
     Identity(Identity),
     Conversation(Conversation),
+    Conversations(conversations::ListPage),
+    Membership(membership::MembershipOutcome),
+    MembershipSnapshot(membership::MembershipSnapshot),
+    MembershipInvitations(membership::InvitationPage),
     Accepted {
+        #[serde(skip_serializing_if = "Option::is_none")]
+        receipt: Option<transitions::MutationReceipt>,
         request_id: String,
         message_id: String,
         conversation_id: String,
@@ -760,7 +1073,7 @@ mod tests {
         let request = Request::new(Operation::Send {
             request_id: "logical-1".into(),
             conversation_id: "conversation-1".into(),
-            body: "hello".into(),
+            message: crate::messages::MessageDraft::text_all("hello"),
         });
         let value = serde_json::to_value(&request).unwrap();
         assert_eq!(request, serde_json::from_value(value.clone()).unwrap());
@@ -801,7 +1114,14 @@ mod tests {
 
     #[test]
     fn operations_reject_claimed_sender_and_unknown_fields() {
-        assert!(serde_json::from_str::<Operation>(r#"{"op":"send","request_id":"r","conversation_id":"c","body":"hello","sender":"other"}"#).is_err());
+        let mut send = serde_json::to_value(Operation::Send {
+            request_id: "r".into(),
+            conversation_id: "c".into(),
+            message: messages::MessageDraft::text_all("hello"),
+        })
+        .unwrap();
+        send["sender"] = serde_json::json!("other");
+        assert!(serde_json::from_value::<Operation>(send).is_err());
         for operation in [
             Operation::Health {},
             Operation::Resolve {
@@ -818,3 +1138,5 @@ mod tests {
         }
     }
 }
+
+pub mod record_retention;

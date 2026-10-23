@@ -35,7 +35,9 @@ fn fixture_with_acceptance(video: bool, accepted: bool) -> Fixture {
             &ak,
             &Operation::Create {
                 request_id: "create".into(),
-                participants: vec![b.clone()],
+                request: connect_protocol::conversations::CreateRequest::persistent(
+                    vec![b.clone()],
+                ),
             },
         )
         .unwrap()
@@ -390,7 +392,9 @@ fn selected_browser_video_rejoins_a_fresh_invitation_after_explicit_end_in_anoth
             &f.bk,
             &Operation::Create {
                 request_id: "second-conversation".into(),
-                participants: vec![f.a.clone()],
+                request: connect_protocol::conversations::CreateRequest::persistent(vec![f
+                    .a
+                    .clone()]),
             },
         )
         .unwrap()

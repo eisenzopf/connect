@@ -53,6 +53,9 @@ class TaskOperations:
 
 def exchange_timeout(base, operation):
     """Bound the additional server wait without extending other exchanges."""
+    if operation.get("op") in ("conversation_events","session_observations"):
+        wait=operation.get("query",{}).get("wait_ms",0)
+        return base+(min(wait,30000)/1000 if type(wait) is int and wait>=0 else 0)
     if operation.get("op") != "task":
         return base
     command = operation.get("request", {}).get("command", {})

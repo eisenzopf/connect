@@ -71,7 +71,7 @@ pub(super) fn active_call(f: &Fixture) -> String {
         panic!("call")
     };
     let job = f.store.claim_voice_job().unwrap().unwrap();
-    assert!(f.store.voice_dispatch_allowed(&job).unwrap());
+    assert!(f.store.begin_voice_dispatch(&job).unwrap().is_some());
     f.store
         .finish_voice_job(
             &job,

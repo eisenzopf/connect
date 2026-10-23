@@ -1,0 +1,156 @@
+{
+  "task": "G6-046",
+  "title": "Exact native flow, opened and codec-closed stream clauses",
+  "status": "u6-req-0107-0108-0110-qualified-local-native-audio",
+  "recorded_at": "2026-10-22T20:21:09.434537+00:00",
+  "full_task_complete": false,
+  "full_goal_complete": false,
+  "acceptance_qualified": false,
+  "schema_version": 91,
+  "pinned_patches": 141,
+  "platform": {
+    "os": "Darwin",
+    "architecture": "arm64"
+  },
+  "source_lock": {
+    "path": "dependencies/source-lock.json",
+    "sha256": "84858bf7b2ff2599f77d27c96ddc5681794eb0c1d077a00f80338063334c5a87"
+  },
+  "compiled_inputs": {
+    "path": ".local/gate-6/session-cancel-observations/build-inputs-v1.json",
+    "sha256": "d35672934423dbeb859d8f2c456f4340ead86c46e06234433cdc641e8436a626"
+  },
+  "prepared_upstream": {
+    "path": ".local/gate-6/session-cancel-observations/upstream-inputs-final.json",
+    "sha256": "39fe8b1fd6f1a721030e5d125952a78931f6d7122e45bc231f6d7ebc08def05e"
+  },
+  "inputs_unchanged_after_tests": true,
+  "binary": {
+    "path": "target/debug/deps/gate6_canonical_runtime-f39476f2f6c7ff5d",
+    "sha256": "4b135a76ee7ae54e26c2564b49e2cb7806914c22e7edcd22bb318af390015cb2"
+  },
+  "source_inputs": [
+    {
+      "path": "crates/connect-server/tests/support/canonical_native_connections/lifecycle.rs",
+      "sha256": "71fbfbd7cf43b9a65d4666402ec34477af990d46999d0d4d9de28ae539ecd9f1"
+    },
+    {
+      "path": "crates/connect-server/tests/support/canonical_native_connections/codecs.rs",
+      "sha256": "9a7e7c0ffd238fc8df7aa7a486ddbe93074e25e5a06c033adec185415930b4c7"
+    },
+    {
+      "path": "crates/connect-service/src/canonical_native_lifecycle.rs",
+      "sha256": "7a86fee21029177712ad15402295af5b37ff86378c41436a6e36827171f89ee5"
+    },
+    {
+      "path": "scripts/validate-gate6-auxiliary-stream-events.py",
+      "sha256": "fc2d77f8d65a5c11b826a961b940675d1ea4e230267289bafd6557897652a26f"
+    },
+    {
+      "path": ".deps/rvoip/crates/uctp/rvoip-uctp/src/v2/native_lifecycle.rs",
+      "sha256": "43a31ead2ab7305d8d2de3ecda9f12ecdd6939c8417a75025d2858e1cfab0540"
+    },
+    {
+      "path": ".deps/rvoip/crates/uctp/rvoip-uctp/src/v2/native_negotiation/catalog.rs",
+      "sha256": "e7b5fa85569a43e3be3d585788f67e961e8a5f3b93726d19339b4345018d86ec"
+    }
+  ],
+  "results": [
+    {
+      "name": "production-stream-flow-final",
+      "passed": 1,
+      "failed": 0,
+      "evidence": {
+        "path": ".local/gate-6/session-cancel-observations/production-stream-flow-final.log",
+        "sha256": "3d844bff869c0103a40355d151c22f50407e0550745b4b5aa66e6de01eaa8288"
+      }
+    },
+    {
+      "name": "production-stream-close-final",
+      "passed": 1,
+      "failed": 0,
+      "evidence": {
+        "path": ".local/gate-6/session-cancel-observations/production-stream-close-final.log",
+        "sha256": "3f1e0be8c2bd0eb53922557e8317344554343ef9a8584968481a9892d4da69dc"
+      }
+    }
+  ],
+  "actual_signed_observations": {
+    "path": ".local/gate-6/session-cancel-observations/native-lifecycle-events-final.jsonl",
+    "sha256": "55ad3ca8509e4b5928a649bd2d9b7a0b560fd747ffb177bc0f5f5ab1be7a041a"
+  },
+  "structural_and_order_validation": {
+    "path": ".local/gate-6/session-cancel-observations/stream-event-validation-final.json",
+    "sha256": "03863b6e8b60f385d7a9ebcde5b54644fac30c3756c5c25a4b38449b3fe3e6ca",
+    "result": {
+      "codec_close_to_replacement_open_ms": [
+        1395.008
+      ],
+      "passed": true,
+      "stream_opened": 6,
+      "stream_closed": 1,
+      "connection_groups": 5,
+      "opened_algorithms": [
+        "EdDSA",
+        "ES256"
+      ],
+      "closed_algorithms": [
+        "EdDSA"
+      ],
+      "scope": "Production native audio only; actual duplex before ready/open, exact opened shape and immutable codec-close shape. Handle allocation timing and full immediate-replacement semantics are separate."
+    }
+  },
+  "qualified_cases": [
+    {
+      "case_id": "u6-req-0107",
+      "algorithms": [
+        "EdDSA",
+        "ES256"
+      ],
+      "test": "canonical_native_connections::lifecycle::production_native_lifecycle_quality_reports_actual_flow_through_signed_sdk",
+      "assertions": [
+        "An admitted signed offer and answer produce no readiness/opened event before actual media; an authenticated reliable heartbeat returns only its ACK.",
+        "Actual independent decoded audio is exchanged in both directions. Each physical Connection then emits one connection.ready before its stream.opened; unrelated operation collectors preserve pending events.",
+        "Revoking the actual target Endpoint prevents fresh lifecycle events after revocation while the other physical source continues its own authorized quality interval."
+      ]
+    },
+    {
+      "case_id": "u6-req-0108",
+      "algorithms": [
+        "EdDSA",
+        "ES256"
+      ],
+      "test": "canonical_native_connections::lifecycle::production_native_lifecycle_quality_reports_actual_flow_through_signed_sdk",
+      "additional_test": "canonical_native_connections::lifecycle::production_native_lifecycle_closes_original_codec_binding_and_opens_only_observed_replacement",
+      "assertions": [
+        "Six actual signed stream.opened payloads include their exact original logical Stream ID, kind audio, selected codec with params/sample_rate8000/channels1, direction sendrecv, physical-peer uint16 handle and RFC3339 opened_at no later than the server envelope timestamp.",
+        "The public SDK verifies current enrolled server signatures before collecting the observations. Existing tests independently compare each Stream/Connection/physical handle to the actual negotiated media binding.",
+        "Observed replacement metadata names PCMA and its new physical handle only after actual replacement duplex flow."
+      ]
+    },
+    {
+      "case_id": "u6-req-0110",
+      "algorithms": [
+        "EdDSA"
+      ],
+      "test": "canonical_native_connections::lifecycle::production_native_lifecycle_closes_original_codec_binding_and_opens_only_observed_replacement",
+      "assertions": [
+        "The actual signed stream.closed payload retains the original Stream ID, RFC3339 closed_at and numeric reason_code200 with reason codec-renegotiated under the exact original CID/SID/Connection.",
+        "The replacement code path first closes the original binding and opens only its actually observed PCMA replacement; unrelated audio remains live."
+      ]
+    }
+  ],
+  "profile": "Actual production Connect native QUIC listener/public signed SDK, ordinary public Conversation/Session creation and invitation/acceptance, actual media endpoint/resource negotiation, independent decoded audio and fresh current Store lifecycle delivery policy. These are existing implementation cases rerun and reconciled to exact clauses.",
+  "limits": [
+    "22 of61 assigned clauses now locally qualified;39 remain. Full G6-046 and the105-task goal remain incomplete.",
+    "This report qualifies the recorded native audio shapes and flow. Video/screenshare/data event profiles and other closure reason paths are not newly qualified. Stream-close signing here is EdDSA; opened/flow are EdDSA and ES256.",
+    "Clause0109 handle-allocation timing remains open. The observed handle values are verified, but this does not prove when allocation occurs.",
+    "Clause0111 immediate replacement remains open: actual codec closed-to-replacement-open gap was1395.008ms while the test established fresh replacement duplex. Ordered replacement alone does not prove the immediate boundary.",
+    "No Linux, production remote/browser/provider, named G6-093 qualification, acceptance or publication."
+  ],
+  "reproduce": [
+    "bash scripts/prepare-dependencies.sh",
+    "Set CONNECT_NATIVE_LIFECYCLE_OBSERVATIONS to an absolute ignored .local/gate-6 JSONL file; run the two exact production lifecycle tests using CARGO_INCREMENTAL=0 cargo test -p connect-server --test gate6_canonical_runtime --locked --offline -j1 <test-name> -- --exact --test-threads=1.",
+    "python3 scripts/validate-gate6-auxiliary-stream-events.py <observations.jsonl> --output <validation.json>"
+  ]
+}

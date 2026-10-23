@@ -1,0 +1,304 @@
+{
+  "task": "G6-046",
+  "title": "Verified native media step-up and exact original mutation authority",
+  "status": "same-physical-user-native-step-up-qualified; full-auxiliary-task-open",
+  "recorded_at": "2026-10-22T15:04:11.949896+00:00",
+  "full_task_complete": false,
+  "full_goal_complete": false,
+  "acceptance_qualified": false,
+  "platform": "macOS-26.6.2-arm64-arm-64bit-Mach-O",
+  "machine": "arm64",
+  "source_revision": "d820712b1753b2045ed8fd37503cae9baa42bc5f",
+  "schema_version": 86,
+  "pinned_patches": 136,
+  "source_lock": {
+    "path": "dependencies/source-lock.json",
+    "sha256": "e61cd8f4506b2ab0e2742be32df0d68f2fea5f9a140b035340020d77e751fb5a",
+    "bytes": 60276
+  },
+  "source_inputs": {
+    "path": ".local/gate-6/native-step-up-inputs-v3.json",
+    "sha256": "b1512e9b84dda293a8d502dfda7e96827635a462a9b5a9bf5a937fe07f9bf5f1",
+    "bytes": 191693
+  },
+  "sources_unchanged_after_tests": true,
+  "implementation": [
+    "Step-up first validates the exact signed/correlated response, intrinsic user/task assurance and both current enrolled credentials under Binding authority. It does not pretend the successor is already the original native source.",
+    "Successor dispatch, watch and authentication/assurance replies are prepared before physical media effects. The protected callback reuses the exact verified physical PeerAdmission/NativePhysicalBinding and the original observed Core credential rotation, preserving the original model and handles.",
+    "The host releases initial/transition readers before fresh acquisition of current successor authority for the original blocked command. No larger reader is reacquired behind its own waiting writer. The private held intent retains its original envelope/body/logical operation/revision and executes once under the newly current command grant.",
+    "A shared physical-transition marker and publication guard cover both auth.refresh and step-up. Cancellation/error after a possible transition, including a ready worker result not yet published, retires the physical root and children. A committed successor remains usable. The guard retains only its marker/token rather than bearer metadata.",
+    "The explicit owned SDK APIs retain the one verified reader and only accept the exact correlated session/assurance transition. Definite authentication failure, application failure and unknown original execution remain distinct; no credential is issued or inherited."
+  ],
+  "production_native_and_refresh": {
+    "artifact": {
+      "path": ".local/gate-6/native-step-up-production-v3.log",
+      "sha256": "d7271cb0c8c7f745adee5b1dcc1a84ae4a1be838c86e91753bdf84949bb89a58",
+      "bytes": 792
+    },
+    "passed": 5,
+    "failed": 0,
+    "ignored": 0,
+    "seconds": 42.68,
+    "tests_passed": [
+      "canonical_native_connections::dtmf::production_native_refresh_retains_actual_decoded_rtp_after_original_expiry",
+      "canonical_native_connections::dtmf::production_owned_audio_refresh_keeps_signed_reader_and_current_signal_authority",
+      "canonical_native_connections::dtmf::production_owned_audio_signaling_refresh_survives_original_credential_expiry",
+      "canonical_native_connections::step_up::production_owned_native_step_up_keeps_authentication_separate_from_original_sql_refusal_and_retry",
+      "canonical_native_connections::step_up::production_owned_native_step_up_resumes_original_dtmf_after_current_user_consent_and_media_rotation"
+    ]
+  },
+  "production_existing_consent": {
+    "artifact": {
+      "path": ".local/gate-6/native-step-up-user-assurance-v3.log",
+      "sha256": "42e1798393b17ab483f78b192e27adf4a201cf6cb703de2d8ee89451dd994c96",
+      "bytes": 2971
+    },
+    "passed": 3,
+    "failed": 0,
+    "ignored": 0,
+    "seconds": 6.48,
+    "tests_passed": [
+      "canonical_user_assurance::production_consent_http_authenticates_before_body_and_rejects_caller_selected_user",
+      "canonical_user_assurance::production_user_assurance_refuses_ordinary_wrong_user_scope_and_revoked_consent_without_mutation",
+      "canonical_user_assurance::production_user_assurance_resumes_original_close_with_real_consent_and_blocks_http_bypass"
+    ]
+  },
+  "production_provider_and_dtmf_regressions": {
+    "artifact": {
+      "path": ".local/gate-6/native-step-up-regressions-v3.log",
+      "sha256": "b32a8966fcc12c5954ac73e0acf9740cf7c99949336fd2e8027ca492ef6516e0",
+      "bytes": 1661
+    },
+    "passed": 11,
+    "failed": 0,
+    "ignored": 0,
+    "seconds": 168.76,
+    "tests_passed": [
+      "canonical_native_connections::consultation::production_private_ai_automatic_ai_caller_uses_own_context_grant_and_independent_owner_return",
+      "canonical_native_connections::consultation::production_private_ai_automatic_cancel_during_export_drains_ack_and_preserves_original_audio",
+      "canonical_native_connections::consultation::production_private_ai_context_revocation_closes_provider_and_preserves_primary_for_return",
+      "canonical_native_connections::consultation::production_private_ai_record_context_cancel_pending_export_retains_erasure_custody",
+      "canonical_native_connections::consultation::production_private_ai_record_context_erasure_stops_memory_and_preserves_return",
+      "canonical_native_connections::consultation::production_private_ai_record_context_permission_has_no_execution_owner_fallback",
+      "canonical_native_connections::consultation::production_private_ai_record_context_retention_stops_memory_and_preserves_return",
+      "canonical_native_connections::consultation::production_private_ai_uses_fresh_provider_context_and_actual_bidirectional_audio_then_returns",
+      "canonical_native_connections::dtmf::production_native_dtmf_requires_named_receive_permission_without_borrowing_subscription",
+      "canonical_native_connections::dtmf::production_native_dtmf_signed_sdk_delivery_and_replay_preserve_original_effects",
+      "canonical_native_connections::dtmf::production_owned_audio_dtmf_uses_its_exact_source_and_preserves_queued_received_signals"
+    ]
+  },
+  "client_verification": {
+    "artifact": {
+      "path": ".local/gate-6/native-step-up-client-v3.log",
+      "sha256": "018b64e66119ae017c11f61a7a2180aeec0621aee8a8ee31208be09bbee0e71a",
+      "bytes": 11413
+    },
+    "passed": 80,
+    "failed": 0,
+    "ignored": 0,
+    "seconds": 1.34,
+    "tests_passed": [
+      "application::tests::protected_application_task_grant_replaces_owner_and_cannot_extend_original_expiry",
+      "application::tests::canonical_commands_cannot_be_constructed_as_application_operations",
+      "application::tests::application_configuration_rejects_header_controls_and_command_input_rejects_authority_claims",
+      "application::tests::application_partial_cancellation_is_explicit_and_retry_preserves_logical_id",
+      "application::tests::application_size_bounds_cover_announced_and_chunked_bodies",
+      "application::tests::incoming_contacts::incoming_provider_errors_are_sanitized_and_never_retried_with_another_operation",
+      "application::tests::application_responses_require_matching_profile_kind_and_success_status",
+      "application::tests::credential_revocation_correlates_immutable_target_and_requires_revoked_state",
+      "canonical::records::tests::record_decoder_does_not_accept_schema_invalid_json_with_a_valid_digest",
+      "application::tests::application_errors_never_echo_untrusted_server_reason_or_code",
+      "canonical::records::tests::record_decoder_rejects_changed_condition_reference_and_oversize_without_fetching",
+      "canonical::records::tests::record_decoder_requires_exact_view_bytes_digest_and_selected_uuid",
+      "canonical::records::tests::record_discovery_rejects_unbounded_or_malformed_ready_metadata",
+      "canonical::records::tests::record_reference_origin_refuses_bearer_exfiltration_and_ambiguous_paths",
+      "application::tests::provisioning_correlates_target_revision_revocation_profile_kind_and_status",
+      "application::tests::incoming_contacts::incoming_decisions_correlate_original_contact_candidate_operation_state_and_kind",
+      "application::tests::user_delegation::explicit_user_consent_correlates_issuer_target_scope_expiry_and_protected_secret",
+      "canonical::native::tests::native_confirmation_is_fresh_and_binds_every_original_resource",
+      "canonical::tests::canonical_cursor_facts_bind_outer_resources_to_the_authoritative_journal_event",
+      "canonical::tests::original_command_values_preserve_extensions_without_bypassing_validation_or_auth",
+      "canonical::tests::auth_refresh::canonical_refresh_correlated_refusal_preserves_the_previous_binding_without_echoing_backend_text",
+      "canonical::tests::cancellation_after_signed_partial_batch_retires_physical_peer",
+      "application::tests::user_delegation::user_consent_invalid_intent_and_presend_cancel_do_not_send_or_choose_fallback_authority",
+      "canonical::tests::auth_refresh::canonical_refresh_invalid_input_and_pre_cancelled_intent_send_no_command",
+      "canonical::tests::auth_refresh::canonical_refresh_validates_signed_owner_profile_assurance_expiry_and_rotated_token",
+      "canonical::tests::owned_signaling::owned_reader_invalid_refresh_retires_original_peer_without_installing_candidate",
+      "canonical::tests::owned_signaling::owned_reader_completes_a_real_fragmented_signed_frame_while_foreground_inbox_waits_are_cancelled",
+      "canonical::tests::atomic_native_datagram_wait_does_not_retire_signed_control_peer",
+      "application::tests::incoming_contacts::incoming_invalid_cancelled_and_expired_commands_have_no_http_effect",
+      "application::tests::provisioning_preflight_rejects_path_injection_cancellation_expiry_and_oversize_without_network",
+      "canonical::tests::signed_foreign_scope_retires_collector_peer",
+      "application::tests::provisioning_uses_bounded_streaming_and_sanitized_errors_without_retry",
+      "application::tests::application_redirects_do_not_forward_the_credential",
+      "application::tests::application_preflight_cancellation_expiry_and_task_discovery_have_no_network_effect",
+      "canonical::tests::owned_signaling::owned_reader_idle_exceeds_rpc_timeout_without_retiring_audio_peer",
+      "canonical::tests::step_up::canonical_step_up_cancel_after_response_stops_partial_transition_without_installing_candidate",
+      "canonical::tests::step_up::canonical_step_up_definitive_refusal_keeps_previous_binding_and_consumes_challenge",
+      "canonical::tests::step_up::canonical_step_up_interrupted_execution_keeps_original_unknown_separate_from_auth_refusal",
+      "canonical::tests::original_credential_and_server_pin_expiry_bound_the_entire_batch",
+      "canonical::tests::signed_missing_completion_times_out_without_reporting_logical_success",
+      "canonical::tests::step_up::canonical_step_up_resumes_original_scope_and_id_without_resending_and_installs_rotated_session",
+      "canonical::tests::step_up::owned_canonical_step_up_cancel_after_response_stops_partial_transition_without_installing_candidate",
+      "canonical::tests::step_up::owned_canonical_step_up_definitive_refusal_keeps_previous_binding_and_consumes_challenge",
+      "application::tests::ready_http_chunks_cannot_extend_deadline_or_original_expiry",
+      "canonical::tests::step_up::owned_canonical_step_up_interrupted_execution_keeps_original_unknown_separate_from_auth_refusal",
+      "canonical::tests::owned_signaling::owned_reader_credential_or_server_key_expiry_retires_an_idle_peer",
+      "canonical::tests::signed_ready_stream_cannot_extend_absolute_batch_deadline",
+      "canonical::tests::step_up::owned_step_up_late_transition_after_definitive_refusal_is_terminal_without_deadline_extension",
+      "canonical::tests::typed_operation_get_keeps_signed_unknown_state_after_batch_ack",
+      "media::frame_debug_tests::frame_debug_exposes_metadata_without_recorded_media",
+      "media_end::tests::terminal_events_require_the_current_binding_and_valid_payload",
+      "task_diagnostics::readiness_tests::ready_server_never_masks_stopped_unknown_or_unconfigured_execution",
+      "task_diagnostics::readiness_tests::server_failure_and_sample_changes_remain_explicit_without_mutating_original_views",
+      "task_diagnostics::tests::arbitrary_text_is_removed_but_reconciliation_and_source_ids_are_retained",
+      "video::assembly::tests::a_missing_fragment_and_a_conflicting_duplicate_never_complete",
+      "video::assembly::tests::expired_frame_cannot_restart_its_deadline_or_reconstruct_from_late_fragments",
+      "video::assembly::tests::many_partial_sources_keep_observed_usage_inside_frozen_limits",
+      "video::assembly::tests::marker_without_a_start_packet_cannot_publish_sequence_metadata",
+      "video::assembly::tests::reordered_wrap_and_duplicate_packets_complete_once_without_losing_bytes",
+      "video::assembly::tests::sequence_metadata_uses_buffered_marker_and_clears_before_an_incomplete_or_invalid_push",
+      "video::assembly::tests::sources_and_timestamps_cannot_contaminate_each_other",
+      "video::packet::tests::caller_mutation_cannot_panic_the_fragment_parser",
+      "video::packet::tests::rejects_oversized_and_truncated_packet_extensions",
+      "video::signaling::tests::negotiation_errors_require_current_request_or_exact_connection",
+      "video::signaling::tests::selected_codec_metadata_cannot_silently_change_the_fixed_profile",
+      "video::timebase::tests::muted_or_stalled_capture_resumes_in_the_same_audio_video_epoch",
+      "video::timebase::tests::queued_capture_and_rtp_wrap_never_run_the_clock_backwards",
+      "canonical::tests::auth_refresh::canonical_refresh_missing_foreign_and_streaming_replies_cannot_extend_the_old_absolute_deadline",
+      "canonical::tests::owned_signaling::owned_reader_drains_signed_passive_bursts_and_preserves_ordered_dtmf_and_ack",
+      "canonical::tests::step_up::canonical_step_up_presend_cancel_preserves_challenge_and_original_deadline_still_expires",
+      "canonical::tests::owned_signaling::owned_reader_partial_signature_or_terminal_auth_stops_the_original_peer_without_foreground_signaling_reads",
+      "canonical::tests::step_up::owned_canonical_step_up_presend_cancel_preserves_challenge_and_original_deadline_still_expires",
+      "canonical::tests::signed_live_inbox_count_and_byte_bounds_retire_collector_peer",
+      "canonical::tests::step_up::owned_canonical_step_up_resumes_original_scope_and_id_without_resending_and_installs_rotated_session",
+      "canonical::tests::owned_signaling::owned_reader_validated_refresh_replaces_original_expiry_without_replacing_reader",
+      "canonical::tests::signed_reply_count_and_byte_bounds_retire_collector_peer",
+      "canonical::tests::owned_signaling::owned_reader_refresh_preserves_original_server_key_expiry",
+      "canonical::tests::owned_signaling::owned_reader_refused_or_unsolicited_refresh_cannot_extend_current_authority",
+      "canonical::tests::step_up::canonical_step_up_rejects_mismatched_or_incomplete_signed_transitions_and_retires_uncertainty",
+      "canonical::tests::step_up::owned_canonical_step_up_rejects_mismatched_or_incomplete_signed_transitions_and_retires_uncertainty"
+    ]
+  },
+  "controlled_publication_verification": {
+    "artifact": {
+      "path": ".local/gate-6/native-step-up-publication-v3.log",
+      "sha256": "0929832b321154f69ac2aae4a80501d5e7668203a2d8ecb76068b96a7e8e4969",
+      "bytes": 2969
+    },
+    "passed": 3,
+    "failed": 0,
+    "ignored": 0,
+    "seconds": 0.0,
+    "tests_passed": [
+      "v2::auth_dispatch::credential_refresh::publication_tests::credential_publication_cancel_before_media_keeps_prior_physical_peer",
+      "v2::auth_dispatch::credential_refresh::publication_tests::credential_publication_committed_successor_keeps_physical_peer",
+      "v2::auth_dispatch::credential_refresh::publication_tests::credential_publication_drop_after_possible_media_closes_root_and_children"
+    ]
+  },
+  "production_assertions": [
+    "EdDSA and ES256: actual authenticated HTTP user consent is replay-stable and separately enrolled to the existing Device/key. An unenrolled consent refuses before any media epoch or original signal operation exists; explicit retry after enrollment succeeds.",
+    "EdDSA and ES256: the exact original held signal envelope ID equals the recorded native source observation ID; current Store epoch1/Core credential revision2 and unchanged stream revision1 are observed. The actual target receives the expected DTMF and replay retains one operation/effect without another frame.",
+    "EdDSA and ES256: injected SQL refusal of original signal acceptance after successful step-up yields successful authentication plus a separate failed original outcome. Explicit fresh-envelope retry retains the logical operation ID, uses the committed assurance and keeps one media epoch/one signal effect.",
+    "All3 native refresh cases, including independently FFmpeg-decoded PCMU after predecessor expiry and same-credential metadata-only renewal, pass on the same final runtime binary.",
+    "All3 existing actual consent/provenance/HTTP-bypass cases and all11 private-provider/DTMF regressions pass on recomposed current source."
+  ],
+  "builds": [
+    {
+      "artifact": {
+        "path": ".local/gate-6/native-step-up-runtime-build-v1.log",
+        "sha256": "540146c8bf32887726651a01c6580d36c46d09e82a40b0b9e16e42d46e4f0419",
+        "bytes": 3184
+      },
+      "passed": true,
+      "seconds": 537,
+      "scope": "Initial native step-up implementation; one actual positive case passed both algorithms."
+    },
+    {
+      "artifact": {
+        "path": ".local/gate-6/native-step-up-runtime-build-v3.log",
+        "sha256": "b44d61a0908d8d8be1ff5c135f6735e6d0e42762eef3162259b5ab792cf540cb",
+        "bytes": 3184
+      },
+      "passed": true,
+      "seconds": 530,
+      "scope": "Final ordinary-refresh/step-up publication guard and expanded real-consent refusal/retry cases; runtime and CLI."
+    }
+  ],
+  "initial_production_attempt": {
+    "verification": {
+      "artifact": {
+        "path": ".local/gate-6/native-step-up-production-v1.log",
+        "sha256": "51e145e160bf40fd485e6a1d50558b95803def1b19db0956fffd5caefb0441d8",
+        "bytes": 265
+      },
+      "passed": 1,
+      "failed": 0,
+      "ignored": 0,
+      "seconds": 2.98,
+      "tests_passed": [
+        "canonical_native_connections::step_up::production_owned_native_step_up_resumes_original_dtmf_after_current_user_consent_and_media_rotation"
+      ]
+    },
+    "source_inputs": {
+      "path": ".local/gate-6/native-step-up-inputs-v1.json",
+      "sha256": "95a1fba05cc318974a2b2fdf140f9e1d5a97367090c6078a141fc112d7200317",
+      "bytes": 191693
+    },
+    "binary_preservation": {
+      "path": ".local/gate-6/native-step-up-binaries-v1.json",
+      "sha256": "ec9ece2ef932c6685ffa6869f5da0cb277bf6f945a61a76b6ceb846bcbee707a",
+      "bytes": 1038
+    },
+    "source_case_snapshot": {
+      "path": ".local/gate-6/native-step-up-case-v1.rs",
+      "sha256": "4d772d333081b8bf35840c0239eebc25b96138f1ac81a989e45dc5bbe4f0c414",
+      "bytes": 7435
+    },
+    "meaning": "Verified positive production step-up before the final publication/refusal additions; not the final source qualification."
+  },
+  "remaining": [
+    "Granular signal-only successor authority remains open. Existing native stream projection and media reads still require connection.offer; native step-up currently refuses such restricted successor scopes before rotation. Complete independent DTMF physical/audience admission without borrowing prior RTP authority.",
+    "Task-scoped native/owned step-up and broader scoped/device/key/transport profiles require explicit current provenance and their own qualification.",
+    "Production lost-response, multi-controller partial rotation, SQL captured-result recovery and cancellation/publication fault IO remain open. The3 guard tests are controlled state-machine witnesses, not actual production IO or a complete recovery qualification.",
+    "All61 exact assigned auxiliary clauses, SIP/WebRTC DTMF interop, general outcomes and audience composition, full G6-046 and the remaining105-task dependency graph remain open.",
+    "The earlier default-parallel private-provider Store29/36 result remains unqualified; historical retention/primary-return refusal predicate remains unestablished despite these selected passing cases.",
+    "Linux/remote/browser/provider release profiles, acceptance and publication remain separate and unqualified here."
+  ],
+  "plan_counts": {
+    "done": 45,
+    "in_progress": 1,
+    "not_started": 59,
+    "acceptance_complete": 0
+  },
+  "compiled_binary_archive": {
+    "path": ".local/gate-6/native-step-up-final-binaries-v3.json",
+    "sha256": "8b2911395b0137f31836c6a9fbeeee4d23264b211c19eb5b96755dccdad407ac"
+  },
+  "source_verification": {
+    "compiled_code_unchanged": true,
+    "inputs": 1530,
+    "compiled_inputs": {
+      "path": ".local/gate-6/native-step-up-inputs-v3.json",
+      "sha256": "b1512e9b84dda293a8d502dfda7e96827635a462a9b5a9bf5a937fe07f9bf5f1",
+      "bytes": 191693
+    },
+    "current_inputs": {
+      "path": ".local/gate-6/native-step-up-inputs-final-v4.json",
+      "sha256": "fe697731d5fa333bb3cc34fa29bc892f71d72c67f01ff9d13b6642d67cf630dc",
+      "bytes": 191693
+    },
+    "post_test_documentation_only_delta": [
+      "docs/connect-gate-6-implementation.html",
+      "docs/developer/step-up.md",
+      "docs/developer/user-assurance.md",
+      "docs/evidence/gate-6/auxiliary-protocol-scope.json",
+      "docs/evidence/gate-6/auxiliary-user-assurance.json"
+    ]
+  },
+  "final_checks": {
+    "path": ".local/gate-6/native-step-up-final-checks-v4.json",
+    "sha256": "c488771caef70298f4aab0ec21fab08aea78e025d8ba21417df1de2576ea160c",
+    "bytes": 260
+  }
+}

@@ -1,7 +1,7 @@
 [workspace]
 resolver = "2"
 exclude = [".local", ".deps/rvoip", ".deps/parley", ".deps/rtc-dtls", ".deps/rtc-interceptor", ".deps/quinn-proto", "examples/connector-template", "examples/connector-contribution"]
-members = ["crates/connect-connector-api", "crates/connect-protocol", "crates/connect-store", "crates/connect-service", "crates/connect-client", "crates/connect-server", "examples/review-loop", "examples/native-video", "crates/connect-connectors", "crates/connect-mcp"]
+members = ["crates/connect-connector-http", "crates/connect-connector-api", "crates/connect-protocol", "crates/connect-store", "crates/connect-service", "crates/connect-client", "crates/connect-server", "examples/review-loop", "examples/native-video", "crates/connect-connectors", "crates/connect-mcp"]
 
 [workspace.package]
 version = "0.1.0"
@@ -11,7 +11,11 @@ license = "MIT"
 repository = "https://github.com/eisenzopf/connect"
 
 [workspace.dependencies]
+p256 = { version = "0.13", default-features = false, features = ["arithmetic"] }
+ed25519-dalek = { version = "2", default-features = false }
+ring = "0.17"
 connect-connector-api = { path = "crates/connect-connector-api" }
+connect-connector-http = { path = "crates/connect-connector-http" }
 connect-protocol = { path = "crates/connect-protocol" }
 connect-store = { path = "crates/connect-store" }
 connect-service = { path = "crates/connect-service" }
@@ -30,12 +34,17 @@ rvoip-quic = { path = ".deps/rvoip/crates/uctp/rvoip-quic" }
 rvoip-vapi = { path = ".deps/rvoip/crates/extensions/rvoip-vapi" }
 rvoip-websocket = { path = ".deps/rvoip/crates/uctp/rvoip-websocket" }
 rvoip-sip = { path = ".deps/rvoip/crates/sip/rvoip-sip" }
+rvoip-sip-dialog = { path = ".deps/rvoip/crates/sip/sip-dialog" }
+rvoip-sip-core = { path = ".deps/rvoip/crates/sip/sip-core" }
+rvoip-sip-transport = { path = ".deps/rvoip/crates/sip/sip-transport" }
 rvoip-webrtc = { path = ".deps/rvoip/crates/webrtc/rvoip-webrtc", features = ["comprehensive"] }
 rvoip-auth-core = { path = ".deps/rvoip/crates/identity/auth-core" }
 tokio = { version = "1", features = ["full"] }
 tokio-util = "0.7"
+tokio-rustls = { version = "0.26.6", default-features = false, features = ["ring", "tls12"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
+serde_jcs = "=0.2.0"
 thiserror = "2"
 async-trait = "0.1"
 futures-util = "0.3"

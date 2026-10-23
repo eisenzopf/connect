@@ -18,7 +18,7 @@ with tempfile.TemporaryDirectory(prefix='connect-examples-') as temporary:
         # Agent is offline; app creates a new request through the public SDK CLI.
         agent_id=tomllib.loads((state/'agent.toml').read_text())['identity_id']
         conversation=request(state,'reviews',{'op':'create','request_id':'offline-create','participants':[agent_id]})['data']['id']
-        request(state,'reviews',{'op':'send','request_id':'offline-send','conversation_id':conversation,'body':'review_draft:draft-003'})
+        request(state,'reviews',{'op':'send','request_id':'offline-send','conversation_id':conversation,"message": {'to': 'all', 'content_type': 'text/plain', 'body': 'review_draft:draft-003', 'body_encoding': 'utf8', 'label': 'connect-messages', 'attachments': [], 'in_reply_to_msg': None, 'msg_id': None}})
         finish(worker(state,'agent'))
         stats=inspect(state/'agent.work.sqlite3');assert stats['business_effects']==2 and stats['pending_commands']==0
         # Rewind only this disposable app checkpoint to force replay of events

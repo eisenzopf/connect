@@ -7,7 +7,12 @@ impl Connector for Echo {
     fn name(&self) -> &'static str {
         "echo"
     }
-    async fn deliver(&self, request: &DeliveryRequest) -> Result<Completion, Failure> {
+    async fn deliver(
+        &self,
+        request: &DeliveryRequest,
+        permit: connect_connector_api::DispatchPermit,
+    ) -> Result<Completion, Failure> {
+        permit.admit_effect()?;
         Ok(Completion {
             provider_id: "local-demo".into(),
             reply: Some(request.body.clone()),
@@ -23,7 +28,13 @@ async fn main() {
         previous_chat_id: None,
         context: None,
     };
-    match Echo.deliver(&request).await {
+    match Echo
+        .deliver(
+            &request,
+            connect_connector_api::conformance::dispatch_permit(),
+        )
+        .await
+    {
         Ok(result) => println!("{}: {}", Echo.name(), result.reply.unwrap_or_default()),
         Err(failure) => eprintln!("Delivery {}", failure.state()),
     }

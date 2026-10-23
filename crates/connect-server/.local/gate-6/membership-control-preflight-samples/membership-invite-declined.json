@@ -1,0 +1,49 @@
+{
+  "api": "membership",
+  "request": {
+    "op": "membership",
+    "request": {
+      "change": {
+        "action": "invite",
+        "expires_at": 1792233833,
+        "identity_id": "ec3ffaa5-81e8-4ea4-8d28-415cc5de1be8",
+        "kind": "human",
+        "role": "guest"
+      },
+      "conversation_id": "conv_18f811c7b0944cc0997da31aa4547324",
+      "expected_revision": 0,
+      "operation_id": "invite-declined"
+    }
+  },
+  "response": {
+    "profile": "connect-control/1",
+    "result": {
+      "Ok": {
+        "data": {
+          "invitation": {
+            "conversation_id": "conv_18f811c7b0944cc0997da31aa4547324",
+            "conversation_revision": 1,
+            "expires_at": 1792233833,
+            "identity_id": "ec3ffaa5-81e8-4ea4-8d28-415cc5de1be8",
+            "invitation_id": "inv_9557e4f0-0daf-43ca-ae63-2a28a75fbc39",
+            "state": "pending"
+          },
+          "kind": "invitation",
+          "receipt": {
+            "completion_boundary": "local-mutation",
+            "conversation_id": "conv_18f811c7b0944cc0997da31aa4547324",
+            "operation_id": "invite-declined",
+            "state": "completed",
+            "status_reference": {
+              "action": "get",
+              "operation_id": "invite-declined"
+            }
+          }
+        },
+        "kind": "membership"
+      }
+    }
+  },
+  "route": "/v1/operations",
+  "status": 200
+}

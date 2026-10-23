@@ -57,6 +57,7 @@ async fn fixture() -> (
                 target: "fixture-peer".into(),
                 source: None,
                 enabled: true,
+                incoming_to: connect_protocol::messages::MessageAudience::all(),
             },
         )
         .unwrap();
@@ -85,11 +86,15 @@ async fn delivery(client: &mut ConnectClient, conversation: &str, expected: &str
 #[tokio::test]
 async fn independent_prism_context_and_contact_survive_host_and_adapter_restart() {
     let (tmp, server, mut client, cid, provider) = fixture().await;
-    let worker = Worker::with_drivers(server.service.clone(), vec![provider.clone()]).unwrap();
+    let worker = Worker::with_drivers(server.service.clone(), vec![provider.clone()])
+        .await
+        .unwrap();
     let send = Operation::Send {
         request_id: "contributor-first".into(),
         conversation_id: cid.clone(),
-        body: "The approved color is violet.".into(),
+        message: connect_protocol::messages::MessageDraft::text_all(
+            "The approved color is violet.",
+        ),
     };
     let receipt = client.request(send.clone()).await.unwrap();
     let id = delivery(&mut client, &cid, "delivered").await;
@@ -114,7 +119,9 @@ async fn independent_prism_context_and_contact_survive_host_and_adapter_restart(
     .await
     .unwrap();
     let provider = Arc::new(Prism::open_file(tmp.path().join("provider.json")).unwrap());
-    let worker = Worker::with_drivers(server.service.clone(), vec![provider.clone()]).unwrap();
+    let worker = Worker::with_drivers(server.service.clone(), vec![provider.clone()])
+        .await
+        .unwrap();
     let mut config = ClientConfig::load(&state.join("reviews.toml")).unwrap();
     config.endpoint = server.address;
     let mut client = ConnectClient::open(config).await.unwrap();
@@ -211,11 +218,13 @@ async fn independent_prism_context_and_contact_survive_host_and_adapter_restart(
 async fn unknown_effect_is_not_repeated_after_worker_and_adapter_restart() {
     let (tmp, server, mut client, cid, provider) = fixture().await;
     provider.inject(Injection::UncertainMessage);
-    let worker = Worker::with_drivers(server.service.clone(), vec![provider.clone()]).unwrap();
+    let worker = Worker::with_drivers(server.service.clone(), vec![provider.clone()])
+        .await
+        .unwrap();
     let send = Operation::Send {
         request_id: "contributor-unknown".into(),
         conversation_id: cid.clone(),
-        body: "Uncertain provider response".into(),
+        message: connect_protocol::messages::MessageDraft::text_all("Uncertain provider response"),
     };
     let receipt = client.request(send.clone()).await.unwrap();
     let id = delivery(&mut client, &cid, "uncertain").await;
@@ -232,7 +241,9 @@ async fn unknown_effect_is_not_repeated_after_worker_and_adapter_restart() {
     .await
     .unwrap();
     let provider = Arc::new(Prism::open_file(tmp.path().join("provider.json")).unwrap());
-    let worker = Worker::with_drivers(server.service.clone(), vec![provider.clone()]).unwrap();
+    let worker = Worker::with_drivers(server.service.clone(), vec![provider.clone()])
+        .await
+        .unwrap();
     let mut config = ClientConfig::load(&state.join("reviews.toml")).unwrap();
     config.endpoint = server.address;
     let mut client = ConnectClient::open(config).await.unwrap();
@@ -273,7 +284,9 @@ async fn unknown_effect_is_not_repeated_after_worker_and_adapter_restart() {
 async fn duplicate_composition_is_rejected_before_worker_claims() {
     let (_tmp, server, client, _cid, provider) = fixture().await;
     assert!(
-        Worker::with_drivers(server.service.clone(), vec![provider.clone(), provider]).is_err()
+        Worker::with_drivers(server.service.clone(), vec![provider.clone(), provider])
+            .await
+            .is_err()
     );
     drop(client);
     server.shutdown().await.unwrap();
@@ -294,7 +307,12 @@ async fn invalid_or_unready_composition_cannot_persist_contracts_or_claim_work()
         fn readiness(&self) -> Readiness {
             Readiness::MissingSecret
         }
-        async fn deliver(&self, _: &DeliveryRequest) -> Result<Completion, Failure> {
+        async fn deliver(
+            &self,
+            _: &DeliveryRequest,
+            permit: connect_connector_api::DispatchPermit,
+        ) -> Result<Completion, Failure> {
+            permit.admit_effect()?;
             panic!("must not dispatch");
         }
     }
@@ -309,7 +327,12 @@ async fn invalid_or_unready_composition_cannot_persist_contracts_or_claim_work()
             value.video = true;
             value
         }
-        async fn deliver(&self, _: &DeliveryRequest) -> Result<Completion, Failure> {
+        async fn deliver(
+            &self,
+            _: &DeliveryRequest,
+            permit: connect_connector_api::DispatchPermit,
+        ) -> Result<Completion, Failure> {
+            permit.admit_effect()?;
             panic!("must not dispatch");
         }
     }
@@ -322,11 +345,13 @@ async fn invalid_or_unready_composition_cannot_persist_contracts_or_claim_work()
         server.service.clone(),
         vec![provider.clone(), Arc::new(MissingSecret)]
     )
+    .await
     .is_err());
     assert!(Worker::with_drivers(
         server.service.clone(),
         vec![provider, Arc::new(Unsupported)]
     )
+    .await
     .is_err());
     let db = rusqlite::Connection::open(tmp.path().join("state/state.sqlite3")).unwrap();
     let manifests: u32 = db
@@ -368,10 +393,20 @@ async fn independent_prism_accepts_actual_task_recall_projection_through_public_
         .negotiate_tasks("connect:agent@local", Some(&cid))
         .await
         .unwrap();
-    owner
+    let seed = owner
         .send("task-history-seed", &cid, "Approved task color is violet.")
         .await
         .unwrap();
+    let accepted_at = owner
+        .history(&cid, None, 100)
+        .await
+        .unwrap()
+        .messages
+        .into_iter()
+        .find(|m| m.id == seed.message_id)
+        .unwrap()
+        .accepted_at
+        .expect("recorded message timestamp");
     let TaskOutcome::Record(task) = owner
         .task(TaskCommand::Create {
             request_id: "prism-task".into(),
@@ -402,13 +437,15 @@ async fn independent_prism_accepts_actual_task_recall_projection_through_public_
         operation: Box::new(Operation::Send {
             request_id: "prism-task-question".into(),
             conversation_id: cid.clone(),
-            body: "What was approved?".into(),
+            message: connect_protocol::messages::MessageDraft::text_all("What was approved?"),
         }),
         reply_to: None,
         wait_for_reply: true,
     };
     owner.task(question.clone()).await.unwrap();
-    let worker = Worker::with_drivers(server.service.clone(), vec![provider.clone()]).unwrap();
+    let worker = Worker::with_drivers(server.service.clone(), vec![provider.clone()])
+        .await
+        .unwrap();
     let reply = tokio::time::timeout(Duration::from_secs(5), async {
         loop {
             let TaskOutcome::Inbox { events, .. } = owner
@@ -445,7 +482,10 @@ async fn independent_prism_accepts_actual_task_recall_projection_through_public_
     let message = event.message.expect("ordinary reply message");
     assert!(message.body.contains("violet"));
     assert!(message.body.contains("conversation-journal:"));
-    assert!(message.body.contains("timestamp-not-recorded"));
+    assert!(message
+        .body
+        .contains(&format!("\"created_at\":{accepted_at}")));
+    assert!(!message.body.contains("timestamp-not-recorded"));
     assert!(message.body.contains("Historical context:"));
     assert_eq!(
         owner.task(question.clone()).await.unwrap(),
@@ -514,14 +554,18 @@ async fn normalized_cancelled_task_reconciliation_retains_unassigned_reply_and_s
             operation: Box::new(Operation::Send {
                 request_id: "late-question".into(),
                 conversation_id: cid.clone(),
-                body: "The approved task color is amber.".into(),
+                message: connect_protocol::messages::MessageDraft::text_all(
+                    "The approved task color is amber.",
+                ),
             }),
             reply_to: None,
             wait_for_reply: true,
         })
         .await
         .unwrap();
-    let worker = Worker::with_drivers(server.service.clone(), vec![provider.clone()]).unwrap();
+    let worker = Worker::with_drivers(server.service.clone(), vec![provider.clone()])
+        .await
+        .unwrap();
     let job = delivery(&mut owner, &cid, "uncertain").await;
     assert_eq!(provider.effects(&job), 1);
     owner

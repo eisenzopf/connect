@@ -39,15 +39,15 @@ async fn fresh_grant_preserves_one_logical_send_and_cancel_denies_current_peers(
         Operation::Send {
             request_id: "once".into(),
             conversation_id: h.cid.clone(),
-            body: "One logical question".into(),
+            message: connect_protocol::messages::MessageDraft::text_all("One logical question"),
         },
     );
     let first = client.task(send.clone()).await.unwrap();
     assert_eq!(client.task(send.clone()).await.unwrap(), first);
     let mut changed = send.clone();
     if let TaskCommand::Invoke { operation, .. } = &mut changed {
-        if let Operation::Send { body, .. } = &mut **operation {
-            *body = "Changed intent".into();
+        if let Operation::Send { message, .. } = &mut **operation {
+            message.body = "Changed intent".into();
         }
     }
     assert_eq!(

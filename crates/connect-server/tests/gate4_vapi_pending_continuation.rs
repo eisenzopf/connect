@@ -73,11 +73,13 @@ async fn slow_provider_effect_remains_pending_then_reconnect_catches_up_exact_re
                 target: api::ASSISTANT.into(),
                 source: None,
                 enabled: true,
+                incoming_to: connect_protocol::messages::MessageAudience::all(),
             },
         )
         .unwrap();
-    let worker =
-        Worker::with_drivers(h.server.service.clone(), vec![api.provider.clone()]).unwrap();
+    let worker = Worker::with_drivers(h.server.service.clone(), vec![api.provider.clone()])
+        .await
+        .unwrap();
     let temp = tempfile::tempdir().unwrap();
     let endpoint = tools::Endpoint::start(
         &h.server,
@@ -92,7 +94,7 @@ async fn slow_provider_effect_remains_pending_then_reconnect_catches_up_exact_re
     // Business rejection is journaled as a failed effect; it must not send
     // a message or create a provider job. Matching error replay is stable.
     let before = h.owner.history(&h.cid, None, 100).await.unwrap();
-    let denied_args = json!({"request_id":"denied-send","step_id":"invalid","body":""});
+    let denied_args = json!({"request_id":"denied-send","step_id":"invalid","message": connect_protocol::messages::MessageDraft::text_all(("").to_string())});
     let denied = tools::call(&client, "connect_send", denied_args.clone()).await;
     assert_eq!(denied.is_error, Some(true));
     assert_eq!(
@@ -129,7 +131,7 @@ async fn slow_provider_effect_remains_pending_then_reconnect_catches_up_exact_re
         frozen
     );
     assert!(api.requests().is_empty());
-    let question = json!({"request_id":"slow-mcp-question","step_id":"question","body":"Choose the draft decision","wait_for_reply":true});
+    let question = json!({"request_id":"slow-mcp-question","step_id":"question","message": connect_protocol::messages::MessageDraft::text_all(("Choose the draft decision").to_string()),"wait_for_reply":true});
     let started = Instant::now();
     let TaskOutcome::Tool(TaskToolResult::Pending {
         task_id,
@@ -228,10 +230,23 @@ async fn slow_provider_effect_remains_pending_then_reconnect_catches_up_exact_re
     assert_eq!(record.state, TaskState::Ready);
     let sources =
         tools::sources(tools::call(&client, "connect_recall", json!({"limit":100})).await);
-    let reply = sources
+    let (reply, message) = sources
         .iter()
-        .find(|s| s.body.as_deref() == Some("Slow provider answer: use sapphire-nine."))
-        .unwrap();
+        .filter_map(|source| {
+            let message =
+                serde_json::from_str::<connect_protocol::Message>(source.body.as_deref()?).ok()?;
+            (message.body == "Slow provider answer: use sapphire-nine.")
+                .then_some((source, message))
+        })
+        .next()
+        .expect("typed correlated provider reply");
+    assert_eq!(
+        message.in_reply_to_msg.as_deref(),
+        Some(message_id.as_str())
+    );
+    assert_eq!(reply.source_id, message.id);
+    assert_eq!(reply.created_at, message.accepted_at);
+    assert!(reply.created_at.is_some());
     assert!(reply.provenance.contains("conversation-journal:"));
     assert_eq!(reply.state, "available");
     assert!(!serde_json::to_string(&sources)

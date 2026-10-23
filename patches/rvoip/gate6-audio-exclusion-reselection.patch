@@ -1,0 +1,167 @@
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/subscription_plan.rs b/crates/foundation/rvoip-core/src/staged_streams/subscription_plan.rs
+--- a/crates/foundation/rvoip-core/src/staged_streams/subscription_plan.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/subscription_plan.rs
+@@ -188,8 +188,24 @@
+                         }
+                         let (publisher, binding) = found[0];
+                         selected.push((publisher.clone(), binding.clone()));
+-                        next.excluded
++                        let reselected = next
++                            .excluded
+                             .remove(&(publisher.origin_member.participant().clone(), id.clone()));
++                        // A retained Participant pin normally covers this audio
++                        // source. Explicitly reselecting an excluded stream must
++                        // also clear the guarded audio programme's exclusion.
++                        if reselected
++                            && binding.negotiated.requested.medium == Medium::Audio
++                            && next
++                                .participants
++                                .values()
++                                .any(|p| p.media.contains(&Medium::Audio) && p.matches(publisher))
++                        {
++                            audio.push(AudioSubscription::Stream(MediaStreamRef {
++                                connection: publisher.connection.clone(),
++                                logical: id.clone(),
++                            }));
++                        }
+                     }
+                     MediaSelection::Participant { participant, media } => {
+                         if media.is_empty() {
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/tests/media_scene/subscriptions.rs b/crates/foundation/rvoip-core/src/staged_streams/tests/media_scene/subscriptions.rs
+--- a/crates/foundation/rvoip-core/src/staged_streams/tests/media_scene/subscriptions.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/media_scene/subscriptions.rs
+@@ -1014,3 +1014,134 @@
+     assert_eq!(apply(&s, current.routing().clone()).await.unwrap(), 3);
+     assert_eq!(s.f.b.active_bindings().len(), 1);
+ }
++
++#[tokio::test]
++async fn named_audio_reselection_clears_guarded_exclusion_under_retained_participant_intent() {
++    use crate::staged_streams::subscription_plan::{MediaSelection, MediaSelectionChange};
++    use rvoip_media_core::codec::factory::CodecFactory;
++    let f = Fixture::new(16);
++    let stream = StreamId::from_string("alice-audio");
++    f.a.change(
++        0,
++        &[DesiredStream {
++            logical_id: stream.clone(),
++            medium: Medium::Audio,
++            direction: StreamDirection::Both,
++        }],
++        &BTreeSet::new(),
++        deadline(),
++        CancellationToken::new(),
++    )
++    .await
++    .unwrap();
++    f.b.change(
++        0,
++        &[desired(Medium::Audio)],
++        &BTreeSet::new(),
++        deadline(),
++        CancellationToken::new(),
++    )
++    .await
++    .unwrap();
++    let scene = GuardedMediaScene::new(
++        ConversationId::from_string("conversation"),
++        SessionId::from_string("session"),
++        f.policy.clone(),
++        8000,
++    );
++    for c in [&f.a, &f.b] {
++        let mut m = scene.prepare(c.clone()).unwrap();
++        m.quiesce(deadline(), CancellationToken::new())
++            .await
++            .unwrap();
++        scene.insert(c.connection.clone(), m, true);
++    }
++    let s = Scene { f, scene };
++    let input = current(&s.f.a, "alice-audio");
++    let intent = MediaSelectionChange::Subscribe(vec![MediaSelection::Participant {
++        participant: s.f.a.origin_member.participant().clone(),
++        media: BTreeSet::from([Medium::Audio]),
++    }]);
++    apply(&s, planned(&s, &intent).routing().clone())
++        .await
++        .unwrap();
++    let mut output = s.f.ba.port(Medium::Audio).take_egress().unwrap();
++    input.try_publish(&frame(&input, 100)).unwrap();
++    s.scene.tick();
++    outgoing(&mut output)
++        .await
++        .deliver(|frame| async move {
++            let mut codec = CodecFactory::create_codec(0, Some(8000), Some(1)).unwrap();
++            assert!(codec
++                .decode(&frame.payload)
++                .unwrap()
++                .samples
++                .iter()
++                .any(|x| x.abs() > 1000));
++            Ok(())
++        })
++        .await
++        .unwrap();
++    apply(
++        &s,
++        planned(&s, &MediaSelectionChange::Unsubscribe(vec![stream.clone()]))
++            .routing()
++            .clone(),
++    )
++    .await
++    .unwrap();
++    input.try_publish(&frame(&input, 101)).unwrap();
++    s.scene.tick();
++    while let Ok(frame) = output.try_recv() {
++        let _ = frame
++            .deliver(|frame| async move {
++                let mut codec = CodecFactory::create_codec(0, Some(8000), Some(1)).unwrap();
++                assert!(codec
++                    .decode(&frame.payload)
++                    .unwrap()
++                    .samples
++                    .iter()
++                    .all(|x| x.abs() <= 1000));
++                Ok(())
++            })
++            .await;
++    }
++    let plan = planned(
++        &s,
++        &MediaSelectionChange::Subscribe(vec![MediaSelection::Stream(stream)]),
++    );
++    apply(&s, plan.routing().clone()).await.unwrap();
++    assert!(s.scene.selections.lock().unwrap()[&s.f.b.connection]
++        .participants
++        .contains_key(s.f.a.origin_member.participant()));
++    for timestamp in [102, 103] {
++        if timestamp == 103 {
++            let revision = s.f.b.revision();
++            apply(
++                &s,
++                planned(&s, &MediaSelectionChange::Reconcile)
++                    .routing()
++                    .clone(),
++            )
++            .await
++            .unwrap();
++            assert_eq!(s.f.b.revision(), revision);
++        }
++        input.try_publish(&frame(&input, timestamp)).unwrap();
++        s.scene.tick();
++        outgoing(&mut output)
++            .await
++            .deliver(|frame| async move {
++                let mut codec = CodecFactory::create_codec(0, Some(8000), Some(1)).unwrap();
++                assert!(codec
++                    .decode(&frame.payload)
++                    .unwrap()
++                    .samples
++                    .iter()
++                    .any(|x| x.abs() > 1000));
++                Ok(())
++            })
++            .await
++            .unwrap();
++    }
++}

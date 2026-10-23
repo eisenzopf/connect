@@ -1,0 +1,173 @@
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/audio_subscriptions.rs b/crates/foundation/rvoip-core/src/staged_streams/audio_subscriptions.rs
+--- a/crates/foundation/rvoip-core/src/staged_streams/audio_subscriptions.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/audio_subscriptions.rs
+@@ -38,9 +38,13 @@
+         self.origin.identity() == source.origin_member.identity()
+             && self.origin.participant() == source.origin_member.participant()
+             && self.origin.epoch() == source.origin_member.epoch()
+-            && self
+-                .owner
+-                .has_same_owner(&source.credential_snapshot().principal)
++            && self.origin.tenant() == source.origin_member.tenant()
++            && self.origin.conversation() == source.origin_member.conversation()
++            // A Participant selection names a resolver-verified logical member.
++            // Its SIP route may have a distinct physical account. Current IO
++            // still requires independent source and receiver MediaPolicy grants.
++            && (matches!(self.request, AudioSubscription::Participant(_))
++                || self.owner.has_same_owner(&source.credential_snapshot().principal))
+     }
+     fn matches(&self, source: &StreamController, logical: &StreamId) -> bool {
+         if !self.owner_matches(source) {
+@@ -113,15 +117,20 @@
+         new: &Arc<StreamController>,
+         old_logical: &StreamId,
+         new_logical: &StreamId,
++        pending: &crate::participant_transitions::PreparedParticipantReplacement,
+     ) -> ControlResult<Self> {
+         if old.origin_member.participant() != new.origin_member.participant()
+             || old.origin_member.identity() != new.origin_member.identity()
+             || old.origin_member.epoch() != new.origin_member.epoch()
+             || old.origin_member.tenant() != new.origin_member.tenant()
++            || old.conversation != new.conversation
++            || old.session != new.session
+             || !old
+-                .credential_snapshot()
+-                .principal
+-                .has_same_owner(&new.credential_snapshot().principal)
++                .origin_binding
++                .same_incarnation(pending.source_binding())
++            || !new.is_bound_to_replacement(pending)
++            || pending.intent().source != old.connection
++            || pending.intent().replacement != new.connection
+         {
+             return Err(StreamControlError::Authority);
+         }
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/device_replacement.rs b/crates/foundation/rvoip-core/src/staged_streams/device_replacement.rs
+--- a/crates/foundation/rvoip-core/src/staged_streams/device_replacement.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/device_replacement.rs
+@@ -339,7 +339,7 @@
+                 } else {
+                     member.audio_consumer.subscriptions.saved_program()
+                 };
+-                saved.replacing_connection(old, new, &old_logical, &new_logical)?
++                saved.replacing_connection(old, new, &old_logical, &new_logical, pending)?
+             };
+             programs.insert(id.clone(), program);
+         }
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/tests/private_consult/replacement.rs b/crates/foundation/rvoip-core/src/staged_streams/tests/private_consult/replacement.rs
+--- a/crates/foundation/rvoip-core/src/staged_streams/tests/private_consult/replacement.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/private_consult/replacement.rs
+@@ -67,6 +67,9 @@
+ }
+ impl Move {
+     async fn new(closed: bool) -> Self {
++        Self::with_route_actor(closed, "alice").await
++    }
++    async fn with_route_actor(closed: bool, route_actor: &str) -> Self {
+         let mut room = Room::new().await;
+         let source = room.domain.base.0.read().await.owners["alice"].clone();
+         let mut other = source.clone();
+@@ -147,7 +150,38 @@
+             let p = room.scene.plan_audio_audience(request).unwrap();
+             room.apply(p).await.unwrap();
+         }
+-        let ep = endpoint_for(&source, "replacement");
++        let mapped = IdentityBinding::from_authenticated(
++            &principal(route_actor),
++            source.member.identity().clone(),
++            chrono::Utc::now(),
++        )
++        .unwrap();
++        let target = Membership::from_current(
++            mapped.clone(),
++            source.member.conversation().clone(),
++            source.member.participant().clone(),
++            source.member.kind().clone(),
++            source.member.default_role().clone(),
++            source.member.epoch(),
++            source.member.revision(),
++            source.member.is_active(),
++        )
++        .unwrap();
++        let ep = if route_actor == "alice" {
++            endpoint_for(&source, "replacement")
++        } else {
++            let mut ep = EndpointBinding::provision(
++                mapped.clone(),
++                EndpointId::from_string("endpoint_replacement"),
++                DeviceId::from_string("device_replacement"),
++                Transport::Sip,
++                "sip:trusted-route@localhost".into(),
++            )
++            .unwrap();
++            ep.verify(&mapped, "trusted-route".into(), chrono::Utc::now())
++                .unwrap();
++            ep
++        };
+         let intent = ParticipantReplacementMutation {
+             operation_id: "device-replace".into(),
+             correlation_id: "corr-device".into(),
+@@ -160,14 +194,14 @@
+             device: ep.device().clone(),
+             confirmation: EndpointConfirmationPolicy::AnsweredDtmf { digits: "7".into() },
+         };
+-        let pending = model
+-            .prepare_replacement(&source.member, &ep, intent)
+-            .unwrap();
++        let pending = model.prepare_replacement(&target, &ep, intent).unwrap();
+         let mut owner = source.clone();
++        owner.actor = target.clone();
++        owner.member = target;
+         owner.endpoint = ep;
+         owner.connection = pending.binding().clone();
+         owner.presence = pending.appearance().clone();
+-        room.add_owned("device", "alice", owner, true, Some(pending.clone()))
++        room.add_owned("device", route_actor, owner, true, Some(pending.clone()))
+             .await;
+         let p = room
+             .scene
+@@ -518,3 +552,44 @@
+     f.room.heard("other", 2400).await;
+     f.room.silent(&["alice"]);
+ }
++
++#[tokio::test]
++async fn replacement_distinct_route_account_follows_sealed_binding_and_logical_participant_intent_with_current_io(
++) {
++    let mut f = Move::with_route_actor(false, "sip-account").await;
++    assert!(!f.room.nodes["alice"]
++        .controller
++        .credential_snapshot()
++        .principal
++        .has_same_owner(
++            &f.room.nodes["device"]
++                .controller
++                .credential_snapshot()
++                .principal
++        ));
++    f.io().await;
++    f.confirm().await;
++    let plan = f.plan().unwrap();
++    let stale = f.plan().unwrap();
++    f.commit(plan).await.unwrap();
++    assert!(f.commit(stale).await.is_err());
++    assert!(f.room.publish("alice", 800).is_err());
++    f.room.publish("device", 5200).unwrap();
++    f.room.tick();
++    f.room.heard("bob", 5200).await;
++    f.room.heard("public", 5200).await;
++    f.room.publish("other", 1800).unwrap();
++    f.room.tick();
++    f.room.heard("bob", 1800).await;
++    f.room.heard("public", 1800).await;
++    f.room.publish("bob", 2400).unwrap();
++    f.room.tick();
++    f.room.heard("device", 2400).await;
++    f.room.heard("other", 2400).await;
++    // A retained Participant selector is not a cached physical grant.
++    f.room.domain.base.0.write().await.owners.remove("device");
++    assert!(f.room.publish("device", 5200).is_err());
++    f.room.publish("other", 1800).unwrap();
++    f.room.tick();
++    f.room.heard("public", 1800).await;
++}

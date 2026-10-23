@@ -9,11 +9,11 @@ fn committed_start_admissions_survive_another_store_handle_and_restart() {
         .execute(&f.key.id, &call_start(&f, "start"))
         .unwrap();
     let job = f.store.claim_voice_job().unwrap().unwrap();
-    assert!(f.store.voice_dispatch_allowed(&job).unwrap());
+    assert!(f.store.begin_voice_dispatch(&job).unwrap().is_some());
     let reopened = Store::open(f.store.path(), Limits::default()).unwrap();
-    assert!(!reopened.voice_dispatch_allowed(&job).unwrap());
+    assert!(!reopened.begin_voice_dispatch(&job).unwrap().is_some());
     reopened.recover_voice_calls().unwrap();
-    assert!(!reopened.voice_dispatch_allowed(&job).unwrap());
+    assert!(!reopened.begin_voice_dispatch(&job).unwrap().is_some());
     assert!(reopened.claim_voice_job().unwrap().is_none());
 
     let (f, _, s) = sip_setup();
@@ -41,7 +41,7 @@ fn failed_start_admission_write_does_not_consume_the_dispatch_fence() {
     ).unwrap();
     let before = Store::inspect_snapshot(f.store.path()).unwrap();
     assert_eq!(
-        f.store.voice_dispatch_allowed(&job).unwrap_err().code,
+        f.store.begin_voice_dispatch(&job).unwrap_err().code,
         "storage-unavailable"
     );
     assert_eq!(Store::inspect_snapshot(f.store.path()).unwrap(), before);
@@ -50,8 +50,8 @@ fn failed_start_admission_write_does_not_consume_the_dispatch_fence() {
         .unwrap()
         .execute_batch("DROP TRIGGER fail_admission")
         .unwrap();
-    assert!(f.store.voice_dispatch_allowed(&job).unwrap());
-    assert!(!f.store.voice_dispatch_allowed(&job).unwrap());
+    assert!(f.store.begin_voice_dispatch(&job).unwrap().is_some());
+    assert!(!f.store.begin_voice_dispatch(&job).unwrap().is_some());
 }
 
 #[test]
@@ -95,11 +95,11 @@ fn competing_store_handles_admit_only_one_physical_voice_start() {
     std::thread::scope(|scope| {
         let first = scope.spawn(|| {
             barrier.wait();
-            f.store.voice_dispatch_allowed(&job).unwrap()
+            f.store.begin_voice_dispatch(&job).unwrap().is_some()
         });
         let second = scope.spawn(|| {
             barrier.wait();
-            other.voice_dispatch_allowed(&job).unwrap()
+            other.begin_voice_dispatch(&job).unwrap().is_some()
         });
         assert_ne!(first.join().unwrap(), second.join().unwrap());
     });

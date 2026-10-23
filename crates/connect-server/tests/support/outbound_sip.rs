@@ -60,7 +60,9 @@ impl OutboundHarness {
                 &app_key.id,
                 &Operation::Create {
                     request_id: "outbound-sip-create".into(),
-                    participants: vec![agent.identity_id.clone()],
+                    request: connect_protocol::conversations::CreateRequest::persistent(vec![
+                        agent.identity_id.clone(),
+                    ]),
                 },
             )
             .unwrap()
@@ -74,7 +76,9 @@ impl OutboundHarness {
                 &Operation::Send {
                     request_id: "outbound-sip-context".into(),
                     conversation_id: conversation.id.clone(),
-                    body: "The outbound SIP fact is violet-nine.".into(),
+                    message: connect_protocol::messages::MessageDraft::text_all(
+                        "The outbound SIP fact is violet-nine.",
+                    ),
                 },
             )
             .unwrap();

@@ -61,7 +61,9 @@ impl Fixture {
                 &owner_key.id,
                 &Operation::Create {
                     request_id: "artifact-create".into(),
-                    participants: vec![recipient.id.clone()],
+                    request: connect_protocol::conversations::CreateRequest::persistent(vec![
+                        recipient.id.clone(),
+                    ]),
                 },
             )
             .unwrap()
@@ -90,6 +92,7 @@ impl Fixture {
             .execute(
                 &self.owner_key,
                 &Operation::ArtifactBegin {
+                    to: connect_protocol::messages::MessageAudience::all(),
                     request_id: request_id.into(),
                     conversation_id: self.conversation_id.clone(),
                     name: format!("{request_id}.bin"),
@@ -249,6 +252,7 @@ fn upload_resume_conflicts_digest_authority_quota_and_delete_are_bounded() {
             .execute(
                 &fixture.owner_key,
                 &Operation::ArtifactBegin {
+                    to: connect_protocol::messages::MessageAudience::all(),
                     request_id: "over-limit".into(),
                     conversation_id: fixture.conversation_id.clone(),
                     name: "too-large.bin".into(),
@@ -367,6 +371,7 @@ fn upload_resume_conflicts_digest_authority_quota_and_delete_are_bounded() {
         .execute(
             &fixture.owner_key,
             &Operation::ArtifactBegin {
+                to: connect_protocol::messages::MessageAudience::all(),
                 request_id: "expiring".into(),
                 conversation_id: fixture.conversation_id.clone(),
                 name: "expiring.bin".into(),
@@ -464,6 +469,7 @@ fn unsafe_names_and_revoked_upload_authority_are_rejected() {
             .execute(
                 &fixture.owner_key,
                 &Operation::ArtifactBegin {
+                    to: connect_protocol::messages::MessageAudience::all(),
                     request_id: format!("unsafe-name-{index}"),
                     conversation_id: fixture.conversation_id.clone(),
                     name: name.into(),
@@ -490,6 +496,7 @@ fn unsafe_names_and_revoked_upload_authority_are_rejected() {
         .execute(
             &delegated.id,
             &Operation::ArtifactBegin {
+                to: connect_protocol::messages::MessageAudience::all(),
                 request_id: "revoked-begin".into(),
                 conversation_id: fixture.conversation_id.clone(),
                 name: "revoked.bin".into(),
@@ -522,4 +529,66 @@ fn unsafe_names_and_revoked_upload_authority_are_rejected() {
         )
         .unwrap_err();
     assert_eq!(error.code, "unauthorized");
+}
+
+#[test]
+fn context_keeps_each_artifact_snapshot_instead_of_rewriting_upload_as_ready() {
+    let mut f = Fixture::new();
+    let bytes = b"snapshot";
+    let begun = f.begin("context-history", bytes, digest(bytes));
+    f.store
+        .execute(
+            &f.owner_key,
+            &Operation::ArtifactAppend {
+                request_id: "context-append".into(),
+                conversation_id: f.conversation_id.clone(),
+                artifact_id: begun.id.clone(),
+                offset: 0,
+                data: STANDARD.encode(bytes),
+            },
+        )
+        .unwrap();
+    let Outcome::Artifact(ready) = f
+        .store
+        .execute(
+            &f.owner_key,
+            &Operation::ArtifactFinish {
+                request_id: "context-finish".into(),
+                conversation_id: f.conversation_id.clone(),
+                artifact_id: begun.id.clone(),
+            },
+        )
+        .unwrap()
+    else {
+        panic!("ready artifact")
+    };
+    let read = |store: &Store| {
+        let Outcome::ContextView(v) = store
+            .execute(
+                &f.owner_key,
+                &Operation::ContextView {
+                    conversation_id: f.conversation_id.clone(),
+                    limit: 100,
+                },
+            )
+            .unwrap()
+        else {
+            panic!("context")
+        };
+        v
+    };
+    let view = read(&f.store);
+    let snapshots: Vec<connect_protocol::Artifact> = view
+        .items
+        .iter()
+        .filter(|item| item.source_id == begun.id)
+        .map(|item| serde_json::from_str(&item.body).unwrap())
+        .collect();
+    assert_eq!(snapshots.first(), Some(&begun));
+    assert_eq!(snapshots.last(), Some(&ready));
+    assert_eq!(snapshots[0].state, "uploading");
+    assert_eq!(snapshots.last().unwrap().state, "ready");
+    drop(f.store);
+    f.store = Store::open(&f.database, f.limits.clone()).unwrap();
+    assert_eq!(read(&f.store), view);
 }

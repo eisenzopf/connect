@@ -13,6 +13,13 @@ fn allowed(c: &Connection, job: &SipLegJob) -> Result<bool> {
     }
     let actor = actor_from_connection(c, &job.credential_id)?;
     actor.require("sip_dial")?;
+    crate::audience::require_original(
+        c,
+        &actor,
+        &leg.conversation_id,
+        connect_protocol::membership::ContentKind::SipLeg,
+        &leg.id,
+    )?;
     if actor.identity_id != job.actor_id {
         return Err(Error::forbidden());
     }
@@ -21,6 +28,7 @@ fn allowed(c: &Connection, job: &SipLegJob) -> Result<bool> {
         return Ok(false);
     }
     let session = crate::sessions::get(c, &leg.conversation_id, &leg.session_id)?;
+    crate::sessions::require_original_epoch(c, &session.participant_id, &session)?;
     require_dial_authority(&actor, &session)?;
     Ok(true)
 }
@@ -34,10 +42,20 @@ impl Store {
     /// Recheck at the final commit boundary. Records one possible physical
     /// dispatch; repeat admission cannot redial or send another hangup.
     pub fn sip_dispatch_allowed(&self, job: &SipLegJob) -> Result<bool> {
+        let authority = self.runtime_query_authority(
+            crate::authority_admission::runtime::SIP_LEG,
+            &[&job.leg.id],
+        )?;
         let mut c = self.connection()?;
         let tx = c
             .transaction_with_behavior(TransactionBehavior::Immediate)
             .map_err(|_| Error::storage())?;
+        self.require_runtime_query(
+            &tx,
+            &authority,
+            crate::authority_admission::runtime::SIP_LEG,
+            &[&job.leg.id],
+        )?;
         let leg = get(&tx, &job.leg.conversation_id, &job.leg.id)?;
         if job.action == SipLegAction::Start {
             if leg.state != "starting" {
@@ -70,6 +88,13 @@ impl Store {
         )
         .and_then(|(actor, _)| {
             authorized_conversation(&tx, &actor, &leg.conversation_id)?;
+            crate::audience::require_original(
+                &tx,
+                &actor,
+                &leg.conversation_id,
+                connect_protocol::membership::ContentKind::SipLeg,
+                &leg.id,
+            )?;
             let session = crate::sessions::get(&tx, &leg.conversation_id, &leg.session_id)?;
             if actor.identity_id != session.initiator_id
                 && actor.identity_id != session.participant_id

@@ -1,0 +1,124 @@
+{
+  "task": "G6-046",
+  "title": "Durable native DTMF recipient attempts and current named signal authority",
+  "recorded_at": "2026-10-22T08:30:24.989106+00:00",
+  "status": "native-dtmf-recipient-store-local-component-qualified",
+  "full_task_complete": false,
+  "full_goal_complete": false,
+  "acceptance_qualified": false,
+  "production_connect_dtmf_delivery_complete": false,
+  "scope": "Isolated local macOS arm64 Store/protocol verification. New recipient cases use controlled native readiness/observations and no physical DTMF IO. This report does not establish service delivery or the exact auxiliary vectors.",
+  "schema_version": 84,
+  "implementation": [
+    "Schema84 sealed source observation, immutable original native target/registration snapshots and once-per-actual-output-frame reservation. No reconstruction of an existing batch.",
+    "prepare_native_dtmf_with_peer derives original current grant; try_native_dtmf_read freshly acquires complete joint current source/target authority and named dtmf.send/dtmf.receive independently of media. Queues hold metadata only.",
+    "try_start_native_dtmf_write binds one actual frame before IO; try_record_native_dtmf_outcome appends one immutable local fact even after revocation/retirement. Another frame cannot reuse this recipient attempt.",
+    "finish_native_dtmf requires all local jobs stopped/facts recorded: completed only if every target submitted, failed for known partial/no effect, cancelled if cancelled without effects, unknown for any uncertainty. Unknown stopped work closes its control slot without retry.",
+    "recover_native_dtmf marks reserved frames unknown and never-attempted recipients not_started, preserves original effects and does not schedule IO. CanonicalRuntime startup invokes recovery.",
+    "Shared journal budget reserves each pending recipient outcome. Exact-capacity and immediate storage contention tests pass. Current Event/journal kinds remain operation_updated.",
+    "Current operations HTTP/OpenAPI now describes problem and NativeDtmfSubmission; docs/developer/native-dtmf-journal.md updated. These documentation changes happened after compiled-input snapshot; final source proof must distinguish them."
+  ],
+  "verification": {
+    "distinct_runtime_checks_passed": 910,
+    "store": {
+      "passed": 877,
+      "failed": 0,
+      "ignored": 3,
+      "seconds": 508.71,
+      "total_cases": 880,
+      "log": ".local/gate-6/native-dtmf-recipients-store-full-v1.log",
+      "scope": "Complete current Store library; three top-level subprocess fixture helpers are explicitly ignored and invoked by parent tests."
+    },
+    "new_recipient_cases": {
+      "passed": 15,
+      "failed": 0,
+      "counted_within_store": true,
+      "log": ".local/gate-6/native-dtmf-recipients-store-v4.log",
+      "scope": "Frozen observations/targets, named source/receiver grants, exact frame reservation, immutable local results, revocation/retirement, cancellation/partial/unknown, SQL rollback/retry, startup recovery, shared capacity, key/device/Endpoint/membership changes, held readers and immediate SQL contention."
+    },
+    "protocol": {
+      "passed": 33,
+      "failed": 0,
+      "log": ".local/gate-6/native-dtmf-recipients-protocol-v1.log"
+    },
+    "connect_server": {
+      "result": "passed locked offline single-job compile check",
+      "command": "CARGO_INCREMENTAL=0 cargo check -p connect-server -j1 --locked --offline",
+      "log": ".local/gate-6/native-dtmf-recipients-server-check-v1.log"
+    },
+    "openapi": {
+      "scope": "OpenAPI definition/vector shape only; these vectors are synthetic, not physical IO or actual HTTP responses.",
+      "valid_vectors": 1,
+      "invalid_vectors_rejected": [
+        "signal_source",
+        "local_submission_only",
+        "local_work_complete",
+        "resources_changed",
+        "submitted-without-frame",
+        "invented-playback"
+      ],
+      "schema": "contracts/openapi-operations.json"
+    }
+  },
+  "inputs": {
+    "path": ".local/gate-6/native-dtmf-recipients-inputs-v1.json",
+    "entries": 1386,
+    "sha256": "e7137332a237381adf3c6c40dbd0a0e9ce0cd4f83c6cc4e7a6e92230f52f7242"
+  },
+  "source_verification": {
+    "all_compiled_code_unchanged": true,
+    "changed_since_compiled_inputs": [
+      "docs/developer/native-dtmf-journal.md"
+    ],
+    "scope": "Only developer documentation changed. Operations OpenAPI was added to this phase after the compiled snapshot; its SHA is separately recorded."
+  },
+  "source_lock": {
+    "path": "dependencies/source-lock.json",
+    "patches": 134,
+    "sha256": "723bc141df69599f9ec97fe413af59eca6fd022bbc97f24e9592cccd1ca4a5b5"
+  },
+  "http_reference": {
+    "path": "contracts/openapi-operations.json",
+    "sha256": "8a680ddbca115c9a3237292bb41bd00ef00d78c4303f9f3ce38c840634d5ef3e",
+    "scope": "Optional OperationRecord.problem and local NativeDtmfSubmission summary; synthetic schema shapes, no actual HTTP response claim."
+  },
+  "compiled_binaries": [
+    {
+      "path": "target/debug/deps/connect_store-2bc54b64bb656bb4",
+      "archive": ".local/gate-6/native-dtmf-recipients-artifacts-v1/connect_store-2bc54b64bb656bb4-cee57fdf49af.gz",
+      "bytes": 69313744,
+      "sha256": "cee57fdf49affbb11211f741b8016a128ca2d2709d2e428c73530858eccb8232",
+      "gzip_bytes": 14930718,
+      "archive_sha256": "dea41499bae855b32798adcbc8541bf01f2722eb767cb570df1ef1ef3c21d672",
+      "restored_bytes_verified": true
+    },
+    {
+      "path": "target/debug/deps/connect_protocol-9a8f3351c7948a23",
+      "archive": ".local/gate-6/native-dtmf-recipients-artifacts-v1/connect_protocol-9a8f3351c7948a23-748bf708ccd3.gz",
+      "bytes": 18371488,
+      "sha256": "748bf708ccd3caa682debf92c9d61b2e9d994197b95aec3daa12528eacb1d153",
+      "gzip_bytes": 3334090,
+      "archive_sha256": "e9e1584cafa11863368ca655e6034741587c2f99e25be4e1f57bb67b858ad6c5",
+      "restored_bytes_verified": true
+    }
+  ],
+  "initial_attempts": [
+    {
+      "log": ".local/gate-6/native-dtmf-recipients-store-v1.log",
+      "cause": "Extra > in test fixture type; corrected syntax."
+    },
+    {
+      "log": ".local/gate-6/native-dtmf-recipients-store-v2.log",
+      "passed": 4,
+      "failed": 7,
+      "cause": "Attempted non-completed result_json violated established DB contract. Corrected by keeping per-recipient facts journaled in separate table; only success uses result, final failure/unknown/cancelled details use problem.signal."
+    }
+  ],
+  "not_qualified": [
+    "Actual service DTMF dispatch, source observation composition, owned recipient registration/mux and local writer completion callbacks; SDK send/receive and installed HTTP transport behavior.",
+    "Production original/current private tail, actual partial IO, named grant/key/Endpoint/membership/expiry/retirement/storage/restart delivery paths for EdDSA and ES256.",
+    "SIP/WebRTC/remote/native/browser/Linux profiles; remote playback; assurance/step-up; exact61 assigned vectors and earlier retention/primary-return refusal.",
+    "Full G6-046, remaining59 tasks, all acceptance and publication."
+  ],
+  "next": "Wire the qualified Store APIs and managed engine composition into the real service worker, actual recipient registration/mux and SDK; retain original logical IDs and record outcomes only after owned writer work stops."
+}

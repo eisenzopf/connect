@@ -58,7 +58,7 @@ def qualify(previous, *, binary=BINARY):
             created = request(legacy, 'reviews', {'op': 'create', 'request_id': 'create',
                                                   'participants': [agent]}, binary=previous)
             command = {'op': 'send', 'request_id': 'stable-send',
-                       'conversation_id': created['data']['id'], 'body': 'Schema-six retained fact'}
+                       'conversation_id': created['data']['id'], "message": {'to': 'all', 'content_type': 'text/plain', 'body': 'Schema-six retained fact', 'body_encoding': 'utf8', 'label': 'connect-messages', 'attachments': [], 'in_reply_to_msg': None, 'msg_id': None}}
             receipt = request(legacy, 'reviews', command, binary=previous)
         columns, rows = snapshot(legacy / 'state.sqlite3')
         assert_preserved(legacy / 'state.sqlite3', columns, rows, 6)

@@ -123,6 +123,13 @@ fn binary_chunk(chunk: connect_protocol::ArtifactChunk) -> Response {
         return error(StatusCode::SERVICE_UNAVAILABLE, Error::storage());
     };
     let mut response = bytes.into_response();
+    response
+        .headers_mut()
+        .insert(header::CACHE_CONTROL, HeaderValue::from_static("no-store"));
+    response.headers_mut().insert(
+        "x-content-type-options",
+        HeaderValue::from_static("nosniff"),
+    );
     response.headers_mut().insert(
         header::CONTENT_TYPE,
         HeaderValue::from_static("application/octet-stream"),
@@ -142,4 +149,104 @@ fn capacity_error() -> Response {
         StatusCode::SERVICE_UNAVAILABLE,
         Error::new("capacity-exceeded", "HTTP concurrency limit reached"),
     )
+}
+
+/// These raw-byte routes accept ordinary credentials. Delegated clients redeem
+/// the same link through their Task Invoke facade, retaining grant provenance.
+pub(super) async fn get_link_chunk(
+    State(state): State<HttpState>,
+    Path((conversation_id, artifact_id, token)): Path<(String, String, String)>,
+    Query(query): Query<GetQuery>,
+    headers: HeaderMap,
+) -> Response {
+    let Ok(_permit) = state.capacity.clone().try_acquire_owned() else {
+        return capacity_error();
+    };
+    let credential = match authenticated_credential(&state, &headers).await {
+        Ok(v) => v,
+        Err(e) => return e,
+    };
+    let link = format!("/v1/conversations/{conversation_id}/artifacts/{artifact_id}/links/{token}");
+    match state
+        .service
+        .execute(
+            credential,
+            Operation::ArtifactLinkGet {
+                conversation_id,
+                artifact_id,
+                link,
+                offset: query.offset,
+                limit: query.limit,
+            },
+        )
+        .await
+    {
+        Ok(Outcome::ArtifactChunk(value)) => binary_chunk(value),
+        Ok(_) => error(StatusCode::SERVICE_UNAVAILABLE, Error::storage()),
+        Err(value) => error(
+            if value.code == "forbidden" {
+                StatusCode::FORBIDDEN
+            } else if value.code == "invalid-request" {
+                StatusCode::BAD_REQUEST
+            } else {
+                StatusCode::SERVICE_UNAVAILABLE
+            },
+            value,
+        ),
+    }
+}
+pub(super) async fn put_link_chunk(
+    State(state): State<HttpState>,
+    Path((conversation_id, artifact_id, token)): Path<(String, String, String)>,
+    Query(query): Query<PutQuery>,
+    headers: HeaderMap,
+    bytes: Bytes,
+) -> Response {
+    let Ok(_permit) = state.capacity.clone().try_acquire_owned() else {
+        return capacity_error();
+    };
+    let credential = match authenticated_credential(&state, &headers).await {
+        Ok(v) => v,
+        Err(e) => return e,
+    };
+    if bytes.is_empty() || bytes.len() > state.service.store.limits().artifact_chunk_bytes as usize
+    {
+        return error(
+            StatusCode::BAD_REQUEST,
+            Error::new(
+                "invalid-request",
+                "Artifact chunk is outside configured bounds",
+            ),
+        );
+    }
+    let link = format!("/v1/conversations/{conversation_id}/artifacts/{artifact_id}/links/{token}");
+    let result = state
+        .service
+        .execute(
+            credential,
+            Operation::ArtifactLinkAppend {
+                request_id: query.request_id,
+                conversation_id,
+                artifact_id,
+                link,
+                offset: query.offset,
+                data: STANDARD.encode(bytes),
+            },
+        )
+        .await;
+    let status = match &result {
+        Err(v) if v.code == "forbidden" => StatusCode::FORBIDDEN,
+        Err(v) if matches!(v.code.as_str(), "invalid-request" | "conflict") => {
+            StatusCode::BAD_REQUEST
+        }
+        _ => StatusCode::OK,
+    };
+    (
+        status,
+        Json(connect_protocol::Response {
+            profile: PROFILE.into(),
+            result,
+        }),
+    )
+        .into_response()
 }

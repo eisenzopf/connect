@@ -1,10 +1,11 @@
+from .record_context import valid_context_record
 """Validate attributed task results, preserving pending and uncertainty."""
 from ._validation import array, fields, integer, shape
 
 TASK_STATES = {"ready", "running", "waiting", "completed", "cancelled", "failed", "expired"}
 EFFECT_STATES = {"prepared", "dispatched", "succeeded", "failed", "uncertain", "cancelled"}
 PERMISSIONS = {
-    "resolve", "capabilities", "send", "history", "context_view", "context_deliveries",
+    "resolve", "capabilities", "send", "history", "context_view", "record_get", "context_deliveries",
     "inbox", "request_status", "artifact_begin", "artifact_append", "artifact_finish",
     "artifact_get", "artifact_delete", "session_invite", "session_accept", "session_reject",
     "session_cancel", "session_end", "session_get", "call_start", "call_status", "call_end",
@@ -101,8 +102,9 @@ def source(value):
     return (
         shape(
             value, ("source_id", "kind", "actor_id", "provenance", "state"),
-            ("body",), ("created_at",),
+            ("body",), ("created_at", "record"),
         )
+        and ("record" not in value or (valid_context_record(value["record"]) and value["record"]["uuid"] == value["source_id"]))
         and "created_at" in value
         and (value["created_at"] is None or integer(value["created_at"]))
         and value["state"] in ("available", "deleted", "expired", "unavailable")

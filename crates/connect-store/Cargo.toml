@@ -11,11 +11,13 @@ publish = false
 test-support = []
 
 [dependencies]
+ring.workspace = true
 connect-connector-api.workspace = true
 connect-protocol.workspace = true
 rusqlite.workspace = true
 serde.workspace = true
 serde_json.workspace = true
+serde_jcs.workspace = true
 sha2.workspace = true
 hex.workspace = true
 hmac.workspace = true
@@ -24,6 +26,9 @@ chrono.workspace = true
 rand.workspace = true
 thiserror.workspace = true
 base64.workspace = true
+p256.workspace = true
+ed25519-dalek.workspace = true
+fs2.workspace = true
 
 [dev-dependencies]
 tempfile.workspace = true

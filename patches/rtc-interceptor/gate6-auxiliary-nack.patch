@@ -1,0 +1,120 @@
+diff --git a/src/nack/responder.rs b/src/nack/responder.rs
+--- a/src/nack/responder.rs
++++ b/src/nack/responder.rs
+@@ -61,6 +61,8 @@
+ 
+ /// Per-stream state for the responder.
+ struct LocalStream {
++    /// Only this negotiated codec owns the registered NACK/RTX contract.
++    payload_type: u8,
+     /// Buffer of sent packets for retransmission.
+     send_buffer: SendBuffer,
+     /// RTX SSRC for RFC4588 retransmission (if configured).
+@@ -199,6 +201,7 @@
+         // Buffer outgoing RTP packets
+         if let Packet::Rtp(ref rtp_packet) = msg.message
+             && let Some(stream) = self.streams.get_mut(&rtp_packet.header.ssrc)
++            && rtp_packet.header.payload_type == stream.payload_type
+         {
+             stream.send_buffer.add(rtp_packet.clone());
+         }
+@@ -223,6 +226,7 @@
+             self.streams.insert(
+                 info.ssrc,
+                 LocalStream {
++                    payload_type: info.payload_type,
+                     send_buffer,
+                     ssrc_rtx: info.ssrc_rtx,
+                     payload_type_rtx: info.payload_type_rtx,
+@@ -517,6 +521,9 @@
+         // Send packets 10, 11, 12, 14, 15 (missing 13)
+         for seq in [10u16, 11, 12, 14, 15] {
+             let mut pkt = make_rtp_packet(1, seq, &[seq as u8]);
++            if let Packet::Rtp(packet) = &mut pkt.message {
++                packet.header.payload_type = 96;
++            }
+             pkt.now = now;
+             chain.handle_write(pkt).unwrap();
+             chain.poll_write(); // Drain normal write
+@@ -603,6 +610,7 @@
+         let mut original = make_rtp_packet(1, 11, &[0x10, 9]);
+         if let Packet::Rtp(packet) = &mut original.message {
+             packet.header.version = 2;
++            packet.header.payload_type = 96;
+             packet.header.padding = true;
+             packet.header.marker = true;
+             packet.header.timestamp = 33000;
+@@ -637,4 +645,73 @@
+         );
+         assert_eq!(repair.payload.as_ref(), &[0, 11, 0x10, 9]);
+     }
++    #[test]
++    fn negotiated_audio_nack_does_not_replay_telephone_event_or_unknown_payloads_on_its_ssrc() {
++        for repair in [false, true] {
++            let mut chain = Registry::new()
++                .with(NackResponderBuilder::new().with_size(8).build())
++                .build();
++            chain.bind_local_stream(&StreamInfo {
++                ssrc: 12345,
++                clock_rate: 48000,
++                mime_type: "audio/opus".into(),
++                payload_type: 111,
++                ssrc_rtx: repair.then_some(67890),
++                payload_type_rtx: repair.then_some(112),
++                rtcp_feedback: vec![RTCPFeedback {
++                    typ: "nack".into(),
++                    parameter: String::new(),
++                }],
++                ..Default::default()
++            });
++            for (index, pt) in [111, 101, 110, 126, 127].into_iter().enumerate() {
++                let body = if pt == 111 {
++                    vec![0xf8, 0xff, 0xfe]
++                } else {
++                    vec![1, 0x8a, 0x12, 0xc0]
++                };
++                let mut packet = make_rtp_packet(12345, index as u16 + 1, &body);
++                if let Packet::Rtp(rtp) = &mut packet.message {
++                    rtp.header.version = 2;
++                    rtp.header.payload_type = pt;
++                }
++                chain.handle_write(packet).unwrap();
++                let forwarded = chain
++                    .poll_write()
++                    .expect("original RTP must still be forwarded");
++                let Packet::Rtp(rtp) = forwarded.message else {
++                    panic!("not RTP")
++                };
++                assert_eq!(rtp.header.payload_type, pt);
++                assert_eq!(rtp.payload.as_ref(), body);
++            }
++            // The Opus SSRC has NACK support; none of its auxiliary payloads
++            // acquired that codec's feedback contract merely by sharing SSRC.
++            chain
++                .handle_read(make_nack_packet(9, 12345, vec![(1, 0b1111)]))
++                .unwrap();
++            let mut repaired = Vec::new();
++            while let Some(packet) = chain.poll_write() {
++                if let Packet::Rtp(rtp) = packet.message {
++                    repaired.push(rtp);
++                }
++            }
++            assert_eq!(
++                repaired.len(),
++                1,
++                "supplemental telephone events entered the primary NACK cache"
++            );
++            let p = &repaired[0];
++            if repair {
++                assert_eq!(p.header.ssrc, 67890);
++                assert_eq!(p.header.payload_type, 112);
++                assert_eq!(&p.payload[..2], &1u16.to_be_bytes());
++                assert_eq!(&p.payload[2..], &[0xf8, 0xff, 0xfe]);
++            } else {
++                assert_eq!(p.header.ssrc, 12345);
++                assert_eq!(p.header.payload_type, 111);
++                assert_eq!(p.header.sequence_number, 1);
++            }
++        }
++    }
+ }

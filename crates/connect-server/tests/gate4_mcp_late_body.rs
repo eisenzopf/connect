@@ -21,7 +21,7 @@ async fn late_decoded_tool_returns_uncertain_task_handle_and_original_ids_recove
     )
     .await
     .unwrap();
-    let args = json!({"request_id":"late-body-once","step_id":"draft","body":"One logical draft request."});
+    let args = json!({"request_id":"late-body-once","step_id":"draft","message": connect_protocol::messages::MessageDraft::text_all(("One logical draft request.").to_string())});
     let rpc = serde_json::to_vec(&json!({"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"connect_send","arguments":args}})).unwrap();
     let rest = rpc[1..].to_owned();
     let body = stream::once(async { Ok::<_, std::io::Error>(vec![b'{']) }).chain(stream::once(

@@ -27,6 +27,7 @@ pub(super) async fn publish(
     );
     let cid = &task.conversation_id;
     let operation = Operation::ArtifactBegin {
+        to: connect_client::messages::MessageAudience::all(),
         request_id: id(),
         conversation_id: cid.clone(),
         name: format!("{}.json", draft.id),

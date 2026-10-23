@@ -74,7 +74,8 @@
         "operation.cancel",
         "operation.reconcile",
         "operation.updated",
-        "session.observation"
+        "session.observation",
+        "session.consult.return"
       ]
     },
     "id": {
@@ -267,7 +268,6 @@
       },
       "required": [
         "identity_id",
-        "participant_id",
         "session_token",
         "expires_at",
         "assurance",
@@ -416,14 +416,57 @@
           "maxItems": 256,
           "uniqueItems": true
         },
-        "substrate_setup": {}
+        "substrate_setup": {},
+        "handoff_preparation": {
+          "$ref": "#/$defs/HandoffPreparation"
+        }
       },
       "required": [
         "substrate",
         "capabilities",
         "streams_offered"
       ],
-      "additionalProperties": true
+      "additionalProperties": true,
+      "allOf": [
+        {
+          "if": {
+            "required": [
+              "handoff_preparation"
+            ]
+          },
+          "then": {
+            "not": {
+              "required": [
+                "private_consultation"
+              ]
+            },
+            "properties": {
+              "streams_offered": {
+                "type": "array",
+                "minItems": 1,
+                "maxItems": 1,
+                "items": {
+                  "allOf": [
+                    {
+                      "$ref": "#/$defs/StreamOffer"
+                    },
+                    {
+                      "properties": {
+                        "kind": {
+                          "const": "audio"
+                        },
+                        "direction": {
+                          "const": "sendrecv"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      ]
     },
     "ConnectionAnswer": {
       "type": "object",
@@ -462,7 +505,8 @@
             "resume",
             "mute",
             "unmute",
-            "codec-renegotiate"
+            "codec-renegotiate",
+            "quality"
           ]
         },
         "streams": {
@@ -483,12 +527,62 @@
           "maxItems": 256,
           "uniqueItems": true
         },
-        "details": {}
+        "details": {},
+        "quality_interval_ms": {
+          "type": "integer",
+          "minimum": 100,
+          "maximum": 60000
+        }
       },
       "required": [
         "action"
       ],
-      "additionalProperties": true
+      "additionalProperties": true,
+      "allOf": [
+        {
+          "if": {
+            "required": [
+              "action"
+            ],
+            "properties": {
+              "action": {
+                "const": "quality"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "quality_interval_ms"
+            ],
+            "not": {
+              "anyOf": [
+                {
+                  "required": [
+                    "streams"
+                  ]
+                },
+                {
+                  "required": [
+                    "codec_preferences"
+                  ]
+                },
+                {
+                  "required": [
+                    "details"
+                  ]
+                }
+              ]
+            }
+          },
+          "else": {
+            "not": {
+              "required": [
+                "quality_interval_ms"
+              ]
+            }
+          }
+        }
+      ]
     },
     "ConnectionEnd": {
       "type": "object",
@@ -513,7 +607,7 @@
       "properties": {
         "interval_ms": {
           "type": "integer",
-          "minimum": 0,
+          "minimum": 1,
           "maximum": 4294967295
         },
         "streams": {
@@ -649,7 +743,9 @@
           "$ref": "#/$defs/Identifier"
         },
         "loss_pct": {
-          "type": "number"
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100
         },
         "jitter_ms": {
           "type": "integer",
@@ -662,12 +758,14 @@
           "maximum": 4294967295
         },
         "mos": {
-          "type": "number"
+          "type": "number",
+          "minimum": 1,
+          "maximum": 5
         },
         "bitrate_bps": {
           "type": "integer",
           "minimum": 0,
-          "maximum": 4294967295
+          "maximum": 9007199254740991
         },
         "packets_sent": {
           "type": "integer",
@@ -682,10 +780,6 @@
       },
       "required": [
         "strm_id",
-        "loss_pct",
-        "jitter_ms",
-        "rtt_ms",
-        "mos",
         "bitrate_bps",
         "packets_sent",
         "packets_received"
@@ -834,7 +928,13 @@
     "Ack": {
       "type": "object",
       "properties": {
-        "details": {}
+        "details": {},
+        "next_cursor": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2048,
+          "pattern": "^[A-Za-z0-9._~-]+$"
+        }
       },
       "required": [],
       "additionalProperties": true
@@ -869,7 +969,9 @@
         "uuid": {
           "anyOf": [
             {
-              "type": "string"
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 36
             },
             {
               "type": "null"
@@ -879,7 +981,9 @@
         "url": {
           "anyOf": [
             {
-              "type": "string"
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 2048
             },
             {
               "type": "null"
@@ -889,7 +993,9 @@
         "content_hash": {
           "anyOf": [
             {
-              "type": "string"
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 512
             },
             {
               "type": "null"
@@ -898,13 +1004,41 @@
         }
       },
       "required": [],
-      "additionalProperties": true
+      "additionalProperties": true,
+      "anyOf": [
+        {
+          "required": [
+            "uuid"
+          ],
+          "properties": {
+            "uuid": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        },
+        {
+          "required": [
+            "url"
+          ],
+          "properties": {
+            "url": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        }
+      ]
     },
     "RecordingVconFetched": {
       "type": "object",
       "properties": {
         "delivery": {
-          "type": "string"
+          "type": "string",
+          "enum": [
+            "inline",
+            "url"
+          ]
         },
         "vcon": {
           "anyOf": [
@@ -936,12 +1070,70 @@
               "type": "null"
             }
           ]
+        },
+        "content_hash": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512,
+          "description": "Digest of these exact authorized projected bytes; never the full source digest for a filtered view."
         }
       },
       "required": [
-        "delivery"
+        "delivery",
+        "content_hash"
       ],
-      "additionalProperties": true
+      "additionalProperties": true,
+      "oneOf": [
+        {
+          "required": [
+            "vcon"
+          ],
+          "properties": {
+            "delivery": {
+              "const": "inline"
+            },
+            "vcon": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "not": {
+            "anyOf": [
+              {
+                "required": [
+                  "url"
+                ]
+              },
+              {
+                "required": [
+                  "expires_at"
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "required": [
+            "url",
+            "expires_at"
+          ],
+          "properties": {
+            "delivery": {
+              "const": "url"
+            },
+            "url": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 2048
+            }
+          },
+          "not": {
+            "required": [
+              "vcon"
+            ]
+          }
+        }
+      ]
     },
     "ConversationCreate": {
       "type": "object",
@@ -1082,14 +1274,10 @@
       "properties": {
         "filter": {},
         "cursor": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/Identifier"
-            },
-            {
-              "type": "null"
-            }
-          ]
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2048,
+          "pattern": "^[A-Za-z0-9._~-]+$"
         },
         "limit": {
           "anyOf": [
@@ -1316,14 +1504,10 @@
           ]
         },
         "cursor": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/Identifier"
-            },
-            {
-              "type": "null"
-            }
-          ]
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2048,
+          "pattern": "^[A-Za-z0-9._~-]+$"
         },
         "limit": {
           "anyOf": [
@@ -1387,7 +1571,7 @@
           "items": {
             "$ref": "#/$defs/Identifier"
           },
-          "minItems": 1,
+          "minItems": 0,
           "maxItems": 256,
           "uniqueItems": true
         },
@@ -1902,6 +2086,7 @@
         }
       },
       "required": [
+        "active_participant",
         "strm_id",
         "changed_at"
       ],
@@ -2073,6 +2258,18 @@
       ],
       "additionalProperties": true
     },
+    "HandoffPreparation": {
+      "type": "object",
+      "properties": {
+        "profile": {
+          "const": "connect-handoff-preparation-v1"
+        }
+      },
+      "required": [
+        "profile"
+      ],
+      "additionalProperties": false
+    },
     "OperationState": {
       "enum": [
         "accepted",
@@ -2090,6 +2287,9 @@
       "type": "object",
       "properties": {
         "operation_id": {
+          "$ref": "#/$defs/Identifier"
+        },
+        "record_id": {
           "$ref": "#/$defs/Identifier"
         },
         "state": {
@@ -2244,6 +2444,22 @@
       "required": [
         "retained_connid",
         "private_participants"
+      ],
+      "additionalProperties": true
+    },
+    "SessionConsultReturn": {
+      "type": "object",
+      "properties": {
+        "consultation_record_id": {
+          "$ref": "#/$defs/Identifier"
+        },
+        "retained_connid": {
+          "$ref": "#/$defs/Identifier"
+        }
+      },
+      "required": [
+        "consultation_record_id",
+        "retained_connid"
       ],
       "additionalProperties": true
     },
@@ -2402,7 +2618,19 @@
     },
     "ConversationGet": {
       "type": "object",
-      "properties": {},
+      "properties": {
+        "page": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2048,
+          "pattern": "^[A-Za-z0-9._~-]+$"
+        },
+        "limit": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 127
+        }
+      },
       "required": [],
       "additionalProperties": true
     },
@@ -2410,7 +2638,10 @@
       "type": "object",
       "properties": {
         "after": {
-          "$ref": "#/$defs/Identifier"
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2048,
+          "pattern": "^[A-Za-z0-9._~-]+$"
         },
         "live": {
           "type": "boolean"
@@ -2438,7 +2669,10 @@
           "maximum": 9007199254740991
         },
         "cursor": {
-          "$ref": "#/$defs/Identifier"
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2048,
+          "pattern": "^[A-Za-z0-9._~-]+$"
         },
         "items": {
           "type": "array",
@@ -2451,6 +2685,12 @@
         },
         "has_more": {
           "type": "boolean"
+        },
+        "next_page": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2048,
+          "pattern": "^[A-Za-z0-9._~-]+$"
         }
       },
       "required": [
@@ -2468,7 +2708,10 @@
           "$ref": "#/$defs/Identifier"
         },
         "cursor": {
-          "$ref": "#/$defs/Identifier"
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2048,
+          "pattern": "^[A-Za-z0-9._~-]+$"
         },
         "kind": {
           "type": "string",
@@ -2619,7 +2862,25 @@
             "$ref": "#/$defs/AuthSession"
           }
         },
-        "required": []
+        "required": [],
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "payload": {
+                  "required": [
+                    "participant_id"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "required": [
+                "cid"
+              ]
+            }
+          }
+        ]
       }
     },
     {
@@ -2687,8 +2948,18 @@
             "$ref": "#/$defs/ConversationCreate"
           }
         },
-        "required": [
-          "operation_id"
+        "required": [],
+        "anyOf": [
+          {
+            "required": [
+              "operation_id"
+            ]
+          },
+          {
+            "required": [
+              "in_reply_to"
+            ]
+          }
         ]
       }
     },
@@ -2745,8 +3016,19 @@
           }
         },
         "required": [
-          "operation_id",
           "cid"
+        ],
+        "anyOf": [
+          {
+            "required": [
+              "operation_id"
+            ]
+          },
+          {
+            "required": [
+              "in_reply_to"
+            ]
+          }
         ]
       }
     },
@@ -2782,9 +3064,20 @@
           }
         },
         "required": [
-          "operation_id",
           "cid",
           "sid"
+        ],
+        "anyOf": [
+          {
+            "required": [
+              "operation_id"
+            ]
+          },
+          {
+            "required": [
+              "in_reply_to"
+            ]
+          }
         ]
       }
     },
@@ -2803,9 +3096,20 @@
           }
         },
         "required": [
-          "operation_id",
           "cid",
           "sid"
+        ],
+        "anyOf": [
+          {
+            "required": [
+              "operation_id"
+            ]
+          },
+          {
+            "required": [
+              "in_reply_to"
+            ]
+          }
         ]
       }
     },
@@ -2824,9 +3128,20 @@
           }
         },
         "required": [
-          "operation_id",
           "cid",
           "sid"
+        ],
+        "anyOf": [
+          {
+            "required": [
+              "operation_id"
+            ]
+          },
+          {
+            "required": [
+              "in_reply_to"
+            ]
+          }
         ]
       }
     },
@@ -2845,9 +3160,20 @@
           }
         },
         "required": [
-          "operation_id",
           "cid",
           "sid"
+        ],
+        "anyOf": [
+          {
+            "required": [
+              "operation_id"
+            ]
+          },
+          {
+            "required": [
+              "in_reply_to"
+            ]
+          }
         ]
       }
     },
@@ -2866,9 +3192,20 @@
           }
         },
         "required": [
-          "operation_id",
           "cid",
           "sid"
+        ],
+        "anyOf": [
+          {
+            "required": [
+              "operation_id"
+            ]
+          },
+          {
+            "required": [
+              "in_reply_to"
+            ]
+          }
         ]
       }
     },
@@ -2927,10 +3264,21 @@
           }
         },
         "required": [
-          "operation_id",
-          "expected_revision",
           "cid",
           "sid"
+        ],
+        "anyOf": [
+          {
+            "required": [
+              "operation_id",
+              "expected_revision"
+            ]
+          },
+          {
+            "required": [
+              "in_reply_to"
+            ]
+          }
         ]
       }
     },
@@ -2989,10 +3337,21 @@
           }
         },
         "required": [
-          "operation_id",
           "cid",
           "sid",
           "connid"
+        ],
+        "anyOf": [
+          {
+            "required": [
+              "operation_id"
+            ]
+          },
+          {
+            "required": [
+              "in_reply_to"
+            ]
+          }
         ]
       }
     },
@@ -3011,10 +3370,21 @@
           }
         },
         "required": [
-          "operation_id",
           "cid",
           "sid",
           "connid"
+        ],
+        "anyOf": [
+          {
+            "required": [
+              "operation_id"
+            ]
+          },
+          {
+            "required": [
+              "in_reply_to"
+            ]
+          }
         ]
       }
     },
@@ -3054,11 +3424,22 @@
           }
         },
         "required": [
-          "operation_id",
-          "expected_revision",
           "cid",
           "sid",
           "connid"
+        ],
+        "anyOf": [
+          {
+            "required": [
+              "operation_id",
+              "expected_revision"
+            ]
+          },
+          {
+            "required": [
+              "in_reply_to"
+            ]
+          }
         ]
       }
     },
@@ -3077,10 +3458,21 @@
           }
         },
         "required": [
-          "operation_id",
           "cid",
           "sid",
           "connid"
+        ],
+        "anyOf": [
+          {
+            "required": [
+              "operation_id"
+            ]
+          },
+          {
+            "required": [
+              "in_reply_to"
+            ]
+          }
         ]
       }
     },
@@ -3162,11 +3554,22 @@
           }
         },
         "required": [
-          "operation_id",
-          "expected_revision",
           "cid",
           "sid",
           "connid"
+        ],
+        "anyOf": [
+          {
+            "required": [
+              "operation_id",
+              "expected_revision"
+            ]
+          },
+          {
+            "required": [
+              "in_reply_to"
+            ]
+          }
         ]
       }
     },
@@ -3185,11 +3588,22 @@
           }
         },
         "required": [
-          "operation_id",
-          "expected_revision",
           "cid",
           "sid",
           "connid"
+        ],
+        "anyOf": [
+          {
+            "required": [
+              "operation_id",
+              "expected_revision"
+            ]
+          },
+          {
+            "required": [
+              "in_reply_to"
+            ]
+          }
         ]
       }
     },
@@ -3209,8 +3623,7 @@
         },
         "required": [
           "cid",
-          "sid",
-          "connid"
+          "sid"
         ]
       }
     },
@@ -3229,8 +3642,19 @@
           }
         },
         "required": [
-          "operation_id",
           "cid"
+        ],
+        "anyOf": [
+          {
+            "required": [
+              "operation_id"
+            ]
+          },
+          {
+            "required": [
+              "in_reply_to"
+            ]
+          }
         ]
       }
     },
@@ -3268,8 +3692,19 @@
           }
         },
         "required": [
-          "operation_id",
           "cid"
+        ],
+        "anyOf": [
+          {
+            "required": [
+              "operation_id"
+            ]
+          },
+          {
+            "required": [
+              "in_reply_to"
+            ]
+          }
         ]
       }
     },
@@ -3324,10 +3759,21 @@
           }
         },
         "required": [
-          "operation_id",
           "cid",
           "sid",
           "connid"
+        ],
+        "anyOf": [
+          {
+            "required": [
+              "operation_id"
+            ]
+          },
+          {
+            "required": [
+              "in_reply_to"
+            ]
+          }
         ]
       }
     },
@@ -3366,7 +3812,10 @@
             "$ref": "#/$defs/RecordingVconReady"
           }
         },
-        "required": []
+        "required": [
+          "cid",
+          "sid"
+        ]
       }
     },
     {
@@ -3383,7 +3832,10 @@
             "$ref": "#/$defs/RecordingVconFetch"
           }
         },
-        "required": []
+        "required": [
+          "cid",
+          "sid"
+        ]
       }
     },
     {
@@ -3400,7 +3852,10 @@
             "$ref": "#/$defs/RecordingVconFetched"
           }
         },
-        "required": []
+        "required": [
+          "cid",
+          "sid"
+        ]
       }
     },
     {
@@ -3543,9 +3998,20 @@
           }
         },
         "required": [
-          "operation_id",
-          "expected_revision",
           "cid"
+        ],
+        "anyOf": [
+          {
+            "required": [
+              "operation_id",
+              "expected_revision"
+            ]
+          },
+          {
+            "required": [
+              "in_reply_to"
+            ]
+          }
         ]
       }
     },
@@ -3564,9 +4030,20 @@
           }
         },
         "required": [
-          "operation_id",
-          "expected_revision",
           "cid"
+        ],
+        "anyOf": [
+          {
+            "required": [
+              "operation_id",
+              "expected_revision"
+            ]
+          },
+          {
+            "required": [
+              "in_reply_to"
+            ]
+          }
         ]
       }
     },
@@ -3585,9 +4062,20 @@
           }
         },
         "required": [
-          "operation_id",
-          "expected_revision",
           "cid"
+        ],
+        "anyOf": [
+          {
+            "required": [
+              "operation_id",
+              "expected_revision"
+            ]
+          },
+          {
+            "required": [
+              "in_reply_to"
+            ]
+          }
         ]
       }
     },
@@ -3682,10 +4170,21 @@
           }
         },
         "required": [
-          "operation_id",
-          "expected_revision",
           "cid",
           "sid"
+        ],
+        "anyOf": [
+          {
+            "required": [
+              "operation_id",
+              "expected_revision"
+            ]
+          },
+          {
+            "required": [
+              "in_reply_to"
+            ]
+          }
         ]
       }
     },
@@ -3704,10 +4203,21 @@
           }
         },
         "required": [
-          "operation_id",
-          "expected_revision",
           "cid",
           "sid"
+        ],
+        "anyOf": [
+          {
+            "required": [
+              "operation_id",
+              "expected_revision"
+            ]
+          },
+          {
+            "required": [
+              "in_reply_to"
+            ]
+          }
         ]
       }
     },
@@ -3726,11 +4236,22 @@
           }
         },
         "required": [
-          "operation_id",
-          "expected_revision",
           "cid",
           "sid",
           "connid"
+        ],
+        "anyOf": [
+          {
+            "required": [
+              "operation_id",
+              "expected_revision"
+            ]
+          },
+          {
+            "required": [
+              "in_reply_to"
+            ]
+          }
         ]
       }
     },
@@ -3765,8 +4286,18 @@
             "$ref": "#/$defs/OperationCancel"
           }
         },
-        "required": [
-          "operation_id"
+        "required": [],
+        "anyOf": [
+          {
+            "required": [
+              "operation_id"
+            ]
+          },
+          {
+            "required": [
+              "in_reply_to"
+            ]
+          }
         ]
       }
     },
@@ -3784,8 +4315,18 @@
             "$ref": "#/$defs/OperationReconcile"
           }
         },
-        "required": [
-          "operation_id"
+        "required": [],
+        "anyOf": [
+          {
+            "required": [
+              "operation_id"
+            ]
+          },
+          {
+            "required": [
+              "in_reply_to"
+            ]
+          }
         ]
       }
     },
@@ -3823,6 +4364,40 @@
         "required": [
           "cid",
           "sid"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "session.consult.return"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "payload": {
+            "$ref": "#/$defs/SessionConsultReturn"
+          }
+        },
+        "required": [
+          "cid",
+          "sid",
+          "connid"
+        ],
+        "anyOf": [
+          {
+            "required": [
+              "operation_id",
+              "expected_revision"
+            ]
+          },
+          {
+            "required": [
+              "in_reply_to"
+            ]
+          }
         ]
       }
     }

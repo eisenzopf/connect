@@ -1,6 +1,18 @@
 # Connect control profile v1
 
-Status: experimental local profile. Profile `connect-control/1`, UCTP envelope
+The native framing below is historical Gates 1–5 context. Current default native
+commands use [UCTP/connect 2](connect-uctp.md). The existing bare HTTP Operation
+DTOs remain only the closed named application extension API under their
+`connect-control/1` response profile. Canonical commands use the current
+[`POST /v2/commands`](openapi-canonical-http.json) envelope/batch contract and
+`connect/2` profile. The new SDK admits an explicit application subset rather than using it
+as a canonical-command fallback. Default CLI request input is a typed canonical
+command, or an explicitly selected HTTP application operation. See the
+[application SDK contract](../docs/developer/application-sdk.md). Earlier native
+SDK/CLI consumers still await migration; this file does not qualify those paths
+against the current default listener.
+
+Historical framing status: experimental local profile. Profile `connect-control/1`, UCTP envelope
 version 1, raw QUIC ALPN `uctp/1`. These identifiers do not derive from crate
 semver or the datagram wire version.
 
@@ -18,7 +30,14 @@ request envelope ID. Unsupported profiles fail before mutation. Application
 operations never also enter the stock core conversation handler. Stock UCTP
 traffic without a profile retains its existing dispatch path.
 
-## Operations
+## Historical operation inventory
+
+The table below is Gates 1–5 inventory, not the current application allowlist.
+Canonical conversation/message/membership/operation/Session controls and old
+provider call/SIP mutations are refused by generic application entry points.
+Current named extension admission is the shared closed
+`connect_protocol::application_api::response_kind` classification.
+
 
 UCTP payload is `{ "profile": "connect-control/1", "op": "...", ... }`.
 HTTP/JSON and the CLI accept the bare operation `{ "op": "...", ... }`;
@@ -29,12 +48,13 @@ the native SDK adds the UCTP profile wrapper. HTTP responses include the profile
 | resolve | address: `connect:alias@local` | permitted stable identity and static media declaration |
 | capabilities | address, optional conversation_id | caller-permitted operations, configured routes, availability and limits |
 | browser_binding | optional paired conversation_id and session_id | configured default or currently authorized accepted AV Session and signaling URL |
-| create | request_id, participants: identity IDs | durable conversation; caller included |
-| send | request_id, conversation_id, body: UTF-8 text | accepted receipt |
+| create | request_id, request: tenant_id assertion, policy, idle_close_secs, metadata, initial_participants (identity_id, role) | durable current conversation with local mutation receipt; caller included |
+| conversations | query: filter, cursor, limit | bounded current conversation page and next_cursor |
+| send | request_id, conversation_id, message: explicit typed draft | accepted receipt |
 | history | conversation_id, after: opaque cursor or null, limit | ordered messages and next cursor |
 | inbox | cursor: opaque cursor or null, limit, wait_ms | ordered journal events and last scanned cursor |
 | request_status | request_id | accepted/rejected/not_found; saved outcome when permitted |
-| close | request_id, conversation_id | closed conversation; retained history |
+| close | request_id, conversation_id, options: expected_revision, reason_code, reason | closed current conversation and local mutation receipt; retained history |
 | health | none | installation ID, schema, profile; optional runtime readiness |
 | provider_status | conversation_id | deliveries: job/message/connector IDs, state, nullable provider_id, sms_decision and sms_grant_id |
 | call_start | request_id, conversation_id, route_id, destination: E.164 | durable call receipt |
@@ -376,8 +396,16 @@ silently changing the logical request ID.
 Durable inbox payload is `{"events":[...],"cursor":null-or-string}`. Each event
 has `id`, `kind`, `conversation_id`, nullable `message`, and its own opaque `cursor`.
 Optional `call`, `session`, `artifact` carry their respective lifecycle outcomes.
-A message has `id`, `conversation_id`, `sender`, `body`; server authority selects
-sender. Process events in returned order and persist event IDs/cursor only after
+A message has `id`, `conversation_id`, `sender`, `sender_participant_id`,
+`audience` (frozen participant IDs and membership epochs), `content_type`,
+`body`, `body_encoding`, `label`, `attachments`, `in_reply_to_msg`, and
+`accepted_at`. Server authority selects the sender. Sends require a `message`
+draft with `to` (explicit participant IDs or `"all"`), content type, body,
+encoding, label and attachments; optional `msg_id` and `in_reply_to_msg` identify
+the message and parent. Body-only sends are rejected. The Rust `send`, TypeScript
+`send` and Python `send` helpers construct a plain UTF-8 text draft to `"all"`.
+Use `send_message` (TypeScript `sendMessage`) for selected recipients and typed
+content. See [addressed messages](../docs/developer/messages.md). Process events in returned order and persist event IDs/cursor only after
 handling is durable. The same cursor may replay events. It is installation- and
 identity-bound and invalid after foreign identity use; never parse or construct
 it. Resume by passing it unchanged to `inbox`. Notifications are only hints;
@@ -389,3 +417,30 @@ positive/negative envelopes. They contain synthetic values and repository MIT
 license provenance. Media packets have a separate datagram profile and negotiated
 bindings; these framing vectors and the independent client prove no media codec,
 rendering, WebRTC, SIP or provider behavior.
+
+## Gate 6 participant endpoint selection
+
+The current shared facade also accepts `participant_route` with a nested typed
+`request`. Conversation-scoped capability discovery returns `participant_id`,
+which is distinct from the Identity ID. The Rust SDK can resolve that appearance
+and select permitted endpoints without a provider route ID or destination address.
+See the [routing guide](../docs/developer/routing.md) and implemented
+[HTTP/OpenAPI subset](openapi-routing.json) for exact fields and prerequisite,
+preference, failover and unknown-reachability behavior. Lookup does not allocate
+media or provide a reusable authorization lease. Canonical Gate 6 dispatch and
+Session/transport admission remain separate implementation tasks.
+
+
+### Gate 6 attachment links and recipient evidence
+
+ArtifactBegin requires explicit `to`. ArtifactInspect, ArtifactUploadLink,
+ArtifactDownloadLink, ArtifactLinkAppend and ArtifactLinkGet share the current
+message/file audience engine. Link paths require current credentials and protected
+task/grant context; renewal preserves byte mutation IDs. MessageReceipts returns
+per-recipient/per-channel evidence with current preference filtering.
+MessageReceipt is a self-report of delivered/read, with reading opt-in; it never
+implies a human response. ReceiptPreferencesGet/Set affect only the current member.
+See [the HTTP contract](openapi-attachments.json) and
+[behavior and recovery](../docs/developer/attachments-and-receipts.md).
+
+Schema 33 conversation semantics, canonical create/list/close and shared SDK helpers are specified in [conversation control](../docs/developer/conversation-control.md) and [OpenAPI](openapi-conversations.json). Old create bodies and incompatible candidate state are refused.

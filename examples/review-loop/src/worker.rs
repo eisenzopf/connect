@@ -31,7 +31,7 @@ pub async fn run(
         "startup-create",
         Operation::Create {
             request_id: uuid::Uuid::new_v4().to_string(),
-            participants: vec![peer.id],
+            request: connect_client::conversations::CreateRequest::persistent(vec![peer.id]),
         },
     )?;
     let outcome = if let Some(outcome) = create.outcome {
@@ -50,12 +50,11 @@ pub async fn run(
         Operation::Send {
             request_id: uuid::Uuid::new_v4().to_string(),
             conversation_id: conversation.id,
-            body: if agent {
+            message: connect_client::messages::MessageDraft::text_all(if agent {
                 "ask_pending_draft"
             } else {
                 "review_draft:draft-002"
-            }
-            .into(),
+            }),
         },
     )?;
     let stop = async {

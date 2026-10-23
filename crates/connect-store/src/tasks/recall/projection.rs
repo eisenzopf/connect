@@ -1,11 +1,11 @@
 //! Project authorized journal references; never include file bytes or server paths.
 use super::super::storage;
-use crate::Store;
+use crate::{Actor, Store};
 use connect_protocol::{
     tasks::{TaskRecord, TaskSource, TASK_CONTEXT_BYTES},
     Error, Result,
 };
-use rusqlite::{params, Connection, OptionalExtension};
+use rusqlite::{params, Connection};
 
 pub(super) struct SourceRow {
     pub sequence: i64,
@@ -14,19 +14,23 @@ pub(super) struct SourceRow {
     pub message_id: Option<String>,
     pub session_id: Option<String>,
     pub artifact_id: Option<String>,
+    pub record_id: Option<String>,
 }
 pub(super) fn read(
     c: &Connection,
+    actor: &Actor,
     task: &TaskRecord,
     row: &SourceRow,
     timestamp: i64,
     store: &Store,
+    record_budget: &mut usize,
 ) -> Result<TaskSource> {
     let source_id = row
         .message_id
         .as_ref()
         .or(row.session_id.as_ref())
         .or(row.artifact_id.as_ref())
+        .or(row.record_id.as_ref())
         .ok_or_else(Error::storage)?;
     let mut source = TaskSource {
         source_id: source_id.clone(),
@@ -36,33 +40,69 @@ pub(super) fn read(
         provenance: format!("conversation-journal:{}", row.event_id),
         state: "unavailable".into(),
         body: None,
+        record: None,
     };
-    if let Some(id) = &row.message_id {
-        let message: Option<(String, Option<String>)> = c
-            .query_row(
-                "SELECT sender,CASE WHEN length(CAST(body AS BLOB))<=?3 THEN body END
-             FROM messages WHERE id=?1 AND conversation_id=?2",
-                params![id, task.conversation_id, TASK_CONTEXT_BYTES],
-                |r| Ok((r.get(0)?, r.get(1)?)),
-            )
-            .optional()
-            .map_err(|_| Error::storage())?;
-        if let Some((actor, body)) = message {
-            source.actor_id = actor;
-            source.state = if body.is_some() {
-                "available"
-            } else {
-                "unavailable"
+    if let Some(id) = &row.record_id {
+        match crate::records::context::select(
+            store,
+            c,
+            actor,
+            &task.conversation_id,
+            id,
+            None,
+            None,
+            record_budget,
+        ) {
+            Ok(projected) => {
+                source.actor_id = projected.owner;
+                source.created_at = projected.created_at;
+                source.state = match projected.reference.state {
+                    connect_protocol::ContextRecordState::Available => "available",
+                    connect_protocol::ContextRecordState::Deleted => "deleted",
+                    _ => "unavailable",
+                }
+                .into();
+                if source.state == "available" {
+                    source.body = Some(projected.body);
+                }
+                source.record = Some(projected.reference);
+                source
+                    .provenance
+                    .push_str(";current-authorized-record-projection");
             }
-            .into();
-            if body.is_none() {
-                source.provenance.push_str(";body-exceeds-task-budget");
+            Err(error) if error.code == "forbidden" => (),
+            Err(error) if error.code == "capacity-exceeded" => {
+                source.provenance.push_str(";record-input-budget-exceeded")
             }
-            source.body = body;
+            Err(error) => return Err(error),
         }
-        // The message schema has no timestamp. None is evidence of that absence,
-        // not an estimate from query time or the task's creation date.
-        source.provenance.push_str(";timestamp-not-recorded");
+    } else if let Some(id) = &row.message_id {
+        let exists: bool = c
+            .query_row(
+                "SELECT EXISTS(SELECT 1 FROM messages WHERE id=?1 AND conversation_id=?2)",
+                params![id, task.conversation_id],
+                |r| r.get(0),
+            )
+            .map_err(|_| Error::storage())?;
+        if !exists {
+            source
+                .provenance
+                .push_str(";source-missing;timestamp-not-recorded");
+            return Ok(source);
+        }
+        let message = crate::messages::project(c, actor, &task.conversation_id, id, None, None)?;
+        let body = crate::messages::context_body(&message)?;
+        source.actor_id = message.sender;
+        source.created_at = message.accepted_at;
+        if body.len() <= TASK_CONTEXT_BYTES {
+            source.state = "available".into();
+            source.body = Some(body);
+        } else {
+            source.provenance.push_str(";body-exceeds-task-budget");
+        }
+        if source.created_at.is_none() {
+            source.provenance.push_str(";timestamp-not-recorded");
+        }
     } else if let Some(id) = &row.session_id {
         match crate::sessions::get(c, &task.conversation_id, id) {
             Ok(session) => {

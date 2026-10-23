@@ -1,0 +1,213 @@
+{
+  "task": "G6-046",
+  "title": "Any current Session Participant may explicitly end with current named authority",
+  "status": "U6-REQ-0087 locally qualified; full auxiliary task open",
+  "recorded_at": "2026-10-22T18:27:16.879100+00:00",
+  "full_task_complete": false,
+  "full_goal_complete": false,
+  "acceptance_qualified": false,
+  "platform": {
+    "os": "Darwin",
+    "architecture": "arm64"
+  },
+  "schema_version": 89,
+  "source_lock": {
+    "path": "dependencies/source-lock.json",
+    "sha256": "d5447e896ce316cdde4d7ad2affb4c0bf39785fe558da35bce72368284143212"
+  },
+  "pinned_patches": 138,
+  "compiled_inputs": {
+    "path": ".local/gate-6/session-end-participant/build-inputs-v1.json",
+    "sha256": "5732f75ad460bbec1e1fda3c3fc2b9e461c46b7545de0b955f855326dbcc3721",
+    "count": 1256
+  },
+  "compiled_inputs_unchanged_after_tests": true,
+  "source_inputs": [
+    {
+      "path": "crates/connect-store/src/session_control.rs",
+      "sha256": "f743ed45f7775570957b94c12496a92af91d609c858f32dfcb79a4af3a445612"
+    },
+    {
+      "path": "crates/connect-store/src/session_control_tests.rs",
+      "sha256": "23997d9de30837737afc5ac26ab7179af37452b0f0da2489e3cc60de6cfb8050"
+    },
+    {
+      "path": "crates/connect-server/tests/support/canonical_auxiliary_clauses.rs",
+      "sha256": "0c87e14bd9a4fa06a52894c67f8797febf764f83c01c6e3d6bc09167fac1bc32"
+    },
+    {
+      "path": "docs/developer/general-sessions.md",
+      "sha256": "cdf9bb9ae312146d3f869b2160d3bbb79ce06bd5bea7a2d78cf553ddc323b300"
+    },
+    {
+      "path": "scripts/generate-canonical-http-openapi.py",
+      "sha256": "82b219cc2b7ab2503fd789865ccf56536a5c0a0b0782317631f6c5c2e08d4ebb"
+    },
+    {
+      "path": "contracts/openapi-canonical-http.json",
+      "sha256": "80480e178308014df699026bcf8d441e7291015b79f3d94de2185637a77002d6"
+    }
+  ],
+  "binaries": [
+    {
+      "path": "target/debug/deps/connect_store-2bc54b64bb656bb4",
+      "sha256": "67c70523bbc08d05e1b4b9725e21cea6ad5dc3c5c3735a968a4787611bada8c4"
+    },
+    {
+      "path": "target/debug/deps/gate6_canonical_runtime-f39476f2f6c7ff5d",
+      "sha256": "030fee055885ea0762c98c04a38b88f091bc9a6515bc7aaac7abc55a687674bd"
+    },
+    {
+      "path": "target/debug/deps/gate6_auxiliary-0342ca629847fff9",
+      "sha256": "73e87d3cba2f43b4939f6ae8ec92da6bd11d2c0c6d54951f9ea73420ee7c1e86"
+    }
+  ],
+  "results": [
+    {
+      "name": "store-session-control",
+      "passed": 30,
+      "failed": 0,
+      "evidence": {
+        "path": ".local/gate-6/session-end-participant/store-control-v1.log",
+        "sha256": "67b97efa269f8b4dc44971399d685f1780bca604467db972497be3fe0d8f014c"
+      }
+    },
+    {
+      "name": "store-peer-sessions",
+      "passed": 8,
+      "failed": 0,
+      "evidence": {
+        "path": ".local/gate-6/session-end-participant/store-peer-session-v1.log",
+        "sha256": "0365fbeace5a7ee58ac6886fe4eaf2060090f652b7439480899acaa124ea4d04"
+      }
+    },
+    {
+      "name": "store-events",
+      "passed": 22,
+      "failed": 0,
+      "evidence": {
+        "path": ".local/gate-6/session-end-participant/store-events-v1.log",
+        "sha256": "e187b8b7068ba0d9355b512424a9985ed311c12d72a40a7610696461754c4007"
+      }
+    },
+    {
+      "name": "production-current-participant-end",
+      "passed": 1,
+      "failed": 0,
+      "evidence": {
+        "path": ".local/gate-6/session-end-participant/production-end-v1.log",
+        "sha256": "0e626f8c34a9273485610359c581eb5a33040c7c79d7b68c111f998f677722a6"
+      }
+    },
+    {
+      "name": "production-auxiliary-regressions",
+      "passed": 5,
+      "failed": 0,
+      "evidence": {
+        "path": ".local/gate-6/session-end-participant/production-auxiliary-v1.log",
+        "sha256": "c258c020a39e1e4edbaf1b733e95138b932efb22d0700cb00554a275e826375e"
+      }
+    },
+    {
+      "name": "production-four-party",
+      "passed": 1,
+      "failed": 0,
+      "evidence": {
+        "path": ".local/gate-6/session-end-participant/production-four-party-v1.log",
+        "sha256": "a9a6b6339cc3ddcb109174d668e72da7265a0e1899e650b1c5ab38f5f8ef6940"
+      }
+    },
+    {
+      "name": "production-records",
+      "passed": 1,
+      "failed": 0,
+      "evidence": {
+        "path": ".local/gate-6/session-end-participant/production-records-v1.log",
+        "sha256": "273afe28478bf7af6564cbfd6ab0f128f5e9e3da9a7c3d2e14bacbdeb886d95e"
+      }
+    }
+  ],
+  "checks": [
+    {
+      "name": "dependencies",
+      "exit_code": 0,
+      "evidence": {
+        "path": ".local/gate-6/session-end-participant/dependencies-v1.log",
+        "sha256": "fd9d7b181e3ccba9b643af55a186cf132c60aac99c734b2ee4e4e549afe5ffc2"
+      }
+    },
+    {
+      "name": "format",
+      "exit_code": 0,
+      "evidence": {
+        "path": ".local/gate-6/session-end-participant/format-final.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    {
+      "name": "http-reference",
+      "exit_code": 0,
+      "evidence": {
+        "path": ".local/gate-6/session-end-participant/http-reference-final.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    {
+      "name": "event-reference",
+      "exit_code": 0,
+      "evidence": {
+        "path": ".local/gate-6/session-end-participant/event-reference-final.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    {
+      "name": "diff",
+      "exit_code": 0,
+      "evidence": {
+        "path": ".local/gate-6/session-end-participant/diff-final.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    {
+      "name": "progress",
+      "exit_code": 0,
+      "evidence": {
+        "path": ".local/gate-6/session-end-participant/progress-final.log",
+        "sha256": "fedbc03549729d27ac031eee0766ae72281991ae1e9494232887c3160cf754cc"
+      }
+    }
+  ],
+  "qualified_cases": [
+    {
+      "case_id": "u6-req-0087",
+      "test": "auxiliary_clauses::production_auxiliary_session_end_by_current_noninitiator_0087",
+      "algorithms": [
+        "EdDSA",
+        "ES256"
+      ],
+      "profile": "Actual local native QUIC command and bearer HTTP command, with signed native current-authority multicast and cross-transport logical replay. Explicit accepted Session; no Connection readiness claim.",
+      "assertions": [
+        "A noninitiator Participant with current present Session appearance and session.end but no session.manage ends the whole logical Session.",
+        "Wire by equals the authenticated noninitiator Participant, reason_code200 and normal-clearing survive original terminal multicast to initiator and peer.",
+        "Both transport directions replay the same logical outcome without repeating the terminal mutation.",
+        "Store negatives deny missing named permission, narrow recipient scope, spoofed by, invited/uninvited/departed Participants and revoked named permission on replay.",
+        "A role label supplies no management authority; existing creator/explicit manager controls remain intact."
+      ]
+    }
+  ],
+  "implementation": [
+    "General Session End authorizes current present appearance plus the named action without requiring session.manage. Creator/explicit manager authority remains available independently.",
+    "Original source access, affected-recipient ceiling, current membership epoch, authenticated by, topology revision and durable operation replay remain in the shared transactional/peer boundary.",
+    "Original terminal metadata remains immutable and independently multicast/fetchable; existing source, Conversation, four-party and record regressions pass on this exact source snapshot."
+  ],
+  "limits": [
+    "Only U6-REQ-0087 is newly qualified: assigned61 now14 locally qualified /47 remaining. G6-046 remains in progress; full105-task goal and acceptance remain incomplete.",
+    "No automatic last-Connection/grace, forwarded invite/correlated decision, live media readiness, Linux, remote/browser/provider or publication claim.",
+    "Earlier unresolved provider/consultation/retention cases are not promoted."
+  ],
+  "reproduce": [
+    "bash scripts/prepare-dependencies.sh",
+    "CARGO_INCREMENTAL=0 cargo test -p connect-store --lib --locked --offline -j1 session_control:: -- --test-threads=1",
+    "CARGO_INCREMENTAL=0 cargo test -p connect-server --test gate6_canonical_runtime --locked --offline -j1 auxiliary_clauses::production_auxiliary_session_end_by_current_noninitiator_0087 -- --exact --test-threads=1"
+  ]
+}

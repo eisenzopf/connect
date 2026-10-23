@@ -1,0 +1,375 @@
+--- a/crates/uctp/rvoip-uctp/src/v2/mod.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/mod.rs
+@@ -19,6 +19,7 @@
+ pub mod native_media;
+ pub mod native_negotiation;
+ pub mod native_quality;
++pub mod native_session_codecs;
+ pub mod reachability;
+ pub mod recording;
+ mod replay;
+--- a/crates/uctp/rvoip-uctp/src/v2/native.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/native.rs
+@@ -1231,6 +1231,25 @@
+             route.session.clone(),
+         ))
+     }
++    /// Pure live Session codec planning. The returned revision/capability
++    /// snapshot is neither an execution lease nor a readiness/authorization grant.
++    pub fn plan_native_session_codecs(
++        &self,
++        id: &ConnectionId,
++        origin: &Arc<super::native_requests::NativeRequestOrigin>,
++        preferences: &[String],
++    ) -> std::result::Result<super::native_session_codecs::NativeSessionCodecPlan, super::native_negotiation::NativeOfferError> {
++        use super::native_negotiation::NativeOfferError;
++        let (controller, broker, flow, _) = self.reconciliation_parts(id, origin)?;
++        if broker.is_busy() { return Err(NativeOfferError::Conflict); }
++        let revision = controller.revision();
++        if !flow.confirmed_at(revision) { return Err(NativeOfferError::NotReady); }
++        let bindings = controller.active_bindings();
++        let media = broker.plan_session_codecs(preferences, &bindings)?;
++        let resources = media.selected().len() != bindings.len()
++            || media.selected().iter().any(|s| !bindings.iter().any(|b| &b.negotiated == s));
++        Ok(super::native_session_codecs::NativeSessionCodecPlan::new(origin.clone(), revision, media, resources))
++    }
+     pub(crate) fn plan_native_reconciliation(
+         &self,
+         core: &rvoip_core::orchestrator::Orchestrator,
+--- a/crates/uctp/rvoip-uctp/src/v2/native_negotiation/catalog.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/native_negotiation/catalog.rs
+@@ -317,6 +317,104 @@
+         Ok(Self {
+             selected,
+             rejected: vec![],
++            remote: effective,
++            declaration_generation: None,
++        })
++    }
++    /// Plan a Session policy against existing bindings. This is metadata only.
++    /// Unrequested media and data encodings keep their exact current bindings.
++    pub(crate) fn session_codec_update(
++        preferences: &[String],
++        profile: &NativeMediaProfile,
++        remote: &EndpointMediaCapabilities,
++        bindings: &[ReadyMediaBinding],
++    ) -> Result<Self, NativeOfferError> {
++        if preferences.is_empty() || bindings.is_empty() {
++            return Err(NativeOfferError::Invalid);
++        }
++        if bindings.len() > 32 {
++            return Err(NativeOfferError::Capacity);
++        }
++        let validated = profile.clone().with_codec_preferences(preferences)?;
++        let preferences = &validated.codec_preferences;
++        let mut kinds = BTreeSet::new();
++        for name in preferences {
++            match name.as_str() {
++                "pcmu" | "pcma" | "opus" => {
++                    kinds.insert(Medium::Audio);
++                }
++                "vp8" => {
++                    kinds.extend([Medium::Video, Medium::Screen]);
++                }
++                "reliable-ordered" => {
++                    kinds.insert(Medium::Data);
++                }
++                _ => return Err(NativeOfferError::Unsupported),
++            }
++        }
++        let mut effective = remote.clone();
++        let mut selected = Vec::with_capacity(bindings.len());
++        let mut retained = 0;
++        for binding in bindings {
++            let previous = &binding.negotiated;
++            let medium = previous.requested.medium;
++            if medium == Medium::Data || !kinds.contains(&medium) {
++                retain_binding(&mut effective, previous);
++                selected.push(previous.clone());
++                retained += 1;
++                continue;
++            }
++            let usable = |format: &MediaFormat| {
++                validate_selected_streams(
++                    &profile.local,
++                    remote,
++                    &[NegotiatedStream {
++                        requested: previous.requested.clone(),
++                        format: format.clone(),
++                    }],
++                )
++                .is_ok()
++            };
++            let formats = remote
++                .send
++                .iter()
++                .chain(&remote.receive)
++                .filter(|c| c.medium == medium)
++                .flat_map(|c| &c.formats)
++                .collect::<Vec<_>>();
++            let mut chosen = None;
++            for preference in preferences {
++                if format_name(&previous.format) == *preference && usable(&previous.format) {
++                    chosen = Some(previous.format.clone());
++                    break;
++                }
++                if let Some(format) = formats
++                    .iter()
++                    .find(|f| format_name(f) == *preference && usable(f))
++                {
++                    chosen = Some((*format).clone());
++                    break;
++                }
++            }
++            // A soft preference cannot authorize a withdrawn format. Preserve
++            // a still-compatible current format before choosing another fallback.
++            if chosen.is_none() && usable(&previous.format) {
++                chosen = Some(previous.format.clone());
++            }
++            if chosen.is_none() {
++                chosen = formats.iter().find(|f| usable(f)).map(|f| (*f).clone());
++            }
++            selected.push(NegotiatedStream {
++                requested: previous.requested.clone(),
++                format: chosen.ok_or(NativeOfferError::Unsupported)?,
++            });
++        }
++        effective.max_streams = effective.max_streams.max(retained);
++        validate_selected_streams(&profile.local, &effective, &selected)
++            .map_err(|_| NativeOfferError::Unsupported)?;
++        Ok(Self {
++            selected,
++            rejected: Vec::new(),
+             remote: effective,
+             declaration_generation: None,
+         })
+--- a/crates/uctp/rvoip-uctp/src/v2/native_negotiation/mod.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/native_negotiation/mod.rs
+@@ -434,6 +434,16 @@
+             bindings,
+         )
+         .map(|plan| Self::stamp_declaration(plan, retained.declaration_generation))
++    }
++    pub(crate) fn plan_session_codecs(
++        &self,
++        preferences: &[String],
++        bindings: &[ReadyMediaBinding],
++    ) -> Result<NativeOfferPlan, NativeOfferError> {
++        let retained = self.retained.lock().unwrap_or_else(|p| p.into_inner());
++        let retained = retained.as_ref().ok_or(NativeOfferError::NotReady)?;
++        NativeOfferPlan::session_codec_update(preferences, &self.profile, retained.future_capabilities(), bindings)
++            .map(|plan| Self::stamp_declaration(plan, retained.declaration_generation))
+     }
+     pub(crate) fn plan_reconciliation(
+         &self,
+--- a/crates/uctp/rvoip-uctp/src/v2/native_negotiation/tests.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/native_negotiation/tests.rs
+@@ -510,3 +510,158 @@
+             .is_err());
+     }
+ }
++
++#[test]
++fn live_session_codec_plan_prefers_current_policy_without_changing_identity_or_direction() {
++    let initial = NativeOfferPlan::parse(&offer(), &profile(), &actor()).unwrap();
++    let bindings = codec_bindings(&initial);
++    let selected = NativeOfferPlan::session_codec_update(
++        &["g.711-a".into()],
++        &profile(),
++        initial.remote_capabilities(),
++        &bindings,
++    )
++    .unwrap();
++    for (before, after) in bindings.iter().zip(selected.selected()) {
++        assert_eq!(before.negotiated.requested, after.requested);
++        assert_eq!(after.format, audio("pcma"));
++    }
++    assert_eq!(bindings[1].negotiated.format, audio("pcmu"));
++}
++#[test]
++fn live_session_codec_plan_keeps_a_compatible_current_format_when_preference_is_unavailable() {
++    let initial = NativeOfferPlan::parse(&offer(), &profile(), &actor()).unwrap();
++    let mut bindings = codec_bindings(&initial);
++    bindings[1].negotiated.format = audio("pcma");
++    let selected = NativeOfferPlan::session_codec_update(
++        &["opus".into()],
++        &profile(),
++        initial.remote_capabilities(),
++        &bindings,
++    )
++    .unwrap();
++    assert_eq!(
++        selected.selected(),
++        bindings
++            .iter()
++            .map(|b| b.negotiated.clone())
++            .collect::<Vec<_>>()
++    );
++}
++#[test]
++fn live_session_codec_plan_does_not_grandfather_a_withdrawn_target_format() {
++    let initial = NativeOfferPlan::parse(&offer(), &profile(), &actor()).unwrap();
++    let bindings = codec_bindings(&initial);
++    let remote = NativeOfferPlan::declaration(
++        &json!({"audio_codecs":[{"name":"pcmu","params":{}}]}),
++        &profile(),
++        &actor(),
++    )
++    .unwrap();
++    let selected =
++        NativeOfferPlan::session_codec_update(&["pcma".into()], &profile(), &remote, &bindings)
++            .unwrap();
++    assert!(selected
++        .selected()
++        .iter()
++        .all(|b| b.format == audio("pcmu")));
++    assert!(selected
++        .remote_capabilities()
++        .send
++        .iter()
++        .all(|c| !c.formats.contains(&audio("pcma"))));
++    let none =
++        NativeOfferPlan::declaration(&json!({"audio_codecs":[]}), &profile(), &actor()).unwrap();
++    assert!(matches!(
++        NativeOfferPlan::session_codec_update(&["pcma".into()], &profile(), &none, &bindings),
++        Err(NativeOfferError::Unsupported)
++    ));
++}
++#[test]
++fn live_session_codec_plan_preserves_unrequested_video_and_existing_data_without_new_support() {
++    let initial = NativeOfferPlan::parse(&offer(), &profile(), &actor()).unwrap();
++    for medium in [Medium::Video, Medium::Data] {
++        let mut bindings = codec_bindings(&initial);
++        bindings[1].negotiated.requested.medium = medium;
++        bindings[1].negotiated.format = if medium == Medium::Data {
++            MediaFormat::ReliableOrdered(rvoip_core::capability::DataProtocol::Binary)
++        } else {
++            MediaFormat::Encoded {
++                name: "vp8".into(),
++                clock_rate_hz: 90000,
++                channels: 0,
++                fmtp: None,
++            }
++        };
++        let remote = NativeOfferPlan::declaration(
++            &json!({"audio_codecs":[{"name":"pcmu","params":{}},{"name":"pcma","params":{}}]}),
++            &profile(),
++            &actor(),
++        )
++        .unwrap();
++        let selected =
++            NativeOfferPlan::session_codec_update(&["pcmu".into()], &profile(), &remote, &bindings)
++                .unwrap();
++        assert_eq!(selected.selected()[0].format, audio("pcmu"));
++        assert_eq!(selected.selected()[1], bindings[1].negotiated);
++        if medium == Medium::Data {
++            let unchanged = NativeOfferPlan::session_codec_update(
++                &["reliable-ordered".into()],
++                &profile(),
++                &remote,
++                &bindings,
++            )
++            .unwrap();
++            assert_eq!(
++                unchanged.selected(),
++                bindings
++                    .iter()
++                    .map(|b| b.negotiated.clone())
++                    .collect::<Vec<_>>()
++            );
++        }
++    }
++}
++#[test]
++fn live_session_codec_plan_respects_both_directions_and_does_not_invent_a_peer_format() {
++    let initial = NativeOfferPlan::parse(&offer(), &profile(), &actor()).unwrap();
++    let bindings = codec_bindings(&initial);
++    let mut remote = initial.remote_capabilities().clone();
++    for cap in &mut remote.receive {
++        if cap.medium == Medium::Audio {
++            cap.formats = vec![audio("pcmu")];
++        }
++    }
++    let selected =
++        NativeOfferPlan::session_codec_update(&["pcma".into()], &profile(), &remote, &bindings)
++            .unwrap();
++    assert_eq!(selected.selected()[0].format, audio("pcmu"));
++    // The second Stream is local receive-only; the peer may still send PCMA.
++    assert_eq!(selected.selected()[1].format, audio("pcma"));
++}
++#[test]
++fn live_session_codec_plan_refuses_empty_unknown_duplicate_and_unbounded_policy() {
++    let initial = NativeOfferPlan::parse(&offer(), &profile(), &actor()).unwrap();
++    let bindings = codec_bindings(&initial);
++    for preferences in [
++        vec![],
++        vec!["unknown".into()],
++        vec!["pcmu".into(), "g.711-mu".into()],
++        vec!["pcmu".into(); 33],
++    ] {
++        assert!(NativeOfferPlan::session_codec_update(
++            &preferences,
++            &profile(),
++            initial.remote_capabilities(),
++            &bindings
++        )
++        .is_err());
++    }
++    assert!(NativeOfferPlan::session_codec_update(
++        &["pcmu".into()],
++        &profile(),
++        initial.remote_capabilities(),
++        &[]
++    )
++    .is_err());
++}
+--- /dev/null
++++ b/crates/uctp/rvoip-uctp/src/v2/native_session_codecs.rs
+@@ -0,0 +1,47 @@
++//! A controller-bound live codec proposal. This retains metadata, never grants.
++use super::{
++    native_negotiation::NativeOfferPlan,
++    native_requests::{NativeRequestOrigin, NativeRequestScope},
++};
++use std::sync::Arc;
++/// Planning alone cannot perform IO, advance a revision or create a receipt.
++/// Execution must independently reauthorize and fence this exact current origin,
++/// revision, peer capability declaration and complete selected binding set.
++pub struct NativeSessionCodecPlan {
++    pub(crate) origin: Arc<NativeRequestOrigin>,
++    scope: NativeRequestScope,
++    media: NativeOfferPlan,
++    resources: bool,
++}
++impl NativeSessionCodecPlan {
++    pub(crate) fn new(
++        origin: Arc<NativeRequestOrigin>,
++        revision: u64,
++        media: NativeOfferPlan,
++        resources: bool,
++    ) -> Self {
++        Self {
++            scope: origin.request_scope(revision),
++            origin,
++            media,
++            resources,
++        }
++    }
++    pub fn scope(&self) -> &NativeRequestScope {
++        &self.scope
++    }
++    pub fn expected_revision(&self) -> u64 {
++        self.scope.stream_revision
++    }
++    pub fn media(&self) -> &NativeOfferPlan {
++        &self.media
++    }
++    pub fn changes_resources(&self) -> bool {
++        self.resources
++    }
++}
++impl std::fmt::Debug for NativeSessionCodecPlan {
++    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
++        f.write_str("NativeSessionCodecPlan(metadata)")
++    }
++}

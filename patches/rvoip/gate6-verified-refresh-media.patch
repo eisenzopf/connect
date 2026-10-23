@@ -1,0 +1,792 @@
+diff --git a/crates/uctp/rvoip-uctp/src/v2/auth_dispatch/credential_refresh.rs b/crates/uctp/rvoip-uctp/src/v2/auth_dispatch/credential_refresh.rs
+new file mode 100644
+--- /dev/null
++++ b/crates/uctp/rvoip-uctp/src/v2/auth_dispatch/credential_refresh.rs
+@@ -0,0 +1,121 @@
++//! Metadata sealed only after authenticated refresh, before any media effect.
++use super::*;
++use rvoip_auth_core::bearer::ValidatedBearer;
++/// The exact verified refresh and successor dispatch on one physical peer.
++/// It is neither a command envelope nor a reusable authority grant.
++pub struct VerifiedCredentialRefresh {
++    pub(in crate::v2) previous: Arc<ValidatedBearer>,
++    pub(in crate::v2) next: Arc<ValidatedBearer>,
++    pub(in crate::v2) peer: Arc<rvoip_core::peer_admission::PeerAdmission>,
++    pub(super) next_origin: RequestOrigin,
++    pub(in crate::v2) exchange: Option<super::super::auth_peer::exchange::ExchangeContext>,
++    physical: CancellationToken,
++    refresh_id: String,
++    key_id: String,
++    algorithm: String,
++    deadline: Instant,
++}
++impl std::fmt::Debug for VerifiedCredentialRefresh {
++    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
++        f.write_str("VerifiedCredentialRefresh(redacted)")
++    }
++}
++impl VerifiedCredentialRefresh {
++    pub fn previous(&self) -> &ValidatedBearer {
++        &self.previous
++    }
++    pub fn next(&self) -> &ValidatedBearer {
++        &self.next
++    }
++    pub fn peer(&self) -> &Arc<rvoip_core::peer_admission::PeerAdmission> {
++        &self.peer
++    }
++    pub fn refresh_id(&self) -> &str {
++        &self.refresh_id
++    }
++    pub fn key_id(&self) -> &str {
++        &self.key_id
++    }
++    pub fn algorithm(&self) -> &str {
++        &self.algorithm
++    }
++    pub fn deadline(&self) -> Instant {
++        self.deadline
++    }
++    pub fn cancellation(&self) -> CancellationToken {
++        self.next_origin.lifetime.clone()
++    }
++    pub fn retire_physical(&self) {
++        self.physical.cancel();
++    }
++    pub fn current(&self) -> bool {
++        Instant::now() < self.deadline
++            && !self.physical.is_cancelled()
++            && !self.next_origin.lifetime.is_cancelled()
++            && !self.peer.is_closed()
++    }
++}
++impl AuthenticatedDispatch {
++    /// Called only by the authenticated peer after old-key verification and
++    /// successor credential/assurance/owner admission. No raw bearer is copied
++    /// into an envelope or retained by media registrations.
++    pub(in crate::v2) fn verified_credential_refresh(
++        &self,
++        previous: Arc<ValidatedBearer>,
++        next: Arc<ValidatedBearer>,
++        request: &Envelope,
++        physical: CancellationToken,
++        deadline: Instant,
++    ) -> Result<Arc<VerifiedCredentialRefresh>, DispatchError> {
++        if request.kind() != "auth.refresh"
++            || !previous.principal.has_same_owner(&next.principal)
++            || !rvoip_core::staged_streams::reliable_data::same_credential(
++                &self.principal,
++                &next.principal,
++            )
++            || self.lifetime.is_cancelled()
++            || Instant::now() >= deadline
++        {
++            return Err(DispatchError::Authority);
++        }
++        let peer = self.peer.clone().ok_or(DispatchError::Authority)?;
++        let expiry = super::super::auth_peer::effective_expiry(&next.principal)?;
++        let media_deadline = Instant::now()
++            + (expiry - chrono::Utc::now())
++                .to_std()
++                .map_err(|_| DispatchError::Closed)?;
++        let exchange = self.exchanges.as_ref().map(|sender| {
++            super::super::auth_peer::exchange::ExchangeContext::new(
++                sender.clone(),
++                self.authority.clone(),
++                self.verifier.clone(),
++                self.replay.clone(),
++                self.principal.clone(),
++                self.lifetime.clone(),
++                media_deadline,
++            )
++        });
++        Ok(Arc::new(VerifiedCredentialRefresh {
++            previous,
++            next,
++            peer,
++            exchange,
++            next_origin: RequestOrigin {
++                incarnation: self.incarnation,
++                lifetime: self.lifetime.clone(),
++                deadline: media_deadline,
++            },
++            physical,
++            refresh_id: request.id().into(),
++            key_id: request.original()["signature"]["keyid"]
++                .as_str()
++                .ok_or(DispatchError::Signature)?
++                .into(),
++            algorithm: request.original()["signature"]["alg"]
++                .as_str()
++                .ok_or(DispatchError::Signature)?
++                .into(),
++            deadline,
++        }))
++    }
++}
+diff --git a/crates/uctp/rvoip-uctp/src/v2/auth_dispatch/data.rs b/crates/uctp/rvoip-uctp/src/v2/auth_dispatch/data.rs
+--- a/crates/uctp/rvoip-uctp/src/v2/auth_dispatch/data.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/auth_dispatch/data.rs
+@@ -215,6 +215,59 @@
+         }
+         Ok(result)
+     }
++    /// Seal only from the adapter's captured actual credential rebind result.
++    pub(in crate::v2) fn from_refresh(
++        refresh: &VerifiedCredentialRefresh,
++        controller: &Arc<StreamController>,
++        revision: u64,
++        scope: StagedRtpScope,
++        member: &Membership,
++        endpoint: &EndpointBinding,
++        held: &AuthorityLease,
++    ) -> Result<Self, DispatchError> {
++        if !refresh.current()
++            || !held.current()
++            || revision != controller.credential_revision()
++            || !controller.matches_data_credential(&refresh.next.principal)
++            || !controller.is_bound_to(member, endpoint)
++        {
++            return Err(DispatchError::Authority);
++        }
++        refresh
++            .peer
++            .validate_binding(
++                &refresh.next.principal,
++                member.identity(),
++                endpoint.device(),
++            )
++            .map_err(|_| DispatchError::Authority)?;
++        let result = Self {
++            origin: RequestOrigin {
++                incarnation: refresh.next_origin.incarnation,
++                lifetime: refresh.next_origin.lifetime.child_token(),
++                deadline: refresh.next_origin.deadline,
++            },
++            controller: Arc::downgrade(controller),
++            principal: Arc::new(refresh.next.principal.clone()),
++            revision,
++            scope,
++            conversation: member.conversation().clone(),
++            participant: member.participant().clone(),
++            identity: member.identity().clone(),
++            device: endpoint.device().clone(),
++            epoch: member.epoch(),
++            initial: Arc::downgrade(&held._guard),
++        };
++        if !result.current() {
++            return Err(DispatchError::Closed);
++        }
++        Ok(result)
++    }
++    pub(in crate::v2) fn registration_copy(&self) -> Self {
++        let mut result = self.clone();
++        result.origin.lifetime = self.origin.lifetime.child_token();
++        result
++    }
+     pub(crate) fn same_binding(&self, other: &Self) -> bool {
+         self.origin.incarnation == other.origin.incarnation
+             && self.revision == other.revision
+diff --git a/crates/uctp/rvoip-uctp/src/v2/auth_dispatch/lifecycle.rs b/crates/uctp/rvoip-uctp/src/v2/auth_dispatch/lifecycle.rs
+--- a/crates/uctp/rvoip-uctp/src/v2/auth_dispatch/lifecycle.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/auth_dispatch/lifecycle.rs
+@@ -29,6 +29,9 @@
+             route: DataOrigin::seal(a, controller, scope, member, endpoint)?,
+             fence,
+         })
++    }
++    pub(crate) fn from_refresh(route: DataOrigin, fence: Arc<dyn NativeLifecycleFence>) -> Self {
++        Self { route, fence }
+     }
+     pub(crate) fn with_fence(&self, fence: Arc<dyn NativeLifecycleFence>) -> Self {
+         Self {
+diff --git a/crates/uctp/rvoip-uctp/src/v2/auth_dispatch.rs b/crates/uctp/rvoip-uctp/src/v2/auth_dispatch.rs
+--- a/crates/uctp/rvoip-uctp/src/v2/auth_dispatch.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/auth_dispatch.rs
+@@ -82,6 +82,9 @@
+     }
+ }
+ 
++mod credential_refresh;
++pub use credential_refresh::VerifiedCredentialRefresh;
++
+ /// Keeps current authority in force until the handler returns. The installed
+ /// policy must put its owned read/delivery guard here, including credential
+ /// and signing-key revocation, effective grant and current resource scope. Never wrap a stale
+diff --git a/crates/uctp/rvoip-uctp/src/v2/auth_peer.rs b/crates/uctp/rvoip-uctp/src/v2/auth_peer.rs
+--- a/crates/uctp/rvoip-uctp/src/v2/auth_peer.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/auth_peer.rs
+@@ -128,6 +128,17 @@
+         _response: &Envelope,
+     ) -> Result<AuthorityLease, DispatchError> {
+         Err(DispatchError::Unsupported)
++    }
++
++    /// Optional production media rotation after all authentication checks and
++    /// successor dispatch preparation. The lease is moved, so a host can release
++    /// Binding-only readers before acquiring the complete source union.
++    async fn refresh_media(
++        &self,
++        _refresh: Arc<VerifiedCredentialRefresh>,
++        held: AuthorityLease,
++    ) -> Result<AuthorityLease, DispatchError> {
++        Ok(held)
+     }
+ 
+     /// Acquire current authority for BOTH credentials and the unchanged
+@@ -593,11 +604,12 @@
+                             &envelope,
+                         )
+                         .await?;
+-                    // A failed refresh never replaces or closes the prior gate.
+-                    // A successful one retires old waiters; it cannot lend new
+-                    // credential authority to an old in-flight invocation.
++                    // Prepare the complete successor and signed replies before
++                    // media effects. A host retires this physical peer if its
++                    // original media rotation becomes uncertain. Old invocations
++                    // never borrow the successor's credential authority.
+                     let next = self.binding(
+-                        credential,
++                        credential.clone(),
+                         binding.device.clone(),
+                         identity,
+                         binding
+@@ -615,7 +627,22 @@
+                             Some(pending.held.envelope()),
+                         )?);
+                     }
+-                    self.commit_binding(next)?;
++                    let refresh_context = next.dispatch.verified_credential_refresh(
++                        binding.credential.clone(),
++                        credential,
++                        &envelope,
++                        self.lifetime.clone(),
++                        deadline,
++                    )?;
++                    let lease = self
++                        .config
++                        .authority
++                        .refresh_media(refresh_context.clone(), lease)
++                        .await?;
++                    if let Err(error) = self.commit_binding(next) {
++                        refresh_context.retire_physical();
++                        return Err(error);
++                    }
+                     Ok(output(replies, Some(lease)))
+                 }
+                 Payload::AuthKeepalive(keepalive) => {
+diff --git a/crates/uctp/rvoip-uctp/src/v2/native.rs b/crates/uctp/rvoip-uctp/src/v2/native.rs
+--- a/crates/uctp/rvoip-uctp/src/v2/native.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/native.rs
+@@ -80,6 +80,17 @@
+         }
+         *owner = Some(current);
+         Ok(())
++    }
++}
++pub struct RefreshedNativeMedia {
++    route: Arc<Route>,
++    origin: super::auth_dispatch::DataOrigin,
++    refresh: Arc<super::auth_dispatch::VerifiedCredentialRefresh>,
++    revision: u64,
++}
++impl RefreshedNativeMedia {
++    pub fn credential_revision(&self) -> u64 {
++        self.revision
+     }
+ }
+ struct InstalledMedia {
+@@ -1802,6 +1813,143 @@
+             .await
+             .map_err(|_| RvoipError::AdmissionRejected("native credential rebind denied"))
+     }
++    /// An unchanged credential still creates a new authenticated dispatcher.
++    /// Observe this exact retained controller without changing credential epoch.
++    pub fn refresh_unchanged_credential(
++        &self,
++        id: &ConnectionId,
++        refresh: Arc<super::auth_dispatch::VerifiedCredentialRefresh>,
++        lease: &super::auth_dispatch::AuthorityLease,
++    ) -> Result<RefreshedNativeMedia> {
++        if refresh.previous().token_id != refresh.next().token_id
++            || !rvoip_core::staged_streams::reliable_data::same_credential(
++                &refresh.previous().principal,
++                &refresh.next().principal,
++            )
++            || !refresh.current()
++            || !lease.current()
++        {
++            return Err(RvoipError::AdmissionRejected("credential refresh differs"));
++        }
++        let route = self
++            .routes
++            .get(id)
++            .map(|r| r.value().clone())
++            .ok_or_else(|| RvoipError::ConnectionNotFound(id.clone()))?;
++        if !route
++            .peer
++            .upgrade()
++            .is_some_and(|p| Arc::ptr_eq(&p, refresh.peer()))
++        {
++            return Err(RvoipError::AdmissionRejected(
++                "credential physical peer differs",
++            ));
++        }
++        self.physical_source(id)?;
++        let (origin, revision) = {
++            let installed = route.installation.lock().unwrap_or_else(|p| p.into_inner());
++            let i = installed.as_ref().ok_or(RvoipError::NotImplemented(
++                "native staged media not configured",
++            ))?;
++            if !i.backend.flow.confirmed_at(i.controller.revision()) {
++                return Err(RvoipError::AdmissionRejected("native flow not confirmed"));
++            }
++            let revision = i.controller.credential_revision();
++            let origin = super::auth_dispatch::DataOrigin::from_refresh(
++                &refresh,
++                &i.controller,
++                revision,
++                i.scope.clone(),
++                &route.member,
++                &route.endpoint,
++                lease,
++            )
++            .map_err(|_| RvoipError::AdmissionRejected("native refresh metadata denied"))?;
++            (origin, revision)
++        };
++        Ok(RefreshedNativeMedia {
++            route,
++            origin,
++            refresh,
++            revision,
++        })
++    }
++    /// Original verified auth.refresh only. The sealed result records actual
++    /// Core rotation and can create successor metadata without replaying offers.
++    pub async fn rebind_verified_credential_with_held(
++        &self,
++        id: &ConnectionId,
++        refresh: Arc<super::auth_dispatch::VerifiedCredentialRefresh>,
++        expected_credential_revision: u64,
++        expected_stream_revision: u64,
++        held: &(dyn std::any::Any + Send + Sync),
++        lease: &super::auth_dispatch::AuthorityLease,
++    ) -> Result<RefreshedNativeMedia> {
++        if !refresh.current() || !lease.current() {
++            return Err(RvoipError::AdmissionRejected(
++                "credential refresh not current",
++            ));
++        }
++        let route = self
++            .routes
++            .get(id)
++            .map(|r| r.value().clone())
++            .ok_or_else(|| RvoipError::ConnectionNotFound(id.clone()))?;
++        {
++            let installed = route.installation.lock().unwrap_or_else(|p| p.into_inner());
++            let installed = installed.as_ref().ok_or(RvoipError::NotImplemented(
++                "native staged media not configured",
++            ))?;
++            if !installed
++                .controller
++                .matches_data_credential(&refresh.previous().principal)
++                || !installed
++                    .backend
++                    .flow
++                    .confirmed_at(expected_stream_revision)
++            {
++                return Err(RvoipError::AdmissionRejected(
++                    "credential refresh source mismatch",
++                ));
++            }
++        }
++        let revision = self
++            .rebind_media_credential_with_held(
++                id,
++                refresh.peer(),
++                refresh.next().principal.clone(),
++                expected_credential_revision,
++                expected_stream_revision,
++                refresh.deadline(),
++                refresh.cancellation(),
++                held,
++            )
++            .await?;
++        let origin = {
++            let installed = route.installation.lock().unwrap_or_else(|p| p.into_inner());
++            let installed = installed.as_ref().ok_or(RvoipError::NotImplemented(
++                "native staged media not configured",
++            ))?;
++            super::auth_dispatch::DataOrigin::from_refresh(
++                &refresh,
++                &installed.controller,
++                revision,
++                installed.scope.clone(),
++                &route.member,
++                &route.endpoint,
++                lease,
++            )
++            .map_err(|_| {
++                RvoipError::AdmissionRejected("credential refresh result metadata denied")
++            })?
++        };
++        Ok(RefreshedNativeMedia {
++            route,
++            origin,
++            refresh,
++            revision,
++        })
++    }
+     pub fn media_controller(&self, id: &ConnectionId) -> Result<Arc<StreamController>> {
+         self.physical_source(id)?;
+         self.routes
+@@ -2099,3 +2247,184 @@
+         CapabilityDescriptor::default()
+     }
+ }
++
++impl RefreshedNativeMedia {
++    pub fn install_data_origin(
++        &self,
++    ) -> std::result::Result<(), super::auth_dispatch::DispatchError> {
++        let installed = self
++            .route
++            .installation
++            .lock()
++            .unwrap_or_else(|p| p.into_inner());
++        let installed = installed
++            .as_ref()
++            .ok_or(super::auth_dispatch::DispatchError::Closed)?;
++        if !self.origin.current() {
++            return Err(super::auth_dispatch::DispatchError::Closed);
++        }
++        if let Some(data) = installed.backend.data.as_ref() {
++            data.origin(self.origin.registration_copy());
++        }
++        Ok(())
++    }
++    pub fn lifecycle(
++        &self,
++        policy: Arc<dyn super::native_lifecycle::NativeLifecyclePolicy>,
++    ) -> std::result::Result<
++        Arc<super::native_lifecycle::NativeLifecycleRegistration>,
++        super::auth_dispatch::DispatchError,
++    > {
++        let installed = self
++            .route
++            .installation
++            .lock()
++            .unwrap_or_else(|p| p.into_inner());
++        let i = installed
++            .as_ref()
++            .ok_or(super::auth_dispatch::DispatchError::Closed)?;
++        super::native_lifecycle::NativeLifecycleRegistration::from_refresh(
++            self.origin.registration_copy(),
++            &i.controller,
++            i.backend.flow.clone(),
++            self.scope(&i.scope),
++            policy,
++            i.backend.announcements.clone(),
++        )
++    }
++    fn scope(
++        &self,
++        media: &crate::staged_media::StagedRtpScope,
++    ) -> super::native_lifecycle::NativeLifecycleScope {
++        super::native_lifecycle::NativeLifecycleScope {
++            principal: self.refresh.next().principal.clone(),
++            media: media.clone(),
++            participant: self.route.member.participant().clone(),
++            membership_epoch: self.route.member.epoch(),
++            device: self.route.endpoint.device().clone(),
++            endpoint: self.route.endpoint.endpoint().clone(),
++            identity: self.route.member.identity().clone(),
++        }
++    }
++    pub fn dtmf(
++        &self,
++    ) -> std::result::Result<
++        Arc<super::native_dtmf_egress::NativeDtmfRegistration>,
++        super::auth_dispatch::DispatchError,
++    > {
++        let installed = self
++            .route
++            .installation
++            .lock()
++            .unwrap_or_else(|p| p.into_inner());
++        let i = installed
++            .as_ref()
++            .ok_or(super::auth_dispatch::DispatchError::Closed)?;
++        let registration = super::native_dtmf_egress::NativeDtmfRegistration::from_refresh(
++            self.origin.registration_copy(),
++            &i.controller,
++            i.backend.flow.clone(),
++            self.scope(&i.scope),
++            &self.route.member,
++            &self.route.endpoint,
++            self.refresh.key_id(),
++            self.refresh.algorithm(),
++        )?;
++        let mut slot = self.route.dtmf.lock().unwrap_or_else(|p| p.into_inner());
++        if let Some(old) = slot.as_ref().and_then(Weak::upgrade) {
++            old.retire();
++        }
++        *slot = Some(Arc::downgrade(&registration));
++        Ok(registration)
++    }
++    pub fn capability(
++        &self,
++        core: &Arc<rvoip_core::Orchestrator>,
++    ) -> std::result::Result<
++        Arc<super::native_capability_delivery::NativeCapabilityRegistration>,
++        super::auth_dispatch::DispatchError,
++    > {
++        let installed = self
++            .route
++            .installation
++            .lock()
++            .unwrap_or_else(|p| p.into_inner());
++        let i = installed
++            .as_ref()
++            .ok_or(super::auth_dispatch::DispatchError::Closed)?;
++        let listener = core
++            .native_capability_listener(
++                &self.route.session,
++                &i.scope.connection,
++                &i.controller,
++                &self.refresh.next().principal,
++            )
++            .map_err(|_| super::auth_dispatch::DispatchError::Authority)?;
++        super::native_capability_delivery::NativeCapabilityRegistration::from_refresh(
++            self.origin.registration_copy(),
++            self.scope(&i.scope),
++            listener,
++        )
++    }
++    pub fn enable_subscriptions(
++        &self,
++        adapter: &Arc<CanonicalNativeAdapter>,
++        core: &Arc<rvoip_core::Orchestrator>,
++        policy: Arc<dyn super::native_subscriptions::NativeSubscriptionPolicy>,
++    ) -> std::result::Result<(), super::auth_dispatch::DispatchError> {
++        let installed = self
++            .route
++            .installation
++            .lock()
++            .unwrap_or_else(|p| p.into_inner());
++        let i = installed
++            .as_ref()
++            .ok_or(super::auth_dispatch::DispatchError::Closed)?;
++        let broker = i
++            .backend
++            .negotiation
++            .as_ref()
++            .ok_or(super::auth_dispatch::DispatchError::Unsupported)?;
++        let substrate = match adapter.transport {
++            Transport::Quic => "quic",
++            Transport::WebTransport => "webtransport",
++            _ => return Err(super::auth_dispatch::DispatchError::Unsupported),
++        };
++        let context = self
++            .refresh
++            .exchange
++            .as_ref()
++            .ok_or(super::auth_dispatch::DispatchError::Unsupported)?;
++        let origin = super::native_requests::NativeRequestOrigin::from_refresh(
++            self.origin.registration_copy(),
++            context,
++            &i.controller,
++            i.backend.flow.clone(),
++            self.scope(&i.scope),
++            &self.route.member,
++            substrate,
++            broker.request_slot.clone(),
++        )?;
++        let changed = core
++            .staged_media_selection_changes(&self.route.session)
++            .map_err(|_| super::auth_dispatch::DispatchError::Authority)?;
++        let runtime = super::native_subscriptions::NativeSubscriptionRuntime::spawn(
++            core,
++            adapter,
++            i.scope.connection.clone(),
++            origin,
++            policy,
++            changed,
++        );
++        if let Some(old) = self
++            .route
++            .subscriptions
++            .lock()
++            .unwrap_or_else(|p| p.into_inner())
++            .replace(runtime)
++        {
++            old.retire();
++        }
++        Ok(())
++    }
++}
+diff --git a/crates/uctp/rvoip-uctp/src/v2/native_capability_delivery.rs b/crates/uctp/rvoip-uctp/src/v2/native_capability_delivery.rs
+--- a/crates/uctp/rvoip-uctp/src/v2/native_capability_delivery.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/native_capability_delivery.rs
+@@ -125,6 +125,20 @@
+                 endpoint: endpoint.endpoint().clone(),
+                 identity: member.identity().clone(),
+             },
++        }))
++    }
++    pub(crate) fn from_refresh(
++        origin: DataOrigin,
++        scope: NativeLifecycleScope,
++        listener: NativeCapabilityListener,
++    ) -> Result<Arc<Self>, DispatchError> {
++        if !origin.current() {
++            return Err(DispatchError::Authority);
++        }
++        Ok(Arc::new(Self {
++            origin,
++            scope,
++            listener,
+         }))
+     }
+     pub fn scope(&self) -> &NativeLifecycleScope {
+diff --git a/crates/uctp/rvoip-uctp/src/v2/native_dtmf_egress.rs b/crates/uctp/rvoip-uctp/src/v2/native_dtmf_egress.rs
+--- a/crates/uctp/rvoip-uctp/src/v2/native_dtmf_egress.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/native_dtmf_egress.rs
+@@ -257,6 +257,62 @@
+             receiver: tokio::sync::Mutex::new(receiver),
+         }))
+     }
++    pub(crate) fn from_refresh(
++        route: super::auth_dispatch::DataOrigin,
++        c: &Arc<StreamController>,
++        flow: Arc<NativeFlow>,
++        scope: NativeLifecycleScope,
++        member: &Membership,
++        endpoint: &EndpointBinding,
++        key: &str,
++        algorithm: &str,
++    ) -> Result<Arc<Self>, DispatchError> {
++        if !route.current() || !flow.confirmed_at(c.revision()) {
++            return Err(DispatchError::Authority);
++        }
++        let origin = NativeLifecycleOrigin::from_refresh(
++            route,
++            Arc::new(TargetFence {
++                controller: Arc::downgrade(c),
++                flow: Arc::downgrade(&flow),
++            }),
++        );
++        let media = &scope.media;
++        let core_recipient = rvoip_core::dtmf::DtmfNativeRecipient {
++            conversation: member.conversation().clone(),
++            session: media.session.clone(),
++            connection: media.connection.clone(),
++            participant: member.participant().clone(),
++            transport: endpoint.transport(),
++            principal: scope.principal.clone(),
++            identity: member.identity().clone(),
++            endpoint: endpoint.endpoint().clone(),
++            device: endpoint.device().clone(),
++            membership_epoch: member.epoch(),
++            physical_incarnation: origin.incarnation(),
++            signing_key_id: key.into(),
++            signing_algorithm: algorithm.into(),
++            wire_conversation: media
++                .wire_conversation
++                .clone()
++                .ok_or(DispatchError::Authority)?,
++            wire_session: media.wire_session.clone(),
++            wire_connection: media.wire_connection.clone(),
++            stream_revision: 0,
++            credential_revision: 0,
++            audio_bindings: vec![],
++        };
++        let (sender, receiver) = mpsc::channel(16);
++        Ok(Arc::new(Self {
++            origin,
++            controller: Arc::downgrade(c),
++            flow: Arc::downgrade(&flow),
++            scope,
++            core_recipient,
++            sender,
++            receiver: tokio::sync::Mutex::new(receiver),
++        }))
++    }
+     pub(crate) fn retire(&self) {
+         self.origin.retire();
+     }
+diff --git a/crates/uctp/rvoip-uctp/src/v2/native_lifecycle.rs b/crates/uctp/rvoip-uctp/src/v2/native_lifecycle.rs
+--- a/crates/uctp/rvoip-uctp/src/v2/native_lifecycle.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/native_lifecycle.rs
+@@ -219,6 +219,30 @@
+             pending_write: Mutex::new(None),
+         }))
+     }
++    pub(crate) fn from_refresh(
++        route: DataOrigin,
++        controller: &Arc<StreamController>,
++        flow: Arc<NativeFlow>,
++        scope: NativeLifecycleScope,
++        policy: Arc<dyn NativeLifecyclePolicy>,
++        state: Arc<tokio::sync::Mutex<Announcements>>,
++    ) -> Result<Arc<Self>, DispatchError> {
++        if !route.current() || !flow.confirmed_at(controller.revision()) {
++            return Err(DispatchError::Authority);
++        }
++        Ok(Arc::new(Self {
++            origin: NativeLifecycleOrigin::from_refresh(
++                route,
++                Arc::new(RouteFence { flow: flow.clone() }),
++            ),
++            controller: Arc::downgrade(controller),
++            flow,
++            scope,
++            policy,
++            state,
++            pending_write: Mutex::new(None),
++        }))
++    }
+     pub fn current(&self) -> bool {
+         self.origin.current()
+     }
+diff --git a/crates/uctp/rvoip-uctp/src/v2/native_requests.rs b/crates/uctp/rvoip-uctp/src/v2/native_requests.rs
+--- a/crates/uctp/rvoip-uctp/src/v2/native_requests.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/native_requests.rs
+@@ -218,6 +218,37 @@
+             credential_revision: controller.credential_revision(),
+         }))
+     }
++    pub(in crate::v2) fn from_refresh(
++        origin: DataOrigin,
++        context: &super::auth_peer::exchange::ExchangeContext,
++        controller: &Arc<StreamController>,
++        flow: Arc<NativeFlow>,
++        scope: NativeLifecycleScope,
++        member: &Membership,
++        substrate: &'static str,
++        request_slot: Arc<tokio::sync::Semaphore>,
++    ) -> Result<Arc<Self>, DispatchError> {
++        if !origin.current() || !flow.confirmed_at(controller.revision()) {
++            return Err(DispatchError::Authority);
++        }
++        let context = context.for_origin(origin.cancellation(), origin.deadline());
++        Ok(Arc::new(Self {
++            origin,
++            context,
++            controller: Arc::downgrade(controller),
++            flow,
++            scope: Arc::new(scope),
++            substrate,
++            request_slot,
++            conversation: member.conversation().clone(),
++            connection_generation: controller
++                .active_bindings()
++                .first()
++                .ok_or(DispatchError::Authority)?
++                .connection_generation,
++            credential_revision: controller.credential_revision(),
++        }))
++    }
+     pub fn request_scope(&self, stream_revision: u64) -> NativeRequestScope {
+         NativeRequestScope {
+             origin: self.scope.clone(),

@@ -40,10 +40,16 @@ pub(super) fn list(
             "Cursor is newer than this conversation snapshot",
         ));
     }
-    let mut statement = c.prepare("SELECT j.sequence,j.id FROM journal j JOIN messages m ON m.id=j.message_id WHERE j.recipient=?1 AND j.conversation_id=?2 AND j.kind='message' AND m.sender!=?1 AND j.sequence>?3 ORDER BY j.sequence LIMIT ?4").map_err(|_|Error::storage())?;
+    let mut statement = c.prepare("SELECT j.sequence,j.id FROM visible_journal j JOIN messages m ON m.id=j.message_id WHERE j.recipient=?1 AND j.conversation_id=?2 AND j.kind='message' AND m.sender!=?1 AND (m.sender=?1 OR EXISTS(SELECT 1 FROM json_each(?5) WHERE value IN(m.sender,'*'))) AND j.sequence>?3 ORDER BY j.sequence LIMIT ?4").map_err(|_|Error::storage())?;
     let rows = statement
         .query_map(
-            params![actor.identity_id, conversation, position, limit],
+            params![
+                actor.identity_id,
+                conversation,
+                position,
+                limit,
+                serde_json::to_string(&actor.scope.recipients).map_err(|_| Error::storage())?
+            ],
             |r| Ok((r.get::<_, i64>(0)?, r.get::<_, String>(1)?)),
         )
         .map_err(|_| Error::storage())?;
@@ -68,7 +74,7 @@ pub(super) fn source(c: &Connection, actor: &Actor, event_id: &str) -> Result<So
         .query_row(
             "SELECT j.conversation_id,m.sender,t.task_id,t.reply_to,t.assigned_by,
                 COALESCE(t.consumed,0)
-         FROM journal j JOIN messages m ON m.id=j.message_id
+         FROM visible_journal j JOIN messages m ON m.id=j.message_id
          LEFT JOIN task_replies t ON t.event_id=j.id
          WHERE j.id=?1 AND j.recipient=?2 AND j.kind='message'",
             params![event_id, actor.identity_id],
@@ -90,6 +96,9 @@ pub(super) fn source(c: &Connection, actor: &Actor, event_id: &str) -> Result<So
         .map_err(|_| Error::storage())?
         .ok_or_else(Error::forbidden)?;
     authorized_conversation(c, actor, &source.reply.conversation_id)?;
+    if !actor.permits_recipient(&source.sender) {
+        return Err(Error::forbidden());
+    }
     Ok(source)
 }
 pub(super) fn authorize(
@@ -144,7 +153,7 @@ pub(super) fn assign(
     }
     let reply_to = reply_to.or(source.reply.reply_to.as_deref());
     if let Some(question) = reply_to {
-        let delivered:bool = c.query_row("SELECT EXISTS(SELECT 1 FROM messages m JOIN journal j ON j.message_id=m.id WHERE m.id=?1 AND m.conversation_id=?2 AND m.sender=?3 AND j.recipient=?4)",params![question,task.conversation_id,actor.identity_id,source.sender],|r|r.get(0)).map_err(|_|Error::storage())?;
+        let delivered:bool = c.query_row("SELECT EXISTS(SELECT 1 FROM messages m JOIN visible_journal j ON j.message_id=m.id WHERE m.id=?1 AND m.conversation_id=?2 AND m.sender=?3 AND j.recipient=?4)",params![question,task.conversation_id,actor.identity_id,source.sender],|r|r.get(0)).map_err(|_|Error::storage())?;
         if !delivered {
             return Err(Error::forbidden());
         }

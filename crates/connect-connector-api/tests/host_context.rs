@@ -1,6 +1,56 @@
 #![allow(clippy::unwrap_used)] // Isolated protocol vectors.
 use connect_connector_api::{host_context::*, Failure};
 #[test]
+fn native_receipt_metadata_decodes_without_becoming_model_history() {
+    let mut value = serde_json::json!({"conversation_id":"conversation","watermark":8,"items":[],"omitted":0,"deliveries":[{"id":"receipt","session_id":"session","provider":"vapi-voice","watermark":6,"state":"uncertain","provider_ref":"captured-call","created_at":1,"updated_at":2,"destination":{"connection_id":"original-native","generation":1,"purpose":"private_consultation"},"problem":"incomplete","lifecycle":{"phase":"post_creation","parent_delivery_id":null,"creation_admitted":true,"creation_confirmed":true,"export_admitted":true,"delivery_confirmed":false,"cleanup_admitted":null,"cleanup_uncertain":null,"closed":true}}],"deliveries_omitted":0});
+    let projection = HostContext::decode(&value.to_string(), 8192).unwrap();
+    let HostContext::Conversation(view) = &projection else {
+        panic!("conversation")
+    };
+    let receipt = &view.deliveries[0];
+    assert_eq!(
+        receipt.destination.as_ref().unwrap().purpose,
+        ContextDeliveryPurpose::PrivateConsultation
+    );
+    assert_eq!(receipt.problem, Some(ContextDeliveryProblem::Incomplete));
+    assert_eq!(receipt.lifecycle.as_ref().unwrap().cleanup_admitted, None);
+    assert!(projection.messaging_items().unwrap().is_empty());
+    for (phase, expected) in [
+        ("initialization", ContextDeliveryPhase::Initialization),
+        ("post_creation", ContextDeliveryPhase::PostCreation),
+        ("update", ContextDeliveryPhase::Update),
+    ] {
+        value["deliveries"][0]["lifecycle"]["phase"] = serde_json::json!(phase);
+        value["deliveries"][0]["lifecycle"]["parent_delivery_id"] =
+            serde_json::json!("original-instance-receipt");
+        let projection = HostContext::decode(&value.to_string(), 8192).unwrap();
+        let HostContext::Conversation(view) = &projection else {
+            panic!()
+        };
+        let lifecycle = view.deliveries[0].lifecycle.as_ref().unwrap();
+        assert_eq!(lifecycle.phase, expected);
+        assert_eq!(
+            lifecycle.parent_delivery_id.as_deref(),
+            Some("original-instance-receipt")
+        );
+        assert!(projection.messaging_items().unwrap().is_empty());
+    }
+    value["deliveries"][0]["lifecycle"]["phase"] = serde_json::json!("unrecognized-phase");
+    assert!(HostContext::decode(&value.to_string(), 8192).is_err());
+    value["deliveries"][0]["lifecycle"]["phase"] = serde_json::json!("update");
+    value["deliveries"][0]["destination"]["purpose"] = serde_json::json!("unrecognized-purpose");
+    assert!(HostContext::decode(&value.to_string(), 8192).is_err());
+}
+#[test]
+fn bounded_provider_task_projection_keeps_hidden_counts_undisclosed() {
+    let raw = r#"{"kind":"recall","data":{"sources":[],"next":null,"omitted":null}}"#;
+    let context = HostContext::decode(raw, 8192).unwrap();
+    assert!(
+        matches!(&context,HostContext::Task(TaskProjection::Recall{sources,next:None,omitted:None}) if sources.is_empty())
+    );
+    assert!(context.messaging_items().unwrap().is_empty());
+}
+#[test]
 fn exact_conversation_shape_preserves_journal_identity_and_opaque_bodies() {
     let raw = r#"{"conversation_id":"conversation-one","watermark":8,"items":[{"sequence":7,"kind":"session_accepted","source_id":"session-one","actor_id":"human","body":"{\"state\":\"accepted\"}"},{"sequence":8,"kind":"session_ended","source_id":"session-one","actor_id":"human","body":"{\"state\":\"ended\"}"}],"omitted":3,"deliveries":[{"id":"receipt","session_id":null,"provider":"fixture","watermark":6,"state":"delivered","provider_ref":"remote","created_at":1,"updated_at":2}],"deliveries_omitted":4}"#;
     let projection = HostContext::decode(raw, 8192).unwrap();
@@ -58,7 +108,10 @@ fn exact_task_recall_preserves_missing_source_and_refuses_body_fabrication() {
     assert!(empty.messaging_items().unwrap().is_empty());
     assert!(matches!(
         empty,
-        HostContext::Task(TaskProjection::Recall { omitted: 9, .. })
+        HostContext::Task(TaskProjection::Recall {
+            omitted: Some(9),
+            ..
+        })
     ));
 }
 #[test]

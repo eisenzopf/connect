@@ -173,7 +173,7 @@ fn resource_reauthorization_observes_current_revocation_task_and_parent_state() 
                     .connection()
                     .unwrap()
                     .execute(
-                        "DELETE FROM participants WHERE conversation_id=?1 AND identity_id=?2",
+                        "UPDATE participants SET active=0 WHERE conversation_id=?1 AND identity_id=?2",
                         rusqlite::params![m.f.cid, m.f.owner],
                     )
                     .unwrap();

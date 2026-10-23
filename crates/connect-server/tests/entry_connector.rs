@@ -28,7 +28,12 @@ impl Connector for ResearchAssistant {
             ..Descriptor::one_way(self.name())
         }
     }
-    async fn deliver(&self, request: &DeliveryRequest) -> Result<Completion, Failure> {
+    async fn deliver(
+        &self,
+        request: &DeliveryRequest,
+        permit: connect_connector_api::DispatchPermit,
+    ) -> Result<Completion, Failure> {
+        permit.admit_effect()?;
         self.calls.fetch_add(1, Ordering::SeqCst);
         assert!(request
             .context
@@ -89,6 +94,7 @@ async fn fixture() -> (
                 target: "local-fixture".into(),
                 source: None,
                 enabled: true,
+                incoming_to: connect_protocol::messages::MessageAudience::all(),
             },
         )
         .unwrap();
@@ -98,11 +104,13 @@ async fn fixture() -> (
 #[tokio::test]
 async fn independent_context_adapter_uses_composition_only_and_survives_restart() {
     let (tmp, server, mut client, cid, adapter) = fixture().await;
-    let worker = Worker::with_drivers(server.service.clone(), vec![adapter.clone()]).unwrap();
+    let worker = Worker::with_drivers(server.service.clone(), vec![adapter.clone()])
+        .await
+        .unwrap();
     let command = Operation::Send {
         request_id: "one-logical-send".into(),
         conversation_id: cid.clone(),
-        body: "reference fact: violet".into(),
+        message: connect_protocol::messages::MessageDraft::text_all("reference fact: violet"),
     };
     let receipt = client.request(command.clone()).await.unwrap();
     tokio::time::timeout(Duration::from_secs(5), async {
@@ -129,7 +137,9 @@ async fn independent_context_adapter_uses_composition_only_and_survives_restart(
     let server = RunningServer::start(ServerConfig::load(&state.join("server.toml")).unwrap())
         .await
         .unwrap();
-    let worker = Worker::with_drivers(server.service.clone(), vec![adapter.clone()]).unwrap();
+    let worker = Worker::with_drivers(server.service.clone(), vec![adapter.clone()])
+        .await
+        .unwrap();
     let mut config = ClientConfig::load(&state.join("reviews.toml")).unwrap();
     config.endpoint = server.address;
     let mut client = ConnectClient::open(config).await.unwrap();
@@ -145,11 +155,13 @@ async fn failed_result_commit_updates_health_and_preserves_uncertain_work_withou
     let (tmp, server, mut client, cid, adapter) = fixture().await;
     let db = rusqlite::Connection::open(tmp.path().join("state/state.sqlite3")).unwrap();
     db.execute_batch("CREATE TRIGGER fail_result BEFORE UPDATE OF provider_id ON provider_jobs BEGIN SELECT RAISE(FAIL, 'fixture commit failure'); END;").unwrap();
-    let worker = Worker::with_drivers(server.service.clone(), vec![adapter.clone()]).unwrap();
+    let worker = Worker::with_drivers(server.service.clone(), vec![adapter.clone()])
+        .await
+        .unwrap();
     let command = Operation::Send {
         request_id: "uncertain-send".into(),
         conversation_id: cid,
-        body: "reference fact: violet".into(),
+        message: connect_protocol::messages::MessageDraft::text_all("reference fact: violet"),
     };
     let receipt = client.request(command.clone()).await.unwrap();
     tokio::time::timeout(Duration::from_secs(2), server.service.readiness.failed())
@@ -170,7 +182,9 @@ async fn failed_result_commit_updates_health_and_preserves_uncertain_work_withou
         .query_row("SELECT state FROM provider_jobs", [], |r| r.get(0))
         .unwrap();
     assert_eq!(state, "uncertain");
-    let worker = Worker::with_drivers(server.service.clone(), vec![adapter.clone()]).unwrap();
+    let worker = Worker::with_drivers(server.service.clone(), vec![adapter.clone()])
+        .await
+        .unwrap();
     assert_eq!(client.request(command).await.unwrap(), receipt);
     assert_eq!(adapter.calls.load(Ordering::SeqCst), 1);
     worker.shutdown().await.unwrap();

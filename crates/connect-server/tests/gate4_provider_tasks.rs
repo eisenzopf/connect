@@ -75,10 +75,13 @@ async fn task_grants_bound_provider_context_and_replies_across_native_and_http()
                 target: ASSISTANT.into(),
                 source: None,
                 enabled: true,
+                incoming_to: connect_protocol::messages::MessageAudience::all(),
             },
         )
         .unwrap();
-    let worker = Worker::with_drivers(h.server.service.clone(), vec![driver]).unwrap();
+    let worker = Worker::with_drivers(h.server.service.clone(), vec![driver])
+        .await
+        .unwrap();
     h.owner.send("ordinary-seed", &h.cid, FACT).await.unwrap();
     tokio::time::timeout(Duration::from_secs(10), async {
         loop {

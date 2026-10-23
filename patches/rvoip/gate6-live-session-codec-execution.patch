@@ -1,0 +1,1058 @@
+diff --git a/crates/uctp/rvoip-uctp/src/v2/native.rs b/crates/uctp/rvoip-uctp/src/v2/native.rs
+--- a/crates/uctp/rvoip-uctp/src/v2/native.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/native.rs
+@@ -1238,17 +1238,121 @@
+         id: &ConnectionId,
+         origin: &Arc<super::native_requests::NativeRequestOrigin>,
+         preferences: &[String],
+-    ) -> std::result::Result<super::native_session_codecs::NativeSessionCodecPlan, super::native_negotiation::NativeOfferError> {
++    ) -> std::result::Result<
++        super::native_session_codecs::NativeSessionCodecPlan,
++        super::native_negotiation::NativeOfferError,
++    > {
+         use super::native_negotiation::NativeOfferError;
+         let (controller, broker, flow, _) = self.reconciliation_parts(id, origin)?;
+-        if broker.is_busy() { return Err(NativeOfferError::Conflict); }
++        if broker.is_busy() {
++            return Err(NativeOfferError::Conflict);
++        }
+         let revision = controller.revision();
+-        if !flow.confirmed_at(revision) { return Err(NativeOfferError::NotReady); }
++        if !flow.confirmed_at(revision) {
++            return Err(NativeOfferError::NotReady);
++        }
+         let bindings = controller.active_bindings();
+         let media = broker.plan_session_codecs(preferences, &bindings)?;
+         let resources = media.selected().len() != bindings.len()
+-            || media.selected().iter().any(|s| !bindings.iter().any(|b| &b.negotiated == s));
+-        Ok(super::native_session_codecs::NativeSessionCodecPlan::new(origin.clone(), revision, media, resources))
++            || media
++                .selected()
++                .iter()
++                .any(|s| !bindings.iter().any(|b| &b.negotiated == s));
++        Ok(super::native_session_codecs::NativeSessionCodecPlan::new(
++            origin.clone(),
++            revision,
++            media,
++            resources,
++        ))
++    }
++    /// Execute one durably admitted Session-policy child through the existing
++    /// physical peer. There is no retry, subscription change or metadata-ready
++    /// shortcut. Persist the sealed returned outcome before dropping it.
++    pub async fn execute_native_session_codecs(
++        &self,
++        id: &ConnectionId,
++        plan: super::native_session_codecs::NativeSessionCodecPlan,
++        operation: String,
++        policy: Arc<dyn super::native_session_codecs::NativeSessionCodecPolicy>,
++    ) -> std::result::Result<
++        super::native_session_codecs::NativeSessionCodecOutcome,
++        super::native_session_codecs::NativeSessionCodecError,
++    > {
++        use super::{native_negotiation::NativeOfferError as E, native_session_codecs::*};
++        use NativeSessionCodecError as Failure;
++        if operation.is_empty() || operation.len() > 128 {
++            return Err(Failure::before_effect(E::Invalid));
++        }
++        let (controller, broker, flow, _) = self
++            .reconciliation_parts(id, &plan.origin)
++            .map_err(Failure::before_effect)?;
++        let expected = plan.expected_revision();
++        if controller.revision() != expected || !flow.confirmed_at(expected) {
++            return Err(Failure::before_effect(E::Conflict));
++        }
++        let slot = super::native_requests::NativeRequestSlot::acquire(&broker.request_slot)
++            .map_err(Failure::before_effect)?;
++        let deadline = plan
++            .origin
++            .deadline()
++            .min(tokio::time::Instant::now() + std::time::Duration::from_secs(30));
++        let cancel = plan.origin.cancellation();
++        let authority = tokio::select! { biased;
++            _ = cancel.cancelled() => return Err(Failure::before_effect(E::Cancelled)),
++            _ = tokio::time::sleep_until(deadline) => return Err(Failure::before_effect(E::Deadline)),
++            result = policy.authorize_codec(plan.scope(), &plan, &operation) => result.map_err(Failure::before_effect)?,
++        };
++        let invocation = NativeSessionCodecInvocation::new(plan, operation.clone(), authority);
++        if controller.revision() != expected || !invocation.current() {
++            return Err(Failure::before_effect(E::Conflict));
++        }
++        let scope = invocation.plan.origin.request_scope(expected);
++        let guard = broker
++            .begin_server_invocation(
++                invocation.clone(),
++                Arc::new(CodecRequestPolicy(policy)),
++                slot,
++            )
++            .map_err(Failure::before_effect)?;
++        if !invocation.plan().changes_resources() {
++            let bindings = controller.active_bindings();
++            if bindings.len() != guard.plan().selected().len()
++                || bindings
++                    .iter()
++                    .any(|b| !guard.plan().selected().contains(&b.negotiated))
++                || controller.revision() != expected
++                || !invocation.current()
++            {
++                return Err(Failure::before_effect(E::Conflict));
++            }
++            return Ok(NativeSessionCodecOutcome::observed(
++                scope, operation, expected, false, bindings,
++            ));
++        }
++        controller
++            .change_selected_with_held(
++                expected,
++                guard.plan().selected(),
++                &std::collections::BTreeSet::new(),
++                invocation.deadline(),
++                invocation.cancellation(),
++                Arc::new(invocation.clone()),
++            )
++            .await
++            .map_err(|e| Failure::possible_effect(guard.error(e)))?;
++        // Core success is authoritative historical evidence. A subsequent
++        // revocation must stop future IO, not erase this already observed fact.
++        let bindings = guard.committed_bindings();
++        guard.committed();
++        flow.confirmed(expected + 1, guard.source_id());
++        invocation.committed();
++        Ok(NativeSessionCodecOutcome::observed(
++            scope,
++            operation,
++            expected + 1,
++            true,
++            bindings,
++        ))
+     }
+     pub(crate) fn plan_native_reconciliation(
+         &self,
+diff --git a/crates/uctp/rvoip-uctp/src/v2/native_negotiation/mod.rs b/crates/uctp/rvoip-uctp/src/v2/native_negotiation/mod.rs
+--- a/crates/uctp/rvoip-uctp/src/v2/native_negotiation/mod.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/native_negotiation/mod.rs
+@@ -97,11 +97,26 @@
+     error: Option<NativeOfferError>,
+     server_reply: Option<super::native_requests::NativeRequestReply>,
+ }
++/// Common signed-exchange mechanics; each public invocation retains its own
++/// host authority type. Sharing this interface never shares a policy grant.
++pub(crate) trait ServerInvocation: Send + Sync {
++    fn scope(&self) -> &super::native_requests::NativeRequestScope;
++    fn media(&self) -> &NativeOfferPlan;
++    fn operation(&self) -> &str;
++    fn current(&self) -> bool;
++    fn origin(&self) -> &Arc<super::native_requests::NativeRequestOrigin>;
++    fn lease(&self) -> AuthorityLease;
++    fn cancellation(&self) -> CancellationToken;
++    fn confirmed(
++        &self,
++        reply: &super::native_requests::NativeRequestReply,
++    ) -> Result<(), NativeOfferError>;
++}
+ enum Source {
+     Command(Arc<AuthorizedEnvelope>),
+     Server {
+-        invocation: Arc<super::native_subscriptions::NativeSubscriptionInvocation>,
+-        policy: Arc<dyn super::native_subscriptions::NativeSubscriptionPolicy>,
++        invocation: Arc<dyn ServerInvocation>,
++        policy: Arc<dyn super::native_requests::NativeRequestPolicy>,
+         slot: Arc<super::native_requests::NativeRequestSlot>,
+     },
+ }
+@@ -203,6 +218,16 @@
+             rejected: self.operation.plan.rejected.clone(),
+             bindings: state.bindings.clone(),
+         })
++    }
++    /// Only consumed after the controller reports this exact local commit.
++    /// Capture metadata even if authority expires immediately after that commit.
++    pub(crate) fn committed_bindings(&self) -> Vec<ReadyMediaBinding> {
++        self.operation
++            .progress
++            .lock()
++            .unwrap_or_else(|p| p.into_inner())
++            .bindings
++            .clone()
+     }
+     pub(crate) fn source_id(&self) -> &str {
+         self.operation.envelope.id()
+@@ -403,12 +428,19 @@
+         let retained = self.retained.lock().unwrap_or_else(|p| p.into_inner());
+         let retained = retained.as_ref().ok_or(NativeOfferError::NotReady)?;
+         let remote = retained.future_capabilities();
+-        Ok(self.profile.local.send.iter().filter(|local| {
+-            remote.receive.iter().any(|peer| {
+-                peer.medium == local.medium
+-                    && local.formats.iter().any(|f| peer.formats.contains(f))
++        Ok(self
++            .profile
++            .local
++            .send
++            .iter()
++            .filter(|local| {
++                remote.receive.iter().any(|peer| {
++                    peer.medium == local.medium
++                        && local.formats.iter().any(|f| peer.formats.contains(f))
++                })
+             })
+-        }).map(|c| c.medium).collect())
++            .map(|c| c.medium)
++            .collect())
+     }
+     pub(crate) fn plan_subscriptions(
+         &self,
+@@ -442,8 +474,13 @@
+     ) -> Result<NativeOfferPlan, NativeOfferError> {
+         let retained = self.retained.lock().unwrap_or_else(|p| p.into_inner());
+         let retained = retained.as_ref().ok_or(NativeOfferError::NotReady)?;
+-        NativeOfferPlan::session_codec_update(preferences, &self.profile, retained.future_capabilities(), bindings)
+-            .map(|plan| Self::stamp_declaration(plan, retained.declaration_generation))
++        NativeOfferPlan::session_codec_update(
++            preferences,
++            &self.profile,
++            retained.future_capabilities(),
++            bindings,
++        )
++        .map(|plan| Self::stamp_declaration(plan, retained.declaration_generation))
+     }
+     pub(crate) fn plan_reconciliation(
+         &self,
+@@ -534,10 +571,22 @@
+         policy: Arc<dyn super::native_subscriptions::NativeSubscriptionPolicy>,
+         slot: Arc<super::native_requests::NativeRequestSlot>,
+     ) -> Result<NegotiationGuard, NativeOfferError> {
++        self.begin_server_invocation(
++            invocation,
++            Arc::new(super::native_subscriptions::ReconcileRequestPolicy(policy)),
++            slot,
++        )
++    }
++    pub(crate) fn begin_server_invocation(
++        self: &Arc<Self>,
++        invocation: Arc<dyn ServerInvocation>,
++        policy: Arc<dyn super::native_requests::NativeRequestPolicy>,
++        slot: Arc<super::native_requests::NativeRequestSlot>,
++    ) -> Result<NegotiationGuard, NativeOfferError> {
+         if !slot.belongs_to(&self.request_slot) {
+             return Err(NativeOfferError::Scope);
+         }
+-        self.require_declaration_generation(&invocation.plan().media)?;
++        self.require_declaration_generation(&invocation.media())?;
+         if !invocation.current() || self.lifetime.is_cancelled() {
+             return Err(NativeOfferError::Cancelled);
+         }
+@@ -560,11 +609,11 @@
+         let envelope=Envelope::from_value(json!({"v":2,"type":"connection.offer","id":format!("reconcile_{}",uuid::Uuid::new_v4().simple()),"ts":chrono::Utc::now(),
+             "cid":scope.wire_conversation,"sid":scope.wire_session,"connid":scope.wire_connection,"operation_id":invocation.operation(),"expected_revision":invocation.scope().stream_revision,
+             "payload":{"by_participant":self.participant.as_str(),"substrate":substrate,"capabilities":self.profile.wire,
+-                "streams_offered":invocation.plan().media.selected.iter().map(|s|json!({"id":s.requested.logical_id.as_str(),"kind":kind(s.requested.medium),"direction":direction(s.requested.direction),"codec_preferences":[format_name(&s.format)]})).collect::<Vec<_>>()}
++                "streams_offered":invocation.media().selected.iter().map(|s|json!({"id":s.requested.logical_id.as_str(),"kind":kind(s.requested.medium),"direction":direction(s.requested.direction),"codec_preferences":[format_name(&s.format)]})).collect::<Vec<_>>()}
+         })).map_err(|_|NativeOfferError::Invalid)?;
+         let op = Arc::new(Operation {
+             expected: invocation.scope().stream_revision,
+-            plan: invocation.plan().media.clone(),
++            plan: invocation.media().clone(),
+             substrate,
+             envelope,
+             cancel: invocation.cancellation(),
+@@ -707,14 +756,11 @@
+                 let mut value = request.original().clone();
+                 value["expected_revision"] = json!(op.expected);
+                 let request = Envelope::from_value(value).map_err(|_| NativeOfferError::Invalid)?;
+-                let policy: Arc<dyn super::native_requests::NativeRequestPolicy> = Arc::new(
+-                    super::native_subscriptions::ReconcileRequestPolicy(policy.clone()),
+-                );
+                 let reply = invocation
+-                    .origin
++                    .origin()
+                     .request_reserved(
+                         request,
+-                        policy,
++                        policy.clone(),
+                         invocation.lease(),
+                         deadline,
+                         cancel.clone(),
+diff --git a/crates/uctp/rvoip-uctp/src/v2/native_session_codecs.rs b/crates/uctp/rvoip-uctp/src/v2/native_session_codecs.rs
+--- a/crates/uctp/rvoip-uctp/src/v2/native_session_codecs.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/native_session_codecs.rs
+@@ -1,6 +1,6 @@
+ //! A controller-bound live codec proposal. This retains metadata, never grants.
+ use super::{
+-    native_negotiation::NativeOfferPlan,
++    native_negotiation::{NativeOfferError, NativeOfferPlan},
+     native_requests::{NativeRequestOrigin, NativeRequestScope},
+ };
+ use std::sync::Arc;
+@@ -45,3 +45,200 @@
+         f.write_str("NativeSessionCodecPlan(metadata)")
+     }
+ }
++
++/// The host must admit the stable operation and acquire fresh Session-policy,
++/// target peer, key, Device, media and recipient authority before returning this
++/// lease. It must reject a repeated possible effect; the executor never retries.
++#[async_trait::async_trait]
++pub trait NativeSessionCodecPolicy: super::native_requests::NativeRequestPolicy {
++    async fn authorize_codec(
++        &self,
++        scope: &NativeRequestScope,
++        plan: &NativeSessionCodecPlan,
++        operation: &str,
++    ) -> Result<super::auth_dispatch::AuthorityLease, super::auth_dispatch::DispatchError>;
++}
++/// Historical metadata sealed only after a confirmed local commit, or a
++/// current no-change observation. This retains no peer, reader, key or IO grant.
++#[derive(Clone)]
++pub struct NativeSessionCodecOutcome {
++    scope: Arc<NativeRequestScope>,
++    operation: String,
++    revision: u64,
++    changed: bool,
++    bindings: Vec<rvoip_core::stream_lifecycle::ReadyMediaBinding>,
++}
++impl NativeSessionCodecOutcome {
++    pub(crate) fn observed(
++        scope: NativeRequestScope,
++        operation: String,
++        revision: u64,
++        changed: bool,
++        bindings: Vec<rvoip_core::stream_lifecycle::ReadyMediaBinding>,
++    ) -> Self {
++        Self {
++            scope: Arc::new(scope),
++            operation,
++            revision,
++            changed,
++            bindings,
++        }
++    }
++    pub fn scope(&self) -> &NativeRequestScope {
++        &self.scope
++    }
++    pub fn operation(&self) -> &str {
++        &self.operation
++    }
++    pub fn revision(&self) -> u64 {
++        self.revision
++    }
++    pub fn resources_changed(&self) -> bool {
++        self.changed
++    }
++    pub fn bindings(&self) -> &[rvoip_core::stream_lifecycle::ReadyMediaBinding] {
++        &self.bindings
++    }
++}
++impl std::fmt::Debug for NativeSessionCodecOutcome {
++    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
++        f.write_str("NativeSessionCodecOutcome(historical metadata)")
++    }
++}
++/// A conservative media-effect classification. Once Core has been called,
++/// failure is never a grant to repeat the request or claim a remote rollback.
++#[derive(Debug)]
++pub struct NativeSessionCodecError {
++    pub error: NativeOfferError,
++    pub effect_possible: bool,
++}
++impl NativeSessionCodecError {
++    pub(crate) fn before_effect(error: impl Into<NativeOfferError>) -> Self {
++        Self {
++            error: error.into(),
++            effect_possible: false,
++        }
++    }
++    pub(crate) fn possible_effect(error: NativeOfferError) -> Self {
++        Self {
++            error,
++            effect_possible: true,
++        }
++    }
++}
++/// Distinct from subscription authorization. Core hosts must validate this
++/// exact typed invocation, selected codecs and current held authority.
++pub struct NativeSessionCodecInvocation {
++    pub(crate) plan: NativeSessionCodecPlan,
++    operation: String,
++    authority: super::auth_dispatch::AuthorityLease,
++    deadline: tokio::time::Instant,
++    cancel: tokio_util::sync::CancellationToken,
++    confirmation:
++        std::sync::Mutex<Option<Arc<dyn super::auth_dispatch::lifecycle::NativeLifecycleFence>>>,
++}
++impl NativeSessionCodecInvocation {
++    pub(crate) fn new(
++        plan: NativeSessionCodecPlan,
++        operation: String,
++        authority: super::auth_dispatch::AuthorityLease,
++    ) -> Arc<Self> {
++        let deadline = authority
++            .deadline()
++            .unwrap_or(plan.origin.deadline())
++            .min(plan.origin.deadline())
++            .min(tokio::time::Instant::now() + std::time::Duration::from_secs(30));
++        let cancel = plan.origin.cancellation().child_token();
++        Arc::new(Self {
++            plan,
++            operation,
++            authority,
++            deadline,
++            cancel,
++            confirmation: std::sync::Mutex::new(None),
++        })
++    }
++    pub fn plan(&self) -> &NativeSessionCodecPlan {
++        &self.plan
++    }
++    pub fn scope(&self) -> &NativeRequestScope {
++        self.plan.scope()
++    }
++    pub fn operation(&self) -> &str {
++        &self.operation
++    }
++    pub fn current(&self) -> bool {
++        self.plan.origin.current()
++            && self.authority.current()
++            && !self.cancel.is_cancelled()
++            && tokio::time::Instant::now() < self.deadline
++            && self
++                .confirmation
++                .lock()
++                .unwrap_or_else(|p| p.into_inner())
++                .as_ref()
++                .is_none_or(|f| f.current())
++    }
++    pub fn authority<T: std::any::Any + Send + Sync>(&self) -> Option<&T> {
++        self.current()
++            .then(|| self.authority.authority::<T>())
++            .flatten()
++    }
++    pub fn deadline(&self) -> tokio::time::Instant {
++        self.deadline
++    }
++    pub fn cancellation(&self) -> tokio_util::sync::CancellationToken {
++        self.cancel.child_token()
++    }
++    pub(crate) fn committed(&self) {
++        self.confirmation
++            .lock()
++            .unwrap_or_else(|p| p.into_inner())
++            .take();
++    }
++}
++impl super::native_negotiation::ServerInvocation for NativeSessionCodecInvocation {
++    fn scope(&self) -> &NativeRequestScope {
++        self.scope()
++    }
++    fn media(&self) -> &NativeOfferPlan {
++        self.plan.media()
++    }
++    fn operation(&self) -> &str {
++        self.operation()
++    }
++    fn current(&self) -> bool {
++        self.current()
++    }
++    fn origin(&self) -> &Arc<NativeRequestOrigin> {
++        &self.plan.origin
++    }
++    fn lease(&self) -> super::auth_dispatch::AuthorityLease {
++        self.authority.retained()
++    }
++    fn cancellation(&self) -> tokio_util::sync::CancellationToken {
++        self.cancellation()
++    }
++    fn confirmed(
++        &self,
++        reply: &super::native_requests::NativeRequestReply,
++    ) -> Result<(), NativeOfferError> {
++        if !reply.current() || reply.scope().stream_revision != self.scope().stream_revision {
++            return Err(NativeOfferError::Cancelled);
++        }
++        *self.confirmation.lock().unwrap_or_else(|p| p.into_inner()) = Some(reply.commit_fence());
++        Ok(())
++    }
++}
++pub(crate) struct CodecRequestPolicy(pub Arc<dyn NativeSessionCodecPolicy>);
++#[async_trait::async_trait]
++impl super::native_requests::NativeRequestPolicy for CodecRequestPolicy {
++    async fn authorize(
++        &self,
++        scope: &NativeRequestScope,
++        proposal: &super::Envelope,
++        held: Option<&super::auth_dispatch::AuthorityLease>,
++    ) -> Result<super::auth_dispatch::AuthorityLease, super::auth_dispatch::DispatchError> {
++        self.0.authorize(scope, proposal, held).await
++    }
++}
+diff --git a/crates/uctp/rvoip-uctp/src/v2/native_subscriptions.rs b/crates/uctp/rvoip-uctp/src/v2/native_subscriptions.rs
+--- a/crates/uctp/rvoip-uctp/src/v2/native_subscriptions.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/native_subscriptions.rs
+@@ -90,9 +90,15 @@
+                             _ => return Err(NativeOfferError::Invalid),
+                         }
+                         selections.push(if kinds.is_none() {
+-                            MediaSelection::ParticipantAll { participant: ParticipantId::from_string(id.as_str()), media }
++                            MediaSelection::ParticipantAll {
++                                participant: ParticipantId::from_string(id.as_str()),
++                                media,
++                            }
+                         } else {
+-                            MediaSelection::Participant { participant: ParticipantId::from_string(id.as_str()), media }
++                            MediaSelection::Participant {
++                                participant: ParticipantId::from_string(id.as_str()),
++                                media,
++                            }
+                         });
+                     }
+                     _ => return Err(NativeOfferError::Invalid),
+@@ -252,6 +258,35 @@
+         self.authority.retained()
+     }
+ }
++impl super::native_negotiation::ServerInvocation for NativeSubscriptionInvocation {
++    fn scope(&self) -> &super::native_requests::NativeRequestScope {
++        self.scope()
++    }
++    fn media(&self) -> &NativeOfferPlan {
++        self.plan().media()
++    }
++    fn operation(&self) -> &str {
++        self.operation()
++    }
++    fn current(&self) -> bool {
++        self.current()
++    }
++    fn origin(&self) -> &std::sync::Arc<super::native_requests::NativeRequestOrigin> {
++        &self.origin
++    }
++    fn lease(&self) -> super::auth_dispatch::AuthorityLease {
++        self.lease()
++    }
++    fn cancellation(&self) -> tokio_util::sync::CancellationToken {
++        self.cancellation()
++    }
++    fn confirmed(
++        &self,
++        reply: &super::native_requests::NativeRequestReply,
++    ) -> Result<(), NativeOfferError> {
++        self.confirmed(reply)
++    }
++}
+ pub(crate) struct ReconcileRequestPolicy(pub std::sync::Arc<dyn NativeSubscriptionPolicy>);
+ #[async_trait::async_trait]
+ impl super::native_requests::NativeRequestPolicy for ReconcileRequestPolicy {
+diff --git a/crates/uctp/rvoip-uctp/tests/support/canonical_media/native_offers/session_codecs.rs b/crates/uctp/rvoip-uctp/tests/support/canonical_media/native_offers/session_codecs.rs
+new file mode 100644
+--- /dev/null
++++ b/crates/uctp/rvoip-uctp/tests/support/canonical_media/native_offers/session_codecs.rs
+@@ -0,0 +1,479 @@
++//! Actual signed live codec effects with controlled host grants. No durable
++//! Connect journal or Session-wide completion is claimed by this component.
++use super::*;
++use rvoip_uctp::v2::native_session_codecs::*;
++struct FreshProof {
++    domain: Arc<Grants>,
++    wire_domain: Arc<WirePolicy>,
++    guard: OwnedRwLockReadGuard<State>,
++    wire: OwnedRwLockReadGuard<WireGrants>,
++    principal: AuthenticatedPrincipal,
++    plan: NativeOfferPlan,
++    expected: u64,
++    operation: String,
++    proposal: Mutex<Option<Envelope>>,
++}
++
++struct Policy {
++    domain: Arc<Grants>,
++    wire: Arc<WirePolicy>,
++    operations: Mutex<BTreeSet<String>>,
++    reads: AtomicUsize,
++    held: AtomicUsize,
++}
++impl Policy {
++    fn new(s: &Scene) -> Arc<Self> {
++        Arc::new(Self {
++            domain: s.grants.clone(),
++            wire: s.wire_policy.clone(),
++            operations: Mutex::new(BTreeSet::new()),
++            reads: AtomicUsize::new(0),
++            held: AtomicUsize::new(0),
++        })
++    }
++}
++fn validate(p: &FreshProof, scope: &NativeRequestScope) -> Result<(), DispatchError> {
++    let origin = &scope.origin;
++    let id = &origin.media.connection;
++    let owner = credential_owner(
++        p.guard
++            .owners
++            .get(id)
++            .ok_or(DispatchError::Authority)?
++            .clone(),
++        &origin.principal,
++    )
++    .map_err(|_| DispatchError::Authority)?;
++    if p.guard.denied
++        || p.guard.event_denied.contains(id)
++        || p.wire.denied
++        || p.guard.key.revoked
++        || !owner.may_control
++        || p.wire.connections.get(&origin.media.wire_connection) != Some(id)
++        || p.guard.wires.get(&origin.media.wire_connection) != Some(id)
++        || owner.member.conversation() != &scope.conversation
++        || owner.presence.session() != &origin.media.session
++        || owner.member.participant() != &origin.participant
++        || owner.member.epoch() != origin.membership_epoch
++        || owner.member.identity() != &origin.identity
++        || owner.member.identity() != p.wire.member.identity()
++        || owner.endpoint.device() != &origin.device
++        || owner.endpoint.endpoint() != &origin.endpoint
++        || owner.endpoint.state() != EndpointState::Verified
++        || owner.connection.generation() != scope.connection_generation
++        || origin.media.owner != origin.principal.ownership_key()
++        || scope.stream_revision != p.expected
++    {
++        return Err(DispatchError::Authority);
++    }
++    owner
++        .connection
++        .require_current(&owner.member, &owner.presence)
++        .map_err(|_| DispatchError::Authority)?;
++    Ok(())
++}
++
++#[async_trait]
++impl NativeSessionCodecPolicy for Policy {
++    async fn authorize_codec(
++        &self,
++        scope: &NativeRequestScope,
++        plan: &NativeSessionCodecPlan,
++        operation: &str,
++    ) -> Result<AuthorityLease, DispatchError> {
++        let wire = self.wire.grants.clone().read_owned().await;
++        let guard = self.domain.0.clone().read_owned().await;
++        let proof = FreshProof {
++            domain: self.domain.clone(),
++            wire_domain: self.wire.clone(),
++            guard,
++            wire,
++            principal: scope.origin.principal.clone(),
++            plan: plan.media().clone(),
++            expected: plan.expected_revision(),
++            operation: operation.into(),
++            proposal: Mutex::new(None),
++        };
++        validate(&proof, scope)?;
++        // This controlled fixture models once-only admission. Production must
++        // use its durable journal; no test reader is kept between attempts.
++        if !self.operations.lock().unwrap().insert(operation.into()) {
++            return Err(DispatchError::SubmissionUnknown);
++        }
++        self.reads.fetch_add(1, Ordering::AcqRel);
++        Ok(AuthorityLease::holding(proof))
++    }
++}
++#[async_trait]
++impl NativeRequestPolicy for Policy {
++    async fn authorize(
++        &self,
++        scope: &NativeRequestScope,
++        proposal: &Envelope,
++        held: Option<&AuthorityLease>,
++    ) -> Result<AuthorityLease, DispatchError> {
++        let held = held.ok_or(DispatchError::Authority)?;
++        let p = held
++            .authority::<FreshProof>()
++            .ok_or(DispatchError::Authority)?;
++        validate(p, scope)?;
++        if !held.current()
++            || !Arc::ptr_eq(&self.domain, &p.domain)
++            || !Arc::ptr_eq(&self.wire, &p.wire_domain)
++            || proposal.kind() != "connection.offer"
++            || proposal.expected_revision() != Some(scope.stream_revision)
++            || proposal.scope(Scope::Operation) != Some(p.operation.as_str())
++            || proposal.scope(Scope::Conversation) != Some("conversation")
++            || proposal.scope(Scope::Session) != Some("session")
++            || proposal.scope(Scope::Connection)
++                != Some(scope.origin.media.wire_connection.as_str())
++        {
++            return Err(DispatchError::Authority);
++        }
++        let mut recorded = p.proposal.lock().unwrap();
++        if recorded
++            .as_ref()
++            .is_some_and(|old| !server_requests::matches_proposal(old, proposal))
++        {
++            return Err(DispatchError::Authority);
++        }
++        *recorded = Some(proposal.clone());
++        self.held.fetch_add(1, Ordering::AcqRel);
++        Ok(held.retained())
++    }
++}
++pub(super) fn reply(
++    c: &ValidatedBearer,
++    request: &Envelope,
++    response: &Envelope,
++    held: &AuthorityLease,
++) -> Option<Result<ExchangeReplyAuthority, DispatchError>> {
++    let p = held.authority::<FreshProof>()?;
++    Some((|| {
++        if !held.current()
++            || p.guard.denied
++            || p.wire.denied
++            || !rvoip_core::staged_streams::reliable_data::same_credential(
++                &c.principal,
++                &p.principal,
++            )
++            || !p
++                .proposal
++                .lock()
++                .unwrap()
++                .as_ref()
++                .is_some_and(|v| server_requests::matches_proposal(v, request))
++            || response.scope(Scope::Reply) != Some(request.id())
++            || [
++                Scope::Conversation,
++                Scope::Session,
++                Scope::Connection,
++                Scope::Operation,
++            ]
++            .into_iter()
++            .any(|s| request.scope(s) != response.scope(s))
++        {
++            return Err(DispatchError::ReplyMismatch);
++        }
++        let key = PrincipalVerificationKey::from_current(
++            &c.principal,
++            "client".into(),
++            p.guard.key.clone(),
++        )
++        .map_err(|_| DispatchError::Authority)?;
++        Ok(ExchangeReplyAuthority {
++            lease: held.retained(),
++            key,
++        })
++    })())
++}
++
++struct Held {
++    inv: Arc<NativeSessionCodecInvocation>,
++    owner: MediaOwner,
++}
++impl MediaAuthorityLease for Held {
++    fn authority(&self) -> &MediaOwner {
++        &self.owner
++    }
++    fn control_owner(&self) -> ControlResult<Box<MediaOwner>> {
++        if !self.inv.current() {
++            return Err(StreamControlError::Authority);
++        }
++        Ok(Box::new(self.owner.clone()))
++    }
++    fn control_receive(&self, source: &MediaSource) -> ControlResult<Box<MediaOwner>> {
++        let p = self
++            .inv
++            .authority::<FreshProof>()
++            .ok_or(StreamControlError::Authority)?;
++        subscriptions::receive(&p.guard, *self.control_owner()?, source)
++    }
++}
++pub(super) fn held(
++    domain: &Grants,
++    scope: &MediaScope<'_>,
++    intent: &MediaControlIntent<'_>,
++    held: &(dyn Any + Send + Sync),
++) -> Option<ControlResult<MediaControl>> {
++    let inv = held.downcast_ref::<Arc<NativeSessionCodecInvocation>>()?;
++    Some((|| {
++        let p = inv
++            .authority::<FreshProof>()
++            .ok_or(StreamControlError::Authority)?;
++        validate(p, inv.scope()).map_err(|_| StreamControlError::Authority)?;
++        if !Arc::ptr_eq(&domain.0, &p.domain.0)
++            || scope.connection != &inv.scope().origin.media.connection
++            || !rvoip_core::staged_streams::reliable_data::same_credential(
++                scope.principal,
++                &inv.scope().origin.principal,
++            )
++            || inv.plan().media().selected() != p.plan.selected()
++        {
++            return Err(StreamControlError::Authority);
++        }
++        match intent {
++            MediaControlIntent::Change {
++                expected,
++                desired,
++                replace,
++            } if *expected == p.expected
++                && replace.is_empty()
++                && desired
++                    .iter()
++                    .eq(p.plan.selected().iter().map(|s| &s.requested)) =>
++            {
++                ()
++            }
++            _ => return Err(StreamControlError::Authority),
++        }
++        let mut owner = credential_owner(
++            p.guard
++                .owners
++                .get(scope.connection)
++                .ok_or(StreamControlError::Authority)?
++                .clone(),
++            scope.principal,
++        )?;
++        if let Some(a) = p.guard.activations.lock().unwrap().get(scope.connection) {
++            owner = a.current(owner)?;
++        }
++        owner.remote = p.plan.remote_capabilities().clone();
++        MediaControl::new(
++            Box::new(Held {
++                inv: inv.clone(),
++                owner,
++            }),
++            inv.cancellation(),
++            inv.deadline(),
++        )
++    })())
++}
++async fn setup(kind: &str) -> (Scene, Arc<NativeRequestOrigin>, Arc<Policy>) {
++    let mut s = Scene::new(kind, false).await;
++    s.record.server_requests.store(true, Ordering::Release);
++    let (_, callback) = s.prepared(lifecycle_offer(&s, 0, 0, "sendrecv")).await;
++    s.confirm(&callback).await;
++    s.wait(1).await;
++    core_fixture::until(|| s.record.request_origins.lock().unwrap().contains_key(&s.id)).await;
++    let origin = s.record.request_origins.lock().unwrap()[&s.id].clone();
++    core_fixture::until(|| origin.ready()).await;
++    let policy = Policy::new(&s);
++    (s, origin, policy)
++}
++fn execute(
++    s: &Scene,
++    plan: NativeSessionCodecPlan,
++    operation: &str,
++    policy: Arc<Policy>,
++) -> tokio::task::JoinHandle<Result<NativeSessionCodecOutcome, NativeSessionCodecError>> {
++    let adapter = s.native.adapters[&s.kind].clone();
++    let id = s.id.clone();
++    let operation = operation.to_owned();
++    tokio::spawn(async move {
++        adapter
++            .execute_native_session_codecs(&id, plan, operation, policy)
++            .await
++    })
++}
++fn plan(s: &Scene, origin: &Arc<NativeRequestOrigin>, codec: &str) -> NativeSessionCodecPlan {
++    s.native.adapters[&s.kind]
++        .plan_native_session_codecs(&s.id, origin, &[codec.into()])
++        .unwrap()
++}
++#[tokio::test]
++async fn actual_session_codec_execution_confirms_live_replacement_preserves_old_audio_and_has_noop_without_io(
++) {
++    for kind in ["quic", "wt"] {
++        let (mut s, origin, policy) = setup(kind).await;
++        let controller = s.controller();
++        let old = controller.active_bindings()[0].clone();
++        let first = StreamId::from_string("first");
++        let mut input = controller.take_ingress(&first).unwrap();
++        let selected = plan(&s, &origin, "pcma");
++        assert!(selected.changes_resources());
++        let task = execute(&s, selected, "live_pcma", policy.clone());
++        let callback = s.wire.read().await;
++        s.f.verify_server(&callback).await;
++        assert_eq!(callback.kind(), "connection.offer");
++        assert_eq!(callback.scope(Scope::Operation), Some("live_pcma"));
++        assert_eq!(callback.original()["expected_revision"], 1);
++        assert_eq!(
++            callback.original()["payload"]["streams_offered"][0]["codec_preferences"],
++            json!(["pcma"])
++        );
++        assert_eq!(controller.revision(), 1);
++        assert_eq!(
++            controller.active_bindings()[0].transport_id,
++            old.transport_id
++        );
++        send(&s.wire, encoded_audio(old.stream_local_id, 0, 1));
++        packet(&mut input)
++            .await
++            .try_forward_to(&controller, &first)
++            .unwrap();
++        decoded_codec(&received(&s.wire).await, 0);
++        let domain = s.grants.0.clone();
++        let writer = tokio::spawn(async move { domain.write_owned().await });
++        tokio::task::yield_now().await;
++        assert!(!writer.is_finished());
++        s.confirm(&callback).await;
++        let outcome = task.await.unwrap().unwrap();
++        assert_eq!(outcome.revision(), 2);
++        assert!(outcome.resources_changed());
++        assert_eq!(outcome.operation(), "live_pcma");
++        assert_eq!(outcome.scope().stream_revision, 1);
++        assert_eq!(controller.revision(), 2);
++        drop(
++            tokio::time::timeout(Duration::from_secs(1), writer)
++                .await
++                .unwrap()
++                .unwrap(),
++        );
++        let current = controller.active_bindings()[0].clone();
++        assert_ne!(old.stream_local_id, current.stream_local_id);
++        assert_eq!(outcome.bindings()[0].transport_id, current.transport_id);
++        let mut input = controller.take_ingress(&first).unwrap();
++        send(&s.wire, encoded_audio(old.stream_local_id, 0, 2));
++        assert!(
++            tokio::time::timeout(Duration::from_millis(50), input.recv())
++                .await
++                .is_err()
++        );
++        send(&s.wire, encoded_audio(current.stream_local_id, 8, 3));
++        packet(&mut input)
++            .await
++            .try_forward_to(&controller, &first)
++            .unwrap();
++        decoded_codec(&received(&s.wire).await, 8);
++        let selected = plan(&s, &origin, "pcma");
++        assert!(!selected.changes_resources());
++        let budget = controller.stream_open_budget();
++        let nochange = execute(&s, selected, "live_pcma_nochange", policy.clone())
++            .await
++            .unwrap()
++            .unwrap();
++        assert!(!nochange.resources_changed());
++        assert_eq!(nochange.revision(), 2);
++        assert_eq!(controller.stream_open_budget(), budget);
++        assert!(
++            tokio::time::timeout(Duration::from_millis(50), s.wire.reader.next())
++                .await
++                .is_err()
++        );
++        let repeated = execute(&s, plan(&s, &origin, "pcmu"), "live_pcma", policy.clone())
++            .await
++            .unwrap()
++            .unwrap_err();
++        assert!(!repeated.effect_possible);
++        assert_eq!(controller.revision(), 2);
++        assert!(policy.held.load(Ordering::Acquire) > 0);
++        assert_eq!(policy.reads.load(Ordering::Acquire), 2);
++        // Retaining historical outcomes keeps neither authorization reader nor
++        // an exchange alive, even though the physical origin remains usable.
++        drop(s.grants.0.clone().try_write_owned().unwrap());
++        drop(s.wire_policy.grants.clone().try_write_owned().unwrap());
++        assert_eq!(outcome.revision(), 2);
++        assert_eq!(nochange.revision(), 2);
++        s.wire.server.shutdown().await.unwrap();
++    }
++}
++#[tokio::test]
++async fn actual_session_codec_execution_refuses_current_denial_stale_revision_and_mismatched_confirmation_without_retry(
++) {
++    let (mut s, origin, policy) = setup("quic").await;
++    let controller = s.controller();
++    let first = StreamId::from_string("first");
++    let selected = plan(&s, &origin, "pcma");
++    s.grants.0.write().await.denied = true;
++    let denial = execute(&s, selected, "denied", policy.clone())
++        .await
++        .unwrap()
++        .unwrap_err();
++    assert!(!denial.effect_possible);
++    assert_eq!(controller.revision(), 1);
++    s.grants.0.write().await.denied = false;
++    let stale = plan(&s, &origin, "pcma");
++    gate_reply(
++        &mut s,
++        gate_command("mute", 1, Some(&["first"]), None),
++        "ack",
++    )
++    .await;
++    let failure = execute(&s, stale, "stale", policy.clone())
++        .await
++        .unwrap()
++        .unwrap_err();
++    assert!(!failure.effect_possible);
++    assert_eq!(controller.revision(), 2);
++    gate_reply(
++        &mut s,
++        gate_command("unmute", 2, Some(&["first"]), None),
++        "ack",
++    )
++    .await;
++    let old = controller.active_bindings()[0].clone();
++    let mut input = controller.take_ingress(&first).unwrap();
++    let task = execute(
++        &s,
++        plan(&s, &origin, "pcma"),
++        "bad_confirmation",
++        policy.clone(),
++    );
++    let callback = s.wire.read().await;
++    s.f.verify_server(&callback).await;
++    let mut bad = s.confirmation(&callback);
++    bad["payload"]["substrate_setup"]["revision"] = json!(999);
++    s.wire.send(s.f.sign(bad)).await;
++    let failure = task.await.unwrap().unwrap_err();
++    assert!(failure.effect_possible);
++    assert_eq!(failure.error, NativeOfferError::Confirmation);
++    assert_eq!(controller.revision(), 3);
++    assert_eq!(
++        controller.active_bindings()[0].transport_id,
++        old.transport_id
++    );
++    send(&s.wire, encoded_audio(old.stream_local_id, 0, 1));
++    packet(&mut input)
++        .await
++        .try_forward_to(&controller, &first)
++        .unwrap();
++    decoded_codec(&received(&s.wire).await, 0);
++    assert!(
++        tokio::time::timeout(Duration::from_millis(100), s.wire.reader.next())
++            .await
++            .is_err()
++    );
++    let replay = execute(
++        &s,
++        plan(&s, &origin, "pcma"),
++        "bad_confirmation",
++        policy.clone(),
++    )
++    .await
++    .unwrap()
++    .unwrap_err();
++    assert!(!replay.effect_possible);
++    assert_eq!(controller.revision(), 3);
++    s.wire.server.shutdown().await.unwrap();
++}
+diff --git a/crates/uctp/rvoip-uctp/tests/support/canonical_media/native_offers.rs b/crates/uctp/rvoip-uctp/tests/support/canonical_media/native_offers.rs
+--- a/crates/uctp/rvoip-uctp/tests/support/canonical_media/native_offers.rs
++++ b/crates/uctp/rvoip-uctp/tests/support/canonical_media/native_offers.rs
+@@ -142,6 +142,9 @@
+         held: &(dyn Any + Send + Sync),
+     ) -> ControlResult<MediaControl> {
+         if let Some(control) = audiences::held(self, s, intent, held) {
++            return control;
++        }
++        if let Some(control) = session_codecs::held(self, s, intent, held) {
+             return control;
+         }
+         if let Some(control) = future_subscriptions::held(self, s, intent, held) {
+@@ -401,6 +404,9 @@
+         reply: &Envelope,
+         h: &AuthorityLease,
+     ) -> Result<ExchangeReplyAuthority, DispatchError> {
++        if let Some(result) = session_codecs::reply(c, request, reply, h) {
++            return result;
++        }
+         if let Some(result) = future_subscriptions::reply(c, request, reply, h) {
+             return result;
+         }
+@@ -2347,3 +2353,6 @@
+ 
+ #[path = "native_offers/media_profiles.rs"]
+ mod media_profiles;
++
++#[path = "native_offers/session_codecs.rs"]
++mod session_codecs;

@@ -1,0 +1,50 @@
+{
+  "api": "membership",
+  "request": {
+    "op": "membership",
+    "request": {
+      "change": {
+        "action": "remove",
+        "participant_id": "part_6e4c2b0a-5fac-44cd-b694-a92ca2e87bb8",
+        "reason": "completed review"
+      },
+      "conversation_id": "conv_18f811c7b0944cc0997da31aa4547324",
+      "expected_revision": 9,
+      "operation_id": "remove"
+    }
+  },
+  "response": {
+    "profile": "connect-control/1",
+    "result": {
+      "Ok": {
+        "data": {
+          "kind": "participant",
+          "participant": {
+            "active": false,
+            "conversation_id": "conv_18f811c7b0944cc0997da31aa4547324",
+            "identity_id": "ec3ffaa5-81e8-4ea4-8d28-415cc5de1be8",
+            "kind": "human",
+            "membership_epoch": 1,
+            "participant_id": "part_6e4c2b0a-5fac-44cd-b694-a92ca2e87bb8",
+            "removal_reason": "completed review",
+            "role": "reviewer"
+          },
+          "receipt": {
+            "completion_boundary": "local-mutation",
+            "conversation_id": "conv_18f811c7b0944cc0997da31aa4547324",
+            "operation_id": "remove",
+            "state": "completed",
+            "status_reference": {
+              "action": "get",
+              "operation_id": "remove"
+            }
+          },
+          "revision": 10
+        },
+        "kind": "membership"
+      }
+    }
+  },
+  "route": "/v1/operations",
+  "status": 200
+}

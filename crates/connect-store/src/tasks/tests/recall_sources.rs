@@ -14,6 +14,7 @@ fn artifact(f: &Fixture, id: &str, expires_at: Option<i64>) -> Artifact {
         .execute(
             &f.key.id,
             &Operation::ArtifactBegin {
+                to: connect_protocol::messages::MessageAudience::all(),
                 request_id: format!("begin-{id}"),
                 conversation_id: f.cid.clone(),
                 name: format!("{id}.bin"),

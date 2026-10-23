@@ -1,10 +1,7 @@
 //! A recipient answers a delivered task question under their own send authority.
 //! Task identity is derived from the durable effect, never supplied by the sender.
 use super::{authority, replies, storage};
-use crate::{
-    conversations::{authorized_conversation, capacity, insert_event},
-    Actor, Store,
-};
+use crate::{conversations::authorized_conversation, Actor, Store};
 use connect_protocol::{
     tasks::{TaskEventData, TaskOutcome, TaskReply, MAX_TASK_INBOX_EVENTS},
     Error, Operation, Result,
@@ -17,6 +14,8 @@ pub(super) struct Input<'a> {
     /// The message ID of the question, obtained from the recipient's own inbox.
     pub reply_to: &'a str,
     pub body: &'a str,
+    /// Typed Invoke sends keep their complete requested audience and content.
+    pub message: Option<&'a connect_protocol::messages::MessageDraft>,
 }
 pub(super) fn execute(
     c: &Connection,
@@ -31,29 +30,21 @@ pub(super) fn execute(
     if let Some((_, outcome)) = storage::saved(c, actor, input.request_id, intent)? {
         // This is the sender's communication receipt, not the owner's effect
         // authority. Current sender membership/send scope was checked above.
+        if let TaskOutcome::ReplyAccepted { message_id, .. } = &outcome {
+            crate::audience::require_original(
+                c,
+                actor,
+                input.conversation_id,
+                connect_protocol::membership::ContentKind::Message,
+                message_id,
+            )?;
+        }
         return Ok(outcome);
     }
     if conversation.closed {
         return Err(Error::new(
             "conversation-closed",
             "Conversation no longer accepts messages",
-        ));
-    }
-    if input.body.is_empty() || input.body.len() > store.limits.message_bytes {
-        return Err(Error::new(
-            "invalid-request",
-            "Message must be nonempty and within the byte limit",
-        ));
-    }
-    if !capacity(
-        c,
-        conversation.participants.len() as u64,
-        input.body.len() as u64,
-        store,
-    )? {
-        return Err(Error::new(
-            "capacity-exceeded",
-            "Durable message or event capacity exceeded",
         ));
     }
     let active = match authority::continuation(c, &task, timestamp, false) {
@@ -73,37 +64,32 @@ pub(super) fn execute(
             return Err(Error::new("capacity-exceeded", "Task reply inbox is full"));
         }
     }
-    let message_id = uuid::Uuid::new_v4().to_string();
-    c.execute(
-        "INSERT INTO messages(id,conversation_id,sender,body) VALUES(?1,?2,?3,?4)",
-        params![
-            message_id,
-            input.conversation_id,
-            actor.identity_id,
-            input.body
-        ],
-    )
-    .map_err(|_| Error::storage())?;
-    for member in &conversation.participants {
-        insert_event(
-            c,
-            member,
-            input.conversation_id,
-            "message",
-            Some(&message_id),
-        )?;
+    let owner = crate::audience::member(c, &task.record.owner_id, input.conversation_id, true)?;
+    let mut draft = input.message.cloned().unwrap_or_else(|| {
+        connect_protocol::messages::MessageDraft::text(
+            connect_protocol::messages::MessageAudience::Participants(vec![owner.participant_id]),
+            input.body,
+        )
+    });
+    if draft
+        .in_reply_to_msg
+        .as_deref()
+        .is_some_and(|id| id != input.reply_to)
+    {
+        return Err(Error::forbidden());
     }
-    crate::providers::enqueue(
-        c,
-        &message_id,
-        input.conversation_id,
-        &actor.identity_id,
-        &actor.credential_id,
-        store.limits.operation_receipts,
-    )?;
+    draft.in_reply_to_msg = Some(input.reply_to.into());
+    let recipients = crate::messages::recipients(c, actor, input.conversation_id, &draft)?;
+    if !recipients
+        .iter()
+        .any(|member| member.identity_id == task.record.owner_id)
+    {
+        return Err(Error::forbidden());
+    }
+    let message_id = crate::messages::write(c, actor, input.conversation_id, draft, store)?;
     let event_id: String = c
         .query_row(
-            "SELECT id FROM journal WHERE message_id=?1 AND recipient=?2",
+            "SELECT id FROM visible_journal WHERE message_id=?1 AND recipient=?2",
             params![message_id, task.record.owner_id],
             |r| r.get(0),
         )
@@ -153,7 +139,7 @@ fn question(
     conversation_id: &str,
     message: &str,
 ) -> Result<storage::StoredTask> {
-    let delivered:bool = c.query_row("SELECT EXISTS(SELECT 1 FROM journal WHERE message_id=?1 AND recipient=?2 AND conversation_id=?3 AND kind='message')",params![message,actor.identity_id,conversation_id],|r|r.get(0)).map_err(|_|Error::storage())?;
+    let delivered:bool = c.query_row("SELECT EXISTS(SELECT 1 FROM visible_journal WHERE message_id=?1 AND recipient=?2 AND conversation_id=?3 AND kind='message')",params![message,actor.identity_id,conversation_id],|r|r.get(0)).map_err(|_|Error::storage())?;
     if !delivered {
         return Err(Error::forbidden());
     }

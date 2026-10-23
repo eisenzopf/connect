@@ -1,0 +1,22 @@
+{
+  "api": "membership",
+  "request": {
+    "after": null,
+    "limit": 1,
+    "op": "membership_invitations"
+  },
+  "response": {
+    "profile": "connect-control/1",
+    "result": {
+      "Ok": {
+        "data": {
+          "invitations": [],
+          "next": null
+        },
+        "kind": "membership_invitations"
+      }
+    }
+  },
+  "route": "/v1/operations",
+  "status": 200
+}

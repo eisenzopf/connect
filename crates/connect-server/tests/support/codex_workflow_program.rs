@@ -4,7 +4,7 @@ use serde_json::{json, Value};
 
 const TOOLS: &str = include_str!("../fixtures/codex-workflow-tools.js");
 pub fn question(body: &str) -> String {
-    let arguments = json!({"request_id":"workflow-question","step_id":"review","body":body,"wait_for_reply":true});
+    let arguments = json!({"request_id":"workflow-question","step_id":"review","message": connect_protocol::messages::MessageDraft::text_all((body).to_string()),"wait_for_reply":true});
     format!("{TOOLS}\nconst intent = {arguments};\nconst question = await invoke('connect_send', intent);\nconst task = await invoke('connect_task_status', {{}});\nconst journal = await invoke('connect_task_wait', {{limit:100,wait_ms:0}});\ntext(JSON.stringify({{question,task,journal}}));")
 }
 pub fn read(request: &Value) -> String {
@@ -54,7 +54,7 @@ pub fn follow_up(request: &Value) -> Option<String> {
         .as_str()
         .unwrap()
         .starts_with("conversation-journal:"));
-    let arguments = json!({"request_id":"workflow-follow-up","step_id":"decision","body":format!("Confirmed from {}: {}",source["source_id"].as_str().unwrap(),source["body"].as_str().unwrap()),"reply_to":reply["event_id"],"wait_for_reply":false});
+    let arguments = json!({"request_id":"workflow-follow-up","step_id":"decision","message": connect_protocol::messages::MessageDraft::text_all((format!("Confirmed from {}: {}",source["source_id"].as_str().unwrap(),source["body"].as_str().unwrap())).to_string()),"reply_to":reply["event_id"],"wait_for_reply":false});
     Some(format!(
         "{TOOLS}\nconst intent = {arguments};\ntext(await invoke('connect_send', intent));"
     ))

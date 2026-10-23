@@ -1,12 +1,11 @@
+#![recursion_limit = "256"]
 //! Connect command-line composition root.
 use anyhow::Result;
 use clap::{Parser, Subcommand};
-use connect_client::{ClientConfig, ConnectClient};
-use connect_protocol::Operation;
+use connect_client::ClientConfig;
 use connect_server::{
     cli::{init, recovery, task_access::Command as TaskAccessCommand},
     config::ServerConfig,
-    runtime::RunningServer,
 };
 use std::path::PathBuf;
 
@@ -120,16 +119,16 @@ enum Command {
         example: Option<String>,
         #[arg(long, default_value = "127.0.0.1:4433")]
         bind: std::net::SocketAddr,
+        /// Explicit loopback application API, also saved in application configs.
+        #[arg(long)]
+        http_bind: Option<std::net::SocketAddr>,
     },
+    /// Serve signed canonical connect/2 using enrolled Device keys.
     Serve {
         #[arg(long)]
         config: PathBuf,
         #[arg(long)]
         http_bind: Option<std::net::SocketAddr>,
-        #[arg(long)]
-        webhook_bind: Option<std::net::SocketAddr>,
-        #[arg(long)]
-        providers: bool,
     },
     PresenceInit {
         #[arg(long)]
@@ -205,6 +204,9 @@ enum Command {
     Request {
         #[arg(long)]
         config: PathBuf,
+        /// Use the explicit HTTP application API and its application config.
+        #[arg(long)]
+        application: bool,
         /// Discover the task extension using this permitted Connect address.
         #[arg(long, conflicts_with = "task_id")]
         task_address: Option<String>,
@@ -215,12 +217,18 @@ enum Command {
         #[arg(long)]
         envelope: bool,
     },
-    /// Revoke a credential using explicit local operator authority.
+    /// Execute a trusted provisioning command from bounded JSON on standard input.
+    Provision {
+        /// Explicit HTTP application config with current administrator authority.
+        #[arg(long)]
+        config: PathBuf,
+    },
+    /// Revoke a credential through the current trusted application API.
     Revoke {
         #[arg(long)]
         config: PathBuf,
         #[arg(long)]
-        server_config: PathBuf,
+        operation_id: String,
         credential_id: String,
     },
 }
@@ -407,10 +415,19 @@ async fn main() -> Result<()> {
             directory,
             example,
             bind,
-        } => match example.as_deref() {
-            Some("connected-app") => init::initialize_connected_app(&directory, bind)?,
-            _ => init::initialize(&directory, example.is_some(), bind)?,
-        },
+            http_bind,
+        } => {
+            anyhow::ensure!(
+                example.as_deref() != Some("connected-app"),
+                "The connected-app preset awaits the canonical SDK migration"
+            );
+            connect_server::cli::canonical_init::initialize_with_http(
+                &directory,
+                example.is_some(),
+                bind,
+                http_bind,
+            )?;
+        }
         Command::PresenceInit {
             directory,
             bind,
@@ -592,67 +609,64 @@ async fn main() -> Result<()> {
                 println!("Provider setup state saved to {}", state.display());
             }
         },
-        Command::Serve {
-            config,
-            http_bind,
-            webhook_bind,
-            providers,
-        } => {
-            let server = RunningServer::start_interfaces(
-                ServerConfig::load(&config)?,
-                http_bind,
-                webhook_bind,
-                providers,
+        Command::Serve { config, http_bind } => {
+            let mut config = connect_server::canonical::CanonicalServerConfig::load(&config)?;
+            if let Some(address) = http_bind {
+                config.http_bind = Some(address);
+            }
+            connect_server::cli::serve::run_canonical(
+                connect_server::canonical::RunningCanonicalServer::start(config).await?,
             )
             .await?;
-            connect_server::cli::serve::run(server).await?;
         }
         Command::TaskDiagnostics(arguments) => arguments.execute().await?,
         Command::Health { config } | Command::Diagnostics { config } => {
-            let mut client = ConnectClient::open(ClientConfig::load(&config)?).await?;
-            let result = client.request(Operation::Health {}).await?;
+            use connect_client::application::{ApplicationClient, ApplicationClientConfig};
+            let mut client =
+                ApplicationClient::open(ApplicationClientConfig::load(&config)?).await?;
+            let result = client.health().await?;
             println!(
                 "{}",
                 serde_json::to_string_pretty(
-                    &serde_json::json!({"transport":"quic","alpn":rvoip_uctp::UCTP_RAW_QUIC_ALPN,"result":result})
+                    &serde_json::json!({"transport":"http","profile":connect_protocol::PROFILE,"result":result})
                 )?
             );
-            client.close().await;
         }
         Command::Resolve { config, address } => {
-            let mut client = ConnectClient::open(ClientConfig::load(&config)?).await?;
+            use connect_client::application::{ApplicationClient, ApplicationClientConfig};
+            let mut client =
+                ApplicationClient::open(ApplicationClientConfig::load(&config)?).await?;
             println!(
                 "{}",
                 serde_json::to_string_pretty(&client.resolve(&address).await?)?
             );
-            client.close().await;
         }
         Command::TaskAccess { command } => command.execute().await?,
         Command::Request {
             config,
+            application,
             task_address,
             task_id,
             envelope,
         } => {
             connect_server::cli::request::execute(
                 &config,
+                application,
                 task_address.as_deref(),
                 task_id.as_deref(),
                 envelope,
             )
             .await?;
         }
+        Command::Provision { config } => {
+            connect_server::cli::provisioning::execute(&config).await?;
+        }
         Command::Revoke {
             config,
-            server_config,
+            operation_id,
             credential_id,
         } => {
-            let config = ClientConfig::load(&config)?;
-            let server = ServerConfig::load(&server_config)?;
-            let store = connect_store::Store::open(&server.database, server.limits)?;
-            let actor = store.authenticate(&config.credential)?;
-            store.revoke(&actor, &credential_id)?;
-            println!("Credential revoked");
+            connect_server::cli::provisioning::revoke(&config, credential_id, operation_id).await?;
         }
     }
     Ok(())

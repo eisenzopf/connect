@@ -62,6 +62,8 @@ pub(crate) fn dial(
     destination: &str,
 ) -> Result<SipLeg> {
     let session = crate::sessions::get(c, conversation_id, session_id)?;
+    crate::sessions::require_original_epoch(c, &actor.identity_id, &session)?;
+    crate::sessions::require_original_epoch(c, &session.participant_id, &session)?;
     require_dial_authority(actor, &session)?;
     if !valid_destination(destination) {
         return Err(Error::new(
@@ -117,7 +119,7 @@ pub(crate) fn end(
 
 fn require_dial_authority(actor: &Actor, session: &Session) -> Result<()> {
     if actor.identity_id != session.initiator_id
-        || !matches!(session.state.as_str(), "accepted" | "ready")
+        || !matches!(session.state.as_str(), "accepted" | "ready" | "active")
     {
         return Err(Error::forbidden());
     }
@@ -149,15 +151,26 @@ fn valid_destination(value: &str) -> bool {
 
 impl Store {
     pub fn recover_sip_legs(&self) -> Result<usize> {
-        self.connection()?
-            .execute(
-                "UPDATE sip_legs SET state=CASE WHEN state='active' THEN 'failed' ELSE 'uncertain' END,ended_reason='server-restarted',end_requested=0,updated_at=?1 WHERE state IN ('starting','active','ending')",
-                [now()],
-            )
-            .map_err(|_| Error::storage())
+        let authority =
+            self.runtime_query_authority(crate::authority_admission::runtime::SIP_RECOVERY, &[])?;
+        let mut c = self.connection()?;
+        let tx = c
+            .transaction_with_behavior(TransactionBehavior::Immediate)
+            .map_err(|_| Error::storage())?;
+        self.require_runtime_query(
+            &tx,
+            &authority,
+            crate::authority_admission::runtime::SIP_RECOVERY,
+            &[],
+        )?;
+        let count=tx.execute("UPDATE sip_legs SET state=CASE WHEN state='active' THEN 'failed' ELSE 'uncertain' END,ended_reason='server-restarted',end_requested=0,updated_at=?1 WHERE state IN ('starting','active','ending')",[now()]).map_err(|_| Error::storage())?;
+        tx.commit().map_err(|_| Error::storage())?;
+        Ok(count)
     }
 
     pub fn claim_sip_leg_job(&self) -> Result<Option<SipLegJob>> {
+        let authority =
+            self.runtime_query_authority(crate::authority_admission::runtime::SIP_PENDING, &[])?;
         let mut c = self.connection()?;
         let tx = c
             .transaction_with_behavior(TransactionBehavior::Immediate)
@@ -174,17 +187,26 @@ impl Store {
             return Ok(None);
         };
         let mut leg = get(&tx, &conversation_id, &id)?;
+        self.require_runtime_conversations(&tx, &authority, &[conversation_id.clone()])?;
         let mut end_intent_id = None;
         let action = if leg.state == "pending" {
             let allowed = (|| {
                 let actor = crate::identity::actor_from_connection(&tx, &credential_id)?;
                 actor.require("sip_dial")?;
+                crate::audience::require_original(
+                    &tx,
+                    &actor,
+                    &conversation_id,
+                    connect_protocol::membership::ContentKind::SipLeg,
+                    &id,
+                )?;
                 crate::tasks::authorize_effect_link(&tx, "sip_leg", &id, now())?;
                 if actor.identity_id != actor_id {
                     return Err(Error::forbidden());
                 }
                 authorized_conversation(&tx, &actor, &conversation_id)?;
                 let session = crate::sessions::get(&tx, &conversation_id, &leg.session_id)?;
+                crate::sessions::require_original_epoch(&tx, &session.participant_id, &session)?;
                 require_dial_authority(&actor, &session)
             })();
             let unsupported = allowed
@@ -214,6 +236,13 @@ impl Store {
                 crate::media_end::authorize(&tx, crate::media_end::Kind::Sip, &id, now()).and_then(
                     |(actor, intent)| {
                         authorized_conversation(&tx, &actor, &conversation_id)?;
+                        crate::audience::require_original(
+                            &tx,
+                            &actor,
+                            &conversation_id,
+                            connect_protocol::membership::ContentKind::SipLeg,
+                            &id,
+                        )?;
                         let session = crate::sessions::get(&tx, &conversation_id, &leg.session_id)?;
                         if actor.identity_id != session.initiator_id
                             && actor.identity_id != session.participant_id
@@ -261,11 +290,26 @@ impl Store {
     }
 
     pub fn prepare_sip_leg(&self, job: &SipLegJob, connection_id: &str) -> Result<()> {
-        let changed = self.connection()?.execute(
+        let authority = self.runtime_query_authority(
+            crate::authority_admission::runtime::SIP_LEG,
+            &[&job.leg.id],
+        )?;
+        let mut c = self.connection()?;
+        let tx = c
+            .transaction_with_behavior(TransactionBehavior::Immediate)
+            .map_err(|_| Error::storage())?;
+        self.require_runtime_query(
+            &tx,
+            &authority,
+            crate::authority_admission::runtime::SIP_LEG,
+            &[&job.leg.id],
+        )?;
+        let changed = tx.execute(
             "UPDATE sip_legs SET connection_id=?1,updated_at=?2 WHERE id=?3 AND state='starting' AND connection_id IS NULL",
             params![connection_id, now(), job.leg.id],
         ).map_err(|_| Error::storage())?;
         if changed == 1 {
+            tx.commit().map_err(|_| Error::storage())?;
             Ok(())
         } else {
             Err(Error::new("conflict", "SIP leg is no longer starting"))
@@ -302,12 +346,26 @@ impl Store {
             return Err(Error::new("invalid-request", "Invalid SIP leg state"));
         }
         let clear_end_request = u8::from(state != "active");
-        self.connection()?
-            .execute(
+        let authority = self.runtime_query_authority(
+            crate::authority_admission::runtime::SIP_LEG,
+            &[&job.leg.id],
+        )?;
+        let mut c = self.connection()?;
+        let tx = c
+            .transaction_with_behavior(TransactionBehavior::Immediate)
+            .map_err(|_| Error::storage())?;
+        self.require_runtime_query(
+            &tx,
+            &authority,
+            crate::authority_admission::runtime::SIP_LEG,
+            &[&job.leg.id],
+        )?;
+        tx.execute(
                 "UPDATE sip_legs SET state=?1,ended_reason=?2,end_requested=CASE WHEN ?3=1 THEN 0 ELSE end_requested END,updated_at=?4 WHERE id=?5 AND state NOT IN ('ended','failed','cancelled')",
                 params![state, reason, clear_end_request, now(), job.leg.id],
             )
             .map_err(|_| Error::storage())?;
+        tx.commit().map_err(|_| Error::storage())?;
         Ok(())
     }
 }

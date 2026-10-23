@@ -1,0 +1,3670 @@
+{
+  "task": "G6-046",
+  "title": "Wire vCon and supporting UCTP behavior into Connect",
+  "status": "in-progress",
+  "created_at": "2026-10-21T13:01:09.664427+00:00",
+  "full_task_complete": false,
+  "runtime_qualification": false,
+  "approved_work": "Expose required vCon retrieval/outcomes, auth refresh and assurance, step-up, DTMF, quality and capability events through the same service authority and SDK-facing contract. Ensure redaction, retention and link access use actual content audiences, including consultations.",
+  "approved_verify": "Execute every assigned auxiliary-protocol vector through Connect rather than only upstream unit tests. Session records remain useful after media ends, and partial captures or unavailable records have truthful status.",
+  "dependencies": [
+    {
+      "id": "G6-024",
+      "status": "done",
+      "evidence_paths": [
+        "scripts/check-gate6-media-primitives.py",
+        "docs/evidence/gate-6/media-primitives.json",
+        "scripts/check-gate6-websocket-media.py",
+        "docs/evidence/gate-6/websocket-media.json",
+        "docs/developer/websocket-media.md",
+        "patches/rvoip/gate6-websocket-media.patch",
+        "scripts/check-gate6-media-profiles.py",
+        "docs/evidence/gate-6/media-profiles.json",
+        "docs/developer/media-profiles.md",
+        "patches/rvoip/gate6-media-profiles.patch",
+        "scripts/check-gate6-received-dtmf.py",
+        "docs/evidence/gate-6/received-dtmf.json",
+        "docs/developer/received-dtmf.md",
+        "patches/rvoip/gate6-received-dtmf.patch",
+        "scripts/check-gate6-core-native-dtmf.py",
+        "docs/evidence/gate-6/core-native-dtmf.json",
+        "docs/developer/core-native-dtmf.md",
+        "patches/rvoip/gate6-core-native-dtmf.patch",
+        "scripts/check-gate6-native-dtmf-route.py",
+        "docs/evidence/gate-6/native-dtmf-route.json",
+        "docs/developer/native-dtmf-route.md",
+        "patches/rvoip/gate6-native-dtmf-route.patch",
+        "scripts/check-gate6-dtmf-info-route.py",
+        "docs/evidence/gate-6/dtmf-info-route.json",
+        "docs/developer/dtmf-info-route.md",
+        "patches/rvoip/gate6-dtmf-info-route.patch",
+        "scripts/check-gate6-sip-info-authority.py",
+        "docs/evidence/gate-6/sip-info-authority.json",
+        "docs/developer/sip-info-authority.md",
+        "patches/rvoip/gate6-sip-info-authority.patch",
+        "scripts/check-gate6-dtmf-routing.py",
+        "docs/evidence/gate-6/dtmf-routing.json",
+        "docs/developer/dtmf-routing.md",
+        "patches/rvoip/gate6-dtmf-routing.patch",
+        "scripts/check-gate6-audio-admission.py",
+        "docs/evidence/gate-6/audio-admission.json",
+        "scripts/check-gate6-rtp-quality.py",
+        "docs/evidence/gate-6/rtp-quality.json",
+        "scripts/check-gate6-sip-dtmf-profile.py",
+        "docs/evidence/gate-6/sip-dtmf-profile.json",
+        "contracts/native-signals-profile.md",
+        "docs/developer/telephone-events.md"
+      ]
+    },
+    {
+      "id": "G6-026",
+      "status": "done",
+      "evidence_paths": [
+        "patches/rvoip/gate6-authenticated-dispatch.patch",
+        "patches/rvoip/gate6-authenticated-peer.patch",
+        "patches/rvoip/gate6-step-up.patch",
+        "scripts/check-gate6-auth-dispatch.py",
+        "scripts/check-gate6-auth-peer.py",
+        "scripts/check-gate6-step-up.py",
+        "docs/evidence/gate-6/auth-dispatch.json",
+        "docs/evidence/gate-6/auth-peer.json",
+        "docs/evidence/gate-6/step-up.json",
+        "docs/developer/authenticated-dispatch.md",
+        "docs/developer/authenticated-peer.md",
+        "docs/developer/step-up.md",
+        "contracts/schemas/uctp-envelope-2.schema.json",
+        "contracts/uctp-vectors/gate6-envelope.json",
+        "patches/rvoip/gate6-auth-recovery.patch",
+        "scripts/check-gate6-auth-recovery.py",
+        "docs/evidence/gate-6/auth-recovery.json",
+        "docs/developer/auth-recovery.md",
+        "patches/rvoip/gate6-peer-reachability.patch",
+        "scripts/check-gate6-peer-reachability.py",
+        "docs/evidence/gate-6/peer-reachability.json",
+        "docs/developer/peer-reachability.md",
+        "patches/rvoip/gate6-canonical-transports.patch",
+        "scripts/check-gate6-canonical-transports.py",
+        "docs/evidence/gate-6/canonical-transports.json",
+        "docs/developer/canonical-transports.md",
+        "patches/rvoip/gate6-secure-profile.patch",
+        "scripts/check-gate6-secure-profile.py",
+        "docs/evidence/gate-6/secure-profile.json",
+        "docs/developer/secure-profile.md",
+        "patches/rvoip/gate6-peer-admission.patch",
+        "scripts/check-gate6-peer-admission.py",
+        "docs/evidence/gate-6/peer-admission.json",
+        "docs/developer/peer-admission.md",
+        "patches/rvoip/gate6-peer-sessions.patch",
+        "scripts/check-gate6-peer-sessions.py",
+        "docs/evidence/gate-6/peer-sessions.json",
+        "docs/developer/peer-sessions.md",
+        "patches/rvoip/gate6-peer-native.patch",
+        "scripts/check-gate6-peer-native.py",
+        "docs/evidence/gate-6/peer-native.json",
+        "docs/developer/peer-native.md",
+        "patches/rvoip/gate6-peer-exchange.patch",
+        "scripts/check-gate6-peer-exchange.py",
+        "docs/evidence/gate-6/peer-exchange.json",
+        "docs/developer/peer-exchange.md",
+        "patches/rvoip/gate6-session-cleanup.patch",
+        "scripts/check-gate6-session-cleanup.py",
+        "docs/evidence/gate-6/session-cleanup.json",
+        "docs/developer/session-cleanup.md",
+        "patches/rvoip/gate6-canonical-media.patch",
+        "scripts/check-gate6-canonical-media.py",
+        "docs/evidence/gate-6/canonical-media.json",
+        "docs/developer/canonical-media.md",
+        "patches/rvoip/gate6-media-control.patch",
+        "scripts/check-gate6-media-control.py",
+        "docs/evidence/gate-6/media-control.json",
+        "docs/developer/media-control.md",
+        "docs/developer/authentication-audit.md",
+        "patches/rvoip/gate6-assurance-retirement.patch",
+        "scripts/check-gate6-assurance-retirement.py",
+        "docs/evidence/gate-6/assurance-retirement.json",
+        "docs/developer/assurance-retirement.md",
+        "patches/rvoip/gate6-es256.patch",
+        "scripts/check-gate6-es256.py",
+        "docs/evidence/gate-6/es256.json",
+        "docs/developer/es256.md",
+        "contracts/gate6-authentication-evidence.json",
+        "scripts/check-gate6-authentication-audit.py",
+        "docs/evidence/gate-6/authentication-audit.json"
+      ]
+    },
+    {
+      "id": "G6-027",
+      "status": "done",
+      "evidence_paths": [
+        "docs/evidence/gate-6/record-sources.json",
+        "docs/developer/record-sources.md",
+        "scripts/check-gate6-record-sources.py",
+        "scripts/validate-gate6-record-sources.py",
+        "docs/evidence/gate-6/record-retrieval.json",
+        "docs/evidence/gate-6/record-redaction.json",
+        "docs/evidence/gate-6/record-finalization.json",
+        "docs/evidence/gate-6/record-projection.json",
+        "docs/evidence/gate-6/record-lifecycle.json",
+        "docs/evidence/gate-6/record-storage.json",
+        "patches/rvoip/gate6-conversation-records.patch",
+        "docs/developer/record-retrieval.md",
+        "scripts/run-gate6-local-record-postgres.py"
+      ]
+    },
+    {
+      "id": "G6-031",
+      "status": "done",
+      "evidence_paths": [
+        "docs/evidence/gate-6/membership.json",
+        "docs/developer/membership.md"
+      ]
+    },
+    {
+      "id": "G6-037",
+      "status": "done",
+      "evidence_paths": [
+        "scripts/check-gate6-canonical-http.py",
+        "docs/evidence/gate-6/canonical-http.json",
+        "docs/developer/canonical-http.md",
+        "contracts/openapi-canonical-http.json",
+        "scripts/generate-canonical-http-openapi.py",
+        "scripts/check-gate6-session-decisions.py",
+        "docs/evidence/gate-6/session-decisions.json",
+        "docs/developer/session-decisions.md",
+        "contracts/openapi-session-decisions.json",
+        "crates/connect-service/src/canonical.rs",
+        "crates/connect-service/src/authentication.rs",
+        "crates/connect-service/src/authenticated_operations.rs",
+        "crates/connect-service/tests/gate6_canonical_dispatch.rs",
+        "patches/rvoip/gate6-canonical-replies.patch",
+        "scripts/check-gate6-canonical-service.py",
+        "docs/evidence/gate-6/canonical-service.json",
+        "docs/developer/canonical-service.md",
+        "crates/connect-store/migrations/028_peer_credentials.sql",
+        "crates/connect-store/src/peer_credentials.rs",
+        "crates/connect-service/src/credential_binding.rs",
+        "crates/connect-service/src/signing_keys.rs",
+        "crates/connect-service/tests/gate6_peer_credentials.rs",
+        "crates/connect-store/tests/gate6_peer_credentials.rs",
+        "contracts/openapi-provisioning.json",
+        "scripts/check-gate6-peer-credentials.py",
+        "docs/evidence/gate-6/peer-credentials.json",
+        "docs/developer/peer-credentials.md",
+        "crates/connect-store/migrations/029_authority_fences.sql",
+        "crates/connect-store/src/authority_fences.rs",
+        "crates/connect-store/src/authority_fences/tests.rs",
+        "crates/connect-store/src/authority_admission.rs",
+        "crates/connect-service/src/messages.rs",
+        "scripts/check-gate6-authority-fences.py",
+        "docs/evidence/gate-6/authority-fences.json",
+        "docs/developer/authority-fences.md",
+        "crates/connect-store/src/authority_admission/operations.rs",
+        "crates/connect-store/src/tasks/authority_fences.rs",
+        "crates/connect-store/src/authority_fences/tests/mutations.rs",
+        "contracts/gate6-authority-writers.json",
+        "scripts/check-gate6-authority-writers.py",
+        "docs/evidence/gate-6/authority-writers.json",
+        "docs/developer/authority-writers.md",
+        "crates/connect-store/src/authority_admission/runtime.rs",
+        "crates/connect-store/src/authority_fences/tests/runtime.rs",
+        "crates/connect-store/src/sms_eligibility.rs",
+        "crates/connect-store/src/connector_observations.rs",
+        "contracts/openapi-provider-observations.json",
+        "scripts/check-gate6-runtime-authority.py",
+        "docs/evidence/gate-6/runtime-authority.json",
+        "docs/developer/runtime-authority.md",
+        "crates/connect-store/src/transitions/admission.rs",
+        "crates/connect-store/src/transitions/tests/authority_tests.rs",
+        "crates/connect-store/src/transitions/actions.rs",
+        "crates/connect-store/src/transitions/effects.rs",
+        "crates/connect-store/src/transitions/cleanup.rs",
+        "scripts/check-gate6-operation-authority.py",
+        "docs/evidence/gate-6/operation-authority.json",
+        "docs/developer/operation-authority.md",
+        "crates/connect-store/migrations/030_runtime_ownership.sql",
+        "crates/connect-store/src/installation_ownership.rs",
+        "crates/connect-store/src/installation_ownership/tests.rs",
+        "crates/connect-store/src/startup_authority.rs",
+        "crates/connect-store/src/runtime_epoch.rs",
+        "crates/connect-store/src/runtime_epoch/tests.rs",
+        "crates/connect-server/src/installation.rs",
+        "crates/connect-server/src/runtime.rs",
+        "crates/connect-server/tests/maintenance.rs",
+        "crates/connect-store/tests/gate6_schema.rs",
+        "scripts/check-gate6-owned-runtime.py",
+        "docs/evidence/gate-6/owned-runtime.json",
+        "docs/developer/owned-runtime.md",
+        "crates/connect-store/migrations/031_provider_dispatch.sql",
+        "crates/connect-store/src/provider_dispatch.rs",
+        "crates/connect-connector-api/src/dispatch.rs",
+        "crates/connect-connector-http/src/lib.rs",
+        "crates/connect-server/tests/gate6_provider_dispatch.rs",
+        "scripts/check-gate6-provider-dispatch.py",
+        "docs/evidence/gate-6/provider-dispatch.json",
+        "docs/developer/provider-dispatch.md",
+        "crates/connect-store/src/provider_reconciliation.rs",
+        "crates/connect-store/src/provider_reconciliation/tests.rs",
+        "scripts/check-gate6-provider-reconciliation.py",
+        "docs/evidence/gate-6/provider-reconciliation.json",
+        "docs/developer/provider-reconciliation.md",
+        "crates/connect-store/src/peer_authority.rs",
+        "crates/connect-store/src/peer_authority/tests.rs",
+        "crates/connect-service/src/peer_authority.rs",
+        "crates/connect-service/tests/gate6_store_peer_authority.rs",
+        "patches/rvoip/gate6-store-peer-lifetime.patch",
+        "scripts/check-gate6-store-peer-authority.py",
+        "docs/evidence/gate-6/store-peer-authority.json",
+        "docs/developer/store-peer-authority.md",
+        "crates/connect-store/src/transitions/peer.rs",
+        "crates/connect-store/src/transitions/tests/peer_operations.rs",
+        "crates/connect-service/src/canonical_operations.rs",
+        "crates/connect-server/tests/gate6_canonical_operations.rs",
+        "contracts/openapi-operations.json",
+        "scripts/check-gate6-canonical-operations.py",
+        "patches/rvoip/gate6-policy-refusals.patch",
+        "docs/evidence/gate-6/canonical-operations.json",
+        "docs/developer/canonical-operations.md",
+        "crates/connect-store/migrations/032_control_receipts.sql",
+        "crates/connect-store/src/operations/receipts.rs",
+        "crates/connect-protocol/src/transitions.rs",
+        "crates/connect-store/tests/gate6_messages.rs",
+        "crates/connect-store/src/tasks/tests/effects.rs",
+        "sdk/tests/control_receipts.test.mjs",
+        "sdk/tests/test_control_receipts.py",
+        "contracts/openapi-messages.json",
+        "scripts/check-gate6-control-receipts.py",
+        "docs/evidence/gate-6/control-receipts.json",
+        "docs/developer/control-receipts.md",
+        "crates/connect-protocol/src/conversations.rs",
+        "crates/connect-store/migrations/033_conversation_control.sql",
+        "crates/connect-store/src/conversation_control.rs",
+        "crates/connect-store/tests/gate6_conversation_control.rs",
+        "crates/connect-service/src/canonical_conversations.rs",
+        "crates/connect-server/src/conversation_policy.rs",
+        "contracts/openapi-conversations.json",
+        "scripts/generate-gate6-conversation-reference.py",
+        "sdk/tests/conversations.test.mjs",
+        "sdk/tests/test_conversations.py",
+        "scripts/check-gate6-conversation-control.py",
+        "docs/evidence/gate-6/conversation-control.json",
+        "docs/developer/conversation-control.md",
+        "crates/connect-store/migrations/034_membership_control.sql",
+        "crates/connect-store/src/membership/control.rs",
+        "crates/connect-store/src/membership/queries.rs",
+        "crates/connect-service/src/canonical_membership.rs",
+        "crates/connect-store/tests/gate6_membership_control.rs",
+        "crates/connect-server/tests/gate6_membership_control.rs",
+        "contracts/openapi-membership.json",
+        "scripts/generate-gate6-membership-reference.py",
+        "scripts/check-gate6-membership-control.py",
+        "docs/evidence/gate-6/membership-control.json",
+        "docs/developer/membership-control.md",
+        "crates/connect-store/src/events/admission.rs",
+        "crates/connect-store/src/peer_authority/subscriptions.rs",
+        "crates/connect-service/src/canonical_subscriptions.rs",
+        "patches/rvoip/gate6-subscription-delivery.patch",
+        "contracts/openapi-events.json",
+        "scripts/check-gate6-canonical-subscriptions.py",
+        "docs/evidence/gate-6/canonical-subscriptions.json",
+        "docs/developer/canonical-subscriptions.md",
+        "crates/connect-store/src/peer_authority/read_receipts.rs",
+        "crates/connect-store/src/peer_authority/tests/read_receipts.rs",
+        "crates/connect-service/src/canonical_receipts.rs",
+        "crates/connect-server/tests/gate6_canonical_operations/read_receipts.rs",
+        "patches/rvoip/gate6-receipt-observations.patch",
+        "contracts/openapi-attachments.json",
+        "scripts/check-gate6-canonical-receipts.py",
+        "docs/evidence/gate-6/canonical-receipts.json",
+        "docs/developer/canonical-receipts.md",
+        "crates/connect-server/src/canonical.rs",
+        "crates/connect-client/src/canonical.rs",
+        "crates/connect-server/tests/gate6_canonical_runtime.rs",
+        "scripts/check-gate6-canonical-runtime.py",
+        "docs/evidence/gate-6/canonical-runtime.json",
+        "docs/developer/canonical-runtime.md",
+        "crates/connect-client/src/canonical/calls.rs",
+        "crates/connect-client/src/canonical/tests.rs",
+        "scripts/check-gate6-canonical-calls.py",
+        "docs/evidence/gate-6/canonical-calls.json",
+        "docs/developer/canonical-calls.md",
+        "crates/connect-server/src/cli/canonical_init.rs",
+        "crates/connect-server/src/main.rs",
+        "crates/connect-server/tests/gate6_canonical_bootstrap.rs",
+        "scripts/check-gate6-canonical-bootstrap.py",
+        "docs/evidence/gate-6/canonical-bootstrap.json",
+        "docs/developer/canonical-bootstrap.md",
+        "crates/connect-client/src/application.rs",
+        "crates/connect-client/src/application/tests.rs",
+        "crates/connect-server/src/cli/request.rs",
+        "crates/connect-server/tests/gate6_application_sdk.rs",
+        "scripts/check-gate6-application-sdk.py",
+        "docs/evidence/gate-6/application-sdk.json",
+        "docs/developer/application-sdk.md",
+        "crates/connect-client/src/application/administration.rs",
+        "crates/connect-server/src/cli/provisioning.rs",
+        "scripts/check-gate6-provisioning-sdk.py",
+        "docs/evidence/gate-6/provisioning-sdk.json",
+        "docs/developer/trusted-provisioning-sdk.md",
+        "crates/connect-protocol/src/provisioning.rs",
+        "crates/connect-store/src/provisioning.rs",
+        "crates/connect-store/tests/gate6_provisioning.rs",
+        "crates/connect-server/tests/gate6_provisioning.rs",
+        "scripts/check-gate6-credential-revocation.py",
+        "docs/evidence/gate-6/credential-revocation.json",
+        "docs/developer/credential-revocation.md",
+        "crates/connect-store/src/transitions/mod.rs",
+        "crates/connect-store/src/transitions/authority.rs",
+        "crates/connect-service/src/canonical_transitions.rs",
+        "crates/connect-server/tests/gate6_canonical_transitions.rs",
+        "scripts/check-gate6-canonical-transitions.py",
+        "docs/evidence/gate-6/canonical-transitions.json",
+        "docs/developer/canonical-transitions.md"
+      ]
+    },
+    {
+      "id": "G6-038",
+      "status": "done",
+      "evidence_paths": [
+        "crates/connect-store/migrations/037_native_offer_operations.sql",
+        "crates/connect-store/src/transitions/native_offers.rs",
+        "crates/connect-store/src/peer_authority/native_endpoint.rs",
+        "crates/connect-store/src/connection_control/tests/native_wire.rs",
+        "crates/connect-store/src/peer_authority/connection_media.rs",
+        "crates/connect-store/src/connection_control/tests/media_authority.rs",
+        "crates/connect-service/src/canonical_media.rs",
+        "crates/connect-service/src/canonical_media/tests.rs",
+        "crates/connect-client/src/canonical/native.rs",
+        "crates/connect-client/src/canonical/tests.rs",
+        "docs/developer/general-sessions.md",
+        "crates/connect-protocol/src/events.rs",
+        "crates/connect-store/src/tasks/budget.rs",
+        "crates/connect-store/src/events/journal.rs",
+        "crates/connect-store/src/events/admission.rs",
+        "contracts/openapi-events.json",
+        "sdk/typescript/src/event_validation.ts",
+        "sdk/python/connect_sdk/event_validation.py",
+        "sdk/tests/events_matrix.json",
+        "crates/connect-store/migrations/038_native_offer_rejections.sql",
+        "crates/connect-store/src/transitions/native_offers/rejection.rs",
+        "crates/connect-store/src/connection_control/tests/native_rejection.rs",
+        "crates/connect-service/src/canonical_native.rs",
+        "crates/connect-store/src/transitions/native_offers/observations.rs",
+        "crates/connect-store/src/transitions/native_offers/recovery.rs",
+        "crates/connect-server/tests/support/canonical_native_connections.rs",
+        "crates/connect-protocol/src/native_streams.rs",
+        "crates/connect-store/migrations/040_native_stream_operations.sql",
+        "crates/connect-store/src/peer_authority/native_streams.rs",
+        "crates/connect-store/src/transitions/native_streams.rs",
+        "crates/connect-store/src/connection_control/tests/native_stream_authority.rs",
+        "crates/connect-store/src/transitions/native_streams/outcomes.rs",
+        "crates/connect-service/src/canonical_native_streams.rs",
+        "crates/connect-service/src/canonical_media/streams.rs",
+        "crates/connect-service/src/peer_authority/native_streams.rs",
+        "crates/connect-store/src/session_control.rs",
+        "crates/connect-server/tests/fixtures/gate6-vp8-black-640x360.vp8",
+        "crates/connect-server/tests/fixtures/gate6-vp8-black-640x360.txt",
+        "crates/connect-store/migrations/041_native_connection_end.sql",
+        "crates/connect-protocol/src/session_control.rs",
+        "crates/connect-store/src/session_control_tests.rs",
+        "crates/connect-protocol/src/native_data.rs",
+        "crates/connect-store/src/peer_authority/native_data.rs",
+        "crates/connect-store/migrations/042_native_data_messages.sql",
+        "crates/connect-store/src/transitions/native_streams/data.rs",
+        "crates/connect-store/src/connection_control/tests/native_stream_authority/data_custody.rs",
+        "crates/connect-store/migrations/043_native_data_writes.sql",
+        "crates/connect-store/src/peer_authority/connection_media/data_writes.rs",
+        "crates/connect-service/src/canonical_media/data_writes.rs",
+        "crates/connect-store/src/connection_control/tests/native_stream_authority/data_writes.rs",
+        "crates/connect-store/src/peer_authority/connection_media/data_reads.rs",
+        "crates/connect-store/src/connection_control/tests/native_stream_authority/data_reads.rs",
+        "crates/connect-service/src/canonical_media/data.rs",
+        "crates/connect-service/src/peer_authority/native_data.rs",
+        "crates/connect-service/src/canonical_native_data.rs",
+        "crates/connect-server/tests/support/canonical_native_connections/data.rs",
+        "patches/rvoip/gate6-native-data-terminal-refusal.patch",
+        "dependencies/source-lock.json",
+        "crates/connect-service/src/canonical_media/roles.rs",
+        "docs/developer/native-session-roles.md",
+        "crates/connect-store/migrations/044_native_reconciliation.sql",
+        "crates/connect-store/src/peer_authority/connection_media/reconciliation.rs",
+        "crates/connect-store/src/transitions/native_streams/reconciliation.rs",
+        "crates/connect-store/src/connection_control/tests/native_stream_authority/reconciliation.rs",
+        "crates/connect-service/src/canonical_media/reconciliation.rs",
+        "crates/connect-service/src/canonical_native_subscriptions.rs",
+        "crates/connect-server/tests/support/canonical_native_connections/future.rs",
+        "docs/developer/native-subscriptions.md",
+        "contracts/connect-operations.md",
+        "crates/connect-store/migrations/045_native_codec_controls.sql",
+        "crates/connect-store/src/connection_control/tests/native_stream_authority/codecs.rs",
+        "crates/connect-server/tests/support/canonical_native_connections/codecs.rs",
+        "docs/developer/native-codecs.md",
+        "docs/roadmap.json",
+        "docs/index.html",
+        "docs/evidence/gate-6/general-session-runtime.json"
+      ]
+    },
+    {
+      "id": "G6-042",
+      "status": "done",
+      "evidence_paths": [
+        "docs/evidence/gate-6/context-outcomes.json",
+        "docs/evidence/gate-6/assistant-context-binding.json",
+        "docs/evidence/gate-6/native-assistant-provider.json",
+        "crates/connect-store/src/peer_authority/connection_media/assistant/provider.rs",
+        "crates/connect-store/src/peer_authority/connection_media/assistant/provider/observations.rs",
+        "crates/connect-service/src/assistant_context.rs",
+        "crates/connect-server/src/assistant_vapi.rs",
+        "crates/connect-server/tests/support/canonical_native_connections/consultation/provider/public_context.rs",
+        "docs/developer/assistant-context.md",
+        "contracts/connectors/host-context-v1.md",
+        "docs/evidence/gate-6/native-assistant-receipts-audio.json",
+        "crates/connect-client/src/canonical/public_audio.rs",
+        "crates/connect-server/src/assistant_vapi/media.rs",
+        "crates/connect-store/src/context/delivery.rs",
+        "contracts/openapi-context.json",
+        "docs/evidence/gate-6/native-assistant-context-phases.json",
+        "crates/connect-store/migrations/063_native_assistant_context_phases.sql",
+        "crates/connect-store/src/peer_authority/connection_media/assistant/provider/initialization.rs",
+        "crates/connect-store/src/peer_authority/connection_media/assistant/provider/updates.rs",
+        "crates/connect-server/src/assistant_vapi/initialization.rs",
+        "crates/connect-server/src/assistant_vapi/updates.rs",
+        "crates/connect-service/src/canonical_media.rs",
+        "crates/connect-server/tests/support/canonical_native_connections/consultation/provider/context_phases.rs",
+        "crates/connect-server/tests/support/canonical_native_connections/consultation/provider/restart_followup.rs"
+      ]
+    }
+  ],
+  "source_ledger": {
+    "path": "contracts/uctp-gate-6-requirements.json",
+    "sha256": "c21ef7e8b9068520303638047252022a93891a46ab59ee588f810c8ba69677da"
+  },
+  "assigned_clause_count": 61,
+  "assigned_case_ids": [
+    "u6-req-0069",
+    "u6-req-0070",
+    "u6-req-0071",
+    "u6-req-0072",
+    "u6-req-0073",
+    "u6-req-0074",
+    "u6-req-0075",
+    "u6-req-0076",
+    "u6-req-0077",
+    "u6-req-0078",
+    "u6-req-0079",
+    "u6-req-0080",
+    "u6-req-0081",
+    "u6-req-0082",
+    "u6-req-0083",
+    "u6-req-0084",
+    "u6-req-0085",
+    "u6-req-0086",
+    "u6-req-0087",
+    "u6-req-0088",
+    "u6-req-0089",
+    "u6-req-0090",
+    "u6-req-0091",
+    "u6-req-0092",
+    "u6-req-0093",
+    "u6-req-0094",
+    "u6-req-0095",
+    "u6-req-0096",
+    "u6-req-0097",
+    "u6-req-0098",
+    "u6-req-0099",
+    "u6-req-0100",
+    "u6-req-0101",
+    "u6-req-0102",
+    "u6-req-0103",
+    "u6-req-0104",
+    "u6-req-0105",
+    "u6-req-0106",
+    "u6-req-0107",
+    "u6-req-0108",
+    "u6-req-0109",
+    "u6-req-0110",
+    "u6-req-0111",
+    "u6-req-0112",
+    "u6-req-0113",
+    "u6-req-0114",
+    "u6-req-0115",
+    "u6-req-0116",
+    "u6-req-0117",
+    "u6-req-0118",
+    "u6-req-0119",
+    "u6-req-0120",
+    "u6-req-0121",
+    "u6-req-0122",
+    "u6-req-0123",
+    "u6-req-0124",
+    "u6-req-0125",
+    "u6-req-0126",
+    "u6-req-0127",
+    "u6-req-0128",
+    "u6-req-0129"
+  ],
+  "assigned_clauses": [
+    {
+      "id": "U6-REQ-0069",
+      "heading": "7.1 Conversation lifecycle",
+      "source_excerpt": "A Conversation may be **implicit** (created when the first envelope referencing it arrives, if the server's policy allows) or **explicit** (`conversation.create` issued first). For Thelve and most production servers, explicit creation is the default \u2014 it carries metadata (tenant, customer reference, channel binding) the server needs.",
+      "classification": "behavior-or-context",
+      "applicability": "mandatory-behavior",
+      "case_id": "u6-req-0069",
+      "runtime_status": "passed-local-native",
+      "shared_implementation_items": [
+        "G6-004",
+        "G6-006",
+        "G6-009",
+        "G6-019",
+        "G6-020",
+        "G6-021",
+        "G6-022",
+        "G6-023",
+        "G6-027",
+        "G6-038",
+        "G6-039",
+        "G6-040",
+        "G6-041",
+        "G6-046",
+        "G6-094"
+      ],
+      "connect_integration_audit": {
+        "status": "passed-local-native",
+        "historical_component_reports": [
+          "docs/evidence/gate-6/conversation-control.json",
+          "docs/evidence/gate-6/canonical-runtime.json"
+        ],
+        "source_entrypoints": [
+          "crates/connect-server/tests/gate6_canonical_runtime.rs",
+          "crates/connect-service/src/canonical_conversations.rs"
+        ],
+        "remaining": "Linux, remote and browser profiles and gate acceptance remain independently assigned and unqualified.",
+        "current_evidence": "docs/evidence/gate-6/auxiliary-conversation-clauses.json"
+      },
+      "runtime_evidence": {
+        "report": "docs/evidence/gate-6/auxiliary-conversation-clauses.json",
+        "algorithms": [
+          "EdDSA",
+          "ES256"
+        ],
+        "case_id": "u6-req-0069",
+        "platform": "macOS arm64; installed Connect listener and signed public SDK"
+      }
+    },
+    {
+      "id": "U6-REQ-0070",
+      "heading": "7.1 Conversation lifecycle",
+      "source_excerpt": "```\n          C\u2192S: conversation.create {tenant_id, metadata}\n          S\u2192C: conversation.opened {cid, participants:[]}\n              \u2502\n              \u2502 (Messages and/or Sessions added over time)\n              \u2502\n          C\u2192S: (last Participant leaves OR explicit conversation.close)\n          S\u2192C: conversation.closed {cid, reason}\n```",
+      "classification": "wire-example",
+      "applicability": "mandatory-behavior",
+      "case_id": "u6-req-0070",
+      "runtime_status": "passed-local-native",
+      "shared_implementation_items": [
+        "G6-004",
+        "G6-006",
+        "G6-009",
+        "G6-019",
+        "G6-020",
+        "G6-021",
+        "G6-022",
+        "G6-023",
+        "G6-027",
+        "G6-038",
+        "G6-039",
+        "G6-040",
+        "G6-041",
+        "G6-046",
+        "G6-094"
+      ],
+      "connect_integration_audit": {
+        "status": "passed-local-native",
+        "historical_component_reports": [
+          "docs/evidence/gate-6/conversation-control.json",
+          "docs/evidence/gate-6/canonical-runtime.json"
+        ],
+        "source_entrypoints": [
+          "crates/connect-server/tests/gate6_canonical_runtime.rs",
+          "crates/connect-service/src/canonical_conversations.rs"
+        ],
+        "remaining": "Linux, remote and browser profiles and gate acceptance remain independently assigned and unqualified.",
+        "current_evidence": "docs/evidence/gate-6/auxiliary-conversation-clauses.json"
+      },
+      "runtime_evidence": {
+        "report": "docs/evidence/gate-6/auxiliary-conversation-clauses.json",
+        "algorithms": [
+          "EdDSA",
+          "ES256"
+        ],
+        "case_id": "u6-req-0070",
+        "platform": "macOS arm64; installed Connect listener and signed public SDK"
+      }
+    },
+    {
+      "id": "U6-REQ-0071",
+      "heading": "7.1 Conversation lifecycle",
+      "source_excerpt": "A Conversation's **closure rule** is server-policy. UCTP defines two reference policies:\n- **`ephemeral`** \u2014 close the Conversation when its last Session ends and no Messages have arrived in N seconds (default 60s).\n- **`persistent`** \u2014 never auto-close; close only on explicit request.",
+      "classification": "behavior-or-context",
+      "applicability": "mandatory-behavior",
+      "case_id": "u6-req-0071",
+      "runtime_status": "passed-local-native",
+      "shared_implementation_items": [
+        "G6-004",
+        "G6-006",
+        "G6-009",
+        "G6-019",
+        "G6-020",
+        "G6-021",
+        "G6-022",
+        "G6-023",
+        "G6-027",
+        "G6-038",
+        "G6-039",
+        "G6-040",
+        "G6-041",
+        "G6-046",
+        "G6-094"
+      ],
+      "connect_integration_audit": {
+        "status": "passed-local-native",
+        "historical_component_reports": [
+          "docs/evidence/gate-6/conversation-control.json",
+          "docs/evidence/gate-6/canonical-runtime.json"
+        ],
+        "source_entrypoints": [
+          "crates/connect-server/tests/gate6_canonical_runtime.rs",
+          "crates/connect-service/src/canonical_conversations.rs"
+        ],
+        "remaining": "Linux, remote and browser profiles and gate acceptance remain independently assigned and unqualified.",
+        "current_evidence": "docs/evidence/gate-6/auxiliary-conversation-clauses.json"
+      },
+      "runtime_evidence": {
+        "report": "docs/evidence/gate-6/auxiliary-conversation-clauses.json",
+        "algorithms": [
+          "EdDSA",
+          "ES256"
+        ],
+        "case_id": "u6-req-0071",
+        "platform": "macOS arm64; installed Connect listener and signed public SDK"
+      }
+    },
+    {
+      "id": "U6-REQ-0072",
+      "heading": "7.1 Conversation lifecycle",
+      "source_excerpt": "The policy is set at `conversation.create` time (`payload.policy`) and may be changed via `conversation.update` (deferred to v1).",
+      "classification": "behavior-or-context",
+      "applicability": "mandatory-behavior",
+      "case_id": "u6-req-0072",
+      "runtime_status": "passed-local-native",
+      "shared_implementation_items": [
+        "G6-004",
+        "G6-006",
+        "G6-009",
+        "G6-019",
+        "G6-020",
+        "G6-021",
+        "G6-022",
+        "G6-023",
+        "G6-027",
+        "G6-038",
+        "G6-039",
+        "G6-040",
+        "G6-041",
+        "G6-046",
+        "G6-094"
+      ],
+      "connect_integration_audit": {
+        "status": "passed-local-native",
+        "historical_component_reports": [
+          "docs/evidence/gate-6/conversation-control.json",
+          "docs/evidence/gate-6/canonical-runtime.json"
+        ],
+        "source_entrypoints": [
+          "crates/connect-server/tests/gate6_canonical_runtime.rs",
+          "crates/connect-service/src/canonical_conversations.rs"
+        ],
+        "remaining": "Linux, remote and browser profiles and gate acceptance remain independently assigned and unqualified.",
+        "current_evidence": "docs/evidence/gate-6/auxiliary-conversation-clauses.json"
+      },
+      "runtime_evidence": {
+        "report": "docs/evidence/gate-6/auxiliary-conversation-clauses.json",
+        "algorithms": [
+          "EdDSA",
+          "ES256"
+        ],
+        "case_id": "u6-req-0072",
+        "platform": "macOS arm64; installed Connect listener and signed public SDK"
+      }
+    },
+    {
+      "id": "U6-REQ-0073",
+      "heading": "`conversation.create` (C\u2192S)",
+      "source_excerpt": "```json\n{\n  \"type\": \"conversation.create\",\n  \"cid\": null,\n  \"payload\": {\n    \"tenant_id\": \"...\",\n    \"policy\": \"ephemeral\" | \"persistent\",\n    \"idle_close_secs\": 60,\n    \"metadata\": { /* application-specific key/value pairs */ },\n    \"initial_participants\": [\n      { \"identity_id\": \"id_...\", \"role\": \"customer\" | \"agent\" | \"supervisor\" | \"observer\" | \"...\" }\n    ]\n  }\n}\n```",
+      "classification": "wire-example",
+      "applicability": "mandatory-behavior",
+      "case_id": "u6-req-0073",
+      "runtime_status": "passed-local-native",
+      "shared_implementation_items": [
+        "G6-004",
+        "G6-006",
+        "G6-009",
+        "G6-019",
+        "G6-020",
+        "G6-021",
+        "G6-022",
+        "G6-023",
+        "G6-027",
+        "G6-038",
+        "G6-039",
+        "G6-040",
+        "G6-041",
+        "G6-046",
+        "G6-094"
+      ],
+      "connect_integration_audit": {
+        "status": "passed-local-native",
+        "historical_component_reports": [
+          "docs/evidence/gate-6/conversation-control.json",
+          "docs/evidence/gate-6/canonical-runtime.json"
+        ],
+        "source_entrypoints": [
+          "crates/connect-server/tests/gate6_canonical_runtime.rs",
+          "crates/connect-service/src/canonical_conversations.rs"
+        ],
+        "remaining": "Linux, remote and browser profiles and gate acceptance remain independently assigned and unqualified.",
+        "current_evidence": "docs/evidence/gate-6/auxiliary-conversation-clauses.json"
+      },
+      "runtime_evidence": {
+        "report": "docs/evidence/gate-6/auxiliary-conversation-clauses.json",
+        "algorithms": [
+          "EdDSA",
+          "ES256"
+        ],
+        "case_id": "u6-req-0073",
+        "platform": "macOS arm64; installed Connect listener and signed public SDK"
+      }
+    },
+    {
+      "id": "U6-REQ-0074",
+      "heading": "`conversation.create` (C\u2192S)",
+      "source_excerpt": "`tenant_id` is required for production servers; the server assigns the resulting `cid`. `idle_close_secs` is honored only when `policy = ephemeral`. `initial_participants` is optional \u2014 Participants may also be added implicitly when they join Sessions or send Messages.",
+      "classification": "behavior-or-context",
+      "applicability": "mandatory-behavior",
+      "case_id": "u6-req-0074",
+      "runtime_status": "passed-local-native",
+      "shared_implementation_items": [
+        "G6-004",
+        "G6-006",
+        "G6-009",
+        "G6-019",
+        "G6-020",
+        "G6-021",
+        "G6-022",
+        "G6-023",
+        "G6-027",
+        "G6-038",
+        "G6-039",
+        "G6-040",
+        "G6-041",
+        "G6-046",
+        "G6-094"
+      ],
+      "connect_integration_audit": {
+        "status": "passed-local-native",
+        "historical_component_reports": [
+          "docs/evidence/gate-6/conversation-control.json",
+          "docs/evidence/gate-6/canonical-runtime.json"
+        ],
+        "source_entrypoints": [
+          "crates/connect-server/tests/gate6_canonical_runtime.rs",
+          "crates/connect-service/src/canonical_conversations.rs"
+        ],
+        "remaining": "Linux, remote and browser profiles and gate acceptance remain independently assigned and unqualified.",
+        "current_evidence": "docs/evidence/gate-6/auxiliary-conversation-clauses.json"
+      },
+      "runtime_evidence": {
+        "report": "docs/evidence/gate-6/auxiliary-conversation-clauses.json",
+        "algorithms": [
+          "EdDSA",
+          "ES256"
+        ],
+        "case_id": "u6-req-0074",
+        "platform": "macOS arm64; installed Connect listener and signed public SDK"
+      }
+    },
+    {
+      "id": "U6-REQ-0075",
+      "heading": "`conversation.opened` (S\u2192C)",
+      "source_excerpt": "```json\n{\n  \"type\": \"conversation.opened\",\n  \"cid\": \"conv_...\",\n  \"in_reply_to\": \"<conversation.create.id, when in response to a create>\",\n  \"payload\": {\n    \"tenant_id\": \"...\",\n    \"policy\": \"ephemeral\" | \"persistent\",\n    \"idle_close_secs\": 60,\n    \"participants\": [\n      {\n        \"participant_id\": \"part_...\",\n        \"identity_id\": \"id_...\",\n        \"kind\": \"human\" | \"ai\" | \"system\" | \"external\",\n        \"role\": \"customer\" | \"agent\" | \"supervisor\" | \"observer\" | \"...\",\n        \"display_name\": \"...\"\n      }\n    ],\n    \"opened_at\": \"...\",\n    \"metadata\": { ... }\n  }\n}\n```",
+      "classification": "wire-example",
+      "applicability": "mandatory-behavior",
+      "case_id": "u6-req-0075",
+      "runtime_status": "passed-local-native",
+      "shared_implementation_items": [
+        "G6-004",
+        "G6-006",
+        "G6-009",
+        "G6-019",
+        "G6-020",
+        "G6-021",
+        "G6-022",
+        "G6-023",
+        "G6-027",
+        "G6-038",
+        "G6-039",
+        "G6-040",
+        "G6-041",
+        "G6-046",
+        "G6-094"
+      ],
+      "connect_integration_audit": {
+        "status": "passed-local-native",
+        "historical_component_reports": [
+          "docs/evidence/gate-6/conversation-control.json",
+          "docs/evidence/gate-6/canonical-runtime.json"
+        ],
+        "source_entrypoints": [
+          "crates/connect-server/tests/gate6_canonical_runtime.rs",
+          "crates/connect-service/src/canonical_conversations.rs"
+        ],
+        "remaining": "Linux, remote and browser profiles and gate acceptance remain independently assigned and unqualified.",
+        "current_evidence": "docs/evidence/gate-6/auxiliary-conversation-clauses.json"
+      },
+      "runtime_evidence": {
+        "report": "docs/evidence/gate-6/auxiliary-conversation-clauses.json",
+        "algorithms": [
+          "EdDSA",
+          "ES256"
+        ],
+        "case_id": "u6-req-0075",
+        "platform": "macOS arm64; installed Connect listener and signed public SDK"
+      }
+    },
+    {
+      "id": "U6-REQ-0076",
+      "heading": "`conversation.opened` (S\u2192C)",
+      "source_excerpt": "Emitted on initial open (with `in_reply_to`) and as the response payload for matching entries in `conversation.list` (without `in_reply_to`, or with `in_reply_to` pointing at the `conversation.list` envelope).",
+      "classification": "behavior-or-context",
+      "applicability": "mandatory-behavior",
+      "case_id": "u6-req-0076",
+      "runtime_status": "passed-local-native",
+      "shared_implementation_items": [
+        "G6-004",
+        "G6-006",
+        "G6-009",
+        "G6-019",
+        "G6-020",
+        "G6-021",
+        "G6-022",
+        "G6-023",
+        "G6-027",
+        "G6-038",
+        "G6-039",
+        "G6-040",
+        "G6-041",
+        "G6-046",
+        "G6-094"
+      ],
+      "connect_integration_audit": {
+        "status": "passed-local-native",
+        "historical_component_reports": [
+          "docs/evidence/gate-6/conversation-control.json",
+          "docs/evidence/gate-6/canonical-runtime.json"
+        ],
+        "source_entrypoints": [
+          "crates/connect-server/tests/gate6_canonical_runtime.rs",
+          "crates/connect-service/src/canonical_conversations.rs"
+        ],
+        "remaining": "Linux, remote and browser profiles and gate acceptance remain independently assigned and unqualified.",
+        "current_evidence": "docs/evidence/gate-6/auxiliary-conversation-clauses.json"
+      },
+      "runtime_evidence": {
+        "report": "docs/evidence/gate-6/auxiliary-conversation-clauses.json",
+        "algorithms": [
+          "EdDSA",
+          "ES256"
+        ],
+        "case_id": "u6-req-0076",
+        "platform": "macOS arm64; installed Connect listener and signed public SDK"
+      }
+    },
+    {
+      "id": "U6-REQ-0077",
+      "heading": "`conversation.closed` (S\u2192C)",
+      "source_excerpt": "```json\n{\n  \"type\": \"conversation.closed\",\n  \"cid\": \"conv_...\",\n  \"payload\": {\n    \"reason_code\": 200,\n    \"reason\": \"normal-closure\" | \"idle-timeout\" | \"explicit-close\" | \"policy-eviction\" | \"tenant-deleted\",\n    \"closed_at\": \"...\"\n  }\n}\n```",
+      "classification": "wire-example",
+      "applicability": "mandatory-behavior",
+      "case_id": "u6-req-0077",
+      "runtime_status": "passed-local-native",
+      "shared_implementation_items": [
+        "G6-004",
+        "G6-006",
+        "G6-009",
+        "G6-019",
+        "G6-020",
+        "G6-021",
+        "G6-022",
+        "G6-023",
+        "G6-027",
+        "G6-038",
+        "G6-039",
+        "G6-040",
+        "G6-041",
+        "G6-046",
+        "G6-094"
+      ],
+      "connect_integration_audit": {
+        "status": "passed-local-native",
+        "historical_component_reports": [
+          "docs/evidence/gate-6/conversation-control.json",
+          "docs/evidence/gate-6/canonical-runtime.json"
+        ],
+        "source_entrypoints": [
+          "crates/connect-server/tests/gate6_canonical_runtime.rs",
+          "crates/connect-service/src/canonical_conversations.rs"
+        ],
+        "remaining": "Linux, remote and browser profiles and gate acceptance remain independently assigned and unqualified.",
+        "current_evidence": "docs/evidence/gate-6/auxiliary-conversation-clauses.json"
+      },
+      "runtime_evidence": {
+        "report": "docs/evidence/gate-6/auxiliary-conversation-clauses.json",
+        "algorithms": [
+          "EdDSA",
+          "ES256"
+        ],
+        "case_id": "u6-req-0077",
+        "platform": "macOS arm64; installed Connect listener and signed public SDK"
+      }
+    },
+    {
+      "id": "U6-REQ-0078",
+      "heading": "`conversation.closed` (S\u2192C)",
+      "source_excerpt": "Multicast to every Participant currently subscribed to the Conversation.",
+      "classification": "behavior-or-context",
+      "applicability": "mandatory-behavior",
+      "case_id": "u6-req-0078",
+      "runtime_status": "passed-local-native",
+      "shared_implementation_items": [
+        "G6-004",
+        "G6-006",
+        "G6-009",
+        "G6-019",
+        "G6-020",
+        "G6-021",
+        "G6-022",
+        "G6-023",
+        "G6-027",
+        "G6-038",
+        "G6-039",
+        "G6-040",
+        "G6-041",
+        "G6-046",
+        "G6-094"
+      ],
+      "connect_integration_audit": {
+        "status": "passed-local-native",
+        "historical_component_reports": [
+          "docs/evidence/gate-6/conversation-control.json",
+          "docs/evidence/gate-6/canonical-runtime.json"
+        ],
+        "source_entrypoints": [
+          "crates/connect-server/tests/gate6_canonical_runtime.rs",
+          "crates/connect-service/src/canonical_conversations.rs"
+        ],
+        "remaining": "Linux, remote and browser profiles and gate acceptance remain independently assigned and unqualified.",
+        "current_evidence": "docs/evidence/gate-6/auxiliary-conversation-clauses.json"
+      },
+      "runtime_evidence": {
+        "report": "docs/evidence/gate-6/auxiliary-conversation-clauses.json",
+        "algorithms": [
+          "EdDSA",
+          "ES256"
+        ],
+        "case_id": "u6-req-0078",
+        "platform": "macOS arm64; installed Connect listener and signed public SDK"
+      }
+    },
+    {
+      "id": "U6-REQ-0079",
+      "heading": "`conversation.list` (C\u2192S)",
+      "source_excerpt": "```json\n{\n  \"type\": \"conversation.list\",\n  \"cid\": null,\n  \"payload\": {\n    \"filter\": {\n      \"tenant_id\": \"...\",\n      \"participant_id\": \"part_...\",\n      \"identity_id\": \"id_...\",\n      \"state\": \"open\" | \"closed\" | \"all\",\n      \"since\": \"...\",\n      \"until\": \"...\"\n    },\n    \"cursor\": \"...\",\n    \"limit\": 50\n  }\n}\n```",
+      "classification": "wire-example",
+      "applicability": "mandatory-behavior",
+      "case_id": "u6-req-0079",
+      "runtime_status": "passed-local-native",
+      "shared_implementation_items": [
+        "G6-004",
+        "G6-006",
+        "G6-009",
+        "G6-019",
+        "G6-020",
+        "G6-021",
+        "G6-022",
+        "G6-023",
+        "G6-027",
+        "G6-038",
+        "G6-039",
+        "G6-040",
+        "G6-041",
+        "G6-046",
+        "G6-094"
+      ],
+      "connect_integration_audit": {
+        "status": "passed-local-native",
+        "historical_component_reports": [
+          "docs/evidence/gate-6/conversation-control.json",
+          "docs/evidence/gate-6/canonical-runtime.json"
+        ],
+        "source_entrypoints": [
+          "crates/connect-server/tests/gate6_canonical_runtime.rs",
+          "crates/connect-service/src/canonical_conversations.rs"
+        ],
+        "remaining": "Linux, remote and browser profiles and gate acceptance remain independently assigned and unqualified.",
+        "current_evidence": "docs/evidence/gate-6/auxiliary-conversation-clauses.json"
+      },
+      "runtime_evidence": {
+        "report": "docs/evidence/gate-6/auxiliary-conversation-clauses.json",
+        "algorithms": [
+          "EdDSA",
+          "ES256"
+        ],
+        "case_id": "u6-req-0079",
+        "platform": "macOS arm64; installed Connect listener and signed public SDK"
+      }
+    },
+    {
+      "id": "U6-REQ-0080",
+      "heading": "`conversation.list` (C\u2192S)",
+      "source_excerpt": "> **Response.** The server replies with a stream of `conversation.opened` envelopes (one per matching Conversation), each carrying `in_reply_to` set to the `conversation.list` envelope's `id`, terminated by an `ack` whose payload includes `next_cursor` (string) when more results remain.",
+      "classification": "behavior-or-context",
+      "applicability": "mandatory-behavior",
+      "case_id": "u6-req-0080",
+      "runtime_status": "passed-local-native",
+      "shared_implementation_items": [
+        "G6-004",
+        "G6-006",
+        "G6-009",
+        "G6-019",
+        "G6-020",
+        "G6-021",
+        "G6-022",
+        "G6-023",
+        "G6-027",
+        "G6-038",
+        "G6-039",
+        "G6-040",
+        "G6-041",
+        "G6-046",
+        "G6-094"
+      ],
+      "connect_integration_audit": {
+        "status": "passed-local-native",
+        "historical_component_reports": [
+          "docs/evidence/gate-6/conversation-control.json",
+          "docs/evidence/gate-6/canonical-runtime.json"
+        ],
+        "source_entrypoints": [
+          "crates/connect-server/tests/gate6_canonical_runtime.rs",
+          "crates/connect-service/src/canonical_conversations.rs"
+        ],
+        "remaining": "Linux, remote and browser profiles and gate acceptance remain independently assigned and unqualified.",
+        "current_evidence": "docs/evidence/gate-6/auxiliary-conversation-clauses.json"
+      },
+      "runtime_evidence": {
+        "report": "docs/evidence/gate-6/auxiliary-conversation-clauses.json",
+        "algorithms": [
+          "EdDSA",
+          "ES256"
+        ],
+        "case_id": "u6-req-0080",
+        "platform": "macOS arm64; installed Connect listener and signed public SDK"
+      }
+    },
+    {
+      "id": "U6-REQ-0081",
+      "heading": "7.2 Session lifecycle",
+      "source_excerpt": "```\nInitiator            Server                Invitee(s)\n   \u2502                    \u2502                       \u2502\n   \u2502 session.invite \u2500\u2500\u2500\u25ba\u2502                       \u2502\n   \u2502                    \u2502\u2500\u2500 session.invite \u2500\u2500\u2500\u2500\u25ba\u2502\n   \u2502                    \u2502                       \u2502\n   \u2502                    \u2502\u25c4\u2500\u2500\u2500 session.accept \u2500\u2500\u2500\u2502\n   \u2502\u25c4\u2500\u2500\u2500 session.accept \u2502  (relayed)            \u2502\n   \u2502                    \u2502                       \u2502\n   \u2502 connection.offer \u2500\u25ba\u2502 (per Participant)     \u2502\n   \u2502                    \u2502\u2500\u2500 connection.offer \u2500\u2500\u25ba\u2502\n   \u2502\u25c4\u2500\u2500 connection.answer \u25c4\u2500\u2500 connection.answer \u2502\n   \u2502                    \u2502                       \u2502\n   \u2502                    \u2502\u2500\u2500 session.started \u2500\u2500\u2500\u25ba\u2502 (multicast)\n   \u2502\u25c4\u2500\u2500 session.started \u2502                       \u2502\n   \u2502                    \u2502                       \u2502\n   \u2502   \u25c4\u2500\u2500 media flows over substrates \u2500\u2500\u25ba      \u2502\n   \u2502                    \u2502                       \u2502\n   \u2502                    \u2502\u25c4\u2500\u2500\u2500 session.end \u2500\u2500\u2500\u2500\u2500\u2500\u2502 (any Participant)\n   \u2502                    \u2502\u2500\u2500 session.ended \u2500\u2500\u2500\u2500\u2500\u25ba\u2502 (multicast)\n   \u2502\u25c4\u2500\u2500 session.ended   \u2502                       \u2502\n```",
+      "classification": "wire-example",
+      "applicability": "mandatory-behavior",
+      "case_id": "u6-req-0081",
+      "runtime_status": "not-run",
+      "shared_implementation_items": [
+        "G6-004",
+        "G6-006",
+        "G6-009",
+        "G6-019",
+        "G6-020",
+        "G6-021",
+        "G6-022",
+        "G6-023",
+        "G6-027",
+        "G6-038",
+        "G6-039",
+        "G6-040",
+        "G6-041",
+        "G6-046",
+        "G6-094"
+      ],
+      "connect_integration_audit": {
+        "status": "native-owned-invitation-and-caller-relay-components-qualified; full-sequence-open",
+        "historical_component_reports": [
+          "docs/evidence/gate-6/session-control.json",
+          "docs/evidence/gate-6/general-session-runtime.json"
+        ],
+        "source_entrypoints": [
+          "crates/connect-server/tests/support/canonical_session_control.rs",
+          "crates/connect-service/src/canonical_sessions.rs"
+        ],
+        "remaining": "Full Connection offer/answer, started/ended sequence and broader profiles remain unqualified.",
+        "current_evidence": "docs/evidence/gate-6/auxiliary-session-caller-relays.json"
+      },
+      "local_component_evidence": {
+        "report": "docs/evidence/gate-6/auxiliary-session-caller-relays.json",
+        "case_id": "u6-req-0081",
+        "status": "original-caller-relays-qualified; full-Connection-started-ended-sequence-open",
+        "algorithms": [
+          "EdDSA",
+          "ES256"
+        ],
+        "test": "auxiliary_clauses::production_owned_decisions_relay_to_exact_caller_and_recover_after_disconnect",
+        "assertions": [
+          "An actual signed original native caller receives the committed session.accept/session.reject with its own request ID, original logical operation ID, CID/SID and original target by/capabilities/reason.",
+          "A second physical peer using the same identity, credential and Device does not receive that caller relay.",
+          "Logical replay uses a fresh native request correlation for the same immutable stored decision. It does not reinvite or repeat the decision.",
+          "A decision may commit after caller disconnect; a newly authenticated caller can recover it by logical invitation replay.",
+          "The original command mutation fence spans actual ACK output, so later relay read custody cannot enter its reply batch."
+        ]
+      }
+    },
+    {
+      "id": "U6-REQ-0082",
+      "heading": "`session.invite`",
+      "source_excerpt": "```json\n{\n  \"type\": \"session.invite\",\n  \"cid\": \"conv_...\",\n  \"sid\": \"sess_...\",\n  \"payload\": {\n    \"from\": \"part_...\",\n    \"to\": [\"part_...\"]  | [\"id_...\"]  | [\"sip:bob@example.com\"],\n    \"medium\": \"voice\" | \"video\" | \"voice+video\" | \"screen-share\" | \"text-chat\" | \"mixed\",\n    \"intent\": \"synchronous-engagement\",\n    \"capabilities_offer\": { /* CapabilityDescriptor \u2014 initiator's offer */ }\n  }\n}\n```",
+      "classification": "wire-example",
+      "applicability": "mandatory-behavior",
+      "case_id": "u6-req-0082",
+      "runtime_status": "not-run",
+      "shared_implementation_items": [
+        "G6-004",
+        "G6-006",
+        "G6-009",
+        "G6-019",
+        "G6-020",
+        "G6-021",
+        "G6-022",
+        "G6-023",
+        "G6-027",
+        "G6-038",
+        "G6-039",
+        "G6-040",
+        "G6-041",
+        "G6-046",
+        "G6-094"
+      ],
+      "connect_integration_audit": {
+        "status": "native-forwarding-qualified; URI-alternative-open",
+        "historical_component_reports": [
+          "docs/evidence/gate-6/session-control.json",
+          "docs/evidence/gate-6/general-session-runtime.json"
+        ],
+        "source_entrypoints": [
+          "crates/connect-server/tests/support/canonical_session_control.rs",
+          "crates/connect-service/src/canonical_sessions.rs"
+        ],
+        "remaining": "Reconcile existing actual invite/accept/reject/cancel/update/end, presence and boundary evidence; do not substitute Core-only peer cases for Connect runtime cases.",
+        "current_evidence": "docs/evidence/gate-6/auxiliary-owned-session-invitations.json"
+      },
+      "local_component_evidence": {
+        "report": "docs/evidence/gate-6/auxiliary-owned-session-invitations.json",
+        "case_id": "u6-req-0082",
+        "status": "native-PID-and-Identity-target-forwarding-component-qualified; interop-URI-alternative-open",
+        "assertions": [
+          "Current authenticated idle peers receive original from/to, intent and bounded capabilities without a media Connection or subscription.",
+          "All six canonical invitation media pass: voice, video, voice+video, screen-share, text-chat and mixed. The earlier pre-alpha voice-video/data invitation spellings are replaced, not aliased."
+        ],
+        "remaining": "Designated interop URI target/gateway integration remains open in0083 and prevents a complete0082 claim."
+      }
+    },
+    {
+      "id": "U6-REQ-0083",
+      "heading": "`session.invite`",
+      "source_excerpt": "The `to` field accepts Participant IDs (already in the Conversation), Identity IDs (server resolves to Participant), or interop URIs (`sip:`, `tel:`, etc. \u2014 server gateways).",
+      "classification": "behavior-or-context",
+      "applicability": "mandatory-behavior",
+      "case_id": "u6-req-0083",
+      "runtime_status": "partial-local-native-and-http",
+      "shared_implementation_items": [
+        "G6-004",
+        "G6-006",
+        "G6-009",
+        "G6-019",
+        "G6-020",
+        "G6-021",
+        "G6-022",
+        "G6-023",
+        "G6-027",
+        "G6-038",
+        "G6-039",
+        "G6-040",
+        "G6-041",
+        "G6-046",
+        "G6-094"
+      ],
+      "connect_integration_audit": {
+        "status": "identity-component-qualified; interop-uri-open",
+        "historical_component_reports": [
+          "docs/evidence/gate-6/session-control.json",
+          "docs/evidence/gate-6/general-session-runtime.json"
+        ],
+        "source_entrypoints": [
+          "crates/connect-server/tests/support/canonical_session_control.rs",
+          "crates/connect-service/src/canonical_sessions.rs"
+        ],
+        "remaining": "Identity-ID target resolution now passes current member, epoch, recipient ceiling and original-intent checks through Store and signed native/HTTP Connect for EdDSA/ES256. Designated interop URI targets remain required and unqualified.",
+        "current_evidence": "docs/evidence/gate-6/auxiliary-session-identity-targets.json"
+      },
+      "runtime_component_evidence": {
+        "report": "docs/evidence/gate-6/auxiliary-session-identity-targets.json",
+        "qualified": "current member Participant/Identity references, original replay and current authority",
+        "remaining": "designated interop URI targets"
+      }
+    },
+    {
+      "id": "U6-REQ-0084",
+      "heading": "`session.accept`",
+      "source_excerpt": "```json\n{\n  \"type\": \"session.accept\",\n  \"in_reply_to\": \"<session.invite.id>\",\n  \"sid\": \"sess_...\",\n  \"payload\": {\n    \"by\": \"part_...\",\n    \"capabilities_answer\": { /* CapabilityDescriptor \u2014 invitee's answer */ }\n  }\n}\n```",
+      "classification": "wire-example",
+      "applicability": "mandatory-behavior",
+      "case_id": "u6-req-0084",
+      "runtime_status": "passed-local-native",
+      "shared_implementation_items": [
+        "G6-004",
+        "G6-006",
+        "G6-009",
+        "G6-019",
+        "G6-020",
+        "G6-021",
+        "G6-022",
+        "G6-023",
+        "G6-027",
+        "G6-038",
+        "G6-039",
+        "G6-040",
+        "G6-041",
+        "G6-046",
+        "G6-094"
+      ],
+      "connect_integration_audit": {
+        "status": "passed-local-owned-current-physical-decision",
+        "historical_component_reports": [
+          "docs/evidence/gate-6/session-control.json",
+          "docs/evidence/gate-6/general-session-runtime.json"
+        ],
+        "source_entrypoints": [
+          "crates/connect-server/tests/support/canonical_session_control.rs",
+          "crates/connect-service/src/canonical_sessions.rs"
+        ],
+        "remaining": "Original caller relays, cancellation notification, task-source policy and broader hosting/transport profiles remain open and separately assigned.",
+        "current_evidence": "docs/evidence/gate-6/auxiliary-owned-session-invitations.json"
+      },
+      "runtime_evidence": {
+        "report": "docs/evidence/gate-6/auxiliary-owned-session-invitations.json",
+        "case_id": "u6-req-0084",
+        "algorithms": [
+          "EdDSA",
+          "ES256"
+        ],
+        "profile": "Production Connect local native signed QUIC, current original source and physical waiter; public native SDK; actual HTTP consent and explicit enrollment for required assurance.",
+        "tests": [
+          "auxiliary_clauses::production_auxiliary_owned_invitations_and_correlated_decisions",
+          "auxiliary_clauses::production_owned_invitation_decisions_require_configured_human_consent_and_new_waiter"
+        ],
+        "assertions": [
+          "A signed session.accept echoes the actual forwarded wire ID, original CID/SID/source correlation, selected by Participant and compatible capabilities.",
+          "A distinct physical peer, HTTP, wrong SID and a late duplicate cannot consume the exact waiter or execute a command.",
+          "Fresh named source/epoch/recipient/key/physical and configured human-consent authority commit one original decision/presence/capabilities/topology/journal without allocating an ordinary caller operation."
+        ]
+      }
+    },
+    {
+      "id": "U6-REQ-0085",
+      "heading": "`session.accept`",
+      "source_excerpt": "The Session enters `Active` once at least one invitee has accepted **and** at least one Connection per accepted Participant is `connection.ready`.",
+      "classification": "behavior-or-context",
+      "applicability": "mandatory-behavior",
+      "case_id": "u6-req-0085",
+      "runtime_status": "not-run",
+      "shared_implementation_items": [
+        "G6-004",
+        "G6-006",
+        "G6-009",
+        "G6-019",
+        "G6-020",
+        "G6-021",
+        "G6-022",
+        "G6-023",
+        "G6-027",
+        "G6-038",
+        "G6-039",
+        "G6-040",
+        "G6-041",
+        "G6-046",
+        "G6-094"
+      ],
+      "connect_integration_audit": {
+        "status": "evidence-to-reconcile",
+        "historical_component_reports": [
+          "docs/evidence/gate-6/session-control.json",
+          "docs/evidence/gate-6/general-session-runtime.json"
+        ],
+        "source_entrypoints": [
+          "crates/connect-server/tests/support/canonical_session_control.rs",
+          "crates/connect-service/src/canonical_sessions.rs"
+        ],
+        "remaining": "Reconcile existing actual invite/accept/reject/cancel/update/end, presence and boundary evidence; do not substitute Core-only peer cases for Connect runtime cases."
+      }
+    },
+    {
+      "id": "U6-REQ-0086",
+      "heading": "`session.reject`",
+      "source_excerpt": "```json\n{\n  \"type\": \"session.reject\",\n  \"in_reply_to\": \"<session.invite.id>\",\n  \"payload\": {\n    \"by\": \"part_...\",\n    \"reason_code\": 486,\n    \"reason\": \"busy\"\n  }\n}\n```",
+      "classification": "wire-example",
+      "applicability": "mandatory-behavior",
+      "case_id": "u6-req-0086",
+      "runtime_status": "passed-local-native",
+      "shared_implementation_items": [
+        "G6-004",
+        "G6-006",
+        "G6-009",
+        "G6-019",
+        "G6-020",
+        "G6-021",
+        "G6-022",
+        "G6-023",
+        "G6-027",
+        "G6-038",
+        "G6-039",
+        "G6-040",
+        "G6-041",
+        "G6-046",
+        "G6-094"
+      ],
+      "connect_integration_audit": {
+        "status": "passed-local-owned-current-physical-decision",
+        "historical_component_reports": [
+          "docs/evidence/gate-6/session-control.json",
+          "docs/evidence/gate-6/general-session-runtime.json"
+        ],
+        "source_entrypoints": [
+          "crates/connect-server/tests/support/canonical_session_control.rs",
+          "crates/connect-service/src/canonical_sessions.rs"
+        ],
+        "remaining": "Original caller relays, cancellation notification, task-source policy and broader hosting/transport profiles remain open and separately assigned.",
+        "current_evidence": "docs/evidence/gate-6/auxiliary-owned-session-invitations.json"
+      },
+      "runtime_evidence": {
+        "report": "docs/evidence/gate-6/auxiliary-owned-session-invitations.json",
+        "case_id": "u6-req-0086",
+        "algorithms": [
+          "EdDSA",
+          "ES256"
+        ],
+        "profile": "Production Connect local native signed QUIC, current original source and physical waiter; public native SDK; actual HTTP consent and explicit enrollment for required assurance.",
+        "tests": [
+          "auxiliary_clauses::production_auxiliary_owned_invitations_and_correlated_decisions",
+          "auxiliary_clauses::production_owned_invitation_decisions_require_configured_human_consent_and_new_waiter"
+        ],
+        "assertions": [
+          "A signed session.reject carries the selected by Participant, reason_code486 and busy on its exact original waiter.",
+          "The original pending target decision is retained; rejection of the last invitee makes the Session rejected with busy.",
+          "Cancellation before response and missing required human consent cannot be bypassed. Real consent plus explicit enrollment and logical invitation replay obtain a new valid waiter; an old wire ID stays invalid."
+        ]
+      }
+    },
+    {
+      "id": "U6-REQ-0087",
+      "heading": "`session.end`",
+      "source_excerpt": "```json\n{\n  \"type\": \"session.end\",\n  \"sid\": \"sess_...\",\n  \"payload\": {\n    \"by\": \"part_...\",\n    \"reason_code\": 200,\n    \"reason\": \"normal-clearing\"\n  }\n}\n```",
+      "classification": "wire-example",
+      "applicability": "mandatory-behavior",
+      "case_id": "u6-req-0087",
+      "runtime_status": "passed-local-native-and-http",
+      "shared_implementation_items": [
+        "G6-004",
+        "G6-006",
+        "G6-009",
+        "G6-019",
+        "G6-020",
+        "G6-021",
+        "G6-022",
+        "G6-023",
+        "G6-027",
+        "G6-038",
+        "G6-039",
+        "G6-040",
+        "G6-041",
+        "G6-046",
+        "G6-094"
+      ],
+      "connect_integration_audit": {
+        "status": "passed-local-explicit-end-by-current-noninitiator",
+        "historical_component_reports": [
+          "docs/evidence/gate-6/session-control.json",
+          "docs/evidence/gate-6/general-session-runtime.json"
+        ],
+        "source_entrypoints": [
+          "crates/connect-server/tests/support/canonical_session_control.rs",
+          "crates/connect-service/src/canonical_sessions.rs"
+        ],
+        "remaining": "Automatic loss/grace and broader hosting/transport profiles remain separately assigned and unqualified.",
+        "current_evidence": "docs/evidence/gate-6/auxiliary-session-participant-end.json"
+      },
+      "runtime_evidence": {
+        "report": "docs/evidence/gate-6/auxiliary-session-participant-end.json",
+        "case_id": "u6-req-0087",
+        "algorithms": [
+          "EdDSA",
+          "ES256"
+        ],
+        "profile": "Actual local native QUIC command and bearer HTTP command, with signed native current-authority multicast and cross-transport logical replay. Explicit accepted Session; no Connection readiness claim."
+      }
+    },
+    {
+      "id": "U6-REQ-0088",
+      "heading": "`session.update`",
+      "source_excerpt": "Used for: codec re-negotiation, role change (escalate \"observer\" \u2192 \"agent\"), medium upgrade (\"text-chat\" \u2192 \"voice+text-chat\"). Idempotent; latest wins.",
+      "classification": "behavior-or-context",
+      "applicability": "mandatory-behavior",
+      "case_id": "u6-req-0088",
+      "runtime_status": "not-run",
+      "shared_implementation_items": [
+        "G6-004",
+        "G6-006",
+        "G6-009",
+        "G6-019",
+        "G6-020",
+        "G6-021",
+        "G6-022",
+        "G6-023",
+        "G6-027",
+        "G6-038",
+        "G6-039",
+        "G6-040",
+        "G6-041",
+        "G6-046",
+        "G6-094"
+      ],
+      "connect_integration_audit": {
+        "status": "evidence-to-reconcile",
+        "historical_component_reports": [
+          "docs/evidence/gate-6/session-control.json",
+          "docs/evidence/gate-6/general-session-runtime.json"
+        ],
+        "source_entrypoints": [
+          "crates/connect-server/tests/support/canonical_session_control.rs",
+          "crates/connect-service/src/canonical_sessions.rs"
+        ],
+        "remaining": "Reconcile existing actual invite/accept/reject/cancel/update/end, presence and boundary evidence; do not substitute Core-only peer cases for Connect runtime cases.",
+        "live_codec_component": "docs/evidence/gate-6/auxiliary-live-session-codecs.json"
+      }
+    },
+    {
+      "id": "U6-REQ-0089",
+      "heading": "`session.update`",
+      "source_excerpt": "```json\n{\n  \"type\": \"session.update\",\n  \"sid\": \"sess_...\",\n  \"payload\": {\n    \"kind\": \"codec-renegotiate\" | \"role-change\" | \"medium-upgrade\",\n    \"details\": { ... }\n  }\n}\n```",
+      "classification": "wire-example",
+      "applicability": "mandatory-behavior",
+      "case_id": "u6-req-0089",
+      "runtime_status": "not-run",
+      "shared_implementation_items": [
+        "G6-004",
+        "G6-006",
+        "G6-009",
+        "G6-019",
+        "G6-020",
+        "G6-021",
+        "G6-022",
+        "G6-023",
+        "G6-027",
+        "G6-038",
+        "G6-039",
+        "G6-040",
+        "G6-041",
+        "G6-046",
+        "G6-094"
+      ],
+      "connect_integration_audit": {
+        "status": "evidence-to-reconcile",
+        "historical_component_reports": [
+          "docs/evidence/gate-6/session-control.json",
+          "docs/evidence/gate-6/general-session-runtime.json"
+        ],
+        "source_entrypoints": [
+          "crates/connect-server/tests/support/canonical_session_control.rs",
+          "crates/connect-service/src/canonical_sessions.rs"
+        ],
+        "remaining": "Reconcile existing actual invite/accept/reject/cancel/update/end, presence and boundary evidence; do not substitute Core-only peer cases for Connect runtime cases.",
+        "live_codec_component": "docs/evidence/gate-6/auxiliary-live-session-codecs.json"
+      }
+    },
+    {
+      "id": "U6-REQ-0090",
+      "heading": "`session.cancel`",
+      "source_excerpt": "Cancels a `session.invite` before it has been accepted. After acceptance, use `session.end` instead.",
+      "classification": "behavior-or-context",
+      "applicability": "mandatory-behavior",
+      "case_id": "u6-req-0090",
+      "runtime_status": "passed-local-native-and-http",
+      "shared_implementation_items": [
+        "G6-004",
+        "G6-006",
+        "G6-009",
+        "G6-019",
+        "G6-020",
+        "G6-021",
+        "G6-022",
+        "G6-023",
+        "G6-027",
+        "G6-038",
+        "G6-039",
+        "G6-040",
+        "G6-041",
+        "G6-046",
+        "G6-094"
+      ],
+      "connect_integration_audit": {
+        "status": "passed-local-unaccepted-cancellation-and-post-acceptance-conflict",
+        "historical_component_reports": [
+          "docs/evidence/gate-6/session-control.json",
+          "docs/evidence/gate-6/general-session-runtime.json"
+        ],
+        "source_entrypoints": [
+          "crates/connect-server/tests/support/canonical_session_control.rs",
+          "crates/connect-service/src/canonical_sessions.rs"
+        ],
+        "remaining": "Correlated cancellation wire notification is separate clause0091; broader hosting/transport profiles remain unqualified.",
+        "current_evidence": "docs/evidence/gate-6/auxiliary-session-cancel-boundary.json"
+      },
+      "runtime_evidence": {
+        "case_id": "u6-req-0090",
+        "algorithms": [
+          "EdDSA",
+          "ES256"
+        ],
+        "test": "auxiliary_clauses::production_cancellation_stops_at_first_acceptance_and_requires_end_through_native_and_http",
+        "profile": "Actual local signed native QUIC caller and bearer HTTP commands through the public SDK, with publicly created Conversation/Session and current snapshots; no injected Session rows.",
+        "assertions": [
+          "A fresh unaccepted invitation cancels with its exact reason, increments topology once and replays the same immutable receipt over HTTP.",
+          "A fresh accept after successful cancellation conflicts and cannot revive the Session.",
+          "Once one invitee accepts, native and fresh logical HTTP cancellation at the current topology revision both conflict even while another invitee remains pending.",
+          "Rejected cancellation preserves the accepted state, current topology revision and both accepted/pending appearances.",
+          "The original caller can use session.end at that same revision after acceptance."
+        ],
+        "report": "docs/evidence/gate-6/auxiliary-session-cancel-boundary.json"
+      }
+    },
+    {
+      "id": "U6-REQ-0091",
+      "heading": "`session.cancel`",
+      "source_excerpt": "```json\n{\n  \"type\": \"session.cancel\",\n  \"in_reply_to\": \"<session.invite.id>\",\n  \"sid\": \"sess_...\",\n  \"payload\": {\n    \"by\": \"part_...\",\n    \"reason_code\": 487,\n    \"reason\": \"request-cancelled\"\n  }\n}\n```",
+      "classification": "wire-example",
+      "applicability": "mandatory-behavior",
+      "case_id": "u6-req-0091",
+      "runtime_status": "passed-local-native-and-HTTP-logical-replay",
+      "shared_implementation_items": [
+        "G6-004",
+        "G6-006",
+        "G6-009",
+        "G6-019",
+        "G6-020",
+        "G6-021",
+        "G6-022",
+        "G6-023",
+        "G6-027",
+        "G6-038",
+        "G6-039",
+        "G6-040",
+        "G6-041",
+        "G6-046",
+        "G6-094"
+      ],
+      "connect_integration_audit": {
+        "status": "u6-req-0091-qualified-local-native-and-HTTP-logical-replay",
+        "historical_component_reports": [
+          "docs/evidence/gate-6/session-control.json",
+          "docs/evidence/gate-6/general-session-runtime.json"
+        ],
+        "source_entrypoints": [
+          "crates/connect-server/tests/support/canonical_session_control.rs",
+          "crates/connect-service/src/canonical_sessions.rs"
+        ],
+        "remaining": "Broader hosting/transport profiles remain unqualified; expired/restarted physical references recover through fresh logical invitation replay.",
+        "current_evidence": "docs/evidence/gate-6/auxiliary-session-caller-cancellation.json"
+      },
+      "local_component_evidence": {
+        "case_id": "u6-req-0091",
+        "algorithms": [
+          "EdDSA",
+          "ES256"
+        ],
+        "test": "auxiliary_clauses::production_cancellation_observations_correlate_each_physical_invitation_and_keep_the_durable_boundary",
+        "assertions": [
+          "Two authenticated physical peers sharing an Identity, credential and Device receive distinct signed forwarded invitation IDs, then each receives its own signed session.cancel with in_reply_to equal to that exact ID.",
+          "Native and HTTP ordinary cancellations each cause the bounded recipient observation. The original source correlation, CID/SID, inviter by, code487 and request-cancelled text are exact; no connid is invented.",
+          "Logical cancellation replay returns the same durable receipt without repeating the mutation or creating another invitation worker. A bounded final read observes no duplicate notification.",
+          "A late signed accept cannot revive the cancelled Session; its current recipient snapshot remains cancelled at topology revision1."
+        ],
+        "report": "docs/evidence/gate-6/auxiliary-session-cancellation-observations.json",
+        "status": "native-recipient-correlation-component-qualified; caller-command-correlation-open"
+      },
+      "runtime_evidence": {
+        "case_id": "u6-req-0091",
+        "algorithms": [
+          "EdDSA",
+          "ES256"
+        ],
+        "tests": [
+          "caller_cancellations::original_caller_cancellation_references_require_physical_scope_and_recover_with_logical_replay",
+          "caller_cancellations::correlated_cancellation_step_up_keeps_the_owned_reference_and_replays_one_current_authorized_mutation"
+        ],
+        "profile": "Actual production local native QUIC/public signed Rust SDK caller reference commands and recipient cancellation observations, plus ordinary bearer HTTP logical replay and actual configured human-consent API/step-up.",
+        "assertions": [
+          "The public native helper sends a fresh signed operation-bearing session.cancel with in_reply_to naming its actual original caller invitation ID, explicit checked by Participant and original reason/CID/SID.",
+          "A same-Identity/credential/Device sibling cannot adopt that reference. Wrong Session, spoofed by, superseded request IDs and old physical references after reconnect refuse before creating a mutation receipt.",
+          "The caller replays its original logical invitation to register a new reference before ACK, then retries the same logical cancellation. Both pending cancellation and already committed cancellation recover once; ordinary HTTP logical replay returns the same immutable outcome.",
+          "Unsigned HTTP cannot supply native reference custody. A verified recipient receives its own forwarded invitation correlation rather than the caller reference.",
+          "After acceptance, a correctly correlated new cancellation conflicts at the current revision and requires session.end.",
+          "A configured human-consent floor suspends the original correlated command without a receipt. Actual HTTP consent plus explicit successor key enrollment resumes the same held operation on the same physical peer, preserves reference ownership across credential rotation and records exactly one mutation; native and current HTTP replay retain that result."
+        ],
+        "report": "docs/evidence/gate-6/auxiliary-session-caller-cancellation.json"
+      }
+    },
+    {
+      "id": "U6-REQ-0092",
+      "heading": "`session.started` (S\u2192C, multicast)",
+      "source_excerpt": "Emitted to every Participant once the Session enters `Active` (per the boundary rule in \u00a77.3).",
+      "classification": "behavior-or-context",
+      "applicability": "mandatory-behavior",
+      "case_id": "u6-req-0092",
+      "runtime_status": "not-run",
+      "shared_implementation_items": [
+        "G6-004",
+        "G6-006",
+        "G6-009",
+        "G6-019",
+        "G6-020",
+        "G6-021",
+        "G6-022",
+        "G6-023",
+        "G6-027",
+        "G6-038",
+        "G6-039",
+        "G6-040",
+        "G6-041",
+        "G6-046",
+        "G6-094"
+      ],
+      "connect_integration_audit": {
+        "status": "evidence-to-reconcile",
+        "historical_component_reports": [
+          "docs/evidence/gate-6/session-control.json",
+          "docs/evidence/gate-6/general-session-runtime.json"
+        ],
+        "source_entrypoints": [
+          "crates/connect-server/tests/support/canonical_session_control.rs",
+          "crates/connect-service/src/canonical_sessions.rs"
+        ],
+        "remaining": "Reconcile existing actual invite/accept/reject/cancel/update/end, presence and boundary evidence; do not substitute Core-only peer cases for Connect runtime cases."
+      }
+    },
+    {
+      "id": "U6-REQ-0093",
+      "heading": "`session.started` (S\u2192C, multicast)",
+      "source_excerpt": "```json\n{\n  \"type\": \"session.started\",\n  \"sid\": \"sess_...\",\n  \"cid\": \"conv_...\",\n  \"payload\": {\n    \"started_at\": \"...\",\n    \"participants_present\": [\"part_...\", \"...\"],\n    \"active_connections\": [\n      {\n        \"connid\": \"conn_...\",\n        \"participant_id\": \"part_...\",\n        \"transport\": \"quic\" | \"webtransport\" | \"websocket+webrtc\" | \"sip-interop\" | \"webrtc-interop\"\n      }\n    ],\n    \"negotiated_capabilities\": { /* CapabilityIntersection \u2014 see \u00a78 */ }\n  }\n}\n```",
+      "classification": "wire-example",
+      "applicability": "mandatory-behavior",
+      "case_id": "u6-req-0093",
+      "runtime_status": "not-run",
+      "shared_implementation_items": [
+        "G6-004",
+        "G6-006",
+        "G6-009",
+        "G6-019",
+        "G6-020",
+        "G6-021",
+        "G6-022",
+        "G6-023",
+        "G6-027",
+        "G6-038",
+        "G6-039",
+        "G6-040",
+        "G6-041",
+        "G6-046",
+        "G6-094"
+      ],
+      "connect_integration_audit": {
+        "status": "evidence-to-reconcile",
+        "historical_component_reports": [
+          "docs/evidence/gate-6/session-control.json",
+          "docs/evidence/gate-6/general-session-runtime.json"
+        ],
+        "source_entrypoints": [
+          "crates/connect-server/tests/support/canonical_session_control.rs",
+          "crates/connect-service/src/canonical_sessions.rs"
+        ],
+        "remaining": "Reconcile existing actual invite/accept/reject/cancel/update/end, presence and boundary evidence; do not substitute Core-only peer cases for Connect runtime cases."
+      }
+    },
+    {
+      "id": "U6-REQ-0094",
+      "heading": "`session.ended` (S\u2192C, multicast)",
+      "source_excerpt": "Emitted once the Session transitions to `Ended` (last Connection terminated and the \u00a77.3 grace window elapsed without reconnect).",
+      "classification": "behavior-or-context",
+      "applicability": "mandatory-behavior",
+      "case_id": "u6-req-0094",
+      "runtime_status": "not-run",
+      "shared_implementation_items": [
+        "G6-004",
+        "G6-006",
+        "G6-009",
+        "G6-019",
+        "G6-020",
+        "G6-021",
+        "G6-022",
+        "G6-023",
+        "G6-027",
+        "G6-038",
+        "G6-039",
+        "G6-040",
+        "G6-041",
+        "G6-046",
+        "G6-094"
+      ],
+      "connect_integration_audit": {
+        "status": "evidence-to-reconcile",
+        "historical_component_reports": [
+          "docs/evidence/gate-6/session-control.json",
+          "docs/evidence/gate-6/general-session-runtime.json"
+        ],
+        "source_entrypoints": [
+          "crates/connect-server/tests/support/canonical_session_control.rs",
+          "crates/connect-service/src/canonical_sessions.rs"
+        ],
+        "remaining": "Reconcile existing actual invite/accept/reject/cancel/update/end, presence and boundary evidence; do not substitute Core-only peer cases for Connect runtime cases."
+      }
+    },
+    {
+      "id": "U6-REQ-0095",
+      "heading": "`session.ended` (S\u2192C, multicast)",
+      "source_excerpt": "```json\n{\n  \"type\": \"session.ended\",\n  \"sid\": \"sess_...\",\n  \"cid\": \"conv_...\",\n  \"payload\": {\n    \"ended_at\": \"...\",\n    \"by\": \"part_...\" | null,\n    \"reason_code\": 200,\n    \"reason\": \"normal-clearing\" | \"all-connections-ended\" | \"session-failed\" | \"grace-window-expired\" | \"...\",\n    \"vcon_handle\": { /* see \u00a77.6; present only if the vCon was finalized synchronously, otherwise delivered later via recording.vcon-ready */ }\n  }\n}\n```",
+      "classification": "wire-example",
+      "applicability": "mandatory-behavior",
+      "case_id": "u6-req-0095",
+      "runtime_status": "passed-local-native-and-http",
+      "shared_implementation_items": [
+        "G6-004",
+        "G6-006",
+        "G6-009",
+        "G6-019",
+        "G6-020",
+        "G6-021",
+        "G6-022",
+        "G6-023",
+        "G6-027",
+        "G6-038",
+        "G6-039",
+        "G6-040",
+        "G6-041",
+        "G6-046",
+        "G6-094"
+      ],
+      "connect_integration_audit": {
+        "status": "passed-local-explicit-end-payload",
+        "historical_component_reports": [
+          "docs/evidence/gate-6/session-control.json",
+          "docs/evidence/gate-6/general-session-runtime.json"
+        ],
+        "source_entrypoints": [
+          "crates/connect-server/tests/support/canonical_session_control.rs",
+          "crates/connect-service/src/canonical_sessions.rs"
+        ],
+        "remaining": "Automatic loss/grace and broader hosting/transport profiles remain separately assigned and unqualified.",
+        "current_evidence": "docs/evidence/gate-6/auxiliary-session-terminal-events.json"
+      },
+      "runtime_evidence": {
+        "report": "docs/evidence/gate-6/auxiliary-session-terminal-events.json",
+        "case_id": "u6-req-0095",
+        "algorithms": [
+          "EdDSA",
+          "ES256"
+        ],
+        "profile": "explicit logical Session end; signed native live multicast and finite HTTP replay after asynchronous vCon finalization"
+      }
+    },
+    {
+      "id": "U6-REQ-0096",
+      "heading": "`session.participant.joined` (S\u2192C, multicast)",
+      "source_excerpt": "```json\n{\n  \"type\": \"session.participant.joined\",\n  \"sid\": \"sess_...\",\n  \"cid\": \"conv_...\",\n  \"payload\": {\n    \"participant\": {\n      \"participant_id\": \"part_...\",\n      \"identity_id\": \"id_...\" | \"f_...\",\n      \"kind\": \"human\" | \"ai\" | \"system\" | \"external\",\n      \"role\": \"customer\" | \"agent\" | \"supervisor\" | \"observer\" | \"...\",\n      \"display_name\": \"...\",\n      \"joined_at\": \"...\"\n    },\n    \"via_connection\": \"conn_...\"\n  }\n}\n```",
+      "classification": "wire-example",
+      "applicability": "mandatory-behavior",
+      "case_id": "u6-req-0096",
+      "runtime_status": "not-run",
+      "shared_implementation_items": [
+        "G6-004",
+        "G6-006",
+        "G6-009",
+        "G6-019",
+        "G6-020",
+        "G6-021",
+        "G6-022",
+        "G6-023",
+        "G6-027",
+        "G6-038",
+        "G6-039",
+        "G6-040",
+        "G6-041",
+        "G6-046",
+        "G6-094"
+      ],
+      "connect_integration_audit": {
+        "status": "evidence-to-reconcile",
+        "historical_component_reports": [
+          "docs/evidence/gate-6/session-control.json",
+          "docs/evidence/gate-6/general-session-runtime.json"
+        ],
+        "source_entrypoints": [
+          "crates/connect-server/tests/support/canonical_session_control.rs",
+          "crates/connect-service/src/canonical_sessions.rs"
+        ],
+        "remaining": "Reconcile existing actual invite/accept/reject/cancel/update/end, presence and boundary evidence; do not substitute Core-only peer cases for Connect runtime cases."
+      }
+    },
+    {
+      "id": "U6-REQ-0097",
+      "heading": "`session.participant.left` (S\u2192C, multicast)",
+      "source_excerpt": "```json\n{\n  \"type\": \"session.participant.left\",\n  \"sid\": \"sess_...\",\n  \"cid\": \"conv_...\",\n  \"payload\": {\n    \"participant_id\": \"part_...\",\n    \"left_at\": \"...\",\n    \"reason\": \"explicit-leave\" | \"all-connections-ended\" | \"kicked\" | \"transferred-out\"\n  }\n}\n```",
+      "classification": "wire-example",
+      "applicability": "mandatory-behavior",
+      "case_id": "u6-req-0097",
+      "runtime_status": "not-run",
+      "shared_implementation_items": [
+        "G6-004",
+        "G6-006",
+        "G6-009",
+        "G6-019",
+        "G6-020",
+        "G6-021",
+        "G6-022",
+        "G6-023",
+        "G6-027",
+        "G6-038",
+        "G6-039",
+        "G6-040",
+        "G6-041",
+        "G6-046",
+        "G6-094"
+      ],
+      "connect_integration_audit": {
+        "status": "evidence-to-reconcile",
+        "historical_component_reports": [
+          "docs/evidence/gate-6/session-control.json",
+          "docs/evidence/gate-6/general-session-runtime.json"
+        ],
+        "source_entrypoints": [
+          "crates/connect-server/tests/support/canonical_session_control.rs",
+          "crates/connect-service/src/canonical_sessions.rs"
+        ],
+        "remaining": "Reconcile existing actual invite/accept/reject/cancel/update/end, presence and boundary evidence; do not substitute Core-only peer cases for Connect runtime cases."
+      }
+    },
+    {
+      "id": "U6-REQ-0098",
+      "heading": "7.3 Session boundary rules",
+      "source_excerpt": "A Session is `Active` while **at least one Connection is in state `Connected` OR a `connection.offer`/`connection.answer` is in flight**. When the last Connection ends and no negotiation is in flight, the server sends `session.ended`.",
+      "classification": "behavior-or-context",
+      "applicability": "mandatory-behavior",
+      "case_id": "u6-req-0098",
+      "runtime_status": "not-run",
+      "shared_implementation_items": [
+        "G6-004",
+        "G6-006",
+        "G6-009",
+        "G6-019",
+        "G6-020",
+        "G6-021",
+        "G6-022",
+        "G6-023",
+        "G6-027",
+        "G6-038",
+        "G6-039",
+        "G6-040",
+        "G6-041",
+        "G6-046",
+        "G6-094"
+      ],
+      "connect_integration_audit": {
+        "status": "evidence-to-reconcile",
+        "historical_component_reports": [
+          "docs/evidence/gate-6/session-control.json",
+          "docs/evidence/gate-6/general-session-runtime.json"
+        ],
+        "source_entrypoints": [
+          "crates/connect-server/tests/support/canonical_session_control.rs",
+          "crates/connect-service/src/canonical_sessions.rs"
+        ],
+        "remaining": "Reconcile existing actual invite/accept/reject/cancel/update/end, presence and boundary evidence; do not substitute Core-only peer cases for Connect runtime cases."
+      }
+    },
+    {
+      "id": "U6-REQ-0099",
+      "heading": "7.3 Session boundary rules",
+      "source_excerpt": "Reconnection within a grace window (default 30s) is **not** a new Session \u2014 it is a new Connection within the existing Session. The grace window is server-policy and may be set at `session.invite` time. After the grace window, the Session has ended; reconnecting requires a new `session.invite`.",
+      "classification": "behavior-or-context",
+      "applicability": "mandatory-behavior",
+      "case_id": "u6-req-0099",
+      "runtime_status": "not-run",
+      "shared_implementation_items": [
+        "G6-004",
+        "G6-006",
+        "G6-009",
+        "G6-019",
+        "G6-020",
+        "G6-021",
+        "G6-022",
+        "G6-023",
+        "G6-027",
+        "G6-038",
+        "G6-039",
+        "G6-040",
+        "G6-041",
+        "G6-046",
+        "G6-094"
+      ],
+      "connect_integration_audit": {
+        "status": "evidence-to-reconcile",
+        "historical_component_reports": [
+          "docs/evidence/gate-6/session-control.json",
+          "docs/evidence/gate-6/general-session-runtime.json"
+        ],
+        "source_entrypoints": [
+          "crates/connect-server/tests/support/canonical_session_control.rs",
+          "crates/connect-service/src/canonical_sessions.rs"
+        ],
+        "remaining": "Reconcile existing actual invite/accept/reject/cancel/update/end, presence and boundary evidence; do not substitute Core-only peer cases for Connect runtime cases."
+      }
+    },
+    {
+      "id": "U6-REQ-0100",
+      "heading": "7.3 Session boundary rules",
+      "source_excerpt": "This addresses voip-3's open question on Session boundaries (voip-3 \u00a711 does not specify; we settle it here).",
+      "classification": "behavior-or-context",
+      "applicability": "mandatory-behavior",
+      "case_id": "u6-req-0100",
+      "runtime_status": "not-run",
+      "shared_implementation_items": [
+        "G6-004",
+        "G6-006",
+        "G6-009",
+        "G6-019",
+        "G6-020",
+        "G6-021",
+        "G6-022",
+        "G6-023",
+        "G6-027",
+        "G6-038",
+        "G6-039",
+        "G6-040",
+        "G6-041",
+        "G6-046",
+        "G6-094"
+      ],
+      "connect_integration_audit": {
+        "status": "evidence-to-reconcile",
+        "historical_component_reports": [
+          "docs/evidence/gate-6/session-control.json",
+          "docs/evidence/gate-6/general-session-runtime.json"
+        ],
+        "source_entrypoints": [
+          "crates/connect-server/tests/support/canonical_session_control.rs",
+          "crates/connect-service/src/canonical_sessions.rs"
+        ],
+        "remaining": "Reconcile existing actual invite/accept/reject/cancel/update/end, presence and boundary evidence; do not substitute Core-only peer cases for Connect runtime cases."
+      }
+    },
+    {
+      "id": "U6-REQ-0101",
+      "heading": "7.4 Connection lifecycle",
+      "source_excerpt": "A Connection is one Participant's transport-bound attach to a Session. The same Participant may have multiple simultaneous Connections (rare; example: a worker on both a SIP desk phone and a UCTP mobile app).",
+      "classification": "behavior-or-context",
+      "applicability": "mandatory-behavior",
+      "case_id": "u6-req-0101",
+      "runtime_status": "passed-local-native",
+      "shared_implementation_items": [
+        "G6-004",
+        "G6-006",
+        "G6-009",
+        "G6-019",
+        "G6-020",
+        "G6-021",
+        "G6-022",
+        "G6-023",
+        "G6-027",
+        "G6-038",
+        "G6-039",
+        "G6-040",
+        "G6-041",
+        "G6-046",
+        "G6-094"
+      ],
+      "connect_integration_audit": {
+        "status": "passed-current-production-native-exact-clause",
+        "historical_component_reports": [
+          "docs/evidence/gate-6/general-session-runtime.json",
+          "docs/evidence/gate-6/auxiliary-native-lifecycle.json"
+        ],
+        "source_entrypoints": [
+          "crates/connect-server/tests/support/canonical_native_connections.rs",
+          "crates/connect-server/tests/support/canonical_native_connections/codecs.rs"
+        ],
+        "remaining": "Broader hosting/transport and algorithm profiles are not newly qualified by these EdDSA local QUIC cases.",
+        "current_evidence": "docs/evidence/gate-6/auxiliary-native-connection-clauses.json"
+      },
+      "runtime_evidence": {
+        "case_id": "u6-req-0101",
+        "test": "canonical_native_connections::production_four_kinds_six_native_slots_preserve_other_peers_after_one_leaves",
+        "assertions": [
+          "Four publicly admitted Participants of distinct kinds attach six actual native Connections to one public Session. Two Participants each hold two simultaneous Connections on their own authenticated physical peer.",
+          "Each original Connection negotiates distinct physical-peer stream handles and reaches completed admission; the runtime reports six actual slots and four physical readers.",
+          "One Participant leaving retires only its Connection. The current public snapshot contains five ready Connections, and Conversation close refuses while these remain. Explicit Session end retires all remaining Connections."
+        ],
+        "report": "docs/evidence/gate-6/auxiliary-native-connection-clauses.json",
+        "algorithms": [
+          "EdDSA"
+        ],
+        "profile": "Existing actual production Connect listener/public signed native QUIC and bearer HTTP snapshot cases, newly rerun and reconciled to exact assigned clauses. Public create/invite/accept/offer/answer commands establish domain state; provisioning fixtures install credentials and the local media endpoint. No injected Session/Connection rows qualify the positive lifecycle."
+      }
+    },
+    {
+      "id": "U6-REQ-0102",
+      "heading": "7.4 Connection lifecycle",
+      "source_excerpt": "```\nconnection.offer  \u2500\u25ba capabilities + substrate-specific media setup\nconnection.answer \u25c4\u2500 negotiated codecs + answer to media setup\nconnection.ready  \u25c4\u2500 media flowing in both directions\n   \u2502\n   \u2502 (mid-life: connection.update for hold/mute/codec change)\n   \u2502\nconnection.end    \u2500\u25ba stops media; Session may continue if other Connections live\n```",
+      "classification": "wire-example",
+      "applicability": "mandatory-behavior",
+      "case_id": "u6-req-0102",
+      "runtime_status": "not-run",
+      "shared_implementation_items": [
+        "G6-004",
+        "G6-006",
+        "G6-009",
+        "G6-019",
+        "G6-020",
+        "G6-021",
+        "G6-022",
+        "G6-023",
+        "G6-027",
+        "G6-038",
+        "G6-039",
+        "G6-040",
+        "G6-041",
+        "G6-046",
+        "G6-094"
+      ],
+      "connect_integration_audit": {
+        "status": "evidence-to-reconcile",
+        "historical_component_reports": [
+          "docs/evidence/gate-6/general-session-runtime.json",
+          "docs/evidence/gate-6/auxiliary-native-lifecycle.json"
+        ],
+        "source_entrypoints": [
+          "crates/connect-server/tests/support/canonical_native_connections.rs",
+          "crates/connect-server/tests/support/canonical_native_connections/codecs.rs"
+        ],
+        "remaining": "Actual native Connection/stream lifecycle composition is now locally verified with current Store authority, per-physical delivery and signed SDK observations; PCMU-to-PCMA closure/reopening is observed. Reconcile exact assigned clause evidence and remaining Connection control profiles; this scoped component does not by itself close the entire clause group."
+      }
+    },
+    {
+      "id": "U6-REQ-0103",
+      "heading": "`connection.offer`",
+      "source_excerpt": "```json\n{\n  \"type\": \"connection.offer\",\n  \"sid\": \"sess_...\",\n  \"connid\": \"conn_...\",\n  \"payload\": {\n    \"by_participant\": \"part_...\",\n    \"substrate\": \"quic\" | \"webtransport\" | \"websocket+webrtc\" | \"sip-interop\" | \"webrtc-interop\",\n    \"capabilities\": { /* CapabilityDescriptor */ },\n    \"streams_offered\": [\n      {\n        \"id\": \"strm_...\",\n        \"kind\": \"audio\" | \"video\" | \"data\",\n        \"direction\": \"sendrecv\" | \"sendonly\" | \"recvonly\",\n        \"codec_preferences\": [\"opus\", \"g.711-mu\", \"g.711-a\"]\n      }\n    ],\n    \"substrate_setup\": { /* see \u00a710; e.g. WebRTC SDP-frag for websocket+webrtc */ }\n  }\n}\n```",
+      "classification": "wire-example",
+      "applicability": "mandatory-behavior",
+      "case_id": "u6-req-0103",
+      "runtime_status": "not-run",
+      "shared_implementation_items": [
+        "G6-004",
+        "G6-006",
+        "G6-009",
+        "G6-019",
+        "G6-020",
+        "G6-021",
+        "G6-022",
+        "G6-023",
+        "G6-027",
+        "G6-038",
+        "G6-039",
+        "G6-040",
+        "G6-041",
+        "G6-046",
+        "G6-094"
+      ],
+      "connect_integration_audit": {
+        "status": "evidence-to-reconcile",
+        "historical_component_reports": [
+          "docs/evidence/gate-6/general-session-runtime.json",
+          "docs/evidence/gate-6/auxiliary-native-lifecycle.json"
+        ],
+        "source_entrypoints": [
+          "crates/connect-server/tests/support/canonical_native_connections.rs",
+          "crates/connect-server/tests/support/canonical_native_connections/codecs.rs"
+        ],
+        "remaining": "Actual native Connection/stream lifecycle composition is now locally verified with current Store authority, per-physical delivery and signed SDK observations; PCMU-to-PCMA closure/reopening is observed. Reconcile exact assigned clause evidence and remaining Connection control profiles; this scoped component does not by itself close the entire clause group."
+      }
+    },
+    {
+      "id": "U6-REQ-0104",
+      "heading": "`connection.answer`",
+      "source_excerpt": "Mirrors `offer`; selects codecs from the offerer's preferences within the answerer's capabilities.",
+      "classification": "behavior-or-context",
+      "applicability": "mandatory-behavior",
+      "case_id": "u6-req-0104",
+      "runtime_status": "not-run",
+      "shared_implementation_items": [
+        "G6-004",
+        "G6-006",
+        "G6-009",
+        "G6-019",
+        "G6-020",
+        "G6-021",
+        "G6-022",
+        "G6-023",
+        "G6-027",
+        "G6-038",
+        "G6-039",
+        "G6-040",
+        "G6-041",
+        "G6-046",
+        "G6-094"
+      ],
+      "connect_integration_audit": {
+        "status": "evidence-to-reconcile",
+        "historical_component_reports": [
+          "docs/evidence/gate-6/general-session-runtime.json",
+          "docs/evidence/gate-6/auxiliary-native-lifecycle.json"
+        ],
+        "source_entrypoints": [
+          "crates/connect-server/tests/support/canonical_native_connections.rs",
+          "crates/connect-server/tests/support/canonical_native_connections/codecs.rs"
+        ],
+        "remaining": "Actual native Connection/stream lifecycle composition is now locally verified with current Store authority, per-physical delivery and signed SDK observations; PCMU-to-PCMA closure/reopening is observed. Reconcile exact assigned clause evidence and remaining Connection control profiles; this scoped component does not by itself close the entire clause group."
+      }
+    },
+    {
+      "id": "U6-REQ-0105",
+      "heading": "`connection.update`",
+      "source_excerpt": "- Hold: `payload.action = \"hold\"` \u2014 sets all media Streams to `sendonly`/`recvonly` per direction.\n- Resume: `payload.action = \"resume\"` \u2014 restores `sendrecv`.\n- Mute: `payload.action = \"mute\"` with `payload.streams = [\"strm_...\"]`.\n- Codec re-negotiation: `payload.action = \"codec-renegotiate\"` with new `codec_preferences`.",
+      "classification": "behavior-or-context",
+      "applicability": "mandatory-behavior",
+      "case_id": "u6-req-0105",
+      "runtime_status": "not-run",
+      "shared_implementation_items": [
+        "G6-004",
+        "G6-006",
+        "G6-009",
+        "G6-019",
+        "G6-020",
+        "G6-021",
+        "G6-022",
+        "G6-023",
+        "G6-027",
+        "G6-038",
+        "G6-039",
+        "G6-040",
+        "G6-041",
+        "G6-046",
+        "G6-094"
+      ],
+      "connect_integration_audit": {
+        "status": "evidence-to-reconcile",
+        "historical_component_reports": [
+          "docs/evidence/gate-6/general-session-runtime.json",
+          "docs/evidence/gate-6/auxiliary-native-lifecycle.json"
+        ],
+        "source_entrypoints": [
+          "crates/connect-server/tests/support/canonical_native_connections.rs",
+          "crates/connect-server/tests/support/canonical_native_connections/codecs.rs"
+        ],
+        "remaining": "Actual native Connection/stream lifecycle composition is now locally verified with current Store authority, per-physical delivery and signed SDK observations; PCMU-to-PCMA closure/reopening is observed. Reconcile exact assigned clause evidence and remaining Connection control profiles; this scoped component does not by itself close the entire clause group."
+      }
+    },
+    {
+      "id": "U6-REQ-0106",
+      "heading": "`connection.end`",
+      "source_excerpt": "```json\n{\n  \"type\": \"connection.end\",\n  \"connid\": \"conn_...\",\n  \"payload\": {\n    \"reason_code\": 200,\n    \"reason\": \"normal-clearing\"\n  }\n}\n```",
+      "classification": "wire-example",
+      "applicability": "mandatory-behavior",
+      "case_id": "u6-req-0106",
+      "runtime_status": "passed-local-native",
+      "shared_implementation_items": [
+        "G6-004",
+        "G6-006",
+        "G6-009",
+        "G6-019",
+        "G6-020",
+        "G6-021",
+        "G6-022",
+        "G6-023",
+        "G6-027",
+        "G6-038",
+        "G6-039",
+        "G6-040",
+        "G6-041",
+        "G6-046",
+        "G6-094"
+      ],
+      "connect_integration_audit": {
+        "status": "passed-current-production-native-exact-clause",
+        "historical_component_reports": [
+          "docs/evidence/gate-6/general-session-runtime.json",
+          "docs/evidence/gate-6/auxiliary-native-lifecycle.json"
+        ],
+        "source_entrypoints": [
+          "crates/connect-server/tests/support/canonical_native_connections.rs",
+          "crates/connect-server/tests/support/canonical_native_connections/codecs.rs"
+        ],
+        "remaining": "Broader hosting/transport and algorithm profiles are not newly qualified by these EdDSA local QUIC cases.",
+        "current_evidence": "docs/evidence/gate-6/auxiliary-native-connection-clauses.json"
+      },
+      "runtime_evidence": {
+        "case_id": "u6-req-0106",
+        "test": "canonical_native_connections::production_accepted_live_video_upgrade_adds_connections_and_preserves_existing_audio",
+        "failure_recovery_test": "canonical_native_connections::production_native_connection_end_captured_outcome_recovers_after_recording_failure_and_cancel",
+        "assertions": [
+          "A signed public connection.end carries original cid/sid/connid/operation_id and reason_code1000/reason finished, plus an optional extension retained in its logical intent.",
+          "Only that original video Connection terminates; the completed result names the original connection_id and ended=true. Replay returns the same result without another effect.",
+          "Actual decoded audio continues on other Connections, and the same physical peer negotiates a replacement video Connection in the same Session.",
+          "A foreign authenticated peer cannot end the Connection or create a receipt. A captured termination survives journal failure and late cancellation without resubmitting the effect, and releases current authority while waiting for storage recovery."
+        ],
+        "report": "docs/evidence/gate-6/auxiliary-native-connection-clauses.json",
+        "algorithms": [
+          "EdDSA"
+        ],
+        "profile": "Existing actual production Connect listener/public signed native QUIC and bearer HTTP snapshot cases, newly rerun and reconciled to exact assigned clauses. Public create/invite/accept/offer/answer commands establish domain state; provisioning fixtures install credentials and the local media endpoint. No injected Session/Connection rows qualify the positive lifecycle."
+      }
+    },
+    {
+      "id": "U6-REQ-0107",
+      "heading": "`stream.opened` (S\u2192C)",
+      "source_excerpt": "Emitted once a media Stream begins flowing on a Connection (after `connection.ready` has fired and frames are observed in both directions, per stream direction).",
+      "classification": "behavior-or-context",
+      "applicability": "mandatory-behavior",
+      "case_id": "u6-req-0107",
+      "runtime_status": "passed-local-native-audio",
+      "shared_implementation_items": [
+        "G6-004",
+        "G6-006",
+        "G6-009",
+        "G6-019",
+        "G6-020",
+        "G6-021",
+        "G6-022",
+        "G6-023",
+        "G6-027",
+        "G6-038",
+        "G6-039",
+        "G6-040",
+        "G6-041",
+        "G6-046",
+        "G6-094"
+      ],
+      "connect_integration_audit": {
+        "status": "passed-exact-local-native-audio-observations",
+        "historical_component_reports": [
+          "docs/evidence/gate-6/general-session-runtime.json",
+          "docs/evidence/gate-6/auxiliary-native-lifecycle.json"
+        ],
+        "source_entrypoints": [
+          "crates/connect-server/tests/support/canonical_native_connections.rs",
+          "crates/connect-server/tests/support/canonical_native_connections/codecs.rs"
+        ],
+        "remaining": "Other media/substrate/closure reason profiles are not newly qualified. Handle allocation and immediate replacement remain separate clauses.",
+        "current_evidence": "docs/evidence/gate-6/auxiliary-native-stream-clauses.json"
+      },
+      "local_component_evidence": {
+        "report": "docs/evidence/gate-6/auxiliary-native-lifecycle.json",
+        "scope": "Actual local signed native own-Connection flow, stream opening and codec replacement closure/reopening; exact full-vector qualification remains separate."
+      },
+      "runtime_evidence": {
+        "case_id": "u6-req-0107",
+        "algorithms": [
+          "EdDSA",
+          "ES256"
+        ],
+        "test": "canonical_native_connections::lifecycle::production_native_lifecycle_quality_reports_actual_flow_through_signed_sdk",
+        "assertions": [
+          "An admitted signed offer and answer produce no readiness/opened event before actual media; an authenticated reliable heartbeat returns only its ACK.",
+          "Actual independent decoded audio is exchanged in both directions. Each physical Connection then emits one connection.ready before its stream.opened; unrelated operation collectors preserve pending events.",
+          "Revoking the actual target Endpoint prevents fresh lifecycle events after revocation while the other physical source continues its own authorized quality interval."
+        ],
+        "report": "docs/evidence/gate-6/auxiliary-native-stream-clauses.json",
+        "profile": "Actual production Connect native QUIC listener/public signed SDK, ordinary public Conversation/Session creation and invitation/acceptance, actual media endpoint/resource negotiation, independent decoded audio and fresh current Store lifecycle delivery policy. These are existing implementation cases rerun and reconciled to exact clauses."
+      }
+    },
+    {
+      "id": "U6-REQ-0108",
+      "heading": "`stream.opened` (S\u2192C)",
+      "source_excerpt": "```json\n{\n  \"type\": \"stream.opened\",\n  \"connid\": \"conn_...\",\n  \"sid\": \"sess_...\",\n  \"payload\": {\n    \"stream\": {\n      \"strm_id\": \"strm_...\",\n      \"kind\": \"audio\" | \"video\" | \"screenshare\" | \"data\",\n      \"codec\": { \"name\": \"opus\", \"params\": { \"sample_rate\": 48000, \"channels\": 2 } },\n      \"direction\": \"sendrecv\" | \"sendonly\" | \"recvonly\",\n      \"stream_local_id\": 7,\n      \"opened_at\": \"...\"\n    }\n  }\n}\n```",
+      "classification": "wire-example",
+      "applicability": "mandatory-behavior",
+      "case_id": "u6-req-0108",
+      "runtime_status": "passed-local-native-audio",
+      "shared_implementation_items": [
+        "G6-004",
+        "G6-006",
+        "G6-009",
+        "G6-019",
+        "G6-020",
+        "G6-021",
+        "G6-022",
+        "G6-023",
+        "G6-027",
+        "G6-038",
+        "G6-039",
+        "G6-040",
+        "G6-041",
+        "G6-046",
+        "G6-094"
+      ],
+      "connect_integration_audit": {
+        "status": "passed-exact-local-native-audio-observations",
+        "historical_component_reports": [
+          "docs/evidence/gate-6/general-session-runtime.json",
+          "docs/evidence/gate-6/auxiliary-native-lifecycle.json"
+        ],
+        "source_entrypoints": [
+          "crates/connect-server/tests/support/canonical_native_connections.rs",
+          "crates/connect-server/tests/support/canonical_native_connections/codecs.rs"
+        ],
+        "remaining": "Other media/substrate/closure reason profiles are not newly qualified. Handle allocation and immediate replacement remain separate clauses.",
+        "current_evidence": "docs/evidence/gate-6/auxiliary-native-stream-clauses.json"
+      },
+      "local_component_evidence": {
+        "report": "docs/evidence/gate-6/auxiliary-native-lifecycle.json",
+        "scope": "Actual local signed native own-Connection flow, stream opening and codec replacement closure/reopening; exact full-vector qualification remains separate."
+      },
+      "runtime_evidence": {
+        "case_id": "u6-req-0108",
+        "algorithms": [
+          "EdDSA",
+          "ES256"
+        ],
+        "test": "canonical_native_connections::lifecycle::production_native_lifecycle_quality_reports_actual_flow_through_signed_sdk",
+        "additional_test": "canonical_native_connections::lifecycle::production_native_lifecycle_closes_original_codec_binding_and_opens_only_observed_replacement",
+        "assertions": [
+          "Six actual signed stream.opened payloads include their exact original logical Stream ID, kind audio, selected codec with params/sample_rate8000/channels1, direction sendrecv, physical-peer uint16 handle and RFC3339 opened_at no later than the server envelope timestamp.",
+          "The public SDK verifies current enrolled server signatures before collecting the observations. Existing tests independently compare each Stream/Connection/physical handle to the actual negotiated media binding.",
+          "Observed replacement metadata names PCMA and its new physical handle only after actual replacement duplex flow."
+        ],
+        "report": "docs/evidence/gate-6/auxiliary-native-stream-clauses.json",
+        "profile": "Actual production Connect native QUIC listener/public signed SDK, ordinary public Conversation/Session creation and invitation/acceptance, actual media endpoint/resource negotiation, independent decoded audio and fresh current Store lifecycle delivery policy. These are existing implementation cases rerun and reconciled to exact clauses."
+      }
+    },
+    {
+      "id": "U6-REQ-0109",
+      "heading": "`stream.opened` (S\u2192C)",
+      "source_excerpt": "`stream_local_id` is the physical-peer-scoped 16-bit handle that appears in\ndatagram headers (\u00a710.1). It is assigned while processing `connection.ready`,\nafter the substrate has bound the negotiated Stream, and is announced here.",
+      "classification": "behavior-or-context",
+      "applicability": "mandatory-behavior",
+      "case_id": "u6-req-0109",
+      "runtime_status": "not-run",
+      "shared_implementation_items": [
+        "G6-004",
+        "G6-006",
+        "G6-009",
+        "G6-019",
+        "G6-020",
+        "G6-021",
+        "G6-022",
+        "G6-023",
+        "G6-027",
+        "G6-038",
+        "G6-039",
+        "G6-040",
+        "G6-041",
+        "G6-046",
+        "G6-094"
+      ],
+      "connect_integration_audit": {
+        "status": "evidence-to-reconcile",
+        "historical_component_reports": [
+          "docs/evidence/gate-6/general-session-runtime.json",
+          "docs/evidence/gate-6/auxiliary-native-lifecycle.json"
+        ],
+        "source_entrypoints": [
+          "crates/connect-server/tests/support/canonical_native_connections.rs",
+          "crates/connect-server/tests/support/canonical_native_connections/codecs.rs"
+        ],
+        "remaining": "Actual native Connection/stream lifecycle composition is now locally verified with current Store authority, per-physical delivery and signed SDK observations; PCMU-to-PCMA closure/reopening is observed. Reconcile exact assigned clause evidence and remaining Connection control profiles; this scoped component does not by itself close the entire clause group."
+      }
+    },
+    {
+      "id": "U6-REQ-0110",
+      "heading": "`stream.closed` (S\u2192C)",
+      "source_excerpt": "```json\n{\n  \"type\": \"stream.closed\",\n  \"connid\": \"conn_...\",\n  \"sid\": \"sess_...\",\n  \"payload\": {\n    \"strm_id\": \"strm_...\",\n    \"closed_at\": \"...\",\n    \"reason_code\": 200,\n    \"reason\": \"normal-clearing\" | \"codec-renegotiated\" | \"endpoint-removed\" | \"transport-error\"\n  }\n}\n```",
+      "classification": "wire-example",
+      "applicability": "mandatory-behavior",
+      "case_id": "u6-req-0110",
+      "runtime_status": "passed-local-native-audio",
+      "shared_implementation_items": [
+        "G6-004",
+        "G6-006",
+        "G6-009",
+        "G6-019",
+        "G6-020",
+        "G6-021",
+        "G6-022",
+        "G6-023",
+        "G6-027",
+        "G6-038",
+        "G6-039",
+        "G6-040",
+        "G6-041",
+        "G6-046",
+        "G6-094"
+      ],
+      "connect_integration_audit": {
+        "status": "passed-exact-local-native-audio-observations",
+        "historical_component_reports": [
+          "docs/evidence/gate-6/general-session-runtime.json",
+          "docs/evidence/gate-6/auxiliary-native-lifecycle.json"
+        ],
+        "source_entrypoints": [
+          "crates/connect-server/tests/support/canonical_native_connections.rs",
+          "crates/connect-server/tests/support/canonical_native_connections/codecs.rs"
+        ],
+        "remaining": "Other media/substrate/closure reason profiles are not newly qualified. Handle allocation and immediate replacement remain separate clauses.",
+        "current_evidence": "docs/evidence/gate-6/auxiliary-native-stream-clauses.json"
+      },
+      "local_component_evidence": {
+        "report": "docs/evidence/gate-6/auxiliary-native-lifecycle.json",
+        "scope": "Actual local signed native own-Connection flow, stream opening and codec replacement closure/reopening; exact full-vector qualification remains separate."
+      },
+      "runtime_evidence": {
+        "case_id": "u6-req-0110",
+        "algorithms": [
+          "EdDSA"
+        ],
+        "test": "canonical_native_connections::lifecycle::production_native_lifecycle_closes_original_codec_binding_and_opens_only_observed_replacement",
+        "assertions": [
+          "The actual signed stream.closed payload retains the original Stream ID, RFC3339 closed_at and numeric reason_code200 with reason codec-renegotiated under the exact original CID/SID/Connection.",
+          "The replacement code path first closes the original binding and opens only its actually observed PCMA replacement; unrelated audio remains live."
+        ],
+        "report": "docs/evidence/gate-6/auxiliary-native-stream-clauses.json",
+        "profile": "Actual production Connect native QUIC listener/public signed SDK, ordinary public Conversation/Session creation and invitation/acceptance, actual media endpoint/resource negotiation, independent decoded audio and fresh current Store lifecycle delivery policy. These are existing implementation cases rerun and reconciled to exact clauses."
+      }
+    },
+    {
+      "id": "U6-REQ-0111",
+      "heading": "`stream.closed` (S\u2192C)",
+      "source_excerpt": "When `reason = codec-renegotiated`, a new `stream.opened` for the same `strm_id` (or a new `strm_id`, depending on the negotiation outcome) follows immediately.",
+      "classification": "behavior-or-context",
+      "applicability": "mandatory-behavior",
+      "case_id": "u6-req-0111",
+      "runtime_status": "passed-local-native",
+      "shared_implementation_items": [
+        "G6-004",
+        "G6-006",
+        "G6-009",
+        "G6-019",
+        "G6-020",
+        "G6-021",
+        "G6-022",
+        "G6-023",
+        "G6-027",
+        "G6-038",
+        "G6-039",
+        "G6-040",
+        "G6-041",
+        "G6-046",
+        "G6-094"
+      ],
+      "connect_integration_audit": {
+        "status": "u6-req-0111-qualified-local-native",
+        "historical_component_reports": [
+          "docs/evidence/gate-6/general-session-runtime.json",
+          "docs/evidence/gate-6/auxiliary-native-lifecycle.json"
+        ],
+        "source_entrypoints": [
+          "crates/connect-server/tests/support/canonical_native_connections.rs",
+          "crates/connect-server/tests/support/canonical_native_connections/codecs.rs"
+        ],
+        "remaining": "Broader hosting and transport profiles remain unqualified; full G6-046 remains open.",
+        "current_evidence": "docs/evidence/gate-6/auxiliary-codec-lifecycle-pair.json"
+      },
+      "local_component_evidence": {
+        "report": "docs/evidence/gate-6/auxiliary-codec-lifecycle-pair.json",
+        "status": "u6-req-0111-qualified-local-native",
+        "close_to_open_publication_ms": [
+          0.0,
+          0.0
+        ],
+        "historical_retirement_to_open_ms": [
+          1749.44,
+          1600.459
+        ]
+      },
+      "runtime_evidence": {
+        "case_id": "u6-req-0111",
+        "algorithms": [
+          "EdDSA",
+          "ES256"
+        ],
+        "profile": "Production local native QUIC, actual decoded PCMU-to-PCMA replacement, public signed Rust SDK, plus controlled reusable physical writer failure tests.",
+        "test": "canonical_native_connections::lifecycle::production_native_lifecycle_closes_original_codec_binding_and_opens_only_observed_replacement",
+        "assertions": [
+          "A committed codec update and old flow do not publish either replacement frame before actual fresh duplex flow on the confirmed replacement.",
+          "The observed codec-renegotiated stream.closed is immediately followed by stream.opened for the same logical StreamID and new physical handle/codec. Both envelopes share their publication timestamp; closed_at preserves the earlier actual retirement observation.",
+          "The pair owns one physical writer and source reader through both writes, with current origin/revision/credential checks at each IO poll. Stale and non-native claims perform no IO.",
+          "After partial second-frame IO, source loss, credential retirement, abort or deadline retires the physical sink before releasing the source reader and records SubmissionUnknown."
+        ],
+        "report": "docs/evidence/gate-6/auxiliary-codec-lifecycle-pair.json"
+      }
+    },
+    {
+      "id": "U6-REQ-0112",
+      "heading": "7.5 DTMF",
+      "source_excerpt": "```json\n{\n  \"type\": \"dtmf.send\",\n  \"connid\": \"conn_...\",\n  \"payload\": {\n    \"digits\": \"1234#\",\n    \"duration_ms\": 100,\n    \"method\": \"rfc4733\" | \"info\"  // the gateway translates to RFC 2833 / SIP INFO for SIP interop\n  }\n}\n```",
+      "classification": "wire-example",
+      "applicability": "mandatory-behavior",
+      "case_id": "u6-req-0112",
+      "runtime_status": "not-run",
+      "shared_implementation_items": [
+        "G6-004",
+        "G6-006",
+        "G6-009",
+        "G6-019",
+        "G6-020",
+        "G6-021",
+        "G6-022",
+        "G6-023",
+        "G6-027",
+        "G6-038",
+        "G6-039",
+        "G6-040",
+        "G6-041",
+        "G6-046",
+        "G6-094"
+      ],
+      "connect_integration_audit": {
+        "status": "native-local-components-qualified; cross-substrate-integration-open",
+        "historical_component_reports": [
+          "docs/evidence/gate-6/auxiliary-native-dtmf-service.json",
+          "docs/evidence/gate-6/auxiliary-native-dtmf-recovery.json"
+        ],
+        "source_entrypoints": [
+          "crates/connect-service/src/canonical_native_dtmf.rs",
+          "crates/connect-store/src/transitions/native_streams/dtmf.rs",
+          "crates/connect-client/src/canonical/dtmf.rs"
+        ],
+        "remaining": "Native signed commands, durable original observations, frozen recipient sets, independent current signal authority, actual private/public delivery and local partial-IO recovery are installed and scoped-qualified. Actual SIP/WebRTC/general ingress and egress composition, remaining queued/private fault vectors and per-clause execution still require qualification."
+      }
+    },
+    {
+      "id": "U6-REQ-0113",
+      "heading": "7.5 DTMF",
+      "source_excerpt": "UCTP-native Connections deliver DTMF as `dtmf.received` envelopes. The gateway translates SIP DTMF (RFC 2833 / SIP INFO) into `dtmf.received` for UCTP-speaking peers in the same Session.",
+      "classification": "behavior-or-context",
+      "applicability": "mandatory-behavior",
+      "case_id": "u6-req-0113",
+      "runtime_status": "not-run",
+      "shared_implementation_items": [
+        "G6-004",
+        "G6-006",
+        "G6-009",
+        "G6-019",
+        "G6-020",
+        "G6-021",
+        "G6-022",
+        "G6-023",
+        "G6-027",
+        "G6-038",
+        "G6-039",
+        "G6-040",
+        "G6-041",
+        "G6-046",
+        "G6-094"
+      ],
+      "connect_integration_audit": {
+        "status": "native-local-components-qualified; cross-substrate-integration-open",
+        "historical_component_reports": [
+          "docs/evidence/gate-6/auxiliary-native-dtmf-service.json",
+          "docs/evidence/gate-6/auxiliary-native-dtmf-recovery.json"
+        ],
+        "source_entrypoints": [
+          "crates/connect-service/src/canonical_native_dtmf.rs",
+          "crates/connect-store/src/transitions/native_streams/dtmf.rs",
+          "crates/connect-client/src/canonical/dtmf.rs"
+        ],
+        "remaining": "Native signed commands, durable original observations, frozen recipient sets, independent current signal authority, actual private/public delivery and local partial-IO recovery are installed and scoped-qualified. Actual SIP/WebRTC/general ingress and egress composition, remaining queued/private fault vectors and per-clause execution still require qualification."
+      }
+    },
+    {
+      "id": "U6-REQ-0114",
+      "heading": "`dtmf.received` (S\u2192C)",
+      "source_excerpt": "```json\n{\n  \"type\": \"dtmf.received\",\n  \"connid\": \"conn_...\",\n  \"sid\": \"sess_...\",\n  \"payload\": {\n    \"digits\": \"1234#\",\n    \"duration_ms\": 100,\n    \"received_at\": \"...\",\n    \"source\": \"uctp-native\" | \"sip-rfc4733\" | \"sip-info\" | \"webrtc\"\n  }\n}\n```",
+      "classification": "wire-example",
+      "applicability": "mandatory-behavior",
+      "case_id": "u6-req-0114",
+      "runtime_status": "passed-local-native-wire",
+      "shared_implementation_items": [
+        "G6-004",
+        "G6-006",
+        "G6-009",
+        "G6-019",
+        "G6-020",
+        "G6-021",
+        "G6-022",
+        "G6-023",
+        "G6-027",
+        "G6-038",
+        "G6-039",
+        "G6-040",
+        "G6-041",
+        "G6-046",
+        "G6-094"
+      ],
+      "connect_integration_audit": {
+        "status": "native-wire-shape-qualified; cross-substrate-integration-open",
+        "historical_component_reports": [
+          "docs/evidence/gate-6/auxiliary-native-dtmf-service.json",
+          "docs/evidence/gate-6/auxiliary-native-dtmf-recovery.json"
+        ],
+        "source_entrypoints": [
+          "crates/connect-service/src/canonical_native_dtmf.rs",
+          "crates/connect-store/src/transitions/native_streams/dtmf.rs",
+          "crates/connect-client/src/canonical/dtmf.rs"
+        ],
+        "remaining": "The SIP/WebRTC source alternatives, actual gateway translation, full DTMF group and broader transport/hosting profiles remain open.",
+        "current_evidence": "docs/evidence/gate-6/auxiliary-dtmf-metadata-admission.json"
+      },
+      "runtime_evidence": {
+        "case_id": "u6-req-0114",
+        "algorithms": [
+          "EdDSA",
+          "ES256"
+        ],
+        "profile": "Local native QUIC production service/Store, public signed Rust SDK and current bearer HTTP operation status. Native uctp-native source only.",
+        "tests": [
+          "canonical_native_connections::dtmf::production_native_dtmf_signed_sdk_delivery_and_replay_preserve_original_effects",
+          "canonical_native_connections::dtmf::production_native_dtmf_http_status_projects_actual_local_frame_summary",
+          "canonical_native_connections::dtmf::production_native_dtmf_queued_during_another_sdk_command_keeps_actual_provenance_and_order"
+        ],
+        "assertions": [
+          "Actual signed dtmf.received carries the recipient Conversation, Session and Connection, exact digits/duration, a parseable original received_at no later than publication, and source=uctp-native.",
+          "Current HTTP status names the same actual output frame ID and original receive time as the received event. Local submission is distinct from remote playback.",
+          "Logical replay preserves the immutable original result and emits no second signal. A supplied sip-info source assertion does not change native provenance."
+        ],
+        "observations": {
+          "path": ".local/gate-6/dtmf-current-admission/native-dtmf-observations-final.json",
+          "sha256": "86ceb3864b8939841e95cc358e988641493de6c5fb50276989efa72e958bc25f"
+        },
+        "validation": {
+          "path": ".local/gate-6/dtmf-current-admission/dtmf-wire-final.json",
+          "sha256": "0811356d8b88d12097b767c118f853fcca310d31ab79ff89a88be6816faa44fb"
+        },
+        "limits": "The SIP/WebRTC source alternatives, actual gateway translation, full DTMF group and broader transport/hosting profiles remain open.",
+        "report": "docs/evidence/gate-6/auxiliary-dtmf-metadata-admission.json"
+      }
+    },
+    {
+      "id": "U6-REQ-0115",
+      "heading": "`dtmf.received` (S\u2192C)",
+      "source_excerpt": "`source` lets the consumer attribute DTMF correctly when bridging across substrates (e.g., distinguish in-band SIP DTMF that survived translation from native UCTP DTMF).",
+      "classification": "behavior-or-context",
+      "applicability": "mandatory-behavior",
+      "case_id": "u6-req-0115",
+      "runtime_status": "not-run",
+      "shared_implementation_items": [
+        "G6-004",
+        "G6-006",
+        "G6-009",
+        "G6-019",
+        "G6-020",
+        "G6-021",
+        "G6-022",
+        "G6-023",
+        "G6-027",
+        "G6-038",
+        "G6-039",
+        "G6-040",
+        "G6-041",
+        "G6-046",
+        "G6-094"
+      ],
+      "connect_integration_audit": {
+        "status": "native-local-components-qualified; cross-substrate-integration-open",
+        "historical_component_reports": [
+          "docs/evidence/gate-6/auxiliary-native-dtmf-service.json",
+          "docs/evidence/gate-6/auxiliary-native-dtmf-recovery.json"
+        ],
+        "source_entrypoints": [
+          "crates/connect-service/src/canonical_native_dtmf.rs",
+          "crates/connect-store/src/transitions/native_streams/dtmf.rs",
+          "crates/connect-client/src/canonical/dtmf.rs"
+        ],
+        "remaining": "Native signed commands, durable original observations, frozen recipient sets, independent current signal authority, actual private/public delivery and local partial-IO recovery are installed and scoped-qualified. Actual SIP/WebRTC/general ingress and egress composition, remaining queued/private fault vectors and per-clause execution still require qualification."
+      }
+    },
+    {
+      "id": "U6-REQ-0116",
+      "heading": "7.6 vCon emission and retrieval",
+      "source_excerpt": "UCTP servers emit a [vCon](https://datatracker.ietf.org/doc/draft-ietf-vcon-vcon-core/) (the IETF Virtualized Conversations envelope) for **every Session at session.ended**, regardless of whether audio recording was enabled. The vCon is the durable JSON record of who joined, what happened, and what analyses were attached. The built-in end-of-Session path validates and persists unsigned canonical JSON. Applications may explicitly sign a vCon with JWS General JSON Serialization; signing is not automatic, and JWE encryption is not implemented. See `INTERFACE_DESIGN.md` \u00a73.9 / \u00a711.4 for the server-side construction.",
+      "classification": "behavior-or-context",
+      "applicability": "mandatory-behavior",
+      "case_id": "u6-req-0116",
+      "runtime_status": "not-run",
+      "shared_implementation_items": [
+        "G6-004",
+        "G6-006",
+        "G6-009",
+        "G6-019",
+        "G6-020",
+        "G6-021",
+        "G6-022",
+        "G6-023",
+        "G6-027",
+        "G6-038",
+        "G6-039",
+        "G6-040",
+        "G6-041",
+        "G6-046",
+        "G6-094"
+      ],
+      "connect_integration_audit": {
+        "status": "evidence-to-reconcile",
+        "historical_component_reports": [
+          "docs/evidence/gate-6/auxiliary-session-outcomes.json",
+          "docs/evidence/gate-6/auxiliary-record-discovery.json",
+          "docs/evidence/gate-6/auxiliary-native-records.json",
+          "docs/evidence/gate-6/auxiliary-record-references.json",
+          "docs/evidence/gate-6/auxiliary-record-selectors.json",
+          "docs/evidence/gate-6/auxiliary-record-tenant-readers.json",
+          "docs/evidence/gate-6/auxiliary-native-record-quic.json",
+          "docs/evidence/gate-6/auxiliary-record-private-links.json"
+        ],
+        "source_entrypoints": [
+          "crates/connect-server/tests/gate6_auxiliary.rs",
+          "crates/connect-server/tests/support/canonical_record_http.rs",
+          "crates/connect-service/src/canonical_records.rs"
+        ],
+        "remaining": "Bind actual ready/discovery/fetch inline/URL/current session and tenant read evidence to exact six clause IDs. The installation profile produces metadata-only outcomes with explicit absent capture; determine approved applicability before adding optional captured-media scope."
+      }
+    },
+    {
+      "id": "U6-REQ-0117",
+      "heading": "`recording.vcon-ready` (server \u2192 client, multicast to Session participants)",
+      "source_excerpt": "```json\n{\n  \"type\": \"recording.vcon-ready\",\n  \"cid\": \"conv_...\",\n  \"sid\": \"sess_...\",\n  \"payload\": {\n    \"vcon_handle\": {\n      \"url\": \"https://store.example.com/vcons/01HXYZ.vcon\",\n      \"content_hash\": \"sha512-GLy6IPaIUM1GqzZqfIPZlWjaDsNgNvZM0iCONNThnH0a75fhUM6cYzLZ5GynSURREvZwmOh54-2lRRieyj82UQ\"\n    }\n  }\n}\n```",
+      "classification": "wire-example",
+      "applicability": "mandatory-behavior",
+      "case_id": "u6-req-0117",
+      "runtime_status": "not-run",
+      "shared_implementation_items": [
+        "G6-004",
+        "G6-006",
+        "G6-009",
+        "G6-019",
+        "G6-020",
+        "G6-021",
+        "G6-022",
+        "G6-023",
+        "G6-027",
+        "G6-038",
+        "G6-039",
+        "G6-040",
+        "G6-041",
+        "G6-046",
+        "G6-094"
+      ],
+      "connect_integration_audit": {
+        "status": "evidence-to-reconcile",
+        "historical_component_reports": [
+          "docs/evidence/gate-6/auxiliary-session-outcomes.json",
+          "docs/evidence/gate-6/auxiliary-record-discovery.json",
+          "docs/evidence/gate-6/auxiliary-native-records.json",
+          "docs/evidence/gate-6/auxiliary-record-references.json",
+          "docs/evidence/gate-6/auxiliary-record-selectors.json",
+          "docs/evidence/gate-6/auxiliary-record-tenant-readers.json",
+          "docs/evidence/gate-6/auxiliary-native-record-quic.json",
+          "docs/evidence/gate-6/auxiliary-record-private-links.json"
+        ],
+        "source_entrypoints": [
+          "crates/connect-server/tests/gate6_auxiliary.rs",
+          "crates/connect-server/tests/support/canonical_record_http.rs",
+          "crates/connect-service/src/canonical_records.rs"
+        ],
+        "remaining": "Bind actual ready/discovery/fetch inline/URL/current session and tenant read evidence to exact six clause IDs. The installation profile produces metadata-only outcomes with explicit absent capture; determine approved applicability before adding optional captured-media scope."
+      }
+    },
+    {
+      "id": "U6-REQ-0118",
+      "heading": "`recording.vcon-ready` (server \u2192 client, multicast to Session participants)",
+      "source_excerpt": "The vCon is **not** delivered inline \u2014 clients fetch it explicitly via `recording.vcon-fetch`. This keeps `recording.vcon-ready` small (it broadcasts to all Session participants) while letting consumers pull only the vCons they want.",
+      "classification": "behavior-or-context",
+      "applicability": "mandatory-behavior",
+      "case_id": "u6-req-0118",
+      "runtime_status": "not-run",
+      "shared_implementation_items": [
+        "G6-004",
+        "G6-006",
+        "G6-009",
+        "G6-019",
+        "G6-020",
+        "G6-021",
+        "G6-022",
+        "G6-023",
+        "G6-027",
+        "G6-038",
+        "G6-039",
+        "G6-040",
+        "G6-041",
+        "G6-046",
+        "G6-094"
+      ],
+      "connect_integration_audit": {
+        "status": "evidence-to-reconcile",
+        "historical_component_reports": [
+          "docs/evidence/gate-6/auxiliary-session-outcomes.json",
+          "docs/evidence/gate-6/auxiliary-record-discovery.json",
+          "docs/evidence/gate-6/auxiliary-native-records.json",
+          "docs/evidence/gate-6/auxiliary-record-references.json",
+          "docs/evidence/gate-6/auxiliary-record-selectors.json",
+          "docs/evidence/gate-6/auxiliary-record-tenant-readers.json",
+          "docs/evidence/gate-6/auxiliary-native-record-quic.json",
+          "docs/evidence/gate-6/auxiliary-record-private-links.json"
+        ],
+        "source_entrypoints": [
+          "crates/connect-server/tests/gate6_auxiliary.rs",
+          "crates/connect-server/tests/support/canonical_record_http.rs",
+          "crates/connect-service/src/canonical_records.rs"
+        ],
+        "remaining": "Bind actual ready/discovery/fetch inline/URL/current session and tenant read evidence to exact six clause IDs. The installation profile produces metadata-only outcomes with explicit absent capture; determine approved applicability before adding optional captured-media scope."
+      }
+    },
+    {
+      "id": "U6-REQ-0119",
+      "heading": "`recording.vcon-fetch` (client \u2192 server)",
+      "source_excerpt": "```json\n{\n  \"type\": \"recording.vcon-fetch\",\n  \"payload\": {\n    \"uuid\": \"01HXYZ...\"           // OR url+content_hash; either form acceptable\n  }\n}\n```",
+      "classification": "wire-example",
+      "applicability": "mandatory-behavior",
+      "case_id": "u6-req-0119",
+      "runtime_status": "not-run",
+      "shared_implementation_items": [
+        "G6-004",
+        "G6-006",
+        "G6-009",
+        "G6-019",
+        "G6-020",
+        "G6-021",
+        "G6-022",
+        "G6-023",
+        "G6-027",
+        "G6-038",
+        "G6-039",
+        "G6-040",
+        "G6-041",
+        "G6-046",
+        "G6-094"
+      ],
+      "connect_integration_audit": {
+        "status": "evidence-to-reconcile",
+        "historical_component_reports": [
+          "docs/evidence/gate-6/auxiliary-session-outcomes.json",
+          "docs/evidence/gate-6/auxiliary-record-discovery.json",
+          "docs/evidence/gate-6/auxiliary-native-records.json",
+          "docs/evidence/gate-6/auxiliary-record-references.json",
+          "docs/evidence/gate-6/auxiliary-record-selectors.json",
+          "docs/evidence/gate-6/auxiliary-record-tenant-readers.json",
+          "docs/evidence/gate-6/auxiliary-native-record-quic.json",
+          "docs/evidence/gate-6/auxiliary-record-private-links.json"
+        ],
+        "source_entrypoints": [
+          "crates/connect-server/tests/gate6_auxiliary.rs",
+          "crates/connect-server/tests/support/canonical_record_http.rs",
+          "crates/connect-service/src/canonical_records.rs"
+        ],
+        "remaining": "Bind actual ready/discovery/fetch inline/URL/current session and tenant read evidence to exact six clause IDs. The installation profile produces metadata-only outcomes with explicit absent capture; determine approved applicability before adding optional captured-media scope."
+      }
+    },
+    {
+      "id": "U6-REQ-0120",
+      "heading": "`recording.vcon-fetched` (server \u2192 client, response)",
+      "source_excerpt": "```json\n{\n  \"type\": \"recording.vcon-fetched\",\n  \"in_reply_to\": \"<recording.vcon-fetch.id>\",\n  \"payload\": {\n    \"delivery\": \"inline\" | \"url\",  // small vCons inline; large ones return a download URL\n    \"vcon\": \"<vCon JSON or JWS General JSON body>\", // when delivery=inline\n    \"url\": \"https://...\",          // when delivery=url; URL carries access token in query string or via co-issued Bearer\n    \"expires_at\": \"...\"            // when delivery=url\n  }\n}\n```",
+      "classification": "wire-example",
+      "applicability": "mandatory-behavior",
+      "case_id": "u6-req-0120",
+      "runtime_status": "not-run",
+      "shared_implementation_items": [
+        "G6-004",
+        "G6-006",
+        "G6-009",
+        "G6-019",
+        "G6-020",
+        "G6-021",
+        "G6-022",
+        "G6-023",
+        "G6-027",
+        "G6-038",
+        "G6-039",
+        "G6-040",
+        "G6-041",
+        "G6-046",
+        "G6-094"
+      ],
+      "connect_integration_audit": {
+        "status": "evidence-to-reconcile",
+        "historical_component_reports": [
+          "docs/evidence/gate-6/auxiliary-session-outcomes.json",
+          "docs/evidence/gate-6/auxiliary-record-discovery.json",
+          "docs/evidence/gate-6/auxiliary-native-records.json",
+          "docs/evidence/gate-6/auxiliary-record-references.json",
+          "docs/evidence/gate-6/auxiliary-record-selectors.json",
+          "docs/evidence/gate-6/auxiliary-record-tenant-readers.json",
+          "docs/evidence/gate-6/auxiliary-native-record-quic.json",
+          "docs/evidence/gate-6/auxiliary-record-private-links.json"
+        ],
+        "source_entrypoints": [
+          "crates/connect-server/tests/gate6_auxiliary.rs",
+          "crates/connect-server/tests/support/canonical_record_http.rs",
+          "crates/connect-service/src/canonical_records.rs"
+        ],
+        "remaining": "Bind actual ready/discovery/fetch inline/URL/current session and tenant read evidence to exact six clause IDs. The installation profile produces metadata-only outcomes with explicit absent capture; determine approved applicability before adding optional captured-media scope."
+      }
+    },
+    {
+      "id": "U6-REQ-0121",
+      "heading": "`recording.vcon-fetched` (server \u2192 client, response)",
+      "source_excerpt": "Access policy: a vCon is fetchable by participants of the Session (via their `auth.session` token) plus any tenant-level role granted vCon-read scope. The server enforces; UCTP carries the request and response.",
+      "classification": "behavior-or-context",
+      "applicability": "mandatory-behavior",
+      "case_id": "u6-req-0121",
+      "runtime_status": "not-run",
+      "shared_implementation_items": [
+        "G6-004",
+        "G6-006",
+        "G6-009",
+        "G6-019",
+        "G6-020",
+        "G6-021",
+        "G6-022",
+        "G6-023",
+        "G6-027",
+        "G6-038",
+        "G6-039",
+        "G6-040",
+        "G6-041",
+        "G6-046",
+        "G6-094"
+      ],
+      "connect_integration_audit": {
+        "status": "evidence-to-reconcile",
+        "historical_component_reports": [
+          "docs/evidence/gate-6/auxiliary-session-outcomes.json",
+          "docs/evidence/gate-6/auxiliary-record-discovery.json",
+          "docs/evidence/gate-6/auxiliary-native-records.json",
+          "docs/evidence/gate-6/auxiliary-record-references.json",
+          "docs/evidence/gate-6/auxiliary-record-selectors.json",
+          "docs/evidence/gate-6/auxiliary-record-tenant-readers.json",
+          "docs/evidence/gate-6/auxiliary-native-record-quic.json",
+          "docs/evidence/gate-6/auxiliary-record-private-links.json"
+        ],
+        "source_entrypoints": [
+          "crates/connect-server/tests/gate6_auxiliary.rs",
+          "crates/connect-server/tests/support/canonical_record_http.rs",
+          "crates/connect-service/src/canonical_records.rs"
+        ],
+        "remaining": "Bind actual ready/discovery/fetch inline/URL/current session and tenant read evidence to exact six clause IDs. The installation profile produces metadata-only outcomes with explicit absent capture; determine approved applicability before adding optional captured-media scope."
+      }
+    },
+    {
+      "id": "U6-REQ-0122",
+      "heading": "7.7 Multi-party Sessions",
+      "source_excerpt": "A Session may contain any number of Participants (N \u2265 1). voip-3 \u00a76.3 / \u00a79.8 describes multi-Participant Sessions as first-class: each Participant brings their own Connection(s) and Streams; the Session does not require uniformity. UCTP supports this directly:",
+      "classification": "behavior-or-context",
+      "applicability": "mandatory-behavior",
+      "case_id": "u6-req-0122",
+      "runtime_status": "passed-local-native",
+      "shared_implementation_items": [
+        "G6-004",
+        "G6-006",
+        "G6-009",
+        "G6-019",
+        "G6-020",
+        "G6-021",
+        "G6-022",
+        "G6-023",
+        "G6-027",
+        "G6-038",
+        "G6-039",
+        "G6-040",
+        "G6-041",
+        "G6-046",
+        "G6-094"
+      ],
+      "connect_integration_audit": {
+        "status": "single-and-multi-participant-native-qualified-local",
+        "historical_component_reports": [
+          "docs/evidence/gate-6/general-session-runtime.json",
+          "docs/evidence/gate-6/private-consultation-complete.json"
+        ],
+        "source_entrypoints": [
+          "crates/connect-server/tests/support/canonical_native_connections.rs",
+          "crates/connect-server/tests/support/canonical_native_connections/future.rs"
+        ],
+        "remaining": "Qualification covers bounded local native behavior for clause0122. Full Session Active/started/joined/left boundaries, subscriber/current+future routing clauses, vCon clauses, Linux, remote/browser/provider profiles and task/acceptance closure remain assigned.",
+        "current_evidence": "docs/evidence/gate-6/auxiliary-solo-sessions.json"
+      },
+      "runtime_evidence": {
+        "case_id": "u6-req-0122",
+        "profile": "Local macOS arm64 production native QUIC and public signed Rust SDK (EdDSA/ES256 for solo) with current bearer HTTP replay. Tested N=1,2,4, multiple Connections per Participant, bounded by configured capacity.",
+        "tests": [
+          "canonical_native_connections::solo::production_solo_session_admits_actual_native_flow_and_preserves_original_receipt_when_growing",
+          "canonical_native_connections::production_native_audio_survives_another_participant_leaving",
+          "canonical_native_connections::production_accepted_live_video_upgrade_adds_connections_and_preserves_existing_audio",
+          "general_session_control::signed_and_http_general_session_lifecycle_share_four_party_receipts_and_current_views"
+        ],
+        "assertions": [
+          "An empty initial to admits exactly one present initiator with accepted capability intent, an owner-only original Session audience and no outbound invitation source. No Active or actual media claim is made by admission.",
+          "The actual native single-Participant sendonly Connection negotiates current resources. A reliable barrier confirms no premature flow hint; real RTP then produces signed connection.ready and stream.opened for the exact Session/Connection/Stream.",
+          "Another Conversation member cannot end the solo Session before admission. Adding and accepting a later Participant retains the same SID; initial native and HTTP replay retains the exact original receipt without repeating media work.",
+          "Four actual identity kinds own six independent native Connections and distinct per-physical stream handles. Real audio survives one Participant leaving. An additive video profile negotiates separate Connections while preserving the original audio.",
+          "Four-party native/HTTP control accepts compatible capability subsets, with independent appearance/role/current view and immutable receipt behavior. Single-Participant Store tests cover restart, no-op existing invitation refusal, later growth, terminal state and no resurrection."
+        ],
+        "limits": "Qualification covers bounded local native behavior for clause0122. Full Session Active/started/joined/left boundaries, subscriber/current+future routing clauses, vCon clauses, Linux, remote/browser/provider profiles and task/acceptance closure remain assigned.",
+        "report": "docs/evidence/gate-6/auxiliary-solo-sessions.json"
+      }
+    },
+    {
+      "id": "U6-REQ-0123",
+      "heading": "7.7 Multi-party Sessions",
+      "source_excerpt": "- **Participant lifecycle** is per \u00a77.2 \u2014 `session.participant.joined` / `session.participant.left` is multicast to every other Participant when membership changes.\n- **Stream publishing.** Each Participant's Streams are advertised via their own `connection.offer` / `connection.answer`. After `connection.ready` fires, those Streams become available for subscription by other Participants.\n- **Stream subscription is explicit.** After `session.started`, a Participant subscribes to peer Streams via `stream.subscribe`. They may subscribe by `strm_id`, by `from_participant`, or by Stream `kind`. A Participant does **not** receive media from Streams it has not subscribed to.\n- **Datagram fan-out is server-side.** A publisher's datagrams (\u00a710.1) arrive at the server keyed by the authenticated physical peer and `stream_local_id`. The server resolves that binding to its canonical Session, Connection, and Stream, then forwards each datagram to every Participant subscribed to that `strm_id`, rewriting `stream_local_id` to the subscriber peer's binding. `datagram_seq` MAY be re-numbered per egress binding.\n- **Active speaker** (advisory, optional): the server MAY emit `stream.active-speaker` envelopes when audio-energy detection identifies a new dominant speaker. Clients MUST NOT rely on it for correctness; missing events do not mean no one is speaking.\n- **No SFU envelopes.** Servers may use SFU/MCU machinery internally (selective forwarding, simulcast/SVC, mixing matrices) to scale large Sessions, but no SFU-specific envelopes are exposed at the UCTP wire. From a Participant's perspective, the protocol is unchanged regardless of N.\n- **1:1 is N=2.** A 2-Participant Session uses the same envelopes and lifecycle as a 50-Participant Session.",
+      "classification": "explicit-normative",
+      "applicability": "mandatory-when-condition-applies",
+      "case_id": "u6-req-0123",
+      "runtime_status": "not-run",
+      "shared_implementation_items": [
+        "G6-004",
+        "G6-006",
+        "G6-009",
+        "G6-019",
+        "G6-020",
+        "G6-021",
+        "G6-022",
+        "G6-023",
+        "G6-027",
+        "G6-038",
+        "G6-039",
+        "G6-040",
+        "G6-041",
+        "G6-046",
+        "G6-094"
+      ],
+      "connect_integration_audit": {
+        "status": "evidence-to-reconcile",
+        "historical_component_reports": [
+          "docs/evidence/gate-6/general-session-runtime.json",
+          "docs/evidence/gate-6/private-consultation-complete.json"
+        ],
+        "source_entrypoints": [
+          "crates/connect-server/tests/support/canonical_native_connections.rs",
+          "crates/connect-server/tests/support/canonical_native_connections/future.rs"
+        ],
+        "remaining": "Reconcile actual multiparty routing/current+future selectors, unsubscribe idempotence and membership changes. Active speaker is optional per original clause; do not invent an acceptance prerequisite."
+      }
+    },
+    {
+      "id": "U6-REQ-0124",
+      "heading": "`stream.subscribe` (bidi)",
+      "source_excerpt": "```json\n{\n  \"type\": \"stream.subscribe\",\n  \"sid\": \"sess_...\",\n  \"connid\": \"conn_...\",\n  \"payload\": {\n    \"by_participant\": \"part_...\",\n    \"subscriptions\": [\n      { \"strm_id\": \"strm_...\" }\n      | { \"from_participant\": \"part_...\" }\n      | { \"from_participant\": \"part_...\", \"kinds\": [\"audio\", \"video\"] }\n    ]\n  }\n}\n```",
+      "classification": "wire-example",
+      "applicability": "mandatory-behavior",
+      "case_id": "u6-req-0124",
+      "runtime_status": "not-run",
+      "shared_implementation_items": [
+        "G6-004",
+        "G6-006",
+        "G6-009",
+        "G6-019",
+        "G6-020",
+        "G6-021",
+        "G6-022",
+        "G6-023",
+        "G6-027",
+        "G6-038",
+        "G6-039",
+        "G6-040",
+        "G6-041",
+        "G6-046",
+        "G6-094"
+      ],
+      "connect_integration_audit": {
+        "status": "evidence-to-reconcile",
+        "historical_component_reports": [
+          "docs/evidence/gate-6/general-session-runtime.json",
+          "docs/evidence/gate-6/private-consultation-complete.json"
+        ],
+        "source_entrypoints": [
+          "crates/connect-server/tests/support/canonical_native_connections.rs",
+          "crates/connect-server/tests/support/canonical_native_connections/future.rs"
+        ],
+        "remaining": "Reconcile actual multiparty routing/current+future selectors, unsubscribe idempotence and membership changes. Active speaker is optional per original clause; do not invent an acceptance prerequisite."
+      }
+    },
+    {
+      "id": "U6-REQ-0125",
+      "heading": "`stream.subscribe` (bidi)",
+      "source_excerpt": "Each entry in `subscriptions` is one of the three forms shown. A `from_participant`-only entry subscribes to all of that peer's current and future Streams; adding `kinds` filters to a subset. The server responds with `ack` when the routing table is updated, or `error` (404 not-found if any `strm_id` or `from_participant` is unknown; 488 incompatible-capabilities if codec sets don't align).",
+      "classification": "behavior-or-context",
+      "applicability": "mandatory-behavior",
+      "case_id": "u6-req-0125",
+      "runtime_status": "not-run",
+      "shared_implementation_items": [
+        "G6-004",
+        "G6-006",
+        "G6-009",
+        "G6-019",
+        "G6-020",
+        "G6-021",
+        "G6-022",
+        "G6-023",
+        "G6-027",
+        "G6-038",
+        "G6-039",
+        "G6-040",
+        "G6-041",
+        "G6-046",
+        "G6-094"
+      ],
+      "connect_integration_audit": {
+        "status": "evidence-to-reconcile",
+        "historical_component_reports": [
+          "docs/evidence/gate-6/general-session-runtime.json",
+          "docs/evidence/gate-6/private-consultation-complete.json"
+        ],
+        "source_entrypoints": [
+          "crates/connect-server/tests/support/canonical_native_connections.rs",
+          "crates/connect-server/tests/support/canonical_native_connections/future.rs"
+        ],
+        "remaining": "Reconcile actual multiparty routing/current+future selectors, unsubscribe idempotence and membership changes. Active speaker is optional per original clause; do not invent an acceptance prerequisite."
+      }
+    },
+    {
+      "id": "U6-REQ-0126",
+      "heading": "`stream.unsubscribe` (bidi)",
+      "source_excerpt": "```json\n{\n  \"type\": \"stream.unsubscribe\",\n  \"sid\": \"sess_...\",\n  \"connid\": \"conn_...\",\n  \"payload\": {\n    \"strm_ids\": [\"strm_...\"]\n  }\n}\n```",
+      "classification": "wire-example",
+      "applicability": "mandatory-behavior",
+      "case_id": "u6-req-0126",
+      "runtime_status": "not-run",
+      "shared_implementation_items": [
+        "G6-004",
+        "G6-006",
+        "G6-009",
+        "G6-019",
+        "G6-020",
+        "G6-021",
+        "G6-022",
+        "G6-023",
+        "G6-027",
+        "G6-038",
+        "G6-039",
+        "G6-040",
+        "G6-041",
+        "G6-046",
+        "G6-094"
+      ],
+      "connect_integration_audit": {
+        "status": "evidence-to-reconcile",
+        "historical_component_reports": [
+          "docs/evidence/gate-6/general-session-runtime.json",
+          "docs/evidence/gate-6/private-consultation-complete.json"
+        ],
+        "source_entrypoints": [
+          "crates/connect-server/tests/support/canonical_native_connections.rs",
+          "crates/connect-server/tests/support/canonical_native_connections/future.rs"
+        ],
+        "remaining": "Reconcile actual multiparty routing/current+future selectors, unsubscribe idempotence and membership changes. Active speaker is optional per original clause; do not invent an acceptance prerequisite."
+      }
+    },
+    {
+      "id": "U6-REQ-0127",
+      "heading": "`stream.unsubscribe` (bidi)",
+      "source_excerpt": "Removes routing-table entries for the listed Streams toward this Connection. Idempotent.",
+      "classification": "behavior-or-context",
+      "applicability": "mandatory-behavior",
+      "case_id": "u6-req-0127",
+      "runtime_status": "not-run",
+      "shared_implementation_items": [
+        "G6-004",
+        "G6-006",
+        "G6-009",
+        "G6-019",
+        "G6-020",
+        "G6-021",
+        "G6-022",
+        "G6-023",
+        "G6-027",
+        "G6-038",
+        "G6-039",
+        "G6-040",
+        "G6-041",
+        "G6-046",
+        "G6-094"
+      ],
+      "connect_integration_audit": {
+        "status": "evidence-to-reconcile",
+        "historical_component_reports": [
+          "docs/evidence/gate-6/general-session-runtime.json",
+          "docs/evidence/gate-6/private-consultation-complete.json"
+        ],
+        "source_entrypoints": [
+          "crates/connect-server/tests/support/canonical_native_connections.rs",
+          "crates/connect-server/tests/support/canonical_native_connections/future.rs"
+        ],
+        "remaining": "Reconcile actual multiparty routing/current+future selectors, unsubscribe idempotence and membership changes. Active speaker is optional per original clause; do not invent an acceptance prerequisite."
+      }
+    },
+    {
+      "id": "U6-REQ-0128",
+      "heading": "`stream.active-speaker` (S\u2192C, advisory)",
+      "source_excerpt": "```json\n{\n  \"type\": \"stream.active-speaker\",\n  \"sid\": \"sess_...\",\n  \"payload\": {\n    \"active_participant\": \"part_...\" | null,\n    \"strm_id\": \"strm_...\",\n    \"changed_at\": \"...\"\n  }\n}\n```",
+      "classification": "wire-example",
+      "applicability": "mandatory-behavior",
+      "case_id": "u6-req-0128",
+      "runtime_status": "not-run",
+      "shared_implementation_items": [
+        "G6-004",
+        "G6-006",
+        "G6-009",
+        "G6-019",
+        "G6-020",
+        "G6-021",
+        "G6-022",
+        "G6-023",
+        "G6-027",
+        "G6-038",
+        "G6-039",
+        "G6-040",
+        "G6-041",
+        "G6-046",
+        "G6-094"
+      ],
+      "connect_integration_audit": {
+        "status": "evidence-to-reconcile",
+        "historical_component_reports": [
+          "docs/evidence/gate-6/general-session-runtime.json",
+          "docs/evidence/gate-6/private-consultation-complete.json"
+        ],
+        "source_entrypoints": [
+          "crates/connect-server/tests/support/canonical_native_connections.rs",
+          "crates/connect-server/tests/support/canonical_native_connections/future.rs"
+        ],
+        "remaining": "Reconcile actual multiparty routing/current+future selectors, unsubscribe idempotence and membership changes. Active speaker is optional per original clause; do not invent an acceptance prerequisite."
+      }
+    },
+    {
+      "id": "U6-REQ-0129",
+      "heading": "`stream.active-speaker` (S\u2192C, advisory)",
+      "source_excerpt": "`active_participant: null` indicates silence / no dominant speaker. Detection algorithm is implementation-policy; servers may emit at any cadence or not at all.",
+      "classification": "behavior-or-context",
+      "applicability": "mandatory-behavior",
+      "case_id": "u6-req-0129",
+      "runtime_status": "not-run",
+      "shared_implementation_items": [
+        "G6-004",
+        "G6-006",
+        "G6-009",
+        "G6-019",
+        "G6-020",
+        "G6-021",
+        "G6-022",
+        "G6-023",
+        "G6-027",
+        "G6-038",
+        "G6-039",
+        "G6-040",
+        "G6-041",
+        "G6-046",
+        "G6-094"
+      ],
+      "connect_integration_audit": {
+        "status": "evidence-to-reconcile",
+        "historical_component_reports": [
+          "docs/evidence/gate-6/general-session-runtime.json",
+          "docs/evidence/gate-6/private-consultation-complete.json"
+        ],
+        "source_entrypoints": [
+          "crates/connect-server/tests/support/canonical_native_connections.rs",
+          "crates/connect-server/tests/support/canonical_native_connections/future.rs"
+        ],
+        "remaining": "Reconcile actual multiparty routing/current+future selectors, unsubscribe idempotence and membership changes. Active speaker is optional per original clause; do not invent an acceptance prerequisite."
+      }
+    }
+  ],
+  "initial_source_entrypoints": [
+    {
+      "path": "crates/connect-service/src/canonical.rs",
+      "sha256": "0adefe2f7d65f92f38efd88b7acc0c04a0f282fddfbd9f526a676036e859b51f"
+    },
+    {
+      "path": "crates/connect-service/src/authentication.rs",
+      "sha256": "d021789e30bef84bb0e92fd523977ff37a16dcf88a39ba0de2514f4a8fb75700"
+    },
+    {
+      "path": "crates/connect-client/src/canonical.rs",
+      "sha256": "7da28dd05842650d1b381af3b6422ee25841535cba77993ab7f70772889963bb"
+    },
+    {
+      "path": "crates/connect-server/src/transports/canonical_http.rs",
+      "sha256": "806a33e4d6622af381369a4057ab6f4087d438bcf709c257204a2080667fe8f7"
+    }
+  ],
+  "initial_observation": "Focused text search of these entrypoints/current native client modules found no direct recording.vcon/auth.refresh/auth.assurance/step-up/connection.quality/capabilities event strings. This is discovery context, not proof that behavior is absent or complete; indirect handlers/upstream runtime hooks must be inspected and exercised before classification.",
+  "next_actions": [
+    "Finish remaining Session0082/0083 URI targets,0085 readiness-policy reconciliation,0088/0089 updates and0100 boundary context. Preserve the locally verified owned native0081 journey and first-start/presence/grace/record components. Task-source policy remains G6-055.",
+    "Implement Connect durable Session-policy coordination: immutable policy receipt plus an explicit typed async reconciliation operation/reference, atomically admitted frozen target work, current manager/target/peer authority, stable child attempts, latest-policy supersession, once-only effects and truthful partial/unknown status. Keep the live refusal until this real coordinator is installed.",
+    "Keep task-scoped enrollment and step-up clauses0061\u20130066 in G6-055 and its prerequisites; preserve all105 tasks and dependency order.",
+    "Retain unresolved consultation/provider reliability failures explicitly; named remote/provider rehearsals require G6-093 bounded configuration; full task and acceptance remain open."
+  ],
+  "limits": [
+    "This inventory preserves all61 original clause assignments and applicability. Referenced component reports qualify only their recorded source/profile/checks; they do not establish exact individual vector, full-task or Gate6 acceptance passes."
+  ],
+  "integration_audit": {
+    "recorded_date": "2026-10-21",
+    "status": "26 exact clauses locally qualified, including native DTMF received shape0114 and single/multiple Participant behavior0122; remaining35 and full auxiliary integration open",
+    "additional_approved_work": [
+      {
+        "behavior": "auth refresh",
+        "evidence": "docs/evidence/gate-6/auxiliary-auth-refresh.json",
+        "status": "native-existing-media-refresh-qualified; broader-profiles-open",
+        "related_evidence": [
+          "docs/evidence/gate-6/native-credential-refresh.json"
+        ],
+        "finding": "Schema86/135 pinned patches: actual same-physical successor rotation, same-credential dispatch-only renewal, DTMF send/receive and independently decoded RTP after predecessor expiry pass3 production cases for EdDSA/ES256. The original11 provider/DTMF regressions,100 native-authority Store,36 serial provider Store and73 SDK tests pass. Owned/task step-up, granular scope and production failure/recovery profiles remain open; no full auxiliary task/acceptance claim."
+      },
+      {
+        "behavior": "assurance and step-up",
+        "status": "same-physical-native-user-and-owned-sdk-qualified; task-granular-and-recovery-profiles-open",
+        "finding": "Actual current human consent, immutable schema85 receipts, separately enrolled key authority and shared server/HTTP assurance policy now pass3 production cases with EdDSA and ES256, plus2 actual refresh regressions. Native step-up resumes one original mutation; fresh consented authentication and native/HTTP replay preserve its ledger identity. Wrong user/scope, revoked issuer and unbound key refuse; no role/scope-label assurance or parent fallback. Protocol33, SDK69, Service44 and883 distinct Store observations pass with explicitly preserved initial fixture/compile/implementation failures. Task-scoped/owned-media and exact61 qualification remain open.",
+        "evidence": "docs/evidence/gate-6/auxiliary-user-assurance.json",
+        "related_evidence": [
+          "docs/evidence/gate-6/auxiliary-sdk-step-up.json",
+          "docs/evidence/gate-6/auxiliary-auth-refresh.json",
+          "docs/evidence/gate-6/auxiliary-owned-step-up.json",
+          "docs/evidence/gate-6/native-media-step-up.json"
+        ],
+        "owned_sdk_continuation": "80 SDK tests pass, including7 added owned-step-up cases/matrices, exact signed transition expectation and post-predecessor-expiry reader renewal. Server native media rotation and original-command re-admission remain open; no new production step-up claim.",
+        "native_media_step_up_continuation": "Schema86/136 patches: current real user consent, separate Device/key enrollment, one observed physical credential rotation, fresh original-command authority and unchanged held native DTMF pass both algorithms. Unenrolled consent starts no media/signal; original SQL refusal stays separate from authentication and explicit logical retry.19 production cases,80 SDK and3 controlled publication tests pass. Task/granular/prod-recovery and exact61 remain open."
+      },
+      {
+        "behavior": "quality and capability events",
+        "status": "native-negotiation-and-local-listener-cases-qualified; full-integration-open",
+        "finding": "Latest authorized declarations govern future native codec/stream choices. Listener composition now passes52 named local Connect cases plus14 upstream cases, including actual signed private delivery/public return, real bounded QUIC partial custody, healthy replacement and source/recipient credential revocation for both algorithms. A real multi-thread listener lock-contention admission bug is corrected with bounded NotReady retry. One affected Session-close assertion failed initially and passed unchanged isolated recheck; all attempts remain recorded. Full listener compositions, owned continuous signaling, assurance/step-up, durable DTMF and exact individual auxiliary qualification remain open.",
+        "evidence": "docs/evidence/gate-6/auxiliary-native-capability-negotiation.json",
+        "related_evidence": [
+          "docs/evidence/gate-6/auxiliary-native-capability-receipt.json",
+          "docs/evidence/gate-6/auxiliary-native-quality.json",
+          "docs/evidence/gate-6/auxiliary-native-lifecycle.json",
+          "docs/evidence/gate-6/auxiliary-native-capability-delivery.json"
+        ]
+      }
+    ],
+    "counts": {
+      "assigned_clause_ids_preserved": 61,
+      "new_runtime_qualifications_from_inventory": 0
+    },
+    "limits": "Historical component evidence is not relabeled as a current whole-suite or individual vector pass. All original IDs, applicability, source excerpts and not-run statuses remain until exact actual-Connect vector evidence is attached.",
+    "signal_authority_continuation": {
+      "evidence": "docs/evidence/gate-6/native-signal-authority.json",
+      "scope": "Local native send-only consent, receive-only refresh and refused RTP/audio-control authority;138 Store,80 SDK and21 selected production tests pass. Task/recovery/SIP-WebRTC and exact61 qualification remain open."
+    },
+    "session_invitation_sources": {
+      "evidence": "docs/evidence/gate-6/auxiliary-session-invitation-sources.json",
+      "status": "durable-source-only-qualified; forwarded-owned-exchange-open",
+      "schema_version": 89,
+      "qualification_count_unchanged": true,
+      "continuation_evidence": "docs/evidence/gate-6/auxiliary-owned-session-invitations.json"
+    },
+    "session_participant_end": {
+      "evidence": "docs/evidence/gate-6/auxiliary-session-participant-end.json",
+      "case_id": "u6-req-0087",
+      "scope": "Any current present Participant with named authority can explicitly end; native/HTTP command and signed multicast cross-replay pass both algorithms."
+    },
+    "owned_session_invitations": {
+      "report": "docs/evidence/gate-6/auxiliary-owned-session-invitations.json",
+      "schema_version": 90,
+      "status": "current native physical request/decision qualified; original-caller-relays and URI integration open"
+    },
+    "session_caller_relays": {
+      "report": "docs/evidence/gate-6/auxiliary-session-caller-relays.json",
+      "status": "native-original-caller-component-qualified; complete0081-flow-open",
+      "qualification_count_unchanged": true
+    },
+    "session_cancellation_boundary": {
+      "report": "docs/evidence/gate-6/auxiliary-session-cancel-boundary.json",
+      "status": "u6-req-0090-qualified-local-native-and-http; remaining44-open"
+    },
+    "native_connection_clauses": {
+      "report": "docs/evidence/gate-6/auxiliary-native-connection-clauses.json",
+      "case_ids": [
+        "u6-req-0101",
+        "u6-req-0106"
+      ],
+      "algorithms": [
+        "EdDSA"
+      ],
+      "status": "u6-req-0101-and-0106-qualified-local-native"
+    },
+    "session_cancellation_observations": {
+      "report": "docs/evidence/gate-6/auxiliary-session-cancellation-observations.json",
+      "status": "native-recipient-correlation-component-qualified; caller-command-correlation-open"
+    },
+    "native_stream_clauses": {
+      "report": "docs/evidence/gate-6/auxiliary-native-stream-clauses.json",
+      "case_ids": [
+        "u6-req-0107",
+        "u6-req-0108",
+        "u6-req-0110"
+      ],
+      "status": "u6-req-0107-0108-0110-qualified-local-native-audio"
+    },
+    "session_caller_cancellation": {
+      "report": "docs/evidence/gate-6/auxiliary-session-caller-cancellation.json",
+      "status": "u6-req-0091-qualified-local-native-and-HTTP-logical-replay"
+    },
+    "codec_lifecycle_pair": {
+      "report": "docs/evidence/gate-6/auxiliary-codec-lifecycle-pair.json",
+      "status": "u6-req-0111-qualified-local-native"
+    },
+    "dtmf_credit_regression": {
+      "report": "docs/evidence/gate-6/auxiliary-dtmf-metadata-admission.json",
+      "status": "resolved-local-native-after-bounded-metadata-admission",
+      "remaining": "Broader DTMF fault, SIP/WebRTC and hosting qualifications remain assigned; no full DTMF or G6-046 claim."
+    },
+    "dtmf_writer_retirement": {
+      "report": "docs/evidence/gate-6/auxiliary-dtmf-writer-retirement.json",
+      "status": "native-writer-ordering-repaired; healthy-recipient-pre-IO-refusal-open"
+    },
+    "dtmf_metadata_admission": {
+      "report": "docs/evidence/gate-6/auxiliary-dtmf-metadata-admission.json",
+      "status": "native-metadata-contention-repaired-and-u6-req-0114-qualified-local-native"
+    },
+    "solo_sessions": {
+      "report": "docs/evidence/gate-6/auxiliary-solo-sessions.json",
+      "status": "single-participant-admission-installed-and-u6-req-0122-qualified-local-native"
+    },
+    "native_readiness_source": {
+      "report": "docs/evidence/gate-6/auxiliary-native-readiness-source.json",
+      "status": "native-readiness-source-installed-local-component-only",
+      "newly_qualified_clauses": 0
+    },
+    "session_started": {
+      "report": "docs/evidence/gate-6/auxiliary-session-started.json",
+      "status": "u6-req-0092-and-0093-qualified-local-native-first-start",
+      "schema_version": 93,
+      "remaining": "Joined/left, last-Connection loss and negotiation-preserved reconnect/grace, full0081 and broader profiles remain open."
+    },
+    "session_participant_observations": {
+      "report": "docs/evidence/gate-6/auxiliary-session-participants.json",
+      "schema_version": 94,
+      "status": "u6-req-0096-and-0097-qualified-local-native-ordinary-arrival-departure",
+      "limits": "Ordinary actual native multi-Connection aggregation, rejoin and explicit leave; transfer/kick physical compositions, private promotion, rapid loss/restart and full grace remain separately unqualified."
+    },
+    "session_reconnect_boundary": {
+      "report": "docs/evidence/gate-6/auxiliary-session-reconnect.json",
+      "schema_version": 96,
+      "status": "u6-req-0094-0098-0099-qualified-local-ordinary-native",
+      "limits": [
+        "Local macOS arm64 production loopback/native profile, EdDSA and ES256. Five native methods include the prior multi-Connection presence regression; other Store fixtures are controlled authorization/rollback checks, not physical media evidence.",
+        "Owned listener restart uses a fresh exclusive runtime owner and cold Core in the same test process after confirmed actual loss. Abrupt process/crash recovery and loss before the first committed readiness/start are not qualified.",
+        "Private promotion, replacement/transfer/kick boundary compositions, pending explicit-end contention, URI gateways, vCon supporting behavior and remaining assigned clauses remain open.",
+        "Connected aggregation recognizes sealed native and telephone activation custody; mixed telephone/provider negotiation/grace profiles are not qualified by these native runs.",
+        "No Linux/browser/remote/provider rehearsal, independent acceptance, publication or full G6-046 completion claim."
+      ]
+    },
+    "session_record_journey": {
+      "report": "docs/evidence/gate-6/auxiliary-session-record-journey.json",
+      "schema_version": 97,
+      "status": "u6-req-0081-and-0116-through-0121-qualified-local-native-and-record-transports",
+      "limits": [
+        "Local macOS arm64, isolated production loopback QUIC/native, HTTP and pinned HTTPS. New journeys exercise EdDSA and ES256; individual existing transport tests retain their concrete test configurations.",
+        "The Session journey uses independently owned native Connections for both Participants, with explicit initial routing during media setup. Duplex readiness still requires real flow in both negotiated directions. It does not add an implicit receive route or weaken readiness.",
+        "Records are the validated unsigned metadata policy, with recording disabled and capture_complete=false; explicit signing remains optional and JWE is not implemented. No captured audio/transcript availability is asserted.",
+        "Private connection lineage is proven through two distinct original-owner projections. Consultation/provider context, transfer/kick/replace compositions, abrupt crash and loss before first readiness remain separately scoped.",
+        "Linux/browser/remote/provider rehearsal, full G6-046 completion, independent acceptance, publication and all remaining assigned clauses remain open."
+      ]
+    },
+    "native_subscription_journey": {
+      "report": "docs/evidence/gate-6/auxiliary-native-subscription-journey.json",
+      "schema_version": 97,
+      "source_lock_patches": 151,
+      "status": "0124-0126-0127-qualified-local-native",
+      "limits": [
+        "Isolated local macOS arm64 production QUIC/native only; EdDSA and ES256 wildcard journeys. Other rerun methods retain their explicit local configurations.",
+        "Omitted kinds retains compatible receive media in the installed current profile and last confirmed/declarative peer capabilities. It does not grant missing capability or promise automatic expansion after a later capability upgrade. Each source, captured member epoch and actual packet still needs current authorization.",
+        "Both native Participants have accepted audio/video capabilities in the new journeys. Current/future selectors for differing accepted Participant capability subsets and full multiparty composition remain separate scope.",
+        "Precise404/488 subscription-error behavior in0125, broader0123 multiparty composition, optional speaker schema/policy0128/0129, Session/update/readiness-policy and URI/DTMF interop clauses remain open.",
+        "Linux/browser/remote/provider rehearsal, full G6-046 completion, independent acceptance, publication and the all105-task objective remain open."
+      ]
+    },
+    "native_connection_controls": {
+      "report": "docs/evidence/gate-6/auxiliary-native-connection-controls.json",
+      "schema_version": 97,
+      "source_lock_patches": 151,
+      "status": "0102-0104-0105-qualified-local-native",
+      "limits": [
+        "Isolated local macOS arm64 production QUIC/native and explicit HTTP refusal/status/cancellation only. Directional runtime controls and initial codec fallback exercise EdDSA and ES256; captured gate recovery and muted codec replacement exercise EdDSA. Other rerun methods retain their declared local profiles.",
+        "Actual decoded G.711 and bounded absence probes establish routing/control behavior, not the frozen clean/impaired performance workload, video render quality or remote consumption.",
+        "The latest bounded last_gate observation is partial historical metadata, not a complete current Stream inventory or an IO grant. Resume preserves independent mute; new codec bindings preserve mute and old receipt replay cannot restore an old handle.",
+        "Non-returned native effects remain uncertain. Captured receipt recovery is metadata-only and does not repeat Core or retain old command readers. Store-only fixtures are explicitly not physical media evidence.",
+        "The remaining15 assigned clauses, broader private/transfer/kick/replace/crash/provider compositions, Linux/browser/remote/provider qualification, full G6-046 completion, acceptance, publication and the all105-task objective remain open."
+      ]
+    },
+    "native_selector_policy": {
+      "report": "docs/evidence/gate-6/auxiliary-native-selector-policy.json",
+      "schema_version": 97,
+      "source_lock_patches": 154,
+      "status": "0125-0128-0129-qualified-local-native-and-optional-contract",
+      "limits": [
+        "Isolated local macOS arm64 production signed native QUIC. Heterogeneous source capability and definitive 404/488 replay exercise EdDSA and ES256; disjoint JSON/Text data formats exercise EdDSA. Broader regressions retain their declared local profiles.",
+        "Actual decoded audio and bounded silence probes establish routing behavior, not frozen performance, render quality, Linux/browser/remote/provider qualification or remote consumption.",
+        "Store and synthetic Core fixtures establish protected metadata/control behavior, not physical media. Optional active-speaker SDK traffic is a controlled independently signed post-auth QUIC fixture, in ordinary and owned-reader modes; the default production server installs no active-speaker detector or emitter.",
+        "Wildcard intent requires at least one compatible currently authorized kind. Only typed unsupported source kinds may be deferred; fresh actual publication and forwarding retain their own current authority. This adds no media grant or source capability. Private/handoff compositions retain their established protected policy rather than substituting ordinary-Session diagnostic rows.",
+        "The remaining12 clauses, full multiparty and private/transfer/kick/replace/crash/provider compositions, named hosting/remote profiles, G6-046 completion, acceptance, publication and the all105-task objective remain open."
+      ]
+    },
+    "session_codec_preferences": {
+      "report": "docs/evidence/gate-6/auxiliary-session-codec-preferences.json",
+      "schema_version": 97,
+      "source_lock_patches": 155,
+      "status": "initial-preference-behavior-qualified-live-session-coordinator-open",
+      "limits": [
+        "Initial native offer selection only. Session-wide switching of live Connections remains unavailable and0088/0089 remain unqualified; no new clause credit is assigned to this increment.",
+        "Isolated local macOS arm64 signed native QUIC, EdDSA and ES256. Each signature covers preferred PCMA, latest PCMU after historical PCMA replay, and a PCMU-only accepted source under PCMA policy. No Linux/browser/remote/provider or full Gate6 acceptance claim.",
+        "FFmpeg decodes actual duplex G.711, including mixed PCMU/PCMA and continued audio after the explicit501 live-update refusal. This is behavior proof, not the frozen quality/impairment workload.",
+        "Preferences are not capabilities or IO grants. They cannot select formats absent from the original peer offer, override current accepted capability, alter the signed intent or narrow the advertised capability catalog. Existing bindings are not automatically reconfigured."
+      ]
+    },
+    "live_session_codec_execution": {
+      "report": "docs/evidence/gate-6/auxiliary-live-session-codecs.json",
+      "schema_version": 97,
+      "source_lock_patches": 157,
+      "status": "engine-execution-qualified-connect-coordinator-open",
+      "limits": [
+        "Engine planning and execution component only. Connect still refuses a Session codec update while Connections are live; its durable Session-wide coordinator is not installed. This report adds no clause qualification:0088/0089 and all other12 outstanding G6-046 clauses remain open.",
+        "Actual local macOS arm64 QUIC and WebTransport sockets and signed EdDSA envelopes, with test-controlled host authority. These are not production Connect Store/Service/SDK composition tests or Linux/browser/remote/provider rehearsals.",
+        "Audio crosses actual native RTP ingress and egress and is decoded with the installed codec library. This component does not claim independent FFmpeg decoding, cross-peer managed mixing, the frozen quality/impairment workload, or preservation of every Session composition.",
+        "The fixture models once-only operation admission in memory. Durable parent/child admission, explicit public async outcomes, latest-policy supersession, partial/unknown aggregation, restart recovery and captured-result recording retries remain required Connect work.",
+        "No current full-server build or Connect production integration run is claimed for157 patches. Earlier initial-preference production evidence remains historical at155 patches. No gate, acceptance criterion, publication or full-goal completion claim."
+      ]
+    }
+  },
+  "qualified_clause_count": 49,
+  "remaining_clause_count": 12,
+  "clause_qualification": {
+    "status": "partial-local-native",
+    "evidence": "docs/evidence/gate-6/auxiliary-conversation-clauses.json",
+    "qualified_case_ids": [
+      "u6-req-0069",
+      "u6-req-0070",
+      "u6-req-0071",
+      "u6-req-0072",
+      "u6-req-0073",
+      "u6-req-0074",
+      "u6-req-0075",
+      "u6-req-0076",
+      "u6-req-0077",
+      "u6-req-0078",
+      "u6-req-0079",
+      "u6-req-0080",
+      "u6-req-0081",
+      "u6-req-0084",
+      "u6-req-0086",
+      "u6-req-0087",
+      "u6-req-0090",
+      "u6-req-0091",
+      "u6-req-0092",
+      "u6-req-0093",
+      "u6-req-0094",
+      "u6-req-0095",
+      "u6-req-0096",
+      "u6-req-0097",
+      "u6-req-0098",
+      "u6-req-0099",
+      "u6-req-0101",
+      "u6-req-0102",
+      "u6-req-0104",
+      "u6-req-0105",
+      "u6-req-0106",
+      "u6-req-0107",
+      "u6-req-0108",
+      "u6-req-0110",
+      "u6-req-0111",
+      "u6-req-0114",
+      "u6-req-0116",
+      "u6-req-0117",
+      "u6-req-0118",
+      "u6-req-0119",
+      "u6-req-0120",
+      "u6-req-0121",
+      "u6-req-0122",
+      "u6-req-0124",
+      "u6-req-0125",
+      "u6-req-0126",
+      "u6-req-0127",
+      "u6-req-0128",
+      "u6-req-0129"
+    ],
+    "full_task_complete": false,
+    "continuation_evidence": "docs/evidence/gate-6/auxiliary-session-identity-targets.json",
+    "latest_evidence": "docs/evidence/gate-6/auxiliary-native-selector-policy.json",
+    "latest_component_evidence": "docs/evidence/gate-6/auxiliary-live-session-codecs.json"
+  }
+}

@@ -79,7 +79,7 @@ async fn verified_call_chat_and_session_setup_replay_one_authorized_mcp_effect()
             .await
             .unwrap();
         assert_eq!(status.structured_content.unwrap()["data"]["id"], f.task.id);
-        let arguments = json!({"request_id":"verified-draft","step_id":"draft","body":"Verified provider draft"});
+        let arguments = json!({"request_id":"verified-draft","step_id":"draft","message": connect_protocol::messages::MessageDraft::text_all(("Verified provider draft").to_string())});
         let mut receipt = None;
         for _ in 0..2 {
             let result = client

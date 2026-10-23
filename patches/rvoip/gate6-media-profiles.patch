@@ -1,0 +1,824 @@
+diff --git a/crates/uctp/rvoip-uctp/tests/support/canonical_media/native_offers/media_profiles.rs b/crates/uctp/rvoip-uctp/tests/support/canonical_media/native_offers/media_profiles.rs
+new file mode 100644
+--- /dev/null
++++ b/crates/uctp/rvoip-uctp/tests/support/canonical_media/native_offers/media_profiles.rs
+@@ -0,0 +1,583 @@
++//! Actual signed native codec and physical MTU profiles; local host-policy fixtures.
++use super::*;
++use rvoip_media_core::{codec::factory::CodecFactory, AudioFrame};
++use std::process::{Command, Stdio};
++fn artifact(name: &str, value: Value) {
++    if let Ok(dir) = std::env::var("CONNECT_G6_MEDIA_PROFILE_ARTIFACTS") {
++        let dir = std::path::Path::new(&dir);
++        std::fs::create_dir_all(dir).unwrap();
++        std::fs::write(
++            dir.join(format!("{name}.json")),
++            serde_json::to_vec_pretty(&value).unwrap(),
++        )
++        .unwrap();
++    }
++}
++fn full_profile() -> Arc<NativeMediaProfile> {
++    let mut local = capabilities();
++    for (name, rate) in [("pcma", 8000), ("opus", 48000)] {
++        local.send[0].formats.push(MediaFormat::Encoded {
++            name: name.into(),
++            clock_rate_hz: rate,
++            channels: 1,
++            fmtp: None,
++        });
++    }
++    local.receive = local.send.clone();
++    Arc::new(
++        NativeMediaProfile::new(
++            local,
++            AssuranceLevel::Identified,
++            AssuranceLevel::Identified,
++        )
++        .unwrap(),
++    )
++}
++fn offer(s: &Scene, which: u8, streams: Value) -> Value {
++    let mut v = s.offer(0, false);
++    v["connid"] = json!(format!("native_{which}"));
++    v["payload"]["streams_offered"] = streams;
++    v
++}
++struct Pair {
++    scene: Scene,
++    other: Wire,
++    target: Arc<StreamController>,
++    source_peer: Arc<NativePeerMedia>,
++    target_budget: usize,
++    source_setup: Value,
++    target_setup: Value,
++}
++impl Pair {
++    async fn new(kind: &str, streams: Value) -> Self {
++        Self::new_mode(kind, streams, false).await
++    }
++    async fn new_mode(kind: &str, streams: Value, managed: bool) -> Self {
++        let mut scene =
++            Scene::new_profiled(kind, false, managed, true, full_profile(), Some(1400)).await;
++        let source_peer = scene.record.media.lock().unwrap().clone().unwrap();
++        assert!(source_peer.datagrams().maximum_datagram_bytes().unwrap() >= 1189);
++        let canonical =
++            CanonicalProfile::new(scene.f.config.clone(), Arc::new(Handler::default()), 8)
++                .unwrap()
++                .with_physical_handlers(scene.factory.clone());
++        let mut other = wire_profile(
++            kind,
++            canonical,
++            "/uctp",
++            Some("https://allowed.example"),
++            None,
++            Some(1200),
++        )
++        .await
++        .unwrap();
++        authenticate_wire(&mut other, &scene.f).await;
++        let target_budget = scene
++            .record
++            .media
++            .lock()
++            .unwrap()
++            .as_ref()
++            .unwrap()
++            .datagrams()
++            .maximum_datagram_bytes()
++            .unwrap();
++        assert!(
++            (1100..1188).contains(&target_budget),
++            "actual destination budget {target_budget}"
++        );
++        let mut source_streams = streams.clone();
++        for stream in source_streams.as_array_mut().unwrap() {
++            stream["direction"] = json!("sendonly");
++        }
++        let mut target_streams = streams;
++        for stream in target_streams.as_array_mut().unwrap() {
++            stream["direction"] = json!("recvonly");
++        }
++        let (a, c) = scene.prepared(offer(&scene, 0, source_streams)).await;
++        scene.confirm(&c).await;
++        scene.wait(1).await;
++        let (b, c) = other_prepared(&scene, &mut other, offer(&scene, 1, target_streams)).await;
++        other.send(scene.f.sign(scene.confirmation(&c))).await;
++        scene.wait(2).await;
++        assert!(scene
++            .record
++            .results
++            .lock()
++            .unwrap()
++            .iter()
++            .all(|r| r.is_ok()));
++        if managed {
++            core_fixture::until(|| {
++                scene
++                    .native
++                    .core
++                    .orch
++                    .session(&scene.native.core.session)
++                    .unwrap()
++                    .read()
++                    .unwrap()
++                    .connections
++                    .len()
++                    == 2
++            })
++            .await;
++        }
++        let target = scene.native.adapters[&scene.kind]
++            .media_controller(&scene.second_id)
++            .unwrap();
++        Self {
++            scene,
++            other,
++            target,
++            source_peer,
++            target_budget,
++            source_setup: a.original()["payload"]["substrate_setup"].clone(),
++            target_setup: b.original()["payload"]["substrate_setup"].clone(),
++        }
++    }
++    fn binding(&self, source: bool, logical: &str) -> (u16, u8) {
++        let setup = if source {
++            &self.source_setup
++        } else {
++            &self.target_setup
++        };
++        let s = setup["streams"]
++            .as_array()
++            .unwrap()
++            .iter()
++            .find(|s| s["strm_id"] == logical)
++            .unwrap();
++        (
++            s["stream_local_id"].as_u64().unwrap() as u16,
++            s["codec"]["params"]["payload_type"].as_u64().unwrap() as u8,
++        )
++    }
++    async fn output(&self) -> ObservedRtpDatagram {
++        received(&self.other).await
++    }
++    async fn no_output(&self) {
++        assert!(
++            tokio::time::timeout(Duration::from_millis(70), async {
++                if let Some(wt) = &self.other.wt {
++                    wt.read_datagram().await.unwrap()
++                } else {
++                    self.other
++                        .quic
++                        .as_ref()
++                        .unwrap()
++                        .2
++                        .read_datagram()
++                        .await
++                        .unwrap()
++                }
++            })
++            .await
++            .is_err(),
++            "rejected/expired input produced media"
++        );
++    }
++    async fn stop(self) {
++        self.other.server.shutdown().await.unwrap();
++        self.scene.wire.server.shutdown().await.unwrap();
++    }
++}
++fn audio_wire(handle: u16, pt: u8, seq: u16, timestamp: u32, payload: Bytes) -> Bytes {
++    pack_rtp_datagram(&RtpDatagram {
++        flags: 0,
++        stream_local_id: handle,
++        seq: u32::MAX.wrapping_add(u32::from(seq)),
++        rtp: RtpMediaPayload {
++            payload,
++            payload_type: pt,
++            sequence_number: seq,
++            timestamp,
++            ssrc: 17,
++        },
++    })
++    .unwrap()
++}
++#[tokio::test]
++async fn actual_signed_native_three_audio_codecs_decode_across_unequal_mtu_peers_and_sequence_wrap()
++{
++    for kind in ["quic", "wt"] {
++        for (name, rate, codec_pt) in [("pcmu", 8000, 0), ("pcma", 8000, 8), ("opus", 48000, 111)] {
++            let p=Pair::new(kind,json!([{"id":"sound","kind":"audio","direction":"sendrecv","codec_preferences":[name]}])).await;
++            let (ah, ap) = p.binding(true, "sound");
++            let (bh, bp) = p.binding(false, "sound");
++            let logical = StreamId::from_string("sound");
++            let mut input = p.scene.controller().take_ingress(&logical).unwrap();
++            let mut encoder = CodecFactory::create_codec(codec_pt, Some(rate), Some(1)).unwrap();
++            let mut decoder = CodecFactory::create_codec(codec_pt, Some(rate), Some(1)).unwrap();
++            let count = rate as usize / 50;
++            let mut decoded = Vec::new();
++            for n in 0..5usize {
++                let samples = (0..count)
++                    .map(|i| {
++                        ((std::f64::consts::TAU * 440.0 * (n * count + i) as f64 / rate as f64)
++                            .sin()
++                            * 7000.0) as i16
++                    })
++                    .collect();
++                let body: Bytes = encoder
++                    .encode(&AudioFrame {
++                        samples,
++                        sample_rate: rate,
++                        channels: 1,
++                        duration: Duration::from_millis(20),
++                        timestamp: (n * count) as u32,
++                    })
++                    .unwrap()
++                    .into();
++                send(
++                    &p.scene.wire,
++                    audio_wire(
++                        ah,
++                        ap,
++                        65534u16.wrapping_add(n as u16),
++                        (n * count) as u32,
++                        body.clone(),
++                    ),
++                );
++                packet(&mut input)
++                    .await
++                    .try_forward_to(&p.target, &logical)
++                    .unwrap();
++                let output = p.output().await;
++                let rtp = output.rtp.packet();
++                assert_eq!(output.stream_local_id, bh);
++                assert_eq!(rtp.header.payload_type, bp);
++                assert_eq!(rtp.header.timestamp, (n * count) as u32);
++                assert_eq!(rtp.payload, body);
++                let frame = decoder.decode(&rtp.payload).unwrap();
++                assert_eq!(
++                    (frame.sample_rate, frame.channels, frame.samples.len()),
++                    (rate, 1, count)
++                );
++                if n > 0 {
++                    decoded.extend(frame.samples);
++                }
++            }
++            let mean =
++                decoded.iter().map(|s| f64::from(*s).abs()).sum::<f64>() / decoded.len() as f64;
++            let crossings = decoded.windows(2).filter(|v| v[0] < 0 && v[1] >= 0).count();
++            let hz = crossings as f64 * rate as f64 / decoded.len() as f64;
++            assert!(mean > 500.0, "silent decoded {name}");
++            assert!(
++                (380.0..500.0).contains(&hz),
++                "wrong decoded {name} tone {hz}"
++            );
++            artifact(
++                &format!("{kind}-{name}"),
++                json!({"codec":name,"decoded_samples":decoded.len(),"sample_rate":rate,"mean_absolute_sample":mean,"measured_zero_crossing_hz":hz,"source_datagram_budget":p.source_peer.datagrams().maximum_datagram_bytes(),"destination_datagram_budget":p.target_budget,"source_mtu":1400,"destination_mtu":1200}),
++            );
++            assert!(p.scene.grants.0.try_write().is_ok());
++            p.stop().await;
++        }
++    }
++}
++fn ffmpeg(input: Option<&[u8]>, args: &[&str]) -> Vec<u8> {
++    use std::io::Write;
++    let mut child = Command::new("ffmpeg")
++        .args([
++            "-nostdin",
++            "-hide_banner",
++            "-loglevel",
++            "error",
++            "-threads",
++            "1",
++        ])
++        .args(args)
++        .stdin(if input.is_some() {
++            Stdio::piped()
++        } else {
++            Stdio::null()
++        })
++        .stdout(Stdio::piped())
++        .stderr(Stdio::piped())
++        .spawn()
++        .unwrap();
++    if let Some(input) = input {
++        child.stdin.take().unwrap().write_all(input).unwrap();
++    }
++    let output = child.wait_with_output().unwrap();
++    assert!(
++        output.status.success(),
++        "independent codec: {}",
++        String::from_utf8_lossy(&output.stderr)
++    );
++    output.stdout
++}
++fn ivf_frames(ivf: &[u8]) -> Vec<Vec<u8>> {
++    assert_eq!(&ivf[..4], b"DKIF");
++    assert_eq!(&ivf[8..12], b"VP80");
++    let mut at = 32;
++    let mut frames = Vec::new();
++    while at < ivf.len() {
++        let n = u32::from_le_bytes(ivf[at..at + 4].try_into().unwrap()) as usize;
++        at += 12;
++        assert!(at + n <= ivf.len());
++        frames.push(ivf[at..at + n].to_vec());
++        at += n;
++    }
++    assert_eq!(frames.len(), 3);
++    frames
++}
++fn hashes(ivf: &[u8]) -> Vec<String> {
++    String::from_utf8(ffmpeg(
++        Some(ivf),
++        &["-f", "ivf", "-i", "pipe:0", "-f", "framemd5", "pipe:1"],
++    ))
++    .unwrap()
++    .lines()
++    .filter(|l| !l.starts_with('#') && !l.is_empty())
++    .map(|l| l.rsplit(',').next().unwrap().trim().into())
++    .collect()
++}
++fn rtp_video(
++    handle: u16,
++    pt: u8,
++    seq: u16,
++    timestamp: u32,
++    start: bool,
++    end: bool,
++    body: &[u8],
++) -> Bytes {
++    let mut packet = vec![0x80, pt | if end { 0x80 } else { 0 }];
++    packet.extend_from_slice(&seq.to_be_bytes());
++    packet.extend_from_slice(&timestamp.to_be_bytes());
++    packet.extend_from_slice(&17u32.to_be_bytes());
++    packet.push(if start { 0x10 } else { 0 });
++    packet.extend_from_slice(body);
++    pack_observed_rtp_datagram(&ObservedRtpDatagram {
++        flags: 0,
++        stream_local_id: handle,
++        seq: u32::MAX.wrapping_add(u32::from(seq)),
++        rtp: observe_rtp(packet.into()).unwrap(),
++    })
++    .unwrap()
++}
++#[tokio::test]
++async fn actual_signed_native_camera_and_screen_refragment_to_physical_mtu_and_independently_decode_vp8(
++) {
++    let source = ffmpeg(
++        None,
++        &[
++            "-f",
++            "lavfi",
++            "-i",
++            "testsrc2=size=128x96:rate=10",
++            "-frames:v",
++            "3",
++            "-an",
++            "-c:v",
++            "libvpx",
++            "-deadline",
++            "realtime",
++            "-cpu-used",
++            "8",
++            "-g",
++            "1",
++            "-lag-in-frames",
++            "0",
++            "-f",
++            "ivf",
++            "pipe:1",
++        ],
++    );
++    let frames = ivf_frames(&source);
++    let expected = hashes(&source);
++    assert_eq!(expected.len(), 3);
++    assert!(expected.windows(2).any(|v| v[0] != v[1]));
++    for kind in ["quic", "wt"] {
++        let mut p=Pair::new_mode(kind,json!([{"id":"first","kind":"audio","direction":"sendrecv","codec_preferences":["pcmu"]},{"id":"camera","kind":"video","direction":"sendrecv","codec_preferences":["vp8"]},{"id":"screen","kind":"screen","direction":"sendrecv","codec_preferences":["vp8"]}]),true).await;
++        let command = subscriptions::command(
++            "stream.subscribe",
++            p.target.revision(),
++            json!({"by_participant":core_fixture::participant("alice").as_str(),"subscriptions":[{"strm_id":"camera"},{"strm_id":"screen"}]}),
++        );
++        p.other.send(p.scene.f.sign(command)).await;
++        let mut reply = p.other.read().await;
++        if reply.kind() == "connection.offer" {
++            p.target_setup = reply.original()["payload"]["substrate_setup"].clone();
++            p.other
++                .send(p.scene.f.sign(p.scene.confirmation(&reply)))
++                .await;
++            reply = p.other.read().await;
++        }
++        assert_eq!(
++            reply.kind(),
++            "ack",
++            "real signed video subscription: {reply:?}"
++        );
++        p.scene.f.verify_server(&reply).await;
++        for logical in ["camera", "screen"] {
++            let (ah, ap) = p.binding(true, logical);
++            let (bh, bp) = p.binding(false, logical);
++            let mut bad = rtp_video(ah, ap, 65499, 0, true, true, &[1, 2, 3]).to_vec();
++            bad[20] = 0x50;
++            send(&p.scene.wire, bad.into());
++            p.no_output().await;
++            // Omit one genuine VP8 source fragment. Native RTP must retain
++            // the gap rather than making a partial image look complete.
++            let mut loss_prior: Option<u16> = None;
++            let mut observed_gap = false;
++            for (offset, body) in frames[0].chunks(400).enumerate() {
++                if offset == 1 {
++                    continue;
++                }
++                send(
++                    &p.scene.wire,
++                    rtp_video(
++                        ah,
++                        ap,
++                        65500u16.wrapping_add(offset as u16),
++                        100,
++                        offset == 0,
++                        (offset + 1) * 400 >= frames[0].len(),
++                        body,
++                    ),
++                );
++                let output = p.output().await;
++                assert_eq!(output.stream_local_id, bh);
++                let sequence = output.rtp.packet().header.sequence_number;
++                if let Some(prior) = loss_prior {
++                    observed_gap |= sequence.wrapping_sub(prior) > 1;
++                }
++                loss_prior = Some(sequence);
++            }
++            assert!(
++                observed_gap,
++                "lost source bytes cannot become contiguous output RTP"
++            );
++            let mut seq = 65534u16;
++            let mut prior: Option<u16> = None;
++            let mut ivf = source[..32].to_vec();
++            let mut split = 0;
++            for (index, frame) in frames.iter().enumerate() {
++                let mut body_out = Vec::new();
++                let (mut starts, mut ends) = (0, 0);
++                let ts = 9000 + index as u32 * 9000;
++                for (offset, body) in frame.chunks(1167).enumerate() {
++                    let end = (offset + 1) * 1167 >= frame.len();
++                    send(
++                        &p.scene.wire,
++                        rtp_video(ah, ap, seq, ts, offset == 0, end, body),
++                    );
++                    seq = seq.wrapping_add(1);
++                    let count = body.len().div_ceil(p.target_budget - 8 - 13);
++                    if count > 1 {
++                        split += 1;
++                    }
++                    for _ in 0..count {
++                        let output = p.output().await;
++                        let rtp = output.rtp.packet();
++                        assert!(rtp.serialize().unwrap().len() + 8 <= p.target_budget);
++                        assert_eq!(output.stream_local_id, bh);
++                        assert_eq!(rtp.header.payload_type, bp);
++                        assert_eq!(rtp.header.timestamp, ts);
++                        if let Some(prior) = prior {
++                            assert_eq!(rtp.header.sequence_number, prior.wrapping_add(1));
++                        }
++                        prior = Some(rtp.header.sequence_number);
++                        starts += usize::from(rtp.payload[0] & 0x10 != 0);
++                        ends += usize::from(rtp.header.marker);
++                        body_out.extend_from_slice(&rtp.payload[1..]);
++                    }
++                }
++                assert_eq!((starts, ends), (1, 1));
++                assert_eq!(&body_out, frame);
++                ivf.extend_from_slice(&(body_out.len() as u32).to_le_bytes());
++                ivf.extend_from_slice(&(index as u64).to_le_bytes());
++                ivf.extend_from_slice(&body_out);
++            }
++            assert!(split > 0, "real MTU mismatch must cause fragmentation");
++            artifact(
++                &format!("{kind}-{logical}"),
++                json!({"codec":"vp8","frames":frames.len(),"decoded_pixel_hashes":expected,"refragmented_inputs":split,"source_datagram_budget":p.source_peer.datagrams().maximum_datagram_bytes(),"destination_datagram_budget":p.target_budget,"source_mtu":1400,"destination_mtu":1200,"malformed_descriptor_rejected_without_effect":true,"source_loss_gap_preserved":observed_gap}),
++            );
++            assert_eq!(
++                hashes(&ivf),
++                expected,
++                "decoded VP8 changed through {kind}/{logical}"
++            );
++            if let Ok(dir) = std::env::var("CONNECT_G6_MEDIA_PROFILE_ARTIFACTS") {
++                let dir = std::path::Path::new(&dir);
++                std::fs::create_dir_all(dir).unwrap();
++                std::fs::write(dir.join(format!("{kind}-{logical}.ivf")), ivf).unwrap();
++            }
++        }
++        p.stop().await;
++    }
++}
++#[tokio::test]
++async fn actual_signed_native_malformed_oversized_and_expired_packets_are_isolated_and_live_audio_recovers(
++) {
++    for kind in ["quic", "wt"] {
++        let p=Pair::new(kind,json!([{"id":"sound","kind":"audio","direction":"sendrecv","codec_preferences":["pcmu"]},{"id":"camera","kind":"video","direction":"sendrecv","codec_preferences":["vp8"]}])).await;
++        let (ah, ap) = p.binding(true, "sound");
++        let (vh, vp) = p.binding(true, "camera");
++        let id = StreamId::from_string("sound");
++        let mut input = p.scene.controller().take_ingress(&id).unwrap();
++        let healthy = audio_wire(ah, ap, 20, 160, tone());
++        let mut version = healthy.to_vec();
++        version[8] = 0x40;
++        let mut extension = healthy.to_vec();
++        extension[8] |= 0x10;
++        extension.truncate(24);
++        extension[22] = 255;
++        extension[23] = 255;
++        let bad = vec![
++            Bytes::from_static(b"bad"),
++            audio_wire(65535, ap, 21, 320, tone()),
++            audio_wire(ah, 111, 22, 480, tone()),
++            version.into(),
++            extension.into(),
++            audio_wire(ah, ap, 23, 640, Bytes::new()),
++            rtp_video(vh, vp, 24, 9000, true, true, &vec![0; 1168]),
++        ];
++        let before = p.source_peer.snapshot().ingress_rejected;
++        for bytes in &bad {
++            send(&p.scene.wire, bytes.clone());
++        }
++        send(&p.scene.wire, healthy);
++        let held = packet(&mut input).await;
++        assert!(p.source_peer.snapshot().ingress_rejected >= before + bad.len() as u64);
++        assert!(p.scene.grants.0.try_write().is_ok());
++        tokio::time::sleep(Duration::from_millis(220)).await;
++        assert!(matches!(
++            held.try_forward_to(&p.target, &id),
++            Err(StreamControlError::Deadline)
++        ));
++        p.no_output().await;
++        // A complete valid G.711 payload fits the source path but exceeds the
++        // actual destination's single-datagram budget by exactly one byte.
++        send(
++            &p.scene.wire,
++            audio_wire(
++                ah,
++                ap,
++                24,
++                640,
++                Bytes::from(vec![0x7f; p.target_budget - 19]),
++            ),
++        );
++        packet(&mut input)
++            .await
++            .try_forward_to(&p.target, &id)
++            .unwrap();
++        p.no_output().await;
++        send(&p.scene.wire, audio_wire(ah, ap, 25, 800, tone()));
++        packet(&mut input)
++            .await
++            .try_forward_to(&p.target, &id)
++            .unwrap();
++        decoded(&p.output().await);
++        artifact(
++            &format!("{kind}-recovery"),
++            json!({"malformed_rejected":p.source_peer.snapshot().ingress_rejected-before,"configured_expiry_wait_ms":220,"oversized_audio_rejected_without_fragmentation":true,"decoded_audio_recovery":true}),
++        );
++        assert!(p.source_peer.is_live());
++        p.stop().await;
++    }
++}
+diff --git a/crates/uctp/rvoip-uctp/tests/support/canonical_media/native_offers.rs b/crates/uctp/rvoip-uctp/tests/support/canonical_media/native_offers.rs
+--- a/crates/uctp/rvoip-uctp/tests/support/canonical_media/native_offers.rs
++++ b/crates/uctp/rvoip-uctp/tests/support/canonical_media/native_offers.rs
+@@ -875,6 +875,16 @@
+         bootstrap: bool,
+         fixture_adapter: bool,
+     ) -> Self {
++        Self::new_profiled(kind, data, bootstrap, fixture_adapter, profile(data), None).await
++    }
++    async fn new_profiled(
++        kind: &str,
++        data: bool,
++        bootstrap: bool,
++        fixture_adapter: bool,
++        profile: Arc<NativeMediaProfile>,
++        mtu: Option<u16>,
++    ) -> Self {
+         let (mut f, mut native, policy) = wire_setup_mode(fixture_adapter).await;
+         if bootstrap {
+             let core = Arc::get_mut(&mut Arc::get_mut(&mut native).unwrap().core).unwrap();
+@@ -896,7 +906,6 @@
+         let id = policy.grants.read().await.connections["native_0"].clone();
+         let wire_ids = policy.grants.read().await.connections.clone();
+         let second_id = wire_ids["native_1"].clone();
+-        let profile = profile(data);
+         let mut owner = if bootstrap {
+             bootstrap::preparing_owner(&native.core, &id, transport)
+         } else {
+@@ -965,9 +974,16 @@
+         let canonical = CanonicalProfile::new(f.config.clone(), Arc::new(Handler::default()), 8)
+             .unwrap()
+             .with_physical_handlers(factory.clone());
+-        let mut wire = wire(kind, canonical, "/uctp", Some("https://allowed.example"))
+-            .await
+-            .unwrap();
++        let mut wire = wire_profile(
++            kind,
++            canonical,
++            "/uctp",
++            Some("https://allowed.example"),
++            None,
++            mtu,
++        )
++        .await
++        .unwrap();
+         authenticate_wire(&mut wire, &f).await;
+         Self {
+             f,
+@@ -2313,3 +2329,6 @@
+ 
+ #[path = "native_offers/dtmf_route.rs"]
+ mod dtmf_route;
++
++#[path = "native_offers/media_profiles.rs"]
++mod media_profiles;
+diff --git a/crates/uctp/rvoip-uctp/tests/support/canonical_media/reliable_data.rs b/crates/uctp/rvoip-uctp/tests/support/canonical_media/reliable_data.rs
+--- a/crates/uctp/rvoip-uctp/tests/support/canonical_media/reliable_data.rs
++++ b/crates/uctp/rvoip-uctp/tests/support/canonical_media/reliable_data.rs
+@@ -354,6 +354,14 @@
+         Self::with_window(kind_name, mixed, None).await
+     }
+     async fn with_window(kind_name: &str, mixed: bool, window: Option<u32>) -> Self {
++        Self::with_protocol(kind_name, mixed, window, DataProtocol::Binary).await
++    }
++    async fn with_protocol(
++        kind_name: &str,
++        mixed: bool,
++        window: Option<u32>,
++        protocol: DataProtocol,
++    ) -> Self {
+         let policy = Arc::new(DataPolicy(Arc::new(RwLock::new(DataState {
+             owners: HashMap::new(),
+             wires: HashMap::new(),
+@@ -456,7 +464,7 @@
+             let mut caps = capabilities();
+             caps.send.push(MediaCapability {
+                 medium: Medium::Data,
+-                formats: vec![MediaFormat::ReliableOrdered(DataProtocol::Binary)],
++                formats: vec![MediaFormat::ReliableOrdered(protocol.clone())],
+             });
+             caps.receive = caps.send.clone();
+             if !mixed {
+@@ -1390,3 +1398,69 @@
+     s.receive(1, 0, 1200, "after drain", "utf8").await;
+     s.stop().await;
+ }
++
++#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
++async fn actual_signed_reliable_text_json_and_binary_profiles_validate_decode_and_recover_on_all_native_wires(
++) {
++    for kind in ["quic", "wt", "ws"] {
++        for protocol in [DataProtocol::Text, DataProtocol::Json, DataProtocol::Binary] {
++            let mut scene = DataScene::with_protocol(kind, false, None, protocol.clone()).await;
++            scene.select(0, 1).await;
++            assert_eq!(
++                scene.live[0].controller.active_bindings()[0]
++                    .negotiated
++                    .format,
++                MediaFormat::ReliableOrdered(protocol.clone())
++            );
++            let (body, encoding) = match protocol {
++                DataProtocol::Text => ("text ☃ \u{1f642}".to_string(), "utf8"),
++                DataProtocol::Json => (
++                    serde_json::to_string(&json!({"text":"snow ☃","items":[1,true,null]})).unwrap(),
++                    "utf8",
++                ),
++                DataProtocol::Binary => (
++                    base64::Engine::encode(
++                        &base64::engine::general_purpose::STANDARD,
++                        [0, 255, 128, 17],
++                    ),
++                    "base64",
++                ),
++            };
++            let request = scene.request(0, 0, body.clone(), encoding);
++            assert_eq!(scene.publish(0, request).await.kind(), "ack");
++            scene.receive(1, 0, 0, &body, encoding).await;
++            if protocol != DataProtocol::Binary {
++                let (bad, encoding) = if protocol == DataProtocol::Json {
++                    ("{broken".to_string(), "utf8")
++                } else {
++                    (
++                        base64::Engine::encode(
++                            &base64::engine::general_purpose::STANDARD,
++                            [255, 254],
++                        ),
++                        "base64",
++                    )
++                };
++                let request = scene.request(0, 1, bad, encoding);
++                assert_eq!(scene.publish(0, request).await.kind(), "error");
++                assert!(
++                    tokio::time::timeout(
++                        Duration::from_millis(70),
++                        scene.live[1].wire.reader.next()
++                    )
++                    .await
++                    .is_err(),
++                    "invalid codec data escaped to the recipient"
++                );
++                let request = scene.request(0, 2, body.clone(), "utf8");
++                assert_eq!(scene.publish(0, request).await.kind(), "ack");
++                scene.receive(1, 0, 2, &body, "utf8").await;
++            }
++            assert!(
++                scene.policy.0.try_write().is_ok(),
++                "no idle data permission reader"
++            );
++            scene.stop().await;
++        }
++    }
++}
+diff --git a/crates/uctp/rvoip-uctp/tests/v2_peer_admission.rs b/crates/uctp/rvoip-uctp/tests/v2_peer_admission.rs
+--- a/crates/uctp/rvoip-uctp/tests/v2_peer_admission.rs
++++ b/crates/uctp/rvoip-uctp/tests/v2_peer_admission.rs
+@@ -406,6 +406,18 @@
+     quinn::Connection,
+     quinn::Connection,
+ ) {
++    pair_profile(alpn, window, None).await
++}
++async fn pair_profile(
++    alpn: &[u8],
++    window: Option<u32>,
++    mtu: Option<u16>,
++) -> (
++    quinn::Endpoint,
++    quinn::Endpoint,
++    quinn::Connection,
++    quinn::Connection,
++) {
+     use rvoip_uctp::substrate::{
+         dev_client_config_trusting, make_server_endpoint, self_signed_for_dev,
+     };
+@@ -416,10 +428,14 @@
+         .with_single_cert(vec![cert.clone()], key)
+         .unwrap();
+     tls.alpn_protocols = vec![alpn.to_vec()];
++    let mut host_transport = quinn::TransportConfig::default();
++    if let Some(mtu) = mtu {
++        host_transport.initial_mtu(mtu).mtu_discovery_config(None);
++    }
+     let server = make_server_endpoint(
+         "127.0.0.1:0".parse().unwrap(),
+         Arc::new(tls),
+-        quinn::TransportConfig::default(),
++        host_transport,
+     )
+     .unwrap();
+     let mut tls = dev_client_config_trusting(&cert).unwrap();
+@@ -428,12 +444,15 @@
+     let mut config = quinn::ClientConfig::new(Arc::new(
+         quinn::crypto::rustls::QuicClientConfig::try_from(tls).unwrap(),
+     ));
++    let mut transport = quinn::TransportConfig::default();
++    if let Some(mtu) = mtu {
++        transport.initial_mtu(mtu).mtu_discovery_config(None);
++    }
+     if let Some(window) = window {
+-        let mut transport = quinn::TransportConfig::default();
+         transport.stream_receive_window(window.into());
+         transport.receive_window((window * 4).into());
+-        config.transport_config(Arc::new(transport));
+-    }
++    }
++    config.transport_config(Arc::new(transport));
+     client.set_default_client_config(config);
+     let connect = client
+         .connect(server.local_addr().unwrap(), "localhost")
+@@ -457,10 +476,24 @@
+     origin: Option<&str>,
+     window: Option<u32>,
+ ) -> Result<Wire, DispatchError> {
++    wire_profile(kind, profile, path, origin, window, None).await
++}
++async fn wire_profile(
++    kind: &str,
++    profile: CanonicalProfile,
++    path: &str,
++    origin: Option<&str>,
++    window: Option<u32>,
++    mtu: Option<u16>,
++) -> Result<Wire, DispatchError> {
+     if kind == "quic" || kind == "wt" {
+         let (send, receive) = mpsc::channel(4);
+-        let (host_ep, remote_ep, host, remote) =
+-            pair_with_window(if kind == "quic" { RAW_QUIC_ALPN } else { b"h3" }, window).await;
++        let (host_ep, remote_ep, host, remote) = pair_profile(
++            if kind == "quic" { RAW_QUIC_ALPN } else { b"h3" },
++            window,
++            mtu,
++        )
++        .await;
+         let server = if kind == "quic" {
+             rvoip_quic::canonical::start(receive, profile, "quic://localhost:443".into())?
+         } else {

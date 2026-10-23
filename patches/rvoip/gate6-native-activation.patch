@@ -1,0 +1,1275 @@
+diff --git a/crates/foundation/rvoip-core/src/relationships.rs b/crates/foundation/rvoip-core/src/relationships.rs
+--- a/crates/foundation/rvoip-core/src/relationships.rs
++++ b/crates/foundation/rvoip-core/src/relationships.rs
+@@ -462,6 +462,7 @@
+ /// Several bindings can coexist for one participant on different devices.
+ #[derive(Clone)]
+ pub struct ConnectionBinding {
++    incarnation: u128,
+     conversation: ConversationId,
+     session: SessionId,
+     participant: ParticipantId,
+@@ -494,6 +495,7 @@
+             device: endpoint.device.clone(),
+             generation: 1,
+             replaces: None,
++            incarnation: uuid::Uuid::new_v4().as_u128(),
+             state: BindingState::Preparing,
+         })
+     }
+@@ -513,6 +515,11 @@
+         candidate.replaces = Some(self.connection.clone());
+         Ok(candidate)
+     }
++    /// Engine-local protected binding identity. Clones preserve it; constructing
++    /// another preparing value with reused public IDs does not revive this one.
++    pub fn same_incarnation(&self, other: &Self) -> bool {
++        self.incarnation == other.incarnation
++    }
+     pub fn connection(&self) -> &ConnectionId {
+         &self.connection
+     }
+diff --git a/crates/foundation/rvoip-core/src/staged_streams.rs b/crates/foundation/rvoip-core/src/staged_streams.rs
+--- a/crates/foundation/rvoip-core/src/staged_streams.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams.rs
+@@ -203,6 +203,15 @@
+     ) -> ControlResult<Box<MediaOwner>> {
+         Err(StreamControlError::Unsupported)
+     }
++    /// Initial commit only: merge a sealed engine resource observation with
++    /// this exact current grant and protocol-specific endpoint confirmation.
++    /// The default cannot promote a preparing binding from ready ports.
++    fn control_prepared(
++        &self,
++        _prepared: &Arc<PreparedMediaObservation>,
++    ) -> ControlResult<Box<MediaOwner>> {
++        self.control_owner()
++    }
+     fn control_owner(&self) -> ControlResult<Box<MediaOwner>> {
+         Ok(Box::new(self.authority().clone()))
+     }
+@@ -315,6 +324,12 @@
+         }
+         Ok(())
+     }
++    fn prepared(&self, prepared: &Arc<PreparedMediaObservation>) -> ControlResult<Box<MediaOwner>> {
++        self.valid()?;
++        let owner = self.lease.control_prepared(prepared)?;
++        self.valid()?;
++        Ok(owner)
++    }
+     fn authority(&self) -> ControlResult<Box<MediaOwner>> {
+         self.valid()?;
+         let owner = self.lease.control_owner()?;
+@@ -1005,6 +1020,7 @@
+     active: BTreeMap<StreamId, Arc<Port>>,
+     all: BTreeMap<StreamId, Arc<Port>>,
+     closed: bool,
++    initial_observation: Option<Arc<PreparedMediaObservation>>,
+ }
+ #[derive(Clone)]
+ struct CredentialSnapshot {
+@@ -1018,6 +1034,7 @@
+     credential: Mutex<CredentialSnapshot>,
+     origin_member: Membership,
+     origin_endpoint: EndpointBinding,
++    origin_binding: ConnectionBinding,
+     policy: Arc<dyn MediaPolicy>,
+     adapter: Arc<dyn StagedMediaAdapter>,
+     handles: Arc<StreamHandleAllocator>,
+@@ -1203,6 +1220,7 @@
+         let model = StreamLifecycle::with_open_limit(&authority.current(), opened_limit)?;
+         let origin_member = authority.member.clone();
+         let origin_endpoint = authority.endpoint.clone();
++        let origin_binding = authority.connection.clone();
+         drop(lease);
+         Ok(Arc::new(Self {
+             conversation,
+@@ -1214,6 +1232,7 @@
+             }),
+             origin_member,
+             origin_endpoint,
++            origin_binding,
+             policy,
+             adapter,
+             handles,
+@@ -1221,6 +1240,7 @@
+             state: Mutex::new(State {
+                 model,
+                 opened_ports: 0,
++                initial_observation: None,
+                 active: BTreeMap::new(),
+                 all: BTreeMap::new(),
+                 closed: false,
+@@ -1813,8 +1833,33 @@
+         }
+         {
+             let mut state = self.state.lock().unwrap_or_else(|p| p.into_inner());
++            let bindings = selected
++                .iter()
++                .map(|p| p.port.0.binding.clone())
++                .collect::<Vec<_>>();
++            let prepared = if state.model.is_initial_preparation() {
++                if bindings.is_empty()
++                    || selected.iter().any(|p| {
++                        let port = p.port.0.state.lock().unwrap_or_else(|p| p.into_inner());
++                        !port.ready || port.status != PortStatus::Prepared
++                    })
++                {
++                    return Err(StreamControlError::NotReady);
++                }
++                Some(PreparedMediaObservation::new(
++                    self,
++                    expected,
++                    bindings.clone(),
++                    candidate.cancellation.clone(),
++                ))
++            } else {
++                None
++            };
+             let scope = self.scope(&credential.principal, MediaPurpose::Control);
+-            let lease = control_read(self.policy.as_ref(), &scope, control.as_ref())?;
++            let lease = match (control.as_ref(), prepared.as_ref()) {
++                (Some(control), Some(prepared)) => ControlRead::Held(control.prepared(prepared)?),
++                _ => control_read(self.policy.as_ref(), &scope, control.as_ref())?,
++            };
+             let auth = lease.authority();
+             Self::check(&scope, auth)?;
+             if state.closed || cancellation.is_cancelled() || self.shutdown.is_cancelled() {
+@@ -1831,10 +1876,6 @@
+             }) {
+                 return Err(StreamControlError::NotReady);
+             }
+-            let bindings = selected
+-                .iter()
+-                .map(|p| p.port.0.binding.clone())
+-                .collect::<Vec<_>>();
+             let mut audio_commit = audio_selection.as_ref().map(|p| p.lock()).transpose()?;
+             state.model.commit(
+                 &auth.current(),
+@@ -1865,6 +1906,10 @@
+                 .collect();
+             if let (Some(selection), Some(guard)) = (&audio_selection, audio_commit.as_mut()) {
+                 selection.commit(guard);
++            }
++            if let Some(prepared) = prepared {
++                prepared.commit();
++                state.initial_observation = Some(prepared);
+             }
+             candidate.committed = true;
+         }
+@@ -2376,3 +2421,6 @@
+ mod scene_consumer;
+ 
+ pub mod reliable_data;
++
++mod activation;
++pub use activation::PreparedMediaObservation;
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/activation.rs b/crates/foundation/rvoip-core/src/staged_streams/activation.rs
+new file mode 100644
+--- /dev/null
++++ b/crates/foundation/rvoip-core/src/staged_streams/activation.rs
+@@ -0,0 +1,119 @@
++//! Sealed resource observation for an explicitly authorized initial activation.
++//! It carries no grant and cannot publish a preparing Connection before commit.
++use super::*;
++use std::sync::atomic::{AtomicBool, Ordering};
++
++pub struct PreparedMediaObservation {
++    controller: Weak<StreamController>,
++    expected: u64,
++    generation: u64,
++    bindings: Vec<ReadyMediaBinding>,
++    cancelled: CancellationToken,
++    committed: AtomicBool,
++}
++impl std::fmt::Debug for PreparedMediaObservation {
++    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
++        f.debug_struct("PreparedMediaObservation")
++            .field("bindings", &self.bindings.len())
++            .finish_non_exhaustive()
++    }
++}
++impl PreparedMediaObservation {
++    pub(super) fn new(
++        controller: &Arc<StreamController>,
++        expected: u64,
++        bindings: Vec<ReadyMediaBinding>,
++        cancelled: CancellationToken,
++    ) -> Arc<Self> {
++        Arc::new(Self {
++            controller: Arc::downgrade(controller),
++            expected,
++            generation: bindings[0].connection_generation,
++            bindings,
++            cancelled,
++            committed: AtomicBool::new(false),
++        })
++    }
++    pub fn expected_revision(&self) -> u64 {
++        self.expected
++    }
++    pub fn bindings(&self) -> &[ReadyMediaBinding] {
++        &self.bindings
++    }
++    pub fn belongs_to(&self, controller: &Arc<StreamController>) -> bool {
++        Weak::ptr_eq(&self.controller, &Arc::downgrade(controller))
++    }
++    fn controller(&self) -> ControlResult<Arc<StreamController>> {
++        let controller = self
++            .controller
++            .upgrade()
++            .ok_or(StreamControlError::Cancelled)?;
++        if controller.shutdown.is_cancelled() || self.cancelled.is_cancelled() {
++            return Err(StreamControlError::Cancelled);
++        }
++        Ok(controller)
++    }
++    pub fn is_committed(&self) -> bool {
++        self.committed.load(Ordering::Acquire) && self.controller().is_ok()
++    }
++    pub fn committed_generation(&self) -> Option<u64> {
++        self.is_committed().then_some(self.generation)
++    }
++    /// Use only inside the same current control lease after its protocol has
++    /// independently verified required endpoint confirmation. This changes no
++    /// permissions and supplies no publication authority before engine commit.
++    pub fn activate_for_commit(&self, mut current: MediaOwner) -> ControlResult<MediaOwner> {
++        let controller = self.controller()?;
++        if self.expected != 0
++            || self.bindings.is_empty()
++            || !controller.is_bound_to(&current.member, &current.endpoint)
++            || !current
++                .connection
++                .same_incarnation(&controller.origin_binding)
++            || current.connection.connection() != &controller.connection
++            || current.connection.session() != &controller.session
++            || current.connection.generation() != self.generation
++            || self
++                .bindings
++                .iter()
++                .any(|b| b.connection_generation != self.generation)
++        {
++            return Err(StreamControlError::Authority);
++        }
++        current
++            .endpoint
++            .usable_by(&current.member)
++            .map_err(|_| StreamControlError::Authority)?;
++        current
++            .connection
++            .require_current(&current.member, &current.presence)
++            .map_err(|_| StreamControlError::Authority)?;
++        if current.connection.state() != crate::relationships::BindingState::Active {
++            current
++                .connection
++                .observe_ready(
++                    &current.member,
++                    &current.presence,
++                    &current.endpoint,
++                    self.generation,
++                )
++                .map_err(|_| StreamControlError::Authority)?;
++            current
++                .connection
++                .activate(&current.member, &current.presence, &current.endpoint)
++                .map_err(|_| StreamControlError::Authority)?;
++        }
++        Ok(current)
++    }
++    /// Merge an already committed resource fact with fresh current authority.
++    /// A cached candidate or aborted transaction cannot activate publication.
++    pub fn current(&self, current: MediaOwner) -> ControlResult<MediaOwner> {
++        if !self.is_committed() {
++            return Err(StreamControlError::NotReady);
++        }
++        self.activate_for_commit(current)
++    }
++    pub(super) fn commit(&self) {
++        self.committed.store(true, Ordering::Release);
++    }
++}
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/tests.rs b/crates/foundation/rvoip-core/src/staged_streams/tests.rs
+--- a/crates/foundation/rvoip-core/src/staged_streams/tests.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests.rs
+@@ -2438,3 +2438,207 @@
+     assert!(streams.iter().all(|s| s.source_muted));
+     assert!(bp.try_publish(&frame(&bp, 480)).is_err());
+ }
++
++struct ActivationPolicy {
++    base: Arc<Policy>,
++    prepared: Arc<Mutex<Option<Arc<PreparedMediaObservation>>>>,
++    cancel_after_prepare: Arc<AtomicBool>,
++}
++struct ActivationLease {
++    owner: MediaOwner,
++    _guard: Arc<OwnedRwLockReadGuard<PolicyState>>,
++    prepared: Arc<Mutex<Option<Arc<PreparedMediaObservation>>>>,
++    cancellation: CancellationToken,
++    cancel_after_prepare: Arc<AtomicBool>,
++}
++impl MediaAuthorityLease for ActivationLease {
++    fn authority(&self) -> &MediaOwner {
++        &self.owner
++    }
++    fn control_owner(&self) -> ControlResult<Box<MediaOwner>> {
++        Ok(Box::new(self.owner.clone()))
++    }
++    fn control_prepared(
++        &self,
++        proof: &Arc<PreparedMediaObservation>,
++    ) -> ControlResult<Box<MediaOwner>> {
++        assert!(!proof.is_committed());
++        assert!(proof.current(self.owner.clone()).is_err());
++        let owner = proof.activate_for_commit(self.owner.clone())?;
++        *self.prepared.lock().unwrap() = Some(proof.clone());
++        if self.cancel_after_prepare.load(Ordering::Acquire) {
++            self.cancellation.cancel();
++        }
++        Ok(Box::new(owner))
++    }
++}
++impl MediaPolicy for ActivationPolicy {
++    fn current(&self, scope: &MediaScope<'_>) -> ControlResult<Box<dyn MediaAuthorityLease>> {
++        let guard = self.base.current(scope)?;
++        let owner = self
++            .prepared
++            .lock()
++            .unwrap()
++            .as_ref()
++            .ok_or(StreamControlError::NotReady)?
++            .current(guard.authority().clone())?;
++        Ok(Box::new(PhaseCurrentLease {
++            owner,
++            _guard: guard,
++        }))
++    }
++    fn current_control(
++        &self,
++        scope: &MediaScope<'_>,
++        _: &MediaControlIntent<'_>,
++        held: &(dyn Any + Send + Sync),
++    ) -> ControlResult<MediaControl> {
++        let held = held
++            .downcast_ref::<HeldControlContext>()
++            .ok_or(StreamControlError::Authority)?;
++        if !Arc::ptr_eq(&held.domain, &self.base)
++            || held.connection != *scope.connection
++            || !held.principal.has_same_owner(scope.principal)
++            || held.guard.revoked.contains(&scope.principal.subject)
++        {
++            return Err(StreamControlError::Authority);
++        }
++        MediaControl::new(
++            Box::new(ActivationLease {
++                owner: held.guard.owners[scope.connection.as_str()].clone(),
++                _guard: held.guard.clone(),
++                prepared: self.prepared.clone(),
++                cancellation: held.cancellation.clone(),
++                cancel_after_prepare: self.cancel_after_prepare.clone(),
++            }),
++            held.cancellation.clone(),
++            held.deadline,
++        )
++    }
++}
++async fn activation_policy(f: &Fixture) -> Arc<ActivationPolicy> {
++    let _preparing = PhasePolicy::new(f).await;
++    Arc::new(ActivationPolicy {
++        base: f.policy.clone(),
++        prepared: Arc::new(Mutex::new(None)),
++        cancel_after_prepare: Arc::new(AtomicBool::new(false)),
++    })
++}
++#[tokio::test]
++async fn initial_activation_observation_cannot_publish_before_commit_and_keeps_only_resource_metadata(
++) {
++    let mut f = Fixture::new(8);
++    let policy = activation_policy(&f).await;
++    let held = held_context(&f, CancellationToken::new(), deadline()).await;
++    f.a = held_controller(&f, policy.clone(), held.as_ref()).unwrap();
++    f.a.change_with_held(
++        0,
++        &[desired(Medium::Audio)],
++        &BTreeSet::new(),
++        deadline(),
++        CancellationToken::new(),
++        held.clone(),
++    )
++    .await
++    .unwrap();
++    let proof = policy.prepared.lock().unwrap().clone().unwrap();
++    assert!(proof.is_committed());
++    assert_eq!(proof.committed_generation(), Some(1));
++    assert!(proof.belongs_to(&f.a));
++    assert!(!proof.belongs_to(&f.b));
++    assert_eq!(f.a.revision(), 1);
++    let gate = f.policy.0.clone();
++    let writer = tokio::spawn(async move { gate.write_owned().await });
++    tokio::task::yield_now().await;
++    assert!(!writer.is_finished());
++    drop(held);
++    let guard = tokio::time::timeout(Duration::from_millis(300), writer)
++        .await
++        .unwrap()
++        .unwrap();
++    drop(guard);
++    let port = f.aa.port(Medium::Audio);
++    port.try_publish(&frame(&port, 160)).unwrap();
++    assert_eq!(f.a.shutdown(deadline()).await, 0);
++    assert!(!proof.is_committed());
++}
++#[tokio::test]
++async fn initial_activation_cancelled_after_observation_never_promotes_cached_candidate_and_retry_burns_handle(
++) {
++    let mut f = Fixture::new(8);
++    let policy = activation_policy(&f).await;
++    let held = held_context(&f, CancellationToken::new(), deadline()).await;
++    f.a = held_controller(&f, policy.clone(), held.as_ref()).unwrap();
++    policy.cancel_after_prepare.store(true, Ordering::Release);
++    assert!(matches!(
++        f.a.change_with_held(
++            0,
++            &[desired(Medium::Audio)],
++            &BTreeSet::new(),
++            deadline(),
++            CancellationToken::new(),
++            held.clone()
++        )
++        .await,
++        Err(StreamControlError::Cancelled)
++    ));
++    let failed = policy.prepared.lock().unwrap().clone().unwrap();
++    let old = f.aa.port(Medium::Audio);
++    assert!(!failed.is_committed());
++    assert_eq!(f.a.revision(), 0);
++    assert!(old.try_publish(&frame(&old, 160)).is_err());
++    drop(held);
++    policy.cancel_after_prepare.store(false, Ordering::Release);
++    let held = held_context(&f, CancellationToken::new(), deadline()).await;
++    f.a.change_with_held(
++        0,
++        &[desired(Medium::Audio)],
++        &BTreeSet::new(),
++        deadline(),
++        CancellationToken::new(),
++        held,
++    )
++    .await
++    .unwrap();
++    let new = f.aa.port(Medium::Audio);
++    assert_ne!(old.binding().stream_local_id, new.binding().stream_local_id);
++    assert!(!failed.is_committed());
++    assert_eq!(f.a.stream_open_budget().0, 2);
++    assert_eq!(f.a.shutdown(deadline()).await, 0);
++}
++#[tokio::test]
++async fn initial_activation_observation_cannot_relabel_owner_retired_binding_or_membership() {
++    let mut f = Fixture::new(8);
++    let policy = activation_policy(&f).await;
++    let held = held_context(&f, CancellationToken::new(), deadline()).await;
++    f.a = held_controller(&f, policy.clone(), held.as_ref()).unwrap();
++    f.a.change_with_held(
++        0,
++        &[desired(Medium::Audio)],
++        &BTreeSet::new(),
++        deadline(),
++        CancellationToken::new(),
++        held.clone(),
++    )
++    .await
++    .unwrap();
++    let proof = policy.prepared.lock().unwrap().clone().unwrap();
++    assert!(proof.current(owner("bob")).is_err());
++    let mut recreated = held.guard.owners["alice"].clone();
++    recreated.connection = ConnectionBinding::prepare(
++        &recreated.member,
++        &recreated.presence,
++        &recreated.endpoint,
++        recreated.connection.connection().clone(),
++    )
++    .unwrap();
++    assert!(proof.current(recreated).is_err());
++    let mut retired = held.guard.owners["alice"].clone();
++    retired.connection.retire();
++    assert!(proof.current(retired).is_err());
++    let mut revoked = held.guard.owners["alice"].clone();
++    revoked.endpoint.revoke();
++    assert!(proof.current(revoked).is_err());
++    drop(held);
++    assert_eq!(f.a.shutdown(deadline()).await, 0);
++}
+diff --git a/crates/uctp/rvoip-uctp/src/v2/native.rs b/crates/uctp/rvoip-uctp/src/v2/native.rs
+--- a/crates/uctp/rvoip-uctp/src/v2/native.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/native.rs
+@@ -495,6 +495,35 @@
+         )
+         .map_err(|_| NativeOfferError::Authority)
+     }
++    /// Metadata handle for the initial control policy. It can observe only this
++    /// real signed offer's exact prepared resources and verified peer answer.
++    pub fn native_media_activation(
++        &self,
++        id: &ConnectionId,
++        a: &super::auth_dispatch::AuthorizedEnvelope,
++    ) -> std::result::Result<
++        Arc<super::native_negotiation::NativeMediaActivation>,
++        super::native_negotiation::NativeOfferError,
++    > {
++        use super::native_negotiation::*;
++        let route = self.data_route(id, a)?;
++        let installed = route.installation.lock().unwrap_or_else(|p| p.into_inner());
++        let installed = installed.as_ref().ok_or(NativeOfferError::NotReady)?;
++        let broker = installed
++            .backend
++            .negotiation
++            .as_ref()
++            .ok_or(NativeOfferError::Unsupported)?;
++        if !installed.controller.matches_data_credential(a.principal()) {
++            return Err(NativeOfferError::Authority);
++        }
++        broker.plan(a)?;
++        Ok(NativeMediaActivation::new(
++            &installed.controller,
++            broker,
++            a.envelope().id(),
++        ))
++    }
+     pub fn plan_native_offer(
+         &self,
+         id: &ConnectionId,
+diff --git a/crates/uctp/rvoip-uctp/src/v2/native_negotiation/activation.rs b/crates/uctp/rvoip-uctp/src/v2/native_negotiation/activation.rs
+new file mode 100644
+--- /dev/null
++++ b/crates/uctp/rvoip-uctp/src/v2/native_negotiation/activation.rs
+@@ -0,0 +1,82 @@
++//! Native parameter confirmation composed with sealed Core resource readiness.
++//! Retained state is metadata only; every use needs the host's current grant.
++use super::*;
++
++pub struct NativeMediaActivation {
++    controller: Weak<StreamController>,
++    broker: Weak<NativeNegotiation>,
++    source: String,
++    prepared: Mutex<Option<Arc<PreparedMediaObservation>>>,
++}
++impl std::fmt::Debug for NativeMediaActivation {
++    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
++        f.write_str("NativeMediaActivation(redacted)")
++    }
++}
++impl NativeMediaActivation {
++    pub(crate) fn new(
++        controller: &Arc<StreamController>,
++        broker: &Arc<NativeNegotiation>,
++        source: &str,
++    ) -> Arc<Self> {
++        Arc::new(Self {
++            controller: Arc::downgrade(controller),
++            broker: Arc::downgrade(broker),
++            source: source.into(),
++            prepared: Mutex::new(None),
++        })
++    }
++    /// Called only from the original control lease's control_prepared hook.
++    /// Local port readiness alone is insufficient: the ongoing native broker
++    /// must have verified a signed answer for this exact source and full batch.
++    pub fn prepare(
++        &self,
++        prepared: &Arc<PreparedMediaObservation>,
++        current: MediaOwner,
++    ) -> ControlResult<MediaOwner> {
++        let controller = self
++            .controller
++            .upgrade()
++            .ok_or(StreamControlError::Cancelled)?;
++        let broker = self.broker.upgrade().ok_or(StreamControlError::Cancelled)?;
++        let operation = broker.active().map_err(|_| StreamControlError::Authority)?;
++        if operation.invocation.envelope().id() != self.source
++            || operation.expected != prepared.expected_revision()
++            || !prepared.belongs_to(&controller)
++        {
++            return Err(StreamControlError::Authority);
++        }
++        let progress = operation.progress.lock().unwrap_or_else(|p| p.into_inner());
++        if !progress.confirmed
++            || progress.bindings.len() != prepared.bindings().len()
++            || progress.bindings.iter().any(|b| {
++                !prepared
++                    .bindings()
++                    .iter()
++                    .any(|p| crate::staged_media::same_binding(b, p))
++            })
++        {
++            return Err(StreamControlError::NotReady);
++        }
++        let owner = prepared.activate_for_commit(current)?;
++        *self.prepared.lock().unwrap_or_else(|p| p.into_inner()) = Some(prepared.clone());
++        Ok(owner)
++    }
++    /// Merge only a committed resource observation with newly derived authority.
++    /// No original invocation/reader is retained in this idle handle.
++    pub fn current(&self, current: MediaOwner) -> ControlResult<MediaOwner> {
++        self.prepared
++            .lock()
++            .unwrap_or_else(|p| p.into_inner())
++            .as_ref()
++            .ok_or(StreamControlError::NotReady)?
++            .current(current)
++    }
++    pub fn confirmed_generation(&self) -> Option<u64> {
++        self.prepared
++            .lock()
++            .unwrap_or_else(|p| p.into_inner())
++            .as_ref()?
++            .committed_generation()
++    }
++}
+diff --git a/crates/uctp/rvoip-uctp/src/v2/native_negotiation/mod.rs b/crates/uctp/rvoip-uctp/src/v2/native_negotiation/mod.rs
+--- a/crates/uctp/rvoip-uctp/src/v2/native_negotiation/mod.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/native_negotiation/mod.rs
+@@ -14,6 +14,8 @@
+ };
+ use tokio::time::Instant;
+ use tokio_util::sync::CancellationToken;
++mod activation;
++pub use activation::NativeMediaActivation;
+ pub(crate) mod catalog;
+ use catalog::{codec_wire, direction, format_name, kind, payload_type, peer_direction};
+ pub use catalog::{NativeMediaProfile, NativeOfferPlan};
+diff --git a/crates/uctp/rvoip-uctp/tests/support/canonical_media/native_offers.rs b/crates/uctp/rvoip-uctp/tests/support/canonical_media/native_offers.rs
+--- a/crates/uctp/rvoip-uctp/tests/support/canonical_media/native_offers.rs
++++ b/crates/uctp/rvoip-uctp/tests/support/canonical_media/native_offers.rs
+@@ -18,16 +18,19 @@
+     event_denied: BTreeSet<ConnectionId>,
+     wires: HashMap<String, ConnectionId>,
+     key: ResolvedVerificationKey,
++    activations: Mutex<HashMap<ConnectionId, Arc<NativeMediaActivation>>>,
+ }
+ struct Grants(Arc<RwLock<State>>);
+ struct Proof {
+     base: AuthorityLease,
+     guard: Arc<OwnedRwLockReadGuard<State>>,
+ }
++#[derive(Clone)]
+ struct Invocation {
+     a: Arc<AuthorizedEnvelope>,
+     domain: Arc<Grants>,
+     plan: NativeOfferPlan,
++    participant_revision: Option<u64>,
+ }
+ struct GateInvocation {
+     a: Arc<AuthorizedEnvelope>,
+@@ -38,10 +41,31 @@
+ struct Lease {
+     owner: MediaOwner,
+     _proof: Arc<AuthorizedEnvelope>,
++    activation: Option<Arc<NativeMediaActivation>>,
+ }
+ impl MediaAuthorityLease for Lease {
+     fn authority(&self) -> &MediaOwner {
+         &self.owner
++    }
++    fn control_owner(&self) -> ControlResult<Box<MediaOwner>> {
++        let owner = match self
++            .activation
++            .as_ref()
++            .filter(|a| a.confirmed_generation().is_some())
++        {
++            Some(activation) => activation.current(self.owner.clone())?,
++            None => self.owner.clone(),
++        };
++        Ok(Box::new(owner))
++    }
++    fn control_prepared(
++        &self,
++        prepared: &Arc<PreparedMediaObservation>,
++    ) -> ControlResult<Box<MediaOwner>> {
++        match &self.activation {
++            Some(activation) => Ok(Box::new(activation.prepare(prepared, self.owner.clone())?)),
++            None => self.control_owner(),
++        }
+     }
+ }
+ struct FreshLease {
+@@ -71,6 +95,14 @@
+                 .clone(),
+             s.principal,
+         )?;
++        let activation = guard.activations.lock().unwrap().get(s.connection).cloned();
++        let owner = match activation
++            .as_ref()
++            .filter(|a| a.confirmed_generation().is_some())
++        {
++            Some(activation) => activation.current(owner)?,
++            None => owner,
++        };
+         Ok(Box::new(FreshLease {
+             owner,
+             _guard: guard,
+@@ -134,6 +166,13 @@
+                 Box::new(Lease {
+                     owner,
+                     _proof: i.a.clone(),
++                    activation: proof
++                        .guard
++                        .activations
++                        .lock()
++                        .unwrap()
++                        .get(s.connection)
++                        .cloned(),
+                 }),
+                 i.a.invocation_cancellation(),
+                 deadline(),
+@@ -192,6 +231,13 @@
+             Box::new(Lease {
+                 owner,
+                 _proof: i.a.clone(),
++                activation: proof
++                    .guard
++                    .activations
++                    .lock()
++                    .unwrap()
++                    .get(s.connection)
++                    .cloned(),
+             }),
+             i.a.invocation_cancellation(),
+             deadline(),
+@@ -319,6 +365,7 @@
+     results: Mutex<Vec<Result<NativeOfferOutcome, NativeOfferError>>>,
+     media: Mutex<Option<Arc<NativePeerMedia>>>,
+     lifecycle: AtomicBool,
++    bootstrap: AtomicBool,
+     event_approvals: AtomicUsize,
+     event_attempts: AtomicUsize,
+     probe_other_scope: AtomicBool,
+@@ -401,6 +448,7 @@
+                 a: a.clone(),
+                 domain: self.grants.clone(),
+                 plan,
++                participant_revision: None,
+             });
+             let result = adapter
+                 .renegotiate_native_codecs(&id, a.clone(), invocation, deadline())
+@@ -486,6 +534,28 @@
+             a: a.clone(),
+             domain: self.grants.clone(),
+             plan,
++            participant_revision: if self.record.bootstrap.load(Ordering::Acquire)
++                && !self
++                    .native
++                    .core
++                    .orch
++                    .session(&self.native.core.session)
++                    .unwrap()
++                    .read()
++                    .unwrap()
++                    .connections
++                    .contains_key(&id)
++            {
++                Some(
++                    self.native
++                        .core
++                        .orch
++                        .participant_revision(&self.native.core.session)
++                        .map_err(|_| DispatchError::Authority)?,
++                )
++            } else {
++                None
++            },
+         });
+         let kind = self.physical.transport();
+         let adapter = &self.native.adapters[&kind];
+@@ -532,13 +602,33 @@
+                     DispatchError::Authority
+                 })?;
+         }
++        if self.record.bootstrap.load(Ordering::Acquire)
++            && adapter
++                .media_controller(&id)
++                .map_err(|_| DispatchError::Authority)?
++                .revision()
++                == 0
++        {
++            let activation = adapter
++                .native_media_activation(&id, &a)
++                .map_err(|_| DispatchError::Authority)?;
++            proof
++                .guard
++                .activations
++                .lock()
++                .unwrap()
++                .insert(id.clone(), activation);
++        }
+         let result = adapter
+-            .negotiate_native_offer(&id, a.clone(), invocation, deadline())
++            .negotiate_native_offer(&id, a.clone(), invocation.clone(), deadline())
+             .await;
+         let ok = result.is_ok();
+         self.record.results.lock().unwrap().push(result);
+         if !ok {
+             return Err(DispatchError::Authority);
++        }
++        if invocation.participant_revision.is_some() {
++            bootstrap::admit(self, &id, &invocation).await?;
+         }
+         if self.record.lifecycle.load(Ordering::Acquire) {
+             if self.record.probe_other_scope.load(Ordering::Acquire) {
+@@ -615,7 +705,25 @@
+ }
+ impl Scene {
+     async fn new(kind: &str, data: bool) -> Self {
+-        let (mut f, native, policy) = wire_setup().await;
++        Self::new_mode(kind, data, false).await
++    }
++    async fn new_bootstrap(kind: &str) -> Self {
++        Self::new_mode(kind, false, true).await
++    }
++    async fn new_mode(kind: &str, data: bool, bootstrap: bool) -> Self {
++        let (mut f, mut native, policy) = wire_setup().await;
++        if bootstrap {
++            let core = Arc::get_mut(&mut Arc::get_mut(&mut native).unwrap().core).unwrap();
++            core.session = core
++                .orch
++                .start_session(
++                    core.conversation.clone(),
++                    rvoip_core::session::SessionMedium::Voice,
++                    vec![],
++                )
++                .await
++                .unwrap();
++        }
+         let transport = if kind == "wt" {
+             Transport::WebTransport
+         } else {
+@@ -625,14 +733,22 @@
+         let wire_ids = policy.grants.read().await.connections.clone();
+         let second_id = wire_ids["native_1"].clone();
+         let profile = profile(data);
+-        let mut owner = media_owner(&native.core, &id, transport);
++        let mut owner = if bootstrap {
++            bootstrap::preparing_owner(&native.core, &id, transport)
++        } else {
++            media_owner(&native.core, &id, transport)
++        };
+         owner.local = profile.engine_capabilities().clone();
+         owner.remote = owner.local.clone();
+         if data {
+             owner.send_media.insert(Medium::Data);
+             owner.receive_media.insert(Medium::Data);
+         }
+-        let mut second_owner = media_owner(&native.core, &second_id, transport);
++        let mut second_owner = if bootstrap {
++            bootstrap::preparing_owner(&native.core, &second_id, transport)
++        } else {
++            media_owner(&native.core, &second_id, transport)
++        };
+         second_owner.local = profile.engine_capabilities().clone();
+         second_owner.remote = second_owner.local.clone();
+         if data {
+@@ -644,6 +760,7 @@
+             denied: false,
+             event_denied: BTreeSet::new(),
+             wires: wire_ids,
++            activations: Mutex::new(HashMap::new()),
+             key: ResolvedVerificationKey {
+                 public_key: f.client_public.clone(),
+                 algorithm: "EdDSA".into(),
+@@ -656,7 +773,20 @@
+             base: policy,
+             grants: grants.clone(),
+         });
++        if bootstrap {
++            native
++                .core
++                .orch
++                .enable_staged_participant_control(
++                    &native.core.session,
++                    Arc::new(bootstrap::Policy(grants.clone())),
++                    grants.clone(),
++                    rvoip_core::orchestrator::participant_control::ParticipantLimits::default(),
++                )
++                .unwrap();
++        }
+         let record = Arc::new(Record::default());
++        record.bootstrap.store(bootstrap, Ordering::Release);
+         let factory = Arc::new(OfferFactory {
+             native: native.clone(),
+             grants: grants.clone(),
+@@ -1004,6 +1134,21 @@
+             &s.principal,
+         )
+         .map_err(|_| DispatchError::Authority)?;
++        let activation = guard
++            .activations
++            .lock()
++            .unwrap()
++            .get(&s.media.connection)
++            .cloned();
++        let owner = match activation
++            .as_ref()
++            .filter(|a| a.confirmed_generation().is_some())
++        {
++            Some(activation) => activation
++                .current(owner)
++                .map_err(|_| DispatchError::Authority)?,
++            None => owner,
++        };
+         if guard.denied
+             || guard.event_denied.contains(&s.media.connection)
+             || !owner.may_control
+@@ -1943,3 +2088,6 @@
+     no_event(&mut s.wire).await;
+     s.wire.server.shutdown().await.unwrap();
+ }
++
++#[path = "native_offers/bootstrap.rs"]
++mod bootstrap;
+diff --git a/crates/uctp/rvoip-uctp/tests/support/canonical_media/native_offers/bootstrap.rs b/crates/uctp/rvoip-uctp/tests/support/canonical_media/native_offers/bootstrap.rs
+new file mode 100644
+--- /dev/null
++++ b/crates/uctp/rvoip-uctp/tests/support/canonical_media/native_offers/bootstrap.rs
+@@ -0,0 +1,342 @@
++//! Actual native parameter confirmation, protected preparing binding, then the
++//! real managed Participant admission. Domain permission storage is controlled.
++use super::*;
++use rvoip_core::orchestrator::participant_control::{
++    ControlResult as ParticipantResult, ParticipantAuthority, ParticipantAuthorityLease,
++    ParticipantControl, ParticipantControlError, ParticipantControlLease, ParticipantPolicy,
++    ParticipantScope,
++};
++use rvoip_core::participant_transitions::{ParticipantChange, ParticipantMutation};
++
++pub(super) fn preparing_owner(
++    core: &core_fixture::Fixture,
++    id: &ConnectionId,
++    kind: Transport,
++) -> MediaOwner {
++    let member = core.policy.0.read().unwrap().members[&core_fixture::participant("alice")].clone();
++    // Accepted room membership/endpoint intent is private authorization context,
++    // not a committed managed Participant or a public presence event.
++    let presence = SessionAppearance::admit(&member, core.session.clone(), None).unwrap();
++    let endpoint = endpoint("alice", kind);
++    let connection = ConnectionBinding::prepare(&member, &presence, &endpoint, id.clone()).unwrap();
++    MediaOwner {
++        actor: member.clone(),
++        member,
++        presence,
++        endpoint,
++        connection,
++        may_control: true,
++        send_media: [Medium::Audio, Medium::Video, Medium::Screen]
++            .into_iter()
++            .collect(),
++        receive_media: [Medium::Audio, Medium::Video, Medium::Screen]
++            .into_iter()
++            .collect(),
++        local: capabilities(),
++        remote: capabilities(),
++        may_route_source: true,
++    }
++}
++pub(super) struct Policy(pub Arc<Grants>);
++fn authority(
++    state: &State,
++    scope: &ParticipantScope<'_>,
++) -> ParticipantResult<ParticipantAuthority> {
++    let ParticipantChange::Admit { connection, .. } = &scope.mutation.change else {
++        return Err(ParticipantControlError::Unsupported);
++    };
++    let owner = credential_owner(
++        state
++            .owners
++            .get(connection)
++            .ok_or(ParticipantControlError::Authority)?
++            .clone(),
++        scope.principal,
++    )
++    .map_err(|_| ParticipantControlError::Authority)?;
++    if state.denied
++        || !owner.may_control
++        || owner.member.participant() != &scope.mutation.participant
++        || owner.member.conversation() != scope.conversation
++        || owner.presence.session() != scope.session
++    {
++        return Err(ParticipantControlError::Authority);
++    }
++    owner
++        .actor
++        .revalidate_principal(scope.principal, Utc::now())
++        .map_err(|_| ParticipantControlError::Authority)?;
++    let generation = state
++        .activations
++        .lock()
++        .unwrap()
++        .get(connection)
++        .and_then(|a| a.confirmed_generation());
++    Ok(ParticipantAuthority {
++        actor: owner.actor.clone(),
++        target: owner.member.clone(),
++        endpoint: Some(owner.endpoint.clone()),
++        may_send_audio: owner.receive_media.contains(&Medium::Audio),
++        may_receive_audio: owner.send_media.contains(&Medium::Audio),
++        confirmation_required: true,
++        confirmed_generation: generation,
++    })
++}
++struct Current {
++    authority: ParticipantAuthority,
++    _guard: OwnedRwLockReadGuard<State>,
++}
++impl ParticipantAuthorityLease for Current {
++    fn authority(&self) -> &ParticipantAuthority {
++        &self.authority
++    }
++}
++struct Held(Invocation);
++impl ParticipantControlLease for Held {
++    fn current(&self, scope: &ParticipantScope<'_>) -> ParticipantResult<ParticipantAuthority> {
++        let i = &self.0;
++        let proof =
++            i.a.authority::<Proof>()
++                .ok_or(ParticipantControlError::Authority)?;
++        let wire = proof
++            .base
++            .authority::<WireProof>()
++            .ok_or(ParticipantControlError::Authority)?;
++        let ParticipantChange::Admit {
++            connection,
++            role_override,
++        } = &scope.mutation.change
++        else {
++            return Err(ParticipantControlError::Unsupported);
++        };
++        if role_override.is_some()
++            || i.a.envelope().kind() != "connection.offer"
++            || i.participant_revision != Some(scope.mutation.expected_revision)
++            || i.a.envelope().scope(Scope::Operation) != Some(scope.mutation.operation_id.as_str())
++            || i.a.envelope().id() != scope.mutation.correlation_id
++            || i.a.envelope().scope(Scope::Conversation) != Some("conversation")
++            || i.a.envelope().scope(Scope::Session) != Some("session")
++            || i.a
++                .envelope()
++                .scope(Scope::Connection)
++                .and_then(|id| wire._guard.connections.get(id))
++                != Some(connection)
++            || !rvoip_core::staged_streams::reliable_data::same_credential(
++                i.a.principal(),
++                scope.principal,
++            )
++        {
++            return Err(ParticipantControlError::Authority);
++        }
++        authority(&proof.guard, scope)
++    }
++}
++impl ParticipantPolicy for Policy {
++    fn current(
++        &self,
++        scope: &ParticipantScope<'_>,
++    ) -> ParticipantResult<Box<dyn ParticipantAuthorityLease + '_>> {
++        let guard = self
++            .0
++             .0
++            .clone()
++            .try_read_owned()
++            .map_err(|_| ParticipantControlError::Authority)?;
++        let authority = authority(&guard, scope)?;
++        Ok(Box::new(Current {
++            authority,
++            _guard: guard,
++        }))
++    }
++    fn current_control(
++        &self,
++        scope: &ParticipantScope<'_>,
++        held: &(dyn Any + Send + Sync),
++    ) -> ParticipantResult<ParticipantControl> {
++        let i = held
++            .downcast_ref::<Invocation>()
++            .ok_or(ParticipantControlError::Authority)?;
++        if !Arc::ptr_eq(&self.0, &i.domain) {
++            return Err(ParticipantControlError::Authority);
++        }
++        let lease = Held(i.clone());
++        let _ = lease.current(scope)?;
++        ParticipantControl::new(Box::new(lease), i.a.invocation_cancellation(), deadline())
++    }
++}
++pub(super) async fn admit(
++    handler: &OfferHandler,
++    id: &ConnectionId,
++    invocation: &Invocation,
++) -> Result<(), DispatchError> {
++    let proof = invocation
++        .a
++        .authority::<Proof>()
++        .ok_or(DispatchError::Authority)?;
++    let owner = proof.guard.owners.get(id).ok_or(DispatchError::Authority)?;
++    let mutation = ParticipantMutation {
++        operation_id: invocation
++            .a
++            .envelope()
++            .scope(Scope::Operation)
++            .ok_or(DispatchError::Authority)?
++            .into(),
++        correlation_id: invocation.a.envelope().id().into(),
++        expected_revision: invocation
++            .participant_revision
++            .ok_or(DispatchError::Authority)?,
++        participant: owner.member.participant().clone(),
++        change: ParticipantChange::Admit {
++            connection: id.clone(),
++            role_override: None,
++        },
++    };
++    handler
++        .native
++        .core
++        .orch
++        .admit_peer_session_connection_with_held(
++            invocation
++                .a
++                .peer_admission()
++                .ok_or(DispatchError::Authority)?
++                .clone(),
++            &handler.native.core.session,
++            invocation.a.principal().clone(),
++            mutation,
++            deadline(),
++            invocation.a.invocation_cancellation(),
++            invocation,
++        )
++        .await
++        .map_err(|_| DispatchError::Authority)?;
++    Ok(())
++}
++async fn admitted(s: &Scene) {
++    core_fixture::until(|| {
++        s.native
++            .core
++            .orch
++            .session(&s.native.core.session)
++            .unwrap()
++            .read()
++            .unwrap()
++            .connections
++            .contains_key(&s.id)
++    })
++    .await;
++    let session = s.native.core.orch.session(&s.native.core.session).unwrap();
++    let session = session.read().unwrap();
++    assert_eq!(session.participants.len(), 1);
++    assert_eq!(session.state, rvoip_core::session::SessionState::Active);
++}
++fn empty(s: &Scene) {
++    let session = s.native.core.orch.session(&s.native.core.session).unwrap();
++    let session = session.read().unwrap();
++    assert!(session.participants.is_empty());
++    assert!(session.connections.is_empty());
++}
++async fn activation(s: &Scene) -> Arc<NativeMediaActivation> {
++    s.grants.0.read().await.activations.lock().unwrap()[&s.id].clone()
++}
++#[tokio::test]
++async fn actual_native_initial_activation_enters_managed_scene_after_signed_confirmation_and_observes_real_flow(
++) {
++    for kind in ["quic", "wt"] {
++        let mut s = Scene::new_bootstrap(kind).await;
++        s.record.lifecycle.store(true, Ordering::Release);
++        empty(&s);
++        let (answer, callback) = s.prepared(lifecycle_offer(&s, 0, 0, "sendonly")).await;
++        let handle = answer.original()["payload"]["substrate_setup"]["streams"][0]
++            ["stream_local_id"]
++            .as_u64()
++            .unwrap() as u16;
++        let proof = activation(&s).await;
++        assert_eq!(proof.confirmed_generation(), None);
++        assert_eq!(s.controller().revision(), 0);
++        empty(&s);
++        send(&s.wire, audio_sequence(handle, 1));
++        no_event(&mut s.wire).await;
++        s.confirm(&callback).await;
++        admitted(&s).await;
++        assert_eq!(proof.confirmed_generation(), Some(1));
++        assert_eq!(s.controller().revision(), 1);
++        assert_eq!(
++            s.grants.0.read().await.owners[&s.id].connection.state(),
++            BindingState::Preparing
++        );
++        no_event(&mut s.wire).await;
++        send(&s.wire, audio_sequence(handle, 2));
++        ready_opened(&s.f, &mut s.wire, handle).await;
++        let participant_revision = s
++            .native
++            .core
++            .orch
++            .participant_revision(&s.native.core.session)
++            .unwrap();
++        let (_, callback) = s.prepared(lifecycle_offer(&s, 0, 1, "sendonly")).await;
++        s.confirm(&callback).await;
++        s.wait(2).await;
++        assert_eq!(s.controller().revision(), 2);
++        assert_eq!(
++            s.native
++                .core
++                .orch
++                .participant_revision(&s.native.core.session)
++                .unwrap(),
++            participant_revision
++        );
++        assert_eq!(proof.confirmed_generation(), Some(1));
++        admitted(&s).await;
++        s.wire.server.shutdown().await.unwrap();
++        core_fixture::until(|| proof.confirmed_generation().is_none()).await;
++    }
++}
++#[tokio::test]
++async fn actual_native_initial_activation_bad_confirmation_keeps_public_session_empty_and_retry_uses_new_handle(
++) {
++    let mut s = Scene::new_bootstrap("quic").await;
++    let (_, callback) = s.prepared(lifecycle_offer(&s, 0, 0, "sendonly")).await;
++    let failed = activation(&s).await;
++    let old =
++        callback.original()["payload"]["substrate_setup"]["streams"][0]["stream_local_id"].clone();
++    let mut answer = s.confirmation(&callback);
++    answer["payload"]["substrate_setup"]["revision"] = json!(99);
++    s.wire.send(s.f.sign(answer)).await;
++    assert_eq!(s.wire.read().await.kind(), "error");
++    s.wait(1).await;
++    empty(&s);
++    assert_eq!(failed.confirmed_generation(), None);
++    assert_eq!(s.controller().revision(), 0);
++    let (_, callback) = s.prepared(lifecycle_offer(&s, 0, 0, "sendonly")).await;
++    assert_ne!(
++        callback.original()["payload"]["substrate_setup"]["streams"][0]["stream_local_id"],
++        old
++    );
++    s.confirm(&callback).await;
++    admitted(&s).await;
++    assert_eq!(failed.confirmed_generation(), None);
++    assert_eq!(s.controller().stream_open_budget().0, 2);
++    s.wire.server.shutdown().await.unwrap();
++}
++#[tokio::test]
++async fn actual_native_initial_activation_and_participant_commit_do_not_reenter_a_queued_grant_writer_or_retain_idle_reader(
++) {
++    let mut s = Scene::new_bootstrap("quic").await;
++    let (_, callback) = s.prepared(lifecycle_offer(&s, 0, 0, "sendonly")).await;
++    let gate = s.grants.0.clone();
++    let writer = tokio::spawn(async move {
++        let mut guard = gate.write_owned().await;
++        guard.denied = true;
++    });
++    tokio::task::yield_now().await;
++    assert!(!writer.is_finished());
++    s.confirm(&callback).await;
++    tokio::time::timeout(Duration::from_secs(2), writer)
++        .await
++        .unwrap()
++        .unwrap();
++    admitted(&s).await;
++    assert_eq!(activation(&s).await.confirmed_generation(), Some(1));
++    s.wire.server.shutdown().await.unwrap();
++}

@@ -1,0 +1,441 @@
+{
+  "task": "G6-045",
+  "title": "Verified SMS private ambiguity custody and attributed original-candidate resolution",
+  "component_passed": true,
+  "full_task_complete": false,
+  "status": "in-progress",
+  "created_at": "2026-10-21T11:59:18.297753+00:00",
+  "schema_version": 73,
+  "platform": "isolated local macOS arm64; actual Vapi/Telnyx SDK adapters against signed local HTTP callback fixtures and public canonical message clients; protected Store administrative SMS resolution fixtures",
+  "previous_component": {
+    "path": "docs/evidence/gate-6/incoming-contact-custody.json",
+    "sha256": "3252019beeddf91639843600779a48b9014ebbec2fffc35a01ec6b85af6ed9a1"
+  },
+  "qualification_inputs": {
+    "path": ".local/gate-6/incoming-sms-inputs.json",
+    "sha256": "e93b1146c9a34c5ed724d1ecab9f02519b3b6898c73e02b622f5f3e0a8608ec8"
+  },
+  "qualification_input_count": 1223,
+  "source_lock": {
+    "path": "dependencies/source-lock.json",
+    "sha256": "098ba5eba45b5ccaceed905914d0a2972938f7852b8ee1cfab4948ddd98020ec"
+  },
+  "pinned_patches": 127,
+  "fresh_distinct_passed_tests": 113,
+  "verification": [
+    {
+      "name": "Incoming contact and SMS library cases",
+      "binary": {
+        "path": "target/debug/deps/connect_store-34efc355090fb9eb",
+        "sha256": "bda97c3a7a763b56c6d8ee3b22f068580c6c9f19491a16336022eb0c8cde6315"
+      },
+      "arguments": [
+        "incoming_contacts::",
+        "--test-threads=2"
+      ],
+      "passed": 24,
+      "failed": 0,
+      "ignored": 0,
+      "tests": [
+        "incoming_contacts::sms::tests::completed_resolution_replay_rechecks_withdrawn_endpoint_without_rewriting_fact",
+        "incoming_contacts::sms::tests::competing_administrative_connections_choose_one_original_candidate_once",
+        "incoming_contacts::sms::tests::disabled_or_unmounted_history_does_not_route_a_late_reply_to_the_remaining_room",
+        "incoming_contacts::sms::tests::ineligible_original_resource_cannot_be_revived_by_later_enrollment",
+        "incoming_contacts::sms::tests::original_audience_is_frozen_and_new_members_do_not_receive_a_held_all_message",
+        "incoming_contacts::sms::tests::current_account_delegate_endpoint_and_sms_controls_fence_resolution",
+        "incoming_contacts::sms::tests::overlapping_verified_routes_hold_once_and_resolution_delivers_one_private_message",
+        "incoming_contacts::sms::tests::removed_and_readmitted_epoch_cannot_inherit_the_old_candidate",
+        "incoming_contacts::sms::tests::real_restore_keeps_original_sms_resolution_and_does_not_deliver_again",
+        "incoming_contacts::sms::tests::storage_failure_rolls_back_message_fanout_decision_and_replay_commits_once",
+        "incoming_contacts::sms::tests::unique_resource_retries_ignore_new_event_ids_and_conflicting_reuse_never_delivers_again",
+        "incoming_contacts::tests::account_custody_holding_is_private_and_does_not_create_communication",
+        "incoming_contacts::tests::administrative_store_cannot_capture_provider_evidence",
+        "incoming_contacts::tests::current_admin_owner_recipient_scope_and_revocation_precede_read_or_replay",
+        "incoming_contacts::tests::current_candidate_epoch_and_payload_budgets_refuse_without_partial_custody",
+        "incoming_contacts::tests::custody_capacity_refuses_before_reserving_a_resource_or_event",
+        "incoming_contacts::tests::delivery_sql_requires_original_candidate_real_message_and_one_resource",
+        "incoming_contacts::tests::event_and_resource_replay_preserve_original_candidates_and_one_hold",
+        "incoming_contacts::tests::original_custody_and_rejection_audit_are_immutable_and_in_snapshot_digest",
+        "incoming_contacts::tests::private_cursor_is_bounded_owner_and_scope_bound",
+        "incoming_contacts::tests::receipt_audit_and_hold_rows_roll_back_together_on_storage_failure",
+        "incoming_contacts::tests::rejected_contact_has_one_attributed_current_receipt_and_no_delivery",
+        "incoming_contacts::tests::restored_custody_preserves_opaque_cursor_rejection_and_resource_replay",
+        "incoming_contacts::tests::reused_resource_content_is_quarantined_and_account_reference_scopes_ids"
+      ],
+      "log": {
+        "path": ".local/gate-6/incoming-sms-incoming-qualified.log",
+        "sha256": "c4cda5a22a3345033ea0fc9f8af036aa521888e48828b1982b31faeeab35bdb6"
+      }
+    },
+    {
+      "name": "Selected library backup cases",
+      "binary": {
+        "path": "target/debug/deps/connect_store-34efc355090fb9eb",
+        "sha256": "bda97c3a7a763b56c6d8ee3b22f068580c6c9f19491a16336022eb0c8cde6315"
+      },
+      "arguments": [
+        "backup",
+        "--test-threads=2"
+      ],
+      "passed": 6,
+      "failed": 0,
+      "ignored": 0,
+      "tests": [
+        "connection_control::tests::replacement_sources::custody::replacement_backup_digest_covers_reservation_and_step_state",
+        "connection_control::tests::replacement_sources::telephone::runtime::media::telephone_media_backup_digest_covers_actual_resource_capture_rows",
+        "events::tests::backup_preserves_retention_floors_and_cursors_newer_than_restored_state_require_resync",
+        "provider_dispatch::tests::admitted_custody_and_queued_route_order_survive_backup_without_a_second_creation",
+        "transitions::tests::backup_after_submit_is_unknown_reserved_and_never_automatically_submitted_again",
+        "session_control::tests::original_session_receipt_and_source_facts_survive_backup_and_capability_storage_failure_recovers"
+      ],
+      "log": {
+        "path": ".local/gate-6/incoming-sms-backup-qualified.log",
+        "sha256": "cec1556fc034c21a5c13e9aa0489c551aef8dd2dd24bb55cc51f354f1bb561e6"
+      }
+    },
+    {
+      "name": "Provider integration",
+      "binary": {
+        "path": "target/debug/deps/providers-46ea9b05d9f5034d",
+        "sha256": "f147330d13c7fdc010bb33efaa83a8ce7299d084f35d55fa0f906628684f009b"
+      },
+      "arguments": [
+        "--test-threads=2"
+      ],
+      "passed": 8,
+      "failed": 0,
+      "ignored": 0,
+      "tests": [
+        "replay_recovery_and_chat_context_do_not_duplicate_provider_work",
+        "provider_state_is_included_in_current_backup",
+        "revoked_authority_cancels_pending_work_and_routes_cannot_retarget",
+        "routed_voice_accepts_enabled_vapi_connector_in_the_same_conversation",
+        "routed_voice_rejects_ambiguous_assistants_before_creating_a_session",
+        "signed_event_admission_is_atomic_deduplicated_and_scoped",
+        "sms_eligibility_stop_ordering_replay_restart_and_revocation",
+        "sms_start_without_form_and_cross_task_grants_do_not_authorize_delivery"
+      ],
+      "log": {
+        "path": ".local/gate-6/incoming-sms-providers-qualified.log",
+        "sha256": "3c948694181a1603f003de3b77a67d70ed668c5309184aeb24e79b9f832609f0"
+      }
+    },
+    {
+      "name": "Schema integration",
+      "binary": {
+        "path": "target/debug/deps/gate6_schema-b8961ab79a063843",
+        "sha256": "cd3d0702df69716495b35adff02eff4e8bdfe7e786d9555433b3a155f691f228"
+      },
+      "arguments": [
+        "--test-threads=2"
+      ],
+      "passed": 4,
+      "failed": 0,
+      "ignored": 0,
+      "tests": [
+        "gate6_constraints_reject_rebinding_stale_epoch_cross_owner_and_false_completion",
+        "gate6_backup_preserves_ids_audiences_unknown_effects_and_fences_live_claims",
+        "gate6_snapshot_digest_covers_new_private_and_effect_metadata",
+        "gate6_incompatible_state_refusal_preserves_files_and_requires_explicit_new_path"
+      ],
+      "log": {
+        "path": ".local/gate-6/incoming-sms-schema-qualified.log",
+        "sha256": "0f01e54bd5dabf2064607ea5eb918b41793d0aadcf86658c2f40b4717afd8376"
+      }
+    },
+    {
+      "name": "Recovery integration",
+      "binary": {
+        "path": "target/debug/deps/recovery-c96cf09fe07e0c8e",
+        "sha256": "569bb6820213b92d7db053bcf128fac866797f9231b09e75cd5d56a8eb4d26df"
+      },
+      "arguments": [
+        "--test-threads=2"
+      ],
+      "passed": 2,
+      "failed": 0,
+      "ignored": 0,
+      "tests": [
+        "receipt_capacity_bounds_rejected_operations_without_losing_existing_receipts",
+        "online_snapshot_recovers_wal_receipts_events_and_cursors"
+      ],
+      "log": {
+        "path": ".local/gate-6/incoming-sms-recovery-qualified.log",
+        "sha256": "ee5fe6eac979aefe6d01b0b159bba988a9e6c299d72f8e011861e56fb430b3e7"
+      }
+    },
+    {
+      "name": "Server library",
+      "binary": {
+        "path": "target/debug/deps/connect_server-616f548a437d1869",
+        "sha256": "59d4f6b6ffcaed247bcc40a40bf76f3262c17d6d070c3114852b4b3b8f5e32ad"
+      },
+      "arguments": [
+        "--test-threads=2"
+      ],
+      "passed": 66,
+      "failed": 0,
+      "ignored": 0,
+      "tests": [
+        "agent_observations::tests::undeclared_model_capabilities_publish_unavailable_without_untrusted_body",
+        "agent_observations::tests::stalled_capture_queue_drops_without_blocking_and_next_delivery_reports_exact_loss",
+        "canonical_assistants::tests::configured_assistant_assets_require_private_regular_files_without_echoing_contents",
+        "canonical::tests::configuration_errors_do_not_echo_private_file_contents",
+        "canonical_assistants::tests::public_profile_never_enables_insecure_nonfixture_transport_or_duplicate_proposal_tools",
+        "canonical_assistants::tests::strict_host_configuration_preserves_explicit_paths_policy_and_rejects_unknown_fields",
+        "cli::agent_access::tests::changed_credential_assets_or_access_mode_cannot_resume_an_existing_installation",
+        "cli::agent_access::tests::export_rejects_admin_revoked_and_mismatched_authority_before_creating_output",
+        "cli::agent_access::tests::identity_setup_replays_original_receipt_and_denies_conflict_or_non_admin",
+        "cli::agent_access::tests::regular_export_keeps_one_agent_key_without_task_grants_or_admin_secret",
+        "cli::agent_access::tests::removal_deletes_only_verified_connect_configuration_and_preserves_other_files",
+        "cli::agent_access::tests::regular_host_resumes_exact_session_and_redacts_its_key_without_grant_refresh",
+        "cli::canonical_init::tests::destination_created_after_preflight_is_preserved_even_when_empty",
+        "cli::media_stdio::tests::framing_is_bounded_and_binary_safe",
+        "cli::media_stdio::tests::input_reader_preserves_a_frame_when_next_is_cancelled",
+        "cli::task_access::codex_host::diagnostics::tests::concurrent_state_change_never_combines_session_metadata_or_retains_probe_lock",
+        "cli::task_access::codex_host::group_status::tests::native_snapshot_rejects_live_group_and_accepts_its_unreaped_zombie",
+        "cli::vapi_task::manifest::tests::rejects_ambiguous_modes_public_binding_and_callback_credentials",
+        "cli::vapi_task::manifest::tests::rejects_oversized_or_nonregular_private_inputs",
+        "cli::vapi_task::manifest::tests::supported_modes_resolve_state_beside_private_manifest",
+        "config::tests::outbound_sip_fields_reject_ambiguous_input",
+        "config::tests::wildcard_sip_requires_a_concrete_media_bind_interface",
+        "media_transports::tests::outbound_trunk_fails_closed_without_a_password",
+        "media_transports::tests::outbound_trunk_uses_environment_secret_without_logging_it",
+        "private_vapi::audio::tests::expired_partial_speech_cannot_be_combined_with_a_fresh_provider_message",
+        "private_vapi::audio::tests::forwarding_stall_expires_complete_speech_and_replaces_it_with_silence",
+        "private_vapi::audio::tests::provider_message_boundaries_do_not_split_pcmu_frames",
+        "private_vapi::audio::tests::queued_audio_keeps_only_the_newest_bounded_frames_and_partial",
+        "private_vapi::transcripts::tests::archive_retries_same_callback_only_after_busy_store_result",
+        "private_vapi::transcripts::tests::cancellation_drains_admitted_write_and_does_not_start_queued_callback",
+        "cli::agent_access::tests::unknown_host_or_missing_model_auth_preserves_installation_and_does_not_launch",
+        "private_vapi::transport::tests::private_receiver_must_bind_the_captured_call_and_exact_configured_origin",
+        "private_vapi::transport::tests::private_transport_requires_explicit_secure_or_numeric_loopback_origins",
+        "private_vapi::transcripts::tests::pending_archive_does_not_block_media_ticks_and_preserves_order_and_capacity",
+        "registration_monitor::tests::accepted_lease_refreshes_after_idle_and_rejected_refresh_can_recover_on_restart",
+        "secrets::tests::explicit_missing_or_locked_provider_reference_cannot_read_ambient_key",
+        "secrets::tests::provider_api_key_whitespace_preserves_legacy_headers_and_password_bytes",
+        "secrets::tests::references_and_debug_never_contain_secret_values",
+        "setup_vault::discovery_tests::unselected_provider_credentials_are_never_resolved",
+        "sip_outbound::tests::a_late_worker_outcome_cannot_replace_an_observed_terminal_connection",
+        "sip_outbound::tests::cancellation::active_hangup_waits_for_cleanup_and_keeps_failure_uncertain",
+        "sip_outbound::tests::cancellation::cancellation_callback_and_successful_cleanup_have_one_result_in_either_order",
+        "sip_outbound::tests::cancellation::cancellation_callback_cannot_conceal_failed_cleanup_in_either_order",
+        "sip_outbound::tests::cancellation::cancellation_event_for_an_active_leg_without_owned_cleanup_settles_ended",
+        "registration_monitor::tests::dropped_refresh_does_not_leave_an_expired_binding_ready",
+        "sip_outbound::tests::failed_cancellation_cleanup_is_uncertain_and_cannot_be_redispatched",
+        "sip_outbound::tests::cancellation::normal_remote_end_and_failure_remain_authoritative_during_cancellation",
+        "sip_outbound::tests::lost_authority_during_activation_runs_cleanup_and_persists_cancellation",
+        "sip_registration::tests::carrier_registration_authenticates_and_shutdown_removes_binding",
+        "sip_registration::tests::rejected_registration_does_not_report_ready",
+        "sms_authority::synchronization_tests::authenticated_snapshot_rejects_redirects_and_revision_replay",
+        "sms_authority::tests::reject_unsafe_authority_configuration",
+        "startup::tests::failed_startup_releases_endpoint_owned_by_a_pending_accept_task",
+        "startup::tests::successful_startup_keeps_accept_open_for_runtime_ownership",
+        "transports::http::tests::browser_origins_are_limited_to_loopback_http",
+        "vapi_bootstrap::call_failure::tests::diagnostics_expose_only_the_stage_even_with_a_sensitive_cause",
+        "vapi_bootstrap::voice_model::tests::absent_tools_are_supported_but_malformed_saved_models_are_rejected",
+        "vapi_bootstrap::voice_model::tests::scoped_mcp_discovery_preserves_saved_model_and_other_tools",
+        "vapi_observer::tests::cancelling_observer_drain_does_not_detach_the_receiver",
+        "vapi_observer::tests::queued_provider_report_is_not_replaced_by_missing_status",
+        "vapi_observer::tests::teardown_drains_queued_transcripts_and_records_missing_report",
+        "worker::tests::cancelling_shutdown_aborts_owned_tasks",
+        "worker::tests::failure_does_not_detach_a_stalled_sibling",
+        "worker::tests::panic_is_reported_and_other_tasks_are_still_drained",
+        "worker::tests::supervised_panic_wakes_readiness_without_waiting_for_shutdown",
+        "sip_outbound::tests::stalled_cancellation_cleanup_is_bounded_and_does_not_detach_activation"
+      ],
+      "log": {
+        "path": ".local/gate-6/incoming-sms-server-qualified.log",
+        "sha256": "868708c1b42ae4886853a4f3ef86b3a56b37bbc7ee3344992b482d6569d6272e"
+      }
+    },
+    {
+      "name": "Canonical actual-SDK provider flows",
+      "binary": {
+        "path": "target/debug/deps/provider_flow-1c9fb5ba855aabc1",
+        "sha256": "c3db279b1efd4e1e1bdf60420c312bb8210b217ab2cb2a7acf9c2053a1146504"
+      },
+      "arguments": [
+        "--test-threads=1"
+      ],
+      "passed": 3,
+      "failed": 0,
+      "ignored": 0,
+      "tests": [
+        "canonical_provider_messages::owned_worker_shutdown_records_uncertainty_and_restart_does_not_resubmit",
+        "canonical_provider_messages::signed_early_sms_final_is_scoped_and_settles_typed_delivery_after_ack",
+        "canonical_provider_messages::signed_sms_vapi_reply_delivery_and_http_quic_replay_share_one_journal"
+      ],
+      "log": {
+        "path": ".local/gate-6/incoming-sms-flow-qualified.log",
+        "sha256": "93bb209b2e47eb038d050fd6e03aa24f4293f6913fd0c249157ed220f6cb9772"
+      }
+    }
+  ],
+  "verification_scope": "24 incoming-contact library cases (13 retained foundation plus11 SMS behavior cases), six selected library backup cases, provider integration8, schema integration4, recovery integration2, complete server library66 and canonical provider_flow3. Not all Store library/integration suites, full workspace, voice ambiguity or public administrative resolution qualification.",
+  "behavior": [
+    "Schema73 retains the recorded72 shape separately and extends custody reasons for uniquely routed, ineligible and historical-overlap observations. Its fresh-construction guard refuses to erase populated private custody. Normal opening of older pre-alpha schema still refuses with the existing backup/new-state boundary; no downgrade or compatibility path was added.",
+    "Protected SmsObservation carries the original provider message resource separately from callback identity/digest, sender/recipient/body and provider time. Ordinary HTTP received messages require payload.id after raw signature/timestamp verification; signed controls retain their existing occurred_at ordering and no ordinary-resource requirement. Protected Rust callers and fixtures were updated to the desired API rather than a legacy wrapper.",
+    "Overlapping SMS number pairs may now be explicitly configured. Current mounted verified Endpoint/account/route/member/delegate authority and bounded original audiences are considered together before any delivery. Multiple eligible candidates create one private hold with no Conversation message/journal event. Disabled, closed or unmounted retained policies belonging to the same configured account still prevent routing a late reply automatically to the remaining room.",
+    "Unique eligible observations create custody and one real message atomically. Repeating the resource/content under another callback ID never delivers again, including after a real restore. Different content under an already-reserved resource is held as a resource conflict and cannot become another delivery. Originally ineligible resources are terminally ignored and cannot become assistant prompts after later enrollment.",
+    "Administrative Store resolution selects only an original candidate, with current verified Endpoint/account/route facts, current delegate authority, original member epochs/roles, exact saved recipient ceiling and the same still-current enrollment grant. It writes an explicit original Participant audience, so a held all-message does not expand to new members. Account administration grants no Conversation history or message-body view.",
+    "The selected real message, private audience/journal/fanout, one-resource delivery binding, shared logical-operation receipt and attributed audit commit in one transaction. Forced binding failure rolls back message, journal, decision and audit; replay commits once after recovery. Independent administrative database connections competing for different original candidates produce one decision and one message.",
+    "Metadata exposes operator/credential/logical operation, selected candidate and local message/Session reference, with no held body/context/provider control URL and no history grant. Current authorization precedes completed resolution replay; Endpoint withdrawal refuses replay without rewriting the previously completed fact. Removed/readmitted membership cannot inherit an old candidate. STOP, account/delegate/Endpoint withdrawal and original consent restrictions refuse before delivery.",
+    "All three canonical provider flows pass on current schema73 production code: signed SMS/Vapi private bounded context/reply/SMS delivery, HTTP/QUIC mutation replay, controls/signature/digest scope, early final callback while send remains pending, conflicting final callback refusal, cancellation/join/restart without resubmission. These do not yet exercise an administrative HTTP contact-resolution endpoint or voice hold/resolution.",
+    "Current provider integration was updated to verified source/target Endpoint/account bindings and actual number-pair scope for an early final callback. Its later opposite terminal observation now explicitly expects the G6-044 conflict/reconciliation behavior while preserving delivered state. Failed old assumptions remain recorded; no SQL or callback invariant was weakened."
+  ],
+  "implementation": [
+    {
+      "path": "crates/connect-store/migrations/073_incoming_contact_routing.sql",
+      "sha256": "1d1ce83ee7e593d1e2e9ee60dbc8c728a84a6fa9173899d2c14a2e151da98334"
+    },
+    {
+      "path": "crates/connect-store/src/incoming_contacts.rs",
+      "sha256": "c4c1aac8afe3220b9dc07d02c1bb1f0d85fa9041a71c7da152e6d6e3ffbeff61"
+    },
+    {
+      "path": "crates/connect-store/src/incoming_contacts/sms.rs",
+      "sha256": "eecef880e622f9818064f1ca974877d5d5579a1bffa6099107858213a6b30a8c"
+    },
+    {
+      "path": "crates/connect-store/src/incoming_contacts/sms/tests.rs",
+      "sha256": "78d3bf50baf2fb38ea44e23113d114e27422fde0ecf1e1892161ae7ebb1d489b"
+    },
+    {
+      "path": "crates/connect-store/src/incoming_contacts/tests.rs",
+      "sha256": "3b0b0120eb2144f44b56f3fa803f7ac243740bec990c9a69d55684f90e77cd2b"
+    },
+    {
+      "path": "crates/connect-store/src/providers.rs",
+      "sha256": "4c9e1dc6c4e52ed1fa7bfee7df7f1de0481cbd1fa4fa5cb10ac3ba3ca142d815"
+    },
+    {
+      "path": "crates/connect-store/src/lib.rs",
+      "sha256": "fedf3bea8c43efd57436a8d35545b4d590046f96a9a3c19309f064d0079ca69b"
+    },
+    {
+      "path": "crates/connect-store/tests/providers.rs",
+      "sha256": "3509eaa92ba39b9fe81f111d2f48897331de9d188acb33d7ebaee87885aca210"
+    },
+    {
+      "path": "crates/connect-protocol/src/incoming_contacts.rs",
+      "sha256": "1b84d28df6da3cd6e3783241fd0d1cf2a43b3c5376661f275a7e8d8d2c601295"
+    },
+    {
+      "path": "crates/connect-server/src/transports/telnyx_http.rs",
+      "sha256": "4a9ba32bab10492eaa3f109e6b38947176d9aee2fbda93835a8b2aba6634795b"
+    },
+    {
+      "path": "crates/connect-server/tests/support/canonical_provider_messages.rs",
+      "sha256": "19092cf48591a6f11e762746de1cf31b15e5b98e24b992f02212c0b39fb21767"
+    },
+    {
+      "path": "contracts/openapi-provider-observations.json",
+      "sha256": "0f8a9ca465126bb7da41c325b385e69ee9709b4a77fbe1b38796a8bbd78a73b1"
+    },
+    {
+      "path": "docs/developer/incoming-contact-routing.md",
+      "sha256": "4549d31d940c312121e7a0866a535cc392aed22b2fc6ac28f6148c8dadc330fb"
+    }
+  ],
+  "checks": [
+    {
+      "path": ".local/gate-6/incoming-sms-prepare.log",
+      "sha256": "fd9d7b181e3ccba9b643af55a186cf132c60aac99c734b2ee4e4e549afe5ffc2"
+    },
+    {
+      "path": ".local/gate-6/incoming-sms-format-check.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": ".local/gate-6/incoming-sms-http-check.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": ".local/gate-6/incoming-sms-whitespace.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": ".local/gate-6/incoming-sms-progress-check.log",
+      "sha256": "eb2a8530bf8b94dd79bbdc3b7f23ab84e66d802aca51caf08cdd9601fa14183e"
+    }
+  ],
+  "contract_validation": {
+    "report": {
+      "path": ".local/gate-6/incoming-sms-contracts.json",
+      "sha256": "13eec1cb579959eece4940cce98f680d442b8ef65e066a21e38317514962d68c"
+    },
+    "log": {
+      "path": ".local/gate-6/incoming-sms-contracts-check.log",
+      "sha256": "2c29557f8945b4bb522a5436f85876aa8ab90eca617dcf64588af05e9a81b1bc"
+    }
+  },
+  "build_logs": [
+    {
+      "path": ".local/gate-6/incoming-sms-build-v1.log",
+      "sha256": "568b817d86a0470445fad27bcc2e5b643adde0d7e3b739a9939d2e4e6c2b2623"
+    },
+    {
+      "path": ".local/gate-6/incoming-sms-build-v2.log",
+      "sha256": "f38eed7b4c828e04f58dc326a1889694f5ea9c79f811ede5972c2e2eb3f8394b"
+    },
+    {
+      "path": ".local/gate-6/incoming-sms-server-build.log",
+      "sha256": "214a47a3db2e0540a2aca130656c08ff0271e397fdb093222880e8e8255d7bd2"
+    },
+    {
+      "path": ".local/gate-6/incoming-sms-build-final.log",
+      "sha256": "95f946b5dad168f8cf0b503018f22a76520186f2f89ef753d2fc38b31f4cedb4"
+    }
+  ],
+  "failed_or_intermediate": [
+    {
+      "log": {
+        "path": ".local/gate-6/incoming-sms-providers-first.log",
+        "sha256": "ad9bddb3d8a9fc315730c7c3c80c31a8e4e84b087ef7fca40451bdbfbaf0511b"
+      },
+      "scope": "Seven pass/one fail: old early-final fixture had no attributable bound route pair. Updated to signed-pair scoped admission."
+    },
+    {
+      "log": {
+        "path": ".local/gate-6/incoming-sms-providers-second.log",
+        "sha256": "a24eb7257190cd339fa5e9ab3b215aaaa2b1962ed95442a86a76fa8b0c04fbf0"
+      },
+      "scope": "Seven pass/one fail: old fixture expected an opposite terminal callback to succeed. Now expects existing conflict/reconciliation and keeps delivered state."
+    },
+    {
+      "log": {
+        "path": ".local/gate-6/incoming-sms-server-build.log",
+        "sha256": "214a47a3db2e0540a2aca130656c08ff0271e397fdb093222880e8e8255d7bd2"
+      },
+      "scope": "Production and provider_flow compiled/linked; server library-test compilation failed on LLVM output disk exhaustion. Not a completed build/pass."
+    },
+    {
+      "log": {
+        "path": ".local/gate-6/incoming-sms-provider-flow-first.log",
+        "sha256": "60bd72543e3594559b651a69e7d0613509f29b49447824a74b9f386404612f43"
+      },
+      "scope": "Three actual-SDK canonical provider cases passed before the test-only additions; superseded by current final run, not counted twice."
+    }
+  ],
+  "cache_cleanup": {
+    "path": ".local/gate-6/incoming-sms-cache-cleanup.json",
+    "sha256": "2e5bef582f08add11283329ecf34d6582b491a4cea88890fc8b5f3f19d068205"
+  },
+  "cache_cleanup_scope": "No compiler or media qualification was live. Parsed retained regular ar archives to verify embedded object members, then removed only generated loose single-link objects from completed library compilations. Recovered3753545728 allocated bytes; all archives/executables/multi-link incremental/debug/source/state/evidence retained. The same source build subsequently completed and final tests ran after cleanup.",
+  "remaining_work": [
+    "Implement canonical voice candidate collection across matching ingresses before Session import, private ambiguity holding and attributed resolution with owned worker pickup of the actual incoming origin. Preserve cursor/resource custody, account-reference ownership, original caller/time/Endpoint/audience and no outbound create/automatic acceptance/media-readiness inference.",
+    "Implement and document the administrative HTTP/OpenAPI/current public client contact metadata/rejection/selection interface. Add actual canonical public overlap, selection/refusal, competing/repeated decisions, membership/epoch change, rollback/restart and private visibility fixtures. Store methods alone do not qualify that surface.",
+    "Complete the full G6-045 work/verify audit and appropriate complete current Store/library/integration/server checks after remaining producer/resolver changes. Do not infer full task completion from SMS proof or drag later remote/SDK/full-live-media/acceptance scopes into this task.",
+    "Physical provider account/message-ID and occurred_at stability, callback signature/retry/resource semantics, enrollment changes and selected sender/account proofs must be rerun only in the concrete bounded designated G6-093 live lane. No live provider/PSTN/remote/publication action occurred."
+  ],
+  "not_qualified": [
+    "G6-045 remains active. No voice ambiguity resolver, public administrative HTTP/client resolution, complete Store library/workspace/native media, Linux/browser/remote/live/PSTN/package/publication/acceptance closure. Historical G6-044 task-fixture and native-incident limitations remain separately recorded."
+  ],
+  "plan_counts": {
+    "done": 44,
+    "in_progress": 1,
+    "not_started": 60,
+    "acceptance_done": 0
+  }
+}

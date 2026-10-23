@@ -1,11 +1,12 @@
 """Typed Connect task inputs/results; secrets and verified bindings are not inputs."""
 from typing import Any, Literal, NotRequired, TypedDict, Union
+from .record_context import ContextRecord
 
 TASK_PROFILE = "connect-task/1"
 TaskState = Literal["ready", "running", "waiting", "completed", "cancelled", "failed", "expired"]
 EffectState = Literal["prepared", "dispatched", "succeeded", "failed", "uncertain", "cancelled"]
 TaskPermission = Literal[
-    "resolve", "capabilities", "send", "history", "context_view", "context_deliveries",
+    "resolve", "capabilities", "send", "history", "context_view", "record_get", "context_deliveries",
     "inbox", "request_status", "artifact_begin", "artifact_append", "artifact_finish",
     "artifact_get", "artifact_delete", "session_invite", "session_accept", "session_reject",
     "session_cancel", "session_end", "session_get", "call_start", "call_status", "call_end",
@@ -73,6 +74,7 @@ class TaskSource(TypedDict):
     provenance: str
     state: Literal["available", "deleted", "expired", "unavailable"]
     body: str | None
+    record: NotRequired[ContextRecord]
 
 class TaskGet(TypedDict):
     action: Literal["get"]

@@ -69,8 +69,91 @@ normalized receipt, full event receipt and actual source IDs with the reply.
 Protected `Worker::observe` applies adapter-verified callback receipts; protected
 `Worker::receive` admits authenticated independent contacts under the
 configured route. These APIs are trusted composition, not wire installation or
-principal creation. Telephone `VoiceReceipt` carries normalized evidence and the
-existing private control capability together through explicit
-`voice::Worker::with_observed_driver` composition. Builtin startup and `with_driver`
-retain the existing carrier path. Host physical status observation
-continues for cleanup after revocation without authorizing further mutations.
+principal creation.
+
+Telephone `voice::Worker::with_driver` requires a declared, validated manifest
+before recovery or claims. It always uses typed `VoiceReceipt` evidence and the
+private control capability; there is no alternate unnormalized dispatch mode.
+Missing operations are refused before provider I/O. Invalid logical IDs are
+refused before transport, and a normalization failure after possible transport
+is uncertain, including a decoder's local rejection. Restart cannot redial an
+uncertain creation. Status queries are attributed as reconciliation and retain
+the original logical ID. Host physical status observation continues for cleanup
+after revocation without authorizing further mutations.
+
+Read-only telephone discovery returns `InboundVoiceReceipt` with authenticated
+external call data, typed state, stable event ID and verification provenance. It
+has no local mutation ID: the authorized Store import assigns that ID and binds
+the projection, call and journal in one transaction. Current ingress credential,
+route, assistant/phone binding, caller allowlist and conversation policy precede
+duplicate handling. Invalid or local-attempt-only discoveries cannot create a
+call. Duplicate discovery never dials or advances the existing lifecycle; the
+owned status poll handles later observations. Failed batches preserve the scan
+cursor for a read-only retry. Caller ID and provider IDs remain correlation data.
+
+The canonical `canonical_provider_voice::Worker` now applies these normalized
+contracts to ordinary Session invitations. Protected `provider_voice.ingress`
+configuration selects an explicit existing Conversation/AI/telephone audience;
+caller numbers never create principals, accept Participants or grant history.
+Incoming direction and `remote_identity_verified: false` make that distinction
+visible. A confirmed read-only observation effect binds the existing provider
+resource without a VoiceStart. Session admission, observation/projection,
+original audience journal and durable scan cursor commit atomically. Duplicate
+incoming observations never redial or update an existing lifecycle; current
+policy/epochs precede replay. Failed batches retain the original cursor.
+Configured ingresses without VoiceDiscover remain dormant while independent
+outbound/status/end capability stays available. VoiceDiscover/status/end without
+VoiceStart supports incoming observation and cleanup while rejecting outbound
+creation. The canonical `voice_flow` fixtures cover all five original functional
+requirements through the public signed/HTTP Session SDK; they are synthetic
+provider adapters, not real provider IO or media qualification.
+
+`VoiceReconcile` is a separate optional read-only capability requiring
+`VoiceStatus` and `VoiceEnd`, independently of `VoiceStart`. Its bounded query
+preserves the original mutation, full assistant/phone/destination binding and
+original time window. Only an authenticated unique correlated resource may
+return `VoiceReceipt` with explicit reconciliation provenance. Missing, ambiguous,
+truncated or failed lookups convey no absence proof and permit no retry of
+creation. An adapter must not select a resource by Caller ID alone. The Vapi
+profile sends an opaque correlation in the call name and rechecks the complete
+binding on an authenticated fresh Get after bounded exhaustive list lookup.
+Quarantined resource collisions require separate typed resolution. The host's
+protected `ResolveQuarantine` dispatch owns an original-conflict digest ticket;
+it uses `VoiceReconcile` IO without permitting another create. Only explicit
+authenticated reconciliation of a distinct, unclaimed original resource can
+commit the immutable resolution proof with effect/projection/journal updates.
+Original conflict history remains immutable. Missing, unverified, ambiguous or
+still-claimed results leave quarantine unchanged; an ordinary reconciliation or
+operator assertion cannot clear it. Replays and competing captures retain the
+first resolved resource and never reopen later terminal state. This does not
+authenticate Caller ID or authorize Session acceptance or media.
+
+These telephone worker contracts do not expose the retired application call
+commands through the canonical API. Stock public provider installation and the
+full generic operation/endpoint integration remain G6-044 work; a backend fixture
+is not evidence of a public telephone workflow. Changes to receipt decoding,
+uncertainty and discovery require the outbound/inbound, lost-response, duplicate,
+cancel/restart and teardown live telephone proofs to rerun with the concrete
+G6-093 configuration. Default verification remains isolated fixtures.
+
+Telephone network requests require an owned `VoiceDispatch`, not a boolean
+admission check. The current original transport interval stays held through the
+bounded request, including credential/task/grant expiry. A consumed permit
+captures the attributed result and releases transport readers before its atomic
+metadata settlement. Immediate record attempts may retry only that same captured
+result after contention or principal withdrawal. One worker owns recovery in an
+installation runtime; overlapping starts are refused until its tasks and admitted
+blocking mutations drain. See [telephone custody](../../docs/developer/telephone-provider-custody.md)
+for the protected API and unqualified public/live-provider scope.
+
+Canonical messaging selects explicit immutable route/verified Endpoint/account
+bindings through protected `provider_messages` configuration. The generic worker
+settles all adapter attempts through typed message observations, including built-in
+Vapi and Telnyx adapters. Account references, current Endpoint/device facts and
+Participant epoch are checked before context export and actual transport admission.
+The narrow signed Telnyx callback listener is scoped to mounted SMS routes. Early
+finals require an attributable signed number pair, and reconcile the original
+job when its authenticated send response arrives; provider IDs cannot select an
+unmounted route. Signed opt-out for an unknown contact to an owned mounted source
+is still retained without granting enrollment or assistant access. See
+[canonical messaging configuration](../../docs/developer/canonical-provider-messages.md).

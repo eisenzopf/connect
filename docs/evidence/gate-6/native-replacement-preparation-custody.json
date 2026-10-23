@@ -1,0 +1,324 @@
+{
+  "kind": "gate6-component-evidence",
+  "task": "G6-041",
+  "status": "in-progress",
+  "passed": true,
+  "recorded_at": "2026-10-20T00:53:52.354356+00:00",
+  "scope": "Durable Store custody for one owned managed Core preparation action, retained candidate IDs/plan, separate current begin and recording-only capture. Controlled local macOS arm64 fixtures, no actual Core preparation, allocated media, dial, answer/DTMF or endpoint movement commit is claimed.",
+  "schema_version": 55,
+  "pinned_patches": 111,
+  "source_lock": {
+    "path": "dependencies/source-lock.json",
+    "sha256": "a30becafde1bee7c0bffdcd9198f7abc55246c4330c6d1e019a4322bed4e79ed"
+  },
+  "verification": [
+    {
+      "name": "store",
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "--offline",
+        "-j1",
+        "-p",
+        "connect-store",
+        "--lib",
+        "--",
+        "--test-threads=2"
+      ],
+      "path": ".local/gate-6/replacement-custody-final-store.log",
+      "sha256": "f5e4ff49f023e4fd2e7a0dd33da95100e7e6de074fb925f51b0fd25259e44529",
+      "exit_code": 0,
+      "passed": 574,
+      "ignored": 3,
+      "executed_binary": {
+        "path": "/Users/jonathaneisenzopf/.local/share/connect/compiler-cache/gate6-active/qualification/replacement-custody-full-store",
+        "sha256": "37c6a9f2bb5d97dbd8855c3fe10b63e91feb8744bacad3764291b95a43a869d0",
+        "source_mtime_ns": 1792457019208099173
+      },
+      "original_binary_path": "target/debug/deps/connect_store-500690b8d898aed1"
+    },
+    {
+      "name": "schema",
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "--offline",
+        "-j1",
+        "-p",
+        "connect-store",
+        "--test",
+        "gate6_schema",
+        "--",
+        "--test-threads=2"
+      ],
+      "path": ".local/gate-6/replacement-custody-final-schema.log",
+      "sha256": "6d672dc15cb560c04f2a3dbb7297ee1369f0ec4d20c77dfbcce6e522d50ebff7",
+      "exit_code": 0,
+      "passed": 4,
+      "ignored": 0,
+      "test_binaries": [
+        {
+          "path": "target/debug/deps/gate6_schema-2d4cc6d15be4352e",
+          "sha256": "61b6ac6881f0aa67a2c66368ce628e9c13f59c7e183e205a8d20b430abdfe90a"
+        }
+      ]
+    },
+    {
+      "name": "libraries",
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "--offline",
+        "-j1",
+        "-p",
+        "connect-client",
+        "-p",
+        "connect-service",
+        "-p",
+        "connect-protocol",
+        "--lib",
+        "--",
+        "--test-threads=2"
+      ],
+      "path": ".local/gate-6/replacement-custody-final-libraries.log",
+      "sha256": "5cdb5c7510b4e284c417fb8cf6558a11302c293dcc1e8395d4c810f2787e5c9e",
+      "exit_code": 0,
+      "passed": 94,
+      "ignored": 0,
+      "test_binaries": [
+        {
+          "path": "target/debug/deps/connect_client-2762510abbc111f5",
+          "sha256": "e44a9efaf12526fa13b7ebb6efa30e24847286e045c256cf260793d4a63bea79"
+        },
+        {
+          "path": "target/debug/deps/connect_protocol-d4433b2cc5f1474e",
+          "sha256": "0cf301a400280745ead63bfe0d526454171feeebb94051b2a560b6a43f75c377"
+        },
+        {
+          "path": "target/debug/deps/connect_service-f0c8ec9c56711d06",
+          "sha256": "ddb08c82703362a513cd8710d5c48dbd60fb02afba1121d157990a9ee1a9c291"
+        }
+      ]
+    },
+    {
+      "name": "server-boundaries",
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "--offline",
+        "-j1",
+        "-p",
+        "connect-server",
+        "--test",
+        "gate6_canonical_transitions",
+        "--test",
+        "first_run_schema_boundary",
+        "--",
+        "--test-threads=2"
+      ],
+      "path": ".local/gate-6/replacement-custody-final-server-boundaries.log",
+      "sha256": "8c0045737f2b29e9af49a9688ce4a8e2e2fc2cd9f8c6f339f8bc9e3fffcd44ed",
+      "exit_code": 0,
+      "passed": 6,
+      "ignored": 0,
+      "test_binaries": [
+        {
+          "path": "target/debug/deps/first_run_schema_boundary-63ea127eb174edfc",
+          "sha256": "f4404f2e00ba63f372789919534308d61587e21f7f0c904951bac819ddeebcec"
+        },
+        {
+          "path": "target/debug/deps/gate6_canonical_transitions-3c1fd287bcc3e17e",
+          "sha256": "c718809d4fcb946c8e40b5559a5e23cf3bf01c84516e2d4cfada5877a0d941db"
+        }
+      ]
+    }
+  ],
+  "selected_final_source_verification": {
+    "command": [
+      "cargo",
+      "test",
+      "--locked",
+      "--offline",
+      "-j1",
+      "-p",
+      "connect-store",
+      "--lib",
+      "replacement_sources",
+      "--",
+      "--test-threads=2",
+      "--nocapture"
+    ],
+    "passed": 19,
+    "exit_code": 0,
+    "log": {
+      "path": ".local/gate-6/replacement-custody-store4.log",
+      "sha256": "26608f17c044b59b4618a1c503e4665ef8b2a1e65c95b8cab94684622fb06fbd"
+    },
+    "binary": {
+      "path": "target/debug/deps/connect_store-500690b8d898aed1",
+      "sha256": "c8221f29c8c6ebdf5a42375fe607bb6e1f76c953401101c882a95e4cf92399ae"
+    }
+  },
+  "test_count_note": "The19 selected cases overlap18 cases in the574-test full Store run. Do not sum them as disjoint tests. Three ignored standalone crash helpers are invoked by passing parent cases.",
+  "static_checks": [
+    {
+      "name": "format",
+      "command": [
+        "bash",
+        "scripts/format.sh",
+        "--",
+        "--check"
+      ],
+      "path": ".local/gate-6/replacement-custody-format.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "exit_code": 0
+    },
+    {
+      "name": "http",
+      "command": [
+        "python3",
+        "scripts/generate-canonical-http-openapi.py",
+        "--check"
+      ],
+      "path": ".local/gate-6/replacement-custody-http.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "exit_code": 0
+    },
+    {
+      "name": "contracts",
+      "command": [
+        ".local/gate-6/verification-venv/bin/python",
+        "scripts/check-gate6-contracts.py",
+        "--output",
+        ".local/gate-6/replacement-custody-contracts.json"
+      ],
+      "path": ".local/gate-6/replacement-custody-contracts.log",
+      "sha256": "2c29557f8945b4bb522a5436f85876aa8ab90eca617dcf64588af05e9a81b1bc",
+      "exit_code": 0
+    },
+    {
+      "name": "dependencies",
+      "command": [
+        "bash",
+        "scripts/prepare-dependencies.sh"
+      ],
+      "path": ".local/gate-6/replacement-custody-dependencies.log",
+      "sha256": "fd9d7b181e3ccba9b643af55a186cf132c60aac99c734b2ee4e4e549afe5ffc2",
+      "exit_code": 0
+    },
+    {
+      "name": "diff",
+      "command": [
+        "git",
+        "diff",
+        "--check"
+      ],
+      "path": ".local/gate-6/replacement-custody-diff.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "exit_code": 0
+    },
+    {
+      "name": "progress",
+      "command": [
+        "python3",
+        "scripts/check-gate6-progress.py"
+      ],
+      "path": ".local/gate-6/replacement-custody-progress.log",
+      "sha256": "3c9a42760866b510a9b7fc81b2b57b9bf6791a239d0bf0de8cdf06058e513f78",
+      "exit_code": 0
+    }
+  ],
+  "application_input_snapshot": {
+    "path": ".local/gate-6/replacement-custody-inputs.json",
+    "sha256": "a08867c15fc0c5589d0ba0c9037516d7ea119cfdf6735d50a44e40da9c5397c5",
+    "inputs": 1299
+  },
+  "full_store_source_note": "Production and all other selected tests remained unchanged. After the full suite executable was built, one telephone-policy test was added and the backup test gained isolated native-table-only digest assertions in replacement_sources/custody.rs. The final19 selected cases pass on those changes. Full-suite executed binary was copied before rebuilding and its hash is retained; do not substitute the current original-path binary.",
+  "full_store_test_module_before_test_additions": {
+    "path": ".local/gate-6/replacement-custody-before-telephone.rs",
+    "sha256": "12c836562ca0217a1fe46d39537e04bc4e9ae79769395cd283f844cd8ff05aa2"
+  },
+  "implemented": [
+    "Immutable original command/source snapshot, provisioned target revision/Device, source role, next generation, Core participant revision, explicit confirmation policy and bounded original deadline",
+    "Global retained logical/runtime candidate IDs and stable metadata-only lease, no idle reader or physical allocation",
+    "One atomic prepared-to-started effect admission under fresh exact source/retained authority and complete prepared-plan revalidation",
+    "Exclusion from generic workers, cleanup and public operator reconciliation",
+    "Strict controlled ticket attribution; ready claims and changed operation/session/member/source/retained/candidate/endpoint/device/generation/revision refuse",
+    "Captured preparation fact survives cancellation/revocation idempotently and explicitly reports media_ready:false without a result",
+    "Unknown submission remains reserved, no second begin; prepared/started/captured restart fencing and predecessor-token refusal",
+    "Native reservation/step table inclusion in backup inspection, isolated native-only digest mutation checks and explicit older-schema refusal through54",
+    "Telephone reservation requires explicit valid configured answer/DTMF policy; no default digit, SIP leg or dial"
+  ],
+  "diagnostics": [
+    {
+      "log": {
+        "path": ".local/gate-6/replacement-custody-store1.log",
+        "sha256": "7841b6b79120fe13127ba8a4cd9a1f85f695a288f7091e222ae2b63dfa677745"
+      },
+      "result": "16 passed/2failed: the new role-change case exposed missing complete-plan revalidation at begin, now fixed. Cleanup test expected None but its native exclusion correctly returned conflict; final test accepts explicit refusal without custody."
+    },
+    {
+      "log": {
+        "path": ".local/gate-6/replacement-custody-store2.log",
+        "sha256": "bb894dd993b37b56543bcd1f121c318c95195580a6f9eaaa960e0d9769c9cb77"
+      },
+      "result": "18 targeted cases pass after those fixes."
+    },
+    {
+      "log": {
+        "path": ".local/gate-6/replacement-custody-store3.log",
+        "sha256": "c2c8b139cfa93c6f4d540f1d95924044bacaf2e0a11a5a1247a9e1d729f58664"
+      },
+      "result": "19 pass after adding provisioned telephone/explicit-digit policy coverage."
+    }
+  ],
+  "candidate_id_retention": true,
+  "one_preparation_attempt": true,
+  "original_route_role_untouched_by_store_preparation": true,
+  "public_runtime_queue_installed": false,
+  "runtime_phase_apis_installed": [
+    "prepare Store custody only"
+  ],
+  "future_schema_phase_names_are_not_execution_apis": [
+    "allocate",
+    "start",
+    "commit"
+  ],
+  "previous_component": {
+    "path": "docs/evidence/gate-6/native-replacement-source.json",
+    "sha256": "b1339c2102a537718794009ddcfe92cb18d99f65fa3285e3ef735667e4220860"
+  },
+  "not_claimed": [
+    "Completion of G6-041 or all105 tasks/acceptance",
+    "Actual owned Core ticket, physical native allocation, isolated decoded readiness, live callback, trusted DTMF, atomic media/model commit, role projection or cleanup qualification",
+    "Live providers/Linux/browser/remote/performance qualification",
+    "Publication, commit or push"
+  ],
+  "next": [
+    "Wire the real Core ParticipantReplacementControl and owned DeviceReplacementPreparation under this fresh current reader; retain only the ticket, never its reader",
+    "Reserve/authorize the exact target and install native replacement lineage/generation adoption; ordinary connection.prepare/Connection.owner still assume generation1",
+    "Add independent allocate/start/commit custody and current target peer/adapter policy before real IO",
+    "Target-owned public signed preparation, actual isolated decoder/guarded output and trusted configured answer/DTMF",
+    "One actual managed commit/native confirmation/durable role-preserving projection, exact source retirement, late-event and unknown/restart recovery without redial"
+  ],
+  "all_started_processes_terminal": true,
+  "post_test_plan_delta": {
+    "docs/connect-gate-6-implementation.html": {
+      "before": "57e2f24bdc3eb248db3889cad21ea63e1adf6666d9ac83425494349eeb16cb08",
+      "after": "d8ffad11afb8987c1e06e5f2622fdc7c0a8f3bb7708fdcad75540dc828a69663"
+    }
+  },
+  "sealed_progress_check": {
+    "command": [
+      "python3",
+      "scripts/check-gate6-progress.py"
+    ],
+    "exit_code": 0,
+    "path": ".local/gate-6/replacement-custody-sealed-progress.log",
+    "sha256": "3c9a42760866b510a9b7fc81b2b57b9bf6791a239d0bf0de8cdf06058e513f78"
+  }
+}

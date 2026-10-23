@@ -24,7 +24,7 @@ with tempfile.TemporaryDirectory(prefix='connect-crash-') as temporary:
         agent=tomllib.loads((state/'agent.toml').read_text())['identity_id']
         with Server(state,binary=normal):
             conversation=request(state,'reviews',{'op':'create','request_id':'create','participants':[agent]},binary=normal)['data']['id']
-        operation={'op':'send','request_id':'fault-send','conversation_id':conversation,'body':'one durable effect'}
+        operation={'op':'send','request_id':'fault-send','conversation_id':conversation,"message": {'to': 'all', 'content_type': 'text/plain', 'body': 'one durable effect', 'body_encoding': 'utf8', 'label': 'connect-messages', 'attachments': [], 'in_reply_to_msg': None, 'msg_id': None}}
         env=dict(os.environ,CONNECT_TEST_FAULT_STAGE=stage,CONNECT_TEST_FAULT_REQUEST='fault-send')
         with Server(state,binary=fault_binary,env=env,expected_exit=86) as server:
             uncertain=run('request','--config',state/'reviews.toml',value=operation,success=False,binary=normal)

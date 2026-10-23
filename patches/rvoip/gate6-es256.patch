@@ -1,0 +1,1008 @@
+diff --git a/crates/identity/auth-core/src/sig9421.rs b/crates/identity/auth-core/src/sig9421.rs
+index b440601..ad36e46 100644
+--- a/crates/identity/auth-core/src/sig9421.rs
++++ b/crates/identity/auth-core/src/sig9421.rs
+@@ -11,14 +11,14 @@
+ //! 5. Check `envelope.id` is not in the replay cache; add it.
+ //! 6. Check `envelope.ts` is within the cache TTL.
+ //!
+-//! v0 ships [`Sig9421Verifier`] for Ed25519 keys (the recommended
+-//! algorithm per §5.5.1). Other algorithms (`ES256`, `PS256`, `RS256`)
+-//! follow the same shape — gated behind future enhancements as
+-//! deployments need them.
++//! Ed25519 (`EdDSA`, required by §5.5.1) and P-256/SHA-256 (`ES256`,
++//! recommended there) share the same ownership, canonicalization, freshness and
++//! atomic replay boundary. ES256 uses the JWA fixed-width 64-byte R || S form,
++//! never an ASN.1 DER signature. Other algorithms are unsupported.
+ //!
+-//! Replay protection mirrors [`crate::dpop`]'s moka-based JTI cache:
+-//! the envelope's `id` is the deduplication key; default TTL is 5
+-//! minutes per the spec.
++//! Replay consumption is atomic and bounded. Expired store entries may retire;
++//! capacity exhaustion fails closed without evicting live IDs. Canonical peers
++//! additionally retain their non-evicting physical-lifetime fence.
+ 
+ use std::collections::HashMap;
+ use std::sync::{Arc, Mutex};
+@@ -27,7 +27,10 @@ use std::time::Duration;
+ use async_trait::async_trait;
+ use base64::Engine;
+ use chrono::{DateTime, Utc};
+-use ring::signature::{UnparsedPublicKey, ED25519};
++use ring::signature::{
++    EcdsaKeyPair, UnparsedPublicKey, ECDSA_P256_SHA256_FIXED, ECDSA_P256_SHA256_FIXED_SIGNING,
++    ED25519,
++};
+ use serde::{Deserialize, Serialize};
+ use std::fmt;
+ 
+@@ -46,13 +49,17 @@ pub const DEFAULT_SIG_REPLAY_TTL: Duration = Duration::from_secs(300);
+ /// this allows for that and nothing more.
+ pub const DEFAULT_SIG_CLOCK_SKEW: Duration = Duration::from_secs(30);
+ 
+-/// Maximum number of envelope IDs the replay cache holds before
+-/// LRU eviction. Mirrors [`crate::dpop::DEFAULT_JTI_CACHE_CAPACITY`].
++/// Maximum live envelope IDs in the default atomic replay store.
++/// Capacity exhaustion fails closed without evicting live IDs.
+ pub const DEFAULT_REPLAY_CACHE_CAPACITY: u64 = 100_000;
+ 
+ /// Maximum canonicalized envelope size accepted at the signature boundary.
+ pub const DEFAULT_MAX_SIGNED_ENVELOPE_BYTES: usize = 1024 * 1024;
+ 
++/// Algorithms actually implemented by every verifier entry point. Key ownership
++/// and allowed algorithms still come from the current resolver/policy.
++pub const SUPPORTED_SIGNATURE_ALGORITHMS: &[&str] = &["EdDSA", "ES256"];
++
+ pub enum Sig9421Error {
+     MissingSignature,
+     MalformedSignature(String),
+@@ -135,11 +142,15 @@ impl fmt::Debug for EnvelopeSignature {
+     }
+ }
+ 
+-/// Ed25519 signer for the UCTP inline envelope form. Private key material is
++/// Ed25519 or P-256/SHA-256 signer for the UCTP inline envelope form. Private key material is
+ /// owned by this backend and never serialized or included in diagnostics.
+ pub struct Sig9421Signer {
+     keyid: String,
+-    key: ring::signature::Ed25519KeyPair,
++    key: SigningKey,
++}
++enum SigningKey {
++    Ed25519(ring::signature::Ed25519KeyPair),
++    Es256(EcdsaKeyPair),
+ }
+ impl Sig9421Signer {
+     pub fn ed25519(keyid: impl Into<String>, pkcs8: &[u8]) -> Result<Self, Sig9421Error> {
+@@ -149,7 +160,35 @@ impl Sig9421Signer {
+         }
+         let key = ring::signature::Ed25519KeyPair::from_pkcs8(pkcs8)
+             .map_err(|_| Sig9421Error::KeyRejected)?;
+-        Ok(Self { keyid, key })
++        Ok(Self {
++            keyid,
++            key: SigningKey::Ed25519(key),
++        })
++    }
++
++    /// Load a P-256 PKCS#8 key with its matching public component. The backend
++    /// checks the named curve and key consistency; other curves/encodings fail.
++    pub fn es256(keyid: impl Into<String>, pkcs8: &[u8]) -> Result<Self, Sig9421Error> {
++        let keyid = keyid.into();
++        if keyid.is_empty() || keyid.len() > 256 || keyid.chars().any(char::is_control) {
++            return Err(Sig9421Error::KeyRejected);
++        }
++        let key = EcdsaKeyPair::from_pkcs8(
++            &ECDSA_P256_SHA256_FIXED_SIGNING,
++            pkcs8,
++            &ring::rand::SystemRandom::new(),
++        )
++        .map_err(|_| Sig9421Error::KeyRejected)?;
++        Ok(Self {
++            keyid,
++            key: SigningKey::Es256(key),
++        })
++    }
++    pub fn algorithm(&self) -> &'static str {
++        match &self.key {
++            SigningKey::Ed25519(_) => "EdDSA",
++            SigningKey::Es256(_) => "ES256",
++        }
+     }
+ 
+     /// Sign all original fields, replacing only an existing signature member.
+@@ -164,11 +203,16 @@ impl Sig9421Signer {
+         if canonical.len() > DEFAULT_MAX_SIGNED_ENVELOPE_BYTES {
+             return Err(Sig9421Error::EnvelopeTooLarge);
+         }
+-        let sig = base64::engine::general_purpose::URL_SAFE_NO_PAD
+-            .encode(self.key.sign(&canonical).as_ref());
++        let signature = match &self.key {
++            SigningKey::Ed25519(key) => key.sign(&canonical),
++            SigningKey::Es256(key) => key
++                .sign(&ring::rand::SystemRandom::new(), &canonical)
++                .map_err(|_| Sig9421Error::InvalidSignature)?,
++        };
++        let sig = base64::engine::general_purpose::URL_SAFE_NO_PAD.encode(signature.as_ref());
+         value["signature"] = serde_json::to_value(EnvelopeSignature {
+             keyid: self.keyid.clone(),
+-            alg: "EdDSA".into(),
++            alg: self.algorithm().into(),
+             sig,
+         })
+         .map_err(|_| Sig9421Error::MalformedEnvelope)?;
+@@ -355,7 +399,7 @@ impl SignatureClock for SystemSignatureClock {
+ pub trait KeyResolver: Send + Sync {
+     /// Returns the raw public key bytes for `keyid`, or `None` if
+     /// the keyid is unknown. For Ed25519 the slice is the 32-byte
+-    /// raw public key.
++    /// raw public key. ES256 uses a 65-byte uncompressed SEC1 P-256 point.
+     fn resolve(&self, keyid: &str) -> Option<Vec<u8>>;
+ 
+     /// Resolve a key for this exact authenticated subject, issuer and tenant.
+@@ -711,6 +755,11 @@ impl Sig9421Verifier {
+                 key.verify(&canonical, &sig_bytes)
+                     .map_err(|_| Sig9421Error::InvalidSignature)?;
+             }
++            "ES256" => {
++                let key = UnparsedPublicKey::new(&ECDSA_P256_SHA256_FIXED, &resolved.public_key);
++                key.verify(&canonical, &sig_bytes)
++                    .map_err(|_| Sig9421Error::InvalidSignature)?;
++            }
+             other => return Err(Sig9421Error::UnsupportedAlgorithm(other.to_string())),
+         }
+ 
+@@ -1221,3 +1270,7 @@ mod tests {
+         assert_ne!(buf, [0u8; 4]);
+     }
+ }
++
++#[cfg(test)]
++#[path = "sig9421/es256_tests.rs"]
++mod es256_tests;
+diff --git a/crates/identity/auth-core/src/sig9421/es256_tests.rs b/crates/identity/auth-core/src/sig9421/es256_tests.rs
+new file mode 100644
+index 0000000..4cef7ad
+--- /dev/null
++++ b/crates/identity/auth-core/src/sig9421/es256_tests.rs
+@@ -0,0 +1,333 @@
++use super::*;
++use crate::bearer::{AuthenticatedPrincipal, AuthenticationMethod};
++use ring::{
++    rand::SystemRandom,
++    signature::{KeyPair, ECDSA_P256_SHA256_ASN1_SIGNING, ECDSA_P384_SHA384_FIXED_SIGNING},
++};
++use serde_json::{json, Value};
++
++fn principal() -> AuthenticatedPrincipal {
++    AuthenticatedPrincipal {
++        subject: "alice".into(),
++        tenant: Some("tenant".into()),
++        issuer: Some("issuer".into()),
++        scopes: vec![],
++        expires_at: Some(Utc::now() + chrono::Duration::hours(1)),
++        method: AuthenticationMethod::Bearer,
++        assurance: rvoip_core_traits::identity::IdentityAssurance::Identified {
++            credential_kind: rvoip_core_traits::identity::CredentialKind::Oidc,
++        },
++    }
++}
++fn envelope() -> Value {
++    json!({"v":2,"type":"connection.update","id":format!("env_{}",uuid::Uuid::new_v4().simple()),"ts":Utc::now(),"cid":"conversation","sid":"session","connid":"connection","operation_id":"operation","in_reply_to":"callback","expected_revision":1,"payload":{"action":"hold"},"optional":{"z":1e-7,"a":"\u{1f600}"}})
++}
++fn signing_with_document() -> (
++    Sig9421Signer,
++    ResolvedVerificationKey,
++    ring::pkcs8::Document,
++) {
++    let rng = SystemRandom::new();
++    let doc = EcdsaKeyPair::generate_pkcs8(&ECDSA_P256_SHA256_FIXED_SIGNING, &rng).unwrap();
++    let public = EcdsaKeyPair::from_pkcs8(&ECDSA_P256_SHA256_FIXED_SIGNING, doc.as_ref(), &rng)
++        .unwrap()
++        .public_key()
++        .as_ref()
++        .to_vec();
++    (
++        Sig9421Signer::es256("p256", doc.as_ref()).unwrap(),
++        ResolvedVerificationKey {
++            public_key: public,
++            algorithm: "ES256".into(),
++            not_before: None,
++            expires_at: None,
++            revoked: false,
++        },
++        doc,
++    )
++}
++fn signing() -> (Sig9421Signer, ResolvedVerificationKey) {
++    let (signer, key, _document) = signing_with_document();
++    (signer, key)
++}
++struct Keys {
++    owner: crate::bearer::PrincipalOwnershipKey,
++    keys: HashMap<String, ResolvedVerificationKey>,
++}
++impl KeyResolver for Keys {
++    fn resolve(&self, _: &str) -> Option<Vec<u8>> {
++        None
++    }
++    fn resolve_for_principal(
++        &self,
++        p: &AuthenticatedPrincipal,
++        id: &str,
++        a: &str,
++        _: DateTime<Utc>,
++    ) -> Option<ResolvedVerificationKey> {
++        if p.ownership_key() != self.owner {
++            return None;
++        }
++        self.keys.get(id).filter(|key| key.algorithm == a).cloned()
++    }
++}
++fn verifier(p: &AuthenticatedPrincipal, key: ResolvedVerificationKey) -> Sig9421Verifier {
++    Sig9421Verifier::new(Arc::new(Keys {
++        owner: p.ownership_key(),
++        keys: [("p256".into(), key)].into_iter().collect(),
++    }))
++}
++
++#[tokio::test]
++async fn es256_signer_produces_jwa_raw_signature_over_full_original_jcs() {
++    let (signer, key) = signing();
++    let p = principal();
++    let original = envelope();
++    let signed = signer.sign(&original).unwrap();
++    assert_eq!(signer.algorithm(), "ES256");
++    assert_eq!(signed["signature"]["alg"], "ES256");
++    let signature = base64::engine::general_purpose::URL_SAFE_NO_PAD
++        .decode(signed["signature"]["sig"].as_str().unwrap())
++        .unwrap();
++    assert_eq!(signature.len(), 64);
++    // Independent primitive verification prevents a self-consistent DER bug in
++    // our signer/verifier pair from masquerading as JWA compatibility.
++    UnparsedPublicKey::new(&ECDSA_P256_SHA256_FIXED, &key.public_key)
++        .verify(&serde_jcs::to_vec(&original).unwrap(), &signature)
++        .unwrap();
++    verifier(&p, key)
++        .verify_for_principal(&signed, &p)
++        .await
++        .unwrap();
++}
++
++#[tokio::test]
++async fn es256_covers_optional_fields_scope_revision_and_replaces_only_signature() {
++    let (signer, key) = signing();
++    let p = principal();
++    let mut original = envelope();
++    original["signature"] = json!({"private":"obsolete"});
++    let signed = signer.sign(&original).unwrap();
++    let mut unsigned = signed.clone();
++    unsigned.as_object_mut().unwrap().remove("signature");
++    original.as_object_mut().unwrap().remove("signature");
++    assert_eq!(unsigned, original);
++    let v = verifier(&p, key);
++    for path in [
++        "cid",
++        "sid",
++        "connid",
++        "operation_id",
++        "in_reply_to",
++        "expected_revision",
++        "payload",
++        "optional",
++    ] {
++        let mut tampered = signed.clone();
++        tampered[path] = json!("tampered");
++        assert!(
++            matches!(
++                v.verify_for_principal(&tampered, &p).await,
++                Err(Sig9421Error::InvalidSignature)
++            ),
++            "{path}"
++        );
++    }
++    // Rejected signatures did not consume the actual original ID.
++    v.verify_for_principal(&signed, &p).await.unwrap();
++}
++
++#[tokio::test]
++async fn es256_current_key_checks_exact_owner_key_algorithm_validity_and_revocation() {
++    let (signer, key) = signing();
++    let p = principal();
++    let signed = signer.sign(&envelope()).unwrap();
++    let v = verifier(&p, key.clone());
++    for change in 0..7 {
++        let mut candidate = key.clone();
++        let mut owner = p.clone();
++        let mut id = "p256";
++        match change {
++            0 => candidate.revoked = true,
++            1 => candidate.expires_at = Some(Utc::now() - chrono::Duration::seconds(1)),
++            2 => candidate.not_before = Some(Utc::now() + chrono::Duration::minutes(1)),
++            3 => candidate.algorithm = "EdDSA".into(),
++            4 => owner.subject = "bob".into(),
++            5 => owner.issuer = Some("foreign-issuer".into()),
++            _ => id = "other-key",
++        }
++        let current = PrincipalVerificationKey::from_current(&owner, id.into(), candidate).unwrap();
++        assert!(
++            matches!(
++                v.verify_with_current_key(&signed, &p, &current).await,
++                Err(Sig9421Error::KeyRejected)
++            ),
++            "case {change}"
++        );
++    }
++    let current = PrincipalVerificationKey::from_current(&p, "p256".into(), key).unwrap();
++    v.verify_with_current_key(&signed, &p, &current)
++        .await
++        .unwrap();
++    assert!(matches!(
++        v.verify_for_principal(&signed, &p).await,
++        Err(Sig9421Error::ReplayDetected(_))
++    ));
++}
++
++#[tokio::test]
++async fn es256_wrong_subject_tenant_issuer_or_signature_algorithm_cannot_select_another_key() {
++    let (signer, key) = signing();
++    let p = principal();
++    let signed = signer.sign(&envelope()).unwrap();
++    let v = verifier(&p, key.clone());
++    for change in 0..3 {
++        let mut other = p.clone();
++        match change {
++            0 => other.subject = "bob".into(),
++            1 => other.tenant = Some("foreign".into()),
++            _ => other.issuer = Some("foreign".into()),
++        };
++        assert!(matches!(
++            v.verify_for_principal(&signed, &other).await,
++            Err(Sig9421Error::UnknownKeyid(_))
++        ));
++    }
++    let mut wrong = signed.clone();
++    wrong["signature"]["alg"] = json!("EdDSA");
++    assert!(v.verify_for_principal(&wrong, &p).await.is_err());
++    let mut unknown = signed.clone();
++    unknown["signature"]["keyid"] = json!("unknown");
++    assert!(v.verify_for_principal(&unknown, &p).await.is_err());
++    v.verify_for_principal(&signed, &p).await.unwrap();
++}
++
++#[tokio::test]
++async fn es256_resigning_or_switching_algorithms_cannot_reuse_consumed_envelope_id() {
++    let (p256, key) = signing();
++    let p = principal();
++    let rng = SystemRandom::new();
++    let doc = ring::signature::Ed25519KeyPair::generate_pkcs8(&rng).unwrap();
++    let ed_public = ring::signature::Ed25519KeyPair::from_pkcs8(doc.as_ref())
++        .unwrap()
++        .public_key()
++        .as_ref()
++        .to_vec();
++    let ed = Sig9421Signer::ed25519("ed25519", doc.as_ref()).unwrap();
++    let keys = Keys {
++        owner: p.ownership_key(),
++        keys: [
++            ("p256".into(), key),
++            (
++                "ed25519".into(),
++                ResolvedVerificationKey {
++                    public_key: ed_public,
++                    algorithm: "EdDSA".into(),
++                    not_before: None,
++                    expires_at: None,
++                    revoked: false,
++                },
++            ),
++        ]
++        .into_iter()
++        .collect(),
++    };
++    let v = Sig9421Verifier::new(Arc::new(keys));
++    let original = envelope();
++    v.verify_for_principal(&p256.sign(&original).unwrap(), &p)
++        .await
++        .unwrap();
++    assert!(matches!(
++        v.verify_for_principal(&p256.sign(&original).unwrap(), &p)
++            .await,
++        Err(Sig9421Error::ReplayDetected(_))
++    ));
++    assert!(matches!(
++        v.verify_for_principal(&ed.sign(&original).unwrap(), &p)
++            .await,
++        Err(Sig9421Error::ReplayDetected(_))
++    ));
++    v.verify_for_principal(&ed.sign(&envelope()).unwrap(), &p)
++        .await
++        .unwrap();
++}
++
++#[tokio::test]
++async fn es256_rejects_der_truncation_padding_wrong_curve_and_stale_time_before_replay() {
++    let (signer, key, doc) = signing_with_document();
++    let p = principal();
++    let v = verifier(&p, key.clone());
++    let original = envelope();
++    let signed = signer.sign(&original).unwrap();
++    let rng = SystemRandom::new();
++    let der = EcdsaKeyPair::from_pkcs8(&ECDSA_P256_SHA256_ASN1_SIGNING, doc.as_ref(), &rng)
++        .unwrap()
++        .sign(&rng, &serde_jcs::to_vec(&original).unwrap())
++        .unwrap();
++    UnparsedPublicKey::new(&ring::signature::ECDSA_P256_SHA256_ASN1, &key.public_key)
++        .verify(&serde_jcs::to_vec(&original).unwrap(), der.as_ref())
++        .unwrap();
++    for signature in [
++        base64::engine::general_purpose::URL_SAFE_NO_PAD.encode(der.as_ref()),
++        base64::engine::general_purpose::URL_SAFE_NO_PAD.encode([0u8; 63]),
++        format!("{}=", signed["signature"]["sig"].as_str().unwrap()),
++    ] {
++        let mut malformed = signed.clone();
++        malformed["signature"]["sig"] = json!(signature);
++        assert!(v.verify_for_principal(&malformed, &p).await.is_err());
++    }
++    let mut wrong_curve = key.clone();
++    wrong_curve.public_key = vec![4; 97];
++    assert!(verifier(&p, wrong_curve)
++        .verify_for_principal(&signed, &p)
++        .await
++        .is_err());
++    for seconds in [-301, 60] {
++        let mut old = envelope();
++        old["ts"] = json!(Utc::now() + chrono::Duration::seconds(seconds));
++        assert!(matches!(
++            v.verify_for_principal(&signer.sign(&old).unwrap(), &p)
++                .await,
++            Err(Sig9421Error::StaleTimestamp(_))
++        ));
++    }
++    v.verify_for_principal(&signed, &p).await.unwrap();
++}
++
++#[test]
++fn es256_signer_rejects_invalid_private_keys_identifiers_and_other_curves_without_disclosure() {
++    let rng = SystemRandom::new();
++    let p384 = EcdsaKeyPair::generate_pkcs8(&ECDSA_P384_SHA384_FIXED_SIGNING, &rng).unwrap();
++    assert!(matches!(
++        Sig9421Signer::es256("p256", p384.as_ref()),
++        Err(Sig9421Error::KeyRejected)
++    ));
++    let error = Sig9421Signer::es256("private-key-id", b"private-key-material").unwrap_err();
++    assert!(!format!("{error:?} {error}").contains("private-key"));
++    let doc = EcdsaKeyPair::generate_pkcs8(&ECDSA_P256_SHA256_FIXED_SIGNING, &rng).unwrap();
++    for id in ["", "bad\nkey"] {
++        assert!(Sig9421Signer::es256(id, doc.as_ref()).is_err());
++    }
++    assert!(!format!(
++        "{:?}",
++        Sig9421Signer::es256("secret-id", doc.as_ref()).unwrap()
++    )
++    .contains("secret-id"));
++}
++
++#[tokio::test]
++async fn es256_contextual_verification_and_current_key_share_the_same_atomic_replay_boundary() {
++    let (signer, key) = signing();
++    let p = principal();
++    let context = SignatureVerificationContext::new("tenant", "issuer").unwrap();
++    let mut resolver = StaticKeyResolver::new();
++    resolver.insert_contextual(&context, "p256", key.clone());
++    let v = Sig9421Verifier::new(Arc::new(resolver));
++    let signed = signer.sign(&envelope()).unwrap();
++    v.verify_with_context(&signed, &context).await.unwrap();
++    let held = PrincipalVerificationKey::from_current(&p, "p256".into(), key).unwrap();
++    assert!(matches!(
++        v.verify_with_current_key(&signed, &p, &held).await,
++        Err(Sig9421Error::ReplayDetected(_))
++    ));
++}
+diff --git a/crates/uctp/rvoip-uctp/src/v2/auth_peer.rs b/crates/uctp/rvoip-uctp/src/v2/auth_peer.rs
+index b8f357f..c899da6 100644
+--- a/crates/uctp/rvoip-uctp/src/v2/auth_peer.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/auth_peer.rs
+@@ -456,7 +456,7 @@ impl CanonicalPeer {
+                 if methods.is_empty() {
+                     return Err(DispatchError::UnsupportedMethod);
+                 }
+-                let challenge = self.reply("auth.challenge", json!({"nonce":fresh_token(),"accepted_methods":methods,"server_capabilities":{"application_profiles":[APPLICATION_PROFILE],"envelope_versions":[2],"signing_algorithms":["EdDSA"],"signature_required":true,"peer_replay_capacity":self.replay.usage().1,"preauth_replay_capacity":self.preauth.usage().1,"default_scopes":{"session":super::scope_policy::SESSION,"data":super::scope_policy::DATA,"subscribe":super::scope_policy::SUBSCRIBE}}}), Some(&envelope))?;
++                let challenge = self.reply("auth.challenge", json!({"nonce":fresh_token(),"accepted_methods":methods,"server_capabilities":{"application_profiles":[APPLICATION_PROFILE],"envelope_versions":[2],"signing_algorithms":rvoip_auth_core::sig9421::SUPPORTED_SIGNATURE_ALGORITHMS,"signature_required":true,"identity_assurance_required":"identified","peer_replay_capacity":self.replay.usage().1,"preauth_replay_capacity":self.preauth.usage().1,"default_scopes":{"session":super::scope_policy::SESSION,"data":super::scope_policy::DATA,"subscribe":super::scope_policy::SUBSCRIBE}}}), Some(&envelope))?;
+                 self.state = State::Challenge(Challenge {
+                     id: challenge.id().into(),
+                     device: hello.device.clone(),
+diff --git a/crates/uctp/rvoip-uctp/tests/support/peer_exchange.rs b/crates/uctp/rvoip-uctp/tests/support/peer_exchange.rs
+index 7ff578b..6816180 100644
+--- a/crates/uctp/rvoip-uctp/tests/support/peer_exchange.rs
++++ b/crates/uctp/rvoip-uctp/tests/support/peer_exchange.rs
+@@ -8,6 +8,66 @@ struct Grants {
+     deny_reply: bool,
+     key: ResolvedVerificationKey,
+ }
++
++#[tokio::test]
++async fn es256_actual_tls_transports_verify_held_reply_key_without_reentering_queued_grant_writer()
++{
++    use std::future::Future;
++    for kind in ["quic", "wt", "ws"] {
++        let (f, policy, resolver) = setup_algorithms("ES256", "ES256");
++        let h = Arc::new(ExchangeHandler::new());
++        let mut wire = open(kind, &f, h.clone()).await;
++        auth(&mut wire, &f, "old").await;
++        let original = command();
++        wire.send(f.sign(original.clone())).await;
++        let callback = wire.read().await;
++        assert_eq!(callback.kind(), "connection.update");
++        assert_eq!(callback.original()["signature"]["alg"], "ES256");
++        f.verify_server(&callback).await;
++        let store = policy.grants.clone();
++        let queued = Arc::new(Notify::new());
++        let signal = queued.clone();
++        let writer = tokio::spawn(async move {
++            let mut waiting = Box::pin(store.write_owned());
++            let mut guard = futures::future::poll_fn(|cx| {
++                let state = waiting.as_mut().poll(cx);
++                if state.is_pending() {
++                    signal.notify_one();
++                }
++                state
++            })
++            .await;
++            guard.deny = true;
++        });
++        queued.notified().await;
++        assert!(policy.grants.try_read().is_err());
++        let reads = resolver.calls.load(Ordering::Acquire);
++        let mut wrong = ack_for(&callback);
++        wrong["connid"] = json!("wrong-connection");
++        wire.send(f.sign(wrong)).await;
++        let problem = wire.read().await;
++        assert_eq!(problem.kind(), "error");
++        assert_eq!(h.effects.load(Ordering::Acquire), 0);
++        f.verify_server(&problem).await;
++        wire.send(f.sign(ack_for(&callback))).await;
++        let result = wire.read().await;
++        assert_eq!(result.kind(), "ack");
++        assert_eq!(result.scope(Scope::Reply), original["id"].as_str());
++        f.verify_server(&result).await;
++        assert_eq!(h.effects.load(Ordering::Acquire), 1);
++        assert_eq!(
++            resolver.calls.load(Ordering::Acquire),
++            reads,
++            "held ES256 key must avoid resolver/grant-store reentry"
++        );
++        tokio::time::timeout(Duration::from_secs(1), writer)
++            .await
++            .unwrap()
++            .unwrap();
++        assert!(policy.grants.read().await.deny);
++        wire.server.shutdown().await.unwrap();
++    }
++}
+ struct Held {
+     _base: AuthorityLease,
+     guard: tokio::sync::OwnedRwLockReadGuard<Grants>,
+@@ -136,6 +196,7 @@ impl PeerAuthority for ExchangePolicy {
+ }
+ struct CountingKeys {
+     key: Vec<u8>,
++    algorithm: &'static str,
+     calls: AtomicUsize,
+ }
+ impl KeyResolver for CountingKeys {
+@@ -154,14 +215,17 @@ impl KeyResolver for CountingKeys {
+             && p.issuer.as_deref() == Some("issuer")
+             && p.tenant.as_deref() == Some("tenant")
+             && k == "client"
+-            && a == "EdDSA")
+-            .then(|| key(self.key.clone()))
++            && a == self.algorithm)
++            .then(|| key_for(self.key.clone(), self.algorithm))
+     }
+ }
+ fn key(public_key: Vec<u8>) -> ResolvedVerificationKey {
++    key_for(public_key, "EdDSA")
++}
++fn key_for(public_key: Vec<u8>, algorithm: &str) -> ResolvedVerificationKey {
+     ResolvedVerificationKey {
+         public_key,
+-        algorithm: "EdDSA".into(),
++        algorithm: algorithm.into(),
+         not_before: None,
+         expires_at: None,
+         revoked: false,
+@@ -260,14 +324,20 @@ impl AuthenticatedHandler for ExchangeHandler {
+     }
+ }
+ fn setup() -> (Fixture, Arc<ExchangePolicy>, Arc<CountingKeys>) {
+-    let mut f = Fixture::new();
++    setup_algorithms("EdDSA", "EdDSA")
++}
++fn setup_algorithms(
++    client_algorithm: &str,
++    server_algorithm: &str,
++) -> (Fixture, Arc<ExchangePolicy>, Arc<CountingKeys>) {
++    let mut f = Fixture::with_algorithms(client_algorithm, server_algorithm);
+     let policy = Arc::new(ExchangePolicy {
+         base: f.policy.clone(),
+         grants: Arc::new(RwLock::new(Grants {
+             deny: false,
+             deny_request: false,
+             deny_reply: false,
+-            key: key(f.client_public.clone()),
++            key: key_for(f.client_public.clone(), f.client.algorithm()),
+         })),
+         requests: AtomicUsize::new(0),
+         replies: AtomicUsize::new(0),
+@@ -275,6 +345,7 @@ fn setup() -> (Fixture, Arc<ExchangePolicy>, Arc<CountingKeys>) {
+     });
+     let resolver = Arc::new(CountingKeys {
+         key: f.client_public.clone(),
++        algorithm: f.client.algorithm(),
+         calls: AtomicUsize::new(0),
+     });
+     let config = Arc::get_mut(&mut f.config).unwrap();
+diff --git a/crates/uctp/rvoip-uctp/tests/v2_auth_peer.rs b/crates/uctp/rvoip-uctp/tests/v2_auth_peer.rs
+index b21dd39..baef8c8 100644
+--- a/crates/uctp/rvoip-uctp/tests/v2_auth_peer.rs
++++ b/crates/uctp/rvoip-uctp/tests/v2_auth_peer.rs
+@@ -80,6 +80,14 @@ fn principal(token: &str) -> AuthenticatedPrincipal {
+         },
+     };
+     match token {
++        "anonymous" => p.assurance = IdentityAssurance::Anonymous,
++        "pseudonymous" => {
++            p.assurance = IdentityAssurance::Pseudonymous {
++                ephemeral_key: rvoip_core::identity::Jwk(
++                    json!({"kty":"OKP","crv":"Ed25519","x":"fixture-claim"}),
++                ),
++            }
++        }
+         "bob" => p.subject = "bob".into(),
+         "other-tenant" => p.tenant = Some("other".into()),
+         "other-issuer" => p.issuer = Some("other".into()),
+@@ -227,6 +235,8 @@ impl PeerAuthority for Policy {
+ struct Keys {
+     client: Vec<u8>,
+     server: Vec<u8>,
++    client_algorithm: &'static str,
++    server_algorithm: &'static str,
+ }
+ impl KeyResolver for Keys {
+     fn resolve(&self, _: &str) -> Option<Vec<u8>> {
+@@ -239,20 +249,20 @@ impl KeyResolver for Keys {
+         a: &str,
+         _: chrono::DateTime<Utc>,
+     ) -> Option<ResolvedVerificationKey> {
+-        if p.tenant.as_deref() != Some("tenant")
+-            || p.issuer.as_deref() != Some("issuer")
+-            || a != "EdDSA"
+-        {
++        if p.tenant.as_deref() != Some("tenant") || p.issuer.as_deref() != Some("issuer") {
+             return None;
+         }
+-        let bytes = match (p.subject.as_str(), k) {
+-            ("alice", "client") => self.client.clone(),
+-            ("server", "server") => self.server.clone(),
++        let (bytes, algorithm) = match (p.subject.as_str(), k) {
++            ("alice", "client") => (self.client.clone(), self.client_algorithm),
++            ("server", "server") => (self.server.clone(), self.server_algorithm),
+             _ => return None,
+         };
++        if a != algorithm {
++            return None;
++        }
+         Some(ResolvedVerificationKey {
+             public_key: bytes,
+-            algorithm: "EdDSA".into(),
++            algorithm: algorithm.into(),
+             not_before: None,
+             expires_at: None,
+             revoked: false,
+@@ -278,23 +288,44 @@ struct Fixture {
+     policy: Arc<Policy>,
+     validator: Arc<Validator>,
+ }
+-impl Fixture {
+-    fn new() -> Self {
+-        let client_key = Ed25519KeyPair::generate_pkcs8(&ring::rand::SystemRandom::new()).unwrap();
+-        let server_key = Ed25519KeyPair::generate_pkcs8(&ring::rand::SystemRandom::new()).unwrap();
+-        let client = Sig9421Signer::ed25519("client", client_key.as_ref()).unwrap();
+-        let server = Sig9421Signer::ed25519("server", server_key.as_ref()).unwrap();
+-        let resolver = Arc::new(Keys {
+-            client: Ed25519KeyPair::from_pkcs8(client_key.as_ref())
++fn fixture_signer(keyid: &str, algorithm: &str) -> (Sig9421Signer, Vec<u8>) {
++    use ring::signature::{EcdsaKeyPair, ECDSA_P256_SHA256_FIXED_SIGNING};
++    let rng = ring::rand::SystemRandom::new();
++    match algorithm {
++        "EdDSA" => {
++            let key = Ed25519KeyPair::generate_pkcs8(&rng).unwrap();
++            let public = Ed25519KeyPair::from_pkcs8(key.as_ref())
+                 .unwrap()
+                 .public_key()
+                 .as_ref()
+-                .to_vec(),
+-            server: Ed25519KeyPair::from_pkcs8(server_key.as_ref())
+-                .unwrap()
+-                .public_key()
+-                .as_ref()
+-                .to_vec(),
++                .to_vec();
++            (Sig9421Signer::ed25519(keyid, key.as_ref()).unwrap(), public)
++        }
++        "ES256" => {
++            let key = EcdsaKeyPair::generate_pkcs8(&ECDSA_P256_SHA256_FIXED_SIGNING, &rng).unwrap();
++            let public =
++                EcdsaKeyPair::from_pkcs8(&ECDSA_P256_SHA256_FIXED_SIGNING, key.as_ref(), &rng)
++                    .unwrap()
++                    .public_key()
++                    .as_ref()
++                    .to_vec();
++            (Sig9421Signer::es256(keyid, key.as_ref()).unwrap(), public)
++        }
++        _ => panic!("unsupported fixture signing algorithm"),
++    }
++}
++impl Fixture {
++    fn new() -> Self {
++        Self::with_algorithms("EdDSA", "EdDSA")
++    }
++    fn with_algorithms(client_algorithm: &str, server_algorithm: &str) -> Self {
++        let (client, client_public) = fixture_signer("client", client_algorithm);
++        let (server, server_public) = fixture_signer("server", server_algorithm);
++        let resolver = Arc::new(Keys {
++            client: client_public,
++            server: server_public,
++            client_algorithm: client.algorithm(),
++            server_algorithm: server.algorithm(),
+         });
+         let validator = Arc::new(Validator {
+             calls: AtomicUsize::new(0),
+@@ -1010,3 +1041,145 @@ async fn keepalive_token_is_not_portable_to_another_authenticated_peer() {
+ 
+ #[path = "support/assurance_retirement.rs"]
+ mod assurance_retirement;
++
++#[tokio::test]
++async fn es256_canonical_auth_control_refresh_preserve_assurance_and_envelope_replay_rules() {
++    let f = Fixture::with_algorithms("ES256", "ES256");
++    let mut peer = f.peer();
++    let h = Handler::default();
++    let challenge = peer
++        .handle(&serde_json::to_vec(&hello()).unwrap(), &h, deadline())
++        .await
++        .unwrap();
++    assert_eq!(
++        challenge.envelopes()[0].original()["payload"]["server_capabilities"]["signing_algorithms"],
++        json!(["EdDSA", "ES256"])
++    );
++    f.verify_server(&challenge.envelopes()[0]).await;
++    let proof = response(&challenge.envelopes()[0], "old");
++    drop(challenge);
++    let session = peer.handle(&f.sign(proof), &h, deadline()).await.unwrap();
++    assert_eq!(
++        session.envelopes()[0].original()["payload"]["assurance"],
++        "identified"
++    );
++    assert_eq!(
++        session.envelopes()[0].original()["signature"]["alg"],
++        "ES256"
++    );
++    f.verify_server(&session.envelopes()[0]).await;
++    drop(session);
++    let request = command();
++    let output = peer
++        .handle(&f.sign(request.clone()), &h, deadline())
++        .await
++        .unwrap();
++    assert_eq!(
++        output.envelopes()[0].scope(Scope::Reply),
++        request["id"].as_str()
++    );
++    f.verify_server(&output.envelopes()[0]).await;
++    drop(output);
++    assert_eq!(
++        peer.handle(&f.sign(request), &h, deadline())
++            .await
++            .unwrap_err(),
++        DispatchError::Replay
++    );
++    assert_eq!(h.calls.load(Ordering::SeqCst), 1);
++    let output = peer
++        .handle(
++            &f.sign(envelope(
++                "auth.refresh",
++                json!({"method":"bearer","credential":"new"}),
++            )),
++            &h,
++            deadline(),
++        )
++        .await
++        .unwrap();
++    assert_eq!(
++        output.envelopes()[0].original()["payload"]["assurance"],
++        "identified"
++    );
++    assert_eq!(peer.generation(), Some(2));
++}
++
++#[tokio::test]
++async fn es256_actual_tls_quic_peer_accepts_p256_proof_and_returns_verified_p256_control_reply() {
++    let f = Fixture::with_algorithms("ES256", "ES256");
++    let (_server, _client, host, remote) = quic_pair().await;
++    let _host_lifetime = host.clone();
++    let peer = f.peer();
++    let server = tokio::spawn(async move {
++        let (tx, rx) = host.accept_bi().await.unwrap();
++        peer.run(rx, tx, &Handler::default()).await
++    });
++    let (tx, rx) = remote.open_bi().await.unwrap();
++    let mut writer = FramedWrite::new(tx, rvoip_uctp::substrate::length_prefixed_codec());
++    let mut reader = FramedRead::new(rx, rvoip_uctp::substrate::length_prefixed_codec());
++    writer
++        .send(Bytes::from(serde_json::to_vec(&hello()).unwrap()))
++        .await
++        .unwrap();
++    let challenge = Envelope::parse(&reader.next().await.unwrap().unwrap()).unwrap();
++    assert_eq!(challenge.original()["signature"]["alg"], "ES256");
++    f.verify_server(&challenge).await;
++    writer
++        .send(Bytes::from(f.sign(response(&challenge, "old"))))
++        .await
++        .unwrap();
++    let session = Envelope::parse(&reader.next().await.unwrap().unwrap()).unwrap();
++    assert_eq!(session.kind(), "auth.session");
++    f.verify_server(&session).await;
++    let request = command();
++    writer
++        .send(Bytes::from(f.sign(request.clone())))
++        .await
++        .unwrap();
++    let reply = Envelope::parse(&reader.next().await.unwrap().unwrap()).unwrap();
++    assert_eq!(reply.kind(), "ack");
++    assert_eq!(reply.scope(Scope::Reply), request["id"].as_str());
++    f.verify_server(&reply).await;
++    drop(writer);
++    assert!(server.await.unwrap().is_ok());
++}
++
++#[tokio::test]
++async fn advertised_identified_floor_rejects_lower_assurance_without_claiming_membership_and_allows_fresh_proof(
++) {
++    let f = Fixture::with_algorithms("ES256", "EdDSA");
++    let mut peer = f.peer();
++    let h = Handler::default();
++    let output = peer
++        .handle(&serde_json::to_vec(&hello()).unwrap(), &h, deadline())
++        .await
++        .unwrap();
++    let challenge = output.envelopes()[0].clone();
++    drop(output);
++    assert_eq!(
++        challenge.original()["payload"]["server_capabilities"]["identity_assurance_required"],
++        "identified"
++    );
++    for token in ["anonymous", "pseudonymous"] {
++        assert_eq!(
++            peer.handle(&f.sign(response(&challenge, token)), &h, deadline())
++                .await
++                .unwrap_err(),
++            DispatchError::Authentication
++        );
++        assert!(peer.authenticated_identity().is_none());
++    }
++    assert_eq!(f.policy.calls.load(Ordering::SeqCst), 0);
++    assert_eq!(h.calls.load(Ordering::SeqCst), 0);
++    let output = peer
++        .handle(&f.sign(response(&challenge, "old")), &h, deadline())
++        .await
++        .unwrap();
++    assert_eq!(output.envelopes()[0].kind(), "auth.session");
++    assert_eq!(
++        output.envelopes()[0].original()["payload"]["assurance"],
++        "identified"
++    );
++    assert!(output.envelopes()[0].scope(Scope::Conversation).is_none());
++}
+diff --git a/crates/uctp/rvoip-uctp/tests/v2_canonical_transports.rs b/crates/uctp/rvoip-uctp/tests/v2_canonical_transports.rs
+index 52c564d..635f7d5 100644
+--- a/crates/uctp/rvoip-uctp/tests/v2_canonical_transports.rs
++++ b/crates/uctp/rvoip-uctp/tests/v2_canonical_transports.rs
+@@ -221,6 +221,8 @@ impl PeerAuthority for Policy {
+ struct Keys {
+     client: Vec<u8>,
+     server: Vec<u8>,
++    client_algorithm: &'static str,
++    server_algorithm: &'static str,
+ }
+ impl KeyResolver for Keys {
+     fn resolve(&self, _: &str) -> Option<Vec<u8>> {
+@@ -233,20 +235,20 @@ impl KeyResolver for Keys {
+         a: &str,
+         _: chrono::DateTime<Utc>,
+     ) -> Option<ResolvedVerificationKey> {
+-        if p.tenant.as_deref() != Some("tenant")
+-            || p.issuer.as_deref() != Some("issuer")
+-            || a != "EdDSA"
+-        {
++        if p.tenant.as_deref() != Some("tenant") || p.issuer.as_deref() != Some("issuer") {
+             return None;
+         }
+-        let bytes = match (p.subject.as_str(), k) {
+-            ("alice", "client") => self.client.clone(),
+-            ("server", "server") => self.server.clone(),
++        let (bytes, algorithm) = match (p.subject.as_str(), k) {
++            ("alice", "client") => (self.client.clone(), self.client_algorithm),
++            ("server", "server") => (self.server.clone(), self.server_algorithm),
+             _ => return None,
+         };
++        if a != algorithm {
++            return None;
++        }
+         Some(ResolvedVerificationKey {
+             public_key: bytes,
+-            algorithm: "EdDSA".into(),
++            algorithm: algorithm.into(),
+             not_before: None,
+             expires_at: None,
+             revoked: false,
+@@ -273,23 +275,44 @@ struct Fixture {
+     policy: Arc<Policy>,
+     validator: Arc<Validator>,
+ }
+-impl Fixture {
+-    fn new() -> Self {
+-        let client_key = Ed25519KeyPair::generate_pkcs8(&ring::rand::SystemRandom::new()).unwrap();
+-        let server_key = Ed25519KeyPair::generate_pkcs8(&ring::rand::SystemRandom::new()).unwrap();
+-        let client = Sig9421Signer::ed25519("client", client_key.as_ref()).unwrap();
+-        let server = Sig9421Signer::ed25519("server", server_key.as_ref()).unwrap();
+-        let resolver = Arc::new(Keys {
+-            client: Ed25519KeyPair::from_pkcs8(client_key.as_ref())
+-                .unwrap()
+-                .public_key()
+-                .as_ref()
+-                .to_vec(),
+-            server: Ed25519KeyPair::from_pkcs8(server_key.as_ref())
++fn fixture_signer(keyid: &str, algorithm: &str) -> (Sig9421Signer, Vec<u8>) {
++    use ring::signature::{EcdsaKeyPair, ECDSA_P256_SHA256_FIXED_SIGNING};
++    let rng = ring::rand::SystemRandom::new();
++    match algorithm {
++        "EdDSA" => {
++            let key = Ed25519KeyPair::generate_pkcs8(&rng).unwrap();
++            let public = Ed25519KeyPair::from_pkcs8(key.as_ref())
+                 .unwrap()
+                 .public_key()
+                 .as_ref()
+-                .to_vec(),
++                .to_vec();
++            (Sig9421Signer::ed25519(keyid, key.as_ref()).unwrap(), public)
++        }
++        "ES256" => {
++            let key = EcdsaKeyPair::generate_pkcs8(&ECDSA_P256_SHA256_FIXED_SIGNING, &rng).unwrap();
++            let public =
++                EcdsaKeyPair::from_pkcs8(&ECDSA_P256_SHA256_FIXED_SIGNING, key.as_ref(), &rng)
++                    .unwrap()
++                    .public_key()
++                    .as_ref()
++                    .to_vec();
++            (Sig9421Signer::es256(keyid, key.as_ref()).unwrap(), public)
++        }
++        _ => panic!("unsupported fixture signing algorithm"),
++    }
++}
++impl Fixture {
++    fn new() -> Self {
++        Self::with_algorithms("EdDSA", "EdDSA")
++    }
++    fn with_algorithms(client_algorithm: &str, server_algorithm: &str) -> Self {
++        let (client, client_public) = fixture_signer("client", client_algorithm);
++        let (server, server_public) = fixture_signer("server", server_algorithm);
++        let resolver = Arc::new(Keys {
++            client: client_public,
++            server: server_public,
++            client_algorithm: client.algorithm(),
++            server_algorithm: server.algorithm(),
+         });
+         let validator = Arc::new(Validator {
+             calls: AtomicUsize::new(0),

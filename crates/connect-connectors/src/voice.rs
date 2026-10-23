@@ -3,6 +3,7 @@ use crate::{classify, Failure, Vapi};
 use async_trait::async_trait;
 pub use connect_connector_api::{InboundCall, RemoteCall, VoiceConnector, VoiceQuery, VoiceStart};
 use serde_json::json;
+mod reconciliation;
 
 fn remote(call: vapi::Call) -> Result<RemoteCall, Failure> {
     if uuid::Uuid::parse_str(&call.id).is_err() {
@@ -47,11 +48,11 @@ fn valid_control_url(url: &str, id: &str) -> bool {
 }
 #[async_trait]
 impl VoiceConnector for Vapi {
-    fn voice_manifest(&self) -> Option<connect_connector_api::manifest::Manifest> {
-        Some(crate::provider_mapping::vapi_telephone_manifest())
+    fn voice_manifest(&self) -> connect_connector_api::manifest::Manifest {
+        crate::provider_mapping::vapi_telephone_manifest()
     }
     fn voice_configuration(&self) -> std::collections::BTreeMap<String, String> {
-        crate::provider_mapping::references("private-key", "VAPI_PRIVATE_KEY")
+        crate::provider_mapping::references("private-key", &self.private_key_reference)
     }
     fn normalize(
         &self,
@@ -73,16 +74,50 @@ impl VoiceConnector for Vapi {
             verification: Verification::AuthenticatedResponse,
         })
     }
+    async fn start_receipt(
+        &self,
+        mutation_id: &str,
+        request: &VoiceStart,
+    ) -> Result<connect_connector_api::VoiceReceipt, Failure> {
+        connect_connector_api::validate_voice_mutation_id(mutation_id)?;
+        let call = remote(
+            self.client
+                .calls()
+                .create(vapi::CreateCallRequest {
+                    assistant_id: Some(request.assistant_id.clone()),
+                    phone_number_id: Some(request.phone_number_id.clone()),
+                    customer: Some(json!({"number":request.destination})),
+                    extra: json!({"name":reconciliation::correlation(mutation_id)}),
+                    ..Default::default()
+                })
+                .await
+                .map_err(|e| classify(e.status_code()))?,
+        )?;
+        let observation = self
+            .normalize(mutation_id, &call)
+            .map_err(|_| Failure::Uncertain)?;
+        Ok(connect_connector_api::VoiceReceipt { call, observation })
+    }
+    async fn reconcile_receipt(
+        &self,
+        mutation_id: &str,
+        query: &connect_connector_api::VoiceReconcileQuery,
+    ) -> Result<connect_connector_api::VoiceReceipt, Failure> {
+        reconciliation::lookup(self, mutation_id, query).await
+    }
     async fn end_receipt(
         &self,
         mutation_id: &str,
         external_id: &str,
         control_url: Option<&str>,
     ) -> Result<connect_connector_api::VoiceReceipt, Failure> {
+        connect_connector_api::validate_voice_mutation_id(mutation_id)?;
         // Existing end already obtains an authoritative status after control.
         // Keep that exact request path and preserve its private control capability.
         let call = self.end(external_id, control_url).await?;
-        let mut observation = self.normalize(mutation_id, &call)?;
+        let mut observation = self
+            .normalize(mutation_id, &call)
+            .map_err(|_| Failure::Uncertain)?;
         observation.verification = connect_connector_api::lifecycle::Verification::Reconciliation;
         observation.event_id = format!("reconcile:{}", observation.event_id);
         Ok(connect_connector_api::VoiceReceipt { call, observation })
@@ -277,10 +312,19 @@ mod inbound_tests {
             .respond_with(ResponseTemplate::new(200).set_body_json(json!([row.clone()])))
             .mount(&server)
             .await;
-        let calls = vapi.inbound(&binding).await.unwrap();
+        let calls = vapi.inbound_receipts(&binding).await.unwrap();
         assert_eq!(calls.len(), 1);
-        assert_eq!(calls[0].caller, "+15555550101");
-        assert_eq!(calls[0].state, "ended");
+        assert_eq!(calls[0].call.caller, "+15555550101");
+        assert_eq!(calls[0].call.state, "ended");
+        assert_eq!(
+            calls[0].state,
+            connect_connector_api::lifecycle::VoiceState::Ended
+        );
+        assert_eq!(
+            calls[0].verification,
+            connect_connector_api::lifecycle::Verification::Reconciliation
+        );
+        assert!(calls[0].event_id.starts_with("discover:"));
         server.reset().await;
         Mock::given(method("GET"))
             .and(path("/call"))

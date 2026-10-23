@@ -1,0 +1,506 @@
+{
+  "kind": "gate6-component-evidence",
+  "recorded_at": "2026-10-19T23:53:46.194557+00:00",
+  "task": "G6-040",
+  "status": "in-progress",
+  "passed": true,
+  "scope": "Actual generic independently prepared native human/AI handoff with isolated real duplex proof, atomic incoming Observer promotion, owned late-readiness wait, cancellation/current-controller-grant recovery and existing application regressions. Local macOS arm64/native QUIC/G.711 and designated local private provider fixture only.",
+  "schema_version": 54,
+  "pinned_patches": 111,
+  "source_lock": {
+    "path": "dependencies/source-lock.json",
+    "sha256": "a30becafde1bee7c0bffdcd9198f7abc55246c4330c6d1e019a4322bed4e79ed"
+  },
+  "patch": {
+    "path": "patches/rvoip/gate6-handoff-readiness.patch",
+    "sha256": "a84ebe5f71a52c65e6e3df43644b56050df74efaeef787602892411273c33384"
+  },
+  "verification": [
+    {
+      "name": "core",
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "--offline",
+        "-j1",
+        "--target-dir",
+        "target",
+        "--manifest-path",
+        ".deps/rvoip/Cargo.toml",
+        "-p",
+        "rvoip-core",
+        "--features",
+        "opus",
+        "--lib",
+        "--",
+        "--test-threads=1"
+      ],
+      "path": ".local/gate-6/handoff-readiness-final-core.log",
+      "exit_code": 0,
+      "sha256": "b197ad155f1cf04d1d90810c10edf3b8f19c965938876cab1b2e98e5f6e40c67",
+      "passed": 433,
+      "ignored": 0,
+      "test_binaries": [
+        {
+          "path": "target/debug/deps/rvoip_core-a6d6129d336d7955",
+          "sha256": "c60af9882610b385ad1afef1fc4acce8624c806f706819a501a09a434dc0d2a6"
+        }
+      ]
+    },
+    {
+      "name": "store",
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "--offline",
+        "-j1",
+        "-p",
+        "connect-store",
+        "--lib",
+        "--",
+        "--test-threads=2"
+      ],
+      "path": ".local/gate-6/handoff-readiness-final-store.log",
+      "exit_code": 0,
+      "sha256": "3f759f8607e0f51d79229564d56fd567400b97a9f12eccde44e65caf6df0d376",
+      "passed": 556,
+      "ignored": 3,
+      "test_binaries": [
+        {
+          "path": "target/debug/deps/connect_store-500690b8d898aed1",
+          "sha256": "a37b2f91aaa541bf15df7206073b81312c0d182884dd853adf56b4021c655731"
+        }
+      ]
+    },
+    {
+      "name": "libraries",
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "--offline",
+        "-j1",
+        "-p",
+        "connect-client",
+        "-p",
+        "connect-service",
+        "-p",
+        "connect-protocol",
+        "--lib",
+        "--",
+        "--test-threads=2"
+      ],
+      "path": ".local/gate-6/handoff-readiness-final-libraries.log",
+      "exit_code": 0,
+      "sha256": "96c7c4584511d9cef4eeba2d7fc942ff0b875dfd7d8859defaf95025a4609a37",
+      "passed": 94,
+      "ignored": 0,
+      "test_binaries": [
+        {
+          "path": "target/debug/deps/connect_client-2762510abbc111f5",
+          "sha256": "e44a9efaf12526fa13b7ebb6efa30e24847286e045c256cf260793d4a63bea79"
+        },
+        {
+          "path": "target/debug/deps/connect_protocol-d4433b2cc5f1474e",
+          "sha256": "0cf301a400280745ead63bfe0d526454171feeebb94051b2a560b6a43f75c377"
+        },
+        {
+          "path": "target/debug/deps/connect_service-f0c8ec9c56711d06",
+          "sha256": "e926cfbd9e3049ba45a922a4a59f1268af462a535158a79b11e6a588ff2dcaae"
+        }
+      ]
+    },
+    {
+      "name": "transitions",
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "--offline",
+        "-j1",
+        "-p",
+        "connect-server",
+        "--test",
+        "gate6_canonical_transitions",
+        "--",
+        "--test-threads=2"
+      ],
+      "path": ".local/gate-6/handoff-readiness-final-transitions.log",
+      "exit_code": 0,
+      "sha256": "a374ac82523a72cf9e7d1a11e314918d4068da0a7279202dd268695c4fa38723",
+      "passed": 5,
+      "ignored": 0,
+      "test_binaries": [
+        {
+          "path": "target/debug/deps/gate6_canonical_transitions-3c1fd287bcc3e17e",
+          "sha256": "b2b8c3ba1724860b6e04379f288cb3ddabff8a74fcade27fb8672e10ca3f1d95"
+        }
+      ]
+    },
+    {
+      "name": "legacy-handoff",
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "--offline",
+        "-j1",
+        "-p",
+        "connect-server",
+        "--test",
+        "gate6_canonical_runtime",
+        "production_native_private_handoff",
+        "--",
+        "--test-threads=1",
+        "--nocapture"
+      ],
+      "path": ".local/gate-6/handoff-readiness-final-legacy-handoff.log",
+      "exit_code": 0,
+      "sha256": "7046afa7fd06cb553d90118c878dd9d11bc7d132aa9faefebc9a58fc12bc2d40",
+      "passed": 1,
+      "ignored": 0,
+      "test_binary_paths": [
+        "target/debug/deps/gate6_canonical_runtime-09465e13dc9bb922"
+      ],
+      "executed_binary_sha256_retained": false,
+      "binary_note": "Integration executable was rebuilt for additional cases in a different test function. Do not attribute its current hash to this earlier run. Production and these selected tests/helpers are unchanged; source delta is recorded separately."
+    },
+    {
+      "name": "native-preparation",
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "--offline",
+        "-j1",
+        "-p",
+        "connect-server",
+        "--test",
+        "gate6_canonical_runtime",
+        "production_target_owned_human_ai_and_observer_preparation",
+        "--",
+        "--test-threads=1",
+        "--nocapture"
+      ],
+      "path": ".local/gate-6/handoff-readiness-final-native-preparation.log",
+      "exit_code": 0,
+      "sha256": "4b2956363fac5fe35b2254f3922c789b02cfb20a17c38dd9b0a31165f566d769",
+      "passed": 1,
+      "ignored": 0,
+      "test_binary_paths": [
+        "target/debug/deps/gate6_canonical_runtime-09465e13dc9bb922"
+      ],
+      "executed_binary_sha256_retained": false,
+      "binary_note": "Integration executable was rebuilt for additional cases in a different test function. Do not attribute its current hash to this earlier run. Production and these selected tests/helpers are unchanged; source delta is recorded separately."
+    },
+    {
+      "name": "groups",
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "--offline",
+        "-j1",
+        "-p",
+        "connect-server",
+        "--test",
+        "gate6_canonical_runtime",
+        "production_disjoint_private_consultations",
+        "--",
+        "--test-threads=1",
+        "--nocapture"
+      ],
+      "path": ".local/gate-6/handoff-readiness-final-groups.log",
+      "exit_code": 0,
+      "sha256": "a600c5316515da9af53d843ab3a5c618986c63eb1f8f8720a39bb9f809cf2b88",
+      "passed": 1,
+      "ignored": 0,
+      "test_binary_paths": [
+        "target/debug/deps/gate6_canonical_runtime-09465e13dc9bb922"
+      ],
+      "executed_binary_sha256_retained": false,
+      "binary_note": "Integration executable was rebuilt for additional cases in a different test function. Do not attribute its current hash to this earlier run. Production and these selected tests/helpers are unchanged; source delta is recorded separately."
+    },
+    {
+      "name": "private-sdk",
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "--offline",
+        "-j1",
+        "-p",
+        "connect-server",
+        "--test",
+        "gate6_canonical_runtime",
+        "production_private_ai_uses_fresh_provider_context_and_actual_bidirectional_audio_then_returns",
+        "--",
+        "--test-threads=1",
+        "--nocapture"
+      ],
+      "path": ".local/gate-6/handoff-readiness-final-private-sdk.log",
+      "exit_code": 0,
+      "sha256": "62c2850d4abf24b042ef33c82bc3458fb47ca71f01dce3de4bc515b0125d194d",
+      "passed": 1,
+      "ignored": 0,
+      "test_binary_paths": [
+        "target/debug/deps/gate6_canonical_runtime-09465e13dc9bb922"
+      ],
+      "executed_binary_sha256_retained": false,
+      "binary_note": "Integration executable was rebuilt for additional cases in a different test function. Do not attribute its current hash to this earlier run. Production and these selected tests/helpers are unchanged; source delta is recorded separately."
+    },
+    {
+      "name": "generic-native",
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "--offline",
+        "-j1",
+        "-p",
+        "connect-server",
+        "--test",
+        "gate6_canonical_runtime",
+        "production_prepared_handoff_ai_human_directions_promote_observer_only_at_commit",
+        "--",
+        "--test-threads=1",
+        "--nocapture"
+      ],
+      "path": ".local/gate-6/handoff-readiness-native6.log",
+      "exit_code": 0,
+      "sha256": "71bf528d26b61e94175ab41908997e0489b2c906879485cda83a4ea90c5cfa9b",
+      "passed": 1,
+      "ignored": 0,
+      "test_binaries": [
+        {
+          "path": "target/debug/deps/gate6_canonical_runtime-09465e13dc9bb922",
+          "sha256": "e67cf4a9e1246ecdbc8cbb0b15cb99e13ab3648b0280b3a69c38026c841dbb80"
+        }
+      ]
+    }
+  ],
+  "passed_rust_tests": 1093,
+  "ignored_note": "Three Store crash helpers invoked by passing parents, not standalone passes.",
+  "generic_native": {
+    "handoff_scenarios": 4,
+    "directions": [
+      "human-to-AI",
+      "AI-to-human"
+    ],
+    "initially_observer_targets": [
+      "human",
+      "AI"
+    ],
+    "scope_disposition": [
+      "Session/observe",
+      "Conversation/leave"
+    ],
+    "strict_audio_probes": 23,
+    "late_real_input_completes_owned_wait": true,
+    "competing_request_refused_before_ledger_effects": true,
+    "public_cancel_before_io": true,
+    "controller_revocation_preserves_original_duplex": true,
+    "fresh_same_owner_same_intent_replay_preserves_original_expiry": true,
+    "stale_revision_refused": true,
+    "retained_remote_and_main_session_stable": true,
+    "one_native_attempt_each": true
+  },
+  "existing_native_regressions": {
+    "private_human_handoff_scenarios": 4,
+    "private_human_strict_probes": 27,
+    "preflight_refusals": 2,
+    "target_preparation_profiles": 3,
+    "target_preparation_strict_probes": 9,
+    "independent_private_group_strict_probes": 15,
+    "private_ai_bridge": "designated local HTTP/WebSocket provider fixture, not live model qualification"
+  },
+  "static_checks": [
+    {
+      "name": "format",
+      "command": [
+        "bash",
+        "scripts/format.sh",
+        "--",
+        "--check"
+      ],
+      "path": ".local/gate-6/handoff-readiness-final-format.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "exit_code": 0
+    },
+    {
+      "name": "upstream-format",
+      "command": [
+        "rustfmt",
+        "--check",
+        "--edition",
+        "2021",
+        "--config",
+        "skip_children=true",
+        ".deps/rvoip/crates/foundation/rvoip-core/src/orchestrator/participant_control.rs",
+        ".deps/rvoip/crates/foundation/rvoip-core/src/staged_streams/audience.rs",
+        ".deps/rvoip/crates/foundation/rvoip-core/src/staged_streams/audio_consumer.rs",
+        ".deps/rvoip/crates/foundation/rvoip-core/src/staged_streams/endpoint_preparation.rs",
+        ".deps/rvoip/crates/foundation/rvoip-core/src/staged_streams/guarded_audio.rs",
+        ".deps/rvoip/crates/foundation/rvoip-core/src/staged_streams/handoff.rs",
+        ".deps/rvoip/crates/foundation/rvoip-core/src/staged_streams/local_audio.rs",
+        ".deps/rvoip/crates/foundation/rvoip-core/src/staged_streams/tests/private_consult/endpoint_preparation.rs",
+        ".deps/rvoip/crates/foundation/rvoip-core/src/staged_streams/tests/private_consult.rs",
+        ".deps/rvoip/crates/foundation/rvoip-core/src/staged_streams.rs"
+      ],
+      "path": ".local/gate-6/handoff-readiness-final-upstream-format.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "exit_code": 0
+    },
+    {
+      "name": "wire",
+      "command": [
+        "python3",
+        "scripts/generate-gate6-schemas.py"
+      ],
+      "path": ".local/gate-6/handoff-readiness-final-wire.log",
+      "sha256": "11690f43431ba846563930227f3f5e98b1a6a75f2524193d911ab91493817a4f",
+      "exit_code": 0
+    },
+    {
+      "name": "events",
+      "command": [
+        "python3",
+        "scripts/generate-gate6-event-reference.py",
+        "--check"
+      ],
+      "path": ".local/gate-6/handoff-readiness-final-events.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "exit_code": 0
+    },
+    {
+      "name": "http",
+      "command": [
+        "python3",
+        "scripts/generate-canonical-http-openapi.py",
+        "--check"
+      ],
+      "path": ".local/gate-6/handoff-readiness-final-http.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "exit_code": 0
+    },
+    {
+      "name": "contracts",
+      "command": [
+        ".local/gate-6/verification-venv/bin/python",
+        "scripts/check-gate6-contracts.py",
+        "--output",
+        ".local/gate-6/handoff-readiness-final-contracts.json"
+      ],
+      "path": ".local/gate-6/handoff-readiness-final-contracts.log",
+      "sha256": "2c29557f8945b4bb522a5436f85876aa8ab90eca617dcf64588af05e9a81b1bc",
+      "exit_code": 0
+    },
+    {
+      "name": "dependencies",
+      "command": [
+        "bash",
+        "scripts/prepare-dependencies.sh"
+      ],
+      "path": ".local/gate-6/handoff-readiness-final-dependencies.log",
+      "sha256": "fd9d7b181e3ccba9b643af55a186cf132c60aac99c734b2ee4e4e549afe5ffc2",
+      "exit_code": 0
+    },
+    {
+      "name": "diff",
+      "command": [
+        "git",
+        "diff",
+        "--check"
+      ],
+      "path": ".local/gate-6/handoff-readiness-final-diff.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "exit_code": 0
+    },
+    {
+      "name": "progress",
+      "command": [
+        "python3",
+        "scripts/check-gate6-progress.py"
+      ],
+      "path": ".local/gate-6/handoff-readiness-sealed-progress.log",
+      "sha256": "f3b9b4aefb902a70b4b09f47531c703f1026a2ea42e13759c3e88205978e6125",
+      "exit_code": 0
+    }
+  ],
+  "schema_vectors": 217,
+  "schema_envelopes": 66,
+  "tested_application_snapshot": {
+    "path": ".local/gate-6/handoff-readiness-application-inputs-final.json",
+    "sha256": "8c521d5f1a04b84aeb809671080384734b7973a61b6a0d142360522bd8435d98",
+    "inputs": 1292
+  },
+  "core_source_snapshot": {
+    "path": ".local/gate-6/handoff-readiness-core-inputs-v4.json",
+    "sha256": "506e376c794c11aa5d866275f659a0b5e8d9779ea52ba444c3cced17d86ed454",
+    "inputs": 2794
+  },
+  "sealed_application_snapshot": {
+    "path": ".local/gate-6/handoff-readiness-sealed-application-inputs.json",
+    "sha256": "d7ed3780fb67edb4e84867310a49846df56fd4303132d2428539f82434742f56"
+  },
+  "pre_generic_final_source_delta": {
+    "contracts/openapi-canonical-http.json": {
+      "before": "7135e8b0117d131e69dbe2dfbcc98c38d148a77db225380f591f4c74b17995ee",
+      "after": "59d6c2d9277998688379dd3f9bec7cbce7b7b76b62660822c9df41fca2fae5e5"
+    },
+    "crates/connect-server/tests/support/canonical_native_connections/consultation/groups/preparation/takeover.rs": {
+      "before": "de5eec1aa2b8aa6ad167bd6549fa8dfa5869b0b69a28cb00f41f2851ced0eff4",
+      "after": "13e625c986a6921000623416a1673d3dd360171c903a512932148d74b837c29f"
+    },
+    "docs/developer/native-handoff.md": {
+      "before": "d349d67dfc1c7fcd5f902f9a5d9e42ce255463070f49d32aff33f5ee9d86a0fe",
+      "after": "2d6e4b65a13fa7717d5e577e37a30e67227af308694b049a5f118199f5ef9518"
+    },
+    "scripts/generate-canonical-http-openapi.py": {
+      "before": "54e7417a4e7d3c8bea07451ae72d05157773e320b8c020ec0d999e2fdaae8d18",
+      "after": "eeabbb39dacb46e22508937c313394d4a20aca6266e6e1314f89b69adb7432d0"
+    }
+  },
+  "production_and_other_selected_tests_unchanged": true,
+  "prior_runtime_executed_binary_hashes_not_retained": true,
+  "post_test_plan_delta": {
+    "docs/connect-gate-6-implementation.html": {
+      "before": "b3bb387b5f30a0e5aaa1365a82496b56716a9a085d7980dbb626599ce2bb6f3a",
+      "after": "814dbe349b482bfc29cb88bccd1f36f1deb6d16edaa3e2070c914ac311604316"
+    }
+  },
+  "previous_checkpoint": {
+    "path": "docs/evidence/gate-6/native-handoff-target-preparation.json",
+    "sha256": "7bd007b4a1a2c9c398216bcfee7190238da116f290cd874e6d3673b18a774475"
+  },
+  "next_requirements": {
+    "path": ".local/gate-6/handoff-readiness-next.json",
+    "sha256": "cf2c4ac5ec198e820e85ae351b0a8cc07acb634b666d3d9fefedefec6535c21d"
+  },
+  "implemented": [
+    "Scene-issued owned muted endpoint capability and default-deny independently current decode-only preparation purpose",
+    "Actual decoder input discarded without mixer publication; completed guarded neutral output required, not a queued-only ready flag",
+    "Capability cancellation fences old decoded proof/plans and queued prompts",
+    "Public generic prepared-target coordinator and exact incoming-only unmute custody",
+    "Incoming Observer speaking fence atomically promoted only in the separately authorized managed role/media commit",
+    "Bounded owned readiness wait with fresh original/current authority and no idle reader/role fence",
+    "Actual public competition, cancellation, stale topology and separate current controller-grant recovery preserving stable intent/expiry and original audio"
+  ],
+  "diagnostics": [
+    "First selected Core run passed3 cases but atomic handoff failed because the raw context was removed twice as both activated preparation and consumed audience. The exact context is now removed once; full current433 passes.",
+    "A newly shared encoder helper initially retained private method visibility; corrected in scratch, repinned/reprepared, and all final builds/tests pass.",
+    "Initial native two-direction run passed human-to-AI but incoming Observer durable promotion emitted no audio. The actual audio consumer fence is now promoted only with the authorized managed context; both directions and both initially Observer kinds pass in final native cases.",
+    "Initial competing test expected two accepted intents. Current admission correctly rejects the occupied footprint before creating a second row; final test asserts conflict/no row and keeps the original accepted intention.",
+    "Only generated inactive compiler incremental directories were pruned after confirming no relevant compiler was live. Sources, logs and test binaries were preserved; records in .local/gate-6/handoff-readiness-cache-cleanup*.json.",
+    "All upstream edits were reproduced through patch111 and source-lock preparation in fresh dependency directories, never direct .deps edits."
+  ],
+  "not_claimed": [
+    "Completion of G6-040 or all105 tasks",
+    "Repeated distinct handoff / actual combined private-call fresh same-logical-AI native case / complete restart-uncertainty matrix",
+    "Opaque provider/model memory freshness, live providers, Linux/browser/remote/performance/acceptance closure",
+    "Commit, push or publication"
+  ],
+  "all_started_processes_terminal": true
+}

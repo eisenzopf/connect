@@ -41,7 +41,9 @@ fn fixture(history_allowed: bool) -> Fixture {
             &caller_key,
             &Operation::Create {
                 request_id: "create".into(),
-                participants: vec![assistant.id.clone()],
+                request: connect_protocol::conversations::CreateRequest::persistent(vec![
+                    assistant.id.clone(),
+                ]),
             },
         )
         .unwrap()
@@ -60,6 +62,7 @@ fn fixture(history_allowed: bool) -> Fixture {
                 target: "12345678-1234-1234-1234-123456789012".into(),
                 source: None,
                 enabled: true,
+                incoming_to: connect_protocol::messages::MessageAudience::all(),
             },
         )
         .unwrap();
@@ -129,7 +132,9 @@ impl Fixture {
                 &Operation::Send {
                     request_id: "send".into(),
                     conversation_id: self.conversation.clone(),
-                    body: "What was the verification phrase?".into(),
+                    message: connect_protocol::messages::MessageDraft::text_all(
+                        "What was the verification phrase?",
+                    ),
                 },
             )
             .unwrap();
@@ -192,6 +197,16 @@ fn interrupted_chat_context_delivery_is_uncertain_and_not_replayed() {
     f.send();
     let job = f.store.claim_provider_job().unwrap().unwrap();
     assert!(job.context.is_some());
+    let role = f.store.acquire_provider_worker().unwrap();
+    let permit = f
+        .store
+        .admit_provider_dispatch(
+            &role,
+            &job,
+            &connect_store::AuthorityWait::new(std::time::Duration::from_secs(1)),
+        )
+        .unwrap();
+    drop(permit); // Model an admitted possible effect before interruption.
     let reopened =
         Store::open(&f.directory.path().join("state.sqlite3"), Limits::default()).unwrap();
     assert_eq!(reopened.recover_provider_jobs().unwrap(), 1);
@@ -245,14 +260,17 @@ fn only_an_operator_can_acknowledge_a_definite_failure_without_retrying_it() {
             &Operation::Send {
                 request_id: "new-explicit-message".into(),
                 conversation_id: f.conversation.clone(),
-                body: "Continue with a new request".into(),
+                message: connect_protocol::messages::MessageDraft::text_all(
+                    "Continue with a new request",
+                ),
             },
         )
         .unwrap();
     let next = f.store.claim_provider_job().unwrap().unwrap();
     assert_ne!(next.id, job.id);
     let context: ContextView = serde_json::from_str(next.context.as_ref().unwrap()).unwrap();
-    assert_eq!(context.deliveries[0].state, "failed");
+    assert!(context.deliveries.is_empty());
+    assert_eq!(context.deliveries_omitted, 0);
     assert!(context
         .items
         .iter()

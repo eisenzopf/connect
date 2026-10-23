@@ -3,6 +3,29 @@
 Gate 6 target; G6-007. A transport envelope and a durable mutation have different
 identities. This distinction resolves the baseline idempotency/signature conflict.
 
+The native server may also generate a stable operation ID for materializing an
+already committed Participant receive intent. Its internal `stream.reconcile`
+record retains the explicit subscription record ID, exact plan, original native
+source and one-attempt effect custody. It is not a wire command or another
+subscription grant. Existing current-authorized operation status and cancellation
+apply. Captured native outcomes retry durable recording without repeating Core
+or retaining old authorization readers; unknown outcomes are never resubmitted.
+
+Authorized `operation.get` status and durable transition admission replies include
+`record_id`, the Store's stable record identifier for that operation. Native
+control status replies expose the same identifier. It is distinct from the
+caller-owned `operation_id`; it conveys no permission or completion by itself.
+A handoff target may reference its own signed native offer record as `policy_ref`
+only while that physical peer's current named handoff policy permits the route.
+
+Current-authorized status and transition replies also retain the optional
+durable `problem` object. A definitive native handoff refusal before any native
+attempt records `failed`, an attributable bounded reason and no media effect or
+success result. Repeating that intent returns the same refusal. This path cannot
+settle prepared or possibly submitted native work; uncertainty retains its
+original custody and requires reconciliation. Temporary missing decoded audio
+readiness is not classified as a definitive policy refusal.
+
 ## Admission and identity
 
 A mutating command has a caller-generated stable `operation_id`. Its ownership
@@ -75,3 +98,16 @@ the minimum advertised retry window. Expiry is explicit and cannot permit an old
 ID to execute again silently: keep its digest tombstone and return gone after
 full-result expiry. Operation IDs are not reused within an installation/tenant
 epoch; explicit installation reinitialization establishes a new epoch.
+
+## Current shared receipt boundary
+
+Fresh schema 32 stores ordinary control receipts in the operation ledger, with
+immutable typed origin, frozen recipient IDs and original actor membership epoch.
+A message acknowledgement includes a local-mutation receipt and exact get status
+reference. Its completed state means local message/journal acceptance; recipient
+and provider delivery are distinct observations. A failed local mutation retains
+a failed receipt without a completed result. Infrastructure failures roll back
+the mutation and receipt together. Task internal wire receipts retain task/grant
+origin and are unavailable through generic core status. Full provider/voice/SIP
+effect integration, production canonical dispatch and Gate 6 acceptance remain
+open; see docs/developer/control-receipts.md for the qualified scope.

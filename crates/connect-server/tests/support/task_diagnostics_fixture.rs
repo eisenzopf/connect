@@ -38,7 +38,7 @@ pub async fn question(f: &Fixture, body: &str) -> String {
             operation: Box::new(Operation::Send {
                 request_id: "diagnostic-question".into(),
                 conversation_id: f.task.conversation_id.clone(),
-                body: body.into(),
+                message: connect_protocol::messages::MessageDraft::text_all(body),
             }),
             reply_to: None,
             wait_for_reply: true,

@@ -1,0 +1,288 @@
+//! Controlled ledger custody and source authorization, not physical readiness.
+use super::*;
+use connect_protocol::transitions::{OperationAction, OperationState};
+#[test]
+fn native_reconciliation_successor_keeps_unknown_custody_and_refuses_old_origins_and_receipts() {
+    let (f, _, origin) = selected();
+    let source = f.store.try_native_reconciliation_read(&origin).unwrap();
+    let lease = f
+        .store
+        .begin_native_reconciliation(&source, "restart-reconcile", json!({"streams":[]}))
+        .unwrap();
+    let record = lease.record_id().to_owned();
+    let receipt = lease.committed(3, true).unwrap();
+    let path = f.store.path().to_owned();
+    let key = f.keys[0].clone();
+    drop(source);
+    drop(f.store);
+    let successor = Store::open(&path, Limits::default()).unwrap();
+    assert_eq!(successor.recover_native_streams(256).unwrap(), 1);
+    assert_eq!(successor.recover_native_streams(256).unwrap(), 0);
+    assert!(successor.complete_native_stream(&receipt).is_err());
+    assert!(successor.try_native_reconciliation_read(&origin).is_err());
+    let status = successor
+        .execute_operation_action(
+            &key,
+            OperationAction::Get {
+                operation_id: "restart-reconcile".into(),
+            },
+        )
+        .unwrap();
+    assert_eq!(status.record_id, record);
+    assert_eq!(status.state, OperationState::Unknown);
+    assert!(status.result.is_none());
+    assert_eq!(status.effects.len(), 1);
+    assert_eq!(
+        status.effects[0].state,
+        connect_protocol::transitions::EffectState::Unknown
+    );
+}
+fn selected() -> (
+    Fixture,
+    PeerAuthorityRequest,
+    std::sync::Arc<crate::NativeMediaOrigin>,
+) {
+    let (f, request, _, origin) = parent_permissions_origin(true, true, false, false, true);
+    assert!(f.store.try_native_reconciliation_read(&origin).is_err());
+    let proof = admit(&f, &request).unwrap();
+    f.store
+        .accept_native_stream_with_peer(&f.keys[0], &proof)
+        .unwrap();
+    let (lease, _) = f
+        .store
+        .begin_native_stream_with_peer(&f.keys[0], &proof)
+        .unwrap()
+        .unwrap();
+    // A fabricated engine observation is permitted only in this controlled
+    // Store fixture. Production obtains the receipt from the actual Core call.
+    let receipt = lease.committed(2, false).unwrap();
+    f.store.complete_native_stream(&receipt).unwrap();
+    drop(proof);
+    (f, request, origin)
+}
+fn status(f: &Fixture, id: &str) -> connect_protocol::transitions::OperationRecord {
+    f.store
+        .execute_operation_action(
+            &f.keys[0],
+            OperationAction::Get {
+                operation_id: id.into(),
+            },
+        )
+        .unwrap()
+}
+#[test]
+fn native_reconciliation_requires_completed_selector_and_current_exact_original_source() {
+    let (f, _, origin) = selected();
+    let source = f.store.try_native_reconciliation_read(&origin).unwrap();
+    assert_eq!(source.stream_revision(), 2);
+    let lease = f
+        .store
+        .begin_native_reconciliation(&source, "server-reconcile-1", json!({"streams":[]}))
+        .unwrap();
+    f.store
+        .validate_native_reconciliation(&source, &lease)
+        .unwrap();
+    let row = status(&f, "server-reconcile-1");
+    assert_eq!(row.command_type, "stream.reconcile");
+    assert_eq!(row.state, OperationState::Preparing);
+    assert_eq!(row.effects.len(), 1);
+    assert_eq!(row.effects[0].correlation_key, row.record_id);
+    assert!(f
+        .store
+        .begin_native_reconciliation(&source, "server-reconcile-1", json!({"streams":[]}))
+        .is_err());
+    assert!(f
+        .store
+        .begin_native_reconciliation(&source, "server-reconcile-2", json!({"streams":[]}))
+        .is_err());
+    let receipt = lease.committed(3, true).unwrap();
+    let first = f.store.complete_native_stream(&receipt).unwrap();
+    assert_eq!(first.state, OperationState::Completed);
+    assert_eq!(
+        first.result.as_ref().unwrap()["server_reconciliation"],
+        true
+    );
+    assert_eq!(
+        first.result.as_ref().unwrap()["subscription_record_id"],
+        source.subscription_record_id()
+    );
+    assert_eq!(f.store.complete_native_stream(&receipt).unwrap(), first);
+    assert!(f
+        .store
+        .begin_native_reconciliation(&source, "stale-source", json!({"streams":[]}))
+        .is_err());
+    drop(source);
+    let source = f.store.try_native_reconciliation_read(&origin).unwrap();
+    assert_eq!(source.stream_revision(), 3);
+    assert!(f
+        .store
+        .begin_native_reconciliation(&source, "next-source", json!({"streams":[]}))
+        .is_ok());
+}
+#[test]
+fn native_reconciliation_cannot_enter_through_a_signed_peer_command_or_borrow_another_kernel() {
+    let (f, mut request, origin) = selected();
+    let source = f.store.try_native_reconciliation_read(&origin).unwrap();
+    let PeerCommand::NativeStream(wire) = &mut request.command else {
+        panic!()
+    };
+    wire.operation_id = "forged-reconcile".into();
+    wire.command = Command::Reconcile;
+    wire.expected_revision = Some(2);
+    wire.payload =
+        json!({"subscription_record_id":source.subscription_record_id(),"plan":{"streams":[]}});
+    wire.validate().unwrap();
+    assert_eq!(admit(&f, &request).err().unwrap().code, "forbidden");
+    let other = Fixture::new();
+    assert_eq!(
+        other
+            .store
+            .begin_native_reconciliation(&source, "foreign-source", json!({"streams":[]}))
+            .err()
+            .unwrap()
+            .code,
+        "forbidden"
+    );
+    assert_eq!(f.count("operation_effects"), 2);
+}
+#[test]
+fn native_reconciliation_storage_rollback_preserves_the_original_id_and_explicit_plan() {
+    let (f, _, origin) = selected();
+    let source = f.store.try_native_reconciliation_read(&origin).unwrap();
+    let before = (
+        f.count("operations"),
+        f.count("operation_effects"),
+        f.count("journal"),
+    );
+    let c = f.store.connection().unwrap();
+    c.execute_batch("CREATE TRIGGER controlled_reconcile_failure BEFORE INSERT ON operation_effects WHEN NEW.provider='native-stream' BEGIN SELECT RAISE(ABORT,'controlled reconciliation storage failure'); END;").unwrap();
+    drop(c);
+    assert!(f
+        .store
+        .begin_native_reconciliation(&source, "same-reconcile", json!({"streams":["camera"]}))
+        .is_err());
+    assert_eq!(
+        (
+            f.count("operations"),
+            f.count("operation_effects"),
+            f.count("journal")
+        ),
+        before
+    );
+    f.store
+        .connection()
+        .unwrap()
+        .execute_batch("DROP TRIGGER controlled_reconcile_failure")
+        .unwrap();
+    let lease = f
+        .store
+        .begin_native_reconciliation(&source, "same-reconcile", json!({"streams":["camera"]}))
+        .unwrap();
+    let receipt = lease.committed(3, true).unwrap();
+    let c = f.store.connection().unwrap();
+    c.execute_batch("CREATE TRIGGER controlled_reconcile_record_failure BEFORE INSERT ON journal WHEN json_extract(NEW.data_json,'$.operation_id')='same-reconcile' AND json_extract(NEW.data_json,'$.state')='completed' BEGIN SELECT RAISE(ABORT,'controlled captured outcome storage failure'); END;").unwrap();
+    drop(c);
+    assert!(f.store.complete_native_stream(&receipt).is_err());
+    assert_eq!(
+        status(&f, "same-reconcile").state,
+        OperationState::Preparing
+    );
+    f.store
+        .connection()
+        .unwrap()
+        .execute_batch("DROP TRIGGER controlled_reconcile_record_failure")
+        .unwrap();
+    assert_eq!(
+        f.store.complete_native_stream(&receipt).unwrap().state,
+        OperationState::Completed
+    );
+}
+#[test]
+fn native_reconciliation_cancellation_cannot_create_a_second_attempt_or_invent_a_failed_commit() {
+    let (f, _, origin) = selected();
+    let source = f.store.try_native_reconciliation_read(&origin).unwrap();
+    let lease = f
+        .store
+        .begin_native_reconciliation(&source, "cancel-reconcile", json!({"streams":[]}))
+        .unwrap();
+    drop(source);
+    f.store
+        .execute_operation_action(
+            &f.keys[0],
+            OperationAction::Cancel {
+                operation_id: "cancel-server-reconcile".into(),
+                target_operation_id: "cancel-reconcile".into(),
+                reason: None,
+            },
+        )
+        .unwrap();
+    let source = f.store.try_native_reconciliation_read(&origin).unwrap();
+    assert!(f
+        .store
+        .validate_native_reconciliation(&source, &lease)
+        .is_err());
+    assert!(f
+        .store
+        .begin_native_reconciliation(&source, "replacement-reconcile", json!({"streams":[]}))
+        .is_err());
+    // Captured actual success is still historical success if cancellation raced
+    // the already-running engine. It never authorizes another engine attempt.
+    let receipt = lease.committed(3, true).unwrap();
+    let completed = f.store.complete_native_stream(&receipt).unwrap();
+    assert_eq!(completed.state, OperationState::Completed);
+    assert!(completed.cancel_requested);
+}
+#[test]
+fn native_reconciliation_fresh_source_keeps_subscription_permission_separate_and_fences_generation()
+{
+    let (f, _, origin) = selected();
+    let c = f.store.connection().unwrap();
+    let original: String = c
+        .query_row(
+            "SELECT operations FROM credentials WHERE id=?1",
+            [&f.keys[0]],
+            |r| r.get(0),
+        )
+        .unwrap();
+    let mut operations: Vec<String> = serde_json::from_str(&original).unwrap();
+    operations.retain(|s| s != "stream.subscribe");
+    c.execute(
+        "UPDATE credentials SET operations=?2 WHERE id=?1",
+        params![f.keys[0], serde_json::to_string(&operations).unwrap()],
+    )
+    .unwrap();
+    drop(c);
+    assert!(f.store.try_native_media_read(&origin, None).is_ok());
+    assert_eq!(
+        f.store
+            .try_native_reconciliation_read(&origin)
+            .err()
+            .unwrap()
+            .code,
+        "forbidden"
+    );
+    let c = f.store.connection().unwrap();
+    c.execute(
+        "UPDATE credentials SET operations=?2 WHERE id=?1",
+        params![f.keys[0], original],
+    )
+    .unwrap();
+    drop(c);
+    assert!(f.store.try_native_reconciliation_read(&origin).is_ok());
+    let c = f.store.connection().unwrap();
+    c.execute(
+        "UPDATE connections SET generation=generation+1,state='retiring' WHERE id=?1",
+        [origin.connection_id()],
+    )
+    .unwrap();
+    drop(c);
+    assert_eq!(
+        f.store
+            .try_native_reconciliation_read(&origin)
+            .err()
+            .unwrap()
+            .code,
+        "forbidden"
+    );
+    assert_eq!(f.count("operation_effects"), 2);
+}

@@ -20,7 +20,7 @@ pub(super) fn client_error(error: ClientError) -> Error {
         | ClientError::Timeout
         | ClientError::Cancelled => Error::new(
             "transport-uncertain",
-            "Native exchange failed; preserve the logical request ID",
+            "Exchange failed; preserve the logical request ID",
         ),
     }
 }

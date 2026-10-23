@@ -110,6 +110,29 @@ pub(crate) fn claimed(c: &Connection, id: &str) -> Result<()> {
         Err(Error::forbidden())
     }
 }
+/// The exact generation already reserved for one bounded physical request.
+/// This validates current authority; it cannot reserve another request.
+pub(crate) fn dispatched_authority(
+    c: &Connection,
+    kind: Kind,
+    resource: &str,
+    intent: &str,
+    timestamp: i64,
+) -> Result<(Actor, i64)> {
+    let (credential, effect): (String, Option<String>) = c.query_row(
+        "SELECT credential_id,effect_id FROM media_end_intents WHERE id=?1 AND kind=?2 AND resource_id=?3 AND current=1 AND state='dispatching'",
+        params![intent, kind.name(), resource], |r| Ok((r.get(0)?, r.get(1)?)),
+    ).optional().map_err(|_|Error::storage())?.ok_or_else(Error::forbidden)?;
+    let actor = actor_from_connection_at(c, &credential, timestamp)?;
+    actor.require(kind.name())?;
+    let expires = match effect {
+        Some(effect) => actor
+            .expires_at
+            .min(crate::tasks::effect_deadline(c, &effect, timestamp)?),
+        None => actor.expires_at,
+    };
+    Ok((actor, expires))
+}
 pub(crate) fn blocked(c: &Connection, kind: Kind, resource: &str) -> Result<()> {
     c.execute("UPDATE media_end_intents SET state='blocked' WHERE kind=?1 AND resource_id=?2 AND current=1 AND state='pending'",params![kind.name(),resource]).map_err(|_|Error::storage())?;
     Ok(())

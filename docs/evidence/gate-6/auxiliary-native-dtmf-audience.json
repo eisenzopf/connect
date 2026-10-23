@@ -1,0 +1,108 @@
+{
+  "task": "G6-046",
+  "title": "Managed native DTMF original/current audience through signal IO",
+  "recorded_at": "2026-10-22T07:54:55.606702+00:00",
+  "status": "managed-native-dtmf-audience-engine-local-component-qualified",
+  "full_task_complete": false,
+  "full_goal_complete": false,
+  "acceptance_qualified": false,
+  "production_connect_dtmf_delivery_complete": false,
+  "scope": "Isolated local macOS arm64 reusable-engine composition. Real signed EdDSA QUIC/WebTransport native source/recipient IO uses controlled current signal policy; Core private-audience cases are controlled scene callbacks. No production Connect DTMF dispatch or Store recipient effects are established.",
+  "implementation": [
+    "Explicit managed ingress captures actual Core source audience/controller/credential incarnation before source observation acceptance, without changing capabilities/media or retaining original invocation/readers. NativeDtmfObservation carries an opaque scene-issued disclosure.",
+    "Fresh route-policy acquisition binds the actual native recipient identity/Device/Endpoint/Participant epoch/principal/credential revision and attaches a scene-only audience fence to its exact DtmfWriteLease. Core route plus sealed physical source/recipient fences remain mandatory.",
+    "Audience IO tries only member/audience registries, preserves immutable original groups and checks current groups. It never reenters held controller/credential/lifecycle locks or domain policy and releases guards on Pending. Another Connection of the same Participant stays outside the original private group.",
+    "Same-managed-Session native recipients are supported by this helper. Unmanaged/general and SIP/WebRTC host audience compositions remain separate explicit responsibilities; managed refusal never silently selects a different ingress path."
+  ],
+  "verification": {
+    "distinct_runtime_checks_passed": 35,
+    "core": {
+      "passed": 5,
+      "failed": 0,
+      "total_cases": 448,
+      "not_requalified": 443,
+      "new_dtmf_cases": 3,
+      "existing_capability_cases": 2,
+      "logs": [
+        ".local/gate-6/native-dtmf-audience-core-final-native-v2.log",
+        ".local/gate-6/native-dtmf-audience-core-final-capability-v2.log"
+      ],
+      "scope": "Original/current private return, same-Participant other Connection exclusion, exact actual recipient metadata, nested source/target controller IO and Pending guard release; existing capability disclosure/declaration behavior."
+    },
+    "native": {
+      "passed": 30,
+      "failed": 0,
+      "ignored": 0,
+      "total_cases": 174,
+      "not_requalified": 144,
+      "seconds": 12.23,
+      "log": ".local/gate-6/native-dtmf-audience-native-regression-v1.log",
+      "scope": "Actual signed native ingress/delivery, independent signal policy, physical source epochs, cancellation/deadline/queued revocation, local SIP INFO/RFC4733 and received-source paths. Actual native-to-native QUIC/WT case now requires managed source disclosure and adds its audience fence after fresh recipient authorization.",
+      "initial_exact_case": ".local/gate-6/native-dtmf-audience-actual-v2.log",
+      "initial_exact_case_counted_within_30": true
+    },
+    "connect_server": {
+      "result": "passed locked offline single-job compile check",
+      "seconds": 507,
+      "command": "CARGO_INCREMENTAL=0 cargo check -j1 --locked --offline -p connect-server",
+      "log": ".local/gate-6/native-dtmf-audience-server-check-v1.log"
+    }
+  },
+  "inputs": {
+    "path": ".local/gate-6/native-dtmf-audience-inputs-v2.json",
+    "entries": 1381,
+    "sha256": "0a289d4f617d98fb6def1e97f86dd2def02dcb30283cff20ad7dddda9a20ef5e"
+  },
+  "core_executable_provenance": "Core code and test sources are byte-identical between prepared v1/v2; only2 UCTP integration fixture files were subsequently added to patch134. Final Core5 repeats use the same qualified executable; the actual-native executable builds the final8-file patch.",
+  "source_lock": {
+    "path": "dependencies/source-lock.json",
+    "patches": 134,
+    "sha256": "723bc141df69599f9ec97fe413af59eca6fd022bbc97f24e9592cccd1ca4a5b5"
+  },
+  "patch": {
+    "path": "patches/rvoip/gate6-native-dtmf-audience.patch",
+    "sha256": "85d6620fd685fa6a2c81c6295e0c5c6be4a0840e9097cbe55868612464ea5970",
+    "files": 8
+  },
+  "schema_version": 83,
+  "schema_changed": false,
+  "compiled_binaries": [
+    {
+      "path": "target/debug/deps/rvoip_core-c383b0860095e548",
+      "archive": ".local/gate-6/native-dtmf-audience-artifacts-v1/rvoip_core-c383b0860095e548-d8b395d8b5ff.gz",
+      "bytes": 81795288,
+      "sha256": "d8b395d8b5ffa8b4e0381ce3c041a27fa482404d9bdefb85a1515ce3e610efa2",
+      "gzip_bytes": 13701654,
+      "archive_sha256": "96d71fd59a0861bdf1108dce6c704bd536e400f66ff4c4a75f6e35f547173887",
+      "restored_bytes_verified": true
+    },
+    {
+      "path": "target/debug/deps/v2_peer_admission-2ea5587e9bb34bd2",
+      "archive": ".local/gate-6/native-dtmf-audience-artifacts-v1/v2_peer_admission-2ea5587e9bb34bd2-29608cae73cf.gz",
+      "bytes": 198420304,
+      "sha256": "29608cae73cf2a1aa87aeb73837b6846ada068589eaa5c8e503f0f0a7c4c7efa",
+      "gzip_bytes": 38436896,
+      "archive_sha256": "217c404e7931c6de493acd973c7b6201a434605809dca18bf5cd8c041cd02a62",
+      "restored_bytes_verified": true
+    }
+  ],
+  "initial_attempts": [
+    {
+      "log": ".local/gate-6/native-dtmf-audience-core-v1.log",
+      "status": "Cargo selection rejected before build; dependency tests require their upstream workspace."
+    },
+    {
+      "log": ".local/gate-6/native-dtmf-audience-actual-v1.log",
+      "status": "Compile failed from exhausted build volume in rvoip-quic; no runtime test executed.",
+      "recovery": "Removed61 obsolete pre-patch134 Core-dependent compiler libraries/metadata (2549139865 bytes), preserving every executable/archive, source/state/log. Same source/profile/limits/timeouts then passed the actual case and all30 regressions.",
+      "cleanup_record": ".local/gate-6/native-dtmf-audience-obsolete-library-prune-v1.json"
+    }
+  ],
+  "not_qualified": [
+    "Production per-recipient durable DTMF intent/effect/outcome custody, named fresh Store source/recipient signal grants, actual service scheduling/registration/driving and public SDK/HTTP reference.",
+    "Whole Connect DTMF private return/tail, partial IO, source/recipient/key/Endpoint/member/expiry/restart and storage recovery compositions. Controlled scene callback plus public actual native IO is not their replacement.",
+    "ES256 runtime in this phase, cross-Session/SIP/WebRTC managed audience helper, Linux x86_64, named remote/browser/provider qualification and remote playback.",
+    "G6-046, exact61 auxiliary vectors, remaining59 tasks, assurance/step-up, the earlier unresolved retention/primary-return refusal, all Gate6 acceptance and publication."
+  ],
+  "next": "Implement per-recipient Store custody and fresh named signal grants, then actual service worker/recipient mux and SDK/HTTP contract. Reuse the qualified engine composition; do not count historical/focused components as exact auxiliary-vector or full-task closure."
+}

@@ -1,0 +1,385 @@
+{
+  "kind": "gate6-component-evidence",
+  "recorded_at": "2026-10-19T22:50:04.045152+00:00",
+  "task": "G6-040",
+  "status": "in-progress",
+  "passed": true,
+  "scope": "Target-owned signed native QUIC closed/muted preparation for human, AI and Observer with independent named current grants; application regressions, provider-free native isolation and designated local private provider regression on macOS arm64. Generic prepared-target handoff execution/readiness remains uninstalled.",
+  "schema_version": 54,
+  "pinned_patches": 110,
+  "source_lock": {
+    "path": "dependencies/source-lock.json",
+    "sha256": "35be35add1efa58f0718f78250c19e6ae9d7576225c0bed25f71f56719cd22b1"
+  },
+  "verification": [
+    {
+      "name": "store",
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "--offline",
+        "-j1",
+        "-p",
+        "connect-store",
+        "--lib",
+        "--",
+        "--test-threads=2",
+        "--nocapture"
+      ],
+      "path": ".local/gate-6/target-preparation-final-store2.log",
+      "exit_code": 0,
+      "sha256": "bdac6acf1bdb2d47fb3371088ce5cf81b16ef30b116f707ff4cc821e0b779bd1",
+      "passed": 556,
+      "ignored": 3,
+      "test_binaries": [
+        {
+          "path": "target/debug/deps/connect_store-500690b8d898aed1",
+          "sha256": "9de7a17f59486e5677295b97bd32bd9277da6f4952e89e257c5f38cade27bd7c"
+        }
+      ]
+    },
+    {
+      "name": "libraries",
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "--offline",
+        "-j1",
+        "-p",
+        "connect-client",
+        "-p",
+        "connect-protocol",
+        "-p",
+        "connect-service",
+        "--lib",
+        "--",
+        "--test-threads=2",
+        "--nocapture"
+      ],
+      "path": ".local/gate-6/target-preparation-final-libraries.log",
+      "exit_code": 0,
+      "sha256": "7e537b56902bc823dd52368f771a38c0bad64e66621623764207c78004caeaf8",
+      "passed": 94,
+      "ignored": 0,
+      "test_binaries": [
+        {
+          "path": "target/debug/deps/connect_client-2762510abbc111f5",
+          "sha256": "a5f606c1ed559c844a4ba93c6cc97770b6cb2d209f57d119bcdb020e059feaea"
+        },
+        {
+          "path": "target/debug/deps/connect_protocol-d4433b2cc5f1474e",
+          "sha256": "0cf301a400280745ead63bfe0d526454171feeebb94051b2a560b6a43f75c377"
+        },
+        {
+          "path": "target/debug/deps/connect_service-f0c8ec9c56711d06",
+          "sha256": "1f3ae1394a11db2d7db3ecbf72acfe856768a0e922fd46b07baf0b827180b71d"
+        }
+      ]
+    },
+    {
+      "name": "transitions",
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "--offline",
+        "-j1",
+        "-p",
+        "connect-server",
+        "--test",
+        "gate6_canonical_transitions",
+        "--",
+        "--test-threads=2",
+        "--nocapture"
+      ],
+      "path": ".local/gate-6/target-preparation-final-transitions.log",
+      "exit_code": 0,
+      "sha256": "59062bcec402ec123899af13900d22f8079aa5e5a018c7caf2f5a09892c67c4d",
+      "passed": 5,
+      "ignored": 0,
+      "test_binaries": [
+        {
+          "path": "target/debug/deps/gate6_canonical_transitions-3c1fd287bcc3e17e",
+          "sha256": "d2de4ce537ca30b9dd7d63d1c2cf3e8616e059530ac20e57a151dbfb48392ace"
+        }
+      ]
+    },
+    {
+      "name": "handoff",
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "--offline",
+        "-j1",
+        "-p",
+        "connect-server",
+        "--test",
+        "gate6_canonical_runtime",
+        "production_native_private_handoff",
+        "--",
+        "--test-threads=2",
+        "--nocapture"
+      ],
+      "path": ".local/gate-6/target-preparation-final-handoff.log",
+      "exit_code": 0,
+      "sha256": "7213abe8e9f7a5b244d2439da176eb8d309a3c05f611c5d76c2b0d973c6447d1",
+      "passed": 1,
+      "ignored": 0,
+      "test_binaries": [
+        {
+          "path": "target/debug/deps/gate6_canonical_runtime-09465e13dc9bb922",
+          "sha256": "b0ceb4d5edbc5792c1a98e1065f275610e36d5df33e67b0f14d7d348b20faa0b"
+        }
+      ]
+    },
+    {
+      "name": "groups",
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "--offline",
+        "-j1",
+        "-p",
+        "connect-server",
+        "--test",
+        "gate6_canonical_runtime",
+        "production_disjoint_private_consultations",
+        "--",
+        "--test-threads=2",
+        "--nocapture"
+      ],
+      "path": ".local/gate-6/target-preparation-final-groups.log",
+      "exit_code": 0,
+      "sha256": "f8c0aa45d6b4d9264bbae95030859273f94878f05b3cf7ea9e6f01dd5c3de696",
+      "passed": 1,
+      "ignored": 0,
+      "test_binaries": [
+        {
+          "path": "target/debug/deps/gate6_canonical_runtime-09465e13dc9bb922",
+          "sha256": "b0ceb4d5edbc5792c1a98e1065f275610e36d5df33e67b0f14d7d348b20faa0b"
+        }
+      ]
+    },
+    {
+      "name": "private-sdk",
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "--offline",
+        "-j1",
+        "-p",
+        "connect-server",
+        "--test",
+        "gate6_canonical_runtime",
+        "production_private_ai_uses_fresh_provider_context_and_actual_bidirectional_audio_then_returns",
+        "--",
+        "--test-threads=2",
+        "--nocapture"
+      ],
+      "path": ".local/gate-6/target-preparation-final-private-sdk.log",
+      "exit_code": 0,
+      "sha256": "7a3970ae07f5ffcfc2ef5716eeffd94d20b401c3b4a3ebddf8ef297549639884",
+      "passed": 1,
+      "ignored": 0,
+      "test_binaries": [
+        {
+          "path": "target/debug/deps/gate6_canonical_runtime-09465e13dc9bb922",
+          "sha256": "b0ceb4d5edbc5792c1a98e1065f275610e36d5df33e67b0f14d7d348b20faa0b"
+        }
+      ]
+    },
+    {
+      "name": "target-preparation-native",
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "--offline",
+        "-j1",
+        "-p",
+        "connect-server",
+        "--test",
+        "gate6_canonical_runtime",
+        "production_target_owned_human_ai_and_observer_preparation_stays_muted_and_closed",
+        "--",
+        "--test-threads=1",
+        "--nocapture"
+      ],
+      "path": ".local/gate-6/target-preparation-native-final3.log",
+      "exit_code": 0,
+      "sha256": "9ffd7e9244b197c7603bf334fd0b742acec830d28b258b73ad3b99af9eaea8bc",
+      "passed": 1,
+      "ignored": 0,
+      "test_binaries": [
+        {
+          "path": "target/debug/deps/gate6_canonical_runtime-09465e13dc9bb922",
+          "sha256": "b0ceb4d5edbc5792c1a98e1065f275610e36d5df33e67b0f14d7d348b20faa0b"
+        }
+      ]
+    }
+  ],
+  "passed_rust_tests": 659,
+  "ignored_note": "Three Store crash helpers invoked by passing parent tests, not standalone passes.",
+  "native_preparation": {
+    "profiles": [
+      "human",
+      "ai",
+      "observer"
+    ],
+    "strict_audio_probes": 9,
+    "actual_separate_credential_missing_named_grant_refused_before_allocation": true,
+    "original_duplex_retained": true,
+    "zero_forbidden_marked_audio": true,
+    "one_confirmed_attempt_per_profile": true,
+    "roles_unchanged": true,
+    "target_only_journal_recipients": true,
+    "physical_eof_releases_quota": true
+  },
+  "store_preparation_tests": 5,
+  "schema_vectors": 217,
+  "schema_envelopes": 66,
+  "static_checks": [
+    {
+      "name": "format",
+      "command": [
+        "bash",
+        "scripts/format.sh",
+        "--",
+        "--check"
+      ],
+      "path": ".local/gate-6/target-preparation-final-format.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "exit_code": 0
+    },
+    {
+      "name": "wire",
+      "command": [
+        "python3",
+        "scripts/generate-gate6-schemas.py"
+      ],
+      "path": ".local/gate-6/target-preparation-final-wire.log",
+      "sha256": "11690f43431ba846563930227f3f5e98b1a6a75f2524193d911ab91493817a4f",
+      "exit_code": 0
+    },
+    {
+      "name": "events",
+      "command": [
+        "python3",
+        "scripts/generate-gate6-event-reference.py",
+        "--check"
+      ],
+      "path": ".local/gate-6/target-preparation-final-events.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "exit_code": 0
+    },
+    {
+      "name": "http",
+      "command": [
+        "python3",
+        "scripts/generate-canonical-http-openapi.py",
+        "--check"
+      ],
+      "path": ".local/gate-6/target-preparation-final-http.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "exit_code": 0
+    },
+    {
+      "name": "contracts",
+      "command": [
+        ".local/gate-6/verification-venv/bin/python",
+        "scripts/check-gate6-contracts.py",
+        "--output",
+        ".local/gate-6/target-preparation-final-contracts.json"
+      ],
+      "path": ".local/gate-6/target-preparation-final-contracts.log",
+      "sha256": "2c29557f8945b4bb522a5436f85876aa8ab90eca617dcf64588af05e9a81b1bc",
+      "exit_code": 0
+    },
+    {
+      "name": "dependencies",
+      "command": [
+        "bash",
+        "scripts/prepare-dependencies.sh"
+      ],
+      "path": ".local/gate-6/target-preparation-final-dependencies.log",
+      "sha256": "fd9d7b181e3ccba9b643af55a186cf132c60aac99c734b2ee4e4e549afe5ffc2",
+      "exit_code": 0
+    },
+    {
+      "name": "diff",
+      "command": [
+        "git",
+        "diff",
+        "--check"
+      ],
+      "path": ".local/gate-6/target-preparation-final-diff.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "exit_code": 0
+    },
+    {
+      "name": "progress",
+      "command": [
+        "python3",
+        "scripts/check-gate6-progress.py"
+      ],
+      "path": ".local/gate-6/target-preparation-sealed-progress.log",
+      "sha256": "f3b9b4aefb902a70b4b09f47531c703f1026a2ea42e13759c3e88205978e6125",
+      "exit_code": 0
+    }
+  ],
+  "tested_source_snapshot": {
+    "path": ".local/gate-6/target-preparation-inputs-v2.json",
+    "sha256": "ca1db449d6a7b68bbab66541269b1c9e55b01bca476c08ad91caf7e60cb0f873",
+    "inputs": 1288
+  },
+  "sealed_source_snapshot": {
+    "path": ".local/gate-6/target-preparation-sealed-inputs.json",
+    "sha256": "60efdb3513d84749cf083f3d0a686a7ccc997f7c87fe05ed5d185b54265e8516"
+  },
+  "post_test_documentation_delta": {
+    "docs/connect-gate-6-implementation.html": {
+      "before": "f7d0e9c7b442a970af87c9e5b92b45f3351f9ded0bd2a18fd57198d4f5d1ab0b",
+      "after": "b3bb387b5f30a0e5aaa1365a82496b56716a9a085d7980dbb626599ce2bb6f3a"
+    }
+  },
+  "production_inputs_unchanged": true,
+  "previous_checkpoint": {
+    "path": "docs/evidence/gate-6/native-handoff-prepared-core.json",
+    "sha256": "934a999ec71dce91628ea30d6f007b1bad3657750d61420bcc0fc34c6a8f9268"
+  },
+  "core_qualification": "429 prior Core tests remain historical and unchanged; not counted as rerun application tests.",
+  "next_requirements": {
+    "path": ".local/gate-6/target-preparation-next.json",
+    "sha256": "53c835c8911bf20e9582dedfeea93efabce528e3daa86734652186af0ea02540"
+  },
+  "implemented": [
+    "Target own signed audio isolation with independently current named grant before caller operation exists",
+    "Actual closed/muted Core admission and unchanged Observer role",
+    "Public owned PreparedHandoffNativeAudio SDK and own immutable policy_record_id",
+    "Target-only preparation metadata/journal and exact captured post-handoff metadata visibility without republishing events",
+    "Generic routes and unrelated handoff complete-scene reads cannot open unselected prepared targets",
+    "Wire schema rejects asserted readiness, unknown/mixed profiles, non-duplex/non-audio/multiple streams; generated HTTP reference updated"
+  ],
+  "diagnostics": [
+    "Initial test mutex self-deadlock fixed by dropping the Store connection guard before reentering count helpers.",
+    "Initial controlled handoff fixture lacked the retained physical stream.subscribe grant; its exact independent grant is now installed.",
+    "Initial native expected role used Conversation consultant default instead of the actual Session participant appearance; test now captures and compares the original Session role, including Observer.",
+    "Initial missing-grant fixture reused a signing key bound to another credential and failed authentication before the intended boundary; final fixture uses its own provisioned physical key, authenticates and then refuses preparation before allocation.",
+    "Complete-scene review found unrelated prepared peers could acquire planning routes from another handoff. Both directions now remain closed; the new regression and full556 Store suite pass.",
+    "Early full Store555 run preceded that final isolation change. The final full556 suite and all final application/native regressions use the sealed source. Earlier logs are diagnostics, not additional passes."
+  ],
+  "not_claimed": [
+    "Decoded duplex readiness or actual generic prepared-target takeover",
+    "Fresh safe public model/provider memory qualification or actual AI/human takeover directions",
+    "Complete competing/stale/current-permission/cancel/unknown/restart takeover matrix",
+    "Rerun of Core429 or whole workspace tests",
+    "Live providers, Linux/browser/remote/performance/acceptance qualification",
+    "Commit, push or publication"
+  ],
+  "all_started_processes_terminal": true
+}

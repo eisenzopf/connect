@@ -1,0 +1,1484 @@
+diff --git a/crates/foundation/rvoip-core/src/staged_streams.rs b/crates/foundation/rvoip-core/src/staged_streams.rs
+--- a/crates/foundation/rvoip-core/src/staged_streams.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams.rs
+@@ -1451,6 +1451,16 @@
+             && self.origin_endpoint.device() == endpoint.device()
+             && self.origin_endpoint.transport() == endpoint.transport()
+     }
++    /// Compare a controller's immutable origin to the exact reserved
++    /// replacement incarnation. This is metadata, never current authority.
++    pub fn is_bound_to_replacement(
++        &self,
++        pending: &crate::participant_transitions::PreparedParticipantReplacement,
++    ) -> bool {
++        self.origin_binding.same_incarnation(pending.binding())
++            && self.connection == pending.intent().replacement
++            && &self.session == pending.appearance().session()
++    }
+     /// Aggregate configured limit and cumulative attempted opens. Counts include
+     /// uncertain/failed batches and do not reset on cleanup, pause or reoffer.
+     pub fn stream_open_budget(&self) -> (usize, usize) {
+diff --git a/crates/sip/rvoip-sip/src/adapter/device_replacement.rs b/crates/sip/rvoip-sip/src/adapter/device_replacement.rs
+--- a/crates/sip/rvoip-sip/src/adapter/device_replacement.rs
++++ b/crates/sip/rvoip-sip/src/adapter/device_replacement.rs
+@@ -33,6 +33,47 @@
+     route: OnceLock<Weak<SipOutboundRoute>>,
+     signals: mpsc::Sender<SipDeviceReplacementSignal>,
+     receiver: StdMutex<Option<mpsc::Receiver<SipDeviceReplacementSignal>>>,
++    conversation: OnceLock<rvoip_core::ids::ConversationId>,
++    media_started: AtomicBool,
++    media: OnceLock<ManagedMedia>,
++}
++struct ManagedMedia {
++    bridge: Arc<crate::media_stream::guarded::SipGuardedMedia>,
++    controller: Arc<rvoip_core::staged_streams::StreamController>,
++}
++impl Context {
++    fn media_route_current(&self) -> bool {
++        if !replacement_lifetime_current(self) || self.principal.is_expired() {
++            return false;
++        }
++        let Some(route) = self.route.get().and_then(Weak::upgrade) else {
++            return false;
++        };
++        let Some(adapter) = self.adapter.upgrade() else {
++            return false;
++        };
++        let Some(handle) = route.lifecycle_handle() else {
++            return false;
++        };
++        if adapter.current_session_handle(&route.session_id).as_ref() != Some(&handle) {
++            return false;
++        }
++        let epoch = SipRouteEpoch {
++            session_id: route.session_id.clone(),
++            connection_id: route.connection_id.clone(),
++            owner: SipRouteEpochOwner::Admitted(handle),
++        };
++        let _mapping = adapter
++            .mapping_lock
++            .lock()
++            .unwrap_or_else(|v| v.into_inner());
++        route.is_publicly_live()
++            && adapter.epoch_is_current_locked(&epoch)
++            && adapter
++                .outbound_routes
++                .get(&route.connection_id)
++                .is_some_and(|r| Arc::ptr_eq(r.value(), &route))
++    }
+ }
+ impl fmt::Debug for SipDeviceReplacementContext {
+     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+@@ -40,6 +81,94 @@
+     }
+ }
+ impl SipDeviceReplacementContext {
++    /// Create the one guarded audio controller for this exact allocated route.
++    /// The supplied current host policy/interval must authorize the reserved
++    /// binding. No ordinary initial binding or raw stream is manufactured.
++    /// Failed initialization consumes the attempt; metadata retries retain the
++    /// installed controller through the adapter's staged-controller query.
++    pub fn prepare_media_controller(
++        &self,
++        policy: Arc<dyn rvoip_core::staged_streams::MediaPolicy>,
++        opened_limit: usize,
++        held: &(dyn std::any::Any + Send + Sync),
++    ) -> rvoip_core::staged_streams::ControlResult<Arc<rvoip_core::staged_streams::StreamController>>
++    {
++        use rvoip_core::staged_streams::{
++            StreamControlError, StreamController, StreamHandleAllocator,
++        };
++        if !self.inner.media_route_current() {
++            return Err(StreamControlError::NotReady);
++        }
++        let route = self
++            .inner
++            .route
++            .get()
++            .and_then(Weak::upgrade)
++            .ok_or(StreamControlError::Cancelled)?;
++        let adapter = self
++            .inner
++            .adapter
++            .upgrade()
++            .ok_or(StreamControlError::Cancelled)?;
++        if self.inner.media_started.swap(true, Ordering::AcqRel) {
++            return Err(StreamControlError::NotReady);
++        }
++        let weak = Arc::downgrade(&self.inner);
++        let current = Arc::new(move || weak.upgrade().is_some_and(|c| c.media_route_current()));
++        let pending = &self.inner.pending;
++        let conversation = self
++            .inner
++            .conversation
++            .get()
++            .ok_or(StreamControlError::NotReady)?
++            .clone();
++        let bridge = crate::media_stream::guarded::SipGuardedMedia::new(
++            route.stream.clone(),
++            (
++                conversation.clone(),
++                pending.appearance().session().clone(),
++                pending.intent().replacement.clone(),
++            ),
++            pending.generation(),
++            current,
++            self.inner
++                .lifetime
++                .get()
++                .ok_or(StreamControlError::Cancelled)?
++                .clone(),
++            adapter.retained_tasks.clone(),
++        );
++        let controller = StreamController::with_held_control(
++            conversation.clone(),
++            pending.appearance().session().clone(),
++            pending.intent().replacement.clone(),
++            self.inner.principal.clone(),
++            policy,
++            bridge.clone(),
++            Arc::new(StreamHandleAllocator::default()),
++            1,
++            opened_limit,
++            self.inner
++                .lifetime
++                .get()
++                .ok_or(StreamControlError::Cancelled)?
++                .clone(),
++            held,
++        )?;
++        if !controller.is_bound_to_replacement(pending) {
++            controller.retire();
++            return Err(StreamControlError::Authority);
++        }
++        bridge.bind_controller(&controller)?;
++        self.inner
++            .media
++            .set(ManagedMedia {
++                bridge,
++                controller: controller.clone(),
++            })
++            .map_err(|_| StreamControlError::NotReady)?;
++        Ok(controller)
++    }
+     /// Take the bounded exact-route observation receiver once. No permission
+     /// reader is retained by this receiver or its captured Core events.
+     pub fn take_signals(&self) -> CoreResult<mpsc::Receiver<SipDeviceReplacementSignal>> {
+@@ -167,6 +296,9 @@
+                 route: OnceLock::new(),
+                 signals,
+                 receiver: StdMutex::new(Some(receiver)),
++                conversation: OnceLock::new(),
++                media_started: AtomicBool::new(false),
++                media: OnceLock::new(),
+             }),
+         }))
+     }
+@@ -213,6 +345,12 @@
+                 "SIP replacement allocation already attempted",
+             ));
+         }
++        context
++            .conversation
++            .set(request.conversation().clone())
++            .map_err(|_| {
++                RvoipError::InvalidState("SIP replacement conversation already installed")
++            })?;
+         context
+             .lifetime
+             .set(request.resource_lifetime())
+@@ -259,6 +397,30 @@
+             }),
+         })
+     }
++    pub(super) fn replacement_controller(
++        &self,
++        id: &ConnectionId,
++    ) -> Option<Arc<rvoip_core::staged_streams::StreamController>> {
++        self.outbound_routes
++            .get(id)?
++            .replacement
++            .get()?
++            .media
++            .get()
++            .map(|m| m.controller.clone())
++    }
++    pub(super) fn replacement_media(
++        &self,
++        id: &ConnectionId,
++    ) -> Option<Arc<dyn rvoip_core::staged_streams::StagedMediaAdapter>> {
++        self.outbound_routes
++            .get(id)?
++            .replacement
++            .get()?
++            .media
++            .get()
++            .map(|m| m.bridge.clone() as Arc<dyn rvoip_core::staged_streams::StagedMediaAdapter>)
++    }
+     pub(super) fn replacement_signal_principal(
+         &self,
+         id: &ConnectionId,
+@@ -305,7 +467,7 @@
+     pub(super) fn replacement_is_current(&self) -> bool {
+         self.replacement
+             .get()
+-            .is_none_or(|c| replacement_lifetime_current(c))
++            .is_none_or(|c| replacement_lifetime_current(c) && !c.principal.is_expired())
+     }
+     /// Called only after releasing mapping_lock: Core capture synchronously
+     /// rechecks the exact epoch through the installed adapter hook.
+diff --git a/crates/sip/rvoip-sip/src/adapter.rs b/crates/sip/rvoip-sip/src/adapter.rs
+--- a/crates/sip/rvoip-sip/src/adapter.rs
++++ b/crates/sip/rvoip-sip/src/adapter.rs
+@@ -4126,6 +4126,18 @@
+     {
+         self.prepare_replacement_route(request)
+     }
++    fn staged_controller(
++        &self,
++        id: &ConnectionId,
++    ) -> Option<Arc<rvoip_core::staged_streams::StreamController>> {
++        self.replacement_controller(id)
++    }
++    fn staged_media(
++        &self,
++        id: &ConnectionId,
++    ) -> Option<Arc<dyn rvoip_core::staged_streams::StagedMediaAdapter>> {
++        self.replacement_media(id)
++    }
+     fn device_replacement_signal_principal(
+         &self,
+         id: &ConnectionId,
+@@ -4864,6 +4876,16 @@
+         conn: ConnectionId,
+         capabilities: CapabilityDescriptor,
+     ) -> CoreResult<NegotiatedCodecs> {
++        if self
++            .outbound_routes
++            .get(&conn)
++            .is_some_and(|r| r.replacement.get().is_some())
++        {
++            return Err(RvoipError::NotImplemented(
++                "SIP replacement requires guarded media control",
++            ));
++        }
++
+         if capabilities.audio_codecs.is_empty() {
+             return Err(RvoipError::UnsupportedCodec(
+                 "SipAdapter::renegotiate_media: empty audio_codecs in new capabilities".into(),
+diff --git a/crates/sip/rvoip-sip/src/media_stream/guarded.rs b/crates/sip/rvoip-sip/src/media_stream/guarded.rs
+new file mode 100644
+--- /dev/null
++++ b/crates/sip/rvoip-sip/src/media_stream/guarded.rs
+@@ -0,0 +1,302 @@
++//! One exact negotiated SIP audio port, under Core's guarded packet custody.
++use super::*;
++use crate::retained_tasks::RetainedTasks;
++use rvoip_core::{
++    ids::{ConnectionId, ConversationId, SessionId as CoreSessionId},
++    staged_streams::{
++        ControlResult, MediaPortCleanup, PortPreparation, StagedMediaAdapter, StreamControlError,
++        WeakAdapterMediaPort,
++    },
++    stream_lifecycle::{MediaFormat, Medium},
++};
++use std::sync::atomic::AtomicU8;
++use std::time::Duration;
++use tokio_util::sync::CancellationToken;
++const NOT_STARTED: u8 = 0;
++const RUNNING: u8 = 1;
++const CLOSING: u8 = 2;
++const STOPPED: u8 = 3;
++struct Runtime {
++    state: AtomicU8,
++    cancel: CancellationToken,
++    stopped: CancellationToken,
++}
++impl Runtime {
++    fn new() -> Arc<Self> {
++        Arc::new(Self {
++            state: AtomicU8::new(NOT_STARTED),
++            cancel: CancellationToken::new(),
++            stopped: CancellationToken::new(),
++        })
++    }
++    fn stop(&self) {
++        self.state.store(STOPPED, Ordering::Release);
++        self.stopped.cancel();
++    }
++}
++struct Completion(Arc<Runtime>);
++impl Drop for Completion {
++    fn drop(&mut self) {
++        self.0.stop();
++    }
++}
++#[async_trait]
++impl MediaPortCleanup for Runtime {
++    async fn close(&self) -> ControlResult<()> {
++        self.cancel.cancel();
++        loop {
++            match self.state.load(Ordering::Acquire) {
++                NOT_STARTED => {
++                    if self
++                        .state
++                        .compare_exchange(NOT_STARTED, STOPPED, Ordering::AcqRel, Ordering::Acquire)
++                        .is_ok()
++                    {
++                        self.stopped.cancel();
++                        return Ok(());
++                    }
++                }
++                RUNNING => {
++                    let _ = self.state.compare_exchange(
++                        RUNNING,
++                        CLOSING,
++                        Ordering::AcqRel,
++                        Ordering::Acquire,
++                    );
++                }
++                STOPPED => return Ok(()),
++                CLOSING => break,
++                _ => unreachable!(),
++            }
++        }
++        tokio::time::timeout(Duration::from_secs(2), self.stopped.cancelled())
++            .await
++            .map_err(|_| StreamControlError::CleanupUnconfirmed)
++    }
++}
++struct Active {
++    port: WeakAdapterMediaPort,
++    runtime: Arc<Runtime>,
++}
++pub(crate) struct SipGuardedMedia {
++    stream: Arc<SipMediaStream>,
++    ids: (ConversationId, CoreSessionId, ConnectionId),
++    generation: u64,
++    current: Arc<dyn Fn() -> bool + Send + Sync>,
++    lifetime: CancellationToken,
++    tasks: Arc<RetainedTasks>,
++    active: Mutex<Option<Active>>,
++}
++fn codec_name(name: &str) -> String {
++    match name.to_ascii_lowercase().as_str() {
++        "pcmu" | "g.711-mu" | "g711-mu" | "g711-u" => "pcmu".into(),
++        "pcma" | "g.711-a" | "g711-a" => "pcma".into(),
++        other => other.to_owned(),
++    }
++}
++fn matches(format: &MediaFormat, codec: &CodecInfo) -> bool {
++    match format {
++        MediaFormat::Encoded {
++            name,
++            clock_rate_hz,
++            channels,
++            fmtp,
++        } => {
++            codec_name(name) == codec_name(&codec.name)
++                && *clock_rate_hz == codec.clock_rate_hz
++                && *channels == codec.channels
++                && fmtp == &codec.fmtp
++        }
++        _ => false,
++    }
++}
++impl SipGuardedMedia {
++    pub(crate) fn new(
++        stream: Arc<SipMediaStream>,
++        ids: (ConversationId, CoreSessionId, ConnectionId),
++        generation: u64,
++        current: Arc<dyn Fn() -> bool + Send + Sync>,
++        lifetime: CancellationToken,
++        tasks: Arc<RetainedTasks>,
++    ) -> Arc<Self> {
++        Arc::new(Self {
++            stream,
++            ids,
++            generation,
++            current,
++            lifetime,
++            tasks,
++            active: Mutex::new(None),
++        })
++    }
++    pub(crate) fn bind_controller(&self, controller: &Arc<StreamController>) -> ControlResult<()> {
++        let mut owner = self
++            .stream
++            .inner
++            .guarded_owner
++            .lock()
++            .map_err(|_| StreamControlError::NotReady)?;
++        if owner.is_some() {
++            return Err(StreamControlError::NotReady);
++        }
++        *owner = Some(Arc::downgrade(controller));
++        Ok(())
++    }
++}
++#[async_trait]
++impl StagedMediaAdapter for SipGuardedMedia {
++    async fn prepare(
++        &self,
++        ports: Vec<PortPreparation>,
++        deadline: tokio::time::Instant,
++        cancellation: CancellationToken,
++    ) -> ControlResult<()> {
++        if ports.len() != 1 {
++            return Err(StreamControlError::Unsupported);
++        }
++        let p = &ports[0];
++        let port = p.port.clone();
++        if !p.is_new {
++            let active = self
++                .active
++                .lock()
++                .map_err(|_| StreamControlError::NotReady)?;
++            let same = active.as_ref().is_some_and(|a| {
++                a.runtime.state.load(Ordering::Acquire) == RUNNING
++                    && a.port.upgrade().is_some_and(|old| {
++                        old.binding().transport_id == port.binding().transport_id
++                            && old.binding().generation == port.binding().generation
++                    })
++            });
++            return if same
++                && (self.current)()
++                && matches(&port.binding().negotiated.format, &self.stream.codec())
++            {
++                Ok(())
++            } else {
++                Err(StreamControlError::Unsupported)
++            };
++        }
++        let runtime = Runtime::new();
++        port.install_cleanup(runtime.clone())?;
++        if port.context_ids()? != self.ids
++            || port.binding().connection_generation != self.generation
++            || port.binding().negotiated.requested.medium != Medium::Audio
++        {
++            return Err(StreamControlError::Unsupported);
++        }
++        {
++            let mut active = self
++                .active
++                .lock()
++                .map_err(|_| StreamControlError::NotReady)?;
++            if active.is_some() {
++                return Err(StreamControlError::Unsupported);
++            }
++            *active = Some(Active {
++                port: port.downgrade(),
++                runtime: runtime.clone(),
++            });
++        }
++        let mut lifecycle = self.stream.subscribe_lifecycle();
++        loop {
++            if !(self.current)() {
++                return Err(StreamControlError::Cancelled);
++            }
++            if self.stream.source_ready()
++                && self
++                    .stream
++                    .inner
++                    .outbound_writes_activated
++                    .load(Ordering::Acquire)
++            {
++                break;
++            }
++            if matches!(
++                *lifecycle.borrow(),
++                SipMediaLifecycle::Closing | SipMediaLifecycle::Closed | SipMediaLifecycle::Failed
++            ) {
++                return Err(StreamControlError::Cancelled);
++            }
++            tokio::select! {biased;
++                _=runtime.cancel.cancelled()=>return Err(StreamControlError::Cancelled),
++                _=self.lifetime.cancelled()=>return Err(StreamControlError::Cancelled),
++                _=cancellation.cancelled()=>return Err(StreamControlError::Cancelled),
++                _=tokio::time::sleep_until(deadline)=>return Err(StreamControlError::Deadline),
++                value=lifecycle.changed()=>if value.is_err(){return Err(StreamControlError::Cancelled);},
++            }
++        }
++        let codec = self.stream.codec();
++        if !matches(&port.binding().negotiated.format, &codec) {
++            return Err(StreamControlError::Unsupported);
++        }
++        let payload_type = codec.payload_type.ok_or(StreamControlError::NotReady)?;
++        let input = self
++            .stream
++            .reserve_frames_in()
++            .map_err(|_| StreamControlError::NotReady)?;
++        let mut output = port.take_egress()?;
++        if runtime
++            .state
++            .compare_exchange(NOT_STARTED, RUNNING, Ordering::AcqRel, Ordering::Acquire)
++            .is_err()
++        {
++            return Err(StreamControlError::Cancelled);
++        }
++        let mut input = input.commit();
++        let current = self.current.clone();
++        let lifetime = self.lifetime.clone();
++        let stream = self.stream.clone();
++        let stop = runtime.clone();
++        let task_port = port.clone();
++        let complete = Completion(runtime.clone());
++        let spawned=self.tasks.spawn(async move {
++            let _complete=complete;
++            loop {
++                if stop.cancel.is_cancelled()||!current()||!matches(&task_port.binding().negotiated.format,&stream.codec()){break;}
++                tokio::select!{biased;
++                    _=stop.cancel.cancelled()=>break,
++                    _=lifetime.cancelled()=>break,
++                    value=lifecycle.changed()=>{
++                        if value.is_err()||!stream.source_ready(){break;}
++                    }
++                    value=input.recv()=>match value {
++                        Some(mut frame)=>{
++                            if !current()||!matches(&task_port.binding().negotiated.format,&stream.codec()){break;}
++                            frame.stream_id=task_port.binding().transport_id.clone();
++                            if frame.payload_type!=Some(payload_type){break;}
++                            // This goes through Core's current ingress authority;
++                            // a closed/private preparation never publishes into
++                            // the main programme merely because RTP arrived.
++                            let _=task_port.try_publish(&frame);
++                        }
++                        None=>break,
++                    },
++                    value=output.recv()=>match value {
++                        Some(packet)=>{
++                            if !current(){break;}
++                            tokio::select!{biased;
++                                _=stop.cancel.cancelled()=>break,
++                                _=lifetime.cancelled()=>break,
++                                result=stream.inner.guarded_out_tx.send(packet)=>if result.is_err(){break;},
++                            }
++                        }
++                        None=>break,
++                    },
++                }
++            }
++            let _=task_port.report_terminal();
++        });
++        if !spawned {
++            runtime.stop();
++            return Err(StreamControlError::Cancelled);
++        }
++        port.observe_ready(
++            &port.binding().negotiated.format,
++            true,
++            true,
++            Some(payload_type),
++        )?;
++        Ok(())
++    }
++}
+diff --git a/crates/sip/rvoip-sip/src/media_stream.rs b/crates/sip/rvoip-sip/src/media_stream.rs
+--- a/crates/sip/rvoip-sip/src/media_stream.rs
++++ b/crates/sip/rvoip-sip/src/media_stream.rs
+@@ -36,6 +36,8 @@
+ 
+ use crate::api::unified::UnifiedCoordinator;
+ use crate::SessionId;
++pub(crate) mod guarded;
++use rvoip_core::staged_streams::{QueuedMedia, StreamController};
+ 
+ #[cfg(feature = "amr-wb")]
+ use rvoip_media_core::codec::audio::amr::AmrAdapter;
+@@ -423,6 +425,9 @@
+     frames_in_tx: Mutex<Option<mpsc::Sender<MediaFrame>>>,
+     frames_out_tx: mpsc::Sender<MediaFrame>,
+     frames_out_rx: Mutex<Option<mpsc::Receiver<MediaFrame>>>,
++    guarded_out_tx: mpsc::Sender<QueuedMedia>,
++    guarded_out_rx: Mutex<Option<mpsc::Receiver<QueuedMedia>>>,
++    guarded_owner: Mutex<Option<Weak<StreamController>>>,
+     peer_out_tx: mpsc::Sender<PeerMediaFrame>,
+     peer_out_rx: Mutex<Option<mpsc::Receiver<PeerMediaFrame>>>,
+     bind_target: Mutex<Option<SipMediaBindTarget>>,
+@@ -630,6 +635,7 @@
+         };
+         let (frames_in_tx, frames_in_rx) = mpsc::channel::<MediaFrame>(frame_capacity);
+         let (frames_out_tx, frames_out_rx) = mpsc::channel::<MediaFrame>(frame_capacity);
++        let (guarded_out_tx, guarded_out_rx) = mpsc::channel(frame_capacity);
+         let (peer_out_tx, peer_out_rx) = mpsc::channel(frame_capacity);
+         let (cancel, _) = watch::channel(false);
+         let (codec_updates, _) = watch::channel(None);
+@@ -643,6 +649,9 @@
+                 frames_in_tx: Mutex::new(Some(frames_in_tx)),
+                 frames_out_tx,
+                 frames_out_rx: Mutex::new(Some(frames_out_rx)),
++                guarded_out_tx,
++                guarded_out_rx: Mutex::new(Some(guarded_out_rx)),
++                guarded_owner: Mutex::new(None),
+                 peer_out_tx,
+                 peer_out_rx: Mutex::new(Some(peer_out_rx)),
+                 bind_target: Mutex::new(None),
+@@ -768,8 +777,18 @@
+                         .lock()
+                         .unwrap_or_else(|poisoned| poisoned.into_inner())
+                         .take();
+-                    let (Some(frames_in_tx), Some(frames_out_rx), Some(peer_out_rx)) =
+-                        (frames_in_tx, frames_out_rx, peer_out_rx)
++                    let guarded_out_rx = self
++                        .inner
++                        .guarded_out_rx
++                        .lock()
++                        .unwrap_or_else(|v| v.into_inner())
++                        .take();
++                    let (
++                        Some(frames_in_tx),
++                        Some(frames_out_rx),
++                        Some(peer_out_rx),
++                        Some(guarded_out_rx),
++                    ) = (frames_in_tx, frames_out_rx, peer_out_rx, guarded_out_rx)
+                     else {
+                         self.inner.lifecycle.mark_failed();
+                         return Err(crate::errors::SessionError::Other(
+@@ -793,6 +812,7 @@
+                         frames_in_tx,
+                         frames_out_rx,
+                         peer_out_rx,
++                        guarded_out_rx,
+                     ));
+                     *self
+                         .inner
+@@ -861,6 +881,23 @@
+         payload_type: u8,
+     ) -> Result<CodecInfo, &'static str> {
+         let (descriptor, payload_type) = codec_descriptor(negotiated, payload_type)?;
++        let previous = self.codec();
++        if previous.payload_type.is_some()
++            && (rvoip_core::stream_lifecycle::MediaFormat::encoded(&previous)
++                != rvoip_core::stream_lifecycle::MediaFormat::encoded(&descriptor)
++                || previous.payload_type != descriptor.payload_type)
++        {
++            if let Some(owner) = self
++                .inner
++                .guarded_owner
++                .lock()
++                .unwrap_or_else(|v| v.into_inner())
++                .as_ref()
++                .and_then(Weak::upgrade)
++            {
++                owner.retire();
++            }
++        }
+         *self
+             .inner
+             .codec
+@@ -885,6 +922,11 @@
+             .frames_out_rx
+             .lock()
+             .unwrap_or_else(|poisoned| poisoned.into_inner())
++            .take();
++        self.inner
++            .guarded_out_rx
++            .lock()
++            .unwrap_or_else(|v| v.into_inner())
+             .take();
+         self.inner
+             .peer_out_rx
+@@ -966,6 +1008,11 @@
+             .unwrap_or_else(|poisoned| poisoned.into_inner())
+             .take();
+         self.inner
++            .guarded_out_rx
++            .lock()
++            .unwrap_or_else(|v| v.into_inner())
++            .take();
++        self.inner
+             .peer_out_rx
+             .lock()
+             .unwrap_or_else(|poisoned| poisoned.into_inner())
+@@ -1063,6 +1110,7 @@
+     frames_in_tx: mpsc::Sender<MediaFrame>,
+     frames_out_rx: mpsc::Receiver<MediaFrame>,
+     peer_out_rx: mpsc::Receiver<PeerMediaFrame>,
++    guarded_out_rx: mpsc::Receiver<QueuedMedia>,
+ ) {
+     let playout = coordinator.playout_policy();
+     let setup_deadline =
+@@ -1210,6 +1258,7 @@
+         codec_updates.subscribe(),
+         frames_out_rx,
+         peer_out_rx,
++        guarded_out_rx,
+     );
+     tokio::pin!(inbound, outbound);
+     let failed_pump = tokio::select! {
+@@ -1355,91 +1404,120 @@
+     }
+ }
+ 
++struct SipAudioWriter {
++    coordinator: Arc<UnifiedCoordinator>,
++    session_id: SessionId,
++    exact: Option<crate::session_registry::SessionRegistryHandle>,
++    runtime: SipMediaCodecRuntime,
++    decoder: SipPayloadCodec,
++    channels: u8,
++    clock: OutboundRtpClock,
++}
++impl SipAudioWriter {
++    fn reconfigure(&mut self, runtime: SipMediaCodecRuntime) -> Result<(), &'static str> {
++        self.decoder = SipPayloadCodec::from_negotiated(&runtime.negotiated, runtime.payload_type)
++            .map_err(|_| "sip-codec-reconfigure-failed")?;
++        self.channels = runtime.negotiated.channels.max(1);
++        self.runtime = runtime;
++        Ok(())
++    }
++    async fn write(&mut self, media_frame: MediaFrame, guarded: bool) -> Result<(), &'static str> {
++        if media_frame
++            .payload_type
++            .is_some_and(|pt| pt != self.runtime.payload_type)
++        {
++            return Err("sip-unnegotiated-payload");
++        }
++        let mut frame = self
++            .decoder
++            .decode(&media_frame.payload)
++            .map_err(|_| "sip-invalid-audio-frame")?;
++        let samples = frame.samples.len() / usize::from(self.channels.max(1));
++        frame.timestamp =
++            advance_outbound_timestamp(&mut self.clock, samples, media_frame.timestamp_rtp);
++        if guarded {
++            let exact = self.exact.as_ref().ok_or("sip-exact-writer-unavailable")?;
++            self.coordinator
++                .send_audio_exact(exact, frame)
++                .await
++                .map_err(|_| "sip-audio-send-failed")
++        } else {
++            self.coordinator
++                .send_audio(&self.session_id, frame)
++                .await
++                .map_err(|_| "sip-audio-send-failed")
++        }
++    }
++}
+ async fn run_outbound_pump(
+     coordinator: Arc<UnifiedCoordinator>,
+     session_id: SessionId,
+-    mut runtime: SipMediaCodecRuntime,
++    runtime: SipMediaCodecRuntime,
+     mut codec_updates: watch::Receiver<Option<SipMediaCodecRuntime>>,
+     mut frames_out_rx: mpsc::Receiver<MediaFrame>,
+     mut peer_out_rx: mpsc::Receiver<PeerMediaFrame>,
++    mut guarded_out_rx: mpsc::Receiver<QueuedMedia>,
+ ) -> &'static str {
+-    let mut decoder =
+-        match SipPayloadCodec::from_negotiated(&runtime.negotiated, runtime.payload_type) {
+-            Ok(codec) => codec,
+-            Err(_) => return "sip-codec-reconfigure-failed",
+-        };
+-    let mut channels = runtime.negotiated.channels.max(1);
+-    let mut outbound_clock = OutboundRtpClock::default();
++    let decoder = match SipPayloadCodec::from_negotiated(&runtime.negotiated, runtime.payload_type)
++    {
++        Ok(v) => v,
++        Err(_) => return "sip-codec-reconfigure-failed",
++    };
++    let mut writer = SipAudioWriter {
++        exact: coordinator
++            .helpers
++            .state_machine
++            .store
++            .lifecycle_handle(&session_id),
++        coordinator,
++        session_id,
++        channels: runtime.negotiated.channels.max(1),
++        runtime,
++        decoder,
++        clock: OutboundRtpClock::default(),
++    };
+     loop {
+-        // Retain actual frame delivery custody through the owned audio write.
+-        let (media_frame, _delivery_guard) = tokio::select! {
++        let (frame, _delivery_guard) = tokio::select! {
+             changed = codec_updates.changed() => {
+-                if changed.is_err() {
+-                    return "sip-codec-update-channel-closed";
++                if changed.is_err() { return "sip-codec-update-channel-closed"; }
++                let updated = codec_updates.borrow_and_update().clone();
++                if let Some(updated) = updated {
++                    if let Err(e) = writer.reconfigure(updated) { return e; }
+                 }
+-                let Some(updated) = codec_updates.borrow_and_update().clone() else {
+-                    continue;
+-                };
+-                decoder = match SipPayloadCodec::from_negotiated(
+-                    &updated.negotiated,
+-                    updated.payload_type,
+-                ) {
+-                    Ok(codec) => codec,
+-                    Err(_) => return "sip-codec-reconfigure-failed",
+-                };
+-                channels = updated.negotiated.channels.max(1);
+-                runtime = updated;
+                 continue;
+             }
++            packet = guarded_out_rx.recv() => {
++                let Some(packet) = packet else { return "guarded-outbound-producer-closed"; };
++                let mut failed = false;
++                let sending = &mut writer;
++                let fatal = &mut failed;
++                // The original guarded packet survives the bounded queue.
++                // Its fresh authority and output stamp enclose the actual
++                // decode and exact-lifetime RTP encode/send, not enqueue.
++                let _ = packet.deliver(move |frame| async move {
++                    match sending.write(frame, true).await {
++                        Ok(()) => Ok(()),
++                        Err("sip-audio-send-failed" | "sip-exact-writer-unavailable") => {
++                            *fatal = true;
++                            Err(rvoip_core::staged_streams::StreamControlError::Cancelled)
++                        }
++                        Err(_) => Err(rvoip_core::staged_streams::StreamControlError::NotReady),
++                    }
++                }).await;
++                if failed { return "sip-guarded-audio-send-failed"; }
++                continue;
++            }
+             frame = frames_out_rx.recv() => match frame {
+-                Some(frame) => (frame, None),
+-                None => return "outbound-producer-closed",
++                Some(v) => (v, None), None => return "outbound-producer-closed",
+             },
+             frame = peer_out_rx.recv() => match frame {
+-                Some(frame) => match frame.into_delivery() {
+-                    Some((frame, guard)) => (frame, Some(guard)),
+-                    None => continue,
++                Some(v) => match v.into_delivery() {
++                    Some((v, guard)) => (v, Some(guard)), None => continue,
+                 },
+                 None => return "peer-outbound-producer-closed",
+-            }
++            },
+         };
+-        // Media frames carry the selected audio codec. They cannot mint a
+-        // signaling action or invent a tone duration from payload bytes.
+-        if media_frame
+-            .payload_type
+-            .is_some_and(|actual| actual != runtime.payload_type)
+-        {
+-            tracing::trace!(
+-                target: "rvoip_sip",
+-                actual = ?media_frame.payload_type,
+-                expected = runtime.payload_type,
+-                "SipMediaStream: dropping unnegotiated payload type"
+-            );
+-            continue;
+-        }
+-        let mut audio_frame = match decoder.decode(&media_frame.payload) {
+-            Ok(frame) => frame,
+-            Err(error) => {
+-                tracing::trace!(
+-                    target: "rvoip_sip",
+-                    error = %error,
+-                    bytes = media_frame.payload.len(),
+-                    "SipMediaStream: audio decode failed; dropping frame"
+-                );
+-                continue;
+-            }
+-        };
+-        let samples_emitted = audio_frame.samples.len() / usize::from(channels.max(1));
+-        audio_frame.timestamp = advance_outbound_timestamp(
+-            &mut outbound_clock,
+-            samples_emitted,
+-            media_frame.timestamp_rtp,
+-        );
+-        if coordinator
+-            .send_audio(&session_id, audio_frame)
+-            .await
+-            .is_err()
+-        {
++        if let Err("sip-audio-send-failed") = writer.write(frame, false).await {
+             return "sip-audio-send-failed";
+         }
+     }
+diff --git a/crates/uctp/rvoip-uctp/tests/support/canonical_media/guarded_mixer/replacement/adapter/sip.rs b/crates/uctp/rvoip-uctp/tests/support/canonical_media/guarded_mixer/replacement/adapter/sip.rs
+--- a/crates/uctp/rvoip-uctp/tests/support/canonical_media/guarded_mixer/replacement/adapter/sip.rs
++++ b/crates/uctp/rvoip-uctp/tests/support/canonical_media/guarded_mixer/replacement/adapter/sip.rs
+@@ -1,7 +1,7 @@
+ //! Actual loopback SIP signaling through the reserved Core adapter hooks.
+-//! No guarded SIP media/movement or public Connect projection is claimed here.
++//! Real guarded SIP media and managed replacement, without public Connect projection.
+ use super::*;
+-use rvoip_core::adapter::ConnectionAdapter;
++use rvoip_core::adapter::{ConnectionAdapter, EndReason};
+ use rvoip_sip::{
+     api::unified::{Config as SipConfig, UnifiedCoordinator},
+     SipAdapter, SipDeviceReplacementContext, SipDeviceReplacementSignal, SipOriginateContext,
+@@ -22,7 +22,10 @@
+ }
+ struct Peer {
+     socket: Arc<UdpSocket>,
+-    _media: UdpSocket,
++    media: UdpSocket,
++    media_target: Arc<Mutex<Option<SocketAddr>>>,
++    rtp_sequence: std::sync::atomic::AtomicU16,
++    info_sequence: std::sync::atomic::AtomicU32,
+     dialog: Arc<Mutex<Option<Dialog>>>,
+     invites: Arc<Mutex<Vec<String>>>,
+     methods: Arc<Mutex<Vec<Method>>>,
+@@ -34,6 +37,8 @@
+         let address = socket.local_addr().unwrap();
+         let media = UdpSocket::bind("127.0.0.1:0").await.unwrap();
+         let media_port = media.local_addr().unwrap().port();
++        let media_target = Arc::new(Mutex::new(None));
++        let capture_target = media_target.clone();
+         let dialog = Arc::new(Mutex::new(None));
+         let invites = Arc::new(Mutex::new(Vec::new()));
+         let methods = Arc::new(Mutex::new(Vec::new()));
+@@ -63,6 +68,17 @@
+                 );
+                 if request.method() == Method::Invite {
+                     original = Some(request.clone());
++                    let port = std::str::from_utf8(&request.body)
++                        .unwrap()
++                        .lines()
++                        .find_map(|line| line.strip_prefix("m=audio "))
++                        .unwrap()
++                        .split_whitespace()
++                        .next()
++                        .unwrap()
++                        .parse::<u16>()
++                        .unwrap();
++                    *capture_target.lock().unwrap() = Some(SocketAddr::new(remote.ip(), port));
+                     seen_invites
+                         .lock()
+                         .unwrap()
+@@ -117,7 +133,10 @@
+         });
+         Self {
+             socket,
+-            _media: media,
++            media,
++            media_target,
++            rtp_sequence: std::sync::atomic::AtomicU16::new(1),
++            info_sequence: std::sync::atomic::AtomicU32::new(2),
+             dialog,
+             invites,
+             methods,
+@@ -135,6 +154,53 @@
+             .collect::<BTreeSet<_>>()
+             .len()
+     }
++    async fn rtp(&self, payload: bytes::Bytes, count: usize) {
++        let target = self.media_target.lock().unwrap().unwrap();
++        for _ in 0..count {
++            let seq = self.rtp_sequence.fetch_add(1, Ordering::Relaxed);
++            let mut packet = vec![0x80, 0];
++            packet.extend_from_slice(&seq.to_be_bytes());
++            packet.extend_from_slice(&(u32::from(seq) * 160).to_be_bytes());
++            packet.extend_from_slice(&0x12345678u32.to_be_bytes());
++            packet.extend_from_slice(&payload);
++            self.media.send_to(&packet, target).await.unwrap();
++            tokio::time::sleep(Duration::from_millis(20)).await;
++        }
++    }
++    async fn audio(&self, duration: Duration) -> (usize, usize) {
++        let deadline = tokio::time::Instant::now() + duration;
++        let mut bytes = [0u8; 4096];
++        let mut all = 0;
++        let mut marked = 0;
++        loop {
++            let Ok(Ok((n, _))) =
++                tokio::time::timeout_at(deadline, self.media.recv_from(&mut bytes)).await
++            else {
++                break;
++            };
++            let Ok(packet) = rvoip_rtp_core::RtpPacket::parse(&bytes[..n]) else {
++                continue;
++            };
++            if packet.header.payload_type != 0 {
++                continue;
++            }
++            all += 1;
++            if non_silent(&packet.payload) {
++                marked += 1;
++            }
++        }
++        (all, marked)
++    }
++    async fn bye(&self) {
++        let (remote, from, to, call_id) = {
++            let d = self.dialog.lock().unwrap();
++            let d = d.as_ref().unwrap();
++            (d.remote, d.to.clone(), d.from.clone(), d.call_id.clone())
++        };
++        let sequence = self.info_sequence.fetch_add(1, Ordering::Relaxed);
++        let wire=format!("BYE sip:replacement@{remote} SIP/2.0\r\nVia: SIP/2.0/UDP {};branch=z9hG4bK-replacement-end-{};rport\r\nMax-Forwards: 70\r\nFrom: {from}\r\nTo: {to}\r\nCall-ID: {call_id}\r\nCSeq: {sequence} BYE\r\nContent-Length: 0\r\n\r\n",self.address(),uuid::Uuid::new_v4().simple());
++        self.socket.send_to(wire.as_bytes(), remote).await.unwrap();
++    }
+     async fn digit(&self, digit: &str) {
+         let (remote, from, to, call_id) = {
+             let guard = self.dialog.lock().unwrap();
+@@ -142,7 +208,8 @@
+             (d.remote, d.to.clone(), d.from.clone(), d.call_id.clone())
+         };
+         let body = format!("Signal={digit}\r\nDuration=160\r\n");
+-        let message=format!("INFO sip:replacement@{remote} SIP/2.0\r\nVia: SIP/2.0/UDP {};branch=z9hG4bK-replacement-{};rport\r\nMax-Forwards: 70\r\nFrom: {from}\r\nTo: {to}\r\nCall-ID: {call_id}\r\nCSeq: 2 INFO\r\nContent-Type: application/dtmf-relay\r\nContent-Length: {}\r\n\r\n{body}",self.address(),uuid::Uuid::new_v4().simple(),body.len());
++        let sequence = self.info_sequence.fetch_add(1, Ordering::Relaxed);
++        let message=format!("INFO sip:replacement@{remote} SIP/2.0\r\nVia: SIP/2.0/UDP {};branch=z9hG4bK-replacement-{};rport\r\nMax-Forwards: 70\r\nFrom: {from}\r\nTo: {to}\r\nCall-ID: {call_id}\r\nCSeq: {sequence} INFO\r\nContent-Type: application/dtmf-relay\r\nContent-Length: {}\r\n\r\n{body}",self.address(),uuid::Uuid::new_v4().simple(),body.len());
+         self.socket
+             .send_to(message.as_bytes(), remote)
+             .await
+@@ -164,6 +231,9 @@
+ }
+ impl Candidate {
+     async fn new(s: &Scene, peer: &Peer) -> Self {
++        Self::new_target(s, peer, None).await
++    }
++    async fn new_target(s: &Scene, peer: &Peer, expires: Option<chrono::DateTime<Utc>>) -> Self {
+         let old = s.grants.0.read().await.owners[&s.live[0].leg.id].clone();
+         let principal = named_actor("alice");
+         let identity = IdentityBinding::from_authenticated(
+@@ -240,11 +310,15 @@
+                     proof: None,
+                 },
+             );
++        let mut target_principal = principal.clone();
++        if let Some(expires) = expires {
++            target_principal.expires_at = Some(expires);
++        }
+         let context = adapter
+             .device_replacement_context(
+                 &s.core.orch,
+                 &pending,
+-                principal.clone(),
++                target_principal,
+                 endpoint,
+                 SipOriginateContext::default(),
+             )
+@@ -282,6 +356,80 @@
+             principal,
+         }
+     }
++    async fn media(&self, s: &Scene) -> Arc<StreamController> {
++        let media = s.replacement_media.as_ref().unwrap().clone();
++        let g = grant(
++            s,
++            self.pending.intent(),
++            &self.principal,
++            Approval::Resources,
++        )
++        .await;
++        let controller = self
++            .context
++            .prepare_media_controller(media.clone(), 4, &g)
++            .unwrap();
++        assert!(self.context.prepare_media_controller(media, 4, &g).is_err());
++        assert!(Arc::ptr_eq(
++            &controller,
++            &self
++                .adapter
++                .staged_controller(&self.pending.intent().replacement)
++                .unwrap()
++        ));
++        assert!(self
++            .adapter
++            .staged_media(&self.pending.intent().replacement)
++            .is_some());
++        controller
++            .change_with_held(
++                0,
++                &[desired(Medium::Audio)],
++                &BTreeSet::new(),
++                deadline(),
++                CancellationToken::new(),
++                Arc::new(g.clone()),
++            )
++            .await
++            .unwrap();
++        controller
++            .set_media_gate_with_held(
++                controller.revision(),
++                &BTreeSet::from([desired(Medium::Audio).logical_id]),
++                StreamGateAction::Mute,
++                deadline(),
++                Arc::new(g.clone()),
++            )
++            .await
++            .unwrap();
++        drop(g);
++        let g = grant(s, self.pending.intent(), &self.principal, Approval::Attach).await;
++        s.core
++            .orch
++            .attach_staged_device_replacement_with_held(&self.pending, None, &g)
++            .await
++            .unwrap();
++        drop(g);
++        let plan = s
++            .core
++            .orch
++            .plan_staged_device_replacement_activation(&self.pending)
++            .unwrap();
++        let g = grant(
++            s,
++            self.pending.intent(),
++            &self.principal,
++            Approval::Audience(plan.clone()),
++        )
++        .await;
++        s.core
++            .orch
++            .activate_staged_device_replacement_with_held(&self.pending, plan, &g)
++            .await
++            .unwrap();
++        drop(g);
++        controller
++    }
+     async fn signal(&mut self, s: &Scene) -> Observation {
+         let signal = tokio::time::timeout(Duration::from_secs(3), self.signals.recv())
+             .await
+@@ -452,3 +600,351 @@
+     s.tone(1, 0).await;
+     s.stop().await;
+ }
++
++fn non_silent(payload: &[u8]) -> bool {
++    let mut codec =
++        rvoip_media_core::codec::factory::CodecFactory::create_codec(0, Some(8000), Some(1))
++            .unwrap();
++    codec
++        .decode(payload)
++        .unwrap()
++        .samples
++        .iter()
++        .any(|x| x.unsigned_abs() > 500)
++}
++fn marked_audio() -> bytes::Bytes {
++    use rvoip_media_core::{codec::factory::CodecFactory, AudioFrame};
++    CodecFactory::create_codec(0, Some(8000), Some(1))
++        .unwrap()
++        .encode(&AudioFrame {
++            samples: (0..160)
++                .map(|i| {
++                    ((i as f32 * std::f32::consts::TAU * 440.0 / 8000.0).sin() * 6000.0) as i16
++                })
++                .collect(),
++            sample_rate: 8000,
++            channels: 1,
++            duration: Duration::from_millis(20),
++            timestamp: 0,
++        })
++        .unwrap()
++        .into()
++}
++async fn native_audio(wire: &Wire, duration: Duration) -> usize {
++    let deadline = tokio::time::Instant::now() + duration;
++    let mut marked = 0;
++    while let Ok(packet) = tokio::time::timeout_at(deadline, received(wire)).await {
++        if non_silent(&packet.rtp.packet().payload) {
++            marked += 1;
++        }
++    }
++    marked
++}
++async fn native_rtp(wire: &Wire, id: u16, start: u16, count: usize) {
++    for i in 0..count {
++        let seq = start.wrapping_add(i as u16);
++        send(
++            wire,
++            pack_rtp_datagram(&RtpDatagram {
++                flags: 0,
++                stream_local_id: id,
++                seq: seq.into(),
++                rtp: RtpMediaPayload {
++                    payload: marked_audio(),
++                    payload_type: 0,
++                    sequence_number: seq,
++                    timestamp: u32::from(seq) * 160,
++                    ssrc: 7,
++                },
++            })
++            .unwrap(),
++        );
++        tokio::time::sleep(Duration::from_millis(20)).await;
++    }
++}
++#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
++async fn actual_sip_guarded_duplex_and_confirmation_move_audio_once_without_exposing_preparation() {
++    let s = Scene::new_replacement("quic").await;
++    let peer = Peer::new(true).await;
++    let mut c = Candidate::new(&s, &peer).await;
++    let g = grant(&s, c.pending.intent(), &c.principal, Approval::Start).await;
++    s.core
++        .orch
++        .start_adapter_device_replacement_with_held(&c.pending, &g)
++        .await
++        .unwrap();
++    drop(g);
++    assert_eq!(c.signal(&s).await, Observation::Answered);
++    core_fixture::until(|| peer.methods.lock().unwrap().contains(&Method::Ack)).await;
++    s.tone(0, 1).await;
++    s.tone(1, 0).await;
++    let controller = c.media(&s).await;
++    assert!(c
++        .adapter
++        .renegotiate_media(
++            c.pending.intent().replacement.clone(),
++            rvoip_core::capability::CapabilityDescriptor::default()
++        )
++        .await
++        .is_err());
++    assert_eq!(peer.invites.lock().unwrap().len(), 1);
++    let silence = MediaFrame {
++        stream_id: controller.active_bindings()[0].transport_id.clone(),
++        kind: StreamKind::Audio,
++        payload: bytes::Bytes::from(vec![0xff; 160]),
++        timestamp_rtp: 160,
++        source_clock: None,
++        captured_at: Utc::now(),
++        payload_type: Some(0),
++    };
++    controller
++        .try_queue_local_audio(
++            &desired(Medium::Audio).logical_id,
++            silence,
++            LocalAudioPurpose::EndpointPreparation {
++                operation_id: c.pending.intent().operation_id.clone(),
++            },
++        )
++        .unwrap();
++    let (written, private_marked) = peer.audio(Duration::from_millis(300)).await;
++    assert!(written > 0, "actual guarded private RTP output");
++    assert_eq!(private_marked, 0);
++    peer.digit("5").await;
++    assert_eq!(
++        c.signal(&s).await,
++        Observation::BeforeAnswerOrMedia,
++        "output alone is not actual duplex input"
++    );
++    let (_, leaked) = tokio::join!(
++        peer.rtp(marked_audio(), 30),
++        native_audio(&s.live[1].wire, Duration::from_millis(900))
++    );
++    assert_eq!(
++        leaked, 0,
++        "provisional SIP input reached main native audience"
++    );
++    peer.digit("9").await;
++    assert_eq!(c.signal(&s).await, Observation::IncorrectDigits);
++    peer.digit("5").await;
++    assert_eq!(c.signal(&s).await, Observation::Confirmed);
++    let plan = s
++        .core
++        .orch
++        .plan_staged_device_replacement(&c.pending)
++        .unwrap();
++    let g = grant(
++        &s,
++        c.pending.intent(),
++        &c.principal,
++        Approval::Commit(plan.clone()),
++    )
++    .await;
++    let (outcome, _) = s
++        .core
++        .orch
++        .commit_staged_device_replacement_with_held(plan, &g)
++        .await
++        .unwrap();
++    drop(g);
++    assert_eq!(
++        outcome
++            .media
++            .participant_replacement
++            .as_ref()
++            .unwrap()
++            .generation,
++        2
++    );
++    assert!(!c.pending.cancel());
++    assert_eq!(peer.calls(), 1);
++    s.live[0].wire.server.shutdown().await.unwrap();
++    let (_, heard) = tokio::join!(
++        peer.rtp(marked_audio(), 30),
++        native_audio(&s.live[1].wire, Duration::from_millis(900))
++    );
++    assert!(heard > 10, "actual SIP-to-native decoded output: {heard}");
++    let (_, (_, heard)) = tokio::join!(
++        native_rtp(
++            &s.live[1].wire,
++            binding(&s.live[1].leg, Medium::Audio).stream_local_id,
++            2,
++            30
++        ),
++        peer.audio(Duration::from_millis(900))
++    );
++    assert!(heard > 10, "actual native-to-SIP decoded output: {heard}");
++    assert!(c
++        .adapter
++        .is_connection_live(&c.pending.intent().replacement));
++    s.core
++        .orch
++        .end_connection(c.pending.intent().replacement.clone(), EndReason::Normal)
++        .await
++        .unwrap();
++    assert_eq!(
++        controller
++            .shutdown(tokio::time::Instant::now() + Duration::from_secs(3))
++            .await,
++        0
++    );
++    c.adapter.drain().await.unwrap();
++    c.coordinator
++        .shutdown_gracefully(Some(Duration::from_secs(3)))
++        .await
++        .unwrap();
++    assert_eq!(peer.calls(), 1);
++    s.stop().await;
++    eprintln!("actual SIP guarded media passed: real RTP private output/input, no pre-confirmation main leakage, wrong/correct attributed DTMF, one generation2 move, retained native duplex after old-device loss");
++}
++
++#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
++async fn actual_sip_guarded_preparation_cancel_and_remote_eof_keep_original_audio_and_release_ports(
++) {
++    for mode in ["cancel", "remote-eof"] {
++        let s = Scene::new_replacement("quic").await;
++        let peer = Peer::new(true).await;
++        let mut c = Candidate::new(&s, &peer).await;
++        let g = grant(&s, c.pending.intent(), &c.principal, Approval::Start).await;
++        s.core
++            .orch
++            .start_adapter_device_replacement_with_held(&c.pending, &g)
++            .await
++            .unwrap();
++        drop(g);
++        assert_eq!(c.signal(&s).await, Observation::Answered);
++        let controller = c.media(&s).await;
++        let (_, leaked) = tokio::join!(
++            peer.rtp(marked_audio(), 20),
++            native_audio(&s.live[1].wire, Duration::from_millis(700))
++        );
++        assert_eq!(leaked, 0);
++        assert!(s
++            .core
++            .orch
++            .plan_staged_device_replacement(&c.pending)
++            .is_err());
++        if mode == "remote-eof" {
++            peer.bye().await;
++            tokio::time::timeout(Duration::from_secs(3), c.pending.cancellation().cancelled())
++                .await
++                .unwrap();
++            c.stop(&peer, None).await;
++        } else {
++            c.stop(&peer, Some(Method::Bye)).await;
++        }
++        assert_eq!(
++            controller
++                .shutdown(tokio::time::Instant::now() + Duration::from_secs(3))
++                .await,
++            0
++        );
++        assert_eq!(c.coordinator.allocated_media_port_count().await, 0);
++        assert_eq!(peer.calls(), 1);
++        s.tone(0, 1).await;
++        s.tone(1, 0).await;
++        s.stop().await;
++    }
++}
++
++#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
++async fn actual_sip_expired_target_principal_refuses_start_without_faking_route_absence_or_dialing()
++{
++    let s = Scene::new_replacement("quic").await;
++    let peer = Peer::new(true).await;
++    let expires = Utc::now() + chrono::Duration::seconds(2);
++    let c = Candidate::new_target(&s, &peer, Some(expires)).await;
++    tokio::time::sleep(
++        (expires - Utc::now()).to_std().unwrap_or_default() + Duration::from_millis(20),
++    )
++    .await;
++    assert!(
++        c.adapter
++            .is_connection_live(&c.pending.intent().replacement),
++        "authorization expiry is not physical absence"
++    );
++    let g = grant(&s, c.pending.intent(), &c.principal, Approval::Start).await;
++    assert!(s
++        .core
++        .orch
++        .start_adapter_device_replacement_with_held(&c.pending, &g)
++        .await
++        .is_err());
++    drop(g);
++    core_fixture::until(|| {
++        !c.adapter
++            .is_connection_live(&c.pending.intent().replacement)
++    })
++    .await;
++    assert!(peer.methods.lock().unwrap().is_empty());
++    assert_eq!(peer.calls(), 0);
++    c.stop(&peer, None).await;
++    s.tone(0, 1).await;
++    s.tone(1, 0).await;
++    s.stop().await;
++}
++
++#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
++async fn actual_sip_ordinary_stream_duplex_survives_guarded_driver_integration() {
++    let peer = Peer::new(true).await;
++    let coordinator = UnifiedCoordinator::new(SipConfig::local("ordinary-uac", 0))
++        .await
++        .unwrap();
++    let adapter = SipAdapter::new(coordinator.clone()).await.unwrap();
++    let request = rvoip_core::adapter::OriginateRequest::new(
++        rvoip_core::ids::SessionId::new(),
++        rvoip_core::ids::ParticipantId::new(),
++        format!("sip:peer@{}", peer.address()),
++        rvoip_core::connection::Direction::Outbound,
++        rvoip_core::capability::CapabilityDescriptor::default(),
++    )
++    .with_transport(Transport::Sip);
++    let handle = adapter.originate(request).await.unwrap();
++    let id = handle.connection.id.clone();
++    let streams = adapter.streams(id.clone()).await.unwrap();
++    assert_eq!(streams.len(), 1);
++    let stream = streams[0].clone();
++    let mut input = stream.try_frames_in().unwrap();
++    adapter.activate_outbound(id.clone()).await.unwrap();
++    core_fixture::until(|| stream.source_ready()).await;
++    core_fixture::until(|| peer.methods.lock().unwrap().contains(&Method::Ack)).await;
++    let (_, heard) = tokio::join!(peer.rtp(marked_audio(), 30), async {
++        let until = tokio::time::Instant::now() + Duration::from_millis(900);
++        let mut heard = 0;
++        while let Ok(Some(frame)) = tokio::time::timeout_at(until, input.recv()).await {
++            if frame.payload_type == Some(0) && non_silent(&frame.payload) {
++                heard += 1;
++            }
++        }
++        heard
++    });
++    assert!(heard > 10, "ordinary SIP decoded input: {heard}");
++    let sender = stream.frames_out();
++    let (_, (_, heard)) = tokio::join!(
++        async {
++            for seq in 1..=30 {
++                sender
++                    .send(MediaFrame {
++                        stream_id: stream.id(),
++                        kind: StreamKind::Audio,
++                        payload: marked_audio(),
++                        timestamp_rtp: seq * 160,
++                        source_clock: None,
++                        captured_at: Utc::now(),
++                        payload_type: Some(0),
++                    })
++                    .await
++                    .unwrap();
++                tokio::time::sleep(Duration::from_millis(20)).await;
++            }
++        },
++        peer.audio(Duration::from_millis(900))
++    );
++    assert!(heard > 10, "ordinary SIP decoded output: {heard}");
++    adapter.end(id, EndReason::Normal).await.unwrap();
++    adapter.drain().await.unwrap();
++    coordinator
++        .shutdown_gracefully(Some(Duration::from_secs(3)))
++        .await
++        .unwrap();
++    assert_eq!(peer.calls(), 1);
++}

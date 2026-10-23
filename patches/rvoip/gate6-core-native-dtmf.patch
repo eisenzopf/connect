@@ -1,0 +1,1993 @@
+diff --git a/crates/foundation/rvoip-core/src/adapter.rs b/crates/foundation/rvoip-core/src/adapter.rs
+--- a/crates/foundation/rvoip-core/src/adapter.rs
++++ b/crates/foundation/rvoip-core/src/adapter.rs
+@@ -631,6 +631,20 @@
+         Err(crate::dtmf::DtmfWriteError::Unsupported)
+     }
+ 
++    /// Whole-intent native signal delivery through its authenticated writer.
++    /// The requested gateway method is not the physical native wire format.
++    async fn send_dtmf_native_authorized(
++        &self,
++        _conn: ConnectionId,
++        _intent: crate::dtmf::DtmfIntent,
++        _observation: crate::dtmf::DtmfSourceObservation,
++        _policy: Arc<dyn crate::dtmf::DtmfNativeWriteAuthority>,
++        _deadline: tokio::time::Instant,
++        _cancel: tokio_util::sync::CancellationToken,
++    ) -> std::result::Result<(), crate::dtmf::DtmfWriteError> {
++        Err(crate::dtmf::DtmfWriteError::Unsupported)
++    }
++
+     /// Install an application-selected codec policy before answering an inbound
+     /// connection. Implementations must bind it to that exact connection lifetime,
+     /// never to a listener or another call. Unsupported transports fail closed.
+diff --git a/crates/foundation/rvoip-core/src/dtmf.rs b/crates/foundation/rvoip-core/src/dtmf.rs
+--- a/crates/foundation/rvoip-core/src/dtmf.rs
++++ b/crates/foundation/rvoip-core/src/dtmf.rs
+@@ -18,3 +18,123 @@
+ pub use rvoip_media_core::dtmf_authority::{
+     with_dtmf_write_lease, DtmfInfoWriteAuthority, DtmfInfoWriteScope,
+ };
++
++/// Actual source provenance is separate from the requested gateway method.
++#[derive(Clone, Copy, Debug, PartialEq, Eq)]
++pub enum DtmfSourceKind {
++    Application,
++    Native,
++    SipInfo,
++    SipRfc4733,
++    WebRtcRfc4733,
++}
++impl DtmfSourceKind {
++    pub fn as_str(self) -> &'static str {
++        match self {
++            Self::Application => "application",
++            Self::Native => "uctp-native",
++            Self::SipInfo => "sip-info",
++            Self::SipRfc4733 => "rfc4733",
++            Self::WebRtcRfc4733 => "webrtc-rfc4733",
++        }
++    }
++}
++/// Trusted ingress metadata, never a permission grant. Native/SIP/WebRTC
++/// adapters must derive this from actual accepted input, not payload claims.
++#[derive(Clone, PartialEq, Eq)]
++pub struct DtmfSourceObservation {
++    kind: DtmfSourceKind,
++    id: Option<String>,
++    received_at: chrono::DateTime<chrono::Utc>,
++}
++impl std::fmt::Debug for DtmfSourceObservation {
++    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
++        f.write_str("DtmfSourceObservation(redacted)")
++    }
++}
++impl DtmfSourceObservation {
++    pub(crate) fn command() -> Self {
++        Self {
++            kind: DtmfSourceKind::Application,
++            id: None,
++            received_at: chrono::Utc::now(),
++        }
++    }
++    pub fn observed(
++        kind: DtmfSourceKind,
++        id: String,
++        received_at: chrono::DateTime<chrono::Utc>,
++    ) -> Result<Self, DtmfWriteError> {
++        if kind == DtmfSourceKind::Application
++            || id.is_empty()
++            || id.len() > 128
++            || id.chars().any(char::is_control)
++        {
++            return Err(DtmfWriteError::Refused);
++        }
++        Ok(Self {
++            kind,
++            id: Some(id),
++            received_at,
++        })
++    }
++    pub fn kind(&self) -> DtmfSourceKind {
++        self.kind
++    }
++    pub fn observation_id(&self) -> Option<&str> {
++        self.id.as_deref()
++    }
++    pub fn received_at(&self) -> chrono::DateTime<chrono::Utc> {
++        self.received_at
++    }
++}
++/// Sealed target registration facts. These are actual native metadata, never
++/// RTP/INFO stand-ins or a cached recipient grant.
++#[derive(Clone)]
++pub struct DtmfNativeRecipient {
++    pub conversation: crate::ids::ConversationId,
++    pub session: crate::ids::SessionId,
++    pub connection: crate::ids::ConnectionId,
++    pub participant: crate::ids::ParticipantId,
++    pub transport: crate::connection::Transport,
++    pub principal: crate::identity::AuthenticatedPrincipal,
++    pub identity: crate::ids::IdentityId,
++    pub endpoint: crate::ids::EndpointId,
++    pub device: crate::ids::DeviceId,
++    pub membership_epoch: u64,
++    pub physical_incarnation: uuid::Uuid,
++    pub signing_key_id: String,
++    pub signing_algorithm: String,
++    pub wire_conversation: String,
++    pub wire_session: String,
++    pub wire_connection: String,
++    pub stream_revision: u64,
++    pub credential_revision: u64,
++    pub audio_bindings: Vec<crate::stream_lifecycle::ReadyMediaBinding>,
++}
++impl std::fmt::Debug for DtmfNativeRecipient {
++    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
++        f.write_str("DtmfNativeRecipient(redacted)")
++    }
++}
++pub struct DtmfNativeWriteScope<'a> {
++    pub intent: &'a DtmfIntent,
++    pub observation: &'a DtmfSourceObservation,
++    pub recipient: &'a DtmfNativeRecipient,
++    /// Actual signed envelope bytes passed to the sole physical writer.
++    pub wire_envelope: &'a [u8],
++}
++impl std::fmt::Debug for DtmfNativeWriteScope<'_> {
++    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
++        f.write_str("DtmfNativeWriteScope(redacted)")
++    }
++}
++#[async_trait::async_trait]
++pub trait DtmfNativeWriteAuthority: Send + Sync {
++    async fn acquire_native(
++        &self,
++        _scope: &DtmfNativeWriteScope<'_>,
++    ) -> Result<DtmfWriteLease, DtmfWriteError> {
++        Err(DtmfWriteError::Refused)
++    }
++}
+diff --git a/crates/foundation/rvoip-core/src/orchestrator/dtmf_routing.rs b/crates/foundation/rvoip-core/src/orchestrator/dtmf_routing.rs
+--- a/crates/foundation/rvoip-core/src/orchestrator/dtmf_routing.rs
++++ b/crates/foundation/rvoip-core/src/orchestrator/dtmf_routing.rs
+@@ -3,6 +3,7 @@
+ use super::*;
+ use crate::dtmf::{
+     validate_dtmf_sequence, DtmfInfoWriteAuthority, DtmfInfoWriteScope, DtmfIoFence, DtmfIoPoll,
++    DtmfNativeWriteAuthority, DtmfNativeWriteScope, DtmfSourceKind, DtmfSourceObservation,
+     DtmfWriteAuthority, DtmfWriteError, DtmfWriteLease, DtmfWriteScope,
+     DEFAULT_DTMF_INTER_DIGIT_MS, MAX_DTMF_SEQUENCE_MS,
+ };
+@@ -108,6 +109,7 @@
+     pub source: &'a DtmfEndpoint,
+     pub recipient: &'a DtmfEndpoint,
+     pub intent: &'a DtmfIntent,
++    pub observation: &'a DtmfSourceObservation,
+ }
+ /// A physical source fence, never independent permission. Native composition
+ /// retains its actual sealed origin here, without retaining an idle grant.
+@@ -143,6 +145,13 @@
+     ) -> std::result::Result<DtmfWriteLease, DtmfWriteError> {
+         Err(DtmfWriteError::Refused)
+     }
++    async fn acquire_native(
++        &self,
++        _route: &DtmfRouteScope<'_>,
++        _native: &DtmfNativeWriteScope<'_>,
++    ) -> std::result::Result<DtmfWriteLease, DtmfWriteError> {
++        Err(DtmfWriteError::Refused)
++    }
+     async fn acquire_info(
+         &self,
+         _route: &DtmfRouteScope<'_>,
+@@ -160,6 +169,7 @@
+     endpoints: [DtmfEndpoint; 2],
+     tickets: Vec<ConnectionLifecycleTicket>,
+     intent: DtmfIntent,
++    observation: DtmfSourceObservation,
+     source_fences: Vec<Arc<dyn DtmfSourceFence>>,
+     slot: Arc<Semaphore>,
+ }
+@@ -177,6 +187,32 @@
+     }
+     pub fn intent(&self) -> &DtmfIntent {
+         &self.intent
++    }
++    pub fn observation(&self) -> &DtmfSourceObservation {
++        &self.observation
++    }
++    /// Trusted ingress composition only. Metadata cannot replace source IO
++    /// custody or independent current signal authority.
++    pub fn with_source_observation(
++        mut self,
++        observation: DtmfSourceObservation,
++    ) -> std::result::Result<Self, DtmfWriteError> {
++        let matches = match observation.kind() {
++            DtmfSourceKind::Application => false,
++            DtmfSourceKind::Native => matches!(
++                self.source().transport,
++                Transport::Quic | Transport::WebTransport
++            ),
++            DtmfSourceKind::SipInfo | DtmfSourceKind::SipRfc4733 => {
++                self.source().transport == Transport::Sip
++            }
++            DtmfSourceKind::WebRtcRfc4733 => self.source().transport == Transport::WebRtc,
++        };
++        if !matches || self.source_fences.is_empty() {
++            return Err(DtmfWriteError::Refused);
++        }
++        self.observation = observation;
++        Ok(self)
+     }
+     pub fn with_source_fence(
+         mut self,
+@@ -360,6 +396,7 @@
+             source: self.route.source(),
+             recipient: self.route.recipient(),
+             intent: self.route.intent(),
++            observation: self.route.observation(),
+         };
+         let lease = self.host.acquire(&scope, packet).await?;
+         let route = self.route.clone();
+@@ -398,8 +435,54 @@
+             source: self.route.source(),
+             recipient: self.route.recipient(),
+             intent: self.route.intent(),
++            observation: self.route.observation(),
+         };
+         let lease = self.host.acquire_info(&scope, packet).await?;
++        let route = self.route.clone();
++        let token = self.cancel.clone();
++        let deadline = self.deadline;
++        lease
++            .restrict((), move || {
++                !token.is_cancelled() && Instant::now() < deadline && route.may_still_be_current()
++            })
++            .with_fence(Arc::new(IoFence {
++                route: self.route.clone(),
++                submitted: self.submitted.clone(),
++                deadline: self.deadline,
++                cancel: self.cancel.clone(),
++            }))
++    }
++}
++#[async_trait::async_trait]
++impl DtmfNativeWriteAuthority for WritePolicy {
++    async fn acquire_native(
++        &self,
++        native: &DtmfNativeWriteScope<'_>,
++    ) -> std::result::Result<DtmfWriteLease, DtmfWriteError> {
++        let target = self.route.recipient();
++        let actual = native.recipient;
++        if self.cancel.is_cancelled()
++            || Instant::now() >= self.deadline
++            || native.intent != self.route.intent()
++            || native.observation != self.route.observation()
++            || actual.connection != target.connection
++            || actual.session != target.session
++            || actual.conversation != target.conversation
++            || actual.participant != target.participant
++            || actual.transport != target.transport
++            || !matches!(actual.transport, Transport::Quic | Transport::WebTransport)
++            || native.wire_envelope.is_empty()
++        {
++            return Err(DtmfWriteError::Refused);
++        }
++        self.route.wait_current(&self.cancel, self.deadline).await?;
++        let scope = DtmfRouteScope {
++            source: self.route.source(),
++            recipient: target,
++            intent: self.route.intent(),
++            observation: self.route.observation(),
++        };
++        let lease = self.host.acquire_native(&scope, native).await?;
+         let route = self.route.clone();
+         let token = self.cancel.clone();
+         let deadline = self.deadline;
+@@ -504,6 +587,7 @@
+             endpoints: [source, recipient],
+             tickets,
+             intent,
++            observation: DtmfSourceObservation::command(),
+             source_fences: vec![],
+             slot,
+         })
+@@ -555,20 +639,34 @@
+         let adapter = self
+             .adapter(route.recipient().transport)
+             .map_err(|_| DtmfWriteError::Unsupported)?;
+-        let mut send = match route.intent.method {
+-            DtmfMethod::Rfc4733 => adapter.send_dtmf_authorized(
++        let mut send = if matches!(
++            route.recipient().transport,
++            Transport::Quic | Transport::WebTransport | Transport::WebSocket
++        ) {
++            adapter.send_dtmf_native_authorized(
+                 route.recipient().connection.clone(),
+-                &route.intent.digits,
+-                route.intent.duration_ms,
+-                policy,
+-            ),
+-            DtmfMethod::Info => adapter.send_dtmf_info_authorized(
+-                route.recipient().connection.clone(),
+-                &route.intent.digits,
+-                route.intent.duration_ms,
++                route.intent.clone(),
++                route.observation.clone(),
+                 policy,
+                 deadline,
+-            ),
++                cancel.clone(),
++            )
++        } else {
++            match route.intent.method {
++                DtmfMethod::Rfc4733 => adapter.send_dtmf_authorized(
++                    route.recipient().connection.clone(),
++                    &route.intent.digits,
++                    route.intent.duration_ms,
++                    policy,
++                ),
++                DtmfMethod::Info => adapter.send_dtmf_info_authorized(
++                    route.recipient().connection.clone(),
++                    &route.intent.digits,
++                    route.intent.duration_ms,
++                    policy,
++                    deadline,
++                ),
++            }
+         };
+         let mut probe = tokio::time::interval(Duration::from_millis(5));
+         probe.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Skip);
+diff --git a/crates/media/media-core/src/dtmf_authority.rs b/crates/media/media-core/src/dtmf_authority.rs
+--- a/crates/media/media-core/src/dtmf_authority.rs
++++ b/crates/media/media-core/src/dtmf_authority.rs
+@@ -112,6 +112,18 @@
+             return Err(DtmfWriteError::Refused);
+         }
+         self.fences.push(fence);
++        Ok(self)
++    }
++    /// Add physical metadata custody outside existing source/host fences.
++    /// This cannot widen permission or extend the original lease deadline.
++    pub fn with_outer_fence(
++        mut self,
++        fence: std::sync::Arc<dyn DtmfIoFence>,
++    ) -> Result<Self, DtmfWriteError> {
++        if self.fences.len() >= 8 {
++            return Err(DtmfWriteError::Unsupported);
++        }
++        self.fences.insert(0, fence);
+         Ok(self)
+     }
+     fn valid(&self) -> bool {
+diff --git a/crates/uctp/rvoip-uctp/src/v2/auth_dispatch/lifecycle.rs b/crates/uctp/rvoip-uctp/src/v2/auth_dispatch/lifecycle.rs
+--- a/crates/uctp/rvoip-uctp/src/v2/auth_dispatch/lifecycle.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/auth_dispatch/lifecycle.rs
+@@ -55,11 +55,37 @@
+         self.route.retire();
+     }
+ }
++pub(in crate::v2) enum NativeWrite {
++    Lifecycle(PendingAnswer),
++    Signal(crate::v2::native_dtmf_writer::PendingSignal),
++}
+ pub(in crate::v2) struct NativePending {
+-    pub answer: PendingAnswer,
++    pub write: NativeWrite,
+     pub origin: NativeLifecycleOrigin,
+ }
+ impl HandlerDelivery {
++    pub(in crate::v2) fn native_signal(
++        origin: NativeLifecycleOrigin,
++        frame: Envelope,
++        pending: crate::v2::native_dtmf_writer::PendingSignal,
++        deadline: Instant,
++    ) -> Result<Self, DispatchError> {
++        if !origin.ready() || !origin.current() || frame.kind() != "dtmf.received" {
++            return Err(DispatchError::Authority);
++        }
++        Ok(Self {
++            origin: DeliveryOrigin::NativeLifecycle(origin.clone()),
++            frames: Some(HandlerReplies::new(vec![frame])?),
++            authority: None,
++            completion: None,
++            data: None,
++            native: Some(NativePending {
++                write: NativeWrite::Signal(pending),
++                origin,
++            }),
++            deadline,
++        })
++    }
+     pub(in crate::v2) fn native_lifecycle(
+         origin: NativeLifecycleOrigin,
+         frame: Envelope,
+@@ -88,11 +114,11 @@
+             completion: None,
+             data: None,
+             native: Some(NativePending {
+-                answer: PendingAnswer {
++                write: NativeWrite::Lifecycle(PendingAnswer {
+                     cancel_on_drop: true,
+                     permit,
+                     completion: Some(completion),
+-                },
++                }),
+                 origin,
+             }),
+             deadline,
+diff --git a/crates/uctp/rvoip-uctp/src/v2/auth_peer/exchange.rs b/crates/uctp/rvoip-uctp/src/v2/auth_peer/exchange.rs
+--- a/crates/uctp/rvoip-uctp/src/v2/auth_peer/exchange.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/auth_peer/exchange.rs
+@@ -383,6 +383,10 @@
+     data: Option<DataPending>,
+     answer: Option<PendingAnswer>,
+     native_fence: Option<Arc<dyn super::super::auth_dispatch::lifecycle::NativeLifecycleFence>>,
++    native_signal: Option<(
++        crate::v2::native_dtmf_writer::PendingSignal,
++        crate::v2::auth_dispatch::lifecycle::NativeLifecycleOrigin,
++    )>,
+ }
+ // A sink may own its in-progress IO future after SinkExt::send is dropped.
+ // On cancellation/future drop, destroy that sink before releasing authority.
+@@ -402,6 +406,23 @@
+ ) -> Result<(), DispatchError> {
+     let mut writer = Some(writer);
+     while let Some(mut job) = incoming.recv().await {
++        if let Some((signal, origin)) = job.native_signal.take() {
++            if job.output.envelopes().len() != 1 {
++                return Err(DispatchError::Authority);
++            }
++            crate::v2::native_dtmf_writer::write(
++                &mut writer,
++                &job.output.envelopes()[0],
++                signal,
++                &origin,
++                &job.lifetime,
++                job.authority.as_ref(),
++                &stop,
++                job.deadline,
++            )
++            .await?;
++            continue;
++        }
+         if let Some(answer) = job.answer.take() {
+             write_answer(&mut writer, &mut job, answer, &stop).await?;
+             continue;
+@@ -728,6 +749,7 @@
+         data: None,
+         answer: None,
+         native_fence: None,
++        native_signal: None,
+     }
+ }
+ struct RetainedOutbound {
+@@ -937,7 +959,7 @@
+                 let frames=frames.into_envelopes().into_iter().map(|frame|signed(&config,frame.original().clone())).collect::<Result<Vec<_>,_>>()?;
+                 let mut send=job(output(frames,lease),submission_deadline.min(view.deadline),&physical,view.authority.clone(),Some(slot));
+                 send.cancel=Some(origin.cancellation());send.delivery=done;send.data=data;
+-                if let Some(native)=native{send.native_fence=Some(Arc::new(native.origin));send.answer=Some(native.answer);}
++                if let Some(native)=native{match native.write {crate::v2::auth_dispatch::lifecycle::NativeWrite::Lifecycle(answer)=>{send.native_fence=Some(Arc::new(native.origin));send.answer=Some(answer);},crate::v2::auth_dispatch::lifecycle::NativeWrite::Signal(signal)=>send.native_signal=Some((signal,native.origin))}}
+                 if let Err(error)=write_tx.try_send(send) {
+                     let mut send=error.into_inner();
+                     if unsolicited {if let Some(done)=send.delivery.take(){let _=done.send(Err(DispatchError::Capacity));}}
+diff --git a/crates/uctp/rvoip-uctp/src/v2/mod.rs b/crates/uctp/rvoip-uctp/src/v2/mod.rs
+--- a/crates/uctp/rvoip-uctp/src/v2/mod.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/mod.rs
+@@ -12,6 +12,7 @@
+ pub mod native_control;
+ pub mod native_dtmf;
+ pub mod native_dtmf_egress;
++mod native_dtmf_writer;
+ pub mod native_lifecycle;
+ pub mod native_media;
+ pub mod native_negotiation;
+diff --git a/crates/uctp/rvoip-uctp/src/v2/native.rs b/crates/uctp/rvoip-uctp/src/v2/native.rs
+--- a/crates/uctp/rvoip-uctp/src/v2/native.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/native.rs
+@@ -97,6 +97,7 @@
+     cancel: CancellationToken,
+     installation: Mutex<Option<InstalledMedia>>,
+     subscriptions: Mutex<Option<Arc<super::native_subscriptions::NativeSubscriptionRuntime>>>,
++    dtmf: Mutex<Option<Weak<super::native_dtmf_egress::NativeDtmfRegistration>>>,
+ }
+ impl Drop for Route {
+     fn drop(&mut self) {
+@@ -1362,7 +1363,7 @@
+             .negotiation
+             .as_ref()
+             .ok_or(NativeOfferError::Unsupported)?;
+-        super::native_dtmf_egress::NativeDtmfRegistration::new(
++        let registration = super::native_dtmf_egress::NativeDtmfRegistration::new(
+             a,
+             &installed.controller,
+             installed.backend.flow.clone(),
+@@ -1370,7 +1371,13 @@
+             &route.member,
+             &route.endpoint,
+         )
+-        .map_err(NativeOfferError::Dispatch)
++        .map_err(NativeOfferError::Dispatch)?;
++        let mut slot = route.dtmf.lock().unwrap_or_else(|p| p.into_inner());
++        if let Some(old) = slot.as_ref().and_then(Weak::upgrade) {
++            old.retire();
++        }
++        *slot = Some(Arc::downgrade(&registration));
++        Ok(registration)
+     }
+     /// A metadata-only event registration after this exact signed native
+     /// negotiation. Each delivery needs a new explicit current-policy lease.
+@@ -1570,6 +1577,40 @@
+ }
+ #[async_trait::async_trait]
+ impl ConnectionAdapter for CanonicalNativeAdapter {
++    async fn send_dtmf_native_authorized(
++        &self,
++        conn: ConnectionId,
++        intent: rvoip_core::dtmf::DtmfIntent,
++        observation: rvoip_core::dtmf::DtmfSourceObservation,
++        policy: Arc<dyn rvoip_core::dtmf::DtmfNativeWriteAuthority>,
++        deadline: tokio::time::Instant,
++        cancel: CancellationToken,
++    ) -> std::result::Result<(), rvoip_core::dtmf::DtmfWriteError> {
++        use rvoip_core::dtmf::DtmfWriteError;
++        if !matches!(self.transport, Transport::Quic | Transport::WebTransport) {
++            return Err(DtmfWriteError::Unsupported);
++        }
++        let route = self
++            .routes
++            .get(&conn)
++            .map(|r| r.value().clone())
++            .ok_or(DtmfWriteError::Refused)?;
++        if route.cancel.is_cancelled() || route.physical.context.lifetime.is_cancelled() {
++            return Err(DtmfWriteError::Refused);
++        }
++        let registration = route
++            .dtmf
++            .lock()
++            .unwrap_or_else(|p| p.into_inner())
++            .as_ref()
++            .and_then(Weak::upgrade)
++            .ok_or(DtmfWriteError::Unsupported)?;
++        registration
++            .prepare_core_delivery(intent, observation, policy, deadline, cancel)?
++            .written()
++            .await
++    }
++
+     fn transport(&self) -> Transport {
+         self.transport
+     }
+@@ -1615,6 +1656,7 @@
+             cancel: request.cancellation(),
+             installation: Mutex::new(None),
+             subscriptions: Mutex::new(None),
++            dtmf: Mutex::new(None),
+         });
+         match self.routes.entry(id.clone()) {
+             dashmap::mapref::entry::Entry::Vacant(entry) => {
+diff --git a/crates/uctp/rvoip-uctp/src/v2/native_dtmf.rs b/crates/uctp/rvoip-uctp/src/v2/native_dtmf.rs
+--- a/crates/uctp/rvoip-uctp/src/v2/native_dtmf.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/native_dtmf.rs
+@@ -38,6 +38,7 @@
+     signing_key_id: String,
+     signing_algorithm: super::payloads::SignatureAlg,
+     transport: Transport,
++    observation_id: String,
+     operation_id: String,
+     digits: String,
+     duration_ms: u32,
+@@ -145,7 +146,13 @@
+                 self.0.poll_source(io)
+             }
+         }
+-        route.with_source_fence(std::sync::Arc::new(PhysicalSource(self.clone())))
++        route
++            .with_source_fence(std::sync::Arc::new(PhysicalSource(self.clone())))?
++            .with_source_observation(DtmfSourceObservation::observed(
++                DtmfSourceKind::Native,
++                self.observation_id.clone(),
++                self.received_at,
++            )?)
+     }
+ 
+     pub fn conversation(&self) -> &ConversationId {
+@@ -185,6 +192,9 @@
+     }
+     pub fn transport(&self) -> Transport {
+         self.transport
++    }
++    pub fn observation_id(&self) -> &str {
++        &self.observation_id
+     }
+     pub fn operation_id(&self) -> &str {
+         &self.operation_id
+@@ -274,6 +284,7 @@
+             signing_key_id: signature.keyid,
+             signing_algorithm: signature.alg,
+             transport: endpoint.transport(),
++            observation_id: e.id().into(),
+             operation_id: operation.into(),
+             digits: p.digits.clone(),
+             duration_ms: duration,
+diff --git a/crates/uctp/rvoip-uctp/src/v2/native_dtmf_egress.rs b/crates/uctp/rvoip-uctp/src/v2/native_dtmf_egress.rs
+--- a/crates/uctp/rvoip-uctp/src/v2/native_dtmf_egress.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/native_dtmf_egress.rs
+@@ -92,6 +92,50 @@
+         self.epoch.child_token()
+     }
+ }
++struct CoreTargetFence {
++    controller: Weak<StreamController>,
++    flow: Weak<NativeFlow>,
++    recipient: rvoip_core::dtmf::DtmfNativeRecipient,
++    epoch: CancellationToken,
++    origin: NativeLifecycleOrigin,
++    deadline: Instant,
++}
++impl rvoip_core::dtmf::DtmfIoFence for CoreTargetFence {
++    fn poll(
++        &self,
++        io: &mut dyn FnMut() -> rvoip_core::dtmf::DtmfIoPoll,
++    ) -> rvoip_core::dtmf::DtmfIoPoll {
++        use rvoip_core::dtmf::DtmfWriteError;
++        let refuse = || std::task::Poll::Ready(Err(DtmfWriteError::Refused));
++        if Instant::now() >= self.deadline || !self.origin.current() {
++            return refuse();
++        }
++        let (Some(c), Some(f)) = (self.controller.upgrade(), self.flow.upgrade()) else {
++            return refuse();
++        };
++        let result =
++            f.poll_dtmf_source_io(self.recipient.stream_revision, &self.epoch, &mut || {
++                c.poll_dtmf_source_io(
++                    &self.recipient.principal,
++                    self.recipient.stream_revision,
++                    self.recipient.credential_revision,
++                    &self.recipient.audio_bindings,
++                    &mut || {
++                        if self.origin.cancellation().is_cancelled()
++                            || Instant::now() >= self.deadline
++                        {
++                            return refuse();
++                        }
++                        io()
++                    },
++                )
++            });
++        match result {
++            std::task::Poll::Ready(Err(DtmfWriteError::NotReady)) => std::task::Poll::Pending,
++            result => result,
++        }
++    }
++}
+ /// Owns one active bounded write, not a permission snapshot. Drop/cancel stops
+ /// pending work; actual IO retains its guard until its sink has been aborted.
+ #[must_use = "retain and await local writer completion, or drop to cancel"]
+@@ -127,6 +171,7 @@
+     controller: Weak<StreamController>,
+     flow: Weak<NativeFlow>,
+     scope: NativeLifecycleScope,
++    core_recipient: rvoip_core::dtmf::DtmfNativeRecipient,
+     sender: mpsc::Sender<HandlerDelivery>,
+     receiver: tokio::sync::Mutex<mpsc::Receiver<HandlerDelivery>>,
+ }
+@@ -158,9 +203,45 @@
+                 flow: Arc::downgrade(&flow),
+             }),
+         )?;
++        let signature = a
++            .envelope()
++            .original()
++            .get("signature")
++            .ok_or(DispatchError::Authority)?;
++        let core_recipient = rvoip_core::dtmf::DtmfNativeRecipient {
++            conversation: member.conversation().clone(),
++            session: media.session.clone(),
++            connection: media.connection.clone(),
++            participant: member.participant().clone(),
++            transport: endpoint.transport(),
++            principal: a.principal().clone(),
++            identity: member.identity().clone(),
++            endpoint: endpoint.endpoint().clone(),
++            device: endpoint.device().clone(),
++            membership_epoch: member.epoch(),
++            physical_incarnation: origin.incarnation(),
++            signing_key_id: signature["keyid"]
++                .as_str()
++                .ok_or(DispatchError::Authority)?
++                .into(),
++            signing_algorithm: signature["alg"]
++                .as_str()
++                .ok_or(DispatchError::Authority)?
++                .into(),
++            wire_conversation: media
++                .wire_conversation
++                .clone()
++                .ok_or(DispatchError::Authority)?,
++            wire_session: media.wire_session.clone(),
++            wire_connection: media.wire_connection.clone(),
++            stream_revision: 0,
++            credential_revision: 0,
++            audio_bindings: vec![],
++        };
+         let (sender, receiver) = mpsc::channel(16);
+         Ok(Arc::new(Self {
+             origin,
++            core_recipient,
+             controller: Arc::downgrade(c),
+             flow: Arc::downgrade(&flow),
+             scope: NativeLifecycleScope {
+@@ -175,6 +256,76 @@
+             sender,
+             receiver: tokio::sync::Mutex::new(receiver),
+         }))
++    }
++    pub(crate) fn retire(&self) {
++        self.origin.retire();
++    }
++    pub(in crate::v2) fn prepare_core_delivery(
++        &self,
++        intent: rvoip_core::dtmf::DtmfIntent,
++        observation: rvoip_core::dtmf::DtmfSourceObservation,
++        policy: Arc<dyn rvoip_core::dtmf::DtmfNativeWriteAuthority>,
++        requested: Instant,
++        caller: CancellationToken,
++    ) -> Result<super::native_dtmf_writer::SignalSubmission, rvoip_core::dtmf::DtmfWriteError> {
++        use rvoip_core::dtmf::*;
++        if caller.is_cancelled() || !self.origin.ready() || !self.origin.current() {
++            return Err(DtmfWriteError::Refused);
++        }
++        let reservation = self
++            .sender
++            .clone()
++            .try_reserve_owned()
++            .map_err(|_| DtmfWriteError::NotReady)?;
++        let c = self.controller.upgrade().ok_or(DtmfWriteError::Refused)?;
++        let flow = self.flow.upgrade().ok_or(DtmfWriteError::Refused)?;
++        let mut recipient = self.core_recipient.clone();
++        recipient.stream_revision = c.revision();
++        recipient.credential_revision = c.credential_revision();
++        recipient.audio_bindings = c
++            .active_bindings()
++            .into_iter()
++            .filter(|b| b.negotiated.requested.medium == Medium::Audio)
++            .collect();
++        if recipient.audio_bindings.is_empty() || !flow.confirmed_at(recipient.stream_revision) {
++            return Err(DtmfWriteError::Refused);
++        }
++        let deadline = requested.min(Instant::now() + Duration::from_secs(1));
++        if Instant::now() >= deadline {
++            return Err(DtmfWriteError::DeadlineBeforeWrite);
++        }
++        let permit = Arc::new(super::native_dtmf_writer::SignalPermit {
++            cancel: caller.child_token(),
++            deadline,
++            touched: std::sync::atomic::AtomicBool::new(false),
++        });
++        let fence = Arc::new(CoreTargetFence {
++            controller: Arc::downgrade(&c),
++            flow: Arc::downgrade(&flow),
++            recipient: recipient.clone(),
++            epoch: flow.epoch(),
++            origin: self.origin.clone(),
++            deadline,
++        });
++        let frame=Envelope::from_value(serde_json::json!({"v":2,"type":"dtmf.received","id":format!("dtmf_{}",uuid::Uuid::new_v4().simple()),"ts":chrono::Utc::now(),"cid":recipient.wire_conversation,"sid":recipient.wire_session,"connid":recipient.wire_connection,"operation_id":intent.operation_id(),"payload":{"digits":intent.digits(),"duration_ms":intent.duration_ms(),"received_at":observation.received_at(),"source":observation.kind().as_str()}})).map_err(|_|DtmfWriteError::Refused)?;
++        let (done, receipt) = oneshot::channel();
++        let pending = super::native_dtmf_writer::PendingSignal {
++            intent,
++            observation,
++            recipient,
++            policy,
++            fence,
++            permit: permit.clone(),
++            completion: Some(done),
++        };
++        let delivery =
++            HandlerDelivery::native_signal(self.origin.clone(), frame, pending, deadline)
++                .map_err(|_| DtmfWriteError::Refused)?;
++        reservation.send(delivery);
++        Ok(super::native_dtmf_writer::SignalSubmission {
++            permit,
++            receipt: Some(receipt),
++        })
+     }
+     pub fn scope(&self) -> &NativeLifecycleScope {
+         &self.scope
+diff --git a/crates/uctp/rvoip-uctp/src/v2/native_dtmf_writer.rs b/crates/uctp/rvoip-uctp/src/v2/native_dtmf_writer.rs
+new file mode 100644
+--- /dev/null
++++ b/crates/uctp/rvoip-uctp/src/v2/native_dtmf_writer.rs
+@@ -0,0 +1,493 @@
++//! Core signal metadata waits without permission. The sole physical writer
++//! acquires fresh exact source/recipient authority after its own dequeue.
++use super::{
++    auth_dispatch::{lifecycle::NativeLifecycleOrigin, DispatchError},
++    Envelope,
++};
++use rvoip_core::dtmf::*;
++use std::sync::{
++    atomic::{AtomicBool, Ordering},
++    Arc,
++};
++use tokio::{sync::oneshot, time::Instant};
++use tokio_util::sync::CancellationToken;
++
++pub(in crate::v2) struct SignalPermit {
++    pub cancel: CancellationToken,
++    pub deadline: Instant,
++    pub touched: AtomicBool,
++}
++impl SignalPermit {
++    pub fn error(&self) -> DtmfWriteError {
++        if self.touched.load(Ordering::Acquire) {
++            DtmfWriteError::OutcomeUnknown
++        } else if Instant::now() >= self.deadline {
++            DtmfWriteError::DeadlineBeforeWrite
++        } else {
++            DtmfWriteError::Refused
++        }
++    }
++}
++pub(in crate::v2) struct PendingSignal {
++    pub intent: DtmfIntent,
++    pub observation: DtmfSourceObservation,
++    pub recipient: DtmfNativeRecipient,
++    pub policy: Arc<dyn DtmfNativeWriteAuthority>,
++    pub fence: Arc<dyn DtmfIoFence>,
++    pub permit: Arc<SignalPermit>,
++    pub completion: Option<oneshot::Sender<Result<(), DtmfWriteError>>>,
++}
++impl Drop for PendingSignal {
++    fn drop(&mut self) {
++        self.permit.cancel.cancel();
++        if let Some(done) = self.completion.take() {
++            let _ = done.send(Err(self.permit.error()));
++        }
++    }
++}
++pub(in crate::v2) struct SignalSubmission {
++    pub permit: Arc<SignalPermit>,
++    pub receipt: Option<oneshot::Receiver<Result<(), DtmfWriteError>>>,
++}
++impl Drop for SignalSubmission {
++    fn drop(&mut self) {
++        self.permit.cancel.cancel();
++    }
++}
++impl SignalSubmission {
++    pub async fn written(mut self) -> Result<(), DtmfWriteError> {
++        let receipt = self.receipt.take().ok_or(DtmfWriteError::Refused)?;
++        tokio::select! {biased;r=receipt=>r.unwrap_or_else(|_|Err(self.permit.error())),_=self.permit.cancel.cancelled()=>Err(self.permit.error()),_=tokio::time::sleep_until(self.permit.deadline)=>Err(self.permit.error())}
++    }
++}
++/// Own and destroy a stalled sink before the real write guard is released.
++/// A definite pre-IO refusal preserves the unrelated healthy physical writer.
++pub(in crate::v2) async fn write<
++    W: futures::Sink<bytes::Bytes, Error = DispatchError> + Send + Unpin,
++>(
++    writer: &mut Option<W>,
++    frame: &Envelope,
++    pending: PendingSignal,
++    origin: &NativeLifecycleOrigin,
++    physical: &CancellationToken,
++    authority: Option<&CancellationToken>,
++    stop: &CancellationToken,
++    job_deadline: Instant,
++) -> Result<(), DispatchError> {
++    write_owned(
++        writer,
++        frame,
++        pending,
++        &|| origin.current(),
++        physical,
++        authority,
++        stop,
++        job_deadline,
++    )
++    .await
++}
++async fn write_owned<W: futures::Sink<bytes::Bytes, Error = DispatchError> + Send + Unpin>(
++    writer: &mut Option<W>,
++    frame: &Envelope,
++    mut pending: PendingSignal,
++    current: &(dyn Fn() -> bool + Sync),
++    physical: &CancellationToken,
++    authority: Option<&CancellationToken>,
++    stop: &CancellationToken,
++    job_deadline: Instant,
++) -> Result<(), DispatchError> {
++    use futures::SinkExt;
++    let deadline = job_deadline.min(pending.permit.deadline);
++    let ready = || {
++        !pending.permit.cancel.is_cancelled()
++            && !physical.is_cancelled()
++            && !stop.is_cancelled()
++            && !authority.is_some_and(CancellationToken::is_cancelled)
++            && Instant::now() < deadline
++            && current()
++    };
++    let result = async {
++        if !ready() {
++            return Err(pending.permit.error());
++        }
++        let bytes = serde_json::to_vec(frame).map_err(|_| DtmfWriteError::Refused)?;
++        let scope = DtmfNativeWriteScope {
++            intent: &pending.intent,
++            observation: &pending.observation,
++            recipient: &pending.recipient,
++            wire_envelope: &bytes,
++        };
++        let bound = deadline.min(Instant::now() + DTMF_WRITE_DEADLINE);
++        let lease = tokio::time::timeout_at(bound, pending.policy.acquire_native(&scope))
++            .await
++            .map_err(|_| DtmfWriteError::DeadlineBeforeWrite)??;
++        if !ready() {
++            return Err(pending.permit.error());
++        }
++        let lease = lease.with_outer_fence(pending.fence.clone())?;
++        // Nothing takes the physical writer until all source/recipient IO fences
++        // admit this actual future poll. Early refusal therefore leaves it usable.
++        with_dtmf_write_lease(lease, bound, async {
++            let mut owned = writer.take().ok_or(DispatchError::Closed)?;
++            pending.permit.touched.store(true, Ordering::Release);
++            let result = owned.send(bytes::Bytes::from(bytes)).await;
++            if result.is_ok() {
++                *writer = Some(owned);
++            }
++            // If the future is cancelled while send is pending, `owned` drops here
++            // before with_dtmf_write_lease releases its actual store/domain readers.
++            result
++        })
++        .await
++    };
++    let result = tokio::select! {biased;
++     _=pending.permit.cancel.cancelled()=>Err(pending.permit.error()),
++     _=physical.cancelled()=>Err(pending.permit.error()),
++     _=stop.cancelled()=>Err(pending.permit.error()),
++     _=async{match authority{Some(t)=>t.cancelled().await,None=>std::future::pending().await}}=>Err(pending.permit.error()),
++     _=tokio::time::sleep_until(deadline)=>Err(if pending.permit.touched.load(Ordering::Acquire){DtmfWriteError::OutcomeUnknown}else{DtmfWriteError::DeadlineBeforeWrite}),
++     r=result=>r,
++    };
++    let result = if result.is_err() && pending.permit.touched.load(Ordering::Acquire) {
++        Err(DtmfWriteError::OutcomeUnknown)
++    } else {
++        result
++    };
++    if let Some(done) = pending.completion.take() {
++        let _ = done.send(result);
++    }
++    if matches!(result, Err(DtmfWriteError::OutcomeUnknown)) {
++        physical.cancel();
++        Err(DispatchError::SubmissionUnknown)
++    } else {
++        Ok(())
++    }
++}
++
++#[cfg(test)]
++mod tests {
++    use super::*;
++    use rvoip_core::{identity::*, ids::*};
++    use std::{
++        pin::Pin,
++        sync::atomic::AtomicUsize,
++        task::{Context, Poll},
++        time::Duration,
++    };
++    struct Guard {
++        _reader: tokio::sync::OwnedRwLockReadGuard<bool>,
++        live: Arc<AtomicBool>,
++    }
++    impl Drop for Guard {
++        fn drop(&mut self) {
++            self.live.store(false, Ordering::Release);
++        }
++    }
++    struct Policy {
++        domain: Arc<tokio::sync::RwLock<bool>>,
++        live: Arc<AtomicBool>,
++    }
++    #[async_trait::async_trait]
++    impl DtmfNativeWriteAuthority for Policy {
++        async fn acquire_native(
++            &self,
++            _: &DtmfNativeWriteScope<'_>,
++        ) -> Result<DtmfWriteLease, DtmfWriteError> {
++            let reader = self.domain.clone().read_owned().await;
++            if !*reader {
++                return Err(DtmfWriteError::Refused);
++            }
++            self.live.store(true, Ordering::Release);
++            Ok(DtmfWriteLease::new(
++                Guard {
++                    _reader: reader,
++                    live: self.live.clone(),
++                },
++                Instant::now() + Duration::from_millis(200),
++                || true,
++            ))
++        }
++    }
++    struct Fence(Arc<AtomicBool>);
++    impl DtmfIoFence for Fence {
++        fn poll(&self, io: &mut dyn FnMut() -> DtmfIoPoll) -> DtmfIoPoll {
++            if !self.0.load(Ordering::Acquire) {
++                Poll::Ready(Err(DtmfWriteError::Refused))
++            } else {
++                io()
++            }
++        }
++    }
++    struct Sink {
++        live: Arc<AtomicBool>,
++        polled: Arc<AtomicUsize>,
++        dropped: Arc<AtomicBool>,
++        pending: bool,
++        stall: bool,
++    }
++    impl futures::Sink<bytes::Bytes> for Sink {
++        type Error = DispatchError;
++        fn poll_ready(
++            mut self: Pin<&mut Self>,
++            _: &mut Context<'_>,
++        ) -> Poll<Result<(), Self::Error>> {
++            assert!(self.live.load(Ordering::Acquire));
++            self.polled.fetch_add(1, Ordering::AcqRel);
++            if self.stall {
++                self.pending = true;
++                Poll::Pending
++            } else {
++                Poll::Ready(Ok(()))
++            }
++        }
++        fn start_send(self: Pin<&mut Self>, _: bytes::Bytes) -> Result<(), Self::Error> {
++            assert!(self.live.load(Ordering::Acquire));
++            Ok(())
++        }
++        fn poll_flush(self: Pin<&mut Self>, _: &mut Context<'_>) -> Poll<Result<(), Self::Error>> {
++            assert!(self.live.load(Ordering::Acquire));
++            Poll::Ready(Ok(()))
++        }
++        fn poll_close(self: Pin<&mut Self>, _: &mut Context<'_>) -> Poll<Result<(), Self::Error>> {
++            Poll::Ready(Ok(()))
++        }
++    }
++    impl Drop for Sink {
++        fn drop(&mut self) {
++            if self.pending {
++                assert!(
++                    self.live.load(Ordering::Acquire),
++                    "stalled physical native sink dropped after its actual permission reader"
++                );
++            }
++            self.dropped.store(true, Ordering::Release);
++        }
++    }
++    fn test_pending(
++        policy: Arc<Policy>,
++        valid: Arc<AtomicBool>,
++        cancel: CancellationToken,
++    ) -> (
++        Envelope,
++        PendingSignal,
++        oneshot::Receiver<Result<(), DtmfWriteError>>,
++    ) {
++        let now = chrono::Utc::now();
++        let intent = DtmfIntent::new(
++            "native-unit-original".into(),
++            "12".into(),
++            100,
++            DtmfMethod::Info,
++        )
++        .unwrap();
++        let observation = DtmfSourceObservation::observed(
++            DtmfSourceKind::Native,
++            "physical-unit-observation".into(),
++            now,
++        )
++        .unwrap();
++        let recipient = DtmfNativeRecipient {
++            conversation: ConversationId::new(),
++            session: SessionId::new(),
++            connection: ConnectionId::new(),
++            participant: ParticipantId::new(),
++            transport: rvoip_core::connection::Transport::Quic,
++            principal: AuthenticatedPrincipal {
++                subject: "unit".into(),
++                tenant: None,
++                issuer: None,
++                scopes: vec![],
++                expires_at: Some(now + chrono::Duration::hours(1)),
++                method: AuthenticationMethod::Bearer,
++                assurance: IdentityAssurance::Identified {
++                    credential_kind: CredentialKind::Oidc,
++                },
++            },
++            identity: IdentityId::new(),
++            endpoint: EndpointId::new(),
++            device: DeviceId::new(),
++            membership_epoch: 1,
++            physical_incarnation: uuid::Uuid::new_v4(),
++            signing_key_id: "unit".into(),
++            signing_algorithm: "EdDSA".into(),
++            wire_conversation: "c".into(),
++            wire_session: "s".into(),
++            wire_connection: "n".into(),
++            stream_revision: 1,
++            credential_revision: 0,
++            audio_bindings: vec![],
++        };
++        let frame=Envelope::from_value(serde_json::json!({"v":2,"type":"dtmf.received","id":"native-unit","ts":now,"cid":"c","sid":"s","connid":"n","operation_id":intent.operation_id(),"payload":{"digits":"12","duration_ms":100,"source":"uctp-native","received_at":now}})).unwrap();
++        let (done, receipt) = oneshot::channel();
++        (
++            frame,
++            PendingSignal {
++                intent,
++                observation,
++                recipient,
++                policy,
++                fence: Arc::new(Fence(valid)),
++                permit: Arc::new(SignalPermit {
++                    cancel,
++                    deadline: Instant::now() + Duration::from_secs(1),
++                    touched: AtomicBool::new(false),
++                }),
++                completion: Some(done),
++            },
++            receipt,
++        )
++    }
++    fn policy() -> Arc<Policy> {
++        Arc::new(Policy {
++            domain: Arc::new(tokio::sync::RwLock::new(true)),
++            live: Arc::new(AtomicBool::new(false)),
++        })
++    }
++    fn sink(p: &Policy, stall: bool) -> (Option<Sink>, Arc<AtomicUsize>, Arc<AtomicBool>) {
++        let polls = Arc::new(AtomicUsize::new(0));
++        let dropped = Arc::new(AtomicBool::new(false));
++        (
++            Some(Sink {
++                live: p.live.clone(),
++                polled: polls.clone(),
++                dropped: dropped.clone(),
++                pending: false,
++                stall,
++            }),
++            polls,
++            dropped,
++        )
++    }
++    #[tokio::test]
++    async fn pending_native_sink_cancellation_and_deadline_destroy_io_before_releasing_fresh_permission(
++    ) {
++        for mode in ["cancel", "deadline", "fence"] {
++            let p = policy();
++            let (mut writer, polls, dropped) = sink(&p, true);
++            let cancel = CancellationToken::new();
++            let valid = Arc::new(AtomicBool::new(true));
++            let (frame, pending, receipt) = test_pending(p.clone(), valid.clone(), cancel.clone());
++            let physical = CancellationToken::new();
++            let stop = CancellationToken::new();
++            let writing = write_owned(
++                &mut writer,
++                &frame,
++                pending,
++                &|| true,
++                &physical,
++                None,
++                &stop,
++                Instant::now()
++                    + if mode == "deadline" {
++                        Duration::from_millis(40)
++                    } else {
++                        Duration::from_secs(1)
++                    },
++            );
++            tokio::pin!(writing);
++            tokio::select! {r=&mut writing=>panic!("ended before pending sink: {r:?}"),_=tokio::time::sleep(Duration::from_millis(10))=>{}}
++            assert!(polls.load(Ordering::Acquire) > 0);
++            assert!(p.domain.try_write().is_err());
++            if mode == "cancel" {
++                cancel.cancel();
++            }
++            if mode == "fence" {
++                valid.store(false, Ordering::Release);
++            }
++            assert_eq!(writing.await, Err(DispatchError::SubmissionUnknown));
++            assert_eq!(receipt.await.unwrap(), Err(DtmfWriteError::OutcomeUnknown));
++            assert!(dropped.load(Ordering::Acquire));
++            assert!(!p.live.load(Ordering::Acquire));
++            assert!(p.domain.try_write().is_ok());
++            assert!(physical.is_cancelled());
++        }
++    }
++    #[tokio::test]
++    async fn dropping_native_physical_write_future_destroys_sink_before_owned_signal_guard() {
++        let p = policy();
++        let (mut writer, polls, dropped) = sink(&p, true);
++        let (frame, pending, receipt) = test_pending(
++            p.clone(),
++            Arc::new(AtomicBool::new(true)),
++            CancellationToken::new(),
++        );
++        let physical = CancellationToken::new();
++        let stop = CancellationToken::new();
++        {
++            let writing = write_owned(
++                &mut writer,
++                &frame,
++                pending,
++                &|| true,
++                &physical,
++                None,
++                &stop,
++                Instant::now() + Duration::from_secs(1),
++            );
++            tokio::pin!(writing);
++            tokio::select! {r=&mut writing=>panic!("ended early: {r:?}"),_=tokio::time::sleep(Duration::from_millis(10))=>{}}
++            assert!(polls.load(Ordering::Acquire) > 0);
++        }
++        assert!(dropped.load(Ordering::Acquire));
++        assert_eq!(receipt.await.unwrap(), Err(DtmfWriteError::OutcomeUnknown));
++        assert!(p.domain.try_write().is_ok());
++    }
++    #[tokio::test]
++    async fn native_denial_and_stale_physical_fence_preserve_healthy_writer_for_fresh_authorized_command(
++    ) {
++        for reject in ["permission", "fence"] {
++            let p = policy();
++            if reject == "permission" {
++                *p.domain.write().await = false;
++            }
++            let (mut writer, polls, dropped) = sink(&p, false);
++            let (frame, pending, receipt) = test_pending(
++                p.clone(),
++                Arc::new(AtomicBool::new(reject != "fence")),
++                CancellationToken::new(),
++            );
++            let physical = CancellationToken::new();
++            let stop = CancellationToken::new();
++            assert_eq!(
++                write_owned(
++                    &mut writer,
++                    &frame,
++                    pending,
++                    &|| true,
++                    &physical,
++                    None,
++                    &stop,
++                    Instant::now() + Duration::from_secs(1)
++                )
++                .await,
++                Ok(())
++            );
++            assert_eq!(receipt.await.unwrap(), Err(DtmfWriteError::Refused));
++            assert_eq!(polls.load(Ordering::Acquire), 0);
++            assert!(!dropped.load(Ordering::Acquire));
++            assert!(!physical.is_cancelled());
++            assert!(p.domain.try_write().is_ok());
++            *p.domain.write().await = true;
++            let valid = Arc::new(AtomicBool::new(true));
++            let (frame, pending, receipt) =
++                test_pending(p.clone(), valid.clone(), CancellationToken::new());
++            assert_eq!(
++                write_owned(
++                    &mut writer,
++                    &frame,
++                    pending,
++                    &|| true,
++                    &physical,
++                    None,
++                    &stop,
++                    Instant::now() + Duration::from_secs(1)
++                )
++                .await,
++                Ok(())
++            );
++            assert_eq!(receipt.await.unwrap(), Ok(()));
++            assert!(polls.load(Ordering::Acquire) > 0);
++            assert!(!p.live.load(Ordering::Acquire));
++        }
++    }
++}
+diff --git a/crates/uctp/rvoip-uctp/tests/support/canonical_media/native_offers/dtmf_route.rs b/crates/uctp/rvoip-uctp/tests/support/canonical_media/native_offers/dtmf_route.rs
+--- a/crates/uctp/rvoip-uctp/tests/support/canonical_media/native_offers/dtmf_route.rs
++++ b/crates/uctp/rvoip-uctp/tests/support/canonical_media/native_offers/dtmf_route.rs
+@@ -166,7 +166,14 @@
+ }
+ impl RouteRig {
+     async fn new(kind: &str) -> Self {
++        Self::new_mode(kind, false).await
++    }
++    async fn new_recipient(kind: &str) -> Self {
++        Self::new_mode(kind, true).await
++    }
++    async fn new_mode(kind: &str, egress: bool) -> Self {
+         let mut scene = Scene::new_gateway(kind).await;
++        scene.record.dtmf_enable.store(egress, Ordering::Release);
+         let (_, callback) = scene
+             .prepared(lifecycle_offer(&scene, 0, 0, "sendonly"))
+             .await;
+@@ -754,3 +761,677 @@
+     r.peer.no_info(Duration::from_millis(100)).await;
+     r.stop().await;
+ }
++
++#[tokio::test]
++async fn configured_native_recipient_checks_signal_permission_instead_of_refusing_transport_dispatch(
++) {
++    let r = RouteRig::new_recipient("quic").await;
++    drop(
++        timeout(Duration::from_secs(1), r.scene.grants.0.write())
++            .await
++            .unwrap(),
++    );
++    struct Denied;
++    impl DtmfRoutePolicy for Denied {}
++    let core = &r.scene.native.core.orch;
++    let route = core
++        .prepare_dtmf_route(
++            r.target.clone(),
++            r.scene.id.clone(),
++            DtmfIntent::new(
++                "core-native-original".into(),
++                "12#".into(),
++                100,
++                DtmfMethod::Info,
++            )
++            .unwrap(),
++        )
++        .unwrap();
++    assert_eq!(
++        core.route_dtmf(
++            &route,
++            Arc::new(Denied),
++            CancellationToken::new(),
++            Instant::now() + Duration::from_secs(1)
++        )
++        .await,
++        Err(DtmfWriteError::Refused),
++        "configured actual native recipient never reached independent signal permission"
++    );
++    r.stop().await;
++}
++
++struct NativeSignalPolicy {
++    source: DtmfEndpoint,
++    recipient: DtmfEndpoint,
++    operation: String,
++    observation: DtmfSourceObservation,
++    domain: Arc<Grants>,
++    wire: Arc<WirePolicy>,
++    source_allowed: Arc<RwLock<bool>>,
++    recipient_allowed: Arc<RwLock<bool>>,
++    calls: AtomicUsize,
++    facts: Mutex<Vec<Vec<u8>>>,
++    source_observed: Option<NativeDtmfObservation>,
++    pause: Mutex<Option<Arc<PauseWrite>>>,
++}
++impl NativeSignalPolicy {
++    fn new(r: &RouteRig, route: &DtmfRoute) -> Arc<Self> {
++        Arc::new(Self {
++            source: route.source().clone(),
++            recipient: route.recipient().clone(),
++            operation: route.intent().operation_id().into(),
++            observation: route.observation().clone(),
++            domain: r.scene.grants.clone(),
++            wire: r.scene.wire_policy.clone(),
++            source_allowed: Arc::new(RwLock::new(true)),
++            recipient_allowed: Arc::new(RwLock::new(true)),
++            calls: AtomicUsize::new(0),
++            facts: Mutex::new(vec![]),
++            source_observed: None,
++            pause: Mutex::new(None),
++        })
++    }
++}
++#[async_trait]
++impl DtmfRoutePolicy for NativeSignalPolicy {
++    async fn acquire(
++        &self,
++        _: &DtmfRouteScope<'_>,
++        _: &DtmfWriteScope<'_>,
++    ) -> Result<DtmfWriteLease, DtmfWriteError> {
++        panic!("native signaling borrowed RTP authority")
++    }
++    async fn acquire_info(
++        &self,
++        _: &DtmfRouteScope<'_>,
++        _: &DtmfInfoWriteScope<'_>,
++    ) -> Result<DtmfWriteLease, DtmfWriteError> {
++        panic!("native signaling borrowed INFO authority")
++    }
++    async fn acquire_native(
++        &self,
++        scope: &DtmfRouteScope<'_>,
++        native: &DtmfNativeWriteScope<'_>,
++    ) -> Result<DtmfWriteLease, DtmfWriteError> {
++        self.calls.fetch_add(1, Ordering::AcqRel);
++        assert!(scope.source == &self.source && scope.recipient == &self.recipient);
++        assert_eq!(scope.intent.operation_id(), self.operation);
++        assert_eq!(scope.observation, &self.observation);
++        assert!(scope.intent == native.intent && scope.observation == native.observation);
++        let frame =
++            Envelope::parse(native.wire_envelope).expect("actual signed native writer bytes");
++        assert_eq!(frame.kind(), "dtmf.received");
++        assert_eq!(frame.scope(Scope::Operation), Some(self.operation.as_str()));
++        assert_eq!(
++            frame.original()["payload"]["digits"],
++            json!(scope.intent.digits())
++        );
++        assert_eq!(
++            frame.original()["payload"]["duration_ms"],
++            json!(scope.intent.duration_ms())
++        );
++        assert_eq!(
++            frame.original()["payload"]["source"],
++            json!(scope.observation.kind().as_str())
++        );
++        assert_eq!(frame.original()["signature"]["keyid"], json!("server"));
++        let actual = native.recipient;
++        assert_eq!(actual.connection, *self.recipient.connection());
++        assert_eq!(actual.session, *self.recipient.session());
++        assert_eq!(actual.conversation, *self.recipient.conversation());
++        assert_eq!(actual.participant, *self.recipient.participant());
++        assert_eq!(actual.transport, self.recipient.transport());
++        assert!(matches!(
++            actual.transport,
++            Transport::Quic | Transport::WebTransport
++        ));
++        assert_eq!(actual.signing_key_id, "client");
++        assert_eq!(actual.signing_algorithm, "EdDSA");
++        assert_eq!(actual.stream_revision, 1);
++        assert_eq!(actual.credential_revision, 1);
++        assert!(!actual.audio_bindings.is_empty());
++        assert_eq!(
++            frame.scope(Scope::Connection),
++            Some(actual.wire_connection.as_str())
++        );
++        assert_eq!(
++            frame.scope(Scope::Session),
++            Some(actual.wire_session.as_str())
++        );
++        assert_eq!(
++            frame.scope(Scope::Conversation),
++            Some(actual.wire_conversation.as_str())
++        );
++        let wire = self.wire.grants.clone().read_owned().await;
++        let grant = self.domain.0.clone().read_owned().await;
++        let source = self.source_allowed.clone().read_owned().await;
++        let recipient = self.recipient_allowed.clone().read_owned().await;
++        let owner = grant
++            .owners
++            .get(&actual.connection)
++            .ok_or(DtmfWriteError::Refused)?;
++        let owner = credential_owner(owner.clone(), &actual.principal)
++            .map_err(|_| DtmfWriteError::Refused)?;
++        owner
++            .member
++            .revalidate_principal(&actual.principal, Utc::now())
++            .map_err(|_| DtmfWriteError::Refused)?;
++        if !owner.member.is_active()
++            || owner.endpoint.state() != rvoip_core::relationships::EndpointState::Verified
++            || owner.endpoint.identity() != owner.member.identity()
++        {
++            return Err(DtmfWriteError::Refused);
++        }
++        if owner.member.conversation() != &actual.conversation
++            || owner.member.participant() != &actual.participant
++            || owner.presence.session() != &actual.session
++            || owner.endpoint.transport() != actual.transport
++        {
++            return Err(DtmfWriteError::Refused);
++        }
++        if grant.denied
++            || wire.denied
++            || grant.key.revoked
++            || grant.key.algorithm != actual.signing_algorithm
++            || grant.key.not_before.is_some_and(|time| time > Utc::now())
++            || grant.key.expires_at.is_some_and(|time| time <= Utc::now())
++            || !*source
++            || !*recipient
++            || wire.connections.get(&actual.wire_connection) != Some(&actual.connection)
++            || owner.member.epoch() != actual.membership_epoch
++            || owner.member.identity() != &actual.identity
++            || owner.endpoint.endpoint() != &actual.endpoint
++            || owner.endpoint.device() != &actual.device
++        {
++            return Err(DtmfWriteError::Refused);
++        }
++        if let Some(observed) = &self.source_observed {
++            let owner = grant
++                .owners
++                .get(observed.connection())
++                .ok_or(DtmfWriteError::Refused)?;
++            owner
++                .member
++                .revalidate_principal(observed.principal(), Utc::now())
++                .map_err(|_| DtmfWriteError::Refused)?;
++            if !owner.member.is_active()
++                || owner.endpoint.state() != rvoip_core::relationships::EndpointState::Verified
++                || owner.endpoint.identity() != owner.member.identity()
++            {
++                return Err(DtmfWriteError::Refused);
++            }
++            if owner.member.conversation() != observed.conversation()
++                || owner.member.participant() != observed.participant()
++                || owner.member.identity() != observed.identity()
++                || owner.member.epoch() != observed.membership_epoch()
++                || owner.endpoint.endpoint() != observed.endpoint()
++                || owner.endpoint.device() != observed.device()
++                || owner.presence.session() != observed.session()
++                || !grant.dtmf_allowed.contains(observed.connection())
++                || !grant
++                    .dtmf_forward_allowed
++                    .contains(&(observed.connection().clone(), actual.connection.clone()))
++            {
++                return Err(DtmfWriteError::Refused);
++            }
++            if observed.operation_id() != scope.intent.operation_id()
++                || observed.connection() != scope.source.connection()
++                || observed.participant() != scope.source.participant()
++                || observed.session() != scope.source.session()
++                || observed.conversation() != scope.source.conversation()
++                || observed.signing_key_id() != "client"
++                || scope.observation.kind() != DtmfSourceKind::Native
++                || scope.observation.observation_id() != Some(observed.observation_id())
++            {
++                return Err(DtmfWriteError::Refused);
++            }
++        } else {
++            assert_eq!(scope.observation.kind(), DtmfSourceKind::Application);
++            assert!(scope.observation.observation_id().is_none());
++        }
++        self.facts
++            .lock()
++            .unwrap()
++            .push(native.wire_envelope.to_vec());
++        let lease = DtmfWriteLease::new(
++            (wire, grant, source, recipient),
++            Instant::now() + Duration::from_millis(200),
++            || true,
++        );
++        match self.pause.lock().unwrap().clone() {
++            Some(pause) => lease.with_fence(pause),
++            None => Ok(lease),
++        }
++    }
++}
++impl RouteRig {
++    fn native_route(&self, op: &str, method: DtmfMethod) -> DtmfRoute {
++        let route = self
++            .scene
++            .native
++            .core
++            .orch
++            .prepare_dtmf_route(
++                self.target.clone(),
++                self.scene.id.clone(),
++                DtmfIntent::new(op.into(), "12#".into(), 100, method).unwrap(),
++            )
++            .unwrap();
++        assert_eq!(route.source().session(), &self.target_session);
++        assert_eq!(route.source().participant(), &self.target_participant);
++        assert_eq!(route.recipient().session(), &self.scene.native.core.session);
++        assert_eq!(route.recipient().connection(), &self.scene.id);
++        route
++    }
++    fn start_native(
++        &self,
++        route: DtmfRoute,
++        policy: Arc<dyn DtmfRoutePolicy>,
++        cancel: CancellationToken,
++        deadline: Instant,
++    ) -> tokio::task::JoinHandle<Result<(), DtmfWriteError>> {
++        let core = self.scene.native.core.orch.clone();
++        tokio::spawn(async move { core.route_dtmf(&route, policy, cancel, deadline).await })
++    }
++    async fn no_native_signal(&mut self) {
++        assert!(
++            timeout(Duration::from_millis(100), self.scene.wire.read())
++                .await
++                .is_err(),
++            "unexpected native signal effect"
++        );
++    }
++    async fn native_frame(&mut self) -> Envelope {
++        let frame = timeout(Duration::from_secs(2), self.scene.wire.read())
++            .await
++            .expect("actual native DTMF deadline");
++        assert_eq!(frame.kind(), "dtmf.received");
++        self.scene.f.verify_server(&frame).await;
++        frame
++    }
++}
++#[tokio::test]
++async fn core_native_recipients_use_their_actual_signed_writer_for_both_requested_gateway_methods()
++{
++    for kind in ["quic", "wt"] {
++        for method in [DtmfMethod::Info, DtmfMethod::Rfc4733] {
++            let mut r = RouteRig::new_recipient(kind).await;
++            let route = r.native_route("core-native-whole-intent", method);
++            let observation = route.observation().clone();
++            let p = NativeSignalPolicy::new(&r, &route);
++            let job = r.start_native(
++                route,
++                p.clone(),
++                CancellationToken::new(),
++                Instant::now() + Duration::from_secs(2),
++            );
++            let frame = r.native_frame().await;
++            assert_eq!(job.await.unwrap(), Ok(()));
++            assert_eq!(frame.scope(Scope::Connection), Some("native_0"));
++            assert_eq!(
++                frame.scope(Scope::Operation),
++                Some("core-native-whole-intent")
++            );
++            assert_eq!(frame.original()["payload"]["source"], json!("application"));
++            assert_eq!(
++                frame.original()["payload"]["received_at"],
++                json!(observation.received_at())
++            );
++            assert_eq!(p.calls.load(Ordering::Acquire), 1);
++            assert_eq!(
++                p.facts.lock().unwrap()[0],
++                serde_json::to_vec(&frame).unwrap()
++            );
++            drop(
++                r.scene
++                    .grants
++                    .0
++                    .try_write()
++                    .expect("no idle native signal reader"),
++            );
++            drop(p.source_allowed.try_write().unwrap());
++            drop(p.recipient_allowed.try_write().unwrap());
++            r.peer.no_info(Duration::from_millis(50)).await;
++            r.peer.no_rtp_tone().await;
++            r.stop().await;
++        }
++    }
++}
++#[tokio::test]
++async fn queued_native_core_metadata_has_no_grant_and_rechecks_current_source_permission_after_dequeue(
++) {
++    let mut r = RouteRig::new_recipient("quic").await;
++    r.scene
++        .record
++        .dtmf_pause_delivery
++        .store(true, Ordering::Release);
++    let route = r.native_route("native-queued-revocation", DtmfMethod::Info);
++    let p = NativeSignalPolicy::new(&r, &route);
++    let job = r.start_native(
++        route,
++        p.clone(),
++        CancellationToken::new(),
++        Instant::now() + Duration::from_secs(2),
++    );
++    timeout(
++        Duration::from_secs(1),
++        r.scene.record.dtmf_delivery_entered.notified(),
++    )
++    .await
++    .unwrap();
++    assert_eq!(p.calls.load(Ordering::Acquire), 0);
++    drop(
++        r.scene
++            .grants
++            .0
++            .try_write()
++            .expect("queued native metadata retained permission"),
++    );
++    drop(r.scene.wire_policy.grants.try_write().unwrap());
++    *p.source_allowed
++        .try_write()
++        .expect("queued source permission reader") = false;
++    r.scene
++        .record
++        .dtmf_pause_delivery
++        .store(false, Ordering::Release);
++    r.scene.record.dtmf_delivery_release.notify_one();
++    assert_eq!(job.await.unwrap(), Err(DtmfWriteError::Refused));
++    assert_eq!(p.calls.load(Ordering::Acquire), 1);
++    r.no_native_signal().await;
++    let route = r.native_route("native-fresh-after-refusal", DtmfMethod::Info);
++    let next = NativeSignalPolicy::new(&r, &route);
++    let job = r.start_native(
++        route,
++        next,
++        CancellationToken::new(),
++        Instant::now() + Duration::from_secs(2),
++    );
++    r.native_frame().await;
++    assert_eq!(job.await.unwrap(), Ok(()));
++    r.stop().await;
++}
++#[tokio::test]
++async fn native_core_drop_cancel_and_deadline_before_writer_leave_no_reader_or_effect_and_preserve_next_command(
++) {
++    for mode in ["drop", "cancel", "deadline"] {
++        let mut r = RouteRig::new_recipient("wt").await;
++        r.scene
++            .record
++            .dtmf_pause_delivery
++            .store(true, Ordering::Release);
++        let route = r.native_route("native-owned-cancellation", DtmfMethod::Info);
++        let p = NativeSignalPolicy::new(&r, &route);
++        let cancel = CancellationToken::new();
++        let job = r.start_native(
++            route,
++            p.clone(),
++            cancel.clone(),
++            Instant::now()
++                + if mode == "deadline" {
++                    Duration::from_millis(80)
++                } else {
++                    Duration::from_secs(2)
++                },
++        );
++        timeout(
++            Duration::from_secs(1),
++            r.scene.record.dtmf_delivery_entered.notified(),
++        )
++        .await
++        .unwrap();
++        match mode {
++            "drop" => {
++                job.abort();
++                assert!(job.await.unwrap_err().is_cancelled());
++            }
++            "cancel" => {
++                cancel.cancel();
++                assert_eq!(job.await.unwrap(), Err(DtmfWriteError::Refused));
++            }
++            _ => assert_eq!(job.await.unwrap(), Err(DtmfWriteError::DeadlineBeforeWrite)),
++        };
++        assert_eq!(p.calls.load(Ordering::Acquire), 0);
++        drop(r.scene.grants.0.try_write().unwrap());
++        drop(p.source_allowed.try_write().unwrap());
++        drop(p.recipient_allowed.try_write().unwrap());
++        r.scene
++            .record
++            .dtmf_pause_delivery
++            .store(false, Ordering::Release);
++        r.scene.record.dtmf_delivery_release.notify_one();
++        r.no_native_signal().await;
++        let route = r.native_route("native-fresh-after-owned-cancel", DtmfMethod::Rfc4733);
++        let p = NativeSignalPolicy::new(&r, &route);
++        let job = r.start_native(
++            route,
++            p,
++            CancellationToken::new(),
++            Instant::now() + Duration::from_secs(2),
++        );
++        r.native_frame().await;
++        assert_eq!(job.await.unwrap(), Ok(()));
++        r.stop().await;
++    }
++}
++#[tokio::test]
++async fn native_core_recipient_key_and_signal_revocation_before_io_prevent_effects_without_closing_physical_peer(
++) {
++    for kind in ["key", "recipient"] {
++        let mut r = RouteRig::new_recipient("quic").await;
++        r.scene
++            .record
++            .dtmf_pause_delivery
++            .store(true, Ordering::Release);
++        let route = r.native_route("native-recipient-revocation", DtmfMethod::Info);
++        let p = NativeSignalPolicy::new(&r, &route);
++        let job = r.start_native(
++            route,
++            p.clone(),
++            CancellationToken::new(),
++            Instant::now() + Duration::from_secs(2),
++        );
++        timeout(
++            Duration::from_secs(1),
++            r.scene.record.dtmf_delivery_entered.notified(),
++        )
++        .await
++        .unwrap();
++        if kind == "key" {
++            r.scene.grants.0.try_write().unwrap().key.revoked = true
++        } else {
++            *p.recipient_allowed.try_write().unwrap() = false
++        }
++        r.scene
++            .record
++            .dtmf_pause_delivery
++            .store(false, Ordering::Release);
++        r.scene.record.dtmf_delivery_release.notify_one();
++        assert_eq!(job.await.unwrap(), Err(DtmfWriteError::Refused));
++        r.no_native_signal().await;
++        r.scene.grants.0.write().await.key.revoked = false;
++        let route = r.native_route("native-fresh-after-key-reconciliation", DtmfMethod::Info);
++        let p = NativeSignalPolicy::new(&r, &route);
++        let job = r.start_native(
++            route,
++            p,
++            CancellationToken::new(),
++            Instant::now() + Duration::from_secs(2),
++        );
++        r.native_frame().await;
++        assert_eq!(job.await.unwrap(), Ok(()));
++        r.stop().await;
++    }
++}
++#[tokio::test]
++async fn native_core_recipient_stream_retirement_after_grant_prevents_actual_sink_poll() {
++    let mut r = RouteRig::new_recipient("quic").await;
++    let route = r.native_route("native-pre-io-retirement", DtmfMethod::Info);
++    let p = NativeSignalPolicy::new(&r, &route);
++    let pause = Arc::new(PauseWrite {
++        release: AtomicBool::new(false),
++        entered: tokio::sync::Notify::new(),
++    });
++    *p.pause.lock().unwrap() = Some(pause.clone());
++    let job = r.start_native(
++        route,
++        p.clone(),
++        CancellationToken::new(),
++        Instant::now() + Duration::from_secs(2),
++    );
++    timeout(Duration::from_secs(1), pause.entered.notified())
++        .await
++        .unwrap();
++    assert_eq!(p.calls.load(Ordering::Acquire), 1);
++    r.scene.controller().retire();
++    pause.release.store(true, Ordering::Release);
++    assert_eq!(job.await.unwrap(), Err(DtmfWriteError::Refused));
++    r.no_native_signal().await;
++    drop(r.scene.grants.0.try_write().unwrap());
++    r.stop().await;
++}
++#[tokio::test]
++async fn native_core_source_retirement_and_replaced_recipient_registration_discard_queued_obsolete_delivery(
++) {
++    for change in ["source", "reoffer"] {
++        let mut r = RouteRig::new_recipient("wt").await;
++        r.scene
++            .record
++            .dtmf_pause_delivery
++            .store(true, Ordering::Release);
++        let route = r.native_route("native-obsolete-metadata", DtmfMethod::Info);
++        let p = NativeSignalPolicy::new(&r, &route);
++        let job = r.start_native(
++            route,
++            p,
++            CancellationToken::new(),
++            Instant::now() + Duration::from_secs(2),
++        );
++        timeout(
++            Duration::from_secs(1),
++            r.scene.record.dtmf_delivery_entered.notified(),
++        )
++        .await
++        .unwrap();
++        if change == "source" {
++            r.scene
++                .native
++                .core
++                .orch
++                .end_connection(r.target.clone(), EndReason::Normal)
++                .await
++                .unwrap();
++            tokio::time::sleep(Duration::from_millis(20)).await;
++        } else {
++            let offer = lifecycle_offer(&r.scene, 0, 1, "sendonly");
++            let (_, callback) = r.scene.prepared(offer).await;
++            r.scene.confirm(&callback).await;
++            r.scene.wait(2).await;
++        }
++        r.scene
++            .record
++            .dtmf_pause_delivery
++            .store(false, Ordering::Release);
++        r.scene.record.dtmf_delivery_release.notify_one();
++        assert_eq!(job.await.unwrap(), Err(DtmfWriteError::Refused));
++        r.no_native_signal().await;
++        r.stop().await;
++    }
++}
++#[tokio::test]
++async fn actual_native_observation_routes_to_another_managed_native_connection_without_forged_source_or_old_grant(
++) {
++    for kind in ["quic", "wt"] {
++        let mut r = RouteRig::new_recipient(kind).await;
++        let mut target = r.scene.second_wire().await;
++        let offer = lifecycle_offer(&r.scene, 1, 0, "recvonly");
++        target.send(r.scene.f.sign(offer)).await;
++        let answer = target.read().await;
++        assert_eq!(answer.kind(), "connection.answer");
++        r.scene.f.verify_server(&answer).await;
++        let callback = target.read().await;
++        assert_eq!(callback.kind(), "connection.offer");
++        target
++            .send(r.scene.f.sign(r.scene.confirmation(&callback)))
++            .await;
++        r.scene.wait(2).await;
++        core_fixture::until(|| {
++            r.scene
++                .native
++                .core
++                .orch
++                .session(&r.scene.native.core.session)
++                .unwrap()
++                .read()
++                .unwrap()
++                .connections
++                .contains_key(&r.scene.second_id)
++        })
++        .await;
++        let observed = r.observation("12#", 100, "info").await;
++        r.scene
++            .grants
++            .0
++            .write()
++            .await
++            .dtmf_forward_allowed
++            .insert((observed.connection().clone(), r.scene.second_id.clone()));
++        let route = observed
++            .prepare_core_route(&r.scene.native.core.orch, r.scene.second_id.clone())
++            .unwrap();
++        assert_eq!(route.observation().kind(), DtmfSourceKind::Native);
++        assert_eq!(
++            route.observation().observation_id(),
++            Some(observed.observation_id())
++        );
++        let mut p = NativeSignalPolicy::new(&r, &route);
++        Arc::get_mut(&mut p).unwrap().source_observed = Some(observed.clone());
++        let job = r.start_native(
++            route,
++            p.clone(),
++            CancellationToken::new(),
++            Instant::now() + Duration::from_secs(2),
++        );
++        let frame = timeout(Duration::from_secs(2), target.read())
++            .await
++            .unwrap();
++        assert_eq!(frame.kind(), "dtmf.received");
++        r.scene.f.verify_server(&frame).await;
++        assert_eq!(frame.scope(Scope::Connection), Some("native_1"));
++        assert_eq!(frame.scope(Scope::Operation), Some(observed.operation_id()));
++        assert_eq!(frame.original()["payload"]["source"], json!("uctp-native"));
++        assert_eq!(
++            frame.original()["payload"]["received_at"],
++            json!(observed.received_at())
++        );
++        assert_eq!(job.await.unwrap(), Ok(()));
++        assert_eq!(p.calls.load(Ordering::Acquire), 1);
++        r.no_native_signal().await;
++        target.server.shutdown().await.unwrap();
++        r.stop().await;
++    }
++}
++
++#[tokio::test]
++async fn unconfigured_native_recipient_does_not_fall_back_to_raw_or_a_different_writer() {
++    let mut r = RouteRig::new("quic").await;
++    let route = r.native_route("native-unconfigured", DtmfMethod::Info);
++    let p = NativeSignalPolicy::new(&r, &route);
++    assert_eq!(
++        r.start_native(
++            route,
++            p.clone(),
++            CancellationToken::new(),
++            Instant::now() + Duration::from_secs(2)
++        )
++        .await
++        .unwrap(),
++        Err(DtmfWriteError::Unsupported)
++    );
++    assert_eq!(p.calls.load(Ordering::Acquire), 0);
++    r.no_native_signal().await;
++    r.peer.no_info(Duration::from_millis(50)).await;
++    r.peer.no_rtp_tone().await;
++    r.stop().await;
++}

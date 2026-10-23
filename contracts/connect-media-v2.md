@@ -41,6 +41,11 @@ and observability backpressure must not delay media.
 ## Streams and readiness
 
 Open/close, pause/resume, mute, subscriptions and capability changes are explicit.
+The installed native Connection hold/resume and mute/unmute controls use exact
+current Stream IDs, original physical ownership, logical operation identity and
+stream revision. Runtime gates preserve negotiated codecs/handles; resume clears
+hold/pause independently of source mute. See
+[native runtime controls](../docs/developer/native-runtime-controls.md).
 An admitted participant does not automatically hear all streams. Audio/video/data
 and screen can differ between participants. A telephone endpoint rejects video
 without rejecting usable audio. Replacement creates explicit new transport
@@ -85,3 +90,14 @@ Measure server, native helper and browser process groups separately. Report CPU,
 resident memory, queues and open resources for the declared workload. Fix limits
 before the corresponding run; never rewrite a failed threshold after observing
 a failure without a reviewed change and a new identified qualification run.
+
+Native quality cadence uses the original signed physical Connection through
+`connection.update {action:"quality", quality_interval_ms}` with100–60000ms and a
+5000ms default. Require current named `connection.update`, exact resource scopes,
+original logical operation identity and expected stream revision. Configuration
+changes neither stream revision nor media bindings. Its captured result names the
+original Connection generation and applied interval; replay returns historical
+facts without resetting a newer cadence. Actual reports independently require
+current original-source delivery authority. HTTP supplies no physical native
+control capability. See [native quality control](../docs/developer/native-quality.md)
+and the server OpenAPI native-only profile for the installed surface.

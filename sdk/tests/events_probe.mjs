@@ -1,0 +1,21 @@
+import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
+import {HttpClient} from '../typescript/dist/index.js';
+const v=JSON.parse(readFileSync(0,'utf8')),client=new HttpClient(v.base,v.token);
+const snapshot=await client.conversationSnapshot(v.cid,{limit:1});
+assert.equal(snapshot.conversation_id,v.cid);assert.equal(snapshot.has_more,true);
+let next=snapshot.next,count=snapshot.items.length;
+while(next){const page=await client.conversationSnapshot(v.cid,{page:next,limit:1});assert.equal(page.cursor,snapshot.cursor);count+=page.items.length;next=page.next;}
+assert.ok(count>=5);
+const page=await client.conversationEvents(v.cid,{after:v.cursor,limit:1});
+assert.equal(page.events[0].data.data.id,v.message_id);
+assert.equal(page.events[0].revision,1);
+assert.equal(page.events[0].operation_id,'message');
+const own=await client.sessionObservations(v.cid,v.sid);
+assert.equal(own.observations[0].observation_id,v.observation_id);
+assert.equal(own.observations[0].source.correlation_id,own.routes[0].correlation_id);
+assert.equal(own.routes[0].capabilities.speech,false);
+const peer=await new HttpClient(v.base,v.foreign_token).sessionObservations(v.cid,v.sid);
+assert.deepEqual(peer.observations,[]);assert.deepEqual(peer.routes,[]);
+assert.equal(client.publishSessionObservation,undefined);
+console.log(JSON.stringify({passed:true}));

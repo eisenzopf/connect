@@ -1,0 +1,43 @@
+{
+  "api": "membership",
+  "request": {
+    "conversation_id": "conv_18f811c7b0944cc0997da31aa4547324",
+    "op": "membership_snapshot"
+  },
+  "response": {
+    "profile": "connect-control/1",
+    "result": {
+      "Ok": {
+        "data": {
+          "conversation_id": "conv_18f811c7b0944cc0997da31aa4547324",
+          "participants": [
+            {
+              "active": true,
+              "conversation_id": "conv_18f811c7b0944cc0997da31aa4547324",
+              "identity_id": "ec3ffaa5-81e8-4ea4-8d28-415cc5de1be8",
+              "kind": "human",
+              "membership_epoch": 2,
+              "participant_id": "part_6e4c2b0a-5fac-44cd-b694-a92ca2e87bb8",
+              "removal_reason": null,
+              "role": "guest"
+            },
+            {
+              "active": true,
+              "conversation_id": "conv_18f811c7b0944cc0997da31aa4547324",
+              "identity_id": "33067124-6107-4c9d-8e84-88a547095f30",
+              "kind": "human",
+              "membership_epoch": 1,
+              "participant_id": "part_7f8135ecc8d790e2b83f0fb65337e303",
+              "removal_reason": null,
+              "role": "participant"
+            }
+          ],
+          "revision": 11
+        },
+        "kind": "membership_snapshot"
+      }
+    }
+  },
+  "route": "/v1/operations",
+  "status": 200
+}

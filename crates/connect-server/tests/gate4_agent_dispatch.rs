@@ -30,7 +30,7 @@ async fn current_revocation_cancels_queued_ordinary_dispatch_before_any_provider
     let route = sms::install_route(&f, &cid);
     sms::enrollment(&f, &cid, 1);
     let client = mcp::client(f.server.mcp_address.unwrap(), &f.agent.credential).await;
-    let args = json!({"request_id":"queue-before-revoke","conversation_id":cid,"body":"Do not dispatch after revocation."});
+    let args = json!({"request_id":"queue-before-revoke","conversation_id":cid,"message": connect_protocol::messages::MessageDraft::text_all(("Do not dispatch after revocation.").to_string())});
     assert!(matches!(
         mcp::outcome(mcp::call(&client, "connect_send", args).await),
         Outcome::Accepted { .. }
@@ -73,8 +73,7 @@ async fn actual_identity_expiry_cancels_queued_ordinary_dispatch_before_any_prov
     let client =
         mcp::client_with_http(f.server.mcp_address.unwrap(), &short.credential, http).await;
     mcp::outcome(mcp::call(&client, "connect_send", json!({
-        "request_id":"queue-before-expiry","conversation_id":cid,"body":"Expires before dispatch."
-    })).await);
+        "request_id":"queue-before-expiry","conversation_id":cid,"message": connect_protocol::messages::MessageDraft::text_all(("Expires before dispatch.").to_string())})).await);
     assert_eq!(
         peer.provider_status(&cid).await.unwrap()[0].state,
         "pending"
@@ -114,7 +113,7 @@ async fn ordinary_sms_needs_enrollment_honors_stop_and_never_replays_a_cancelled
         .id;
     sms::install_route(&f, &cid);
     let client = mcp::client(f.server.mcp_address.unwrap(), &f.agent.credential).await;
-    let send = |id: &str| json!({"request_id":id,"conversation_id":cid,"body":format!("Requested test {id}")});
+    let send = |id: &str| json!({"request_id":id,"conversation_id":cid,"message": connect_protocol::messages::MessageDraft::text_all((format!("Requested test {id}")).to_string())});
     mcp::outcome(mcp::call(&client, "connect_send", send("no-enrollment")).await);
     let denied = sms::dispatch(&f, &mut peer, driver.clone(), &cid, 1).await;
     assert_eq!(denied[0].state, "cancelled");

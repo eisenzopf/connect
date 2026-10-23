@@ -227,7 +227,7 @@ impl ServerConfig {
 }
 
 impl SipOutboundConfig {
-    fn validate(&self) -> Result<()> {
+    pub(crate) fn validate(&self) -> Result<()> {
         if !valid_sip_uri(&self.proxy_uri)
             || !valid_sip_uri(&self.identity_uri)
             || self

@@ -130,6 +130,13 @@ impl VapiMedia {
             .flatten()
             .as_ref()
             != Some(&route)
+            || store
+                .revalidate_vapi_session_context(
+                    binding.credential,
+                    binding.durable_session,
+                    &delivery,
+                )
+                .is_err()
         {
             let _ = call.end().await;
             let _ = store.finish_context_delivery(&delivery, "failed", None);

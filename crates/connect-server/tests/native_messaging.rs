@@ -22,7 +22,7 @@ async fn two_native_clients_recover_messages_and_receive_wait_boundary_insert() 
     let id = match app
         .request(Operation::Create {
             request_id: "create-1".into(),
-            participants: vec![peer.id],
+            request: connect_protocol::conversations::CreateRequest::persistent(vec![peer.id]),
         })
         .await
         .unwrap()
@@ -45,7 +45,7 @@ async fn two_native_clients_recover_messages_and_receive_wait_boundary_insert() 
     let send = Operation::Send {
         request_id: "send-1".into(),
         conversation_id: id.clone(),
-        body: "hello".into(),
+        message: connect_protocol::messages::MessageDraft::text_all("hello"),
     };
     let wait = agent.request(Operation::Inbox {
         cursor,
@@ -62,7 +62,7 @@ async fn two_native_clients_recover_messages_and_receive_wait_boundary_insert() 
     let changed = Operation::Send {
         request_id: "send-1".into(),
         conversation_id: id.clone(),
-        body: "changed".into(),
+        message: connect_protocol::messages::MessageDraft::text_all("changed"),
     };
     assert!(
         matches!(app.request(changed).await,Err(ClientError::Application(e)) if e.code=="conflict")

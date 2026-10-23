@@ -1,0 +1,1329 @@
+diff --git a/Cargo.lock b/Cargo.lock
+--- a/Cargo.lock
++++ b/Cargo.lock
+@@ -7705,6 +7705,8 @@
+  "rvoip-quic",
+  "rvoip-rtp-core",
+  "rvoip-sip",
++ "rvoip-sip-core",
++ "rvoip-sip-dialog",
+  "rvoip-websocket",
+  "rvoip-webtransport",
+  "serde",
+diff --git a/crates/foundation/rvoip-core/src/orchestrator/dtmf_routing.rs b/crates/foundation/rvoip-core/src/orchestrator/dtmf_routing.rs
+--- a/crates/foundation/rvoip-core/src/orchestrator/dtmf_routing.rs
++++ b/crates/foundation/rvoip-core/src/orchestrator/dtmf_routing.rs
+@@ -113,7 +113,23 @@
+ /// retains its actual sealed origin here, without retaining an idle grant.
+ /// Implementations must be bounded and must not reenter Core.
+ pub trait DtmfSourceFence: Send + Sync {
++    /// Passive metadata hint, never permission or an IO barrier.
+     fn current(&self) -> bool;
++    /// Bound synchronous physical source custody around one actual IO poll.
++    /// Invoke at most once, retain nothing and never reenter Core. A boolean
++    /// hint alone deliberately cannot opt in to effect-capable routing.
++    fn poll(&self, _io: &mut dyn FnMut() -> DtmfIoPoll) -> DtmfIoPoll {
++        Poll::Ready(Err(DtmfWriteError::Refused))
++    }
++}
++fn poll_sources(
++    sources: &[Arc<dyn DtmfSourceFence>],
++    io: &mut dyn FnMut() -> DtmfIoPoll,
++) -> DtmfIoPoll {
++    match sources.split_first() {
++        Some((first, rest)) => first.poll(&mut || poll_sources(rest, io)),
++        None => io(),
++    }
+ }
+ /// Must bind the authenticated actor, original operation/intent, both current
+ /// relationship epochs and this exact packet. Reuse any actual held domain;
+@@ -211,9 +227,6 @@
+     }
+     fn poll_bound(&self, io: &mut dyn FnMut() -> DtmfIoPoll) -> DtmfIoPoll {
+         let result = (|| -> std::result::Result<DtmfIoPoll, DtmfWriteError> {
+-            if self.source_fences.iter().any(|f| !f.current()) {
+-                return Err(DtmfWriteError::Refused);
+-            }
+             let core = self.owner.upgrade().ok_or(DtmfWriteError::Refused)?;
+             if core
+                 .connection_lifecycle_tasks
+@@ -293,7 +306,7 @@
+                 session_guards.push(s);
+                 conversation_guards.push(c);
+             }
+-            Ok(io())
++            Ok(poll_sources(&self.source_fences, io))
+         })();
+         result.unwrap_or_else(|e| Poll::Ready(Err(e)))
+     }
+@@ -505,6 +518,15 @@
+         requested_deadline: Instant,
+     ) -> std::result::Result<(), DtmfWriteError> {
+         if route.owner.upgrade().is_none_or(|c| !Arc::ptr_eq(&c, self)) || cancel.is_cancelled() {
++            return Err(DtmfWriteError::Refused);
++        }
++        // Native ingress requires sealed physical source custody in addition
++        // to Core relationship metadata and the host's independent permission.
++        if matches!(
++            route.source().transport,
++            Transport::Quic | Transport::WebTransport | Transport::WebSocket
++        ) && route.source_fences.is_empty()
++        {
+             return Err(DtmfWriteError::Refused);
+         }
+         route.check_current()?;
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/dtmf_source.rs b/crates/foundation/rvoip-core/src/staged_streams/dtmf_source.rs
+new file mode 100644
+--- /dev/null
++++ b/crates/foundation/rvoip-core/src/staged_streams/dtmf_source.rs
+@@ -0,0 +1,70 @@
++//! Exact source metadata custody for a synchronous signal IO poll. This
++//! supplies no signal or media permission; the host must own that separately.
++use super::*;
++use rvoip_media_core::dtmf_authority::{DtmfIoPoll, DtmfWriteError};
++use std::task::Poll;
++impl StreamController {
++    /// Serialize a bounded signal IO poll with this controller's stream,
++    /// credential and physical audio-port retirement/rebind commits. No guard
++    /// survives Pending; `io` must not reenter this controller or Core.
++    pub fn poll_dtmf_source_io(
++        &self,
++        principal: &AuthenticatedPrincipal,
++        revision: u64,
++        credential_revision: u64,
++        audio: &[ReadyMediaBinding],
++        io: &mut dyn FnMut() -> DtmfIoPoll,
++    ) -> DtmfIoPoll {
++        let refuse = || Poll::Ready(Err(DtmfWriteError::Refused));
++        let Ok(state) = self.state.try_lock() else {
++            return Poll::Ready(Err(DtmfWriteError::NotReady));
++        };
++        let Ok(credential) = self.credential.try_lock() else {
++            return Poll::Ready(Err(DtmfWriteError::NotReady));
++        };
++        if self.shutdown.is_cancelled()
++            || state.closed
++            || state.model.revision() != revision
++            || credential.revision != credential_revision
++            || !reliable_data::same_credential(&credential.principal, principal)
++            || audio.is_empty()
++            || audio.len() > 64
++        {
++            return refuse();
++        }
++        let mut guards = Vec::with_capacity(audio.len());
++        let mut keys = BTreeSet::new();
++        for expected in audio {
++            if expected.negotiated.requested.medium != Medium::Audio
++                || !keys.insert(&expected.negotiated.requested.logical_id)
++            {
++                return refuse();
++            }
++            let Some(port) = state.active.get(&expected.negotiated.requested.logical_id) else {
++                return refuse();
++            };
++            let actual = &port.binding;
++            if actual.negotiated != expected.negotiated
++                || actual.transport_id != expected.transport_id
++                || actual.stream_local_id != expected.stream_local_id
++                || actual.generation != expected.generation
++                || actual.connection_generation != expected.connection_generation
++                || (expected.source_ready && !actual.source_ready)
++                || (expected.sink_ready && !actual.sink_ready)
++            {
++                return refuse();
++            }
++            let Ok(guard) = port.state.try_lock() else {
++                return Poll::Ready(Err(DtmfWriteError::NotReady));
++            };
++            if guard.status != PortStatus::Active {
++                return refuse();
++            }
++            guards.push(guard);
++        }
++        if self.shutdown.is_cancelled() {
++            return refuse();
++        }
++        io()
++    }
++}
+diff --git a/crates/foundation/rvoip-core/src/staged_streams.rs b/crates/foundation/rvoip-core/src/staged_streams.rs
+--- a/crates/foundation/rvoip-core/src/staged_streams.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams.rs
+@@ -2633,3 +2633,5 @@
+ pub mod local_audio;
+ 
+ pub(crate) mod signal;
++
++mod dtmf_source;
+diff --git a/crates/foundation/rvoip-core/tests/dtmf_auto_route.rs b/crates/foundation/rvoip-core/tests/dtmf_auto_route.rs
+--- a/crates/foundation/rvoip-core/tests/dtmf_auto_route.rs
++++ b/crates/foundation/rvoip-core/tests/dtmf_auto_route.rs
+@@ -588,6 +588,12 @@
+                 )
+                 .unwrap(),
+             )
++            .unwrap()
++            .with_source_fence(Arc::new(ControlledSource {
++                adapter: self.origin.clone(),
++                connection: self.source.clone(),
++                stream: self.origin.streams.get(&self.source).unwrap().clone(),
++            }))
+             .unwrap()
+     }
+     async fn receive(&self) -> rvoip_rtp_core::RtpPacket {
+@@ -997,3 +1003,62 @@
+     assert!(route.current());
+     assert_eq!(r.raw.calls.load(Ordering::SeqCst), 0);
+ }
++
++#[tokio::test]
++async fn source_metadata_hint_without_a_physical_poll_fence_cannot_authorize_signal_io() {
++    struct HintOnly;
++    impl rvoip_core::dtmf::DtmfSourceFence for HintOnly {
++        fn current(&self) -> bool {
++            true
++        }
++    }
++    let r = Rig::new().await;
++    let route = r
++        .route("1", 60, DtmfMethod::Rfc4733)
++        .with_source_fence(Arc::new(HintOnly))
++        .unwrap();
++    let policy = Policy::new(&r);
++    assert_eq!(
++        r.core
++            .route_dtmf(
++                &route,
++                policy.clone(),
++                CancellationToken::new(),
++                Instant::now() + Duration::from_secs(1)
++            )
++            .await,
++        Err(DtmfWriteError::Refused),
++        "a metadata-only source hint admitted actual RTP writes without a physical source fence"
++    );
++    r.no_packet().await;
++    assert_eq!(policy.calls.load(Ordering::SeqCst), 0);
++}
++
++// This fixture owns a controlled adapter source, not a real native ingress.
++// Hold its exact stream-map entry through a bounded physical poll; actual
++// signed native stream/credential/flow custody is qualified in rvoip-uctp.
++struct ControlledSource {
++    adapter: Arc<RecordingAdapter>,
++    connection: ConnectionId,
++    stream: Arc<StreamHandle>,
++}
++impl DtmfSourceFence for ControlledSource {
++    fn current(&self) -> bool {
++        self.adapter
++            .streams
++            .get(&self.connection)
++            .is_some_and(|v| Arc::ptr_eq(v.value(), &self.stream))
++    }
++    fn poll(
++        &self,
++        io: &mut dyn FnMut() -> rvoip_core::dtmf::DtmfIoPoll,
++    ) -> rvoip_core::dtmf::DtmfIoPoll {
++        use dashmap::try_result::TryResult;
++        use std::task::Poll;
++        match self.adapter.streams.try_get(&self.connection) {
++            TryResult::Present(v) if Arc::ptr_eq(v.value(), &self.stream) => io(),
++            TryResult::Locked => Poll::Ready(Err(DtmfWriteError::NotReady)),
++            _ => Poll::Ready(Err(DtmfWriteError::Refused)),
++        }
++    }
++}
+diff --git a/crates/uctp/rvoip-uctp/Cargo.toml b/crates/uctp/rvoip-uctp/Cargo.toml
+--- a/crates/uctp/rvoip-uctp/Cargo.toml
++++ b/crates/uctp/rvoip-uctp/Cargo.toml
+@@ -69,6 +69,8 @@
+ rvoip-webtransport = { path = "../rvoip-webtransport" }
+ rvoip-websocket = { path = "../rvoip-websocket", features = ["wss"] }
+ rvoip-sip = { path = "../../sip/rvoip-sip" }
++rvoip-sip-core.workspace = true
++rvoip-sip-dialog.workspace = true
+ url = "2"
+ 
+ # JWT validator integration test (plan C4 prelude).
+diff --git a/crates/uctp/rvoip-uctp/src/native_flow.rs b/crates/uctp/rvoip-uctp/src/native_flow.rs
+--- a/crates/uctp/rvoip-uctp/src/native_flow.rs
++++ b/crates/uctp/rvoip-uctp/src/native_flow.rs
+@@ -133,6 +133,23 @@
+             && s.confirmed_revision == Some(revision)
+             && s.confirmed_offer.as_deref() == Some(offer)
+     }
++    /// Native confirmation/epoch custody, not signal permission. All nested
++    /// metadata acquisition must try-lock; quality readers use flow -> port.
++    pub(crate) fn poll_dtmf_source_io(
++        &self,
++        revision: u64,
++        epoch: &CancellationToken,
++        io: &mut dyn FnMut() -> rvoip_core::dtmf::DtmfIoPoll,
++    ) -> rvoip_core::dtmf::DtmfIoPoll {
++        use rvoip_core::dtmf::DtmfWriteError;
++        let Ok(state) = self.state.try_lock() else {
++            return std::task::Poll::Ready(Err(DtmfWriteError::NotReady));
++        };
++        if !self.current() || epoch.is_cancelled() || state.confirmed_revision != Some(revision) {
++            return std::task::Poll::Ready(Err(DtmfWriteError::Refused));
++        }
++        io()
++    }
+     pub(crate) fn received(&self, port: &AdapterMediaPort) {
+         self.record(port, true);
+     }
+diff --git a/crates/uctp/rvoip-uctp/src/v2/native.rs b/crates/uctp/rvoip-uctp/src/v2/native.rs
+--- a/crates/uctp/rvoip-uctp/src/v2/native.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/native.rs
+@@ -748,7 +748,7 @@
+     /// installed current signal policy and bounded local sink. This result is
+     /// a historical source fact, not downstream tone delivery or a receipt.
+     pub fn receive_native_dtmf(
+-        &self,
++        self: &Arc<Self>,
+         id: &ConnectionId,
+         a: &super::auth_dispatch::AuthorizedEnvelope,
+         policy: &dyn super::native_dtmf::NativeDtmfPolicy,
+@@ -799,37 +799,49 @@
+         let weak_flow = Arc::downgrade(&flow);
+         let source_principal = a.principal().clone();
+         let source_audio = event.audio_bindings().to_vec();
++        let source_epoch = flow.epoch();
++        let check_epoch = source_epoch.clone();
++        let source_adapter: Arc<dyn ConnectionAdapter> = self.clone();
+         event.bind_origin(
+-            move || {
++            Arc::downgrade(&source_adapter),
++            move |io| {
++                use rvoip_core::dtmf::DtmfWriteError;
++                let refuse = || std::task::Poll::Ready(Err(DtmfWriteError::Refused));
+                 let (Some(route), Some(controller), Some(flow)) = (
+                     weak_route.upgrade(),
+                     weak_controller.upgrade(),
+                     weak_flow.upgrade(),
+                 ) else {
+-                    return false;
++                    return refuse();
+                 };
+-                !route.cancel.is_cancelled()
+-                    && !route.physical.context.lifetime.is_cancelled()
+-                    && route.peer.upgrade().is_some_and(|p| {
+-                        p.validate_binding(
+-                            &source_principal,
+-                            route.member.identity(),
+-                            route.endpoint.device(),
+-                        )
+-                        .is_ok()
+-                    })
+-                    && controller.revision() == revision
+-                    && controller.credential_revision() == credential
+-                    && controller.matches_data_credential(&source_principal)
+-                    && flow.confirmed_at(revision)
+-                    && source_audio.iter().all(|old| {
+-                        controller
+-                            .active_bindings()
+-                            .iter()
+-                            .any(|new| crate::staged_media::same_binding(old, new))
+-                    })
++                let Some(peer) = route.peer.upgrade() else {
++                    return refuse();
++                };
++                flow.poll_dtmf_source_io(revision, &check_epoch, &mut || {
++                    controller.poll_dtmf_source_io(
++                        &source_principal,
++                        revision,
++                        credential,
++                        &source_audio,
++                        &mut || {
++                            if route.cancel.is_cancelled()
++                                || route.physical.context.lifetime.is_cancelled()
++                                || peer
++                                    .validate_binding(
++                                        &source_principal,
++                                        route.member.identity(),
++                                        route.endpoint.device(),
++                                    )
++                                    .is_err()
++                            {
++                                return refuse();
++                            }
++                            io()
++                        },
++                    )
++                })
+             },
+-            flow.epoch(),
++            source_epoch,
+         );
+         let current = || {
+             a.supports_native_negotiation()
+diff --git a/crates/uctp/rvoip-uctp/src/v2/native_dtmf.rs b/crates/uctp/rvoip-uctp/src/v2/native_dtmf.rs
+--- a/crates/uctp/rvoip-uctp/src/v2/native_dtmf.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/native_dtmf.rs
+@@ -35,6 +35,8 @@
+     device: DeviceId,
+     membership_epoch: u64,
+     principal: AuthenticatedPrincipal,
++    signing_key_id: String,
++    signing_algorithm: super::payloads::SignatureAlg,
+     transport: Transport,
+     operation_id: String,
+     digits: String,
+@@ -51,25 +53,99 @@
+         f.write_str("NativeDtmfObservation(redacted)")
+     }
+ }
++type SourcePoll = dyn Fn(&mut dyn FnMut() -> rvoip_core::dtmf::DtmfIoPoll) -> rvoip_core::dtmf::DtmfIoPoll
++    + Send
++    + Sync;
+ struct SourceOrigin {
+-    current: Box<dyn Fn() -> bool + Send + Sync>,
++    adapter: std::sync::Weak<dyn rvoip_core::adapter::ConnectionAdapter>,
++    poll: Box<SourcePoll>,
+     cancel: tokio_util::sync::CancellationToken,
+ }
+ impl NativeDtmfObservation {
+     pub(crate) fn bind_origin(
+         &mut self,
+-        current: impl Fn() -> bool + Send + Sync + 'static,
++        adapter: std::sync::Weak<dyn rvoip_core::adapter::ConnectionAdapter>,
++        poll: impl Fn(&mut dyn FnMut() -> rvoip_core::dtmf::DtmfIoPoll) -> rvoip_core::dtmf::DtmfIoPoll
++            + Send
++            + Sync
++            + 'static,
+         cancel: tokio_util::sync::CancellationToken,
+     ) {
+         self.origin = Some(std::sync::Arc::new(SourceOrigin {
+-            current: Box::new(current),
++            adapter,
++            poll: Box::new(poll),
+             cancel,
+         }));
+     }
++    fn poll_source(
++        &self,
++        io: &mut dyn FnMut() -> rvoip_core::dtmf::DtmfIoPoll,
++    ) -> rvoip_core::dtmf::DtmfIoPoll {
++        use rvoip_core::dtmf::DtmfWriteError;
++        let Some(origin) = self.origin.as_ref() else {
++            return std::task::Poll::Ready(Err(DtmfWriteError::Refused));
++        };
++        if origin.cancel.is_cancelled() {
++            return std::task::Poll::Ready(Err(DtmfWriteError::Refused));
++        }
++        (origin.poll)(io)
++    }
+     pub(crate) fn current_source(&self) -> bool {
+-        self.origin
++        matches!(
++            self.poll_source(&mut || std::task::Poll::Ready(Ok(()))),
++            std::task::Poll::Ready(Ok(()))
++        )
++    }
++    /// Bind actual sealed native ingress to Core metadata and immutable intent.
++    /// No old invocation/permission is retained. The caller must journal the
++    /// original operation and supply independent current source/recipient
++    /// policy to Core for every actual downstream write.
++    pub fn prepare_core_route(
++        &self,
++        core: &std::sync::Arc<rvoip_core::Orchestrator>,
++        recipient: ConnectionId,
++    ) -> Result<rvoip_core::dtmf::DtmfRoute, rvoip_core::dtmf::DtmfWriteError> {
++        use rvoip_core::dtmf::*;
++        let actual = self
++            .origin
+             .as_ref()
+-            .is_some_and(|o| !o.cancel.is_cancelled() && (o.current)())
++            .and_then(|o| o.adapter.upgrade())
++            .ok_or(DtmfWriteError::Refused)?;
++        let installed = core
++            .adapter(self.transport)
++            .map_err(|_| DtmfWriteError::Refused)?;
++        if !std::sync::Arc::ptr_eq(&actual, &installed) || !self.current_source() {
++            return Err(DtmfWriteError::Refused);
++        }
++        let method = match self.method {
++            NativeDtmfMethod::Info => DtmfMethod::Info,
++            NativeDtmfMethod::Rfc4733 => DtmfMethod::Rfc4733,
++        };
++        let intent = DtmfIntent::new(
++            self.operation_id.clone(),
++            self.digits.clone(),
++            self.duration_ms,
++            method,
++        )?;
++        let route = core.prepare_dtmf_route(self.connection.clone(), recipient, intent)?;
++        let source = route.source();
++        if source.conversation() != &self.conversation
++            || source.session() != &self.session
++            || source.participant() != &self.participant
++            || source.transport() != self.transport
++        {
++            return Err(DtmfWriteError::Refused);
++        }
++        struct PhysicalSource(NativeDtmfObservation);
++        impl DtmfSourceFence for PhysicalSource {
++            fn current(&self) -> bool {
++                self.0.current_source()
++            }
++            fn poll(&self, io: &mut dyn FnMut() -> DtmfIoPoll) -> DtmfIoPoll {
++                self.0.poll_source(io)
++            }
++        }
++        route.with_source_fence(std::sync::Arc::new(PhysicalSource(self.clone())))
+     }
+ 
+     pub fn conversation(&self) -> &ConversationId {
+@@ -98,6 +174,14 @@
+     }
+     pub fn principal(&self) -> &AuthenticatedPrincipal {
+         &self.principal
++    }
++    /// Verified request signing-key identity, metadata only. Fresh host policy
++    /// must check this exact key remains current before every later effect.
++    pub fn signing_key_id(&self) -> &str {
++        &self.signing_key_id
++    }
++    pub fn signing_algorithm(&self) -> super::payloads::SignatureAlg {
++        self.signing_algorithm
+     }
+     pub fn transport(&self) -> Transport {
+         self.transport
+@@ -153,6 +237,15 @@
+         {
+             return Err(NativeOfferError::Scope);
+         }
++        // The dispatch gate verified this immutable envelope for this principal.
++        // Retain key identity only, never the signature or invocation grant.
++        let signature: super::payloads::Signature = serde_json::from_value(
++            e.original()
++                .get("signature")
++                .cloned()
++                .ok_or(NativeOfferError::Authority)?,
++        )
++        .map_err(|_| NativeOfferError::Authority)?;
+         let operation = e.scope(Scope::Operation).ok_or(NativeOfferError::Invalid)?;
+         let method = match p.method.as_str() {
+             "rfc4733" => NativeDtmfMethod::Rfc4733,
+@@ -178,6 +271,8 @@
+             device: endpoint.device().clone(),
+             membership_epoch: member.epoch(),
+             principal: a.principal().clone(),
++            signing_key_id: signature.keyid,
++            signing_algorithm: signature.alg,
+             transport: endpoint.transport(),
+             operation_id: operation.into(),
+             digits: p.digits.clone(),
+diff --git a/crates/uctp/rvoip-uctp/tests/support/canonical_media/native_offers/dtmf_route.rs b/crates/uctp/rvoip-uctp/tests/support/canonical_media/native_offers/dtmf_route.rs
+new file mode 100644
+--- /dev/null
++++ b/crates/uctp/rvoip-uctp/tests/support/canonical_media/native_offers/dtmf_route.rs
+@@ -0,0 +1,756 @@
++//! Actual signed native ingress -> Core -> negotiated SIP UDP effects.
++//! Fresh independent signal grants and sealed physical source epochs apply to
++//! every write; the observation journal here is controlled fixture state.
++use super::*;
++use bytes::Bytes;
++use rvoip_core::{
++    adapter::{ConnectionAdapter, EndReason, OriginateRequest},
++    connection::Direction,
++    dtmf::*,
++};
++use rvoip_sip::{
++    api::unified::{Config, UnifiedCoordinator},
++    SipAdapter,
++};
++use rvoip_sip_core::{
++    parser::parse_message,
++    prelude::{Contact, HeaderName, Message, Method, Request, StatusCode, TypedHeader},
++};
++use rvoip_sip_dialog::transaction::utils::response_builders::create_response;
++use rvoip_uctp::v2::native_dtmf::NativeDtmfObservation;
++use std::{net::SocketAddr, result::Result, str::FromStr, sync::atomic::AtomicU16};
++use tokio::{
++    net::UdpSocket,
++    time::{timeout, Instant},
++};
++struct Observed {
++    bytes: Vec<u8>,
++    request: Request,
++    remote: SocketAddr,
++}
++struct Peer {
++    socket: Arc<UdpSocket>,
++    media: UdpSocket,
++    infos: mpsc::UnboundedReceiver<Observed>,
++    reply: Arc<AtomicU16>,
++    ack: Arc<tokio::sync::Notify>,
++    task: tokio::task::JoinHandle<()>,
++}
++impl Peer {
++    async fn new() -> Self {
++        let socket = Arc::new(UdpSocket::bind("127.0.0.1:0").await.unwrap());
++        let address = socket.local_addr().unwrap();
++        let media = UdpSocket::bind("127.0.0.1:0").await.unwrap();
++        let media_port = media.local_addr().unwrap().port();
++        let (tx, infos) = mpsc::unbounded_channel();
++        let reply = Arc::new(AtomicU16::new(200));
++        let status = reply.clone();
++        let wire = socket.clone();
++        let ack = Arc::new(tokio::sync::Notify::new());
++        let observed_ack = ack.clone();
++        let task = tokio::spawn(async move {
++            let mut bytes = vec![0; 65536];
++            loop {
++                let (n, remote) = wire.recv_from(&mut bytes).await.unwrap();
++                let request = match parse_message(&bytes[..n]).unwrap() {
++                    Message::Request(request) => request,
++                    _ => continue,
++                };
++                if request.method() == Method::Ack {
++                    observed_ack.notify_one();
++                    continue;
++                }
++                let selected = if request.method() == Method::Info {
++                    status.load(Ordering::Acquire)
++                } else {
++                    200
++                };
++                let mut response = create_response(
++                    &request,
++                    if selected == 401 {
++                        StatusCode::Unauthorized
++                    } else {
++                        StatusCode::Ok
++                    },
++                );
++                if selected == 401 {
++                    response.headers.push(TypedHeader::Other(HeaderName::WwwAuthenticate,rvoip_sip_core::types::header::HeaderValue::Raw(b"Digest realm=\"owned-info-fixture\", nonce=\"fixture-nonce\", algorithm=SHA-256, qop=\"auth\"".to_vec())));
++                }
++                if request.method() == Method::Invite {
++                    if let Some(TypedHeader::To(to)) = response
++                        .headers
++                        .iter_mut()
++                        .find(|h| matches!(h, TypedHeader::To(_)))
++                    {
++                        to.set_tag("info-peer");
++                    }
++                    response.headers.push(TypedHeader::Contact(
++                        Contact::from_str(&format!("<sip:wire-target@{address}>")).unwrap(),
++                    ));
++                    response.headers.push(TypedHeader::ContentType(
++                        rvoip_sip_core::types::ContentType::sdp(),
++                    ));
++                    response.body=Bytes::from(format!("v=0\r\no=info 1 1 IN IP4 127.0.0.1\r\ns=info\r\nc=IN IP4 127.0.0.1\r\nt=0 0\r\nm=audio {media_port} RTP/AVP 0 101\r\na=rtpmap:0 PCMU/8000\r\na=rtpmap:101 telephone-event/8000\r\na=fmtp:101 0-15\r\na=sendrecv\r\n"));
++                    response
++                        .headers
++                        .retain(|h| !matches!(h, TypedHeader::ContentLength(_)));
++                    response.headers.push(TypedHeader::ContentLength(
++                        rvoip_sip_core::types::ContentLength::new(response.body.len() as u32),
++                    ));
++                }
++                if request.method() == Method::Info {
++                    tx.send(Observed {
++                        bytes: bytes[..n].to_vec(),
++                        request,
++                        remote,
++                    })
++                    .unwrap();
++                }
++                if selected != 0 {
++                    wire.send_to(&Message::Response(response).to_bytes(), remote)
++                        .await
++                        .unwrap();
++                }
++            }
++        });
++        Self {
++            socket,
++            media,
++            infos,
++            reply,
++            ack,
++            task,
++        }
++    }
++    fn address(&self) -> SocketAddr {
++        self.socket.local_addr().unwrap()
++    }
++    async fn next(&mut self) -> Observed {
++        timeout(Duration::from_secs(2), self.infos.recv())
++            .await
++            .expect("INFO wire deadline")
++            .expect("peer ended")
++    }
++    async fn no_info(&mut self, duration: Duration) {
++        assert!(
++            timeout(duration, self.infos.recv()).await.is_err(),
++            "unexpected INFO effect/retry"
++        );
++    }
++    async fn respond(&self, observed: &Observed) {
++        let response = create_response(&observed.request, StatusCode::Ok);
++        self.socket
++            .send_to(&Message::Response(response).to_bytes(), observed.remote)
++            .await
++            .unwrap();
++    }
++    async fn no_rtp_tone(&self) {
++        let mut bytes = [0; 2048];
++        while let Ok(n) = self.media.try_recv(&mut bytes) {
++            assert!(
++                !(n >= 12 && bytes[1] & 127 == 101),
++                "INFO fell back to raw RFC4733"
++            );
++        }
++    }
++}
++
++struct RouteRig {
++    scene: Scene,
++    peer: Peer,
++    coordinator: Arc<UnifiedCoordinator>,
++    adapter: Arc<SipAdapter>,
++    target: ConnectionId,
++    target_session: SessionId,
++    target_participant: ParticipantId,
++}
++impl RouteRig {
++    async fn new(kind: &str) -> Self {
++        let mut scene = Scene::new_gateway(kind).await;
++        let (_, callback) = scene
++            .prepared(lifecycle_offer(&scene, 0, 0, "sendonly"))
++            .await;
++        scene.confirm(&callback).await;
++        core_fixture::until(|| {
++            scene
++                .native
++                .core
++                .orch
++                .session(&scene.native.core.session)
++                .unwrap()
++                .read()
++                .unwrap()
++                .connections
++                .contains_key(&scene.id)
++        })
++        .await;
++        let peer = Peer::new().await;
++        let coordinator = UnifiedCoordinator::new(Config::local("native-signal-fixture", 0))
++            .await
++            .unwrap();
++        let adapter = SipAdapter::new(coordinator.clone()).await.unwrap();
++        let core = &scene.native.core.orch;
++        core.register(adapter.clone()).unwrap();
++        // Keep the native managed admission and SIP outbound call in explicit
++        // separate Sessions of the same Conversation. General unmanaged
++        // origination cannot bypass checked Participant admission in a managed
++        // Session; the signal policy binds both exact Session/Participant IDs.
++        let target_session = core
++            .start_session(
++                scene.native.core.conversation.clone(),
++                rvoip_core::session::SessionMedium::Voice,
++                vec![],
++            )
++            .await
++            .unwrap();
++        let target_participant = ParticipantId::new();
++        let mut events = core.subscribe_events();
++        let target = core
++            .originate_connection(
++                OriginateRequest::new(
++                    target_session.clone(),
++                    target_participant.clone(),
++                    format!("sip:peer@{}", peer.address()),
++                    Direction::Outbound,
++                    rvoip_core::capability::CapabilityDescriptor::default(),
++                )
++                .with_transport(Transport::Sip),
++            )
++            .await
++            .unwrap()
++            .connection
++            .id;
++        timeout(Duration::from_secs(5), async {
++            loop {
++                if let rvoip_core::events::Event::ConnectionConnected { connection_id, .. } =
++                    events.recv().await.unwrap()
++                {
++                    if connection_id == target {
++                        break;
++                    }
++                }
++            }
++        })
++        .await
++        .expect("actual SIP final answer");
++        timeout(Duration::from_secs(2), peer.ack.notified())
++            .await
++            .expect("actual INVITE ACK");
++        {
++            let mut state = scene.grants.0.write().await;
++            state.dtmf_allowed.insert(scene.id.clone());
++            state
++                .dtmf_forward_allowed
++                .insert((scene.id.clone(), target.clone()));
++        }
++        Self {
++            scene,
++            peer,
++            coordinator,
++            adapter,
++            target,
++            target_session,
++            target_participant,
++        }
++    }
++    async fn observation(
++        &mut self,
++        digits: &str,
++        duration: u32,
++        method: &str,
++    ) -> NativeDtmfObservation {
++        let mut v = envelope(
++            "dtmf.send",
++            json!({"digits":digits,"duration_ms":duration,"method":method,"source":"sip-info"}),
++        );
++        v["cid"] = json!("conversation");
++        v["sid"] = json!("session");
++        v["connid"] = json!("native_0");
++        v["operation_id"] = json!(format!("native_route_{}", uuid::Uuid::new_v4().simple()));
++        let op = v["operation_id"].as_str().unwrap().to_owned();
++        self.scene.wire.send(self.scene.f.sign(v)).await;
++        let reply = self.scene.wire.read().await;
++        assert_eq!(reply.kind(), "ack", "actual signed native DTMF ingress");
++        self.scene.f.verify_server(&reply).await;
++        // The prior invocation and its store readers must be gone before scheduling.
++        drop(
++            timeout(Duration::from_secs(1), self.scene.grants.0.write())
++                .await
++                .expect("no retained source invocation reader"),
++        );
++        drop(
++            timeout(
++                Duration::from_secs(1),
++                self.scene.wire_policy.grants.write(),
++            )
++            .await
++            .expect("no retained wire invocation reader"),
++        );
++        let observation = self.scene.record.dtmf_seen.lock().unwrap()
++            [&format!("{}/{}", self.scene.id, op)]
++            .clone();
++        assert_eq!(observation.operation_id(), op);
++        assert_eq!(observation.source(), "uctp-native");
++        assert_eq!(observation.signing_key_id(), "client");
++        assert_eq!(
++            observation.signing_algorithm(),
++            rvoip_uctp::v2::payloads::SignatureAlg::EdDSA
++        );
++        observation
++    }
++    fn start(
++        &self,
++        o: &NativeDtmfObservation,
++        p: Arc<dyn DtmfRoutePolicy>,
++    ) -> tokio::task::JoinHandle<Result<(), DtmfWriteError>> {
++        let core = self.scene.native.core.orch.clone();
++        let route = o
++            .prepare_core_route(&core, self.target.clone())
++            .expect("sealed actual native source binds to published Core metadata");
++        assert_eq!(route.source().connection(), o.connection());
++        assert_eq!(route.source().transport(), self.scene.kind);
++        tokio::spawn(async move {
++            core.route_dtmf(
++                &route,
++                p,
++                CancellationToken::new(),
++                Instant::now() + Duration::from_secs(3),
++            )
++            .await
++        })
++    }
++    async fn stop(self) {
++        let _ = self
++            .scene
++            .native
++            .core
++            .orch
++            .end_connection(self.target.clone(), EndReason::Normal)
++            .await;
++        self.scene.wire.server.shutdown().await.unwrap();
++        self.scene
++            .native
++            .core
++            .orch
++            .drain_connection_lifecycle_tasks()
++            .await;
++        self.adapter.drain().await.unwrap();
++        self.coordinator
++            .shutdown_gracefully(Some(Duration::from_secs(1)))
++            .await
++            .unwrap();
++        self.peer.task.abort();
++    }
++}
++struct SignalPolicy {
++    source: NativeDtmfObservation,
++    target: ConnectionId,
++    target_session: SessionId,
++    target_participant: ParticipantId,
++    domain: Arc<Grants>,
++    wire: Arc<WirePolicy>,
++    target_allowed: Arc<RwLock<bool>>,
++    calls: AtomicUsize,
++    pause: Mutex<Option<Arc<PauseWrite>>>,
++}
++impl SignalPolicy {
++    fn new(r: &RouteRig, o: &NativeDtmfObservation) -> Arc<Self> {
++        Arc::new(Self {
++            source: o.clone(),
++            target: r.target.clone(),
++            target_session: r.target_session.clone(),
++            target_participant: r.target_participant.clone(),
++            domain: r.scene.grants.clone(),
++            wire: r.scene.wire_policy.clone(),
++            target_allowed: Arc::new(RwLock::new(true)),
++            calls: AtomicUsize::new(0),
++            pause: Mutex::new(None),
++        })
++    }
++    async fn lease(&self, s: &DtmfRouteScope<'_>) -> Result<DtmfWriteLease, DtmfWriteError> {
++        let refuse = || DtmfWriteError::Refused;
++        let wire = self.wire.grants.clone().read_owned().await;
++        let source = self.domain.0.clone().read_owned().await;
++        let target = self.target_allowed.clone().read_owned().await;
++        let o = &self.source;
++        let owner = source.owners.get(o.connection()).ok_or_else(refuse)?;
++        let owner = credential_owner(owner.clone(), o.principal()).map_err(|_| refuse())?;
++        owner
++            .member
++            .revalidate_principal(o.principal(), Utc::now())
++            .map_err(|_| refuse())?;
++        if source.denied
++            || wire.denied
++            || source.key.revoked
++            || source.key.algorithm != "EdDSA"
++            || o.signing_key_id() != "client"
++            || !*target
++            || !source.dtmf_allowed.contains(o.connection())
++            || !source
++                .dtmf_forward_allowed
++                .contains(&(o.connection().clone(), self.target.clone()))
++            || wire.connections.get("native_0") != Some(o.connection())
++            || wire.member.identity() != o.identity()
++            || owner.member.conversation() != o.conversation()
++            || owner.member.participant() != o.participant()
++            || owner.member.identity() != o.identity()
++            || owner.member.epoch() != o.membership_epoch()
++            || owner.endpoint.endpoint() != o.endpoint()
++            || owner.endpoint.device() != o.device()
++            || owner.presence.session() != o.session()
++            || s.source.connection() != o.connection()
++            || s.source.conversation() != o.conversation()
++            || s.source.session() != o.session()
++            || s.source.participant() != o.participant()
++            || s.source.transport() != o.transport()
++            || s.recipient.connection() != &self.target
++            || s.recipient.session() != &self.target_session
++            || s.recipient.participant() != &self.target_participant
++            || s.recipient.transport() != Transport::Sip
++            || s.source.tenant() != s.recipient.tenant()
++            || s.source.conversation() != s.recipient.conversation()
++            || s.intent.operation_id() != o.operation_id()
++            || s.intent.digits() != o.digits()
++            || s.intent.duration_ms() != o.duration_ms()
++        {
++            return Err(refuse());
++        }
++        self.calls.fetch_add(1, Ordering::AcqRel);
++        let lease = DtmfWriteLease::new(
++            (wire, source, target),
++            Instant::now() + Duration::from_millis(200),
++            || true,
++        );
++        match self.pause.lock().unwrap().clone() {
++            Some(pause) => lease.with_fence(pause),
++            None => Ok(lease),
++        }
++    }
++}
++#[async_trait]
++impl DtmfRoutePolicy for SignalPolicy {
++    async fn acquire(
++        &self,
++        s: &DtmfRouteScope<'_>,
++        p: &DtmfWriteScope<'_>,
++    ) -> Result<DtmfWriteLease, DtmfWriteError> {
++        assert_eq!(s.intent.method(), DtmfMethod::Rfc4733);
++        assert_eq!(
++            self.source.method(),
++            rvoip_uctp::v2::native_dtmf::NativeDtmfMethod::Rfc4733
++        );
++        assert_eq!(p.digits, self.source.digits());
++        assert_eq!(p.duration_ms, self.source.duration_ms());
++        assert_eq!(p.payload_type, 101);
++        assert_eq!(p.clock_rate_hz, 8000);
++        self.lease(s).await
++    }
++    async fn acquire_info(
++        &self,
++        s: &DtmfRouteScope<'_>,
++        p: &DtmfInfoWriteScope<'_>,
++    ) -> Result<DtmfWriteLease, DtmfWriteError> {
++        assert_eq!(s.intent.method(), DtmfMethod::Info);
++        assert_eq!(
++            self.source.method(),
++            rvoip_uctp::v2::native_dtmf::NativeDtmfMethod::Info
++        );
++        assert_eq!(p.digits, self.source.digits());
++        assert_eq!(p.duration_ms, self.source.duration_ms());
++        let Message::Request(request) = parse_message(p.wire_request).unwrap() else {
++            panic!("INFO request")
++        };
++        assert_eq!(request.method(), Method::Info);
++        assert_eq!(
++            request.body(),
++            format!(
++                "Signal={}\r\nDuration={}\r\n",
++                p.digits.as_bytes()[p.digit_index] as char,
++                p.duration_ms
++            )
++            .as_bytes()
++        );
++        self.lease(s).await
++    }
++}
++#[tokio::test]
++async fn actual_signed_quic_and_webtransport_dtmf_reaches_core_and_sip_info_with_original_operation(
++) {
++    for kind in ["quic", "wt"] {
++        let mut r = RouteRig::new(kind).await;
++        let o = r.observation("12#", 100, "info").await;
++        let p = SignalPolicy::new(&r, &o);
++        let job = r.start(&o, p.clone());
++        for digit in ["1", "2", "#"] {
++            let seen = r.peer.next().await;
++            assert_eq!(
++                seen.request.uri().to_string(),
++                format!("sip:wire-target@{}", r.peer.address())
++            );
++            assert_eq!(
++                seen.request.body(),
++                format!("Signal={digit}\r\nDuration=100\r\n").as_bytes()
++            );
++        }
++        assert_eq!(job.await.unwrap(), Ok(()));
++        assert_eq!(p.calls.load(Ordering::Acquire), 3);
++        r.peer.no_rtp_tone().await;
++        drop(r.scene.grants.0.try_write().expect("no idle grant reader"));
++        drop(p.target_allowed.try_write().unwrap());
++        r.stop().await;
++    }
++}
++#[tokio::test]
++async fn actual_signed_native_dtmf_reaches_negotiated_rfc4733_without_info_fallback() {
++    for kind in ["quic", "wt"] {
++        let mut r = RouteRig::new(kind).await;
++        let o = r.observation("12#", 60, "rfc4733").await;
++        let p = SignalPolicy::new(&r, &o);
++        let job = r.start(&o, p.clone());
++        let mut seen = BTreeSet::new();
++        let mut ends = BTreeMap::<u8, usize>::new();
++        timeout(Duration::from_secs(3), async {
++            loop {
++                let mut b = [0; 2048];
++                let n = r.peer.media.recv(&mut b).await.unwrap();
++                if n >= 16 && b[1] & 127 == 101 {
++                    seen.insert(b[12]);
++                    if b[13] & 128 != 0 {
++                        *ends.entry(b[12]).or_default() += 1;
++                    }
++                    if ends.get(&11).copied().unwrap_or(0) >= 3 {
++                        break;
++                    }
++                }
++            }
++        })
++        .await
++        .expect("real negotiated RTP telephone-event sequence");
++        assert_eq!(job.await.unwrap(), Ok(()));
++        assert_eq!(seen, BTreeSet::from([1, 2, 11]));
++        assert!(ends.values().all(|n| *n >= 3));
++        r.peer.no_info(Duration::from_millis(80)).await;
++        assert!(p.calls.load(Ordering::Acquire) >= 9);
++        r.stop().await;
++    }
++}
++#[tokio::test]
++async fn native_observation_and_media_permission_do_not_supply_independent_signal_authority() {
++    struct Absent;
++    impl DtmfRoutePolicy for Absent {}
++    let mut r = RouteRig::new("quic").await;
++    let o = r.observation("1", 100, "info").await;
++    assert_eq!(
++        r.start(&o, Arc::new(Absent)).await.unwrap(),
++        Err(DtmfWriteError::Refused)
++    );
++    let p = SignalPolicy::new(&r, &o);
++    *p.target_allowed.write().await = false;
++    assert_eq!(r.start(&o, p).await.unwrap(), Err(DtmfWriteError::Refused));
++    r.peer.no_info(Duration::from_millis(100)).await;
++    r.peer.no_rtp_tone().await;
++    r.stop().await;
++}
++#[tokio::test]
++async fn native_source_recipient_and_signing_key_revocation_stop_info_suffix_without_idle_readers()
++{
++    for revoke in ["source", "recipient", "key"] {
++        let mut r = RouteRig::new("quic").await;
++        let o = r.observation("12", 300, "info").await;
++        let p = SignalPolicy::new(&r, &o);
++        let job = r.start(&o, p.clone());
++        let first = r.peer.next().await;
++        assert!(first.request.body().starts_with(b"Signal=1"));
++        match revoke {
++            "recipient" => {
++                *timeout(Duration::from_millis(150), p.target_allowed.write())
++                    .await
++                    .expect("no signal reader during tone gap") = false
++            }
++            "key" => {
++                timeout(Duration::from_millis(150), r.scene.grants.0.write())
++                    .await
++                    .expect("no old invocation/source reader")
++                    .key
++                    .revoked = true
++            }
++            _ => {
++                timeout(Duration::from_millis(150), r.scene.grants.0.write())
++                    .await
++                    .unwrap()
++                    .dtmf_allowed
++                    .remove(&r.scene.id);
++            }
++        }
++        assert_eq!(job.await.unwrap(), Err(DtmfWriteError::OutcomeUnknown));
++        r.peer.no_info(Duration::from_millis(100)).await;
++        r.stop().await;
++    }
++}
++#[tokio::test]
++async fn native_source_stream_retirement_stops_core_info_suffix_while_signaling_stays_live() {
++    let mut r = RouteRig::new("quic").await;
++    let o = r.observation("12", 300, "info").await;
++    let p = SignalPolicy::new(&r, &o);
++    let job = r.start(&o, p);
++    r.peer.next().await;
++    r.scene.controller().retire();
++    assert_eq!(job.await.unwrap(), Err(DtmfWriteError::OutcomeUnknown));
++    r.peer.no_info(Duration::from_millis(150)).await;
++    assert!(o
++        .prepare_core_route(&r.scene.native.core.orch, r.target.clone())
++        .is_err());
++    r.stop().await;
++}
++#[tokio::test]
++async fn new_native_offer_epoch_invalidates_old_dtmf_metadata_before_next_info_write() {
++    let mut r = RouteRig::new("wt").await;
++    let o = r.observation("12", 500, "info").await;
++    let p = SignalPolicy::new(&r, &o);
++    let job = r.start(&o, p);
++    r.peer.next().await;
++    let offer = lifecycle_offer(&r.scene, 0, 1, "sendonly");
++    let (_, callback) = r.scene.prepared(offer).await;
++    r.scene.confirm(&callback).await;
++    r.scene.wait(2).await;
++    assert_eq!(job.await.unwrap(), Err(DtmfWriteError::OutcomeUnknown));
++    r.peer.no_info(Duration::from_millis(100)).await;
++    assert!(o
++        .prepare_core_route(&r.scene.native.core.orch, r.target.clone())
++        .is_err());
++    r.stop().await;
++}
++#[tokio::test]
++async fn sealed_native_observation_cannot_bind_to_a_foreign_core_or_recipient_alias() {
++    let mut r = RouteRig::new("quic").await;
++    let o = r.observation("1", 100, "info").await;
++    let foreign = rvoip_core::Orchestrator::new(rvoip_core::Config::default());
++    assert!(o.prepare_core_route(&foreign, r.target.clone()).is_err());
++    assert!(o
++        .prepare_core_route(&r.scene.native.core.orch, r.scene.id.clone())
++        .is_err());
++    assert!(o
++        .prepare_core_route(&r.scene.native.core.orch, ConnectionId::new())
++        .is_err());
++    r.peer.no_info(Duration::from_millis(80)).await;
++    r.stop().await;
++}
++
++struct PauseWrite {
++    release: AtomicBool,
++    entered: tokio::sync::Notify,
++}
++impl DtmfIoFence for PauseWrite {
++    fn poll(&self, io: &mut dyn FnMut() -> DtmfIoPoll) -> DtmfIoPoll {
++        if !self.release.load(Ordering::Acquire) {
++            self.entered.notify_one();
++            std::task::Poll::Pending
++        } else {
++            io()
++        }
++    }
++}
++#[tokio::test]
++async fn native_source_retirement_after_signal_grant_but_before_socket_poll_prevents_all_effects() {
++    let mut r = RouteRig::new("quic").await;
++    let o = r.observation("1", 100, "info").await;
++    let p = SignalPolicy::new(&r, &o);
++    let pause = Arc::new(PauseWrite {
++        release: AtomicBool::new(false),
++        entered: tokio::sync::Notify::new(),
++    });
++    *p.pause.lock().unwrap() = Some(pause.clone());
++    let job = r.start(&o, p.clone());
++    timeout(Duration::from_secs(1), pause.entered.notified())
++        .await
++        .expect("actual owned IO reached after fresh permission");
++    assert_eq!(p.calls.load(Ordering::Acquire), 1);
++    r.scene.controller().retire();
++    pause.release.store(true, Ordering::Release);
++    assert_eq!(job.await.unwrap(), Err(DtmfWriteError::Refused));
++    r.peer.no_info(Duration::from_millis(150)).await;
++    r.peer.no_rtp_tone().await;
++    r.stop().await;
++}
++#[tokio::test]
++async fn native_source_pending_poll_releases_controller_credential_and_port_metadata_custody() {
++    let mut r = RouteRig::new("quic").await;
++    let o = r.observation("1", 100, "info").await;
++    let c = r.scene.controller();
++    let mut calls = 0;
++    assert!(matches!(
++        c.poll_dtmf_source_io(
++            o.principal(),
++            o.stream_revision(),
++            o.credential_revision(),
++            o.audio_bindings(),
++            &mut || {
++                calls += 1;
++                std::task::Poll::Pending
++            }
++        ),
++        std::task::Poll::Pending
++    ));
++    assert_eq!(calls, 1);
++    assert_eq!(c.revision(), o.stream_revision());
++    assert_eq!(c.credential_revision(), o.credential_revision());
++    assert!(!c.active_bindings().is_empty());
++    c.retire();
++    assert_eq!(
++        c.poll_dtmf_source_io(
++            o.principal(),
++            o.stream_revision(),
++            o.credential_revision(),
++            o.audio_bindings(),
++            &mut || { panic!("retired source reached IO") }
++        ),
++        std::task::Poll::Ready(Err(DtmfWriteError::Refused))
++    );
++    r.stop().await;
++}
++#[tokio::test]
++async fn actual_native_physical_peer_close_stops_info_suffix_under_original_operation() {
++    let mut r = RouteRig::new("wt").await;
++    let o = r.observation("12", 500, "info").await;
++    let p = SignalPolicy::new(&r, &o);
++    let job = r.start(&o, p);
++    r.peer.next().await;
++    r.scene.wire.server.shutdown().await.unwrap();
++    assert_eq!(job.await.unwrap(), Err(DtmfWriteError::OutcomeUnknown));
++    r.peer.no_info(Duration::from_millis(100)).await;
++    r.stop().await;
++}
++
++#[tokio::test]
++async fn native_core_metadata_without_sealed_source_fence_cannot_schedule_signal_io() {
++    let mut r = RouteRig::new("quic").await;
++    let o = r.observation("1", 100, "info").await;
++    let p = SignalPolicy::new(&r, &o);
++    let core = &r.scene.native.core.orch;
++    let route = core
++        .prepare_dtmf_route(
++            o.connection().clone(),
++            r.target.clone(),
++            DtmfIntent::new(
++                o.operation_id().into(),
++                o.digits().into(),
++                o.duration_ms(),
++                DtmfMethod::Info,
++            )
++            .unwrap(),
++        )
++        .unwrap();
++    assert_eq!(
++        core.route_dtmf(
++            &route,
++            p.clone(),
++            CancellationToken::new(),
++            Instant::now() + Duration::from_secs(1)
++        )
++        .await,
++        Err(DtmfWriteError::Refused)
++    );
++    assert_eq!(p.calls.load(Ordering::Acquire), 0);
++    r.peer.no_info(Duration::from_millis(100)).await;
++    r.stop().await;
++}
+diff --git a/crates/uctp/rvoip-uctp/tests/support/canonical_media/native_offers.rs b/crates/uctp/rvoip-uctp/tests/support/canonical_media/native_offers.rs
+--- a/crates/uctp/rvoip-uctp/tests/support/canonical_media/native_offers.rs
++++ b/crates/uctp/rvoip-uctp/tests/support/canonical_media/native_offers.rs
+@@ -864,7 +864,18 @@
+         Self::new_mode(kind, false, true).await
+     }
+     async fn new_mode(kind: &str, data: bool, bootstrap: bool) -> Self {
+-        let (mut f, mut native, policy) = wire_setup().await;
++        Self::new_mode_with_adapter(kind, data, bootstrap, true).await
++    }
++    async fn new_gateway(kind: &str) -> Self {
++        Self::new_mode_with_adapter(kind, false, true, false).await
++    }
++    async fn new_mode_with_adapter(
++        kind: &str,
++        data: bool,
++        bootstrap: bool,
++        fixture_adapter: bool,
++    ) -> Self {
++        let (mut f, mut native, policy) = wire_setup_mode(fixture_adapter).await;
+         if bootstrap {
+             let core = Arc::get_mut(&mut Arc::get_mut(&mut native).unwrap().core).unwrap();
+             core.session = core
+@@ -2299,3 +2310,6 @@
+ 
+ #[path = "native_offers/quality.rs"]
+ mod quality;
++
++#[path = "native_offers/dtmf_route.rs"]
++mod dtmf_route;
+diff --git a/crates/uctp/rvoip-uctp/tests/support/peer_native.rs b/crates/uctp/rvoip-uctp/tests/support/peer_native.rs
+--- a/crates/uctp/rvoip-uctp/tests/support/peer_native.rs
++++ b/crates/uctp/rvoip-uctp/tests/support/peer_native.rs
+@@ -871,8 +871,15 @@
+     }
+ }
+ async fn wire_setup() -> (Fixture, Arc<Factory>, Arc<WirePolicy>) {
++    wire_setup_mode(true).await
++}
++async fn wire_setup_mode(fixture_adapter: bool) -> (Fixture, Arc<Factory>, Arc<WirePolicy>) {
+     let mut f = Fixture::new();
+-    let core = Arc::new(core_fixture::Fixture::new().await);
++    let core = Arc::new(if fixture_adapter {
++        core_fixture::Fixture::new().await
++    } else {
++        core_fixture::Fixture::new_without_adapter().await
++    });
+     let member = core.policy.0.read().unwrap().members[&core_fixture::participant("alice")].clone();
+     let policy = Arc::new(WirePolicy {
+         base: f.policy.clone(),

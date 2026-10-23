@@ -120,7 +120,7 @@ fn lost_membership_and_removed_issuer_operations_deny_previous_authority() {
         let c = f.store.connection().unwrap();
         if membership {
             c.execute(
-                "DELETE FROM participants WHERE conversation_id=?1 AND identity_id=?2",
+                "UPDATE participants SET active=0 WHERE conversation_id=?1 AND identity_id=?2",
                 rusqlite::params![f.cid, f.owner],
             )
             .unwrap();

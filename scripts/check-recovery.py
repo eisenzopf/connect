@@ -22,7 +22,7 @@ with tempfile.TemporaryDirectory(prefix='connect-recovery-') as temporary:
         assert 'already in use' in second.stderr and 'ready transport' not in second.stdout
         create=request(state,'reviews',{'op':'create','request_id':'create','participants':[agent]})
         conversation=create['data']['id']
-        send={'op':'send','request_id':'send','conversation_id':conversation,'body':'backup fixture'}
+        send={'op':'send','request_id':'send','conversation_id':conversation,"message": {'to': 'all', 'content_type': 'text/plain', 'body': 'backup fixture', 'body_encoding': 'utf8', 'label': 'connect-messages', 'attachments': [], 'in_reply_to_msg': None, 'msg_id': None}}
         accepted=request(state,'reviews',send)
         page=request(state,'agent',{'op':'inbox','cursor':None,'limit':100,'wait_ms':0})
         run('backup','--config',state/'agent.toml','--server-config',state/'server.toml','--output',work/'denied',success=False)
@@ -39,7 +39,7 @@ with tempfile.TemporaryDirectory(prefix='connect-recovery-') as temporary:
         backup=work/'backup'
         run('backup','--config',state/'operator.toml','--server-config',state/'server.toml','--output',backup)
         run('backup','--config',state/'operator.toml','--server-config',state/'server.toml','--output',backup,success=False)
-        later=request(state,'reviews',{'op':'send','request_id':'later','conversation_id':conversation,'body':'after backup'})
+        later=request(state,'reviews',{'op':'send','request_id':'later','conversation_id':conversation,"message": {'to': 'all', 'content_type': 'text/plain', 'body': 'after backup', 'body_encoding': 'utf8', 'label': 'connect-messages', 'attachments': [], 'in_reply_to_msg': None, 'msg_id': None}})
         newer=request(state,'agent',{'op':'inbox','cursor':page['data']['cursor'],'limit':100,'wait_ms':0})['data']['cursor']
     restored=work/'restored'
     run('restore','--backup',backup,'--directory',restored,'--bind',f'127.0.0.1:{port()}')

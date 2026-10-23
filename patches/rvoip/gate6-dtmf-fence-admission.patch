@@ -1,0 +1,56 @@
+--- a/crates/foundation/rvoip-core/src/orchestrator/dtmf_routing.rs
++++ b/crates/foundation/rvoip-core/src/orchestrator/dtmf_routing.rs
+@@ -218,9 +218,12 @@
+         mut self,
+         fence: Arc<dyn DtmfSourceFence>,
+     ) -> std::result::Result<Self, DtmfWriteError> {
+-        if self.source_fences.len() >= 8 || !fence.current() || !self.current() {
+-            return Err(DtmfWriteError::Refused);
+-        }
++        if self.source_fences.len() >= 8 || !fence.current() {
++            return Err(DtmfWriteError::Refused);
++        }
++        // Admission is still metadata only. Do not collapse a busy registry
++        // into retirement before the caller can perform its bounded wait.
++        self.check_current()?;
+         self.source_fences.push(fence);
+         Ok(self)
+     }
+--- a/crates/foundation/rvoip-core/tests/dtmf_auto_route.rs
++++ b/crates/foundation/rvoip-core/tests/dtmf_auto_route.rs
+@@ -1332,3 +1332,35 @@
+         }
+     }
+ }
++
++#[tokio::test]
++async fn source_fence_attachment_preserves_metadata_busy_without_granting_io() {
++    let r = Rig::new().await;
++    let route = r.route("1", 60, DtmfMethod::Rfc4733);
++    let session = r.core.session(&r.sid).unwrap();
++    let held = session.write().unwrap();
++    let result = route.with_source_fence(Arc::new(ControlledSource {
++        adapter: r.origin.clone(),
++        connection: r.source.clone(),
++        stream: r.origin.streams.get(&r.source).unwrap().clone(),
++    }));
++    drop(held);
++    assert_eq!(result.err(), Some(DtmfWriteError::NotReady));
++    let mut packet = [0; 2048];
++    assert!(
++        matches!(r.receiver.try_recv(&mut packet), Err(e) if e.kind() == std::io::ErrorKind::WouldBlock)
++    );
++    let route = r.route("1", 60, DtmfMethod::Rfc4733);
++    assert_eq!(
++        r.core
++            .route_dtmf(
++                &route,
++                Policy::new(&r),
++                CancellationToken::new(),
++                Instant::now() + Duration::from_secs(2)
++            )
++            .await,
++        Ok(())
++    );
++    assert_eq!(r.receive().await.payload[0], 1);
++}

@@ -1,0 +1,128 @@
+diff --git a/crates/uctp/rvoip-uctp/src/v2/recording.rs b/crates/uctp/rvoip-uctp/src/v2/recording.rs
+--- a/crates/uctp/rvoip-uctp/src/v2/recording.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/recording.rs
+@@ -78,7 +78,10 @@
+         !self.cancel.is_cancelled()
+             && self.authority.current()
+             && match &self.outcome {
+-                Outcome::Ready(ready) => ready.projection.view().is_ok(),
++                Outcome::Ready(ready) => ready.projection.view().is_ok_and(|view| {
++                    view.body.len() <= self.inline_limit
++                        || self.references.as_ref().is_none_or(|r| r.is_available())
++                }),
+                 _ => true,
+             }
+     }
+@@ -279,9 +282,10 @@
+         Envelope::from_value(reply).map_err(DispatchError::from)
+     }
+ }
+-struct Reference {
+-    url: String,
+-    expires_at: DateTime<Utc>,
++/// A locator and lifetime only; retrieval still requires new current authority.
++pub struct RecordReference {
++    pub url: String,
++    pub expires_at: DateTime<Utc>,
+ }
+ #[derive(Clone)]
+ struct Entry {
+@@ -298,6 +302,7 @@
+     capacity: usize,
+     ttl: Duration,
+     entries: Mutex<HashMap<String, Entry>>,
++    endpoint: CancellationToken,
+ }
+ impl RecordReferenceRegistry {
+     pub fn new(base: String, capacity: usize, ttl: Duration) -> Result<Self, RecordFetchError> {
+@@ -321,13 +326,15 @@
+             capacity,
+             ttl,
+             entries: Mutex::new(HashMap::new()),
++            endpoint: CancellationToken::new(),
+         })
+     }
+-    fn issue(
++    pub fn issue(
+         &self,
+         request: &RecordViewRequest,
+         view: &RecordView<'_>,
+-    ) -> Result<Reference, RecordFetchError> {
++    ) -> Result<RecordReference, RecordFetchError> {
++        if !self.is_available() { return Err(RecordFetchError::Delivery); }
+         if request.uuid() != view.uuid || request.revision() != view.revision {
+             return Err(RecordFetchError::Changed);
+         }
+@@ -337,6 +344,7 @@
+             .entries
+             .lock()
+             .map_err(|_| RecordFetchError::Delivery)?;
++        if !self.is_available() { return Err(RecordFetchError::Delivery); }
+         entries.retain(|_, entry| entry.end > instant && entry.expires_at > now);
+         if entries.len() >= self.capacity {
+             return Err(RecordFetchError::Delivery);
+@@ -353,7 +361,23 @@
+                 end: instant + self.ttl,
+             },
+         );
+-        Ok(Reference { url, expires_at })
++        Ok(RecordReference { url, expires_at })
++    }
++    /// Endpoint lifetime only. Closing grants no future access and wakes
++    /// already-owned raw writers; entries contain metadata, never authority.
++    pub fn close(&self) { self.endpoint.cancel(); }
++    pub fn is_available(&self) -> bool { !self.endpoint.is_cancelled() }
++    /// Trusted adapter resource lookup, NOT admission. The adapter must derive
++    /// fresh credential/resource/source authority before calling retrieve.
++    /// Never serialize this private backend binding as a public URL grant.
++    pub fn reference_request(&self, url: &str) -> Result<RecordViewRequest, RecordFetchError> {
++        if !self.is_available() { return Err(RecordFetchError::Changed); }
++        let entry = self.entries.lock().map_err(|_|RecordFetchError::Delivery)?
++            .get(url).cloned().ok_or(RecordFetchError::Missing)?;
++        if !self.is_available() || entry.end <= Instant::now() || entry.expires_at <= Utc::now() {
++            return Err(RecordFetchError::Changed);
++        }
++        Ok(entry.request)
+     }
+     #[allow(clippy::too_many_arguments)]
+     pub async fn retrieve<F>(
+@@ -377,6 +401,7 @@
+         if !authority.current() {
+             return Err(RecordFetchError::Authority);
+         }
++        if !self.is_available() { return Err(RecordFetchError::Changed); }
+         let entry = self
+             .entries
+             .lock()
+@@ -431,6 +456,7 @@
+             authority,
+             cancel,
+             deadline,
++            endpoint: self.endpoint.clone(),
+         })
+     }
+ }
+@@ -440,10 +466,14 @@
+     authority: AuthorityLease,
+     cancel: CancellationToken,
+     deadline: Instant,
++    endpoint: CancellationToken,
+ }
+ impl GuardedRecordBody {
++    /// Includes original reference TTL, current authority and dispatch bounds.
++    pub fn deadline(&self) -> Instant { self.deadline }
+     pub fn view(&self) -> Result<RecordView<'_>, RecordFetchError> {
+         if !self.authority.current()
++            || self.endpoint.is_cancelled()
+             || self.cancel.is_cancelled()
+             || Instant::now() >= self.deadline
+         {
+@@ -462,7 +492,7 @@
+         let bytes: Bytes = self.view()?.body.clone();
+         for chunk in bytes.chunks(16 * 1024) {
+             self.view()?;
+-            tokio::select! {biased;_=self.cancel.cancelled()=>return Err(RecordFetchError::Authority),_=tokio::time::sleep_until(self.deadline)=>return Err(RecordFetchError::Changed),result=writer.write_all(chunk)=>{result.map_err(|_|RecordFetchError::Delivery)?;}}
++            tokio::select! {biased;_=self.endpoint.cancelled()=>return Err(RecordFetchError::Changed),_=self.cancel.cancelled()=>return Err(RecordFetchError::Authority),_=tokio::time::sleep_until(self.deadline)=>return Err(RecordFetchError::Changed),result=writer.write_all(chunk)=>{result.map_err(|_|RecordFetchError::Delivery)?;}}
+         }
+         self.view()?;
+         Ok(())

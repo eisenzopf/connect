@@ -78,3 +78,22 @@ pub async fn run(server: RunningServer) -> Result<()> {
     println!("stopped");
     Ok(())
 }
+
+/// Run the signed canonical listener with owned shutdown on signals/failure.
+pub async fn run_canonical(server: crate::canonical::RunningCanonicalServer) -> Result<()> {
+    let result = async {
+        let mut shutdown = Shutdown::install()?;
+        println!("ready transport=quic alpn={} profile=connect/2 address={} schema={}",
+            std::str::from_utf8(rvoip_uctp::v2::RAW_QUIC_ALPN).unwrap_or("invalid"), server.address, connect_store::SCHEMA_VERSION);
+        if let Some(address)=server.http_address { println!("http_json={address}"); }
+        #[cfg(unix)]
+        tokio::select! { _=shutdown.interrupt.recv()=>{}, _=shutdown.terminate.recv()=>{}, _=server.service.readiness.failed()=>{} }
+        #[cfg(not(unix))]
+        tokio::select! { result=tokio::signal::ctrl_c()=>result?, _=server.service.readiness.failed()=>{} }
+        Ok(())
+    }.await;
+    let stopped = server.shutdown().await;
+    result.and(stopped)?;
+    println!("stopped");
+    Ok(())
+}

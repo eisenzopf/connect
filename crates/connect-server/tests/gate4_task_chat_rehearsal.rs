@@ -191,8 +191,7 @@ async fn journey(lose_receipt: bool) {
         .call_tool(
             CallToolRequestParams::new("connect_send").with_arguments(
                 json!({
-                    "request_id":"mcp-source", "step_id":"prior-fact", "body":"TASK-CHAT-MCP-SOURCE"
-                })
+                    "request_id":"mcp-source", "step_id":"prior-fact", "message": connect_protocol::messages::MessageDraft::text_all(("TASK-CHAT-MCP-SOURCE").to_string())})
                 .as_object()
                 .unwrap()
                 .clone(),

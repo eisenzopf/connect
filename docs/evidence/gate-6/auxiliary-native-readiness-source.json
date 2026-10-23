@@ -1,0 +1,224 @@
+{
+  "task": "G6-046",
+  "recorded_at": "2026-10-23T00:10:45.368938+00:00",
+  "status": "native-readiness-source-installed-local-component-only",
+  "full_task_complete": false,
+  "full_goal_complete": false,
+  "acceptance_qualified": false,
+  "schema_version": 92,
+  "pinned_patches": 150,
+  "qualified_cases": [],
+  "clause_progress": {
+    "qualified": 26,
+    "remaining": 35,
+    "change": 0
+  },
+  "scope": "Local macOS arm64 production native QUIC, public signed SDK EdDSA/ES256, exact Core metadata custody and controlled Store authority fixtures. No Session started/joined/loss/grace clause is newly qualified.",
+  "implementation": [
+    "The non-deserializable NativeConnectionReadyObservation is minted under exact controller/credential revision and active port custody, with confirmed direction-appropriate native flow and an uncancelled native epoch. Flow locks leave before port locks; Core guards leave before host SQL.",
+    "The private service bridge independently resolves original/current source authority and stores the first Connection generation/runtime fact before a connection.ready hint can enter physical output. The witness and durable fact never grant media IO.",
+    "First facts are immutable. Current recapture retains original time/stream metadata, never a new operation/effect. Exact source incarnation, membership epoch, current permissions and installation owner are rechecked.",
+    "Storage refusal or bounded metadata timeout before first readiness retries only metadata admission. It retains no idle permission reader and does not resubmit media. A committed fact survives later hint failure or uncertainty.",
+    "This historical internal source does not change Session state, participant presence, public snapshots or Session event multicast. The readiness-gated first-start and later negotiation-preserved reconnect/grace coordinator remain necessary. Packet silence is not a loss observation."
+  ],
+  "source_lock": {
+    "path": "dependencies/source-lock.json",
+    "sha256": "51072c3347c6a63d394ba7fecfed16667f8237cfa5c20e08926ec021c828055f"
+  },
+  "inputs": [
+    {
+      "path": ".local/gate-6/session-readiness/build-inputs.json",
+      "sha256": "8efcc026ac2cc6fce9776f5c9ac94e0e1541def1cc9e9f086dd09cb589a489a8"
+    },
+    {
+      "path": ".local/gate-6/session-readiness/upstream-inputs.json",
+      "sha256": "c341d881e92aef556b045f19dfd6a5fc42f59b9294055efa6237e68c30719b9d"
+    }
+  ],
+  "build": {
+    "path": ".local/gate-6/session-readiness/runtime-build.log",
+    "sha256": "56e342c07d8ac84ef89ec795456e5cd9ea6d000f3eeeeb812d5f7080ffafefa1"
+  },
+  "binary": {
+    "path": "target/debug/deps/gate6_canonical_runtime-1b0da6e3c5cdb2d1",
+    "sha256": "30861f8e6bcd492aeb8b4a6d334075a0fc89eefdc6f0997f253c1bf1c0fcdcf3"
+  },
+  "results": [
+    {
+      "name": "core-capture-corrected",
+      "passed": 1,
+      "failed": 0,
+      "evidence": {
+        "path": ".local/gate-6/session-readiness/core-capture-corrected.log",
+        "sha256": "da3024c649b39d55c9065784784f2ad9faee5814ab7ef6a9637605ec36f8f4c0"
+      }
+    },
+    {
+      "name": "store-authority",
+      "passed": 104,
+      "failed": 0,
+      "evidence": {
+        "path": ".local/gate-6/session-readiness/store-authority.log",
+        "sha256": "b9ccbc74d4300f0354bc1507b0c6df74f419bf292b2df62735264220ee52a68e"
+      }
+    },
+    {
+      "name": "production-solo",
+      "passed": 2,
+      "failed": 0,
+      "evidence": {
+        "path": ".local/gate-6/session-readiness/production-solo.log",
+        "sha256": "2e4ee67b70c56e7f303dc668c243639736efccfb8aa7e3b395236d0b806804ba"
+      }
+    },
+    {
+      "name": "production-lifecycle",
+      "passed": 4,
+      "failed": 0,
+      "evidence": {
+        "path": ".local/gate-6/session-readiness/production-lifecycle.log",
+        "sha256": "9041eee0ffbe4eeaf9456f6961079c148c6a423848e7cf5ba2953205f2c24e2c"
+      }
+    }
+  ],
+  "assertions": [
+    "Controlled Core tests cover exact principal/controller/revision, epoch cancellation, busy metadata and actual port retirement. These are metadata custody fixtures, not actual IO evidence.",
+    "Controlled Store tests cover attribution, foreign installation refusal, immutable original time, duplicate recapture, no new business effects, retired generation rejection and atomic storage-failure recovery.",
+    "Both signed production algorithms verify no fact or ready hint at negotiation alone, actual native RTP followed by exact readiness/opened hints, one original fact and unchanged replay/growth.",
+    "The storage-fault production case refuses fact INSERT while real input arrives; an actual reliable keepalive barrier receives no premature ready/opened hint. Removing only the storage fault recovers the same existing flow without another datagram."
+  ],
+  "verification_history": {
+    "initial_core_filter": {
+      "evidence": {
+        "path": ".local/gate-6/session-readiness/core-capture.log",
+        "sha256": "e74d360c37d24fad14321868705265c6921cc94749ae8b4189338b7a5b4ef9ab"
+      },
+      "status": "zero matching methods; build only, not a test pass"
+    },
+    "core_fixture_principal": {
+      "evidence": {
+        "path": ".local/gate-6/session-readiness/core-capture-fixture-principal.log",
+        "sha256": "c9477135927e62377c306fef449e8154496132f12c7c816acaf6a2cd014e31a1"
+      },
+      "status": "fixture corrected",
+      "reason": "A new same-name principal had a different expiry from the actual bound credential and was correctly refused. Test-only patch150 uses the controller actual principal; production patch149 is unchanged."
+    },
+    "store_fixture_lock": {
+      "evidence": {
+        "path": ".local/gate-6/session-readiness/store-flow-fixture-lock.log",
+        "sha256": "129ac0e1f33941511aad2e574e5ff3a3c8af16105eddde6df8fd6ac7555dde01"
+      },
+      "status": "interrupted fixture self-lock, not a pass",
+      "reason": "The first fixture retained a Store connection guard across another Store call. The corrected fixture releases each SQL guard before nested calls."
+    }
+  },
+  "test_only_delta": {
+    "old_lock": {
+      "path": ".local/gate-6/session-readiness/source-lock-149.json",
+      "sha256": "f815b2f74b5c73dbc8c48872d9a0f8c0ed797ebcc73fb51060a7c5d775dc5c0a"
+    },
+    "old_upstream_inputs": {
+      "path": ".local/gate-6/session-readiness/upstream-inputs-149.json",
+      "sha256": "345a71582f7ae8e168461f2a6ce06dd2ea47fb0dc1d820eecfac1f912d268455"
+    },
+    "reason": "While the production build continued, official preparation150 changed only the Core cfg(test) fixture. All4036 other prepared source file mtimes/bytes were preserved; no production source changed."
+  },
+  "checks": [
+    {
+      "name": "dependencies-final",
+      "exit_code": 0,
+      "evidence": {
+        "path": ".local/gate-6/session-readiness/dependencies-final.log",
+        "sha256": "fd9d7b181e3ccba9b643af55a186cf132c60aac99c734b2ee4e4e549afe5ffc2"
+      }
+    },
+    {
+      "name": "format-check",
+      "exit_code": 0,
+      "evidence": {
+        "path": ".local/gate-6/session-readiness/format-check.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    {
+      "name": "http-reference",
+      "exit_code": 0,
+      "evidence": {
+        "path": ".local/gate-6/session-readiness/http-reference.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    {
+      "name": "default-check",
+      "exit_code": 0,
+      "evidence": {
+        "path": ".local/gate-6/session-readiness/default-check.log",
+        "sha256": "7eadee6c6f729f5b87675433a158866047bd97eb860924a3ea554a0b032c9363"
+      }
+    },
+    {
+      "name": "progress",
+      "exit_code": 0,
+      "evidence": {
+        "path": ".local/gate-6/session-readiness/progress.log",
+        "sha256": "fedbc03549729d27ac031eee0766ae72281991ae1e9494232887c3160cf754cc"
+      }
+    },
+    {
+      "name": "diff",
+      "exit_code": 0,
+      "evidence": {
+        "path": ".local/gate-6/session-readiness/diff.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    }
+  ],
+  "sources": [
+    {
+      "path": "patches/rvoip/gate6-native-ready-observation.patch",
+      "sha256": "2b2f7b4b10539207ef1ecc6ab2b7742f92fd02c1534fa68509040bd4d8ae9f83"
+    },
+    {
+      "path": "patches/rvoip/gate6-ready-observation-bound-principal-test.patch",
+      "sha256": "b2e90fcfc5c4ecc5937f333cdf42fa88a22287d1f0882b95f89bd07e4bd5ce5e"
+    },
+    {
+      "path": "crates/connect-store/migrations/092_native_connection_flow_facts.sql",
+      "sha256": "5205c56d0ea3d826e7078f9976d1d64c77ef16813d39aa0ca42341910627f6a7"
+    },
+    {
+      "path": "crates/connect-store/src/peer_authority/connection_media/flow_facts.rs",
+      "sha256": "997db8c11fed4849277e833abdfa04a24bd4e246312095aa15b47cc5784cd9bb"
+    },
+    {
+      "path": "crates/connect-store/src/connection_control/tests/native_stream_authority/flow_facts.rs",
+      "sha256": "a31f0f1d4a99f6e59c0c79b4e3fd3b4eba91fb1fca823b7defbe5bbb19076158"
+    },
+    {
+      "path": "crates/connect-service/src/canonical_native_lifecycle.rs",
+      "sha256": "8a6fbcc52edcffd44b6b92ab00f5ef4f9ddc266991cdecb1012129eff5190484"
+    },
+    {
+      "path": "crates/connect-server/tests/support/canonical_native_connections/solo.rs",
+      "sha256": "ed7ca57ce862451f13fa946b2b32c2673c4ce1998893e9c478bfe50e1e0c01b7"
+    },
+    {
+      "path": "scripts/generate-canonical-http-openapi.py",
+      "sha256": "0a938cff687bed124dcd0f293a094e5a895ff5bef4e54ffbc6f9503e60e85d75"
+    },
+    {
+      "path": "contracts/openapi-canonical-http.json",
+      "sha256": "ddd187a64cf06bc62e4b3671dc72c6f964f40062e4f3ad08e6395d6c54f252e7"
+    },
+    {
+      "path": "docs/developer/general-sessions.md",
+      "sha256": "c54ba9011a53ff5ea8bae3d88b0eb69b73467c239a856b355f2ebd52cec74036"
+    }
+  ],
+  "limits": [
+    "No full Session Active/started/joined/left, loss/reconnect/grace or full0081 sequence qualification. The future coordinator must consume current admission and historical facts without treating history as current media authority.",
+    "Rapid retirement before current host admission, durable loss ordering, private/prepared-to-public promotion, restart aggregation and broader fault/profile qualifications remain assigned. This is not a claim that every transient flow is recorded.",
+    "No Linux/browser/remote/provider lane, designated G6-093 rehearsal, acceptance closure or publication. All105 tasks remain in scope."
+  ],
+  "runtime_configuration": "Production native path built with test-support for the shared isolated harness. Only the named storage-fault case installs the fact INSERT trigger; default production configuration is separately compile-checked."
+}

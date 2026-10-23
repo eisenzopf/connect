@@ -75,7 +75,7 @@ fn task_events_and_receipts_share_existing_installation_capacity() {
             &key.id,
             &Operation::Create {
                 request_id: "conversation".into(),
-                participants: vec![],
+                request: connect_protocol::conversations::CreateRequest::persistent(vec![]),
             },
         )
         .unwrap()
@@ -100,7 +100,9 @@ fn task_events_and_receipts_share_existing_installation_capacity() {
     let send = Operation::Send {
         request_id: "send".into(),
         conversation_id: cid,
-        body: "Would exceed the shared bound".into(),
+        message: connect_protocol::messages::MessageDraft::text_all(
+            "Would exceed the shared bound",
+        ),
     };
     assert_eq!(
         store.execute(&key.id, &send).unwrap_err().code,

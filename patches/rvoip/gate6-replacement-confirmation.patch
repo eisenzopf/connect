@@ -1,0 +1,935 @@
+diff --git a/crates/foundation/rvoip-core/src/orchestrator/participant_control/replacement.rs b/crates/foundation/rvoip-core/src/orchestrator/participant_control/replacement.rs
+--- a/crates/foundation/rvoip-core/src/orchestrator/participant_control/replacement.rs
++++ b/crates/foundation/rvoip-core/src/orchestrator/participant_control/replacement.rs
+@@ -10,7 +10,7 @@
+     audience::{AudioAudienceHandle, AudioAudiencePlan, AudioAudienceRequest},
+     device_replacement::{
+         AudioDeviceReplacementHandle, AudioDeviceReplacementOutcome, AudioDeviceReplacementPlan,
+-        AudioDeviceReplacementRequest,
++        AudioDeviceReplacementRequest, ReplacementReadinessStamp,
+     },
+     signal::ControllerSignalStamp,
+     StreamControlError,
+@@ -95,6 +95,34 @@
+     context: Option<AudioAudienceHandle>,
+     slot: Option<OwnedSemaphorePermit>,
+     cleanup_started: bool,
++    captured_signal: u64,
++    observed_signal: u64,
++    confirmation: Option<PartialConfirmation>,
++    confirmed_at: Option<ReplacementReadinessStamp>,
++}
++impl PendingReplacementState {
++    fn refresh_confirmation(&mut self) -> ControlResult<()> {
++        if let Some(stamp) = &self.confirmed_at {
++            match stamp.check() {
++                Ok(()) => {}
++                Err(
++                    e @ StreamControlError::Model(
++                        crate::stream_lifecycle::MediaTransitionError::Conflict,
++                    ),
++                ) => return Err(e.into()),
++                Err(_) => {
++                    self.ticket.invalidate_confirmation();
++                    self.confirmed_at = None;
++                    self.confirmation = None;
++                }
++            }
++        }
++        Ok(())
++    }
++}
++struct PartialConfirmation {
++    digits: String,
++    readiness: ReplacementReadinessStamp,
+ }
+ /// Metadata/resource owner, not an authority lease. The exact ID is reserved
+ /// before allocation and remains a tombstone if preparation is cancelled.
+@@ -411,6 +439,10 @@
+                     context: None,
+                     slot: Some(slot),
+                     cleanup_started: false,
++                    captured_signal: 0,
++                    observed_signal: 0,
++                    confirmation: None,
++                    confirmed_at: None,
+                 }),
+                 phase: AtomicU8::new(PREPARING),
+                 flight: Arc::new(Semaphore::new(1)),
+@@ -726,7 +758,8 @@
+     ) -> ControlResult<ManagedAudioDeviceReplacementPlan> {
+         self.owns_replacement(p)?;
+         p.check()?;
+-        let pending = p.state.lock().unwrap_or_else(|v| v.into_inner());
++        let mut pending = p.state.lock().unwrap_or_else(|v| v.into_inner());
++        pending.refresh_confirmation()?;
+         let context = pending
+             .context
+             .as_ref()
+@@ -740,6 +773,7 @@
+         let media = scene.plan_audio_device_replacement(
+             context,
+             &pending.ticket,
++            pending.confirmed_at.clone(),
+             AudioDeviceReplacementRequest {
+                 operation_id: p.intent.operation_id.clone(),
+                 expected_revision: scene.audience_revision(),
+@@ -1206,8 +1240,9 @@
+     event: DeviceReplacementEndpointEvent,
+     principal: AuthenticatedPrincipal,
+     controller: Option<ControllerSignalStamp>,
+-    media_at_capture: bool,
++    media_at_capture: Option<ReplacementReadinessStamp>,
+     answered_at_capture: bool,
++    sequence: u64,
+ }
+ impl DeviceReplacementEvent {
+     pub fn observe(&self) -> ControlResult<EndpointConfirmationObservation> {
+@@ -1254,6 +1289,7 @@
+         }
+         let mut state = p.state.lock().unwrap_or_else(|v| v.into_inner());
+         p.check()?;
++        state.refresh_confirmation()?;
+         let g = state.ticket.generation();
+         let scene = p
+             .runtime
+@@ -1274,26 +1310,59 @@
+             source: &self.source,
+         };
+         let lease = scene.replacement_signal_authority(&signal_scope, held)?;
++        // A captured pre-answer/pre-media digit keeps its specific refusal
++        // even if a later answer callback has already been observed.
++        if matches!(
++            self.event,
++            DeviceReplacementEndpointEvent::MediaObserved
++                | DeviceReplacementEndpointEvent::Dtmf { .. }
++        ) && (self.controller.is_none()
++            || !self
++                .media_at_capture
++                .as_ref()
++                .is_some_and(|stamp| stamp.check().is_ok())
++            || matches!(self.event, DeviceReplacementEndpointEvent::Dtmf { .. })
++                && !self.answered_at_capture)
++        {
++            state.confirmation = None;
++            return Ok(EndpointConfirmationObservation::BeforeAnswerOrMedia);
++        }
++        // Only fresh, authorized observations consume a sequence. Replaying an
++        // opaque event never becomes another keypress; a lost/out-of-order
++        // callback cannot concatenate a prefix across an unknown gap.
++        if self.sequence <= state.observed_signal {
++            return Ok(EndpointConfirmationObservation::AlreadyObserved);
++        }
++        if state.observed_signal.checked_add(1) != Some(self.sequence) {
++            state.confirmation = None;
++        }
++        if let Some(partial) = &state.confirmation {
++            match partial.readiness.check() {
++                Ok(()) => {}
++                Err(
++                    e @ StreamControlError::Model(
++                        crate::stream_lifecycle::MediaTransitionError::Conflict,
++                    ),
++                ) => return Err(e.into()),
++                Err(_) => state.confirmation = None,
++            }
++        }
++        state.observed_signal = self.sequence;
+         match &self.event {
+             DeviceReplacementEndpointEvent::Answered => {
+                 Ok(state.ticket.observe_answer(&p.intent.replacement, g)?)
+             }
+             DeviceReplacementEndpointEvent::MediaObserved
+             | DeviceReplacementEndpointEvent::Dtmf { .. } => {
+-                if self.controller.is_none()
+-                    || !self.media_at_capture
+-                    || matches!(self.event, DeviceReplacementEndpointEvent::Dtmf { .. })
+-                        && !self.answered_at_capture
+-                {
+-                    return Ok(EndpointConfirmationObservation::BeforeAnswerOrMedia);
+-                }
+                 let Some(context) = &state.context else {
++                    state.confirmation = None;
+                     return Ok(EndpointConfirmationObservation::BeforeAnswerOrMedia);
+                 };
+                 match scene.replacement_endpoint_ready(context) {
+                     Ok(()) => {}
+                     Err(StreamControlError::NotReady) => {
+-                        return Ok(EndpointConfirmationObservation::BeforeAnswerOrMedia)
++                        state.confirmation = None;
++                        return Ok(EndpointConfirmationObservation::BeforeAnswerOrMedia);
+                     }
+                     Err(v) => return Err(v.into()),
+                 }
+@@ -1302,9 +1371,59 @@
+                     .ticket
+                     .observe_media_ready(&current.member, &current.endpoint, g)?;
+                 match &self.event {
+-                    DeviceReplacementEndpointEvent::Dtmf { digits } => Ok(state
+-                        .ticket
+-                        .observe_dtmf(&p.intent.replacement, g, digits)?),
++                    DeviceReplacementEndpointEvent::Dtmf { digits } => {
++                        let crate::participant_transitions::EndpointConfirmationPolicy::AnsweredDtmf { digits: expected } = &p.intent.confirmation else {
++                            return Ok(state.ticket.observe_dtmf(&p.intent.replacement, g, digits)?);
++                        };
++                        if state.ticket.confirmation_ready() {
++                            return Ok(EndpointConfirmationObservation::AlreadyConfirmed);
++                        }
++                        if digits.is_empty()
++                            || digits.len() > 16
++                            || !digits
++                                .bytes()
++                                .all(|b| b.is_ascii_digit() || b"*#ABCD".contains(&b))
++                        {
++                            state.confirmation = None;
++                            return Ok(EndpointConfirmationObservation::IncorrectDigits);
++                        }
++                        let partial =
++                            state
++                                .confirmation
++                                .get_or_insert_with(|| PartialConfirmation {
++                                    digits: String::new(),
++                                    readiness: self
++                                        .media_at_capture
++                                        .as_ref()
++                                        .expect("checked capture")
++                                        .clone(),
++                                });
++                        // A bounded suffix/prefix matcher accepts consecutive
++                        // attributed keypresses, including repeated equal keys.
++                        // A wrong key discards unmatched prefixes; no wire body
++                        // may supply the expected digits or readiness state.
++                        for digit in digits.chars() {
++                            partial.digits.push(digit);
++                            while !expected.starts_with(&partial.digits) {
++                                partial.digits.remove(0);
++                            }
++                            if partial.digits == *expected {
++                                let confirmed_at = partial.readiness.clone();
++                                state.confirmation = None;
++                                state.confirmed_at = Some(confirmed_at);
++                                return Ok(state.ticket.observe_dtmf(
++                                    &p.intent.replacement,
++                                    g,
++                                    expected,
++                                )?);
++                            }
++                        }
++                        Ok(if partial.digits.is_empty() {
++                            EndpointConfirmationObservation::IncorrectDigits
++                        } else {
++                            EndpointConfirmationObservation::PendingDigits
++                        })
++                    }
+                     _ => Ok(
+                         if matches!(
+                             p.intent.confirmation,
+@@ -1381,16 +1500,25 @@
+         // Delayed callback delivery cannot turn pre-media digits into a later
+         // confirmation. Pin the actual trusted scene state at event capture;
+         // observation still requires fresh current signal authority.
+-        let pending = p.state.lock().unwrap_or_else(|v| v.into_inner());
+-        let media_at_capture = controller.is_some()
+-            && pending.context.as_ref().is_some_and(|context| {
++        let mut pending = p.state.lock().unwrap_or_else(|v| v.into_inner());
++        let media_at_capture = if controller.is_some() {
++            pending.context.as_ref().and_then(|context| {
+                 p.runtime
+                     .mixer
+                     .staged
+-                    .as_ref()
+-                    .is_some_and(|scene| scene.replacement_endpoint_ready(context).is_ok())
+-            });
++                    .as_ref()?
++                    .replacement_endpoint_stamp(context)
++                    .ok()
++            })
++        } else {
++            None
++        };
+         let answered_at_capture = pending.ticket.has_answered();
++        let sequence = pending
++            .captured_signal
++            .checked_add(1)
++            .ok_or(ParticipantControlError::Authority)?;
++        pending.captured_signal = sequence;
+         drop(pending);
+         Ok(DeviceReplacementEvent {
+             owner: Arc::downgrade(self),
+@@ -1401,6 +1529,7 @@
+             event,
+             media_at_capture,
+             answered_at_capture,
++            sequence,
+         })
+     }
+ }
+diff --git a/crates/foundation/rvoip-core/src/participant_transitions/replacement.rs b/crates/foundation/rvoip-core/src/participant_transitions/replacement.rs
+--- a/crates/foundation/rvoip-core/src/participant_transitions/replacement.rs
++++ b/crates/foundation/rvoip-core/src/participant_transitions/replacement.rs
+@@ -30,6 +30,10 @@
+     NotRequired,
+     BeforeAnswerOrMedia,
+     IncorrectDigits,
++    /// Valid attributed digits are a prefix of the configured confirmation.
++    PendingDigits,
++    /// This or a later captured callback was already observed.
++    AlreadyObserved,
+     Confirmed,
+     AlreadyConfirmed,
+ }
+@@ -87,6 +91,9 @@
+     confirmed: bool,
+ }
+ impl PreparedParticipantReplacement {
++    pub(crate) fn invalidate_confirmation(&mut self) {
++        self.confirmed = false;
++    }
+     pub(crate) fn has_answered(&self) -> bool {
+         self.answered
+     }
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/device_replacement.rs b/crates/foundation/rvoip-core/src/staged_streams/device_replacement.rs
+--- a/crates/foundation/rvoip-core/src/staged_streams/device_replacement.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/device_replacement.rs
+@@ -19,6 +19,7 @@
+     pub(super) programs: BTreeMap<ConnectionId, SavedAudioProgram>,
+     origins: BTreeMap<ConnectionId, AudienceOrigin>,
+     readiness: AudioDuplexStamp,
++    confirmation: Option<ReplacementReadinessStamp>,
+     pub(super) old_speaks: bool,
+     old_role: super::audio_consumer::ConsumerStamp,
+     pub(super) old_logical: StreamId,
+@@ -47,6 +48,9 @@
+         }
+         if controller.connection == self.request.admitted {
+             self.readiness.current(controller, state)?;
++            if let Some(confirmation) = &self.confirmation {
++                confirmation.current(controller, state)?;
++            }
+         }
+         Ok(())
+     }
+@@ -129,16 +133,65 @@
+         }
+     }
+ }
++/// Captured actual duplex incarnation. Metadata only, never a permission lease.
++#[derive(Clone)]
++pub(crate) struct ReplacementReadinessStamp {
++    controller: Weak<StreamController>,
++    revision: u64,
++    duplex: AudioDuplexStamp,
++}
++impl ReplacementReadinessStamp {
++    pub(crate) fn check(&self) -> ControlResult<()> {
++        let controller = self
++            .controller
++            .upgrade()
++            .ok_or(StreamControlError::Cancelled)?;
++        let state = controller
++            .state
++            .try_lock()
++            .map_err(|_| MediaTransitionError::Conflict)?;
++        self.current(&controller, &state)
++    }
++    fn current(&self, controller: &StreamController, state: &State) -> ControlResult<()> {
++        if state.model.revision() != self.revision {
++            return Err(StreamControlError::NotReady);
++        }
++        self.duplex
++            .current(controller, state)
++            .map_err(|error| match error {
++                // A changed credential is a stale IO incarnation. Only failure to
++                // acquire mutation state above is retryable metadata contention.
++                StreamControlError::Model(MediaTransitionError::Conflict) => {
++                    StreamControlError::NotReady
++                }
++                other => other,
++            })
++    }
++}
+ impl GuardedMediaScene {
+     pub(crate) fn replacement_endpoint_ready(
+         &self,
+         context: &AudioAudienceHandle,
+     ) -> ControlResult<()> {
++        self.replacement_endpoint_stamp(context).map(|_| ())
++    }
++    pub(crate) fn replacement_endpoint_stamp(
++        &self,
++        context: &AudioAudienceHandle,
++    ) -> ControlResult<ReplacementReadinessStamp> {
+         if context.scene != self.id || context.group.origins.len() != 1 {
+             return Err(StreamControlError::Authority);
+         }
+-        let members = self.members.lock().unwrap_or_else(|p| p.into_inner());
+-        let registry = self.audiences.lock().unwrap_or_else(|p| p.into_inner());
++        // Signal capture owns connection fences. Refuse contention rather
++        // than wait in the reverse of the managed media commit lock order.
++        let members = self
++            .members
++            .try_lock()
++            .map_err(|_| MediaTransitionError::Conflict)?;
++        let registry = self
++            .audiences
++            .try_lock()
++            .map_err(|_| MediaTransitionError::Conflict)?;
+         if !registry
+             .groups
+             .get(&context.group.operation)
+@@ -156,17 +209,23 @@
+         let state = member
+             .controller
+             .state
+-            .lock()
+-            .unwrap_or_else(|p| p.into_inner());
+-        member
+-            .audio_consumer
+-            .duplex_since(&member.controller, context.committed_at, &state)?;
+-        Ok(())
++            .try_lock()
++            .map_err(|_| MediaTransitionError::Conflict)?;
++        let duplex =
++            member
++                .audio_consumer
++                .duplex_since(&member.controller, context.committed_at, &state)?;
++        Ok(ReplacementReadinessStamp {
++            controller: Arc::downgrade(&member.controller),
++            revision: state.model.revision(),
++            duplex,
++        })
+     }
+     pub(crate) fn plan_audio_device_replacement(
+         &self,
+         context: &AudioAudienceHandle,
+         pending: &PreparedParticipantReplacement,
++        confirmation: Option<ReplacementReadinessStamp>,
+         request: AudioDeviceReplacementRequest,
+     ) -> ControlResult<AudioDeviceReplacementPlan> {
+         if context.scene != self.id
+@@ -240,6 +299,9 @@
+                 .state
+                 .try_lock()
+                 .map_err(|_| MediaTransitionError::Conflict)?;
++            if let Some(confirmation) = &confirmation {
++                confirmation.current(new, &state)?;
++            }
+             members[&request.admitted].audio_consumer.duplex_since(
+                 new,
+                 context.committed_at,
+@@ -307,6 +369,7 @@
+             programs,
+             origins,
+             readiness,
++            confirmation,
+             old_speaks,
+             old_role,
+             old_logical,
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/signal.rs b/crates/foundation/rvoip-core/src/staged_streams/signal.rs
+--- a/crates/foundation/rvoip-core/src/staged_streams/signal.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/signal.rs
+@@ -20,8 +20,10 @@
+         {
+             return Err(StreamControlError::Authority);
+         }
+-        let state = c.state.lock().unwrap_or_else(|v| v.into_inner());
+-        if c.shutdown.is_cancelled() || state.closed {
++        // Every transition to closed cancels shutdown first. Signal capture
++        // may already own registry/lifecycle fences, so it must not wait on
++        // controller mutation state in the reverse of managed-commit order.
++        if c.shutdown.is_cancelled() {
+             return Err(StreamControlError::Cancelled);
+         }
+         Ok(())
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/tests/private_consult/replacement.rs b/crates/foundation/rvoip-core/src/staged_streams/tests/private_consult/replacement.rs
+--- a/crates/foundation/rvoip-core/src/staged_streams/tests/private_consult/replacement.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/private_consult/replacement.rs
+@@ -191,6 +191,14 @@
+         self.room.scene.plan_audio_device_replacement(
+             &self.context,
+             &self.pending,
++            if matches!(
++                self.pending.intent().confirmation,
++                EndpointConfirmationPolicy::AnsweredDtmf { .. }
++            ) {
++                Some(self.room.scene.replacement_endpoint_stamp(&self.context)?)
++            } else {
++                None
++            },
+             AudioDeviceReplacementRequest {
+                 operation_id: self.pending.intent().operation_id.clone(),
+                 expected_revision: self.room.scene.audience_revision(),
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/tests.rs b/crates/foundation/rvoip-core/src/staged_streams/tests.rs
+--- a/crates/foundation/rvoip-core/src/staged_streams/tests.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests.rs
+@@ -2645,3 +2645,23 @@
+ mod private_consult;
+ 
+ mod replacement_activation;
++
++#[tokio::test]
++async fn replacement_signal_capture_does_not_wait_for_controller_mutation_state() {
++    let f = Fixture::new(8);
++    let state = f.a.state.lock().unwrap();
++    let controller = f.a.clone();
++    let (tx, rx) = std::sync::mpsc::channel();
++    let worker = std::thread::spawn(move || {
++        let _ = tx.send(controller.capture_signal_stamp());
++    });
++    let captured = rx.recv_timeout(Duration::from_secs(1));
++    drop(state);
++    worker.join().unwrap();
++    let stamp = captured
++        .expect("signal capture blocked on mutation state")
++        .unwrap();
++    stamp.check().unwrap();
++    f.a.retire();
++    assert!(matches!(stamp.check(), Err(StreamControlError::Cancelled)));
++}
+diff --git a/crates/uctp/rvoip-uctp/tests/support/canonical_media/guarded_mixer/replacement/adapter/sip.rs b/crates/uctp/rvoip-uctp/tests/support/canonical_media/guarded_mixer/replacement/adapter/sip.rs
+--- a/crates/uctp/rvoip-uctp/tests/support/canonical_media/guarded_mixer/replacement/adapter/sip.rs
++++ b/crates/uctp/rvoip-uctp/tests/support/canonical_media/guarded_mixer/replacement/adapter/sip.rs
+@@ -202,6 +202,9 @@
+         self.socket.send_to(wire.as_bytes(), remote).await.unwrap();
+     }
+     async fn digit(&self, digit: &str) {
++        self.digit_packet(digit).await;
++    }
++    async fn digit_packet(&self, digit: &str) -> Vec<u8> {
+         let (remote, from, to, call_id) = {
+             let guard = self.dialog.lock().unwrap();
+             let d = guard.as_ref().unwrap();
+@@ -214,6 +217,7 @@
+             .send_to(message.as_bytes(), remote)
+             .await
+             .unwrap();
++        message.into_bytes()
+     }
+ }
+ impl Drop for Peer {
+@@ -234,6 +238,14 @@
+         Self::new_target(s, peer, None).await
+     }
+     async fn new_target(s: &Scene, peer: &Peer, expires: Option<chrono::DateTime<Utc>>) -> Self {
++        Self::new_confirmation(s, peer, expires, "5").await
++    }
++    async fn new_confirmation(
++        s: &Scene,
++        peer: &Peer,
++        expires: Option<chrono::DateTime<Utc>>,
++        digits: &str,
++    ) -> Self {
+         let old = s.grants.0.read().await.owners[&s.live[0].leg.id].clone();
+         let principal = named_actor("alice");
+         let identity = IdentityBinding::from_authenticated(
+@@ -264,7 +276,9 @@
+             retained: s.live[1].leg.id.clone(),
+             endpoint: endpoint.endpoint().clone(),
+             device: endpoint.device().clone(),
+-            confirmation: EndpointConfirmationPolicy::AnsweredDtmf { digits: "5".into() },
++            confirmation: EndpointConfirmationPolicy::AnsweredDtmf {
++                digits: digits.into(),
++            },
+         };
+         let mut planned = old.clone();
+         planned.endpoint = endpoint.clone();
+@@ -666,7 +680,7 @@
+ async fn actual_sip_guarded_duplex_and_confirmation_move_audio_once_without_exposing_preparation() {
+     let s = Scene::new_replacement("quic").await;
+     let peer = Peer::new(true).await;
+-    let mut c = Candidate::new(&s, &peer).await;
++    let mut c = Candidate::new_confirmation(&s, &peer, None, "55#").await;
+     let g = grant(&s, c.pending.intent(), &c.principal, Approval::Start).await;
+     s.core
+         .orch
+@@ -725,7 +739,39 @@
+     );
+     peer.digit("9").await;
+     assert_eq!(c.signal(&s).await, Observation::IncorrectDigits);
++    let packet = peer.digit_packet("5").await;
++    let captured = tokio::time::timeout(Duration::from_secs(3), c.signals.recv())
++        .await
++        .unwrap()
++        .unwrap()
++        .into_event();
++    let five = DeviceReplacementEndpointEvent::Dtmf { digits: "5".into() };
++    let g = grant(&s, c.pending.intent(), &c.principal, Approval::Signal(five)).await;
++    assert_eq!(
++        captured.observe_with_held(&g).unwrap(),
++        Observation::PendingDigits
++    );
++    assert_eq!(
++        captured.observe_with_held(&g).unwrap(),
++        Observation::AlreadyObserved
++    );
++    drop(g);
++    let remote = peer.dialog.lock().unwrap().as_ref().unwrap().remote;
++    peer.socket.send_to(&packet, remote).await.unwrap();
++    assert!(
++        tokio::time::timeout(Duration::from_millis(150), c.signals.recv())
++            .await
++            .is_err(),
++        "retransmitted INFO became another digit"
++    );
+     peer.digit("5").await;
++    assert_eq!(c.signal(&s).await, Observation::PendingDigits);
++    assert!(s
++        .core
++        .orch
++        .plan_staged_device_replacement(&c.pending)
++        .is_err());
++    peer.digit("#").await;
+     assert_eq!(c.signal(&s).await, Observation::Confirmed);
+     let plan = s
+         .core
+@@ -794,7 +840,7 @@
+         .unwrap();
+     assert_eq!(peer.calls(), 1);
+     s.stop().await;
+-    eprintln!("actual SIP guarded media passed: real RTP private output/input, no pre-confirmation main leakage, wrong/correct attributed DTMF, one generation2 move, retained native duplex after old-device loss");
++    eprintln!("actual SIP guarded media passed: real RTP private output/input, no pre-confirmation main leakage, wrong/correct attributed multi-digit DTMF, retransmission/replay refusal, one generation2 move, retained native duplex after old-device loss");
+ }
+ 
+ #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+diff --git a/crates/uctp/rvoip-uctp/tests/support/canonical_media/guarded_mixer/replacement.rs b/crates/uctp/rvoip-uctp/tests/support/canonical_media/guarded_mixer/replacement.rs
+--- a/crates/uctp/rvoip-uctp/tests/support/canonical_media/guarded_mixer/replacement.rs
++++ b/crates/uctp/rvoip-uctp/tests/support/canonical_media/guarded_mixer/replacement.rs
+@@ -34,6 +34,7 @@
+     Commit(ManagedAudioDeviceReplacementPlan),
+     Signal(DeviceReplacementEndpointEvent),
+     Replay,
++    ConfirmationGate(u64, StreamGateAction),
+ }
+ struct Grant {
+     media: Arc<Media>,
+@@ -311,6 +312,20 @@
+                     && *expected == 1
+                     && *streams == &BTreeSet::from([desired(Medium::Audio).logical_id])
+                     && *action == StreamGateAction::Mute
++            }
++            (
++                Approval::ConfirmationGate(revision, allowed),
++                MediaControlIntent::Gate {
++                    expected,
++                    streams,
++                    action,
++                },
++            ) => {
++                scope.connection == &g.intent.replacement
++                    && expected == revision
++                    && action == allowed
++                    && matches!(action, StreamGateAction::Pause | StreamGateAction::Resume)
++                    && *streams == &BTreeSet::from([desired(Medium::Audio).logical_id])
+             }
+             (Approval::Attach, MediaControlIntent::PreparePrivateAudio { expected, .. }) => {
+                 scope.connection == &g.intent.replacement && *expected == 2
+@@ -815,9 +830,24 @@
+         captured.observe_with_held(&g).unwrap()
+     }
+     async fn io(&self) {
++        self.io_at(1).await;
++    }
++    async fn io_at(&self, sequence: u16) {
+         send(
+             &self.live.wire,
+-            audio(binding(&self.live.leg, Medium::Audio).stream_local_id, 0),
++            pack_rtp_datagram(&RtpDatagram {
++                flags: 0,
++                stream_local_id: binding(&self.live.leg, Medium::Audio).stream_local_id,
++                seq: u32::from(sequence),
++                rtp: RtpMediaPayload {
++                    payload: tone(),
++                    payload_type: 0,
++                    sequence_number: sequence,
++                    timestamp: u32::from(sequence) * 160,
++                    ssrc: 7,
++                },
++            })
++            .unwrap(),
+         );
+         tokio::time::sleep(Duration::from_millis(35)).await;
+         let binding = self
+@@ -1305,3 +1335,283 @@
+ 
+ #[path = "replacement/adapter.rs"]
+ mod adapter;
++
++#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
++async fn actual_tls_confirmation_replay_gaps_and_media_epochs_cannot_assemble_old_digits() {
++    for mode in [
++        "replay",
++        "out-of-order",
++        "lost",
++        "media-epoch",
++        "confirmed-epoch",
++    ] {
++        let s = Scene::new_replacement("quic").await;
++        let c = Candidate::new(
++            &s,
++            "quic",
++            EndpointConfirmationPolicy::AnsweredDtmf {
++                digits: "55#".into(),
++            },
++        )
++        .await;
++        c.io().await;
++        assert_eq!(
++            c.event(&s, DeviceReplacementEndpointEvent::Answered).await,
++            Observation::Answered
++        );
++        let five = DeviceReplacementEndpointEvent::Dtmf { digits: "5".into() };
++        let captured = c.capture(&s, five.clone());
++        let g = grant(
++            &s,
++            c.pending.intent(),
++            &c.principal,
++            Approval::Signal(five.clone()),
++        )
++        .await;
++        if mode == "out-of-order" {
++            let later = c.capture(&s, five.clone());
++            assert_eq!(
++                later.observe_with_held(&g).unwrap(),
++                Observation::PendingDigits
++            );
++            assert_eq!(
++                captured.observe_with_held(&g).unwrap(),
++                Observation::AlreadyObserved
++            );
++        } else {
++            assert_eq!(
++                captured.observe_with_held(&g).unwrap(),
++                Observation::PendingDigits
++            );
++            if mode == "replay" {
++                assert_eq!(
++                    captured.observe_with_held(&g).unwrap(),
++                    Observation::AlreadyObserved
++                );
++            }
++        }
++        drop(g);
++        if mode == "lost" {
++            drop(c.capture(&s, five.clone()));
++        }
++        if mode == "media-epoch" {
++            let queued = c.capture(&s, five.clone());
++            for action in [StreamGateAction::Pause, StreamGateAction::Resume] {
++                let controller = &c.live.leg.controller;
++                let revision = controller.revision();
++                let g = grant(
++                    &s,
++                    c.pending.intent(),
++                    &c.principal,
++                    Approval::ConfirmationGate(revision, action),
++                )
++                .await;
++                controller
++                    .set_media_gate_with_held(
++                        revision,
++                        &BTreeSet::from([desired(Medium::Audio).logical_id]),
++                        action,
++                        deadline(),
++                        Arc::new(g.clone()),
++                    )
++                    .await
++                    .unwrap();
++            }
++            c.io_at(2).await;
++            let g = grant(
++                &s,
++                c.pending.intent(),
++                &c.principal,
++                Approval::Signal(five.clone()),
++            )
++            .await;
++            assert_eq!(
++                queued.observe_with_held(&g).unwrap(),
++                Observation::BeforeAnswerOrMedia
++            );
++            drop(g);
++        }
++        assert_eq!(
++            c.event(
++                &s,
++                DeviceReplacementEndpointEvent::Dtmf { digits: "#".into() }
++            )
++            .await,
++            Observation::IncorrectDigits,
++            "{mode}"
++        );
++        assert!(s
++            .core
++            .orch
++            .plan_staged_device_replacement(&c.pending)
++            .is_err());
++        assert_eq!(c.event(&s, five.clone()).await, Observation::PendingDigits);
++        assert_eq!(c.event(&s, five).await, Observation::PendingDigits);
++        assert_eq!(
++            c.event(
++                &s,
++                DeviceReplacementEndpointEvent::Dtmf { digits: "#".into() }
++            )
++            .await,
++            Observation::Confirmed
++        );
++        let old_plan = s
++            .core
++            .orch
++            .plan_staged_device_replacement(&c.pending)
++            .unwrap();
++        if mode == "confirmed-epoch" {
++            for action in [StreamGateAction::Pause, StreamGateAction::Resume] {
++                let controller = &c.live.leg.controller;
++                let revision = controller.revision();
++                let g = grant(
++                    &s,
++                    c.pending.intent(),
++                    &c.principal,
++                    Approval::ConfirmationGate(revision, action),
++                )
++                .await;
++                controller
++                    .set_media_gate_with_held(
++                        revision,
++                        &BTreeSet::from([desired(Medium::Audio).logical_id]),
++                        action,
++                        deadline(),
++                        Arc::new(g.clone()),
++                    )
++                    .await
++                    .unwrap();
++            }
++            c.io_at(3).await;
++            assert!(
++                s.core
++                    .orch
++                    .plan_staged_device_replacement(&c.pending)
++                    .is_err(),
++                "old completed confirmation survived a media epoch"
++            );
++            let g = grant(
++                &s,
++                c.pending.intent(),
++                &c.operator,
++                Approval::Commit(old_plan.clone()),
++            )
++            .await;
++            assert!(s
++                .core
++                .orch
++                .commit_staged_device_replacement_with_held(old_plan, &g)
++                .await
++                .is_err());
++            drop(g);
++            for (digit, expected) in [
++                ("5", Observation::PendingDigits),
++                ("5", Observation::PendingDigits),
++                ("#", Observation::Confirmed),
++            ] {
++                assert_eq!(
++                    c.event(
++                        &s,
++                        DeviceReplacementEndpointEvent::Dtmf {
++                            digits: digit.into()
++                        }
++                    )
++                    .await,
++                    expected
++                );
++            }
++            assert!(s
++                .core
++                .orch
++                .plan_staged_device_replacement(&c.pending)
++                .is_ok());
++        }
++        assert!(c.pending.cancel());
++        c.stop().await;
++        s.tone(0, 1).await;
++        s.tone(1, 0).await;
++        s.stop().await;
++    }
++}
++
++#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
++async fn actual_tls_configured_confirmation_accepts_sixteen_keys_and_rejects_malformed_batches() {
++    let s = Scene::new_replacement("quic").await;
++    let expected = "1234567890ABCD*#";
++    let c = Candidate::new(
++        &s,
++        "quic",
++        EndpointConfirmationPolicy::AnsweredDtmf {
++            digits: expected.into(),
++        },
++    )
++    .await;
++    c.io().await;
++    assert_eq!(
++        c.event(&s, DeviceReplacementEndpointEvent::Answered).await,
++        Observation::Answered
++    );
++    assert_eq!(
++        c.event(
++            &s,
++            DeviceReplacementEndpointEvent::Dtmf { digits: "1".into() }
++        )
++        .await,
++        Observation::PendingDigits
++    );
++    assert_eq!(
++        c.event(
++            &s,
++            DeviceReplacementEndpointEvent::Dtmf {
++                digits: "2é".into()
++            }
++        )
++        .await,
++        Observation::IncorrectDigits
++    );
++    for digit in expected[1..].chars() {
++        assert_eq!(
++            c.event(
++                &s,
++                DeviceReplacementEndpointEvent::Dtmf {
++                    digits: digit.to_string()
++                }
++            )
++            .await,
++            Observation::IncorrectDigits
++        );
++    }
++    assert!(s
++        .core
++        .orch
++        .plan_staged_device_replacement(&c.pending)
++        .is_err());
++    for (i, digit) in expected.chars().enumerate() {
++        let observed = c
++            .event(
++                &s,
++                DeviceReplacementEndpointEvent::Dtmf {
++                    digits: digit.to_string(),
++                },
++            )
++            .await;
++        assert_eq!(
++            observed,
++            if i + 1 == expected.len() {
++                Observation::Confirmed
++            } else {
++                Observation::PendingDigits
++            }
++        );
++    }
++    assert!(s
++        .core
++        .orch
++        .plan_staged_device_replacement(&c.pending)
++        .is_ok());
++    assert!(c.pending.cancel());
++    c.stop().await;
++    s.tone(0, 1).await;
++    s.tone(1, 0).await;
++    s.stop().await;
++}

@@ -40,6 +40,32 @@ impl Driver {
 }
 #[async_trait]
 impl VoiceConnector for Driver {
+    fn voice_manifest(&self) -> connect_connector_api::manifest::Manifest {
+        let mut m = connect_connectors::provider_mapping::vapi_telephone_manifest();
+        m.operations
+            .remove(&connect_connector_api::manifest::ConnectorOperation::VoiceReconcile);
+        m
+    }
+    fn voice_configuration(&self) -> std::collections::BTreeMap<String, String> {
+        connect_connectors::provider_mapping::references("private-key", "OFFLINE_FIXTURE")
+    }
+    fn normalize(
+        &self,
+        id: &str,
+        call: &RemoteCall,
+    ) -> Result<connect_connector_api::lifecycle::Observation, Failure> {
+        use connect_connector_api::lifecycle::*;
+        Ok(Observation {
+            mutation_id: id.into(),
+            external_id: Some(call.id.clone()),
+            event_id: format!("{}:{}", call.id, call.state),
+            state: State::Voice(connect_connectors::provider_mapping::vapi_voice_state(
+                &call.state,
+            )),
+            verification: Verification::AuthenticatedResponse,
+        })
+    }
+
     async fn inbound(&self, _: &VoiceQuery) -> Result<Vec<connect_store::InboundCall>, Failure> {
         Ok(Vec::new())
     }
@@ -169,7 +195,7 @@ async fn cancelled_task_has_no_provider_effect_and_fresh_owner_hangup_still_work
             &key.id,
             &Operation::Create {
                 request_id: "conversation".into(),
-                participants: vec![],
+                request: connect_protocol::conversations::CreateRequest::persistent(vec![]),
             },
         )
         .unwrap()

@@ -1,0 +1,93 @@
+"""Typed membership inputs and current projections; roles are labels, not authority."""
+from typing import Literal, NotRequired, TypedDict
+IdentityKind = Literal['human','ai','system','external']
+class MemberView(TypedDict):
+    participant_id: str
+    conversation_id: str
+    identity_id: str
+    kind: IdentityKind
+    role: str
+    membership_epoch: int
+    active: bool
+    removal_reason: str | None
+class MembershipAdd(TypedDict):
+    action: Literal['add']
+    identity_id: str
+    kind: IdentityKind
+    role: str
+class MembershipInvite(TypedDict):
+    action: Literal['invite']
+    identity_id: str
+    kind: IdentityKind
+    role: str
+    expires_at: int
+class MembershipInvitationDecision(TypedDict):
+    action: Literal['join','decline','cancel_invitation']
+    invitation_id: str
+class MembershipLeave(TypedDict):
+    action: Literal['leave']
+class MembershipRemove(TypedDict):
+    action: Literal['remove']
+    participant_id: str
+    reason: NotRequired[str | None]
+class MembershipUpdateRole(TypedDict):
+    action: Literal['update_role']
+    participant_id: str
+    role: str
+class ContentRef(TypedDict):
+    kind: Literal['message','artifact','session','call','sip_leg','context_delivery','record','transcript','observation']
+    id: str
+class MembershipShareHistory(TypedDict):
+    action: Literal['share_history']
+    resources: list[ContentRef]
+    participants: list[str]
+    provenance: str
+class MembershipRevokeHistory(TypedDict):
+    action: Literal['revoke_history_share']
+    sharing_id: str
+MembershipAction = MembershipAdd | MembershipInvite | MembershipInvitationDecision | MembershipLeave | MembershipRemove | MembershipUpdateRole | MembershipShareHistory | MembershipRevokeHistory
+class MembershipRequest(TypedDict):
+    operation_id: str
+    conversation_id: str
+    expected_revision: int
+    change: MembershipAction
+class MembershipInvitation(TypedDict):
+    invitation_id: str
+    conversation_id: str
+    identity_id: str
+    expires_at: int
+    state: Literal['pending','joined','declined','cancelled','expired']
+    conversation_revision: int
+class OperationReference(TypedDict):
+    action: Literal['get']
+    operation_id: str
+class MembershipReceipt(TypedDict):
+    operation_id: str
+    conversation_id: str
+    state: Literal['completed']
+    completion_boundary: Literal['local-mutation']
+    status_reference: OperationReference
+class MembershipParticipantOutcome(TypedDict):
+    kind: Literal['participant']
+    participant: MemberView
+    revision: int
+    receipt: MembershipReceipt
+class MembershipInvitationOutcome(TypedDict):
+    kind: Literal['invitation']
+    invitation: MembershipInvitation
+    receipt: MembershipReceipt
+class MembershipSharingOutcome(TypedDict):
+    kind: Literal['sharing']
+    sharing_id: str
+    conversation_id: str
+    revision: int
+    active: bool
+    receipt: MembershipReceipt
+MembershipOutcome = MembershipParticipantOutcome | MembershipInvitationOutcome | MembershipSharingOutcome
+class MembershipSnapshot(TypedDict):
+    conversation_id: str
+    revision: int
+    participants: list[MemberView]
+class MembershipInvitations(TypedDict):
+    invitations: list[MembershipInvitation]
+    next: str | None

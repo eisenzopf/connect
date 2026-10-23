@@ -54,7 +54,7 @@ pub(super) fn subset(
     operations: &[TaskPermission],
     timestamp: i64,
 ) -> Result<Actor> {
-    let actor = actor_from_connection_at(c, credential_id, timestamp)?;
+    let mut actor = actor_from_connection_at(c, credential_id, timestamp)?;
     actor.require("task_grant")?;
     if actor.identity_id != task.owner_id
         || operations
@@ -68,5 +68,7 @@ pub(super) fn subset(
     {
         return Err(Error::forbidden());
     }
+    actor.scope.recipients = task.scope.recipients.clone();
+    actor.expires_at = actor.expires_at.min(task.expires_at);
     Ok(actor)
 }

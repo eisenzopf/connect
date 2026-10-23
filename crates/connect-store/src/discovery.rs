@@ -8,6 +8,7 @@ use rusqlite::{params, Connection};
 /// Immutable runtime inputs. No secrets, sockets or provider credentials enter the store.
 #[derive(Clone, Default)]
 pub struct DiscoveryRuntime {
+    pub endpoints: crate::EndpointRuntime,
     pub native_audio: bool,
     pub native_video: bool,
     pub sip: bool,
@@ -327,7 +328,12 @@ pub(crate) fn capabilities(
                 "uctp-quic/vapi-websocket",
                 &["audio"],
                 &["session_invite", "session_get", "session_end"],
-                runtime.vapi_audio,
+                runtime.vapi_audio
+                    && runtime.endpoints.assistant_configured(
+                        c,
+                        &identity.id,
+                        &actor.identity_id,
+                    )?,
             );
         }
         if runtime.sip {
@@ -366,6 +372,11 @@ pub(crate) fn capabilities(
         None
     };
     Ok(Capabilities {
+        participant_id: cid
+            .map(|cid| {
+                crate::audience::member(c, &identity.id, cid, true).map(|p| p.participant_id)
+            })
+            .transpose()?,
         extensions: vec![connect_protocol::tasks::TASK_PROFILE.into()],
         identity_id: identity.id,
         conversation_id: cid.map(str::to_owned),

@@ -83,7 +83,9 @@ async fn fresh_selected_invitation_routes_both_members_after_explicit_session_en
         .right
         .request(Operation::Create {
             request_id: "browser-next-conversation".into(),
-            participants: vec![f.left_id.clone()],
+            request: connect_protocol::conversations::CreateRequest::persistent(vec![f
+                .left_id
+                .clone()]),
         })
         .await
         .unwrap()
@@ -206,7 +208,9 @@ async fn fresh_selected_invitation_routes_both_members_after_explicit_session_en
         .request(Operation::Send {
             request_id: "browser-context-after-end".into(),
             conversation_id: conversation.id.clone(),
-            body: "Retained selected Conversation after media end".into(),
+            message: connect_protocol::messages::MessageDraft::text_all(
+                "Retained selected Conversation after media end",
+            ),
         })
         .await
         .unwrap()

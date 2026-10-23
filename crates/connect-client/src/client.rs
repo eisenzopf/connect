@@ -228,6 +228,10 @@ impl ConnectClient {
                 .wait_ms()
                 .unwrap_or(0)
                 .min(tasks::MAX_TOOL_WAIT_MS)
+        } else if let Operation::ConversationEvents { query, .. } = &operation {
+            query.wait_ms.min(30_000)
+        } else if let Operation::SessionObservations { query, .. } = &operation {
+            query.wait_ms.min(30_000)
         } else {
             0
         };

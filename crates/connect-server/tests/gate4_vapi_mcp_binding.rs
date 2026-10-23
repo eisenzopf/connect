@@ -71,8 +71,7 @@ async fn call_chat_and_session_bearers_cannot_select_another_task_or_origin() {
             .await
             .unwrap();
         assert_eq!(status.structured_content.unwrap()["data"]["id"], f.task.id);
-        let arguments =
-            json!({"request_id":"draft-once","step_id":"draft","body":"Provider-scoped draft"});
+        let arguments = json!({"request_id":"draft-once","step_id":"draft","message": connect_protocol::messages::MessageDraft::text_all(("Provider-scoped draft").to_string())});
         let mut receipt = None;
         for _ in 0..2 {
             let result = client

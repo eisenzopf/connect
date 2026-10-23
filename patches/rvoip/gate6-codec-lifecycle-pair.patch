@@ -1,0 +1,583 @@
+--- a/crates/uctp/rvoip-uctp/src/v2/auth_dispatch/lifecycle.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/auth_dispatch/lifecycle.rs
+@@ -92,7 +92,7 @@
+     }
+     pub(in crate::v2) fn native_lifecycle(
+         origin: NativeLifecycleOrigin,
+-        frame: Envelope,
++        frames: Vec<Envelope>,
+         permit: Arc<AnswerPermit>,
+         completion: oneshot::Sender<Result<Identifier, DispatchError>>,
+         deadline: Instant,
+@@ -100,20 +100,30 @@
+         if !origin.ready()
+             || !origin.current()
+             || !permit.current()
+-            || !matches!(
+-                frame.kind(),
+-                "connection.ready"
+-                    | "stream.opened"
+-                    | "stream.closed"
+-                    | "dtmf.received"
+-                    | "connection.quality"
+-            )
++            || !(frames.len() == 1
++                && matches!(
++                    frames[0].kind(),
++                    "connection.ready"
++                        | "stream.opened"
++                        | "stream.closed"
++                        | "dtmf.received"
++                        | "connection.quality"
++                )
++                || frames.len() == 2
++                    && frames[0].kind() == "stream.closed"
++                    && frames[1].kind() == "stream.opened"
++                    && frames[0].original()["payload"]["reason"] == "codec-renegotiated"
++                    && ["cid", "sid", "connid"]
++                        .iter()
++                        .all(|scope| frames[0].original()[scope] == frames[1].original()[scope])
++                    && frames[0].original()["payload"]["strm_id"]
++                        == frames[1].original()["payload"]["stream"]["strm_id"])
+         {
+             return Err(DispatchError::Authority);
+         }
+         Ok(Self {
+             origin: DeliveryOrigin::NativeLifecycle(origin.clone()),
+-            frames: Some(HandlerReplies::new(vec![frame])?),
++            frames: Some(HandlerReplies::new(frames)?),
+             authority: None,
+             completion: None,
+             data: None,
+--- a/crates/uctp/rvoip-uctp/src/v2/auth_peer/exchange.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/auth_peer/exchange.rs
+@@ -538,10 +538,19 @@
+                 .as_ref()
+                 .is_some_and(CancellationToken::is_cancelled)
+     };
+-    let prepared = if ready() && job.output.envelopes().len() == 1 {
+-        serde_json::to_vec(&job.output.envelopes()[0])
++    let frames = job.output.envelopes();
++    // Only a sealed native lifecycle origin can own a paired replacement.
++    // Offer answers and other pending-answer users retain one-frame custody.
++    let paired = job.native_fence.is_some()
++        && frames.len() == 2
++        && frames[0].kind() == "stream.closed"
++        && frames[1].kind() == "stream.opened";
++    let prepared = if ready() && (frames.len() == 1 || paired) {
++        frames
++            .iter()
++            .map(|frame| serde_json::to_vec(frame).map(Bytes::from))
++            .collect::<Result<Vec<_>, _>>()
+             .ok()
+-            .map(Bytes::from)
+     } else {
+         None
+     };
+@@ -554,7 +563,8 @@
+             writer: writer.take(),
+             _guard: lease,
+         };
+-        let result = {
++        let result = async {
++            for bytes in bytes {
+             let sending = io
+                 .writer
+                 .as_mut()
+@@ -579,8 +589,10 @@
+                 _=async{match &job.authority{Some(t)=>t.cancelled().await,None=>std::future::pending().await}}=>Err(DispatchError::Authority),
+                 _=tokio::time::sleep_until(job.deadline)=>Err(DispatchError::Closed),
+                 result=sending=>result,
+-            }
+-        };
++            }?;
++            }
++            Ok(())
++        }.await;
+         if result.is_ok() || !touched.load(Ordering::Acquire) {
+             *writer = io.writer.take();
+         } else {
+@@ -1258,6 +1270,223 @@
+     fn event_frame() -> Envelope {
+         Envelope::from_value(json!({"v":2,"type":"connection.ready","id":"event_probe","ts":chrono::Utc::now(),"cid":"c","sid":"s","connid":"n","payload":{"streams":[{"strm_id":"audio","kind":"audio","codec":{"name":"pcmu","params":{"sample_rate":8000,"channels":1,"payload_type":0}},"direction":"sendrecv","stream_local_id":1}]}})).unwrap()
+     }
++    fn replacement_frames() -> Vec<Envelope> {
++        let now = chrono::Utc::now();
++        let mut stream = event_frame().original()["payload"]["streams"][0].clone();
++        stream["opened_at"] = json!(now);
++        vec![
++            Envelope::from_value(json!({"v":2,"type":"stream.closed","id":"closed_probe","ts":now,"cid":"c","sid":"s","connid":"n","payload":{"strm_id":"audio","closed_at":now,"reason_code":200,"reason":"codec-renegotiated"}})).unwrap(),
++            Envelope::from_value(json!({"v":2,"type":"stream.opened","id":"opened_probe","ts":now,"cid":"c","sid":"s","connid":"n","payload":{"stream":stream}})).unwrap(),
++        ]
++    }
++    struct PairSink {
++        domain: Arc<tokio::sync::RwLock<()>>,
++        frames: Arc<std::sync::Mutex<Vec<String>>>,
++        entered: Arc<Notify>,
++        live: Arc<AtomicBool>,
++        block_second: bool,
++    }
++    impl Drop for PairSink {
++        fn drop(&mut self) {
++            if self.block_second && self.frames.lock().unwrap().len() == 2 {
++                assert!(
++                    self.domain.try_write().is_err(),
++                    "sink must retire before source reader"
++                );
++            }
++            self.live.store(false, Ordering::Release);
++        }
++    }
++    impl Sink<Bytes> for PairSink {
++        type Error = DispatchError;
++        fn poll_ready(
++            self: std::pin::Pin<&mut Self>,
++            _: &mut std::task::Context<'_>,
++        ) -> std::task::Poll<Result<(), Self::Error>> {
++            std::task::Poll::Ready(Ok(()))
++        }
++        fn start_send(self: std::pin::Pin<&mut Self>, bytes: Bytes) -> Result<(), Self::Error> {
++            assert!(self.domain.try_write().is_err());
++            self.frames
++                .lock()
++                .unwrap()
++                .push(Envelope::parse(&bytes).unwrap().kind().to_owned());
++            Ok(())
++        }
++        fn poll_flush(
++            self: std::pin::Pin<&mut Self>,
++            _: &mut std::task::Context<'_>,
++        ) -> std::task::Poll<Result<(), Self::Error>> {
++            if self.block_second && self.frames.lock().unwrap().len() == 2 {
++                self.entered.notify_one();
++                std::task::Poll::Pending
++            } else {
++                std::task::Poll::Ready(Ok(()))
++            }
++        }
++        fn poll_close(
++            self: std::pin::Pin<&mut Self>,
++            cx: &mut std::task::Context<'_>,
++        ) -> std::task::Poll<Result<(), Self::Error>> {
++            self.poll_flush(cx)
++        }
++    }
++    #[tokio::test]
++    async fn native_lifecycle_replacement_pair_owns_one_writer_and_one_reader_until_both_frames_finish(
++    ) {
++        let domain = Arc::new(tokio::sync::RwLock::new(()));
++        let frames = Arc::new(std::sync::Mutex::new(vec![]));
++        let sink = PairSink {
++            domain: domain.clone(),
++            frames: frames.clone(),
++            entered: Arc::new(Notify::new()),
++            live: Arc::new(AtomicBool::new(true)),
++            block_second: false,
++        };
++        let permit = AnswerPermit::new(
++            AuthorityLease::holding(domain.clone().read_owned().await),
++            CancellationToken::new(),
++            Instant::now() + Duration::from_secs(1),
++        );
++        let mut queued = job(
++            output(replacement_frames(), None),
++            permit.deadline,
++            &CancellationToken::new(),
++            None,
++            None,
++        );
++        queued.native_fence = Some(Arc::new(EventFence {
++            live: AtomicBool::new(true),
++            token: CancellationToken::new(),
++        }));
++        let (done, receipt) = oneshot::channel();
++        let pending = PendingAnswer {
++            cancel_on_drop: true,
++            permit,
++            completion: Some(done),
++        };
++        let mut writer = Some(sink);
++        write_answer(&mut writer, &mut queued, pending, &CancellationToken::new())
++            .await
++            .unwrap();
++        assert_eq!(receipt.await.unwrap().unwrap().as_str(), "closed_probe");
++        assert_eq!(
++            *frames.lock().unwrap(),
++            vec!["stream.closed", "stream.opened"]
++        );
++        assert!(domain.try_write().is_ok());
++    }
++    #[tokio::test]
++    async fn native_lifecycle_replacement_pair_stale_or_non_native_claim_never_touches_writer() {
++        for native in [false, true] {
++            let domain = Arc::new(tokio::sync::RwLock::new(()));
++            let sink = CountingSink::default();
++            let count = sink.0.clone();
++            let permit = AnswerPermit::new(
++                AuthorityLease::holding(domain.clone().read_owned().await),
++                CancellationToken::new(),
++                Instant::now() + Duration::from_secs(1),
++            );
++            let mut queued = job(
++                output(replacement_frames(), None),
++                permit.deadline,
++                &CancellationToken::new(),
++                None,
++                None,
++            );
++            if native {
++                queued.native_fence = Some(Arc::new(EventFence {
++                    live: AtomicBool::new(false),
++                    token: CancellationToken::new(),
++                }));
++            }
++            let (done, receipt) = oneshot::channel();
++            let pending = PendingAnswer {
++                cancel_on_drop: true,
++                permit,
++                completion: Some(done),
++            };
++            let mut writer = Some(sink);
++            write_answer(&mut writer, &mut queued, pending, &CancellationToken::new())
++                .await
++                .unwrap();
++            assert_eq!(receipt.await.unwrap(), Err(DispatchError::Closed));
++            assert_eq!(count.load(Ordering::Acquire), 0);
++            assert!(writer.is_some());
++            assert!(domain.try_write().is_ok());
++        }
++    }
++    #[tokio::test]
++    async fn native_lifecycle_replacement_pair_partial_second_write_retires_sink_before_reader_on_loss_or_abort(
++    ) {
++        for mode in 0..4 {
++            let domain = Arc::new(tokio::sync::RwLock::new(()));
++            let frames = Arc::new(std::sync::Mutex::new(vec![]));
++            let entered = Arc::new(Notify::new());
++            let live = Arc::new(AtomicBool::new(true));
++            let sink = PairSink {
++                domain: domain.clone(),
++                frames: frames.clone(),
++                entered: entered.clone(),
++                live: live.clone(),
++                block_second: true,
++            };
++            let epoch = CancellationToken::new();
++            let credential = CancellationToken::new();
++            let permit = AnswerPermit::new(
++                AuthorityLease::holding(domain.clone().read_owned().await),
++                epoch.child_token(),
++                Instant::now() + Duration::from_secs(1),
++            );
++            let mut queued = job(
++                output(replacement_frames(), None),
++                permit.deadline,
++                &CancellationToken::new(),
++                None,
++                None,
++            );
++            queued.cancel = Some(credential.clone());
++            queued.native_fence = Some(Arc::new(EventFence {
++                live: AtomicBool::new(true),
++                token: epoch.clone(),
++            }));
++            let (done, receipt) = oneshot::channel();
++            queued.answer = Some(PendingAnswer {
++                cancel_on_drop: true,
++                permit,
++                completion: Some(done),
++            });
++            let (send, receive) = mpsc::channel(1);
++            send.send(queued).await.unwrap();
++            drop(send);
++            let task = tokio::spawn(writes(sink, receive, CancellationToken::new()));
++            tokio::time::timeout(Duration::from_secs(1), entered.notified())
++                .await
++                .unwrap();
++            assert_eq!(
++                *frames.lock().unwrap(),
++                vec!["stream.closed", "stream.opened"]
++            );
++            assert!(domain.try_write().is_err());
++            match mode {
++                0 => epoch.cancel(),
++                1 => credential.cancel(),
++                2 => task.abort(),
++                _ => (),
++            }
++            if mode == 2 {
++                assert!(task.await.unwrap_err().is_cancelled());
++            } else {
++                assert_eq!(task.await.unwrap(), Err(DispatchError::SubmissionUnknown));
++            }
++            assert_eq!(
++                receipt.await.unwrap(),
++                Err(DispatchError::SubmissionUnknown)
++            );
++            assert!(!live.load(Ordering::Acquire));
++            assert!(domain.try_write().is_ok());
++        }
++    }
+     #[tokio::test]
+     async fn native_lifecycle_stale_dequeued_fence_refuses_io_and_preserves_the_physical_writer() {
+         let domain = Arc::new(tokio::sync::RwLock::new(()));
+--- a/crates/uctp/rvoip-uctp/src/v2/native_dtmf_egress.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/native_dtmf_egress.rs
+@@ -454,7 +454,7 @@
+         )?;
+         let delivery = HandlerDelivery::native_lifecycle(
+             origin.clone(),
+-            frame,
++            vec![frame],
+             permit.clone(),
+             done,
+             permit.deadline,
+--- a/crates/uctp/rvoip-uctp/src/v2/native_lifecycle.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/native_lifecycle.rs
+@@ -32,6 +32,13 @@
+         stream: ReadyMediaBinding,
+         replaced: bool,
+     },
++    /// One indivisible publication after the replacement has actual flow. The
++    /// old binding's first observed retirement time remains diagnostic metadata.
++    StreamReplaced {
++        previous: ReadyMediaBinding,
++        replacement: ReadyMediaBinding,
++        closed_at: chrono::DateTime<chrono::Utc>,
++    },
+ }
+ impl std::fmt::Debug for NativeLifecycleEvent {
+     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+@@ -61,6 +68,7 @@
+ pub(crate) struct Announcements {
+     ready: bool,
+     opened: BTreeMap<StreamId, ReadyMediaBinding>,
++    retired_at: BTreeMap<StreamId, chrono::DateTime<chrono::Utc>>,
+     pending: Option<Pending>,
+ }
+ struct Pending {
+@@ -129,6 +137,22 @@
+             }
+             NativeLifecycleEvent::StreamClosed { stream, .. } => {
+                 !active.iter().any(|a| a.transport_id == stream.transport_id)
++            }
++            NativeLifecycleEvent::StreamReplaced {
++                previous,
++                replacement,
++                ..
++            } => {
++                !active
++                    .iter()
++                    .any(|a| a.transport_id == previous.transport_id)
++                    && previous.negotiated.requested.logical_id
++                        == replacement.negotiated.requested.logical_id
++                    && self.flow.confirmed_at(self.revision)
++                    && active
++                        .iter()
++                        .any(|a| crate::staged_media::same_binding(a, replacement))
++                    && self.flow.flowing(replacement)
+             }
+         };
+         observed && !self.epoch.is_cancelled() && c.revision() == self.revision
+@@ -279,7 +303,7 @@
+                     continue;
+                 }
+             }
+-            let event = choose(&state, &active, revision, &self.flow);
++            let event = choose(&mut state, &active, revision, &self.flow);
+             let Some(event) = event else {
+                 drop(state);
+                 tokio::select! {_=self.origin.cancellation().cancelled_owned()=>return Err(DispatchError::Closed),_=&mut changed=>{},_=tokio::time::sleep(Duration::from_millis(20))=>{}}
+@@ -306,10 +330,10 @@
+             let permit = AnswerPermit::new(authority, origin.event_cancellation(), deadline);
+             let (written, receipt) = tokio::sync::oneshot::channel();
+             let result = Arc::new(Mutex::new(None));
+-            let frame = frame(&self.scope.media, &event)?;
++            let frames = frames(&self.scope.media, &event)?;
+             let delivery = HandlerDelivery::native_lifecycle(
+                 origin.clone(),
+-                frame,
++                frames,
+                 permit.clone(),
+                 written,
+                 deadline,
+@@ -341,7 +365,7 @@
+     }
+ }
+ fn choose(
+-    state: &Announcements,
++    state: &mut Announcements,
+     active: &[ReadyMediaBinding],
+     revision: u64,
+     flow: &NativeFlow,
+@@ -370,12 +394,34 @@
+             .iter()
+             .any(|a| crate::staged_media::same_binding(a, old))
+         {
++            let id = &old.negotiated.requested.logical_id;
++            if let Some(replacement) = active
++                .iter()
++                .find(|a| a.negotiated.requested.logical_id == *id)
++            {
++                let closed_at = *state
++                    .retired_at
++                    .entry(id.clone())
++                    .or_insert_with(chrono::Utc::now);
++                if flow.confirmed_at(revision) && flow.flowing(replacement) {
++                    return Some(NativeLifecycleEvent::StreamReplaced {
++                        previous: old.clone(),
++                        replacement: replacement.clone(),
++                        closed_at,
++                    });
++                }
++                // A parameter answer or old flow cannot manufacture an opened
++                // replacement. Keep only bounded per-announced-stream metadata.
++                continue;
++            }
+             return Some(NativeLifecycleEvent::StreamClosed {
+                 stream: old.clone(),
+-                replaced: active.iter().any(|a| {
+-                    a.negotiated.requested.logical_id == old.negotiated.requested.logical_id
+-                }),
++                replaced: false,
+             });
++        } else {
++            state
++                .retired_at
++                .remove(&old.negotiated.requested.logical_id);
+         }
+     }
+     for binding in active {
+@@ -410,12 +456,54 @@
+         }
+         NativeLifecycleEvent::StreamClosed { stream, .. } => {
+             state.opened.remove(&stream.negotiated.requested.logical_id);
++            state
++                .retired_at
++                .remove(&stream.negotiated.requested.logical_id);
++        }
++        NativeLifecycleEvent::StreamReplaced {
++            previous,
++            replacement,
++            ..
++        } => {
++            state
++                .retired_at
++                .remove(&previous.negotiated.requested.logical_id);
++            state.opened.insert(
++                replacement.negotiated.requested.logical_id.clone(),
++                replacement,
++            );
+         }
+     }
+ }
+ fn binding(b: &ReadyMediaBinding) -> Value {
+     use super::native_negotiation::catalog::{codec_wire, direction, kind, payload_type};
+     json!({"strm_id":b.negotiated.requested.logical_id.as_str(),"kind":kind(b.negotiated.requested.medium),"codec":codec_wire(&b.negotiated.format,payload_type(&b.negotiated.format)),"direction":direction(b.negotiated.requested.direction),"stream_local_id":b.stream_local_id})
++}
++fn frames(
++    scope: &StagedRtpScope,
++    event: &NativeLifecycleEvent,
++) -> Result<Vec<Envelope>, DispatchError> {
++    if let NativeLifecycleEvent::StreamReplaced {
++        previous,
++        replacement,
++        closed_at,
++    } = event
++    {
++        let emitted_at = chrono::Utc::now();
++        let mut opened = binding(replacement);
++        opened["opened_at"] = json!(emitted_at);
++        let packet = |name: &str, payload: Value| {
++            Envelope::from_value(json!({"v":2,"type":name,"id":format!("native_event_{}",uuid::Uuid::new_v4().simple()),"ts":emitted_at,"cid":scope.wire_conversation,"sid":scope.wire_session,"connid":scope.wire_connection,"payload":payload})).map_err(DispatchError::from)
++        };
++        return Ok(vec![
++            packet(
++                "stream.closed",
++                json!({"strm_id":previous.negotiated.requested.logical_id.as_str(),"closed_at":closed_at,"reason_code":200,"reason":"codec-renegotiated"}),
++            )?,
++            packet("stream.opened", json!({"stream":opened}))?,
++        ]);
++    }
++    frame(scope, event).map(|frame| vec![frame])
+ }
+ fn frame(scope: &StagedRtpScope, event: &NativeLifecycleEvent) -> Result<Envelope, DispatchError> {
+     let (name, payload) = match event {
+@@ -432,6 +520,7 @@
+             b["opened_at"] = json!(chrono::Utc::now());
+             ("stream.opened", json!({"stream":b}))
+         }
++        NativeLifecycleEvent::StreamReplaced { .. } => return Err(DispatchError::Unsupported),
+         NativeLifecycleEvent::StreamClosed { stream, replaced } => (
+             "stream.closed",
+             json!({"strm_id":stream.negotiated.requested.logical_id.as_str(),"closed_at":chrono::Utc::now(),"reason_code":200,"reason":if *replaced{"codec-renegotiated"}else{"native-stream-ended"}}),
+--- a/crates/uctp/rvoip-uctp/tests/support/canonical_media/native_offers.rs
++++ b/crates/uctp/rvoip-uctp/tests/support/canonical_media/native_offers.rs
+@@ -1377,6 +1377,19 @@
+             | NativeLifecycleEvent::ConnectionQuality { streams, .. } => streams.as_slice(),
+             NativeLifecycleEvent::StreamOpened { stream }
+             | NativeLifecycleEvent::StreamClosed { stream, .. } => std::slice::from_ref(stream),
++            NativeLifecycleEvent::StreamReplaced { .. } => &[],
++        };
++        let replacement;
++        let streams = if let NativeLifecycleEvent::StreamReplaced {
++            previous,
++            replacement: new,
++            ..
++        } = event
++        {
++            replacement = [previous.clone(), new.clone()];
++            replacement.as_slice()
++        } else {
++            streams
+         };
+         for b in streams {
+             if b.connection_generation != owner.connection.generation() {
+@@ -1576,11 +1589,6 @@
+         .as_u64()
+         .unwrap() as u16;
+     assert_ne!(new_handle, ah);
+-    let closed = s.wire.read().await;
+-    assert_eq!(closed.kind(), "stream.closed");
+-    assert_eq!(closed.original()["payload"]["strm_id"], "first");
+-    assert_eq!(closed.original()["payload"]["reason"], "codec-renegotiated");
+-    s.f.verify_server(&closed).await;
+     no_event(&mut s.wire).await;
+     send(&s.wire, audio_sequence(ah, 2));
+     no_event(&mut s.wire).await;
+@@ -1596,7 +1604,13 @@
+     let mut new_input = s.controller().take_ingress(&first).unwrap();
+     send(&s.wire, audio_sequence(new_handle, 3));
+     let _new = packet(&mut new_input).await;
++    let closed = s.wire.read().await;
++    assert_eq!(closed.kind(), "stream.closed");
++    assert_eq!(closed.original()["payload"]["strm_id"], "first");
++    assert_eq!(closed.original()["payload"]["reason"], "codec-renegotiated");
++    s.f.verify_server(&closed).await;
+     let opened = s.wire.read().await;
++    assert_eq!(closed.original()["ts"], opened.original()["ts"]);
+     assert_eq!(opened.kind(), "stream.opened");
+     assert_eq!(
+         opened.original()["payload"]["stream"]["stream_local_id"],
+@@ -2285,9 +2299,6 @@
+     s.confirm(&callback).await;
+     codec_ack(&mut s, &request).await;
+     s.wait(2).await;
+-    let closed = s.wire.read().await;
+-    assert_eq!(closed.kind(), "stream.closed");
+-    s.f.verify_server(&closed).await;
+     no_event(&mut s.wire).await;
+     send(&s.wire, audio_sequence(handle, 2));
+     no_event(&mut s.wire).await;
+@@ -2295,7 +2306,11 @@
+     let mut input = s.controller().take_ingress(&first).unwrap();
+     send(&s.wire, encoded_audio(binding.stream_local_id, 8, 2));
+     let _fresh = packet(&mut input).await;
++    let closed = s.wire.read().await;
++    assert_eq!(closed.kind(), "stream.closed");
++    s.f.verify_server(&closed).await;
+     let opened = s.wire.read().await;
++    assert_eq!(closed.original()["ts"], opened.original()["ts"]);
+     assert_eq!(opened.kind(), "stream.opened");
+     s.f.verify_server(&opened).await;
+     assert_eq!(

@@ -1,6 +1,8 @@
 //! One transaction owns task intent, ordinary operation receipt and effect journal.
 mod dispatch;
 mod links;
+mod observations;
+pub use observations::TaskObservationBinding;
 mod provider;
 mod rows;
 pub(crate) use provider::{
@@ -24,6 +26,7 @@ pub(super) struct Execution<'a> {
     pub store: &'a Store,
     pub runtime: &'a DiscoveryRuntime,
     pub timestamp: i64,
+    pub authority: Option<&'a crate::AuthorityGuardSet>,
 }
 
 pub(super) fn invoke(
@@ -38,6 +41,7 @@ pub(super) fn invoke(
         store,
         runtime,
         timestamp,
+        authority: fence,
     } = execution;
     let TaskCommand::Invoke {
         operation,
@@ -51,12 +55,20 @@ pub(super) fn invoke(
     authority::operation(c, actor, task, operation)?;
     dispatch::authorize_reply(c, actor, task, reply_to.as_deref())?;
     if operation.request_id().is_none() {
-        let outcome = crate::operations::execute(c, actor, operation, runtime, store)?.outcome?;
+        let outcome = crate::operations::execute_in_task(
+            c, actor, operation, runtime, store, &task.id, grant_id, fence,
+        )?
+        .outcome?;
         return Ok(Ok(TaskOutcome::Tool(TaskToolResult::Completed {
             task_id: task.id.clone(),
             outcome: Box::new(outcome),
         })));
     }
+    let link_context = crate::artifact_links::TaskLinkContext {
+        task_id: task.id.clone(),
+        grant_id: grant_id.map(str::to_owned),
+    };
+    crate::artifact_links::check_operation(c, actor, operation, Some(&link_context), store)?;
     let intent = storage::digest(request)?;
     let TaskCommand::Invoke {
         request_id,
@@ -74,9 +86,11 @@ pub(super) fn invoke(
             ));
         }
         rows::verify(&saved)?;
+        authority::fanout_audience(c, actor, task, operation, saved.effect.outcome.as_deref())?;
         state::reconcile(c, actor, task, &mut saved, timestamp, store)?;
         return Ok(state::tool(c, &saved));
     }
+    authority::fanout_audience(c, actor, task, operation, None)?;
     // A completed task may expose a matching receipt, but cannot create work.
     authority::continuation(c, &storage::load(c, &task.id)?, timestamp, false)?;
     let mut record = task.clone();
@@ -99,6 +113,7 @@ pub(super) fn invoke(
         },
         request,
         &operation,
+        grant_id,
     )?;
     effect.result = Some(result.clone());
     if let Ok(outcome) = &result {
@@ -135,8 +150,15 @@ pub(super) fn get(
     let mut effect = rows::load(c, id, &task.id)?;
     // Current operation scope still applies when reading a retained receipt.
     authority::operation(c, actor, task, &effect.operation)?;
+    authority::fanout_audience(
+        c,
+        actor,
+        task,
+        &effect.operation,
+        effect.effect.outcome.as_deref(),
+    )?;
     state::reconcile(c, actor, task, &mut effect, timestamp, store)?;
     Ok(TaskOutcome::Effect(effect.effect))
 }
 
-pub(crate) use dispatch::authorize_effect;
+pub(crate) use dispatch::{authorize_effect, effect_deadline};

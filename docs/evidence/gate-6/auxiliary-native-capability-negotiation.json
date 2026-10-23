@@ -1,0 +1,379 @@
+{
+  "task": "G6-046",
+  "title": "Latest native capability declarations govern future negotiation and preserve confirmed media",
+  "recorded_at": "2026-10-22T04:29:03.585443+00:00",
+  "status": "negotiation-component-qualified; outgoing-listener-delivery-open",
+  "latest_descriptor_negotiation_integration_qualified": true,
+  "outgoing_listener_delivery_qualified": false,
+  "full_task_complete": false,
+  "full_goal_complete": false,
+  "acceptance_qualified": false,
+  "scope": "Isolated local macOS arm64 actual signed native QUIC peers/public Rust SDK for EdDSA and ES256, decoded PCMA duplex, controlled Core declaration guards and native negotiation metadata tests. No Linux, remote, browser or external provider qualification.",
+  "implementation": [
+    "Only the original current physical native peer may declare capabilities. The Service holds its actual Store source fence and exact credential, participant/member epoch, Device, Endpoint, runtime generation, stream revision and owner. Pure callbacks match the exact authorized envelope and descriptor without Core or Store reentry.",
+    "Core serializes a synchronous leaf metadata commit with controller stream and credential changes using state/credential try-locks. Wrong credential/revision, held mutation state, held credential and shutdown refuse before the callback. No ports, bindings, revision or media clocks change.",
+    "The actual native broker retains confirmed capabilities and the latest complete declaration separately under one mutex. It installs declarations under the real parameter request slot. Completed historical replay never reapplies an older declaration. Prepared subscription/codec plans carry the declaration generation and are checked after acquiring the real request slot, before starting an exchange.",
+    "The shared native descriptor parser keeps initial-offer validation strict. Declaration mode permits empty/zero withdrawal and bounded future extension metadata. Unknown unsupported protocol/codec values cannot grant engine support or assurance. Existing local, Endpoint and Session ceilings still apply.",
+    "New explicit codec choices and new logical/directional/format bindings use only the latest declaration. Exact already confirmed bindings can remain in an effective validation snapshot for source selector changes or untouched media. A withdrawn format cannot be borrowed from an unrelated retained binding for a new selection.",
+    "Connect resolves the actual prepared remote capabilities for a current control operation and remembers only successfully confirmed selected formats for existing packet IO. Declarations alone do not change media authority. Packet paths still require actual active bindings and current Store/Endpoint/Session permission.",
+    "Incoming descriptor replacement and durable operation completion retain the prior schema82 transaction and original replay/recovery rules. This phase adds no storage schema, compatibility or downgrade path. Server HTTP/OpenAPI documents future-negotiation semantics and the native-only physical-peer boundary."
+  ],
+  "actual_cases": [
+    "Both signature algorithms: start with a PCMU-only target in a Session that allows PCMU and PCMA. A PCMA update is refused before declaration. Declare PCMU, replace it with PCMA, replay the older PCMU operation and preserve PCMA as the latest declaration. Original PCMU audio remains usable.",
+    "Perform a separate actual codec update with a signed parameter offer and answer, observe the new handle/revision, and decode PCMA audio in both directions. Withdraw the descriptor, replay the old PCMA advertisement and observe withdrawal preserved; a future PCMA codec choice is refused.",
+    "After withdrawal, update an existing source selector without another parameter exchange and decode audio in both directions through the retained PCMA binding.",
+    "Existing actual receipt, named-scope, false-assurance, foreign physical/participant, stale revision, HTTP refusal and journal fault/recovery cases still pass. The selected regression also covers real lifecycle/quality, stream/data controls, consultation privacy, provider partial-write custody and startup ownership."
+  ],
+  "verification": {
+    "distinct_passing_connect_tests": 309,
+    "connect_logs": {
+      "protocol": {
+        "path": ".local/gate-6/native-capability-negotiation-connect_protocol-v1.log",
+        "sha256": "db545dadca350697ffa2f73f2ada42edc88d695302b2494a85bec255a9c2fc0e",
+        "result": "ok",
+        "passed": 30,
+        "failed": 0,
+        "ignored": 0,
+        "filtered": 0,
+        "seconds": 0.01,
+        "nested_summaries": 0
+      },
+      "client": {
+        "path": ".local/gate-6/native-capability-negotiation-connect_client-v1.log",
+        "sha256": "81f83aefa80398bfed918b6ea92b88e0d68421bf71671fa9f8b80e604931584a",
+        "result": "ok",
+        "passed": 56,
+        "failed": 0,
+        "ignored": 0,
+        "filtered": 0,
+        "seconds": 2.8,
+        "nested_summaries": 0
+      },
+      "store": {
+        "path": ".local/gate-6/native-capability-negotiation-connect_store-v1.log",
+        "sha256": "4f6307680009ca2d8c8967bd4d39e4943416fafc6ce04128c8337e5f8521f611",
+        "result": "ok",
+        "passed": 67,
+        "failed": 0,
+        "ignored": 0,
+        "filtered": 789,
+        "seconds": 23.14,
+        "nested_summaries": 0
+      },
+      "service": {
+        "path": ".local/gate-6/native-capability-negotiation-connect_service-v1.log",
+        "sha256": "1e18ae678bca1f9dbec525d5a668dea712763d1909942328ef48353a2b24c056",
+        "result": "ok",
+        "passed": 44,
+        "failed": 0,
+        "ignored": 1,
+        "filtered": 0,
+        "seconds": 9.5,
+        "nested_summaries": 0
+      },
+      "server": {
+        "path": ".local/gate-6/native-capability-negotiation-connect_server-v1.log",
+        "sha256": "c14713e284ea44ef0a4f01c725b7651fbde1f45035360b9a72a322076eb4e850",
+        "result": "FAILED",
+        "passed": 64,
+        "failed": 2,
+        "ignored": 0,
+        "filtered": 0,
+        "seconds": 28.61,
+        "nested_summaries": 0
+      },
+      "gained_codec": {
+        "path": ".local/gate-6/native-capability-negotiation-gain-v2.log",
+        "sha256": "51f85d05b690ef87ba4ab4683024a0e0a51d086e61b8915d00df2ca4b7b1ca70",
+        "result": "ok",
+        "passed": 1,
+        "failed": 0,
+        "ignored": 0,
+        "filtered": 159,
+        "seconds": 16.58,
+        "nested_summaries": 0
+      },
+      "affected_runtime": {
+        "path": ".local/gate-6/native-capability-negotiation-runtime-regression-v1.log",
+        "sha256": "db45604b032a28d894e348746e3e2de0ac9febe221e43cd94fa3025b777ce5bc",
+        "result": "ok",
+        "passed": 45,
+        "failed": 0,
+        "ignored": 0,
+        "filtered": 115,
+        "seconds": 292.33,
+        "nested_summaries": 2
+      },
+      "server_isolated_recheck": {
+        "path": ".local/gate-6/native-capability-negotiation-server-recheck-v1.log",
+        "sha256": "5070663292c9518c74e5967d5f7dee7695cad081c8d688158f35efa9bdca9be4",
+        "result": "ok",
+        "passed": 2,
+        "failed": 0,
+        "ignored": 0,
+        "filtered": 64,
+        "seconds": 1.49,
+        "nested_summaries": 0
+      }
+    },
+    "distinct_passing_upstream_tests": 13,
+    "upstream_logs": {
+      "core_declaration_guard": {
+        "path": ".local/gate-6/native-capability-negotiation-upstream-core-v1.log",
+        "sha256": "b8e183e9e2a5f99aa8eac5cd25a28bdade1be8321efa5e7055e39a7d38d16d43",
+        "result": "ok",
+        "passed": 1,
+        "failed": 0,
+        "ignored": 0,
+        "filtered": 443,
+        "seconds": 0.01,
+        "nested_summaries": 0
+      },
+      "native_negotiation": {
+        "path": ".local/gate-6/native-capability-negotiation-upstream-negotiation-v1.log",
+        "sha256": "df561a7cfca7c4274608a6ee0da423ef43bf33b559d4b8782c297ebf46a00bf9",
+        "result": "ok",
+        "passed": 12,
+        "failed": 0,
+        "ignored": 0,
+        "filtered": 86,
+        "seconds": 0.01,
+        "nested_summaries": 0
+      }
+    },
+    "new_test_functions": 5,
+    "runtime_scope": "46 of160:1 new gained-codec test plus45 prior affected cases;114 other runtime cases not requalified. Each new actual case loops EdDSA and ES256; loops are not counted as extra test functions.",
+    "store_scope": "67 native-control cases;789 other Store library cases filtered. Schema82 is inherited; separate schema tests were not rerun for this phase.",
+    "service_ignored": "One subprocess helper ignored in the direct library run; its parent invokes it. Nested provider subprocess summaries are not additional distinct passes.",
+    "server_scope": "64 initial passes and2 formerly failed cases passing in isolated rerun, without source or timeout changes. Initial run had one bounded Codex fixture preflight timeout and one unexpected error-string assertion. No clean concurrent whole-server pass or timeout fix is claimed.",
+    "upstream_scope": "The new Core guard case and all native_negotiation module tests are current. Other Core/UCTP cases are not called a current full upstream pass."
+  },
+  "qualification_inputs": {
+    "path": ".local/gate-6/native-capability-negotiation-inputs-v3.json",
+    "sha256": "eb0f0dd0d39f59377db145f4ca615498c4cf977f7b90cf7a7e6a3003e7ce1e00",
+    "count": 1351,
+    "compiled_rust_unchanged": true,
+    "post_compile_documentation_changes": [
+      "contracts/openapi-canonical-http.json",
+      "docs/developer/native-capabilities.md",
+      "scripts/generate-canonical-http-openapi.py"
+    ]
+  },
+  "final_inputs": {
+    "path": ".local/gate-6/native-capability-negotiation-inputs-final-v4.json",
+    "sha256": "7133553d21ad5605deb918edbab1550e01e0cc553bad764d77846b4274d7bdd0",
+    "count": 1351
+  },
+  "source_lock": {
+    "path": "dependencies/source-lock.json",
+    "sha256": "899d4898586d230fe7b47f7247d8c5756f8c45c31da6e08a318aef7b4116fe32",
+    "pinned_patches": 132
+  },
+  "upstream_patch": {
+    "path": "patches/rvoip/gate6-native-capability-negotiation.patch",
+    "target": "rvoip",
+    "sha256": "6c1a390af5b604cdd0d45dd3ead5af34fcb317e915f8c2b3e4a861b1670ff815",
+    "source": "G6-046 native capability declarations update future negotiation under the exact current physical/source authority without touching active media. Separate negotiated and declared catalogs, protect prepared plans with declaration generations under the real request slot, preserve actual retained bindings while refusing new withdrawn formats, and serialize the local metadata commit with controller credential/stream state. Actual gained-codec and withdrawal behavior remain to be qualified through Connect."
+  },
+  "prepared_source_verification": {
+    "manifest": ".local/gate-6/native-capability-negotiation-patch-v1/manifest.json",
+    "manifest_sha256": "53e7f8815880ce64ae132ad88d22336ebdca5d47e694400eb154a81d72df3144",
+    "changed_files": 9,
+    "switch_record": ".local/gate-6/native-capability-negotiation-deps-switch-v3.json",
+    "old_trees_preserved": true
+  },
+  "schema_version": 82,
+  "schema_changed_this_phase": false,
+  "compiled_binaries": [
+    {
+      "target": "gate6_canonical_runtime",
+      "path": "target/debug/deps/gate6_canonical_runtime-f39476f2f6c7ff5d",
+      "archive": ".local/gate-6/native-capability-negotiation-artifacts/gate6_canonical_runtime-f39476f2f6c7ff5d-de300340342c.gz",
+      "bytes": 357922456,
+      "gzip_bytes": 78655964,
+      "sha256": "de300340342cee9424077092617b286d46e6d12080545fa5ae4ec23286e7877a",
+      "archive_sha256": "15013dbc241ab496449b0d0c71f76282fa8dc0feeccd3ed31e67ac1c4eb1f05a",
+      "restored_bytes_verified": true
+    },
+    {
+      "target": "connect_server",
+      "path": "target/debug/deps/connect_server-46f24f804f4446cb",
+      "archive": ".local/gate-6/native-capability-negotiation-artifacts/connect_server-46f24f804f4446cb-2a01221d73c9.gz",
+      "bytes": 187657888,
+      "gzip_bytes": 43448409,
+      "sha256": "2a01221d73c966c5d915f582502a39370e23d8ccad63bdfc8aeff90aad4582d4",
+      "archive_sha256": "085d4d4bcac9360e135572753f4ee85c5ea7979d087f1fd769cc0a99e72d6b3d",
+      "restored_bytes_verified": true
+    },
+    {
+      "target": "connect",
+      "path": "target/debug/connect",
+      "archive": ".local/gate-6/native-capability-negotiation-artifacts/connect-ddc168cfda42.gz",
+      "bytes": 418499592,
+      "gzip_bytes": 91926384,
+      "sha256": "ddc168cfda425c19c9176ef290e18b60ee474872deeb4effed6b32155cf94563",
+      "archive_sha256": "d41b07b5dcdbabf7a14b6388680543e2e1b6a37ec16fc1024d3be581b9c6acd6",
+      "restored_bytes_verified": true
+    },
+    {
+      "target": "connect_store",
+      "path": "target/debug/deps/connect_store-a1decb98be4c971e",
+      "archive": ".local/gate-6/native-capability-negotiation-artifacts/connect_store-a1decb98be4c971e-b8a064f6aced.gz",
+      "bytes": 69450272,
+      "gzip_bytes": 16733384,
+      "sha256": "b8a064f6aced051c5c37ec2fced63435000f1e9157394ff9b4dc756275b30ab3",
+      "archive_sha256": "3712e60b51ce800686d2b3a90830ef9faf504349d912f053355daf2a73a6e4f8",
+      "restored_bytes_verified": true
+    },
+    {
+      "target": "connect_service",
+      "path": "target/debug/deps/connect_service-fec6187532f3bbcb",
+      "archive": ".local/gate-6/native-capability-negotiation-artifacts/connect_service-fec6187532f3bbcb-473c34d734ef.gz",
+      "bytes": 156400400,
+      "gzip_bytes": 35205788,
+      "sha256": "473c34d734ef8e6a27996bdf0da5376840e97dad4a6839a8c7ebe1317e5e8f35",
+      "archive_sha256": "296890c39aaea9133e3699f81e98340b409cda52b4f9b43b884cc56d59925e2a",
+      "restored_bytes_verified": true
+    },
+    {
+      "target": "connect_client",
+      "path": "target/debug/deps/connect_client-bbfa952562fc37de",
+      "archive": ".local/gate-6/native-capability-negotiation-artifacts/connect_client-bbfa952562fc37de-c7e99d78573a.gz",
+      "bytes": 53177536,
+      "gzip_bytes": 13248028,
+      "sha256": "c7e99d78573a8bae94d91178366a4e6bb6b0020aba56b355a0974e127b0df993",
+      "archive_sha256": "13b1befba7c1eecb0752f161bc1cefe07ce088e251dc60eeb6050a85afa01018",
+      "restored_bytes_verified": true
+    },
+    {
+      "target": "connect_protocol",
+      "path": "target/debug/deps/connect_protocol-224c5053f7141bf0",
+      "archive": ".local/gate-6/native-capability-negotiation-artifacts/connect_protocol-224c5053f7141bf0-277d8b68aec4.gz",
+      "bytes": 18540480,
+      "gzip_bytes": 3782850,
+      "sha256": "277d8b68aec4884cfaa762920bb60c0fe9c649af3048843202b92f6c8f1feb73",
+      "archive_sha256": "1d5c6da70b87f5c0d27ce050fa84bba8ffaaaf1853c9744de21229b1a68fca35",
+      "restored_bytes_verified": true
+    },
+    {
+      "target": "rvoip_core",
+      "path": "target/debug/deps/rvoip_core-39a0e6730cf80230",
+      "archive": ".local/gate-6/native-capability-negotiation-artifacts/rvoip_core-39a0e6730cf80230-b1536e55813d.gz",
+      "bytes": 81429432,
+      "gzip_bytes": 15593643,
+      "sha256": "b1536e55813daf68e209d43758e97c9c92d3a30c82b099335214232ded03387e",
+      "archive_sha256": "6803d03ffdef416177916c2905fa0b58316ac9f8ebc5351a0c178f14f686dedb",
+      "restored_bytes_verified": true
+    },
+    {
+      "target": "rvoip_uctp",
+      "path": "target/debug/deps/rvoip_uctp-9b5c75228aaa7b9b",
+      "archive": ".local/gate-6/native-capability-negotiation-artifacts/rvoip_uctp-9b5c75228aaa7b9b-e23cc86b781b.gz",
+      "bytes": 34350232,
+      "gzip_bytes": 7793032,
+      "sha256": "e23cc86b781b3517d24463a09c6e8445862949e36e10f09d9d8a59db898fc575",
+      "archive_sha256": "9630727f1e6740c840e9cd85410f92b0ccaecf7b9b6287c04c2f970d94046221",
+      "restored_bytes_verified": true
+    }
+  ],
+  "binary_archive_manifest": {
+    "path": ".local/gate-6/native-capability-negotiation-qualified-binary-archives-v1.json",
+    "sha256": "8832be10dd2f13314226c9082a13dc15f1fb8cefc3b7c556ed648cae75088381",
+    "verified_archives": 9,
+    "verification": "Every gzip independently decompressed and checked against original executable SHA256 and byte length."
+  },
+  "builds": {
+    "profile": "CARGO_INCREMENTAL=0, -j1, unchanged dev optimization/assertions; official132-patch preparation before builds. Upstream tests use the real prepared upstream workspace, --locked --offline and shared target; no fake test manifest.",
+    "runtime": ".local/gate-6/native-capability-negotiation-runtime-build-v4.log",
+    "connect_libraries": ".local/gate-6/native-capability-negotiation-connect-build-v5.log",
+    "upstream": ".local/gate-6/native-capability-negotiation-upstream-build-v1.log"
+  },
+  "earlier_attempts": [
+    {
+      "log": ".local/gate-6/native-capability-negotiation-build-v1.log",
+      "exit_code": 101,
+      "cause": "External dependency tests cannot resolve their dev dependencies from the Connect workspace; use the actual upstream workspace."
+    },
+    {
+      "log": ".local/gate-6/native-capability-negotiation-connect-build-v2.log",
+      "exit_code": 101,
+      "cause": "Shared directional parser call missed the new declaration-mode argument. Corrected in recorded patch132."
+    },
+    {
+      "log": ".local/gate-6/native-capability-negotiation-prepare-v2.log",
+      "exit_code": 1,
+      "cause": "Archive verifier refused symlink cache entries. Replaced three private cache symlinks with independently byte-verified regular copies; verifier unchanged."
+    },
+    {
+      "log": ".local/gate-6/native-capability-negotiation-gain-v1.log",
+      "exit_code": 101,
+      "cause": "Actual first declaration was refused because a reused scope helper required connection.update. Corrected to exact capability.advertise and full wire scope checks, retaining current native exchange/physical authority. Stopped the known-incomplete build v3 and waited for Cargo/rustc termination before editing."
+    },
+    {
+      "log": ".local/gate-6/native-capability-negotiation-service-build-v1.log",
+      "exit_code": 130,
+      "cause": "Stopped a Service-only build that selected a different feature graph and restarted base dependencies. Reused the existing unified five-package selection; no compiler profile/source workaround."
+    }
+  ],
+  "remaining_required_work": [
+    "Deliver actual capability.advertise events to current authorized listeners under both original and current private disclosure audiences and fresh sender/recipient guards retained through actual reliable IO. A completed receipt is not remote delivery.",
+    "Finish continuous owned-provider reliable signaling consumption, approved assurance/step-up and durable DTMF integration. Reconcile all61 exact assigned auxiliary clauses without changing IDs or applicability.",
+    "The earlier retention/primary-return refusal remains unresolved despite current selected passes. No general return reliability fix is claimed. Preserve truthful metadata-only/partial/unavailable capture status and continue the full105-task dependency graph."
+  ],
+  "assigned_clause_inventory": {
+    "preserved": 61,
+    "new_individual_clause_passes": 0,
+    "applicability_changed": false,
+    "preservation_audit": {
+      "path": ".local/gate-6/native-capability-negotiation-clause-preservation-v1.json",
+      "sha256": "aa8f8751904499b1f5d7de50a7fd7f59a569130819768df81f70b9e725a29385"
+    }
+  },
+  "plan_counts": {
+    "done": 45,
+    "in_progress": 1,
+    "not_started": 59,
+    "acceptance_qualified": 0
+  },
+  "checks": {
+    "prepared_dependencies": true,
+    "format": true,
+    "openapi_current": true,
+    "whitespace": true,
+    "plan_integrity": true
+  },
+  "not_qualified": [
+    "Full G6-046",
+    "Full Gate6 acceptance",
+    "Outgoing capability listener delivery",
+    "All160 runtime cases or all Store/upstream tests",
+    "Linux, remote/native/browser profiles and named external provider lanes",
+    "Publication"
+  ],
+  "check_logs": {
+    "prepared": {
+      "path": ".local/gate-6/native-capability-negotiation-prepare-default-v3.log",
+      "sha256": "fd9d7b181e3ccba9b643af55a186cf132c60aac99c734b2ee4e4e549afe5ffc2"
+    },
+    "upstream_prepared": {
+      "path": ".local/gate-6/native-capability-negotiation-upstream-prepare-v1.log",
+      "sha256": "fd9d7b181e3ccba9b643af55a186cf132c60aac99c734b2ee4e4e549afe5ffc2"
+    },
+    "format": {
+      "path": ".local/gate-6/native-capability-negotiation-format-check-v1.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "openapi": {
+      "path": ".local/gate-6/native-capability-negotiation-openapi-check-v1.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "whitespace": {
+      "path": ".local/gate-6/native-capability-negotiation-whitespace-final-v1.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "plan_integrity": {
+      "path": ".local/gate-6/native-capability-negotiation-plan-check-final-v1.log",
+      "sha256": "fedbc03549729d27ac031eee0766ae72281991ae1e9494232887c3160cf754cc"
+    }
+  }
+}

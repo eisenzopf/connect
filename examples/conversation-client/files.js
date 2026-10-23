@@ -67,6 +67,7 @@ fileElement("upload").onclick = () =>
             `${prefix}:begin`,
             {
                 op: "artifact_begin",
+                to: "all",
                 conversation_id: cid,
                 name: file.name,
                 media_type: file.type || "application/octet-stream",

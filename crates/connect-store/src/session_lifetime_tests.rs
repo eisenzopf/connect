@@ -34,7 +34,9 @@ impl Fixture {
                 &key.id,
                 &Operation::Create {
                     request_id: "conversation".into(),
-                    participants: vec![other.clone()],
+                    request: connect_protocol::conversations::CreateRequest::persistent(vec![
+                        other.clone(),
+                    ]),
                 },
             )
             .unwrap()
@@ -121,7 +123,9 @@ fn current_authorized_end_is_cleanup_only_and_preserves_conversation_commands() 
             &Operation::Send {
                 request_id: "after-end".into(),
                 conversation_id: f.conversation.clone(),
-                body: "Conversation continues after media".into(),
+                message: connect_protocol::messages::MessageDraft::text_all(
+                    "Conversation continues after media",
+                ),
             },
         )
         .unwrap();
@@ -164,7 +168,7 @@ fn lost_membership_unknown_and_storage_failure_never_classify_as_terminal() {
         .connection()
         .unwrap()
         .execute(
-            "DELETE FROM participants WHERE conversation_id=?1 AND identity_id=?2",
+            "UPDATE participants SET active=0 WHERE conversation_id=?1 AND identity_id=?2",
             rusqlite::params![f.conversation, f.owner],
         )
         .unwrap();
@@ -180,7 +184,7 @@ fn lost_membership_unknown_and_storage_failure_never_classify_as_terminal() {
     g.store
         .connection()
         .unwrap()
-        .execute_batch("DROP TABLE sessions")
+        .execute_batch("ALTER TABLE sessions RENAME TO deliberately_unavailable_sessions")
         .unwrap();
     assert_eq!(
         g.store

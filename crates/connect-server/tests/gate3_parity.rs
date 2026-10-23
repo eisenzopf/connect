@@ -203,6 +203,7 @@ async fn gate_three_state_is_shared_by_native_quic_and_http() {
         http,
         &app_key.token,
         &Operation::ArtifactBegin {
+            to: connect_protocol::messages::MessageAudience::all(),
             request_id: "g3-parity-artifact-begin".into(),
             conversation_id: conversation.id.clone(),
             name: "review.txt".into(),

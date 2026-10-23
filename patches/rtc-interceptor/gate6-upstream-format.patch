@@ -1,0 +1,145 @@
+diff --git a/src/report/receiver_stream.rs b/src/report/receiver_stream.rs
+--- a/src/report/receiver_stream.rs
++++ b/src/report/receiver_stream.rs
+@@ -83,9 +83,7 @@
+             // Older arrivals must not cancel a newer loss sharing the same slot.
+             let behind = self.last_seq_num.wrapping_sub(seq) as usize;
+             let slot = seq as usize % (self.size * PACKETS_PER_ENTRY);
+-            if behind < self.size * PACKETS_PER_ENTRY
+-                && self.reported_missing[slot] == Some(seq)
+-            {
++            if behind < self.size * PACKETS_PER_ENTRY && self.reported_missing[slot] == Some(seq) {
+                 self.reported_missing[slot] = None;
+                 self.total_lost = self.total_lost.saturating_sub(1);
+                 self.recovered_since_report += 1;
+@@ -165,7 +163,8 @@
+         self.total_lost += total_lost_since_report;
+         // Late unique receipts count in this report interval, including packets
+         // declared lost in an earlier interval. Negative interval loss reports 0.
+-        total_lost_since_report = total_lost_since_report.saturating_sub(self.recovered_since_report);
++        total_lost_since_report =
++            total_lost_since_report.saturating_sub(self.recovered_since_report);
+         self.recovered_since_report = 0;
+ 
+         // allow up to 24 bits
+@@ -511,23 +510,41 @@
+ mod late_loss_regressions {
+     use super::*;
+     fn packet(sequence_number: u16) -> rtp::packet::Packet {
+-        rtp::packet::Packet { header: rtp::header::Header {
+-            sequence_number, ..Default::default()
+-        }, ..Default::default() }
++        rtp::packet::Packet {
++            header: rtp::header::Header {
++                sequence_number,
++                ..Default::default()
++            },
++            ..Default::default()
++        }
+     }
+     #[test]
+     fn late_reported_loss_corrects_cumulative_and_interval_once_across_wrap() {
+         for base in [1u16, 65535] {
+             let mut stream = ReceiverStream::new(1, 90000);
+             let now = Instant::now();
+-            for offset in [0, 2] { stream.process_rtp(now, &packet(base.wrapping_add(offset))); }
++            for offset in [0, 2] {
++                stream.process_rtp(now, &packet(base.wrapping_add(offset)));
++            }
+             assert_eq!(stream.generate_report(now).reports[0].total_lost, 1);
+-            for offset in [1, 1, 4] { stream.process_rtp(now, &packet(base.wrapping_add(offset))); }
++            for offset in [1, 1, 4] {
++                stream.process_rtp(now, &packet(base.wrapping_add(offset)));
++            }
+             let rr = stream.generate_report(now);
+-            assert_eq!(rr.reports[0].total_lost, 1, "only the newly missing packet remains");
+-            assert_eq!(rr.reports[0].fraction_lost, 0, "one late recovery offsets one new gap");
++            assert_eq!(
++                rr.reports[0].total_lost, 1,
++                "only the newly missing packet remains"
++            );
++            assert_eq!(
++                rr.reports[0].fraction_lost, 0,
++                "one late recovery offsets one new gap"
++            );
+             stream.process_rtp(now, &packet(base.wrapping_add(1)));
+-            assert_eq!(stream.generate_report(now).reports[0].total_lost, 1, "duplicate cannot recover twice");
++            assert_eq!(
++                stream.generate_report(now).reports[0].total_lost,
++                1,
++                "duplicate cannot recover twice"
++            );
+             stream.process_rtp(now, &packet(base.wrapping_add(3)));
+             let rr = stream.generate_report(now);
+             assert_eq!(rr.reports[0].total_lost, 0);
+@@ -543,29 +560,52 @@
+     fn late_loss_tags_cannot_cancel_a_reused_history_slot() {
+         let mut stream = ReceiverStream::new(1, 90000);
+         let now = Instant::now();
+-        for seq in [1, 3] { stream.process_rtp(now, &packet(seq)); }
++        for seq in [1, 3] {
++            stream.process_rtp(now, &packet(seq));
++        }
+         assert_eq!(stream.generate_report(now).reports[0].total_lost, 1);
+-        for seq in 4..=8195 { if seq != 8194 { stream.process_rtp(now, &packet(seq)); } }
++        for seq in 4..=8195 {
++            if seq != 8194 {
++                stream.process_rtp(now, &packet(seq));
++            }
++        }
+         assert_eq!(stream.generate_report(now).reports[0].total_lost, 2);
+         stream.process_rtp(now, &packet(2));
+-        assert_eq!(stream.generate_report(now).reports[0].total_lost, 2, "expired gap cannot cancel current slot");
++        assert_eq!(
++            stream.generate_report(now).reports[0].total_lost,
++            2,
++            "expired gap cannot cancel current slot"
++        );
+         stream.process_rtp(now, &packet(8194));
+-        assert_eq!(stream.generate_report(now).reports[0].total_lost, 1, "current exact sequence still corrects");
++        assert_eq!(
++            stream.generate_report(now).reports[0].total_lost,
++            1,
++            "current exact sequence still corrects"
++        );
+     }
+     #[test]
+     fn expired_arrival_before_report_cannot_hide_current_aliased_gap() {
+         let mut stream = ReceiverStream::new(1, 90000);
+         let now = Instant::now();
+-        for seq in [1, 3] { stream.process_rtp(now, &packet(seq)); }
++        for seq in [1, 3] {
++            stream.process_rtp(now, &packet(seq));
++        }
+         assert_eq!(stream.generate_report(now).reports[0].total_lost, 1);
+-        for seq in 4..=8195 { if seq != 8194 { stream.process_rtp(now, &packet(seq)); } }
++        for seq in 4..=8195 {
++            if seq != 8194 {
++                stream.process_rtp(now, &packet(seq));
++            }
++        }
+         // Packet2 aliases packet8194 but is older than the retained history.
+         // Its arrival must still update jitter timestamps without setting that bit.
+         let later = now + std::time::Duration::from_millis(10);
+         stream.process_rtp(later, &packet(2));
+         assert_eq!(stream.last_rtp_time_time, later);
+         let rr = stream.generate_report(later);
+-        assert_eq!(rr.reports[0].total_lost, 2, "current8194 gap must remain visible");
++        assert_eq!(
++            rr.reports[0].total_lost, 2,
++            "current8194 gap must remain visible"
++        );
+         stream.process_rtp(later, &packet(8194));
+         assert_eq!(stream.generate_report(later).reports[0].total_lost, 1);
+     }
+@@ -573,7 +613,9 @@
+     fn reorder_before_report_does_not_create_recovery_credit() {
+         let mut stream = ReceiverStream::new(1, 90000);
+         let now = Instant::now();
+-        for seq in [1,3,2] { stream.process_rtp(now, &packet(seq)); }
++        for seq in [1, 3, 2] {
++            stream.process_rtp(now, &packet(seq));
++        }
+         assert_eq!(stream.generate_report(now).reports[0].total_lost, 0);
+         stream.process_rtp(now, &packet(5));
+         let rr = stream.generate_report(now);

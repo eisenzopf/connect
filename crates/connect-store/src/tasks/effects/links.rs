@@ -93,10 +93,12 @@ pub(super) fn state(c: &Connection, effect: &str, store: &Store) -> Result<Effec
         {
             return Ok(EffectState::Uncertain);
         }
-        if jobs
-            .iter()
-            .any(|(s, _)| matches!(s.as_str(), "failed" | "cancelled" | "blocked"))
-        {
+        if jobs.iter().any(|(s, _)| {
+            matches!(
+                s.as_str(),
+                "failed" | "cancelled" | "blocked" | "unsupported"
+            )
+        }) {
             return Ok(EffectState::Failed);
         }
         let complete = jobs.iter().all(|(s, connector)| {

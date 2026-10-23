@@ -89,10 +89,14 @@ whole admitted request to five seconds. Capacity exhaustion returns 503. A timeo
 or shutdown may leave a committed mutation: recover with its original operation
 ID. HTTP success here proves local provisioning, not a working provider route.
 
-Current state uses schema 20. Schema 19 and earlier candidate databases require a
-verified backup with their matching binary and explicit initialization of a new
-state path. Opening incompatible state never automatically converts or resets it.
+Current state uses schema 80, which adds explicit tenant record-reader roles.
+Earlier candidate databases require a verified backup with their matching binary
+and explicit initialization of a new state path. Opening incompatible state never automatically converts or resets it.
 See [backup and reset instructions](../decisions/014-gate-6-contract-version.md).
 
 Run `python3 scripts/check-gate6-provisioning.py` for isolated store/HTTP evidence.
 The fixtures perform no external provider calls.
+
+Tenant vCon-read role assignment, revocation, private-source policy and revision
+checks are described in [tenant-record-readers.md](tenant-record-readers.md).
+The role uses the same protected provisioning SDK/CLI and durable receipts.

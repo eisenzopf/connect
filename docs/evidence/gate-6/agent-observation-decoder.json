@@ -1,0 +1,101 @@
+{
+  "kind": "gate6-component-evidence",
+  "task": "G6-043",
+  "status": "in-progress",
+  "passed": true,
+  "recorded_at": "2026-10-20T21:10:13.420328+00:00",
+  "scope": "Local macOS arm64 pure provider decoder API. This is not live voice publication, current native/provider source custody, task/effect binding, worker action execution or complete G6-043 qualification.",
+  "platform": {
+    "system": "Darwin",
+    "machine": "arm64"
+  },
+  "schema_version": 63,
+  "pinned_patches": 124,
+  "source_lock": {
+    "path": "dependencies/source-lock.json",
+    "sha256": "5d120c35bb38597b4ddc12292dc770856ea09c084c0d4065e373dcd61e379826"
+  },
+  "patch": {
+    "path": "patches/rvoip/gate6-agent-observation-decoder.patch",
+    "sha256": "29a0ac739ab4c2241fbaec73d1eb8d9d4e00cee0b20193800659b1c2562e02bc"
+  },
+  "qualification_inputs": {
+    "path": ".local/gate-6/agent-observation-decoder/inputs-qualified.json",
+    "sha256": "8aad73b35fe3b6139122fdb3bdafa91d83a9424d72d50d74315249980f87b500",
+    "paths": 889
+  },
+  "verification": {
+    "command": "CARGO_BUILD_JOBS=1 cargo test -p connect-server --test gate6_agent_observations",
+    "passed": 4,
+    "failed": 0,
+    "ignored": 0,
+    "tests": [
+      "foreign_call_assertions_cannot_supply_terminal_or_action_observations",
+      "partial_final_and_missing_provider_data_remain_distinct_and_attributed_as_reported",
+      "documented_tool_forms_preserve_requests_results_and_repeated_ids_without_executing",
+      "invalid_metadata_and_oversized_batches_never_return_a_valid_action_prefix"
+    ],
+    "log": {
+      "path": ".local/gate-6/agent-observation-decoder/tests.log",
+      "sha256": "053cb08fc1e87b69c7e87fa763b84f08bd2ecf99f295c71521f6379e3ac5da00"
+    },
+    "binary": {
+      "path": "target/debug/deps/gate6_agent_observations-2b8c57953278d28a",
+      "sha256": "67ed145462f20b04a5ee34fe891c8a962ec59ba07c11f66e7a22737dff848e12"
+    }
+  },
+  "fresh_distinct_passed_tests": 4,
+  "observations": [
+    "The public decode_agent_event API calls the same existing bounded normalizer as the engine adapter; no copied second Vapi parser or legacy compatibility path was introduced.",
+    "Both asserted callId and call.id must match the captured expected route before terminal or action content can be returned. The decoder cannot choose that actual route or grant Connect authority; the host must supply its owned captured reference.",
+    "Raw input is bounded to1MiB, and all output items/event references pass the existing64KiB/512-byte metadata validation before returning any prefix. More than32 actions gives an unavailable item rather than a valid action prefix.",
+    "Partial, final and unavailable transcript observations, missing fields and provider user role remain distinct. The user role does not identify a human Participant in mixed caller audio.",
+    "Documented direct/wrapped tool lists normalize once per frame. Separate repeated frames/IDs remain observations. Model task/effect arguments are retained as untrusted data; reported results remain ResultObserved and do not complete an operation.",
+    "Debug output redacts contents and provider references. The API has no network IO, Store source registration, authorization or action dispatch."
+  ],
+  "preparation": [
+    {
+      "path": ".local/gate-6/agent-observation-decoder/prepare.log",
+      "sha256": "b3913729dd94796d9cc243ce1faed4494a82342ee99682171e9937b43502642c"
+    },
+    {
+      "path": ".local/gate-6/agent-observation-decoder/prepare-current.log",
+      "sha256": "fd9d7b181e3ccba9b643af55a186cf132c60aac99c734b2ee4e4e549afe5ffc2"
+    }
+  ],
+  "dependency_switch": {
+    "path": ".local/gate-6/agent-observation-decoder/dependency-switch.json",
+    "sha256": "0297c2af7616d255bf76b9981763b8ac7632e0f4662d02894bf4b1503c46552a"
+  },
+  "generated_source_policy": "A new private dependency directory was prepared from pinned sources plus all124 digest-checked patches. The prior prepared tree remains preserved.4025 byte-identical files retain their earlier timestamps for compiler caching; only the two files in the new recorded patch differ. Source content was not edited directly in .deps.",
+  "format": {
+    "path": ".local/gate-6/agent-observation-decoder/format.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "patch_whitespace": {
+    "path": ".local/gate-6/agent-observation-decoder/diff-check.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "http_reference": {
+    "path": "contracts/openapi-events.json",
+    "sha256": "117c519234f545fa2d3840405d1c6900e869fb1bce4e2fab4a8552a2de83c7da"
+  },
+  "http_scope": "Existing session.observations reference; no HTTP route or wire-schema change in this pure decoder component.",
+  "remaining_work": [
+    "Bind actual public/private native provider instances and original audiences to typed observation source capabilities under current authority.",
+    "Prevent buffered derived content from outliving revoked original provider memory/source authorization, and close sources on captured provider termination rather than relying only on native Connection state.",
+    "Map optional transcript/speech/action capabilities and explicit unavailable/gap/result metadata without inventing a human speaker or requiring unsupported model events.",
+    "Preserve trusted task/effect correlation separately from model arguments; expose stable proposed action identity for authorized external workers using public operations.",
+    "Prove duplicate tool calls, changed provider IDs, partial transcripts and session-end races never trigger duplicate handoffs in the actual runtime."
+  ],
+  "not_run": [
+    "Existing runtime/Store suites were not rerun for this additive pure decoder export; prior G6-042 evidence remains historical for its123-patch source scope.",
+    "No live publication/worker proof, Linux/browser/remote/provider rehearsal, independent acceptance or publication."
+  ],
+  "plan_counts": {
+    "done": 42,
+    "in-progress": 1,
+    "not-started": 62,
+    "acceptance_done": 0
+  }
+}

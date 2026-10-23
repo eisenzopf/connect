@@ -153,7 +153,32 @@ pub async fn run(adapter: &mut dyn Fixture) -> Report {
             body: "The approved color is violet.".into(),
         }],
     };
-    let first = adapter.send(&request).await;
+    let denied = MessageRequest {
+        mutation_id: "retired-authority".into(),
+        ..request.clone()
+    };
+    let retired = crate::DispatchPermit::from_host(std::sync::Arc::new(RetiredAuthority));
+    r.check(
+        "retired-authority-has-no-effect",
+        adapter.send(&denied, retired).await.is_err() && adapter.effects(&denied.mutation_id) == 0,
+    );
+    let shared = dispatch_permit();
+    let once = MessageRequest {
+        mutation_id: "permit-once".into(),
+        ..request.clone()
+    };
+    let twice = MessageRequest {
+        mutation_id: "permit-twice".into(),
+        ..request.clone()
+    };
+    r.check(
+        "cloned-permit-cannot-create-two-effects",
+        adapter.send(&once, shared.clone()).await.is_ok()
+            && adapter.send(&twice, shared).await.is_err()
+            && adapter.effects(&once.mutation_id) == 1
+            && adapter.effects(&twice.mutation_id) == 0,
+    );
+    let first = adapter.send(&request, dispatch_permit()).await;
     r.check(
         "attributable-context-reply",
         first.as_ref().is_ok_and(|v| {
@@ -163,7 +188,7 @@ pub async fn run(adapter: &mut dyn Fixture) -> Report {
         }),
     );
     r.check("message-restart", adapter.restart().is_ok());
-    let repeat = adapter.send(&request).await;
+    let repeat = adapter.send(&request, dispatch_permit()).await;
     r.check(
         "message-logical-effect-once",
         first.is_ok() && repeat == first && adapter.effects(&request.mutation_id) == 1,
@@ -172,7 +197,10 @@ pub async fn run(adapter: &mut dyn Fixture) -> Report {
     changed.body = "changed mutation".into();
     r.check(
         "mutation-conflict-rejected",
-        matches!(adapter.send(&changed).await, Err(Failure::Rejected)),
+        matches!(
+            adapter.send(&changed, dispatch_permit()).await,
+            Err(Failure::Rejected)
+        ),
     );
     let incoming =
         adapter.independent_message("incoming-one", "Independently proposed color is amber.");
@@ -191,17 +219,20 @@ pub async fn run(adapter: &mut dyn Fixture) -> Report {
         adapter.independent_message("incoming-one", "Independently proposed color is amber.");
     let reply = if let Ok(contact) = &incoming {
         adapter
-            .send(&MessageRequest {
-                mutation_id: "incoming-follow-up".into(),
-                context: vec![ContextItem {
-                    event_id: contact.mutation_id.clone(),
-                    author_id: "authenticated-peer".into(),
-                    source: "conversation-journal".into(),
-                    derived: false,
-                    body: contact.body.clone(),
-                }],
-                ..request.clone()
-            })
+            .send(
+                &MessageRequest {
+                    mutation_id: "incoming-follow-up".into(),
+                    context: vec![ContextItem {
+                        event_id: contact.mutation_id.clone(),
+                        author_id: "authenticated-peer".into(),
+                        source: "conversation-journal".into(),
+                        derived: false,
+                        body: contact.body.clone(),
+                    }],
+                    ..request.clone()
+                },
+                dispatch_permit(),
+            )
             .await
     } else {
         Err(Failure::Rejected)
@@ -228,18 +259,44 @@ pub async fn run(adapter: &mut dyn Fixture) -> Report {
     adapter.inject(Injection::UncertainMessage);
     r.check(
         "uncertain-message",
-        matches!(adapter.send(&unknown).await, Err(Failure::Uncertain)),
+        matches!(
+            adapter.send(&unknown, dispatch_permit()).await,
+            Err(Failure::Uncertain)
+        ),
     );
     r.check("uncertain-restart", adapter.restart().is_ok());
     r.check(
         "uncertain-no-repeat",
-        matches!(adapter.send(&unknown).await, Err(Failure::Uncertain))
-            && adapter.effects(&unknown.mutation_id) == 1,
+        matches!(
+            adapter.send(&unknown, dispatch_permit()).await,
+            Err(Failure::Uncertain)
+        ) && adapter.effects(&unknown.mutation_id) == 1,
+    );
+    let denied_status =
+        crate::DispatchPermit::from_host_readonly(std::sync::Arc::new(RetiredAuthority));
+    r.check(
+        "retired-authority-cannot-observe",
+        adapter
+            .message_status(&unknown.mutation_id, denied_status)
+            .await
+            .is_err(),
+    );
+    let denied_send = MessageRequest {
+        mutation_id: "observation-cannot-create".into(),
+        ..unknown.clone()
+    };
+    r.check(
+        "observation-authority-cannot-create",
+        adapter
+            .send(&denied_send, observation_permit())
+            .await
+            .is_err()
+            && adapter.effects(&denied_send.mutation_id) == 0,
     );
     r.check(
         "uncertain-message-reconcile",
         adapter
-            .message_status(&unknown.mutation_id)
+            .message_status(&unknown.mutation_id, observation_permit())
             .await
             .is_ok_and(|v| {
                 v.observation.verification == Verification::Reconciliation
@@ -248,7 +305,8 @@ pub async fn run(adapter: &mut dyn Fixture) -> Report {
     );
     r.check(
         "reconciled-message-no-repeat",
-        adapter.send(&unknown).await.is_ok() && adapter.effects(&unknown.mutation_id) == 1,
+        adapter.send(&unknown, dispatch_permit()).await.is_ok()
+            && adapter.effects(&unknown.mutation_id) == 1,
     );
     let delivered = observation(
         "callback-one",
@@ -428,4 +486,38 @@ pub async fn run(adapter: &mut dyn Fixture) -> Report {
     );
     adapter.inject(Injection::None);
     r
+}
+
+/// Explicit authority for isolated adapter conformance, never production admission.
+/// Production hosts supply their own current resource/runtime custody.
+pub fn dispatch_permit() -> crate::DispatchPermit {
+    crate::DispatchPermit::from_host(fixture_authority())
+}
+/// Explicit read-only authority for isolated conformance, never production admission.
+pub fn observation_permit() -> crate::DispatchPermit {
+    crate::DispatchPermit::from_host_readonly(fixture_authority())
+}
+fn fixture_authority() -> std::sync::Arc<dyn crate::dispatch::Authority> {
+    struct FixtureAuthority(std::time::Instant);
+    impl crate::dispatch::Authority for FixtureAuthority {
+        fn current(&self) -> bool {
+            true
+        }
+        fn deadline(&self) -> std::time::Instant {
+            self.0
+        }
+    }
+    std::sync::Arc::new(FixtureAuthority(
+        std::time::Instant::now() + std::time::Duration::from_secs(35),
+    ))
+}
+
+struct RetiredAuthority;
+impl crate::dispatch::Authority for RetiredAuthority {
+    fn current(&self) -> bool {
+        false
+    }
+    fn deadline(&self) -> std::time::Instant {
+        std::time::Instant::now() + std::time::Duration::from_secs(35)
+    }
 }

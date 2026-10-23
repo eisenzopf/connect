@@ -1,0 +1,178 @@
+{
+  "kind": "gate6-component-evidence",
+  "task": "G6-042",
+  "status": "in-progress",
+  "passed": true,
+  "recorded_at": "2026-10-20T19:42:14.635324+00:00",
+  "scope": "Local macOS arm64. Original native destination/problem/control lifecycle through named HTTP receipts; explicit owned public PCMU peer and designated loopback HTTP/WebSocket provider with exact context ACK, signed source selection/replay, actual duplex, context revocation, captured provider cleanup and owned native drain. Includes subsequent private-only consultation/return and shared SDK handoff regressions.",
+  "platform": {
+    "system": "Darwin",
+    "machine": "arm64"
+  },
+  "schema_version": 62,
+  "pinned_patches": 123,
+  "source_lock": {
+    "path": "dependencies/source-lock.json",
+    "sha256": "79806adf28f4720a562879e62ab52d47144c0369e2053f626f7c3d3ebe84eba4"
+  },
+  "qualification_inputs": {
+    "path": ".local/gate-6/public-assistant-inputs-qualified.json",
+    "sha256": "35ecfb9a84dcb022177c82016ce0e83ccd311379bf08ab70437d7c0b3da28b96",
+    "paths": 878
+  },
+  "fresh_distinct_passed_tests": 87,
+  "verification": [
+    {
+      "name": "Focused Store context/private-provider regression",
+      "passed": 56,
+      "ignored": 0,
+      "arguments": "context private_provider --test-threads=2",
+      "log": {
+        "path": ".local/gate-6/public-assistant-store-focused.log",
+        "sha256": "b8d740550634ab0e109d5e02740a1a39c8839fee10b4f8cebe17a8cff0c2affb"
+      },
+      "binary": {
+        "path": "target/debug/deps/connect_store-500690b8d898aed1",
+        "sha256": "bba2f549b6f7316bd6d93bd77766f0bef4b4b2435f70184cfa499104682da56e"
+      }
+    },
+    {
+      "name": "Actual signed native/private-provider and handoff runtime",
+      "passed": 24,
+      "ignored": 0,
+      "arguments": "production_private_ai handoff --test-threads=2 --nocapture",
+      "log": {
+        "path": ".local/gate-6/public-assistant-runtime-regression.log",
+        "sha256": "d96750373840b75b23dafb4832e21fad3cd404f4a7cade6fc617e91f79c76d15"
+      },
+      "binary": {
+        "path": "target/debug/deps/gate6_canonical_runtime-2e3e18c2008aaebe",
+        "sha256": "eda8d103d025018259d56da9dbe6bf7a4b2bf35ea4ab191cc83c324f4cd82419"
+      }
+    },
+    {
+      "name": "API-only connector context decoder",
+      "passed": 6,
+      "ignored": 0,
+      "arguments": "cargo test -p connect-connector-api --test host_context",
+      "log": {
+        "path": ".local/gate-6/public-assistant-connector.log",
+        "sha256": "2e9b8700218f330893a0d72c48c7f12b8dd59e89d2380fe6d5abc43837736567"
+      },
+      "binary": {
+        "path": "target/debug/deps/host_context-57f0163131738984",
+        "sha256": "3e9f8ab6a08e9e253d952291a589f4bb023e9043d116c12832dbecfe318b0aa2"
+      }
+    },
+    {
+      "name": "Canonical escaped provider manifest/SDK initialization",
+      "passed": 1,
+      "ignored": 0,
+      "arguments": "--test-threads=1",
+      "log": {
+        "path": ".local/gate-6/public-assistant-manifest-qualified.log",
+        "sha256": "f11ca4db9c19a812324cbd2b3af0bdf3ebb456009974a186cb92488322c92a12"
+      },
+      "binary": {
+        "path": "target/debug/deps/provider_context_manifest-79a965dcbdf0b3fc",
+        "sha256": "4063f8f680c294b8240b5721993f3d27703470abd55bcb7e25f76781e3c5384e"
+      }
+    }
+  ],
+  "internal_profiles_are_not_additional_test_count": true,
+  "public_receipt_profiles": [
+    "Ack",
+    "Truncated",
+    "Missing",
+    "Rejected",
+    "LostCreation",
+    "Revoked",
+    "SocketLost",
+    "EndedBeforeAck",
+    "ReusedReference"
+  ],
+  "observations": [
+    "Public HTTP ContextDeliveries uses a current original owner credential and reports the captured Connection/generation, typed purpose/problem and actual lifecycle for each of the nine provider outcomes. No raw selection, secret reference, credential ID or fixture token enters the receipt.",
+    "Controlled Store cases retire/change the current Connection generation and still read the original public/private generation. Private receipts remain visible only to their original resource audience; model recipient projection does not turn receipts into historical content.",
+    "PublicNativeAudio consumes its actual signed QUIC peer, exact offer/answer and durable ordinary admission. It refuses private/handoff purpose markers. No construction from another peer ID or answer is exposed.",
+    "subscribe_audio preserves the caller original operation ID, expected revision and selectors for replay, verifies actual completed selection and ACK, and validates any one-PCMU reoffer before changing its owned handle. The actual fixture replays the same intent without advancing its current stream revision again.",
+    "start_with_audio compares the owned peer Conversation/Session/Connection/generation to the protected current destination before provider creation. Only exact context ACK starts audio forwarding. Every provider/native audio poll requires current opaque-memory and actual native activation authority.",
+    "The designated provider sends speech before ACK; the independent human listener receives no marked provider speech in the bounded pre-ACK observation. Post-ACK both directions reach at least sixteen marked frames, proving the same physical route. Native PCM is negotiated/decoded/mixed through the public SDK/native runtime; this is not a copied answer or context preview.",
+    "Current-context revocation stops forwarding; one captured provider end exchange closes the original instance and the owned SDK peer drains/retires. Other public peers survive and the same logical AI subsequently completes the private-only acknowledged context, actual private duplex and independent owner return.",
+    "The shared provider queue remains bounded to eight160-byte PCMU frames including partial data and expires speech after200ms. ContextReady continues to describe context acknowledgment, not an assertion of decoded media readiness."
+  ],
+  "http_reference": {
+    "path": "contracts/openapi-context.json",
+    "sha256": "2a9390da190f3672ac6735fe1f99e223b0e3736cda548645b37094c57cef25a2"
+  },
+  "http_schema_check": {
+    "path": ".local/gate-6/public-assistant-openapi.log",
+    "sha256": "f1063b970d04a4fe45184cf492c1c7a390b7a60a561ad9f5851cabf1df88c38e"
+  },
+  "build": {
+    "path": ".local/gate-6/public-assistant-audio-owned-build.log",
+    "sha256": "fb6d1aa315f1df2c275715349747587443b3597d394b1a6f77b0adc89a92aa99"
+  },
+  "preparation": {
+    "path": ".local/gate-6/context-receipts-prepare.log",
+    "sha256": "fd9d7b181e3ccba9b643af55a186cf132c60aac99c734b2ee4e4e549afe5ffc2"
+  },
+  "format": {
+    "path": ".local/gate-6/public-assistant-format.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "patch_whitespace": {
+    "path": ".local/gate-6/public-assistant-diff-check.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "direct_journey_rerun": {
+    "path": ".local/gate-6/public-assistant-audio-owned-runtime.log",
+    "sha256": "d582035d62a2017457fd2ba82afd6e5b04d617041476deabaf8c0d93ff5c55ce",
+    "additional_distinct_tests": 0
+  },
+  "preliminary_observations": [
+    {
+      "path": ".local/gate-6/context-receipts-server-build.log",
+      "sha256": "5ac5547bbcc24bc6199e56771c597767aa8fdf4296c488930fb3fbae75d36462",
+      "observation": "Superseded initial build intentionally interrupted with exit130 while the new SDK/audio composition was being added; not a passing build."
+    },
+    {
+      "path": ".local/gate-6/public-assistant-audio-runtime-first.log",
+      "sha256": "25dec15299779773edc6df7ab1c2a71daa2625dbbf3a37cbd78632eaf26d1587",
+      "observation": "New SDK confirmation incorrectly checked full Store record fields absent from signed OperationUpdated. Corrected to its actual operation ID, state, revision, problem and result plus the native offer scope."
+    },
+    {
+      "path": ".local/gate-6/public-assistant-audio-runtime-corrected.log",
+      "sha256": "f61e6c2e4de60c4a2cfc8c2a46cd33ebb0f5a46955d2ac62ed1929487232b4c9",
+      "observation": "Pre-ACK fixture read older primary speech queued during nine control-only cases. Added a bounded verified quiet baseline before the new provider observation."
+    },
+    {
+      "path": ".local/gate-6/public-assistant-audio-runtime-qualified.log",
+      "sha256": "4cd530347671f324b0c0003a3479f0f2d97303442dd54ae2959ea5fedc36b98b",
+      "observation": "The preliminary filename did not establish a pass: the fixture incorrectly required silent packets on an idle peer and used two Connections of the same AI Participant. It now uses an independent human listener, retains zero-marked-speech assertions, and proves the same route with post-ACK duplex; no packets during an idle negative window is valid."
+    },
+    {
+      "path": ".local/gate-6/public-assistant-audio-subscription-runtime.log",
+      "sha256": "c2508a303e7f3eeee6054dfdcca938ec4ef7083354e78a37825b877a91666f89",
+      "observation": "Public duplex reached the revocation phase; a synchronous Store writer blocked the same Tokio executor that needed to release its media reader, returning authority-busy. The fixture now runs that bounded current-authority write on a worker thread."
+    }
+  ],
+  "historical_scope": "The earlier native-assistant-provider.json708-test full Store/runtime/integration checkpoint remains historical for its recorded source scope. This87-test focused checkpoint does not relabel that older count as a fresh full-workspace run. The focused Store/protocol/connector source inputs remained unchanged from their test phase through final qualification; final runtime uses the final878-path manifest.",
+  "remaining_work": [
+    "Initialization-time voice history when required, with captured once-only creation/export semantics.",
+    "Current-authority context updates for existing voice instances, preserving the original opaque-memory audience and exact receipts.",
+    "The complete authorized public-context call -> private-only consultation -> attributable follow-up after restart with the same logical AI and fresh physical instances.",
+    "Installed public coordinator and Service shutdown ownership; this checkpoint qualifies an explicitly retained/drained library job, not automatic installed public job supervision.",
+    "Additional live signaling/codec/stream-change repair and broader installed Linux/browser/remote/live-provider qualification in their approved dependent lanes. Named external rehearsals still require G6-093 concrete configuration."
+  ],
+  "not_run": [
+    "Full Store661-test runnable library and unrelated workspace integration suites were not rerun for this focused checkpoint. Earlier complete suite evidence retains its historical scope.",
+    "Linux x86_64, browser, remote/NAT, real PSTN and live provider profiles; no release/publication."
+  ],
+  "plan_counts": {
+    "done": 41,
+    "in-progress": 1,
+    "not-started": 63,
+    "acceptance_done": 0
+  }
+}

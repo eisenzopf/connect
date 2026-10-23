@@ -1,0 +1,129 @@
+--- a/crates/foundation/rvoip-core/src/records/projection.rs
++++ b/crates/foundation/rvoip-core/src/records/projection.rs
+@@ -593,6 +593,41 @@
+         value.view()?;
+         Ok(value)
+     }
++    /// Absolute IO bound for this original projection, including only visible
++    /// metadata and content actually exported. A predicate alone cannot wake a
++    /// transport stalled on flow control at a future source-retention cutoff.
++    /// This timestamp is data; retain the projection and its current authority.
++    pub fn deadline(&self) -> RecordViewResult<Instant> {
++        self.view()?;
++        let instant = Instant::now();
++        let now = Utc::now();
++        let cutoff = self
++            .sources
++            .iter()
++            .flat_map(|(source, content)| {
++                [
++                    Some(source.metadata_retention()),
++                    content.then_some(source.content_retention()),
++                ]
++                .into_iter()
++                .flatten()
++            })
++            .filter_map(|retention| match retention {
++                RecordRetention::Until(until) => Some(until),
++                _ => None,
++            })
++            .chain(self.url_expiries.iter().copied())
++            .min();
++        let deadline = cutoff.map_or(self.control.deadline, |until| {
++            self.control
++                .deadline
++                .min(instant + (until - now).to_std().unwrap_or_default())
++        });
++        if deadline <= Instant::now() {
++            return Err(RecordViewError::Expired);
++        }
++        Ok(deadline)
++    }
+     pub fn view(&self) -> RecordViewResult<RecordView<'_>> {
+         let allowed = self.control.current()?;
+         let now = Utc::now();
+--- a/crates/foundation/rvoip-core/src/records/tests.rs
++++ b/crates/foundation/rvoip-core/src/records/tests.rs
+@@ -1218,3 +1218,52 @@
+         .unwrap()
+         .contains("public-dialog"));
+ }
++
++#[tokio::test]
++async fn projection_io_deadline_uses_visible_live_content_and_the_original_control_bound() {
++    for exported_content in [true, false] {
++        let (record, _, participant, _) = fixture();
++        let now = Utc::now();
++        let mut sources = record.manifest().sources().to_vec();
++        for source in &mut sources {
++            if source.target() == RecordTarget::Dialog(0) {
++                // This private source is hidden from this actual viewer.
++                source.metadata_retention =
++                    RecordRetention::Until(now + chrono::Duration::seconds(1));
++                source.content_retention = source.metadata_retention;
++            }
++            if source.target() == RecordTarget::Dialog(1) {
++                source.metadata_retention =
++                    RecordRetention::Until(now + chrono::Duration::seconds(20));
++                source.content_retention = RecordRetention::Until(
++                    now + chrono::Duration::seconds(if exported_content { 4 } else { -1 }),
++                );
++            }
++        }
++        let record = VconRecord::new(
++            record.body().clone(),
++            RecordManifest::new("io-deadline-fixture".into(), sources).unwrap(),
++        )
++        .unwrap();
++        let scope = scope();
++        let store = MemoryVconStore::new();
++        let handle = store.put(&scope, record.clone()).await.unwrap();
++        let (control, _, _) = control(&record, scope.clone(), participant).await;
++        let projection =
++            RecordProjection::prepare(store.get(&scope, &handle).await.unwrap().unwrap(), control)
++                .unwrap();
++        let remaining = projection
++            .deadline()
++            .unwrap()
++            .saturating_duration_since(Instant::now());
++        if exported_content {
++            assert!(
++                remaining > Duration::from_secs(3) && remaining <= Duration::from_secs(4),
++                "visible content must clip IO before the ten-second control bound: {remaining:?}"
++            );
++        } else {
++            assert!(remaining > Duration::from_secs(9) && remaining <= Duration::from_secs(10), "expired unexported content and hidden sources cannot invalidate retained metadata: {remaining:?}");
++        }
++        assert!(projection.view().is_ok());
++    }
++}
+--- a/crates/uctp/rvoip-uctp/src/v2/recording.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/recording.rs
+@@ -204,6 +204,15 @@
+     if !authority.current() {
+         return Err(DispatchError::Authority);
+     }
++    let deadline = match &outcome {
++        Outcome::Ready(ready) => deadline.min(
++            ready
++                .projection
++                .deadline()
++                .map_err(|_| DispatchError::Authority)?,
++        ),
++        Outcome::Problem(_) => deadline,
++    };
+     let custody = Arc::new(RecordFetchCustody {
+         invocation: envelope.original().clone(),
+         principal: principal.clone(),
+@@ -467,6 +476,11 @@
+         {
+             return Err(RecordFetchError::Changed);
+         }
++        let deadline = deadline.min(
++            projection
++                .deadline()
++                .map_err(|_| RecordFetchError::Authority)?,
++        );
+         Ok(GuardedRecordBody {
+             projection,
+             authority,

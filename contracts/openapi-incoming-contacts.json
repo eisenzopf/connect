@@ -1,0 +1,602 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Connect private incoming-contact administration",
+    "version": "connect/2",
+    "description": "Main administrative HTTP listener only. Trusted server-side credential with current admin, original configured account owner, tenant and original candidate recipient ceiling. Caller/provider IDs never grant principals, membership, consent or history. Browser Origin and provider call/chat context headers are refused. Metadata excludes held content, provider IDs and control URLs. Resolution commits one attributed decision plus actual private message or observed inbound Session; voice uses the owned original-resource read-only reconciler and never submits an outbound create or accepts a Participant. Replays recheck current original authority and do not repeat delivery. Callback-only listener does not expose this route."
+  },
+  "servers": [
+    {
+      "url": "http://127.0.0.1:{port}",
+      "variables": {
+        "port": {
+          "default": "19444",
+          "description": "Use the explicitly configured main administrative listener port; never infer another transport."
+        }
+      }
+    }
+  ],
+  "paths": {
+    "/v2/incoming-contacts": {
+      "post": {
+        "operationId": "incomingContactCommand",
+        "security": [
+          {
+            "operatorBearer": []
+          }
+        ],
+        "description": "Bounded list/get/resolve/reject with a five-second HTTP admission budget. A timeout or operation-pending response can follow accepted work; retain and replay the entire original resolve/reject command and operation_id. Current authority is required before replay. Selection can name only one original candidate. Changed membership epochs/roles, account/Endpoint binding or SMS consent cannot be bypassed. Administration grants no access to Conversation message bodies. Physical live-provider rehearsal is a separately designated bounded lane.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/IncomingContactCommand"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Current metadata, selected delivery or repeated original decision; no history grant",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "const": "no-store"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IncomingContactResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid closed command, JSON, candidate shape or unsupported decision",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "const": "no-store"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IncomingContactResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid, expired or revoked credential; authentication precedes body decoding",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "const": "no-store"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IncomingContactResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Current administrator/original owner/tenant/recipient/original candidate policy denied; Origin/call/chat-context requests refused",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "const": "no-store"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IncomingContactResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Changed operation intent, stale revision, competing decision or conflicting provider binding",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "const": "no-store"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IncomingContactResponse"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "Expired retained decision receipt",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "const": "no-store"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IncomingContactResponse"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Body exceeds 64 KiB",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "const": "no-store"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IncomingContactResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Bounded capacity/authority/storage/provider unavailable, operation still owned, or uncertain transport reply; retain original operation ID and complete command",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "const": "no-store"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IncomingContactResponse"
+                }
+              }
+            }
+          }
+        },
+        "x-max-request-bytes": 65536,
+        "x-http-admission-timeout-seconds": 5,
+        "x-max-response-bytes": 2097152,
+        "x-no-automatic-retry": true
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "operatorBearer": {
+        "type": "http",
+        "scheme": "bearer",
+        "description": "Server-side operator credential with admin operation and explicit recipient scope."
+      }
+    },
+    "schemas": {
+      "Identifier": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 128,
+        "pattern": "^[A-Za-z0-9._~-]+$"
+      },
+      "Cursor": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 4096,
+        "description": "Opaque installation/owner/tenant/current-recipient-scope-bound cursor; do not parse or manufacture."
+      },
+      "IncomingContactCommand": {
+        "oneOf": [
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "command": {
+                "const": "list"
+              },
+              "after": {
+                "anyOf": [
+                  {
+                    "$ref": "#/components/schemas/Cursor"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "limit": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 32
+              }
+            },
+            "required": [
+              "command",
+              "limit"
+            ]
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "command": {
+                "const": "get"
+              },
+              "contact_id": {
+                "$ref": "#/components/schemas/Identifier"
+              }
+            },
+            "required": [
+              "command",
+              "contact_id"
+            ]
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "command": {
+                "const": "resolve"
+              },
+              "operation_id": {
+                "$ref": "#/components/schemas/Identifier"
+              },
+              "contact_id": {
+                "$ref": "#/components/schemas/Identifier"
+              },
+              "candidate_id": {
+                "$ref": "#/components/schemas/Identifier"
+              },
+              "expected_revision": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 1
+              }
+            },
+            "required": [
+              "command",
+              "operation_id",
+              "contact_id",
+              "candidate_id",
+              "expected_revision"
+            ]
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "command": {
+                "const": "reject"
+              },
+              "operation_id": {
+                "$ref": "#/components/schemas/Identifier"
+              },
+              "contact_id": {
+                "$ref": "#/components/schemas/Identifier"
+              },
+              "expected_revision": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 1
+              },
+              "reason": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256,
+                "description": "Nonblank reason without control characters."
+              }
+            },
+            "required": [
+              "command",
+              "operation_id",
+              "contact_id",
+              "expected_revision",
+              "reason"
+            ]
+          }
+        ]
+      },
+      "IncomingContactCandidate": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/Identifier"
+          },
+          "route_id": {
+            "$ref": "#/components/schemas/Identifier"
+          },
+          "conversation_id": {
+            "$ref": "#/components/schemas/Identifier"
+          },
+          "endpoint_id": {
+            "$ref": "#/components/schemas/Identifier"
+          },
+          "participant_id": {
+            "$ref": "#/components/schemas/Identifier"
+          },
+          "membership_epoch": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9007199254740991
+          }
+        },
+        "required": [
+          "id",
+          "route_id",
+          "conversation_id",
+          "endpoint_id",
+          "participant_id",
+          "membership_epoch"
+        ]
+      },
+      "IncomingContactDecision": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "operation_id": {
+            "$ref": "#/components/schemas/Identifier"
+          },
+          "actor_identity_id": {
+            "$ref": "#/components/schemas/Identifier"
+          },
+          "actor_credential_id": {
+            "$ref": "#/components/schemas/Identifier"
+          },
+          "candidate_id": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Identifier"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "message_id": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Identifier"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "session_id": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Identifier"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "created_at": {
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "required": [
+          "operation_id",
+          "actor_identity_id",
+          "actor_credential_id",
+          "candidate_id",
+          "message_id",
+          "session_id",
+          "created_at"
+        ]
+      },
+      "IncomingContact": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/Identifier"
+          },
+          "kind": {
+            "enum": [
+              "sms",
+              "voice"
+            ]
+          },
+          "provider": {
+            "$ref": "#/components/schemas/Identifier"
+          },
+          "reason": {
+            "enum": [
+              "ambiguous_route",
+              "resource_conflict",
+              "historical_overlap",
+              "routed",
+              "ineligible"
+            ]
+          },
+          "state": {
+            "enum": [
+              "held",
+              "resolved",
+              "rejected"
+            ]
+          },
+          "revision": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "decision": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/IncomingContactDecision"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "candidates": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/IncomingContactCandidate"
+            },
+            "minItems": 1,
+            "maxItems": 64
+          },
+          "created_at": {
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "required": [
+          "id",
+          "kind",
+          "provider",
+          "reason",
+          "state",
+          "revision",
+          "decision",
+          "candidates",
+          "created_at"
+        ]
+      },
+      "IncomingContactPage": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "contacts": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/IncomingContact"
+            },
+            "maxItems": 32
+          },
+          "next": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Cursor"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "contacts",
+          "next"
+        ]
+      },
+      "IncomingContactOutcome": {
+        "oneOf": [
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "kind": {
+                "const": "contact"
+              },
+              "contact": {
+                "$ref": "#/components/schemas/IncomingContact"
+              }
+            },
+            "required": [
+              "kind",
+              "contact"
+            ]
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "kind": {
+                "const": "page"
+              },
+              "page": {
+                "$ref": "#/components/schemas/IncomingContactPage"
+              }
+            },
+            "required": [
+              "kind",
+              "page"
+            ]
+          }
+        ]
+      },
+      "Error": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "code",
+          "message"
+        ]
+      },
+      "IncomingContactResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "profile": {
+            "const": "connect/2"
+          },
+          "result": {
+            "oneOf": [
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "Ok": {
+                    "$ref": "#/components/schemas/IncomingContactOutcome"
+                  }
+                },
+                "required": [
+                  "Ok"
+                ]
+              },
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "Err": {
+                    "$ref": "#/components/schemas/Error"
+                  }
+                },
+                "required": [
+                  "Err"
+                ]
+              }
+            ]
+          }
+        },
+        "required": [
+          "profile",
+          "result"
+        ]
+      }
+    }
+  }
+}

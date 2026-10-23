@@ -19,7 +19,9 @@ fn send(f: &Fixture) -> Operation {
     Operation::Send {
         request_id: "ordinary-send".into(),
         conversation_id: f.cid.clone(),
-        body: "Must not spend the cancellation reserve".into(),
+        message: connect_protocol::messages::MessageDraft::text_all(
+            "Must not spend the cancellation reserve",
+        ),
     }
 }
 fn counts(f: &Fixture) -> (u64, u64) {
@@ -28,7 +30,7 @@ fn counts(f: &Fixture) -> (u64, u64) {
         .unwrap()
         .query_row(
             "SELECT (SELECT COUNT(*) FROM journal)+(SELECT COUNT(*) FROM task_events),
-                (SELECT COUNT(*) FROM requests)+(SELECT COUNT(*) FROM task_requests)",
+                (SELECT COUNT(*) FROM operations)+(SELECT COUNT(*) FROM task_requests)",
             [],
             |r| Ok((r.get(0)?, r.get(1)?)),
         )

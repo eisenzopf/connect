@@ -1,0 +1,172 @@
+diff --git a/crates/uctp/rvoip-uctp/src/v2/auth_dispatch/subscriptions.rs b/crates/uctp/rvoip-uctp/src/v2/auth_dispatch/subscriptions.rs
+--- a/crates/uctp/rvoip-uctp/src/v2/auth_dispatch/subscriptions.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/auth_dispatch/subscriptions.rs
+@@ -123,9 +123,17 @@
+                 || envelope.scope(Scope::Reply) != Some(origin.request.as_str())
+                 || !matches!(
+                     envelope.kind(),
+-                    "conversation.event" | "conversation.snapshot" | "ack" | "error"
++                    "conversation.event"
++                        | "message.delivered"
++                        | "message.read"
++                        | "conversation.snapshot"
++                        | "ack"
++                        | "error"
+                 )
+-                || (envelope.kind() == "conversation.event" && Instant::now() >= origin.end)
++                || (matches!(
++                    envelope.kind(),
++                    "conversation.event" | "message.delivered" | "message.read"
++                ) && Instant::now() >= origin.end)
+             {
+                 return Err(DispatchError::ReplyMismatch);
+             }
+@@ -156,8 +164,12 @@
+             .expect("one delivery")
+             .envelopes()
+             .iter()
+-            .any(|frame| frame.kind() == "conversation.event")
+-        {
++            .any(|frame| {
++                matches!(
++                    frame.kind(),
++                    "conversation.event" | "message.delivered" | "message.read"
++                )
++            }) {
+             self.origin.end
+         } else {
+             self.origin.terminal_deadline()
+diff --git a/crates/uctp/rvoip-uctp/tests/v2_auth_peer.rs b/crates/uctp/rvoip-uctp/tests/v2_auth_peer.rs
+--- a/crates/uctp/rvoip-uctp/tests/v2_auth_peer.rs
++++ b/crates/uctp/rvoip-uctp/tests/v2_auth_peer.rs
+@@ -1450,3 +1450,130 @@
+     drop(retiring.await.unwrap());
+     assert_eq!(writes.load(Ordering::SeqCst), 0);
+ }
++
++#[tokio::test]
++async fn subscription_receipt_observations_are_origin_bound_live_facts_and_release_actual_guard() {
++    let f = Fixture::new();
++    let mut peer = f.peer();
++    f.authenticate(&mut peer, "old").await;
++    let capture = CaptureSubscription::default();
++    let request = subscription_request();
++    drop(
++        peer.handle(&f.sign(request.clone()), &capture, deadline())
++            .await
++            .unwrap(),
++    );
++    let origin = capture.0.lock().take().unwrap();
++    for kind in ["message.delivered", "message.read"] {
++        let payload = if kind == "message.read" {
++            json!({"msg_id":"message","by_participant":"recipient","read_at":Utc::now()})
++        } else {
++            json!({"msg_id":"message","to_participant":"recipient","delivered_at":Utc::now()})
++        };
++        let mut value = envelope(kind, payload);
++        value["cid"] = json!("conversation");
++        value["in_reply_to"] = request["id"].clone();
++        let frame = Envelope::from_value(value.clone()).unwrap();
++        let guard = f.policy.revoked.clone().read_owned().await;
++        let (delivery, complete) = HandlerDelivery::new(
++            &origin,
++            HandlerReplies::new(vec![frame]).unwrap(),
++            AuthorityLease::holding(guard),
++        )
++        .unwrap();
++        assert!(f.policy.revoked.clone().try_write_owned().is_err());
++        drop(delivery);
++        assert_eq!(complete.await.unwrap().unwrap_err(), DispatchError::Closed);
++        drop(f.policy.revoked.clone().try_write_owned().unwrap());
++        value["cid"] = json!("other");
++        assert!(matches!(
++            HandlerDelivery::new(
++                &origin,
++                HandlerReplies::new(vec![Envelope::from_value(value).unwrap()]).unwrap(),
++                AuthorityLease::holding(())
++            ),
++            Err(DispatchError::ReplyMismatch)
++        ));
++    }
++    tokio::time::sleep_until(origin.deadline()).await;
++    assert!(origin.current());
++    let mut late = envelope(
++        "message.read",
++        json!({"msg_id":"message","read_at":Utc::now()}),
++    );
++    late["cid"] = json!("conversation");
++    late["in_reply_to"] = request["id"].clone();
++    assert!(matches!(
++        HandlerDelivery::new(
++            &origin,
++            HandlerReplies::new(vec![Envelope::from_value(late).unwrap()]).unwrap(),
++            AuthorityLease::holding(())
++        ),
++        Err(DispatchError::ReplyMismatch)
++    ));
++    assert!(!peer.cancellation().is_cancelled());
++}
++
++#[tokio::test]
++async fn subscription_receipt_blocked_writer_uses_live_deadline_and_releases_actual_guard() {
++    for kind in ["message.read", "message.delivered"] {
++        let f = Fixture::new();
++        let mut peer = f.peer();
++        f.authenticate(&mut peer, "old").await;
++        let capture = CaptureSubscription::default();
++        let request = subscription_request();
++        drop(
++            peer.handle(&f.sign(request.clone()), &capture, deadline())
++                .await
++                .unwrap(),
++        );
++        let origin = capture.0.lock().take().unwrap();
++        let payload = if kind == "message.read" {
++            json!({"msg_id":"message","by_participant":"recipient","read_at":Utc::now()})
++        } else {
++            json!({"msg_id":"message","to_participant":"recipient","delivered_at":Utc::now()})
++        };
++        let mut value = envelope(kind, payload);
++        value["cid"] = json!("conversation");
++        value["in_reply_to"] = request["id"].clone();
++        let guard = f.policy.revoked.clone().read_owned().await;
++        let (delivery, done) = HandlerDelivery::new(
++            &origin,
++            HandlerReplies::new(vec![Envelope::from_value(value).unwrap()]).unwrap(),
++            AuthorityLease::checking(guard, Instant::now() + Duration::from_secs(30), || true),
++        )
++        .unwrap();
++        let handler = Arc::new(DeliverOnce(parking_lot::Mutex::new(Some(delivery))));
++        let entered = Arc::new(Notify::new());
++        let writes = Arc::new(AtomicUsize::new(0));
++        let sink = BlockSubscriptionSink {
++            entered: entered.clone(),
++            writes: writes.clone(),
++        };
++        let job = tokio::spawn(async move {
++            peer.run_frames(
++                futures::stream::pending::<Result<Bytes, DispatchError>>(),
++                sink,
++                handler.as_ref(),
++            )
++            .await
++        });
++        tokio::time::timeout(Duration::from_secs(1), entered.notified())
++            .await
++            .unwrap();
++        let gate = f.policy.revoked.clone();
++        let retiring = tokio::spawn(async move { gate.write_owned().await });
++        tokio::task::yield_now().await;
++        assert!(!retiring.is_finished());
++        assert_eq!(
++            tokio::time::timeout_at(origin.deadline() + Duration::from_millis(500), job)
++                .await
++                .unwrap()
++                .unwrap(),
++            Err(DispatchError::Closed)
++        );
++        assert!(done.await.unwrap().is_err());
++        drop(retiring.await.unwrap());
++        assert_eq!(writes.load(Ordering::SeqCst), 0);
++    }
++}

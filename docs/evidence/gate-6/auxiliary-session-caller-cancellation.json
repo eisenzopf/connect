@@ -1,0 +1,289 @@
+{
+  "task": "G6-046",
+  "title": "Original native caller cancellation references and current-authority replay",
+  "recorded_at": "2026-10-22T20:45:26.871280+00:00",
+  "status": "u6-req-0091-qualified-local-native-and-HTTP-logical-replay",
+  "full_task_complete": false,
+  "full_goal_complete": false,
+  "acceptance_qualified": false,
+  "schema_version": 91,
+  "pinned_patches": 142,
+  "platform": {
+    "os": "Darwin",
+    "architecture": "arm64"
+  },
+  "source_lock": {
+    "path": "dependencies/source-lock.json",
+    "sha256": "a321c4b5a8bb6e4aded6b9cf92a531c25a86be437676baa55d6a67d0fab6b0ce"
+  },
+  "compiled_inputs": {
+    "path": ".local/gate-6/session-caller-cancel/build-inputs-final.json",
+    "sha256": "3b6e8531584fa9f46730919b19aa661a319208319220b27c603c733ca60e76e5"
+  },
+  "prepared_upstream": {
+    "path": ".local/gate-6/session-caller-cancel/upstream-inputs-final.json",
+    "sha256": "38c4c78fc04690554fa7a57560dc7b1c4c588a238c18f7ed21cde5647430c496"
+  },
+  "inputs_unchanged_after_tests": true,
+  "source_inputs": [
+    {
+      "path": "crates/connect-service/src/canonical.rs",
+      "sha256": "28de3e51973f890f30bb5fa7090a055b9c5eed2ee77afff844975092d6b02f6f"
+    },
+    {
+      "path": "crates/connect-service/src/canonical_sessions.rs",
+      "sha256": "47dcf53086cab90713398040b320a293df9453891c359a1e23a1584321a866d9"
+    },
+    {
+      "path": "crates/connect-service/src/peer_authority.rs",
+      "sha256": "f80fd2f8789f835e4ed60ce0042a15ccf09137c1aa6d8b8a3dd8c3799df1b016"
+    },
+    {
+      "path": "crates/connect-service/src/canonical_invitations.rs",
+      "sha256": "a7558f4280c05e1b9722b9ea0dca66837e512ad15905baec8ac961ad401e88a4"
+    },
+    {
+      "path": "crates/connect-service/src/canonical_invitations/callers.rs",
+      "sha256": "9804cb8912e601e5e103a6bbd9aa8582d9cc43e7bd8fc5e70b19540fec8d0333"
+    },
+    {
+      "path": "crates/connect-client/src/canonical.rs",
+      "sha256": "371a3fc938d867a083a10c9862d6c812a1678e21f48db6ecf51254faa8de154f"
+    },
+    {
+      "path": "crates/connect-client/src/canonical/session_invitations.rs",
+      "sha256": "b776a5e813a912475b5cdeca099bf2c2a54b222d2a31e62f94479af393433d76"
+    },
+    {
+      "path": "crates/connect-server/tests/gate6_canonical_runtime.rs",
+      "sha256": "e975c6fc9311cab2a63b66a27a322583fd8b32cd1e235bf339ab0f63b938c88f"
+    },
+    {
+      "path": "crates/connect-server/tests/support/canonical_session_cancellation.rs",
+      "sha256": "d1ac937653ab8ca15ae31d571b338c04790c684ec0be571e9678e1377c31e9a6"
+    },
+    {
+      "path": "patches/rvoip/gate6-correlated-session-cancel.patch",
+      "sha256": "7b144790ed0b7e7a409ef871a8429070896be8836551a49b5dc7d130ad2fe836"
+    },
+    {
+      "path": "contracts/connect-uctp.md",
+      "sha256": "be0fee656f87d71eba4848d567b06267535fe17edac0a666f73ec45fa958e868"
+    },
+    {
+      "path": "docs/developer/session-invitation-sources.md",
+      "sha256": "cb019df626bea49d6441527651542074e6011803d55f9a37b63a1e9aa9482398"
+    },
+    {
+      "path": "docs/developer/session-decisions.md",
+      "sha256": "1885323b94b0a28f377aec3061df67a3e24b2f80088588a6cc4cb4111a0f1c3f"
+    },
+    {
+      "path": "docs/developer/general-sessions.md",
+      "sha256": "7b1ff94c4fe32584f015006220e3a500509ae39ef07a78ff830d7946eb536035"
+    },
+    {
+      "path": "scripts/generate-canonical-http-openapi.py",
+      "sha256": "d953f37627b3ac6471ade64335a48559a8fda59784624dab0bfa7a6ac2a5be05"
+    },
+    {
+      "path": "contracts/openapi-canonical-http.json",
+      "sha256": "23a49ab68ccec85f698dbde588c75dbd7f3b81ab931d37d5be8c2d7ba4f597f0"
+    }
+  ],
+  "binaries": [
+    {
+      "path": "target/debug/deps/gate6_canonical_runtime-f39476f2f6c7ff5d",
+      "sha256": "5df3a40355c979ec009c00d576787ec5505cf8d48700c16a89456274001b0536"
+    },
+    {
+      "path": "target/debug/deps/gate6_auxiliary-0342ca629847fff9",
+      "sha256": "1b632d2811e1763a55d061e6b215267fcec7f73db927409ccdc7a686c33cd9c5"
+    },
+    {
+      "path": "target/debug/deps/connect_store-2bc54b64bb656bb4",
+      "sha256": "c066a9f3649e6c5288c5573db99ab217dd2e5b78f93ea821eac8fe40c3fa9567"
+    }
+  ],
+  "qualified_cases": [
+    {
+      "case_id": "u6-req-0091",
+      "algorithms": [
+        "EdDSA",
+        "ES256"
+      ],
+      "tests": [
+        "caller_cancellations::original_caller_cancellation_references_require_physical_scope_and_recover_with_logical_replay",
+        "caller_cancellations::correlated_cancellation_step_up_keeps_the_owned_reference_and_replays_one_current_authorized_mutation"
+      ],
+      "profile": "Actual production local native QUIC/public signed Rust SDK caller reference commands and recipient cancellation observations, plus ordinary bearer HTTP logical replay and actual configured human-consent API/step-up.",
+      "assertions": [
+        "The public native helper sends a fresh signed operation-bearing session.cancel with in_reply_to naming its actual original caller invitation ID, explicit checked by Participant and original reason/CID/SID.",
+        "A same-Identity/credential/Device sibling cannot adopt that reference. Wrong Session, spoofed by, superseded request IDs and old physical references after reconnect refuse before creating a mutation receipt.",
+        "The caller replays its original logical invitation to register a new reference before ACK, then retries the same logical cancellation. Both pending cancellation and already committed cancellation recover once; ordinary HTTP logical replay returns the same immutable outcome.",
+        "Unsigned HTTP cannot supply native reference custody. A verified recipient receives its own forwarded invitation correlation rather than the caller reference.",
+        "After acceptance, a correctly correlated new cancellation conflicts at the current revision and requires session.end.",
+        "A configured human-consent floor suspends the original correlated command without a receipt. Actual HTTP consent plus explicit successor key enrollment resumes the same held operation on the same physical peer, preserves reference ownership across credential rotation and records exactly one mutation; native and current HTTP replay retain that result."
+      ]
+    }
+  ],
+  "verification_repair": {
+    "initial_failure": {
+      "path": ".local/gate-6/session-caller-cancel/production-caller-cancellation-v1.log",
+      "sha256": "f2bd8439a119342197ef0e6d4adef493349a4986a22f11d335487a97909d5057"
+    },
+    "diagnostic_failure": {
+      "path": ".local/gate-6/session-caller-cancel/production-caller-cancellation-v2.log",
+      "sha256": "9757f88c10dc5e569a31f60ec4a2e45b546ebc6fab7f5ed2b4cbef2be988ef8a"
+    },
+    "cause": "The new raw helper encoded an omitted optional by field as null, which the normative wire schema rejects. It now omits that field as the existing typed command path does. Explicit by still passes the checked actor assertion.",
+    "final_build": {
+      "path": ".local/gate-6/session-caller-cancel/runtime-build-v3.log",
+      "sha256": "e430f8746b4451294b312fbaaab5d5c84d9d32a96187a47ae6e5aa3eeecb16eb"
+    }
+  },
+  "results": [
+    {
+      "name": "production-caller-cancellation-final",
+      "passed": 2,
+      "failed": 0,
+      "evidence": {
+        "path": ".local/gate-6/session-caller-cancel/production-caller-cancellation-final.log",
+        "sha256": "b486a7230f4f6dcaafa437baac7552915a49116b3bbc452c517a1b9f3f4b1413"
+      }
+    },
+    {
+      "name": "production-auxiliary-final",
+      "passed": 10,
+      "failed": 0,
+      "evidence": {
+        "path": ".local/gate-6/session-caller-cancel/production-auxiliary-final.log",
+        "sha256": "15217f81887c4bc36d8d00c81b3e06cbc55e39e731041e46601986b5a6fce975"
+      }
+    },
+    {
+      "name": "production-four-party-final",
+      "passed": 1,
+      "failed": 0,
+      "evidence": {
+        "path": ".local/gate-6/session-caller-cancel/production-four-party-final.log",
+        "sha256": "d80c5024015b91aa8fdccc79a81c9fba53d8d6b6ba120f3d184c1e2a54e6aea0"
+      }
+    },
+    {
+      "name": "production-records-final",
+      "passed": 1,
+      "failed": 0,
+      "evidence": {
+        "path": ".local/gate-6/session-caller-cancel/production-records-final.log",
+        "sha256": "b41d20d5dc360d3110d97401f92060431d09bfc0906879101a4cca426fdddb05"
+      }
+    },
+    {
+      "name": "production-codec-final",
+      "passed": 1,
+      "failed": 0,
+      "evidence": {
+        "path": ".local/gate-6/session-caller-cancel/production-codec-final.log",
+        "sha256": "7f4c0685bbfa2046425ce3719ad87414fa28c48dc9ce0f061ba8dbea056b61fc"
+      }
+    },
+    {
+      "name": "store-control-final",
+      "passed": 38,
+      "failed": 0,
+      "evidence": {
+        "path": ".local/gate-6/session-caller-cancel/store-control-final.log",
+        "sha256": "094e3d7349dd6713736d67488011cfe35802a59d90fb787ada2e6b2aabcb8eb2"
+      }
+    },
+    {
+      "name": "public-Rust-client-unit-regression",
+      "passed": 80,
+      "failed": 0,
+      "evidence": {
+        "path": ".local/gate-6/session-caller-cancel/client-tests-final.log",
+        "sha256": "ebe6da3e366b57d4136f3926df0f9527292fa23390e47b2d99d4a4103c3ae470"
+      }
+    }
+  ],
+  "checks": [
+    {
+      "name": "dependencies",
+      "exit_code": 0,
+      "evidence": {
+        "path": ".local/gate-6/session-caller-cancel/dependencies-final.log",
+        "sha256": "fd9d7b181e3ccba9b643af55a186cf132c60aac99c734b2ee4e4e549afe5ffc2"
+      }
+    },
+    {
+      "name": "format",
+      "exit_code": 0,
+      "evidence": {
+        "path": ".local/gate-6/session-caller-cancel/format-final.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    {
+      "name": "upstream-format",
+      "exit_code": 0,
+      "evidence": {
+        "path": ".local/gate-6/session-caller-cancel/upstream-format-final.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    {
+      "name": "http-reference",
+      "exit_code": 0,
+      "evidence": {
+        "path": ".local/gate-6/session-caller-cancel/http-reference-final.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    {
+      "name": "event-reference",
+      "exit_code": 0,
+      "evidence": {
+        "path": ".local/gate-6/session-caller-cancel/event-reference-final.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    {
+      "name": "progress",
+      "exit_code": 0,
+      "evidence": {
+        "path": ".local/gate-6/session-caller-cancel/progress-final.log",
+        "sha256": "fedbc03549729d27ac031eee0766ae72281991ae1e9494232887c3160cf754cc"
+      }
+    },
+    {
+      "name": "diff",
+      "exit_code": 0,
+      "evidence": {
+        "path": ".local/gate-6/session-caller-cancel/diff-final.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    }
+  ],
+  "implementation": [
+    "Only operation-bearing correlated session.cancel enters command dispatch. All other correlated observations still require exact scoped waiters. Signature, replay, named scope and actual host authority are unchanged; the held-command step-up path applies to this closed command exception.",
+    "Verified caller CID/SID/request and exact PeerAdmission metadata are registered synchronously before invitation ACK, under the existing source command fence. Background workers cannot overwrite a newer reference. Metadata has a60s bound and the original physical lifetime; no idle source reader is retained.",
+    "Current correlated cancellation checks that metadata and then uses the same ordinary Session-control transaction and logical receipt as other cancellation commands. The physical reference is an assertion, not logical identity or a new authorization grant.",
+    "A sealed same-physical admission comparison supports current credential rotation/step-up without using a stale route as authority. Actual decision delivery still requires a current route and fresh source reader."
+  ],
+  "limits": [
+    "23 of61 assigned clauses now locally qualified;38 remain. G6-046 and all105 tasks remain in scope.",
+    "References are process-local bounded metadata. Restart/reconnect or expiry requires logical invitation replay for a new reference; no old physical wire ID is revived.",
+    "Recipient notification is a bounded hint; the authoritative journal/snapshot supplies recovery. Full0081 Session lifecycle, immediate codec replacement0111, handle allocation0109 and broader profiles remain open.",
+    "No Linux, production remote/browser/provider, named G6-093 qualification, acceptance or publication."
+  ],
+  "related_evidence": [
+    "docs/evidence/gate-6/auxiliary-session-cancellation-observations.json",
+    "docs/evidence/gate-6/auxiliary-session-cancel-boundary.json"
+  ],
+  "reproduce": [
+    "bash scripts/prepare-dependencies.sh",
+    "CARGO_INCREMENTAL=0 cargo test -p connect-server --test gate6_canonical_runtime --locked --offline -j1 caller_cancellations:: -- --test-threads=1",
+    "CARGO_INCREMENTAL=0 cargo test -p connect-client --lib --locked --offline -j1 -- --test-threads=1"
+  ]
+}

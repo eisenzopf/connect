@@ -1,0 +1,74 @@
+--- a/crates/uctp/rvoip-uctp/src/v2/auth_dispatch.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/auth_dispatch.rs
+@@ -757,7 +757,11 @@
+             return Err(DispatchError::Authority);
+         }
+         let deadline = self.active_deadline(requested.min(authorized.origin.deadline))?;
+-        if let Some(reply_to) = authorized.envelope.scope(Scope::Reply) {
++        if let Some(reply_to) = authorized
++            .envelope
++            .scope(Scope::Reply)
++            .filter(|_| !is_correlated_session_cancel(&authorized.envelope))
++        {
+             let mut pending = self.pending.lock();
+             let entry = pending.get(reply_to).ok_or(DispatchError::ReplyMismatch)?;
+             if entry.deadline <= Instant::now() || !entry.expectation.matches(&authorized.envelope)
+@@ -866,7 +870,8 @@
+ }
+ impl HeldRequest {
+     pub(super) fn seal(authorized: AuthorizedEnvelope) -> Result<Self, DispatchError> {
+-        if authorized.envelope.scope(Scope::Reply).is_some()
++        if (authorized.envelope.scope(Scope::Reply).is_some()
++            && !is_correlated_session_cancel(&authorized.envelope))
+             || is_reply_kind(authorized.envelope.kind())
+             || authorized.envelope.scope(Scope::Operation).is_none()
+         {
+@@ -893,6 +898,15 @@
+     fn drop(&mut self) {
+         self.close();
+     }
++}
++
++/// A cancellation reference is a command assertion, not a reply observation.
++/// Hosts must validate ownership of that original invitation separately; the
++/// fresh signature, named scope and resource authority still apply normally.
++pub(super) fn is_correlated_session_cancel(e: &Envelope) -> bool {
++    e.kind() == "session.cancel"
++        && e.scope(Scope::Reply).is_some()
++        && e.scope(Scope::Operation).is_some()
+ }
+ 
+ fn is_reply_kind(kind: &str) -> bool {
+--- a/crates/uctp/rvoip-uctp/src/v2/auth_peer/step_up.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/auth_peer/step_up.rs
+@@ -115,7 +115,9 @@
+             route.renew()?;
+         }
+ 
+-        let requirement = if envelope.scope(Scope::Reply).is_none() {
++        let requirement = if envelope.scope(Scope::Reply).is_none()
++            || super::super::auth_dispatch::is_correlated_session_cancel(envelope)
++        {
+             self.config.authority.assurance_requirement(
+                 &binding.credential,
+                 &binding.device,
+--- a/crates/uctp/rvoip-uctp/src/v2/reachability.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/reachability.rs
+@@ -243,6 +243,17 @@
+     /// The captured route incarnation/lease must still be current.
+     pub fn matches_peer(&self, peer: &Arc<rvoip_core::peer_admission::PeerAdmission>) -> bool {
+         self.current() && Arc::ptr_eq(&self.state.peer, peer)
++    }
++    /// Metadata comparison only. A caller must supply a separately authorized
++    /// current invocation; this neither refreshes nor grants a route lease.
++    pub fn same_physical_admission(
++        &self,
++        peer: &Arc<rvoip_core::peer_admission::PeerAdmission>,
++    ) -> bool {
++        Arc::ptr_eq(&self.state.peer, peer)
++    }
++    pub fn physical_is_live(&self) -> bool {
++        !self.state.physical.is_cancelled()
+     }
+     pub fn same_physical_peer(&self, other: &Self) -> bool {
+         Arc::ptr_eq(&self.state.peer, &other.state.peer)

@@ -1,0 +1,329 @@
+{
+  "kind": "gate6-component-evidence",
+  "recorded_at": "2026-10-19T21:51:10.083681+00:00",
+  "task": "G6-040",
+  "status": "in-progress",
+  "passed": true,
+  "scope": "Actual original-private-human-target native handoff: observe/leave in Session/Conversation scope plus durable zero-effect preflight denial and public problem status; provider-free local macOS arm64 QUIC/G.711.",
+  "schema_version": 54,
+  "pinned_patches": 109,
+  "source_lock": {
+    "path": "dependencies/source-lock.json",
+    "sha256": "f547c50c795d0957d09b102c2583c100d33b70be1e65f92cb6c57be912bb83c9"
+  },
+  "verification": [
+    {
+      "name": "store",
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "--offline",
+        "-j1",
+        "-p",
+        "connect-store",
+        "--lib",
+        "--",
+        "--test-threads=2"
+      ],
+      "path": ".local/gate-6/handoff-refusal-final-store.log",
+      "exit_code": 0,
+      "sha256": "bd978dca3fc04504b905fffd8742e425e7ca663185efa9789eab3b535bd4ffaa",
+      "passed": 550,
+      "ignored": 3,
+      "test_binaries": [
+        {
+          "path": "target/debug/deps/connect_store-500690b8d898aed1",
+          "sha256": "7391eaec929460ab2292eea7f403b37c4fac94ae62489605e14a15f9ff800637"
+        }
+      ]
+    },
+    {
+      "name": "libraries",
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "--offline",
+        "-j1",
+        "-p",
+        "connect-client",
+        "-p",
+        "connect-protocol",
+        "-p",
+        "connect-service",
+        "--lib",
+        "--",
+        "--test-threads=2"
+      ],
+      "path": ".local/gate-6/handoff-refusal-final-libraries.log",
+      "exit_code": 0,
+      "sha256": "ace9dc8de760eaae182e8b3bbd3645e92d811ec16006fb62c51cfad8f7f81a34",
+      "passed": 94,
+      "ignored": 0,
+      "test_binaries": [
+        {
+          "path": "target/debug/deps/connect_client-2762510abbc111f5",
+          "sha256": "69491cab42842f499ba7253014daf534c9c1790f36daf13a97236eca666fc10e"
+        },
+        {
+          "path": "target/debug/deps/connect_protocol-d4433b2cc5f1474e",
+          "sha256": "0cf301a400280745ead63bfe0d526454171feeebb94051b2a560b6a43f75c377"
+        },
+        {
+          "path": "target/debug/deps/connect_service-f0c8ec9c56711d06",
+          "sha256": "8ebcaf55cb12b0211e8718fc9e67ea414105c2bda644543bf17c4fef40780669"
+        }
+      ]
+    },
+    {
+      "name": "transitions",
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "--offline",
+        "-j1",
+        "-p",
+        "connect-server",
+        "--test",
+        "gate6_canonical_transitions",
+        "--",
+        "--test-threads=2"
+      ],
+      "path": ".local/gate-6/handoff-refusal-final-transitions2.log",
+      "exit_code": 0,
+      "sha256": "0420540a64cf3d495c7716a2ddb84b4b10b82c5c7ff44f571c48999c16aecbab",
+      "passed": 5,
+      "ignored": 0,
+      "test_binaries": [
+        {
+          "path": "target/debug/deps/gate6_canonical_transitions-3c1fd287bcc3e17e",
+          "sha256": "04f8a2de59d1cfc2452259cb3ed3270bf6f1a6e5fc798979a3f525d65787d23b"
+        }
+      ]
+    },
+    {
+      "name": "actual-native-handoff",
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "--offline",
+        "-j1",
+        "-p",
+        "connect-server",
+        "--test",
+        "gate6_canonical_runtime",
+        "production_native_private_handoff",
+        "--",
+        "--test-threads=1",
+        "--nocapture"
+      ],
+      "path": ".local/gate-6/handoff-refusal-native.log",
+      "exit_code": 0,
+      "sha256": "a07990b399c2379763e2d9f6c155d0a06e6f5224e546aa5bc3e042ea907c5b65",
+      "passed": 1,
+      "ignored": 0,
+      "test_binaries": [
+        {
+          "path": "target/debug/deps/gate6_canonical_runtime-09465e13dc9bb922",
+          "sha256": "dec001c8c89a82f02b374f1b9448e7e43987eec63acc3d85a06b6b7a29b3d7f6"
+        }
+      ]
+    }
+  ],
+  "passed_rust_tests": 650,
+  "ignored_note": "Three Store crash helpers invoked by passing parents; not standalone passes.",
+  "selected_handoff_regressions": {
+    "path": ".local/gate-6/handoff-refusal-store2.log",
+    "sha256": "b2e7abd929be3a3b5b6b70a8b7419454f91c131c496789fadac03ad5c886ffbc",
+    "passed": 38,
+    "not_additional_to_full_suite": true
+  },
+  "native_behavior": {
+    "handoff_scenarios": 4,
+    "preflight_refusal_cases": 2,
+    "strict_audio_probes": 27,
+    "passed": [
+      "Observe and leave in Session and Conversation role scope",
+      "Exact original private duplex and silent remote hold remain usable after copied-policy and unsupported-profile refusal",
+      "Public failure reason and idempotent replay, no native effect or success result",
+      "Session scope preserves default roles; Conversation scope changes defaults and increments revision once",
+      "Actual incoming/retained duplex; observer receives with zero publication",
+      "Reader expiry and observer EOF continuity; original retained Connection/main Session persist",
+      "Two remaining physical slots and public outgoing Connection retired",
+      "Stable policy operation record and actual public completion result; one attempt on replay"
+    ]
+  },
+  "static_checks": [
+    {
+      "name": "wire",
+      "command": [
+        "python3",
+        "scripts/generate-gate6-schemas.py",
+        "--check"
+      ],
+      "path": ".local/gate-6/handoff-refusal-wire.log",
+      "sha256": "2f420729df64a60c717aec134b117888f5772d20553050f2ad8af91db0f6c14b",
+      "exit_code": 0
+    },
+    {
+      "name": "events",
+      "command": [
+        "python3",
+        "scripts/generate-gate6-event-reference.py",
+        "--check"
+      ],
+      "path": ".local/gate-6/handoff-refusal-events.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "exit_code": 0
+    },
+    {
+      "name": "http",
+      "command": [
+        "python3",
+        "scripts/generate-canonical-http-openapi.py",
+        "--check"
+      ],
+      "path": ".local/gate-6/handoff-refusal-http.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "exit_code": 0
+    },
+    {
+      "name": "contracts",
+      "command": [
+        ".local/gate-6/verification-venv/bin/python",
+        "scripts/check-gate6-contracts.py",
+        "--output",
+        ".local/gate-6/handoff-refusal-contracts.json"
+      ],
+      "path": ".local/gate-6/handoff-refusal-contracts.log",
+      "sha256": "0d7eaec1890a697fdbc4795fefda1fcf7165edb61512a82cc6993dc7399fccef",
+      "exit_code": 0
+    },
+    {
+      "name": "dependencies",
+      "command": [
+        "bash",
+        "scripts/prepare-dependencies.sh"
+      ],
+      "path": ".local/gate-6/handoff-refusal-dependencies.log",
+      "sha256": "fd9d7b181e3ccba9b643af55a186cf132c60aac99c734b2ee4e4e549afe5ffc2",
+      "exit_code": 0
+    },
+    {
+      "name": "format",
+      "command": [
+        "bash",
+        "scripts/format.sh",
+        "--",
+        "--check"
+      ],
+      "path": ".local/gate-6/handoff-refusal-final-format.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "exit_code": 0
+    },
+    {
+      "name": "diff",
+      "command": [
+        "git",
+        "diff",
+        "--check"
+      ],
+      "path": ".local/gate-6/handoff-refusal-final-diff.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "exit_code": 0
+    },
+    {
+      "name": "progress",
+      "command": [
+        "python3",
+        "scripts/check-gate6-progress.py"
+      ],
+      "path": ".local/gate-6/handoff-refusal-final-progress.log",
+      "sha256": "f3b9b4aefb902a70b4b09f47531c703f1026a2ea42e13759c3e88205978e6125",
+      "exit_code": 0
+    }
+  ],
+  "typescript_build": {
+    "command": [
+      "npm",
+      "--prefix",
+      "sdk/typescript",
+      "run",
+      "build"
+    ],
+    "path": ".local/gate-6/handoff-refusal-typescript-final.log",
+    "sha256": "f6ea279e1bcf369805db5e0aaea8d5b71fdac16bad265e77d5b6ff179cbeed02",
+    "exit_code": 0
+  },
+  "implemented": [
+    "Exact current-owner zero-native-effect preflight refusal; no prepared/uncertain settlement through this path",
+    "Preserve optional durable problem in Store/public signed and HTTP status and transition replies; TypeScript operation type",
+    "Distinguish missing actual native audio readiness from definitive unsupported profile",
+    "Actual public-client role-scope/default-revision and refusal/route-continuity behavior"
+  ],
+  "not_implemented": [
+    "Extend actual pinned Core for generic prepared/fresh safe public AI readiness and atomic admission without early candidate publication or private content delivery. Integrate through current Store media authority and public SDK.",
+    "Qualify actual AI/human directions and competing/stale/permission/cancel cases.",
+    "Implement owned read-only attributed uncertainty/restart recovery without borrowing expired execution credentials or repeating IO."
+  ],
+  "initial_test_source_snapshot": {
+    "path": ".local/gate-6/handoff-refusal-inputs.json",
+    "sha256": "f0f6a66075789eeea7490bdc601d810aeb7a25f477b46ddd03e67241b37b1777",
+    "inputs": 1172
+  },
+  "sealed_source_snapshot": {
+    "path": ".local/gate-6/handoff-refusal-sealed-inputs.json",
+    "sha256": "5a1e818eb695777cce90a01f3c3159dc12322585956dd46b494c78bedb70b399",
+    "inputs": 1172
+  },
+  "pre_seal_delta": {
+    "path": ".local/gate-6/handoff-refusal-pre-seal-delta.json",
+    "sha256": "98320921f307a469ed4e9722aadcfbdd653c206101cc2c89974b49fe3dd4aed4",
+    "detail": {
+      "delta": {
+        "crates/connect-server/tests/gate6_canonical_transitions.rs": {
+          "before": "30f299e13747f415c89c64760b2fff066eda1efbe4ef61df158d0b522db7290b",
+          "after": "536aa9401e388e99118094b0fb96e2fd2f4ba76a9187baaf5b2aa81757465048"
+        },
+        "docs/developer/native-handoff.md": {
+          "before": "d857cf2f2181ed9f0deb7e15b07de070cb51bef36a32825a75071dd5d8a9a0dc",
+          "after": "71598f02e1dce77e4206f1369f4bb6d5ac37aea7bb82d065195bb223e055fd00"
+        }
+      },
+      "production_and_other_rust_tests_unchanged": true,
+      "public_transition_test_delta_covered_by": ".local/gate-6/handoff-refusal-final-transitions2.log",
+      "guide": "Verified native role scopes and refusal/route-continuity documentation"
+    }
+  },
+  "post_test_documentation_delta": {
+    "docs/connect-gate-6-implementation.html": {
+      "before": "e4c6e86747c1a3bf8452f1e32624dec00fcb1258f8f8a16c7e230121c3009bbd",
+      "after": "ff5336bc633d5e93acb671ea12944725372e7a872345575e8ecd0a915431dd62"
+    }
+  },
+  "production_and_other_rust_test_inputs_unchanged": true,
+  "previous_checkpoint": {
+    "path": "docs/evidence/gate-6/native-handoff-native.json",
+    "sha256": "8d41b724b5c49970a14dee6a0c67acad1f1633e86ab501a8b6907ade109fc43a"
+  },
+  "next_requirements": {
+    "path": ".local/gate-6/handoff-refusal-next.json",
+    "sha256": "3f977b90b4c39104d54d9cb5b7a7682d7ce985c53a49b6f9100ef0d167b81254"
+  },
+  "diagnostics": [
+    "Three original synthetic public transition cases assumed missing-policy handoff stayed accepted indefinitely; they now wait for the owned invalid-request refusal and assert stable signed/HTTP problem, zero effects, unchanged topology, replay, terminal-preserving cancel and attributed failed reconciliation. The targeted five-test rerun passes. The earlier failed log is retained at .local/gate-6/handoff-refusal-final-transitions.log.",
+    "Initial selected test compile identified the missing Store OperationRecord problem field; authoritative row decoding and canonical replies now retain it. Final selected/full/public/native verification passes.",
+    "Native fixture teardown logged two cancelled connection lifecycle tasks; all physical slot/retirement assertions and all four scenarios completed successfully."
+  ],
+  "not_claimed": [
+    "Actual generic prepared/fresh safe AI target or AI/human direction qualification",
+    "Complete actual competing/stale/permission/cancel/unknown/restart matrix",
+    "Whole-workspace or upstream425 Core test rerun",
+    "Live model/provider, Linux/browser/remote/performance/acceptance qualification",
+    "Commit, push or publication"
+  ],
+  "all_started_processes_terminal": true
+}

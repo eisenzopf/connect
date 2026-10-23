@@ -89,10 +89,23 @@ pub(crate) fn begin(
         expires_at,
     };
     c.execute(
-        "INSERT INTO artifacts(id,conversation_id,owner_id,name,media_type,expected_size,expected_sha256,state,created_at,expires_at) VALUES(?1,?2,?3,?4,?5,?6,?7,?8,?9,?10)",
+        "INSERT INTO artifacts(id,conversation_id,owner_id,name,media_type,expected_size,expected_sha256,state,created_at,expires_at,audience_mode) VALUES(?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,'explicit')",
         params![artifact.id, artifact.conversation_id, artifact.owner_id, artifact.name, artifact.media_type, artifact.size, artifact.sha256, artifact.state, artifact.created_at, artifact.expires_at],
     )
     .map_err(|_| Error::storage())?;
+    for identity in recipients {
+        let member = crate::audience::member(c, identity, conversation_id, true)?;
+        c.execute(
+            "INSERT INTO artifact_audiences VALUES(?1,?2,?3,?4)",
+            params![
+                artifact.id,
+                conversation_id,
+                member.participant_id,
+                member.membership_epoch
+            ],
+        )
+        .map_err(|_| Error::storage())?;
+    }
     emit(c, recipients, &artifact, "artifact_started")?;
     Ok(artifact)
 }

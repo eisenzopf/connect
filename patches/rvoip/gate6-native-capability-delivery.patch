@@ -1,0 +1,1513 @@
+--- /dev/null
++++ b/crates/foundation/rvoip-core/src/orchestrator/participant_control/capability_disclosure.rs
+@@ -0,0 +1,208 @@
++//! Exact managed source/listener incarnations, without retained permission.
++use super::*;
++use crate::staged_streams::{
++    capability_disclosure::{SceneCapabilityDisclosure, SceneCapabilityListener},
++    StreamControlError, StreamController,
++};
++use std::task::Poll;
++
++#[derive(Clone)]
++struct LifeStamp {
++    state: Weak<Mutex<ConnectionLifecycleState>>,
++    generation: u64,
++}
++impl LifeStamp {
++    fn new(ticket: &ConnectionLifecycleTicket) -> Self {
++        Self {
++            state: Arc::downgrade(&ticket.state),
++            generation: ticket.generation,
++        }
++    }
++    fn matches(&self, ticket: &ConnectionLifecycleTicket) -> bool {
++        self.generation == ticket.generation
++            && Weak::ptr_eq(&self.state, &Arc::downgrade(&ticket.state))
++    }
++}
++fn live(ticket: &ConnectionLifecycleTicket, state: &ConnectionLifecycleState) -> bool {
++    state.active
++        && !state.retired
++        && state.generation == ticket.generation
++        && state
++            .peer_admission
++            .as_ref()
++            .is_none_or(|permit| !permit.peer.is_closed())
++}
++fn busy() -> ParticipantControlError {
++    StreamControlError::NotReady.into()
++}
++
++/// An actual local declaration's original private audience and source
++/// incarnation. This is metadata, never permission to deliver a descriptor.
++#[derive(Clone)]
++pub struct NativeCapabilityDisclosure {
++    runtime: Weak<ManagedParticipantSession>,
++    session: SessionId,
++    source: ConnectionId,
++    life: LifeStamp,
++    scene: SceneCapabilityDisclosure,
++}
++/// An actual managed recipient incarnation. Native composition must additionally
++/// seal its original physical writer and retain fresh sender/recipient policy.
++#[derive(Clone)]
++pub struct NativeCapabilityListener {
++    runtime: Weak<ManagedParticipantSession>,
++    session: SessionId,
++    recipient: ConnectionId,
++    life: LifeStamp,
++    scene: SceneCapabilityListener,
++}
++impl std::fmt::Debug for NativeCapabilityDisclosure {
++    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
++        f.write_str("NativeCapabilityDisclosure(redacted)")
++    }
++}
++impl std::fmt::Debug for NativeCapabilityListener {
++    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
++        f.write_str("NativeCapabilityListener(redacted)")
++    }
++}
++
++impl Orchestrator {
++    /// Resolve the managed runtime and actual controller. The host must have
++    /// already retained current named declaration permission. `commit` is a
++    /// synchronous leaf metadata change with no Core/policy reentry or IO.
++    pub fn commit_native_capability_declaration<T>(
++        &self,
++        session: &SessionId,
++        source: &ConnectionId,
++        controller: &Arc<StreamController>,
++        principal: &AuthenticatedPrincipal,
++        expected: u64,
++        commit: impl FnOnce() -> T,
++    ) -> ControlResult<(T, NativeCapabilityDisclosure)> {
++        let runtime = self.participant_runtime(session)?;
++        let state = runtime.state.try_lock().map_err(|_| busy())?;
++        let route = state
++            .routes
++            .get(source)
++            .ok_or(ParticipantControlError::Authority)?;
++        let life = route.lifecycle.state.try_lock().map_err(|_| busy())?;
++        if state.ended || route.lifecycle.connection_id != *source || !live(&route.lifecycle, &life)
++        {
++            return Err(ParticipantControlError::Authority);
++        }
++        let scene = runtime
++            .mixer
++            .staged
++            .as_ref()
++            .ok_or(ParticipantControlError::Unsupported)?;
++        let (result, disclosure) =
++            scene.commit_capability_declaration(source, controller, principal, expected, commit)?;
++        Ok((
++            result,
++            NativeCapabilityDisclosure {
++                runtime: Arc::downgrade(&runtime),
++                session: session.clone(),
++                source: source.clone(),
++                life: LifeStamp::new(&route.lifecycle),
++                scene: disclosure,
++            },
++        ))
++    }
++
++    pub fn native_capability_listener(
++        &self,
++        session: &SessionId,
++        recipient: &ConnectionId,
++        controller: &Arc<StreamController>,
++        principal: &AuthenticatedPrincipal,
++    ) -> ControlResult<NativeCapabilityListener> {
++        let runtime = self.participant_runtime(session)?;
++        let state = runtime.state.try_lock().map_err(|_| busy())?;
++        let route = state
++            .routes
++            .get(recipient)
++            .ok_or(ParticipantControlError::Authority)?;
++        let life = route.lifecycle.state.try_lock().map_err(|_| busy())?;
++        if state.ended
++            || route.lifecycle.connection_id != *recipient
++            || !live(&route.lifecycle, &life)
++        {
++            return Err(ParticipantControlError::Authority);
++        }
++        let scene = runtime
++            .mixer
++            .staged
++            .as_ref()
++            .ok_or(ParticipantControlError::Unsupported)?;
++        Ok(NativeCapabilityListener {
++            runtime: Arc::downgrade(&runtime),
++            session: session.clone(),
++            recipient: recipient.clone(),
++            life: LifeStamp::new(&route.lifecycle),
++            scene: scene.capability_listener(recipient, controller, principal)?,
++        })
++    }
++
++    /// Poll actual IO under the original and current private audience, exact
++    /// managed membership, lifecycle, and credential incarnations. This does
++    /// not acquire domain permission. The caller must own fresh current source
++    /// and recipient guards and the exact sealed native physical writer.
++    /// `io` must be bounded and must not reenter Core, policy or a controller.
++    /// No engine guard is retained when this method returns Pending.
++    pub fn poll_native_capability_io<T>(
++        &self,
++        disclosure: &NativeCapabilityDisclosure,
++        listener: &NativeCapabilityListener,
++        io: impl FnOnce() -> Poll<T>,
++    ) -> ControlResult<Poll<T>> {
++        if disclosure.session != listener.session
++            || disclosure.source == listener.recipient
++            || !Weak::ptr_eq(&disclosure.runtime, &listener.runtime)
++        {
++            return Err(ParticipantControlError::Authority);
++        }
++        let runtime = self.participant_runtime(&disclosure.session)?;
++        if !Weak::ptr_eq(&disclosure.runtime, &Arc::downgrade(&runtime)) {
++            return Err(ParticipantControlError::Authority);
++        }
++        let state = runtime.state.try_lock().map_err(|_| busy())?;
++        if state.ended {
++            return Err(ParticipantControlError::Authority);
++        }
++        let source = state
++            .routes
++            .get(&disclosure.source)
++            .ok_or(ParticipantControlError::Authority)?;
++        let target = state
++            .routes
++            .get(&listener.recipient)
++            .ok_or(ParticipantControlError::Authority)?;
++        if !disclosure.life.matches(&source.lifecycle) || !listener.life.matches(&target.lifecycle)
++        {
++            return Err(ParticipantControlError::Authority);
++        }
++        let tickets = if disclosure.source < listener.recipient {
++            [&source.lifecycle, &target.lifecycle]
++        } else {
++            [&target.lifecycle, &source.lifecycle]
++        };
++        let lives = tickets
++            .iter()
++            .map(|ticket| ticket.state.try_lock().map_err(|_| busy()))
++            .collect::<ControlResult<Vec<_>>>()?;
++        if tickets
++            .iter()
++            .zip(&lives)
++            .any(|(ticket, life)| !live(ticket, life))
++        {
++            return Err(ParticipantControlError::Authority);
++        }
++        let scene = runtime
++            .mixer
++            .staged
++            .as_ref()
++            .ok_or(ParticipantControlError::Unsupported)?;
++        Ok(scene.poll_capability_io(&disclosure.scene, &listener.scene, io)?)
++    }
++}
+--- a/crates/foundation/rvoip-core/src/orchestrator/participant_control.rs
++++ b/crates/foundation/rvoip-core/src/orchestrator/participant_control.rs
+@@ -4,6 +4,9 @@
+ //! installs a policy backed by its current grants. Policy leases hold authority
+ //! stable for a synchronous commit. An explicit held control retains the caller's
+ //! invocation guard across bounded preparation; no packet port owns that proof.
++
++pub mod capability_disclosure;
++pub use capability_disclosure::{NativeCapabilityDisclosure, NativeCapabilityListener};
+ 
+ mod outbound;
+ pub use outbound::{ActivatedInitialParticipant, OutboundParticipantPreparation};
+--- a/crates/foundation/rvoip-core/src/staged_streams/audience.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/audience.rs
+@@ -69,15 +69,21 @@
+         }
+     }
+     pub(super) fn matches(&self, controller: &StreamController) -> bool {
++        self.matches_principal(controller, &controller.credential_snapshot().principal)
++    }
++    // An exact credential is already held; never reenter its mutex here.
++    pub(super) fn matches_principal(
++        &self,
++        controller: &StreamController,
++        principal: &AuthenticatedPrincipal,
++    ) -> bool {
+         self.controller
+             .upgrade()
+             .is_some_and(|old| std::ptr::eq(old.as_ref(), controller))
+             && self.member.participant() == controller.origin_member.participant()
+             && self.member.identity() == controller.origin_member.identity()
+             && self.member.epoch() == controller.origin_member.epoch()
+-            && self
+-                .owner
+-                .has_same_owner(&controller.credential_snapshot().principal)
++            && self.owner.has_same_owner(principal)
+     }
+ }
+ #[derive(Clone)]
+@@ -88,6 +94,15 @@
+ impl ClosedAudience {
+     pub(super) fn contains(&self, controller: &StreamController) -> bool {
+         self.origins.iter().any(|origin| origin.matches(controller))
++    }
++    pub(super) fn contains_principal(
++        &self,
++        controller: &StreamController,
++        principal: &AuthenticatedPrincipal,
++    ) -> bool {
++        self.origins
++            .iter()
++            .any(|origin| origin.matches_principal(controller, principal))
+     }
+ }
+ /// A receiver-specific projection of the same scene-issued closed audience.
+--- a/crates/foundation/rvoip-core/src/staged_streams/capability_declaration.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/capability_declaration.rs
+@@ -5,11 +5,11 @@
+     /// The host must independently hold current named declaration authority.
+     /// `commit` must be a leaf: no Core/controller or domain-policy reentry,
+     /// network IO or retained guard. This never changes media or grants rights.
+-    pub fn commit_capability_declaration<T>(
++    pub(super) fn commit_capability_declaration<T>(
+         &self,
+         principal: &AuthenticatedPrincipal,
+         expected_revision: u64,
+-        commit: impl FnOnce() -> T,
++        commit: impl FnOnce(&CredentialSnapshot) -> T,
+     ) -> ControlResult<T> {
+         let state = self
+             .state
+@@ -31,6 +31,6 @@
+         {
+             return Err(StreamControlError::Authority);
+         }
+-        Ok(commit())
++        Ok(commit(&credential))
+     }
+ }
+--- /dev/null
++++ b/crates/foundation/rvoip-core/src/staged_streams/capability_disclosure.rs
+@@ -0,0 +1,221 @@
++//! Scene-issued disclosure metadata. It contains no current domain grant.
++use super::audience::ClosedAudience;
++use super::media_scene::GuardedMediaScene;
++use super::*;
++use std::task::Poll;
++
++#[derive(Clone)]
++struct EndpointStamp {
++    controller: Weak<StreamController>,
++    credential: CredentialSnapshot,
++}
++impl EndpointStamp {
++    fn new(controller: &Arc<StreamController>, credential: &CredentialSnapshot) -> Self {
++        Self {
++            controller: Arc::downgrade(controller),
++            credential: credential.clone(),
++        }
++    }
++    fn matches(&self, current: &CredentialSnapshot) -> bool {
++        current.revision == self.credential.revision
++            && reliable_data::same_credential(&current.principal, &self.credential.principal)
++    }
++}
++
++#[derive(Clone)]
++pub(crate) struct SceneCapabilityDisclosure {
++    scene: Weak<GuardedMediaScene>,
++    source: EndpointStamp,
++    // Preserve these actual groups even when a later return removes them.
++    original: Vec<(Arc<ClosedAudience>, bool)>,
++}
++#[derive(Clone)]
++pub(crate) struct SceneCapabilityListener {
++    scene: Weak<GuardedMediaScene>,
++    recipient: EndpointStamp,
++}
++
++impl GuardedMediaScene {
++    /// The caller holds the exact managed runtime/lifecycle source fences.
++    /// Resolve domain policy before this method. `commit` is a synchronous
++    /// leaf and must not enter Core, a controller, policy, or network IO.
++    pub(crate) fn commit_capability_declaration<T>(
++        self: &Arc<Self>,
++        connection: &ConnectionId,
++        controller: &Arc<StreamController>,
++        principal: &AuthenticatedPrincipal,
++        expected: u64,
++        commit: impl FnOnce() -> T,
++    ) -> ControlResult<(T, SceneCapabilityDisclosure)> {
++        let members = self
++            .members
++            .try_lock()
++            .map_err(|_| StreamControlError::NotReady)?;
++        let registry = self
++            .audiences
++            .try_lock()
++            .map_err(|_| StreamControlError::NotReady)?;
++        if !members
++            .get(connection)
++            .is_some_and(|m| Arc::ptr_eq(&m.controller, controller))
++        {
++            return Err(StreamControlError::Authority);
++        }
++        // Pure comparisons against the exact principal checked under the
++        // credential mutex below; no audience callback reenters that mutex.
++        let original = registry
++            .groups
++            .values()
++            .map(|group| {
++                (
++                    group.clone(),
++                    group.contains_principal(controller, principal),
++                )
++            })
++            .collect();
++        controller.commit_capability_declaration(principal, expected, |credential| {
++            let result = commit();
++            (
++                result,
++                SceneCapabilityDisclosure {
++                    scene: Arc::downgrade(self),
++                    source: EndpointStamp::new(controller, credential),
++                    original,
++                },
++            )
++        })
++    }
++
++    pub(crate) fn capability_listener(
++        self: &Arc<Self>,
++        connection: &ConnectionId,
++        controller: &Arc<StreamController>,
++        principal: &AuthenticatedPrincipal,
++    ) -> ControlResult<SceneCapabilityListener> {
++        let members = self
++            .members
++            .try_lock()
++            .map_err(|_| StreamControlError::NotReady)?;
++        if !members
++            .get(connection)
++            .is_some_and(|m| Arc::ptr_eq(&m.controller, controller))
++        {
++            return Err(StreamControlError::Authority);
++        }
++        let state = controller
++            .state
++            .try_lock()
++            .map_err(|_| StreamControlError::NotReady)?;
++        let credential = controller
++            .credential
++            .try_lock()
++            .map_err(|_| StreamControlError::NotReady)?;
++        if state.closed
++            || controller.shutdown.is_cancelled()
++            || !reliable_data::same_credential(&credential.principal, principal)
++            || StreamController::principal_expiry(principal)
++                .is_some_and(|t| t <= chrono::Utc::now())
++        {
++            return Err(StreamControlError::Authority);
++        }
++        Ok(SceneCapabilityListener {
++            scene: Arc::downgrade(self),
++            recipient: EndpointStamp::new(controller, &credential),
++        })
++    }
++
++    /// Fence one actual bounded IO poll. No guard survives Pending and no
++    /// supplied IO callback may reenter Core, policy, or either controller.
++    /// The caller independently retains fresh source/recipient permission.
++    pub(crate) fn poll_capability_io<T>(
++        self: &Arc<Self>,
++        disclosure: &SceneCapabilityDisclosure,
++        listener: &SceneCapabilityListener,
++        io: impl FnOnce() -> Poll<T>,
++    ) -> ControlResult<Poll<T>> {
++        let own = Arc::downgrade(self);
++        if !Weak::ptr_eq(&disclosure.scene, &own) || !Weak::ptr_eq(&listener.scene, &own) {
++            return Err(StreamControlError::Authority);
++        }
++        let source = disclosure
++            .source
++            .controller
++            .upgrade()
++            .ok_or(StreamControlError::Cancelled)?;
++        let target = listener
++            .recipient
++            .controller
++            .upgrade()
++            .ok_or(StreamControlError::Cancelled)?;
++        if Arc::ptr_eq(&source, &target) {
++            return Err(StreamControlError::Authority);
++        }
++        let members = self
++            .members
++            .try_lock()
++            .map_err(|_| StreamControlError::NotReady)?;
++        let registry = self
++            .audiences
++            .try_lock()
++            .map_err(|_| StreamControlError::NotReady)?;
++        if !members
++            .get(&source.connection)
++            .is_some_and(|m| Arc::ptr_eq(&m.controller, &source))
++            || !members
++                .get(&target.connection)
++                .is_some_and(|m| Arc::ptr_eq(&m.controller, &target))
++        {
++            return Err(StreamControlError::Authority);
++        }
++        let controllers = if source.connection < target.connection {
++            [&source, &target]
++        } else {
++            [&target, &source]
++        };
++        let states = controllers
++            .iter()
++            .map(|c| c.state.try_lock().map_err(|_| StreamControlError::NotReady))
++            .collect::<ControlResult<Vec<_>>>()?;
++        let credentials = controllers
++            .iter()
++            .map(|c| {
++                c.credential
++                    .try_lock()
++                    .map_err(|_| StreamControlError::NotReady)
++            })
++            .collect::<ControlResult<Vec<_>>>()?;
++        let source_index = usize::from(!Arc::ptr_eq(controllers[0], &source));
++        let target_index = 1 - source_index;
++        if controllers
++            .iter()
++            .zip(&states)
++            .zip(&credentials)
++            .any(|((c, state), credential)| {
++                state.closed
++                    || c.shutdown.is_cancelled()
++                    || StreamController::principal_expiry(&credential.principal)
++                        .is_some_and(|t| t <= chrono::Utc::now())
++            })
++            || !disclosure.source.matches(&credentials[source_index])
++            || !listener.recipient.matches(&credentials[target_index])
++        {
++            return Err(StreamControlError::Authority);
++        }
++        let source_principal = &credentials[source_index].principal;
++        let target_principal = &credentials[target_index].principal;
++        if disclosure
++            .original
++            .iter()
++            .any(|(group, inside)| *inside != group.contains_principal(&target, target_principal))
++            || registry.groups.values().any(|group| {
++                group.contains_principal(&source, source_principal)
++                    != group.contains_principal(&target, target_principal)
++            })
++        {
++            return Err(StreamControlError::Authority);
++        }
++        // Holding both registries and exact endpoint credentials serializes
++        // privacy, membership, retirement and rebind with this real IO poll.
++        Ok(io())
++    }
++}
+--- a/crates/foundation/rvoip-core/src/staged_streams/tests/private_consult.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/private_consult.rs
+@@ -2307,3 +2307,133 @@
+ 
+ #[path = "private_consult/endpoint_preparation.rs"]
+ mod endpoint_preparation;
++
++// Controlled engine callbacks only; actual native socket custody is qualified
++// separately through Connect. These real scene handles preserve original groups.
++#[tokio::test]
++async fn capability_disclosure_preserves_original_private_audience_after_return_and_checks_current_scene(
++) {
++    let mut room = Room::new().await;
++    let alice = room.nodes["alice"].controller.clone();
++    let bob = room.nodes["bob"].controller.clone();
++    let public = room.nodes["public"].controller.clone();
++    let principal = alice.credential_snapshot().principal;
++    let bob_listener = room
++        .scene
++        .capability_listener(&bob.connection, &bob, &bob.credential_snapshot().principal)
++        .unwrap();
++    let public_listener = room
++        .scene
++        .capability_listener(
++            &public.connection,
++            &public,
++            &public.credential_snapshot().principal,
++        )
++        .unwrap();
++    let (observed, public_descriptor) = room
++        .scene
++        .commit_capability_declaration(
++            &alice.connection,
++            &alice,
++            &principal,
++            alice.revision(),
++            || "committed",
++        )
++        .unwrap();
++    assert_eq!(observed, "committed");
++    let calls = AtomicUsize::new(0);
++    let effect = || {
++        calls.fetch_add(1, Ordering::SeqCst);
++        std::task::Poll::Ready(())
++    };
++    assert!(room
++        .scene
++        .poll_capability_io(&public_descriptor, &bob_listener, &effect)
++        .unwrap()
++        .is_ready());
++    assert_eq!(calls.load(Ordering::SeqCst), 1);
++    room.add("consult", Some("public"), true).await;
++    let consult = room.nodes["consult"].controller.clone();
++    let consult_listener = room
++        .scene
++        .capability_listener(
++            &consult.connection,
++            &consult,
++            &consult.credential_snapshot().principal,
++        )
++        .unwrap();
++    // Prepared private endpoints are already quarantined from public metadata.
++    assert!(room
++        .scene
++        .poll_capability_io(&public_descriptor, &consult_listener, &effect)
++        .is_err());
++    let (_, handle) = room.apply(room.begin_plan()).await.unwrap();
++    let (_, private_descriptor) = room
++        .scene
++        .commit_capability_declaration(
++            &alice.connection,
++            &alice,
++            &principal,
++            alice.revision(),
++            || (),
++        )
++        .unwrap();
++    assert!(room
++        .scene
++        .poll_capability_io(&private_descriptor, &consult_listener, &effect)
++        .unwrap()
++        .is_ready());
++    assert_eq!(calls.load(Ordering::SeqCst), 2);
++    assert!(room
++        .scene
++        .poll_capability_io(&private_descriptor, &bob_listener, &effect)
++        .is_err());
++    // Same Participant and credential at another exact Connection are outside.
++    assert!(room
++        .scene
++        .poll_capability_io(&private_descriptor, &public_listener, &effect)
++        .is_err());
++    assert!(room
++        .scene
++        .poll_capability_io(&public_descriptor, &bob_listener, &effect)
++        .is_err());
++    let restore = room
++        .scene
++        .plan_restore_audio_audience(
++            &handle,
++            "capability-return".into(),
++            room.scene.audience_revision(),
++        )
++        .unwrap();
++    room.apply(restore).await.unwrap();
++    // Current main routing is public again. Original private metadata remains
++    // private, even though a check against only the current group would pass.
++    assert!(room
++        .scene
++        .poll_capability_io(&public_descriptor, &bob_listener, &effect)
++        .unwrap()
++        .is_ready());
++    assert!(room
++        .scene
++        .poll_capability_io(&private_descriptor, &bob_listener, &effect)
++        .is_err());
++    assert!(room
++        .scene
++        .poll_capability_io(&private_descriptor, &public_listener, &effect)
++        .is_err());
++    assert_eq!(calls.load(Ordering::SeqCst), 3);
++    let held = room.scene.audiences.lock().unwrap();
++    assert!(matches!(
++        room.scene
++            .poll_capability_io(&public_descriptor, &bob_listener, &effect),
++        Err(StreamControlError::NotReady)
++    ));
++    drop(held);
++    assert_eq!(calls.load(Ordering::SeqCst), 3);
++    alice.retire();
++    assert!(room
++        .scene
++        .poll_capability_io(&public_descriptor, &bob_listener, &effect)
++        .is_err());
++    assert_eq!(calls.load(Ordering::SeqCst), 3);
++}
+--- a/crates/foundation/rvoip-core/src/staged_streams/tests.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests.rs
+@@ -2681,7 +2681,7 @@
+     let budget = f.a.stream_open_budget();
+     let calls = AtomicUsize::new(0);
+     let received =
+-        f.a.commit_capability_declaration(&principal, revision, || {
++        f.a.commit_capability_declaration(&principal, revision, |_| {
+             calls.fetch_add(1, Ordering::SeqCst);
+             "received"
+         })
+@@ -2698,24 +2698,24 @@
+     );
+     assert!(f
+         .a
+-        .commit_capability_declaration(&principal, revision + 1, || calls
++        .commit_capability_declaration(&principal, revision + 1, |_| calls
+             .fetch_add(1, Ordering::SeqCst))
+         .is_err());
+     let foreign = f.b.credential_snapshot().principal;
+     assert!(f
+         .a
+-        .commit_capability_declaration(&foreign, revision, || calls.fetch_add(1, Ordering::SeqCst))
++        .commit_capability_declaration(&foreign, revision, |_| calls.fetch_add(1, Ordering::SeqCst))
+         .is_err());
+     let held = f.a.state.lock().unwrap();
+     assert!(matches!(
+-        f.a.commit_capability_declaration(&principal, revision, || calls
++        f.a.commit_capability_declaration(&principal, revision, |_| calls
+             .fetch_add(1, Ordering::SeqCst)),
+         Err(StreamControlError::NotReady)
+     ));
+     drop(held);
+     let held = f.a.credential.lock().unwrap();
+     assert!(matches!(
+-        f.a.commit_capability_declaration(&principal, revision, || calls
++        f.a.commit_capability_declaration(&principal, revision, |_| calls
+             .fetch_add(1, Ordering::SeqCst)),
+         Err(StreamControlError::NotReady)
+     ));
+@@ -2723,7 +2723,7 @@
+     f.a.shutdown.cancel();
+     assert!(f
+         .a
+-        .commit_capability_declaration(&principal, revision, || calls
++        .commit_capability_declaration(&principal, revision, |_| calls
+             .fetch_add(1, Ordering::SeqCst))
+         .is_err());
+     assert_eq!(calls.load(Ordering::SeqCst), 1);
+--- a/crates/foundation/rvoip-core/src/staged_streams.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams.rs
+@@ -2679,6 +2679,7 @@
+ pub(crate) mod signal;
+ 
+ mod capability_declaration;
++pub(crate) mod capability_disclosure;
+ mod dtmf_source;
+ 
+ pub mod endpoint_preparation;
+--- /dev/null
++++ b/crates/uctp/rvoip-uctp/src/v2/auth_dispatch/capabilities.rs
+@@ -0,0 +1,108 @@
++//! A declaration's physical origin is metadata, not its original grant.
++use super::*;
++use crate::staged_media::StagedRtpScope;
++use rvoip_core::{
++    relationships::{EndpointBinding, Membership},
++    staged_streams::StreamController,
++};
++use std::sync::Weak;
++
++pub(in crate::v2) struct CapabilitySourceOrigin {
++    origin: RequestOrigin,
++    route: CancellationToken,
++    controller: Weak<StreamController>,
++    principal: AuthenticatedPrincipal,
++    initial: Weak<dyn std::any::Any + Send + Sync>,
++}
++impl CapabilitySourceOrigin {
++    pub(in crate::v2) fn seal(
++        a: &AuthorizedEnvelope,
++        controller: &Arc<StreamController>,
++        scope: &StagedRtpScope,
++        member: &Membership,
++        endpoint: &EndpointBinding,
++        route: CancellationToken,
++    ) -> Result<Self, DispatchError> {
++        if a.envelope.kind() != "capability.advertise"
++            || !a.supports_native_negotiation()
++            || a.peer.is_none()
++            || !a._lease.current()
++            || a.invocation.is_cancelled()
++            || a.envelope.scope(Scope::Reply).is_some()
++            || a.envelope.scope(Scope::Operation).is_none()
++            || scope.wire_conversation.is_none()
++            || a.envelope.scope(Scope::Conversation) != scope.wire_conversation.as_deref()
++            || a.envelope.scope(Scope::Session) != Some(scope.wire_session.as_str())
++            || a.envelope.scope(Scope::Connection) != Some(scope.wire_connection.as_str())
++            || !controller.is_bound_to(member, endpoint)
++            || !controller.matches_data_credential(&a.principal)
++        {
++            return Err(DispatchError::Authority);
++        }
++        let expiry = crate::v2::auth_peer::effective_expiry(&a.principal)?;
++        let deadline = Instant::now()
++            + expiry
++                .signed_duration_since(chrono::Utc::now())
++                .to_std()
++                .map_err(|_| DispatchError::Closed)?;
++        let value = Self {
++            origin: RequestOrigin {
++                incarnation: a.origin.incarnation,
++                lifetime: a.origin.lifetime.child_token(),
++                deadline,
++            },
++            route,
++            controller: Arc::downgrade(controller),
++            principal: a.principal.clone(),
++            initial: Arc::downgrade(&a._lease._guard),
++        };
++        if !value.current() {
++            return Err(DispatchError::Closed);
++        }
++        Ok(value)
++    }
++    pub(in crate::v2) fn ready(&self) -> bool {
++        self.initial.strong_count() == 0
++    }
++    pub(in crate::v2) fn current(&self) -> bool {
++        !self.origin.lifetime.is_cancelled()
++            && !self.route.is_cancelled()
++            && Instant::now() < self.origin.deadline
++            && self
++                .controller
++                .upgrade()
++                .is_some_and(|c| c.matches_data_credential(&self.principal))
++    }
++    pub(in crate::v2) fn deadline(&self) -> Instant {
++        self.origin.deadline
++    }
++    pub(in crate::v2) fn cancellation(&self) -> CancellationToken {
++        self.origin.lifetime.clone()
++    }
++    pub(in crate::v2) fn route_cancellation(&self) -> CancellationToken {
++        self.route.clone()
++    }
++}
++
++impl HandlerDelivery {
++    pub(in crate::v2) fn capability(
++        listener: Arc<crate::v2::native_capability_delivery::NativeCapabilityRegistration>,
++        frame: Envelope,
++        pending: crate::v2::native_capability_delivery::PendingCapability,
++        deadline: Instant,
++    ) -> Result<Self, DispatchError> {
++        if !listener.current() || !listener.ready() || frame.kind() != "capability.advertise" {
++            return Err(DispatchError::Authority);
++        }
++        Ok(Self {
++            origin: DeliveryOrigin::Capability(listener),
++            frames: Some(HandlerReplies::new(vec![frame])?),
++            authority: None,
++            completion: None,
++            data: None,
++            native: None,
++            capability: Some(pending),
++            deadline,
++        })
++    }
++}
+--- a/crates/uctp/rvoip-uctp/src/v2/auth_dispatch/data.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/auth_dispatch/data.rs
+@@ -308,6 +308,7 @@
+     Subscription(SubscriptionOrigin),
+     Data(DataOrigin),
+     NativeLifecycle(super::lifecycle::NativeLifecycleOrigin),
++    Capability(Arc<crate::v2::native_capability_delivery::NativeCapabilityRegistration>),
+ }
+ impl DeliveryOrigin {
+     pub(in crate::v2) fn current(&self) -> bool {
+@@ -315,6 +316,7 @@
+             Self::Subscription(s) => s.current(),
+             Self::Data(s) => s.current(),
+             Self::NativeLifecycle(s) => s.current(),
++            Self::Capability(s) => s.current(),
+         }
+     }
+     pub(in crate::v2) fn incarnation(&self) -> uuid::Uuid {
+@@ -322,6 +324,7 @@
+             Self::Subscription(s) => s.incarnation(),
+             Self::Data(s) => s.origin.incarnation,
+             Self::NativeLifecycle(s) => s.incarnation(),
++            Self::Capability(s) => s.incarnation(),
+         }
+     }
+     pub(in crate::v2) fn cancellation(&self) -> CancellationToken {
+@@ -329,6 +332,7 @@
+             Self::Subscription(s) => s.cancellation(),
+             Self::Data(s) => s.origin.lifetime.clone(),
+             Self::NativeLifecycle(s) => s.cancellation(),
++            Self::Capability(s) => s.cancellation(),
+         }
+     }
+ }
+@@ -437,6 +441,7 @@
+                 authority: Some(authority),
+                 completion: Some(sender),
+                 native: None,
++                capability: None,
+                 data: Some(DataPending {
+                     admission,
+                     started,
+--- a/crates/uctp/rvoip-uctp/src/v2/auth_dispatch/lifecycle.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/auth_dispatch/lifecycle.rs
+@@ -79,6 +79,7 @@
+             authority: None,
+             completion: None,
+             data: None,
++            capability: None,
+             native: Some(NativePending {
+                 write: NativeWrite::Signal(pending),
+                 origin,
+@@ -113,6 +114,7 @@
+             authority: None,
+             completion: None,
+             data: None,
++            capability: None,
+             native: Some(NativePending {
+                 write: NativeWrite::Lifecycle(PendingAnswer {
+                     cancel_on_drop: true,
+--- a/crates/uctp/rvoip-uctp/src/v2/auth_dispatch/subscriptions.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/auth_dispatch/subscriptions.rs
+@@ -110,6 +110,7 @@
+     pub(super) completion: Option<oneshot::Sender<Result<(), DispatchError>>>,
+     pub(super) data: Option<DataPending>,
+     pub(super) native: Option<super::lifecycle::NativePending>,
++    pub(super) capability: Option<crate::v2::native_capability_delivery::PendingCapability>,
+     pub(super) deadline: Instant,
+ }
+ impl HandlerDelivery {
+@@ -160,6 +161,7 @@
+                 completion: Some(sender),
+                 data: None,
+                 native: None,
++                capability: None,
+                 deadline,
+             },
+             receiver,
+@@ -175,11 +177,13 @@
+         Instant,
+         Option<DataPending>,
+         Option<super::lifecycle::NativePending>,
++        Option<crate::v2::native_capability_delivery::PendingCapability>,
+     ) {
+         let origin = match &self.origin {
+             DeliveryOrigin::Subscription(s) => DeliveryOrigin::Subscription(s.clone()),
+             DeliveryOrigin::Data(s) => DeliveryOrigin::Data(s.clone()),
+             DeliveryOrigin::NativeLifecycle(s) => DeliveryOrigin::NativeLifecycle(s.clone()),
++            DeliveryOrigin::Capability(s) => DeliveryOrigin::Capability(s.clone()),
+         };
+         (
+             origin,
+@@ -189,6 +193,7 @@
+             self.deadline,
+             self.data.take(),
+             self.native.take(),
++            self.capability.take(),
+         )
+     }
+ }
+--- a/crates/uctp/rvoip-uctp/src/v2/auth_dispatch.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/auth_dispatch.rs
+@@ -313,6 +313,7 @@
+     }
+ }
+ 
++pub(in crate::v2) mod capabilities;
+ mod data;
+ mod offer_answer;
+ pub use offer_answer::OfferAnswerSubmission;
+--- a/crates/uctp/rvoip-uctp/src/v2/auth_peer/exchange.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/auth_peer/exchange.rs
+@@ -383,6 +383,7 @@
+     data: Option<DataPending>,
+     answer: Option<PendingAnswer>,
+     native_fence: Option<Arc<dyn super::super::auth_dispatch::lifecycle::NativeLifecycleFence>>,
++    capability: Option<crate::v2::native_capability_delivery::PendingCapability>,
+     native_signal: Option<(
+         crate::v2::native_dtmf_writer::PendingSignal,
+         crate::v2::auth_dispatch::lifecycle::NativeLifecycleOrigin,
+@@ -406,6 +407,22 @@
+ ) -> Result<(), DispatchError> {
+     let mut writer = Some(writer);
+     while let Some(mut job) = incoming.recv().await {
++        if let Some(capability) = job.capability.take() {
++            if job.output.envelopes().len() != 1 {
++                return Err(DispatchError::Authority);
++            }
++            crate::v2::native_capability_delivery::write(
++                &mut writer,
++                &job.output.envelopes()[0],
++                capability,
++                &job.lifetime,
++                job.authority.as_ref(),
++                &stop,
++                job.deadline,
++            )
++            .await?;
++            continue;
++        }
+         if let Some((signal, origin)) = job.native_signal.take() {
+             if job.output.envelopes().len() != 1 {
+                 return Err(DispatchError::Authority);
+@@ -750,6 +767,7 @@
+         answer: None,
+         native_fence: None,
+         native_signal: None,
++        capability: None,
+     }
+ }
+ struct RetainedOutbound {
+@@ -949,16 +967,16 @@
+               result=&mut writing=>{writer_done=true;break result;},
+               result=&mut delivery,if view.authenticated && !defer_delivery=>{
+                 delivery=Box::pin(handler.next_delivery());
+-                let (origin,frames,lease,done,submission_deadline,data,native)=result?.into_parts();
+-                let unsolicited=data.is_some()||native.is_some();defer_delivery=unsolicited;
+-                if (native.is_some() && (data.is_some()||lease.is_some())) || (native.is_none()&&lease.is_none()) {return Err(DispatchError::Authority);}
++                let (origin,frames,lease,done,submission_deadline,data,native,capability)=result?.into_parts();
++                let unsolicited=data.is_some()||native.is_some()||capability.is_some();defer_delivery=unsolicited;
++                if capability.is_some() {if data.is_some()||native.is_some()||lease.is_some(){return Err(DispatchError::Authority);}} else if (native.is_some() && (data.is_some()||lease.is_some())) || (native.is_none()&&lease.is_none()) {return Err(DispatchError::Authority);}
+                 if !origin.current() || view.incarnation!=Some(origin.incarnation()) {if let Some(done)=done{let _=done.send(Err(DispatchError::Closed));}continue;}
+                 // Leave a slot for control under sustained data/event load.
+                 if unsolicited && slots.available_permits()<=1 {if let Some(done)=done{let _=done.send(Err(DispatchError::Capacity));}continue;}
+                 let slot=match slots.clone().try_acquire_owned(){Ok(slot)=>slot,Err(_) if unsolicited=>{if let Some(done)=done{let _=done.send(Err(DispatchError::Capacity));}continue;},Err(_)=>return Err(DispatchError::Capacity)};
+                 let frames=frames.into_envelopes().into_iter().map(|frame|signed(&config,frame.original().clone())).collect::<Result<Vec<_>,_>>()?;
+                 let mut send=job(output(frames,lease),submission_deadline.min(view.deadline),&physical,view.authority.clone(),Some(slot));
+-                send.cancel=Some(origin.cancellation());send.delivery=done;send.data=data;
++                send.cancel=Some(origin.cancellation());send.delivery=done;send.data=data;send.capability=capability;
+                 if let Some(native)=native{match native.write {crate::v2::auth_dispatch::lifecycle::NativeWrite::Lifecycle(answer)=>{send.native_fence=Some(Arc::new(native.origin));send.answer=Some(answer);},crate::v2::auth_dispatch::lifecycle::NativeWrite::Signal(signal)=>send.native_signal=Some((signal,native.origin))}}
+                 if let Err(error)=write_tx.try_send(send) {
+                     let mut send=error.into_inner();
+--- a/crates/uctp/rvoip-uctp/src/v2/mod.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/mod.rs
+@@ -10,6 +10,7 @@
+ pub mod auth_peer;
+ pub mod native;
+ pub mod native_capabilities;
++pub mod native_capability_delivery;
+ pub mod native_control;
+ pub mod native_dtmf;
+ pub mod native_dtmf_egress;
+--- a/crates/uctp/rvoip-uctp/src/v2/native.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/native.rs
+@@ -1336,10 +1336,14 @@
+     /// must never be retried by manufacturing another native declaration.
+     pub fn declare_native_capabilities(
+         &self,
++        core: &Arc<rvoip_core::Orchestrator>,
+         id: &ConnectionId,
+         a: &super::auth_dispatch::AuthorizedEnvelope,
+         policy: &dyn super::native_capabilities::NativeCapabilityDeclarationPolicy,
+-    ) -> std::result::Result<(), super::native_negotiation::NativeOfferError> {
++    ) -> std::result::Result<
++        super::native_capability_delivery::NativeCapabilityDeclaration,
++        super::native_negotiation::NativeOfferError,
++    > {
+         use super::{native_negotiation::NativeOfferError, payloads::Payload, Scope};
+         let route = self.data_route(id, a)?;
+         let installed = route.installation.lock().unwrap_or_else(|p| p.into_inner());
+@@ -1422,10 +1426,75 @@
+         }
+         // Pure domain policy is resolved before entering controller locks.
+         // The leaf only replaces broker metadata, with no IO/policy reentry.
+-        c.commit_capability_declaration(a.principal(), expected, || {
+-            broker.declare_capabilities(remote)
+-        })??;
+-        Ok(())
++        let origin = super::auth_dispatch::capabilities::CapabilitySourceOrigin::seal(
++            a,
++            c,
++            &scope.media,
++            &route.member,
++            &route.endpoint,
++            route.cancel.clone(),
++        )?;
++        let (result, disclosure) = core
++            .commit_native_capability_declaration(
++                &route.session,
++                id,
++                c,
++                a.principal(),
++                expected,
++                || {
++                    broker.declare_capabilities(remote, || {
++                        authority.current()
++                            && a.retain_authority().current()
++                            && !a.invocation_cancellation().is_cancelled()
++                    })
++                },
++            )
++            .map_err(super::native_subscriptions::core_error)?;
++        result?;
++        Ok(
++            super::native_capability_delivery::NativeCapabilityDeclaration::new(
++                a.envelope().clone(),
++                scope,
++                origin,
++                core,
++                disclosure,
++            ),
++        )
++    }
++    /// Seal metadata for a listener on its actual successfully confirmed offer.
++    pub fn native_capability_registration(
++        &self,
++        core: &Arc<rvoip_core::Orchestrator>,
++        id: &ConnectionId,
++        a: &super::auth_dispatch::AuthorizedEnvelope,
++    ) -> std::result::Result<
++        Arc<super::native_capability_delivery::NativeCapabilityRegistration>,
++        super::native_negotiation::NativeOfferError,
++    > {
++        use super::native_negotiation::NativeOfferError;
++        let route = self.data_route(id, a)?;
++        let installed = route.installation.lock().unwrap_or_else(|p| p.into_inner());
++        let installed = installed.as_ref().ok_or(NativeOfferError::NotReady)?;
++        if a.envelope().kind() != "connection.offer"
++            || !installed
++                .backend
++                .flow
++                .confirmed_for(installed.controller.revision(), a.envelope().id())
++        {
++            return Err(NativeOfferError::Authority);
++        }
++        let listener = core
++            .native_capability_listener(&route.session, id, &installed.controller, a.principal())
++            .map_err(super::native_subscriptions::core_error)?;
++        super::native_capability_delivery::NativeCapabilityRegistration::new(
++            a,
++            &installed.controller,
++            installed.scope.clone(),
++            &route.member,
++            &route.endpoint,
++            listener,
++        )
++        .map_err(NativeOfferError::Dispatch)
+     }
+     /// Configure local cadence under the exact current held domain authority.
+     pub fn configure_native_quality(
+--- /dev/null
++++ b/crates/uctp/rvoip-uctp/src/v2/native_capability_delivery.rs
+@@ -0,0 +1,329 @@
++//! Original disclosure metadata and the sole native reliable writer.
++//! Nothing queued here holds an old invocation or current policy reader.
++use super::{
++    auth_dispatch::{capabilities::CapabilitySourceOrigin, *},
++    native_lifecycle::NativeLifecycleScope,
++    Envelope, Scope,
++};
++use crate::staged_media::StagedRtpScope;
++use rvoip_core::{
++    orchestrator::participant_control::{
++        NativeCapabilityDisclosure, NativeCapabilityListener, ParticipantControlError,
++    },
++    relationships::{EndpointBinding, Membership},
++    staged_streams::StreamController,
++    Orchestrator,
++};
++use std::{
++    sync::{Arc, Weak},
++    task::Poll,
++    time::Duration,
++};
++use tokio::{sync::oneshot, time::Instant};
++use tokio_util::sync::CancellationToken;
++
++// Erase the orchestrator's internal adapter graph at this metadata boundary.
++// The implementation still upgrades the exact actual Core for each IO poll.
++trait CapabilityEngine: Send + Sync {
++    fn current(&self) -> bool;
++    fn poll(
++        &self,
++        disclosure: &NativeCapabilityDisclosure,
++        listener: &NativeCapabilityListener,
++        io: &mut dyn FnMut() -> Poll<Result<(), DispatchError>>,
++    ) -> Result<Poll<Result<(), DispatchError>>, ParticipantControlError>;
++}
++struct CoreEngine(Weak<Orchestrator>);
++impl CapabilityEngine for CoreEngine {
++    fn current(&self) -> bool {
++        self.0.strong_count() > 0
++    }
++    fn poll(
++        &self,
++        disclosure: &NativeCapabilityDisclosure,
++        listener: &NativeCapabilityListener,
++        io: &mut dyn FnMut() -> Poll<Result<(), DispatchError>>,
++    ) -> Result<Poll<Result<(), DispatchError>>, ParticipantControlError> {
++        let core = self.0.upgrade().ok_or(ParticipantControlError::Cancelled)?;
++        core.poll_native_capability_io(disclosure, listener, io)
++    }
++}
++
++pub struct NativeCapabilityDeclaration {
++    original: Envelope,
++    scope: NativeLifecycleScope,
++    origin: CapabilitySourceOrigin,
++    engine: Arc<dyn CapabilityEngine>,
++    disclosure: NativeCapabilityDisclosure,
++}
++impl std::fmt::Debug for NativeCapabilityDeclaration {
++    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
++        f.write_str("NativeCapabilityDeclaration(redacted)")
++    }
++}
++impl NativeCapabilityDeclaration {
++    pub(crate) fn new(
++        original: Envelope,
++        scope: NativeLifecycleScope,
++        origin: CapabilitySourceOrigin,
++        core: &Arc<Orchestrator>,
++        disclosure: NativeCapabilityDisclosure,
++    ) -> Self {
++        Self {
++            original,
++            scope,
++            origin,
++            engine: Arc::new(CoreEngine(Arc::downgrade(core))),
++            disclosure,
++        }
++    }
++    pub fn original(&self) -> &Envelope {
++        &self.original
++    }
++    pub fn scope(&self) -> &NativeLifecycleScope {
++        &self.scope
++    }
++    pub fn payload(&self) -> &serde_json::Value {
++        &self.original.original()["payload"]
++    }
++    pub fn current(&self) -> bool {
++        self.origin.current() && self.engine.current()
++    }
++    pub fn ready(&self) -> bool {
++        self.origin.ready()
++    }
++}
++
++pub struct NativeCapabilityRegistration {
++    origin: DataOrigin,
++    scope: NativeLifecycleScope,
++
++    listener: NativeCapabilityListener,
++}
++impl NativeCapabilityRegistration {
++    pub(crate) fn new(
++        a: &AuthorizedEnvelope,
++        controller: &Arc<StreamController>,
++        media: StagedRtpScope,
++        member: &Membership,
++        endpoint: &EndpointBinding,
++        listener: NativeCapabilityListener,
++    ) -> Result<Arc<Self>, DispatchError> {
++        if a.envelope().kind() != "connection.offer" {
++            return Err(DispatchError::Authority);
++        }
++        let origin = DataOrigin::seal(a, controller, media.clone(), member, endpoint)?;
++        Ok(Arc::new(Self {
++            origin,
++            listener,
++            scope: NativeLifecycleScope {
++                principal: a.principal().clone(),
++                media,
++                participant: member.participant().clone(),
++                membership_epoch: member.epoch(),
++                device: endpoint.device().clone(),
++                endpoint: endpoint.endpoint().clone(),
++                identity: member.identity().clone(),
++            },
++        }))
++    }
++    pub fn scope(&self) -> &NativeLifecycleScope {
++        &self.scope
++    }
++    pub fn current(&self) -> bool {
++        self.origin.current()
++    }
++    pub fn ready(&self) -> bool {
++        self.origin.is_ready()
++    }
++    pub fn retire(&self) {
++        self.origin.retire();
++    }
++    pub(in crate::v2) fn incarnation(&self) -> uuid::Uuid {
++        self.origin.incarnation()
++    }
++    pub(in crate::v2) fn cancellation(&self) -> CancellationToken {
++        self.origin.cancellation()
++    }
++    /// The receiver is this sealed physical origin; the wire scope names the
++    /// advertised source. A caller cannot supply replacement envelope bytes.
++    pub fn delivery(
++        self: &Arc<Self>,
++        declaration: Arc<NativeCapabilityDeclaration>,
++        policy: Arc<dyn NativeCapabilityWritePolicy>,
++    ) -> Result<
++        (
++            HandlerDelivery,
++            oneshot::Receiver<Result<(), DispatchError>>,
++        ),
++        DispatchError,
++    > {
++        let source = declaration.scope();
++        let target = self.scope();
++        if !self.current()
++            || !self.ready()
++            || !declaration.current()
++            || !declaration.ready()
++            || source.media.connection == target.media.connection
++            || source.media.session != target.media.session
++            || source.media.wire_conversation != target.media.wire_conversation
++            || source.media.wire_session != target.media.wire_session
++        {
++            return Err(DispatchError::Authority);
++        }
++        let frame = Envelope::from_value(serde_json::json!({
++            "v":2,"type":"capability.advertise","id":format!("capability_{}",uuid::Uuid::new_v4().simple()),
++            "ts":chrono::Utc::now(),"cid":source.media.wire_conversation,"sid":source.media.wire_session,
++            "connid":source.media.wire_connection,"payload":declaration.payload()
++        }))?;
++        let deadline = (Instant::now() + Duration::from_secs(1))
++            .min(self.origin.deadline())
++            .min(declaration.origin.deadline());
++        let (done, result) = oneshot::channel();
++        let pending = PendingCapability {
++            declaration,
++            listener: self.clone(),
++            policy,
++            completion: Some(done),
++        };
++        Ok((
++            HandlerDelivery::capability(self.clone(), frame, pending, deadline)?,
++            result,
++        ))
++    }
++}
++impl Drop for NativeCapabilityRegistration {
++    fn drop(&mut self) {
++        self.origin.retire();
++    }
++}
++
++/// Reacquire exact current sender and recipient permission at actual dequeue.
++/// The returned predicate is passive domain state, with no Core/SQL reentry.
++#[async_trait::async_trait]
++pub trait NativeCapabilityWritePolicy: Send + Sync {
++    async fn acquire(
++        &self,
++        _declaration: &NativeCapabilityDeclaration,
++        _listener: &NativeCapabilityRegistration,
++    ) -> Result<AuthorityLease, DispatchError> {
++        Err(DispatchError::Unsupported)
++    }
++}
++pub(in crate::v2) struct PendingCapability {
++    declaration: Arc<NativeCapabilityDeclaration>,
++    listener: Arc<NativeCapabilityRegistration>,
++    policy: Arc<dyn NativeCapabilityWritePolicy>,
++    completion: Option<oneshot::Sender<Result<(), DispatchError>>>,
++}
++impl Drop for PendingCapability {
++    fn drop(&mut self) {
++        if let Some(done) = self.completion.take() {
++            let _ = done.send(Err(DispatchError::Closed));
++        }
++    }
++}
++
++struct CapabilityIoCustody<W> {
++    writer: Option<W>,
++    lease: AuthorityLease,
++}
++impl<W> Drop for CapabilityIoCustody<W> {
++    fn drop(&mut self) {
++        drop(self.writer.take());
++    }
++}
++
++pub(in crate::v2) async fn write<
++    W: futures::Sink<bytes::Bytes, Error = DispatchError> + Send + Unpin,
++>(
++    writer: &mut Option<W>,
++    frame: &Envelope,
++    mut pending: PendingCapability,
++    physical: &CancellationToken,
++    authority: Option<&CancellationToken>,
++    stop: &CancellationToken,
++    job_deadline: Instant,
++) -> Result<(), DispatchError> {
++    use futures::{Future, SinkExt};
++    let source = &pending.declaration;
++    let target = &pending.listener;
++    let deadline = job_deadline
++        .min(source.origin.deadline())
++        .min(target.origin.deadline());
++    let ready = || {
++        source.current()
++            && target.current()
++            && !physical.is_cancelled()
++            && !stop.is_cancelled()
++            && !authority.is_some_and(CancellationToken::is_cancelled)
++            && Instant::now() < deadline
++    };
++    let mut touched = false;
++    let result = async {
++        if !ready() || frame.kind()!="capability.advertise"
++            || frame.original()["payload"] != *source.payload()
++            || frame.scope(Scope::Conversation) != source.scope.media.wire_conversation.as_deref()
++            || frame.scope(Scope::Session) != Some(source.scope.media.wire_session.as_str())
++            || frame.scope(Scope::Connection) != Some(source.scope.media.wire_connection.as_str())
++        { return Err(DispatchError::Authority); }
++        let lease = tokio::time::timeout_at(deadline, pending.policy.acquire(source,target))
++            .await.map_err(|_| DispatchError::Closed)??;
++        let bound = deadline.min(lease.deadline().unwrap_or(deadline));
++        if !ready() || !lease.current() { return Err(DispatchError::Authority); }
++        let engine = &source.engine;
++        let bytes = bytes::Bytes::from(serde_json::to_vec(frame).map_err(|_|DispatchError::Unsupported)?);
++        let mut custody = CapabilityIoCustody { writer: None, lease };
++        let source_cancel = source.origin.cancellation(); let route_cancel = source.origin.route_cancellation();
++        let target_cancel = target.cancellation();
++        let result = {
++            let sending = async {
++                custody.writer = Some(writer.take().ok_or(DispatchError::Closed)?);
++                touched = true;
++                custody.writer.as_mut().ok_or(DispatchError::Closed)?.send(bytes).await
++            };
++            tokio::pin!(sending);
++            let mut retry = Box::pin(tokio::time::sleep(Duration::from_millis(5)));
++            let guarded = std::future::poll_fn(|cx| {
++                // Domain/physical checks precede all engine locks. The only
++                // callback under Core fences polls this exact sink future.
++                if !ready() || !custody.lease.current() { return Poll::Ready(Err(DispatchError::Authority)); }
++                match engine.poll(&source.disclosure,&target.listener,&mut || sending.as_mut().poll(cx)) {
++                    Ok(result)=>result,
++                    Err(ParticipantControlError::Media(rvoip_core::staged_streams::StreamControlError::NotReady))=>{
++                        if retry.as_mut().poll(cx).is_ready() {
++                            retry.as_mut().reset(Instant::now()+Duration::from_millis(5));cx.waker().wake_by_ref();
++                        }
++                        Poll::Pending
++                    },
++                    Err(_)=>Poll::Ready(Err(DispatchError::Authority)),
++                }
++            });
++            tokio::select! {biased;
++                _=physical.cancelled()=>Err(DispatchError::Closed),
++                _=stop.cancelled()=>Err(DispatchError::Closed),
++                _=source_cancel.cancelled()=>Err(DispatchError::Closed),
++                _=route_cancel.cancelled()=>Err(DispatchError::Closed),
++                _=target_cancel.cancelled()=>Err(DispatchError::Closed),
++                _=async{match authority{Some(t)=>t.cancelled().await,None=>std::future::pending().await}}=>Err(DispatchError::Authority),
++                _=tokio::time::sleep_until(bound)=>Err(DispatchError::Closed),
++                result=guarded=>result,
++            }
++        };
++        if result.is_ok() { *writer=custody.writer.take(); }
++        // Destroy an unfinished sink before the independently acquired source
++        // and recipient policy readers leave this scope, even on cancellation.
++        if result.is_err() && touched {physical.cancel();}
++        drop(custody);
++        result
++    }.await;
++    if let Some(done) = pending.completion.take() {
++        let _ = done.send(result);
++    }
++    if result.is_err() && touched {
++        physical.cancel();
++        Err(DispatchError::SubmissionUnknown)
++    } else {
++        Ok(())
++    }
++}
+--- a/crates/uctp/rvoip-uctp/src/v2/native_negotiation/mod.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/native_negotiation/mod.rs
+@@ -316,11 +316,18 @@
+     pub(crate) fn declare_capabilities(
+         &self,
+         remote: EndpointMediaCapabilities,
++        current: impl FnOnce() -> bool,
+     ) -> Result<(), NativeOfferError> {
+-        let mut retained = self.retained.lock().unwrap_or_else(|p| p.into_inner());
++        let mut retained = self
++            .retained
++            .try_lock()
++            .map_err(|_| NativeOfferError::NotReady)?;
+         let retained = retained.as_mut().ok_or(NativeOfferError::NotReady)?;
+         if retained.declaration_generation >= super::MAX_SAFE_REVISION {
+             return Err(NativeOfferError::Capacity);
++        }
++        if !current() {
++            return Err(NativeOfferError::Authority);
+         }
+         retained.declared = Some(remote);
+         retained.declaration_generation += 1;
+--- a/crates/uctp/rvoip-uctp/src/v2/native_negotiation/tests.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/native_negotiation/tests.rs
+@@ -339,7 +339,9 @@
+         "quic",
+     );
+     let initial = NativeOfferPlan::parse(&offer(), &profile, &principal).unwrap();
+-    assert!(broker.declare_capabilities(initial.remote.clone()).is_err());
++    assert!(broker
++        .declare_capabilities(initial.remote.clone(), || true)
++        .is_err());
+     *broker.retained.lock().unwrap() = Some(RetainedPeer {
+         negotiated: initial.remote.clone(),
+         declared: None,
+@@ -354,7 +356,7 @@
+         &principal,
+     )
+     .unwrap();
+-    broker.declare_capabilities(changed).unwrap();
++    broker.declare_capabilities(changed, || true).unwrap();
+     assert!(matches!(
+         broker.require_declaration_generation(&old),
+         Err(NativeOfferError::Conflict)
+@@ -367,6 +369,26 @@
+         vec![audio("pcma")]
+     );
+     drop(retained);
++    assert!(matches!(
++        broker.declare_capabilities(
++            NativeOfferPlan::declaration(&json!({}), &profile, &principal).unwrap(),
++            || false
++        ),
++        Err(NativeOfferError::Authority)
++    ));
++    let held = broker.retained.lock().unwrap();
++    assert_eq!(
++        held.as_ref().unwrap().declared.as_ref().unwrap().send[0].formats,
++        vec![audio("pcma")]
++    );
++    assert!(matches!(
++        broker.declare_capabilities(
++            NativeOfferPlan::declaration(&json!({}), &profile, &principal).unwrap(),
++            || panic!("busy setter invoked policy")
++        ),
++        Err(NativeOfferError::NotReady)
++    ));
++    drop(held);
+     broker
+         .retained
+         .lock()
+@@ -376,7 +398,8 @@
+         .declaration_generation = super::super::MAX_SAFE_REVISION;
+     assert!(matches!(
+         broker.declare_capabilities(
+-            NativeOfferPlan::declaration(&json!({}), &profile, &principal).unwrap()
++            NativeOfferPlan::declaration(&json!({}), &profile, &principal).unwrap(),
++            || true
+         ),
+         Err(NativeOfferError::Capacity)
+     ));

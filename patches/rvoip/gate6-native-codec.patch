@@ -1,0 +1,920 @@
+diff --git a/crates/uctp/rvoip-uctp/src/v2/native.rs b/crates/uctp/rvoip-uctp/src/v2/native.rs
+--- a/crates/uctp/rvoip-uctp/src/v2/native.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/native.rs
+@@ -472,6 +472,7 @@
+             route.member.participant().clone(),
+             observer,
+             route.cancel.child_token(),
++            expected_substrate,
+         );
+         // Refuse malformed/unsupported input before creating a controller or
+         // advertising a capability on this native route.
+@@ -569,6 +570,7 @@
+             .await
+         {
+             Ok(()) => {
++                guard.committed();
+                 if let Some(installed) = route
+                     .installation
+                     .lock()
+@@ -585,6 +587,92 @@
+             Err(e) => Err(guard.error(e)),
+         }
+     }
++    /// Plan an actual signed codec update against the same physical peer's
++    /// last successfully confirmed capabilities and current logical bindings.
++    pub fn plan_native_codec_update(
++        &self,
++        id: &ConnectionId,
++        a: &super::auth_dispatch::AuthorizedEnvelope,
++    ) -> std::result::Result<
++        super::native_negotiation::NativeOfferPlan,
++        super::native_negotiation::NativeOfferError,
++    > {
++        use super::native_negotiation::NativeOfferError;
++        let route = self.data_route(id, a)?;
++        let installed = route.installation.lock().unwrap_or_else(|p| p.into_inner());
++        let installed = installed.as_ref().ok_or(NativeOfferError::NotReady)?;
++        if !installed.controller.matches_data_credential(a.principal()) {
++            return Err(NativeOfferError::Authority);
++        }
++        let expected = a
++            .envelope()
++            .expected_revision()
++            .ok_or(NativeOfferError::Invalid)?;
++        if expected != installed.controller.revision() {
++            return Err(NativeOfferError::Conflict);
++        }
++        if !installed.backend.flow.confirmed_at(expected) {
++            return Err(NativeOfferError::NotReady);
++        }
++        installed
++            .backend
++            .negotiation
++            .as_ref()
++            .ok_or(NativeOfferError::Unsupported)?
++            .plan_update(a, &installed.controller.active_bindings())
++    }
++    /// Prepare replacement parameters and obtain an actual signed peer answer
++    /// before committing. Refusals preserve the complete previous media program.
++    pub async fn renegotiate_native_codecs(
++        &self,
++        id: &ConnectionId,
++        a: Arc<super::auth_dispatch::AuthorizedEnvelope>,
++        held: Arc<dyn std::any::Any + Send + Sync>,
++        deadline: tokio::time::Instant,
++    ) -> std::result::Result<
++        super::native_negotiation::NativeOfferOutcome,
++        super::native_negotiation::NativeOfferError,
++    > {
++        use super::native_negotiation::*;
++        self.plan_native_codec_update(id, &a)?;
++        let route = self.data_route(id, &a)?;
++        let (controller, broker, flow) = {
++            let installed = route.installation.lock().unwrap_or_else(|p| p.into_inner());
++            let installed = installed.as_ref().ok_or(NativeOfferError::NotReady)?;
++            (
++                installed.controller.clone(),
++                installed
++                    .backend
++                    .negotiation
++                    .clone()
++                    .ok_or(NativeOfferError::Unsupported)?,
++                installed.backend.flow.clone(),
++            )
++        };
++        let expected = a
++            .envelope()
++            .expected_revision()
++            .ok_or(NativeOfferError::Invalid)?;
++        let guard = broker.begin_update(a.clone(), expected, &controller.active_bindings())?;
++        match controller
++            .change_selected_with_held(
++                expected,
++                guard.plan().selected(),
++                &std::collections::BTreeSet::new(),
++                deadline,
++                a.invocation_cancellation(),
++                held,
++            )
++            .await
++        {
++            Ok(()) => {
++                guard.committed();
++                flow.confirmed(expected + 1, a.envelope().id());
++                guard.result(&controller)
++            }
++            Err(error) => Err(guard.error(error)),
++        }
++    }
+     /// Parse only the actual signed control and this exact physical route.
+     pub fn plan_native_control(
+         &self,
+@@ -603,6 +691,9 @@
+             .negotiation
+             .as_ref()
+             .ok_or(NativeOfferError::Unsupported)?;
++        if broker.is_busy() {
++            return Err(NativeOfferError::Conflict);
++        }
+         if !super::native_control::scope_matches(a, broker.scope())
+             || !installed.controller.matches_data_credential(a.principal())
+         {
+diff --git a/crates/uctp/rvoip-uctp/src/v2/native_negotiation/catalog.rs b/crates/uctp/rvoip-uctp/src/v2/native_negotiation/catalog.rs
+--- a/crates/uctp/rvoip-uctp/src/v2/native_negotiation/catalog.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/native_negotiation/catalog.rs
+@@ -113,6 +113,114 @@
+     pub(crate) remote: EndpointMediaCapabilities,
+ }
+ impl NativeOfferPlan {
++    /// Select new parameters from the actual update and the last confirmed
++    /// physical peer capabilities. Capability metadata is never a grant.
++    pub(crate) fn codec_update(
++        update: &ConnectionUpdate,
++        profile: &NativeMediaProfile,
++        remote: &EndpointMediaCapabilities,
++        bindings: &[ReadyMediaBinding],
++    ) -> Result<Self, NativeOfferError> {
++        if update.action != ConnectionUpdateAction::CodecRenegotiate {
++            return Err(NativeOfferError::Unsupported);
++        }
++        if update.details.is_some() {
++            return Err(NativeOfferError::Invalid);
++        }
++        let preferences = update
++            .codec_preferences
++            .as_ref()
++            .ok_or(NativeOfferError::Invalid)?;
++        if preferences.is_empty() || preferences.len() > 32 {
++            return Err(NativeOfferError::Invalid);
++        }
++        let mut names = BTreeSet::new();
++        for preference in preferences {
++            if preference.is_empty()
++                || preference.len() > 64
++                || !preference
++                    .bytes()
++                    .all(|b| b.is_ascii_alphanumeric() || b"-._/".contains(&b))
++                || !names.insert(normalize(preference))
++            {
++                return Err(NativeOfferError::Invalid);
++            }
++        }
++        let mut targets = BTreeSet::new();
++        match &update.streams {
++            Some(ids) if !ids.is_empty() && ids.len() <= 32 => {
++                for id in ids {
++                    if !bindings
++                        .iter()
++                        .any(|b| b.negotiated.requested.logical_id.as_str() == id)
++                        || !targets.insert(id.as_str())
++                    {
++                        return Err(NativeOfferError::Invalid);
++                    }
++                }
++            }
++            None => targets.extend(
++                bindings
++                    .iter()
++                    .filter(|b| b.negotiated.requested.medium != Medium::Data)
++                    .map(|b| b.negotiated.requested.logical_id.as_str()),
++            ),
++            _ => return Err(NativeOfferError::Invalid),
++        }
++        if targets.is_empty() {
++            return Err(NativeOfferError::NotReady);
++        }
++        let mut selected = Vec::with_capacity(bindings.len());
++        for binding in bindings {
++            let previous = &binding.negotiated;
++            if !targets.contains(previous.requested.logical_id.as_str()) {
++                selected.push(previous.clone());
++                continue;
++            }
++            if previous.requested.medium == Medium::Data {
++                return Err(NativeOfferError::Unsupported);
++            }
++            let mut chosen = None;
++            for name in preferences {
++                for format in remote
++                    .send
++                    .iter()
++                    .chain(&remote.receive)
++                    .filter(|c| c.medium == previous.requested.medium)
++                    .flat_map(|c| &c.formats)
++                {
++                    if format_name(format) != normalize(name) {
++                        continue;
++                    }
++                    let candidate = NegotiatedStream {
++                        requested: previous.requested.clone(),
++                        format: format.clone(),
++                    };
++                    if validate_selected_streams(
++                        &profile.local,
++                        remote,
++                        std::slice::from_ref(&candidate),
++                    )
++                    .is_ok()
++                    {
++                        chosen = Some(candidate);
++                        break;
++                    }
++                }
++                if chosen.is_some() {
++                    break;
++                }
++            }
++            selected.push(chosen.ok_or(NativeOfferError::Unsupported)?);
++        }
++        validate_selected_streams(&profile.local, remote, &selected)
++            .map_err(|_| NativeOfferError::Unsupported)?;
++        Ok(Self {
++            selected,
++            rejected: vec![],
++            remote: remote.clone(),
++        })
++    }
+     pub fn selected(&self) -> &[NegotiatedStream] {
+         &self.selected
+     }
+diff --git a/crates/uctp/rvoip-uctp/src/v2/native_negotiation/mod.rs b/crates/uctp/rvoip-uctp/src/v2/native_negotiation/mod.rs
+--- a/crates/uctp/rvoip-uctp/src/v2/native_negotiation/mod.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/native_negotiation/mod.rs
+@@ -98,6 +98,7 @@
+     invocation: Arc<AuthorizedEnvelope>,
+     plan: NativeOfferPlan,
+     expected: u64,
++    substrate: String,
+     cancel: CancellationToken,
+     progress: Mutex<Progress>,
+ }
+@@ -105,9 +106,11 @@
+     pub(crate) scope: StagedRtpScope,
+     pub(crate) profile: Arc<NativeMediaProfile>,
+     participant: ParticipantId,
++    substrate: &'static str,
+     observer: Option<Arc<dyn NativeDataObserver>>,
+     lifetime: CancellationToken,
+     current: Mutex<Option<Weak<Operation>>>,
++    retained: Mutex<Option<(EndpointMediaCapabilities, String)>>,
+ }
+ pub(crate) struct NegotiationGuard {
+     broker: Arc<NativeNegotiation>,
+@@ -162,6 +165,16 @@
+             bindings: state.bindings.clone(),
+         })
+     }
++    pub(crate) fn committed(&self) {
++        *self
++            .broker
++            .retained
++            .lock()
++            .unwrap_or_else(|p| p.into_inner()) = Some((
++            self.operation.plan.remote.clone(),
++            self.operation.substrate.clone(),
++        ));
++    }
+     pub(crate) fn error(&self, error: StreamControlError) -> NativeOfferError {
+         self.operation
+             .progress
+@@ -173,6 +186,14 @@
+     }
+ }
+ impl NativeNegotiation {
++    pub(crate) fn is_busy(&self) -> bool {
++        self.current
++            .lock()
++            .unwrap_or_else(|p| p.into_inner())
++            .as_ref()
++            .and_then(Weak::upgrade)
++            .is_some()
++    }
+     pub(crate) fn scope(&self) -> &StagedRtpScope {
+         &self.scope
+     }
+@@ -182,14 +203,17 @@
+         participant: ParticipantId,
+         observer: Option<Arc<dyn NativeDataObserver>>,
+         lifetime: CancellationToken,
++        substrate: &'static str,
+     ) -> Arc<Self> {
+         Arc::new(Self {
+             scope,
+             profile,
+             participant,
++            substrate,
+             observer,
+             lifetime,
+             current: Mutex::new(None),
++            retained: Mutex::new(None),
+         })
+     }
+     pub(crate) fn plan(&self, a: &AuthorizedEnvelope) -> Result<NativeOfferPlan, NativeOfferError> {
+@@ -199,6 +223,9 @@
+         let Payload::ConnectionOffer(offer) = a.envelope().payload() else {
+             return Err(NativeOfferError::Unsupported);
+         };
++        if offer.substrate != self.substrate {
++            return Err(NativeOfferError::Scope);
++        }
+         if offer
+             .by_participant
+             .as_ref()
+@@ -214,6 +241,53 @@
+         expected: u64,
+     ) -> Result<NegotiationGuard, NativeOfferError> {
+         let plan = self.plan(&invocation)?;
++        let Payload::ConnectionOffer(offer) = invocation.envelope().payload() else {
++            return Err(NativeOfferError::Unsupported);
++        };
++        let substrate = offer.substrate.clone();
++        self.begin_plan(invocation, expected, plan, substrate)
++    }
++    pub(crate) fn plan_update(
++        &self,
++        a: &AuthorizedEnvelope,
++        bindings: &[ReadyMediaBinding],
++    ) -> Result<NativeOfferPlan, NativeOfferError> {
++        if !a.supports_native_negotiation()
++            || !scope_matches_kind(a.envelope(), &self.scope, "connection.update")
++        {
++            return Err(NativeOfferError::Scope);
++        }
++        let Payload::ConnectionUpdate(update) = a.envelope().payload() else {
++            return Err(NativeOfferError::Unsupported);
++        };
++        let retained = self.retained.lock().unwrap_or_else(|p| p.into_inner());
++        let (remote, _) = retained.as_ref().ok_or(NativeOfferError::NotReady)?;
++        NativeOfferPlan::codec_update(update, &self.profile, remote, bindings)
++    }
++    pub(crate) fn begin_update(
++        self: &Arc<Self>,
++        invocation: Arc<AuthorizedEnvelope>,
++        expected: u64,
++        bindings: &[ReadyMediaBinding],
++    ) -> Result<NegotiationGuard, NativeOfferError> {
++        let plan = self.plan_update(&invocation, bindings)?;
++        let substrate = self
++            .retained
++            .lock()
++            .unwrap_or_else(|p| p.into_inner())
++            .as_ref()
++            .ok_or(NativeOfferError::NotReady)?
++            .1
++            .clone();
++        self.begin_plan(invocation, expected, plan, substrate)
++    }
++    fn begin_plan(
++        self: &Arc<Self>,
++        invocation: Arc<AuthorizedEnvelope>,
++        expected: u64,
++        plan: NativeOfferPlan,
++        substrate: String,
++    ) -> Result<NegotiationGuard, NativeOfferError> {
+         let mut current = self.current.lock().unwrap_or_else(|p| p.into_inner());
+         if self.lifetime.is_cancelled() {
+             return Err(NativeOfferError::Cancelled);
+@@ -229,6 +303,7 @@
+             invocation,
+             plan,
+             expected,
++            substrate,
+             progress: Mutex::new(Progress {
+                 bindings: vec![],
+                 setup: None,
+@@ -328,14 +403,16 @@
+         let wire = bindings.iter().map(binding_wire).collect::<Vec<_>>();
+         let setup = json!({"kind":"native-prepared/1","revision":op.expected+1,"offer_id":op.invocation.envelope().id(),"streams":wire});
+         let answered=bindings.iter().map(|b|json!({"id":b.negotiated.requested.logical_id.as_str(),"kind":kind(b.negotiated.requested.medium),"direction":direction(b.negotiated.requested.direction),"codec":codec_wire(&b.negotiated.format,payload_type(&b.negotiated.format))})).collect::<Vec<_>>();
+-        let substrate = op.invocation.envelope().original()["payload"]["substrate"].clone();
+-        let answer = message(
+-            &op.invocation,
+-            "connection.answer",
+-            json!({"by_participant":self.participant.as_str(),"substrate":substrate,"capabilities":self.profile.wire,"streams_answered":answered,"substrate_setup":setup}),
+-            true,
+-        )?;
+-        tokio::select! {biased;_=cancel.cancelled()=>return Err(NativeOfferError::Cancelled),_=self.lifetime.cancelled()=>return Err(NativeOfferError::Cancelled),r=op.invocation.answer_offer(answer,deadline)=>{r?;}}
++        let substrate = &op.substrate;
++        if op.invocation.envelope().kind() == "connection.offer" {
++            let answer = message(
++                &op.invocation,
++                "connection.answer",
++                json!({"by_participant":self.participant.as_str(),"substrate":substrate,"capabilities":self.profile.wire,"streams_answered":answered,"substrate_setup":setup}),
++                true,
++            )?;
++            tokio::select! {biased;_=cancel.cancelled()=>return Err(NativeOfferError::Cancelled),_=self.lifetime.cancelled()=>return Err(NativeOfferError::Cancelled),r=op.invocation.answer_offer(answer,deadline)=>{r?;}}
++        }
+         // One server offer after both families have actually installed their local
+         // provisional resources. The peer confirms these exact parameters through
+         // the actor's current signed reply lane; no client-ready boolean is accepted.
+@@ -353,7 +430,7 @@
+         };
+         let expected=bindings.iter().map(|b|json!({"id":b.negotiated.requested.logical_id.as_str(),"kind":kind(b.negotiated.requested.medium),"direction":peer_direction(b.negotiated.requested.direction),"codec":codec_wire(&b.negotiated.format,payload_type(&b.negotiated.format))})).collect::<Vec<_>>();
+         if answer.by_participant.as_ref().map(Identifier::as_str) != Some(self.participant.as_str())
+-            || answer.substrate != substrate.as_str().ok_or(NativeOfferError::Invalid)?
++            || answer.substrate != substrate.as_str()
+             || answer.substrate_setup.as_ref() != Some(&setup)
+             || serde_json::to_value(&answer.streams_answered)
+                 .map_err(|_| NativeOfferError::Invalid)?
+@@ -465,8 +542,11 @@
+     }
+ }
+ pub(crate) fn scope_matches(e: &Envelope, s: &StagedRtpScope) -> bool {
++    scope_matches_kind(e, s, "connection.offer")
++}
++fn scope_matches_kind(e: &Envelope, s: &StagedRtpScope, kind: &str) -> bool {
+     s.wire_conversation.is_some()
+-        && e.kind() == "connection.offer"
++        && e.kind() == kind
+         && e.scope(Scope::Reply).is_none()
+         && e.scope(Scope::Operation).is_some()
+         && e.scope(Scope::Conversation) == s.wire_conversation.as_deref()
+diff --git a/crates/uctp/rvoip-uctp/src/v2/native_negotiation/tests.rs b/crates/uctp/rvoip-uctp/src/v2/native_negotiation/tests.rs
+--- a/crates/uctp/rvoip-uctp/src/v2/native_negotiation/tests.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/native_negotiation/tests.rs
+@@ -162,3 +162,104 @@
+         Err(NativeOfferError::Unsupported)
+     ));
+ }
++
++fn codec_bindings(plan: &NativeOfferPlan) -> Vec<ReadyMediaBinding> {
++    plan.selected
++        .iter()
++        .enumerate()
++        .map(|(index, selected)| ReadyMediaBinding {
++            negotiated: selected.clone(),
++            transport_id: StreamId::new(),
++            stream_local_id: index as u16 + 1,
++            generation: 1,
++            connection_generation: 1,
++            source_ready: selected.requested.direction != StreamDirection::Send,
++            sink_ready: selected.requested.direction != StreamDirection::Receive,
++        })
++        .collect()
++}
++fn codec_request(streams: Option<Vec<&str>>, names: &[&str]) -> ConnectionUpdate {
++    serde_json::from_value(
++        json!({"action":"codec-renegotiate","streams":streams,"codec_preferences":names}),
++    )
++    .unwrap()
++}
++#[test]
++fn native_codec_update_selects_only_targets_and_preserves_complete_unaffected_program() {
++    let profile = profile();
++    let original = NativeOfferPlan::parse(&offer(), &profile, &actor()).unwrap();
++    let bindings = codec_bindings(&original);
++    let update = codec_request(Some(vec!["one"]), &["unsupported", "PCMU"]);
++    let selected =
++        NativeOfferPlan::codec_update(&update, &profile, &original.remote, &bindings).unwrap();
++    assert_eq!(selected.selected[0].format, audio("pcmu"));
++    assert_eq!(
++        selected.selected[0].requested,
++        original.selected[0].requested
++    );
++    assert_eq!(selected.selected[1], original.selected[1]);
++    assert!(selected.rejected.is_empty());
++    assert_eq!(bindings[0].negotiated.format, audio("pcma"));
++}
++#[test]
++fn native_codec_update_validates_all_targets_and_both_directional_catalogs_before_preparation() {
++    let profile = profile();
++    let original = NativeOfferPlan::parse(&offer(), &profile, &actor()).unwrap();
++    let bindings = codec_bindings(&original);
++    for update in [
++        codec_request(Some(vec!["one", "missing"]), &["pcmu"]),
++        codec_request(Some(vec!["one", "one"]), &["pcmu"]),
++        codec_request(None, &["PCMU", "pcmu"]),
++        codec_request(None, &[]),
++        codec_request(None, &["vp9"]),
++    ] {
++        assert!(
++            NativeOfferPlan::codec_update(&update, &profile, &original.remote, &bindings).is_err()
++        );
++    }
++    let mut remote = original.remote.clone();
++    remote.receive[0].formats.retain(|f| f != &audio("pcmu"));
++    assert!(matches!(
++        NativeOfferPlan::codec_update(
++            &codec_request(Some(vec!["one"]), &["pcmu"]),
++            &profile,
++            &remote,
++            &bindings
++        ),
++        Err(NativeOfferError::Unsupported)
++    ));
++}
++#[test]
++fn native_codec_update_keeps_data_parameters_and_never_treats_data_protocols_as_codecs() {
++    let profile = profile();
++    let original = NativeOfferPlan::parse(&offer(), &profile, &actor()).unwrap();
++    let mut bindings = codec_bindings(&original);
++    let mut data = bindings[0].clone();
++    data.negotiated = NegotiatedStream {
++        requested: DesiredStream {
++            logical_id: StreamId::from_string("data"),
++            medium: Medium::Data,
++            direction: StreamDirection::Both,
++        },
++        format: MediaFormat::ReliableOrdered(rvoip_core::capability::DataProtocol::Binary),
++    };
++    data.stream_local_id = 3;
++    bindings.push(data.clone());
++    let selected = NativeOfferPlan::codec_update(
++        &codec_request(None, &["pcmu"]),
++        &profile,
++        &original.remote,
++        &bindings,
++    )
++    .unwrap();
++    assert_eq!(selected.selected[2], data.negotiated);
++    assert!(matches!(
++        NativeOfferPlan::codec_update(
++            &codec_request(Some(vec!["data"]), &["binary"]),
++            &profile,
++            &original.remote,
++            &bindings
++        ),
++        Err(NativeOfferError::Unsupported)
++    ));
++}
+diff --git a/crates/uctp/rvoip-uctp/tests/support/canonical_media/native_offers.rs b/crates/uctp/rvoip-uctp/tests/support/canonical_media/native_offers.rs
+--- a/crates/uctp/rvoip-uctp/tests/support/canonical_media/native_offers.rs
++++ b/crates/uctp/rvoip-uctp/tests/support/canonical_media/native_offers.rs
+@@ -151,7 +151,11 @@
+             .ok_or(StreamControlError::Authority)?;
+         if !Arc::ptr_eq(&self.0, &i.domain.0)
+             || proof.guard.denied
+-            || wire.connection.as_ref() != Some(s.connection)
++            || i.a
++                .envelope()
++                .scope(Scope::Connection)
++                .and_then(|id| wire._guard.connections.get(id))
++                != Some(s.connection)
+             || i.a.envelope().scope(Scope::Conversation) != Some("conversation")
+             || i.a.envelope().scope(Scope::Session) != Some("session")
+             || !rvoip_core::staged_streams::reliable_data::same_credential(
+@@ -382,6 +386,56 @@
+                     .and_then(|id| wire._guard.connections.get(id).cloned())
+             })
+             .ok_or(DispatchError::Authority)?;
++        if matches!(a.envelope().payload(), Payload::ConnectionUpdate(u)
++            if u.action == rvoip_uctp::v2::payloads::ConnectionUpdateAction::CodecRenegotiate)
++        {
++            let adapter = &self.native.adapters[&self.physical.transport()];
++            let plan = match adapter.plan_native_codec_update(&id, &a) {
++                Ok(plan) => plan,
++                Err(error) => {
++                    self.record.results.lock().unwrap().push(Err(error));
++                    return Err(DispatchError::Authority);
++                }
++            };
++            let invocation = Arc::new(Invocation {
++                a: a.clone(),
++                domain: self.grants.clone(),
++                plan,
++            });
++            let result = adapter
++                .renegotiate_native_codecs(&id, a.clone(), invocation, deadline())
++                .await;
++            let revision = match &result {
++                Ok(result) => result.revision,
++                Err(_) => {
++                    self.record.results.lock().unwrap().push(result);
++                    return Err(DispatchError::Authority);
++                }
++            };
++            self.record.results.lock().unwrap().push(result);
++            if self.record.lifecycle.load(Ordering::Acquire) {
++                let registration = adapter
++                    .native_lifecycle_registration(
++                        &id,
++                        &a,
++                        Arc::new(EventPolicy {
++                            grants: self.grants.clone(),
++                            record: self.record.clone(),
++                        }),
++                    )
++                    .map_err(|_| DispatchError::Authority)?;
++                self.events.register(id.clone(), registration)?;
++            }
++            let mut reply = envelope(
++                "ack",
++                json!({"details":{"local_codec_commit":{"revision":revision}}}),
++            );
++            for field in ["cid", "sid", "connid", "operation_id"] {
++                reply[field] = a.envelope().original()[field].clone();
++            }
++            reply["in_reply_to"] = json!(a.envelope().id());
++            return HandlerReplies::new(vec![Envelope::from_value(reply)?]);
++        }
+         if matches!(a.envelope().payload(), Payload::ConnectionUpdate(_)) {
+             let adapter = &self.native.adapters[&self.physical.transport()];
+             let plan = match adapter.plan_native_control(&id, &a) {
+@@ -1531,7 +1585,7 @@
+     wrong["payload"]["codec_preferences"] = json!(["pcmu"]);
+     requests.push(wrong);
+     let mut codec = gate_command("codec-renegotiate", 1, Some(&["first"]), None);
+-    codec["payload"]["codec_preferences"] = json!(["pcma"]);
++    codec["payload"]["codec_preferences"] = json!(["vp9"]);
+     requests.push(codec);
+     for request in requests {
+         gate_reply(&mut s, request, "error").await;
+@@ -1595,3 +1649,297 @@
+     no_event(&mut s.wire).await;
+     s.wire.server.shutdown().await.unwrap();
+ }
++
++fn codec_command(revision: u64, names: &[&str]) -> Value {
++    let mut request = gate_command("codec-renegotiate", revision, Some(&["first"]), None);
++    request["payload"]["codec_preferences"] = json!(names);
++    request
++}
++async fn codec_callback(s: &mut Scene, request: Value) -> Envelope {
++    let original = request.clone();
++    s.wire.send(s.f.sign(request)).await;
++    let callback = s.wire.read().await;
++    assert_eq!(callback.kind(), "connection.offer");
++    s.f.verify_server(&callback).await;
++    for field in ["cid", "sid", "connid", "operation_id"] {
++        assert_eq!(callback.original()[field], original[field]);
++    }
++    assert_eq!(
++        callback.original()["payload"]["substrate_setup"]["offer_id"],
++        original["id"]
++    );
++    callback
++}
++async fn codec_ack(s: &mut Scene, request: &Value) {
++    let reply = s.wire.read().await;
++    verify_codec_ack(s, request, &reply).await;
++}
++async fn verify_codec_ack(s: &Scene, request: &Value, reply: &Envelope) {
++    assert_eq!(reply.kind(), "ack");
++    s.f.verify_server(&reply).await;
++    assert_eq!(reply.original()["in_reply_to"], request["id"]);
++    for field in ["cid", "sid", "connid", "operation_id"] {
++        assert_eq!(reply.original()[field], request[field]);
++    }
++    assert_eq!(
++        reply.original()["payload"]["details"]["local_codec_commit"]["revision"],
++        request["expected_revision"].as_u64().unwrap() + 1
++    );
++}
++fn encoded_audio(handle: u16, pt: u8, sequence: u16) -> Bytes {
++    let mut codec =
++        rvoip_media_core::codec::factory::CodecFactory::create_codec(pt, Some(8000), Some(1))
++            .unwrap();
++    let payload = codec
++        .encode(&rvoip_media_core::AudioFrame {
++            samples: vec![1800; 160],
++            sample_rate: 8000,
++            channels: 1,
++            duration: Duration::from_millis(20),
++            timestamp: sequence as u32 * 160,
++        })
++        .unwrap()
++        .into();
++    pack_rtp_datagram(&RtpDatagram {
++        flags: 0,
++        stream_local_id: handle,
++        seq: sequence as u32,
++        rtp: RtpMediaPayload {
++            payload,
++            payload_type: pt,
++            sequence_number: sequence,
++            timestamp: sequence as u32 * 160,
++            ssrc: 17,
++        },
++    })
++    .unwrap()
++}
++fn decoded_codec(packet: &ObservedRtpDatagram, pt: u8) {
++    assert_eq!(packet.rtp.packet().header.payload_type, pt);
++    let mut codec =
++        rvoip_media_core::codec::factory::CodecFactory::create_codec(pt, Some(8000), Some(1))
++            .unwrap();
++    assert!(codec
++        .decode(&packet.rtp.packet().payload)
++        .unwrap()
++        .samples
++        .iter()
++        .any(|s| s.unsigned_abs() > 500));
++}
++#[tokio::test]
++async fn actual_native_codec_update_confirms_replacement_and_preserves_decoded_old_audio_until_commit(
++) {
++    for kind in ["quic", "wt"] {
++        let mut p = GatePair::new(kind).await;
++        let first = StreamId::from_string("first");
++        let old_binding = p.s.controller().active_bindings()[0].clone();
++        send(&p.s.wire, audio_sequence(p.ah, 1));
++        let old_packet = packet(&mut p.ai).await;
++        let request = codec_command(1, &["pcma"]);
++        let callback = codec_callback(&mut p.s, request.clone()).await;
++        assert_eq!(p.s.controller().revision(), 1);
++        assert_eq!(
++            p.s.controller().active_bindings()[0].transport_id,
++            old_binding.transport_id
++        );
++        let stale_gate = gate_command("mute", 1, Some(&["first"]), None);
++        p.s.wire.send(p.s.f.sign(stale_gate)).await;
++        p.playback(1).await;
++        p.s.confirm(&callback).await;
++        codec_ack(&mut p.s, &request).await;
++        p.s.wait(3).await;
++        let refused = p.s.wire.read().await;
++        assert_eq!(refused.kind(), "error");
++        p.s.f.verify_server(&refused).await;
++        assert!(matches!(
++            p.s.record.controls.lock().unwrap().last().unwrap(),
++            Err(NativeOfferError::Conflict)
++        ));
++        let current = p.s.controller().active_bindings()[0].clone();
++        assert_eq!(current.negotiated.requested.logical_id, first);
++        assert_ne!(current.transport_id, old_binding.transport_id);
++        assert_ne!(current.stream_local_id, p.ah);
++        assert_eq!(p.s.controller().stream_open_budget().0, 2);
++        assert_eq!(p.bc().revision(), 1);
++        assert!(old_packet.try_forward_to(&p.bc(), &first).is_err());
++        let mut input = p.s.controller().take_ingress(&first).unwrap();
++        send(&p.s.wire, audio_sequence(p.ah, 2));
++        assert!(
++            tokio::time::timeout(Duration::from_millis(40), input.recv())
++                .await
++                .is_err()
++        );
++        send(&p.s.wire, encoded_audio(current.stream_local_id, 8, 2));
++        let changed_packet = packet(&mut input).await;
++        // Ordinary packet forwarding preserves encoding. Managed audio scenes
++        // own transcoding; this isolated relay refuses differing formats.
++        assert!(matches!(
++            changed_packet.try_forward_to(&p.bc(), &first),
++            Err(StreamControlError::Unsupported)
++        ));
++        let mut other_request = codec_command(1, &["pcma"]);
++        other_request["connid"] = json!("native_1");
++        p.other.send(p.s.f.sign(other_request.clone())).await;
++        let other_callback = p.other.read().await;
++        assert_eq!(other_callback.kind(), "connection.offer");
++        p.s.f.verify_server(&other_callback).await;
++        p.other
++            .send(p.s.f.sign(p.s.confirmation(&other_callback)))
++            .await;
++        let other_ack = p.other.read().await;
++        verify_codec_ack(&p.s, &other_request, &other_ack).await;
++        p.s.wait(4).await;
++        let other_binding = p.bc().active_bindings()[0].clone();
++        let mut other_input = p.bc().take_ingress(&first).unwrap();
++        send(&p.s.wire, encoded_audio(current.stream_local_id, 8, 3));
++        packet(&mut input)
++            .await
++            .try_forward_to(&p.bc(), &first)
++            .unwrap();
++        decoded_codec(&received(&p.other).await, 8);
++        send(&p.other, encoded_audio(other_binding.stream_local_id, 8, 3));
++        packet(&mut other_input)
++            .await
++            .try_forward_to(&p.s.controller(), &first)
++            .unwrap();
++        let output = received(&p.s.wire).await;
++        assert_eq!(output.stream_local_id, current.stream_local_id);
++        decoded_codec(&output, 8);
++        p.s.wire.server.shutdown().await.unwrap();
++        p.other.server.shutdown().await.unwrap();
++    }
++}
++#[tokio::test]
++async fn actual_native_codec_update_refuses_stale_unknown_incompatible_and_foreign_requests_without_effect(
++) {
++    let mut p = GatePair::new("quic").await;
++    let original = p.s.controller().active_bindings()[0].clone();
++    let budget = p.s.controller().stream_open_budget();
++    let mut missing = codec_command(1, &["pcma"]);
++    missing["payload"]["streams"] = json!(["first", "missing"]);
++    let mut details = codec_command(1, &["pcma"]);
++    details["payload"]["details"] = json!({"direction":"sendonly"});
++    let mut scope = codec_command(1, &["pcma"]);
++    scope["sid"] = json!("foreign");
++    let requests = vec![
++        codec_command(0, &["pcma"]),
++        codec_command(1, &["vp9"]),
++        codec_command(1, &["pcma", "PCMA"]),
++        missing,
++        details,
++        scope,
++    ];
++    for (index, request) in requests.into_iter().enumerate() {
++        gate_reply(&mut p.s, request, "error").await;
++        assert_eq!(p.s.controller().revision(), 1);
++        assert_eq!(
++            p.s.controller().active_bindings()[0].transport_id,
++            original.transport_id
++        );
++        assert_eq!(p.s.controller().stream_open_budget(), budget);
++        p.playback(index as u16 + 1).await;
++    }
++    p.other.send(p.s.f.sign(codec_command(1, &["pcma"]))).await;
++    let error = p.other.read().await;
++    assert_eq!(error.kind(), "error");
++    p.s.f.verify_server(&error).await;
++    p.s.grants.0.write().await.denied = true;
++    gate_reply(&mut p.s, codec_command(1, &["pcma"]), "error").await;
++    p.s.grants.0.write().await.denied = false;
++    assert_eq!(p.s.controller().revision(), 1);
++    assert_eq!(p.s.controller().stream_open_budget(), budget);
++    p.playback(8).await;
++    let mut foreign_substrate = lifecycle_offer(&p.s, 0, 1, "sendrecv");
++    foreign_substrate["payload"]["substrate"] = json!("websocket+webrtc");
++    p.s.wire.send(p.s.f.sign(foreign_substrate)).await;
++    let error = p.s.wire.read().await;
++    assert_eq!(error.kind(), "error");
++    p.s.f.verify_server(&error).await;
++    assert_eq!(p.s.controller().revision(), 1);
++    assert_eq!(p.s.controller().stream_open_budget(), budget);
++    p.playback(9).await;
++    p.s.wire.server.shutdown().await.unwrap();
++    p.other.server.shutdown().await.unwrap();
++}
++#[tokio::test]
++async fn actual_native_codec_update_wrong_confirmation_preserves_audio_and_retry_burns_provisional_handle(
++) {
++    let mut p = GatePair::new("quic").await;
++    let request = codec_command(1, &["pcma"]);
++    let callback = codec_callback(&mut p.s, request).await;
++    let old = p.s.controller().active_bindings()[0].clone();
++    let provisional =
++        callback.original()["payload"]["substrate_setup"]["streams"][0]["stream_local_id"].clone();
++
++    p.playback(1).await;
++    let mut answer = p.s.confirmation(&callback);
++    answer["payload"]["substrate_setup"]["revision"] = json!(99);
++    p.s.wire.send(p.s.f.sign(answer)).await;
++    let error = p.s.wire.read().await;
++    assert_eq!(error.kind(), "error");
++    p.s.f.verify_server(&error).await;
++    p.s.wait(3).await;
++    assert!(matches!(
++        p.s.record.results.lock().unwrap().last().unwrap(),
++        Err(NativeOfferError::Confirmation)
++    ));
++    assert_eq!(p.s.controller().revision(), 1);
++    assert_eq!(
++        p.s.controller().active_bindings()[0].transport_id,
++        old.transport_id
++    );
++    p.playback(2).await;
++    let retry = codec_command(1, &["pcma"]);
++    let callback = codec_callback(&mut p.s, retry.clone()).await;
++    assert_ne!(
++        callback.original()["payload"]["substrate_setup"]["streams"][0]["stream_local_id"],
++        provisional
++    );
++    p.s.confirm(&callback).await;
++    codec_ack(&mut p.s, &retry).await;
++    p.s.wait(4).await;
++    assert_eq!(p.s.controller().revision(), 2);
++    assert_eq!(p.s.controller().stream_open_budget().0, 3);
++    p.s.wire.server.shutdown().await.unwrap();
++    p.other.server.shutdown().await.unwrap();
++}
++#[tokio::test]
++async fn actual_native_codec_update_lifecycle_requires_fresh_flow_on_confirmed_replacement() {
++    let mut s = Scene::new("quic", false).await;
++    s.record.lifecycle.store(true, Ordering::Release);
++    let (answer, callback) = s.prepared(lifecycle_offer(&s, 0, 0, "sendonly")).await;
++    s.confirm(&callback).await;
++    s.wait(1).await;
++    let first = StreamId::from_string("first");
++    let handle = answer.original()["payload"]["substrate_setup"]["streams"][0]["stream_local_id"]
++        .as_u64()
++        .unwrap() as u16;
++    let mut old = s.controller().take_ingress(&first).unwrap();
++    send(&s.wire, audio_sequence(handle, 1));
++    let _received = packet(&mut old).await;
++    ready_opened(&s.f, &mut s.wire, handle).await;
++    let request = codec_command(1, &["pcma"]);
++    let callback = codec_callback(&mut s, request.clone()).await;
++    s.confirm(&callback).await;
++    codec_ack(&mut s, &request).await;
++    s.wait(2).await;
++    let closed = s.wire.read().await;
++    assert_eq!(closed.kind(), "stream.closed");
++    s.f.verify_server(&closed).await;
++    no_event(&mut s.wire).await;
++    send(&s.wire, audio_sequence(handle, 2));
++    no_event(&mut s.wire).await;
++    let binding = s.controller().active_bindings()[0].clone();
++    let mut input = s.controller().take_ingress(&first).unwrap();
++    send(&s.wire, encoded_audio(binding.stream_local_id, 8, 2));
++    let _fresh = packet(&mut input).await;
++    let opened = s.wire.read().await;
++    assert_eq!(opened.kind(), "stream.opened");
++    s.f.verify_server(&opened).await;
++    assert_eq!(
++        opened.original()["payload"]["stream"]["stream_local_id"],
++        binding.stream_local_id
++    );
++    no_event(&mut s.wire).await;
++    s.wire.server.shutdown().await.unwrap();
++}

@@ -15,7 +15,9 @@ async fn conversation(f: &Fixture, who: &str) -> String {
             who,
             Operation::Create {
                 request_id: uuid::Uuid::new_v4().to_string(),
-                participants: vec![f.identity("reviews")],
+                request: connect_protocol::conversations::CreateRequest::persistent(vec![
+                    f.identity("reviews")
+                ]),
             },
         )
         .await
@@ -29,6 +31,7 @@ async fn upload(f: &Fixture, who: &str, cid: &str, bytes: &[u8]) -> Artifact {
         .request(
             who,
             Operation::ArtifactBegin {
+                to: connect_protocol::messages::MessageAudience::all(),
                 request_id: uuid::Uuid::new_v4().to_string(),
                 conversation_id: cid.into(),
                 name: "draft.json".into(),
@@ -83,15 +86,17 @@ async fn submit(
             Operation::Send {
                 request_id: uuid::Uuid::new_v4().to_string(),
                 conversation_id: cid.into(),
-                body: serde_json::to_string(&Request::SubmitArtifact {
-                    request_id: request_id.into(),
-                    artifact: DraftFile {
-                        id: artifact.id.clone(),
-                        sha256: artifact.sha256.clone(),
-                        size: artifact.size,
-                    },
-                })
-                .unwrap(),
+                message: connect_protocol::messages::MessageDraft::text_all(
+                    serde_json::to_string(&Request::SubmitArtifact {
+                        request_id: request_id.into(),
+                        artifact: DraftFile {
+                            id: artifact.id.clone(),
+                            sha256: artifact.sha256.clone(),
+                            size: artifact.size,
+                        },
+                    })
+                    .unwrap(),
+                ),
             },
         )
         .await

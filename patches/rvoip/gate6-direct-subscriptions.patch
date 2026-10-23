@@ -1,0 +1,1835 @@
+diff --git a/crates/foundation/rvoip-core/src/staged_streams.rs b/crates/foundation/rvoip-core/src/staged_streams.rs
+--- a/crates/foundation/rvoip-core/src/staged_streams.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams.rs
+@@ -181,6 +181,10 @@
+ /// It carries no grant and is never deserialized from an authority assertion.
+ pub enum MediaControlIntent<'a> {
+     Initialize,
++    DirectSubscriptions {
++        expected: u64,
++        change: &'a direct_subscriptions::DirectSubscriptionChange,
++    },
+     AudioSubscriptions {
+         expected: u64,
+         change: &'a audio_subscriptions::AudioSubscriptionChange,
+@@ -521,6 +525,7 @@
+             false,
+             None,
+             audio_consumer::ConsumerCheck::Current,
++            None,
+         )?;
+         if tokio::time::Instant::now() >= deadline {
+             return Err(StreamControlError::Deadline);
+@@ -637,6 +642,16 @@
+         {
+             return Err(StreamControlError::Unsupported);
+         }
++        let direct = if self.source.kind() != StreamKind::Audio {
++            Some(destination.direct_subscriptions.stamp(
++                &source,
++                &self.source.binding.negotiated.requested.logical_id,
++                logical,
++                self.admitted_at,
++            )?)
++        } else {
++            None
++        };
+         let descriptor = source.descriptor(&self.source)?;
+         let (_source_lease, _source_guard, source_deadline) = source.admit(
+             &self.source,
+@@ -644,6 +659,7 @@
+             false,
+             None,
+             audio_consumer::ConsumerCheck::Retained(self.consumer.as_ref()),
++            None,
+         )?;
+         let ticket = target.ticket();
+         let (_target_lease, target_admission, target_deadline) = destination.admit(
+@@ -652,6 +668,7 @@
+             true,
+             Some(&descriptor),
+             audio_consumer::ConsumerCheck::OrdinaryForward,
++            direct.as_ref(),
+         )?;
+         if source.shutdown.is_cancelled() || destination.shutdown.is_cancelled() {
+             return Err(StreamControlError::Cancelled);
+@@ -675,6 +692,7 @@
+                 target_ticket: ticket,
+                 target_consumer: target_admission.consumer.clone(),
+                 subscription: None,
++                direct,
+                 admitted_at: self.admitted_at,
+             })
+             .map_err(|error| match error {
+@@ -692,6 +710,15 @@
+     consumer: Option<audio_consumer::ConsumerStamp>,
+     descriptor: MediaSource,
+ }
++/// Source binding observed under the same current guards as local delivery.
++/// This metadata is not an authority grant and is never put on the wire.
++#[derive(Clone, PartialEq, Eq)]
++pub struct MediaDeliveryOrigin {
++    pub connection: ConnectionId,
++    pub logical: StreamId,
++    pub transport: StreamId,
++    pub generation: u64,
++}
+ pub struct QueuedMedia {
+     frame: MediaFrame,
+     sources: Vec<Contribution>,
+@@ -699,12 +726,22 @@
+     target_ticket: PeerRouteTicket,
+     target_consumer: Option<audio_consumer::ConsumerStamp>,
+     subscription: Option<audio_subscriptions::SubscriptionStamp>,
++    direct: Option<direct_subscriptions::DirectStamp>,
+     admitted_at: Instant,
+ }
+ impl QueuedMedia {
+     pub async fn deliver<F, Fut>(self, send: F) -> ControlResult<()>
+     where
+         F: FnOnce(MediaFrame) -> Fut,
++        Fut: Future<Output = ControlResult<()>>,
++    {
++        self.deliver_with_origin(move |frame, _| send(frame)).await
++    }
++    /// Observe exact original source binding only inside the guarded send.
++    /// Mixed audio has no single source; unmixed direct media always does.
++    pub async fn deliver_with_origin<F, Fut>(self, send: F) -> ControlResult<()>
++    where
++        F: FnOnce(MediaFrame, Option<MediaDeliveryOrigin>) -> Fut,
+         Fut: Future<Output = ControlResult<()>>,
+     {
+         if self.frame.kind != StreamKind::Data
+@@ -722,6 +759,9 @@
+         let mut admissions = Vec::new();
+         let mut tokens = vec![target.shutdown.clone()];
+         let mut deadline = tokio::time::Instant::now() + Duration::from_millis(200);
++        if let Some(direct) = &self.direct {
++            tokens.push(direct.cancel.clone());
++        }
+         if let Some(subscription) = &self.subscription {
+             subscription.require_target(&target)?;
+             tokens.push(subscription.cancel.clone());
+@@ -757,6 +797,7 @@
+                 false,
+                 None,
+                 audio_consumer::ConsumerCheck::Retained(provenance.consumer.as_ref()),
++                None,
+             )?;
+             if let Some(stamp) = &admission.consumer {
+                 tokens.push(stamp.cancellation.clone());
+@@ -774,6 +815,7 @@
+                 true,
+                 Some(&provenance.descriptor),
+                 audio_consumer::ConsumerCheck::Retained(self.target_consumer.as_ref()),
++                self.direct.as_ref(),
+             )?;
+             if let Some(stamp) = &admission.consumer {
+                 tokens.push(stamp.cancellation.clone());
+@@ -788,10 +830,21 @@
+         if tokio::time::Instant::now() >= deadline {
+             return Err(StreamControlError::Deadline);
+         }
++        let origin = if self.sources.len() == 1 {
++            let source = &self.sources[0].descriptor;
++            Some(MediaDeliveryOrigin {
++                connection: source.connection.clone(),
++                logical: source.logical_id.clone(),
++                transport: source.transport_id.clone(),
++                generation: source.stream_generation,
++            })
++        } else {
++            None
++        };
+         tokio::select! {
+             biased;
+             _=audio_consumer::any_cancelled(tokens)=>Err(StreamControlError::Cancelled),
+-            result=tokio::time::timeout_at(deadline,send(self.frame))=>result.map_err(|_|StreamControlError::Deadline)?,
++            result=tokio::time::timeout_at(deadline,send(self.frame,origin))=>result.map_err(|_|StreamControlError::Deadline)?,
+         }
+     }
+ }
+@@ -821,6 +874,7 @@
+     slots: Arc<Semaphore>,
+     state: Mutex<State>,
+     audio_consumer: Mutex<Option<Weak<audio_consumer::AudioConsumer>>>,
++    direct_subscriptions: Arc<direct_subscriptions::DirectGate>,
+     cleanup_lock: tokio::sync::Mutex<()>,
+     inflight: Arc<Semaphore>,
+     shutdown: CancellationToken,
+@@ -1021,6 +1075,7 @@
+                 closed: false,
+             }),
+             audio_consumer: Mutex::new(None),
++            direct_subscriptions: direct_subscriptions::DirectGate::new(lifetime.child_token()),
+             cleanup_lock: tokio::sync::Mutex::new(()),
+             inflight: Arc::new(Semaphore::new(1)),
+             shutdown: lifetime,
+@@ -1186,6 +1241,7 @@
+         sending: bool,
+         source: Option<&MediaSource>,
+         consumer: audio_consumer::ConsumerCheck<'_>,
++        direct: Option<&direct_subscriptions::DirectStamp>,
+     ) -> ControlResult<(
+         Box<dyn MediaAuthorityLease>,
+         audio_consumer::MediaAdmission,
+@@ -1238,7 +1294,17 @@
+         let guard = ticket
+             .try_begin_delivery()
+             .ok_or(StreamControlError::NotReady)?;
+-        let admission = self.consumer_admission(port, sending, consumer, guard)?;
++        let direct_guard = if sending && medium != Medium::Audio {
++            Some(direct.ok_or(StreamControlError::Authority)?.begin(
++                self,
++                port,
++                source.ok_or(StreamControlError::Authority)?,
++            )?)
++        } else {
++            None
++        };
++        let mut admission = self.consumer_admission(port, sending, consumer, guard)?;
++        admission._direct = direct_guard;
+         Ok((
+             lease,
+             admission,
+@@ -1900,4 +1966,5 @@
+ 
+ mod audio_consumer;
+ pub mod audio_subscriptions;
++pub mod direct_subscriptions;
+ pub(crate) mod guarded_audio;
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/audio_consumer.rs b/crates/foundation/rvoip-core/src/staged_streams/audio_consumer.rs
+--- a/crates/foundation/rvoip-core/src/staged_streams/audio_consumer.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/audio_consumer.rs
+@@ -52,6 +52,7 @@
+ pub(super) struct MediaAdmission {
+     pub(super) consumer: Option<ConsumerStamp>,
+     _port: rvoip_core_traits::peer_switch::PeerDeliveryGuard,
++    pub(super) _direct: Option<rvoip_core_traits::peer_switch::PeerDeliveryGuard>,
+     _consumer: Option<rvoip_core_traits::peer_switch::PeerDeliveryGuard>,
+ }
+ pub(crate) struct PreparedAudioRole {
+@@ -195,6 +196,7 @@
+             return Ok(MediaAdmission {
+                 consumer: None,
+                 _port: port_guard,
++                _direct: None,
+                 _consumer: None,
+             });
+         };
+@@ -207,6 +209,7 @@
+         Ok(MediaAdmission {
+             consumer: Some(stamp),
+             _port: port_guard,
++            _direct: None,
+             _consumer: Some(guard),
+         })
+     }
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/direct_subscriptions.rs b/crates/foundation/rvoip-core/src/staged_streams/direct_subscriptions.rs
+new file mode 100644
+--- /dev/null
++++ b/crates/foundation/rvoip-core/src/staged_streams/direct_subscriptions.rs
+@@ -0,0 +1,463 @@
++//! Exact receiver bindings for unmixed video, screen and reliable data.
++//! Intent is retained across transport replacement; grants are never retained.
++use super::*;
++use rvoip_core_traits::peer_switch::PeerDeliveryGuard;
++
++#[derive(Clone)]
++pub struct DirectSubscription {
++    publisher: Weak<StreamController>,
++    pub source: audio_subscriptions::MediaStreamRef,
++    pub receiver: StreamId,
++}
++impl DirectSubscription {
++    /// Trusted process-local selection, not a wire authorization assertion.
++    pub fn new(publisher: &Arc<StreamController>, logical: StreamId, receiver: StreamId) -> Self {
++        Self {
++            publisher: Arc::downgrade(publisher),
++            source: audio_subscriptions::MediaStreamRef {
++                connection: publisher.connection.clone(),
++                logical,
++            },
++            receiver,
++        }
++    }
++    pub fn publisher(&self) -> Option<Arc<StreamController>> {
++        self.publisher.upgrade()
++    }
++    fn same(&self, other: &Self) -> bool {
++        self.source == other.source
++            && self.receiver == other.receiver
++            && Weak::ptr_eq(&self.publisher, &other.publisher)
++    }
++    fn matches(&self, source: &StreamController, logical: &StreamId) -> bool {
++        self.source.connection == source.connection
++            && &self.source.logical == logical
++            && self
++                .publisher
++                .upgrade()
++                .is_some_and(|owner| std::ptr::eq(owner.as_ref(), source))
++    }
++}
++impl PartialEq for DirectSubscription {
++    fn eq(&self, other: &Self) -> bool {
++        self.same(other)
++    }
++}
++impl Eq for DirectSubscription {}
++#[derive(Clone, PartialEq, Eq)]
++pub enum DirectSubscriptionChange {
++    Subscribe(Vec<DirectSubscription>),
++    /// Exact receiver logical IDs. Unknown removals are idempotent.
++    Unsubscribe(Vec<StreamId>),
++    Clear,
++}
++struct Route {
++    selection: DirectSubscription,
++    ticket: PeerRouteTicket,
++    started: Instant,
++}
++impl Drop for Route {
++    fn drop(&mut self) {
++        self.ticket.retire_if_current();
++    }
++}
++struct Routing {
++    program: BTreeMap<StreamId, Arc<Route>>,
++}
++pub(super) struct DirectGate {
++    routing: Mutex<Routing>,
++    cancel: CancellationToken,
++}
++impl DirectGate {
++    pub(super) fn new(cancel: CancellationToken) -> Arc<Self> {
++        Arc::new(Self {
++            routing: Mutex::new(Routing {
++                program: BTreeMap::new(),
++            }),
++            cancel,
++        })
++    }
++    pub(super) fn stamp(
++        self: &Arc<Self>,
++        source: &StreamController,
++        logical: &StreamId,
++        receiver: &StreamId,
++        admitted: Instant,
++    ) -> ControlResult<DirectStamp> {
++        let state = self.routing.lock().unwrap_or_else(|p| p.into_inner());
++        let selection = state
++            .program
++            .get(receiver)
++            .filter(|route| route.selection.matches(source, logical))
++            .ok_or(StreamControlError::Authority)?;
++        if admitted < selection.started || self.cancel.is_cancelled() {
++            return Err(StreamControlError::Authority);
++        }
++        Ok(DirectStamp {
++            gate: Arc::downgrade(self),
++            ticket: selection.ticket.clone(),
++            selection: selection.selection.clone(),
++            cancel: self.cancel.clone(),
++        })
++    }
++}
++impl Drop for DirectGate {
++    fn drop(&mut self) {
++        self.cancel.cancel();
++        for route in self
++            .routing
++            .get_mut()
++            .unwrap_or_else(|p| p.into_inner())
++            .program
++            .values()
++        {
++            route.ticket.retire_if_current();
++        }
++    }
++}
++#[derive(Clone)]
++pub(super) struct DirectStamp {
++    gate: Weak<DirectGate>,
++    ticket: PeerRouteTicket,
++    selection: DirectSubscription,
++    pub(super) cancel: CancellationToken,
++}
++impl DirectStamp {
++    pub(super) fn begin(
++        &self,
++        target: &StreamController,
++        port: &Port,
++        source: &MediaSource,
++    ) -> ControlResult<PeerDeliveryGuard> {
++        if !Weak::ptr_eq(&self.gate, &Arc::downgrade(&target.direct_subscriptions))
++            || self.cancel.is_cancelled()
++            || !self.ticket.is_current()
++            || self.selection.receiver != port.binding.negotiated.requested.logical_id
++            || self.selection.source.connection != source.connection
++            || self.selection.source.logical != source.logical_id
++        {
++            return Err(StreamControlError::Authority);
++        }
++        // No new controller, member epoch or credential owner may borrow intent.
++        let publisher = self
++            .selection
++            .publisher
++            .upgrade()
++            .ok_or(StreamControlError::NotReady)?;
++        if publisher.origin_member.participant() != &source.participant
++            || publisher.origin_member.epoch() != source.membership_epoch
++            || publisher.conversation != source.conversation
++            || publisher.session != source.session
++        {
++            return Err(StreamControlError::Authority);
++        }
++        self.ticket
++            .try_begin_delivery()
++            .ok_or(StreamControlError::NotReady)
++    }
++}
++fn identifier(value: &str) -> bool {
++    !value.is_empty()
++        && value.len() <= 128
++        && value
++            .bytes()
++            .all(|b| b.is_ascii_alphanumeric() || b"-._~:".contains(&b))
++}
++fn validate(change: &DirectSubscriptionChange) -> ControlResult<()> {
++    let valid = match change {
++        DirectSubscriptionChange::Subscribe(items) => {
++            !items.is_empty()
++                && items.len() <= 32
++                && items.iter().all(|s| {
++                    identifier(s.source.connection.as_str())
++                        && identifier(s.source.logical.as_str())
++                        && identifier(s.receiver.as_str())
++                })
++                && items
++                    .iter()
++                    .map(|s| &s.receiver)
++                    .collect::<BTreeSet<_>>()
++                    .len()
++                    == items.len()
++        }
++        DirectSubscriptionChange::Unsubscribe(items) => {
++            !items.is_empty() && items.len() <= 32 && items.iter().all(|s| identifier(s.as_str()))
++        }
++        DirectSubscriptionChange::Clear => true,
++    };
++    if valid {
++        Ok(())
++    } else {
++        Err(MediaTransitionError::Invalid.into())
++    }
++}
++impl StreamController {
++    /// Apply explicit unmixed subscriptions on this receiver's stream revision.
++    /// Public handlers must compose this trusted SPI with durable receipts and
++    /// the exact held authority hook; this method does not create wire commands.
++    pub async fn change_direct_subscriptions(
++        self: &Arc<Self>,
++        expected: u64,
++        change: DirectSubscriptionChange,
++        deadline: tokio::time::Instant,
++        cancel: CancellationToken,
++        held: Option<&(dyn Any + Send + Sync)>,
++    ) -> ControlResult<u64> {
++        validate(&change)?;
++        let _flight = self
++            .inflight
++            .clone()
++            .try_acquire_owned()
++            .map_err(|_| MediaTransitionError::Conflict)?;
++        let credential = self.credential_snapshot();
++        let scope = self.scope(&credential.principal, MediaPurpose::Control);
++        let control = match held {
++            Some(held) => Some(self.policy.current_control(
++                &scope,
++                &MediaControlIntent::DirectSubscriptions {
++                    expected,
++                    change: &change,
++                },
++                held,
++            )?),
++            None => None,
++        };
++        let deadline = Self::command_deadline(&credential.principal, deadline)
++            .min(control.as_ref().map_or(deadline, |c| c.deadline));
++        direct_invocation(self, &credential, control.as_ref(), deadline, &cancel)?;
++        let gate = &self.direct_subscriptions;
++        let (program, old) = {
++            let state = self.state.lock().unwrap_or_else(|p| p.into_inner());
++            let lease = control_read(self.policy.as_ref(), &scope, control.as_ref())?;
++            Self::check(&scope, lease.authority())?;
++            state
++                .model
++                .check_routing(&lease.authority().current(), expected)?;
++            let routing = gate.routing.lock().unwrap_or_else(|p| p.into_inner());
++            let old = routing.program.clone();
++            let mut program = old
++                .iter()
++                .map(|(id, r)| (id.clone(), r.selection.clone()))
++                .collect::<BTreeMap<_, _>>();
++            drop(routing);
++            match &change {
++                DirectSubscriptionChange::Subscribe(items) => {
++                    for selection in items {
++                        program.insert(selection.receiver.clone(), selection.clone());
++                    }
++                }
++                DirectSubscriptionChange::Unsubscribe(items) => {
++                    for id in items {
++                        program.remove(id);
++                    }
++                }
++                DirectSubscriptionChange::Clear => program.clear(),
++            }
++            if program.len() > 32 {
++                return Err(MediaTransitionError::Capacity.into());
++            }
++            let _receive = self.validate_direct(&state, &scope, &change, control.as_ref())?;
++            direct_invocation(self, &credential, control.as_ref(), deadline, &cancel)?;
++            (program, old)
++        };
++        let changed = old
++            .keys()
++            .chain(program.keys())
++            .filter(|id| match (old.get(*id), program.get(*id)) {
++                (Some(old), Some(next)) => !old.selection.same(next),
++                _ => true,
++            })
++            .cloned()
++            .collect::<BTreeSet<_>>();
++        let mut staged = BTreeMap::new();
++        for id in &changed {
++            if program.contains_key(id) {
++                let ticket = match old.get(id) {
++                    Some(old) => old.ticket.stage().ok_or(MediaTransitionError::Capacity)?,
++                    None => PeerRouteTicket::initial(),
++                };
++                staged.insert(id.clone(), ticket);
++            }
++        }
++        let held_cancel = control.as_ref().map(|c| c.cancellation.clone());
++        let mut drained = Vec::new();
++        for id in &changed {
++            if let Some(old) = old.get(id) {
++                drained.push(tokio::select! {
++                    biased;
++                    _=cancel.cancelled()=>return Err(StreamControlError::Cancelled),
++                    _=self.shutdown.cancelled()=>return Err(StreamControlError::Cancelled),
++                    _=async {match &held_cancel {Some(c)=>c.cancelled().await,None=>std::future::pending::<()>().await}}=>return Err(StreamControlError::Cancelled),
++                    result=tokio::time::timeout_at(deadline,old.ticket.quiesce())=>result.map_err(|_|StreamControlError::Deadline)?.ok_or(MediaTransitionError::Conflict)?,
++                });
++            }
++        }
++        let mut state = self.state.lock().unwrap_or_else(|p| p.into_inner());
++        let lease = control_read(self.policy.as_ref(), &scope, control.as_ref())?;
++        Self::check(&scope, lease.authority())?;
++        let _receive = self.validate_direct(&state, &scope, &change, control.as_ref())?;
++        let mut routing = gate.routing.lock().unwrap_or_else(|p| p.into_inner());
++        direct_invocation(self, &credential, control.as_ref(), deadline, &cancel)?;
++        if state.closed
++            || gate.cancel.is_cancelled()
++            || old.values().any(|r| !r.ticket.is_current())
++        {
++            return Err(StreamControlError::Cancelled);
++        }
++        let revision = state.model.commit_routing(
++            &lease.authority().current(),
++            expected,
++            !changed.is_empty(),
++        )?;
++        for id in changed {
++            match program.get(&id) {
++                Some(selection) => {
++                    let next = staged.remove(&id).expect("changed route staged its ticket");
++                    if let Some(previous) = old.get(&id) {
++                        assert!(
++                            next.commit_from(&previous.ticket),
++                            "direct routing changed outside controller fence"
++                        );
++                    }
++                    routing.program.insert(
++                        id,
++                        Arc::new(Route {
++                            selection: selection.clone(),
++                            ticket: next,
++                            started: Instant::now(),
++                        }),
++                    );
++                }
++                None => {
++                    if let Some(previous) = old.get(&id) {
++                        assert!(
++                            previous.ticket.retire_if_current(),
++                            "direct route retired outside controller fence"
++                        );
++                    }
++                    routing.program.remove(&id);
++                }
++            }
++        }
++        drop(routing);
++        drop(drained);
++        Ok(revision)
++    }
++    fn validate_direct(
++        &self,
++        state: &State,
++        scope: &MediaScope<'_>,
++        change: &DirectSubscriptionChange,
++        control: Option<&MediaControl>,
++    ) -> ControlResult<Vec<ControlRead>> {
++        let DirectSubscriptionChange::Subscribe(items) = change else {
++            return Ok(Vec::new());
++        };
++        let mut leases = Vec::new();
++        for selection in items {
++            let publisher = selection
++                .publisher
++                .upgrade()
++                .ok_or(StreamControlError::NotReady)?;
++            if publisher.connection != selection.source.connection
++                || publisher.conversation != self.conversation
++                || publisher.session != self.session
++                || !Arc::ptr_eq(&publisher.policy, &self.policy)
++            {
++                return Err(StreamControlError::Authority);
++            }
++            let target = Self::direct_port(state, &selection.receiver)?;
++            let binding = if std::ptr::eq(publisher.as_ref(), self) {
++                Self::direct_port(state, &selection.source.logical)?
++                    .binding
++                    .clone()
++            } else {
++                let source_state = publisher
++                    .state
++                    .try_lock()
++                    .map_err(|_| MediaTransitionError::Conflict)?;
++                Self::direct_port(&source_state, &selection.source.logical)?
++                    .binding
++                    .clone()
++            };
++            let medium = binding.negotiated.requested.medium;
++            if medium == Medium::Audio
++                || medium != target.binding.negotiated.requested.medium
++                || binding.negotiated.format != target.binding.negotiated.format
++                || binding.negotiated.requested.direction == StreamDirection::Send
++                || target.binding.negotiated.requested.direction == StreamDirection::Receive
++            {
++                return Err(StreamControlError::Unsupported);
++            }
++            if publisher.shutdown.is_cancelled() {
++                return Err(StreamControlError::Cancelled);
++            }
++            let descriptor = MediaSource {
++                conversation: self.conversation.clone(),
++                session: self.session.clone(),
++                connection: publisher.connection.clone(),
++                participant: publisher.origin_member.participant().clone(),
++                membership_epoch: publisher.origin_member.epoch(),
++                connection_generation: binding.connection_generation,
++                logical_id: selection.source.logical.clone(),
++                transport_id: binding.transport_id,
++                stream_generation: binding.generation,
++            };
++            let receive_scope = MediaScope {
++                purpose: MediaPurpose::Receive {
++                    source: &descriptor,
++                },
++                ..*scope
++            };
++            let authority = match control {
++                Some(c) => {
++                    c.valid()?;
++                    ControlRead::Held(c.lease.control_receive(&descriptor)?)
++                }
++                None => ControlRead::Current(self.policy.current(&receive_scope)?),
++            };
++            Self::check(&receive_scope, authority.authority())?;
++            if !authority.authority().may_route_source
++                || !authority.authority().send_media.contains(&medium)
++            {
++                return Err(StreamControlError::Authority);
++            }
++            leases.push(authority);
++        }
++        Ok(leases)
++    }
++    fn direct_port<'a>(state: &'a State, logical: &StreamId) -> ControlResult<&'a Arc<Port>> {
++        if state.closed
++            || state
++                .model
++                .streams()
++                .get(logical)
++                .is_none_or(|s| s.state == LogicalStreamState::Ended)
++        {
++            return Err(StreamControlError::NotReady);
++        }
++        state
++            .active
++            .get(logical)
++            .ok_or(StreamControlError::NotReady)
++    }
++}
++
++fn direct_invocation(
++    controller: &StreamController,
++    credential: &CredentialSnapshot,
++    control: Option<&MediaControl>,
++    deadline: tokio::time::Instant,
++    cancel: &CancellationToken,
++) -> ControlResult<()> {
++    if cancel.is_cancelled() || controller.shutdown.is_cancelled() {
++        return Err(StreamControlError::Cancelled);
++    }
++    if tokio::time::Instant::now() >= deadline {
++        return Err(StreamControlError::Deadline);
++    }
++    if let Some(c) = control {
++        c.valid()?;
++    }
++    controller.check_credential_snapshot(credential)
++}
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/guarded_audio.rs b/crates/foundation/rvoip-core/src/staged_streams/guarded_audio.rs
+--- a/crates/foundation/rvoip-core/src/staged_streams/guarded_audio.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/guarded_audio.rs
+@@ -315,6 +315,7 @@
+                 false,
+                 None,
+                 ConsumerCheck::Retained(packet.consumer.as_ref()),
++                None,
+             ) else {
+                 continue;
+             };
+@@ -366,6 +367,7 @@
+                 false,
+                 None,
+                 ConsumerCheck::Retained(chunk.packet.consumer.as_ref()),
++                None,
+             ) else {
+                 self.pending.pop_front();
+                 continue;
+@@ -603,6 +605,7 @@
+                         true,
+                         Some(&segment.origin.descriptor),
+                         ConsumerCheck::Current,
++                        None,
+                     ) else {
+                         continue;
+                     };
+@@ -690,6 +693,7 @@
+                 target_ticket,
+                 target_consumer,
+                 subscription: Some(subscription),
++                direct: None,
+                 admitted_at: oldest,
+             });
+         }
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/tests.rs b/crates/foundation/rvoip-core/src/staged_streams/tests.rs
+--- a/crates/foundation/rvoip-core/src/staged_streams/tests.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests.rs
+@@ -296,6 +296,12 @@
+ }
+ impl Fixture {
+     fn new(maximum: usize) -> Self {
++        Self::with_policy(maximum, None)
++    }
++    fn with_policy(
++        maximum: usize,
++        factory: Option<Box<dyn FnOnce(Arc<Policy>) -> Arc<dyn MediaPolicy>>>,
++    ) -> Self {
+         let policy = Arc::new(Policy(Arc::new(RwLock::new(PolicyState {
+             owners: [
+                 ("alice".into(), owner("alice")),
+@@ -306,6 +312,10 @@
+             revoked: HashSet::new(),
+             private: false,
+         }))));
++        let domain = match factory {
++            Some(f) => f(policy.clone()),
++            None => policy.clone() as Arc<dyn MediaPolicy>,
++        };
+         let handles = Arc::new(StreamHandleAllocator::default());
+         let aa = Adapter::new();
+         let ba = Adapter::new();
+@@ -315,7 +325,7 @@
+                 SessionId::from_string("session"),
+                 ConnectionId::from_string(name),
+                 principal(name),
+-                policy.clone(),
++                domain.clone(),
+                 adapter,
+                 handles.clone(),
+                 maximum,
+@@ -331,6 +341,33 @@
+         }
+     }
+     async fn start(&self, kinds: &[Medium]) {
++        self.start_unsubscribed(kinds).await;
++        use crate::staged_streams::direct_subscriptions::*;
++        let selections = kinds
++            .iter()
++            .filter(|k| **k != Medium::Audio)
++            .map(|k| {
++                DirectSubscription::new(
++                    &self.a,
++                    desired(*k).logical_id.clone(),
++                    desired(*k).logical_id,
++                )
++            })
++            .collect::<Vec<_>>();
++        if !selections.is_empty() {
++            self.b
++                .change_direct_subscriptions(
++                    self.b.revision(),
++                    DirectSubscriptionChange::Subscribe(selections),
++                    deadline(),
++                    CancellationToken::new(),
++                    None,
++                )
++                .await
++                .unwrap();
++        }
++    }
++    async fn start_unsubscribed(&self, kinds: &[Medium]) {
+         let request = kinds.iter().map(|k| desired(*k)).collect::<Vec<_>>();
+         self.a
+             .change(
+@@ -2246,3 +2283,5 @@
+ mod credential_rebind_tests;
+ 
+ mod guarded_mixer;
++
++mod direct_subscriptions;
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/tests/direct_subscriptions.rs b/crates/foundation/rvoip-core/src/staged_streams/tests/direct_subscriptions.rs
+new file mode 100644
+--- /dev/null
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/direct_subscriptions.rs
+@@ -0,0 +1,676 @@
++use super::*;
++use crate::staged_streams::direct_subscriptions::*;
++fn selection(f: &Fixture, medium: Medium) -> DirectSubscription {
++    DirectSubscription::new(
++        &f.a,
++        desired(medium).logical_id.clone(),
++        desired(medium).logical_id,
++    )
++}
++async fn route(f: &Fixture, change: DirectSubscriptionChange) -> ControlResult<u64> {
++    f.b.change_direct_subscriptions(
++        f.b.revision(),
++        change,
++        deadline(),
++        CancellationToken::new(),
++        None,
++    )
++    .await
++}
++async fn publish(
++    f: &Fixture,
++    medium: Medium,
++    input: &mut mpsc::Receiver<MediaPacket>,
++    sequence: u32,
++) -> MediaPacket {
++    let source = f.aa.port(medium);
++    source.try_publish(&frame(&source, sequence)).unwrap();
++    receive(input).await
++}
++#[tokio::test]
++async fn direct_video_screen_and_data_default_deny_and_reject_preselection_buffers() {
++    for medium in [Medium::Video, Medium::Screen, Medium::Data] {
++        let f = Fixture::new(8);
++        f.start_unsubscribed(&[medium]).await;
++        let mut input = f.a.take_ingress(&desired(medium).logical_id).unwrap();
++        let mut output = f.ba.port(medium).take_egress().unwrap();
++        let old = publish(&f, medium, &mut input, 10).await;
++        assert!(old
++            .try_forward_to(&f.b, &desired(medium).logical_id)
++            .is_err());
++        let handles = f.b.stream_open_budget();
++        let rev = f.b.revision();
++        let change = DirectSubscriptionChange::Subscribe(vec![selection(&f, medium)]);
++        assert_eq!(route(&f, change.clone()).await.unwrap(), rev + 1);
++        assert_eq!(route(&f, change).await.unwrap(), rev + 1);
++        assert!(old
++            .try_forward_to(&f.b, &desired(medium).logical_id)
++            .is_err());
++        publish(&f, medium, &mut input, 20)
++            .await
++            .try_forward_to(&f.b, &desired(medium).logical_id)
++            .unwrap();
++        outgoing(&mut output)
++            .await
++            .deliver(|v| async move {
++                assert_eq!(v.timestamp_rtp, 20);
++                Ok(())
++            })
++            .await
++            .unwrap();
++        assert_eq!(handles, f.b.stream_open_budget());
++    }
++}
++#[tokio::test]
++async fn direct_subscription_batch_is_atomic_and_scope_codec_and_destination_are_checked() {
++    let f = Fixture::new(8);
++    f.start_unsubscribed(&[Medium::Audio, Medium::Video, Medium::Screen, Medium::Data])
++        .await;
++    let before = f.b.revision();
++    let mut bad = selection(&f, Medium::Data);
++    bad.source.logical = StreamId::from_string("missing");
++    assert!(route(
++        &f,
++        DirectSubscriptionChange::Subscribe(vec![selection(&f, Medium::Video), bad])
++    )
++    .await
++    .is_err());
++    assert_eq!(before, f.b.revision());
++    let mut wrong_kind = selection(&f, Medium::Video);
++    wrong_kind.receiver = desired(Medium::Screen).logical_id;
++    assert!(
++        route(&f, DirectSubscriptionChange::Subscribe(vec![wrong_kind]))
++            .await
++            .is_err()
++    );
++    assert!(route(
++        &f,
++        DirectSubscriptionChange::Subscribe(vec![selection(&f, Medium::Audio)])
++    )
++    .await
++    .is_err());
++    let foreign = Fixture::new(8);
++    foreign.start_unsubscribed(&[Medium::Video]).await;
++    let other = DirectSubscription::new(
++        &foreign.a,
++        desired(Medium::Video).logical_id.clone(),
++        desired(Medium::Video).logical_id,
++    );
++    assert!(matches!(
++        route(&f, DirectSubscriptionChange::Subscribe(vec![other])).await,
++        Err(StreamControlError::Authority)
++    ));
++    assert_eq!(before, f.b.revision());
++    assert!(f
++        .b
++        .change_direct_subscriptions(
++            before - 1,
++            DirectSubscriptionChange::Clear,
++            deadline(),
++            CancellationToken::new(),
++            None
++        )
++        .await
++        .is_err());
++    route(
++        &f,
++        DirectSubscriptionChange::Subscribe(vec![selection(&f, Medium::Video)]),
++    )
++    .await
++    .unwrap();
++    assert!(matches!(
++        f.b.change_direct_subscriptions(
++            f.b.revision(),
++            DirectSubscriptionChange::Clear,
++            deadline(),
++            CancellationToken::new(),
++            Some(&())
++        )
++        .await,
++        Err(StreamControlError::Unsupported)
++    ));
++    let mut input =
++        f.a.take_ingress(&desired(Medium::Video).logical_id)
++            .unwrap();
++    publish(&f, Medium::Video, &mut input, 42)
++        .await
++        .try_forward_to(&f.b, &desired(Medium::Video).logical_id)
++        .unwrap();
++}
++#[tokio::test]
++async fn direct_unsubscribe_drains_admitted_data_send_and_invalidates_queued_generation() {
++    let f = Fixture::new(8);
++    f.start(&[Medium::Audio, Medium::Data]).await;
++    let mut input = f.a.take_ingress(&desired(Medium::Data).logical_id).unwrap();
++    let mut output = f.ba.port(Medium::Data).take_egress().unwrap();
++    for sequence in 0..2 {
++        publish(&f, Medium::Data, &mut input, sequence)
++            .await
++            .try_forward_to(&f.b, &desired(Medium::Data).logical_id)
++            .unwrap();
++    }
++    let first = outgoing(&mut output).await;
++    let stale = outgoing(&mut output).await;
++    let entered = Arc::new(Notify::new());
++    let release = Arc::new(Notify::new());
++    let sending = tokio::spawn({
++        let entered = entered.clone();
++        let release = release.clone();
++        async move {
++            first
++                .deliver(|_| async move {
++                    entered.notify_one();
++                    release.notified().await;
++                    Ok(())
++                })
++                .await
++        }
++    });
++    entered.notified().await;
++    let receiver = f.b.clone();
++    let before = receiver.revision();
++    let mut removing = tokio::spawn(async move {
++        receiver
++            .change_direct_subscriptions(
++                before,
++                DirectSubscriptionChange::Clear,
++                deadline(),
++                CancellationToken::new(),
++                None,
++            )
++            .await
++    });
++    assert!(
++        tokio::time::timeout(Duration::from_millis(25), &mut removing)
++            .await
++            .is_err()
++    );
++    let mut ai =
++        f.a.take_ingress(&desired(Medium::Audio).logical_id)
++            .unwrap();
++    let mut ao = f.ba.port(Medium::Audio).take_egress().unwrap();
++    publish(&f, Medium::Audio, &mut ai, 160)
++        .await
++        .try_forward_to(&f.b, &desired(Medium::Audio).logical_id)
++        .unwrap();
++    outgoing(&mut ao)
++        .await
++        .deliver(|_| async { Ok(()) })
++        .await
++        .unwrap();
++    release.notify_one();
++    sending.await.unwrap().unwrap();
++    assert_eq!(removing.await.unwrap().unwrap(), before + 1);
++    assert!(stale
++        .deliver(|_| async { panic!("old subscription reached IO") })
++        .await
++        .is_err());
++    assert!(publish(&f, Medium::Data, &mut input, 2)
++        .await
++        .try_forward_to(&f.b, &desired(Medium::Data).logical_id)
++        .is_err());
++    let rev = f.b.revision();
++    assert_eq!(
++        route(
++            &f,
++            DirectSubscriptionChange::Unsubscribe(vec![StreamId::from_string("already-absent")])
++        )
++        .await
++        .unwrap(),
++        rev
++    );
++}
++#[tokio::test]
++async fn direct_canceled_drain_restores_selection_and_audience_is_current_after_dequeue() {
++    let f = Fixture::new(8);
++    f.start(&[Medium::Data]).await;
++    let mut input = f.a.take_ingress(&desired(Medium::Data).logical_id).unwrap();
++    let mut output = f.ba.port(Medium::Data).take_egress().unwrap();
++    publish(&f, Medium::Data, &mut input, 0)
++        .await
++        .try_forward_to(&f.b, &desired(Medium::Data).logical_id)
++        .unwrap();
++    let packet = outgoing(&mut output).await;
++    let entered = Arc::new(Notify::new());
++    let release = Arc::new(Notify::new());
++    let sending = tokio::spawn({
++        let entered = entered.clone();
++        let release = release.clone();
++        async move {
++            packet
++                .deliver(|_| async move {
++                    entered.notify_one();
++                    release.notified().await;
++                    Ok(())
++                })
++                .await
++        }
++    });
++    entered.notified().await;
++    let cancel = CancellationToken::new();
++    let before = f.b.revision();
++    let work = tokio::spawn({
++        let target = f.b.clone();
++        let cancel = cancel.clone();
++        async move {
++            target
++                .change_direct_subscriptions(
++                    before,
++                    DirectSubscriptionChange::Clear,
++                    deadline(),
++                    cancel,
++                    None,
++                )
++                .await
++        }
++    });
++    tokio::time::sleep(Duration::from_millis(10)).await;
++    cancel.cancel();
++    assert!(matches!(
++        work.await.unwrap(),
++        Err(StreamControlError::Cancelled)
++    ));
++    assert_eq!(before, f.b.revision());
++    release.notify_one();
++    sending.await.unwrap().unwrap();
++    publish(&f, Medium::Data, &mut input, 1)
++        .await
++        .try_forward_to(&f.b, &desired(Medium::Data).logical_id)
++        .unwrap();
++    f.policy.0.write().await.private = true;
++    assert!(outgoing(&mut output)
++        .await
++        .deliver(|_| async { panic!("revoked audience reached IO") })
++        .await
++        .is_err());
++    route(&f, DirectSubscriptionChange::Clear).await.unwrap();
++}
++#[tokio::test]
++async fn direct_retained_logical_selection_survives_both_transport_replacements() {
++    let f = Fixture::new(8);
++    f.start(&[Medium::Screen]).await;
++    let old = f.aa.port(Medium::Screen);
++    let mut old_input =
++        f.a.take_ingress(&desired(Medium::Screen).logical_id)
++            .unwrap();
++    let mut old_output = f.ba.port(Medium::Screen).take_egress().unwrap();
++    publish(&f, Medium::Screen, &mut old_input, 10)
++        .await
++        .try_forward_to(&f.b, &desired(Medium::Screen).logical_id)
++        .unwrap();
++    let queued = outgoing(&mut old_output).await;
++    for controller in [&f.a, &f.b] {
++        controller
++            .change(
++                controller.revision(),
++                &[desired(Medium::Screen)],
++                &[desired(Medium::Screen).logical_id].into_iter().collect(),
++                deadline(),
++                CancellationToken::new(),
++            )
++            .await
++            .unwrap();
++    }
++    assert!(queued
++        .deliver(|_| async { panic!("replaced transport reached IO") })
++        .await
++        .is_err());
++    assert!(old.try_publish(&frame(&old, 20)).is_err());
++    let mut input =
++        f.a.take_ingress(&desired(Medium::Screen).logical_id)
++            .unwrap();
++    let mut output = f.ba.port(Medium::Screen).take_egress().unwrap();
++    publish(&f, Medium::Screen, &mut input, 30)
++        .await
++        .try_forward_to(&f.b, &desired(Medium::Screen).logical_id)
++        .unwrap();
++    outgoing(&mut output)
++        .await
++        .deliver(|v| async move {
++            assert_eq!(v.timestamp_rtp, 30);
++            Ok(())
++        })
++        .await
++        .unwrap();
++}
++#[tokio::test]
++async fn direct_selection_does_not_authorize_new_controller_reusing_source_identifiers() {
++    let f = Fixture::new(8);
++    f.start(&[Medium::Video]).await;
++    let adapter = Adapter::new();
++    let replacement = StreamController::new(
++        ConversationId::from_string("conversation"),
++        SessionId::from_string("session"),
++        ConnectionId::from_string("alice"),
++        principal("alice"),
++        f.policy.clone(),
++        adapter.clone(),
++        Arc::new(StreamHandleAllocator::default()),
++        8,
++    )
++    .unwrap();
++    replacement
++        .change(
++            0,
++            &[desired(Medium::Video)],
++            &BTreeSet::new(),
++            deadline(),
++            CancellationToken::new(),
++        )
++        .await
++        .unwrap();
++    let port = adapter.port(Medium::Video);
++    let mut input = replacement
++        .take_ingress(&desired(Medium::Video).logical_id)
++        .unwrap();
++    port.try_publish(&frame(&port, 10)).unwrap();
++    assert!(receive(&mut input)
++        .await
++        .try_forward_to(&f.b, &desired(Medium::Video).logical_id)
++        .is_err());
++}
++
++struct Held {
++    domain: Arc<Policy>,
++    guard: Arc<OwnedRwLockReadGuard<PolicyState>>,
++    connection: ConnectionId,
++    expected: u64,
++    change: DirectSubscriptionChange,
++    cancel: CancellationToken,
++    deadline: tokio::time::Instant,
++}
++struct HeldLease {
++    held: Arc<Held>,
++    owner: MediaOwner,
++}
++impl MediaAuthorityLease for HeldLease {
++    fn authority(&self) -> &MediaOwner {
++        &self.owner
++    }
++    fn control_receive(&self, source: &MediaSource) -> ControlResult<Box<MediaOwner>> {
++        let original = self
++            .held
++            .guard
++            .owners
++            .get(source.connection.as_str())
++            .ok_or(StreamControlError::Authority)?;
++        if original.member.participant() != &source.participant
++            || original.member.epoch() != source.membership_epoch
++            || original.connection.generation() != source.connection_generation
++        {
++            return Err(StreamControlError::Authority);
++        }
++        let mut target = self.owner.clone();
++        target.may_route_source = !self.held.guard.private;
++        Ok(Box::new(target))
++    }
++}
++struct HeldPolicy {
++    base: Arc<Policy>,
++    fresh: Arc<AtomicUsize>,
++}
++impl MediaPolicy for HeldPolicy {
++    fn current(&self, scope: &MediaScope<'_>) -> ControlResult<Box<dyn MediaAuthorityLease>> {
++        self.fresh.fetch_add(1, Ordering::AcqRel);
++        self.base.current(scope)
++    }
++    fn current_control(
++        &self,
++        scope: &MediaScope<'_>,
++        intent: &MediaControlIntent<'_>,
++        held: &(dyn Any + Send + Sync),
++    ) -> ControlResult<MediaControl> {
++        let held = held
++            .downcast_ref::<Arc<Held>>()
++            .ok_or(StreamControlError::Authority)?;
++        let MediaControlIntent::DirectSubscriptions { expected, change } = intent else {
++            return Err(StreamControlError::Unsupported);
++        };
++        if !Arc::ptr_eq(&self.base, &held.domain)
++            || scope.connection != &held.connection
++            || *expected != held.expected
++            || *change != &held.change
++        {
++            return Err(StreamControlError::Authority);
++        }
++        let owner = held
++            .guard
++            .owners
++            .get(scope.connection.as_str())
++            .ok_or(StreamControlError::Authority)?
++            .clone();
++        MediaControl::new(
++            Box::new(HeldLease {
++                held: held.clone(),
++                owner,
++            }),
++            held.cancel.clone(),
++            held.deadline,
++        )
++    }
++}
++#[tokio::test]
++async fn direct_held_control_uses_exact_source_view_with_queued_writer_and_no_fresh_reader() {
++    let fresh = Arc::new(AtomicUsize::new(0));
++    let f = Fixture::with_policy(
++        8,
++        Some(Box::new({
++            let fresh = fresh.clone();
++            move |base| Arc::new(HeldPolicy { base, fresh })
++        })),
++    );
++    f.start_unsubscribed(&[Medium::Data]).await;
++    let change = DirectSubscriptionChange::Subscribe(vec![selection(&f, Medium::Data)]);
++    let held = Arc::new(Held {
++        domain: f.policy.clone(),
++        guard: Arc::new(f.policy.0.clone().read_owned().await),
++        connection: f.b.connection.clone(),
++        expected: f.b.revision(),
++        change: change.clone(),
++        cancel: CancellationToken::new(),
++        deadline: deadline(),
++    });
++    assert!(matches!(
++        f.b.change_direct_subscriptions(
++            held.expected + 1,
++            change.clone(),
++            deadline(),
++            CancellationToken::new(),
++            Some(&held)
++        )
++        .await,
++        Err(StreamControlError::Authority)
++    ));
++    let writer = tokio::spawn({
++        let policy = f.policy.0.clone();
++        async move {
++            policy.write().await.revoked.insert("bob".into());
++        }
++    });
++    tokio::time::sleep(Duration::from_millis(10)).await;
++    let before = fresh.load(Ordering::Acquire);
++    f.b.change_direct_subscriptions(
++        held.expected,
++        change,
++        deadline(),
++        CancellationToken::new(),
++        Some(&held),
++    )
++    .await
++    .unwrap();
++    assert_eq!(before, fresh.load(Ordering::Acquire));
++    drop(held);
++    tokio::time::timeout(Duration::from_millis(100), writer)
++        .await
++        .unwrap()
++        .unwrap();
++    let mut input = f.a.take_ingress(&desired(Medium::Data).logical_id).unwrap();
++    assert!(publish(&f, Medium::Data, &mut input, 10)
++        .await
++        .try_forward_to(&f.b, &desired(Medium::Data).logical_id)
++        .is_err());
++}
++
++#[tokio::test]
++async fn direct_distinct_receiver_binding_obeys_pause_end_and_codec_intersection() {
++    let f = Fixture::new(8);
++    f.start_unsubscribed(&[Medium::Video, Medium::Screen]).await;
++    let logical = StreamId::from_string("screen-view");
++    let requested = DesiredStream {
++        logical_id: logical.clone(),
++        medium: Medium::Screen,
++        direction: StreamDirection::Both,
++    };
++    f.b.change(
++        f.b.revision(),
++        &[desired(Medium::Video), requested],
++        &BTreeSet::new(),
++        deadline(),
++        CancellationToken::new(),
++    )
++    .await
++    .unwrap();
++    let select = DirectSubscription::new(&f.a, desired(Medium::Screen).logical_id, logical.clone());
++    route(
++        &f,
++        DirectSubscriptionChange::Subscribe(vec![select.clone()]),
++    )
++    .await
++    .unwrap();
++    let mut input =
++        f.a.take_ingress(&desired(Medium::Screen).logical_id)
++            .unwrap();
++    let port = f.b.state.lock().unwrap().active[&logical].clone();
++    let mut output = AdapterMediaPort(port.clone()).take_egress().unwrap();
++    publish(&f, Medium::Screen, &mut input, 10)
++        .await
++        .try_forward_to(&f.b, &logical)
++        .unwrap();
++    let stale = outgoing(&mut output).await;
++    f.b.set_paused(&logical, f.b.revision(), true, deadline())
++        .await
++        .unwrap();
++    assert!(stale
++        .deliver(|_| async { panic!("paused receiver reached IO") })
++        .await
++        .is_err());
++    assert!(publish(&f, Medium::Screen, &mut input, 20)
++        .await
++        .try_forward_to(&f.b, &logical)
++        .is_err());
++    f.b.set_paused(&logical, f.b.revision(), false, deadline())
++        .await
++        .unwrap();
++    publish(&f, Medium::Screen, &mut input, 30)
++        .await
++        .try_forward_to(&f.b, &logical)
++        .unwrap();
++    let transport = port.binding.transport_id.clone();
++    outgoing(&mut output)
++        .await
++        .deliver(|v| async move {
++            assert_eq!(v.stream_id, transport);
++            Ok(())
++        })
++        .await
++        .unwrap();
++    // The receiver can renegotiate independently; its new codec cannot borrow the
++    // former source's subscription as permission to forward incompatible packets.
++    {
++        let mut state = f.policy.0.write().await;
++        let owner = state.owners.get_mut("bob").unwrap();
++        for caps in [&mut owner.local, &mut owner.remote] {
++            for c in caps.send.iter_mut().chain(caps.receive.iter_mut()) {
++                if c.medium == Medium::Screen {
++                    c.formats = vec![MediaFormat::Encoded {
++                        name: "h264".into(),
++                        clock_rate_hz: 90000,
++                        channels: 0,
++                        fmtp: None,
++                    }];
++                }
++            }
++        }
++    }
++    f.b.change(
++        f.b.revision(),
++        &[DesiredStream {
++            logical_id: logical.clone(),
++            medium: Medium::Screen,
++            direction: StreamDirection::Both,
++        }],
++        &[logical.clone()].into_iter().collect(),
++        deadline(),
++        CancellationToken::new(),
++    )
++    .await
++    .unwrap();
++    let before = f.b.revision();
++    assert!(matches!(
++        route(&f, DirectSubscriptionChange::Subscribe(vec![select])).await,
++        Err(StreamControlError::Unsupported)
++    ));
++    assert_eq!(before, f.b.revision());
++    assert!(publish(&f, Medium::Screen, &mut input, 40)
++        .await
++        .try_forward_to(&f.b, &logical)
++        .is_err());
++    f.b.end_stream(&logical, f.b.revision(), deadline())
++        .await
++        .unwrap();
++    route(&f, DirectSubscriptionChange::Clear).await.unwrap();
++}
++
++#[tokio::test]
++async fn direct_video_removal_does_not_drain_or_invalidate_unrelated_reliable_data() {
++    let f = Fixture::new(8);
++    f.start(&[Medium::Video, Medium::Data]).await;
++    let mut input = f.a.take_ingress(&desired(Medium::Data).logical_id).unwrap();
++    let mut output = f.ba.port(Medium::Data).take_egress().unwrap();
++    for seq in 0..2 {
++        publish(&f, Medium::Data, &mut input, seq)
++            .await
++            .try_forward_to(&f.b, &desired(Medium::Data).logical_id)
++            .unwrap();
++    }
++    let first = outgoing(&mut output).await;
++    let queued = outgoing(&mut output).await;
++    let entered = Arc::new(Notify::new());
++    let release = Arc::new(Notify::new());
++    let sending = tokio::spawn({
++        let entered = entered.clone();
++        let release = release.clone();
++        async move {
++            first
++                .deliver(|_| async move {
++                    entered.notify_one();
++                    release.notified().await;
++                    Ok(())
++                })
++                .await
++        }
++    });
++    entered.notified().await;
++    tokio::time::timeout(
++        Duration::from_millis(50),
++        route(
++            &f,
++            DirectSubscriptionChange::Unsubscribe(vec![desired(Medium::Video).logical_id]),
++        ),
++    )
++    .await
++    .expect("video change waited for unrelated data IO")
++    .unwrap();
++    queued
++        .deliver(|v| async move {
++            assert_eq!(
++                serde_json::from_slice::<serde_json::Value>(&v.payload).unwrap()["sequence"],
++                1
++            );
++            Ok(())
++        })
++        .await
++        .unwrap();
++    release.notify_one();
++    sending.await.unwrap().unwrap();
++}
+diff --git a/crates/uctp/rvoip-uctp/src/staged_media.rs b/crates/uctp/rvoip-uctp/src/staged_media.rs
+--- a/crates/uctp/rvoip-uctp/src/staged_media.rs
++++ b/crates/uctp/rvoip-uctp/src/staged_media.rs
+@@ -390,16 +390,24 @@
+         payload_type: pt,
+     })
+ }
++#[derive(PartialEq, Eq)]
++struct VideoOrigin {
++    route: Option<MediaDeliveryOrigin>,
++    ssrc: u32,
++    clock: Option<(u128, u64)>,
++}
+ struct Packetizer {
+     outer: u32,
+     rtp: u16,
+     ssrc: u32,
+     video: rvoip_core::video_packetizer::Vp8Packetizer,
++    previous_video: Option<VideoOrigin>,
+ }
+ impl Packetizer {
+     fn send(
+         &mut self,
+         frame: MediaFrame,
++        origin: Option<MediaDeliveryOrigin>,
+         binding: &ReadyMediaBinding,
+         pt: u8,
+         transport: &dyn StagedDatagramTransport,
+@@ -415,6 +423,29 @@
+             .maximum_datagram_bytes()
+             .ok_or(StreamControlError::NotReady)?;
+         let packets = if frame.kind == StreamKind::Video {
++            let source_packet = rvoip_rtp_core::RtpPacket::parse(&frame.payload)
++                .map_err(|_| StreamControlError::NotReady)?;
++            let source = VideoOrigin {
++                route: origin,
++                ssrc: source_packet.header.ssrc,
++                clock: frame
++                    .source_clock
++                    .as_ref()
++                    .map(|c| (c.source_id, c.generation)),
++            };
++            if self
++                .previous_video
++                .as_ref()
++                .is_some_and(|previous| previous != &source)
++            {
++                // A new publisher/transport/SSRC can restart its RTP sequence.
++                // Give it a new egress SSRC instead of treating it as duplicate
++                // input in the preceding source's fragmentation sequence map.
++                self.video = Default::default();
++                self.ssrc = self.ssrc.wrapping_add(1);
++            }
++            self.previous_video = Some(source);
++
+             let input = rvoip_core::video_bridge::normalize_packet(&frame, self.ssrc, pt)
+                 .ok_or(StreamControlError::NotReady)?;
+             let packets = self
+@@ -608,6 +639,7 @@
+                         uuid::Uuid::new_v4().as_bytes()[..4].try_into().unwrap(),
+                     ),
+                     video: Default::default(),
++                    previous_video: None,
+                 };
+                 loop {
+                     let next = async {
+@@ -618,9 +650,9 @@
+                     };
+                     let queued = tokio::select! {biased;_=cancel.cancelled()=>break,_=lifetime.cancelled()=>break,next=next=>match next {Some(value)=>value,None=>break}};
+                     let result = queued
+-                        .deliver(|frame| {
++                        .deliver_with_origin(|frame, origin| {
+                             let result = packetizer
+-                                .send(frame, &binding, pt, transport.as_ref())
++                                .send(frame, origin, &binding, pt, transport.as_ref())
+                                 .map(|count| {
+                                     counters
+                                         .local_sends
+@@ -745,7 +777,8 @@
+             rtp: 0,
+             ssrc: 1,
+             video: Default::default(),
++            previous_video: None,
+         };
+-        assert!(packetizer.send(frame, &binding, 0, &NoSend).is_err());
+-    }
+-}
++        assert!(packetizer.send(frame, None, &binding, 0, &NoSend).is_err());
++    }
++}
+diff --git a/crates/uctp/rvoip-uctp/tests/staged_media.rs b/crates/uctp/rvoip-uctp/tests/staged_media.rs
+--- a/crates/uctp/rvoip-uctp/tests/staged_media.rs
++++ b/crates/uctp/rvoip-uctp/tests/staged_media.rs
+@@ -428,11 +428,11 @@
+         }
+     }
+     async fn start(&self, kinds: &[Medium]) {
+-        let desired = kinds.iter().map(|k| desired(*k)).collect::<Vec<_>>();
++        let requested = kinds.iter().map(|k| desired(*k)).collect::<Vec<_>>();
+         self.a
+             .change(
+                 self.a.revision(),
+-                &desired,
++                &requested,
+                 &BTreeSet::new(),
+                 deadline(),
+                 CancellationToken::new(),
+@@ -442,13 +442,37 @@
+         self.b
+             .change(
+                 self.b.revision(),
+-                &desired,
++                &requested,
+                 &BTreeSet::new(),
+                 deadline(),
+                 CancellationToken::new(),
+             )
+             .await
+             .unwrap();
++        use rvoip_core::staged_streams::direct_subscriptions::*;
++        let selections = kinds
++            .iter()
++            .filter(|k| **k != Medium::Audio)
++            .map(|k| {
++                DirectSubscription::new(
++                    &self.a,
++                    desired(*k).logical_id.clone(),
++                    desired(*k).logical_id,
++                )
++            })
++            .collect::<Vec<_>>();
++        if !selections.is_empty() {
++            self.b
++                .change_direct_subscriptions(
++                    self.b.revision(),
++                    DirectSubscriptionChange::Subscribe(selections),
++                    deadline(),
++                    CancellationToken::new(),
++                    None,
++                )
++                .await
++                .unwrap();
++        }
+     }
+     async fn stop(&mut self) {
+         assert_eq!(self.a.shutdown(deadline()).await, 0);
+diff --git a/crates/uctp/rvoip-uctp/tests/support/canonical_media.rs b/crates/uctp/rvoip-uctp/tests/support/canonical_media.rs
+--- a/crates/uctp/rvoip-uctp/tests/support/canonical_media.rs
++++ b/crates/uctp/rvoip-uctp/tests/support/canonical_media.rs
+@@ -24,10 +24,11 @@
+ }
+ fn desired(medium: Medium) -> DesiredStream {
+     DesiredStream {
+-        logical_id: StreamId::from_string(if medium == Medium::Audio {
+-            "audio"
+-        } else {
+-            "video"
++        logical_id: StreamId::from_string(match medium {
++            Medium::Audio => "audio",
++            Medium::Video => "video",
++            Medium::Screen => "screen",
++            Medium::Data => "data",
+         }),
+         medium,
+         direction: StreamDirection::Both,
+@@ -41,6 +42,10 @@
+         },
+         MediaCapability {
+             medium: Medium::Video,
++            formats: vec![vp8()],
++        },
++        MediaCapability {
++            medium: Medium::Screen,
+             formats: vec![vp8()],
+         },
+     ];
+@@ -170,8 +175,12 @@
+         endpoint,
+         connection,
+         may_control: true,
+-        send_media: [Medium::Audio, Medium::Video].into_iter().collect(),
+-        receive_media: [Medium::Audio, Medium::Video].into_iter().collect(),
++        send_media: [Medium::Audio, Medium::Video, Medium::Screen]
++            .into_iter()
++            .collect(),
++        receive_media: [Medium::Audio, Medium::Video, Medium::Screen]
++            .into_iter()
++            .collect(),
+         local: capabilities(),
+         remote: capabilities(),
+         may_route_source: true,
+@@ -349,8 +358,11 @@
+     .unwrap()
+ }
+ fn video(id: u16) -> Bytes {
++    video_at(id, 9000)
++}
++fn video_at(id: u16, timestamp: u32) -> Bytes {
+     let mut packet = vec![0x80, 0x80 | 96, 0, 1];
+-    packet.extend_from_slice(&9000u32.to_be_bytes());
++    packet.extend_from_slice(&timestamp.to_be_bytes());
+     packet.extend_from_slice(&7u32.to_be_bytes());
+     packet.extend_from_slice(&[0x10, 1, 2, 3]);
+     pack_observed_rtp_datagram(&ObservedRtpDatagram {
+@@ -1237,3 +1249,107 @@
+ 
+ #[path = "canonical_media/guarded_mixer.rs"]
+ mod guarded_mixer;
++
++#[tokio::test]
++async fn actual_signed_quic_and_wt_direct_video_screen_selection_removal_and_reoffer() {
++    use rvoip_core::staged_streams::direct_subscriptions::*;
++    for kind in ["quic", "wt"] {
++        let mut n = Network::new(kind).await;
++        let a = n.configure(0).await;
++        let b = n.configure(1).await;
++        let kinds = [Medium::Audio, Medium::Video, Medium::Screen];
++        n.start(&a, &kinds).await;
++        n.start(&b, &kinds).await;
++        let mut ai = a
++            .controller
++            .take_ingress(&desired(Medium::Audio).logical_id)
++            .unwrap();
++        let mut bi = b
++            .controller
++            .take_ingress(&desired(Medium::Audio).logical_id)
++            .unwrap();
++        for medium in [Medium::Video, Medium::Screen] {
++            let logical = desired(medium).logical_id;
++            let mut input = a.controller.take_ingress(&logical).unwrap();
++            send(&n.wire, video(binding(&a, medium).stream_local_id));
++            let old = packet(&mut input).await;
++            assert!(old.try_forward_to(&b.controller, &logical).is_err());
++            let budget = b.controller.stream_open_budget();
++            let subscription =
++                DirectSubscription::new(&a.controller, logical.clone(), logical.clone());
++            b.controller
++                .change_direct_subscriptions(
++                    b.controller.revision(),
++                    DirectSubscriptionChange::Subscribe(vec![subscription]),
++                    deadline(),
++                    CancellationToken::new(),
++                    None,
++                )
++                .await
++                .unwrap();
++            assert!(old.try_forward_to(&b.controller, &logical).is_err());
++            send(&n.wire, video(binding(&a, medium).stream_local_id));
++            packet(&mut input)
++                .await
++                .try_forward_to(&b.controller, &logical)
++                .unwrap();
++            let delivered = received(&n.wire).await;
++            assert_eq!(
++                delivered.stream_local_id,
++                binding(&b, medium).stream_local_id
++            );
++            assert!(delivered.rtp.packet().header.marker);
++            assert_eq!(delivered.rtp.packet().header.timestamp, 9000);
++            let previous = binding(&a, medium);
++            a.controller
++                .change(
++                    a.controller.revision(),
++                    &kinds.iter().map(|m| desired(*m)).collect::<Vec<_>>(),
++                    &[logical.clone()].into_iter().collect(),
++                    deadline(),
++                    CancellationToken::new(),
++                )
++                .await
++                .unwrap();
++            assert_ne!(previous.transport_id, binding(&a, medium).transport_id);
++            input = a.controller.take_ingress(&logical).unwrap();
++            send(
++                &n.wire,
++                video_at(binding(&a, medium).stream_local_id, 18000),
++            );
++            packet(&mut input)
++                .await
++                .try_forward_to(&b.controller, &logical)
++                .unwrap();
++            let replacement = received(&n.wire).await;
++            assert_eq!(
++                replacement.stream_local_id,
++                binding(&b, medium).stream_local_id
++            );
++            assert_eq!(replacement.rtp.packet().header.timestamp, 18000);
++            assert_ne!(
++                replacement.rtp.packet().header.ssrc,
++                delivered.rtp.packet().header.ssrc
++            );
++            assert_eq!(replacement.rtp.packet().header.sequence_number, 1);
++            b.controller
++                .change_direct_subscriptions(
++                    b.controller.revision(),
++                    DirectSubscriptionChange::Unsubscribe(vec![logical.clone()]),
++                    deadline(),
++                    CancellationToken::new(),
++                    None,
++                )
++                .await
++                .unwrap();
++            send(&n.wire, video(binding(&a, medium).stream_local_id));
++            assert!(packet(&mut input)
++                .await
++                .try_forward_to(&b.controller, &logical)
++                .is_err());
++            assert_eq!(budget, b.controller.stream_open_budget());
++            duplex(&n, &a, &b, &mut ai, &mut bi).await;
++        }
++        n.stop().await;
++    }
++}
+diff --git a/crates/uctp/rvoip-uctp/tests/support/canonical_media/guarded_mixer.rs b/crates/uctp/rvoip-uctp/tests/support/canonical_media/guarded_mixer.rs
+--- a/crates/uctp/rvoip-uctp/tests/support/canonical_media/guarded_mixer.rs
++++ b/crates/uctp/rvoip-uctp/tests/support/canonical_media/guarded_mixer.rs
+@@ -544,6 +544,18 @@
+             .end_session(s.core.session.clone(), EndReason::Normal)
+             .await
+             .unwrap();
++        // Terminal supervisor drain aborts retained work. First observe actual
++        // native resource/quota convergence while its cleanup workers still run.
++        core_fixture::until(|| {
++            s.live
++                .iter()
++                .all(|live| live.peer.snapshot().connections == 0)
++                && s.factory
++                    .adapters
++                    .values()
++                    .all(|adapter| adapter.route_count() == 0)
++        })
++        .await;
+         s.core.orch.drain_connection_lifecycle_tasks().await;
+         assert_eq!(
+             s.core.orch.participant_capacity(&s.core.session).unwrap(),
+diff --git a/crates/uctp/rvoip-uctp/tests/support/media_control.rs b/crates/uctp/rvoip-uctp/tests/support/media_control.rs
+--- a/crates/uctp/rvoip-uctp/tests/support/media_control.rs
++++ b/crates/uctp/rvoip-uctp/tests/support/media_control.rs
+@@ -170,7 +170,9 @@
+                     && held.credential_revision == *expected_credential_revision
+                     && held.expected == *expected_stream_revision
+             }
+-            MediaControlIntent::End { .. } | MediaControlIntent::AudioSubscriptions { .. } => false,
++            MediaControlIntent::End { .. }
++            | MediaControlIntent::DirectSubscriptions { .. }
++            | MediaControlIntent::AudioSubscriptions { .. } => false,
+         };
+         if !intent_matches {
+             return Err(StreamControlError::Authority);

@@ -258,6 +258,637 @@
       "path": "patches/rvoip/gate6-addressed-messages.patch",
       "sha256": "bde02f66c29675bf615c2e36149da5b8c92beb7b64829ff9523efa9b91dd2682",
       "source": "Gate 6 addressed message fanout, typed inbound gateway, frozen audiences and current-policy projections with scoped per-recipient observations; no fabricated delivery."
+    },
+    {
+      "path": "patches/rvoip/gate6-participant-transitions.patch",
+      "sha256": "46434651f46ea9044eca38a2db25592da1bb2305e9414e31822e297b6c315d0d",
+      "source": "Gate 6 fenced process-local participant admission, departure and Session-role controller, plus Session-leave Conversation-membership isolation; media and durable service integration remain unqualified."
+    },
+    {
+      "path": "patches/rvoip/gate6-participant-orchestration.patch",
+      "sha256": "2614d5ab63df274eac337c3b241433962450beae016d055f53d5db7ac106c29d",
+      "source": "Gate 6 current-authority participant orchestration, pending capacity, generation-fenced conference media, scoped departures and correlated observations."
+    },
+    {
+      "path": "patches/rvoip/gate6-stream-lifecycle.patch",
+      "sha256": "4902507d9d5d7564f7e3f8299de4dac27c39ec2bb18002a12369a6bc333945b8",
+      "source": "G6-020 partial negotiated-stream model: directional capability intersection, explicit screen/reliable ordered data, bounded preparation and lineage, current relationship checks and stale readiness/terminal fencing. Adapter/media graph and public dispatch remain unqualified."
+    },
+    {
+      "path": "patches/rvoip/gate6-staged-stream-ports.patch",
+      "sha256": "78d369eb23d8cb6e83f3a403978334b4683297af41dce3ea7d6d3f3d73006b4a",
+      "source": "G6-020 in-progress opt-in staged media port controller: gated preparation, current authority and audiences after dequeue, bounded local send guards, quiescent replacement/pause, cancellation and explicit cleanup quarantine. Built-in transport adapters, managed mixer integration and public dispatch remain unqualified."
+    },
+    {
+      "path": "patches/rvoip/gate6-staged-rtp-transport.patch",
+      "sha256": "bdfc6929b1ab4d86dfbaf317a7e48ee120e5dec26c66aa216be861deca750ce2",
+      "source": "G6-020 in-progress staged RTP transport integration: real peer-router reservation ownership, checked ingress before buffering, bounded guarded RTP egress and exact retirement/cleanup; explicit QUIC/WT backend factories with profile-owned negotiation. Canonical profile/auth, managed mixer and public dispatch remain unqualified."
+    },
+    {
+      "path": "patches/rvoip/gate6-authenticated-dispatch.patch",
+      "sha256": "e0db2a73c6ce0983e86beaca52c2791bbf3eb9cb6c7c35e7b241560c554ccfb7",
+      "source": "G6-026 partial canonical authenticated dispatch: subject-owned signing keys, current-authority leases, fresh signed logical retries and bounded exact-scope reply admission. Public handshake, refresh/step-up and adapter installation remain unqualified."
+    },
+    {
+      "path": "patches/rvoip/gate6-authenticated-peer.patch",
+      "sha256": "837b0068d14975661f3de0e12d5ff959c5d060ef5f3f15cf5138b034cf2c9f7f",
+      "source": "G6-026 canonical peer handshake/profile, retained credential metadata, guarded refresh and keepalive, signed server envelopes and bounded reliable framing/expiry; optional conversation-scoped auth Participant. Step-up and production adapter/service installation remain unqualified."
+    },
+    {
+      "path": "patches/rvoip/gate6-step-up.patch",
+      "sha256": "56631b062b27e83b56835956f195ea9946101fcb08217f317c2f22f22cc38d9b",
+      "source": "G6-026 canonical correlated step-up with policy-owned assurance provenance, bounded sealed one-use held request, current-authority execution and signed scoped assurance publication. Production adapter/service installation remains unqualified."
+    },
+    {
+      "path": "patches/rvoip/gate6-auth-recovery.patch",
+      "sha256": "379adeabbe6f740fe71239fff34bd5502adceabd7ba8969ce5a9708e524c72e4",
+      "source": "G6-026 peer-lifetime replay retention across refresh/step-up, safe signature failure classes and bounded original/response step-up failure correlation with explicit unknown interrupted execution."
+    },
+    {
+      "path": "patches/rvoip/gate6-peer-reachability.patch",
+      "sha256": "d31ad9a3a5e3ec4aa091170546817180424e103a5b3f7466acdb466be52e5f53",
+      "source": "G6-026 authenticated live-peer reachability with trusted transport context, current revocation lifetimes, staged route registration, keepalive renewal and guarded outbound writer admission. Production service/profile installation remains unqualified."
+    },
+    {
+      "path": "patches/rvoip/gate6-canonical-transports.patch",
+      "sha256": "5e959b4ed765380e7488f08f5fb8ce449f8497f2a9b89f90b7b105cf55ce372c",
+      "source": "G6-026 shared canonical frame driver and bounded retained server supervision with native QUIC ALPN2, HTTP/3 WebTransport bidirectional framing and TLS WebSocket text upgrade. Connect service installation remains open."
+    },
+    {
+      "path": "patches/rvoip/gate6-secure-profile.patch",
+      "sha256": "e6b0745e67432c907bec9c9d5f70b2ad6c5e0ad2050f3aba65e13e425337a7fe",
+      "source": "G6-026/G6-020 default typed command scopes, separate eight-entry pre-auth replay fence and default sixteen cumulative staged media opens, including uncertain prepare batches; per-peer Session/Connection budgets and service installation remain open."
+    },
+    {
+      "path": "patches/rvoip/gate6-peer-admission.patch",
+      "sha256": "b5a37766b9c60b31e84b13f1d156a259d7db9d021035f6225f08834a59958c36",
+      "source": "G6-026 physical peer context across canonical credential transitions and real managed-core Session/Connection admission ownership, with lifetime-scoped retirement and quota retention through uncertain adapter cleanup. Session-only invitations and complete public engine installation remain open."
+    },
+    {
+      "path": "patches/rvoip/gate6-peer-sessions.patch",
+      "sha256": "1b566150906362338f0adb1b089360eef2624e199f51c3febddf28e92267930d",
+      "source": "Gate 6 physical Session views before zero-Connection creation and typed retained authority; bounded runtime origins, not durable invitation state"
+    },
+    {
+      "path": "patches/rvoip/gate6-peer-native.patch",
+      "sha256": "9363d4468680f8ca5904c2d12310752f220d56a40f3a0ce7f4cb343b84cb7592",
+      "source": "Gate 6 Core-native preallocation IDs and quota with physical transport handlers; dormant route resources, not media readiness"
+    },
+    {
+      "path": "patches/rvoip/gate6-peer-exchange.patch",
+      "sha256": "0a15578afe3cf5e68a0abcb85e80d139b6605ad525ca48452a359a369ca5be5c",
+      "source": "Gate 6 bounded same-peer correlated exchanges, ordered control actor and retained writer/reply futures with current leased key verification"
+    },
+    {
+      "path": "patches/rvoip/gate6-session-cleanup.patch",
+      "sha256": "4d4adc572a33754c631ae5edbb4d4f6e95aefec064da282fe9add58f509384b4",
+      "source": "Gate 6 resumable Session end with synchronous managed route fencing and cancellation-safe mixer cleanup"
+    },
+    {
+      "path": "patches/rvoip/gate6-canonical-media.patch",
+      "sha256": "4fd3b291a7328a140eba023fe4ee793aadbecae4c864023143e326bc45a3c672",
+      "source": "Gate 6 canonical physical media reader, native staged controller ownership and confirmed route cleanup"
+    },
+    {
+      "path": "patches/rvoip/gate6-media-control.patch",
+      "sha256": "0f4f75e71a80080576b4db6ea9a0ff2e3ecd3f623b413c3791d222af940375a0",
+      "source": "Gate 6 held current media control policy bridge with bounded invocation authority and no policy lock reentry"
+    },
+    {
+      "path": "patches/rvoip/gate6-assurance-retirement.patch",
+      "sha256": "a2a4b7b488e59161bd9edda1bae0a878fd18365323078d4d832f0ff56d8edb24",
+      "source": "Gate 6 required credential-incarnation retirement signals and signed terminal assurance observations"
+    },
+    {
+      "path": "patches/rvoip/gate6-es256.patch",
+      "sha256": "b45ecdcac6dba6e1756289308b17fa4b02872c15b1e5318fd22b8897819443b3",
+      "source": "Gate 6 principal-bound EdDSA and ES256 inline signing with shared replay and held-reply verification"
+    },
+    {
+      "path": "patches/rvoip/gate6-canonical-replies.patch",
+      "sha256": "f2439caaf1912c483a29bf2980edeb0d7adce038720b8020ea663cde492b2225",
+      "source": "Gate 6 bounded authenticated reply batches, correlated observations, opaque cursors and identified bearer credentials"
+    },
+    {
+      "path": "patches/rvoip/gate6-store-peer-lifetime.patch",
+      "sha256": "33a7309a23281063ff3fd0acd2f00a5839d3ca0415afea48cb9d2a95025610a9",
+      "source": "Gate 6 installed Store peer authority lifetime retains bounded weak-registry registration custody across credential generations"
+    },
+    {
+      "path": "patches/rvoip/gate6-policy-refusals.patch",
+      "sha256": "bd0c18a244d2b50531f2b62539c84c8c770bd909317c09f38fa064e8c39d0116",
+      "source": "Gate 6 canonical current-policy refusal contract distinguishes permission denial, bounded capacity, retryable authority admission and storage unavailability"
+    },
+    {
+      "path": "patches/rvoip/gate6-subscription-delivery.patch",
+      "sha256": "2ffa227f24264bf801858d7168d3fc29fbf0aee11738e98a1318831cb23ef441",
+      "source": "Gate 6 transport-owned bounded subscription delivery, fresh owned page authority, physical credential incarnation retirement and local writer completion"
+    },
+    {
+      "path": "patches/rvoip/gate6-receipt-observations.patch",
+      "sha256": "cc464a5b216afee0bd901dcc38eb673bf822ad21ce2a99463793eb650e067d3f",
+      "source": "Gate 6 current-authority client receipt observations share origin-bound reliable delivery and the fixed live deadline; actual owned guard release and scope isolation are exercised."
+    },
+    {
+      "path": "patches/rvoip/gate6-initial-media-admission.patch",
+      "sha256": "23b4c7e727b7c419110811988eb9f7314a8e9ea375be7cd7942e820edc22b2ad",
+      "source": "Gate 6 initial media preparation accepts exact dormant Connection origins, activates only under current active readiness, and rechecks control relationship facts under the same owned grant without reader reentry."
+    },
+    {
+      "path": "patches/rvoip/gate6-participant-held-control.patch",
+      "sha256": "80817d7c69a7a9f6061489e9c03913788673a9772a0e0588ba6c6dedaf64e3f1",
+      "source": "Gate 6 participant control reuses one exact owned policy grant through preparation and commit with cancellation, credential/task expiry and bounded mixer waits, without grant-lock reentry or publication authority."
+    },
+    {
+      "path": "patches/rvoip/gate6-media-credential-rebind.patch",
+      "source": "Gate 6 retained media credential rebinding under exact current held authority, stable stream/port history, pinned control incarnations, drained sends and invalidated old queues; local sends honor original credential/task expiry.",
+      "sha256": "09e63e30cb73c06ff27d929f8186c564b29b7207490d8657985995280d032539"
+    },
+    {
+      "path": "patches/rvoip/gate6-staged-mixer.patch",
+      "source": "Gate 6 guarded participant audio mixer: current source and audience leases, composite delivery provenance, admission/role/departure fences, codec validation and stable logical stream replacement.",
+      "sha256": "275ca079563119ef0fc893573cb223f18a43443e9b6a3f132c467e174bda2639"
+    },
+    {
+      "path": "patches/rvoip/gate6-media-subscriptions.patch",
+      "source": "Gate 6 explicit retained audio subscriptions, frozen source-owner selections, receiver connection revisions, drained routing generations and current per-source audience control; no implicit managed audio delivery.",
+      "sha256": "b7212221ae42472bb2b14600379473d11ef8eb848f5a153a910486add8681232"
+    },
+    {
+      "path": "patches/rvoip/gate6-direct-subscriptions.patch",
+      "source": "Gate 6 exact guarded video/screen/reliable-data subscriptions, per-receiver-stream routing drains, current audience and held authority, retained logical bindings, and native video source-generation/SSRC reset; no datagram data transport.",
+      "sha256": "af516147d234b0af3aec79db9876c6184aa242e8bcb0f697eebae0c73918e14e"
+    },
+    {
+      "path": "patches/rvoip/gate6-media-scene.patch",
+      "source": "Gate 6 owned general guarded media scene, optional audio and logical selection, scene admission/retirement provenance and owned generation-aware direct fan-out with bounded reliable-data backpressure; no raw graph or authority fallback.",
+      "sha256": "0d38dd58ecac8e2863b107407a7287cb31bf8412da33a090c623246313ffae0b"
+    },
+    {
+      "path": "patches/rvoip/gate6-future-audio.patch",
+      "source": "Gate 6 scene-owned retained audio intent before publisher/receiver audio selection, explicit current participant audience and same-held owner authorization, revision/drain fencing and late audio adoption without publication grants.",
+      "sha256": "30cf96eacd7eccb98e1a69bf9bac1a380f1db70b9f6525846aeb6a40548b81a8"
+    },
+    {
+      "path": "patches/rvoip/gate6-reliable-data-admission.patch",
+      "source": "Gate 6 typed reliable data admission with stable message/application context, default-deny current message policy, exact target controller binding and one-use writer guard ownership across pending versus active cancellation; controlled Core boundary, not native reliable transport qualification.",
+      "sha256": "522aac8dfc4b65c3545c4d567a9556dad9f61de761c71cd4891e6c0c93d85aa1"
+    },
+    {
+      "path": "patches/rvoip/gate6-native-data.patch",
+      "source": "Gate 6 exact authenticated native reliable data origins, typed canonical messages and journal outcome SPI, mixed atomic RTP/data preparation, shared physical handle/byte/port limits and actual signed writer guard custody; pending cancellation versus partial-write uncertainty.",
+      "sha256": "be7a441423f360f2ae5a862ef27736b59a97f86faddcc8f017a406cf60b433a2"
+    },
+    {
+      "path": "patches/rvoip/gate6-offer-answer.patch",
+      "source": "Gate 6 exact current-invocation canonical offer answers on the same signed physical writer; explicit held-policy approval, single-use correlation and completion proof, pending cancellation and active sink/authority custody. No readiness or presence inferred.",
+      "sha256": "886593157ba8bab5801131d825db320ab8d8f7490c367a14cb2b044148b0b37c"
+    },
+    {
+      "path": "patches/rvoip/gate6-native-offer.patch",
+      "source": "Gate 6 public native codec preference selection and one owned RTP/data offer-answer/endpoint-parameter confirmation batch on retained Core; same held authority, actual native allocation and atomic rollback; cancellable scoped RPC grant slots. Local graph commit is not public readiness or presence.",
+      "sha256": "2ca96ff0fe2f18fc0eba95bcd216960ec9d52f3fa0d84ffc0282be43e968fb26"
+    },
+    {
+      "path": "patches/rvoip/gate6-native-lifecycle.patch",
+      "source": "Gate 6 exact native per-binding RX/TX flow observations and signed public lifecycle delivery through fresh current authority, sealed physical origins and actual writer completion; no peer ready assertion, old-binding flow reuse, idle invocation guard, durable receipt or public presence inference.",
+      "sha256": "2a15a445d8aab5c946fe0bde6b37e451e89a17feb4655298c5f0c808f6f4445c"
+    },
+    {
+      "path": "patches/rvoip/gate6-native-control.patch",
+      "source": "Gate 6 atomic directional native media controls from actual authenticated connection.update, held current policy, one revision and drained generations; source mute preserves playback, hold/resume preserve negotiated bindings and explicit mute. Local control commits are not durable receipts or public presence.",
+      "sha256": "4bacbe10b43c8b959b53ee63718d1cef9e67c5201c3151974772815a43c8e7f7"
+    },
+    {
+      "path": "patches/rvoip/gate6-native-codec.patch",
+      "source": "Gate 6 actual signed codec-renegotiate connection.update against retained confirmed peer capability metadata, exact current held authority, complete native parameter preparation and signed endpoint confirmation before atomic commit; old media preserved on refusal. Local commits are not durable receipts or public presence.",
+      "sha256": "807fdc24300b4d0452bc873216dadc783368b0c9e38fae41f4ca804442608cc8"
+    },
+    {
+      "path": "patches/rvoip/gate6-native-activation.patch",
+      "source": "Gate 6 sealed initial media resource observations composed with exact signed native parameter confirmation and held current authority. Preparing bindings publish only after Core commit; aborted candidates cannot activate fresh publication. Actual Participant admission remains a separate checked engine transition.",
+      "sha256": "00a51e0a5ecf593e300199362b87923abfd74fb8865a06b5af05ca9e0b95e688"
+    },
+    {
+      "path": "patches/rvoip/gate6-native-requests.patch",
+      "source": "Gate 6 idle native server request origins with fresh exact current authorization, bounded shared negotiation custody, signed actor-owned request/reply and IO/revision/credential fences. Original source grants are not retained or fabricated; active reply authority is explicit checked mutation custody, not a durable receipt.",
+      "sha256": "a018560bc5ac86c4ab1974ddcb73dca6143a6fcab65e8939d762f9d983c70c12"
+    },
+    {
+      "path": "patches/rvoip/gate6-atomic-subscriptions.patch",
+      "source": "Gate 6 atomic audio/direct/retained Participant subscription transaction and real confirmed native receiver resources; pinned owner/epoch intent, sticky exclusions, fresh host authorization, shared physical negotiation slot, signed endpoint confirmation and exact historical operation retry. Host journal policy remains explicit; local graph outcomes are not durable receipts.",
+      "sha256": "34d1c3bd416594201ac4b8e464f155a75dd3f6be18d9ac8daab8e42bc6368fec"
+    },
+    {
+      "path": "patches/rvoip/gate6-private-consult.patch",
+      "source": "Gate 6 private consultation: actual muted voice-leg preparation, closed Connection audiences, current whole-operation authorization, atomic drained programme/rule/source-gate publication, metadata-only restore handles, actual decoded consultation wait outcomes, quarantined private context during cleanup and sealed native confirmation carry-forward.",
+      "sha256": "e9618d8ac7ef05347b87f004a233fb6ed8b266ae7ffa0492ab9f108d20732252"
+    },
+    {
+      "path": "patches/rvoip/gate6-connection-handoff.patch",
+      "source": "Gate 6 retained audio handoff: actual duplex IO generation proof, exact current whole-plan authorization, atomic audience/source-role change, observer or post-commit leave fences, truthful local cleanup observations and retained native bindings.",
+      "sha256": "151a67683fef9ac21dedcd6a6837b486871c539df5ee0fa5358ff1c27e97de98"
+    },
+    {
+      "path": "patches/rvoip/gate6-device-replacement.patch",
+      "source": "Gate 6 same-participant device replacement in progress: exact binding lineage and actual staged admission incarnation; configured attributed confirmation; guarded local preparation audio; sealed decoded-IO scene swap preserving audience/programme/gate/role intent and truthful cleanup. Owned bounded preparation, exact native/adapter allocation and attributed endpoint signals, separate held scopes, one compound Session/model/scene publication, independent physical lifetime and full-capacity admitted-slot transfer are implemented; final behavior qualification remains in progress.",
+      "sha256": "4b6ed4556ce7b6419557c9135ba7daa8dc28888dd778447391500c7fe65f8e46"
+    },
+    {
+      "path": "patches/rvoip/gate6-media-primitives.patch",
+      "source": "Gate 6 media primitives in progress: bounded native source-authorized DTMF and measured quality; exact owned SIP/WebRTC telephone events; checked RTP framing and shared Rust/browser fixture vectors. Full G6-024 and the remaining framing/codec/feedback/DTMF/quality profile qualification remain open.",
+      "sha256": "584792763b3f1abd63bd49dfddd1321a35c396eff31d4e67e66ad4cf0d44d512"
+    },
+    {
+      "path": "patches/rtc-interceptor/gate6-auxiliary-nack.patch",
+      "target": "rtc-interceptor",
+      "sha256": "93d28d41ed922cf1cd5fc5cefe542daed318ac037d09fe3868cb9e60f2dcb3bc",
+      "source": "Gate6 media feedback qualification in progress: keep auxiliary telephone-event and unregistered RTP payloads out of a primary codec NACK/RTX cache while forwarding original packets unchanged. Behavior evidence remains required."
+    },
+    {
+      "path": "patches/rtc-interceptor/gate6-owned-dtmf-profile.patch",
+      "target": "rtc-interceptor",
+      "sha256": "1ff0e2ea66c8ca8ce20b4af021ce2001d6e9aea94a2774bd9c1a35ccc75724c2",
+      "source": "Gate6 owned DTMF transport in progress: explicit non-inherited immediate telephone-event pipeline contract, never an authorization or peer readiness assertion. Default is unsupported; only the reviewed no-op-based profile may opt in."
+    },
+    {
+      "path": "patches/rvoip/gate6-agent-observations.patch",
+      "target": "rvoip",
+      "sha256": "6973a1796d6e73a814f550c9032f32a84970c8d41f3cbdc834e1bc623019fae0",
+      "source": "G6-025 in progress: bounded provider-neutral agent observations, current Core source attribution, explicit partial/final/best-effort capture, independent action intent observations and pure fresh-leg context preparation. No action permission, durable receipt or provider-delivery claim."
+    },
+    {
+      "path": "patches/rvoip/gate6-conversation-records.patch",
+      "target": "rvoip",
+      "sha256": "a2631c491e754013e117cc601fc4bef101d12555d43184e997c6e196a4dc19d9",
+      "source": "G6-027 in progress: source manifests/protected projection, selected capture and metadata outcome, owned finalization/recovery, source revision redaction/retention, scoped atomic lookup and canonical record-fetch custody through physical peer IO plus bounded reauthorized reference/body retrieval. Includes automatic last-connection outcomes/recovery, ownership-fenced lineage and checked appearances, explicit canonical/media and separate provider-reference capture policies, and exact projected JWS verification using an independent selected key. Downstream production host installation and whole Gate 6 acceptance are not claimed."
+    },
+    {
+      "path": "patches/rvoip/gate6-dtmf-routing.patch",
+      "target": "rvoip",
+      "sha256": "f6c7c1f2e78c32f7c0f7f0079fa1817354366f5b16e96350c49a5c172e27f887",
+      "source": "G6-024 in progress: exact current Core source/recipient and original-operation DTMF routing, independent per-write host permission and physical IO fences. Replaces raw event auto-forwarding; method-specific transport qualification remains explicit."
+    },
+    {
+      "path": "patches/rvoip/gate6-sip-info-authority.patch",
+      "target": "rvoip",
+      "sha256": "91792e82b60128f78f93de0645dac94d468a1a9c61130c7c064bf820c29fd9c9",
+      "source": "G6-024 in progress: method-specific SIP INFO delivery under fresh source/recipient permission at actual first and retransmitted transaction IO; one immutable request path and explicit owned cancellation/uncertainty. Work remains unqualified until actual behavior checks."
+    },
+    {
+      "path": "patches/rvoip/gate6-dtmf-info-route.patch",
+      "target": "rvoip",
+      "sha256": "020bad0d925de5ddb55a5aa75c0aad21f3797eb90f7c088e0aaef895c261dcb7",
+      "source": "G6-024 in progress: Core method-specific INFO policy, exact current SIP mapping/dialog/lifecycle and per-write custody over canonical owned INFO. Actual source and recipient operation remain required; unqualified until wire/failure tests."
+    },
+    {
+      "path": "patches/rvoip/gate6-native-dtmf-route.patch",
+      "target": "rvoip",
+      "sha256": "fe4c7484ae3bb6f4e744efc29b8a18fca69bb1ec3053e6034cc4485c3b05d5f1",
+      "source": "G6-024 component: sealed signed native DTMF ingress to Core original-operation INFO/RFC4733 routing with independent fresh source/recipient signal authority and per-physical-poll source epoch custody. Source-scoped qualification: docs/evidence/gate-6/native-dtmf-route.json. Full G6-024 remains in progress."
+    },
+    {
+      "path": "patches/rvoip/gate6-core-native-dtmf.patch",
+      "target": "rvoip",
+      "sha256": "c930b5cfc166dd9a3f6ad36c725b3fa61cce92fc7f183d46a323eb0e28740b41",
+      "source": "G6-024 component: caller-owned Core native-recipient DTMF scheduling with actual signed native signal scope, fresh independent permission after physical writer dequeue and exact source/recipient IO custody. Full G6-024 remains in progress; qualification docs/evidence/gate-6/core-native-dtmf.json."
+    },
+    {
+      "path": "patches/rvoip/gate6-received-dtmf.patch",
+      "target": "rvoip",
+      "sha256": "85cb87648508d03436103b355aa15bae38a2b4611126a1d0ff94a55cd2825587",
+      "source": "G6-024 component: actual SIP/WebRTC received DTMF source observations with original start timing and stable physical identity, explicit Core source registration and binding/media/lifecycle epoch custody; Core WebRTC authorized dispatch to actual fenced owned SRTP writer. Qualification docs/evidence/gate-6/received-dtmf.json; full G6-024 remains in progress."
+    },
+    {
+      "path": "patches/rvoip/gate6-media-profiles.patch",
+      "target": "rvoip",
+      "sha256": "e3101871b9b52c19d7a706c645eaf5cb11fbfcf7e29ebb96d00505a7e1bc7d9f",
+      "source": "G6-024 component: actual signed QUIC/WebTransport decoded media profiles, physical MTU/fragmentation, bounded malformed/late rejection and recovery. Qualification docs/evidence/gate-6/media-profiles.json; full G6-024 completion requires the complete approved coverage."
+    },
+    {
+      "path": "patches/rvoip/gate6-websocket-media.patch",
+      "target": "rvoip",
+      "sha256": "094e3bb26bb56df9775d52017769f5627c550ed188d39b03d4a290a4a4b0ca1b",
+      "source": "G6-024 component: WebSocket co-located WebRTC media bridge delayed-track attachment and decoded audio/shutdown regression. Qualification docs/evidence/gate-6/websocket-media.json; complete G24 requires all approved profiles."
+    },
+    {
+      "path": "patches/rvoip/gate6-upstream-format.patch",
+      "target": "rvoip",
+      "sha256": "84250f1da4d002389e84c733729b07e792883870aa9b2ea49fc53f2185e5a003",
+      "source": "G6-028: format the current files after all ordered source patches; no contract or algorithm change. Qualification docs/evidence/gate-6/upstream.json."
+    },
+    {
+      "path": "patches/rtc-dtls/gate6-upstream-format.patch",
+      "target": "rtc-dtls",
+      "sha256": "41a8c1489f1f3faf9160eb27e03f8f066c86afe7d8ba3fedb40c6ff39cecd8dc",
+      "source": "G6-028 current-source formatting after ordered patches; no contract or algorithm change. Qualification docs/evidence/gate-6/upstream.json."
+    },
+    {
+      "path": "patches/rtc-interceptor/gate6-upstream-format.patch",
+      "target": "rtc-interceptor",
+      "sha256": "474c493a58c67351311496fa475a39635ac7be88427f6541d95c0b8c0c7d22f8",
+      "source": "G6-028 current-source formatting after ordered patches; no contract or algorithm change. Qualification docs/evidence/gate-6/upstream.json."
+    },
+    {
+      "path": "patches/rvoip/gate6-upstream-lifecycle-profile.patch",
+      "target": "rvoip",
+      "sha256": "72bf13845e1f44e4ed7c4062660980a7855e16b670d745645b221bd34e0ec619",
+      "source": "G6-028 combined-profile fixture: last-connection auto-end verifies exact session/connection completion plus scoped owned vCon finalization, without assuming only two events. No production behavior change. Qualification docs/evidence/gate-6/upstream.json."
+    },
+    {
+      "path": "patches/rvoip/gate6-upstream-observer-profile.patch",
+      "target": "rvoip",
+      "sha256": "13baa70a6190ca199d136bdcfa2d95bb53a66abc301bcde09ca202d1da2f6e8c",
+      "source": "G6-028 combined-profile fixture: declare the explicit negotiated dynamic PCMU PT111 used by recording/listener/AI tap input. Preserve primary-codec mismatch refusal; no production behavior change. Qualification docs/evidence/gate-6/upstream.json."
+    },
+    {
+      "path": "patches/rvoip/gate6-upstream-conversation-profile.patch",
+      "target": "rvoip",
+      "sha256": "88e3de703599d3dfaffb185706d6a62627b096c1c8ad6f88249154a6bc55361b",
+      "source": "G6-028 combined-profile fixture: force-close verifies one session completion, correctly scoped stored vCon readiness and later conversation closure. No production behavior change. Qualification docs/evidence/gate-6/upstream.json."
+    },
+    {
+      "path": "patches/rvoip/gate6-current-membership.patch",
+      "target": "rvoip",
+      "sha256": "00363d7b19771bcaaa569b9db9e9bb8a61dbba7c7309f979f095153da3b813dd",
+      "source": "G6-038: checked current persisted Membership import preserves epoch, revision and inactive state under the owning policy lease; bounded reconstruction and stale-presence/connection refusal tests."
+    },
+    {
+      "path": "patches/rvoip/gate6-native-data-terminal-refusal.patch",
+      "target": "rvoip",
+      "sha256": "434ec79c6ffc873f5c0b03d1c680b7e258c74e5b41f360abb390bb0f5a8a9ad9",
+      "source": "G6-038: a definitive queued-message NotRecipient refusal settles the original native writer as NotStarted and releases the port for later authorized data; transient authority/storage contention remains retryable. Actual signed QUIC writer-queue regression preserves original operation/message IDs and verifies the following message."
+    },
+    {
+      "path": "patches/rvoip/gate6-private-native-preparation.patch",
+      "target": "rvoip",
+      "sha256": "db8d2f7f670f8dc2dbdf39b57d52b7bcab5b3680db2bf180266cb1f8f6a3c4b8",
+      "source": "G6-039: exact held-policy initial audio mute before quarantined managed private admission, carrying existing native signed confirmation over the actual gate revision. No participant admission or private speech activation is inferred."
+    },
+    {
+      "path": "patches/rvoip/gate6-consultation-return-wire.patch",
+      "target": "rvoip",
+      "sha256": "e29bc5c26e13695bea2c9bc3f1767025ba0d9101a8092e854df3337dc78f48ba",
+      "source": "G6-039: typed session.consult.return with explicit original consultation record and retained remote, required current operation/revision/primary Connection scopes, normative schema/vectors and secure session floor. This command is independent of cancellation and grants no Core restoration by itself."
+    },
+    {
+      "path": "patches/rvoip/gate6-private-origin-loss.patch",
+      "sha256": "74f693ec3f1fa02e564dd6f739c5fa728673b193dbd4bef00a411c12e9580959",
+      "source": "Gate 6 retain bounded committed private audience identity after all private origins depart until once-only authorized restoration or scene clear; verify surviving original programs and consumed-handle refusal"
+    },
+    {
+      "path": "patches/rvoip/gate6-operation-record-reference.patch",
+      "sha256": "e36559201a02b1751fe809b7a9958b6b37cec903b6a3a155f2464df9f3e6b109"
+    },
+    {
+      "path": "patches/rvoip/gate6-prepared-handoff.patch",
+      "sha256": "6910d040d3dc7e55abeb6502fb94c97e8fc031b23413ddd3eecf015a6a117d40"
+    },
+    {
+      "path": "patches/rvoip/gate6-handoff-readiness.patch",
+      "sha256": "a84ebe5f71a52c65e6e3df43644b56050df74efaeef787602892411273c33384"
+    },
+    {
+      "path": "patches/rvoip/gate6-native-replacement-activation.patch",
+      "target": "rvoip",
+      "sha256": "bf920b0a6e3895ccef61dd39ecbed12d35a970b054956e6fa3140a281bc21c5c",
+      "source": "G6-041: explicit signed-native activation for an exact prepared replacement resource lineage; reuse the full broker answer/batch check and sealed Core resource proof. Ordinary initial activation retains its lineage refusal. Movement commit remains a separate phase."
+    },
+    {
+      "path": "patches/rvoip/gate6-closed-endpoint-preparation.patch",
+      "target": "rvoip",
+      "sha256": "8ef896e5d7dcdda3c120140ab9eff88b4ea772e91a73108d03f29fa806605850",
+      "source": "G6-041: sealed owned replacement activation that retains its mute, plus exact-current one-member closed muted audience decoder preparation. The new mode is part of same_intent and requires explicit current host approval; ordinary consultation activation is unchanged. Observer preparation discards input without public speaking authority. Live controller/port/generation, exact purpose and current scene group identity remain required; consumed groups invalidate input/output proof."
+    },
+    {
+      "path": "patches/rvoip/gate6-principal-event-fixture.patch",
+      "target": "rvoip",
+      "sha256": "924fdba4a69bab4579630a11e770856c258069a66c13601e8715c90bd32e66a6",
+      "source": "Gate 6 current typed-event regression: supply the required session_id in the principal cross-crate event fixture and verify the private Session ID is redacted alongside principal/tenant/scope context. Fixture only; no compatibility API or production behavior change."
+    },
+    {
+      "path": "patches/rvoip/gate6-sip-replacement-route.patch",
+      "sha256": "b3a45eb04e145ca2dde7c73efb20581e60f7dca56ea027a83d3dcbfc56ee7fba",
+      "source": "G6-041 exact Core-reserved dormant SIP replacement allocation, actual-route sealed answer/DTMF capture, stable existing outbound activation and capture-time confirmation eligibility. Local SIP/Core regressions; guarded SIP media and Connect callback composition remain separate required work."
+    },
+    {
+      "path": "patches/rvoip/gate6-sip-guarded-media.patch",
+      "sha256": "e04f632cfd4598978a008ced09ec92a4834b754d079a3a9214724fef6e8bf623",
+      "source": "G6-041 exact guarded SIP replacement audio bridge, current authorized ingress and queued Core delivery through actual exact-lifetime RTP encode/send; negotiated codec and local cleanup fences. Actual media/recovery qualification required."
+    },
+    {
+      "path": "patches/rvoip/gate6-replacement-confirmation.patch",
+      "sha256": "3786a11a07da3158323134a1f6770191c68ff07224d5f9756706dc670a1adac5",
+      "source": "G6-041 bounded attributed multi-digit confirmation, opaque callback sequencing and actual duplex incarnation fences. Runtime qualification required."
+    },
+    {
+      "path": "patches/rvoip/gate6-sip-invite-write-authority.patch",
+      "sha256": "ec22889b7d4579f616c62a41f962b3ab67ec9cb39d575c06d022b91cc7214eef",
+      "source": "G6-041 initial INVITE current write authority carried through actual transaction writes, retransmissions and authenticated retries without idle readers. Runtime qualification required."
+    },
+    {
+      "path": "patches/rvoip/gate6-sip-negotiated-resources.patch",
+      "sha256": "a2915046d7833bda5a9b97225a37cd454785ef8cd4940142c15561212d6eafa1",
+      "source": "G6-041 actual bound SIP replacement codec metadata for current guarded media resources; no packet or confirmation authority. Runtime qualification required."
+    },
+    {
+      "path": "patches/rvoip/gate6-logical-replacement-retarget.patch",
+      "sha256": "cd1c0f391c3645875888fd09986af3938a31da50518a3d91a3ec0b8b8632e09e",
+      "source": "G6-041 exact sealed replacement binding retarget across independently authorized physical route accounts; logical Participant intent with current per-delivery authority. Runtime qualification required."
+    },
+    {
+      "path": "patches/rvoip/gate6-audio-exclusion-reselection.patch",
+      "sha256": "1687d5eec24bc5633ddf337686fb95e3f748b966a502aaeaa7ef1aa9d70c56a0",
+      "source": "G6-041 named audio reselection clears guarded exclusions while retaining Participant intent; decoded media regression."
+    },
+    {
+      "path": "patches/rvoip/gate6-logical-participant-selection.patch",
+      "sha256": "bb26dd1ef382b50643995d0f71397d2dea146b983f1f0abf5db52444ba9c87e8",
+      "source": "G6-041 retained Participant intent follows logical membership across distinct route accounts; current materialization rechecks actual source authority."
+    },
+    {
+      "path": "patches/rvoip/gate6-established-invite-authority.patch",
+      "sha256": "f3dfa566b096d084ba73cf2087563665b414e61878fb473d39c6bf36780bbc9e",
+      "source": "G6-041 actual established refresh repeats negotiated SDP, uses current Contact target and retains the exact dialog host policy through every INVITE write."
+    },
+    {
+      "path": "patches/rvoip/gate6-agent-observation-decoder.patch",
+      "target": "rvoip",
+      "sha256": "29a0ac739ab4c2241fbaec73d1eb8d9d4e00cee0b20193800659b1c2562e02bc",
+      "source": "G6-043: expose the existing bounded Vapi normalization as a pure captured-route decoder for protected Connect voice jobs. Every normalized item and asserted call/event reference validates before return; no IO, dispatch, principal binding or authority grant."
+    },
+    {
+      "path": "patches/rvoip/gate6-initial-sip-participant-custody.patch",
+      "target": "rvoip",
+      "sha256": "515f39f85361e3236cc28f4464b047c9e30bc1e9c29ea9ac54dcfb314f3690ce",
+      "source": "G6-044 initial SIP: retain actual provisional outbound route through owned current activation, release that IO read before answer metadata, then require fresh owned media/admission authority; reserve Session slot before IO, transfer original cleanup custody. SIP uses its own initial-purpose guarded context bound to the exact prepared incarnation; native and replacement ownership are not invented. This primitive alone is not a complete Connect initial telephone implementation."
+    },
+    {
+      "path": "patches/rvoip/gate6-initial-sip-answer-observation.patch",
+      "target": "rvoip",
+      "sha256": "499972f2579fe5b5be095675d24613463d26502deaf5f975db5b435fc49063fd",
+      "source": "G6-044 initial SIP: exact-incarnation, bounded sticky actual remote answer captured before context installation; opaque once-only answer fact, bounded cancellable wait, no provisional/codec substitution, no signaling retry. Initial guarded media now requires an actually observed answer. Current host operation/endpoint/media authority and durable lifecycle remain separate requirements."
+    },
+    {
+      "path": "patches/rvoip/gate6-initial-telephone-host-binding.patch",
+      "target": "rvoip",
+      "sha256": "60cea728d091c7e171dc908d49ea81d79df14b6f57464c72f9ff3a54351eabe4",
+      "source": "G6-044: bind an initial telephone observer to the actual dormant Core ticket and exact SIP adapter/route; expose the planned wire Call-ID before IO, share one sticky typed answer claim, retain confirmed local cleanup observations, and read the actual negotiated codec. Split owned provisional Active/Bound SIP activation from final checked participant admission so final media uses a fresh Core revision, the same actual route/operation/slot and fresh installed-policy authority without another INVITE."
+    },
+    {
+      "path": "patches/rvoip/gate6-record-reference-endpoint-custody.patch",
+      "target": "rvoip",
+      "sha256": "ee5358ae0d27df7b120375d73598d295969f09ad760a559ae4081c6af024caa6",
+      "source": "G6-046: trusted registry resource metadata lookup and explicit reference issuance for authenticated HTTPS adapters; endpoint cancellation refuses future references/reads and cancels active raw writers; expose exact TTL/authority IO deadline. Registry entries remain metadata only; current source authority and exact revision/projection digest are still mandatory."
+    },
+    {
+      "path": "patches/rvoip/gate6-record-tenant-role-viewer.patch",
+      "sha256": "22b4ad93469226d3f62b06e95cc8b71272f9f24a2ae41d3089c3e64e9eb87440",
+      "source": "Connect Gate6 explicit tenant record viewer; no synthetic membership"
+    },
+    {
+      "path": "patches/rvoip/gate6-record-context-snapshot.patch",
+      "sha256": "f072296ae65151ab26172eb8de29761936141bcf2c77d0f23c687ba54cb1e7af",
+      "source": "Connect Gate6 canonical data-only record context projection; shared pruning, exact integrity and retention cutoff"
+    },
+    {
+      "path": "patches/rvoip/gate6-record-source-io-deadline.patch",
+      "target": "rvoip",
+      "sha256": "6c7d74c10bc918b5e8f2daea1387468c6c69cae58c3216a9f4244cd75566cfef",
+      "source": "G6-046 actual native Record flow-control expiry regression: expose the original projection IO deadline clipped to visible metadata, actually exported content and URL cutoffs; install it in native fetch and guarded reference custody so blocked transport wakes at source retention expiry. No policy re-entry, audience fallback or grant from a copied timestamp."
+    },
+    {
+      "path": "patches/rvoip/gate6-native-capability-negotiation.patch",
+      "target": "rvoip",
+      "sha256": "6c1a390af5b604cdd0d45dd3ead5af34fcb317e915f8c2b3e4a861b1670ff815",
+      "source": "G6-046 native capability declarations update future negotiation under the exact current physical/source authority without touching active media. Separate negotiated and declared catalogs, protect prepared plans with declaration generations under the real request slot, preserve actual retained bindings while refusing new withdrawn formats, and serialize the local metadata commit with controller credential/stream state. Actual gained-codec and withdrawal behavior remain to be qualified through Connect."
+    },
+    {
+      "path": "patches/rvoip/gate6-native-capability-delivery.patch",
+      "target": "rvoip",
+      "sha256": "89b8b6e026a2c4db01e0d4069a04b4c7e4f1cb130300a426f53eb97f6a3c6c4b",
+      "source": "G6-046 exact native capability disclosure/listener metadata from actual managed Core runtime, lifecycle, controller and credential incarnations. Original private audience captured atomically with declaration; original/current audience fenced through sole reliable writer, with fresh host source/recipient policy and sink destruction before permission release on interrupted IO. Actual delivery qualification pending."
+    },
+    {
+      "path": "patches/rvoip/gate6-native-dtmf-audience.patch",
+      "target": "rvoip",
+      "sha256": "85d6620fd685fa6a2c81c6295e0c5c6be4a0840e9097cbe55868612464ea5970",
+      "source": "G6-046 managed native DTMF original private-audience metadata captured from exact Core source incarnation before observation acceptance; scene-only IO fence binds actual native recipient metadata and original/current audience without reentering held source/target controller or lifecycle locks. Fresh independent host signal permission, Core route and sealed physical source/target IO fences remain required. Controlled/production qualification pending."
+    },
+    {
+      "path": "patches/rvoip/gate6-verified-refresh-media.patch",
+      "sha256": "8d9f6d1727260c85bd1c92f945438eca5283b1ff544e766e51f30b78c733c86c",
+      "source": "G6-046 verified auth.refresh media callback with exact physical peer, sealed actual Core credential result and successor dispatch metadata registrations. Production qualification required."
+    },
+    {
+      "path": "patches/rvoip/gate6-native-step-up-media.patch",
+      "source": "G6-046 verified owned native media step-up, physical publication fence and fresh original-command authority after observed credential rotation. Production qualification required.",
+      "sha256": "7fff8b73d0bfd4ebc33f99ca667781903720cf31fb26bedfa9255795f64e33c0"
+    },
+    {
+      "path": "patches/rvoip/gate6-subscription-domain-hints.patch",
+      "sha256": "ee82bde7300c799b519bffb53a0fdd192d766e7e45dbb1baa4036fcccfde91bf",
+      "source": "G6-046 typed current-authority Conversation closure and record-ready hints on sealed physical subscriptions, bounded to the original subscription deadline. Actual Connect qualification required."
+    },
+    {
+      "path": "patches/rvoip/gate6-subscription-session-terminal-hint.patch",
+      "sha256": "7ef12b614b9108df53ce5bc55c63479672145df86dd2ab0e32c27e1b8f01e8c7",
+      "source": "G6-046 typed original Session terminal observation on current-authority subscription delivery, bounded to original query scope and deadline. Actual Connect qualification required."
+    },
+    {
+      "path": "patches/rvoip/gate6-owned-route-session-requests.patch",
+      "sha256": "e38f608f36d99fd5e270fc3492a3d2b37b1eded6af9888c3bb8283c10906c0ce",
+      "source": "G6-046 bounded authenticated route Session request/reply with final wire-ID registration, exact original scopes and physical credential incarnation; observations never execute commands or retain idle authority. Connect composition qualification remains required."
+    },
+    {
+      "path": "patches/rvoip/gate6-session-caller-routes.patch",
+      "sha256": "21dde25d377c8429f30a97385190896722293dae764c0cb5cbae1e4057460609",
+      "source": "G6-046 exact physical caller route selection for decision relays and verified-activity reachability renewal; frozen older handles do not extend. Actual Connect caller/replay qualification required."
+    },
+    {
+      "path": "patches/rvoip/gate6-session-cancel-exchanges.patch",
+      "sha256": "772b6891020d4f879015067df3320164aa122e4c0259b0f04bf4d5905d914584",
+      "source": "Expose the final signed invitation exchange ID without retaining idle authority; cancellation can correlate to the exact physical delivery."
+    },
+    {
+      "path": "patches/rvoip/gate6-correlated-session-cancel.patch",
+      "sha256": "7b144790ed0b7e7a409ef871a8429070896be8836551a49b5dc7d130ad2fe836",
+      "source": "Closed operation-bearing session.cancel reference commands retain fresh dispatch/step-up authority; metadata-only physical admission correlation survives current credential rotation."
+    },
+    {
+      "path": "patches/rvoip/gate6-codec-lifecycle-pair.patch",
+      "sha256": "19c1bc68c6ef44ad02a03a205815189f541b58c7370f9300c3fa8f1627aebcaa",
+      "source": "G6-046 actual-flow codec lifecycle replacement published as one current-authority guarded close/open batch; bounded writer custody and partial-second-write retirement tests."
+    },
+    {
+      "path": "patches/rvoip/gate6-dtmf-retirement-before-receipt.patch",
+      "sha256": "99b04f01669b8fd3c9b94948760e03b3ff1942245a85aa3ee5f35dfb19c65330",
+      "source": "G6-046 retire a partially used native DTMF physical sink before releasing actual source/recipient IO readers and publishing uncertainty; controlled synchronous receipt wake and drop checks."
+    },
+    {
+      "path": "patches/rvoip/gate6-dtmf-metadata-wait.patch",
+      "sha256": "bd3f7f4e176e9d80b90b724ba04cfacc1ef65ea6f33246e8dd4245db6025fe29",
+      "source": "G6-046 bounded original DTMF metadata admission before policy or physical IO, including current route contention, deadline and cancellation checks against actual UDP."
+    },
+    {
+      "path": "patches/rvoip/gate6-dtmf-source-contention.patch",
+      "sha256": "1e6e0a4f813ea49aa7e052c12d346d4f6892ca513b309bb48a9e13646180f311",
+      "source": "G6-046 preserve temporary native source metadata contention without reviving retired sources; sealed actual-source guard and real SIP INFO recovery checks."
+    },
+    {
+      "path": "patches/rvoip/gate6-dtmf-fence-admission.patch",
+      "sha256": "6d7479cb57c33bf681d9f7ba66d7552cfee990154a6eb3969b165dfb15f8e0bd",
+      "source": "G6-046 preserve temporary Core metadata status while attaching sealed source fences, without granting IO or reviving retirement."
+    },
+    {
+      "path": "patches/rvoip/gate6-solo-session-wire.patch",
+      "sha256": "e9152fabd6891c10edc3d097c4844fbe2761dcb234a19d9ffaaa3ec24d44cbc8",
+      "source": "G6-046 admit the implicit single-Participant initiator in the embedded native wire schema, with actual Envelope golden vectors retaining duplicate/type/capacity refusal."
+    },
+    {
+      "path": "patches/rvoip/gate6-native-ready-observation.patch",
+      "sha256": "2b2f7b4b10539207ef1ecc6ab2b7742f92fd02c1534fa68509040bd4d8ae9f83",
+      "source": "G6-046 capture non-forgeable historical native readiness under exact controller, credential, flow epoch and port custody; retain metadata-only storage recovery before hints."
+    },
+    {
+      "path": "patches/rvoip/gate6-ready-observation-bound-principal-test.patch",
+      "sha256": "b2e90fcfc5c4ecc5937f333cdf42fa88a22287d1f0882b95f89bd07e4bd5ce5e",
+      "source": "G6-046 readiness custody fixture uses the controller actual bound principal rather than a lookalike newly minted expiry; no production code change."
+    },
+    {
+      "path": "patches/rvoip/gate6-unfiltered-participant-subscriptions.patch",
+      "sha256": "756493d40910683d90dd6d9b8a72d8a3cc8dc2c0ae3331cba3ab45e133da1ae5",
+      "source": "G6-046 unfiltered native Participant selectors use the installed profile and current declared receiver capability intersection; explicit filters and current source authorization remain exact."
+    },
+    {
+      "path": "patches/rvoip/gate6-subscription-policy-and-speaker.patch",
+      "sha256": "7ea76f33136a61f9ff20a62d903ec9957bfa46011268582f056d199fd13ab25a",
+      "source": "G6-046 preserve heterogeneous Participant wildcard intent without skipping current authority; expose receiver defaults for protected source diagnostics; Session-scoped optional active-speaker silence contract and actual Core/Envelope tests."
+    },
+    {
+      "path": "patches/rvoip/gate6-fixed-schema-closed-objects.patch",
+      "sha256": "57019f608843217433ad7307ed8c12c6ef8a85f23ab6f022f049305c14408781",
+      "source": "G6-046 complete the private fixed published-schema vocabulary: reject unknown fields only where additionalProperties is false, including asserted handoff preparation readiness; preserve normal UCTP extension retention and verify every current golden vector."
+    },
+    {
+      "path": "patches/rvoip/gate6-preserve-invitation-vector-ids.patch",
+      "sha256": "e25d0559ece9d1bae35682464426bbff269b22bb0a797b81da59161337a79098",
+      "source": "G6-046 retain all original embedded Session invitation refusal vector IDs while synchronizing the published225-vector kit. Test data only; no production source or schema change."
+    },
+    {
+      "path": "patches/rvoip/gate6-host-codec-preferences.patch",
+      "sha256": "450f7fd20f8902fea3a97a2271d944175310aa9cabb8458502e98a09df5e5be5",
+      "source": "G6-046 honor current host Session codec preferences when selecting an initial native offer, without changing capability grants, signed peer payloads, peer-format membership or fallback behavior."
+    },
+    {
+      "path": "patches/rvoip/gate6-live-session-codec-planning.patch",
+      "sha256": "736e1a2e3684f98869f683d5f64ed5296223976b7b30914db01d6fadd9c171d4",
+      "source": "G6-046 live Session codec planner bound to current native origin/revision/declaration, with soft per-peer fallback and exact preservation of unrequested/data bindings; planning only, no execution grant or live Session completion claim."
+    },
+    {
+      "path": "patches/rvoip/gate6-live-session-codec-execution.patch",
+      "sha256": "c2e570c86a20819593d2ba97f3965881c3335dbea23a23cd9a463cc96b95400a",
+      "source": "G6-046 signed server-origin live Session codec execution with a distinct fresh host authority, exact current origin/revision/declaration fences, no-op without IO, sealed historical commit metadata and conservative possible-effect failure classification. Includes actual QUIC/WebTransport engine tests; Connect durable Session coordination remains separate unfinished work."
     }
   ]
 }

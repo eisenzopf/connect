@@ -70,10 +70,21 @@ impl Store {
     /// Invalidate cached leases on process startup or authority configuration change.
     /// Enrollment and opt-out evidence is retained. No automatic enrollment occurs.
     pub fn expire_sms_authorities(&self) -> Result<()> {
-        self.connection()?
-            .execute("UPDATE sms_authorities SET valid_until=0", [])
+        let authority =
+            self.runtime_query_authority(crate::authority_admission::runtime::SMS_GRANTS, &[])?;
+        let mut c = self.connection()?;
+        let tx = c
+            .transaction_with_behavior(TransactionBehavior::Immediate)
             .map_err(|_| Error::storage())?;
-        Ok(())
+        self.require_runtime_query(
+            &tx,
+            &authority,
+            crate::authority_admission::runtime::SMS_GRANTS,
+            &[],
+        )?;
+        tx.execute("UPDATE sms_authorities SET valid_until=0", [])
+            .map_err(|_| Error::storage())?;
+        tx.commit().map_err(|_| Error::storage())
     }
     /// Atomically reconcile a complete authenticated snapshot. Removal revokes a grant;
     /// evidence remains immutable, and no snapshot can clear a recipient's STOP.
@@ -98,10 +109,21 @@ impl Store {
         }
         let serialized = serde_json::to_vec(snapshot).map_err(|_| Error::storage())?;
         let digest = crate::provider_event_digest(&serialized);
+        let targets = |c: &rusqlite::Connection| -> Result<Vec<String>> {
+            let mut ids = crate::authority_admission::runtime::conversations(
+                c,
+                "SELECT DISTINCT conversation_id FROM sms_grants WHERE source=?1",
+                &[&source],
+            )?;
+            ids.extend(snapshot.grants.iter().map(|g| g.conversation_id.clone()));
+            Ok(ids)
+        };
+        let authority = self.runtime_conversation_authority(targets)?;
         let mut c = self.connection()?;
         let tx = c
             .transaction_with_behavior(TransactionBehavior::Immediate)
             .map_err(|_| Error::storage())?;
+        self.require_runtime_conversations(&tx, &authority, &targets(&tx)?)?;
         let old: Option<(i64, String)> = tx
             .query_row(
                 "SELECT revision,digest FROM sms_authorities WHERE source=?1",
@@ -164,6 +186,38 @@ impl Store {
         keyword: &str,
         occurred_at: i64,
     ) -> Result<bool> {
+        self.receive_sms_control_scope(event_id, digest, phone, sender, keyword, occurred_at, None)
+    }
+    pub fn receive_sms_control_for_routes(
+        &self,
+        event_id: &str,
+        digest: &str,
+        phone: &str,
+        sender: &str,
+        keyword: &str,
+        occurred_at: i64,
+        routes: &[String],
+    ) -> Result<bool> {
+        self.receive_sms_control_scope(
+            event_id,
+            digest,
+            phone,
+            sender,
+            keyword,
+            occurred_at,
+            Some(routes),
+        )
+    }
+    fn receive_sms_control_scope(
+        &self,
+        event_id: &str,
+        digest: &str,
+        phone: &str,
+        sender: &str,
+        keyword: &str,
+        occurred_at: i64,
+        routes: Option<&[String]>,
+    ) -> Result<bool> {
         let keyword = keyword.trim().to_ascii_uppercase();
         let Some(stopped) = control_kind(&keyword) else {
             return Err(Error::new("invalid-request", "Unknown SMS control"));
@@ -175,10 +229,25 @@ impl Store {
         {
             return Err(Error::new("invalid-request", "Invalid SMS control event"));
         }
+        let authority = self
+            .runtime_query_authority(crate::authority_admission::runtime::SMS_PHONE, &[&phone])?;
         let mut c = self.connection()?;
         let tx = c
             .transaction_with_behavior(TransactionBehavior::Immediate)
             .map_err(|_| Error::storage())?;
+        self.require_runtime_query(
+            &tx,
+            &authority,
+            crate::authority_admission::runtime::SMS_PHONE,
+            &[&phone],
+        )?;
+        if let Some(routes) = routes {
+            let scope = serde_json::to_string(routes).map_err(|_| Error::storage())?;
+            let owned: bool = tx.query_row("SELECT EXISTS(SELECT 1 FROM connector_routes r JOIN provider_message_endpoints b ON b.route_id=r.id WHERE r.connector='telnyx' AND r.source=?1 AND r.id IN (SELECT value FROM json_each(?2)))", params![sender, scope], |r| r.get(0)).map_err(|_| Error::storage())?;
+            if !owned {
+                return Err(Error::forbidden());
+            }
+        }
         if !admit_event(&tx, event_id, digest, self.limits.operation_receipts)? {
             return Ok(false);
         }

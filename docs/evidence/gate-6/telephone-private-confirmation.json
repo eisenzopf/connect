@@ -1,0 +1,232 @@
+{
+  "kind": "gate6-component-evidence",
+  "task": "G6-041",
+  "status": "in-progress",
+  "passed": true,
+  "recorded_at": "2026-10-20T12:19:25.958732+00:00",
+  "schema_version": 60,
+  "pinned_patches": 119,
+  "source_lock": {
+    "path": "dependencies/source-lock.json",
+    "sha256": "f13dd9283590b31ba258d4f13c53ac7adb87e2781ea818c78ad7d07251aee0ff"
+  },
+  "scope": "Local macOS arm64 actual canonical telephone private decoded duplex, attributed answer/configured 55# confirmation, current abort and original native route preservation with PCMU/PCMA. Final telephone movement and established ownership are not qualified.",
+  "verification": [
+    {
+      "name": "telephone-store",
+      "command": "cargo test --locked --offline -j2 -p connect-store --lib telephone_ -- --test-threads=2",
+      "passed": 37,
+      "exit_code": 0,
+      "log": {
+        "path": ".local/gate-6/telephone-private-store-final.log",
+        "sha256": "44b667fb5633602cedc62cc1825c4b6ad49bfb3e2dbaa17d5a70aae4bf362ba4"
+      },
+      "test_binary": {
+        "path": "target/debug/deps/connect_store-500690b8d898aed1",
+        "sha256": "0167b708c801007c5c480d084b369401073721234713f37b05dba0c5ed331702"
+      }
+    },
+    {
+      "name": "schema",
+      "command": "cargo test --locked --offline -j2 -p connect-store --test gate6_schema -- --test-threads=2",
+      "passed": 4,
+      "exit_code": 0,
+      "log": {
+        "path": ".local/gate-6/telephone-private-schema-2.log",
+        "sha256": "ddd6414b676ee8328aa236500802a29d7ace7ec9698b174ac46366fc7ebe732d"
+      },
+      "test_binary": {
+        "path": "target/debug/deps/gate6_schema-2d4cc6d15be4352e",
+        "sha256": "47cb0ae3d1ba6668cf25d1117b688587c45a43af108ad6549e8d8a99577f80c8"
+      }
+    },
+    {
+      "name": "telephone-public",
+      "command": "RUST_LOG=connect_service=debug target/debug/deps/gate6_canonical_runtime-2e3e18c2008aaebe production_telephone_ --test-threads=2 --nocapture",
+      "passed": 6,
+      "exit_code": 0,
+      "log": {
+        "path": ".local/gate-6/telephone-private-telephone-final.log",
+        "sha256": "fdb60c93577187a98d77feb0b44b617967932a39bc2b5fb89bdfaed3d0aed800"
+      },
+      "test_binary": {
+        "path": "target/debug/deps/gate6_canonical_runtime-2e3e18c2008aaebe",
+        "sha256": "f302ecbbe95eb9235f6f2c54ce5de8450e1fc54d6bcbdd72056cbcb8e221fdf6"
+      }
+    },
+    {
+      "name": "native-movement",
+      "command": "RUST_LOG=connect_service=debug target/debug/deps/gate6_canonical_runtime-2e3e18c2008aaebe production_replacement_actual_movement --test-threads=1 --nocapture",
+      "passed": 1,
+      "exit_code": 0,
+      "log": {
+        "path": ".local/gate-6/telephone-private-native-movement.log",
+        "sha256": "a2569b45a44f2efe4acf1e02cfd98233872c4733a6f9648a02e740015ad10e7c"
+      },
+      "test_binary": {
+        "path": "target/debug/deps/gate6_canonical_runtime-2e3e18c2008aaebe",
+        "sha256": "f302ecbbe95eb9235f6f2c54ce5de8450e1fc54d6bcbdd72056cbcb8e221fdf6"
+      }
+    }
+  ],
+  "fresh_distinct_passed_tests": 48,
+  "static_checks": [
+    {
+      "name": "dependencies",
+      "exit_code": 0,
+      "log": {
+        "path": ".local/gate-6/telephone-private-static-dependencies.log",
+        "sha256": "fd9d7b181e3ccba9b643af55a186cf132c60aac99c734b2ee4e4e549afe5ffc2"
+      }
+    },
+    {
+      "name": "format",
+      "exit_code": 0,
+      "log": {
+        "path": ".local/gate-6/telephone-private-static-format.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    {
+      "name": "contracts",
+      "exit_code": 0,
+      "log": {
+        "path": ".local/gate-6/telephone-private-static-contracts.log",
+        "sha256": "2c29557f8945b4bb522a5436f85876aa8ab90eca617dcf64588af05e9a81b1bc"
+      }
+    },
+    {
+      "name": "http",
+      "exit_code": 0,
+      "log": {
+        "path": ".local/gate-6/telephone-private-static-http.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    {
+      "name": "progress",
+      "exit_code": 0,
+      "log": {
+        "path": ".local/gate-6/telephone-private-static-progress.log",
+        "sha256": "3c9a42760866b510a9b7fc81b2b57b9bf6791a239d0bf0de8cdf06058e513f78"
+      }
+    },
+    {
+      "name": "diff",
+      "exit_code": 0,
+      "log": {
+        "path": ".local/gate-6/telephone-private-static-diff.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    }
+  ],
+  "cli_binary": {
+    "path": "target/debug/connect",
+    "sha256": "2150e31dbb7015fbb46d1aad7eacb57a88ad92486ed83997ffb4dc2eb7f61f83"
+  },
+  "telephone_strict_native_audio_probes": 22,
+  "native_strict_audio_probes": 45,
+  "native_actual_managed_moves": 5,
+  "upstream_inputs": {
+    "path": ".local/gate-6/telephone-media-upstream-inputs.json",
+    "sha256": "751eb7ed276df5225e988bb084ce1f08dbd0079d49af2fc9de78d5533473d31f"
+  },
+  "unchanged_upstream_input_count": 2684,
+  "verification_inputs_before": {
+    "path": ".local/gate-6/telephone-private-inputs-final-before.json",
+    "sha256": "239580e834cee75d41e54d370ef05837799602d78697faf351592b4e8329f5a9"
+  },
+  "implemented": [
+    "Schema60 retains once-only attach/activate/readiness phases under the exact known SIP resources, runtime epoch, current original/retained/operator/independent route and complete real native scene. No fake native target is created. Known observations and actual successor audience revisions are captured before recording awaits. Recording is atomic, retained, idempotent and cannot rerun Core; unknown plus late facts never restore root preparation.",
+    "The guarded SIP controller shares the actual canonical scene policy. Bounded weak telephone targets dispatch only their own current grants. The immutable pending binding snapshot avoids reentering the pending-state mutex under Core callbacks. Equivalent G.711 SIP metadata names map to decoder-supported PCMU/PCMA media names while preserving actual payload type, rate, channels and fmtp.",
+    "Private activation preserves the old speaking route. The exact actual Core preparation operation gates fresh current decoder and local silence authority. Silence runs on a periodic clock until actual duplex IO; no permission reader survives RTP/digit waits. Ordinary provisional publication/receive remain denied. Real SIP input is decoded only into private preparation and produces zero non-silent native audience frames.",
+    "Only opaque events captured by the installed exact SIP route can observe answer/DTMF. Core enforces actual capture-time IO, incarnation and sequence/replay. Service readiness requires the actual Confirmed/AlreadyConfirmed observation plus current sealed duplex IO and a new current complete scene read. This is private readiness metadata, not final movement planning or public ready. The final Core audience retarget has an additional independent-principal constraint still to implement.",
+    "Actual PCMU and PCMA tests require private encoded silence output, reject output-only early 55#, wrong digits and retransmitted INFO, then accept fresh separate 5/5/# callbacks. Public operation stays preparing with no result. Replaying does not redial; current route revocation completes within two seconds, sends BYE and removes only the candidate. The original native duplex remains valid before, during and after abort. Ringing/cancel/no-answer/Endpoint/route cases pass separately.",
+    "Controlled Store tests cover complete real source requirements, no native projection for the telephone target, shared route writer fencing, ordered once-only phases, exact actual successor revision captures, metadata rollback/retry, retained immutable facts, unknown plus late knowledge and snapshot digest coverage."
+  ],
+  "preliminary_findings": [
+    "Build/test helper name collision and a private Core confirmation getter attempt were compile-time refusals and corrected.",
+    "The canonical scene correctly refused a distinct telephone controller policy; controller construction now uses the shared scene policy with exact telephone dispatch.",
+    "Core decoder correctly refused canonical SIP G.711 names as media factory names; the host now selects equivalent PCMU/PCMA formats and captures the actual resulting binding.",
+    "The initial private driver incorrectly gated this phase on final audience movement planning. Core currently refuses cross-account retargeting despite the same verified logical member. Private readiness now depends on the actual sealed confirmation observation and duplex IO; it does not claim that final retarget is implemented.",
+    "A resettable silence wait could be postponed by signals. A periodic clock and retry of private readiness remove that scheduling dependency. Silence stops after actual duplex IO. Test RTP establishes the actual live private IO incarnation before the configured digit sequence.",
+    "Disk exhaustion interrupted linking. Obsolete rebuildable incremental/library caches and an already archived duplicate generated CLI were removed. Sources, patches, evidence and historical standalone test executables were preserved. The final build and verification completed.",
+    "The system Python lacks jsonschema. Contract checks were rerun successfully with the existing verification-venv (Python3.14.7/jsonschema4.26.0)."
+  ],
+  "preliminary_logs": [
+    {
+      "path": ".local/gate-6/telephone-private-service-check-1.log",
+      "sha256": "fb2cdadc15957b85b9edcb6859f3bb4a700c3202817b2f040383eb31920d7aed"
+    },
+    {
+      "path": ".local/gate-6/telephone-private-build-1.log",
+      "sha256": "30ab35f2119e2c3d00778feca8983ddd5b8180a0d1a17c79dfa28960fc99ad07"
+    },
+    {
+      "path": ".local/gate-6/telephone-private-build-2.log",
+      "sha256": "686201e3173f710d2f7e88de37cbd1496aa27e1ea8c7e3cf04dbb4aa80d02280"
+    },
+    {
+      "path": ".local/gate-6/telephone-private-build-8.log",
+      "sha256": "571dcf04d31a647694febc1e80fe4cd4aca6dd556a30e1adab966d6d9a10ddb9"
+    },
+    {
+      "path": ".local/gate-6/telephone-private-build-9.log",
+      "sha256": "4abafec308bb0ef77de99fae41a9970b7899e1a1f43264c75e11cf49b0dd4b77"
+    },
+    {
+      "path": ".local/gate-6/telephone-private-runtime-1.log",
+      "sha256": "eec3933c19c4696a21cdb1b8f293710a724ad776a9666c564f41a602ced7488f"
+    },
+    {
+      "path": ".local/gate-6/telephone-private-runtime-2.log",
+      "sha256": "aee7c54f8427c2717f083082e192de97c3c5198865ca3dd8576f616ca382051d"
+    },
+    {
+      "path": ".local/gate-6/telephone-private-runtime-3.log",
+      "sha256": "a288d5ec2bbd2f845c35c0eacef90ef2430dfd91adaa479257292a05ee5af97d"
+    },
+    {
+      "path": ".local/gate-6/telephone-private-runtime-4.log",
+      "sha256": "aa07c3eb49c1386083e8af3979a478db3288a555a8f9ab62c09c852ce932ba5c"
+    },
+    {
+      "path": ".local/gate-6/telephone-private-runtime-5.log",
+      "sha256": "043fbac68fd89a2dd136c81554b34e86dbe7b57dae5df0f19ce22ec05bdc36c0"
+    }
+  ],
+  "final_build": {
+    "path": ".local/gate-6/telephone-private-build-10.log",
+    "sha256": "9fc39af157f0df9965236295d08cc917ba1c6abb513326071cf4d77a21c964b3"
+  },
+  "not_qualified": [
+    "Final telephone audience retarget/compound commit/adoption and an independent established telephone owner. Core SavedAudioProgram::replacing_connection still requires equal physical credential owners; the independently provisioned telephone route must instead remain bound to the exact logical replacement and fresh route permissions. No public completed/ready movement is claimed.",
+    "Established SIP signalling must transfer away from the original source/preparation deadline, including refresh/contact routing. Normal server configuration and adapter installation/shutdown remain to wire.",
+    "Full voicemail/rejected-confirmation/deadline/cancel/late-old/unknown/restart matrix after private preparation and movement, telephone-to-other-device movement, selector/private-context churn, Linux/browser/remote/provider/PSTN/performance profiles and independent acceptance/publication.",
+    "Full Store and unrelated wider transport/Core/SDK suites were not rerun. Earlier report totals remain historical and are not added to the current count."
+  ],
+  "task_counts": {
+    "done": 40,
+    "in_progress": 1,
+    "not_started": 64,
+    "acceptance_closed": 0
+  },
+  "all_105_tasks_remain_in_scope": true,
+  "goal_status": "active",
+  "progress": {
+    "path": ".local/gate-6/telephone-private-static-progress-final.log",
+    "sha256": "3c9a42760866b510a9b7fc81b2b57b9bf6791a239d0bf0de8cdf06058e513f78"
+  },
+  "diff": {
+    "path": ".local/gate-6/telephone-private-static-diff-final.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "source_inputs": {
+    "path": ".local/gate-6/telephone-private-inputs-final.json",
+    "sha256": "13562c45c42fb059b995f1eda388d42984921518ad42275ee7e930a3a41adeaf"
+  },
+  "source_input_count": 1347,
+  "post_verification_changes": [
+    "docs/connect-gate-6-implementation.html"
+  ]
+}

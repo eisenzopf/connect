@@ -1,0 +1,224 @@
+diff --git a/crates/uctp/rvoip-uctp/src/v2/auth_dispatch/credential_refresh.rs b/crates/uctp/rvoip-uctp/src/v2/auth_dispatch/credential_refresh.rs
+--- a/crates/uctp/rvoip-uctp/src/v2/auth_dispatch/credential_refresh.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/auth_dispatch/credential_refresh.rs
+@@ -1,7 +1,7 @@
+-//! Metadata sealed only after authenticated refresh, before any media effect.
++//! Metadata sealed only after verified refresh/step-up, before any media effect.
+ use super::*;
+ use rvoip_auth_core::bearer::ValidatedBearer;
+-/// The exact verified refresh and successor dispatch on one physical peer.
++/// The exact verified credential replacement and successor dispatch on one peer.
+ /// It is neither a command envelope nor a reusable authority grant.
+ pub struct VerifiedCredentialRefresh {
+     pub(in crate::v2) previous: Arc<ValidatedBearer>,
+@@ -14,6 +14,24 @@
+     key_id: String,
+     algorithm: String,
+     deadline: Instant,
++    media_started: Arc<std::sync::atomic::AtomicBool>,
++}
++pub(in crate::v2) struct CredentialPublication {
++    started: Arc<std::sync::atomic::AtomicBool>,
++    physical: CancellationToken,
++    committed: bool,
++}
++impl CredentialPublication {
++    pub(in crate::v2) fn committed(mut self) {
++        self.committed = true;
++    }
++}
++impl Drop for CredentialPublication {
++    fn drop(&mut self) {
++        if !self.committed && self.started.load(std::sync::atomic::Ordering::Acquire) {
++            self.physical.cancel();
++        }
++    }
+ }
+ impl std::fmt::Debug for VerifiedCredentialRefresh {
+     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+@@ -21,6 +39,19 @@
+     }
+ }
+ impl VerifiedCredentialRefresh {
++    /// Trusted host composition only, before the first possible physical media
++    /// effect (including an uncertain original submit transaction).
++    pub fn mark_media_transition_started(&self) {
++        self.media_started
++            .store(true, std::sync::atomic::Ordering::Release);
++    }
++    pub(in crate::v2) fn publication(self: &Arc<Self>) -> CredentialPublication {
++        CredentialPublication {
++            started: self.media_started.clone(),
++            physical: self.physical.clone(),
++            committed: false,
++        }
++    }
+     pub fn previous(&self) -> &ValidatedBearer {
+         &self.previous
+     }
+@@ -67,7 +98,7 @@
+         physical: CancellationToken,
+         deadline: Instant,
+     ) -> Result<Arc<VerifiedCredentialRefresh>, DispatchError> {
+-        if request.kind() != "auth.refresh"
++        if !matches!(request.kind(), "auth.refresh" | "identity.step-up-response")
+             || !previous.principal.has_same_owner(&next.principal)
+             || !rvoip_core::staged_streams::reliable_data::same_credential(
+                 &self.principal,
+@@ -116,6 +147,44 @@
+                 .ok_or(DispatchError::Signature)?
+                 .into(),
+             deadline,
++            media_started: Arc::new(std::sync::atomic::AtomicBool::new(false)),
+         }))
+     }
+ }
++
++#[cfg(test)]
++mod publication_tests {
++    use super::*;
++    use std::sync::atomic::{AtomicBool, Ordering};
++    fn guard(started: Arc<AtomicBool>, physical: CancellationToken) -> CredentialPublication {
++        CredentialPublication {
++            started,
++            physical,
++            committed: false,
++        }
++    }
++    #[test]
++    fn credential_publication_cancel_before_media_keeps_prior_physical_peer() {
++        let physical = CancellationToken::new();
++        drop(guard(Arc::new(AtomicBool::new(false)), physical.clone()));
++        assert!(!physical.is_cancelled());
++    }
++    #[test]
++    fn credential_publication_drop_after_possible_media_closes_root_and_children() {
++        let physical = CancellationToken::new();
++        let child = physical.child_token();
++        let started = Arc::new(AtomicBool::new(false));
++        let publication = guard(started.clone(), physical.clone());
++        started.store(true, Ordering::Release);
++        // Original worker result may already be ready when its caller drops.
++        drop(publication);
++        assert!(physical.is_cancelled());
++        assert!(child.is_cancelled());
++    }
++    #[test]
++    fn credential_publication_committed_successor_keeps_physical_peer() {
++        let physical = CancellationToken::new();
++        guard(Arc::new(AtomicBool::new(true)), physical.clone()).committed();
++        assert!(!physical.is_cancelled());
++    }
++}
+diff --git a/crates/uctp/rvoip-uctp/src/v2/auth_peer/step_up.rs b/crates/uctp/rvoip-uctp/src/v2/auth_peer/step_up.rs
+--- a/crates/uctp/rvoip-uctp/src/v2/auth_peer/step_up.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/auth_peer/step_up.rs
+@@ -300,7 +300,7 @@
+         // Definitive scope denial must precede the execution/unknown marker.
+         super::super::scope_policy::require(&credential.principal, blocked.payload())?;
+         let next = self.binding(
+-            credential,
++            credential.clone(),
+             binding.device.clone(),
+             identity,
+             binding
+@@ -309,6 +309,40 @@
+                 .ok_or(DispatchError::Capacity)?,
+             &lease,
+         )?;
++        // All fallible successor/reply preparation precedes media effects.
++        let session = self.session(&next, &response)?;
++        let changed = self.reply("identity.assurance-changed",json!({"previous":binding.credential.principal.assurance.kind(),"current":next.credential.principal.assurance.kind(),"reason":"verified-step-up"}),Some(&response))?;
++        let transition = next.dispatch.verified_credential_refresh(
++            binding.credential.clone(),
++            credential,
++            &response,
++            self.lifetime.clone(),
++            deadline,
++        )?;
++        let publication = transition.publication();
++        let lease = self
++            .config
++            .authority
++            .step_up_media(
++                transition,
++                &binding.device,
++                &binding.identity,
++                &blocked,
++                lease,
++            )
++            .await?;
++        // The host may have released the initial readers to derive complete
++        // current command authority after the observed physical transition.
++        if !lease.current()
++            || self
++                .config
++                .authority
++                .assurance_requirement(&next.credential, &next.device, &next.identity, &blocked)?
++                .as_ref()
++                != Some(&pending.requirement)
++        {
++            return Err(DispatchError::Authority);
++        }
+         failure.execution_started = true;
+         let candidate_lifetime = next.authority_lifetime.clone();
+         let reply = tokio::select! {
+@@ -324,8 +358,7 @@
+                 deadline,
+             ) => result?,
+         };
+-        let session = self.session(&next, &response)?;
+-        let changed = self.reply("identity.assurance-changed",json!({"previous":binding.credential.principal.assurance.kind(),"current":next.credential.principal.assurance.kind(),"reason":"verified-step-up"}),Some(&response))?;
++
+         let replies = reply
+             .into_envelopes()
+             .into_iter()
+@@ -337,6 +370,7 @@
+             HandlerReplies::new(replies)?.into_envelopes()
+         };
+         self.commit_binding(next)?;
++        publication.committed();
+         failure.record = None;
+         let mut result = vec![session, changed];
+         result.extend(replies);
+diff --git a/crates/uctp/rvoip-uctp/src/v2/auth_peer.rs b/crates/uctp/rvoip-uctp/src/v2/auth_peer.rs
+--- a/crates/uctp/rvoip-uctp/src/v2/auth_peer.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/auth_peer.rs
+@@ -136,6 +136,21 @@
+     async fn refresh_media(
+         &self,
+         _refresh: Arc<VerifiedCredentialRefresh>,
++        held: AuthorityLease,
++    ) -> Result<AuthorityLease, DispatchError> {
++        Ok(held)
++    }
++
++    /// After verified step-up and successor preparation, compose any required
++    /// exact physical media transition and current original-command authority.
++    /// A host that changes media must mark the sealed transition before effects;
++    /// publication/cancellation then fences that physical peer on failure.
++    async fn step_up_media(
++        &self,
++        _transition: Arc<VerifiedCredentialRefresh>,
++        _device: &Device,
++        _identity: &Identifier,
++        _blocked: &Envelope,
+         held: AuthorityLease,
+     ) -> Result<AuthorityLease, DispatchError> {
+         Ok(held)
+@@ -634,6 +649,7 @@
+                         self.lifetime.clone(),
+                         deadline,
+                     )?;
++                    let publication = refresh_context.publication();
+                     let lease = self
+                         .config
+                         .authority
+@@ -643,6 +659,7 @@
+                         refresh_context.retire_physical();
+                         return Err(error);
+                     }
++                    publication.committed();
+                     Ok(output(replies, Some(lease)))
+                 }
+                 Payload::AuthKeepalive(keepalive) => {

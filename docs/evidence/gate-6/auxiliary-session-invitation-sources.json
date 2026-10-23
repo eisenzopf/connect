@@ -1,0 +1,214 @@
+{
+  "task": "G6-046",
+  "title": "Original Session invitation sources and exact pending membership slots",
+  "status": "local-store-and-production-source-component-qualified; forwarded-exchange-open",
+  "recorded_at": "2026-10-22T18:16:25.560368+00:00",
+  "full_task_complete": false,
+  "full_goal_complete": false,
+  "acceptance_qualified": false,
+  "platform": {
+    "os": "Darwin",
+    "architecture": "arm64"
+  },
+  "schema_version": 89,
+  "source_lock": {
+    "path": "dependencies/source-lock.json",
+    "sha256": "d5447e896ce316cdde4d7ad2affb4c0bf39785fe558da35bce72368284143212"
+  },
+  "pinned_patches": 138,
+  "compiled_inputs": {
+    "path": ".local/gate-6/session-invitations/build-inputs-v1.json",
+    "sha256": "9a335dba86e449fe426bb9fb90f18129d7d7a20f32c9c7767623d7cc43cce78a",
+    "count": 1256
+  },
+  "compiled_inputs_unchanged_after_tests": true,
+  "source_inputs": [
+    {
+      "path": "crates/connect-store/migrations/089_session_invitation_sources.sql",
+      "sha256": "e7240e0bb622a23dfb1c044da6242d64e88761a8b7aea33cbbd525f0d5e7381d"
+    },
+    {
+      "path": "crates/connect-store/src/lib.rs",
+      "sha256": "beb640968b84e5764c116bd410ed7e2b5485ae1b53bed5263de27aa614d87fd9"
+    },
+    {
+      "path": "crates/connect-store/src/session_invitations.rs",
+      "sha256": "e144834d7912a475de5f20fbcfbcd90abbd1e73ebf805732a931bb9644998496"
+    },
+    {
+      "path": "crates/connect-store/src/session_control.rs",
+      "sha256": "7e63160bdfe22b4b2924515f2e9cd57fd512c838965469305a9d2960fdde1616"
+    },
+    {
+      "path": "crates/connect-store/src/session_control_tests.rs",
+      "sha256": "59d0dab7368fa7320f60f2de0cf53b78babc27e2c4d5a17c1b1cbc27a4601b98"
+    },
+    {
+      "path": "crates/connect-server/tests/support/canonical_auxiliary_clauses.rs",
+      "sha256": "e01e2943880e7c6959a757a53616bf8a2b5ae721ed2904dedcb8e1c15d131528"
+    },
+    {
+      "path": "docs/developer/session-invitation-sources.md",
+      "sha256": "e0374805b994c3ea105dab5e5749ce49667fe5983f9ca20c3f87549f5842327c"
+    },
+    {
+      "path": "docs/developer/general-sessions.md",
+      "sha256": "05756de6f2f2b031cb143bdff9a1934d43506fc430fefefc99d54c5b9ae49f26"
+    },
+    {
+      "path": "scripts/generate-canonical-http-openapi.py",
+      "sha256": "7767f87d78b347df9cb02b8b77b670637948bdb655991b1eb100db27e01597d9"
+    },
+    {
+      "path": "contracts/openapi-canonical-http.json",
+      "sha256": "968625a783d75f18600e330e3f388b8d307a5b81c04c59f5392dc0209a398d4f"
+    }
+  ],
+  "binaries": [
+    {
+      "path": "target/debug/deps/connect_store-2bc54b64bb656bb4",
+      "sha256": "3ebfa92f27666dbe54a1ba437947048a0dad85d28b2c23f7542d1256e3bc66f1"
+    },
+    {
+      "path": "target/debug/deps/gate6_canonical_runtime-f39476f2f6c7ff5d",
+      "sha256": "6984c54bced6eaf1e2d6868a95834afe3e0944dc4d474ee3480b6b931360c704"
+    },
+    {
+      "path": "target/debug/deps/gate6_auxiliary-0342ca629847fff9",
+      "sha256": "aaf94f1c2e17e45097c7d7f328e5c9d414685ae63d398a584309b377f312853f"
+    }
+  ],
+  "results": [
+    {
+      "name": "store-session-control",
+      "passed": 28,
+      "failed": 0,
+      "evidence": {
+        "path": ".local/gate-6/session-invitations/store-control-v3.log",
+        "sha256": "2e0bf32aa435b079307b2e8cb353b604bd5ccb0e712b0c104b5487a6972723ce"
+      }
+    },
+    {
+      "name": "store-events",
+      "passed": 22,
+      "failed": 0,
+      "evidence": {
+        "path": ".local/gate-6/session-invitations/store-events-v1.log",
+        "sha256": "14acf3ecb4487856818afea67332180750162746322160db4c170bcf54d3f04e"
+      }
+    },
+    {
+      "name": "production-original-sources",
+      "passed": 1,
+      "failed": 0,
+      "evidence": {
+        "path": ".local/gate-6/session-invitations/production-sources-v1.log",
+        "sha256": "9f0e45393c70e8c38d15f1ec051a13a4642fe279f1476685e63f9176bcb45032"
+      }
+    },
+    {
+      "name": "production-auxiliary-regressions",
+      "passed": 4,
+      "failed": 0,
+      "evidence": {
+        "path": ".local/gate-6/session-invitations/production-auxiliary-v1.log",
+        "sha256": "b0fac4b1ed10eeb8ba7cd47ae81321c7d28a92ce4c2bb1fd16bd36bd96c8a25f"
+      }
+    },
+    {
+      "name": "production-four-party",
+      "passed": 1,
+      "failed": 0,
+      "evidence": {
+        "path": ".local/gate-6/session-invitations/production-four-party-v1.log",
+        "sha256": "5d7754eba457949ab950de0d6349976cbcdca9c7385fa73781431a27f6ca4119"
+      }
+    },
+    {
+      "name": "production-records",
+      "passed": 1,
+      "failed": 0,
+      "evidence": {
+        "path": ".local/gate-6/session-invitations/production-records-v1.log",
+        "sha256": "b4c866d138d832f2cab67c8c8185d83f451d720f61d92a23cc8f474cb362d0f6"
+      }
+    }
+  ],
+  "checks": [
+    {
+      "name": "dependencies",
+      "exit_code": 0,
+      "evidence": {
+        "path": ".local/gate-6/session-invitations/dependencies-v2.log",
+        "sha256": "fd9d7b181e3ccba9b643af55a186cf132c60aac99c734b2ee4e4e549afe5ffc2"
+      }
+    },
+    {
+      "name": "format",
+      "exit_code": 0,
+      "evidence": {
+        "path": ".local/gate-6/session-invitations/format-final.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    {
+      "name": "http-reference",
+      "exit_code": 0,
+      "evidence": {
+        "path": ".local/gate-6/session-invitations/http-reference-final.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    {
+      "name": "event-reference",
+      "exit_code": 0,
+      "evidence": {
+        "path": ".local/gate-6/session-invitations/event-reference-final.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    {
+      "name": "diff",
+      "exit_code": 0,
+      "evidence": {
+        "path": ".local/gate-6/session-invitations/diff-final.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    {
+      "name": "progress",
+      "exit_code": 0,
+      "evidence": {
+        "path": ".local/gate-6/session-end-participant/progress-final.log",
+        "sha256": "fedbc03549729d27ac031eee0766ae72281991ae1e9494232887c3160cf754cc"
+      }
+    }
+  ],
+  "implementation": [
+    "Immutable original inviter, target membership epochs, capabilities and semantic invitation are captured atomically with the Session/journal/ordinary operation receipt; storage failure rolls back all rows.",
+    "Mutable exact Session/Participant/epoch slot selects the latest original source. Acceptance, departure/reinvitation, readmission, terminal state and changed runtime cannot lend authority to stale handles.",
+    "Descriptors hold no idle reader. Immediate fresh current-target metadata reader checks named permission, recipient ceilings, original source access and current epochs; it fences supported writers only during actual metadata IO.",
+    "Production listener exercises signed native invitation, exact logical replay, actual accept/leave and HTTP reinvitation for EdDSA and ES256. Six Store cases also exercise contention, permission/revocation, backup/reconstruction, immutable history and atomic failure/recovery."
+  ],
+  "initial_attempts": [
+    {
+      "evidence": {
+        "path": ".local/gate-6/session-invitations/store-control-v2.log",
+        "sha256": "79158d3e9ebca744e15738fa8f6be01550fa96cf5434f90206c9f536eeb8fd49"
+      },
+      "result": "Test compile failed because Store::open backup invocation omitted Limits; corrected. Final28 Store Session tests pass."
+    }
+  ],
+  "limits": [
+    "This is a durable source component, not forwarded invitation delivery or correlated decision processing. Those exchanges remain open; no new full clause qualification.",
+    "Original61 assignments remain13 qualified /48 remaining; task/goal and acceptance remain incomplete.",
+    "Task-scoped sources are excluded pending G6-055 current original task/grant policy.",
+    "No Linux, named remote/browser/provider or publication qualification. Earlier unresolved provider/consultation/retention cases are not promoted."
+  ],
+  "reproduce": [
+    "bash scripts/prepare-dependencies.sh",
+    "CARGO_INCREMENTAL=0 cargo test -p connect-store --lib --locked --offline -j1 session_control:: -- --test-threads=1",
+    "CARGO_INCREMENTAL=0 cargo test -p connect-store --lib --locked --offline -j1 events:: -- --test-threads=1",
+    "CARGO_INCREMENTAL=0 cargo test -p connect-server --test gate6_canonical_runtime --locked --offline -j1 auxiliary_clauses:: -- --test-threads=1"
+  ]
+}

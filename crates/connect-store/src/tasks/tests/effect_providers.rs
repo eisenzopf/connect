@@ -16,6 +16,7 @@ pub(super) fn fixture() -> (Fixture, IssuedCredential, TaskRecord) {
                 target: "12345678-1234-1234-1234-123456789012".into(),
                 source: None,
                 enabled: true,
+                incoming_to: connect_protocol::messages::MessageAudience::all(),
             },
         )
         .unwrap();
@@ -32,7 +33,9 @@ fn send_only_task_cannot_inherit_owner_context_or_route_chat_history() {
             &connect_protocol::Operation::Send {
                 request_id: "ordinary".into(),
                 conversation_id: f.cid.clone(),
-                body: "Prior private conversation fact".into(),
+                message: connect_protocol::messages::MessageDraft::text_all(
+                    "Prior private conversation fact",
+                ),
             },
         )
         .unwrap();
@@ -69,6 +72,20 @@ fn completed_provider_reply_wakes_only_its_bound_task() {
         .unwrap();
     let first = f.store.claim_provider_job().unwrap().unwrap();
     let second = f.store.claim_provider_job().unwrap().unwrap();
+    let role = f.store.acquire_provider_worker().unwrap();
+    for job in [&first, &second] {
+        let permit = f
+            .store
+            .admit_provider_dispatch(
+                &role,
+                job,
+                &crate::AuthorityWait::new(std::time::Duration::from_secs(1)),
+            )
+            .unwrap();
+        assert!(job.previous_chat_id.is_none());
+        permit.admit_effect().unwrap();
+        drop(permit);
+    }
     f.store
         .finish_provider_job(
             &second,
@@ -143,7 +160,17 @@ fn interrupted_provider_job_remains_uncertain_and_is_never_requeued_on_replay() 
     let (f, _, task) = fixture();
     let a = send(&f, &task, "send", "Uncertain", false);
     f.run(&a).unwrap();
-    f.store.claim_provider_job().unwrap().unwrap();
+    let job = f.store.claim_provider_job().unwrap().unwrap();
+    let role = f.store.acquire_provider_worker().unwrap();
+    let permit = f
+        .store
+        .admit_provider_dispatch(
+            &role,
+            &job,
+            &crate::AuthorityWait::new(std::time::Duration::from_secs(1)),
+        )
+        .unwrap();
+    drop(permit);
     assert_eq!(f.store.recover_provider_jobs().unwrap(), 1);
     let first = f.run(&a).unwrap();
     assert!(matches!(

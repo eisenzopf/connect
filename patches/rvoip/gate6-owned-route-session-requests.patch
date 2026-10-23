@@ -1,0 +1,720 @@
+--- a/crates/uctp/rvoip-uctp/src/v2/auth_dispatch.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/auth_dispatch.rs
+@@ -919,7 +919,7 @@
+ pub(super) struct ReplyExpectation {
+     cid: String,
+     sid: String,
+-    connid: String,
++    connid: Option<String>,
+     operation: Option<String>,
+     family: &'static str,
+     pub(super) required_scope: Option<&'static str>,
+@@ -930,6 +930,7 @@
+             return Err(DispatchError::Unsupported);
+         }
+         let family = match request.kind() {
++            "session.invite" => "session.decision",
+             "connection.offer" => "connection.answer",
+             "connection.update" | "stream.subscribe" | "stream.unsubscribe" => "ack",
+             "operation.get" | "operation.cancel" | "operation.reconcile" => "operation.updated",
+@@ -944,7 +945,14 @@
+         Ok(Self {
+             cid: required(Scope::Conversation)?,
+             sid: required(Scope::Session)?,
+-            connid: required(Scope::Connection)?,
++            connid: if family == "session.decision" {
++                if request.scope(Scope::Connection).is_some() {
++                    return Err(DispatchError::ReplyMismatch);
++                }
++                None
++            } else {
++                Some(required(Scope::Connection)?)
++            },
+             operation: request.scope(Scope::Operation).map(str::to_owned),
+             family,
+             required_scope: super::scope_policy::required_scope(request.payload()),
+@@ -953,9 +961,14 @@
+     pub(super) fn matches(&self, reply: &Envelope) -> bool {
+         reply.scope(Scope::Conversation) == Some(self.cid.as_str())
+             && reply.scope(Scope::Session) == Some(self.sid.as_str())
+-            && reply.scope(Scope::Connection) == Some(self.connid.as_str())
++            && reply.scope(Scope::Connection) == self.connid.as_deref()
+             && reply.scope(Scope::Operation) == self.operation.as_deref()
+-            && (reply.kind() == self.family || reply.kind() == "error")
++            && (reply.kind() == "error"
++                || if self.family == "session.decision" {
++                    matches!(reply.kind(), "session.accept" | "session.reject")
++                } else {
++                    reply.kind() == self.family
++                })
+     }
+ }
+ 
+--- a/crates/uctp/rvoip-uctp/src/v2/auth_peer/exchange.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/auth_peer/exchange.rs
+@@ -992,7 +992,7 @@
+                view=snapshot(&owner);let closed=matches!(owner.state,State::Closed);state=Some(owner);
+           if let Some(request)=outbound_request {
+            match result {
+-            Ok(output)=>{if request.reply.is_closed(){continue;}let mut send=job(output,deadline,&physical,view.authority.clone(),Some(slot));send.started=Some(request.started);let(reply,ready)=oneshot::channel();send.completion=Some(reply);write_tx.try_send(send).map_err(|_|DispatchError::Capacity)?;outbound_completions.push(async move{let result=ready.await.unwrap_or(Err(DispatchError::SubmissionUnknown)).map(Outbound::submitted);let _=request.reply.send(result);}.boxed());}
++            Ok(output)=>{if request.reply.is_closed(){continue;}let mut send=job(output,deadline,&physical,view.authority.clone(),Some(slot));send.started=Some(request.started.clone());let(reply,ready)=oneshot::channel();send.completion=Some(reply);write_tx.try_send(send).map_err(|_|DispatchError::Capacity)?;outbound_completions.push(async move{let result=ready.await.unwrap_or(Err(DispatchError::SubmissionUnknown)).and_then(|id|request.submitted(id));let _=request.reply.send(result);}.boxed());}
+             Err(error)=>{let _=request.reply.send(Err(error));}
+            }
+            continue;
+--- a/crates/uctp/rvoip-uctp/src/v2/auth_peer.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/auth_peer.rs
+@@ -797,6 +797,8 @@
+                     generation,
+                     self.lifetime.clone(),
+                     expiry,
++                    held,
++                    &authority_lifetime,
+                 )
+             })
+             .transpose()?;
+@@ -856,7 +858,7 @@
+             _=self.lifetime.cancelled()=>return Err(DispatchError::Closed),
+             _=authority.cancelled()=>return Err(DispatchError::Authority),
+             _=tokio::time::sleep_until(deadline)=>return Err(DispatchError::Closed),
+-            result=policy.delivery(&binding.credential,&binding.device,&binding.identity,&request.envelope)=>result?,
++            result=policy.delivery(&binding.credential,&binding.device,&binding.identity,route.origin(),&request.envelope)=>result?,
+         };
+         if !request.current(route) {
+             return Err(DispatchError::Closed);
+@@ -864,7 +866,17 @@
+         let mut value = request.envelope.original().clone();
+         value["id"] = json!(fresh_id());
+         value["ts"] = json!(chrono::Utc::now());
+-        Ok(output(vec![self.signed(value)?], Some(lease)))
++        let envelope = self.signed(value)?;
++        if request.expects_reply {
++            let ticket = binding.dispatch.register_reply(&envelope, deadline)?;
++            request.register(
++                ticket,
++                binding.credential.clone(),
++                binding.device.clone(),
++                binding.identity.clone(),
++            )?;
++        }
++        Ok(output(vec![envelope], Some(lease)))
+     }
+ 
+     async fn verify(
+--- a/crates/uctp/rvoip-uctp/src/v2/reachability.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/reachability.rs
+@@ -2,7 +2,7 @@
+ //! receipts. Addresses come from trusted adapter configuration, never hello.
+ 
+ use super::{
+-    auth_dispatch::{AuthorityLease, DispatchError, MAX_DISPATCH_WAIT},
++    auth_dispatch::{AuthorityLease, DispatchError, ReplyTicket, MAX_DISPATCH_WAIT},
+     payloads::{Device, ReachabilityHint},
+     Envelope, Identifier,
+ };
+@@ -92,19 +92,45 @@
+ /// the trusted submitting application independently authorizes its source.
+ #[async_trait]
+ pub trait RouteAuthority: Send + Sync {
+-    fn lifetime(
++    fn origin(
+         &self,
+         credential: &ValidatedBearer,
+         device: &Device,
+         identity: &Identifier,
+-    ) -> Result<CancellationToken, DispatchError>;
++        held: &AuthorityLease,
++    ) -> Result<RouteOrigin, DispatchError>;
+     async fn delivery(
+         &self,
+         credential: &ValidatedBearer,
+         device: &Device,
+         identity: &Identifier,
++        origin: &RouteOrigin,
+         envelope: &Envelope,
+     ) -> Result<AuthorityLease, DispatchError>;
++}
++
++/// Installed-policy metadata captured under the exact authentication lease.
++/// It must contain no authority reader. Fresh delivery interprets it under the
++/// same policy and reacquires current credential/Device/key and resource rights.
++pub struct RouteOrigin {
++    signal: CancellationToken,
++    metadata: Arc<dyn std::any::Any + Send + Sync>,
++}
++impl RouteOrigin {
++    pub fn new<T: std::any::Any + Send + Sync>(signal: CancellationToken, metadata: T) -> Self {
++        Self {
++            signal,
++            metadata: Arc::new(metadata),
++        }
++    }
++    pub fn metadata<T: std::any::Any + Send + Sync>(&self) -> Option<&T> {
++        self.metadata.downcast_ref()
++    }
++}
++impl fmt::Debug for RouteOrigin {
++    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
++        f.write_str("RouteOrigin(redacted)")
++    }
+ }
+ 
+ /// Metadata hints in this registry grant no Conversation or Session access.
+@@ -174,6 +200,8 @@
+     credential_expiry: DateTime<Utc>,
+     credential_deadline: Instant,
+     authority: CancellationToken,
++    origin: RouteOrigin,
++    binding_lifetime: super::auth_peer::AuthorityLifetime,
+     physical: CancellationToken,
+     expires: Mutex<LeaseTime>,
+     sender: mpsc::Sender<Outbound>,
+@@ -182,6 +210,7 @@
+     fn live(&self) -> bool {
+         let expires = *self.expires.lock();
+         !self.authority.is_cancelled()
++            && self.binding_lifetime.reason().is_none()
+             && !self.physical.is_cancelled()
+             && Instant::now() < expires.mono
+             && Utc::now() < expires.utc
+@@ -234,6 +263,27 @@
+         &self,
+         envelope: Envelope,
+         requested: Instant,
++    ) -> Result<LocalSubmission, DispatchError> {
++        self.submit_inner(envelope, requested, false).await
++    }
++    /// Own one exact scoped exchange on this authenticated route. The waiter is
++    /// installed with the final signed wire ID before actual writer custody.
++    /// The returned observation grants no later resource or mutation authority.
++    pub async fn request(
++        &self,
++        envelope: Envelope,
++        requested: Instant,
++    ) -> Result<VerifiedRouteReply, DispatchError> {
++        self.submit_inner(envelope, requested, true)
++            .await?
++            .wait_reply()
++            .await
++    }
++    async fn submit_inner(
++        &self,
++        envelope: Envelope,
++        requested: Instant,
++        expects_reply: bool,
+     ) -> Result<LocalSubmission, DispatchError> {
+         if !self.current() {
+             return Err(DispatchError::Closed);
+@@ -254,6 +304,8 @@
+                 deadline,
+                 reply,
+                 started: started.clone(),
++                expects_reply,
++                waiter: Mutex::new(None),
+             })
+             .map_err(|error| match error {
+                 mpsc::error::TrySendError::Full(_) => DispatchError::Capacity,
+@@ -280,11 +332,80 @@
+ 
+ pub struct LocalSubmission {
+     envelope_id: Identifier,
++    waiter: Option<RouteReplyWaiter>,
+ }
+ impl LocalSubmission {
+     pub fn envelope_id(&self) -> &Identifier {
+         &self.envelope_id
+     }
++    async fn wait_reply(mut self) -> Result<VerifiedRouteReply, DispatchError> {
++        let waiter = self.waiter.take().ok_or(DispatchError::Unsupported)?;
++        let reply = tokio::select! {
++            biased;
++            _ = waiter.handle.state.authority.cancelled() => return Err(DispatchError::Authority),
++            _ = waiter.handle.state.binding_lifetime.retired() => return Err(DispatchError::Authority),
++            _ = waiter.handle.state.physical.cancelled() => return Err(DispatchError::Closed),
++            result = tokio::time::timeout_at(waiter.deadline, waiter.ticket.wait()) => result.map_err(|_| DispatchError::Closed)??,
++        };
++        let observed = VerifiedRouteReply {
++            handle: waiter.handle,
++            credential: waiter.credential,
++            device: waiter.device,
++            identity: waiter.identity,
++            deadline: waiter.deadline,
++            request_id: self.envelope_id,
++            envelope: reply,
++        };
++        if !observed.current() {
++            return Err(DispatchError::Closed);
++        }
++        Ok(observed)
++    }
++}
++/// Signature/current-dispatch verified observation from one physical route
++/// incarnation. No authority reader is retained while awaiting or after return.
++/// A consumer must reacquire current source/resource rights before mutation.
++pub struct VerifiedRouteReply {
++    handle: RouteHandle,
++    credential: Arc<ValidatedBearer>,
++    device: Device,
++    identity: Identifier,
++    deadline: Instant,
++    request_id: Identifier,
++    envelope: Envelope,
++}
++impl VerifiedRouteReply {
++    pub fn current(&self) -> bool {
++        self.handle.current() && Instant::now() < self.deadline
++    }
++    pub fn credential(&self) -> &ValidatedBearer {
++        &self.credential
++    }
++    pub fn device(&self) -> &Device {
++        &self.device
++    }
++    pub fn identity(&self) -> &Identifier {
++        &self.identity
++    }
++    pub fn request_id(&self) -> &Identifier {
++        &self.request_id
++    }
++    pub fn envelope(&self) -> &Envelope {
++        &self.envelope
++    }
++}
++impl fmt::Debug for VerifiedRouteReply {
++    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
++        f.write_str("VerifiedRouteReply(redacted)")
++    }
++}
++pub(super) struct RouteReplyWaiter {
++    pub(super) handle: RouteHandle,
++    pub(super) credential: Arc<ValidatedBearer>,
++    pub(super) device: Device,
++    pub(super) identity: Identifier,
++    pub(super) deadline: Instant,
++    pub(super) ticket: ReplyTicket,
+ }
+ impl fmt::Debug for LocalSubmission {
+     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+@@ -298,6 +419,8 @@
+     pub(super) deadline: Instant,
+     pub(super) reply: oneshot::Sender<Result<LocalSubmission, DispatchError>>,
+     pub(super) started: Arc<AtomicBool>,
++    pub(super) expects_reply: bool,
++    pub(super) waiter: Mutex<Option<RouteReplyWaiter>>,
+ }
+ impl Outbound {
+     pub(super) fn current(&self, registration: &Registration) -> bool {
+@@ -306,8 +429,36 @@
+             && !self.reply.is_closed()
+             && self.deadline > Instant::now()
+     }
+-    pub(super) fn submitted(id: Identifier) -> LocalSubmission {
+-        LocalSubmission { envelope_id: id }
++    pub(super) fn submitted(&self, id: Identifier) -> Result<LocalSubmission, DispatchError> {
++        let waiter = self.waiter.lock().take();
++        if self.expects_reply && waiter.is_none() {
++            return Err(DispatchError::Authority);
++        }
++        Ok(LocalSubmission {
++            envelope_id: id,
++            waiter,
++        })
++    }
++    pub(super) fn register(
++        &self,
++        ticket: ReplyTicket,
++        credential: Arc<ValidatedBearer>,
++        device: Device,
++        identity: Identifier,
++    ) -> Result<(), DispatchError> {
++        let mut slot = self.waiter.lock();
++        if slot.is_some() || !self.expects_reply {
++            return Err(DispatchError::Authority);
++        }
++        *slot = Some(RouteReplyWaiter {
++            handle: self.handle.clone(),
++            credential,
++            device,
++            identity,
++            deadline: self.deadline,
++            ticket,
++        });
++        Ok(())
+     }
+ }
+ 
+@@ -344,8 +495,11 @@
+         generation: u64,
+         physical: CancellationToken,
+         credential_deadline: Instant,
++        held: &AuthorityLease,
++        binding_lifetime: &super::auth_peer::AuthorityLifetime,
+     ) -> Result<Registration, DispatchError> {
+-        let authority = self.policy.lifetime(credential, device, identity)?;
++        let origin = self.policy.origin(credential, device, identity, held)?;
++        let authority = origin.signal.clone();
+         let credential_expiry = super::auth_peer::effective_expiry(&credential.principal)?;
+         let state = Arc::new(RouteState {
+             registry: Arc::downgrade(&self.registry),
+@@ -358,6 +512,8 @@
+             credential_expiry,
+             credential_deadline,
+             authority,
++            origin,
++            binding_lifetime: binding_lifetime.clone(),
+             physical,
+             expires: Mutex::new(lease_time(
+                 self.route.lease,
+@@ -419,6 +575,9 @@
+     pub(super) fn hint(&self) -> ReachabilityHint {
+         self.state.hint(*self.state.expires.lock())
+     }
++    pub(super) fn origin(&self) -> &RouteOrigin {
++        &self.state.origin
++    }
+     pub(super) fn authority(&self) -> CancellationToken {
+         self.state.authority.clone()
+     }
+--- a/crates/uctp/rvoip-uctp/tests/v2_auth_dispatch.rs
++++ b/crates/uctp/rvoip-uctp/tests/v2_auth_dispatch.rs
+@@ -795,3 +795,120 @@
+     drop(dispatch);
+     assert!(policy.revoked.try_write().is_ok());
+ }
++
++fn session_invite() -> Envelope {
++    let mut request = envelope(
++        "session.invite",
++        json!({
++            "from":"initiator", "to":["invitee"], "medium":"voice",
++            "intent":"synchronous-engagement", "capabilities_offer":{"audio":["g.711-mu"]}
++        }),
++    );
++    request.as_object_mut().unwrap().remove("connid");
++    Envelope::from_value(request).unwrap()
++}
++fn session_decision(request: &Envelope, kind: &str) -> Value {
++    let payload = if kind == "session.accept" {
++        json!({"by":"invitee","capabilities_answer":{"audio":["g.711-mu"]}})
++    } else {
++        json!({"by":"invitee","reason_code":486,"reason":"busy"})
++    };
++    let mut value = envelope(kind, payload);
++    value.as_object_mut().unwrap().remove("connid");
++    value["in_reply_to"] = json!(request.id());
++    value
++}
++#[tokio::test]
++async fn session_decisions_require_exact_original_waiter_without_connection_or_command_execution() {
++    for kind in ["session.accept", "session.reject"] {
++        let kp = keypair();
++        let peer = peer(&kp, Arc::new(Policy::default()));
++        let handler = Handler::default();
++        let request = session_invite();
++        let ticket = peer.register_reply(&request, deadline()).unwrap();
++        for field in [
++            "cid",
++            "sid",
++            "operation_id",
++            "in_reply_to",
++            "connid",
++            "family",
++        ] {
++            let mut invalid = session_decision(&request, kind);
++            if field == "family" {
++                invalid["type"] = json!("session.cancel");
++                invalid["payload"] =
++                    json!({"by":"invitee","reason_code":487,"reason":"request-cancelled"});
++            } else {
++                invalid[field] = json!("wrong");
++            }
++            assert!(
++                peer.dispatch(&signed(invalid, &kp), &handler, deadline())
++                    .await
++                    .is_err(),
++                "{kind}/{field}"
++            );
++            assert_eq!(peer.pending_count(), 1);
++            assert_eq!(handler.calls.load(Ordering::SeqCst), 0);
++        }
++        let valid = session_decision(&request, kind);
++        assert!(matches!(
++            peer.dispatch(&signed(valid, &kp), &handler, deadline())
++                .await
++                .unwrap(),
++            DispatchOutcome::ReplyDelivered
++        ));
++        assert_eq!(ticket.wait().await.unwrap().kind(), kind);
++        assert_eq!(peer.pending_count(), 0);
++        assert_eq!(handler.calls.load(Ordering::SeqCst), 0);
++        let unsolicited = session_decision(&request, kind);
++        assert_eq!(
++            peer.dispatch(&signed(unsolicited, &kp), &handler, deadline())
++                .await
++                .unwrap_err(),
++            DispatchError::ReplyMismatch
++        );
++        assert_eq!(handler.calls.load(Ordering::SeqCst), 0);
++    }
++}
++#[tokio::test]
++async fn session_decision_waiter_does_not_supply_signature_or_current_authority() {
++    let kp = keypair();
++    let policy = Arc::new(Policy::default());
++    let peer = peer(&kp, policy.clone());
++    let handler = Handler::default();
++    let request = session_invite();
++    let ticket = peer.register_reply(&request, deadline()).unwrap();
++    let reply = session_decision(&request, "session.accept");
++    assert_eq!(
++        peer.dispatch(&serde_json::to_vec(&reply).unwrap(), &handler, deadline())
++            .await
++            .unwrap_err(),
++        DispatchError::SignatureRequired
++    );
++    *policy.revoked.write().await = true;
++    assert_eq!(
++        peer.dispatch(&signed(reply.clone(), &kp), &handler, deadline())
++            .await
++            .unwrap_err(),
++        DispatchError::Authority
++    );
++    assert_eq!(peer.pending_count(), 1);
++    *policy.revoked.write().await = false;
++    assert!(matches!(
++        peer.dispatch(&signed(reply, &kp), &handler, deadline())
++            .await
++            .unwrap(),
++        DispatchOutcome::ReplyDelivered
++    ));
++    assert!(ticket.wait().await.is_ok());
++    assert_eq!(handler.calls.load(Ordering::SeqCst), 0);
++    let mut with_connection = request.original().clone();
++    with_connection["connid"] = json!("connection");
++    if let Ok(invalid) = Envelope::from_value(with_connection) {
++        assert!(matches!(
++            peer.register_reply(&invalid, deadline()),
++            Err(DispatchError::ReplyMismatch)
++        ));
++    }
++}
+--- a/crates/uctp/rvoip-uctp/tests/v2_canonical_transports.rs
++++ b/crates/uctp/rvoip-uctp/tests/v2_canonical_transports.rs
+@@ -803,12 +803,13 @@
+ }
+ #[async_trait]
+ impl RouteAuthority for RoutePolicy {
+-    fn lifetime(
++    fn origin(
+         &self,
+         c: &ValidatedBearer,
+         d: &Device,
+         _: &Identifier,
+-    ) -> Result<CancellationToken, DispatchError> {
++        _held: &AuthorityLease,
++    ) -> Result<rvoip_uctp::v2::reachability::RouteOrigin, DispatchError> {
+         if self.deny_lifetime.load(Ordering::SeqCst) {
+             return Err(DispatchError::Authority);
+         }
+@@ -816,13 +817,17 @@
+             c.token_id.clone().ok_or(DispatchError::Authority)?,
+             d.id.as_str().to_owned(),
+         );
+-        Ok(self.tokens.lock().unwrap().entry(key).or_default().clone())
++        Ok(rvoip_uctp::v2::reachability::RouteOrigin::new(
++            self.tokens.lock().unwrap().entry(key).or_default().clone(),
++            (),
++        ))
+     }
+     async fn delivery(
+         &self,
+         c: &ValidatedBearer,
+         d: &Device,
+         i: &Identifier,
++        _origin: &rvoip_uctp::v2::reachability::RouteOrigin,
+         e: &Envelope,
+     ) -> Result<AuthorityLease, DispatchError> {
+         self.deliveries.fetch_add(1, Ordering::SeqCst);
+--- a/crates/uctp/rvoip-uctp/tests/v2_reachability.rs
++++ b/crates/uctp/rvoip-uctp/tests/v2_reachability.rs
+@@ -530,12 +530,13 @@
+ }
+ #[async_trait]
+ impl RouteAuthority for RoutePolicy {
+-    fn lifetime(
++    fn origin(
+         &self,
+         c: &ValidatedBearer,
+         d: &Device,
+         _: &Identifier,
+-    ) -> Result<CancellationToken, DispatchError> {
++        _held: &AuthorityLease,
++    ) -> Result<rvoip_uctp::v2::reachability::RouteOrigin, DispatchError> {
+         if self.deny_lifetime.load(Ordering::SeqCst) {
+             return Err(DispatchError::Authority);
+         }
+@@ -543,13 +544,17 @@
+             c.token_id.clone().ok_or(DispatchError::Authority)?,
+             d.id.as_str().to_owned(),
+         );
+-        Ok(self.tokens.lock().unwrap().entry(key).or_default().clone())
++        Ok(rvoip_uctp::v2::reachability::RouteOrigin::new(
++            self.tokens.lock().unwrap().entry(key).or_default().clone(),
++            (),
++        ))
+     }
+     async fn delivery(
+         &self,
+         c: &ValidatedBearer,
+         d: &Device,
+         i: &Identifier,
++        _origin: &rvoip_uctp::v2::reachability::RouteOrigin,
+         e: &Envelope,
+     ) -> Result<AuthorityLease, DispatchError> {
+         self.deliveries.fetch_add(1, Ordering::SeqCst);
+@@ -1114,3 +1119,146 @@
+     let session = f.authenticate(&mut bare, "old").await;
+     assert_eq!(session.original()["payload"]["reachability"], json!([]));
+ }
++
++fn invitation() -> Envelope {
++    let mut value = envelope(
++        "session.invite",
++        json!({"from":"initiator","to":["invitee"],"medium":"voice","intent":"synchronous-engagement","capabilities_offer":{"audio":["g.711-mu"]}}),
++    );
++    value["cid"] = json!("conversation");
++    value["sid"] = json!("session");
++    value["operation_id"] = json!("original-invitation");
++    Envelope::from_value(value).unwrap()
++}
++fn invitation_reply(request: &Envelope, kind: &str) -> Value {
++    let mut value = envelope(
++        kind,
++        if kind == "session.accept" {
++            json!({"by":"invitee","capabilities_answer":{"audio":["g.711-mu"]}})
++        } else {
++            json!({"by":"invitee","reason_code":486,"reason":"busy"})
++        },
++    );
++    value["cid"] = json!("conversation");
++    value["sid"] = json!("session");
++    value["operation_id"] = json!("original-invitation");
++    value["in_reply_to"] = json!(request.id());
++    value
++}
++#[tokio::test]
++async fn actual_tls_quic_invitation_request_binds_final_wire_id_and_releases_readers_while_waiting()
++{
++    for kind in ["session.accept", "session.reject"] {
++        let f = Fixture::new();
++        let registry = ReachabilityRegistry::new(8).unwrap();
++        let policy = RoutePolicy::new(f.policy.clone());
++        let (_server, _client, host, remote) = quic_pair().await;
++        let host_lifetime = host.clone();
++        let peer = CanonicalPeer::with_reachability(
++            f.config.clone(),
++            CancellationToken::new(),
++            registry.clone(),
++            route(&_server.local_addr().unwrap().to_string(), 5),
++            policy,
++        )
++        .unwrap();
++        let handler = Arc::new(Tracking::default());
++        let server_handler = handler.clone();
++        let server = tokio::spawn(async move {
++            let (tx, rx) = host.accept_bi().await.unwrap();
++            peer.run(rx, tx, server_handler.as_ref()).await
++        });
++        let (tx, rx) = remote.open_bi().await.unwrap();
++        let mut writer = FramedWrite::new(tx, rvoip_uctp::substrate::length_prefixed_codec());
++        let mut reader = FramedRead::new(rx, rvoip_uctp::substrate::length_prefixed_codec());
++        writer
++            .send(Bytes::from(serde_json::to_vec(&hello()).unwrap()))
++            .await
++            .unwrap();
++        let challenge = Envelope::parse(&reader.next().await.unwrap().unwrap()).unwrap();
++        writer
++            .send(Bytes::from(f.sign(response(&challenge, "old"))))
++            .await
++            .unwrap();
++        let session = Envelope::parse(&reader.next().await.unwrap().unwrap()).unwrap();
++        assert_eq!(session.kind(), "auth.session");
++        let handle = current(&registry).remove(0);
++        let original = invitation();
++        let template_id = original.id().to_owned();
++        let request = tokio::spawn(async move { handle.request(original, deadline()).await });
++        let received = Envelope::parse(&reader.next().await.unwrap().unwrap()).unwrap();
++        f.verify_server(&received).await;
++        assert_eq!(received.kind(), "session.invite");
++        assert_ne!(received.id(), template_id);
++        assert!(received.scope(Scope::Connection).is_none());
++        tokio::time::sleep(Duration::from_millis(10)).await;
++        // The actual metadata write has finished; an arbitrary human/answer
++        // delay must not retain the old current-authority read lease.
++        assert!(f.policy.revoked.try_write().is_ok());
++        writer
++            .send(Bytes::from(f.sign(invitation_reply(&received, kind))))
++            .await
++            .unwrap();
++        let observed = request.await.unwrap().unwrap();
++        assert!(observed.current());
++        assert_eq!(observed.request_id().as_str(), received.id());
++        assert_eq!(observed.envelope().kind(), kind);
++        assert_eq!(observed.identity().as_str(), "identity-alice");
++        assert_eq!(observed.device().id.as_str(), "device-alice");
++        assert_eq!(observed.credential().token_id.as_deref(), Some("old"));
++        assert_eq!(handler.calls.load(Ordering::SeqCst), 0);
++        writer.close().await.unwrap();
++        assert!(server.await.unwrap().is_ok());
++        assert!(!observed.current());
++        drop(host_lifetime);
++    }
++}
++#[tokio::test]
++async fn invitation_request_deadline_and_credential_rotation_cannot_adopt_an_old_waiter() {
++    for rotate in [false, true] {
++        let f = Fixture::new();
++        let registry = ReachabilityRegistry::new(8).unwrap();
++        let policy = RoutePolicy::new(f.policy.clone());
++        let mut peer = routed_peer(&f, registry.clone(), policy, 5);
++        f.authenticate(&mut peer, "old").await;
++        let handle = current(&registry).remove(0);
++        let (a, b) = tokio::io::duplex(8192);
++        let (rd, wr) = tokio::io::split(a);
++        let (crd, cwr) = tokio::io::split(b);
++        let server = tokio::spawn(async move { peer.run(rd, wr, &Handler::default()).await });
++        let mut reader = FramedRead::new(crd, rvoip_uctp::substrate::length_prefixed_codec());
++        let mut writer = FramedWrite::new(cwr, rvoip_uctp::substrate::length_prefixed_codec());
++        let original = invitation();
++        let request = tokio::spawn(async move {
++            handle
++                .request(
++                    original,
++                    Instant::now() + Duration::from_millis(if rotate { 1000 } else { 80 }),
++                )
++                .await
++        });
++        let received = Envelope::parse(&reader.next().await.unwrap().unwrap()).unwrap();
++        if rotate {
++            writer
++                .send(Bytes::from(f.sign(envelope(
++                    "auth.refresh",
++                    json!({"method":"bearer","credential":"new"}),
++                ))))
++                .await
++                .unwrap();
++            let session = Envelope::parse(&reader.next().await.unwrap().unwrap()).unwrap();
++            assert_eq!(session.kind(), "auth.session");
++        }
++        assert!(matches!(request.await.unwrap(), Err(DispatchError::Closed)));
++        writer
++            .send(Bytes::from(
++                f.sign(invitation_reply(&received, "session.accept")),
++            ))
++            .await
++            .unwrap();
++        let refused = Envelope::parse(&reader.next().await.unwrap().unwrap()).unwrap();
++        assert_eq!(refused.kind(), "error");
++        writer.close().await.unwrap();
++        assert!(server.await.unwrap().is_ok());
++    }
++}

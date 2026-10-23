@@ -1,0 +1,350 @@
+{
+  "task": "G6-046",
+  "title": "Immediate native codec replacement lifecycle publication",
+  "recorded_at": "2026-10-22T21:11:03.495907+00:00",
+  "status": "u6-req-0111-qualified-local-native",
+  "full_task_complete": false,
+  "full_goal_complete": false,
+  "acceptance_qualified": false,
+  "schema_version": 91,
+  "pinned_patches": 143,
+  "platform": {
+    "os": "Darwin",
+    "architecture": "arm64"
+  },
+  "source_lock": {
+    "path": "dependencies/source-lock.json",
+    "sha256": "174e086af4d1cd243361bbd28866090d8ae3b795cdc627571f6baade2d00b785"
+  },
+  "compiled_inputs": {
+    "path": ".local/gate-6/codec-lifecycle-pair/build-inputs-final.json",
+    "sha256": "f25d71037ecfed2ad80de0be5dcd9ca7e5075f08a28221ff27e95e717e0522f3"
+  },
+  "prepared_upstream": {
+    "path": ".local/gate-6/codec-lifecycle-pair/upstream-inputs-final.json",
+    "sha256": "615b322053ef8fbb4c6b1e9efb7fbed7d2a270c17376cebea7da1ce55218e474"
+  },
+  "inputs_unchanged_after_tests": true,
+  "source_inputs": [
+    {
+      "path": "patches/rvoip/gate6-codec-lifecycle-pair.patch",
+      "sha256": "19c1bc68c6ef44ad02a03a205815189f541b58c7370f9300c3fa8f1627aebcaa"
+    },
+    {
+      "path": "crates/connect-server/tests/support/canonical_native_connections/lifecycle.rs",
+      "sha256": "e23305f2b13539f2fd54ec42e8f31fc6b1f08b85b2fad9c89e0e7a43bf2ebc70"
+    },
+    {
+      "path": "contracts/native-lifecycle-profile.md",
+      "sha256": "e36c8a47556ab8cd85f4ac5eda79f6381b6f59a7dabc7839186409e369058e68"
+    },
+    {
+      "path": "docs/developer/native-lifecycle-events.md",
+      "sha256": "651e5a87361e3ec48b5529bf5a6f6a6a333a0b02f991a331310182e05f1357c8"
+    },
+    {
+      "path": "scripts/generate-canonical-http-openapi.py",
+      "sha256": "33dba2260bc0c91e737af060ac207b22c5578e6dd7f783bce364dd80ad0250c6"
+    },
+    {
+      "path": "contracts/openapi-canonical-http.json",
+      "sha256": "c8c99803f52e0700b6736051260b0e50f5c97d11374749004d0e6a3594e0ae3b"
+    },
+    {
+      "path": "scripts/validate-gate6-auxiliary-stream-events.py",
+      "sha256": "8ac7be46135a87051b9f0fb38ebb13577bdf1919711ea25289a750ea765e8752"
+    }
+  ],
+  "binaries": [
+    {
+      "path": "target/debug/deps/gate6_canonical_runtime-f39476f2f6c7ff5d",
+      "sha256": "62793ceb40001f54592d283dafafc5c8fba35a0d7f27ef50dba12dc277fcd719"
+    },
+    {
+      "path": "target/debug/deps/gate6_auxiliary-0342ca629847fff9",
+      "sha256": "236a299c0da6a7b2f32f211bf7a47af92b8ef283db7a4cecff6d2e3806b66bca"
+    },
+    {
+      "path": "target/debug/deps/rvoip_uctp-2b962aac6c4c4270",
+      "sha256": "db7a5d50e8f036002da7273a811ce02da99650fcb3b488f0e38abc110ee535f6"
+    },
+    {
+      "path": "target/debug/deps/v2_peer_admission-2ea5587e9bb34bd2",
+      "sha256": "7921c8d903a18708a69d24471abe16a5255880b493ec5df4dc49533248405f78"
+    }
+  ],
+  "qualified_cases": [
+    {
+      "case_id": "u6-req-0111",
+      "algorithms": [
+        "EdDSA",
+        "ES256"
+      ],
+      "profile": "Production local native QUIC, actual decoded PCMU-to-PCMA replacement, public signed Rust SDK, plus controlled reusable physical writer failure tests.",
+      "test": "canonical_native_connections::lifecycle::production_native_lifecycle_closes_original_codec_binding_and_opens_only_observed_replacement",
+      "assertions": [
+        "A committed codec update and old flow do not publish either replacement frame before actual fresh duplex flow on the confirmed replacement.",
+        "The observed codec-renegotiated stream.closed is immediately followed by stream.opened for the same logical StreamID and new physical handle/codec. Both envelopes share their publication timestamp; closed_at preserves the earlier actual retirement observation.",
+        "The pair owns one physical writer and source reader through both writes, with current origin/revision/credential checks at each IO poll. Stale and non-native claims perform no IO.",
+        "After partial second-frame IO, source loss, credential retirement, abort or deadline retires the physical sink before releasing the source reader and records SubmissionUnknown."
+      ]
+    }
+  ],
+  "red_green": {
+    "red": {
+      "path": ".local/gate-6/codec-lifecycle-pair/production-red.log",
+      "sha256": "9aafec8e279bc15acfe0ded4dfb1b5cd43791c2ca0f4bf450902d28b9217d416"
+    },
+    "red_implementation": "Prepared predecessor142-patch source recorded in session-caller-cancel/upstream-inputs-final.json; strengthened production test observed an early stream.closed before fresh replacement flow.",
+    "initial_build_repairs": [
+      "Test fixture tuple destructuring corrected before red execution.",
+      "The existing DTMF singleton producer now supplies a singleton Vec to the internal native lifecycle writer API."
+    ],
+    "green_build": {
+      "path": ".local/gate-6/codec-lifecycle-pair/runtime-build-v1.log",
+      "sha256": "5ee890f756ba92599c2293af3c7e5e03044d940dbcc658bc2919cc76d8f9ae63"
+    },
+    "green": {
+      "path": ".local/gate-6/codec-lifecycle-pair/production-pair-final.log",
+      "sha256": "ed7ecf6063695f3054a2d4e6e33617e3404aed546724e7a8aee0ad2384acffe5"
+    }
+  },
+  "observations": {
+    "paired_replacement_publications": 2,
+    "close_to_open_publication_ms": [
+      0.0,
+      0.0
+    ],
+    "codec_close_to_replacement_open_ms": [
+      1749.44,
+      1600.459
+    ],
+    "passed": true,
+    "stream_opened": 4,
+    "stream_closed": 2,
+    "connection_groups": 2,
+    "opened_algorithms": [
+      "EdDSA",
+      "ES256"
+    ],
+    "closed_algorithms": [
+      "ES256",
+      "EdDSA"
+    ],
+    "scope": "Production native audio only; actual duplex before ready/open, exact opened and codec-close shapes. Paired replacement checks require adjacent wire observations and a common publication timestamp while preserving the earlier close time.",
+    "evidence": {
+      "path": ".local/gate-6/codec-lifecycle-pair/native-lifecycle-events-final.jsonl",
+      "sha256": "41476a34bdc8b88927fc760f848b4e3f0fa92aae90b7de1bdced1a4882adb3cd"
+    },
+    "validation": {
+      "path": ".local/gate-6/codec-lifecycle-pair/paired-observations-final.json",
+      "sha256": "e257642fd958aff6295ddb2093bd52d49a776d5cb180a32a91abfb12ae079aaf"
+    }
+  },
+  "results": [
+    {
+      "name": "upstream-writer",
+      "passed": 9,
+      "failed": 0,
+      "evidence": {
+        "path": ".local/gate-6/codec-lifecycle-pair/upstream-writer-final.log",
+        "sha256": "2f37f60fcd1bdaf3c22f1f731ff9060006eeefcc5d8a196e7c76afb07ef455cd"
+      }
+    },
+    {
+      "name": "upstream-lifecycle",
+      "passed": 4,
+      "failed": 0,
+      "evidence": {
+        "path": ".local/gate-6/codec-lifecycle-pair/upstream-lifecycle-final.log",
+        "sha256": "372ef58be81f3c40dc09620e560d4c020aaf1e6d9ad8036ac16bdc8371be1630"
+      }
+    },
+    {
+      "name": "upstream-replacement",
+      "passed": 1,
+      "failed": 0,
+      "evidence": {
+        "path": ".local/gate-6/codec-lifecycle-pair/upstream-replacement-final.log",
+        "sha256": "8d04789e1074d25e56c3f7596efb688c4ca563216e891a969f5908daaa36fe62"
+      }
+    },
+    {
+      "name": "production-pair",
+      "passed": 1,
+      "failed": 0,
+      "evidence": {
+        "path": ".local/gate-6/codec-lifecycle-pair/production-pair-final.log",
+        "sha256": "ed7ecf6063695f3054a2d4e6e33617e3404aed546724e7a8aee0ad2384acffe5"
+      }
+    },
+    {
+      "name": "production-lifecycle",
+      "passed": 1,
+      "failed": 0,
+      "evidence": {
+        "path": ".local/gate-6/codec-lifecycle-pair/production-lifecycle-final.log",
+        "sha256": "fdedbb8122df4c6bf6de58a9fb28269bf2ee46088e78e251546bacadb2f295bb"
+      }
+    },
+    {
+      "name": "production-codec",
+      "passed": 1,
+      "failed": 0,
+      "evidence": {
+        "path": ".local/gate-6/codec-lifecycle-pair/production-codec-final.log",
+        "sha256": "a5c28e8c665260266e4e97037ca54492e6fb9e14302951ae52da0c7d47376d80"
+      }
+    },
+    {
+      "name": "production-dtmf-focused",
+      "passed": 11,
+      "failed": 0,
+      "evidence": {
+        "path": ".local/gate-6/codec-lifecycle-pair/production-dtmf-focused-final.log",
+        "sha256": "d4e12def63e8be141b290069a791e2c9779a7f03319c345bd57f2a512a3f85a9"
+      }
+    },
+    {
+      "name": "production-auxiliary",
+      "passed": 10,
+      "failed": 0,
+      "evidence": {
+        "path": ".local/gate-6/codec-lifecycle-pair/production-auxiliary-final.log",
+        "sha256": "24f3cdaa63734fcab0a390ff27aab52a74181f18edca10ad387adef18018a51e"
+      }
+    },
+    {
+      "name": "production-caller-cancellation",
+      "passed": 2,
+      "failed": 0,
+      "evidence": {
+        "path": ".local/gate-6/codec-lifecycle-pair/production-caller-cancellation-final.log",
+        "sha256": "2cba66d5c0f215716f716176969be8dc14cd303b5d91bbf28d21654d2a83727d"
+      }
+    },
+    {
+      "name": "production-records",
+      "passed": 1,
+      "failed": 0,
+      "evidence": {
+        "path": ".local/gate-6/codec-lifecycle-pair/production-records-final.log",
+        "sha256": "67fb4cc521617e1182c437f6f1c53896390ee42a69724bd900d3d8e24606c8f2"
+      }
+    }
+  ],
+  "checks": [
+    {
+      "name": "dependencies",
+      "exit_code": 0,
+      "evidence": {
+        "path": ".local/gate-6/codec-lifecycle-pair/dependencies-final.log",
+        "sha256": "fd9d7b181e3ccba9b643af55a186cf132c60aac99c734b2ee4e4e549afe5ffc2"
+      }
+    },
+    {
+      "name": "format",
+      "exit_code": 0,
+      "evidence": {
+        "path": ".local/gate-6/codec-lifecycle-pair/format-final.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    {
+      "name": "upstream-format",
+      "exit_code": 0,
+      "evidence": {
+        "path": ".local/gate-6/codec-lifecycle-pair/upstream-format-final.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    {
+      "name": "http-reference",
+      "exit_code": 0,
+      "evidence": {
+        "path": ".local/gate-6/codec-lifecycle-pair/http-reference-final.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    {
+      "name": "event-reference",
+      "exit_code": 0,
+      "evidence": {
+        "path": ".local/gate-6/codec-lifecycle-pair/event-reference-final.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    {
+      "name": "progress",
+      "exit_code": 0,
+      "evidence": {
+        "path": ".local/gate-6/codec-lifecycle-pair/progress-final.log",
+        "sha256": "fedbc03549729d27ac031eee0766ae72281991ae1e9494232887c3160cf754cc"
+      }
+    },
+    {
+      "name": "diff",
+      "exit_code": 0,
+      "evidence": {
+        "path": ".local/gate-6/codec-lifecycle-pair/diff-final.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    }
+  ],
+  "implementation": [
+    "Defer codec replacement close publication until the new confirmed binding has actual direction-appropriate flow. Preserve the first observed old retirement time independently of publication time.",
+    "Publish ordinary closed/opened wire envelopes as one sealed native lifecycle batch. Apply announcement state only after whole-batch local write completion; HTTP, journal and generic command replies gain no such batch capability.",
+    "Hold the exact physical writer/source guard across both frames; interruption after touched IO retires the physical stream before guard release. Local submission is not peer receipt."
+  ],
+  "limits": [
+    "24 of61 assigned clauses now locally qualified;37 remain. G6-046 and all105 tasks remain in scope.",
+    "The shared envelope timestamp describes pair preparation/publication. It is not a claim of zero network latency or atomic remote receipt. The signed production observations establish adjacent frames; controlled writers establish physical custody and interruption behavior.",
+    "DTMF tests are affected regressions only; actual SIP/WebRTC provenance and remaining DTMF clauses remain open.",
+    "Full Session lifecycle0081, handle allocation0109, broader hosting profiles and full auxiliary integration remain open.",
+    "No Linux, remote/browser/provider, named G6-093 rehearsal, acceptance qualification or publication.",
+    "Broader15-case DTMF runs are not qualified:13/15 and14/15 passed. The focused11-case run passed, but unresolved timing failures are retained in regression_risks."
+  ],
+  "related_evidence": [
+    "docs/evidence/gate-6/auxiliary-native-stream-clauses.json",
+    "docs/evidence/gate-6/auxiliary-session-caller-cancellation.json"
+  ],
+  "regression_risks": {
+    "status": "open-intermittent-DTMF-credit-and-post-cancellation-failures",
+    "broad_runs": [
+      {
+        "passed": 13,
+        "failed": 2,
+        "evidence": {
+          "path": ".local/gate-6/codec-lifecycle-pair/production-dtmf-v1.log",
+          "sha256": "07a14ea0b252acabcb80f2a09e1035291f76a43a67c883c8dcd479e5f372c985"
+        }
+      },
+      {
+        "passed": 14,
+        "failed": 1,
+        "evidence": {
+          "path": ".local/gate-6/codec-lifecycle-pair/production-dtmf-v2.log",
+          "sha256": "65b25fa603e1aec9f5639904e9d8078f70bb33eb993c571f0a5d156d103aaf10"
+        }
+      }
+    ],
+    "isolated_credit": {
+      "passed": 1,
+      "failed": 0,
+      "evidence": {
+        "path": ".local/gate-6/codec-lifecycle-pair/production-dtmf-credit-v2.log",
+        "sha256": "09d75f3efa457add2bd8246f5bbb4e63d16fe0890aacebde56fc9970fd0a0cdc"
+      }
+    },
+    "focused_diagnostic": {
+      "passed": 11,
+      "failed": 0,
+      "evidence": {
+        "path": ".local/gate-6/codec-lifecycle-pair/production-dtmf-diagnostic-v3.log",
+        "sha256": "d4e12def63e8be141b290069a791e2c9779a7f03319c345bd57f2a512a3f85a9"
+      }
+    },
+    "observed_failure": "The slow recipient was not_started before IO rather than the test-required partial-write uncertainty. One first-run post-cancellation subsequent command also failed; that case passed in both later runs. The focused diagnostic passing does not resolve the broader timing failures.",
+    "remaining": "Reproduce and repair the exact physical-credit and target-retirement race without treating known pre-IO refusal as partial IO or retrying an uncertain logical effect."
+  }
+}

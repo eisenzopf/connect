@@ -1,0 +1,336 @@
+{
+  "kind": "gate6-component-evidence",
+  "task": "G6-041",
+  "status": "in-progress",
+  "passed": true,
+  "recorded_at": "2026-10-20T15:54:44.412756+00:00",
+  "schema_version": 61,
+  "pinned_patches": 122,
+  "source_lock": {
+    "path": "dependencies/source-lock.json",
+    "sha256": "73c5bd8b88497d93082d6ee352369e1a37bcb17e65026700d20a8a8935c9e96c"
+  },
+  "scope": "Local macOS arm64 actual public native-to-telephone-to-native generation-three movement, independent current source/target authority, decoded duplex before/after commit, confirmed SIP absence, late old packets and receipt replay without redial.",
+  "verification": [
+    {
+      "name": "Store",
+      "passed": 645,
+      "ignored": 3,
+      "log": {
+        "path": ".local/gate-6/telephone-source-store-full-2.log",
+        "sha256": "5d510918d8eefb6712d3da93e975f832fb12ca5194c09364d73904569db26fdd"
+      },
+      "test_binary": {
+        "path": "target/debug/deps/connect_store-500690b8d898aed1",
+        "sha256": "bed955017521185cdaef25954459aabedacde6a205acf2a70d638490f6ba92b8"
+      },
+      "arguments": "--test-threads=2"
+    },
+    {
+      "name": "telephone-public",
+      "passed": 22,
+      "ignored": 0,
+      "log": {
+        "path": ".local/gate-6/telephone-source-runtime-final.log",
+        "sha256": "d5225538fa06af629797e820c239b9f2be3dbaee8128e5834bf3470241f489f6"
+      },
+      "test_binary": {
+        "path": "target/debug/deps/gate6_canonical_runtime-2e3e18c2008aaebe",
+        "sha256": "7c25e0849d3fbcc7d975ef575074c19acec6568959cdd0e73f49178a4fdbe493"
+      },
+      "arguments": "production_telephone_ --test-threads=2 --nocapture"
+    },
+    {
+      "name": "native-movement",
+      "passed": 1,
+      "ignored": 0,
+      "log": {
+        "path": ".local/gate-6/telephone-source-native-movement-final.log",
+        "sha256": "88e829b813101aadd5aa5c4e2187f237df26d4db4f50d6e8a9c5ef2d62551548"
+      },
+      "test_binary": {
+        "path": "target/debug/deps/gate6_canonical_runtime-2e3e18c2008aaebe",
+        "sha256": "7c25e0849d3fbcc7d975ef575074c19acec6568959cdd0e73f49178a4fdbe493"
+      },
+      "arguments": "production_replacement_actual_movement_keeps_generation_two_audio_after_old_authority_retires --nocapture"
+    },
+    {
+      "name": "native-stream-controls",
+      "passed": 3,
+      "ignored": 0,
+      "log": {
+        "path": ".local/gate-6/telephone-source-native-controls-final.log",
+        "sha256": "8b78e59e96db03c6d7ab7a63833fa7b2349866f745f5c3bea73730cdf67ae078"
+      },
+      "test_binary": {
+        "path": "target/debug/deps/gate6_canonical_runtime-2e3e18c2008aaebe",
+        "sha256": "7c25e0849d3fbcc7d975ef575074c19acec6568959cdd0e73f49178a4fdbe493"
+      },
+      "arguments": "production_native_stream_ production_signed_native_stream_subscription --test-threads=2 --nocapture"
+    }
+  ],
+  "static_checks": [
+    {
+      "name": "dependencies",
+      "exit_code": 0,
+      "log": {
+        "path": ".local/gate-6/telephone-source-static-dependencies.log",
+        "sha256": "fd9d7b181e3ccba9b643af55a186cf132c60aac99c734b2ee4e4e549afe5ffc2"
+      }
+    },
+    {
+      "name": "format",
+      "exit_code": 0,
+      "log": {
+        "path": ".local/gate-6/telephone-source-static-format.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    {
+      "name": "contracts",
+      "exit_code": 0,
+      "log": {
+        "path": ".local/gate-6/telephone-source-static-contracts.log",
+        "sha256": "2c29557f8945b4bb522a5436f85876aa8ab90eca617dcf64588af05e9a81b1bc"
+      }
+    },
+    {
+      "name": "http",
+      "exit_code": 0,
+      "log": {
+        "path": ".local/gate-6/telephone-source-static-http.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    {
+      "name": "progress",
+      "exit_code": 0,
+      "log": {
+        "path": ".local/gate-6/telephone-source-static-progress.log",
+        "sha256": "3c9a42760866b510a9b7fc81b2b57b9bf6791a239d0bf0de8cdf06058e513f78"
+      }
+    },
+    {
+      "name": "diff",
+      "exit_code": 0,
+      "log": {
+        "path": ".local/gate-6/telephone-source-static-diff.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    }
+  ],
+  "fresh_distinct_passed_tests": 671,
+  "reused_verification": [
+    {
+      "name": "Core",
+      "passed": 438,
+      "ignored": 0,
+      "log": {
+        "path": ".local/gate-6/telephone-selection-core-full.log",
+        "sha256": "4dabf32de1f8394962e793f97c5677fc407dd8c41f583b3903526003f3849b96"
+      },
+      "test_binary": {
+        "path": "target/debug/deps/rvoip_core-c6c2afcb97584f02",
+        "sha256": "253b85c9dd7da14006c2b2f6f27aab5960d29e062413b0c2ebe5c048f37f822a"
+      },
+      "arguments": "--test-threads=2",
+      "reason": "All upstream inputs, source-lock, Core test binary and prior full438 log are byte-identical and rechecked; Core was not rerun in this phase."
+    }
+  ],
+  "telephone_actual_generation_two_moves": 7,
+  "telephone_source_actual_generation_three_moves": 1,
+  "telephone_strict_native_audio_probes": 67,
+  "source_inputs": {
+    "path": ".local/gate-6/telephone-source-inputs-before.json",
+    "sha256": "b47f3c041507eef4140476b946306d620c3d0ef2499810cdeb22826a1d229e53"
+  },
+  "source_input_count": 1451,
+  "upstream_inputs": {
+    "path": ".local/gate-6/telephone-streams-upstream-inputs.json",
+    "sha256": "195fa934443223b3b377ec185835e8cd8be743b328ea269785c18b6d4f03bdae"
+  },
+  "upstream_input_count": 3640,
+  "previous_checkpoint": {
+    "path": "docs/evidence/gate-6/telephone-streams.json",
+    "sha256": "ca02882e4e00cb2116454905936305f765be2baf84adf1e49b711cc50a759422"
+  },
+  "final_build": {
+    "path": ".local/gate-6/telephone-source-build-13.log",
+    "sha256": "4f3fe026c51213119f76ade6338863a197011e3b177bb0735e4e20bfad02d193"
+  },
+  "behavior": [
+    "A real configured SIP source selects its current public connection ID and a distinct verified native Endpoint through the existing public connection.replace command. The new device uses its own actual signing key and public allocation/media helpers. The original native credential is revoked before the return move.",
+    "Store source origins and reads are explicitly Native or Telephone. The common Session projection contains current logical membership facts only. Physical grants continue through their real variant; no native admission, NativeMediaRead or native physical connection projection is fabricated for telephone.",
+    "Current captured SIP lifetimes are recognized during admission and exact source context resolution. The caller, retained native owner, independent SIP route owner and new signed target share the complete original authority interval. Retired native origins cannot substitute for the live telephone source.",
+    "A controlled Store regression creates a generation-three preparation after old native/operator credential revocation. A writer queued for SIP route revocation cannot force a nested read: allocation uses the exact original signed target proof, then releasing it lets revocation commit. Subsequent source/preparation reads fail, and no native allocation attempt was started by that metadata-only regression.",
+    "During actual private native preparation, distinct current 1 kHz telephone and 2 kHz native markers establish both old directions. Neither endpoint hears its own current marker and the unready candidate receives only silence. Each direction requires over ten decoded marked frames within a bounded window of at most twelve seconds; no latency or performance SLA is claimed.",
+    "The public client supplies real native decoded input and receives guarded private output before one actual managed generation-three commit. Logical member/epoch and Session remain; the exact retained native generation/runtime ID remain unchanged. Seven once-only effects confirm native movement.",
+    "Audience capture and confirmation use the actual SIP controller and opaque Core commit. Native callback paths use the actual telephone source and both recipient ceilings. Source-independent named receive permissions remain required; old route credentials never become the new target credential.",
+    "The old SIP connection receives BYE and its durable cleanup flag settles only after actual adapter absence. Revoking that old SIP credential afterward preserves both current native directions. Late old INFO55# and RTP cannot enter either native programme. Both original receipts replay with their original results and one unique SIP call.",
+    "All22 public telephone cases pass together, retaining PCMU/PCMA, configured ownership, selector exclusion/reselection, no-answer/voicemail/wrong confirmation/cancellation, graceful restart/drop, discarded HTTP response, late events and current independent media lifetime. The native movement regression retains its five internal movements, including repeated generation-three and Observer cases."
+  ],
+  "preliminary_observations": [
+    "Initial Store admission recognized only native ready lifetimes; current confirmed telephone capture recognition was added. A temporary SQL quote typo, credential-ID versus bearer-token fixture lookup and an expected planned/started phase count were corrected before final verification.",
+    "The signed native allocation initially refused before IO because its intake scope omitted the independent SIP route owner. The bounded current telephone scene scopes now complete that exact proof. The new queued-writer regression passes without reacquiring a reader.",
+    "The first actual private activation succeeded in Core, but the native-only controller lookup could not capture the SIP audience revision. The host now obtains the exact owned SIP controller, validates the opaque Core commit and records its revision. Native audience revision projection also recognizes current telephone lifetimes.",
+    "The initial duplex helper used identical tones for old and new sources and could not distinguish an earlier authorized telephone tail from current native self-audio. Distinct orthogonal current markers retain strict own-marker refusal and private candidate silence.",
+    "The RTP fixture initially used sequence_number*160 timestamps, which stopped advancing over silent intervals. It now uses elapsed sampling time for both ordinary phone bursts and the concurrent marker probe. The final bounded marker window retains the original >10-frame minimum and stops early after16 frames in both directions.",
+    "A duplicate visibility token caused syntax diagnostics and a rustc incremental verification panic. The syntax was fixed and only the failed inactive Service metadata cache was reset. Subsequent Service check and final server builds passed. Fixture shutdown needed Vec::drain because the client shutdown method consumes ownership; controller capture was corrected to use the public opaque commit instead of private Core fields."
+  ],
+  "preliminary_logs": [
+    {
+      "path": ".local/gate-6/telephone-source-runtime-1.log",
+      "sha256": "73522664fb22abd8d43b9b2fc702f450be749cbbfff37d7dfb188996a3598696"
+    },
+    {
+      "path": ".local/gate-6/telephone-source-runtime-2.log",
+      "sha256": "08d8a95de0c9fb4a826aa7b20ef73e274d9fcb30a7228a41b38ac0f400e7e1eb"
+    },
+    {
+      "path": ".local/gate-6/telephone-source-runtime-3.log",
+      "sha256": "a3401a7114452614d7e3a5e62cdda860f306998db50b9233a7d69be3c0ecc0be"
+    },
+    {
+      "path": ".local/gate-6/telephone-source-runtime-4.log",
+      "sha256": "f3f4bd55f4ed0ac40696ab129a0fd592e1df9e8eb4b6d80add21ccd04a4ab346"
+    },
+    {
+      "path": ".local/gate-6/telephone-source-runtime-5.log",
+      "sha256": "531bb3fb3059bd065103f7d4e582982f8569f4c89fce5ac8fe3b7c431bf11bad"
+    },
+    {
+      "path": ".local/gate-6/telephone-source-runtime-6.log",
+      "sha256": "2940985d995ae77f93b96c7b11c292137015e9ec0a95e31b1b2e92887ce9a348"
+    },
+    {
+      "path": ".local/gate-6/telephone-source-runtime-7.log",
+      "sha256": "ec476957dd37be2a2730a24473a1b2557243b60b252e8523a820aac90e65994e"
+    },
+    {
+      "path": ".local/gate-6/telephone-source-runtime-8.log",
+      "sha256": "4b3630bfe9400c42f56f947bc23417238e63c3611e7c78b00a6a47a9c8be835b"
+    },
+    {
+      "path": ".local/gate-6/telephone-source-runtime-9.log",
+      "sha256": "a17d3f6f02b2bdb4e8dea8f3afa13f914b4352329d19ab9d5565514ab96dc3ac"
+    },
+    {
+      "path": ".local/gate-6/telephone-source-store-1.log",
+      "sha256": "631babe85cda3367e0742a3ce75a05ec624afcffee00bcbaf23884d682230499"
+    },
+    {
+      "path": ".local/gate-6/telephone-source-store-2.log",
+      "sha256": "60338778b8da5a95d9617be1635aca56251af0af8a93baa8ec58cac8f32c9ccb"
+    },
+    {
+      "path": ".local/gate-6/telephone-source-store-3.log",
+      "sha256": "f4c3366cc60fe398b570a6144935302d623ccdc21c7b5dd4719ec3d64a65ff0a"
+    },
+    {
+      "path": ".local/gate-6/telephone-source-store-4.log",
+      "sha256": "b48463c94082d5f2f9d2647dd960f55d6755b5db76bc0e1f3e625f31e5340cf9"
+    },
+    {
+      "path": ".local/gate-6/telephone-source-store-5.log",
+      "sha256": "62097d764b4c5bc75902e41e15c2c72b39cd3fd583c9a51a9707ee6818457867"
+    },
+    {
+      "path": ".local/gate-6/telephone-source-store-6.log",
+      "sha256": "65ca9213f642b62d8d26bc94d73d5fc22f2eb409efc1307fa7bd166d9ff25ce1"
+    },
+    {
+      "path": ".local/gate-6/telephone-source-build-1.log",
+      "sha256": "e83c8638c9a00caac1e59f0418203961be6c7e74f80ade8904dd45ea085afbea"
+    },
+    {
+      "path": ".local/gate-6/telephone-source-build-2.log",
+      "sha256": "b087208fd6b4a6328743fdd688923ef6fa717962ce6e621fc76de7680be98d7a"
+    },
+    {
+      "path": ".local/gate-6/telephone-source-build-3.log",
+      "sha256": "27a21f31a424babd0134a25ba94901587dea86550cc93bb7b007f929dac5ea42"
+    },
+    {
+      "path": ".local/gate-6/telephone-source-build-4.log",
+      "sha256": "0c828396a78ae24252f159008a4d1f979ce761bbe3b917295d02927582ea2253"
+    },
+    {
+      "path": ".local/gate-6/telephone-source-build-5.log",
+      "sha256": "87306ce0def4d91569023e70789512338c79d210e1dd335e0976a2f185a71921"
+    },
+    {
+      "path": ".local/gate-6/telephone-source-build-6.log",
+      "sha256": "27fdfd6c7de2b34d7f245665f9001760ee25f32bf77a9e05ee29e14ef82eb99a"
+    },
+    {
+      "path": ".local/gate-6/telephone-source-build-7.log",
+      "sha256": "3fdc2a8f73cc12d48a4cd709239bc54369fc9c5abc6923551cfe4366fac6ab0e"
+    },
+    {
+      "path": ".local/gate-6/telephone-source-build-8.log",
+      "sha256": "e6b1620678aa548ee8926655b360ca4908c601113bb2173763e31598aad42858"
+    },
+    {
+      "path": ".local/gate-6/telephone-source-build-9.log",
+      "sha256": "29f31c8f4635444c46c4470c6080a6750a203ebf82b627d5fe7b16b81849c688"
+    },
+    {
+      "path": ".local/gate-6/telephone-source-build-10.log",
+      "sha256": "2ded634bfcc10926df7fa4dd2268e0cc8f631ec7d53b5de8a4407a842f7b5dbc"
+    },
+    {
+      "path": ".local/gate-6/telephone-source-build-11.log",
+      "sha256": "8c1ca1bc2b39ff01043d2156f3c4392d06ec5a173e401a52ea9047093414fc6b"
+    },
+    {
+      "path": ".local/gate-6/telephone-source-build-12.log",
+      "sha256": "16b40128ebf10fe987ea5fb2c57c9b8c761df2625d93af2bffb77ad119cd0885"
+    },
+    {
+      "path": ".local/gate-6/telephone-source-service-check-1.log",
+      "sha256": "36091b151d94aa9529002eb720c65c58ba6df8d228b3a1976e400cc6aaefd68b"
+    },
+    {
+      "path": ".local/gate-6/telephone-source-service-check-2.log",
+      "sha256": "c05ab27d6b56d86f23c831740a404891a968ee4a0aeb2aee6483dcd1fbecc9cb"
+    },
+    {
+      "path": ".local/gate-6/telephone-source-service-check-3.log",
+      "sha256": "880476cf306da687a99ae1252f091c9eb69f54c4128de1a766514a9b4c01bcb6"
+    }
+  ],
+  "not_qualified": [
+    "G6-041 remains active: mixed telephone/native role and private-context integration and established outbound refresh INVITE wire qualification remain open. This phase qualifies an established telephone source returning to a new native Endpoint; it does not claim telephone-to-telephone or additional remote profiles.",
+    "General assistant context is G6-042; the full process-kill/provider lifecycle matrix is G6-047. Existing graceful/drop tests do not substitute for those checks.",
+    "Optional canonical carrier registration, Linux/browser/remote/provider/PSTN/performance/independent acceptance/publication are not claimed. The three Store helper entrypoints remain intentionally ignored and are invoked by their parent tests."
+  ],
+  "task_counts": {
+    "done": 40,
+    "in_progress": 1,
+    "not_started": 64,
+    "acceptance_closed": 0
+  },
+  "goal_status": "active",
+  "all_105_tasks_remain_in_scope": true,
+  "final_source_inputs": {
+    "path": ".local/gate-6/telephone-source-inputs-final.json",
+    "sha256": "c8ebf5b70ade0db323220934204e6e7f655809461deecfae977051b1470f3f03"
+  },
+  "post_verification_changes": [
+    "docs/connect-gate-6-implementation.html"
+  ],
+  "final_progress_check": {
+    "path": ".local/gate-6/telephone-source-static-progress-final.log",
+    "sha256": "3c9a42760866b510a9b7fc81b2b57b9bf6791a239d0bf0de8cdf06058e513f78"
+  },
+  "final_diff_check": {
+    "path": ".local/gate-6/telephone-source-static-diff-final.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "telephone_source_before_commit_decoded_marker_frames": {
+    "phone_to_retained_native": 16,
+    "retained_native_to_phone": 98,
+    "own_marker_observed": false,
+    "private_candidate_audio_observed": false
+  }
+}

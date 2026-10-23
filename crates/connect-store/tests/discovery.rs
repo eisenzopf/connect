@@ -21,7 +21,9 @@ fn discovery_and_delivery_pages_are_authorized_and_survive_restart() {
             &ak.id,
             &Operation::Create {
                 request_id: "create".into(),
-                participants: vec![b.id.clone()],
+                request: connect_protocol::conversations::CreateRequest::persistent(vec![b
+                    .id
+                    .clone()]),
             },
         )
         .unwrap()
@@ -34,7 +36,7 @@ fn discovery_and_delivery_pages_are_authorized_and_survive_restart() {
             &Operation::Send {
                 request_id: "fact".into(),
                 conversation_id: c.id.clone(),
-                body: "Retained fact".into(),
+                message: connect_protocol::messages::MessageDraft::text_all("Retained fact"),
             },
         )
         .unwrap();

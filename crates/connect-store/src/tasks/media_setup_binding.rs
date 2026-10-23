@@ -15,10 +15,27 @@ impl Store {
         session: &str,
         expected: &crate::VapiSessionRoute,
     ) -> Result<()> {
+        let authority = self.runtime_conversation_authority(|c| {
+            let (_, task) = super::media_setup::check_definition(
+                c,
+                credential,
+                definition,
+                session,
+                expected,
+                crate::now(),
+            )?;
+            Ok(vec![task.conversation_id])
+        })?;
         let mut c = self.connection()?;
         let tx = c
             .transaction_with_behavior(TransactionBehavior::Immediate)
             .map_err(|_| Error::storage())?;
+        self.require_runtime_query(
+            &tx,
+            &authority,
+            "SELECT conversation_id FROM sessions WHERE id=?1",
+            &[&session],
+        )?;
         super::media_setup::check_definition(
             &tx,
             credential,

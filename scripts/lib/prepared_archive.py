@@ -13,6 +13,7 @@ MAX_ARCHIVE_BYTES = 16 * 1024 * 1024
 MAX_EXTRACTED_BYTES = 64 * 1024 * 1024
 MAX_FILES = 4096
 MARKER = '.connect-prepared.json'
+PATCH_APPLICATION = 'isolated-git-apply-v1'
 
 
 def digest(path):
@@ -98,7 +99,7 @@ def prepare_archive(root, directory, name, source, patches, cache=None):
     selected = [patch for patch in patches if patch.get('target', 'rvoip') == name]
     for patch in selected:
         if digest(root / patch['path']) != patch['sha256']: raise ValueError('Crate patch digest mismatch')
-    identity = {'source': source, 'patches': selected}
+    identity = {'source': source, 'patches': selected, 'patch_application': PATCH_APPLICATION}
     destination = directory / name
     if destination.exists():
         marker = destination / MARKER
@@ -112,10 +113,18 @@ def prepare_archive(root, directory, name, source, patches, cache=None):
     staging = pathlib.Path(tempfile.mkdtemp(prefix=f'.{name}-preparing-', dir=directory))
     try:
         extract_archive(archive, staging, f'{name}-{source["version"]}')
+        # An archive has no repository of its own. Parent-repository discovery
+        # makes Git-format patches appear outside the current prefix: git can
+        # then report success while silently skipping their files. Apply as a
+        # plain directory, with discovery stopped at the staging parent.
+        patch_environment = dict(os.environ)
+        for key in ('GIT_DIR', 'GIT_WORK_TREE', 'GIT_COMMON_DIR', 'GIT_INDEX_FILE', 'GIT_PREFIX'):
+            patch_environment.pop(key, None)
+        patch_environment['GIT_CEILING_DIRECTORIES'] = str(staging.parent.resolve())
         for patch in selected:
             path = str((root / patch['path']).resolve())
-            subprocess.run(['git', '-C', str(staging), 'apply', '--check', path], check=True)
-            subprocess.run(['git', '-C', str(staging), 'apply', path], check=True)
+            subprocess.run(['git', '-C', str(staging), 'apply', '--no-index', '--check', path], check=True, env=patch_environment)
+            subprocess.run(['git', '-C', str(staging), 'apply', '--no-index', path], check=True, env=patch_environment)
         files = file_manifest(staging)
         (staging / MARKER).write_text(json.dumps({'identity': identity, 'files': files}, sort_keys=True) + '\n')
         staging.replace(destination)

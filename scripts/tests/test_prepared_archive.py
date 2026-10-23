@@ -4,6 +4,7 @@ import importlib.util
 import io
 import json
 import pathlib
+import subprocess
 import tarfile
 import tempfile
 import unittest
@@ -42,6 +43,22 @@ class PreparedArchiveTests(unittest.TestCase):
             self.assertEqual((prepared / ARCHIVE.MARKER).read_bytes(), marker)
             self.assertEqual(json.loads(marker)['identity']['patches'], patches)
 
+    def test_git_and_unified_patches_apply_inside_a_parent_repository(self):
+        for git_header in (False, True):
+            with self.subTest(git_header=git_header), tempfile.TemporaryDirectory() as directory:
+                root = pathlib.Path(directory)
+                subprocess.run(['git', 'init', '--quiet', str(root)], check=True)
+                (root / '.gitignore').write_text('deps/\ncache/\n')
+                cache, _, source, destination = self.fixture(root)
+                patch_file = root / 'change.patch'
+                header = 'diff --git a/source.txt b/source.txt\n' if git_header else ''
+                patch_file.write_text(header + '--- a/source.txt\n+++ b/source.txt\n@@ -1 +1 @@\n-original\n+patched\n')
+                patches = [{'path': 'change.patch', 'sha256': ARCHIVE.digest(patch_file), 'target': 'fixture'}]
+                ARCHIVE.prepare_archive(root, destination, 'fixture', source, patches, cache)
+                self.assertEqual((destination / 'fixture/source.txt').read_text(), 'patched\n')
+                self.assertFalse((root / 'source.txt').exists())
+                ARCHIVE.prepare_archive(root, destination, 'fixture', source, patches, cache)
+
     def test_archive_checksum_corruption_rejected_before_extraction(self):
         with tempfile.TemporaryDirectory() as directory:
             root = pathlib.Path(directory); cache, archive, source, destination = self.fixture(root)
@@ -49,6 +66,21 @@ class PreparedArchiveTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, 'identity mismatch'):
                 ARCHIVE.prepare_archive(root, destination, 'fixture', source, [], cache)
             self.assertFalse((destination / 'fixture').exists())
+
+    def test_old_patch_application_marker_refuses_reuse_and_preserves_files(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = pathlib.Path(directory)
+            cache, _, source, destination = self.fixture(root)
+            ARCHIVE.prepare_archive(root, destination, 'fixture', source, [], cache)
+            marker = destination / 'fixture' / ARCHIVE.MARKER
+            saved = json.loads(marker.read_text())
+            saved['identity'].pop('patch_application')
+            marker.write_text(json.dumps(saved))
+            before = marker.read_bytes()
+            with self.assertRaisesRegex(ValueError, 'identity'):
+                ARCHIVE.prepare_archive(root, destination, 'fixture', source, [], cache)
+            self.assertEqual(marker.read_bytes(), before)
+            self.assertEqual((destination / 'fixture/source.txt').read_text(), 'original\n')
 
     def test_changed_missing_extra_and_symlink_files_refuse_reuse(self):
         for mutation in ('changed', 'missing', 'extra', 'symlink', 'mode'):

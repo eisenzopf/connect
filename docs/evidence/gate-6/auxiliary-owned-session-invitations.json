@@ -1,0 +1,461 @@
+{
+  "task": "G6-046",
+  "title": "Current physical owned Session invitations and correlated accept/reject decisions",
+  "status": "local-native-owned-exchange-qualified; original-caller-relays-and-URI-integration-open",
+  "recorded_at": "2026-10-22T19:18:23.038916+00:00",
+  "full_task_complete": false,
+  "full_goal_complete": false,
+  "acceptance_qualified": false,
+  "platform": {
+    "os": "Darwin",
+    "architecture": "arm64"
+  },
+  "schema_version": 90,
+  "source_lock": {
+    "path": "dependencies/source-lock.json",
+    "sha256": "669185865b7db54098451a808a6dee1332a64e1c89671448f1799d9783da2c94"
+  },
+  "pinned_patches": 139,
+  "compiled_inputs": {
+    "path": ".local/gate-6/session-invitation-exchange/build-inputs-final.json",
+    "sha256": "198c1fdd8e3c2128da79a21dcfd1a19c062bf94d1b257623d5b3bed7978fc0f2",
+    "count": 1262
+  },
+  "prepared_upstream_Rust": {
+    "path": ".local/gate-6/session-invitation-exchange/upstream-inputs-v5.json",
+    "sha256": "7dd045ef3718ea2b650d136a5831fb638708e42b89142cb58fecf96506c49496",
+    "count": 2627
+  },
+  "compiled_inputs_unchanged_after_tests": true,
+  "source_inputs": [
+    {
+      "path": "dependencies/source-lock.json",
+      "sha256": "669185865b7db54098451a808a6dee1332a64e1c89671448f1799d9783da2c94"
+    },
+    {
+      "path": "patches/rvoip/gate6-owned-route-session-requests.patch",
+      "sha256": "e38f608f36d99fd5e270fc3492a3d2b37b1eded6af9888c3bb8283c10906c0ce"
+    },
+    {
+      "path": "crates/connect-store/migrations/090_session_invitation_decisions.sql",
+      "sha256": "fcc4f287ecdc03dbe23592fdd45e5eebf8fb0e8c5c59955f64a981fa3b0cc909"
+    },
+    {
+      "path": "crates/connect-store/src/lib.rs",
+      "sha256": "b3bc993aff3c72897ebc0e7b268ce1ba1571169286ced3e38180f3eb8d9e3723"
+    },
+    {
+      "path": "crates/connect-store/src/session_invitations.rs",
+      "sha256": "a4e4777663cba6ff2c54467f489f41084f0f866bdf846139d65758517b7fd6c3"
+    },
+    {
+      "path": "crates/connect-store/src/session_invitations/decisions.rs",
+      "sha256": "39569634491470214921dfe8e9233d5c8c2d44e76fa93a441fb3cf4529bf194f"
+    },
+    {
+      "path": "crates/connect-store/src/peer_authority.rs",
+      "sha256": "f639ac57e114ecfc5a3ad64bf781a6279ce6ff858f42fde4a062f99423d21c89"
+    },
+    {
+      "path": "crates/connect-store/src/peer_authority/tests/session_control.rs",
+      "sha256": "649f09b63e1ee44bb9543f3fb63cdc2a51185492449003f3edc027bb0f6af4d2"
+    },
+    {
+      "path": "crates/connect-store/src/session_control.rs",
+      "sha256": "ef0c740c6507c58f06bde0ebd533652857f5a79ec7f638770fbed57e7356e15d"
+    },
+    {
+      "path": "crates/connect-protocol/src/session_control.rs",
+      "sha256": "4a026f2f5828170bc37a64e1885ceba7a1fdb358885a865bb73fd91c6c30b09e"
+    },
+    {
+      "path": "crates/connect-service/src/canonical_invitations.rs",
+      "sha256": "4ec748edfce9921bcba0c841596c3b91d5f51291b527860e322fe1147f9a01e1"
+    },
+    {
+      "path": "crates/connect-service/src/peer_authority/invitations.rs",
+      "sha256": "f383459632eb9ffc5ddf59a2375d511a56b11981e492313604b1aeeda0878272"
+    },
+    {
+      "path": "crates/connect-service/src/canonical.rs",
+      "sha256": "7aa25f5c548a90aaab338bcef916bbd80c5cc33b725ea3248a312f3b36124f70"
+    },
+    {
+      "path": "crates/connect-service/src/canonical_runtime.rs",
+      "sha256": "39f7dd23dc1f9eaa0fa1dd730bc5c726af7eb51c69d40bb0eed1052e78cc12fa"
+    },
+    {
+      "path": "crates/connect-client/src/canonical.rs",
+      "sha256": "2bbaf281b080f35f08ba3ab7beb72f9114a2bdeca1d6b212e995dfd05e887afa"
+    },
+    {
+      "path": "crates/connect-client/src/canonical/session_invitations.rs",
+      "sha256": "1130f6287384693c0639892ffe611ff1ad5cddc056df15f33f7672117536c112"
+    },
+    {
+      "path": "crates/connect-server/src/canonical.rs",
+      "sha256": "3c866c2475d598cb3d47b474fac4e7f7fa630fd51b29d122bcffccab3db59ce2"
+    },
+    {
+      "path": "crates/connect-server/tests/support/canonical_auxiliary_clauses.rs",
+      "sha256": "4cde60b801248c1d5b36e1c7ef9d836d92a21b582371de924c83689faf340544"
+    },
+    {
+      "path": "crates/connect-server/tests/support/canonical_native_connections.rs",
+      "sha256": "5b13604bde4111db792328e9f85bf34543c98e1e849708de423e538f04fa2ff1"
+    },
+    {
+      "path": "crates/connect-server/tests/support/canonical_native_connections/future.rs",
+      "sha256": "e189635eb7296803f26dde86ee337c05fd722fc377f26af7fc2ede7862f6f377"
+    },
+    {
+      "path": "docs/developer/general-sessions.md",
+      "sha256": "c371de636187dbdbce62fc628b2fdcd5584f0ba3065767923e090f36185589cf"
+    },
+    {
+      "path": "docs/developer/session-invitation-sources.md",
+      "sha256": "28e4b5d6502415a463a48714a1f16ede182ad33863804d21499b3f219f5b1cb8"
+    },
+    {
+      "path": "scripts/generate-canonical-http-openapi.py",
+      "sha256": "e1b40a60af29cc057d4058fbc4df2f471f6fe55304ee15016c6abac9699945a8"
+    },
+    {
+      "path": "contracts/openapi-canonical-http.json",
+      "sha256": "489339af09d3627e8f5b9ac778b2a0376eb2052a4e885dcc20c1b0e8bc45be0a"
+    },
+    {
+      "path": "crates/connect-service/src/lib.rs",
+      "sha256": "16186789dfc0c017b801ebbf72439be3f70997aaa71727e0ff74aae519a750c8"
+    },
+    {
+      "path": "crates/connect-service/src/peer_authority.rs",
+      "sha256": "b62244c8870e0a8fa0b259677df7bb0fe108181f2eda090e2b02bffd52063cbf"
+    }
+  ],
+  "binaries": [
+    {
+      "path": "target/debug/deps/connect_store-2bc54b64bb656bb4",
+      "sha256": "c26e6bfa0bb4ce7a9932c952f4f7ead6c589d0c387f0d9b2dbfd55a121062b19"
+    },
+    {
+      "path": "target/debug/deps/connect_client-14427ed49690b71c",
+      "sha256": "0e67b5cb4f9650ef04af200c62137f0b1de19a55361d11dea8c66acdba29ac69"
+    },
+    {
+      "path": "target/debug/deps/gate6_canonical_runtime-f39476f2f6c7ff5d",
+      "sha256": "decf7759e9c372de50fd4fe2db8e85bc44ebb19059dbe09b9770ab48235582ee"
+    },
+    {
+      "path": "target/debug/deps/gate6_auxiliary-0342ca629847fff9",
+      "sha256": "9d9760cf16a8556a01d9c0f4fa32ca599c94855dbc8fab5e51b636a8a98dea86"
+    },
+    {
+      "path": "target/debug/deps/v2_auth_dispatch-c9f0645ae98540c3",
+      "sha256": "b0fdf9bba4ba59809668ba650152c76325de334b112a321fadf606186f23924b"
+    },
+    {
+      "path": "target/debug/deps/v2_reachability-2b5caff9ea58851d",
+      "sha256": "1e18e25c6e6b023b15da967c7bb35d9d488c3a3164b7292b25d7d5eb19ea1e03"
+    },
+    {
+      "path": "target/debug/deps/v2_canonical_transports-de0fd31f026f585f",
+      "sha256": "5895a5e4ef516de3ca8d9adc4f51189e98cea0239efe4e616950359b9ee70280"
+    }
+  ],
+  "results": [
+    {
+      "name": "store-session-control-including-peer-control",
+      "passed": 33,
+      "failed": 0,
+      "evidence": {
+        "path": ".local/gate-6/session-invitation-exchange/store-control-v3.log",
+        "sha256": "2b9f6c76942ce71d703df11723ed583358cd18645c3b26244a212551ea1fed24"
+      }
+    },
+    {
+      "name": "store-peer-session-decisions",
+      "passed": 4,
+      "failed": 0,
+      "evidence": {
+        "path": ".local/gate-6/session-invitation-exchange/store-peer-decisions-final.log",
+        "sha256": "41c4609ad111f97e256d1d008833c67bed5bc202ebdab0d20141b34941a2be51"
+      }
+    },
+    {
+      "name": "store-events",
+      "passed": 22,
+      "failed": 0,
+      "evidence": {
+        "path": ".local/gate-6/session-invitation-exchange/store-events-v3.log",
+        "sha256": "2b365a9c06a87cd05ab660771620f93efc663c80c5d710066806405b0e54001c"
+      }
+    },
+    {
+      "name": "rust-sdk",
+      "passed": 80,
+      "failed": 0,
+      "evidence": {
+        "path": ".local/gate-6/session-invitation-exchange/sdk-tests-v1.log",
+        "sha256": "9a5049689522e79c9906d072ccd846882a2390c859fc4f77d2d5e9662d162104"
+      }
+    },
+    {
+      "name": "upstream-exact-dispatch",
+      "passed": 22,
+      "failed": 0,
+      "evidence": {
+        "path": ".local/gate-6/session-invitation-exchange/final-dispatch.log",
+        "sha256": "8e1e6f467ccb5f7a97b8982795e66ff6cb0a3773dfa01b5e66fcb72c70fbbf1e"
+      }
+    },
+    {
+      "name": "upstream-route-exchange",
+      "passed": 15,
+      "failed": 0,
+      "evidence": {
+        "path": ".local/gate-6/session-invitation-exchange/final-reachability.log",
+        "sha256": "143c7d9923b4d69f2f1ecb1e79c94c416a94f6bff80070a63b1416e61272dcb6"
+      }
+    },
+    {
+      "name": "upstream-local-transports",
+      "passed": 39,
+      "failed": 0,
+      "evidence": {
+        "path": ".local/gate-6/session-invitation-exchange/final-transports.log",
+        "sha256": "1179484bff9007d1567cacd265c364bbc40603a5581478e480dc463b6c26e3be"
+      }
+    },
+    {
+      "name": "production-owned-current-consent",
+      "passed": 1,
+      "failed": 0,
+      "evidence": {
+        "path": ".local/gate-6/session-invitation-exchange/production-assurance-final.log",
+        "sha256": "523c85203a0539e003cf96b7d8d83250f1de2c1859e4e16316825cd840ae264b"
+      }
+    },
+    {
+      "name": "production-auxiliary-regressions",
+      "passed": 7,
+      "failed": 0,
+      "evidence": {
+        "path": ".local/gate-6/session-invitation-exchange/production-auxiliary-final.log",
+        "sha256": "1b513f9020fb2095703f58286115630bccfc4cd2117075cda26ae6d1fbfe3d7c"
+      }
+    },
+    {
+      "name": "production-four-party",
+      "passed": 1,
+      "failed": 0,
+      "evidence": {
+        "path": ".local/gate-6/session-invitation-exchange/production-four-party-final.log",
+        "sha256": "6d438307162469eff7aa6211b1bf3b834154f6a6ab0c0d830e72359fbad8e271"
+      }
+    },
+    {
+      "name": "production-records",
+      "passed": 1,
+      "failed": 0,
+      "evidence": {
+        "path": ".local/gate-6/session-invitation-exchange/production-records-final.log",
+        "sha256": "19f5c2521ef4471aa6c1a4ae8e354b08716d0477b81e621d3f5bb3c16b191658"
+      }
+    },
+    {
+      "name": "production-codec",
+      "passed": 1,
+      "failed": 0,
+      "evidence": {
+        "path": ".local/gate-6/session-invitation-exchange/production-codec-final.log",
+        "sha256": "259817dfc3a5e725c1c86dfe413f538f6408bb4787879c30d2a4c0a706bf581f"
+      }
+    },
+    {
+      "name": "production-refresh",
+      "passed": 1,
+      "failed": 0,
+      "evidence": {
+        "path": ".local/gate-6/session-invitation-exchange/production-refresh-final.log",
+        "sha256": "f59db5f0ece2b635a3b56d2276eb1714282918b34240a8b8bdee38ebdcbac0d6"
+      }
+    }
+  ],
+  "checks": [
+    {
+      "name": "dependencies",
+      "exit_code": 0,
+      "evidence": {
+        "path": ".local/gate-6/session-invitation-exchange/dependencies-final.log",
+        "sha256": "fd9d7b181e3ccba9b643af55a186cf132c60aac99c734b2ee4e4e549afe5ffc2"
+      }
+    },
+    {
+      "name": "format",
+      "exit_code": 0,
+      "evidence": {
+        "path": ".local/gate-6/session-invitation-exchange/format-final.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    {
+      "name": "upstream-format",
+      "exit_code": 0,
+      "evidence": {
+        "path": ".local/gate-6/session-invitation-exchange/upstream-format-final.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    {
+      "name": "http-reference",
+      "exit_code": 0,
+      "evidence": {
+        "path": ".local/gate-6/session-invitation-exchange/http-reference-final.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    {
+      "name": "event-reference",
+      "exit_code": 0,
+      "evidence": {
+        "path": ".local/gate-6/session-invitation-exchange/event-reference-final.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    {
+      "name": "progress",
+      "exit_code": 0,
+      "evidence": {
+        "path": ".local/gate-6/session-invitation-exchange/progress-final.log",
+        "sha256": "fedbc03549729d27ac031eee0766ae72281991ae1e9494232887c3160cf754cc"
+      }
+    },
+    {
+      "name": "diff",
+      "exit_code": 0,
+      "evidence": {
+        "path": ".local/gate-6/session-invitation-exchange/diff-final.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    }
+  ],
+  "qualified_cases": [
+    {
+      "case_id": "u6-req-0084",
+      "algorithms": [
+        "EdDSA",
+        "ES256"
+      ],
+      "profile": "Production Connect local native signed QUIC, current original source and physical waiter; public native SDK; actual HTTP consent and explicit enrollment for required assurance.",
+      "tests": [
+        "auxiliary_clauses::production_auxiliary_owned_invitations_and_correlated_decisions",
+        "auxiliary_clauses::production_owned_invitation_decisions_require_configured_human_consent_and_new_waiter"
+      ],
+      "assertions": [
+        "A signed session.accept echoes the actual forwarded wire ID, original CID/SID/source correlation, selected by Participant and compatible capabilities.",
+        "A distinct physical peer, HTTP, wrong SID and a late duplicate cannot consume the exact waiter or execute a command.",
+        "Fresh named source/epoch/recipient/key/physical and configured human-consent authority commit one original decision/presence/capabilities/topology/journal without allocating an ordinary caller operation."
+      ]
+    },
+    {
+      "case_id": "u6-req-0086",
+      "algorithms": [
+        "EdDSA",
+        "ES256"
+      ],
+      "profile": "Production Connect local native signed QUIC, current original source and physical waiter; public native SDK; actual HTTP consent and explicit enrollment for required assurance.",
+      "tests": [
+        "auxiliary_clauses::production_auxiliary_owned_invitations_and_correlated_decisions",
+        "auxiliary_clauses::production_owned_invitation_decisions_require_configured_human_consent_and_new_waiter"
+      ],
+      "assertions": [
+        "A signed session.reject carries the selected by Participant, reason_code486 and busy on its exact original waiter.",
+        "The original pending target decision is retained; rejection of the last invitee makes the Session rejected with busy.",
+        "Cancellation before response and missing required human consent cannot be bypassed. Real consent plus explicit enrollment and logical invitation replay obtain a new valid waiter; an old wire ID stays invalid."
+      ]
+    }
+  ],
+  "partial_cases": [
+    {
+      "case_id": "u6-req-0082",
+      "status": "native-PID-and-Identity-target-forwarding-component-qualified; interop-URI-alternative-open",
+      "assertions": [
+        "Current authenticated idle peers receive original from/to, intent and bounded capabilities without a media Connection or subscription.",
+        "All six canonical invitation media pass: voice, video, voice+video, screen-share, text-chat and mixed. The earlier pre-alpha voice-video/data invitation spellings are replaced, not aliased."
+      ],
+      "remaining": "Designated interop URI target/gateway integration remains open in0083 and prevents a complete0082 claim."
+    }
+  ],
+  "implementation": [
+    "A route origin captures only exact authenticated credential/Device/key metadata under the existing authentication lease and retains the existing authority lifetime registration. Actual delivery obtains one fresh peer/source read union; requests register their final signed wire ID before writing.",
+    "A bounded live worker shares original source IDs across uncertainty and logical retry, deduplicates active source/target jobs, and releases other physical waiters when one decision commits. Waiting retains no application authority reader.",
+    "The dedicated immutable source decision transaction uses fresh exact peer/source/membership/action/recipient and physical-current policy. It creates no ordinary operation/command, emits no invented ordinary operation correlation, and atomically commits the current Session change, journal and original decision. Storage failure rolls all of them back.",
+    "The same configured host human-consent floor gates owned decisions. Identified observations cannot bypass it or invent a blocked command; actual consent and enrollment allow a new current physical waiter for the unchanged original source.",
+    "receive_session_invitation and answer_session_invitation expose this native flow through the public Rust SDK. Directed invitations and other observations share one bounded inbox while keeping their receive APIs separate."
+  ],
+  "initial_attempts": [
+    {
+      "evidence": {
+        "path": ".local/gate-6/session-invitation-exchange/upstream-build-v1.log",
+        "sha256": "8d5a560731e0dd5a55bc956464da01141cbea74df3a6a0cbdfac090640b7bd59"
+      },
+      "result": "Compile caught a partial move of the write-start marker; cloned that Arc before retaining the owned request."
+    },
+    {
+      "evidence": {
+        "path": ".local/gate-6/session-invitation-exchange/store-owned-decisions-v1.log",
+        "sha256": "635f830fb9709c3340479531f9aab62d6c4d3f655a7670be77e365db80ceb2b7"
+      },
+      "result": "Injected storage failure returned the correct storage-unavailable code; repaired the test expectation."
+    },
+    {
+      "evidence": {
+        "path": ".local/gate-6/session-invitation-exchange/runtime-build-v1.log",
+        "sha256": "845b6094605274172ae9c0a3561cd33ae5a847c651486e91ba9c422ddd3b84f0"
+      },
+      "result": "Compile caught the physical-current callback shadowed by a SessionView; renamed the callback."
+    },
+    {
+      "evidence": {
+        "path": ".local/gate-6/session-invitation-exchange/runtime-build-v2.log",
+        "sha256": "6c6c76245dafca5f8803fc74989c978ed5961c341fbf4523797e4c8b30fc3c6f"
+      },
+      "result": "Compile caught an unavailable futures dependency; used the existing Tokio JoinSet. This known failing compiler was stopped before retry."
+    },
+    {
+      "evidence": {
+        "path": ".local/gate-6/session-invitation-exchange/runtime-build-v3.log",
+        "sha256": "a06100dc0af7dc29eb7fc4ec66fb132fe6f4a7910e1ce64ac8bd37554b276952"
+      },
+      "result": "Service compiled successfully. Consumer build was stopped and refreshed to incorporate the concurrently added SDK invitation inbox."
+    },
+    {
+      "evidence": {
+        "path": ".local/gate-6/session-invitation-exchange/runtime-build-v4.log",
+        "sha256": "68175c0ba9b5ea3495c984c57b0f9f24b42265345e30c147fb0cbd79b9858df6"
+      },
+      "result": "Test compile caught raw public snapshot item/query types; deserialize the actual public DTOs."
+    },
+    {
+      "evidence": {
+        "path": ".local/gate-6/session-invitation-exchange/production-assurance-red-v1.log",
+        "sha256": "0668697b1c031abd66e7b735d01292062f784a146050f8d1ba83aed5f5345fce"
+      },
+      "result": "The production test reproduced the new path missing configured human consent. Added the shared host policy guard; current negative and real-consent positive profiles must pass before qualification."
+    }
+  ],
+  "limits": [
+    "Only0084/0086 are newly locally qualified;16 of61 exact assigned clauses now qualify locally and45 remain. G6-046, the full105-task goal and Gate6 acceptance remain incomplete.",
+    "No complete0081 flow or0082/0083 URI claim: original caller accept/reject relays, correlated cancellation notification, gateway URI admission, started/joined/left observations, automatic Connection/grace behavior and task-source G6-055 integration remain open.",
+    "No persistent offline invitation queue or automatic retry of an expired physical waiter is claimed. The authoritative pending source and journal/snapshot allow explicit logical retry/recovery.",
+    "The upstream WebTransport/WSS fixtures qualify only their reusable local transport behavior, not production Connect Linux, remote/browser/provider or named G6-093 profiles. No publication.",
+    "Earlier unresolved provider/consultation/retention checks remain explicit historical observations, not promoted by these selected passes."
+  ],
+  "reproduce": [
+    "bash scripts/prepare-dependencies.sh",
+    "CARGO_INCREMENTAL=0 cargo test -p connect-store --lib --locked --offline -j1 session_control:: -- --test-threads=1",
+    "CARGO_INCREMENTAL=0 cargo test -p connect-server --test gate6_canonical_runtime --locked --offline -j1 auxiliary_clauses:: -- --test-threads=1",
+    "CARGO_INCREMENTAL=0 cargo test --manifest-path .deps/rvoip/Cargo.toml --target-dir target -p rvoip-uctp --test v2_auth_dispatch --test v2_reachability --test v2_canonical_transports --locked --offline -j1"
+  ]
+}

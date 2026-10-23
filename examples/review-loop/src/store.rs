@@ -192,7 +192,7 @@ impl WorkStore {
                             let operation = Operation::Send {
                                 request_id: id(),
                                 conversation_id: event.conversation_id.clone(),
-                                body,
+                                message: connect_client::MessageDraft::text_all(body),
                             };
                             tx.execute(
                                 "INSERT OR IGNORE INTO commands(key,operation) VALUES(?1,?2)",

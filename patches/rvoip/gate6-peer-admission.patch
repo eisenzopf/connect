@@ -1,0 +1,2314 @@
+diff --git a/crates/foundation/rvoip-core/src/lib.rs b/crates/foundation/rvoip-core/src/lib.rs
+index fa48392..51aca02 100644
+--- a/crates/foundation/rvoip-core/src/lib.rs
++++ b/crates/foundation/rvoip-core/src/lib.rs
+@@ -117,6 +117,7 @@
+ pub use rvoip_core_traits::peer_media;
+ 
+ pub mod adapter;
++pub mod addressed_messages;
+ pub mod bridge;
+ pub mod broadcast;
+ pub mod capability;
+@@ -134,20 +135,20 @@ pub mod ids;
+ pub mod inbound_admission;
+ pub mod media_diagnostics;
+ pub mod media_graph;
+-pub mod addressed_messages;
+ pub mod message;
+ pub mod operational_events;
+ pub mod orchestrator;
+ pub mod participant;
+ pub mod participant_transitions;
++pub mod peer_admission;
+ pub mod relationships;
+ pub mod rtp_boundary;
+ pub mod session;
+ pub mod signing;
++pub mod staged_streams;
+ pub mod store;
+ pub mod stream;
+ pub mod stream_lifecycle;
+-pub mod staged_streams;
+ pub mod subscriptions;
+ pub mod vcon;
+ pub mod video_bridge;
+diff --git a/crates/foundation/rvoip-core/src/orchestrator.rs b/crates/foundation/rvoip-core/src/orchestrator.rs
+index 7cb2fcf..3338a4e 100644
+--- a/crates/foundation/rvoip-core/src/orchestrator.rs
++++ b/crates/foundation/rvoip-core/src/orchestrator.rs
+@@ -357,6 +357,8 @@ enum AtomicPublishedDuplicateDecision {
+ 
+ #[derive(Debug)]
+ struct ConnectionLifecycleState {
++    peer_admission: Option<Arc<crate::peer_admission::PeerRoutePermit>>,
++    peer_origin: Option<uuid::Uuid>,
+     generation: u64,
+     active: bool,
+     retired: bool,
+@@ -2551,11 +2553,18 @@ impl Orchestrator {
+         transport: Transport,
+         lifecycle_generation: u64,
+     ) {
+-        self.adapter_cleanup_quarantines
++        if self.quarantine_live_peer_cleanup(connection_id, transport) {
++            return;
++        }
++        let removed = self
++            .adapter_cleanup_quarantines
+             .remove_if(connection_id, |_, quarantine| {
+                 quarantine.transport == transport
+                     && quarantine.lifecycle_generation == lifecycle_generation
+             });
++        if removed.is_some() {
++            self.release_retired_peer_admission(connection_id, transport);
++        }
+     }
+ 
+     fn resolve_adapter_cleanup_quarantine_from_terminal(
+@@ -2563,10 +2572,14 @@ impl Orchestrator {
+         connection_id: &ConnectionId,
+         transport: Transport,
+     ) {
++        if self.quarantine_live_peer_cleanup(connection_id, transport) {
++            return;
++        }
+         self.adapter_cleanup_quarantines
+             .remove_if(connection_id, |_, quarantine| {
+                 quarantine.transport == transport
+             });
++        self.release_retired_peer_admission(connection_id, transport);
+     }
+ 
+     /// Install one bounded, fail-closed inbound admission gate.
+@@ -3721,6 +3734,8 @@ impl Orchestrator {
+                     retired: false,
+                     admission_outcomes_notified: HashSet::new(),
+                     operational_connected_emitted: false,
++                    peer_admission: None,
++                    peer_origin: None,
+                 }))
+             })
+             .clone();
+@@ -3750,6 +3765,8 @@ impl Orchestrator {
+                 retired: true,
+                 admission_outcomes_notified: HashSet::new(),
+                 operational_connected_emitted: false,
++                peer_admission: None,
++                peer_origin: None,
+             })),
+         );
+     }
+@@ -3839,6 +3856,8 @@ impl Orchestrator {
+                 retired: true,
+                 admission_outcomes_notified: HashSet::new(),
+                 operational_connected_emitted: false,
++                peer_admission: None,
++                peer_origin: None,
+             }));
+             self.connection_lifecycles
+                 .insert(connection_id.clone(), Arc::clone(&lifecycle));
+@@ -3904,6 +3923,8 @@ impl Orchestrator {
+             retired: false,
+             admission_outcomes_notified: HashSet::new(),
+             operational_connected_emitted: false,
++            peer_admission: None,
++            peer_origin: None,
+         }));
+         self.connection_lifecycles
+             .insert(connection_id.clone(), Arc::clone(&state));
+@@ -5009,6 +5030,8 @@ impl Orchestrator {
+                         retired: true,
+                         admission_outcomes_notified: HashSet::new(),
+                         operational_connected_emitted: false,
++                        peer_admission: None,
++                        peer_origin: None,
+                     })),
+                 );
+             } else {
+@@ -13210,6 +13233,8 @@ mod cross_crate_publisher_tests {
+                 retired: false,
+                 admission_outcomes_notified: HashSet::new(),
+                 operational_connected_emitted: false,
++                peer_admission: None,
++                peer_origin: None,
+             })),
+         );
+ 
+diff --git a/crates/foundation/rvoip-core/src/orchestrator/participant_control.rs b/crates/foundation/rvoip-core/src/orchestrator/participant_control.rs
+index 1b6f361..b55ec54 100644
+--- a/crates/foundation/rvoip-core/src/orchestrator/participant_control.rs
++++ b/crates/foundation/rvoip-core/src/orchestrator/participant_control.rs
+@@ -121,7 +121,14 @@ struct LifecycleDeliveryLease<'a> {
+ }
+ impl DeliveryLease for LifecycleDeliveryLease<'_> {
+     fn is_live(&self) -> bool {
+-        self.state.active && !self.state.retired && self.state.generation == self.generation
++        self.state.active
++            && !self.state.retired
++            && self.state.generation == self.generation
++            && self
++                .state
++                .peer_admission
++                .as_ref()
++                .is_none_or(|permit| !permit.peer.is_closed())
+     }
+ }
+ impl DeliveryGuard for LifecycleDeliveryGuard {
+@@ -316,8 +323,54 @@ impl Orchestrator {
+         mutation: ParticipantMutation,
+         deadline: tokio::time::Instant,
+         cancellation: CancellationToken,
++    ) -> ControlResult<ParticipantObservation> {
++        self.change_participant_internal(
++            session_id,
++            principal,
++            mutation,
++            deadline,
++            cancellation,
++            None,
++        )
++        .await
++    }
++
++    /// Admit this physical peer's own verified identity/device route. Quota is
++    /// reserved before adapter acceptance/media preparation and retained through
++    /// uncertain cleanup. This does not authorize a membership or media grant.
++    pub async fn admit_peer_session_connection(
++        self: &Arc<Self>,
++        peer: Arc<crate::peer_admission::PeerAdmission>,
++        session_id: &SessionId,
++        principal: AuthenticatedPrincipal,
++        mutation: ParticipantMutation,
++        deadline: tokio::time::Instant,
++        cancellation: CancellationToken,
++    ) -> ControlResult<ParticipantObservation> {
++        if !matches!(mutation.change, ParticipantChange::Admit { .. }) {
++            return Err(ParticipantControlError::Authority);
++        }
++        self.change_participant_internal(
++            session_id,
++            principal,
++            mutation,
++            deadline,
++            cancellation,
++            Some(peer),
++        )
++        .await
++    }
++    async fn change_participant_internal(
++        self: &Arc<Self>,
++        session_id: &SessionId,
++        principal: AuthenticatedPrincipal,
++        mutation: ParticipantMutation,
++        deadline: tokio::time::Instant,
++        cancellation: CancellationToken,
++        peer: Option<Arc<crate::peer_admission::PeerAdmission>>,
+     ) -> ControlResult<ParticipantObservation> {
+         let runtime = self.participant_runtime(session_id)?;
++        let peer_cancel = peer.as_ref().map(|peer| peer.cancellation());
+         let deadline =
+             deadline.min(tokio::time::Instant::now() + self.config.bridge_stream_deadline);
+         let mut candidate = {
+@@ -332,11 +385,40 @@ impl Orchestrator {
+             let lease = runtime.policy.current(&scope)?;
+             let authority = lease.authority();
+             Self::check_participant_authority(&scope, authority)?;
++            if let Some(peer) = &peer {
++                peer.check_target(
++                    &principal,
++                    &authority.target,
++                    authority
++                        .endpoint
++                        .as_ref()
++                        .ok_or(ParticipantControlError::Authority)?,
++                )
++                .map_err(peer_error)?;
++            }
+             if let Some(receipt) =
+                 state
+                     .controller
+                     .replay(&authority.actor, &authority.target, &mutation)?
+             {
++                if let Some(peer) = &peer {
++                    let ParticipantChange::Admit { connection, .. } = &mutation.change else {
++                        return Err(ParticipantControlError::Authority);
++                    };
++                    if !self
++                        .connection_lifecycles
++                        .get(connection)
++                        .is_some_and(|lifecycle| {
++                            lifecycle
++                                .lock()
++                                .unwrap_or_else(|p| p.into_inner())
++                                .peer_origin
++                                == Some(peer.incarnation())
++                        })
++                    {
++                        return Err(ParticipantControlError::Authority);
++                    }
++                }
+                 return Ok(receipt);
+             }
+             if state.ended {
+@@ -363,6 +445,17 @@ impl Orchestrator {
+                     if !authority.may_receive_audio {
+                         return Err(ParticipantControlError::Authority);
+                     }
++                    if peer.is_some()
++                        && !self
++                            .adapter(endpoint.transport())?
++                            .lifecycle_capabilities()
++                            .authoritative_liveness
++                    {
++                        return Err(RvoipError::NotImplemented(
++                            "peer admission requires authoritative adapter liveness",
++                        )
++                        .into());
++                    }
+                     if state.pending.contains_key(connection)
+                         || self.sessions_by_connection.contains_key(connection)
+                     {
+@@ -418,6 +511,26 @@ impl Orchestrator {
+                     {
+                         return Err(ParticipantTransitionError::Conflict.into());
+                     }
++                    if let Some(peer) = &peer {
++                        if self.connection_principal(connection)?.ownership_key()
++                            != principal.ownership_key()
++                        {
++                            return Err(ParticipantControlError::Authority);
++                        }
++                        let permit = peer
++                            .reserve(self, session_id, connection, endpoint.transport())
++                            .map_err(peer_error)?;
++                        let mut current = lifecycle.state.lock().unwrap_or_else(|p| p.into_inner());
++                        if !current.active
++                            || current.retired
++                            || current.generation != lifecycle.generation
++                            || current.peer_admission.is_some()
++                        {
++                            return Err(ParticipantTransitionError::Conflict.into());
++                        }
++                        current.peer_origin = Some(peer.incarnation());
++                        current.peer_admission = Some(permit);
++                    }
+                     let cancellation = CancellationToken::new();
+                     state.pending.insert(
+                         connection.clone(),
+@@ -486,6 +599,8 @@ impl Orchestrator {
+                 Ok::<(), ParticipantControlError>(())
+             };
+             tokio::select! {
++                biased;
++                _=async{match &peer_cancel {Some(token)=>token.cancelled().await,None=>std::future::pending::<()>().await}}=>return Err(ParticipantControlError::Cancelled),
+                 _ = cancellation.cancelled() => return Err(ParticipantControlError::Cancelled),
+                 _ = terminal_cancellation.cancelled() => return Err(ParticipantTransitionError::Inactive.into()),
+                 result = tokio::time::timeout_at(deadline, preparation) => {
+@@ -506,11 +621,40 @@ impl Orchestrator {
+             let lease = runtime.policy.current(&scope)?;
+             let authority = lease.authority();
+             Self::check_participant_authority(&scope, authority)?;
++            if let Some(peer) = &peer {
++                peer.check_target(
++                    &principal,
++                    &authority.target,
++                    authority
++                        .endpoint
++                        .as_ref()
++                        .ok_or(ParticipantControlError::Authority)?,
++                )
++                .map_err(peer_error)?;
++            }
+             if let Some(receipt) =
+                 state
+                     .controller
+                     .replay(&authority.actor, &authority.target, &mutation)?
+             {
++                if let Some(peer) = &peer {
++                    let ParticipantChange::Admit { connection, .. } = &mutation.change else {
++                        return Err(ParticipantControlError::Authority);
++                    };
++                    if !self
++                        .connection_lifecycles
++                        .get(connection)
++                        .is_some_and(|lifecycle| {
++                            lifecycle
++                                .lock()
++                                .unwrap_or_else(|p| p.into_inner())
++                                .peer_origin
++                                == Some(peer.incarnation())
++                        })
++                    {
++                        return Err(ParticipantControlError::Authority);
++                    }
++                }
+                 return Ok(receipt);
+             }
+             if state.ended {
+@@ -601,6 +745,17 @@ impl Orchestrator {
+             // Locks and adapter inspection can outlive a short credential or
+             // deadline. Recheck time-bound authority at the mutation decision.
+             Self::check_participant_authority(&scope, authority)?;
++            if let Some(peer) = &peer {
++                peer.check_target(
++                    &principal,
++                    &authority.target,
++                    authority
++                        .endpoint
++                        .as_ref()
++                        .ok_or(ParticipantControlError::Authority)?,
++                )
++                .map_err(peer_error)?;
++            }
+             if cancellation.is_cancelled() {
+                 return Err(ParticipantControlError::Cancelled);
+             }
+@@ -748,6 +903,96 @@ impl Orchestrator {
+         }
+     }
+ 
++    pub(crate) fn retire_peer_admission_route(
++        self: &Arc<Self>,
++        connection: &ConnectionId,
++        peer: uuid::Uuid,
++    ) {
++        let owned = self
++            .connection_lifecycles
++            .get(connection)
++            .is_some_and(|lifecycle| {
++                let state = lifecycle.lock().unwrap_or_else(|p| p.into_inner());
++                state.active
++                    && !state.retired
++                    && state
++                        .peer_admission
++                        .as_ref()
++                        .is_some_and(|permit| permit.belongs_to(peer))
++            });
++        if owned {
++            self.retire_participant_route(connection);
++        }
++    }
++    /// Terminal notifications are hints until the owning adapter also reports
++    /// its local route closed. Missing/default liveness is fail-closed.
++    pub(super) fn quarantine_live_peer_cleanup(
++        &self,
++        connection: &ConnectionId,
++        transport: Transport,
++    ) -> bool {
++        let generation = self
++            .connection_lifecycles
++            .get(connection)
++            .and_then(|lifecycle| {
++                let state = lifecycle.lock().unwrap_or_else(|p| p.into_inner());
++                (state.retired
++                    && state
++                        .peer_admission
++                        .as_ref()
++                        .is_some_and(|permit| permit.transport == transport))
++                .then_some(state.generation)
++            });
++        let Some(generation) = generation else {
++            return false;
++        };
++        if self.adapter(transport).is_ok_and(|adapter| {
++            adapter.lifecycle_capabilities().authoritative_liveness
++                && !adapter.is_connection_live(connection)
++        }) {
++            return false;
++        }
++        let _registry = self
++            .connection_registry_lock
++            .lock()
++            .unwrap_or_else(|p| p.into_inner());
++        if self.adapter_cleanup_quarantines.contains_key(connection)
++            || self.adapter_cleanup_quarantines.len()
++                < self.connection_id_budget.load(Ordering::Relaxed)
++        {
++            self.adapter_cleanup_quarantines.insert(
++                connection.clone(),
++                AdapterCleanupQuarantine {
++                    transport,
++                    lifecycle_generation: generation,
++                },
++            );
++        }
++        true
++    }
++    pub(super) fn release_retired_peer_admission(
++        &self,
++        connection: &ConnectionId,
++        transport: Transport,
++    ) {
++        let permit = self
++            .connection_lifecycles
++            .get(connection)
++            .and_then(|lifecycle| {
++                let mut state = lifecycle.lock().unwrap_or_else(|p| p.into_inner());
++                if state.retired
++                    && state
++                        .peer_admission
++                        .as_ref()
++                        .is_some_and(|permit| permit.transport == transport)
++                {
++                    state.peer_admission.take()
++                } else {
++                    None
++                }
++            });
++        drop(permit);
++    }
+     pub(super) fn participant_connection_retired(&self, connection: &ConnectionId) {
+         let runtime = self
+             .managed_participant_connections
+@@ -808,3 +1053,13 @@ impl Orchestrator {
+         }
+     }
+ }
++
++fn peer_error(error: crate::peer_admission::PeerAdmissionError) -> ParticipantControlError {
++    use crate::peer_admission::PeerAdmissionError::*;
++    match error {
++        Capacity => ParticipantTransitionError::Capacity.into(),
++        Conflict => ParticipantTransitionError::Conflict.into(),
++        Closed => ParticipantControlError::Cancelled,
++        Authority => ParticipantControlError::Authority,
++    }
++}
+diff --git a/crates/foundation/rvoip-core/src/peer_admission.rs b/crates/foundation/rvoip-core/src/peer_admission.rs
+new file mode 100644
+index 0000000..b0878d7
+--- /dev/null
++++ b/crates/foundation/rvoip-core/src/peer_admission.rs
+@@ -0,0 +1,316 @@
++//! Physical-peer resource ownership, never membership or execution authority.
++//! Keep the unique owner through authentication refresh; dropping it retires
++//! only that physical peer's admitted managed routes. Cleanup retains permits.
++use crate::{
++    connection::Transport,
++    identity::{
++        AuthenticatedPrincipal, AuthenticationMethod, IdentityAssurance, PrincipalOwnershipKey,
++    },
++    ids::{ConnectionId, DeviceId, IdentityId, SessionId},
++    orchestrator::Orchestrator,
++    relationships::{EndpointBinding, IdentityBinding, Membership},
++};
++use std::{
++    collections::{HashMap, HashSet},
++    sync::{Arc, Mutex, Weak},
++};
++use tokio_util::sync::CancellationToken;
++use uuid::Uuid;
++
++#[derive(Clone, Copy, Debug, PartialEq, Eq)]
++pub struct PeerAdmissionLimits {
++    pub sessions: usize,
++    pub connections: usize,
++}
++impl Default for PeerAdmissionLimits {
++    fn default() -> Self {
++        Self {
++            sessions: 32,
++            connections: 64,
++        }
++    }
++}
++#[derive(Clone, Copy, Debug, PartialEq, Eq, thiserror::Error)]
++pub enum PeerAdmissionError {
++    #[error("peer resource owner denied")]
++    Authority,
++    #[error("peer resource capacity exhausted")]
++    Capacity,
++    #[error("peer resource association conflicts")]
++    Conflict,
++    #[error("physical peer retired")]
++    Closed,
++}
++#[derive(Clone, Copy, Debug, PartialEq, Eq)]
++pub struct PeerAdmissionSnapshot {
++    pub sessions: usize,
++    pub connections: usize,
++    pub limits: PeerAdmissionLimits,
++    pub closed: bool,
++}
++struct Record {
++    session: SessionId,
++    nonce: Uuid,
++}
++struct State {
++    core: Option<Weak<Orchestrator>>,
++    routes: HashMap<ConnectionId, Record>,
++}
++pub struct PeerAdmission {
++    id: Uuid,
++    owner: PrincipalOwnershipKey,
++    identity: IdentityId,
++    device: DeviceId,
++    limits: PeerAdmissionLimits,
++    lifetime: CancellationToken,
++    state: Mutex<State>,
++}
++impl std::fmt::Debug for PeerAdmission {
++    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
++        f.debug_struct("PeerAdmission")
++            .field("snapshot", &self.snapshot())
++            .finish()
++    }
++}
++/// Unique server-owned retirement responsibility. References handed to handlers
++/// cannot close it or replace its identity/device/physical incarnation.
++pub struct PeerAdmissionOwner {
++    peer: Arc<PeerAdmission>,
++}
++impl PeerAdmissionOwner {
++    pub fn new(
++        principal: &AuthenticatedPrincipal,
++        identity: IdentityId,
++        device: DeviceId,
++        parent: CancellationToken,
++        limits: PeerAdmissionLimits,
++    ) -> Result<Self, PeerAdmissionError> {
++        if limits.sessions == 0
++            || limits.sessions > 4096
++            || limits.connections == 0
++            || limits.connections > 4096
++        {
++            return Err(PeerAdmissionError::Capacity);
++        }
++        if device.as_str().is_empty()
++            || device.as_str().len() > 128
++            || !device
++                .as_str()
++                .bytes()
++                .all(|b| b.is_ascii_alphanumeric() || b"._~-".contains(&b))
++        {
++            return Err(PeerAdmissionError::Authority);
++        }
++        validate(principal, &identity)?;
++        Ok(Self {
++            peer: Arc::new(PeerAdmission {
++                id: Uuid::new_v4(),
++                owner: principal.ownership_key(),
++                identity,
++                device,
++                limits,
++                lifetime: parent.child_token(),
++                state: Mutex::new(State {
++                    core: None,
++                    routes: HashMap::new(),
++                }),
++            }),
++        })
++    }
++    pub fn peer(&self) -> Arc<PeerAdmission> {
++        self.peer.clone()
++    }
++}
++impl Drop for PeerAdmissionOwner {
++    fn drop(&mut self) {
++        self.peer.close();
++    }
++}
++fn validate(
++    principal: &AuthenticatedPrincipal,
++    identity: &IdentityId,
++) -> Result<(), PeerAdmissionError> {
++    let now = chrono::Utc::now();
++    if principal.method == AuthenticationMethod::Anonymous
++        || principal.expires_at.is_none_or(|time| time <= now)
++        || principal.issuer.as_ref().is_none_or(|s| s.is_empty())
++    {
++        return Err(PeerAdmissionError::Authority);
++    }
++    IdentityBinding::from_authenticated(principal, identity.clone(), now)
++        .map_err(|_| PeerAdmissionError::Authority)?;
++    match &principal.assurance {
++        IdentityAssurance::Anonymous | IdentityAssurance::Pseudonymous { .. } => {
++            return Err(PeerAdmissionError::Authority)
++        }
++        IdentityAssurance::TaskScoped {
++            identity: id,
++            expires_at,
++            ..
++        } if id != identity || *expires_at <= now => return Err(PeerAdmissionError::Authority),
++        IdentityAssurance::UserAuthorized { identity: id, .. } if id != identity => {
++            return Err(PeerAdmissionError::Authority)
++        }
++        _ => {}
++    }
++    Ok(())
++}
++impl PeerAdmission {
++    pub(crate) fn incarnation(&self) -> Uuid {
++        self.id
++    }
++    pub fn validate_principal(
++        &self,
++        principal: &AuthenticatedPrincipal,
++    ) -> Result<(), PeerAdmissionError> {
++        if self.is_closed() {
++            return Err(PeerAdmissionError::Closed);
++        }
++        validate(principal, &self.identity)?;
++        if self.owner != principal.ownership_key() {
++            return Err(PeerAdmissionError::Authority);
++        }
++        Ok(())
++    }
++    pub fn validate_binding(
++        &self,
++        principal: &AuthenticatedPrincipal,
++        identity: &IdentityId,
++        device: &DeviceId,
++    ) -> Result<(), PeerAdmissionError> {
++        self.validate_principal(principal)?;
++        if identity != &self.identity || device != &self.device {
++            return Err(PeerAdmissionError::Authority);
++        }
++        Ok(())
++    }
++    pub fn is_closed(&self) -> bool {
++        self.lifetime.is_cancelled()
++    }
++    pub fn snapshot(&self) -> PeerAdmissionSnapshot {
++        let state = self.state.lock().unwrap_or_else(|p| p.into_inner());
++        PeerAdmissionSnapshot {
++            sessions: state
++                .routes
++                .values()
++                .map(|r| &r.session)
++                .collect::<HashSet<_>>()
++                .len(),
++            connections: state.routes.len(),
++            limits: self.limits,
++            closed: self.is_closed(),
++        }
++    }
++    pub(crate) fn cancellation(&self) -> CancellationToken {
++        self.lifetime.clone()
++    }
++    pub(crate) fn check_target(
++        &self,
++        principal: &AuthenticatedPrincipal,
++        member: &Membership,
++        endpoint: &EndpointBinding,
++    ) -> Result<(), PeerAdmissionError> {
++        self.validate_principal(principal)?;
++        member
++            .revalidate_principal(principal, chrono::Utc::now())
++            .map_err(|_| PeerAdmissionError::Authority)?;
++        if member.identity() != &self.identity
++            || endpoint.device() != &self.device
++            || endpoint.identity() != &self.identity
++        {
++            return Err(PeerAdmissionError::Authority);
++        }
++        Ok(())
++    }
++    pub(crate) fn reserve(
++        self: &Arc<Self>,
++        core: &Arc<Orchestrator>,
++        session: &SessionId,
++        connection: &ConnectionId,
++        transport: Transport,
++    ) -> Result<Arc<PeerRoutePermit>, PeerAdmissionError> {
++        let mut state = self.state.lock().unwrap_or_else(|p| p.into_inner());
++        if self.is_closed() {
++            return Err(PeerAdmissionError::Closed);
++        }
++        let weak = Arc::downgrade(core);
++        if state
++            .core
++            .as_ref()
++            .is_some_and(|old| !Weak::ptr_eq(old, &weak))
++        {
++            return Err(PeerAdmissionError::Authority);
++        }
++        if state.routes.contains_key(connection) {
++            return Err(PeerAdmissionError::Conflict);
++        }
++        let sessions = state
++            .routes
++            .values()
++            .map(|r| &r.session)
++            .collect::<HashSet<_>>();
++        if state.routes.len() >= self.limits.connections
++            || (!sessions.contains(session) && sessions.len() >= self.limits.sessions)
++        {
++            return Err(PeerAdmissionError::Capacity);
++        }
++        let nonce = Uuid::new_v4();
++        state.core = Some(weak);
++        state.routes.insert(
++            connection.clone(),
++            Record {
++                session: session.clone(),
++                nonce,
++            },
++        );
++        Ok(Arc::new(PeerRoutePermit {
++            peer: self.clone(),
++            connection: connection.clone(),
++            nonce,
++            transport,
++        }))
++    }
++    fn close(&self) {
++        self.lifetime.cancel();
++        let (core, routes) = {
++            let state = self.state.lock().unwrap_or_else(|p| p.into_inner());
++            (
++                state.core.as_ref().and_then(Weak::upgrade),
++                state.routes.keys().cloned().collect::<Vec<_>>(),
++            )
++        };
++        if let Some(core) = core {
++            for connection in routes {
++                core.retire_peer_admission_route(&connection, self.id);
++            }
++        }
++    }
++}
++pub(crate) struct PeerRoutePermit {
++    pub(crate) peer: Arc<PeerAdmission>,
++    connection: ConnectionId,
++    nonce: Uuid,
++    pub(crate) transport: Transport,
++}
++impl PeerRoutePermit {
++    pub(crate) fn belongs_to(&self, id: Uuid) -> bool {
++        self.peer.id == id
++    }
++}
++impl std::fmt::Debug for PeerRoutePermit {
++    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
++        f.write_str("PeerRoutePermit(redacted)")
++    }
++}
++impl Drop for PeerRoutePermit {
++    fn drop(&mut self) {
++        let mut state = self.peer.state.lock().unwrap_or_else(|p| p.into_inner());
++        if state
++            .routes
++            .get(&self.connection)
++            .is_some_and(|r| r.nonce == self.nonce)
++        {
++            state.routes.remove(&self.connection);
++        }
++    }
++}
+diff --git a/crates/foundation/rvoip-core/tests/peer_admission.rs b/crates/foundation/rvoip-core/tests/peer_admission.rs
+new file mode 100644
+index 0000000..5e09cf9
+--- /dev/null
++++ b/crates/foundation/rvoip-core/tests/peer_admission.rs
+@@ -0,0 +1,425 @@
++//! Managed core admission, including actual mixer and adapter acceptance.
++#[path = "support/participant_control_fixture.rs"]
++#[allow(dead_code)]
++mod fixture;
++use fixture::*;
++use rvoip_core::{
++    identity::{AuthenticatedPrincipal, CredentialKind, IdentityAssurance},
++    ids::{DeviceId, EndpointId, IdentityId},
++    orchestrator::participant_control::*,
++    participant_transitions::*,
++    peer_admission::*,
++    relationships::{EndpointBinding, IdentityBinding},
++};
++use std::{sync::atomic::Ordering, time::Duration};
++use tokio_util::sync::CancellationToken;
++fn actor(name: &str) -> AuthenticatedPrincipal {
++    let mut p = principal(name);
++    p.expires_at = Some(chrono::Utc::now() + chrono::Duration::hours(1));
++    p.assurance = IdentityAssurance::Identified {
++        credential_kind: CredentialKind::Oidc,
++    };
++    p
++}
++fn scope_owner(
++    name: &str,
++    limits: PeerAdmissionLimits,
++    parent: CancellationToken,
++) -> PeerAdmissionOwner {
++    PeerAdmissionOwner::new(
++        &actor(name),
++        IdentityId::from_string(format!("id_{name}")),
++        DeviceId::from_string(format!("device_{name}")),
++        parent,
++        limits,
++    )
++    .unwrap()
++}
++async fn connection(
++    f: &Fixture,
++    name: &str,
++    ready: bool,
++) -> (rvoip_core::ConnectionId, std::sync::Arc<TestStream>) {
++    let (id, stream) = f.connection(name, ready).await;
++    let p = actor(name);
++    let binding = IdentityBinding::from_authenticated(
++        &p,
++        IdentityId::from_string(format!("id_{name}")),
++        chrono::Utc::now(),
++    )
++    .unwrap();
++    let mut endpoint = EndpointBinding::provision(
++        binding.clone(),
++        EndpointId::new(),
++        DeviceId::from_string(format!("device_{name}")),
++        rvoip_core::Transport::Sip,
++        "sip:fixture.invalid".into(),
++    )
++    .unwrap();
++    endpoint
++        .verify(&binding, "controlled-proof".into(), chrono::Utc::now())
++        .unwrap();
++    f.policy
++        .0
++        .write()
++        .unwrap()
++        .endpoints
++        .insert(id.clone(), endpoint);
++    f.adapter.authenticate(&id, p).await;
++    until(|| f.orch.connection_principal(&id).is_ok()).await;
++    (id, stream)
++}
++async fn admit(
++    f: &Fixture,
++    peer: &std::sync::Arc<PeerAdmission>,
++    session: &rvoip_core::SessionId,
++    name: &str,
++    id: &rvoip_core::ConnectionId,
++) -> ControlResult<ParticipantObservation> {
++    let mutation = f.intent(
++        session,
++        name,
++        &format!("op_{}", uuid::Uuid::new_v4().simple()),
++        ParticipantChange::Admit {
++            connection: id.clone(),
++            role_override: None,
++        },
++    );
++    f.orch
++        .admit_peer_session_connection(
++            peer.clone(),
++            session,
++            actor(name),
++            mutation,
++            tokio::time::Instant::now() + Duration::from_secs(3),
++            CancellationToken::new(),
++        )
++        .await
++}
++#[tokio::test]
++async fn default_thirty_two_sessions_and_sixty_four_connections_count_actual_associations() {
++    let f = Fixture::new().await;
++    let owner = scope_owner("alice", Default::default(), CancellationToken::new());
++    let peer = owner.peer();
++    let mut sessions = vec![f.session.clone()];
++    for _ in 1..33 {
++        sessions.push(f.second_session().await);
++    }
++    for session in &sessions[..32] {
++        let (id, _) = connection(&f, "alice", true).await;
++        admit(&f, &peer, session, "alice", &id).await.unwrap();
++    }
++    assert_eq!(peer.snapshot().sessions, 32);
++    assert_eq!(peer.snapshot().connections, 32);
++    let accepted = f.adapter.accepted.load(Ordering::Acquire);
++    let (id, _) = connection(&f, "alice", true).await;
++    assert!(matches!(
++        admit(&f, &peer, &sessions[32], "alice", &id).await,
++        Err(ParticipantControlError::Transition(
++            ParticipantTransitionError::Capacity
++        ))
++    ));
++    assert_eq!(f.adapter.accepted.load(Ordering::Acquire), accepted);
++    for session in &sessions[..32] {
++        let (id, _) = connection(&f, "alice", true).await;
++        admit(&f, &peer, session, "alice", &id).await.unwrap();
++    }
++    assert_eq!(peer.snapshot().sessions, 32);
++    assert_eq!(peer.snapshot().connections, 64);
++    let (id, _) = connection(&f, "alice", true).await;
++    assert!(matches!(
++        admit(&f, &peer, &sessions[0], "alice", &id).await,
++        Err(ParticipantControlError::Transition(
++            ParticipantTransitionError::Capacity
++        ))
++    ));
++    assert_eq!(f.adapter.accepted.load(Ordering::Acquire), 64);
++    drop(owner);
++    until(|| peer.snapshot().connections == 0).await;
++    assert!(peer.snapshot().closed);
++    assert_eq!(peer.snapshot().sessions, 0);
++}
++#[tokio::test]
++async fn owner_drop_retires_only_its_routes_in_shared_session_and_preserves_other_peer_audio() {
++    let f = Fixture::new().await;
++    let parent = CancellationToken::new();
++    let a = scope_owner("alice", Default::default(), parent.clone());
++    let b = scope_owner("bob", Default::default(), parent.clone());
++    let c = scope_owner("carol", Default::default(), parent.clone());
++    let (ai, _) = connection(&f, "alice", true).await;
++    let (bi, bs) = connection(&f, "bob", true).await;
++    let (ci, cs) = connection(&f, "carol", true).await;
++    admit(&f, &a.peer(), &f.session, "alice", &ai)
++        .await
++        .unwrap();
++    admit(&f, &b.peer(), &f.session, "bob", &bi).await.unwrap();
++    admit(&f, &c.peer(), &f.session, "carol", &ci)
++        .await
++        .unwrap();
++    let (cancel, tone) = bs.continuous_tone();
++    cs.assert_receives_audio().await;
++    let peer = a.peer();
++    drop(a);
++    until(|| peer.snapshot().connections == 0).await;
++    assert!(!parent.is_cancelled());
++    assert_eq!(b.peer().snapshot().connections, 1);
++    assert_eq!(c.peer().snapshot().connections, 1);
++    assert_eq!(f.orch.participant_capacity(&f.session).unwrap().0, 2);
++    cs.assert_receives_audio().await;
++    cancel.cancel();
++    tone.await.unwrap();
++    drop(b);
++    drop(c);
++}
++#[tokio::test]
++async fn pending_readiness_reserves_capacity_and_cancelled_cleanup_cannot_refund_uncertainty() {
++    let f = Fixture::new().await;
++    let owner = scope_owner(
++        "alice",
++        PeerAdmissionLimits {
++            sessions: 1,
++            connections: 1,
++        },
++        CancellationToken::new(),
++    );
++    let peer = owner.peer();
++    let (id, _) = connection(&f, "alice", false).await;
++    f.adapter.fail_end.store(true, Ordering::Release);
++    let mutation = f.intent(
++        &f.session,
++        "alice",
++        "pending_peer",
++        ParticipantChange::Admit {
++            connection: id.clone(),
++            role_override: None,
++        },
++    );
++    let orch = f.orch.clone();
++    let sid = f.session.clone();
++    let p = peer.clone();
++    let cancel = CancellationToken::new();
++    let cancelled = cancel.clone();
++    let task = tokio::spawn(async move {
++        orch.admit_peer_session_connection(
++            p,
++            &sid,
++            actor("alice"),
++            mutation,
++            tokio::time::Instant::now() + Duration::from_secs(3),
++            cancelled,
++        )
++        .await
++    });
++    until(|| peer.snapshot().connections == 1).await;
++    assert_eq!(peer.snapshot().sessions, 1);
++    cancel.cancel();
++    assert!(task.await.unwrap().is_err());
++    until(|| f.orch.adapter_cleanup_quarantine_count() > 0).await;
++    assert_eq!(peer.snapshot().connections, 1);
++    let (other, _) = connection(&f, "alice", true).await;
++    assert!(matches!(
++        admit(&f, &peer, &f.session, "alice", &other).await,
++        Err(ParticipantControlError::Transition(
++            ParticipantTransitionError::Capacity
++        ))
++    ));
++    f.adapter.fail_end.store(false, Ordering::Release);
++    f.adapter.terminate(&id).await;
++    until(|| peer.snapshot().connections == 0).await;
++    admit(&f, &peer, &f.session, "alice", &other).await.unwrap();
++    assert_eq!(peer.snapshot().connections, 1);
++    drop(owner);
++}
++#[tokio::test]
++async fn wrong_identity_device_issuer_or_current_policy_never_reaches_adapter_acceptance() {
++    let f = Fixture::new().await;
++    let owner = scope_owner("alice", Default::default(), CancellationToken::new());
++    let peer = owner.peer();
++    let (id, _) = connection(&f, "bob", true).await;
++    assert!(admit(&f, &peer, &f.session, "bob", &id).await.is_err());
++    assert_eq!(f.adapter.accepted.load(Ordering::Acquire), 0);
++    assert_eq!(peer.snapshot().connections, 0);
++    let (id, _) = connection(&f, "alice", true).await;
++    f.policy.0.write().unwrap().denied = true;
++    assert!(admit(&f, &peer, &f.session, "alice", &id).await.is_err());
++    f.policy.0.write().unwrap().denied = false;
++    let mut wrong = actor("alice");
++    wrong.issuer = Some("wrong-issuer".into());
++    assert!(peer.validate_principal(&wrong).is_err());
++    let other = scope_owner("bob", Default::default(), CancellationToken::new());
++    assert!(admit(&f, &other.peer(), &f.session, "alice", &id)
++        .await
++        .is_err());
++    assert_eq!(f.adapter.accepted.load(Ordering::Acquire), 0);
++    assert_eq!(peer.snapshot().connections, 0);
++}
++
++#[tokio::test]
++async fn logical_admission_replay_cannot_borrow_another_physical_peer_and_old_cleanup_cannot_refund_it(
++) {
++    let f = Fixture::new().await;
++    let a = scope_owner("alice", Default::default(), CancellationToken::new());
++    let b = scope_owner("alice", Default::default(), CancellationToken::new());
++    let (id, _) = connection(&f, "alice", true).await;
++    let mutation = f.intent(
++        &f.session,
++        "alice",
++        "same_logical_admission",
++        ParticipantChange::Admit {
++            connection: id.clone(),
++            role_override: None,
++        },
++    );
++    let apply = |peer: std::sync::Arc<PeerAdmission>, mutation: ParticipantMutation| {
++        f.orch.admit_peer_session_connection(
++            peer,
++            &f.session,
++            actor("alice"),
++            mutation,
++            tokio::time::Instant::now() + Duration::from_secs(3),
++            CancellationToken::new(),
++        )
++    };
++    let first = apply(a.peer(), mutation.clone()).await.unwrap();
++    assert_eq!(apply(a.peer(), mutation.clone()).await.unwrap(), first);
++    assert!(matches!(
++        apply(b.peer(), mutation).await,
++        Err(ParticipantControlError::Authority)
++    ));
++    assert_eq!(a.peer().snapshot().connections, 1);
++    assert_eq!(b.peer().snapshot().connections, 0);
++    let (other, _) = connection(&f, "alice", true).await;
++    admit(&f, &b.peer(), &f.session, "alice", &other)
++        .await
++        .unwrap();
++    let retired = a.peer();
++    drop(a);
++    until(|| retired.snapshot().connections == 0).await;
++    f.adapter.terminate(&id).await;
++    assert_eq!(b.peer().snapshot().connections, 1);
++    assert_eq!(f.orch.participant_capacity(&f.session).unwrap().0, 1);
++    drop(b);
++}
++#[tokio::test]
++async fn one_peer_cannot_cross_orchestrators_or_use_another_device_binding() {
++    let f = Fixture::new().await;
++    let g = Fixture::new().await;
++    let owner = scope_owner("alice", Default::default(), CancellationToken::new());
++    let (id, _) = connection(&f, "alice", true).await;
++    admit(&f, &owner.peer(), &f.session, "alice", &id)
++        .await
++        .unwrap();
++    let (other, _) = connection(&g, "alice", true).await;
++    assert!(admit(&g, &owner.peer(), &g.session, "alice", &other)
++        .await
++        .is_err());
++    assert_eq!(g.adapter.accepted.load(Ordering::Acquire), 0);
++    assert_eq!(owner.peer().snapshot().connections, 1);
++    let wrong = PeerAdmissionOwner::new(
++        &actor("alice"),
++        IdentityId::from_string("id_alice"),
++        DeviceId::from_string("other_device"),
++        CancellationToken::new(),
++        Default::default(),
++    )
++    .unwrap();
++    assert!(admit(&g, &wrong.peer(), &g.session, "alice", &other)
++        .await
++        .is_err());
++    assert_eq!(g.adapter.accepted.load(Ordering::Acquire), 0);
++    drop(owner);
++}
++#[tokio::test]
++async fn current_revocation_after_preparation_denies_commit_and_does_not_leak_capacity() {
++    let f = Fixture::new().await;
++    let owner = scope_owner("alice", Default::default(), CancellationToken::new());
++    let peer = owner.peer();
++    let (id, stream) = connection(&f, "alice", false).await;
++    let mutation = f.intent(
++        &f.session,
++        "alice",
++        "revoke_pending",
++        ParticipantChange::Admit {
++            connection: id.clone(),
++            role_override: None,
++        },
++    );
++    let orch = f.orch.clone();
++    let sid = f.session.clone();
++    let p = peer.clone();
++    let task = tokio::spawn(async move {
++        orch.admit_peer_session_connection(
++            p,
++            &sid,
++            actor("alice"),
++            mutation,
++            tokio::time::Instant::now() + Duration::from_secs(3),
++            CancellationToken::new(),
++        )
++        .await
++    });
++    until(|| peer.snapshot().connections == 1).await;
++    f.policy.0.write().unwrap().denied = true;
++    stream.ready.store(true, Ordering::Release);
++    assert!(task.await.unwrap().is_err());
++    until(|| peer.snapshot().connections == 0).await;
++    assert_eq!(f.orch.participant_capacity(&f.session).unwrap().0, 0);
++}
++
++#[tokio::test]
++async fn terminal_hint_does_not_refund_a_still_live_adapter_route() {
++    let f = Fixture::new().await;
++    let owner = scope_owner(
++        "alice",
++        PeerAdmissionLimits {
++            sessions: 1,
++            connections: 1,
++        },
++        CancellationToken::new(),
++    );
++    let peer = owner.peer();
++    let (id, _) = connection(&f, "alice", true).await;
++    admit(&f, &peer, &f.session, "alice", &id).await.unwrap();
++    f.adapter.hint_ended(&id).await;
++    until(|| f.orch.participant_capacity(&f.session).unwrap().0 == 0).await;
++    until(|| f.orch.adapter_cleanup_quarantine_count() == 1).await;
++    assert_eq!(peer.snapshot().connections, 1);
++    let (other, _) = connection(&f, "alice", true).await;
++    assert!(matches!(
++        admit(&f, &peer, &f.session, "alice", &other).await,
++        Err(ParticipantControlError::Transition(
++            ParticipantTransitionError::Capacity
++        ))
++    ));
++    f.adapter.terminate(&id).await;
++    until(|| peer.snapshot().connections == 0).await;
++    assert_eq!(f.orch.adapter_cleanup_quarantine_count(), 0);
++    admit(&f, &peer, &f.session, "alice", &other).await.unwrap();
++    assert_eq!(peer.snapshot().connections, 1);
++    drop(owner);
++}
++
++#[tokio::test]
++async fn unqualified_adapter_liveness_is_rejected_before_quota_or_acceptance() {
++    let f = Fixture::new().await;
++    let owner = scope_owner("alice", Default::default(), CancellationToken::new());
++    let peer = owner.peer();
++    let (id, _) = connection(&f, "alice", true).await;
++    f.adapter
++        .authoritative_liveness
++        .store(false, Ordering::Release);
++    assert!(matches!(
++        admit(&f, &peer, &f.session, "alice", &id).await,
++        Err(ParticipantControlError::Core(
++            rvoip_core::RvoipError::NotImplemented(_)
++        ))
++    ));
++    assert_eq!(peer.snapshot().connections, 0);
++    assert_eq!(f.adapter.accepted.load(Ordering::Acquire), 0);
++    f.adapter
++        .authoritative_liveness
++        .store(true, Ordering::Release);
++    admit(&f, &peer, &f.session, "alice", &id).await.unwrap();
++    assert_eq!(peer.snapshot().connections, 1);
++    drop(owner);
++}
+diff --git a/crates/foundation/rvoip-core/tests/support/participant_control_fixture.rs b/crates/foundation/rvoip-core/tests/support/participant_control_fixture.rs
+index 8d766d6..0ca122e 100644
+--- a/crates/foundation/rvoip-core/tests/support/participant_control_fixture.rs
++++ b/crates/foundation/rvoip-core/tests/support/participant_control_fixture.rs
+@@ -240,6 +240,7 @@ pub struct TestAdapter {
+     live: Mutex<HashSet<ConnectionId>>,
+     events: mpsc::Sender<AdapterEvent>,
+     receiver: Mutex<Option<mpsc::Receiver<AdapterEvent>>>,
++    pub authoritative_liveness: AtomicBool,
+     pub accepted: AtomicUsize,
+     pub ended: AtomicUsize,
+     pub fail_end: AtomicBool,
+@@ -253,12 +254,32 @@ impl TestAdapter {
+             live: Mutex::new(HashSet::new()),
+             events,
+             receiver: Mutex::new(Some(receiver)),
++            authoritative_liveness: AtomicBool::new(true),
+             accepted: AtomicUsize::new(0),
+             ended: AtomicUsize::new(0),
+             fail_end: AtomicBool::new(false),
+             delay_after_graph_ms: AtomicUsize::new(0),
+         })
+     }
++    pub async fn authenticate(&self, id: &ConnectionId, principal: AuthenticatedPrincipal) {
++        self.events
++            .send(AdapterEvent::PrincipalAuthenticated {
++                connection_id: id.clone(),
++                participant_id: participant(&principal.subject).to_string(),
++                principal,
++            })
++            .await
++            .unwrap();
++    }
++    pub async fn hint_ended(&self, id: &ConnectionId) {
++        self.events
++            .send(AdapterEvent::Ended {
++                connection_id: id.clone(),
++                reason: EndReason::Normal,
++            })
++            .await
++            .unwrap();
++    }
+     pub async fn terminate(&self, id: &ConnectionId) {
+         self.live.lock().unwrap().remove(id);
+         self.events
+@@ -278,6 +299,12 @@ impl ConnectionAdapter for TestAdapter {
+     fn kind(&self) -> AdapterKind {
+         AdapterKind::Interop
+     }
++    fn lifecycle_capabilities(&self) -> rvoip_core::adapter::AdapterLifecycleCapabilities {
++        rvoip_core::adapter::AdapterLifecycleCapabilities {
++            authoritative_liveness: self.authoritative_liveness.load(Ordering::Acquire),
++            ..Default::default()
++        }
++    }
+     fn is_connection_live(&self, id: &ConnectionId) -> bool {
+         let graph_exists = self
+             .streams
+diff --git a/crates/uctp/rvoip-uctp/src/v2/auth_dispatch.rs b/crates/uctp/rvoip-uctp/src/v2/auth_dispatch.rs
+index d40a208..c0be38e 100644
+--- a/crates/uctp/rvoip-uctp/src/v2/auth_dispatch.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/auth_dispatch.rs
+@@ -121,6 +121,7 @@ pub struct AuthorizedEnvelope {
+     principal: AuthenticatedPrincipal,
+     _lease: AuthorityLease,
+     origin: RequestOrigin,
++    peer: Option<Arc<rvoip_core::peer_admission::PeerAdmission>>,
+ }
+ impl AuthorizedEnvelope {
+     pub(super) fn retain_authority(&self) -> AuthorityLease {
+@@ -129,6 +130,11 @@ impl AuthorizedEnvelope {
+     pub fn envelope(&self) -> &Envelope {
+         &self.envelope
+     }
++    /// Physical-peer resource context, not a reusable authorization grant.
++    /// Standalone dispatchers have no physical owner and return None.
++    pub fn peer_admission(&self) -> Option<&Arc<rvoip_core::peer_admission::PeerAdmission>> {
++        self.peer.as_ref()
++    }
+     pub fn principal(&self) -> &AuthenticatedPrincipal {
+         &self.principal
+     }
+@@ -258,6 +264,7 @@ pub struct AuthenticatedDispatch {
+     capacity: usize,
+     incarnation: uuid::Uuid,
+     replay: Arc<ReplayFence>,
++    peer: Option<Arc<rvoip_core::peer_admission::PeerAdmission>>,
+ }
+ impl AuthenticatedDispatch {
+     /// `principal` is a trusted validator result, not a deserialized payload.
+@@ -297,9 +304,19 @@ impl AuthenticatedDispatch {
+             capacity: pending_capacity,
+             incarnation: uuid::Uuid::new_v4(),
+             replay,
++            peer: None,
+         })
+     }
+ 
++    pub(super) fn with_peer(
++        mut self,
++        peer: Arc<rvoip_core::peer_admission::PeerAdmission>,
++    ) -> Result<Self, DispatchError> {
++        peer.validate_principal(&self.principal)
++            .map_err(|_| DispatchError::Authority)?;
++        self.peer = Some(peer);
++        Ok(self)
++    }
+     pub fn close(&self) {
+         self.lifetime.cancel();
+         self.pending.lock().clear();
+@@ -419,6 +436,7 @@ impl AuthenticatedDispatch {
+         let lease = self.authority.acquire(&self.principal, &envelope).await?;
+         self.require_active(deadline)?;
+         Ok(AuthorizedEnvelope {
++            peer: self.peer.clone(),
+             envelope,
+             principal: self.principal.clone(),
+             _lease: lease,
+@@ -493,6 +511,7 @@ impl AuthenticatedDispatch {
+         let deadline = self.active_deadline(requested.min(held.origin.deadline))?;
+         super::scope_policy::require(&self.principal, held.envelope.payload())?;
+         let authorized = AuthorizedEnvelope {
++            peer: self.peer.clone(),
+             envelope: held.envelope,
+             principal: self.principal.clone(),
+             _lease: lease,
+diff --git a/crates/uctp/rvoip-uctp/src/v2/auth_peer.rs b/crates/uctp/rvoip-uctp/src/v2/auth_peer.rs
+index 3d13256..7534d37 100644
+--- a/crates/uctp/rvoip-uctp/src/v2/auth_peer.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/auth_peer.rs
+@@ -130,6 +130,7 @@ struct Challenge {
+     methods: Vec<String>,
+ }
+ struct Binding {
++    peer_owner: Option<rvoip_core::peer_admission::PeerAdmissionOwner>,
+     credential: Arc<ValidatedBearer>,
+     device: Device,
+     identity: Identifier,
+@@ -167,6 +168,7 @@ impl fmt::Debug for PeerOutput {
+ }
+ 
+ pub struct CanonicalPeer {
++    peer_owner: Option<rvoip_core::peer_admission::PeerAdmissionOwner>,
+     config: Arc<PeerConfig>,
+     state: State,
+     lifetime: CancellationToken,
+@@ -193,6 +195,7 @@ impl CanonicalPeer {
+             return Err(DispatchError::Capacity);
+         }
+         Ok(Self {
++            peer_owner: None,
+             config,
+             state: State::Hello,
+             lifetime: parent.child_token(),
+@@ -266,6 +269,7 @@ impl CanonicalPeer {
+     }
+     pub fn close(&mut self) {
+         self.lifetime.cancel();
++        drop(self.peer_owner.take());
+         self.state = State::Closed;
+         self.step_up_failure.lock().take();
+     }
+@@ -564,6 +568,28 @@ impl CanonicalPeer {
+         generation: u64,
+     ) -> Result<Binding, DispatchError> {
+         let expiry = credential_expiry(&credential.principal)?;
++        let identity_id = rvoip_core::IdentityId::from_string(identity.as_str());
++        let device_id = rvoip_core::DeviceId::from_string(device.id.as_str());
++        let (peer, peer_owner) = match &self.peer_owner {
++            Some(owner) => {
++                let peer = owner.peer();
++                peer.validate_binding(&credential.principal, &identity_id, &device_id)
++                    .map_err(|_| DispatchError::Authority)?;
++                (peer, None)
++            }
++            None => {
++                let owner = rvoip_core::peer_admission::PeerAdmissionOwner::new(
++                    &credential.principal,
++                    identity_id,
++                    device_id,
++                    self.lifetime.clone(),
++                    Default::default(),
++                )
++                .map_err(|_| DispatchError::Authority)?;
++                let peer = owner.peer();
++                (peer, Some(owner))
++            }
++        };
+         let dispatch = AuthenticatedDispatch::with_replay_fence(
+             credential.principal.clone(),
+             self.config.verifier.clone(),
+@@ -576,7 +602,8 @@ impl CanonicalPeer {
+             self.lifetime.clone(),
+             self.config.pending_capacity,
+             self.replay.clone(),
+-        )?;
++        )?
++        .with_peer(peer)?;
+         let route = self
+             .routes
+             .as_ref()
+@@ -592,6 +619,7 @@ impl CanonicalPeer {
+             })
+             .transpose()?;
+         Ok(Binding {
++            peer_owner,
+             credential,
+             device,
+             identity,
+@@ -603,10 +631,13 @@ impl CanonicalPeer {
+             route,
+         })
+     }
+-    fn commit_binding(&mut self, binding: Binding) -> Result<(), DispatchError> {
++    fn commit_binding(&mut self, mut binding: Binding) -> Result<(), DispatchError> {
+         if let Some(route) = &binding.route {
+             route.publish()?;
+         }
++        if let Some(owner) = binding.peer_owner.take() {
++            self.peer_owner = Some(owner);
++        }
+         self.state = State::Authenticated(binding);
+         Ok(())
+     }
+diff --git a/crates/uctp/rvoip-uctp/tests/v2_peer_admission.rs b/crates/uctp/rvoip-uctp/tests/v2_peer_admission.rs
+new file mode 100644
+index 0000000..5f37869
+--- /dev/null
++++ b/crates/uctp/rvoip-uctp/tests/v2_peer_admission.rs
+@@ -0,0 +1,787 @@
++#![allow(unused_imports)]
++//! Real canonical transport drivers, shared auth and retained shutdown.
++#![allow(dead_code)]
++use async_trait::async_trait;
++use bytes::Bytes;
++use chrono::Utc;
++use futures::{SinkExt, StreamExt};
++use ring::signature::{Ed25519KeyPair, KeyPair};
++use rvoip_auth_core::{
++    bearer::{
++        AuthenticatedPrincipal, AuthenticationMethod, BearerAuthError, BearerValidator,
++        ValidatedBearer,
++    },
++    sig9421::{KeyResolver, ResolvedVerificationKey, Sig9421Signer, Sig9421Verifier},
++};
++use rvoip_core::identity::{CredentialKind, IdentityAssurance};
++use rvoip_uctp::v2::{
++    auth_dispatch::*, auth_peer::*, payloads::Device, Envelope, Identifier, Scope, RAW_QUIC_ALPN,
++};
++use serde_json::{json, Value};
++use std::{
++    collections::HashSet,
++    sync::{
++        atomic::{AtomicBool, AtomicUsize, Ordering},
++        Arc,
++    },
++    time::Duration,
++};
++use tokio::{
++    sync::{Notify, RwLock},
++    time::Instant,
++};
++use tokio_util::{
++    codec::{FramedRead, FramedWrite},
++    sync::CancellationToken,
++};
++
++fn deadline() -> Instant {
++    Instant::now() + Duration::from_secs(3)
++}
++fn envelope(kind: &str, payload: Value) -> Value {
++    json!({"v":2,"type":kind,"id":format!("env_{}",uuid::Uuid::new_v4().simple()),"ts":Utc::now(),"payload":payload})
++}
++fn hello() -> Value {
++    envelope(
++        "auth.hello",
++        json!({"device":{"id":"device_alice","kind":"desktop","platform":"fixture","sdk_version":"fixture"},"auth_methods":["unknown","bearer","aauth"],"application_profiles":["connect/2"]}),
++    )
++}
++fn response(challenge: &Envelope, token: &str) -> Value {
++    let mut v = envelope(
++        "auth.response",
++        json!({"method":"bearer","credential":token}),
++    );
++    v["in_reply_to"] = json!(challenge.id());
++    v
++}
++fn command() -> Value {
++    let mut v = envelope("connection.update", json!({"action":"hold"}));
++    v["cid"] = json!("conversation");
++    v["sid"] = json!("session");
++    v["connid"] = json!("connection");
++    v["operation_id"] = json!("logical-op");
++    v["expected_revision"] = json!(1);
++    v
++}
++fn principal(token: &str) -> AuthenticatedPrincipal {
++    let mut p = AuthenticatedPrincipal {
++        subject: "alice".into(),
++        tenant: Some("tenant_test".into()),
++        issuer: Some("issuer_test".into()),
++        scopes: vec![
++            "participant:manage".into(),
++            "control".into(),
++            "uctp:session".into(),
++            "uctp:data".into(),
++            "uctp:subscribe".into(),
++        ],
++        expires_at: Some(Utc::now() + chrono::Duration::hours(1)),
++        method: AuthenticationMethod::Bearer,
++        assurance: IdentityAssurance::Identified {
++            credential_kind: CredentialKind::Oidc,
++        },
++    };
++    match token {
++        "bob" => p.subject = "bob".into(),
++        "other-tenant" => p.tenant = Some("other".into()),
++        "other-issuer" => p.issuer = Some("other".into()),
++        "expired" => p.expires_at = Some(Utc::now() - chrono::Duration::seconds(1)),
++        "no-expiry" => p.expires_at = None,
++        "short" => p.expires_at = Some(Utc::now() + chrono::Duration::seconds(1)),
++        "no-default" => p.scopes.retain(|scope| scope == "control"),
++        "reduced" => p.scopes.clear(),
++        "user" | "user-new" => {
++            p.assurance = IdentityAssurance::UserAuthorized {
++                identity: rvoip_core::IdentityId::from_string("id_alice"),
++                user_id: rvoip_core::IdentityId::from_string("user-alice"),
++                scopes: vec!["control".into()],
++            }
++        }
++        "wrong-user" => {
++            p.assurance = IdentityAssurance::UserAuthorized {
++                identity: rvoip_core::IdentityId::from_string("id_alice"),
++                user_id: rvoip_core::IdentityId::from_string("user-bob"),
++                scopes: vec!["control".into()],
++            }
++        }
++        _ => {}
++    };
++    p
++}
++struct Validator {
++    calls: AtomicUsize,
++    hold: AtomicBool,
++    entered: Notify,
++    release: Notify,
++}
++#[async_trait]
++impl BearerValidator for Validator {
++    async fn validate(&self, token: &str) -> Result<IdentityAssurance, BearerAuthError> {
++        Ok(principal(token).assurance)
++    }
++    async fn validate_credential(&self, token: &str) -> Result<ValidatedBearer, BearerAuthError> {
++        self.calls.fetch_add(1, Ordering::SeqCst);
++        if self.hold.load(Ordering::SeqCst) {
++            self.entered.notify_one();
++            self.release.notified().await;
++        }
++        if token == "unavailable" {
++            return Err(BearerAuthError::Unavailable(
++                "private-provider-detail".into(),
++            ));
++        }
++        ValidatedBearer::new(
++            principal(token),
++            Some(token.into()),
++            Some(std::time::SystemTime::now() - Duration::from_secs(1)),
++        )
++    }
++}
++#[derive(Default)]
++struct Policy {
++    revoked: Arc<RwLock<HashSet<String>>>,
++    deny_refresh: AtomicBool,
++    calls: AtomicUsize,
++}
++impl Policy {
++    async fn guard(
++        &self,
++        c: &ValidatedBearer,
++        device: &Device,
++        id: &Identifier,
++        env: &Envelope,
++    ) -> Result<AuthorityLease, DispatchError> {
++        self.calls.fetch_add(1, Ordering::SeqCst);
++        let guard = self.revoked.clone().read_owned().await;
++        if c.token_id
++            .as_ref()
++            .is_none_or(|token| guard.contains(token))
++            || c.issued_at.is_none()
++            || c.principal.is_expired()
++            || device.id.as_str() != "device_alice"
++            || id.as_str() != "id_alice"
++            || (env.kind() == "connection.update" && !c.principal.has_scope("control"))
++        {
++            return Err(DispatchError::Authority);
++        }
++        Ok(AuthorityLease::holding(guard))
++    }
++}
++#[async_trait]
++impl PeerAuthority for Policy {
++    async fn identity(&self, c: &ValidatedBearer, d: &Device) -> Result<Identifier, DispatchError> {
++        if c.principal.subject != "alice" || d.id.as_str() != "device_alice" {
++            return Err(DispatchError::Authority);
++        }
++        Identifier::try_from("id_alice".to_owned()).map_err(DispatchError::from)
++    }
++    async fn acquire(
++        &self,
++        c: &ValidatedBearer,
++        d: &Device,
++        i: &Identifier,
++        e: &Envelope,
++    ) -> Result<AuthorityLease, DispatchError> {
++        self.guard(c, d, i, e).await
++    }
++    async fn refresh(
++        &self,
++        old: &ValidatedBearer,
++        new: &ValidatedBearer,
++        d: &Device,
++        i: &Identifier,
++        e: &Envelope,
++    ) -> Result<AuthorityLease, DispatchError> {
++        if self.deny_refresh.load(Ordering::SeqCst) {
++            return Err(DispatchError::Authority);
++        }
++        let lease = self.guard(new, d, i, e).await?;
++        if old.token_id.as_ref().is_none_or(|token| {
++            self.revoked
++                .try_read()
++                .map_or(true, |set| set.contains(token))
++        }) {
++            return Err(DispatchError::Authority);
++        }
++        Ok(lease)
++    }
++}
++struct Keys {
++    client: Vec<u8>,
++    server: Vec<u8>,
++}
++impl KeyResolver for Keys {
++    fn resolve(&self, _: &str) -> Option<Vec<u8>> {
++        None
++    }
++    fn resolve_for_principal(
++        &self,
++        p: &AuthenticatedPrincipal,
++        k: &str,
++        a: &str,
++        _: chrono::DateTime<Utc>,
++    ) -> Option<ResolvedVerificationKey> {
++        if p.tenant.as_deref() != Some("tenant_test")
++            || p.issuer.as_deref() != Some("issuer_test")
++            || a != "EdDSA"
++        {
++            return None;
++        }
++        let bytes = match (p.subject.as_str(), k) {
++            ("alice", "client") => self.client.clone(),
++            ("server", "server") => self.server.clone(),
++            _ => return None,
++        };
++        Some(ResolvedVerificationKey {
++            public_key: bytes,
++            algorithm: "EdDSA".into(),
++            not_before: None,
++            expires_at: None,
++            revoked: false,
++        })
++    }
++}
++#[derive(Default)]
++struct Handler {
++    calls: AtomicUsize,
++}
++#[async_trait]
++impl AuthenticatedHandler for Handler {
++    async fn handle(&self, env: AuthorizedEnvelope) -> Result<Envelope, DispatchError> {
++        assert_eq!(env.principal().subject, "alice");
++        self.calls.fetch_add(1, Ordering::SeqCst);
++        Envelope::from_value(envelope("ack", json!({}))).map_err(DispatchError::from)
++    }
++}
++struct Fixture {
++    config: Arc<PeerConfig>,
++    client: Sig9421Signer,
++    server_verify: Sig9421Verifier,
++    policy: Arc<Policy>,
++    validator: Arc<Validator>,
++}
++impl Fixture {
++    fn new() -> Self {
++        let client_key = Ed25519KeyPair::generate_pkcs8(&ring::rand::SystemRandom::new()).unwrap();
++        let server_key = Ed25519KeyPair::generate_pkcs8(&ring::rand::SystemRandom::new()).unwrap();
++        let client = Sig9421Signer::ed25519("client", client_key.as_ref()).unwrap();
++        let server = Sig9421Signer::ed25519("server", server_key.as_ref()).unwrap();
++        let resolver = Arc::new(Keys {
++            client: Ed25519KeyPair::from_pkcs8(client_key.as_ref())
++                .unwrap()
++                .public_key()
++                .as_ref()
++                .to_vec(),
++            server: Ed25519KeyPair::from_pkcs8(server_key.as_ref())
++                .unwrap()
++                .public_key()
++                .as_ref()
++                .to_vec(),
++        });
++        let validator = Arc::new(Validator {
++            calls: AtomicUsize::new(0),
++            hold: AtomicBool::new(false),
++            entered: Notify::new(),
++            release: Notify::new(),
++        });
++        let policy = Arc::new(Policy::default());
++        let config = Arc::new(PeerConfig {
++            methods: Arc::new(AuthenticationMethods::new(Some(validator.clone()))),
++            verifier: Arc::new(Sig9421Verifier::new(resolver.clone())),
++            signer: Arc::new(server),
++            authority: policy.clone(),
++            pending_capacity: 2,
++        });
++        Self {
++            config,
++            client,
++            server_verify: Sig9421Verifier::new(resolver),
++            policy,
++            validator,
++        }
++    }
++    fn peer(&self) -> CanonicalPeer {
++        CanonicalPeer::new(self.config.clone(), CancellationToken::new()).unwrap()
++    }
++    fn sign(&self, v: Value) -> Vec<u8> {
++        serde_json::to_vec(&self.client.sign(&v).unwrap()).unwrap()
++    }
++    async fn authenticate(&self, peer: &mut CanonicalPeer, token: &str) -> Envelope {
++        let output = peer
++            .handle(
++                &serde_json::to_vec(&hello()).unwrap(),
++                &Handler::default(),
++                deadline(),
++            )
++            .await
++            .unwrap();
++        let challenge = output.envelopes()[0].clone();
++        drop(output);
++        let output = peer
++            .handle(
++                &self.sign(response(&challenge, token)),
++                &Handler::default(),
++                deadline(),
++            )
++            .await
++            .unwrap();
++        output.envelopes()[0].clone()
++    }
++    async fn verify_server(&self, env: &Envelope) {
++        let mut p = principal("old");
++        p.subject = "server".into();
++        self.server_verify
++            .verify_for_principal(env.original(), &p)
++            .await
++            .unwrap();
++    }
++}
++
++use futures::{Sink, Stream};
++use rvoip_uctp::v2::server::{CanonicalProfile, ProfileServer};
++use tokio::sync::mpsc;
++type Reader = std::pin::Pin<Box<dyn Stream<Item = Result<Bytes, DispatchError>> + Send>>;
++type Writer = std::pin::Pin<Box<dyn Sink<Bytes, Error = DispatchError> + Send>>;
++struct Wire {
++    reader: Reader,
++    writer: Writer,
++    server: ProfileServer,
++    quic: Option<(quinn::Endpoint, quinn::Endpoint, quinn::Connection)>,
++    wt: Option<web_transport_quinn::Session>,
++}
++impl Wire {
++    async fn send(&mut self, value: Vec<u8>) {
++        self.writer.send(Bytes::from(value)).await.unwrap();
++    }
++    async fn read(&mut self) -> Envelope {
++        let bytes = tokio::time::timeout(Duration::from_secs(3), self.reader.next())
++            .await
++            .expect("driver read deadline")
++            .expect("driver EOF")
++            .unwrap();
++        Envelope::parse(&bytes).unwrap()
++    }
++    async fn retired(&self) {
++        tokio::time::timeout(Duration::from_secs(3), async {
++            while self.server.stats().active_physical != 0 {
++                tokio::task::yield_now().await;
++            }
++        })
++        .await
++        .unwrap();
++    }
++}
++async fn pair(
++    alpn: &[u8],
++) -> (
++    quinn::Endpoint,
++    quinn::Endpoint,
++    quinn::Connection,
++    quinn::Connection,
++) {
++    use rvoip_uctp::substrate::{
++        dev_client_config_trusting, make_server_endpoint, self_signed_for_dev,
++    };
++    let _ = rustls::crypto::ring::default_provider().install_default();
++    let (cert, key) = self_signed_for_dev(&["localhost".into()]).unwrap();
++    let mut tls = rustls::ServerConfig::builder()
++        .with_no_client_auth()
++        .with_single_cert(vec![cert.clone()], key)
++        .unwrap();
++    tls.alpn_protocols = vec![alpn.to_vec()];
++    let server = make_server_endpoint(
++        "127.0.0.1:0".parse().unwrap(),
++        Arc::new(tls),
++        quinn::TransportConfig::default(),
++    )
++    .unwrap();
++    let mut tls = dev_client_config_trusting(&cert).unwrap();
++    tls.alpn_protocols = vec![alpn.to_vec()];
++    let mut client = quinn::Endpoint::client("127.0.0.1:0".parse().unwrap()).unwrap();
++    client.set_default_client_config(quinn::ClientConfig::new(Arc::new(
++        quinn::crypto::rustls::QuicClientConfig::try_from(tls).unwrap(),
++    )));
++    let connect = client
++        .connect(server.local_addr().unwrap(), "localhost")
++        .unwrap();
++    let accept = async { server.accept().await.unwrap().await.unwrap() };
++    let (remote, host) = tokio::join!(connect, accept);
++    (server, client, host, remote.unwrap())
++}
++async fn wire(
++    kind: &str,
++    profile: CanonicalProfile,
++    path: &str,
++    origin: Option<&str>,
++) -> Result<Wire, DispatchError> {
++    if kind == "quic" || kind == "wt" {
++        let (send, receive) = mpsc::channel(4);
++        let (host_ep, remote_ep, host, remote) =
++            pair(if kind == "quic" { RAW_QUIC_ALPN } else { b"h3" }).await;
++        let server = if kind == "quic" {
++            rvoip_quic::canonical::start(receive, profile, "quic://localhost:443".into())?
++        } else {
++            rvoip_webtransport::canonical::start(
++                receive,
++                profile,
++                "https://localhost/uctp".into(),
++                "/uctp".into(),
++                Some(HashSet::from(["https://allowed.example".into()])),
++            )?
++        };
++        send.send(host).await.unwrap();
++        let wt = if kind == "wt" {
++            let mut request = web_transport_quinn::proto::ConnectRequest::from(
++                url::Url::parse(&format!("https://localhost{path}")).unwrap(),
++            );
++            if let Some(origin) = origin {
++                request.headers.insert("origin", origin.parse().unwrap());
++            }
++            match tokio::time::timeout(
++                Duration::from_secs(3),
++                web_transport_quinn::Session::connect(remote.clone(), request),
++            )
++            .await
++            .unwrap()
++            {
++                Ok(session) => Some(session),
++                Err(_) => {
++                    server.shutdown().await?;
++                    return Err(DispatchError::Authority);
++                }
++            }
++        } else {
++            None
++        };
++        if let Some(session) = wt {
++            let (writer, reader) = session.open_bi().await.unwrap();
++            // Client fixture also uses the native read API and explicit bounds.
++            let reader = futures::stream::unfold(
++                (reader, Vec::<u8>::new()),
++                |(mut reader, mut buffered)| async move {
++                    loop {
++                        if buffered.len() >= 4 {
++                            let length =
++                                u32::from_be_bytes(buffered[..4].try_into().unwrap()) as usize;
++                            if length > 1024 * 1024 {
++                                return Some((Err(DispatchError::Closed), (reader, buffered)));
++                            }
++                            if buffered.len() >= length + 4 {
++                                let bytes = Bytes::copy_from_slice(&buffered[4..4 + length]);
++                                buffered.drain(..4 + length);
++                                return Some((Ok(bytes), (reader, buffered)));
++                            }
++                        }
++                        let mut chunk = [0u8; 65536];
++                        match reader.read(&mut chunk).await {
++                            Ok(Some(n)) => buffered.extend_from_slice(&chunk[..n]),
++                            _ => return None,
++                        }
++                    }
++                },
++            );
++            let writer = futures::sink::unfold(writer, |mut writer, bytes: Bytes| async move {
++                let mut frame = Vec::new();
++                frame.extend_from_slice(&(bytes.len() as u32).to_be_bytes());
++                frame.extend_from_slice(&bytes);
++                writer
++                    .write_all(&frame)
++                    .await
++                    .map_err(|_| DispatchError::Closed)?;
++                tokio::io::AsyncWriteExt::flush(&mut writer)
++                    .await
++                    .map_err(|_| DispatchError::Closed)?;
++                Ok(writer)
++            });
++            Ok(Wire {
++                reader: Box::pin(reader),
++                writer: Box::pin(writer),
++                server,
++                quic: Some((host_ep, remote_ep, remote)),
++                wt: Some(session),
++            })
++        } else {
++            let (writer, reader) = remote.open_bi().await.unwrap();
++            let reader = FramedRead::new(reader, rvoip_uctp::substrate::length_prefixed_codec())
++                .map(|frame| {
++                    frame
++                        .map(|bytes| bytes.freeze())
++                        .map_err(|_| DispatchError::Closed)
++                });
++            let writer = FramedWrite::new(writer, rvoip_uctp::substrate::length_prefixed_codec())
++                .sink_map_err(|_| DispatchError::Closed);
++            Ok(Wire {
++                reader: Box::pin(reader),
++                writer: Box::pin(writer),
++                server,
++                quic: Some((host_ep, remote_ep, remote)),
++                wt: None,
++            })
++        }
++    } else {
++        let (send, receive) = mpsc::channel(4);
++        use rvoip_uctp::substrate::{dev_client_config_trusting, self_signed_for_dev};
++        use tokio_tungstenite::{
++            tungstenite::{client::IntoClientRequest, Message},
++            Connector,
++        };
++        let _ = rustls::crypto::ring::default_provider().install_default();
++        let (cert, key) = self_signed_for_dev(&["localhost".into()]).unwrap();
++        let tls = rustls::ServerConfig::builder()
++            .with_no_client_auth()
++            .with_single_cert(vec![cert.clone()], key)
++            .unwrap();
++        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
++        let addr = listener.local_addr().unwrap();
++        let server = rvoip_websocket::canonical::start(
++            receive,
++            Arc::new(tls),
++            profile,
++            "wss://localhost/uctp".into(),
++            "/uctp".into(),
++            Some(HashSet::from(["https://allowed.example".into()])),
++        )?;
++        let mut request = format!("wss://localhost:{}{path}", addr.port())
++            .into_client_request()
++            .unwrap();
++        if let Some(origin) = origin {
++            request
++                .headers_mut()
++                .insert("origin", origin.parse().unwrap());
++        }
++        let connect = tokio_tungstenite::connect_async_tls_with_config(
++            request,
++            None,
++            false,
++            Some(Connector::Rustls(Arc::new(
++                dev_client_config_trusting(&cert).unwrap(),
++            ))),
++        );
++        let accept = async {
++            let (socket, _) = listener.accept().await.unwrap();
++            send.send(socket).await.unwrap();
++        };
++        let (connected, _) = tokio::join!(connect, accept);
++        let (ws, _) = match connected {
++            Ok(pair) => pair,
++            Err(_) => {
++                server.shutdown().await?;
++                return Err(DispatchError::Authority);
++            }
++        };
++        let (writer, reader) = ws.split();
++        let reader = reader.map(|message| match message {
++            Ok(Message::Text(text)) => Ok(Bytes::copy_from_slice(text.as_bytes())),
++            _ => Err(DispatchError::Closed),
++        });
++        let writer = writer
++            .with(|bytes: Bytes| async move {
++                Ok::<_, tokio_tungstenite::tungstenite::Error>(Message::Text(
++                    String::from_utf8(bytes.to_vec()).unwrap().into(),
++                ))
++            })
++            .sink_map_err(|_| DispatchError::Closed);
++        Ok(Wire {
++            reader: Box::pin(reader),
++            writer: Box::pin(writer),
++            server,
++            quic: None,
++            wt: None,
++        })
++    }
++}
++async fn authenticate_wire(wire: &mut Wire, f: &Fixture) -> Envelope {
++    wire.send(serde_json::to_vec(&hello()).unwrap()).await;
++    let challenge = wire.read().await;
++    assert_eq!(challenge.kind(), "auth.challenge");
++    f.verify_server(&challenge).await;
++    wire.send(f.sign(response(&challenge, "old"))).await;
++    let session = wire.read().await;
++    assert_eq!(session.kind(), "auth.session");
++    f.verify_server(&session).await;
++    session
++}
++
++#[path = "../../../foundation/rvoip-core/tests/support/participant_control_fixture.rs"]
++mod core_fixture;
++use rvoip_core::{
++    ids::{DeviceId, EndpointId, IdentityId},
++    participant_transitions::{ParticipantChange, ParticipantMutation},
++    peer_admission::PeerAdmission,
++    relationships::{EndpointBinding, IdentityBinding},
++};
++struct EngineHandler {
++    core: Arc<core_fixture::Fixture>,
++    connection: rvoip_core::ConnectionId,
++    peer: std::sync::Mutex<Option<Arc<PeerAdmission>>>,
++    calls: AtomicUsize,
++}
++#[async_trait]
++impl AuthenticatedHandler for EngineHandler {
++    async fn handle(&self, authorized: AuthorizedEnvelope) -> Result<Envelope, DispatchError> {
++        let peer = authorized
++            .peer_admission()
++            .ok_or(DispatchError::Authority)?
++            .clone();
++        {
++            let mut first = self.peer.lock().unwrap();
++            if let Some(first) = &*first {
++                assert!(Arc::ptr_eq(first, &peer));
++            } else {
++                *first = Some(peer.clone());
++            }
++        }
++        let request = authorized.envelope();
++        if request.kind() != "connection.offer"
++            || request.scope(Scope::Conversation) != Some("conversation")
++            || request.scope(Scope::Session) != Some("session")
++            || request.scope(Scope::Connection) != Some("connection")
++        {
++            return Err(DispatchError::Authority);
++        }
++        let mutation = ParticipantMutation {
++            operation_id: request
++                .scope(Scope::Operation)
++                .ok_or(DispatchError::Authority)?
++                .into(),
++            correlation_id: request.id().into(),
++            expected_revision: request.original()["expected_revision"]
++                .as_u64()
++                .ok_or(DispatchError::Authority)?,
++            participant: core_fixture::participant("alice"),
++            change: ParticipantChange::Admit {
++                connection: self.connection.clone(),
++                role_override: None,
++            },
++        };
++        let mut reply = envelope(
++            "connection.answer",
++            json!({"substrate":"quic","capabilities":{},"streams_answered":[{"id":"audio","kind":"audio","direction":"sendrecv","codec":{"name":"PCMU","clock_rate":8000,"channels":1}}]}),
++        );
++        for field in ["cid", "sid", "connid", "operation_id"] {
++            reply[field] = request.original()[field].clone();
++        }
++        reply["in_reply_to"] = json!(request.id());
++        let reply = Envelope::from_value(reply)?;
++        self.core.orch.admit_peer_session_connection(peer,&self.core.session,authorized.principal().clone(),mutation,deadline(),CancellationToken::new()).await.map_err(|error|match error{rvoip_core::orchestrator::participant_control::ParticipantControlError::Transition(rvoip_core::participant_transitions::ParticipantTransitionError::Capacity)=>DispatchError::Capacity,_=>DispatchError::Authority})?;
++        self.calls.fetch_add(1, Ordering::SeqCst);
++        Ok(reply)
++    }
++}
++async fn engine_handler() -> Arc<EngineHandler> {
++    let f = Arc::new(core_fixture::Fixture::new().await);
++    let (id, _) = f.connection("alice", true).await;
++    let p = principal("old");
++    let binding =
++        IdentityBinding::from_authenticated(&p, IdentityId::from_string("id_alice"), Utc::now())
++            .unwrap();
++    let mut endpoint = EndpointBinding::provision(
++        binding.clone(),
++        EndpointId::new(),
++        DeviceId::from_string("device_alice"),
++        rvoip_core::Transport::Sip,
++        "sip:controlled-fixture.invalid".into(),
++    )
++    .unwrap();
++    endpoint
++        .verify(&binding, "controlled-proof".into(), Utc::now())
++        .unwrap();
++    f.policy
++        .0
++        .write()
++        .unwrap()
++        .endpoints
++        .insert(id.clone(), endpoint);
++    f.adapter.authenticate(&id, p).await;
++    core_fixture::until(|| f.orch.connection_principal(&id).is_ok()).await;
++    Arc::new(EngineHandler {
++        core: f,
++        connection: id,
++        peer: std::sync::Mutex::new(None),
++        calls: AtomicUsize::new(0),
++    })
++}
++fn offer() -> Value {
++    let mut value = envelope(
++        "connection.offer",
++        json!({"by_participant":"asserted-not-authority","substrate":"quic","capabilities":{},"streams_offered":[{"id":"audio","kind":"audio","direction":"sendrecv","codec_preferences":["PCMU"]}]}),
++    );
++    value["cid"] = json!("conversation");
++    value["sid"] = json!("session");
++    value["connid"] = json!("connection");
++    value["operation_id"] = json!("logical-admit");
++    value["expected_revision"] = json!(1);
++    value
++}
++#[tokio::test]
++async fn canonical_transports_carry_same_physical_admission_through_refresh_and_retire_real_core_routes(
++) {
++    for kind in ["quic", "wt", "ws"] {
++        let f = Fixture::new();
++        let handler = engine_handler().await;
++        let profile = CanonicalProfile::new(f.config.clone(), handler.clone(), 8).unwrap();
++        let mut wire = wire(kind, profile, "/uctp", Some("https://allowed.example"))
++            .await
++            .unwrap();
++        authenticate_wire(&mut wire, &f).await;
++        wire.send(f.sign(offer())).await;
++        let answer = wire.read().await;
++        assert_eq!(answer.kind(), "connection.answer");
++        f.verify_server(&answer).await;
++        let peer = handler.peer.lock().unwrap().clone().unwrap();
++        assert_eq!(peer.snapshot().connections, 1);
++        assert_eq!(peer.snapshot().sessions, 1);
++        assert_eq!(peer.snapshot().limits.connections, 64);
++        assert_eq!(handler.core.adapter.accepted.load(Ordering::Acquire), 1);
++        wire.send(f.sign(envelope(
++            "auth.refresh",
++            json!({"method":"bearer","credential":"new"}),
++        )))
++        .await;
++        assert_eq!(wire.read().await.kind(), "auth.session");
++        wire.send(f.sign(offer())).await;
++        assert_eq!(wire.read().await.kind(), "connection.answer");
++        assert_eq!(handler.calls.load(Ordering::SeqCst), 2);
++        assert_eq!(handler.core.adapter.accepted.load(Ordering::Acquire), 1);
++        assert_eq!(peer.snapshot().connections, 1);
++        wire.server.shutdown().await.unwrap();
++        core_fixture::until(|| peer.snapshot().connections == 0).await;
++        assert!(peer.is_closed());
++        assert_eq!(
++            handler
++                .core
++                .orch
++                .participant_capacity(&handler.core.session)
++                .unwrap()
++                .0,
++            0
++        );
++    }
++}
++#[tokio::test]
++async fn failed_refresh_does_not_retire_or_replace_the_engine_peer_context() {
++    let f = Fixture::new();
++    let handler = engine_handler().await;
++    let mut peer = f.peer();
++    f.authenticate(&mut peer, "old").await;
++    let output = peer
++        .handle(&f.sign(offer()), handler.as_ref(), deadline())
++        .await
++        .unwrap();
++    drop(output);
++    let context = handler.peer.lock().unwrap().clone().unwrap();
++    let refresh = envelope(
++        "auth.refresh",
++        json!({"method":"bearer","credential":"bob"}),
++    );
++    assert!(peer
++        .handle(&f.sign(refresh), handler.as_ref(), deadline())
++        .await
++        .is_err());
++    assert!(!context.is_closed());
++    assert_eq!(context.snapshot().connections, 1);
++    drop(peer);
++    core_fixture::until(|| context.snapshot().connections == 0).await;
++    assert!(context.is_closed());
++}
+diff --git a/crates/uctp/rvoip-uctp/tests/v2_step_up.rs b/crates/uctp/rvoip-uctp/tests/v2_step_up.rs
+index a72988b..a5f42bf 100644
+--- a/crates/uctp/rvoip-uctp/tests/v2_step_up.rs
++++ b/crates/uctp/rvoip-uctp/tests/v2_step_up.rs
+@@ -428,6 +428,7 @@ impl Fixture {
+ 
+ #[derive(Default)]
+ struct Tracking {
++    peers: std::sync::Mutex<Vec<Arc<rvoip_core::peer_admission::PeerAdmission>>>,
+     calls: AtomicUsize,
+     effects: std::sync::Mutex<HashSet<String>>,
+     requests: std::sync::Mutex<Vec<Value>>,
+@@ -435,6 +436,11 @@ struct Tracking {
+ #[async_trait]
+ impl AuthenticatedHandler for Tracking {
+     async fn handle(&self, env: AuthorizedEnvelope) -> Result<Envelope, DispatchError> {
++        self.peers.lock().unwrap().push(
++            env.peer_admission()
++                .expect("canonical physical context")
++                .clone(),
++        );
+         self.calls.fetch_add(1, Ordering::SeqCst);
+         assert_eq!(env.principal().subject, "alice");
+         assert!(matches!(
+@@ -1072,3 +1078,42 @@ async fn stepped_up_credential_without_original_default_scope_is_rejected_before
+     assert_eq!(output.envelopes()[0].kind(), "auth.session");
+     assert_eq!(h.calls.load(Ordering::SeqCst), 1);
+ }
++
++#[tokio::test]
++async fn physical_resource_context_is_retained_through_verified_stepup() {
++    let f = Fixture::new();
++    let mut peer = f.peer();
++    f.authenticate(&mut peer, "user").await;
++    let h = Tracking::default();
++    let mut first = command();
++    first["operation_id"] = json!("before_stepup");
++    peer.handle(&f.sign(first), &h, deadline()).await.unwrap();
++    f.policy.task_requirement.store(true, Ordering::SeqCst);
++    let (_, challenge) = blocked_after_first(&f, &mut peer, &h).await;
++    let output = peer
++        .handle(&f.sign(proof(&challenge, "task")), &h, deadline())
++        .await
++        .unwrap();
++    drop(output);
++    let contexts = h.peers.lock().unwrap();
++    assert_eq!(contexts.len(), 2);
++    assert!(Arc::ptr_eq(&contexts[0], &contexts[1]));
++    assert_eq!(contexts[0].snapshot().limits.sessions, 32);
++    assert!(!contexts[0].is_closed());
++    drop(peer);
++    assert!(contexts[0].is_closed());
++}
++async fn blocked_after_first(
++    f: &Fixture,
++    peer: &mut CanonicalPeer,
++    h: &Tracking,
++) -> (Value, Envelope) {
++    let request = command();
++    let output = peer
++        .handle(&f.sign(request.clone()), h, deadline())
++        .await
++        .unwrap();
++    let challenge = output.envelopes()[0].clone();
++    assert_eq!(challenge.kind(), "identity.step-up-request");
++    (request, challenge)
++}

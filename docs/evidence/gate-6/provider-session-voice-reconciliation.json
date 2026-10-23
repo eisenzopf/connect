@@ -1,0 +1,554 @@
+{
+  "task": "G6-044",
+  "title": "Authenticated positive reconciliation of uncertain provider telephone creation",
+  "component_passed": true,
+  "full_task_complete": false,
+  "created_at": "2026-10-21T09:43:45.321255+00:00",
+  "schema_version": 69,
+  "platform": "local macOS arm64; actual Vapi Rust SDK over isolated local HTTP provider fixtures, real canonical signed QUIC/HTTP listeners and public Rust SDK; no live Vapi/PSTN",
+  "previous_component": {
+    "path": "docs/evidence/gate-6/provider-session-voice-ingress.json",
+    "sha256": "ac555c8ba82fa0198a3f31376ffa3f44a6248d1c02ad6a27059c9ca93a35d2f3"
+  },
+  "previous_component_scope": "Historical schema69 incoming qualification:891 distinct Rust passes, SDK122 Node tests/Python4 methods and four OpenAPI provider vectors. This report does not recount those as fresh passes.",
+  "source_lock": {
+    "path": "dependencies/source-lock.json",
+    "sha256": "098ba5eba45b5ccaceed905914d0a2972938f7852b8ee1cfab4948ddd98020ec"
+  },
+  "pinned_patches": 127,
+  "qualification_inputs": {
+    "path": ".local/gate-6/provider-voice-reconcile-inputs.json",
+    "sha256": "39986e42a6f419b05d362c4ea62b17d1df59f5692f23a41fd198d0bd0d89a947"
+  },
+  "qualification_input_count": 1208,
+  "fresh_distinct_passed_tests": 151,
+  "verification": [
+    {
+      "name": "contracts",
+      "binary": {
+        "path": "target/debug/deps/contracts-451fdbdec57525fe",
+        "sha256": "9d1521deb297c191bc33ea473ad0bec4bf2d58c78c62f0c57b8f55d8f45e9488"
+      },
+      "arguments": [
+        "--test-threads=1",
+        "--nocapture"
+      ],
+      "passed": 7,
+      "failed": 0,
+      "ignored": 0,
+      "seconds": 0.0,
+      "log": {
+        "path": ".local/gate-6/provider-voice-reconcile-contracts-451fdbdec57525fe-final.log",
+        "sha256": "d48ea67957742f284eceee9752d97c3526c237260c5c26fdca996cbb4deb4ff6"
+      },
+      "tests": [
+        "correlation_capability_needs_independent_status_and_cleanup_without_creation_permission",
+        "invalid_versions_capabilities_limits_and_fields_fail_closed",
+        "normalized_attempts_do_not_invent_provider_acceptance_or_delivery",
+        "sms_manifest_cannot_turn_a_message_route_into_a_call_leg",
+        "terminal_conflict_can_only_be_resolved_by_authorized_authoritative_reconciliation",
+        "terminal_races_reordered_callbacks_and_retention_are_bounded",
+        "uncertainty_requires_reconciliation_current_authority_and_stable_ids"
+      ],
+      "ignored_tests": []
+    },
+    {
+      "name": "voice_receipts",
+      "binary": {
+        "path": "target/debug/deps/voice_receipts-39d3c15f74b17588",
+        "sha256": "ef60fe366fd951abe5c8290171c1b9166971da4e14c30a85143ac7e249d042c5"
+      },
+      "arguments": [
+        "--test-threads=1",
+        "--nocapture"
+      ],
+      "passed": 5,
+      "failed": 0,
+      "ignored": 0,
+      "seconds": 0.0,
+      "log": {
+        "path": ".local/gate-6/provider-voice-reconcile-voice_receipts-39d3c15f74b17588-final.log",
+        "sha256": "bf66b1cdf024ecdd414702e7a28e220081cddfd4f946558dc71857632921651a"
+      },
+      "tests": [
+        "discovery_returns_attributed_unbound_receipts_and_preserves_decoder_failure",
+        "invalid_mutation_never_reaches_transport",
+        "normalization_failure_after_possible_io_remains_uncertain",
+        "successful_receipts_keep_logical_binding_and_status_is_reconciliation",
+        "undeclared_correlation_default_never_submits_a_call_or_asserts_absence"
+      ],
+      "ignored_tests": []
+    },
+    {
+      "name": "connect_connectors",
+      "binary": {
+        "path": "target/debug/deps/connect_connectors-211d20a3d2cfd14e",
+        "sha256": "f73b4d441a54330df7ff17a57ba01a9e25edf6eb38ee2418295042a8c1895db9"
+      },
+      "arguments": [
+        "--test-threads=1",
+        "--nocapture"
+      ],
+      "passed": 16,
+      "failed": 0,
+      "ignored": 0,
+      "seconds": 2.14,
+      "log": {
+        "path": ".local/gate-6/provider-voice-reconcile-connect_connectors-211d20a3d2cfd14e-final.log",
+        "sha256": "a562deafb6680d023e7f90c59b1410f56ccf4d3a7c2366e16a988f9df9abe448"
+      },
+      "tests": [
+        "chat_context::tests::context_requires_a_system_prompt_variable",
+        "vapi_endpoint::tests::accepts_secure_or_explicit_loopback_origins_only",
+        "voice::inbound_tests::discovery_uses_scoped_filters_and_rejects_truncated_history",
+        "voice::inbound_tests::saturated_windows_split_without_losing_timestamp_ties_or_ids",
+        "voice::reconciliation::tests::complete_split_history_deduplicates_timestamp_ties_and_finds_one_original_call",
+        "voice::reconciliation::tests::fresh_resource_read_must_retain_the_full_original_binding",
+        "voice::reconciliation::tests::lost_create_reply_recovers_exact_correlated_resource_through_read_only_account_lookup",
+        "voice::reconciliation::tests::malformed_or_unbounded_query_refuses_before_provider_io",
+        "voice::reconciliation::tests::multiple_correlated_resources_or_mismatched_original_scope_never_supply_control",
+        "voice::reconciliation::tests::same_caller_or_missing_history_is_never_a_correlated_resource_or_absence_proof",
+        "voice::reconciliation::tests::saturated_unsplittable_or_over_budget_history_cannot_select_the_first_match",
+        "voice::tests::control_capability_is_bound_to_provider_call",
+        "voice_native_setup::tests::exclusively_owned_application_gets_the_owned_outbound_profile",
+        "voice_native_setup::tests::selected_integration_key_is_transient_even_when_creation_is_uncertain",
+        "voice_native_setup::tests::shared_application_is_read_only_and_retains_its_existing_limits",
+        "voice_setup::tests::names_are_bounded_stable_and_distinct"
+      ],
+      "ignored_tests": []
+    },
+    {
+      "name": "provider_mapping",
+      "binary": {
+        "path": "target/debug/deps/provider_mapping-e9971d8aa4c15bbc",
+        "sha256": "e947690a597e8318eb09209e5041fed46b850e6d1ebbf05f4c6438276790395b"
+      },
+      "arguments": [
+        "--test-threads=1",
+        "--nocapture"
+      ],
+      "passed": 4,
+      "failed": 0,
+      "ignored": 0,
+      "seconds": 0.73,
+      "log": {
+        "path": ".local/gate-6/provider-voice-reconcile-provider_mapping-e9971d8aa4c15bbc-final.log",
+        "sha256": "ad43bb42c6e2246c88691c854bdfb39dd7b114ed167329e0406395e112510d8b"
+      },
+      "tests": [
+        "actual_provider_adapters_pass_common_manifest_configuration_checks",
+        "manifests_preserve_sms_chat_and_separate_voice_semantics",
+        "telephone_creation_and_reconciliation_map_normalized_ids_without_authority",
+        "telephone_manifest_declares_control_without_promising_audio_or_sms"
+      ],
+      "ignored_tests": []
+    },
+    {
+      "name": "connect_server",
+      "binary": {
+        "path": "target/debug/deps/connect_server-616f548a437d1869",
+        "sha256": "d20d336cc412957f3d95a61e0d6e4c77e366e262e825cca73cef3e2c00807023"
+      },
+      "arguments": [
+        "--test-threads=1",
+        "--nocapture"
+      ],
+      "passed": 66,
+      "failed": 0,
+      "ignored": 0,
+      "seconds": 16.55,
+      "log": {
+        "path": ".local/gate-6/provider-voice-reconcile-connect_server-616f548a437d1869-final.log",
+        "sha256": "87700a9f45f4be11a8ec799f4a0900ed9c9b3c098041cddc7a5278af1dc3bed5"
+      },
+      "tests": [
+        "agent_observations::tests::stalled_capture_queue_drops_without_blocking_and_next_delivery_reports_exact_loss",
+        "agent_observations::tests::undeclared_model_capabilities_publish_unavailable_without_untrusted_body",
+        "canonical::tests::configuration_errors_do_not_echo_private_file_contents",
+        "canonical_assistants::tests::configured_assistant_assets_require_private_regular_files_without_echoing_contents",
+        "canonical_assistants::tests::public_profile_never_enables_insecure_nonfixture_transport_or_duplicate_proposal_tools",
+        "canonical_assistants::tests::strict_host_configuration_preserves_explicit_paths_policy_and_rejects_unknown_fields",
+        "cli::agent_access::tests::changed_credential_assets_or_access_mode_cannot_resume_an_existing_installation",
+        "cli::agent_access::tests::export_rejects_admin_revoked_and_mismatched_authority_before_creating_output",
+        "cli::agent_access::tests::identity_setup_replays_original_receipt_and_denies_conflict_or_non_admin",
+        "cli::agent_access::tests::regular_export_keeps_one_agent_key_without_task_grants_or_admin_secret",
+        "cli::agent_access::tests::regular_host_resumes_exact_session_and_redacts_its_key_without_grant_refresh",
+        "cli::agent_access::tests::removal_deletes_only_verified_connect_configuration_and_preserves_other_files",
+        "cli::agent_access::tests::unknown_host_or_missing_model_auth_preserves_installation_and_does_not_launch",
+        "cli::canonical_init::tests::destination_created_after_preflight_is_preserved_even_when_empty",
+        "cli::media_stdio::tests::framing_is_bounded_and_binary_safe",
+        "cli::media_stdio::tests::input_reader_preserves_a_frame_when_next_is_cancelled",
+        "cli::task_access::codex_host::diagnostics::tests::concurrent_state_change_never_combines_session_metadata_or_retains_probe_lock",
+        "cli::task_access::codex_host::group_status::tests::native_snapshot_rejects_live_group_and_accepts_its_unreaped_zombie",
+        "cli::vapi_task::manifest::tests::rejects_ambiguous_modes_public_binding_and_callback_credentials",
+        "cli::vapi_task::manifest::tests::rejects_oversized_or_nonregular_private_inputs",
+        "cli::vapi_task::manifest::tests::supported_modes_resolve_state_beside_private_manifest",
+        "config::tests::outbound_sip_fields_reject_ambiguous_input",
+        "config::tests::wildcard_sip_requires_a_concrete_media_bind_interface",
+        "media_transports::tests::outbound_trunk_fails_closed_without_a_password",
+        "media_transports::tests::outbound_trunk_uses_environment_secret_without_logging_it",
+        "private_vapi::audio::tests::expired_partial_speech_cannot_be_combined_with_a_fresh_provider_message",
+        "private_vapi::audio::tests::forwarding_stall_expires_complete_speech_and_replaces_it_with_silence",
+        "private_vapi::audio::tests::provider_message_boundaries_do_not_split_pcmu_frames",
+        "private_vapi::audio::tests::queued_audio_keeps_only_the_newest_bounded_frames_and_partial",
+        "private_vapi::transcripts::tests::archive_retries_same_callback_only_after_busy_store_result",
+        "private_vapi::transcripts::tests::cancellation_drains_admitted_write_and_does_not_start_queued_callback",
+        "private_vapi::transcripts::tests::pending_archive_does_not_block_media_ticks_and_preserves_order_and_capacity",
+        "private_vapi::transport::tests::private_receiver_must_bind_the_captured_call_and_exact_configured_origin",
+        "private_vapi::transport::tests::private_transport_requires_explicit_secure_or_numeric_loopback_origins",
+        "registration_monitor::tests::accepted_lease_refreshes_after_idle_and_rejected_refresh_can_recover_on_restart",
+        "registration_monitor::tests::dropped_refresh_does_not_leave_an_expired_binding_ready",
+        "secrets::tests::explicit_missing_or_locked_provider_reference_cannot_read_ambient_key",
+        "secrets::tests::provider_api_key_whitespace_preserves_legacy_headers_and_password_bytes",
+        "secrets::tests::references_and_debug_never_contain_secret_values",
+        "setup_vault::discovery_tests::unselected_provider_credentials_are_never_resolved",
+        "sip_outbound::tests::a_late_worker_outcome_cannot_replace_an_observed_terminal_connection",
+        "sip_outbound::tests::cancellation::active_hangup_waits_for_cleanup_and_keeps_failure_uncertain",
+        "sip_outbound::tests::cancellation::cancellation_callback_and_successful_cleanup_have_one_result_in_either_order",
+        "sip_outbound::tests::cancellation::cancellation_callback_cannot_conceal_failed_cleanup_in_either_order",
+        "sip_outbound::tests::cancellation::cancellation_event_for_an_active_leg_without_owned_cleanup_settles_ended",
+        "sip_outbound::tests::cancellation::normal_remote_end_and_failure_remain_authoritative_during_cancellation",
+        "sip_outbound::tests::failed_cancellation_cleanup_is_uncertain_and_cannot_be_redispatched",
+        "sip_outbound::tests::lost_authority_during_activation_runs_cleanup_and_persists_cancellation",
+        "sip_outbound::tests::stalled_cancellation_cleanup_is_bounded_and_does_not_detach_activation",
+        "sip_registration::tests::carrier_registration_authenticates_and_shutdown_removes_binding",
+        "sip_registration::tests::rejected_registration_does_not_report_ready",
+        "sms_authority::synchronization_tests::authenticated_snapshot_rejects_redirects_and_revision_replay",
+        "sms_authority::tests::reject_unsafe_authority_configuration",
+        "startup::tests::failed_startup_releases_endpoint_owned_by_a_pending_accept_task",
+        "startup::tests::successful_startup_keeps_accept_open_for_runtime_ownership",
+        "transports::http::tests::browser_origins_are_limited_to_loopback_http",
+        "vapi_bootstrap::call_failure::tests::diagnostics_expose_only_the_stage_even_with_a_sensitive_cause",
+        "vapi_bootstrap::voice_model::tests::absent_tools_are_supported_but_malformed_saved_models_are_rejected",
+        "vapi_bootstrap::voice_model::tests::scoped_mcp_discovery_preserves_saved_model_and_other_tools",
+        "vapi_observer::tests::cancelling_observer_drain_does_not_detach_the_receiver",
+        "vapi_observer::tests::queued_provider_report_is_not_replaced_by_missing_status",
+        "vapi_observer::tests::teardown_drains_queued_transcripts_and_records_missing_report",
+        "worker::tests::cancelling_shutdown_aborts_owned_tasks",
+        "worker::tests::failure_does_not_detach_a_stalled_sibling",
+        "worker::tests::panic_is_reported_and_other_tasks_are_still_drained",
+        "worker::tests::supervised_panic_wakes_readiness_without_waiting_for_shutdown"
+      ],
+      "ignored_tests": []
+    },
+    {
+      "name": "voice_flow",
+      "binary": {
+        "path": "target/debug/deps/voice_flow-efcbccbc67774352",
+        "sha256": "a42b36d9725ace1b8f7713caca58168da1de94af189181e562bc1968426bc039"
+      },
+      "arguments": [
+        "--test-threads=1",
+        "--nocapture"
+      ],
+      "passed": 8,
+      "failed": 0,
+      "ignored": 0,
+      "seconds": 7.61,
+      "log": {
+        "path": ".local/gate-6/provider-voice-reconcile-voice_flow-efcbccbc67774352-final.log",
+        "sha256": "1ee8edb2178b1820a3819294902db0eaef316ca0fa7b922327f2762f6d5747ef"
+      },
+      "tests": [
+        "canonical_provider_voice::actual_vapi_sdk_reconciles_lost_creation_after_restart_without_another_post_or_invented_session_acceptance",
+        "canonical_provider_voice::inbound_discovery_reaches_native_sdk_and_restart_never_redials",
+        "canonical_provider_voice::normalized_voice_without_discovery_does_not_call_inbound_but_retains_outbound_control",
+        "canonical_provider_voice::normalized_voice_without_start_refuses_creation_but_retains_inbound_status_and_cleanup",
+        "canonical_provider_voice::provider_without_voice_start_refuses_before_provider_io",
+        "canonical_provider_voice::quic_http_replay_starts_once_and_end_reaches_journal",
+        "canonical_provider_voice::uncertain_creation_reconciles_after_restart_and_http_end_cleans_the_original_resource_once",
+        "canonical_provider_voice::uncertain_provider_start_is_never_retried_after_worker_restart"
+      ],
+      "ignored_tests": []
+    },
+    {
+      "name": "All provider Session Store cases",
+      "binary": {
+        "path": "target/debug/deps/connect_store-34efc355090fb9eb",
+        "sha256": "60ccbd4934e05be834ea70d6a50c63557f93b49cbe8e1c6cf80c9813db8555bb"
+      },
+      "arguments": [
+        "transitions::provider_sessions",
+        "--test-threads=1",
+        "--nocapture"
+      ],
+      "passed": 45,
+      "failed": 0,
+      "ignored": 0,
+      "seconds": 6.26,
+      "log": {
+        "path": ".local/gate-6/provider-voice-reconcile-store-focused-final.log",
+        "sha256": "730fdc27299b763c7859ab63490a80e659cb9a2aad2827dcba879ea6dee3da38"
+      },
+      "tests": [
+        "transitions::provider_sessions::tests::a_reordered_nonterminal_end_response_keeps_cleanup_unknown_until_terminal_status",
+        "transitions::provider_sessions::tests::a_session_target_cannot_be_dialed_by_both_initial_sip_and_provider_control_hosts",
+        "transitions::provider_sessions::tests::active_provider_refuses_unprojectable_role_change_before_session_mutation",
+        "transitions::provider_sessions::tests::assistant_binding_rejects_other_identity_endpoint_and_changed_account",
+        "transitions::provider_sessions::tests::canonical_invitation_replay_has_one_provider_effect_and_no_legacy_call_or_media",
+        "transitions::provider_sessions::tests::captured_response_releases_transport_fence_and_survives_command_revocation_without_acceptance",
+        "transitions::provider_sessions::tests::cleanup_has_its_own_once_only_effect_and_original_creation_remains_confirmed",
+        "transitions::provider_sessions::tests::confirmed_call_cleanup_uses_owned_resource_after_endpoint_authority_is_withdrawn",
+        "transitions::provider_sessions::tests::correlated_resource_collision_quarantines_and_a_stale_lookup_cannot_overwrite_that_conflict",
+        "transitions::provider_sessions::tests::correlated_terminal_resource_settles_creation_and_cleanup_once_without_end_dispatch",
+        "transitions::provider_sessions::tests::correlation_requires_declared_capability_and_a_settled_unknown_submission",
+        "transitions::provider_sessions::tests::endpoint_revocation_before_dispatch_never_creates_an_external_effect",
+        "transitions::provider_sessions::tests::established_provider_stops_on_observer_membership_or_conversation_close",
+        "transitions::provider_sessions::tests::established_provider_uses_own_credentials_and_current_assistant_endpoint",
+        "transitions::provider_sessions::tests::failed_or_uncorrelated_lookup_cannot_settle_unknown_or_emit_a_new_provider_fact",
+        "transitions::provider_sessions::tests::immutable_sql_bindings_prevent_retarget_reset_and_retained_identity_deletion",
+        "transitions::provider_sessions::tests::incoming_already_terminal_history_does_not_require_an_active_call_slot",
+        "transitions::provider_sessions::tests::incoming_batch_capacity_failure_rolls_back_invitation_effects_and_cursor_together",
+        "transitions::provider_sessions::tests::incoming_discovery_uses_generic_invitation_and_observation_without_acceptance_or_create",
+        "transitions::provider_sessions::tests::incoming_duplicate_preserves_invitation_projection_and_private_capability",
+        "transitions::provider_sessions::tests::incoming_normalization_and_missing_discovery_refuse_before_import_or_cursor_advance",
+        "transitions::provider_sessions::tests::incoming_observation_cannot_rebind_an_owned_outbound_provider_resource",
+        "transitions::provider_sessions::tests::incoming_private_provider_reference_or_control_uri_in_reason_never_reaches_snapshot_or_journal",
+        "transitions::provider_sessions::tests::incoming_readmission_cannot_reuse_a_configured_epoch_even_for_an_existing_provider_id",
+        "transitions::provider_sessions::tests::incoming_recovery_keeps_original_resource_and_cursor_without_creation_permission",
+        "transitions::provider_sessions::tests::incoming_replay_rechecks_own_credentials_and_current_epoch_before_duplicate_detection",
+        "transitions::provider_sessions::tests::incoming_terminal_observation_confirms_original_absence_without_end_submission",
+        "transitions::provider_sessions::tests::incoming_unconfigured_caller_cannot_create_principals_membership_or_session_history",
+        "transitions::provider_sessions::tests::interrupted_submission_recovers_unknown_only_after_original_custody_is_gone",
+        "transitions::provider_sessions::tests::lost_cleanup_response_is_not_retried_and_status_can_reconcile_original_resource",
+        "transitions::provider_sessions::tests::mismatched_provider_receipt_cannot_bind_an_external_id_or_cleanup_capability",
+        "transitions::provider_sessions::tests::missing_start_capability_never_marks_submission_but_status_end_contract_remains_valid",
+        "transitions::provider_sessions::tests::natural_provider_terminal_observation_confirms_separate_cleanup_without_end_dispatch",
+        "transitions::provider_sessions::tests::observation_replay_and_reordering_do_not_replace_current_status_or_private_capability",
+        "transitions::provider_sessions::tests::original_control_receipt_stays_immutable_while_provider_revision_and_journal_advance",
+        "transitions::provider_sessions::tests::own_endpoint_route_revision_and_policy_are_bound_to_original_invitation",
+        "transitions::provider_sessions::tests::private_call_observations_remain_unavailable_to_uninvited_or_replaced_members",
+        "transitions::provider_sessions::tests::provider_effects_require_an_exact_successful_explicit_target_invitation",
+        "transitions::provider_sessions::tests::provider_identifier_collision_is_retained_privately_and_never_grants_cross_call_cleanup",
+        "transitions::provider_sessions::tests::role_change_preserves_historical_visibility_without_reusing_old_dispatch_authority",
+        "transitions::provider_sessions::tests::unattributable_terminal_receipt_never_settles_second_call_or_releases_quarantine",
+        "transitions::provider_sessions::tests::unattributable_uncertain_receipt_stays_quarantined_without_resource_attribution",
+        "transitions::provider_sessions::tests::uncertain_creation_correlation_after_restart_keeps_original_binding_and_cleans_after_revocation",
+        "transitions::provider_sessions::tests::unknown_creation_survives_worker_restart_and_cannot_redial_or_guess_cleanup",
+        "transitions::provider_sessions::tests::worker_retirement_stops_new_io_but_does_not_erase_an_admitted_historical_result"
+      ],
+      "ignored_tests": []
+    }
+  ],
+  "reused_unchanged_sdk_evidence": {
+    "not_rerun": true,
+    "source_component": {
+      "path": "docs/evidence/gate-6/provider-session-voice-ingress.json",
+      "sha256": "ac555c8ba82fa0198a3f31376ffa3f44a6248d1c02ad6a27059c9ca93a35d2f3"
+    },
+    "unchanged_inputs": [
+      {
+        "path": "sdk/typescript/src/events.ts",
+        "sha256": "5e5ca9ac7e55bcf85376da5986d62cda048e360e446d085f900aef3a493d0e6a"
+      },
+      {
+        "path": "sdk/typescript/src/event_validation.ts",
+        "sha256": "52964ae051beb37203e478955e2a8ff1735ddbe8ce9cf367ddaec8c82b2385f0"
+      },
+      {
+        "path": "sdk/python/connect_sdk/event_validation.py",
+        "sha256": "cdd5fd824ba93b3aac906ef483d6bade3ffd1f522ab6a5933ca9c3f40ac448c8"
+      },
+      {
+        "path": "sdk/tests/events_matrix.json",
+        "sha256": "b3f2ffc07180c84e40aaa0956f5a18f2ec14e778be7d80db57f39e28fd4042c3"
+      },
+      {
+        "path": "contracts/openapi-events.json",
+        "sha256": "660dbb04196dbe8bef18d5da6196d6db49eabe1695a5c305287f96211792b2dc"
+      },
+      {
+        "path": "contracts/openapi-canonical-http.json",
+        "sha256": "18003440c3d50d924098b784a37f1dc8b4a77b2c56b68f36a291bf12c57f04e3"
+      }
+    ]
+  },
+  "behavior": [
+    "VoiceReconcile is an optional independently declared read-only capability. It requires status and cleanup, without requiring permission to create. Unimplemented default refuses before transport. Existing synthetic profiles explicitly omit the new unsupported operation.",
+    "Vapi start_receipt submits the original mutation with one stable opaque forty-character call name, using the selected private-key reference and SDK retries disabled. The public canonical fixture exercises a503 lost create response, retains unknown, restarts the worker, correlates the original actual-SDK resource and observes terminal cleanup without another POST or manufactured Session acceptance/media. Eight canonical voice-flow cases pass, including the existing five original functional requirements and a separate HTTP-End-after-positive-correlation case.",
+    "Correlated account lookup uses original assistant, phone, full destination and the fixed original grant window: expiry minus configured timeout minus60 seconds through that same expiry plus60 seconds. Vapi lists authenticated account creation-time windows, splits saturated pages inclusively, bounds request count/decoded bytes, requires one matching opaque correlation/type/assistant/phone/destination/time, and re-gets that resource to check the full binding again. Caller ID alone cannot select a resource.",
+    "Empty history, an unrelated same-caller call, multiple matches, malformed/mismatched scope, incomplete saturated history, a changed fresh resource binding or any failed lookup retains uncertainty. The adapter issues no create or End during lookup. The Store records no invented authenticated observation, negative absence proof, quota release or new effect on those outcomes.",
+    "Only an original started unknown outbound effect without an attributed resource or existing binding quarantine can obtain reconciliation custody. Start/submitting/known-resource/unsupported cases refuse. The query never renews the original start grant. Positive explicit Reconciliation evidence confirms the original creation effect and updates the independently revised provider projection/journal; the original generic Session receipt stays immutable.",
+    "Exclusive worker restart does not redial. Admitted original-resource observation/cleanup custody can complete after original caller revocation while public replay still enforces current authorization. A known nonterminal resource receives its once-only original cleanup effect; a correlated terminal resource confirms a separate cleanup compensation without sending End. Failed/uncorrelated receipts cannot settle the unknown effect.",
+    "A correlated provider ID already owned by another call is retained privately as a binding conflict, with no attributed capability or quota release. A stale concurrently admitted lookup cannot attach another resource after that quarantine. Existing quarantine cannot be cleared by ordinary correlation; explicit typed quarantine resolution remains open."
+  ],
+  "implementation": [
+    {
+      "path": "crates/connect-connector-api/src/lib.rs",
+      "sha256": "5a50a25490c5cae939c122dcad9e79dc32ac618485970bdefcf73aef2f5be857"
+    },
+    {
+      "path": "crates/connect-connector-api/src/manifest.rs",
+      "sha256": "8664de436cf24dda9663513a9feda695e72beccdfe1bd00b1aa8940d9bb22904"
+    },
+    {
+      "path": "crates/connect-connector-api/tests/contracts.rs",
+      "sha256": "6c920299f7dfbcc4b3fc1af846e9695a0fcc19aabcfb390ceaf8f4a648081bef"
+    },
+    {
+      "path": "crates/connect-connector-api/tests/voice_receipts.rs",
+      "sha256": "1e159285fe5afa74adbf0dcf5016a4d2d98fa01587eaf84c48611bfe4a3b821a"
+    },
+    {
+      "path": "crates/connect-connectors/src/provider_mapping.rs",
+      "sha256": "bb43710d2796d726ff021a85e012e84197cb68d4493eba1fdf962e8f76345a9c"
+    },
+    {
+      "path": "crates/connect-connectors/src/voice.rs",
+      "sha256": "9a33c5c92639c8aaca6187e54b40b99d13f9dd89fd7b13a712bd5818a48e1dec"
+    },
+    {
+      "path": "crates/connect-connectors/src/voice/reconciliation.rs",
+      "sha256": "46e95f57bea435b9b81a6b0ab4054d5e3ffe5aa6c9d8351d3d554d3303347157"
+    },
+    {
+      "path": "crates/connect-connectors/src/voice/reconciliation/tests.rs",
+      "sha256": "aed12ad701431180e90d261e37f61acfe34bfc40ee670cca9074806d8f59f499"
+    },
+    {
+      "path": "crates/connect-connectors/tests/provider_mapping.rs",
+      "sha256": "4cbcd2cfdea27298edf80fcc069ab12b394dd636b398c967b77cb59595f3140c"
+    },
+    {
+      "path": "crates/connect-store/src/transitions/provider_sessions/mod.rs",
+      "sha256": "668b36c194acf9434833b67a541926a206b40ac57109f744c24bd1cdc716adb5"
+    },
+    {
+      "path": "crates/connect-store/src/transitions/provider_sessions/lifecycle.rs",
+      "sha256": "f5659a2bea8a89e4cd2ff34bf866c213ac1a6d359cdbb42b2a42e0a386aed33c"
+    },
+    {
+      "path": "crates/connect-store/src/transitions/provider_sessions/tests.rs",
+      "sha256": "cb042f1c57409ebe913476da196732693237549398f0cf069e2849998ec32074"
+    },
+    {
+      "path": "crates/connect-server/src/canonical_provider_voice.rs",
+      "sha256": "f6729070f4a48eeaaf7451feb22be0c651e427c92a58a2f685f73c6506555f19"
+    },
+    {
+      "path": "crates/connect-server/tests/support/canonical_provider_voice.rs",
+      "sha256": "a7fc4497c674672db1f65e301ac2eb97647530e40a2f6b22d8d08bfed64e9520"
+    },
+    {
+      "path": "crates/connect-server/tests/gate4_voice_authority.rs",
+      "sha256": "63551e4fb46f0888da2b19c60598e3ab710d465d592946ddd089f18952cec9d2"
+    },
+    {
+      "path": "crates/connect-server/tests/gate6_voice_worker.rs",
+      "sha256": "4594300dcc939855eb54d741bc514df13a849bf1e2c48f4382c49df1c06d3233"
+    },
+    {
+      "path": "contracts/connectors/profile-v1.md",
+      "sha256": "7dbe3338d88043dd75ffef50c7872feb5a7a2d396846c96e2a9df00bdd50e4a0"
+    },
+    {
+      "path": "docs/developer/provider-session-voice.md",
+      "sha256": "c2c69684f5c706d1d4ae1d762d0dd4bd182f5c3255eb7482f50103dbe88b6006"
+    }
+  ],
+  "provider_reference_sources": [
+    {
+      "title": "Vapi Create Call: call name and authenticated creation",
+      "url": "https://docs.vapi.ai/api-reference/calls/create"
+    },
+    {
+      "title": "Vapi List Calls: authenticated account, assistant/phone and inclusive creation filters",
+      "url": "https://docs.vapi.ai/api-reference/calls/list"
+    }
+  ],
+  "build_logs": [
+    {
+      "path": ".local/gate-6/provider-voice-reconcile-build.log",
+      "sha256": "1a17a4d4cdabcff0104e6186a3a766bf46be95bc4e0b89afebea5d96938c2b3d"
+    },
+    {
+      "path": ".local/gate-6/provider-voice-reconcile-build-final.log",
+      "sha256": "14673966ab2789c116d579494c92b841e7668fe5d5c08d07eaf127f0b2f7fae8"
+    },
+    {
+      "path": ".local/gate-6/provider-voice-reconcile-build-collision-fix.log",
+      "sha256": "aef1629cdc9ffe34b14bb800aa4105befa67a89efcd54015a5b24378089382dc"
+    },
+    {
+      "path": ".local/gate-6/provider-voice-reconcile-build-auth-audit.log",
+      "sha256": "7b9c046456d619595b38b6be0c37e9f46b1aa72d2f0668f3519f69d857a98de6"
+    },
+    {
+      "path": ".local/gate-6/provider-voice-reconcile-build-auth-final.log",
+      "sha256": "1670720ef7ff2e157004204db09b1fbd9135f8b9c8e8b6de4ce4ec47e29b8d27"
+    }
+  ],
+  "checks": [
+    {
+      "path": ".local/gate-6/provider-voice-reconcile-prepare-final.log",
+      "sha256": "fd9d7b181e3ccba9b643af55a186cf132c60aac99c734b2ee4e4e549afe5ffc2"
+    },
+    {
+      "path": ".local/gate-6/provider-voice-reconcile-prepare-collision-fix.log",
+      "sha256": "fd9d7b181e3ccba9b643af55a186cf132c60aac99c734b2ee4e4e549afe5ffc2"
+    },
+    {
+      "path": ".local/gate-6/provider-voice-reconcile-prepare-auth-final.log",
+      "sha256": "fd9d7b181e3ccba9b643af55a186cf132c60aac99c734b2ee4e4e549afe5ffc2"
+    },
+    {
+      "path": ".local/gate-6/provider-voice-reconcile-format-check.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": ".local/gate-6/provider-voice-reconcile-event-reference-check.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": ".local/gate-6/provider-voice-reconcile-http-check.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": ".local/gate-6/provider-voice-reconcile-whitespace.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ],
+  "correction_evidence": [
+    {
+      "path": ".local/gate-6/provider-voice-reconcile-auth-unchanged-binaries.json",
+      "sha256": "d6993a8c2ee9d8a834c983f698af4670d1d53b1d89212d33d854f49f0e2e23ab"
+    },
+    {
+      "path": ".local/gate-6/provider-voice-reconcile-store-before-collision-fix.log",
+      "sha256": "bfbeadaf4677e46c9d608834f2107a448f10e071aacca2d7d6f095a76aaebb0a"
+    },
+    {
+      "path": ".local/gate-6/provider-voice-reconcile-runs-before-collision-fix.json",
+      "sha256": "5eb80443c869dc000b0ac5a289838caa09334ca43ed270c34995df0d61c320a7"
+    },
+    {
+      "path": ".local/gate-6/provider-voice-reconcile-voice_flow-first.log",
+      "sha256": "ab2e331ab3cab489de01da2652927cd0d6929b727c0782c6929cf1f1df60a34d"
+    }
+  ],
+  "corrections": [
+    "First build failed because the new synthetic fixture held a mutex guard across await. Restricted it to a lexical block; the production transport was unchanged by this fixture correction. Subsequent builds succeeded.",
+    "The new stale-correlation/quarantine test initially failed44passes/onefailure: the collision path attempted LocalAttempt on an already-unknown lifecycle projection, which correctly requires explicit reconciliation. The fix keeps the strict lifecycle verifier and existing unknown state, while retaining the actual conflicting receipt privately and journaling the new binding problem. All45 provider Session Store cases pass on the corrected build. The failed run is retained.",
+    "The final authentication audit makes actual SDK and canonical-host HTTP fixture create/list/Get responses require the selected bearer key. Only the affected connector16 and voice_flow8 suites were rerun after this test-only change; other current-turn qualified binary hashes remain unchanged, recorded separately.",
+    "The first eight-case canonical suite passed before the localized collision-path fix. It is retained as intermediate evidence; the final eight-case run uses the corrected rebuilt Store/server dependency and is counted once. Other selected suites are also rerun against final binaries."
+  ],
+  "verification_scope": "Targeted151 distinct current Rust passes. The Store suite is its45 provider Session cases; the other721 Store cases are filtered, not claimed as fresh passes. No full Store/workspace/native media rerun for this localized provider lifecycle change; prior incoming full-baseline proof remains separately identified.",
+  "required_real_provider_reruns": [
+    "Named bounded G6-093 Vapi telephone rehearsal must rerun creation with opaque correlation, lost-reply account lookup, restart, terminal observation and exact owned End with the designated assistant/phone/account/key. Actual provider call-name echo/indexing, clock/filter behavior and private control URL remain unqualified by local mocks.",
+    "Rerun approved callback/transcript/private/teardown and selected SIP/Telnyx/SMS account/trunk/native/browser/remote/Linux profiles as their integration changes land. No live credentials, paid/PSTN calls, external endpoints or publication were used here."
+  ],
+  "remaining_work": [
+    "Implement typed provider resource collision/quarantine resolution with positive evidence. Ordinary correlation deliberately cannot override that conflict.",
+    "Complete original Task/context grants, authenticated callbacks/transcript/private fanout/teardown, truthful selected Endpoint/runtime/account/trunk/secret capabilities, generic Vapi chat/SIP/Telnyx/SMS integration and remaining role/multiparty/private/media/process-kill/physical quarantine cases required by G6-044.",
+    "Keep historical concurrent-cache public-assistant initialization refusal and earlier private one-frame causes unresolved until their actual causes/profile evidence are established. Named remote/Linux/browser/live provider qualifications require concrete bounded G6-093 configuration. G6-045 follows G6-044 for ambiguous incoming contact holding/resolution; Caller ID never grants principal authority."
+  ],
+  "not_qualified": [
+    "No full G6-044, acceptance, workspace, current full Store/native media, Linux x86_64, browser, remote/NAT, live provider/PSTN, package/publication or independent acceptance closure."
+  ],
+  "plan_counts": {
+    "done": 43,
+    "in_progress": 1,
+    "not_started": 61,
+    "acceptance_done": 0
+  }
+}

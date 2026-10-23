@@ -10,7 +10,7 @@ fn question(f: &Fixture, task: &TaskRecord, id: &str) -> String {
     let operation = Operation::Send {
         request_id: id.into(),
         conversation_id: f.cid.clone(),
-        body: format!("question {id}"),
+        message: connect_protocol::messages::MessageDraft::text_all(format!("question {id}")),
     };
     let outcome = f.store.execute(&f.key.id, &operation).unwrap();
     let Outcome::Accepted { message_id, .. } = &outcome else {

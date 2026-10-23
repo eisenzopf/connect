@@ -1,0 +1,1748 @@
+diff --git a/crates/foundation/rvoip-core/src/staged_streams.rs b/crates/foundation/rvoip-core/src/staged_streams.rs
+index 85ac8aa..065bf30 100644
+--- a/crates/foundation/rvoip-core/src/staged_streams.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams.rs
+@@ -4,7 +4,7 @@
+ //! transport adapters must implement this contract before advertising it.
+ 
+ use crate::{
+-    identity::AuthenticatedPrincipal,
++    identity::{AuthenticatedPrincipal, IdentityAssurance},
+     ids::{ConnectionId, ConversationId, SessionId, StreamId},
+     relationships::{ConnectionBinding, EndpointBinding, Membership, SessionAppearance},
+     stream::{MediaFrame, StreamKind},
+@@ -166,8 +166,92 @@ pub struct MediaScope<'a> {
+ pub trait MediaAuthorityLease: Send {
+     fn authority(&self) -> &MediaOwner;
+ }
++/// Exact engine action to compare with the authenticated invocation's intent.
++/// It carries no grant and is never deserialized from an authority assertion.
++pub enum MediaControlIntent<'a> {
++    Initialize,
++    Change {
++        expected: u64,
++        desired: &'a [DesiredStream],
++        replace: &'a BTreeSet<StreamId>,
++    },
++    Pause {
++        logical: &'a StreamId,
++        expected: u64,
++        paused: bool,
++    },
++    End {
++        logical: &'a StreamId,
++        expected: u64,
++    },
++}
+ pub trait MediaPolicy: Send + Sync {
+     fn current(&self, scope: &MediaScope<'_>) -> ControlResult<Box<dyn MediaAuthorityLease>>;
++    /// Derive current control authority from a trusted invocation's already-held
++    /// guard. Check the exact policy domain, actor/resource scope and grants.
++    /// Never reacquire that guard's store lock. The default refuses this path.
++    fn current_control(
++        &self,
++        _scope: &MediaScope<'_>,
++        _intent: &MediaControlIntent<'_>,
++        _held: &(dyn Any + Send + Sync),
++    ) -> ControlResult<MediaControl> {
++        Err(StreamControlError::Unsupported)
++    }
++}
++/// Policy-created authority for one bounded ongoing control invocation only.
++/// Owns the real current guard; never retained as a port's publication grant.
++/// The invocation owner cancels the supplied token when its handler ends.
++pub struct MediaControl {
++    lease: Box<dyn MediaAuthorityLease>,
++    cancellation: CancellationToken,
++    deadline: tokio::time::Instant,
++}
++impl MediaControl {
++    pub fn new(
++        lease: Box<dyn MediaAuthorityLease>,
++        cancellation: CancellationToken,
++        deadline: tokio::time::Instant,
++    ) -> ControlResult<Self> {
++        let value = Self {
++            lease,
++            cancellation,
++            deadline: deadline.min(tokio::time::Instant::now() + Duration::from_secs(30)),
++        };
++        value.authority()?;
++        Ok(value)
++    }
++    fn authority(&self) -> ControlResult<&MediaOwner> {
++        if self.cancellation.is_cancelled() {
++            return Err(StreamControlError::Cancelled);
++        }
++        if tokio::time::Instant::now() >= self.deadline {
++            return Err(StreamControlError::Deadline);
++        }
++        Ok(self.lease.authority())
++    }
++}
++enum ControlRead<'a> {
++    Held(&'a MediaOwner),
++    Current(Box<dyn MediaAuthorityLease>),
++}
++impl ControlRead<'_> {
++    fn authority(&self) -> &MediaOwner {
++        match self {
++            Self::Held(owner) => owner,
++            Self::Current(lease) => lease.authority(),
++        }
++    }
++}
++fn control_read<'a>(
++    policy: &dyn MediaPolicy,
++    scope: &MediaScope<'_>,
++    control: Option<&'a MediaControl>,
++) -> ControlResult<ControlRead<'a>> {
++    match control {
++        Some(control) => Ok(ControlRead::Held(control.authority()?)),
++        None => Ok(ControlRead::Current(policy.current(scope)?)),
++    }
+ }
+ 
+ #[async_trait::async_trait]
+@@ -692,6 +776,70 @@ impl StreamController {
+         maximum_ports: usize,
+         opened_limit: usize,
+         lifetime: CancellationToken,
++    ) -> ControlResult<Arc<Self>> {
++        Self::build(
++            conversation,
++            session,
++            connection,
++            principal,
++            policy,
++            adapter,
++            handles,
++            maximum_ports,
++            opened_limit,
++            lifetime,
++            None,
++        )
++    }
++    /// Construct under an explicit installed-policy view of an already-held
++    /// invocation guard. The controller retains only its normal current policy.
++    pub fn with_held_control(
++        conversation: ConversationId,
++        session: SessionId,
++        connection: ConnectionId,
++        principal: AuthenticatedPrincipal,
++        policy: Arc<dyn MediaPolicy>,
++        adapter: Arc<dyn StagedMediaAdapter>,
++        handles: Arc<StreamHandleAllocator>,
++        maximum_ports: usize,
++        opened_limit: usize,
++        lifetime: CancellationToken,
++        held: &(dyn Any + Send + Sync),
++    ) -> ControlResult<Arc<Self>> {
++        let scope = MediaScope {
++            conversation: &conversation,
++            session: &session,
++            connection: &connection,
++            principal: &principal,
++            purpose: MediaPurpose::Control,
++        };
++        let control = policy.current_control(&scope, &MediaControlIntent::Initialize, held)?;
++        Self::build(
++            conversation,
++            session,
++            connection,
++            principal,
++            policy,
++            adapter,
++            handles,
++            maximum_ports,
++            opened_limit,
++            lifetime,
++            Some(control),
++        )
++    }
++    fn build(
++        conversation: ConversationId,
++        session: SessionId,
++        connection: ConnectionId,
++        principal: AuthenticatedPrincipal,
++        policy: Arc<dyn MediaPolicy>,
++        adapter: Arc<dyn StagedMediaAdapter>,
++        handles: Arc<StreamHandleAllocator>,
++        maximum_ports: usize,
++        opened_limit: usize,
++        lifetime: CancellationToken,
++        control: Option<MediaControl>,
+     ) -> ControlResult<Arc<Self>> {
+         if lifetime.is_cancelled() {
+             return Err(StreamControlError::Cancelled);
+@@ -706,7 +854,7 @@ impl StreamController {
+             principal: &principal,
+             purpose: MediaPurpose::Control,
+         };
+-        let lease = policy.current(&scope)?;
++        let lease = control_read(policy.as_ref(), &scope, control.as_ref())?;
+         let authority = lease.authority();
+         Self::check(&scope, authority)?;
+         let model = StreamLifecycle::with_open_limit(&authority.current(), opened_limit)?;
+@@ -745,10 +893,39 @@ impl StreamController {
+             purpose,
+         }
+     }
++    fn principal_expiry(
++        principal: &AuthenticatedPrincipal,
++    ) -> Option<chrono::DateTime<chrono::Utc>> {
++        match &principal.assurance {
++            IdentityAssurance::TaskScoped { expires_at, .. } => Some(
++                principal
++                    .expires_at
++                    .map_or(*expires_at, |expiry| expiry.min(*expires_at)),
++            ),
++            _ => principal.expires_at,
++        }
++    }
++    fn command_deadline(&self, requested: tokio::time::Instant) -> tokio::time::Instant {
++        let now = tokio::time::Instant::now();
++        let deadline = requested.min(now + Duration::from_secs(30));
++        match Self::principal_expiry(&self.principal) {
++            Some(expiry) => deadline.min(
++                now + (expiry - chrono::Utc::now())
++                    .to_std()
++                    .unwrap_or_default()
++                    .min(Duration::from_secs(30)),
++            ),
++            None => deadline,
++        }
++    }
+     fn check(scope: &MediaScope<'_>, authority: &MediaOwner) -> ControlResult<()> {
++        let now = chrono::Utc::now();
++        if Self::principal_expiry(scope.principal).is_some_and(|expiry| expiry <= now) {
++            return Err(StreamControlError::Authority);
++        }
+         authority
+             .actor
+-            .revalidate_principal(scope.principal, chrono::Utc::now())
++            .revalidate_principal(scope.principal, now)
+             .map_err(|_| StreamControlError::Authority)?;
+         if authority.member.conversation() != scope.conversation
+             || authority.presence.session() != scope.session
+@@ -898,6 +1075,58 @@ impl StreamController {
+         deadline: tokio::time::Instant,
+         cancellation: CancellationToken,
+     ) -> ControlResult<()> {
++        self.change_inner(expected, desired, replace, deadline, cancellation, None)
++            .await
++    }
++    /// Same transition using the installed policy's explicit held-invocation
++    /// control hook. This does not change publication/forwarding authorization.
++    pub async fn change_with_held(
++        self: &Arc<Self>,
++        expected: u64,
++        desired: &[DesiredStream],
++        replace: &BTreeSet<StreamId>,
++        deadline: tokio::time::Instant,
++        cancellation: CancellationToken,
++        held: Arc<dyn Any + Send + Sync>,
++    ) -> ControlResult<()> {
++        let control = self.policy.current_control(
++            &self.scope(MediaPurpose::Control),
++            &MediaControlIntent::Change {
++                expected,
++                desired,
++                replace,
++            },
++            held.as_ref(),
++        )?;
++        self.change_inner(
++            expected,
++            desired,
++            replace,
++            deadline,
++            cancellation,
++            Some(control),
++        )
++        .await
++    }
++    async fn change_inner(
++        self: &Arc<Self>,
++        expected: u64,
++        desired: &[DesiredStream],
++        replace: &BTreeSet<StreamId>,
++        deadline: tokio::time::Instant,
++        cancellation: CancellationToken,
++        control: Option<MediaControl>,
++    ) -> ControlResult<()> {
++        let control_cancel = control
++            .as_ref()
++            .map(|c| c.cancellation.clone())
++            .unwrap_or_default();
++        let deadline = self
++            .command_deadline(deadline)
++            .min(control.as_ref().map_or(deadline, |c| c.deadline));
++        if deadline <= tokio::time::Instant::now() {
++            return Err(StreamControlError::Deadline);
++        }
+         if cancellation.is_cancelled() || self.shutdown.is_cancelled() {
+             return Err(StreamControlError::Cancelled);
+         }
+@@ -906,7 +1135,6 @@ impl StreamController {
+             .clone()
+             .try_acquire_owned()
+             .map_err(|_| MediaTransitionError::Conflict)?;
+-        let deadline = deadline.min(tokio::time::Instant::now() + Duration::from_secs(30));
+         let now = Instant::now();
+         let ticket = {
+             let state = &mut *self.state.lock().unwrap_or_else(|p| p.into_inner());
+@@ -914,7 +1142,7 @@ impl StreamController {
+                 return Err(StreamControlError::Cancelled);
+             }
+             let scope = self.scope(MediaPurpose::Control);
+-            let lease = self.policy.current(&scope)?;
++            let lease = control_read(self.policy.as_ref(), &scope, control.as_ref())?;
+             let auth = lease.authority();
+             Self::check(&scope, auth)?;
+             let ticket = state.model.prepare(
+@@ -1001,7 +1229,7 @@ impl StreamController {
+                 generation: existing.as_ref().map_or(1, |p| p.binding.generation + 1),
+                 connection_generation: {
+                     let scope = self.scope(MediaPurpose::Control);
+-                    let lease = self.policy.current(&scope)?;
++                    let lease = control_read(self.policy.as_ref(), &scope, control.as_ref())?;
+                     lease.authority().connection.generation()
+                 },
+                 source_ready: plan.requested.direction != StreamDirection::Send,
+@@ -1053,7 +1281,7 @@ impl StreamController {
+             }
+             state.opened_ports += new_ports;
+         }
+-        tokio::select! {biased;_ = cancellation.cancelled()=>return Err(StreamControlError::Cancelled),_=self.shutdown.cancelled()=>return Err(StreamControlError::Cancelled),result=tokio::time::timeout_at(deadline,self.adapter.prepare(selected.clone(),deadline,candidate.cancellation.clone()))=>result.map_err(|_|StreamControlError::Deadline)??}
++        tokio::select! {biased;_ = cancellation.cancelled()=>return Err(StreamControlError::Cancelled),_=control_cancel.cancelled()=>return Err(StreamControlError::Cancelled),_=self.shutdown.cancelled()=>return Err(StreamControlError::Cancelled),result=tokio::time::timeout_at(deadline,self.adapter.prepare(selected.clone(),deadline,candidate.cancellation.clone()))=>result.map_err(|_|StreamControlError::Deadline)??}
+         let removed = {
+             let state = self.state.lock().unwrap_or_else(|p| p.into_inner());
+             state
+@@ -1066,13 +1294,13 @@ impl StreamController {
+         let mut quiesced = Vec::new();
+         for old in &removed {
+             let ticket = old.ticket();
+-            let guard = tokio::select! {biased;_=cancellation.cancelled()=>return Err(StreamControlError::Cancelled),_=self.shutdown.cancelled()=>return Err(StreamControlError::Cancelled),result=tokio::time::timeout_at(deadline,ticket.quiesce())=>result.map_err(|_|StreamControlError::Deadline)?.ok_or(StreamControlError::NotReady)?};
++            let guard = tokio::select! {biased;_=cancellation.cancelled()=>return Err(StreamControlError::Cancelled),_=control_cancel.cancelled()=>return Err(StreamControlError::Cancelled),_=self.shutdown.cancelled()=>return Err(StreamControlError::Cancelled),result=tokio::time::timeout_at(deadline,ticket.quiesce())=>result.map_err(|_|StreamControlError::Deadline)?.ok_or(StreamControlError::NotReady)?};
+             quiesced.push(guard);
+         }
+         {
+             let mut state = self.state.lock().unwrap_or_else(|p| p.into_inner());
+             let scope = self.scope(MediaPurpose::Control);
+-            let lease = self.policy.current(&scope)?;
++            let lease = control_read(self.policy.as_ref(), &scope, control.as_ref())?;
+             let auth = lease.authority();
+             Self::check(&scope, auth)?;
+             if state.closed || cancellation.is_cancelled() || self.shutdown.is_cancelled() {
+@@ -1134,6 +1362,49 @@ impl StreamController {
+         paused: bool,
+         deadline: tokio::time::Instant,
+     ) -> ControlResult<()> {
++        self.set_paused_inner(logical, expected, paused, deadline, None)
++            .await
++    }
++    /// Same transition using the installed policy's explicit held-invocation
++    /// control hook. This does not change publication/forwarding authorization.
++    pub async fn set_paused_with_held(
++        &self,
++        logical: &StreamId,
++        expected: u64,
++        paused: bool,
++        deadline: tokio::time::Instant,
++        held: Arc<dyn Any + Send + Sync>,
++    ) -> ControlResult<()> {
++        let control = self.policy.current_control(
++            &self.scope(MediaPurpose::Control),
++            &MediaControlIntent::Pause {
++                logical,
++                expected,
++                paused,
++            },
++            held.as_ref(),
++        )?;
++        self.set_paused_inner(logical, expected, paused, deadline, Some(control))
++            .await
++    }
++    async fn set_paused_inner(
++        &self,
++        logical: &StreamId,
++        expected: u64,
++        paused: bool,
++        deadline: tokio::time::Instant,
++        control: Option<MediaControl>,
++    ) -> ControlResult<()> {
++        let control_cancel = control
++            .as_ref()
++            .map(|c| c.cancellation.clone())
++            .unwrap_or_default();
++        let deadline = self
++            .command_deadline(deadline)
++            .min(control.as_ref().map_or(deadline, |c| c.deadline));
++        if deadline <= tokio::time::Instant::now() {
++            return Err(StreamControlError::Deadline);
++        }
+         let _flight = self
+             .inflight
+             .clone()
+@@ -1142,7 +1413,7 @@ impl StreamController {
+         let port = {
+             let state = self.state.lock().unwrap_or_else(|p| p.into_inner());
+             let scope = self.scope(MediaPurpose::Control);
+-            let lease = self.policy.current(&scope)?;
++            let lease = control_read(self.policy.as_ref(), &scope, control.as_ref())?;
+             let auth = lease.authority();
+             Self::check(&scope, auth)?;
+             state.model.authorize_binding(&auth.current())?;
+@@ -1160,11 +1431,11 @@ impl StreamController {
+         };
+         let old = port.ticket();
+         let next = old.stage().ok_or(MediaTransitionError::Capacity)?;
+-        let drained = tokio::select! {biased;_=self.shutdown.cancelled()=>return Err(StreamControlError::Cancelled),result=tokio::time::timeout_at(deadline,old.quiesce())=>result.map_err(|_|StreamControlError::Deadline)?.ok_or(StreamControlError::NotReady)?};
++        let drained = tokio::select! {biased;_=control_cancel.cancelled()=>return Err(StreamControlError::Cancelled),_=self.shutdown.cancelled()=>return Err(StreamControlError::Cancelled),result=tokio::time::timeout_at(deadline,old.quiesce())=>result.map_err(|_|StreamControlError::Deadline)?.ok_or(StreamControlError::NotReady)?};
+         {
+             let mut state = self.state.lock().unwrap_or_else(|p| p.into_inner());
+             let scope = self.scope(MediaPurpose::Control);
+-            let lease = self.policy.current(&scope)?;
++            let lease = control_read(self.policy.as_ref(), &scope, control.as_ref())?;
+             let auth = lease.authority();
+             Self::check(&scope, auth)?;
+             if state.closed {
+@@ -1198,6 +1469,43 @@ impl StreamController {
+         expected: u64,
+         deadline: tokio::time::Instant,
+     ) -> ControlResult<()> {
++        self.end_stream_inner(logical, expected, deadline, None)
++            .await
++    }
++    /// Same transition using the installed policy's explicit held-invocation
++    /// control hook. This does not change publication/forwarding authorization.
++    pub async fn end_stream_with_held(
++        &self,
++        logical: &StreamId,
++        expected: u64,
++        deadline: tokio::time::Instant,
++        held: Arc<dyn Any + Send + Sync>,
++    ) -> ControlResult<()> {
++        let control = self.policy.current_control(
++            &self.scope(MediaPurpose::Control),
++            &MediaControlIntent::End { logical, expected },
++            held.as_ref(),
++        )?;
++        self.end_stream_inner(logical, expected, deadline, Some(control))
++            .await
++    }
++    async fn end_stream_inner(
++        &self,
++        logical: &StreamId,
++        expected: u64,
++        deadline: tokio::time::Instant,
++        control: Option<MediaControl>,
++    ) -> ControlResult<()> {
++        let control_cancel = control
++            .as_ref()
++            .map(|c| c.cancellation.clone())
++            .unwrap_or_default();
++        let deadline = self
++            .command_deadline(deadline)
++            .min(control.as_ref().map_or(deadline, |c| c.deadline));
++        if deadline <= tokio::time::Instant::now() {
++            return Err(StreamControlError::Deadline);
++        }
+         let _flight = self
+             .inflight
+             .clone()
+@@ -1206,7 +1514,7 @@ impl StreamController {
+         let port = {
+             let state = self.state.lock().unwrap_or_else(|p| p.into_inner());
+             let scope = self.scope(MediaPurpose::Control);
+-            let lease = self.policy.current(&scope)?;
++            let lease = control_read(self.policy.as_ref(), &scope, control.as_ref())?;
+             let auth = lease.authority();
+             Self::check(&scope, auth)?;
+             state.model.authorize_binding(&auth.current())?;
+@@ -1223,11 +1531,11 @@ impl StreamController {
+                 .ok_or(StreamControlError::NotReady)?
+         };
+         let ticket = port.ticket();
+-        let drained = tokio::select! {biased;_=self.shutdown.cancelled()=>return Err(StreamControlError::Cancelled),result=tokio::time::timeout_at(deadline,ticket.quiesce())=>result.map_err(|_|StreamControlError::Deadline)?.ok_or(StreamControlError::NotReady)?};
++        let drained = tokio::select! {biased;_=control_cancel.cancelled()=>return Err(StreamControlError::Cancelled),_=self.shutdown.cancelled()=>return Err(StreamControlError::Cancelled),result=tokio::time::timeout_at(deadline,ticket.quiesce())=>result.map_err(|_|StreamControlError::Deadline)?.ok_or(StreamControlError::NotReady)?};
+         {
+             let mut state = self.state.lock().unwrap_or_else(|p| p.into_inner());
+             let scope = self.scope(MediaPurpose::Control);
+-            let lease = self.policy.current(&scope)?;
++            let lease = control_read(self.policy.as_ref(), &scope, control.as_ref())?;
+             let auth = lease.authority();
+             Self::check(&scope, auth)?;
+             if state.closed {
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/tests.rs b/crates/foundation/rvoip-core/src/staged_streams/tests.rs
+index 9e0fdae..60a6838 100644
+--- a/crates/foundation/rvoip-core/src/staged_streams/tests.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests.rs
+@@ -1393,3 +1393,538 @@ async fn parent_route_lifetime_cancels_admitted_send_and_releases_authority_with
+     assert!(target.try_publish(&frame(&target, 320)).is_ok());
+     assert_eq!(f.b.shutdown(deadline()).await, 0);
+ }
++
++struct HeldControlContext {
++    domain: Arc<Policy>,
++    guard: Arc<OwnedRwLockReadGuard<PolicyState>>,
++    principal: AuthenticatedPrincipal,
++    connection: ConnectionId,
++    cancellation: CancellationToken,
++    deadline: tokio::time::Instant,
++}
++struct HeldPolicy {
++    base: Arc<Policy>,
++    current_calls: AtomicUsize,
++    held_calls: AtomicUsize,
++}
++struct HeldOwnerLease {
++    owner: MediaOwner,
++    _guard: Arc<OwnedRwLockReadGuard<PolicyState>>,
++}
++impl MediaAuthorityLease for HeldOwnerLease {
++    fn authority(&self) -> &MediaOwner {
++        &self.owner
++    }
++}
++impl MediaPolicy for HeldPolicy {
++    fn current(&self, scope: &MediaScope<'_>) -> ControlResult<Box<dyn MediaAuthorityLease>> {
++        self.current_calls.fetch_add(1, Ordering::AcqRel);
++        self.base.current(scope)
++    }
++    fn current_control(
++        &self,
++        scope: &MediaScope<'_>,
++        _intent: &MediaControlIntent<'_>,
++        held: &(dyn Any + Send + Sync),
++    ) -> ControlResult<MediaControl> {
++        let held = held
++            .downcast_ref::<HeldControlContext>()
++            .ok_or(StreamControlError::Authority)?;
++        if !Arc::ptr_eq(&self.base, &held.domain)
++            || held.connection != *scope.connection
++            || !held.principal.has_same_owner(scope.principal)
++            || held.principal.scopes != scope.principal.scopes
++            || held.principal.expires_at != scope.principal.expires_at
++            || held.principal.method != scope.principal.method
++            || held.principal.assurance.kind() != scope.principal.assurance.kind()
++            || held.guard.revoked.contains(&scope.principal.subject)
++        {
++            return Err(StreamControlError::Authority);
++        }
++        self.held_calls.fetch_add(1, Ordering::AcqRel);
++        let owner = held
++            .guard
++            .owners
++            .get(scope.connection.as_str())
++            .ok_or(StreamControlError::Authority)?
++            .clone();
++        MediaControl::new(
++            Box::new(HeldOwnerLease {
++                owner,
++                _guard: held.guard.clone(),
++            }),
++            held.cancellation.clone(),
++            held.deadline,
++        )
++    }
++}
++impl HeldPolicy {
++    fn new(f: &Fixture) -> Arc<Self> {
++        Arc::new(Self {
++            base: f.policy.clone(),
++            current_calls: AtomicUsize::new(0),
++            held_calls: AtomicUsize::new(0),
++        })
++    }
++}
++async fn held_context(
++    f: &Fixture,
++    cancellation: CancellationToken,
++    deadline: tokio::time::Instant,
++) -> Arc<HeldControlContext> {
++    Arc::new(HeldControlContext {
++        domain: f.policy.clone(),
++        guard: Arc::new(f.policy.0.clone().read_owned().await),
++        principal: f.a.principal.clone(),
++        connection: f.a.connection.clone(),
++        cancellation,
++        deadline,
++    })
++}
++fn held_controller(
++    f: &Fixture,
++    policy: Arc<dyn MediaPolicy>,
++    held: &(dyn Any + Send + Sync),
++) -> ControlResult<Arc<StreamController>> {
++    StreamController::with_held_control(
++        f.a.conversation.clone(),
++        f.a.session.clone(),
++        f.a.connection.clone(),
++        f.a.principal.clone(),
++        policy,
++        f.aa.clone(),
++        f.a.handles.clone(),
++        8,
++        DEFAULT_OPENED_STREAM_LIMIT,
++        CancellationToken::new(),
++        held,
++    )
++}
++
++#[tokio::test]
++async fn held_media_constructor_and_change_do_not_reenter_queued_writer_and_packets_use_fresh_policy(
++) {
++    let mut f = Fixture::new(8);
++    let policy = HeldPolicy::new(&f);
++    let held = held_context(&f, CancellationToken::new(), deadline()).await;
++    let store = f.policy.0.clone();
++    let writer = tokio::spawn(async move {
++        store.write_owned().await.revoked.insert("alice".into());
++    });
++    tokio::task::yield_now().await;
++    assert!(f.policy.0.clone().try_read_owned().is_err());
++    f.a = held_controller(&f, policy.clone(), held.as_ref()).unwrap();
++    f.a.change_with_held(
++        0,
++        &[desired(Medium::Audio)],
++        &BTreeSet::new(),
++        deadline(),
++        CancellationToken::new(),
++        held.clone(),
++    )
++    .await
++    .unwrap();
++    assert_eq!(policy.current_calls.load(Ordering::Acquire), 0);
++    assert!(!writer.is_finished());
++    drop(held);
++    tokio::time::timeout(Duration::from_secs(1), writer)
++        .await
++        .unwrap()
++        .unwrap();
++    assert!(f
++        .aa
++        .port(Medium::Audio)
++        .try_publish(&frame(&f.aa.port(Medium::Audio), 160))
++        .is_err());
++    assert_eq!(
++        policy.current_calls.load(Ordering::Acquire),
++        1,
++        "control proof was not retained as publication authority"
++    );
++    assert_eq!(f.a.shutdown(deadline()).await, 0);
++}
++
++#[tokio::test]
++async fn held_pause_resume_and_end_reuse_current_guard_without_policy_lock_reentry() {
++    let mut f = Fixture::new(8);
++    let policy = HeldPolicy::new(&f);
++    let held = held_context(&f, CancellationToken::new(), deadline()).await;
++    f.a = held_controller(&f, policy.clone(), held.as_ref()).unwrap();
++    f.a.change_with_held(
++        0,
++        &[desired(Medium::Audio)],
++        &BTreeSet::new(),
++        deadline(),
++        CancellationToken::new(),
++        held.clone(),
++    )
++    .await
++    .unwrap();
++    let store = f.policy.0.clone();
++    let writer = tokio::spawn(async move {
++        store.write_owned().await.private = true;
++    });
++    tokio::task::yield_now().await;
++    assert!(f.policy.0.clone().try_read_owned().is_err());
++    let logical = desired(Medium::Audio).logical_id;
++    let original = f.aa.port(Medium::Audio).binding().transport_id.clone();
++    f.a.set_paused_with_held(&logical, f.a.revision(), true, deadline(), held.clone())
++        .await
++        .unwrap();
++    assert_eq!(f.aa.port(Medium::Audio).status(), PortStatus::Paused);
++    f.a.set_paused_with_held(&logical, f.a.revision(), false, deadline(), held.clone())
++        .await
++        .unwrap();
++    assert_eq!(f.aa.port(Medium::Audio).binding().transport_id, original);
++    f.a.end_stream_with_held(&logical, f.a.revision(), deadline(), held.clone())
++        .await
++        .unwrap();
++    assert_eq!(policy.current_calls.load(Ordering::Acquire), 0);
++    assert!(!writer.is_finished());
++    assert_eq!(f.a.stream_open_budget(), (1, 16));
++    drop(held);
++    writer.await.unwrap();
++    assert_eq!(f.a.shutdown(deadline()).await, 0);
++}
++
++#[tokio::test]
++async fn held_control_cancellation_aborts_upgrade_keeps_old_audio_and_releases_only_candidates() {
++    let mut f = Fixture::new(8);
++    let policy = HeldPolicy::new(&f);
++    let cancel = CancellationToken::new();
++    let held = held_context(&f, cancel.clone(), deadline()).await;
++    f.a = held_controller(&f, policy.clone(), held.as_ref()).unwrap();
++    f.a.change_with_held(
++        0,
++        &[desired(Medium::Audio)],
++        &BTreeSet::new(),
++        deadline(),
++        CancellationToken::new(),
++        held.clone(),
++    )
++    .await
++    .unwrap();
++    let original = f.aa.port(Medium::Audio).binding().transport_id.clone();
++    f.aa.mode.store(1, Ordering::Release);
++    let a = f.a.clone();
++    let context = held.clone();
++    let change = tokio::spawn(async move {
++        a.change_with_held(
++            a.revision(),
++            &[desired(Medium::Audio), desired(Medium::Video)],
++            &BTreeSet::new(),
++            deadline(),
++            CancellationToken::new(),
++            context,
++        )
++        .await
++    });
++    f.aa.entered.notified().await;
++    cancel.cancel();
++    assert!(matches!(
++        change.await.unwrap(),
++        Err(StreamControlError::Cancelled)
++    ));
++    assert_eq!(f.a.revision(), 1);
++    assert_eq!(f.aa.port(Medium::Audio).binding().transport_id, original);
++    assert_eq!(f.a.reconcile_cleanup(deadline()).await, 0);
++    assert_eq!(f.aa.outstanding.load(Ordering::Acquire), 1);
++    assert_eq!(f.a.stream_open_budget(), (2, 16));
++    assert_eq!(policy.current_calls.load(Ordering::Acquire), 0);
++    drop(held);
++    assert!(f.policy.0.try_write().is_ok());
++    assert!(f
++        .aa
++        .port(Medium::Audio)
++        .try_publish(&frame(&f.aa.port(Medium::Audio), 160))
++        .is_ok());
++    assert_eq!(f.a.shutdown(deadline()).await, 0);
++}
++
++#[tokio::test]
++async fn held_control_deadline_bounds_adapter_wait_and_cannot_be_extended_by_caller() {
++    let mut f = Fixture::new(8);
++    let policy = HeldPolicy::new(&f);
++    let held = held_context(
++        &f,
++        CancellationToken::new(),
++        tokio::time::Instant::now() + Duration::from_millis(30),
++    )
++    .await;
++    f.a = held_controller(&f, policy.clone(), held.as_ref()).unwrap();
++    f.aa.mode.store(1, Ordering::Release);
++    assert!(matches!(
++        f.a.change_with_held(
++            0,
++            &[desired(Medium::Audio)],
++            &BTreeSet::new(),
++            deadline(),
++            CancellationToken::new(),
++            held.clone()
++        )
++        .await,
++        Err(StreamControlError::Deadline)
++    ));
++    assert_eq!(f.a.revision(), 0);
++    assert_eq!(f.a.reconcile_cleanup(deadline()).await, 0);
++    drop(held);
++    assert!(f.policy.0.try_write().is_ok());
++}
++
++#[tokio::test]
++async fn held_media_control_rejects_unknown_foreign_scope_domain_and_expired_context_before_io() {
++    let f = Fixture::new(8);
++    let policy = HeldPolicy::new(&f);
++    assert!(held_controller(&f, policy.clone(), &()).is_err());
++    let other = Fixture::new(8);
++    let foreign = held_context(&other, CancellationToken::new(), deadline()).await;
++    assert!(held_controller(&f, policy.clone(), foreign.as_ref()).is_err());
++    let mut wrong = held_context(&f, CancellationToken::new(), deadline()).await;
++    Arc::get_mut(&mut wrong).unwrap().connection = ConnectionId::from_string("bob");
++    assert!(held_controller(&f, policy.clone(), wrong.as_ref()).is_err());
++    drop(wrong);
++    let mut wrong = held_context(&f, CancellationToken::new(), deadline()).await;
++    Arc::get_mut(&mut wrong)
++        .unwrap()
++        .principal
++        .scopes
++        .push("different-credential".into());
++    assert!(held_controller(&f, policy.clone(), wrong.as_ref()).is_err());
++    drop(wrong);
++    let cancel = CancellationToken::new();
++    cancel.cancel();
++    let cancelled = held_context(&f, cancel, deadline()).await;
++    assert!(held_controller(&f, policy.clone(), cancelled.as_ref()).is_err());
++    drop(cancelled);
++    let expired = held_context(&f, CancellationToken::new(), tokio::time::Instant::now()).await;
++    assert!(held_controller(&f, policy.clone(), expired.as_ref()).is_err());
++    assert!(
++        matches!(
++            held_controller(&f, f.policy.clone(), expired.as_ref()),
++            Err(StreamControlError::Unsupported)
++        ),
++        "default policy hook must fail closed"
++    );
++    assert!(f.aa.ports.lock().unwrap().is_empty());
++    assert_eq!(f.a.stream_open_budget(), (0, 16));
++    assert_eq!(policy.current_calls.load(Ordering::Acquire), 0);
++}
++
++#[tokio::test]
++async fn held_control_principal_expiry_and_revoked_grants_cannot_activate_ports() {
++    let mut f = Fixture::new(8);
++    let policy = HeldPolicy::new(&f);
++    f.policy
++        .0
++        .write()
++        .await
++        .owners
++        .get_mut("alice")
++        .unwrap()
++        .may_control = false;
++    let held = held_context(&f, CancellationToken::new(), deadline()).await;
++    assert!(held_controller(&f, policy.clone(), held.as_ref()).is_err());
++    drop(held);
++    f.policy
++        .0
++        .write()
++        .await
++        .owners
++        .get_mut("alice")
++        .unwrap()
++        .may_control = true;
++    let held = held_context(&f, CancellationToken::new(), deadline()).await;
++    f.a = held_controller(&f, policy.clone(), held.as_ref()).unwrap();
++    // The control lease protects grants, not time. Core rechecks the actual
++    // credential at the commit even if the store read guard remains held.
++    let mut principal = f.a.principal.clone();
++    principal.expires_at = Some(chrono::Utc::now() + chrono::Duration::milliseconds(30));
++    let mut scoped = held_context(&f, CancellationToken::new(), deadline()).await;
++    Arc::get_mut(&mut scoped).unwrap().principal = principal.clone();
++    f.a = StreamController::with_held_control(
++        f.a.conversation.clone(),
++        f.a.session.clone(),
++        f.a.connection.clone(),
++        principal,
++        policy,
++        f.aa.clone(),
++        f.a.handles.clone(),
++        8,
++        16,
++        CancellationToken::new(),
++        scoped.as_ref(),
++    )
++    .unwrap();
++    f.aa.mode.store(1, Ordering::Release);
++    let a = f.a.clone();
++    let ctx = scoped.clone();
++    let change = tokio::spawn(async move {
++        a.change_with_held(
++            0,
++            &[desired(Medium::Audio)],
++            &BTreeSet::new(),
++            deadline(),
++            CancellationToken::new(),
++            ctx,
++        )
++        .await
++    });
++    f.aa.entered.notified().await;
++    tokio::time::sleep(Duration::from_millis(45)).await;
++    f.aa.release.notify_one();
++    assert!(change.await.unwrap().is_err());
++    assert_eq!(f.a.revision(), 0);
++    assert_eq!(f.a.reconcile_cleanup(deadline()).await, 0);
++}
++
++#[tokio::test]
++async fn dropped_held_control_future_retains_cleanup_but_never_stores_its_current_guard_in_ports() {
++    let mut f = Fixture::new(8);
++    let policy = HeldPolicy::new(&f);
++    let held = held_context(&f, CancellationToken::new(), deadline()).await;
++    f.a = held_controller(&f, policy, held.as_ref()).unwrap();
++    f.aa.mode.store(1, Ordering::Release);
++    let a = f.a.clone();
++    let ctx = held.clone();
++    let change = tokio::spawn(async move {
++        a.change_with_held(
++            0,
++            &[desired(Medium::Audio)],
++            &BTreeSet::new(),
++            deadline(),
++            CancellationToken::new(),
++            ctx,
++        )
++        .await
++    });
++    f.aa.entered.notified().await;
++    change.abort();
++    assert!(change.await.unwrap_err().is_cancelled());
++    drop(held);
++    assert!(f.policy.0.try_write().is_ok());
++    assert_eq!(f.a.revision(), 0);
++    assert_eq!(f.a.stream_open_budget(), (1, 16));
++    assert_eq!(f.a.reconcile_cleanup(deadline()).await, 0);
++}
++
++async fn task_controller(
++    f: &Fixture,
++    policy: Arc<dyn MediaPolicy>,
++    expires_at: chrono::DateTime<chrono::Utc>,
++) -> (Arc<StreamController>, Arc<HeldControlContext>) {
++    let mut held = held_context(f, CancellationToken::new(), deadline()).await;
++    let mut principal = f.a.principal.clone();
++    principal.assurance = IdentityAssurance::TaskScoped {
++        identity: IdentityId::from_string("alice"),
++        task_id: "media-task".into(),
++        scopes: principal.scopes.clone(),
++        expires_at,
++    };
++    Arc::get_mut(&mut held).unwrap().principal = principal.clone();
++    let controller = StreamController::with_held_control(
++        f.a.conversation.clone(),
++        f.a.session.clone(),
++        f.a.connection.clone(),
++        principal,
++        policy,
++        f.aa.clone(),
++        f.a.handles.clone(),
++        8,
++        DEFAULT_OPENED_STREAM_LIMIT,
++        CancellationToken::new(),
++        held.as_ref(),
++    )
++    .unwrap();
++    (controller, held)
++}
++
++#[tokio::test]
++async fn task_delegation_expiry_bounds_held_control_before_adapter_reply() {
++    let mut f = Fixture::new(8);
++    let policy = HeldPolicy::new(&f);
++    let (controller, held) = task_controller(
++        &f,
++        policy,
++        chrono::Utc::now() + chrono::Duration::milliseconds(100),
++    )
++    .await;
++    f.a = controller;
++    f.aa.mode.store(1, Ordering::Release);
++    let a = f.a.clone();
++    let mut change = tokio::spawn(async move {
++        a.change_with_held(
++            0,
++            &[desired(Medium::Audio)],
++            &BTreeSet::new(),
++            deadline(),
++            CancellationToken::new(),
++            held,
++        )
++        .await
++    });
++    f.aa.entered.notified().await;
++    let result = tokio::time::timeout(Duration::from_millis(500), &mut change).await;
++    if result.is_err() {
++        change.abort();
++        let _ = change.await;
++        panic!("task delegation expiry must stop a control wait before adapter readiness");
++    }
++    assert!(matches!(
++        result.unwrap().unwrap(),
++        Err(StreamControlError::Deadline)
++    ));
++    assert_eq!(f.a.revision(), 0);
++    assert_eq!(f.a.stream_open_budget(), (1, 16));
++    assert_eq!(f.a.reconcile_cleanup(deadline()).await, 0);
++    assert!(f.policy.0.clone().try_write_owned().is_ok());
++}
++
++#[tokio::test]
++async fn task_delegation_expiry_fences_packets_and_new_controls_despite_current_grants() {
++    let mut f = Fixture::new(8);
++    let policy = HeldPolicy::new(&f);
++    let expiry = chrono::Utc::now() + chrono::Duration::milliseconds(100);
++    let (controller, held) = task_controller(&f, policy.clone(), expiry).await;
++    f.a = controller;
++    f.a.change_with_held(
++        0,
++        &[desired(Medium::Audio)],
++        &BTreeSet::new(),
++        deadline(),
++        CancellationToken::new(),
++        held.clone(),
++    )
++    .await
++    .unwrap();
++    let port = f.aa.port(Medium::Audio);
++    port.try_publish(&frame(&port, 160)).unwrap();
++    tokio::time::sleep(Duration::from_millis(120)).await;
++    assert!(chrono::Utc::now() >= expiry);
++    assert!(
++        matches!(
++            port.try_publish(&frame(&port, 320)),
++            Err(StreamControlError::Authority)
++        ),
++        "the original task delegation must expire independently of the current grant guard"
++    );
++    assert!(f
++        .a
++        .set_paused_with_held(
++            &StreamId::from_string("audio"),
++            1,
++            true,
++            deadline(),
++            held.clone()
++        )
++        .await
++        .is_err());
++    assert!(f
++        .a
++        .end_stream_with_held(&StreamId::from_string("audio"), 1, deadline(), held)
++        .await
++        .is_err());
++    assert_eq!(f.a.revision(), 1);
++    assert_eq!(f.a.stream_open_budget(), (1, 16));
++    assert!(policy.current_calls.load(Ordering::Acquire) >= 2);
++    assert_eq!(f.a.shutdown(deadline()).await, 0);
++}
+diff --git a/crates/uctp/rvoip-uctp/src/v2/auth_dispatch.rs b/crates/uctp/rvoip-uctp/src/v2/auth_dispatch.rs
+index 68f6db5..eb14ac2 100644
+--- a/crates/uctp/rvoip-uctp/src/v2/auth_dispatch.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/auth_dispatch.rs
+@@ -191,6 +191,12 @@ impl AuthorizedEnvelope {
+     pub fn principal(&self) -> &AuthenticatedPrincipal {
+         &self.principal
+     }
++    /// Child lifetime for engine work derived from this invocation. Returning
++    /// from the handler, EOF, expiry or dropping the handler future cancels it;
++    /// callers cannot cancel the parent's invocation through this child.
++    pub fn invocation_cancellation(&self) -> CancellationToken {
++        self.invocation.child_token()
++    }
+ }
+ impl Drop for AuthorizedEnvelope {
+     fn drop(&mut self) {
+diff --git a/crates/uctp/rvoip-uctp/src/v2/native.rs b/crates/uctp/rvoip-uctp/src/v2/native.rs
+index e0fef44..2be2837 100644
+--- a/crates/uctp/rvoip-uctp/src/v2/native.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/native.rs
+@@ -139,6 +139,52 @@ impl CanonicalNativeAdapter {
+         policy: Arc<dyn MediaPolicy>,
+         negotiator: Arc<dyn crate::staged_media::StagedRtpNegotiator>,
+         maximum_ports: usize,
++    ) -> Result<Arc<StreamController>> {
++        self.configure_rtp_inner(
++            id,
++            principal,
++            conversation,
++            scope,
++            policy,
++            negotiator,
++            maximum_ports,
++            None,
++        )
++    }
++    /// Configure under the installed media policy's held-invocation hook,
++    /// avoiding a second grant-store read while canonical authority is held.
++    pub fn configure_rtp_with_held(
++        &self,
++        id: &ConnectionId,
++        principal: AuthenticatedPrincipal,
++        conversation: ConversationId,
++        scope: crate::staged_media::StagedRtpScope,
++        policy: Arc<dyn MediaPolicy>,
++        negotiator: Arc<dyn crate::staged_media::StagedRtpNegotiator>,
++        maximum_ports: usize,
++        held: &(dyn std::any::Any + Send + Sync),
++    ) -> Result<Arc<StreamController>> {
++        self.configure_rtp_inner(
++            id,
++            principal,
++            conversation,
++            scope,
++            policy,
++            negotiator,
++            maximum_ports,
++            Some(held),
++        )
++    }
++    fn configure_rtp_inner(
++        &self,
++        id: &ConnectionId,
++        principal: AuthenticatedPrincipal,
++        conversation: ConversationId,
++        scope: crate::staged_media::StagedRtpScope,
++        policy: Arc<dyn MediaPolicy>,
++        negotiator: Arc<dyn crate::staged_media::StagedRtpNegotiator>,
++        maximum_ports: usize,
++        held: Option<&(dyn std::any::Any + Send + Sync)>,
+     ) -> Result<Arc<StreamController>> {
+         let route = self
+             .routes
+@@ -183,18 +229,33 @@ impl CanonicalNativeAdapter {
+             media.datagrams(),
+             route.cancel.clone(),
+         );
+-        let controller = StreamController::with_limits_and_lifetime(
+-            conversation,
+-            route.session.clone(),
+-            id.clone(),
+-            principal,
+-            policy,
+-            backend.clone(),
+-            backend.handle_allocator(),
+-            maximum_ports,
+-            rvoip_core::stream_lifecycle::DEFAULT_OPENED_STREAM_LIMIT,
+-            route.cancel.child_token(),
+-        )
++        let controller = match held {
++            Some(held) => StreamController::with_held_control(
++                conversation,
++                route.session.clone(),
++                id.clone(),
++                principal,
++                policy,
++                backend.clone(),
++                backend.handle_allocator(),
++                maximum_ports,
++                rvoip_core::stream_lifecycle::DEFAULT_OPENED_STREAM_LIMIT,
++                route.cancel.child_token(),
++                held,
++            ),
++            None => StreamController::with_limits_and_lifetime(
++                conversation,
++                route.session.clone(),
++                id.clone(),
++                principal,
++                policy,
++                backend.clone(),
++                backend.handle_allocator(),
++                maximum_ports,
++                rvoip_core::stream_lifecycle::DEFAULT_OPENED_STREAM_LIMIT,
++                route.cancel.child_token(),
++            ),
++        }
+         .map_err(|_| RvoipError::AdmissionRejected("native media policy or limits denied"))?;
+         if !controller.is_bound_to(&route.member, &route.endpoint) {
+             controller.retire();
+diff --git a/crates/uctp/rvoip-uctp/tests/support/canonical_media.rs b/crates/uctp/rvoip-uctp/tests/support/canonical_media.rs
+index 2c51cc8..d3e2613 100644
+--- a/crates/uctp/rvoip-uctp/tests/support/canonical_media.rs
++++ b/crates/uctp/rvoip-uctp/tests/support/canonical_media.rs
+@@ -1231,3 +1231,6 @@ async fn canonical_native_end_deadline_retains_controller_and_quota_for_a_later_
+     assert!(a.controller.cleanup_status().is_empty());
+     n.stop().await;
+ }
++
++#[path = "media_control.rs"]
++mod media_control;
+diff --git a/crates/uctp/rvoip-uctp/tests/support/media_control.rs b/crates/uctp/rvoip-uctp/tests/support/media_control.rs
+new file mode 100644
+index 0000000..ff73295
+--- /dev/null
++++ b/crates/uctp/rvoip-uctp/tests/support/media_control.rs
+@@ -0,0 +1,591 @@
++//! Canonical authenticated invocation -> actual native controller, with a real
++//! held grant guard. Negotiation readiness remains controlled in this scope.
++use super::*;
++use rvoip_uctp::v2::payloads::{ConnectionUpdateAction, Payload};
++use std::{any::Any, sync::Mutex};
++
++struct Invocation {
++    domain: Arc<MediaGrants>,
++    guard: Arc<OwnedRwLockReadGuard<PolicyState>>,
++    principal: AuthenticatedPrincipal,
++    conversation: ConversationId,
++    session: SessionId,
++    connection: ConnectionId,
++    cancellation: CancellationToken,
++    deadline: Instant,
++    action: ConnectionUpdateAction,
++    expected: u64,
++}
++struct DerivedLease {
++    owner: MediaOwner,
++    _guard: Arc<OwnedRwLockReadGuard<PolicyState>>,
++}
++impl MediaAuthorityLease for DerivedLease {
++    fn authority(&self) -> &MediaOwner {
++        &self.owner
++    }
++}
++struct HeldWirePolicy {
++    base: Arc<MediaGrants>,
++    fresh: AtomicUsize,
++    held: AtomicUsize,
++}
++impl MediaPolicy for HeldWirePolicy {
++    fn current(&self, scope: &MediaScope<'_>) -> ControlResult<Box<dyn MediaAuthorityLease>> {
++        self.fresh.fetch_add(1, Ordering::AcqRel);
++        self.base.current(scope)
++    }
++    fn current_control(
++        &self,
++        scope: &MediaScope<'_>,
++        intent: &MediaControlIntent<'_>,
++        held: &(dyn Any + Send + Sync),
++    ) -> ControlResult<MediaControl> {
++        let held = held
++            .downcast_ref::<Invocation>()
++            .ok_or(StreamControlError::Authority)?;
++        if !Arc::ptr_eq(&self.base, &held.domain)
++            || held.conversation != *scope.conversation
++            || held.session != *scope.session
++            || held.connection != *scope.connection
++            || !held.principal.has_same_owner(scope.principal)
++            || held.principal.expires_at != scope.principal.expires_at
++            || held.principal.scopes != scope.principal.scopes
++            || held.principal.method != scope.principal.method
++            || held.principal.assurance.kind() != scope.principal.assurance.kind()
++            || held.guard.denied.contains(scope.connection)
++        {
++            return Err(StreamControlError::Authority);
++        }
++        let intent_matches = match intent {
++            MediaControlIntent::Initialize => {
++                held.action == ConnectionUpdateAction::CodecRenegotiate
++            }
++            MediaControlIntent::Change {
++                expected,
++                desired,
++                replace,
++            } => {
++                held.action == ConnectionUpdateAction::CodecRenegotiate
++                    && *expected == held.expected
++                    && desired.len() == 1
++                    && desired[0] == super::desired(Medium::Audio)
++                    && replace.is_empty()
++            }
++            MediaControlIntent::Pause {
++                logical,
++                expected,
++                paused,
++            } => {
++                *expected == held.expected
++                    && logical.as_str() == "audio"
++                    && if *paused {
++                        held.action == ConnectionUpdateAction::Hold
++                    } else {
++                        held.action == ConnectionUpdateAction::Resume
++                    }
++            }
++            MediaControlIntent::End { .. } => false,
++        };
++        if !intent_matches {
++            return Err(StreamControlError::Authority);
++        }
++        self.held.fetch_add(1, Ordering::AcqRel);
++        let owner = held
++            .guard
++            .owners
++            .get(scope.connection)
++            .ok_or(StreamControlError::Authority)?
++            .clone();
++        MediaControl::new(
++            Box::new(DerivedLease {
++                owner,
++                _guard: held.guard.clone(),
++            }),
++            held.cancellation.clone(),
++            held.deadline,
++        )
++    }
++}
++struct Proof {
++    _base: AuthorityLease,
++    guard: Arc<OwnedRwLockReadGuard<PolicyState>>,
++    connection: ConnectionId,
++}
++struct Authority {
++    base: Arc<WirePolicy>,
++    media: Arc<HeldWirePolicy>,
++}
++#[async_trait]
++impl PeerAuthority for Authority {
++    async fn identity(&self, c: &ValidatedBearer, d: &Device) -> Result<Identifier, DispatchError> {
++        self.base.identity(c, d).await
++    }
++    async fn acquire(
++        &self,
++        c: &ValidatedBearer,
++        d: &Device,
++        i: &Identifier,
++        e: &Envelope,
++    ) -> Result<AuthorityLease, DispatchError> {
++        let base = self.base.acquire(c, d, i, e).await?;
++        if e.kind() != "connection.update" {
++            return Ok(base);
++        }
++        if e.scope(Scope::Conversation) != Some("conversation")
++            || e.scope(Scope::Session) != Some("session")
++        {
++            return Err(DispatchError::Authority);
++        }
++        let original = base
++            .authority::<WireProof>()
++            .ok_or(DispatchError::Authority)?;
++        let connection = original
++            ._guard
++            .connections
++            .get(e.scope(Scope::Connection).ok_or(DispatchError::Authority)?)
++            .ok_or(DispatchError::Authority)?
++            .clone();
++        let guard = Arc::new(self.media.base.0.clone().read_owned().await);
++        if guard.denied.contains(&connection) {
++            return Err(DispatchError::Authority);
++        }
++        Ok(AuthorityLease::holding(Arc::new(Proof {
++            _base: base,
++            guard,
++            connection,
++        })))
++    }
++    async fn refresh(
++        &self,
++        a: &ValidatedBearer,
++        b: &ValidatedBearer,
++        d: &Device,
++        i: &Identifier,
++        e: &Envelope,
++    ) -> Result<AuthorityLease, DispatchError> {
++        self.base.refresh(a, b, d, i, e).await
++    }
++}
++#[derive(Default)]
++struct Record {
++    save: AtomicBool,
++    wrong_intent: AtomicBool,
++    wrong_intent_denied: AtomicBool,
++    saved: Mutex<Option<(Arc<Invocation>, Arc<StreamController>)>>,
++}
++struct ControlFactory {
++    native: Arc<Factory>,
++    media: Arc<HeldWirePolicy>,
++    readiness: Arc<Readiness>,
++    record: Arc<Record>,
++}
++struct ControlHandler {
++    native: NativeHandler,
++    adapter: Arc<CanonicalNativeAdapter>,
++    media: Arc<HeldWirePolicy>,
++    readiness: Arc<Readiness>,
++    record: Arc<Record>,
++}
++impl PhysicalHandlerFactory for ControlFactory {
++    fn handler(
++        &self,
++        context: NativeTransportContext,
++    ) -> Result<Arc<dyn AuthenticatedHandler>, DispatchError> {
++        let source = NativePhysicalBinding::new(context);
++        let record = Arc::new(PhysicalRecord::default());
++        self.native.records.lock().unwrap().push(record.clone());
++        Ok(Arc::new(ControlHandler {
++            adapter: self.native.adapters[&source.transport()].clone(),
++            native: NativeHandler {
++                core: self.native.core.clone(),
++                source,
++                record,
++            },
++            media: self.media.clone(),
++            readiness: self.readiness.clone(),
++            record: self.record.clone(),
++        }))
++    }
++}
++#[async_trait]
++impl AuthenticatedHandler for ControlHandler {
++    async fn handle(&self, authorized: AuthorizedEnvelope) -> Result<Envelope, DispatchError> {
++        if authorized.envelope().kind() == "connection.offer" {
++            return self.native.handle(authorized).await;
++        }
++        let Payload::ConnectionUpdate(update) = authorized.envelope().payload() else {
++            return Err(DispatchError::Unsupported);
++        };
++        let proof = authorized
++            .authority::<Arc<Proof>>()
++            .ok_or(DispatchError::Authority)?;
++        let invocation = Arc::new(Invocation {
++            domain: self.media.base.clone(),
++            guard: proof.guard.clone(),
++            principal: authorized.principal().clone(),
++            conversation: self.native.core.conversation.clone(),
++            session: self.native.core.session.clone(),
++            connection: proof.connection.clone(),
++            cancellation: authorized.invocation_cancellation(),
++            deadline: deadline(),
++            action: update.action,
++            expected: authorized.envelope().original()["expected_revision"]
++                .as_u64()
++                .ok_or(DispatchError::Authority)?,
++        });
++        let controller = match self.adapter.media_controller(&proof.connection) {
++            Ok(controller) => controller,
++            Err(_) if update.action == ConnectionUpdateAction::CodecRenegotiate => self
++                .adapter
++                .configure_rtp_with_held(
++                    &proof.connection,
++                    authorized.principal().clone(),
++                    self.native.core.conversation.clone(),
++                    StagedRtpScope {
++                        session: self.native.core.session.clone(),
++                        connection: proof.connection.clone(),
++                        owner: authorized.principal().ownership_key(),
++                        wire_conversation: Some("conversation".into()),
++                        wire_session: "session".into(),
++                        wire_connection: authorized
++                            .envelope()
++                            .scope(Scope::Connection)
++                            .unwrap()
++                            .into(),
++                    },
++                    self.media.clone(),
++                    self.readiness.clone(),
++                    16,
++                    invocation.as_ref(),
++                )
++                .map_err(|_| DispatchError::Authority)?,
++            Err(_) => return Err(DispatchError::Authority),
++        };
++        let expected = authorized.envelope().original()["expected_revision"]
++            .as_u64()
++            .ok_or(DispatchError::Authority)?;
++        let result = match update.action {
++            ConnectionUpdateAction::CodecRenegotiate => {
++                controller
++                    .change_with_held(
++                        expected,
++                        &[desired(Medium::Audio)],
++                        &BTreeSet::new(),
++                        deadline(),
++                        CancellationToken::new(),
++                        invocation.clone(),
++                    )
++                    .await
++            }
++            ConnectionUpdateAction::Hold => {
++                controller
++                    .set_paused_with_held(
++                        &StreamId::from_string("audio"),
++                        expected,
++                        true,
++                        deadline(),
++                        invocation.clone(),
++                    )
++                    .await
++            }
++            ConnectionUpdateAction::Resume => {
++                controller
++                    .set_paused_with_held(
++                        &StreamId::from_string("audio"),
++                        expected,
++                        false,
++                        deadline(),
++                        invocation.clone(),
++                    )
++                    .await
++            }
++            _ => return Err(DispatchError::Unsupported),
++        };
++        result.map_err(|_| DispatchError::Authority)?;
++        if self.record.wrong_intent.load(Ordering::Acquire)
++            && update.action == ConnectionUpdateAction::CodecRenegotiate
++        {
++            let before = self.media.held.load(Ordering::Acquire);
++            let rejected = controller
++                .set_paused_with_held(
++                    &StreamId::from_string("audio"),
++                    controller.revision(),
++                    true,
++                    deadline(),
++                    invocation.clone(),
++                )
++                .await
++                .is_err();
++            if !rejected || self.media.held.load(Ordering::Acquire) != before {
++                return Err(DispatchError::Authority);
++            }
++            self.record
++                .wrong_intent_denied
++                .store(true, Ordering::Release);
++        }
++        if self.record.save.load(Ordering::Acquire) {
++            *self.record.saved.lock().unwrap() = Some((invocation, controller.clone()));
++        }
++        let original = authorized.envelope();
++        let mut reply = envelope(
++            "ack",
++            json!({"details":{"media_revision":controller.revision()}}),
++        );
++        for field in ["cid", "sid", "connid", "operation_id"] {
++            reply[field] = original.original()[field].clone();
++        }
++        reply["in_reply_to"] = json!(original.id());
++        Envelope::from_value(reply).map_err(DispatchError::from)
++    }
++}
++struct Harness {
++    f: Fixture,
++    native: Arc<Factory>,
++    media: Arc<HeldWirePolicy>,
++    readiness: Arc<Readiness>,
++    record: Arc<Record>,
++    wire: Wire,
++    id: ConnectionId,
++    kind: Transport,
++}
++impl Harness {
++    async fn new(kind: &str) -> Self {
++        let (mut f, native, base) = wire_setup().await;
++        let media = Arc::new(HeldWirePolicy {
++            base: Arc::new(MediaGrants(Arc::new(RwLock::new(PolicyState {
++                owners: HashMap::new(),
++                denied: BTreeSet::new(),
++                private: false,
++            })))),
++            fresh: AtomicUsize::new(0),
++            held: AtomicUsize::new(0),
++        });
++        Arc::get_mut(&mut f.config).unwrap().authority = Arc::new(Authority {
++            base,
++            media: media.clone(),
++        });
++        let readiness = Readiness::new();
++        let record = Arc::new(Record::default());
++        let profile = CanonicalProfile::new(f.config.clone(), Arc::new(Handler::default()), 8)
++            .unwrap()
++            .with_physical_handlers(Arc::new(ControlFactory {
++                native: native.clone(),
++                media: media.clone(),
++                readiness: readiness.clone(),
++                record: record.clone(),
++            }));
++        let mut wire = wire(kind, profile, "/uctp", Some("https://allowed.example"))
++            .await
++            .unwrap();
++        authenticate_wire(&mut wire, &f).await;
++        wire.send(f.sign(native_offer(0, kind))).await;
++        assert_eq!(wire.read().await.kind(), "ack");
++        let id = native.records.lock().unwrap()[0]
++            .connections
++            .lock()
++            .unwrap()[0]
++            .clone();
++        let transport = if kind == "quic" {
++            Transport::Quic
++        } else {
++            Transport::WebTransport
++        };
++        media
++            .base
++            .0
++            .write()
++            .await
++            .owners
++            .insert(id.clone(), media_owner(&native.core, &id, transport));
++        Self {
++            f,
++            native,
++            media,
++            readiness,
++            record,
++            wire,
++            id,
++            kind: transport,
++        }
++    }
++    fn command(&self, action: &str, revision: u64) -> Value {
++        let mut v = command();
++        v["connid"] = json!("native_0");
++        v["expected_revision"] = json!(revision);
++        v["operation_id"] = json!(format!("media_{}", uuid::Uuid::new_v4().simple()));
++        v["payload"] = json!({"action":action});
++        v
++    }
++    fn adapter(&self) -> &Arc<CanonicalNativeAdapter> {
++        &self.native.adapters[&self.kind]
++    }
++    async fn stop(&self) {
++        self.wire.server.shutdown().await.unwrap();
++        self.native
++            .core
++            .orch
++            .drain_connection_lifecycle_tasks()
++            .await;
++    }
++}
++
++#[tokio::test]
++async fn canonical_held_media_invocation_commits_with_queued_writer_then_denies_new_packets() {
++    for kind in ["quic", "wt"] {
++        let mut h = Harness::new(kind).await;
++        h.readiness.hold.store(true, Ordering::Release);
++        h.wire
++            .send(h.f.sign(h.command("codec-renegotiate", 0)))
++            .await;
++        h.readiness.entered.notified().await;
++        let store = h.media.base.0.clone();
++        let id = h.id.clone();
++        let writer = tokio::spawn(async move {
++            store.write_owned().await.denied.insert(id);
++        });
++        tokio::task::yield_now().await;
++        assert!(h.media.base.0.clone().try_read_owned().is_err());
++        h.readiness.release.notify_one();
++        let ack = h.wire.read().await;
++        assert_eq!(ack.kind(), "ack");
++        h.f.verify_server(&ack).await;
++        assert_eq!(
++            ack.original()["payload"]["details"]["media_revision"],
++            json!(1)
++        );
++        assert_eq!(
++            h.media.fresh.load(Ordering::Acquire),
++            0,
++            "constructor/prepare/commit reused the held guard"
++        );
++        tokio::time::timeout(Duration::from_secs(1), writer)
++            .await
++            .unwrap()
++            .unwrap();
++        let controller = h.adapter().media_controller(&h.id).unwrap();
++        let mut input = controller
++            .take_ingress(&StreamId::from_string("audio"))
++            .unwrap();
++        let binding = h.readiness.offers.lock().unwrap()[0].clone();
++        let media = h.adapter().physical_source(&h.id).unwrap().media().unwrap();
++        let before = media.snapshot().ingress_rejected;
++        send(&h.wire, audio(binding.stream_local_id, 0));
++        core_fixture::until(|| media.snapshot().ingress_rejected > before).await;
++        assert!(input.try_recv().is_err());
++        assert!(h.media.fresh.load(Ordering::Acquire) > 0);
++        h.stop().await;
++    }
++}
++
++#[tokio::test]
++async fn canonical_saved_media_context_cannot_control_after_handler_returns_and_fresh_hold_works() {
++    for kind in ["quic", "wt"] {
++        let mut h = Harness::new(kind).await;
++        h.record.save.store(true, Ordering::Release);
++        h.wire
++            .send(h.f.sign(h.command("codec-renegotiate", 0)))
++            .await;
++        assert_eq!(h.wire.read().await.kind(), "ack");
++        let (saved, controller) = h.record.saved.lock().unwrap().take().unwrap();
++        assert!(saved.cancellation.is_cancelled());
++        let before = controller.stream_open_budget();
++        assert!(controller
++            .change_with_held(
++                controller.revision(),
++                &[desired(Medium::Audio)],
++                &BTreeSet::new(),
++                deadline(),
++                CancellationToken::new(),
++                saved.clone()
++            )
++            .await
++            .is_err());
++        assert_eq!(controller.stream_open_budget(), before);
++        assert_eq!(controller.revision(), 1);
++        drop(saved);
++        h.record.save.store(false, Ordering::Release);
++        h.wire.send(h.f.sign(h.command("hold", 1))).await;
++        assert_eq!(h.wire.read().await.kind(), "ack");
++        h.wire.send(h.f.sign(h.command("resume", 2))).await;
++        assert_eq!(h.wire.read().await.kind(), "ack");
++        assert_eq!(controller.stream_open_budget(), before);
++        assert_eq!(controller.revision(), 3);
++        assert_eq!(h.media.fresh.load(Ordering::Acquire), 0);
++        let mut input = controller
++            .take_ingress(&StreamId::from_string("audio"))
++            .unwrap();
++        let binding = h.readiness.offers.lock().unwrap()[0].clone();
++        send(&h.wire, audio(binding.stream_local_id, 0));
++        let _ = packet(&mut input).await;
++        assert!(h.media.fresh.load(Ordering::Acquire) > 0);
++        h.stop().await;
++    }
++}
++
++#[tokio::test]
++async fn canonical_media_control_grant_denial_has_no_ports_or_current_policy_fallback() {
++    for kind in ["quic", "wt"] {
++        let mut h = Harness::new(kind).await;
++        h.media
++            .base
++            .0
++            .write()
++            .await
++            .owners
++            .get_mut(&h.id)
++            .unwrap()
++            .may_control = false;
++        h.wire
++            .send(h.f.sign(h.command("codec-renegotiate", 0)))
++            .await;
++        assert_eq!(h.wire.read().await.kind(), "error");
++        let physical = h.adapter().physical_source(&h.id).unwrap();
++        assert_eq!(
++            physical
++                .media()
++                .unwrap()
++                .router()
++                .snapshot()
++                .issued_local_ids,
++            0
++        );
++        assert!(h.adapter().staged_media(&h.id).is_none());
++        assert_eq!(h.media.fresh.load(Ordering::Acquire), 0);
++        h.media
++            .base
++            .0
++            .write()
++            .await
++            .owners
++            .get_mut(&h.id)
++            .unwrap()
++            .may_control = true;
++        h.wire
++            .send(h.f.sign(h.command("codec-renegotiate", 0)))
++            .await;
++        assert_eq!(h.wire.read().await.kind(), "ack");
++        assert_eq!(h.adapter().media_controller(&h.id).unwrap().revision(), 1);
++        h.stop().await;
++    }
++}
++
++#[tokio::test]
++async fn canonical_held_media_context_cannot_authorize_another_action_or_revision() {
++    for kind in ["quic", "wt"] {
++        let mut h = Harness::new(kind).await;
++        h.record.wrong_intent.store(true, Ordering::Release);
++        h.wire
++            .send(h.f.sign(h.command("codec-renegotiate", 0)))
++            .await;
++        assert_eq!(h.wire.read().await.kind(), "ack");
++        assert!(h.record.wrong_intent_denied.load(Ordering::Acquire));
++        let controller = h.adapter().media_controller(&h.id).unwrap();
++        assert_eq!(controller.revision(), 1);
++        assert_eq!(controller.stream_open_budget(), (1, 16));
++        h.wire.send(h.f.sign(h.command("hold", 1))).await;
++        assert_eq!(h.wire.read().await.kind(), "ack");
++        assert_eq!(controller.revision(), 2);
++        h.stop().await;
++    }
++}

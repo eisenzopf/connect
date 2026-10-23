@@ -1,0 +1,578 @@
+--- a/crates/uctp/rvoip-uctp/src/v2/auth_dispatch.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/auth_dispatch.rs
+@@ -241,6 +241,9 @@
+     }
+ }
+ 
++mod subscriptions;
++pub use subscriptions::{HandlerDelivery, SubscriptionOrigin};
++
+ pub const MAX_HANDLER_REPLIES: usize = 128;
+ pub const MAX_HANDLER_REPLY_BYTES: usize = 2 * super::MAX_ENVELOPE_BYTES;
+ /// Bounded reliable application reply sequence, owned by one invocation. Never
+@@ -289,6 +292,13 @@
+ 
+ #[async_trait]
+ pub trait AuthenticatedHandler: Send + Sync {
++    /// One fresh guarded subscription page. The physical actor owns and polls
++    /// this future through signaling, EOF and retirement. No detached writer.
++    /// Implementations keep no authority guard while waiting for journal hints.
++    async fn next_delivery(&self) -> Result<HandlerDelivery, DispatchError> {
++        std::future::pending().await
++    }
++
+     /// Exactly one application dispatch. Stable logical-operation deduplication
+     /// belongs here; a fresh signed envelope never bypasses current authority.
+     /// Cancellation may mean uncertain work: reconcile the same operation ID.
+@@ -472,6 +482,10 @@
+     pub fn close(&self) {
+         self.lifetime.cancel();
+         self.pending.lock().clear();
++    }
++
++    pub(super) fn incarnation(&self) -> uuid::Uuid {
++        self.incarnation
+     }
+ 
+     pub fn pending_count(&self) -> usize {
+--- /dev/null
++++ b/crates/uctp/rvoip-uctp/src/v2/auth_dispatch/subscriptions.rs
+@@ -0,0 +1,185 @@
++//! Owned physical-incarnation subscription delivery; an origin is not authority.
++use super::*;
++
++#[derive(Clone)]
++pub struct SubscriptionOrigin {
++    origin: RequestOrigin,
++    conversation: String,
++    request: String,
++    end: Instant,
++    initial: std::sync::Weak<dyn std::any::Any + Send + Sync>,
++}
++impl SubscriptionOrigin {
++    /// The initial command guard has left the reliable writer. This weak fact
++    /// retains no old grant and cannot be upgraded by application callers.
++    pub fn is_ready(&self) -> bool {
++        self.initial.strong_count() == 0
++    }
++    pub fn deadline(&self) -> Instant {
++        self.end
++    }
++    pub fn terminal_deadline(&self) -> Instant {
++        self.origin.deadline
++    }
++    pub fn current(&self) -> bool {
++        !self.origin.lifetime.is_cancelled() && Instant::now() < self.origin.deadline
++    }
++    /// Retire only this registration, never its authenticated peer or successor.
++    pub fn retire(&self) {
++        self.origin.lifetime.cancel();
++    }
++    pub async fn retired(&self) {
++        self.origin.lifetime.cancelled().await;
++    }
++    pub(in crate::v2) fn incarnation(&self) -> uuid::Uuid {
++        self.origin.incarnation
++    }
++    pub(in crate::v2) fn cancellation(&self) -> CancellationToken {
++        self.origin.lifetime.clone()
++    }
++}
++impl fmt::Debug for SubscriptionOrigin {
++    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
++        f.write_str("SubscriptionOrigin(redacted)")
++    }
++}
++impl AuthorizedEnvelope {
++    /// Seal an explicitly installed live Conversation subscription on this
++    /// physical credential incarnation. This stores no invocation grant. Each
++    /// delivery must supply a new owned current-authority lease independently.
++    pub fn subscription_origin(
++        &self,
++        lease: Duration,
++    ) -> Result<SubscriptionOrigin, DispatchError> {
++        let super::super::Payload::ConversationSubscribe(input) = self.envelope.payload() else {
++            return Err(DispatchError::Unsupported);
++        };
++        if self.peer.is_none()
++            || input.live == Some(false)
++            || lease.is_zero()
++            || lease > Duration::from_secs(30)
++            || lease > Duration::from_secs(input.lease_seconds.unwrap_or(30))
++            || [
++                Scope::Session,
++                Scope::Connection,
++                Scope::Operation,
++                Scope::Reply,
++            ]
++            .iter()
++            .any(|scope| self.envelope.scope(*scope).is_some())
++        {
++            return Err(DispatchError::Unsupported);
++        }
++        let conversation = self
++            .envelope
++            .scope(Scope::Conversation)
++            .ok_or(DispatchError::ScopeDenied)?
++            .to_owned();
++        let expiry = super::super::auth_peer::effective_expiry(&self.principal)?;
++        let credential = Instant::now()
++            + expiry
++                .signed_duration_since(chrono::Utc::now())
++                .to_std()
++                .map_err(|_| DispatchError::Closed)?;
++        let end = (Instant::now() + lease)
++            .min(self.origin.deadline)
++            .min(credential);
++        let deadline = (end + Duration::from_secs(1)).min(credential);
++        if Instant::now() >= end || self.origin.lifetime.is_cancelled() {
++            return Err(DispatchError::Closed);
++        }
++        Ok(SubscriptionOrigin {
++            origin: RequestOrigin {
++                incarnation: self.origin.incarnation,
++                lifetime: self.origin.lifetime.child_token(),
++                deadline,
++            },
++            initial: Arc::downgrade(&self._lease._guard),
++            conversation,
++            request: self.envelope.id().into(),
++            end,
++        })
++    }
++}
++/// One bounded page and its new real delivery guard. The writer reports only
++/// local submission; the receiver's persisted cursor remains authoritative.
++pub struct HandlerDelivery {
++    origin: SubscriptionOrigin,
++    frames: Option<HandlerReplies>,
++    authority: Option<AuthorityLease>,
++    completion: Option<oneshot::Sender<Result<(), DispatchError>>>,
++}
++impl HandlerDelivery {
++    pub fn new(
++        origin: &SubscriptionOrigin,
++        frames: HandlerReplies,
++        authority: AuthorityLease,
++    ) -> Result<(Self, oneshot::Receiver<Result<(), DispatchError>>), DispatchError> {
++        if !origin.current() || !origin.is_ready() || !authority.current() {
++            return Err(DispatchError::Closed);
++        }
++        for envelope in frames.envelopes() {
++            if envelope.scope(Scope::Conversation) != Some(origin.conversation.as_str())
++                || envelope.scope(Scope::Reply) != Some(origin.request.as_str())
++                || !matches!(
++                    envelope.kind(),
++                    "conversation.event" | "conversation.snapshot" | "ack" | "error"
++                )
++                || (envelope.kind() == "conversation.event" && Instant::now() >= origin.end)
++            {
++                return Err(DispatchError::ReplyMismatch);
++            }
++        }
++        let (sender, receiver) = oneshot::channel();
++        Ok((
++            Self {
++                origin: origin.clone(),
++                frames: Some(frames),
++                authority: Some(authority),
++                completion: Some(sender),
++            },
++            receiver,
++        ))
++    }
++    pub(in crate::v2) fn into_parts(
++        mut self,
++    ) -> (
++        SubscriptionOrigin,
++        HandlerReplies,
++        AuthorityLease,
++        oneshot::Sender<Result<(), DispatchError>>,
++        Instant,
++    ) {
++        let deadline = if self
++            .frames
++            .as_ref()
++            .expect("one delivery")
++            .envelopes()
++            .iter()
++            .any(|frame| frame.kind() == "conversation.event")
++        {
++            self.origin.end
++        } else {
++            self.origin.terminal_deadline()
++        };
++        (
++            self.origin.clone(),
++            self.frames.take().expect("one delivery"),
++            self.authority.take().expect("owned authority"),
++            self.completion.take().expect("one completion"),
++            deadline,
++        )
++    }
++}
++impl Drop for HandlerDelivery {
++    fn drop(&mut self) {
++        if let Some(sender) = self.completion.take() {
++            let _ = sender.send(Err(DispatchError::Closed));
++        }
++    }
++}
++impl fmt::Debug for HandlerDelivery {
++    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
++        f.write_str("HandlerDelivery(redacted)")
++    }
++}
+--- a/crates/uctp/rvoip-uctp/src/v2/auth_peer/exchange.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/auth_peer/exchange.rs
+@@ -208,6 +208,7 @@
+     started: Option<Arc<AtomicBool>>,
+     completion: Option<oneshot::Sender<Result<Identifier, DispatchError>>>,
+     _slot: Option<OwnedSemaphorePermit>,
++    delivery: Option<oneshot::Sender<Result<(), DispatchError>>>,
+     bye: bool,
+ }
+ async fn writes<W: Sink<Bytes, Error = DispatchError> + Send + Unpin>(
+@@ -222,6 +223,9 @@
+                 || job.deadline <= Instant::now())
+         {
+             if let Some(done) = job.completion.take() {
++                let _ = done.send(Err(DispatchError::Closed));
++            }
++            if let Some(done) = job.delivery.take() {
+                 let _ = done.send(Err(DispatchError::Closed));
+             }
+             continue;
+@@ -260,6 +264,9 @@
+                 Err(_) => Err(DispatchError::SubmissionUnknown),
+             });
+         }
++        if let Some(done) = job.delivery.take() {
++            let _ = done.send(result.as_ref().map(|_| ()).map_err(|error| *error));
++        }
+         result?;
+     }
+     Ok(())
+@@ -316,6 +323,7 @@
+         completion: None,
+         _slot: slot,
+         bye: false,
++        delivery: None,
+     }
+ }
+ struct RetainedOutbound {
+@@ -331,6 +339,7 @@
+     }
+ }
+ struct Snapshot {
++    incarnation: Option<uuid::Uuid>,
+     deadline: Instant,
+     authority: Option<CancellationToken>,
+     authenticated: bool,
+@@ -352,6 +361,10 @@
+ }
+ fn snapshot(peer: &CanonicalPeer) -> Snapshot {
+     Snapshot {
++        incarnation: match &peer.state {
++            State::Authenticated(binding) => Some(binding.dispatch.incarnation()),
++            _ => None,
++        },
+         deadline: peer.effective_deadline(),
+         authority: peer.route_authority(),
+         authenticated: matches!(peer.state, State::Authenticated(_)),
+@@ -442,6 +455,7 @@
+     let terminal = Arc::new(parking_lot::Mutex::new(None));
+     let mut writer_done = false;
+     let mut outbound_completions = FuturesUnordered::<BoxFuture<'_, ()>>::new();
++    let mut delivery = Box::pin(handler.next_delivery());
+     let result = loop {
+         pending.retain(|_, call| call.live());
+         if active.is_none() {
+@@ -506,6 +520,17 @@
+               _=physical.cancelled()=>{if view.utc_expiry.is_some_and(|expiry|expiry<=chrono::Utc::now()){retired=view.record(view.expiry_reason);}break Err(DispatchError::Closed);},
+               _=tokio::time::sleep_until(view.deadline)=>{if view.authenticated{retired=view.record(view.expiry_reason);}break Err(DispatchError::Closed);}
+               result=&mut writing=>{writer_done=true;break result;},
++              result=&mut delivery,if view.authenticated=>{
++                delivery=Box::pin(handler.next_delivery());
++                let (origin,frames,lease,done,submission_deadline)=result?.into_parts();
++                if !origin.current() || view.incarnation!=Some(origin.incarnation()) {let _=done.send(Err(DispatchError::Closed));continue;}
++                let slot=slots.clone().try_acquire_owned().map_err(|_|DispatchError::Capacity)?;
++                let frames=frames.into_envelopes().into_iter().map(|frame|signed(&config,frame.original().clone())).collect::<Result<Vec<_>,_>>()?;
++                let mut send=job(output(frames,Some(lease)),submission_deadline.min(view.deadline),&physical,view.authority.clone(),Some(slot));
++                send.cancel=Some(origin.cancellation());send.delivery=Some(done);
++                write_tx.try_send(send).map_err(|_|DispatchError::Capacity)?;
++              }
++
+               completed=async{match &mut active{Some(work)=>work.await,None=>std::future::pending().await}}=>{
+                active=None;let(mut owner,result,slot,deadline,correlation,outbound_request)=completed;
+                if let Some(record)=owner.retirement.take(){let error=record.reason.error();retired=Some(record);*terminal.lock()=Some(error);break Err(error);}
+--- a/crates/uctp/rvoip-uctp/tests/v2_auth_peer.rs
++++ b/crates/uctp/rvoip-uctp/tests/v2_auth_peer.rs
+@@ -1186,3 +1186,267 @@
+ 
+ #[path = "support/reply_batches.rs"]
+ mod reply_batches;
++
++#[derive(Default)]
++struct CaptureSubscription(parking_lot::Mutex<Option<SubscriptionOrigin>>);
++#[async_trait]
++impl AuthenticatedHandler for CaptureSubscription {
++    async fn handle(&self, authorized: AuthorizedEnvelope) -> Result<Envelope, DispatchError> {
++        let origin = authorized.subscription_origin(Duration::from_secs(1))?;
++        *self.0.lock() = Some(origin);
++        let mut reply = envelope("ack", json!({}));
++        reply["cid"] = json!("conversation");
++        reply["in_reply_to"] = json!(authorized.envelope().id());
++        Envelope::from_value(reply).map_err(DispatchError::from)
++    }
++}
++fn subscription_request() -> Value {
++    let mut value = envelope(
++        "conversation.subscribe",
++        json!({"live":true,"lease_seconds":1}),
++    );
++    value["cid"] = json!("conversation");
++    value
++}
++fn subscription_fact(request: &Value) -> Envelope {
++    let mut value = envelope(
++        "conversation.event",
++        json!({"event_id":"retained-event","cursor":"opaque-cursor","kind":"changed","revision":1,"data":{}}),
++    );
++    value["cid"] = json!("conversation");
++    value["in_reply_to"] = request["id"].clone();
++    Envelope::from_value(value).unwrap()
++}
++struct DeliverOnce(parking_lot::Mutex<Option<HandlerDelivery>>);
++#[async_trait]
++impl AuthenticatedHandler for DeliverOnce {
++    async fn handle(&self, _: AuthorizedEnvelope) -> Result<Envelope, DispatchError> {
++        Err(DispatchError::Unsupported)
++    }
++    async fn next_delivery(&self) -> Result<HandlerDelivery, DispatchError> {
++        let delivery = self.0.lock().take();
++        if let Some(delivery) = delivery {
++            Ok(delivery)
++        } else {
++            std::future::pending().await
++        }
++    }
++}
++struct BlockSubscriptionSink {
++    entered: Arc<Notify>,
++    writes: Arc<AtomicUsize>,
++}
++impl futures::Sink<Bytes> for BlockSubscriptionSink {
++    type Error = DispatchError;
++    fn poll_ready(
++        self: std::pin::Pin<&mut Self>,
++        _: &mut std::task::Context<'_>,
++    ) -> std::task::Poll<Result<(), DispatchError>> {
++        self.entered.notify_one();
++        std::task::Poll::Pending
++    }
++    fn start_send(self: std::pin::Pin<&mut Self>, _: Bytes) -> Result<(), DispatchError> {
++        self.writes.fetch_add(1, Ordering::SeqCst);
++        Ok(())
++    }
++    fn poll_flush(
++        self: std::pin::Pin<&mut Self>,
++        _: &mut std::task::Context<'_>,
++    ) -> std::task::Poll<Result<(), DispatchError>> {
++        std::task::Poll::Pending
++    }
++    fn poll_close(
++        self: std::pin::Pin<&mut Self>,
++        _: &mut std::task::Context<'_>,
++    ) -> std::task::Poll<Result<(), DispatchError>> {
++        std::task::Poll::Ready(Ok(()))
++    }
++}
++#[tokio::test]
++async fn subscription_origin_outlives_only_its_handler_and_refuses_changed_scope_and_refresh_reuse()
++{
++    let f = Fixture::new();
++    let mut peer = f.peer();
++    f.authenticate(&mut peer, "old").await;
++    let capture = CaptureSubscription::default();
++    let request = subscription_request();
++    let initial = peer
++        .handle(&f.sign(request.clone()), &capture, deadline())
++        .await
++        .unwrap();
++    let old = capture.0.lock().take().unwrap();
++    assert!(old.current());
++    assert!(!old.is_ready());
++    let guard = f.policy.revoked.clone().read_owned().await;
++    assert!(matches!(
++        HandlerDelivery::new(
++            &old,
++            HandlerReplies::new(vec![subscription_fact(&request)]).unwrap(),
++            AuthorityLease::holding(guard)
++        ),
++        Err(DispatchError::Closed)
++    ));
++    drop(initial);
++    assert!(old.is_ready());
++    for field in ["cid", "in_reply_to"] {
++        let mut changed = subscription_fact(&request).original().clone();
++        changed[field] = json!("other");
++        let guard = f.policy.revoked.clone().read_owned().await;
++        assert!(matches!(
++            HandlerDelivery::new(
++                &old,
++                HandlerReplies::new(vec![Envelope::from_value(changed).unwrap()]).unwrap(),
++                AuthorityLease::holding(guard)
++            ),
++            Err(DispatchError::ReplyMismatch)
++        ));
++    }
++    f.policy.deny_refresh.store(true, Ordering::SeqCst);
++    assert!(peer
++        .handle(
++            &f.sign(envelope(
++                "auth.refresh",
++                json!({"method":"bearer","credential":"new"})
++            )),
++            &Handler::default(),
++            deadline()
++        )
++        .await
++        .is_err());
++    assert!(old.current());
++    f.policy.deny_refresh.store(false, Ordering::SeqCst);
++    drop(
++        peer.handle(
++            &f.sign(envelope(
++                "auth.refresh",
++                json!({"method":"bearer","credential":"new"}),
++            )),
++            &Handler::default(),
++            deadline(),
++        )
++        .await
++        .unwrap(),
++    );
++    assert!(!old.current());
++    let next = subscription_request();
++    drop(
++        peer.handle(&f.sign(next), &capture, deadline())
++            .await
++            .unwrap(),
++    );
++    let successor = capture.0.lock().take().unwrap();
++    old.retire();
++    assert!(successor.current());
++    assert!(!peer.cancellation().is_cancelled());
++}
++#[tokio::test]
++async fn subscription_foreign_physical_origin_is_never_submitted_and_completion_releases_real_guard(
++) {
++    let f = Fixture::new();
++    let mut first = f.peer();
++    let mut second = f.peer();
++    f.authenticate(&mut first, "old").await;
++    f.authenticate(&mut second, "old").await;
++    let capture = CaptureSubscription::default();
++    let request = subscription_request();
++    drop(
++        first
++            .handle(&f.sign(request.clone()), &capture, deadline())
++            .await
++            .unwrap(),
++    );
++    let origin = capture.0.lock().take().unwrap();
++    let guard = f.policy.revoked.clone().read_owned().await;
++    let (delivery, done) = HandlerDelivery::new(
++        &origin,
++        HandlerReplies::new(vec![subscription_fact(&request)]).unwrap(),
++        AuthorityLease::holding(guard),
++    )
++    .unwrap();
++    let handler = Arc::new(DeliverOnce(parking_lot::Mutex::new(Some(delivery))));
++    let stop = second.cancellation();
++    let writes = Arc::new(AtomicUsize::new(0));
++    let sink = BlockSubscriptionSink {
++        entered: Arc::new(Notify::new()),
++        writes: writes.clone(),
++    };
++    let job = tokio::spawn(async move {
++        second
++            .run_frames(
++                futures::stream::pending::<Result<Bytes, DispatchError>>(),
++                sink,
++                handler.as_ref(),
++            )
++            .await
++    });
++    assert_eq!(
++        tokio::time::timeout(Duration::from_secs(1), done)
++            .await
++            .unwrap()
++            .unwrap(),
++        Err(DispatchError::Closed)
++    );
++    assert_eq!(writes.load(Ordering::SeqCst), 0);
++    let writer = tokio::time::timeout(Duration::from_secs(1), f.policy.revoked.write())
++        .await
++        .unwrap();
++    drop(writer);
++    stop.cancel();
++    let _ = job.await.unwrap();
++    assert!(origin.current());
++    assert!(!first.cancellation().is_cancelled());
++}
++#[tokio::test]
++async fn subscription_blocked_writer_uses_live_end_instead_of_terminal_grace_and_releases_actual_authority(
++) {
++    let f = Fixture::new();
++    let mut peer = f.peer();
++    f.authenticate(&mut peer, "old").await;
++    let capture = CaptureSubscription::default();
++    let request = subscription_request();
++    drop(
++        peer.handle(&f.sign(request.clone()), &capture, deadline())
++            .await
++            .unwrap(),
++    );
++    let origin = capture.0.lock().take().unwrap();
++    let guard = f.policy.revoked.clone().read_owned().await;
++    let (delivery, done) = HandlerDelivery::new(
++        &origin,
++        HandlerReplies::new(vec![subscription_fact(&request)]).unwrap(),
++        AuthorityLease::checking(guard, Instant::now() + Duration::from_secs(30), || true),
++    )
++    .unwrap();
++    let handler = Arc::new(DeliverOnce(parking_lot::Mutex::new(Some(delivery))));
++    let entered = Arc::new(Notify::new());
++    let writes = Arc::new(AtomicUsize::new(0));
++    let sink = BlockSubscriptionSink {
++        entered: entered.clone(),
++        writes: writes.clone(),
++    };
++    let job = tokio::spawn(async move {
++        peer.run_frames(
++            futures::stream::pending::<Result<Bytes, DispatchError>>(),
++            sink,
++            handler.as_ref(),
++        )
++        .await
++    });
++    tokio::time::timeout(Duration::from_secs(1), entered.notified())
++        .await
++        .unwrap();
++    let gate = f.policy.revoked.clone();
++    let retiring = tokio::spawn(async move { gate.write_owned().await });
++    tokio::task::yield_now().await;
++    assert!(!retiring.is_finished());
++    assert_eq!(
++        tokio::time::timeout_at(origin.deadline() + Duration::from_millis(500), job)
++            .await
++            .unwrap()
++            .unwrap(),
++        Err(DispatchError::Closed)
++    );
++    assert!(done.await.unwrap().is_err());
++    drop(retiring.await.unwrap());
++    assert_eq!(writes.load(Ordering::SeqCst), 0);
++}

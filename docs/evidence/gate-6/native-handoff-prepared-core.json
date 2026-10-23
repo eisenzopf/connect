@@ -1,0 +1,338 @@
+{
+  "kind": "gate6-component-evidence",
+  "recorded_at": "2026-10-19T22:25:48.103707+00:00",
+  "task": "G6-040",
+  "status": "in-progress",
+  "passed": true,
+  "scope": "Core independently prepared closed-target audio handoff extension and exact captured leave retirement projection fix; full Core/Store tests plus forced-retirement native handoff and independent private-group regression, provider-free local macOS arm64. Public generic target preparation remains uninstalled.",
+  "schema_version": 54,
+  "pinned_patches": 110,
+  "source_lock": {
+    "path": "dependencies/source-lock.json",
+    "sha256": "35be35add1efa58f0718f78250c19e6ae9d7576225c0bed25f71f56719cd22b1"
+  },
+  "patch": {
+    "path": "patches/rvoip/gate6-prepared-handoff.patch",
+    "sha256": "6910d040d3dc7e55abeb6502fb94c97e8fc031b23413ddd3eecf015a6a117d40"
+  },
+  "verification": [
+    {
+      "name": "core",
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "--offline",
+        "-j1",
+        "--target-dir",
+        "target",
+        "--manifest-path",
+        ".deps/rvoip/Cargo.toml",
+        "-p",
+        "rvoip-core",
+        "--features",
+        "opus",
+        "--lib",
+        "--",
+        "--test-threads=1"
+      ],
+      "path": ".local/gate-6/prepared-handoff-final-core.log",
+      "exit_code": 0,
+      "sha256": "d00a93498ddab29c54dad2f0876cb1bcd51e4d4426fa31b6631ed6e3769d1a7e",
+      "passed": 429,
+      "ignored": 0,
+      "test_binaries": [
+        {
+          "path": "target/debug/deps/rvoip_core-a6d6129d336d7955",
+          "sha256": "8c214c6f86c3b1d2ca22de65bdd263c041b718e4b217e4e17aa226db69d8aa42"
+        }
+      ]
+    },
+    {
+      "name": "store",
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "--offline",
+        "-j1",
+        "-p",
+        "connect-store",
+        "--lib",
+        "--",
+        "--test-threads=2"
+      ],
+      "path": ".local/gate-6/prepared-handoff-final-store.log",
+      "exit_code": 0,
+      "sha256": "abd3c7310adf6068ccc2f33d2fa6cccb556a346fca652cd433b46a66d7a6d33d",
+      "passed": 551,
+      "ignored": 3,
+      "test_binaries": [
+        {
+          "path": "target/debug/deps/connect_store-500690b8d898aed1",
+          "sha256": "1819a405f36fc90d9874aa6119156b083eb75c30a29507175fe79402b420c30b"
+        }
+      ]
+    },
+    {
+      "name": "native",
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "--offline",
+        "-j1",
+        "-p",
+        "connect-server",
+        "--test",
+        "gate6_canonical_runtime",
+        "production_native_private_handoff",
+        "--",
+        "--test-threads=1",
+        "--nocapture"
+      ],
+      "path": ".local/gate-6/prepared-handoff-final-native2.log",
+      "exit_code": 0,
+      "sha256": "85723fafb1b41df6888e12c674b8da2a7139b68d68fcd06e4633165ee246ede2",
+      "passed": 1,
+      "ignored": 0,
+      "test_binaries": [
+        {
+          "path": "target/debug/deps/gate6_canonical_runtime-09465e13dc9bb922",
+          "sha256": "50b8a2d6d0a6826232a48e5d3ccec7ce8ee4224482a7f08fdaf2ee9542d94ae7"
+        }
+      ]
+    },
+    {
+      "name": "groups",
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "--offline",
+        "-j1",
+        "-p",
+        "connect-server",
+        "--test",
+        "gate6_canonical_runtime",
+        "production_disjoint_private_consultations",
+        "--",
+        "--test-threads=1",
+        "--nocapture"
+      ],
+      "path": ".local/gate-6/prepared-handoff-final-groups2.log",
+      "exit_code": 0,
+      "sha256": "2ed16c538d5cb8cdaebcb9e6c73249b4dd01696aa1046afd243c6522ad32ff25",
+      "passed": 1,
+      "ignored": 0,
+      "test_binaries": [
+        {
+          "path": "target/debug/deps/gate6_canonical_runtime-09465e13dc9bb922",
+          "sha256": "50b8a2d6d0a6826232a48e5d3ccec7ce8ee4224482a7f08fdaf2ee9542d94ae7"
+        }
+      ]
+    }
+  ],
+  "passed_rust_tests": 982,
+  "ignored_note": "Three Store crash helpers invoked by passing parents; not standalone passes.",
+  "retirement_regression": {
+    "path": ".local/gate-6/prepared-handoff-retirement-store4.log",
+    "sha256": "1332c5d641b4cc3285d26ff557b96ff785dcfebc58adae362cbf9f52c8e1a771",
+    "passed": 1,
+    "included_in_full_store_suite": true
+  },
+  "new_prepared_target_cases": [
+    "staged_streams::tests::private_consult::prepared_handoff::prepared_handoff_consumes_isolation_and_old_private_context_without_model_audio_leakage",
+    "staged_streams::tests::private_consult::prepared_handoff::prepared_handoff_current_revocation_and_cancellation_preserve_the_original_private_route",
+    "staged_streams::tests::private_consult::prepared_handoff::prepared_handoff_rejects_wrong_context_or_missing_private_replacement",
+    "staged_streams::tests::private_consult::prepared_handoff::prepared_handoff_requires_actual_decoding_and_completed_local_delivery"
+  ],
+  "selected_prepared_cases": {
+    "path": ".local/gate-6/prepared-handoff-core-selected3.log",
+    "sha256": "37529fc29637e5d0bcd9467dc3e205fed8acf8457612bb02eb27dc3806734d8f",
+    "passed": 4,
+    "included_in_full_core_suite": true
+  },
+  "native_regression": {
+    "handoff_scenarios": 4,
+    "leave_cleanup_forced_before_role_projection": true,
+    "preflight_refusals": 2,
+    "handoff_strict_audio_probes": 27,
+    "disjoint_group_audio_probes": 15
+  },
+  "implemented": [
+    "Public managed Core planner accepts exact independent one-member closed preparation plus an optional current outgoing context",
+    "Both closed contexts are sealed in the exact plan and consumed in one role/media commit; old private ports keep a closed quarantine with empty programmes",
+    "Actual decoded input and successful guarded local output after preparation; no queued-only readiness or fabricated handles",
+    "Same logical AI private port cannot escape quarantine through broad Participant selection",
+    "Old preparation/private restore handles, queued local prompts and repeated physical plans remain stale; cancellation/revocation preserve usable original audio",
+    "Captured planned leave projects after exact original native retirement at one advanced tombstone generation; no new incarnation adoption or port revival"
+  ],
+  "not_implemented": [
+    "Install durable target-owned signed native preparation under current session.handoff/connection.offer policy, closed from first publication. A target may prepare before the caller admits handoff, so do not introduce a policy_ref/offer-record circular dependency.",
+    "Install owned current local audio readiness and actual input proof. Incoming Observer must prepare without public speech or premature Session-role promotion; do not fabricate a Core audience handle or merely mark a row ready.",
+    "Connect Store exact context/reader/once-only custody and public client handoff to the actual new managed Core method; maintain original private provenance and independent physical current grants.",
+    "Qualify actual AI/human directions, current permission and competing/stale/cancel cases, and owned attributed unknown/restart recovery without IO reexecution. Audit audio exception versus other media/history/provider context."
+  ],
+  "static_checks": [
+    {
+      "name": "format",
+      "command": [
+        "bash",
+        "scripts/format.sh",
+        "--",
+        "--check"
+      ],
+      "path": ".local/gate-6/prepared-handoff-final-format.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "exit_code": 0
+    },
+    {
+      "name": "upstream-format",
+      "command": [
+        "rustfmt",
+        "--check",
+        "--edition",
+        "2021",
+        "--config",
+        "skip_children=true",
+        ".deps/rvoip/crates/foundation/rvoip-core/src/staged_streams/handoff.rs",
+        ".deps/rvoip/crates/foundation/rvoip-core/src/staged_streams/device_replacement.rs",
+        ".deps/rvoip/crates/foundation/rvoip-core/src/staged_streams/audience.rs",
+        ".deps/rvoip/crates/foundation/rvoip-core/src/orchestrator/participant_control.rs",
+        ".deps/rvoip/crates/foundation/rvoip-core/src/staged_streams/tests/private_consult.rs",
+        ".deps/rvoip/crates/foundation/rvoip-core/src/staged_streams/tests/private_consult/prepared_handoff.rs"
+      ],
+      "path": ".local/gate-6/prepared-handoff-final-upstream-format.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "exit_code": 0
+    },
+    {
+      "name": "wire",
+      "command": [
+        "python3",
+        "scripts/generate-gate6-schemas.py",
+        "--check"
+      ],
+      "path": ".local/gate-6/prepared-handoff-final-wire.log",
+      "sha256": "2f420729df64a60c717aec134b117888f5772d20553050f2ad8af91db0f6c14b",
+      "exit_code": 0
+    },
+    {
+      "name": "events",
+      "command": [
+        "python3",
+        "scripts/generate-gate6-event-reference.py",
+        "--check"
+      ],
+      "path": ".local/gate-6/prepared-handoff-final-events.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "exit_code": 0
+    },
+    {
+      "name": "http",
+      "command": [
+        "python3",
+        "scripts/generate-canonical-http-openapi.py",
+        "--check"
+      ],
+      "path": ".local/gate-6/prepared-handoff-final-http.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "exit_code": 0
+    },
+    {
+      "name": "contracts",
+      "command": [
+        ".local/gate-6/verification-venv/bin/python",
+        "scripts/check-gate6-contracts.py",
+        "--output",
+        ".local/gate-6/prepared-handoff-final-contracts.json"
+      ],
+      "path": ".local/gate-6/prepared-handoff-final-contracts.log",
+      "sha256": "0d7eaec1890a697fdbc4795fefda1fcf7165edb61512a82cc6993dc7399fccef",
+      "exit_code": 0
+    },
+    {
+      "name": "dependencies",
+      "command": [
+        "bash",
+        "scripts/prepare-dependencies.sh"
+      ],
+      "path": ".local/gate-6/prepared-handoff-final-dependencies.log",
+      "sha256": "fd9d7b181e3ccba9b643af55a186cf132c60aac99c734b2ee4e4e549afe5ffc2",
+      "exit_code": 0
+    },
+    {
+      "name": "diff",
+      "command": [
+        "git",
+        "diff",
+        "--check"
+      ],
+      "path": ".local/gate-6/prepared-handoff-sealed-diff.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "exit_code": 0
+    },
+    {
+      "name": "progress",
+      "command": [
+        "python3",
+        "scripts/check-gate6-progress.py"
+      ],
+      "path": ".local/gate-6/prepared-handoff-sealed-progress.log",
+      "sha256": "f3b9b4aefb902a70b4b09f47531c703f1026a2ea42e13759c3e88205978e6125",
+      "exit_code": 0
+    }
+  ],
+  "tested_source_snapshot": {
+    "path": ".local/gate-6/prepared-handoff-inputs-v3.json",
+    "sha256": "96cdf33572e693b03f70980e0d5b35e6323ee5d48f73bbc3ca134a21b02f4774",
+    "inputs": 1282
+  },
+  "post_test_documentation_delta": {
+    "docs/connect-gate-6-implementation.html": {
+      "before": "ff5336bc633d5e93acb671ea12944725372e7a872345575e8ecd0a915431dd62",
+      "after": "f7d0e9c7b442a970af87c9e5b92b45f3351f9ded0bd2a18fd57198d4f5d1ab0b"
+    }
+  },
+  "per_target_production_and_test_inputs_unchanged": true,
+  "core_source_snapshot": {
+    "path": ".local/gate-6/prepared-handoff-inputs-v2.json",
+    "sha256": "63d5838a2d41f86795ad9ca817463d9b30219fe25f8932ddfa38f51000d6b0cc"
+  },
+  "application_source_snapshot": {
+    "path": ".local/gate-6/prepared-handoff-inputs-v3.json",
+    "sha256": "96cdf33572e693b03f70980e0d5b35e6323ee5d48f73bbc3ca134a21b02f4774"
+  },
+  "post_core_application_fix": {
+    "path": ".local/gate-6/prepared-handoff-retirement-delta.json",
+    "sha256": "b61b04066cd4965657b84af2b84e429929bc388bfb609009cd9934e610703b18"
+  },
+  "source_preparation": {
+    "path": ".local/gate-6/prepared-handoff-source-delta2.json",
+    "sha256": "d31ff5e84f5a71dcf820a063f1602228fe9ef2125f7ccda2f3c8de52428077fe"
+  },
+  "previous_checkpoint": {
+    "path": "docs/evidence/gate-6/native-handoff-refusal.json",
+    "sha256": "82fd559136f4d791642a7b13e3c9f9e19e918fd615d3576a37176f1e18323514"
+  },
+  "next_requirements": {
+    "path": ".local/gate-6/prepared-handoff-next.json",
+    "sha256": "98b88f6e773a9856fefc8a9691693fc0565698fb544643ac5d2ddf928cb5dd4d"
+  },
+  "diagnostics": [
+    "Initial native regression confirmed Core leave but left operation preparing because physical cleanup advanced/cleared the source binding before projection. Exact original confirmed native retirement is now accepted for captured leave; the native fixture forces that ordering. Full Store551 and all final native scenarios pass; failed native log retained at .local/gate-6/prepared-handoff-final-native.log.",
+    "Intermediate controlled negative fixtures attempted immutable origin/offer/endpoint changes; corrected assertions prove the schema rejects those changes rather than bypassing its guards.",
+    "The first Core invocation from the Connect workspace could not select a dependency with dev-dependencies; the explicit pinned upstream workspace manifest is used for all qualified Core runs.",
+    "Initial selected test run had three passing cases and one assertion failure because the outsider private-source subscription was correctly refused. The corrected test explicitly checks that denial and successfully subscribes the retained receiver to the broad logical AI Participant, then verifies only the fresh port is delivered. Only test source changed; final selected and full Core runs pass. Logs retained at .local/gate-6/prepared-handoff-core-selected2.log and prepared-handoff-core-selected3.log.",
+    "All generated upstream source edits were reproduced through patch110 and source-lock preparation in fresh dependency directories; no direct .deps edits."
+  ],
+  "not_claimed": [
+    "Public service/Store/client generic prepared or fresh safe AI handoff installation",
+    "Incoming Observer preparation or actual AI/human provider-memory qualification",
+    "Complete competing/stale/permission/cancel/unknown/restart public runtime matrix",
+    "Rerun of libraries94 or public transitions5; their previous source evidence remains historical",
+    "Whole-workspace, live provider, Linux/browser/remote/performance/acceptance, commit/push/publication"
+  ],
+  "all_started_processes_terminal": true
+}

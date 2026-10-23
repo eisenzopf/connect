@@ -305,7 +305,7 @@ async fn slow_administrative_bodies_hold_capacity_and_shutdown_cancels_them() {
     assert_eq!(response.status(), 503);
     f.server.shutdown().await.unwrap();
     let response = read_upload(socket).await;
-    assert!(response.starts_with("HTTP/1.1 503"));
+    assert!(response.starts_with("HTTP/1.1 503"), "{response:?}");
     assert!(response.contains("transport-uncertain"));
 }
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
@@ -458,6 +458,472 @@ async fn http_contract_samples_cover_all_trusted_provisioning_routes() {
         &command,
         status,
         &value,
+    );
+    f.server.shutdown().await.unwrap();
+}
+
+#[tokio::test]
+async fn signing_key_and_device_routes_enforce_admin_target_replay_and_closed_contracts() {
+    let f = Fixture::new().await;
+    let identity = f.identity().await;
+    let now = chrono::Utc::now().timestamp();
+    let user = f
+        .store
+        .issue(&identity, Scope::messaging(vec!["*".into()]), now + 600)
+        .unwrap();
+    let endpoint = ProvisioningCommand::Endpoint {
+        operation_id: "peer-device".into(),
+        identity_id: identity.clone(),
+        device: DeviceSpec {
+            id: "peer-device".into(),
+            kind: "desktop".into(),
+            platform: "fixture".into(),
+        },
+        transport: EndpointTransport::Quic,
+        address: "quic://localhost:4444".into(),
+        capabilities: vec!["data".into()],
+        secret_ref: None,
+    };
+    assert_eq!(
+        f.post(&format!("/v2/identities/{identity}/endpoints"), &endpoint)
+            .await
+            .status(),
+        200
+    );
+    let command = ProvisioningCommand::SigningKey {
+        operation_id: "enroll-key".into(),
+        identity_id: identity.clone(),
+        credential_id: user.id.clone(),
+        device_id: "peer-device".into(),
+        key_id: "peer-key".into(),
+        algorithm: SigningAlgorithm::EdDSA,
+        public_key: "11qYAYKxCrfVS_7TyWQHOg7hcvPapiMlrwIaaPcHURo".into(),
+        not_before: now - 1,
+        expires_at: now + 300,
+        expected_revision: None,
+    };
+    let route = format!("/v2/identities/{identity}/signing-keys");
+    assert_eq!(
+        f.post("/v2/identities/wrong/signing-keys", &command)
+            .await
+            .status(),
+        400
+    );
+    assert_eq!(
+        f.client
+            .post(f.url(&route))
+            .bearer_auth(&user.token)
+            .json(&command)
+            .send()
+            .await
+            .unwrap()
+            .status(),
+        403
+    );
+    assert_eq!(
+        f.client
+            .post(f.url(&route))
+            .bearer_auth(&f.root.token)
+            .header("origin", "https://fixture.invalid")
+            .json(&command)
+            .send()
+            .await
+            .unwrap()
+            .status(),
+        403
+    );
+    let response = f.post(&route, &command).await;
+    assert_eq!(response.status(), 200);
+    assert_eq!(response.headers()["cache-control"], "no-store");
+    let original = response.json::<serde_json::Value>().await.unwrap();
+    capture_sample(
+        "signing-key-enroll",
+        "/v2/identities/{id}/signing-keys",
+        "SigningKeyRequest",
+        &command,
+        200,
+        &original,
+    );
+    let replay = f
+        .post(&route, &command)
+        .await
+        .json::<serde_json::Value>()
+        .await
+        .unwrap();
+    assert_eq!(original, replay);
+    let mut changed = serde_json::to_value(&command).unwrap();
+    changed["actor_id"] = serde_json::json!(identity);
+    assert_eq!(
+        f.client
+            .post(f.url(&route))
+            .bearer_auth(&f.root.token)
+            .json(&changed)
+            .send()
+            .await
+            .unwrap()
+            .status(),
+        400
+    );
+    let stale = ProvisioningCommand::RevokeSigningKey {
+        operation_id: "stale-key-revoke".into(),
+        key_id: "peer-key".into(),
+        expected_revision: 1,
+    };
+    let response = f.post("/v2/signing-keys/peer-key/revoke", &stale).await;
+    assert_eq!(response.status(), 409);
+    let result = response.json::<serde_json::Value>().await.unwrap();
+    capture_sample(
+        "signing-key-stale",
+        "/v2/signing-keys/{id}/revoke",
+        "RevokeSigningKeyRequest",
+        &stale,
+        409,
+        &result,
+    );
+    let revoke = ProvisioningCommand::RevokeSigningKey {
+        operation_id: "revoke-key".into(),
+        key_id: "peer-key".into(),
+        expected_revision: 0,
+    };
+    assert_eq!(
+        f.post("/v2/signing-keys/wrong/revoke", &revoke)
+            .await
+            .status(),
+        400
+    );
+    let guard = f
+        .store
+        .read_authority(
+            &user.id,
+            None,
+            &connect_store::AuthorityWait::new(std::time::Duration::from_secs(1)),
+        )
+        .unwrap();
+    let before = Store::inspect_snapshot(f.store.path()).unwrap();
+    let response = f.post("/v2/signing-keys/peer-key/revoke", &revoke).await;
+    assert_eq!(response.status(), 503);
+    let busy = response.json::<serde_json::Value>().await.unwrap();
+    assert_eq!(busy["result"]["Err"]["code"], "authority-busy");
+    assert_eq!(Store::inspect_snapshot(f.store.path()).unwrap(), before);
+    capture_sample(
+        "signing-key-busy",
+        "/v2/signing-keys/{id}/revoke",
+        "RevokeSigningKeyRequest",
+        &revoke,
+        503,
+        &busy,
+    );
+    drop(guard);
+    // The same logical mutation succeeds after the delivery owner releases it.
+    let response = f.post("/v2/signing-keys/peer-key/revoke", &revoke).await;
+    assert_eq!(response.status(), 200);
+    let result = response.json::<serde_json::Value>().await.unwrap();
+    assert_eq!(result["result"]["Ok"]["revoked"], true);
+    capture_sample(
+        "signing-key-revoke",
+        "/v2/signing-keys/{id}/revoke",
+        "RevokeSigningKeyRequest",
+        &revoke,
+        200,
+        &result,
+    );
+    let revoke = ProvisioningCommand::RevokeDevice {
+        operation_id: "revoke-device".into(),
+        device_id: "peer-device".into(),
+        expected_revision: 0,
+    };
+    assert_eq!(
+        f.post("/v2/devices/wrong/revoke", &revoke).await.status(),
+        400
+    );
+    let response = f.post("/v2/devices/peer-device/revoke", &revoke).await;
+    assert_eq!(response.status(), 200);
+    let result = response.json::<serde_json::Value>().await.unwrap();
+    assert_eq!(result["result"]["Ok"]["revoked"], true);
+    capture_sample(
+        "device-revoke",
+        "/v2/devices/{id}/revoke",
+        "RevokeDeviceRequest",
+        &revoke,
+        200,
+        &result,
+    );
+    f.server.shutdown().await.unwrap();
+}
+
+#[tokio::test]
+async fn ordinary_privacy_busy_refusal_preserves_state_and_same_id_retry() {
+    use connect_protocol::{Operation, Outcome};
+    let f = Fixture::new().await;
+    let Outcome::Conversation(c) = f
+        .store
+        .execute(
+            &f.root.id,
+            &Operation::Create {
+                request_id: "privacy-room".into(),
+                request: connect_protocol::conversations::CreateRequest::persistent(vec![]),
+            },
+        )
+        .unwrap()
+    else {
+        panic!()
+    };
+    let command = Operation::ReceiptPreferencesSet {
+        request_id: "privacy-decision".into(),
+        conversation_id: c.id.clone(),
+        delivery: false,
+        read: false,
+    };
+    let mut guard = Some(
+        f.store
+            .read_authority(
+                &f.root.id,
+                Some(&c.id),
+                &connect_store::AuthorityWait::new(std::time::Duration::from_secs(1)),
+            )
+            .unwrap(),
+    );
+    let before = Store::inspect_snapshot(f.store.path()).unwrap();
+    for busy in [true, false] {
+        let response = f
+            .client
+            .post(f.url("/v1/operations"))
+            .bearer_auth(&f.root.token)
+            .json(&command)
+            .send()
+            .await
+            .unwrap();
+        let status = response.status().as_u16();
+        assert_eq!(status, if busy { 503 } else { 200 });
+        let value: serde_json::Value = response.json().await.unwrap();
+        if busy {
+            assert_eq!(value["result"]["Err"]["code"], "authority-busy");
+            assert_eq!(Store::inspect_snapshot(f.store.path()).unwrap(), before);
+        } else {
+            assert_eq!(value["result"]["Ok"]["kind"], "receipt_preferences");
+        }
+        if let Some(directory) = std::env::var_os("CONNECT_GATE6_HTTP_SAMPLES") {
+            let directory = std::path::PathBuf::from(directory);
+            std::fs::create_dir_all(&directory).unwrap();
+            let sample = serde_json::json!({"api":"attachments","route":"/v1/operations","request":command,"status":status,"response":value});
+            std::fs::write(
+                directory.join(if busy {
+                    "receipt-privacy-busy.json"
+                } else {
+                    "receipt-privacy-retry.json"
+                }),
+                serde_json::to_vec(&sample).unwrap(),
+            )
+            .unwrap();
+        }
+        // Drop the only delivery owner after the bounded busy refusal.
+        if busy {
+            drop(guard.take());
+        }
+    }
+    drop(guard);
+    f.server.shutdown().await.unwrap();
+}
+
+#[tokio::test]
+async fn credential_revocation_http_matches_target_and_replay_requires_current_admin() {
+    let f = Fixture::new().await;
+    let alice = f.identity().await;
+    let target = f
+        .store
+        .issue(
+            &alice,
+            Scope::messaging(vec![]),
+            chrono::Utc::now().timestamp() + 3600,
+        )
+        .unwrap();
+    let command = ProvisioningCommand::RevokeCredential {
+        operation_id: "http-credential-revoke".into(),
+        credential_id: target.id.clone(),
+    };
+    let route = "/v2/credentials/{id}/revoke";
+    let path = format!("/v2/credentials/{}/revoke", target.id);
+    let wrong = f.post("/v2/credentials/another/revoke", &command).await;
+    assert_eq!(wrong.status(), 400);
+    let value: serde_json::Value = wrong.json().await.unwrap();
+    capture_sample(
+        "credential-target-mismatch",
+        route,
+        "RevokeCredentialRequest",
+        &command,
+        400,
+        &value,
+    );
+    f.store.authenticate(&target.token).unwrap();
+    let denied = f
+        .client
+        .post(f.url(&path))
+        .bearer_auth(&target.token)
+        .json(&command)
+        .send()
+        .await
+        .unwrap();
+    assert_eq!(denied.status(), 403);
+    let value: serde_json::Value = denied.json().await.unwrap();
+    capture_sample(
+        "credential-non-admin",
+        route,
+        "RevokeCredentialRequest",
+        &command,
+        403,
+        &value,
+    );
+    let mut outcomes = Vec::new();
+    for name in ["credential-revoke", "credential-replay"] {
+        let response = f.post(&path, &command).await;
+        assert_eq!(response.status(), 200);
+        assert_eq!(response.headers()["cache-control"], "no-store");
+        let value: serde_json::Value = response.json().await.unwrap();
+        capture_sample(
+            name,
+            route,
+            "RevokeCredentialRequest",
+            &command,
+            200,
+            &value,
+        );
+        assert_eq!(value["result"]["Ok"]["revoked"], true);
+        let raw = serde_json::to_string(&value).unwrap();
+        assert!(!raw.contains(&target.token));
+        assert!(!raw.contains("verifier"));
+        outcomes.push(value);
+    }
+    assert_eq!(outcomes[0], outcomes[1]);
+    assert!(f.store.authenticate(&target.token).is_err());
+    let actor = f.store.authenticate(&f.root.token).unwrap();
+    f.store.revoke(&actor, &f.root.id).unwrap();
+    let response = f.post(&path, &command).await;
+    assert_eq!(response.status(), 401);
+    let value: serde_json::Value = response.json().await.unwrap();
+    capture_sample(
+        "credential-revoked-admin-replay",
+        route,
+        "RevokeCredentialRequest",
+        &command,
+        401,
+        &value,
+    );
+    f.server.shutdown().await.unwrap();
+}
+#[tokio::test]
+async fn credential_revocation_busy_refusal_is_effect_free_and_same_id_retry_completes() {
+    use connect_store::{AuthorityMode, AuthorityScope, AuthorityWait};
+    let f = Fixture::new().await;
+    let alice = f.identity().await;
+    let target = f
+        .store
+        .issue(
+            &alice,
+            Scope::messaging(vec![]),
+            chrono::Utc::now().timestamp() + 3600,
+        )
+        .unwrap();
+    let command = ProvisioningCommand::RevokeCredential {
+        operation_id: "busy-credential-revocation".into(),
+        credential_id: target.id.clone(),
+    };
+    let path = format!("/v2/credentials/{}/revoke", target.id);
+    let guard = f
+        .store
+        .acquire_authority(
+            &[AuthorityScope::identity(&alice, AuthorityMode::Read).unwrap()],
+            &AuthorityWait::new(std::time::Duration::from_secs(1)),
+        )
+        .unwrap();
+    let response = f.post(&path, &command).await;
+    assert_eq!(response.status(), 503);
+    let value: serde_json::Value = response.json().await.unwrap();
+    assert_eq!(value["result"]["Err"]["code"], "authority-busy");
+    capture_sample(
+        "credential-busy",
+        "/v2/credentials/{id}/revoke",
+        "RevokeCredentialRequest",
+        &command,
+        503,
+        &value,
+    );
+    f.store.authenticate(&target.token).unwrap();
+    drop(guard);
+    let response = f.post(&path, &command).await;
+    assert_eq!(response.status(), 200);
+    let value: serde_json::Value = response.json().await.unwrap();
+    capture_sample(
+        "credential-busy-retry",
+        "/v2/credentials/{id}/revoke",
+        "RevokeCredentialRequest",
+        &command,
+        200,
+        &value,
+    );
+    assert!(f.store.authenticate(&target.token).is_err());
+    f.server.shutdown().await.unwrap();
+}
+
+#[tokio::test]
+async fn credential_self_revocation_returns_completion_then_requires_current_replacement_admin() {
+    let f = Fixture::new().await;
+    let actor = f.store.authenticate(&f.root.token).unwrap();
+    let replacement = f
+        .store
+        .issue(
+            &actor.identity_id,
+            Scope::operator(),
+            chrono::Utc::now().timestamp() + 3600,
+        )
+        .unwrap();
+    let command = ProvisioningCommand::RevokeCredential {
+        operation_id: "http-self-credential-revoke".into(),
+        credential_id: f.root.id.clone(),
+    };
+    let path = format!("/v2/credentials/{}/revoke", f.root.id);
+    let mut spoofed = serde_json::to_value(&command).unwrap();
+    spoofed["identity_id"] = serde_json::json!(actor.identity_id);
+    let response = f
+        .client
+        .post(f.url(&path))
+        .bearer_auth(&f.root.token)
+        .json(&spoofed)
+        .send()
+        .await
+        .unwrap();
+    assert_eq!(response.status(), 400);
+    f.store.authenticate(&f.root.token).unwrap();
+    let response = f.post(&path, &command).await;
+    assert_eq!(response.status(), 200);
+    let first: serde_json::Value = response.json().await.unwrap();
+    capture_sample(
+        "credential-self-revoke",
+        "/v2/credentials/{id}/revoke",
+        "RevokeCredentialRequest",
+        &command,
+        200,
+        &first,
+    );
+    let response = f.post(&path, &command).await;
+    assert_eq!(response.status(), 401);
+    let response = f
+        .client
+        .post(f.url(&path))
+        .bearer_auth(&replacement.token)
+        .json(&command)
+        .send()
+        .await
+        .unwrap();
+    assert_eq!(response.status(), 200);
+    let replay: serde_json::Value = response.json().await.unwrap();
+    assert_eq!(first, replay);
+    capture_sample(
+        "credential-self-revoke-current-admin-replay",
+        "/v2/credentials/{id}/revoke",
+        "RevokeCredentialRequest",
+        &command,
+        200,
+        &replay,
     );
     f.server.shutdown().await.unwrap();
 }

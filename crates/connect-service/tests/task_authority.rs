@@ -17,7 +17,7 @@ async fn facade_revalidates_grants_and_exposes_only_non_secret_metadata() {
             &key.id,
             &Operation::Create {
                 request_id: "conversation".into(),
-                participants: vec![],
+                request: connect_protocol::conversations::CreateRequest::persistent(vec![]),
             },
         )
         .unwrap()
@@ -105,7 +105,7 @@ async fn facade_projects_bounded_sources_and_revalidates_recall_continuation() {
             &key.id,
             &Operation::Create {
                 request_id: "room".into(),
-                participants: vec![],
+                request: connect_protocol::conversations::CreateRequest::persistent(vec![]),
             },
         )
         .unwrap()
@@ -122,7 +122,7 @@ async fn facade_projects_bounded_sources_and_revalidates_recall_continuation() {
                 &Operation::Send {
                     request_id: id.into(),
                     conversation_id: conversation.id.clone(),
-                    body: body.into(),
+                    message: connect_protocol::messages::MessageDraft::text_all(body),
                 },
             )
             .unwrap();

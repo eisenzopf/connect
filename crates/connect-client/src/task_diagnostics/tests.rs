@@ -12,6 +12,7 @@ fn arbitrary_text_is_removed_but_reconciliation_and_source_ids_are_retained() {
         request_id: "request-id".into(),
         state: EffectState::Uncertain,
         outcome: Some(Box::new(Outcome::Accepted {
+            receipt: None,
             request_id: "private-outcome".into(),
             message_id: "message-id".into(),
             conversation_id: "cid".into(),
@@ -50,6 +51,7 @@ fn arbitrary_text_is_removed_but_reconciliation_and_source_ids_are_retained() {
         provenance: "conversation-journal:event-id".into(),
         state: "available".into(),
         body: Some(sentinel.into()),
+        record: None,
     });
     let json = serde_json::to_string(&source).unwrap();
     assert!(json.contains("source-id") && json.contains("conversation-journal:event-id"));

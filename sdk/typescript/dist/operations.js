@@ -6,7 +6,51 @@ export class Operations extends TaskOperations {
         const result = await this.request(operation);
         if (result.kind !== kind)
             throw new ConnectError("protocol", "Unexpected outcome");
+        if ([
+            "membership_snapshot",
+            "conversation_snapshot",
+            "conversation_events",
+            "session_observations",
+        ].includes(kind)) {
+            const data = result.data;
+            if (!("conversation_id" in operation) ||
+                data.conversation_id !== operation.conversation_id ||
+                ("session_id" in operation &&
+                    data.session_id !== operation.session_id))
+                throw new ConnectError("protocol", "Event result scope does not match the request");
+        }
         return result.data;
+    }
+    conversationSnapshot(conversation_id, query = {}) {
+        return this.data("conversation_snapshot", {
+            op: "conversation_snapshot",
+            conversation_id,
+            query,
+        });
+    }
+    conversationEvents(conversation_id, query = {}) {
+        return this.data("conversation_events", {
+            op: "conversation_events",
+            conversation_id,
+            query,
+        });
+    }
+    sessionObservations(conversation_id, session_id, query = {}) {
+        return this.data("session_observations", {
+            op: "session_observations",
+            conversation_id,
+            session_id,
+            query,
+        });
+    }
+    admitTransition(request) {
+        return this.data("durable_operation", { op: "transition", request });
+    }
+    operationAction(request) {
+        return this.data("durable_operation", {
+            op: "durable_operation",
+            request,
+        });
     }
     contactPairingStart(request_id, peer_identity_id, expires_at) {
         return this.data("contact_pairing", {
@@ -63,18 +107,111 @@ export class Operations extends TaskOperations {
         return this.data("identity", { op: "resolve", address });
     }
     create(request_id, participants) {
-        return this.data("conversation", {
-            op: "create",
-            request_id,
-            participants,
+        return this.createConversation(request_id, {
+            tenant_id: null,
+            policy: "persistent",
+            idle_close_secs: null,
+            metadata: null,
+            initial_participants: [...new Set(participants)]
+                .sort()
+                .map((identity_id) => ({ identity_id, role: "participant" })),
         });
     }
+    async createConversation(request_id, request) {
+        const value = await this.data("conversation", {
+            op: "create",
+            request_id,
+            request,
+        });
+        if (value.receipt?.operation_id !== request_id)
+            throw new ConnectError("protocol", "Conversation receipt does not match its mutation");
+        return value;
+    }
+    listConversations(query = {}) {
+        return this.data("conversations", { op: "conversations", query });
+    }
+    async changeMembership(request) {
+        const value = await this.data("membership", {
+            op: "membership",
+            request,
+        });
+        if (value.receipt.operation_id !== request.operation_id ||
+            value.receipt.conversation_id !== request.conversation_id)
+            throw new ConnectError("protocol", "Membership receipt does not match its mutation");
+        return value;
+    }
+    membershipSnapshot(conversation_id) {
+        return this.data("membership_snapshot", {
+            op: "membership_snapshot",
+            conversation_id,
+        });
+    }
+    membershipInvitations(after = null, limit = 100) {
+        return this.data("membership_invitations", {
+            op: "membership_invitations",
+            after,
+            limit,
+        });
+    }
+    /** Plain UTF-8 text to all current members; audience is frozen on acceptance. */
     send(request_id, conversation_id, body) {
-        return this.data("accepted", {
+        return this.sendMessage(request_id, conversation_id, {
+            to: "all",
+            content_type: "text/plain",
+            body,
+            body_encoding: "utf8",
+            label: "connect-messages",
+            attachments: [],
+            in_reply_to_msg: null,
+            msg_id: null,
+        });
+    }
+    async sendMessage(request_id, conversation_id, message) {
+        const data = await this.data("accepted", {
             op: "send",
             request_id,
             conversation_id,
-            body,
+            message,
+        });
+        if (!data.receipt ||
+            data.request_id !== request_id ||
+            data.conversation_id !== conversation_id ||
+            data.receipt.operation_id !== request_id ||
+            data.receipt.conversation_id !== conversation_id)
+            throw new ConnectError("protocol", "Message receipt does not match its mutation");
+        return { ...data, receipt: data.receipt };
+    }
+    messageReceipts(conversation_id, message_id, after = null, limit = 100) {
+        return this.data("message_receipts", {
+            op: "message_receipts",
+            conversation_id,
+            message_id,
+            after,
+            limit,
+        });
+    }
+    messageReceipt(request_id, conversation_id, message_id, state) {
+        return this.data("receipt_acknowledged", {
+            op: "message_receipt",
+            request_id,
+            conversation_id,
+            message_id,
+            state,
+        });
+    }
+    receiptPreferences(conversation_id) {
+        return this.data("receipt_preferences", {
+            op: "receipt_preferences_get",
+            conversation_id,
+        });
+    }
+    setReceiptPreferences(request_id, conversation_id, delivery, read) {
+        return this.data("receipt_preferences", {
+            op: "receipt_preferences_set",
+            request_id,
+            conversation_id,
+            delivery,
+            read,
         });
     }
     history(conversation_id, after = null, limit = 100) {
@@ -100,12 +237,21 @@ export class Operations extends TaskOperations {
             conversation_id,
         });
     }
-    closeConversation(request_id, conversation_id) {
-        return this.data("conversation", {
+    async closeConversation(request_id, conversation_id, options = {
+        expected_revision: null,
+        reason_code: null,
+        reason: null,
+    }) {
+        const value = await this.data("conversation", {
             op: "close",
             request_id,
             conversation_id,
+            options,
         });
+        if (value.id !== conversation_id ||
+            value.receipt?.operation_id !== request_id)
+            throw new ConnectError("protocol", "Conversation receipt does not match its mutation");
+        return value;
     }
     callStart(request_id, conversation_id, route_id, destination) {
         return this.data("call", {
@@ -227,9 +373,10 @@ export class Operations extends TaskOperations {
             identity_id,
         });
     }
-    artifactBegin(request_id, conversation_id, name, media_type, size, sha256, expires_at = null) {
+    artifactBegin(request_id, conversation_id, name, media_type, size, sha256, expires_at = null, to = "all") {
         return this.data("artifact", {
             op: "artifact_begin",
+            to,
             request_id,
             conversation_id,
             name,
@@ -237,6 +384,52 @@ export class Operations extends TaskOperations {
             size,
             sha256,
             expires_at,
+        });
+    }
+    artifactInspect(conversation_id, artifact_id) {
+        return this.data("artifact", {
+            op: "artifact_inspect",
+            conversation_id,
+            artifact_id,
+        });
+    }
+    artifactUploadLink(conversation_id, artifact_id, expires_in = 60) {
+        return this.data("artifact_link", {
+            op: "artifact_upload_link",
+            conversation_id,
+            artifact_id,
+            expires_in,
+        });
+    }
+    artifactDownloadLink(conversation_id, artifact_id, message_id, expires_in = 60) {
+        return this.data("artifact_link", {
+            op: "artifact_download_link",
+            conversation_id,
+            artifact_id,
+            message_id,
+            expires_in,
+        });
+    }
+    artifactLinkGet(link, offset = 0, limit = 32768) {
+        return this.data("artifact_chunk", {
+            op: "artifact_link_get",
+            conversation_id: link.conversation_id,
+            artifact_id: link.artifact_id,
+            link: link.path,
+            offset,
+            limit,
+        });
+    }
+    /** data is base64, and request_id remains stable when refreshing a link. */
+    artifactLinkAppend(request_id, link, offset, data) {
+        return this.data("artifact", {
+            op: "artifact_link_append",
+            request_id,
+            conversation_id: link.conversation_id,
+            artifact_id: link.artifact_id,
+            link: link.path,
+            offset,
+            data,
         });
     }
     artifactAppend(request_id, conversation_id, artifact_id, offset, data) {

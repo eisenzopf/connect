@@ -1,0 +1,1303 @@
+diff --git a/crates/uctp/rvoip-uctp/src/v2/auth_dispatch.rs b/crates/uctp/rvoip-uctp/src/v2/auth_dispatch.rs
+--- a/crates/uctp/rvoip-uctp/src/v2/auth_dispatch.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/auth_dispatch.rs
+@@ -200,6 +200,16 @@
+     answer_state: Arc<offer_answer::OfferAnswerState>,
+ }
+ impl AuthorizedEnvelope {
++    pub(in crate::v2) fn native_exchange_context(
++        &self,
++        lifetime: CancellationToken,
++        deadline: Instant,
++    ) -> Result<super::auth_peer::exchange::ExchangeContext, DispatchError> {
++        self.exchange
++            .as_ref()
++            .map(|context| context.for_origin(lifetime, deadline))
++            .ok_or(DispatchError::Unsupported)
++    }
+     pub(super) fn supports_native_negotiation(&self) -> bool {
+         self.exchange.is_some() && !self.invocation.is_cancelled() && self._lease.current()
+     }
+diff --git a/crates/uctp/rvoip-uctp/src/v2/auth_dispatch/data.rs b/crates/uctp/rvoip-uctp/src/v2/auth_dispatch/data.rs
+--- a/crates/uctp/rvoip-uctp/src/v2/auth_dispatch/data.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/auth_dispatch/data.rs
+@@ -235,6 +235,9 @@
+     pub(in crate::v2) fn cancellation(&self) -> CancellationToken {
+         self.origin.lifetime.clone()
+     }
++    pub(in crate::v2) fn deadline(&self) -> Instant {
++        self.origin.deadline
++    }
+     pub fn is_ready(&self) -> bool {
+         self.initial.strong_count() == 0
+     }
+diff --git a/crates/uctp/rvoip-uctp/src/v2/auth_peer/exchange.rs b/crates/uctp/rvoip-uctp/src/v2/auth_peer/exchange.rs
+--- a/crates/uctp/rvoip-uctp/src/v2/auth_peer/exchange.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/auth_peer/exchange.rs
+@@ -50,6 +50,82 @@
+                 deadline,
+             }),
+         }
++    }
++    pub(in crate::v2) fn for_origin(&self, lifetime: CancellationToken, deadline: Instant) -> Self {
++        Self {
++            sender: self.sender.clone(),
++            reply: Arc::new(ReplyContext {
++                authority: self.reply.authority.clone(),
++                verifier: self.reply.verifier.clone(),
++                replay: self.reply.replay.clone(),
++                principal: self.reply.principal.clone(),
++                lifetime,
++                deadline,
++            }),
++        }
++    }
++    pub(in crate::v2) async fn native_request(
++        &self,
++        request: Envelope,
++        authority: AuthorityLease,
++        requested: Instant,
++        caller: CancellationToken,
++        fence: Arc<dyn crate::v2::auth_dispatch::lifecycle::NativeLifecycleFence>,
++        incarnation: uuid::Uuid,
++    ) -> Result<(Envelope, AuthorityLease, Instant), DispatchError> {
++        let deadline = requested.min(self.reply.deadline);
++        self.reply.active(deadline)?;
++        if !fence.current() || !authority.current() || caller.is_cancelled() {
++            return Err(DispatchError::Closed);
++        }
++        let _ = ReplyExpectation::new(&request)?;
++        let cancel = caller.child_token();
++        let permit = AnswerPermit::request(authority, fence.cancellation(), deadline);
++        let _custody = AnswerCancellation(permit.clone());
++        let deadline = permit.deadline;
++        let started = Arc::new(AtomicBool::new(false));
++        let (reply, receiver) = oneshot::channel();
++        let _drop = CancelWait {
++            cancel: cancel.clone(),
++            changed: self.sender.changed.clone(),
++        };
++        self.sender
++            .sender
++            .try_send(Call::Request(RequestCall {
++                request,
++                context: self.reply.clone(),
++                permit: permit.clone(),
++                deadline,
++                cancel: cancel.clone(),
++                started: started.clone(),
++                reply,
++                native_fence: Some(fence.clone()),
++                incarnation: Some(incarnation),
++            }))
++            .map_err(|e| match e {
++                mpsc::error::TrySendError::Full(_) => DispatchError::Capacity,
++                mpsc::error::TrySendError::Closed(_) => DispatchError::Closed,
++            })?;
++        let unknown = || {
++            if started.load(Ordering::Acquire) {
++                DispatchError::SubmissionUnknown
++            } else {
++                DispatchError::Closed
++            }
++        };
++        let changed = fence.cancellation();
++        let response = tokio::select! {biased;
++            _=self.reply.lifetime.cancelled()=>return Err(unknown()),
++            _=cancel.cancelled()=>return Err(unknown()),
++            _=changed.cancelled()=>return Err(unknown()),
++            _=tokio::time::sleep_until(deadline)=>return Err(unknown()),
++            r=receiver=>r.unwrap_or_else(|_|Err(unknown()))?,
++        };
++        if !fence.current() {
++            return Err(unknown());
++        }
++        let authority = permit.reply_authority().map_err(|_| unknown())?;
++        Ok((response, authority, deadline))
+     }
+     pub(in crate::v2) fn supports_native_data(&self) -> bool {
+         self.sender.sender.max_capacity() > 1
+@@ -104,6 +180,8 @@
+                 cancel: cancel.clone(),
+                 started: started.clone(),
+                 reply,
++                native_fence: None,
++                incarnation: None,
+             }))
+             .map_err(|e| match e {
+                 mpsc::error::TrySendError::Full(_) => DispatchError::Capacity,
+@@ -220,6 +298,8 @@
+     cancel: CancellationToken,
+     started: Arc<AtomicBool>,
+     reply: oneshot::Sender<Result<Envelope, DispatchError>>,
++    native_fence: Option<Arc<dyn crate::v2::auth_dispatch::lifecycle::NativeLifecycleFence>>,
++    incarnation: Option<uuid::Uuid>,
+ }
+ struct PendingCall {
+     request: Envelope,
+@@ -231,10 +311,15 @@
+     started: Arc<AtomicBool>,
+     reply: parking_lot::Mutex<Option<oneshot::Sender<Result<Envelope, DispatchError>>>>,
+     verifying: AtomicBool,
++    native_fence: Option<Arc<dyn crate::v2::auth_dispatch::lifecycle::NativeLifecycleFence>>,
+ }
+ impl PendingCall {
+     fn live(&self) -> bool {
+         !self.cancel.is_cancelled()
++            && self
++                .native_fence
++                .as_ref()
++                .is_none_or(|fence| fence.current())
+             && self.permit.current()
+             && self.context.active(self.deadline).is_ok()
+             && self
+@@ -425,11 +510,6 @@
+     let lease = prepared
+         .as_ref()
+         .and_then(|_| answer.permit.begin_write().ok());
+-    if lease.is_some() {
+-        if let Some(started) = &job.started {
+-            started.store(true, Ordering::Release);
+-        }
+-    }
+     let touched = AtomicBool::new(false);
+     let result = if let (Some(bytes), Some(lease)) = (prepared, lease) {
+         let mut io = IoCustody {
+@@ -448,6 +528,9 @@
+                     return std::task::Poll::Ready(Err(DispatchError::Closed));
+                 }
+                 touched.store(true, Ordering::Release);
++                if let Some(started) = &job.started {
++                    started.store(true, Ordering::Release);
++                }
+                 std::future::Future::poll(sending.as_mut(), cx)
+             });
+             tokio::select! {biased;
+@@ -905,12 +988,14 @@
+                    continue;
+                  }
+                };
+-               if call.cancel.is_cancelled()||call.reply.is_closed()||call.context.active(call.deadline).is_err(){let _=call.reply.send(Err(DispatchError::Closed));continue;}
++               if call.cancel.is_cancelled()||call.reply.is_closed()||call.context.active(call.deadline).is_err()
++                   ||call.incarnation.is_some_and(|origin|view.incarnation!=Some(origin))
++                   ||call.native_fence.as_ref().is_some_and(|fence|!fence.current()){let _=call.reply.send(Err(DispatchError::Closed));continue;}
+                if pending.len()>=capacity{let _=call.reply.send(Err(DispatchError::Capacity));continue;}
+                let mut v=call.request.original().clone();v["id"]=json!(fresh_id());v["ts"]=json!(chrono::Utc::now());let request=signed(&config,v)?;let id=request.id().to_owned();let expectation=ReplyExpectation::new(&request)?;
+                let output=output(vec![request.clone()],None);
+-               let registered=Arc::new(PendingCall{request,expectation,context:call.context,permit:call.permit.clone(),deadline:call.deadline,cancel:call.cancel.clone(),started:call.started.clone(),reply:parking_lot::Mutex::new(Some(call.reply)),verifying:AtomicBool::new(false)});
+-               pending.insert(id.clone(),registered.clone());let mut send=job(output,call.deadline,&physical,view.authority.clone(),None);send.cancel=Some(call.cancel);send.started=Some(call.started);
++               let registered=Arc::new(PendingCall{request,expectation,context:call.context,permit:call.permit.clone(),deadline:call.deadline,cancel:call.cancel.clone(),started:call.started.clone(),reply:parking_lot::Mutex::new(Some(call.reply)),verifying:AtomicBool::new(false),native_fence:call.native_fence.clone()});
++               pending.insert(id.clone(),registered.clone());let mut send=job(output,call.deadline,&physical,view.authority.clone(),None);send.cancel=Some(call.cancel);send.started=Some(call.started);send.native_fence=call.native_fence;
+                send.answer=Some(PendingAnswer{cancel_on_drop:false,permit:call.permit,completion:None});
+                if write_tx.try_send(send).is_err(){pending.remove(&id);if let Some(reply)=registered.reply.lock().take(){let _=reply.send(Err(DispatchError::Capacity));}}
+               }
+@@ -1228,4 +1313,92 @@
+             assert!(domain.try_write().is_ok());
+         }
+     }
+-}
++    #[tokio::test]
++    async fn native_request_stale_dequeue_never_marks_submission_or_touches_writer() {
++        let domain = Arc::new(tokio::sync::RwLock::new(()));
++        let permit = AnswerPermit::request(
++            AuthorityLease::holding(domain.clone().read_owned().await),
++            CancellationToken::new(),
++            Instant::now() + Duration::from_secs(1),
++        );
++        let started = Arc::new(AtomicBool::new(false));
++        let sink = CountingSink::default();
++        let count = sink.0.clone();
++        let mut writer = Some(sink);
++        let mut queued = job(
++            output(vec![event_frame()], None),
++            permit.deadline,
++            &CancellationToken::new(),
++            None,
++            None,
++        );
++        queued.started = Some(started.clone());
++        queued.native_fence = Some(Arc::new(EventFence {
++            live: AtomicBool::new(false),
++            token: CancellationToken::new(),
++        }));
++        let (done, receipt) = oneshot::channel();
++        let answer = PendingAnswer {
++            cancel_on_drop: false,
++            permit: permit.clone(),
++            completion: Some(done),
++        };
++        write_answer(&mut writer, &mut queued, answer, &CancellationToken::new())
++            .await
++            .unwrap();
++        assert_eq!(receipt.await.unwrap(), Err(DispatchError::Closed));
++        assert!(!started.load(Ordering::Acquire));
++        assert_eq!(count.load(Ordering::Acquire), 0);
++        assert!(writer.is_some());
++        permit.cancel();
++        assert!(domain.try_write().is_ok());
++    }
++    #[tokio::test]
++    async fn native_request_cancellation_destroys_pending_sink_before_fresh_reply_authority_releases(
++    ) {
++        let domain = Arc::new(tokio::sync::RwLock::new(()));
++        let live = Arc::new(AtomicBool::new(true));
++        let entered = Arc::new(Notify::new());
++        let sink = PendingSink {
++            domain: domain.clone(),
++            live: live.clone(),
++            entered: entered.clone(),
++        };
++        let epoch = CancellationToken::new();
++        let started = Arc::new(AtomicBool::new(false));
++        let permit = AnswerPermit::request(
++            AuthorityLease::holding(domain.clone().read_owned().await),
++            epoch.child_token(),
++            Instant::now() + Duration::from_secs(1),
++        );
++        let mut queued = job(
++            output(vec![event_frame()], None),
++            permit.deadline,
++            &CancellationToken::new(),
++            None,
++            None,
++        );
++        queued.started = Some(started.clone());
++        queued.native_fence = Some(Arc::new(EventFence {
++            live: AtomicBool::new(true),
++            token: epoch,
++        }));
++        queued.answer = Some(PendingAnswer {
++            cancel_on_drop: false,
++            permit: permit.clone(),
++            completion: None,
++        });
++        let (send, receive) = mpsc::channel(1);
++        send.send(queued).await.unwrap();
++        let task = tokio::spawn(writes(sink, receive, CancellationToken::new()));
++        tokio::time::timeout(Duration::from_secs(1), entered.notified())
++            .await
++            .unwrap();
++        assert!(started.load(Ordering::Acquire));
++        assert!(domain.try_write().is_err());
++        permit.cancel();
++        assert_eq!(task.await.unwrap(), Err(DispatchError::SubmissionUnknown));
++        assert!(!live.load(Ordering::Acquire));
++        assert!(domain.try_write().is_ok());
++    }
++}
+diff --git a/crates/uctp/rvoip-uctp/src/v2/mod.rs b/crates/uctp/rvoip-uctp/src/v2/mod.rs
+--- a/crates/uctp/rvoip-uctp/src/v2/mod.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/mod.rs
+@@ -325,3 +325,5 @@
+ 
+ #[cfg(test)]
+ mod tests;
++
++pub mod native_requests;
+diff --git a/crates/uctp/rvoip-uctp/src/v2/native.rs b/crates/uctp/rvoip-uctp/src/v2/native.rs
+--- a/crates/uctp/rvoip-uctp/src/v2/native.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/native.rs
+@@ -768,6 +768,43 @@
+         flow.controlled_revision(plan.expected_revision(), revision);
+         Ok(super::native_control::NativeControlOutcome { revision, streams })
+     }
++    /// Seal an idle server-request origin after this actual successful signed
++    /// negotiation. Each request still requires a fresh exact current policy.
++    pub fn native_request_origin(
++        &self,
++        id: &ConnectionId,
++        a: &super::auth_dispatch::AuthorizedEnvelope,
++    ) -> std::result::Result<
++        Arc<super::native_requests::NativeRequestOrigin>,
++        super::native_negotiation::NativeOfferError,
++    > {
++        use super::native_negotiation::NativeOfferError;
++        let route = self.data_route(id, a)?;
++        let installed = route.installation.lock().unwrap_or_else(|p| p.into_inner());
++        let installed = installed.as_ref().ok_or(NativeOfferError::NotReady)?;
++        let broker = installed
++            .backend
++            .negotiation
++            .as_ref()
++            .ok_or(NativeOfferError::Unsupported)?;
++        let substrate = match self.transport {
++            Transport::Quic => "quic",
++            Transport::WebTransport => "webtransport",
++            Transport::WebSocket => "websocket+webrtc",
++            _ => return Err(NativeOfferError::Unsupported),
++        };
++        super::native_requests::NativeRequestOrigin::new(
++            a,
++            &installed.controller,
++            installed.backend.flow.clone(),
++            broker.scope().clone(),
++            &route.member,
++            &route.endpoint,
++            substrate,
++            broker.request_slot.clone(),
++        )
++        .map_err(NativeOfferError::Dispatch)
++    }
+     /// A metadata-only event registration after this exact signed native
+     /// negotiation. Each delivery needs a new explicit current-policy lease.
+     pub fn native_lifecycle_registration(
+diff --git a/crates/uctp/rvoip-uctp/src/v2/native_negotiation/mod.rs b/crates/uctp/rvoip-uctp/src/v2/native_negotiation/mod.rs
+--- a/crates/uctp/rvoip-uctp/src/v2/native_negotiation/mod.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/native_negotiation/mod.rs
+@@ -112,11 +112,13 @@
+     observer: Option<Arc<dyn NativeDataObserver>>,
+     lifetime: CancellationToken,
+     current: Mutex<Option<Weak<Operation>>>,
++    pub(crate) request_slot: Arc<tokio::sync::Semaphore>,
+     retained: Mutex<Option<(EndpointMediaCapabilities, String)>>,
+ }
+ pub(crate) struct NegotiationGuard {
+     broker: Arc<NativeNegotiation>,
+     operation: Arc<Operation>,
++    _request_slot: tokio::sync::OwnedSemaphorePermit,
+ }
+ impl Drop for NegotiationGuard {
+     fn drop(&mut self) {
+@@ -189,6 +191,9 @@
+ }
+ impl NativeNegotiation {
+     pub(crate) fn is_busy(&self) -> bool {
++        if self.request_slot.available_permits() == 0 {
++            return true;
++        }
+         self.current
+             .lock()
+             .unwrap_or_else(|p| p.into_inner())
+@@ -215,6 +220,7 @@
+             observer,
+             lifetime,
+             current: Mutex::new(None),
++            request_slot: Arc::new(tokio::sync::Semaphore::new(1)),
+             retained: Mutex::new(None),
+         })
+     }
+@@ -290,6 +296,11 @@
+         plan: NativeOfferPlan,
+         substrate: String,
+     ) -> Result<NegotiationGuard, NativeOfferError> {
++        let request_slot = self
++            .request_slot
++            .clone()
++            .try_acquire_owned()
++            .map_err(|_| NativeOfferError::Conflict)?;
+         let mut current = self.current.lock().unwrap_or_else(|p| p.into_inner());
+         if self.lifetime.is_cancelled() {
+             return Err(NativeOfferError::Cancelled);
+@@ -317,6 +328,7 @@
+         Ok(NegotiationGuard {
+             broker: self.clone(),
+             operation,
++            _request_slot: request_slot,
+         })
+     }
+     fn active(&self) -> Result<Arc<Operation>, NativeOfferError> {
+diff --git a/crates/uctp/rvoip-uctp/src/v2/native_requests.rs b/crates/uctp/rvoip-uctp/src/v2/native_requests.rs
+new file mode 100644
+--- /dev/null
++++ b/crates/uctp/rvoip-uctp/src/v2/native_requests.rs
+@@ -0,0 +1,291 @@
++//! Fresh scoped server requests for native parameter reconciliation.
++//! An idle origin carries metadata; an active exchange owns its current grant.
++use super::{
++    auth_dispatch::lifecycle::NativeLifecycleFence, auth_dispatch::*,
++    native_lifecycle::NativeLifecycleScope, Envelope, Scope,
++};
++use crate::{native_flow::NativeFlow, staged_media::StagedRtpScope};
++use async_trait::async_trait;
++use rvoip_core::{
++    relationships::{EndpointBinding, Membership},
++    staged_streams::StreamController,
++};
++use std::{
++    sync::{Arc, Weak},
++    time::Duration,
++};
++use tokio::time::Instant;
++use tokio_util::sync::CancellationToken;
++
++pub struct NativeRequestScope {
++    pub origin: Arc<NativeLifecycleScope>,
++    pub stream_revision: u64,
++    pub conversation: rvoip_core::ids::ConversationId,
++    pub connection_generation: u64,
++    pub credential_revision: u64,
++}
++#[async_trait]
++pub trait NativeRequestPolicy: Send + Sync {
++    /// Derive current exact actor/resource/operation/key authority. With held
++    /// authority, verify this same domain and intent without storage reentry.
++    /// The original request grant is never inferred from the retained origin.
++    async fn authorize(
++        &self,
++        scope: &NativeRequestScope,
++        proposal: &Envelope,
++        held: Option<&AuthorityLease>,
++    ) -> Result<AuthorityLease, DispatchError>;
++}
++struct RequestFence {
++    origin: DataOrigin,
++    controller: Weak<StreamController>,
++    flow: Arc<NativeFlow>,
++    revision: u64,
++    epoch: CancellationToken,
++}
++impl NativeLifecycleFence for RequestFence {
++    fn current(&self) -> bool {
++        !self.epoch.is_cancelled()
++            && self.origin.current()
++            && self
++                .controller
++                .upgrade()
++                .is_some_and(|c| c.revision() == self.revision)
++            && self.flow.confirmed_at(self.revision)
++            && !self.epoch.is_cancelled()
++    }
++    fn cancellation(&self) -> CancellationToken {
++        self.epoch.child_token()
++    }
++}
++pub struct NativeRequestOrigin {
++    origin: DataOrigin,
++    context: super::auth_peer::exchange::ExchangeContext,
++    controller: Weak<StreamController>,
++    flow: Arc<NativeFlow>,
++    scope: Arc<NativeLifecycleScope>,
++    substrate: &'static str,
++    request_slot: Arc<tokio::sync::Semaphore>,
++    conversation: rvoip_core::ids::ConversationId,
++    connection_generation: u64,
++    credential_revision: u64,
++}
++impl std::fmt::Debug for NativeRequestOrigin {
++    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
++        f.write_str("NativeRequestOrigin(redacted)")
++    }
++}
++/// Exact signed reply plus the active exchange's real current grant. This is
++/// bounded mutation custody, not an idle registration or durable receipt.
++pub struct NativeRequestReply {
++    origin: Arc<NativeRequestOrigin>,
++    fence: Arc<RequestFence>,
++    scope: NativeRequestScope,
++    proposal: Envelope,
++    response: Envelope,
++    authority: AuthorityLease,
++    deadline: Instant,
++    cancel: CancellationToken,
++    _request_slot: tokio::sync::OwnedSemaphorePermit,
++}
++impl std::fmt::Debug for NativeRequestReply {
++    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
++        f.write_str("NativeRequestReply(redacted)")
++    }
++}
++impl NativeRequestReply {
++    pub fn proposal(&self) -> &Envelope {
++        &self.proposal
++    }
++    pub fn response(&self) -> &Envelope {
++        &self.response
++    }
++    pub fn scope(&self) -> &NativeRequestScope {
++        &self.scope
++    }
++    pub fn current(&self) -> bool {
++        !self.cancel.is_cancelled()
++            && Instant::now() < self.deadline
++            && self.origin.current()
++            && self.fence.current()
++            && self.authority.current()
++    }
++    /// Borrow only during the checked mutation. No new authorization proof is
++    /// fabricated; the value is the actual policy's retained current guard.
++    pub fn authority<T: std::any::Any + Send + Sync>(&self) -> Option<&T> {
++        self.current()
++            .then(|| self.authority.authority::<T>())
++            .flatten()
++    }
++}
++impl NativeRequestOrigin {
++    pub(crate) fn new(
++        a: &AuthorizedEnvelope,
++        controller: &Arc<StreamController>,
++        flow: Arc<NativeFlow>,
++        scope: StagedRtpScope,
++        member: &Membership,
++        endpoint: &EndpointBinding,
++        substrate: &'static str,
++        request_slot: Arc<tokio::sync::Semaphore>,
++    ) -> Result<Arc<Self>, DispatchError> {
++        if !flow.confirmed_for(controller.revision(), a.envelope().id()) {
++            return Err(DispatchError::Authority);
++        }
++        let origin = DataOrigin::seal(a, controller, scope.clone(), member, endpoint)?;
++        let context = a.native_exchange_context(origin.cancellation(), origin.deadline())?;
++        Ok(Arc::new(Self {
++            origin,
++            context,
++            controller: Arc::downgrade(controller),
++            flow,
++            scope: Arc::new(NativeLifecycleScope {
++                principal: a.principal().clone(),
++                media: scope,
++                participant: member.participant().clone(),
++                membership_epoch: member.epoch(),
++                device: endpoint.device().clone(),
++                endpoint: endpoint.endpoint().clone(),
++                identity: member.identity().clone(),
++            }),
++            substrate,
++            request_slot,
++            conversation: member.conversation().clone(),
++            connection_generation: controller
++                .active_bindings()
++                .first()
++                .ok_or(DispatchError::Authority)?
++                .connection_generation,
++            credential_revision: controller.credential_revision(),
++        }))
++    }
++    pub fn request_scope(&self, stream_revision: u64) -> NativeRequestScope {
++        NativeRequestScope {
++            origin: self.scope.clone(),
++            stream_revision,
++            conversation: self.conversation.clone(),
++            connection_generation: self.connection_generation,
++            credential_revision: self.credential_revision,
++        }
++    }
++    pub fn current(&self) -> bool {
++        self.origin.current()
++    }
++    pub fn ready(&self) -> bool {
++        self.origin.is_ready() && self.current()
++    }
++    pub fn retire(&self) {
++        self.origin.retire()
++    }
++    pub async fn request(
++        self: &Arc<Self>,
++        proposal: Envelope,
++        policy: Arc<dyn NativeRequestPolicy>,
++        deadline: Instant,
++        cancel: CancellationToken,
++    ) -> Result<NativeRequestReply, DispatchError> {
++        self.request_inner(proposal, policy, None, deadline, cancel)
++            .await
++    }
++    /// A server mutation may already own a freshly acquired guard. The explicit
++    /// policy hook must validate it instead of reacquiring behind a queued writer.
++    pub async fn request_with_held(
++        self: &Arc<Self>,
++        proposal: Envelope,
++        policy: Arc<dyn NativeRequestPolicy>,
++        held: AuthorityLease,
++        deadline: Instant,
++        cancel: CancellationToken,
++    ) -> Result<NativeRequestReply, DispatchError> {
++        self.request_inner(proposal, policy, Some(held), deadline, cancel)
++            .await
++    }
++    async fn request_inner(
++        self: &Arc<Self>,
++        proposal: Envelope,
++        policy: Arc<dyn NativeRequestPolicy>,
++        held: Option<AuthorityLease>,
++        requested: Instant,
++        cancel: CancellationToken,
++    ) -> Result<NativeRequestReply, DispatchError> {
++        if !self.ready() {
++            return Err(DispatchError::Authority);
++        }
++        let revision = proposal
++            .expected_revision()
++            .ok_or(DispatchError::ReplyMismatch)?;
++        if proposal.kind() != "connection.offer"
++            || proposal.scope(Scope::Reply).is_some()
++            || proposal.scope(Scope::Operation).is_none()
++            || proposal.scope(Scope::Conversation) != self.scope.media.wire_conversation.as_deref()
++            || proposal.scope(Scope::Session) != Some(self.scope.media.wire_session.as_str())
++            || proposal.scope(Scope::Connection) != Some(self.scope.media.wire_connection.as_str())
++            || proposal.original()["payload"]["substrate"] != self.substrate
++        {
++            return Err(DispatchError::ReplyMismatch);
++        }
++        super::scope_policy::require(&self.scope.principal, proposal.payload())?;
++        let deadline = requested
++            .min(self.origin.deadline())
++            .min(Instant::now() + Duration::from_secs(30));
++        let fence = Arc::new(RequestFence {
++            origin: self.origin.clone(),
++            controller: self.controller.clone(),
++            flow: self.flow.clone(),
++            revision,
++            epoch: self.flow.epoch(),
++        });
++        if !fence.current() || deadline <= Instant::now() {
++            return Err(DispatchError::Closed);
++        }
++        let request_slot = self
++            .request_slot
++            .clone()
++            .try_acquire_owned()
++            .map_err(|_| DispatchError::Capacity)?;
++        let scoped = self.request_scope(revision);
++        let retired = self.origin.cancellation();
++        let changed = fence.cancellation();
++        let authority = tokio::select! {biased;
++            _=retired.cancelled()=>return Err(DispatchError::Closed),
++            _=changed.cancelled()=>return Err(DispatchError::Closed),
++            _=cancel.cancelled()=>return Err(DispatchError::Closed),
++            _=tokio::time::sleep_until(deadline)=>return Err(DispatchError::Closed),
++            r=policy.authorize(&scoped,&proposal,held.as_ref())=>r?,
++        };
++        if !authority.current() || !fence.current() {
++            return Err(DispatchError::Authority);
++        }
++        let (response, authority, deadline) = self
++            .context
++            .native_request(
++                proposal.clone(),
++                authority,
++                deadline,
++                cancel.clone(),
++                fence.clone(),
++                self.origin.incarnation(),
++            )
++            .await?;
++        let reply = NativeRequestReply {
++            origin: self.clone(),
++            fence,
++            scope: scoped,
++            proposal,
++            response,
++            authority,
++            deadline,
++            cancel,
++            _request_slot: request_slot,
++        };
++        if !reply.current() {
++            return Err(DispatchError::SubmissionUnknown);
++        }
++        Ok(reply)
++    }
++}
++impl Drop for NativeRequestOrigin {
++    fn drop(&mut self) {
++        self.origin.retire();
++    }
++}
+diff --git a/crates/uctp/rvoip-uctp/tests/support/canonical_media/native_offers.rs b/crates/uctp/rvoip-uctp/tests/support/canonical_media/native_offers.rs
+--- a/crates/uctp/rvoip-uctp/tests/support/canonical_media/native_offers.rs
++++ b/crates/uctp/rvoip-uctp/tests/support/canonical_media/native_offers.rs
+@@ -6,6 +6,7 @@
+ use rvoip_core::capability::{AssuranceLevel, DataProtocol};
+ use rvoip_uctp::v2::native_control::*;
+ use rvoip_uctp::v2::native_lifecycle::*;
++use rvoip_uctp::v2::native_requests::*;
+ use rvoip_uctp::{
+     staged_data::NativeDataOutcome,
+     v2::{native_negotiation::*, payloads::Payload},
+@@ -19,6 +20,7 @@
+     wires: HashMap<String, ConnectionId>,
+     key: ResolvedVerificationKey,
+     activations: Mutex<HashMap<ConnectionId, Arc<NativeMediaActivation>>>,
++    source_lease_ms: u64,
+ }
+ struct Grants(Arc<RwLock<State>>);
+ struct Proof {
+@@ -277,7 +279,17 @@
+         if guard.denied {
+             return Err(DispatchError::Authority);
+         }
+-        Ok(AuthorityLease::holding(Proof { base, guard }))
++        let window = guard.source_lease_ms;
++        let proof = Proof { base, guard };
++        Ok(if window == 0 {
++            AuthorityLease::holding(proof)
++        } else {
++            AuthorityLease::checking(
++                proof,
++                tokio::time::Instant::now() + Duration::from_millis(window),
++                || true,
++            )
++        })
+     }
+     async fn refresh(
+         &self,
+@@ -340,10 +352,13 @@
+         c: &ValidatedBearer,
+         _: &Device,
+         _: &Identifier,
+-        _: &Envelope,
+-        _: &Envelope,
++        request: &Envelope,
++        reply: &Envelope,
+         h: &AuthorityLease,
+     ) -> Result<ExchangeReplyAuthority, DispatchError> {
++        if let Some(result) = server_requests::reply(c, request, reply, h) {
++            return result;
++        }
+         let p = h.authority::<Proof>().ok_or(DispatchError::Authority)?;
+         if p.guard.denied {
+             return Err(DispatchError::Authority);
+@@ -366,6 +381,8 @@
+     media: Mutex<Option<Arc<NativePeerMedia>>>,
+     lifecycle: AtomicBool,
+     bootstrap: AtomicBool,
++    server_requests: AtomicBool,
++    request_origins: Mutex<HashMap<ConnectionId, Arc<NativeRequestOrigin>>>,
+     event_approvals: AtomicUsize,
+     event_attempts: AtomicUsize,
+     probe_other_scope: AtomicBool,
+@@ -630,6 +647,16 @@
+         if invocation.participant_revision.is_some() {
+             bootstrap::admit(self, &id, &invocation).await?;
+         }
++        if self.record.server_requests.load(Ordering::Acquire) {
++            let origin = adapter
++                .native_request_origin(&id, &a)
++                .map_err(|_| DispatchError::Authority)?;
++            self.record
++                .request_origins
++                .lock()
++                .unwrap()
++                .insert(id.clone(), origin);
++        }
+         if self.record.lifecycle.load(Ordering::Acquire) {
+             if self.record.probe_other_scope.load(Ordering::Acquire) {
+                 let other = &proof.guard.wires["native_0"];
+@@ -702,6 +729,7 @@
+     profile: Arc<NativeMediaProfile>,
+     factory: Arc<OfferFactory>,
+     second_id: ConnectionId,
++    wire_policy: Arc<WirePolicy>,
+ }
+ impl Scene {
+     async fn new(kind: &str, data: bool) -> Self {
+@@ -761,6 +789,7 @@
+             event_denied: BTreeSet::new(),
+             wires: wire_ids,
+             activations: Mutex::new(HashMap::new()),
++            source_lease_ms: 0,
+             key: ResolvedVerificationKey {
+                 public_key: f.client_public.clone(),
+                 algorithm: "EdDSA".into(),
+@@ -770,7 +799,7 @@
+             },
+         }))));
+         Arc::get_mut(&mut f.config).unwrap().authority = Arc::new(Authority {
+-            base: policy,
++            base: policy.clone(),
+             grants: grants.clone(),
+         });
+         if bootstrap {
+@@ -811,6 +840,7 @@
+             profile,
+             factory,
+             second_id,
++            wire_policy: policy,
+         }
+     }
+     async fn second_wire(&self) -> Wire {
+@@ -2091,3 +2121,6 @@
+ 
+ #[path = "native_offers/bootstrap.rs"]
+ mod bootstrap;
++
++#[path = "native_offers/server_requests.rs"]
++mod server_requests;
+diff --git a/crates/uctp/rvoip-uctp/tests/support/canonical_media/native_offers/server_requests.rs b/crates/uctp/rvoip-uctp/tests/support/canonical_media/native_offers/server_requests.rs
+new file mode 100644
+--- /dev/null
++++ b/crates/uctp/rvoip-uctp/tests/support/canonical_media/native_offers/server_requests.rs
+@@ -0,0 +1,484 @@
++//! Actual idle-origin server offers, fresh domain authority and signed replies.
++use super::*;
++
++struct RequestProof {
++    domain: Arc<Grants>,
++    wire_domain: Arc<WirePolicy>,
++    guard: OwnedRwLockReadGuard<State>,
++    wire: OwnedRwLockReadGuard<WireGrants>,
++    principal: AuthenticatedPrincipal,
++    proposal: Envelope,
++}
++struct RequestPolicy {
++    domain: Arc<Grants>,
++    wire: Arc<WirePolicy>,
++    reads: AtomicUsize,
++    held: AtomicUsize,
++}
++impl RequestPolicy {
++    fn new(s: &Scene) -> Arc<Self> {
++        Arc::new(Self {
++            domain: s.grants.clone(),
++            wire: s.wire_policy.clone(),
++            reads: AtomicUsize::new(0),
++            held: AtomicUsize::new(0),
++        })
++    }
++}
++fn matches_proposal(template: &Envelope, request: &Envelope) -> bool {
++    template.kind() == request.kind()
++        && template.expected_revision() == request.expected_revision()
++        && template.original()["payload"] == request.original()["payload"]
++        && [
++            Scope::Conversation,
++            Scope::Session,
++            Scope::Connection,
++            Scope::Operation,
++        ]
++        .into_iter()
++        .all(|scope| template.scope(scope) == request.scope(scope))
++}
++fn validate(
++    proof: &RequestProof,
++    scope: &NativeRequestScope,
++    proposal: &Envelope,
++) -> Result<(), DispatchError> {
++    let origin = &scope.origin;
++    let id = proof
++        .wire
++        .connections
++        .get(&origin.media.wire_connection)
++        .ok_or(DispatchError::Authority)?;
++    let owner = proof.guard.owners.get(id).ok_or(DispatchError::Authority)?;
++    if owner.member.conversation() != &scope.conversation
++        || owner.presence.session() != &origin.media.session
++        || owner.connection.generation() != scope.connection_generation
++        || proof.wire.member.identity() != owner.member.identity()
++        || proof.guard.key.revoked
++    {
++        return Err(DispatchError::Authority);
++    }
++    owner
++        .connection
++        .require_current(&owner.member, &owner.presence)
++        .map_err(|_| DispatchError::Authority)?;
++    let actual =
++        credential_owner(owner.clone(), &origin.principal).map_err(|_| DispatchError::Authority)?;
++    actual
++        .actor
++        .revalidate_principal(&origin.principal, Utc::now())
++        .map_err(|_| DispatchError::Authority)?;
++    if let Payload::ConnectionOffer(offer) = proposal.payload() {
++        for stream in &offer.streams_offered {
++            use rvoip_uctp::v2::payloads::{StreamOfferDirection as D, StreamOfferKind as K};
++            let medium = match stream.kind {
++                K::Audio => Medium::Audio,
++                K::Video => Medium::Video,
++                K::Screen => Medium::Screen,
++                K::Data => Medium::Data,
++            };
++            if (matches!(stream.direction, D::Sendonly | D::Sendrecv)
++                && !actual.send_media.contains(&medium))
++                || (matches!(stream.direction, D::Recvonly | D::Sendrecv)
++                    && !actual.receive_media.contains(&medium))
++                || stream.direction == D::Inactive
++            {
++                return Err(DispatchError::Authority);
++            }
++        }
++    }
++    if proof.guard.denied
++        || proof.wire.denied
++        || !owner.may_control
++        || origin.media.connection != *id
++        || proof.guard.wires.get(&origin.media.wire_connection) != Some(id)
++        || !rvoip_core::staged_streams::reliable_data::same_credential(
++            &origin.principal,
++            &proof.principal,
++        )
++        || origin.participant != *owner.member.participant()
++        || origin.membership_epoch != owner.member.epoch()
++        || origin.identity != *owner.member.identity()
++        || origin.device != *owner.endpoint.device()
++        || origin.endpoint != *owner.endpoint.endpoint()
++        || owner.endpoint.state() != EndpointState::Verified
++        || origin.media.owner != origin.principal.ownership_key()
++        || scope.stream_revision != proposal.expected_revision().unwrap_or(u64::MAX)
++        || proposal.kind() != "connection.offer"
++        || proposal.scope(Scope::Conversation) != Some("conversation")
++        || proposal.scope(Scope::Session) != Some("session")
++        || !matches_proposal(&proof.proposal, proposal)
++        || proposal.original()["payload"]["by_participant"] != origin.participant.as_str()
++    {
++        return Err(DispatchError::Authority);
++    }
++    credential_owner(owner.clone(), &origin.principal).map_err(|_| DispatchError::Authority)?;
++    Ok(())
++}
++#[async_trait]
++impl NativeRequestPolicy for RequestPolicy {
++    async fn authorize(
++        &self,
++        scope: &NativeRequestScope,
++        proposal: &Envelope,
++        held: Option<&AuthorityLease>,
++    ) -> Result<AuthorityLease, DispatchError> {
++        if let Some(held) = held {
++            let proof = held
++                .authority::<RequestProof>()
++                .ok_or(DispatchError::Authority)?;
++            if !Arc::ptr_eq(&self.domain, &proof.domain)
++                || !Arc::ptr_eq(&self.wire, &proof.wire_domain)
++                || !held.current()
++            {
++                return Err(DispatchError::Authority);
++            }
++            validate(proof, scope, proposal)?;
++            self.held.fetch_add(1, Ordering::AcqRel);
++            return Ok(held.retained());
++        }
++        let wire = self.wire.grants.clone().read_owned().await;
++        let guard = self.domain.0.clone().read_owned().await;
++        let proof = RequestProof {
++            domain: self.domain.clone(),
++            wire_domain: self.wire.clone(),
++            guard,
++            wire,
++            principal: scope.origin.principal.clone(),
++            proposal: proposal.clone(),
++        };
++        validate(&proof, scope, proposal)?;
++        self.reads.fetch_add(1, Ordering::AcqRel);
++        Ok(AuthorityLease::holding(proof))
++    }
++}
++pub(super) fn reply(
++    c: &ValidatedBearer,
++    request: &Envelope,
++    response: &Envelope,
++    held: &AuthorityLease,
++) -> Option<Result<ExchangeReplyAuthority, DispatchError>> {
++    let proof = held.authority::<RequestProof>()?;
++    Some((|| {
++        if !held.current()
++            || proof.guard.denied
++            || proof.wire.denied
++            || !rvoip_core::staged_streams::reliable_data::same_credential(
++                &proof.principal,
++                &c.principal,
++            )
++            || !matches_proposal(&proof.proposal, request)
++            || response.scope(Scope::Reply) != Some(request.id())
++            || [
++                Scope::Conversation,
++                Scope::Session,
++                Scope::Connection,
++                Scope::Operation,
++            ]
++            .into_iter()
++            .any(|scope| request.scope(scope) != response.scope(scope))
++        {
++            return Err(DispatchError::ReplyMismatch);
++        }
++        let key = PrincipalVerificationKey::from_current(
++            &c.principal,
++            "client".into(),
++            proof.guard.key.clone(),
++        )
++        .map_err(|_| DispatchError::Authority)?;
++        Ok(ExchangeReplyAuthority {
++            lease: held.retained(),
++            key,
++        })
++    })())
++}
++async fn setup(
++    kind: &str,
++    source_window: u64,
++) -> (Scene, Arc<NativeRequestOrigin>, Arc<RequestPolicy>) {
++    let mut s = Scene::new_bootstrap(kind).await;
++    s.record.server_requests.store(true, Ordering::Release);
++    s.grants.0.write().await.source_lease_ms = source_window;
++    let (_, callback) = s.prepared(lifecycle_offer(&s, 0, 0, "sendonly")).await;
++    s.confirm(&callback).await;
++    core_fixture::until(|| s.record.request_origins.lock().unwrap().contains_key(&s.id)).await;
++    let origin = s.record.request_origins.lock().unwrap()[&s.id].clone();
++    core_fixture::until(|| origin.ready()).await;
++    let policy = RequestPolicy::new(&s);
++    (s, origin, policy)
++}
++fn proposal(s: &Scene, revision: u64, operation: &str) -> Envelope {
++    let mut request = lifecycle_offer(s, 0, revision, "recvonly");
++    request["operation_id"] = json!(operation);
++    let binding = s.controller().active_bindings()[0].clone();
++    request["payload"]["substrate_setup"] = json!({"kind":"native-prepared/1","revision":revision+1,
++        "offer_id":operation,"streams":[{"strm_id":"first","kind":"audio","direction":"recvonly",
++        "stream_local_id":binding.stream_local_id,"codec":{"name":"pcmu","params":{"sample_rate":8000,"channels":1,"payload_type":0}}}]});
++    Envelope::from_value(request).unwrap()
++}
++async fn callback(s: &mut Scene) -> Envelope {
++    let callback = s.wire.read().await;
++    assert_eq!(callback.kind(), "connection.offer");
++    s.f.verify_server(&callback).await;
++    callback
++}
++#[tokio::test]
++async fn actual_native_server_request_uses_fresh_authority_after_source_deadline_and_retains_no_idle_reader(
++) {
++    for kind in ["quic", "wt"] {
++        let (mut s, origin, policy) = setup(kind, 400).await;
++        tokio::time::sleep(Duration::from_millis(450)).await;
++        let wire = s.wire_policy.grants.clone().try_write_owned().unwrap();
++        drop(wire);
++        let domain = s.grants.0.clone().try_write_owned().unwrap();
++        drop(domain);
++        let request = proposal(&s, 1, "future_subscription");
++        let o = origin.clone();
++        let p = policy.clone();
++        let task = tokio::spawn(async move {
++            o.request(request, p, deadline(), CancellationToken::new())
++                .await
++        });
++        let offer = callback(&mut s).await;
++        assert_eq!(offer.scope(Scope::Operation), Some("future_subscription"));
++        s.confirm(&offer).await;
++        let reply = task.await.unwrap().unwrap();
++        assert!(reply.current());
++        assert!(reply.authority::<RequestProof>().is_some());
++        assert_eq!(reply.response().scope(Scope::Reply), Some(offer.id()));
++        assert_eq!(policy.reads.load(Ordering::Acquire), 1);
++        let gate = s.grants.0.clone();
++        let writer = tokio::spawn(async move { gate.write_owned().await });
++        tokio::task::yield_now().await;
++        assert!(!writer.is_finished());
++        drop(reply);
++        drop(
++            tokio::time::timeout(Duration::from_millis(500), writer)
++                .await
++                .unwrap()
++                .unwrap(),
++        );
++        assert!(origin.ready());
++        s.wire.server.shutdown().await.unwrap();
++    }
++}
++#[tokio::test]
++async fn actual_native_server_request_refuses_foreign_stale_denied_and_bad_reply_scopes_without_consuming_valid_reply(
++) {
++    let (mut s, origin, policy) = setup("quic", 0).await;
++    let stale = proposal(&s, 0, "stale_server_proposal");
++    assert!(origin
++        .request(stale, policy.clone(), deadline(), CancellationToken::new())
++        .await
++        .is_err());
++    let mut foreign = proposal(&s, 1, "foreign_server_proposal")
++        .original()
++        .clone();
++    foreign["connid"] = json!("native_1");
++    assert!(origin
++        .request(
++            Envelope::from_value(foreign).unwrap(),
++            policy.clone(),
++            deadline(),
++            CancellationToken::new()
++        )
++        .await
++        .is_err());
++    s.grants.0.write().await.denied = true;
++    assert!(matches!(
++        origin
++            .request(
++                proposal(&s, 1, "denied_server_proposal"),
++                policy.clone(),
++                deadline(),
++                CancellationToken::new()
++            )
++            .await,
++        Err(DispatchError::Authority)
++    ));
++    s.grants.0.write().await.denied = false;
++    s.wire_policy.grants.write().await.denied = true;
++    assert!(origin
++        .request(
++            proposal(&s, 1, "denied_wire_proposal"),
++            policy.clone(),
++            deadline(),
++            CancellationToken::new()
++        )
++        .await
++        .is_err());
++    s.wire_policy.grants.write().await.denied = false;
++    s.grants
++        .0
++        .write()
++        .await
++        .owners
++        .get_mut(&s.id)
++        .unwrap()
++        .receive_media
++        .remove(&Medium::Audio);
++    assert!(origin
++        .request(
++            proposal(&s, 1, "denied_media_proposal"),
++            policy.clone(),
++            deadline(),
++            CancellationToken::new()
++        )
++        .await
++        .is_err());
++    s.grants
++        .0
++        .write()
++        .await
++        .owners
++        .get_mut(&s.id)
++        .unwrap()
++        .receive_media
++        .insert(Medium::Audio);
++    let p = policy.clone();
++    let o = origin.clone();
++    let request = proposal(&s, 1, "retry_valid_server_proposal");
++    let task = tokio::spawn(async move {
++        o.request(request, p, deadline(), CancellationToken::new())
++            .await
++    });
++    let offer = callback(&mut s).await;
++    let mut wrong = s.confirmation(&offer);
++    wrong["sid"] = json!("foreign");
++    s.wire.send(s.f.sign(wrong)).await;
++    let error = s.wire.read().await;
++    assert_eq!(error.kind(), "error");
++    s.f.verify_server(&error).await;
++    assert!(!task.is_finished());
++    s.confirm(&offer).await;
++    drop(task.await.unwrap().unwrap());
++    assert_eq!(s.controller().revision(), 1);
++    assert_eq!(s.controller().stream_open_budget().0, 1);
++    s.wire.server.shutdown().await.unwrap();
++}
++#[tokio::test]
++async fn actual_native_server_request_held_fresh_grant_survives_queued_writer_without_storage_reentry(
++) {
++    let (mut s, origin, policy) = setup("quic", 0).await;
++    let request = proposal(&s, 1, "held_server_proposal");
++    let scope = origin.request_scope(1);
++    let held = policy.authorize(&scope, &request, None).await.unwrap();
++    let gate = s.grants.0.clone();
++    let writer = tokio::spawn(async move { gate.write_owned().await });
++    tokio::task::yield_now().await;
++    assert!(!writer.is_finished());
++    let o = origin.clone();
++    let p = policy.clone();
++    let task = tokio::spawn(async move {
++        o.request_with_held(request, p, held, deadline(), CancellationToken::new())
++            .await
++    });
++    let offer = callback(&mut s).await;
++    s.confirm(&offer).await;
++    let reply = tokio::time::timeout(Duration::from_secs(1), task)
++        .await
++        .unwrap()
++        .unwrap()
++        .unwrap();
++    assert!(reply.current());
++    assert_eq!(policy.reads.load(Ordering::Acquire), 1);
++    assert_eq!(policy.held.load(Ordering::Acquire), 1);
++    assert!(!writer.is_finished());
++    drop(reply);
++    drop(
++        tokio::time::timeout(Duration::from_millis(500), writer)
++            .await
++            .unwrap()
++            .unwrap(),
++    );
++    s.wire.server.shutdown().await.unwrap();
++}
++#[tokio::test]
++async fn actual_native_server_request_serializes_negotiation_and_cancellation_is_uncertain_after_write(
++) {
++    let (mut s, origin, policy) = setup("quic", 0).await;
++    let request = proposal(&s, 1, "stable_server_operation");
++    let cancel = CancellationToken::new();
++    let stop = cancel.clone();
++    let o = origin.clone();
++    let p = policy.clone();
++    let task = tokio::spawn(async move { o.request(request, p, deadline(), stop).await });
++    let offer = callback(&mut s).await;
++    gate_reply(
++        &mut s,
++        gate_command("mute", 1, Some(&["first"]), None),
++        "error",
++    )
++    .await;
++    assert_eq!(s.controller().revision(), 1);
++    assert!(matches!(
++        s.record.controls.lock().unwrap().last().unwrap(),
++        Err(NativeOfferError::Conflict)
++    ));
++    let second = origin
++        .request(
++            proposal(&s, 1, "overlapping_server_operation"),
++            policy.clone(),
++            deadline(),
++            CancellationToken::new(),
++        )
++        .await;
++    assert!(matches!(second, Err(DispatchError::Capacity)));
++    cancel.cancel();
++    assert!(matches!(
++        task.await.unwrap(),
++        Err(DispatchError::SubmissionUnknown)
++    ));
++    s.confirm(&offer).await;
++    assert_eq!(s.wire.read().await.kind(), "error");
++    gate_reply(
++        &mut s,
++        gate_command("mute", 1, Some(&["first"]), None),
++        "ack",
++    )
++    .await;
++    assert_eq!(s.controller().revision(), 2);
++    let request = proposal(&s, 2, "stable_server_operation");
++    let o = origin.clone();
++    let p = policy.clone();
++    let task = tokio::spawn(async move {
++        o.request(request, p, deadline(), CancellationToken::new())
++            .await
++    });
++    let offer = callback(&mut s).await;
++    s.confirm(&offer).await;
++    drop(task.await.unwrap().unwrap());
++    assert_eq!(s.controller().revision(), 2);
++    s.wire.server.shutdown().await.unwrap();
++}
++#[tokio::test]
++async fn actual_native_server_request_cancel_before_submission_and_eof_release_active_authority() {
++    let (mut s, origin, policy) = setup("quic", 0).await;
++    let cancel = CancellationToken::new();
++    cancel.cancel();
++    assert!(matches!(
++        origin
++            .request(
++                proposal(&s, 1, "cancelled_server_operation"),
++                policy.clone(),
++                deadline(),
++                cancel
++            )
++            .await,
++        Err(DispatchError::Closed)
++    ));
++    assert_eq!(policy.reads.load(Ordering::Acquire), 0);
++    let o = origin.clone();
++    let p = policy.clone();
++    let request = proposal(&s, 1, "eof_server_operation");
++    let task = tokio::spawn(async move {
++        o.request(request, p, deadline(), CancellationToken::new())
++            .await
++    });
++    let _offer = callback(&mut s).await;
++    s.wire.server.shutdown().await.unwrap();
++    assert!(task.await.unwrap().is_err());
++    core_fixture::until(|| !origin.current()).await;
++    drop(s.grants.0.clone().try_write_owned().unwrap());
++    drop(s.wire_policy.grants.clone().try_write_owned().unwrap());
++}

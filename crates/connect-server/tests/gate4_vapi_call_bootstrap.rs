@@ -80,7 +80,7 @@ async fn first_call_tools_context_and_native_quic_audio_share_one_task_and_conve
         .unwrap()
         .to_string()
         .contains("VOICE-BOOT-CANARY"));
-    let arguments=json!({"request_id":"voice-tool-message","step_id":"draft","body":"First voice tool result"}).as_object().unwrap().clone();
+    let arguments=json!({"request_id":"voice-tool-message","step_id":"draft","message": connect_protocol::messages::MessageDraft::text_all(("First voice tool result").to_string())}).as_object().unwrap().clone();
     let first = tools
         .call_tool(CallToolRequestParams::new("connect_send").with_arguments(arguments.clone()))
         .await

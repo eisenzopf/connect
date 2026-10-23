@@ -1,0 +1,510 @@
+//! Exact native stream selection intent. This carries no route or media grant.
+use crate::{transitions::id, Error, Result};
+use serde::{Deserialize, Serialize};
+use serde_json::Value;
+use std::collections::BTreeSet;
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum Command {
+    #[serde(rename = "stream.subscribe")]
+    Subscribe,
+    #[serde(rename = "stream.unsubscribe")]
+    Unsubscribe,
+    #[serde(rename = "connection.end")]
+    End,
+    #[serde(rename = "message.send")]
+    Data,
+    #[serde(rename = "connection.update")]
+    Update,
+    #[serde(rename = "capability.advertise")]
+    Advertise,
+    #[serde(rename = "dtmf.send")]
+    Dtmf,
+    /// Trusted server materialization of committed selectors; not a wire command.
+    #[serde(rename = "stream.reconcile")]
+    Reconcile,
+}
+impl Command {
+    pub fn required_scope(self) -> &'static str {
+        match self {
+            Self::Data => "send",
+            Self::Reconcile => "stream.subscribe",
+            _ => self.name(),
+        }
+    }
+    pub fn name(self) -> &'static str {
+        match self {
+            Self::Subscribe => "stream.subscribe",
+            Self::Unsubscribe => "stream.unsubscribe",
+            Self::End => "connection.end",
+            Self::Data => "message.send",
+            Self::Update => "connection.update",
+            Self::Advertise => "capability.advertise",
+            Self::Dtmf => "dtmf.send",
+            Self::Reconcile => "stream.reconcile",
+        }
+    }
+}
+
+/// Store this original, bounded payload as part of logical operation identity.
+/// Optional extension fields remain included even when the current engine does
+/// not interpret them. Selected sources are resolved under current authority.
+#[derive(Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct Intent {
+    pub operation_id: String,
+    pub conversation_id: String,
+    pub session_id: String,
+    pub connection_id: String,
+    pub expected_revision: Option<u64>,
+    pub by_participant: Option<String>,
+    pub command: Command,
+    pub payload: Value,
+}
+impl std::fmt::Debug for Intent {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str("NativeStreamIntent(redacted)")
+    }
+}
+impl Intent {
+    /// Exact local quality update; the original payload remains ledger identity.
+    pub fn quality_interval_ms(&self) -> Option<u64> {
+        (self.command == Command::Update && self.payload["action"] == "quality")
+            .then(|| self.payload["quality_interval_ms"].as_u64())
+            .flatten()
+    }
+    pub fn validate(&self) -> Result<()> {
+        for value in [
+            &self.operation_id,
+            &self.conversation_id,
+            &self.session_id,
+            &self.connection_id,
+        ] {
+            id(value)?;
+        }
+        if let Some(by) = &self.by_participant {
+            id(by)?;
+        }
+        let payload = self.payload.as_object().ok_or_else(invalid)?;
+        if self
+            .expected_revision
+            .is_some_and(|r| r > 9_007_199_254_740_991)
+            || (!matches!(self.command, Command::End | Command::Data | Command::Dtmf)
+                && self.expected_revision.is_none())
+            || serde_json::to_vec(payload).map_err(|_| invalid())?.len()
+                > if self.command == Command::Data {
+                    crate::MAX_PAGE_BYTES
+                } else {
+                    32 * 1024
+                }
+        {
+            return Err(invalid());
+        }
+        let actor_field = if self.command == Command::Data {
+            "from"
+        } else {
+            "by_participant"
+        };
+        if let Some(by) = payload.get(actor_field) {
+            if by.as_str().is_none() || by.as_str() != self.by_participant.as_deref() {
+                return Err(invalid());
+            }
+        } else if self.by_participant.is_some() {
+            return Err(invalid());
+        }
+        let mut seen = BTreeSet::new();
+        match self.command {
+            Command::Dtmf => crate::native_dtmf::validate_payload(&self.payload)?,
+            Command::Advertise => crate::native_capabilities::validate_payload(&self.payload)?,
+            Command::Update if payload.get("action").and_then(Value::as_str) == Some("quality") => {
+                if self
+                    .quality_interval_ms()
+                    .is_none_or(|ms| !(100..=60_000).contains(&ms))
+                    || ["streams", "codec_preferences", "details"]
+                        .iter()
+                        .any(|key| payload.contains_key(*key))
+                {
+                    return Err(invalid());
+                }
+            }
+            Command::Update if crate::native_gates::is_gate(&self.payload) => {
+                crate::native_gates::validate(&self.payload)?;
+            }
+            Command::Update => {
+                if payload.contains_key("quality_interval_ms")
+                    || payload.get("action").and_then(Value::as_str) != Some("codec-renegotiate")
+                {
+                    return Err(invalid());
+                }
+                let preferences = payload
+                    .get("codec_preferences")
+                    .and_then(Value::as_array)
+                    .ok_or_else(invalid)?;
+                if preferences.is_empty() || preferences.len() > 32 {
+                    return Err(invalid());
+                }
+                for value in preferences {
+                    let name = value.as_str().ok_or_else(invalid)?;
+                    if name.is_empty()
+                        || name.len() > 64
+                        || !name
+                            .bytes()
+                            .all(|b| b.is_ascii_alphanumeric() || b"-._/".contains(&b))
+                        || !seen.insert(("codec", name))
+                    {
+                        return Err(invalid());
+                    }
+                }
+                if let Some(streams) = payload.get("streams") {
+                    let streams = streams.as_array().ok_or_else(invalid)?;
+                    if streams.is_empty() || streams.len() > 32 {
+                        return Err(invalid());
+                    }
+                    for value in streams {
+                        let stream = value.as_str().ok_or_else(invalid)?;
+                        id(stream)?;
+                        if !seen.insert(("stream", stream)) {
+                            return Err(invalid());
+                        }
+                    }
+                }
+            }
+            Command::Reconcile => {
+                id(payload
+                    .get("subscription_record_id")
+                    .and_then(Value::as_str)
+                    .ok_or_else(invalid)?)?;
+                if payload
+                    .get("plan")
+                    .and_then(Value::as_object)
+                    .is_none_or(|p| p.is_empty())
+                {
+                    return Err(invalid());
+                }
+            }
+            Command::Data => {
+                crate::native_data::message(&self.payload)?;
+            }
+            Command::Subscribe => {
+                let selectors = payload
+                    .get("subscriptions")
+                    .and_then(Value::as_array)
+                    .ok_or_else(invalid)?;
+                if selectors.is_empty() || selectors.len() > 128 {
+                    return Err(invalid());
+                }
+                for selector in selectors {
+                    let selector = selector.as_object().ok_or_else(invalid)?;
+                    match (
+                        selector.get("strm_id"),
+                        selector.get("from_participant"),
+                        selector.get("kinds"),
+                    ) {
+                        (Some(stream), None, None) => {
+                            let stream = stream.as_str().ok_or_else(invalid)?;
+                            id(stream)?;
+                            if !seen.insert(("stream", stream)) {
+                                return Err(invalid());
+                            }
+                        }
+                        (None, Some(participant), kinds) => {
+                            let participant = participant.as_str().ok_or_else(invalid)?;
+                            id(participant)?;
+                            if !seen.insert(("participant", participant)) {
+                                return Err(invalid());
+                            }
+                            if let Some(kinds) = kinds {
+                                let kinds = kinds.as_array().ok_or_else(invalid)?;
+                                if kinds.is_empty() || kinds.len() > 4 {
+                                    return Err(invalid());
+                                }
+                                let mut unique = BTreeSet::new();
+                                for kind in kinds {
+                                    let kind = kind.as_str().ok_or_else(invalid)?;
+                                    if !matches!(kind, "audio" | "video" | "screen" | "data")
+                                        || !unique.insert(kind)
+                                    {
+                                        return Err(invalid());
+                                    }
+                                }
+                            }
+                        }
+                        _ => return Err(invalid()),
+                    }
+                }
+            }
+            Command::End => {
+                if payload
+                    .get("reason_code")
+                    .and_then(Value::as_u64)
+                    .is_none_or(|n| n > u16::MAX as u64)
+                    || payload
+                        .get("reason")
+                        .and_then(Value::as_str)
+                        .is_none_or(|reason| reason.len() > 1024)
+                {
+                    return Err(invalid());
+                }
+            }
+            Command::Unsubscribe => {
+                let streams = payload
+                    .get("strm_ids")
+                    .and_then(Value::as_array)
+                    .ok_or_else(invalid)?;
+                if streams.is_empty() || streams.len() > 128 {
+                    return Err(invalid());
+                }
+                for stream in streams {
+                    let stream = stream.as_str().ok_or_else(invalid)?;
+                    id(stream)?;
+                    if !seen.insert(("stream", stream)) {
+                        return Err(invalid());
+                    }
+                }
+            }
+        }
+        Ok(())
+    }
+}
+/// Historical native codec commit metadata. It grants no current media rights.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct CodecBinding {
+    pub stream_id: String,
+    pub medium: String,
+    pub direction: String,
+    pub codec: Value,
+    pub stream_local_id: u16,
+    pub stream_generation: u64,
+    pub connection_generation: u64,
+}
+pub fn validate_codec_bindings(bindings: &[CodecBinding]) -> Result<()> {
+    if bindings.is_empty()
+        || bindings.len() > 32
+        || serde_json::to_vec(bindings).map_err(|_| invalid())?.len() > 32 * 1024
+    {
+        return Err(invalid());
+    }
+    let mut ids = BTreeSet::new();
+    let mut handles = BTreeSet::new();
+    for b in bindings {
+        id(&b.stream_id)?;
+        let name = b
+            .codec
+            .get("name")
+            .and_then(Value::as_str)
+            .ok_or_else(invalid)?;
+        if !ids.insert(&b.stream_id)
+            || !handles.insert(b.stream_local_id)
+            || b.stream_local_id == 0
+            || !matches!(b.medium.as_str(), "audio" | "video" | "screen" | "data")
+            || !matches!(b.direction.as_str(), "sendonly" | "recvonly" | "sendrecv")
+            || name.is_empty()
+            || name.len() > 64
+            || !name
+                .bytes()
+                .all(|v| v.is_ascii_alphanumeric() || b"-._/".contains(&v))
+            || b.codec.get("params").and_then(Value::as_object).is_none()
+            || b.stream_generation == 0
+            || b.stream_generation > 9_007_199_254_740_991
+            || b.connection_generation == 0
+            || b.connection_generation > 9_007_199_254_740_991
+        {
+            return Err(invalid());
+        }
+    }
+    Ok(())
+}
+fn invalid() -> Error {
+    Error::new("invalid-request", "Invalid native stream selection intent")
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use serde_json::json;
+    #[test]
+    fn codec_update_preserves_exact_preferences_targets_extensions_and_revision() {
+        let mut wire = intent(
+            json!({"action":"codec-renegotiate","streams":["voice"],"codec_preferences":["pcma","pcmu"],"future":{"keep":true}}),
+        );
+        wire.command = Command::Update;
+        wire.validate().unwrap();
+        assert_eq!(wire.command.name(), "connection.update");
+        assert_eq!(wire.command.required_scope(), "connection.update");
+        assert_eq!(
+            serde_json::from_value::<Intent>(serde_json::to_value(&wire).unwrap()).unwrap(),
+            wire
+        );
+        wire.payload["codec_preferences"] = json!(["pcma", "pcma"]);
+        assert!(wire.validate().is_err());
+        wire.payload["codec_preferences"] = json!(["pcma"]);
+        wire.expected_revision = None;
+        assert!(wire.validate().is_err());
+        wire.expected_revision = Some(1);
+        wire.payload["action"] = json!("hold");
+        assert!(wire.validate().is_err());
+    }
+    #[test]
+    fn quality_updates_keep_exact_wire_identity_and_reject_mixed_or_unbounded_controls() {
+        let mut wire =
+            intent(json!({"action":"quality","quality_interval_ms":800,"future":{"exact":true}}));
+        wire.command = Command::Update;
+        wire.validate().unwrap();
+        assert_eq!(wire.quality_interval_ms(), Some(800));
+        assert_eq!(wire.command.name(), "connection.update");
+        assert_eq!(
+            serde_json::from_value::<Intent>(serde_json::to_value(&wire).unwrap()).unwrap(),
+            wire
+        );
+        for invalid in [
+            json!(0),
+            json!(99),
+            json!(60001),
+            json!(800.5),
+            json!("800"),
+            json!(null),
+        ] {
+            let mut bad = wire.clone();
+            bad.payload["quality_interval_ms"] = invalid;
+            assert!(bad.validate().is_err());
+        }
+        for field in ["streams", "codec_preferences", "details"] {
+            let mut bad = wire.clone();
+            bad.payload[field] = json!(null);
+            assert!(bad.validate().is_err());
+        }
+        wire.expected_revision = None;
+        assert!(wire.validate().is_err());
+        wire.expected_revision = Some(1);
+        wire.payload = json!({"action":"codec-renegotiate","codec_preferences":["pcmu"],"quality_interval_ms":800});
+        assert!(wire.validate().is_err());
+    }
+    #[test]
+    fn captured_codec_bindings_are_unique_bounded_observations() {
+        let b = CodecBinding {
+            stream_id: "voice".into(),
+            medium: "audio".into(),
+            direction: "sendrecv".into(),
+            codec: json!({"name":"pcma","params":{"sample_rate":8000,"channels":1,"payload_type":8}}),
+            stream_local_id: 2,
+            stream_generation: 2,
+            connection_generation: 1,
+        };
+        validate_codec_bindings(std::slice::from_ref(&b)).unwrap();
+        let mut other = b.clone();
+        other.stream_id = "another".into();
+        assert!(validate_codec_bindings(&[b.clone(), other.clone()]).is_err());
+        other.stream_local_id = 3;
+        validate_codec_bindings(&[b.clone(), other]).unwrap();
+        let mut bad = b.clone();
+        bad.stream_generation = 0;
+        assert!(validate_codec_bindings(&[bad]).is_err());
+        let mut bad = b;
+        bad.codec["params"] = json!("not parameters");
+        assert!(validate_codec_bindings(&[bad]).is_err());
+    }
+    fn intent(payload: Value) -> Intent {
+        Intent {
+            operation_id: "selection-one".into(),
+            conversation_id: "conversation".into(),
+            session_id: "session".into(),
+            connection_id: "receiver".into(),
+            expected_revision: Some(1),
+            by_participant: None,
+            command: Command::Subscribe,
+            payload,
+        }
+    }
+    #[test]
+    fn server_reconciliation_retains_exact_selector_record_plan_and_required_permission() {
+        let mut value = intent(
+            json!({"subscription_record_id":"opr_original","plan":{"streams":[{"id":"camera","kind":"video"}],"future":{"frozen":true}}}),
+        );
+        value.command = Command::Reconcile;
+        value.validate().unwrap();
+        assert_eq!(value.command.name(), "stream.reconcile");
+        assert_eq!(value.command.required_scope(), "stream.subscribe");
+        let encoded = serde_json::to_value(&value).unwrap();
+        let decoded: Intent = serde_json::from_value(encoded).unwrap();
+        assert_eq!(value, decoded);
+        value.payload["subscription_record_id"] = json!("");
+        assert!(value.validate().is_err());
+        value.payload["subscription_record_id"] = json!("opr_original");
+        value.payload["plan"] = json!({});
+        assert!(value.validate().is_err());
+    }
+    #[test]
+    fn original_selector_order_extensions_and_scope_survive_storage_round_trip() {
+        let original = intent(
+            json!({"subscriptions":[{"from_participant":"source","kinds":["audio"],"future-selector":{"weight":3}},{"strm_id":"camera"}],"future-plan":{"mode":"pinned"}}),
+        );
+        original.validate().unwrap();
+        let saved: Intent =
+            serde_json::from_slice(&serde_json::to_vec(&original).unwrap()).unwrap();
+        saved.validate().unwrap();
+        assert_eq!(saved, original);
+        let mut changed = saved.clone();
+        changed.payload["future-plan"]["mode"] = json!("other");
+        changed.validate().unwrap();
+        assert_ne!(saved, changed);
+        changed = saved.clone();
+        changed.connection_id = "another-receiver".into();
+        assert_ne!(saved, changed);
+    }
+    #[test]
+    fn contradictory_duplicate_or_unbounded_selectors_cannot_enter_the_ledger() {
+        for payload in [
+            json!({"subscriptions":[]}),
+            json!({"subscriptions":[{"strm_id":"s","from_participant":"p"}]}),
+            json!({"subscriptions":[{"strm_id":"s","kinds":["audio"]}]}),
+            json!({"subscriptions":[{"from_participant":"p","kinds":[]}]}),
+            json!({"subscriptions":[{"from_participant":"p","kinds":["audio","audio"]}]}),
+            json!({"subscriptions":[{"from_participant":"p","kinds":["unknown"]}]}),
+            json!({"subscriptions":[{"strm_id":"s"},{"strm_id":"s"}]}),
+            json!({"subscriptions":[{"from_participant":"p"},{"from_participant":"p","kinds":["audio"]}]}),
+            json!({"subscriptions":[{"strm_id":null}]}),
+            json!({"subscriptions":vec![json!({"strm_id":"s"});129]}),
+        ] {
+            assert!(intent(payload).validate().is_err());
+        }
+    }
+    #[test]
+    fn actor_assertions_revision_and_unsubscribe_have_one_exact_shape() {
+        let mut input = intent(json!({"by_participant":"actor","subscriptions":[{"strm_id":"s"}]}));
+        assert!(input.validate().is_err());
+        input.by_participant = Some("actor".into());
+        input.validate().unwrap();
+        input.by_participant = Some("other".into());
+        assert!(input.validate().is_err());
+        input = intent(json!({"subscriptions":[{"strm_id":"s"}]}));
+        input.expected_revision = Some(9_007_199_254_740_992);
+        assert!(input.validate().is_err());
+        input.command = Command::Unsubscribe;
+        input.expected_revision = Some(2);
+        input.payload = json!({"strm_ids":["s"],"future":true});
+        input.validate().unwrap();
+        input.payload = json!({"strm_ids":["s","s"]});
+        assert!(input.validate().is_err());
+    }
+    #[test]
+    fn connection_end_preserves_optional_revision_and_bounded_original_reason() {
+        let mut end = intent(json!({"reason_code":1000,"reason":"finished","future":{"x":1}}));
+        end.command = Command::End;
+        end.expected_revision = None;
+        end.validate().unwrap();
+        let original = serde_json::to_value(&end).unwrap();
+        end.expected_revision = Some(1);
+        assert_ne!(original, serde_json::to_value(&end).unwrap());
+        for payload in [
+            json!({}),
+            json!({"reason_code":65536,"reason":"no"}),
+            json!({"reason_code":-1,"reason":"no"}),
+            json!({"reason_code":1000,"reason":null}),
+            json!({"reason_code":1000,"reason":"x".repeat(1025)}),
+        ] {
+            end.payload = payload;
+            assert!(end.validate().is_err());
+        }
+    }
+}

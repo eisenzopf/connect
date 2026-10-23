@@ -1,0 +1,20 @@
+--- a/crates/foundation/rvoip-core/tests/principal_cross_crate.rs
++++ b/crates/foundation/rvoip-core/tests/principal_cross_crate.rs
+@@ -10,6 +10,9 @@
+     let expiry = Utc::now() + Duration::minutes(5);
+     let event = Event::ConnectionPrincipalAuthenticated {
+         connection_id: connection_id.clone(),
++        session_id: Some(rvoip_core::ids::SessionId::from_string(
++            "private-session-id",
++        )),
+         participant_id: "part_alice".into(),
+         principal: AuthenticatedPrincipal {
+             subject: "user-42".into(),
+@@ -40,6 +43,7 @@
+         "calls:write",
+         "https://issuer.example",
+         "part_alice",
++        "private-session-id",
+     ] {
+         assert!(!encoded.contains(sensitive));
+     }

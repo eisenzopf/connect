@@ -1,0 +1,32 @@
+diff --git a/crates/sip/rvoip-sip/src/adapter/device_replacement.rs b/crates/sip/rvoip-sip/src/adapter/device_replacement.rs
+--- a/crates/sip/rvoip-sip/src/adapter/device_replacement.rs
++++ b/crates/sip/rvoip-sip/src/adapter/device_replacement.rs
+@@ -81,6 +81,28 @@
+     }
+ }
+ impl SipDeviceReplacementContext {
++    /// Actual currently bound SIP audio negotiation. This is metadata only:
++    /// it grants no packet, decoder, preparation or confirmation authority.
++    /// Dormant, expired and retired route contexts cannot report a codec.
++    pub fn negotiated_audio_codec(&self) -> CoreResult<rvoip_core::capability::CodecInfo> {
++        if !self.inner.media_route_current() {
++            return Err(RvoipError::InvalidState(
++                "SIP replacement media is not bound",
++            ));
++        }
++        let route = self
++            .inner
++            .route
++            .get()
++            .and_then(Weak::upgrade)
++            .ok_or(RvoipError::InvalidState("SIP replacement route retired"))?;
++        if !route.stream.source_ready() {
++            return Err(RvoipError::InvalidState(
++                "SIP replacement media is not bound",
++            ));
++        }
++        Ok(route.stream.codec())
++    }
+     /// Create the one guarded audio controller for this exact allocated route.
+     /// The supplied current host policy/interval must authorize the reserved
+     /// binding. No ordinary initial binding or raw stream is manufactured.

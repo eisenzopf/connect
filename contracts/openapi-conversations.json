@@ -1,0 +1,707 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Connect conversation control",
+    "version": "schema-33",
+    "description": "Fresh candidate state only. Explicitly installed canonical conversation.create/list/close and typed HTTP/native/SDK control share normalized intent, current authority, stable IDs and ledger receipts. Metadata is JCS canonical JSON, <=16KiB/depth16 with safe integers; roles are labels and never credentials. Ephemeral defaults to 60 seconds, bound1..604800; persistent only closes explicitly. List uses current views with a 30-second owner/credential/tenant/scope/filter-bound opaque cursor and fixed row high-water. Pagination is not an immutable conversation snapshot. Closed canonical list/create-replay entries emit opened plus closed facts before list ack. Production signed native client/listener integration and full Gate6 acceptance remain open."
+  },
+  "paths": {
+    "/v1/operations": {
+      "post": {
+        "operationId": "conversationControl",
+        "description": "Create retains tenant assertion, policy, idle configuration, metadata and roles. Caller membership is included. Stable logical IDs replay current authorized state with the original receipt; changed intent conflicts. Close expected_revision and reasons are checked inside the mutation after replay lookup. Close refuses unfinished or unknown sessions/calls/SIP/transitions. List includes only live member conversations, supports tenant/participant/identity/state/since/until, defaults open, and caps count100, encoded page384KiB and126 canonical facts. No omitted private counts are exposed. Idle policy writes journal facts atomically and never fabricates media termination.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Operation"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Current conversation with local-mutation receipt, bounded conversation page, or typed business refusal. Result state is not a media completion claim.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Response"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Current authentication required.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Response"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Encoded request exceeds the configured body budget."
+          },
+          "422": {
+            "description": "Malformed JSON or unknown closed typed operation/query field; request is refused before service execution."
+          },
+          "503": {
+            "description": "Bounded HTTP capacity, current authority busy/unavailable, or durable storage unavailability. For an authority refusal retry the same logical mutation ID after delivery owners settle.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Response"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Current principal, original command scope, resource audience or operation owner is not authorized.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Response"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer"
+      }
+    },
+    "schemas": {
+      "CreateRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "tenant_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128,
+                "pattern": "^[A-Za-z0-9._~-]+$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "policy": {
+            "enum": [
+              "persistent",
+              "ephemeral"
+            ]
+          },
+          "idle_close_secs": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 604800
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "metadata": {},
+          "initial_participants": {
+            "type": "array",
+            "maxItems": 128,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "identity_id": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 128,
+                  "pattern": "^[A-Za-z0-9._~-]+$"
+                },
+                "role": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 64
+                }
+              },
+              "required": [
+                "identity_id",
+                "role"
+              ]
+            }
+          }
+        },
+        "required": [
+          "policy",
+          "initial_participants"
+        ]
+      },
+      "CloseOptions": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "expected_revision": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740990
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "reason_code": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 512
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": []
+      },
+      "ListFilter": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "tenant_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128,
+                "pattern": "^[A-Za-z0-9._~-]+$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "identity_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128,
+                "pattern": "^[A-Za-z0-9._~-]+$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "participant_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128,
+                "pattern": "^[A-Za-z0-9._~-]+$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "state": {
+            "enum": [
+              "open",
+              "closed",
+              "all"
+            ]
+          },
+          "since": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "until": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": []
+      },
+      "ListQuery": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "filter": {
+            "$ref": "#/components/schemas/ListFilter"
+          },
+          "cursor": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 2048
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "limit": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 100
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": []
+      },
+      "Participant": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "participant_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128,
+            "pattern": "^[A-Za-z0-9._~-]+$"
+          },
+          "identity_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128,
+            "pattern": "^[A-Za-z0-9._~-]+$"
+          },
+          "kind": {
+            "enum": [
+              "human",
+              "ai",
+              "system",
+              "external"
+            ]
+          },
+          "role": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64
+          },
+          "display_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "participant_id",
+          "identity_id",
+          "kind",
+          "role",
+          "display_name"
+        ]
+      },
+      "MutationReceipt": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "operation_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128,
+            "pattern": "^[A-Za-z0-9._~-]+$"
+          },
+          "conversation_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128,
+            "pattern": "^[A-Za-z0-9._~-]+$"
+          },
+          "state": {
+            "const": "completed"
+          },
+          "completion_boundary": {
+            "const": "local-mutation"
+          },
+          "status_reference": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "action": {
+                "const": "get"
+              },
+              "operation_id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128,
+                "pattern": "^[A-Za-z0-9._~-]+$"
+              }
+            },
+            "required": [
+              "action",
+              "operation_id"
+            ]
+          }
+        },
+        "required": [
+          "operation_id",
+          "conversation_id",
+          "state",
+          "completion_boundary",
+          "status_reference"
+        ]
+      },
+      "Conversation": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128,
+            "pattern": "^[A-Za-z0-9._~-]+$"
+          },
+          "tenant_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128,
+            "pattern": "^[A-Za-z0-9._~-]+$"
+          },
+          "policy": {
+            "enum": [
+              "persistent",
+              "ephemeral"
+            ]
+          },
+          "idle_close_secs": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 604800
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "metadata": {},
+          "participants": {
+            "type": "array",
+            "maxItems": 128,
+            "items": {
+              "$ref": "#/components/schemas/Participant"
+            }
+          },
+          "opened_at": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "revision": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "closed": {
+            "type": "boolean"
+          },
+          "closed_at": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "reason_code": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 512
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "receipt": {
+            "$ref": "#/components/schemas/MutationReceipt"
+          }
+        },
+        "required": [
+          "id",
+          "tenant_id",
+          "policy",
+          "idle_close_secs",
+          "metadata",
+          "participants",
+          "opened_at",
+          "revision",
+          "closed",
+          "closed_at",
+          "reason_code",
+          "reason"
+        ]
+      },
+      "ListPage": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "conversations": {
+            "type": "array",
+            "maxItems": 100,
+            "items": {
+              "$ref": "#/components/schemas/Conversation"
+            }
+          },
+          "next_cursor": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 2048
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "conversations",
+          "next_cursor"
+        ]
+      },
+      "Operation": {
+        "oneOf": [
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "op": {
+                "const": "create"
+              },
+              "request_id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128,
+                "pattern": "^[A-Za-z0-9._~-]+$"
+              },
+              "request": {
+                "$ref": "#/components/schemas/CreateRequest"
+              }
+            },
+            "required": [
+              "op",
+              "request_id",
+              "request"
+            ]
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "op": {
+                "const": "close"
+              },
+              "request_id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128,
+                "pattern": "^[A-Za-z0-9._~-]+$"
+              },
+              "conversation_id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128,
+                "pattern": "^[A-Za-z0-9._~-]+$"
+              },
+              "options": {
+                "$ref": "#/components/schemas/CloseOptions"
+              }
+            },
+            "required": [
+              "op",
+              "request_id",
+              "conversation_id",
+              "options"
+            ]
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "op": {
+                "const": "conversations"
+              },
+              "query": {
+                "$ref": "#/components/schemas/ListQuery"
+              }
+            },
+            "required": [
+              "op",
+              "query"
+            ]
+          }
+        ]
+      },
+      "Outcome": {
+        "oneOf": [
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "kind": {
+                "const": "conversation"
+              },
+              "data": {
+                "$ref": "#/components/schemas/Conversation"
+              }
+            },
+            "required": [
+              "kind",
+              "data"
+            ]
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "kind": {
+                "const": "conversations"
+              },
+              "data": {
+                "$ref": "#/components/schemas/ListPage"
+              }
+            },
+            "required": [
+              "kind",
+              "data"
+            ]
+          }
+        ]
+      },
+      "Error": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "code",
+          "message"
+        ]
+      },
+      "Response": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "profile": {
+            "const": "connect-control/1"
+          },
+          "result": {
+            "oneOf": [
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "Ok": {
+                    "$ref": "#/components/schemas/Outcome"
+                  }
+                },
+                "required": [
+                  "Ok"
+                ]
+              },
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "Err": {
+                    "$ref": "#/components/schemas/Error"
+                  }
+                },
+                "required": [
+                  "Err"
+                ]
+              }
+            ]
+          }
+        },
+        "required": [
+          "profile",
+          "result"
+        ]
+      }
+    }
+  }
+}

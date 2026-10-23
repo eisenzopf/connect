@@ -7,6 +7,26 @@ use std::{
 type MediaSnapshot = Arc<dyn Fn() -> connect_protocol::MediaDiagnostics + Send + Sync>;
 use tokio_util::sync::CancellationToken;
 
+impl crate::Service {
+    pub fn endpoint_observation_epoch(&self) -> &str {
+        self.runtime.endpoints.epoch()
+    }
+    /// Trusted runtime composition only. Public requests cannot publish
+    /// reachability or turn a self-reported address into verified ownership.
+    pub async fn observe_endpoint(
+        &self,
+        observation: connect_store::EndpointObservation,
+    ) -> connect_protocol::Result<()> {
+        let store = self.store.clone();
+        let runtime = self.runtime.endpoints.clone();
+        tokio::task::spawn_blocking(move || {
+            store.record_endpoint_observation(&runtime, observation)
+        })
+        .await
+        .map_err(|_| connect_protocol::Error::storage())?
+    }
+}
+
 /// Shared by runtime supervisors and authenticated health responses.
 #[derive(Default)]
 pub struct OperationalReadiness {

@@ -1,0 +1,265 @@
+{
+  "task": "G6-046",
+  "title": "Record sources in authorized context, task recall and chat admission",
+  "created_at": "2026-10-21T21:59:16.233844+00:00",
+  "status": "local-selection-verified",
+  "full_task_complete": false,
+  "full_goal_complete": false,
+  "actual_record_context_delivery_qualified": false,
+  "scope": "Local macOS arm64 metadata outcome profile: current Store/Service selection, task/grant ceilings, sharing/revocation, actual installed HTTP context and physical private-duplex record source floor, plus chat dispatch custody/reuse invalidation. Full record-bearing provider IO and opaque-memory qualification remain open.",
+  "schema_version": 81,
+  "pinned_patches": 130,
+  "connect_passed": 1068,
+  "sdk_passed": 153,
+  "connect_verification": {
+    "libraries": [
+      {
+        "package": "connect-client",
+        "passed": 56,
+        "failed": 0,
+        "ignored": 0,
+        "filtered": 0
+      },
+      {
+        "package": "connect-server",
+        "passed": 66,
+        "failed": 0,
+        "ignored": 0,
+        "filtered": 0
+      },
+      {
+        "package": "connect-service",
+        "passed": 44,
+        "failed": 0,
+        "ignored": 1,
+        "filtered": 0
+      },
+      {
+        "package": "connect-store",
+        "passed": 848,
+        "failed": 0,
+        "ignored": 3,
+        "filtered": 0
+      }
+    ],
+    "library_test_threads": 4,
+    "library_log": {
+      "path": ".local/gate-6/record-context-libraries-v6.log",
+      "sha256": "9ac3a1042687891db1a9453775135e5d843f98fcae71d2a1cd144ccf58f8da71"
+    },
+    "integrations": [
+      {
+        "suite": "store-provisioning",
+        "path": ".local/gate-6/record-context-store-provisioning-v6.log",
+        "sha256": "66ddac4243e8c65b442df7f75056b5c3cb701c8e07831c6a08d46b79006a37d1",
+        "passed": 16,
+        "failed": 0,
+        "ignored": 0,
+        "filtered": 0
+      },
+      {
+        "suite": "server-provisioning",
+        "path": ".local/gate-6/record-context-server-provisioning-v6.log",
+        "sha256": "d0737e4f41c02a3df44b25f026c44a454d998c3edf2d20afa36bab1333268ba7",
+        "passed": 11,
+        "failed": 0,
+        "ignored": 0,
+        "filtered": 0
+      },
+      {
+        "suite": "schema",
+        "path": ".local/gate-6/record-context-schema-v6.log",
+        "sha256": "d75c9755d3cdf1523c997c25362ecc87e35e58853d902a86bd5451cad21307c0",
+        "passed": 4,
+        "failed": 0,
+        "ignored": 0,
+        "filtered": 0
+      },
+      {
+        "suite": "recovery",
+        "path": ".local/gate-6/record-context-recovery-v6.log",
+        "sha256": "c8ec7da327d6e71651ea3253e49afb5c8ebcd3efc50e72a0a9c1410a11483c90",
+        "passed": 2,
+        "failed": 0,
+        "ignored": 0,
+        "filtered": 0
+      }
+    ],
+    "auxiliary_listener": {
+      "path": ".local/gate-6/record-context-auxiliary-all-v6.log",
+      "sha256": "642a2c2e3e127efcbfba01f49924824b9ab7329cb403fa30f36a43684b374e01",
+      "passed": 20,
+      "failed": 0,
+      "ignored": 0,
+      "filtered": 0
+    },
+    "physical_private_consultation": {
+      "path": ".local/gate-6/record-context-private-physical-v6.log",
+      "sha256": "2f488ca0b09b964d052893c2e3f124f3107f7909f86092dee53f5efb1a4ad96a",
+      "passed": 1,
+      "failed": 0,
+      "ignored": 0,
+      "filtered": 137
+    }
+  },
+  "physical_case": "canonical_native_connections::consultation::production_private_consultation_record_erasure_enforces_actual_lineage_and_replays_after_restart",
+  "sdk_verification": [
+    {
+      "language": "TypeScript",
+      "passed": 117,
+      "path": ".local/gate-6/record-context-sdk-all-v6.log",
+      "sha256": "b97372ec7cbf646fad4e8a26f5a2849fbc68c413489f58958873c10327db8dfc"
+    },
+    {
+      "language": "Python",
+      "passed": 36,
+      "path": ".local/gate-6/record-context-python-all-v6.log",
+      "sha256": "182ec6541683cb71083f9adfc9625cf9b3e30e73087f73d4d0c40f8785ba41e7"
+    }
+  ],
+  "http_response_validation": {
+    "passed": true,
+    "actual_responses": 6,
+    "algorithms": [
+      "EdDSA",
+      "ES256"
+    ],
+    "validators": [
+      "OpenAPI",
+      "Python SDK",
+      "TypeScript SDK"
+    ],
+    "scope": "Actual installed HTTP context responses; source identity, exact projected digest, recipient attenuation and public local erasure. No provider-memory or native IO qualification.",
+    "report": {
+      "path": ".local/gate-6/record-context-http-validation-v6.json",
+      "sha256": "30faa873d89f9a2ca9596bf80b47132772bfc3cfcd7499c33473ace79be9c982"
+    },
+    "samples": {
+      "path": ".local/gate-6/record-context-http-samples-v6.json",
+      "sha256": "6444c6eb9f55e251ae9de27055b5787fadd8073287fc21ffed2ad81fa4be9514"
+    },
+    "capture": "Public Rust ApplicationClient outcomes from actual installed HTTP, re-encoded with the SDK-validated response profile; not raw headers or socket-byte captures."
+  },
+  "ignored_top_level_helpers": [
+    "canonical_records::tests::record_delete_process_helper",
+    "authority_fences::tests::process_worker",
+    "installation_ownership::tests::process_worker",
+    "transitions::tests::crash_worker"
+  ],
+  "qualification_inputs": {
+    "path": ".local/gate-6/record-context-delivery-inputs-v6.json",
+    "sha256": "872ef42c2e7187c685fda0050bca583a4c0ac2a7abea40c7e28804fa6d4f52f4"
+  },
+  "qualification_input_count": 1319,
+  "source_lock": {
+    "path": "dependencies/source-lock.json",
+    "sha256": "bbea3c588146a0e9e12aacb1b1f64883409dda0eda81529afd23960a60f95aeb"
+  },
+  "patch": {
+    "path": "patches/rvoip/gate6-record-context-snapshot.patch",
+    "sha256": "f072296ae65151ab26172eb8de29761936141bcf2c77d0f23c687ba54cb1e7af"
+  },
+  "previous_component": {
+    "path": "docs/evidence/gate-6/record-context-foundation.json",
+    "sha256": "448bb3f3de233baae8c7b01bea82222124dbe45f3e4fc9d375d0b07265fe9e61"
+  },
+  "upstream_verification": "No upstream source changed. All prepared upstream qualification inputs and source lock match patch130 foundation. Its24 upstream tests remain historical; no new upstream run is claimed.",
+  "implementation": [
+    "Schema81 registers stable Record UUID resources, original Session epochs and derived Session shares atomically with ready bytes. Sharing expands ready records under the same sharing ID; revocation removes derived access. Ready hints bind exact Record UUID; unavailable hints retain Session metadata without erased UUIDs.",
+    "Store selects current participant authority, independent record_get, recipient ceilings, task/grant ceilings, delegate authority and actual listener source floors. A broader tenant role is not context authority; a Record-only share grants no erasure rights.",
+    "Service installs the pure Core snapshot projector: unsigned authorized vCon, projected digest, source/dependency pruning, no raw media URLs or private whole-record/manifest fingerprints. Aggregate input/output budgets and visible retention cutoffs are bounded, with explicit unavailable/deleted/omitted state.",
+    "Protocol/connector host DTOs, Rust/TypeScript/Python APIs and HTTP reference expose optional typed Record UUID/Session/revision/state/projected hash/deadline. Task RecordGet is independent of ContextView/History, including invocation grants.",
+    "Chat admission reprojects captured selections and clips owned expiry to record deadlines. Reusable chat policy binds current authorized record references. Public/private native provider paths reconstruct saved selections and clip memory/observation intervals; actual record-bearing provider IO is not yet qualified.",
+    "Public erasure, retention and trusted backend mutation acquire the Conversation writer before the Record writer. Delivery reads therefore serialize mutation confirmation without reader reentry."
+  ],
+  "behavior": [
+    "Four new Service cases verify independent credential/task/grant permission, Recall and ContextView invocation, before/after-ready sharing and revocation, no erasure escalation, stale copied selection refusal after deletion, dispatch custody delaying erasure and fresh chat memory after record change.",
+    "Actual HTTP context in both EdDSA/ES256 server configurations verifies source identity, exact unsigned body digest, recipient attenuation and public local erasure. Six observed outcomes validate against OpenAPI and both SDK decoders.",
+    "The actual native private-duplex consultation case verifies private/public Connection metadata in its captured private owner ContextView and absence for the remote reader; fresh context changes after authorized redaction. It retains its erasure/restart proof. Other137 canonical runtime cases were filtered, not requalified.",
+    "Complete current auxiliary20 passes: signed refresh, native discovery/replay, native/HTTP/TLS record fetch, stalled TCP/TLS custody, expiry/shutdown, erasure/retention, tenant readers and restart."
+  ],
+  "checks": [
+    {
+      "path": ".local/gate-6/record-context-prepare-v6.log",
+      "sha256": "fd9d7b181e3ccba9b643af55a186cf132c60aac99c734b2ee4e4e549afe5ffc2"
+    },
+    {
+      "path": ".local/gate-6/record-context-format-check-v6.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": ".local/gate-6/record-context-diff-check-v6.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": ".local/gate-6/record-context-canonical-reference-v6.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": ".local/gate-6/record-context-event-reference-v6.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": ".local/gate-6/record-context-mutations-reference-v6.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ],
+  "builds": [
+    {
+      "exit": 0,
+      "scope": "All four package libraries and auxiliary/canonical-runtime/schema/provisioning/recovery targets",
+      "path": ".local/gate-6/record-context-build-v6.log",
+      "sha256": "d18cb798c3017abf7edcbddc0a3e29df3bda733106732e3e8b7454ef58ef3efd"
+    }
+  ],
+  "intermediate_failures": [
+    {
+      "scope": "Initial build/test construction",
+      "disposition": "Missing Store argument and test Box/IdentityKind/Debug-bound errors were fixed. v1 full and v2 focused builds were stopped after errors (130), not passed. Final v6 no-run compiles all current targets."
+    },
+    {
+      "scope": "v5 auxiliary",
+      "passed": 19,
+      "failed": 1,
+      "log": {
+        "path": ".local/gate-6/record-context-auxiliary-all-v5.log",
+        "sha256": "7b879661470396b1b27a456417c140c98ae9476ebd047f3aa1f6d1dc33d1121c"
+      },
+      "disposition": "Native replay still required the former Session source. Isolated replay reproduced it. Exact Ready UUID binding and mutation publication fixed in v6; final auxiliary20 passes."
+    },
+    {
+      "scope": "v5 default-concurrency library run",
+      "log": {
+        "path": ".local/gate-6/record-context-libraries-v5.log",
+        "sha256": "b4bc82561343a97c6d342fdc42320c5c5b0d8199f5b53397d74b5bd576292d10"
+      },
+      "disposition": "Interrupted130 after two observed private-provider failures. Both isolated reproductions passed; complete final four-thread libraries pass1014. No runtime timeout was widened. The earlier run and a new load profile are not qualified."
+    },
+    {
+      "scope": "Tool environment",
+      "disposition": "Direct format invocation126, npm from wrong directory254 and Python without PYTHONPATH failed; corrected commands pass. These attempts are not verification passes."
+    }
+  ],
+  "cache_cleanup": [
+    {
+      "path": ".local/gate-6/record-context-old-executable-cleanup.json",
+      "sha256": "1d205c60a6b353bfbefc5359bf973d203376722cb65cabb450c2261ceece6721"
+    },
+    {
+      "path": ".local/gate-6/record-context-check-cache-cleanup.json",
+      "sha256": "f170bbe0f43e957f0b14fc217dd04a8991f1d484a067991f175b752ca1f95072"
+    }
+  ],
+  "remaining": [
+    "Qualify actual record-bearing native assistant/public/private provider export, blocked IO, original opaque-memory invalidation and visible retention intervals. Host custody and HTTP context outcomes are not full provider delivery proof.",
+    "Native Record QUIC backpressure/revocation/expiry/cancellation/deletion and actual private-source TLS-link invalidation remain separate gaps. Older queued Vapi media attachment is not qualified by one-shot revalidation.",
+    "Producer remains metadata only. No captured-media, provider erasure, remote/Linux/browser profile or publication claim. G6-093 designated endpoints/configurations were not used.",
+    "Finish remaining G6-046 assurance/step-up/DTMF/quality/capability behavior and all61 assigned clause evidence, then remaining plan tasks. Full G6-046 and acceptance remain open."
+  ],
+  "plan_counts": {
+    "done": 45,
+    "in_progress": 1,
+    "not_started": 59,
+    "acceptance_qualified": 0
+  }
+}

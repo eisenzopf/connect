@@ -1,0 +1,1862 @@
+diff --git a/crates/uctp/rvoip-uctp/src/v2/auth_dispatch.rs b/crates/uctp/rvoip-uctp/src/v2/auth_dispatch.rs
+index 1504b50..c3c6dce 100644
+--- a/crates/uctp/rvoip-uctp/src/v2/auth_dispatch.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/auth_dispatch.rs
+@@ -52,6 +52,8 @@ pub enum DispatchError {
+     Unsupported,
+     #[error("request capacity exhausted")]
+     Capacity,
++    #[error("local transport submission outcome unknown")]
++    SubmissionUnknown,
+     #[error("peer closed or deadline expired")]
+     Closed,
+ }
+diff --git a/crates/uctp/rvoip-uctp/src/v2/auth_peer.rs b/crates/uctp/rvoip-uctp/src/v2/auth_peer.rs
+index dd74fea..9d9f488 100644
+--- a/crates/uctp/rvoip-uctp/src/v2/auth_peer.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/auth_peer.rs
+@@ -3,8 +3,13 @@
+ //! one actor. This never delegates a command to a v1 coordinator.
+ 
+ use super::{
+-    auth_dispatch::*, payloads::*, replay::ReplayFence, select_application_profile, Envelope,
+-    Identifier, Scope, APPLICATION_PROFILE,
++    auth_dispatch::*,
++    payloads::*,
++    reachability::{
++        Outbound, PeerRoutes, ReachabilityRegistry, Registration, RouteAuthority, TrustedPeerRoute,
++    },
++    replay::ReplayFence,
++    select_application_profile, Envelope, Identifier, Scope, APPLICATION_PROFILE,
+ };
+ use async_trait::async_trait;
+ use bytes::Bytes;
+@@ -132,6 +137,7 @@ struct Binding {
+     expires: Instant,
+     generation: u64,
+     step_up: Option<PendingStepUp>,
++    route: Option<Registration>,
+ }
+ enum State {
+     Hello,
+@@ -167,6 +173,8 @@ pub struct CanonicalPeer {
+     failures: u8,
+     replay: Arc<ReplayFence>,
+     step_up_failure: Arc<parking_lot::Mutex<Option<step_up::FailureRecord>>>,
++    routes: Option<PeerRoutes>,
++    outbound: Option<tokio::sync::mpsc::Receiver<Outbound>>,
+ }
+ impl CanonicalPeer {
+     pub fn new(config: Arc<PeerConfig>, parent: CancellationToken) -> Result<Self, DispatchError> {
+@@ -190,8 +198,26 @@ impl CanonicalPeer {
+             failures: 0,
+             replay: Arc::new(ReplayFence::new(replay_capacity)?),
+             step_up_failure: Arc::new(parking_lot::Mutex::new(None)),
++            routes: None,
++            outbound: None,
+         })
+     }
++    /// Install an actual actor-backed route and required current delivery policy.
++    /// Drive with `run` so the guarded outbound queue has a reliable writer.
++    pub fn with_reachability(
++        config: Arc<PeerConfig>,
++        parent: CancellationToken,
++        registry: Arc<ReachabilityRegistry>,
++        route: TrustedPeerRoute,
++        policy: Arc<dyn RouteAuthority>,
++    ) -> Result<Self, DispatchError> {
++        let mut peer = Self::new(config, parent)?;
++        let (routes, outbound) = PeerRoutes::new(registry, route, policy);
++        peer.routes = Some(routes);
++        peer.outbound = Some(outbound);
++        Ok(peer)
++    }
++
+     /// Bind sibling media/signaling work to this incarnation. Closing this peer
+     /// cancels that work without cancelling a shared parent endpoint.
+     /// Operator counts only, without identifiers or credentials.
+@@ -353,7 +379,7 @@ impl CanonicalPeer {
+                     .await?;
+                 let binding = self.binding(credential, device, identity, 1)?;
+                 let session = self.session(&binding, &envelope)?;
+-                self.state = State::Authenticated(binding);
++                self.commit_binding(binding)?;
+                 Ok(output(vec![session], Some(lease)))
+             }
+             State::Authenticated(binding) => match envelope.payload() {
+@@ -435,7 +461,7 @@ impl CanonicalPeer {
+                             Some(pending.held.envelope()),
+                         )?);
+                     }
+-                    self.state = State::Authenticated(next);
++                    self.commit_binding(next)?;
+                     Ok(output(replies, Some(lease)))
+                 }
+                 Payload::AuthKeepalive(keepalive) => {
+@@ -466,7 +492,11 @@ impl CanonicalPeer {
+                             &envelope,
+                         )
+                         .await?;
+-                    let ack = self.reply("ack", json!({}), Some(&envelope))?;
++                    let details = match &binding.route {
++                        Some(route) => json!({"reachability":[route.renew()?]}),
++                        None => json!({}),
++                    };
++                    let ack = self.reply("ack", json!({"details":details}), Some(&envelope))?;
+                     Ok(output(vec![ack], Some(lease)))
+                 }
+                 Payload::AuthBye(_) => {
+@@ -531,6 +561,20 @@ impl CanonicalPeer {
+             self.config.pending_capacity,
+             self.replay.clone(),
+         )?;
++        let route = self
++            .routes
++            .as_ref()
++            .map(|routes| {
++                routes.prepare(
++                    &credential,
++                    &device,
++                    &identity,
++                    generation,
++                    self.lifetime.clone(),
++                    expiry,
++                )
++            })
++            .transpose()?;
+         Ok(Binding {
+             credential,
+             device,
+@@ -540,8 +584,53 @@ impl CanonicalPeer {
+             expires: expiry,
+             generation,
+             step_up: None,
++            route,
+         })
+     }
++    fn commit_binding(&mut self, binding: Binding) -> Result<(), DispatchError> {
++        if let Some(route) = &binding.route {
++            route.publish()?;
++        }
++        self.state = State::Authenticated(binding);
++        Ok(())
++    }
++    fn route_authority(&self) -> Option<CancellationToken> {
++        match &self.state {
++            State::Authenticated(binding) => binding.route.as_ref().map(Registration::authority),
++            _ => None,
++        }
++    }
++    async fn outbound_output(&self, request: &Outbound) -> Result<PeerOutput, DispatchError> {
++        let State::Authenticated(binding) = &self.state else {
++            return Err(DispatchError::Authentication);
++        };
++        let route = binding.route.as_ref().ok_or(DispatchError::Unsupported)?;
++        if !request.current(route) {
++            return Err(DispatchError::Closed);
++        }
++        let policy = &self
++            .routes
++            .as_ref()
++            .ok_or(DispatchError::Unsupported)?
++            .policy;
++        let authority = route.authority();
++        let deadline = request.deadline.min(self.effective_deadline());
++        let lease = tokio::select! {
++            biased;
++            _=self.lifetime.cancelled()=>return Err(DispatchError::Closed),
++            _=authority.cancelled()=>return Err(DispatchError::Authority),
++            _=tokio::time::sleep_until(deadline)=>return Err(DispatchError::Closed),
++            result=policy.delivery(&binding.credential,&binding.device,&binding.identity,&request.envelope)=>result?,
++        };
++        if !request.current(route) {
++            return Err(DispatchError::Closed);
++        }
++        let mut value = request.envelope.original().clone();
++        value["id"] = json!(fresh_id());
++        value["ts"] = json!(chrono::Utc::now());
++        Ok(output(vec![self.signed(value)?], Some(lease)))
++    }
++
+     async fn verify(
+         &self,
+         principal: &AuthenticatedPrincipal,
+@@ -555,7 +644,7 @@ impl CanonicalPeer {
+         self.replay.consume(envelope.id())
+     }
+     fn session(&self, binding: &Binding, request: &Envelope) -> Result<Envelope, DispatchError> {
+-        self.reply("auth.session", json!({"identity_id":binding.identity,"session_token":binding.token,"expires_at":effective_expiry(&binding.credential.principal)?,"assurance":binding.credential.principal.assurance.kind(),"application_profile":APPLICATION_PROFILE}), Some(request))
++        self.reply("auth.session", json!({"identity_id":binding.identity,"session_token":binding.token,"expires_at":effective_expiry(&binding.credential.principal)?,"assurance":binding.credential.principal.assurance.kind(),"application_profile":APPLICATION_PROFILE,"reachability":binding.route.as_ref().map(|route|vec![route.hint()]).unwrap_or_default()}), Some(request))
+     }
+     fn signed(&self, value: Value) -> Result<Envelope, DispatchError> {
+         let envelope = Envelope::from_value(value)?;
+@@ -596,8 +685,10 @@ impl CanonicalPeer {
+             let deadline = self
+                 .effective_deadline()
+                 .min(Instant::now() + MAX_DISPATCH_WAIT);
++            let authority = self.route_authority();
+             tokio::select! {
+                 biased;
++                _ = async { match authority {Some(token)=>token.cancelled().await,None=>std::future::pending::<()>().await} } => return Err(DispatchError::Authority),
+                 _ = self.lifetime.cancelled(), if !matches!(self.state, State::Closed) => return Err(DispatchError::Closed),
+                 _ = tokio::time::sleep_until(deadline) => return Err(DispatchError::Closed),
+                 result = writer.send(Bytes::from(bytes)) => result.map_err(|_| DispatchError::Closed)?,
+@@ -619,6 +710,7 @@ impl CanonicalPeer {
+         R: AsyncRead + Send + Unpin,
+         W: AsyncWrite + Send + Unpin,
+     {
++        let mut outbound = self.outbound.take();
+         let mut reader = FramedRead::new(reader, crate::substrate::length_prefixed_codec());
+         let mut writer = FramedWrite::new(writer, crate::substrate::length_prefixed_codec());
+         loop {
+@@ -628,8 +720,14 @@ impl CanonicalPeer {
+             let pending_deadline = self
+                 .pending_step_up_deadline()
+                 .unwrap_or(self.effective_deadline());
++            let authority = self.route_authority();
+             let frame = tokio::select! {
+                 biased;
++                _ = async {match authority {Some(token)=>token.cancelled().await,None=>std::future::pending::<()>().await}} => {
++                    let bye=self.reply("auth.bye",json!({"reason":"authority-retired"}),None)?;
++                    let _=tokio::time::timeout(Duration::from_secs(1),writer.send(Bytes::from(serde_json::to_vec(&bye).map_err(|_|DispatchError::Closed)?))).await;
++                    return Err(DispatchError::Authority);
++                }
+                 _ = self.lifetime.cancelled() => return Err(DispatchError::Closed),
+                 _ = tokio::time::sleep_until(self.effective_deadline()) => {
+                     if matches!(self.state, State::Authenticated(_)) {
+@@ -644,6 +742,29 @@ impl CanonicalPeer {
+                     }
+                     continue;
+                 }
++                message = async {match &mut outbound {Some(receiver)=>receiver.recv().await,None=>std::future::pending().await}} => {
++                    let Some(request)=message else{return Err(DispatchError::Closed);};
++                    match self.outbound_output(&request).await {
++                        Ok(output)=>{
++                            if request.reply.is_closed(){continue;}
++                            request.started.store(true,std::sync::atomic::Ordering::Release);
++                            let result=tokio::select! {
++                                biased;
++                                _=tokio::time::sleep_until(request.deadline)=>Err(DispatchError::Closed),
++                                result=self.write_output(&mut writer,&output)=>result,
++                            };
++                            if result.is_ok(){
++                                let id=Identifier::try_from(output.envelopes()[0].id().to_owned())?;
++                                let _=request.reply.send(Ok(Outbound::submitted(id)));
++                            }else{
++                                let _=request.reply.send(Err(DispatchError::SubmissionUnknown));
++                                return result;
++                            }
++                        }
++                        Err(error)=>{let _=request.reply.send(Err(error));}
++                    }
++                    continue;
++                }
+                 frame = reader.next() => frame,
+             };
+             let Some(frame) = frame else {
+@@ -719,7 +840,7 @@ fn require_unscoped(envelope: &Envelope, reply: bool) -> Result<(), DispatchErro
+     }
+     Ok(())
+ }
+-fn effective_expiry(
++pub(super) fn effective_expiry(
+     principal: &AuthenticatedPrincipal,
+ ) -> Result<chrono::DateTime<chrono::Utc>, DispatchError> {
+     super::auth_dispatch::checked_principal(principal.clone())?;
+@@ -783,6 +904,7 @@ fn same_scopes(a: &[String], b: &[String]) -> bool {
+ }
+ fn error_reason(error: DispatchError) -> &'static str {
+     match error {
++        DispatchError::SubmissionUnknown => "submission_unknown",
+         DispatchError::Replay => "replay_detected",
+         DispatchError::Signature => "invalid_signature",
+         DispatchError::SignatureRequired => "signature_required",
+@@ -799,6 +921,7 @@ fn error_reason(error: DispatchError) -> &'static str {
+ 
+ fn error_code(error: DispatchError) -> u16 {
+     match error {
++        DispatchError::SubmissionUnknown => 409,
+         DispatchError::Authority => 403,
+         DispatchError::Wire(
+             super::WireError::UnsupportedVersion | super::WireError::UnsupportedProfile,
+diff --git a/crates/uctp/rvoip-uctp/src/v2/auth_peer/step_up.rs b/crates/uctp/rvoip-uctp/src/v2/auth_peer/step_up.rs
+index bb5b43a..ef1f4a3 100644
+--- a/crates/uctp/rvoip-uctp/src/v2/auth_peer/step_up.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/auth_peer/step_up.rs
+@@ -314,7 +314,7 @@ impl CanonicalPeer {
+         let session = self.session(&next, &response)?;
+         let changed = self.reply("identity.assurance-changed",json!({"previous":binding.credential.principal.assurance.kind(),"current":next.credential.principal.assurance.kind(),"reason":"verified-step-up"}),Some(&response))?;
+         let reply = self.handler_reply(reply, &blocked)?;
+-        self.state = State::Authenticated(next);
++        self.commit_binding(next)?;
+         failure.record = None;
+         Ok(output(vec![session, changed, reply], Some(lease)))
+     }
+diff --git a/crates/uctp/rvoip-uctp/src/v2/mod.rs b/crates/uctp/rvoip-uctp/src/v2/mod.rs
+index aabf883..1248a42 100644
+--- a/crates/uctp/rvoip-uctp/src/v2/mod.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/mod.rs
+@@ -8,6 +8,7 @@
+ 
+ pub mod auth_dispatch;
+ pub mod auth_peer;
++pub mod reachability;
+ mod replay;
+ pub use auth_peer::AssuranceRequirement;
+ pub mod payloads;
+diff --git a/crates/uctp/rvoip-uctp/src/v2/reachability.rs b/crates/uctp/rvoip-uctp/src/v2/reachability.rs
+new file mode 100644
+index 0000000..32d44d2
+--- /dev/null
++++ b/crates/uctp/rvoip-uctp/src/v2/reachability.rs
+@@ -0,0 +1,454 @@
++//! Process-local authenticated live-peer routing, not membership or delivery
++//! receipts. Addresses come from trusted adapter configuration, never hello.
++
++use super::{
++    auth_dispatch::{AuthorityLease, DispatchError, MAX_DISPATCH_WAIT},
++    payloads::{Device, ReachabilityHint},
++    Envelope, Identifier,
++};
++use async_trait::async_trait;
++use chrono::{DateTime, Utc};
++use parking_lot::Mutex;
++use rvoip_auth_core::bearer::{PrincipalOwnershipKey, ValidatedBearer};
++use std::{
++    collections::HashMap,
++    fmt,
++    sync::{
++        atomic::{AtomicBool, Ordering},
++        Arc,
++    },
++    time::Duration,
++};
++use tokio::{
++    sync::{mpsc, oneshot},
++    time::Instant,
++};
++use tokio_util::sync::CancellationToken;
++use uuid::Uuid;
++
++#[derive(Clone, Copy, Debug, PartialEq, Eq)]
++pub enum PeerTransport {
++    Quic,
++    WebTransport,
++    WebSocket,
++}
++impl PeerTransport {
++    fn name(self) -> &'static str {
++        match self {
++            Self::Quic => "quic",
++            Self::WebTransport => "webtransport",
++            Self::WebSocket => "websocket",
++        }
++    }
++}
++
++/// Trusted server-side route description. The address is a configured server
++/// endpoint/contact, not evidence that an observed client UDP port is dialable.
++#[derive(Clone)]
++pub struct TrustedPeerRoute {
++    transport: PeerTransport,
++    address: String,
++    priority: u16,
++    lease: Duration,
++}
++impl TrustedPeerRoute {
++    pub fn new(
++        transport: PeerTransport,
++        address: impl Into<String>,
++        priority: u16,
++        lease: Duration,
++    ) -> Result<Self, DispatchError> {
++        let address = address.into();
++        if address.is_empty()
++            || address.len() > 2048
++            || address.chars().any(char::is_control)
++            || address.contains('@')
++            || lease.is_zero()
++            || lease > Duration::from_secs(60)
++        {
++            return Err(DispatchError::Authority);
++        }
++        Ok(Self {
++            transport,
++            address,
++            priority,
++            lease,
++        })
++    }
++}
++impl fmt::Debug for TrustedPeerRoute {
++    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
++        f.debug_struct("TrustedPeerRoute")
++            .field("transport", &self.transport)
++            .field("lease", &self.lease)
++            .finish_non_exhaustive()
++    }
++}
++
++/// Both hooks are required to install reachability. The synchronous lifetime
++/// hook runs under the owning peer's current authority lease. Its token must
++/// retire on credential/key, mapped identity or device-ownership revocation.
++/// Delivery must reacquire current recipient/audience/resource authorization;
++/// the trusted submitting application independently authorizes its source.
++#[async_trait]
++pub trait RouteAuthority: Send + Sync {
++    fn lifetime(
++        &self,
++        credential: &ValidatedBearer,
++        device: &Device,
++        identity: &Identifier,
++    ) -> Result<CancellationToken, DispatchError>;
++    async fn delivery(
++        &self,
++        credential: &ValidatedBearer,
++        device: &Device,
++        identity: &Identifier,
++        envelope: &Envelope,
++    ) -> Result<AuthorityLease, DispatchError>;
++}
++
++/// Metadata hints in this registry grant no Conversation or Session access.
++/// Expired/revoked rows retain their slot until the owning registration retires.
++pub struct ReachabilityRegistry {
++    capacity: usize,
++    entries: Mutex<HashMap<Uuid, Arc<RouteState>>>,
++}
++impl ReachabilityRegistry {
++    pub fn new(capacity: usize) -> Result<Arc<Self>, DispatchError> {
++        if capacity == 0 || capacity > 4096 {
++            return Err(DispatchError::Capacity);
++        }
++        Ok(Arc::new(Self {
++            capacity,
++            entries: Mutex::new(HashMap::new()),
++        }))
++    }
++    /// Trusted router lookup by the complete target owner and mapped Identity.
++    /// Public facades must authorize the viewer before exposing any hint.
++    pub fn routes_for(
++        &self,
++        owner: &PrincipalOwnershipKey,
++        identity: &Identifier,
++    ) -> Result<Vec<RouteHandle>, DispatchError> {
++        let entries = self.entries.lock();
++        let mut routes = Vec::new();
++        for state in entries.values() {
++            if &state.owner != owner || &state.identity != identity || !state.live() {
++                continue;
++            }
++            if routes.len() == 64 {
++                return Err(DispatchError::Capacity);
++            }
++            routes.push(RouteHandle {
++                state: state.clone(),
++                expires: *state.expires.lock(),
++            });
++        }
++        Ok(routes)
++    }
++    pub fn usage(&self) -> (usize, usize) {
++        (self.entries.lock().len(), self.capacity)
++    }
++}
++impl fmt::Debug for ReachabilityRegistry {
++    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
++        f.debug_struct("ReachabilityRegistry")
++            .field("usage", &self.usage())
++            .finish()
++    }
++}
++
++#[derive(Clone, Copy)]
++struct LeaseTime {
++    utc: DateTime<Utc>,
++    mono: Instant,
++}
++struct RouteState {
++    registry: std::sync::Weak<ReachabilityRegistry>,
++    id: Uuid,
++    generation: u64,
++    owner: PrincipalOwnershipKey,
++    identity: Identifier,
++    device: Identifier,
++    route: TrustedPeerRoute,
++    credential_expiry: DateTime<Utc>,
++    credential_deadline: Instant,
++    authority: CancellationToken,
++    physical: CancellationToken,
++    expires: Mutex<LeaseTime>,
++    sender: mpsc::Sender<Outbound>,
++}
++impl RouteState {
++    fn live(&self) -> bool {
++        let expires = *self.expires.lock();
++        !self.authority.is_cancelled()
++            && !self.physical.is_cancelled()
++            && Instant::now() < expires.mono
++            && Utc::now() < expires.utc
++            && Instant::now() < self.credential_deadline
++            && Utc::now() < self.credential_expiry
++            && !self.sender.is_closed()
++    }
++    fn hint(&self, expires: LeaseTime) -> ReachabilityHint {
++        ReachabilityHint {
++            transport: self.route.transport.name().into(),
++            address: self.route.address.clone(),
++            expires_at: expires.utc,
++            priority: self.route.priority as u64,
++            device_id: self.device.clone(),
++        }
++    }
++}
++
++/// A frozen route incarnation and lease, never a raw writer. Heartbeats do not
++/// extend an old handle's captured expiry; refresh/step-up cannot lend it a new
++/// credential. A fresh lookup obtains the current incarnation and lease.
++#[derive(Clone)]
++pub struct RouteHandle {
++    state: Arc<RouteState>,
++    expires: LeaseTime,
++}
++impl RouteHandle {
++    pub fn hint(&self) -> ReachabilityHint {
++        self.state.hint(self.expires)
++    }
++    fn current(&self) -> bool {
++        if !self.state.live()
++            || Instant::now() >= self.expires.mono
++            || Utc::now() >= self.expires.utc
++        {
++            return false;
++        }
++        self.state.registry.upgrade().is_some_and(|registry| {
++            registry
++                .entries
++                .lock()
++                .get(&self.state.id)
++                .is_some_and(|current| Arc::ptr_eq(current, &self.state))
++        })
++    }
++    /// Success means bounded local reliable-writer admission, not remote
++    /// delivery or acceptance. A deadline/closure once writing may have begun
++    /// returns SubmissionUnknown; preserve the logical operation ID.
++    pub async fn submit(
++        &self,
++        envelope: Envelope,
++        requested: Instant,
++    ) -> Result<LocalSubmission, DispatchError> {
++        if !self.current() {
++            return Err(DispatchError::Closed);
++        }
++        let deadline = requested
++            .min(self.expires.mono)
++            .min(Instant::now() + MAX_DISPATCH_WAIT);
++        if deadline <= Instant::now() {
++            return Err(DispatchError::Closed);
++        }
++        let (reply, receiver) = oneshot::channel();
++        let started = Arc::new(AtomicBool::new(false));
++        self.state
++            .sender
++            .try_send(Outbound {
++                envelope,
++                handle: self.clone(),
++                deadline,
++                reply,
++                started: started.clone(),
++            })
++            .map_err(|error| match error {
++                mpsc::error::TrySendError::Full(_) => DispatchError::Capacity,
++                mpsc::error::TrySendError::Closed(_) => DispatchError::Closed,
++            })?;
++        match tokio::time::timeout_at(deadline, receiver).await {
++            Ok(Ok(result)) => result,
++            _ => Err(if started.load(Ordering::Acquire) {
++                DispatchError::SubmissionUnknown
++            } else {
++                DispatchError::Closed
++            }),
++        }
++    }
++}
++impl fmt::Debug for RouteHandle {
++    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
++        f.debug_struct("RouteHandle")
++            .field("transport", &self.state.route.transport)
++            .field("generation", &self.state.generation)
++            .finish_non_exhaustive()
++    }
++}
++
++pub struct LocalSubmission {
++    envelope_id: Identifier,
++}
++impl LocalSubmission {
++    pub fn envelope_id(&self) -> &Identifier {
++        &self.envelope_id
++    }
++}
++impl fmt::Debug for LocalSubmission {
++    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
++        f.write_str("LocalSubmission(redacted)")
++    }
++}
++
++pub(super) struct Outbound {
++    pub(super) envelope: Envelope,
++    pub(super) handle: RouteHandle,
++    pub(super) deadline: Instant,
++    pub(super) reply: oneshot::Sender<Result<LocalSubmission, DispatchError>>,
++    pub(super) started: Arc<AtomicBool>,
++}
++impl Outbound {
++    pub(super) fn current(&self, registration: &Registration) -> bool {
++        self.handle.current()
++            && Arc::ptr_eq(&self.handle.state, &registration.state)
++            && !self.reply.is_closed()
++            && self.deadline > Instant::now()
++    }
++    pub(super) fn submitted(id: Identifier) -> LocalSubmission {
++        LocalSubmission { envelope_id: id }
++    }
++}
++
++pub(super) struct PeerRoutes {
++    pub(super) policy: Arc<dyn RouteAuthority>,
++    registry: Arc<ReachabilityRegistry>,
++    route: TrustedPeerRoute,
++    id: Uuid,
++    sender: mpsc::Sender<Outbound>,
++}
++impl PeerRoutes {
++    pub(super) fn new(
++        registry: Arc<ReachabilityRegistry>,
++        route: TrustedPeerRoute,
++        policy: Arc<dyn RouteAuthority>,
++    ) -> (Self, mpsc::Receiver<Outbound>) {
++        let (sender, receiver) = mpsc::channel(32);
++        (
++            Self {
++                policy,
++                registry,
++                route,
++                id: Uuid::new_v4(),
++                sender,
++            },
++            receiver,
++        )
++    }
++    pub(super) fn prepare(
++        &self,
++        credential: &ValidatedBearer,
++        device: &Device,
++        identity: &Identifier,
++        generation: u64,
++        physical: CancellationToken,
++        credential_deadline: Instant,
++    ) -> Result<Registration, DispatchError> {
++        let authority = self.policy.lifetime(credential, device, identity)?;
++        let credential_expiry = super::auth_peer::effective_expiry(&credential.principal)?;
++        let state = Arc::new(RouteState {
++            registry: Arc::downgrade(&self.registry),
++            id: self.id,
++            generation,
++            owner: credential.principal.ownership_key(),
++            identity: identity.clone(),
++            device: device.id.clone(),
++            route: self.route.clone(),
++            credential_expiry,
++            credential_deadline,
++            authority,
++            physical,
++            expires: Mutex::new(lease_time(
++                self.route.lease,
++                credential_expiry,
++                credential_deadline,
++            )?),
++            sender: self.sender.clone(),
++        });
++        Ok(Registration {
++            registry: self.registry.clone(),
++            state,
++        })
++    }
++}
++fn lease_time(
++    lease: Duration,
++    credential: DateTime<Utc>,
++    deadline: Instant,
++) -> Result<LeaseTime, DispatchError> {
++    let now = Utc::now();
++    let mono = Instant::now();
++    if credential <= now || deadline <= mono {
++        return Err(DispatchError::Authentication);
++    }
++    Ok(LeaseTime {
++        utc: (now + chrono::Duration::from_std(lease).map_err(|_| DispatchError::Authority)?)
++            .min(credential),
++        mono: (mono + lease).min(deadline),
++    })
++}
++
++/// Preparation is invisible. Publish only at synchronous peer binding commit
++/// under current authority; dropping any candidate/old incarnation removes
++/// only that exact published state, never its successor.
++pub(super) struct Registration {
++    registry: Arc<ReachabilityRegistry>,
++    state: Arc<RouteState>,
++}
++impl Registration {
++    pub(super) fn publish(&self) -> Result<(), DispatchError> {
++        if !self.state.live() {
++            return Err(DispatchError::Closed);
++        }
++        let mut entries = self.registry.entries.lock();
++        if let Some(old) = entries.get(&self.state.id) {
++            if old.generation >= self.state.generation
++                || old.owner != self.state.owner
++                || old.identity != self.state.identity
++                || old.device != self.state.device
++            {
++                return Err(DispatchError::Authority);
++            }
++        } else if entries.len() >= self.registry.capacity {
++            return Err(DispatchError::Capacity);
++        }
++        entries.insert(self.state.id, self.state.clone());
++        Ok(())
++    }
++    pub(super) fn hint(&self) -> ReachabilityHint {
++        self.state.hint(*self.state.expires.lock())
++    }
++    pub(super) fn authority(&self) -> CancellationToken {
++        self.state.authority.clone()
++    }
++    pub(super) fn renew(&self) -> Result<ReachabilityHint, DispatchError> {
++        if self.state.authority.is_cancelled() || self.state.physical.is_cancelled() {
++            return Err(DispatchError::Authority);
++        }
++        let entries = self.registry.entries.lock();
++        if !entries
++            .get(&self.state.id)
++            .is_some_and(|current| Arc::ptr_eq(current, &self.state))
++        {
++            return Err(DispatchError::Closed);
++        }
++        *self.state.expires.lock() = lease_time(
++            self.state.route.lease,
++            self.state.credential_expiry,
++            self.state.credential_deadline,
++        )?;
++        Ok(self.hint())
++    }
++}
++impl Drop for Registration {
++    fn drop(&mut self) {
++        let mut entries = self.registry.entries.lock();
++        if entries
++            .get(&self.state.id)
++            .is_some_and(|current| Arc::ptr_eq(current, &self.state))
++        {
++            entries.remove(&self.state.id);
++        }
++    }
++}
+diff --git a/crates/uctp/rvoip-uctp/tests/v2_reachability.rs b/crates/uctp/rvoip-uctp/tests/v2_reachability.rs
+new file mode 100644
+index 0000000..b806b64
+--- /dev/null
++++ b/crates/uctp/rvoip-uctp/tests/v2_reachability.rs
+@@ -0,0 +1,1090 @@
++//! Authenticated reachability and actual guarded route delivery.
++use async_trait::async_trait;
++use bytes::Bytes;
++use chrono::Utc;
++use futures::{SinkExt, StreamExt};
++use ring::signature::{Ed25519KeyPair, KeyPair};
++use rvoip_auth_core::{
++    bearer::{
++        AuthenticatedPrincipal, AuthenticationMethod, BearerAuthError, BearerValidator,
++        ValidatedBearer,
++    },
++    sig9421::{KeyResolver, ResolvedVerificationKey, Sig9421Signer, Sig9421Verifier},
++};
++use rvoip_core::identity::{CredentialKind, IdentityAssurance};
++use rvoip_uctp::v2::{
++    auth_dispatch::*, auth_peer::*, payloads::Device, Envelope, Identifier, Scope, RAW_QUIC_ALPN,
++};
++use serde_json::{json, Value};
++use std::{
++    collections::HashSet,
++    sync::{
++        atomic::{AtomicBool, AtomicUsize, Ordering},
++        Arc,
++    },
++    time::Duration,
++};
++use tokio::{
++    sync::{Notify, RwLock},
++    time::Instant,
++};
++use tokio_util::{
++    codec::{FramedRead, FramedWrite},
++    sync::CancellationToken,
++};
++
++fn deadline() -> Instant {
++    Instant::now() + Duration::from_secs(3)
++}
++fn envelope(kind: &str, payload: Value) -> Value {
++    json!({"v":2,"type":kind,"id":format!("env_{}",uuid::Uuid::new_v4().simple()),"ts":Utc::now(),"payload":payload})
++}
++fn hello() -> Value {
++    envelope(
++        "auth.hello",
++        json!({"device":{"id":"device-alice","kind":"desktop","platform":"fixture","sdk_version":"fixture"},"auth_methods":["unknown","bearer","aauth"],"application_profiles":["connect/2"]}),
++    )
++}
++fn response(challenge: &Envelope, token: &str) -> Value {
++    let mut v = envelope(
++        "auth.response",
++        json!({"method":"bearer","credential":token}),
++    );
++    v["in_reply_to"] = json!(challenge.id());
++    v
++}
++fn command() -> Value {
++    let mut v = envelope("connection.update", json!({"action":"hold"}));
++    v["cid"] = json!("conversation");
++    v["sid"] = json!("session");
++    v["connid"] = json!("connection");
++    v["operation_id"] = json!("logical-op");
++    v["expected_revision"] = json!(1);
++    v
++}
++fn principal(token: &str) -> AuthenticatedPrincipal {
++    let mut p = AuthenticatedPrincipal {
++        subject: "alice".into(),
++        tenant: Some("tenant".into()),
++        issuer: Some("issuer".into()),
++        scopes: vec!["control".into()],
++        expires_at: Some(Utc::now() + chrono::Duration::hours(1)),
++        method: AuthenticationMethod::Bearer,
++        assurance: IdentityAssurance::Identified {
++            credential_kind: CredentialKind::Oidc,
++        },
++    };
++    match token {
++        "task" | "wrong-task" | "expired-task" => {
++            p.assurance = IdentityAssurance::TaskScoped {
++                identity: rvoip_core::IdentityId::from_string("identity-alice"),
++                task_id: if token == "wrong-task" {
++                    "other-task"
++                } else {
++                    "task-private"
++                }
++                .into(),
++                scopes: vec!["control".into()],
++                expires_at: Utc::now()
++                    + chrono::Duration::seconds(if token == "expired-task" { -1 } else { 3600 }),
++            };
++        }
++        "wrong-identity" | "missing-scope" | "grantless-user" => {
++            if token == "grantless-user" {
++                p.scopes.clear();
++            }
++            p.assurance = IdentityAssurance::UserAuthorized {
++                identity: rvoip_core::IdentityId::from_string(if token == "wrong-identity" {
++                    "another-identity"
++                } else {
++                    "identity-alice"
++                }),
++                user_id: rvoip_core::IdentityId::from_string("user-alice"),
++                scopes: vec![if token == "missing-scope" {
++                    "unrelated"
++                } else {
++                    "control"
++                }
++                .into()],
++            };
++        }
++        "bob" => p.subject = "bob".into(),
++        "other-tenant" => p.tenant = Some("other".into()),
++        "other-issuer" => p.issuer = Some("other".into()),
++        "expired" => p.expires_at = Some(Utc::now() - chrono::Duration::seconds(1)),
++        "no-expiry" => p.expires_at = None,
++        "short" => p.expires_at = Some(Utc::now() + chrono::Duration::seconds(1)),
++        "reduced" => p.scopes.clear(),
++        "user" | "user-new" => {
++            p.assurance = IdentityAssurance::UserAuthorized {
++                identity: rvoip_core::IdentityId::from_string("identity-alice"),
++                user_id: rvoip_core::IdentityId::from_string("user-alice"),
++                scopes: vec!["control".into()],
++            }
++        }
++        "wrong-user" => {
++            p.assurance = IdentityAssurance::UserAuthorized {
++                identity: rvoip_core::IdentityId::from_string("identity-alice"),
++                user_id: rvoip_core::IdentityId::from_string("user-bob"),
++                scopes: vec!["control".into()],
++            }
++        }
++        _ => {}
++    };
++    p
++}
++struct Validator {
++    calls: AtomicUsize,
++    hold: AtomicBool,
++    entered: Notify,
++    release: Notify,
++}
++#[async_trait]
++impl BearerValidator for Validator {
++    async fn validate(&self, token: &str) -> Result<IdentityAssurance, BearerAuthError> {
++        Ok(principal(token).assurance)
++    }
++    async fn validate_credential(&self, token: &str) -> Result<ValidatedBearer, BearerAuthError> {
++        self.calls.fetch_add(1, Ordering::SeqCst);
++        if self.hold.load(Ordering::SeqCst) {
++            self.entered.notify_one();
++            self.release.notified().await;
++        }
++        if token == "unavailable" {
++            return Err(BearerAuthError::Unavailable(
++                "private-provider-detail".into(),
++            ));
++        }
++        ValidatedBearer::new(
++            principal(token),
++            Some(token.into()),
++            Some(std::time::SystemTime::now() - Duration::from_secs(1)),
++        )
++    }
++}
++#[derive(Default)]
++struct Policy {
++    require_stepup: AtomicBool,
++    deny_stepup: AtomicBool,
++    task_requirement: AtomicBool,
++    changed_requirement: AtomicBool,
++    revoked: Arc<RwLock<HashSet<String>>>,
++    deny_refresh: AtomicBool,
++    calls: AtomicUsize,
++}
++impl Policy {
++    async fn guard(
++        &self,
++        c: &ValidatedBearer,
++        device: &Device,
++        id: &Identifier,
++        env: &Envelope,
++    ) -> Result<AuthorityLease, DispatchError> {
++        self.calls.fetch_add(1, Ordering::SeqCst);
++        let guard = self.revoked.clone().read_owned().await;
++        if c.token_id
++            .as_ref()
++            .is_none_or(|token| guard.contains(token))
++            || c.issued_at.is_none()
++            || c.principal.is_expired()
++            || !matches!(device.id.as_str(), "device-alice" | "device-other")
++            || id.as_str() != "identity-alice"
++            || (env.kind() == "connection.update" && !c.principal.has_scope("control"))
++        {
++            return Err(DispatchError::Authority);
++        }
++        Ok(AuthorityLease::holding(guard))
++    }
++}
++#[async_trait]
++impl PeerAuthority for Policy {
++    fn assurance_requirement(
++        &self,
++        _c: &ValidatedBearer,
++        _d: &Device,
++        _i: &Identifier,
++        e: &Envelope,
++    ) -> Result<Option<AssuranceRequirement>, DispatchError> {
++        if e.kind() != "connection.update" || !self.require_stepup.load(Ordering::SeqCst) {
++            return Ok(None);
++        }
++        Ok(Some(if self.task_requirement.load(Ordering::SeqCst) {
++            AssuranceRequirement::TaskScoped {
++                task_id: "task-private".into(),
++                scopes: vec!["control".into()],
++            }
++        } else {
++            AssuranceRequirement::UserAuthorized {
++                user_id: rvoip_core::IdentityId::from_string(
++                    if self.changed_requirement.load(Ordering::SeqCst) {
++                        "different-user"
++                    } else {
++                        "user-alice"
++                    },
++                ),
++                scopes: vec!["control".into()],
++            }
++        }))
++    }
++    async fn step_up(
++        &self,
++        old: &ValidatedBearer,
++        new: &ValidatedBearer,
++        d: &Device,
++        i: &Identifier,
++        _required: &AssuranceRequirement,
++        blocked: &Envelope,
++        _response: &Envelope,
++    ) -> Result<AuthorityLease, DispatchError> {
++        if self.deny_stepup.load(Ordering::SeqCst) {
++            return Err(DispatchError::Authority);
++        }
++        let lease = self.guard(new, d, i, blocked).await?;
++        if old.token_id.as_ref().is_none_or(|token| {
++            self.revoked
++                .try_read()
++                .map_or(true, |set| set.contains(token))
++        }) {
++            return Err(DispatchError::Authority);
++        }
++        Ok(lease)
++    }
++    async fn identity(&self, c: &ValidatedBearer, d: &Device) -> Result<Identifier, DispatchError> {
++        if c.principal.subject != "alice"
++            || !matches!(d.id.as_str(), "device-alice" | "device-other")
++        {
++            return Err(DispatchError::Authority);
++        }
++        Identifier::try_from("identity-alice".to_owned()).map_err(DispatchError::from)
++    }
++    async fn acquire(
++        &self,
++        c: &ValidatedBearer,
++        d: &Device,
++        i: &Identifier,
++        e: &Envelope,
++    ) -> Result<AuthorityLease, DispatchError> {
++        self.guard(c, d, i, e).await
++    }
++    async fn refresh(
++        &self,
++        old: &ValidatedBearer,
++        new: &ValidatedBearer,
++        d: &Device,
++        i: &Identifier,
++        e: &Envelope,
++    ) -> Result<AuthorityLease, DispatchError> {
++        if self.deny_refresh.load(Ordering::SeqCst) {
++            return Err(DispatchError::Authority);
++        }
++        let lease = self.guard(new, d, i, e).await?;
++        if old.token_id.as_ref().is_none_or(|token| {
++            self.revoked
++                .try_read()
++                .map_or(true, |set| set.contains(token))
++        }) {
++            return Err(DispatchError::Authority);
++        }
++        Ok(lease)
++    }
++}
++struct Keys {
++    client: Vec<u8>,
++    server: Vec<u8>,
++}
++impl KeyResolver for Keys {
++    fn resolve(&self, _: &str) -> Option<Vec<u8>> {
++        None
++    }
++    fn resolve_for_principal(
++        &self,
++        p: &AuthenticatedPrincipal,
++        k: &str,
++        a: &str,
++        _: chrono::DateTime<Utc>,
++    ) -> Option<ResolvedVerificationKey> {
++        if p.tenant.as_deref() != Some("tenant")
++            || p.issuer.as_deref() != Some("issuer")
++            || a != "EdDSA"
++        {
++            return None;
++        }
++        let bytes = match (p.subject.as_str(), k) {
++            ("alice", "client") => self.client.clone(),
++            ("server", "server") => self.server.clone(),
++            _ => return None,
++        };
++        Some(ResolvedVerificationKey {
++            public_key: bytes,
++            algorithm: "EdDSA".into(),
++            not_before: None,
++            expires_at: None,
++            revoked: false,
++        })
++    }
++}
++#[derive(Default)]
++struct Handler {
++    calls: AtomicUsize,
++}
++#[async_trait]
++impl AuthenticatedHandler for Handler {
++    async fn handle(&self, env: AuthorizedEnvelope) -> Result<Envelope, DispatchError> {
++        assert_eq!(env.principal().subject, "alice");
++        self.calls.fetch_add(1, Ordering::SeqCst);
++        Envelope::from_value(envelope("ack", json!({}))).map_err(DispatchError::from)
++    }
++}
++struct Fixture {
++    config: Arc<PeerConfig>,
++    client: Sig9421Signer,
++    server_verify: Sig9421Verifier,
++    policy: Arc<Policy>,
++    validator: Arc<Validator>,
++}
++impl Fixture {
++    fn new() -> Self {
++        let client_key = Ed25519KeyPair::generate_pkcs8(&ring::rand::SystemRandom::new()).unwrap();
++        let server_key = Ed25519KeyPair::generate_pkcs8(&ring::rand::SystemRandom::new()).unwrap();
++        let client = Sig9421Signer::ed25519("client", client_key.as_ref()).unwrap();
++        let server = Sig9421Signer::ed25519("server", server_key.as_ref()).unwrap();
++        let resolver = Arc::new(Keys {
++            client: Ed25519KeyPair::from_pkcs8(client_key.as_ref())
++                .unwrap()
++                .public_key()
++                .as_ref()
++                .to_vec(),
++            server: Ed25519KeyPair::from_pkcs8(server_key.as_ref())
++                .unwrap()
++                .public_key()
++                .as_ref()
++                .to_vec(),
++        });
++        let validator = Arc::new(Validator {
++            calls: AtomicUsize::new(0),
++            hold: AtomicBool::new(false),
++            entered: Notify::new(),
++            release: Notify::new(),
++        });
++        let policy = Arc::new(Policy::default());
++        policy.require_stepup.store(false, Ordering::SeqCst);
++        let config = Arc::new(PeerConfig {
++            methods: Arc::new(AuthenticationMethods::new(Some(validator.clone()))),
++            verifier: Arc::new(Sig9421Verifier::new(resolver.clone())),
++            signer: Arc::new(server),
++            authority: policy.clone(),
++            pending_capacity: 2,
++        });
++        Self {
++            config,
++            client,
++            server_verify: Sig9421Verifier::new(resolver),
++            policy,
++            validator,
++        }
++    }
++    fn peer(&self) -> CanonicalPeer {
++        CanonicalPeer::new(self.config.clone(), CancellationToken::new()).unwrap()
++    }
++    fn sign(&self, v: Value) -> Vec<u8> {
++        serde_json::to_vec(&self.client.sign(&v).unwrap()).unwrap()
++    }
++    async fn authenticate(&self, peer: &mut CanonicalPeer, token: &str) -> Envelope {
++        let output = peer
++            .handle(
++                &serde_json::to_vec(&hello()).unwrap(),
++                &Handler::default(),
++                deadline(),
++            )
++            .await
++            .unwrap();
++        let challenge = output.envelopes()[0].clone();
++        drop(output);
++        let output = peer
++            .handle(
++                &self.sign(response(&challenge, token)),
++                &Handler::default(),
++                deadline(),
++            )
++            .await
++            .unwrap();
++        output.envelopes()[0].clone()
++    }
++    async fn verify_server(&self, env: &Envelope) {
++        let mut p = principal("old");
++        p.subject = "server".into();
++        self.server_verify
++            .verify_for_principal(env.original(), &p)
++            .await
++            .unwrap();
++    }
++}
++
++#[derive(Default)]
++struct Tracking {
++    calls: AtomicUsize,
++    effects: std::sync::Mutex<HashSet<String>>,
++    requests: std::sync::Mutex<Vec<Value>>,
++}
++#[async_trait]
++impl AuthenticatedHandler for Tracking {
++    async fn handle(&self, env: AuthorizedEnvelope) -> Result<Envelope, DispatchError> {
++        self.calls.fetch_add(1, Ordering::SeqCst);
++        assert_eq!(env.principal().subject, "alice");
++        assert!(matches!(
++            env.principal().assurance,
++            IdentityAssurance::UserAuthorized { .. } | IdentityAssurance::TaskScoped { .. }
++        ));
++        self.effects
++            .lock()
++            .unwrap()
++            .insert(env.envelope().scope(Scope::Operation).unwrap().into());
++        self.requests
++            .lock()
++            .unwrap()
++            .push(env.envelope().signature_input());
++        Envelope::from_value(envelope("ack", json!({}))).map_err(DispatchError::from)
++    }
++}
++fn proof(challenge: &Envelope, token: &str) -> Value {
++    let mut value = envelope(
++        "identity.step-up-response",
++        json!({"method":"bearer","credential":token}),
++    );
++    value["in_reply_to"] = json!(challenge.id());
++    for field in ["cid", "sid", "connid", "operation_id"] {
++        if let Some(item) = challenge.original().get(field) {
++            value[field] = item.clone();
++        }
++    }
++    value
++}
++async fn blocked(f: &Fixture, peer: &mut CanonicalPeer, h: &Tracking) -> (Value, Envelope) {
++    let request = command();
++    let output = peer
++        .handle(&f.sign(request.clone()), h, deadline())
++        .await
++        .unwrap();
++    assert_eq!(h.calls.load(Ordering::SeqCst), 0);
++    let challenge = output.envelopes()[0].clone();
++    assert_eq!(challenge.kind(), "identity.step-up-request");
++    assert!(peer.has_pending_step_up());
++    (request, challenge)
++}
++
++use rvoip_uctp::v2::reachability::{
++    PeerTransport, ReachabilityRegistry, RouteAuthority, RouteHandle, TrustedPeerRoute,
++};
++
++struct RoutePolicy {
++    policy: Arc<Policy>,
++    tokens: std::sync::Mutex<std::collections::HashMap<(String, String), CancellationToken>>,
++    deny: AtomicBool,
++    deny_lifetime: AtomicBool,
++    hold: AtomicBool,
++    entered: Notify,
++    release: Notify,
++    deliveries: AtomicUsize,
++}
++impl RoutePolicy {
++    fn new(policy: Arc<Policy>) -> Arc<Self> {
++        Arc::new(Self {
++            policy,
++            tokens: std::sync::Mutex::new(std::collections::HashMap::new()),
++            deny: AtomicBool::new(false),
++            deny_lifetime: AtomicBool::new(false),
++            hold: AtomicBool::new(false),
++            entered: Notify::new(),
++            release: Notify::new(),
++            deliveries: AtomicUsize::new(0),
++        })
++    }
++    fn revoke(&self, token: &str, device: &str) {
++        if let Some(token) = self
++            .tokens
++            .lock()
++            .unwrap()
++            .get(&(token.into(), device.into()))
++        {
++            token.cancel();
++        }
++    }
++}
++#[async_trait]
++impl RouteAuthority for RoutePolicy {
++    fn lifetime(
++        &self,
++        c: &ValidatedBearer,
++        d: &Device,
++        _: &Identifier,
++    ) -> Result<CancellationToken, DispatchError> {
++        if self.deny_lifetime.load(Ordering::SeqCst) {
++            return Err(DispatchError::Authority);
++        }
++        let key = (
++            c.token_id.clone().ok_or(DispatchError::Authority)?,
++            d.id.as_str().to_owned(),
++        );
++        Ok(self.tokens.lock().unwrap().entry(key).or_default().clone())
++    }
++    async fn delivery(
++        &self,
++        c: &ValidatedBearer,
++        d: &Device,
++        i: &Identifier,
++        e: &Envelope,
++    ) -> Result<AuthorityLease, DispatchError> {
++        self.deliveries.fetch_add(1, Ordering::SeqCst);
++        self.entered.notify_one();
++        if self.hold.load(Ordering::SeqCst) {
++            self.release.notified().await;
++        }
++        if self.deny.load(Ordering::SeqCst)
++            || !c.principal.has_scope("control")
++            || e.scope(Scope::Conversation) != Some("conversation")
++        {
++            return Err(DispatchError::Authority);
++        }
++        self.policy.guard(c, d, i, e).await
++    }
++}
++fn owner() -> rvoip_auth_core::PrincipalOwnershipKey {
++    principal("old").ownership_key()
++}
++fn identity() -> Identifier {
++    Identifier::try_from("identity-alice".to_owned()).unwrap()
++}
++fn route(address: &str, lease: u64) -> TrustedPeerRoute {
++    TrustedPeerRoute::new(PeerTransport::Quic, address, 10, Duration::from_secs(lease)).unwrap()
++}
++fn routed_peer(
++    f: &Fixture,
++    registry: Arc<ReachabilityRegistry>,
++    policy: Arc<RoutePolicy>,
++    lease: u64,
++) -> CanonicalPeer {
++    CanonicalPeer::with_reachability(
++        f.config.clone(),
++        CancellationToken::new(),
++        registry,
++        route("127.0.0.1:4433", lease),
++        policy,
++    )
++    .unwrap()
++}
++async fn authenticate_device(
++    f: &Fixture,
++    peer: &mut CanonicalPeer,
++    device: &str,
++    token: &str,
++) -> Envelope {
++    let mut hello = hello();
++    hello["payload"]["device"]["id"] = json!(device);
++    hello["payload"]["capabilities"] =
++        json!({"reachability":[{"address":"attacker-selected-address"}]});
++    let output = peer
++        .handle(
++            &serde_json::to_vec(&hello).unwrap(),
++            &Handler::default(),
++            deadline(),
++        )
++        .await
++        .unwrap();
++    let challenge = output.envelopes()[0].clone();
++    drop(output);
++    let output = peer
++        .handle(
++            &f.sign(response(&challenge, token)),
++            &Handler::default(),
++            deadline(),
++        )
++        .await
++        .unwrap();
++    output.envelopes()[0].clone()
++}
++fn current(registry: &ReachabilityRegistry) -> Vec<RouteHandle> {
++    registry.routes_for(&owner(), &identity()).unwrap()
++}
++fn event() -> Envelope {
++    let mut value = envelope(
++        "conversation.event",
++        json!({"event_id":"event-fixture","cursor":"cursor-fixture","kind":"fixture","revision":1,"data":{"text":"guarded-route-payload"}}),
++    );
++    value["cid"] = json!("conversation");
++    value["operation_id"] = json!("logical-route-operation");
++    Envelope::from_value(value).unwrap()
++}
++#[tokio::test]
++async fn authenticated_hint_uses_trusted_route_and_no_pre_auth_or_client_address() {
++    let f = Fixture::new();
++    let registry = ReachabilityRegistry::new(8).unwrap();
++    let policy = RoutePolicy::new(f.policy.clone());
++    let mut peer = routed_peer(&f, registry.clone(), policy, 5);
++    assert_eq!(registry.usage(), (0, 8));
++    assert!(current(&registry).is_empty());
++    let session = authenticate_device(&f, &mut peer, "device-alice", "old").await;
++    f.verify_server(&session).await;
++    let hint = &session.original()["payload"]["reachability"][0];
++    assert_eq!(hint["address"], "127.0.0.1:4433");
++    assert_eq!(hint["device_id"], "device-alice");
++    assert_eq!(hint["transport"], "quic");
++    assert!(!serde_json::to_string(&session)
++        .unwrap()
++        .contains("attacker-selected-address"));
++    assert_eq!(current(&registry).len(), 1);
++    assert_eq!(registry.usage(), (1, 8));
++    peer.close();
++    assert_eq!(registry.usage(), (0, 8));
++}
++#[tokio::test(start_paused = true)]
++async fn heartbeat_renews_freshness_but_never_extends_old_handle_or_credential() {
++    let f = Fixture::new();
++    let registry = ReachabilityRegistry::new(8).unwrap();
++    let policy = RoutePolicy::new(f.policy.clone());
++    let mut peer = routed_peer(&f, registry.clone(), policy, 2);
++    let session = authenticate_device(&f, &mut peer, "device-alice", "old").await;
++    let old = current(&registry).remove(0);
++    tokio::time::advance(Duration::from_secs(1)).await;
++    let keepalive = envelope(
++        "auth.keepalive",
++        json!({"session_token":session.original()["payload"]["session_token"]}),
++    );
++    let output = peer
++        .handle(&f.sign(keepalive), &Handler::default(), deadline())
++        .await
++        .unwrap();
++    assert_eq!(
++        output.envelopes()[0].original()["payload"]["details"]["reachability"][0]["device_id"],
++        "device-alice"
++    );
++    drop(output);
++    tokio::time::advance(Duration::from_millis(1500)).await;
++    assert_eq!(current(&registry).len(), 1);
++    assert!(matches!(
++        old.submit(event(), deadline()).await,
++        Err(DispatchError::Closed)
++    ));
++    tokio::time::advance(Duration::from_secs(1)).await;
++    assert!(current(&registry).is_empty());
++    assert_eq!(
++        registry.usage().0,
++        1,
++        "expired observation does not silently free its ownership slot"
++    );
++    let keepalive = envelope(
++        "auth.keepalive",
++        json!({"session_token":session.original()["payload"]["session_token"]}),
++    );
++    peer.handle(&f.sign(keepalive), &Handler::default(), deadline())
++        .await
++        .unwrap();
++    assert_eq!(current(&registry).len(), 1);
++}
++#[tokio::test]
++async fn independent_devices_and_owner_domains_do_not_leak_or_retire_each_other() {
++    let f = Fixture::new();
++    let registry = ReachabilityRegistry::new(8).unwrap();
++    let policy = RoutePolicy::new(f.policy.clone());
++    let mut first = routed_peer(&f, registry.clone(), policy.clone(), 5);
++    let mut second = routed_peer(&f, registry.clone(), policy.clone(), 5);
++    authenticate_device(&f, &mut first, "device-alice", "old").await;
++    authenticate_device(&f, &mut second, "device-other", "old").await;
++    assert_eq!(current(&registry).len(), 2);
++    let mut wrong = owner();
++    wrong.tenant = Some("other-tenant".into());
++    assert!(registry.routes_for(&wrong, &identity()).unwrap().is_empty());
++    wrong = owner();
++    wrong.issuer = Some("other-issuer".into());
++    assert!(registry.routes_for(&wrong, &identity()).unwrap().is_empty());
++    policy.revoke("old", "device-alice");
++    let routes = current(&registry);
++    assert_eq!(routes.len(), 1);
++    assert_eq!(routes[0].hint().device_id.as_str(), "device-other");
++    first.close();
++    assert_eq!(registry.usage().0, 1);
++    second.close();
++    assert!(current(&registry).is_empty());
++}
++#[tokio::test]
++async fn refresh_publishes_successor_before_old_cleanup_and_old_authority_cannot_retire_it() {
++    let f = Fixture::new();
++    let registry = ReachabilityRegistry::new(8).unwrap();
++    let policy = RoutePolicy::new(f.policy.clone());
++    let mut peer = routed_peer(&f, registry.clone(), policy.clone(), 5);
++    authenticate_device(&f, &mut peer, "device-alice", "old").await;
++    let old = current(&registry).remove(0);
++    peer.handle(
++        &f.sign(envelope(
++            "auth.refresh",
++            json!({"method":"bearer","credential":"new"}),
++        )),
++        &Handler::default(),
++        deadline(),
++    )
++    .await
++    .unwrap();
++    assert_eq!(registry.usage().0, 1);
++    assert_eq!(current(&registry).len(), 1);
++    assert!(matches!(
++        old.submit(event(), deadline()).await,
++        Err(DispatchError::Closed)
++    ));
++    policy.revoke("old", "device-alice");
++    assert_eq!(current(&registry).len(), 1);
++    peer.close();
++    assert_eq!(registry.usage().0, 0);
++}
++#[tokio::test]
++async fn failed_route_candidate_and_cancelled_authentication_preserve_exact_existing_state() {
++    let f = Fixture::new();
++    let registry = ReachabilityRegistry::new(8).unwrap();
++    let policy = RoutePolicy::new(f.policy.clone());
++    let mut peer = routed_peer(&f, registry.clone(), policy.clone(), 5);
++    authenticate_device(&f, &mut peer, "device-alice", "old").await;
++    policy.deny_lifetime.store(true, Ordering::SeqCst);
++    assert_eq!(
++        peer.handle(
++            &f.sign(envelope(
++                "auth.refresh",
++                json!({"method":"bearer","credential":"new"})
++            )),
++            &Handler::default(),
++            deadline()
++        )
++        .await
++        .unwrap_err(),
++        DispatchError::Authority
++    );
++    assert_eq!(peer.generation(), Some(1));
++    assert_eq!(current(&registry).len(), 1);
++    policy.deny_lifetime.store(false, Ordering::SeqCst);
++    let mut candidate = routed_peer(&f, registry.clone(), policy, 5);
++    let output = candidate
++        .handle(
++            &serde_json::to_vec(&hello()).unwrap(),
++            &Handler::default(),
++            deadline(),
++        )
++        .await
++        .unwrap();
++    let challenge = output.envelopes()[0].clone();
++    drop(output);
++    f.validator.hold.store(true, Ordering::SeqCst);
++    let wire = f.sign(response(&challenge, "new"));
++    let h = Handler::default();
++    let mut future = Box::pin(candidate.handle(&wire, &h, deadline()));
++    tokio::select! {result=&mut future=>panic!("early {result:?}"),_=f.validator.entered.notified()=>{}}
++    drop(future);
++    assert_eq!(registry.usage().0, 1);
++    assert_eq!(current(&registry).len(), 1);
++}
++#[tokio::test]
++async fn registry_capacity_never_evicts_another_authenticated_route() {
++    let f = Fixture::new();
++    let registry = ReachabilityRegistry::new(1).unwrap();
++    let policy = RoutePolicy::new(f.policy.clone());
++    let mut first = routed_peer(&f, registry.clone(), policy.clone(), 5);
++    let mut second = routed_peer(&f, registry.clone(), policy, 5);
++    authenticate_device(&f, &mut first, "device-alice", "old").await;
++    let mut hello = hello();
++    hello["payload"]["device"]["id"] = json!("device-other");
++    let output = second
++        .handle(
++            &serde_json::to_vec(&hello).unwrap(),
++            &Handler::default(),
++            deadline(),
++        )
++        .await
++        .unwrap();
++    let challenge = output.envelopes()[0].clone();
++    drop(output);
++    assert_eq!(
++        second
++            .handle(
++                &f.sign(response(&challenge, "old")),
++                &Handler::default(),
++                deadline()
++            )
++            .await
++            .unwrap_err(),
++        DispatchError::Capacity
++    );
++    assert_eq!(
++        current(&registry)[0].hint().device_id.as_str(),
++        "device-alice"
++    );
++    first.close();
++    assert!(second
++        .handle(
++            &f.sign(response(&challenge, "old")),
++            &Handler::default(),
++            deadline()
++        )
++        .await
++        .is_ok());
++    assert_eq!(
++        current(&registry)[0].hint().device_id.as_str(),
++        "device-other"
++    );
++}
++async fn quic_pair() -> (
++    quinn::Endpoint,
++    quinn::Endpoint,
++    quinn::Connection,
++    quinn::Connection,
++) {
++    use rvoip_uctp::substrate::{
++        dev_client_config_trusting, make_server_endpoint, self_signed_for_dev,
++    };
++    let _ = rustls::crypto::ring::default_provider().install_default();
++    let (cert, key) = self_signed_for_dev(&["localhost".into()]).unwrap();
++    let mut tls = rustls::ServerConfig::builder()
++        .with_no_client_auth()
++        .with_single_cert(vec![cert.clone()], key)
++        .unwrap();
++    tls.alpn_protocols = vec![RAW_QUIC_ALPN.to_vec()];
++    let server = make_server_endpoint(
++        "127.0.0.1:0".parse().unwrap(),
++        Arc::new(tls),
++        quinn::TransportConfig::default(),
++    )
++    .unwrap();
++    let mut tls = dev_client_config_trusting(&cert).unwrap();
++    tls.alpn_protocols = vec![RAW_QUIC_ALPN.to_vec()];
++    let crypto = quinn::crypto::rustls::QuicClientConfig::try_from(tls).unwrap();
++    let mut client = quinn::Endpoint::client("127.0.0.1:0".parse().unwrap()).unwrap();
++    client.set_default_client_config(quinn::ClientConfig::new(Arc::new(crypto)));
++    let connect = client
++        .connect(server.local_addr().unwrap(), "localhost")
++        .unwrap();
++    let accept = async { server.accept().await.unwrap().await.unwrap() };
++    let (remote, host) = tokio::join!(connect, accept);
++    (server, client, host, remote.unwrap())
++}
++
++#[tokio::test]
++async fn actual_tls_quic_registry_route_delivers_signed_frame_under_current_recipient_guard() {
++    let f = Fixture::new();
++    let registry = ReachabilityRegistry::new(8).unwrap();
++    let policy = RoutePolicy::new(f.policy.clone());
++    let (_server, _client, host, remote) = quic_pair().await;
++    let _host_lifetime = host.clone();
++    let parent = CancellationToken::new();
++    let peer = CanonicalPeer::with_reachability(
++        f.config.clone(),
++        parent.clone(),
++        registry.clone(),
++        route(&_server.local_addr().unwrap().to_string(), 5),
++        policy.clone(),
++    )
++    .unwrap();
++    let lifetime = peer.cancellation();
++    let server = tokio::spawn(async move {
++        let (tx, rx) = host.accept_bi().await.unwrap();
++        peer.run(rx, tx, &Handler::default()).await
++    });
++    let (tx, rx) = remote.open_bi().await.unwrap();
++    let mut writer = FramedWrite::new(tx, rvoip_uctp::substrate::length_prefixed_codec());
++    let mut reader = FramedRead::new(rx, rvoip_uctp::substrate::length_prefixed_codec());
++    writer
++        .send(Bytes::from(serde_json::to_vec(&hello()).unwrap()))
++        .await
++        .unwrap();
++    let challenge = Envelope::parse(&reader.next().await.unwrap().unwrap()).unwrap();
++    writer
++        .send(Bytes::from(f.sign(response(&challenge, "old"))))
++        .await
++        .unwrap();
++    let session = Envelope::parse(&reader.next().await.unwrap().unwrap()).unwrap();
++    assert_eq!(
++        session.original()["payload"]["reachability"][0]["address"],
++        _server.local_addr().unwrap().to_string()
++    );
++    let handle = current(&registry).remove(0);
++    let receipt = handle.submit(event(), deadline()).await.unwrap();
++    let frame = Envelope::parse(&reader.next().await.unwrap().unwrap()).unwrap();
++    assert_eq!(frame.id(), receipt.envelope_id().as_str());
++    assert_eq!(frame.kind(), "conversation.event");
++    assert_eq!(
++        frame.original()["payload"]["data"]["text"],
++        "guarded-route-payload"
++    );
++    f.verify_server(&frame).await;
++    policy.deny.store(true, Ordering::SeqCst);
++    assert!(matches!(
++        handle.submit(event(), deadline()).await,
++        Err(DispatchError::Authority)
++    ));
++    assert!(
++        tokio::time::timeout(Duration::from_millis(20), reader.next())
++            .await
++            .is_err()
++    );
++    policy.deny.store(false, Ordering::SeqCst);
++    // Earlier completed delivery notifications must not satisfy this barrier.
++    policy.entered.notified().await;
++    policy.hold.store(true, Ordering::SeqCst);
++    let mut pending = Box::pin(handle.submit(event(), deadline()));
++    tokio::select! {result=&mut pending=>panic!("early {result:?}"),_=policy.entered.notified()=>{}}
++    policy.revoke("old", "device-alice");
++    assert!(matches!(pending.await, Err(DispatchError::Authority)));
++    let bye = Envelope::parse(&reader.next().await.unwrap().unwrap()).unwrap();
++    assert_eq!(bye.kind(), "auth.bye");
++    assert_eq!(bye.original()["payload"]["reason"], "authority-retired");
++    assert_eq!(server.await.unwrap().unwrap_err(), DispatchError::Authority);
++    assert!(lifetime.is_cancelled());
++    assert!(!parent.is_cancelled());
++    assert_eq!(registry.usage().0, 0);
++}
++#[tokio::test]
++async fn queued_old_incarnation_cannot_borrow_refreshed_credential_and_new_route_is_usable() {
++    let f = Fixture::new();
++    let registry = ReachabilityRegistry::new(8).unwrap();
++    let policy = RoutePolicy::new(f.policy.clone());
++    let mut peer = routed_peer(&f, registry.clone(), policy, 5);
++    authenticate_device(&f, &mut peer, "device-alice", "old").await;
++    let old = current(&registry).remove(0);
++    let mut stale = Box::pin(old.submit(event(), deadline()));
++    assert!(futures::poll!(stale.as_mut()).is_pending());
++    peer.handle(
++        &f.sign(envelope(
++            "auth.refresh",
++            json!({"method":"bearer","credential":"new"}),
++        )),
++        &Handler::default(),
++        deadline(),
++    )
++    .await
++    .unwrap();
++    let (a, b) = tokio::io::duplex(8192);
++    let (rd, wr) = tokio::io::split(a);
++    let (crd, cwr) = tokio::io::split(b);
++    let server = tokio::spawn(async move { peer.run(rd, wr, &Handler::default()).await });
++    let mut reader = FramedRead::new(crd, rvoip_uctp::substrate::length_prefixed_codec());
++    let mut writer = FramedWrite::new(cwr, rvoip_uctp::substrate::length_prefixed_codec());
++    assert!(matches!(stale.await, Err(DispatchError::Closed)));
++    let handle = current(&registry).remove(0);
++    let receipt = handle.submit(event(), deadline()).await.unwrap();
++    let frame = Envelope::parse(&reader.next().await.unwrap().unwrap()).unwrap();
++    assert_eq!(frame.id(), receipt.envelope_id().as_str());
++    writer.close().await.unwrap();
++    assert!(server.await.unwrap().is_ok());
++    assert_eq!(registry.usage().0, 0);
++}
++#[tokio::test]
++async fn bounded_queue_pressure_and_cancelled_submissions_cannot_create_phantom_writes() {
++    let f = Fixture::new();
++    let registry = ReachabilityRegistry::new(8).unwrap();
++    let policy = RoutePolicy::new(f.policy.clone());
++    let mut peer = routed_peer(&f, registry.clone(), policy.clone(), 5);
++    authenticate_device(&f, &mut peer, "device-alice", "old").await;
++    let handle = current(&registry).remove(0);
++    let mut queued = Vec::new();
++    for _ in 0..32 {
++        let handle = handle.clone();
++        let mut future = Box::pin(async move { handle.submit(event(), deadline()).await });
++        assert!(futures::poll!(future.as_mut()).is_pending());
++        queued.push(future);
++    }
++    assert!(matches!(
++        handle.submit(event(), deadline()).await,
++        Err(DispatchError::Capacity)
++    ));
++    drop(queued);
++    let (a, b) = tokio::io::duplex(8192);
++    let (rd, wr) = tokio::io::split(a);
++    let (crd, cwr) = tokio::io::split(b);
++    let server = tokio::spawn(async move { peer.run(rd, wr, &Handler::default()).await });
++    tokio::task::yield_now().await;
++    let mut reader = FramedRead::new(crd, rvoip_uctp::substrate::length_prefixed_codec());
++    let mut writer = FramedWrite::new(cwr, rvoip_uctp::substrate::length_prefixed_codec());
++    let receipt = handle.submit(event(), deadline()).await.unwrap();
++    let frame = Envelope::parse(&reader.next().await.unwrap().unwrap()).unwrap();
++    assert_eq!(frame.id(), receipt.envelope_id().as_str());
++    assert_eq!(policy.deliveries.load(Ordering::SeqCst), 1);
++    writer.close().await.unwrap();
++    assert!(server.await.unwrap().is_ok());
++}
++#[tokio::test(start_paused = true)]
++async fn partial_writer_timeout_is_unknown_and_releases_authority_and_route() {
++    let f = Fixture::new();
++    let registry = ReachabilityRegistry::new(8).unwrap();
++    let policy = RoutePolicy::new(f.policy.clone());
++    let mut peer = routed_peer(&f, registry.clone(), policy, 5);
++    authenticate_device(&f, &mut peer, "device-alice", "old").await;
++    let handle = current(&registry).remove(0);
++    let lifetime = peer.cancellation();
++    let (a, _blocked_client) = tokio::io::duplex(16);
++    let (rd, wr) = tokio::io::split(a);
++    let server = tokio::spawn(async move { peer.run(rd, wr, &Handler::default()).await });
++    assert!(matches!(
++        handle
++            .submit(event(), Instant::now() + Duration::from_secs(1))
++            .await,
++        Err(DispatchError::SubmissionUnknown)
++    ));
++    assert!(server.await.unwrap().is_err());
++    assert!(lifetime.is_cancelled());
++    assert!(f.policy.revoked.try_write().is_ok());
++    assert_eq!(registry.usage().0, 0);
++}
++#[tokio::test(start_paused = true)]
++async fn route_hint_cannot_outlive_credential_and_idle_expiry_retires_registration() {
++    let f = Fixture::new();
++    let registry = ReachabilityRegistry::new(8).unwrap();
++    let policy = RoutePolicy::new(f.policy.clone());
++    let mut peer = routed_peer(&f, registry.clone(), policy, 60);
++    let session = authenticate_device(&f, &mut peer, "device-alice", "short").await;
++    assert_eq!(
++        session.original()["payload"]["reachability"][0]["expires_at"],
++        session.original()["payload"]["expires_at"]
++    );
++    let (a, b) = tokio::io::duplex(8192);
++    let (rd, wr) = tokio::io::split(a);
++    let (crd, _cwr) = tokio::io::split(b);
++    let server = tokio::spawn(async move { peer.run(rd, wr, &Handler::default()).await });
++    let mut reader = FramedRead::new(crd, rvoip_uctp::substrate::length_prefixed_codec());
++    let bye = Envelope::parse(&reader.next().await.unwrap().unwrap()).unwrap();
++    assert_eq!(bye.kind(), "auth.bye");
++    assert!(server.await.unwrap().is_err());
++    assert!(current(&registry).is_empty());
++    assert_eq!(registry.usage().0, 0);
++}
++
++#[tokio::test]
++async fn verified_stepup_replaces_route_without_old_cleanup_removing_new_incarnation() {
++    let f = Fixture::new();
++    f.policy.require_stepup.store(true, Ordering::SeqCst);
++    let registry = ReachabilityRegistry::new(8).unwrap();
++    let policy = RoutePolicy::new(f.policy.clone());
++    let mut peer = routed_peer(&f, registry.clone(), policy.clone(), 5);
++    authenticate_device(&f, &mut peer, "device-alice", "old").await;
++    let old = current(&registry).remove(0);
++    let h = Tracking::default();
++    let (_, challenge) = blocked(&f, &mut peer, &h).await;
++    let output = peer
++        .handle(&f.sign(proof(&challenge, "user")), &h, deadline())
++        .await
++        .unwrap();
++    assert_eq!(
++        output.envelopes()[0].original()["payload"]["reachability"][0]["device_id"],
++        "device-alice"
++    );
++    drop(output);
++    assert_eq!(registry.usage().0, 1);
++    assert_eq!(current(&registry).len(), 1);
++    assert!(matches!(
++        old.submit(event(), deadline()).await,
++        Err(DispatchError::Closed)
++    ));
++    policy.revoke("old", "device-alice");
++    assert_eq!(current(&registry).len(), 1);
++    assert_eq!(h.calls.load(Ordering::SeqCst), 1);
++}
++#[tokio::test]
++async fn peer_without_installed_route_context_cannot_fabricate_reachable_addresses() {
++    let f = Fixture::new();
++    let mut bare = f.peer();
++    let session = f.authenticate(&mut bare, "old").await;
++    assert_eq!(session.original()["payload"]["reachability"], json!([]));
++}

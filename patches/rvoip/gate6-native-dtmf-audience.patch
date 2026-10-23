@@ -1,0 +1,681 @@
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/capability_disclosure.rs b/crates/foundation/rvoip-core/src/staged_streams/capability_disclosure.rs
+--- a/crates/foundation/rvoip-core/src/staged_streams/capability_disclosure.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/capability_disclosure.rs
+@@ -219,3 +219,126 @@
+         Ok(io())
+     }
+ }
++
++/// Only scene registries are acquired during signal IO. Exact source and target
++/// credential/audio custody is supplied by Core's sealed native DTMF fences;
++/// reacquiring either controller here would deadlock that physical composition.
++#[derive(Clone)]
++pub(crate) struct SceneDtmfAudience {
++    source: SceneCapabilityDisclosure,
++    target: SceneCapabilityListener,
++}
++impl SceneCapabilityDisclosure {
++    pub(crate) fn matches_dtmf_source(
++        &self,
++        principal: &AuthenticatedPrincipal,
++        revision: u64,
++    ) -> bool {
++        self.source.credential.revision == revision
++            && reliable_data::same_credential(&self.source.credential.principal, principal)
++    }
++}
++impl GuardedMediaScene {
++    pub(crate) fn native_dtmf_audience(
++        self: &Arc<Self>,
++        source: &SceneCapabilityDisclosure,
++        target: &crate::dtmf::DtmfNativeRecipient,
++    ) -> ControlResult<SceneDtmfAudience> {
++        if !Weak::ptr_eq(&source.scene, &Arc::downgrade(self)) {
++            return Err(StreamControlError::Authority);
++        }
++        let controller = {
++            let members = self
++                .members
++                .try_lock()
++                .map_err(|_| StreamControlError::NotReady)?;
++            members
++                .get(&target.connection)
++                .map(|m| m.controller.clone())
++                .ok_or(StreamControlError::Authority)?
++        };
++        let member = &controller.origin_member;
++        let endpoint = &controller.origin_endpoint;
++        if controller.session != target.session
++            || controller.conversation != target.conversation
++            || member.participant() != &target.participant
++            || member.identity() != &target.identity
++            || member.epoch() != target.membership_epoch
++            || endpoint.endpoint() != &target.endpoint
++            || endpoint.device() != &target.device
++            || endpoint.transport() != target.transport
++        {
++            return Err(StreamControlError::Authority);
++        }
++        let listener =
++            self.capability_listener(&target.connection, &controller, &target.principal)?;
++        if listener.recipient.credential.revision != target.credential_revision {
++            return Err(StreamControlError::Authority);
++        }
++        Ok(SceneDtmfAudience {
++            source: source.clone(),
++            target: listener,
++        })
++    }
++}
++impl SceneDtmfAudience {
++    /// Called only inside the exact physical source/recipient DTMF IO fences.
++    /// Their credential checks bind these immutable principals to actual IO.
++    /// No controller, Core, or domain-policy reentry occurs here.
++    pub(crate) fn poll(
++        &self,
++        io: &mut dyn FnMut() -> crate::dtmf::DtmfIoPoll,
++    ) -> crate::dtmf::DtmfIoPoll {
++        use crate::dtmf::DtmfWriteError;
++        let refuse = || Poll::Ready(Err(DtmfWriteError::Refused));
++        let Some(scene) = self.source.scene.upgrade() else {
++            return refuse();
++        };
++        if !Weak::ptr_eq(&self.target.scene, &Arc::downgrade(&scene)) {
++            return refuse();
++        }
++        let (Some(source), Some(target)) = (
++            self.source.source.controller.upgrade(),
++            self.target.recipient.controller.upgrade(),
++        ) else {
++            return refuse();
++        };
++        if Arc::ptr_eq(&source, &target)
++            || source.shutdown.is_cancelled()
++            || target.shutdown.is_cancelled()
++        {
++            return refuse();
++        }
++        let Ok(members) = scene.members.try_lock() else {
++            return Poll::Pending;
++        };
++        let Ok(registry) = scene.audiences.try_lock() else {
++            return Poll::Pending;
++        };
++        if !members
++            .get(&source.connection)
++            .is_some_and(|m| Arc::ptr_eq(&m.controller, &source))
++            || !members
++                .get(&target.connection)
++                .is_some_and(|m| Arc::ptr_eq(&m.controller, &target))
++        {
++            return refuse();
++        }
++        let source_principal = &self.source.source.credential.principal;
++        let target_principal = &self.target.recipient.credential.principal;
++        if [source_principal, target_principal]
++            .iter()
++            .any(|p| StreamController::principal_expiry(p).is_some_and(|t| t <= chrono::Utc::now()))
++            || self.source.original.iter().any(|(group, inside)| {
++                *inside != group.contains_principal(&target, target_principal)
++            })
++            || registry.groups.values().any(|group| {
++                group.contains_principal(&source, source_principal)
++                    != group.contains_principal(&target, target_principal)
++            })
++        {
++            return refuse();
++        }
++        io()
++    }
++}
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/tests/private_consult.rs b/crates/foundation/rvoip-core/src/staged_streams/tests/private_consult.rs
+--- a/crates/foundation/rvoip-core/src/staged_streams/tests/private_consult.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/private_consult.rs
+@@ -2437,3 +2437,237 @@
+         .is_err());
+     assert_eq!(calls.load(Ordering::SeqCst), 3);
+ }
++
++fn native_dtmf_recipient(controller: &Arc<StreamController>) -> crate::dtmf::DtmfNativeRecipient {
++    let member = &controller.origin_member;
++    let endpoint = &controller.origin_endpoint;
++    crate::dtmf::DtmfNativeRecipient {
++        conversation: controller.conversation.clone(),
++        session: controller.session.clone(),
++        connection: controller.connection.clone(),
++        participant: member.participant().clone(),
++        transport: endpoint.transport(),
++        principal: controller.credential_snapshot().principal.as_ref().clone(),
++        identity: member.identity().clone(),
++        endpoint: endpoint.endpoint().clone(),
++        device: endpoint.device().clone(),
++        membership_epoch: member.epoch(),
++        physical_incarnation: uuid::Uuid::new_v4(),
++        signing_key_id: "controlled-metadata-only".into(),
++        signing_algorithm: "EdDSA".into(),
++        wire_conversation: controller.conversation.to_string(),
++        wire_session: controller.session.to_string(),
++        wire_connection: controller.connection.to_string(),
++        stream_revision: controller.revision(),
++        credential_revision: controller.credential_snapshot().revision,
++        audio_bindings: controller.active_bindings(),
++    }
++}
++#[tokio::test]
++async fn native_dtmf_audience_composes_with_physical_controller_fences_and_releases_pending_guards()
++{
++    use crate::dtmf::*;
++    let room = Room::new().await;
++    let alice = room.nodes["alice"].controller.clone();
++    let bob = room.nodes["bob"].controller.clone();
++    let source = native_dtmf_recipient(&alice);
++    let target = native_dtmf_recipient(&bob);
++    let (_, disclosure) = room
++        .scene
++        .commit_capability_declaration(
++            &alice.connection,
++            &alice,
++            &source.principal,
++            source.stream_revision,
++            || (),
++        )
++        .unwrap();
++    let audience = room
++        .scene
++        .native_dtmf_audience(&disclosure, &target)
++        .unwrap();
++    let calls = AtomicUsize::new(0);
++    // This is the same controller nesting required by actual native IO. The
++    // audience callback must not reacquire either controller's state/credential.
++    let mut effect = || {
++        calls.fetch_add(1, Ordering::SeqCst);
++        std::task::Poll::Ready(Ok(()))
++    };
++    let mut poll = || {
++        bob.poll_dtmf_source_io(
++            &target.principal,
++            target.stream_revision,
++            target.credential_revision,
++            &target.audio_bindings,
++            &mut || {
++                alice.poll_dtmf_source_io(
++                    &source.principal,
++                    source.stream_revision,
++                    source.credential_revision,
++                    &source.audio_bindings,
++                    &mut || audience.poll(&mut effect),
++                )
++            },
++        )
++    };
++    assert_eq!(poll(), std::task::Poll::Ready(Ok(())));
++    assert_eq!(calls.load(Ordering::SeqCst), 1);
++    let held = room.scene.audiences.lock().unwrap();
++    assert_eq!(poll(), std::task::Poll::Pending);
++    assert_eq!(calls.load(Ordering::SeqCst), 1);
++    // A Pending metadata poll must have released both actual controllers.
++    assert!(alice.state.try_lock().is_ok());
++    assert!(alice.credential.try_lock().is_ok());
++    assert!(bob.state.try_lock().is_ok());
++    assert!(bob.credential.try_lock().is_ok());
++    drop(held);
++    assert_eq!(poll(), std::task::Poll::Ready(Ok(())));
++    assert_eq!(calls.load(Ordering::SeqCst), 2);
++    alice.retire();
++    assert_eq!(
++        audience.poll(&mut effect),
++        std::task::Poll::Ready(Err(DtmfWriteError::Refused))
++    );
++}
++#[tokio::test]
++async fn native_dtmf_original_and_current_audiences_both_refuse_disclosure_across_private_return() {
++    use crate::dtmf::*;
++    let mut room = Room::new().await;
++    let alice = room.nodes["alice"].controller.clone();
++    let bob = room.nodes["bob"].controller.clone();
++    let public = room.nodes["public"].controller.clone();
++    let source = native_dtmf_recipient(&alice);
++    let (_, public_source) = room
++        .scene
++        .commit_capability_declaration(
++            &alice.connection,
++            &alice,
++            &source.principal,
++            source.stream_revision,
++            || (),
++        )
++        .unwrap();
++    let public_to_bob = room
++        .scene
++        .native_dtmf_audience(&public_source, &native_dtmf_recipient(&bob))
++        .unwrap();
++    let calls = AtomicUsize::new(0);
++    let mut effect = || {
++        calls.fetch_add(1, Ordering::SeqCst);
++        std::task::Poll::Ready(Ok(()))
++    };
++    assert_eq!(
++        public_to_bob.poll(&mut effect),
++        std::task::Poll::Ready(Ok(()))
++    );
++    room.add("consult", Some("public"), true).await;
++    let consult = room.nodes["consult"].controller.clone();
++    let (_, handle) = room.apply(room.begin_plan()).await.unwrap();
++    let source = native_dtmf_recipient(&alice);
++    let (_, private_source) = room
++        .scene
++        .commit_capability_declaration(
++            &alice.connection,
++            &alice,
++            &source.principal,
++            source.stream_revision,
++            || (),
++        )
++        .unwrap();
++    let private_to_consult = room
++        .scene
++        .native_dtmf_audience(&private_source, &native_dtmf_recipient(&consult))
++        .unwrap();
++    let private_to_bob = room
++        .scene
++        .native_dtmf_audience(&private_source, &native_dtmf_recipient(&bob))
++        .unwrap();
++    let private_to_public = room
++        .scene
++        .native_dtmf_audience(&private_source, &native_dtmf_recipient(&public))
++        .unwrap();
++    assert_eq!(
++        private_to_consult.poll(&mut effect),
++        std::task::Poll::Ready(Ok(()))
++    );
++    for fence in [&private_to_bob, &private_to_public, &public_to_bob] {
++        assert_eq!(
++            fence.poll(&mut effect),
++            std::task::Poll::Ready(Err(DtmfWriteError::Refused))
++        );
++    }
++    let restore = room
++        .scene
++        .plan_restore_audio_audience(
++            &handle,
++            "dtmf-return".into(),
++            room.scene.audience_revision(),
++        )
++        .unwrap();
++    room.apply(restore).await.unwrap();
++    assert_eq!(
++        public_to_bob.poll(&mut effect),
++        std::task::Poll::Ready(Ok(()))
++    );
++    // These are scene callbacks, not socket writes. Even if a later current
++    // physical scope is otherwise valid, the original private boundary remains.
++    for fence in [&private_to_bob, &private_to_public, &private_to_consult] {
++        assert_eq!(
++            fence.poll(&mut effect),
++            std::task::Poll::Ready(Err(DtmfWriteError::Refused))
++        );
++    }
++    assert_eq!(calls.load(Ordering::SeqCst), 3);
++}
++#[tokio::test]
++async fn native_dtmf_audience_binding_requires_exact_actual_recipient_relationship_and_credential_metadata(
++) {
++    let room = Room::new().await;
++    let alice = room.nodes["alice"].controller.clone();
++    let bob = room.nodes["bob"].controller.clone();
++    let source = native_dtmf_recipient(&alice);
++    let (_, disclosure) = room
++        .scene
++        .commit_capability_declaration(
++            &alice.connection,
++            &alice,
++            &source.principal,
++            source.stream_revision,
++            || (),
++        )
++        .unwrap();
++    assert!(disclosure.matches_dtmf_source(&source.principal, source.credential_revision));
++    assert!(!disclosure.matches_dtmf_source(&source.principal, source.credential_revision + 1));
++    let original = native_dtmf_recipient(&bob);
++    room.scene
++        .native_dtmf_audience(&disclosure, &original)
++        .unwrap();
++    for field in [
++        "conversation",
++        "session",
++        "participant",
++        "identity",
++        "endpoint",
++        "device",
++        "epoch",
++        "credential",
++    ] {
++        let mut changed = original.clone();
++        match field {
++            "conversation" => changed.conversation = ConversationId::new(),
++            "session" => changed.session = SessionId::new(),
++            "participant" => changed.participant = ParticipantId::new(),
++            "identity" => changed.identity = IdentityId::new(),
++            "endpoint" => changed.endpoint = EndpointId::new(),
++            "device" => changed.device = DeviceId::new(),
++            "epoch" => changed.membership_epoch += 1,
++            _ => changed.credential_revision += 1,
++        }
++        assert!(
++            room.scene
++                .native_dtmf_audience(&disclosure, &changed)
++                .is_err(),
++            "{field}"
++        );
++    }
++}
+diff --git a/crates/foundation/rvoip-core/src/orchestrator/participant_control/capability_disclosure.rs b/crates/foundation/rvoip-core/src/orchestrator/participant_control/capability_disclosure.rs
+--- a/crates/foundation/rvoip-core/src/orchestrator/participant_control/capability_disclosure.rs
++++ b/crates/foundation/rvoip-core/src/orchestrator/participant_control/capability_disclosure.rs
+@@ -72,6 +72,20 @@
+     /// already retained current named declaration permission. `commit` is a
+     /// synchronous leaf metadata change with no Core/policy reentry or IO.
+     pub fn commit_native_capability_declaration<T>(
++        &self,
++        session: &SessionId,
++        source: &ConnectionId,
++        controller: &Arc<StreamController>,
++        principal: &AuthenticatedPrincipal,
++        expected: u64,
++        commit: impl FnOnce() -> T,
++    ) -> ControlResult<(T, NativeCapabilityDisclosure)> {
++        self.commit_native_signal_metadata(session, source, controller, principal, expected, commit)
++    }
++
++    // Shared source-disclosure boundary. The supplied leaf decides whether an
++    // actual declaration changes, or only a signal observation is captured.
++    fn commit_native_signal_metadata<T>(
+         &self,
+         session: &SessionId,
+         source: &ConnectionId,
+@@ -206,3 +220,110 @@
+         Ok(scene.poll_capability_io(&disclosure.scene, &listener.scene, io)?)
+     }
+ }
++
++/// Original managed signal audience. It retains no command or permission reader.
++/// It is sealed from the actual source controller before accepting DTMF input.
++#[derive(Clone)]
++pub struct NativeDtmfDisclosure(NativeCapabilityDisclosure);
++impl std::fmt::Debug for NativeDtmfDisclosure {
++    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
++        f.write_str("NativeDtmfDisclosure(redacted)")
++    }
++}
++struct DtmfAudienceFence(crate::staged_streams::capability_disclosure::SceneDtmfAudience);
++impl crate::dtmf::DtmfIoFence for DtmfAudienceFence {
++    fn poll(&self, io: &mut dyn FnMut() -> crate::dtmf::DtmfIoPoll) -> crate::dtmf::DtmfIoPoll {
++        self.0.poll(io)
++    }
++}
++impl Orchestrator {
++    /// Capture a managed source's original private boundaries under its exact
++    /// current controller/credential metadata. No capability is advertised.
++    pub fn capture_native_dtmf_disclosure(
++        &self,
++        session: &SessionId,
++        source: &ConnectionId,
++        controller: &Arc<StreamController>,
++        principal: &AuthenticatedPrincipal,
++        stream_revision: u64,
++        credential_revision: u64,
++    ) -> ControlResult<NativeDtmfDisclosure> {
++        let (_, source) = self.commit_native_signal_metadata(
++            session,
++            source,
++            controller,
++            principal,
++            stream_revision,
++            || (),
++        )?;
++        if !source
++            .scene
++            .matches_dtmf_source(principal, credential_revision)
++        {
++            return Err(ParticipantControlError::Authority);
++        }
++        Ok(NativeDtmfDisclosure(source))
++    }
++
++    /// Derive a scene-only fence for this actual native recipient write scope.
++    /// Call during fresh route-policy acquisition, outside engine IO locks.
++    /// The host must check the same immutable source operation and recipient
++    /// authority, then attach this fence to its DtmfWriteLease. Core routing
++    /// and sealed native source/target physical fences must also surround IO;
++    /// this audience fence cannot supply their credential or lifecycle custody.
++    pub fn native_dtmf_audience_fence(
++        &self,
++        disclosure: &NativeDtmfDisclosure,
++        recipient: &crate::dtmf::DtmfNativeRecipient,
++    ) -> ControlResult<Arc<dyn crate::dtmf::DtmfIoFence>> {
++        let source = &disclosure.0;
++        if source.session != recipient.session
++            || source.source == recipient.connection
++            || !matches!(
++                recipient.transport,
++                crate::connection::Transport::Quic | crate::connection::Transport::WebTransport
++            )
++        {
++            return Err(ParticipantControlError::Authority);
++        }
++        let runtime = self.participant_runtime(&source.session)?;
++        if !Weak::ptr_eq(&source.runtime, &Arc::downgrade(&runtime)) {
++            return Err(ParticipantControlError::Authority);
++        }
++        let state = runtime.state.try_lock().map_err(|_| busy())?;
++        if state.ended {
++            return Err(ParticipantControlError::Authority);
++        }
++        let origin = state
++            .routes
++            .get(&source.source)
++            .ok_or(ParticipantControlError::Authority)?;
++        let target = state
++            .routes
++            .get(&recipient.connection)
++            .ok_or(ParticipantControlError::Authority)?;
++        if !source.life.matches(&origin.lifecycle) {
++            return Err(ParticipantControlError::Authority);
++        }
++        let tickets = if source.source < recipient.connection {
++            [&origin.lifecycle, &target.lifecycle]
++        } else {
++            [&target.lifecycle, &origin.lifecycle]
++        };
++        let lives = tickets
++            .iter()
++            .map(|t| t.state.try_lock().map_err(|_| busy()))
++            .collect::<ControlResult<Vec<_>>>()?;
++        if tickets.iter().zip(&lives).any(|(t, l)| !live(t, l)) {
++            return Err(ParticipantControlError::Authority);
++        }
++        let scene = runtime
++            .mixer
++            .staged
++            .as_ref()
++            .ok_or(ParticipantControlError::Unsupported)?;
++        Ok(Arc::new(DtmfAudienceFence(
++            scene.native_dtmf_audience(&source.scene, recipient)?,
++        )))
++    }
++}
+diff --git a/crates/foundation/rvoip-core/src/orchestrator/participant_control.rs b/crates/foundation/rvoip-core/src/orchestrator/participant_control.rs
+--- a/crates/foundation/rvoip-core/src/orchestrator/participant_control.rs
++++ b/crates/foundation/rvoip-core/src/orchestrator/participant_control.rs
+@@ -6,7 +6,9 @@
+ //! invocation guard across bounded preparation; no packet port owns that proof.
+ 
+ pub mod capability_disclosure;
+-pub use capability_disclosure::{NativeCapabilityDisclosure, NativeCapabilityListener};
++pub use capability_disclosure::{
++    NativeCapabilityDisclosure, NativeCapabilityListener, NativeDtmfDisclosure,
++};
+ 
+ mod outbound;
+ pub use outbound::{ActivatedInitialParticipant, OutboundParticipantPreparation};
+diff --git a/crates/uctp/rvoip-uctp/src/v2/native.rs b/crates/uctp/rvoip-uctp/src/v2/native.rs
+--- a/crates/uctp/rvoip-uctp/src/v2/native.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/native.rs
+@@ -809,6 +809,35 @@
+         super::native_dtmf::NativeDtmfObservation,
+         super::native_negotiation::NativeOfferError,
+     > {
++        self.receive_native_dtmf_inner(None, id, a, policy, sink)
++    }
++    /// Managed Connect-style composition captures the actual original private
++    /// audience before accepting this signed observation. Later IO still needs
++    /// independent current source/recipient permission and the returned fence.
++    pub fn receive_managed_native_dtmf(
++        self: &Arc<Self>,
++        core: &Arc<rvoip_core::Orchestrator>,
++        id: &ConnectionId,
++        a: &super::auth_dispatch::AuthorizedEnvelope,
++        policy: &dyn super::native_dtmf::NativeDtmfPolicy,
++        sink: &dyn super::native_dtmf::NativeDtmfSink,
++    ) -> std::result::Result<
++        super::native_dtmf::NativeDtmfObservation,
++        super::native_negotiation::NativeOfferError,
++    > {
++        self.receive_native_dtmf_inner(Some(core), id, a, policy, sink)
++    }
++    fn receive_native_dtmf_inner(
++        self: &Arc<Self>,
++        core: Option<&Arc<rvoip_core::Orchestrator>>,
++        id: &ConnectionId,
++        a: &super::auth_dispatch::AuthorizedEnvelope,
++        policy: &dyn super::native_dtmf::NativeDtmfPolicy,
++        sink: &dyn super::native_dtmf::NativeDtmfSink,
++    ) -> std::result::Result<
++        super::native_dtmf::NativeDtmfObservation,
++        super::native_negotiation::NativeOfferError,
++    > {
+         use super::native_negotiation::NativeOfferError;
+         let route = self.data_route(id, a)?;
+         let (controller, flow, scope) = {
+@@ -846,6 +875,14 @@
+             credential,
+             audio,
+         )?;
++        if let Some(core) = core {
++            event.disclosure = Some(core.capture_native_dtmf_disclosure(
++                &scope.session, id, &controller, a.principal(), revision, credential,
++            ).map_err(|e| match e {
++                rvoip_core::orchestrator::participant_control::ParticipantControlError::Media(rvoip_core::staged_streams::StreamControlError::NotReady) => NativeOfferError::NotReady,
++                _ => NativeOfferError::Authority,
++            })?);
++        }
+         let weak_route = Arc::downgrade(&route);
+         let weak_controller = Arc::downgrade(&controller);
+         let weak_flow = Arc::downgrade(&flow);
+diff --git a/crates/uctp/rvoip-uctp/src/v2/native_dtmf.rs b/crates/uctp/rvoip-uctp/src/v2/native_dtmf.rs
+--- a/crates/uctp/rvoip-uctp/src/v2/native_dtmf.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/native_dtmf.rs
+@@ -48,6 +48,8 @@
+     credential_revision: u64,
+     audio: Vec<ReadyMediaBinding>,
+     origin: Option<std::sync::Arc<SourceOrigin>>,
++    pub(crate) disclosure:
++        Option<rvoip_core::orchestrator::participant_control::NativeDtmfDisclosure>,
+ }
+ impl std::fmt::Debug for NativeDtmfObservation {
+     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+@@ -155,6 +157,13 @@
+             )?)
+     }
+ 
++    /// Scene-issued original privacy metadata, not an IO or permission grant.
++    /// Present only for the explicitly managed ingress composition.
++    pub fn disclosure(
++        &self,
++    ) -> Option<&rvoip_core::orchestrator::participant_control::NativeDtmfDisclosure> {
++        self.disclosure.as_ref()
++    }
+     pub fn conversation(&self) -> &ConversationId {
+         &self.conversation
+     }
+@@ -294,6 +303,7 @@
+             credential_revision: credential,
+             audio,
+             origin: None,
++            disclosure: None,
+         })
+     }
+ }
+diff --git a/crates/uctp/rvoip-uctp/tests/support/canonical_media/native_offers/dtmf.rs b/crates/uctp/rvoip-uctp/tests/support/canonical_media/native_offers/dtmf.rs
+--- a/crates/uctp/rvoip-uctp/tests/support/canonical_media/native_offers/dtmf.rs
++++ b/crates/uctp/rvoip-uctp/tests/support/canonical_media/native_offers/dtmf.rs
+@@ -250,14 +250,14 @@
+     let policy = handler.record.dtmf_hook.load(Ordering::Acquire);
+     struct Absent;
+     impl NativeDtmfPolicy for Absent {}
+-    let o = handler.native.adapters[&handler.physical.transport()]
+-        .receive_native_dtmf(
+-            id,
+-            &a,
+-            if policy { &installed } else { &Absent },
+-            &installed,
+-        )
+-        .map_err(|_| DispatchError::Authority)?;
++    let adapter = &handler.native.adapters[&handler.physical.transport()];
++    let selected: &dyn NativeDtmfPolicy = if policy { &installed } else { &Absent };
++    let observed = if handler.record.bootstrap.load(Ordering::Acquire) {
++        adapter.receive_managed_native_dtmf(&handler.native.core.orch, id, &a, selected, &installed)
++    } else {
++        adapter.receive_native_dtmf(id, &a, selected, &installed)
++    };
++    let o = observed.map_err(|_| DispatchError::Authority)?;
+     let key = format!("{}/{}", o.connection(), o.operation_id());
+     let pending = handler.record.dtmf_pending.lock().unwrap().remove(&key);
+     if let Some(pending) = pending {
+diff --git a/crates/uctp/rvoip-uctp/tests/support/canonical_media/native_offers/dtmf_route.rs b/crates/uctp/rvoip-uctp/tests/support/canonical_media/native_offers/dtmf_route.rs
+--- a/crates/uctp/rvoip-uctp/tests/support/canonical_media/native_offers/dtmf_route.rs
++++ b/crates/uctp/rvoip-uctp/tests/support/canonical_media/native_offers/dtmf_route.rs
+@@ -831,6 +831,7 @@
+ }
+ 
+ struct NativeSignalPolicy {
++    core: Arc<rvoip_core::Orchestrator>,
+     source: DtmfEndpoint,
+     recipient: DtmfEndpoint,
+     operation: String,
+@@ -847,6 +848,7 @@
+ impl NativeSignalPolicy {
+     fn new(r: &RouteRig, route: &DtmfRoute) -> Arc<Self> {
+         Arc::new(Self {
++            core: r.scene.native.core.orch.clone(),
+             source: route.source().clone(),
+             recipient: route.recipient().clone(),
+             operation: route.intent().operation_id().into(),
+@@ -1039,6 +1041,16 @@
+             Instant::now() + Duration::from_millis(200),
+             || true,
+         );
++        let lease = if let Some(observed) = &self.source_observed {
++            let disclosure = observed.disclosure().ok_or(DtmfWriteError::Refused)?;
++            let fence = self
++                .core
++                .native_dtmf_audience_fence(disclosure, actual)
++                .map_err(|_| DtmfWriteError::Refused)?;
++            lease.with_fence(fence)?
++        } else {
++            lease
++        };
+         match self.pause.lock().unwrap().clone() {
+             Some(pause) => lease.with_fence(pause),
+             None => Ok(lease),
+@@ -1410,6 +1422,10 @@
+         })
+         .await;
+         let observed = r.observation("12#", 100, "info").await;
++        assert!(
++            observed.disclosure().is_some(),
++            "actual managed signed ingress must carry original scene disclosure"
++        );
+         r.scene
+             .grants
+             .0

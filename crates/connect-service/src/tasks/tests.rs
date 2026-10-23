@@ -30,7 +30,7 @@ impl Fixture {
                 &key,
                 &Operation::Create {
                     request_id: "conversation".into(),
-                    participants: vec![],
+                    request: connect_protocol::conversations::CreateRequest::persistent(vec![]),
                 },
             )
             .unwrap()
@@ -78,11 +78,15 @@ impl Fixture {
         let reached = Arc::new(tokio::sync::Barrier::new(2));
         let release = Arc::new(tokio::sync::Barrier::new(2));
         let service = Arc::new(Service {
+            assurance_policy: Default::default(),
+            canonical_runtime: Default::default(),
+            record_references: Default::default(),
             store,
             readiness: Arc::default(),
             changed: Default::default(),
             runtime: Default::default(),
             wait_boundary: Some((reached.clone(), release.clone())),
+            blocking_boundary: None,
         });
         Self {
             _dir: dir,

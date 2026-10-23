@@ -58,7 +58,9 @@ fn task_without_sms_ceiling_cannot_borrow_conversation_enrollment() {
             &Operation::Send {
                 request_id: "ordinary".into(),
                 conversation_id: f.cid.clone(),
-                body: "Requested ordinary send".into(),
+                message: connect_protocol::messages::MessageDraft::text_all(
+                    "Requested ordinary send",
+                ),
             },
         )
         .unwrap();
@@ -93,7 +95,9 @@ fn enrollment_for_another_conversation_cannot_be_attached_to_the_task() {
             &f.key.id,
             &Operation::Create {
                 request_id: "other-conversation".into(),
-                participants: vec![human.clone()],
+                request: connect_protocol::conversations::CreateRequest::persistent(vec![
+                    human.clone()
+                ]),
             },
         )
         .unwrap()

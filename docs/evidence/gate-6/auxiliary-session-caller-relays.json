@@ -1,0 +1,302 @@
+{
+  "task": "G6-046",
+  "title": "Original physical caller decision relays and logical recovery",
+  "status": "native-original-caller-component-qualified; complete0081-flow-open",
+  "recorded_at": "2026-10-22T19:48:07.796149+00:00",
+  "full_task_complete": false,
+  "full_goal_complete": false,
+  "acceptance_qualified": false,
+  "schema_version": 90,
+  "platform": {
+    "os": "Darwin",
+    "architecture": "arm64"
+  },
+  "pinned_patches": 140,
+  "source_lock": {
+    "path": "dependencies/source-lock.json",
+    "sha256": "157ebcfccf05ca070088e64ad566a4ebb67ccab7a7a6ff0c7b1b16ede2075b93"
+  },
+  "compiled_inputs": {
+    "path": ".local/gate-6/session-invitation-relays/build-inputs-final.json",
+    "sha256": "cc4ab48aa391b49007d544920bb96abb55552fb0c2816b57e504b41fd6821a1e",
+    "count": 1265
+  },
+  "prepared_upstream_Rust": {
+    "path": ".local/gate-6/session-invitation-relays/upstream-inputs-v1.json",
+    "sha256": "50233faaf17023cd3b80d4aceea7dbd526ac59b5e522e1c0421696543ecdf3d1",
+    "count": 2627
+  },
+  "compiled_inputs_unchanged_after_tests": true,
+  "source_inputs": [
+    {
+      "path": "dependencies/source-lock.json",
+      "sha256": "157ebcfccf05ca070088e64ad566a4ebb67ccab7a7a6ff0c7b1b16ede2075b93"
+    },
+    {
+      "path": "patches/rvoip/gate6-session-caller-routes.patch",
+      "sha256": "21dde25d377c8429f30a97385190896722293dae764c0cb5cbae1e4057460609"
+    },
+    {
+      "path": "crates/connect-store/src/session_invitations/relays.rs",
+      "sha256": "0b5b0e3ff9a660693457c44bdd30d4bad10fba0adaa6d9004cfd4affebd90277"
+    },
+    {
+      "path": "crates/connect-store/src/session_invitations.rs",
+      "sha256": "347e1545114ef7c2e8e3629b6376bb6c7f3b56913ecb2ad3728c0639a461c0c4"
+    },
+    {
+      "path": "crates/connect-store/src/peer_authority.rs",
+      "sha256": "ab45b92a063a9c9744fee81a7fbf6576df3daf62ca27be1af96a0d1e174b731b"
+    },
+    {
+      "path": "crates/connect-store/src/peer_authority/tests/session_control.rs",
+      "sha256": "d90bd7c1f67c3c26344fc9e90426dcd3188fc04420c19799057e0110dd886b97"
+    },
+    {
+      "path": "crates/connect-service/src/canonical_invitations.rs",
+      "sha256": "8db4be50edfe80f346d038e4a8b150cca38240b801258fbc7912b962baa09fe5"
+    },
+    {
+      "path": "crates/connect-service/src/canonical_invitations/callers.rs",
+      "sha256": "6d28206cde9555e3353fd0bd759bab815b800f6e7a7cac823a761657b634098d"
+    },
+    {
+      "path": "crates/connect-service/src/peer_authority/invitations.rs",
+      "sha256": "79eedd3ea24d84a83055c903c4e855f97f3dbb3c951d682f73bb5e3d2918233c"
+    },
+    {
+      "path": "crates/connect-service/src/canonical.rs",
+      "sha256": "dafa7a62bd48102e6cb4da9d8987f67c5a676a51077e85717b0f2993d4bceb69"
+    },
+    {
+      "path": "crates/connect-service/src/canonical_runtime.rs",
+      "sha256": "05eb9de61cf3878ff55dede8b0f1b3f637a398fdeb0356e4614cc810fdf44c2f"
+    },
+    {
+      "path": "crates/connect-server/tests/support/canonical_auxiliary_clauses.rs",
+      "sha256": "5e57781541f715d00dbcf44435d7dacd4da9070240a032a8a929f960ca560676"
+    },
+    {
+      "path": "docs/developer/session-invitation-sources.md",
+      "sha256": "846812e4404d01a8162f33c06ff28f279c2f1c767df7d033cb8da0927825c14b"
+    },
+    {
+      "path": "scripts/generate-canonical-http-openapi.py",
+      "sha256": "2eb3d024458ecf58973e2af2f1aa517e2c2646fa6c57a8dc1a196dd543e93c01"
+    },
+    {
+      "path": "contracts/openapi-canonical-http.json",
+      "sha256": "ab84c9269a6bbda2ad869623ef210ff3e5af9cbd4c8fba7ea0fac0d35e3dc9b3"
+    }
+  ],
+  "binaries": [
+    {
+      "path": "target/debug/deps/connect_store-2bc54b64bb656bb4",
+      "sha256": "0da36088513a36b6476dbb57747e2a6ace11a6cda88b5d3583a8391b430bbfe3"
+    },
+    {
+      "path": "target/debug/deps/gate6_canonical_runtime-f39476f2f6c7ff5d",
+      "sha256": "74aa8d127f5be01610de61613615f8303e3fcb37596f48ee5111d2efe490ac01"
+    },
+    {
+      "path": "target/debug/deps/gate6_auxiliary-0342ca629847fff9",
+      "sha256": "5274177c592274e64cce7b90b9a86ba0d6d880430ca8634cb1805de314aa6a23"
+    },
+    {
+      "path": "target/debug/deps/v2_reachability-2b5caff9ea58851d",
+      "sha256": "b0523c260035e016c261742137ea57b693af50e01d5af1f1ac14eed0b89ca90e"
+    },
+    {
+      "path": "target/debug/deps/v2_canonical_transports-de0fd31f026f585f",
+      "sha256": "e718cedb0d40ae9cbab7455b821606e1cf8ea33ee956ccd38fd50815b568deaf"
+    }
+  ],
+  "results": [
+    {
+      "name": "store-session-control",
+      "passed": 34,
+      "failed": 0,
+      "evidence": {
+        "path": ".local/gate-6/session-invitation-relays/store-control-v1.log",
+        "sha256": "023ddf51507e3a48bef712a8914426125b56c66a7c0c5d09f555ae9dc3115bcd"
+      }
+    },
+    {
+      "name": "store-events",
+      "passed": 22,
+      "failed": 0,
+      "evidence": {
+        "path": ".local/gate-6/session-invitation-relays/store-events-v1.log",
+        "sha256": "918d96b98934be4dcb248afbd89f9053f10a06b31d0dd53fcb4b28113e8e5491"
+      }
+    },
+    {
+      "name": "store-exact-caller-read",
+      "passed": 1,
+      "failed": 0,
+      "evidence": {
+        "path": ".local/gate-6/session-invitation-relays/store-relay-v1.log",
+        "sha256": "4ffe7b110bbcd6e3c262dae7a2a4e0f8d4a8c76d87f783f9f31026418350ff01"
+      }
+    },
+    {
+      "name": "upstream-routes",
+      "passed": 16,
+      "failed": 0,
+      "evidence": {
+        "path": ".local/gate-6/session-invitation-relays/upstream-reachability-v1.log",
+        "sha256": "043e0e28f3023b0f69f6e2a58c0832347ca9853fbf0d152b182121ecc14bdbc3"
+      }
+    },
+    {
+      "name": "upstream-local-transports",
+      "passed": 39,
+      "failed": 0,
+      "evidence": {
+        "path": ".local/gate-6/session-invitation-relays/upstream-transports-v1.log",
+        "sha256": "1179484bff9007d1567cacd265c364bbc40603a5581478e480dc463b6c26e3be"
+      }
+    },
+    {
+      "name": "production-exact-caller-recovery",
+      "passed": 1,
+      "failed": 0,
+      "evidence": {
+        "path": ".local/gate-6/session-invitation-relays/production-relays-final.log",
+        "sha256": "99ef1e7c2e3c2d272665803d123e56438f54aaa5f67a2eac12c9c4378ec9e73a"
+      }
+    },
+    {
+      "name": "production-auxiliary-regression",
+      "passed": 8,
+      "failed": 0,
+      "evidence": {
+        "path": ".local/gate-6/session-invitation-relays/production-auxiliary-final.log",
+        "sha256": "7abe8e7eb2c7c0801589c0a86253bc0c550914f31017e247efd3f8458479f1ab"
+      }
+    },
+    {
+      "name": "production-four-party",
+      "passed": 1,
+      "failed": 0,
+      "evidence": {
+        "path": ".local/gate-6/session-invitation-relays/production-four-party-final.log",
+        "sha256": "2b1a7f4dcc27ba8dcad96fc62bfc66d5e6b79a511cbfc7fec638c66db065c39b"
+      }
+    },
+    {
+      "name": "production-records",
+      "passed": 1,
+      "failed": 0,
+      "evidence": {
+        "path": ".local/gate-6/session-invitation-relays/production-records-final.log",
+        "sha256": "b4c866d138d832f2cab67c8c8185d83f451d720f61d92a23cc8f474cb362d0f6"
+      }
+    },
+    {
+      "name": "production-codec",
+      "passed": 1,
+      "failed": 0,
+      "evidence": {
+        "path": ".local/gate-6/session-invitation-relays/production-codec-final.log",
+        "sha256": "ba2079d3a803a695a39dacaede1b9cfdc9b26acd2f89df0bef0f7a3826ec8030"
+      }
+    },
+    {
+      "name": "production-refresh",
+      "passed": 1,
+      "failed": 0,
+      "evidence": {
+        "path": ".local/gate-6/session-invitation-relays/production-refresh-final.log",
+        "sha256": "c8e811cdb7dc438ba570dccce46ed900203face13c57197716b74ac4fe1069b1"
+      }
+    }
+  ],
+  "checks": [
+    {
+      "name": "dependencies",
+      "exit_code": 0,
+      "evidence": {
+        "path": ".local/gate-6/session-invitation-relays/dependencies-final.log",
+        "sha256": "fd9d7b181e3ccba9b643af55a186cf132c60aac99c734b2ee4e4e549afe5ffc2"
+      }
+    },
+    {
+      "name": "format",
+      "exit_code": 0,
+      "evidence": {
+        "path": ".local/gate-6/session-invitation-relays/format-final.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    {
+      "name": "http-reference",
+      "exit_code": 0,
+      "evidence": {
+        "path": ".local/gate-6/session-invitation-relays/http-reference-final.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    {
+      "name": "event-reference",
+      "exit_code": 0,
+      "evidence": {
+        "path": ".local/gate-6/session-invitation-relays/event-reference-final.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    {
+      "name": "progress",
+      "exit_code": 0,
+      "evidence": {
+        "path": ".local/gate-6/session-invitation-relays/progress-final.log",
+        "sha256": "fedbc03549729d27ac031eee0766ae72281991ae1e9494232887c3160cf754cc"
+      }
+    },
+    {
+      "name": "diff",
+      "exit_code": 0,
+      "evidence": {
+        "path": ".local/gate-6/session-invitation-relays/diff-final.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    }
+  ],
+  "component_cases": [
+    {
+      "case_id": "u6-req-0081",
+      "status": "original-caller-relays-qualified; full-Connection-started-ended-sequence-open",
+      "algorithms": [
+        "EdDSA",
+        "ES256"
+      ],
+      "test": "auxiliary_clauses::production_owned_decisions_relay_to_exact_caller_and_recover_after_disconnect",
+      "assertions": [
+        "An actual signed original native caller receives the committed session.accept/session.reject with its own request ID, original logical operation ID, CID/SID and original target by/capabilities/reason.",
+        "A second physical peer using the same identity, credential and Device does not receive that caller relay.",
+        "Logical replay uses a fresh native request correlation for the same immutable stored decision. It does not reinvite or repeat the decision.",
+        "A decision may commit after caller disconnect; a newly authenticated caller can recover it by logical invitation replay.",
+        "The original command mutation fence spans actual ACK output, so later relay read custody cannot enter its reply batch."
+      ]
+    }
+  ],
+  "implementation": [
+    "Transient caller metadata binds a signed invitation invocation to its exact authenticated PeerAdmission and current route incarnation. It retains no authority reader, is bounded/expired and cannot survive as a physical channel after restart.",
+    "Relay publication reacquires the dedicated caller read union under exact current credential/Device/key: original invitation receipt permission and actor epoch, recipient ceiling, original/current Session source access and target membership epoch. Binding/recipient metadata proofs cannot substitute.",
+    "The immutable durable decision supplies by/capabilities/reason and Session scope. HTTP submissions create no native caller; native logical replay registers a new actual correlation and can relay a stored decision without another mutation.",
+    "Verified current physical commands renew the current reachability lease while frozen older handles retain their original expiry. Pointer identity distinguishes physical peers sharing a Device.",
+    "One attempt per caller request/target bounds uncertain notification IO. Application state remains authoritative in the journal/snapshot."
+  ],
+  "limits": [
+    "No new complete clause count:16 of61 exact assigned clauses remain locally qualified;45 remain and G6-046 stays in progress.",
+    "Clause0081 still needs the full Connection offer/answer, started and ended sequence; this component proves caller decision relay/recovery only.",
+    "Correlated cancellation, started/joined/left observations, automatic loss/grace, interop URI targets and task-source G6-055 integration remain open.",
+    "No Linux, production remote/browser/provider or named G6-093 qualification or publication. Upstream WebTransport/WSS fixtures qualify their recorded local reusable scope only.",
+    "The earlier unresolved provider/consultation/retention observations are not relabeled passes."
+  ],
+  "reproduce": [
+    "bash scripts/prepare-dependencies.sh",
+    "CARGO_INCREMENTAL=0 cargo test -p connect-store --lib --locked --offline -j1 session_control:: -- --test-threads=1",
+    "CARGO_INCREMENTAL=0 cargo test -p connect-server --test gate6_canonical_runtime --locked --offline -j1 auxiliary_clauses::production_owned_decisions_relay_to_exact_caller_and_recover_after_disconnect -- --exact --test-threads=1"
+  ]
+}

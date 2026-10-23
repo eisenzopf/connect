@@ -120,7 +120,9 @@ fn scenario(
                         operation: Box::new(Operation::Send {
                             request_id: "expired-effect".into(),
                             conversation_id: f.cid.clone(),
-                            body: "Must not send after expiry".into(),
+                            message: connect_protocol::messages::MessageDraft::text_all(
+                                "Must not send after expiry",
+                            ),
                         }),
                     });
                     Box::new(move || {

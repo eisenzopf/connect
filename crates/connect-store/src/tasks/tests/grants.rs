@@ -325,7 +325,7 @@ fn narrow_grant_cannot_use_admin_commands_generic_inbox_or_another_conversation(
             operation: Box::new(Operation::Send {
                 request_id: "send".into(),
                 conversation_id: "different".into(),
-                body: "forbidden".into(),
+                message: connect_protocol::messages::MessageDraft::text_all("forbidden"),
             }),
             reply_to: None,
             wait_for_reply: false,

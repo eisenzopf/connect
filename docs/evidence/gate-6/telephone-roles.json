@@ -1,0 +1,285 @@
+{
+  "kind": "gate6-task-completion-evidence",
+  "task": "G6-041",
+  "status": "done",
+  "passed": true,
+  "recorded_at": "2026-10-20T16:47:13.060086+00:00",
+  "schema_version": 61,
+  "pinned_patches": 123,
+  "source_lock": {
+    "path": "dependencies/source-lock.json",
+    "sha256": "79806adf28f4720a562879e62ab52d47144c0369e2053f626f7c3d3ebe84eba4"
+  },
+  "scope": "Local macOS arm64 complete current native/telephone role reconciliation, same-participant sibling role and native return, and actual established SIP refresh/rejection/ACK recovery after original authority expiry.",
+  "verification": [
+    {
+      "name": "Store",
+      "passed": 647,
+      "ignored": 3,
+      "log": {
+        "path": ".local/gate-6/telephone-roles-store-full.log",
+        "sha256": "638500354389e6091a87719b4d41f3f89c784904e83158411aee9791e71659a0"
+      },
+      "test_binary": {
+        "path": "target/debug/deps/connect_store-500690b8d898aed1",
+        "sha256": "c43fe5124c1289101da3b737e36763d3ab10d0ddd6755fcac78f3ab6c4418a07"
+      },
+      "arguments": "--test-threads=2"
+    },
+    {
+      "name": "telephone-public",
+      "passed": 24,
+      "ignored": 0,
+      "log": {
+        "path": ".local/gate-6/telephone-roles-runtime-final.log",
+        "sha256": "96936708ad460538dc906381b36e2e1f0a6fe2acf99fa66064551d0926baf706"
+      },
+      "test_binary": {
+        "path": "target/debug/deps/gate6_canonical_runtime-2e3e18c2008aaebe",
+        "sha256": "a63ddd73b450672e1cf12242c4bfbc19bab68c85615fe2009843580b915a8eaf"
+      },
+      "arguments": "production_telephone_ --test-threads=2 --nocapture"
+    },
+    {
+      "name": "native-role",
+      "passed": 1,
+      "ignored": 0,
+      "log": {
+        "path": ".local/gate-6/telephone-roles-native-role-final.log",
+        "sha256": "a1c6deb8d6fcef4bcf2b7ad46f0ed36e97ed81f8a7966cc6e026c76f6ed9467a"
+      },
+      "test_binary": {
+        "path": "target/debug/deps/gate6_canonical_runtime-2e3e18c2008aaebe",
+        "sha256": "a63ddd73b450672e1cf12242c4bfbc19bab68c85615fe2009843580b915a8eaf"
+      },
+      "arguments": "production_native_role_projection_preserves_mixed_connections_and_custom_role_permissions --nocapture"
+    },
+    {
+      "name": "native-movement",
+      "passed": 1,
+      "ignored": 0,
+      "log": {
+        "path": ".local/gate-6/telephone-roles-native-movement-final.log",
+        "sha256": "a92f3928769457e37b726e4b4c5997302d313a6cc159cf24e6b3c00005e9458d"
+      },
+      "test_binary": {
+        "path": "target/debug/deps/gate6_canonical_runtime-2e3e18c2008aaebe",
+        "sha256": "a63ddd73b450672e1cf12242c4bfbc19bab68c85615fe2009843580b915a8eaf"
+      },
+      "arguments": "production_replacement_actual_movement_keeps_generation_two_audio_after_old_authority_retires --nocapture"
+    },
+    {
+      "name": "native-stream-controls",
+      "passed": 3,
+      "ignored": 0,
+      "log": {
+        "path": ".local/gate-6/telephone-roles-native-controls-final.log",
+        "sha256": "94af1e22285e6ae5e594c88b928a40aa04b5c05dda718d3e8280a58b49573c41"
+      },
+      "test_binary": {
+        "path": "target/debug/deps/gate6_canonical_runtime-2e3e18c2008aaebe",
+        "sha256": "a63ddd73b450672e1cf12242c4bfbc19bab68c85615fe2009843580b915a8eaf"
+      },
+      "arguments": "production_native_stream_ production_signed_native_stream_subscription --test-threads=2 --nocapture"
+    }
+  ],
+  "fresh_distinct_passed_tests": 676,
+  "static_checks": [
+    {
+      "name": "dependencies",
+      "exit_code": 0,
+      "log": {
+        "path": ".local/gate-6/telephone-roles-static-dependencies.log",
+        "sha256": "fd9d7b181e3ccba9b643af55a186cf132c60aac99c734b2ee4e4e549afe5ffc2"
+      }
+    },
+    {
+      "name": "format",
+      "exit_code": 0,
+      "log": {
+        "path": ".local/gate-6/telephone-roles-static-format.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    {
+      "name": "contracts",
+      "exit_code": 0,
+      "log": {
+        "path": ".local/gate-6/telephone-roles-static-contracts.log",
+        "sha256": "2c29557f8945b4bb522a5436f85876aa8ab90eca617dcf64588af05e9a81b1bc"
+      }
+    },
+    {
+      "name": "http",
+      "exit_code": 0,
+      "log": {
+        "path": ".local/gate-6/telephone-roles-static-http.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    {
+      "name": "progress",
+      "exit_code": 0,
+      "log": {
+        "path": ".local/gate-6/telephone-roles-static-progress.log",
+        "sha256": "d2862144e346af612e59d056ca366093aea477e78bc07ddd61db37efedd5c787"
+      }
+    },
+    {
+      "name": "diff",
+      "exit_code": 0,
+      "log": {
+        "path": ".local/gate-6/telephone-roles-static-diff.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    }
+  ],
+  "source_inputs": {
+    "path": ".local/gate-6/telephone-roles-inputs-before.json",
+    "sha256": "b96b48d8e8df177d2125412b04751b4c3248fc2f570ed7e7e13d33ccbdc0f5c1"
+  },
+  "source_input_count": 1346,
+  "upstream_inputs": {
+    "path": ".local/gate-6/telephone-roles-upstream-inputs.json",
+    "sha256": "303b4391e1bee0f9fb1699402c59060c42ae8eddf6bbcec8c6ff7776590fa908"
+  },
+  "upstream_input_count": 2631,
+  "previous_checkpoint": {
+    "path": "docs/evidence/gate-6/telephone-source.json",
+    "sha256": "6538270375059dd0da540b1a759ba9e1e3a6a65f4f09ca9b00975fd80dad691f"
+  },
+  "final_build": {
+    "path": ".local/gate-6/telephone-roles-build-7.log",
+    "sha256": "57ef32d144752e0b8a933a87d9ddab933ff5bc276a9a1eee69a3a625235fd81b"
+  },
+  "behavior": [
+    "The complete Store read validates every live native and telephone source of one current logical Session member and membership epoch, under one merged original authorization interval. It retains the real physical read types and both independent accounts. Missing or stale physical origins fail closed; no native telephone surrogate or role command authority is fabricated.",
+    "Two Store regressions cover complete-footprint refusal and both route/logical account writer ordering. A queued route writer cannot force nested acquisition; existing reads remain current only until the original interval is released. Future reads refuse after revocation.",
+    "Both native and established telephone watchers reconcile only the actual stored Session role through the same real Core participant projection. Each physical source validates its current principal and owner/capabilities independently. Exact Session/member/epoch/topology/role must agree across the complete footprint.",
+    "A real configured SIP source and independently enrolled native sibling for the same participant pass Observer/Speaker/Observer via public session.update. Both physical publishers are silent as Observer; receive permission remains and Speaker restores decoded audio. The logical Participant subscription selects both sources, so suppression is not masked by missing subscriptions. A subsequent actual generation-three native replacement preserves Observer and current receive while the sibling and retained native remain.",
+    "An established call refresh occurs after revocation of the original native and operator credentials and original preparation expiry. The exact actual coordinator Session/dialog is selected from the isolated sole-call fixture, with real Call-ID and tags. The wire peer sees the current Contact target, re-INVITE, 200 and ACK, and decoded duplex continues with one unique call.",
+    "The peer next rejects a same-dialog re-INVITE with 488. The transaction emits its terminal ACK and decoded duplex remains. Revoking the established route ends only that route; the stale exact Session handle cannot emit another INVITE. All original receipt replay, refusal and restart cases remain in the fresh cohort.",
+    "The recorded upstream patch retains the host policy only on the real non-serializable dialog, preserves it through initial retry, binds exact dialog identity at the write boundary and checks fresh established route authority for each INVITE write. Terminal ACKs complete the admitted transaction. Timer refresh repeats actual negotiated local SDP and uses the current Contact target."
+  ],
+  "preliminary_observations": [
+    "The first refresh runtime profile timed out without UDP re-INVITE. Debugging identified offerless timer dispatch refused below the high-level API, missing retained established host policy and an identity-URI target. These failures are not passes.",
+    "An initial build failed because list_sessions returns Vec rather than Result; the fixture was corrected. The first patched full build then failed during final link/code generation due to disk capacity. Inactive generated compiler caches were removed with local manifests; sources, logs and built libraries/test executables were not intentionally removed by that cleanup.",
+    "Targeted role-only and mixed-sibling profiles passed before final refresh changes. Their overlapping totals are not added. The final unchanged-source profiles are the reported qualification."
+  ],
+  "preliminary_logs": [
+    {
+      "path": ".local/gate-6/telephone-roles-runtime-1.log",
+      "sha256": "0576a14244e6fbee4575374312119f36f241eaee41a0f6059076ac4245aec2de"
+    },
+    {
+      "path": ".local/gate-6/telephone-roles-runtime-2.log",
+      "sha256": "004071c0907561a24740751984027b89945cfc4ce70ba6b76ba97158ccb65911"
+    },
+    {
+      "path": ".local/gate-6/telephone-roles-refresh-1.log",
+      "sha256": "65ced65499141b254a9d065fc2fc84ac8feaf3d1545f5351ab7d6955844b2015"
+    },
+    {
+      "path": ".local/gate-6/telephone-roles-refresh-2.log",
+      "sha256": "940247e5c990333d35d69eafbbc86147ca260709ffa9418c83202c5fdd512935"
+    },
+    {
+      "path": ".local/gate-6/telephone-roles-build-4.log",
+      "sha256": "34c4cc1f38ff823412b75fcc6869dcfcb83c7aed4edcccdac743aa2f6978ac13"
+    },
+    {
+      "path": ".local/gate-6/telephone-roles-build-6.log",
+      "sha256": "abc1e0484501b09482b3a0ab41e034a7e37311f8e946310a525112b63a262ff8"
+    }
+  ],
+  "not_qualified": [
+    "Assistant message/file/outcome context delivery, attribution, watermarks, omissions and receipts are G6-042. Wider operation crash/kill/provider recovery is G6-047.",
+    "Telephone-to-telephone and optional carrier registration are not qualified here. Browser/fallback/reconnect, movement UI and integrated remote/quality/provider qualification remain their named later tasks. No Linux, browser, remote, provider/PSTN, performance, independent acceptance or publication claim.",
+    "The unchanged Core suite was not rerun or added to this fresh count. Three intentionally ignored Store helper entrypoints are exercised through their parent tests."
+  ],
+  "task_counts": {
+    "done": 41,
+    "in_progress": 1,
+    "not_started": 63,
+    "acceptance_closed": 0
+  },
+  "all_105_tasks_remain_in_scope": true,
+  "goal_status": "active",
+  "approved_work": "Expose same-participant endpoint replacement, including provisioned telephone callback, configured DTMF confirmation, media readiness, cancel and status. Retain the old speaking route until commit, then retire its authority and media. Never accept an untrusted arbitrary destination in place of an authorized endpoint.",
+  "approved_verification": "No-answer, voicemail, rejected confirmation, timeout, cancellation, late old-leg events and unknown callback submission are reconciled. Retry cannot produce duplicate telephone calls or revive a retired route.",
+  "requirement_audit": [
+    {
+      "requirement": "Public same-participant movement with stable retained IDs and real media readiness",
+      "evidence": [
+        "native-replacement-movement.json",
+        "telephone-movement.json",
+        "telephone-source.json",
+        "telephone-roles.json"
+      ],
+      "verified": true
+    },
+    {
+      "requirement": "Provisioned verified endpoint only, configured attributed DTMF, cancel and public status",
+      "evidence": [
+        "telephone-replacement-policy.json",
+        "telephone-private-confirmation.json",
+        "telephone-configured.json",
+        "telephone-roles.json"
+      ],
+      "verified": true
+    },
+    {
+      "requirement": "Keep old speaking route until commit; retire only intended old leg and its actual authority/media",
+      "evidence": [
+        "native-replacement-movement.json",
+        "telephone-movement.json",
+        "telephone-source.json",
+        "telephone-roles.json"
+      ],
+      "verified": true
+    },
+    {
+      "requirement": "No-answer, voicemail, rejected or premature/retransmitted confirmation, deadline, ringing/private cancellation",
+      "evidence": [
+        "telephone-configured.json",
+        "telephone-restart.json",
+        "telephone-roles.json"
+      ],
+      "verified": true
+    },
+    {
+      "requirement": "Unknown callback submission, late old events, discarded response and restart reconciliation cannot duplicate/redial/revive",
+      "evidence": [
+        "telephone-host-submission.json",
+        "telephone-restart.json",
+        "telephone-source.json",
+        "telephone-roles.json"
+      ],
+      "verified": true
+    },
+    {
+      "requirement": "Mixed current physical roles/selection and established refresh preserve independent current route and recovery",
+      "evidence": [
+        "telephone-streams.json",
+        "telephone-roles.json"
+      ],
+      "verified": true
+    }
+  ],
+  "requirement_audit_complete": true,
+  "next_task": "G6-042",
+  "scope_audit": {
+    "path": ".local/gate-6/telephone-role-scope-audit.md",
+    "sha256": "11654857e8f33772b1395d0cdf7d0311aac47d8050c46bba9ded015aae092db9"
+  },
+  "post_verification_changes": [
+    "docs/connect-gate-6-implementation.html",
+    "docs/developer/telephone-replacement.md",
+    "docs/index.html",
+    "docs/roadmap.json"
+  ],
+  "final_source_inputs": {
+    "path": ".local/gate-6/telephone-roles-inputs-final.json",
+    "sha256": "d074e47de2a9b5fa1669b4a8620e8104446ecebf5f0c620ddaf5244f5b175e1f"
+  }
+}

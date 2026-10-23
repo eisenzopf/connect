@@ -1,0 +1,203 @@
+{
+  "task": "G6-046",
+  "status": "in-progress",
+  "passed": true,
+  "component_passed": true,
+  "full_task_complete": false,
+  "full_goal_complete": false,
+  "executed_at": "2026-10-23T05:57:17.972351+00:00",
+  "schema_version": 97,
+  "source_lock_patches": 155,
+  "scope": "Make previously recorded Session codec preferences affect actual initial native negotiation under current accepted capabilities. Live Session-wide codec coordination remains open.",
+  "newly_qualified_case_ids": [],
+  "qualified_clause_count": 49,
+  "assigned_clause_count": 61,
+  "remaining_case_ids": [
+    "u6-req-0082",
+    "u6-req-0083",
+    "u6-req-0085",
+    "u6-req-0088",
+    "u6-req-0089",
+    "u6-req-0100",
+    "u6-req-0103",
+    "u6-req-0109",
+    "u6-req-0112",
+    "u6-req-0113",
+    "u6-req-0115",
+    "u6-req-0123"
+  ],
+  "source_lock": {
+    "path": "dependencies/source-lock.json",
+    "sha256": "17c5198b722af7d1dfe5ee30ad874149c3b4dedc1abdadf8eb2641e5390e562e"
+  },
+  "source_inputs": {
+    "path": ".local/gate-6/session-participants/session-codecs-inputs.json",
+    "sha256": "76e7466d653033c6240288cf38a1fbc213d50983628adae4981fe94662833ae4"
+  },
+  "sources_unchanged": true,
+  "binaries": [
+    {
+      "path": "target/debug/deps/rvoip_uctp-2b962aac6c4c4270",
+      "sha256": "6ee2c16910de79aa2440e52add3213683bf162cdd38ef36bdcc520912a09f3a9"
+    },
+    {
+      "path": "target/debug/deps/gate6_canonical_runtime-1b0da6e3c5cdb2d1",
+      "sha256": "6a17013f5cc90014961c5fa61713221ed27dabb6bcca73f2956fdfa8889276d1"
+    }
+  ],
+  "rust_test_methods": 40,
+  "production_scenarios": 6,
+  "results": [
+    {
+      "name": "uctp-session-codecs",
+      "passed": 14,
+      "failed": 0,
+      "tests": [
+        "v2::native_negotiation::tests::capability_declarations_replace_future_catalogs_without_expanding_the_local_profile",
+        "v2::native_negotiation::tests::claimed_assurance_does_not_replace_current_authentication_and_peer_floor_is_enforced",
+        "v2::native_negotiation::tests::data_requires_explicit_reliable_protocol_and_local_capacity_is_preserved",
+        "v2::native_negotiation::tests::each_logical_stream_honors_peer_order_and_inverts_its_endpoint_direction",
+        "v2::native_negotiation::tests::host_codec_preferences_are_bounded_and_reject_alias_duplicates",
+        "v2::native_negotiation::tests::host_codec_preferences_order_only_current_compatible_peer_offers_without_mutating_capabilities",
+        "v2::native_negotiation::tests::malformed_codec_numbers_duplicate_ids_and_flat_legacy_catalogs_fail_before_preparation",
+        "v2::native_negotiation::tests::native_codec_update_keeps_data_parameters_and_never_treats_data_protocols_as_codecs",
+        "v2::native_negotiation::tests::native_codec_update_selects_only_targets_and_preserves_complete_unaffected_program",
+        "v2::native_negotiation::tests::native_codec_update_validates_all_targets_and_both_directional_catalogs_before_preparation",
+        "v2::native_negotiation::tests::new_capability_declarations_invalidate_old_prepared_negotiation_metadata",
+        "v2::native_negotiation::tests::new_declarations_keep_untouched_confirmed_bindings_without_reauthorizing_new_withdrawn_formats",
+        "v2::native_negotiation::tests::screen_support_and_directional_catalogs_are_not_inferred_from_generic_video",
+        "v2::native_negotiation::tests::unsupported_new_stream_is_rejected_but_zero_usable_streams_refuse"
+      ],
+      "log": {
+        "path": ".local/gate-6/session-participants/uctp-session-codecs.log",
+        "sha256": "b79072bca19aabe8d00fdf56d057d5ee87f3426c1b469885303111cf252b9a2c"
+      }
+    },
+    {
+      "name": "uctp-session-codecs-wire",
+      "passed": 13,
+      "failed": 0,
+      "tests": [
+        "v2::tests::active_speaker_is_session_scoped_and_preserves_explicit_null_silence",
+        "v2::tests::closed_preparation_metadata_refuses_asserted_authority_without_disabling_ordinary_extensions",
+        "v2::tests::frozen_golden_vectors_decode_and_roundtrip_every_type",
+        "v2::tests::ignores_extensions_for_execution_but_retains_them_for_signatures",
+        "v2::tests::message_body_limit_counts_decoded_bytes_not_unicode_characters",
+        "v2::tests::negotiation_selects_only_an_offered_supported_profile",
+        "v2::tests::nested_identifiers_and_bounded_typed_errors",
+        "v2::tests::rejects_duplicate_members_at_all_depths_and_trailing_documents",
+        "v2::tests::rejects_oversize_before_decoding",
+        "v2::tests::transport_and_logical_operation_ids_have_distinct_lifetimes",
+        "v2::tests::uncertain_operations_cannot_complete_cancel_or_retry_without_evidence",
+        "v2::tests::validates_ids_safe_revisions_scope_and_time",
+        "v2::tests::validates_typed_transitions_and_retained_connection_relationships"
+      ],
+      "log": {
+        "path": ".local/gate-6/session-participants/uctp-session-codecs-wire.log",
+        "sha256": "29566bed38a70b714c30129b569d6619d960779e5713b90246d0cf6045824feb"
+      }
+    },
+    {
+      "name": "production-session-codecs",
+      "passed": 1,
+      "failed": 0,
+      "tests": [
+        "canonical_native_connections::session_codecs::production_session_codec_preferences_select_current_policy_preserve_fallback_and_original_replay"
+      ],
+      "log": {
+        "path": ".local/gate-6/session-participants/production-session-codecs.log",
+        "sha256": "84a08bf854d474bde96edbeecd33005d1574cd539e2a7ca74f4f3a0ab23fe972"
+      }
+    },
+    {
+      "name": "production-session-codecs-regressions",
+      "passed": 12,
+      "failed": 0,
+      "tests": [
+        "canonical_native_connections::codecs::production_native_admissions_keep_equal_owner_scoped_operation_ids_distinct",
+        "canonical_native_connections::codecs::production_native_codec_captured_commit_recovers_after_recording_failure_role_writer_and_cancel",
+        "canonical_native_connections::codecs::production_native_codec_change_confirms_decoded_pcma_preserves_old_audio_and_replays_without_reapplying",
+        "canonical_native_connections::codecs::production_native_codec_refusals_and_foreign_physical_replay_preserve_audio_and_pending_original",
+        "canonical_native_connections::codecs::production_native_main_session_end_and_successor_cancel_follow_explicit_conversation_closure_policy",
+        "canonical_native_connections::future::production_native_es256_unfiltered_participant_selection_preserves_explicit_removal",
+        "canonical_native_connections::future::production_native_future_camera_captured_receipt_recovers_without_retaining_command_readers",
+        "canonical_native_connections::future::production_native_future_camera_reoffers_on_publication_and_retires_source_without_losing_audio",
+        "canonical_native_connections::future::production_native_unfiltered_participant_selection_routes_current_audio_and_future_camera",
+        "canonical_native_connections::negotiation::production_native_initial_codec_selection_uses_offered_fallback_within_current_capabilities",
+        "canonical_native_connections::selector_policy::production_native_disjoint_data_formats_refuse_488_without_allocating_a_route",
+        "canonical_native_connections::selector_policy::production_native_heterogeneous_wildcard_preserves_audio_and_definitive_refusals"
+      ],
+      "log": {
+        "path": ".local/gate-6/session-participants/production-session-codecs-regressions.log",
+        "sha256": "437230d502b0406c5daa49c1c1c39cb2eb8d86dd7f1012d64f15335cb60fe99f"
+      }
+    }
+  ],
+  "actual_samples": {
+    "path": ".local/gate-6/session-participants/session-codecs-samples.jsonl",
+    "sha256": "9d063b4d4e9d2f6d0a65c07bcb7b17688a604629deef8e86a13d124511329645"
+  },
+  "sample_validation": {
+    "path": ".local/gate-6/session-participants/session-codecs-validation.log",
+    "sha256": "edec115430c500bd59bd7d0a53922bffe940cee0e8ae0dd2317d815b5c425f7b"
+  },
+  "builds": [
+    {
+      "path": ".local/gate-6/session-participants/build-session-codecs.log",
+      "sha256": "2f74dcffbcdddfc385d1cee33e7c123e4a4dc4651d8c9871cd1503d698b0666a"
+    },
+    {
+      "path": ".local/gate-6/session-participants/default-check-session-codecs.log",
+      "sha256": "618ee527efe6334df956f38dd61c52c45ff87d4d46218e37d46f7cba24d4e30e"
+    }
+  ],
+  "verification": [
+    {
+      "path": ".local/gate-6/session-participants/dependencies-session-codecs-verified.log",
+      "sha256": "fd9d7b181e3ccba9b643af55a186cf132c60aac99c734b2ee4e4e549afe5ffc2"
+    },
+    {
+      "path": ".local/gate-6/session-participants/format-session-codecs-check.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": ".local/gate-6/session-participants/openapi-session-codecs-check.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": ".local/gate-6/session-participants/schema-session-codecs.log",
+      "sha256": "1afb00e6f78689c38f93cb4544df59c1a39eddfd38b5c56100f136c1089b1a1f"
+    },
+    {
+      "path": ".local/gate-6/session-participants/diff-session-codecs.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": ".local/gate-6/session-participants/progress-session-codecs-final.log",
+      "sha256": "fedbc03549729d27ac031eee0766ae72281991ae1e9494232887c3160cf754cc"
+    },
+    {
+      "path": ".local/gate-6/session-participants/diff-session-codecs-final.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ],
+  "implementation": [
+    "NativeMediaProfile now carries a bounded trusted host codec preference order. NativeOfferPlan ranks only peer-offered names from that order, then preserves remaining usable peer order. Current local/remote capability validation still selects every actual format. Alias duplicates and malformed or unbounded policy lists are refused.",
+    "The service applies the current protected Session snapshot preferences to its initial native profile. The same profile feeds preflight and actual broker negotiation. The original signed offer, full capability grant and explicit later Connection codec controls remain intact.",
+    "Both signatures prove PCMA selected against a PCMU-first peer offer; a later PCMU Session preference wins over historical PCMA replay; and an accepted PCMU-only source cannot acquire PCMA through that preference. Immutable connection_offers rows retain the original order. Actual independent FFmpeg decoding verifies duplex and mixed-codec audio.",
+    "Current Session-wide codec updates with connected media still refuse explicitly with501. The rejected request changes no Session preferences or topology revision, does not terminate the physical peer, and actual decoded audio continues. This refusal is recorded as unfinished required work, not as completion of the live codec clause."
+  ],
+  "remaining_required_work": [
+    "Implement a genuine live Session codec coordinator with current independent source/peer authority, actual signed confirmation, bounded per-Connection outcomes and journal/captured-result recovery. Do not remove the idle guard as a metadata-only shortcut.",
+    "Complete the remaining12 assigned G6-046 clauses and all remaining tasks in the105-task plan."
+  ],
+  "historical_evidence": [
+    "docs/evidence/gate-6/auxiliary-native-selector-policy.json"
+  ],
+  "limits": [
+    "Initial native offer selection only. Session-wide switching of live Connections remains unavailable and0088/0089 remain unqualified; no new clause credit is assigned to this increment.",
+    "Isolated local macOS arm64 signed native QUIC, EdDSA and ES256. Each signature covers preferred PCMA, latest PCMU after historical PCMA replay, and a PCMU-only accepted source under PCMA policy. No Linux/browser/remote/provider or full Gate6 acceptance claim.",
+    "FFmpeg decodes actual duplex G.711, including mixed PCMU/PCMA and continued audio after the explicit501 live-update refusal. This is behavior proof, not the frozen quality/impairment workload.",
+    "Preferences are not capabilities or IO grants. They cannot select formats absent from the original peer offer, override current accepted capability, alter the signed intent or narrow the advertised capability catalog. Existing bindings are not automatically reconfigured."
+  ]
+}

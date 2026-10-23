@@ -1,0 +1,425 @@
+{
+  "task": "G6-046",
+  "title": "Canonical data-only record context projection foundation",
+  "created_at": "2026-10-21T20:48:13.301233+00:00",
+  "status": "foundation-verified",
+  "full_task_complete": false,
+  "full_goal_complete": false,
+  "actual_record_context_delivery_qualified": false,
+  "scope": "Local macOS arm64 pure Core projection API, Store/Service serialization boundary, current metadata store regression and existing native/HTTP/TLS fetch regression. This is a prerequisite for record-to-task/provider context, not installed context selection or delivery.",
+  "schema_version": 80,
+  "pinned_patches": 130,
+  "connect_passed": 84,
+  "upstream_passed": 24,
+  "connect_verification": [
+    {
+      "name": "store-records",
+      "arguments": [
+        "records::",
+        "--test-threads=1"
+      ],
+      "binary": {
+        "path": "target/debug/deps/connect_store-34efc355090fb9eb",
+        "sha256": "6597bdca4f88a2666d2aefdf7d896bb98a5cf53a1fb10f764738a5aa922a67ae"
+      },
+      "exit_code": 0,
+      "seconds": 8.61,
+      "tests": [
+        "records::mutations::tests::expiry_during_transform_rolls_back_every_fact_and_new_credential_can_retry",
+        "records::mutations::tests::journal_capacity_failure_rolls_back_bytes_receipt_authority_and_original_retry",
+        "records::mutations::tests::replay_rechecks_current_scope_recipient_ceiling_owner_and_revocation",
+        "records::mutations::tests::source_erasure_checks_actual_changes_and_exact_replay_after_later_deletion",
+        "records::outcomes::tests::finalization_commits_record_epochs_and_snapshot_release_or_rolls_back_all_of_them",
+        "records::outcomes::tests::initial_terminal_insert_freezes_only_original_prescribed_session_audience",
+        "records::outcomes::tests::outcome_slot_remains_available_at_the_ordinary_record_capacity",
+        "records::outcomes::tests::pending_discovery_and_atomic_ready_journal_survive_reopen_without_duplicate_finalization",
+        "records::outcomes::tests::readiness_journal_capacity_refusal_rolls_back_bytes_and_retries_original_intent",
+        "records::outcomes::tests::terminal_intent_is_atomic_stable_and_frozen_for_every_terminal_state",
+        "records::read::tests::bearer_record_policy_reuses_only_original_complete_owned_read_authority",
+        "records::read::tests::cached_discovery_rechecks_deletion_and_fresh_snapshot_explains_unavailability",
+        "records::read::tests::discovery_disappears_after_rejoined_membership",
+        "records::read::tests::discovery_requires_explicit_record_permission_and_omits_private_topology_and_digests",
+        "records::read::tests::independent_tenant_role_is_explicit_source_filtered_and_never_membership_or_erasure",
+        "records::read::tests::only_complete_authorized_zero_omission_metadata_exposes_capture_diagnostics",
+        "records::read::tests::queued_role_revocation_waits_for_original_read_and_policy_does_not_reenter_guard",
+        "records::read::tests::rejoined_membership_and_foreign_scope_cannot_borrow_original_record_epoch",
+        "records::read::tests::shared_tenant_role_preserves_member_sources_and_full_read_role_does_not_elevate_member_erasure",
+        "records::read::tests::source_policy_applies_subject_ceiling_and_hides_private_lineage_and_diagnostics",
+        "records::read::tests::tenant_role_cas_replay_revocation_recovery_and_cross_tenant_refusal",
+        "records::retention::tests::concurrent_new_revision_supersedes_frozen_decision_without_overwriting_new_bytes",
+        "records::retention::tests::original_decision_cutoff_and_id_recover_after_restart_without_reselection_or_duplicate_journal",
+        "records::retention::tests::quota_failure_rolls_back_expiry_and_receipt_but_retains_original_decision_for_retry",
+        "records::retention::tests::terminal_policy_freezes_before_materialization_and_survives_configuration_change"
+      ],
+      "log": ".local/gate-6/record-context-store-records.log",
+      "log_sha256": "02971c3783409932a0298a2715c6677dbca343a802859a346434d55489c7be5c",
+      "binary_unchanged": true,
+      "passed": 25,
+      "failed": 0,
+      "ignored": 0,
+      "measured": 0,
+      "filtered_out": 826,
+      "success": true
+    },
+    {
+      "name": "service",
+      "arguments": [
+        "--test-threads=1"
+      ],
+      "binary": {
+        "path": "target/debug/deps/connect_service-0c9533d243d07904",
+        "sha256": "63101077aa21bbdbb75924a37d4383fce8e10a4674f8ecc0a33a661ce4b542f8"
+      },
+      "exit_code": 0,
+      "seconds": 9.29,
+      "tests": [
+        "canonical_conversations::tests::canonical_conversation_assertions_and_unknown_filter_fields_are_not_discarded",
+        "canonical_media::tests::assistant_registry_contention_is_retryable_without_claiming_a_missing_source",
+        "canonical_media::tests::canonical_reliable_data_class_keeps_native_format_intersection_explicit",
+        "canonical_media::tests::native_plan_refuses_missing_current_acceptance_endpoint_or_original_offer_codec",
+        "canonical_media::tests::native_plan_selects_accepted_fallback_before_unaccepted_preferred_codec",
+        "canonical_media::tests::screen_planning_requires_each_explicit_screen_floor_instead_of_camera_permission",
+        "canonical_receipts::tests::read_report_parsing_keeps_diagnostic_claim_exact_and_rejects_other_resource_assertions",
+        "canonical_records::outcomes::tests::maximum_metadata_profile_retains_all_sources_within_manifest_bound",
+        "canonical_records::tests::durable_failed_transform_and_wrong_digests_preserve_original_record_and_snapshot",
+        "canonical_records::tests::durable_read_retains_cross_process_custody_until_delivery_drop",
+        "canonical_records::tests::durable_record_read_fences_other_handle_writer_while_independent_record_proceeds",
+        "canonical_records::tests::durable_record_reopens_exact_bytes_manifest_and_local_selector_scope",
+        "canonical_records::tests::durable_redaction_and_deletion_recover_original_facts_without_resurrection",
+        "canonical_records::tests::frozen_named_metadata_retention_expires_canonical_outcome_and_never_resurrects_on_restart",
+        "canonical_records::tests::pending_content_expiry_keeps_original_selection_then_separately_erases_expired_source_metadata",
+        "canonical_records::tests::terminal_session_without_core_or_media_recovers_one_original_metadata_outcome",
+        "canonical_session_decisions::tests::legacy_application_profile_cannot_dispatch_new_invitation_decisions",
+        "canonical_session_decisions::tests::session_decision_parser_refuses_extra_resources_missing_ids_and_oversized_reason",
+        "canonical_session_decisions::tests::session_decision_parser_retains_every_typed_field",
+        "canonical_sessions::http_projection_tests::ordinary_http_decision_projects_a_checked_empty_core_under_its_existing_fence",
+        "canonical_subscriptions::tests::receipt_hints_precede_cursor_facts_within_batch_budget_and_require_data_floor",
+        "canonical_subscriptions::tests::record_ready_hints_preserve_session_scope_and_fit_full_subscription_budget",
+        "canonical_subscriptions::tests::subscription_parser_bounds_batch_lease_and_rejects_extra_resource_assertions",
+        "event_tests::closing_a_physical_peer_cancels_both_journal_and_observation_waits",
+        "event_tests::event_catchup_requeries_the_journal_after_missing_or_duplicate_wake_hints",
+        "event_tests::event_wait_reauthorizes_before_delivering_after_membership_removal",
+        "messages::authority_tests::cancelled_handler_retains_authority_until_uncancellable_store_work_settles",
+        "readiness::tests::optional_absence_does_not_mask_failure_or_claim_operational_readiness",
+        "record_context::tests::canonical_context_bridge_preserves_exact_projection_attribution_and_visible_deadline",
+        "record_context::tests::canonical_context_bridge_refuses_changed_bytes_manifest_and_cross_tenant_role",
+        "session_bindings::tests::native_resource_projection_checks_origin_binding_and_current_authority",
+        "session_bindings::tests::native_video_grant_admits_exact_profile_and_rejects_duplicate_unsupported_streams",
+        "session_init::tests::dropping_final_service_cancels_host_job_retaining_runtime",
+        "session_init::tests::host_registry_refuses_duplicate_names_capacity_and_retired_runtime",
+        "session_init::tests::independent_hosts_receive_exact_committed_metadata_and_one_failure_does_not_skip_another",
+        "session_init::tests::queued_snapshot_cannot_add_work_after_host_closure",
+        "tasks::tests::commit_between_task_catchup_and_wait_is_not_lost_for_owner_or_grant",
+        "tasks::tests::revocation_during_wait_is_rechecked_before_returning_events",
+        "tests::commit_between_catchup_and_wait_is_not_lost",
+        "tests::inbox_wait_is_bounded_and_cancelled_with_physical_peer"
+      ],
+      "log": ".local/gate-6/record-context-service.log",
+      "log_sha256": "8a39d5196dec636d97fa068534196b1e7e57b82eaa19cb5335162c7331555c6a",
+      "binary_unchanged": true,
+      "passed": 40,
+      "failed": 0,
+      "ignored": 1,
+      "measured": 0,
+      "filtered_out": 0,
+      "success": true
+    },
+    {
+      "name": "auxiliary",
+      "arguments": [
+        "--test-threads=1"
+      ],
+      "binary": {
+        "path": "target/debug/deps/gate6_auxiliary-e7e5210218c4ce12",
+        "sha256": "1e2b3775dda210a5f12b900915d262f64dbe121cb886e0dee985b5c3722a8723"
+      },
+      "exit_code": 0,
+      "seconds": 75.29,
+      "tests": [
+        "canonical_record_http::actual_http_backpressure_retains_credential_and_exact_record_until_socket_finishes",
+        "canonical_record_http::actual_http_disconnect_releases_record_custody_without_recreating_or_deleting_data",
+        "canonical_record_http::actual_http_expiry_aborts_stalled_body_and_releases_authority_and_capacity",
+        "canonical_record_http::actual_http_shutdown_cancels_stalled_record_io_before_runtime_retirement",
+        "canonical_record_http::actual_https_backpressure_retains_source_and_record_through_tls_socket_io",
+        "canonical_record_http::actual_https_reference_expiry_and_shutdown_abort_stalled_tls_and_release_guards",
+        "canonical_record_http::expired_issued_url_cannot_be_reused_as_a_control_selector",
+        "canonical_record_http::issued_https_url_selectors_use_fresh_native_and_http_source_authority",
+        "canonical_record_http::named_retention_worker_expires_public_metadata_and_keeps_unavailable_after_restart",
+        "canonical_record_http::public_http_record_fetch_matches_native_digest_and_current_attenuated_sources",
+        "canonical_record_http::public_record_erasure_uses_semantic_sources_and_replays_after_deletion_and_restart",
+        "canonical_record_http::public_record_https_reference_downloads_with_native_and_explicit_http_pins",
+        "canonical_record_http::record_https_reference_rejects_changed_deleted_expired_and_restarted_views",
+        "canonical_record_http::tenant_readers::tenant_role_reads_native_http_and_tls_without_membership_and_revalidates_role_revision",
+        "canonical_record_http::tenant_readers::tenant_role_revocation_waits_for_actual_tls_body_then_invalidates_issued_view",
+        "public_cancel_before_media_is_finalized_by_owned_worker_and_survives_restart",
+        "public_native_record_fetch_uses_current_sources_and_exact_projected_digest",
+        "public_refresh_cannot_borrow_an_unbound_successor_or_another_owner",
+        "public_signed_refresh_preserves_owner_and_narrows_scope_beyond_the_predecessor_expiry"
+      ],
+      "log": ".local/gate-6/record-context-auxiliary.log",
+      "log_sha256": "40e8365b45be8831556df3b854fe17544b2424886e6659193a5841936218bbea",
+      "binary_unchanged": true,
+      "passed": 19,
+      "failed": 0,
+      "ignored": 0,
+      "measured": 0,
+      "filtered_out": 0,
+      "success": true
+    }
+  ],
+  "upstream_verification": {
+    "passed": true,
+    "created_at": "2026-10-21T20:46:36.517643+00:00",
+    "source_lock_sha256": "bbea3c588146a0e9e12aacb1b1f64883409dda0eda81529afd23960a60f95aeb",
+    "build": {
+      "command": [
+        "cargo",
+        "test",
+        "--offline",
+        "--locked",
+        "--target-dir",
+        "target",
+        "--manifest-path",
+        ".deps/rvoip/Cargo.toml",
+        "-p",
+        "rvoip-core",
+        "-p",
+        "rvoip-uctp",
+        "--features",
+        "rvoip-core/opus",
+        "--lib",
+        "--test",
+        "messaging",
+        "--test",
+        "v2_auth_peer",
+        "--no-run",
+        "--message-format=json"
+      ],
+      "exit_code": 0,
+      "environment": {
+        "CARGO_BUILD_JOBS": "1",
+        "CARGO_PROFILE_DEV_DEBUG": "0",
+        "CARGO_PROFILE_TEST_DEBUG": "0",
+        "CARGO_INCREMENTAL": "0"
+      },
+      "seconds": 308.25,
+      "log": ".local/gate-6/record-context-upstream-build.log",
+      "log_sha256": "a4111f6ce6b296ff43da4ffd67d8e5ada33edb3eda4d7bc85679cfd9141c15ca",
+      "artifacts_log": ".local/gate-6/record-context-upstream-build.jsonl",
+      "artifacts_log_sha256": "05ee6ccc999579327ff17259cd81e77dde2ca7d83a25183b4ac0b3c7c8615a17"
+    },
+    "artifacts": {
+      "rvoip_core": {
+        "path": "/Volumes/D2-2019/Developer/Connect/target/debug/deps/rvoip_core-b246957d03e6d177",
+        "manifest": "/Volumes/D2-2019/Developer/Connect/.deps/rvoip/crates/foundation/rvoip-core/Cargo.toml",
+        "sha256": "79012a37f51c85279c2c9eb2dcc5018736683f4ddb58dab99dd38ef41b40d057"
+      },
+      "messaging": {
+        "path": "/Volumes/D2-2019/Developer/Connect/target/debug/deps/messaging-f50427ac724d76cc",
+        "manifest": "/Volumes/D2-2019/Developer/Connect/.deps/rvoip/crates/foundation/rvoip-core/Cargo.toml",
+        "sha256": "20e2d1dd8383b9016fc09a807319bcd5fba45649dc7966d3bfaf67caa1b3f448"
+      },
+      "rvoip_uctp": {
+        "path": "/Volumes/D2-2019/Developer/Connect/target/debug/deps/rvoip_uctp-9abc50a01d07531e",
+        "manifest": "/Volumes/D2-2019/Developer/Connect/.deps/rvoip/crates/uctp/rvoip-uctp/Cargo.toml",
+        "sha256": "37312240eae8d5c269e8457d158e4dcc7635e16d21194600269acbd19842649d"
+      },
+      "v2_auth_peer": {
+        "path": "/Volumes/D2-2019/Developer/Connect/target/debug/deps/v2_auth_peer-9eb8fdc7a16aef6b",
+        "manifest": "/Volumes/D2-2019/Developer/Connect/.deps/rvoip/crates/uctp/rvoip-uctp/Cargo.toml",
+        "sha256": "14cea5eb457c57c7fae61aa3c1874cb0c1821830d5be043823f2ff7251810748"
+      }
+    },
+    "tests": [
+      {
+        "target": "rvoip_core",
+        "selector": "records::",
+        "tests": [
+          "records::capture::retention_tests::independent_named_retention_and_external_audio_reference_never_invent_captured_bytes",
+          "records::capture::tests::bounded_capture_reports_omissions_and_never_widens_frozen_audience",
+          "records::tests::audience_projection_prunes_private_dependencies_remaps_all_public_refs_and_withholds_raw_media_urls",
+          "records::tests::cancelled_redaction_writer_releases_intent_and_real_delivery_fences_lost_response_recovery",
+          "records::tests::context_snapshot_exposes_exact_future_retention_cutoff_and_rebuilds_expired_content",
+          "records::tests::context_snapshot_matches_guarded_fetch_and_never_forwards_private_or_media_urls",
+          "records::tests::context_snapshot_requires_exact_record_and_manifest_and_source_ceiling",
+          "records::tests::expired_source_content_cannot_survive_in_unknown_extension_fields",
+          "records::tests::explicit_canonical_source_capture_projects_real_inline_media_and_transcript_without_session_audience_inference",
+          "records::tests::local_lookup_reserves_current_revision_and_never_follows_network_or_mismatched_selectors",
+          "records::tests::persisted_complete_manifest_roundtrips_and_never_invents_audience_or_source_identity",
+          "records::tests::policy_guard_and_record_read_survive_preparation_and_cancelled_or_foreign_views_cannot_borrow_them",
+          "records::tests::retention_is_independent_and_expired_media_keeps_valid_unavailable_metadata",
+          "records::tests::retention_selection_physically_clears_only_expired_content_then_deletes_expired_document",
+          "records::tests::selective_redaction_cascades_private_metadata_preserves_other_sources_and_replays_after_delete",
+          "records::tests::tenant_role_viewer_keeps_private_source_policy_and_tenant_scope_explicit",
+          "records::tests::transfer_channel_history_and_analysis_indices_are_remapped_after_hidden_leading_party_and_dialog"
+        ],
+        "exit_code": 0,
+        "seconds": 2.05,
+        "log": ".local/gate-6/record-context-upstream-rvoip_core.log",
+        "log_sha256": "0829e811e0b8de24a6bf4d800909bd03b23b1205c6fb9ff294e5e5c09618539f",
+        "binary_unchanged": true,
+        "passed": 17,
+        "failed": 0,
+        "ignored": 0,
+        "measured": 0,
+        "filtered_out": 425,
+        "success": true
+      },
+      {
+        "target": "messaging",
+        "selector": "gate6_explicit_record_capture_preserves_private_frozen_message_audience_and_outcome",
+        "tests": [
+          "gate6_explicit_record_capture_preserves_private_frozen_message_audience_and_outcome"
+        ],
+        "exit_code": 0,
+        "seconds": 3.84,
+        "log": ".local/gate-6/record-context-upstream-messaging.log",
+        "log_sha256": "cdfdde40a7843aa6f5920f22a5d3d184e76c0b814f583518ccc6777449862dbc",
+        "binary_unchanged": true,
+        "passed": 1,
+        "failed": 0,
+        "ignored": 0,
+        "measured": 0,
+        "filtered_out": 16,
+        "success": true
+      },
+      {
+        "target": "v2_auth_peer",
+        "selector": "record_fetch::",
+        "tests": [
+          "record_fetch::canonical_fetch_missing_store_failed_and_wrong_projected_digest_are_explicit_and_correlated",
+          "record_fetch::canonical_fetch_projects_private_record_and_retains_both_guards_through_blocked_physical_reply",
+          "record_fetch::canonical_signed_fetch_verifies_exact_private_projection_before_physical_delivery",
+          "record_fetch::configured_record_signing_rejects_tamper_wrong_payload_algorithm_and_failure_without_unsigned_fallback",
+          "record_fetch::issued_reference_never_lends_old_audience_and_expires_without_holding_a_grant",
+          "record_fetch::large_record_reference_rechecks_authority_scope_revision_and_owns_actual_body_io"
+        ],
+        "exit_code": 0,
+        "seconds": 3.36,
+        "log": ".local/gate-6/record-context-upstream-v2_auth_peer.log",
+        "log_sha256": "7c50e58b2cbe013064ba7c5c414aa271133cbebca9e4f7eb1ab218349b60ee68",
+        "binary_unchanged": true,
+        "passed": 6,
+        "failed": 0,
+        "ignored": 0,
+        "measured": 0,
+        "filtered_out": 37,
+        "success": true
+      }
+    ],
+    "runtime_tests": 24
+  },
+  "ignored_top_level_helpers": 1,
+  "qualification_inputs": {
+    "path": ".local/gate-6/record-context-inputs.json",
+    "sha256": "c7919b6826052a8154ab4a10f66573115d4c02ef7f8a362aaa51d1927c32a4f1"
+  },
+  "qualification_input_count": 1308,
+  "source_lock": {
+    "path": "dependencies/source-lock.json",
+    "sha256": "bbea3c588146a0e9e12aacb1b1f64883409dda0eda81529afd23960a60f95aeb"
+  },
+  "patch": {
+    "path": "patches/rvoip/gate6-record-context-snapshot.patch",
+    "sha256": "f072296ae65151ab26172eb8de29761936141bcf2c77d0f23c687ba54cb1e7af"
+  },
+  "prepared_source": {
+    "path": ".local/gate-6/record-context-prepared-cutoff.json",
+    "sha256": "03289613f0c4ef6fe22f247056340de4752bcfc92b118e78cf56916f3f0f4dc4"
+  },
+  "previous_component": {
+    "path": "docs/evidence/gate-6/auxiliary-record-tenant-readers.json",
+    "sha256": "d29503285e64cd4cea5f96597cb668a76f91deaa13ffeb0bc4c8cbb5f670e8e7"
+  },
+  "implementation": [
+    "Core project_context_snapshot shares the exact projection engine with guarded fetch. It is pure data with no storage or policy lease and no delivery/memory authority. It verifies exact record/manifest binding, prunes dependencies and private source references, canonicalizes the projected vCon and withholds raw media URLs. It never manufactures VconRead custody or a RecordViewLease.",
+    "The snapshot returns its own unsigned projected digest and earliest future content/metadata cutoff among visible surviving sources. Already expired content is rebuilt as unavailable. A cutoff crossed during preparation refuses rather than accidentally dropping its deadline. Hidden source deadlines do not shorten or disclose the visible snapshot deadline.",
+    "Store exposes a bounded synchronous data-only serialization bridge without taking a Core dependency. Service installs the canonical implementation once per Store; ownership/current audience decisions and actual host IO remain separate. DTO Debug does not render payloads. No new HTTP route or provider delivery claim is installed by this foundation."
+  ],
+  "behavior": [
+    "A Core fixture compares exact snapshot bytes/digest with unsigned guarded fetch; actual existing signed native/HTTP/TLS paths remain covered by the auxiliary regression. Private dialogue/transcript/attachment/derived content and raw media URLs stay withheld.",
+    "Core rejects changed record and manifest fingerprints and an absent source ceiling. A reduced document-only ceiling cannot select dialogue.",
+    "Core exposes the precise visible retention cutoff and rebuilds expired content with a different digest. Service mapping independently checks SHA512 body digest, UUID/source attribution and the visible deadline; it rejects changed body/manifest and a role for another tenant.",
+    "Existing25 Store record,40 Service and19 public auxiliary cases pass. The24 scoped upstream cases include17 Core record cases, one explicit frozen private message capture case and six UCTP record fetch cases. These do not replace full assigned-clause or operating-profile qualification."
+  ],
+  "checks": [
+    {
+      "path": ".local/gate-6/record-context-format-check.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": ".local/gate-6/record-context-core-format-check.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": ".local/gate-6/record-context-mutations-reference-check.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": ".local/gate-6/record-context-canonical-reference-check.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": ".local/gate-6/record-context-diff-check.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": ".local/gate-6/record-context-progress-check.log",
+      "sha256": "fedbc03549729d27ac031eee0766ae72281991ae1e9494232887c3160cf754cc"
+    },
+    {
+      "path": ".local/gate-6/record-context-final-diff-check.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ],
+  "builds": [
+    {
+      "path": ".local/gate-6/record-context-build.log",
+      "sha256": "1e3d955b2475c7bfc333d01de3b35e7fa8b8e96e0406a7402f01cefbc3ed9bf0",
+      "exit_code": 101
+    },
+    {
+      "path": ".local/gate-6/record-context-build-second.log",
+      "sha256": "40578e97a5b22dae9ca6cb6a94324131d1a6a2eca8068e22fd81bb263142ca01",
+      "exit_code": 101
+    },
+    {
+      "path": ".local/gate-6/record-context-build-third.log",
+      "sha256": "1fa1253848993357bb092e4e857b73866e83076c22032a10f604eb4804c5e2f8",
+      "exit_code": 101
+    },
+    {
+      "path": ".local/gate-6/record-context-build-fourth.log",
+      "sha256": "e73ef0b12b9e0e551d7f287fbe35d8b4707c40889c0dc5dc028bd438d8337bda",
+      "exit_code": 0
+    }
+  ],
+  "build_failure_disposition": [
+    "Initial code treated owned retention DateTime values as references; corrected before runtime tests.",
+    "Disk filled while compiling the large runtime test. Removed only obsolete compiler incremental caches with a recorded manifest and resumed the same build graph. No source change for this refusal.",
+    "Service test fixture referenced a Core pub(crate) digest helper; changed only the test to use independent existing SHA512/base64 dependencies. Production projection code unchanged for this fix."
+  ],
+  "cache_cleanup": [
+    {
+      "path": ".local/gate-6/record-context-cache-cleanup.json",
+      "sha256": "adecf76dddf11dc6c96c90fe2b400588bd1e2d6ff4ce1374f889cad03060885b"
+    },
+    {
+      "path": ".local/gate-6/record-context-incremental-cleanup.json",
+      "sha256": "d190a10b413bb005adf2f2df4198ca43bca826f5540fcf2f30644709daa11768"
+    }
+  ],
+  "remaining": [
+    "Record-ready/task/provider source selection is not wired to the new bridge. Every source must retain current actor/delegate permissions and actual listener floors; broader tenant read roles must not become context authority.",
+    "Actual IO must hold its original real guards, clip its lifetime to visible source retention and revalidate the original selection before provider creation/export/memory reuse. Record redaction/deletion must invalidate that original selection.",
+    "Record context metadata should expose only authorized projection identity/hash; raw whole-record and manifest fingerprints must stay server-side. Bound cumulative input processing and output bytes, and report unavailable/deleted/omitted content truthfully.",
+    "Task permission, public context response/OpenAPI/SDK contract, history sharing and stable record source identity need coherent implementation with fresh schema boundaries where storage invariants change.",
+    "Current producer remains metadata only. No captured-media, provider erasure, remote/Linux/browser profile, independent conformance, acceptance or publication claim. Remaining G6-046 clauses and all other plan tasks remain active."
+  ],
+  "plan_counts": {
+    "done": 45,
+    "in_progress": 1,
+    "not_started": 59,
+    "acceptance_qualified": 0
+  }
+}

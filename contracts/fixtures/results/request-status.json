@@ -15,7 +15,17 @@
             "data": {
               "request_id": "send-1",
               "message_id": "message-1",
-              "conversation_id": "conversation-1"
+              "conversation_id": "conversation-1",
+              "receipt": {
+                "operation_id": "send-1",
+                "conversation_id": "conversation-1",
+                "state": "completed",
+                "completion_boundary": "local-mutation",
+                "status_reference": {
+                  "action": "get",
+                  "operation_id": "send-1"
+                }
+              }
             }
           }
         }

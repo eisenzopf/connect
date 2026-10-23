@@ -20,7 +20,7 @@ fn infrastructure_failure_rolls_back_a_handler_write_and_does_not_cache_rejectio
             &key.id,
             &Operation::Create {
                 request_id: "conversation".into(),
-                participants: vec![],
+                request: connect_protocol::conversations::CreateRequest::persistent(vec![]),
             },
         )
         .unwrap()
@@ -32,6 +32,7 @@ fn infrastructure_failure_rolls_back_a_handler_write_and_does_not_cache_rejectio
     c.execute_batch("CREATE TRIGGER fail_artifact_event BEFORE INSERT ON journal WHEN NEW.kind='artifact_started' BEGIN SELECT RAISE(ABORT,'fixture'); END;").unwrap();
     let before = Store::inspect_snapshot(&path).unwrap();
     let request = Operation::ArtifactBegin {
+        to: connect_protocol::messages::MessageAudience::all(),
         request_id: "begin".into(),
         conversation_id: cid,
         name: "fixture.txt".into(),
@@ -52,9 +53,11 @@ fn infrastructure_failure_rolls_back_a_handler_write_and_does_not_cache_rejectio
         Outcome::Artifact(_)
     ));
     let receipts: i64 = c
-        .query_row("SELECT COUNT(*) FROM requests WHERE id='begin'", [], |r| {
-            r.get(0)
-        })
+        .query_row(
+            "SELECT COUNT(*) FROM operations WHERE operation_id='begin'",
+            [],
+            |r| r.get(0),
+        )
         .unwrap();
     assert_eq!(receipts, 1);
 }

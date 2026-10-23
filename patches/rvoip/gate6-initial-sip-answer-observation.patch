@@ -1,0 +1,240 @@
+diff --git a/crates/sip/rvoip-sip/src/adapter/initial_participant.rs b/crates/sip/rvoip-sip/src/adapter/initial_participant.rs
+--- a/crates/sip/rvoip-sip/src/adapter/initial_participant.rs
++++ b/crates/sip/rvoip-sip/src/adapter/initial_participant.rs
+@@ -16,9 +16,51 @@
+     adapter: Weak<SipAdapter>,
+     route: Weak<SipOutboundRoute>,
+     prepared: Arc<OutboundParticipantPreparation>,
++    answer_claimed: AtomicBool,
+     media_started: AtomicBool,
+     media: OnceLock<ManagedMedia>,
+ }
++
++/// Only actual adapter Connected/terminal events change this bounded snapshot.
++/// SDP, provisional progress and media source readiness cannot assert an answer.
++#[derive(Clone, Copy, PartialEq, Eq)]
++pub(super) enum Signaling {
++    Pending,
++    Answered,
++    Terminal,
++}
++
++/// One captured remote answer for one initial route incarnation. This fact is
++/// neither current host authority nor a media/cleanup completion receipt.
++/// It cannot be manufactured, cloned, or used for another context.
++pub struct SipInitialAnswer {
++    context: Weak<Context>,
++    connection: ConnectionId,
++    reference: ExternalConnectionReference,
++}
++impl fmt::Debug for SipInitialAnswer {
++    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
++        f.write_str("SipInitialAnswer(redacted)")
++    }
++}
++impl SipInitialAnswer {
++    /// The actual Core Connection whose remote answer was observed.
++    pub fn connection(&self) -> &ConnectionId {
++        &self.connection
++    }
++    /// The actual wire SIP Call-ID, with the reference type's redacted Debug.
++    pub fn external_reference(&self) -> &ExternalConnectionReference {
++        &self.reference
++    }
++    /// Recheck exact resource incarnation; the host must separately reacquire
++    /// its current durable operation, endpoint, audience and media authority.
++    pub fn is_current_for(&self, context: &SipInitialParticipantContext) -> bool {
++        self.context.upgrade().is_some_and(|captured| {
++            Arc::ptr_eq(&captured, &context.inner) && context.inner.answered_current()
++        })
++    }
++}
++
+ struct ManagedMedia {
+     bridge: Arc<crate::media_stream::guarded::SipGuardedMedia>,
+     controller: Arc<StreamController>,
+@@ -29,6 +71,12 @@
+     }
+ }
+ impl Context {
++    fn answered_current(&self) -> bool {
++        self.route_current()
++            && self.route.upgrade().is_some_and(|route| {
++                *route.initial_signaling.borrow() == Signaling::Answered && !*route.cancel.borrow()
++            })
++    }
+     fn route_current(&self) -> bool {
+         if !self.prepared.is_current() {
+             return false;
+@@ -101,6 +149,7 @@
+             adapter: Arc::downgrade(self),
+             route: Arc::downgrade(&route),
+             prepared,
++            answer_claimed: AtomicBool::new(false),
+             media_started: AtomicBool::new(false),
+             media: OnceLock::new(),
+         });
+@@ -139,6 +188,81 @@
+     }
+ }
+ impl SipInitialParticipantContext {
++    /// Await a real remote answer on this exact route, including an answer
++    /// captured before context installation. A timeout/cancellation consumes
++    /// no answer; at most one successful waiter receives the opaque fact.
++    /// This never sends signaling, redials, or retains a host database read.
++    pub async fn wait_answered(
++        &self,
++        deadline: tokio::time::Instant,
++        cancellation: tokio_util::sync::CancellationToken,
++    ) -> CoreResult<SipInitialAnswer> {
++        let route = self
++            .inner
++            .route
++            .upgrade()
++            .ok_or(RvoipError::InvalidState("initial SIP route retired"))?;
++        let mut observed = route.initial_signaling.subscribe();
++        let mut cancelled = route.cancel.subscribe();
++        let lifetime = self.inner.prepared.cancellation();
++        loop {
++            if cancellation.is_cancelled()
++                || lifetime.is_cancelled()
++                || *cancelled.borrow()
++                || !self.inner.route_current()
++            {
++                return Err(RvoipError::InvalidState("initial SIP answer cancelled"));
++            }
++            if tokio::time::Instant::now() >= deadline {
++                return Err(RvoipError::InvalidState("initial SIP answer deadline"));
++            }
++            let signaling = *observed.borrow_and_update();
++            match signaling {
++                Signaling::Answered => {
++                    let reference = ExternalConnectionReference::new(
++                        "sip.call-id",
++                        Arc::clone(&route.sip_call_id),
++                    )
++                    .map_err(|_| RvoipError::InvalidState("initial SIP reference unavailable"))?;
++                    if self
++                        .inner
++                        .answer_claimed
++                        .compare_exchange(false, true, Ordering::AcqRel, Ordering::Acquire)
++                        .is_err()
++                    {
++                        return Err(RvoipError::InvalidState(
++                            "initial SIP answer already captured",
++                        ));
++                    }
++                    let answer = SipInitialAnswer {
++                        context: Arc::downgrade(&self.inner),
++                        connection: route.connection_id.clone(),
++                        reference,
++                    };
++                    if !answer.is_current_for(self) {
++                        return Err(RvoipError::InvalidState("initial SIP answer retired"));
++                    }
++                    return Ok(answer);
++                }
++                Signaling::Terminal => {
++                    return Err(RvoipError::InvalidState("initial SIP route ended"))
++                }
++                Signaling::Pending => {}
++            }
++            tokio::select! {
++                biased;
++                _ = cancellation.cancelled() => {},
++                _ = lifetime.cancelled() => {},
++                _ = tokio::time::sleep_until(deadline) => {},
++                changed = cancelled.changed() => {
++                    if changed.is_err() { return Err(RvoipError::InvalidState("initial SIP route retired")); }
++                },
++                changed = observed.changed() => {
++                    if changed.is_err() { return Err(RvoipError::InvalidState("initial SIP route retired")); }
++                },
++            }
++        }
++    }
+     /// Actual negotiated route metadata only; it grants no media publication.
+     pub fn negotiated_audio_codec(&self) -> CoreResult<rvoip_core::capability::CodecInfo> {
+         if !self.inner.route_current() {
+@@ -163,7 +287,7 @@
+         opened_limit: usize,
+         held: &(dyn std::any::Any + Send + Sync),
+     ) -> ControlResult<Arc<StreamController>> {
+-        if !self.inner.route_current() {
++        if !self.inner.answer_claimed.load(Ordering::Acquire) || !self.inner.answered_current() {
+             return Err(StreamControlError::NotReady);
+         }
+         if self.inner.media_started.swap(true, Ordering::AcqRel) {
+diff --git a/crates/sip/rvoip-sip/src/adapter.rs b/crates/sip/rvoip-sip/src/adapter.rs
+--- a/crates/sip/rvoip-sip/src/adapter.rs
++++ b/crates/sip/rvoip-sip/src/adapter.rs
+@@ -49,7 +49,7 @@
+ use tracing::{debug, warn};
+ 
+ mod initial_participant;
+-pub use initial_participant::SipInitialParticipantContext;
++pub use initial_participant::{SipInitialAnswer, SipInitialParticipantContext};
+ mod device_replacement;
+ pub use device_replacement::{SipDeviceReplacementContext, SipDeviceReplacementSignal};
+ 
+@@ -333,6 +333,7 @@
+     cancel: watch::Sender<bool>,
+     replacement: OnceLock<Arc<device_replacement::Context>>,
+     initial_participant: OnceLock<Arc<initial_participant::Context>>,
++    initial_signaling: watch::Sender<initial_participant::Signaling>,
+ }
+ 
+ impl SipOutboundRoute {
+@@ -377,6 +378,7 @@
+             cancel,
+             replacement: OnceLock::new(),
+             initial_participant: OnceLock::new(),
++            initial_signaling: watch::channel(initial_participant::Signaling::Pending).0,
+         })
+     }
+ 
+@@ -442,6 +444,7 @@
+     }
+ 
+     fn stage_event(&self, event: AdapterEvent) -> SipRouteStageDisposition {
++        let answered = matches!(event, AdapterEvent::Connected { .. });
+         let terminal = matches!(
+             event,
+             AdapterEvent::Ended { .. } | AdapterEvent::Failed { .. }
+@@ -494,6 +497,24 @@
+             }
+             SipOutboundRoutePhase::Terminated => SipRouteStageDisposition::Discard,
+         };
++        // Sticky, bounded transport facts are captured before publication and
++        // before a fast peer can outrun installation of the initial context.
++        // A terminal can never be overwritten by a delayed/duplicate answer.
++        if disposition != SipRouteStageDisposition::Discard {
++            if terminal {
++                self.initial_signaling
++                    .send_replace(initial_participant::Signaling::Terminal);
++            } else if answered {
++                self.initial_signaling.send_if_modified(|observed| {
++                    if *observed == initial_participant::Signaling::Pending {
++                        *observed = initial_participant::Signaling::Answered;
++                        true
++                    } else {
++                        false
++                    }
++                });
++            }
++        }
+         drop(state);
+         if terminal && disposition == SipRouteStageDisposition::Retained {
+             self.cancel.send_replace(true);
+diff --git a/crates/sip/rvoip-sip/src/lib.rs b/crates/sip/rvoip-sip/src/lib.rs
+--- a/crates/sip/rvoip-sip/src/lib.rs
++++ b/crates/sip/rvoip-sip/src/lib.rs
+@@ -513,7 +513,7 @@
+ // Peer types
+ pub use adapter::{
+     SipAdapter, SipDeviceReplacementContext, SipDeviceReplacementSignal, SipInboundContextPolicy,
+-    SipInboundContextPolicyError, SipInitialParticipantContext,
++    SipInboundContextPolicyError, SipInitialAnswer, SipInitialParticipantContext,
+ };
+ pub use originate::{
+     SipInitialHeaders, SipInitialHeadersError, SipOriginateContext, SipOriginateContextError,

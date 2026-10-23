@@ -131,7 +131,7 @@ fn terminal_task_receipt_still_requires_current_route_credential_before_replay()
     assert!(f.store.apply_connector_receipt("vapi", &reply).is_err());
     assert!(f
         .store
-        .connector_reconciliation_job(&job.id, "vapi")
+        .inspect_connector_reconciliation_job(&job.id, "vapi")
         .is_err());
     assert_eq!(count(&f, "messages"), 2);
     assert_eq!(count(&f, "task_effects"), 1);
@@ -155,7 +155,7 @@ fn terminal_task_disabled_route_cannot_admit_a_first_late_answer() {
     assert!(f.store.apply_connector_receipt("vapi", &reply).is_err());
     assert!(f
         .store
-        .connector_reconciliation_job(&job.id, "vapi")
+        .inspect_connector_reconciliation_job(&job.id, "vapi")
         .is_err());
     assert_eq!(count(&f, "messages"), 1);
     assert_eq!(count(&f, "task_effects"), 1);
@@ -288,7 +288,7 @@ fn normalized_sms_status_after_lease_expiry_retains_effect_without_refresh_or_ne
     f.store.expire_sms_authorities().unwrap();
     assert_eq!(
         f.store
-            .connector_reconciliation_job(&job.id, "telnyx")
+            .inspect_connector_reconciliation_job(&job.id, "telnyx")
             .unwrap()
             .id,
         job.id

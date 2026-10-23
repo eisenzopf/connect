@@ -2,6 +2,8 @@
 //! owns authorization, durable intent, correlation, retries and journal events.
 use async_trait::async_trait;
 pub mod conformance;
+pub mod dispatch;
+pub use dispatch::DispatchPermit;
 mod descriptor;
 pub mod host_context;
 pub mod lifecycle;
@@ -66,6 +68,7 @@ pub trait Connector: Send + Sync {
         &self,
         mutation_id: &str,
         request: &DeliveryRequest,
+        permit: DispatchPermit,
     ) -> Result<lifecycle::MessageReceipt, Failure> {
         if let Some(extension) = self.message_extension() {
             let context = match request.context.as_deref() {
@@ -76,17 +79,20 @@ pub trait Connector: Send + Sync {
                 None => vec![],
             };
             extension
-                .send(&lifecycle::MessageRequest {
-                    mutation_id: mutation_id.into(),
-                    target: request.target.clone(),
-                    body: request.body.clone(),
-                    context,
-                })
+                .send(
+                    &lifecycle::MessageRequest {
+                        mutation_id: mutation_id.into(),
+                        target: request.target.clone(),
+                        body: request.body.clone(),
+                        context,
+                    },
+                    permit,
+                )
                 .await
         } else {
             Ok(lifecycle::message_attempt(
                 mutation_id,
-                self.deliver_attempt(mutation_id, request).await,
+                self.deliver_attempt(mutation_id, request, permit).await,
             ))
         }
     }
@@ -97,10 +103,15 @@ pub trait Connector: Send + Sync {
         &self,
         _mutation_id: &str,
         request: &DeliveryRequest,
+        permit: DispatchPermit,
     ) -> Result<Completion, Failure> {
-        self.deliver(request).await
+        self.deliver(request, permit).await
     }
-    async fn deliver(&self, request: &DeliveryRequest) -> Result<Completion, Failure>;
+    async fn deliver(
+        &self,
+        request: &DeliveryRequest,
+        permit: DispatchPermit,
+    ) -> Result<Completion, Failure>;
 }
 #[derive(Clone)]
 pub struct VoiceStart {
@@ -118,6 +129,15 @@ pub struct VoiceQuery {
     pub scanned_until: i64,
     pub scan_until: i64,
 }
+/// Read-only lookup of one original uncertain submission. Inclusive bounds are
+/// Unix seconds and come from the original, immutable host grant. A missing or
+/// ambiguous match is uncertainty, never proof that another create is safe.
+#[derive(Clone)]
+pub struct VoiceReconcileQuery {
+    pub request: VoiceStart,
+    pub since: i64,
+    pub until: i64,
+}
 /// Contains a private control capability; intentionally does not implement Debug.
 pub struct RemoteCall {
     pub id: String,
@@ -125,7 +145,7 @@ pub struct RemoteCall {
     pub control_url: Option<String>,
     pub ended_reason: Option<String>,
 }
-/// Compatibility control capability plus the typed, attributable observation.
+/// Private control capability plus the typed, attributable observation.
 /// Deliberately has no Debug implementation: control URLs can carry capabilities.
 pub struct VoiceReceipt {
     pub call: RemoteCall,
@@ -142,25 +162,30 @@ pub struct InboundCall {
     pub control_url: Option<String>,
     pub ended_reason: Option<String>,
 }
+/// Authenticated discovery before the host assigns a logical call ID. The
+/// provider reference is data; only the host's authorized import transaction
+/// can bind it to a conversation and mint the local mutation ID.
+pub struct InboundVoiceReceipt {
+    pub call: InboundCall,
+    pub event_id: String,
+    pub state: lifecycle::VoiceState,
+    pub verification: lifecycle::Verification,
+}
 #[async_trait]
 pub trait VoiceConnector: Send + Sync {
-    /// Separate telephone control declaration. None is the legacy fixture boundary,
-    /// not a positive capability claim. Native media has its own negotiated format.
-    fn voice_manifest(&self) -> Option<manifest::Manifest> {
-        None
-    }
+    /// Required telephone operation contract. Native media has its separately
+    /// negotiated format; transport DTOs do not establish a capability grant.
+    fn voice_manifest(&self) -> manifest::Manifest;
     fn voice_configuration(&self) -> std::collections::BTreeMap<String, String> {
         Default::default()
     }
-    /// Translate only an authenticated provider response. Existing telephone
-    /// DTOs remain compatibility carriers; caller fields do not establish authority.
+    /// Translate only an authenticated provider response. Caller fields and
+    /// external IDs identify effects, never principals or execution authority.
     fn normalize(
         &self,
-        _mutation_id: &str,
-        _call: &RemoteCall,
-    ) -> Result<lifecycle::Observation, Failure> {
-        Err(Failure::Rejected)
-    }
+        mutation_id: &str,
+        call: &RemoteCall,
+    ) -> Result<lifecycle::Observation, Failure>;
     async fn start_observed(
         &self,
         mutation_id: &str,
@@ -183,8 +208,11 @@ pub trait VoiceConnector: Send + Sync {
         mutation_id: &str,
         request: &VoiceStart,
     ) -> Result<VoiceReceipt, Failure> {
+        validate_voice_mutation_id(mutation_id)?;
         let call = self.start(request).await?;
-        let observation = self.normalize(mutation_id, &call)?;
+        let observation = self
+            .normalize(mutation_id, &call)
+            .map_err(|_| Failure::Uncertain)?;
         Ok(VoiceReceipt { call, observation })
     }
     async fn status_receipt(
@@ -192,11 +220,26 @@ pub trait VoiceConnector: Send + Sync {
         mutation_id: &str,
         external_id: &str,
     ) -> Result<VoiceReceipt, Failure> {
+        validate_voice_mutation_id(mutation_id)?;
         let call = self.status(external_id).await?;
-        let mut observation = self.normalize(mutation_id, &call)?;
+        let mut observation = self
+            .normalize(mutation_id, &call)
+            .map_err(|_| Failure::Uncertain)?;
         observation.verification = lifecycle::Verification::Reconciliation;
         observation.event_id = format!("reconcile:{}", observation.event_id);
         Ok(VoiceReceipt { call, observation })
+    }
+    /// Optional VoiceReconcile capability. Implementations must authenticate the
+    /// account response and correlate the original mutation, full destination
+    /// binding and original time window. Never create, guess or match Caller ID
+    /// alone. Rejected/uncertain results convey no negative submission proof.
+    async fn reconcile_receipt(
+        &self,
+        mutation_id: &str,
+        _query: &VoiceReconcileQuery,
+    ) -> Result<VoiceReceipt, Failure> {
+        validate_voice_mutation_id(mutation_id)?;
+        Err(Failure::Rejected)
     }
     async fn end_receipt(
         &self,
@@ -204,12 +247,58 @@ pub trait VoiceConnector: Send + Sync {
         external_id: &str,
         control_url: Option<&str>,
     ) -> Result<VoiceReceipt, Failure> {
+        validate_voice_mutation_id(mutation_id)?;
         let call = self.end(external_id, control_url).await?;
-        let observation = self.normalize(mutation_id, &call)?;
+        let observation = self
+            .normalize(mutation_id, &call)
+            .map_err(|_| Failure::Uncertain)?;
         Ok(VoiceReceipt { call, observation })
     }
     async fn inbound(&self, query: &VoiceQuery) -> Result<Vec<InboundCall>, Failure>;
+    /// Read-only discovery. The adapter's existing decoder handles provider
+    /// states, but its temporary correlation is not a host mutation ID.
+    async fn inbound_receipts(
+        &self,
+        query: &VoiceQuery,
+    ) -> Result<Vec<InboundVoiceReceipt>, Failure> {
+        let calls = self.inbound(query).await?;
+        calls
+            .into_iter()
+            .map(|call| {
+                let remote = RemoteCall {
+                    id: call.provider_id.clone(),
+                    state: call.state.clone(),
+                    control_url: None,
+                    ended_reason: call.ended_reason.clone(),
+                };
+                let observation = self
+                    .normalize(&call.provider_id, &remote)
+                    .map_err(|_| Failure::Uncertain)?;
+                let lifecycle::State::Voice(state) = observation.state else {
+                    return Err(Failure::Uncertain);
+                };
+                if observation.external_id.as_deref() != Some(call.provider_id.as_str()) {
+                    return Err(Failure::Uncertain);
+                }
+                Ok(InboundVoiceReceipt {
+                    call,
+                    state,
+                    event_id: format!("discover:{}", observation.event_id),
+                    verification: lifecycle::Verification::Reconciliation,
+                })
+            })
+            .collect()
+    }
     async fn start(&self, request: &VoiceStart) -> Result<RemoteCall, Failure>;
     async fn status(&self, id: &str) -> Result<RemoteCall, Failure>;
     async fn end(&self, id: &str, control_url: Option<&str>) -> Result<RemoteCall, Failure>;
+}
+
+/// Invalid logical identifiers are refused before a transport call is possible.
+pub fn validate_voice_mutation_id(value: &str) -> Result<(), Failure> {
+    if value.is_empty() || value.len() > 256 || value.chars().any(char::is_control) {
+        Err(Failure::Rejected)
+    } else {
+        Ok(())
+    }
 }

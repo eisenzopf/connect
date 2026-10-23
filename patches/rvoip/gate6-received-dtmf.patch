@@ -1,0 +1,2930 @@
+diff --git a/crates/foundation/rvoip-core/src/orchestrator/dtmf_routing/received.rs b/crates/foundation/rvoip-core/src/orchestrator/dtmf_routing/received.rs
+new file mode 100644
+--- /dev/null
++++ b/crates/foundation/rvoip-core/src/orchestrator/dtmf_routing/received.rs
+@@ -0,0 +1,481 @@
++//! Explicit bounded source observation ownership, without idle permission.
++use super::*;
++use std::{
++    collections::HashMap,
++    ops::Deref,
++    sync::{atomic::AtomicU64, Mutex},
++    time::{Instant as StdInstant, SystemTime},
++};
++use tokio::sync::mpsc;
++/// All supported binding mutations invalidate registered source epochs, even
++/// if a connection later returns to the same Session/Participant (ABA).
++#[derive(Default)]
++pub(in crate::orchestrator) struct DtmfBindingIndex {
++    map: DashMap<ConnectionId, SessionId>,
++    epochs: Mutex<HashMap<ConnectionId, Weak<AtomicU64>>>,
++}
++impl Deref for DtmfBindingIndex {
++    type Target = DashMap<ConnectionId, SessionId>;
++    fn deref(&self) -> &Self::Target {
++        &self.map
++    }
++}
++impl DtmfBindingIndex {
++    fn invalidate(&self, id: &ConnectionId) {
++        let mut epochs = self.epochs.lock().unwrap_or_else(|p| p.into_inner());
++        if let Some(token) = epochs.get(id).and_then(Weak::upgrade) {
++            let _ = token.fetch_update(Ordering::AcqRel, Ordering::Acquire, |v| v.checked_add(1));
++        } else {
++            epochs.remove(id);
++        }
++    }
++    fn token(&self, id: &ConnectionId) -> std::result::Result<Arc<AtomicU64>, DtmfWriteError> {
++        let mut epochs = self.epochs.lock().unwrap_or_else(|p| p.into_inner());
++        epochs.retain(|_, v| v.strong_count() > 0);
++        if let Some(old) = epochs.get(id).and_then(Weak::upgrade) {
++            return Ok(old);
++        }
++        if epochs.len() >= 1024 {
++            return Err(DtmfWriteError::NotReady);
++        }
++        let token = Arc::new(AtomicU64::new(1));
++        epochs.insert(id.clone(), Arc::downgrade(&token));
++        Ok(token)
++    }
++    pub(in crate::orchestrator) fn insert(
++        &self,
++        id: ConnectionId,
++        sid: SessionId,
++    ) -> Option<SessionId> {
++        self.invalidate(&id);
++        self.map.insert(id, sid)
++    }
++    pub(in crate::orchestrator) fn remove(
++        &self,
++        id: &ConnectionId,
++    ) -> Option<(ConnectionId, SessionId)> {
++        self.invalidate(id);
++        self.map.remove(id)
++    }
++    pub(in crate::orchestrator) fn remove_if(
++        &self,
++        id: &ConnectionId,
++        predicate: impl FnOnce(&ConnectionId, &SessionId) -> bool,
++    ) -> Option<(ConnectionId, SessionId)> {
++        self.map.remove_if(id, |k, v| {
++            let remove = predicate(k, v);
++            if remove {
++                self.invalidate(k);
++            }
++            remove
++        })
++    }
++    pub(in crate::orchestrator) fn retain(
++        &self,
++        mut predicate: impl FnMut(&ConnectionId, &mut SessionId) -> bool,
++    ) {
++        self.map.retain(|k, v| {
++            let old = v.clone();
++            let keep = predicate(k, v);
++            if !keep || *v != old {
++                self.invalidate(k);
++            }
++            keep
++        });
++    }
++}
++struct Stamp {
++    core: Weak<Orchestrator>,
++    adapter: Weak<dyn ConnectionAdapter>,
++    endpoint: DtmfEndpoint,
++    life: Weak<Mutex<ConnectionLifecycleState>>,
++    epoch: Arc<AtomicU64>,
++    revision: u64,
++}
++impl Stamp {
++    fn current(&self) -> bool {
++        let Some(core) = self.core.upgrade() else {
++            return false;
++        };
++        let Ok(_registry) = core.connection_registry_lock.try_lock() else {
++            return false;
++        };
++        let Ok((endpoint, ticket, _)) =
++            core.capture_dtmf_endpoint_locked(self.endpoint.connection.clone())
++        else {
++            return false;
++        };
++        self.epoch.load(Ordering::Acquire) == self.revision
++            && self.revision != u64::MAX
++            && endpoint == self.endpoint
++            && self
++                .life
++                .upgrade()
++                .is_some_and(|s| Arc::ptr_eq(&s, &ticket.state))
++            && self
++                .adapter
++                .upgrade()
++                .zip(core.adapter(endpoint.transport).ok())
++                .is_some_and(|(a, b)| Arc::ptr_eq(&a, &b))
++    }
++}
++/// Actual receive facts, not the caller's original logical operation or a grant.
++#[derive(Clone)]
++pub struct DtmfReceivedInput {
++    kind: DtmfSourceKind,
++    id: String,
++    digits: String,
++    duration_ms: u32,
++    at: chrono::DateTime<chrono::Utc>,
++    instant: StdInstant,
++    rtp: Option<crate::dtmf::DecodedDtmfEvent>,
++    fence: Arc<dyn DtmfSourceFence>,
++}
++impl std::fmt::Debug for DtmfReceivedInput {
++    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
++        f.write_str("DtmfReceivedInput(redacted)")
++    }
++}
++impl DtmfReceivedInput {
++    /// Trusted actual INFO parser/transaction composition, never payload.source.
++    pub fn info(
++        id: String,
++        digits: String,
++        duration_ms: u32,
++        at: SystemTime,
++        instant: StdInstant,
++        fence: Arc<dyn DtmfSourceFence>,
++    ) -> std::result::Result<Self, DtmfWriteError> {
++        if digits.len() != 1 || !(100..=5000).contains(&duration_ms) {
++            return Err(DtmfWriteError::Refused);
++        }
++        validate_dtmf_sequence(&digits, duration_ms, 0).map_err(|_| DtmfWriteError::Refused)?;
++        Self::make(
++            DtmfSourceKind::SipInfo,
++            id,
++            digits,
++            duration_ms,
++            at,
++            instant,
++            None,
++            fence,
++        )
++    }
++    /// Trusted negotiated receiver composition. Preserve incomplete/fractional
++    /// facts honestly; prepare_route refuses to synthesize those as an effect.
++    pub fn rfc4733(
++        kind: DtmfSourceKind,
++        id: String,
++        event: crate::dtmf::DecodedDtmfEvent,
++        at: SystemTime,
++        instant: StdInstant,
++        fence: Arc<dyn DtmfSourceFence>,
++    ) -> std::result::Result<Self, DtmfWriteError> {
++        if !matches!(
++            kind,
++            DtmfSourceKind::SipRfc4733 | DtmfSourceKind::WebRtcRfc4733
++        ) {
++            return Err(DtmfWriteError::Refused);
++        }
++        Self::make(
++            kind,
++            id,
++            event.digit.to_string(),
++            event.duration_ms,
++            at,
++            instant,
++            Some(event),
++            fence,
++        )
++    }
++    fn make(
++        kind: DtmfSourceKind,
++        id: String,
++        digits: String,
++        duration_ms: u32,
++        at: SystemTime,
++        instant: StdInstant,
++        rtp: Option<crate::dtmf::DecodedDtmfEvent>,
++        fence: Arc<dyn DtmfSourceFence>,
++    ) -> std::result::Result<Self, DtmfWriteError> {
++        let _ = DtmfSourceObservation::observed(kind, id.clone(), at.into())?;
++        Ok(Self {
++            kind,
++            id,
++            digits,
++            duration_ms,
++            at: at.into(),
++            instant,
++            rtp,
++            fence,
++        })
++    }
++    pub fn rtp(&self) -> Option<&crate::dtmf::DecodedDtmfEvent> {
++        self.rtp.as_ref()
++    }
++    pub fn kind(&self) -> DtmfSourceKind {
++        self.kind
++    }
++    pub fn observation_id(&self) -> &str {
++        &self.id
++    }
++    pub fn digits(&self) -> &str {
++        &self.digits
++    }
++    pub fn duration_ms(&self) -> u32 {
++        self.duration_ms
++    }
++    pub fn received_at(&self) -> chrono::DateTime<chrono::Utc> {
++        self.at
++    }
++}
++struct Registered {
++    stamp: Stamp,
++    sender: mpsc::Sender<ReceivedDtmfObservation>,
++    cancel: CancellationToken,
++    created: StdInstant,
++    drops: AtomicU64,
++}
++/// One source subscription owns its registration, not permission or a task.
++pub struct DtmfSourceSubscription {
++    registered: Arc<Registered>,
++    receiver: mpsc::Receiver<ReceivedDtmfObservation>,
++}
++impl Drop for DtmfSourceSubscription {
++    fn drop(&mut self) {
++        self.registered.cancel.cancel();
++    }
++}
++impl DtmfSourceSubscription {
++    pub async fn recv(&mut self) -> Option<ReceivedDtmfObservation> {
++        tokio::select! {biased;_=self.registered.cancel.cancelled()=>None,event=self.receiver.recv()=>event}
++    }
++    pub fn dropped(&self) -> u64 {
++        self.registered.drops.load(Ordering::Acquire)
++    }
++}
++#[derive(Clone)]
++pub struct ReceivedDtmfObservation {
++    source: DtmfEndpoint,
++    input: DtmfReceivedInput,
++    registration: Weak<Registered>,
++}
++impl std::fmt::Debug for ReceivedDtmfObservation {
++    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
++        f.write_str("ReceivedDtmfObservation(redacted)")
++    }
++}
++impl ReceivedDtmfObservation {
++    pub fn source(&self) -> &DtmfEndpoint {
++        &self.source
++    }
++    pub fn input(&self) -> &DtmfReceivedInput {
++        &self.input
++    }
++    /// Host journals/deduplicates the original operation before scheduling; a
++    /// transport observation ID is not an operation ID or a stored permission.
++    pub fn prepare_route(
++        &self,
++        core: &Arc<Orchestrator>,
++        recipient: ConnectionId,
++        operation: String,
++        method: DtmfMethod,
++    ) -> std::result::Result<DtmfRoute, DtmfWriteError> {
++        let registration = self.registration.upgrade().ok_or(DtmfWriteError::Refused)?;
++        if registration.cancel.is_cancelled()
++            || !registration.stamp.current()
++            || registration
++                .stamp
++                .core
++                .upgrade()
++                .is_none_or(|owner| !Arc::ptr_eq(&owner, core))
++        {
++            return Err(DtmfWriteError::Refused);
++        }
++        if self.input.rtp.as_ref().is_some_and(|e| {
++            !e.start_observed
++                || e.clock_rate_hz == 0
++                || e.duration_samples
++                    .checked_mul(1000)
++                    .is_none_or(|v| v % u64::from(e.clock_rate_hz) != 0)
++        }) {
++            return Err(DtmfWriteError::Refused);
++        }
++        let intent = DtmfIntent::new(
++            operation,
++            self.input.digits.clone(),
++            self.input.duration_ms,
++            method,
++        )?;
++        let route = core.prepare_dtmf_route(self.source.connection.clone(), recipient, intent)?;
++        if route.source() != &self.source {
++            return Err(DtmfWriteError::Refused);
++        }
++        struct Fence {
++            registered: Weak<Registered>,
++            physical: Arc<dyn DtmfSourceFence>,
++        }
++        impl DtmfSourceFence for Fence {
++            fn current(&self) -> bool {
++                self.registered.upgrade().is_some_and(|r| {
++                    !r.cancel.is_cancelled()
++                        && r.stamp.epoch.load(Ordering::Acquire) == r.stamp.revision
++                }) && self.physical.current()
++            }
++            fn poll(&self, io: &mut dyn FnMut() -> DtmfIoPoll) -> DtmfIoPoll {
++                if !self.current() {
++                    return Poll::Ready(Err(DtmfWriteError::Refused));
++                }
++                self.physical.poll(io)
++            }
++        }
++        route
++            .with_source_fence(Arc::new(Fence {
++                registered: self.registration.clone(),
++                physical: self.input.fence.clone(),
++            }))?
++            .with_source_observation(DtmfSourceObservation::observed(
++                self.input.kind,
++                self.input.id.clone(),
++                self.input.at,
++            )?)
++    }
++}
++/// Adapter-owned bounded registry. It carries weak registrations and metadata,
++/// never host permission; unregistered input cannot create source ownership.
++pub struct DtmfSourceRegistry {
++    transport: Transport,
++    entries: Mutex<HashMap<ConnectionId, Weak<Registered>>>,
++    drops: AtomicU64,
++}
++impl DtmfSourceRegistry {
++    pub fn new(transport: Transport) -> Self {
++        Self {
++            transport,
++            entries: Mutex::new(HashMap::new()),
++            drops: AtomicU64::new(0),
++        }
++    }
++    pub fn subscribe(
++        &self,
++        core: &Arc<Orchestrator>,
++        adapter: Arc<dyn ConnectionAdapter>,
++        connection: ConnectionId,
++    ) -> std::result::Result<DtmfSourceSubscription, DtmfWriteError> {
++        let installed = core
++            .adapter(self.transport)
++            .map_err(|_| DtmfWriteError::Refused)?;
++        if adapter.transport() != self.transport || !Arc::ptr_eq(&installed, &adapter) {
++            return Err(DtmfWriteError::Refused);
++        }
++        let _registry = core
++            .connection_registry_lock
++            .try_lock()
++            .map_err(|_| DtmfWriteError::NotReady)?;
++        let (endpoint, ticket, _) = core.capture_dtmf_endpoint_locked(connection.clone())?;
++        if endpoint.transport != self.transport {
++            return Err(DtmfWriteError::Refused);
++        }
++        let epoch = core.sessions_by_connection.token(&connection)?;
++        let revision = epoch.load(Ordering::Acquire);
++        if revision == u64::MAX {
++            return Err(DtmfWriteError::Refused);
++        }
++        let (sender, receiver) = mpsc::channel(32);
++        let registered = Arc::new(Registered {
++            stamp: Stamp {
++                core: Arc::downgrade(core),
++                adapter: Arc::downgrade(&adapter),
++                endpoint,
++                life: Arc::downgrade(&ticket.state),
++                epoch,
++                revision,
++            },
++            sender,
++            cancel: CancellationToken::new(),
++            created: StdInstant::now(),
++            drops: AtomicU64::new(0),
++        });
++        let mut entries = self.entries.lock().unwrap_or_else(|p| p.into_inner());
++        entries.retain(|_, v| v.strong_count() > 0);
++        if entries.len() >= 64 && !entries.contains_key(&connection) {
++            return Err(DtmfWriteError::NotReady);
++        }
++        if let Some(old) = entries
++            .insert(connection, Arc::downgrade(&registered))
++            .and_then(|r| r.upgrade())
++        {
++            old.cancel.cancel();
++        }
++        Ok(DtmfSourceSubscription {
++            registered,
++            receiver,
++        })
++    }
++    pub fn publish(&self, connection: &ConnectionId, input: DtmfReceivedInput) -> bool {
++        let Some(registered) = self
++            .entries
++            .lock()
++            .unwrap_or_else(|p| p.into_inner())
++            .get(connection)
++            .and_then(Weak::upgrade)
++        else {
++            return false;
++        };
++        let matches = match input.kind {
++            DtmfSourceKind::SipInfo | DtmfSourceKind::SipRfc4733 => {
++                self.transport == Transport::Sip
++            }
++            DtmfSourceKind::WebRtcRfc4733 => self.transport == Transport::WebRtc,
++            _ => false,
++        };
++        if !matches
++            || registered.cancel.is_cancelled()
++            || input.instant < registered.created
++            || !registered.stamp.current()
++            || !input.fence.current()
++        {
++            self.drops.fetch_add(1, Ordering::Relaxed);
++            registered.drops.fetch_add(1, Ordering::Relaxed);
++            return false;
++        }
++        let observation = ReceivedDtmfObservation {
++            source: registered.stamp.endpoint.clone(),
++            input,
++            registration: Arc::downgrade(&registered),
++        };
++        if registered.sender.try_send(observation).is_err() {
++            self.drops.fetch_add(1, Ordering::Relaxed);
++            registered.drops.fetch_add(1, Ordering::Relaxed);
++            false
++        } else {
++            true
++        }
++    }
++    pub fn dropped(&self) -> u64 {
++        self.drops.load(Ordering::Acquire)
++    }
++}
++#[cfg(test)]
++mod binding_tests {
++    use super::*;
++    #[test]
++    fn binding_epoch_does_not_revive_after_session_aba_and_dead_sources_do_not_accumulate() {
++        let index = DtmfBindingIndex::default();
++        let c = ConnectionId::new();
++        let a = SessionId::new();
++        let b = SessionId::new();
++        index.insert(c.clone(), a.clone());
++        let token = index.token(&c).unwrap();
++        let old = token.load(Ordering::Acquire);
++        index.insert(c.clone(), b);
++        index.insert(c.clone(), a);
++        assert!(token.load(Ordering::Acquire) > old);
++        drop(token);
++        for _ in 0..2000 {
++            let token = index.token(&ConnectionId::new()).unwrap();
++            drop(token);
++        }
++        assert!(index.epochs.lock().unwrap().len() <= 1);
++    }
++}
+diff --git a/crates/foundation/rvoip-core/src/orchestrator/dtmf_routing.rs b/crates/foundation/rvoip-core/src/orchestrator/dtmf_routing.rs
+--- a/crates/foundation/rvoip-core/src/orchestrator/dtmf_routing.rs
++++ b/crates/foundation/rvoip-core/src/orchestrator/dtmf_routing.rs
+@@ -499,6 +499,71 @@
+     }
+ }
+ impl Orchestrator {
++    fn capture_dtmf_endpoint_locked(
++        &self,
++        connection: ConnectionId,
++    ) -> std::result::Result<
++        (DtmfEndpoint, ConnectionLifecycleTicket, Arc<Semaphore>),
++        DtmfWriteError,
++    > {
++        let entry = self
++            .connections
++            .get(&connection)
++            .ok_or(DtmfWriteError::NotReady)?;
++        if entry.inbound_publication != InboundPublicationState::Published {
++            return Err(DtmfWriteError::NotReady);
++        }
++        let state = self
++            .connection_lifecycles
++            .get(&connection)
++            .map(|v| v.value().clone())
++            .ok_or(DtmfWriteError::NotReady)?;
++        let live = state.try_lock().map_err(|_| DtmfWriteError::NotReady)?;
++        if !live.active || live.retired {
++            return Err(DtmfWriteError::Refused);
++        }
++        let sid = self
++            .session_of(&connection)
++            .ok_or(DtmfWriteError::NotReady)?;
++        let session = self.session(&sid).ok_or(DtmfWriteError::NotReady)?;
++        let session = session.try_read().map_err(|_| DtmfWriteError::NotReady)?;
++        if session.state != SessionState::Active {
++            return Err(DtmfWriteError::NotReady);
++        }
++        let binding = session
++            .connections
++            .get(&connection)
++            .ok_or(DtmfWriteError::NotReady)?;
++        let conversation = self
++            .conversation(&session.conversation_id)
++            .ok_or(DtmfWriteError::Refused)?;
++        let conversation = conversation
++            .try_read()
++            .map_err(|_| DtmfWriteError::NotReady)?;
++        if conversation.state != ConversationState::Open {
++            return Err(DtmfWriteError::Refused);
++        }
++        let endpoint = DtmfEndpoint {
++            tenant: conversation.tenant_id.clone(),
++            conversation: session.conversation_id.clone(),
++            session: sid,
++            connection: connection.clone(),
++            participant: binding.participant_id.clone(),
++            transport: entry.transport,
++            generation: live.generation,
++        };
++        let ticket = ConnectionLifecycleTicket {
++            connection_id: connection,
++            generation: live.generation,
++            state: state.clone(),
++        };
++        let slot = live
++            .dtmf_sequence
++            .get_or_init(|| Arc::new(Semaphore::new(1)))
++            .clone();
++        Ok((endpoint, ticket, slot))
++    }
++
+     /// Capture exact current local endpoints and immutable intent. These facts
+     /// grant nothing. The caller supplies current independent policy per write.
+     pub fn prepare_dtmf_route(
+@@ -514,67 +579,7 @@
+             .connection_registry_lock
+             .try_lock()
+             .map_err(|_| DtmfWriteError::NotReady)?;
+-        let capture = |connection: ConnectionId| -> std::result::Result<
+-            (DtmfEndpoint, ConnectionLifecycleTicket, Arc<Semaphore>),
+-            DtmfWriteError,
+-        > {
+-            let entry = self
+-                .connections
+-                .get(&connection)
+-                .ok_or(DtmfWriteError::NotReady)?;
+-            if entry.inbound_publication != InboundPublicationState::Published {
+-                return Err(DtmfWriteError::NotReady);
+-            }
+-            let state = self
+-                .connection_lifecycles
+-                .get(&connection)
+-                .map(|v| v.value().clone())
+-                .ok_or(DtmfWriteError::NotReady)?;
+-            let live = state.try_lock().map_err(|_| DtmfWriteError::NotReady)?;
+-            if !live.active || live.retired {
+-                return Err(DtmfWriteError::Refused);
+-            }
+-            let sid = self
+-                .session_of(&connection)
+-                .ok_or(DtmfWriteError::NotReady)?;
+-            let session = self.session(&sid).ok_or(DtmfWriteError::NotReady)?;
+-            let session = session.try_read().map_err(|_| DtmfWriteError::NotReady)?;
+-            if session.state != SessionState::Active {
+-                return Err(DtmfWriteError::NotReady);
+-            }
+-            let binding = session
+-                .connections
+-                .get(&connection)
+-                .ok_or(DtmfWriteError::NotReady)?;
+-            let conversation = self
+-                .conversation(&session.conversation_id)
+-                .ok_or(DtmfWriteError::Refused)?;
+-            let conversation = conversation
+-                .try_read()
+-                .map_err(|_| DtmfWriteError::NotReady)?;
+-            if conversation.state != ConversationState::Open {
+-                return Err(DtmfWriteError::Refused);
+-            }
+-            let endpoint = DtmfEndpoint {
+-                tenant: conversation.tenant_id.clone(),
+-                conversation: session.conversation_id.clone(),
+-                session: sid,
+-                connection: connection.clone(),
+-                participant: binding.participant_id.clone(),
+-                transport: entry.transport,
+-                generation: live.generation,
+-            };
+-            let ticket = ConnectionLifecycleTicket {
+-                connection_id: connection,
+-                generation: live.generation,
+-                state: state.clone(),
+-            };
+-            let slot = live
+-                .dtmf_sequence
+-                .get_or_init(|| Arc::new(Semaphore::new(1)))
+-                .clone();
+-            Ok((endpoint, ticket, slot))
+-        };
++        let capture = |connection| self.capture_dtmf_endpoint_locked(connection);
+         let (source, a, _) = capture(source)?;
+         let (recipient, b, slot) = capture(recipient)?;
+         if source.tenant != recipient.tenant || source.conversation != recipient.conversation {
+@@ -686,3 +691,6 @@
+         }
+     }
+ }
++
++mod received;
++pub use received::*;
+diff --git a/crates/foundation/rvoip-core/src/orchestrator.rs b/crates/foundation/rvoip-core/src/orchestrator.rs
+--- a/crates/foundation/rvoip-core/src/orchestrator.rs
++++ b/crates/foundation/rvoip-core/src/orchestrator.rs
+@@ -1542,7 +1542,7 @@
+     /// a `session_id`; cleared in `forget_connection`. Drives
+     /// [`session_of`] (P1.12) and the auto-end-on-last-leave path
+     /// (P1.10).
+-    sessions_by_connection: Arc<DashMap<ConnectionId, SessionId>>,
++    sessions_by_connection: Arc<dtmf_routing::DtmfBindingIndex>,
+     /// P3 — per-Session vCon builder.
+     session_vcons: Arc<DashMap<SessionId, Arc<crate::vcon::DefaultVconBuilder>>>,
+     /// Owns each original record and factual status through interrupted writes.
+@@ -1926,7 +1926,7 @@
+             managed_participant_connections: Arc::new(DashMap::new()),
+             externally_projected_sessions: Arc::new(Mutex::new(HashSet::new())),
+             media_diagnostics: Arc::new(crate::media_diagnostics::MediaDiagnostics::default()),
+-            sessions_by_connection: Arc::new(DashMap::new()),
++            sessions_by_connection: Arc::new(dtmf_routing::DtmfBindingIndex::default()),
+             session_vcons: Arc::new(DashMap::new()),
+             session_records: DashMap::new(),
+             asr_providers: Arc::new(DashMap::new()),
+@@ -2008,7 +2008,7 @@
+             managed_participant_connections: Arc::new(DashMap::new()),
+             externally_projected_sessions: Arc::new(Mutex::new(HashSet::new())),
+             media_diagnostics: Arc::new(crate::media_diagnostics::MediaDiagnostics::default()),
+-            sessions_by_connection: Arc::new(DashMap::new()),
++            sessions_by_connection: Arc::new(dtmf_routing::DtmfBindingIndex::default()),
+             session_vcons: Arc::new(DashMap::new()),
+             session_records: DashMap::new(),
+             asr_providers: Arc::new(DashMap::new()),
+diff --git a/crates/foundation/rvoip-core/tests/dtmf_auto_route.rs b/crates/foundation/rvoip-core/tests/dtmf_auto_route.rs
+--- a/crates/foundation/rvoip-core/tests/dtmf_auto_route.rs
++++ b/crates/foundation/rvoip-core/tests/dtmf_auto_route.rs
+@@ -516,8 +516,11 @@
+ }
+ impl Rig {
+     async fn new() -> Self {
++        Self::new_source(Transport::Quic).await
++    }
++    async fn new_source(transport: Transport) -> Self {
+         let core = Orchestrator::new(Config::default());
+-        let (source, _) = RecordingAdapter::new(Transport::Quic);
++        let (source, _) = RecordingAdapter::new(transport);
+         let (sender, raw) = RecordingAdapter::new(Transport::Sip);
+         core.register(source.clone()).unwrap();
+         core.register(sender.clone()).unwrap();
+@@ -1062,3 +1065,214 @@
+         }
+     }
+ }
++
++fn received_input(r: &Rig, id: &str, samples: u64, start: bool) -> DtmfReceivedInput {
++    DtmfReceivedInput::rfc4733(
++        DtmfSourceKind::WebRtcRfc4733,
++        id.into(),
++        DecodedDtmfEvent {
++            digit: '5',
++            duration_ms: (samples * 1000 / 8000) as u32,
++            duration_samples: samples,
++            ssrc: 0x12345678,
++            rtp_timestamp: 9000,
++            extended_timestamp: 9000,
++            last_segment_timestamp: 9000,
++            event: 5,
++            payload_type: 101,
++            clock_rate_hz: 8000,
++            start_observed: start,
++        },
++        std::time::SystemTime::now(),
++        std::time::Instant::now(),
++        Arc::new(ControlledSource {
++            adapter: r.origin.clone(),
++            connection: r.source.clone(),
++            stream: r.origin.streams.get(&r.source).unwrap().clone(),
++        }),
++    )
++    .unwrap()
++}
++#[tokio::test]
++async fn received_source_registration_preserves_original_facts_and_requires_fresh_independent_signal_policy(
++) {
++    let r = Rig::new_source(Transport::WebRtc).await;
++    let registry = DtmfSourceRegistry::new(Transport::WebRtc);
++    assert!(!registry.publish(&r.source, received_input(&r, "unregistered", 800, true)));
++    let mut sub = registry
++        .subscribe(&r.core, r.origin.clone(), r.source.clone())
++        .unwrap();
++    assert!(registry.publish(
++        &r.source,
++        received_input(&r, "actual-observation", 800, true)
++    ));
++    let observed = sub.recv().await.unwrap();
++    assert_eq!(observed.input().observation_id(), "actual-observation");
++    assert_eq!(observed.input().rtp().unwrap().ssrc, 0x12345678);
++    let route = observed
++        .prepare_route(
++            &r.core,
++            r.target.clone(),
++            "stable-logical-operation".into(),
++            DtmfMethod::Rfc4733,
++        )
++        .unwrap();
++    assert_eq!(route.observation().kind(), DtmfSourceKind::WebRtcRfc4733);
++    assert_eq!(route.source(), observed.source());
++    let policy = Policy::new(&r);
++    *policy.domain.write().await = false;
++    assert!(r
++        .core
++        .route_dtmf(
++            &route,
++            policy.clone(),
++            CancellationToken::new(),
++            Instant::now() + Duration::from_secs(1)
++        )
++        .await
++        .is_err());
++    r.no_packet().await;
++    *policy.domain.write().await = true;
++    r.core
++        .route_dtmf(
++            &route,
++            policy.clone(),
++            CancellationToken::new(),
++            Instant::now() + Duration::from_secs(1),
++        )
++        .await
++        .unwrap();
++    let packet = r.receive().await;
++    assert_eq!(packet.payload[0], 5);
++    assert!(policy.domain.try_write().is_ok());
++}
++#[tokio::test]
++async fn received_source_replacement_drop_and_retirement_invalidate_queued_metadata_without_idle_permission(
++) {
++    let r = Rig::new_source(Transport::WebRtc).await;
++    let registry = DtmfSourceRegistry::new(Transport::WebRtc);
++    let mut first = registry
++        .subscribe(&r.core, r.origin.clone(), r.source.clone())
++        .unwrap();
++    assert!(registry.publish(&r.source, received_input(&r, "old", 800, true)));
++    let old = first.recv().await.unwrap();
++    let prepared = old
++        .prepare_route(
++            &r.core,
++            r.target.clone(),
++            "stable-logical-operation".into(),
++            DtmfMethod::Rfc4733,
++        )
++        .unwrap();
++    let mut second = registry
++        .subscribe(&r.core, r.origin.clone(), r.source.clone())
++        .unwrap();
++    assert!(first.recv().await.is_none());
++    assert!(old
++        .prepare_route(
++            &r.core,
++            r.target.clone(),
++            "stable-logical-operation".into(),
++            DtmfMethod::Info
++        )
++        .is_err());
++    assert!(r
++        .core
++        .route_dtmf(
++            &prepared,
++            Policy::new(&r),
++            CancellationToken::new(),
++            Instant::now() + Duration::from_secs(1)
++        )
++        .await
++        .is_err());
++    r.no_packet().await;
++    assert!(registry.publish(&r.source, received_input(&r, "current", 800, true)));
++    let current = second.recv().await.unwrap();
++    drop(second);
++    assert!(current
++        .prepare_route(
++            &r.core,
++            r.target.clone(),
++            "stable-logical-operation".into(),
++            DtmfMethod::Rfc4733
++        )
++        .is_err());
++    let mut third = registry
++        .subscribe(&r.core, r.origin.clone(), r.source.clone())
++        .unwrap();
++    assert!(registry.publish(
++        &r.source,
++        received_input(&r, "before-retirement", 800, true)
++    ));
++    let retired = third.recv().await.unwrap();
++    let mut ended = r.core.subscribe_events();
++    r.origin.push_event(AdapterEvent::Ended {
++        connection_id: r.source.clone(),
++        reason: AdapterEndReason::Normal,
++    });
++    tokio::time::timeout(Duration::from_secs(1),async{loop{if matches!(ended.recv().await.unwrap(),Event::ConnectionEnded{connection_id,..}if connection_id==r.source){break;}}}).await.unwrap();
++    assert!(retired
++        .prepare_route(
++            &r.core,
++            r.target.clone(),
++            "stable-logical-operation".into(),
++            DtmfMethod::Rfc4733
++        )
++        .is_err());
++}
++#[tokio::test]
++async fn received_source_queue_is_bounded_and_old_or_foreign_inputs_do_not_acquire_current_registration(
++) {
++    let r = Rig::new_source(Transport::WebRtc).await;
++    let registry = DtmfSourceRegistry::new(Transport::WebRtc);
++    let old = received_input(&r, "before-subscribe", 800, true);
++    let mut sub = registry
++        .subscribe(&r.core, r.origin.clone(), r.source.clone())
++        .unwrap();
++    assert!(!registry.publish(&r.source, old));
++    for i in 0..32 {
++        assert!(registry.publish(
++            &r.source,
++            received_input(&r, &format!("queued-{i}"), 800, true)
++        ));
++    }
++    assert!(!registry.publish(&r.source, received_input(&r, "overflow", 800, true)));
++    assert_eq!(sub.dropped(), 2);
++    let observed = sub.recv().await.unwrap();
++    let foreign = Rig::new_source(Transport::WebRtc).await;
++    assert!(observed
++        .prepare_route(
++            &foreign.core,
++            foreign.target.clone(),
++            "stable-logical-operation".into(),
++            DtmfMethod::Rfc4733
++        )
++        .is_err());
++    assert!(registry
++        .subscribe(&r.core, foreign.origin.clone(), r.source.clone())
++        .is_err());
++}
++#[tokio::test]
++async fn received_rtp_incomplete_and_fractional_durations_remain_observations_without_fabricated_effects(
++) {
++    let r = Rig::new_source(Transport::WebRtc).await;
++    let registry = DtmfSourceRegistry::new(Transport::WebRtc);
++    let mut sub = registry
++        .subscribe(&r.core, r.origin.clone(), r.source.clone())
++        .unwrap();
++    for (samples, start) in [(800, false), (801, true), (0, true), (40001, true)] {
++        assert!(registry.publish(&r.source, received_input(&r, "incomplete", samples, start)));
++        let observed = sub.recv().await.unwrap();
++        assert_eq!(observed.input().rtp().unwrap().duration_samples, samples);
++        assert!(observed
++            .prepare_route(
++                &r.core,
++                r.target.clone(),
++                "stable-logical-operation".into(),
++                DtmfMethod::Rfc4733
++            )
++            .is_err());
++    }
++    r.no_packet().await;
++}
+diff --git a/crates/media/media-core/src/relay/controller/dtmf_receive.rs b/crates/media/media-core/src/relay/controller/dtmf_receive.rs
+new file mode 100644
+--- /dev/null
++++ b/crates/media/media-core/src/relay/controller/dtmf_receive.rs
+@@ -0,0 +1,309 @@
++//! Generation-bound received signal metadata. No signal permission is lent.
++use super::*;
++use crate::dtmf_authority::*;
++use std::{
++    sync::{Mutex, Weak},
++    task::Poll,
++};
++#[derive(Clone)]
++pub struct DtmfNotification {
++    received: rtp_core::telephone_event::ReceivedDtmfEvent,
++    id: String,
++    fence: Arc<dyn DtmfIoFence>,
++}
++impl std::ops::Deref for DtmfNotification {
++    type Target = rtp_core::telephone_event::DecodedDtmfEvent;
++    fn deref(&self) -> &Self::Target {
++        &self.received.event
++    }
++}
++impl std::fmt::Debug for DtmfNotification {
++    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
++        f.write_str("DtmfNotification(redacted)")
++    }
++}
++impl DtmfNotification {
++    pub fn received(&self) -> &rtp_core::telephone_event::ReceivedDtmfEvent {
++        &self.received
++    }
++    pub fn observation_id(&self) -> &str {
++        &self.id
++    }
++    pub fn poll_source(&self, io: &mut dyn FnMut() -> DtmfIoPoll) -> DtmfIoPoll {
++        self.fence.poll(io)
++    }
++}
++pub(super) struct EpochUpdate {
++    pub _guard: tokio::sync::OwnedRwLockWriteGuard<()>,
++    pub at: Arc<Mutex<std::time::Instant>>,
++}
++impl Drop for EpochUpdate {
++    fn drop(&mut self) {
++        *self.at.lock().unwrap_or_else(|p| p.into_inner()) = std::time::Instant::now();
++    }
++}
++struct SourceFence {
++    sessions: Weak<DashMap<DialogId, RtpSessionWrapper>>,
++    id: DialogId,
++    session: Weak<tokio::sync::Mutex<rtp_core::RtpSession>>,
++    domain: Arc<tokio::sync::RwLock<()>>,
++    generation: Arc<std::sync::atomic::AtomicU64>,
++    expected: u64,
++}
++impl DtmfIoFence for SourceFence {
++    fn poll(&self, io: &mut dyn FnMut() -> DtmfIoPoll) -> DtmfIoPoll {
++        let Ok(_guard) = self.domain.clone().try_read_owned() else {
++            return Poll::Ready(Err(DtmfWriteError::NotReady));
++        };
++        if self.generation.load(std::sync::atomic::Ordering::Acquire) != self.expected {
++            return Poll::Ready(Err(DtmfWriteError::Refused));
++        }
++        let Some(sessions) = self.sessions.upgrade() else {
++            return Poll::Ready(Err(DtmfWriteError::Refused));
++        };
++        let entry = match sessions.try_get(&self.id) {
++            dashmap::try_result::TryResult::Present(entry) => entry,
++            dashmap::try_result::TryResult::Locked => {
++                return Poll::Ready(Err(DtmfWriteError::NotReady))
++            }
++            _ => return Poll::Ready(Err(DtmfWriteError::Refused)),
++        };
++        if !self
++            .session
++            .upgrade()
++            .is_some_and(|s| Arc::ptr_eq(&s, &entry.session))
++        {
++            return Poll::Ready(Err(DtmfWriteError::Refused));
++        }
++        io()
++    }
++}
++pub(super) fn capture(
++    sessions: &Arc<DashMap<DialogId, RtpSessionWrapper>>,
++    id: &DialogId,
++    received: rtp_core::telephone_event::ReceivedDtmfEvent,
++) -> Option<DtmfNotification> {
++    let entry = sessions.try_get(id).try_unwrap()?;
++    let _domain = entry.dtmf_domain.clone().try_read_owned().ok()?;
++    let changed_at = *entry.dtmf_changed_at.lock().ok()?;
++    if received.received_instant < changed_at
++        || received
++            .started_instant
++            .is_some_and(|start| start < changed_at)
++    {
++        return None;
++    }
++    let expected = entry
++        .dtmf_generation
++        .load(std::sync::atomic::Ordering::Acquire);
++    let identity = format!(
++        "{}-{}-{:08x}-{:016x}-{}-{}-{}",
++        entry.dtmf_origin,
++        expected,
++        received.ssrc,
++        received.extended_timestamp,
++        received.event.event,
++        received.payload_type,
++        received.clock_rate_hz
++    );
++    let fence = Arc::new(SourceFence {
++        sessions: Arc::downgrade(sessions),
++        id: id.clone(),
++        session: Arc::downgrade(&entry.session),
++        domain: entry.dtmf_domain.clone(),
++        generation: entry.dtmf_generation.clone(),
++        expected,
++    });
++    Some(DtmfNotification {
++        received,
++        id: identity,
++        fence,
++    })
++}
++
++#[cfg(test)]
++mod tests {
++    use super::*;
++    use std::sync::atomic::Ordering;
++    async fn fixture() -> (Arc<DashMap<DialogId, RtpSessionWrapper>>, DialogId) {
++        let session = rtp_core::RtpSession::new(rtp_core::session::RtpSessionConfig {
++            local_addr: "127.0.0.1:0".parse().unwrap(),
++            ..Default::default()
++        })
++        .await
++        .unwrap();
++        let id = DialogId::new("received-dtmf-fixture");
++        let sessions = Arc::new(DashMap::new());
++        sessions.insert(
++            id.clone(),
++            RtpSessionWrapper {
++                session: Arc::new(tokio::sync::Mutex::new(session)),
++                dtmf_changed_at: Arc::new(Mutex::new(std::time::Instant::now())),
++                dtmf_origin: uuid::Uuid::new_v4(),
++                dtmf_domain: Arc::new(tokio::sync::RwLock::new(())),
++                dtmf_generation: Arc::new(std::sync::atomic::AtomicU64::new(1)),
++                update_lock: Arc::new(tokio::sync::Mutex::new(())),
++                local_addr: "127.0.0.1:0".parse().unwrap(),
++                remote_addr: None,
++                created_at: std::time::Instant::now(),
++                audio_transmitter: None,
++                transmission_enabled: true,
++                is_muted: false,
++                #[cfg(feature = "memory-diagnostics")]
++                memory_guard: rvoip_infra_common::memory_diagnostics::ObjectGuard::new(
++                    "media_core.rtp_session_wrapper",
++                    std::mem::size_of::<RtpSessionWrapper>(),
++                ),
++            },
++        );
++        (sessions, id)
++    }
++    fn received() -> rtp_core::telephone_event::ReceivedDtmfEvent {
++        let mut decoder = rtp_core::telephone_event::DtmfDecoder::new([
++            rtp_core::telephone_event::TelephoneEventCodec::new(101, 8000),
++        ]);
++        decoder.decode_packet(10, 9000, 101, true, &[5, 10, 3, 32]);
++        decoder
++            .decode_received_packet(
++                10,
++                9000,
++                101,
++                false,
++                &[5, 0x8a, 3, 32],
++                std::time::SystemTime::now(),
++                std::time::Instant::now(),
++            )
++            .pop()
++            .unwrap()
++    }
++    #[tokio::test]
++    async fn received_dtmf_start_before_media_update_cannot_borrow_new_generation_when_end_arrives_after_update(
++    ) {
++        let (sessions, id) = fixture().await;
++        let mut decoder = rtp_core::telephone_event::DtmfDecoder::new([
++            rtp_core::telephone_event::TelephoneEventCodec::new(101, 8000),
++        ]);
++        let start = std::time::Instant::now();
++        assert!(decoder
++            .decode_received_packet(
++                10,
++                9000,
++                101,
++                true,
++                &[5, 10, 0, 160],
++                std::time::SystemTime::now(),
++                start
++            )
++            .is_empty());
++        let (domain, generation, at) = {
++            let s = sessions.get(&id).unwrap();
++            (
++                s.dtmf_domain.clone(),
++                s.dtmf_generation.clone(),
++                s.dtmf_changed_at.clone(),
++            )
++        };
++        let update = EpochUpdate {
++            _guard: domain.try_write_owned().unwrap(),
++            at,
++        };
++        generation.fetch_add(1, Ordering::AcqRel);
++        decoder.replace_codecs([rtp_core::telephone_event::TelephoneEventCodec::new(
++            101, 8000,
++        )]);
++        drop(update);
++        let received = decoder
++            .decode_received_packet(
++                10,
++                9000,
++                101,
++                false,
++                &[5, 0x8a, 3, 32],
++                std::time::SystemTime::now(),
++                std::time::Instant::now(),
++            )
++            .pop()
++            .unwrap();
++        assert_eq!(received.started_instant, Some(start));
++        assert!(received.start_observed);
++        assert!(
++            capture(&sessions, &id, received).is_none(),
++            "old tone start cannot adopt successor media epoch"
++        );
++        let fresh = decoder
++            .decode_received_packet(
++                10,
++                10000,
++                101,
++                true,
++                &[5, 0x8a, 3, 32],
++                std::time::SystemTime::now(),
++                std::time::Instant::now(),
++            )
++            .pop()
++            .unwrap();
++        assert!(capture(&sessions, &id, fresh).is_some());
++    }
++    #[tokio::test]
++    async fn received_dtmf_media_update_invalidates_old_observation_and_queued_packet_without_successor_permission(
++    ) {
++        let (sessions, id) = fixture().await;
++        let raw = received();
++        let original = capture(&sessions, &id, raw.clone()).unwrap();
++        let repeated = capture(&sessions, &id, raw.clone()).unwrap();
++        assert_eq!(original.observation_id(), repeated.observation_id());
++        assert!(original.poll_source(&mut || Poll::Pending).is_pending());
++        let (domain, generation, at) = {
++            let s = sessions.get(&id).unwrap();
++            (
++                s.dtmf_domain.clone(),
++                s.dtmf_generation.clone(),
++                s.dtmf_changed_at.clone(),
++            )
++        };
++        let update = EpochUpdate {
++            _guard: domain
++                .clone()
++                .try_write_owned()
++                .expect("Pending released media source custody"),
++            at,
++        };
++        generation.fetch_add(1, Ordering::AcqRel);
++        assert!(matches!(
++            original.poll_source(&mut || panic!("updating source reached IO")),
++            Poll::Ready(Err(DtmfWriteError::NotReady))
++        ));
++        drop(update);
++        assert!(capture(&sessions, &id, raw).is_none());
++        assert!(matches!(
++            original.poll_source(&mut || panic!("old source reached IO")),
++            Poll::Ready(Err(DtmfWriteError::Refused))
++        ));
++        let current = capture(&sessions, &id, received()).unwrap();
++        assert_ne!(original.observation_id(), current.observation_id());
++        assert!(matches!(
++            current.poll_source(&mut || Poll::Ready(Ok(()))),
++            Poll::Ready(Ok(()))
++        ));
++        sessions.remove(&id);
++        assert!(matches!(
++            current.poll_source(&mut || panic!("removed source reached IO")),
++            Poll::Ready(Err(DtmfWriteError::Refused))
++        ));
++    }
++    #[tokio::test]
++    async fn received_dtmf_observation_does_not_keep_an_removed_media_registry_or_udp_session_alive(
++    ) {
++        let (sessions, id) = fixture().await;
++        let observed = capture(&sessions, &id, received()).unwrap();
++        let session = Arc::downgrade(&sessions.get(&id).unwrap().session);
++        let registry = Arc::downgrade(&sessions);
++        drop(sessions);
++        assert!(registry.upgrade().is_none());
++        assert!(session.upgrade().is_none());
++        assert!(matches!(
++            observed.poll_source(&mut || panic!("retired registry reached IO")),
++            Poll::Ready(Err(DtmfWriteError::Refused))
++        ));
++    }
++}
+diff --git a/crates/media/media-core/src/relay/controller/mod.rs b/crates/media/media-core/src/relay/controller/mod.rs
+--- a/crates/media/media-core/src/relay/controller/mod.rs
++++ b/crates/media/media-core/src/relay/controller/mod.rs
+@@ -864,7 +864,8 @@
+ }
+ 
+ /// Negotiated physical telephone-event observation; no effect authorization.
+-pub use rvoip_rtp_core::telephone_event::DecodedDtmfEvent as DtmfNotification;
++mod dtmf_receive;
++pub use dtmf_receive::DtmfNotification;
+ 
+ /// Media Session Controller for managing media sessions and conference audio mixing
+ pub struct MediaSessionController {
+@@ -1600,6 +1601,8 @@
+         let rtp_wrapper = RtpSessionWrapper {
+             dtmf_domain: Arc::new(tokio::sync::RwLock::new(())),
+             dtmf_generation: Arc::new(std::sync::atomic::AtomicU64::new(1)),
++            dtmf_changed_at: Arc::new(std::sync::Mutex::new(std::time::Instant::now())),
++            dtmf_origin: uuid::Uuid::new_v4(),
+ 
+             session: Arc::new(tokio::sync::Mutex::new(rtp_session)),
+             update_lock: Arc::new(tokio::sync::Mutex::new(())),
+@@ -2066,12 +2069,21 @@
+             ));
+         }
+         let remote_changed = config.remote_addr != old_config.remote_addr;
+-        let (dtmf_domain, dtmf_generation) = self
++        let (dtmf_domain, dtmf_generation, dtmf_changed_at) = self
+             .rtp_sessions
+             .get(&dialog_id)
+-            .map(|v| (v.dtmf_domain.clone(), v.dtmf_generation.clone()))
++            .map(|v| {
++                (
++                    v.dtmf_domain.clone(),
++                    v.dtmf_generation.clone(),
++                    v.dtmf_changed_at.clone(),
++                )
++            })
+             .ok_or_else(|| Error::session_not_found(dialog_id.as_str()))?;
+-        let _dtmf_update = dtmf_domain.write_owned().await;
++        let _dtmf_update = dtmf_receive::EpochUpdate {
++            _guard: dtmf_domain.write_owned().await,
++            at: dtmf_changed_at,
++        };
+         let next_dtmf_generation = dtmf_generation
+             .load(std::sync::atomic::Ordering::Acquire)
+             .checked_add(1)
+@@ -2289,6 +2301,7 @@
+     ) {
+         let audio_frame_callbacks = self.audio_frame_callbacks.clone();
+         let dtmf_callbacks = self.dtmf_callbacks.clone();
++        let dtmf_source_sessions = self.rtp_sessions.clone();
+         let codec_runtimes = self.codec_runtimes.clone();
+         let media_directions = self.media_directions.clone();
+ 
+@@ -2487,7 +2500,14 @@
+                                     dialog_id, ssrc
+                                 );
+                             }
+-                            rtp_core::session::RtpSessionEvent::DtmfReceived(notification) => {
++                            rtp_core::session::RtpSessionEvent::DtmfReceived(received) => {
++                                let Some(notification) = dtmf_receive::capture(
++                                    &dtmf_source_sessions,
++                                    &dialog_id,
++                                    received,
++                                ) else {
++                                    continue;
++                                };
+                                 let digit = notification.digit;
+                                 let duration_ms = notification.duration_ms;
+                                 let sender =
+diff --git a/crates/media/media-core/src/relay/controller/types.rs b/crates/media/media-core/src/relay/controller/types.rs
+--- a/crates/media/media-core/src/relay/controller/types.rs
++++ b/crates/media/media-core/src/relay/controller/types.rs
+@@ -401,6 +401,8 @@
+ /// - `transmission_enabled`: Whether to send any RTP packets at all
+ /// - `is_muted`: Whether to replace audio with silence (while still sending RTP)
+ pub struct RtpSessionWrapper {
++    pub(super) dtmf_changed_at: Arc<std::sync::Mutex<std::time::Instant>>,
++    pub(super) dtmf_origin: uuid::Uuid,
+     pub(super) dtmf_domain: Arc<tokio::sync::RwLock<()>>,
+     pub(super) dtmf_generation: Arc<std::sync::atomic::AtomicU64>,
+ 
+diff --git a/crates/media/rtp-core/src/session/mod.rs b/crates/media/rtp-core/src/session/mod.rs
+--- a/crates/media/rtp-core/src/session/mod.rs
++++ b/crates/media/rtp-core/src/session/mod.rs
+@@ -536,7 +536,7 @@
+     /// RFC 4733 telephone-event (DTMF / fax / modem tone) received.
+     /// Bounded decoded telephone event from this session's explicit profile.
+     /// This physical observation contains no authorization or operation receipt.
+-    DtmfReceived(crate::telephone_event::DecodedDtmfEvent),
++    DtmfReceived(crate::telephone_event::ReceivedDtmfEvent),
+ }
+ 
+ /// RTP session for sending and receiving RTP packets
+@@ -1097,15 +1097,19 @@
+                         marker,
+                         ..
+                     }) => {
++                        let dtmf_received_at = std::time::SystemTime::now();
++                        let dtmf_received_instant = std::time::Instant::now();
+                         let events = {
+                             let mut decoder = telephone_events.lock();
+                             decoder.accepts_payload_type(payload_type).then(|| {
+-                                decoder.decode_packet(
++                                decoder.decode_received_packet(
+                                     ssrc_from_event,
+                                     timestamp,
+                                     payload_type,
+                                     marker,
+                                     &payload,
++                                    dtmf_received_at,
++                                    dtmf_received_instant,
+                                 )
+                             })
+                         };
+diff --git a/crates/media/rtp-core/src/telephone_event.rs b/crates/media/rtp-core/src/telephone_event.rs
+--- a/crates/media/rtp-core/src/telephone_event.rs
++++ b/crates/media/rtp-core/src/telephone_event.rs
+@@ -152,6 +152,7 @@
+ }
+ #[derive(Clone)]
+ struct Source {
++    started_at: std::time::Instant,
+     timestamp: u32,
+     extended: u64,
+     event: u8,
+@@ -172,8 +173,10 @@
+         pt: u8,
+         clock: u32,
+         start: bool,
++        started_at: std::time::Instant,
+     ) -> Self {
+         Self {
++            started_at,
+             timestamp,
+             extended,
+             event: frame.event,
+@@ -244,6 +247,31 @@
+         marker: bool,
+         payload: &[u8],
+     ) -> Vec<DecodedDtmfEvent> {
++        self.decode_received_packet(
++            ssrc,
++            timestamp,
++            pt,
++            marker,
++            payload,
++            std::time::SystemTime::now(),
++            std::time::Instant::now(),
++        )
++        .into_iter()
++        .map(|received| received.event)
++        .collect()
++    }
++    /// Decode with actual receive times, retaining the original start across
++    /// segments and negotiation changes without discarding replay history.
++    pub fn decode_received_packet(
++        &mut self,
++        ssrc: u32,
++        timestamp: u32,
++        pt: u8,
++        marker: bool,
++        payload: &[u8],
++        received_at: std::time::SystemTime,
++        received_instant: std::time::Instant,
++    ) -> Vec<ReceivedDtmfEvent> {
+         let Some(codec) = self
+             .clocks
+             .get(&pt)
+@@ -322,7 +350,15 @@
+                             self.stats.incomplete_events =
+                                 self.stats.incomplete_events.saturating_add(1);
+                         }
+-                        *s = Source::new(timestamp, extended, frame, pt, clock, start);
++                        *s = Source::new(
++                            timestamp,
++                            extended,
++                            frame,
++                            pt,
++                            clock,
++                            start,
++                            received_instant,
++                        );
+                     }
+                 } else if s.event != frame.event || s.clock != clock || s.payload_type != pt {
+                     self.stats.conflicting_events = self.stats.conflicting_events.saturating_add(1);
+@@ -337,6 +373,7 @@
+                     pt,
+                     clock,
+                     start,
++                    received_instant,
+                 ));
+             }
+             let s = state.as_mut().expect("source initialized");
+@@ -361,18 +398,23 @@
+                         .ok()
+                     });
+                     if let (Some(duration_samples), Some(duration_ms)) = (total, millis) {
+-                        output.push(DecodedDtmfEvent {
+-                            digit: frame.digit,
+-                            duration_ms,
+-                            duration_samples,
+-                            ssrc,
+-                            rtp_timestamp: s.origin,
+-                            extended_timestamp: s.origin_extended,
+-                            last_segment_timestamp: s.timestamp,
+-                            event: frame.event,
+-                            payload_type: pt,
+-                            clock_rate_hz: clock,
+-                            start_observed: s.start_observed,
++                        output.push(ReceivedDtmfEvent {
++                            received_at,
++                            received_instant,
++                            started_instant: s.start_observed.then_some(s.started_at),
++                            event: DecodedDtmfEvent {
++                                digit: frame.digit,
++                                duration_ms,
++                                duration_samples,
++                                ssrc,
++                                rtp_timestamp: s.origin,
++                                extended_timestamp: s.origin_extended,
++                                last_segment_timestamp: s.timestamp,
++                                event: frame.event,
++                                payload_type: pt,
++                                clock_rate_hz: clock,
++                                start_observed: s.start_observed,
++                            },
+                         });
+                     } else {
+                         self.stats.overflow_events = self.stats.overflow_events.saturating_add(1);
+@@ -652,3 +694,23 @@
+         assert_eq!(d.decode_packet(7, 2000, 126, true, &payload).len(), 1);
+     }
+ }
++
++/// Actual local receive times accompany decoded RTP facts across event queues.
++#[derive(Clone)]
++pub struct ReceivedDtmfEvent {
++    pub started_instant: Option<std::time::Instant>,
++    pub event: DecodedDtmfEvent,
++    pub received_at: std::time::SystemTime,
++    pub received_instant: std::time::Instant,
++}
++impl std::ops::Deref for ReceivedDtmfEvent {
++    type Target = DecodedDtmfEvent;
++    fn deref(&self) -> &Self::Target {
++        &self.event
++    }
++}
++impl std::fmt::Debug for ReceivedDtmfEvent {
++    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
++        f.write_str("ReceivedDtmfEvent(redacted)")
++    }
++}
+diff --git a/crates/sip/rvoip-sip/examples/sip_client/runtime.rs b/crates/sip/rvoip-sip/examples/sip_client/runtime.rs
+--- a/crates/sip/rvoip-sip/examples/sip_client/runtime.rs
++++ b/crates/sip/rvoip-sip/examples/sip_client/runtime.rs
+@@ -400,7 +400,7 @@
+                     EndpointEvent::RemoteResume { call_id } => {
+                         let _ = event_tx.send(UiEvent::Log(format!("{call_id}: remote resumed")));
+                     }
+-                    EndpointEvent::DtmfReceived { call_id, digit, duration_ms: _ } => {
++                    EndpointEvent::DtmfReceived { call_id, digit, duration_ms: _ ,  .. } => {
+                         let _ = event_tx.send(UiEvent::Log(format!("{call_id}: received DTMF {digit}")));
+                     }
+                     EndpointEvent::RegistrationChanged(info) => {
+diff --git a/crates/sip/rvoip-sip/src/adapter.rs b/crates/sip/rvoip-sip/src/adapter.rs
+--- a/crates/sip/rvoip-sip/src/adapter.rs
++++ b/crates/sip/rvoip-sip/src/adapter.rs
+@@ -1324,6 +1324,7 @@
+     /// Weak self-reference used by retained supervisors. Tasks never retain
+     /// the adapter that owns their route registry.
+     self_weak: Weak<SipAdapter>,
++    dtmf_sources: Arc<rvoip_core::dtmf::DtmfSourceRegistry>,
+     coordinator: Arc<UnifiedCoordinator>,
+     audio_queue_capacity: std::num::NonZeroUsize,
+     /// rvoip-core ConnectionId → SIP api SessionId.
+@@ -1372,6 +1373,18 @@
+ }
+ 
+ impl SipAdapter {
++    /// Register one bounded source observation owner without signal permission.
++    pub fn subscribe_dtmf_source(
++        self: &Arc<Self>,
++        core: &Arc<rvoip_core::Orchestrator>,
++        connection: ConnectionId,
++    ) -> std::result::Result<
++        rvoip_core::dtmf::DtmfSourceSubscription,
++        rvoip_core::dtmf::DtmfWriteError,
++    > {
++        self.dtmf_sources.subscribe(core, self.clone(), connection)
++    }
++
+     /// Trigger the production media-driver failure monitor for a live route.
+     /// This hook is absent from ordinary builds.
+     #[cfg(feature = "test-hooks")]
+@@ -1496,6 +1509,7 @@
+         ))?;
+         let adapter = Arc::new_cyclic(|self_weak| Self {
+             self_weak: self_weak.clone(),
++            dtmf_sources: Arc::new(rvoip_core::dtmf::DtmfSourceRegistry::new(Transport::Sip)),
+             coordinator: Arc::clone(&coordinator),
+             audio_queue_capacity,
+             by_connection: Arc::new(DashMap::new()),
+@@ -2977,6 +2991,9 @@
+                 .await;
+             }
+             ApiEvent::InfoReceived { call_id, request } => {
++                if let Some((digits, duration)) = parse_sip_info_dtmf(&request) {
++                    self.observe_info_dtmf(&call_id, &request, digits, duration);
++                }
+                 let status = if let Some((digits, duration_ms)) = parse_sip_info_dtmf(&request) {
+                     match self.existing_mapped_epoch(&call_id) {
+                         Some(epoch)
+@@ -3020,7 +3037,12 @@
+                 call_id,
+                 digit,
+                 duration_ms,
++                rtp,
++                ..
+             } => {
++                if let Some(received) = rtp {
++                    self.observe_rfc_dtmf(&call_id, received);
++                }
+                 let Some(duration_ms) = duration_ms else {
+                     // A dialog-only digit with no timing is an incomplete
+                     // public observation, not permission to synthesize a tone.
+@@ -9531,6 +9553,7 @@
+                 call_id: session.clone(),
+                 digit: '5',
+                 duration_ms: None,
++                rtp: None,
+             })
+             .await;
+         assert!(
+@@ -9543,6 +9566,7 @@
+                     call_id: session.clone(),
+                     digit,
+                     duration_ms: Some(duration),
++                    rtp: None,
+                 })
+                 .await;
+             assert!(
+@@ -9555,6 +9579,7 @@
+                 call_id: session.clone(),
+                 digit: '5',
+                 duration_ms: Some(237),
++                rtp: None,
+             })
+             .await;
+         assert!(
+@@ -9566,6 +9591,7 @@
+                 call_id: session,
+                 digit: '7',
+                 duration_ms: Some(400),
++                rtp: None,
+             })
+             .await;
+         assert!(
+@@ -9575,3 +9601,6 @@
+         adapter.shutdown().await.unwrap();
+     }
+ }
++
++#[path = "adapter_dtmf_source.rs"]
++mod dtmf_source;
+diff --git a/crates/sip/rvoip-sip/src/adapter_dtmf_source.rs b/crates/sip/rvoip-sip/src/adapter_dtmf_source.rs
+new file mode 100644
+--- /dev/null
++++ b/crates/sip/rvoip-sip/src/adapter_dtmf_source.rs
+@@ -0,0 +1,118 @@
++//! Sealed actual receive metadata, separate from raw digit hints and effects.
++use super::*;
++use rvoip_core::dtmf::*;
++use std::task::Poll;
++struct Fence {
++    adapter: Weak<SipAdapter>,
++    epoch: SipRouteEpoch,
++    media: Option<rvoip_media_core::DtmfNotification>,
++}
++impl DtmfSourceFence for Fence {
++    fn current(&self) -> bool {
++        matches!(self.poll(&mut || Poll::Ready(Ok(()))), Poll::Ready(Ok(())))
++    }
++    fn poll(&self, io: &mut dyn FnMut() -> DtmfIoPoll) -> DtmfIoPoll {
++        let refuse = || Poll::Ready(Err(DtmfWriteError::Refused));
++        let Some(adapter) = self.adapter.upgrade() else {
++            return refuse();
++        };
++        let Some(handle) = self.epoch.admitted_handle() else {
++            return refuse();
++        };
++        let Ok(_mapping) = adapter.mapping_lock.try_lock() else {
++            return Poll::Ready(Err(DtmfWriteError::NotReady));
++        };
++        if adapter
++            .route_epoch_for_connection_locked(&self.epoch.connection_id)
++            .is_none_or(|actual| actual != self.epoch)
++        {
++            return refuse();
++        }
++        let store = &adapter.coordinator.helpers.state_machine.store;
++        let Some(lane) = store.state_machine_lane_exact(handle) else {
++            return refuse();
++        };
++        let Ok(_lane) = lane.try_lock() else {
++            return Poll::Ready(Err(DtmfWriteError::NotReady));
++        };
++        let Ok(operation) = store.authority().try_operation_exact(
++            handle.key(),
++            crate::session_lifecycle::SessionOperationKind::Signaling,
++        ) else {
++            return refuse();
++        };
++        let result = if operation.ensure_current().is_err() {
++            refuse()
++        } else if let Some(media) = &self.media {
++            media.poll_source(io)
++        } else {
++            io()
++        };
++        operation.finish_rollback();
++        result
++    }
++}
++impl SipAdapter {
++    pub(super) fn observe_info_dtmf(
++        &self,
++        call: &SessionId,
++        request: &crate::api::incoming::IncomingRequest,
++        digits: String,
++        duration: u32,
++    ) {
++        use sha2::{Digest, Sha256};
++        let Some(epoch) = self.existing_mapped_epoch(call) else {
++            return;
++        };
++        let Some(handle) = epoch.admitted_handle() else {
++            return;
++        };
++        if request.lifecycle_handle() != Some(handle) || request.response_transaction.is_none() {
++            return;
++        }
++        let Some(raw) = request.raw_request() else {
++            return;
++        };
++        let id = format!("{:x}", Sha256::digest(raw.to_bytes()));
++        let fence = Arc::new(Fence {
++            adapter: self.self_weak.clone(),
++            epoch: epoch.clone(),
++            media: None,
++        });
++        let at = std::time::SystemTime::now()
++            .checked_sub(request.received_at.elapsed())
++            .unwrap_or(std::time::SystemTime::now());
++        if let Ok(input) =
++            DtmfReceivedInput::info(id, digits, duration, at, request.received_at, fence)
++        {
++            self.dtmf_sources.publish(&epoch.connection_id, input);
++        }
++    }
++    pub(super) fn observe_rfc_dtmf(
++        &self,
++        call: &SessionId,
++        received: rvoip_media_core::DtmfNotification,
++    ) {
++        let Some(epoch) = self.existing_mapped_epoch(call) else {
++            return;
++        };
++        let input = DtmfReceivedInput::rfc4733(
++            DtmfSourceKind::SipRfc4733,
++            received.observation_id().into(),
++            received.received().event.clone(),
++            received.received().received_at,
++            received
++                .received()
++                .started_instant
++                .unwrap_or(received.received().received_instant),
++            Arc::new(Fence {
++                adapter: self.self_weak.clone(),
++                epoch: epoch.clone(),
++                media: Some(received),
++            }),
++        );
++        if let Ok(input) = input {
++            self.dtmf_sources.publish(&epoch.connection_id, input);
++        }
++    }
++}
+diff --git a/crates/sip/rvoip-sip/src/adapters/media_adapter.rs b/crates/sip/rvoip-sip/src/adapters/media_adapter.rs
+--- a/crates/sip/rvoip-sip/src/adapters/media_adapter.rs
++++ b/crates/sip/rvoip-sip/src/adapters/media_adapter.rs
+@@ -4743,7 +4743,7 @@
+     /// Install the RFC 4733 DTMF bridge: registers a callback with
+     /// media-core so PT 101 packets (already deduped to one-per-digit
+     /// on the first end-of-event frame) are published as
+-    /// `Event::DtmfReceived { call_id, digit, duration_ms }` on the rvoip-sip
++    /// `Event::DtmfReceived { call_id, digit, duration_ms ,  rtp:None, }` on the rvoip-sip
+     /// public API event stream. No-op if the app event publisher/global
+     /// coordinator has not been installed yet (e.g. isolated unit tests).
+     async fn install_dtmf_callback(
+@@ -4788,6 +4788,7 @@
+                     call_id: sid.clone(),
+                     digit: notification.digit,
+                     duration_ms: Some(notification.duration_ms),
++                    rtp: Some(notification.clone()),
+                 };
+                 if let Some(publisher) = publisher.as_ref() {
+                     publisher.publish_exact(&lifecycle_handle, api_event);
+diff --git a/crates/sip/rvoip-sip/src/adapters/session_event_handler.rs b/crates/sip/rvoip-sip/src/adapters/session_event_handler.rs
+--- a/crates/sip/rvoip-sip/src/adapters/session_event_handler.rs
++++ b/crates/sip/rvoip-sip/src/adapters/session_event_handler.rs
+@@ -2354,7 +2354,9 @@
+                 )
+                 .await
+             }
+-            DialogToSessionEvent::DtmfReceived { session_id, tones } => {
++            DialogToSessionEvent::DtmfReceived {
++                session_id, tones, ..
++            } => {
+                 self.handle_dtmf_received_parts(
+                     require_dialog_event_handle(exact_handle, session_id)?,
+                     tones.clone(),
+@@ -6033,6 +6035,7 @@
+                     call_id: sid.clone(),
+                     digit,
+                     duration_ms: None,
++                    rtp: None,
+                 },
+             );
+         }
+diff --git a/crates/sip/rvoip-sip/src/api/callback_peer.rs b/crates/sip/rvoip-sip/src/api/callback_peer.rs
+--- a/crates/sip/rvoip-sip/src/api/callback_peer.rs
++++ b/crates/sip/rvoip-sip/src/api/callback_peer.rs
+@@ -2368,7 +2368,7 @@
+                     handler.on_remote_call_resumed(handle).await;
+                 }
+ 
+-                Event::DtmfReceived { call_id, digit, duration_ms } => {
++                Event::DtmfReceived { call_id, digit, duration_ms ,  .. } => {
+                     let handle = SessionHandle::new_captured(
+                         call_id,
+                         coordinator,
+@@ -3183,6 +3183,7 @@
+                 call_id: call_id.clone(),
+                 digit: '5',
+                 duration_ms: Some(237),
++                rtp: None,
+             },
+             Event::MediaSecurityNegotiated {
+                 call_id: call_id.clone(),
+@@ -3378,6 +3379,7 @@
+                 call_id: call_id.clone(),
+                 digit: '7',
+                 duration_ms: None,
++                rtp: None,
+             },
+             Event::ReferReceived {
+                 call_id: call_id.clone(),
+diff --git a/crates/sip/rvoip-sip/src/api/endpoint.rs b/crates/sip/rvoip-sip/src/api/endpoint.rs
+--- a/crates/sip/rvoip-sip/src/api/endpoint.rs
++++ b/crates/sip/rvoip-sip/src/api/endpoint.rs
+@@ -558,6 +558,7 @@
+                 call_id,
+                 digit,
+                 duration_ms,
++                ..
+             } => EndpointEvent::DtmfReceived {
+                 call_id: EndpointCallId(call_id),
+                 digit,
+diff --git a/crates/sip/rvoip-sip/src/api/events.rs b/crates/sip/rvoip-sip/src/api/events.rs
+--- a/crates/sip/rvoip-sip/src/api/events.rs
++++ b/crates/sip/rvoip-sip/src/api/events.rs
+@@ -782,6 +782,8 @@
+         /// Measured receive duration, when available. None is incomplete
+         /// timing, never an inferred default or a zero-duration tone.
+         duration_ms: Option<u32>,
++        /// Exact media-generation-bound RTP facts, absent on dialog-only hints.
++        rtp: Option<rvoip_media_core::DtmfNotification>,
+     },
+ 
+     /// Media quality changed
+diff --git a/crates/sip/rvoip-sip/src/api/incoming.rs b/crates/sip/rvoip-sip/src/api/incoming.rs
+--- a/crates/sip/rvoip-sip/src/api/incoming.rs
++++ b/crates/sip/rvoip-sip/src/api/incoming.rs
+@@ -1539,6 +1539,10 @@
+ }
+ 
+ impl IncomingRequest {
++    pub(crate) fn lifecycle_handle(&self) -> Option<&SessionRegistryHandle> {
++        self.lifecycle_handle.as_ref()
++    }
++
+     // ─────────────────────────────────────────────────────────────────
+     // SIP_API_DESIGN_2 Phase D — response builder entry points.
+     // ─────────────────────────────────────────────────────────────────
+diff --git a/crates/sip/rvoip-sip/src/api/stream_peer.rs b/crates/sip/rvoip-sip/src/api/stream_peer.rs
+--- a/crates/sip/rvoip-sip/src/api/stream_peer.rs
++++ b/crates/sip/rvoip-sip/src/api/stream_peer.rs
+@@ -573,6 +573,7 @@
+                     call_id,
+                     digit,
+                     duration_ms,
++                    ..
+                 } => {
+                     return Some((call_id, digit, duration_ms));
+                 }
+diff --git a/crates/sip/rvoip-sip/tests/event_stream_filtering_tests.rs b/crates/sip/rvoip-sip/tests/event_stream_filtering_tests.rs
+--- a/crates/sip/rvoip-sip/tests/event_stream_filtering_tests.rs
++++ b/crates/sip/rvoip-sip/tests/event_stream_filtering_tests.rs
+@@ -193,6 +193,7 @@
+             call_id: id.clone(),
+             digit: '7',
+             duration_ms: Some(237),
++            rtp: None,
+         },
+     )
+     .await;
+diff --git a/crates/sip/rvoip-sip/tests/event_tests.rs b/crates/sip/rvoip-sip/tests/event_tests.rs
+--- a/crates/sip/rvoip-sip/tests/event_tests.rs
++++ b/crates/sip/rvoip-sip/tests/event_tests.rs
+@@ -296,6 +296,7 @@
+         call_id: id.clone(),
+         digit: '5',
+         duration_ms: Some(100),
++        rtp: None,
+     };
+     assert_eq!(e.call_id(), Some(&id));
+     assert!(e.is_media_event());
+@@ -417,6 +418,7 @@
+             call_id: id.clone(),
+             digit: '#',
+             duration_ms: Some(100),
++            rtp: None,
+         },
+         Event::RegistrationSuccess {
+             registrar: "r".into(),
+diff --git a/crates/uctp/rvoip-uctp/tests/support/canonical_media/native_offers/dtmf_route.rs b/crates/uctp/rvoip-uctp/tests/support/canonical_media/native_offers/dtmf_route.rs
+--- a/crates/uctp/rvoip-uctp/tests/support/canonical_media/native_offers/dtmf_route.rs
++++ b/crates/uctp/rvoip-uctp/tests/support/canonical_media/native_offers/dtmf_route.rs
+@@ -28,7 +28,15 @@
+     request: Request,
+     remote: SocketAddr,
+ }
++struct Ingress {
++    sip: SocketAddr,
++    rtp: SocketAddr,
++    from: String,
++    to: String,
++    call: String,
++}
+ struct Peer {
++    ingress: Arc<Mutex<Option<Ingress>>>,
+     socket: Arc<UdpSocket>,
+     media: UdpSocket,
+     infos: mpsc::UnboundedReceiver<Observed>,
+@@ -48,6 +56,8 @@
+         let wire = socket.clone();
+         let ack = Arc::new(tokio::sync::Notify::new());
+         let observed_ack = ack.clone();
++        let ingress = Arc::new(Mutex::new(None));
++        let capture_ingress = ingress.clone();
+         let task = tokio::spawn(async move {
+             let mut bytes = vec![0; 65536];
+             loop {
+@@ -84,6 +94,24 @@
+                     {
+                         to.set_tag("info-peer");
+                     }
++                    let port = std::str::from_utf8(&request.body)
++                        .unwrap()
++                        .lines()
++                        .find_map(|l| l.strip_prefix("m=audio "))
++                        .unwrap()
++                        .split_whitespace()
++                        .next()
++                        .unwrap()
++                        .parse::<u16>()
++                        .unwrap();
++                    use rvoip_sip_core::types::headers::HeaderAccess;
++                    *capture_ingress.lock().unwrap() = Some(Ingress {
++                        sip: remote,
++                        rtp: SocketAddr::new(remote.ip(), port),
++                        from: request.raw_header_value(&HeaderName::From).unwrap(),
++                        to: response.raw_header_value(&HeaderName::To).unwrap(),
++                        call: request.call_id().unwrap().value(),
++                    });
+                     response.headers.push(TypedHeader::Contact(
+                         Contact::from_str(&format!("<sip:wire-target@{address}>")).unwrap(),
+                     ));
+@@ -114,6 +142,7 @@
+             }
+         });
+         Self {
++            ingress,
+             socket,
+             media,
+             infos,
+@@ -987,8 +1016,19 @@
+                 return Err(DtmfWriteError::Refused);
+             }
+         } else {
+-            assert_eq!(scope.observation.kind(), DtmfSourceKind::Application);
+-            assert!(scope.observation.observation_id().is_none());
++            match self.observation.kind() {
++                DtmfSourceKind::Application => {
++                    assert!(scope.observation.observation_id().is_none())
++                }
++                DtmfSourceKind::SipInfo
++                | DtmfSourceKind::SipRfc4733
++                | DtmfSourceKind::WebRtcRfc4733 => {
++                    assert!(scope.observation.observation_id().is_some())
++                }
++                DtmfSourceKind::Native => {
++                    panic!("native ingress requires its actual sealed observation")
++                }
++            }
+         }
+         self.facts
+             .lock()
+@@ -1435,3 +1475,186 @@
+     r.peer.no_rtp_tone().await;
+     r.stop().await;
+ }
++
++impl Peer {
++    async fn send_source_info(&self, index: u32) {
++        let request = {
++            let current = self.ingress.lock().unwrap();
++            let i = current.as_ref().unwrap();
++            let body = "Signal=5\r\nDuration=237\r\n";
++            format!("INFO sip:native-signal-fixture@{} SIP/2.0\r\nVia: SIP/2.0/UDP {};branch=z9hG4bK-source-{index};rport\r\nFrom: {}\r\nTo: {}\r\nCall-ID: {}\r\nCSeq: {} INFO\r\nMax-Forwards: 70\r\nContent-Type: application/dtmf-relay\r\nContent-Length: {}\r\n\r\n{body}",i.sip,self.address(),i.to,i.from,i.call,index+2,body.len())
++        };
++        let target = self.ingress.lock().unwrap().as_ref().unwrap().sip;
++        self.socket
++            .send_to(request.as_bytes(), target)
++            .await
++            .unwrap();
++    }
++    async fn send_source_rtp(&self, index: u16) {
++        let target = self.ingress.lock().unwrap().as_ref().unwrap().rtp;
++        for (offset, end) in [false, true, true, true].into_iter().enumerate() {
++            let mut bytes = vec![0x80, if !end { 0x80 | 101 } else { 101 }];
++            bytes.extend_from_slice(&(index * 4 + offset as u16).to_be_bytes());
++            bytes.extend_from_slice(&(9000 + u32::from(index) * 8000).to_be_bytes());
++            bytes.extend_from_slice(&0x12345678u32.to_be_bytes());
++            bytes.extend_from_slice(&[5, if end { 0x8a } else { 10 }]);
++            bytes.extend_from_slice(&1896u16.to_be_bytes());
++            self.media.send_to(&bytes, target).await.unwrap();
++            tokio::time::sleep(Duration::from_millis(10)).await;
++        }
++    }
++}
++#[tokio::test]
++async fn actual_received_sip_info_and_rtp_reach_signed_native_with_original_source_method_and_timing(
++) {
++    for kind in ["quic", "wt"] {
++        for incoming in [DtmfMethod::Info, DtmfMethod::Rfc4733] {
++            let mut r = RouteRig::new_recipient(kind).await;
++            let core = r.scene.native.core.orch.clone();
++            let mut sub = r
++                .adapter
++                .subscribe_dtmf_source(&core, r.target.clone())
++                .unwrap();
++            if incoming == DtmfMethod::Info {
++                r.peer.send_source_info(10).await;
++            } else {
++                r.peer.send_source_rtp(10).await;
++            }
++            let observed = timeout(Duration::from_secs(3), sub.recv())
++                .await
++                .expect("actual SIP source callback")
++                .unwrap();
++            assert_eq!(observed.source().connection(), &r.target);
++            assert_eq!(observed.source().session(), &r.target_session);
++            assert_eq!(observed.input().digits(), "5");
++            assert_eq!(observed.input().duration_ms(), 237);
++            let expected = if incoming == DtmfMethod::Info {
++                DtmfSourceKind::SipInfo
++            } else {
++                DtmfSourceKind::SipRfc4733
++            };
++            assert_eq!(observed.input().kind(), expected);
++            if let Some(rtp) = observed.input().rtp() {
++                assert_eq!(rtp.ssrc, 0x12345678);
++                assert_eq!(rtp.duration_samples, 1896);
++                assert!(rtp.start_observed);
++            }
++            let method = if incoming == DtmfMethod::Info {
++                DtmfMethod::Rfc4733
++            } else {
++                DtmfMethod::Info
++            };
++            let route = observed
++                .prepare_route(
++                    &core,
++                    r.scene.id.clone(),
++                    "journal-original-sip-operation".into(),
++                    method,
++                )
++                .unwrap();
++            let policy = NativeSignalPolicy::new(&r, &route);
++            let job = r.start_native(
++                route,
++                policy.clone(),
++                CancellationToken::new(),
++                Instant::now() + Duration::from_secs(2),
++            );
++            let frame = r.native_frame().await;
++            assert_eq!(job.await.unwrap(), Ok(()));
++            assert_eq!(
++                frame.original()["payload"]["source"],
++                json!(expected.as_str())
++            );
++            assert_eq!(
++                frame.scope(Scope::Operation),
++                Some("journal-original-sip-operation")
++            );
++            assert_eq!(frame.original()["payload"]["duration_ms"], 237);
++            assert_eq!(policy.calls.load(Ordering::Acquire), 1);
++            assert!(
++                timeout(Duration::from_millis(70), sub.recv())
++                    .await
++                    .is_err(),
++                "RTP end retransmissions or INFO response minted duplicate observation"
++            );
++            drop(sub);
++            assert!(observed
++                .prepare_route(
++                    &core,
++                    r.scene.id.clone(),
++                    "journal-original-sip-operation".into(),
++                    method
++                )
++                .is_err());
++            r.stop().await;
++        }
++    }
++}
++#[tokio::test]
++async fn received_sip_subscription_replacement_and_source_end_prevent_native_delivery() {
++    let mut r = RouteRig::new_recipient("quic").await;
++    let core = r.scene.native.core.orch.clone();
++    let mut first = r
++        .adapter
++        .subscribe_dtmf_source(&core, r.target.clone())
++        .unwrap();
++    r.peer.send_source_info(20).await;
++    let old = timeout(Duration::from_secs(2), first.recv())
++        .await
++        .unwrap()
++        .unwrap();
++    let route = old
++        .prepare_route(
++            &core,
++            r.scene.id.clone(),
++            "original-replaced-source".into(),
++            DtmfMethod::Info,
++        )
++        .unwrap();
++    let policy = NativeSignalPolicy::new(&r, &route);
++    let mut second = r
++        .adapter
++        .subscribe_dtmf_source(&core, r.target.clone())
++        .unwrap();
++    assert!(first.recv().await.is_none());
++    assert!(r
++        .start_native(
++            route,
++            policy,
++            CancellationToken::new(),
++            Instant::now() + Duration::from_secs(1)
++        )
++        .await
++        .unwrap()
++        .is_err());
++    r.no_native_signal().await;
++    r.peer.send_source_rtp(20).await;
++    let current = timeout(Duration::from_secs(2), second.recv())
++        .await
++        .unwrap()
++        .unwrap();
++    let route = current
++        .prepare_route(
++            &core,
++            r.scene.id.clone(),
++            "original-ended-source".into(),
++            DtmfMethod::Rfc4733,
++        )
++        .unwrap();
++    let policy = NativeSignalPolicy::new(&r, &route);
++    core.end_connection(r.target.clone(), EndReason::Normal)
++        .await
++        .unwrap();
++    assert!(r
++        .start_native(
++            route,
++            policy,
++            CancellationToken::new(),
++            Instant::now() + Duration::from_secs(1)
++        )
++        .await
++        .unwrap()
++        .is_err());
++    r.no_native_signal().await;
++    r.stop().await;
++}
+diff --git a/crates/webrtc/rvoip-webrtc/src/adapter.rs b/crates/webrtc/rvoip-webrtc/src/adapter.rs
+--- a/crates/webrtc/rvoip-webrtc/src/adapter.rs
++++ b/crates/webrtc/rvoip-webrtc/src/adapter.rs
+@@ -871,6 +871,7 @@
+ 
+ pub struct WebRtcAdapter {
+     config: WebRtcConfig,
++    dtmf_sources: Arc<rvoip_core::dtmf::DtmfSourceRegistry>,
+     routes: Arc<DashMap<ConnectionId, Route>>,
+     events_tx: mpsc::Sender<OrchestratorAdapterEvent>,
+     events_rx: StdMutex<Option<mpsc::Receiver<OrchestratorAdapterEvent>>>,
+@@ -914,6 +915,17 @@
+ }
+ 
+ impl WebRtcAdapter {
++    pub fn subscribe_dtmf_source(
++        self: &Arc<Self>,
++        core: &Arc<rvoip_core::Orchestrator>,
++        connection: ConnectionId,
++    ) -> std::result::Result<
++        rvoip_core::dtmf::DtmfSourceSubscription,
++        rvoip_core::dtmf::DtmfWriteError,
++    > {
++        self.dtmf_sources.subscribe(core, self.clone(), connection)
++    }
++
+     pub fn new(config: WebRtcConfig) -> Arc<Self> {
+         Self::new_inner(config, None)
+     }
+@@ -937,6 +949,7 @@
+         let metrics_reaped = Arc::new(AtomicU64::new(0));
+         let adapter = Arc::new(Self {
+             config,
++            dtmf_sources: Arc::new(rvoip_core::dtmf::DtmfSourceRegistry::new(Transport::WebRtc)),
+             routes: Arc::new(DashMap::new()),
+             events_tx,
+             events_rx: StdMutex::new(Some(events_rx)),
+@@ -2219,10 +2232,13 @@
+ 
+         let stream_id = StreamId::new();
+         let has_remote = remote.is_some();
+-        let (dtmf_tx, mut dtmf_rx) = mpsc::channel::<crate::media::dtmf::DecodedDtmfEvent>(32);
++        let (dtmf_tx, mut dtmf_rx) = mpsc::channel::<crate::media::dtmf::ReceivedDtmfEvent>(32);
+         let events_tx = self.events_tx.clone();
+         let outbound_event_stages = Arc::clone(&self.outbound_event_stages);
+         let conn_for_dtmf = conn.clone();
++        let dtmf_sources = self.dtmf_sources.clone();
++        let dtmf_routes = self.routes.clone();
++        let dtmf_peer = Arc::downgrade(&route.peer);
+         let mut dtmf_cancel = route.data_cancel.subscribe();
+         if !route.task_supervisor.spawn(async move {
+             loop {
+@@ -2234,6 +2250,20 @@
+                     }
+                     event = dtmf_rx.recv() => {
+                         let Some(event) = event else { break };
++                        if let Some(physical) = event.fence.clone() {
++                            let fence = Arc::new(dtmf_source::Fence {
++                                routes: Arc::downgrade(&dtmf_routes),
++                                connection: conn_for_dtmf.clone(),
++                                peer: dtmf_peer.clone(),
++                                physical,
++                            });
++                            if let Ok(input) = rvoip_core::dtmf::DtmfReceivedInput::rfc4733(
++                                rvoip_core::dtmf::DtmfSourceKind::WebRtcRfc4733,
++                                event.id.clone(), event.event.clone(), event.at, event.instant, fence,
++                            ) {
++                                dtmf_sources.publish(&conn_for_dtmf, input);
++                            }
++                        }
+                         let _ = Self::publish_or_stage_to(
+                             &outbound_event_stages,
+                             &events_tx,
+@@ -5259,6 +5289,17 @@
+             .map_err(|e| RvoipError::Adapter(format!("{e}")))
+     }
+ 
++    async fn send_dtmf_authorized(
++        &self,
++        connection: ConnectionId,
++        digits: &str,
++        duration_ms: u32,
++        policy: Arc<dyn rvoip_core::dtmf::DtmfWriteAuthority>,
++    ) -> std::result::Result<(), rvoip_core::dtmf::DtmfWriteError> {
++        self.send_authorized_dtmf(connection, digits, duration_ms, policy)
++            .await
++    }
++
+     async fn send_message(&self, conn: ConnectionId, message: Message) -> RvoipResult<()> {
+         let content_type = legacy_message_content_type(&message.content_type);
+         let data_message = DataMessage {
+@@ -6151,3 +6192,6 @@
+             .expect("cleanup route");
+     }
+ }
++
++#[path = "adapter_dtmf_source.rs"]
++mod dtmf_source;
+diff --git a/crates/webrtc/rvoip-webrtc/src/adapter_dtmf_source.rs b/crates/webrtc/rvoip-webrtc/src/adapter_dtmf_source.rs
+new file mode 100644
+--- /dev/null
++++ b/crates/webrtc/rvoip-webrtc/src/adapter_dtmf_source.rs
+@@ -0,0 +1,104 @@
++//! Exact route and actual track fenced received observations.
++use super::*;
++use rvoip_core::dtmf::*;
++use std::{sync::Weak, task::Poll};
++pub(super) struct Fence {
++    pub routes: Weak<DashMap<ConnectionId, Route>>,
++    pub connection: ConnectionId,
++    pub peer: Weak<RvoipPeerConnection>,
++    pub physical: Arc<dyn DtmfSourceFence>,
++}
++impl DtmfSourceFence for Fence {
++    fn current(&self) -> bool {
++        matches!(self.poll(&mut || Poll::Ready(Ok(()))), Poll::Ready(Ok(())))
++    }
++    fn poll(&self, io: &mut dyn FnMut() -> DtmfIoPoll) -> DtmfIoPoll {
++        poll_route(&self.routes, &self.connection, &self.peer, &mut || {
++            self.physical.poll(io)
++        })
++    }
++}
++fn poll_route(
++    routes_weak: &Weak<DashMap<ConnectionId, Route>>,
++    connection: &ConnectionId,
++    peer: &Weak<RvoipPeerConnection>,
++    io: &mut dyn FnMut() -> DtmfIoPoll,
++) -> DtmfIoPoll {
++    let Some(routes) = routes_weak.upgrade() else {
++        return Poll::Ready(Err(DtmfWriteError::Refused));
++    };
++    let route = match routes.try_get(connection) {
++        dashmap::try_result::TryResult::Present(v) => v,
++        dashmap::try_result::TryResult::Locked => {
++            return Poll::Ready(Err(DtmfWriteError::NotReady))
++        }
++        _ => return Poll::Ready(Err(DtmfWriteError::Refused)),
++    };
++    let Some(failed) = route.failed_at.try_lock() else {
++        return Poll::Ready(Err(DtmfWriteError::NotReady));
++    };
++    if failed.is_some()
++        || *route.data_cancel.borrow()
++        || !route.core_published.load(Ordering::Acquire)
++        || !route.connected_published.load(Ordering::Acquire)
++        || !peer.upgrade().is_some_and(|p| Arc::ptr_eq(&p, &route.peer))
++    {
++        return Poll::Ready(Err(DtmfWriteError::Refused));
++    }
++    io()
++}
++struct TargetFence {
++    routes: Weak<DashMap<ConnectionId, Route>>,
++    connection: ConnectionId,
++    peer: Weak<RvoipPeerConnection>,
++}
++impl DtmfIoFence for TargetFence {
++    fn poll(&self, io: &mut dyn FnMut() -> DtmfIoPoll) -> DtmfIoPoll {
++        poll_route(&self.routes, &self.connection, &self.peer, io)
++    }
++}
++struct TargetPolicy {
++    policy: Arc<dyn DtmfWriteAuthority>,
++    fence: Arc<TargetFence>,
++}
++#[async_trait::async_trait]
++impl DtmfWriteAuthority for TargetPolicy {
++    async fn acquire(
++        &self,
++        scope: &DtmfWriteScope<'_>,
++    ) -> std::result::Result<DtmfWriteLease, DtmfWriteError> {
++        self.policy
++            .acquire(scope)
++            .await?
++            .with_outer_fence(self.fence.clone())
++    }
++}
++impl WebRtcAdapter {
++    pub(super) async fn send_authorized_dtmf(
++        &self,
++        connection: ConnectionId,
++        digits: &str,
++        duration: u32,
++        policy: Arc<dyn DtmfWriteAuthority>,
++    ) -> std::result::Result<(), DtmfWriteError> {
++        let route = self
++            .route(&connection)
++            .map_err(|_| DtmfWriteError::Refused)?;
++        let fence = Arc::new(TargetFence {
++            routes: Arc::downgrade(&self.routes),
++            connection,
++            peer: Arc::downgrade(&route.peer),
++        });
++        crate::media::dtmf::send_dtmf_authorized(
++            &route.peer,
++            digits,
++            duration,
++            Arc::new(TargetPolicy { policy, fence }),
++        )
++        .await
++        .map_err(|error| match error {
++            crate::errors::WebRtcError::DtmfWrite(error) => error,
++            _ => DtmfWriteError::OutcomeUnknown,
++        })
++    }
++}
+diff --git a/crates/webrtc/rvoip-webrtc/src/media/audio_reorder.rs b/crates/webrtc/rvoip-webrtc/src/media/audio_reorder.rs
+--- a/crates/webrtc/rvoip-webrtc/src/media/audio_reorder.rs
++++ b/crates/webrtc/rvoip-webrtc/src/media/audio_reorder.rs
+@@ -12,7 +12,7 @@
+     pub packet: rtp::Packet,
+     pub source_clock: Option<rvoip_core::stream::MediaSourceClock>,
+     pub captured_at: DateTime<Utc>,
+-    inserted: Instant,
++    pub(super) inserted: Instant,
+ }
+ impl ReceivedAudio {
+     pub fn new(packet: rtp::Packet, now: Instant) -> Self {
+@@ -170,12 +170,10 @@
+         let mut queue = AudioReorder::default();
+         queue.push(packet(65534, now), now);
+         assert!(queue.push(packet(0, now), now).packets.is_empty());
+-        assert!(
+-            queue
+-                .expire(now + Duration::from_millis(99))
+-                .packets
+-                .is_empty()
+-        );
++        assert!(queue
++            .expire(now + Duration::from_millis(99))
++            .packets
++            .is_empty());
+         assert_eq!(sequences(&queue.expire(now + GAP_WAIT)), [0]);
+         let late = queue.push(packet(65535, now), now + GAP_WAIT);
+         assert!(late.packets.is_empty());
+diff --git a/crates/webrtc/rvoip-webrtc/src/media/dtmf.rs b/crates/webrtc/rvoip-webrtc/src/media/dtmf.rs
+--- a/crates/webrtc/rvoip-webrtc/src/media/dtmf.rs
++++ b/crates/webrtc/rvoip-webrtc/src/media/dtmf.rs
+@@ -659,3 +659,33 @@
+         );
+     }
+ }
++
++/// Actual received RTP facts and physical track custody, never a signal grant.
++#[derive(Clone)]
++pub struct ReceivedDtmfEvent {
++    pub(crate) event: DecodedDtmfEvent,
++    pub(crate) id: String,
++    pub(crate) at: std::time::SystemTime,
++    pub(crate) instant: std::time::Instant,
++    pub(crate) fence: Option<Arc<dyn rvoip_core::dtmf::DtmfSourceFence>>,
++}
++impl std::ops::Deref for ReceivedDtmfEvent {
++    type Target = DecodedDtmfEvent;
++    fn deref(&self) -> &Self::Target {
++        &self.event
++    }
++}
++impl std::fmt::Debug for ReceivedDtmfEvent {
++    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
++        f.write_str("ReceivedDtmfEvent(redacted)")
++    }
++}
++
++impl ReceivedDtmfEvent {
++    pub fn observation_id(&self) -> &str {
++        &self.id
++    }
++    pub fn received_at(&self) -> std::time::SystemTime {
++        self.at
++    }
++}
+diff --git a/crates/webrtc/rvoip-webrtc/src/media/pump.rs b/crates/webrtc/rvoip-webrtc/src/media/pump.rs
+--- a/crates/webrtc/rvoip-webrtc/src/media/pump.rs
++++ b/crates/webrtc/rvoip-webrtc/src/media/pump.rs
+@@ -22,7 +22,7 @@
+ use rvoip_core::ids::StreamId;
+ use rvoip_core::stream::{MediaFrame, QualitySnapshot};
+ 
+-use crate::media::dtmf::{DecodedDtmfEvent, DtmfDecoder, TelephoneEventCodec};
++use crate::media::dtmf::{DtmfDecoder, ReceivedDtmfEvent, TelephoneEventCodec};
+ use crate::media::outbound::OutboundAudioRtpWriter;
+ 
+ pub const FRAME_CHANNEL_CAP: usize = 64;
+@@ -378,7 +378,7 @@
+     stats: Arc<InboundStats>,
+     send_deadline_ms: u64,
+     cancel: Option<Arc<Notify>>,
+-    dtmf_tx: Option<mpsc::Sender<DecodedDtmfEvent>>,
++    dtmf_tx: Option<mpsc::Sender<ReceivedDtmfEvent>>,
+ ) -> JoinHandle<()> {
+     spawn_inbound_pump_tracked(
+         track,
+@@ -403,7 +403,7 @@
+     stats: Arc<InboundStats>,
+     send_deadline_ms: u64,
+     cancel: Option<Arc<Notify>>,
+-    dtmf_tx: Option<mpsc::Sender<DecodedDtmfEvent>>,
++    dtmf_tx: Option<mpsc::Sender<ReceivedDtmfEvent>>,
+     dtmf_codecs: Vec<TelephoneEventCodec>,
+     task_counter: Option<Arc<AtomicUsize>>,
+     diagnostics: super::stream::MediaDiagnosticsSlot,
+@@ -415,7 +415,18 @@
+         let deadline = Duration::from_millis(send_deadline_ms);
+         let ssrcs = track.ssrcs().await;
+         let identity: Arc<dyn Send + Sync> = track.clone();
+-        let clock_lease = source_clock.map(|c| c.lease_identity(&ssrcs, &identity));
++        let clock_lease = source_clock
++            .clone()
++            .map(|c| c.lease_identity(&ssrcs, &identity));
++        struct SourceLife(Arc<std::sync::Mutex<bool>>);
++        impl Drop for SourceLife {
++            fn drop(&mut self) {
++                *self.0.lock().unwrap_or_else(|p| p.into_inner()) = false;
++            }
++        }
++        let signal_life = SourceLife(Arc::new(std::sync::Mutex::new(true)));
++        let signal_origin = format!("{:032x}", rand::random::<u128>());
++        let signal_clock = source_clock.clone();
+         let mut dtmf_decoder = DtmfDecoder::new(dtmf_codecs);
+         let mut reorder = super::audio_reorder::AudioReorder::default();
+         loop {
+@@ -494,15 +505,40 @@
+                         timestamp = pkt.header.timestamp,
+                         "received negotiated WebRTC telephone-event RTP"
+                     );
+-                    for event in dtmf_decoder.decode_packet(
++                    for received_event in dtmf_decoder.decode_received_packet(
+                         pkt.header.ssrc,
+                         pkt.header.timestamp,
+                         pkt.header.payload_type,
+                         pkt.header.marker,
+                         &pkt.payload,
++                        received.captured_at.into(),
++                        received.inserted,
+                     ) {
++                        let instant = received_event
++                            .started_instant
++                            .unwrap_or(received_event.received_instant);
++                        let event = received_event.event;
+                         if let Some(tx) = &dtmf_tx {
+-                            if tx.try_send(event).is_err() {
++                            let fence = signal_clock.as_ref().and_then(|clock| {
++                                clock.signal_fence(event.ssrc, &identity, signal_life.0.clone())
++                            });
++                            let id = format!(
++                                "{}-{:08x}-{:016x}-{}-{}-{}",
++                                signal_origin,
++                                event.ssrc,
++                                event.extended_timestamp,
++                                event.event,
++                                event.payload_type,
++                                event.clock_rate_hz
++                            );
++                            let observation = ReceivedDtmfEvent {
++                                event,
++                                id,
++                                at: received.captured_at.into(),
++                                instant,
++                                fence,
++                            };
++                            if tx.try_send(observation).is_err() {
+                                 stats
+                                     .dtmf_observations_dropped
+                                     .fetch_add(1, Ordering::Relaxed);
+diff --git a/crates/webrtc/rvoip-webrtc/src/media/stream.rs b/crates/webrtc/rvoip-webrtc/src/media/stream.rs
+--- a/crates/webrtc/rvoip-webrtc/src/media/stream.rs
++++ b/crates/webrtc/rvoip-webrtc/src/media/stream.rs
+@@ -17,7 +17,7 @@
+ use rvoip_core::ids::StreamId;
+ use rvoip_core::stream::{MediaReceiverReservation, MediaStream, QualitySnapshot, StreamKind};
+ 
+-use crate::media::dtmf::{DecodedDtmfEvent, TelephoneEventCodec};
++use crate::media::dtmf::{ReceivedDtmfEvent, TelephoneEventCodec};
+ use crate::media::outbound::OutboundAudioRtpWriter;
+ use crate::media::pump::{
+     spawn_inbound_pump_tracked, spawn_outbound_pump_with_writer_tracked, InboundStats,
+@@ -46,7 +46,7 @@
+     /// so a boolean cannot represent the route correctly.
+     remote_tracks: Mutex<HashSet<usize>>,
+     inbound_stats: Arc<InboundStats>,
+-    dtmf_tx: Option<mpsc::Sender<DecodedDtmfEvent>>,
++    dtmf_tx: Option<mpsc::Sender<ReceivedDtmfEvent>>,
+     dtmf_codecs: Vec<TelephoneEventCodec>,
+     /// Local cancel used to stop owned pump tasks on `close()`. The adapter may
+     /// also pass a route-level Notify into `enable_webrtc_stats` for global cancel.
+@@ -190,7 +190,7 @@
+     local_ssrc: u32,
+     payload_type: u8,
+     remote: Option<Arc<dyn TrackRemote>>,
+-    dtmf_tx: Option<mpsc::Sender<DecodedDtmfEvent>>,
++    dtmf_tx: Option<mpsc::Sender<ReceivedDtmfEvent>>,
+ ) -> Arc<WebRtcMediaStream> {
+     from_tracks_with_dtmf_codecs(
+         id,
+@@ -223,7 +223,7 @@
+     local_ssrc: u32,
+     payload_type: u8,
+     remote: Option<Arc<dyn TrackRemote>>,
+-    dtmf_tx: Option<mpsc::Sender<DecodedDtmfEvent>>,
++    dtmf_tx: Option<mpsc::Sender<ReceivedDtmfEvent>>,
+     dtmf_codecs: impl IntoIterator<Item = TelephoneEventCodec>,
+ ) -> Arc<WebRtcMediaStream> {
+     from_tracks_with_dtmf_events_and_task_counter(
+@@ -252,7 +252,7 @@
+     local_ssrc: u32,
+     payload_type: u8,
+     remote: Option<Arc<dyn TrackRemote>>,
+-    dtmf_tx: Option<mpsc::Sender<DecodedDtmfEvent>>,
++    dtmf_tx: Option<mpsc::Sender<ReceivedDtmfEvent>>,
+     dtmf_codecs: Vec<TelephoneEventCodec>,
+     task_counter: Option<Arc<AtomicUsize>>,
+     outbound_writer: Option<Arc<OutboundAudioRtpWriter>>,
+diff --git a/crates/webrtc/rvoip-webrtc/src/peer/handler.rs b/crates/webrtc/rvoip-webrtc/src/peer/handler.rs
+--- a/crates/webrtc/rvoip-webrtc/src/peer/handler.rs
++++ b/crates/webrtc/rvoip-webrtc/src/peer/handler.rs
+@@ -1,7 +1,7 @@
+ //! Event fan-in from webrtc-rs `PeerConnectionEventHandler` to internal channels.
+ 
++use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
+ use std::sync::Arc;
+-use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
+ 
+ use crate::peer::ice::IceCandidateLog;
+ 
+@@ -332,6 +332,10 @@
+         };
+         if let Some(kind) = kind {
+             for ssrc in track.ssrcs().await {
++                let identity: Arc<dyn Send + Sync> = track.clone();
++                self.channels
++                    .source_clock
++                    .register_signal_track(ssrc, &identity);
+                 if let Some(codec) = track.codec(ssrc).await {
+                     if codec
+                         .mime_type
+diff --git a/crates/webrtc/rvoip-webrtc/src/peer/source_clock.rs b/crates/webrtc/rvoip-webrtc/src/peer/source_clock.rs
+--- a/crates/webrtc/rvoip-webrtc/src/peer/source_clock.rs
++++ b/crates/webrtc/rvoip-webrtc/src/peer/source_clock.rs
+@@ -40,6 +40,7 @@
+     offset: Option<u64>,
+ }
+ struct Inner {
++    signals: Mutex<std::collections::HashMap<u32, (u128, Weak<dyn Send + Sync>)>>,
+     configured: bool,
+     live: AtomicBool,
+     generation: AtomicU64,
+@@ -50,6 +51,7 @@
+ impl Default for SourceClock {
+     fn default() -> Self {
+         Self(Arc::new(Inner {
++            signals: Mutex::new(Default::default()),
+             configured: true,
+             live: AtomicBool::new(true),
+             generation: AtomicU64::new(1),
+@@ -162,7 +164,9 @@
+         }
+     }
+     pub(crate) fn retire(&self) {
++        let mut signals = self.0.signals.lock().unwrap_or_else(|p| p.into_inner());
+         self.0.live.store(false, Ordering::Release);
++        signals.clear();
+         let mut state = self.0.state.lock().unwrap_or_else(|p| p.into_inner());
+         self.0.generation.fetch_add(1, Ordering::AcqRel);
+         state.tracks = [None, None];
+@@ -624,3 +628,137 @@
+ 
+ #[cfg(test)]
+ mod initial_source_report_tests;
++
++// Signal custody is independent of the primary sender clock. Telephone-event
++// tracks must never replace audio clock anchors, even when they use another SSRC.
++impl SourceClock {
++    pub(crate) fn register_signal_track(&self, ssrc: u32, identity: &Arc<dyn Send + Sync>) {
++        let mut entries = self.0.signals.lock().unwrap_or_else(|p| p.into_inner());
++        entries.retain(|_, (_, weak)| weak.strong_count() > 0);
++        if !self.0.live.load(Ordering::Acquire)
++            || (!entries.contains_key(&ssrc) && entries.len() >= 64)
++        {
++            return;
++        }
++        if entries
++            .get(&ssrc)
++            .is_some_and(|(_, old)| old.upgrade().is_some_and(|old| Arc::ptr_eq(&old, identity)))
++        {
++            return;
++        }
++        entries.insert(ssrc, (rand::random(), Arc::downgrade(identity)));
++    }
++    pub(crate) fn signal_fence(
++        &self,
++        ssrc: u32,
++        identity: &Arc<dyn Send + Sync>,
++        live: Arc<Mutex<bool>>,
++    ) -> Option<Arc<dyn rvoip_core::dtmf::DtmfSourceFence>> {
++        let entries = self.0.signals.try_lock().ok()?;
++        let (revision, weak) = entries.get(&ssrc)?;
++        if !weak
++            .upgrade()
++            .is_some_and(|old| Arc::ptr_eq(&old, identity))
++        {
++            return None;
++        }
++        Some(Arc::new(SignalFence {
++            clock: self.clone(),
++            ssrc,
++            revision: *revision,
++            identity: Arc::downgrade(identity),
++            live,
++        }))
++    }
++}
++struct SignalFence {
++    clock: SourceClock,
++    ssrc: u32,
++    revision: u128,
++    identity: Weak<dyn Send + Sync>,
++    live: Arc<Mutex<bool>>,
++}
++impl rvoip_core::dtmf::DtmfSourceFence for SignalFence {
++    fn current(&self) -> bool {
++        matches!(
++            self.poll(&mut || std::task::Poll::Ready(Ok(()))),
++            std::task::Poll::Ready(Ok(()))
++        )
++    }
++    fn poll(
++        &self,
++        io: &mut dyn FnMut() -> rvoip_core::dtmf::DtmfIoPoll,
++    ) -> rvoip_core::dtmf::DtmfIoPoll {
++        use rvoip_core::dtmf::DtmfWriteError;
++        use std::task::Poll;
++        let Ok(live) = self.live.try_lock() else {
++            return Poll::Ready(Err(DtmfWriteError::NotReady));
++        };
++        let Ok(entries) = self.clock.0.signals.try_lock() else {
++            return Poll::Ready(Err(DtmfWriteError::NotReady));
++        };
++        if !*live
++            || !self.clock.0.live.load(Ordering::Acquire)
++            || !entries.get(&self.ssrc).is_some_and(|(revision, id)| {
++                *revision == self.revision
++                    && Weak::ptr_eq(id, &self.identity)
++                    && id.strong_count() > 0
++            })
++        {
++            return Poll::Ready(Err(DtmfWriteError::Refused));
++        }
++        io()
++    }
++}
++
++#[cfg(test)]
++mod received_signal_tests {
++    use super::*;
++    use rvoip_core::dtmf::*;
++    use std::task::Poll;
++    #[test]
++    fn signal_fence_rejects_same_ssrc_track_aba_peer_retirement_and_finished_pump_without_primary_clock(
++    ) {
++        for configured in [false, true] {
++            let clock = SourceClock::configured(configured);
++            let old: Arc<dyn Send + Sync> = Arc::new(());
++            let new: Arc<dyn Send + Sync> = Arc::new(());
++            let live = Arc::new(Mutex::new(true));
++            clock.register_signal_track(1, &old);
++            let fence = clock.signal_fence(1, &old, live.clone()).unwrap();
++            assert!(fence.current());
++            clock.register_signal_track(1, &new);
++            assert!(!fence.current());
++            clock.register_signal_track(1, &old);
++            assert!(!fence.current());
++            let current = clock.signal_fence(1, &old, live.clone()).unwrap();
++            assert!(current.current());
++            *live.lock().unwrap() = false;
++            assert!(!current.current());
++            *live.lock().unwrap() = true;
++            clock.retire();
++            assert!(!current.current());
++        }
++    }
++    #[test]
++    fn pending_signal_poll_releases_track_metadata_and_cannot_keep_a_retired_source_alive() {
++        let clock = SourceClock::default();
++        let identity: Arc<dyn Send + Sync> = Arc::new(());
++        clock.register_signal_track(1, &identity);
++        let live = Arc::new(Mutex::new(true));
++        let fence = clock.signal_fence(1, &identity, live.clone()).unwrap();
++        assert!(fence.poll(&mut || Poll::Pending).is_pending());
++        assert!(live.try_lock().is_ok());
++        assert!(clock.0.signals.try_lock().is_ok());
++        drop(identity);
++        let mut polled = false;
++        assert!(matches!(
++            fence.poll(&mut || {
++                polled = true;
++                Poll::Ready(Ok(()))
++            }),
++            Poll::Ready(Err(DtmfWriteError::Refused))
++        ));
++        assert!(!polled);
++    }
++}
+diff --git a/crates/webrtc/rvoip-webrtc/tests/dtmf_wire.rs b/crates/webrtc/rvoip-webrtc/tests/dtmf_wire.rs
+--- a/crates/webrtc/rvoip-webrtc/tests/dtmf_wire.rs
++++ b/crates/webrtc/rvoip-webrtc/tests/dtmf_wire.rs
+@@ -1011,3 +1011,202 @@
+         receiver.close().await.unwrap();
+     }
+ }
++
++// Core publication and the actual SRTP receive pump, with independent signal
++// authority. The host's logical-operation journal is a controlled fixture.
++async fn core_received_peer(
++    core: &Arc<rvoip_core::Orchestrator>,
++    adapter: &Arc<rvoip_webrtc::WebRtcAdapter>,
++    session: &rvoip_core::SessionId,
++) -> (Arc<RvoipPeerConnection>, rvoip_core::ConnectionId) {
++    use rvoip_core::{adapter::ConnectionAdapter, events::Event};
++    let client = RvoipPeerConnection::new(&WebRtcConfig::loopback(), PeerRole::Offerer)
++        .await
++        .unwrap();
++    let offer = client.create_offer_and_gather().await.unwrap();
++    let mut events = core.subscribe_events();
++    let id = adapter.apply_remote_offer(&offer).await.unwrap();
++    let answer = adapter.local_sdp(&id).unwrap();
++    client.set_remote_answer(&answer).await.unwrap();
++    tokio::time::timeout(Duration::from_secs(5),async{loop{if matches!(events.recv().await.unwrap(),Event::ConnectionInbound{connection_id,..}if connection_id==id){break;}}}).await.unwrap();
++    let (accepted, connected) = tokio::join!(
++        core.route_inbound_connection(
++            id.clone(),
++            rvoip_core::commands::InboundAction::Accept {
++                session_id: session.clone(),
++                participant_id: rvoip_core::ParticipantId::new()
++            }
++        ),
++        client.wait_connected(Duration::from_secs(10))
++    );
++    accepted.unwrap();
++    connected.unwrap();
++    tokio::time::timeout(Duration::from_secs(5),async{loop{if matches!(events.recv().await.unwrap(),Event::ConnectionConnected{connection_id,..} if connection_id==id){break;}}}).await.unwrap();
++    (client, id)
++}
++struct ReceivedPolicy {
++    source: rvoip_core::ConnectionId,
++    target: rvoip_core::ConnectionId,
++    allowed: Arc<tokio::sync::RwLock<bool>>,
++    calls: std::sync::atomic::AtomicUsize,
++}
++#[async_trait::async_trait]
++impl rvoip_core::dtmf::DtmfRoutePolicy for ReceivedPolicy {
++    async fn acquire(
++        &self,
++        route: &rvoip_core::dtmf::DtmfRouteScope<'_>,
++        packet: &rvoip_core::dtmf::DtmfWriteScope<'_>,
++    ) -> std::result::Result<rvoip_core::dtmf::DtmfWriteLease, rvoip_core::dtmf::DtmfWriteError>
++    {
++        use rvoip_core::dtmf::*;
++        assert_eq!(route.source.connection(), &self.source);
++        assert_eq!(route.recipient.connection(), &self.target);
++        assert_eq!(route.observation.kind(), DtmfSourceKind::WebRtcRfc4733);
++        assert_eq!(
++            route.intent.operation_id(),
++            "original-received-webrtc-operation"
++        );
++        assert_eq!(packet.digits, "5");
++        assert_eq!(packet.duration_ms, 121);
++        let guard = self.allowed.clone().read_owned().await;
++        if !*guard {
++            return Err(DtmfWriteError::Refused);
++        }
++        self.calls.fetch_add(1, std::sync::atomic::Ordering::AcqRel);
++        Ok(DtmfWriteLease::new(
++            guard,
++            tokio::time::Instant::now() + Duration::from_millis(200),
++            || true,
++        ))
++    }
++}
++#[tokio::test]
++async fn actual_srtp_received_source_routes_through_core_with_exact_timing_and_fresh_signal_authority(
++) {
++    use rvoip_core::{adapter::ConnectionAdapter, dtmf::*};
++    let _ = rustls::crypto::ring::default_provider().install_default();
++    let core = rvoip_core::Orchestrator::new(rvoip_core::Config::default());
++    let adapter = rvoip_webrtc::WebRtcAdapter::new(WebRtcConfig::loopback());
++    core.register(adapter.clone()).unwrap();
++    let conversation = core
++        .open_conversation(
++            rvoip_core::ids::TenantId::new(),
++            Default::default(),
++            Default::default(),
++        )
++        .await
++        .unwrap();
++    let session = core
++        .start_session(
++            conversation,
++            rvoip_core::session::SessionMedium::Voice,
++            vec![],
++        )
++        .await
++        .unwrap();
++    let (source, source_id) = core_received_peer(&core, &adapter, &session).await;
++    let (target, target_id) = core_received_peer(&core, &adapter, &session).await;
++    let mut sub = adapter
++        .subscribe_dtmf_source(&core, source_id.clone())
++        .unwrap();
++    send_dtmf(&source, "5", 121).await.unwrap();
++    let observed = tokio::time::timeout(Duration::from_secs(4), sub.recv())
++        .await
++        .expect("actual adapter SRTP observation")
++        .unwrap();
++    let facts = observed.input().rtp().unwrap();
++    assert_eq!(facts.ssrc, source.local_audio_ssrc().unwrap());
++    assert_eq!(facts.duration_ms, 121);
++    assert!(facts.start_observed);
++    assert_eq!(
++        facts.duration_samples * 1000,
++        u64::from(facts.clock_rate_hz) * 121
++    );
++    let route = observed
++        .prepare_route(
++            &core,
++            target_id.clone(),
++            "original-received-webrtc-operation".into(),
++            DtmfMethod::Rfc4733,
++        )
++        .unwrap();
++    let policy = Arc::new(ReceivedPolicy {
++        source: source_id.clone(),
++        target: target_id.clone(),
++        allowed: Arc::new(tokio::sync::RwLock::new(false)),
++        calls: Default::default(),
++    });
++    assert!(core
++        .route_dtmf(
++            &route,
++            policy.clone(),
++            Default::default(),
++            tokio::time::Instant::now() + Duration::from_secs(2)
++        )
++        .await
++        .is_err());
++    assert_eq!(policy.calls.load(std::sync::atomic::Ordering::Acquire), 0);
++    *policy.allowed.write().await = true;
++    core.route_dtmf(
++        &route,
++        policy.clone(),
++        Default::default(),
++        tokio::time::Instant::now() + Duration::from_secs(2),
++    )
++    .await
++    .unwrap();
++    assert!(policy.allowed.try_write().is_ok());
++    let track = target
++        .wait_remote_track(Duration::from_secs(3))
++        .await
++        .expect("actual target SRTP track");
++    let mut decoder = DtmfDecoder::new([match target.outbound_dtmf_negotiation() {
++        OutboundDtmfNegotiation::Negotiated(c) => c,
++        _ => panic!("target telephone-event negotiation"),
++    }]);
++    let delivered = tokio::time::timeout(Duration::from_secs(3), async {
++        loop {
++            if let Some(TrackRemoteEvent::OnRtpPacket(packet)) = track.poll().await {
++                if let Some(event) = decoder
++                    .decode_packet(
++                        packet.header.ssrc,
++                        packet.header.timestamp,
++                        packet.header.payload_type,
++                        packet.header.marker,
++                        &packet.payload,
++                    )
++                    .pop()
++                {
++                    break event;
++                }
++            }
++        }
++    })
++    .await
++    .unwrap();
++    assert_eq!(delivered.digit, '5');
++    assert_eq!(delivered.duration_ms, 121);
++    let replacement = adapter
++        .subscribe_dtmf_source(&core, source_id.clone())
++        .unwrap();
++    assert!(sub.recv().await.is_none());
++    assert!(core
++        .route_dtmf(
++            &route,
++            policy.clone(),
++            Default::default(),
++            tokio::time::Instant::now() + Duration::from_secs(1)
++        )
++        .await
++        .is_err());
++    drop(replacement);
++    core.end_connection(source_id, rvoip_core::adapter::EndReason::Normal)
++        .await
++        .unwrap();
++    core.end_connection(target_id, rvoip_core::adapter::EndReason::Normal)
++        .await
++        .unwrap();
++    source.close().await.unwrap();
++    target.close().await.unwrap();
++    core.drain_connection_lifecycle_tasks().await;
++}

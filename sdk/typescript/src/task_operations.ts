@@ -101,6 +101,18 @@ export abstract class TaskOperations {
 }
 /** Valid waits receive their bounded server wait in addition to the exchange budget. */
 export function exchangeTimeout(baseMs: number, operation: Operation): number {
+    if (
+        operation.op === "conversation_events" ||
+        operation.op === "session_observations"
+    ) {
+        const wait = operation.query.wait_ms;
+        return (
+            baseMs +
+            (Number.isSafeInteger(wait) && Number(wait) >= 0
+                ? Math.min(Number(wait), 30000)
+                : 0)
+        );
+    }
     if (operation.op !== "task") return baseMs;
     const command = operation.request.command;
     if (command.action !== "inbox" && command.action !== "wait") return baseMs;

@@ -71,7 +71,7 @@ async def concurrent_file(state, conversation, binary, proxy=False, readiness=No
                 child.terminate()
                 try: await asyncio.wait_for(child.wait(), 1)
                 except asyncio.TimeoutError: child.kill(); await child.wait()
-    artifact = await request('reviews', {'op': 'artifact_begin', 'request_id': 'video-file-begin',
+    artifact = await request('reviews', {'op': 'artifact_begin', "to": "all", 'request_id': 'video-file-begin',
         'conversation_id': conversation, 'name': 'generated-media-qualification.bin',
         'media_type': 'application/octet-stream', 'size': len(content), 'sha256': expected})
     aid = artifact['id']; latencies = []

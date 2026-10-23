@@ -82,7 +82,17 @@ impl TaskDefinition {
 impl TaskPermission {
     /// Convert only delegatable operations; unknown/new/admin operations fail closed.
     pub fn for_operation(operation: &Operation) -> Result<Self> {
-        serde_json::from_value(serde_json::Value::String(operation.name().into()))
+        let name = match operation {
+            Operation::MessageReceipts { .. } => "history",
+            Operation::ArtifactInspect { .. }
+            | Operation::ArtifactDownloadLink { .. }
+            | Operation::ArtifactLinkGet { .. } => "artifact_get",
+            Operation::ArtifactUploadLink { .. } | Operation::ArtifactLinkAppend { .. } => {
+                "artifact_append"
+            }
+            _ => operation.name(),
+        };
+        serde_json::from_value(serde_json::Value::String(name.into()))
             .map_err(|_| Error::forbidden())
     }
 }

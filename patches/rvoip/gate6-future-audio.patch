@@ -1,0 +1,1190 @@
+diff --git a/crates/foundation/rvoip-core/src/staged_streams.rs b/crates/foundation/rvoip-core/src/staged_streams.rs
+--- a/crates/foundation/rvoip-core/src/staged_streams.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams.rs
+@@ -149,6 +149,24 @@
+     pub transport_id: StreamId,
+     pub stream_generation: u64,
+ }
++/// Current admitted owner used to authorize retained selection intent when
++/// no audio stream exists yet. This is never a publication/delivery grant.
++#[derive(Clone)]
++pub struct MediaParticipantSource {
++    pub conversation: ConversationId,
++    pub session: SessionId,
++    pub connection: ConnectionId,
++    pub participant: crate::ids::ParticipantId,
++    pub membership_epoch: u64,
++    pub identity: crate::ids::IdentityId,
++    pub principal: Arc<AuthenticatedPrincipal>,
++    pub medium: Medium,
++}
++impl std::fmt::Debug for MediaParticipantSource {
++    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
++        f.write_str("MediaParticipantSource(redacted)")
++    }
++}
+ pub enum MediaPurpose<'a> {
+     Control,
+     Publish,
+@@ -171,6 +189,14 @@
+     /// Rederive this target's current receive/audience facts for the exact
+     /// selected source under the invocation's same guard. No reader fallback.
+     fn control_receive(&self, _source: &MediaSource) -> ControlResult<Box<MediaOwner>> {
++        Err(StreamControlError::Unsupported)
++    }
++    /// Authorize future selection for this exact admitted owner/epoch under
++    /// the same retained invocation guard. Never invent a stream descriptor.
++    fn control_participant_receive(
++        &self,
++        _source: &MediaParticipantSource,
++    ) -> ControlResult<Box<MediaOwner>> {
+         Err(StreamControlError::Unsupported)
+     }
+     fn control_owner(&self) -> ControlResult<Box<MediaOwner>> {
+@@ -216,6 +242,16 @@
+     /// lease from this domain. Never block or reenter engine state; use bounded
+     /// nonblocking authority acquisition and refuse a contended read.
+     fn current(&self, scope: &MediaScope<'_>) -> ControlResult<Box<dyn MediaAuthorityLease>>;
++    /// Current recipient/audience permission for retained participant intent
++    /// before that owner has a selected stream. Must verify the source's current
++    /// membership/owner and exact domain. It grants no future media publication.
++    fn current_participant_receive(
++        &self,
++        _scope: &MediaScope<'_>,
++        _source: &MediaParticipantSource,
++    ) -> ControlResult<Box<dyn MediaAuthorityLease>> {
++        Err(StreamControlError::Unsupported)
++    }
+     /// Derive current control authority from a trusted invocation's already-held
+     /// guard. Check the exact policy domain, actor/resource scope and grants.
+     /// Never reacquire that guard's store lock. The default refuses this path.
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/audio_subscriptions.rs b/crates/foundation/rvoip-core/src/staged_streams/audio_subscriptions.rs
+--- a/crates/foundation/rvoip-core/src/staged_streams/audio_subscriptions.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/audio_subscriptions.rs
+@@ -1,5 +1,5 @@
+ //! Retained audio selection intent. Grants are rederived for every frame.
+-use super::guarded_audio::GuardedAudioMixer;
++use super::media_scene::{GuardedMediaScene, SceneMember};
+ use super::*;
+ use crate::ids::ParticipantId;
+ use rvoip_core_traits::peer_switch::{PeerDeliveryGuard, PeerQuiescenceGuard};
+@@ -230,7 +230,7 @@
+     controller.check_credential_snapshot(credential)
+ }
+ 
+-impl GuardedAudioMixer {
++impl GuardedMediaScene {
+     /// A trusted engine operation, not a durable operation receipt. Public
+     /// handlers must use the held variant and their retained mutation identity.
+     pub(crate) async fn change_subscriptions(
+@@ -246,7 +246,10 @@
+         let (controller, gate) = {
+             let members = self.members.lock().unwrap_or_else(|p| p.into_inner());
+             let member = members.get(target).ok_or(StreamControlError::NotReady)?;
+-            (member.controller.clone(), member.subscriptions.clone())
++            (
++                member.controller.clone(),
++                member.audio_consumer.subscriptions.clone(),
++            )
+         };
+         let _flight = controller
+             .inflight
+@@ -312,7 +315,9 @@
+                                     member.controller.connection == key.connection
+                                         && member.current_logical().as_ref() == Some(&key.logical)
+                                 }
+-                                AudioSubscription::Participant(id) => &member.participant == id,
++                                AudioSubscription::Participant(id) => {
++                                    member.controller.origin_member.participant() == id
++                                }
+                             })
+                             .ok_or(StreamControlError::NotReady)?;
+                         let selection = Selection {
+@@ -329,9 +334,9 @@
+                             }
+                             AudioSubscription::Participant(id) => {
+                                 program.excluded.retain(|key| {
+-                                    members
+-                                        .get(&key.connection)
+-                                        .is_none_or(|member| &member.participant != id)
++                                    members.get(&key.connection).is_none_or(|member| {
++                                        member.controller.origin_member.participant() != id
++                                    })
+                                 });
+                             }
+                         }
+@@ -349,6 +354,7 @@
+                 &change,
+                 control.as_ref(),
+                 Some(&state),
++                lease.authority(),
+             )?;
+             invocation(
+                 &controller,
+@@ -373,7 +379,7 @@
+         let members = self.members.lock().unwrap_or_else(|p| p.into_inner());
+         let target = members.get(target).ok_or(StreamControlError::NotReady)?;
+         if !Arc::ptr_eq(&target.controller, &controller)
+-            || !Arc::ptr_eq(&target.subscriptions, &gate)
++            || !Arc::ptr_eq(&target.audio_consumer.subscriptions, &gate)
+         {
+             return Err(MediaTransitionError::Conflict.into());
+         }
+@@ -391,6 +397,7 @@
+             &change,
+             control.as_ref(),
+             Some(&state),
++            lease.authority(),
+         )?;
+         let mut routing = gate.state.lock().unwrap_or_else(|p| p.into_inner());
+         if gate.cancel.is_cancelled() || !old.ticket.is_current() {
+@@ -421,62 +428,142 @@
+     }
+     fn validate_program(
+         &self,
+-        members: &std::collections::HashMap<ConnectionId, super::guarded_audio::AudioMember>,
+-        target: &super::guarded_audio::AudioMember,
++        members: &std::collections::HashMap<ConnectionId, SceneMember>,
++        target: &SceneMember,
+         scope: &MediaScope<'_>,
+         program: &Program,
+         change: &AudioSubscriptionChange,
+         control: Option<&MediaControl>,
+         target_state: Option<&State>,
++        target_owner: &MediaOwner,
+     ) -> ControlResult<Vec<ControlRead>> {
+         let mut leases = Vec::new();
+         let AudioSubscriptionChange::Subscribe(requests) = change else {
+             return Ok(leases);
+         };
+-        target.current_descriptor(target_state.ok_or(StreamControlError::NotReady)?, false)?;
++        let target_state = target_state.ok_or(StreamControlError::NotReady)?;
++        if target.current_descriptor(target_state, false)?.is_none() {
++            // Intent may precede output, but cannot turn an incapable receiver
++            // into an audio endpoint or grant it future publication authority.
++            if !target_owner.send_media.contains(&Medium::Audio) {
++                return Err(StreamControlError::Authority);
++            }
++            let local = target_owner
++                .local
++                .send
++                .iter()
++                .find(|c| c.medium == Medium::Audio);
++            let remote = target_owner
++                .remote
++                .receive
++                .iter()
++                .find(|c| c.medium == Medium::Audio);
++            if !local.zip(remote).is_some_and(|(local, remote)| {
++                local.formats.iter().any(|format| {
++                    remote.formats.contains(format)
++                        && super::guarded_audio::supports_format(format, self.rate)
++                })
++            }) {
++                return Err(StreamControlError::Unsupported);
++            }
++        }
+         for request in requests {
+             let selection = program
+                 .selections
+                 .iter()
+-                .find(|selection| &selection.request == request)
++                .find(|s| &s.request == request)
+                 .ok_or(StreamControlError::NotReady)?;
+             let sources = members
+                 .values()
+-                .filter(|source| {
+-                    source
+-                        .current_logical()
+-                        .is_some_and(|logical| selection.matches(&source.controller, &logical))
++                .filter(|source| match request {
++                    AudioSubscription::Stream(key) => {
++                        source.current_logical().is_some_and(|logical| {
++                            logical == key.logical
++                                && selection.matches(&source.controller, &logical)
++                        })
++                    }
++                    AudioSubscription::Participant(id) => {
++                        source.controller.origin_member.participant() == id
++                            && selection.owner_matches(&source.controller)
++                    }
+                 })
+                 .collect::<Vec<_>>();
+             if sources.is_empty() {
+                 return Err(StreamControlError::NotReady);
+             }
+             for source in sources {
++                let source_credential = source.controller.credential_snapshot();
++                source
++                    .controller
++                    .check_credential_snapshot(&source_credential)?;
++                if StreamController::principal_expiry(&source_credential.principal)
++                    .is_some_and(|expiry| expiry <= chrono::Utc::now())
++                {
++                    return Err(StreamControlError::Authority);
++                }
++                if source.controller.shutdown.is_cancelled() {
++                    return Err(StreamControlError::Cancelled);
++                }
+                 let descriptor = if Arc::ptr_eq(&source.controller, &target.controller) {
+-                    let state = target_state.ok_or(StreamControlError::NotReady)?;
+-                    source.current_descriptor(state, true)?
++                    source.current_descriptor(target_state, true)
+                 } else {
+                     let state = source
+                         .controller
+                         .state
+-                        .lock()
+-                        .unwrap_or_else(|p| p.into_inner());
+-                    source.current_descriptor(&state, true)?
++                        .try_lock()
++                        .map_err(|_| MediaTransitionError::Conflict)?;
++                    source.current_descriptor(&state, true)
+                 };
+-                let receive_scope = MediaScope {
+-                    purpose: MediaPurpose::Receive {
+-                        source: &descriptor,
+-                    },
+-                    ..*scope
++                let descriptor = match (request, descriptor) {
++                    (AudioSubscription::Participant(_), Err(StreamControlError::NotReady)) => None,
++                    (_, result) => result?,
+                 };
+-                let authority = match control {
+-                    Some(control) => {
+-                        control.valid()?;
+-                        ControlRead::Held(control.lease.control_receive(&descriptor)?)
++                let authority = if let Some(descriptor) = descriptor {
++                    let receive_scope = MediaScope {
++                        purpose: MediaPurpose::Receive {
++                            source: &descriptor,
++                        },
++                        ..*scope
++                    };
++                    match control {
++                        Some(control) => {
++                            control.valid()?;
++                            ControlRead::Held(control.lease.control_receive(&descriptor)?)
++                        }
++                        None => {
++                            ControlRead::Current(target.controller.policy.current(&receive_scope)?)
++                        }
+                     }
+-                    None => ControlRead::Current(target.controller.policy.current(&receive_scope)?),
++                } else {
++                    let AudioSubscription::Participant(_) = request else {
++                        return Err(StreamControlError::NotReady);
++                    };
++                    let descriptor = MediaParticipantSource {
++                        conversation: source.controller.conversation.clone(),
++                        session: source.controller.session.clone(),
++                        connection: source.controller.connection.clone(),
++                        participant: source.controller.origin_member.participant().clone(),
++                        membership_epoch: source.controller.origin_member.epoch(),
++                        identity: source.controller.origin_member.identity().clone(),
++                        principal: source_credential.principal,
++                        medium: Medium::Audio,
++                    };
++                    match control {
++                        Some(control) => {
++                            control.valid()?;
++                            ControlRead::Held(
++                                control.lease.control_participant_receive(&descriptor)?,
++                            )
++                        }
++                        None => ControlRead::Current(
++                            target
++                                .controller
++                                .policy
++                                .current_participant_receive(scope, &descriptor)?,
++                        ),
++                    }
+                 };
+-                StreamController::check(&receive_scope, authority.authority())?;
++                StreamController::check(scope, authority.authority())?;
+                 if !authority.authority().may_route_source
+                     || !authority.authority().send_media.contains(&Medium::Audio)
+                 {
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/guarded_audio.rs b/crates/foundation/rvoip-core/src/staged_streams/guarded_audio.rs
+--- a/crates/foundation/rvoip-core/src/staged_streams/guarded_audio.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/guarded_audio.rs
+@@ -175,51 +175,6 @@
+     previous_sources: Vec<Contribution>,
+ }
+ impl AudioMember {
+-    pub(super) fn current_logical(&self) -> Option<StreamId> {
+-        self.consumer.logical()
+-    }
+-    pub(super) fn current_descriptor(
+-        &self,
+-        state: &State,
+-        publishing: bool,
+-    ) -> ControlResult<MediaSource> {
+-        if state.closed || self.controller.shutdown.is_cancelled() {
+-            return Err(StreamControlError::Cancelled);
+-        }
+-        let logical = self
+-            .consumer
+-            .logical()
+-            .ok_or(StreamControlError::NotReady)?;
+-        let port = state
+-            .active
+-            .get(&logical)
+-            .ok_or(StreamControlError::NotReady)?;
+-        if state
+-            .model
+-            .streams()
+-            .get(&logical)
+-            .is_none_or(|stream| stream.state == LogicalStreamState::Ended)
+-        {
+-            return Err(StreamControlError::NotReady);
+-        }
+-        let direction = port.binding.negotiated.requested.direction;
+-        if (publishing && direction == StreamDirection::Send)
+-            || (!publishing && direction == StreamDirection::Receive)
+-        {
+-            return Err(StreamControlError::NotReady);
+-        }
+-        Ok(MediaSource {
+-            conversation: self.controller.conversation.clone(),
+-            session: self.controller.session.clone(),
+-            connection: self.controller.connection.clone(),
+-            participant: self.participant.clone(),
+-            membership_epoch: self.controller.origin_member.epoch(),
+-            connection_generation: port.binding.connection_generation,
+-            logical_id: logical,
+-            transport_id: port.binding.transport_id.clone(),
+-            stream_generation: port.binding.generation,
+-        })
+-    }
+     pub(crate) fn activate(&mut self, speaks: bool) {
+         self.consumer.activate(speaks);
+         self.stamp = self.consumer.stamp();
+@@ -681,3 +636,8 @@
+         .participant()
+         .clone())
+ }
++
++/// Capability-only probe; it never opens a port, consumes a handle or grants IO.
++pub(super) fn supports_format(format: &MediaFormat, rate: u32) -> bool {
++    Codecs::new(format, 96, rate).is_ok()
++}
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/media_scene.rs b/crates/foundation/rvoip-core/src/staged_streams/media_scene.rs
+--- a/crates/foundation/rvoip-core/src/staged_streams/media_scene.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/media_scene.rs
+@@ -20,9 +20,9 @@
+     pending: Option<Pending>,
+ }
+ pub(crate) struct SceneMember {
+-    controller: Arc<StreamController>,
++    pub(super) controller: Arc<StreamController>,
+     consumer: Arc<SceneConsumer>,
+-    audio_consumer: Arc<AudioConsumer>,
++    pub(super) audio_consumer: Arc<AudioConsumer>,
+     audio: Option<AudioMember>,
+     inputs: BTreeMap<StreamId, Input>,
+     ports: Vec<Arc<Port>>,
+@@ -36,6 +36,49 @@
+     }
+ }
+ impl SceneMember {
++    pub(super) fn current_logical(&self) -> Option<StreamId> {
++        self.audio_consumer.logical()
++    }
++    pub(super) fn current_descriptor(
++        &self,
++        state: &State,
++        publishing: bool,
++    ) -> ControlResult<Option<MediaSource>> {
++        if state.closed || self.controller.shutdown.is_cancelled() {
++            return Err(StreamControlError::Cancelled);
++        }
++        let Some(logical) = self.audio_consumer.logical() else {
++            return Ok(None);
++        };
++        let Some(port) = state.active.get(&logical) else {
++            return Ok(None);
++        };
++        if state
++            .model
++            .streams()
++            .get(&logical)
++            .is_none_or(|stream| stream.state == LogicalStreamState::Ended)
++        {
++            return Err(StreamControlError::NotReady);
++        }
++        let direction = port.binding.negotiated.requested.direction;
++        if (publishing && direction == StreamDirection::Send)
++            || (!publishing && direction == StreamDirection::Receive)
++        {
++            return Err(StreamControlError::NotReady);
++        }
++        Ok(Some(MediaSource {
++            conversation: self.controller.conversation.clone(),
++            session: self.controller.session.clone(),
++            connection: self.controller.connection.clone(),
++            participant: self.controller.origin_member.participant().clone(),
++            membership_epoch: self.controller.origin_member.epoch(),
++            connection_generation: port.binding.connection_generation,
++            logical_id: logical,
++            transport_id: port.binding.transport_id.clone(),
++            stream_generation: port.binding.generation,
++        }))
++    }
+     pub(crate) async fn quiesce(
+         &mut self,
+         deadline: tokio::time::Instant,
+@@ -86,8 +129,8 @@
+     conversation: ConversationId,
+     session: SessionId,
+     policy: Arc<dyn MediaPolicy>,
+-    rate: u32,
+-    members: Mutex<HashMap<ConnectionId, SceneMember>>,
++    pub(super) rate: u32,
++    pub(super) members: Mutex<HashMap<ConnectionId, SceneMember>>,
+     audio: Arc<GuardedAudioMixer>,
+ }
+ impl GuardedMediaScene {
+@@ -282,19 +325,6 @@
+         ids.iter()
+             .filter_map(|id| members.get(id).map(|m| m.audio_consumer.clone()))
+             .collect()
+-    }
+-    pub(crate) async fn change_subscriptions(
+-        &self,
+-        target: &ConnectionId,
+-        expected: u64,
+-        change: audio_subscriptions::AudioSubscriptionChange,
+-        deadline: tokio::time::Instant,
+-        cancel: CancellationToken,
+-        held: Option<&(dyn Any + Send + Sync)>,
+-    ) -> ControlResult<u64> {
+-        self.audio
+-            .change_subscriptions(target, expected, change, deadline, cancel, held)
+-            .await
+     }
+     pub(crate) async fn change_direct_subscriptions(
+         &self,
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/tests.rs b/crates/foundation/rvoip-core/src/staged_streams/tests.rs
+--- a/crates/foundation/rvoip-core/src/staged_streams/tests.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests.rs
+@@ -153,6 +153,28 @@
+     }
+ }
+ impl MediaPolicy for Policy {
++    fn current_participant_receive(
++        &self,
++        scope: &MediaScope<'_>,
++        source: &MediaParticipantSource,
++    ) -> ControlResult<Box<dyn MediaAuthorityLease>> {
++        let guard = self
++            .0
++            .clone()
++            .try_read_owned()
++            .map_err(|_| StreamControlError::Authority)?;
++        if guard.revoked.contains(&scope.principal.subject)
++            || guard.revoked.contains(&source.principal.subject)
++        {
++            return Err(StreamControlError::Authority);
++        }
++        let authority = future_participant_owner(&guard, scope.connection, source)?;
++        Ok(Box::new(Lease {
++            authority,
++            _guard: guard,
++        }))
++    }
++
+     fn current(&self, scope: &MediaScope<'_>) -> ControlResult<Box<dyn MediaAuthorityLease>> {
+         let guard = self
+             .0
+@@ -174,6 +196,7 @@
+                 .ok_or(StreamControlError::Authority)?;
+             if source.conversation != *scope.conversation
+                 || source.session != *scope.session
++                || source.connection != *original.connection.connection()
+                 || source.participant != *original.member.participant()
+                 || source.membership_epoch != original.member.epoch()
+                 || source.connection_generation != original.connection.generation()
+@@ -187,6 +210,40 @@
+             _guard: guard,
+         }))
+     }
++}
++fn future_participant_owner(
++    state: &PolicyState,
++    receiver: &ConnectionId,
++    source: &MediaParticipantSource,
++) -> ControlResult<MediaOwner> {
++    if state.revoked.contains(&source.principal.subject) {
++        return Err(StreamControlError::Authority);
++    }
++    let original = state
++        .owners
++        .get(source.connection.as_str())
++        .ok_or(StreamControlError::Authority)?;
++    original
++        .member
++        .revalidate_principal(&source.principal, chrono::Utc::now())
++        .map_err(|_| StreamControlError::Authority)?;
++    if source.conversation != *original.member.conversation()
++        || source.session != *original.presence.session()
++        || source.participant != *original.member.participant()
++        || source.membership_epoch != original.member.epoch()
++        || source.identity != *original.member.identity()
++        || original.connection.state() != crate::relationships::BindingState::Active
++        || source.medium != Medium::Audio
++    {
++        return Err(StreamControlError::Authority);
++    }
++    let mut target = state
++        .owners
++        .get(receiver.as_str())
++        .ok_or(StreamControlError::Authority)?
++        .clone();
++    target.may_route_source = !state.private;
++    Ok(target)
+ }
+ struct Cleanup {
+     outstanding: Arc<AtomicUsize>,
+@@ -2287,3 +2344,5 @@
+ mod direct_subscriptions;
+ 
+ mod media_scene;
++
++mod future_audio;
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/tests/future_audio.rs b/crates/foundation/rvoip-core/src/staged_streams/tests/future_audio.rs
+new file mode 100644
+--- /dev/null
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/future_audio.rs
+@@ -0,0 +1,327 @@
++use super::*;
++use crate::staged_streams::{audio_subscriptions::*, media_scene::GuardedMediaScene};
++struct Scene {
++    f: Fixture,
++    scene: Arc<GuardedMediaScene>,
++}
++impl Scene {
++    async fn new() -> Self {
++        Self::with_policy(None).await
++    }
++    async fn with_policy(
++        factory: Option<Box<dyn FnOnce(Arc<Policy>) -> Arc<dyn MediaPolicy>>>,
++    ) -> Self {
++        let f = Fixture::with_policy(16, factory);
++        f.start_unsubscribed(&[Medium::Data]).await;
++        let scene = GuardedMediaScene::new(
++            ConversationId::from_string("conversation"),
++            SessionId::from_string("session"),
++            f.a.policy.clone(),
++            8000,
++        );
++        for c in [&f.a, &f.b] {
++            let mut m = scene.prepare(c.clone()).unwrap();
++            m.quiesce(deadline(), CancellationToken::new())
++                .await
++                .unwrap();
++            scene.insert(c.connection.clone(), m, true);
++        }
++        Self { f, scene }
++    }
++    fn person(&self) -> AudioSubscription {
++        AudioSubscription::Participant(self.f.a.origin_member.participant().clone())
++    }
++    async fn change(&self, change: AudioSubscriptionChange) -> ControlResult<u64> {
++        self.scene
++            .change_subscriptions(
++                &self.f.b.connection,
++                self.f.b.revision(),
++                change,
++                deadline(),
++                CancellationToken::new(),
++                None,
++            )
++            .await
++    }
++    async fn add(&self, controller: &Arc<StreamController>, logical: &str) {
++        self.add_unadopted(controller, logical).await;
++        self.scene.tick();
++    }
++    async fn add_unadopted(&self, controller: &Arc<StreamController>, logical: &str) {
++        controller
++            .change(
++                controller.revision(),
++                &[
++                    desired(Medium::Data),
++                    DesiredStream {
++                        logical_id: StreamId::from_string(logical),
++                        medium: Medium::Audio,
++                        direction: StreamDirection::Both,
++                    },
++                ],
++                &BTreeSet::new(),
++                deadline(),
++                CancellationToken::new(),
++            )
++            .await
++            .unwrap();
++    }
++    fn port(&self, controller: &StreamController, logical: &str) -> AdapterMediaPort {
++        AdapterMediaPort(
++            controller.state.lock().unwrap().active[&StreamId::from_string(logical)].clone(),
++        )
++    }
++    fn signal(&self, logical: &str, value: i16) -> ControlResult<()> {
++        let port = self.port(&self.f.a, logical);
++        let mut value_frame = frame(&port, 160);
++        let mut codec =
++            rvoip_media_core::codec::factory::CodecFactory::create_codec(0, Some(8000), Some(1))
++                .unwrap();
++        value_frame.payload = codec
++            .encode(&rvoip_media_core::AudioFrame {
++                samples: vec![value; 160],
++                sample_rate: 8000,
++                channels: 1,
++                duration: Duration::from_millis(20),
++                timestamp: 160,
++            })
++            .unwrap()
++            .into();
++        port.try_publish(&value_frame)
++    }
++}
++async fn heard(out: &mut mpsc::Receiver<QueuedMedia>, expected: i16) {
++    outgoing(out)
++        .await
++        .deliver(|f| async move {
++            let mut codec = rvoip_media_core::codec::factory::CodecFactory::create_codec(
++                0,
++                Some(8000),
++                Some(1),
++            )
++            .unwrap();
++            let samples = codec.decode(&f.payload).unwrap().samples;
++            assert_eq!(samples.len(), 160);
++            assert!((i32::from(samples[80]) - i32::from(expected)).abs() < 350);
++            Ok(())
++        })
++        .await
++        .unwrap();
++}
++#[tokio::test]
++async fn future_participant_intent_precedes_both_audio_ports_but_never_grants_speaking() {
++    let s = Scene::new().await;
++    let before = s.f.b.stream_open_budget();
++    s.change(AudioSubscriptionChange::Subscribe(vec![s.person()]))
++        .await
++        .unwrap();
++    assert_eq!(s.f.b.stream_open_budget(), before);
++    let source = s
++        .scene
++        .role_targets(&[s.f.a.connection.clone()])
++        .pop()
++        .unwrap();
++    source
++        .prepare_role(deadline(), CancellationToken::new())
++        .await
++        .unwrap()
++        .commit(false);
++    s.add(&s.f.a, "microphone").await;
++    s.add(&s.f.b, "speaker").await;
++    let mut out = s.port(&s.f.b, "speaker").take_egress().unwrap();
++    assert!(s.signal("microphone", 1800).is_err());
++    source
++        .prepare_role(deadline(), CancellationToken::new())
++        .await
++        .unwrap()
++        .commit(true);
++    s.scene.tick();
++    s.signal("microphone", 1800).unwrap();
++    s.scene.tick();
++    heard(&mut out, 1800).await;
++}
++#[tokio::test]
++async fn future_receiver_selects_current_source_before_mixer_adoption_without_opening_audio() {
++    let s = Scene::new().await;
++    s.add_unadopted(&s.f.a, "microphone").await;
++    let budget = s.f.b.stream_open_budget();
++    s.change(AudioSubscriptionChange::Subscribe(vec![
++        AudioSubscription::Stream(MediaStreamRef {
++            connection: s.f.a.connection.clone(),
++            logical: StreamId::from_string("microphone"),
++        }),
++    ]))
++    .await
++    .unwrap();
++    assert_eq!(budget, s.f.b.stream_open_budget());
++    s.add(&s.f.b, "speaker").await;
++    let mut out = s.port(&s.f.b, "speaker").take_egress().unwrap();
++    s.signal("microphone", 2300).unwrap();
++    s.scene.tick();
++    heard(&mut out, 2300).await;
++}
++#[tokio::test]
++async fn future_participant_exclusions_apply_to_later_streams_and_can_be_reselected() {
++    let s = Scene::new().await;
++    s.change(AudioSubscriptionChange::Subscribe(vec![s.person()]))
++        .await
++        .unwrap();
++    s.change(AudioSubscriptionChange::Unsubscribe(vec![MediaStreamRef {
++        connection: s.f.a.connection.clone(),
++        logical: StreamId::from_string("microphone"),
++    }]))
++    .await
++    .unwrap();
++    s.add(&s.f.a, "microphone").await;
++    s.add(&s.f.b, "speaker").await;
++    let mut out = s.port(&s.f.b, "speaker").take_egress().unwrap();
++    s.signal("microphone", 1800).unwrap();
++    s.scene.tick();
++    assert!(out.try_recv().is_err());
++    s.change(AudioSubscriptionChange::Subscribe(vec![s.person()]))
++        .await
++        .unwrap();
++    s.signal("microphone", 1800).unwrap();
++    s.scene.tick();
++    heard(&mut out, 1800).await;
++}
++#[tokio::test]
++async fn future_participant_intent_rechecks_audience_and_has_no_idle_authority_reader() {
++    let s = Scene::new().await;
++    let revision = s.f.b.revision();
++    s.f.policy.0.write().await.private = true;
++    assert!(matches!(
++        s.change(AudioSubscriptionChange::Subscribe(vec![s.person()]))
++            .await,
++        Err(StreamControlError::Authority)
++    ));
++    assert_eq!(revision, s.f.b.revision());
++    s.f.policy.0.write().await.private = false;
++    s.change(AudioSubscriptionChange::Subscribe(vec![s.person()]))
++        .await
++        .unwrap();
++    let mut writer = tokio::time::timeout(Duration::from_millis(100), s.f.policy.0.write())
++        .await
++        .unwrap();
++    writer.private = true;
++    drop(writer);
++    s.add(&s.f.a, "microphone").await;
++    s.add(&s.f.b, "speaker").await;
++    let mut out = s.port(&s.f.b, "speaker").take_egress().unwrap();
++    s.signal("microphone", 1800).unwrap();
++    s.scene.tick();
++    assert!(out.try_recv().is_err());
++    s.f.policy.0.write().await.private = false;
++    s.signal("microphone", 1800).unwrap();
++    s.scene.tick();
++    heard(&mut out, 1800).await;
++}
++struct NoFuturePolicy(Arc<Policy>);
++impl MediaPolicy for NoFuturePolicy {
++    fn current(&self, scope: &MediaScope<'_>) -> ControlResult<Box<dyn MediaAuthorityLease>> {
++        self.0.current(scope)
++    }
++}
++#[tokio::test]
++async fn future_participant_selection_requires_explicit_policy_support_without_stream_fallback() {
++    let s = Scene::with_policy(Some(Box::new(|p| Arc::new(NoFuturePolicy(p))))).await;
++    let revision = s.f.b.revision();
++    assert!(matches!(
++        s.change(AudioSubscriptionChange::Subscribe(vec![s.person()]))
++            .await,
++        Err(StreamControlError::Unsupported)
++    ));
++    assert_eq!(revision, s.f.b.revision());
++    assert!(s
++        .change(AudioSubscriptionChange::Subscribe(vec![
++            AudioSubscription::Participant(ParticipantId::from_string("unknown"))
++        ]))
++        .await
++        .is_err());
++}
++#[tokio::test]
++async fn future_receiver_rejects_incapable_output_without_consuming_revision_or_handles() {
++    let s = Scene::new().await;
++    let before = s.f.b.stream_open_budget();
++    let revision = s.f.b.revision();
++    s.f.policy
++        .0
++        .write()
++        .await
++        .owners
++        .get_mut("bob")
++        .unwrap()
++        .local
++        .send
++        .retain(|c| c.medium != Medium::Audio);
++    assert!(matches!(
++        s.change(AudioSubscriptionChange::Subscribe(vec![s.person()]))
++            .await,
++        Err(StreamControlError::Unsupported)
++    ));
++    assert_eq!(before, s.f.b.stream_open_budget());
++    assert_eq!(revision, s.f.b.revision());
++}
++#[tokio::test]
++async fn future_receiver_clear_after_ending_audio_prevents_intent_from_reappearing() {
++    let s = Scene::new().await;
++    s.change(AudioSubscriptionChange::Subscribe(vec![s.person()]))
++        .await
++        .unwrap();
++    s.add(&s.f.a, "microphone").await;
++    s.add(&s.f.b, "speaker").await;
++    s.f.b
++        .end_stream(
++            &StreamId::from_string("speaker"),
++            s.f.b.revision(),
++            deadline(),
++        )
++        .await
++        .unwrap();
++    s.scene.tick();
++    s.change(AudioSubscriptionChange::Clear).await.unwrap();
++    s.add(&s.f.b, "new-speaker").await;
++    let mut out = s.port(&s.f.b, "new-speaker").take_egress().unwrap();
++    s.signal("microphone", 1800).unwrap();
++    s.scene.tick();
++    assert!(out.try_recv().is_err());
++}
++
++#[tokio::test]
++async fn future_participant_selection_refuses_removed_membership_before_any_audio_exists() {
++    let s = Scene::new().await;
++    let revision = s.f.b.revision();
++    {
++        let mut state = s.f.policy.0.write().await;
++        let member = &mut state.owners.get_mut("alice").unwrap().member;
++        member.remove(member.revision()).unwrap();
++    }
++    assert!(matches!(
++        s.change(AudioSubscriptionChange::Subscribe(vec![s.person()]))
++            .await,
++        Err(StreamControlError::Authority)
++    ));
++    assert_eq!(revision, s.f.b.revision());
++}
++
++#[tokio::test]
++async fn future_participant_selection_refuses_a_current_owner_view_in_another_session() {
++    let s = Scene::new().await;
++    let revision = s.f.b.revision();
++    {
++        let mut state = s.f.policy.0.write().await;
++        let original = state.owners.get_mut("alice").unwrap();
++        original.presence = SessionAppearance::admit(
++            &original.member,
++            SessionId::from_string("other-session"),
++            None,
++        )
++        .unwrap();
++    }
++    assert!(matches!(
++        s.change(AudioSubscriptionChange::Subscribe(vec![s.person()]))
++            .await,
++        Err(StreamControlError::Authority)
++    ));
++    assert_eq!(revision, s.f.b.revision());
++}
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/tests/guarded_mixer/subscriptions.rs b/crates/foundation/rvoip-core/src/staged_streams/tests/guarded_mixer/subscriptions.rs
+--- a/crates/foundation/rvoip-core/src/staged_streams/tests/guarded_mixer/subscriptions.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/guarded_mixer/subscriptions.rs
+@@ -340,6 +340,17 @@
+     owner: MediaOwner,
+ }
+ impl MediaAuthorityLease for HeldLease {
++    fn control_participant_receive(
++        &self,
++        source: &MediaParticipantSource,
++    ) -> ControlResult<Box<MediaOwner>> {
++        Ok(Box::new(future_participant_owner(
++            &self.held.guard,
++            &self.held.connection,
++            source,
++        )?))
++    }
++
+     fn authority(&self) -> &MediaOwner {
+         &self.owner
+     }
+@@ -600,3 +611,65 @@
+     let same = target.revision();
+     assert_eq!(route(&s, 1, change).await.unwrap(), same);
+ }
++
++#[tokio::test]
++async fn held_future_participant_selection_uses_exact_owner_guard_under_a_queued_writer() {
++    let fresh = Arc::new(AtomicUsize::new(0));
++    let s = Scene::new_inner(
++        &four()[..2],
++        8000,
++        Some(Box::new({
++            let fresh = fresh.clone();
++            move |base| Arc::new(RoutingPolicy { base, fresh })
++        })),
++    )
++    .await;
++    for i in 0..2 {
++        s.bind_unsubscribed(i, true).await;
++    }
++    let source = &s.controllers[0];
++    source
++        .end_stream(
++            &desired(Medium::Audio).logical_id,
++            source.revision(),
++            deadline(),
++        )
++        .await
++        .unwrap();
++    s.mixer.tick();
++    let change = AudioSubscriptionChange::Subscribe(vec![AudioSubscription::Participant(
++        source.origin_member.participant().clone(),
++    )]);
++    let held = Arc::new(Held {
++        domain: s.policy.clone(),
++        guard: Arc::new(s.policy.0.clone().read_owned().await),
++        connection: s.controllers[1].connection.clone(),
++        expected: s.controllers[1].revision(),
++        change: change.clone(),
++        cancel: CancellationToken::new(),
++        deadline: deadline(),
++    });
++    let writer = tokio::spawn({
++        let policy = s.policy.0.clone();
++        async move {
++            policy.write().await.private = true;
++        }
++    });
++    tokio::time::sleep(Duration::from_millis(10)).await;
++    let before = fresh.load(Ordering::Acquire);
++    s.mixer
++        .change_subscriptions(
++            &held.connection,
++            held.expected,
++            change,
++            deadline(),
++            CancellationToken::new(),
++            Some(&held),
++        )
++        .await
++        .unwrap();
++    assert_eq!(before, fresh.load(Ordering::Acquire));
++    assert!(!writer.is_finished());
++    drop(held);
++    writer.await.unwrap();
++}
+diff --git a/crates/uctp/rvoip-uctp/tests/support/canonical_media.rs b/crates/uctp/rvoip-uctp/tests/support/canonical_media.rs
+--- a/crates/uctp/rvoip-uctp/tests/support/canonical_media.rs
++++ b/crates/uctp/rvoip-uctp/tests/support/canonical_media.rs
+@@ -72,6 +72,52 @@
+     }
+ }
+ impl MediaPolicy for MediaGrants {
++    fn current_participant_receive(
++        &self,
++        scope: &MediaScope<'_>,
++        source: &MediaParticipantSource,
++    ) -> ControlResult<Box<dyn MediaAuthorityLease>> {
++        let guard = self
++            .0
++            .clone()
++            .try_read_owned()
++            .map_err(|_| StreamControlError::Authority)?;
++        if guard.denied.contains(scope.connection) || guard.denied.contains(&source.connection) {
++            return Err(StreamControlError::Authority);
++        }
++        let original = guard
++            .owners
++            .get(&source.connection)
++            .ok_or(StreamControlError::Authority)?;
++        original
++            .member
++            .revalidate_principal(&source.principal, chrono::Utc::now())
++            .map_err(|_| StreamControlError::Authority)?;
++        if source.conversation != *scope.conversation
++            || source.session != *scope.session
++            || source.conversation != *original.member.conversation()
++            || source.session != *original.presence.session()
++            || source.connection != *original.connection.connection()
++            || source.participant != *original.member.participant()
++            || source.membership_epoch != original.member.epoch()
++            || source.identity != *original.member.identity()
++            || original.connection.state() != BindingState::Active
++            || source.medium != Medium::Audio
++        {
++            return Err(StreamControlError::Authority);
++        }
++        let mut owner = guard
++            .owners
++            .get(scope.connection)
++            .ok_or(StreamControlError::Authority)?
++            .clone();
++        owner.may_route_source = !guard.private;
++        Ok(Box::new(MediaLease {
++            owner,
++            _guard: guard,
++        }))
++    }
++
+     fn current(&self, scope: &MediaScope<'_>) -> ControlResult<Box<dyn MediaAuthorityLease>> {
+         let guard = self
+             .0
+diff --git a/crates/uctp/rvoip-uctp/tests/support/canonical_media/guarded_mixer.rs b/crates/uctp/rvoip-uctp/tests/support/canonical_media/guarded_mixer.rs
+--- a/crates/uctp/rvoip-uctp/tests/support/canonical_media/guarded_mixer.rs
++++ b/crates/uctp/rvoip-uctp/tests/support/canonical_media/guarded_mixer.rs
+@@ -224,6 +224,9 @@
+         Self::new_with_media(kind_name, &[Medium::Audio]).await
+     }
+     async fn new_with_media(kind_name: &str, kinds: &[Medium]) -> Self {
++        Self::new_with_audio_policy(kind_name, kinds, !kinds.contains(&Medium::Audio)).await
++    }
++    async fn new_with_audio_policy(kind_name: &str, kinds: &[Medium], deny_audio: bool) -> Self {
+         let has_audio = kinds.contains(&Medium::Audio);
+         let grants = Arc::new(MediaGrants(Arc::new(RwLock::new(PolicyState {
+             owners: HashMap::new(),
+@@ -243,7 +246,7 @@
+         core.orch
+             .enable_staged_participant_control(
+                 &session,
+-                if has_audio {
++                if !deny_audio {
+                     core.policy.clone() as Arc<dyn ParticipantPolicy>
+                 } else {
+                     Arc::new(NoAudioPolicy(core.policy.clone()))
+@@ -317,14 +320,14 @@
+                     endpoint: ep,
+                     connection: binding,
+                     may_control: true,
+-                    send_media: if has_audio {
++                    send_media: if !deny_audio {
+                         [Medium::Audio, Medium::Video, Medium::Screen]
+                             .into_iter()
+                             .collect()
+                     } else {
+                         kinds.iter().copied().collect()
+                     },
+-                    receive_media: if has_audio {
++                    receive_media: if !deny_audio {
+                         [Medium::Audio, Medium::Video, Medium::Screen]
+                             .into_iter()
+                             .collect()
+@@ -967,3 +970,121 @@
+         .expect("requested logical fixture stream must have a current active transport")
+         .clone()
+ }
++
++#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
++async fn actual_tls_future_audio_selection_precedes_ports_and_survives_late_upgrade_and_reselection(
++) {
++    use rvoip_core::staged_streams::{audio_subscriptions::*, direct_subscriptions::*};
++    for kind in ["quic", "wt"] {
++        let s = Scene::new_with_audio_policy(kind, &[Medium::Video], false).await;
++        let source = &s.live[0].leg;
++        for index in [1, 2] {
++            let target = &s.live[index].leg;
++            let budget = target.controller.stream_open_budget();
++            s.core
++                .orch
++                .change_staged_audio_subscriptions(
++                    &s.core.session,
++                    &target.id,
++                    target.controller.revision(),
++                    AudioSubscriptionChange::Subscribe(vec![AudioSubscription::Participant(
++                        core_fixture::participant("alice"),
++                    )]),
++                    deadline(),
++                    CancellationToken::new(),
++                    None,
++                )
++                .await
++                .unwrap();
++            assert_eq!(budget, target.controller.stream_open_budget());
++        }
++        let target = &s.live[1].leg;
++        s.core
++            .orch
++            .change_staged_direct_subscriptions(
++                &s.core.session,
++                &target.id,
++                target.controller.revision(),
++                DirectSubscriptionChange::Subscribe(vec![DirectSubscription::new(
++                    &source.controller,
++                    desired(Medium::Video).logical_id.clone(),
++                    desired(Medium::Video).logical_id,
++                )]),
++                deadline(),
++                CancellationToken::new(),
++                None,
++            )
++            .await
++            .unwrap();
++        for (index, logical) in [(0, "microphone"), (1, "speaker")] {
++            let controller = &s.live[index].leg.controller;
++            let mut request = desired(Medium::Audio);
++            request.logical_id = StreamId::from_string(logical);
++            controller
++                .change(
++                    controller.revision(),
++                    &[desired(Medium::Video), request],
++                    &BTreeSet::new(),
++                    deadline(),
++                    CancellationToken::new(),
++                )
++                .await
++                .unwrap();
++        }
++        s.tone_streams(0, "microphone", 1, "speaker").await;
++        let receiver = &s.live[2].leg.controller;
++        let mut audio = desired(Medium::Audio);
++        audio.logical_id = StreamId::from_string("late-speaker");
++        receiver
++            .change(
++                receiver.revision(),
++                &[desired(Medium::Video), audio],
++                &BTreeSet::new(),
++                deadline(),
++                CancellationToken::new(),
++            )
++            .await
++            .unwrap();
++        s.tone_streams(0, "microphone", 2, "late-speaker").await;
++        source
++            .controller
++            .end_stream(
++                &StreamId::from_string("microphone"),
++                source.controller.revision(),
++                deadline(),
++            )
++            .await
++            .unwrap();
++        let mut audio = desired(Medium::Audio);
++        audio.logical_id = StreamId::from_string("replacement-microphone");
++        source
++            .controller
++            .change(
++                source.controller.revision(),
++                &[desired(Medium::Video), audio],
++                &BTreeSet::new(),
++                deadline(),
++                CancellationToken::new(),
++            )
++            .await
++            .unwrap();
++        s.tone_streams(0, "replacement-microphone", 1, "speaker")
++            .await;
++        s.tone_streams(0, "replacement-microphone", 2, "late-speaker")
++            .await;
++        Scene::drain(&s.live[1].wire).await;
++        send(
++            &s.live[0].wire,
++            video(binding(source, Medium::Video).stream_local_id),
++        );
++        assert_eq!(
++            received(&s.live[1].wire).await.stream_local_id,
++            binding(target, Medium::Video).stream_local_id
++        );
++        assert!(s
++            .live
++            .iter()
++            .all(|live| live.peer.snapshot().connections == 1));
++        s.stop().await;
++    }
++}

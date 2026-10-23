@@ -1,0 +1,1852 @@
+diff --git a/crates/uctp/rvoip-uctp/src/v2/auth_dispatch.rs b/crates/uctp/rvoip-uctp/src/v2/auth_dispatch.rs
+index 5221900..1458127 100644
+--- a/crates/uctp/rvoip-uctp/src/v2/auth_dispatch.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/auth_dispatch.rs
+@@ -61,12 +61,17 @@ impl From<WireError> for DispatchError {
+ /// and signing-key revocation, effective grant and current resource scope. Never wrap a stale
+ /// boolean authorization result. Construction is trusted backend composition.
+ pub struct AuthorityLease {
+-    _guard: Box<dyn Send + Sync>,
++    _guard: Arc<dyn Send + Sync>,
+ }
+ impl AuthorityLease {
++    pub(super) fn retained(&self) -> Self {
++        Self {
++            _guard: self._guard.clone(),
++        }
++    }
+     pub fn holding<T: Send + Sync + 'static>(guard: T) -> Self {
+         Self {
+-            _guard: Box::new(guard),
++            _guard: Arc::new(guard),
+         }
+     }
+ }
+@@ -93,8 +98,12 @@ pub struct AuthorizedEnvelope {
+     envelope: Envelope,
+     principal: AuthenticatedPrincipal,
+     _lease: AuthorityLease,
++    origin: RequestOrigin,
+ }
+ impl AuthorizedEnvelope {
++    pub(super) fn retain_authority(&self) -> AuthorityLease {
++        self._lease.retained()
++    }
+     pub fn envelope(&self) -> &Envelope {
+         &self.envelope
+     }
+@@ -225,6 +234,7 @@ pub struct AuthenticatedDispatch {
+     lifetime: CancellationToken,
+     pending: Arc<Mutex<HashMap<String, PendingEntry>>>,
+     capacity: usize,
++    incarnation: uuid::Uuid,
+ }
+ impl AuthenticatedDispatch {
+     /// `principal` is a trusted validator result, not a deserialized payload.
+@@ -245,6 +255,7 @@ impl AuthenticatedDispatch {
+             lifetime: lifetime.child_token(),
+             pending: Arc::new(Mutex::new(HashMap::new())),
+             capacity: pending_capacity,
++            incarnation: uuid::Uuid::new_v4(),
+         })
+     }
+ 
+@@ -327,11 +338,19 @@ impl AuthenticatedDispatch {
+         handler: &dyn AuthenticatedHandler,
+         deadline: Instant,
+     ) -> Result<DispatchOutcome, DispatchError> {
++        let authorized = self.preflight(bytes, deadline).await?;
++        self.dispatch_authorized(authorized, handler, deadline)
++            .await
++    }
++
++    /// Crate-private preflight, preserving proof of the consumed fresh signature.
++    pub(super) async fn preflight(
++        &self,
++        bytes: &[u8],
++        deadline: Instant,
++    ) -> Result<AuthorizedEnvelope, DispatchError> {
+         let deadline = self.active_deadline(deadline)?;
+         let envelope = Envelope::parse(bytes)?;
+-        // Pre-auth, refresh and assurance transitions have a separate state
+-        // machine. Never send credentials or server-only observations to an
+-        // ordinary application handler.
+         if envelope.kind().starts_with("auth.") || envelope.kind().starts_with("identity.") {
+             return Err(DispatchError::Unsupported);
+         }
+@@ -339,19 +358,14 @@ impl AuthenticatedDispatch {
+             biased;
+             _ = self.lifetime.cancelled() => Err(DispatchError::Closed),
+             _ = tokio::time::sleep_until(deadline) => Err(DispatchError::Closed),
+-            result = self.dispatch_inner(envelope, handler, deadline) => result,
++            result = self.verify_inner(envelope, deadline) => result,
+         }
+     }
+-
+-    async fn dispatch_inner(
++    async fn verify_inner(
+         &self,
+         envelope: Envelope,
+-        handler: &dyn AuthenticatedHandler,
+         deadline: Instant,
+-    ) -> Result<DispatchOutcome, DispatchError> {
+-        // Check current revocation/scope even before expensive verification.
+-        // Drop that lease before awaiting replay storage, then reacquire after
+-        // verification so a revocation during verification cannot slip through.
++    ) -> Result<AuthorizedEnvelope, DispatchError> {
+         drop(self.authority.acquire(&self.principal, &envelope).await?);
+         self.require_active(deadline)?;
+         self.verifier
+@@ -364,35 +378,126 @@ impl AuthenticatedDispatch {
+             })?;
+         let lease = self.authority.acquire(&self.principal, &envelope).await?;
+         self.require_active(deadline)?;
+-        if let Some(reply_to) = envelope.scope(Scope::Reply) {
++        Ok(AuthorizedEnvelope {
++            envelope,
++            principal: self.principal.clone(),
++            _lease: lease,
++            origin: RequestOrigin {
++                incarnation: self.incarnation,
++                lifetime: self.lifetime.clone(),
++                deadline,
++            },
++        })
++    }
++    pub(super) async fn dispatch_authorized(
++        &self,
++        authorized: AuthorizedEnvelope,
++        handler: &dyn AuthenticatedHandler,
++        requested: Instant,
++    ) -> Result<DispatchOutcome, DispatchError> {
++        if authorized.origin.incarnation != self.incarnation {
++            return Err(DispatchError::Authority);
++        }
++        let deadline = self.active_deadline(requested.min(authorized.origin.deadline))?;
++        if let Some(reply_to) = authorized.envelope.scope(Scope::Reply) {
+             let mut pending = self.pending.lock();
+             let entry = pending.get(reply_to).ok_or(DispatchError::ReplyMismatch)?;
+-            if entry.deadline <= Instant::now() || !entry.expectation.matches(&envelope) {
++            if entry.deadline <= Instant::now() || !entry.expectation.matches(&authorized.envelope)
++            {
+                 return Err(DispatchError::ReplyMismatch);
+             }
+             let entry = pending
+                 .remove(reply_to)
+                 .expect("entry held under same lock");
+-            // Retain authority through nonblocking local waiter admission. No
+-            // authority guard is parked indefinitely in an unpolled receiver.
+             entry
+                 .sender
+-                .send(envelope)
++                .send(authorized.envelope)
+                 .map_err(|_| DispatchError::ReplyMismatch)?;
+-            drop(lease);
+             return Ok(DispatchOutcome::ReplyDelivered);
+         }
+-        if is_reply_kind(envelope.kind()) {
++        if is_reply_kind(authorized.envelope.kind()) {
+             return Err(DispatchError::ReplyMismatch);
+         }
+-        handler
+-            .handle(AuthorizedEnvelope {
+-                envelope,
+-                principal: self.principal.clone(),
+-                _lease: lease,
+-            })
+-            .await
+-            .map(DispatchOutcome::Handled)
++        tokio::select! {
++            biased;
++            _ = self.lifetime.cancelled() => Err(DispatchError::Closed),
++            _ = tokio::time::sleep_until(deadline) => Err(DispatchError::Closed),
++            result = handler.handle(authorized) => result.map(DispatchOutcome::Handled),
++        }
++    }
++    /// Resume only a sealed, single-use proof from this exact prior incarnation.
++    /// The transition lease covers both credentials, current resource authority
++    /// and the original request; no signature is re-consumed or exempted publicly.
++    pub(super) async fn execute_held(
++        &self,
++        held: HeldRequest,
++        previous: &Self,
++        lease: AuthorityLease,
++        handler: &dyn AuthenticatedHandler,
++        requested: Instant,
++    ) -> Result<Envelope, DispatchError> {
++        if held.origin.incarnation != previous.incarnation
++            || held.origin.lifetime.is_cancelled()
++            || !held.owner.has_same_owner(&self.principal)
++        {
++            return Err(DispatchError::Authority);
++        }
++        previous.require_active(held.origin.deadline)?;
++        let deadline = self.active_deadline(requested.min(held.origin.deadline))?;
++        let authorized = AuthorizedEnvelope {
++            envelope: held.envelope,
++            principal: self.principal.clone(),
++            _lease: lease,
++            origin: RequestOrigin {
++                incarnation: self.incarnation,
++                lifetime: self.lifetime.clone(),
++                deadline,
++            },
++        };
++        tokio::select! {
++            biased;
++            _ = previous.lifetime.cancelled() => Err(DispatchError::Closed),
++            _ = self.lifetime.cancelled() => Err(DispatchError::Closed),
++            _ = tokio::time::sleep_until(deadline) => Err(DispatchError::Closed),
++            result = handler.handle(authorized) => result,
++        }
++    }
++}
++
++struct RequestOrigin {
++    incarnation: uuid::Uuid,
++    lifetime: CancellationToken,
++    deadline: Instant,
++}
++/// Deliberately neither Clone nor publicly constructible. Dropping it discards
++/// the held invocation; normal fresh-envelope retries still use signature replay.
++pub(super) struct HeldRequest {
++    envelope: Envelope,
++    owner: AuthenticatedPrincipal,
++    origin: RequestOrigin,
++}
++impl HeldRequest {
++    pub(super) fn seal(authorized: AuthorizedEnvelope) -> Result<Self, DispatchError> {
++        if authorized.envelope.scope(Scope::Reply).is_some()
++            || is_reply_kind(authorized.envelope.kind())
++            || authorized.envelope.scope(Scope::Operation).is_none()
++        {
++            return Err(DispatchError::Unsupported);
++        }
++        Ok(Self {
++            envelope: authorized.envelope,
++            owner: authorized.principal,
++            origin: authorized.origin,
++        })
++    }
++    pub(super) fn envelope(&self) -> &Envelope {
++        &self.envelope
++    }
++    pub(super) fn deadline(&self) -> Instant {
++        self.origin.deadline
++    }
++    pub(super) fn live(&self) -> bool {
++        !self.origin.lifetime.is_cancelled() && Instant::now() < self.origin.deadline
+     }
+ }
+ 
+diff --git a/crates/uctp/rvoip-uctp/src/v2/auth_peer.rs b/crates/uctp/rvoip-uctp/src/v2/auth_peer.rs
+index 96677a3..133e256 100644
+--- a/crates/uctp/rvoip-uctp/src/v2/auth_peer.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/auth_peer.rs
+@@ -25,6 +25,10 @@ use tokio_util::{
+     sync::CancellationToken,
+ };
+ 
++mod step_up;
++pub use step_up::AssuranceRequirement;
++use step_up::PendingStepUp;
++
+ pub const AUTHENTICATION_TIMEOUT: Duration = Duration::from_secs(10);
+ 
+ /// Installed policy must validate the credential's token ID/issued-at metadata,
+@@ -45,6 +49,32 @@ pub trait PeerAuthority: Send + Sync {
+         identity: &Identifier,
+         envelope: &Envelope,
+     ) -> Result<AuthorityLease, DispatchError>;
++    /// Resolve a floor synchronously while the acquire lease is held. It must
++    /// not block, reacquire the same authority lock or infer grants from roles.
++    fn assurance_requirement(
++        &self,
++        _credential: &ValidatedBearer,
++        _device: &Device,
++        _identity: &Identifier,
++        _envelope: &Envelope,
++    ) -> Result<Option<AssuranceRequirement>, DispatchError> {
++        Ok(None)
++    }
++    /// Current authority for both credentials, exact response, original blocked
++    /// mutation and unchanged identity/device. Keep this guard through execution.
++    async fn step_up(
++        &self,
++        _previous: &ValidatedBearer,
++        _next: &ValidatedBearer,
++        _device: &Device,
++        _identity: &Identifier,
++        _requirement: &AssuranceRequirement,
++        _blocked: &Envelope,
++        _response: &Envelope,
++    ) -> Result<AuthorityLease, DispatchError> {
++        Err(DispatchError::Unsupported)
++    }
++
+     /// Acquire current authority for BOTH credentials and the unchanged
+     /// identity/device mapping, approving any effective grant-scope changes.
+     /// Intrinsic assurance provenance is checked separately before this call.
+@@ -101,6 +131,7 @@ struct Binding {
+     dispatch: AuthenticatedDispatch,
+     expires: Instant,
+     generation: u64,
++    step_up: Option<PendingStepUp>,
+ }
+ enum State {
+     Hello,
+@@ -153,10 +184,15 @@ impl CanonicalPeer {
+     pub fn cancellation(&self) -> CancellationToken {
+         self.lifetime.clone()
+     }
++    pub fn has_pending_step_up(&self) -> bool {
++        matches!(&self.state, State::Authenticated(b) if b.step_up.as_ref().is_some_and(|pending| pending.held.live()))
++    }
+     pub fn authenticated_identity(&self) -> Option<&Identifier> {
+         match &self.state {
+             State::Authenticated(binding)
+-                if !binding.credential.principal.is_expired() && !self.lifetime.is_cancelled() =>
++                if !binding.credential.principal.is_expired()
++                    && binding.expires > Instant::now()
++                    && !self.lifetime.is_cancelled() =>
+             {
+                 Some(&binding.identity)
+             }
+@@ -235,6 +271,12 @@ impl CanonicalPeer {
+         deadline: Instant,
+     ) -> Result<PeerOutput, DispatchError> {
+         let envelope = Envelope::parse(bytes)?;
++        // Direct integrations discard expired holds before accepting more input;
++        // the driven stream loop additionally publishes the timeout observation.
++        self.discard_expired_step_up();
++        if matches!(envelope.payload(), Payload::IdentityStepUpResponse(_)) {
++            return self.complete_step_up(envelope, handler, deadline).await;
++        }
+         match &self.state {
+             State::Hello => {
+                 let Payload::AuthHello(hello) = envelope.payload() else {
+@@ -367,8 +409,16 @@ impl CanonicalPeer {
+                             .ok_or(DispatchError::Capacity)?,
+                     )?;
+                     let session = self.session(&next, &envelope)?;
++                    let mut replies = vec![session];
++                    if let Some(pending) = &binding.step_up {
++                        replies.push(self.reply(
++                            "error",
++                            json!({"code":409,"category":"auth","reason":"step_up_superseded"}),
++                            Some(pending.held.envelope()),
++                        )?);
++                    }
+                     self.state = State::Authenticated(next);
+-                    Ok(output(vec![session], Some(lease)))
++                    Ok(output(replies, Some(lease)))
+                 }
+                 Payload::AuthKeepalive(keepalive) => {
+                     require_unscoped(&envelope, false)?;
+@@ -419,42 +469,29 @@ impl CanonicalPeer {
+                     self.close();
+                     Ok(output(vec![ack], Some(lease)))
+                 }
+-                _ => {
+-                    let result = binding.dispatch.dispatch(bytes, handler, deadline).await?;
+-                    match result {
+-                        DispatchOutcome::ReplyDelivered => Ok(output(Vec::new(), None)),
+-                        DispatchOutcome::Handled(reply) => {
+-                            let lease = self
+-                                .config
+-                                .authority
+-                                .acquire(
+-                                    &binding.credential,
+-                                    &binding.device,
+-                                    &binding.identity,
+-                                    &envelope,
+-                                )
+-                                .await?;
+-                            // Handler routing/correlation cannot replace the
+-                            // invocation's authenticated scope or fresh wire ID.
+-                            let mut value = reply.original().clone();
+-                            value["id"] = json!(fresh_id());
+-                            value["ts"] = json!(chrono::Utc::now());
+-                            value["in_reply_to"] = json!(envelope.id());
+-                            for field in ["cid", "sid", "connid", "operation_id"] {
+-                                if let Some(value_in) = envelope.original().get(field) {
+-                                    value[field] = value_in.clone();
+-                                }
+-                            }
+-                            let reply = self.signed(value)?;
+-                            Ok(output(vec![reply], Some(lease)))
+-                        }
+-                    }
+-                }
++                _ => self.control(bytes, &envelope, handler, deadline).await,
+             },
+             State::Closed => Err(DispatchError::Closed),
+         }
+     }
+ 
++    fn handler_reply(
++        &self,
++        reply: Envelope,
++        request: &Envelope,
++    ) -> Result<Envelope, DispatchError> {
++        let mut value = reply.original().clone();
++        value["id"] = json!(fresh_id());
++        value["ts"] = json!(chrono::Utc::now());
++        value["in_reply_to"] = json!(request.id());
++        for field in ["cid", "sid", "connid", "operation_id"] {
++            if let Some(item) = request.original().get(field) {
++                value[field] = item.clone();
++            }
++        }
++        self.signed(value)
++    }
++
+     fn binding(
+         &self,
+         credential: Arc<ValidatedBearer>,
+@@ -483,6 +520,7 @@ impl CanonicalPeer {
+             dispatch,
+             expires: expiry,
+             generation,
++            step_up: None,
+         })
+     }
+     async fn verify(
+@@ -548,6 +586,9 @@ impl CanonicalPeer {
+         let mut reader = FramedRead::new(reader, crate::substrate::length_prefixed_codec());
+         let mut writer = FramedWrite::new(writer, crate::substrate::length_prefixed_codec());
+         loop {
++            let pending_deadline = self
++                .pending_step_up_deadline()
++                .unwrap_or(self.effective_deadline());
+             let frame = tokio::select! {
+                 biased;
+                 _ = self.lifetime.cancelled() => return Err(DispatchError::Closed),
+@@ -558,6 +599,20 @@ impl CanonicalPeer {
+                     }
+                     return Err(DispatchError::Closed);
+                 }
++                _ = tokio::time::sleep_until(pending_deadline) => {
++                    if let Some(output) = self.expire_step_up()? {
++                        for envelope in output.envelopes() {
++                            let bytes = serde_json::to_vec(envelope).map_err(|_| DispatchError::Closed)?;
++                            tokio::select! {
++                                biased;
++                                _ = self.lifetime.cancelled() => return Err(DispatchError::Closed),
++                                _ = tokio::time::sleep_until(self.effective_deadline().min(Instant::now() + MAX_DISPATCH_WAIT)) => return Err(DispatchError::Closed),
++                                result = writer.send(Bytes::from(bytes)) => result.map_err(|_| DispatchError::Closed)?,
++                            }
++                        }
++                    }
++                    continue;
++                }
+                 frame = reader.next() => frame,
+             };
+             let Some(frame) = frame else {
+diff --git a/crates/uctp/rvoip-uctp/src/v2/auth_peer/step_up.rs b/crates/uctp/rvoip-uctp/src/v2/auth_peer/step_up.rs
+new file mode 100644
+index 0000000..0e28d6b
+--- /dev/null
++++ b/crates/uctp/rvoip-uctp/src/v2/auth_peer/step_up.rs
+@@ -0,0 +1,357 @@
++use super::*;
++
++/// A policy-owned requirement with explicit delegation provenance. Assurance
++/// labels alone are not a total ordering of authority over tasks and users.
++#[derive(Clone, PartialEq, Eq)]
++pub enum AssuranceRequirement {
++    Identified,
++    TaskScoped {
++        task_id: String,
++        scopes: Vec<String>,
++    },
++    UserAuthorized {
++        user_id: rvoip_core::IdentityId,
++        scopes: Vec<String>,
++    },
++}
++impl fmt::Debug for AssuranceRequirement {
++    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
++        f.debug_tuple("AssuranceRequirement")
++            .field(&self.label())
++            .finish()
++    }
++}
++impl AssuranceRequirement {
++    pub fn label(&self) -> &'static str {
++        match self {
++            Self::Identified => "identified",
++            Self::TaskScoped { .. } => "task-scoped",
++            Self::UserAuthorized { .. } => "user-authorized",
++        }
++    }
++    fn validate(&self) -> Result<(), DispatchError> {
++        let scopes = match self {
++            Self::Identified => return Ok(()),
++            Self::TaskScoped { task_id, scopes } => {
++                Identifier::try_from(task_id.clone())?;
++                scopes
++            }
++            Self::UserAuthorized { user_id, scopes } => {
++                Identifier::try_from(user_id.as_str().to_owned())?;
++                scopes
++            }
++        };
++        if scopes.is_empty()
++            || scopes.len() > 64
++            || scopes
++                .iter()
++                .any(|s| s.is_empty() || s.len() > 256 || s.chars().any(char::is_control))
++        {
++            return Err(DispatchError::Authority);
++        }
++        Ok(())
++    }
++    fn meets(&self, principal: &AuthenticatedPrincipal, identity: &Identifier) -> bool {
++        if effective_expiry(principal).is_err() {
++            return false;
++        }
++        let includes = |required: &[String], actual: &[String]| {
++            required.iter().all(|scope| {
++                principal.has_scope(scope) && actual.iter().any(|item| item == scope || item == "*")
++            })
++        };
++        match (self, &principal.assurance) {
++            (Self::Identified, IdentityAssurance::Identified { .. }) => true,
++            (
++                Self::Identified,
++                IdentityAssurance::TaskScoped { identity: id, .. }
++                | IdentityAssurance::UserAuthorized { identity: id, .. },
++            ) => id.as_str() == identity.as_str(),
++            (
++                Self::TaskScoped { task_id, scopes },
++                IdentityAssurance::TaskScoped {
++                    identity: id,
++                    task_id: actual,
++                    scopes: granted,
++                    ..
++                },
++            ) => id.as_str() == identity.as_str() && task_id == actual && includes(scopes, granted),
++            (
++                Self::UserAuthorized { user_id, scopes },
++                IdentityAssurance::UserAuthorized {
++                    identity: id,
++                    user_id: actual,
++                    scopes: granted,
++                },
++            ) => id.as_str() == identity.as_str() && user_id == actual && includes(scopes, granted),
++            _ => false,
++        }
++    }
++}
++
++pub(super) struct PendingStepUp {
++    pub(super) held: HeldRequest,
++    challenge: Envelope,
++    requirement: AssuranceRequirement,
++    generation: u64,
++    methods: Vec<String>,
++}
++
++impl CanonicalPeer {
++    pub(super) async fn control(
++        &mut self,
++        bytes: &[u8],
++        envelope: &Envelope,
++        handler: &dyn AuthenticatedHandler,
++        deadline: Instant,
++    ) -> Result<PeerOutput, DispatchError> {
++        let State::Authenticated(binding) = &self.state else {
++            return Err(DispatchError::Authentication);
++        };
++        let authorized = binding.dispatch.preflight(bytes, deadline).await?;
++        let requirement = if envelope.scope(Scope::Reply).is_none() {
++            self.config.authority.assurance_requirement(
++                &binding.credential,
++                &binding.device,
++                &binding.identity,
++                envelope,
++            )?
++        } else {
++            None
++        };
++        if let Some(requirement) = requirement {
++            requirement.validate()?;
++            if !requirement.meets(&binding.credential.principal, &binding.identity) {
++                if binding.step_up.is_some() {
++                    return Err(DispatchError::Capacity);
++                }
++                let methods: Vec<String> = self
++                    .config
++                    .methods
++                    .advertised()
++                    .into_iter()
++                    .map(str::to_owned)
++                    .collect();
++                if methods.is_empty() {
++                    return Err(DispatchError::UnsupportedMethod);
++                }
++                let challenge = self.reply("identity.step-up-request",json!({"required":requirement.label(),"allowed_methods":methods,"reason":"resource_assurance_required"}),Some(envelope))?;
++                // No current-authority guard is retained while the client waits.
++                let lease = authorized.retain_authority();
++                let held = HeldRequest::seal(authorized)?;
++                let pending = PendingStepUp {
++                    held,
++                    challenge: challenge.clone(),
++                    requirement,
++                    generation: binding.generation,
++                    methods,
++                };
++                let State::Authenticated(binding) = &mut self.state else {
++                    return Err(DispatchError::Closed);
++                };
++                binding.step_up = Some(pending);
++                return Ok(output(vec![challenge], Some(lease)));
++            }
++        }
++        match binding
++            .dispatch
++            .dispatch_authorized(authorized, handler, deadline)
++            .await?
++        {
++            DispatchOutcome::ReplyDelivered => Ok(output(Vec::new(), None)),
++            DispatchOutcome::Handled(reply) => {
++                let lease = self
++                    .config
++                    .authority
++                    .acquire(
++                        &binding.credential,
++                        &binding.device,
++                        &binding.identity,
++                        envelope,
++                    )
++                    .await?;
++                let reply = self.handler_reply(reply, envelope)?;
++                Ok(output(vec![reply], Some(lease)))
++            }
++        }
++    }
++
++    pub(super) async fn complete_step_up(
++        &mut self,
++        response: Envelope,
++        handler: &dyn AuthenticatedHandler,
++        deadline: Instant,
++    ) -> Result<PeerOutput, DispatchError> {
++        let Payload::IdentityStepUpResponse(payload) = response.payload() else {
++            return Err(DispatchError::Unsupported);
++        };
++        let State::Authenticated(binding) = &self.state else {
++            return Err(DispatchError::Authentication);
++        };
++        let pending = binding
++            .step_up
++            .as_ref()
++            .ok_or(DispatchError::ReplyMismatch)?;
++        if pending.generation != binding.generation
++            || !pending.held.live()
++            || response.scope(Scope::Reply) != Some(pending.challenge.id())
++            || [
++                Scope::Conversation,
++                Scope::Session,
++                Scope::Connection,
++                Scope::Operation,
++            ]
++            .iter()
++            .any(|field| response.scope(*field) != pending.held.envelope().scope(*field))
++            || response.expected_revision().is_some_and(|revision| {
++                Some(revision) != pending.held.envelope().expected_revision()
++            })
++        {
++            return Err(DispatchError::ReplyMismatch);
++        }
++        // Unauthenticated/wrong-scope traffic cannot consume the pending proof.
++        drop(
++            self.config
++                .authority
++                .acquire(
++                    &binding.credential,
++                    &binding.device,
++                    &binding.identity,
++                    &response,
++                )
++                .await?,
++        );
++        self.verify(&binding.credential.principal, &response)
++            .await?;
++        let State::Authenticated(binding) = &mut self.state else {
++            return Err(DispatchError::Closed);
++        };
++        // Matching authenticated completion gets one validation attempt. Any
++        // failure or cancellation below discards the hold without executing it.
++        let pending = binding.step_up.take().ok_or(DispatchError::ReplyMismatch)?;
++        if !pending.methods.contains(&payload.method) {
++            return Err(DispatchError::UnsupportedMethod);
++        }
++        let State::Authenticated(binding) = &self.state else {
++            return Err(DispatchError::Closed);
++        };
++        let deadline = deadline.min(pending.held.deadline());
++        let credential = Arc::new(
++            self.config
++                .methods
++                .authenticate_credential(&payload.method, &payload.credential, None, deadline)
++                .await?,
++        );
++        if !binding
++            .credential
++            .principal
++            .has_same_owner(&credential.principal)
++            || !pending
++                .requirement
++                .meets(&credential.principal, &binding.identity)
++        {
++            return Err(DispatchError::Authentication);
++        }
++        let identity = self
++            .config
++            .authority
++            .identity(&credential, &binding.device)
++            .await?;
++        if identity != binding.identity {
++            return Err(DispatchError::Authentication);
++        }
++        let blocked = pending.held.envelope().clone();
++        let lease = self
++            .config
++            .authority
++            .step_up(
++                &binding.credential,
++                &credential,
++                &binding.device,
++                &identity,
++                &pending.requirement,
++                &blocked,
++                &response,
++            )
++            .await?;
++        // Check the current requirement under the transition guard, after all
++        // async validation. A stale policy plan cannot authorize the hold.
++        if self
++            .config
++            .authority
++            .assurance_requirement(&credential, &binding.device, &identity, &blocked)?
++            .as_ref()
++            != Some(&pending.requirement)
++        {
++            return Err(DispatchError::Authority);
++        }
++        let next = self.binding(
++            credential,
++            binding.device.clone(),
++            identity,
++            binding
++                .generation
++                .checked_add(1)
++                .ok_or(DispatchError::Capacity)?,
++        )?;
++        let reply = next
++            .dispatch
++            .execute_held(
++                pending.held,
++                &binding.dispatch,
++                lease.retained(),
++                handler,
++                deadline,
++            )
++            .await?;
++        let session = self.session(&next, &response)?;
++        let changed = self.reply("identity.assurance-changed",json!({"previous":binding.credential.principal.assurance.kind(),"current":next.credential.principal.assurance.kind(),"reason":"verified-step-up"}),Some(&response))?;
++        let reply = self.handler_reply(reply, &blocked)?;
++        self.state = State::Authenticated(next);
++        Ok(output(vec![session, changed, reply], Some(lease)))
++    }
++
++    pub(super) fn pending_step_up_deadline(&self) -> Option<Instant> {
++        match &self.state {
++            State::Authenticated(binding) => binding
++                .step_up
++                .as_ref()
++                .map(|pending| pending.held.deadline()),
++            _ => None,
++        }
++    }
++    pub(super) fn discard_expired_step_up(&mut self) {
++        if let State::Authenticated(binding) = &mut self.state {
++            if binding
++                .step_up
++                .as_ref()
++                .is_some_and(|pending| !pending.held.live())
++            {
++                binding.step_up = None;
++            }
++        }
++    }
++    pub(super) fn expire_step_up(&mut self) -> Result<Option<PeerOutput>, DispatchError> {
++        let pending = match &mut self.state {
++            State::Authenticated(binding)
++                if binding
++                    .step_up
++                    .as_ref()
++                    .is_some_and(|pending| !pending.held.live()) =>
++            {
++                binding.step_up.take()
++            }
++            _ => None,
++        };
++        pending
++            .map(|pending| {
++                self.reply(
++                    "error",
++                    json!({"code":403,"category":"auth","reason":"step_up_expired"}),
++                    Some(pending.held.envelope()),
++                )
++                .map(|reply| output(vec![reply], None))
++            })
++            .transpose()
++    }
++}
+diff --git a/crates/uctp/rvoip-uctp/src/v2/mod.rs b/crates/uctp/rvoip-uctp/src/v2/mod.rs
+index e37f141..cc52e14 100644
+--- a/crates/uctp/rvoip-uctp/src/v2/mod.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/mod.rs
+@@ -8,6 +8,7 @@
+ 
+ pub mod auth_dispatch;
+ pub mod auth_peer;
++pub use auth_peer::AssuranceRequirement;
+ pub mod payloads;
+ mod validation;
+ 
+diff --git a/crates/uctp/rvoip-uctp/tests/v2_step_up.rs b/crates/uctp/rvoip-uctp/tests/v2_step_up.rs
+new file mode 100644
+index 0000000..f5c3443
+--- /dev/null
++++ b/crates/uctp/rvoip-uctp/tests/v2_step_up.rs
+@@ -0,0 +1,1026 @@
++//! Canonical handshake/lifecycle backend and real local uctp/2 TLS/QUIC.
++use async_trait::async_trait;
++use bytes::Bytes;
++use chrono::Utc;
++use futures::{SinkExt, StreamExt};
++use ring::signature::{Ed25519KeyPair, KeyPair};
++use rvoip_auth_core::{
++    bearer::{
++        AuthenticatedPrincipal, AuthenticationMethod, BearerAuthError, BearerValidator,
++        ValidatedBearer,
++    },
++    sig9421::{KeyResolver, ResolvedVerificationKey, Sig9421Signer, Sig9421Verifier},
++};
++use rvoip_core::identity::{CredentialKind, IdentityAssurance};
++use rvoip_uctp::v2::{
++    auth_dispatch::*, auth_peer::*, payloads::Device, Envelope, Identifier, Scope, RAW_QUIC_ALPN,
++};
++use serde_json::{json, Value};
++use std::{
++    collections::HashSet,
++    sync::{
++        atomic::{AtomicBool, AtomicUsize, Ordering},
++        Arc,
++    },
++    time::Duration,
++};
++use tokio::{
++    sync::{Notify, RwLock},
++    time::Instant,
++};
++use tokio_util::{
++    codec::{FramedRead, FramedWrite},
++    sync::CancellationToken,
++};
++
++fn deadline() -> Instant {
++    Instant::now() + Duration::from_secs(3)
++}
++fn envelope(kind: &str, payload: Value) -> Value {
++    json!({"v":2,"type":kind,"id":format!("env_{}",uuid::Uuid::new_v4().simple()),"ts":Utc::now(),"payload":payload})
++}
++fn hello() -> Value {
++    envelope(
++        "auth.hello",
++        json!({"device":{"id":"device-alice","kind":"desktop","platform":"fixture","sdk_version":"fixture"},"auth_methods":["unknown","bearer","aauth"],"application_profiles":["connect/2"]}),
++    )
++}
++fn response(challenge: &Envelope, token: &str) -> Value {
++    let mut v = envelope(
++        "auth.response",
++        json!({"method":"bearer","credential":token}),
++    );
++    v["in_reply_to"] = json!(challenge.id());
++    v
++}
++fn command() -> Value {
++    let mut v = envelope("connection.update", json!({"action":"hold"}));
++    v["cid"] = json!("conversation");
++    v["sid"] = json!("session");
++    v["connid"] = json!("connection");
++    v["operation_id"] = json!("logical-op");
++    v["expected_revision"] = json!(1);
++    v
++}
++fn principal(token: &str) -> AuthenticatedPrincipal {
++    let mut p = AuthenticatedPrincipal {
++        subject: "alice".into(),
++        tenant: Some("tenant".into()),
++        issuer: Some("issuer".into()),
++        scopes: vec!["control".into()],
++        expires_at: Some(Utc::now() + chrono::Duration::hours(1)),
++        method: AuthenticationMethod::Bearer,
++        assurance: IdentityAssurance::Identified {
++            credential_kind: CredentialKind::Oidc,
++        },
++    };
++    match token {
++        "task" | "wrong-task" | "expired-task" => {
++            p.assurance = IdentityAssurance::TaskScoped {
++                identity: rvoip_core::IdentityId::from_string("identity-alice"),
++                task_id: if token == "wrong-task" {
++                    "other-task"
++                } else {
++                    "task-private"
++                }
++                .into(),
++                scopes: vec!["control".into()],
++                expires_at: Utc::now()
++                    + chrono::Duration::seconds(if token == "expired-task" { -1 } else { 3600 }),
++            };
++        }
++        "wrong-identity" | "missing-scope" | "grantless-user" => {
++            if token == "grantless-user" {
++                p.scopes.clear();
++            }
++            p.assurance = IdentityAssurance::UserAuthorized {
++                identity: rvoip_core::IdentityId::from_string(if token == "wrong-identity" {
++                    "another-identity"
++                } else {
++                    "identity-alice"
++                }),
++                user_id: rvoip_core::IdentityId::from_string("user-alice"),
++                scopes: vec![if token == "missing-scope" {
++                    "unrelated"
++                } else {
++                    "control"
++                }
++                .into()],
++            };
++        }
++        "bob" => p.subject = "bob".into(),
++        "other-tenant" => p.tenant = Some("other".into()),
++        "other-issuer" => p.issuer = Some("other".into()),
++        "expired" => p.expires_at = Some(Utc::now() - chrono::Duration::seconds(1)),
++        "no-expiry" => p.expires_at = None,
++        "short" => p.expires_at = Some(Utc::now() + chrono::Duration::seconds(1)),
++        "reduced" => p.scopes.clear(),
++        "user" | "user-new" => {
++            p.assurance = IdentityAssurance::UserAuthorized {
++                identity: rvoip_core::IdentityId::from_string("identity-alice"),
++                user_id: rvoip_core::IdentityId::from_string("user-alice"),
++                scopes: vec!["control".into()],
++            }
++        }
++        "wrong-user" => {
++            p.assurance = IdentityAssurance::UserAuthorized {
++                identity: rvoip_core::IdentityId::from_string("identity-alice"),
++                user_id: rvoip_core::IdentityId::from_string("user-bob"),
++                scopes: vec!["control".into()],
++            }
++        }
++        _ => {}
++    };
++    p
++}
++struct Validator {
++    calls: AtomicUsize,
++    hold: AtomicBool,
++    entered: Notify,
++    release: Notify,
++}
++#[async_trait]
++impl BearerValidator for Validator {
++    async fn validate(&self, token: &str) -> Result<IdentityAssurance, BearerAuthError> {
++        Ok(principal(token).assurance)
++    }
++    async fn validate_credential(&self, token: &str) -> Result<ValidatedBearer, BearerAuthError> {
++        self.calls.fetch_add(1, Ordering::SeqCst);
++        if self.hold.load(Ordering::SeqCst) {
++            self.entered.notify_one();
++            self.release.notified().await;
++        }
++        if token == "unavailable" {
++            return Err(BearerAuthError::Unavailable(
++                "private-provider-detail".into(),
++            ));
++        }
++        ValidatedBearer::new(
++            principal(token),
++            Some(token.into()),
++            Some(std::time::SystemTime::now() - Duration::from_secs(1)),
++        )
++    }
++}
++#[derive(Default)]
++struct Policy {
++    require_stepup: AtomicBool,
++    deny_stepup: AtomicBool,
++    task_requirement: AtomicBool,
++    changed_requirement: AtomicBool,
++    revoked: Arc<RwLock<HashSet<String>>>,
++    deny_refresh: AtomicBool,
++    calls: AtomicUsize,
++}
++impl Policy {
++    async fn guard(
++        &self,
++        c: &ValidatedBearer,
++        device: &Device,
++        id: &Identifier,
++        env: &Envelope,
++    ) -> Result<AuthorityLease, DispatchError> {
++        self.calls.fetch_add(1, Ordering::SeqCst);
++        let guard = self.revoked.clone().read_owned().await;
++        if c.token_id
++            .as_ref()
++            .is_none_or(|token| guard.contains(token))
++            || c.issued_at.is_none()
++            || c.principal.is_expired()
++            || device.id.as_str() != "device-alice"
++            || id.as_str() != "identity-alice"
++            || (env.kind() == "connection.update" && !c.principal.has_scope("control"))
++        {
++            return Err(DispatchError::Authority);
++        }
++        Ok(AuthorityLease::holding(guard))
++    }
++}
++#[async_trait]
++impl PeerAuthority for Policy {
++    fn assurance_requirement(
++        &self,
++        _c: &ValidatedBearer,
++        _d: &Device,
++        _i: &Identifier,
++        e: &Envelope,
++    ) -> Result<Option<AssuranceRequirement>, DispatchError> {
++        if e.kind() != "connection.update" || !self.require_stepup.load(Ordering::SeqCst) {
++            return Ok(None);
++        }
++        Ok(Some(if self.task_requirement.load(Ordering::SeqCst) {
++            AssuranceRequirement::TaskScoped {
++                task_id: "task-private".into(),
++                scopes: vec!["control".into()],
++            }
++        } else {
++            AssuranceRequirement::UserAuthorized {
++                user_id: rvoip_core::IdentityId::from_string(
++                    if self.changed_requirement.load(Ordering::SeqCst) {
++                        "different-user"
++                    } else {
++                        "user-alice"
++                    },
++                ),
++                scopes: vec!["control".into()],
++            }
++        }))
++    }
++    async fn step_up(
++        &self,
++        old: &ValidatedBearer,
++        new: &ValidatedBearer,
++        d: &Device,
++        i: &Identifier,
++        _required: &AssuranceRequirement,
++        blocked: &Envelope,
++        _response: &Envelope,
++    ) -> Result<AuthorityLease, DispatchError> {
++        if self.deny_stepup.load(Ordering::SeqCst) {
++            return Err(DispatchError::Authority);
++        }
++        let lease = self.guard(new, d, i, blocked).await?;
++        if old.token_id.as_ref().is_none_or(|token| {
++            self.revoked
++                .try_read()
++                .map_or(true, |set| set.contains(token))
++        }) {
++            return Err(DispatchError::Authority);
++        }
++        Ok(lease)
++    }
++    async fn identity(&self, c: &ValidatedBearer, d: &Device) -> Result<Identifier, DispatchError> {
++        if c.principal.subject != "alice" || d.id.as_str() != "device-alice" {
++            return Err(DispatchError::Authority);
++        }
++        Identifier::try_from("identity-alice".to_owned()).map_err(DispatchError::from)
++    }
++    async fn acquire(
++        &self,
++        c: &ValidatedBearer,
++        d: &Device,
++        i: &Identifier,
++        e: &Envelope,
++    ) -> Result<AuthorityLease, DispatchError> {
++        self.guard(c, d, i, e).await
++    }
++    async fn refresh(
++        &self,
++        old: &ValidatedBearer,
++        new: &ValidatedBearer,
++        d: &Device,
++        i: &Identifier,
++        e: &Envelope,
++    ) -> Result<AuthorityLease, DispatchError> {
++        if self.deny_refresh.load(Ordering::SeqCst) {
++            return Err(DispatchError::Authority);
++        }
++        let lease = self.guard(new, d, i, e).await?;
++        if old.token_id.as_ref().is_none_or(|token| {
++            self.revoked
++                .try_read()
++                .map_or(true, |set| set.contains(token))
++        }) {
++            return Err(DispatchError::Authority);
++        }
++        Ok(lease)
++    }
++}
++struct Keys {
++    client: Vec<u8>,
++    server: Vec<u8>,
++}
++impl KeyResolver for Keys {
++    fn resolve(&self, _: &str) -> Option<Vec<u8>> {
++        None
++    }
++    fn resolve_for_principal(
++        &self,
++        p: &AuthenticatedPrincipal,
++        k: &str,
++        a: &str,
++        _: chrono::DateTime<Utc>,
++    ) -> Option<ResolvedVerificationKey> {
++        if p.tenant.as_deref() != Some("tenant")
++            || p.issuer.as_deref() != Some("issuer")
++            || a != "EdDSA"
++        {
++            return None;
++        }
++        let bytes = match (p.subject.as_str(), k) {
++            ("alice", "client") => self.client.clone(),
++            ("server", "server") => self.server.clone(),
++            _ => return None,
++        };
++        Some(ResolvedVerificationKey {
++            public_key: bytes,
++            algorithm: "EdDSA".into(),
++            not_before: None,
++            expires_at: None,
++            revoked: false,
++        })
++    }
++}
++#[derive(Default)]
++struct Handler {
++    calls: AtomicUsize,
++}
++#[async_trait]
++impl AuthenticatedHandler for Handler {
++    async fn handle(&self, env: AuthorizedEnvelope) -> Result<Envelope, DispatchError> {
++        assert_eq!(env.principal().subject, "alice");
++        self.calls.fetch_add(1, Ordering::SeqCst);
++        Envelope::from_value(envelope("ack", json!({}))).map_err(DispatchError::from)
++    }
++}
++struct Fixture {
++    config: Arc<PeerConfig>,
++    client: Sig9421Signer,
++    server_verify: Sig9421Verifier,
++    policy: Arc<Policy>,
++    validator: Arc<Validator>,
++}
++impl Fixture {
++    fn new() -> Self {
++        let client_key = Ed25519KeyPair::generate_pkcs8(&ring::rand::SystemRandom::new()).unwrap();
++        let server_key = Ed25519KeyPair::generate_pkcs8(&ring::rand::SystemRandom::new()).unwrap();
++        let client = Sig9421Signer::ed25519("client", client_key.as_ref()).unwrap();
++        let server = Sig9421Signer::ed25519("server", server_key.as_ref()).unwrap();
++        let resolver = Arc::new(Keys {
++            client: Ed25519KeyPair::from_pkcs8(client_key.as_ref())
++                .unwrap()
++                .public_key()
++                .as_ref()
++                .to_vec(),
++            server: Ed25519KeyPair::from_pkcs8(server_key.as_ref())
++                .unwrap()
++                .public_key()
++                .as_ref()
++                .to_vec(),
++        });
++        let validator = Arc::new(Validator {
++            calls: AtomicUsize::new(0),
++            hold: AtomicBool::new(false),
++            entered: Notify::new(),
++            release: Notify::new(),
++        });
++        let policy = Arc::new(Policy::default());
++        policy.require_stepup.store(true, Ordering::SeqCst);
++        let config = Arc::new(PeerConfig {
++            methods: Arc::new(AuthenticationMethods::new(Some(validator.clone()))),
++            verifier: Arc::new(Sig9421Verifier::new(resolver.clone())),
++            signer: Arc::new(server),
++            authority: policy.clone(),
++            pending_capacity: 2,
++        });
++        Self {
++            config,
++            client,
++            server_verify: Sig9421Verifier::new(resolver),
++            policy,
++            validator,
++        }
++    }
++    fn peer(&self) -> CanonicalPeer {
++        CanonicalPeer::new(self.config.clone(), CancellationToken::new()).unwrap()
++    }
++    fn sign(&self, v: Value) -> Vec<u8> {
++        serde_json::to_vec(&self.client.sign(&v).unwrap()).unwrap()
++    }
++    async fn authenticate(&self, peer: &mut CanonicalPeer, token: &str) -> Envelope {
++        let output = peer
++            .handle(
++                &serde_json::to_vec(&hello()).unwrap(),
++                &Handler::default(),
++                deadline(),
++            )
++            .await
++            .unwrap();
++        let challenge = output.envelopes()[0].clone();
++        drop(output);
++        let output = peer
++            .handle(
++                &self.sign(response(&challenge, token)),
++                &Handler::default(),
++                deadline(),
++            )
++            .await
++            .unwrap();
++        output.envelopes()[0].clone()
++    }
++    async fn verify_server(&self, env: &Envelope) {
++        let mut p = principal("old");
++        p.subject = "server".into();
++        self.server_verify
++            .verify_for_principal(env.original(), &p)
++            .await
++            .unwrap();
++    }
++}
++
++#[derive(Default)]
++struct Tracking {
++    calls: AtomicUsize,
++    effects: std::sync::Mutex<HashSet<String>>,
++    requests: std::sync::Mutex<Vec<Value>>,
++}
++#[async_trait]
++impl AuthenticatedHandler for Tracking {
++    async fn handle(&self, env: AuthorizedEnvelope) -> Result<Envelope, DispatchError> {
++        self.calls.fetch_add(1, Ordering::SeqCst);
++        assert_eq!(env.principal().subject, "alice");
++        assert!(matches!(
++            env.principal().assurance,
++            IdentityAssurance::UserAuthorized { .. } | IdentityAssurance::TaskScoped { .. }
++        ));
++        self.effects
++            .lock()
++            .unwrap()
++            .insert(env.envelope().scope(Scope::Operation).unwrap().into());
++        self.requests
++            .lock()
++            .unwrap()
++            .push(env.envelope().signature_input());
++        Envelope::from_value(envelope("ack", json!({}))).map_err(DispatchError::from)
++    }
++}
++fn proof(challenge: &Envelope, token: &str) -> Value {
++    let mut value = envelope(
++        "identity.step-up-response",
++        json!({"method":"bearer","credential":token}),
++    );
++    value["in_reply_to"] = json!(challenge.id());
++    for field in ["cid", "sid", "connid", "operation_id"] {
++        if let Some(item) = challenge.original().get(field) {
++            value[field] = item.clone();
++        }
++    }
++    value
++}
++async fn blocked(f: &Fixture, peer: &mut CanonicalPeer, h: &Tracking) -> (Value, Envelope) {
++    let request = command();
++    let output = peer
++        .handle(&f.sign(request.clone()), h, deadline())
++        .await
++        .unwrap();
++    assert_eq!(h.calls.load(Ordering::SeqCst), 0);
++    let challenge = output.envelopes()[0].clone();
++    assert_eq!(challenge.kind(), "identity.step-up-request");
++    assert!(peer.has_pending_step_up());
++    (request, challenge)
++}
++#[tokio::test]
++async fn verified_stepup_executes_original_once_and_preserves_signature_replay_and_logical_retry() {
++    let f = Fixture::new();
++    let mut peer = f.peer();
++    f.authenticate(&mut peer, "old").await;
++    let h = Tracking::default();
++    let (request, challenge) = blocked(&f, &mut peer, &h).await;
++    assert!(f.policy.revoked.try_write().is_ok());
++    let reply = proof(&challenge, "user");
++    let output = peer
++        .handle(&f.sign(reply.clone()), &h, deadline())
++        .await
++        .unwrap();
++    assert_eq!(output.envelopes().len(), 3);
++    for env in output.envelopes() {
++        f.verify_server(env).await;
++        assert_eq!(env.scope(Scope::Operation), Some("logical-op"));
++    }
++    assert_eq!(output.envelopes()[0].kind(), "auth.session");
++    assert_eq!(output.envelopes()[1].kind(), "identity.assurance-changed");
++    assert_eq!(
++        output.envelopes()[1].original()["payload"]["reason"],
++        "verified-step-up"
++    );
++    assert_eq!(
++        output.envelopes()[2].scope(Scope::Reply),
++        request["id"].as_str()
++    );
++    assert!(f.policy.revoked.try_write().is_err());
++    drop(output);
++    assert!(f.policy.revoked.try_write().is_ok());
++    assert_eq!(h.requests.lock().unwrap()[0], request);
++    assert_eq!(peer.generation(), Some(2));
++    assert!(!peer.has_pending_step_up());
++    assert_eq!(
++        peer.handle(&f.sign(request.clone()), &h, deadline())
++            .await
++            .unwrap_err(),
++        DispatchError::Replay
++    );
++    assert_eq!(
++        peer.handle(&f.sign(reply), &h, deadline())
++            .await
++            .unwrap_err(),
++        DispatchError::ReplyMismatch
++    );
++    let mut retry = request;
++    retry["id"] = json!("fresh-logical-retry");
++    assert_eq!(
++        peer.handle(&f.sign(retry), &h, deadline())
++            .await
++            .unwrap()
++            .envelopes()[0]
++            .kind(),
++        "ack"
++    );
++    assert_eq!(h.calls.load(Ordering::SeqCst), 2);
++    assert_eq!(h.effects.lock().unwrap().len(), 1);
++}
++#[tokio::test]
++async fn wrong_scope_or_unsigned_stepup_cannot_consume_the_pending_request() {
++    let f = Fixture::new();
++    let mut peer = f.peer();
++    f.authenticate(&mut peer, "old").await;
++    let h = Tracking::default();
++    let (_, challenge) = blocked(&f, &mut peer, &h).await;
++    let calls = f.validator.calls.load(Ordering::SeqCst);
++    for field in ["cid", "sid", "connid", "operation_id", "in_reply_to"] {
++        let mut wrong = proof(&challenge, "user");
++        wrong[field] = json!("wrong");
++        assert_eq!(
++            peer.handle(&f.sign(wrong), &h, deadline())
++                .await
++                .unwrap_err(),
++            DispatchError::ReplyMismatch
++        );
++        assert!(peer.has_pending_step_up());
++    }
++    assert_eq!(
++        peer.handle(
++            &serde_json::to_vec(&proof(&challenge, "user")).unwrap(),
++            &h,
++            deadline()
++        )
++        .await
++        .unwrap_err(),
++        DispatchError::Signature
++    );
++    assert!(peer.has_pending_step_up());
++    assert_eq!(f.validator.calls.load(Ordering::SeqCst), calls);
++    assert!(peer
++        .handle(&f.sign(proof(&challenge, "user")), &h, deadline())
++        .await
++        .is_ok());
++    assert_eq!(h.calls.load(Ordering::SeqCst), 1);
++}
++#[tokio::test]
++async fn unsolicited_assurance_or_stepup_response_never_changes_binding() {
++    let f = Fixture::new();
++    let mut peer = f.peer();
++    f.authenticate(&mut peer, "old").await;
++    let h = Tracking::default();
++    let arbitrary = Envelope::from_value(envelope(
++        "identity.step-up-request",
++        json!({"required":"user-authorized"}),
++    ))
++    .unwrap();
++    assert_eq!(
++        peer.handle(&f.sign(proof(&arbitrary, "user")), &h, deadline())
++            .await
++            .unwrap_err(),
++        DispatchError::ReplyMismatch
++    );
++    assert_eq!(peer.handle(&f.sign(envelope("identity.assurance-changed",json!({"previous":"identified","current":"user-authorized","reason":"client-says-so"}))),&h,deadline()).await.unwrap_err(),DispatchError::Unsupported);
++    assert_eq!(peer.generation(), Some(1));
++    assert_eq!(h.calls.load(Ordering::SeqCst), 0);
++}
++#[tokio::test]
++async fn invalid_credentials_and_delegation_provenance_discard_hold_without_execution() {
++    for token in [
++        "old",
++        "bob",
++        "other-issuer",
++        "other-tenant",
++        "wrong-user",
++        "wrong-identity",
++        "missing-scope",
++        "grantless-user",
++        "expired",
++        "unavailable",
++    ] {
++        let f = Fixture::new();
++        let mut peer = f.peer();
++        f.authenticate(&mut peer, "old").await;
++        let h = Tracking::default();
++        let (request, challenge) = blocked(&f, &mut peer, &h).await;
++        assert!(
++            peer.handle(&f.sign(proof(&challenge, token)), &h, deadline())
++                .await
++                .is_err(),
++            "{token}"
++        );
++        assert!(!peer.has_pending_step_up());
++        assert_eq!(peer.generation(), Some(1));
++        assert_eq!(h.calls.load(Ordering::SeqCst), 0);
++        assert_eq!(
++            peer.handle(&f.sign(request), &h, deadline())
++                .await
++                .unwrap_err(),
++            DispatchError::Replay
++        );
++    }
++}
++#[tokio::test]
++async fn unknown_method_does_not_fall_back_or_execute_held_intent() {
++    let f = Fixture::new();
++    let mut peer = f.peer();
++    f.authenticate(&mut peer, "old").await;
++    let h = Tracking::default();
++    let (_, challenge) = blocked(&f, &mut peer, &h).await;
++    let mut response = proof(&challenge, "user");
++    response["payload"]["method"] = json!("aauth");
++    let calls = f.validator.calls.load(Ordering::SeqCst);
++    assert_eq!(
++        peer.handle(&f.sign(response), &h, deadline())
++            .await
++            .unwrap_err(),
++        DispatchError::UnsupportedMethod
++    );
++    assert_eq!(f.validator.calls.load(Ordering::SeqCst), calls);
++    assert!(!peer.has_pending_step_up());
++    assert_eq!(h.calls.load(Ordering::SeqCst), 0);
++}
++#[tokio::test]
++async fn pending_capacity_does_not_replace_original_and_response_is_bound_to_peer_incarnation() {
++    let f = Fixture::new();
++    let mut peer = f.peer();
++    let mut other = f.peer();
++    f.authenticate(&mut peer, "old").await;
++    f.authenticate(&mut other, "old").await;
++    let h = Tracking::default();
++    let (_, challenge) = blocked(&f, &mut peer, &h).await;
++    assert_eq!(
++        peer.handle(&f.sign(command()), &h, deadline())
++            .await
++            .unwrap_err(),
++        DispatchError::Capacity
++    );
++    assert!(peer.has_pending_step_up());
++    assert_eq!(
++        other
++            .handle(&f.sign(proof(&challenge, "user")), &h, deadline())
++            .await
++            .unwrap_err(),
++        DispatchError::ReplyMismatch
++    );
++    assert!(peer
++        .handle(&f.sign(proof(&challenge, "user")), &h, deadline())
++        .await
++        .is_ok());
++    assert_eq!(h.calls.load(Ordering::SeqCst), 1);
++}
++#[tokio::test]
++async fn task_scoped_requirement_checks_exact_task_and_never_uses_assurance_rank() {
++    for token in ["user", "wrong-task", "expired-task", "task"] {
++        let f = Fixture::new();
++        f.policy.task_requirement.store(true, Ordering::SeqCst);
++        let mut peer = f.peer();
++        f.authenticate(&mut peer, "old").await;
++        let h = Tracking::default();
++        let (_, challenge) = blocked(&f, &mut peer, &h).await;
++        assert_eq!(challenge.original()["payload"]["required"], "task-scoped");
++        let result = peer
++            .handle(&f.sign(proof(&challenge, token)), &h, deadline())
++            .await;
++        assert_eq!(result.is_ok(), token == "task", "{token}");
++        assert_eq!(h.calls.load(Ordering::SeqCst), usize::from(token == "task"));
++    }
++}
++#[tokio::test]
++async fn current_revocation_and_permission_denial_prevent_held_execution() {
++    for revoked in ["old", "user", "policy"] {
++        let f = Fixture::new();
++        let mut peer = f.peer();
++        f.authenticate(&mut peer, "old").await;
++        let h = Tracking::default();
++        let (_, challenge) = blocked(&f, &mut peer, &h).await;
++        if revoked == "policy" {
++            f.policy.deny_stepup.store(true, Ordering::SeqCst);
++        } else {
++            f.policy.revoked.write().await.insert(revoked.into());
++        }
++        assert_eq!(
++            peer.handle(&f.sign(proof(&challenge, "user")), &h, deadline())
++                .await
++                .unwrap_err(),
++            DispatchError::Authority
++        );
++        assert_eq!(h.calls.load(Ordering::SeqCst), 0);
++        assert_eq!(peer.generation(), Some(1));
++    }
++}
++#[tokio::test]
++async fn revocation_or_changed_requirement_during_validation_is_checked_again() {
++    for revoke in [true, false] {
++        let f = Fixture::new();
++        let mut peer = f.peer();
++        f.authenticate(&mut peer, "old").await;
++        let h = Tracking::default();
++        let (_, challenge) = blocked(&f, &mut peer, &h).await;
++        f.validator.hold.store(true, Ordering::SeqCst);
++        let wire = f.sign(proof(&challenge, "user"));
++        let mut future = Box::pin(peer.handle(&wire, &h, deadline()));
++        tokio::select! {result=&mut future=>panic!("early {result:?}"),_=f.validator.entered.notified()=>{}}
++        {
++            let mut guard = f.policy.revoked.write().await;
++            if revoke {
++                guard.insert("old".into());
++            } else {
++                f.policy.changed_requirement.store(true, Ordering::SeqCst);
++            }
++        }
++        f.validator.release.notify_one();
++        assert_eq!(future.await.unwrap_err(), DispatchError::Authority);
++        assert_eq!(h.calls.load(Ordering::SeqCst), 0);
++        assert!(!peer.has_pending_step_up());
++    }
++}
++#[tokio::test]
++async fn cancelling_validation_discards_single_use_proof_and_preserves_old_peer() {
++    let f = Fixture::new();
++    let mut peer = f.peer();
++    f.authenticate(&mut peer, "old").await;
++    let h = Tracking::default();
++    let (request, challenge) = blocked(&f, &mut peer, &h).await;
++    f.validator.hold.store(true, Ordering::SeqCst);
++    let wire = f.sign(proof(&challenge, "user"));
++    let mut future = Box::pin(peer.handle(&wire, &h, deadline()));
++    tokio::select! {result=&mut future=>panic!("early {result:?}"),_=f.validator.entered.notified()=>{}}
++    drop(future);
++    assert!(!peer.has_pending_step_up());
++    assert_eq!(peer.generation(), Some(1));
++    assert!(f.policy.revoked.try_write().is_ok());
++    assert_eq!(h.calls.load(Ordering::SeqCst), 0);
++    assert_eq!(
++        peer.handle(&f.sign(request), &h, deadline())
++            .await
++            .unwrap_err(),
++        DispatchError::Replay
++    );
++}
++#[tokio::test]
++async fn refresh_supersedes_pending_challenge_and_late_completion_cannot_execute() {
++    let f = Fixture::new();
++    let mut peer = f.peer();
++    f.authenticate(&mut peer, "old").await;
++    let h = Tracking::default();
++    let (request, challenge) = blocked(&f, &mut peer, &h).await;
++    let output = peer
++        .handle(
++            &f.sign(envelope(
++                "auth.refresh",
++                json!({"method":"bearer","credential":"new"}),
++            )),
++            &h,
++            deadline(),
++        )
++        .await
++        .unwrap();
++    assert_eq!(output.envelopes().len(), 2);
++    assert_eq!(
++        output.envelopes()[1].scope(Scope::Reply),
++        request["id"].as_str()
++    );
++    assert_eq!(
++        output.envelopes()[1].original()["payload"]["reason"],
++        "step_up_superseded"
++    );
++    drop(output);
++    assert!(!peer.has_pending_step_up());
++    assert_eq!(
++        peer.handle(&f.sign(proof(&challenge, "user")), &h, deadline())
++            .await
++            .unwrap_err(),
++        DispatchError::ReplyMismatch
++    );
++    assert_eq!(h.calls.load(Ordering::SeqCst), 0);
++}
++async fn quic_pair() -> (
++    quinn::Endpoint,
++    quinn::Endpoint,
++    quinn::Connection,
++    quinn::Connection,
++) {
++    use rvoip_uctp::substrate::{
++        dev_client_config_trusting, make_server_endpoint, self_signed_for_dev,
++    };
++    let _ = rustls::crypto::ring::default_provider().install_default();
++    let (cert, key) = self_signed_for_dev(&["localhost".into()]).unwrap();
++    let mut tls = rustls::ServerConfig::builder()
++        .with_no_client_auth()
++        .with_single_cert(vec![cert.clone()], key)
++        .unwrap();
++    tls.alpn_protocols = vec![RAW_QUIC_ALPN.to_vec()];
++    let server = make_server_endpoint(
++        "127.0.0.1:0".parse().unwrap(),
++        Arc::new(tls),
++        quinn::TransportConfig::default(),
++    )
++    .unwrap();
++    let mut tls = dev_client_config_trusting(&cert).unwrap();
++    tls.alpn_protocols = vec![RAW_QUIC_ALPN.to_vec()];
++    let crypto = quinn::crypto::rustls::QuicClientConfig::try_from(tls).unwrap();
++    let mut client = quinn::Endpoint::client("127.0.0.1:0".parse().unwrap()).unwrap();
++    client.set_default_client_config(quinn::ClientConfig::new(Arc::new(crypto)));
++    let connect = client
++        .connect(server.local_addr().unwrap(), "localhost")
++        .unwrap();
++    let accept = async { server.accept().await.unwrap().await.unwrap() };
++    let (remote, host) = tokio::join!(connect, accept);
++    (server, client, host, remote.unwrap())
++}
++
++#[tokio::test]
++async fn actual_uctp2_tls_quic_stepup_emits_scoped_assurance_then_original_response_once() {
++    let f = Fixture::new();
++    let (_server, _client, host, remote) = quic_pair().await;
++    let peer = f.peer();
++    let lifetime = peer.cancellation();
++    let h = Arc::new(Tracking::default());
++    let hh = h.clone();
++    let server = tokio::spawn(async move {
++        let (tx, rx) = host.accept_bi().await.unwrap();
++        peer.run(rx, tx, hh.as_ref()).await
++    });
++    let (tx, rx) = remote.open_bi().await.unwrap();
++    let mut writer = FramedWrite::new(tx, rvoip_uctp::substrate::length_prefixed_codec());
++    let mut reader = FramedRead::new(rx, rvoip_uctp::substrate::length_prefixed_codec());
++    writer
++        .send(Bytes::from(serde_json::to_vec(&hello()).unwrap()))
++        .await
++        .unwrap();
++    let challenge = Envelope::parse(&reader.next().await.unwrap().unwrap()).unwrap();
++    writer
++        .send(Bytes::from(f.sign(response(&challenge, "old"))))
++        .await
++        .unwrap();
++    assert_eq!(
++        Envelope::parse(&reader.next().await.unwrap().unwrap())
++            .unwrap()
++            .kind(),
++        "auth.session"
++    );
++    let request = command();
++    let wire = f.sign(request.clone());
++    writer.send(Bytes::from(wire.clone())).await.unwrap();
++    let challenge = Envelope::parse(&reader.next().await.unwrap().unwrap()).unwrap();
++    assert_eq!(challenge.kind(), "identity.step-up-request");
++    assert_eq!(challenge.scope(Scope::Reply), request["id"].as_str());
++    assert_eq!(h.calls.load(Ordering::SeqCst), 0);
++    writer
++        .send(Bytes::from(f.sign(proof(&challenge, "user"))))
++        .await
++        .unwrap();
++    for kind in ["auth.session", "identity.assurance-changed", "ack"] {
++        let envelope = Envelope::parse(
++            &tokio::time::timeout(Duration::from_secs(3), reader.next())
++                .await
++                .unwrap()
++                .unwrap()
++                .unwrap(),
++        )
++        .unwrap();
++        assert_eq!(envelope.kind(), kind);
++        assert_eq!(envelope.scope(Scope::Operation), Some("logical-op"));
++        f.verify_server(&envelope).await;
++        if kind == "ack" {
++            assert_eq!(envelope.scope(Scope::Reply), request["id"].as_str());
++        }
++    }
++    writer.send(Bytes::from(wire)).await.unwrap();
++    let problem = Envelope::parse(&reader.next().await.unwrap().unwrap()).unwrap();
++    assert_eq!(problem.original()["payload"]["reason"], "envelope_replay");
++    assert_eq!(h.calls.load(Ordering::SeqCst), 1);
++    writer.close().await.unwrap();
++    assert!(tokio::time::timeout(Duration::from_secs(3), server)
++        .await
++        .unwrap()
++        .unwrap()
++        .is_ok());
++    assert!(lifetime.is_cancelled());
++}
++#[tokio::test(start_paused = true)]
++async fn idle_challenge_expiry_publishes_correlated_failure_without_retiring_valid_peer() {
++    let f = Fixture::new();
++    let mut peer = f.peer();
++    let session = f.authenticate(&mut peer, "old").await;
++    let h = Tracking::default();
++    let (request, _) = blocked(&f, &mut peer, &h).await;
++    let lifetime = peer.cancellation();
++    let (a, b) = tokio::io::duplex(8192);
++    let (rd, wr) = tokio::io::split(a);
++    let (client_rd, client_wr) = tokio::io::split(b);
++    let server = tokio::spawn(async move {
++        let h = Tracking::default();
++        peer.run(rd, wr, &h).await
++    });
++    let mut reader = FramedRead::new(client_rd, rvoip_uctp::substrate::length_prefixed_codec());
++    let mut writer = FramedWrite::new(client_wr, rvoip_uctp::substrate::length_prefixed_codec());
++    let problem = Envelope::parse(&reader.next().await.unwrap().unwrap()).unwrap();
++    assert_eq!(problem.scope(Scope::Reply), request["id"].as_str());
++    assert_eq!(problem.original()["payload"]["reason"], "step_up_expired");
++    assert!(!lifetime.is_cancelled());
++    writer
++        .send(Bytes::from(f.sign(envelope(
++            "auth.keepalive",
++            json!({"session_token":session.original()["payload"]["session_token"]}),
++        ))))
++        .await
++        .unwrap();
++    assert_eq!(
++        Envelope::parse(&reader.next().await.unwrap().unwrap())
++            .unwrap()
++            .kind(),
++        "ack"
++    );
++    writer.close().await.unwrap();
++    assert!(server.await.unwrap().is_ok());
++    assert_eq!(h.calls.load(Ordering::SeqCst), 0);
++}
++
++struct HeldExecution {
++    entered: Notify,
++    release: Notify,
++    calls: AtomicUsize,
++}
++#[async_trait]
++impl AuthenticatedHandler for HeldExecution {
++    async fn handle(&self, env: AuthorizedEnvelope) -> Result<Envelope, DispatchError> {
++        assert_eq!(env.principal().assurance.kind(), "user-authorized");
++        self.entered.notify_one();
++        self.release.notified().await;
++        self.calls.fetch_add(1, Ordering::SeqCst);
++        Envelope::from_value(envelope("ack", json!({}))).map_err(DispatchError::from)
++    }
++}
++#[tokio::test]
++async fn cancelling_held_execution_releases_guard_and_cannot_reuse_consumed_proof() {
++    let f = Fixture::new();
++    let mut peer = f.peer();
++    f.authenticate(&mut peer, "old").await;
++    let base = Tracking::default();
++    let (request, challenge) = blocked(&f, &mut peer, &base).await;
++    let h = HeldExecution {
++        entered: Notify::new(),
++        release: Notify::new(),
++        calls: AtomicUsize::new(0),
++    };
++    let wire = f.sign(proof(&challenge, "user"));
++    let mut future = Box::pin(peer.handle(&wire, &h, deadline()));
++    tokio::select! {result=&mut future=>panic!("early {result:?}"),_=h.entered.notified()=>{}}
++    assert!(f.policy.revoked.try_write().is_err());
++    drop(future);
++    assert!(f.policy.revoked.try_write().is_ok());
++    assert!(!peer.has_pending_step_up());
++    assert_eq!(peer.generation(), Some(1));
++    assert_eq!(h.calls.load(Ordering::SeqCst), 0);
++    assert_eq!(
++        peer.handle(&f.sign(request), &base, deadline())
++            .await
++            .unwrap_err(),
++        DispatchError::Replay
++    );
++}
++struct RevisionHandler {
++    revision: AtomicUsize,
++    effects: AtomicUsize,
++}
++#[async_trait]
++impl AuthenticatedHandler for RevisionHandler {
++    async fn handle(&self, env: AuthorizedEnvelope) -> Result<Envelope, DispatchError> {
++        assert_eq!(env.envelope().expected_revision(), Some(1));
++        if env.envelope().expected_revision() != Some(self.revision.load(Ordering::SeqCst) as u64) {
++            return Envelope::from_value(envelope(
++                "error",
++                json!({"code":409,"category":"conflict","reason":"revision_changed"}),
++            ))
++            .map_err(DispatchError::from);
++        }
++        self.effects.fetch_add(1, Ordering::SeqCst);
++        Envelope::from_value(envelope("ack", json!({}))).map_err(DispatchError::from)
++    }
++}
++#[tokio::test]
++async fn resumed_request_keeps_expected_revision_and_can_fail_current_business_validation() {
++    let f = Fixture::new();
++    let mut peer = f.peer();
++    f.authenticate(&mut peer, "old").await;
++    let base = Tracking::default();
++    let (request, challenge) = blocked(&f, &mut peer, &base).await;
++    let h = RevisionHandler {
++        revision: AtomicUsize::new(2),
++        effects: AtomicUsize::new(0),
++    };
++    let output = peer
++        .handle(&f.sign(proof(&challenge, "user")), &h, deadline())
++        .await
++        .unwrap();
++    let reply = &output.envelopes()[2];
++    assert_eq!(reply.kind(), "error");
++    assert_eq!(reply.original()["payload"]["code"], 409);
++    assert_eq!(reply.scope(Scope::Reply), request["id"].as_str());
++    assert_eq!(reply.scope(Scope::Operation), Some("logical-op"));
++    assert_eq!(h.effects.load(Ordering::SeqCst), 0);
++}

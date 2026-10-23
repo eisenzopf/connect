@@ -1,0 +1,123 @@
+--- a/crates/uctp/rvoip-uctp/src/v2/native_negotiation/catalog.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/native_negotiation/catalog.rs
+@@ -10,8 +10,38 @@
+     pub(crate) wire: Value,
+     pub(crate) server_assurance: AssuranceLevel,
+     pub(crate) required_peer: AssuranceLevel,
++    codec_preferences: Vec<String>,
+ }
+ impl NativeMediaProfile {
++    /// Host policy orders only formats also offered by the peer and supported
++    /// by the current profile. It never changes capabilities or grants IO.
++    pub fn with_codec_preferences(
++        mut self,
++        preferences: &[String],
++    ) -> Result<Self, NativeOfferError> {
++        if preferences.len() > 32 {
++            return Err(NativeOfferError::Capacity);
++        }
++        let mut seen = BTreeSet::new();
++        let mut names = Vec::new();
++        for preference in preferences {
++            if preference.is_empty()
++                || preference.len() > 64
++                || !preference
++                    .bytes()
++                    .all(|b| b.is_ascii_alphanumeric() || b"-._/".contains(&b))
++            {
++                return Err(NativeOfferError::Invalid);
++            }
++            let name = normalize(preference).to_owned();
++            if !seen.insert(name.clone()) {
++                return Err(NativeOfferError::Invalid);
++            }
++            names.push(name);
++        }
++        self.codec_preferences = names;
++        Ok(self)
++    }
+     pub fn new(
+         local: EndpointMediaCapabilities,
+         server_assurance: AssuranceLevel,
+@@ -83,6 +113,7 @@
+             wire,
+             server_assurance,
+             required_peer,
++            codec_preferences: Vec::new(),
+         })
+     }
+     pub fn capabilities(&self) -> &Value {
+@@ -451,7 +482,17 @@
+                 direction,
+             };
+             let mut chosen = None;
+-            for preference in &stream.codec_preferences {
++            let preferences = profile
++                .codec_preferences
++                .iter()
++                .filter(|preferred| {
++                    stream
++                        .codec_preferences
++                        .iter()
++                        .any(|offered| normalize(offered) == preferred.as_str())
++                })
++                .chain(stream.codec_preferences.iter());
++            for preference in preferences {
+                 let name = normalize(preference);
+                 if let Some(formats) = &formats {
+                     for format in formats {
+--- a/crates/uctp/rvoip-uctp/src/v2/native_negotiation/tests.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/native_negotiation/tests.rs
+@@ -461,3 +461,52 @@
+     )
+     .is_err());
+ }
++
++#[test]
++fn host_codec_preferences_order_only_current_compatible_peer_offers_without_mutating_capabilities()
++{
++    let original = offer();
++    let wire = serde_json::to_value(&original).unwrap();
++    let base = profile();
++    let capabilities = base.capabilities().clone();
++    let preferred = base
++        .clone()
++        .with_codec_preferences(&["g.711-mu".into()])
++        .unwrap();
++    let selected = NativeOfferPlan::parse(&original, &preferred, &actor()).unwrap();
++    assert!(selected
++        .selected()
++        .iter()
++        .all(|s| s.format == audio("pcmu")));
++    assert_eq!(preferred.capabilities(), &capabilities);
++    assert_eq!(serde_json::to_value(&original).unwrap(), wire);
++    let unsupported = base
++        .clone()
++        .with_codec_preferences(&["unoffered".into()])
++        .unwrap();
++    let fallback = NativeOfferPlan::parse(&original, &unsupported, &actor()).unwrap();
++    assert_eq!(fallback.selected()[0].format, audio("pcma"));
++    assert_eq!(fallback.selected()[1].format, audio("pcmu"));
++    let mut only_pcma = original.clone();
++    for stream in &mut only_pcma.streams_offered {
++        stream.codec_preferences = vec!["pcma".into()];
++    }
++    let absent = NativeOfferPlan::parse(&only_pcma, &preferred, &actor()).unwrap();
++    assert!(absent.selected().iter().all(|s| s.format == audio("pcma")));
++}
++#[test]
++fn host_codec_preferences_are_bounded_and_reject_alias_duplicates() {
++    assert!(profile()
++        .with_codec_preferences(&vec!["pcmu".into(); 33])
++        .is_err());
++    for names in [
++        vec!["pcmu", "g.711-mu"],
++        vec!["bad name"],
++        vec![""],
++        vec!["pcma", "PCMA"],
++    ] {
++        assert!(profile()
++            .with_codec_preferences(&names.into_iter().map(str::to_owned).collect::<Vec<_>>())
++            .is_err());
++    }
++}

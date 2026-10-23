@@ -10,6 +10,7 @@ pub(crate) enum Kind {
     Inspect,
     Operation(&'static str),
     Task(&'static str),
+    Membership(&'static str),
 }
 pub(crate) struct Spec {
     pub name: &'static str,
@@ -59,9 +60,14 @@ pub(crate) fn specs() -> Vec<Spec> {
             "resolve"
                 | "capabilities"
                 | "history"
+                | "message_receipts"
                 | "context_view"
                 | "context_deliveries"
                 | "artifact_get"
+                | "artifact_inspect"
+                | "artifact_upload_link"
+                | "artifact_download_link"
+                | "artifact_link_get"
                 | "session_get"
                 | "call_status"
                 | "sip_status"
@@ -82,7 +88,66 @@ pub(crate) fn specs() -> Vec<Spec> {
             read_only,
         });
     }
+    for (name, action, scope) in [
+        (
+            "connect_participant_add",
+            "add",
+            "conversation.participant.add",
+        ),
+        (
+            "connect_participant_invite",
+            "invite",
+            "conversation.participant.add",
+        ),
+        (
+            "connect_participant_join",
+            "join",
+            "conversation.participant.add",
+        ),
+        (
+            "connect_participant_decline",
+            "decline",
+            "conversation.participant.add",
+        ),
+        (
+            "connect_participant_cancel_invitation",
+            "cancel_invitation",
+            "conversation.participant.add",
+        ),
+        (
+            "connect_participant_leave",
+            "leave",
+            "conversation.participant.remove",
+        ),
+        (
+            "connect_participant_remove",
+            "remove",
+            "conversation.participant.remove",
+        ),
+        (
+            "connect_participant_update_role",
+            "update_role",
+            "conversation.participant.update",
+        ),
+        (
+            "connect_history_share",
+            "share_history",
+            "conversation.history.share",
+        ),
+        (
+            "connect_history_share_revoke",
+            "revoke_history_share",
+            "conversation.history.share",
+        ),
+    ] {
+        tools.push(Spec{name,kind:Kind::Membership(action),schema:identity_schemas::membership(action),description:format!("Explicit conversation membership action {action} under your current named capability. Persist operation_id and original expected_revision for exact retry/status recovery. Role labels grant no credentials or old history."),scope,extra_scope:None,read_only:false});
+    }
     for (name, operation, scope, read_only, description) in [
+        ("connect_message_receipt", "message_receipt", "history", false, "Report receipt or reading as this authenticated original recipient. A client report never proves human action. Current receipt preferences apply; reading is opt-in and no response Message is created."),
+        ("connect_receipt_preferences_get", "receipt_preferences_get", "history", true, "Inspect your current membership's optional receipt preferences. Delivery is enabled by default; reading is disabled."),
+        ("connect_receipt_preferences_set", "receipt_preferences_set", "history", false, "Set your own optional delivery/read receipt preferences for this membership epoch. Current preferences also filter retained receipt exposure. Persist request_id for retries."),
+        ("connect_membership_snapshot", "membership_snapshot", "conversation.get", true, "Read current authorized membership and revision; recipient ceilings apply."),
+        ("connect_membership_invitations", "membership_invitations", "conversation.participant.add", true, "Page your own live pending invitations with a credential-bound opaque cursor; expiration or changed scope requires a fresh query."),
         ("connect_create", "create", "create", false, "Start a conversation with explicitly authorized participant IDs. Persist request_id; identical retries return the original conversation."),
         ("connect_close", "close", "close", false, "Close the selected conversation under current identity authority. Closing an optional task does not close its conversation."),
         ("connect_inbox", "inbox", "inbox", true, "Receive journal events across your authorized conversations, with a bounded wait. Preserve the exact cursor; an empty page is not completion and notifications are hints."),

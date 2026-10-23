@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Check Gate 6 task/acceptance/doc integrity; this does not qualify behavior."""
 import collections
+import html
 import json
 import pathlib
 import re
@@ -36,6 +37,12 @@ def main():
                 assert (ROOT / reference.strip()).exists(), (task['id'], reference)
         card = re.search(r'<details class="task" id="' + task['id'] + r'"[^>]*>', source)[0]
         assert f'data-status="{task["status"]}"' in card, task['id']
+        # The editor restores embedded data. A newer static card alone must
+        # not silently lose current evidence/notes when the plan is opened.
+        saved_card = re.search(r'<details class="task" id="' + task['id'] + r'".*?</details>', source, re.S)[0]
+        for field in ('notes', 'evidence'):
+            value = re.search(r'<textarea data-field="' + field + r'"[^>]*>(.*?)</textarea>', saved_card, re.S)[1]
+            assert html.unescape(value) == task[field], (task['id'], field, 'static and embedded plan data differ')
     acceptance = json.loads((ROOT / 'docs/gate-6-acceptance.json').read_text())
     criteria = {item['id']: item for item in acceptance['acceptance']}
     assert len(criteria) == 28 and len(acceptance['requirements']) == 17

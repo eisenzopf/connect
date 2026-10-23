@@ -63,7 +63,9 @@ async fn stalled_readers_are_bounded_and_healthy_peer_recovers_all_journal_pages
     let id = match app
         .request(Operation::Create {
             request_id: "create".into(),
-            participants: vec![agent_config.identity_id.clone()],
+            request: connect_protocol::conversations::CreateRequest::persistent(vec![agent_config
+                .identity_id
+                .clone()]),
         })
         .await
         .unwrap()
@@ -74,7 +76,7 @@ async fn stalled_readers_are_bounded_and_healthy_peer_recovers_all_journal_pages
     app.request(Operation::Send {
         request_id: "seed".into(),
         conversation_id: id.clone(),
-        body: "x".repeat(16384),
+        message: connect_protocol::messages::MessageDraft::text_all("x".repeat(16384)),
     })
     .await
     .unwrap();
@@ -107,7 +109,7 @@ async fn stalled_readers_are_bounded_and_healthy_peer_recovers_all_journal_pages
         app.request(Operation::Send {
             request_id: format!("live-{index}"),
             conversation_id: id.clone(),
-            body: format!("message-{index}"),
+            message: connect_protocol::messages::MessageDraft::text_all(format!("message-{index}")),
         })
         .await
         .unwrap();
@@ -203,7 +205,9 @@ async fn expiry_and_identity_scoped_cursors_apply_to_both_active_transports() {
     let mut app = ConnectClient::open(app_config.clone()).await.unwrap();
     app.request(Operation::Create {
         request_id: "create".into(),
-        participants: vec![agent_config.identity_id.clone()],
+        request: connect_protocol::conversations::CreateRequest::persistent(vec![agent_config
+            .identity_id
+            .clone()]),
     })
     .await
     .unwrap();

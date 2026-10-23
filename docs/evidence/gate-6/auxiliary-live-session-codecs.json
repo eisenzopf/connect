@@ -1,0 +1,203 @@
+{
+  "task": "G6-046",
+  "status": "in-progress",
+  "passed": true,
+  "component_passed": true,
+  "full_task_complete": false,
+  "full_goal_complete": false,
+  "executed_at": "2026-10-23T06:28:24.051147+00:00",
+  "schema_version": 97,
+  "source_lock_patches": 157,
+  "scope": "Live per-Connection Session codec planning and a separately authorized signed server-origin execution primitive. Required foundation for the unfinished Connect Session coordinator.",
+  "newly_qualified_case_ids": [],
+  "qualified_clause_count": 49,
+  "assigned_clause_count": 61,
+  "remaining_case_ids": [
+    "u6-req-0082",
+    "u6-req-0083",
+    "u6-req-0085",
+    "u6-req-0088",
+    "u6-req-0089",
+    "u6-req-0100",
+    "u6-req-0103",
+    "u6-req-0109",
+    "u6-req-0112",
+    "u6-req-0113",
+    "u6-req-0115",
+    "u6-req-0123"
+  ],
+  "source_lock": {
+    "path": "dependencies/source-lock.json",
+    "sha256": "5b23c65660292d43e8fd530583002a0976e571c19de920f3b950414f1d20c5ff"
+  },
+  "source_inputs": {
+    "path": ".local/gate-6/session-participants/live-codec-execution-inputs.json",
+    "sha256": "8183995d0a7bc97dad569ec050e9c628c5183a1e0564cc04200fd8e77dd2e7bc"
+  },
+  "sources_unchanged": true,
+  "binaries": [
+    {
+      "path": "target/debug/deps/v2_peer_admission-2ea5587e9bb34bd2",
+      "sha256": "bb83ba0cde02a83552b647c5df94149aaf2a824c3a12e6dc0ecbbaba8c86add6"
+    },
+    {
+      "path": "target/debug/deps/rvoip_uctp-2b962aac6c4c4270",
+      "sha256": "daf5cb229e82685bb4ea18da1425f1af9c76fab20722744e91443860528e984d"
+    }
+  ],
+  "rust_test_methods": 51,
+  "new_execution_scenarios": 3,
+  "results": [
+    {
+      "name": "uctp-live-codec-execution",
+      "passed": 2,
+      "failed": 0,
+      "tests": [
+        "peer_native::canonical_media::native_offers::session_codecs::actual_session_codec_execution_confirms_live_replacement_preserves_old_audio_and_has_noop_without_io",
+        "peer_native::canonical_media::native_offers::session_codecs::actual_session_codec_execution_refuses_current_denial_stale_revision_and_mismatched_confirmation_without_retry"
+      ],
+      "log": {
+        "path": ".local/gate-6/session-participants/uctp-live-codec-execution.log",
+        "sha256": "480c5a14e987c53d7574bdafcb8865a9896ff65b731f6a7b4861b2c5e2b4293d"
+      }
+    },
+    {
+      "name": "uctp-live-codec-regressions",
+      "passed": 16,
+      "failed": 0,
+      "tests": [
+        "peer_native::canonical_media::native_offers::actual_native_codec_update_confirms_replacement_and_preserves_decoded_old_audio_until_commit",
+        "peer_native::canonical_media::native_offers::actual_native_codec_update_lifecycle_requires_fresh_flow_on_confirmed_replacement",
+        "peer_native::canonical_media::native_offers::actual_native_codec_update_refuses_stale_unknown_incompatible_and_foreign_requests_without_effect",
+        "peer_native::canonical_media::native_offers::actual_native_codec_update_wrong_confirmation_preserves_audio_and_retry_burns_provisional_handle",
+        "peer_native::canonical_media::native_offers::actual_native_public_directional_hold_resume_retains_independent_source_mute",
+        "peer_native::canonical_media::native_offers::actual_native_public_gate_refuses_stale_foreign_malformed_and_denied_controls_without_effect",
+        "peer_native::canonical_media::native_offers::actual_native_public_gate_revisions_preserve_confirmed_binding_lifecycle",
+        "peer_native::canonical_media::native_offers::actual_native_public_mute_preserves_remote_playback_and_unmute_burns_queued_source_epoch",
+        "peer_native::canonical_media::native_offers::future_subscriptions::actual_future_data_receiver_negotiates_only_with_supported_physical_profile",
+        "peer_native::canonical_media::native_offers::future_subscriptions::actual_future_participant_video_and_screen_reconcile_after_original_command_grant_releases",
+        "peer_native::canonical_media::native_offers::future_subscriptions::actual_future_selection_rechecks_denial_then_reuses_operation_after_bad_confirmation_and_queued_writer",
+        "peer_native::canonical_media::native_offers::server_requests::actual_native_server_request_cancel_before_submission_and_eof_release_active_authority",
+        "peer_native::canonical_media::native_offers::server_requests::actual_native_server_request_held_fresh_grant_survives_queued_writer_without_storage_reentry",
+        "peer_native::canonical_media::native_offers::server_requests::actual_native_server_request_refuses_foreign_stale_denied_and_bad_reply_scopes_without_consuming_valid_reply",
+        "peer_native::canonical_media::native_offers::server_requests::actual_native_server_request_serializes_negotiation_and_cancellation_is_uncertain_after_write",
+        "peer_native::canonical_media::native_offers::server_requests::actual_native_server_request_uses_fresh_authority_after_source_deadline_and_retains_no_idle_reader"
+      ],
+      "log": {
+        "path": ".local/gate-6/session-participants/uctp-live-codec-regressions.log",
+        "sha256": "bae77b10419d705c7a0cf078fc8082fdc07e3a28bff3590c99a7590bd241c958"
+      }
+    },
+    {
+      "name": "uctp-live-codec-negotiation",
+      "passed": 20,
+      "failed": 0,
+      "tests": [
+        "v2::native_negotiation::tests::capability_declarations_replace_future_catalogs_without_expanding_the_local_profile",
+        "v2::native_negotiation::tests::claimed_assurance_does_not_replace_current_authentication_and_peer_floor_is_enforced",
+        "v2::native_negotiation::tests::data_requires_explicit_reliable_protocol_and_local_capacity_is_preserved",
+        "v2::native_negotiation::tests::each_logical_stream_honors_peer_order_and_inverts_its_endpoint_direction",
+        "v2::native_negotiation::tests::host_codec_preferences_are_bounded_and_reject_alias_duplicates",
+        "v2::native_negotiation::tests::host_codec_preferences_order_only_current_compatible_peer_offers_without_mutating_capabilities",
+        "v2::native_negotiation::tests::live_session_codec_plan_does_not_grandfather_a_withdrawn_target_format",
+        "v2::native_negotiation::tests::live_session_codec_plan_keeps_a_compatible_current_format_when_preference_is_unavailable",
+        "v2::native_negotiation::tests::live_session_codec_plan_prefers_current_policy_without_changing_identity_or_direction",
+        "v2::native_negotiation::tests::live_session_codec_plan_preserves_unrequested_video_and_existing_data_without_new_support",
+        "v2::native_negotiation::tests::live_session_codec_plan_refuses_empty_unknown_duplicate_and_unbounded_policy",
+        "v2::native_negotiation::tests::live_session_codec_plan_respects_both_directions_and_does_not_invent_a_peer_format",
+        "v2::native_negotiation::tests::malformed_codec_numbers_duplicate_ids_and_flat_legacy_catalogs_fail_before_preparation",
+        "v2::native_negotiation::tests::native_codec_update_keeps_data_parameters_and_never_treats_data_protocols_as_codecs",
+        "v2::native_negotiation::tests::native_codec_update_selects_only_targets_and_preserves_complete_unaffected_program",
+        "v2::native_negotiation::tests::native_codec_update_validates_all_targets_and_both_directional_catalogs_before_preparation",
+        "v2::native_negotiation::tests::new_capability_declarations_invalidate_old_prepared_negotiation_metadata",
+        "v2::native_negotiation::tests::new_declarations_keep_untouched_confirmed_bindings_without_reauthorizing_new_withdrawn_formats",
+        "v2::native_negotiation::tests::screen_support_and_directional_catalogs_are_not_inferred_from_generic_video",
+        "v2::native_negotiation::tests::unsupported_new_stream_is_rejected_but_zero_usable_streams_refuse"
+      ],
+      "log": {
+        "path": ".local/gate-6/session-participants/uctp-live-codec-negotiation.log",
+        "sha256": "40b54a900d9c15c6621f59f8ac798b480435eed28bcbaebbdfbbe72baddefc92"
+      }
+    },
+    {
+      "name": "uctp-live-codec-wire",
+      "passed": 13,
+      "failed": 0,
+      "tests": [
+        "v2::tests::active_speaker_is_session_scoped_and_preserves_explicit_null_silence",
+        "v2::tests::closed_preparation_metadata_refuses_asserted_authority_without_disabling_ordinary_extensions",
+        "v2::tests::frozen_golden_vectors_decode_and_roundtrip_every_type",
+        "v2::tests::ignores_extensions_for_execution_but_retains_them_for_signatures",
+        "v2::tests::message_body_limit_counts_decoded_bytes_not_unicode_characters",
+        "v2::tests::negotiation_selects_only_an_offered_supported_profile",
+        "v2::tests::nested_identifiers_and_bounded_typed_errors",
+        "v2::tests::rejects_duplicate_members_at_all_depths_and_trailing_documents",
+        "v2::tests::rejects_oversize_before_decoding",
+        "v2::tests::transport_and_logical_operation_ids_have_distinct_lifetimes",
+        "v2::tests::uncertain_operations_cannot_complete_cancel_or_retry_without_evidence",
+        "v2::tests::validates_ids_safe_revisions_scope_and_time",
+        "v2::tests::validates_typed_transitions_and_retained_connection_relationships"
+      ],
+      "log": {
+        "path": ".local/gate-6/session-participants/uctp-live-codec-wire.log",
+        "sha256": "31d172385052d3ee99e6aa4544365d982f8c324d18adbb6627cd030c82158901"
+      }
+    }
+  ],
+  "verification": [
+    {
+      "path": ".local/gate-6/session-participants/dependencies-live-codec-execution-verified.log",
+      "sha256": "fd9d7b181e3ccba9b643af55a186cf132c60aac99c734b2ee4e4e549afe5ffc2"
+    },
+    {
+      "path": ".local/gate-6/session-participants/format-live-codec-execution-check.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": ".local/gate-6/session-participants/schema-live-codec-execution-check.log",
+      "sha256": "1afb00e6f78689c38f93cb4544df59c1a39eddfd38b5c56100f136c1089b1a1f"
+    },
+    {
+      "path": ".local/gate-6/session-participants/diff-live-codec-execution.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": ".local/gate-6/session-participants/progress-live-codec-execution.log",
+      "sha256": "fedbc03549729d27ac031eee0766ae72281991ae1e9494232887c3160cf754cc"
+    }
+  ],
+  "patches": [
+    {
+      "path": "patches/rvoip/gate6-live-session-codec-planning.patch",
+      "sha256": "736e1a2e3684f98869f683d5f64ed5296223976b7b30914db01d6fadd9c171d4"
+    },
+    {
+      "path": "patches/rvoip/gate6-live-session-codec-execution.patch",
+      "sha256": "c2e570c86a20819593d2ba97f3965881c3335dbea23a23cd9a463cc96b95400a"
+    }
+  ],
+  "implementation": [
+    "The controller-bound planner uses current peer capability declarations, preserves logical IDs and directions, applies soft codec preferences independently per peer, retains a compatible current format when preferred codecs are unavailable, and preserves unrelated/data bindings. It does not grandfather a withdrawn targeted format. Plans carry exact stream revision and capability declaration generation; no plan grants IO.",
+    "A distinct NativeSessionCodecPolicy supplies fresh exact host authority. The sealed typed codec invocation cannot borrow a subscription grant. Common server-offer mechanics share only request-slot serialization and signed exact parameter confirmation, and retain existing subscription-specific public policy and invocation types.",
+    "The executor reserves the physical peer request slot, bounds host authorization, rechecks exact origin/revision/declaration and invokes the existing atomic selected-media transaction. A no-change observation leaves the revision, resource budget and wire untouched. It invokes no subscription mutation API.",
+    "After actual Core success, the executor seals historical operation/scope/revision/binding metadata without retaining the physical origin or authorization reader. Revocation after a real commit cannot erase the observed success. Pre-Core refusal is explicitly no media effect; all errors after entering Core conservatively retain possible-effect classification. The executor never retries.",
+    "New actual QUIC and WebTransport cases verify signed offers and replies, unchanged old transport and decoded PCMU while awaiting confirmation, queued writer release without authority reentry, committed PCMA replacement with decoded output and old-handle refusal, no-op with unchanged budget/revision and no wire, duplicate operation refusal and historical outcome custody without retained readers. The failure case verifies current denial, a stale revision after signed mute/unmute, exact mismatched confirmation refusal, unchanged old transport and decoded PCMU recovery, and no automatic retry.",
+    "The16 existing transport regressions cover codec update, independent hold/mute controls, future Participant subscriptions and server-request lifetime/cancellation/uncertainty. The20 planner tests and13 current wire/golden tests also pass; all225 schema vectors remain current."
+  ],
+  "next_required_work": [
+    "Implement Connect durable Session-policy coordination: immutable policy receipt plus an explicit typed async reconciliation operation/reference, atomically admitted frozen target work, current manager/target/peer authority, stable child attempts, latest-policy supersession, once-only effects and truthful partial/unknown status. Keep the live refusal until this real coordinator is installed.",
+    "Integrate a distinct current Store codec read and MediaPolicy codec invocation path; do not reuse NativeReconciliationRead or its stream.subscribe grant. Use actual current native origins and refreshed credentials, not reconstructed ready metadata.",
+    "Wire sealed actual outcomes into durable native-stream capture and retry only metadata recording after captured success. Verify through public SDKs and actual Connect production media, including independent decoding, per-peer fallback, concurrent latest-policy/replay, revocation, failure/recovery and retained mute/hold/selector behavior."
+  ],
+  "historical_evidence": [
+    "docs/evidence/gate-6/auxiliary-session-codec-preferences.json",
+    "docs/evidence/gate-6/auxiliary-native-selector-policy.json"
+  ],
+  "limits": [
+    "Engine planning and execution component only. Connect still refuses a Session codec update while Connections are live; its durable Session-wide coordinator is not installed. This report adds no clause qualification:0088/0089 and all other12 outstanding G6-046 clauses remain open.",
+    "Actual local macOS arm64 QUIC and WebTransport sockets and signed EdDSA envelopes, with test-controlled host authority. These are not production Connect Store/Service/SDK composition tests or Linux/browser/remote/provider rehearsals.",
+    "Audio crosses actual native RTP ingress and egress and is decoded with the installed codec library. This component does not claim independent FFmpeg decoding, cross-peer managed mixing, the frozen quality/impairment workload, or preservation of every Session composition.",
+    "The fixture models once-only operation admission in memory. Durable parent/child admission, explicit public async outcomes, latest-policy supersession, partial/unknown aggregation, restart recovery and captured-result recording retries remain required Connect work.",
+    "No current full-server build or Connect production integration run is claimed for157 patches. Earlier initial-preference production evidence remains historical at155 patches. No gate, acceptance criterion, publication or full-goal completion claim."
+  ]
+}

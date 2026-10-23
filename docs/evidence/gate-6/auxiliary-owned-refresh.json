@@ -1,0 +1,165 @@
+{
+  "task": "G6-046",
+  "title": "Owned native signaling credential refresh",
+  "recorded_at": "2026-10-22",
+  "status": "owned-reader-and-native-refresh-qualified; full-auxiliary-task-open",
+  "full_task_complete": false,
+  "full_goal_complete": false,
+  "acceptance_qualified": false,
+  "implementation": [
+    "Only a correlated, fully validated auth.session publishes a successor deadline to the existing single owned reader. Updating that deadline does not cancel an unfinished framed read.",
+    "The original pinned server-key expiry remains an immutable upper bound. Refused or unsolicited session frames cannot extend the reader. An expired/retired reader cannot be revived.",
+    "Public, private and prepared-handoff audio facades expose explicit credential refresh and cancellation. These update authentication; existing native media is still bound independently to its admitted source authority."
+  ],
+  "verified": [
+    {
+      "scope": "complete current client library",
+      "passed": 73,
+      "failed": 0,
+      "ignored": 0,
+      "seconds": 1.31,
+      "artifact": {
+        "path": ".local/gate-6/auxiliary-owned-refresh-client-v3.log",
+        "sha256": "bd0d7471dd305ab293d09dd0f054263a68aba815e66605f0785dcaac7cae90dd",
+        "bytes": 10256
+      },
+      "new_owned_refresh_cases": 4
+    },
+    {
+      "scope": "actual Connect owned signaling after original credential expiry",
+      "passed": 1,
+      "failed": 0,
+      "ignored": 0,
+      "algorithms": [
+        "EdDSA",
+        "ES256"
+      ],
+      "seconds": 15.08,
+      "artifact": {
+        "path": ".local/gate-6/auxiliary-owned-refresh-production-expiry-v1.log",
+        "sha256": "c95ecace7f3497d244ceda791d86ae1356ad3cab8af00665b1df9427678f41f3",
+        "bytes": 436
+      },
+      "meaning": "A second signed refresh succeeds on the same owned peer/reader after the original seven-second credential has expired. This is signaling continuity, not media credential rebinding."
+    }
+  ],
+  "production_failure": {
+    "artifact": {
+      "path": ".local/gate-6/auxiliary-owned-refresh-production-v1.log",
+      "sha256": "888a5418bb4725f92133647b7da8255fd0f66ce9732d120bba20863f9162ccb3",
+      "bytes": 936
+    },
+    "case": "production_owned_audio_refresh_keeps_signed_reader_and_current_signal_authority",
+    "passed": 0,
+    "failed": 1,
+    "seconds": 0.62,
+    "executed_algorithm": "EdDSA",
+    "not_executed_algorithm": "ES256",
+    "observation": "A valid explicitly enrolled successor refresh succeeds, then DTMF on the existing admitted media Connection is refused with forbidden. The new test remains failing and is not ignored.",
+    "source_finding": "Store native_streams::projection requires the exact credential recorded in native_admission_sources. Connect has no installed existing-media credential rebind. Core has rebind_media_credential_with_held; preserve the current exact-source check while implementing that composition."
+  },
+  "earlier_attempts": [
+    {
+      "artifact": {
+        "path": ".local/gate-6/auxiliary-owned-refresh-client-v1.log",
+        "sha256": "f0f67cca78cd47aeb8a4cb79317fde710acc9b862110615ff71e7b5b338b698b",
+        "bytes": 2375
+      },
+      "result": "Compile failure in a new test accessing a private task field. Removed that unnecessary field access; production code unchanged."
+    },
+    {
+      "artifact": {
+        "path": ".local/gate-6/auxiliary-owned-refresh-client-v2.log",
+        "sha256": "0ac879edde06571ad95f1d50c7d937735bbe6a97cf944dd1bd66df68253133cb",
+        "bytes": 4279
+      },
+      "passed": 8,
+      "failed": 1,
+      "result": "Unsolicited-session test incorrectly used a fixture requiring auth.refresh while sending keepalive. Corrected to the owned unsolicited-frame fixture; production code unchanged."
+    },
+    {
+      "artifact": {
+        "path": ".local/gate-6/auxiliary-owned-refresh-build-v2.log",
+        "sha256": "213809659439eedaf9a42630946cb71e29159154a9bc03fdb8db94b717425f87",
+        "bytes": 2364
+      },
+      "result": "New test enrollment helper initially referenced the outer algorithm variable. Corrected to the explicit config signing algorithm."
+    }
+  ],
+  "source_inputs": {
+    "path": ".local/gate-6/auxiliary-owned-refresh-inputs-v3.json",
+    "sha256": "c5b5a0328758caff9cc370f32d8091b24eeb66a05572bacca6c32dcb4fd0a300",
+    "bytes": 176714
+  },
+  "source_lock": {
+    "path": "dependencies/source-lock.json",
+    "sha256": "723bc141df69599f9ec97fe413af59eca6fd022bbc97f24e9592cccd1ca4a5b5",
+    "bytes": 59548
+  },
+  "schema_version": 85,
+  "pinned_patches": 134,
+  "not_qualified": [
+    "Existing media credential rebinding and its queued/private signal, current permission, uncertainty and teardown cases. The production regression above is an explicit remaining failure.",
+    "Owned successful step-up and task assurance composition; exact61 auxiliary clause qualification; SIP/WebRTC/general DTMF composition.",
+    "Earlier retention/primary-return reliability and intermittent automatic-provider authority-busy failure; broader Linux/remote/browser profiles; full G6-046, remaining plan tasks and acceptance."
+  ],
+  "plan_counts": {
+    "done": 45,
+    "in_progress": 1,
+    "not_started": 59,
+    "acceptance": 0
+  },
+  "current_regression": {
+    "status": "failed-before-fair-metadata-change",
+    "artifact": {
+      "path": ".local/gate-6/auxiliary-owned-refresh-regression-v1.log",
+      "sha256": "e5bc931d7aff748d68024dfab22185507c56541230b95e041563882ca7808fe0",
+      "bytes": 28230
+    },
+    "passed": 9,
+    "failed": 2,
+    "ignored": 0,
+    "seconds": 181.21,
+    "scope": "Original8 private provider cases plus3 native/owned DTMF regressions. Retention return passes. Automatic cancel-export and ordinary fresh private provider cases fail with authority-busy during initialization. No whole-cohort pass claimed."
+  },
+  "pre_metadata_binary_archive": {
+    "path": ".local/gate-6/auxiliary-owned-refresh-pre-metadata-binary-v1.json",
+    "sha256": "0e353ddf53b5c3198203cadbc0be163a4248f8133dddf76ac64cb3becc9c365c",
+    "bytes": 657
+  },
+  "current_source_production_cohort": {
+    "artifact": {
+      "path": ".local/gate-6/private-provider-metadata-production-v3.log",
+      "sha256": "31bb703a007e5388a2001b6913779d5a026e5cd8ba59a1271a51df8868543cda",
+      "bytes": 30422
+    },
+    "passed": 12,
+    "failed": 1,
+    "seconds": 190.73,
+    "private_provider_cases_passed": 8,
+    "owned_signaling_expiry_algorithms": [
+      "EdDSA",
+      "ES256"
+    ],
+    "failing_case": "production_owned_audio_refresh_keeps_signed_reader_and_current_signal_authority",
+    "note": "Media rebind remains failing and unignored on the current fair-metadata implementation. Signaling refresh beyond predecessor expiry passes with both algorithms."
+  },
+  "compiled_binary_archive": {
+    "path": ".local/gate-6/auxiliary-owned-refresh-final-binaries-v3.json",
+    "sha256": "fa70977ca4e756523967d0eaee68274d929f92d2cc3f3b07c168d08b9ed5d3b6",
+    "independently_decompressed": true
+  },
+  "source_verification": {
+    "path": ".local/gate-6/private-provider-metadata-source-verification-v3.json",
+    "sha256": "644e34390e7cdead3bff9a552703c92f483c66ac6b2b9a0094b92dfecadec882"
+  },
+  "native_credential_refresh_continuation": {
+    "evidence": "docs/evidence/gate-6/native-credential-refresh.json",
+    "recorded_at": "2026-10-22T14:05:11.717110+00:00",
+    "schema_version": 86,
+    "pinned_patches": 135,
+    "production_refresh_tests": 3,
+    "production_regression_tests": 11,
+    "meaning": "The previously failing existing-media refresh path now passes explicit Store epoch/Core revision checks, successor DTMF send/receive and independently decoded RTP after original expiry for both signing algorithms. Earlier results remain historical; full G6-046 and broader profiles remain open."
+  }
+}

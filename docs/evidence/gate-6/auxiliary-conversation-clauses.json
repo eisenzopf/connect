@@ -1,0 +1,657 @@
+{
+  "task": "G6-046",
+  "title": "Conversation clauses 0069\u20130080 and live record-readiness delivery",
+  "status": "local-native-qualified; full auxiliary task open",
+  "recorded_at": "2026-10-22T16:49:14.676931+00:00",
+  "full_task_complete": false,
+  "full_goal_complete": false,
+  "acceptance_qualified": false,
+  "platform": {
+    "os": "Darwin",
+    "architecture": "arm64"
+  },
+  "schema_version": 87,
+  "pinned_patches": 137,
+  "source_lock": {
+    "path": "dependencies/source-lock.json",
+    "sha256": "ec3116919d343cd450c12dd069387fff2c257e0fcdd54543780c7e24e649ca47"
+  },
+  "compiled_inputs": {
+    "path": ".local/gate-6/auxiliary-clauses/build-inputs-v7.json",
+    "sha256": "7aa7230282065d98c0b737f4ac6f829c2d6b712051bc519d860852b390cb93ed",
+    "count": 1252
+  },
+  "compiled_inputs_unchanged_after_tests": true,
+  "source_inputs": [
+    {
+      "path": "crates/connect-protocol/src/events.rs",
+      "sha256": "37d4d97334ee04b470bfc0e6e1a886b6b5669e01b8edc2a78339ee01b0a9a2bd"
+    },
+    {
+      "path": "crates/connect-store/src/lib.rs",
+      "sha256": "c37b95a9c40ebe19e105d6251b7d152c6f578a8c7a207ac98caabeae475bd3b0"
+    },
+    {
+      "path": "crates/connect-store/migrations/087_conversation_closure_facts.sql",
+      "sha256": "fc4fb5ccb670df96975f456440d5f9ca2d4a49975157d5e29fb91aff2d60df8d"
+    },
+    {
+      "path": "crates/connect-store/src/events/journal.rs",
+      "sha256": "d6492d061de2e4a0a277a9b9ffb0cc7dfae310ad4b51f66c098907cc40b41098"
+    },
+    {
+      "path": "crates/connect-store/src/events/tests.rs",
+      "sha256": "3684672fc1842d41162d8a5e8361d998914e89724a8252ff1702a34dd29f3696"
+    },
+    {
+      "path": "crates/connect-service/src/canonical_subscriptions.rs",
+      "sha256": "bcad0642a0984ffcc7b64b3edfd7f21483248b7843a4263bfaae13397e12b260"
+    },
+    {
+      "path": "crates/connect-server/tests/support/canonical_auxiliary_clauses.rs",
+      "sha256": "993bf52fee518b74abeab37ac053c30fb300d80830d2c75822316ff4cae850e4"
+    },
+    {
+      "path": "crates/connect-server/tests/gate6_auxiliary.rs",
+      "sha256": "e536feccfca6021e4a5960693edca2c14c625394026db8007e3466493479714b"
+    },
+    {
+      "path": "crates/connect-server/tests/gate6_canonical_runtime.rs",
+      "sha256": "dfa8e4a1de0c1c1ca1b13e1fbcdc47081df6bf1bf868b5a0b71250e8c30f412e"
+    },
+    {
+      "path": "crates/connect-server/tests/support/canonical_native_connections.rs",
+      "sha256": "36af5e4f164fc0c37a454fc6a57288eacd5cde8657ff8cb1915a6f447f337ee8"
+    },
+    {
+      "path": "sdk/typescript/src/events.ts",
+      "sha256": "613c572afb9e9882df73f3737706ee6bd447b7b82ea4c78e7fd37dbdc502640d"
+    },
+    {
+      "path": "sdk/typescript/src/event_validation.ts",
+      "sha256": "b35436d14f64f45dee46a702065159aa9e865374206266b7f9428c30e8a868e6"
+    },
+    {
+      "path": "sdk/python/connect_sdk/event_validation.py",
+      "sha256": "a267e8255ce20c5ab7d221153eabf9984e0328f6265c8ee8ab208ce9d651b7a7"
+    },
+    {
+      "path": "sdk/tests/events_matrix.json",
+      "sha256": "c5a86e27328c60eb38ceb6052798643dd1c285175aeb7d7073575cbe9ace38c9"
+    },
+    {
+      "path": "scripts/generate-gate6-event-reference.py",
+      "sha256": "646e632e2e998e2fa98cd47a2cf23ca7d47d2fcb685dc80c37d980fd137cef3a"
+    },
+    {
+      "path": "contracts/openapi-events.json",
+      "sha256": "fe8992870e17cd5634534bab357703bd1735734809e799d07ca0ec3f73176fbe"
+    },
+    {
+      "path": "patches/rvoip/gate6-subscription-domain-hints.patch",
+      "sha256": "ee82bde7300c799b519bffb53a0fdd192d766e7e45dbb1baa4036fcccfde91bf"
+    },
+    {
+      "path": "docs/developer/events.md",
+      "sha256": "1e967a2f76a695f92cb7c56f9d4d8b9d2d55ddd51a0968bc62a14059c4745e03"
+    },
+    {
+      "path": "docs/developer/canonical-http.md",
+      "sha256": "a59f50fcf70c86455aa4841ecec8dcf97ec0d1dd33c01c1182e209f19bc30807"
+    }
+  ],
+  "binaries": [
+    {
+      "path": "target/debug/deps/connect_store-2bc54b64bb656bb4",
+      "sha256": "03390e2659596baaf895b0b78713ea73a97636ce8aebc63ea201daae221a1bf0"
+    },
+    {
+      "path": "target/debug/deps/gate6_canonical_runtime-f39476f2f6c7ff5d",
+      "sha256": "974d6588e399d7e9558fbb4fe6e74697d0972c237c4856c7b9f7c18cb8c27850"
+    },
+    {
+      "path": "target/debug/deps/gate6_auxiliary-0342ca629847fff9",
+      "sha256": "d527d7e11539d7468b0cc4905b3e5ff3e0d7f375cc441d336013689210b126d0"
+    }
+  ],
+  "results": [
+    {
+      "name": "store-events",
+      "passed": 22,
+      "failed": 0,
+      "evidence": {
+        "path": ".local/gate-6/auxiliary-clauses/store-events-v1.log",
+        "sha256": "b12f3c8672f040dd3530ec2ef660680cc4a49cb86edd317f9cb130f7d0ed4b09"
+      }
+    },
+    {
+      "name": "production-conversations",
+      "passed": 1,
+      "failed": 0,
+      "evidence": {
+        "path": ".local/gate-6/auxiliary-clauses/production-conversations-v3.log",
+        "sha256": "8ac70554eccecf573b6d9725a37005a5b1c45a7ed3bb2133a4ac1cdee7039fd3"
+      }
+    },
+    {
+      "name": "production-record-hints",
+      "passed": 1,
+      "failed": 0,
+      "evidence": {
+        "path": ".local/gate-6/auxiliary-clauses/production-record-hints-v1.log",
+        "sha256": "e51cb4eb59bab59cb18971942195730a4bdd5dfb99c4de4bfff18bf372ab2a22"
+      }
+    },
+    {
+      "name": "typescript-events",
+      "passed": 136,
+      "failed": 0,
+      "evidence": {
+        "path": ".local/gate-6/auxiliary-clauses/typescript-events-v3.log",
+        "sha256": "1fcce2755fe8a1600b9ea501e37001faa37b89d45b946355876b72e219ebdc1f"
+      }
+    },
+    {
+      "name": "python-events",
+      "passed_test_methods": 4,
+      "failed": 0,
+      "evidence": {
+        "path": ".local/gate-6/auxiliary-clauses/python-events-v3.log",
+        "sha256": "4a160235c0add54f7a5997815d0e01a072210439de4899c702c94dd3cd814662"
+      }
+    },
+    {
+      "name": "new-closure-openapi-vectors",
+      "passed": 3,
+      "failed": 0,
+      "evidence": {
+        "path": ".local/gate-6/auxiliary-clauses/openapi-closure-v2.log",
+        "sha256": "2b2282cd7b3aa23a0a1305ca1904945ff816e5f0a1c8a241398debeeaacf6f80"
+      }
+    }
+  ],
+  "checks": [
+    {
+      "name": "dependencies",
+      "command": [
+        "bash",
+        "scripts/prepare-dependencies.sh"
+      ],
+      "exit_code": 0,
+      "evidence": {
+        "path": ".local/gate-6/auxiliary-clauses/dependencies-qualified.log",
+        "sha256": "fd9d7b181e3ccba9b643af55a186cf132c60aac99c734b2ee4e4e549afe5ffc2"
+      }
+    },
+    {
+      "name": "format",
+      "command": [
+        "bash",
+        "scripts/format.sh",
+        "--check"
+      ],
+      "exit_code": 0,
+      "evidence": {
+        "path": ".local/gate-6/auxiliary-clauses/format-qualified.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    {
+      "name": "event-reference",
+      "command": [
+        "python3",
+        "scripts/generate-gate6-event-reference.py",
+        "--check"
+      ],
+      "exit_code": 0,
+      "evidence": {
+        "path": ".local/gate-6/auxiliary-clauses/event-reference-qualified.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    {
+      "name": "http-reference",
+      "command": [
+        "python3",
+        "scripts/generate-canonical-http-openapi.py",
+        "--check"
+      ],
+      "exit_code": 0,
+      "evidence": {
+        "path": ".local/gate-6/auxiliary-clauses/http-reference-qualified.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    {
+      "name": "typescript-format",
+      "command": [
+        "sdk/typescript/node_modules/.bin/prettier",
+        "--check",
+        "sdk/typescript/src/events.ts",
+        "sdk/typescript/src/event_validation.ts"
+      ],
+      "exit_code": 0,
+      "evidence": {
+        "path": ".local/gate-6/auxiliary-clauses/typescript-format-qualified.log",
+        "sha256": "17aa973d3f004560237d9a95171210b0671deff23d61628eecf7322ff5938f20"
+      }
+    },
+    {
+      "name": "progress",
+      "command": [
+        "python3",
+        "scripts/check-gate6-progress.py"
+      ],
+      "exit_code": 0,
+      "evidence": {
+        "path": ".local/gate-6/auxiliary-clauses/progress-qualified.log",
+        "sha256": "fedbc03549729d27ac031eee0766ae72281991ae1e9494232887c3160cf754cc"
+      }
+    },
+    {
+      "name": "diff",
+      "command": [
+        "git",
+        "diff",
+        "--check"
+      ],
+      "exit_code": 0,
+      "evidence": {
+        "path": ".local/gate-6/auxiliary-clauses/diff-qualified.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    }
+  ],
+  "qualified_cases": {
+    "u6-req-0069": [
+      {
+        "algorithm": "EdDSA",
+        "assertions": [
+          "explicit-create profile; unknown-cid message refuses without creating a room"
+        ],
+        "case_id": "u6-req-0069",
+        "profile": "production Connect local native signed QUIC; public SDK; no injected domain rows",
+        "test": "auxiliary_clauses::production_auxiliary_conversation_clauses_0069_through_0080",
+        "evidence": {
+          "path": ".local/gate-6/auxiliary-clauses/witnesses/EdDSA-u6-req-0069.json",
+          "sha256": "0349aabc973e17259f92908af6062d586d59fa74bac342fa027dd068ac0fc0df"
+        }
+      },
+      {
+        "algorithm": "ES256",
+        "assertions": [
+          "explicit-create profile; unknown-cid message refuses without creating a room"
+        ],
+        "case_id": "u6-req-0069",
+        "profile": "production Connect local native signed QUIC; public SDK; no injected domain rows",
+        "test": "auxiliary_clauses::production_auxiliary_conversation_clauses_0069_through_0080",
+        "evidence": {
+          "path": ".local/gate-6/auxiliary-clauses/witnesses/ES256-u6-req-0069.json",
+          "sha256": "926fbf05ad19ba1512dfdb7405be6b6475aee6c33fb8b2a85d5bb81b35846b88"
+        }
+      }
+    ],
+    "u6-req-0070": [
+      {
+        "algorithm": "EdDSA",
+        "assertions": [
+          "create/open correlation; explicit close; both subscribed Participants receive original closure"
+        ],
+        "case_id": "u6-req-0070",
+        "profile": "production Connect local native signed QUIC; public SDK; no injected domain rows",
+        "test": "auxiliary_clauses::production_auxiliary_conversation_clauses_0069_through_0080",
+        "evidence": {
+          "path": ".local/gate-6/auxiliary-clauses/witnesses/EdDSA-u6-req-0070.json",
+          "sha256": "277c5ef7bcf852b3a2e01f48db0c6435bedd3fc9f77711ade4a09a5564bd8f87"
+        }
+      },
+      {
+        "algorithm": "ES256",
+        "assertions": [
+          "create/open correlation; explicit close; both subscribed Participants receive original closure"
+        ],
+        "case_id": "u6-req-0070",
+        "profile": "production Connect local native signed QUIC; public SDK; no injected domain rows",
+        "test": "auxiliary_clauses::production_auxiliary_conversation_clauses_0069_through_0080",
+        "evidence": {
+          "path": ".local/gate-6/auxiliary-clauses/witnesses/ES256-u6-req-0070.json",
+          "sha256": "1de96654532839e0ebd803dc665a9e84e6b1b074b87665fb5ce3d1f3a185c57b"
+        }
+      }
+    ],
+    "u6-req-0071": [
+      {
+        "algorithm": "EdDSA",
+        "assertions": [
+          "accepted Session suppresses idle; Messages reset the ended-Session idle boundary; final quiet interval closes; persistent ignores idle interval"
+        ],
+        "case_id": "u6-req-0071",
+        "profile": "production Connect local native signed QUIC; public SDK; no injected domain rows",
+        "test": "auxiliary_clauses::production_auxiliary_conversation_clauses_0069_through_0080",
+        "evidence": {
+          "path": ".local/gate-6/auxiliary-clauses/witnesses/EdDSA-u6-req-0071.json",
+          "sha256": "e8159a87a1251f7086baab9365566d0eb3b3ce5344dbaf1782f334943e3cd54a"
+        }
+      },
+      {
+        "algorithm": "ES256",
+        "assertions": [
+          "accepted Session suppresses idle; Messages reset the ended-Session idle boundary; final quiet interval closes; persistent ignores idle interval"
+        ],
+        "case_id": "u6-req-0071",
+        "profile": "production Connect local native signed QUIC; public SDK; no injected domain rows",
+        "test": "auxiliary_clauses::production_auxiliary_conversation_clauses_0069_through_0080",
+        "evidence": {
+          "path": ".local/gate-6/auxiliary-clauses/witnesses/ES256-u6-req-0071.json",
+          "sha256": "0e04748452cba60b7e772545d3d3a2947d70ab4907f07794817a2f2c8575f315"
+        }
+      }
+    ],
+    "u6-req-0072": [
+      {
+        "algorithm": "EdDSA",
+        "assertions": [
+          "policy set at create; changed logical create conflicts; no policy mutation"
+        ],
+        "case_id": "u6-req-0072",
+        "profile": "production Connect local native signed QUIC; public SDK; no injected domain rows",
+        "test": "auxiliary_clauses::production_auxiliary_conversation_clauses_0069_through_0080",
+        "evidence": {
+          "path": ".local/gate-6/auxiliary-clauses/witnesses/EdDSA-u6-req-0072.json",
+          "sha256": "65e690f350ac563b3b80b5ce9aa19d55af4671313ac30c48c7d305cac394f21c"
+        }
+      },
+      {
+        "algorithm": "ES256",
+        "assertions": [
+          "policy set at create; changed logical create conflicts; no policy mutation"
+        ],
+        "case_id": "u6-req-0072",
+        "profile": "production Connect local native signed QUIC; public SDK; no injected domain rows",
+        "test": "auxiliary_clauses::production_auxiliary_conversation_clauses_0069_through_0080",
+        "evidence": {
+          "path": ".local/gate-6/auxiliary-clauses/witnesses/ES256-u6-req-0072.json",
+          "sha256": "6a5f029993a4c1d600ce1d2d95ab9bbec2ccedb6d141312d755bf1ba6b9742b4"
+        }
+      }
+    ],
+    "u6-req-0073": [
+      {
+        "algorithm": "EdDSA",
+        "assertions": [
+          "tenant, policy, idle, metadata and explicit initial guest role; server-assigned cid"
+        ],
+        "case_id": "u6-req-0073",
+        "profile": "production Connect local native signed QUIC; public SDK; no injected domain rows",
+        "test": "auxiliary_clauses::production_auxiliary_conversation_clauses_0069_through_0080",
+        "evidence": {
+          "path": ".local/gate-6/auxiliary-clauses/witnesses/EdDSA-u6-req-0073.json",
+          "sha256": "8635f2971e8c2378d89c8d68011bd7cee57d0679d66ea3c9a23b1333b9fe847f"
+        }
+      },
+      {
+        "algorithm": "ES256",
+        "assertions": [
+          "tenant, policy, idle, metadata and explicit initial guest role; server-assigned cid"
+        ],
+        "case_id": "u6-req-0073",
+        "profile": "production Connect local native signed QUIC; public SDK; no injected domain rows",
+        "test": "auxiliary_clauses::production_auxiliary_conversation_clauses_0069_through_0080",
+        "evidence": {
+          "path": ".local/gate-6/auxiliary-clauses/witnesses/ES256-u6-req-0073.json",
+          "sha256": "fe4a8d123bce8bbcc38d2972d582d668ece165b940dece9fe8f13ff96daed9c4"
+        }
+      }
+    ],
+    "u6-req-0074": [
+      {
+        "algorithm": "EdDSA",
+        "assertions": [
+          "missing tenant rejected by actual HTTP; persistent idle ignored; omitted initial participants"
+        ],
+        "case_id": "u6-req-0074",
+        "profile": "production Connect local native signed QUIC; public SDK; no injected domain rows",
+        "test": "auxiliary_clauses::production_auxiliary_conversation_clauses_0069_through_0080",
+        "evidence": {
+          "path": ".local/gate-6/auxiliary-clauses/witnesses/EdDSA-u6-req-0074.json",
+          "sha256": "6d8dbf0943444bcb52724c97f333e20bcc9ec23141afde9e0c35f68afd9543c7"
+        }
+      },
+      {
+        "algorithm": "ES256",
+        "assertions": [
+          "missing tenant rejected by actual HTTP; persistent idle ignored; omitted initial participants"
+        ],
+        "case_id": "u6-req-0074",
+        "profile": "production Connect local native signed QUIC; public SDK; no injected domain rows",
+        "test": "auxiliary_clauses::production_auxiliary_conversation_clauses_0069_through_0080",
+        "evidence": {
+          "path": ".local/gate-6/auxiliary-clauses/witnesses/ES256-u6-req-0074.json",
+          "sha256": "9c0d68224f7f34a20a6aa6c7af399630f10b06a6a58a2f8cf1632bfa8f1801d6"
+        }
+      }
+    ],
+    "u6-req-0075": [
+      {
+        "algorithm": "EdDSA",
+        "assertions": [
+          "typed opened shape, participant identity/kind/role, timestamp and exact metadata"
+        ],
+        "case_id": "u6-req-0075",
+        "profile": "production Connect local native signed QUIC; public SDK; no injected domain rows",
+        "test": "auxiliary_clauses::production_auxiliary_conversation_clauses_0069_through_0080",
+        "evidence": {
+          "path": ".local/gate-6/auxiliary-clauses/witnesses/EdDSA-u6-req-0075.json",
+          "sha256": "b0cd6bcb628cfbf125ffef5e80f91809ef1d818e2016db28469f84bc372c54fb"
+        }
+      },
+      {
+        "algorithm": "ES256",
+        "assertions": [
+          "typed opened shape, participant identity/kind/role, timestamp and exact metadata"
+        ],
+        "case_id": "u6-req-0075",
+        "profile": "production Connect local native signed QUIC; public SDK; no injected domain rows",
+        "test": "auxiliary_clauses::production_auxiliary_conversation_clauses_0069_through_0080",
+        "evidence": {
+          "path": ".local/gate-6/auxiliary-clauses/witnesses/ES256-u6-req-0075.json",
+          "sha256": "87c7f37198cd24f43a9f878d4ff1a286375a96bf781347d37a6047330d7852ad"
+        }
+      }
+    ],
+    "u6-req-0076": [
+      {
+        "algorithm": "EdDSA",
+        "assertions": [
+          "open correlation and per-list-request opened correlation"
+        ],
+        "case_id": "u6-req-0076",
+        "profile": "production Connect local native signed QUIC; public SDK; no injected domain rows",
+        "test": "auxiliary_clauses::production_auxiliary_conversation_clauses_0069_through_0080",
+        "evidence": {
+          "path": ".local/gate-6/auxiliary-clauses/witnesses/EdDSA-u6-req-0076.json",
+          "sha256": "1ee2485f43d6bf0e80e6076799866fda36c01efd04d149edfb5c99b0bd1ccb48"
+        }
+      },
+      {
+        "algorithm": "ES256",
+        "assertions": [
+          "open correlation and per-list-request opened correlation"
+        ],
+        "case_id": "u6-req-0076",
+        "profile": "production Connect local native signed QUIC; public SDK; no injected domain rows",
+        "test": "auxiliary_clauses::production_auxiliary_conversation_clauses_0069_through_0080",
+        "evidence": {
+          "path": ".local/gate-6/auxiliary-clauses/witnesses/ES256-u6-req-0076.json",
+          "sha256": "7ba29ac321e87b10ade120fd314d8a133862043a5accab021391d32d1aae5b70"
+        }
+      }
+    ],
+    "u6-req-0077": [
+      {
+        "algorithm": "EdDSA",
+        "assertions": [
+          "typed closed shape with immutable reason/code/time identical to journal and SDK result"
+        ],
+        "case_id": "u6-req-0077",
+        "profile": "production Connect local native signed QUIC; public SDK; no injected domain rows",
+        "test": "auxiliary_clauses::production_auxiliary_conversation_clauses_0069_through_0080",
+        "evidence": {
+          "path": ".local/gate-6/auxiliary-clauses/witnesses/EdDSA-u6-req-0077.json",
+          "sha256": "8f854fd372f40fc61eb1172c3887bbcd514d6323ef0681019e8bbf92cacaabbe"
+        }
+      },
+      {
+        "algorithm": "ES256",
+        "assertions": [
+          "typed closed shape with immutable reason/code/time identical to journal and SDK result"
+        ],
+        "case_id": "u6-req-0077",
+        "profile": "production Connect local native signed QUIC; public SDK; no injected domain rows",
+        "test": "auxiliary_clauses::production_auxiliary_conversation_clauses_0069_through_0080",
+        "evidence": {
+          "path": ".local/gate-6/auxiliary-clauses/witnesses/ES256-u6-req-0077.json",
+          "sha256": "9b75390dbfc8bfb4fafe035221d89c6ed63c638a69c6c0388ebfa67160e4fa75"
+        }
+      }
+    ],
+    "u6-req-0078": [
+      {
+        "algorithm": "EdDSA",
+        "assertions": [
+          "typed closure multicast to two separately signed subscribed Participant identities"
+        ],
+        "case_id": "u6-req-0078",
+        "profile": "production Connect local native signed QUIC; public SDK; no injected domain rows",
+        "test": "auxiliary_clauses::production_auxiliary_conversation_clauses_0069_through_0080",
+        "evidence": {
+          "path": ".local/gate-6/auxiliary-clauses/witnesses/EdDSA-u6-req-0078.json",
+          "sha256": "9015c978bee18ecc58609665a35c32064e4dfd110f61efb1f8be7669948a7e23"
+        }
+      },
+      {
+        "algorithm": "ES256",
+        "assertions": [
+          "typed closure multicast to two separately signed subscribed Participant identities"
+        ],
+        "case_id": "u6-req-0078",
+        "profile": "production Connect local native signed QUIC; public SDK; no injected domain rows",
+        "test": "auxiliary_clauses::production_auxiliary_conversation_clauses_0069_through_0080",
+        "evidence": {
+          "path": ".local/gate-6/auxiliary-clauses/witnesses/ES256-u6-req-0078.json",
+          "sha256": "c0a57ca60908bba65215b108ecb1272cd40e6a4589f6d32947887a1413311d42"
+        }
+      }
+    ],
+    "u6-req-0079": [
+      {
+        "algorithm": "EdDSA",
+        "assertions": [
+          "tenant/identity/state/time filters, participant filter, bounded cursor pagination"
+        ],
+        "case_id": "u6-req-0079",
+        "profile": "production Connect local native signed QUIC; public SDK; no injected domain rows",
+        "test": "auxiliary_clauses::production_auxiliary_conversation_clauses_0069_through_0080",
+        "evidence": {
+          "path": ".local/gate-6/auxiliary-clauses/witnesses/EdDSA-u6-req-0079.json",
+          "sha256": "44d0f42902b5bf53d6a93f9a58ef4225a3d4229c4e6e806e8bdf47ecc46dde67"
+        }
+      },
+      {
+        "algorithm": "ES256",
+        "assertions": [
+          "tenant/identity/state/time filters, participant filter, bounded cursor pagination"
+        ],
+        "case_id": "u6-req-0079",
+        "profile": "production Connect local native signed QUIC; public SDK; no injected domain rows",
+        "test": "auxiliary_clauses::production_auxiliary_conversation_clauses_0069_through_0080",
+        "evidence": {
+          "path": ".local/gate-6/auxiliary-clauses/witnesses/ES256-u6-req-0079.json",
+          "sha256": "8e4ebb5bae85975e91f1aee442746b4239c749305b501402ae966b0703b9d07f"
+        }
+      }
+    ],
+    "u6-req-0080": [
+      {
+        "algorithm": "EdDSA",
+        "assertions": [
+          "one matching opened per page; all correlate to list id; terminal ACK and next_cursor"
+        ],
+        "case_id": "u6-req-0080",
+        "profile": "production Connect local native signed QUIC; public SDK; no injected domain rows",
+        "test": "auxiliary_clauses::production_auxiliary_conversation_clauses_0069_through_0080",
+        "evidence": {
+          "path": ".local/gate-6/auxiliary-clauses/witnesses/EdDSA-u6-req-0080.json",
+          "sha256": "4dd40b644df59143712d292ef154fd4a944ba7583a8841310093e3dba897099c"
+        }
+      },
+      {
+        "algorithm": "ES256",
+        "assertions": [
+          "one matching opened per page; all correlate to list id; terminal ACK and next_cursor"
+        ],
+        "case_id": "u6-req-0080",
+        "profile": "production Connect local native signed QUIC; public SDK; no injected domain rows",
+        "test": "auxiliary_clauses::production_auxiliary_conversation_clauses_0069_through_0080",
+        "evidence": {
+          "path": ".local/gate-6/auxiliary-clauses/witnesses/ES256-u6-req-0080.json",
+          "sha256": "757ee32caac82160264ba162871ee8cd709fdb532e35e3734898a8d7d888987f"
+        }
+      }
+    ]
+  },
+  "reproduce": [
+    "bash scripts/prepare-dependencies.sh",
+    "CARGO_INCREMENTAL=0 cargo test -p connect-store --lib --locked --offline -j1 events::tests -- --test-threads=1",
+    "CONNECT_G6_AUXILIARY_WITNESSES=.local/gate-6/auxiliary-clauses/witnesses CARGO_INCREMENTAL=0 cargo test -p connect-server --test gate6_canonical_runtime --locked --offline -j1 auxiliary_clauses::production_auxiliary_conversation_clauses_0069_through_0080 -- --exact --test-threads=1",
+    "CARGO_INCREMENTAL=0 cargo test -p connect-server --test gate6_auxiliary --locked --offline -j1 public_native_record_fetch_uses_current_sources_and_exact_projected_digest -- --exact --test-threads=1",
+    "npm --prefix sdk/typescript run build",
+    "node --test sdk/tests/events.test.mjs",
+    "PYTHONPATH=sdk/python python3 -m unittest discover -s sdk/tests -p test_events.py"
+  ],
+  "implementation": [
+    "Original closure metadata is reserved atomically on authoritative journal insertion, immutable across recipients and replay; current authorization can still hide it.",
+    "Signed Conversation closure hints precede their cursor-bearing facts for finite and physically owned live subscriptions.",
+    "Pinned dispatcher patch admits closure and existing vCon-ready hints under original subscription scope, current query authority and deadline.",
+    "Both SDKs decode bounded original closure facts and reject malformed shape, foreign Conversation, wrong event/Session binding, invalid timestamp/code, Unicode and UTF-8 byte bounds. Generated OpenAPI matches new positive closure facts.",
+    "Actual production record test receives live vCon-ready before record_ready, replays finite discovery and independently fetches the authorized original/projected source after restart."
+  ],
+  "initial_attempts": [
+    {
+      "evidence": {
+        "path": ".local/gate-6/auxiliary-clauses/runtime-build-v1.log",
+        "sha256": "f6bb9844255077d79c08971d00db38d3171ba605f8512e553b66ea241a3929c9"
+      },
+      "result": "failed compile: new Session End test incorrectly used optional fields; fixed concrete fields"
+    },
+    {
+      "evidence": {
+        "path": ".local/gate-6/auxiliary-clauses/production-conversations-v1.log",
+        "sha256": "726f5e80250a3c5516f8ce8d19995c85e5c3d27d1ac0033d936c65e72c4e99df"
+      },
+      "result": "failed Identity-ID session invitation with forbidden; real U6-REQ-0083 gap remains open. Conversation policy vector now selects existing Participant IDs."
+    },
+    {
+      "evidence": {
+        "path": ".local/gate-6/auxiliary-clauses/production-conversations-v2.log",
+        "sha256": "70d538012efc6375fb3188a01e65c62436e7404a7d4fc581d1bad3a7b763736c"
+      },
+      "result": "failed accept because test omitted required current topology revision; fixed explicit revisions for accept/end"
+    },
+    {
+      "evidence": {
+        "path": ".local/gate-6/auxiliary-clauses/openapi-events-v1.log",
+        "sha256": "010fea758da079166b61ea3befa4651ea39bb2a1ba8a7e08a604aa509b3161b7"
+      },
+      "result": "broad historical shared-vector/schema comparison failed on pre-existing stale Session snapshot shape; not qualified. Only new closure facts are schema-checked here."
+    }
+  ],
+  "limits": [
+    "Only the 12 named Conversation clauses are qualified here; the other 49 assigned clauses remain open until their actual cases are reconciled.",
+    "Identity-ID Session invitations are a known unresolved next-clause defect (U6-REQ-0083); interop URI targets and full typed Session lifecycle remain open.",
+    "Task-scoped enrollment/step-up clauses U6-REQ-0061\u20130066 remain assigned to G6-055 and its prerequisites in the full 105-task goal.",
+    "No Linux, remote, browser, provider, acceptance, publication or full task completion claim. Earlier schema86/136-patch reports remain historical, including explicitly unresolved reliability failures."
+  ],
+  "continuation_evidence": "docs/evidence/gate-6/auxiliary-session-identity-targets.json",
+  "continuation_note": "The original Identity-target failure is repaired and qualified by this later component report. The12 Conversation clauses also pass again on that newer source snapshot. Interop URI and wider Session behavior remain open."
+}

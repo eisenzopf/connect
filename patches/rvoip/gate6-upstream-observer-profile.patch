@@ -1,0 +1,14 @@
+diff --git a/crates/foundation/rvoip-core/tests/p5_pause_and_listener.rs b/crates/foundation/rvoip-core/tests/p5_pause_and_listener.rs
+--- a/crates/foundation/rvoip-core/tests/p5_pause_and_listener.rs
++++ b/crates/foundation/rvoip-core/tests/p5_pause_and_listener.rs
+@@ -52,7 +52,9 @@
+             clock_rate_hz: 8_000,
+             channels: 1,
+             fmtp: None,
+-            payload_type: None,
++            // The fixture intentionally carries PCMU on a negotiated dynamic
++            // PT. frame() uses that same exact hop-local mapping.
++            payload_type: Some(111),
+         }
+     }
+     fn direction(&self) -> Direction {

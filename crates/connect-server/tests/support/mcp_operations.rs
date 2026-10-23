@@ -15,10 +15,16 @@ pub fn cases(cid: &str, peer: &str) -> Vec<Operation> {
         Operation::Send {
             request_id: "connect_send".into(),
             conversation_id: cid.clone(),
-            body: "Parity keeps one message".into(),
+            message: connect_protocol::messages::MessageDraft::text_all("Parity keeps one message"),
         },
         Operation::History {
             conversation_id: cid.clone(),
+            after: None,
+            limit: 100,
+        },
+        Operation::MessageReceipts {
+            conversation_id: cid.clone(),
+            message_id: "unknown".into(),
             after: None,
             limit: 100,
         },
@@ -32,6 +38,7 @@ pub fn cases(cid: &str, peer: &str) -> Vec<Operation> {
             limit: 100,
         },
         Operation::ArtifactBegin {
+            to: connect_protocol::messages::MessageAudience::all(),
             request_id: "connect_artifact_begin".into(),
             conversation_id: cid.clone(),
             name: "draft.txt".into(),
@@ -57,6 +64,36 @@ pub fn cases(cid: &str, peer: &str) -> Vec<Operation> {
             artifact_id: "unknown".into(),
             offset: 0,
             limit: 100,
+        },
+        Operation::ArtifactInspect {
+            conversation_id: cid.clone(),
+            artifact_id: "unknown".into(),
+        },
+        Operation::ArtifactUploadLink {
+            conversation_id: cid.clone(),
+            artifact_id: "unknown".into(),
+            expires_in: 60,
+        },
+        Operation::ArtifactDownloadLink {
+            conversation_id: cid.clone(),
+            artifact_id: "unknown".into(),
+            message_id: "unknown".into(),
+            expires_in: 60,
+        },
+        Operation::ArtifactLinkGet {
+            conversation_id: cid.clone(),
+            artifact_id: "unknown".into(),
+            link: "invalid".into(),
+            offset: 0,
+            limit: 100,
+        },
+        Operation::ArtifactLinkAppend {
+            request_id: "connect_artifact_link_append".into(),
+            conversation_id: cid.clone(),
+            artifact_id: "unknown".into(),
+            link: "invalid".into(),
+            offset: 0,
+            data: "YQ==".into(),
         },
         Operation::ArtifactDelete {
             request_id: "connect_artifact_delete".into(),

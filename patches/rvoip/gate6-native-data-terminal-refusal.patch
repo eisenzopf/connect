@@ -1,0 +1,105 @@
+--- a/crates/uctp/rvoip-uctp/src/staged_data.rs
++++ b/crates/uctp/rvoip-uctp/src/staged_data.rs
+@@ -580,6 +580,17 @@
+                                         physical.submit(&origin, admission).inspect(|_| {
+                                             counters.submitted.fetch_add(1, Ordering::AcqRel);
+                                         })
++                                    }
++                                    Err(StreamControlError::NotRecipient) => {
++                                        // Definitive refusal of this message only. No IO
++                                        // began; preserve its original outcome and let
++                                        // later authorized messages use the same port.
++                                        counters.not_started.fetch_add(1, Ordering::AcqRel);
++                                        pending_outcome
++                                            .lock()
++                                            .unwrap_or_else(|p| p.into_inner())
++                                            .push_back(outcome);
++                                        break;
+                                     }
+                                     Err(_) => Err(DispatchError::AuthorityUnavailable),
+                                 }
+--- a/crates/uctp/rvoip-uctp/tests/support/canonical_media/reliable_data.rs
++++ b/crates/uctp/rvoip-uctp/tests/support/canonical_media/reliable_data.rs
+@@ -9,6 +9,7 @@
+     owners: HashMap<ConnectionId, MediaOwner>,
+     wires: HashMap<ConnectionId, Arc<RwLock<WireGrants>>>,
+     denied: BTreeSet<ConnectionId>,
++    terminal_operations: BTreeSet<String>,
+     key_refusals: Arc<std::sync::atomic::AtomicUsize>,
+ }
+ struct DataPolicy(Arc<RwLock<DataState>>);
+@@ -88,6 +89,12 @@
+                 vec![],
+             )
+         };
++        if message
++            .operation_id()
++            .is_some_and(|id| data.terminal_operations.contains(id))
++        {
++            return Err(StreamControlError::NotRecipient);
++        }
+         let owner = data
+             .owners
+             .get(s.connection)
+@@ -366,6 +373,7 @@
+             owners: HashMap::new(),
+             wires: HashMap::new(),
+             denied: BTreeSet::new(),
++            terminal_operations: BTreeSet::new(),
+             key_refusals: Default::default(),
+         }))));
+         let mut core = core_fixture::Fixture::new().await;
+@@ -1464,3 +1472,53 @@
+         }
+     }
+ }
++
++#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
++async fn actual_native_data_terminal_queued_message_refusal_records_not_started_and_unblocks_the_next_message(
++) {
++    let mut s = DataScene::new("quic", false).await;
++    s.select(0, 1).await;
++    // Keep the first already-written outcome pending, so the next message is
++    // really in the native writer queue before its policy becomes terminal.
++    s.live[1].ready.busy.store(true, Ordering::Release);
++    let first = s.request(0, 210, "first physical write".into(), "utf8");
++    assert_eq!(s.publish(0, first).await.kind(), "ack");
++    s.receive(1, 0, 210, "first physical write", "utf8").await;
++    let second = s.request(0, 211, "refused before IO".into(), "utf8");
++    assert_eq!(s.publish(0, second).await.kind(), "ack");
++    core_fixture::until(|| s.factory.adapter.queued_data(&s.live[1].id) == Some(1)).await;
++    s.policy
++        .0
++        .write()
++        .await
++        .terminal_operations
++        .insert("data_operation_0_211".into());
++    s.live[1].ready.busy.store(false, Ordering::Release);
++    core_fixture::until(|| {
++        s.live[1]
++            .ready
++            .observations
++            .lock()
++            .unwrap()
++            .iter()
++            .any(|o| {
++                o.operation_id == "data_operation_0_211"
++                    && o.message_id.as_str() == "data_message_211"
++                    && o.disposition == DataDisposition::NotStarted
++            })
++    })
++    .await;
++    let third = s.request(0, 212, "next authorized message".into(), "utf8");
++    assert_eq!(s.publish(0, third).await.kind(), "ack");
++    s.receive(1, 0, 212, "next authorized message", "utf8")
++        .await;
++    assert!(!s.live[1]
++        .ready
++        .observations
++        .lock()
++        .unwrap()
++        .iter()
++        .any(|o| o.operation_id == "data_operation_0_211"
++            && o.disposition != DataDisposition::NotStarted));
++    s.stop().await;
++}

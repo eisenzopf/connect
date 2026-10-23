@@ -1,0 +1,173 @@
+{
+  "kind": "gate6-component-evidence",
+  "recorded_at": "2026-10-19T20:47:46.877044+00:00",
+  "task": "G6-040",
+  "status": "in-progress",
+  "passed": true,
+  "scope": "Controlled Store native handoff custody, attributed capture and once-only role/result projection; no actual native Core execution.",
+  "schema_version": 54,
+  "pinned_patches": 108,
+  "source_lock": {
+    "path": "dependencies/source-lock.json",
+    "sha256": "2551a048c489fb816770a7147e5fe2d525e493261b4c297fee4002a0b1e38d5e"
+  },
+  "verification": [
+    {
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "--offline",
+        "-j1",
+        "-p",
+        "connect-store",
+        "--lib",
+        "--",
+        "--test-threads=2"
+      ],
+      "path": ".local/gate-6/handoff-custody-final-store-all.log",
+      "sha256": "51c7fb128a46e5bef8139a6a2e1b4a44f3dfe1d9d18a4f50cf8bf5f299c8a2d3",
+      "exit_code": 0,
+      "passed": 542,
+      "ignored": 3,
+      "ignored_note": "Crash helpers invoked by passing parent tests; not standalone passes",
+      "test_binary": {
+        "path": "target/debug/deps/connect_store-500690b8d898aed1",
+        "sha256": "afc39218126a3fd14e14e66636cded790ed4c2f769d4c10dcf58ec3a13a29042"
+      }
+    }
+  ],
+  "static_checks": [
+    {
+      "name": "format",
+      "command": [
+        "bash",
+        "scripts/format.sh",
+        "--",
+        "--check"
+      ],
+      "path": ".local/gate-6/handoff-custody-final-format.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "exit_code": 0
+    },
+    {
+      "name": "wire-reference",
+      "command": [
+        "python3",
+        "scripts/generate-gate6-schemas.py",
+        "--check"
+      ],
+      "path": ".local/gate-6/handoff-custody-final-wire-reference.log",
+      "sha256": "1a8d88a87dbfff6b08aed7a95b3a2664a83c7a9182374d71af8be32ba618e108",
+      "exit_code": 0
+    },
+    {
+      "name": "event-reference",
+      "command": [
+        "python3",
+        "scripts/generate-gate6-event-reference.py",
+        "--check"
+      ],
+      "path": ".local/gate-6/handoff-custody-final-event-reference.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "exit_code": 0
+    },
+    {
+      "name": "http-reference",
+      "command": [
+        "python3",
+        "scripts/generate-canonical-http-openapi.py",
+        "--check"
+      ],
+      "path": ".local/gate-6/handoff-custody-final-http-reference.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "exit_code": 0
+    },
+    {
+      "name": "contracts",
+      "command": [
+        ".local/gate-6/verification-venv/bin/python",
+        "scripts/check-gate6-contracts.py",
+        "--output",
+        ".local/gate-6/handoff-custody-final-contracts.json"
+      ],
+      "path": ".local/gate-6/handoff-custody-final-contracts.log",
+      "sha256": "78cfc70fabfe40c258a81a74c0024b55e339db8c2bfff88d01f70f5b89f49d39",
+      "exit_code": 0
+    },
+    {
+      "name": "dependencies",
+      "command": [
+        "bash",
+        "scripts/prepare-dependencies.sh"
+      ],
+      "path": ".local/gate-6/handoff-custody-final-dependencies.log",
+      "sha256": "fd9d7b181e3ccba9b643af55a186cf132c60aac99c734b2ee4e4e549afe5ffc2",
+      "exit_code": 0
+    },
+    {
+      "name": "diff",
+      "command": [
+        "git",
+        "diff",
+        "--check"
+      ],
+      "path": ".local/gate-6/handoff-custody-final-diff.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "exit_code": 0
+    },
+    {
+      "name": "progress",
+      "command": [
+        "python3",
+        "scripts/check-gate6-progress.py"
+      ],
+      "path": ".local/gate-6/handoff-custody-final-progress.log",
+      "sha256": "f3b9b4aefb902a70b4b09f47531c703f1026a2ea42e13759c3e88205978e6125",
+      "exit_code": 0
+    }
+  ],
+  "implemented": [
+    "Exact immutable source/plan/worker/effect native attempt custody and generic-worker/effect/cleanup/reconcile exclusion",
+    "Once-only begin under fresh bounded current target/caller/physical/member/role/stream authority",
+    "Cancellation and restart retain uncertainty without resubmission; late cancel after known application cannot assert no commit",
+    "Attributed paired role/media outcome capture with immutable bounded public observation and causal ID, independent of later credential revocation",
+    "Atomic idempotent Session/Conversation role projection, default/Session/operation events and stable result IDs; other Session roles and history unchanged",
+    "Capacity rollback/retry and refusal to overwrite newer topology/epochs/revisions/generations or physical loss"
+  ],
+  "not_implemented": [
+    "Actual managed Core handoff integration and prepared/fresh safe target API extension",
+    "Ongoing post-handoff physical media/role authority independent of original execution grant",
+    "Owned canonical native handoff dispatch, actual cleanup and actual AI/human/failure/recovery qualification"
+  ],
+  "tested_source_snapshot": {
+    "path": ".local/gate-6/handoff-custody-final-inputs.json",
+    "sha256": "81b7b159675d7d22e65463e8b8dd548d93e6af163be9e22c93138b7748bac6b7",
+    "inputs": 1164
+  },
+  "post_test_documentation_delta": {
+    "docs/connect-gate-6-implementation.html": {
+      "before": "291db27ed5f9f25d43e6659dc17fcedcf0266b371ffe1006d13c10d9c32a0962",
+      "after": "47311a2a53c456b181a7d500c4959d84093d4a2682eb361e95e1ab9c1fab721d"
+    }
+  },
+  "production_and_rust_test_inputs_unchanged": true,
+  "previous_checkpoint": {
+    "path": "docs/evidence/gate-6/native-handoff-read.json",
+    "sha256": "f92ca2686ad68258f19d936a55d827de4d223a6054b8dacb696030e32f60aeee"
+  },
+  "next_requirements": {
+    "path": ".local/gate-6/handoff-custody-next.json",
+    "sha256": "7e14aa5cb034bfe278d2aa36d198302faec6b1709230aa1bc7b79afe3ecb7f3c"
+  },
+  "diagnostics": [
+    "Review identified the late-cancel-after-confirmed-capture path could otherwise report cancelled-before-commit. Native handoff started custody now preserves reconciliation-required; a dedicated captured-projection regression passes.",
+    "Controlled metadata/observation tests do not prove decoded readiness, actual Core application or active native route continuity."
+  ],
+  "not_claimed": [
+    "Actual handoff execution, incoming decoded readiness or a new human consent gesture",
+    "Live model memory/provider, Linux/browser/remote/performance/acceptance qualification",
+    "Full workspace test run, commit, push or publication"
+  ],
+  "all_started_processes_terminal": true
+}

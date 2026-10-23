@@ -1,4 +1,5 @@
 //! Durable application storage. SQLite is the only application-state authority.
+mod artifact_links;
 mod artifacts;
 mod availability;
 mod connector_observations;
@@ -6,30 +7,153 @@ mod connector_registry;
 mod contacts;
 mod context;
 mod discovery;
+mod endpoint_runtime;
+mod participant_routes;
 pub use discovery::{BrowserRoute, DiscoveryRuntime};
+pub use endpoint_runtime::{
+    AssistantEndpointHost, EndpointObservation, EndpointProfile, EndpointRuntime,
+    ObservationSource, ENDPOINT_OBSERVATION_LEASE, ENDPOINT_OBSERVATION_LIMIT,
+};
+pub use participant_routes::SelectedEndpointBinding;
+mod audience;
+mod canonical_control;
+mod conversation_control;
 mod conversation_queries;
 mod conversations;
 mod cursor;
+mod events;
+pub use events::{SessionObservationActivity, SessionObservationSource};
 mod identity;
+mod installation_ownership;
+pub use installation_ownership::{
+    InstallationOwnership, ProviderWorkerOwnership, RuntimeRetirementSignal,
+};
 mod media_end;
+mod membership;
+mod messages;
 mod operations;
+mod transitions;
+pub use transitions::provider_sessions::{
+    ProviderIncomingVoiceResolution, ProviderIncomingVoiceResolutionCapture,
+    ProviderIncomingVoiceResolutionPreparation, ProviderIncomingVoiceResolutionResult,
+    ProviderSessionVoiceAction, ProviderSessionVoiceCapture, ProviderSessionVoiceDispatch,
+    ProviderSessionVoiceOrigin, ProviderSessionVoicePolicy, ProviderSessionVoiceView,
+    ProviderSessionVoiceWorker, ProviderVoiceImport, ProviderVoiceIngressPolicy, ProviderVoiceScan,
+    ProviderVoiceScanCapture,
+};
+pub use transitions::{
+    CleanupSettlement, EvidenceSource, InitialTelephoneAnswerCapture,
+    InitialTelephoneAnswerRecorded, InitialTelephoneAttempt, InitialTelephoneMediaOrigin,
+    InitialTelephoneMediaRead, InitialTelephoneNativeRead, InitialTelephoneOrigin,
+    InitialTelephonePolicy, InitialTelephoneRead, InitialTelephoneReadyObservation,
+    InitialTelephoneRuntimeObservation, InitialTelephoneSignaling, InitialTelephoneSource,
+    NativeConsultationApplied, NativeConsultationAttempt, NativeConsultationLease,
+    NativeConsultationOrigin, NativeConsultationPreparation, NativeConsultationReturnApplied,
+    NativeConsultationReturnAttempt, NativeConsultationReturnLease, NativeConsultationReturnOrigin,
+    NativeConsultationTarget, NativeDtmfBatch, NativeDtmfRead, NativeDtmfRecipient,
+    NativeDtmfTarget, NativeHandoffApplied, NativeHandoffAttempt, NativeHandoffContext,
+    NativeHandoffLease, NativeHandoffOrigin, NativeOfferLease, NativeOfferObservation,
+    NativeOfferPreflightRefusal, NativeOfferRecoveryObservation, NativeOfferRuntimeObservation,
+    NativeReadyObservation, NativeReplacementAllocated, NativeReplacementAllocationAttempt,
+    NativeReplacementAllocationRead, NativeReplacementAudienceCapture,
+    NativeReplacementCommitAttempt, NativeReplacementCommitUncertain, NativeReplacementCommitted,
+    NativeReplacementContext, NativeReplacementMediaAttempt, NativeReplacementMediaCapture,
+    NativeReplacementMediaOrigin, NativeReplacementMediaPhase, NativeReplacementMediaRead,
+    NativeReplacementOrigin, NativeReplacementPreparationAttempt,
+    NativeReplacementPreparationLease, NativeReplacementPrepared, NativeReplacementSceneRead,
+    NativeReplacementStartAttempt, NativeReplacementStartRead, NativeReplacementStartUncertain,
+    NativeReplacementStarted, NativeStreamCommitted, NativeStreamLease, ReplacementConfirmation,
+    ReplacementPreparationRequest, TelephoneAudioResources, TelephoneConnectionRuntimeObservation,
+    TelephoneConnectionSnapshot, TelephoneMediaOrigin, TelephoneMediaRead,
+    TelephoneNativeMediaRead, TelephoneReplacementAllocated, TelephoneReplacementAttempt,
+    TelephoneReplacementAudienceCapture, TelephoneReplacementCommitAttempt,
+    TelephoneReplacementCommitUncertain, TelephoneReplacementCommitted,
+    TelephoneReplacementMediaOrigin, TelephoneReplacementMediaRead, TelephoneReplacementPhase,
+    TelephoneReplacementPhaseAttempt, TelephoneReplacementPhaseCapture, TelephoneReplacementPolicy,
+    TelephoneReplacementRead, TelephoneReplacementResourcesAttempt,
+    TelephoneReplacementResourcesCapture, TelephoneReplacementSceneRead,
+    TelephoneReplacementSubmitted, TelephoneReplacementUncertain, TelephoneReplacementWriteRead,
+    TransitionLease,
+};
+mod authority_admission;
+mod authority_fences;
+mod peer_authority;
+mod peer_credentials;
+mod user_delegation;
+pub use authority_fences::{
+    AuthorityGuardSet, AuthorityMode, AuthorityScope, AuthorityWait, CancelAuthorityWait,
+};
+pub use peer_authority::{
+    AssistantContextFailure, AssistantProviderApplied, AssistantProviderAttempt,
+    AssistantProviderClosed, AssistantProviderContext, AssistantProviderCreated,
+    AssistantProviderEnd, AssistantProviderExport, AssistantProviderInitialization,
+    AssistantProviderRead, AssistantProviderRejected, AssistantProviderTiming,
+    AssistantProviderUpdate, AssistantProviderUpdateApplied, AssistantProviderUpdateExport,
+    AssistantProviderUpdateRejected, AssistantProviderUpdateStatus, NativeAssistantContextRead,
+    NativeConnectionFlowFact, NativeConnectionFlowObservation, NativeConsultationRead,
+    NativeConsultationSelection, NativeCredentialRefreshApplied, NativeCredentialRefreshAttempt,
+    NativeCredentialRefreshPlan, NativeCredentialRefreshTarget, NativeDataProjection,
+    NativeDataRead, NativeDataWriter, NativeHandoffRead, NativeHandoffSelection, NativeMediaOrigin,
+    NativeMediaRead, NativeReconciliationRead, NativeReplacementPreparationRead,
+    NativeReplacementSelection, NativeReplacementSourceOrigin, NativeReplacementSourceRead,
+    NativeReturnRead, NativeReturnSelection, NativeSignalRead, NativeStreamProjection,
+    PeerAuthorityGuard, PeerAuthorityRequest, PeerCommand, PeerConnectionProjection,
+    PeerConversationCommand, PeerDataCommand, PeerDeviceClaim, PeerOperationClaim,
+    PeerReadReceiptCommand, PeerSessionProjection, PeerSubscriptionCommand, PeerSubscriptionRead,
+    PeerSubscriptionSource, SessionRoleMediaRead,
+};
+pub use user_delegation::{IssuedUserDelegation, UserAuthorization};
+mod private_provider;
 mod provider_chat_context;
 mod provider_context;
+pub use private_provider::{
+    PrivateProviderApplied, PrivateProviderAttempt, PrivateProviderContext, PrivateProviderCreated,
+    PrivateProviderExport, PrivateProviderMediaRead, PrivateProviderRead,
+};
+mod provider_dispatch;
+mod provider_reconciliation;
+pub use provider_reconciliation::ProviderReconciliation;
+mod incoming_contacts;
+pub use incoming_contacts::SmsObservation;
+mod provider_message_endpoints;
 mod providers;
+pub use provider_message_endpoints::ProviderMessageEndpoint;
 mod provisioning;
+pub use peer_credentials::{CredentialMetadata, PeerSigningKey};
+mod recipient_receipts;
 mod sms_eligibility;
 pub use sms_eligibility::{
     control_kind as sms_control_kind, SmsGrant, SmsGrantSnapshot, SMS_LEASE_SECONDS,
 };
+mod connection_control;
+pub mod records;
 mod recovery;
 mod runtime_epoch;
+mod session_control;
+mod session_invitations;
+mod session_lifecycle;
+mod session_participant_lifecycle;
+mod session_reconnect;
+mod session_terminal_lifecycle;
+pub use session_invitations::decisions::{
+    SessionInvitationDecision, SessionInvitationDecisionClaim, SessionInvitationDecisionOutcome,
+};
+pub use session_invitations::{
+    SessionInvitationCancellation, SessionInvitationMetadata, SessionInvitationRead,
+    SessionInvitationSource,
+};
+mod session_decisions;
 mod session_routes;
 mod sessions;
 mod sip_legs;
+mod startup_authority;
 mod tasks;
 mod voice;
 pub use providers::{event_digest as provider_event_digest, ProviderJob, Route};
-pub use voice::{InboundCall, VoiceAction, VoiceIngress, VoiceJob, VoiceRoute};
+pub use voice::{
+    CapturedVoiceResult, InboundCall, VoiceAction, VoiceDispatch, VoiceIngress, VoiceJob,
+    VoiceRoute,
+};
 
 use connect_protocol::{Error, Limits, Result};
 use rand::RngCore;
@@ -38,7 +162,7 @@ use sha2::{Digest, Sha256};
 use std::{
     collections::HashSet,
     path::{Path, PathBuf},
-    sync::{Mutex, MutexGuard},
+    sync::Mutex,
     time::Duration,
 };
 
@@ -47,13 +171,24 @@ pub use recovery::Snapshot;
 pub use sessions::{RoutedInboundSession, VapiSessionRoute};
 pub use sip_legs::{SipConnectionEnd, SipLegAction, SipLegJob};
 pub use tasks::{
-    IssuedTaskGrant, NativeTaskAuthority, TaskCreateDefaults, TaskInvocation, VapiSessionContext,
+    IssuedTaskGrant, NativeTaskAuthority, TaskCreateDefaults, TaskInvocation,
+    TaskObservationBinding, VapiSessionContext,
 };
-pub const SCHEMA_VERSION: u32 = 20;
+pub const SCHEMA_VERSION: u32 = 97;
 const STARTUP_BLOB_CLEANUP_LIMIT: usize = 100;
 
 pub struct Store {
+    authority: std::sync::Arc<authority_fences::Manager>,
+    runtime_ownership: installation_ownership::Binding,
+    link_epoch: String,
+    events: events::Runtime,
+    transition_runtime: String,
+    runtime_epoch: String,
+    recover_foreign_runtime: bool,
     connectors: connector_registry::Registry,
+    private_provider_cache: private_provider::Cache,
+    record_context_projector:
+        std::sync::OnceLock<std::sync::Arc<dyn records::RecordContextProjector>>,
     connection: Mutex<Connection>,
     pub(crate) limits: Limits,
     path: PathBuf,
@@ -69,6 +204,10 @@ impl Store {
             ));
         }
         recovery::create_private_file(path)?;
+        let canonical_path = authority_fences::validate_path(path)?;
+        let path = canonical_path.as_path();
+        let runtime_ownership =
+            installation_ownership::Binding::Owned(InstallationOwnership::for_store(path)?);
         let connection = Connection::open_with_flags(path, OpenFlags::SQLITE_OPEN_READ_WRITE)
             .map_err(|_| Error::storage())?;
         Self::configure(&connection)?;
@@ -121,10 +260,237 @@ impl Store {
             .map_err(|_| Error::storage())?;
         tx.execute_batch(include_str!("../migrations/020_provisioning.sql"))
             .map_err(|_| Error::storage())?;
+        tx.execute_batch(include_str!("../migrations/021_membership_audiences.sql"))
+            .map_err(|_| Error::storage())?;
+        tx.execute_batch(include_str!("../migrations/022_typed_messages.sql"))
+            .map_err(|_| Error::storage())?;
+        tx.execute_batch(include_str!("../migrations/023_attachment_audiences.sql"))
+            .map_err(|_| Error::storage())?;
+        tx.execute_batch(include_str!("../migrations/024_recipient_receipts.sql"))
+            .map_err(|_| Error::storage())?;
+        tx.execute_batch(include_str!("../migrations/025_transition_ledger.sql"))
+            .map_err(|_| Error::storage())?;
+        tx.execute_batch(include_str!("../migrations/026_event_recovery.sql"))
+            .map_err(|_| Error::storage())?;
+        tx.execute_batch(include_str!("../migrations/027_event_provenance.sql"))
+            .map_err(|_| Error::storage())?;
+        tx.execute_batch(include_str!("../migrations/028_peer_credentials.sql"))
+            .map_err(|_| Error::storage())?;
+        tx.execute_batch(include_str!("../migrations/029_authority_fences.sql"))
+            .map_err(|_| Error::storage())?;
+        tx.execute_batch(include_str!("../migrations/030_runtime_ownership.sql"))
+            .map_err(|_| Error::storage())?;
+        tx.execute_batch(include_str!("../migrations/031_provider_dispatch.sql"))
+            .map_err(|_| Error::storage())?;
+        tx.execute_batch(include_str!("../migrations/032_control_receipts.sql"))
+            .map_err(|_| Error::storage())?;
+        tx.execute_batch(include_str!("../migrations/033_conversation_control.sql"))
+            .map_err(|_| Error::storage())?;
+        tx.execute_batch(include_str!("../migrations/034_membership_control.sql"))
+            .map_err(|_| Error::storage())?;
+        tx.execute_batch(include_str!("../migrations/035_session_control.sql"))
+            .map_err(|_| Error::storage())?;
+        tx.execute_batch(include_str!("../migrations/036_connection_offers.sql"))
+            .map_err(|_| Error::storage())?;
+        tx.execute_batch(include_str!(
+            "../migrations/037_native_offer_operations.sql"
+        ))
+        .map_err(|_| Error::storage())?;
+        tx.execute_batch(include_str!(
+            "../migrations/038_native_offer_rejections.sql"
+        ))
+        .map_err(|_| Error::storage())?;
+        tx.execute_batch(include_str!(
+            "../migrations/039_native_connection_lifetimes.sql"
+        ))
+        .map_err(|_| Error::storage())?;
+        tx.execute_batch(include_str!(
+            "../migrations/040_native_stream_operations.sql"
+        ))
+        .map_err(|_| Error::storage())?;
+        tx.execute_batch(include_str!("../migrations/041_native_connection_end.sql"))
+            .map_err(|_| Error::storage())?;
+        tx.execute_batch(include_str!("../migrations/042_native_data_messages.sql"))
+            .map_err(|_| Error::storage())?;
+        tx.execute_batch(include_str!("../migrations/043_native_data_writes.sql"))
+            .map_err(|_| Error::storage())?;
+        tx.execute_batch(include_str!("../migrations/044_native_reconciliation.sql"))
+            .map_err(|_| Error::storage())?;
+        tx.execute_batch(include_str!("../migrations/045_native_codec_controls.sql"))
+            .map_err(|_| Error::storage())?;
+        tx.execute_batch(include_str!(
+            "../migrations/046_native_consultation_attempts.sql"
+        ))
+        .map_err(|_| Error::storage())?;
+        tx.execute_batch(include_str!("../migrations/047_transition_extensions.sql"))
+            .map_err(|_| Error::storage())?;
+        tx.execute_batch(include_str!("../migrations/048_private_native_legs.sql"))
+            .map_err(|_| Error::storage())?;
+        tx.execute_batch(include_str!("../migrations/049_private_native_content.sql"))
+            .map_err(|_| Error::storage())?;
+        tx.execute_batch(include_str!(
+            "../migrations/050_native_private_lifetimes.sql"
+        ))
+        .map_err(|_| Error::storage())?;
+        tx.execute_batch(include_str!(
+            "../migrations/051_native_consultation_returns.sql"
+        ))
+        .map_err(|_| Error::storage())?;
+        tx.execute_batch(include_str!(
+            "../migrations/052_private_provider_contexts.sql"
+        ))
+        .map_err(|_| Error::storage())?;
+        tx.execute_batch(include_str!("../migrations/053_consultation_join.sql"))
+            .map_err(|_| Error::storage())?;
+        tx.execute_batch(include_str!("../migrations/054_native_handoffs.sql"))
+            .map_err(|_| Error::storage())?;
+        tx.execute_batch(include_str!("../migrations/055_native_replacements.sql"))
+            .map_err(|_| Error::storage())?;
+        tx.execute_batch(include_str!(
+            "../migrations/056_native_replacement_media.sql"
+        ))
+        .map_err(|_| Error::storage())?;
+        tx.execute_batch(include_str!(
+            "../migrations/057_native_replacement_lifetimes.sql"
+        ))
+        .map_err(|_| Error::storage())?;
+        tx.execute_batch(include_str!(
+            "../migrations/058_native_replacement_audiences.sql"
+        ))
+        .map_err(|_| Error::storage())?;
+        tx.execute_batch(include_str!(
+            "../migrations/059_telephone_replacement_resources.sql"
+        ))
+        .map_err(|_| Error::storage())?;
+        tx.execute_batch(include_str!(
+            "../migrations/060_telephone_replacement_phases.sql"
+        ))
+        .map_err(|_| Error::storage())?;
+        tx.execute_batch(include_str!(
+            "../migrations/061_telephone_replacement_commits.sql"
+        ))
+        .map_err(|_| Error::storage())?;
+        tx.execute_batch(include_str!(
+            "../migrations/062_native_assistant_providers.sql"
+        ))
+        .map_err(|_| Error::storage())?;
+        tx.execute_batch(include_str!(
+            "../migrations/063_native_assistant_context_phases.sql"
+        ))
+        .map_err(|_| Error::storage())?;
+        tx.execute_batch(include_str!(
+            "../migrations/064_agent_observation_contracts.sql"
+        ))
+        .map_err(|_| Error::storage())?;
+        tx.execute_batch(include_str!("../migrations/065_initial_telephone.sql"))
+            .map_err(|_| Error::storage())?;
+        tx.execute_batch(include_str!(
+            "../migrations/066_initial_telephone_answers.sql"
+        ))
+        .map_err(|_| Error::storage())?;
+        tx.execute_batch(include_str!("../migrations/067_provider_session_voice.sql"))
+            .map_err(|_| Error::storage())?;
+        tx.execute_batch(include_str!("../migrations/068_provider_voice_speaker.sql"))
+            .map_err(|_| Error::storage())?;
+        tx.execute_batch(include_str!("../migrations/069_provider_voice_ingress.sql"))
+            .map_err(|_| Error::storage())?;
+        tx.execute_batch(include_str!(
+            "../migrations/070_provider_voice_quarantine_resolution.sql"
+        ))
+        .map_err(|_| Error::storage())?;
+        tx.execute_batch(include_str!(
+            "../migrations/071_provider_message_endpoints.sql"
+        ))
+        .map_err(|_| Error::storage())?;
+        tx.execute_batch(include_str!("../migrations/072_incoming_contacts.sql"))
+            .map_err(|_| Error::storage())?;
+        tx.execute_batch(include_str!(
+            "../migrations/073_incoming_contact_routing.sql"
+        ))
+        .map_err(|_| Error::storage())?;
+        tx.execute_batch(include_str!("../migrations/074_incoming_voice_routing.sql"))
+            .map_err(|_| Error::storage())?;
+        tx.execute_batch(include_str!("../migrations/075_records.sql"))
+            .map_err(|_| Error::storage())?;
+        tx.execute_batch(include_str!("../migrations/076_session_record_intents.sql"))
+            .map_err(|_| Error::storage())?;
+        tx.execute_batch(include_str!("../migrations/077_record_view_format.sql"))
+            .map_err(|_| Error::storage())?;
+        tx.execute_batch(include_str!(
+            "../migrations/078_record_mutation_authority.sql"
+        ))
+        .map_err(|_| Error::storage())?;
+        tx.execute_batch(include_str!("../migrations/079_record_retention.sql"))
+            .map_err(|_| Error::storage())?;
+        tx.execute_batch(include_str!("../migrations/080_tenant_record_readers.sql"))
+            .map_err(|_| Error::storage())?;
+        tx.execute_batch(include_str!("../migrations/081_record_context_sources.sql"))
+            .map_err(|_| Error::storage())?;
+        tx.execute_batch(include_str!(
+            "../migrations/082_native_capability_advertisements.sql"
+        ))
+        .map_err(|_| Error::storage())?;
+        tx.execute_batch(include_str!("../migrations/083_native_dtmf_intents.sql"))
+            .map_err(|_| Error::storage())?;
+        tx.execute_batch(include_str!("../migrations/084_native_dtmf_recipients.sql"))
+            .map_err(|_| Error::storage())?;
+        tx.execute_batch(include_str!("../migrations/085_user_delegations.sql"))
+            .map_err(|_| Error::storage())?;
+        tx.execute_batch(include_str!(
+            "../migrations/086_native_credential_epochs.sql"
+        ))
+        .map_err(|_| Error::storage())?;
+        tx.execute_batch(include_str!(
+            "../migrations/087_conversation_closure_facts.sql"
+        ))
+        .map_err(|_| Error::storage())?;
+        tx.execute_batch(include_str!("../migrations/088_session_terminal_facts.sql"))
+            .map_err(|_| Error::storage())?;
+        tx.execute_batch(include_str!(
+            "../migrations/089_session_invitation_sources.sql"
+        ))
+        .map_err(|_| Error::storage())?;
+        tx.execute_batch(include_str!(
+            "../migrations/090_session_invitation_decisions.sql"
+        ))
+        .map_err(|_| Error::storage())?;
+        tx.execute_batch(include_str!(
+            "../migrations/091_session_invitation_cancellations.sql"
+        ))
+        .map_err(|_| Error::storage())?;
+        tx.execute_batch(include_str!(
+            "../migrations/092_native_connection_flow_facts.sql"
+        ))
+        .map_err(|_| Error::storage())?;
+        tx.execute_batch(include_str!("../migrations/093_session_started_facts.sql"))
+            .map_err(|_| Error::storage())?;
+        tx.execute_batch(include_str!(
+            "../migrations/094_session_participant_facts.sql"
+        ))
+        .map_err(|_| Error::storage())?;
+        tx.execute_batch(include_str!("../migrations/095_session_terminal_hints.sql"))
+            .map_err(|_| Error::storage())?;
+        tx.execute_batch(include_str!(
+            "../migrations/096_session_reconnect_grace.sql"
+        ))
+        .map_err(|_| Error::storage())?;
+        tx.execute_batch(include_str!("../migrations/097_record_ready_hints.sql"))
+            .map_err(|_| Error::storage())?;
         tx.commit().map_err(|_| Error::storage())?;
         let blob_directory = Self::create_blob_directory(path)?;
+        let authority = Self::authority_manager(path, &connection)?;
+        let runtime_epoch = runtime_ownership.epoch(path)?;
         let store = Self {
+            authority,
+            runtime_ownership,
+            link_epoch: uuid::Uuid::new_v4().to_string(),
+            events: Default::default(),
+            transition_runtime: transitions::runtime(path, &runtime_epoch)?,
+            runtime_epoch,
+            recover_foreign_runtime: true,
             connectors: Default::default(),
+            private_provider_cache: Default::default(),
+            record_context_projector: Default::default(),
             connection: Mutex::new(connection),
             limits,
             path: path.into(),
@@ -135,6 +501,55 @@ impl Store {
     }
     /// Open initialized state without creating a new database or resetting data.
     pub fn open(path: &Path, limits: Limits) -> Result<Self> {
+        Self::open_mode(path, limits, installation_ownership::Opening::Runtime)
+    }
+    /// Explicit operational repair opening. Fence stale worker handles without
+    /// resuming work; protected cleanup can use its reserved terminal room even
+    /// when ordinary recovery cannot append a nonterminal journal observation.
+    pub fn open_for_recovery(path: &Path, limits: Limits) -> Result<Self> {
+        Self::open_mode(path, limits, installation_ownership::Opening::Repair)
+    }
+    /// One-shot administration must not adopt a media runtime, fence another
+    /// process's live connection observations or run startup recovery/cleanup.
+    pub fn open_administration(path: &Path, limits: Limits) -> Result<Self> {
+        Self::open_mode(
+            path,
+            limits,
+            installation_ownership::Opening::Administration,
+        )
+    }
+    /// A server owns the supplied runtime. Store handles borrow its lifetime;
+    /// active SQL units retain a permit, while old Store Arcs cannot outlive it.
+    pub fn open_with_ownership(
+        path: &Path,
+        limits: Limits,
+        owner: &std::sync::Arc<InstallationOwnership>,
+    ) -> Result<Self> {
+        Self::open_mode(
+            path,
+            limits,
+            installation_ownership::Opening::Borrowed(owner),
+        )
+    }
+    fn open_mode(
+        path: &Path,
+        limits: Limits,
+        opening: installation_ownership::Opening<'_>,
+    ) -> Result<Self> {
+        use installation_ownership::{Binding, Opening};
+        let canonical_path = authority_fences::validate_path(path)?;
+        let path = canonical_path.as_path();
+        let maintenance = !matches!(opening, Opening::Administration);
+        let recover = !matches!(opening, Opening::Repair | Opening::Administration);
+        let runtime_ownership = match opening {
+            Opening::Runtime => Binding::Owned(InstallationOwnership::for_store(path)?),
+            Opening::Repair => Binding::Owned(InstallationOwnership::acquire(path)?),
+            Opening::Administration => Binding::Administration,
+            Opening::Borrowed(owner) => {
+                owner.check(path)?;
+                Binding::Runtime(std::sync::Arc::downgrade(owner))
+            }
+        };
         let connection = Connection::open_with_flags(path, OpenFlags::SQLITE_OPEN_READ_WRITE)
             .map_err(|_| Error::storage())?;
         let schema: u32 = connection
@@ -148,9 +563,19 @@ impl Store {
         }
         Self::configure(&connection)?;
         let blob_directory = Self::create_blob_directory(path)?;
-        runtime_epoch::fence_unobserved_connections(&connection, runtime_epoch::process_epoch())?;
+        let authority = Self::authority_manager(path, &connection)?;
+        let runtime_epoch = runtime_ownership.epoch(path)?;
         let store = Self {
+            authority,
+            runtime_ownership,
+            link_epoch: uuid::Uuid::new_v4().to_string(),
+            events: Default::default(),
+            transition_runtime: transitions::runtime(path, &runtime_epoch)?,
+            runtime_epoch,
+            recover_foreign_runtime: maintenance,
             connectors: Default::default(),
+            private_provider_cache: Default::default(),
+            record_context_projector: Default::default(),
             connection: Mutex::new(connection),
             limits,
             path: path.into(),
@@ -160,7 +585,20 @@ impl Store {
         // atomic blob rename but before publishing its database reference.
         // Keep startup work bounded while ensuring those bytes are eventually
         // erased without ever touching a referenced ready artifact.
-        store.purge_orphan_artifact_blobs(STARTUP_BLOB_CLEANUP_LIMIT)?;
+        if maintenance {
+            while store.fence_unobserved_connections(1000)? > 0 {}
+        }
+        if maintenance && recover {
+            while store.recover_transition_work(1000)? > 0 {}
+        } else if maintenance {
+            while store.fence_transition_workers(1000)? > 0 {}
+        }
+        if maintenance && recover {
+            while store.recover_native_assistant_providers(1000)? > 0 {}
+        }
+        if maintenance {
+            store.purge_orphan_artifact_blobs(STARTUP_BLOB_CLEANUP_LIMIT)?;
+        }
         Ok(store)
     }
     fn configure(c: &Connection) -> Result<()> {
@@ -168,9 +606,6 @@ impl Store {
             .map_err(|_| Error::storage())?;
         c.execute_batch("PRAGMA foreign_keys=ON; PRAGMA journal_mode=WAL; PRAGMA synchronous=FULL;")
             .map_err(|_| Error::storage())
-    }
-    pub(crate) fn connection(&self) -> Result<MutexGuard<'_, Connection>> {
-        self.connection.lock().map_err(|_| Error::storage())
     }
     pub fn installation_id(&self) -> Result<String> {
         self.connection()?
@@ -343,7 +778,7 @@ mod tests {
                 &key.id,
                 &Operation::Create {
                     request_id: "create".into(),
-                    participants: vec![],
+                    request: connect_protocol::conversations::CreateRequest::persistent(vec![]),
                 },
             )
             .unwrap()
@@ -361,14 +796,18 @@ mod tests {
         let send = Operation::Send {
             request_id: "full".into(),
             conversation_id: id,
-            body: "x".repeat(16_384),
+            message: connect_protocol::messages::MessageDraft::text_all("x".repeat(16_384)),
         };
         assert_eq!(
             store.execute(&key.id, &send).unwrap_err().code,
             "storage-unavailable"
         );
         let c = store.connection().unwrap();
-        for (table, expected) in [("messages", 0), ("journal", 1), ("requests", 1)] {
+        for (table, expected) in [
+            ("messages", 0),
+            ("journal", 1),
+            ("operation_control_receipts", 1),
+        ] {
             assert_eq!(
                 c.query_row::<i64, _, _>(&format!("SELECT COUNT(*) FROM {table}"), [], |r| r
                     .get(0))

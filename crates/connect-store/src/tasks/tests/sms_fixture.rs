@@ -20,6 +20,7 @@ pub(super) fn setup() -> (Fixture, String) {
                 target: PHONE.into(),
                 source: Some(SENDER.into()),
                 enabled: true,
+                incoming_to: connect_protocol::messages::MessageAudience::all(),
             },
         )
         .unwrap();

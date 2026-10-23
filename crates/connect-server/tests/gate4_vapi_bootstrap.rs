@@ -74,7 +74,7 @@ async fn callback_before_creation_receipt_binds_once_and_retries_one_real_mcp_ef
     let client = client(&setup).await;
     let mut first = None;
     for _ in 0..2 {
-        let result=client.call_tool(CallToolRequestParams::new("connect_send").with_arguments(json!({"request_id":"first-bootstrap-send","step_id":"draft","body":"Draft from the verified first callback"}).as_object().unwrap().clone())).await.unwrap();
+        let result=client.call_tool(CallToolRequestParams::new("connect_send").with_arguments(json!({"request_id":"first-bootstrap-send","step_id":"draft","message": connect_protocol::messages::MessageDraft::text_all(("Draft from the verified first callback").to_string())}).as_object().unwrap().clone())).await.unwrap();
         assert_ne!(result.is_error, Some(true));
         let content = result.structured_content.unwrap();
         assert_eq!(content["data"]["task_id"], f.task.id);

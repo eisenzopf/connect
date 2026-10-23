@@ -53,6 +53,7 @@ pub(super) fn request(
         P::Send,
         P::History,
         P::ContextView,
+        P::RecordGet,
         P::ContextDeliveries,
         P::Inbox,
         P::RequestStatus,

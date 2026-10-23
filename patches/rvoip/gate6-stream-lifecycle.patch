@@ -1,0 +1,1605 @@
+diff --git a/crates/foundation/rvoip-core/src/lib.rs b/crates/foundation/rvoip-core/src/lib.rs
+index 492263d..f6f1719 100644
+--- a/crates/foundation/rvoip-core/src/lib.rs
++++ b/crates/foundation/rvoip-core/src/lib.rs
+@@ -146,6 +146,7 @@ pub mod session;
+ pub mod signing;
+ pub mod store;
+ pub mod stream;
++pub mod stream_lifecycle;
+ pub mod subscriptions;
+ pub mod vcon;
+ pub mod video_bridge;
+diff --git a/crates/foundation/rvoip-core/src/relationships.rs b/crates/foundation/rvoip-core/src/relationships.rs
+index 2fea95a..593c54e 100644
+--- a/crates/foundation/rvoip-core/src/relationships.rs
++++ b/crates/foundation/rvoip-core/src/relationships.rs
+@@ -424,7 +424,7 @@ impl EndpointBinding {
+     pub fn revoke(&mut self) {
+         self.state = EndpointState::Revoked;
+     }
+-    fn usable_by(&self, member: &Membership) -> Result<(), RelationshipError> {
++    pub(crate) fn usable_by(&self, member: &Membership) -> Result<(), RelationshipError> {
+         member.require_active()?;
+         if !self.binding.same_identity(&member.binding) {
+             return Err(RelationshipError::OwnerMismatch);
+diff --git a/crates/foundation/rvoip-core/src/stream_lifecycle.rs b/crates/foundation/rvoip-core/src/stream_lifecycle.rs
+new file mode 100644
+index 0000000..83aba3c
+--- /dev/null
++++ b/crates/foundation/rvoip-core/src/stream_lifecycle.rs
+@@ -0,0 +1,635 @@
++//! Process-local negotiated stream model. The media coordinator must prepare
++//! actual routes without disturbing the old graph, acquire current policy,
++//! then commit graph changes with this model. This module neither authenticates
++//! a caller nor performs adapter I/O. A successful model commit is not physical
++//! media evidence or a durable operation receipt.
++
++use crate::capability::{CodecInfo, DataProtocol};
++use crate::ids::StreamId;
++use crate::relationships::{
++    BindingState, ConnectionBinding, EndpointBinding, Membership, SessionAppearance,
++};
++use std::collections::{BTreeMap, BTreeSet};
++use std::time::{Duration, Instant};
++
++const MAX_REVISION: u64 = 9_007_199_254_740_991;
++const MAX_STREAMS: usize = 32;
++const MAX_BINDINGS: usize = 4096;
++
++#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
++pub enum Medium {
++    Audio,
++    Video,
++    Screen,
++    Data,
++}
++
++#[derive(Clone, Copy, Debug, PartialEq, Eq)]
++pub enum StreamDirection {
++    Send,
++    Receive,
++    Both,
++}
++impl StreamDirection {
++    fn sends(self) -> bool {
++        self != Self::Receive
++    }
++    fn receives(self) -> bool {
++        self != Self::Send
++    }
++}
++
++/// RTP payload type and datagram handle are hop-local bindings, not codec
++/// compatibility. Parameters must agree exactly; no implicit transcoder or
++/// codec-name default is inferred here.
++#[derive(Clone, PartialEq, Eq)]
++pub enum MediaFormat {
++    Encoded {
++        name: String,
++        clock_rate_hz: u32,
++        channels: u8,
++        fmtp: Option<String>,
++    },
++    /// The approved data profile is reliable and ordered.
++    ReliableOrdered(DataProtocol),
++}
++impl std::fmt::Debug for MediaFormat {
++    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
++        f.write_str("MediaFormat(redacted)")
++    }
++}
++impl MediaFormat {
++    pub fn encoded(codec: &CodecInfo) -> Self {
++        Self::Encoded {
++            name: codec.name.to_ascii_lowercase(),
++            clock_rate_hz: codec.clock_rate_hz,
++            channels: codec.channels,
++            fmtp: codec.fmtp.clone(),
++        }
++    }
++    fn validate(&self, medium: Medium) -> Result<()> {
++        match self {
++            Self::ReliableOrdered(_) if medium == Medium::Data => Ok(()),
++            Self::Encoded {
++                name,
++                clock_rate_hz,
++                channels,
++                fmtp,
++            } if medium != Medium::Data => {
++                if name.is_empty()
++                    || name.len() > 64
++                    || !name
++                        .bytes()
++                        .all(|b| b.is_ascii_alphanumeric() || b"-._/".contains(&b))
++                    || *clock_rate_hz == 0
++                    || *clock_rate_hz > 192_000
++                    || fmtp
++                        .as_ref()
++                        .is_some_and(|p| p.len() > 1024 || p.chars().any(char::is_control))
++                    || (medium == Medium::Audio && !(1..=8).contains(channels))
++                    || (medium != Medium::Audio && (*channels != 0 || *clock_rate_hz != 90_000))
++                {
++                    return Err(MediaTransitionError::Invalid);
++                }
++                Ok(())
++            }
++            _ => Err(MediaTransitionError::Invalid),
++        }
++    }
++    fn matches(&self, other: &Self) -> bool {
++        match (self, other) {
++            (
++                Self::Encoded {
++                    name: a,
++                    clock_rate_hz: ar,
++                    channels: ac,
++                    fmtp: af,
++                },
++                Self::Encoded {
++                    name: b,
++                    clock_rate_hz: br,
++                    channels: bc,
++                    fmtp: bf,
++                },
++            ) => a.eq_ignore_ascii_case(b) && ar == br && ac == bc && af == bf,
++            _ => self == other,
++        }
++    }
++}
++
++#[derive(Clone, Debug, PartialEq, Eq)]
++pub struct MediaCapability {
++    pub medium: Medium,
++    pub formats: Vec<MediaFormat>,
++}
++#[derive(Clone, Debug)]
++pub struct EndpointMediaCapabilities {
++    pub send: Vec<MediaCapability>,
++    pub receive: Vec<MediaCapability>,
++    pub max_streams: usize,
++    pub renegotiation: bool,
++}
++impl EndpointMediaCapabilities {
++    fn validate(&self) -> Result<()> {
++        if self.max_streams == 0 || self.max_streams > MAX_STREAMS {
++            return Err(MediaTransitionError::Invalid);
++        }
++        for capabilities in [&self.send, &self.receive] {
++            if capabilities.len() > 4 {
++                return Err(MediaTransitionError::Invalid);
++            }
++            let mut kinds = BTreeSet::new();
++            for capability in capabilities {
++                if !kinds.insert(capability.medium)
++                    || capability.formats.is_empty()
++                    || capability.formats.len() > 32
++                {
++                    return Err(MediaTransitionError::Invalid);
++                }
++                for (index, format) in capability.formats.iter().enumerate() {
++                    format.validate(capability.medium)?;
++                    if capability.formats[..index]
++                        .iter()
++                        .any(|previous| previous.matches(format))
++                    {
++                        return Err(MediaTransitionError::Invalid);
++                    }
++                }
++            }
++        }
++        Ok(())
++    }
++}
++
++#[derive(Clone, Debug, PartialEq, Eq)]
++pub struct DesiredStream {
++    pub logical_id: StreamId,
++    pub medium: Medium,
++    pub direction: StreamDirection,
++}
++#[derive(Clone, Debug, PartialEq, Eq)]
++pub struct NegotiatedStream {
++    pub requested: DesiredStream,
++    pub format: MediaFormat,
++}
++
++/// All requested streams are required. A caller chooses an explicit smaller
++/// request for an audio-only peer; video refusal never mutates active audio.
++/// Screen support is declared independently of video support.
++pub fn negotiate_streams(
++    local: &EndpointMediaCapabilities,
++    remote: &EndpointMediaCapabilities,
++    requested: &[DesiredStream],
++) -> Result<Vec<NegotiatedStream>> {
++    local.validate()?;
++    remote.validate()?;
++    if requested.is_empty() || requested.len() > local.max_streams.min(remote.max_streams) {
++        return Err(MediaTransitionError::Capacity);
++    }
++    let mut ids = BTreeSet::new();
++    let mut result = Vec::new();
++    for request in requested {
++        identifier(request.logical_id.as_str())?;
++        if !ids.insert(&request.logical_id) {
++            return Err(MediaTransitionError::Invalid);
++        }
++        let mut sets = Vec::new();
++        if request.direction.sends() {
++            sets.push(&local.send);
++            sets.push(&remote.receive);
++        }
++        if request.direction.receives() {
++            sets.push(&local.receive);
++            sets.push(&remote.send);
++        }
++        let formats = sets
++            .iter()
++            .map(|set| {
++                set.iter()
++                    .find(|cap| cap.medium == request.medium)
++                    .map(|cap| &cap.formats)
++                    .ok_or(MediaTransitionError::Unsupported)
++            })
++            .collect::<Result<Vec<_>>>()?;
++        let selected = formats[0]
++            .iter()
++            .find(|format| {
++                formats[1..]
++                    .iter()
++                    .all(|set| set.iter().any(|candidate| format.matches(candidate)))
++            })
++            .ok_or(MediaTransitionError::Unsupported)?;
++        result.push(NegotiatedStream {
++            requested: request.clone(),
++            format: selected.clone(),
++        });
++    }
++    Ok(result)
++}
++
++#[derive(Clone, Copy, Debug, PartialEq, Eq, thiserror::Error)]
++pub enum MediaTransitionError {
++    #[error("invalid media transition")]
++    Invalid,
++    #[error("media transition conflicts with current state")]
++    Conflict,
++    #[error("requested media is unsupported")]
++    Unsupported,
++    #[error("media capacity exhausted")]
++    Capacity,
++    #[error("media transition requires current authority")]
++    Authority,
++    #[error("media route is not ready")]
++    NotReady,
++    #[error("media preparation expired")]
++    Expired,
++}
++type Result<T> = std::result::Result<T, MediaTransitionError>;
++fn identifier(value: &str) -> Result<()> {
++    if value.is_empty()
++        || value.len() > 128
++        || !value
++            .bytes()
++            .all(|b| b.is_ascii_alphanumeric() || b"-._:".contains(&b))
++    {
++        return Err(MediaTransitionError::Invalid);
++    }
++    Ok(())
++}
++
++/// Supplied by current trusted policy while its authority lease is held.
++/// Grants are explicit per medium; roles and capabilities grant nothing.
++pub struct CurrentMediaAuthority<'a> {
++    pub member: &'a Membership,
++    pub presence: &'a SessionAppearance,
++    pub endpoint: &'a EndpointBinding,
++    pub connection: &'a ConnectionBinding,
++    pub may_negotiate: bool,
++    pub send_media: BTreeSet<Medium>,
++    pub receive_media: BTreeSet<Medium>,
++}
++
++#[derive(Clone, Copy, Debug, PartialEq, Eq)]
++pub enum LogicalStreamState {
++    Active,
++    Paused,
++    Ended,
++}
++#[derive(Clone, Debug, PartialEq, Eq)]
++pub struct LogicalStream {
++    pub negotiated: NegotiatedStream,
++    pub transport_id: StreamId,
++    pub stream_local_id: u16,
++    pub generation: u64,
++    pub state: LogicalStreamState,
++}
++/// Exact, protected adapter observation. The coordinator must additionally
++/// prove endpoint confirmation, route ownership and current policy before use.
++#[derive(Clone, Debug)]
++pub struct ReadyMediaBinding {
++    pub negotiated: NegotiatedStream,
++    pub transport_id: StreamId,
++    pub stream_local_id: u16,
++    pub generation: u64,
++    pub connection_generation: u64,
++    pub source_ready: bool,
++    pub sink_ready: bool,
++}
++pub struct PreparedMediaChange {
++    controller: uuid::Uuid,
++    nonce: uuid::Uuid,
++    revision: u64,
++    expires: Instant,
++    streams: Vec<NegotiatedStream>,
++}
++impl PreparedMediaChange {
++    pub fn streams(&self) -> &[NegotiatedStream] {
++        &self.streams
++    }
++}
++
++/// Bounded model for one exact Connection generation. It owns no sockets,
++/// receivers or media pumps. Stream IDs/handles retired here cannot be reused.
++pub struct StreamLifecycle {
++    controller: uuid::Uuid,
++    owner: Membership,
++    binding: ConnectionBinding,
++    revision: u64,
++    streams: BTreeMap<StreamId, LogicalStream>,
++    used_transport_ids: BTreeSet<StreamId>,
++    used_handles: BTreeSet<u16>,
++    pending: Option<(uuid::Uuid, Instant)>,
++}
++impl StreamLifecycle {
++    pub fn new(authority: &CurrentMediaAuthority<'_>) -> Result<Self> {
++        let value = Self {
++            controller: uuid::Uuid::new_v4(),
++            owner: authority.member.clone(),
++            binding: authority.connection.clone(),
++            revision: 0,
++            streams: BTreeMap::new(),
++            used_transport_ids: BTreeSet::new(),
++            used_handles: BTreeSet::new(),
++            pending: None,
++        };
++        value.authorize(authority)?;
++        Ok(value)
++    }
++    pub fn revision(&self) -> u64 {
++        self.revision
++    }
++    pub fn streams(&self) -> &BTreeMap<StreamId, LogicalStream> {
++        &self.streams
++    }
++    fn authorize(&self, authority: &CurrentMediaAuthority<'_>) -> Result<()> {
++        authority
++            .connection
++            .require_current(authority.member, authority.presence)
++            .map_err(|_| MediaTransitionError::Authority)?;
++        authority
++            .endpoint
++            .usable_by(authority.member)
++            .map_err(|_| MediaTransitionError::Authority)?;
++        if authority.member.identity() != self.owner.identity()
++            || authority.member.tenant() != self.owner.tenant()
++            || authority.member.conversation() != self.owner.conversation()
++            || authority.member.participant() != self.owner.participant()
++            || authority.member.epoch() != self.owner.epoch()
++            || authority.connection.connection() != self.binding.connection()
++            || authority.connection.generation() != self.binding.generation()
++            || authority.connection.session() != self.binding.session()
++            || authority.connection.endpoint() != self.binding.endpoint()
++            || authority.connection.device() != self.binding.device()
++            || authority.endpoint.endpoint() != self.binding.endpoint()
++            || authority.endpoint.device() != self.binding.device()
++            || authority.connection.state() != BindingState::Active
++            || !authority.may_negotiate
++        {
++            return Err(MediaTransitionError::Authority);
++        }
++        Ok(())
++    }
++    fn expected(&self, revision: u64) -> Result<()> {
++        if self.revision != revision {
++            return Err(MediaTransitionError::Conflict);
++        }
++        if self.revision >= MAX_REVISION {
++            return Err(MediaTransitionError::Capacity);
++        }
++        Ok(())
++    }
++    pub fn prepare(
++        &mut self,
++        authority: &CurrentMediaAuthority<'_>,
++        expected: u64,
++        local: &EndpointMediaCapabilities,
++        remote: &EndpointMediaCapabilities,
++        requested: &[DesiredStream],
++        now: Instant,
++        deadline: Instant,
++    ) -> Result<PreparedMediaChange> {
++        self.authorize(authority)?;
++        self.expected(expected)?;
++        if deadline <= now || deadline.duration_since(now) > Duration::from_secs(30) {
++            return Err(MediaTransitionError::Expired);
++        }
++        if self
++            .pending
++            .as_ref()
++            .is_some_and(|(_, expires)| *expires > now)
++        {
++            return Err(MediaTransitionError::Conflict);
++        }
++        let streams = negotiate_streams(local, remote, requested)?;
++        if !self.streams.is_empty() && (!local.renegotiation || !remote.renegotiation) {
++            return Err(MediaTransitionError::Unsupported);
++        }
++        for stream in &streams {
++            if (stream.requested.direction.sends()
++                && !authority.send_media.contains(&stream.requested.medium))
++                || (stream.requested.direction.receives()
++                    && !authority.receive_media.contains(&stream.requested.medium))
++            {
++                return Err(MediaTransitionError::Authority);
++            }
++            if let Some(old) = self.streams.get(&stream.requested.logical_id) {
++                if old.state == LogicalStreamState::Ended
++                    || old.negotiated.requested.medium != stream.requested.medium
++                {
++                    return Err(MediaTransitionError::Conflict);
++                }
++            }
++        }
++        let new_ids = streams
++            .iter()
++            .filter(|s| !self.streams.contains_key(&s.requested.logical_id))
++            .count();
++        if self.streams.len() + new_ids > MAX_BINDINGS {
++            return Err(MediaTransitionError::Capacity);
++        }
++        let nonce = uuid::Uuid::new_v4();
++        self.pending = Some((nonce, deadline));
++        Ok(PreparedMediaChange {
++            controller: self.controller,
++            nonce,
++            revision: self.revision,
++            expires: deadline,
++            streams,
++        })
++    }
++    pub fn abort(&mut self, prepared: PreparedMediaChange) -> Result<()> {
++        if prepared.controller != self.controller
++            || self.pending.as_ref().map(|p| p.0) != Some(prepared.nonce)
++        {
++            return Err(MediaTransitionError::Conflict);
++        }
++        self.pending = None;
++        Ok(())
++    }
++    pub fn commit(
++        &mut self,
++        authority: &CurrentMediaAuthority<'_>,
++        prepared: &PreparedMediaChange,
++        bindings: &[ReadyMediaBinding],
++        now: Instant,
++    ) -> Result<()> {
++        self.authorize(authority)?;
++        self.expected(prepared.revision)?;
++        if prepared.controller != self.controller
++            || self.pending.as_ref().map(|p| p.0) != Some(prepared.nonce)
++        {
++            return Err(MediaTransitionError::Conflict);
++        }
++        if now >= prepared.expires {
++            return Err(MediaTransitionError::Expired);
++        }
++        if bindings.len() != prepared.streams.len() {
++            return Err(MediaTransitionError::NotReady);
++        }
++        let mut next = BTreeMap::new();
++        let mut handles = BTreeSet::new();
++        let mut ids = BTreeSet::new();
++        let mut new_handles = 0;
++        for plan in &prepared.streams {
++            if (plan.requested.direction.sends()
++                && !authority.send_media.contains(&plan.requested.medium))
++                || (plan.requested.direction.receives()
++                    && !authority.receive_media.contains(&plan.requested.medium))
++            {
++                return Err(MediaTransitionError::Authority);
++            }
++            let binding = bindings
++                .iter()
++                .find(|b| b.negotiated.requested.logical_id == plan.requested.logical_id)
++                .ok_or(MediaTransitionError::NotReady)?;
++            identifier(binding.transport_id.as_str())?;
++            if binding.negotiated != *plan
++                || binding.connection_generation != self.binding.generation()
++                || binding.stream_local_id == 0
++                || !handles.insert(binding.stream_local_id)
++                || !ids.insert(binding.transport_id.clone())
++                || (plan.requested.direction.sends() && !binding.sink_ready)
++                || (plan.requested.direction.receives() && !binding.source_ready)
++            {
++                return Err(MediaTransitionError::NotReady);
++            }
++            let old = self.streams.get(&plan.requested.logical_id);
++            let unchanged = old.is_some_and(|old| {
++                old.transport_id == binding.transport_id
++                    && old.stream_local_id == binding.stream_local_id
++                    && old.negotiated == *plan
++            });
++            let generation = if unchanged {
++                old.unwrap().generation
++            } else {
++                old.map_or(1, |old| old.generation + 1)
++            };
++            if binding.generation != generation
++                || generation > MAX_REVISION
++                || (!unchanged
++                    && (self.used_transport_ids.contains(&binding.transport_id)
++                        || self.used_handles.contains(&binding.stream_local_id)))
++            {
++                return Err(MediaTransitionError::Conflict);
++            }
++            if !unchanged {
++                new_handles += 1;
++            }
++            next.insert(
++                plan.requested.logical_id.clone(),
++                LogicalStream {
++                    negotiated: plan.clone(),
++                    transport_id: binding.transport_id.clone(),
++                    stream_local_id: binding.stream_local_id,
++                    generation,
++                    state: old.map_or(LogicalStreamState::Active, |old| old.state),
++                },
++            );
++        }
++        if self.used_handles.len() + new_handles > MAX_BINDINGS {
++            return Err(MediaTransitionError::Capacity);
++        }
++        // Nothing above mutates the committed snapshot. The owner commits the
++        // matching real graph under its current-authority lease at this point.
++        for (id, stream) in self.streams.iter_mut() {
++            if !next.contains_key(id) {
++                stream.state = LogicalStreamState::Ended;
++            }
++        }
++        for (id, stream) in next {
++            self.used_handles.insert(stream.stream_local_id);
++            self.used_transport_ids.insert(stream.transport_id.clone());
++            self.streams.insert(id, stream);
++        }
++        self.pending = None;
++        self.revision += 1;
++        Ok(())
++    }
++    pub fn set_paused(
++        &mut self,
++        authority: &CurrentMediaAuthority<'_>,
++        expected: u64,
++        id: &StreamId,
++        paused: bool,
++    ) -> Result<()> {
++        self.authorize(authority)?;
++        self.expected(expected)?;
++        let stream = self
++            .streams
++            .get_mut(id)
++            .ok_or(MediaTransitionError::Conflict)?;
++        if stream.state == LogicalStreamState::Ended {
++            return Err(MediaTransitionError::Conflict);
++        }
++        if (stream.negotiated.requested.direction.sends()
++            && !authority
++                .send_media
++                .contains(&stream.negotiated.requested.medium))
++            || (stream.negotiated.requested.direction.receives()
++                && !authority
++                    .receive_media
++                    .contains(&stream.negotiated.requested.medium))
++        {
++            return Err(MediaTransitionError::Authority);
++        }
++        stream.state = if paused {
++            LogicalStreamState::Paused
++        } else {
++            LogicalStreamState::Active
++        };
++        self.revision += 1;
++        Ok(())
++    }
++    /// Logical end only. The owner must retire the matching actual route under
++    /// the same policy lease before publishing an authoritative public event.
++    pub fn end_stream(
++        &mut self,
++        authority: &CurrentMediaAuthority<'_>,
++        expected: u64,
++        id: &StreamId,
++    ) -> Result<()> {
++        self.authorize(authority)?;
++        self.expected(expected)?;
++        let stream = self
++            .streams
++            .get_mut(id)
++            .ok_or(MediaTransitionError::Conflict)?;
++        if stream.state == LogicalStreamState::Ended {
++            return Err(MediaTransitionError::Conflict);
++        }
++        stream.state = LogicalStreamState::Ended;
++        self.revision += 1;
++        Ok(())
++    }
++    /// Protected terminal callback. An old physical stream's end cannot close
++    /// a replacement that retained the same logical ID.
++    pub fn observe_ended(
++        &mut self,
++        id: &StreamId,
++        transport: &StreamId,
++        local_id: u16,
++        generation: u64,
++        connection_generation: u64,
++    ) -> Result<bool> {
++        let Some(stream) = self.streams.get_mut(id) else {
++            return Ok(false);
++        };
++        if stream.state == LogicalStreamState::Ended
++            || stream.transport_id != *transport
++            || stream.stream_local_id != local_id
++            || stream.generation != generation
++            || self.binding.generation() != connection_generation
++        {
++            return Ok(false);
++        }
++        if self.revision >= MAX_REVISION {
++            return Err(MediaTransitionError::Capacity);
++        }
++        stream.state = LogicalStreamState::Ended;
++        self.revision += 1;
++        Ok(true)
++    }
++}
++
++#[cfg(test)]
++mod tests;
+diff --git a/crates/foundation/rvoip-core/src/stream_lifecycle/tests.rs b/crates/foundation/rvoip-core/src/stream_lifecycle/tests.rs
+new file mode 100644
+index 0000000..8d2d5cf
+--- /dev/null
++++ b/crates/foundation/rvoip-core/src/stream_lifecycle/tests.rs
+@@ -0,0 +1,933 @@
++use super::*;
++use crate::connection::Transport;
++use crate::identity::{AuthenticatedPrincipal, AuthenticationMethod, IdentityAssurance};
++use crate::ids::{
++    ConnectionId, ConversationId, DeviceId, EndpointId, IdentityId, ParticipantId, SessionId,
++};
++use crate::participant::{ParticipantKind, ParticipantRole};
++use crate::relationships::IdentityBinding;
++use chrono::{DateTime, Utc};
++
++struct Fixture {
++    member: Membership,
++    presence: SessionAppearance,
++    endpoint: EndpointBinding,
++    connection: ConnectionBinding,
++}
++impl Fixture {
++    fn new() -> Self {
++        Self::in_conversation("conversation")
++    }
++    fn in_conversation(conversation: &str) -> Self {
++        let now = DateTime::parse_from_rfc3339("2026-10-16T12:00:00Z")
++            .unwrap()
++            .with_timezone(&Utc);
++        let principal = AuthenticatedPrincipal {
++            subject: "alice".into(),
++            tenant: Some("tenant".into()),
++            scopes: vec![],
++            issuer: Some("fixture".into()),
++            expires_at: Some(now + chrono::Duration::hours(1)),
++            method: AuthenticationMethod::Bearer,
++            assurance: IdentityAssurance::Anonymous,
++        };
++        let owner =
++            IdentityBinding::from_authenticated(&principal, IdentityId::from_string("alice"), now)
++                .unwrap();
++        let member = Membership::admit(
++            owner.clone(),
++            ConversationId::from_string(conversation),
++            ParticipantId::from_string("participant"),
++            ParticipantKind::Human,
++            ParticipantRole::Agent,
++        )
++        .unwrap();
++        let presence =
++            SessionAppearance::admit(&member, SessionId::from_string("session"), None).unwrap();
++        let mut endpoint = EndpointBinding::provision(
++            owner,
++            EndpointId::from_string("endpoint"),
++            DeviceId::from_string("device"),
++            Transport::WebRtc,
++            "fixture-address".into(),
++        )
++        .unwrap();
++        let owner =
++            IdentityBinding::from_authenticated(&principal, IdentityId::from_string("alice"), now)
++                .unwrap();
++        endpoint
++            .verify(&owner, "fixture-evidence".into(), now)
++            .unwrap();
++        let mut connection = ConnectionBinding::prepare(
++            &member,
++            &presence,
++            &endpoint,
++            ConnectionId::from_string("connection"),
++        )
++        .unwrap();
++        connection
++            .observe_ready(&member, &presence, &endpoint, 1)
++            .unwrap();
++        connection.activate(&member, &presence, &endpoint).unwrap();
++        Self {
++            member,
++            presence,
++            endpoint,
++            connection,
++        }
++    }
++    fn authority(&self) -> CurrentMediaAuthority<'_> {
++        CurrentMediaAuthority {
++            member: &self.member,
++            presence: &self.presence,
++            endpoint: &self.endpoint,
++            connection: &self.connection,
++            may_negotiate: true,
++            send_media: [Medium::Audio, Medium::Video, Medium::Screen, Medium::Data]
++                .into_iter()
++                .collect(),
++            receive_media: [Medium::Audio, Medium::Video, Medium::Screen, Medium::Data]
++                .into_iter()
++                .collect(),
++        }
++    }
++}
++fn audio() -> MediaFormat {
++    MediaFormat::Encoded {
++        name: "pcmu".into(),
++        clock_rate_hz: 8000,
++        channels: 1,
++        fmtp: None,
++    }
++}
++fn opus() -> MediaFormat {
++    MediaFormat::Encoded {
++        name: "opus".into(),
++        clock_rate_hz: 48000,
++        channels: 1,
++        fmtp: None,
++    }
++}
++fn video() -> MediaFormat {
++    MediaFormat::Encoded {
++        name: "vp8".into(),
++        clock_rate_hz: 90000,
++        channels: 0,
++        fmtp: None,
++    }
++}
++fn capability(medium: Medium, formats: Vec<MediaFormat>) -> MediaCapability {
++    MediaCapability { medium, formats }
++}
++fn profile() -> EndpointMediaCapabilities {
++    let caps = vec![
++        capability(Medium::Audio, vec![opus(), audio()]),
++        capability(Medium::Video, vec![video()]),
++        capability(Medium::Screen, vec![video()]),
++        capability(
++            Medium::Data,
++            vec![MediaFormat::ReliableOrdered(DataProtocol::Json)],
++        ),
++    ];
++    EndpointMediaCapabilities {
++        send: caps.clone(),
++        receive: caps,
++        max_streams: 8,
++        renegotiation: true,
++    }
++}
++fn desired(id: &str, medium: Medium) -> DesiredStream {
++    DesiredStream {
++        logical_id: StreamId::from_string(id),
++        medium,
++        direction: StreamDirection::Both,
++    }
++}
++fn bindings(prepared: &PreparedMediaChange) -> Vec<ReadyMediaBinding> {
++    prepared
++        .streams()
++        .iter()
++        .enumerate()
++        .map(|(index, plan)| ReadyMediaBinding {
++            negotiated: plan.clone(),
++            transport_id: StreamId::from_string(format!("transport-{index}")),
++            stream_local_id: index as u16 + 1,
++            generation: 1,
++            connection_generation: 1,
++            source_ready: true,
++            sink_ready: true,
++        })
++        .collect()
++}
++fn initial(f: &Fixture) -> StreamLifecycle {
++    let mut state = StreamLifecycle::new(&f.authority()).unwrap();
++    let now = Instant::now();
++    let p = profile();
++    let candidate = state
++        .prepare(
++            &f.authority(),
++            0,
++            &p,
++            &p,
++            &[desired("audio", Medium::Audio)],
++            now,
++            now + Duration::from_secs(10),
++        )
++        .unwrap();
++    state
++        .commit(&f.authority(), &candidate, &bindings(&candidate), now)
++        .unwrap();
++    state
++}
++
++#[test]
++fn heterogeneous_peers_choose_only_explicit_compatible_directions_and_formats() {
++    let local = profile();
++    let mut phone = profile();
++    phone.send = vec![capability(Medium::Audio, vec![audio()])];
++    phone.receive = phone.send.clone();
++    phone.max_streams = 1;
++    let request = [desired("audio", Medium::Audio)];
++    assert_eq!(
++        negotiate_streams(&local, &phone, &request).unwrap()[0].format,
++        audio()
++    );
++    phone.max_streams = 2;
++    assert_eq!(
++        negotiate_streams(
++            &local,
++            &phone,
++            &[request[0].clone(), desired("video", Medium::Video)]
++        ),
++        Err(MediaTransitionError::Unsupported)
++    );
++    let mut no_screen = local.clone();
++    no_screen.send.retain(|c| c.medium != Medium::Screen);
++    assert_eq!(
++        negotiate_streams(&local, &no_screen, &[desired("screen", Medium::Screen)]),
++        Err(MediaTransitionError::Unsupported)
++    );
++    let mut send = desired("screen", Medium::Screen);
++    send.direction = StreamDirection::Send;
++    assert!(negotiate_streams(&local, &no_screen, &[send.clone()]).is_ok());
++    send.direction = StreamDirection::Receive;
++    assert_eq!(
++        negotiate_streams(&local, &no_screen, &[send]),
++        Err(MediaTransitionError::Unsupported)
++    );
++}
++
++#[test]
++fn codec_parameters_are_not_guessed_and_rtp_payload_type_is_hop_local() {
++    let mut local = profile();
++    let mut remote = profile();
++    local.send = vec![capability(Medium::Audio, vec![audio()])];
++    local.receive = local.send.clone();
++    let mut different = audio();
++    if let MediaFormat::Encoded { fmtp, .. } = &mut different {
++        *fmtp = Some("variant=one".into());
++    }
++    remote.send = vec![capability(Medium::Audio, vec![different])];
++    remote.receive = remote.send.clone();
++    assert_eq!(
++        negotiate_streams(&local, &remote, &[desired("audio", Medium::Audio)]),
++        Err(MediaTransitionError::Unsupported)
++    );
++    let mut codec = CodecInfo {
++        name: "PCMU".into(),
++        clock_rate_hz: 8000,
++        channels: 1,
++        fmtp: None,
++        payload_type: Some(0),
++    };
++    let first = MediaFormat::encoded(&codec);
++    codec.payload_type = Some(98);
++    assert_eq!(first, MediaFormat::encoded(&codec));
++    remote.send = local.send.clone();
++    remote.receive = local.receive.clone();
++    assert_eq!(
++        negotiate_streams(&local, &remote, &[desired("audio", Medium::Audio)]).unwrap()[0].format,
++        first
++    );
++}
++
++#[test]
++fn asymmetric_duplex_uses_separate_directional_streams() {
++    let mut local = profile();
++    let mut remote = profile();
++    local.send = vec![capability(Medium::Audio, vec![opus()])];
++    local.receive = vec![capability(Medium::Audio, vec![audio()])];
++    remote.send = local.receive.clone();
++    remote.receive = local.send.clone();
++    let mut send = desired("send", Medium::Audio);
++    send.direction = StreamDirection::Send;
++    let mut receive = desired("receive", Medium::Audio);
++    receive.direction = StreamDirection::Receive;
++    let selected = negotiate_streams(&local, &remote, &[send, receive]).unwrap();
++    assert_eq!(selected[0].format, opus());
++    assert_eq!(selected[1].format, audio());
++    assert_eq!(
++        negotiate_streams(&local, &remote, &[desired("both", Medium::Audio)]),
++        Err(MediaTransitionError::Unsupported)
++    );
++}
++
++#[test]
++fn screen_and_reliable_ordered_data_are_independently_negotiated() {
++    let p = profile();
++    let mut requests = vec![
++        desired("screen", Medium::Screen),
++        desired("app", Medium::Data),
++    ];
++    requests[0].direction = StreamDirection::Send;
++    let result = negotiate_streams(&p, &p, &requests).unwrap();
++    assert_eq!(result[0].format, video());
++    assert_eq!(
++        result[1].format,
++        MediaFormat::ReliableOrdered(DataProtocol::Json)
++    );
++    let mut remote = p.clone();
++    remote.receive[3].formats = vec![MediaFormat::ReliableOrdered(DataProtocol::Binary)];
++    assert_eq!(
++        negotiate_streams(&p, &remote, &requests),
++        Err(MediaTransitionError::Unsupported)
++    );
++}
++
++#[test]
++fn malformed_and_oversized_capabilities_are_refused_before_preparation() {
++    let p = profile();
++    let mut broken = p.clone();
++    broken.max_streams = 33;
++    assert_eq!(
++        negotiate_streams(&broken, &p, &[desired("audio", Medium::Audio)]),
++        Err(MediaTransitionError::Invalid)
++    );
++    broken = p.clone();
++    broken.send.push(broken.send[0].clone());
++    assert_eq!(
++        negotiate_streams(&broken, &p, &[desired("audio", Medium::Audio)]),
++        Err(MediaTransitionError::Invalid)
++    );
++    broken = p.clone();
++    broken.send[0].formats.push(opus());
++    assert_eq!(
++        negotiate_streams(&broken, &p, &[desired("audio", Medium::Audio)]),
++        Err(MediaTransitionError::Invalid)
++    );
++    broken = p.clone();
++    broken.receive[0].formats = vec![MediaFormat::ReliableOrdered(DataProtocol::Text)];
++    assert_eq!(
++        negotiate_streams(&broken, &p, &[desired("audio", Medium::Audio)]),
++        Err(MediaTransitionError::Invalid)
++    );
++    assert_eq!(
++        negotiate_streams(
++            &p,
++            &p,
++            &[
++                desired("same", Medium::Audio),
++                desired("same", Medium::Video)
++            ]
++        ),
++        Err(MediaTransitionError::Invalid)
++    );
++    assert_eq!(
++        negotiate_streams(&p, &p, &[desired("bad/id", Medium::Audio)]),
++        Err(MediaTransitionError::Invalid)
++    );
++}
++
++#[test]
++fn failed_upgrade_preserves_audio_and_successful_downgrade_tombstones_video() {
++    let f = Fixture::new();
++    let mut state = initial(&f);
++    let before = state.streams().clone();
++    let now = Instant::now();
++    let p = profile();
++    let mut phone = p.clone();
++    phone.receive.retain(|c| c.medium == Medium::Audio);
++    phone.send = phone.receive.clone();
++    let requested = [
++        desired("audio", Medium::Audio),
++        desired("video", Medium::Video),
++    ];
++    assert_eq!(
++        state
++            .prepare(
++                &f.authority(),
++                1,
++                &p,
++                &phone,
++                &requested,
++                now,
++                now + Duration::from_secs(10)
++            )
++            .err(),
++        Some(MediaTransitionError::Unsupported)
++    );
++    assert_eq!(state.streams(), &before);
++    assert_eq!(state.revision(), 1);
++    let prepared = state
++        .prepare(
++            &f.authority(),
++            1,
++            &p,
++            &p,
++            &requested,
++            now,
++            now + Duration::from_secs(10),
++        )
++        .unwrap();
++    assert_eq!(state.streams(), &before);
++    state
++        .commit(&f.authority(), &prepared, &bindings(&prepared), now)
++        .unwrap();
++    assert_eq!(
++        state.streams()[&StreamId::from_string("audio")],
++        before[&StreamId::from_string("audio")]
++    );
++    let down = state
++        .prepare(
++            &f.authority(),
++            2,
++            &p,
++            &p,
++            &requested[..1],
++            now,
++            now + Duration::from_secs(10),
++        )
++        .unwrap();
++    state
++        .commit(&f.authority(), &down, &bindings(&down), now)
++        .unwrap();
++    assert_eq!(
++        state.streams()[&StreamId::from_string("video")].state,
++        LogicalStreamState::Ended
++    );
++    assert_eq!(
++        state
++            .prepare(
++                &f.authority(),
++                3,
++                &p,
++                &p,
++                &requested,
++                now,
++                now + Duration::from_secs(10)
++            )
++            .err(),
++        Some(MediaTransitionError::Conflict)
++    );
++}
++
++#[test]
++fn overlapping_and_expired_preparations_cannot_commit_or_abort_a_new_candidate() {
++    let f = Fixture::new();
++    let mut state = initial(&f);
++    let now = Instant::now();
++    let p = profile();
++    let request = [desired("audio", Medium::Audio)];
++    let old = state
++        .prepare(
++            &f.authority(),
++            1,
++            &p,
++            &p,
++            &request,
++            now,
++            now + Duration::from_secs(1),
++        )
++        .unwrap();
++    assert_eq!(
++        state
++            .prepare(
++                &f.authority(),
++                1,
++                &p,
++                &p,
++                &request,
++                now,
++                now + Duration::from_secs(2)
++            )
++            .err(),
++        Some(MediaTransitionError::Conflict)
++    );
++    assert_eq!(
++        state.commit(
++            &f.authority(),
++            &old,
++            &bindings(&old),
++            now + Duration::from_secs(1)
++        ),
++        Err(MediaTransitionError::Expired)
++    );
++    let next = state
++        .prepare(
++            &f.authority(),
++            1,
++            &p,
++            &p,
++            &request,
++            now + Duration::from_secs(2),
++            now + Duration::from_secs(3),
++        )
++        .unwrap();
++    assert_eq!(
++        state.commit(
++            &f.authority(),
++            &old,
++            &bindings(&old),
++            now + Duration::from_secs(2)
++        ),
++        Err(MediaTransitionError::Conflict)
++    );
++    assert_eq!(state.abort(old), Err(MediaTransitionError::Conflict));
++    state
++        .commit(
++            &f.authority(),
++            &next,
++            &bindings(&next),
++            now + Duration::from_secs(2),
++        )
++        .unwrap();
++    assert_eq!(state.revision(), 2);
++}
++
++#[test]
++fn replacement_keeps_logical_identity_but_rejects_stale_readiness_and_terminal_events() {
++    let f = Fixture::new();
++    let mut state = initial(&f);
++    let now = Instant::now();
++    let p = profile();
++    let request = [desired("audio", Medium::Audio)];
++    let old = state.streams()[&request[0].logical_id].clone();
++    let prepared = state
++        .prepare(
++            &f.authority(),
++            1,
++            &p,
++            &p,
++            &request,
++            now,
++            now + Duration::from_secs(10),
++        )
++        .unwrap();
++    let mut ready = bindings(&prepared);
++    ready[0].transport_id = StreamId::from_string("replacement");
++    ready[0].stream_local_id = 100;
++    ready[0].generation = 2;
++    ready[0].connection_generation = 2;
++    assert_eq!(
++        state.commit(&f.authority(), &prepared, &ready, now),
++        Err(MediaTransitionError::NotReady)
++    );
++    ready[0].connection_generation = 1;
++    state
++        .commit(&f.authority(), &prepared, &ready, now)
++        .unwrap();
++    assert!(!state
++        .observe_ended(
++            &request[0].logical_id,
++            &old.transport_id,
++            old.stream_local_id,
++            old.generation,
++            1
++        )
++        .unwrap());
++    assert_eq!(
++        state.streams()[&request[0].logical_id].state,
++        LogicalStreamState::Active
++    );
++    assert!(state
++        .observe_ended(&request[0].logical_id, &ready[0].transport_id, 100, 2, 1)
++        .unwrap());
++    assert!(!state
++        .observe_ended(&request[0].logical_id, &ready[0].transport_id, 100, 2, 1)
++        .unwrap());
++    assert_eq!(state.revision(), 3);
++}
++
++#[test]
++fn current_grants_endpoint_and_membership_are_rechecked_at_commit() {
++    let mut f = Fixture::new();
++    let mut state = initial(&f);
++    let now = Instant::now();
++    let p = profile();
++    let request = [desired("audio", Medium::Audio)];
++    let mut denied = f.authority();
++    denied.may_negotiate = false;
++    assert!(StreamLifecycle::new(&denied).is_err());
++    denied = f.authority();
++    denied.send_media.remove(&Medium::Audio);
++    assert_eq!(
++        state
++            .prepare(
++                &denied,
++                1,
++                &p,
++                &p,
++                &request,
++                now,
++                now + Duration::from_secs(1)
++            )
++            .err(),
++        Some(MediaTransitionError::Authority)
++    );
++    let prepared = state
++        .prepare(
++            &f.authority(),
++            1,
++            &p,
++            &p,
++            &request,
++            now,
++            now + Duration::from_secs(1),
++        )
++        .unwrap();
++    denied = f.authority();
++    denied.receive_media.remove(&Medium::Audio);
++    assert_eq!(
++        state.commit(&denied, &prepared, &bindings(&prepared), now),
++        Err(MediaTransitionError::Authority)
++    );
++    f.endpoint.revoke();
++    assert_eq!(
++        state.commit(&f.authority(), &prepared, &bindings(&prepared), now),
++        Err(MediaTransitionError::Authority)
++    );
++    assert_eq!(state.revision(), 1);
++    let mut f = Fixture::new();
++    let mut state = initial(&f);
++    let prepared = state
++        .prepare(
++            &f.authority(),
++            1,
++            &p,
++            &p,
++            &request,
++            now,
++            now + Duration::from_secs(1),
++        )
++        .unwrap();
++    f.member.remove(1).unwrap();
++    assert_eq!(
++        state.commit(&f.authority(), &prepared, &bindings(&prepared), now),
++        Err(MediaTransitionError::Authority)
++    );
++}
++
++#[test]
++fn pause_and_resume_use_revisions_and_invalidate_prepared_updates() {
++    let f = Fixture::new();
++    let mut state = initial(&f);
++    let now = Instant::now();
++    let p = profile();
++    let request = [desired("audio", Medium::Audio)];
++    let prepared = state
++        .prepare(
++            &f.authority(),
++            1,
++            &p,
++            &p,
++            &request,
++            now,
++            now + Duration::from_secs(10),
++        )
++        .unwrap();
++    state
++        .set_paused(&f.authority(), 1, &request[0].logical_id, true)
++        .unwrap();
++    assert_eq!(
++        state.commit(&f.authority(), &prepared, &bindings(&prepared), now),
++        Err(MediaTransitionError::Conflict)
++    );
++    assert_eq!(
++        state.set_paused(&f.authority(), 1, &request[0].logical_id, false),
++        Err(MediaTransitionError::Conflict)
++    );
++    state.abort(prepared).unwrap();
++    state
++        .set_paused(&f.authority(), 2, &request[0].logical_id, false)
++        .unwrap();
++    assert_eq!(
++        state.streams()[&request[0].logical_id].state,
++        LogicalStreamState::Active
++    );
++    assert!(state
++        .observe_ended(
++            &request[0].logical_id,
++            &StreamId::from_string("transport-0"),
++            1,
++            1,
++            1
++        )
++        .unwrap());
++    assert_eq!(
++        state.set_paused(&f.authority(), 4, &request[0].logical_id, false),
++        Err(MediaTransitionError::Conflict)
++    );
++}
++
++#[test]
++fn readiness_requires_all_directions_and_unique_current_bindings() {
++    let f = Fixture::new();
++    let mut state = StreamLifecycle::new(&f.authority()).unwrap();
++    let now = Instant::now();
++    let p = profile();
++    let request = [
++        desired("audio", Medium::Audio),
++        desired("video", Medium::Video),
++    ];
++    let prepared = state
++        .prepare(
++            &f.authority(),
++            0,
++            &p,
++            &p,
++            &request,
++            now,
++            now + Duration::from_secs(10),
++        )
++        .unwrap();
++    let mut ready = bindings(&prepared);
++    ready[0].sink_ready = false;
++    assert_eq!(
++        state.commit(&f.authority(), &prepared, &ready, now),
++        Err(MediaTransitionError::NotReady)
++    );
++    ready[0].sink_ready = true;
++    ready[1].stream_local_id = 1;
++    assert_eq!(
++        state.commit(&f.authority(), &prepared, &ready, now),
++        Err(MediaTransitionError::NotReady)
++    );
++    ready[1].stream_local_id = 0;
++    assert_eq!(
++        state.commit(&f.authority(), &prepared, &ready, now),
++        Err(MediaTransitionError::NotReady)
++    );
++    ready[1].stream_local_id = 2;
++    state
++        .commit(&f.authority(), &prepared, &ready, now)
++        .unwrap();
++    assert_eq!(state.revision(), 1);
++}
++
++#[test]
++fn unsupported_renegotiation_and_foreign_tickets_preserve_committed_media() {
++    let f = Fixture::new();
++    let mut a = initial(&f);
++    let mut b = initial(&f);
++    let now = Instant::now();
++    let p = profile();
++    let mut fixed = p.clone();
++    fixed.renegotiation = false;
++    let request = [desired("audio", Medium::Audio)];
++    assert_eq!(
++        a.prepare(
++            &f.authority(),
++            1,
++            &p,
++            &fixed,
++            &request,
++            now,
++            now + Duration::from_secs(1)
++        )
++        .err(),
++        Some(MediaTransitionError::Unsupported)
++    );
++    let prepared = a
++        .prepare(
++            &f.authority(),
++            1,
++            &p,
++            &p,
++            &request,
++            now,
++            now + Duration::from_secs(1),
++        )
++        .unwrap();
++    assert_eq!(
++        b.commit(&f.authority(), &prepared, &bindings(&prepared), now),
++        Err(MediaTransitionError::Conflict)
++    );
++    assert_eq!(b.revision(), 1);
++    a.abort(prepared).unwrap();
++    assert_eq!(a.revision(), 1);
++}
++
++#[test]
++fn retired_transport_handles_are_never_reused_and_history_is_bounded() {
++    let f = Fixture::new();
++    let mut state = initial(&f);
++    let now = Instant::now();
++    let p = profile();
++    let request = [desired("audio", Medium::Audio)];
++    for index in 2..=MAX_BINDINGS as u64 {
++        let prepared = state
++            .prepare(
++                &f.authority(),
++                index - 1,
++                &p,
++                &p,
++                &request,
++                now,
++                now + Duration::from_secs(10),
++            )
++            .unwrap();
++        let mut ready = bindings(&prepared);
++        ready[0].transport_id = StreamId::from_string(format!("replacement-{index}"));
++        ready[0].stream_local_id = index as u16;
++        ready[0].generation = index;
++        state
++            .commit(&f.authority(), &prepared, &ready, now)
++            .unwrap();
++    }
++    let prepared = state
++        .prepare(
++            &f.authority(),
++            MAX_BINDINGS as u64,
++            &p,
++            &p,
++            &request,
++            now,
++            now + Duration::from_secs(10),
++        )
++        .unwrap();
++    let mut ready = bindings(&prepared);
++    ready[0].generation = MAX_BINDINGS as u64 + 1;
++    assert_eq!(
++        state.commit(&f.authority(), &prepared, &ready, now),
++        Err(MediaTransitionError::Conflict)
++    );
++    ready[0].transport_id = StreamId::from_string("overflow");
++    ready[0].stream_local_id = MAX_BINDINGS as u16 + 1;
++    assert_eq!(
++        state.commit(&f.authority(), &prepared, &ready, now),
++        Err(MediaTransitionError::Capacity)
++    );
++    assert_eq!(state.revision(), MAX_BINDINGS as u64);
++    assert_eq!(state.streams().len(), 1);
++}
++
++#[test]
++fn matching_ids_in_another_conversation_and_retired_connections_do_not_borrow_authority() {
++    let mut f = Fixture::new();
++    let other = Fixture::in_conversation("another-conversation");
++    let mut state = initial(&f);
++    let now = Instant::now();
++    let p = profile();
++    let request = [desired("audio", Medium::Audio)];
++    assert_eq!(
++        state
++            .prepare(
++                &other.authority(),
++                1,
++                &p,
++                &p,
++                &request,
++                now,
++                now + Duration::from_secs(1)
++            )
++            .err(),
++        Some(MediaTransitionError::Authority)
++    );
++    let prepared = state
++        .prepare(
++            &f.authority(),
++            1,
++            &p,
++            &p,
++            &request,
++            now,
++            now + Duration::from_secs(1),
++        )
++        .unwrap();
++    f.connection.retire();
++    assert_eq!(
++        state.commit(&f.authority(), &prepared, &bindings(&prepared), now),
++        Err(MediaTransitionError::Authority)
++    );
++    assert_eq!(state.revision(), 1);
++}
++
++#[test]
++fn explicit_stream_end_is_terminal_and_preserves_other_streams_and_controllers() {
++    let f = Fixture::new();
++    let other = initial(&f);
++    let mut state = StreamLifecycle::new(&f.authority()).unwrap();
++    let now = Instant::now();
++    let p = profile();
++    let request = [
++        desired("audio", Medium::Audio),
++        desired("video", Medium::Video),
++    ];
++    let prepared = state
++        .prepare(
++            &f.authority(),
++            0,
++            &p,
++            &p,
++            &request,
++            now,
++            now + Duration::from_secs(1),
++        )
++        .unwrap();
++    state
++        .commit(&f.authority(), &prepared, &bindings(&prepared), now)
++        .unwrap();
++    state
++        .end_stream(&f.authority(), 1, &request[1].logical_id)
++        .unwrap();
++    assert_eq!(
++        state.streams()[&request[1].logical_id].state,
++        LogicalStreamState::Ended
++    );
++    assert_eq!(
++        state.streams()[&request[0].logical_id].state,
++        LogicalStreamState::Active
++    );
++    assert_eq!(other.revision(), 1);
++    assert_eq!(
++        other.streams()[&request[0].logical_id].state,
++        LogicalStreamState::Active
++    );
++    assert_eq!(
++        state.end_stream(&f.authority(), 2, &request[1].logical_id),
++        Err(MediaTransitionError::Conflict)
++    );
++}
++
++#[test]
++fn screen_permission_revoked_during_preparation_preserves_authorized_audio() {
++    let f = Fixture::new();
++    let mut state = initial(&f);
++    let before = state.streams().clone();
++    let now = Instant::now();
++    let p = profile();
++    let request = [
++        desired("audio", Medium::Audio),
++        desired("screen", Medium::Screen),
++    ];
++    let prepared = state
++        .prepare(
++            &f.authority(),
++            1,
++            &p,
++            &p,
++            &request,
++            now,
++            now + Duration::from_secs(1),
++        )
++        .unwrap();
++    let mut current = f.authority();
++    current.send_media.remove(&Medium::Screen);
++    assert!(current.send_media.contains(&Medium::Audio));
++    assert_eq!(
++        state.commit(&current, &prepared, &bindings(&prepared), now),
++        Err(MediaTransitionError::Authority)
++    );
++    assert_eq!(state.streams(), &before);
++    assert_eq!(state.revision(), 1);
++}

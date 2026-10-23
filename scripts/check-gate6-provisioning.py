@@ -29,13 +29,14 @@ def main():
     directory = ROOT / '.local/gate-6/provisioning' / stamp
     directory.mkdir(parents=True)
     samples = directory / 'http-samples'
-    env = dict(os.environ, CONNECT_GATE6_HTTP_SAMPLES=str(samples))
+    env = dict(os.environ, CONNECT_GATE6_HTTP_SAMPLES=str(samples), CONNECT_G6_RECORD_READER_SAMPLES=str(samples))
     steps = []
     for name, command in [
         ('dependencies', ['bash', 'scripts/prepare-dependencies.sh']),
         ('format', ['bash', 'scripts/format.sh', '--check']),
         ('store', ['cargo', 'test', '--locked', '-p', 'connect-store', '--lib', '--test', 'gate6_schema', '--test', 'gate6_provisioning']),
         ('http', ['cargo', 'test', '--locked', '-p', 'connect-server', '--test', 'gate6_provisioning']),
+        ('record-role', ['cargo', 'test', '--locked', '-p', 'connect-server', '--test', 'gate6_auxiliary', 'tenant_role_reads_native_http_and_tls_without_membership_and_revalidates_role_revision', '--', '--test-threads=1']),
     ]:
         log = directory / (name + '.log')
         with log.open('w') as output:
@@ -50,7 +51,7 @@ def main():
         steps.append(dict(name=name, command=command, exit_code=result.returncode,
                           tests_passed=names, test_binaries_sha256=binaries,
                           private_log=str(log.relative_to(ROOT)), log_sha256=digest(log),
-                          passed=result.returncode == 0 and len(names) >= {'store': 15, 'http': 6}.get(name, 0)))
+                          passed=result.returncode == 0 and len(names) >= {'store': 15, 'http': 6, 'record-role': 1}.get(name, 0)))
         print(json.dumps({'step': name, 'passed': steps[-1]['passed'], 'tests': len(names)}), flush=True)
     api_path = ROOT / 'contracts/openapi-provisioning.json'
     api = json.loads(api_path.read_text())
@@ -58,12 +59,15 @@ def main():
     try:
         for path in sorted(samples.glob('*.json')):
             sample = json.loads(path.read_text())
-            route = api['paths'][sample['route']]['post']
+            route_key = sample['route']
+            if route_key not in api['paths'] and re.fullmatch(r'/v2/identities/[^/]+/record-read-role', route_key):
+                route_key = '/v2/identities/{id}/record-read-role'
+            route = api['paths'][route_key]['post']
             reference = route['requestBody']['content']['application/json']['schema']
             jsonschema.Draft202012Validator(dict(reference, components=api['components'])).validate(sample['request'])
             response = route['responses'][str(sample['status'])]['content']['application/json']['schema']
             jsonschema.Draft202012Validator(dict(response, components=api['components'])).validate(sample['response'])
-            checked.append(dict(route=sample['route'], status=sample['status'], request_schema=sample['request_schema'],
+            checked.append(dict(route=route_key, status=sample['status'], request_schema=sample.get('request_schema', reference.get('$ref', '').rsplit('/', 1)[-1]),
                                 private_sample=str(path.relative_to(ROOT)), sample_sha256=digest(path)))
         assert {row['route'] for row in checked} == set(api['paths']), 'Missing actual HTTP route samples'
         assert len(checked) >= 6
@@ -91,7 +95,7 @@ def main():
     passed = all(step['passed'] for step in steps) and not contract_errors
     report = dict(format=1, task='G6-030', executed_at=datetime.datetime.now(datetime.timezone.utc).isoformat(),
                   scope='Trusted provisioning, identity/endpoint revocation, ownership constraints, retry receipts, loopback HTTP admission and actual OpenAPI exchange checks. Fixture addresses only; no provider calls, route reachability, SMS consent, active media teardown, Linux/remote or full Gate 6 qualification.',
-                  platform=platform.platform(), machine=platform.machine(), schema=20,
+                  platform=platform.platform(), machine=platform.machine(), schema=int(re.search(r"SCHEMA_VERSION: u32 = (\d+)", (ROOT / "crates/connect-store/src/lib.rs").read_text()).group(1)),
                   source_revision=subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=ROOT, text=True).strip(),
                   source_inputs_sha256={str(path.relative_to(ROOT)): digest(path) for path in sorted(set(sources))},
                   source_lock_sha256=digest(ROOT / 'dependencies/source-lock.json'),

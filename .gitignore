@@ -1,5 +1,6 @@
-/target/
-/.deps/
+/target
+target/
+/.deps
 /.local/
 /dist/
 .DS_Store

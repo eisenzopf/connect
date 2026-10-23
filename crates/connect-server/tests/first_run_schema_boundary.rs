@@ -23,7 +23,7 @@ fn cli(arguments: &[&std::ffi::OsStr]) -> Output {
 fn setup(path: &Path) {
     let result = cli(&[
         "setup".as_ref(),
-        "demo".as_ref(),
+        "init".as_ref(),
         "--directory".as_ref(),
         path.as_os_str(),
         "--bind".as_ref(),
@@ -42,7 +42,7 @@ fn current_backup_restores_and_incompatible_state_requires_a_fresh_installation(
     let state = directory.path().join("current");
     setup(&state);
     let initialized = first_run::inspect(&state).unwrap();
-    assert_eq!(initialized.schema, 19);
+    assert_eq!(initialized.schema, connect_store::SCHEMA_VERSION);
     let original_installation = Store::inspect_snapshot(&state.join("state.sqlite3"))
         .unwrap()
         .installation_id;
@@ -73,7 +73,10 @@ fn current_backup_restores_and_incompatible_state_requires_a_fresh_installation(
         Store::inspect_snapshot(&restored.join("state.sqlite3")).unwrap(),
         manifest.snapshot
     );
-    assert_eq!(first_run::inspect(&restored).unwrap().schema, 19);
+    assert_eq!(
+        first_run::inspect(&restored).unwrap().schema,
+        connect_store::SCHEMA_VERSION
+    );
     assert_eq!(
         recovery::verified_manifest(&backup).unwrap().snapshot,
         manifest.snapshot
@@ -81,6 +84,9 @@ fn current_backup_restores_and_incompatible_state_requires_a_fresh_installation(
 
     // This tests refusal by declared schema, not historical binary compatibility.
     let c = rusqlite::Connection::open(state.join("state.sqlite3")).unwrap();
+    // A synthetic older-version header needs its historical receipt-table shape
+    // for backup inspection. The current runtime still refuses that state.
+    c.execute_batch("CREATE TABLE requests(actor TEXT,id TEXT,digest TEXT,operation TEXT,resources TEXT,result TEXT,PRIMARY KEY(actor,id))").unwrap();
     c.execute_batch(
         "PRAGMA wal_checkpoint(TRUNCATE); PRAGMA journal_mode=DELETE; PRAGMA user_version=18;",
     )

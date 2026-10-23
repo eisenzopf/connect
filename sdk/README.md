@@ -159,3 +159,29 @@ the event returned by the task reply inbox. The separate narrow-grant matrix
 checks the Python/TypeScript native and HTTP clients, browser HTTP client and
 JSON CLI without an owner credential fallback. HTTP remains an explicit
 facade; the native clients use the UCTP/QUIC helper.
+
+### Message operation recovery
+
+A normal `send`/`sendMessage`/`send_message` result now carries a `receipt` with
+the caller's operation ID, Conversation, `completed` local-mutation boundary and
+an exact `status_reference`. Pass that reference to `operationAction` or
+`operation_action` to recover the same record after an uncertain response. Keep
+the logical ID when reconnecting or rotating credentials. The local mutation
+receipt does not certify recipient/provider delivery; inspect recipient receipts
+and provider observations separately. Task effect results use their task effect
+status API and do not carry a core operation reference. The send helpers reject a
+missing or mismatched core reference rather than retrying with another ID.
+
+Conversation create/list/close use the [shared schema-33 model](../docs/developer/conversation-control.md). Rich helpers retain tenant assertion, persistent/ephemeral policy, idle configuration, metadata and initial roles. Create and close require exact local mutation receipts; list uses bounded opaque cursors and current authorization.
+
+Membership control uses `change_membership` (Rust/Python) or `changeMembership`
+(TypeScript), with a closed `MembershipRequest` and one caller-owned operation ID.
+Persist the original expected revision and action for exact retries. All ten
+actions share the current operation ledger and require the exact local-mutation
+receipt; helpers never automatically retry. `membership_snapshot` and
+`membership_invitations` (camelCase in TypeScript) return bounded current views.
+Invitation cursors are opaque and credential-bound. Roles grant no credentials;
+readmission does not restore old history. See
+[the membership guide](../docs/developer/membership-control.md) and
+[the HTTP reference](../contracts/openapi-membership.json). Production signed
+canonical native client/listener installation remains a separate boundary.

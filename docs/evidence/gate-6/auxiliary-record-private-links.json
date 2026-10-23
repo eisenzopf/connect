@@ -1,0 +1,157 @@
+{
+  "task": "G6-046",
+  "title": "Actual private-source HTTPS view binding and erasure invalidation",
+  "status": "component-qualified",
+  "component_passed": true,
+  "full_task_complete": false,
+  "full_goal_complete": false,
+  "created_at": "2026-10-22T00:06:01.232469+00:00",
+  "platform": "local macOS arm64",
+  "schema_version": 81,
+  "pinned_patches": 131,
+  "scope": "Actual signed EdDSA native private duplex, real terminal Session record, pinned loopback HTTPS metadata views and public HTTP source erasure. Trusted padding supplies transport size only.",
+  "fresh_distinct_passed_tests": 4,
+  "verification": [
+    {
+      "name": "focused",
+      "binary": {
+        "path": "target/debug/deps/gate6_canonical_runtime-0805a8328b515b16",
+        "sha256": "a46a69a98e84ab4f671b4e798e65736c67553ae1e115702554f39d65c3fb8c18"
+      },
+      "arguments": [
+        "production_private_consultation_tls_links_bind_original_viewer_and_invalidate_after_source_erasure",
+        "--test-threads=1"
+      ],
+      "exit_code": 0,
+      "passed": 1,
+      "failed": 0,
+      "ignored": 0,
+      "filtered_out": 147,
+      "seconds": 21.04,
+      "log": {
+        "path": ".local/gate-6/private-record-tls-focused-v2.log",
+        "sha256": "5059393fdfc83de769dca060657a0ccefb18a3c9d5f4d196a1e3d6756bd5cff7"
+      },
+      "tests": [
+        "canonical_native_connections::consultation::production_private_consultation_tls_links_bind_original_viewer_and_invalidate_after_source_erasure"
+      ]
+    },
+    {
+      "name": "regression",
+      "binary": {
+        "path": "target/debug/deps/gate6_canonical_runtime-0805a8328b515b16",
+        "sha256": "a46a69a98e84ab4f671b4e798e65736c67553ae1e115702554f39d65c3fb8c18"
+      },
+      "arguments": [
+        "production_private_native_candidate_is_muted_and_quarantined_before_any_scene_publication",
+        "production_private_consultation_switches_actual_audio_without_leaking_to_remote_or_public_context",
+        "production_private_consultation_record_erasure_enforces_actual_lineage_and_replays_after_restart",
+        "--test-threads=1"
+      ],
+      "exit_code": 0,
+      "passed": 3,
+      "failed": 0,
+      "ignored": 0,
+      "filtered_out": 145,
+      "seconds": 55.19,
+      "log": {
+        "path": ".local/gate-6/private-record-tls-regression-v2.log",
+        "sha256": "836222410b57d9783081e12627cbf1ce50faa805e61aaeac88cd10e616e6e3ab"
+      },
+      "tests": [
+        "canonical_native_connections::consultation::production_private_consultation_record_erasure_enforces_actual_lineage_and_replays_after_restart",
+        "canonical_native_connections::consultation::production_private_consultation_switches_actual_audio_without_leaking_to_remote_or_public_context",
+        "canonical_native_connections::consultation::production_private_native_candidate_is_muted_and_quarantined_before_any_scene_publication"
+      ]
+    }
+  ],
+  "qualification_inputs": {
+    "path": ".local/gate-6/private-record-tls-inputs-final-v3.json",
+    "sha256": "03d1d963747016500bc34e23be43443e6120a4489a9e26ea1b9ffe65b2b10888"
+  },
+  "qualification_input_count": 1323,
+  "source_lock": {
+    "path": "dependencies/source-lock.json",
+    "sha256": "7e6bbe02467fdd28b09b51cab033459a4e84c5906cd27b3ba976e0a773b0f7e6"
+  },
+  "checks": {
+    "format": {
+      "exit_code": 0,
+      "log": {
+        "path": ".local/gate-6/private-record-tls-format-check-v2.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    "whitespace": {
+      "exit_code": 0,
+      "log": {
+        "path": ".local/gate-6/private-record-tls-whitespace-v3.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    "prepare_dependencies": {
+      "exit_code": 0,
+      "log": {
+        "path": ".local/gate-6/private-record-tls-prepare-v1.log",
+        "sha256": "fd9d7b181e3ccba9b643af55a186cf132c60aac99c734b2ee4e4e549afe5ffc2"
+      }
+    }
+  },
+  "build": {
+    "exit_code": 0,
+    "log": {
+      "path": ".local/gate-6/private-record-tls-build-v2.log",
+      "sha256": "2aa0e0d74b6682bb90cde2eb0bbe797a07f7b14bf4074067676017b420736e2a"
+    }
+  },
+  "production_unchanged_from_prior": {
+    "report": {
+      "path": "docs/evidence/gate-6/auxiliary-native-record-quic.json",
+      "sha256": "6dea08c294296a87888816fca6a155728557aed573b2eeb220f6649a71edeea0"
+    },
+    "changed_inputs": [
+      "crates/connect-server/tests/support/canonical_native_connections/consultation.rs",
+      "docs/developer/http-record-retrieval.md"
+    ],
+    "added_test": "crates/connect-server/tests/support/canonical_native_connections/consultation/record_links.rs",
+    "prior_compiled_binaries_unchanged": true,
+    "prior_connect_passed": 215,
+    "prior_upstream_passed": 34,
+    "note": "Earlier checks retain their successful runs and scoped source freeze; no repeated full Store/library/auxiliary qualification is claimed for these test/documentation-only changes."
+  },
+  "implementation": [
+    "The existing private-consultation fixture gains an optional TLS setup before actual native Connection negotiation. Existing callers forward false and keep their original configuration. No production transport, Store, Service, client, schema or patch changed in this phase.",
+    "The new case observes actual private duplex and retained remote/public isolation, terminates the Session and discovers its owned outcome over the public SDK. Original source epochs, Connection provenance, record UUID and ready state are never inserted or manufactured.",
+    "After materialization, a documented trusted backend CAS adds256KiB allowed metadata solely to select HTTPS reference delivery. It retains the producer's real source manifest. This does not qualify captured audio/media references."
+  ],
+  "behavior": [
+    "Consultant and retained remote independently receive different projected hashes and bound HTTPS URLs. The pinned SDK validates exact bytes, digest and vCon schema; the consultant sees its private/public Connections while the remote sees neither and retains its own codec-source.",
+    "The remote credential cannot borrow the consultant's URL: exact403. The original consultant credential downloads exact bytes equal to the SDK view over actual pinned TLS.",
+    "A fresh permitted consultant credential erases its actual private-consultant Connection generation1 through ApplicationClient. Immutable replay returns the exact receipt; no direct backend erasure is used.",
+    "Both old revision-bound URLs now return exact409, including the remote's narrower old view. Both original read credentials still authenticate. Fresh consultant TLS reads omit the erased private Connection and retain its public Connection; fresh remote reads retain codec-source without private topology. The old conditional digest also returns conflict.",
+    "Affected existing actual quarantine, private duplex/public isolation and source-erasure/restart replay cases pass on the rebuilt148-case native executable. The other144 cases are filtered, not newly qualified."
+  ],
+  "intermediate_runs": [
+    {
+      "log": {
+        "path": ".local/gate-6/private-record-tls-build-v1.log",
+        "sha256": "43e0ec3f3f9b594f27813f1f31f112b07d7146086e38b8be7cd802c25ebe698e"
+      },
+      "exit_code": 101,
+      "reason": "Test assert_eq required Debug for an opaque mutation Outcome; corrected to the existing equality assertion style. No production behavior or authority changed."
+    }
+  ],
+  "skipped_or_unqualified": [
+    "No new captured-media source or media-reference qualification; padding is metadata, and frozen private/public Connection lineage is real.",
+    "Mixed captured-source floors for every listener and actual provider unfinished socket WRITE custody remain open.",
+    "The earlier private-provider retention-return Accepted/no-effect refusal remains unresolved; passing later cohorts did not establish a functional repair or general reliability qualification.",
+    "Assurance, step-up, DTMF, quality, capability and all61 assigned auxiliary clauses still require reconciliation and remaining Connect evidence.",
+    "No remote/provider, Linux, browser, publication, full G6-046 or overall Gate6 acceptance qualification."
+  ],
+  "plan_counts": {
+    "done": 45,
+    "in_progress": 1,
+    "not_started": 59,
+    "acceptance_qualified": 0
+  }
+}

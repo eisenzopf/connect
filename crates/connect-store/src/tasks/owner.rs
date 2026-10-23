@@ -19,10 +19,12 @@ impl Store {
         input: super::TaskCreateDefaults,
         runtime: &DiscoveryRuntime,
     ) -> Result<TaskOutcome> {
+        let cid = input.conversation_id.clone();
         self.execute_task_runtime_with(
             credential_id,
             runtime,
             Clock::Current,
+            super::authority_fences::OwnerHint::Defaults(&cid),
             move |c, actor, timestamp| super::defaults::request(c, actor, input, timestamp),
         )
     }
@@ -61,15 +63,23 @@ impl Store {
         runtime: &DiscoveryRuntime,
         clock: Clock,
     ) -> Result<TaskOutcome> {
-        self.execute_task_runtime_with(credential_id, runtime, clock, |_, _, _| Ok(request.clone()))
+        self.execute_task_runtime_with(
+            credential_id,
+            runtime,
+            clock,
+            super::authority_fences::OwnerHint::Request(request),
+            |_, _, _| Ok(request.clone()),
+        )
     }
     fn execute_task_runtime_with(
         &self,
         credential_id: &str,
         runtime: &DiscoveryRuntime,
         clock: Clock,
+        hint: super::authority_fences::OwnerHint<'_>,
         make_request: impl FnOnce(&rusqlite::Connection, &crate::Actor, i64) -> Result<TaskRequest>,
     ) -> Result<TaskOutcome> {
+        let authority = self.task_owner_authority(credential_id, &hint, clock)?;
         let mut connection = self.connection()?;
         let tx = connection
             .transaction_with_behavior(TransactionBehavior::Immediate)
@@ -95,6 +105,7 @@ impl Store {
                     conversation_id,
                     reply_to,
                     body,
+                    message: None,
                 },
                 &storage::digest(request)?,
                 timestamp,
@@ -151,6 +162,9 @@ impl Store {
             }
             TaskCommand::Invoke { .. } => {
                 let task = current.ok_or_else(Error::forbidden)?;
+                let mut actor = actor.clone();
+                actor.scope.recipients = task.record.scope.recipients.clone();
+                actor.expires_at = actor.expires_at.min(task.record.expires_at);
                 let result = effects::invoke(
                     effects::Execution {
                         c: &tx,
@@ -159,6 +173,7 @@ impl Store {
                         store: self,
                         runtime,
                         timestamp,
+                        authority: Some(&authority),
                     },
                     request,
                     None,

@@ -1,0 +1,1375 @@
+diff --git a/crates/identity/auth-core/src/sig9421.rs b/crates/identity/auth-core/src/sig9421.rs
+index a4a29a5..e06f655 100644
+--- a/crates/identity/auth-core/src/sig9421.rs
++++ b/crates/identity/auth-core/src/sig9421.rs
+@@ -276,6 +276,20 @@ pub trait KeyResolver: Send + Sync {
+     /// raw public key.
+     fn resolve(&self, keyid: &str) -> Option<Vec<u8>>;
+ 
++    /// Resolve a key for this exact authenticated subject, issuer and tenant.
++    /// Canonical authenticated dispatch uses this entry point exclusively.
++    /// Existing global/context-only resolvers are deliberately unavailable here:
++    /// sharing an issuer does not authorize signing for another subject.
++    fn resolve_for_principal(
++        &self,
++        _principal: &crate::bearer::AuthenticatedPrincipal,
++        _keyid: &str,
++        _algorithm: &str,
++        _now: DateTime<Utc>,
++    ) -> Option<ResolvedVerificationKey> {
++        None
++    }
++
+     /// Resolve a key inside an authenticated tenant/issuer boundary. The
+     /// compatibility default wraps a legacy global key, while production
+     /// resolvers should override this method and reject unknown contexts.
+@@ -452,6 +466,43 @@ impl Sig9421Verifier {
+         &self,
+         envelope: &serde_json::Value,
+         context: &SignatureVerificationContext,
++    ) -> Result<(), Sig9421Error> {
++        self.verify_scoped(envelope, context, None).await
++    }
++
++    /// Verify with a key owned by the authenticated subject as well as its
++    /// issuer/tenant. No legacy/global key lookup is attempted. Principal
++    /// revocation and current resource authority remain the dispatcher's job.
++    pub async fn verify_for_principal(
++        &self,
++        envelope: &serde_json::Value,
++        principal: &crate::bearer::AuthenticatedPrincipal,
++    ) -> Result<(), Sig9421Error> {
++        let context = SignatureVerificationContext::new(
++            principal
++                .tenant
++                .as_deref()
++                .ok_or(Sig9421Error::MissingVerificationContext)?,
++            principal
++                .issuer
++                .as_deref()
++                .ok_or(Sig9421Error::MissingVerificationContext)?,
++        )?;
++        if principal.subject.is_empty()
++            || principal.expires_at.is_none()
++            || principal.is_expired_at(self.clock.now())
++        {
++            return Err(Sig9421Error::KeyRejected);
++        }
++        self.verify_scoped(envelope, &context, Some(principal))
++            .await
++    }
++
++    async fn verify_scoped(
++        &self,
++        envelope: &serde_json::Value,
++        context: &SignatureVerificationContext,
++        principal: Option<&crate::bearer::AuthenticatedPrincipal>,
+     ) -> Result<(), Sig9421Error> {
+         if context.tenant.is_empty() || context.issuer.is_empty() {
+             return Err(Sig9421Error::MissingVerificationContext);
+@@ -506,10 +557,19 @@ impl Sig9421Verifier {
+         }
+ 
+         // 4. Resolve the signing key and verify.
+-        let resolved = self
+-            .resolver
+-            .resolve_contextual(context, &signature.keyid, &signature.alg, now)
+-            .ok_or_else(|| Sig9421Error::UnknownKeyid(signature.keyid.clone()))?;
++        let resolved = match principal {
++            Some(principal) => self.resolver.resolve_for_principal(
++                principal,
++                &signature.keyid,
++                &signature.alg,
++                now,
++            ),
++            None => {
++                self.resolver
++                    .resolve_contextual(context, &signature.keyid, &signature.alg, now)
++            }
++        }
++        .ok_or_else(|| Sig9421Error::UnknownKeyid(signature.keyid.clone()))?;
+         if resolved.revoked
+             || resolved.algorithm != signature.alg
+             || resolved
+diff --git a/crates/uctp/rvoip-uctp/src/v2/auth_dispatch.rs b/crates/uctp/rvoip-uctp/src/v2/auth_dispatch.rs
+new file mode 100644
+index 0000000..35ef083
+--- /dev/null
++++ b/crates/uctp/rvoip-uctp/src/v2/auth_dispatch.rs
+@@ -0,0 +1,483 @@
++//! Authenticated envelope-v2 dispatch and bounded, scoped response admission.
++//!
++//! This is an explicit backend for an authenticated peer. The transport/profile
++//! handshake must install it deliberately; it never upgrades a v1 coordinator.
++//! All post-auth envelopes are signed. Application policy supplies owned current
++//! authority through execution, and logical operation recovery stays in the
++//! application handler. A correlated reply is an observation, never an authority
++//! grant for a subsequent effect.
++
++use super::{Envelope, Scope, WireError};
++use async_trait::async_trait;
++use parking_lot::Mutex;
++use rvoip_auth_core::bearer::{ensure_principal_active, AuthenticatedPrincipal, BearerValidator};
++use rvoip_auth_core::sig9421::{Sig9421Error, Sig9421Verifier};
++use rvoip_core::identity::IdentityAssurance;
++use std::{collections::HashMap, fmt, sync::Arc, time::Duration};
++use tokio::{sync::oneshot, time::Instant};
++use tokio_util::sync::CancellationToken;
++
++/// Upper bound for one backend invocation or correlated waiter. Application
++/// operations that outlive it must use their durable logical-operation ledger.
++pub const MAX_DISPATCH_WAIT: Duration = Duration::from_secs(30);
++
++/// Stable errors omit credentials, envelope contents, key IDs and resource IDs.
++#[derive(Clone, Copy, Debug, PartialEq, Eq, thiserror::Error)]
++pub enum DispatchError {
++    #[error("invalid envelope")]
++    Wire(WireError),
++    #[error("authentication method unavailable")]
++    UnsupportedMethod,
++    #[error("authentication failed")]
++    Authentication,
++    #[error("current authority unavailable or denied")]
++    Authority,
++    #[error("signature required or invalid")]
++    Signature,
++    #[error("envelope replay")]
++    Replay,
++    #[error("signature replay protection unavailable")]
++    ReplayUnavailable,
++    #[error("reply does not match a current scoped request")]
++    ReplyMismatch,
++    #[error("unsupported dispatch or request family")]
++    Unsupported,
++    #[error("request capacity exhausted")]
++    Capacity,
++    #[error("peer closed or deadline expired")]
++    Closed,
++}
++
++impl From<WireError> for DispatchError {
++    fn from(value: WireError) -> Self {
++        Self::Wire(value)
++    }
++}
++
++/// Keeps current authority in force until the handler returns. The installed
++/// policy must put its owned read/delivery guard here, including credential
++/// and signing-key revocation, effective grant and current resource scope. Never wrap a stale
++/// boolean authorization result. Construction is trusted backend composition.
++pub struct AuthorityLease {
++    _guard: Box<dyn Send + Sync>,
++}
++impl AuthorityLease {
++    pub fn holding<T: Send + Sync + 'static>(guard: T) -> Self {
++        Self {
++            _guard: Box::new(guard),
++        }
++    }
++}
++impl fmt::Debug for AuthorityLease {
++    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
++        f.write_str("AuthorityLease(redacted)")
++    }
++}
++
++#[async_trait]
++pub trait CurrentAuthority: Send + Sync {
++    async fn acquire(
++        &self,
++        principal: &AuthenticatedPrincipal,
++        envelope: &Envelope,
++    ) -> Result<AuthorityLease, DispatchError>;
++}
++
++/// Only the dispatch gate can construct this proof. The handler receives the
++/// authenticated actor separately from optional presentation fields in payloads.
++/// Holding this value retains authority for this invocation, not for a future
++/// operation, detached task or durable replay.
++pub struct AuthorizedEnvelope {
++    envelope: Envelope,
++    principal: AuthenticatedPrincipal,
++    _lease: AuthorityLease,
++}
++impl AuthorizedEnvelope {
++    pub fn envelope(&self) -> &Envelope {
++        &self.envelope
++    }
++    pub fn principal(&self) -> &AuthenticatedPrincipal {
++        &self.principal
++    }
++}
++impl fmt::Debug for AuthorizedEnvelope {
++    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
++        f.debug_struct("AuthorizedEnvelope")
++            .field("envelope", &self.envelope)
++            .finish_non_exhaustive()
++    }
++}
++
++#[async_trait]
++pub trait AuthenticatedHandler: Send + Sync {
++    /// Exactly one application dispatch. Stable logical-operation deduplication
++    /// belongs here; a fresh signed envelope never bypasses current authority.
++    /// Cancellation may mean uncertain work: reconcile the same operation ID.
++    async fn handle(&self, envelope: AuthorizedEnvelope) -> Result<Envelope, DispatchError>;
++}
++
++/// Advertise only the credential validator actually installed at this boundary.
++/// Experimental AAuth, DPoP and unknown strings never fall back to bearer.
++pub struct AuthenticationMethods {
++    bearer: Option<Arc<dyn BearerValidator>>,
++}
++impl AuthenticationMethods {
++    pub fn new(bearer: Option<Arc<dyn BearerValidator>>) -> Self {
++        Self { bearer }
++    }
++    pub fn advertised(&self) -> Vec<&'static str> {
++        if self.bearer.is_some() {
++            vec!["bearer"]
++        } else {
++            Vec::new()
++        }
++    }
++    /// Credential backend only, not the public four-envelope handshake. Profile
++    /// selection/challenge binding must complete before installing the peer.
++    pub async fn authenticate(
++        &self,
++        method: &str,
++        credential: &str,
++        actor_token: Option<&str>,
++        deadline: Instant,
++    ) -> Result<AuthenticatedPrincipal, DispatchError> {
++        if method != "bearer" {
++            return Err(DispatchError::UnsupportedMethod);
++        }
++        let validator = self
++            .bearer
++            .as_ref()
++            .ok_or(DispatchError::UnsupportedMethod)?;
++        // The bearer backend has no actor-token/delegation verification path.
++        if actor_token.is_some() || credential.is_empty() || credential.len() > 65_536 {
++            return Err(DispatchError::Authentication);
++        }
++        if deadline <= Instant::now() {
++            return Err(DispatchError::Closed);
++        }
++        let deadline = deadline.min(Instant::now() + MAX_DISPATCH_WAIT);
++        let validated =
++            tokio::time::timeout_at(deadline, validator.validate_credential(credential))
++                .await
++                .map_err(|_| DispatchError::Closed)?
++                .map_err(|_| DispatchError::Authentication)?;
++        checked_principal(validated.principal)
++    }
++}
++
++fn checked_principal(
++    principal: AuthenticatedPrincipal,
++) -> Result<AuthenticatedPrincipal, DispatchError> {
++    let principal =
++        ensure_principal_active(principal).map_err(|_| DispatchError::Authentication)?;
++    if principal.tenant.is_none()
++        || principal.issuer.is_none()
++        || principal.expires_at.is_none()
++        || matches!(principal.assurance.kind(), "anonymous" | "pseudonymous")
++    {
++        return Err(DispatchError::Authentication);
++    }
++    if let IdentityAssurance::TaskScoped { expires_at, .. } = &principal.assurance {
++        if *expires_at <= chrono::Utc::now() {
++            return Err(DispatchError::Authentication);
++        }
++    }
++    Ok(principal)
++}
++
++pub enum DispatchOutcome {
++    Handled(Envelope),
++    ReplyDelivered,
++}
++impl fmt::Debug for DispatchOutcome {
++    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
++        match self {
++            Self::Handled(envelope) => f.debug_tuple("Handled").field(envelope).finish(),
++            Self::ReplyDelivered => f.write_str("ReplyDelivered"),
++        }
++    }
++}
++
++/// One authenticated peer incarnation. Reauthentication creates a new one;
++/// pending requests never move across peer incarnations. This backend does not
++/// advertise a wire profile or handle refresh/step-up credentials itself.
++pub struct AuthenticatedDispatch {
++    principal: AuthenticatedPrincipal,
++    verifier: Arc<Sig9421Verifier>,
++    authority: Arc<dyn CurrentAuthority>,
++    lifetime: CancellationToken,
++    pending: Arc<Mutex<HashMap<String, PendingEntry>>>,
++    capacity: usize,
++}
++impl AuthenticatedDispatch {
++    /// `principal` is a trusted validator result, not a deserialized payload.
++    pub fn new(
++        principal: AuthenticatedPrincipal,
++        verifier: Arc<Sig9421Verifier>,
++        authority: Arc<dyn CurrentAuthority>,
++        lifetime: CancellationToken,
++        pending_capacity: usize,
++    ) -> Result<Self, DispatchError> {
++        if pending_capacity == 0 || pending_capacity > 256 {
++            return Err(DispatchError::Capacity);
++        }
++        Ok(Self {
++            principal: checked_principal(principal)?,
++            verifier,
++            authority,
++            lifetime: lifetime.child_token(),
++            pending: Arc::new(Mutex::new(HashMap::new())),
++            capacity: pending_capacity,
++        })
++    }
++
++    pub fn close(&self) {
++        self.lifetime.cancel();
++        self.pending.lock().clear();
++    }
++
++    pub fn pending_count(&self) -> usize {
++        let mut pending = self.pending.lock();
++        if self.lifetime.is_cancelled() {
++            pending.clear();
++        }
++        pending.retain(|_, entry| entry.deadline > Instant::now() && !entry.sender.is_closed());
++        pending.len()
++    }
++
++    fn require_active(&self, deadline: Instant) -> Result<(), DispatchError> {
++        if self.lifetime.is_cancelled() || deadline <= Instant::now() {
++            return Err(DispatchError::Closed);
++        }
++        checked_principal(self.principal.clone()).map(|_| ())
++    }
++
++    fn active_deadline(&self, requested: Instant) -> Result<Instant, DispatchError> {
++        self.require_active(requested)?;
++        let now = chrono::Utc::now();
++        let mut expiry = self
++            .principal
++            .expires_at
++            .ok_or(DispatchError::Authentication)?;
++        if let IdentityAssurance::TaskScoped { expires_at, .. } = &self.principal.assurance {
++            expiry = expiry.min(*expires_at);
++        }
++        let remaining = (expiry - now)
++            .to_std()
++            .map_err(|_| DispatchError::Authentication)?;
++        Ok(requested.min(Instant::now() + remaining.min(MAX_DISPATCH_WAIT)))
++    }
++
++    /// Register before writing a request, retaining the ticket until completion.
++    /// Only already scoped families are supported here. Resource creation and
++    /// unscoped auth handshakes need their own explicit correlation policies.
++    pub fn register_reply(
++        &self,
++        request: &Envelope,
++        deadline: Instant,
++    ) -> Result<ReplyTicket, DispatchError> {
++        let deadline = self.active_deadline(deadline)?;
++        let expectation = ReplyExpectation::new(request)?;
++        let mut pending = self.pending.lock();
++        pending.retain(|_, entry| entry.deadline > Instant::now() && !entry.sender.is_closed());
++        if pending.contains_key(request.id()) || pending.len() >= self.capacity {
++            return Err(DispatchError::Capacity);
++        }
++        let (sender, receiver) = oneshot::channel();
++        let token = uuid::Uuid::new_v4();
++        pending.insert(
++            request.id().to_owned(),
++            PendingEntry {
++                expectation,
++                sender,
++                token,
++                deadline,
++            },
++        );
++        Ok(ReplyTicket {
++            pending: self.pending.clone(),
++            id: request.id().to_owned(),
++            token,
++            receiver: Some(receiver),
++            deadline,
++            lifetime: self.lifetime.clone(),
++        })
++    }
++
++    pub async fn dispatch(
++        &self,
++        bytes: &[u8],
++        handler: &dyn AuthenticatedHandler,
++        deadline: Instant,
++    ) -> Result<DispatchOutcome, DispatchError> {
++        let deadline = self.active_deadline(deadline)?;
++        let envelope = Envelope::parse(bytes)?;
++        // Pre-auth, refresh and assurance transitions have a separate state
++        // machine. Never send credentials or server-only observations to an
++        // ordinary application handler.
++        if envelope.kind().starts_with("auth.") || envelope.kind().starts_with("identity.") {
++            return Err(DispatchError::Unsupported);
++        }
++        tokio::select! {
++            biased;
++            _ = self.lifetime.cancelled() => Err(DispatchError::Closed),
++            _ = tokio::time::sleep_until(deadline) => Err(DispatchError::Closed),
++            result = self.dispatch_inner(envelope, handler, deadline) => result,
++        }
++    }
++
++    async fn dispatch_inner(
++        &self,
++        envelope: Envelope,
++        handler: &dyn AuthenticatedHandler,
++        deadline: Instant,
++    ) -> Result<DispatchOutcome, DispatchError> {
++        // Check current revocation/scope even before expensive verification.
++        // Drop that lease before awaiting replay storage, then reacquire after
++        // verification so a revocation during verification cannot slip through.
++        drop(self.authority.acquire(&self.principal, &envelope).await?);
++        self.require_active(deadline)?;
++        self.verifier
++            .verify_for_principal(envelope.original(), &self.principal)
++            .await
++            .map_err(|error| match error {
++                Sig9421Error::ReplayDetected(_) => DispatchError::Replay,
++                Sig9421Error::ReplayStoreUnavailable => DispatchError::ReplayUnavailable,
++                _ => DispatchError::Signature,
++            })?;
++        let lease = self.authority.acquire(&self.principal, &envelope).await?;
++        self.require_active(deadline)?;
++        if let Some(reply_to) = envelope.scope(Scope::Reply) {
++            let mut pending = self.pending.lock();
++            let entry = pending.get(reply_to).ok_or(DispatchError::ReplyMismatch)?;
++            if entry.deadline <= Instant::now() || !entry.expectation.matches(&envelope) {
++                return Err(DispatchError::ReplyMismatch);
++            }
++            let entry = pending
++                .remove(reply_to)
++                .expect("entry held under same lock");
++            // Retain authority through nonblocking local waiter admission. No
++            // authority guard is parked indefinitely in an unpolled receiver.
++            entry
++                .sender
++                .send(envelope)
++                .map_err(|_| DispatchError::ReplyMismatch)?;
++            drop(lease);
++            return Ok(DispatchOutcome::ReplyDelivered);
++        }
++        if is_reply_kind(envelope.kind()) {
++            return Err(DispatchError::ReplyMismatch);
++        }
++        handler
++            .handle(AuthorizedEnvelope {
++                envelope,
++                principal: self.principal.clone(),
++                _lease: lease,
++            })
++            .await
++            .map(DispatchOutcome::Handled)
++    }
++}
++
++impl Drop for AuthenticatedDispatch {
++    fn drop(&mut self) {
++        self.close();
++    }
++}
++
++fn is_reply_kind(kind: &str) -> bool {
++    matches!(
++        kind,
++        "ack"
++            | "error"
++            | "connection.answer"
++            | "connection.ready"
++            | "operation.updated"
++            | "conversation.snapshot"
++            | "conversation.opened"
++            | "conversation.closed"
++            | "recording.vcon-fetched"
++    )
++}
++
++struct PendingEntry {
++    expectation: ReplyExpectation,
++    sender: oneshot::Sender<Envelope>,
++    deadline: Instant,
++    token: uuid::Uuid,
++}
++struct ReplyExpectation {
++    cid: String,
++    sid: String,
++    connid: String,
++    operation: Option<String>,
++    family: &'static str,
++}
++impl ReplyExpectation {
++    fn new(request: &Envelope) -> Result<Self, DispatchError> {
++        if request.scope(Scope::Reply).is_some() {
++            return Err(DispatchError::Unsupported);
++        }
++        let family = match request.kind() {
++            "connection.offer" => "connection.answer",
++            "connection.update" | "stream.subscribe" | "stream.unsubscribe" => "ack",
++            "operation.get" | "operation.cancel" | "operation.reconcile" => "operation.updated",
++            _ => return Err(DispatchError::Unsupported),
++        };
++        let required = |scope| {
++            request
++                .scope(scope)
++                .map(str::to_owned)
++                .ok_or(DispatchError::ReplyMismatch)
++        };
++        Ok(Self {
++            cid: required(Scope::Conversation)?,
++            sid: required(Scope::Session)?,
++            connid: required(Scope::Connection)?,
++            operation: request.scope(Scope::Operation).map(str::to_owned),
++            family,
++        })
++    }
++    fn matches(&self, reply: &Envelope) -> bool {
++        reply.scope(Scope::Conversation) == Some(self.cid.as_str())
++            && reply.scope(Scope::Session) == Some(self.sid.as_str())
++            && reply.scope(Scope::Connection) == Some(self.connid.as_str())
++            && reply.scope(Scope::Operation) == self.operation.as_deref()
++            && (reply.kind() == self.family || reply.kind() == "error")
++    }
++}
++
++/// Dropping a send/await future removes only its own registration. Waiting is
++/// bounded by its original absolute deadline and the physical peer lifetime.
++pub struct ReplyTicket {
++    pending: Arc<Mutex<HashMap<String, PendingEntry>>>,
++    id: String,
++    token: uuid::Uuid,
++    receiver: Option<oneshot::Receiver<Envelope>>,
++    deadline: Instant,
++    lifetime: CancellationToken,
++}
++impl ReplyTicket {
++    /// Validated observation only. Reacquire current application authority at
++    /// every later mutation/media activation; receiving a reply grants none.
++    pub async fn wait(mut self) -> Result<Envelope, DispatchError> {
++        let receiver = self.receiver.take().expect("owned single wait");
++        tokio::select! {
++            biased;
++            _ = self.lifetime.cancelled() => Err(DispatchError::Closed),
++            _ = tokio::time::sleep_until(self.deadline) => Err(DispatchError::Closed),
++            result = receiver => result.map_err(|_| DispatchError::Closed),
++        }
++    }
++}
++impl Drop for ReplyTicket {
++    fn drop(&mut self) {
++        let mut pending = self.pending.lock();
++        if pending
++            .get(&self.id)
++            .is_some_and(|entry| entry.token == self.token)
++        {
++            pending.remove(&self.id);
++        }
++    }
++}
+diff --git a/crates/uctp/rvoip-uctp/src/v2/mod.rs b/crates/uctp/rvoip-uctp/src/v2/mod.rs
+index f840c3a..0a7eeb7 100644
+--- a/crates/uctp/rvoip-uctp/src/v2/mod.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/mod.rs
+@@ -6,6 +6,7 @@
+ //! fields before business-intent processing. Authentication and authorization
+ //! remain the responsibility of the application service, never JSON metadata.
+ 
++pub mod auth_dispatch;
+ pub mod payloads;
+ mod validation;
+ 
+diff --git a/crates/uctp/rvoip-uctp/tests/v2_auth_dispatch.rs b/crates/uctp/rvoip-uctp/tests/v2_auth_dispatch.rs
+new file mode 100644
+index 0000000..7f3cdcd
+--- /dev/null
++++ b/crates/uctp/rvoip-uctp/tests/v2_auth_dispatch.rs
+@@ -0,0 +1,775 @@
++//! Canonical backend tests: real Ed25519/JCS verification and current policy.
++//! No v1 handshake, live provider, public transport or durable service claim.
++use async_trait::async_trait;
++use base64::Engine;
++use chrono::{DateTime, Duration as ChronoDuration, Utc};
++use ring::signature::{Ed25519KeyPair, KeyPair};
++use rvoip_auth_core::{
++    bearer::{AuthenticatedPrincipal, AuthenticationMethod, BearerAuthError, BearerValidator},
++    sig9421::{
++        jcs_canonicalize, InMemorySignatureReplayStore, KeyResolver, ReplayConsumeError,
++        ResolvedVerificationKey, Sig9421Verifier, SignatureReplayStore,
++        SignatureVerificationContext, StaticKeyResolver, SystemSignatureClock,
++    },
++};
++use rvoip_core::identity::{CredentialKind, IdentityAssurance};
++use rvoip_uctp::v2::{auth_dispatch::*, Envelope, Scope};
++use serde_json::{json, Value};
++use std::{
++    collections::HashSet,
++    sync::{
++        atomic::{AtomicUsize, Ordering},
++        Arc,
++    },
++    time::Duration,
++};
++use tokio::{
++    sync::{Notify, RwLock},
++    time::Instant,
++};
++use tokio_util::sync::CancellationToken;
++
++fn deadline() -> Instant {
++    Instant::now() + Duration::from_secs(3)
++}
++fn principal() -> AuthenticatedPrincipal {
++    AuthenticatedPrincipal {
++        subject: "alice".into(),
++        tenant: Some("tenant".into()),
++        issuer: Some("issuer".into()),
++        expires_at: Some(Utc::now() + ChronoDuration::hours(1)),
++        scopes: vec!["control".into()],
++        method: AuthenticationMethod::Bearer,
++        assurance: IdentityAssurance::Identified {
++            credential_kind: CredentialKind::Oidc,
++        },
++    }
++}
++fn keypair() -> Ed25519KeyPair {
++    Ed25519KeyPair::from_pkcs8(
++        Ed25519KeyPair::generate_pkcs8(&ring::rand::SystemRandom::new())
++            .unwrap()
++            .as_ref(),
++    )
++    .unwrap()
++}
++struct OwnedKey {
++    public: Vec<u8>,
++}
++impl KeyResolver for OwnedKey {
++    fn resolve(&self, _: &str) -> Option<Vec<u8>> {
++        Some(self.public.clone())
++    }
++    fn resolve_for_principal(
++        &self,
++        p: &AuthenticatedPrincipal,
++        key: &str,
++        alg: &str,
++        _: DateTime<Utc>,
++    ) -> Option<ResolvedVerificationKey> {
++        (p.subject == "alice"
++            && p.issuer.as_deref() == Some("issuer")
++            && p.tenant.as_deref() == Some("tenant")
++            && key == "owned"
++            && alg == "EdDSA")
++            .then(|| ResolvedVerificationKey {
++                public_key: self.public.clone(),
++                algorithm: "EdDSA".into(),
++                not_before: None,
++                expires_at: None,
++                revoked: false,
++            })
++    }
++}
++fn verifier(kp: &Ed25519KeyPair) -> Arc<Sig9421Verifier> {
++    Arc::new(Sig9421Verifier::new(Arc::new(OwnedKey {
++        public: kp.public_key().as_ref().to_vec(),
++    })))
++}
++fn envelope(kind: &str, payload: Value) -> Value {
++    json!({"v":2,"type":kind,"id":format!("env_{}",uuid::Uuid::new_v4().simple()),"ts":Utc::now().to_rfc3339(),"cid":"conversation","sid":"session","connid":"connection","operation_id":"logical_operation","payload":payload})
++}
++fn request() -> Value {
++    let mut value = envelope("connection.update", json!({"action":"hold"}));
++    value["expected_revision"] = json!(1);
++    value
++}
++fn ack(request: &Value) -> Value {
++    let mut value = envelope("ack", json!({"details":{"received":request["id"]}}));
++    value["in_reply_to"] = request["id"].clone();
++    value
++}
++fn signed(mut value: Value, kp: &Ed25519KeyPair) -> Vec<u8> {
++    value.as_object_mut().unwrap().remove("signature");
++    let sig = kp.sign(jcs_canonicalize(&value).as_bytes());
++    value["signature"] = json!({"keyid":"owned","alg":"EdDSA","sig":base64::engine::general_purpose::URL_SAFE_NO_PAD.encode(sig.as_ref())});
++    serde_json::to_vec(&value).unwrap()
++}
++#[derive(Default)]
++struct Policy {
++    revoked: Arc<RwLock<bool>>,
++    calls: AtomicUsize,
++}
++#[async_trait]
++impl CurrentAuthority for Policy {
++    async fn acquire(
++        &self,
++        p: &AuthenticatedPrincipal,
++        env: &Envelope,
++    ) -> Result<AuthorityLease, DispatchError> {
++        self.calls.fetch_add(1, Ordering::SeqCst);
++        let guard = self.revoked.clone().read_owned().await;
++        if *guard
++            || !p.has_scope("control")
++            || !matches!(
++                env.scope(Scope::Conversation),
++                Some("conversation" | "wrong")
++            )
++        {
++            return Err(DispatchError::Authority);
++        }
++        Ok(AuthorityLease::holding(guard))
++    }
++}
++#[derive(Default)]
++struct Handler {
++    calls: AtomicUsize,
++    effects: parking_lot::Mutex<HashSet<String>>,
++}
++#[async_trait]
++impl AuthenticatedHandler for Handler {
++    async fn handle(&self, authorized: AuthorizedEnvelope) -> Result<Envelope, DispatchError> {
++        self.calls.fetch_add(1, Ordering::SeqCst);
++        assert_eq!(authorized.principal().subject, "alice");
++        let env = authorized.envelope();
++        assert!(env.execution_value().get("optional_extension").is_none());
++        self.effects
++            .lock()
++            .insert(env.scope(Scope::Operation).unwrap().into());
++        Envelope::from_value(ack(env.original())).map_err(DispatchError::from)
++    }
++}
++fn peer(kp: &Ed25519KeyPair, policy: Arc<Policy>) -> AuthenticatedDispatch {
++    AuthenticatedDispatch::new(
++        principal(),
++        verifier(kp),
++        policy,
++        CancellationToken::new(),
++        2,
++    )
++    .unwrap()
++}
++
++#[tokio::test]
++async fn fresh_signed_logical_retry_reaches_one_handler_and_replay_does_not() {
++    let kp = keypair();
++    let peer = peer(&kp, Arc::new(Policy::default()));
++    let h = Handler::default();
++    let mut request = request();
++    request["optional_extension"] = json!({"signed":true});
++    let wire = signed(request.clone(), &kp);
++    assert!(matches!(
++        peer.dispatch(&wire, &h, deadline()).await.unwrap(),
++        DispatchOutcome::Handled(_)
++    ));
++    assert_eq!(
++        peer.dispatch(&wire, &h, deadline()).await.unwrap_err(),
++        DispatchError::Replay
++    );
++    request["id"] = json!("fresh_retry");
++    assert!(peer
++        .dispatch(&signed(request, &kp), &h, deadline())
++        .await
++        .is_ok());
++    assert_eq!(h.calls.load(Ordering::SeqCst), 2);
++    assert_eq!(h.effects.lock().len(), 1);
++}
++#[tokio::test]
++async fn tampered_ignored_extension_is_rejected_before_execution() {
++    let kp = keypair();
++    let peer = peer(&kp, Arc::new(Policy::default()));
++    let h = Handler::default();
++    let mut request = request();
++    request["optional_extension"] = json!("original");
++    let wire = signed(request, &kp);
++    let mut changed: Value = serde_json::from_slice(&wire).unwrap();
++    changed["optional_extension"] = json!("changed");
++    assert_eq!(
++        peer.dispatch(&serde_json::to_vec(&changed).unwrap(), &h, deadline())
++            .await
++            .unwrap_err(),
++        DispatchError::Signature
++    );
++    assert!(peer.dispatch(&wire, &h, deadline()).await.is_ok());
++    assert_eq!(h.calls.load(Ordering::SeqCst), 1);
++}
++#[tokio::test]
++async fn same_issuer_or_tenant_does_not_allow_another_subjects_signing_key() {
++    let kp = keypair();
++    let h = Handler::default();
++    let wire = signed(request(), &kp);
++    for field in ["subject", "issuer", "tenant"] {
++        let mut p = principal();
++        match field {
++            "subject" => p.subject = "bob".into(),
++            "issuer" => p.issuer = Some("other".into()),
++            _ => p.tenant = Some("other".into()),
++        }
++        let peer = AuthenticatedDispatch::new(
++            p,
++            verifier(&kp),
++            Arc::new(Policy::default()),
++            CancellationToken::new(),
++            2,
++        )
++        .unwrap();
++        assert_eq!(
++            peer.dispatch(&wire, &h, deadline()).await.unwrap_err(),
++            DispatchError::Signature
++        );
++    }
++    assert_eq!(h.calls.load(Ordering::SeqCst), 0);
++}
++#[tokio::test]
++async fn legacy_global_resolver_never_supplies_an_authenticated_subject_key() {
++    let kp = keypair();
++    let mut resolver = StaticKeyResolver::new();
++    resolver.insert("owned", kp.public_key().as_ref().to_vec());
++    let peer = AuthenticatedDispatch::new(
++        principal(),
++        Arc::new(Sig9421Verifier::new(Arc::new(resolver))),
++        Arc::new(Policy::default()),
++        CancellationToken::new(),
++        2,
++    )
++    .unwrap();
++    assert_eq!(
++        peer.dispatch(&signed(request(), &kp), &Handler::default(), deadline())
++            .await
++            .unwrap_err(),
++        DispatchError::Signature
++    );
++}
++#[tokio::test]
++async fn unsigned_and_unsupported_signature_algorithms_fail_closed() {
++    let kp = keypair();
++    let peer = peer(&kp, Arc::new(Policy::default()));
++    let h = Handler::default();
++    assert_eq!(
++        peer.dispatch(&serde_json::to_vec(&request()).unwrap(), &h, deadline())
++            .await
++            .unwrap_err(),
++        DispatchError::Signature
++    );
++    let mut value: Value = serde_json::from_slice(&signed(request(), &kp)).unwrap();
++    value["signature"]["alg"] = json!("ES256");
++    assert_eq!(
++        peer.dispatch(&serde_json::to_vec(&value).unwrap(), &h, deadline())
++            .await
++            .unwrap_err(),
++        DispatchError::Signature
++    );
++    assert_eq!(h.calls.load(Ordering::SeqCst), 0);
++}
++#[tokio::test]
++async fn expired_incomplete_and_unverified_principals_cannot_establish_a_peer() {
++    let kp = keypair();
++    for variant in 0..5 {
++        let mut p = principal();
++        match variant {
++            0 => p.expires_at = Some(Utc::now() - ChronoDuration::seconds(1)),
++            1 => p.expires_at = None,
++            2 => p.issuer = None,
++            3 => p.tenant = None,
++            _ => p.assurance = IdentityAssurance::Anonymous,
++        }
++        assert!(matches!(
++            AuthenticatedDispatch::new(
++                p,
++                verifier(&kp),
++                Arc::new(Policy::default()),
++                CancellationToken::new(),
++                2
++            ),
++            Err(DispatchError::Authentication)
++        ));
++    }
++}
++#[tokio::test]
++async fn revocation_and_denied_scope_apply_again_on_a_fresh_logical_retry() {
++    let kp = keypair();
++    let policy = Arc::new(Policy::default());
++    let peer = peer(&kp, policy.clone());
++    let h = Handler::default();
++    assert!(peer
++        .dispatch(&signed(request(), &kp), &h, deadline())
++        .await
++        .is_ok());
++    *policy.revoked.write().await = true;
++    assert_eq!(
++        peer.dispatch(&signed(request(), &kp), &h, deadline())
++            .await
++            .unwrap_err(),
++        DispatchError::Authority
++    );
++    *policy.revoked.write().await = false;
++    let mut wrong = request();
++    wrong["cid"] = json!("private_other");
++    assert_eq!(
++        peer.dispatch(&signed(wrong, &kp), &h, deadline())
++            .await
++            .unwrap_err(),
++        DispatchError::Authority
++    );
++    assert_eq!(h.calls.load(Ordering::SeqCst), 1);
++}
++#[tokio::test]
++async fn wrong_scope_or_family_replies_cannot_consume_a_valid_waiter() {
++    let kp = keypair();
++    let peer = peer(&kp, Arc::new(Policy::default()));
++    let h = Handler::default();
++    let request = request();
++    let ticket = peer
++        .register_reply(&Envelope::from_value(request.clone()).unwrap(), deadline())
++        .unwrap();
++    for field in [
++        "cid",
++        "sid",
++        "connid",
++        "operation_id",
++        "in_reply_to",
++        "family",
++    ] {
++        let mut reply = ack(&request);
++        if field == "family" {
++            reply["type"] = json!("connection.update");
++            reply["payload"] = json!({"action":"hold"});
++            reply["expected_revision"] = json!(1);
++        } else {
++            reply[field] = json!("wrong");
++        }
++        Envelope::from_value(reply.clone()).expect("valid wrong-scope/family fixture");
++        assert_eq!(
++            peer.dispatch(&signed(reply, &kp), &h, deadline())
++                .await
++                .unwrap_err(),
++            DispatchError::ReplyMismatch,
++            "{field}"
++        );
++        assert_eq!(peer.pending_count(), 1);
++    }
++    assert!(matches!(
++        peer.dispatch(&signed(ack(&request), &kp), &h, deadline())
++            .await
++            .unwrap(),
++        DispatchOutcome::ReplyDelivered
++    ));
++    assert_eq!(ticket.wait().await.unwrap().kind(), "ack");
++    assert_eq!(peer.pending_count(), 0);
++    assert_eq!(h.calls.load(Ordering::SeqCst), 0);
++}
++#[tokio::test]
++async fn unsigned_or_revoked_replies_leave_the_waiter_registered() {
++    let kp = keypair();
++    let policy = Arc::new(Policy::default());
++    let peer = peer(&kp, policy.clone());
++    let h = Handler::default();
++    let request = request();
++    let ticket = peer
++        .register_reply(&Envelope::from_value(request.clone()).unwrap(), deadline())
++        .unwrap();
++    assert_eq!(
++        peer.dispatch(&serde_json::to_vec(&ack(&request)).unwrap(), &h, deadline())
++            .await
++            .unwrap_err(),
++        DispatchError::Signature
++    );
++    *policy.revoked.write().await = true;
++    let wire = signed(ack(&request), &kp);
++    assert_eq!(
++        peer.dispatch(&wire, &h, deadline()).await.unwrap_err(),
++        DispatchError::Authority
++    );
++    assert_eq!(peer.pending_count(), 1);
++    *policy.revoked.write().await = false;
++    assert!(matches!(
++        peer.dispatch(&wire, &h, deadline()).await.unwrap(),
++        DispatchOutcome::ReplyDelivered
++    ));
++    assert!(ticket.wait().await.is_ok());
++}
++#[tokio::test(start_paused = true)]
++async fn pending_requests_expire_and_cancel_without_leaks_or_cross_incarnation_delivery() {
++    let kp = keypair();
++    let peer = peer(&kp, Arc::new(Policy::default()));
++    let request = Envelope::from_value(request()).unwrap();
++    let ticket = peer
++        .register_reply(&request, Instant::now() + Duration::from_secs(1))
++        .unwrap();
++    assert!(matches!(
++        peer.register_reply(&request, deadline()),
++        Err(DispatchError::Capacity)
++    ));
++    tokio::time::advance(Duration::from_secs(2)).await;
++    assert_eq!(peer.pending_count(), 0);
++    // Old-ticket cleanup must not remove a replacement registration.
++    let replacement = peer.register_reply(&request, deadline()).unwrap();
++    drop(ticket);
++    assert_eq!(peer.pending_count(), 1);
++    drop(replacement);
++    assert_eq!(peer.pending_count(), 0);
++    let ticket = peer.register_reply(&request, deadline()).unwrap();
++    assert_eq!(ticket.wait().await.unwrap_err(), DispatchError::Closed);
++    assert_eq!(peer.pending_count(), 0);
++    let ticket = peer.register_reply(&request, deadline()).unwrap();
++    peer.close();
++    assert_eq!(ticket.wait().await.unwrap_err(), DispatchError::Closed);
++    assert_eq!(peer.pending_count(), 0);
++    assert_eq!(
++        peer.dispatch(
++            &signed(request.original().clone(), &kp),
++            &Handler::default(),
++            deadline()
++        )
++        .await
++        .unwrap_err(),
++        DispatchError::Closed
++    );
++}
++#[tokio::test]
++async fn request_capacity_and_peer_incarnations_are_independent() {
++    let kp = keypair();
++    let peer1 = peer(&kp, Arc::new(Policy::default()));
++    let peer2 = peer(&kp, Arc::new(Policy::default()));
++    let r1 = Envelope::from_value(request()).unwrap();
++    let r2 = Envelope::from_value(request()).unwrap();
++    let r3 = Envelope::from_value(request()).unwrap();
++    let t1 = peer1.register_reply(&r1, deadline()).unwrap();
++    let t2 = peer1.register_reply(&r2, deadline()).unwrap();
++    assert!(matches!(
++        peer1.register_reply(&r3, deadline()),
++        Err(DispatchError::Capacity)
++    ));
++    assert_eq!(
++        peer2
++            .dispatch(
++                &signed(ack(r1.original()), &kp),
++                &Handler::default(),
++                deadline()
++            )
++            .await
++            .unwrap_err(),
++        DispatchError::ReplyMismatch
++    );
++    assert_eq!(peer1.pending_count(), 2);
++    drop(t1);
++    drop(t2);
++    assert_eq!(peer1.pending_count(), 0);
++}
++#[tokio::test]
++async fn preauth_refresh_and_assurance_envelopes_cannot_enter_application_handler() {
++    let kp = keypair();
++    let peer = peer(&kp, Arc::new(Policy::default()));
++    let h = Handler::default();
++    for (kind, payload) in [
++        (
++            "auth.refresh",
++            json!({"method":"bearer","credential":"private"}),
++        ),
++        (
++            "identity.step-up-response",
++            json!({"method":"bearer","credential":"private"}),
++        ),
++        (
++            "identity.assurance-changed",
++            json!({"previous":"anonymous","current":"identified","reason":"forged"}),
++        ),
++    ] {
++        assert_eq!(
++            peer.dispatch(&signed(envelope(kind, payload), &kp), &h, deadline())
++                .await
++                .unwrap_err(),
++            DispatchError::Unsupported
++        );
++    }
++    assert_eq!(h.calls.load(Ordering::SeqCst), 0);
++}
++struct BlockingReplay {
++    entered: Notify,
++    release: Notify,
++    backing: InMemorySignatureReplayStore,
++}
++#[async_trait]
++impl SignatureReplayStore for BlockingReplay {
++    async fn consume(
++        &self,
++        context: &SignatureVerificationContext,
++        id: &str,
++        expires: DateTime<Utc>,
++        now: DateTime<Utc>,
++    ) -> Result<(), ReplayConsumeError> {
++        self.entered.notify_one();
++        self.release.notified().await;
++        self.backing.consume(context, id, expires, now).await
++    }
++}
++#[tokio::test]
++async fn revocation_while_signature_replay_storage_is_pending_prevents_dispatch() {
++    let kp = keypair();
++    let policy = Arc::new(Policy::default());
++    let replay = Arc::new(BlockingReplay {
++        entered: Notify::new(),
++        release: Notify::new(),
++        backing: InMemorySignatureReplayStore::new(8).unwrap(),
++    });
++    let verifier = Arc::new(
++        Sig9421Verifier::with_security_dependencies(
++            Arc::new(OwnedKey {
++                public: kp.public_key().as_ref().to_vec(),
++            }),
++            replay.clone(),
++            Arc::new(SystemSignatureClock),
++            Duration::from_secs(300),
++            Duration::from_secs(30),
++            1_048_576,
++        )
++        .unwrap(),
++    );
++    let peer = AuthenticatedDispatch::new(
++        principal(),
++        verifier,
++        policy.clone(),
++        CancellationToken::new(),
++        2,
++    )
++    .unwrap();
++    let h = Handler::default();
++    let wire = signed(request(), &kp);
++    let dispatch = peer.dispatch(&wire, &h, deadline());
++    tokio::pin!(dispatch);
++    tokio::select! { result=&mut dispatch=>panic!("completed early: {result:?}"),_ = replay.entered.notified()=>{} }
++    *policy.revoked.write().await = true;
++    replay.release.notify_one();
++    assert_eq!(dispatch.await.unwrap_err(), DispatchError::Authority);
++    assert_eq!(h.calls.load(Ordering::SeqCst), 0);
++}
++struct HeldHandler {
++    entered: Notify,
++    release: Notify,
++}
++#[async_trait]
++impl AuthenticatedHandler for HeldHandler {
++    async fn handle(&self, env: AuthorizedEnvelope) -> Result<Envelope, DispatchError> {
++        self.entered.notify_one();
++        self.release.notified().await;
++        Envelope::from_value(ack(env.envelope().original())).map_err(DispatchError::from)
++    }
++}
++#[tokio::test]
++async fn current_authority_guard_is_retained_through_handler_execution() {
++    let kp = keypair();
++    let policy = Arc::new(Policy::default());
++    let peer = peer(&kp, policy.clone());
++    let h = HeldHandler {
++        entered: Notify::new(),
++        release: Notify::new(),
++    };
++    let wire = signed(request(), &kp);
++    let dispatch = peer.dispatch(&wire, &h, deadline());
++    tokio::pin!(dispatch);
++    tokio::select! { result=&mut dispatch=>panic!("completed early: {result:?}"),_ = h.entered.notified()=>{} }
++    assert!(policy.revoked.try_write().is_err());
++    h.release.notify_one();
++    assert!(dispatch.await.is_ok());
++    assert!(policy.revoked.try_write().is_ok());
++}
++struct Validator {
++    calls: AtomicUsize,
++}
++#[async_trait]
++impl BearerValidator for Validator {
++    async fn validate(&self, _: &str) -> Result<IdentityAssurance, BearerAuthError> {
++        Ok(principal().assurance)
++    }
++    async fn validate_principal(
++        &self,
++        token: &str,
++    ) -> Result<AuthenticatedPrincipal, BearerAuthError> {
++        self.calls.fetch_add(1, Ordering::SeqCst);
++        if token == "valid" {
++            Ok(principal())
++        } else {
++            Err(BearerAuthError::Unavailable("private details".into()))
++        }
++    }
++}
++#[tokio::test]
++async fn only_installed_bearer_is_advertised_and_unknown_methods_never_fall_back() {
++    let empty = AuthenticationMethods::new(None);
++    assert!(empty.advertised().is_empty());
++    assert_eq!(
++        empty
++            .authenticate("bearer", "valid", None, deadline())
++            .await
++            .unwrap_err(),
++        DispatchError::UnsupportedMethod
++    );
++    let validator = Arc::new(Validator {
++        calls: AtomicUsize::new(0),
++    });
++    let methods = AuthenticationMethods::new(Some(validator.clone()));
++    assert_eq!(methods.advertised(), vec!["bearer"]);
++    for method in ["aauth", "dpop", "JWT", "unknown", ""] {
++        assert_eq!(
++            methods
++                .authenticate(method, "valid", None, deadline())
++                .await
++                .unwrap_err(),
++            DispatchError::UnsupportedMethod
++        );
++    }
++    assert_eq!(
++        methods
++            .authenticate("bearer", "valid", Some("forged_actor"), deadline())
++            .await
++            .unwrap_err(),
++        DispatchError::Authentication
++    );
++    assert_eq!(validator.calls.load(Ordering::SeqCst), 0);
++    assert_eq!(
++        methods
++            .authenticate("bearer", "valid", None, deadline())
++            .await
++            .unwrap()
++            .subject,
++        "alice"
++    );
++    assert_eq!(
++        methods
++            .authenticate("bearer", "invalid", None, deadline())
++            .await
++            .unwrap_err(),
++        DispatchError::Authentication
++    );
++}
++
++#[tokio::test(start_paused = true)]
++async fn credential_expiry_deadline_cancels_a_running_handler_and_releases_authority() {
++    let kp = keypair();
++    let policy = Arc::new(Policy::default());
++    let mut p = principal();
++    p.expires_at = Some(Utc::now() + ChronoDuration::seconds(1));
++    let peer = AuthenticatedDispatch::new(
++        p,
++        verifier(&kp),
++        policy.clone(),
++        CancellationToken::new(),
++        2,
++    )
++    .unwrap();
++    let h = HeldHandler {
++        entered: Notify::new(),
++        release: Notify::new(),
++    };
++    let wire = signed(request(), &kp);
++    let dispatch = peer.dispatch(&wire, &h, Instant::now() + Duration::from_secs(20));
++    tokio::pin!(dispatch);
++    tokio::select! {result=&mut dispatch=>panic!("completed early: {result:?}"),_ =h.entered.notified()=>{} }
++    assert!(policy.revoked.try_write().is_err());
++    tokio::time::advance(Duration::from_secs(2)).await;
++    assert_eq!(dispatch.await.unwrap_err(), DispatchError::Closed);
++    assert!(policy.revoked.try_write().is_ok());
++}
++#[tokio::test(start_paused = true)]
++async fn dropping_peer_closes_waiters_without_cancelling_the_parent_route() {
++    let kp = keypair();
++    let parent = CancellationToken::new();
++    let peer = AuthenticatedDispatch::new(
++        principal(),
++        verifier(&kp),
++        Arc::new(Policy::default()),
++        parent.clone(),
++        2,
++    )
++    .unwrap();
++    let request = Envelope::from_value(request()).unwrap();
++    let ticket = peer.register_reply(&request, deadline()).unwrap();
++    drop(peer);
++    assert!(!parent.is_cancelled());
++    assert_eq!(ticket.wait().await.unwrap_err(), DispatchError::Closed);
++}
++#[tokio::test(start_paused = true)]
++async fn caller_cannot_install_an_unbounded_waiter() {
++    let kp = keypair();
++    let peer = peer(&kp, Arc::new(Policy::default()));
++    let request = Envelope::from_value(request()).unwrap();
++    let started = Instant::now();
++    let ticket = peer
++        .register_reply(&request, started + Duration::from_secs(3600))
++        .unwrap();
++    assert_eq!(ticket.wait().await.unwrap_err(), DispatchError::Closed);
++    assert_eq!(Instant::now() - started, MAX_DISPATCH_WAIT);
++    assert_eq!(peer.pending_count(), 0);
++}
++struct UnavailableReplay;
++#[async_trait]
++impl SignatureReplayStore for UnavailableReplay {
++    async fn consume(
++        &self,
++        _: &SignatureVerificationContext,
++        _: &str,
++        _: DateTime<Utc>,
++        _: DateTime<Utc>,
++    ) -> Result<(), ReplayConsumeError> {
++        Err(ReplayConsumeError::Unavailable)
++    }
++}
++#[tokio::test]
++async fn unavailable_replay_storage_never_calls_the_handler() {
++    let kp = keypair();
++    let verifier = Arc::new(
++        Sig9421Verifier::with_security_dependencies(
++            Arc::new(OwnedKey {
++                public: kp.public_key().as_ref().to_vec(),
++            }),
++            Arc::new(UnavailableReplay),
++            Arc::new(SystemSignatureClock),
++            Duration::from_secs(300),
++            Duration::from_secs(30),
++            1_048_576,
++        )
++        .unwrap(),
++    );
++    let peer = AuthenticatedDispatch::new(
++        principal(),
++        verifier,
++        Arc::new(Policy::default()),
++        CancellationToken::new(),
++        2,
++    )
++    .unwrap();
++    let h = Handler::default();
++    assert_eq!(
++        peer.dispatch(&signed(request(), &kp), &h, deadline())
++            .await
++            .unwrap_err(),
++        DispatchError::ReplayUnavailable
++    );
++    assert_eq!(h.calls.load(Ordering::SeqCst), 0);
++}
++#[tokio::test(start_paused = true)]
++async fn dropping_a_pending_handler_future_releases_current_authority() {
++    let kp = keypair();
++    let policy = Arc::new(Policy::default());
++    let peer = peer(&kp, policy.clone());
++    let h = HeldHandler {
++        entered: Notify::new(),
++        release: Notify::new(),
++    };
++    let wire = signed(request(), &kp);
++    let mut dispatch = Box::pin(peer.dispatch(&wire, &h, deadline()));
++    tokio::select! {result=&mut dispatch=>panic!("completed early: {result:?}"),_ = h.entered.notified()=>{} }
++    assert!(policy.revoked.try_write().is_err());
++    drop(dispatch);
++    assert!(policy.revoked.try_write().is_ok());
++}

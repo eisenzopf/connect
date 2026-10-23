@@ -17,6 +17,15 @@ pub(crate) fn command(
     mut arguments: Map<String, Value>,
 ) -> Result<Command, ErrorData> {
     match spec.kind {
+        Kind::Membership(action) => {
+            let mut change = arguments.clone();
+            for field in ["operation_id", "conversation_id", "expected_revision"] {
+                change.remove(field);
+            }
+            change.insert("action".into(), json!(action));
+            let request=serde_json::from_value(json!({"operation_id":arguments.remove("operation_id").ok_or_else(invalid)?,"conversation_id":arguments.remove("conversation_id").ok_or_else(invalid)?,"expected_revision":arguments.remove("expected_revision").ok_or_else(invalid)?,"change":change})).map_err(|_|invalid())?;
+            Ok(Command::Operation(Operation::Membership { request }))
+        }
         Kind::Inspect => Err(invalid()), // Execution returns only a current service projection.
         Kind::Operation(operation) => {
             if operation == "context_view" {
@@ -60,7 +69,7 @@ pub(crate) fn command(
             let operation = Operation::Send {
                 request_id: request_id.clone(),
                 conversation_id: required(&mut arguments, "conversation_id")?,
-                body: required(&mut arguments, "body")?,
+                message: required(&mut arguments, "message")?,
             };
             let command = TaskCommand::Invoke {
                 task_id: required(&mut arguments, "task_id")?,

@@ -1,0 +1,1499 @@
+diff --git a/crates/foundation/rvoip-core-traits/src/peer_switch.rs b/crates/foundation/rvoip-core-traits/src/peer_switch.rs
+--- a/crates/foundation/rvoip-core-traits/src/peer_switch.rs
++++ b/crates/foundation/rvoip-core-traits/src/peer_switch.rs
+@@ -87,6 +87,25 @@
+     pub fn is_current(&self) -> bool {
+         let state = self.state.lock().unwrap_or_else(|e| e.into_inner());
+         !state.retired && state.current == self.generation
++    }
++
++    /// Await permanent retirement or a successor. Temporary quiescence does
++    /// not invalidate already-admitted IO; its sender may finish draining.
++    pub async fn invalidated(&self) {
++        let mut changes = self
++            .state
++            .lock()
++            .unwrap_or_else(|e| e.into_inner())
++            .changes
++            .subscribe();
++        loop {
++            if !self.is_current() {
++                return;
++            }
++            if changes.changed().await.is_err() {
++                return;
++            }
++        }
+     }
+ 
+     /// Stop new delivery and await the existing send guards. Wrap this future
+diff --git a/crates/foundation/rvoip-core/src/staged_streams.rs b/crates/foundation/rvoip-core/src/staged_streams.rs
+--- a/crates/foundation/rvoip-core/src/staged_streams.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams.rs
+@@ -252,6 +252,17 @@
+     ) -> ControlResult<Box<dyn MediaAuthorityLease>> {
+         Err(StreamControlError::Unsupported)
+     }
++    /// Current exact application-message publication/receive grant. With held
++    /// authority, derive the same invocation's source view without reentering
++    /// its store. Fresh queued delivery must acquire its own message grant.
++    fn current_data(
++        &self,
++        _scope: &MediaScope<'_>,
++        _data: &reliable_data::StagedData,
++        _held: Option<&(dyn Any + Send + Sync)>,
++    ) -> ControlResult<Box<dyn MediaAuthorityLease>> {
++        Err(StreamControlError::Unsupported)
++    }
+     /// Derive current control authority from a trusted invocation's already-held
+     /// guard. Check the exact policy domain, actor/resource scope and grants.
+     /// Never reacquire that guard's store lock. The default refuses this path.
+@@ -363,6 +374,7 @@
+     ready: bool,
+     payload_type: Option<u8>,
+     cleanup: Option<Arc<dyn MediaPortCleanup>>,
++    messages_only: bool,
+ }
+ struct Port {
+     owner: Weak<StreamController>,
+@@ -403,11 +415,11 @@
+         let maximum = match self.kind() {
+             StreamKind::Audio => 16 * 1024,
+             StreamKind::Video => 1180,
+-            StreamKind::Data => 16 * 1024,
++            StreamKind::Data => crate::MAX_DATA_MESSAGE_BYTES,
+         };
+         if frame.stream_id != self.binding.transport_id
+             || frame.kind != self.kind()
+-            || frame.payload.is_empty()
++            || (frame.kind != StreamKind::Data && frame.payload.is_empty())
+             || frame.payload.len() > maximum
+         {
+             return Err(StreamControlError::NotReady);
+@@ -548,14 +560,32 @@
+     /// A full queue is explicit backpressure. Reliable data adapters must stop
+     /// reading/retry the same message; they must never acknowledge a drop.
+     pub fn try_publish(&self, frame: &MediaFrame) -> ControlResult<()> {
++        self.publish_data_frame(frame, None, None)
++    }
++    fn publish_data_frame(
++        &self,
++        frame: &MediaFrame,
++        data: Option<&reliable_data::StagedData>,
++        held: Option<&(dyn Any + Send + Sync)>,
++    ) -> ControlResult<()> {
+         self.0.validate(frame)?;
++        if self
++            .0
++            .state
++            .lock()
++            .unwrap_or_else(|p| p.into_inner())
++            .messages_only
++            && data.is_none()
++        {
++            return Err(StreamControlError::Unsupported);
++        }
+         let owner = self
+             .0
+             .owner
+             .upgrade()
+             .ok_or(StreamControlError::Cancelled)?;
+         let ticket = self.0.ticket();
+-        let (_lease, admission, deadline) = owner.admit(
++        let (_lease, admission, deadline) = owner.admit_with_data(
+             &self.0,
+             &ticket,
+             false,
+@@ -563,6 +593,8 @@
+             audio_consumer::ConsumerCheck::Current,
+             None,
+             scene_consumer::SceneCheck::publish(),
++            data,
++            held,
+         )?;
+         if tokio::time::Instant::now() >= deadline {
+             return Err(StreamControlError::Deadline);
+@@ -571,6 +603,7 @@
+             .ingress
+             .try_send(MediaPacket {
+                 frame: frame.clone(),
++                data: data.cloned(),
+                 source: self.0.clone(),
+                 ticket,
+                 admitted_at: Instant::now(),
+@@ -628,6 +661,7 @@
+ 
+ pub struct MediaPacket {
+     frame: MediaFrame,
++    data: Option<reliable_data::StagedData>,
+     source: Arc<Port>,
+     ticket: PeerRouteTicket,
+     admitted_at: Instant,
+@@ -691,8 +725,16 @@
+         } else {
+             None
+         };
+-        let descriptor = source.descriptor(&self.source)?;
+-        let (_source_lease, _source_guard, source_deadline) = source.admit(
++        if target
++            .state
++            .lock()
++            .unwrap_or_else(|p| p.into_inner())
++            .messages_only
++            && self.data.is_none()
++        {
++            return Err(StreamControlError::Unsupported);
++        }
++        let (_source_lease, _source_guard, source_deadline) = source.admit_with_data(
+             &self.source,
+             &self.ticket,
+             false,
+@@ -700,9 +742,23 @@
+             audio_consumer::ConsumerCheck::Retained(self.consumer.as_ref()),
+             None,
+             scene_consumer::SceneCheck::retained_publish(self.scene.as_ref()),
++            self.data.as_ref(),
++            None,
+         )?;
++        let authority = _source_lease.authority();
++        let descriptor = MediaSource {
++            conversation: source.conversation.clone(),
++            session: source.session.clone(),
++            connection: source.connection.clone(),
++            participant: authority.member.participant().clone(),
++            membership_epoch: authority.member.epoch(),
++            connection_generation: authority.connection.generation(),
++            logical_id: self.source.binding.negotiated.requested.logical_id.clone(),
++            transport_id: self.source.binding.transport_id.clone(),
++            stream_generation: self.source.binding.generation,
++        };
+         let ticket = target.ticket();
+-        let (_target_lease, target_admission, target_deadline) = destination.admit(
++        let (_target_lease, target_admission, target_deadline) = destination.admit_with_data(
+             &target,
+             &ticket,
+             true,
+@@ -710,6 +766,8 @@
+             audio_consumer::ConsumerCheck::OrdinaryForward,
+             direct.as_ref(),
+             scene_consumer::SceneCheck::receive(self.scene.as_ref(), self.admitted_at),
++            self.data.as_ref(),
++            None,
+         )?;
+         if source.shutdown.is_cancelled() || destination.shutdown.is_cancelled() {
+             return Err(StreamControlError::Cancelled);
+@@ -723,6 +781,7 @@
+             .egress
+             .try_send(QueuedMedia {
+                 frame,
++                data: self.data.clone(),
+                 sources: vec![Contribution {
+                     source: self.source.clone(),
+                     ticket: self.ticket.clone(),
+@@ -765,6 +824,7 @@
+ }
+ pub struct QueuedMedia {
+     frame: MediaFrame,
++    data: Option<reliable_data::StagedData>,
+     sources: Vec<Contribution>,
+     target: Arc<Port>,
+     target_ticket: PeerRouteTicket,
+@@ -789,6 +849,23 @@
+         F: FnOnce(MediaFrame, Option<MediaDeliveryOrigin>) -> Fut,
+         Fut: Future<Output = ControlResult<()>>,
+     {
++        if self.data.is_some() {
++            let admission = self.admit_data()?;
++            let writing = admission.begin_write()?;
++            let origin = Some(MediaDeliveryOrigin {
++                connection: writing.source().connection.clone(),
++                logical: writing.source().logical_id.clone(),
++                transport: writing.source().transport_id.clone(),
++                generation: writing.source().stream_generation,
++            });
++            let frame = writing.frame().clone();
++            let result = tokio::select! { biased;
++                _ = admission.cancelled() => Err(StreamControlError::Cancelled),
++                result = tokio::time::timeout_at(admission.deadline(), send(frame, origin)) => result.map_err(|_| StreamControlError::Deadline)?,
++            };
++            drop(writing);
++            return result;
++        }
+         if self.frame.kind != StreamKind::Data
+             && self.admitted_at.elapsed() > Duration::from_millis(200)
+         {
+@@ -1280,30 +1357,6 @@
+             .ok_or(MediaTransitionError::Conflict.into());
+         result
+     }
+-    fn descriptor(&self, port: &Port) -> ControlResult<MediaSource> {
+-        let state = self.state.lock().unwrap_or_else(|p| p.into_inner());
+-        let credential = self.credential_snapshot();
+-        let lease = self
+-            .policy
+-            .current(&self.scope(&credential.principal, MediaPurpose::Publish))?;
+-        let auth = lease.authority();
+-        Self::check(
+-            &self.scope(&credential.principal, MediaPurpose::Publish),
+-            auth,
+-        )?;
+-        state.model.authorize_binding(&auth.current())?;
+-        Ok(MediaSource {
+-            conversation: self.conversation.clone(),
+-            session: self.session.clone(),
+-            connection: self.connection.clone(),
+-            participant: auth.member.participant().clone(),
+-            membership_epoch: auth.member.epoch(),
+-            connection_generation: auth.connection.generation(),
+-            logical_id: port.binding.negotiated.requested.logical_id.clone(),
+-            transport_id: port.binding.transport_id.clone(),
+-            stream_generation: port.binding.generation,
+-        })
+-    }
+     fn admit(
+         &self,
+         port: &Arc<Port>,
+@@ -1318,6 +1371,26 @@
+         audio_consumer::MediaAdmission,
+         tokio::time::Instant,
+     )> {
++        self.admit_with_data(
++            port, ticket, sending, source, consumer, direct, scene, None, None,
++        )
++    }
++    fn admit_with_data(
++        &self,
++        port: &Arc<Port>,
++        ticket: &PeerRouteTicket,
++        sending: bool,
++        source: Option<&MediaSource>,
++        consumer: audio_consumer::ConsumerCheck<'_>,
++        direct: Option<&direct_subscriptions::DirectStamp>,
++        scene: scene_consumer::SceneCheck<'_>,
++        data: Option<&reliable_data::StagedData>,
++        held: Option<&(dyn Any + Send + Sync)>,
++    ) -> ControlResult<(
++        Box<dyn MediaAuthorityLease>,
++        audio_consumer::MediaAdmission,
++        tokio::time::Instant,
++    )> {
+         let state = self.state.lock().unwrap_or_else(|p| p.into_inner());
+         if self.shutdown.is_cancelled()
+             || state.closed
+@@ -1344,7 +1417,10 @@
+                 None => MediaPurpose::Publish,
+             },
+         );
+-        let lease = self.policy.current(&scope)?;
++        let lease = match data {
++            Some(data) => self.policy.current_data(&scope, data, held)?,
++            None => self.policy.current(&scope)?,
++        };
+         let auth = lease.authority();
+         Self::check(&scope, auth)?;
+         state.model.authorize_binding(&auth.current())?;
+@@ -1375,6 +1451,16 @@
+             None
+         };
+         let (scene_stamp, scene_guard) = self.scene_admission(scene)?;
++        if port
++            .state
++            .lock()
++            .unwrap_or_else(|p| p.into_inner())
++            .messages_only
++            && scene_stamp.is_none()
++        {
++            return Err(StreamControlError::NotReady);
++        }
++
+         let mut admission = self.consumer_admission(port, sending, consumer, guard)?;
+         admission.scene = scene_stamp;
+         admission._scene = scene_guard;
+@@ -1582,6 +1668,7 @@
+                     ready: false,
+                     payload_type: None,
+                     cleanup: None,
++                    messages_only: false,
+                 }),
+                 ingress,
+                 input: Mutex::new(Some(input)),
+@@ -2082,3 +2169,5 @@
+ pub(crate) mod guarded_audio;
+ pub(crate) mod media_scene;
+ mod scene_consumer;
++
++pub mod reliable_data;
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/direct_subscriptions.rs b/crates/foundation/rvoip-core/src/staged_streams/direct_subscriptions.rs
+--- a/crates/foundation/rvoip-core/src/staged_streams/direct_subscriptions.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/direct_subscriptions.rs
+@@ -157,6 +157,10 @@
+     pub(super) cancel: CancellationToken,
+ }
+ impl DirectStamp {
++    pub(super) fn delivery_ticket(&self) -> PeerRouteTicket {
++        self.ticket.clone()
++    }
++
+     pub(super) fn begin(
+         &self,
+         target: &StreamController,
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/guarded_audio.rs b/crates/foundation/rvoip-core/src/staged_streams/guarded_audio.rs
+--- a/crates/foundation/rvoip-core/src/staged_streams/guarded_audio.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/guarded_audio.rs
+@@ -556,6 +556,7 @@
+             member.previous_sources = provenance.clone();
+             let _ = member.port.egress.try_send(QueuedMedia {
+                 frame,
++                data: None,
+                 sources: provenance,
+                 target: member.port.clone(),
+                 target_ticket,
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/reliable_data.rs b/crates/foundation/rvoip-core/src/staged_streams/reliable_data.rs
+new file mode 100644
+--- /dev/null
++++ b/crates/foundation/rvoip-core/src/staged_streams/reliable_data.rs
+@@ -0,0 +1,419 @@
++//! Typed application data and one-use, cancellable ownership of writer grants.
++//! Message context is immutable transport/application metadata, never authority.
++use super::*;
++use crate::{DataMessage, DataReliability};
++
++#[derive(Clone)]
++pub struct StagedData {
++    message: DataMessage,
++    context: Arc<dyn Any + Send + Sync>,
++}
++impl StagedData {
++    pub fn new<T: Any + Send + Sync>(message: DataMessage, context: T) -> ControlResult<Self> {
++        message
++            .validate()
++            .map_err(|_| StreamControlError::NotReady)?;
++        if message.reliability != DataReliability::ReliableOrdered {
++            return Err(StreamControlError::Unsupported);
++        }
++        Ok(Self {
++            message,
++            context: Arc::new(context),
++        })
++    }
++    pub fn message(&self) -> &DataMessage {
++        &self.message
++    }
++    pub fn context<T: Any + Send + Sync>(&self) -> Option<&T> {
++        self.context.downcast_ref()
++    }
++}
++impl std::fmt::Debug for StagedData {
++    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
++        f.write_str("StagedData(redacted)")
++    }
++}
++impl AdapterMediaPort {
++    /// Restrict a prepared data port to the typed reliable-message profile.
++    /// Generic frames cannot discard logical message identity at this boundary.
++    pub fn require_data_messages(&self) -> ControlResult<()> {
++        let mut state = self.0.state.lock().unwrap_or_else(|p| p.into_inner());
++        if state.status != PortStatus::Prepared || self.0.kind() != StreamKind::Data {
++            return Err(StreamControlError::NotReady);
++        }
++        state.messages_only = true;
++        Ok(())
++    }
++    pub fn try_publish_data(
++        &self,
++        data: &StagedData,
++        held: Option<&(dyn Any + Send + Sync)>,
++    ) -> ControlResult<()> {
++        if self.0.kind() != StreamKind::Data
++            || data.message.label != self.0.binding.negotiated.requested.logical_id.as_str()
++        {
++            return Err(StreamControlError::NotReady);
++        }
++        let frame = MediaFrame {
++            stream_id: self.0.binding.transport_id.clone(),
++            kind: StreamKind::Data,
++            payload: data.message.bytes.clone(),
++            timestamp_rtp: 0,
++            source_clock: None,
++            captured_at: chrono::Utc::now(),
++            payload_type: None,
++        };
++        self.publish_data_frame(&frame, Some(data), held)
++    }
++}
++struct OwnedGuards {
++    _leases: Vec<Box<dyn MediaAuthorityLease>>,
++    _admissions: Vec<audio_consumer::MediaAdmission>,
++}
++#[derive(Clone, Copy, PartialEq, Eq)]
++enum Phase {
++    Pending,
++    Writing,
++    Cancelled,
++    Done,
++}
++struct AdmissionState {
++    phase: Phase,
++    guards: Option<OwnedGuards>,
++}
++/// Exact target observed under the retained current message grant. An origin
++/// must additionally bind this target to its authenticated physical writer.
++pub struct DataTarget {
++    owner: Weak<StreamController>,
++    pub conversation: ConversationId,
++    pub session: SessionId,
++    pub connection: ConnectionId,
++    pub participant: crate::ids::ParticipantId,
++    pub identity: crate::ids::IdentityId,
++    pub device: crate::ids::DeviceId,
++    pub membership_epoch: u64,
++    pub principal: Arc<AuthenticatedPrincipal>,
++    pub binding: ReadyMediaBinding,
++    pub credential_revision: u64,
++}
++impl DataTarget {
++    pub fn belongs_to(&self, controller: &Arc<StreamController>) -> bool {
++        Weak::ptr_eq(&self.owner, &Arc::downgrade(controller))
++    }
++}
++impl std::fmt::Debug for DataTarget {
++    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
++        f.write_str("DataTarget(redacted)")
++    }
++}
++/// One fresh local delivery attempt. Pending cancellation releases its readers
++/// even if a stalled physical actor has not dequeued it. Once writing begins,
++/// only DataWriteGuard owns those readers until IO finishes or is aborted.
++#[must_use = "retain cancellation custody until the physical writer finishes"]
++pub struct AdmittedData {
++    state: Mutex<AdmissionState>,
++    data: StagedData,
++    frame: MediaFrame,
++    source: MediaSource,
++    target: DataTarget,
++    tickets: Vec<PeerRouteTicket>,
++    tokens: Vec<CancellationToken>,
++    cancel: CancellationToken,
++    deadline: tokio::time::Instant,
++}
++impl std::fmt::Debug for AdmittedData {
++    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
++        f.write_str("AdmittedData(redacted)")
++    }
++}
++impl AdmittedData {
++    pub fn data(&self) -> &StagedData {
++        &self.data
++    }
++    pub fn source(&self) -> &MediaSource {
++        &self.source
++    }
++    pub fn target(&self) -> &DataTarget {
++        &self.target
++    }
++    pub fn deadline(&self) -> tokio::time::Instant {
++        self.deadline
++    }
++    fn valid(&self) -> bool {
++        tokio::time::Instant::now() < self.deadline
++            && !self.cancel.is_cancelled()
++            && !self.tokens.iter().any(CancellationToken::is_cancelled)
++            && self.tickets.iter().all(PeerRouteTicket::is_current)
++    }
++    pub fn current(&self) -> bool {
++        let state = self.state.lock().unwrap_or_else(|p| p.into_inner());
++        matches!(state.phase, Phase::Pending | Phase::Writing) && self.valid()
++    }
++    /// The producer retains this handle while its attempt is queued or being
++    /// written. Dropping it cancels pending work and wakes an active writer,
++    /// whose non-cloneable guard alone retains authority through IO abortion.
++    pub fn cancel_on_drop(self: &Arc<Self>) -> DataCancellation {
++        DataCancellation(self.clone())
++    }
++    pub fn cancel(&self) {
++        self.cancel.cancel();
++        let guards = {
++            let mut state = self.state.lock().unwrap_or_else(|p| p.into_inner());
++            if state.phase == Phase::Pending {
++                state.phase = Phase::Cancelled;
++                state.guards.take()
++            } else {
++                None
++            }
++        };
++        drop(guards);
++    }
++    pub async fn cancelled(&self) {
++        let mut tokens = self.tokens.clone();
++        tokens.push(self.cancel.clone());
++        let mut invalidated = self
++            .tickets
++            .iter()
++            .map(|ticket| Box::pin(ticket.invalidated()))
++            .collect::<Vec<_>>();
++        let retired = std::future::poll_fn(move |context| {
++            for future in &mut invalidated {
++                if future.as_mut().poll(context).is_ready() {
++                    return std::task::Poll::Ready(());
++                }
++            }
++            std::task::Poll::Pending
++        });
++        tokio::select! {biased;_=audio_consumer::any_cancelled(tokens)=>{},_=retired=>{},_=tokio::time::sleep_until(self.deadline)=>{}}
++        self.cancel();
++    }
++    pub fn begin_write(self: &Arc<Self>) -> ControlResult<DataWriteGuard> {
++        let mut state = self.state.lock().unwrap_or_else(|p| p.into_inner());
++        if state.phase != Phase::Pending || !self.valid() {
++            let guards = if state.phase == Phase::Pending {
++                state.phase = Phase::Cancelled;
++                state.guards.take()
++            } else {
++                None
++            };
++            drop(state);
++            drop(guards);
++            return Err(StreamControlError::Cancelled);
++        }
++        let guards = state.guards.take().ok_or(StreamControlError::Cancelled)?;
++        state.phase = Phase::Writing;
++        Ok(DataWriteGuard {
++            admission: self.clone(),
++            _guards: guards,
++        })
++    }
++}
++impl Drop for AdmittedData {
++    fn drop(&mut self) {
++        self.cancel.cancel();
++    }
++}
++/// Producer-side cancellation custody, independent of copies in writer queues.
++#[must_use]
++pub struct DataCancellation(Arc<AdmittedData>);
++impl Drop for DataCancellation {
++    fn drop(&mut self) {
++        self.0.cancel();
++    }
++}
++/// Must remain owned by the actual awaited physical writer; never a detached
++/// producer. It is not Clone and a ticket can begin writing at most once.
++#[must_use = "retain this guard through actual IO completion or abortion"]
++pub struct DataWriteGuard {
++    admission: Arc<AdmittedData>,
++    _guards: OwnedGuards,
++}
++impl DataWriteGuard {
++    pub fn frame(&self) -> &MediaFrame {
++        &self.admission.frame
++    }
++    pub fn data(&self) -> &StagedData {
++        &self.admission.data
++    }
++    pub fn source(&self) -> &MediaSource {
++        &self.admission.source
++    }
++    pub fn target(&self) -> &DataTarget {
++        &self.admission.target
++    }
++}
++impl Drop for DataWriteGuard {
++    fn drop(&mut self) {
++        self.admission
++            .state
++            .lock()
++            .unwrap_or_else(|p| p.into_inner())
++            .phase = Phase::Done;
++    }
++}
++impl QueuedMedia {
++    /// Reacquire current message-specific source and destination authority.
++    /// The queued value remains available for a fresh retry after backpressure.
++    pub fn admit_data(&self) -> ControlResult<Arc<AdmittedData>> {
++        if self.frame.kind != StreamKind::Data || self.sources.len() != 1 {
++            return Err(StreamControlError::Unsupported);
++        }
++        let data = self.data.as_ref().ok_or(StreamControlError::Unsupported)?;
++        if self.frame.payload != data.message.bytes {
++            return Err(StreamControlError::NotReady);
++        }
++        let target = self
++            .target
++            .owner
++            .upgrade()
++            .ok_or(StreamControlError::Cancelled)?;
++        let provenance = &self.sources[0];
++        let source = provenance
++            .source
++            .owner
++            .upgrade()
++            .ok_or(StreamControlError::Cancelled)?;
++        if source.conversation != target.conversation
++            || source.session != target.session
++            || !Arc::ptr_eq(&source.policy, &target.policy)
++        {
++            return Err(StreamControlError::Authority);
++        }
++        let mut tokens = vec![target.shutdown.clone(), source.shutdown.clone()];
++        for stamp in [self.target_scene.as_ref(), provenance.scene.as_ref()]
++            .into_iter()
++            .flatten()
++        {
++            tokens.push(stamp.cancel.clone());
++        }
++        if let Some(stamp) = &self.direct {
++            tokens.push(stamp.cancel.clone());
++        }
++        let (source_lease, source_admission, source_end) = source.admit_with_data(
++            &provenance.source,
++            &provenance.ticket,
++            false,
++            None,
++            audio_consumer::ConsumerCheck::Retained(provenance.consumer.as_ref()),
++            None,
++            scene_consumer::SceneCheck::retained_publish(provenance.scene.as_ref()),
++            Some(data),
++            None,
++        )?;
++        let (target_lease, target_admission, target_end) = target.admit_with_data(
++            &self.target,
++            &self.target_ticket,
++            true,
++            Some(&provenance.descriptor),
++            audio_consumer::ConsumerCheck::Retained(self.target_consumer.as_ref()),
++            self.direct.as_ref(),
++            scene_consumer::SceneCheck::retained_receive(
++                self.target_scene.as_ref(),
++                provenance.scene.as_ref(),
++                self.admitted_at,
++            ),
++            Some(data),
++            None,
++        )?;
++        let owner = target_lease.authority();
++        let target_view = DataTarget {
++            owner: Arc::downgrade(&target),
++            conversation: target.conversation.clone(),
++            session: target.session.clone(),
++            connection: target.connection.clone(),
++            participant: owner.member.participant().clone(),
++            identity: owner.member.identity().clone(),
++            device: owner.endpoint.device().clone(),
++            membership_epoch: owner.member.epoch(),
++            principal: target.credential_snapshot().principal,
++            binding: self.target.binding.clone(),
++            credential_revision: target.credential_revision(),
++        };
++        let mut tickets = vec![provenance.ticket.clone(), self.target_ticket.clone()];
++        if let Some(direct) = &self.direct {
++            tickets.push(direct.delivery_ticket());
++        }
++        let admission = Arc::new(AdmittedData {
++            state: Mutex::new(AdmissionState {
++                phase: Phase::Pending,
++                guards: Some(OwnedGuards {
++                    _leases: vec![source_lease, target_lease],
++                    _admissions: vec![source_admission, target_admission],
++                }),
++            }),
++            data: data.clone(),
++            frame: self.frame.clone(),
++            source: provenance.descriptor.clone(),
++            target: target_view,
++            tickets,
++            tokens,
++            cancel: CancellationToken::new(),
++            deadline: source_end.min(target_end),
++        });
++        if !admission.current() {
++            admission.cancel();
++            return Err(StreamControlError::Cancelled);
++        }
++        Ok(admission)
++    }
++}
++
++/// Exact credential claims for an authenticated data-origin binding. Resource
++/// ownership alone is insufficient after refresh, scope or assurance changes.
++pub fn same_credential(a: &AuthenticatedPrincipal, b: &AuthenticatedPrincipal) -> bool {
++    use crate::identity::IdentityAssurance::*;
++    a.has_same_owner(b)
++        && a.expires_at == b.expires_at
++        && a.scopes == b.scopes
++        && a.method == b.method
++        && match (&a.assurance, &b.assurance) {
++            (Anonymous, Anonymous) => true,
++            (Pseudonymous { ephemeral_key: a }, Pseudonymous { ephemeral_key: b }) => a.0 == b.0,
++            (Identified { credential_kind: a }, Identified { credential_kind: b }) => {
++                a.as_str() == b.as_str()
++            }
++            (
++                TaskScoped {
++                    identity: a,
++                    task_id: at,
++                    scopes: as_,
++                    expires_at: ae,
++                },
++                TaskScoped {
++                    identity: b,
++                    task_id: bt,
++                    scopes: bs,
++                    expires_at: be,
++                },
++            ) => a == b && at == bt && as_ == bs && ae == be,
++            (
++                UserAuthorized {
++                    identity: a,
++                    user_id: au,
++                    scopes: as_,
++                },
++                UserAuthorized {
++                    identity: b,
++                    user_id: bu,
++                    scopes: bs,
++                },
++            ) => a == b && au == bu && as_ == bs,
++            (
++                DtlsFingerprint {
++                    algorithm: a,
++                    value: av,
++                },
++                DtlsFingerprint {
++                    algorithm: b,
++                    value: bv,
++                },
++            ) => a == b && av == bv,
++            _ => false,
++        }
++}
++impl StreamController {
++    pub fn matches_data_credential(&self, principal: &AuthenticatedPrincipal) -> bool {
++        let current = self.credential_snapshot();
++        same_credential(&current.principal, principal)
++    }
++}
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/tests.rs b/crates/foundation/rvoip-core/src/staged_streams/tests.rs
+--- a/crates/foundation/rvoip-core/src/staged_streams/tests.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests.rs
+@@ -313,6 +313,11 @@
+                 });
+                 preparation.port.install_cleanup(cleanup)?;
+                 self.outstanding.fetch_add(1, Ordering::AcqRel);
++                if mode == 5
++                    && preparation.port.binding().negotiated.requested.medium == Medium::Data
++                {
++                    preparation.port.require_data_messages()?;
++                }
+                 let format = preparation.port.binding().negotiated.format.clone();
+                 let pt = match preparation.port.binding().negotiated.requested.medium {
+                     Medium::Audio => Some(self.audio_pt.load(Ordering::Acquire) as u8),
+@@ -2346,3 +2351,5 @@
+ mod media_scene;
+ 
+ mod future_audio;
++
++mod reliable_data;
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/tests/reliable_data.rs b/crates/foundation/rvoip-core/src/staged_streams/tests/reliable_data.rs
+new file mode 100644
+--- /dev/null
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/reliable_data.rs
+@@ -0,0 +1,699 @@
++//! Controlled-policy Core tests. These do not qualify a native physical writer.
++use super::*;
++use crate::staged_streams::{
++    direct_subscriptions::*, media_scene::GuardedMediaScene, reliable_data::*,
++};
++use crate::{DataMessage, DataReliability};
++
++#[derive(Clone)]
++struct Context {
++    operation: String,
++    original: DataMessage,
++    source: ConnectionId,
++    receiver: ConnectionId,
++}
++struct DataPolicy(Arc<Policy>);
++impl MediaPolicy for DataPolicy {
++    fn current(&self, scope: &MediaScope<'_>) -> ControlResult<Box<dyn MediaAuthorityLease>> {
++        self.0.current(scope)
++    }
++    fn current_data(
++        &self,
++        scope: &MediaScope<'_>,
++        data: &StagedData,
++        held: Option<&(dyn Any + Send + Sync)>,
++    ) -> ControlResult<Box<dyn MediaAuthorityLease>> {
++        let context = data
++            .context::<Context>()
++            .ok_or(StreamControlError::Authority)?;
++        if data.message() != &context.original || context.operation.is_empty() {
++            return Err(StreamControlError::Authority);
++        }
++        match scope.purpose {
++            MediaPurpose::Publish if scope.connection == &context.source => {}
++            MediaPurpose::Receive { source }
++                if scope.connection == &context.receiver && source.connection == context.source => {
++            }
++            _ => return Err(StreamControlError::Authority),
++        }
++        if let Some(held) = held {
++            let held = held
++                .downcast_ref::<HeldControlContext>()
++                .ok_or(StreamControlError::Authority)?;
++            if !matches!(scope.purpose, MediaPurpose::Publish)
++                || !Arc::ptr_eq(&held.domain, &self.0)
++                || held.connection != *scope.connection
++                || !same_credential(&held.principal, scope.principal)
++                || held.cancellation.is_cancelled()
++                || held.deadline <= tokio::time::Instant::now()
++                || held.guard.revoked.contains(&scope.principal.subject)
++            {
++                return Err(StreamControlError::Authority);
++            }
++            let owner = held
++                .guard
++                .owners
++                .get(scope.connection.as_str())
++                .ok_or(StreamControlError::Authority)?
++                .clone();
++            return Ok(Box::new(HeldOwnerLease {
++                owner,
++                _guard: held.guard.clone(),
++            }));
++        }
++        self.0.current(scope)
++    }
++}
++fn data(body: impl Into<Bytes>, mime: &str) -> StagedData {
++    let original = DataMessage::reliable("data", mime, body);
++    StagedData::new(
++        original.clone(),
++        Context {
++            original,
++            operation: "stable-operation".into(),
++            source: ConnectionId::from_string("alice"),
++            receiver: ConnectionId::from_string("bob"),
++        },
++    )
++    .unwrap()
++}
++fn message(sequence: u32) -> StagedData {
++    data(format!("{{\"sequence\":{sequence}}}"), "application/json")
++}
++async fn fixture(protocol: DataProtocol, messages_only: bool) -> Fixture {
++    let f = Fixture::with_policy(8, Some(Box::new(|base| Arc::new(DataPolicy(base)))));
++    {
++        let mut state = f.policy.0.write().await;
++        for owner in state.owners.values_mut() {
++            for capabilities in [&mut owner.local, &mut owner.remote] {
++                for direction in [&mut capabilities.send, &mut capabilities.receive] {
++                    direction
++                        .iter_mut()
++                        .find(|cap| cap.medium == Medium::Data)
++                        .unwrap()
++                        .formats = vec![MediaFormat::ReliableOrdered(protocol.clone())];
++                }
++            }
++        }
++    }
++    if messages_only {
++        f.aa.mode.store(5, Ordering::Release);
++        f.ba.mode.store(5, Ordering::Release);
++    }
++    f.start(&[Medium::Data]).await;
++    f
++}
++async fn scene(f: &Fixture) -> Arc<GuardedMediaScene> {
++    let s = GuardedMediaScene::new(
++        ConversationId::from_string("conversation"),
++        SessionId::from_string("session"),
++        f.a.policy.clone(),
++        8000,
++    );
++    for c in [&f.a, &f.b] {
++        let mut candidate = s.prepare(c.clone()).unwrap();
++        candidate
++            .quiesce(deadline(), CancellationToken::new())
++            .await
++            .unwrap();
++        s.insert(c.connection.clone(), candidate, true);
++    }
++    s
++}
++async fn queued(
++    f: &Fixture,
++    s: &GuardedMediaScene,
++    output: &mut mpsc::Receiver<QueuedMedia>,
++    data: &StagedData,
++) -> QueuedMedia {
++    f.aa.port(Medium::Data)
++        .try_publish_data(data, None)
++        .unwrap();
++    s.tick();
++    outgoing(output).await
++}
++
++#[tokio::test]
++async fn typed_message_identity_context_and_distinct_receiver_label_survive_fresh_retry() {
++    let f = fixture(DataProtocol::Json, true).await;
++    let mut receiver = desired(Medium::Data);
++    receiver.logical_id = StreamId::from_string("inbox");
++    f.b.change(
++        f.b.revision(),
++        &[receiver.clone()],
++        &BTreeSet::new(),
++        deadline(),
++        CancellationToken::new(),
++    )
++    .await
++    .unwrap();
++    f.b.change_direct_subscriptions(
++        f.b.revision(),
++        DirectSubscriptionChange::Subscribe(vec![DirectSubscription::new(
++            &f.a,
++            desired(Medium::Data).logical_id,
++            receiver.logical_id.clone(),
++        )]),
++        deadline(),
++        CancellationToken::new(),
++        None,
++    )
++    .await
++    .unwrap();
++    let s = scene(&f).await;
++    // The test adapter stores by logical ID; retrieve the renamed port exactly.
++    let target = f.ba.ports.lock().unwrap()[&receiver.logical_id].clone();
++    let mut out = target.take_egress().unwrap();
++    let data = message(42);
++    let q = queued(&f, &s, &mut out, &data).await;
++    let attempt = q.admit_data().unwrap();
++    assert!(attempt.target().belongs_to(&f.b));
++    assert!(!attempt.target().belongs_to(&f.a));
++    let impostor = StreamController::new(
++        f.b.conversation.clone(),
++        f.b.session.clone(),
++        f.b.connection.clone(),
++        f.b.credential_snapshot().principal.as_ref().clone(),
++        f.b.policy.clone(),
++        Adapter::new(),
++        Arc::new(StreamHandleAllocator::default()),
++        8,
++    )
++    .unwrap();
++    assert!(
++        !attempt.target().belongs_to(&impostor),
++        "matching resource IDs cannot borrow another controller's writer"
++    );
++    assert_eq!(
++        attempt.target().credential_revision,
++        f.b.credential_revision()
++    );
++    assert!(same_credential(
++        &attempt.target().principal,
++        &f.b.credential_snapshot().principal
++    ));
++
++    assert_eq!(
++        attempt.target().binding.negotiated.requested.logical_id,
++        receiver.logical_id
++    );
++    assert_eq!(
++        attempt.source().logical_id,
++        desired(Medium::Data).logical_id
++    );
++    assert_eq!(attempt.data().message(), data.message());
++    assert_eq!(
++        attempt.data().context::<Context>().unwrap().operation,
++        "stable-operation"
++    );
++    attempt.cancel();
++    assert!(attempt.begin_write().is_err());
++    let retry = q.admit_data().unwrap();
++    assert_eq!(retry.data().message(), data.message());
++    let writer = retry.begin_write().unwrap();
++    assert_eq!(writer.frame().payload, data.message().bytes);
++    assert_eq!(writer.frame().stream_id, target.binding().transport_id);
++    drop(writer);
++    assert!(!retry.current());
++    assert!(retry.begin_write().is_err());
++}
++
++#[tokio::test]
++async fn typed_data_default_policy_refuses_instead_of_borrowing_a_generic_media_grant() {
++    let f = Fixture::new(8);
++    f.start(&[Medium::Data]).await;
++    assert!(matches!(
++        f.aa.port(Medium::Data).try_publish_data(&message(0), None),
++        Err(StreamControlError::Unsupported)
++    ));
++}
++
++#[tokio::test]
++async fn typed_data_profile_checks_size_reliability_labels_json_and_utf8() {
++    let mut oversized = DataMessage::reliable(
++        "data",
++        "application/octet-stream",
++        vec![0; crate::MAX_DATA_MESSAGE_BYTES + 1],
++    );
++    assert!(StagedData::new(oversized.clone(), ()).is_err());
++    oversized.bytes = Bytes::new();
++    for reliability in [
++        DataReliability::ReliableUnordered,
++        DataReliability::MaxRetransmits {
++            ordered: true,
++            count: 1,
++        },
++        DataReliability::MaxLifetime {
++            ordered: true,
++            milliseconds: 1,
++        },
++    ] {
++        oversized.reliability = reliability;
++        assert!(matches!(
++            StagedData::new(oversized.clone(), ()),
++            Err(StreamControlError::Unsupported)
++        ));
++    }
++    for protocol in [DataProtocol::Json, DataProtocol::Text, DataProtocol::Binary] {
++        let f = fixture(protocol.clone(), true).await;
++        let _s = scene(&f).await;
++        let source = f.aa.port(Medium::Data);
++        assert!(
++            source.require_data_messages().is_err(),
++            "live ports cannot change their profile"
++        );
++        let mut wrong = message(1).message().clone();
++        wrong.label = "another-source".into();
++        assert!(source
++            .try_publish_data(&StagedData::new(wrong, ()).unwrap(), None)
++            .is_err());
++        let empty = data(Bytes::new(), "text/plain");
++        let invalid = data(Bytes::from_static(&[0xff]), "application/octet-stream");
++        assert_eq!(
++            source.try_publish_data(&empty, None).is_ok(),
++            protocol != DataProtocol::Json
++        );
++        assert_eq!(
++            source.try_publish_data(&invalid, None).is_ok(),
++            protocol == DataProtocol::Binary
++        );
++    }
++}
++
++#[tokio::test]
++async fn typed_text_binary_empty_and_exact_64k_messages_reach_guarded_delivery() {
++    for protocol in [DataProtocol::Text, DataProtocol::Binary] {
++        let f = fixture(protocol.clone(), true).await;
++        let s = scene(&f).await;
++        let mut out = f.ba.port(Medium::Data).take_egress().unwrap();
++        for bytes in [
++            Bytes::new(),
++            Bytes::from(vec![b'x'; crate::MAX_DATA_MESSAGE_BYTES]),
++        ] {
++            let data = data(
++                bytes.clone(),
++                if protocol == DataProtocol::Text {
++                    "text/plain"
++                } else {
++                    "application/octet-stream"
++                },
++            );
++            queued(&f, &s, &mut out, &data)
++                .await
++                .deliver(move |frame| async move {
++                    assert_eq!(frame.payload, bytes);
++                    Ok(())
++                })
++                .await
++                .unwrap();
++            assert!(f.policy.0.try_write().is_ok());
++        }
++    }
++}
++
++#[tokio::test]
++async fn typed_data_ports_refuse_contextless_frames_and_unmanaged_publication() {
++    let f = fixture(DataProtocol::Json, true).await;
++    let source = f.aa.port(Medium::Data);
++    assert!(source.try_publish_data(&message(0), None).is_err());
++    let s = scene(&f).await;
++    assert!(matches!(
++        source.try_publish(&frame(&source, 0)),
++        Err(StreamControlError::Unsupported)
++    ));
++    source.try_publish_data(&message(0), None).unwrap();
++    s.remove(&f.a.connection);
++    assert!(source.try_publish_data(&message(1), None).is_err());
++}
++
++#[tokio::test]
++async fn typed_data_policy_validates_the_immutable_message_and_application_context() {
++    let f = fixture(DataProtocol::Json, true).await;
++    let _s = scene(&f).await;
++    let original = message(0);
++    let mut modified = original.message().clone();
++    modified.bytes = Bytes::from_static(b"{\"sequence\":1}");
++    let forged = StagedData::new(modified, original.context::<Context>().unwrap().clone()).unwrap();
++    let source = f.aa.port(Medium::Data);
++    assert!(source.try_publish_data(&forged, None).is_err());
++    assert!(source
++        .try_publish_data(
++            &StagedData::new(original.message().clone(), ()).unwrap(),
++            None
++        )
++        .is_err());
++    assert!(source.try_publish_data(&original, None).is_ok());
++}
++
++#[tokio::test]
++async fn dropping_pending_producer_releases_readers_while_the_writer_queue_still_retains_work() {
++    let f = fixture(DataProtocol::Json, true).await;
++    let s = scene(&f).await;
++    let mut out = f.ba.port(Medium::Data).take_egress().unwrap();
++    let q = queued(&f, &s, &mut out, &message(0)).await;
++    let attempt = q.admit_data().unwrap();
++    let producer = attempt.cancel_on_drop();
++    let queued_copy = attempt.clone();
++    let mut writer = tokio::spawn({
++        let state = f.policy.0.clone();
++        async move { state.write_owned().await }
++    });
++    assert!(tokio::time::timeout(Duration::from_millis(15), &mut writer)
++        .await
++        .is_err());
++    drop(producer);
++    let writer = tokio::time::timeout(Duration::from_millis(100), writer)
++        .await
++        .unwrap()
++        .unwrap();
++    assert!(!queued_copy.current());
++    assert!(queued_copy.begin_write().is_err());
++    drop(writer);
++    let retry = q.admit_data().unwrap();
++    assert_eq!(
++        retry.data().message().message_id,
++        q.data.as_ref().unwrap().message().message_id
++    );
++    retry.cancel();
++}
++
++#[tokio::test]
++async fn cancellation_after_write_begins_keeps_guards_until_the_actual_writer_drops_them() {
++    let f = fixture(DataProtocol::Json, true).await;
++    let s = scene(&f).await;
++    let mut out = f.ba.port(Medium::Data).take_egress().unwrap();
++    let q = queued(&f, &s, &mut out, &message(0)).await;
++    let attempt = q.admit_data().unwrap();
++    let producer = attempt.cancel_on_drop();
++    let writing = attempt.begin_write().unwrap();
++    assert!(attempt.begin_write().is_err());
++    drop(producer);
++    attempt.cancelled().await;
++    assert!(!attempt.current());
++    assert!(
++        f.policy.0.try_write().is_err(),
++        "cancellation cannot release readers under active IO"
++    );
++    assert_eq!(writing.data().message(), q.data.as_ref().unwrap().message());
++    drop(writing);
++    assert!(f.policy.0.try_write().is_ok());
++}
++
++#[tokio::test]
++async fn a_pending_attempt_deadline_wakes_its_owner_and_releases_queued_authority() {
++    let f = fixture(DataProtocol::Json, true).await;
++    let s = scene(&f).await;
++    let mut out = f.ba.port(Medium::Data).take_egress().unwrap();
++    let q = queued(&f, &s, &mut out, &message(0)).await;
++    let attempt = q.admit_data().unwrap();
++    tokio::time::timeout(Duration::from_secs(1), attempt.cancelled())
++        .await
++        .unwrap();
++    assert!(f.policy.0.try_write().is_ok());
++    assert!(attempt.begin_write().is_err());
++    // Deadline is per fresh delivery attempt, not a silently expiring ordered message.
++    let retry = q.admit_data().unwrap();
++    assert!(retry.current());
++    retry.cancel();
++}
++
++#[tokio::test]
++async fn source_or_target_terminal_callback_wakes_pending_delivery_without_polling_io() {
++    for source in [true, false] {
++        let f = fixture(DataProtocol::Json, true).await;
++        let s = scene(&f).await;
++        let mut out = f.ba.port(Medium::Data).take_egress().unwrap();
++        let q = queued(&f, &s, &mut out, &message(0)).await;
++        let attempt = q.admit_data().unwrap();
++        let port = if source {
++            f.aa.port(Medium::Data)
++        } else {
++            f.ba.port(Medium::Data)
++        };
++        assert!(port.report_terminal().unwrap());
++        tokio::time::timeout(Duration::from_millis(100), attempt.cancelled())
++            .await
++            .unwrap();
++        assert!(f.policy.0.try_write().is_ok());
++        assert!(attempt.begin_write().is_err());
++        assert!(q.admit_data().is_err());
++    }
++}
++
++#[tokio::test]
++async fn scene_departure_wakes_active_writer_but_readers_stay_with_the_writer() {
++    for source in [true, false] {
++        let f = fixture(DataProtocol::Json, true).await;
++        let s = scene(&f).await;
++        let mut out = f.ba.port(Medium::Data).take_egress().unwrap();
++        let q = queued(&f, &s, &mut out, &message(0)).await;
++        let attempt = q.admit_data().unwrap();
++        let writing = attempt.begin_write().unwrap();
++        s.remove(if source {
++            &f.a.connection
++        } else {
++            &f.b.connection
++        });
++        tokio::time::timeout(Duration::from_millis(100), attempt.cancelled())
++            .await
++            .unwrap();
++        assert!(f.policy.0.try_write().is_err());
++        drop(writing);
++        assert!(f.policy.0.try_write().is_ok());
++        assert!(q.admit_data().is_err());
++    }
++}
++
++#[tokio::test]
++async fn queued_data_rechecks_current_audience_and_source_authority_without_idle_readers() {
++    let f = fixture(DataProtocol::Json, true).await;
++    let s = scene(&f).await;
++    let mut out = f.ba.port(Medium::Data).take_egress().unwrap();
++    let q = queued(&f, &s, &mut out, &message(0)).await;
++    f.policy.0.write().await.private = true;
++    assert!(q.admit_data().is_err());
++    f.policy.0.write().await.private = false;
++    f.policy.0.write().await.revoked.insert("alice".into());
++    assert!(q.admit_data().is_err());
++    f.policy.0.write().await.revoked.clear();
++    let retry = q.admit_data().unwrap();
++    retry.cancel();
++    assert!(f.policy.0.try_write().is_ok());
++    f.b.change_direct_subscriptions(
++        f.b.revision(),
++        DirectSubscriptionChange::Clear,
++        deadline(),
++        CancellationToken::new(),
++        None,
++    )
++    .await
++    .unwrap();
++    assert!(q.admit_data().is_err());
++}
++
++#[tokio::test]
++async fn held_message_publication_uses_exact_invocation_guard_behind_a_queued_policy_writer() {
++    let f = fixture(DataProtocol::Json, true).await;
++    let s = scene(&f).await;
++    let mut out = f.ba.port(Medium::Data).take_egress().unwrap();
++    let held = held_context(&f, CancellationToken::new(), deadline()).await;
++    let mut writer = tokio::spawn({
++        let state = f.policy.0.clone();
++        async move { state.write_owned().await }
++    });
++    assert!(tokio::time::timeout(Duration::from_millis(15), &mut writer)
++        .await
++        .is_err());
++    let source = f.aa.port(Medium::Data);
++    let data = message(0);
++    assert!(source.try_publish_data(&data, None).is_err());
++    source.try_publish_data(&data, Some(held.as_ref())).unwrap();
++    s.tick();
++    assert!(
++        out.try_recv().is_err(),
++        "outgoing delivery needs a fresh grant"
++    );
++    held.cancellation.cancel();
++    assert!(source
++        .try_publish_data(&message(1), Some(held.as_ref()))
++        .is_err());
++    drop(held);
++    drop(
++        tokio::time::timeout(Duration::from_millis(100), writer)
++            .await
++            .unwrap()
++            .unwrap(),
++    );
++    s.tick();
++    let attempt = outgoing(&mut out).await.admit_data().unwrap();
++    assert_eq!(attempt.data().message(), data.message());
++    attempt.cancel();
++}
++
++#[tokio::test]
++async fn temporary_port_quiescence_drains_the_same_one_use_writer_guard() {
++    let f = fixture(DataProtocol::Json, true).await;
++    let s = scene(&f).await;
++    let mut out = f.ba.port(Medium::Data).take_egress().unwrap();
++    let q = queued(&f, &s, &mut out, &message(0)).await;
++    let attempt = q.admit_data().unwrap();
++    let writing = attempt.begin_write().unwrap();
++    let ticket = f.aa.port(Medium::Data).0.ticket();
++    let mut drain = Box::pin(ticket.quiesce());
++    assert!(tokio::time::timeout(Duration::from_millis(15), &mut drain)
++        .await
++        .is_err());
++    assert!(
++        attempt.current(),
++        "temporary drain must allow already-admitted IO to finish"
++    );
++    let mut cancelled = Box::pin(attempt.cancelled());
++    assert!(
++        tokio::time::timeout(Duration::from_millis(15), &mut cancelled)
++            .await
++            .is_err()
++    );
++    drop(cancelled);
++    drop(writing);
++    let pause = tokio::time::timeout(Duration::from_millis(100), drain)
++        .await
++        .unwrap()
++        .unwrap();
++    drop(pause);
++    assert!(f.policy.0.try_write().is_ok());
++}
++
++#[test]
++fn exact_data_credential_checks_scopes_expiry_method_and_full_assurance_claims() {
++    let a = principal("alice");
++    assert!(same_credential(&a, &a.clone()));
++    let mut changed_method = a.clone();
++    changed_method.method = AuthenticationMethod::ApiKey;
++    assert!(!same_credential(&a, &changed_method));
++    let mut b = a.clone();
++    b.scopes.push("new-grant".into());
++    assert!(!same_credential(&a, &b));
++    let mut b = a.clone();
++    b.expires_at = Some(chrono::Utc::now());
++    assert!(!same_credential(&a, &b));
++    let mut b = a.clone();
++    b.assurance = IdentityAssurance::UserAuthorized {
++        identity: IdentityId::from_string("alice"),
++        user_id: IdentityId::from_string("user"),
++        scopes: vec!["send".into()],
++    };
++    let mut c = b.clone();
++    c.assurance = IdentityAssurance::UserAuthorized {
++        identity: IdentityId::from_string("alice"),
++        user_id: IdentityId::from_string("another-user"),
++        scopes: vec!["send".into()],
++    };
++    assert!(!same_credential(&b, &c));
++    let mut c = b.clone();
++    c.issuer = Some("another-issuer".into());
++    assert!(!same_credential(&b, &c));
++}
++
++#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
++async fn concurrent_writer_claims_can_transfer_guards_exactly_once() {
++    let f = fixture(DataProtocol::Json, true).await;
++    let s = scene(&f).await;
++    let mut out = f.ba.port(Medium::Data).take_egress().unwrap();
++    let q = queued(&f, &s, &mut out, &message(0)).await;
++    let attempt = q.admit_data().unwrap();
++    let barrier = Arc::new(tokio::sync::Barrier::new(8));
++    let tasks = (0..8)
++        .map(|_| {
++            let attempt = attempt.clone();
++            let barrier = barrier.clone();
++            tokio::spawn(async move {
++                barrier.wait().await;
++                attempt.begin_write()
++            })
++        })
++        .collect::<Vec<_>>();
++    let mut guards = Vec::new();
++    for task in tasks {
++        if let Ok(guard) = task.await.unwrap() {
++            guards.push(guard);
++        }
++    }
++    assert_eq!(guards.len(), 1);
++    assert!(f.policy.0.try_write().is_err());
++    drop(guards);
++    assert!(f.policy.0.try_write().is_ok());
++}
++
++#[tokio::test]
++async fn aborting_guarded_callback_drops_the_io_future_and_releases_writer_guards() {
++    struct IoDrop(Arc<AtomicBool>);
++    impl Drop for IoDrop {
++        fn drop(&mut self) {
++            self.0.store(true, Ordering::Release);
++        }
++    }
++    let f = fixture(DataProtocol::Json, true).await;
++    let s = scene(&f).await;
++    let mut out = f.ba.port(Medium::Data).take_egress().unwrap();
++    let q = queued(&f, &s, &mut out, &message(0)).await;
++    let entered = Arc::new(Notify::new());
++    let dropped = Arc::new(AtomicBool::new(false));
++    let task = tokio::spawn({
++        let entered = entered.clone();
++        let dropped = dropped.clone();
++        async move {
++            q.deliver(move |_| async move {
++                let _io = IoDrop(dropped);
++                entered.notify_one();
++                std::future::pending::<()>().await;
++                Ok(())
++            })
++            .await
++        }
++    });
++    entered.notified().await;
++    assert!(f.policy.0.try_write().is_err());
++    task.abort();
++    assert!(task.await.unwrap_err().is_cancelled());
++    assert!(dropped.load(Ordering::Acquire));
++    assert!(f.policy.0.try_write().is_ok());
++}
++
++#[tokio::test]
++async fn typed_ordered_backpressure_retries_the_original_message_and_operation_context() {
++    let f = fixture(DataProtocol::Json, true).await;
++    let s = scene(&f).await;
++    let mut out = f.ba.port(Medium::Data).take_egress().unwrap();
++    let messages = (0..66).map(message).collect::<Vec<_>>();
++    let source = f.aa.port(Medium::Data);
++    for data in &messages[..64] {
++        source.try_publish_data(data, None).unwrap();
++    }
++    assert!(matches!(
++        source.try_publish_data(&messages[64], None),
++        Err(StreamControlError::Backpressure)
++    ));
++    s.tick();
++    s.tick();
++    source.try_publish_data(&messages[64], None).unwrap();
++    source.try_publish_data(&messages[65], None).unwrap();
++    for data in &messages {
++        s.tick();
++        let q = outgoing(&mut out).await;
++        assert!(
++            f.policy.0.try_write().is_ok(),
++            "queue retains metadata, never an old grant"
++        );
++        let attempt = q.admit_data().unwrap();
++        assert_eq!(attempt.data().message(), data.message());
++        assert_eq!(
++            attempt.data().context::<Context>().unwrap().operation,
++            "stable-operation"
++        );
++        let writing = attempt.begin_write().unwrap();
++        assert_eq!(writing.frame().payload, data.message().bytes);
++        drop(writing);
++    }
++    s.tick();
++    assert!(out.try_recv().is_err());
++}

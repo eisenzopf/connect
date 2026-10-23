@@ -1,0 +1,14 @@
+import assert from 'node:assert/strict';
+import {HttpClient} from '../typescript/dist/index.js';
+const v=JSON.parse(process.argv[2]);
+const owner=new HttpClient(v.base,v.token);
+assert.equal((await owner.artifactInspect(v.cid,v.artifact)).received,6);
+const link=await owner.artifactUploadLink(v.cid,v.artifact,45);
+assert.equal(link.purpose,'upload');
+assert.equal((await owner.artifactLinkAppend('chunk',link,0,'c2VjcmV0')).received,6);
+const peer=new HttpClient(v.base,v.peer_token);
+await assert.rejects(peer.artifactUploadLink(v.cid,v.artifact),e=>e.code==='forbidden');
+await assert.rejects(peer.artifactLinkAppend('stolen',link,0,'c2VjcmV0'),e=>e.code==='forbidden');
+const foreign=new HttpClient(v.base,v.foreign_token);
+await assert.rejects(foreign.artifactInspect(v.cid,v.artifact),e=>e.code==='forbidden');
+console.log(JSON.stringify({passed:true}));

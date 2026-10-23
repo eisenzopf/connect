@@ -19,7 +19,7 @@ fn online_snapshot_recovers_wal_receipts_events_and_cursors() {
             &key.id,
             &Operation::Create {
                 request_id: "create".into(),
-                participants: vec![],
+                request: connect_protocol::conversations::CreateRequest::persistent(vec![]),
             },
         )
         .unwrap()
@@ -30,7 +30,7 @@ fn online_snapshot_recovers_wal_receipts_events_and_cursors() {
     let send = Operation::Send {
         request_id: "send".into(),
         conversation_id: conversation.clone(),
-        body: "committed in WAL".into(),
+        message: connect_protocol::messages::MessageDraft::text_all("committed in WAL"),
     };
     let accepted = store.execute(&key.id, &send).unwrap();
     let inbox = Operation::Inbox {
@@ -79,7 +79,7 @@ fn receipt_capacity_bounds_rejected_operations_without_losing_existing_receipts(
         .unwrap();
     let create = Operation::Create {
         request_id: "create".into(),
-        participants: vec![],
+        request: connect_protocol::conversations::CreateRequest::persistent(vec![]),
     };
     let first = store.execute(&key.id, &create).unwrap();
     let id = match &first {
@@ -93,7 +93,7 @@ fn receipt_capacity_bounds_rejected_operations_without_losing_existing_receipts(
                 &Operation::Send {
                     request_id: "invalid".into(),
                     conversation_id: id.clone(),
-                    body: String::new()
+                    message: connect_protocol::messages::MessageDraft::text_all(String::new())
                 }
             )
             .unwrap_err()
@@ -107,7 +107,7 @@ fn receipt_capacity_bounds_rejected_operations_without_losing_existing_receipts(
                 &Operation::Send {
                     request_id: "new".into(),
                     conversation_id: id,
-                    body: "valid".into()
+                    message: connect_protocol::messages::MessageDraft::text_all("valid")
                 }
             )
             .unwrap_err()

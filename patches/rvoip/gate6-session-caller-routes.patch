@@ -1,0 +1,140 @@
+--- a/crates/uctp/rvoip-uctp/src/v2/auth_peer/step_up.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/auth_peer/step_up.rs
+@@ -109,6 +109,12 @@
+             return Err(DispatchError::Authentication);
+         };
+         let authorized = binding.dispatch.preflight(bytes, deadline).await?;
++        // Verified current physical activity refreshes reachability metadata;
++        // it grants no resource access and never extends an old route handle.
++        if let Some(route) = &binding.route {
++            route.renew()?;
++        }
++
+         let requirement = if envelope.scope(Scope::Reply).is_none() {
+             self.config.authority.assurance_requirement(
+                 &binding.credential,
+--- a/crates/uctp/rvoip-uctp/src/v2/auth_peer.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/auth_peer.rs
+@@ -784,7 +784,7 @@
+             self.config.pending_capacity,
+             self.replay.clone(),
+         )?
+-        .with_peer(peer)?;
++        .with_peer(peer.clone())?;
+         dispatch.exchanges = self.exchanges.clone();
+         let route = self
+             .routes
+@@ -799,6 +799,7 @@
+                     expiry,
+                     held,
+                     &authority_lifetime,
++                    peer.clone(),
+                 )
+             })
+             .transpose()?;
+--- a/crates/uctp/rvoip-uctp/src/v2/reachability.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/reachability.rs
+@@ -196,6 +196,7 @@
+     owner: PrincipalOwnershipKey,
+     identity: Identifier,
+     device: Identifier,
++    peer: Arc<rvoip_core::peer_admission::PeerAdmission>,
+     route: TrustedPeerRoute,
+     credential_expiry: DateTime<Utc>,
+     credential_deadline: Instant,
+@@ -238,6 +239,17 @@
+     expires: LeaseTime,
+ }
+ impl RouteHandle {
++    /// Exact authenticated physical peer, not a Device-ID or identity alias.
++    /// The captured route incarnation/lease must still be current.
++    pub fn matches_peer(&self, peer: &Arc<rvoip_core::peer_admission::PeerAdmission>) -> bool {
++        self.current() && Arc::ptr_eq(&self.state.peer, peer)
++    }
++    pub fn same_physical_peer(&self, other: &Self) -> bool {
++        Arc::ptr_eq(&self.state.peer, &other.state.peer)
++    }
++    pub fn is_current(&self) -> bool {
++        self.current()
++    }
+     pub fn hint(&self) -> ReachabilityHint {
+         self.state.hint(self.expires)
+     }
+@@ -497,6 +509,7 @@
+         credential_deadline: Instant,
+         held: &AuthorityLease,
+         binding_lifetime: &super::auth_peer::AuthorityLifetime,
++        peer: Arc<rvoip_core::peer_admission::PeerAdmission>,
+     ) -> Result<Registration, DispatchError> {
+         let origin = self.policy.origin(credential, device, identity, held)?;
+         let authority = origin.signal.clone();
+@@ -508,6 +521,7 @@
+             owner: credential.principal.ownership_key(),
+             identity: identity.clone(),
+             device: device.id.clone(),
++            peer,
+             route: self.route.clone(),
+             credential_expiry,
+             credential_deadline,
+--- a/crates/uctp/rvoip-uctp/tests/v2_reachability.rs
++++ b/crates/uctp/rvoip-uctp/tests/v2_reachability.rs
+@@ -1262,3 +1262,59 @@
+         assert!(server.await.unwrap().is_ok());
+     }
+ }
++
++#[derive(Default)]
++struct PeerCapture(std::sync::Mutex<Option<Arc<rvoip_core::peer_admission::PeerAdmission>>>);
++#[async_trait]
++impl AuthenticatedHandler for PeerCapture {
++    async fn handle(&self, a: AuthorizedEnvelope) -> Result<Envelope, DispatchError> {
++        *self.0.lock().unwrap() = a.peer_admission().cloned();
++        let r = a.envelope();
++        let mut v = envelope("ack", json!({}));
++        v["in_reply_to"] = json!(r.id());
++        for key in ["cid", "sid", "connid", "operation_id"] {
++            v[key] = r.original()[key].clone();
++        }
++        Envelope::from_value(v).map_err(DispatchError::from)
++    }
++}
++#[tokio::test(start_paused = true)]
++async fn verified_commands_refresh_routes_without_extending_old_handles_or_aliasing_physical_peers()
++{
++    let f = Fixture::new();
++    let registry = ReachabilityRegistry::new(8).unwrap();
++    let policy = RoutePolicy::new(f.policy.clone());
++    let mut first = routed_peer(&f, registry.clone(), policy.clone(), 1);
++    f.authenticate(&mut first, "old").await;
++    let old = current(&registry).remove(0);
++    tokio::time::advance(Duration::from_secs(2)).await;
++    let capture = PeerCapture::default();
++    first
++        .handle(&f.sign(command()), &capture, deadline())
++        .await
++        .unwrap();
++    let peer = capture.0.lock().unwrap().clone().unwrap();
++    let refreshed = current(&registry).remove(0);
++    assert!(refreshed.matches_peer(&peer));
++    assert!(!old.matches_peer(&peer));
++    assert!(!old.is_current());
++    assert!(old.same_physical_peer(&refreshed));
++    let mut second = routed_peer(&f, registry.clone(), policy, 5);
++    f.authenticate(&mut second, "old").await;
++    let capture = PeerCapture::default();
++    second
++        .handle(&f.sign(command()), &capture, deadline())
++        .await
++        .unwrap();
++    let other = capture.0.lock().unwrap().clone().unwrap();
++    assert!(!refreshed.matches_peer(&other));
++    assert_eq!(
++        current(&registry)
++            .iter()
++            .filter(|r| r.matches_peer(&peer))
++            .count(),
++        1
++    );
++    first.close();
++    second.close();
++}

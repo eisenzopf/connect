@@ -1,0 +1,288 @@
+--- a/crates/foundation/rvoip-core/src/orchestrator/participant_control/replacement.rs
++++ b/crates/foundation/rvoip-core/src/orchestrator/participant_control/replacement.rs
+@@ -661,6 +661,16 @@
+             activate_muted: Some(p.intent.replacement.clone()),
+         })?)
+     }
++    /// Activate an isolated replacement for discard-only duplex preparation
++    /// without granting it an ordinary speaking route, including Observers.
++    pub fn plan_staged_device_replacement_muted_activation(
++        &self,
++        p: &Arc<DeviceReplacementPreparation>,
++    ) -> ControlResult<AudioAudiencePlan> {
++        let mut plan = self.plan_staged_device_replacement_activation(p)?;
++        plan.keep_endpoint_muted(&p.intent.replacement)?;
++        Ok(plan)
++    }
+     pub async fn activate_staged_device_replacement_with_held(
+         self: &Arc<Self>,
+         p: &Arc<DeviceReplacementPreparation>,
+--- a/crates/foundation/rvoip-core/src/staged_streams/audience.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/audience.rs
+@@ -205,12 +205,35 @@
+     pub(super) replaced_audiences: Vec<Arc<ClosedAudience>>,
+     pub(super) handoff: Option<Arc<super::handoff::HandoffIntent>>,
+     pub(super) replacement: Option<Arc<super::device_replacement::ReplacementIntent>>,
++    pub(super) preparation_muted: bool,
+ }
+ impl AudioAudiencePlan {
++    /// Only an exact isolated one-endpoint activation can retain its mute.
++    /// This bit belongs to the sealed plan and its current policy approval.
++    pub(crate) fn keep_endpoint_muted(&mut self, connection: &ConnectionId) -> ControlResult<()> {
++        if self.restore.is_some()
++            || self.handoff.is_some()
++            || self.replacement.is_some()
++            || self.request.activate_muted.as_ref() != Some(connection)
++            || self.request.private_connections != BTreeSet::from([connection.clone()])
++            || self.request.receivers.len() != 1
++            || !self
++                .request
++                .receivers
++                .get(connection)
++                .is_some_and(|v| v.is_empty())
++            || self.group.origins.len() != 1
++        {
++            return Err(StreamControlError::Authority);
++        }
++        self.preparation_muted = true;
++        Ok(())
++    }
+     /// Exact scene-issued plan identity for a held policy's approval. Matching
+     /// caller-supplied IDs alone is insufficient to approve another scene.
+     pub fn same_intent(&self, other: &Self) -> bool {
+         self.scene == other.scene
++            && self.preparation_muted == other.preparation_muted
+             && self.request == other.request
+             && self.expected == other.expected
+             && Arc::ptr_eq(&self.group, &other.group)
+@@ -361,8 +384,9 @@
+ }
+ 
+ impl GuardedMediaScene {
+-    /// Capture only the actual one-member muted admission issued by this
+-    /// scene. No route/role change, declared-ready row or host-created handle.
++    /// Capture only an actual one-member closed, muted audience issued by this
++    /// scene, including an activated replacement. Current explicit preparation
++    /// permission is still required; no route/role or declared-ready assertion.
+     pub(crate) fn prepare_audio_endpoint(
+         &self,
+         connection: &ConnectionId,
+@@ -383,6 +407,7 @@
+         let group = registry
+             .preparations
+             .get(connection)
++            .or_else(|| registry.groups.get(operation))
+             .ok_or(StreamControlError::Authority)?;
+         if group.operation != operation
+             || group.origins.len() != 1
+@@ -617,6 +642,7 @@
+             replaced_audiences,
+             handoff: None,
+             replacement: None,
++            preparation_muted: false,
+         })
+     }
+     pub(crate) fn plan_restore_audio_audience(
+@@ -678,6 +704,7 @@
+             replaced_audiences: Vec::new(),
+             handoff: None,
+             replacement: None,
++            preparation_muted: false,
+         })
+     }
+ }
+@@ -948,7 +975,7 @@
+                     .as_ref()
+                     .filter(|source| source.matches(controller))
+                     .map(|_| {
+-                        if plan.restore.is_some() {
++                        if plan.restore.is_some() || plan.preparation_muted {
+                             StreamGateAction::Mute
+                         } else {
+                             StreamGateAction::Unmute
+@@ -1247,7 +1274,10 @@
+                 .retain(|operation| next_groups.contains_key(operation));
+             if plan.restore.is_some() {
+                 registry.restorable.remove(&plan.group.operation);
+-            } else if plan.handoff.is_none() && plan.replacement.is_none() {
++            } else if plan.handoff.is_none()
++                && plan.replacement.is_none()
++                && !plan.preparation_muted
++            {
+                 registry.restorable.insert(plan.group.operation.clone());
+             }
+             registry.groups = next_groups;
+--- a/crates/foundation/rvoip-core/src/staged_streams/device_replacement.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/device_replacement.rs
+@@ -326,6 +326,7 @@
+                 replaced_audiences: replaced_audience.into_iter().collect(),
+                 handoff: None,
+                 replacement: Some(replacement),
++                preparation_muted: false,
+             },
+         })
+     }
+--- a/crates/foundation/rvoip-core/src/staged_streams/endpoint_preparation.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/endpoint_preparation.rs
+@@ -58,12 +58,10 @@
+                 .groups
+                 .get(operation_id)
+                 .is_some_and(|g| Arc::ptr_eq(g, &self.group))
+-            || !self.controller.upgrade().is_some_and(|c| {
+-                registry
+-                    .preparations
+-                    .get(&c.connection)
+-                    .is_some_and(|g| Arc::ptr_eq(g, &self.group))
+-            })
++            || !self
++                .controller
++                .upgrade()
++                .is_some_and(|c| self.group.origins.len() == 1 && self.group.contains(&c))
+         {
+             return Err(StreamControlError::NotReady);
+         }
+@@ -84,10 +82,8 @@
+             Ok(r) => r,
+             Err(_) => return Some(Err(MediaTransitionError::Conflict.into())),
+         };
+-        if !registry
+-            .preparations
+-            .get(&controller.connection)
+-            .is_some_and(|g| Arc::ptr_eq(g, &self.group))
++        if self.group.origins.len() != 1
++            || !self.group.contains(controller)
+             || !registry
+                 .groups
+                 .get(&self.group.operation)
+--- a/crates/foundation/rvoip-core/src/staged_streams/tests/private_consult/endpoint_preparation.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/private_consult/endpoint_preparation.rs
+@@ -6,6 +6,7 @@
+ struct Target {
+     room: Room,
+     preparation: AudioEndpointPreparation,
++    operation: String,
+ }
+ impl Target {
+     async fn new(observer: bool) -> Self {
+@@ -43,7 +44,11 @@
+             .scene
+             .prepare_audio_endpoint(&id, "prepare-fresh")
+             .is_err());
+-        Self { room, preparation }
++        Self {
++            room,
++            preparation,
++            operation: "prepare-fresh".into(),
++        }
+     }
+     fn plan(&self) -> ControlResult<AudioHandoffPlan> {
+         let mut r = self.room.handoff_request(OldHandoffDisposition::Observer);
+@@ -74,7 +79,7 @@
+                 &desired(Medium::Audio).logical_id,
+                 f,
+                 LocalAudioPurpose::EndpointPreparation {
+-                    operation_id: "prepare-fresh".into(),
++                    operation_id: self.operation.clone(),
+                 },
+             )
+             .unwrap();
+@@ -241,3 +246,99 @@
+     t.room.heard("public", 800).await;
+     t.room.silent(&["fresh"]);
+ }
++
++#[tokio::test]
++async fn activated_closed_muted_endpoint_keeps_plan_identity_and_observer_isolation_until_real_duplex(
++) {
++    for observer in [false, true] {
++        let mut room = Room::new().await;
++        room.add("fresh", Some("public"), true).await;
++        let id = ConnectionId::from_string("fresh");
++        if observer {
++            room.scene
++                .role_targets(&[id.clone()])
++                .remove(0)
++                .prepare_role(deadline(), CancellationToken::new())
++                .await
++                .unwrap()
++                .commit(false);
++        }
++        let mut plan = room
++            .scene
++            .plan_audio_audience(AudioAudienceRequest {
++                operation_id: "activate-isolated-fresh".into(),
++                expected_revision: room.scene.audience_revision(),
++                private_connections: BTreeSet::from([id.clone()]),
++                receivers: BTreeMap::from([(id.clone(), vec![])]),
++                activate_muted: Some(id.clone()),
++            })
++            .unwrap();
++        let ordinary = plan.clone();
++        assert!(plan
++            .keep_endpoint_muted(&ConnectionId::from_string("bob"))
++            .is_err());
++        plan.keep_endpoint_muted(&id).unwrap();
++        assert!(!plan.same_intent(&ordinary));
++        assert!(plan.same_intent(&plan.clone()));
++        let grant = room.grant(Approval::Audience(plan.clone())).await;
++        let (_, context) = room
++            .scene
++            .apply_audio_audience(plan, deadline(), CancellationToken::new(), &grant)
++            .await
++            .unwrap();
++        drop(grant);
++        assert!(room.publish("fresh", 12000).is_err());
++        room.domain
++            .local_preparations
++            .lock()
++            .unwrap()
++            .insert(id.clone(), context.operation_id().into());
++        let preparation = room
++            .scene
++            .prepare_audio_endpoint(&id, context.operation_id())
++            .unwrap();
++        let mut target = Target {
++            room,
++            preparation,
++            operation: context.operation_id().into(),
++        };
++        assert!(!target.preparation.has_duplex_io());
++        target.room.publish("fresh", 12000).unwrap();
++        target.room.tick();
++        target
++            .room
++            .silent(&["alice", "bob", "public", "hold", "fresh"]);
++        assert!(!target.preparation.has_duplex_io());
++        target.queue();
++        target.room.heard("fresh", 0).await;
++        assert!(target.preparation.has_duplex_io());
++        let controller = &target.room.nodes["fresh"].controller;
++        assert!(
++            controller.state.lock().unwrap().model.streams()[&desired(Medium::Audio).logical_id]
++                .source_muted
++        );
++        assert_eq!(
++            controller
++                .audio_consumer
++                .lock()
++                .unwrap()
++                .as_ref()
++                .unwrap()
++                .upgrade()
++                .unwrap()
++                .role_snapshot()
++                .0,
++            !observer
++        );
++        target.room.scene.remove(&id);
++        assert!(!target
++            .room
++            .scene
++            .audiences
++            .lock()
++            .unwrap()
++            .groups
++            .contains_key(context.operation_id()));
++        assert!(!target.preparation.has_duplex_io());
++    }
++}

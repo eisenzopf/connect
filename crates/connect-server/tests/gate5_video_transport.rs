@@ -118,7 +118,9 @@ async fn two_authenticated_webrtc_participants_exchange_video_and_audio_through_
             &app_key.id,
             &Operation::Create {
                 request_id: "native-interop-create".into(),
-                participants: vec![agent.identity_id.clone()],
+                request: connect_protocol::conversations::CreateRequest::persistent(vec![agent
+                    .identity_id
+                    .clone()]),
             },
         )
         .unwrap()

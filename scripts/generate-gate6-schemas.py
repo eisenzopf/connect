@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Generate the frozen Gate 6 schema/vector kit from audited payloads and v2 rules."""
+import argparse
 import copy
 import json
 import pathlib
@@ -8,6 +9,7 @@ import re
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 SAFE_INTEGER = 9_007_199_254_740_991
 ID = {'type':'string','minLength':1,'maxLength':128,'pattern':r'^[A-Za-z0-9._~-]+$'}
+TOKEN = {**ID, 'maxLength':2048}
 STATES = ['accepted','preparing','ready','committing','completed','cancelled','failed','interrupted','unknown']
 EDGES = {
  'accepted':['preparing','cancelled','failed','interrupted'],
@@ -62,18 +64,40 @@ def build():
     elif value.get('anyOf',[{}])[0].get('type')=='string':definition['properties'][key]={'anyOf':[ref('Identifier'),{'type':'null'}]}
    elif key in ('participants_present','strm_ids'):
     definition['properties'][key]=array(ref('Identifier'))
+ # G6-027: fetched integrity describes the exact projected delivery bytes.
+ definitions['RecordingVconFetch']['properties']['uuid']={'anyOf':[{'type':'string','minLength':1,'maxLength':36},{'type':'null'}]}
+ definitions['RecordingVconFetch']['properties']['url']={'anyOf':[{'type':'string','minLength':1,'maxLength':2048},{'type':'null'}]}
+ definitions['RecordingVconFetch']['properties']['content_hash']={'anyOf':[{'type':'string','minLength':1,'maxLength':512},{'type':'null'}]}
+ definitions['RecordingVconFetch']['anyOf']=[{'required':['uuid'],'properties':{'uuid':{'type':'string','minLength':1}}},{'required':['url'],'properties':{'url':{'type':'string','minLength':1}}}]
+ definitions['RecordingVconFetched']['properties']['delivery']={'type':'string','enum':['inline','url']}
+ definitions['RecordingVconFetched']['properties']['content_hash']={'type':'string','minLength':1,'maxLength':512,'description':'Digest of these exact authorized projected bytes; never the full source digest for a filtered view.'}
+ definitions['RecordingVconFetched']['required'].append('content_hash')
+ definitions['RecordingVconFetched']['oneOf']=[
+  {'required':['vcon'],'properties':{'delivery':{'const':'inline'},'vcon':{'type':'string','minLength':1}},'not':{'anyOf':[{'required':['url']},{'required':['expires_at']}]}},
+  {'required':['url','expires_at'],'properties':{'delivery':{'const':'url'},'url':{'type':'string','minLength':1,'maxLength':2048}},'not':{'required':['vcon']}}]
  definitions['AuthHello']['properties']['application_profiles']=array({'type':'string','minLength':1},1,16)
+ # Cursors are bounded opaque transport tokens, not resource identifiers.
+ for model,field in [('MessageHistory','cursor'),('ConversationList','cursor')]:
+  definitions[model]['properties'][field]=copy.deepcopy(TOKEN)
+ definitions['Ack']['properties']['next_cursor']=copy.deepcopy(TOKEN)
  definitions['AuthHello']['required'].append('application_profiles')
  definitions['AuthSession']['properties']['application_profile']={'const':'connect/2'}
  definitions['AuthSession']['required'].append('application_profile')
+ # A transport peer may authenticate before selecting any Conversation.
+ definitions['AuthSession']['required'].remove('participant_id')
  definitions['MessageSend']['properties']['to']={'oneOf':[{'const':'all'},array(ref('Identifier'),1)]}
  definitions['MessageSend']['properties']['content_type']={'type':'string','minLength':1,'maxLength':255}
  definitions['MessageSend']['properties']['body']={'type':'string','maxLength':87384,'description':'Runtime enforces 64 KiB decoded UTF-8/binary bytes, independently of JSON character length.'}
- definitions['SessionInvite']['properties']['to']=array(ref('Identifier'),1)
+ definitions['SessionInvite']['properties']['to']=array(ref('Identifier'))
  definitions['StreamInfo']['properties']['stream_local_id']={'type':'integer','minimum':1,'maximum':65535}
  definitions['StreamSubscription']['oneOf']=[{'required':['strm_id'],'not':{'anyOf':[{'required':['from_participant']},{'required':['kinds']}]}},{'required':['from_participant'],'not':{'required':['strm_id']}}]
  definitions['ReadyStreamBinding']=obj({k:v for k,v in definitions['StreamInfo']['properties'].items() if k!='opened_at'})
  definitions['ConnectionReady']=obj({'streams':array(ref('ReadyStreamBinding'),1)})
+ # Target-owned native isolation is distinct from an executable handoff or
+ # decoded readiness. Its signed profile has no caller reference or ready bit.
+ definitions['HandoffPreparation']={'type':'object','properties':{'profile':{'const':'connect-handoff-preparation-v1'}},'required':['profile'],'additionalProperties':False}
+ definitions['ConnectionOffer']['properties']['handoff_preparation']=ref('HandoffPreparation')
+ definitions['ConnectionOffer'].setdefault('allOf',[]).append({'if':{'required':['handoff_preparation']},'then':{'not':{'required':['private_consultation']},'properties':{'streams_offered':{'type':'array','minItems':1,'maxItems':1,'items':{'allOf':[ref('StreamOffer'),{'properties':{'kind':{'const':'audio'},'direction':{'const':'sendrecv'}}}]}}}}})
  definitions['SessionUpdate']['properties']['kind']={'enum':['participant-leave','role-change','medium-upgrade','codec-renegotiate']}
  definitions['SessionUpdate']['properties']['details']={'type':'object'}
  definitions['SessionUpdate']['required'].append('details')
@@ -81,17 +105,30 @@ def build():
  for kind,fields in [('participant-leave',{'participant_id':ref('Identifier')}),('role-change',{'participant_id':ref('Identifier'),'role':{'type':'string','minLength':1,'maxLength':64}}),('medium-upgrade',{'media':array({'enum':['audio','video','screen','data']},1)}),('codec-renegotiate',{'codec_preferences':array({'type':'string','minLength':1},1)})]:
   definitions['SessionUpdate']['allOf'].append({'if':{'properties':{'kind':{'const':kind}}},'then':{'properties':{'details':obj(fields)}}})
  definitions['ConnectionUpdate']['properties']['action']={'enum':['hold','resume','mute','unmute','codec-renegotiate']}
+ definitions['ConnectionUpdate']['properties']['action']['enum'].append('quality')
+ definitions['ConnectionUpdate']['properties']['quality_interval_ms']={'type':'integer','minimum':100,'maximum':60000}
+ definitions['ConnectionUpdate']['allOf']=[{'if':{'required':['action'],'properties':{'action':{'const':'quality'}}},'then':{'required':['quality_interval_ms'],'not':{'anyOf':[{'required':[key]} for key in ['streams','codec_preferences','details']]}},'else':{'not':{'required':['quality_interval_ms']}}}]
+ definitions['ConnectionQuality']['properties']['interval_ms']['minimum']=1
+ # An absent measurement is unavailable, never a fabricated zero. Packets count
+ # accepted/submitted RTP datagrams, not reliable data messages or remote playout.
+ definitions['StreamQuality']['required']=['strm_id','bitrate_bps','packets_sent','packets_received']
+ definitions['StreamQuality']['properties']['loss_pct'].update(minimum=0,maximum=100)
+ definitions['StreamQuality']['properties']['mos'].update(minimum=1,maximum=5)
+ definitions['StreamQuality']['properties']['bitrate_bps']['maximum']=SAFE_INTEGER
+
  for name in ['StreamInfo','ReadyStreamBinding','StreamOffer','StreamAnswer']:
   definitions[name]['properties']['kind']={'enum':['audio','video','screen','data']}
   definitions[name]['properties']['direction']={'enum':['sendrecv','sendonly','recvonly','inactive']}
+ definitions['StreamActiveSpeaker']['required']=['active_participant','strm_id','changed_at']
  definitions['OperationState']={'enum':STATES}
- definitions['OperationUpdated']=obj({'operation_id':ref('Identifier'),'state':ref('OperationState'),'revision':{'type':'integer','minimum':0,'maximum':SAFE_INTEGER},'result':{},'problem':{'type':'object'}},['operation_id','state','revision'])
+ definitions['OperationUpdated']=obj({'operation_id':ref('Identifier'),'record_id':ref('Identifier'),'state':ref('OperationState'),'revision':{'type':'integer','minimum':0,'maximum':SAFE_INTEGER},'result':{},'problem':{'type':'object'}},['operation_id','state','revision'])
  definitions['OperationUpdated']['allOf']=[{'if':{'properties':{'state':{'not':{'const':'completed'}}}},'then':{'not':{'required':['result']}}}]
  definitions['MemberAdd']=obj({'identity_id':ref('Identifier'),'kind':{'enum':['human','ai','system','external']},'role':{'type':'string','minLength':1,'maxLength':64}})
  definitions['MemberUpdate']=obj({'participant_id':ref('Identifier'),'role':{'type':'string','minLength':1,'maxLength':64}})
  definitions['MemberRemove']=obj({'participant_id':ref('Identifier'),'reason':{'type':'string','maxLength':512}},['participant_id'])
  definitions['MemberChanged']=obj({'participant_id':ref('Identifier'),'kind':{'enum':['added','updated','removed']},'membership_epoch':{'type':'integer','minimum':1,'maximum':SAFE_INTEGER}})
  definitions['SessionConsult']=obj({'retained_connid':ref('Identifier'),'private_participants':array(ref('Identifier'),2),'hold_treatment':{'enum':['silence','configured-media']}},['retained_connid','private_participants'])
+ definitions['SessionConsultReturn']=obj({'consultation_record_id':ref('Identifier'),'retained_connid':ref('Identifier')})
  definitions['SessionHandoff']=obj({'source_participant':ref('Identifier'),'target_participant':ref('Identifier'),'retained_connid':ref('Identifier'),'candidate_connid':ref('Identifier'),'outgoing':{'enum':['leave','observe']},'role_scope':{'enum':['conversation','session']},'expected_conversation_revision':{'type':'integer','minimum':0,'maximum':SAFE_INTEGER}},['source_participant','target_participant','retained_connid','outgoing'])
  definitions['SessionHandoff']['allOf']=[{'if':{'required':['role_scope'],'properties':{'role_scope':{'const':'session'}}},'then':{},'else':{'required':['expected_conversation_revision']}}]
  definitions['ConnectionReplace']=obj({'endpoint_id':ref('Identifier'),'candidate_connid':ref('Identifier'),'retained_connid':ref('Identifier')},['retained_connid'])
@@ -99,25 +136,33 @@ def build():
  definitions['OperationGet']=obj({'operation_id':ref('Identifier')})
  definitions['OperationCancel']=obj({'operation_id':ref('Identifier'),'reason':{'type':'string','maxLength':512}},['operation_id'])
  definitions['OperationReconcile']=obj({'operation_id':ref('Identifier'),'outcome':{'enum':['completed','cancelled','failed']},'evidence_id':ref('Identifier')})
- definitions['ConversationGet']=obj({})
- definitions['ConversationSubscribe']=obj({'after':ref('Identifier'),'live':{'type':'boolean'},'limit':{'type':'integer','minimum':1,'maximum':500},'lease_seconds':{'type':'integer','minimum':1,'maximum':30}},[])
- definitions['ConversationSnapshot']=obj({'revision':{'type':'integer','minimum':0,'maximum':SAFE_INTEGER},'cursor':ref('Identifier'),'items':array({'type':'object'},0,500),'has_more':{'type':'boolean'}})
- definitions['ConversationEvent']=obj({'event_id':ref('Identifier'),'cursor':ref('Identifier'),'kind':{'type':'string','minLength':1},'revision':{'type':'integer','minimum':0,'maximum':SAFE_INTEGER},'data':{'type':'object'}})
+ definitions['ConversationGet']=obj({'page':copy.deepcopy(TOKEN),'limit':{'type':'integer','minimum':1,'maximum':127}},[])
+ definitions['ConversationSubscribe']=obj({'after':copy.deepcopy(TOKEN),'live':{'type':'boolean'},'limit':{'type':'integer','minimum':1,'maximum':500},'lease_seconds':{'type':'integer','minimum':1,'maximum':30}},[])
+ definitions['ConversationSnapshot']=obj({'revision':{'type':'integer','minimum':0,'maximum':SAFE_INTEGER},'cursor':copy.deepcopy(TOKEN),'items':array({'type':'object'},0,500),'has_more':{'type':'boolean'}})
+ definitions['ConversationSnapshot']['properties']['next_page']=copy.deepcopy(TOKEN)
+ definitions['ConversationEvent']=obj({'event_id':ref('Identifier'),'cursor':copy.deepcopy(TOKEN),'kind':{'type':'string','minLength':1},'revision':{'type':'integer','minimum':0,'maximum':SAFE_INTEGER},'data':{'type':'object'}})
  definitions['SessionObservation']=obj({'kind':{'enum':['transcript','speech','action-request']},'participant_id':ref('Identifier'),'source':{'type':'string','minLength':1},'correlation_id':ref('Identifier'),'data':{'type':'object'}})
  kinds={e['type']:e['payload_struct'] or 'ConnectionReady' for e in ledger['envelopes']}
  kinds.update({'conversation.get':'ConversationGet','conversation.participant.add':'MemberAdd','conversation.participant.update':'MemberUpdate','conversation.participant.remove':'MemberRemove','conversation.participant.changed':'MemberChanged','conversation.subscribe':'ConversationSubscribe','conversation.snapshot':'ConversationSnapshot','conversation.event':'ConversationEvent','session.consult':'SessionConsult','session.handoff':'SessionHandoff','connection.replace':'ConnectionReplace','operation.get':'OperationGet','operation.cancel':'OperationCancel','operation.reconcile':'OperationReconcile','operation.updated':'OperationUpdated','session.observation':'SessionObservation'})
- mutations={'conversation.create','conversation.close','conversation.participant.add','conversation.participant.update','conversation.participant.remove','session.invite','session.accept','session.reject','session.cancel','session.end','session.update','session.consult','session.handoff','connection.offer','connection.answer','connection.update','connection.end','connection.replace','stream.subscribe','stream.unsubscribe','message.send','message.read','dtmf.send','operation.cancel','operation.reconcile'}
- revisioned={'conversation.participant.add','conversation.participant.update','conversation.participant.remove','session.update','session.consult','session.handoff','connection.replace','connection.update','stream.subscribe','stream.unsubscribe'}
+ kinds['session.consult.return']='SessionConsultReturn'
+ mutations={'conversation.create','conversation.close','conversation.participant.add','conversation.participant.update','conversation.participant.remove','session.invite','session.accept','session.reject','session.cancel','session.end','session.update','session.consult','session.consult.return','session.handoff','connection.offer','connection.answer','connection.update','connection.end','connection.replace','stream.subscribe','stream.unsubscribe','message.send','message.read','dtmf.send','operation.cancel','operation.reconcile'}
+ revisioned={'conversation.participant.add','conversation.participant.update','conversation.participant.remove','session.update','session.consult','session.consult.return','session.handoff','connection.replace','connection.update','stream.subscribe','stream.unsubscribe'}
  definitions['Signature']=obj({'keyid':{'type':'string','minLength':1},'alg':{'enum':['EdDSA','ES256','PS256','RS256']},'sig':{'type':'string','minLength':1}})
  fields={'v':{'const':2},'type':{'enum':list(kinds)},'id':ref('Identifier'),'ts':{'type':'string','format':'date-time'},'payload':{'type':'object'},'cid':ref('Identifier'),'sid':ref('Identifier'),'connid':ref('Identifier'),'in_reply_to':ref('Identifier'),'operation_id':ref('Identifier'),'expected_revision':{'type':'integer','minimum':0,'maximum':SAFE_INTEGER},'signature':ref('Signature')}
  schema={'$schema':'https://json-schema.org/draft/2020-12/schema','$id':'https://rudeless.ai/connect/contracts/uctp-envelope-2.schema.json','title':'Gate 6 UCTP envelope / connect/2 target','description':'Schema conformance does not establish authorization, active media, provider effects or runtime qualification.',**obj(fields,['v','type','id','ts','payload']),'$defs':definitions,'allOf':[]}
  for name,kind in kinds.items():
-  required=['operation_id'] if name in mutations else []
-  if name in revisioned:required.append('expected_revision')
-  if name.startswith(('session.','connection.','stream.','dtmf.')):required.extend(['cid','sid'])
+  command_required=['operation_id'] if name in mutations else []
+  if name in revisioned:command_required.append('expected_revision')
+  required=[]
+  if name.startswith(('session.','connection.','stream.','dtmf.','recording.')):required.extend(['cid','sid'])
   elif name.startswith(('conversation.','message.')) and name not in ('conversation.create','conversation.list'):required.append('cid')
-  if name.startswith(('connection.','stream.','dtmf.')):required.append('connid')
-  schema['allOf'].append({'if':{'properties':{'type':{'const':name}}},'then':{'properties':{'payload':ref(kind)},'required':required}})
+  if name.startswith(('connection.','stream.','dtmf.')) and name!='stream.active-speaker':required.append('connid')
+  if name=='session.consult.return':required.append('connid')
+  then={'properties':{'payload':ref(kind)},'required':required}
+  if command_required:then['anyOf']=[{'required':command_required},{'required':['in_reply_to']}]
+  if name=='auth.session':
+   then['allOf']=[{'if':{'properties':{'payload':{'required':['participant_id']}}},'then':{'required':['cid']}}]
+  schema['allOf'].append({'if':{'properties':{'type':{'const':name}}},'then':then})
  # All referenced definitions must be known before vectors can be produced.
  def check_refs(node):
   if isinstance(node,dict):
@@ -147,14 +192,24 @@ def sample(node,definitions):
  return {}
 
 def main():
+ parser=argparse.ArgumentParser(description=__doc__)
+ parser.add_argument('--check',action='store_true',help='Refuse stale generated files without changing them')
+ args=parser.parse_args()
+ def emit(path, text):
+  if args.check:
+   if not path.is_file() or path.read_text()!=text:raise SystemExit(f'{path.relative_to(ROOT)} is stale')
+  else:path.write_text(text)
  schema,kinds,mutations,revisioned=build()
  directory=ROOT/'contracts/schemas';directory.mkdir(exist_ok=True)
- (directory/'uctp-envelope-2.schema.json').write_text(json.dumps(schema,indent=2)+'\n')
+ emit(directory/'uctp-envelope-2.schema.json', json.dumps(schema,indent=2)+'\n')
  vectors=[]
  for i,(name,kind) in enumerate(kinds.items()):
   value={'v':2,'type':name,'id':f'env_vector_{i}','ts':'2026-10-15T12:00:00Z','cid':'conv_example','sid':'sess_example','connid':'conn_example','payload':sample(schema['$defs'][kind],schema['$defs'])}
   if name in mutations:value['operation_id']=f'op_vector_{i}'
   if name in revisioned:value['expected_revision']=1
+  if name=='stream.active-speaker':value.pop('connid')
+  if name=='recording.vcon-fetch':value['payload']['uuid']='00000000-0000-8000-8000-000000000001'
+  if name=='recording.vcon-fetched':value['payload'].update(delivery='inline',vcon='{}',content_hash='sha512-fixture-projected-bytes')
   if name=='connection.replace':value['payload']['endpoint_id']='endpoint_example'
   if name=='session.update':value['payload']['details']={'participant_id':'part_example'}
   if name=='session.handoff':value['payload'].update(source_participant='part_source',target_participant='part_target',retained_connid='conn_remote',expected_conversation_revision=1)
@@ -167,9 +222,99 @@ def main():
   if name in revisioned:
    invalid=copy.deepcopy(value);invalid.pop('expected_revision')
    vectors.append(dict(id='schema-missing-revision-'+name,scope='schema-only',valid=False,envelope=invalid))
+ speaker=next(copy.deepcopy(v['envelope']) for v in vectors if v['id']=='schema-stream.active-speaker')
+ speaker['payload']['active_participant']=None
+ vectors.append(dict(id='active-speaker-session-silence',scope='schema-only',valid=True,envelope=copy.deepcopy(speaker)))
+ invalid=copy.deepcopy(speaker);invalid['payload'].pop('active_participant')
+ vectors.append(dict(id='active-speaker-needs-explicit-participant-or-null',scope='schema-only',valid=False,envelope=invalid))
+ invalid=copy.deepcopy(speaker);invalid['payload']['active_participant']=37
+ vectors.append(dict(id='active-speaker-refuses-numeric-participant',scope='schema-only',valid=False,envelope=invalid))
+ invalid=copy.deepcopy(speaker);invalid.pop('sid')
+ vectors.append(dict(id='active-speaker-needs-session',scope='schema-only',valid=False,envelope=invalid))
+ solo=next(copy.deepcopy(v['envelope']) for v in vectors if v['id']=='schema-session.invite')
+ solo['payload']['to']=[]
+ vectors.append(dict(id='session-invite-implicit-solo-initiator',scope='schema-only',valid=True,envelope=solo))
+ # Preserve the original embedded invitation refusal vector IDs.
+ for label,targets in [('duplicates',['part-one','part-one']),('null',None),('over-capacity',[f'part-{i}' for i in range(257)])]:
+  invalid=copy.deepcopy(solo)
+  invalid['payload'].update(to=targets,medium='voice',intent='solo',capabilities_offer={'audio':['g.711-mu']})
+  vectors.append(dict(id='session-invite-'+label,scope='schema-only',valid=False,envelope=invalid))
+ auth=next(copy.deepcopy(v['envelope']) for v in vectors if v['id']=='schema-auth.session')
+ for field in ['cid','sid','connid']:auth.pop(field,None)
+ vectors.append(dict(id='auth-unscoped-identity-only',scope='schema-only',valid=True,envelope=copy.deepcopy(auth)))
+ auth['payload']['participant_id']='participant_example'
+ vectors.append(dict(id='auth-participant-needs-conversation',scope='schema-only',valid=False,envelope=copy.deepcopy(auth)))
+ auth['cid']='conversation_example'
+ vectors.append(dict(id='auth-scoped-participant',scope='schema-only',valid=True,envelope=auth))
+ # Correlation is syntax, not authorization: runtimes route replies exclusively
+ # through authenticated exact-scope waiters, never ordinary command execution.
+ replay=next(copy.deepcopy(v['envelope']) for v in vectors if v['id']=='schema-message.send')
+ replay.pop('operation_id');replay['in_reply_to']='history_request'
+ vectors.append(dict(id='history-correlated-message-observation',scope='schema-only',valid=True,envelope=copy.deepcopy(replay)))
+ replay['in_reply_to']=''
+ vectors.append(dict(id='empty-correlation-is-not-a-reply',scope='schema-only',valid=False,envelope=replay))
+ query=next(copy.deepcopy(v['envelope']) for v in vectors if v['id']=='schema-message.history')
+ query['payload']['cursor']='a'*1500
+ vectors.append(dict(id='history-opaque-cursor-distinct-from-resource-id',scope='schema-only',valid=True,envelope=copy.deepcopy(query)))
+ query['payload']['cursor']='a'*2049
+ vectors.append(dict(id='history-cursor-bound',scope='schema-only',valid=False,envelope=query))
+ ack=next(copy.deepcopy(v['envelope']) for v in vectors if v['id']=='schema-ack')
+ ack['payload']['next_cursor']='a'*1500
+ vectors.append(dict(id='ack-opaque-next-cursor',scope='schema-only',valid=True,envelope=ack))
+ for token,valid,name in [('a'*2048,True,'maximum'),('',False,'empty'),('a/b',False,'slash'),('é',False,'non-ascii')]:
+  query=copy.deepcopy(next(v['envelope'] for v in vectors if v['id']=='schema-message.history'))
+  query['payload']['cursor']=token
+  vectors.append(dict(id='history-cursor-'+name,scope='schema-only',valid=valid,envelope=query))
+ for length,valid in [(128,True),(129,False)]:
+  query=copy.deepcopy(next(v['envelope'] for v in vectors if v['id']=='schema-message.history'))
+  query['cid']='a'*length
+  vectors.append(dict(id='resource-identifier-'+str(length),scope='schema-only',valid=valid,envelope=query))
+ quality=next(copy.deepcopy(v['envelope']) for v in vectors if v['id']=='schema-connection.quality')
+ quality['payload']={'interval_ms':5000,'streams':[{'strm_id':'audio','bitrate_bps':256000,'packets_sent':25,'packets_received':25}]}
+ vectors.append(dict(id='quality-unavailable-metrics-omitted',scope='schema-only',valid=True,envelope=copy.deepcopy(quality)))
+ for loss,mos in [(0.0,1.0),(100.0,5.0),(0.4,4.1)]:
+  measured=copy.deepcopy(quality);measured['payload']['streams'][0].update(loss_pct=loss,mos=mos,jitter_ms=12,rtt_ms=80)
+  vectors.append(dict(id='quality-measured-'+str(loss)+'-'+str(mos),scope='schema-only',valid=True,envelope=measured))
+
+ for field,value in [('interval_ms',0),('loss_pct',-1),('loss_pct',101),('loss_pct',-0.1),('loss_pct',100.1),('mos',0),('mos',6),('mos',0.9),('mos',5.1),('packets_received',-1),('rtt_ms',-1)]:
+  invalid=copy.deepcopy(quality)
+  if field=='interval_ms':invalid['payload'][field]=value
+  else:invalid['payload']['streams'][0][field]=value
+  vectors.append(dict(id='quality-invalid-'+field+'-'+str(value),scope='schema-only',valid=False,envelope=invalid))
+ tune=next(copy.deepcopy(v['envelope']) for v in vectors if v['id']=='schema-connection.update')
+ tune['payload']={'action':'quality','quality_interval_ms':100}
+ vectors.append(dict(id='quality-interval-update',scope='schema-only',valid=True,envelope=copy.deepcopy(tune)))
+ for field,value in [('quality_interval_ms',99),('quality_interval_ms',60001),('streams',['audio']),('details',{})]:
+  invalid=copy.deepcopy(tune);invalid['payload'][field]=value
+  vectors.append(dict(id='quality-invalid-update-'+field+'-'+str(value),scope='schema-only',valid=False,envelope=invalid))
+ invalid=copy.deepcopy(tune);del invalid['payload']['quality_interval_ms']
+ vectors.append(dict(id='quality-update-needs-interval',scope='schema-only',valid=False,envelope=invalid))
+ fetched=next(copy.deepcopy(v['envelope']) for v in vectors if v['id']=='schema-recording.vcon-fetched')
+ invalid=copy.deepcopy(fetched);invalid['payload'].pop('content_hash');vectors.append(dict(id='record-fetched-needs-projected-digest',scope='schema-only',valid=False,envelope=invalid))
+ invalid=copy.deepcopy(fetched);invalid['payload']['url']='https://records.invalid/ref';vectors.append(dict(id='record-fetched-inline-url-exclusive',scope='schema-only',valid=False,envelope=invalid))
+ url=copy.deepcopy(fetched);url['payload']={'delivery':'url','url':'https://records.invalid/ref','expires_at':'2026-10-15T12:01:00Z','content_hash':'sha512-fixture-projected-bytes'}
+ vectors.append(dict(id='record-fetched-authorized-url-shape',scope='schema-only',valid=True,envelope=copy.deepcopy(url)))
+ url['payload'].pop('expires_at');vectors.append(dict(id='record-fetched-url-needs-expiry',scope='schema-only',valid=False,envelope=url))
+ query=next(copy.deepcopy(v['envelope']) for v in vectors if v['id']=='schema-recording.vcon-fetch');query['payload']={};vectors.append(dict(id='record-fetch-needs-local-selector',scope='schema-only',valid=False,envelope=query))
+ status=next(copy.deepcopy(v['envelope']) for v in vectors if v['id']=='schema-operation.updated')
+ status['payload']['record_id']='opr_record_reference'
+ vectors.append(dict(id='operation-status-stable-record-reference',scope='schema-only',valid=True,envelope=status))
+ prepared=next(copy.deepcopy(v['envelope']) for v in vectors if v['id']=='schema-connection.offer')
+ prepared['payload']['handoff_preparation']={'profile':'connect-handoff-preparation-v1'}
+ prepared['payload']['streams_offered']=[{'id':'prepared-voice','kind':'audio','direction':'sendrecv','codec_preferences':['g.711-mu']}]
+ vectors.append(dict(id='handoff-target-owned-preparation',scope='schema-only',valid=True,envelope=copy.deepcopy(prepared)))
+ for label in ['wrong-profile','asserted-ready','mixed-private','video','one-way','multiple-streams']:
+  invalid=copy.deepcopy(prepared);p=invalid['payload']
+  if label=='wrong-profile':p['handoff_preparation']['profile']='unrecognized'
+  elif label=='asserted-ready':p['handoff_preparation']['ready']=True
+  elif label=='mixed-private':p['private_consultation']={'profile':'connect-private-audio-v1','operation_record_id':'copied'}
+  elif label=='video':p['streams_offered'][0]['kind']='video'
+  elif label=='one-way':p['streams_offered'][0]['direction']='sendonly'
+  else:p['streams_offered'].append({**p['streams_offered'][0],'id':'second'})
+  vectors.append(dict(id='handoff-preparation-'+label,scope='schema-only',valid=False,envelope=invalid))
  directory=ROOT/'contracts/uctp-vectors';directory.mkdir(exist_ok=True)
- (directory/'gate6-envelope.json').write_text(json.dumps(dict(format=1,scope='Schema vectors; no runtime/authorization/media claim.',vectors=vectors),indent=2)+'\n')
- (directory/'operation-transitions.json').write_text(json.dumps(dict(format=1,states=STATES,edges=EDGES,terminal=['completed','cancelled','failed'],conditional_edges={'interrupted->preparing':'Only after attributed reconciliation proves re-dispatch safe.','unknown->completed':'Requires attributed authorized reconciliation evidence.','unknown->cancelled':'Requires attributed authorized reconciliation evidence.','unknown->failed':'Requires attributed authorized reconciliation evidence.'}),indent=2)+'\n')
+ emit(directory/'gate6-envelope.json', json.dumps(dict(format=1,scope='Schema vectors; no runtime/authorization/media claim.',vectors=vectors),indent=2)+'\n')
+ emit(directory/'operation-transitions.json', json.dumps(dict(format=1,states=STATES,edges=EDGES,terminal=['completed','cancelled','failed'],conditional_edges={'interrupted->preparing':'Only after attributed reconciliation proves re-dispatch safe.','unknown->completed':'Requires attributed authorized reconciliation evidence.','unknown->cancelled':'Requires attributed authorized reconciliation evidence.','unknown->failed':'Requires attributed authorized reconciliation evidence.'}),indent=2)+'\n')
  print(json.dumps(dict(envelope_types=len(kinds),schema_vectors=len(vectors),operation_states=len(STATES))))
 
 if __name__=='__main__':main()

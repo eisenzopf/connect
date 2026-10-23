@@ -1,0 +1,62 @@
+--- a/crates/uctp/rvoip-uctp/src/v2/native_negotiation/activation.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/native_negotiation/activation.rs
+@@ -34,6 +34,27 @@
+         prepared: &Arc<PreparedMediaObservation>,
+         current: MediaOwner,
+     ) -> ControlResult<MediaOwner> {
++        self.prepare_checked(prepared, || prepared.activate_for_commit(current))
++    }
++    /// Explicit replacement resource activation. A signed native answer must
++    /// confirm the same full batch before the Core lineage-specific resource
++    /// proof is used. This does not commit Participant/device movement.
++    pub fn prepare_replacement(
++        &self,
++        prepared: &Arc<PreparedMediaObservation>,
++        current: MediaOwner,
++        source: &MediaOwner,
++        pending: &rvoip_core::participant_transitions::PreparedParticipantReplacement,
++    ) -> ControlResult<MediaOwner> {
++        self.prepare_checked(prepared, || {
++            prepared.activate_replacement_resources(current, source, pending)
++        })
++    }
++    fn prepare_checked(
++        &self,
++        prepared: &Arc<PreparedMediaObservation>,
++        activate: impl FnOnce() -> ControlResult<MediaOwner>,
++    ) -> ControlResult<MediaOwner> {
+         let controller = self
+             .controller
+             .upgrade()
+@@ -63,7 +84,7 @@
+         {
+             return Err(StreamControlError::NotReady);
+         }
+-        let owner = prepared.activate_for_commit(current)?;
++        let owner = activate()?;
+         *self.prepared.lock().unwrap_or_else(|p| p.into_inner()) = Some(prepared.clone());
+         Ok(owner)
+     }
+@@ -77,6 +98,22 @@
+             .ok_or(StreamControlError::NotReady)?
+             .current(current)
+     }
++    /// Before movement commits, fresh host authority must still prove the
++    /// original source and exact prepared replacement lineage. No old host
++    /// command/reader is retained by this metadata handle.
++    pub fn current_replacement(
++        &self,
++        current: MediaOwner,
++        source: &MediaOwner,
++        pending: &rvoip_core::participant_transitions::PreparedParticipantReplacement,
++    ) -> ControlResult<MediaOwner> {
++        self.prepared
++            .lock()
++            .unwrap_or_else(|p| p.into_inner())
++            .as_ref()
++            .ok_or(StreamControlError::NotReady)?
++            .current_replacement_resources(current, source, pending)
++    }
+     pub fn confirmed_generation(&self) -> Option<u64> {
+         self.prepared
+             .lock()

@@ -1,0 +1,226 @@
+{
+  "format": 1,
+  "task": "G6-026",
+  "reviewed_work": "Implement the frozen auth refresh/expiry, supported signing, assurance provenance, step-up and scoped replay rules. Reconcile logical retry with fresh signed envelopes. Advertise only available authentication methods and validate correlated responses before they reach waiters.",
+  "reviewed_verify": "Expired/revoked principals, signature replay, wrong session/connection replies, assurance downgrade and invalid step-up fail consistently. Same authorized operation can be recovered without bypassing anti-replay checks.",
+  "reviewed_dependencies": [
+    "G6-016",
+    "G6-017"
+  ],
+  "scope": "Reusable canonical authentication semantics in rvoip. Shared Connect installation, independent conformance and acceptance remain assigned later.",
+  "groups": [
+    {
+      "requirements": [
+        "U6-REQ-0025",
+        "U6-REQ-0026",
+        "U6-REQ-0027",
+        "U6-REQ-0028",
+        "U6-REQ-0029",
+        "U6-REQ-0030",
+        "U6-REQ-0031"
+      ],
+      "task_owned_behavior": "Four-envelope signed authentication, trusted Identity/Device, finite credential binding, own-token keepalive, refresh and logout.",
+      "required_cases": [
+        "canonical-peer#handshake_selects_only_installed_method_and_retains_identity_profile_without_fabricated_participant",
+        "canonical-peer#auth_proof_binds_exact_challenge_and_refuses_resource_scope",
+        "canonical-peer#keepalive_token_is_not_portable_to_another_authenticated_peer",
+        "canonical-peer#actual_tls_quic_uctp2_handshake_control_refresh_and_eof_retire_peer",
+        "canonical-peer#successful_refresh_rotates_token_retires_old_waiters_and_uses_new_credential_metadata"
+      ],
+      "remaining_shared_scope": "The handshake token is not a reconnect/resumption grant. Conversation Participant creation and real Connect policy installation belong to G6-037/G6-038; enrollment and safe resume retain G6-055/G6-052."
+    },
+    {
+      "requirements": [
+        "U6-REQ-0032",
+        "U6-REQ-0033",
+        "U6-REQ-0034"
+      ],
+      "task_owned_behavior": "Trusted transport-backed reachability registration/renewal, independently owned Devices/routes and current authorized local delivery submission.",
+      "required_cases": [
+        "peer-reachability#authenticated_hint_uses_trusted_route_and_no_pre_auth_or_client_address",
+        "peer-reachability#independent_devices_and_owner_domains_do_not_leak_or_retire_each_other",
+        "peer-reachability#actual_tls_quic_registry_route_delivers_signed_frame_under_current_recipient_guard",
+        "canonical-transports#wt_driver_registry_submission_refresh_revocation_cleanup"
+      ],
+      "remaining_shared_scope": "IdentityProvider/EndpointRuntime projection, actual invitation selection/acceptance and service business effects remain G6-037/G6-038. Hints and local admission are not a delivered/ready fact."
+    },
+    {
+      "requirements": [
+        "U6-REQ-0035",
+        "U6-REQ-0036"
+      ],
+      "task_owned_behavior": "The approved connect/2 profile discovers only installed credential methods; unknown methods never fall back. The identified floor is explicit.",
+      "required_cases": [
+        "canonical-peer#unsupported_profile_and_unknown_method_fail_before_credentials_or_effects",
+        "step-up#unknown_method_does_not_fall_back_or_execute_held_intent",
+        "canonical-peer#advertised_identified_floor_rejects_lower_assurance_without_claiming_membership_and_allows_fresh_proof"
+      ],
+      "remaining_shared_scope": "Other credential methods are conditional and are not advertised by the current bearer installation. ES256/EdDSA are signature algorithms, not new credential methods."
+    },
+    {
+      "requirements": [
+        "U6-REQ-0037",
+        "U6-REQ-0038"
+      ],
+      "task_owned_behavior": "Selected inline envelope signing on the canonical substrates, including actual TLS QUIC/WT/WSS signed exchanges.",
+      "required_cases": [
+        "canonical-transports#peer_exchange::es256_actual_tls_transports_verify_held_reply_key_without_reentering_queued_grant_writer",
+        "canonical-peer#es256_actual_tls_quic_peer_accepts_p256_proof_and_returns_verified_p256_control_reply"
+      ],
+      "remaining_shared_scope": "HTTP-header RFC 9421 signing is a MAY alternative and is not installed/advertised in this profile; the inline variant is selected. No claim of HTTP-header processing."
+    },
+    {
+      "requirements": [
+        "U6-REQ-0039"
+      ],
+      "task_owned_behavior": "Current exact principal-owned key verification is separate from assurance promotion; only a verified correlated step-up installs higher assurance.",
+      "required_cases": [
+        "auth-regression#sig9421::es256_tests::es256_wrong_subject_tenant_issuer_or_signature_algorithm_cannot_select_another_key",
+        "canonical-peer#es256_canonical_auth_control_refresh_preserve_assurance_and_envelope_replay_rules",
+        "step-up#unsolicited_assurance_or_stepup_response_never_changes_binding"
+      ],
+      "remaining_shared_scope": "Application resource permissions remain required even after signature and assurance checks."
+    },
+    {
+      "requirements": [
+        "U6-REQ-0040",
+        "U6-REQ-0041",
+        "U6-REQ-0042",
+        "U6-REQ-0043",
+        "U6-REQ-0044"
+      ],
+      "task_owned_behavior": "Inline signature shape and JCS of every original field except the signature itself, including optional fields and reply correlation.",
+      "required_cases": [
+        "auth-regression#sig9421::es256_tests::es256_signer_produces_jwa_raw_signature_over_full_original_jcs",
+        "auth-regression#sig9421::es256_tests::es256_covers_optional_fields_scope_revision_and_replaces_only_signature",
+        "canonical-transports#peer_exchange::es256_actual_tls_transports_verify_held_reply_key_without_reentering_queued_grant_writer"
+      ],
+      "remaining_shared_scope": "The approved version-2 profile replaces version-1 example spellings; full independent client conformance remains G6-094."
+    },
+    {
+      "requirements": [
+        "U6-REQ-0045"
+      ],
+      "task_owned_behavior": "Required EdDSA and recommended ES256 implemented in signer and all verifier entry points; ES256 is fixed-width JWA P-256/SHA-256, not DER.",
+      "required_cases": [
+        "auth-regression#sig9421::es256_tests::es256_rejects_der_truncation_padding_wrong_curve_and_stale_time_before_replay",
+        "auth-regression#sig9421::es256_tests::es256_current_key_checks_exact_owner_key_algorithm_validity_and_revocation",
+        "canonical-peer#es256_canonical_auth_control_refresh_preserve_assurance_and_envelope_replay_rules"
+      ],
+      "remaining_shared_scope": "PS256/RS256 are MAY and are neither implemented nor advertised. Resolvers still enforce exact current owner/key/allowed algorithm."
+    },
+    {
+      "requirements": [
+        "U6-REQ-0046"
+      ],
+      "task_owned_behavior": "Atomic shared replay and bounded freshness plus non-evicting physical lifetime retention across auth/refresh/step-up and all managed routes.",
+      "required_cases": [
+        "auth-recovery#fresh_signature_after_external_replay_ttl_cannot_reuse_id_in_same_peer",
+        "auth-recovery#auth_and_keepalive_share_the_same_id_namespace_after_ttl_expiry",
+        "auth-recovery#refresh_reuses_physical_peer_fence_for_control_and_auth_envelope_ids",
+        "auth-recovery#stepup_single_use_resume_does_not_reconsume_id_and_lifetime_fence_survives_new_binding",
+        "auth-regression#sig9421::es256_tests::es256_resigning_or_switching_algorithms_cannot_reuse_consumed_envelope_id",
+        "peer-wire-admission#peer_native::native_source_cannot_be_borrowed_by_another_physical_peer_or_transport",
+        "peer-wire-admission#peer_native::native_owner_eof_preserves_other_physical_peer_and_logical_session"
+      ],
+      "remaining_shared_scope": "A transport reconnect authenticates a new physical binding/new Connection; it cannot inherit the old managed route. Durable logical Session/operation identity and restart resume are G6-037/G6-052. This does not assert a physical replay fence survives restart."
+    },
+    {
+      "requirements": [
+        "U6-REQ-0047",
+        "U6-REQ-0048",
+        "U6-REQ-0049"
+      ],
+      "task_owned_behavior": "Fail-closed signature/freshness/replay failures with the approved bounded v2 error taxonomy; current profile requires inline signatures.",
+      "required_cases": [
+        "auth-recovery#actual_tls_quic_signature_problems_are_distinct_safe_and_signed_logout_closes_peer",
+        "auth-recovery#capacity_fails_closed_without_eviction_and_invalid_signatures_do_not_burn_slots",
+        "auth-regression#sig9421::es256_tests::es256_rejects_der_truncation_padding_wrong_curve_and_stale_time_before_replay"
+      ],
+      "remaining_shared_scope": "Unknown key and invalid cryptography have the same public problem; current profile is stricter than optional baseline signing. No credential/key/body echo."
+    },
+    {
+      "requirements": [
+        "U6-REQ-0050",
+        "U6-REQ-0051",
+        "U6-REQ-0052"
+      ],
+      "task_owned_behavior": "One canonical secure command/reply gate on QUIC/WT/WSS, exact reply family/CID/SID/Connection/operation scope, bounded floors/quotas/deadlines and physical cancellation.",
+      "required_cases": [
+        "secure-profile#authenticated_replies_need_their_family_floor_before_waiter_consumption",
+        "secure-profile#default_session_data_and_subscription_floors_are_independent_and_not_policy_substitutes",
+        "secure-profile#preauth_cache_exhaustion_is_non_evicting_and_closes_before_ninth_credential_attempt",
+        "canonical-transports#peer_exchange::es256_actual_tls_transports_verify_held_reply_key_without_reentering_queued_grant_writer",
+        "peer-wire-admission#canonical_transports_carry_same_physical_admission_through_refresh_and_retire_real_core_routes",
+        "peer-wire-admission#peer_native::native_default_sixty_four_is_reserved_before_allocation_and_eof_retires_only_resources",
+        "peer-wire-admission#peer_native::canonical_media::canonical_media_reoffers_and_refresh_retain_controller_and_lifetime_open_budget"
+      ],
+      "remaining_shared_scope": "Actual Connect actor assertion normalization/service dispatch is G6-037; full negotiated media and controller credential rebinding remain G6-020. Legacy-permissive behavior is excluded from connect/2, not a fallback."
+    },
+    {
+      "requirements": [
+        "U6-REQ-0053",
+        "U6-REQ-0054",
+        "U6-REQ-0055"
+      ],
+      "task_owned_behavior": "Verified assurance gradient, explicit identified authentication floor, exact task/user provenance, per-mutation assurance requirement and forbidden refresh downgrade.",
+      "required_cases": [
+        "canonical-peer#advertised_identified_floor_rejects_lower_assurance_without_claiming_membership_and_allows_fresh_proof",
+        "canonical-peer#refresh_rejects_assurance_downgrade_and_changed_user_provenance",
+        "step-up#task_scoped_requirement_checks_exact_task_and_never_uses_assurance_rank",
+        "step-up#invalid_credentials_and_delegation_provenance_discard_hold_without_execution"
+      ],
+      "remaining_shared_scope": "The deployment may reject lower assurance; it now advertises that floor. A label/role/capability is not a grant. Connect resource-policy installation is G6-037."
+    },
+    {
+      "requirements": [
+        "U6-REQ-0056",
+        "U6-REQ-0057"
+      ],
+      "task_owned_behavior": "Authentication retains trusted separate Identity/Device binding and physical generation; it never fabricates a conversation-scoped Participant from hello metadata.",
+      "required_cases": [
+        "canonical-peer#auth_requires_signed_proof_and_current_owned_device_and_token",
+        "canonical-peer#handshake_selects_only_installed_method_and_retains_identity_profile_without_fabricated_participant",
+        "peer-wire-admission#peer_native::native_identity_device_current_grant_and_expiry_denials_precede_allocation"
+      ],
+      "remaining_shared_scope": "Actual participant creation/projection on joining a Conversation is G6-037/G6-038, using the G6-017/G6-031 relationships and current store policy."
+    },
+    {
+      "requirements": [
+        "U6-REQ-0058",
+        "U6-REQ-0059",
+        "U6-REQ-0060"
+      ],
+      "task_owned_behavior": "Current/candidate/successor assurance transitions, verified step-up observation and signed factual terminal transition on credential/delegation expiry or revocation.",
+      "required_cases": [
+        "step-up#actual_uctp2_tls_quic_stepup_emits_scoped_assurance_then_original_response_once",
+        "canonical-peer#assurance_retirement::task_expiry_is_observed_as_delegation_expiry_without_reusing_longer_credential",
+        "canonical-peer#assurance_retirement::actual_tls_quic_key_revocation_publishes_signed_terminal_pair_and_retires_only_its_peer",
+        "canonical-peer#assurance_retirement::old_credential_signal_cannot_retire_refreshed_binding_and_failed_candidate_keeps_old_live",
+        "canonical-peer#assurance_retirement::key_retirement_interrupts_blocked_writer_without_claiming_terminal_delivery"
+      ],
+      "remaining_shared_scope": "Terminal anonymous closes the authenticated physical binding and grants nothing. A failed writer cannot guarantee remote notification delivery or establish a business outcome."
+    },
+    {
+      "requirements": [
+        "U6-REQ-0061",
+        "U6-REQ-0062",
+        "U6-REQ-0063",
+        "U6-REQ-0064",
+        "U6-REQ-0065",
+        "U6-REQ-0066"
+      ],
+      "task_owned_behavior": "Exact correlated one-use bounded challenge/response and held original mutation, current old/new authority, requirement recheck, preserved logical ID/revision and truthful cancellation/failure outcomes.",
+      "required_cases": [
+        "step-up#wrong_scope_or_unsigned_stepup_cannot_consume_the_pending_request",
+        "step-up#revocation_or_changed_requirement_during_validation_is_checked_again",
+        "step-up#resumed_request_keeps_expected_revision_and_can_fail_current_business_validation",
+        "step-up#verified_stepup_executes_original_once_and_preserves_signature_replay_and_logical_retry",
+        "step-up#candidate_key_retirement_interrupts_held_stepup_execution_without_retiring_valid_old_binding",
+        "auth-recovery#actual_tls_quic_invalid_stepup_finishes_both_waiters_then_fresh_logical_retry_can_recover",
+        "auth-recovery#interrupted_execution_is_unknown_not_falsely_rejected_and_proof_cannot_execute_again"
+      ],
+      "remaining_shared_scope": "The reusable engine resumes only the original verified intent once; durable application effects/recovery remain G6-037, using the G6-035 ledger. Its local one-effect set is not a durable-restart claim."
+    }
+  ]
+}

@@ -1,0 +1,191 @@
+{
+  "task": "G6-046",
+  "title": "Explicit SDK completion of signed assurance challenges",
+  "status": "scoped-component-qualified",
+  "component_passed": true,
+  "full_task_complete": false,
+  "full_goal_complete": false,
+  "created_at": "2026-10-22T10:33:48.622870+00:00",
+  "scope": "Local macOS arm64. Public CanonicalClient on controlled post-authentication TLS/QUIC with actual Ed25519-signed replies. No production StoreValidator/StorePeerAuthority step-up installation or delegation qualification.",
+  "fresh_distinct_passed_tests": 67,
+  "new_step_up_tests": [
+    "canonical::tests::step_up::canonical_step_up_cancel_after_response_stops_partial_transition_without_installing_candidate",
+    "canonical::tests::step_up::canonical_step_up_definitive_refusal_keeps_previous_binding_and_consumes_challenge",
+    "canonical::tests::step_up::canonical_step_up_interrupted_execution_keeps_original_unknown_separate_from_auth_refusal",
+    "canonical::tests::step_up::canonical_step_up_presend_cancel_preserves_challenge_and_original_deadline_still_expires",
+    "canonical::tests::step_up::canonical_step_up_rejects_mismatched_or_incomplete_signed_transitions_and_retires_uncertainty",
+    "canonical::tests::step_up::canonical_step_up_resumes_original_scope_and_id_without_resending_and_installs_rotated_session"
+  ],
+  "verification": [
+    {
+      "name": "Complete current client library",
+      "log": ".local/gate-6/auxiliary-sdk-step-up-client-suite-v2.log",
+      "binary": {
+        "path": "target/debug/deps/connect_client-14427ed49690b71c",
+        "sha256": "6d4de9ae80ff33d9b436cd9ba2e68233bd4a4ff40e5b53b3caa37ce6427e0288",
+        "bytes": 52338256
+      },
+      "arguments": [
+        "--test-threads=1"
+      ],
+      "passed": 67,
+      "failed": 0,
+      "ignored": 0,
+      "seconds": 5.31,
+      "tests": [
+        "application::tests::application_configuration_rejects_header_controls_and_command_input_rejects_authority_claims",
+        "application::tests::application_errors_never_echo_untrusted_server_reason_or_code",
+        "application::tests::application_partial_cancellation_is_explicit_and_retry_preserves_logical_id",
+        "application::tests::application_preflight_cancellation_expiry_and_task_discovery_have_no_network_effect",
+        "application::tests::application_redirects_do_not_forward_the_credential",
+        "application::tests::application_responses_require_matching_profile_kind_and_success_status",
+        "application::tests::application_size_bounds_cover_announced_and_chunked_bodies",
+        "application::tests::canonical_commands_cannot_be_constructed_as_application_operations",
+        "application::tests::credential_revocation_correlates_immutable_target_and_requires_revoked_state",
+        "application::tests::incoming_contacts::incoming_decisions_correlate_original_contact_candidate_operation_state_and_kind",
+        "application::tests::incoming_contacts::incoming_invalid_cancelled_and_expired_commands_have_no_http_effect",
+        "application::tests::incoming_contacts::incoming_provider_errors_are_sanitized_and_never_retried_with_another_operation",
+        "application::tests::protected_application_task_grant_replaces_owner_and_cannot_extend_original_expiry",
+        "application::tests::provisioning_correlates_target_revision_revocation_profile_kind_and_status",
+        "application::tests::provisioning_preflight_rejects_path_injection_cancellation_expiry_and_oversize_without_network",
+        "application::tests::provisioning_uses_bounded_streaming_and_sanitized_errors_without_retry",
+        "application::tests::ready_http_chunks_cannot_extend_deadline_or_original_expiry",
+        "canonical::native::tests::native_confirmation_is_fresh_and_binds_every_original_resource",
+        "canonical::records::tests::record_decoder_does_not_accept_schema_invalid_json_with_a_valid_digest",
+        "canonical::records::tests::record_decoder_rejects_changed_condition_reference_and_oversize_without_fetching",
+        "canonical::records::tests::record_decoder_requires_exact_view_bytes_digest_and_selected_uuid",
+        "canonical::records::tests::record_discovery_rejects_unbounded_or_malformed_ready_metadata",
+        "canonical::records::tests::record_reference_origin_refuses_bearer_exfiltration_and_ambiguous_paths",
+        "canonical::tests::atomic_native_datagram_wait_does_not_retire_signed_control_peer",
+        "canonical::tests::auth_refresh::canonical_refresh_correlated_refusal_preserves_the_previous_binding_without_echoing_backend_text",
+        "canonical::tests::auth_refresh::canonical_refresh_invalid_input_and_pre_cancelled_intent_send_no_command",
+        "canonical::tests::auth_refresh::canonical_refresh_missing_foreign_and_streaming_replies_cannot_extend_the_old_absolute_deadline",
+        "canonical::tests::auth_refresh::canonical_refresh_validates_signed_owner_profile_assurance_expiry_and_rotated_token",
+        "canonical::tests::cancellation_after_signed_partial_batch_retires_physical_peer",
+        "canonical::tests::canonical_cursor_facts_bind_outer_resources_to_the_authoritative_journal_event",
+        "canonical::tests::original_command_values_preserve_extensions_without_bypassing_validation_or_auth",
+        "canonical::tests::original_credential_and_server_pin_expiry_bound_the_entire_batch",
+        "canonical::tests::owned_signaling::owned_reader_completes_a_real_fragmented_signed_frame_while_foreground_inbox_waits_are_cancelled",
+        "canonical::tests::owned_signaling::owned_reader_credential_or_server_key_expiry_retires_an_idle_peer",
+        "canonical::tests::owned_signaling::owned_reader_drains_signed_passive_bursts_and_preserves_ordered_dtmf_and_ack",
+        "canonical::tests::owned_signaling::owned_reader_idle_exceeds_rpc_timeout_without_retiring_audio_peer",
+        "canonical::tests::owned_signaling::owned_reader_partial_signature_or_terminal_auth_stops_the_original_peer_without_foreground_signaling_reads",
+        "canonical::tests::signed_foreign_scope_retires_collector_peer",
+        "canonical::tests::signed_live_inbox_count_and_byte_bounds_retire_collector_peer",
+        "canonical::tests::signed_missing_completion_times_out_without_reporting_logical_success",
+        "canonical::tests::signed_ready_stream_cannot_extend_absolute_batch_deadline",
+        "canonical::tests::signed_reply_count_and_byte_bounds_retire_collector_peer",
+        "canonical::tests::step_up::canonical_step_up_cancel_after_response_stops_partial_transition_without_installing_candidate",
+        "canonical::tests::step_up::canonical_step_up_definitive_refusal_keeps_previous_binding_and_consumes_challenge",
+        "canonical::tests::step_up::canonical_step_up_interrupted_execution_keeps_original_unknown_separate_from_auth_refusal",
+        "canonical::tests::step_up::canonical_step_up_presend_cancel_preserves_challenge_and_original_deadline_still_expires",
+        "canonical::tests::step_up::canonical_step_up_rejects_mismatched_or_incomplete_signed_transitions_and_retires_uncertainty",
+        "canonical::tests::step_up::canonical_step_up_resumes_original_scope_and_id_without_resending_and_installs_rotated_session",
+        "canonical::tests::typed_operation_get_keeps_signed_unknown_state_after_batch_ack",
+        "media::frame_debug_tests::frame_debug_exposes_metadata_without_recorded_media",
+        "media_end::tests::terminal_events_require_the_current_binding_and_valid_payload",
+        "task_diagnostics::readiness_tests::ready_server_never_masks_stopped_unknown_or_unconfigured_execution",
+        "task_diagnostics::readiness_tests::server_failure_and_sample_changes_remain_explicit_without_mutating_original_views",
+        "task_diagnostics::tests::arbitrary_text_is_removed_but_reconciliation_and_source_ids_are_retained",
+        "video::assembly::tests::a_missing_fragment_and_a_conflicting_duplicate_never_complete",
+        "video::assembly::tests::expired_frame_cannot_restart_its_deadline_or_reconstruct_from_late_fragments",
+        "video::assembly::tests::many_partial_sources_keep_observed_usage_inside_frozen_limits",
+        "video::assembly::tests::marker_without_a_start_packet_cannot_publish_sequence_metadata",
+        "video::assembly::tests::reordered_wrap_and_duplicate_packets_complete_once_without_losing_bytes",
+        "video::assembly::tests::sequence_metadata_uses_buffered_marker_and_clears_before_an_incomplete_or_invalid_push",
+        "video::assembly::tests::sources_and_timestamps_cannot_contaminate_each_other",
+        "video::packet::tests::caller_mutation_cannot_panic_the_fragment_parser",
+        "video::packet::tests::rejects_oversized_and_truncated_packet_extensions",
+        "video::signaling::tests::negotiation_errors_require_current_request_or_exact_connection",
+        "video::signaling::tests::selected_codec_metadata_cannot_silently_change_the_fixed_profile",
+        "video::timebase::tests::muted_or_stalled_capture_resumes_in_the_same_audio_video_epoch",
+        "video::timebase::tests::queued_capture_and_rtp_wrap_never_run_the_clock_backwards"
+      ]
+    }
+  ],
+  "behavior": [
+    "Correlated, scoped challenge returns a suspended ReplyBatch; ack() cannot report challenge success.",
+    "Explicit caller-supplied successor answers the cached challenge with fresh signed envelope and exact original resource/operation/revision; the original command is never resubmitted.",
+    "Original request deadline, prior incarnation expiry and server signing pin bound completion; pre-send cancellation preserves challenge, actual partial transition cancellation retires peer.",
+    "Only correlated auth.session followed by verified-step-up assurance transition installs successor metadata; owner/profile/assurance/expiry/token, previous assurance, resource scope, ordering and response correlation are checked.",
+    "Original-command failure then response-auth-failure ordering is handled. Original interrupted operation remains unknown and queued separately; no candidate token is installed.",
+    "Unrelated facts stay queued. Other assurance changes remain terminal. New request batches and refresh cannot supersede a pending SDK challenge."
+  ],
+  "negative_reply_variants": [
+    "foreign-owner",
+    "foreign-profile",
+    "wrong-assurance",
+    "expired-session",
+    "unchanged-token",
+    "wrong-resource-scope",
+    "wrong-previous-assurance",
+    "wrong-change-reason",
+    "foreign-change-correlation",
+    "change-before-session",
+    "duplicate-session",
+    "original-ack-before-transition",
+    "missing-change",
+    "missing-original-reply",
+    "unrelated-streaming-until-original-deadline"
+  ],
+  "attempts": [
+    {
+      "log": ".local/gate-6/auxiliary-sdk-step-up-tests-v1.log",
+      "passed": 3,
+      "failed": 1,
+      "finding": "The negative fixture asserted that its deliberately invalid foreign application profile parsed before sending. Fixture corrected to permit that one deliberate parser-boundary fault; other generated fault frames still must parse."
+    },
+    {
+      "log": ".local/gate-6/auxiliary-sdk-step-up-tests-v2.log",
+      "passed": 4,
+      "failed": 0,
+      "scope": "Earlier four-test implementation before dual-failure ordering and actual partial-transition cancellation were added."
+    },
+    {
+      "log": ".local/gate-6/auxiliary-sdk-step-up-client-suite-v1.log",
+      "passed": 65,
+      "failed": 0,
+      "scope": "Earlier whole-client run; superseded by final67, not added to the final distinct total."
+    }
+  ],
+  "build": {
+    "log": ".local/gate-6/auxiliary-sdk-step-up-build-v3.log",
+    "seconds": 8.99,
+    "command": "CARGO_INCREMENTAL=0 cargo test -p connect-client --lib canonical::tests::step_up --no-run -j1 --locked --offline",
+    "prepare": ".local/gate-6/auxiliary-sdk-step-up-prepare-v3.log",
+    "format": ".local/gate-6/auxiliary-sdk-step-up-format-v3.log"
+  },
+  "compiled_inputs": {
+    "path": ".local/gate-6/auxiliary-sdk-step-up-inputs-v3.json",
+    "sha256": "088545466e6f94fdf4ec3f9977231243b3c462cb449c30a270f9aa6319a233e8",
+    "entries": 1393
+  },
+  "binary_preservation": {
+    "binary": {
+      "path": "target/debug/deps/connect_client-14427ed49690b71c",
+      "sha256": "6d4de9ae80ff33d9b436cd9ba2e68233bd4a4ff40e5b53b3caa37ce6427e0288",
+      "bytes": 52338256
+    },
+    "archive": {
+      "path": ".local/gate-6/auxiliary-sdk-step-up-artifacts-v1/connect_client-14427ed49690b71c-6d4de9ae80ff.gz",
+      "sha256": "2f59e210dc30e2d980a32b48c2778e3ff5fee3e8d921761ee519b2c13d1c46c3",
+      "bytes": 12942063
+    },
+    "independently_decompressed_sha256_verified": true
+  },
+  "checks": {
+    "plan_integrity": ".local/gate-6/auxiliary-sdk-step-up-plan-check-v2.log",
+    "http_openapi_current": ".local/gate-6/auxiliary-sdk-step-up-openapi-check-v1.log",
+    "source_verification": ".local/gate-6/auxiliary-sdk-step-up-source-verification-v1.json"
+  },
+  "limits": [
+    "No new actual production listener, HTTP assurance upgrade, Store delegation authority or owned-native-audio step-up qualification. No roles/scopes/ordinary credential label is relabeled as proven task/user delegation.",
+    "New signed step-up cases use controlled EdDSA post-authentication peers, not production handshake or ES256 step-up.",
+    "All61 assigned auxiliary clause IDs retain their original applicability and not-run exact-vector statuses. No acceptance or publication qualified."
+  ],
+  "next_required_work": [
+    "Install actual delegation provenance plus approved Store-backed assurance requirement and old/new/current step-up authority.",
+    "Compose owned native audio transitions without reviving the predecessor media authority.",
+    "Finish installed SIP/WebRTC/general received DTMF composition and exact assigned auxiliary vectors, preserving prior retention/primary-return refusal as unresolved."
+  ]
+}

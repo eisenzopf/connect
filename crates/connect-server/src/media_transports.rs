@@ -123,7 +123,9 @@ async fn start_sip(
     Ok((Some(coordinator), Some(sip.bind), registration))
 }
 
-fn apply_outbound_trunk<E: std::fmt::Display + std::fmt::Debug + Send + Sync + 'static>(
+pub(crate) fn apply_outbound_trunk<
+    E: std::fmt::Display + std::fmt::Debug + Send + Sync + 'static,
+>(
     listener: &mut SipConfig,
     outbound: &SipOutboundConfig,
     read_secret: impl FnOnce(&str) -> std::result::Result<String, E>,

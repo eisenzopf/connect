@@ -1,0 +1,47 @@
+--- a/crates/uctp/rvoip-uctp/src/v2/tests.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/tests.rs
+@@ -267,3 +267,26 @@
+         .remove("active_participant");
+     assert!(Envelope::from_value(value).is_err());
+ }
++
++#[test]
++fn closed_preparation_metadata_refuses_asserted_authority_without_disabling_ordinary_extensions() {
++    let vectors: Value = serde_json::from_str(include_str!("golden-vectors.json")).unwrap();
++    let mut value = vectors["vectors"]
++        .as_array()
++        .unwrap()
++        .iter()
++        .find(|v| v["valid"] == true && v["envelope"]["payload"]["handoff_preparation"].is_object())
++        .unwrap()["envelope"]
++        .clone();
++    value["future-envelope"] = json!({"retained":true});
++    value["payload"]["future-payload"] = json!({"retained":true});
++    assert_eq!(
++        Envelope::from_value(value.clone()).unwrap().original(),
++        &value
++    );
++    for field in ["ready", "asserted_authority", "operation_id"] {
++        let mut bad = value.clone();
++        bad["payload"]["handoff_preparation"][field] = json!(true);
++        assert!(Envelope::from_value(bad).is_err(), "{field}");
++    }
++}
+--- a/crates/uctp/rvoip-uctp/src/v2/validation.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/validation.rs
+@@ -105,6 +105,15 @@
+         }
+     }
+     if let Some(object) = value.as_object() {
++        if schema.get("additionalProperties") == Some(&Value::Bool(false)) {
++            let properties = schema.get("properties").and_then(Value::as_object);
++            if object
++                .keys()
++                .any(|key| !properties.is_some_and(|p| p.contains_key(key)))
++            {
++                return false;
++            }
++        }
+         if let Some(required) = schema.get("required").and_then(Value::as_array) {
+             if required
+                 .iter()

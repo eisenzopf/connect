@@ -1,0 +1,16 @@
+import assert from 'node:assert/strict';
+import { HttpClient } from '../typescript/dist/index.js';
+const input=JSON.parse(process.argv[2]);
+const client=new HttpClient(input.base,input.token);
+const result=await client.sendMessage(input.request_id,input.cid,input.message);
+assert.equal(result.message_id,input.message.msg_id);
+assert.equal(result.receipt.completion_boundary,'local-mutation');
+const record=await client.operationAction(result.receipt.status_reference);
+assert.equal(record.operation_id,input.request_id);assert.equal(record.state,'completed');
+assert.deepEqual(record.result.data,result);
+const history=await client.history(input.cid);
+assert.equal(history.messages.length,1);
+assert.equal(history.messages[0].body,input.message.body);
+assert.equal(history.messages[0].body_encoding,'base64');
+assert.deepEqual(history.messages[0].attachments,[]);
+console.log(JSON.stringify({passed:true}));

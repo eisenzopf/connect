@@ -1,0 +1,506 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Connect addressed messages \u2014 G6-033 current HTTP facade",
+    "version": "schema-22",
+    "description": "Current control route. Canonical service payload conversion is qualified separately; canonical transport dispatch is G6-037. Acceptance is not delivery or read."
+  },
+  "paths": {
+    "/v1/operations": {
+      "post": {
+        "operationId": "messagesControl",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Operation"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Durable acceptance or authorized history",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Response"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid typed draft"
+          },
+          "403": {
+            "description": "Current authority or reference denied"
+          },
+          "409": {
+            "description": "Changed logical intent or unavailable message ID"
+          },
+          "503": {
+            "description": "Bounded HTTP capacity, or current authority busy/unavailable. For an authority refusal retry the same logical mutation ID after delivery owners settle.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Response"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer"
+      }
+    },
+    "schemas": {
+      "AttachmentRef": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128,
+            "pattern": "^[A-Za-z0-9._~-]+$"
+          },
+          "content_type": {
+            "type": "string",
+            "maxLength": 128
+          },
+          "size_bytes": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          }
+        },
+        "required": [
+          "id",
+          "content_type",
+          "size_bytes"
+        ]
+      },
+      "MessageDraft": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "to": {
+            "oneOf": [
+              {
+                "const": "all"
+              },
+              {
+                "type": "array",
+                "minItems": 1,
+                "maxItems": 100,
+                "uniqueItems": true,
+                "items": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 128,
+                  "pattern": "^[A-Za-z0-9._~-]+$"
+                }
+              }
+            ]
+          },
+          "content_type": {
+            "type": "string",
+            "maxLength": 128
+          },
+          "body": {
+            "type": "string"
+          },
+          "body_encoding": {
+            "enum": [
+              "utf8",
+              "base64"
+            ]
+          },
+          "label": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128,
+            "pattern": "^[A-Za-z0-9._~-]+$"
+          },
+          "attachments": {
+            "type": "array",
+            "maxItems": 16,
+            "items": {
+              "$ref": "#/components/schemas/AttachmentRef"
+            }
+          },
+          "in_reply_to_msg": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "msg_id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "to",
+          "content_type",
+          "body",
+          "body_encoding",
+          "label",
+          "attachments"
+        ]
+      },
+      "Message": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128,
+            "pattern": "^[A-Za-z0-9._~-]+$"
+          },
+          "conversation_id": {
+            "type": "string"
+          },
+          "sender": {
+            "type": "string"
+          },
+          "body": {
+            "type": "string"
+          },
+          "sender_participant_id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "audience": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "participant_id": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 128,
+                  "pattern": "^[A-Za-z0-9._~-]+$"
+                },
+                "membership_epoch": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 9007199254740991
+                }
+              },
+              "required": [
+                "participant_id",
+                "membership_epoch"
+              ]
+            }
+          },
+          "content_type": {
+            "type": "string"
+          },
+          "body_encoding": {
+            "enum": [
+              "utf8",
+              "base64"
+            ]
+          },
+          "label": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128,
+            "pattern": "^[A-Za-z0-9._~-]+$"
+          },
+          "attachments": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AttachmentRef"
+            }
+          },
+          "in_reply_to_msg": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "accepted_at": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "conversation_id",
+          "sender",
+          "body",
+          "sender_participant_id",
+          "audience",
+          "content_type",
+          "body_encoding",
+          "label",
+          "attachments",
+          "in_reply_to_msg",
+          "accepted_at"
+        ]
+      },
+      "Accepted": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "request_id": {
+            "type": "string"
+          },
+          "message_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128,
+            "pattern": "^[A-Za-z0-9._~-]+$"
+          },
+          "conversation_id": {
+            "type": "string"
+          },
+          "receipt": {
+            "$ref": "#/components/schemas/MutationReceipt"
+          }
+        },
+        "required": [
+          "request_id",
+          "message_id",
+          "conversation_id",
+          "receipt"
+        ]
+      },
+      "History": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "messages": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Message"
+            }
+          },
+          "next": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "messages",
+          "next"
+        ]
+      },
+      "Operation": {
+        "oneOf": [
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "op": {
+                "const": "send"
+              },
+              "request_id": {
+                "type": "string"
+              },
+              "conversation_id": {
+                "type": "string"
+              },
+              "message": {
+                "$ref": "#/components/schemas/MessageDraft"
+              }
+            },
+            "required": [
+              "op",
+              "request_id",
+              "conversation_id",
+              "message"
+            ]
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "op": {
+                "const": "history"
+              },
+              "conversation_id": {
+                "type": "string"
+              },
+              "after": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "limit": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 100
+              }
+            },
+            "required": [
+              "op",
+              "conversation_id",
+              "after",
+              "limit"
+            ]
+          }
+        ]
+      },
+      "Outcome": {
+        "oneOf": [
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "kind": {
+                "const": "accepted"
+              },
+              "data": {
+                "$ref": "#/components/schemas/Accepted"
+              }
+            },
+            "required": [
+              "kind",
+              "data"
+            ]
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "kind": {
+                "const": "history"
+              },
+              "data": {
+                "$ref": "#/components/schemas/History"
+              }
+            },
+            "required": [
+              "kind",
+              "data"
+            ]
+          }
+        ]
+      },
+      "Error": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "code",
+          "message"
+        ]
+      },
+      "Response": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "profile": {
+            "const": "connect-control/1"
+          },
+          "result": {
+            "oneOf": [
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "Ok": {
+                    "$ref": "#/components/schemas/Outcome"
+                  }
+                },
+                "required": [
+                  "Ok"
+                ]
+              },
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "Err": {
+                    "$ref": "#/components/schemas/Error"
+                  }
+                },
+                "required": [
+                  "Err"
+                ]
+              }
+            ]
+          }
+        },
+        "required": [
+          "profile",
+          "result"
+        ]
+      },
+      "MutationReceipt": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "operation_id": {
+            "type": "string"
+          },
+          "conversation_id": {
+            "type": "string"
+          },
+          "state": {
+            "const": "completed"
+          },
+          "completion_boundary": {
+            "const": "local-mutation"
+          },
+          "status_reference": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "action": {
+                "const": "get"
+              },
+              "operation_id": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "action",
+              "operation_id"
+            ]
+          }
+        },
+        "required": [
+          "operation_id",
+          "conversation_id",
+          "state",
+          "completion_boundary",
+          "status_reference"
+        ]
+      }
+    }
+  }
+}

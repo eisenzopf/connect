@@ -1,0 +1,676 @@
+diff --git a/crates/foundation/rvoip-core/src/orchestrator/participant_control/outbound.rs b/crates/foundation/rvoip-core/src/orchestrator/participant_control/outbound.rs
+--- a/crates/foundation/rvoip-core/src/orchestrator/participant_control/outbound.rs
++++ b/crates/foundation/rvoip-core/src/orchestrator/participant_control/outbound.rs
+@@ -135,7 +135,186 @@
+         Ok(())
+     }
+ }
++/// A real answered/active SIP route that still has no published Participant.
++/// It retains the original ticket and Session slot through final checked media
++/// admission. Dropping it leaves cleanup with the original supervisor.
++pub struct ActivatedInitialParticipant {
++    prepared: PreparedOutboundConnection,
++    principal: AuthenticatedPrincipal,
++    start: ParticipantMutation,
++    activation: crate::adapter::OutboundActivation,
++}
++impl ActivatedInitialParticipant {
++    /// Original Core Connection identity; never a caller-selected replacement.
++    pub fn connection_id(&self) -> &ConnectionId {
++        self.prepared.connection_id()
++    }
++    /// Actual activation receipt, after the adapter's Active/Bound guarantee.
++    pub fn activation(&self) -> &crate::adapter::OutboundActivation {
++        &self.activation
++    }
++    /// Finish the SAME route using the current disposable Session revision.
++    /// Only the revision may change across ringing; actor/operation/target and
++    /// mutation remain frozen. Cached adapter activation performs no second dial.
++    pub async fn commit_staged_participant_with_held<F, Fut>(
++        self,
++        mutation: ParticipantMutation,
++        deadline: tokio::time::Instant,
++        cancellation: CancellationToken,
++        held: Box<dyn Any + Send + Sync>,
++        prepare_media: F,
++    ) -> ControlResult<(ConnectionHandle, ParticipantObservation)>
++    where
++        F: FnOnce(Arc<OutboundParticipantPreparation>) -> Fut,
++        Fut: std::future::Future<Output = ControlResult<Arc<dyn Any + Send + Sync>>>,
++    {
++        if mutation.operation_id != self.start.operation_id
++            || mutation.correlation_id != self.start.correlation_id
++            || mutation.participant != self.start.participant
++            || mutation.change != self.start.change
++        {
++            return Err(ParticipantControlError::Authority);
++        }
++        self.prepared
++            .commit_staged_participant_with_held(
++                self.principal,
++                mutation,
++                deadline,
++                cancellation,
++                held,
++                prepare_media,
++            )
++            .await
++    }
++}
+ impl PreparedOutboundConnection {
++    /// Activate one initial SIP ticket while retaining provisional ownership.
++    /// No Participant binding is published or media authority manufactured.
++    /// The host may wait for answer without freezing a stale admission revision;
++    /// final admission consumes ActivatedInitialParticipant with a fresh revision.
++    /// The owned invocation/control are released before returning the receipt.
++    pub async fn activate_initial_participant_with_held(
++        self,
++        principal: AuthenticatedPrincipal,
++        mutation: ParticipantMutation,
++        deadline: tokio::time::Instant,
++        cancellation: CancellationToken,
++        held: Box<dyn Any + Send + Sync>,
++    ) -> ControlResult<ActivatedInitialParticipant> {
++        let owner = self
++            .orchestrator
++            .upgrade()
++            .ok_or(ParticipantControlError::Cancelled)?;
++        owner.ensure_operational_event_stream_healthy()?;
++        let ParticipantChange::Admit {
++            connection,
++            role_override,
++        } = &mutation.change
++        else {
++            return Err(ParticipantControlError::Authority);
++        };
++        if connection != self.connection_id()
++            || mutation.participant != self.participant_id
++            || self.transport() != Transport::Sip
++            || self.cleanup.shared.decision.load(Ordering::Acquire) != PREPARED_OUTBOUND_PENDING
++            || !self
++                .cleanup
++                .adapter
++                .lifecycle_capabilities()
++                .authoritative_liveness
++        {
++            return Err(ParticipantControlError::Authority);
++        }
++        owner.validate_connection_lifecycles(std::slice::from_ref(&self.cleanup.lifecycle))?;
++        let runtime = owner.participant_runtime(&self.session_id)?;
++        if runtime.mixer.staged.is_none() {
++            return Err(ParticipantControlError::Unsupported);
++        }
++        let scope = ParticipantScope {
++            session: &self.session_id,
++            conversation: &runtime.conversation,
++            principal: &principal,
++            mutation: &mutation,
++            connection_generation: None,
++        };
++        let control = runtime.policy.current_control(&scope, held.as_ref())?;
++        let authority = control.current(&scope)?;
++        Orchestrator::check_participant_authority(&scope, &authority, false)?;
++        authority
++            .target
++            .revalidate_principal(&principal, Utc::now())
++            .map_err(|_| ParticipantControlError::Authority)?;
++        let endpoint = authority
++            .endpoint
++            .as_ref()
++            .ok_or(ParticipantControlError::Authority)?;
++        if endpoint.transport() != Transport::Sip || endpoint.address() != self.target {
++            return Err(ParticipantControlError::Authority);
++        }
++        let mut deadline = deadline.min(control.deadline);
++        if let Some(expiry) = principal_expiry(&principal) {
++            let remaining = expiry - Utc::now();
++            if remaining <= chrono::Duration::zero() {
++                return Err(ParticipantControlError::Authority);
++            }
++            deadline =
++                deadline.min(tokio::time::Instant::now() + remaining.to_std().unwrap_or_default());
++        }
++        invocation_current(&cancellation, Some(&control), None, deadline)?;
++        {
++            let state = runtime.state.lock().unwrap_or_else(|p| p.into_inner());
++            if state.ended
++                || state.controller.revision() != mutation.expected_revision
++                || state
++                    .controller
++                    .replay(&authority.actor, &authority.target, &mutation)?
++                    .is_some()
++            {
++                return Err(ParticipantTransitionError::Conflict.into());
++            }
++            let _ = state.controller.prepare_admission(
++                &authority.target,
++                endpoint,
++                connection.clone(),
++                role_override.clone(),
++            )?;
++        }
++        {
++            let mut permit = self
++                .cleanup
++                .shared
++                .participant_permit
++                .lock()
++                .unwrap_or_else(|p| p.into_inner());
++            if permit.is_some() {
++                return Err(ParticipantControlError::Authority);
++            }
++            *permit = Some(
++                runtime
++                    .slots
++                    .clone()
++                    .try_acquire_owned()
++                    .map_err(|_| ParticipantTransitionError::Capacity)?,
++            );
++        }
++        let activation = tokio::select! { biased;
++            _=cancellation.cancelled()=>return Err(ParticipantControlError::Cancelled),
++            _=control.cancellation.cancelled()=>return Err(ParticipantControlError::Cancelled),
++            _=self.wait_for_abort()=>return Err(ParticipantControlError::Cancelled),
++            value=tokio::time::timeout_at(deadline,self.cleanup.adapter.activate_outbound_with_receipt(connection.clone()))=>value.map_err(|_|ParticipantControlError::Deadline)??,
++        };
++        invocation_current(&cancellation, Some(&control), None, deadline)?;
++        let _ = control.current(&scope)?;
++        owner.validate_connection_lifecycles(std::slice::from_ref(&self.cleanup.lifecycle))?;
++        drop(control);
++        drop(held);
++        Ok(ActivatedInitialParticipant {
++            prepared: self,
++            principal,
++            start: mutation,
++            activation,
++        })
++    }
+     /// Activate this one initial SIP route and transfer it into the installed
+     /// staged participant coordinator. The callback installs actual guarded
+     /// adapter media after signaling activation. It cannot replace the ticket,
+@@ -277,17 +456,23 @@
+         };
+         // Reserve this Session's physical route quota before signaling IO. The
+         // admission candidate consumes the same slot instead of reserving twice.
+-        let slot = runtime
+-            .slots
+-            .clone()
+-            .try_acquire_owned()
+-            .map_err(|_| ParticipantTransitionError::Capacity)?;
+-        *self
+-            .cleanup
+-            .shared
+-            .participant_permit
+-            .lock()
+-            .unwrap_or_else(|p| p.into_inner()) = Some(slot);
++        {
++            let mut permit = self
++                .cleanup
++                .shared
++                .participant_permit
++                .lock()
++                .unwrap_or_else(|p| p.into_inner());
++            if permit.is_none() {
++                *permit = Some(
++                    runtime
++                        .slots
++                        .clone()
++                        .try_acquire_owned()
++                        .map_err(|_| ParticipantTransitionError::Capacity)?,
++                );
++            }
++        }
+         let prepared = Arc::new(OutboundParticipantPreparation {
+             owner: Arc::downgrade(&owner),
+             adapter: Arc::downgrade(&self.cleanup.adapter),
+diff --git a/crates/foundation/rvoip-core/src/orchestrator/participant_control.rs b/crates/foundation/rvoip-core/src/orchestrator/participant_control.rs
+--- a/crates/foundation/rvoip-core/src/orchestrator/participant_control.rs
++++ b/crates/foundation/rvoip-core/src/orchestrator/participant_control.rs
+@@ -6,7 +6,7 @@
+ //! invocation guard across bounded preparation; no packet port owns that proof.
+ 
+ mod outbound;
+-pub use outbound::OutboundParticipantPreparation;
++pub use outbound::{ActivatedInitialParticipant, OutboundParticipantPreparation};
+ 
+ use super::*;
+ use crate::conference::{Conference, ConferenceMember, DeliveryGuard, DeliveryLease};
+diff --git a/crates/foundation/rvoip-core/src/orchestrator.rs b/crates/foundation/rvoip-core/src/orchestrator.rs
+--- a/crates/foundation/rvoip-core/src/orchestrator.rs
++++ b/crates/foundation/rvoip-core/src/orchestrator.rs
+@@ -638,6 +638,18 @@
+     /// Opaque Connection ID to persist before committing the route.
+     pub fn connection_id(&self) -> &ConnectionId {
+         &self.cleanup.key.connection_id
++    }
++
++    /// Resource identity for pre-IO adapter metadata only. This does not grant
++    /// signaling or media authority and cannot activate or replace this ticket.
++    pub fn is_pending_for_adapter(&self, adapter: &dyn ConnectionAdapter) -> bool {
++        self.cleanup.shared.decision.load(Ordering::Acquire) == PREPARED_OUTBOUND_PENDING
++            && std::ptr::addr_eq(self.cleanup.adapter.as_ref(), adapter)
++            && self.orchestrator.upgrade().is_some_and(|owner| {
++                owner
++                    .validate_connection_lifecycles(std::slice::from_ref(&self.cleanup.lifecycle))
++                    .is_ok()
++            })
+     }
+ 
+     /// Transport that owns the provisional adapter route.
+diff --git a/crates/sip/rvoip-sip/src/adapter/initial_participant.rs b/crates/sip/rvoip-sip/src/adapter/initial_participant.rs
+--- a/crates/sip/rvoip-sip/src/adapter/initial_participant.rs
++++ b/crates/sip/rvoip-sip/src/adapter/initial_participant.rs
+@@ -16,7 +16,6 @@
+     adapter: Weak<SipAdapter>,
+     route: Weak<SipOutboundRoute>,
+     prepared: Arc<OutboundParticipantPreparation>,
+-    answer_claimed: AtomicBool,
+     media_started: AtomicBool,
+     media: OnceLock<ManagedMedia>,
+ }
+@@ -34,7 +33,7 @@
+ /// neither current host authority nor a media/cleanup completion receipt.
+ /// It cannot be manufactured, cloned, or used for another context.
+ pub struct SipInitialAnswer {
+-    context: Weak<Context>,
++    route: Weak<SipOutboundRoute>,
+     connection: ConnectionId,
+     reference: ExternalConnectionReference,
+ }
+@@ -55,9 +54,131 @@
+     /// Recheck exact resource incarnation; the host must separately reacquire
+     /// its current durable operation, endpoint, audience and media authority.
+     pub fn is_current_for(&self, context: &SipInitialParticipantContext) -> bool {
+-        self.context.upgrade().is_some_and(|captured| {
+-            Arc::ptr_eq(&captured, &context.inner) && context.inner.answered_current()
++        self.route.upgrade().is_some_and(|captured| {
++            context
++                .inner
++                .route
++                .upgrade()
++                .is_some_and(|current| Arc::ptr_eq(&captured, &current))
++                && context.inner.answered_current()
+         })
++    }
++}
++
++#[derive(Default)]
++pub(super) struct Facts {
++    pub(super) answered: AtomicBool,
++    pub(super) claimed: AtomicBool,
++}
++/// Exact dormant-ticket observation. Retains bounded transport facts, not a
++/// route, current permission, readiness, or authority to retry signaling.
++pub struct SipInitialCallObservation {
++    adapter: Weak<SipAdapter>,
++    route: Weak<SipOutboundRoute>,
++    connection: ConnectionId,
++    reference: ExternalConnectionReference,
++    facts: Arc<Facts>,
++    signaling: watch::Receiver<Signaling>,
++    cleanup: watch::Receiver<Option<bool>>,
++}
++impl fmt::Debug for SipInitialCallObservation {
++    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
++        f.write_str("SipInitialCallObservation(redacted)")
++    }
++}
++impl SipInitialCallObservation {
++    fn new(adapter: &Arc<SipAdapter>, route: &Arc<SipOutboundRoute>) -> CoreResult<Self> {
++        Ok(Self {
++            adapter: Arc::downgrade(adapter),
++            route: Arc::downgrade(route),
++            connection: route.connection_id.clone(),
++            reference: ExternalConnectionReference::new(
++                "sip.call-id",
++                Arc::clone(&route.sip_call_id),
++            )
++            .map_err(|_| RvoipError::InvalidState("initial SIP reference unavailable"))?,
++            facts: route.initial_facts.clone(),
++            signaling: route.initial_signaling.subscribe(),
++            cleanup: route.cleanup.subscribe(),
++        })
++    }
++    /// Negotiated physical audio metadata only. It is not remote consent or
++    /// current permission to publish/deliver anything.
++    pub fn negotiated_audio_codec(&self) -> CoreResult<rvoip_core::capability::CodecInfo> {
++        let route = self
++            .route
++            .upgrade()
++            .ok_or(RvoipError::InvalidState("initial SIP route retired"))?;
++        if !route.stream.source_ready() {
++            return Err(RvoipError::InvalidState("initial SIP media unavailable"));
++        }
++        Ok(route.stream.codec())
++    }
++    /// Original dormant route attribution. This is not a submission receipt.
++    pub fn planned_reference(&self) -> &ExternalConnectionReference {
++        &self.reference
++    }
++    /// The Core Connection allocated by the original ticket.
++    pub fn connection(&self) -> &ConnectionId {
++        &self.connection
++    }
++    /// Capture at most one actual remote answer, including after an early end.
++    /// A historical fact grants no current media permission or live readiness.
++    pub fn try_answered(&self) -> CoreResult<Option<SipInitialAnswer>> {
++        if !self.facts.answered.load(Ordering::Acquire) {
++            return Ok(None);
++        }
++        self.facts
++            .claimed
++            .compare_exchange(false, true, Ordering::AcqRel, Ordering::Acquire)
++            .map_err(|_| RvoipError::InvalidState("initial SIP answer already captured"))?;
++        Ok(Some(SipInitialAnswer {
++            route: self.route.clone(),
++            connection: self.connection.clone(),
++            reference: self.reference.clone(),
++        }))
++    }
++    /// Wait without retaining a host reader. Timeout/cancel consumes no answer.
++    pub async fn wait_answered(
++        &self,
++        deadline: tokio::time::Instant,
++        cancellation: tokio_util::sync::CancellationToken,
++    ) -> CoreResult<SipInitialAnswer> {
++        let mut signaling = self.signaling.clone();
++        loop {
++            if cancellation.is_cancelled() {
++                return Err(RvoipError::InvalidState("initial SIP answer cancelled"));
++            }
++            if tokio::time::Instant::now() >= deadline {
++                return Err(RvoipError::InvalidState("initial SIP answer deadline"));
++            }
++            if let Some(answer) = self.try_answered()? {
++                return Ok(answer);
++            }
++            if *signaling.borrow_and_update() == Signaling::Terminal {
++                if let Some(answer) = self.try_answered()? {
++                    return Ok(answer);
++                }
++                return Err(RvoipError::InvalidState(
++                    "initial SIP route ended without observed answer",
++                ));
++            }
++            tokio::select! {biased;
++                _=cancellation.cancelled()=>{},
++                _=tokio::time::sleep_until(deadline)=>{},
++                changed=signaling.changed()=>if changed.is_err(){return Err(RvoipError::InvalidState("initial SIP observation retired"));},
++            }
++        }
++    }
++    /// Actual retained cleanup completion for this route plus current adapter
++    /// absence. An unconfirmed/forced cleanup cannot turn into a positive fact.
++    pub fn confirmed_local_absence(&self) -> bool {
++        let confirmed = *self.cleanup.borrow() == Some(true);
++        confirmed
++            && self
++                .adapter
++                .upgrade()
++                .is_some_and(|a| !a.is_connection_live(&self.connection))
+     }
+ }
+ 
+@@ -112,6 +233,63 @@
+     }
+ }
+ impl SipAdapter {
++    /// Bind a bounded signaling/cleanup observer to this actual dormant Core
++    /// ticket before IO. Multiple observers share one answer claim. This marks
++    /// the route managed and refuses raw media even before context installation.
++    pub fn initial_participant_observation(
++        self: &Arc<Self>,
++        prepared: &rvoip_core::orchestrator::PreparedOutboundConnection,
++    ) -> CoreResult<SipInitialCallObservation> {
++        if !prepared.is_pending_for_adapter(self.as_ref()) {
++            return Err(RvoipError::AdmissionRejected(
++                "initial SIP ticket owner refused",
++            ));
++        }
++        let _mapping = self.mapping_lock.lock().unwrap_or_else(|p| p.into_inner());
++        let route = self
++            .outbound_routes
++            .get(prepared.connection_id())
++            .map(|r| r.value().clone())
++            .ok_or(RvoipError::InvalidState("initial SIP route unavailable"))?;
++        let state = route.state.lock().unwrap_or_else(|p| p.into_inner());
++        if state.phase != SipOutboundRoutePhase::Prepared
++            || state.wire != SipOutboundWireState::NotStarted
++            || state.remote_terminal_seen
++            || *route.cancel.borrow()
++        {
++            return Err(RvoipError::InvalidState("initial SIP route is not dormant"));
++        }
++        route.initial_managed.store(true, Ordering::Release);
++        SipInitialCallObservation::new(self, &route)
++    }
++    /// Return the actual dormant ticket's planned wire Call-ID before any
++    /// activation. Exact Core ticket/adapter/epoch identity is required. The
++    /// reference is attribution only, never a submission or answer receipt.
++    pub fn initial_participant_planned_reference(
++        &self,
++        prepared: &rvoip_core::orchestrator::PreparedOutboundConnection,
++    ) -> CoreResult<ExternalConnectionReference> {
++        if !prepared.is_pending_for_adapter(self) {
++            return Err(RvoipError::AdmissionRejected(
++                "initial SIP ticket owner refused",
++            ));
++        }
++        let _mapping = self.mapping_lock.lock().unwrap_or_else(|p| p.into_inner());
++        let route = self
++            .outbound_routes
++            .get(prepared.connection_id())
++            .ok_or(RvoipError::InvalidState("initial SIP route unavailable"))?;
++        let state = route.state.lock().unwrap_or_else(|p| p.into_inner());
++        if state.phase != SipOutboundRoutePhase::Prepared
++            || state.wire != SipOutboundWireState::NotStarted
++            || state.remote_terminal_seen
++            || *route.cancel.borrow()
++        {
++            return Err(RvoipError::InvalidState("initial SIP route is not dormant"));
++        }
++        ExternalConnectionReference::new("sip.call-id", Arc::clone(&route.sip_call_id))
++            .map_err(|_| RvoipError::InvalidState("initial SIP reference unavailable"))
++    }
+     /// Install initial guarded media only after this actual ticket's signaling
+     /// activation. Exact target, owner and lifecycle remain independently checked
+     /// by Core and by the host's current media policy. Installation is once-only.
+@@ -149,7 +327,6 @@
+             adapter: Arc::downgrade(self),
+             route: Arc::downgrade(&route),
+             prepared,
+-            answer_claimed: AtomicBool::new(false),
+             media_started: AtomicBool::new(false),
+             media: OnceLock::new(),
+         });
+@@ -197,71 +374,29 @@
+         deadline: tokio::time::Instant,
+         cancellation: tokio_util::sync::CancellationToken,
+     ) -> CoreResult<SipInitialAnswer> {
++        if !self.inner.route_current() {
++            return Err(RvoipError::InvalidState("initial SIP route retired"));
++        }
+         let route = self
+             .inner
+             .route
+             .upgrade()
+             .ok_or(RvoipError::InvalidState("initial SIP route retired"))?;
+-        let mut observed = route.initial_signaling.subscribe();
+-        let mut cancelled = route.cancel.subscribe();
++        let adapter = self
++            .inner
++            .adapter
++            .upgrade()
++            .ok_or(RvoipError::InvalidState("initial SIP adapter retired"))?;
++        let observation = SipInitialCallObservation::new(&adapter, &route)?;
+         let lifetime = self.inner.prepared.cancellation();
+-        loop {
+-            if cancellation.is_cancelled()
+-                || lifetime.is_cancelled()
+-                || *cancelled.borrow()
+-                || !self.inner.route_current()
+-            {
+-                return Err(RvoipError::InvalidState("initial SIP answer cancelled"));
+-            }
+-            if tokio::time::Instant::now() >= deadline {
+-                return Err(RvoipError::InvalidState("initial SIP answer deadline"));
+-            }
+-            let signaling = *observed.borrow_and_update();
+-            match signaling {
+-                Signaling::Answered => {
+-                    let reference = ExternalConnectionReference::new(
+-                        "sip.call-id",
+-                        Arc::clone(&route.sip_call_id),
+-                    )
+-                    .map_err(|_| RvoipError::InvalidState("initial SIP reference unavailable"))?;
+-                    if self
+-                        .inner
+-                        .answer_claimed
+-                        .compare_exchange(false, true, Ordering::AcqRel, Ordering::Acquire)
+-                        .is_err()
+-                    {
+-                        return Err(RvoipError::InvalidState(
+-                            "initial SIP answer already captured",
+-                        ));
+-                    }
+-                    let answer = SipInitialAnswer {
+-                        context: Arc::downgrade(&self.inner),
+-                        connection: route.connection_id.clone(),
+-                        reference,
+-                    };
+-                    if !answer.is_current_for(self) {
+-                        return Err(RvoipError::InvalidState("initial SIP answer retired"));
+-                    }
+-                    return Ok(answer);
+-                }
+-                Signaling::Terminal => {
+-                    return Err(RvoipError::InvalidState("initial SIP route ended"))
+-                }
+-                Signaling::Pending => {}
+-            }
+-            tokio::select! {
+-                biased;
+-                _ = cancellation.cancelled() => {},
+-                _ = lifetime.cancelled() => {},
+-                _ = tokio::time::sleep_until(deadline) => {},
+-                changed = cancelled.changed() => {
+-                    if changed.is_err() { return Err(RvoipError::InvalidState("initial SIP route retired")); }
+-                },
+-                changed = observed.changed() => {
+-                    if changed.is_err() { return Err(RvoipError::InvalidState("initial SIP route retired")); }
+-                },
+-            }
+-        }
++        let answer = tokio::select! {biased;
++            _=lifetime.cancelled()=>return Err(RvoipError::InvalidState("initial SIP answer cancelled")),
++            value=observation.wait_answered(deadline,cancellation)=>value?,
++        };
++        if !answer.is_current_for(self) {
++            return Err(RvoipError::InvalidState("initial SIP answer retired"));
++        }
++        Ok(answer)
+     }
+     /// Actual negotiated route metadata only; it grants no media publication.
+     pub fn negotiated_audio_codec(&self) -> CoreResult<rvoip_core::capability::CodecInfo> {
+@@ -287,7 +422,13 @@
+         opened_limit: usize,
+         held: &(dyn std::any::Any + Send + Sync),
+     ) -> ControlResult<Arc<StreamController>> {
+-        if !self.inner.answer_claimed.load(Ordering::Acquire) || !self.inner.answered_current() {
++        if !self
++            .inner
++            .route
++            .upgrade()
++            .is_some_and(|r| r.initial_facts.claimed.load(Ordering::Acquire))
++            || !self.inner.answered_current()
++        {
+             return Err(StreamControlError::NotReady);
+         }
+         if self.inner.media_started.swap(true, Ordering::AcqRel) {
+diff --git a/crates/sip/rvoip-sip/src/adapter.rs b/crates/sip/rvoip-sip/src/adapter.rs
+--- a/crates/sip/rvoip-sip/src/adapter.rs
++++ b/crates/sip/rvoip-sip/src/adapter.rs
+@@ -49,7 +49,9 @@
+ use tracing::{debug, warn};
+ 
+ mod initial_participant;
+-pub use initial_participant::{SipInitialAnswer, SipInitialParticipantContext};
++pub use initial_participant::{
++    SipInitialAnswer, SipInitialCallObservation, SipInitialParticipantContext,
++};
+ mod device_replacement;
+ pub use device_replacement::{SipDeviceReplacementContext, SipDeviceReplacementSignal};
+ 
+@@ -334,6 +336,8 @@
+     replacement: OnceLock<Arc<device_replacement::Context>>,
+     initial_participant: OnceLock<Arc<initial_participant::Context>>,
+     initial_signaling: watch::Sender<initial_participant::Signaling>,
++    initial_facts: Arc<initial_participant::Facts>,
++    initial_managed: AtomicBool,
+ }
+ 
+ impl SipOutboundRoute {
+@@ -379,6 +383,8 @@
+             replacement: OnceLock::new(),
+             initial_participant: OnceLock::new(),
+             initial_signaling: watch::channel(initial_participant::Signaling::Pending).0,
++            initial_facts: Arc::new(initial_participant::Facts::default()),
++            initial_managed: AtomicBool::new(false),
+         })
+     }
+ 
+@@ -505,6 +511,7 @@
+                 self.initial_signaling
+                     .send_replace(initial_participant::Signaling::Terminal);
+             } else if answered {
++                self.initial_facts.answered.store(true, Ordering::Release);
+                 self.initial_signaling.send_if_modified(|observed| {
+                     if *observed == initial_participant::Signaling::Pending {
+                         *observed = initial_participant::Signaling::Answered;
+@@ -4592,11 +4599,11 @@
+     }
+ 
+     async fn streams(&self, conn: ConnectionId) -> CoreResult<Vec<Arc<dyn MediaStream>>> {
+-        if self
+-            .outbound_routes
+-            .get(&conn)
+-            .is_some_and(|r| r.replacement.get().is_some() || r.initial_participant.get().is_some())
+-        {
++        if self.outbound_routes.get(&conn).is_some_and(|r| {
++            r.replacement.get().is_some()
++                || r.initial_participant.get().is_some()
++                || r.initial_managed.load(Ordering::Acquire)
++        }) {
+             return Err(RvoipError::InvalidState(
+                 "Managed SIP requires guarded media ports",
+             ));
+@@ -4906,11 +4913,11 @@
+         conn: ConnectionId,
+         capabilities: CapabilityDescriptor,
+     ) -> CoreResult<NegotiatedCodecs> {
+-        if self
+-            .outbound_routes
+-            .get(&conn)
+-            .is_some_and(|r| r.replacement.get().is_some() || r.initial_participant.get().is_some())
+-        {
++        if self.outbound_routes.get(&conn).is_some_and(|r| {
++            r.replacement.get().is_some()
++                || r.initial_participant.get().is_some()
++                || r.initial_managed.load(Ordering::Acquire)
++        }) {
+             return Err(RvoipError::NotImplemented(
+                 "Managed SIP requires guarded media control",
+             ));
+diff --git a/crates/sip/rvoip-sip/src/lib.rs b/crates/sip/rvoip-sip/src/lib.rs
+--- a/crates/sip/rvoip-sip/src/lib.rs
++++ b/crates/sip/rvoip-sip/src/lib.rs
+@@ -513,7 +513,8 @@
+ // Peer types
+ pub use adapter::{
+     SipAdapter, SipDeviceReplacementContext, SipDeviceReplacementSignal, SipInboundContextPolicy,
+-    SipInboundContextPolicyError, SipInitialAnswer, SipInitialParticipantContext,
++    SipInboundContextPolicyError, SipInitialAnswer, SipInitialCallObservation,
++    SipInitialParticipantContext,
+ };
+ pub use originate::{
+     SipInitialHeaders, SipInitialHeadersError, SipOriginateContext, SipOriginateContextError,

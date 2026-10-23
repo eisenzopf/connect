@@ -85,7 +85,7 @@ pub fn inspect(directory: &Path) -> Result<SetupState> {
             && server.private_key == directory.join("private-key.der"),
         "Setup configuration no longer matches its local paths/port"
     );
-    let store = Store::open(&server.database, server.limits)?;
+    let store = Store::open_administration(&server.database, server.limits)?;
     store.integrity_check()?;
     for name in [&state.human_config, &state.agent_config] {
         let client = ClientConfig::load(&directory.join(name))?;
@@ -158,7 +158,7 @@ pub fn initialize(directory: &Path, bind: SocketAddr) -> Result<SetupState> {
     let bind = reservation.local_addr()?;
     init::initialize_quiet(&staging, false, bind)?;
     let server = crate::config::ServerConfig::load(&staging.join("server.toml"))?;
-    let store = Store::open(&server.database, server.limits)?;
+    let store = Store::open_administration(&server.database, server.limits)?;
     let human = store.create_identity("human")?;
     let agent = store.create_identity("agent")?;
     for (alias, identity, peer) in [("human", &human, &agent), ("agent", &agent, &human)] {

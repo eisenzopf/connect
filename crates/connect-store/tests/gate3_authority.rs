@@ -49,7 +49,9 @@ fn gate_three_authority_and_provider_outcomes_fail_closed() {
                 &app_key.id,
                 &Operation::Create {
                     request_id: "authority-create".into(),
-                    participants: vec![agent.id.clone()],
+                    request: connect_protocol::conversations::CreateRequest::persistent(vec![
+                        agent.id.clone(),
+                    ]),
                 },
             )
             .unwrap(),
@@ -60,7 +62,9 @@ fn gate_three_authority_and_provider_outcomes_fail_closed() {
                 &app_key.id,
                 &Operation::Create {
                     request_id: "authority-other-create".into(),
-                    participants: vec![agent.id.clone()],
+                    request: connect_protocol::conversations::CreateRequest::persistent(vec![
+                        agent.id.clone(),
+                    ]),
                 },
             )
             .unwrap(),
@@ -71,7 +75,9 @@ fn gate_three_authority_and_provider_outcomes_fail_closed() {
             &Operation::Send {
                 request_id: "authority-other-fact".into(),
                 conversation_id: other_conversation.clone(),
-                body: "The unrelated fact is scarlet.".into(),
+                message: connect_protocol::messages::MessageDraft::text_all(
+                    "The unrelated fact is scarlet.",
+                ),
             },
         )
         .unwrap();
@@ -331,7 +337,9 @@ fn gate_three_authority_and_provider_outcomes_fail_closed() {
             &Operation::Send {
                 request_id: "authority-after-call".into(),
                 conversation_id: context.conversation_id.clone(),
-                body: "The persistent conversation remains open.".into(),
+                message: connect_protocol::messages::MessageDraft::text_all(
+                    "The persistent conversation remains open.",
+                ),
             },
         )
         .unwrap();

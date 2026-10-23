@@ -1,0 +1,147 @@
+--- a/crates/foundation/rvoip-core/src/staged_streams/media_scene.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/media_scene.rs
+@@ -403,10 +403,15 @@
+         {
+             let mut audiences = self.audiences.lock().unwrap_or_else(|p| p.into_inner());
+             audiences.preparations.remove(id);
+-            audiences.groups.retain(|_, group| {
+-                members
+-                    .values()
+-                    .any(|member| group.contains(&member.controller))
++            // An applied group's saved receiver programs still need restoration
++            // after every private origin departs. Preparations and consumed
++            // quarantine groups have no pending restore and can be discarded.
++            let restorable = audiences.restorable.clone();
++            audiences.groups.retain(|operation, group| {
++                restorable.contains(operation)
++                    || members
++                        .values()
++                        .any(|member| group.contains(&member.controller))
+             });
+         }
+         self.selections
+@@ -425,6 +430,7 @@
+         {
+             let mut audiences = self.audiences.lock().unwrap_or_else(|p| p.into_inner());
+             audiences.groups.clear();
++            audiences.restorable.clear();
+             audiences.preparations.clear();
+             audiences.pending.clear();
+         }
+--- a/crates/foundation/rvoip-core/src/staged_streams/audience.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/audience.rs
+@@ -264,6 +264,7 @@
+ pub(super) struct AudienceState {
+     pub revision: u64,
+     pub groups: BTreeMap<String, Arc<ClosedAudience>>,
++    pub restorable: BTreeSet<String>,
+     pub preparations: BTreeMap<ConnectionId, Arc<ClosedAudience>>,
+     pub pending: BTreeMap<String, Weak<StreamController>>,
+ }
+@@ -1061,6 +1062,16 @@
+                 .as_mut()
+                 .map(|logical| logical.commit())
+                 .unwrap_or_default();
++            // Track only applied, unconsumed restoration identities. Neither
++            // an unsubmitted preparation nor post-return quarantine pins one.
++            registry
++                .restorable
++                .retain(|operation| next_groups.contains_key(operation));
++            if plan.restore.is_some() {
++                registry.restorable.remove(&plan.group.operation);
++            } else if plan.handoff.is_none() && plan.replacement.is_none() {
++                registry.restorable.insert(plan.group.operation.clone());
++            }
+             registry.groups = next_groups;
+             if let Some(id) = &plan.request.activate_muted {
+                 registry.preparations.remove(id);
+--- a/crates/foundation/rvoip-core/src/staged_streams/tests/private_consult.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/private_consult.rs
+@@ -2203,3 +2203,87 @@
+ }
+ 
+ mod replacement;
++
++#[tokio::test]
++async fn private_audience_all_private_origins_departed_restores_survivors_once() {
++    let mut r = Room::new().await;
++    r.select(
++        "public",
++        vec![AudioSubscription::Connection(ConnectionId::from_string(
++            "bob",
++        ))],
++    )
++    .await;
++    r.add("consult", Some("public"), true).await;
++    let (_, handle) = r.apply(r.begin_plan()).await.unwrap();
++    r.publish("consult", 5200).unwrap();
++    r.tick();
++    let tail = r.nodes.get_mut("alice").unwrap().out.try_recv().unwrap();
++    for id in ["alice", "consult"] {
++        r.scene.remove(&ConnectionId::from_string(id));
++    }
++    let plan = r
++        .scene
++        .plan_restore_audio_audience(
++            &handle,
++            "all-private-origins-ended".into(),
++            r.scene.audience_revision(),
++        )
++        .unwrap();
++    let (outcome, _) = r.apply(plan).await.unwrap();
++    assert_eq!(
++        outcome.departed_connections,
++        BTreeSet::from([
++            ConnectionId::from_string("alice"),
++            ConnectionId::from_string("consult")
++        ])
++    );
++    assert!(tail
++        .deliver(|_| async { panic!("private tail survived restoration") })
++        .await
++        .is_err());
++    r.publish("public", 1600).unwrap();
++    r.tick();
++    r.heard("bob", 1600).await;
++    r.silent(&["alice", "consult", "public"]);
++    r.publish("bob", 2400).unwrap();
++    r.tick();
++    r.heard("public", 2400).await;
++    r.silent(&["alice", "consult", "bob"]);
++    assert!(r.publish("alice", 800).is_err());
++    assert!(r.publish("consult", 5200).is_err());
++    // Consumed identity must not overwrite a later receiver decision.
++    r.select(
++        "public",
++        vec![AudioSubscription::Connection(ConnectionId::from_string(
++            "hold",
++        ))],
++    )
++    .await;
++    assert!(r
++        .scene
++        .plan_restore_audio_audience(
++            &handle,
++            "replayed-ended-origins".into(),
++            r.scene.audience_revision()
++        )
++        .is_err());
++}
++
++#[tokio::test]
++async fn private_audience_departed_unsubmitted_preparation_releases_its_reservation() {
++    let mut r = Room::new().await;
++    // Every preparation is a distinct logical operation, as in production.
++    // Retired preparations must not exhaust the 256-group registry.
++    for index in 0..257 {
++        let name = format!("unsubmitted-{index}");
++        r.add(&name, Some("public"), true).await;
++        assert!(r.publish(&name, 5200).is_err());
++        r.scene.remove(&ConnectionId::from_string(name));
++    }
++    r.publish("alice", 800).unwrap();
++    r.tick();
++    r.heard("bob", 800).await;
++    r.heard("public", 800).await;
++    r.silent(&["unsubmitted-256"]);
++}

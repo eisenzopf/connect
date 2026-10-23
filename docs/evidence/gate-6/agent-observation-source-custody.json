@@ -1,0 +1,195 @@
+{
+  "kind": "gate6-component-evidence",
+  "task": "G6-043",
+  "status": "in-progress",
+  "passed": true,
+  "recorded_at": "2026-10-20T21:36:04.049516+00:00",
+  "scope": "Controlled Store custody for a captured public native provider instance, plus current source read/publication exclusion and compilation in the server profile. No physical source/adapter, private-provider observation binding or live event publication claim.",
+  "platform": {
+    "system": "Darwin",
+    "machine": "arm64"
+  },
+  "schema_version": 63,
+  "pinned_patches": 124,
+  "source_lock": {
+    "path": "dependencies/source-lock.json",
+    "sha256": "5d120c35bb38597b4ddc12292dc770856ea09c084c0d4065e373dcd61e379826"
+  },
+  "qualification_inputs": {
+    "path": ".local/gate-6/agent-observation-source/inputs-qualified.json",
+    "sha256": "31e76e25eb31705fb2ad6d2908811f4e5b0cbe3fa1434fc995285f6f267f3605",
+    "paths": 891
+  },
+  "fresh_distinct_passed_tests": 69,
+  "verification": [
+    {
+      "name": "Focused Store snapshot/observation, assistant-context and private-provider regressions",
+      "passed": 65,
+      "ignored": 0,
+      "command": "events::tests assistant_context private_provider --test-threads=2",
+      "tests": [
+        "connection_control::tests::assistant_context::assistant_provider_captured_observation_survives_revocation_but_never_authorizes_more_io",
+        "connection_control::tests::assistant_context::assistant_provider_cannot_adopt_old_pair_memory_even_when_its_new_selection_is_public",
+        "connection_control::tests::assistant_context::assistant_provider_preserves_one_creation_original_selection_and_exact_ack",
+        "connection_control::tests::assistant_context::assistant_provider_failure_observations_are_visible_and_cannot_be_overwritten_by_an_ack",
+        "connection_control::tests::assistant_context::native_assistant_context_holds_one_complete_interval_behind_queued_revocation",
+        "connection_control::tests::assistant_context::native_assistant_context_never_borrows_the_context_owners_target_permission",
+        "connection_control::tests::assistant_context::native_assistant_context_uses_exact_ai_incarnation_and_every_current_listener",
+        "connection_control::tests::assistant_context::observation_sources::observation_source_is_captured_generation_audience_and_cannot_be_rebound_as_generic",
+        "connection_control::tests::assistant_context::observation_sources::original_memory_interval_publishes_without_reentering_behind_a_waiting_writer",
+        "connection_control::tests::assistant_context::observation_sources::provider_end_stops_publishing_and_hides_buffer_while_native_connection_remains_current",
+        "connection_control::tests::assistant_context::observation_sources::revoked_history_hides_already_buffered_derived_content_without_retiring_native_source",
+        "connection_control::tests::assistant_context::observation_sources::source_requires_committed_exact_ack_and_cannot_borrow_another_instance_receipt",
+        "connection_control::tests::assistant_context::observation_sources::uncertain_update_blocks_observation_reads_even_when_initial_receipt_stays_delivered",
+        "connection_control::tests::assistant_context::phases::every_earlier_update_remains_authorized_when_its_source_falls_out_of_latest_context",
+        "connection_control::tests::assistant_context::phases::failed_or_uncertain_update_blocks_memory_and_exact_late_observations_never_create_another_attempt",
+        "connection_control::tests::assistant_context::phases::initialization_reserves_inline_export_before_reference_and_never_repeats_or_downgrades",
+        "connection_control::tests::assistant_context::phases::unknown_inline_creation_keeps_possible_export_visible_without_an_adoptable_instance",
+        "connection_control::tests::assistant_context::assistant_provider_recovery_never_repeats_possible_effects_or_changes_logical_identity",
+        "connection_control::tests::assistant_context::phases::updates_freeze_independent_receipts_and_replay_without_overwriting_initial_selection",
+        "connection_control::tests::private_provider::a_fresh_private_context_recalls_authorized_private_history_without_exporting_it_to_public_memory",
+        "connection_control::tests::assistant_context::phases::update_recovery_is_metadata_only_and_distinguishes_zero_io_from_possible_export",
+        "connection_control::tests::private_provider::ai_owned_private_context_requires_every_private_listener_for_all_sources",
+        "connection_control::tests::private_provider::captured_initialization_failure_records_only_an_exact_zero_io_intention",
+        "connection_control::tests::private_provider::expired_unstarted_native_preparation_keeps_unconfirmed_provider_cleanup_unknown",
+        "connection_control::tests::private_provider::initialization_failure_receipt_survives_source_revocation_and_rolls_back_recording_failure",
+        "connection_control::tests::private_provider::native_consultation_cannot_turn_an_existing_public_context_into_a_private_attempt",
+        "connection_control::tests::private_provider::initialization_cancellation_settles_only_after_captured_provider_close_without_native_io",
+        "connection_control::tests::private_provider::private_ai_completion_requires_independent_context_and_decoded_audio_then_follows_current_physical_grants",
+        "connection_control::tests::private_provider::private_context_receipt_keeps_original_native_generation_and_private_audience",
+        "connection_control::tests::private_provider::private_provider_captured_delivery_survives_revocation_but_cannot_authorize_new_transcripts",
+        "connection_control::tests::private_provider::private_provider_capture_rolls_back_recording_failure_then_records_exact_result_once",
+        "connection_control::tests::private_provider::private_provider_changed_session_revision_settles_stopped_preparation_without_claiming_provider_cleanup",
+        "connection_control::tests::private_provider::private_provider_confirmed_initialization_allows_one_native_ai_preparation",
+        "connection_control::tests::private_provider::private_provider_context_precedes_native_ai_audience_attempt_and_cancellation_preserves_uncertainty",
+        "connection_control::tests::private_provider::private_provider_context_source_loss_recovery_distinguishes_unstarted_from_possible_creation",
+        "connection_control::tests::private_provider::private_provider_context_requires_current_private_source_and_verified_ai_destination_before_reservation",
+        "connection_control::tests::private_provider::private_provider_current_export_reader_blocks_revocation_then_releases_it_without_idle_grants",
+        "connection_control::tests::private_provider::private_provider_exact_selection_and_one_attempt_cannot_complete_through_generic_context_api",
+        "connection_control::tests::private_provider::private_provider_final_transcripts_keep_original_audience_and_never_enter_public_provider_memory",
+        "connection_control::tests::private_provider::private_provider_late_export_ack_records_only_the_original_reserved_instance_after_uncertainty",
+        "connection_control::tests::private_provider::private_provider_native_policy_memo_tracks_foreign_sqlite_writes_and_clock_expiry",
+        "connection_control::tests::private_provider::private_provider_opaque_memory_and_new_transcripts_require_current_history_recipient_policy",
+        "connection_control::tests::private_provider::private_provider_lost_creation_worker_expires_as_uncertain_without_repeating_creation",
+        "connection_control::tests::private_provider::private_provider_reused_public_memory_refuses_before_private_json_is_exportable",
+        "connection_control::tests::private_provider::protected_initializer_target_is_current_original_member_metadata_without_an_idle_grant",
+        "connection_control::tests::private_provider::private_provider_uncertainty_reserves_the_original_context_and_never_reexports",
+        "events::tests::artifact_and_receipt_events_use_original_resource_versions_and_real_provenance",
+        "events::tests::backup_preserves_retention_floors_and_cursors_newer_than_restored_state_require_resync",
+        "events::tests::conversation_close_records_its_real_revision_and_failed_mutations_leave_no_context",
+        "events::tests::durable_retention_gaps_resync_but_filtered_gaps_and_duplicate_reads_do_not",
+        "events::tests::encoded_event_pages_resume_every_escaped_message_without_exceeding_the_byte_budget",
+        "events::tests::encrypted_cursors_reject_cross_identity_conversation_purpose_and_tampering",
+        "events::tests::eviction_and_restart_invalidate_bounded_snapshots_without_pinning_database_state",
+        "events::tests::identity_churn_cannot_pin_more_than_the_global_snapshot_slot_budget",
+        "connection_control::tests::private_provider::stopped_native_preparation_keeps_provider_uncertainty_until_actual_captured_termination",
+        "events::tests::operation_progress_preserves_original_fact_state_and_is_not_a_public_room_event",
+        "events::tests::original_resource_versions_provenance_and_owner_correlation_survive_later_changes",
+        "events::tests::queued_observations_and_old_publishers_fail_after_connection_generation_or_credential_changes",
+        "events::tests::private_audiences_and_current_recipient_ceilings_are_filtered_before_page_limits",
+        "events::tests::queued_snapshot_pages_recheck_revocation_membership_epochs_and_hidden_items",
+        "events::tests::snapshot_pages_freeze_one_revision_and_watermark_while_new_facts_catch_up",
+        "events::tests::speech_observations_are_explicit_and_membership_readmission_cannot_reopen_a_frozen_route",
+        "events::tests::slow_observation_consumers_resync_with_bounded_memory_without_private_gap_counts",
+        "events::tests::transient_sources_bind_scope_provenance_private_audience_and_declared_capabilities",
+        "events::tests::subscription_lease_expires_explicitly_and_resuming_with_a_fresh_exchange_is_bounded"
+      ],
+      "log": {
+        "path": ".local/gate-6/agent-observation-source-qualified.log",
+        "sha256": "6d5cf41985d74f379e4a494873eb3c6affbc208bb485301aefd592d92dd75037"
+      },
+      "binary": {
+        "path": "target/debug/deps/connect_store-500690b8d898aed1",
+        "sha256": "9242c8d26a143018c313330546360412a44320a59877b2f349aec8420b2992a8"
+      }
+    },
+    {
+      "name": "Server profile/shared Vapi decoder",
+      "passed": 4,
+      "ignored": 0,
+      "command": "CARGO_BUILD_JOBS=1 cargo test -p connect-server --test gate6_agent_observations",
+      "tests": [
+        "foreign_call_assertions_cannot_supply_terminal_or_action_observations",
+        "partial_final_and_missing_provider_data_remain_distinct_and_attributed_as_reported",
+        "documented_tool_forms_preserve_requests_results_and_repeated_ids_without_executing",
+        "invalid_metadata_and_oversized_batches_never_return_a_valid_action_prefix"
+      ],
+      "log": {
+        "path": ".local/gate-6/agent-observation-source-server.log",
+        "sha256": "a840594fbb90dcbf1ce024e9580082429c59f34941fb52d54583b54632632d5b"
+      },
+      "binary": {
+        "path": "target/debug/deps/gate6_agent_observations-2b8c57953278d28a",
+        "sha256": "1a9594d8d6ad32148a2ab89d1fcbc790824e08eaaffa5dcb07f57fab0dcb4feb"
+      }
+    }
+  ],
+  "new_behavior_tests": [
+    "connection_control::tests::assistant_context::observation_sources::observation_source_is_captured_generation_audience_and_cannot_be_rebound_as_generic",
+    "connection_control::tests::assistant_context::observation_sources::original_memory_interval_publishes_without_reentering_behind_a_waiting_writer",
+    "connection_control::tests::assistant_context::observation_sources::provider_end_stops_publishing_and_hides_buffer_while_native_connection_remains_current",
+    "connection_control::tests::assistant_context::observation_sources::revoked_history_hides_already_buffered_derived_content_without_retiring_native_source",
+    "connection_control::tests::assistant_context::observation_sources::source_requires_committed_exact_ack_and_cannot_borrow_another_instance_receipt",
+    "connection_control::tests::assistant_context::observation_sources::uncertain_update_blocks_observation_reads_even_when_initial_receipt_stays_delivered"
+  ],
+  "observations": [
+    "The protected source constructor accepts an opaque AssistantProviderContext and its exact applied receipt. Binding requires committed delivery for that same attempt/reference/runtime and derives the original Connection, generation, Participant, audience and correlation. A receipt from another instance is refused.",
+    "Publication still requires current publisher session.observation.publish, plus .any when representing another identity. Merely possessing context_view does not grant publication. Reusing the same generic correlation cannot replace the provider-memory binding.",
+    "Current source resolution reuses the existing frozen-context and cumulative-update validators: original root selection, every earlier exported update, original listener epochs and provider endpoint must remain authorized. It performs no nested authority acquisition inside the caller SQL snapshot.",
+    "Both publication and observation-page projection take or reuse the complete current read interval. Missing/foreign/insufficient retained proofs never cause an authority upgrade or fallback. Ordinary composed reads forward their original interval.",
+    "Generic publication is nonblocking when a writer has admission, avoiding a caller waiting on its own retained media reader. The protected native publication method can reuse the original AssistantProviderRead; the queued-writer regression also reads its page through that same interval and then releases it so the writer completes.",
+    "Admitted provider cleanup hides queued derived content and stops publication while the native Connection remains independently current. Revoked history does the same without retiring that native source. A possible unacknowledged/uncertain update blocks observation use even though the initial context receipt remains delivered; an unused prepared update does not taint prior memory.",
+    "The observation wire shape and HTTP route are unchanged. The new guards apply to the existing session.observations read path; logical IDs and original membership epochs remain stable. No compatibility, downgrade or external publication work was introduced."
+  ],
+  "preparation": {
+    "path": ".local/gate-6/agent-observation-source-prepare.log",
+    "sha256": "fd9d7b181e3ccba9b643af55a186cf132c60aac99c734b2ee4e4e549afe5ffc2"
+  },
+  "build": {
+    "path": ".local/gate-6/agent-observation-source-build-qualified.log",
+    "sha256": "a7b38d40c49e3d01a6d36799c58a3f9d9c8cd16ae7b1cd92024e50ad28827d2e"
+  },
+  "format": {
+    "path": ".local/gate-6/agent-observation-source-format.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "patch_whitespace": {
+    "path": ".local/gate-6/agent-observation-source-diff-check.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "http_reference": {
+    "path": "contracts/openapi-events.json",
+    "sha256": "117c519234f545fa2d3840405d1c6900e869fb1bce4e2fab4a8552a2de83c7da"
+  },
+  "preliminary_observations": [
+    {
+      "path": ".local/gate-6/agent-observation-source-first.log",
+      "sha256": "de90acf6f9a3698a2399baaa3b01f8922de954693cfc657d315dd63f469bc825",
+      "observation": "Initial compile required explicit local ConnectionGuard bindings for deref coercion; corrected before passing compilation."
+    },
+    {
+      "path": ".local/gate-6/agent-observation-source-cargo-filter-refusal.log",
+      "sha256": "df33363f2eca2199516835542180306c20325c84146807e310b6c7af987c1ceb",
+      "observation": "Cargo accepts one test filter. This rejected invocation ran no tests; the built Rust harness was then invoked with the intended three filters."
+    }
+  ],
+  "historical_scope": "The previous four-test decoder checkpoint remains historical. Those same four tests were rerun here in the current server profile and count only once. Earlier G6-042699-test evidence is historical; this69-test checkpoint does not relabel it as fresh full-suite qualification.",
+  "remaining_work": [
+    "Bind and validate the actual Service/native adapter and provider liveness on publication and reads, including immediate in-process closure before potentially blocked cleanup recording.",
+    "Add equivalent captured private-provider observation sources with their exact consultation purpose and original pair audience.",
+    "Represent optional provider speaker/completeness/unavailable/gap/result metadata and safe terminal observations without treating raw provider IDs or mixed user roles as Core principals.",
+    "Install the decoder before ACK/terminal handling and live observation projection in public/private WebSocket jobs.",
+    "Preserve trusted task/effect/decision correlation separately from model arguments and demonstrate an external worker using current public operations with stable logical intent.",
+    "Actual duplicate-tool, changed-provider-ID, partial-transcript and session-end race journeys must prove no duplicate handoffs before G6-043 can close."
+  ],
+  "not_run": [
+    "Full Store673 runnable tests and unselected workspace/runtime targets were not rerun for this focused checkpoint.",
+    "No live event pipeline, private-provider observation binding, task/effect worker execution, Linux/browser/remote/provider rehearsal, independent acceptance or publication."
+  ],
+  "plan_counts": {
+    "done": 42,
+    "in-progress": 1,
+    "not-started": 62,
+    "acceptance_done": 0
+  }
+}

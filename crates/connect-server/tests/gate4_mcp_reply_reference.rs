@@ -35,7 +35,7 @@ async fn received_reply_event_routes_one_follow_up_while_other_ids_are_denied() 
             &mcp,
             "connect_send",
             json!({
-                "request_id":"question", "step_id":"review", "body":"Approve the draft?",
+                "request_id":"question", "step_id":"review", "message": connect_protocol::messages::MessageDraft::text_all(("Approve the draft?").to_string()),
                 "wait_for_reply":true
             }),
         )
@@ -74,7 +74,7 @@ async fn received_reply_event_routes_one_follow_up_while_other_ids_are_denied() 
     assert_eq!(event["data"]["data"]["task_id"], f.task.id);
     let follow_up = |reference: &str| {
         json!({
-            "request_id":"follow-up", "step_id":"decision", "body":"Confirmed indigo-42",
+            "request_id":"follow-up", "step_id":"decision", "message": connect_protocol::messages::MessageDraft::text_all(("Confirmed indigo-42").to_string()),
             "reply_to":reference, "wait_for_reply":false
         })
     };

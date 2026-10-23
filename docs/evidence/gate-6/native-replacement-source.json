@@ -1,0 +1,169 @@
+{
+  "kind": "gate6-component-evidence",
+  "task": "G6-041",
+  "status": "in-progress",
+  "passed": true,
+  "recorded_at": "2026-10-20T00:33:03.887138+00:00",
+  "scope": "Store immutable replacement source/provisioned destination and bounded current original-physical preparation control only. Controlled local macOS arm64 Store fixtures; no Core allocation/media/telephone IO is claimed.",
+  "schema_version": 54,
+  "pinned_patches": 111,
+  "source_lock": {
+    "path": "dependencies/source-lock.json",
+    "sha256": "a30becafde1bee7c0bffdcd9198f7abc55246c4330c6d1e019a4322bed4e79ed"
+  },
+  "verification": {
+    "command": [
+      "cargo",
+      "test",
+      "--locked",
+      "--offline",
+      "-j1",
+      "-p",
+      "connect-store",
+      "--lib",
+      "replacement_sources",
+      "--",
+      "--test-threads=2",
+      "--nocapture"
+    ],
+    "exit_code": 0,
+    "passed": 10,
+    "log": {
+      "path": ".local/gate-6/replacement-source-store4.log",
+      "sha256": "4a1cc446a145a2da80e2ab27bf68acddf9f02ac43c4561b4590a364103ec4490"
+    },
+    "test_binary": {
+      "path": "target/debug/deps/connect_store-500690b8d898aed1",
+      "sha256": "a4faccab6dd8f41259bbe6032879bc3124e30746055ce622a4ef4105a40dd330"
+    }
+  },
+  "static_checks": [
+    {
+      "name": "format",
+      "command": [
+        "bash",
+        "scripts/format.sh",
+        "--",
+        "--check"
+      ],
+      "path": ".local/gate-6/replacement-source-format.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "exit_code": 0
+    },
+    {
+      "name": "http",
+      "command": [
+        "python3",
+        "scripts/generate-canonical-http-openapi.py",
+        "--check"
+      ],
+      "path": ".local/gate-6/replacement-source-http.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "exit_code": 0
+    },
+    {
+      "name": "dependencies",
+      "command": [
+        "bash",
+        "scripts/prepare-dependencies.sh"
+      ],
+      "path": ".local/gate-6/replacement-source-dependencies.log",
+      "sha256": "fd9d7b181e3ccba9b643af55a186cf132c60aac99c734b2ee4e4e549afe5ffc2",
+      "exit_code": 0
+    },
+    {
+      "name": "diff",
+      "command": [
+        "git",
+        "diff",
+        "--check"
+      ],
+      "path": ".local/gate-6/replacement-source-diff.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "exit_code": 0
+    },
+    {
+      "name": "progress",
+      "command": [
+        "python3",
+        "scripts/check-gate6-progress.py"
+      ],
+      "path": ".local/gate-6/replacement-source-progress.log",
+      "sha256": "3c9a42760866b510a9b7fc81b2b57b9bf6791a239d0bf0de8cdf06058e513f78",
+      "exit_code": 0
+    }
+  ],
+  "application_input_snapshot": {
+    "path": ".local/gate-6/replacement-source-inputs.json",
+    "sha256": "643baf6adc2a55872634dea0dd10afb9245ac03d42c728ac15ffaffcda7abda4",
+    "inputs": 1296
+  },
+  "implemented": [
+    "Weak exact original owner/credential/digest/expiry/runtime source with no idle grant",
+    "Current original confirmed native source/retained IDs, membership epochs, generations and role metadata",
+    "Same-identity distinct provisioned audio Endpoint/current unrevoked Device; exact original endpoint revision/address, including candidate-derived admission snapshot",
+    "Caller extension destination cannot replace the provisioned address; redacted Debug and no public serialization of address metadata",
+    "Fresh same-owner source after revocation without reviving cached authority or extending the original expiry",
+    "Refusal for cancellation/generic worker custody, changed source generation, remote retirement, membership/topology/endpoint/device changes, foreign/same/unverified/non-audio endpoints",
+    "Bounded merged original operator and independently current signed physical preparation read, re-resolved after acquisition, with no candidate IO/ready/callback/commit grant",
+    "Current physical revocation, swapped/foreign origins and held-writer refusal; related original audiences remain in footprint while an unrelated outside identity proceeds",
+    "Observer role metadata preserves the original default and never promotes speaking state"
+  ],
+  "diagnostics": [
+    {
+      "log": {
+        "path": ".local/gate-6/replacement-source-store1.log",
+        "sha256": "46e3bb927e7210ea82e248b742ae71753725e605bcbd989b512fd5bf46e4159a"
+      },
+      "result": "Five passed; candidate mutation assertion incorrectly expected immutable connection ownership to be writable. Corrected to assert database refusal and explicit current endpoint revocation."
+    },
+    {
+      "log": {
+        "path": ".local/gate-6/replacement-source-store2.log",
+        "sha256": "59dd9d7610ea4c7db29d3c712bcc64f32031dfb3a17a3e09e78db913a75f3b96"
+      },
+      "result": "Six passed; Observer test incorrectly hardcoded an owner default, while the fixture default is participant. Corrected to compare the actual original default."
+    },
+    {
+      "log": {
+        "path": ".local/gate-6/replacement-source-store3.log",
+        "sha256": "c349f899136663c7a2c68afa531c9a9e4e813dbe95ef811237eb49ebf70ca18d"
+      },
+      "result": "Nine passed; test incorrectly treated another original physical audience member as unrelated. Current media scope correctly fences that member; final case uses an identity outside the Conversation and passes."
+    }
+  ],
+  "previous_completed_task": {
+    "path": "docs/evidence/gate-6/native-handoff-complete.json",
+    "sha256": "a096d92264e19f4102a84a71e5394a8bd41dba67f5ddb7d476ec096fc58c7945"
+  },
+  "next": [
+    "Install durable replacement preparation/attempt custody before Core allocation and exclude generic workers/reexecution. Preserve original command ID, frozen target/source snapshot and original expiry.",
+    "Wire managed ParticipantReplacementControl with fresh preparation read; Core ticket must not retain its reader. Reserve the exact never-reused candidate before native allocation; ordinary admission cannot adopt replacement lineage.",
+    "Add target-owned public signed preparation for endpoint-only/candidate flows under the exact Core reservation. ConnectionPrepare currently creates generation1/no lineage, and canonical_media::Connection::owner currently hardcodes generation1; implement actual generation/binding lifecycle for moved routes.",
+    "Authorize isolated actual input/output and configured answered/DTMF observations independently. No caller ready flag, arbitrary destination or app-owned bridge.",
+    "One exact managed model/media commit, native confirmation carry, durable role-preserving projection, source retirement and late old-leg event fencing.",
+    "Provisioned telephone callback and complete no-answer/voicemail/rejection/timeout/cancel/unknown/restart cases without redial."
+  ],
+  "not_claimed": [
+    "Completion of G6-041, acceptance or all105 tasks",
+    "Installed public native replacement queue, candidate allocation, decoded readiness, callback submission or DTMF",
+    "Full Store/library/integration/remote/provider qualification of the new execution path",
+    "Any publication, commit or push"
+  ],
+  "all_started_processes_terminal": true,
+  "post_test_plan_delta": {
+    "docs/connect-gate-6-implementation.html": {
+      "before": "59af72e3258975b2bb1fd1611c345a7c8835e5ba3c6938d0d3a75dc3dfd81571",
+      "after": "57e2f24bdc3eb248db3889cad21ea63e1adf6666d9ac83425494349eeb16cb08"
+    }
+  },
+  "sealed_progress_check": {
+    "command": [
+      "python3",
+      "scripts/check-gate6-progress.py"
+    ],
+    "exit_code": 0,
+    "path": ".local/gate-6/replacement-source-sealed-progress.log",
+    "sha256": "3c9a42760866b510a9b7fc81b2b57b9bf6791a239d0bf0de8cdf06058e513f78"
+  }
+}

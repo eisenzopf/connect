@@ -81,7 +81,7 @@ async fn unknown_call_receipt_is_explicitly_reconciled_without_call_restart_or_s
     assert_eq!(after["definition"], before["definition"]);
     assert_eq!(after["external_id"], "call-connect-gate-three");
     let tools = call_setup::mcp(&post["body"]).await;
-    let args = json!({"request_id":"recovered-call-send","step_id":"follow-through","body":"Recovered call task remains usable"}).as_object().unwrap().clone();
+    let args = json!({"request_id":"recovered-call-send","step_id":"follow-through","message": connect_protocol::messages::MessageDraft::text_all(("Recovered call task remains usable").to_string())}).as_object().unwrap().clone();
     let one = tools
         .call_tool(CallToolRequestParams::new("connect_send").with_arguments(args.clone()))
         .await

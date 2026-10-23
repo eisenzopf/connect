@@ -14,7 +14,20 @@
               "id": "message-1",
               "conversation_id": "conversation-1",
               "sender": "agent-1",
-              "body": "hello"
+              "body": "hello",
+              "sender_participant_id": "fixture-participant",
+              "audience": [
+                {
+                  "participant_id": "fixture-participant",
+                  "membership_epoch": 1
+                }
+              ],
+              "content_type": "text/plain",
+              "body_encoding": "utf8",
+              "label": "connect-messages",
+              "attachments": [],
+              "in_reply_to_msg": null,
+              "accepted_at": 1792108800
             }
           ],
           "next": null

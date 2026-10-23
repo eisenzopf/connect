@@ -48,8 +48,21 @@ impl Store {
         end: SipConnectionEnd,
         reason: &str,
     ) -> Result<()> {
-        self.connection()?
-            .execute(
+        let authority = self.runtime_query_authority(
+            crate::authority_admission::runtime::SIP_CONNECTION,
+            &[&connection_id],
+        )?;
+        let mut c = self.connection()?;
+        let tx = c
+            .transaction_with_behavior(rusqlite::TransactionBehavior::Immediate)
+            .map_err(|_| Error::storage())?;
+        self.require_runtime_query(
+            &tx,
+            &authority,
+            crate::authority_admission::runtime::SIP_CONNECTION,
+            &[&connection_id],
+        )?;
+        tx.execute(
                 "UPDATE sip_legs SET state=?1,ended_reason=?2,end_requested=0,updated_at=?3 WHERE connection_id=?4 AND state NOT IN ('ended','failed','cancelled') AND NOT (?5 AND state IN ('starting','ending','uncertain'))",
                 params![
                     if end == SipConnectionEnd::Failed { "failed" } else { "ended" },
@@ -60,6 +73,7 @@ impl Store {
                 ],
             )
             .map_err(|_| Error::storage())?;
+        tx.commit().map_err(|_| Error::storage())?;
         Ok(())
     }
 }

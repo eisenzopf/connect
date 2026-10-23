@@ -126,3 +126,28 @@ async fn ipv6_loopback_native_identity_path() {
     client.close().await;
     server.shutdown().await.unwrap();
 }
+
+#[tokio::test]
+async fn exclusive_runtime_restart_retires_old_store_handles_and_uses_a_fresh_observation_epoch() {
+    let temp = tempfile::tempdir().unwrap();
+    let directory = temp.path().join("demo");
+    init::initialize(&directory, true, "127.0.0.1:0".parse().unwrap()).unwrap();
+    let config = ServerConfig::load(&directory.join("server.toml")).unwrap();
+    let server = RunningServer::start(config.clone()).await.unwrap();
+    let old = server.store.clone();
+    let epoch = old.runtime_epoch().to_owned();
+    let installation = old.installation_id().unwrap();
+    assert!(RunningServer::start(config.clone())
+        .await
+        .err()
+        .unwrap()
+        .to_string()
+        .contains("already in use"));
+    server.shutdown().await.unwrap();
+    // An old Store Arc is a borrowed runtime handle, not ownership of the next one.
+    let next = RunningServer::start(config).await.unwrap();
+    assert_eq!(old.installation_id().unwrap_err().code, "forbidden");
+    assert_ne!(next.store.runtime_epoch(), epoch);
+    assert_eq!(next.store.installation_id().unwrap(), installation);
+    next.shutdown().await.unwrap();
+}

@@ -1,0 +1,106 @@
+diff --git a/crates/foundation/rvoip-core/tests/session_lifecycle.rs b/crates/foundation/rvoip-core/tests/session_lifecycle.rs
+--- a/crates/foundation/rvoip-core/tests/session_lifecycle.rs
++++ b/crates/foundation/rvoip-core/tests/session_lifecycle.rs
+@@ -489,16 +489,17 @@
+     let (adapter, inbound_tx) = StubAdapter::new();
+     orch.register(adapter).expect("register");
+ 
+-    let cid = orch
+-        .open_conversation(
+-            TenantId::new(),
+-            ConversationPolicy::default(),
+-            HashMap::new(),
+-        )
+-        .await
+-        .expect("open");
+-    let sid = orch
+-        .start_session(cid, SessionMedium::Voice, vec![])
++    let tenant = TenantId::new();
++    let cid = orch
++        .open_conversation(
++            tenant.clone(),
++            ConversationPolicy::default(),
++            HashMap::new(),
++        )
++        .await
++        .expect("open");
++    let sid = orch
++        .start_session(cid.clone(), SessionMedium::Voice, vec![])
+         .await
+         .expect("start_session");
+     let connid = ConnectionId::new();
+@@ -531,24 +532,57 @@
+         .await
+         .expect("emit Ended");
+ 
+-    // We expect ConnectionEnded + SessionEnded, in either order
+-    // depending on which spawned task runs first.
++    // Auto-end emits both lifecycle facts. With recording enabled, the
++    // owned finalization also emits one scoped VconReady after SessionEnded;
++    // ConnectionEnded may appear on either side of that finalization.
+     let mut saw_conn_ended = false;
+     let mut saw_sess_ended = false;
+-    for _ in 0..2 {
++    let mut saw_record_ready = false;
++    let expected = if cfg!(feature = "vcon") { 3 } else { 2 };
++    for _ in 0..expected {
+         match next_event(&mut events).await {
+             Event::ConnectionEnded { connection_id, .. } => {
+                 assert_eq!(connection_id, connid);
++                assert!(!saw_conn_ended, "duplicate connection completion");
+                 saw_conn_ended = true;
+             }
+             Event::SessionEnded { session_id, .. } => {
+                 assert_eq!(session_id, sid);
++                assert!(!saw_sess_ended, "duplicate session completion");
+                 saw_sess_ended = true;
++            }
++            #[cfg(feature = "vcon")]
++            Event::VconReady {
++                session_id, handle, ..
++            } => {
++                assert_eq!(session_id, sid);
++                assert!(
++                    saw_sess_ended,
++                    "record readiness preceded session completion"
++                );
++                assert!(!saw_record_ready, "duplicate record readiness");
++                let scope =
++                    rvoip_core::store::VconScope::new(tenant.clone(), cid.clone(), sid.clone());
++                assert!(
++                    orch.config
++                        .vcon_store
++                        .get(&scope, &handle)
++                        .await
++                        .unwrap()
++                        .is_some(),
++                    "announced record does not resolve in its original scope"
++                );
++                saw_record_ready = true;
+             }
+             other => panic!("unexpected event during auto-end: {other:?}"),
+         }
+     }
+     assert!(saw_conn_ended && saw_sess_ended);
++    assert_eq!(saw_record_ready, cfg!(feature = "vcon"));
++    assert_eq!(
++        orch.session(&sid).unwrap().read().unwrap().state,
++        SessionState::Ended
++    );
+ 
+     // Reverse index cleared.
+     assert_eq!(orch.session_of(&connid), None);
+diff --git a/crates/foundation/rvoip-core/tests/vcon_emission.rs b/crates/foundation/rvoip-core/tests/vcon_emission.rs
+--- a/crates/foundation/rvoip-core/tests/vcon_emission.rs
++++ b/crates/foundation/rvoip-core/tests/vcon_emission.rs
+@@ -135,8 +135,8 @@
+         .await
+         .unwrap();
+ 
+-    // VconReady arrives via a tokio::spawn so it may come after
+-    // SessionEnded on the broadcast bus.
++    // The owned finalization announces a valid stored record after
++    // SessionEnded; that event remains distinct from session completion.
+     let ev = next_matching(&mut events, |e| matches!(e, Event::VconReady { .. })).await;
+     let (sid_back, handle) = match ev {
+         Event::VconReady {

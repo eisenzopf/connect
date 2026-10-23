@@ -1,0 +1,1617 @@
+diff --git a/Cargo.lock b/Cargo.lock
+--- a/Cargo.lock
++++ b/Cargo.lock
+@@ -7532,6 +7532,7 @@
+  "tempfile",
+  "thiserror 1.0.69",
+  "tokio",
++ "tokio-util",
+  "tracing",
+  "tracing-subscriber",
+  "url",
+diff --git a/crates/foundation/rvoip-core/src/adapter.rs b/crates/foundation/rvoip-core/src/adapter.rs
+--- a/crates/foundation/rvoip-core/src/adapter.rs
++++ b/crates/foundation/rvoip-core/src/adapter.rs
+@@ -618,6 +618,19 @@
+         Err(crate::dtmf::DtmfWriteError::Unsupported)
+     }
+ 
++    /// Explicit SIP INFO profile. This method never substitutes an RTP send
++    /// or raw target-only effect when method-specific authority is unavailable.
++    async fn send_dtmf_info_authorized(
++        &self,
++        _conn: ConnectionId,
++        _digits: &str,
++        _duration_ms: u32,
++        _policy: Arc<dyn crate::dtmf::DtmfInfoWriteAuthority>,
++        _deadline: tokio::time::Instant,
++    ) -> std::result::Result<(), crate::dtmf::DtmfWriteError> {
++        Err(crate::dtmf::DtmfWriteError::Unsupported)
++    }
++
+     /// Install an application-selected codec policy before answering an inbound
+     /// connection. Implementations must bind it to that exact connection lifetime,
+     /// never to a listener or another call. Unsupported transports fail closed.
+diff --git a/crates/foundation/rvoip-core/src/dtmf.rs b/crates/foundation/rvoip-core/src/dtmf.rs
+--- a/crates/foundation/rvoip-core/src/dtmf.rs
++++ b/crates/foundation/rvoip-core/src/dtmf.rs
+@@ -14,3 +14,7 @@
+ pub use rvoip_media_core::telephone_event::*;
+ 
+ pub use crate::orchestrator::dtmf_routing::*;
++
++pub use rvoip_media_core::dtmf_authority::{
++    with_dtmf_write_lease, DtmfInfoWriteAuthority, DtmfInfoWriteScope,
++};
+diff --git a/crates/foundation/rvoip-core/src/orchestrator/dtmf_routing.rs b/crates/foundation/rvoip-core/src/orchestrator/dtmf_routing.rs
+--- a/crates/foundation/rvoip-core/src/orchestrator/dtmf_routing.rs
++++ b/crates/foundation/rvoip-core/src/orchestrator/dtmf_routing.rs
+@@ -2,8 +2,9 @@
+ //! the host supplies independent current source/recipient permission per write.
+ use super::*;
+ use crate::dtmf::{
+-    validate_dtmf_sequence, DtmfIoFence, DtmfIoPoll, DtmfWriteAuthority, DtmfWriteError,
+-    DtmfWriteLease, DtmfWriteScope, DEFAULT_DTMF_INTER_DIGIT_MS, MAX_DTMF_SEQUENCE_MS,
++    validate_dtmf_sequence, DtmfInfoWriteAuthority, DtmfInfoWriteScope, DtmfIoFence, DtmfIoPoll,
++    DtmfWriteAuthority, DtmfWriteError, DtmfWriteLease, DtmfWriteScope,
++    DEFAULT_DTMF_INTER_DIGIT_MS, MAX_DTMF_SEQUENCE_MS,
+ };
+ use std::task::Poll;
+ use tokio::time::Instant;
+@@ -35,6 +36,9 @@
+         {
+             return Err(DtmfWriteError::Refused);
+         }
++        if method == DtmfMethod::Info && !(100..=5000).contains(&duration_ms) {
++            return Err(DtmfWriteError::Refused);
++        }
+         validate_dtmf_sequence(&digits, duration_ms, DEFAULT_DTMF_INTER_DIGIT_MS)
+             .map_err(|_| DtmfWriteError::Refused)?;
+         Ok(Self {
+@@ -123,6 +127,13 @@
+     ) -> std::result::Result<DtmfWriteLease, DtmfWriteError> {
+         Err(DtmfWriteError::Refused)
+     }
++    async fn acquire_info(
++        &self,
++        _route: &DtmfRouteScope<'_>,
++        _info: &DtmfInfoWriteScope<'_>,
++    ) -> std::result::Result<DtmfWriteLease, DtmfWriteError> {
++        Err(DtmfWriteError::Refused)
++    }
+ }
+ pub struct DenyDtmfRoutePolicy;
+ #[async_trait::async_trait]
+@@ -168,6 +179,34 @@
+         match self.poll_bound(&mut || Poll::Ready(Ok(()))) {
+             Poll::Ready(result) => result,
+             Poll::Pending => Err(DtmfWriteError::NotReady),
++        }
++    }
++    // A passive liveness hint may be temporarily unavailable. This never
++    // authorizes IO: poll_bound must still acquire and validate every exact
++    // registry/lifecycle/Session/Conversation guard around the physical poll.
++    fn may_still_be_current(&self) -> bool {
++        matches!(self.check_current(), Ok(()) | Err(DtmfWriteError::NotReady))
++    }
++    async fn wait_current(
++        &self,
++        cancel: &CancellationToken,
++        deadline: Instant,
++    ) -> std::result::Result<(), DtmfWriteError> {
++        loop {
++            if cancel.is_cancelled() {
++                return Err(DtmfWriteError::Refused);
++            }
++            if Instant::now() >= deadline {
++                return Err(DtmfWriteError::DeadlineBeforeWrite);
++            }
++            match self.check_current() {
++                Err(DtmfWriteError::NotReady) => tokio::select! {biased;
++                    _=cancel.cancelled()=>return Err(DtmfWriteError::Refused),
++                    _=tokio::time::sleep_until(deadline)=>return Err(DtmfWriteError::DeadlineBeforeWrite),
++                    _=tokio::time::sleep(Duration::from_millis(1))=>{},
++                },
++                result => return result,
++            }
+         }
+     }
+     fn poll_bound(&self, io: &mut dyn FnMut() -> DtmfIoPoll) -> DtmfIoPoll {
+@@ -270,10 +309,15 @@
+         if self.cancel.is_cancelled() || Instant::now() >= self.deadline {
+             return Poll::Ready(Err(DtmfWriteError::DeadlineBeforeWrite));
+         }
+-        self.route.poll_bound(&mut || {
++        match self.route.poll_bound(&mut || {
+             self.submitted.store(true, Ordering::Release);
+             io()
+-        })
++        }) {
++            // The shared IO driver retries with its existing5ms probe. Pending
++            // releases every synchronous lock and has performed no socket IO.
++            Poll::Ready(Err(DtmfWriteError::NotReady)) => Poll::Pending,
++            result => result,
++        }
+     }
+ }
+ struct WritePolicy {
+@@ -289,15 +333,16 @@
+         &self,
+         packet: &DtmfWriteScope<'_>,
+     ) -> std::result::Result<DtmfWriteLease, DtmfWriteError> {
+-        if self.cancel.is_cancelled()
++        if self.route.intent.method != DtmfMethod::Rfc4733
++            || self.cancel.is_cancelled()
+             || Instant::now() >= self.deadline
+-            || !self.route.current()
+             || packet.digits != self.route.intent.digits
+             || packet.duration_ms != self.route.intent.duration_ms
+             || packet.inter_digit_ms != DEFAULT_DTMF_INTER_DIGIT_MS
+         {
+             return Err(DtmfWriteError::Refused);
+         }
++        self.route.wait_current(&self.cancel, self.deadline).await?;
+         let scope = DtmfRouteScope {
+             source: self.route.source(),
+             recipient: self.route.recipient(),
+@@ -309,7 +354,45 @@
+         let deadline = self.deadline;
+         lease
+             .restrict((), move || {
+-                !token.is_cancelled() && Instant::now() < deadline && route.current()
++                !token.is_cancelled() && Instant::now() < deadline && route.may_still_be_current()
++            })
++            .with_fence(Arc::new(IoFence {
++                route: self.route.clone(),
++                submitted: self.submitted.clone(),
++                deadline: self.deadline,
++                cancel: self.cancel.clone(),
++            }))
++    }
++}
++#[async_trait::async_trait]
++impl DtmfInfoWriteAuthority for WritePolicy {
++    async fn acquire_info(
++        &self,
++        packet: &DtmfInfoWriteScope<'_>,
++    ) -> std::result::Result<DtmfWriteLease, DtmfWriteError> {
++        if self.route.intent.method != DtmfMethod::Info
++            || packet.digit_index >= self.route.intent.digits.len()
++            || self.cancel.is_cancelled()
++            || Instant::now() >= self.deadline
++            || packet.digits != self.route.intent.digits
++            || packet.duration_ms != self.route.intent.duration_ms
++            || packet.inter_digit_ms != DEFAULT_DTMF_INTER_DIGIT_MS
++        {
++            return Err(DtmfWriteError::Refused);
++        }
++        self.route.wait_current(&self.cancel, self.deadline).await?;
++        let scope = DtmfRouteScope {
++            source: self.route.source(),
++            recipient: self.route.recipient(),
++            intent: self.route.intent(),
++        };
++        let lease = self.host.acquire_info(&scope, packet).await?;
++        let route = self.route.clone();
++        let token = self.cancel.clone();
++        let deadline = self.deadline;
++        lease
++            .restrict((), move || {
++                !token.is_cancelled() && Instant::now() < deadline && route.may_still_be_current()
+             })
+             .with_fence(Arc::new(IoFence {
+                 route: self.route.clone(),
+@@ -425,9 +508,6 @@
+             return Err(DtmfWriteError::Refused);
+         }
+         route.check_current()?;
+-        if route.intent.method != DtmfMethod::Rfc4733 {
+-            return Err(DtmfWriteError::Unsupported);
+-        }
+         let deadline =
+             requested_deadline.min(Instant::now() + Duration::from_millis(MAX_DTMF_SEQUENCE_MS));
+         if Instant::now() >= deadline {
+@@ -453,19 +533,28 @@
+         let adapter = self
+             .adapter(route.recipient().transport)
+             .map_err(|_| DtmfWriteError::Unsupported)?;
+-        let mut send = Box::pin(adapter.send_dtmf_authorized(
+-            route.recipient().connection.clone(),
+-            &route.intent.digits,
+-            route.intent.duration_ms,
+-            policy,
+-        ));
++        let mut send = match route.intent.method {
++            DtmfMethod::Rfc4733 => adapter.send_dtmf_authorized(
++                route.recipient().connection.clone(),
++                &route.intent.digits,
++                route.intent.duration_ms,
++                policy,
++            ),
++            DtmfMethod::Info => adapter.send_dtmf_info_authorized(
++                route.recipient().connection.clone(),
++                &route.intent.digits,
++                route.intent.duration_ms,
++                policy,
++                deadline,
++            ),
++        };
+         let mut probe = tokio::time::interval(Duration::from_millis(5));
+         probe.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Skip);
+         let result = loop {
+             tokio::select! {biased;
+                 _=cancel.cancelled()=>break Err(DtmfWriteError::Refused),
+                 _=tokio::time::sleep_until(deadline)=>break Err(DtmfWriteError::DeadlineBeforeWrite),
+-                _=probe.tick()=>if !route.current(){break Err(DtmfWriteError::Refused)},
++                _=probe.tick()=>match route.check_current(){Ok(())|Err(DtmfWriteError::NotReady)=>{},Err(error)=>break Err(error)},
+                 r=&mut send=>break r,
+             }
+         };
+diff --git a/crates/foundation/rvoip-core/tests/dtmf_auto_route.rs b/crates/foundation/rvoip-core/tests/dtmf_auto_route.rs
+--- a/crates/foundation/rvoip-core/tests/dtmf_auto_route.rs
++++ b/crates/foundation/rvoip-core/tests/dtmf_auto_route.rs
+@@ -720,7 +720,7 @@
+             .await,
+         Err(DtmfWriteError::Refused)
+     );
+-    let info = r.route("1", 60, DtmfMethod::Info);
++    let info = r.route("1", 160, DtmfMethod::Info);
+     assert_eq!(
+         r.core
+             .route_dtmf(
+@@ -953,3 +953,47 @@
+     r.no_packet().await;
+     assert_eq!(r.raw.calls.load(Ordering::SeqCst), 0);
+ }
++
++#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
++async fn temporary_session_metadata_contention_defers_io_without_retiring_the_live_signal_route() {
++    let r = Rig::new().await;
++    let route = r.route("12", 500, DtmfMethod::Rfc4733);
++    let policy = Policy::new(&r);
++    let sending = tokio::spawn({
++        let core = r.core.clone();
++        let policy = policy.clone();
++        let route = route.clone();
++        async move {
++            core.route_dtmf(
++                &route,
++                policy,
++                CancellationToken::new(),
++                Instant::now() + Duration::from_secs(3),
++            )
++            .await
++        }
++    });
++    r.receive().await;
++    let session = r.core.session(&r.sid).unwrap();
++    let (entered_tx, entered_rx) = tokio::sync::oneshot::channel();
++    let (release_tx, release_rx) = std::sync::mpsc::channel();
++    let writer = std::thread::spawn(move || {
++        let _guard = session.write().unwrap();
++        let _ = entered_tx.send(());
++        let _ = release_rx.recv();
++    });
++    entered_rx.await.unwrap();
++    r.drain().await;
++    // No socket poll may borrow unavailable Session metadata. The source
++    // remains live; bounded contention is not source retirement or a grant.
++    r.no_packet().await;
++    release_tx.send(()).unwrap();
++    writer.join().unwrap();
++    assert_eq!(
++        sending.await.unwrap(),
++        Ok(()),
++        "a temporary metadata writer retired a valid owned signal schedule"
++    );
++    assert!(route.current());
++    assert_eq!(r.raw.calls.load(Ordering::SeqCst), 0);
++}
+diff --git a/crates/media/media-core/src/dtmf_authority.rs b/crates/media/media-core/src/dtmf_authority.rs
+--- a/crates/media/media-core/src/dtmf_authority.rs
++++ b/crates/media/media-core/src/dtmf_authority.rs
+@@ -145,18 +145,38 @@
+     let lease = tokio::time::timeout_at(deadline, policy.acquire(scope))
+         .await
+         .map_err(|_| DtmfWriteError::DeadlineBeforeWrite)??;
++    with_dtmf_write_lease(lease, deadline, write).await
++}
++
++/// Method-specific policies may acquire the same real lease without inventing
++/// RTP fields. This helper cannot extend either the original operation's
++/// deadline or the bounded acquisition/write budget supplied by its caller.
++pub async fn with_dtmf_write_lease<T, E, F>(
++    lease: DtmfWriteLease,
++    deadline: Instant,
++    write: F,
++) -> Result<T, DtmfWriteError>
++where
++    F: Future<Output = Result<T, E>>,
++{
+     if !lease.valid() {
+         return Err(DtmfWriteError::Refused);
+     }
+-    let deadline = deadline.min(lease.deadline);
++    let deadline = deadline
++        .min(lease.deadline)
++        .min(Instant::now() + DTMF_WRITE_DEADLINE);
+     let fences = lease.fences.clone();
+-    let mut write =
+-        Box::pin(async move { write.await.map_err(|_| DtmfWriteError::OutcomeUnknown) });
++    let mut write = Box::pin(write);
++    let mut value = None;
+     let mut io_polled = false;
+     let mut fenced = Box::pin(std::future::poll_fn(|cx| {
+         poll_fences(&fences, &mut || {
+             io_polled = true;
+-            write.as_mut().poll(cx)
++            write.as_mut().poll(cx).map(|result| {
++                result
++                    .map(|result| value = Some(result))
++                    .map_err(|_| DtmfWriteError::OutcomeUnknown)
++            })
+         })
+     }));
+     let mut probe = tokio::time::interval(Duration::from_millis(5));
+@@ -176,7 +196,34 @@
+     if result.is_err() && io_polled {
+         Err(DtmfWriteError::OutcomeUnknown)
+     } else {
+-        result
++        result?;
++        value.ok_or(DtmfWriteError::OutcomeUnknown)
++    }
++}
++
++/// Actual SIP INFO facts from the immutable transaction and prepared UDP
++/// route. No SSRC, RTP timestamp, payload type or event clock is fabricated.
++/// These facts are metadata; only the independent policy may grant the write.
++pub struct DtmfInfoWriteScope<'a> {
++    pub digits: &'a str,
++    pub duration_ms: u32,
++    pub inter_digit_ms: u32,
++    pub digit_index: usize,
++    pub wire_request: &'a [u8],
++    pub destination: std::net::SocketAddr,
++}
++impl std::fmt::Debug for DtmfInfoWriteScope<'_> {
++    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
++        f.write_str("DtmfInfoWriteScope(redacted)")
++    }
++}
++#[async_trait]
++pub trait DtmfInfoWriteAuthority: Send + Sync {
++    async fn acquire_info(
++        &self,
++        _scope: &DtmfInfoWriteScope<'_>,
++    ) -> Result<DtmfWriteLease, DtmfWriteError> {
++        Err(DtmfWriteError::Refused)
+     }
+ }
+ 
+diff --git a/crates/sip/rvoip-sip/Cargo.toml b/crates/sip/rvoip-sip/Cargo.toml
+--- a/crates/sip/rvoip-sip/Cargo.toml
++++ b/crates/sip/rvoip-sip/Cargo.toml
+@@ -399,6 +399,7 @@
+ strum = { version = "0.26", features = ["derive"] }
+ 
+ [dev-dependencies]
++tokio-util.workspace = true
+ tokio = { version = "1.40", features = ["full", "test-util"] }
+ tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+ dotenvy = "0.15"
+diff --git a/crates/sip/rvoip-sip/src/adapter.rs b/crates/sip/rvoip-sip/src/adapter.rs
+--- a/crates/sip/rvoip-sip/src/adapter.rs
++++ b/crates/sip/rvoip-sip/src/adapter.rs
+@@ -4613,6 +4613,86 @@
+             })
+     }
+ 
++    async fn send_dtmf_info_authorized(
++        &self,
++        conn: ConnectionId,
++        digits: &str,
++        duration_ms: u32,
++        policy: Arc<dyn rvoip_core::dtmf::DtmfInfoWriteAuthority>,
++        deadline: tokio::time::Instant,
++    ) -> std::result::Result<(), rvoip_core::dtmf::DtmfWriteError> {
++        use rvoip_core::dtmf::*;
++        validate_dtmf_sequence(digits, duration_ms, SIP_RFC4733_INTER_DIGIT_MS)
++            .map_err(|_| DtmfWriteError::Refused)?;
++        if !(100..=5000).contains(&duration_ms) {
++            return Err(DtmfWriteError::Refused);
++        }
++        let session = self
++            .lookup_session_for_non_terminal_control(&conn)
++            .map_err(|_| DtmfWriteError::Refused)?;
++        let epoch = {
++            let _mapping = self.mapping_lock.lock().unwrap_or_else(|v| v.into_inner());
++            self.route_epoch_for_connection_locked(&conn)
++                .ok_or(DtmfWriteError::Refused)?
++        };
++        let handle = epoch
++            .admitted_handle()
++            .cloned()
++            .ok_or(DtmfWriteError::NotReady)?;
++        if epoch.session_id != session {
++            return Err(DtmfWriteError::Refused);
++        }
++        let exact_handle = handle.clone();
++        let connections = self.by_connection.clone();
++        let sessions = self.by_session.clone();
++        let store = self.coordinator.helpers.state_machine.store.clone();
++        let current: Arc<dyn Fn() -> bool + Send + Sync> = Arc::new(move || {
++            if store.lifecycle_handle(&epoch.session_id).as_ref() != Some(&handle) {
++                return false;
++            }
++            let forward = connections
++                .get(&epoch.connection_id)
++                .map(|v| v.value().clone());
++            let reverse = sessions.get(&epoch.session_id).map(|v| v.value().clone());
++            match (forward, reverse) {
++                (Some(a), Some(b)) => {
++                    a.session_id == epoch.session_id
++                        && b.connection_id == epoch.connection_id
++                        && matches!((&a.owner,&b.owner),(SipRouteBindingOwner::Admitted(x),SipRouteBindingOwner::Admitted(y)) if x==&handle&&y==&handle)
++                }
++                _ => false,
++            }
++        });
++
++        struct Route {
++            policy: Arc<dyn DtmfInfoWriteAuthority>,
++            current: Arc<dyn Fn() -> bool + Send + Sync>,
++        }
++        #[async_trait::async_trait]
++        impl DtmfInfoWriteAuthority for Route {
++            async fn acquire_info(
++                &self,
++                scope: &DtmfInfoWriteScope<'_>,
++            ) -> std::result::Result<DtmfWriteLease, DtmfWriteError> {
++                if !(self.current)() {
++                    return Err(DtmfWriteError::Refused);
++                }
++                let lease = self.policy.acquire_info(scope).await?;
++                let current = self.current.clone();
++                Ok(lease.restrict((), move || current()))
++            }
++        }
++        self.coordinator
++            .send_dtmf_info_sequence_exact(
++                &exact_handle,
++                digits,
++                duration_ms,
++                Arc::new(Route { policy, current }),
++                deadline,
++            )
++            .await
++    }
++
+     async fn send_dtmf(
+         &self,
+         conn: ConnectionId,
+diff --git a/crates/sip/rvoip-sip/src/adapters/dialog_adapter.rs b/crates/sip/rvoip-sip/src/adapters/dialog_adapter.rs
+--- a/crates/sip/rvoip-sip/src/adapters/dialog_adapter.rs
++++ b/crates/sip/rvoip-sip/src/adapters/dialog_adapter.rs
+@@ -3698,6 +3698,241 @@
+             return Err(SessionError::SessionNotFound(session_id.0.clone()));
+         };
+         self.dispatch_info_with_options(&session, opts, None).await
++    }
++
++    /// Explicit bounded application/dtmf-relay profile on the exact admitted
++    /// dialog. RFC6086 INFO-package negotiation is a separate profile. A 2xx
++    /// here is protocol acceptance, never a remote playout measurement.
++    pub(crate) async fn send_dtmf_info_sequence_exact(
++        &self,
++        handle: &SessionRegistryHandle,
++        digits: &str,
++        duration_ms: u32,
++        policy: Arc<dyn rvoip_media_core::dtmf_authority::DtmfInfoWriteAuthority>,
++        requested_deadline: tokio::time::Instant,
++    ) -> std::result::Result<(), rvoip_media_core::dtmf_authority::DtmfWriteError> {
++        use rvoip_media_core::dtmf_authority::*;
++        use rvoip_media_core::relay::controller::dtmf_transmitter::{
++            validate_dtmf_sequence, DEFAULT_DTMF_INTER_DIGIT_MS, MAX_DTMF_SEQUENCE_MS,
++        };
++        validate_dtmf_sequence(digits, duration_ms, DEFAULT_DTMF_INTER_DIGIT_MS)
++            .map_err(|_| DtmfWriteError::Refused)?;
++        if !(100..=5000).contains(&duration_ms) {
++            return Err(DtmfWriteError::Refused);
++        }
++        let deadline = requested_deadline
++            .min(tokio::time::Instant::now() + Duration::from_millis(MAX_DTMF_SEQUENCE_MS));
++        if tokio::time::Instant::now() >= deadline {
++            return Err(DtmfWriteError::DeadlineBeforeWrite);
++        }
++        let dialog = resolve_dialog_for_handle_exact(self.store.as_ref(), handle)
++            .ok_or(DtmfWriteError::NotReady)?;
++        let lane = self
++            .store
++            .state_machine_lane_exact(handle)
++            .ok_or(DtmfWriteError::Refused)?;
++        let store = self.store.clone();
++        let exact = handle.clone();
++        let actual_dialog = dialog.clone();
++        let api = Arc::downgrade(&self.dialog_api);
++        let current: Arc<dyn Fn() -> bool + Send + Sync> = Arc::new(move || {
++            let Ok(snapshot) = store.get_session_snapshot_exact(&exact) else {
++                return false;
++            };
++            snapshot.dialog_established
++                && !snapshot.call_state.is_final()
++                && snapshot.call_state != crate::types::CallState::Terminating
++                && resolve_dialog_for_handle_exact(store.as_ref(), &exact).as_ref()
++                    == Some(&actual_dialog)
++                && api.upgrade().is_some_and(|api| {
++                    api.dialog_manager()
++                        .inner_manager()
++                        .get_dialog(&actual_dialog)
++                        .is_ok_and(|dialog| dialog.state == DialogState::Confirmed)
++                })
++        });
++        if !current() {
++            return Err(DtmfWriteError::NotReady);
++        }
++        let submitted = Arc::new(AtomicBool::new(false));
++        let run = async {
++            for (digit_index, digit) in digits.chars().enumerate() {
++                if !current() {
++                    return Err(DtmfWriteError::Refused);
++                }
++                let (content_type, body) = crate::api::bodies::dtmf_relay(digit, duration_ms);
++                let extra_headers = apply_outbound_extras_policy(
++                    Method::Info,
++                    Vec::new(),
++                    self.outbound_proxy_uri.as_ref(),
++                )
++                .map_err(|_| DtmfWriteError::Refused)?;
++                let error = Arc::new(StdMutex::new(None));
++                let last_write = Arc::new(StdMutex::new(None));
++                struct Write {
++                    policy: Arc<dyn DtmfInfoWriteAuthority>,
++                    current: Arc<dyn Fn() -> bool + Send + Sync>,
++                    lane: Arc<tokio::sync::Mutex<()>>,
++                    store: Arc<SessionStore>,
++                    handle: SessionRegistryHandle,
++                    digits: String,
++                    duration: u32,
++                    index: usize,
++                    body: bytes::Bytes,
++                    error: Arc<StdMutex<Option<DtmfWriteError>>>,
++                    submitted: Arc<AtomicBool>,
++                    last_write: Arc<StdMutex<Option<tokio::time::Instant>>>,
++                    deadline: tokio::time::Instant,
++                }
++                // Synchronous lifecycle custody only spans an actual
++                // bounded IO poll; no non-Send guard survives Pending.
++                struct LifeFence {
++                    store: Arc<SessionStore>,
++                    handle: SessionRegistryHandle,
++                    current: Arc<dyn Fn() -> bool + Send + Sync>,
++                }
++                impl DtmfIoFence for LifeFence {
++                    fn poll(&self, io: &mut dyn FnMut() -> DtmfIoPoll) -> DtmfIoPoll {
++                        let Ok(guard) = self.store.authority().try_operation_exact(
++                            self.handle.key(),
++                            SessionOperationKind::Signaling,
++                        ) else {
++                            return std::task::Poll::Ready(Err(DtmfWriteError::Refused));
++                        };
++                        let result = if guard.ensure_current().is_ok() && (self.current)() {
++                            io()
++                        } else {
++                            std::task::Poll::Ready(Err(DtmfWriteError::Refused))
++                        };
++                        // Releases custody without claiming that an external
++                        // signal was rolled back or mutating session state.
++                        guard.finish_rollback();
++                        result
++                    }
++                }
++                #[async_trait::async_trait]
++                impl rvoip_sip_dialog::transaction::egress::ClientRequestWriteAuthority for Write {
++                    async fn write(
++                        &self,
++                        actual: &rvoip_sip_dialog::transaction::egress::ClientRequestWriteScope<'_>,
++                        io: rvoip_sip_dialog::transaction::egress::ClientRequestWriteFuture<'_>,
++                    ) -> rvoip_sip_transport::Result<rvoip_sip_transport::TransportRoute>
++                    {
++                        let run=async {
++                            // Only the physically verified UDP profile is
++                            // installed here. No MTU/proxy TCP upgrade fallback.
++                            if actual.route.transport_type!=Some(rvoip_sip_transport::transport::TransportType::Udp){return Err(DtmfWriteError::Unsupported);}
++                            if !(self.current)() || !matches!(actual.message,rvoip_sip_core::Message::Request(request) if request.method()==Method::Info && request.body()==self.body.as_ref()) {return Err(DtmfWriteError::Refused);}
++                            let wire=actual.message.to_bytes();let scope=DtmfInfoWriteScope{digits:&self.digits,duration_ms:self.duration,inter_digit_ms:DEFAULT_DTMF_INTER_DIGIT_MS,digit_index:self.index,wire_request:&wire,destination:actual.route.destination};
++                            let write_deadline=self.deadline.min(tokio::time::Instant::now()+DTMF_WRITE_DEADLINE);
++                            let lease=tokio::time::timeout_at(write_deadline,self.policy.acquire_info(&scope)).await.map_err(|_|DtmfWriteError::DeadlineBeforeWrite)??;
++                            let lane=self.lane.clone().try_lock_owned().map_err(|_|DtmfWriteError::NotReady)?;
++                            let current=self.current.clone();
++                            let lease=lease.restrict(lane,move ||current()).with_fence(Arc::new(LifeFence{store:self.store.clone(),handle:self.handle.clone(),current:self.current.clone()}))?;
++                            with_dtmf_write_lease(lease,write_deadline,async {
++                                self.submitted.store(true,Ordering::Release);
++                                let result=io.await;
++                                if result.is_ok(){*self.last_write.lock().unwrap_or_else(|p|p.into_inner())=Some(tokio::time::Instant::now());}
++                                result
++                            }).await
++                        }.await;
++                        run.map_err(|error| {
++                            *self
++                                .error
++                                .lock()
++                                .unwrap_or_else(|poisoned| poisoned.into_inner()) = Some(error);
++                            rvoip_sip_transport::Error::InvalidState(
++                                "authorized INFO write failed".into(),
++                            )
++                        })
++                    }
++                }
++                let authority = Arc::new(Write {
++                    policy: policy.clone(),
++                    current: current.clone(),
++                    lane: lane.clone(),
++                    store: self.store.clone(),
++                    handle: handle.clone(),
++                    digits: digits.to_string(),
++                    duration: duration_ms,
++                    index: digit_index,
++                    body: body.clone(),
++                    error: error.clone(),
++                    submitted: submitted.clone(),
++                    last_write: last_write.clone(),
++                    deadline,
++                });
++                let delivery = self
++                    .dialog_api
++                    .send_info_with_options_authorized(
++                        &dialog,
++                        InfoRequestOptions {
++                            content_type,
++                            body,
++                            extra_headers,
++                        },
++                        authority,
++                        deadline,
++                    )
++                    .await
++                    .map_err(|_| {
++                        error
++                            .lock()
++                            .unwrap_or_else(|p| p.into_inner())
++                            .unwrap_or(DtmfWriteError::OutcomeUnknown)
++                    })?;
++                let remaining = deadline.saturating_duration_since(tokio::time::Instant::now());
++                let outcome = delivery
++                    .completion()
++                    .wait_for_outcome(remaining)
++                    .await
++                    .map_err(|_| DtmfWriteError::OutcomeUnknown)?;
++                // Stop any remaining exact transaction effects before another
++                // digit. Final status is factual SIP evidence only.
++                drop(delivery);
++                match outcome {
++                    Some(ClientTransactionOutcome::FinalResponse(response))
++                        if response.status().as_u16() >= 200
++                            && response.status().as_u16() < 300 => {}
++                    Some(ClientTransactionOutcome::FinalResponse(_)) => {
++                        return Err(DtmfWriteError::Refused)
++                    }
++                    _ => {
++                        return Err(error
++                            .lock()
++                            .unwrap_or_else(|p| p.into_inner())
++                            .unwrap_or(DtmfWriteError::OutcomeUnknown))
++                    }
++                }
++                if digit_index + 1 < digits.len() {
++                    // A lost request may first take effect on a retransmit.
++                    // Keep the requested tone/gap after the latest possible
++                    // write, without extending the original parent deadline.
++                    let last = (*last_write.lock().unwrap_or_else(|p| p.into_inner()))
++                        .ok_or(DtmfWriteError::OutcomeUnknown)?;
++                    tokio::time::sleep_until(
++                        (last
++                            + Duration::from_millis(u64::from(
++                                duration_ms + DEFAULT_DTMF_INTER_DIGIT_MS,
++                            )))
++                        .min(deadline),
++                    )
++                    .await;
++                    if tokio::time::Instant::now() >= deadline {
++                        return Err(DtmfWriteError::DeadlineBeforeWrite);
++                    }
++                }
++            }
++            Ok(())
++        };
++        let result = tokio::time::timeout_at(deadline, run)
++            .await
++            .unwrap_or(Err(DtmfWriteError::DeadlineBeforeWrite));
++        if result.is_err() && submitted.load(Ordering::Acquire) {
++            Err(DtmfWriteError::OutcomeUnknown)
++        } else {
++            result
++        }
+     }
+ 
+     pub(crate) async fn send_info_with_options_lane_owned(
+diff --git a/crates/sip/rvoip-sip/src/api/unified.rs b/crates/sip/rvoip-sip/src/api/unified.rs
+--- a/crates/sip/rvoip-sip/src/api/unified.rs
++++ b/crates/sip/rvoip-sip/src/api/unified.rs
+@@ -11358,6 +11358,19 @@
+             .await
+     }
+ 
++    pub(crate) async fn send_dtmf_info_sequence_exact(
++        &self,
++        handle: &SessionRegistryHandle,
++        digits: &str,
++        duration_ms: u32,
++        policy: Arc<dyn rvoip_media_core::dtmf_authority::DtmfInfoWriteAuthority>,
++        deadline: tokio::time::Instant,
++    ) -> std::result::Result<(), rvoip_media_core::dtmf_authority::DtmfWriteError> {
++        self.dialog_adapter
++            .send_dtmf_info_sequence_exact(handle, digits, duration_ms, policy, deadline)
++            .await
++    }
++
+     /// Send one explicitly timed RFC4733 sequence using committed SDP.
+     /// Trusted signal authorization uses `send_dtmf_sequence_authorized`.
+     pub async fn send_dtmf_sequence(
+diff --git a/crates/sip/rvoip-sip/tests/dtmf_info_route.rs b/crates/sip/rvoip-sip/tests/dtmf_info_route.rs
+new file mode 100644
+--- /dev/null
++++ b/crates/sip/rvoip-sip/tests/dtmf_info_route.rs
+@@ -0,0 +1,729 @@
++//! Real Core source/recipient bindings and two actual local SIP/SDP calls.
++//! Permission is independent of the calls and applies to each INFO write.
++use async_trait::async_trait;
++use bytes::Bytes;
++use rvoip_core::{
++    adapter::{ConnectionAdapter, EndReason, OriginateRequest},
++    capability::CapabilityDescriptor,
++    connection::{Direction, Transport},
++    dtmf::*,
++    ids::{ConnectionId, ParticipantId, SessionId, TenantId},
++    Config as CoreConfig, Orchestrator,
++};
++use rvoip_sip::{
++    api::unified::{Config, UnifiedCoordinator},
++    SipAdapter,
++};
++use rvoip_sip_core::{parser::parse_message, prelude::*};
++use rvoip_sip_dialog::transaction::utils::response_builders::create_response;
++use std::result::Result;
++use std::{
++    net::SocketAddr,
++    str::FromStr,
++    sync::{
++        atomic::{AtomicU16, AtomicUsize, Ordering},
++        Arc, Mutex,
++    },
++    time::Duration,
++};
++use tokio::{
++    net::UdpSocket,
++    sync::{mpsc, RwLock},
++    time::{timeout, Instant},
++};
++use tokio_util::sync::CancellationToken;
++
++struct Observed {
++    bytes: Vec<u8>,
++    request: Request,
++    remote: SocketAddr,
++}
++struct Peer {
++    socket: Arc<UdpSocket>,
++    media: UdpSocket,
++    infos: mpsc::UnboundedReceiver<Observed>,
++    reply: Arc<AtomicU16>,
++    ack: Arc<tokio::sync::Notify>,
++    task: tokio::task::JoinHandle<()>,
++}
++impl Peer {
++    async fn new() -> Self {
++        let socket = Arc::new(UdpSocket::bind("127.0.0.1:0").await.unwrap());
++        let address = socket.local_addr().unwrap();
++        let media = UdpSocket::bind("127.0.0.1:0").await.unwrap();
++        let media_port = media.local_addr().unwrap().port();
++        let (tx, infos) = mpsc::unbounded_channel();
++        let reply = Arc::new(AtomicU16::new(200));
++        let status = reply.clone();
++        let wire = socket.clone();
++        let ack = Arc::new(tokio::sync::Notify::new());
++        let observed_ack = ack.clone();
++        let task = tokio::spawn(async move {
++            let mut bytes = vec![0; 65536];
++            loop {
++                let (n, remote) = wire.recv_from(&mut bytes).await.unwrap();
++                let request = match parse_message(&bytes[..n]).unwrap() {
++                    Message::Request(request) => request,
++                    _ => continue,
++                };
++                if request.method() == Method::Ack {
++                    observed_ack.notify_one();
++                    continue;
++                }
++                let selected = if request.method() == Method::Info {
++                    status.load(Ordering::Acquire)
++                } else {
++                    200
++                };
++                let mut response = create_response(
++                    &request,
++                    if selected == 401 {
++                        StatusCode::Unauthorized
++                    } else {
++                        StatusCode::Ok
++                    },
++                );
++                if selected == 401 {
++                    response.headers.push(TypedHeader::Other(HeaderName::WwwAuthenticate,rvoip_sip_core::types::header::HeaderValue::Raw(b"Digest realm=\"owned-info-fixture\", nonce=\"fixture-nonce\", algorithm=SHA-256, qop=\"auth\"".to_vec())));
++                }
++                if request.method() == Method::Invite {
++                    if let Some(TypedHeader::To(to)) = response
++                        .headers
++                        .iter_mut()
++                        .find(|h| matches!(h, TypedHeader::To(_)))
++                    {
++                        to.set_tag("info-peer");
++                    }
++                    response.headers.push(TypedHeader::Contact(
++                        Contact::from_str(&format!("<sip:wire-target@{address}>")).unwrap(),
++                    ));
++                    response.headers.push(TypedHeader::ContentType(
++                        rvoip_sip_core::types::ContentType::sdp(),
++                    ));
++                    response.body=Bytes::from(format!("v=0\r\no=info 1 1 IN IP4 127.0.0.1\r\ns=info\r\nc=IN IP4 127.0.0.1\r\nt=0 0\r\nm=audio {media_port} RTP/AVP 0 101\r\na=rtpmap:0 PCMU/8000\r\na=rtpmap:101 telephone-event/8000\r\na=fmtp:101 0-15\r\na=sendrecv\r\n"));
++                    response
++                        .headers
++                        .retain(|h| !matches!(h, TypedHeader::ContentLength(_)));
++                    response.headers.push(TypedHeader::ContentLength(
++                        rvoip_sip_core::types::ContentLength::new(response.body.len() as u32),
++                    ));
++                }
++                if request.method() == Method::Info {
++                    tx.send(Observed {
++                        bytes: bytes[..n].to_vec(),
++                        request,
++                        remote,
++                    })
++                    .unwrap();
++                }
++                if selected != 0 {
++                    wire.send_to(&Message::Response(response).to_bytes(), remote)
++                        .await
++                        .unwrap();
++                }
++            }
++        });
++        Self {
++            socket,
++            media,
++            infos,
++            reply,
++            ack,
++            task,
++        }
++    }
++    fn address(&self) -> SocketAddr {
++        self.socket.local_addr().unwrap()
++    }
++    async fn next(&mut self) -> Observed {
++        timeout(Duration::from_secs(2), self.infos.recv())
++            .await
++            .expect("INFO wire deadline")
++            .expect("peer ended")
++    }
++    async fn no_info(&mut self, duration: Duration) {
++        assert!(
++            timeout(duration, self.infos.recv()).await.is_err(),
++            "unexpected INFO effect/retry"
++        );
++    }
++    async fn respond(&self, observed: &Observed) {
++        let response = create_response(&observed.request, StatusCode::Ok);
++        self.socket
++            .send_to(&Message::Response(response).to_bytes(), observed.remote)
++            .await
++            .unwrap();
++    }
++    async fn no_rtp_tone(&self) {
++        let mut bytes = [0; 2048];
++        while let Ok(n) = self.media.try_recv(&mut bytes) {
++            assert!(
++                !(n >= 12 && bytes[1] & 127 == 101),
++                "INFO fell back to raw RFC4733"
++            );
++        }
++    }
++}
++struct Rig {
++    core: Arc<Orchestrator>,
++    adapter: Arc<SipAdapter>,
++    coordinator: Arc<UnifiedCoordinator>,
++    source: ConnectionId,
++    target: ConnectionId,
++    sid: SessionId,
++    source_peer: Peer,
++    target_peer: Peer,
++}
++impl Rig {
++    async fn new() -> Self {
++        let source_peer = Peer::new().await;
++        let target_peer = Peer::new().await;
++        let mut config = Config::local("owned-info-core", 0);
++        config.auth = Some(rvoip_sip::auth::SipClientAuth::digest(
++            "fixture-user",
++            "fixture-password",
++        ));
++        let coordinator = UnifiedCoordinator::new(config).await.unwrap();
++        let adapter = SipAdapter::new(coordinator.clone()).await.unwrap();
++        let core = Orchestrator::new(CoreConfig::default());
++        core.register(adapter.clone()).unwrap();
++        let conversation = core
++            .open_conversation(
++                TenantId::new(),
++                rvoip_core::conversation::ConversationPolicy::default(),
++                Default::default(),
++            )
++            .await
++            .unwrap();
++        let sid = core
++            .start_session(
++                conversation,
++                rvoip_core::session::SessionMedium::Voice,
++                vec![],
++            )
++            .await
++            .unwrap();
++        let mut events = core.subscribe_events();
++        let mut ids = Vec::new();
++        for peer in [&source_peer, &target_peer] {
++            let handle = core
++                .originate_connection(
++                    OriginateRequest::new(
++                        sid.clone(),
++                        ParticipantId::new(),
++                        format!("sip:peer@{}", peer.address()),
++                        Direction::Outbound,
++                        CapabilityDescriptor::default(),
++                    )
++                    .with_transport(Transport::Sip),
++                )
++                .await
++                .unwrap();
++            ids.push(handle.connection.id.clone());
++        }
++        let source = ids.remove(0);
++        let target = ids.remove(0);
++        timeout(Duration::from_secs(5), async {
++            loop {
++                if adapter.is_connection_live(&source)
++                    && adapter.is_connection_live(&target)
++                    && core
++                        .prepare_dtmf_route(
++                            source.clone(),
++                            target.clone(),
++                            DtmfIntent::new(
++                                "original-info-operation".into(),
++                                "5".into(),
++                                160,
++                                DtmfMethod::Info,
++                            )
++                            .unwrap(),
++                        )
++                        .is_ok()
++                {
++                    break;
++                }
++                tokio::time::sleep(Duration::from_millis(5)).await;
++            }
++        })
++        .await
++        .expect("actual SIP calls and published Core route");
++        timeout(Duration::from_secs(5), async {
++            let mut connected = std::collections::HashSet::new();
++            while connected.len() < 2 {
++                if let rvoip_core::events::Event::ConnectionConnected { connection_id, .. } =
++                    events.recv().await.unwrap()
++                {
++                    if connection_id == source || connection_id == target {
++                        connected.insert(connection_id);
++                    }
++                }
++            }
++        })
++        .await
++        .expect("both actual SIP final answers reached Core");
++        timeout(Duration::from_secs(2), source_peer.ack.notified())
++            .await
++            .expect("actual source INVITE ACK");
++        timeout(Duration::from_secs(2), target_peer.ack.notified())
++            .await
++            .expect("actual target INVITE ACK");
++        tokio::task::yield_now().await;
++        Self {
++            core,
++            adapter,
++            coordinator,
++            source,
++            target,
++            sid,
++            source_peer,
++            target_peer,
++        }
++    }
++    fn route(&self, digits: &str, duration: u32) -> DtmfRoute {
++        self.core
++            .prepare_dtmf_route(
++                self.source.clone(),
++                self.target.clone(),
++                DtmfIntent::new(
++                    "original-info-operation".into(),
++                    digits.into(),
++                    duration,
++                    DtmfMethod::Info,
++                )
++                .unwrap(),
++            )
++            .unwrap()
++    }
++    fn sending(
++        &self,
++        route: DtmfRoute,
++        policy: Arc<Policy>,
++        cancel: CancellationToken,
++        deadline: Instant,
++    ) -> tokio::task::JoinHandle<Result<(), DtmfWriteError>> {
++        let core = self.core.clone();
++        tokio::spawn(async move { core.route_dtmf(&route, policy, cancel, deadline).await })
++    }
++    async fn stop(self) {
++        for id in [&self.source, &self.target] {
++            let _ = self
++                .core
++                .end_connection(id.clone(), EndReason::Normal)
++                .await;
++        }
++        self.core.drain_connection_lifecycle_tasks().await;
++        self.adapter.drain().await.unwrap();
++        self.coordinator
++            .shutdown_gracefully(Some(Duration::from_secs(1)))
++            .await
++            .unwrap();
++        self.source_peer.task.abort();
++        self.target_peer.task.abort();
++    }
++}
++struct Policy {
++    source: ConnectionId,
++    target: ConnectionId,
++    operation: String,
++    permission: Arc<RwLock<bool>>,
++    calls: AtomicUsize,
++    facts: Mutex<Vec<(usize, Vec<u8>, SocketAddr)>>,
++    io_times: Arc<Mutex<Vec<(usize, Instant)>>>,
++}
++impl Policy {
++    fn new(r: &Rig) -> Arc<Self> {
++        Self::for_operation(r, "original-info-operation")
++    }
++    fn for_operation(r: &Rig, operation: &str) -> Arc<Self> {
++        Arc::new(Self {
++            source: r.source.clone(),
++            target: r.target.clone(),
++            operation: operation.into(),
++            permission: Arc::new(RwLock::new(true)),
++            calls: AtomicUsize::new(0),
++            facts: Mutex::new(Vec::new()),
++            io_times: Arc::new(Mutex::new(Vec::new())),
++        })
++    }
++}
++struct IoTime {
++    digit: usize,
++    times: Arc<Mutex<Vec<(usize, Instant)>>>,
++}
++impl DtmfIoFence for IoTime {
++    fn poll(&self, io: &mut dyn FnMut() -> DtmfIoPoll) -> DtmfIoPoll {
++        let result = io();
++        if matches!(result, std::task::Poll::Ready(Ok(()))) {
++            self.times
++                .lock()
++                .unwrap()
++                .push((self.digit, Instant::now()));
++        }
++        result
++    }
++}
++#[async_trait]
++impl DtmfRoutePolicy for Policy {
++    async fn acquire(
++        &self,
++        _route: &DtmfRouteScope<'_>,
++        _packet: &DtmfWriteScope<'_>,
++    ) -> Result<DtmfWriteLease, DtmfWriteError> {
++        panic!("INFO borrowed RTP permission")
++    }
++    async fn acquire_info(
++        &self,
++        route: &DtmfRouteScope<'_>,
++        info: &DtmfInfoWriteScope<'_>,
++    ) -> Result<DtmfWriteLease, DtmfWriteError> {
++        assert_eq!(route.source.connection(), &self.source);
++        assert_eq!(route.recipient.connection(), &self.target);
++        assert_eq!(route.source.transport(), Transport::Sip);
++        assert_eq!(route.recipient.transport(), Transport::Sip);
++        assert_eq!(route.source.conversation(), route.recipient.conversation());
++        assert_eq!(route.source.tenant(), route.recipient.tenant());
++        assert_eq!(route.intent.operation_id(), self.operation);
++        assert_eq!(route.intent.method(), DtmfMethod::Info);
++        assert_eq!(info.digits, route.intent.digits());
++        assert_eq!(info.duration_ms, route.intent.duration_ms());
++        assert_eq!(info.inter_digit_ms, 70);
++        let request = match parse_message(info.wire_request).unwrap() {
++            Message::Request(request) => request,
++            _ => panic!("actual INFO request"),
++        };
++        assert_eq!(request.method(), Method::Info);
++        assert_eq!(
++            request.body(),
++            format!(
++                "Signal={}\r\nDuration={}\r\n",
++                info.digits.as_bytes()[info.digit_index] as char,
++                info.duration_ms
++            )
++            .as_bytes()
++        );
++        self.calls.fetch_add(1, Ordering::AcqRel);
++        let guard = self.permission.clone().read_owned().await;
++        if !*guard {
++            return Err(DtmfWriteError::Refused);
++        }
++        self.facts.lock().unwrap().push((
++            info.digit_index,
++            info.wire_request.to_vec(),
++            info.destination,
++        ));
++        DtmfWriteLease::new(guard, Instant::now() + Duration::from_millis(200), || true).with_fence(
++            Arc::new(IoTime {
++                digit: info.digit_index,
++                times: self.io_times.clone(),
++            }),
++        )
++    }
++}
++#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
++async fn actual_core_info_routes_exact_source_recipient_original_operation_and_body() {
++    let mut r = Rig::new().await;
++    let p = Policy::new(&r);
++    let route = r.route("5#", 160);
++    let mut send = r.sending(
++        route,
++        p.clone(),
++        CancellationToken::new(),
++        Instant::now() + Duration::from_secs(3),
++    );
++    let first = tokio::select! {biased; first=r.target_peer.next()=>first, result=&mut send=>panic!("route ended before first INFO: {result:?}")};
++    assert_eq!(
++        first.request.uri.to_string(),
++        format!("sip:wire-target@{}", r.target_peer.address()),
++        "INFO must use the actual dialog Contact while To retains the remote identity"
++    );
++    assert_eq!(
++        first.request.to().unwrap().address().uri.to_string(),
++        format!("sip:peer@{}", r.target_peer.address())
++    );
++    let second = tokio::select! {biased; second=r.target_peer.next()=>second, result=&mut send=>panic!("route ended before second INFO: {result:?}")};
++    assert_eq!(send.await.unwrap(), Ok(()));
++    assert_ne!(
++        first.request.cseq().unwrap().seq,
++        second.request.cseq().unwrap().seq
++    );
++    assert_eq!(first.request.call_id(), second.request.call_id());
++    assert_eq!(first.request.body(), b"Signal=5\r\nDuration=160\r\n");
++    assert_eq!(second.request.body(), b"Signal=#\r\nDuration=160\r\n");
++    let facts = p.facts.lock().unwrap().clone();
++    assert_eq!(
++        facts,
++        vec![
++            (0, first.bytes, r.target_peer.address()),
++            (1, second.bytes, r.target_peer.address())
++        ]
++    );
++    assert_eq!(p.calls.load(Ordering::Acquire), 2);
++    r.source_peer.no_info(Duration::from_millis(60)).await;
++    r.target_peer.no_rtp_tone().await;
++    r.stop().await;
++}
++#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
++async fn actual_info_refuses_independent_permission_and_invalid_whole_intent_without_raw_fallback()
++{
++    let mut r = Rig::new().await;
++    let p = Policy::new(&r);
++    *p.permission.write().await = false;
++    assert_eq!(
++        r.core
++            .route_dtmf(
++                &r.route("56", 160),
++                p.clone(),
++                CancellationToken::new(),
++                Instant::now() + Duration::from_secs(2)
++            )
++            .await,
++        Err(DtmfWriteError::Refused)
++    );
++    for (digits, duration) in [("5X", 160), ("5", 99), ("5", 5001)] {
++        assert!(DtmfIntent::new(
++            "original-info-operation".into(),
++            digits.into(),
++            duration,
++            DtmfMethod::Info
++        )
++        .is_err());
++    }
++    assert_eq!(
++        ConnectionAdapter::send_dtmf_info_authorized(
++            r.adapter.as_ref(),
++            ConnectionId::new(),
++            "5",
++            160,
++            Arc::new(DenyInfo),
++            Instant::now() + Duration::from_secs(1)
++        )
++        .await,
++        Err(DtmfWriteError::Refused)
++    );
++    r.target_peer.no_info(Duration::from_millis(120)).await;
++    assert_eq!(p.calls.load(Ordering::Acquire), 1);
++    r.target_peer.no_rtp_tone().await;
++    r.stop().await;
++}
++struct DenyInfo;
++#[async_trait]
++impl DtmfInfoWriteAuthority for DenyInfo {}
++#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
++async fn actual_info_transport_retry_reacquires_permission_and_preserves_exact_transaction() {
++    let mut r = Rig::new().await;
++    r.target_peer.reply.store(0, Ordering::Release);
++    let p = Policy::new(&r);
++    let send = r.sending(
++        r.route("5", 160),
++        p.clone(),
++        CancellationToken::new(),
++        Instant::now() + Duration::from_secs(3),
++    );
++    let first = r.target_peer.next().await;
++    let writer = timeout(Duration::from_millis(100), p.permission.write())
++        .await
++        .expect("idle transaction retained host reader");
++    drop(writer);
++    let second = r.target_peer.next().await;
++    assert_eq!(first.bytes, second.bytes);
++    r.target_peer.respond(&second).await;
++    assert_eq!(send.await.unwrap(), Ok(()));
++    assert_eq!(p.calls.load(Ordering::Acquire), 2);
++    r.stop().await;
++}
++#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
++async fn actual_info_revocation_between_timer_e_writes_stops_retransmission() {
++    let mut r = Rig::new().await;
++    r.target_peer.reply.store(0, Ordering::Release);
++    let p = Policy::new(&r);
++    let send = r.sending(
++        r.route("56", 160),
++        p.clone(),
++        CancellationToken::new(),
++        Instant::now() + Duration::from_secs(3),
++    );
++    r.target_peer.next().await;
++    *timeout(Duration::from_millis(100), p.permission.write())
++        .await
++        .expect("idle transaction retained reader") = false;
++    assert_eq!(
++        timeout(Duration::from_secs(2), send)
++            .await
++            .unwrap()
++            .unwrap(),
++        Err(DtmfWriteError::OutcomeUnknown)
++    );
++    r.target_peer.no_info(Duration::from_millis(150)).await;
++    assert_eq!(p.calls.load(Ordering::Acquire), 2);
++    r.stop().await;
++}
++#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
++async fn actual_info_revocation_between_digits_stops_suffix_under_original_operation() {
++    let mut r = Rig::new().await;
++    let p = Policy::new(&r);
++    let send = r.sending(
++        r.route("56", 300),
++        p.clone(),
++        CancellationToken::new(),
++        Instant::now() + Duration::from_secs(3),
++    );
++    r.target_peer.next().await;
++    *timeout(Duration::from_millis(100), p.permission.write())
++        .await
++        .expect("digit gap retained reader") = false;
++    assert_eq!(send.await.unwrap(), Err(DtmfWriteError::OutcomeUnknown));
++    r.target_peer.no_info(Duration::from_millis(100)).await;
++    assert_eq!(p.calls.load(Ordering::Acquire), 2);
++    r.stop().await;
++}
++#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
++async fn actual_info_drop_cancel_deadline_and_source_retirement_stop_pending_transaction() {
++    for mode in ["drop", "cancel", "deadline", "retire"] {
++        let mut r = Rig::new().await;
++        r.target_peer.reply.store(0, Ordering::Release);
++        let p = Policy::new(&r);
++        let token = CancellationToken::new();
++        let route = r.route("56", 160);
++        let deadline = Instant::now()
++            + if mode == "deadline" {
++                Duration::from_millis(160)
++            } else {
++                Duration::from_secs(3)
++            };
++        let send = r.sending(route.clone(), p.clone(), token.clone(), deadline);
++        r.target_peer.next().await;
++        assert_eq!(
++            r.core
++                .route_dtmf(
++                    &route,
++                    p.clone(),
++                    CancellationToken::new(),
++                    Instant::now() + Duration::from_secs(1)
++                )
++                .await,
++            Err(DtmfWriteError::NotReady)
++        );
++        match mode {
++            "drop" => {
++                send.abort();
++                assert!(send.await.unwrap_err().is_cancelled());
++            }
++            "cancel" => {
++                token.cancel();
++                assert_eq!(send.await.unwrap(), Err(DtmfWriteError::OutcomeUnknown));
++            }
++            "deadline" => assert_eq!(send.await.unwrap(), Err(DtmfWriteError::OutcomeUnknown)),
++            "retire" => {
++                r.core
++                    .end_connection(r.source.clone(), EndReason::Normal)
++                    .await
++                    .unwrap();
++                assert_eq!(send.await.unwrap(), Err(DtmfWriteError::OutcomeUnknown));
++                assert_eq!(
++                    r.core.session(&r.sid).unwrap().read().unwrap().state,
++                    rvoip_core::session::SessionState::Active
++                );
++            }
++            _ => unreachable!(),
++        }
++        let writer = p
++            .permission
++            .try_write()
++            .expect("ended transaction retained host permission");
++        drop(writer);
++        r.target_peer.no_info(Duration::from_millis(750)).await;
++        assert_eq!(p.calls.load(Ordering::Acquire), 1);
++        r.target_peer.no_rtp_tone().await;
++        r.stop().await;
++    }
++}
++#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
++async fn actual_info_401_stops_sequence_and_never_replays_a_challenged_effect() {
++    let mut r = Rig::new().await;
++    r.target_peer.reply.store(401, Ordering::Release);
++    let p = Policy::new(&r);
++    let send = r.sending(
++        r.route("56", 160),
++        p.clone(),
++        CancellationToken::new(),
++        Instant::now() + Duration::from_secs(3),
++    );
++    r.target_peer.next().await;
++    assert_eq!(send.await.unwrap(), Err(DtmfWriteError::OutcomeUnknown));
++    r.target_peer.no_info(Duration::from_millis(750)).await;
++    assert_eq!(p.calls.load(Ordering::Acquire), 1);
++    let sessions = r.coordinator.list_sessions().await;
++    let target = sessions
++        .iter()
++        .find(|s| s.to.contains(&r.target_peer.address().to_string()))
++        .expect("actual challenged target session");
++    assert_eq!(
++        target.state,
++        rvoip_sip::types::CallState::Active,
++        "unowned INFO challenge mutated the session authentication state"
++    );
++    r.target_peer.reply.store(200, Ordering::Release);
++    let fresh = r
++        .core
++        .prepare_dtmf_route(
++            r.source.clone(),
++            r.target.clone(),
++            DtmfIntent::new(
++                "fresh-info-operation".into(),
++                "9".into(),
++                160,
++                DtmfMethod::Info,
++            )
++            .unwrap(),
++        )
++        .unwrap();
++    let fresh_policy = Policy::for_operation(&r, "fresh-info-operation");
++    let sending = r.sending(
++        fresh,
++        fresh_policy.clone(),
++        CancellationToken::new(),
++        Instant::now() + Duration::from_secs(2),
++    );
++    let info = r.target_peer.next().await;
++    assert_eq!(info.request.body(), b"Signal=9\r\nDuration=160\r\n");
++    assert_eq!(sending.await.unwrap(), Ok(()));
++    assert_eq!(fresh_policy.calls.load(Ordering::Acquire), 1);
++    r.stop().await;
++}
++
++#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
++async fn actual_info_retransmission_preserves_quiet_time_before_the_next_digit() {
++    let mut r = Rig::new().await;
++    r.target_peer.reply.store(0, Ordering::Release);
++    let policy = Policy::new(&r);
++    let sending = r.sending(
++        r.route("56", 160),
++        policy.clone(),
++        CancellationToken::new(),
++        Instant::now() + Duration::from_secs(3),
++    );
++    let original = r.target_peer.next().await;
++    let retry = r.target_peer.next().await;
++    assert_eq!(original.bytes, retry.bytes);
++    r.target_peer.respond(&retry).await;
++    // If the original datagram was lost, the peer can first act on this
++    // retransmission. A delayed response cannot collapse the requested tone
++    // duration and gap before the next digit. No remote playout is inferred.
++    r.target_peer.no_info(Duration::from_millis(100)).await;
++    let second = r.target_peer.next().await;
++    assert_eq!(second.request.body(), b"Signal=6\r\nDuration=160\r\n");
++    r.target_peer.respond(&second).await;
++    assert_eq!(sending.await.unwrap(), Ok(()));
++    assert_eq!(policy.calls.load(Ordering::Acquire), 3);
++    let indices: Vec<_> = policy.facts.lock().unwrap().iter().map(|f| f.0).collect();
++    assert_eq!(indices, vec![0, 0, 1]);
++    let times = policy.io_times.lock().unwrap().clone();
++    assert_eq!(
++        times.iter().map(|entry| entry.0).collect::<Vec<_>>(),
++        vec![0, 0, 1]
++    );
++    let interval = times[2].1.duration_since(times[1].1);
++    assert!(interval>=Duration::from_millis(228),"local successful UDP submissions collapsed160ms tone +70ms gap (2ms clock tolerance): {interval:?}");
++    r.stop().await;
++}
+diff --git a/crates/sip/sip-dialog/src/manager/transaction_integration.rs b/crates/sip/sip-dialog/src/manager/transaction_integration.rs
+--- a/crates/sip/sip-dialog/src/manager/transaction_integration.rs
++++ b/crates/sip/sip-dialog/src/manager/transaction_integration.rs
+@@ -231,6 +231,7 @@
+     local_tag: String,
+     remote_uri: String,
+     remote_tag: String,
++    request_uri: String,
+     cseq: u32,
+     local_address: SocketAddr,
+     route_set: Vec<rvoip_sip_core::Uri>,
+@@ -241,17 +242,25 @@
+     snapshot: &InfoRequestSnapshot,
+ ) -> DialogResult<Request> {
+     let body_projection = String::from_utf8_lossy(&snapshot.body).into_owned();
+-    let request = dialog_quick::info_for_dialog_with_extras(
+-        &context.call_id,
+-        &context.local_uri,
+-        &context.local_tag,
+-        &context.remote_uri,
+-        &context.remote_tag,
+-        &body_projection,
++    // The dialog's Contact target and remote To identity are distinct.
++    // Reuse the same underlying enhanced builder as the quick facade, with
++    // the actual immutable target captured from this dialog generation.
++    let request = request_builder_from_dialog_template(
++        &DialogRequestTemplate {
++            call_id: context.call_id.clone(),
++            from_uri: context.local_uri.clone(),
++            from_tag: context.local_tag.clone(),
++            to_uri: context.remote_uri.clone(),
++            to_tag: context.remote_tag.clone(),
++            request_uri: context.request_uri.clone(),
++            cseq: context.cseq,
++            local_address: context.local_address,
++            route_set: context.route_set.clone(),
++            contact: None,
++        },
++        Method::Info,
++        Some(body_projection),
+         Some(snapshot.content_type.clone()),
+-        context.cseq,
+-        context.local_address,
+-        (!context.route_set.is_empty()).then(|| context.route_set.clone()),
+         (!snapshot.extra_headers.is_empty()).then(|| snapshot.extra_headers.clone()),
+     )
+     .map_err(|_| crate::errors::DialogError::InternalError {
+@@ -1905,6 +1914,7 @@
+                 local_tag,
+                 remote_uri: template.remote_uri.to_string(),
+                 remote_tag,
++                request_uri: template.target_uri.to_string(),
+                 cseq: template.cseq_number,
+                 local_address: self
+                     .local_address_for_target_and_routes(&template.target_uri, &template.route_set),
+@@ -1991,6 +2001,7 @@
+                 local_tag,
+                 remote_uri: template.remote_uri.to_string(),
+                 remote_tag,
++                request_uri: template.target_uri.to_string(),
+                 cseq: template.cseq_number,
+                 local_address: self
+                     .local_address_for_target_and_routes(&template.target_uri, &template.route_set),
+@@ -2921,9 +2932,50 @@
+             local_tag: "alice-tag".to_string(),
+             remote_uri: "sip:bob@example.test".to_string(),
+             remote_tag: "bob-tag".to_string(),
++            request_uri: "sip:bob@example.test".to_string(),
+             cseq: 42,
+             local_address: "127.0.0.1:5060".parse().unwrap(),
+             route_set: Vec::new(),
++        }
++    }
++
++    #[test]
++    fn info_snapshot_preserves_current_contact_target_remote_to_and_dialog_routes() {
++        for routes in [
++            Vec::new(),
++            vec!["sip:proxy@127.0.0.1:5099;lr".parse::<Uri>().unwrap()],
++        ] {
++            let mut context = method_snapshot_context();
++            context.request_uri = "sip:current-contact@127.0.0.1:5090".into();
++            context.route_set = routes.clone();
++            let request = materialize_info_request_snapshot(
++                &context,
++                &InfoRequestSnapshot::exact(
++                    "application/dtmf-relay".into(),
++                    bytes::Bytes::from_static(b"Signal=5\r\nDuration=160\r\n"),
++                    Vec::new(),
++                ),
++            )
++            .unwrap();
++            assert_eq!(request.uri.to_string(), context.request_uri);
++            assert_eq!(
++                request.to().unwrap().address().uri.to_string(),
++                context.remote_uri
++            );
++            assert_eq!(
++                request.to().unwrap().tag(),
++                Some(context.remote_tag.as_str())
++            );
++            assert_eq!(request.cseq().unwrap().seq, context.cseq);
++            if routes.is_empty() {
++                assert!(request.header(&HeaderName::Route).is_none());
++            } else {
++                assert!(request
++                    .header(&HeaderName::Route)
++                    .unwrap()
++                    .to_string()
++                    .contains("proxy@127.0.0.1:5099;lr"));
++            }
+         }
+     }
+ 
+@@ -3037,7 +3089,7 @@
+             .expect("production request materializers");
+         assert_eq!(
+             materializers
+-                .matches("dialog_quick::info_for_dialog_with_extras(")
++                .matches("fn materialize_info_request_snapshot(")
+                 .count(),
+             1,
+             "INFO has one request materializer"

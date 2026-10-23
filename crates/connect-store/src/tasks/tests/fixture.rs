@@ -25,7 +25,7 @@ impl Fixture {
                 &key.id,
                 &Operation::Create {
                     request_id: "conversation".into(),
-                    participants: vec![],
+                    request: connect_protocol::conversations::CreateRequest::persistent(vec![]),
                 },
             )
             .unwrap()

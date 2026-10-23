@@ -1,0 +1,178 @@
+{
+  "kind": "gate6-component-evidence",
+  "task": "G6-041",
+  "status": "in-progress",
+  "passed": true,
+  "recorded_at": "2026-10-20T06:56:41.019390+00:00",
+  "scope": "Local macOS arm64 actual loopback SIP UDP/RTP guarded audio, private duplex readiness, attributed single-digit confirmation, one managed Core endpoint move and cleanup. Includes ordinary SIP audio and existing native/controlled replacement and SIP/native DTMF routing regressions. Public Connect telephone composition remains uninstalled.",
+  "schema_version": 58,
+  "pinned_patches": 116,
+  "source_lock": {
+    "path": "dependencies/source-lock.json",
+    "sha256": "89baf7e028525d2bdde4842a4b903e43d4463bb03394291780e9d3a55a7a6f15"
+  },
+  "patch": {
+    "path": "patches/rvoip/gate6-sip-guarded-media.patch",
+    "sha256": "e04f632cfd4598978a008ced09ec92a4834b754d079a3a9214724fef6e8bf623"
+  },
+  "verification": [
+    {
+      "name": "replacement",
+      "command": "cargo test --locked --offline -j2 --target-dir target --manifest-path .deps/rvoip/Cargo.toml -p rvoip-uctp --test v2_peer_admission guarded_mixer::replacement:: -- --test-threads=1 --nocapture",
+      "exit_code": 0,
+      "passed": 14,
+      "ignored": 0,
+      "log": {
+        "path": ".local/gate-6/sip-guarded-media-replacement-final.log",
+        "sha256": "becb2ff0fb3916bb67563f913f06778f9ec2f1b1fcd9f3017d844ce0c083bb7e"
+      },
+      "test_binaries": [
+        {
+          "path": "target/debug/deps/v2_peer_admission-77f01c8d1e8199d5",
+          "sha256": "e9b3b32ad9d019f200af0468630abc5dac63167ba8a4a1af5800f5a0c8660cfd"
+        }
+      ]
+    },
+    {
+      "name": "sip-native-dtmf-routing",
+      "command": "cargo test --locked --offline -j2 --target-dir target --manifest-path .deps/rvoip/Cargo.toml -p rvoip-uctp --test v2_peer_admission native_offers::dtmf_route:: -- --test-threads=1 --nocapture",
+      "exit_code": 0,
+      "passed": 22,
+      "ignored": 0,
+      "log": {
+        "path": ".local/gate-6/sip-guarded-media-route-final.log",
+        "sha256": "d540185e155c438b3adfc00feba91c4e740e31bcda7ffc51e26ab1cb24281641"
+      },
+      "test_binaries": [
+        {
+          "path": "target/debug/deps/v2_peer_admission-77f01c8d1e8199d5",
+          "sha256": "e9b3b32ad9d019f200af0468630abc5dac63167ba8a4a1af5800f5a0c8660cfd"
+        }
+      ]
+    }
+  ],
+  "fresh_distinct_tests": 36,
+  "actual_sip_tests": 7,
+  "implemented": [
+    "Protected SIP context creates one held-policy Core controller for the actual reserved binding incarnation. It uses the exact conversation captured from Core allocation, current route handle, target principal and independent resource lifetime; no ordinary initial replacement binding is fabricated.",
+    "One exact negotiated audio port reserves the actual SIP input once. Private RTP traverses Core current ingress and its decoder probe, without publishing into the main programme. The bounded bridge has registered cleanup before work, retained task custody and cancellation while idle or backpressured.",
+    "Guarded output retains QueuedMedia through the bounded driver queue. Its fresh authority and success stamp enclose decode and the actual exact-lifetime RTP encode/send. Enqueue and output-only activity cannot claim duplex readiness. Codec descriptor changes retire the controller before exposing a different format; legacy replacement renegotiation is refused before wire IO.",
+    "Actual PCMU RTP proves private output, zero marked main-call leakage during preparation, output-only confirmation refusal, wrong/correct attributed INFO DTMF, one generation-two Core move and more than ten non-silent decoded frames in each direction after the original native device shuts down.",
+    "Actual cancellation and remote BYE release the preparation and media ports, preserve original native duplex and never create a second call. Target credential expiry refuses start and emits no SIP while physical route liveness remains truthful until cleanup.",
+    "Ordinary non-replacement SIP raw-stream RTP input and output each deliver more than ten non-silent decoded frames through the shared driver. Existing native/controlled replacement and 22 SIP/native DTMF-routing cases pass."
+  ],
+  "static_checks": [
+    {
+      "name": "dependencies",
+      "exit_code": 0,
+      "log": {
+        "path": ".local/gate-6/sip-guarded-media-static-dependencies-final.log",
+        "sha256": "fd9d7b181e3ccba9b643af55a186cf132c60aac99c734b2ee4e4e549afe5ffc2"
+      }
+    },
+    {
+      "name": "format",
+      "exit_code": 0,
+      "log": {
+        "path": ".local/gate-6/sip-guarded-media-static-format-final.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    {
+      "name": "http-reference",
+      "exit_code": 0,
+      "log": {
+        "path": ".local/gate-6/sip-guarded-media-static-http-reference-final.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    {
+      "name": "contracts",
+      "exit_code": 0,
+      "log": {
+        "path": ".local/gate-6/sip-guarded-media-static-contracts-final.log",
+        "sha256": "2c29557f8945b4bb522a5436f85876aa8ab90eca617dcf64588af05e9a81b1bc"
+      }
+    },
+    {
+      "name": "diff",
+      "exit_code": 0,
+      "log": {
+        "path": ".local/gate-6/sip-guarded-media-static-diff-final.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    }
+  ],
+  "upstream_format": {
+    "exit_code": 0,
+    "rust_files": 6,
+    "log": {
+      "path": ".local/gate-6/sip-guarded-media-upstream-format-final.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  },
+  "source_inputs": {
+    "path": ".local/gate-6/sip-guarded-media-app-inputs.json",
+    "sha256": "6240b61fdd2cbfc2b0f35ae24754cda0334467de5617bbbf4f92a09d5edfeb85"
+  },
+  "source_input_count": 1328,
+  "upstream_inputs": {
+    "path": ".local/gate-6/sip-guarded-media-upstream-inputs.json",
+    "sha256": "ddc09b92e5c883e444b61f73a20d6a70db0bf9d0504fce329e6b4f96fa2f2384"
+  },
+  "upstream_input_count": 2683,
+  "historical_signaling_report": {
+    "path": "docs/evidence/gate-6/sip-replacement-signaling.json",
+    "sha256": "845e722c41dded4cbb9626e1b1c3f28efa53f470425450d8d55220c7f7ae139e"
+  },
+  "preliminary_runs": [
+    {
+      "status": "incomplete-failed",
+      "exit_code": 101,
+      "log": {
+        "path": ".local/gate-6/sip-guarded-media-tests-1.log",
+        "sha256": "292b8f94b08e2d3b853a3b5ec2f3a555abe9b6cc5e8f849048363bfed7fa5221"
+      },
+      "note": "Initial harness exited without a complete test summary; not counted as verification."
+    },
+    {
+      "status": "failed",
+      "exit_code": 101,
+      "log": {
+        "path": ".local/gate-6/sip-guarded-media-direct-1.log",
+        "sha256": "4eb8fb67adba85b77a9703f8363b6e029e326ddb97901cab53f8a53e11297a57"
+      },
+      "note": "Three signal observations refused the fixture-changed credential. Fixed by preserving its original expiry."
+    }
+  ],
+  "unqualified": [
+    "Public Connect telephone callback/Store composition, durable submission/receipt custody and independent current production target credential/route authority remain required. Canonical runtime still refuses non-QUIC replacement before reservation.",
+    "Actual SIP fixture uses configured single digit 5. Full configured multi-digit assembly across attributed singleton callbacks, deduplication/replay and readiness/epoch changes remains required.",
+    "Full phone no-answer/voicemail/rejected-confirmation/timeout/cancel/late-old-event/unknown-submission/restart reconciliation and retargeted selector/private-context churn remain required.",
+    "Codec-change fencing is implemented but not behavior-qualified by this component. Full Store/Core/workspace, provider/PSTN/Linux/browser/remote/performance and independent acceptance were not rerun. Prior native end-to-end Connect reports remain historical."
+  ],
+  "build_diagnostics": "The first typecheck caught an invalid private binding getter and was corrected. Preliminary SIP runtime tests found a fixture clearing target credential expiry; the original credential is now preserved except in the explicit expiry case. These failed runs are not counted as passes. Final runtime assertions and thresholds were retained.",
+  "preparation_metadata": "Each source revision was reproduced from pinned sources and all patches in a fresh dependency directory. Only mtimes of byte-identical generated files were preserved for compiler reuse. No undocumented generated source edits.",
+  "task_counts": {
+    "done": 40,
+    "in_progress": 1,
+    "not_started": 64,
+    "acceptance_closed": 0
+  },
+  "all_105_tasks_remain_in_scope": true,
+  "goal_status": "active",
+  "plan_integrity": {
+    "exit_code": 0,
+    "log": {
+      "path": ".local/gate-6/sip-guarded-media-progress-final.log",
+      "sha256": "3c9a42760866b510a9b7fc81b2b57b9bf6791a239d0bf0de8cdf06058e513f78"
+    }
+  },
+  "final_diff": {
+    "exit_code": 0,
+    "log": {
+      "path": ".local/gate-6/sip-guarded-media-diff-final.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  }
+}

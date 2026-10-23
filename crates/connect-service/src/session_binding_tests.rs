@@ -22,7 +22,9 @@ async fn native_resource_projection_checks_origin_binding_and_current_authority(
             &key.id,
             &Operation::Create {
                 request_id: "conversation".into(),
-                participants: vec![peer.clone()],
+                request: connect_protocol::conversations::CreateRequest::persistent(vec![
+                    peer.clone()
+                ]),
             },
         )
         .unwrap()
@@ -267,7 +269,9 @@ async fn native_video_grant_admits_exact_profile_and_rejects_duplicate_unsupport
             &key.id,
             &Operation::Create {
                 request_id: "conversation".into(),
-                participants: vec![peer.clone()],
+                request: connect_protocol::conversations::CreateRequest::persistent(vec![
+                    peer.clone()
+                ]),
             },
         )
         .unwrap()

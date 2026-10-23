@@ -17,7 +17,8 @@
               "state": "completed",
               "provider_id": "chat-1",
               "sms_decision": null,
-              "sms_grant_id": null
+              "sms_grant_id": null,
+              "refusal_code": null
             }
           ]
         }

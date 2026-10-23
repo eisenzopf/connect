@@ -1,0 +1,152 @@
+{
+  "task": "G6-046",
+  "title": "Installed native DTMF signed service delivery and SDK submission",
+  "recorded_at": "2026-10-22T09:01:39.538674+00:00",
+  "status": "native-dtmf-service-local-component-qualified",
+  "full_task_complete": false,
+  "full_goal_complete": false,
+  "acceptance_qualified": false,
+  "scope": "Isolated local macOS arm64 production Store/service/Core/server and public Rust SDK over signed native QUIC. Named signal grants and local test endpoints are explicit. Five new production cases are qualified; this is not all DTMF fault/profile vectors or full G6-046.",
+  "schema_version": 84,
+  "source_lock": {
+    "path": "dependencies/source-lock.json",
+    "patches": 134,
+    "sha256": "723bc141df69599f9ec97fe413af59eca6fd022bbc97f24e9592cccd1ca4a5b5"
+  },
+  "implementation": [
+    "Physical DTMF registration/mux retained by actual recipient handler; runtime registry uses weak metadata references.",
+    "Managed signed source observation freezes current permitted recipients in Store under original proof. Handler returns Preparing; worker releases its copy of original invocation before downstream work.",
+    "Every actual signed native writer validates source/recipient/intent/frame, fresh named Store grants and Core original/current audience; reserves frame then acquires bounded actual IO lease. Closed flight admission waits all owned leases stopped before local fact settlement.",
+    "SDK send_native_dtmf uses request_value; inspected request_value preserves unsolicited DTMF via queue_event, and owned reader never coalesces DTMF.",
+    "New actual production tests cover both algorithms, original replay, missing named receive permission and local writer fact storage failure. New Store selection test added.",
+    "Current named recipient selection uses the already-held complete source invocation interval, excludes unpermitted original recipients and freezes no facts or idle readers during selection. Default credential scopes are unchanged.",
+    "Canonical operation.updated now carries stored problem details. HTTP DtmfSend explicitly refuses borrowing a physical native source before any operation admission. Canonical OpenAPI documents the native boundary and shared operation-status path.",
+    "Recipient jobs close admission and wait for all actual write leases to be destroyed before recording a local fact. Actual signed frame ID, source received_at and actual-native provenance match journaled results. No remote playback is asserted."
+  ],
+  "verification": {
+    "distinct_current_checks_passed": 30,
+    "new_distinct_cases": 6,
+    "production_dtmf": {
+      "passed": 5,
+      "failed": 0,
+      "seconds": 4.48,
+      "log": ".local/gate-6/native-dtmf-service-actual-v2.log",
+      "total_executable_cases": 173,
+      "not_requalified_by_this_filter": 168,
+      "cases": [
+        "Actual signed EdDSA and ES256 source-to-recipient SDK delivery, exact digits/method intent, per-frame local result, original completed replay without another effect, conflicting valid altered digits refused.",
+        "Another SDK command preserves queued incoming DTMF; payload source and observation claims cannot replace actual native source/received_at/source-envelope identity.",
+        "Existing audio/subscription grant without named dtmf.receive cannot receive and fails before any source or recipient delivery fact.",
+        "Injected local writer-fact storage failure leaves preparation and no partial journal fact; removing it records the same actually received frame without redelivery.",
+        "Actual HTTP request cannot supply native source custody and creates no operation record."
+      ]
+    },
+    "capability_regressions": {
+      "passed": 5,
+      "failed": 0,
+      "seconds": 35.17,
+      "log": ".local/gate-6/native-dtmf-service-capabilities-v1.log"
+    },
+    "lifecycle_regressions": {
+      "distinct_cases_passed": 4,
+      "initial_log": ".local/gate-6/native-dtmf-service-lifecycle-v1.log",
+      "initial_passed": 2,
+      "initial_failed": 2,
+      "retry_log": ".local/gate-6/native-dtmf-service-lifecycle-retry-v1.log",
+      "retry_passed": 2,
+      "retry_failed": 0,
+      "retry_seconds": 60.55,
+      "scope": "Only the two failed owned-signaling cases were retried after restoring space, sequentially after the Store build. First two cases were already passing against the identical executable. Initial failures are preserved below."
+    },
+    "store_recipients": {
+      "passed": 16,
+      "failed": 0,
+      "seconds": 6.78,
+      "log": ".local/gate-6/native-dtmf-service-store-v2.log",
+      "total_executable_cases": 881,
+      "not_requalified_by_this_filter": 865,
+      "new_selection_case": 1,
+      "scope": "New held-authority recipient selection plus fifteen original immutable recipient/capacity/recovery cases. This phase does not claim another complete Store run."
+    },
+    "source_build": {
+      "result": "passed locked offline single-job server library/test executable and connect CLI build",
+      "log": ".local/gate-6/native-dtmf-service-build-v3.log",
+      "seconds": 18.04,
+      "command": "CARGO_INCREMENTAL=0 cargo test -p connect-server --test gate6_canonical_runtime canonical_native_connections::dtmf:: --no-run -j1 --locked --offline"
+    },
+    "reference": "python3 scripts/generate-canonical-http-openapi.py --check; five production cases include actual HTTP refusal and successful HTTP operation.get through the shared fixture setup."
+  },
+  "inputs": {
+    "path": ".local/gate-6/native-dtmf-service-inputs-v3.json",
+    "entries": 1390,
+    "sha256": "2cc4d6e54487f8b4526c0b337a11836c7daa59ae5aac8776e0298a0096cdccd0"
+  },
+  "source_verification": {
+    "all_compiled_code_unchanged": true,
+    "changed_since_compiled_inputs": [
+      "docs/developer/native-dtmf-journal.md"
+    ],
+    "scope": "Only developer documentation changed before this report. Task evidence/notes are updated below without changing task contracts, clause IDs or statuses."
+  },
+  "compiled_binaries": [
+    {
+      "path": "target/debug/deps/gate6_canonical_runtime-f39476f2f6c7ff5d",
+      "archive": ".local/gate-6/native-dtmf-service-artifacts-v1/gate6_canonical_runtime-f39476f2f6c7ff5d-667f4c690ad3.gz",
+      "bytes": 362311096,
+      "sha256": "667f4c690ad35acb9028e9644a964f858f8324483eb61898dde72c7b652660c0",
+      "gzip_bytes": 70547369,
+      "archive_sha256": "4a34597860bd55e9f589a41de2f824e257b21c82d1e8eab62f43d3d55add5417",
+      "restored_bytes_verified": true
+    },
+    {
+      "path": "target/debug/deps/connect_store-2bc54b64bb656bb4",
+      "archive": ".local/gate-6/native-dtmf-service-artifacts-v1/connect_store-2bc54b64bb656bb4-e70422724b15.gz",
+      "bytes": 69334592,
+      "sha256": "e70422724b158d48ba17e06198251cbb8cf0a7ed5aab387788b8eecfa50dd259",
+      "gzip_bytes": 14929561,
+      "archive_sha256": "8d6b5fbc3aaf21d6c11b73b7fd82b11c5eccf9a90470d953ed680873af1795a1",
+      "restored_bytes_verified": true
+    }
+  ],
+  "initial_attempts": [
+    {
+      "log": ".local/gate-6/native-dtmf-service-build-v1.log",
+      "result": "compiler rejected non-Send future: worker JoinSet mutex guard required a lexical scope before rx.await; no runtime tests ran; applied scoped block"
+    },
+    {
+      "log": ".local/gate-6/native-dtmf-service-build-v2.log",
+      "result": "Service and integration-test executable built; separate connect CLI binary link failed ENOSPC. Test executable contains all4 new cases."
+    },
+    {
+      "log": ".local/gate-6/native-dtmf-service-actual-v1.log",
+      "result": "0pass/4fail during authentication setup, before DTMF: fixture replaced bearer without re-enrolling its credential-bound signing key. New explicit Fixture signal scope is issued before original key enrollment; default grants unchanged."
+    },
+    {
+      "log": ".local/gate-6/native-dtmf-service-store-v1.log",
+      "result": "Overly broad Cargo test selection attempted unrelated Store integration-test links; providers link failed ENOSPC before the requested new library cases ran. Narrowed to --lib without changing source/profile/limits."
+    },
+    {
+      "log": ".local/gate-6/native-dtmf-service-lifecycle-v1.log",
+      "result": "Two cases passed; owned capability-burst case observed Preparing instead of Completed during link-space exhaustion; subsequent owned-selector fixture failed StorageFull. Both failed cases passed against the unchanged executable with free space restored. No assertion/time limit was relaxed."
+    }
+  ],
+  "build_cache_recovery": {
+    "compression": [
+      ".local/gate-6/native-dtmf-service-cache-compression-v1.json",
+      ".local/gate-6/native-dtmf-service-library-compression-v1.json"
+    ],
+    "scope": "APFS transparent compression preserved exact executable/library bytes, modes and executable paths. Two executable loads were independently checked.",
+    "failed_additional_compression": "CLI/library compression at low free space failed; incomplete owned candidates were removed, original files preserved. Those failed copies are not a successful recovery claim.",
+    "object_prune": ".local/gate-6/native-dtmf-service-obsolete-cli-objects-v1.json",
+    "removed_objects": 5376,
+    "removed_object_logical_bytes": 3904710368,
+    "prune_scope": "Only recreatable standalone CLI .rcgu.o codegen intermediates, with no Cargo/rustc live. Both compiled CLI executable hashes/help loads verified; all executables, libraries, sources, state, logs and qualification archives preserved. Logical file totals are not asserted as physical reclaimed bytes."
+  },
+  "not_qualified": [
+    "Production original/current private-tail transitions, exact partial native DTMF write/cancellation, queued source/recipient/key/Endpoint/membership/expiry loss and actual restart delivery reconciliation.",
+    "DTMF on the owned public/private/handoff audio wrapper send facade; existing receive_signaling is verified for shared signaling behavior, not every DTMF/private-tail combination.",
+    "Installed SIP/WebRTC/general received-source composition, WebTransport/browser/Linux/remote profiles and remote playback.",
+    "Real assurance/step-up, exact61 assigned auxiliary vectors and the earlier unresolved retention/primary-return refusal. Full G6-046, remaining59 tasks, all acceptance and publication."
+  ],
+  "next": "Continue the production DTMF private-audience and fault/recovery matrix on these installed APIs, then finish supporting assurance/step-up and all exact assigned vectors before closing G6-046."
+}

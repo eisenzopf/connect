@@ -69,6 +69,36 @@ impl Store {
         register_origin: bool,
     ) -> Result<IssuedTaskGrant> {
         connect_protocol::tasks::validate_task_identifier(request_id)?;
+        // Exact retained issuance is a read, including provider authentication
+        // while a message transport owns current delivery read guards. Never
+        // turn this into new issuance or refresh after a denied replay.
+        {
+            let mut c = self.connection()?;
+            let tx = c.transaction().map_err(|_| Error::storage())?;
+            let timestamp = clock.read();
+            let actor = actor_from_connection_at(&tx, credential_id, timestamp)?;
+            if let Some(saved) = rows::issuance(&tx, &actor.identity_id, request_id)? {
+                let task = authority::issuing_task(&tx, &actor, definition, timestamp)?;
+                if !register_origin {
+                    bindings::check(&tx, &task, &definition.binding, timestamp)?;
+                }
+                if saved.digest != authority::intent(definition, credential_id, &task)? {
+                    return Err(Error::new(
+                        "request-conflict",
+                        "Grant issuance already has different inputs",
+                    ));
+                }
+                current(&tx, &saved, &definition.binding, timestamp)?;
+                let token = secret::mint(&tx, &saved.grant.id, &saved.nonce, &saved.digest)?;
+                return Ok(IssuedTaskGrant::new(saved.grant, token));
+            }
+        }
+        let _authority = self.task_owner_write_authority(
+            credential_id,
+            &definition.task_id,
+            "task_grant",
+            clock,
+        )?;
         let mut c = self.connection()?;
         let tx = c
             .transaction_with_behavior(TransactionBehavior::Immediate)

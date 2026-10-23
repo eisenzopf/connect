@@ -29,7 +29,7 @@ pub(super) fn send(f: &Fixture, cid: &str, id: &str, body: &str) -> String {
             &Operation::Send {
                 request_id: id.into(),
                 conversation_id: cid.into(),
-                body: body.into(),
+                message: connect_protocol::messages::MessageDraft::text_all(body),
             },
         )
         .unwrap()

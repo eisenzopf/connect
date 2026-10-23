@@ -1,0 +1,28 @@
+diff --git a/src/lib.rs b/src/lib.rs
+--- a/src/lib.rs
++++ b/src/lib.rs
+@@ -204,7 +204,7 @@
+ // Re-export derive macros for creating custom interceptors
+ // - `Interceptor` derive macro: marks a struct as an interceptor with #[next] field
+ // - `interceptor` attribute macro: generates Protocol and Interceptor trait implementations
+-pub use interceptor_derive::{interceptor, Interceptor};
++pub use interceptor_derive::{Interceptor, interceptor};
+ 
+ /// RTP/RTCP Packet
+ ///
+@@ -318,6 +318,15 @@
+     + Sync
+     + 'static
+ {
++    /// Reviewed synchronous telephone-event delivery profile. A true value
++    /// requires that a connected write produces its output immediately and
++    /// never buffers or caches that auxiliary payload for a later effect.
++    /// This is a pipeline contract, never readiness or an authorization grant.
++    /// Unreviewed wrappers deliberately do not inherit it.
++    fn supports_owned_dtmf_io(&self) -> bool {
++        false
++    }
++
+     /// Wrap this interceptor with another layer.
+     ///
+     /// The wrapper function receives `self` and returns a new interceptor

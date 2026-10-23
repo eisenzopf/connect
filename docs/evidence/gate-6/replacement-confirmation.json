@@ -1,0 +1,1602 @@
+{
+  "kind": "gate6-component-evidence",
+  "task": "G6-041",
+  "status": "in-progress",
+  "passed": true,
+  "recorded_at": "2026-10-20T07:42:08.158535+00:00",
+  "scope": "Local macOS arm64 bounded attributed multi-digit replacement confirmation with actual native media and loopback SIP INFO/RTP, capture sequencing and media-incarnation fences. Full current public signed native replacement regression is included. Public Connect telephone composition remains uninstalled.",
+  "schema_version": 58,
+  "pinned_patches": 117,
+  "source_lock": {
+    "path": "dependencies/source-lock.json",
+    "sha256": "48a8e8c0b13a254309172a68bbfb786a7d530b10e615054ebc409ead05bc491e"
+  },
+  "patch": {
+    "path": "patches/rvoip/gate6-replacement-confirmation.patch",
+    "sha256": "3786a11a07da3158323134a1f6770191c68ff07224d5f9756706dc670a1adac5"
+  },
+  "verification": [
+    {
+      "name": "core-library",
+      "command": "target/debug/deps/rvoip_core-c6c2afcb97584f02 --test-threads=2",
+      "exit_code": 0,
+      "passed": 435,
+      "ignored": 0,
+      "log": {
+        "path": ".local/gate-6/replacement-confirmation-core-library-final.log",
+        "sha256": "4f365d54f3811d09473fc0ac9c8f5dccf0f1f5d90c8bda45a0323a720b5c146d"
+      },
+      "test_binaries": [
+        {
+          "path": "target/debug/deps/rvoip_core-c6c2afcb97584f02",
+          "sha256": "b39d2c5f1e0df0af3711a4620b8432b47fbbee611264061f24f9f4f5282f35b6"
+        }
+      ]
+    },
+    {
+      "name": "replacement",
+      "command": "cargo test --locked --offline -j2 --target-dir target --manifest-path .deps/rvoip/Cargo.toml -p rvoip-uctp --test v2_peer_admission guarded_mixer::replacement:: -- --test-threads=1 --nocapture",
+      "exit_code": 0,
+      "passed": 16,
+      "ignored": 0,
+      "log": {
+        "path": ".local/gate-6/replacement-confirmation-replacement-final.log",
+        "sha256": "29e0acaa4f9c7d4ad03257513b906bffd133cfc282396ffb1069dec6b8b35a52"
+      },
+      "test_binaries": [
+        {
+          "path": "target/debug/deps/v2_peer_admission-77f01c8d1e8199d5",
+          "sha256": "36ff1c000d9478b09bd85d19c50e12ee338c15cebb8d321e6dabcd992e349050"
+        }
+      ]
+    },
+    {
+      "name": "route",
+      "command": "cargo test --locked --offline -j2 --target-dir target --manifest-path .deps/rvoip/Cargo.toml -p rvoip-uctp --test v2_peer_admission native_offers::dtmf_route:: -- --test-threads=1 --nocapture",
+      "exit_code": 0,
+      "passed": 22,
+      "ignored": 0,
+      "log": {
+        "path": ".local/gate-6/replacement-confirmation-route-final.log",
+        "sha256": "0f23539368b91af6775aa5107b154a2b138f0fd9a8df27e0633d80825fd42b5f"
+      },
+      "test_binaries": [
+        {
+          "path": "target/debug/deps/v2_peer_admission-77f01c8d1e8199d5",
+          "sha256": "36ff1c000d9478b09bd85d19c50e12ee338c15cebb8d321e6dabcd992e349050"
+        }
+      ]
+    },
+    {
+      "name": "native",
+      "command": "cargo test --locked --offline -j2 -p connect-server --test gate6_canonical_runtime production_replacement_ -- --test-threads=1 --nocapture",
+      "exit_code": 0,
+      "passed": 6,
+      "ignored": 0,
+      "log": {
+        "path": ".local/gate-6/replacement-confirmation-native-final.log",
+        "sha256": "faf74375ff0372e6e9c24db27da7808617d60f4b03735014e4cbcfd85c39ca82"
+      },
+      "test_binaries": [
+        {
+          "path": "target/debug/deps/gate6_canonical_runtime-971a142138367940",
+          "sha256": "7d86b0aebb5bc34060f3af72f08ca75f27726c5ed657e68796cb1b6292e0e875"
+        }
+      ]
+    },
+    {
+      "name": "service",
+      "command": "cargo test --locked --offline -j2 -p connect-service --lib -- --test-threads=2",
+      "exit_code": 0,
+      "passed": 22,
+      "ignored": 0,
+      "log": {
+        "path": ".local/gate-6/replacement-confirmation-service-final.log",
+        "sha256": "3b73e5c96b5cfbb2b17902744cfa8161db005369999a71cdf1e0415a82d21dde"
+      },
+      "test_binaries": [
+        {
+          "path": "target/debug/deps/connect_service-f0c8ec9c56711d06",
+          "sha256": "df2c64197051a89bb9861d869a8d675135e58c1713c090d9444bc9a129769edb"
+        }
+      ]
+    }
+  ],
+  "fresh_distinct_tests": 501,
+  "guarded_media_subset": {
+    "name": "core",
+    "command": "cargo test --locked --offline -j2 --target-dir target --manifest-path .deps/rvoip/Cargo.toml -p rvoip-core --features opus --lib staged_streams::tests -- --test-threads=2",
+    "exit_code": 0,
+    "passed": 177,
+    "ignored": 0,
+    "log": {
+      "path": ".local/gate-6/replacement-confirmation-core-final.log",
+      "sha256": "cd902ba901f67f0e78cfaee6362a3e4ba389970dd63ad0838bfe8525b53b041c"
+    },
+    "test_binaries": [
+      {
+        "path": "target/debug/deps/rvoip_core-c6c2afcb97584f02",
+        "sha256": "b39d2c5f1e0df0af3711a4620b8432b47fbbee611264061f24f9f4f5282f35b6"
+      }
+    ]
+  },
+  "implemented": [
+    "Core assembles the frozen configured 1\u201316-key sequence from attributed callbacks. A bounded suffix/prefix matcher accepts repeated real keys and composite observations without trusting a caller-supplied expected sequence. Malformed batches discard the prefix.",
+    "Opaque capture ordinals are never wire claims. Fresh authority is required before consuming an observation. Replaying an observed event cannot supply another key; gaps and out-of-order observations cannot join a prefix across lost callbacks. Pre-answer and pre-media captures retain their specific refusal after later readiness.",
+    "Partial and completed confirmation retain actual controller revision, credential and duplex port/consumer/subscription incarnation. Stale queued events are refused; a media change requires a complete fresh confirmation. The physical plan checks the confirmed stamp at the final target fence with target state already locked.",
+    "Credential capture checks current credential, expiry and atomic shutdown without waiting for controller mutation state. All closed transitions cancel shutdown first. Readiness capture uses nonblocking scene/state fences to avoid reverse connection/media lock ordering. Transient mutation-state contention does not consume a retryable opaque observation.",
+    "Actual SIP fixture enters 55# as three INFO keypresses, refuses retransmitted INFO as another callback, refuses opaque replay, rejects a wrong key and commits one generation-two move. Strict decoded duplex remains after original-device shutdown. Output-only confirmation and preparation-main-leakage negatives remain unchanged.",
+    "Native cases cover replay, out-of-order and lost callbacks, queued digits across pause/resume, completed confirmation invalidation and stale-plan refusal. A fresh full sequence succeeds afterward. All sixteen allowed keys and malformed batch rejection are tested through current native authority and actual media.",
+    "Fresh public native regression retains six known managed moves, generation three, Observer behavior, original-source/controller loss, current target loss, retained stream controls and blocked projection recovery without replay. All 122 strict decoded PCMU audience probes retain their thresholds."
+  ],
+  "known_native_managed_moves": {
+    "generation_two": 5,
+    "generation_three": 1,
+    "retired_before_adoption": 1
+  },
+  "strict_native_audio_probes": [
+    {
+      "name": "replace-before-prepare-remote",
+      "source": 0,
+      "allowed": [
+        1
+      ],
+      "decoded_frames": [
+        0,
+        88
+      ]
+    },
+    {
+      "name": "replace-before-prepare-source",
+      "source": 1,
+      "allowed": [
+        0
+      ],
+      "decoded_frames": [
+        81,
+        0
+      ]
+    },
+    {
+      "name": "replace-real-preparation-retains-remote-audio",
+      "source": 0,
+      "allowed": [
+        1
+      ],
+      "decoded_frames": [
+        0,
+        20
+      ]
+    },
+    {
+      "name": "replace-real-preparation-retains-source-role",
+      "source": 1,
+      "allowed": [
+        0
+      ],
+      "decoded_frames": [
+        17,
+        0
+      ]
+    },
+    {
+      "name": "replace-moved-remote-reaches-only-target",
+      "source": 0,
+      "allowed": [
+        2
+      ],
+      "decoded_frames": [
+        0,
+        0,
+        84
+      ]
+    },
+    {
+      "name": "replace-moved-target-preserves-original-role",
+      "source": 2,
+      "allowed": [
+        0
+      ],
+      "decoded_frames": [
+        81,
+        0,
+        0
+      ]
+    },
+    {
+      "name": "replace-retained-control-uses-current-durable-revision",
+      "source": 2,
+      "allowed": [
+        0
+      ],
+      "decoded_frames": [
+        85,
+        0,
+        0
+      ]
+    },
+    {
+      "name": "replace-moved-survives-old-source-and-controller-revoke",
+      "source": 0,
+      "allowed": [
+        2
+      ],
+      "decoded_frames": [
+        0,
+        0,
+        84
+      ]
+    },
+    {
+      "name": "replace-moved-target-still-current",
+      "source": 2,
+      "allowed": [
+        0
+      ],
+      "decoded_frames": [
+        83,
+        0,
+        0
+      ]
+    },
+    {
+      "name": "replace-generation-three-retains-main-remote-audio",
+      "source": 0,
+      "allowed": [
+        3
+      ],
+      "decoded_frames": [
+        0,
+        0,
+        0,
+        81
+      ]
+    },
+    {
+      "name": "replace-generation-three-target-publishes",
+      "source": 3,
+      "allowed": [
+        0
+      ],
+      "decoded_frames": [
+        77,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "name": "replace-generation-three-retained-control-stays-current",
+      "source": 3,
+      "allowed": [
+        0
+      ],
+      "decoded_frames": [
+        82,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "name": "replace-generation-three-survives-generation-two-key-loss",
+      "source": 0,
+      "allowed": [
+        3
+      ],
+      "decoded_frames": [
+        0,
+        0,
+        0,
+        80
+      ]
+    },
+    {
+      "name": "replace-generation-three-keeps-current-target-key",
+      "source": 3,
+      "allowed": [
+        0
+      ],
+      "decoded_frames": [
+        81,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "name": "replace-target-end-preserves-only-retained-peer",
+      "source": 0,
+      "allowed": [],
+      "decoded_frames": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "name": "replace-before-prepare-remote",
+      "source": 0,
+      "allowed": [
+        1
+      ],
+      "decoded_frames": [
+        0,
+        82
+      ]
+    },
+    {
+      "name": "replace-before-prepare-source",
+      "source": 1,
+      "allowed": [],
+      "decoded_frames": [
+        0,
+        0
+      ]
+    },
+    {
+      "name": "replace-real-preparation-retains-remote-audio",
+      "source": 0,
+      "allowed": [
+        1
+      ],
+      "decoded_frames": [
+        0,
+        25
+      ]
+    },
+    {
+      "name": "replace-real-preparation-retains-source-role",
+      "source": 1,
+      "allowed": [],
+      "decoded_frames": [
+        0,
+        0
+      ]
+    },
+    {
+      "name": "replace-moved-remote-reaches-only-target",
+      "source": 0,
+      "allowed": [
+        2
+      ],
+      "decoded_frames": [
+        0,
+        0,
+        84
+      ]
+    },
+    {
+      "name": "replace-moved-target-preserves-original-role",
+      "source": 2,
+      "allowed": [],
+      "decoded_frames": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "name": "replace-retained-control-uses-current-durable-revision",
+      "source": 2,
+      "allowed": [],
+      "decoded_frames": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "name": "replace-moved-survives-old-source-and-controller-revoke",
+      "source": 0,
+      "allowed": [
+        2
+      ],
+      "decoded_frames": [
+        0,
+        0,
+        81
+      ]
+    },
+    {
+      "name": "replace-moved-target-still-current",
+      "source": 2,
+      "allowed": [],
+      "decoded_frames": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "name": "replace-target-end-preserves-only-retained-peer",
+      "source": 0,
+      "allowed": [],
+      "decoded_frames": [
+        0,
+        0
+      ]
+    },
+    {
+      "name": "replace-before-prepare-remote",
+      "source": 0,
+      "allowed": [
+        1
+      ],
+      "decoded_frames": [
+        0,
+        84
+      ]
+    },
+    {
+      "name": "replace-before-prepare-source",
+      "source": 1,
+      "allowed": [
+        0
+      ],
+      "decoded_frames": [
+        86,
+        0
+      ]
+    },
+    {
+      "name": "replace-real-preparation-retains-remote-audio",
+      "source": 0,
+      "allowed": [
+        1
+      ],
+      "decoded_frames": [
+        0,
+        21
+      ]
+    },
+    {
+      "name": "replace-real-preparation-retains-source-role",
+      "source": 1,
+      "allowed": [
+        0
+      ],
+      "decoded_frames": [
+        17,
+        0
+      ]
+    },
+    {
+      "name": "replace-moved-remote-reaches-only-target",
+      "source": 0,
+      "allowed": [
+        2
+      ],
+      "decoded_frames": [
+        0,
+        0,
+        76
+      ]
+    },
+    {
+      "name": "replace-moved-target-preserves-original-role",
+      "source": 2,
+      "allowed": [
+        0
+      ],
+      "decoded_frames": [
+        81,
+        0,
+        0
+      ]
+    },
+    {
+      "name": "replace-retained-control-uses-current-durable-revision",
+      "source": 2,
+      "allowed": [
+        0
+      ],
+      "decoded_frames": [
+        76,
+        0,
+        0
+      ]
+    },
+    {
+      "name": "replace-moved-survives-old-source-and-controller-revoke",
+      "source": 0,
+      "allowed": [
+        2
+      ],
+      "decoded_frames": [
+        0,
+        0,
+        81
+      ]
+    },
+    {
+      "name": "replace-moved-target-still-current",
+      "source": 2,
+      "allowed": [
+        0
+      ],
+      "decoded_frames": [
+        86,
+        0,
+        0
+      ]
+    },
+    {
+      "name": "replace-target-end-preserves-only-retained-peer",
+      "source": 0,
+      "allowed": [],
+      "decoded_frames": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "name": "replace-before-prepare-remote",
+      "source": 0,
+      "allowed": [
+        1
+      ],
+      "decoded_frames": [
+        0,
+        84
+      ]
+    },
+    {
+      "name": "replace-before-prepare-source",
+      "source": 1,
+      "allowed": [
+        0
+      ],
+      "decoded_frames": [
+        84,
+        0
+      ]
+    },
+    {
+      "name": "replace-real-preparation-retains-remote-audio",
+      "source": 0,
+      "allowed": [
+        1
+      ],
+      "decoded_frames": [
+        0,
+        17
+      ]
+    },
+    {
+      "name": "replace-real-preparation-retains-source-role",
+      "source": 1,
+      "allowed": [
+        0
+      ],
+      "decoded_frames": [
+        22,
+        0
+      ]
+    },
+    {
+      "name": "replace-moved-remote-reaches-only-target",
+      "source": 0,
+      "allowed": [
+        2
+      ],
+      "decoded_frames": [
+        0,
+        0,
+        84
+      ]
+    },
+    {
+      "name": "replace-moved-target-preserves-original-role",
+      "source": 2,
+      "allowed": [
+        0
+      ],
+      "decoded_frames": [
+        83,
+        0,
+        0
+      ]
+    },
+    {
+      "name": "replace-retained-control-uses-current-durable-revision",
+      "source": 2,
+      "allowed": [
+        0
+      ],
+      "decoded_frames": [
+        87,
+        0,
+        0
+      ]
+    },
+    {
+      "name": "replace-moved-survives-old-source-and-controller-revoke",
+      "source": 0,
+      "allowed": [
+        2
+      ],
+      "decoded_frames": [
+        0,
+        0,
+        85
+      ]
+    },
+    {
+      "name": "replace-moved-target-still-current",
+      "source": 2,
+      "allowed": [
+        0
+      ],
+      "decoded_frames": [
+        81,
+        0,
+        0
+      ]
+    },
+    {
+      "name": "replace-target-end-preserves-only-retained-peer",
+      "source": 0,
+      "allowed": [],
+      "decoded_frames": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "name": "replace-before-prepare-remote",
+      "source": 0,
+      "allowed": [
+        1
+      ],
+      "decoded_frames": [
+        0,
+        86
+      ]
+    },
+    {
+      "name": "replace-before-prepare-source",
+      "source": 1,
+      "allowed": [
+        0
+      ],
+      "decoded_frames": [
+        85,
+        0
+      ]
+    },
+    {
+      "name": "replace-real-preparation-retains-remote-audio",
+      "source": 0,
+      "allowed": [
+        1
+      ],
+      "decoded_frames": [
+        0,
+        79
+      ]
+    },
+    {
+      "name": "replace-real-preparation-retains-source-role",
+      "source": 1,
+      "allowed": [
+        0
+      ],
+      "decoded_frames": [
+        76,
+        0
+      ]
+    },
+    {
+      "name": "replace-after-stop-remote-audio",
+      "source": 0,
+      "allowed": [
+        1
+      ],
+      "decoded_frames": [
+        0,
+        77
+      ]
+    },
+    {
+      "name": "replace-after-stop-source-role",
+      "source": 1,
+      "allowed": [
+        0
+      ],
+      "decoded_frames": [
+        83,
+        0
+      ]
+    },
+    {
+      "name": "replace-before-prepare-remote",
+      "source": 0,
+      "allowed": [
+        1
+      ],
+      "decoded_frames": [
+        0,
+        82
+      ]
+    },
+    {
+      "name": "replace-before-prepare-source",
+      "source": 1,
+      "allowed": [],
+      "decoded_frames": [
+        0,
+        0
+      ]
+    },
+    {
+      "name": "replace-real-preparation-retains-remote-audio",
+      "source": 0,
+      "allowed": [
+        1
+      ],
+      "decoded_frames": [
+        0,
+        71
+      ]
+    },
+    {
+      "name": "replace-real-preparation-retains-source-role",
+      "source": 1,
+      "allowed": [],
+      "decoded_frames": [
+        0,
+        0
+      ]
+    },
+    {
+      "name": "replace-after-stop-remote-audio",
+      "source": 0,
+      "allowed": [
+        1
+      ],
+      "decoded_frames": [
+        0,
+        75
+      ]
+    },
+    {
+      "name": "replace-after-stop-source-role",
+      "source": 1,
+      "allowed": [],
+      "decoded_frames": [
+        0,
+        0
+      ]
+    },
+    {
+      "name": "replace-before-prepare-remote",
+      "source": 0,
+      "allowed": [
+        1
+      ],
+      "decoded_frames": [
+        0,
+        85
+      ]
+    },
+    {
+      "name": "replace-before-prepare-source",
+      "source": 1,
+      "allowed": [
+        0
+      ],
+      "decoded_frames": [
+        86,
+        0
+      ]
+    },
+    {
+      "name": "replace-real-preparation-retains-remote-audio",
+      "source": 0,
+      "allowed": [
+        1
+      ],
+      "decoded_frames": [
+        0,
+        85
+      ]
+    },
+    {
+      "name": "replace-real-preparation-retains-source-role",
+      "source": 1,
+      "allowed": [
+        0
+      ],
+      "decoded_frames": [
+        88,
+        0
+      ]
+    },
+    {
+      "name": "replace-after-stop-remote-audio",
+      "source": 0,
+      "allowed": [
+        1
+      ],
+      "decoded_frames": [
+        0,
+        77
+      ]
+    },
+    {
+      "name": "replace-after-stop-source-role",
+      "source": 1,
+      "allowed": [
+        0
+      ],
+      "decoded_frames": [
+        81,
+        0
+      ]
+    },
+    {
+      "name": "replace-before-prepare-remote",
+      "source": 0,
+      "allowed": [
+        1
+      ],
+      "decoded_frames": [
+        0,
+        86
+      ]
+    },
+    {
+      "name": "replace-before-prepare-source",
+      "source": 1,
+      "allowed": [
+        0
+      ],
+      "decoded_frames": [
+        86,
+        0
+      ]
+    },
+    {
+      "name": "replace-real-preparation-retains-remote-audio",
+      "source": 0,
+      "allowed": [
+        1
+      ],
+      "decoded_frames": [
+        0,
+        78
+      ]
+    },
+    {
+      "name": "replace-real-preparation-retains-source-role",
+      "source": 1,
+      "allowed": [
+        0
+      ],
+      "decoded_frames": [
+        82,
+        0
+      ]
+    },
+    {
+      "name": "replace-after-stop-remote-audio",
+      "source": 0,
+      "allowed": [
+        1
+      ],
+      "decoded_frames": [
+        0,
+        79
+      ]
+    },
+    {
+      "name": "replace-after-stop-source-role",
+      "source": 1,
+      "allowed": [
+        0
+      ],
+      "decoded_frames": [
+        81,
+        0
+      ]
+    },
+    {
+      "name": "replace-before-prepare-remote",
+      "source": 0,
+      "allowed": [
+        1
+      ],
+      "decoded_frames": [
+        0,
+        79
+      ]
+    },
+    {
+      "name": "replace-before-prepare-source",
+      "source": 1,
+      "allowed": [
+        0
+      ],
+      "decoded_frames": [
+        83,
+        0
+      ]
+    },
+    {
+      "name": "replace-real-preparation-retains-remote-audio",
+      "source": 0,
+      "allowed": [
+        1
+      ],
+      "decoded_frames": [
+        0,
+        83
+      ]
+    },
+    {
+      "name": "replace-real-preparation-retains-source-role",
+      "source": 1,
+      "allowed": [
+        0
+      ],
+      "decoded_frames": [
+        79,
+        0
+      ]
+    },
+    {
+      "name": "replace-after-stop-remote-audio",
+      "source": 0,
+      "allowed": [
+        1
+      ],
+      "decoded_frames": [
+        0,
+        83
+      ]
+    },
+    {
+      "name": "replace-after-stop-source-role",
+      "source": 1,
+      "allowed": [
+        0
+      ],
+      "decoded_frames": [
+        82,
+        0
+      ]
+    },
+    {
+      "name": "replace-before-prepare-remote",
+      "source": 0,
+      "allowed": [
+        1
+      ],
+      "decoded_frames": [
+        0,
+        86
+      ]
+    },
+    {
+      "name": "replace-before-prepare-source",
+      "source": 1,
+      "allowed": [
+        0
+      ],
+      "decoded_frames": [
+        84,
+        0
+      ]
+    },
+    {
+      "name": "replace-real-preparation-retains-remote-audio",
+      "source": 0,
+      "allowed": [
+        1
+      ],
+      "decoded_frames": [
+        0,
+        26
+      ]
+    },
+    {
+      "name": "replace-real-preparation-retains-source-role",
+      "source": 1,
+      "allowed": [
+        0
+      ],
+      "decoded_frames": [
+        25,
+        0
+      ]
+    },
+    {
+      "name": "replace-known-commit-key-loss-during-projection-preserves-retained",
+      "source": 0,
+      "allowed": [],
+      "decoded_frames": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "name": "replace-before-prepare-remote",
+      "source": 0,
+      "allowed": [
+        1
+      ],
+      "decoded_frames": [
+        0,
+        84
+      ]
+    },
+    {
+      "name": "replace-before-prepare-source",
+      "source": 1,
+      "allowed": [
+        0
+      ],
+      "decoded_frames": [
+        80,
+        0
+      ]
+    },
+    {
+      "name": "replace-real-preparation-retains-remote-audio",
+      "source": 0,
+      "allowed": [
+        1
+      ],
+      "decoded_frames": [
+        0,
+        19
+      ]
+    },
+    {
+      "name": "replace-real-preparation-retains-source-role",
+      "source": 1,
+      "allowed": [
+        0
+      ],
+      "decoded_frames": [
+        18,
+        0
+      ]
+    },
+    {
+      "name": "replace-after-stop-remote-audio",
+      "source": 0,
+      "allowed": [
+        1
+      ],
+      "decoded_frames": [
+        0,
+        82
+      ]
+    },
+    {
+      "name": "replace-after-stop-source-role",
+      "source": 1,
+      "allowed": [
+        0
+      ],
+      "decoded_frames": [
+        82,
+        0
+      ]
+    },
+    {
+      "name": "replace-before-prepare-remote",
+      "source": 0,
+      "allowed": [
+        1
+      ],
+      "decoded_frames": [
+        0,
+        82
+      ]
+    },
+    {
+      "name": "replace-before-prepare-source",
+      "source": 1,
+      "allowed": [],
+      "decoded_frames": [
+        0,
+        0
+      ]
+    },
+    {
+      "name": "replace-real-preparation-retains-remote-audio",
+      "source": 0,
+      "allowed": [
+        1
+      ],
+      "decoded_frames": [
+        0,
+        27
+      ]
+    },
+    {
+      "name": "replace-real-preparation-retains-source-role",
+      "source": 1,
+      "allowed": [],
+      "decoded_frames": [
+        0,
+        0
+      ]
+    },
+    {
+      "name": "replace-after-stop-remote-audio",
+      "source": 0,
+      "allowed": [
+        1
+      ],
+      "decoded_frames": [
+        0,
+        85
+      ]
+    },
+    {
+      "name": "replace-after-stop-source-role",
+      "source": 1,
+      "allowed": [],
+      "decoded_frames": [
+        0,
+        0
+      ]
+    },
+    {
+      "name": "replace-before-prepare-remote",
+      "source": 0,
+      "allowed": [
+        1
+      ],
+      "decoded_frames": [
+        0,
+        86
+      ]
+    },
+    {
+      "name": "replace-before-prepare-source",
+      "source": 1,
+      "allowed": [
+        0
+      ],
+      "decoded_frames": [
+        83,
+        0
+      ]
+    },
+    {
+      "name": "replace-real-preparation-retains-remote-audio",
+      "source": 0,
+      "allowed": [
+        1
+      ],
+      "decoded_frames": [
+        0,
+        16
+      ]
+    },
+    {
+      "name": "replace-real-preparation-retains-source-role",
+      "source": 1,
+      "allowed": [
+        0
+      ],
+      "decoded_frames": [
+        19,
+        0
+      ]
+    },
+    {
+      "name": "replace-after-stop-remote-audio",
+      "source": 0,
+      "allowed": [
+        1
+      ],
+      "decoded_frames": [
+        0,
+        79
+      ]
+    },
+    {
+      "name": "replace-after-stop-source-role",
+      "source": 1,
+      "allowed": [
+        0
+      ],
+      "decoded_frames": [
+        79,
+        0
+      ]
+    },
+    {
+      "name": "replace-before-prepare-remote",
+      "source": 0,
+      "allowed": [
+        1
+      ],
+      "decoded_frames": [
+        0,
+        89
+      ]
+    },
+    {
+      "name": "replace-before-prepare-source",
+      "source": 1,
+      "allowed": [
+        0
+      ],
+      "decoded_frames": [
+        87,
+        0
+      ]
+    },
+    {
+      "name": "replace-real-preparation-retains-remote-audio",
+      "source": 0,
+      "allowed": [
+        1
+      ],
+      "decoded_frames": [
+        0,
+        12
+      ]
+    },
+    {
+      "name": "replace-real-preparation-retains-source-role",
+      "source": 1,
+      "allowed": [
+        0
+      ],
+      "decoded_frames": [
+        19,
+        0
+      ]
+    },
+    {
+      "name": "replace-after-stop-remote-audio",
+      "source": 0,
+      "allowed": [
+        1
+      ],
+      "decoded_frames": [
+        0,
+        80
+      ]
+    },
+    {
+      "name": "replace-after-stop-source-role",
+      "source": 1,
+      "allowed": [
+        0
+      ],
+      "decoded_frames": [
+        76,
+        0
+      ]
+    },
+    {
+      "name": "replace-before-prepare-remote",
+      "source": 0,
+      "allowed": [
+        1
+      ],
+      "decoded_frames": [
+        0,
+        82
+      ]
+    },
+    {
+      "name": "replace-before-prepare-source",
+      "source": 1,
+      "allowed": [
+        0
+      ],
+      "decoded_frames": [
+        84,
+        0
+      ]
+    },
+    {
+      "name": "replace-real-preparation-retains-remote-audio",
+      "source": 0,
+      "allowed": [
+        1
+      ],
+      "decoded_frames": [
+        0,
+        79
+      ]
+    },
+    {
+      "name": "replace-real-preparation-retains-source-role",
+      "source": 1,
+      "allowed": [
+        0
+      ],
+      "decoded_frames": [
+        79,
+        0
+      ]
+    },
+    {
+      "name": "replace-after-stop-remote-audio",
+      "source": 0,
+      "allowed": [
+        1
+      ],
+      "decoded_frames": [
+        0,
+        86
+      ]
+    },
+    {
+      "name": "replace-after-stop-source-role",
+      "source": 1,
+      "allowed": [
+        0
+      ],
+      "decoded_frames": [
+        83,
+        0
+      ]
+    },
+    {
+      "name": "replace-before-prepare-remote",
+      "source": 0,
+      "allowed": [
+        1
+      ],
+      "decoded_frames": [
+        0,
+        84
+      ]
+    },
+    {
+      "name": "replace-before-prepare-source",
+      "source": 1,
+      "allowed": [],
+      "decoded_frames": [
+        0,
+        0
+      ]
+    },
+    {
+      "name": "replace-real-preparation-retains-remote-audio",
+      "source": 0,
+      "allowed": [
+        1
+      ],
+      "decoded_frames": [
+        0,
+        83
+      ]
+    },
+    {
+      "name": "replace-real-preparation-retains-source-role",
+      "source": 1,
+      "allowed": [],
+      "decoded_frames": [
+        0,
+        0
+      ]
+    },
+    {
+      "name": "replace-after-stop-remote-audio",
+      "source": 0,
+      "allowed": [
+        1
+      ],
+      "decoded_frames": [
+        0,
+        83
+      ]
+    },
+    {
+      "name": "replace-after-stop-source-role",
+      "source": 1,
+      "allowed": [],
+      "decoded_frames": [
+        0,
+        0
+      ]
+    },
+    {
+      "name": "replace-before-prepare-remote",
+      "source": 0,
+      "allowed": [
+        1
+      ],
+      "decoded_frames": [
+        0,
+        84
+      ]
+    },
+    {
+      "name": "replace-before-prepare-source",
+      "source": 1,
+      "allowed": [
+        0
+      ],
+      "decoded_frames": [
+        81,
+        0
+      ]
+    },
+    {
+      "name": "replace-real-preparation-retains-remote-audio",
+      "source": 0,
+      "allowed": [
+        1
+      ],
+      "decoded_frames": [
+        0,
+        83
+      ]
+    },
+    {
+      "name": "replace-real-preparation-retains-source-role",
+      "source": 1,
+      "allowed": [
+        0
+      ],
+      "decoded_frames": [
+        84,
+        0
+      ]
+    },
+    {
+      "name": "replace-after-stop-remote-audio",
+      "source": 0,
+      "allowed": [
+        1
+      ],
+      "decoded_frames": [
+        0,
+        84
+      ]
+    },
+    {
+      "name": "replace-after-stop-source-role",
+      "source": 1,
+      "allowed": [
+        0
+      ],
+      "decoded_frames": [
+        83,
+        0
+      ]
+    }
+  ],
+  "static_checks": [
+    {
+      "name": "dependencies",
+      "exit_code": 0,
+      "log": {
+        "path": ".local/gate-6/replacement-confirmation-static-dependencies-final.log",
+        "sha256": "fd9d7b181e3ccba9b643af55a186cf132c60aac99c734b2ee4e4e549afe5ffc2"
+      }
+    },
+    {
+      "name": "format",
+      "exit_code": 0,
+      "log": {
+        "path": ".local/gate-6/replacement-confirmation-static-format-final.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    {
+      "name": "http-reference",
+      "exit_code": 0,
+      "log": {
+        "path": ".local/gate-6/replacement-confirmation-static-http-reference-final.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    {
+      "name": "contracts",
+      "exit_code": 0,
+      "log": {
+        "path": ".local/gate-6/replacement-confirmation-static-contracts-final.log",
+        "sha256": "2c29557f8945b4bb522a5436f85876aa8ab90eca617dcf64588af05e9a81b1bc"
+      }
+    },
+    {
+      "name": "diff",
+      "exit_code": 0,
+      "log": {
+        "path": ".local/gate-6/replacement-confirmation-static-diff-final.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    }
+  ],
+  "upstream_format": {
+    "exit_code": 0,
+    "rust_files": 8,
+    "log": {
+      "path": ".local/gate-6/replacement-confirmation-upstream-format-final.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  },
+  "source_inputs": {
+    "path": ".local/gate-6/replacement-confirmation-app-inputs.json",
+    "sha256": "35daf1cb93594a5ad1449ed58814ccca1216021b2dce5d593a6202d762b6b741"
+  },
+  "source_input_count": 1329,
+  "upstream_inputs": {
+    "path": ".local/gate-6/replacement-confirmation-upstream-inputs.json",
+    "sha256": "22477a07c7e735633cb4001843a1700f5da78f8c777f0ed6208eb2947188ab86"
+  },
+  "upstream_input_count": 2683,
+  "server_executable": {
+    "path": "target/debug/connect",
+    "sha256": "4f97b18937d9c69a07ea07beeecb52a7605b0c17faa8cf152d1b975e97863973"
+  },
+  "historical_guarded_media_report": {
+    "path": "docs/evidence/gate-6/sip-guarded-media.json",
+    "sha256": "78b8c4cce6c3895434b46f8b884353db5dd1110329c0b130649958049e588a4d"
+  },
+  "preliminary_failures": [
+    {
+      "log": {
+        "path": ".local/gate-6/replacement-confirmation-tests-1.log",
+        "sha256": "09aa0cec667aee48dbd3f9adbb395bd404f6f1419bf035200096e1b8ed7bd032"
+      },
+      "status": "failed",
+      "reason": "New test policy compared a referenced BTreeSet with an owned set; fixed the reference comparison. The known-failed owned compiler was stopped only after fatal diagnostics and exact parent/argv verification."
+    },
+    {
+      "log": {
+        "path": ".local/gate-6/replacement-confirmation-tests-2.log",
+        "sha256": "86c55c41469c6ef16409af230f89e8cdb25c7604a0689b0be79bc11a87bf3436"
+      },
+      "status": "failed",
+      "passed": 15,
+      "failed": 1,
+      "reason": "The new ordinal check preceded the old pre-answer refusal. Eligibility now precedes deduplication; the existing strict assertion was retained."
+    },
+    {
+      "log": {
+        "path": ".local/gate-6/replacement-confirmation-core-3-failed.log",
+        "sha256": "c1571c10ff4b2e9480c98f275bbf7ba99ae80cc55f4c52a035ca847188b17469"
+      },
+      "status": "failed",
+      "reason": "An existing direct scene test planner needed the new confirmation stamp argument. DTMF now supplies the actual scene readiness stamp; no readiness or outcome assertion was relaxed."
+    }
+  ],
+  "unqualified": [
+    "Public Connect telephone callback/Store composition, independently current production target authority and established lifetime, durable submission/receipt custody and the complete telephone failure/restart/unknown-submission matrix remain required. Canonical runtime still refuses non-QUIC replacement before reservation.",
+    "Actual SIP wire confirmation here is 55#; the sixteen-key boundary is tested through native attributed Core callbacks, not every SIP/provider profile. DTMF behavior under all provider/remote/network failures remains assigned work.",
+    "Retargeted selector/private-context replay under later churn and the remaining 64 tasks are not completed by this component.",
+    "Full Store, separate Core integration targets, all-workspace suites, Linux/browser/remote/provider/PSTN/performance profiles and independent acceptance were not qualified by this component. Publication remains separate."
+  ],
+  "preparation_metadata": "Each upstream revision was reproduced from pinned sources and all patches in a new dependency directory. Only mtimes of byte-identical generated files were preserved for compiler reuse; no undocumented generated-source edits.",
+  "task_counts": {
+    "done": 40,
+    "in_progress": 1,
+    "not_started": 64,
+    "acceptance_closed": 0
+  },
+  "all_105_tasks_remain_in_scope": true,
+  "goal_status": "active",
+  "plan_integrity": {
+    "exit_code": 0,
+    "log": {
+      "path": ".local/gate-6/replacement-confirmation-progress-final.log",
+      "sha256": "3c9a42760866b510a9b7fc81b2b57b9bf6791a239d0bf0de8cdf06058e513f78"
+    }
+  },
+  "final_diff": {
+    "exit_code": 0,
+    "log": {
+      "path": ".local/gate-6/replacement-confirmation-diff-final.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  }
+}

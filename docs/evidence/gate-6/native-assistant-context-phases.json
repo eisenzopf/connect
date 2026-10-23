@@ -1,0 +1,343 @@
+{
+  "kind": "gate6-component-evidence",
+  "task": "G6-042",
+  "status": "done",
+  "passed": true,
+  "recorded_at": "2026-10-20T21:02:55.444035+00:00",
+  "scope": "Local macOS arm64 isolated Store and actual signed native SDK/loopback HTTP/WebSocket fixtures. Public initialization-time history, existing-instance context updates, captured provider cleanup, owned duplex, and subsequent private-only consultation, owner return and attributable messaging follow-up after actual host restart. No live provider or remote claims.",
+  "platform": {
+    "system": "Darwin",
+    "machine": "arm64"
+  },
+  "schema_version": 63,
+  "pinned_patches": 123,
+  "source_lock": {
+    "path": "dependencies/source-lock.json",
+    "sha256": "79806adf28f4720a562879e62ab52d47144c0369e2053f626f7c3d3ebe84eba4"
+  },
+  "qualification_inputs": {
+    "path": ".local/gate-6/assistant-phases-inputs-qualified.json",
+    "sha256": "6d7e67f5e8638a9c8485518812e0f5bc2942d2cbace78fa76d45366909160b6d",
+    "paths": 886
+  },
+  "fresh_distinct_passed_tests": 699,
+  "verification": [
+    {
+      "name": "Full Store library",
+      "passed": 667,
+      "ignored": 3,
+      "arguments": "cargo test -p connect-store --lib -- --test-threads=2",
+      "log": {
+        "path": ".local/gate-6/assistant-phases-store-qualified.log",
+        "sha256": "41dffb58e22a692d5d8ea6d470e7ff52409e8782908c465b204f73fa40a565d5"
+      },
+      "binary": {
+        "path": "target/debug/deps/connect_store-500690b8d898aed1",
+        "sha256": "1b2c5d3a5afe6433f902c689dc5834e9d709949c7c3586b646cd368ec311ad6b",
+        "note": "Full-suite binary before strengthening only the cumulative-memory test; production source remains unchanged."
+      }
+    },
+    {
+      "name": "Assistant registry contention regression",
+      "passed": 1,
+      "ignored": 0,
+      "arguments": "cargo test -p connect-service --lib assistant_registry_contention_is_retryable_without_claiming_a_missing_source",
+      "log": {
+        "path": ".local/gate-6/assistant-phases-service-contention.log",
+        "sha256": "0618c9f68d8963af836fce01b19e8973107752012f7a6fb99d6504f498bdf0cc"
+      },
+      "binary": {
+        "path": "target/debug/deps/connect_service-ea774b1cfc228d6b",
+        "sha256": "ea3690781ee7b5600e48e5c3cf289e6d3eb914eaf2589efece5438d1c90c5763"
+      }
+    },
+    {
+      "name": "Native/private-provider and handoff runtime: unchanged passing subset",
+      "passed": 23,
+      "ignored": 0,
+      "arguments": "production_private_ai handoff --test-threads=2 --nocapture",
+      "log": {
+        "path": ".local/gate-6/assistant-phases-runtime-qualified.log",
+        "sha256": "3cf95fef144d81fa1e0a41253c78cfc2675fcfe88ca078df1b24e2557d2d87e2"
+      },
+      "binary": {
+        "path": "target/debug/deps/gate6_canonical_runtime-2e3e18c2008aaebe",
+        "sha256": "76b7f3244c5302dc5116f337e0392754eaf66bd753b213f8cbce232fa09f9e5c",
+        "scope": "Current production and all tests except the restart helper membership read correction."
+      }
+    },
+    {
+      "name": "Corrected AI journey including actual restart follow-up",
+      "passed": 1,
+      "ignored": 0,
+      "arguments": "automatic_ai_caller --test-threads=1 --nocapture",
+      "log": {
+        "path": ".local/gate-6/assistant-phases-restart-runtime-qualified.log",
+        "sha256": "e8e49cceaac0bf9a0eaa5a58529541872dc071ab9f28ec91afd4cbea72363e96"
+      },
+      "binary": {
+        "path": "target/debug/deps/gate6_canonical_runtime-2e3e18c2008aaebe",
+        "sha256": "c3160fde96fa6857f65cf5b59cab654db1a7eb8be063f13b8abcf4fc41fc006a"
+      }
+    },
+    {
+      "name": "API-only connector context decoder",
+      "passed": 6,
+      "ignored": 0,
+      "arguments": "cargo test -p connect-connector-api --test host_context",
+      "log": {
+        "path": ".local/gate-6/assistant-phases-connector-qualified.log",
+        "sha256": "814e88197b82eb2eb7e05b7b5a8a700b119747bbcfdedb45a5124c367bd5141f"
+      },
+      "binary": {
+        "path": "target/debug/deps/host_context-57f0163131738984",
+        "sha256": "5a7a3afdf73720f1a5bd40521a8894b06007a424ec279d7470f635f87fabece6"
+      }
+    },
+    {
+      "name": "Canonical escaped provider manifest/SDK initialization",
+      "passed": 1,
+      "ignored": 0,
+      "arguments": "--test-threads=1",
+      "log": {
+        "path": ".local/gate-6/assistant-phases-manifest-qualified.log",
+        "sha256": "201f4223b424e96b7beed1271aaf74531503bca59108573b5c53992ce4c8af35"
+      },
+      "binary": {
+        "path": "target/debug/deps/provider_context_manifest-79a965dcbdf0b3fc",
+        "sha256": "6a160932a527f4e799e2d5a3a781b1e9efc26ff0187a5fb62299a815698f94ea"
+      }
+    }
+  ],
+  "internal_profiles_are_not_additional_test_count": true,
+  "source_qualification": {
+    "full_suite_inputs": {
+      "path": ".local/gate-6/assistant-phases-inputs-before-stronger-test.json",
+      "sha256": "ecf7f42aa81263af315a66078723c15c92749c38d2ff5f4ef7a623a642a61122"
+    },
+    "final_inputs": {
+      "path": ".local/gate-6/assistant-phases-inputs-qualified.json",
+      "sha256": "6d7e67f5e8638a9c8485518812e0f5bc2942d2cbace78fa76d45366909160b6d"
+    },
+    "runtime_cohort_inputs": {
+      "path": ".local/gate-6/assistant-phases-inputs-before-membership-fix.json",
+      "sha256": "37e5aa159c48e3e80ab713d25b68f15a5e3af426d0e4162544979f6dc332c4fa"
+    },
+    "changes_after_full_store": [
+      "crates/connect-connector-api/tests/host_context.rs",
+      "crates/connect-server/tests/support/canonical_native_connections/consultation/provider.rs",
+      "crates/connect-server/tests/support/canonical_native_connections/consultation/provider/public_audio.rs",
+      "crates/connect-server/tests/support/canonical_native_connections/consultation/provider/restart_followup.rs",
+      "crates/connect-service/src/assistant_context.rs",
+      "crates/connect-service/src/canonical_media.rs",
+      "crates/connect-service/src/canonical_media/tests.rs",
+      "crates/connect-store/src/connection_control/tests/assistant_context/phases.rs"
+    ],
+    "store_protocol_and_connector_production_unchanged": true,
+    "explanation": "Store/protocol/connector production sources stayed unchanged. Six test modules were refined after the full Store run began: stronger cumulative-memory and decoder matrices, signed keepalives and diagnostics, the deterministic Service registry contention regression and the full restart-follow-up journey. Two Service production modules then distinguished transient registry contention from missing/ambiguous sources; final Service regression, server build and selected runtime results qualify that repair. The final23 passing regression cases and separately corrected AI journey form24 distinct latest passing runtime results; they are not a full passing24-test cohort. The full-run Store binary hash was captured before its supplemental compile overwrote the path."
+  },
+  "supplemental_regression": {
+    "log": {
+      "path": ".local/gate-6/assistant-phases-cumulative-memory-regression.log",
+      "sha256": "037ab0d543ecf16cd1cd7bbbd20d7e075c7726bd0829a55199662252f7bcb5b9"
+    },
+    "binary": {
+      "path": "target/debug/deps/connect_store-500690b8d898aed1",
+      "sha256": "e0c764c1c55467bc4c23dd7773b6ac4f62009dd83c326ac28316968d115a98fd"
+    },
+    "additional_distinct_tests": 0,
+    "observation": "The original and latest complete ContextViews, including omission counts, remain byte-equivalent after swapping two old source grants. An intermediate acknowledged update contains a now-revoked source, so current whole-memory read still fails. This rules out checking only the initial/latest projections."
+  },
+  "ignored_checks": "Three Store subprocess helper entrypoints are intentionally ignored as direct tests; their parent tests invoke their required process cases.",
+  "public_receipt_profiles": [
+    "Ack",
+    "Truncated",
+    "Missing",
+    "Rejected",
+    "LostCreation",
+    "Revoked",
+    "SocketLost",
+    "EndedBeforeAck",
+    "ReusedReference"
+  ],
+  "phase_failure_profiles": [
+    "InlineRejected",
+    "InlineLost",
+    "InlineReused",
+    "UpdateTruncated",
+    "UpdateMissing",
+    "UpdateEnded",
+    "UpdateSocketLost"
+  ],
+  "public_audio_profiles": [
+    "AfterCreation",
+    "Initialization"
+  ],
+  "observations": [
+    "Schema63 retains immutable initialization and update bindings, frozen selections, stable operation IDs, captured instance ownership and snapshot digests. Existing schema62 databases are refused by strict schema checking; no compatibility or downgrade path was introduced.",
+    "Initialization mode admits creation and inline history export together before raw context enters the HTTP body. Its export may have happened even when the response is rejected, lost or contains a previously known reference. Receipts show initialization/export admission with no invented confirmed provider reference. A known reused reference is never attached, opened or terminated; history already included in the create request cannot be unexported.",
+    "Exact complete provider conversation ACK is required for delivered context. Initialization ACK reads retain the original inline deadline and cannot renew an expired export. Post-creation timing remains explicit and separately tested.",
+    "Existing-instance updates use separate retained child receipts with phase/update and original parent delivery ID; the provider reference, native generation, owner, source credentials, endpoint and original listener epochs remain frozen. The bounded queue accepts stable IDs, exact replay returns its original receipt without another export, and root/update operation namespaces cannot collide.",
+    "Every actual update and memory use checks initial and all earlier exported selections under one current complete authority interval. A pending unsubmitted selection does not taint prior memory; any exported uncertain, rejected or unacknowledged update blocks subsequent use. Sixteen retained updates per root bound metadata growth and do not discard old-memory authorization.",
+    "Assistant registry lock contention yields authority-busy and supplies no read, rather than being misreported as a missing native source. Missing sources remain not-ready and ambiguous sources forbidden; public media already pauses without a current read until its next bounded refresh.",
+    "Actual owned SDK audio in both timing modes pauses both directions and clears queued speech while updating. Premature marked provider speech does not reach an independent listener before exact update ACK; actual duplex resumes afterward. Replay creates no new provider call or update. Current authorization loss then stops forwarding, captured cleanup ends the original call and the owned fresh native peer drains.",
+    "A terminal update ACK failure records incomplete/uncertain history and confirmed original provider closure without another end command. A lost socket cannot manufacture closure. Late captured observations can record historical custody but do not restore current authority or clear uncertainty.",
+    "Recovery processes initialization and child-update metadata without provider IO, reconstructing physical peers, exporting again or adopting provider memory. Child and root rows share one bounded recovery batch. Update lifecycle journal events retain the original resource audience and do not enter model history.",
+    "After that actual public/private/return journey, the worker reads the emitted return Session outcome through ApplicationClient and freezes its exact source, journal sequence, actor, body and watermark. All original peers/host drain; a fresh host runtime epoch and signed AI transport retain the same logical Participant. Public context returns the identical historical outcome. One stable follow-up mutation cites that source in past tense, replays without another message, and is attributed to the original AI Participant in independent owner/remote histories. No private transcript is copied or old call claimed live; provider creation/export/end counts remain one.",
+    "The actual same-logical-AI runtime combines nine original receipt cases, seven phase failure cases and two fresh owned public duplex modes before the private-only context/duplex/owner-return journey. These are internal profiles of one runtime test, not eighteen extra tests."
+  ],
+  "http_reference": {
+    "path": "contracts/openapi-context.json",
+    "sha256": "30c8f47f2995d1c4657b97888ca13df42a039841c474e32a12f6f2f4c2689c7b"
+  },
+  "http_schema_check": {
+    "path": ".local/gate-6/assistant-phases-openapi.log",
+    "sha256": "2c88f4e3123f3a9299fde752040858cc7034c869ba9cdf5d62e0f88b0a6de996"
+  },
+  "preparation": {
+    "path": ".local/gate-6/assistant-phases-prepare.log",
+    "sha256": "fd9d7b181e3ccba9b643af55a186cf132c60aac99c734b2ee4e4e549afe5ffc2"
+  },
+  "build": {
+    "path": ".local/gate-6/assistant-phases-membership-build.log",
+    "sha256": "1a9febe3518f67d47c8603cd1d01654bc4a5b3dc97c50816ec993afd59b0a1bd"
+  },
+  "pre_membership_fixture_build": {
+    "path": ".local/gate-6/assistant-phases-contention-build.log",
+    "sha256": "4cac35331c1f9e15cdd28ff9b67e7bf05e00434169e7a2cf9a98e936c7d2c3a0"
+  },
+  "pre_repair_build": {
+    "path": ".local/gate-6/assistant-phases-server-build-qualified.log",
+    "sha256": "15edf3e76809591750e3d03cbf8a99ae4e474363aee7d73a4af349ccbc0e3e34"
+  },
+  "diagnostic_fixture_build": {
+    "path": ".local/gate-6/assistant-phases-liveness-build.log",
+    "sha256": "6a6ef571a5c108f0e9652f699c3e80cd7075fe2832009ca97bef09d6b2d92fbf"
+  },
+  "format": {
+    "path": ".local/gate-6/assistant-phases-format.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "patch_whitespace": {
+    "path": ".local/gate-6/assistant-phases-diff-check.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "preliminary_restart_journey": {
+    "path": ".local/gate-6/assistant-phases-restart-runtime-first.log",
+    "sha256": "c08f17f3ccff8f36b2daa435fd6e59038b8d538cf3ba53358af5754b46cafc28",
+    "observation": "Public and private duplex passed after the registry repair; the new context query used1000 items against the installation page_size100 and was correctly refused. The fixture now requests100. This initial restart journey failed and is not a passing test.",
+    "additional_distinct_tests": 0
+  },
+  "parallel_runtime_observation": {
+    "log": {
+      "path": ".local/gate-6/assistant-phases-runtime-parallel-first.log",
+      "sha256": "e621cffb62e9554c91ca1213d66324dd6594591f01a44964625757bf76bea170"
+    },
+    "binary": {
+      "path": "target/debug/deps/gate6_canonical_runtime-2e3e18c2008aaebe",
+      "sha256": "a23d5d1018e93ad64d9b7d803e9a84dd26615912479b42d6e1c390d6f3a48ca2",
+      "scope": "Binary executing the first parallel24-test cohort, before signed keepalive/diagnostics fixture refinements."
+    },
+    "observation": "Initial two-thread24-test cohort:22 passed, public duplex and configured invitation initialization (authority-busy) failed. The diagnostic two-case rerun passed invitation, but public audio stopped with not-ready after17 provider input frames. Source inspection and deterministic mutex fault injection identified transient registry try_lock contention being mapped to not-ready; it now yields retryable authority-busy, with no raw context/media grant while unavailable. Signed keepalives also retain the original peers between long control-only groups. The final current-source cohort is recorded separately; preliminary failures are not passes."
+  },
+  "runtime_partition": {
+    "passing_regression_cases": 23,
+    "corrected_ai_journey": 1,
+    "full_passing_cohort_claimed": false,
+    "observation": "The regression cohort passed23 and failed only the new restart membership fixture, which supplied a bearer token to an internal credential-ID method. The helper now reads membership through the public API. Its single changed test module is the only input difference; the corrected AI journey separately passes. Production sources and all other test paths remain unchanged."
+  },
+  "diagnostic_runtime_observation": {
+    "log": {
+      "path": ".local/gate-6/assistant-phases-runtime-failed-cases.log",
+      "sha256": "d088bba4576b1cbadb7c186b602b19d2ae1b40acf63027f67a8a9ad939625644"
+    },
+    "binary": {
+      "path": "target/debug/deps/gate6_canonical_runtime-2e3e18c2008aaebe",
+      "sha256": "e110d04c30d911075af052c7e0da5e314d162edeea5d75fb22220c71524246a2",
+      "scope": "Two failed cases rerun after keepalive/diagnostics; one passed and public audio exposed not-ready, before registry contention classification fix."
+    },
+    "additional_distinct_tests": 0
+  },
+  "preliminary_observations": [
+    {
+      "path": ".local/gate-6/assistant-phases-service-contention-build-first.log",
+      "sha256": "63750608a41ee0208d60d7a35340cb096606afaf62445a89a5aaf8bb2e494a9c",
+      "observation": "Standalone Service test dependency archive failed from disk exhaustion; not a test pass."
+    },
+    {
+      "path": ".local/gate-6/assistant-phases-service-contention-build-second.log",
+      "sha256": "b11f79a09e6d5e1a530386501f999519ee079ccf74a90061405a1783d2adc91e",
+      "observation": "Another dependency archive attempt failed before failed-build cache cleanup completed; not a pass."
+    },
+    {
+      "path": ".local/gate-6/assistant-phases-restart-build-first.log",
+      "sha256": "bf437fa53564a3aa92a8182f3fb2790d9b4787476076942af659263c705cbd4e",
+      "observation": "The new restart fixture initially used protocol Message fields instead of canonical MessageSend fields; corrected msg_id/from and rebuilt."
+    },
+    {
+      "path": ".local/gate-6/assistant-phases-server-build.log",
+      "sha256": "a7609d198b0000ddbe0034f9f05497de96e29040e879d2085244a26ac38c3440",
+      "observation": "Initial archive failed from disk exhaustion, not a passing build."
+    },
+    {
+      "path": ".local/gate-6/assistant-phases-server-build-retry.log",
+      "sha256": "a974c61a1ddcc5b78cfd51482d6ec8944204f6ef8862055ab146be4e7ba41da1",
+      "observation": "The new fixture needed futures_util::SinkExt for WebSocket close; imported it and rebuilt."
+    },
+    {
+      "path": ".local/gate-6/assistant-phases-server-build-complete.log",
+      "sha256": "f2dde4a494b21150b63309eb27652f82ec0339bcaa3604264da968637d7017cf",
+      "observation": "Runtime and manifest linked, but CLI linking exhausted disk. Not a complete successful build."
+    }
+  ],
+  "cache_maintenance": [
+    {
+      "path": ".local/gate-6/assistant-phases-cache-maintenance.json",
+      "sha256": "978ac369b879b0c496fa102f45d5dd78bd8e43f1bdfdfa54c0596dc6262bf1ed"
+    },
+    {
+      "path": ".local/gate-6/assistant-phases-cache-after-archive-failure.json",
+      "sha256": "aad7025238373e57dbc08dadda53c5dbe1f597c38c84836447f918d494c8ac0a"
+    },
+    {
+      "path": ".local/gate-6/assistant-phases-cache-before-runtime.json",
+      "sha256": "a7e11fb144ad0882335dad105205575486b814e0cc80facfaa2dc2bf466c0e07"
+    },
+    {
+      "path": ".local/gate-6/assistant-phases-unused-library-maintenance.json",
+      "sha256": "2e41715001fa721b64d6fa61b603996824aa0a313867f59f0fe07f4bc32420da"
+    },
+    {
+      "path": ".local/gate-6/assistant-phases-cache-during-service-regression.json",
+      "sha256": "b4d012bf059dde52b9069899f41cb60d9f33c0a0e90faf766e25b0b209d9c0de"
+    },
+    {
+      "path": ".local/gate-6/assistant-phases-failed-service-cache-maintenance.json",
+      "sha256": "184135fe9f1851e5656dfc0a1b586cc7ded908e0c2d5c514d028f89c653fd630"
+    },
+    {
+      "path": ".local/gate-6/assistant-phases-archived-sip-objects.json",
+      "sha256": "b7b43c149c4046cbdecfbb479c4e6b5586a8b714e77400629777752331afa5a0"
+    },
+    {
+      "path": ".local/gate-6/assistant-phases-obsolete-connect-objects.json",
+      "sha256": "4354643b150c7139d5247fcd6806cab27e238f63144674cb68984e83ae15b6c8"
+    }
+  ],
+  "historical_scope": "Earlier component evidence retains its own recorded source scope. This checkpoint freshly verifies667 Store tests,1 deterministic Service contention regression,24 selected runtime tests,6 connector tests and1 manifest test; it does not claim the unselected workspace suites.",
+  "remaining_work": [
+    "G6-044 provider integration must install public job supervision and Service shutdown ownership beyond explicitly retained/drained library jobs; this is dependent integration work, not an additional G6-042 completion condition.",
+    "The initial configured-invitation authority-busy was not reproduced in its diagnostic rerun; retain the recorded transient failure for broader stress/recovery qualification.",
+    "Additional signaling/codec/stream repair and broader installed Linux/browser/remote/live-provider qualification in approved dependent lanes; named external rehearsals require G6-093 concrete configuration."
+  ],
+  "not_run": [
+    "Unselected workspace integration targets; earlier evidence remains historical.",
+    "Linux x86_64, browser, remote/NAT, real PSTN and live provider profiles; no release/publication."
+  ],
+  "plan_counts": {
+    "done": 42,
+    "in-progress": 0,
+    "not-started": 63,
+    "acceptance_done": 0
+  }
+}

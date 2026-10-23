@@ -109,6 +109,7 @@ pub(super) fn namespaced(operation: &Operation, id: &str) -> Result<Operation> {
         Operation::Send { request_id, .. }
         | Operation::ArtifactBegin { request_id, .. }
         | Operation::ArtifactAppend { request_id, .. }
+        | Operation::ArtifactLinkAppend { request_id, .. }
         | Operation::ArtifactFinish { request_id, .. }
         | Operation::ArtifactDelete { request_id, .. }
         | Operation::SessionInvite { request_id, .. }

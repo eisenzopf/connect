@@ -16,10 +16,10 @@ fn matching_effect_survives_restore_and_distinct_tasks_namespace_wire_receipts()
     let TaskCommand::Invoke { operation, .. } = &mut changed.command else {
         panic!("invoke")
     };
-    let Operation::Send { body, .. } = operation.as_mut() else {
+    let Operation::Send { message: draft, .. } = operation.as_mut() else {
         panic!("send")
     };
-    *body = "different".into();
+    draft.body = "different".into();
     assert_eq!(f.run(&changed).unwrap_err().code, "request-conflict");
     let mut create = f.create();
     let TaskCommand::Create { request_id, .. } = &mut create.command else {
@@ -37,7 +37,7 @@ fn matching_effect_survives_restore_and_distinct_tasks_namespace_wire_receipts()
     assert_eq!(restored.execute_task(&f.key.id, &b).unwrap(), other);
     assert_eq!(count(&f, "messages"), 2);
     assert_eq!(count(&f, "task_effect_authority"), 2);
-    assert_eq!(count(&f, "requests"), 3);
+    assert_eq!(count(&f, "operation_control_receipts"), 3);
 }
 #[test]
 fn known_business_rejection_is_retained_without_partial_message_or_retry() {
@@ -168,4 +168,132 @@ fn nested_reads_do_not_create_mutation_effects_and_use_configured_discovery() {
         .iter()
         .any(|r| r.id == "native-audio" && r.readiness == "configured"));
     assert_eq!(count(&f, "task_effects"), 0);
+}
+
+#[test]
+fn retained_all_task_send_does_not_expand_to_a_late_member_outside_task_scope() {
+    use connect_protocol::{membership::*, provisioning::IdentityKind};
+    let f = Fixture::new();
+    let task = f.task();
+    let request = send(&f, &task, "before-join", "original audience", false);
+    let accepted = f.run(&request).unwrap();
+    let peer = f.store.create_identity("late-peer").unwrap().id;
+    let key = f
+        .store
+        .issue(&peer, crate::Scope::operator(), f.now + 600)
+        .unwrap();
+    let revision = f
+        .store
+        .membership_snapshot(&f.key.id, &f.cid)
+        .unwrap()
+        .revision;
+    let MembershipOutcome::Invitation { invitation, .. } = f
+        .store
+        .execute_membership(
+            &f.key.id,
+            MembershipRequest {
+                operation_id: "invite-late".into(),
+                conversation_id: f.cid.clone(),
+                expected_revision: revision,
+                change: MembershipAction::Invite {
+                    identity_id: peer,
+                    kind: IdentityKind::Human,
+                    role: "member".into(),
+                    expires_at: f.now + 500,
+                },
+            },
+        )
+        .unwrap()
+    else {
+        panic!("invitation")
+    };
+    let revision = f
+        .store
+        .membership_snapshot(&f.key.id, &f.cid)
+        .unwrap()
+        .revision;
+    f.store
+        .execute_membership(
+            &key.id,
+            MembershipRequest {
+                operation_id: "join-late".into(),
+                conversation_id: f.cid.clone(),
+                expected_revision: revision,
+                change: MembershipAction::Join {
+                    invitation_id: invitation.invitation_id,
+                },
+            },
+        )
+        .unwrap();
+    let before = count(&f, "journal");
+    assert_eq!(f.run(&request).unwrap(), accepted);
+    assert_eq!(count(&f, "journal"), before);
+    let Outcome::History { messages, .. } = f
+        .store
+        .execute(
+            &key.id,
+            &Operation::History {
+                conversation_id: f.cid.clone(),
+                after: None,
+                limit: 100,
+            },
+        )
+        .unwrap()
+    else {
+        panic!("history")
+    };
+    assert!(messages.is_empty());
+    assert_eq!(
+        f.run(&send(&f, &task, "after-join", "must not widen", false))
+            .unwrap_err()
+            .code,
+        "forbidden"
+    );
+    assert_eq!(count(&f, "messages"), 1);
+}
+
+#[test]
+fn private_task_control_receipt_cannot_escape_through_core_operation_or_request_status() {
+    let f = Fixture::new();
+    let task = f.task();
+    let request = send(&f, &task, "private-wire", "task private", false);
+    let expected = f.run(&request).unwrap();
+    let TaskOutcome::Tool(TaskToolResult::Completed { outcome, .. }) = &expected else {
+        panic!()
+    };
+    assert!(matches!(
+        outcome.as_ref(),
+        Outcome::Accepted { receipt: None, .. }
+    ));
+    let wire: String = f
+        .store
+        .connection()
+        .unwrap()
+        .query_row(
+            "SELECT a.wire_request_id FROM task_effect_authority a JOIN task_effects e ON e.id=a.effect_id WHERE e.task_id=?1",
+            [&task.id],
+            |r| r.get(0),
+        )
+        .unwrap();
+    assert_eq!(
+        f.store
+            .execute_operation_action(
+                &f.key.id,
+                connect_protocol::transitions::OperationAction::Get {
+                    operation_id: wire.clone()
+                }
+            )
+            .unwrap_err()
+            .code,
+        "forbidden"
+    );
+    assert_eq!(
+        f.store
+            .execute(&f.key.id, &Operation::RequestStatus { request_id: wire })
+            .unwrap_err()
+            .code,
+        "forbidden"
+    );
+    assert_eq!(f.run(&request).unwrap(), expected);
+    assert_eq!(effect(&f, &task).state, EffectState::Succeeded);
 }

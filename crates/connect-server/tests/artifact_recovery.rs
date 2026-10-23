@@ -23,7 +23,7 @@ fn finalized_artifact_blob_is_private_verified_and_restored_with_database() {
             &operator.credential_id,
             &Operation::Create {
                 request_id: "blob-create".into(),
-                participants: vec![],
+                request: connect_protocol::conversations::CreateRequest::persistent(vec![]),
             },
         )
         .unwrap()
@@ -36,6 +36,7 @@ fn finalized_artifact_blob_is_private_verified_and_restored_with_database() {
         .execute(
             &operator.credential_id,
             &Operation::ArtifactBegin {
+                to: connect_protocol::messages::MessageAudience::all(),
                 request_id: "blob-begin".into(),
                 conversation_id: conversation.id.clone(),
                 name: "proof.txt".into(),

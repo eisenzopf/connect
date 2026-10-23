@@ -8,6 +8,10 @@ impl Store {
     /// Claim one pending mutation or observation. Known authorization denial
     /// is persisted without dispatch; infrastructure errors leave it unclaimed.
     pub fn claim_voice_job(&self) -> Result<Option<VoiceJob>> {
+        let authority = self.runtime_query_authority(
+            crate::authority_admission::runtime::VOICE_PENDING,
+            &[&crate::now()],
+        )?;
         let mut c = self.connection()?;
         let tx = c
             .transaction_with_behavior(TransactionBehavior::Immediate)
@@ -17,11 +21,28 @@ impl Store {
             return Ok(None);
         };
         let mut call = get(&tx, &conv, &id)?;
+        self.require_runtime_conversations(&tx, &authority, &[conv.clone()])?;
         let r = route(&tx, &call.route_id)?;
         let mut end_intent_id = None;
         let action = if call.state == "pending" {
             let authorized = actor_from_connection(&tx, &credential).and_then(|a| {
                 a.require("call_start")?;
+                crate::audience::require_original(
+                    &tx,
+                    &a,
+                    &conv,
+                    connect_protocol::membership::ContentKind::Call,
+                    &id,
+                )?;
+                if !crate::audience::original_to_identity(
+                    &tx,
+                    &r.identity_id,
+                    &conv,
+                    connect_protocol::membership::ContentKind::Call,
+                    &id,
+                )? {
+                    return Err(Error::forbidden());
+                }
                 crate::tasks::authorize_effect_link(&tx, "call", &id, crate::now())?;
                 authorized_conversation(&tx, &a, &conv)
             });
@@ -44,6 +65,13 @@ impl Store {
                 crate::media_end::authorize(&tx, crate::media_end::Kind::Call, &id, crate::now())
                     .and_then(|(actor, intent)| {
                         authorized_conversation(&tx, &actor, &conv)?;
+                        crate::audience::require_original(
+                            &tx,
+                            &actor,
+                            &conv,
+                            connect_protocol::membership::ContentKind::Call,
+                            &id,
+                        )?;
                         Ok(intent)
                     });
             let Some(intent) = crate::media_end::permitted(authorized)? else {

@@ -1,0 +1,321 @@
+{
+  "kind": "gate6-component-evidence",
+  "task": "G6-041",
+  "status": "in-progress",
+  "passed": true,
+  "recorded_at": "2026-10-20T09:22:15.984398+00:00",
+  "scope": "Local macOS arm64 SIP transaction INVITE write-policy propagation, actual loopback UDP denial/retry and Core replacement regression, plus controlled Store exact-attempt write intervals. Public canonical telephone workflow remains uninstalled.",
+  "pinned_patches": 118,
+  "source_lock": {
+    "path": "dependencies/source-lock.json",
+    "sha256": "936c135bc7bf8a6f7c7052280722a2c4836e3d01729fae83b246ed849e541823"
+  },
+  "patch": {
+    "path": "patches/rvoip/gate6-sip-invite-write-authority.patch",
+    "sha256": "ec22889b7d4579f616c62a41f962b3ab67ec9cb39d575c06d022b91cc7214eef"
+  },
+  "preparation": {
+    "path": ".local/gate-6/sip-invite-authority-prepare-7.log",
+    "sha256": "e6a04b8fe314dc23a8cbeb4569494cd8a99bc4af3f26feb9345b7e924fc834dd"
+  },
+  "verification": [
+    {
+      "name": "dialog",
+      "command": "cargo test --locked --offline -j2 --target-dir target --manifest-path .deps/rvoip/Cargo.toml -p rvoip-sip-dialog --lib manager::transaction_integration:: -- --test-threads=2",
+      "passed": 17,
+      "ignored": 0,
+      "exit_code": 0,
+      "log": {
+        "path": ".local/gate-6/sip-invite-authority-dialog-final.log",
+        "sha256": "1314b04b1b1b52068419980fcc724ad1a388b660cf4672b238f57032cffa0737"
+      },
+      "test_binaries": [
+        {
+          "path": "target/debug/deps/rvoip_sip_dialog-85bff393ced63e0e",
+          "sha256": "0f373846d0f25b27612f9b89d7ceba45c8c7da44df70b8ebc2372b50b116812e"
+        }
+      ]
+    },
+    {
+      "name": "staged",
+      "command": "cargo test --locked --offline -j2 --target-dir target --manifest-path .deps/rvoip/Cargo.toml -p rvoip-sip-dialog --lib manager::unified::staged_initial_invite_tests:: -- --test-threads=2",
+      "passed": 18,
+      "ignored": 0,
+      "exit_code": 0,
+      "log": {
+        "path": ".local/gate-6/sip-invite-authority-staged-final.log",
+        "sha256": "9acfe57783d27e6b98d31ed9682df39e384e2242c130b37e41e876673eb67509"
+      },
+      "test_binaries": [
+        {
+          "path": "target/debug/deps/rvoip_sip_dialog-85bff393ced63e0e",
+          "sha256": "0f373846d0f25b27612f9b89d7ceba45c8c7da44df70b8ebc2372b50b116812e"
+        }
+      ]
+    },
+    {
+      "name": "failover",
+      "command": "cargo test --locked --offline -j2 --target-dir target --manifest-path .deps/rvoip/Cargo.toml -p rvoip-sip-dialog --test rfc3263_failover -- --test-threads=2",
+      "passed": 25,
+      "ignored": 0,
+      "exit_code": 0,
+      "log": {
+        "path": ".local/gate-6/sip-invite-authority-failover-final.log",
+        "sha256": "d2f039434c6e25e9bfac98ae8fa05cb7fadd1245d19dc5ac62e34ec7b6afa1f8"
+      },
+      "test_binaries": [
+        {
+          "path": "target/debug/deps/rfc3263_failover-402dd002e8868eea",
+          "sha256": "e2293dfc250a61c319bfbe7a8daa90c14e368e179e8d9586e59369df0c4c0f81"
+        }
+      ]
+    },
+    {
+      "name": "wire",
+      "command": "cargo test --locked --offline -j2 --target-dir target --manifest-path .deps/rvoip/Cargo.toml -p rvoip-sip --test guarded_invite_submission -- --test-threads=1 --nocapture",
+      "passed": 4,
+      "ignored": 0,
+      "exit_code": 0,
+      "log": {
+        "path": ".local/gate-6/sip-invite-authority-wire-final.log",
+        "sha256": "a862a1de169a40e663b0fab43f89c8e52e79e9c991d5151698f5c1b0e2d3e968"
+      },
+      "test_binaries": [
+        {
+          "path": "target/debug/deps/guarded_invite_submission-609a3ad85fb39995",
+          "sha256": "5dc7ba351461b8abd82660d3c025cfbfbbdcdaf2fdabec92d190f98ab4ac3e20"
+        }
+      ]
+    },
+    {
+      "name": "replacement",
+      "command": "cargo test --locked --offline -j2 --target-dir target --manifest-path .deps/rvoip/Cargo.toml -p rvoip-uctp --test v2_peer_admission guarded_mixer::replacement:: -- --test-threads=1 --nocapture",
+      "passed": 17,
+      "ignored": 0,
+      "exit_code": 0,
+      "log": {
+        "path": ".local/gate-6/sip-invite-authority-replacement-final.log",
+        "sha256": "12b145c966802bf06a9d76208ec84eba3058813eab50049b786c5a696513141e"
+      },
+      "test_binaries": [
+        {
+          "path": "target/debug/deps/v2_peer_admission-77f01c8d1e8199d5",
+          "sha256": "c9c5bc66c3f974077f78cc48a18a40838fff490cdf00e3b73585de277cb1609d"
+        }
+      ]
+    },
+    {
+      "name": "route",
+      "command": "cargo test --locked --offline -j2 --target-dir target --manifest-path .deps/rvoip/Cargo.toml -p rvoip-uctp --test v2_peer_admission native_offers::dtmf_route:: -- --test-threads=1 --nocapture",
+      "passed": 22,
+      "ignored": 0,
+      "exit_code": 0,
+      "log": {
+        "path": ".local/gate-6/sip-invite-authority-route-final.log",
+        "sha256": "2b1dcf6ea23ce31b1cb47462454e4554ad850a44200b12818432e466132d63e5"
+      },
+      "test_binaries": [
+        {
+          "path": "target/debug/deps/v2_peer_admission-77f01c8d1e8199d5",
+          "sha256": "c9c5bc66c3f974077f78cc48a18a40838fff490cdf00e3b73585de277cb1609d"
+        }
+      ]
+    },
+    {
+      "name": "store",
+      "command": "cargo test --locked --offline -j2 -p connect-store --lib connection_control::tests::replacement_sources::telephone:: -- --test-threads=2",
+      "passed": 23,
+      "ignored": 0,
+      "exit_code": 0,
+      "log": {
+        "path": ".local/gate-6/sip-invite-authority-store-final.log",
+        "sha256": "0292fee0772262edd61a2f3b1a3996cab75f24c8facf9d2319ff05f070f11bce"
+      },
+      "test_binaries": [
+        {
+          "path": "target/debug/deps/connect_store-500690b8d898aed1",
+          "sha256": "80943825a7437c089c2fc116c72880b46bf921809092510fb43760dfe049418a"
+        }
+      ]
+    },
+    {
+      "name": "service",
+      "command": "cargo test --locked --offline -j2 -p connect-service --lib -- --test-threads=2",
+      "passed": 22,
+      "ignored": 0,
+      "exit_code": 0,
+      "log": {
+        "path": ".local/gate-6/sip-invite-authority-service-final.log",
+        "sha256": "1fafcb91c15c88fc4135f23bf391ef8fec86a4f8beac6df689bd41612fb7bfb6"
+      },
+      "test_binaries": [
+        {
+          "path": "target/debug/deps/connect_service-f0c8ec9c56711d06",
+          "sha256": "25e63e3577e58257fdac1b85eeb9559473fcf6b7bda989a200dcdaef82b3b4ed"
+        }
+      ]
+    }
+  ],
+  "fresh_distinct_passed_tests": 148,
+  "static_checks": [
+    {
+      "name": "dependencies",
+      "exit_code": 0,
+      "log": {
+        "path": ".local/gate-6/sip-invite-authority-static-dependencies-final.log",
+        "sha256": "fd9d7b181e3ccba9b643af55a186cf132c60aac99c734b2ee4e4e549afe5ffc2"
+      }
+    },
+    {
+      "name": "format",
+      "exit_code": 0,
+      "log": {
+        "path": ".local/gate-6/sip-invite-authority-static-format-final.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    {
+      "name": "http-reference",
+      "exit_code": 0,
+      "log": {
+        "path": ".local/gate-6/sip-invite-authority-static-http-reference-final.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    {
+      "name": "contracts",
+      "exit_code": 0,
+      "log": {
+        "path": ".local/gate-6/sip-invite-authority-static-contracts-final.log",
+        "sha256": "2c29557f8945b4bb522a5436f85876aa8ab90eca617dcf64588af05e9a81b1bc"
+      }
+    },
+    {
+      "name": "diff",
+      "exit_code": 0,
+      "log": {
+        "path": ".local/gate-6/sip-invite-authority-static-diff-final.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    }
+  ],
+  "source_inputs": {
+    "path": ".local/gate-6/sip-invite-authority-app-inputs.json",
+    "sha256": "ef49f0d4691bca4781d288bc88103a7e44ca2643bb5eec573411203d9c692ba4"
+  },
+  "source_input_count": 1332,
+  "upstream_inputs": {
+    "path": ".local/gate-6/sip-invite-authority-upstream-inputs.json",
+    "sha256": "735ee7c56c0b63c261cb13aa819d4a6762b41793d8ad57cc7d83b7807a61357b"
+  },
+  "upstream_input_count": 2684,
+  "implemented": [
+    "Reuses the existing ClientRequestWriteAuthority immutable message/transaction/prepared-route and exact IO-future seam. Optional metadata policy reaches initial INVITE transaction before publication, each failover candidate and retransmission, and initial authentication/session-timer retries through retained options. No second transport authorization mechanism or DTMF permission is invented.",
+    "SipOriginateContext and outbound builder preserve the same Arc policy without idle permission readers. Each write invokes the policy anew; refusal returns failure without an unprotected INVITE fallback.",
+    "Actual UDP tests pause before acquiring a reader, revoke then release queued work, and assert zero wire methods. First-send success followed by revocation refuses a real retransmission with no reader during timers. A real 401 revokes before its automatic authenticated retry, which reaches the same policy and emits no second INVITE.",
+    "Generated non-2xx ACKs complete only their existing transaction and are not delegated to the INVITE submission policy. Only a completed pre-IO refusal is zero-wire; observer cancellation is conservatively unknown. Actual IO followed by a lost result retains matching CANCEL cleanup ownership. A late487 is ACKed on one atomic retired request/route/admission snapshot and its exact delivered fact can settle cleanup without rewriting the earlier failure. CANCEL200 alone never settles the original INVITE. Actual Core reserved SIP replacement receives a refusing policy through SipOriginateContext. Start refuses, no SIP methods reach the peer, candidate media ports are released, and real original-native audio remains duplex. Existing replacement and DTMF route tests remain passing.",
+    "TelephoneReplacementWriteRead is distinct from planning/allocation authority. A fresh Store read requires the exact durable begun start attempt, effect, descriptor, Call-ID correlation and submitting generation, alongside current original operator/source/retained and independently provisioned route-owner credential/Endpoint/policy checks.",
+    "Controlled Store tests cover wrong phase, exact correlation, no reader between writes, writer exclusion, reacquisition, foreign Call-ID refusal, current credential revocation, cancellation and successor-runtime refusal, and definite/uncertain/late receipt refusal without another attempt. They perform no network IO. The actual host must still match the immutable SIP Call-ID and destination to the write interval and bound its IO lifetime."
+  ],
+  "preliminary_runs": [
+    {
+      "log": {
+        "path": ".local/gate-6/sip-invite-authority-check-1.log",
+        "sha256": "48601503b04885574965c3f1cf0019901dbb35e5711517a4284218ad4bc6e336"
+      },
+      "status": "failed",
+      "reason": "Initial new UDP fixture imported Credentials from the crate root instead of types::Credentials. Corrected before final runtime qualification."
+    },
+    {
+      "log": {
+        "path": ".local/gate-6/sip-invite-authority-wire-1.log",
+        "sha256": "b2d6c7c8b8fbfb2e62f8592d337b6dc224485cc3c1974225b3805fe28e2d8b65"
+      },
+      "status": "failed",
+      "passed": 2,
+      "failed": 1,
+      "reason": "Queued pre-IO refusal was conservatively classified as wire-unknown and timed out during cleanup. Added exact IO poll/refusal classification rather than weakening zero-wire assertions."
+    },
+    {
+      "log": {
+        "path": ".local/gate-6/sip-invite-authority-wire-2.log",
+        "sha256": "c48a7015fd2b6ee62f1dd0aa6687cca63108bdc3f7537c9bf7d7119e68b7d69d"
+      },
+      "status": "failed",
+      "passed": 2,
+      "failed": 1,
+      "reason": "A stricter Authorization-bearing INVITE check exposed a real bypass: the unified retry facade discarded policy while rebuilding core options. The original call counter could count generated ACK instead. The full immutable retry options now pass through both facade and core."
+    },
+    {
+      "log": {
+        "path": ".local/gate-6/sip-invite-authority-wire-3.log",
+        "sha256": "b855b6f9716290d7bd63fc660c2b506018dadb098b290c5c5ed752d8dd72d237"
+      },
+      "status": "failed",
+      "passed": 2,
+      "failed": 2,
+      "reason": "Confirmed authenticated INVITE bypass at the lossy facade, plus transport-error cleanup racing the send observer and closing the retained plan before CANCEL. Both corrected before final qualification."
+    },
+    {
+      "log": {
+        "path": ".local/gate-6/sip-invite-authority-unknown-trace-1.log",
+        "sha256": "df8f13cbc993c366bc0a4d2b63133ce905b75b64550738d9d07fd7e4fae44853"
+      },
+      "status": "failed",
+      "passed": 0,
+      "failed": 1,
+      "reason": "Focused trace confirmed possible-wire transport error closed the plan before its owner could cancel the actual call. Possible wire plans now remain WireUnknown and cancellable."
+    },
+    {
+      "log": {
+        "path": ".local/gate-6/sip-invite-authority-store-1.log",
+        "sha256": "0749310de54d88835fc893b01c5cf33e9f3c7be4b0e34f5554717664535b4739"
+      },
+      "status": "failed",
+      "passed": 22,
+      "failed": 1,
+      "reason": "The controlled fixture attempted to mutate immutable effect correlation. The ledger correctly rejected it. The final test asserts that refusal and preservation of the original exact write grant; the immutable trigger remains intact."
+    },
+    {
+      "log": {
+        "path": ".local/gate-6/sip-invite-authority-wire-4.log",
+        "sha256": "17210492c2ab7b8ab78028bc29eb93bcc35bd2d4aa670fc2054344dbb52cd2b8"
+      },
+      "status": "failed",
+      "passed": 3,
+      "failed": 1,
+      "reason": "Auth, queued refusal and retransmission passed. Lost-receipt cancellation reached the actual peer and received487, but cleanup could not use the immutable initial transport-failure completion. Added independent exact-attempt terminal-delivery evidence and required ACK of retired INVITE non-2xx responses before terminal delivery."
+    }
+  ],
+  "historical_reports": [
+    {
+      "path": "docs/evidence/gate-6/telephone-replacement-custody.json",
+      "sha256": "04dea27fc8faaf92f3e3ccd95ced8b29bddfc11640c8cff59fff065dbbb579aa"
+    },
+    {
+      "path": "docs/evidence/gate-6/replacement-confirmation.json",
+      "sha256": "16d0af8f1f618eb2807b38a3cbec29bed8c0fdef938f4b7b5612c551ee7f8744"
+    }
+  ],
+  "unqualified": [
+    "No canonical telephone host bridge or public endpoint enablement. Actual Store write interval is not yet attached to SIP egress in Connect. Metadata-only pre/post Core start control, actual allocation captures, target/route identity adoption, answer/media/DTMF projection and established lifetime remain required.",
+    "Public full no-answer, voicemail, rejected confirmation, timeout, cancellation, late old-leg event, unknown submission and restart recovery without redial/resurrection remain required, along with selector/private-context churn.",
+    "Late non-487 terminal responses after an initial local transport failure are not specifically qualified here. No Linux/browser/native remote/provider/PSTN/performance qualification, acceptance closure or publication. Prior broader Store/Core/native totals are historical and are not added to these fresh focused counts."
+  ],
+  "task_counts": {
+    "done": 40,
+    "in_progress": 1,
+    "not_started": 64,
+    "acceptance_closed": 0
+  },
+  "all_105_tasks_remain_in_scope": true,
+  "goal_status": "active",
+  "plan_integrity": {
+    "path": ".local/gate-6/sip-invite-authority-progress-final.log",
+    "sha256": "3c9a42760866b510a9b7fc81b2b57b9bf6791a239d0bf0de8cdf06058e513f78"
+  },
+  "final_diff": {
+    "path": ".local/gate-6/sip-invite-authority-diff-final.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  }
+}

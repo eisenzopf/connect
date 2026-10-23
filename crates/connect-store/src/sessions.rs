@@ -29,7 +29,7 @@ pub struct RoutedInboundSession {
 pub(crate) enum Transition {
     Accept,
     Reject(Option<String>),
-    Cancel,
+    Cancel(Option<String>),
     End(Option<String>),
 }
 
@@ -103,6 +103,18 @@ pub(crate) fn invite(
         params![session.id, session.conversation_id, session.initiator_id, session.participant_id, session.state, serde_json::to_string(&session.media).map_err(|_| Error::storage())?, timestamp, timestamp],
     )
     .map_err(|_| Error::storage())?;
+    // Presence is a conversation Participant at its current membership epoch,
+    // independent of the two identity fields retained by routed invitations.
+    for (identity, state) in [
+        (actor.identity_id.as_str(), "present"),
+        (participant_id, "invited"),
+    ] {
+        let member = crate::audience::member(c, identity, conversation_id, true)?;
+        c.execute(
+            "INSERT INTO session_participants(session_id,conversation_id,tenant_id,participant_id,membership_epoch,role,state) SELECT ?1,?2,p.tenant_id,p.participant_id,p.membership_epoch,'participant',?3 FROM participants p WHERE p.participant_id=?4 AND p.membership_epoch=?5 AND p.active=1",
+            params![session.id, conversation_id, state, member.participant_id, member.membership_epoch],
+        ).map_err(|_| Error::storage())?;
+    }
     emit(c, recipients, &session, "session_invited")?;
     Ok(session)
 }
@@ -125,7 +137,7 @@ pub(crate) fn transition(
             if actor.identity_id != current.participant_id {
                 return Err(Error::forbidden());
             }
-            if current.state == "accepted" || current.state == "ready" {
+            if matches!(current.state.as_str(), "accepted" | "ready" | "active") {
                 return Ok(current);
             }
             if current.state != "invited" {
@@ -146,7 +158,7 @@ pub(crate) fn transition(
             validate_reason(reason.as_deref())?;
             ("rejected", reason, "session_rejected")
         }
-        Transition::Cancel => {
+        Transition::Cancel(reason) => {
             if actor.identity_id != current.initiator_id {
                 return Err(Error::forbidden());
             }
@@ -156,14 +168,15 @@ pub(crate) fn transition(
             if current.state != "invited" {
                 return Err(conflict("Only an invited session can be cancelled"));
             }
-            ("cancelled", None, "session_cancelled")
+            validate_reason(reason.as_deref())?;
+            ("cancelled", reason, "session_cancelled")
         }
         Transition::End(reason) => {
             if current.state == "ended" {
                 return Ok(current);
             }
-            if !matches!(current.state.as_str(), "accepted" | "ready") {
-                return Err(conflict("Only an accepted or ready session can be ended"));
+            if !matches!(current.state.as_str(), "accepted" | "ready" | "active") {
+                return Err(conflict("Only a live session can be ended"));
             }
             validate_reason(reason.as_deref())?;
             ("ended", reason, "session_ended")
@@ -181,6 +194,19 @@ pub(crate) fn transition(
         params![next, timestamp, reason, session_id, conversation_id],
     )
     .map_err(|_| Error::storage())?;
+    if next == "accepted" {
+        let member = crate::audience::member(c, &actor.identity_id, conversation_id, true)?;
+        let changed = c.execute(
+            "UPDATE session_participants SET state='present' WHERE session_id=?1 AND participant_id=?2 AND membership_epoch=?3 AND state='invited'",
+            params![session_id, member.participant_id, member.membership_epoch],
+        ).map_err(|_| Error::storage())?;
+        if changed != 1 {
+            return Err(Error::forbidden());
+        }
+    } else {
+        c.execute("UPDATE session_participants SET state='left' WHERE session_id=?1 AND state NOT IN ('left','removed')", [session_id])
+            .map_err(|_| Error::storage())?;
+    }
     let session = get(c, conversation_id, session_id)?;
     emit(c, recipients, &session, event)?;
     Ok(session)
@@ -206,7 +232,7 @@ impl Store {
             || session.participant_id != assistant_identity_id
             || (actor.identity_id != session.initiator_id
                 && actor.identity_id != session.participant_id)
-            || !matches!(session.state.as_str(), "accepted" | "ready")
+            || !matches!(session.state.as_str(), "accepted" | "ready" | "active")
         {
             return Err(Error::forbidden());
         }
@@ -233,6 +259,20 @@ impl Store {
         conversation_id: &str,
         assistant_identity_id: &str,
     ) -> Result<RoutedInboundSession> {
+        let _authority = self.stable_authority(
+            &crate::AuthorityWait::new(crate::authority_fences::DEFAULT_WAIT),
+            || {
+                let c = self.connection()?;
+                let actor = crate::identity::actor_from_connection(&c, route_credential_id)?;
+                actor.require("session_invite")?;
+                crate::conversations::authorized_conversation(&c, &actor, conversation_id)?;
+                crate::authority_admission::conversation_scopes(
+                    &c,
+                    conversation_id,
+                    crate::AuthorityMode::Write,
+                )
+            },
+        )?;
         let mut c = self.connection()?;
         let tx = c
             .transaction_with_behavior(rusqlite::TransactionBehavior::Immediate)
@@ -284,6 +324,9 @@ impl Store {
         if reason.is_empty() || reason.len() > 128 {
             return Err(invalid("A routed session end reason is required"));
         }
+        let _authority = self.runtime_conversation_authority(|c| {
+            Ok(vec![get_by_id(c, session_id)?.conversation_id])
+        })?;
         let mut c = self.connection()?;
         let tx = c
             .transaction_with_behavior(rusqlite::TransactionBehavior::Immediate)
@@ -311,6 +354,8 @@ impl Store {
             params![timestamp, reason, session_id],
         )
         .map_err(|_| Error::storage())?;
+        tx.execute("UPDATE session_participants SET state='left' WHERE session_id=?1 AND state NOT IN ('left','removed')", [session_id])
+            .map_err(|_| Error::storage())?;
         let ended = get_by_id(&tx, session_id)?;
         emit(&tx, &members, &ended, "session_ended")?;
         tx.commit().map_err(|_| Error::storage())?;
@@ -361,7 +406,7 @@ impl Store {
             let placeholders = std::iter::repeat_n("(?)", chunk.len())
                 .collect::<Vec<_>>()
                 .join(",");
-            let sql = format!("WITH requested(id) AS (VALUES {placeholders}) SELECT requested.id FROM requested LEFT JOIN sessions s ON s.id=requested.id LEFT JOIN conversations c ON c.id=s.conversation_id WHERE s.id IS NULL OR s.state NOT IN ('accepted','ready') OR c.closed=1");
+            let sql = format!("WITH requested(id) AS (VALUES {placeholders}) SELECT requested.id FROM requested LEFT JOIN sessions s ON s.id=requested.id LEFT JOIN conversations c ON c.id=s.conversation_id WHERE s.id IS NULL OR s.state NOT IN ('accepted','ready','active') OR c.closed=1");
             let mut query = connection.prepare(&sql).map_err(|_| Error::storage())?;
             let rows = query
                 .query_map(rusqlite::params_from_iter(chunk), |row| {
@@ -392,11 +437,11 @@ impl Store {
         } else {
             let actor = crate::identity::actor_from_connection(&tx, credential_id)?;
             actor.require("session_get")?;
-            let session = get_by_id(&tx, session_id)?;
+            let session = authorize_binding(&tx, &actor, session_id)?;
             (actor, session)
         };
         if actor.identity_id != session.initiator_id
-            || !matches!(session.state.as_str(), "accepted" | "ready")
+            || !matches!(session.state.as_str(), "accepted" | "ready" | "active")
         {
             return Ok(None);
         }
@@ -429,6 +474,24 @@ impl Store {
         session_id: &str,
         connection_id: &str,
     ) -> Result<Session> {
+        let _authority = self.stable_authority(
+            &crate::AuthorityWait::new(crate::authority_fences::DEFAULT_WAIT),
+            || {
+                let c = self.connection()?;
+                let current =
+                    if credential_id.starts_with(connect_protocol::tasks::TASK_PRINCIPAL_PREFIX) {
+                        Self::native_session_authority(&c, credential_id, session_id)?.session
+                    } else {
+                        let actor = crate::identity::actor_from_connection(&c, credential_id)?;
+                        authorize_binding(&c, &actor, session_id)?
+                    };
+                crate::authority_admission::conversation_scopes(
+                    &c,
+                    &current.conversation_id,
+                    crate::AuthorityMode::Write,
+                )
+            },
+        )?;
         let mut c = self.connection()?;
         let tx = c
             .transaction_with_behavior(rusqlite::TransactionBehavior::Immediate)
@@ -463,7 +526,7 @@ impl Store {
             params![session_id, actor.identity_id, actor.credential_id, connection_id, now(), grant_id],
         )
         .map_err(|_| Error::storage())?;
-        if current.state != "ready" {
+        if !matches!(current.state.as_str(), "ready" | "active") {
             if !capacity(&tx, members.len() as u64, 0, self)? {
                 return Err(Error::new(
                     "capacity-exceeded",
@@ -487,22 +550,28 @@ impl Store {
     /// process startup. Physical sockets do not survive a process restart; their
     /// durable Sessions remain accepted and require fresh authorized connections.
     pub fn reconcile_interrupted_video_connections(&self) -> Result<usize> {
+        let _runtime = self.require_runtime_owner()?;
+        let mut total = 0;
+        loop {
+            let count = self.reconcile_video_batch()?;
+            total += count;
+            if count == 0 {
+                return Ok(total);
+            }
+        }
+    }
+    fn reconcile_video_batch(&self) -> Result<usize> {
+        let _runtime = self.require_runtime_owner()?;
+        let kind = crate::startup_authority::Kind::VideoBindings;
+        let (ids, guard) = self.startup_batch(kind, 1000)?;
         let mut connection = self.connection()?;
         let tx = connection
             .transaction_with_behavior(rusqlite::TransactionBehavior::Immediate)
             .map_err(|_| Error::storage())?;
-        let candidates = {
-            let mut statement = tx
-                .prepare("SELECT DISTINCT session_id FROM session_bindings WHERE state='ready'")
-                .map_err(|_| Error::storage())?;
-            let rows = statement
-                .query_map([], |row| row.get::<_, String>(0))
-                .map_err(|_| Error::storage())?;
-            rows.collect::<std::result::Result<Vec<_>, _>>()
-                .map_err(|_| Error::storage())?
-        };
+        let candidates = self.startup_rows(&tx, kind, &ids, &guard)?;
         let mut reconciled = 0;
-        for id in candidates {
+        for candidate in candidates {
+            let id = candidate.id;
             let session = get_by_id(&tx, &id)?;
             if !session.media.iter().any(|kind| kind == "video") {
                 continue;
@@ -529,6 +598,7 @@ impl Store {
             }
             reconciled += 1;
         }
+        self.require_runtime_owner()?;
         tx.commit().map_err(|_| Error::storage())?;
         Ok(reconciled)
     }
@@ -536,6 +606,12 @@ impl Store {
     /// Record a transient native connection interruption without ending its
     /// reconnectable durable Session.
     pub fn unbind_session_connection(&self, connection_id: &str) -> Result<Option<Session>> {
+        let _authority = self.runtime_conversation_authority(|c| {
+            let mut st = c.prepare("SELECT DISTINCT s.conversation_id FROM session_bindings b JOIN sessions s ON s.id=b.session_id WHERE b.connection_id=?1 LIMIT 1025").map_err(|_| Error::storage())?;
+            let cids = st.query_map([connection_id], |r| r.get::<_, String>(0)).map_err(|_| Error::storage())?.collect::<std::result::Result<Vec<_>, _>>().map_err(|_| Error::storage())?;
+            if cids.len()>1024 {return Err(Error::new("capacity-exceeded", "Authority scope capacity exceeded"));}
+            Ok(cids)
+        })?;
         let mut c = self.connection()?;
         let tx = c
             .transaction_with_behavior(rusqlite::TransactionBehavior::Immediate)
@@ -599,7 +675,7 @@ fn members(c: &Connection, conversation_id: &str) -> Result<Vec<String>> {
 pub(crate) fn ensure_conversation_closable(c: &Connection, conversation_id: &str) -> Result<()> {
     let live: bool = c
         .query_row(
-            "SELECT EXISTS(SELECT 1 FROM sessions WHERE conversation_id=?1 AND state IN ('invited','accepted','ready'))",
+            "SELECT EXISTS(SELECT 1 FROM sessions WHERE conversation_id=?1 AND state NOT IN ('ended','rejected','cancelled','failed')) OR EXISTS(SELECT 1 FROM voice_calls WHERE conversation_id=?1 AND state NOT IN ('ended','cancelled','failed','forbidden')) OR EXISTS(SELECT 1 FROM sip_legs WHERE conversation_id=?1 AND state NOT IN ('ended','cancelled','failed','forbidden')) OR EXISTS(SELECT 1 FROM operations WHERE conversation_id=?1 AND ledger_version=1 AND state NOT IN ('completed','cancelled','failed'))",
             [conversation_id],
             |r| r.get(0),
         )
@@ -668,7 +744,7 @@ pub(crate) fn authorize_binding(
     session_id: &str,
 ) -> Result<Session> {
     let session = authorize_binding_lifetime(c, actor, session_id)?;
-    if !matches!(session.state.as_str(), "accepted" | "ready") {
+    if !matches!(session.state.as_str(), "accepted" | "ready" | "active") {
         return Err(Error::forbidden());
     }
     Ok(session)
@@ -682,18 +758,104 @@ pub(crate) fn authorize_binding_lifetime(
 ) -> Result<Session> {
     actor.require("session_get")?;
     let session = get_by_id(c, session_id)?;
+    crate::audience::require(
+        c,
+        actor,
+        &session.conversation_id,
+        connect_protocol::membership::ContentKind::Session,
+        session_id,
+    )?;
+    // Sharing historical Session metadata never revives old live presence.
+    require_original_epoch(c, &actor.identity_id, &session)?;
     let conversation =
         crate::conversations::authorized_conversation(c, actor, &session.conversation_id)?;
     if conversation.closed
-        || (actor.identity_id != session.initiator_id
-            && actor.identity_id != session.participant_id)
-        || !matches!(session.state.as_str(), "accepted" | "ready" | "ended")
+        || !matches!(
+            session.state.as_str(),
+            "accepted" | "ready" | "active" | "ended"
+        )
     {
+        return Err(Error::forbidden());
+    }
+    let state: Option<String> = c.query_row(
+        "SELECT sp.state FROM session_participants sp JOIN participants p ON p.participant_id=sp.participant_id AND p.conversation_id=sp.conversation_id AND p.tenant_id=sp.tenant_id AND p.membership_epoch=sp.membership_epoch AND p.active=1 WHERE sp.session_id=?1 AND p.identity_id=?2",
+        params![session.id, actor.identity_id], |r| r.get(0),
+    ).optional().map_err(|_| Error::storage())?;
+    if !matches!(
+        (session.state.as_str(), state.as_deref()),
+        ("accepted" | "ready" | "active", Some("present")) | ("ended", Some("present" | "left"))
+    ) {
         return Err(Error::forbidden());
     }
     Ok(session)
 }
 
+impl Store {
+    /// Current, recipient-filtered Session appearances. A historical audience or
+    /// a readmitted Participant never revives presence from an earlier epoch.
+    pub fn session_presence(
+        &self,
+        credential_id: &str,
+        conversation_id: &str,
+        session_id: &str,
+    ) -> Result<Vec<connect_protocol::events::SessionAppearance>> {
+        let mut c = self.connection()?;
+        let tx = c.transaction().map_err(|_| Error::storage())?;
+        let actor = crate::identity::actor_from_connection(&tx, credential_id)?;
+        actor.require("session_get")?;
+        crate::conversations::authorized_conversation(&tx, &actor, conversation_id)?;
+        crate::audience::require(
+            &tx,
+            &actor,
+            conversation_id,
+            connect_protocol::membership::ContentKind::Session,
+            session_id,
+        )?;
+        get(&tx, conversation_id, session_id)?;
+        let mut statement = tx.prepare("SELECT sp.participant_id,sp.membership_epoch,sp.role,sp.state,p.identity_id FROM session_participants sp JOIN participants p ON p.participant_id=sp.participant_id AND p.conversation_id=sp.conversation_id AND p.tenant_id=sp.tenant_id AND p.membership_epoch=sp.membership_epoch AND p.active=1 JOIN identities i ON i.id=p.identity_id AND i.tenant_id=p.tenant_id AND i.revoked=0 WHERE sp.session_id=?1 AND sp.conversation_id=?2 ORDER BY sp.participant_id").map_err(|_| Error::storage())?;
+        let rows = statement
+            .query_map(params![session_id, conversation_id], |r| {
+                Ok((
+                    connect_protocol::events::SessionAppearance {
+                        session_id: session_id.into(),
+                        participant_id: r.get(0)?,
+                        membership_epoch: r.get(1)?,
+                        role: r.get(2)?,
+                        state: r.get(3)?,
+                    },
+                    r.get::<_, String>(4)?,
+                ))
+            })
+            .map_err(|_| Error::storage())?;
+        let mut appearances = Vec::new();
+        for row in rows {
+            let (appearance, identity) = row.map_err(|_| Error::storage())?;
+            if actor.permits_recipient(&identity) {
+                appearances.push(appearance);
+            }
+        }
+        Ok(appearances)
+    }
+}
+
+pub(crate) fn require_original_epoch(
+    c: &Connection,
+    identity: &str,
+    session: &Session,
+) -> Result<()> {
+    crate::audience::member(c, identity, &session.conversation_id, true)?;
+    let bound: bool = c.query_row("SELECT EXISTS(SELECT 1 FROM resource_audiences a JOIN participants p ON p.participant_id=a.participant_id AND p.membership_epoch=a.membership_epoch AND p.active=1 WHERE a.kind='session' AND a.id=?1 AND a.conversation_id=?2 AND p.identity_id=?3)",params![session.id,session.conversation_id,identity],|r|r.get(0)).map_err(|_|Error::storage())?;
+    if bound {
+        Ok(())
+    } else {
+        Err(Error::forbidden())
+    }
+}
+
 #[cfg(test)]
 #[path = "session_lifetime_tests.rs"]
 mod lifetime_tests;
+
+#[cfg(test)]
+#[path = "session_presence_tests.rs"]
+mod presence_tests;

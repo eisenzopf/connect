@@ -1,0 +1,302 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Connect verified provider observations",
+    "version": "schema-32",
+    "description": "Current trusted callback projection, not provider account setup or a live-provider qualification. Callback IDs, caller ID, phone numbers and message text never select a Connect principal or grant."
+  },
+  "paths": {
+    "/webhooks/telnyx": {
+      "post": {
+        "operationId": "telnyxObservation",
+        "description": "The configured verifier checks the timestamp and Ed25519 signature over the UTF-8 timestamp, a vertical bar, and the original body bytes before parsing. The timestamp header and signature header are both required. Controls require occurred_at; equal control timestamps favor STOP. STOP is global for the phone across senders/conversations; START requires enrollment and cannot create it. A busy/unavailable authority returns 503 before event receipt or policy mutation. Retry the same data.id and data content with a fresh valid transport signature; delivery-attempt metadata outside data does not change identity. Success/duplicate/ignored events return 204 and never claim a human read or a successful assistant action. The listener applies its configured body/concurrency budgets. Other event kinds are acknowledged and ignored; they cannot create a message or grant. Canonical provider_messages hosting uses a separate narrow listener scoped to explicitly mounted verified SMS Endpoint/account routes. Unmounted incoming/final routes are refused before event admission. An unknown final provider ID requires a signed source/destination pair identifying exactly one mounted route; its retained final fact reconciles after the original send response without resubmission. Already-attributed final facts update typed message/recipient delivery observations. Signed controls from unknown contacts to an owned mounted source remain admissible without creating enrollment, identity or assistant communication. Ordinary received SMS requires payload.id as the original provider message resource, separately from data.id callback identity. Verified matching routes are considered together; overlap or retained routing history creates private custody without a Conversation message until an authorized original candidate is resolved. Identical resource/content retries never deliver again under a new callback ID. Conflicting resource reuse remains private reconciliation evidence. Originally ineligible observations are terminally ignored and cannot become prompts after later enrollment. A204 response can acknowledge a private hold or ignored observation and does not imply message/assistant delivery.",
+        "security": [
+          {
+            "telnyxSignature": [],
+            "telnyxTimestamp": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Event"
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "Verified event admitted, duplicate, or intentionally ignored; no body"
+          },
+          "400": {
+            "description": "Malformed JSON/required control fields or inconsistent immutable event data; may have no body"
+          },
+          "401": {
+            "description": "Missing/invalid signature or signed transport timestamp",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Current or mounted route/Endpoint/account/delegation refused, or final provider ID has no unique attributable mounted route",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Listener body budget exceeded"
+          },
+          "503": {
+            "description": "Authority, storage, worker or listener capacity unavailable; authority refusals do not admit the event. An early listener/configuration refusal can have no body. Retry the same logical event.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "telnyxSignature": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "telnyx-signature-ed25519",
+        "description": "Base64 Ed25519 signature verified with the explicitly configured provider public key; not a bearer credential"
+      },
+      "telnyxTimestamp": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "telnyx-timestamp",
+        "description": "Signed current transport timestamp checked by the configured verifier"
+      }
+    },
+    "schemas": {
+      "Event": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "oneOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 249
+                  },
+                  "event_type": {
+                    "const": "message.received"
+                  },
+                  "occurred_at": {
+                    "type": "string",
+                    "format": "date-time"
+                  },
+                  "payload": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 256,
+                        "description": "Required for ordinary non-control received SMS. Verified STOP/START/HELP controls retain occurred_at ordering and do not require an ordinary message resource ID."
+                      },
+                      "direction": {
+                        "type": "string"
+                      },
+                      "from": {
+                        "type": "object",
+                        "properties": {
+                          "phone_number": {
+                            "type": "string",
+                            "minLength": 1
+                          }
+                        },
+                        "required": [
+                          "phone_number"
+                        ],
+                        "additionalProperties": true
+                      },
+                      "to": {
+                        "type": "array",
+                        "minItems": 1,
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "phone_number": {
+                              "type": "string",
+                              "minLength": 1
+                            }
+                          },
+                          "required": [
+                            "phone_number"
+                          ],
+                          "additionalProperties": true
+                        }
+                      },
+                      "text": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "autoresponse_type": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "from",
+                      "to",
+                      "text"
+                    ],
+                    "additionalProperties": true
+                  }
+                },
+                "required": [
+                  "id",
+                  "event_type",
+                  "payload"
+                ],
+                "additionalProperties": true
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 249
+                  },
+                  "event_type": {
+                    "const": "message.finalized"
+                  },
+                  "occurred_at": {
+                    "type": "string",
+                    "format": "date-time"
+                  },
+                  "payload": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "to": {
+                        "type": "array",
+                        "minItems": 1,
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "status": {
+                              "type": "string",
+                              "minLength": 1
+                            }
+                          },
+                          "required": [
+                            "status"
+                          ],
+                          "additionalProperties": true
+                        }
+                      }
+                    },
+                    "required": [
+                      "id",
+                      "to"
+                    ],
+                    "additionalProperties": true
+                  }
+                },
+                "required": [
+                  "id",
+                  "event_type",
+                  "payload"
+                ],
+                "additionalProperties": true
+              },
+              {
+                "type": "object",
+                "additionalProperties": true,
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "maxLength": 249
+                  },
+                  "event_type": {
+                    "not": {
+                      "enum": [
+                        "message.received",
+                        "message.finalized"
+                      ]
+                    }
+                  },
+                  "payload": {}
+                },
+                "required": [
+                  "id"
+                ]
+              }
+            ]
+          },
+          "meta": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "additionalProperties": true
+      },
+      "ErrorResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "profile": {
+            "const": "connect-control/1"
+          },
+          "result": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "Err": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "code": {
+                    "type": "string"
+                  },
+                  "message": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "code",
+                  "message"
+                ]
+              }
+            },
+            "required": [
+              "Err"
+            ]
+          }
+        },
+        "required": [
+          "profile",
+          "result"
+        ]
+      }
+    }
+  }
+}

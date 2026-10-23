@@ -1,0 +1,911 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Connect membership control",
+    "version": "schema-34",
+    "description": "Fresh candidate state only. All ten explicit membership actions use the ordinary durable control ledger and current authority. Add is explicit admission, separate from invitation target acceptance. Role labels grant no capabilities. Readmission increments membership epoch. Outcomes include local-mutation receipts, never media completion. Wire string byte limits and safe integers are checked by the protocol; JSON Schema maxLength counts characters."
+  },
+  "paths": {
+    "/v1/operations": {
+      "post": {
+        "operationId": "membershipControl",
+        "description": "Membership requires the action-specific named scope, current manager/member or invitation-target authority, same tenant and recipient ceilings. Preserve operation_id, expected_revision and normalized action for identical replay. A changed intent conflicts. Original member epoch is immutable; current authorization is required for status and replay. Only the original same-epoch self-removal receipt is readable while inactive. Query snapshots require current membership. Personal invitations are pending/live/unexpired only, count <=100 and encoded page <=384KiB, using a 30-second identity/credential/tenant/scope-bound opaque fixed-high-water cursor. New inserts require a fresh query; it is not a retained immutable snapshot.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Operation"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Typed current membership projection with exact local-mutation receipt, bounded membership query, or typed business refusal. Storage and other infrastructure refusals create no logical operation ID.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Response"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Current authentication required.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Response"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Encoded request exceeds configured body budget."
+          },
+          "422": {
+            "description": "Malformed JSON or unknown closed typed field is refused before service execution."
+          },
+          "503": {
+            "description": "Bounded HTTP capacity, current authority busy/unavailable, or durable storage unavailability. For an authority refusal retry the same logical mutation ID after delivery owners settle.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Response"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Current principal, original command scope, resource audience or operation owner is not authorized.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Response"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer"
+      }
+    },
+    "schemas": {
+      "Member": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "participant_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128,
+            "pattern": "^[A-Za-z0-9._~-]+$"
+          },
+          "conversation_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128,
+            "pattern": "^[A-Za-z0-9._~-]+$"
+          },
+          "identity_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128,
+            "pattern": "^[A-Za-z0-9._~-]+$"
+          },
+          "kind": {
+            "enum": [
+              "human",
+              "ai",
+              "system",
+              "external"
+            ]
+          },
+          "role": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64,
+            "pattern": "^[^\\x00-\\x1f\\x7f-\\x9f]*$"
+          },
+          "membership_epoch": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9007199254740991
+          },
+          "active": {
+            "type": "boolean"
+          },
+          "removal_reason": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 512,
+                "pattern": "^[^\\x00-\\x1f\\x7f-\\x9f]*$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "participant_id",
+          "conversation_id",
+          "identity_id",
+          "kind",
+          "role",
+          "membership_epoch",
+          "active",
+          "removal_reason"
+        ]
+      },
+      "Invitation": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "invitation_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128,
+            "pattern": "^[A-Za-z0-9._~-]+$"
+          },
+          "conversation_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128,
+            "pattern": "^[A-Za-z0-9._~-]+$"
+          },
+          "identity_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128,
+            "pattern": "^[A-Za-z0-9._~-]+$"
+          },
+          "expires_at": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9007199254740991
+          },
+          "state": {
+            "enum": [
+              "pending",
+              "joined",
+              "declined",
+              "cancelled",
+              "expired"
+            ]
+          },
+          "conversation_revision": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          }
+        },
+        "required": [
+          "invitation_id",
+          "conversation_id",
+          "identity_id",
+          "expires_at",
+          "state",
+          "conversation_revision"
+        ]
+      },
+      "ContentRef": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "kind": {
+            "enum": [
+              "message",
+              "artifact",
+              "session",
+              "call",
+              "sip_leg",
+              "context_delivery",
+              "record",
+              "transcript",
+              "observation"
+            ]
+          },
+          "id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256,
+            "pattern": "^[^\\x00-\\x1f\\x7f-\\x9f]*$"
+          }
+        },
+        "required": [
+          "kind",
+          "id"
+        ]
+      },
+      "MembershipAction": {
+        "oneOf": [
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "action": {
+                "const": "add"
+              },
+              "identity_id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128,
+                "pattern": "^[A-Za-z0-9._~-]+$"
+              },
+              "kind": {
+                "enum": [
+                  "human",
+                  "ai",
+                  "system",
+                  "external"
+                ]
+              },
+              "role": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 64,
+                "pattern": "^[^\\x00-\\x1f\\x7f-\\x9f]*$"
+              }
+            },
+            "required": [
+              "action",
+              "identity_id",
+              "kind",
+              "role"
+            ]
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "action": {
+                "const": "invite"
+              },
+              "identity_id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128,
+                "pattern": "^[A-Za-z0-9._~-]+$"
+              },
+              "kind": {
+                "enum": [
+                  "human",
+                  "ai",
+                  "system",
+                  "external"
+                ]
+              },
+              "role": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 64,
+                "pattern": "^[^\\x00-\\x1f\\x7f-\\x9f]*$"
+              },
+              "expires_at": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 9007199254740991
+              }
+            },
+            "required": [
+              "action",
+              "identity_id",
+              "kind",
+              "role",
+              "expires_at"
+            ]
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "action": {
+                "const": "join"
+              },
+              "invitation_id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128,
+                "pattern": "^[A-Za-z0-9._~-]+$"
+              }
+            },
+            "required": [
+              "action",
+              "invitation_id"
+            ]
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "action": {
+                "const": "decline"
+              },
+              "invitation_id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128,
+                "pattern": "^[A-Za-z0-9._~-]+$"
+              }
+            },
+            "required": [
+              "action",
+              "invitation_id"
+            ]
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "action": {
+                "const": "cancel_invitation"
+              },
+              "invitation_id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128,
+                "pattern": "^[A-Za-z0-9._~-]+$"
+              }
+            },
+            "required": [
+              "action",
+              "invitation_id"
+            ]
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "action": {
+                "const": "leave"
+              }
+            },
+            "required": [
+              "action"
+            ]
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "action": {
+                "const": "remove"
+              },
+              "participant_id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128,
+                "pattern": "^[A-Za-z0-9._~-]+$"
+              },
+              "reason": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "maxLength": 512,
+                    "pattern": "^[^\\x00-\\x1f\\x7f-\\x9f]*$"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            },
+            "required": [
+              "action",
+              "participant_id"
+            ]
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "action": {
+                "const": "update_role"
+              },
+              "participant_id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128,
+                "pattern": "^[A-Za-z0-9._~-]+$"
+              },
+              "role": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 64,
+                "pattern": "^[^\\x00-\\x1f\\x7f-\\x9f]*$"
+              }
+            },
+            "required": [
+              "action",
+              "participant_id",
+              "role"
+            ]
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "action": {
+                "const": "share_history"
+              },
+              "resources": {
+                "type": "array",
+                "minItems": 1,
+                "maxItems": 100,
+                "uniqueItems": true,
+                "items": {
+                  "$ref": "#/components/schemas/ContentRef"
+                }
+              },
+              "participants": {
+                "type": "array",
+                "minItems": 1,
+                "maxItems": 100,
+                "uniqueItems": true,
+                "items": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 128,
+                  "pattern": "^[A-Za-z0-9._~-]+$"
+                }
+              },
+              "provenance": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 512,
+                "pattern": "^[^\\x00-\\x1f\\x7f-\\x9f]*$"
+              }
+            },
+            "required": [
+              "action",
+              "resources",
+              "participants",
+              "provenance"
+            ]
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "action": {
+                "const": "revoke_history_share"
+              },
+              "sharing_id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128,
+                "pattern": "^[A-Za-z0-9._~-]+$"
+              }
+            },
+            "required": [
+              "action",
+              "sharing_id"
+            ]
+          }
+        ]
+      },
+      "MembershipRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "operation_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128,
+            "pattern": "^[A-Za-z0-9._~-]+$"
+          },
+          "conversation_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128,
+            "pattern": "^[A-Za-z0-9._~-]+$"
+          },
+          "expected_revision": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740990
+          },
+          "change": {
+            "$ref": "#/components/schemas/MembershipAction"
+          }
+        },
+        "required": [
+          "operation_id",
+          "conversation_id",
+          "expected_revision",
+          "change"
+        ]
+      },
+      "MutationReceipt": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "operation_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128,
+            "pattern": "^[A-Za-z0-9._~-]+$"
+          },
+          "conversation_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128,
+            "pattern": "^[A-Za-z0-9._~-]+$"
+          },
+          "state": {
+            "const": "completed"
+          },
+          "completion_boundary": {
+            "const": "local-mutation"
+          },
+          "status_reference": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "action": {
+                "const": "get"
+              },
+              "operation_id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128,
+                "pattern": "^[A-Za-z0-9._~-]+$"
+              }
+            },
+            "required": [
+              "action",
+              "operation_id"
+            ]
+          }
+        },
+        "required": [
+          "operation_id",
+          "conversation_id",
+          "state",
+          "completion_boundary",
+          "status_reference"
+        ]
+      },
+      "MembershipOutcome": {
+        "oneOf": [
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "kind": {
+                "const": "participant"
+              },
+              "participant": {
+                "$ref": "#/components/schemas/Member"
+              },
+              "revision": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              "receipt": {
+                "$ref": "#/components/schemas/MutationReceipt"
+              }
+            },
+            "required": [
+              "kind",
+              "participant",
+              "revision",
+              "receipt"
+            ]
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "kind": {
+                "const": "invitation"
+              },
+              "invitation": {
+                "$ref": "#/components/schemas/Invitation"
+              },
+              "receipt": {
+                "$ref": "#/components/schemas/MutationReceipt"
+              }
+            },
+            "required": [
+              "kind",
+              "invitation",
+              "receipt"
+            ]
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "kind": {
+                "const": "sharing"
+              },
+              "sharing_id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128,
+                "pattern": "^[A-Za-z0-9._~-]+$"
+              },
+              "conversation_id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128,
+                "pattern": "^[A-Za-z0-9._~-]+$"
+              },
+              "revision": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              "active": {
+                "type": "boolean"
+              },
+              "receipt": {
+                "$ref": "#/components/schemas/MutationReceipt"
+              }
+            },
+            "required": [
+              "kind",
+              "sharing_id",
+              "conversation_id",
+              "revision",
+              "active",
+              "receipt"
+            ]
+          }
+        ]
+      },
+      "MembershipSnapshot": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "conversation_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128,
+            "pattern": "^[A-Za-z0-9._~-]+$"
+          },
+          "revision": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "participants": {
+            "type": "array",
+            "maxItems": 128,
+            "items": {
+              "$ref": "#/components/schemas/Member"
+            }
+          }
+        },
+        "required": [
+          "conversation_id",
+          "revision",
+          "participants"
+        ]
+      },
+      "InvitationPage": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "invitations": {
+            "type": "array",
+            "maxItems": 100,
+            "items": {
+              "$ref": "#/components/schemas/Invitation"
+            }
+          },
+          "next": {
+            "anyOf": [
+              {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 2048
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "invitations",
+          "next"
+        ]
+      },
+      "Operation": {
+        "oneOf": [
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "op": {
+                "const": "membership"
+              },
+              "request": {
+                "$ref": "#/components/schemas/MembershipRequest"
+              }
+            },
+            "required": [
+              "op",
+              "request"
+            ]
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "op": {
+                "const": "membership_snapshot"
+              },
+              "conversation_id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128,
+                "pattern": "^[A-Za-z0-9._~-]+$"
+              }
+            },
+            "required": [
+              "op",
+              "conversation_id"
+            ]
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "op": {
+                "const": "membership_invitations"
+              },
+              "after": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "maxLength": 2048
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "limit": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 100
+              }
+            },
+            "required": [
+              "op",
+              "limit"
+            ]
+          }
+        ]
+      },
+      "Outcome": {
+        "oneOf": [
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "kind": {
+                "const": "membership"
+              },
+              "data": {
+                "$ref": "#/components/schemas/MembershipOutcome"
+              }
+            },
+            "required": [
+              "kind",
+              "data"
+            ]
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "kind": {
+                "const": "membership_snapshot"
+              },
+              "data": {
+                "$ref": "#/components/schemas/MembershipSnapshot"
+              }
+            },
+            "required": [
+              "kind",
+              "data"
+            ]
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "kind": {
+                "const": "membership_invitations"
+              },
+              "data": {
+                "$ref": "#/components/schemas/InvitationPage"
+              }
+            },
+            "required": [
+              "kind",
+              "data"
+            ]
+          }
+        ]
+      },
+      "Error": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "code",
+          "message"
+        ]
+      },
+      "Response": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "profile": {
+            "const": "connect-control/1"
+          },
+          "result": {
+            "oneOf": [
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "Ok": {
+                    "$ref": "#/components/schemas/Outcome"
+                  }
+                },
+                "required": [
+                  "Ok"
+                ]
+              },
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "Err": {
+                    "$ref": "#/components/schemas/Error"
+                  }
+                },
+                "required": [
+                  "Err"
+                ]
+              }
+            ]
+          }
+        },
+        "required": [
+          "profile",
+          "result"
+        ]
+      }
+    }
+  }
+}

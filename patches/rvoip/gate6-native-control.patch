@@ -1,0 +1,1151 @@
+diff --git a/crates/foundation/rvoip-core/src/staged_streams.rs b/crates/foundation/rvoip-core/src/staged_streams.rs
+--- a/crates/foundation/rvoip-core/src/staged_streams.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams.rs
+@@ -224,6 +224,11 @@
+         desired: &'a [DesiredStream],
+         replace: &'a BTreeSet<StreamId>,
+     },
++    Gate {
++        expected: u64,
++        streams: &'a BTreeSet<StreamId>,
++        action: StreamGateAction,
++    },
+     Pause {
+         logical: &'a StreamId,
+         expected: u64,
+@@ -1423,7 +1428,7 @@
+             .model
+             .streams()
+             .get(&port.binding.negotiated.requested.logical_id)
+-            .is_none_or(|s| s.state != LogicalStreamState::Active)
++            .is_none_or(|s| !s.permits(sending))
+         {
+             return Err(StreamControlError::NotReady);
+         }
+@@ -1865,6 +1870,137 @@
+         }
+         drop(quiesced);
+         Ok(())
++    }
++    /// Atomically change a set of runtime gates after all affected admitted
++    /// IO drains. Transport bindings and cumulative opening budgets are retained.
++    pub async fn set_media_gate(
++        &self,
++        expected: u64,
++        ids: &BTreeSet<StreamId>,
++        action: StreamGateAction,
++        deadline: tokio::time::Instant,
++    ) -> ControlResult<(u64, Vec<LogicalStream>)> {
++        self.set_media_gate_inner(
++            expected,
++            ids,
++            action,
++            deadline,
++            self.credential_snapshot(),
++            None,
++        )
++        .await
++    }
++    pub async fn set_media_gate_with_held(
++        &self,
++        expected: u64,
++        ids: &BTreeSet<StreamId>,
++        action: StreamGateAction,
++        deadline: tokio::time::Instant,
++        held: Arc<dyn Any + Send + Sync>,
++    ) -> ControlResult<(u64, Vec<LogicalStream>)> {
++        let credential = self.credential_snapshot();
++        let control = self.policy.current_control(
++            &self.scope(&credential.principal, MediaPurpose::Control),
++            &MediaControlIntent::Gate {
++                expected,
++                streams: ids,
++                action,
++            },
++            held.as_ref(),
++        )?;
++        self.set_media_gate_inner(expected, ids, action, deadline, credential, Some(control))
++            .await
++    }
++    async fn set_media_gate_inner(
++        &self,
++        expected: u64,
++        ids: &BTreeSet<StreamId>,
++        action: StreamGateAction,
++        deadline: tokio::time::Instant,
++        credential: CredentialSnapshot,
++        control: Option<MediaControl>,
++    ) -> ControlResult<(u64, Vec<LogicalStream>)> {
++        let deadline = Self::command_deadline(&credential.principal, deadline)
++            .min(control.as_ref().map_or(deadline, |c| c.deadline));
++        let cancelled = control
++            .as_ref()
++            .map(|c| c.cancellation.clone())
++            .unwrap_or_default();
++        if deadline <= tokio::time::Instant::now() {
++            return Err(StreamControlError::Deadline);
++        }
++        let _flight = self
++            .inflight
++            .clone()
++            .try_acquire_owned()
++            .map_err(|_| MediaTransitionError::Conflict)?;
++        self.check_credential_snapshot(&credential)?;
++        let ports = {
++            let state = self.state.lock().unwrap_or_else(|p| p.into_inner());
++            let scope = self.scope(&credential.principal, MediaPurpose::Control);
++            let lease = control_read(self.policy.as_ref(), &scope, control.as_ref())?;
++            let auth = lease.authority();
++            Self::check(&scope, auth)?;
++            if state.closed || self.shutdown.is_cancelled() || !auth.may_control {
++                return Err(StreamControlError::Authority);
++            }
++            state
++                .model
++                .validate_gate(&auth.current(), expected, ids, action)?;
++            ids.iter()
++                .map(|id| {
++                    state
++                        .active
++                        .get(id)
++                        .cloned()
++                        .ok_or(StreamControlError::NotReady)
++                })
++                .collect::<ControlResult<Vec<_>>>()?
++        };
++        let mut quiesced = Vec::with_capacity(ports.len());
++        for port in &ports {
++            let old = port.ticket();
++            let next = old.stage().ok_or(MediaTransitionError::Capacity)?;
++            let drained = tokio::select! {biased;_=cancelled.cancelled()=>return Err(StreamControlError::Cancelled),_=self.shutdown.cancelled()=>return Err(StreamControlError::Cancelled),r=tokio::time::timeout_at(deadline,old.quiesce())=>r.map_err(|_|StreamControlError::Deadline)?.ok_or(StreamControlError::NotReady)?};
++            quiesced.push((old, next, drained));
++        }
++        let outcome = {
++            let mut state = self.state.lock().unwrap_or_else(|p| p.into_inner());
++            let scope = self.scope(&credential.principal, MediaPurpose::Control);
++            let lease = control_read(self.policy.as_ref(), &scope, control.as_ref())?;
++            let auth = lease.authority();
++            Self::check(&scope, auth)?;
++            if state.closed || self.shutdown.is_cancelled() || cancelled.is_cancelled() {
++                return Err(StreamControlError::Cancelled);
++            }
++            if tokio::time::Instant::now() >= deadline {
++                return Err(StreamControlError::Deadline);
++            }
++            let changed = state
++                .model
++                .set_gates(&auth.current(), expected, ids, action)?;
++            for (port, (old, next, _)) in ports.iter().zip(&quiesced) {
++                assert!(
++                    next.commit_from(old),
++                    "private gate generation changed outside controller"
++                );
++                *port.ticket.lock().unwrap_or_else(|p| p.into_inner()) = next.clone();
++                let logical = state
++                    .model
++                    .streams()
++                    .get(&port.binding.negotiated.requested.logical_id)
++                    .expect("active gated stream");
++                port.state.lock().unwrap_or_else(|p| p.into_inner()).status =
++                    if logical.state == LogicalStreamState::Paused {
++                        PortStatus::Paused
++                    } else {
++                        PortStatus::Active
++                    };
++            }
++            (state.model.revision(), changed)
++        };
++        drop(quiesced);
++        Ok(outcome)
+     }
+     /// Drain admitted local sends, then advance the private delivery generation
+     /// with the logical pause/resume. Frames buffered before either edge expire.
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/tests.rs b/crates/foundation/rvoip-core/src/staged_streams/tests.rs
+--- a/crates/foundation/rvoip-core/src/staged_streams/tests.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests.rs
+@@ -2353,3 +2353,88 @@
+ mod future_audio;
+ 
+ mod reliable_data;
++#[tokio::test]
++async fn native_gate_source_mute_preserves_playback_and_fences_pre_mute_packets() {
++    let f = Fixture::new(8);
++    f.start(&[Medium::Audio]).await;
++    let id = desired(Medium::Audio).logical_id;
++    let ids = [id.clone()].into_iter().collect();
++    let ap = f.aa.port(Medium::Audio);
++    let bp = f.ba.port(Medium::Audio);
++    let original = ap.binding().clone();
++    let mut ai = f.a.take_ingress(&id).unwrap();
++    let mut bi = f.b.take_ingress(&id).unwrap();
++    let mut ao = ap.take_egress().unwrap();
++    let mut bo = bp.take_egress().unwrap();
++    ap.try_publish(&frame(&ap, 160)).unwrap();
++    let old = receive(&mut ai).await;
++    f.a.set_media_gate(1, &ids, StreamGateAction::Mute, deadline())
++        .await
++        .unwrap();
++    assert!(ap.try_publish(&frame(&ap, 320)).is_err());
++    bp.try_publish(&frame(&bp, 160)).unwrap();
++    receive(&mut bi).await.try_forward_to(&f.a, &id).unwrap();
++    assert_audio(outgoing(&mut ao).await).await;
++    f.a.set_media_gate(2, &ids, StreamGateAction::Unmute, deadline())
++        .await
++        .unwrap();
++    assert!(old.try_forward_to(&f.b, &id).is_err());
++    ap.try_publish(&frame(&ap, 480)).unwrap();
++    receive(&mut ai).await.try_forward_to(&f.b, &id).unwrap();
++    assert_audio(outgoing(&mut bo).await).await;
++    assert_eq!(ap.binding().transport_id, original.transport_id);
++    assert_eq!(ap.binding().stream_local_id, original.stream_local_id);
++    assert_eq!(f.a.stream_open_budget().0, 1);
++}
++#[tokio::test]
++async fn native_gate_batch_timeout_restores_admission_and_success_commits_one_revision() {
++    let f = Fixture::new(8);
++    f.start_unsubscribed(&[Medium::Audio, Medium::Video]).await;
++    let id = desired(Medium::Audio).logical_id;
++    let ids = [id.clone(), desired(Medium::Video).logical_id]
++        .into_iter()
++        .collect::<BTreeSet<_>>();
++    let ap = f.aa.port(Medium::Audio);
++    let bp = f.ba.port(Medium::Audio);
++    let mut ai = f.a.take_ingress(&id).unwrap();
++    let mut bo = bp.take_egress().unwrap();
++    ap.try_publish(&frame(&ap, 160)).unwrap();
++    receive(&mut ai).await.try_forward_to(&f.b, &id).unwrap();
++    let queued = outgoing(&mut bo).await;
++    let entered = Arc::new(Notify::new());
++    let release = Arc::new(Notify::new());
++    let signal = entered.clone();
++    let wait = release.clone();
++    let sending = tokio::spawn(async move {
++        queued
++            .deliver(|_| async move {
++                signal.notify_one();
++                wait.notified().await;
++                Ok(())
++            })
++            .await
++    });
++    entered.notified().await;
++    assert!(matches!(
++        f.b.set_media_gate(
++            1,
++            &ids,
++            StreamGateAction::Mute,
++            tokio::time::Instant::now() + Duration::from_millis(25)
++        )
++        .await,
++        Err(StreamControlError::Deadline)
++    ));
++    assert_eq!(f.b.revision(), 1);
++    bp.try_publish(&frame(&bp, 320)).unwrap();
++    release.notify_one();
++    sending.await.unwrap().unwrap();
++    let (revision, streams) =
++        f.b.set_media_gate(1, &ids, StreamGateAction::Mute, deadline())
++            .await
++            .unwrap();
++    assert_eq!(revision, 2);
++    assert_eq!(streams.len(), 2);
++    assert!(streams.iter().all(|s| s.source_muted));
++    assert!(bp.try_publish(&frame(&bp, 480)).is_err());
++}
+diff --git a/crates/foundation/rvoip-core/src/stream_lifecycle.rs b/crates/foundation/rvoip-core/src/stream_lifecycle.rs
+--- a/crates/foundation/rvoip-core/src/stream_lifecycle.rs
++++ b/crates/foundation/rvoip-core/src/stream_lifecycle.rs
+@@ -323,6 +323,30 @@
+     pub stream_local_id: u16,
+     pub generation: u64,
+     pub state: LogicalStreamState,
++    pub source_muted: bool,
++    pub hold_direction: Option<StreamDirection>,
++}
++/// A runtime gate changes no negotiated codec, handle or capability. Hold's
++/// direction is from Core's perspective; mute controls endpoint publication.
++#[derive(Clone, Copy, Debug, PartialEq, Eq)]
++pub enum StreamGateAction {
++    Hold { direction: StreamDirection },
++    Resume,
++    Mute,
++    Unmute,
++}
++impl LogicalStream {
++    pub fn permits(&self, sending: bool) -> bool {
++        self.state == LogicalStreamState::Active
++            && if sending {
++                self.negotiated.requested.direction.sends()
++                    && self.hold_direction.is_none_or(StreamDirection::sends)
++            } else {
++                self.negotiated.requested.direction.receives()
++                    && !self.source_muted
++                    && self.hold_direction.is_none_or(StreamDirection::receives)
++            }
++    }
+ }
+ /// Exact, protected adapter observation. The coordinator must additionally
+ /// prove endpoint confirmation, route ownership and current policy before use.
+@@ -655,6 +679,8 @@
+                     stream_local_id: binding.stream_local_id,
+                     generation,
+                     state: old.map_or(LogicalStreamState::Active, |old| old.state),
++                    source_muted: old.is_some_and(|s| s.source_muted),
++                    hold_direction: old.and_then(|s| s.hold_direction),
+                 },
+             );
+         }
+@@ -701,6 +727,64 @@
+             self.revision += 1;
+         }
+         Ok(self.revision)
++    }
++    pub(crate) fn validate_gate(
++        &self,
++        authority: &CurrentMediaAuthority<'_>,
++        expected: u64,
++        ids: &BTreeSet<StreamId>,
++        action: StreamGateAction,
++    ) -> Result<()> {
++        self.authorize(authority)?;
++        self.expected(expected)?;
++        if ids.is_empty() || ids.len() > MAX_STREAMS {
++            return Err(MediaTransitionError::Invalid);
++        }
++        for id in ids {
++            let stream = self
++                .streams
++                .get(id)
++                .filter(|s| s.state != LogicalStreamState::Ended)
++                .ok_or(MediaTransitionError::Conflict)?;
++            let request = &stream.negotiated.requested;
++            if (request.direction.sends() && !authority.send_media.contains(&request.medium))
++                || (request.direction.receives()
++                    && !authority.receive_media.contains(&request.medium))
++            {
++                return Err(MediaTransitionError::Authority);
++            }
++            if matches!(action, StreamGateAction::Mute | StreamGateAction::Unmute)
++                && !request.direction.receives()
++            {
++                return Err(MediaTransitionError::Unsupported);
++            }
++        }
++        Ok(())
++    }
++    pub fn set_gates(
++        &mut self,
++        authority: &CurrentMediaAuthority<'_>,
++        expected: u64,
++        ids: &BTreeSet<StreamId>,
++        action: StreamGateAction,
++    ) -> Result<Vec<LogicalStream>> {
++        self.validate_gate(authority, expected, ids, action)?;
++        let mut changed = Vec::with_capacity(ids.len());
++        for id in ids {
++            let stream = self.streams.get_mut(id).expect("validated gate target");
++            match action {
++                StreamGateAction::Hold { direction } => stream.hold_direction = Some(direction),
++                StreamGateAction::Resume => {
++                    stream.hold_direction = None;
++                    stream.state = LogicalStreamState::Active;
++                }
++                StreamGateAction::Mute => stream.source_muted = true,
++                StreamGateAction::Unmute => stream.source_muted = false,
++            }
++            changed.push(stream.clone());
++        }
++        self.revision += 1;
++        Ok(changed)
+     }
+     pub fn set_paused(
+         &mut self,
+diff --git a/crates/foundation/rvoip-core/src/stream_lifecycle/tests.rs b/crates/foundation/rvoip-core/src/stream_lifecycle/tests.rs
+--- a/crates/foundation/rvoip-core/src/stream_lifecycle/tests.rs
++++ b/crates/foundation/rvoip-core/src/stream_lifecycle/tests.rs
+@@ -1267,3 +1267,70 @@
+         .unwrap();
+     assert_eq!(prepared.streams(), &selected);
+ }
++#[test]
++fn native_gate_model_preserves_mute_across_hold_and_resume_without_changing_bindings() {
++    let f = Fixture::new();
++    let mut state = initial(&f);
++    let id = StreamId::from_string("audio");
++    let ids = [id.clone()].into_iter().collect();
++    let original = state.streams()[&id].clone();
++    state
++        .set_gates(&f.authority(), 1, &ids, StreamGateAction::Mute)
++        .unwrap();
++    assert!(state.streams()[&id].permits(true));
++    assert!(!state.streams()[&id].permits(false));
++    state
++        .set_gates(
++            &f.authority(),
++            2,
++            &ids,
++            StreamGateAction::Hold {
++                direction: StreamDirection::Receive,
++            },
++        )
++        .unwrap();
++    assert!(!state.streams()[&id].permits(true));
++    assert!(!state.streams()[&id].permits(false));
++    state
++        .set_gates(&f.authority(), 3, &ids, StreamGateAction::Resume)
++        .unwrap();
++    assert!(state.streams()[&id].source_muted);
++    assert!(state.streams()[&id].permits(true));
++    assert!(!state.streams()[&id].permits(false));
++    state
++        .set_gates(&f.authority(), 4, &ids, StreamGateAction::Unmute)
++        .unwrap();
++    assert!(state.streams()[&id].permits(false));
++    let current = &state.streams()[&id];
++    assert_eq!(current.transport_id, original.transport_id);
++    assert_eq!(current.stream_local_id, original.stream_local_id);
++    assert_eq!(current.generation, original.generation);
++    assert_eq!(state.opened_binding_count(), 1);
++}
++#[test]
++fn native_gate_model_rejects_unknown_denied_and_stale_batches_before_any_effect() {
++    let f = Fixture::new();
++    let mut state = initial(&f);
++    let id = StreamId::from_string("audio");
++    let bad = [id.clone(), StreamId::from_string("missing")]
++        .into_iter()
++        .collect();
++    assert!(state
++        .set_gates(&f.authority(), 1, &bad, StreamGateAction::Mute)
++        .is_err());
++    assert!(!state.streams()[&id].source_muted);
++    assert_eq!(state.revision(), 1);
++    let ids = [id.clone()].into_iter().collect();
++    let mut denied = f.authority();
++    denied.receive_media.clear();
++    assert!(matches!(
++        state.set_gates(&denied, 1, &ids, StreamGateAction::Mute),
++        Err(MediaTransitionError::Authority)
++    ));
++    assert!(matches!(
++        state.set_gates(&f.authority(), 0, &ids, StreamGateAction::Mute),
++        Err(MediaTransitionError::Conflict)
++    ));
++    assert!(!state.streams()[&id].source_muted);
++    assert_eq!(state.revision(), 1);
++}
+diff --git a/crates/uctp/rvoip-uctp/src/native_flow.rs b/crates/uctp/rvoip-uctp/src/native_flow.rs
+--- a/crates/uctp/rvoip-uctp/src/native_flow.rs
++++ b/crates/uctp/rvoip-uctp/src/native_flow.rs
+@@ -87,6 +87,18 @@
+         drop(s);
+         self.changed.notify_waiters();
+     }
++    // Gate controls change no wire bindings. Confirmation remains valid only
++    // when it covered the exact prior revision of this retained controller.
++    pub(crate) fn controlled_revision(&self, previous: u64, revision: u64) {
++        let mut s = self.state.lock().unwrap_or_else(|p| p.into_inner());
++        s.epoch.cancel();
++        s.epoch = self.lifetime.child_token();
++        if s.confirmed_revision == Some(previous) {
++            s.confirmed_revision = Some(revision);
++        }
++        drop(s);
++        self.changed.notify_waiters();
++    }
+     pub(crate) fn confirmed_at(&self, revision: u64) -> bool {
+         self.current()
+             && self
+diff --git a/crates/uctp/rvoip-uctp/src/v2/mod.rs b/crates/uctp/rvoip-uctp/src/v2/mod.rs
+--- a/crates/uctp/rvoip-uctp/src/v2/mod.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/mod.rs
+@@ -9,6 +9,7 @@
+ pub mod auth_dispatch;
+ pub mod auth_peer;
+ pub mod native;
++pub mod native_control;
+ pub mod native_lifecycle;
+ pub mod native_media;
+ pub mod native_negotiation;
+diff --git a/crates/uctp/rvoip-uctp/src/v2/native.rs b/crates/uctp/rvoip-uctp/src/v2/native.rs
+--- a/crates/uctp/rvoip-uctp/src/v2/native.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/native.rs
+@@ -585,6 +585,69 @@
+             Err(e) => Err(guard.error(e)),
+         }
+     }
++    /// Parse only the actual signed control and this exact physical route.
++    pub fn plan_native_control(
++        &self,
++        id: &ConnectionId,
++        a: &super::auth_dispatch::AuthorizedEnvelope,
++    ) -> std::result::Result<
++        super::native_control::NativeControlPlan,
++        super::native_negotiation::NativeOfferError,
++    > {
++        use super::native_negotiation::NativeOfferError;
++        let route = self.data_route(id, a)?;
++        let installed = route.installation.lock().unwrap_or_else(|p| p.into_inner());
++        let installed = installed.as_ref().ok_or(NativeOfferError::Unsupported)?;
++        let broker = installed
++            .backend
++            .negotiation
++            .as_ref()
++            .ok_or(NativeOfferError::Unsupported)?;
++        if !super::native_control::scope_matches(a, broker.scope())
++            || !installed.controller.matches_data_credential(a.principal())
++        {
++            return Err(NativeOfferError::Scope);
++        }
++        let plan = super::native_control::NativeControlPlan::parse(
++            a.envelope(),
++            &installed.controller.active_bindings(),
++        )?;
++        if plan.expected_revision() != installed.controller.revision() {
++            return Err(NativeOfferError::Conflict);
++        }
++        Ok(plan)
++    }
++    pub async fn control_native_media(
++        &self,
++        id: &ConnectionId,
++        a: Arc<super::auth_dispatch::AuthorizedEnvelope>,
++        held: Arc<dyn std::any::Any + Send + Sync>,
++        deadline: tokio::time::Instant,
++    ) -> std::result::Result<
++        super::native_control::NativeControlOutcome,
++        super::native_negotiation::NativeOfferError,
++    > {
++        use super::native_negotiation::NativeOfferError;
++        let plan = self.plan_native_control(id, &a)?;
++        let route = self.data_route(id, &a)?;
++        let (controller, flow) = {
++            let installed = route.installation.lock().unwrap_or_else(|p| p.into_inner());
++            let installed = installed.as_ref().ok_or(NativeOfferError::Unsupported)?;
++            (installed.controller.clone(), installed.backend.flow.clone())
++        };
++        let (revision, streams) = controller
++            .set_media_gate_with_held(
++                plan.expected_revision(),
++                plan.streams(),
++                plan.action(),
++                deadline,
++                held,
++            )
++            .await
++            .map_err(NativeOfferError::from)?;
++        flow.controlled_revision(plan.expected_revision(), revision);
++        Ok(super::native_control::NativeControlOutcome { revision, streams })
++    }
+     /// A metadata-only event registration after this exact signed native
+     /// negotiation. Each delivery needs a new explicit current-policy lease.
+     pub fn native_lifecycle_registration(
+diff --git a/crates/uctp/rvoip-uctp/src/v2/native_control.rs b/crates/uctp/rvoip-uctp/src/v2/native_control.rs
+new file mode 100644
+--- /dev/null
++++ b/crates/uctp/rvoip-uctp/src/v2/native_control.rs
+@@ -0,0 +1,126 @@
++//! Native runtime gates applied to one authenticated Connection update.
++//! A result is a historical local graph commit, not a durable operation receipt.
++use super::{
++    auth_dispatch::AuthorizedEnvelope, native_negotiation::NativeOfferError, payloads::*, Envelope,
++    Scope,
++};
++use rvoip_core::{ids::StreamId, stream_lifecycle::*};
++use std::collections::BTreeSet;
++#[derive(Clone)]
++pub struct NativeControlPlan {
++    expected: u64,
++    streams: BTreeSet<StreamId>,
++    action: StreamGateAction,
++}
++impl NativeControlPlan {
++    pub fn expected_revision(&self) -> u64 {
++        self.expected
++    }
++    pub fn streams(&self) -> &BTreeSet<StreamId> {
++        &self.streams
++    }
++    pub fn action(&self) -> StreamGateAction {
++        self.action
++    }
++    pub(crate) fn parse(
++        e: &Envelope,
++        bindings: &[ReadyMediaBinding],
++    ) -> Result<Self, NativeOfferError> {
++        let Payload::ConnectionUpdate(update) = e.payload() else {
++            return Err(NativeOfferError::Unsupported);
++        };
++        let expected = e.expected_revision().ok_or(NativeOfferError::Invalid)?;
++        if update.action == ConnectionUpdateAction::CodecRenegotiate {
++            return Err(NativeOfferError::Unsupported);
++        }
++        if e.scope(Scope::Operation).is_none()
++            || e.scope(Scope::Reply).is_some()
++            || update.codec_preferences.is_some()
++        {
++            return Err(NativeOfferError::Invalid);
++        }
++        let action = match update.action {
++            ConnectionUpdateAction::Hold => {
++                // Directions describe the requesting endpoint, as in offers.
++                let direction = match update.details.as_ref() {
++                    None => StreamDirection::Send,
++                    Some(v) if v.as_object().is_some_and(|v| v.len() == 1) => {
++                        match v.get("direction").and_then(serde_json::Value::as_str) {
++                            Some("sendonly") => StreamDirection::Receive,
++                            Some("recvonly") => StreamDirection::Send,
++                            _ => return Err(NativeOfferError::Invalid),
++                        }
++                    }
++                    _ => return Err(NativeOfferError::Invalid),
++                };
++                StreamGateAction::Hold { direction }
++            }
++            ConnectionUpdateAction::Resume if update.details.is_none() => StreamGateAction::Resume,
++            ConnectionUpdateAction::Mute if update.details.is_none() => StreamGateAction::Mute,
++            ConnectionUpdateAction::Unmute if update.details.is_none() => StreamGateAction::Unmute,
++            ConnectionUpdateAction::CodecRenegotiate => return Err(NativeOfferError::Unsupported),
++            _ => return Err(NativeOfferError::Invalid),
++        };
++        let mut streams = BTreeSet::new();
++        match &update.streams {
++            Some(ids) if !ids.is_empty() && ids.len() <= 32 => {
++                for id in ids {
++                    if id.is_empty() || id.len() > 128 || !streams.insert(StreamId::from_string(id))
++                    {
++                        return Err(NativeOfferError::Invalid);
++                    }
++                }
++            }
++            None if matches!(
++                action,
++                StreamGateAction::Hold { .. } | StreamGateAction::Resume
++            ) =>
++            {
++                streams.extend(
++                    bindings
++                        .iter()
++                        .map(|b| b.negotiated.requested.logical_id.clone()),
++                )
++            }
++            _ => return Err(NativeOfferError::Invalid),
++        }
++        if streams.is_empty() {
++            return Err(NativeOfferError::NotReady);
++        }
++        if streams.iter().any(|id| {
++            !bindings
++                .iter()
++                .any(|b| &b.negotiated.requested.logical_id == id)
++        }) {
++            return Err(NativeOfferError::NotReady);
++        }
++        Ok(Self {
++            expected,
++            streams,
++            action,
++        })
++    }
++}
++pub struct NativeControlOutcome {
++    pub revision: u64,
++    pub streams: Vec<LogicalStream>,
++}
++impl std::fmt::Debug for NativeControlOutcome {
++    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
++        f.debug_struct("NativeControlOutcome")
++            .field("revision", &self.revision)
++            .field("streams", &self.streams.len())
++            .finish()
++    }
++}
++pub(crate) fn scope_matches(
++    a: &AuthorizedEnvelope,
++    scope: &crate::staged_media::StagedRtpScope,
++) -> bool {
++    a.supports_native_negotiation()
++        && a.envelope().kind() == "connection.update"
++        && scope.wire_conversation.is_some()
++        && a.envelope().scope(Scope::Conversation) == scope.wire_conversation.as_deref()
++        && a.envelope().scope(Scope::Session) == Some(scope.wire_session.as_str())
++        && a.envelope().scope(Scope::Connection) == Some(scope.wire_connection.as_str())
++}
+diff --git a/crates/uctp/rvoip-uctp/tests/support/canonical_media/native_offers.rs b/crates/uctp/rvoip-uctp/tests/support/canonical_media/native_offers.rs
+--- a/crates/uctp/rvoip-uctp/tests/support/canonical_media/native_offers.rs
++++ b/crates/uctp/rvoip-uctp/tests/support/canonical_media/native_offers.rs
+@@ -4,6 +4,7 @@
+ use super::*;
+ use rvoip_auth_core::sig9421::PrincipalVerificationKey;
+ use rvoip_core::capability::{AssuranceLevel, DataProtocol};
++use rvoip_uctp::v2::native_control::*;
+ use rvoip_uctp::v2::native_lifecycle::*;
+ use rvoip_uctp::{
+     staged_data::NativeDataOutcome,
+@@ -28,6 +29,12 @@
+     domain: Arc<Grants>,
+     plan: NativeOfferPlan,
+ }
++struct GateInvocation {
++    a: Arc<AuthorizedEnvelope>,
++    domain: Arc<Grants>,
++    connection: ConnectionId,
++    plan: NativeControlPlan,
++}
+ struct Lease {
+     owner: MediaOwner,
+     _proof: Arc<AuthorizedEnvelope>,
+@@ -75,6 +82,63 @@
+         intent: &MediaControlIntent<'_>,
+         held: &(dyn Any + Send + Sync),
+     ) -> ControlResult<MediaControl> {
++        if let Some(i) = held.downcast_ref::<GateInvocation>() {
++            let proof =
++                i.a.authority::<Proof>()
++                    .ok_or(StreamControlError::Authority)?;
++            let wire = proof
++                .base
++                .authority::<WireProof>()
++                .ok_or(StreamControlError::Authority)?;
++            let mapped =
++                i.a.envelope()
++                    .scope(Scope::Connection)
++                    .and_then(|id| wire._guard.connections.get(id));
++            if !Arc::ptr_eq(&self.0, &i.domain.0)
++                || proof.guard.denied
++                || i.connection != *s.connection
++                || mapped != Some(s.connection)
++                || i.a.envelope().scope(Scope::Conversation) != Some("conversation")
++                || i.a.envelope().scope(Scope::Session) != Some("session")
++                || !rvoip_core::staged_streams::reliable_data::same_credential(
++                    i.a.principal(),
++                    s.principal,
++                )
++            {
++                return Err(StreamControlError::Authority);
++            }
++            let MediaControlIntent::Gate {
++                expected,
++                streams,
++                action,
++            } = intent
++            else {
++                return Err(StreamControlError::Authority);
++            };
++            if *expected != i.plan.expected_revision()
++                || *streams != i.plan.streams()
++                || *action != i.plan.action()
++            {
++                return Err(StreamControlError::Authority);
++            }
++            let owner = credential_owner(
++                proof
++                    .guard
++                    .owners
++                    .get(s.connection)
++                    .ok_or(StreamControlError::Authority)?
++                    .clone(),
++                s.principal,
++            )?;
++            return MediaControl::new(
++                Box::new(Lease {
++                    owner,
++                    _proof: i.a.clone(),
++                }),
++                i.a.invocation_cancellation(),
++                deadline(),
++            );
++        }
+         let i = held
+             .downcast_ref::<Invocation>()
+             .ok_or(StreamControlError::Authority)?;
+@@ -156,7 +220,7 @@
+         e: &Envelope,
+     ) -> Result<AuthorityLease, DispatchError> {
+         let base = self.base.acquire(c, d, i, e).await?;
+-        if e.kind() != "connection.offer" {
++        if !matches!(e.kind(), "connection.offer" | "connection.update") {
+             return Ok(base);
+         }
+         let guard = Arc::new(self.grants.0.clone().read_owned().await);
+@@ -255,6 +319,7 @@
+     event_attempts: AtomicUsize,
+     probe_other_scope: AtomicBool,
+     other_scope_refused: AtomicBool,
++    controls: Mutex<Vec<Result<u64, NativeOfferError>>>,
+ }
+ struct Observer;
+ impl NativeDataObserver for Observer {
+@@ -308,7 +373,56 @@
+             .base
+             .authority::<WireProof>()
+             .ok_or(DispatchError::Authority)?;
+-        let id = wire.connection.clone().ok_or(DispatchError::Authority)?;
++        let id = wire
++            .connection
++            .clone()
++            .or_else(|| {
++                a.envelope()
++                    .scope(Scope::Connection)
++                    .and_then(|id| wire._guard.connections.get(id).cloned())
++            })
++            .ok_or(DispatchError::Authority)?;
++        if matches!(a.envelope().payload(), Payload::ConnectionUpdate(_)) {
++            let adapter = &self.native.adapters[&self.physical.transport()];
++            let plan = match adapter.plan_native_control(&id, &a) {
++                Ok(plan) => plan,
++                Err(e) => {
++                    self.record.controls.lock().unwrap().push(Err(e));
++                    return Err(DispatchError::Authority);
++                }
++            };
++            let invocation = Arc::new(GateInvocation {
++                a: a.clone(),
++                domain: self.grants.clone(),
++                connection: id.clone(),
++                plan,
++            });
++            let result = adapter
++                .control_native_media(&id, a.clone(), invocation, deadline())
++                .await;
++            let result = match result {
++                Ok(result) => result,
++                Err(e) => {
++                    self.record.controls.lock().unwrap().push(Err(e));
++                    return Err(DispatchError::Authority);
++                }
++            };
++            self.record
++                .controls
++                .lock()
++                .unwrap()
++                .push(Ok(result.revision));
++            let views=result.streams.iter().map(|s|json!({"id":s.negotiated.requested.logical_id.as_str(),"source_muted":s.source_muted,"send":s.permits(true),"receive":s.permits(false)})).collect::<Vec<_>>();
++            let mut reply = envelope(
++                "ack",
++                json!({"details":{"local_control_commit":{"revision":result.revision,"streams":views}}}),
++            );
++            for field in ["cid", "sid", "connid", "operation_id"] {
++                reply[field] = a.envelope().original()[field].clone();
++            }
++            reply["in_reply_to"] = json!(a.envelope().id());
++            return HandlerReplies::new(vec![Envelope::from_value(reply)?]);
++        }
+         let Payload::ConnectionOffer(offer) = a.envelope().payload() else {
+             return Err(DispatchError::Unsupported);
+         };
+@@ -1183,3 +1297,301 @@
+     assert!(s.record.other_scope_refused.load(Ordering::Acquire));
+     s.wire.server.shutdown().await.unwrap();
+ }
++fn gate_command(
++    action: &str,
++    revision: u64,
++    streams: Option<&[&str]>,
++    details: Option<Value>,
++) -> Value {
++    let mut payload = json!({"action":action});
++    if let Some(ids) = streams {
++        payload["streams"] = json!(ids);
++    }
++    if let Some(details) = details {
++        payload["details"] = details;
++    }
++    let mut request = envelope("connection.update", payload);
++    request["cid"] = json!("conversation");
++    request["sid"] = json!("session");
++    request["connid"] = json!("native_0");
++    request["operation_id"] = json!(format!("gate_{}", uuid::Uuid::new_v4().simple()));
++    request["expected_revision"] = json!(revision);
++    request
++}
++async fn gate_reply(s: &mut Scene, request: Value, kind: &str) -> Envelope {
++    let original = request.clone();
++    let id = request["id"].clone();
++    s.wire.send(s.f.sign(request)).await;
++    let reply = s.wire.read().await;
++    assert_eq!(reply.kind(), kind, "{reply:?}");
++    s.f.verify_server(&reply).await;
++    // Early authority refusal need not correlate an unaccepted invocation.
++    if kind == "ack" || reply.scope(Scope::Reply).is_some() {
++        assert_eq!(reply.original()["in_reply_to"], id);
++    }
++    if kind == "ack" {
++        for field in ["cid", "sid", "connid", "operation_id"] {
++            assert_eq!(reply.original()[field], original[field]);
++        }
++    }
++    reply
++}
++struct GatePair {
++    s: Scene,
++    other: Wire,
++    ah: u16,
++    bh: u16,
++    ai: mpsc::Receiver<MediaPacket>,
++    bi: mpsc::Receiver<MediaPacket>,
++}
++impl GatePair {
++    async fn new(kind: &str) -> Self {
++        let mut s = Scene::new(kind, false).await;
++        let mut other = s.second_wire().await;
++        let (a, ca) = s.prepared(lifecycle_offer(&s, 0, 0, "sendrecv")).await;
++        s.confirm(&ca).await;
++        s.wait(1).await;
++        let (b, cb) = other_prepared(&s, &mut other, lifecycle_offer(&s, 1, 0, "sendrecv")).await;
++        other.send(s.f.sign(s.confirmation(&cb))).await;
++        s.wait(2).await;
++        let ah = a.original()["payload"]["substrate_setup"]["streams"][0]["stream_local_id"]
++            .as_u64()
++            .unwrap() as u16;
++        let bh = b.original()["payload"]["substrate_setup"]["streams"][0]["stream_local_id"]
++            .as_u64()
++            .unwrap() as u16;
++        let ai = s
++            .controller()
++            .take_ingress(&StreamId::from_string("first"))
++            .unwrap();
++        let bi = s.native.adapters[&s.kind]
++            .media_controller(&s.second_id)
++            .unwrap()
++            .take_ingress(&StreamId::from_string("first"))
++            .unwrap();
++        Self {
++            s,
++            other,
++            ah,
++            bh,
++            ai,
++            bi,
++        }
++    }
++    fn bc(&self) -> Arc<StreamController> {
++        self.s.native.adapters[&self.s.kind]
++            .media_controller(&self.s.second_id)
++            .unwrap()
++    }
++    async fn playback(&mut self, n: u16) {
++        send(&self.other, audio_sequence(self.bh, n));
++        packet(&mut self.bi)
++            .await
++            .try_forward_to(&self.s.controller(), &StreamId::from_string("first"))
++            .unwrap();
++        let output = received(&self.s.wire).await;
++        assert_eq!(output.stream_local_id, self.ah);
++        decoded(&output);
++    }
++}
++#[tokio::test]
++async fn actual_native_public_mute_preserves_remote_playback_and_unmute_burns_queued_source_epoch()
++{
++    for kind in ["quic", "wt"] {
++        let mut p = GatePair::new(kind).await;
++        let original = p.s.controller().active_bindings();
++        let budget = p.s.controller().stream_open_budget();
++        send(&p.s.wire, audio_sequence(p.ah, 1));
++        let old = packet(&mut p.ai).await;
++        let muted = gate_reply(
++            &mut p.s,
++            gate_command("mute", 1, Some(&["first"]), None),
++            "ack",
++        )
++        .await;
++        assert_eq!(
++            muted.original()["payload"]["details"]["local_control_commit"]["revision"],
++            2
++        );
++        assert_eq!(
++            muted.original()["payload"]["details"]["local_control_commit"]["streams"][0]
++                ["source_muted"],
++            true
++        );
++        send(&p.s.wire, audio_sequence(p.ah, 2));
++        assert!(tokio::time::timeout(Duration::from_millis(70), p.ai.recv())
++            .await
++            .is_err());
++        p.playback(1).await;
++        gate_reply(
++            &mut p.s,
++            gate_command("unmute", 2, Some(&["first"]), None),
++            "ack",
++        )
++        .await;
++        assert!(old
++            .try_forward_to(&p.bc(), &StreamId::from_string("first"))
++            .is_err());
++        send(&p.s.wire, audio_sequence(p.ah, 3));
++        packet(&mut p.ai)
++            .await
++            .try_forward_to(&p.bc(), &StreamId::from_string("first"))
++            .unwrap();
++        decoded(&received(&p.other).await);
++        assert_eq!(
++            p.s.controller().active_bindings()[0].transport_id,
++            original[0].transport_id
++        );
++        assert_eq!(p.s.controller().active_bindings()[0].stream_local_id, p.ah);
++        assert_eq!(p.s.controller().stream_open_budget(), budget);
++        p.s.wire.server.shutdown().await.unwrap();
++        p.other.server.shutdown().await.unwrap();
++    }
++}
++#[tokio::test]
++async fn actual_native_public_directional_hold_resume_retains_independent_source_mute() {
++    let mut p = GatePair::new("quic").await;
++    let held = gate_reply(&mut p.s, gate_command("hold", 1, None, None), "ack").await;
++    let view = &held.original()["payload"]["details"]["local_control_commit"]["streams"][0];
++    assert_eq!(view["send"], true);
++    assert_eq!(view["receive"], false);
++    send(&p.s.wire, audio_sequence(p.ah, 1));
++    assert!(tokio::time::timeout(Duration::from_millis(70), p.ai.recv())
++        .await
++        .is_err());
++    p.playback(1).await;
++    gate_reply(
++        &mut p.s,
++        gate_command("mute", 2, Some(&["first"]), None),
++        "ack",
++    )
++    .await;
++    let resumed = gate_reply(&mut p.s, gate_command("resume", 3, None, None), "ack").await;
++    let view = &resumed.original()["payload"]["details"]["local_control_commit"]["streams"][0];
++    assert_eq!(view["send"], true);
++    assert_eq!(view["receive"], false);
++    assert_eq!(view["source_muted"], true);
++    p.playback(2).await;
++    send(&p.s.wire, audio_sequence(p.ah, 2));
++    assert!(tokio::time::timeout(Duration::from_millis(70), p.ai.recv())
++        .await
++        .is_err());
++    gate_reply(
++        &mut p.s,
++        gate_command("unmute", 4, Some(&["first"]), None),
++        "ack",
++    )
++    .await;
++    let held = gate_reply(
++        &mut p.s,
++        gate_command("hold", 5, None, Some(json!({"direction":"sendonly"}))),
++        "ack",
++    )
++    .await;
++    let view = &held.original()["payload"]["details"]["local_control_commit"]["streams"][0];
++    assert_eq!(view["send"], false);
++    assert_eq!(view["receive"], true);
++    send(&p.s.wire, audio_sequence(p.ah, 3));
++    packet(&mut p.ai)
++        .await
++        .try_forward_to(&p.bc(), &StreamId::from_string("first"))
++        .unwrap();
++    decoded(&received(&p.other).await);
++    send(&p.other, audio_sequence(p.bh, 3));
++    assert!(packet(&mut p.bi)
++        .await
++        .try_forward_to(&p.s.controller(), &StreamId::from_string("first"))
++        .is_err());
++    gate_reply(&mut p.s, gate_command("resume", 6, None, None), "ack").await;
++    send(&p.s.wire, audio_sequence(p.ah, 4));
++    let _fresh = packet(&mut p.ai).await;
++    assert_eq!(p.s.controller().revision(), 7);
++    assert_eq!(p.s.controller().stream_open_budget().0, 1);
++    p.s.wire.server.shutdown().await.unwrap();
++    p.other.server.shutdown().await.unwrap();
++}
++#[tokio::test]
++async fn actual_native_public_gate_refuses_stale_foreign_malformed_and_denied_controls_without_effect(
++) {
++    let mut s = Scene::new("quic", false).await;
++    let (_, callback) = s.prepared(lifecycle_offer(&s, 0, 0, "sendrecv")).await;
++    s.confirm(&callback).await;
++    s.wait(1).await;
++    let original = s.controller().active_bindings();
++    let mut requests = vec![
++        gate_command("mute", 0, Some(&["first"]), None),
++        gate_command("mute", 1, Some(&["first", "missing"]), None),
++        gate_command("mute", 1, Some(&["first", "first"]), None),
++        gate_command("hold", 1, None, Some(json!({"direction":"sendrecv"}))),
++    ];
++    let mut wrong = gate_command("mute", 1, Some(&["first"]), None);
++    wrong["sid"] = json!("foreign");
++    requests.push(wrong);
++    let mut wrong = gate_command("mute", 1, Some(&["first"]), None);
++    wrong["payload"]["codec_preferences"] = json!(["pcmu"]);
++    requests.push(wrong);
++    let mut codec = gate_command("codec-renegotiate", 1, Some(&["first"]), None);
++    codec["payload"]["codec_preferences"] = json!(["pcma"]);
++    requests.push(codec);
++    for request in requests {
++        gate_reply(&mut s, request, "error").await;
++        assert_eq!(s.controller().revision(), 1);
++    }
++    let mut other = s.second_wire().await;
++    let request = gate_command("mute", 1, Some(&["first"]), None);
++    other.send(s.f.sign(request)).await;
++    let refused = other.read().await;
++    assert_eq!(refused.kind(), "error");
++    s.f.verify_server(&refused).await;
++    assert_eq!(s.controller().revision(), 1);
++    s.grants.0.write().await.denied = true;
++    gate_reply(
++        &mut s,
++        gate_command("mute", 1, Some(&["first"]), None),
++        "error",
++    )
++    .await;
++    s.grants.0.write().await.denied = false;
++    let accepted = gate_reply(
++        &mut s,
++        gate_command("mute", 1, Some(&["first"]), None),
++        "ack",
++    )
++    .await;
++    assert_eq!(
++        accepted.original()["payload"]["details"]["local_control_commit"]["revision"],
++        2
++    );
++    assert_eq!(
++        s.controller().active_bindings()[0].transport_id,
++        original[0].transport_id
++    );
++    assert_eq!(s.controller().stream_open_budget().0, 1);
++    s.wire.server.shutdown().await.unwrap();
++    other.server.shutdown().await.unwrap();
++}
++#[tokio::test]
++async fn actual_native_public_gate_revisions_preserve_confirmed_binding_lifecycle() {
++    let mut s = Scene::new("quic", false).await;
++    s.record.lifecycle.store(true, Ordering::Release);
++    let (answer, callback) = s.prepared(lifecycle_offer(&s, 0, 0, "sendonly")).await;
++    s.confirm(&callback).await;
++    s.wait(1).await;
++    gate_reply(&mut s, gate_command("hold", 1, None, None), "ack").await;
++    gate_reply(&mut s, gate_command("resume", 2, None, None), "ack").await;
++    no_event(&mut s.wire).await;
++    let handle = answer.original()["payload"]["substrate_setup"]["streams"][0]["stream_local_id"]
++        .as_u64()
++        .unwrap() as u16;
++    let mut input = s
++        .controller()
++        .take_ingress(&StreamId::from_string("first"))
++        .unwrap();
++    send(&s.wire, audio_sequence(handle, 1));
++    let _actual = packet(&mut input).await;
++    ready_opened(&s.f, &mut s.wire, handle).await;
++    assert_eq!(s.controller().revision(), 3);
++    assert_eq!(s.controller().stream_open_budget().0, 1);
++    no_event(&mut s.wire).await;
++    s.wire.server.shutdown().await.unwrap();
++}
+diff --git a/crates/uctp/rvoip-uctp/tests/support/media_control.rs b/crates/uctp/rvoip-uctp/tests/support/media_control.rs
+--- a/crates/uctp/rvoip-uctp/tests/support/media_control.rs
++++ b/crates/uctp/rvoip-uctp/tests/support/media_control.rs
+@@ -170,7 +170,8 @@
+                     && held.credential_revision == *expected_credential_revision
+                     && held.expected == *expected_stream_revision
+             }
+-            MediaControlIntent::End { .. }
++            MediaControlIntent::Gate { .. }
++            | MediaControlIntent::End { .. }
+             | MediaControlIntent::DirectSubscriptions { .. }
+             | MediaControlIntent::AudioSubscriptions { .. } => false,
+         };

@@ -1,0 +1,281 @@
+{
+  "task": "G6-046",
+  "title": "Actual native quality cadence configuration through Connect",
+  "recorded_at": "2026-10-22T02:37:33.471839+00:00",
+  "status": "scoped-component-qualified",
+  "configurable_quality_cadence_qualified": true,
+  "full_task_complete": false,
+  "full_goal_complete": false,
+  "acceptance_qualified": false,
+  "scope": "Isolated local macOS arm64 Store and actual signed native listener/public SDK, EdDSA and ES256. This component does not close G6-046 or qualify remote, Linux, browser or provider acceptance.",
+  "schema_version": 81,
+  "pinned_patches": 131,
+  "upstream_edits": false,
+  "store_schema_edits": false,
+  "implementation": [
+    "Validated immutable connection.update/action quality accepts integers 100..60000; required original operation/full scopes/expected stream revision; rejects mixed known media controls. Public Rust Command is Update, wire name unchanged, no legacy alias.",
+    "Store private attempt captures exact interval. Only actual returned local configuration can become a completion receipt with original connection generation, unchanged stream revision and resources_changed false. Atomic historical recording never revives retired media or reapplies a completed receipt over newer cadence.",
+    "Service checks exact actual physical owner and current named connection.update permission. Original source guards are prepared before engine locks; the synchronous callback purely checks exact original command/current binding. Returned definite refusal has no effect; panic/interruption retains uncertainty. Captured storage recovery drops original source readers and never repeats configuration.",
+    "CanonicalClient.configure_native_quality preserves immutable caller scope/interval, validates completed result and returns preparing/failed/unknown outcomes for original reconciliation. HTTP reference explicitly records the native-only profile."
+  ],
+  "actual_cases": [
+    "Both signature algorithms: configure700 then1800; observe actual measured intervals with packet counters; original700 replay returns historical result while fresh cadence stays1800. Original media bindings/revision/timebase survive, and marked audio remains usable both ways. Changed immutable intent conflicts, foreign physical source leaves zero admitted operations, stale revision fails and HTTP refuses physical control.",
+    "Actual same-owner peer with connection.offer but without named connection.update permission can negotiate media yet cannot configure cadence, has no admitted operation and remains authenticated/usable.",
+    "Controlled journal-completion failure after actual800 configuration leaves preparing with actual flow/cadence observed. An Identity writer completes without retained original readers; dropping the fault recovers one original effect without repeating configuration."
+  ],
+  "verification": {
+    "distinct_current_connect_tests": 1088,
+    "logs": {
+      "protocol": {
+        "path": ".local/gate-6/native-quality-protocol-v1.log",
+        "sha256": "54fe628c6ca15a34b74122570334cf84ee6cf0ed9ee458546b356f564366bb5d",
+        "passed": 29,
+        "failed": 0,
+        "ignored": 0,
+        "filtered": 0,
+        "seconds": 0.01,
+        "nested_summaries": 0
+      },
+      "client": {
+        "path": ".local/gate-6/native-quality-client-v1.log",
+        "sha256": "7c535d17c385d3374402f899d825648f8612c9db4b0a46c4e7261b20373bbbc6",
+        "passed": 56,
+        "failed": 0,
+        "ignored": 0,
+        "filtered": 0,
+        "seconds": 2.78,
+        "nested_summaries": 0
+      },
+      "store": {
+        "path": ".local/gate-6/native-quality-store-v1.log",
+        "sha256": "933f4379d6ad7a771b1b700d77841021a5a275dcaa76cfd50b458209408be202",
+        "passed": 851,
+        "failed": 0,
+        "ignored": 3,
+        "filtered": 0,
+        "seconds": 614.75,
+        "nested_summaries": 0
+      },
+      "service": {
+        "path": ".local/gate-6/native-quality-service-v1.log",
+        "sha256": "ca5ac2a56f04d9f48b2447e7f15b7226d4cbb21d3bbd020d59169e466d0e06bb",
+        "passed": 44,
+        "failed": 0,
+        "ignored": 1,
+        "filtered": 0,
+        "seconds": 13.11,
+        "nested_summaries": 0
+      },
+      "server": {
+        "path": ".local/gate-6/native-quality-server-v1.log",
+        "sha256": "b243fa7028616f6b3f34505cba891de0a816b44ff928f8035528d9ae08926b42",
+        "passed": 66,
+        "failed": 0,
+        "ignored": 0,
+        "filtered": 0,
+        "seconds": 13.01,
+        "nested_summaries": 0
+      },
+      "focused": {
+        "path": ".local/gate-6/native-quality-focused-v1.log",
+        "sha256": "7ba5e8159ea9fd6b23c0f9b698d4f0e47abeaf4f37a8b08ba75f3315694eac5a",
+        "passed": 3,
+        "failed": 0,
+        "ignored": 0,
+        "filtered": 153,
+        "seconds": 14.38,
+        "nested_summaries": 0
+      },
+      "lifecycle": {
+        "path": ".local/gate-6/native-quality-lifecycle-v1.log",
+        "sha256": "31345be381fbb6b18c8584bb668f86ce632085607e0771bf3490a78551460488",
+        "passed": 3,
+        "failed": 0,
+        "ignored": 0,
+        "filtered": 153,
+        "seconds": 38.04,
+        "nested_summaries": 0
+      },
+      "regression": {
+        "path": ".local/gate-6/native-quality-regression-v1.log",
+        "sha256": "865e8305febc6366aa1b9b3b20cfcefc3ffe29aa263f81b15b0ab256b12bd584",
+        "passed": 36,
+        "failed": 0,
+        "ignored": 0,
+        "filtered": 120,
+        "seconds": 231.2,
+        "nested_summaries": 2
+      }
+    },
+    "ignored_disposition": "Three Store subprocess workers and one Service subprocess worker are intentionally ignored in the direct run; their parent cases invoke scoped children. Focused Store3 duplicate the full Store suite and are not counted twice. Child output in provider regressions is not counted as extra distinct tests.",
+    "runtime_scope": "42 of156 runtime cases freshly qualified: quality3+lifecycle3+affected36, including two provider partial-WRITE cases; remaining114 not requalified."
+  },
+  "actual_wire_contract": {
+    "status": "passed",
+    "scope": "Actual isolated Connect listener events already verified by the signed public SDK; this checker validates contract shape and the required sample matrix, not cryptographic signatures or broader runtime behavior.",
+    "observations": ".local/gate-6/native-quality-observations-v1.jsonl",
+    "observations_sha256": "c915dd6b3a8820a66faefc6e89fcba3596850555c434ca034411b20cb2a33824",
+    "schema_sha256": "2e547385b0bd09484d0988bb2ed8fe496f42cb27c73266e2e2ee0495068b10ad",
+    "actual_frames": 25,
+    "samples": [
+      {
+        "algorithm": "ES256",
+        "type": "connection.quality",
+        "count": 6
+      },
+      {
+        "algorithm": "ES256",
+        "type": "connection.ready",
+        "count": 2
+      },
+      {
+        "algorithm": "ES256",
+        "type": "stream.opened",
+        "count": 2
+      },
+      {
+        "algorithm": "EdDSA",
+        "type": "connection.quality",
+        "count": 7
+      },
+      {
+        "algorithm": "EdDSA",
+        "type": "connection.ready",
+        "count": 3
+      },
+      {
+        "algorithm": "EdDSA",
+        "type": "stream.closed",
+        "count": 1
+      },
+      {
+        "algorithm": "EdDSA",
+        "type": "stream.opened",
+        "count": 4
+      }
+    ]
+  },
+  "qualification_inputs": {
+    "path": ".local/gate-6/native-quality-inputs-v3.json",
+    "sha256": "aa38073b2ccc186d864419322cfa92b871691f0ee53e86e0e01d06b1cc4e89af",
+    "count": 1335,
+    "compiled_source_unchanged": true,
+    "documentation_only_changes": [
+      "docs/developer/native-quality.md"
+    ]
+  },
+  "early_unit_source_scope": {
+    "path": ".local/gate-6/native-quality-inputs-v1.json",
+    "sha256": "9d990cc06142835692b88239a77d99fc018e816f580f8b6589d16938b5e54d33",
+    "later_changed_paths": [
+      "crates/connect-server/tests/support/canonical_native_connections/quality.rs",
+      "crates/connect-service/src/canonical_native_streams.rs",
+      "docs/developer/native-quality.md"
+    ],
+    "finding": "Protocol/Store/SDK sources remained identical after early unit qualification. Later source edits were confined to the Service borrow correction and stricter runtime test refusal assertion; both final components built and ran against v3."
+  },
+  "compiled_binaries": [
+    {
+      "target": "connect_protocol",
+      "path": "target/debug/deps/connect_protocol-18eb433016075ee3",
+      "sha256": "0e202ea70cb55e61f25171bfe77b8a1beabfb39bfe3e9be142addfa7cffd27bb",
+      "archive": ".local/gate-6/native-quality-artifacts/connect_protocol-18eb433016075ee3.gz"
+    },
+    {
+      "target": "connect_store",
+      "path": "target/debug/deps/connect_store-df001b70f0dfa75d",
+      "sha256": "1724ad5d7b8d5da10fed83f33185dd119bdbac26450d591c3570541928d4aaba",
+      "archive": ".local/gate-6/native-quality-artifacts/connect_store-df001b70f0dfa75d.gz"
+    },
+    {
+      "target": "connect_client",
+      "path": "target/debug/deps/connect_client-14427ed49690b71c",
+      "sha256": "cdd3bfa1c54a8cb65276b3fa497ec64a7f9d9a50234aad16baa7d084067baf19",
+      "archive": ".local/gate-6/native-quality-artifacts/connect_client-14427ed49690b71c.gz"
+    },
+    {
+      "target": "connect_server",
+      "path": "target/debug/deps/connect_server-46f24f804f4446cb",
+      "sha256": "fc920ef5ddfc7bf0fc746ef38cfda9e5998d1ae4abb13980a6cedd825f45d1ce",
+      "archive": ".local/gate-6/native-quality-artifacts/connect_server-46f24f804f4446cb.gz"
+    },
+    {
+      "target": "connect_service",
+      "path": "target/debug/deps/connect_service-fec6187532f3bbcb",
+      "sha256": "d80de35e686465ecb823eb77618c52a1d47bdd116aa8950376742d56230feefd",
+      "archive": ".local/gate-6/native-quality-artifacts/connect_service-fec6187532f3bbcb.gz"
+    },
+    {
+      "target": "gate6_canonical_runtime",
+      "path": "target/debug/deps/gate6_canonical_runtime-f39476f2f6c7ff5d",
+      "sha256": "6a3f31ca1f30c6a2b032cd9c070af155e993e6e50649d90464a3d52fef6266d5",
+      "archive": ".local/gate-6/native-quality-artifacts/gate6_canonical_runtime-f39476f2f6c7ff5d.gz"
+    }
+  ],
+  "binary_archive_manifest": {
+    "path": ".local/gate-6/native-quality-qualified-binary-archives-v1.json",
+    "sha256": "46d7645595f690c001bb5738d711acc7b09689cd04984ed40fcdfb80b3d481de",
+    "independently_decompressed_archives": 6
+  },
+  "source_lock": {
+    "path": "dependencies/source-lock.json",
+    "sha256": "7e6bbe02467fdd28b09b51cab033459a4e84c5906cd27b3ba976e0a773b0f7e6"
+  },
+  "builds": {
+    "profile": "Same dev/debug assertions; CARGO_INCREMENTAL=0, final linking jobs1; no Cargo.toml profile/source-lock edit.",
+    "runtime": ".local/gate-6/native-quality-runtime-build-v3.log",
+    "libraries": ".local/gate-6/native-quality-library-build-v1.log",
+    "generated_cache_disposition": {
+      "completed_incremental_and_verified_historical_executable_compression": ".local/gate-6/native-quality-generated-cache-recovery-v2.json",
+      "stale_generated_libraries_outside_current_graphs": ".local/gate-6/native-quality-stale-library-cleanup-v1.json",
+      "preserved": "All sources, state, qualification evidence/test bytes, current libraries and fingerprints."
+    }
+  },
+  "earlier_attempts": [
+    {
+      "build": 1,
+      "exit_code": 101,
+      "cause": "Missing borrow in Service Invocation::prepare, corrected to &self."
+    },
+    {
+      "build": 2,
+      "exit_code": 101,
+      "cause": "Linkers errno28/no space. Recorded cleanup of rebuildable stale libraries outside current graphs recovered5GiB; final serial linker build passed. Current graph and source/state/evidence retained.",
+      "cleanup": ".local/gate-6/native-quality-stale-library-cleanup-v1.json"
+    }
+  ],
+  "checks": {
+    "prepared_dependencies": true,
+    "openapi_reference_current": true,
+    "format": true,
+    "whitespace": true,
+    "plan_integrity": true
+  },
+  "assigned_clause_inventory": {
+    "preserved": 61,
+    "individual_new_clause_passes": 0,
+    "cadence_requirement": "U6-REQ-0177 is additional explicit approved work; no original applicability or IDs changed."
+  },
+  "not_qualified": [
+    "Capability advertisements",
+    "Continuous owned-provider reliable signaling consumption",
+    "Assurance/step-up",
+    "Durable Connect DTMF",
+    "Every exact assigned auxiliary clause/vector",
+    "Earlier unresolved retention/primary-return refusal",
+    "Other114 runtime cases",
+    "Linux x86_64, browser, named remote/provider rehearsals and complete Gate6 acceptance/publication"
+  ],
+  "plan_counts": {
+    "done": 45,
+    "in_progress": 1,
+    "not_started": 59,
+    "acceptance_qualified": 0
+  },
+  "final_inputs": {
+    "path": ".local/gate-6/native-quality-inputs-final-v4.json",
+    "sha256": "b11f4b948cb8d2bab24bb9751036015532c9aaf4d4279c572c203d26ab7552a7",
+    "count": 1335,
+    "only_post_compile_change": "docs/developer/native-quality.md verification status; all compiled sources unchanged"
+  }
+}

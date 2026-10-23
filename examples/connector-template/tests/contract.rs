@@ -46,7 +46,12 @@ async fn tampered_context_and_media_input_are_bounded() {
         body: "x".repeat(4097),
         context: vec![],
     };
-    assert_eq!(provider.send(&bad).await, Err(Failure::Rejected));
+    assert_eq!(
+        provider
+            .send(&bad, connect_connector_api::conformance::dispatch_permit())
+            .await,
+        Err(Failure::Rejected)
+    );
     let event = Observation {
         mutation_id: "a".into(),
         external_id: Some("b".into()),

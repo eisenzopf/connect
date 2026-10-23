@@ -22,7 +22,7 @@ fn old_required_fact_outside_initial_context_is_recalled_without_other_conversat
             &f.key.id,
             &Operation::Create {
                 request_id: "other".into(),
-                participants: vec![],
+                request: connect_protocol::conversations::CreateRequest::persistent(vec![]),
             },
         )
         .unwrap()
@@ -52,8 +52,18 @@ fn old_required_fact_outside_initial_context_is_recalled_without_other_conversat
         sources[0].body.as_deref(),
         Some("The approved budget is 42; keep this decision.")
     );
-    assert_eq!(sources[0].created_at, None);
-    assert!(sources[0].provenance.contains("timestamp-not-recorded"));
+    let accepted: i64 = f
+        .store
+        .connection()
+        .unwrap()
+        .query_row(
+            "SELECT accepted_at FROM messages WHERE id=?1",
+            [&old],
+            |r| r.get(0),
+        )
+        .unwrap();
+    assert_eq!(sources[0].created_at, Some(accepted));
+    assert!(!sources[0].provenance.contains("timestamp-not-recorded"));
     assert_eq!(omitted, 39);
     let mut all = sources;
     for _ in 0..50 {

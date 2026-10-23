@@ -5,6 +5,20 @@ use serde::{Deserialize, Serialize};
 
 pub const PROVISIONING_PROFILE: &str = "connect/2";
 
+#[derive(Clone, Copy, Debug, Serialize, Deserialize, PartialEq, Eq)]
+pub enum SigningAlgorithm {
+    EdDSA,
+    ES256,
+}
+impl SigningAlgorithm {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::EdDSA => "EdDSA",
+            Self::ES256 => "ES256",
+        }
+    }
+}
+
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
 pub enum IdentityKind {
@@ -62,6 +76,16 @@ pub struct DeviceSpec {
 #[derive(Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(tag = "type", rename_all = "snake_case", deny_unknown_fields)]
 pub enum ProvisioningCommand {
+    RecordReadRole {
+        operation_id: String,
+        identity_id: String,
+        role: String,
+        /// Explicit tenant policy: include sources restricted to Participants.
+        /// Credential recipient ceilings still apply independently.
+        private_sources: bool,
+        active: bool,
+        expected_revision: Option<u64>,
+    },
     Identity {
         operation_id: String,
         alias: String,
@@ -101,6 +125,35 @@ pub enum ProvisioningCommand {
         identity_id: String,
         expected_revision: u64,
     },
+    SigningKey {
+        operation_id: String,
+        identity_id: String,
+        credential_id: String,
+        device_id: String,
+        key_id: String,
+        algorithm: SigningAlgorithm,
+        /// Canonical base64url without padding; public verification material only.
+        public_key: String,
+        not_before: i64,
+        expires_at: i64,
+        /// None creates a key; binding another credential requires its current revision.
+        expected_revision: Option<u64>,
+    },
+    RevokeSigningKey {
+        operation_id: String,
+        key_id: String,
+        expected_revision: u64,
+    },
+    RevokeDevice {
+        operation_id: String,
+        device_id: String,
+        expected_revision: u64,
+    },
+    /// Credential IDs are immutable; revocation is terminal and needs no revision.
+    RevokeCredential {
+        operation_id: String,
+        credential_id: String,
+    },
 }
 impl std::fmt::Debug for ProvisioningCommand {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -126,27 +179,106 @@ impl ProvisioningCommand {
     }
     pub fn operation_id(&self) -> &str {
         match self {
+            Self::RecordReadRole { operation_id, .. } => operation_id,
             Self::Identity { operation_id, .. }
             | Self::Participant { operation_id, .. }
             | Self::Endpoint { operation_id, .. }
             | Self::VerifyEndpoint { operation_id, .. }
             | Self::RevokeEndpoint { operation_id, .. }
+            | Self::SigningKey { operation_id, .. }
+            | Self::RevokeSigningKey { operation_id, .. }
+            | Self::RevokeDevice { operation_id, .. }
+            | Self::RevokeCredential { operation_id, .. }
             | Self::RevokeIdentity { operation_id, .. } => operation_id,
         }
     }
     pub fn command_type(&self) -> &'static str {
         match self {
+            Self::RecordReadRole { .. } => "record-read-role.configure",
             Self::Identity { .. } => "identity.provision",
             Self::Participant { .. } => "participant.provision",
             Self::Endpoint { .. } => "endpoint.provision",
             Self::VerifyEndpoint { .. } => "endpoint.verify",
             Self::RevokeEndpoint { .. } => "endpoint.revoke",
             Self::RevokeIdentity { .. } => "identity.revoke",
+            Self::SigningKey { .. } => "signing-key.enroll",
+            Self::RevokeSigningKey { .. } => "signing-key.revoke",
+            Self::RevokeDevice { .. } => "device.revoke",
+            Self::RevokeCredential { .. } => "credential.revoke",
         }
     }
     pub fn validate(&self) -> Result<()> {
         identifier(self.operation_id())?;
         match self {
+            Self::RecordReadRole {
+                identity_id,
+                role,
+                expected_revision,
+                ..
+            } => {
+                identifier(identity_id)?;
+                identifier(role)?;
+                if role.len() > 64 {
+                    return Err(invalid());
+                }
+                if let Some(value) = expected_revision {
+                    revision(*value)?;
+                }
+            }
+            Self::RevokeCredential { credential_id, .. } => identifier(credential_id)?,
+            Self::SigningKey {
+                identity_id,
+                credential_id,
+                device_id,
+                key_id,
+                public_key,
+                algorithm,
+                not_before,
+                expires_at,
+                expected_revision,
+                ..
+            } => {
+                use base64::Engine;
+                for value in [identity_id, credential_id, device_id, key_id] {
+                    identifier(value)?;
+                }
+                let bytes = base64::engine::general_purpose::URL_SAFE_NO_PAD
+                    .decode(public_key)
+                    .map_err(|_| invalid())?;
+                if public_key.len() > 128
+                    || base64::engine::general_purpose::URL_SAFE_NO_PAD.encode(&bytes)
+                        != *public_key
+                    || bytes.len()
+                        != match algorithm {
+                            SigningAlgorithm::EdDSA => 32,
+                            SigningAlgorithm::ES256 => 65,
+                        }
+                    || *not_before < 0
+                    || expires_at <= not_before
+                    || *expires_at > 9_007_199_254_740_991
+                {
+                    return Err(invalid());
+                }
+                if let Some(value) = expected_revision {
+                    revision(*value)?;
+                }
+            }
+            Self::RevokeSigningKey {
+                key_id,
+                expected_revision,
+                ..
+            } => {
+                identifier(key_id)?;
+                revision(*expected_revision)?;
+            }
+            Self::RevokeDevice {
+                device_id,
+                expected_revision,
+                ..
+            } => {
+                identifier(device_id)?;
+                revision(*expected_revision)?;
+            }
             Self::Identity {
                 alias,
                 display_name,
@@ -350,6 +482,36 @@ fn revision(value: u64) -> Result<()> {
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(tag = "kind", rename_all = "snake_case")]
 pub enum ProvisioningOutcome {
+    RecordReadRole {
+        identity_id: String,
+        tenant_id: String,
+        role: String,
+        private_sources: bool,
+        active: bool,
+        revision: u64,
+    },
+    Credential {
+        credential_id: String,
+        identity_id: String,
+        expires_at: i64,
+        revoked: bool,
+    },
+    SigningKey {
+        key_id: String,
+        identity_id: String,
+        device_id: String,
+        algorithm: SigningAlgorithm,
+        not_before: i64,
+        expires_at: i64,
+        revision: u64,
+        revoked: bool,
+    },
+    Device {
+        device_id: String,
+        identity_id: String,
+        revision: u64,
+        revoked: bool,
+    },
     Identity {
         identity_id: String,
         alias: String,

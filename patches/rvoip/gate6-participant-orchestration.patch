@@ -1,0 +1,2448 @@
+diff --git a/crates/foundation/rvoip-core/src/commands.rs b/crates/foundation/rvoip-core/src/commands.rs
+index bce102c..cf89977 100644
+--- a/crates/foundation/rvoip-core/src/commands.rs
++++ b/crates/foundation/rvoip-core/src/commands.rs
+@@ -46,6 +46,13 @@ pub enum Command {
+         role: ParticipantRole,
+         correlation_id: String,
+     },
++    /// Checked current-authority participant control. The principal comes
++    /// from authentication, never from participant payload fields.
++    MutateSessionParticipant {
++        session_id: SessionId,
++        principal: crate::identity::AuthenticatedPrincipal,
++        mutation: crate::participant_transitions::ParticipantMutation,
++    },
+     LeaveSession {
+         session_id: SessionId,
+         participant_id: ParticipantId,
+@@ -183,6 +190,7 @@ impl fmt::Debug for Command {
+             Self::EndSession { .. } => "EndSession",
+             Self::JoinSession { .. } => "JoinSession",
+             Self::LeaveSession { .. } => "LeaveSession",
++            Self::MutateSessionParticipant { .. } => "MutateSessionParticipant",
+             Self::RouteInboundConnection { .. } => "RouteInboundConnection",
+             Self::OriginateConnection { .. } => "OriginateConnection",
+             Self::EndConnection { .. } => "EndConnection",
+diff --git a/crates/foundation/rvoip-core/src/conference.rs b/crates/foundation/rvoip-core/src/conference.rs
+index 475025d..5a529df 100644
+--- a/crates/foundation/rvoip-core/src/conference.rs
++++ b/crates/foundation/rvoip-core/src/conference.rs
+@@ -94,6 +94,16 @@ pub(crate) const MEMBER_TAP_CAPACITY: usize = 16;
+ /// past this, their oldest audio is discarded.
+ const MAX_PENDING_SAMPLES: usize = 8_000;
+ 
++/// A mix tick holds all exact-generation route leases while collecting and
++/// submitting frames. Terminal retirement cannot interleave a stale source
++/// with delivery to otherwise live members.
++pub(crate) trait DeliveryLease {
++    fn is_live(&self) -> bool;
++}
++pub(crate) trait DeliveryGuard: Send + Sync {
++    fn acquire(&self) -> Box<dyn DeliveryLease + '_>;
++}
++
+ /// What the mixer needs to move audio to and from one member.
+ pub(crate) struct ConferenceMember {
+     pub(crate) connection_id: ConnectionId,
+@@ -121,6 +131,7 @@ pub(crate) struct ConferenceMember {
+     /// member's transport means the rest of the conference cannot tell that
+     /// anyone is listening, which is the point of monitoring.
+     pub(crate) contributes: bool,
++    pub(crate) delivery_guard: Option<Arc<dyn DeliveryGuard>>,
+ }
+ 
+ impl ConferenceMember {
+@@ -129,7 +140,12 @@ impl ConferenceMember {
+     /// A frame that fails to decode is skipped rather than fatal: one bad
+     /// packet from one member must not silence the conference.
+     fn collect(&mut self) {
+-        while let Ok(frame) = self.inbound.try_recv() {
++        // A producer can refill the bounded tap concurrently. Bound work as
++        // well as queue size so a mix tick cannot hold lifecycle leases forever.
++        for _ in 0..MEMBER_TAP_CAPACITY {
++            let Ok(frame) = self.inbound.try_recv() else {
++                break;
++            };
+             let Ok(decoded) = self.decoder.decode(&frame.payload) else {
+                 continue;
+             };
+@@ -261,6 +277,25 @@ pub(crate) fn mix_once(
+     members: &mut HashMap<ConnectionId, ConferenceMember>,
+     samples_per_tick: usize,
+ ) {
++    let mut gates: Vec<_> = members
++        .iter()
++        .filter_map(|(id, member)| {
++            member
++                .delivery_guard
++                .as_ref()
++                .map(|gate| (id.clone(), Arc::clone(gate)))
++        })
++        .collect();
++    gates.sort_by(|a, b| a.0.cmp(&b.0));
++    let leases: Vec<_> = gates
++        .iter()
++        .map(|(id, gate)| (id, gate.acquire()))
++        .collect();
++    for (id, lease) in &leases {
++        if !lease.is_live() {
++            members.remove(*id);
++        }
++    }
+     let mut contributions: HashMap<ConnectionId, Vec<i16>> = HashMap::new();
+     // Summed in i32: a dozen members at full scale overflow i16 long before
+     // they overflow this, so clipping is a decision made once at the end
+@@ -429,6 +464,7 @@ pub(crate) fn build_member(
+         timestamp: 0,
+         _tap: tap,
+         contributes: true,
++        delivery_guard: None,
+     })
+ }
+ 
+@@ -674,4 +710,37 @@ mod tests {
+             "a clipped sum stays loud and positive; a wrapped one would go negative"
+         );
+     }
++    #[test]
++    fn member_collection_bounds_work_while_preserving_later_frames() {
++        let (input, receiver) = mpsc::channel(32);
++        let (output, _sink) = mpsc::channel(32);
++        let mut member = build_member(
++            ConnectionId::new(),
++            receiver,
++            output,
++            pcmu_codec(),
++            8_000,
++            None,
++        )
++        .unwrap();
++        for timestamp in 0..20 {
++            input
++                .try_send(MediaFrame {
++                    source_clock: None,
++                    stream_id: crate::ids::StreamId::new(),
++                    kind: crate::stream::StreamKind::Audio,
++                    payload: bytes::Bytes::from(vec![255; 160]),
++                    timestamp_rtp: timestamp * 160,
++                    captured_at: chrono::Utc::now(),
++                    payload_type: Some(0),
++                })
++                .unwrap();
++        }
++        member.collect();
++        assert_eq!(member.inbound.len(), 20 - MEMBER_TAP_CAPACITY);
++        assert_eq!(member.pending.len(), MEMBER_TAP_CAPACITY * 160);
++        member.collect();
++        assert_eq!(member.inbound.len(), 0);
++        assert_eq!(member.pending.len(), 20 * 160);
++    }
+ }
+diff --git a/crates/foundation/rvoip-core/src/orchestrator.rs b/crates/foundation/rvoip-core/src/orchestrator.rs
+index afaf0ec..7cb2fcf 100644
+--- a/crates/foundation/rvoip-core/src/orchestrator.rs
++++ b/crates/foundation/rvoip-core/src/orchestrator.rs
+@@ -10,6 +10,8 @@
+ //! frame-pump (INTERFACE_DESIGN §10.2) and the SIP-fast-path bridge strategy
+ //! (CARVE_PLAN §3) land in subsequent steps.
+ 
++pub mod participant_control;
++
+ use crate::adapter::{
+     AdapterEvent, AdapterLifecycleSink, ConnectionAdapter, ConnectionHandle, EndReason,
+     InboundConnectionContext, OrchestratorAdapterEvent, OriginateRequest, PlaybackHandle,
+@@ -1517,6 +1519,10 @@ pub struct Orchestrator {
+     /// Session (via the auto-end path in `detach_connection_from_session`)
+     /// or on explicit [`end_session`] + later close.
+     sessions: Arc<DashMap<SessionId, Arc<RwLock<Session>>>>,
++    participant_sessions:
++        Arc<DashMap<SessionId, Arc<participant_control::ManagedParticipantSession>>>,
++    managed_participant_connections:
++        Arc<DashMap<ConnectionId, Weak<participant_control::ManagedParticipantSession>>>,
+     /// Explicit external authority; bounded independently of transient sockets.
+     externally_projected_sessions: Arc<Mutex<HashSet<SessionId>>>,
+     media_diagnostics: Arc<crate::media_diagnostics::MediaDiagnostics>,
+@@ -1899,6 +1905,8 @@ impl Orchestrator {
+             subscriber_streams: Arc::new(DashMap::new()),
+             conversations: Arc::new(DashMap::new()),
+             sessions: Arc::new(DashMap::new()),
++            participant_sessions: Arc::new(DashMap::new()),
++            managed_participant_connections: Arc::new(DashMap::new()),
+             externally_projected_sessions: Arc::new(Mutex::new(HashSet::new())),
+             media_diagnostics: Arc::new(crate::media_diagnostics::MediaDiagnostics::default()),
+             sessions_by_connection: Arc::new(DashMap::new()),
+@@ -1976,6 +1984,8 @@ impl Orchestrator {
+             subscriber_streams: Arc::new(DashMap::new()),
+             conversations: Arc::new(DashMap::new()),
+             sessions: Arc::new(DashMap::new()),
++            participant_sessions: Arc::new(DashMap::new()),
++            managed_participant_connections: Arc::new(DashMap::new()),
+             externally_projected_sessions: Arc::new(Mutex::new(HashSet::new())),
+             media_diagnostics: Arc::new(crate::media_diagnostics::MediaDiagnostics::default()),
+             sessions_by_connection: Arc::new(DashMap::new()),
+@@ -4210,6 +4220,11 @@ impl Orchestrator {
+             .connection_registry_lock
+             .lock()
+             .unwrap_or_else(|poisoned| poisoned.into_inner());
++        if self.participant_sessions.contains_key(session_id) {
++            return Err(RvoipError::InvalidState(
++                "use checked participant admission",
++            ));
++        }
+         let current = self
+             .connection_lifecycles
+             .get(&lifecycle.connection_id)
+@@ -4380,6 +4395,11 @@ impl Orchestrator {
+             .connection_registry_lock
+             .lock()
+             .unwrap_or_else(|poisoned| poisoned.into_inner());
++        if self.participant_sessions.contains_key(session_id) {
++            return Err(RvoipError::InvalidState(
++                "use checked participant admission",
++            ));
++        }
+         let current = self
+             .connection_lifecycles
+             .get(&lifecycle.connection_id)
+@@ -4515,6 +4535,13 @@ impl Orchestrator {
+             .bridge_ownership_lock
+             .lock()
+             .unwrap_or_else(|poisoned| poisoned.into_inner());
++        if self.managed_participant_connections.contains_key(&a)
++            || self.managed_participant_connections.contains_key(&b)
++        {
++            return Err(RvoipError::InvalidState(
++                "checked participant routes cannot be bridged through raw control",
++            ));
++        }
+         if self.cross_bridge_owners.contains_key(&a) || self.cross_bridge_owners.contains_key(&b) {
+             return Err(RvoipError::AdmissionRejected("connection already bridged"));
+         }
+@@ -4544,6 +4571,14 @@ impl Orchestrator {
+             .bridge_ownership_lock
+             .lock()
+             .unwrap_or_else(|poisoned| poisoned.into_inner());
++        if self
++            .managed_participant_connections
++            .contains_key(&replacement_destination)
++        {
++            return Err(RvoipError::InvalidState(
++                "checked participant route is already owned",
++            ));
++        }
+         let endpoints_match = self
+             .cross_bridges
+             .get(expected_bridge_id)
+@@ -4991,6 +5026,7 @@ impl Orchestrator {
+         let normalized_lifecycle_was_visible =
+             removed.is_some_and(|(_, entry)| entry.normalized_lifecycle_was_visible);
+         self.drop_connection_subscriptions(conn);
++        self.participant_connection_retired(conn);
+         ForgottenConnection {
+             was_tracked,
+             normalized_lifecycle_was_visible,
+@@ -5807,6 +5843,8 @@ impl Orchestrator {
+             sess.conversation_id.clone()
+         };
+ 
++        self.end_managed_participant_session(&session_id).await;
++
+         // Multi-party cleanup + reverse-index cleanup.
+         self.drop_session_subscriptions(&session_id);
+         self.sessions_by_connection
+@@ -5921,6 +5959,9 @@ impl Orchestrator {
+         let now = Utc::now();
+         let conv_id = {
+             let mut sess = sess_arc.write().expect("session lock poisoned");
++            if self.participant_sessions.contains_key(&session_id) {
++                return Err(RvoipError::InvalidState("use checked participant control"));
++            }
+             if matches!(
+                 sess.state,
+                 SessionState::Ending | SessionState::Ended | SessionState::Failed
+@@ -6000,6 +6041,9 @@ impl Orchestrator {
+         let now = Utc::now();
+         let conv_id = {
+             let mut sess = sess_arc.write().expect("session lock poisoned");
++            if self.participant_sessions.contains_key(&session_id) {
++                return Err(RvoipError::InvalidState("use checked participant control"));
++            }
+             if !sess.participants.remove(&participant_id) {
+                 return Ok(());
+             }
+@@ -6164,6 +6208,9 @@ impl Orchestrator {
+             .map(|entry| Arc::clone(entry.value()))
+             .ok_or_else(|| RvoipError::SessionNotFound(session_id.clone()))?;
+         let session = session.read().expect("session lock poisoned");
++        if self.participant_sessions.contains_key(session_id) {
++            return Err(RvoipError::InvalidState("use checked participant control"));
++        }
+         if matches!(
+             session.state,
+             SessionState::Ending | SessionState::Ended | SessionState::Failed
+@@ -6244,6 +6291,7 @@ impl Orchestrator {
+             .lock()
+             .expect("external projection lock poisoned")
+             .contains(&sid);
++        let externally_owned = externally_owned || self.participant_sessions.contains_key(&sid);
+         let (auto_end, external_idle, conv_id) = {
+             let mut sess = sess_arc.write().expect("session lock poisoned");
+             sess.connections.remove(conn);
+diff --git a/crates/foundation/rvoip-core/src/orchestrator/participant_control.rs b/crates/foundation/rvoip-core/src/orchestrator/participant_control.rs
+new file mode 100644
+index 0000000..1b6f361
+--- /dev/null
++++ b/crates/foundation/rvoip-core/src/orchestrator/participant_control.rs
+@@ -0,0 +1,810 @@
++//! Current-authority participant control over the real conference mixer.
++//!
++//! This is an engine primitive. Connect owns durable admission/effects and
++//! installs a policy backed by its current grants. Policy leases hold authority
++//! stable only for a synchronous commit; no adapter I/O runs under a lease.
++
++use super::*;
++use crate::conference::{Conference, ConferenceMember, DeliveryGuard, DeliveryLease};
++use crate::participant_transitions::{
++    ParticipantChange, ParticipantMutation, ParticipantObservation, ParticipantSession,
++    ParticipantTransitionError, PreparedParticipantAdmission,
++};
++use crate::relationships::{EndpointBinding, Membership};
++use std::collections::BTreeMap;
++
++#[derive(Debug, thiserror::Error)]
++pub enum ParticipantControlError {
++    #[error(transparent)]
++    Transition(#[from] ParticipantTransitionError),
++    #[error(transparent)]
++    Core(#[from] RvoipError),
++    #[error("participant authority denied")]
++    Authority,
++    #[error("participant transition cancelled")]
++    Cancelled,
++    #[error("participant preparation deadline expired")]
++    Deadline,
++}
++pub type ControlResult<T> = std::result::Result<T, ParticipantControlError>;
++
++pub struct ParticipantScope<'a> {
++    pub session: &'a SessionId,
++    pub conversation: &'a ConversationId,
++    pub principal: &'a AuthenticatedPrincipal,
++    pub mutation: &'a ParticipantMutation,
++    pub connection_generation: Option<u64>,
++}
++
++/// Supplied by the trusted policy, never by a wire body. Permissions are
++/// independent of the requested role. Confirmation must be attributed to this
++/// precise connection generation when the endpoint requires it.
++pub struct ParticipantAuthority {
++    pub actor: Membership,
++    pub target: Membership,
++    pub endpoint: Option<EndpointBinding>,
++    pub may_send_audio: bool,
++    pub may_receive_audio: bool,
++    pub confirmation_required: bool,
++    pub confirmed_generation: Option<u64>,
++}
++
++/// Implementations retain a current-authority read/transaction lock until drop.
++/// Do not call the Orchestrator while holding that same authority lock elsewhere.
++pub trait ParticipantAuthorityLease {
++    fn authority(&self) -> &ParticipantAuthority;
++}
++pub trait ParticipantPolicy: Send + Sync {
++    fn current(
++        &self,
++        scope: &ParticipantScope<'_>,
++    ) -> ControlResult<Box<dyn ParticipantAuthorityLease + '_>>;
++}
++
++#[derive(Clone, Copy, Debug)]
++pub struct ParticipantLimits {
++    pub participants: usize,
++    pub connections: usize,
++    pub retained_operations: usize,
++    pub mix_rate_hz: u32,
++}
++impl Default for ParticipantLimits {
++    fn default() -> Self {
++        Self {
++            participants: 4,
++            connections: 6,
++            retained_operations: 4096,
++            mix_rate_hz: 8_000,
++        }
++    }
++}
++
++#[derive(Clone, Debug)]
++pub enum ParticipantRuntimeEvent {
++    Committed(ParticipantObservation),
++    ConnectionEnded {
++        participant: ParticipantId,
++        connection: ConnectionId,
++        revision: u64,
++    },
++}
++
++struct PendingAdmission {
++    participant: ParticipantId,
++    cancellation: CancellationToken,
++}
++struct LiveRoute {
++    _slot: OwnedSemaphorePermit,
++    lifecycle: ConnectionLifecycleTicket,
++}
++struct ManagedState {
++    controller: ParticipantSession,
++    pending: HashMap<ConnectionId, PendingAdmission>,
++    routes: BTreeMap<ConnectionId, LiveRoute>,
++    ended: bool,
++}
++pub(super) struct ManagedParticipantSession {
++    session: SessionId,
++    conversation: ConversationId,
++    policy: Arc<dyn ParticipantPolicy>,
++    mixer: Arc<Conference>,
++    slots: Arc<Semaphore>,
++    limits: ParticipantLimits,
++    state: Mutex<ManagedState>,
++    events: broadcast::Sender<ParticipantRuntimeEvent>,
++}
++
++struct LifecycleDeliveryGuard(ConnectionLifecycleTicket);
++struct LifecycleDeliveryLease<'a> {
++    state: std::sync::MutexGuard<'a, ConnectionLifecycleState>,
++    generation: u64,
++}
++impl DeliveryLease for LifecycleDeliveryLease<'_> {
++    fn is_live(&self) -> bool {
++        self.state.active && !self.state.retired && self.state.generation == self.generation
++    }
++}
++impl DeliveryGuard for LifecycleDeliveryGuard {
++    fn acquire(&self) -> Box<dyn DeliveryLease + '_> {
++        Box::new(LifecycleDeliveryLease {
++            state: self.0.state.lock().unwrap_or_else(|p| p.into_inner()),
++            generation: self.0.generation,
++        })
++    }
++}
++
++/// Owns invisible preparation and its capacity. Dropping an unfinished future
++/// retires the candidate synchronously and schedules bounded supervised cleanup.
++struct AdmissionCandidate {
++    owner: Weak<Orchestrator>,
++    runtime: Arc<ManagedParticipantSession>,
++    connection: ConnectionId,
++    lifecycle: ConnectionLifecycleTicket,
++    ticket: Option<PreparedParticipantAdmission>,
++    member: Option<ConferenceMember>,
++    stream: Option<Arc<dyn crate::stream::MediaStream>>,
++    slot: Option<OwnedSemaphorePermit>,
++    cancellation: CancellationToken,
++    committed: bool,
++    inbound: bool,
++}
++impl Drop for AdmissionCandidate {
++    fn drop(&mut self) {
++        if self.committed {
++            return;
++        }
++        self.runtime
++            .state
++            .lock()
++            .unwrap_or_else(|p| p.into_inner())
++            .pending
++            .remove(&self.connection);
++        if let Some(owner) = self.owner.upgrade() {
++            owner.retire_participant_route(&self.connection);
++        }
++    }
++}
++
++impl Orchestrator {
++    /// Enable checked participant control on an empty initiating Session.
++    /// Its private mixer cannot be mutated through the raw conference API.
++    pub fn enable_participant_control(
++        &self,
++        session_id: &SessionId,
++        policy: Arc<dyn ParticipantPolicy>,
++        limits: ParticipantLimits,
++    ) -> ControlResult<()> {
++        if limits.participants == 0
++            || limits.participants > 256
++            || limits.connections == 0
++            || limits.connections > 512
++            || limits.retained_operations == 0
++            || limits.retained_operations > 65536
++            || ![8_000, 16_000, 24_000, 48_000].contains(&limits.mix_rate_hz)
++        {
++            return Err(ParticipantTransitionError::Invalid.into());
++        }
++        let session = self
++            .session(session_id)
++            .ok_or_else(|| RvoipError::SessionNotFound(session_id.clone()))?;
++        let _registry = self
++            .connection_registry_lock
++            .lock()
++            .unwrap_or_else(|p| p.into_inner());
++        let session = session.write().expect("session lock poisoned");
++        if session.state != SessionState::Initiating
++            || !session.participants.is_empty()
++            || !session.connections.is_empty()
++            || self.participant_sessions.contains_key(session_id)
++        {
++            return Err(ParticipantTransitionError::Conflict.into());
++        }
++        let conversation = self
++            .conversation(&session.conversation_id)
++            .ok_or_else(|| RvoipError::ConversationNotFound(session.conversation_id.clone()))?;
++        let conversation = conversation.read().expect("conversation lock poisoned");
++        if conversation.state != ConversationState::Open {
++            return Err(ParticipantTransitionError::Ended.into());
++        }
++        let controller = ParticipantSession::new(
++            conversation.tenant_id.clone(),
++            conversation.id.clone(),
++            session_id.clone(),
++            limits.participants,
++            limits.connections,
++            limits.retained_operations,
++        )?;
++        let (events, _) = broadcast::channel(256);
++        self.participant_sessions.insert(
++            session_id.clone(),
++            Arc::new(ManagedParticipantSession {
++                session: session_id.clone(),
++                conversation: conversation.id.clone(),
++                policy,
++                mixer: Arc::new(Conference::start(limits.mix_rate_hz)),
++                slots: Arc::new(Semaphore::new(limits.connections)),
++                limits,
++                state: Mutex::new(ManagedState {
++                    controller,
++                    pending: HashMap::new(),
++                    routes: BTreeMap::new(),
++                    ended: false,
++                }),
++                events,
++            }),
++        );
++        Ok(())
++    }
++
++    fn participant_runtime(
++        &self,
++        session: &SessionId,
++    ) -> ControlResult<Arc<ManagedParticipantSession>> {
++        self.participant_sessions
++            .get(session)
++            .map(|e| Arc::clone(e.value()))
++            .ok_or_else(|| RvoipError::InvalidState("participant control is not enabled").into())
++    }
++
++    pub fn participant_revision(&self, session: &SessionId) -> ControlResult<u64> {
++        Ok(self
++            .participant_runtime(session)?
++            .state
++            .lock()
++            .unwrap_or_else(|p| p.into_inner())
++            .controller
++            .revision())
++    }
++
++    /// Trusted runtime projection; public callers require the owning service's
++    /// current authorization, as with the raw Session accessor.
++    pub fn participant_session_role(
++        &self,
++        session: &SessionId,
++        participant: &ParticipantId,
++    ) -> ControlResult<Option<ParticipantRole>> {
++        let runtime = self.participant_runtime(session)?;
++        let state = runtime.state.lock().unwrap_or_else(|p| p.into_inner());
++        Ok(state.controller.role(participant).cloned())
++    }
++
++    /// Trusted process-internal hints. The returned mutation result and retained
++    /// operation receipt are authoritative; public clients need scoped journals.
++    pub fn subscribe_participant_events(
++        &self,
++        session: &SessionId,
++    ) -> ControlResult<broadcast::Receiver<ParticipantRuntimeEvent>> {
++        Ok(self.participant_runtime(session)?.events.subscribe())
++    }
++
++    pub fn participant_capacity(&self, session: &SessionId) -> ControlResult<(usize, usize)> {
++        let runtime = self.participant_runtime(session)?;
++        let state = runtime.state.lock().unwrap_or_else(|p| p.into_inner());
++        Ok((state.routes.len(), state.pending.len()))
++    }
++
++    fn check_participant_authority(
++        scope: &ParticipantScope<'_>,
++        authority: &ParticipantAuthority,
++    ) -> ControlResult<()> {
++        if scope.principal.is_expired_at(Utc::now())
++            || authority.target.participant() != &scope.mutation.participant
++            || authority.actor.conversation() != scope.conversation
++            || authority.target.conversation() != scope.conversation
++        {
++            return Err(ParticipantControlError::Authority);
++        }
++        if !authority.may_receive_audio
++            && !matches!(scope.mutation.change, ParticipantChange::Depart { .. })
++        {
++            return Err(ParticipantControlError::Authority);
++        }
++        authority
++            .actor
++            .revalidate_principal(scope.principal, Utc::now())
++            .map_err(|_| ParticipantControlError::Authority)?;
++        Ok(())
++    }
++
++    /// One checked participant operation. No caller-supplied ready boolean.
++    /// Accepted transport signaling is followed by negotiated duplex stream
++    /// readiness, generation fencing and a NEW policy lease at final commit.
++    pub async fn change_session_participant(
++        self: &Arc<Self>,
++        session_id: &SessionId,
++        principal: AuthenticatedPrincipal,
++        mutation: ParticipantMutation,
++        deadline: tokio::time::Instant,
++        cancellation: CancellationToken,
++    ) -> ControlResult<ParticipantObservation> {
++        let runtime = self.participant_runtime(session_id)?;
++        let deadline =
++            deadline.min(tokio::time::Instant::now() + self.config.bridge_stream_deadline);
++        let mut candidate = {
++            let mut state = runtime.state.lock().unwrap_or_else(|p| p.into_inner());
++            let scope = ParticipantScope {
++                session: session_id,
++                conversation: &runtime.conversation,
++                principal: &principal,
++                mutation: &mutation,
++                connection_generation: None,
++            };
++            let lease = runtime.policy.current(&scope)?;
++            let authority = lease.authority();
++            Self::check_participant_authority(&scope, authority)?;
++            if let Some(receipt) =
++                state
++                    .controller
++                    .replay(&authority.actor, &authority.target, &mutation)?
++            {
++                return Ok(receipt);
++            }
++            if state.ended {
++                return Err(ParticipantTransitionError::Ended.into());
++            }
++            if cancellation.is_cancelled() {
++                return Err(ParticipantControlError::Cancelled);
++            }
++            if tokio::time::Instant::now() >= deadline {
++                return Err(ParticipantControlError::Deadline);
++            }
++            if state.controller.revision() != mutation.expected_revision {
++                return Err(ParticipantTransitionError::Conflict.into());
++            }
++            match &mutation.change {
++                ParticipantChange::Admit {
++                    connection,
++                    role_override,
++                } => {
++                    let endpoint = authority
++                        .endpoint
++                        .as_ref()
++                        .ok_or(ParticipantControlError::Authority)?;
++                    if !authority.may_receive_audio {
++                        return Err(ParticipantControlError::Authority);
++                    }
++                    if state.pending.contains_key(connection)
++                        || self.sessions_by_connection.contains_key(connection)
++                    {
++                        return Err(ParticipantTransitionError::Conflict.into());
++                    }
++                    let pending_new: HashSet<_> = state
++                        .pending
++                        .values()
++                        .map(|p| p.participant.clone())
++                        .filter(|p| state.controller.role(p).is_none())
++                        .collect();
++                    if state.controller.role(&mutation.participant).is_none()
++                        && !pending_new.contains(&mutation.participant)
++                        && state.controller.participant_count() + pending_new.len()
++                            >= runtime.limits.participants
++                    {
++                        return Err(ParticipantTransitionError::Capacity.into());
++                    }
++                    let slot = Arc::clone(&runtime.slots)
++                        .try_acquire_owned()
++                        .map_err(|_| ParticipantTransitionError::Capacity)?;
++                    let ticket = state.controller.prepare_admission(
++                        &authority.target,
++                        endpoint,
++                        connection.clone(),
++                        role_override.clone(),
++                    )?;
++                    let mut lifecycles =
++                        self.capture_connection_lifecycles(std::slice::from_ref(connection))?;
++                    let lifecycle = lifecycles.remove(0);
++                    if endpoint.transport() != self.connection_transport(connection)? {
++                        return Err(ParticipantControlError::Authority);
++                    }
++                    let inbound = self
++                        .connections
++                        .get(connection)
++                        .is_some_and(|e| e.direction == Direction::Inbound);
++                    let _registry = self
++                        .connection_registry_lock
++                        .lock()
++                        .unwrap_or_else(|p| p.into_inner());
++                    // Match raw bridge reservation ordering without taking a
++                    // lifecycle mutex while holding bridge ownership.
++                    let _ownership = self
++                        .bridge_ownership_lock
++                        .lock()
++                        .unwrap_or_else(|p| p.into_inner());
++                    if self
++                        .managed_participant_connections
++                        .contains_key(connection)
++                        || self.sessions_by_connection.contains_key(connection)
++                        || self.cross_bridge_owners.contains_key(connection)
++                    {
++                        return Err(ParticipantTransitionError::Conflict.into());
++                    }
++                    let cancellation = CancellationToken::new();
++                    state.pending.insert(
++                        connection.clone(),
++                        PendingAdmission {
++                            participant: mutation.participant.clone(),
++                            cancellation: cancellation.clone(),
++                        },
++                    );
++                    self.managed_participant_connections
++                        .insert(connection.clone(), Arc::downgrade(&runtime));
++                    Some(AdmissionCandidate {
++                        owner: Arc::downgrade(self),
++                        runtime: Arc::clone(&runtime),
++                        connection: connection.clone(),
++                        lifecycle,
++                        ticket: Some(ticket),
++                        member: None,
++                        stream: None,
++                        slot: Some(slot),
++                        cancellation,
++                        committed: false,
++                        inbound,
++                    })
++                }
++                _ => None,
++            }
++        };
++        if let Some(ready) = &mut candidate {
++            let terminal_cancellation = ready.cancellation.clone();
++            let preparation = async {
++                let adapter = self.adapter_for(&ready.connection)?;
++                // Managed candidates are not yet Session-bound. This accepts
++                // only their exact physical route; failure/drop retires it.
++                if ready.inbound {
++                    adapter.accept(ready.connection.clone()).await?;
++                }
++                let stream = self
++                    .wait_for_stream(
++                        ready.connection.clone(),
++                        StreamSelector::new(StreamKind::Audio)
++                            .with_readiness(crate::stream::MediaReadiness::Bidirectional),
++                        deadline,
++                        ready.cancellation.clone(),
++                    )
++                    .await
++                    .map_err(|_| ParticipantTransitionError::NotReady)?;
++                let outbound = stream.try_frames_out()?;
++                let (tap, inbound) = self
++                    .media_tap_for_connection(
++                        ready.connection.clone(),
++                        crate::conference::MEMBER_TAP_CAPACITY,
++                    )
++                    .await?;
++                let mut member = crate::conference::build_member(
++                    ready.connection.clone(),
++                    inbound,
++                    outbound,
++                    stream.codec(),
++                    runtime.mixer.mix_rate_hz,
++                    Some(Box::new(tap)),
++                )?;
++                member.delivery_guard =
++                    Some(Arc::new(LifecycleDeliveryGuard(ready.lifecycle.clone())));
++                ready.member = Some(member);
++                ready.stream = Some(stream);
++                Ok::<(), ParticipantControlError>(())
++            };
++            tokio::select! {
++                _ = cancellation.cancelled() => return Err(ParticipantControlError::Cancelled),
++                _ = terminal_cancellation.cancelled() => return Err(ParticipantTransitionError::Inactive.into()),
++                result = tokio::time::timeout_at(deadline, preparation) => {
++                    result.map_err(|_| ParticipantControlError::Deadline)??;
++                }
++            }
++        }
++        let mut members = runtime.mixer.members.lock().await;
++        let result = {
++            let mut state = runtime.state.lock().unwrap_or_else(|p| p.into_inner());
++            let scope = ParticipantScope {
++                session: session_id,
++                conversation: &runtime.conversation,
++                principal: &principal,
++                mutation: &mutation,
++                connection_generation: candidate.as_ref().map(|c| c.lifecycle.generation),
++            };
++            let lease = runtime.policy.current(&scope)?;
++            let authority = lease.authority();
++            Self::check_participant_authority(&scope, authority)?;
++            if let Some(receipt) =
++                state
++                    .controller
++                    .replay(&authority.actor, &authority.target, &mutation)?
++            {
++                return Ok(receipt);
++            }
++            if state.ended {
++                return Err(ParticipantTransitionError::Ended.into());
++            }
++            if cancellation.is_cancelled() {
++                return Err(ParticipantControlError::Cancelled);
++            }
++            if tokio::time::Instant::now() >= deadline {
++                return Err(ParticipantControlError::Deadline);
++            }
++            let _registry = self
++                .connection_registry_lock
++                .lock()
++                .unwrap_or_else(|p| p.into_inner());
++            let lifecycle_tickets: Vec<_> = candidate
++                .as_ref()
++                .map(|c| vec![c.lifecycle.clone()])
++                .unwrap_or_default();
++            let _lifecycles = self.lock_connection_lifecycles(&lifecycle_tickets)?;
++            let conversation = self
++                .conversation(&runtime.conversation)
++                .ok_or_else(|| RvoipError::ConversationNotFound(runtime.conversation.clone()))?;
++            let mut conversation = conversation.write().expect("conversation lock poisoned");
++            let session = self
++                .session(session_id)
++                .ok_or_else(|| RvoipError::SessionNotFound(session_id.clone()))?;
++            let mut session = session.write().expect("session lock poisoned");
++            if conversation.state != ConversationState::Open
++                || matches!(
++                    session.state,
++                    SessionState::Ending | SessionState::Ended | SessionState::Failed
++                )
++            {
++                return Err(ParticipantTransitionError::Ended.into());
++            }
++            if let Some(existing) = conversation
++                .participants
++                .iter()
++                .find(|p| p.id == mutation.participant)
++            {
++                if existing.identity_ref.as_ref() != Some(authority.target.identity())
++                    || existing.kind != *authority.target.kind()
++                    || existing.left_at.is_some()
++                {
++                    return Err(ParticipantTransitionError::OwnerMismatch.into());
++                }
++            }
++            let ticket = if let Some(ready) = &mut candidate {
++                if authority.endpoint.as_ref().is_none_or(|e| {
++                    self.connection_transport(&ready.connection).ok() != Some(e.transport())
++                }) || !authority.may_receive_audio
++                    || (authority.confirmation_required
++                        && authority.confirmed_generation != Some(ready.lifecycle.generation))
++                {
++                    return Err(ParticipantControlError::Authority);
++                }
++                if ready.cancellation.is_cancelled()
++                    || self.sessions_by_connection.contains_key(&ready.connection)
++                {
++                    return Err(ParticipantTransitionError::Conflict.into());
++                }
++                let stream = ready
++                    .stream
++                    .as_ref()
++                    .ok_or(ParticipantTransitionError::NotReady)?;
++                if !stream.source_ready()
++                    || stream.try_frames_out()?.is_closed()
++                    || !self
++                        .adapter_for(&ready.connection)?
++                        .is_connection_live(&ready.connection)
++                {
++                    return Err(ParticipantTransitionError::NotReady.into());
++                }
++                let endpoint = authority
++                    .endpoint
++                    .as_ref()
++                    .ok_or(ParticipantControlError::Authority)?;
++                let mut ticket = ready
++                    .ticket
++                    .take()
++                    .ok_or(ParticipantTransitionError::NotReady)?;
++                ticket.observe_ready(&authority.target, endpoint, ticket.generation())?;
++                Some(ticket)
++            } else {
++                None
++            };
++            // Locks and adapter inspection can outlive a short credential or
++            // deadline. Recheck time-bound authority at the mutation decision.
++            Self::check_participant_authority(&scope, authority)?;
++            if cancellation.is_cancelled() {
++                return Err(ParticipantControlError::Cancelled);
++            }
++            if tokio::time::Instant::now() >= deadline {
++                return Err(ParticipantControlError::Deadline);
++            }
++            let observation = state.controller.apply(
++                &authority.actor,
++                &authority.target,
++                mutation.clone(),
++                ticket,
++                authority.endpoint.as_ref(),
++            )?;
++            // All fallible checks precede the state commit. Below are local map
++            // changes under the mixer, Session and authority commit fences.
++            if let Some(ready) = &mut candidate {
++                let mut member = ready.member.take().expect("prepared mixer member");
++                member.contributes = authority.may_send_audio;
++                members.insert(ready.connection.clone(), member);
++                session.participants.insert(mutation.participant.clone());
++                session.connections.insert(
++                    ready.connection.clone(),
++                    ConnectionRef {
++                        id: ready.connection.clone(),
++                        participant_id: mutation.participant.clone(),
++                    },
++                );
++                session.state = SessionState::Active;
++                self.sessions_by_connection
++                    .insert(ready.connection.clone(), session_id.clone());
++                state.pending.remove(&ready.connection);
++                state.routes.insert(
++                    ready.connection.clone(),
++                    LiveRoute {
++                        _slot: ready.slot.take().expect("reserved slot"),
++                        lifecycle: ready.lifecycle.clone(),
++                    },
++                );
++                ready.committed = true;
++                if !conversation
++                    .participants
++                    .iter()
++                    .any(|p| p.id == mutation.participant)
++                {
++                    conversation.participants.push(Participant {
++                        id: mutation.participant.clone(),
++                        conversation_id: runtime.conversation.clone(),
++                        identity_ref: Some(authority.target.identity().clone()),
++                        kind: authority.target.kind().clone(),
++                        role: authority.target.default_role().clone(),
++                        display_name: None,
++                        joined_at: Utc::now(),
++                        left_at: None,
++                    });
++                }
++            }
++            if matches!(mutation.change, ParticipantChange::Depart { .. }) {
++                for pending in state
++                    .pending
++                    .values()
++                    .filter(|p| p.participant == mutation.participant)
++                {
++                    pending.cancellation.cancel();
++                }
++            }
++            for connection in &observation.retired {
++                members.remove(connection);
++                session.connections.remove(connection);
++                self.sessions_by_connection.remove(connection);
++                if let Some(route) = state.routes.remove(connection) {
++                    let mut lifecycle = route
++                        .lifecycle
++                        .state
++                        .lock()
++                        .unwrap_or_else(|p| p.into_inner());
++                    lifecycle.active = false;
++                    lifecycle.retired = true;
++                    lifecycle.generation = lifecycle.generation.saturating_add(1);
++                }
++            }
++            if !observation.retired.is_empty() {
++                session.participants.remove(&mutation.participant);
++            }
++            if matches!(mutation.change, ParticipantChange::Depart { .. }) {
++                session.participants.remove(&mutation.participant);
++            }
++            for connection in state.controller.connections(&mutation.participant) {
++                if let Some(member) = members.get_mut(&connection) {
++                    member.contributes = authority.may_send_audio;
++                }
++            }
++            conversation.last_activity_at = Utc::now();
++            // FIFO hints are enqueued inside the same fence as state commit.
++            let _ = runtime
++                .events
++                .send(ParticipantRuntimeEvent::Committed(observation.clone()));
++            observation
++        };
++        drop(members);
++        for connection in &result.retired {
++            self.retire_participant_route(connection);
++        }
++        Ok(result)
++    }
++
++    /// Retire local media first. Physical cleanup may remain quarantined if the
++    /// adapter is uncertain; this never claims a confirmed provider hangup.
++    fn retire_participant_route(self: &Arc<Self>, connection: &ConnectionId) {
++        let adapter = self.adapter_for_cleanup(connection).ok();
++        let forgotten =
++            self.begin_connection_teardown(connection, InboundAdmissionTermination::Cancelled);
++        if let Some(adapter) = adapter {
++            let transport = adapter.transport();
++            let generation = self
++                .connection_lifecycles
++                .get(connection)
++                .map(|s| s.lock().unwrap_or_else(|p| p.into_inner()).generation)
++                .unwrap_or(0);
++            self.adapter_cleanup_quarantines.insert(
++                connection.clone(),
++                AdapterCleanupQuarantine {
++                    transport,
++                    lifecycle_generation: generation,
++                },
++            );
++            let owner = Arc::clone(self);
++            let connection = connection.clone();
++            let _ = self.connection_lifecycle_tasks.spawn(async move {
++                owner
++                    .finish_connection_teardown(&connection, forgotten)
++                    .await;
++                if !adapter.is_connection_live(&connection) {
++                    owner.resolve_adapter_cleanup_quarantine(&connection, transport, generation);
++                    return;
++                }
++                owner
++                    .cleanup_failed_adapter_route(
++                        adapter,
++                        transport,
++                        &connection,
++                        "participant route retired",
++                    )
++                    .await;
++            });
++        }
++    }
++
++    pub(super) fn participant_connection_retired(&self, connection: &ConnectionId) {
++        let runtime = self
++            .managed_participant_connections
++            .remove(connection)
++            .and_then(|(_, r)| r.upgrade());
++        let Some(runtime) = runtime else {
++            return;
++        };
++        let mut state = runtime.state.lock().unwrap_or_else(|p| p.into_inner());
++        if let Some(pending) = state.pending.get(connection) {
++            pending.cancellation.cancel();
++        }
++        state.routes.remove(connection);
++        if let Some(session) = self.session(&runtime.session) {
++            let mut session = session.write().expect("session lock poisoned");
++            session.connections.remove(connection);
++            self.sessions_by_connection.remove(connection);
++            if session.connections.is_empty() && session.state == SessionState::Active {
++                session.state = SessionState::Initiating;
++            }
++        }
++        if let Ok(Some(participant)) = state.controller.connection_ended(connection) {
++            let _ = runtime
++                .events
++                .send(ParticipantRuntimeEvent::ConnectionEnded {
++                    participant,
++                    connection: connection.clone(),
++                    revision: state.controller.revision(),
++                });
++        }
++    }
++
++    pub(super) async fn end_managed_participant_session(&self, session: &SessionId) {
++        let Some(runtime) = self
++            .participant_sessions
++            .get(session)
++            .map(|e| Arc::clone(e.value()))
++        else {
++            return;
++        };
++        let routes = {
++            let mut mixer = runtime.mixer.members.lock().await;
++            let mut state = runtime.state.lock().unwrap_or_else(|p| p.into_inner());
++            state.ended = true;
++            for pending in state.pending.values() {
++                pending.cancellation.cancel();
++            }
++            let revision = state.controller.revision();
++            let _ = state.controller.end(revision);
++            mixer.clear();
++            runtime.mixer.task.abort();
++            std::mem::take(&mut state.routes)
++        };
++        if let Some(owner) = self.self_weak.get().and_then(Weak::upgrade) {
++            for (connection, _) in routes {
++                owner.retire_participant_route(&connection);
++            }
++        }
++    }
++}
+diff --git a/crates/foundation/rvoip-core/src/participant_transitions.rs b/crates/foundation/rvoip-core/src/participant_transitions.rs
+index a8a733c..97cf4cd 100644
+--- a/crates/foundation/rvoip-core/src/participant_transitions.rs
++++ b/crates/foundation/rvoip-core/src/participant_transitions.rs
+@@ -304,17 +304,14 @@ impl ParticipantSession {
+         Ok(())
+     }
+ 
+-    /// Invoke after current application authorization, under the owning
+-    /// Session's mutation lock/transaction. Replays recheck current actor and
+-    /// target membership before returning a retained receipt.
+-    pub fn apply(
+-        &mut self,
++    /// Check a retained intent without preparing media or consuming capacity.
++    /// Current authority must be supplied on every lookup, including after end.
++    pub fn replay(
++        &self,
+         actor: &Membership,
+         target: &Membership,
+-        mutation: ParticipantMutation,
+-        admission: Option<PreparedParticipantAdmission>,
+-        endpoint: Option<&EndpointBinding>,
+-    ) -> Result<ParticipantObservation> {
++        mutation: &ParticipantMutation,
++    ) -> Result<Option<ParticipantObservation>> {
+         identifier(&mutation.operation_id)?;
+         identifier(&mutation.correlation_id)?;
+         self.check_member(actor, true)?;
+@@ -344,8 +341,48 @@ impl ParticipantSession {
+             {
+                 return Err(ParticipantTransitionError::Conflict);
+             }
+-            return Ok(receipt.observation.clone());
++            return Ok(Some(receipt.observation.clone()));
++        }
++        Ok(None)
++    }
++
++    /// Retire only the exact admitted connection. Presence and membership
++    /// survive loss so the owning Session can apply its reconnect-grace policy.
++    pub fn connection_ended(&mut self, connection: &ConnectionId) -> Result<Option<ParticipantId>> {
++        let owner = self
++            .participants
++            .iter()
++            .find_map(|(id, p)| p.connections.contains_key(connection).then(|| id.clone()));
++        if let Some(owner) = owner {
++            if self.revision >= MAX_REVISION {
++                return Err(ParticipantTransitionError::Conflict);
++            }
++            self.participants
++                .get_mut(&owner)
++                .expect("found presence")
++                .connections
++                .remove(connection);
++            self.revision += 1;
++            return Ok(Some(owner));
+         }
++        Ok(None)
++    }
++
++    /// Invoke after current application authorization, under the owning
++    /// Session's mutation lock/transaction. Replays recheck current actor and
++    /// target membership before returning a retained receipt.
++    pub fn apply(
++        &mut self,
++        actor: &Membership,
++        target: &Membership,
++        mutation: ParticipantMutation,
++        admission: Option<PreparedParticipantAdmission>,
++        endpoint: Option<&EndpointBinding>,
++    ) -> Result<ParticipantObservation> {
++        if let Some(receipt) = self.replay(actor, target, &mutation)? {
++            return Ok(receipt);
++        }
++        let key = (actor.participant().clone(), mutation.operation_id.clone());
+         if self.ended {
+             return Err(ParticipantTransitionError::Ended);
+         }
+diff --git a/crates/foundation/rvoip-core/src/relationships.rs b/crates/foundation/rvoip-core/src/relationships.rs
+index 5193a6f..2fea95a 100644
+--- a/crates/foundation/rvoip-core/src/relationships.rs
++++ b/crates/foundation/rvoip-core/src/relationships.rs
+@@ -165,6 +165,16 @@ impl Membership {
+             active: true,
+         })
+     }
++    /// Bind the current authenticated actor to this membership. Role is not
++    /// authority; the owning policy must also enforce current scoped grants.
++    pub fn revalidate_principal(
++        &self,
++        principal: &AuthenticatedPrincipal,
++        now: DateTime<Utc>,
++    ) -> Result<(), RelationshipError> {
++        self.require_active()?;
++        self.binding.revalidate(principal, now)
++    }
+     pub fn identity(&self) -> &IdentityId {
+         self.binding.identity()
+     }
+diff --git a/crates/foundation/rvoip-core/tests/participant_control.rs b/crates/foundation/rvoip-core/tests/participant_control.rs
+new file mode 100644
+index 0000000..b0ced51
+--- /dev/null
++++ b/crates/foundation/rvoip-core/tests/participant_control.rs
+@@ -0,0 +1,609 @@
++#[path = "support/participant_control_fixture.rs"]
++mod fixture;
++use fixture::*;
++use rvoip_core::{
++    adapter::EndReason, events::Event, orchestrator::participant_control::*, participant::*,
++    participant_transitions::*, session::SessionState,
++};
++use std::{sync::atomic::Ordering, time::Duration};
++use tokio_util::sync::CancellationToken;
++
++#[tokio::test]
++async fn four_participants_six_connections_add_and_remove_during_encoded_audio() {
++    let f = Fixture::new().await;
++    let mut legs = vec![];
++    for name in ["alice", "bob"] {
++        let (id, stream) = f.connection(name, true).await;
++        f.join(&f.session, name, &id).await;
++        legs.push((name, id, stream));
++    }
++    let (tone_cancel, tone_task) = legs[0].2.continuous_tone();
++    legs[1].2.assert_receives_audio().await;
++    for name in ["carol", "dave", "alice", "bob"] {
++        let (id, stream) = f.connection(name, true).await;
++        f.join(&f.session, name, &id).await;
++        legs.push((name, id, stream));
++    }
++    legs[1].2.assert_receives_audio().await;
++    assert_eq!(f.orch.participant_capacity(&f.session).unwrap(), (6, 0));
++    legs[1].2.assert_audible_from(&legs[2].2).await;
++    let intent = f.intent(
++        &f.session,
++        "alice",
++        "leave_alice",
++        ParticipantChange::Depart {
++            cause: DepartureCause::Left,
++        },
++    );
++    let result = f.apply(&f.session, intent).await.unwrap();
++    tone_cancel.cancel();
++    tone_task.await.unwrap();
++    assert_eq!(result.retired.len(), 2);
++    assert_eq!(result.kind, ParticipantObservationKind::Left);
++    assert_eq!(f.orch.participant_capacity(&f.session).unwrap(), (4, 0));
++    let session = f.orch.session(&f.session).unwrap();
++    let session = session.read().unwrap();
++    assert_eq!(session.state, SessionState::Active);
++    assert_eq!(session.connections.len(), 4);
++    assert_eq!(session.participants.len(), 3);
++    drop(session);
++    legs[1].2.assert_audible_from(&legs[3].2).await;
++    let conversation = f.orch.conversation(&f.conversation).unwrap();
++    assert!(conversation
++        .read()
++        .unwrap()
++        .participants
++        .iter()
++        .all(|p| p.left_at.is_none()));
++    until(|| f.adapter.ended.load(Ordering::Acquire) >= 2).await;
++}
++
++#[tokio::test]
++async fn readiness_wait_has_no_presence_and_rechecks_membership_after_negotiation() {
++    let f = Fixture::new().await;
++    let (id, stream) = f.connection("alice", false).await;
++    let intent = f.intent(
++        &f.session,
++        "alice",
++        "pending",
++        ParticipantChange::Admit {
++            connection: id.clone(),
++            role_override: None,
++        },
++    );
++    let orch = f.orch.clone();
++    let sid = f.session.clone();
++    let task = tokio::spawn(async move {
++        orch.change_session_participant(
++            &sid,
++            principal("owner"),
++            intent,
++            tokio::time::Instant::now() + Duration::from_secs(2),
++            CancellationToken::new(),
++        )
++        .await
++    });
++    until(|| f.orch.participant_capacity(&f.session).unwrap() == (0, 1)).await;
++    let session = f.orch.session(&f.session).unwrap();
++    assert_eq!(session.read().unwrap().state, SessionState::Initiating);
++    assert!(session.read().unwrap().participants.is_empty());
++    {
++        let mut policy = f.policy.0.write().unwrap();
++        let member = policy.members.get_mut(&participant("alice")).unwrap();
++        member.remove(member.revision()).unwrap();
++    }
++    stream.ready.store(true, Ordering::Release);
++    assert!(task.await.unwrap().is_err());
++    until(|| f.orch.participant_capacity(&f.session).unwrap() == (0, 0)).await;
++    assert!(session.read().unwrap().connections.is_empty());
++}
++
++#[tokio::test]
++async fn replay_is_authorized_and_never_reaccepts_or_republishes_changed_intent() {
++    let f = Fixture::new().await;
++    let (id, _) = f.connection("alice", true).await;
++    let intent = f.intent(
++        &f.session,
++        "alice",
++        "join",
++        ParticipantChange::Admit {
++            connection: id.clone(),
++            role_override: None,
++        },
++    );
++    let mut events = f.orch.subscribe_participant_events(&f.session).unwrap();
++    let result = f.apply(&f.session, intent.clone()).await.unwrap();
++    assert!(matches!(
++        events.try_recv().unwrap(),
++        ParticipantRuntimeEvent::Committed(_)
++    ));
++    assert_eq!(f.apply(&f.session, intent.clone()).await.unwrap(), result);
++    assert!(events.try_recv().is_err());
++    assert_eq!(f.adapter.accepted.load(Ordering::Acquire), 1);
++    let mut changed = intent.clone();
++    changed.change = ParticipantChange::SetSessionRole {
++        role: ParticipantRole::Observer,
++    };
++    assert!(f.apply(&f.session, changed).await.is_err());
++    f.policy.0.write().unwrap().denied = true;
++    assert!(matches!(
++        f.apply(&f.session, intent).await,
++        Err(ParticipantControlError::Authority)
++    ));
++    assert_eq!(f.orch.participant_capacity(&f.session).unwrap(), (1, 0));
++}
++
++#[tokio::test]
++async fn racing_role_mutations_emit_one_correlated_observation() {
++    let f = Fixture::new().await;
++    let (id, _) = f.connection("alice", true).await;
++    f.join(&f.session, "alice", &id).await;
++    let a = f.intent(
++        &f.session,
++        "alice",
++        "role_a",
++        ParticipantChange::SetSessionRole {
++            role: ParticipantRole::Observer,
++        },
++    );
++    let b = f.intent(
++        &f.session,
++        "alice",
++        "role_b",
++        ParticipantChange::SetSessionRole {
++            role: ParticipantRole::Supervisor,
++        },
++    );
++    let mut events = f.orch.subscribe_participant_events(&f.session).unwrap();
++    let (a, b) = tokio::join!(f.apply(&f.session, a), f.apply(&f.session, b));
++    assert_eq!(usize::from(a.is_ok()) + usize::from(b.is_ok()), 1);
++    let ParticipantRuntimeEvent::Committed(result) = events.try_recv().unwrap() else {
++        panic!("expected role observation")
++    };
++    assert_eq!(result.kind, ParticipantObservationKind::RoleChanged);
++    assert_eq!(
++        result.correlation_id,
++        format!("corr_{}", result.operation_id)
++    );
++    assert!(events.try_recv().is_err());
++    assert_eq!(f.orch.participant_capacity(&f.session).unwrap(), (1, 0));
++}
++
++#[tokio::test]
++async fn pending_admission_reserves_sixth_slot_before_physical_accept() {
++    let f = Fixture::new().await;
++    for name in ["alice", "bob", "carol", "dave", "alice"] {
++        let (id, _) = f.connection(name, true).await;
++        f.join(&f.session, name, &id).await;
++    }
++    let (id, _) = f.connection("bob", false).await;
++    let cancel = CancellationToken::new();
++    let task_cancel = cancel.clone();
++    let orch = f.orch.clone();
++    let sid = f.session.clone();
++    let intent = f.intent(
++        &sid,
++        "bob",
++        "pending_sixth",
++        ParticipantChange::Admit {
++            connection: id,
++            role_override: None,
++        },
++    );
++    let task = tokio::spawn(async move {
++        orch.change_session_participant(
++            &sid,
++            principal("owner"),
++            intent,
++            tokio::time::Instant::now() + Duration::from_secs(2),
++            task_cancel,
++        )
++        .await
++    });
++    until(|| f.orch.participant_capacity(&f.session).unwrap() == (5, 1)).await;
++    let (seventh, _) = f.connection("carol", true).await;
++    let accepted = f.adapter.accepted.load(Ordering::Acquire);
++    let intent = f.intent(
++        &f.session,
++        "carol",
++        "seventh",
++        ParticipantChange::Admit {
++            connection: seventh,
++            role_override: None,
++        },
++    );
++    assert!(matches!(
++        f.apply(&f.session, intent).await,
++        Err(ParticipantControlError::Transition(
++            ParticipantTransitionError::Capacity
++        ))
++    ));
++    assert_eq!(f.adapter.accepted.load(Ordering::Acquire), accepted);
++    cancel.cancel();
++    assert!(task.await.unwrap().is_err());
++    assert_eq!(f.orch.participant_capacity(&f.session).unwrap(), (5, 0));
++}
++
++#[tokio::test]
++async fn dropping_negotiation_releases_pending_slot_and_retires_only_candidate() {
++    let f = Fixture::new().await;
++    let (old, _) = f.connection("alice", true).await;
++    f.join(&f.session, "alice", &old).await;
++    let (candidate, _) = f.connection("bob", false).await;
++    let intent = f.intent(
++        &f.session,
++        "bob",
++        "pending",
++        ParticipantChange::Admit {
++            connection: candidate.clone(),
++            role_override: None,
++        },
++    );
++    let orch = f.orch.clone();
++    let sid = f.session.clone();
++    let task = tokio::spawn(async move {
++        orch.change_session_participant(
++            &sid,
++            principal("owner"),
++            intent,
++            tokio::time::Instant::now() + Duration::from_secs(2),
++            CancellationToken::new(),
++        )
++        .await
++    });
++    until(|| f.orch.participant_capacity(&f.session).unwrap() == (1, 1)).await;
++    task.abort();
++    assert!(task.await.unwrap_err().is_cancelled());
++    assert_eq!(f.orch.participant_capacity(&f.session).unwrap(), (1, 0));
++    assert!(f.orch.connection_transport(&candidate).is_err());
++    assert!(f.orch.connection_transport(&old).is_ok());
++}
++
++#[tokio::test]
++async fn terminal_leg_cannot_end_others_or_replay_into_live_presence() {
++    let f = Fixture::new().await;
++    let (a, _) = f.connection("alice", true).await;
++    let (b, bs) = f.connection("bob", true).await;
++    let (c, cs) = f.connection("carol", true).await;
++    let intent = f.intent(
++        &f.session,
++        "alice",
++        "join_alice",
++        ParticipantChange::Admit {
++            connection: a.clone(),
++            role_override: None,
++        },
++    );
++    let receipt = f.apply(&f.session, intent.clone()).await.unwrap();
++    f.join(&f.session, "bob", &b).await;
++    f.join(&f.session, "carol", &c).await;
++    let mut events = f.orch.subscribe_events();
++    f.adapter.terminate(&a).await;
++    until(|| f.orch.participant_capacity(&f.session).unwrap() == (2, 0)).await;
++    assert_eq!(f.apply(&f.session, intent).await.unwrap(), receipt);
++    assert_eq!(f.orch.participant_capacity(&f.session).unwrap(), (2, 0));
++    bs.assert_audible_from(&cs).await;
++    assert_eq!(
++        f.orch.session(&f.session).unwrap().read().unwrap().state,
++        SessionState::Active
++    );
++    while let Ok(event) = events.try_recv() {
++        assert!(!matches!(
++            event,
++            Event::SessionEnded { .. } | Event::ConversationClosed { .. }
++        ));
++    }
++}
++
++#[tokio::test]
++async fn session_departure_preserves_other_session_media_and_membership() {
++    let f = Fixture::new().await;
++    let other = f.second_session().await;
++    let (a, _) = f.connection("alice", true).await;
++    f.join(&f.session, "alice", &a).await;
++    let (b, bs) = f.connection("alice", true).await;
++    f.join(&other, "alice", &b).await;
++    let (c, cs) = f.connection("bob", true).await;
++    f.join(&other, "bob", &c).await;
++    let intent = f.intent(
++        &f.session,
++        "alice",
++        "leave",
++        ParticipantChange::Depart {
++            cause: DepartureCause::Left,
++        },
++    );
++    f.apply(&f.session, intent).await.unwrap();
++    bs.assert_audible_from(&cs).await;
++    assert_eq!(f.orch.participant_capacity(&other).unwrap(), (2, 0));
++    assert!(f.policy.0.read().unwrap().members[&participant("alice")].is_active());
++    assert!(f
++        .orch
++        .conversation(&f.conversation)
++        .unwrap()
++        .read()
++        .unwrap()
++        .participants
++        .iter()
++        .all(|p| p.left_at.is_none()));
++}
++
++#[tokio::test]
++async fn endpoint_confirmation_is_fenced_and_expired_actor_never_starts_signaling() {
++    let f = Fixture::new().await;
++    f.policy.0.write().unwrap().confirmation_required = true;
++    let (a, _) = f.connection("alice", true).await;
++    let intent = f.intent(
++        &f.session,
++        "alice",
++        "unconfirmed",
++        ParticipantChange::Admit {
++            connection: a,
++            role_override: None,
++        },
++    );
++    assert!(matches!(
++        f.apply(&f.session, intent).await,
++        Err(ParticipantControlError::Authority)
++    ));
++    assert_eq!(f.orch.participant_capacity(&f.session).unwrap(), (0, 0));
++    f.policy.0.write().unwrap().confirmation = Some(1);
++    let (b, _) = f.connection("alice", true).await;
++    f.join(&f.session, "alice", &b).await;
++    let (c, _) = f.connection("bob", true).await;
++    let intent = f.intent(
++        &f.session,
++        "bob",
++        "expired",
++        ParticipantChange::Admit {
++            connection: c,
++            role_override: None,
++        },
++    );
++    let mut actor = principal("owner");
++    actor.expires_at = Some(chrono::Utc::now() - chrono::Duration::seconds(1));
++    let accepted = f.adapter.accepted.load(Ordering::Acquire);
++    assert!(matches!(
++        f.orch
++            .change_session_participant(
++                &f.session,
++                actor,
++                intent,
++                tokio::time::Instant::now() + Duration::from_secs(2),
++                CancellationToken::new()
++            )
++            .await,
++        Err(ParticipantControlError::Authority)
++    ));
++    assert_eq!(f.adapter.accepted.load(Ordering::Acquire), accepted);
++}
++
++#[tokio::test]
++async fn explicit_end_cancels_pending_and_prevents_unchecked_presence_bypass() {
++    let f = Fixture::new().await;
++    assert!(f
++        .orch
++        .join_session(
++            f.session.clone(),
++            participant("alice"),
++            ParticipantKind::Human,
++            ParticipantRole::Agent
++        )
++        .await
++        .is_err());
++    assert!(f
++        .orch
++        .leave_session(f.session.clone(), participant("alice"))
++        .await
++        .is_err());
++    let (a, _) = f.connection("alice", true).await;
++    f.join(&f.session, "alice", &a).await;
++    let (b, _) = f.connection("bob", false).await;
++    let intent = f.intent(
++        &f.session,
++        "bob",
++        "pending",
++        ParticipantChange::Admit {
++            connection: b,
++            role_override: None,
++        },
++    );
++    let orch = f.orch.clone();
++    let sid = f.session.clone();
++    let task = tokio::spawn(async move {
++        orch.change_session_participant(
++            &sid,
++            principal("owner"),
++            intent,
++            tokio::time::Instant::now() + Duration::from_secs(2),
++            CancellationToken::new(),
++        )
++        .await
++    });
++    until(|| f.orch.participant_capacity(&f.session).unwrap() == (1, 1)).await;
++    f.orch
++        .end_session(f.session.clone(), EndReason::Normal)
++        .await
++        .unwrap();
++    assert!(task.await.unwrap().is_err());
++    assert_eq!(f.orch.participant_capacity(&f.session).unwrap(), (0, 0));
++    assert_eq!(
++        f.orch.session(&f.session).unwrap().read().unwrap().state,
++        SessionState::Ended
++    );
++}
++
++#[tokio::test]
++async fn removed_membership_retires_only_target_and_uncertain_physical_end_is_quarantined() {
++    let f = Fixture::new().await;
++    let (a, _) = f.connection("alice", true).await;
++    f.join(&f.session, "alice", &a).await;
++    let (b, bs) = f.connection("bob", true).await;
++    f.join(&f.session, "bob", &b).await;
++    let (c, cs) = f.connection("carol", true).await;
++    f.join(&f.session, "carol", &c).await;
++    {
++        let mut policy = f.policy.0.write().unwrap();
++        let member = policy.members.get_mut(&participant("alice")).unwrap();
++        member.remove(member.revision()).unwrap();
++    }
++    f.adapter.fail_end.store(true, Ordering::Release);
++    let intent = f.intent(
++        &f.session,
++        "alice",
++        "remove",
++        ParticipantChange::Depart {
++            cause: DepartureCause::Removed,
++        },
++    );
++    let receipt = f.apply(&f.session, intent).await.unwrap();
++    assert_eq!(receipt.kind, ParticipantObservationKind::Removed);
++    assert_eq!(receipt.retired, vec![a.clone()]);
++    until(|| f.adapter.ended.load(Ordering::Acquire) > 0).await;
++    assert!(f.orch.adapter_cleanup_quarantine_count() > 0);
++    assert!(f.orch.connection_transport(&a).is_err());
++    bs.assert_audible_from(&cs).await;
++    assert_eq!(
++        f.orch.session(&f.session).unwrap().read().unwrap().state,
++        SessionState::Active
++    );
++}
++
++#[tokio::test]
++async fn session_role_changes_preserve_conversation_defaults_and_other_session_roles() {
++    let f = Fixture::new().await;
++    let other = f.second_session().await;
++    let (a, as_) = f.connection("alice", true).await;
++    f.join(&f.session, "alice", &a).await;
++    let (b, bs) = f.connection("bob", true).await;
++    f.join(&f.session, "bob", &b).await;
++    let (c, _) = f.connection("alice", true).await;
++    f.join(&other, "alice", &c).await;
++    let intent = f.intent(
++        &f.session,
++        "alice",
++        "role",
++        ParticipantChange::SetSessionRole {
++            role: ParticipantRole::Observer,
++        },
++    );
++    f.apply(&f.session, intent).await.unwrap();
++    assert_eq!(
++        f.orch
++            .participant_session_role(&f.session, &participant("alice"))
++            .unwrap(),
++        Some(ParticipantRole::Observer)
++    );
++    assert_eq!(
++        f.orch
++            .participant_session_role(&other, &participant("alice"))
++            .unwrap(),
++        Some(ParticipantRole::Agent)
++    );
++    assert_eq!(
++        f.orch
++            .conversation(&f.conversation)
++            .unwrap()
++            .read()
++            .unwrap()
++            .participants
++            .iter()
++            .find(|p| p.id == participant("alice"))
++            .unwrap()
++            .role,
++        ParticipantRole::Agent
++    );
++    // Speaking authority is explicit policy, never inferred from a role label.
++    bs.assert_audible_from(&as_).await;
++}
++
++#[tokio::test]
++async fn checked_routes_cannot_be_borrowed_by_raw_bridge_control() {
++    let f = Fixture::new().await;
++    let (a, as_) = f.connection("alice", true).await;
++    let (b, bs) = f.connection("bob", true).await;
++    f.join(&f.session, "alice", &a).await;
++    f.join(&f.session, "bob", &b).await;
++    assert!(f.orch.bridge_connections(a, b).await.is_err());
++    assert_eq!(f.orch.participant_capacity(&f.session).unwrap(), (2, 0));
++    bs.assert_audible_from(&as_).await;
++}
++
++#[tokio::test]
++async fn explicit_speaking_authority_mutes_and_restores_without_role_derived_grants() {
++    let f = Fixture::new().await;
++    let (a, as_) = f.connection("alice", true).await;
++    let (b, bs) = f.connection("bob", true).await;
++    f.join(&f.session, "alice", &a).await;
++    f.join(&f.session, "bob", &b).await;
++    f.policy.0.write().unwrap().send = false;
++    let intent = f.intent(
++        &f.session,
++        "alice",
++        "mute",
++        ParticipantChange::SetSessionRole {
++            role: ParticipantRole::Agent,
++        },
++    );
++    f.apply(&f.session, intent).await.unwrap();
++    bs.assert_silent_from(&as_).await;
++    f.policy.0.write().unwrap().send = true;
++    let intent = f.intent(
++        &f.session,
++        "alice",
++        "restore",
++        ParticipantChange::SetSessionRole {
++            role: ParticipantRole::Observer,
++        },
++    );
++    f.apply(&f.session, intent).await.unwrap();
++    bs.assert_audible_from(&as_).await;
++}
++
++#[tokio::test]
++async fn credential_expiry_during_final_media_inspection_cannot_commit() {
++    let f = Fixture::new().await;
++    let (a, _) = f.connection("alice", true).await;
++    let intent = f.intent(
++        &f.session,
++        "alice",
++        "expires_in_final_inspection",
++        ParticipantChange::Admit {
++            connection: a,
++            role_override: None,
++        },
++    );
++    let mut actor = principal("owner");
++    actor.expires_at = Some(chrono::Utc::now() + chrono::Duration::milliseconds(250));
++    f.adapter.delay_after_graph_ms.store(400, Ordering::Release);
++    let result = f
++        .orch
++        .change_session_participant(
++            &f.session,
++            actor,
++            intent,
++            tokio::time::Instant::now() + Duration::from_secs(2),
++            CancellationToken::new(),
++        )
++        .await;
++    assert!(matches!(result, Err(ParticipantControlError::Authority)));
++    assert_eq!(
++        f.adapter.accepted.load(Ordering::Acquire),
++        1,
++        "fixture reached physical preparation before expiry"
++    );
++    assert_eq!(
++        f.adapter.delay_after_graph_ms.load(Ordering::Acquire),
++        0,
++        "fixture exercised final media inspection delay"
++    );
++    assert_eq!(f.orch.participant_capacity(&f.session).unwrap(), (0, 0));
++    assert!(f
++        .orch
++        .session(&f.session)
++        .unwrap()
++        .read()
++        .unwrap()
++        .participants
++        .is_empty());
++}
+diff --git a/crates/foundation/rvoip-core/tests/support/participant_control_fixture.rs b/crates/foundation/rvoip-core/tests/support/participant_control_fixture.rs
+new file mode 100644
+index 0000000..8d766d6
+--- /dev/null
++++ b/crates/foundation/rvoip-core/tests/support/participant_control_fixture.rs
+@@ -0,0 +1,621 @@
++use bytes::Bytes;
++use chrono::Utc;
++use rvoip_core::{
++    adapter::*, capability::*, connection::*, conversation::ConversationPolicy, identity::*,
++    ids::*, message::Message, orchestrator::participant_control::*, participant::*,
++    participant_transitions::*, relationships::*, session::*, stream::*, Config, Orchestrator,
++    Result, RvoipError,
++};
++use std::{
++    collections::{HashMap, HashSet},
++    sync::{
++        atomic::{AtomicBool, AtomicUsize, Ordering},
++        Arc, Mutex, RwLock, RwLockReadGuard,
++    },
++    time::Duration,
++};
++use tokio::sync::mpsc;
++use tokio_util::sync::CancellationToken;
++
++pub struct TestStream {
++    id: StreamId,
++    pub ready: AtomicBool,
++    input: mpsc::Sender<MediaFrame>,
++    inbound: Mutex<Option<mpsc::Receiver<MediaFrame>>>,
++    output: mpsc::Sender<MediaFrame>,
++    receiver: tokio::sync::Mutex<mpsc::Receiver<MediaFrame>>,
++}
++impl TestStream {
++    fn new(ready: bool) -> Arc<Self> {
++        let (input, inbound) = mpsc::channel(128);
++        let (output, receiver) = mpsc::channel(128);
++        Arc::new(Self {
++            id: StreamId::new(),
++            ready: AtomicBool::new(ready),
++            input,
++            inbound: Mutex::new(Some(inbound)),
++            output,
++            receiver: tokio::sync::Mutex::new(receiver),
++        })
++    }
++    pub fn continuous_tone(self: &Arc<Self>) -> (CancellationToken, tokio::task::JoinHandle<()>) {
++        let cancellation = CancellationToken::new();
++        let token = cancellation.clone();
++        let source = Arc::clone(self);
++        let task = tokio::spawn(async move {
++            use rvoip_media_core::{codec::factory::CodecFactory, AudioFrame};
++            let mut encoder = CodecFactory::create_codec(0, Some(8_000), Some(1)).unwrap();
++            let payload = encoder
++                .encode(&AudioFrame {
++                    samples: vec![1800; 160],
++                    sample_rate: 8000,
++                    channels: 1,
++                    duration: Duration::from_millis(20),
++                    timestamp: 0,
++                })
++                .unwrap();
++            let mut timestamp = 0;
++            let mut ticker = tokio::time::interval(Duration::from_millis(20));
++            loop {
++                tokio::select! { _ = token.cancelled() => break, _ = ticker.tick() => {} }
++                if source
++                    .input
++                    .send(MediaFrame {
++                        source_clock: None,
++                        stream_id: source.id.clone(),
++                        kind: StreamKind::Audio,
++                        payload: Bytes::from(payload.clone()),
++                        timestamp_rtp: timestamp,
++                        captured_at: Utc::now(),
++                        payload_type: Some(0),
++                    })
++                    .await
++                    .is_err()
++                {
++                    break;
++                }
++                timestamp = timestamp.wrapping_add(160);
++            }
++        });
++        (cancellation, task)
++    }
++
++    pub async fn assert_receives_audio(&self) {
++        use rvoip_media_core::codec::factory::CodecFactory;
++        let mut receiver = self.receiver.lock().await;
++        while receiver.try_recv().is_ok() {}
++        let mut decoder = CodecFactory::create_codec(0, Some(8_000), Some(1)).unwrap();
++        tokio::time::timeout(Duration::from_secs(2), async {
++            loop {
++                let frame = receiver.recv().await.unwrap();
++                if decoder
++                    .decode(&frame.payload)
++                    .unwrap()
++                    .samples
++                    .iter()
++                    .any(|s| s.unsigned_abs() > 500)
++                {
++                    break;
++                }
++            }
++        })
++        .await
++        .expect("continuing decoded audio while participants join or leave");
++    }
++
++    pub async fn assert_silent_from(&self, source: &TestStream) {
++        use rvoip_media_core::{codec::factory::CodecFactory, AudioFrame};
++        let mut receiver = self.receiver.lock().await;
++        while receiver.try_recv().is_ok() {}
++        let mut encoder = CodecFactory::create_codec(0, Some(8_000), Some(1)).unwrap();
++        let payload = encoder
++            .encode(&AudioFrame {
++                samples: vec![1800; 160],
++                sample_rate: 8000,
++                channels: 1,
++                duration: Duration::from_millis(20),
++                timestamp: 0,
++            })
++            .unwrap();
++        for n in 0..5 {
++            source
++                .input
++                .send(MediaFrame {
++                    source_clock: None,
++                    stream_id: source.id.clone(),
++                    kind: StreamKind::Audio,
++                    payload: Bytes::from(payload.clone()),
++                    timestamp_rtp: n * 160,
++                    captured_at: Utc::now(),
++                    payload_type: Some(0),
++                })
++                .await
++                .unwrap();
++        }
++        let mut decoder = CodecFactory::create_codec(0, Some(8_000), Some(1)).unwrap();
++        tokio::time::timeout(Duration::from_secs(2), async {
++            for _ in 0..8 {
++                let frame = receiver.recv().await.unwrap();
++                assert!(
++                    decoder
++                        .decode(&frame.payload)
++                        .unwrap()
++                        .samples
++                        .iter()
++                        .all(|s| s.unsigned_abs() < 500),
++                    "explicit speaking permission was not enforced"
++                );
++            }
++        })
++        .await
++        .expect("muted source produces continuing silence at the receiver");
++    }
++
++    pub async fn assert_audible_from(&self, source: &TestStream) {
++        use rvoip_media_core::{codec::factory::CodecFactory, AudioFrame};
++        let mut receiver = self.receiver.lock().await;
++        while receiver.try_recv().is_ok() {}
++        let mut encoder = CodecFactory::create_codec(0, Some(8_000), Some(1)).unwrap();
++        let payload = encoder
++            .encode(&AudioFrame {
++                samples: vec![1800; 160],
++                sample_rate: 8000,
++                channels: 1,
++                duration: Duration::from_millis(20),
++                timestamp: 0,
++            })
++            .unwrap();
++        for n in 0..5 {
++            source
++                .input
++                .send(MediaFrame {
++                    source_clock: None,
++                    stream_id: source.id.clone(),
++                    kind: StreamKind::Audio,
++                    payload: Bytes::from(payload.clone()),
++                    timestamp_rtp: n * 160,
++                    captured_at: Utc::now(),
++                    payload_type: Some(0),
++                })
++                .await
++                .unwrap();
++        }
++        let mut decoder = CodecFactory::create_codec(0, Some(8_000), Some(1)).unwrap();
++        tokio::time::timeout(Duration::from_secs(2), async {
++            loop {
++                let frame = receiver.recv().await.unwrap();
++                let samples = decoder.decode(&frame.payload).unwrap().samples;
++                if samples.iter().any(|s| s.unsigned_abs() > 500) {
++                    break;
++                }
++            }
++        })
++        .await
++        .expect("actual encoded audio reaches unrelated live participant");
++    }
++}
++#[async_trait::async_trait]
++impl MediaStream for TestStream {
++    fn id(&self) -> StreamId {
++        self.id.clone()
++    }
++    fn kind(&self) -> StreamKind {
++        StreamKind::Audio
++    }
++    fn codec(&self) -> CodecInfo {
++        CodecInfo {
++            name: "PCMU".into(),
++            clock_rate_hz: 8000,
++            channels: 1,
++            fmtp: None,
++            payload_type: Some(0),
++        }
++    }
++    fn direction(&self) -> Direction {
++        Direction::Inbound
++    }
++    fn source_ready(&self) -> bool {
++        self.ready.load(Ordering::Acquire)
++    }
++    fn frames_in(&self) -> mpsc::Receiver<MediaFrame> {
++        self.inbound
++            .lock()
++            .unwrap()
++            .take()
++            .expect("one graph receiver")
++    }
++    fn frames_out(&self) -> mpsc::Sender<MediaFrame> {
++        self.output.clone()
++    }
++    fn quality_snapshot(&self) -> QualitySnapshot {
++        QualitySnapshot::default()
++    }
++    async fn close(self: Arc<Self>) -> Result<()> {
++        Ok(())
++    }
++}
++
++pub struct TestAdapter {
++    streams: Mutex<HashMap<ConnectionId, Arc<TestStream>>>,
++    live: Mutex<HashSet<ConnectionId>>,
++    events: mpsc::Sender<AdapterEvent>,
++    receiver: Mutex<Option<mpsc::Receiver<AdapterEvent>>>,
++    pub accepted: AtomicUsize,
++    pub ended: AtomicUsize,
++    pub fail_end: AtomicBool,
++    pub delay_after_graph_ms: AtomicUsize,
++}
++impl TestAdapter {
++    fn new() -> Arc<Self> {
++        let (events, receiver) = mpsc::channel(128);
++        Arc::new(Self {
++            streams: Mutex::new(HashMap::new()),
++            live: Mutex::new(HashSet::new()),
++            events,
++            receiver: Mutex::new(Some(receiver)),
++            accepted: AtomicUsize::new(0),
++            ended: AtomicUsize::new(0),
++            fail_end: AtomicBool::new(false),
++            delay_after_graph_ms: AtomicUsize::new(0),
++        })
++    }
++    pub async fn terminate(&self, id: &ConnectionId) {
++        self.live.lock().unwrap().remove(id);
++        self.events
++            .send(AdapterEvent::Ended {
++                connection_id: id.clone(),
++                reason: EndReason::Normal,
++            })
++            .await
++            .unwrap();
++    }
++}
++#[async_trait::async_trait]
++impl ConnectionAdapter for TestAdapter {
++    fn transport(&self) -> Transport {
++        Transport::Sip
++    }
++    fn kind(&self) -> AdapterKind {
++        AdapterKind::Interop
++    }
++    fn is_connection_live(&self, id: &ConnectionId) -> bool {
++        let graph_exists = self
++            .streams
++            .lock()
++            .unwrap()
++            .get(id)
++            .is_some_and(|s| s.inbound.lock().unwrap().is_none());
++        if graph_exists {
++            let delay = self.delay_after_graph_ms.swap(0, Ordering::AcqRel);
++            if delay > 0 {
++                std::thread::sleep(Duration::from_millis(delay as u64));
++            }
++        }
++        self.live.lock().unwrap().contains(id)
++    }
++    async fn originate(&self, _: OriginateRequest) -> Result<ConnectionHandle> {
++        Err(RvoipError::NotImplemented("fixture originate"))
++    }
++    async fn accept(&self, _: ConnectionId) -> Result<()> {
++        self.accepted.fetch_add(1, Ordering::SeqCst);
++        Ok(())
++    }
++    async fn reject(&self, id: ConnectionId, _: RejectReason) -> Result<()> {
++        self.live.lock().unwrap().remove(&id);
++        Ok(())
++    }
++    async fn end(&self, id: ConnectionId, _: EndReason) -> Result<()> {
++        self.ended.fetch_add(1, Ordering::SeqCst);
++        if self.fail_end.load(Ordering::Acquire) {
++            return Err(RvoipError::InvalidState("fixture end uncertain"));
++        }
++        self.live.lock().unwrap().remove(&id);
++        Ok(())
++    }
++    async fn hold(&self, _: ConnectionId) -> Result<()> {
++        Ok(())
++    }
++    async fn resume(&self, _: ConnectionId) -> Result<()> {
++        Ok(())
++    }
++    async fn transfer(&self, _: ConnectionId, _: TransferTarget) -> Result<()> {
++        Ok(())
++    }
++    async fn streams(&self, id: ConnectionId) -> Result<Vec<Arc<dyn MediaStream>>> {
++        Ok(self
++            .streams
++            .lock()
++            .unwrap()
++            .get(&id)
++            .map(|s| vec![s.clone() as Arc<dyn MediaStream>])
++            .unwrap_or_default())
++    }
++    async fn send_message(&self, _: ConnectionId, _: Message) -> Result<()> {
++        Ok(())
++    }
++    async fn send_dtmf(&self, _: ConnectionId, _: &str, _: u32) -> Result<()> {
++        Ok(())
++    }
++    async fn renegotiate_media(
++        &self,
++        _: ConnectionId,
++        _: CapabilityDescriptor,
++    ) -> Result<NegotiatedCodecs> {
++        Ok(NegotiatedCodecs::default())
++    }
++    fn subscribe_events(&self) -> mpsc::Receiver<AdapterEvent> {
++        self.receiver.lock().unwrap().take().unwrap()
++    }
++    fn capabilities(&self) -> CapabilityDescriptor {
++        CapabilityDescriptor::default()
++    }
++    async fn verify_request_signature(
++        &self,
++        _: ConnectionId,
++        _: SignatureHeaders,
++    ) -> Result<IdentityAssurance> {
++        Ok(IdentityAssurance::Anonymous)
++    }
++}
++
++pub fn principal(name: &str) -> AuthenticatedPrincipal {
++    AuthenticatedPrincipal {
++        subject: name.into(),
++        tenant: Some("tenant_test".into()),
++        issuer: Some("issuer_test".into()),
++        scopes: vec!["participant:manage".into()],
++        expires_at: None,
++        method: AuthenticationMethod::Bearer,
++        assurance: IdentityAssurance::Anonymous,
++    }
++}
++pub fn participant(name: &str) -> ParticipantId {
++    ParticipantId::from_string(format!("part_{name}"))
++}
++pub struct PolicyState {
++    pub members: HashMap<ParticipantId, Membership>,
++    pub endpoints: HashMap<ConnectionId, EndpointBinding>,
++    pub denied: bool,
++    pub send: bool,
++    pub confirmation_required: bool,
++    pub confirmation: Option<u64>,
++}
++pub struct TestPolicy(pub RwLock<PolicyState>);
++struct Lease<'a> {
++    _guard: RwLockReadGuard<'a, PolicyState>,
++    authority: ParticipantAuthority,
++}
++impl ParticipantAuthorityLease for Lease<'_> {
++    fn authority(&self) -> &ParticipantAuthority {
++        &self.authority
++    }
++}
++impl ParticipantPolicy for TestPolicy {
++    fn current(
++        &self,
++        scope: &ParticipantScope<'_>,
++    ) -> ControlResult<Box<dyn ParticipantAuthorityLease + '_>> {
++        let state = self.0.read().unwrap();
++        if state.denied || !scope.principal.has_scope("participant:manage") {
++            return Err(ParticipantControlError::Authority);
++        }
++        let actor = state
++            .members
++            .get(&participant(&scope.principal.subject))
++            .ok_or(ParticipantControlError::Authority)?
++            .clone();
++        let target = state
++            .members
++            .get(&scope.mutation.participant)
++            .ok_or(ParticipantControlError::Authority)?
++            .clone();
++        let endpoint = match &scope.mutation.change {
++            ParticipantChange::Admit { connection, .. } => state.endpoints.get(connection).cloned(),
++            _ => None,
++        };
++        let authority = ParticipantAuthority {
++            actor,
++            target,
++            endpoint,
++            may_send_audio: state.send,
++            may_receive_audio: true,
++            confirmation_required: state.confirmation_required,
++            confirmed_generation: state.confirmation,
++        };
++        Ok(Box::new(Lease {
++            _guard: state,
++            authority,
++        }))
++    }
++}
++
++pub struct Fixture {
++    pub orch: Arc<Orchestrator>,
++    pub adapter: Arc<TestAdapter>,
++    pub policy: Arc<TestPolicy>,
++    pub conversation: ConversationId,
++    pub session: SessionId,
++}
++impl Fixture {
++    pub async fn new() -> Self {
++        let orch = Orchestrator::new(Config::default());
++        let adapter = TestAdapter::new();
++        orch.register(adapter.clone()).unwrap();
++        let conversation = orch
++            .open_conversation(
++                TenantId::from_string("tenant_test"),
++                ConversationPolicy::Persistent,
++                HashMap::new(),
++            )
++            .await
++            .unwrap();
++        let mut members = HashMap::new();
++        for name in ["owner", "alice", "bob", "carol", "dave"] {
++            let binding = IdentityBinding::from_authenticated(
++                &principal(name),
++                IdentityId::from_string(format!("id_{name}")),
++                Utc::now(),
++            )
++            .unwrap();
++            members.insert(
++                participant(name),
++                Membership::admit(
++                    binding,
++                    conversation.clone(),
++                    participant(name),
++                    ParticipantKind::Human,
++                    ParticipantRole::Agent,
++                )
++                .unwrap(),
++            );
++        }
++        let policy = Arc::new(TestPolicy(RwLock::new(PolicyState {
++            members,
++            endpoints: HashMap::new(),
++            denied: false,
++            send: true,
++            confirmation_required: false,
++            confirmation: None,
++        })));
++        let session = orch
++            .start_session(conversation.clone(), SessionMedium::Voice, vec![])
++            .await
++            .unwrap();
++        orch.enable_participant_control(&session, policy.clone(), ParticipantLimits::default())
++            .unwrap();
++        Self {
++            orch,
++            adapter,
++            policy,
++            conversation,
++            session,
++        }
++    }
++    pub async fn second_session(&self) -> SessionId {
++        let session = self
++            .orch
++            .start_session(self.conversation.clone(), SessionMedium::Voice, vec![])
++            .await
++            .unwrap();
++        self.orch
++            .enable_participant_control(&session, self.policy.clone(), ParticipantLimits::default())
++            .unwrap();
++        session
++    }
++    pub async fn connection(&self, name: &str, ready: bool) -> (ConnectionId, Arc<TestStream>) {
++        let id = ConnectionId::new();
++        let stream = TestStream::new(ready);
++        self.adapter
++            .streams
++            .lock()
++            .unwrap()
++            .insert(id.clone(), stream.clone());
++        self.adapter.live.lock().unwrap().insert(id.clone());
++        let binding = IdentityBinding::from_authenticated(
++            &principal(name),
++            IdentityId::from_string(format!("id_{name}")),
++            Utc::now(),
++        )
++        .unwrap();
++        let mut endpoint = EndpointBinding::provision(
++            binding.clone(),
++            EndpointId::new(),
++            DeviceId::new(),
++            Transport::Sip,
++            "sip:private-fixture.invalid".into(),
++        )
++        .unwrap();
++        endpoint
++            .verify(&binding, "proof_fixture".into(), Utc::now())
++            .unwrap();
++        self.policy
++            .0
++            .write()
++            .unwrap()
++            .endpoints
++            .insert(id.clone(), endpoint);
++        self.adapter
++            .events
++            .send(AdapterEvent::InboundConnection {
++                connection: Connection {
++                    id: id.clone(),
++                    session_id: SessionId::new(),
++                    participant_id: ParticipantId::new(),
++                    transport: Transport::Sip,
++                    direction: Direction::Inbound,
++                    state: ConnectionState::Connecting,
++                    capabilities: CapabilityDescriptor::default(),
++                    negotiated_codecs: NegotiatedCodecs::default(),
++                    streams: vec![],
++                    messaging_enabled: false,
++                    transport_handle: TransportHandle(Arc::new(())),
++                    opened_at: Utc::now(),
++                    closed_at: None,
++                },
++            })
++            .await
++            .unwrap();
++        until(|| self.orch.connection_transport(&id).is_ok()).await;
++        (id, stream)
++    }
++    pub fn intent(
++        &self,
++        session: &SessionId,
++        name: &str,
++        op: &str,
++        change: ParticipantChange,
++    ) -> ParticipantMutation {
++        ParticipantMutation {
++            operation_id: op.into(),
++            correlation_id: format!("corr_{op}"),
++            expected_revision: self.orch.participant_revision(session).unwrap(),
++            participant: participant(name),
++            change,
++        }
++    }
++    pub async fn apply(
++        &self,
++        session: &SessionId,
++        intent: ParticipantMutation,
++    ) -> ControlResult<ParticipantObservation> {
++        self.orch
++            .change_session_participant(
++                session,
++                principal("owner"),
++                intent,
++                tokio::time::Instant::now() + Duration::from_secs(2),
++                CancellationToken::new(),
++            )
++            .await
++    }
++    pub async fn join(
++        &self,
++        session: &SessionId,
++        name: &str,
++        id: &ConnectionId,
++    ) -> ParticipantObservation {
++        self.apply(
++            session,
++            self.intent(
++                session,
++                name,
++                &format!("join_{}", id.as_str()),
++                ParticipantChange::Admit {
++                    connection: id.clone(),
++                    role_override: None,
++                },
++            ),
++        )
++        .await
++        .unwrap()
++    }
++}
++pub async fn until(mut predicate: impl FnMut() -> bool) {
++    tokio::time::timeout(Duration::from_secs(3), async {
++        while !predicate() {
++            tokio::task::yield_now().await;
++        }
++    })
++    .await
++    .expect("fixture condition");
++}

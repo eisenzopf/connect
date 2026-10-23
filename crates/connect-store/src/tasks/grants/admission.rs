@@ -49,5 +49,10 @@ pub(super) fn authorize(
         }
         _ => return Err(Error::forbidden()),
     }
+    let actor = if matches!(request.command, TaskCommand::Recall { .. }) {
+        super::super::context_actor(c, &actor, &task.id, Some(&invocation.grant_id))?
+    } else {
+        actor
+    };
     Ok((actor, task))
 }

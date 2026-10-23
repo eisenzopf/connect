@@ -55,7 +55,7 @@ async fn optional_task_defaults_and_explicit_reply_work_without_invocation_grant
     );
     native.negotiate_task(&record.id).await.unwrap();
     let question_args = json!({"request_id":"optional-question","task_id":record.id,
-        "step_id":"question-step","conversation_id":cid,"body":"Can you confirm the Thursday review?",
+        "step_id":"question-step","conversation_id":cid,"message": connect_protocol::messages::MessageDraft::text_all("Can you confirm the Thursday review?"),
         "wait_for_reply":true});
     let question =
         mcp::outcome(mcp::call(&client, "connect_task_send", question_args.clone()).await);
@@ -69,7 +69,9 @@ async fn optional_task_defaults_and_explicit_reply_work_without_invocation_grant
         operation: Box::new(Operation::Send {
             request_id: "optional-question".into(),
             conversation_id: cid.clone(),
-            body: "Can you confirm the Thursday review?".into(),
+            message: connect_protocol::messages::MessageDraft::text_all(
+                "Can you confirm the Thursday review?",
+            ),
         }),
         reply_to: None,
         wait_for_reply: true,
@@ -190,8 +192,7 @@ async fn optional_task_defaults_and_explicit_reply_work_without_invocation_grant
             &client,
             "connect_send",
             json!({"request_id":"after-task-cancel",
-                "conversation_id":cid,"body":"Continue communicating without tracked work."
-            }),
+                "conversation_id":cid,"message": connect_protocol::messages::MessageDraft::text_all("Continue communicating without tracked work.")}),
         )
         .await,
     );
@@ -243,7 +244,9 @@ async fn operator_replaces_a_revoked_agent_key_for_retained_inspection_without_r
         operation: Box::new(Operation::Send {
             request_id: "inspectable-effect".into(),
             conversation_id: cid.clone(),
-            body: "Retain this agent activity after key revocation.".into(),
+            message: connect_protocol::messages::MessageDraft::text_all(
+                "Retain this agent activity after key revocation.",
+            ),
         }),
         reply_to: None,
         wait_for_reply: false,
@@ -372,7 +375,7 @@ async fn explicit_narrow_mcp_grant_keeps_its_bound_schema_and_cannot_create_conv
     mcp::invalid(
         &client,
         "connect_send",
-        json!({"request_id":"not-narrow","body":"Missing step"}),
+        json!({"request_id":"not-narrow","message": connect_protocol::messages::MessageDraft::text_all("Missing step")}),
     )
     .await;
     mcp::invalid(
@@ -381,7 +384,7 @@ async fn explicit_narrow_mcp_grant_keeps_its_bound_schema_and_cannot_create_conv
         json!({"conversation_id":"foreign-selector","limit":100}),
     )
     .await;
-    let args = json!({"request_id":"explicit-narrow-send","step_id":"explicit-step","body":"Narrow mode remains available."});
+    let args = json!({"request_id":"explicit-narrow-send","step_id":"explicit-step","message": connect_protocol::messages::MessageDraft::text_all("Narrow mode remains available.")});
     let result = mcp::call(&client, "connect_send", args.clone()).await;
     assert_ne!(result.is_error, Some(true));
     let retained: TaskOutcome = serde_json::from_value(result.structured_content.unwrap()).unwrap();

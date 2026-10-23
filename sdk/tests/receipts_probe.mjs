@@ -1,0 +1,12 @@
+import assert from 'node:assert/strict';
+import {HttpClient} from '../typescript/dist/index.js';
+const v=JSON.parse(process.argv[2]),owner=new HttpClient(v.base,v.token),peer=new HttpClient(v.base,v.peer_token),foreign=new HttpClient(v.base,v.foreign_token);
+assert.equal((await peer.receiptPreferences(v.cid)).read,true);
+assert.equal((await peer.setReceiptPreferences('ts-pref',v.cid,true,true)).read,true);
+assert.equal((await peer.messageReceipt('ts-read',v.cid,v.message,'read')).recorded,'read');
+const receipts=await owner.messageReceipts(v.cid,v.message);assert.equal(receipts.receipts.length,1);assert.equal(receipts.receipts[0].state,'read');
+assert.equal((await peer.messageReceipts(v.cid,v.message)).receipts[0].state,'read');
+assert.ok((await owner.inbox()).events.some(e=>e.receipt?.state==='read'&&e.receipt.provenance==='client_reported'));
+await assert.rejects(foreign.messageReceipts(v.cid,v.message),e=>e.code==='forbidden');
+await assert.rejects(owner.messageReceipt('ts-forge',v.cid,v.message,'read'),e=>e.code==='forbidden');
+console.log(JSON.stringify({passed:true}));

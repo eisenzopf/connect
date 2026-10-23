@@ -30,7 +30,9 @@ fn fixture() -> (tempfile::TempDir, Arc<Store>, String, String, String) {
             &key.id,
             &Operation::Create {
                 request_id: "observer-conversation".into(),
-                participants: vec![agent.id.clone()],
+                request: connect_protocol::conversations::CreateRequest::persistent(vec![agent
+                    .id
+                    .clone()]),
             },
         )
         .unwrap()

@@ -54,14 +54,128 @@ fn inspect(connection: &Connection) -> Result<Snapshot> {
     let mut digest = Sha256::new();
     digest.update(schema.to_be_bytes());
     let mut tables = vec!["installation", "identities", "credentials"];
-    if schema >= 2 {
+    if schema >= 85 {
+        tables.push("user_delegations");
+    }
+    if schema >= 80 {
+        tables.push("tenant_record_readers");
+    }
+    if schema >= 79 {
         tables.extend([
-            "conversations",
-            "participants",
-            "messages",
-            "requests",
-            "journal",
+            "record_retention_settings",
+            "session_record_retention",
+            "record_retention_jobs",
         ]);
+    }
+    if schema >= 78 {
+        tables.push("session_record_mutation_authority");
+    }
+    if schema >= 76 {
+        tables.extend(["session_record_intents", "session_record_audiences"]);
+    }
+    if schema >= 75 {
+        tables.extend(["session_records", "session_record_mutations"]);
+    }
+    if schema >= 72 {
+        tables.extend([
+            "incoming_contact_resources",
+            "incoming_contact_holds",
+            "incoming_contact_receipts",
+            "incoming_contact_deliveries",
+            "incoming_contact_rejections",
+            "incoming_contact_audit",
+        ]);
+    }
+    if schema >= 71 {
+        tables.push("provider_message_endpoints");
+    }
+    if schema >= 70 {
+        tables.push("provider_voice_quarantine_resolutions");
+    }
+    if schema >= 69 {
+        tables.push("provider_voice_ingress");
+    }
+    if schema >= 67 {
+        tables.push("provider_session_voice");
+    }
+    if schema >= 66 {
+        tables.push("initial_telephone_receive_projections");
+        tables.push("initial_telephone_answers");
+    }
+    if schema >= 65 {
+        tables.push("initial_telephone_operations");
+    }
+    if schema >= 63 {
+        tables.extend([
+            "native_assistant_initializations",
+            "native_assistant_context_updates",
+        ]);
+    }
+    if schema >= 62 {
+        tables.push("native_assistant_providers");
+    }
+    if schema >= 61 {
+        tables.extend([
+            "telephone_replacement_commits",
+            "telephone_connection_lifetimes",
+        ]);
+    }
+    if schema >= 60 {
+        tables.push("telephone_replacement_phases");
+    }
+    if schema >= 59 {
+        tables.push("telephone_replacement_resources");
+    }
+    if schema >= 58 {
+        tables.push("native_replacement_audiences");
+    }
+    if schema >= 57 {
+        tables.push("native_replacement_lifetimes");
+    }
+    if schema >= 56 {
+        tables.push("native_replacement_media_steps");
+    }
+    if schema >= 55 {
+        tables.extend(["native_replacements", "native_replacement_steps"]);
+    }
+    if schema >= 42 {
+        tables.extend(["native_data_messages", "native_data_recipients"]);
+    }
+    if schema >= 43 {
+        tables.push("native_data_writes");
+    }
+    if schema >= 40 {
+        tables.push("native_stream_operations");
+    }
+    if schema >= 39 {
+        tables.push("native_connection_lifetimes");
+    }
+    if schema >= 38 {
+        tables.push("native_offer_rejections");
+    }
+    if schema >= 37 {
+        tables.push("native_offer_operations");
+    }
+    if schema >= 36 {
+        tables.push("connection_offers");
+    }
+    if schema >= 35 {
+        tables.extend([
+            "session_control",
+            "session_presence_capabilities",
+            "main_sessions",
+        ]);
+    }
+    if schema >= 31 {
+        tables.push("provider_dispatch");
+    }
+    if schema >= 2 {
+        tables.extend(["conversations", "participants", "messages", "journal"]);
+    }
+    if schema < 32 {
+        tables.push("requests");
+    } else {
+        tables.push("operation_control_receipts");
     }
     if schema >= 3 {
         tables.extend([
@@ -146,6 +260,36 @@ fn inspect(connection: &Connection) -> Result<Snapshot> {
             "operation_effects",
             "operation_observations",
         ]);
+    }
+    if schema >= 21 {
+        tables.extend([
+            "membership_invitations",
+            "audience_resources",
+            "resource_audiences",
+            "history_shares",
+            "history_share_items",
+        ]);
+    }
+    if schema >= 24 {
+        tables.push("receipt_preferences");
+    }
+    if schema >= 25 {
+        tables.extend([
+            "operation_members",
+            "operation_connections",
+            "operation_endpoints",
+            "operation_decisions",
+            "operation_evidence",
+        ]);
+    }
+    if schema >= 26 {
+        tables.push("journal_retention");
+    }
+    if schema >= 27 {
+        tables.push("journal_context");
+    }
+    if schema >= 28 {
+        tables.extend(["peer_signing_keys", "credential_signing_keys"]);
     }
     for table in tables {
         digest.update(table.as_bytes());

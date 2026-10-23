@@ -67,7 +67,9 @@ async fn fixture() -> RunningFixture {
             &key.id,
             &Operation::Create {
                 request_id: "webrtc-security-create".into(),
-                participants: vec![agent.identity_id.clone()],
+                request: connect_protocol::conversations::CreateRequest::persistent(vec![agent
+                    .identity_id
+                    .clone()]),
             },
         )
         .unwrap()

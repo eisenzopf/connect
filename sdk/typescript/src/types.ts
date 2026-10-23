@@ -1,3 +1,35 @@
+import type { ContextRecord } from "./record_context.js";
+export type { ContextRecord } from "./record_context.js";
+import type {
+    MembershipRequest,
+    MembershipOutcome,
+    MembershipSnapshot,
+    MembershipInvitations,
+} from "./membership.js";
+export type * from "./membership.js";
+import type {
+    Conversation,
+    ConversationPage,
+    ConversationCreate,
+    ConversationClose,
+    ConversationListQuery,
+} from "./conversations.js";
+export type * from "./conversations.js";
+import type {
+    SnapshotQuery,
+    EventQuery,
+    ObservationQuery,
+    SnapshotPage,
+    EventPage,
+    ObservationPage,
+} from "./events.js";
+export type * from "./events.js";
+import type {
+    TransitionRequest,
+    OperationAction,
+    OperationRecord,
+} from "./transitions.js";
+export type * from "./transitions.js";
 import type { MediaDiagnostics } from "./media_diagnostics.js";
 export type {
     MediaDiagnostics,
@@ -14,6 +46,23 @@ export type {
 } from "./contacts.js";
 import type { TaskCommand, TaskOutcome } from "./tasks.js";
 export type Operation =
+    | { op: "membership"; request: MembershipRequest }
+    | { op: "membership_snapshot"; conversation_id: string }
+    | { op: "membership_invitations"; after: string | null; limit: number }
+    | {
+          op: "conversation_snapshot";
+          conversation_id: string;
+          query: SnapshotQuery;
+      }
+    | { op: "conversation_events"; conversation_id: string; query: EventQuery }
+    | {
+          op: "session_observations";
+          conversation_id: string;
+          session_id: string;
+          query: ObservationQuery;
+      }
+    | { op: "transition"; request: TransitionRequest }
+    | { op: "durable_operation"; request: OperationAction }
     | {
           op: "contact_pairing_start";
           request_id: string;
@@ -38,8 +87,13 @@ export type Operation =
           before: string | null;
           limit: number;
       }
-    | { op: "create"; request_id: string; participants: string[] }
-    | { op: "send"; request_id: string; conversation_id: string; body: string }
+    | { op: "create"; request_id: string; request: ConversationCreate }
+    | {
+          op: "send";
+          request_id: string;
+          conversation_id: string;
+          message: MessageDraft;
+      }
     | {
           op: "history";
           conversation_id: string;
@@ -49,7 +103,13 @@ export type Operation =
     | { op: "inbox"; cursor: string | null; limit: number; wait_ms: number }
     | { op: "request_status"; request_id: string }
     | { op: "provider_status"; conversation_id: string }
-    | { op: "close"; request_id: string; conversation_id: string }
+    | {
+          op: "close";
+          request_id: string;
+          conversation_id: string;
+          options: ConversationClose;
+      }
+    | { op: "conversations"; query: ConversationListQuery }
     | {
           op: "call_start";
           request_id: string;
@@ -110,6 +170,7 @@ export type Operation =
     | { op: "availability_get"; identity_id: string }
     | {
           op: "artifact_begin";
+          to: MessageAudience;
           request_id: string;
           conversation_id: string;
           name: string;
@@ -139,6 +200,59 @@ export type Operation =
           offset: number;
           limit: number;
       }
+    | { op: "artifact_inspect"; conversation_id: string; artifact_id: string }
+    | {
+          op: "artifact_upload_link";
+          conversation_id: string;
+          artifact_id: string;
+          expires_in: number;
+      }
+    | {
+          op: "artifact_download_link";
+          conversation_id: string;
+          artifact_id: string;
+          message_id: string;
+          expires_in: number;
+      }
+    | {
+          op: "artifact_link_get";
+          conversation_id: string;
+          artifact_id: string;
+          link: string;
+          offset: number;
+          limit: number;
+      }
+    | {
+          op: "artifact_link_append";
+          request_id: string;
+          conversation_id: string;
+          artifact_id: string;
+          link: string;
+          offset: number;
+          data: string;
+      }
+    | {
+          op: "message_receipts";
+          conversation_id: string;
+          message_id: string;
+          after: string | null;
+          limit: number;
+      }
+    | {
+          op: "message_receipt";
+          request_id: string;
+          conversation_id: string;
+          message_id: string;
+          state: "delivered" | "read";
+      }
+    | { op: "receipt_preferences_get"; conversation_id: string }
+    | {
+          op: "receipt_preferences_set";
+          request_id: string;
+          conversation_id: string;
+          delivery: boolean;
+          read: boolean;
+      }
     | { op: "health" };
 
 export interface Identity {
@@ -146,16 +260,35 @@ export interface Identity {
     alias: string;
     capabilities: string[];
 }
-export interface Conversation {
+export type MessageAudience = "all" | string[];
+export interface AttachmentRef {
     id: string;
-    participants: string[];
-    closed: boolean;
+    content_type: string;
+    size_bytes: number;
+}
+export interface MessageDraft {
+    to: MessageAudience;
+    content_type: string;
+    body: string;
+    body_encoding: "utf8" | "base64";
+    label: string;
+    attachments: AttachmentRef[];
+    in_reply_to_msg: string | null;
+    msg_id: string | null;
 }
 export interface Message {
     id: string;
     conversation_id: string;
     sender: string;
     body: string;
+    sender_participant_id: string | null;
+    audience: { participant_id: string; membership_epoch: number }[];
+    content_type: string;
+    body_encoding: "utf8" | "base64";
+    label: string;
+    attachments: AttachmentRef[];
+    in_reply_to_msg: string | null;
+    accepted_at: number | null;
 }
 export interface Call {
     id: string;
@@ -168,6 +301,37 @@ export interface Call {
     provider_id: string | null;
     ended_reason: string | null;
 }
+export type DeliveryState =
+    "queued" | "accepted" | "delivered" | "read" | "failed" | "unknown";
+export interface RecipientReceipt {
+    conversation_id: string;
+    message_id: string;
+    participant_id: string;
+    membership_epoch: number;
+    channel: "native" | "provider";
+    delivery_id: string;
+    state: DeliveryState;
+    provenance: string;
+    observed_at: number;
+}
+export interface ReceiptPage {
+    receipts: RecipientReceipt[];
+    next: string | null;
+}
+export interface ReceiptPreferences {
+    conversation_id: string;
+    participant_id: string;
+    membership_epoch: number;
+    delivery: boolean;
+    read: boolean;
+}
+export interface ReceiptAcknowledgement {
+    conversation_id: string;
+    message_id: string;
+    participant_id: string;
+    membership_epoch: number;
+    recorded: DeliveryState | null;
+}
 export interface Event {
     id: string;
     kind: string;
@@ -177,6 +341,7 @@ export interface Event {
     call?: Call | null;
     session?: Session | null;
     artifact?: Artifact | null;
+    receipt?: RecipientReceipt | null;
 }
 export interface Session {
     id: string;
@@ -214,6 +379,7 @@ export interface ContextItem {
     source_id: string;
     actor_id: string;
     body: string;
+    record?: ContextRecord;
 }
 export interface ContextDelivery {
     id: string;
@@ -246,13 +412,31 @@ export interface Artifact {
     created_at: number;
     expires_at: number | null;
 }
+/** Resolve path only against the configured Connect server. Requires current credentials. */
+export interface ArtifactLink {
+    conversation_id: string;
+    artifact_id: string;
+    message_id: string | null;
+    path: string;
+    expires_at: number;
+    purpose: "upload" | "download";
+}
 export interface ArtifactChunk {
     artifact: Artifact;
     offset: number;
     data: string;
     eof: boolean;
 }
+export interface MutationReceipt {
+    operation_id: string;
+    conversation_id: string;
+    state: "completed";
+    completion_boundary: "local-mutation";
+    status_reference: { action: "get"; operation_id: string };
+}
 export interface Accepted {
+    /** Present for core mutation admission; task effects have task-scoped status. */
+    receipt?: MutationReceipt;
     request_id: string;
     message_id: string;
     conversation_id: string;
@@ -266,6 +450,7 @@ export interface Inbox {
     cursor: string | null;
 }
 export interface ProviderDelivery {
+    refusal_code: string | null;
     sms_decision?: string | null;
     sms_grant_id?: string | null;
     job_id: string;
@@ -301,6 +486,13 @@ export interface Health {
     readiness?: Readiness;
 }
 export interface OutcomeData {
+    membership: MembershipOutcome;
+    membership_snapshot: MembershipSnapshot;
+    membership_invitations: MembershipInvitations;
+    conversation_snapshot: SnapshotPage;
+    conversation_events: EventPage;
+    session_observations: ObservationPage;
+    durable_operation: OperationRecord;
     contact: ContactState;
     contact_pairing: ContactPairing;
     task: TaskOutcome;
@@ -309,6 +501,7 @@ export interface OutcomeData {
     context_deliveries: ContextDeliveryPage;
     identity: Identity;
     conversation: Conversation;
+    conversations: ConversationPage;
     accepted: Accepted;
     history: History;
     inbox: Inbox;
@@ -319,6 +512,10 @@ export interface OutcomeData {
     context_view: ContextView;
     artifact: Artifact;
     artifact_chunk: ArtifactChunk;
+    artifact_link: ArtifactLink;
+    message_receipts: ReceiptPage;
+    receipt_preferences: ReceiptPreferences;
+    receipt_acknowledged: ReceiptAcknowledgement;
     provider_status: ProviderStatus;
     request_status: RequestStatus;
     health: Health;
@@ -336,6 +533,8 @@ export interface RouteCapability {
     readiness: "configured" | "unconfigured";
 }
 export interface Capabilities {
+    /** Current participant ID in the selected conversation, when available. */
+    participant_id?: string | null;
     extensions?: string[];
     identity_id: string;
     conversation_id: string | null;

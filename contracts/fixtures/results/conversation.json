@@ -11,10 +11,31 @@
         "data": {
           "id": "conversation-1",
           "participants": [
-            "agent-1",
-            "app-1"
+            {
+              "participant_id": "part_agent-1",
+              "identity_id": "agent-1",
+              "kind": "human",
+              "role": "participant",
+              "display_name": null
+            },
+            {
+              "participant_id": "part_app-1",
+              "identity_id": "app-1",
+              "kind": "human",
+              "role": "participant",
+              "display_name": null
+            }
           ],
-          "closed": false
+          "closed": false,
+          "tenant_id": "tnt_default",
+          "policy": "persistent",
+          "idle_close_secs": null,
+          "metadata": null,
+          "opened_at": 1,
+          "revision": 1,
+          "closed_at": null,
+          "reason_code": null,
+          "reason": null
         }
       }
     }

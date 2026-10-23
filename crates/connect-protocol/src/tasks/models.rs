@@ -13,6 +13,8 @@ pub enum TaskPermission {
     Send,
     History,
     ContextView,
+    /// Explicit permission to include authorized record projections in context.
+    RecordGet,
     ContextDeliveries,
     Inbox,
     RequestStatus,
@@ -45,6 +47,7 @@ impl TaskPermission {
             Self::Send => "send",
             Self::History => "history",
             Self::ContextView => "context_view",
+            Self::RecordGet => "record_get",
             Self::ContextDeliveries => "context_view",
             Self::Inbox => "inbox",
             Self::RequestStatus => "request_status",
@@ -255,6 +258,8 @@ pub struct TaskSource {
     /// Message text or current session/artifact metadata. Never artifact bytes,
     /// server paths, or a replacement for an independently authorized file read.
     pub body: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub record: Option<crate::ContextRecord>,
 }
 /// Public results shared by native, HTTP, language SDK and MCP adapters.
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]

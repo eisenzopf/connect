@@ -1,0 +1,209 @@
+{
+  "kind": "gate6-component-evidence",
+  "task": "G6-041",
+  "status": "in-progress",
+  "passed": true,
+  "recorded_at": "2026-10-20T08:15:05.955694+00:00",
+  "scope": "Local macOS arm64 Store authority and durable telephone allocation/submission custody, with controlled trusted-host captures only. No SIP, provider or Core IO is performed by these new tests; the public canonical telephone path remains disabled.",
+  "schema_version": 58,
+  "pinned_patches": 117,
+  "upstream_changed": false,
+  "source_lock": {
+    "path": "dependencies/source-lock.json",
+    "sha256": "48a8e8c0b13a254309172a68bbfb786a7d530b10e615054ebc409ead05bc491e"
+  },
+  "verification": [
+    {
+      "name": "store",
+      "command": "cargo test --locked --offline -j2 -p connect-store --lib -- --test-threads=2",
+      "exit_code": 0,
+      "passed": 621,
+      "ignored": 3,
+      "log": {
+        "path": ".local/gate-6/telephone-runtime-store-final.log",
+        "sha256": "0a718d89f4c9ffe9b00b05ac30cfd18c2d7e160bd8b568afc30638f8b661f020"
+      },
+      "test_binaries": [
+        {
+          "path": "target/debug/deps/connect_store-500690b8d898aed1",
+          "sha256": "6b65a3dfcedb5b14d3abdcf6b12ea7f11184ab61775fcf53f557b1c2b4e59235"
+        }
+      ]
+    },
+    {
+      "name": "service",
+      "command": "cargo test --locked --offline -j2 -p connect-service --lib -- --test-threads=2",
+      "exit_code": 0,
+      "passed": 22,
+      "ignored": 0,
+      "log": {
+        "path": ".local/gate-6/telephone-runtime-service-final.log",
+        "sha256": "35051f00d5d021fe8e61885760b6d038a4e6ba99425eebfb7efe6a2fd7add3c1"
+      },
+      "test_binaries": [
+        {
+          "path": "target/debug/deps/connect_service-f0c8ec9c56711d06",
+          "sha256": "cd626f0a3ed6f4685cb464ebe98e48eae7800c8f2315269a2ece77a099807bd4"
+        }
+      ]
+    }
+  ],
+  "fresh_distinct_passed_tests": 643,
+  "telephone_runtime_cases": [
+    "connection_control::tests::replacement_sources::telephone::runtime::telephone_runtime_allocation_must_be_recorded_before_once_only_submission",
+    "connection_control::tests::replacement_sources::telephone::runtime::telephone_runtime_cancelled_root_records_known_allocation_without_revival",
+    "connection_control::tests::replacement_sources::telephone::runtime::telephone_runtime_current_reader_binds_independent_credential_and_verified_route",
+    "connection_control::tests::replacement_sources::telephone::runtime::telephone_runtime_current_endpoint_and_operator_are_required_after_allocation",
+    "connection_control::tests::replacement_sources::telephone::runtime::telephone_runtime_current_route_fence_blocks_revocation_and_requires_fresh_authority",
+    "connection_control::tests::replacement_sources::telephone::runtime::telephone_runtime_revocation_after_allocation_cannot_erase_capture_or_authorize_submission",
+    "connection_control::tests::replacement_sources::telephone::runtime::telephone_runtime_route_credential_requires_its_own_dial_and_recipient_permissions",
+    "connection_control::tests::replacement_sources::telephone::runtime::telephone_runtime_submission_restart_keeps_exact_correlation_and_no_second_attempt",
+    "connection_control::tests::replacement_sources::telephone::runtime::telephone_runtime_unknown_allocation_can_record_late_knowledge_but_never_redial",
+    "connection_control::tests::replacement_sources::telephone::runtime::telephone_runtime_unknown_submission_keeps_call_id_and_never_restores_root_state",
+    "connection_control::tests::replacement_sources::telephone::runtime::telephone_runtime_wrong_phase_and_call_reference_cannot_create_a_new_effect",
+    "connection_control::tests::replacement_sources::telephone::runtime::telephone_runtime_expired_route_interval_refuses_begin_without_an_effect"
+  ],
+  "ignored_helpers": [
+    {
+      "name": "authority_fences::tests::process_worker",
+      "reason": "explicitly executed by the cross-process parent tests",
+      "qualification": "Ignored as a standalone helper entrypoint. Associated passing cross-process parents explicitly invoke it; the helper is not counted as a default-suite pass."
+    },
+    {
+      "name": "installation_ownership::tests::process_worker",
+      "reason": "subprocess fixture explicitly invoked by ownership refusal and process-death parents",
+      "qualification": "Ignored as a standalone helper entrypoint. Associated passing cross-process parents explicitly invoke it; the helper is not counted as a default-suite pass."
+    },
+    {
+      "name": "transitions::tests::crash_worker",
+      "reason": "subprocess fixture, explicitly invoked by crash and administration parent tests",
+      "qualification": "Ignored as a standalone helper entrypoint. Associated passing cross-process parents explicitly invoke it; the helper is not counted as a default-suite pass."
+    }
+  ],
+  "implemented": [
+    "Typed telephone reads merge the original operator and exact source/retained physical grants with the independently provisioned route-owner identity fence. The separately selected host credential must be current, belong to that route owner, permit sip_dial and cover both intended endpoint owner and retained recipient.",
+    "Current verified Endpoint/Device, immutable route, configured confirmation/timeout and original scene are rechecked. The route actor and logical target member remain separate facts. Neither native peer proof nor target media readiness is fabricated.",
+    "A once-only dormant allocation attempt is durable before Core allocation. The trusted host supplies the actual allocation observation and planned SIP Call-ID; all binding fields must match the frozen expectation. A different binding, extra readiness flag or malformed reference is refused.",
+    "The exact allocation capture must be recorded before a once-only submission begin. Its Call-ID is stored as submission correlation before any possible network call. Existing original-native-call reservation IDs and phase ledger are preserved; the typed descriptor explicitly identifies SIP.",
+    "Opaque attempts retain metadata without authority readers, allowing unknown and later known receipts for the same attempt. Duplicate captures are idempotent; conflicting Call-IDs are refused. Late knowledge does not restore a cancelled or unknown root and cannot authorize another phase or generic worker claim.",
+    "Current route credential/recipient denial, expiry, queued writer, original operator loss and target Endpoint revocation refuse new submission. Current intervals are bounded to five seconds or an earlier backing expiry and must be released before idle answer waits.",
+    "Restart preserves phase attempts and exact Call-ID correlation. Successor runtimes reject old captures and do not obtain another attempt. These are ledger recovery checks, not proof of physical provider cancellation or network deduplication."
+  ],
+  "static_checks": [
+    {
+      "name": "dependencies",
+      "exit_code": 0,
+      "log": {
+        "path": ".local/gate-6/telephone-runtime-static-dependencies-final.log",
+        "sha256": "fd9d7b181e3ccba9b643af55a186cf132c60aac99c734b2ee4e4e549afe5ffc2"
+      }
+    },
+    {
+      "name": "format",
+      "exit_code": 0,
+      "log": {
+        "path": ".local/gate-6/telephone-runtime-static-format-final.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    {
+      "name": "http-reference",
+      "exit_code": 0,
+      "log": {
+        "path": ".local/gate-6/telephone-runtime-static-http-reference-final.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    {
+      "name": "contracts",
+      "exit_code": 0,
+      "log": {
+        "path": ".local/gate-6/telephone-runtime-static-contracts-final.log",
+        "sha256": "2c29557f8945b4bb522a5436f85876aa8ab90eca617dcf64588af05e9a81b1bc"
+      }
+    },
+    {
+      "name": "diff",
+      "exit_code": 0,
+      "log": {
+        "path": ".local/gate-6/telephone-runtime-static-diff-final.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    }
+  ],
+  "source_inputs": {
+    "path": ".local/gate-6/telephone-runtime-app-inputs.json",
+    "sha256": "6689051eb2a49a14f38395023e85a0aebf328da29567236c2f3485998e5e3650"
+  },
+  "source_input_count": 1331,
+  "upstream_inputs": {
+    "path": ".local/gate-6/telephone-runtime-upstream-inputs.json",
+    "sha256": "22477a07c7e735633cb4001843a1700f5da78f8c777f0ed6208eb2947188ab86"
+  },
+  "upstream_input_count": 2683,
+  "historical_confirmation_report": {
+    "path": "docs/evidence/gate-6/replacement-confirmation.json",
+    "sha256": "16d0af8f1f618eb2807b38a3cbec29bed8c0fdef938f4b7b5612c551ee7f8744"
+  },
+  "preliminary_runs": [
+    {
+      "log": {
+        "path": ".local/gate-6/telephone-runtime-tests-1.log",
+        "sha256": "7b2442e00a3ae7260e68427a51d90a4ce2dd620d3e7722361d02c7a760549f63"
+      },
+      "status": "failed",
+      "passed": 9,
+      "failed": 3,
+      "reason": "Runtime fixtures lacked explicit cancel/execution permission; added only to those fixtures, preserving the original policy-test scope."
+    },
+    {
+      "log": {
+        "path": ".local/gate-6/telephone-runtime-tests-2.log",
+        "sha256": "22b7e7a07a44dbd7817aa5cbee41189033c5479183ad5b6e24e1f63fafc9df00"
+      },
+      "status": "failed",
+      "passed": 17,
+      "failed": 3,
+      "reason": "A helper edit failed before application; the unchanged code was inadvertently rerun. This run is not counted as qualification."
+    },
+    {
+      "log": {
+        "path": ".local/gate-6/telephone-runtime-tests-3.log",
+        "sha256": "234ccabd68e971b974c30fe8a1f0f85c816b511a69bab888e13bebb918dcb6ff"
+      },
+      "status": "failed",
+      "passed": 19,
+      "failed": 1,
+      "reason": "The cancellation test compared the cancel-command receipt with the target operation. It now reads the target and strictly preserves its unknown state."
+    }
+  ],
+  "verification_note": "The first broad Store/service run preceded tightening the allocation-capture API and is historical. Final qualification reruns both suites against the actual-observation API, including foreign-binding and invented-readiness negatives. Three default ignored helper entrypoints are explicitly listed. Contract prose was updated during the run; executable Rust sources remained stable.",
+  "unqualified": [
+    "Actual canonical SIP adapter installation, Core reservation consumption, network submission at a fresh physical write fence, answer/media/DTMF handling and successful public telephone movement remain unimplemented. No public telephone endpoint is enabled by this component.",
+    "The existing Core start call awaits final SIP activation while retaining its control object. Telephone composition must separate bounded fresh submission authority from idle answer waits and bind authority at the actual wire write, not merely queue admission.",
+    "Independent established phone ownership, full physical no-answer/voicemail/rejected-confirmation/timeout/cancel/late-old-event/unknown-submission/restart reconciliation, and retargeted selector/private-context churn remain required.",
+    "Core/native/SIP IO reports remain historical and were not rerun here. Linux/browser/remote/provider/PSTN/performance profiles, the remaining plan tasks and independent acceptance are not qualified. Publication remains separate."
+  ],
+  "task_counts": {
+    "done": 40,
+    "in_progress": 1,
+    "not_started": 64,
+    "acceptance_closed": 0
+  },
+  "all_105_tasks_remain_in_scope": true,
+  "goal_status": "active",
+  "plan_integrity": {
+    "exit_code": 0,
+    "log": {
+      "path": ".local/gate-6/telephone-runtime-progress-final.log",
+      "sha256": "3c9a42760866b510a9b7fc81b2b57b9bf6791a239d0bf0de8cdf06058e513f78"
+    }
+  },
+  "final_diff": {
+    "exit_code": 0,
+    "log": {
+      "path": ".local/gate-6/telephone-runtime-diff-final.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  }
+}

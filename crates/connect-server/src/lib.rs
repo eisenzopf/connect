@@ -1,4 +1,10 @@
+#![recursion_limit = "256"]
 //! Local server composition and command-line operations.
+pub mod canonical;
+pub mod canonical_assistants;
+pub mod canonical_messages;
+pub mod canonical_provider_voice;
+pub mod canonical_telephone;
 pub mod cli;
 pub mod config;
 pub mod installation;
@@ -20,6 +26,9 @@ mod vapi_media;
 mod vapi_observer;
 pub mod vapi_task_setup;
 
+pub mod agent_observations;
+pub mod assistant_vapi;
+pub mod private_vapi;
 pub mod providers;
 pub mod secrets;
 pub mod setup_vault;
@@ -32,3 +41,6 @@ pub use sms_authority::{
 };
 mod startup;
 mod worker;
+
+mod conversation_policy;
+mod record_outcomes;

@@ -1,0 +1,980 @@
+--- a/crates/foundation/rvoip-core/src/orchestrator/participant_control.rs
++++ b/crates/foundation/rvoip-core/src/orchestrator/participant_control.rs
+@@ -577,6 +577,30 @@
+             .as_ref()
+             .ok_or(ParticipantControlError::Unsupported)?
+             .audience_revision())
++    }
++    /// Own the actual closed, muted native admission's decoder-only readiness
++    /// capability. The domain supplies a fresh independent preparation grant.
++    pub fn prepare_staged_audio_endpoint(
++        &self,
++        session: &SessionId,
++        connection: &ConnectionId,
++        operation: &str,
++    ) -> ControlResult<crate::staged_streams::endpoint_preparation::AudioEndpointPreparation> {
++        let runtime = self.participant_runtime(session)?;
++        if runtime
++            .state
++            .lock()
++            .unwrap_or_else(|p| p.into_inner())
++            .ended
++        {
++            return Err(ParticipantTransitionError::Ended.into());
++        }
++        Ok(runtime
++            .mixer
++            .staged
++            .as_ref()
++            .ok_or(ParticipantControlError::Unsupported)?
++            .prepare_audio_endpoint(connection, operation)?)
+     }
+     pub fn plan_staged_audio_audience(
+         &self,
+--- a/crates/foundation/rvoip-core/src/staged_streams/audience.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/audience.rs
+@@ -132,6 +132,7 @@
+     pub(super) committed_at: Instant,
+     commit: AudioAudienceCommit,
+     restore_allowed: bool,
++    pub(super) endpoint_preparation: bool,
+ }
+ impl AudioAudienceHandle {
+     pub fn commit(&self) -> &AudioAudienceCommit {
+@@ -360,6 +361,129 @@
+ }
+ 
+ impl GuardedMediaScene {
++    /// Capture only the actual one-member muted admission issued by this
++    /// scene. No route/role change, declared-ready row or host-created handle.
++    pub(crate) fn prepare_audio_endpoint(
++        &self,
++        connection: &ConnectionId,
++        operation: &str,
++    ) -> ControlResult<super::endpoint_preparation::AudioEndpointPreparation> {
++        let members = self
++            .members
++            .try_lock()
++            .map_err(|_| MediaTransitionError::Conflict)?;
++        let registry = self
++            .audiences
++            .try_lock()
++            .map_err(|_| MediaTransitionError::Conflict)?;
++        let member = members
++            .get(connection)
++            .ok_or(StreamControlError::NotReady)?;
++        let controller = &member.controller;
++        let group = registry
++            .preparations
++            .get(connection)
++            .ok_or(StreamControlError::Authority)?;
++        if group.operation != operation
++            || group.origins.len() != 1
++            || !group.contains(controller)
++            || !registry
++                .groups
++                .get(operation)
++                .is_some_and(|g| Arc::ptr_eq(g, group))
++        {
++            return Err(StreamControlError::Authority);
++        }
++        let state = controller
++            .state
++            .try_lock()
++            .map_err(|_| MediaTransitionError::Conflict)?;
++        if state.closed || controller.shutdown.is_cancelled() || state.active.len() != 1 {
++            return Err(StreamControlError::NotReady);
++        }
++        let (logical, port) = state
++            .active
++            .first_key_value()
++            .ok_or(StreamControlError::NotReady)?;
++        let stream = &state.model.streams()[logical];
++        if stream.negotiated.requested.medium != Medium::Audio
++            || stream.negotiated.requested.direction != StreamDirection::Both
++            || stream.state != LogicalStreamState::Active
++            || !stream.source_muted
++            || stream.hold_direction.is_some()
++        {
++            return Err(StreamControlError::NotReady);
++        }
++        let credential = controller.credential_snapshot();
++        let scope = controller.scope(&credential.principal, MediaPurpose::Control);
++        let purpose = super::local_audio::LocalAudioPurpose::EndpointPreparation {
++            operation_id: operation.into(),
++        };
++        let lease = controller
++            .policy
++            .current_audio_preparation(&scope, &purpose)?;
++        let owner = lease.authority();
++        StreamController::check(&scope, owner)?;
++        state.model.authorize_binding(&owner.current())?;
++        if !owner.may_control
++            || !owner.receive_media.contains(&Medium::Audio)
++            || !owner.send_media.contains(&Medium::Audio)
++        {
++            return Err(StreamControlError::Authority);
++        }
++        let pt = {
++            let ps = port
++                .state
++                .try_lock()
++                .map_err(|_| MediaTransitionError::Conflict)?;
++            if !ps.ready || ps.status != PortStatus::Active {
++                return Err(StreamControlError::NotReady);
++            }
++            ps.payload_type.ok_or(StreamControlError::NotReady)?
++        };
++        let decoder =
++            super::guarded_audio::Codecs::new(&port.binding.negotiated.format, pt, self.rate)?;
++        let mut slot = controller
++            .audio_preparation
++            .try_lock()
++            .map_err(|_| MediaTransitionError::Conflict)?;
++        if slot.as_ref().and_then(Weak::upgrade).is_some() {
++            return Err(MediaTransitionError::Conflict.into());
++        }
++        let audience = AudioAudienceHandle {
++            scene: self.id,
++            group: group.clone(),
++            original: BTreeMap::new(),
++            receivers: BTreeMap::from([(connection.clone(), AudienceOrigin::new(controller))]),
++            muted_source: Some(AudienceOrigin::new(controller)),
++            committed_at: Instant::now(),
++            commit: AudioAudienceCommit {
++                targets: BTreeMap::from([(
++                    connection.clone(),
++                    AudienceCommitTarget {
++                        controller: Arc::downgrade(controller),
++                        credential: credential.clone(),
++                        previous: state.model.revision(),
++                        revision: state.model.revision(),
++                        ports: vec![Arc::downgrade(port)],
++                    },
++                )]),
++            },
++            restore_allowed: false,
++            endpoint_preparation: true,
++        };
++        let probe = Arc::new(super::endpoint_preparation::Probe {
++            controller: Arc::downgrade(controller),
++            port: Arc::downgrade(port),
++            group: group.clone(),
++            registry: self.audiences.clone(),
++            consumer: member.audio_consumer.clone(),
++            decoder: Mutex::new(decoder),
++            cancel: CancellationToken::new(),
++        });
++        *slot = Some(Arc::downgrade(&probe));
++        Ok(super::endpoint_preparation::AudioEndpointPreparation { audience, probe })
++    }
+     pub(crate) fn audience_revision(&self) -> u64 {
+         self.audiences
+             .lock()
+@@ -459,6 +583,10 @@
+             replaced_audiences.push(handle.group.clone());
+         }
+         replaced_audiences.sort_by(|a, b| a.operation.cmp(&b.operation));
++        // The raw closed endpoint is both the activated mute gate and one
++        // consumed context. Retain its one exact identity, remove it once.
++        let replaced_preparation = replaced_preparation
++            .filter(|prepared| !replaced_audiences.iter().any(|g| Arc::ptr_eq(g, prepared)));
+         if registry.groups.values().any(|old| {
+             !replaced_audiences.iter().any(|g| Arc::ptr_eq(g, old))
+                 && !replaced_preparation
+@@ -900,10 +1028,17 @@
+                             r.request.admitted == *id && r.old_speaks,
+                         ))
+                     } else {
+-                        plan.handoff
+-                            .as_ref()
+-                            .filter(|h| h.outgoing.contains_key(id))
+-                            .map(|_| (member.audio_consumer.clone(), false))
++                        plan.handoff.as_ref().and_then(|h| {
++                            if h.outgoing.contains_key(id) {
++                                Some((member.audio_consumer.clone(), false))
++                            } else if managed.is_some() && h.request.admitted == *id {
++                                // Only the separately authorized managed role
++                                // commit may promote an incoming Observer.
++                                Some((member.audio_consumer.clone(), true))
++                            } else {
++                                None
++                            }
++                        })
+                     },
+                 });
+             }
+@@ -1169,6 +1304,7 @@
+             committed_at,
+             commit,
+             restore_allowed: plan.handoff.is_none() && plan.replacement.is_none(),
++            endpoint_preparation: false,
+         };
+         Ok((outcome, handle))
+     }
+--- a/crates/foundation/rvoip-core/src/staged_streams/audio_consumer.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/audio_consumer.rs
+@@ -25,6 +25,7 @@
+     ticket: PeerRouteTicket,
+     consumer: Option<ConsumerStamp>,
+     admitted_at: Instant,
++    preparation: Option<CancellationToken>,
+ }
+ #[derive(Clone)]
+ struct DeliveredAudio {
+@@ -76,7 +77,10 @@
+                     }
+             })
+         };
+-        if d.admitted_at < self.since
++        if d.preparation
++            .as_ref()
++            .is_some_and(CancellationToken::is_cancelled)
++            || d.admitted_at < self.since
+             || s.admitted_at < self.since
+             || !d.ticket.is_current()
+             || !s.ticket.is_current()
+@@ -146,6 +150,12 @@
+ }
+ impl AudioConsumer {
+     pub(super) fn observed_decoded(&self, packet: &MediaPacket) {
++        self.record_decoded(packet, None);
++    }
++    pub(super) fn observed_preparation(&self, packet: &MediaPacket, cancel: CancellationToken) {
++        self.record_decoded(packet, Some(cancel));
++    }
++    fn record_decoded(&self, packet: &MediaPacket, preparation: Option<CancellationToken>) {
+         let Some(owner) = packet.source.owner.upgrade() else {
+             return;
+         };
+@@ -156,6 +166,7 @@
+             ticket: packet.ticket.clone(),
+             consumer: packet.consumer.clone(),
+             admitted_at: packet.admitted_at,
++            preparation,
+         });
+         self.decoded_changed.notify_waiters();
+     }
+@@ -165,7 +176,10 @@
+             .unwrap_or_else(|p| p.into_inner())
+             .as_ref()
+             .is_some_and(|d| {
+-                d.admitted_at >= since
++                !d.preparation
++                    .as_ref()
++                    .is_some_and(CancellationToken::is_cancelled)
++                    && d.admitted_at >= since
+                     && d.admitted_at.elapsed() <= Duration::from_millis(200)
+                     && d.ticket.is_current()
+                     && d.consumer.as_ref().is_some_and(ConsumerStamp::is_current)
+--- /dev/null
++++ b/crates/foundation/rvoip-core/src/staged_streams/endpoint_preparation.rs
+@@ -0,0 +1,194 @@
++//! Decoder-only endpoint preparation. No sample or packet enters the mixer.
++use super::{audience::*, guarded_audio::Codecs, *};
++
++/// Owns a scene-issued closed preparation and its actual decoder lifetime.
++/// Dropping it invalidates observed input and any uncommitted readiness plan.
++/// It neither changes a speaking role nor unmutes the endpoint.
++pub struct AudioEndpointPreparation {
++    pub(super) audience: AudioAudienceHandle,
++    pub(super) probe: Arc<Probe>,
++}
++impl AudioEndpointPreparation {
++    pub fn audience(&self) -> &AudioAudienceHandle {
++        &self.audience
++    }
++    /// Current sealed local IO metadata only, never a handoff grant.
++    pub fn has_duplex_io(&self) -> bool {
++        let Some(controller) = self.probe.controller.upgrade() else {
++            return false;
++        };
++        let Ok(state) = controller.state.try_lock() else {
++            return false;
++        };
++        !self.probe.cancel.is_cancelled()
++            && self
++                .probe
++                .consumer
++                .duplex_since(&controller, self.audience.committed_at, &state)
++                .is_ok()
++    }
++}
++impl Drop for AudioEndpointPreparation {
++    fn drop(&mut self) {
++        self.probe.cancel.cancel();
++    }
++}
++pub(super) struct Probe {
++    pub(super) controller: Weak<StreamController>,
++    pub(super) port: Weak<Port>,
++    pub(super) group: Arc<ClosedAudience>,
++    pub(super) registry: Arc<Mutex<AudienceState>>,
++    pub(super) consumer: Arc<audio_consumer::AudioConsumer>,
++    pub(super) decoder: Mutex<Codecs>,
++    pub(super) cancel: CancellationToken,
++}
++impl Probe {
++    pub(super) fn output_scope(
++        &self,
++        purpose: &local_audio::LocalAudioPurpose,
++    ) -> ControlResult<CancellationToken> {
++        let local_audio::LocalAudioPurpose::EndpointPreparation { operation_id } = purpose;
++        let registry = self
++            .registry
++            .try_lock()
++            .map_err(|_| MediaTransitionError::Conflict)?;
++        if self.cancel.is_cancelled()
++            || operation_id != &self.group.operation
++            || !registry
++                .groups
++                .get(operation_id)
++                .is_some_and(|g| Arc::ptr_eq(g, &self.group))
++            || !self.controller.upgrade().is_some_and(|c| {
++                registry
++                    .preparations
++                    .get(&c.connection)
++                    .is_some_and(|g| Arc::ptr_eq(g, &self.group))
++            })
++        {
++            return Err(StreamControlError::NotReady);
++        }
++        Ok(self.cancel.clone())
++    }
++    /// None means the exact closed preparation was consumed/retired. Ordinary
++    /// input still has to pass its own role, gate and current publication policy.
++    pub(super) fn observe(
++        &self,
++        controller: &Arc<StreamController>,
++        port: &Arc<Port>,
++        frame: &MediaFrame,
++    ) -> Option<ControlResult<()>> {
++        if self.cancel.is_cancelled() {
++            return None;
++        }
++        let registry = match self.registry.try_lock() {
++            Ok(r) => r,
++            Err(_) => return Some(Err(MediaTransitionError::Conflict.into())),
++        };
++        if !registry
++            .preparations
++            .get(&controller.connection)
++            .is_some_and(|g| Arc::ptr_eq(g, &self.group))
++            || !registry
++                .groups
++                .get(&self.group.operation)
++                .is_some_and(|g| Arc::ptr_eq(g, &self.group))
++        {
++            return None;
++        }
++        Some(self.decode(controller, port, frame))
++    }
++    fn decode(
++        &self,
++        controller: &Arc<StreamController>,
++        port: &Arc<Port>,
++        frame: &MediaFrame,
++    ) -> ControlResult<()> {
++        if !Weak::ptr_eq(&self.controller, &Arc::downgrade(controller))
++            || !Weak::ptr_eq(&self.port, &Arc::downgrade(port))
++            || self.cancel.is_cancelled()
++        {
++            return Err(StreamControlError::Authority);
++        }
++        let state = controller
++            .state
++            .try_lock()
++            .map_err(|_| MediaTransitionError::Conflict)?;
++        let stream = state
++            .model
++            .streams()
++            .get(&port.binding.negotiated.requested.logical_id)
++            .ok_or(StreamControlError::NotReady)?;
++        if state.closed
++            || controller.shutdown.is_cancelled()
++            || !state.active.values().any(|p| Arc::ptr_eq(p, port))
++            || stream.state != LogicalStreamState::Active
++            || !stream.source_muted
++            || stream.negotiated.requested.direction == StreamDirection::Send
++            || stream.hold_direction == Some(StreamDirection::Send)
++        {
++            return Err(StreamControlError::NotReady);
++        }
++        {
++            let ps = port
++                .state
++                .try_lock()
++                .map_err(|_| MediaTransitionError::Conflict)?;
++            if !ps.ready || ps.status != PortStatus::Active {
++                return Err(StreamControlError::NotReady);
++            }
++        }
++        let credential = controller.credential_snapshot();
++        let scope = controller.scope(&credential.principal, MediaPurpose::Control);
++        let purpose = local_audio::LocalAudioPurpose::EndpointPreparation {
++            operation_id: self.group.operation.clone(),
++        };
++        let lease = controller
++            .policy
++            .current_audio_preparation(&scope, &purpose)?;
++        let owner = lease.authority();
++        StreamController::check(&scope, owner)?;
++        state.model.authorize_binding(&owner.current())?;
++        if !owner.may_control || !owner.receive_media.contains(&Medium::Audio) {
++            return Err(StreamControlError::Authority);
++        }
++        let ticket = port.ticket();
++        let _port = ticket
++            .try_begin_delivery()
++            .ok_or(StreamControlError::NotReady)?;
++        let stamp = self.consumer.stamp();
++        // This fence checks the active consumer incarnation, not permission to
++        // speak. Only this separately authorized discard-only decoder uses it.
++        let _consumer = self.consumer.begin(&stamp, true)?;
++        let (scene, _scene) = controller.scene_admission(scene_consumer::SceneCheck::publish())?;
++        let admitted_at = Instant::now();
++        let deadline = StreamController::command_deadline(
++            &credential.principal,
++            tokio::time::Instant::now() + Duration::from_millis(200),
++        );
++        let samples = self
++            .decoder
++            .try_lock()
++            .map_err(|_| MediaTransitionError::Conflict)?
++            .decode(frame)?;
++        if samples.is_empty()
++            || tokio::time::Instant::now() >= deadline
++            || self.cancel.is_cancelled()
++        {
++            return Err(StreamControlError::NotReady);
++        }
++        controller.check_credential_snapshot(&credential)?;
++        self.consumer.observed_preparation(
++            &MediaPacket {
++                frame: frame.clone(),
++                data: None,
++                source: port.clone(),
++                ticket,
++                admitted_at,
++                consumer: Some(stamp),
++                scene,
++            },
++            self.cancel.clone(),
++        );
++        Ok(())
++    }
++}
+--- a/crates/foundation/rvoip-core/src/staged_streams/guarded_audio.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/guarded_audio.rs
+@@ -8,7 +8,7 @@
+ };
+ use std::collections::{HashMap, VecDeque};
+ 
+-struct Codecs {
++pub(super) struct Codecs {
+     info: CodecInfo,
+     decoder: Box<dyn rvoip_media_core::codec::audio::common::AudioCodec>,
+     encoder: Box<dyn rvoip_media_core::codec::audio::common::AudioCodec>,
+@@ -16,7 +16,11 @@
+     from_mix: Option<Resampler>,
+ }
+ impl Codecs {
+-    fn new(format: &MediaFormat, payload_type: u8, mix_rate: u32) -> ControlResult<Self> {
++    pub(super) fn new(
++        format: &MediaFormat,
++        payload_type: u8,
++        mix_rate: u32,
++    ) -> ControlResult<Self> {
+         let MediaFormat::Encoded {
+             name,
+             clock_rate_hz,
+@@ -87,7 +91,7 @@
+             from_mix: resample(mix_rate, *clock_rate_hz)?,
+         })
+     }
+-    fn decode(&mut self, frame: &MediaFrame) -> ControlResult<Vec<i16>> {
++    pub(super) fn decode(&mut self, frame: &MediaFrame) -> ControlResult<Vec<i16>> {
+         let decoded = self
+             .decoder
+             .decode(&frame.payload)
+@@ -114,7 +118,7 @@
+             None => Ok(mono),
+         }
+     }
+-    fn encode(&mut self, mono: Vec<i16>, timestamp: u32) -> ControlResult<MediaFrame> {
++    pub(super) fn encode(&mut self, mono: Vec<i16>, timestamp: u32) -> ControlResult<MediaFrame> {
+         let samples = match &mut self.from_mix {
+             Some(resample) => resample
+                 .resample(&mono)
+--- a/crates/foundation/rvoip-core/src/staged_streams/handoff.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/handoff.rs
+@@ -314,7 +314,8 @@
+                 expected_revision: request.expected_revision,
+                 private_connections,
+                 receivers,
+-                activate_muted: None,
++                activate_muted: (prepared && context.endpoint_preparation)
++                    .then(|| request.admitted.clone()),
+             },
+             &contexts,
+         )?;
+--- a/crates/foundation/rvoip-core/src/staged_streams/local_audio.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/local_audio.rs
+@@ -23,6 +23,7 @@
+ pub(super) struct LocalAudioStamp {
+     purpose: LocalAudioPurpose,
+     credential: CredentialSnapshot,
++    preparation: Option<CancellationToken>,
+ }
+ impl StreamController {
+     fn admit_local_audio(
+@@ -36,6 +37,7 @@
+         Box<dyn MediaAuthorityLease>,
+         audio_consumer::MediaAdmission,
+         tokio::time::Instant,
++        Option<CancellationToken>,
+     )> {
+         let state = self.state.lock().unwrap_or_else(|p| p.into_inner());
+         let logical = &port.binding.negotiated.requested.logical_id;
+@@ -54,6 +56,19 @@
+         {
+             return Err(StreamControlError::NotReady);
+         }
++        let preparation = match self
++            .audio_preparation
++            .try_lock()
++            .map_err(|_| MediaTransitionError::Conflict)?
++            .as_ref()
++        {
++            None => None,
++            Some(p) => Some(
++                p.upgrade()
++                    .ok_or(StreamControlError::NotReady)?
++                    .output_scope(purpose)?,
++            ),
++        };
+         let credential = self.credential_snapshot();
+         let scope = self.scope(&credential.principal, MediaPurpose::Control);
+         let lease = self.policy.current_local_audio(&scope, purpose)?;
+@@ -80,7 +95,43 @@
+                 &credential.principal,
+                 tokio::time::Instant::now() + Duration::from_millis(200),
+             ),
++            preparation,
+         ))
++    }
++    /// Generate neutral silence using this exact negotiated codec. Enqueue is
++    /// still not delivery; current purpose authorization is checked again by
++    /// the actual guarded writer. This creates no remote contribution.
++    pub fn try_queue_local_silence(
++        &self,
++        logical: &StreamId,
++        purpose: LocalAudioPurpose,
++        timestamp_rtp: u32,
++    ) -> ControlResult<()> {
++        let port = {
++            let state = self
++                .state
++                .try_lock()
++                .map_err(|_| MediaTransitionError::Conflict)?;
++            state
++                .active
++                .get(logical)
++                .cloned()
++                .ok_or(StreamControlError::NotReady)?
++        };
++        let pt = port
++            .state
++            .try_lock()
++            .map_err(|_| MediaTransitionError::Conflict)?
++            .payload_type
++            .ok_or(StreamControlError::NotReady)?;
++        let MediaFormat::Encoded { clock_rate_hz, .. } = &port.binding.negotiated.format else {
++            return Err(StreamControlError::Unsupported);
++        };
++        let mut codecs =
++            super::guarded_audio::Codecs::new(&port.binding.negotiated.format, pt, *clock_rate_hz)?;
++        let mut frame = codecs.encode(vec![0; (*clock_rate_hz / 50) as usize], timestamp_rtp)?;
++        frame.stream_id = port.binding.transport_id.clone();
++        self.try_queue_local_audio(logical, frame, purpose)
+     }
+     /// The host encodes an authorized local prompt using this exact negotiated
+     /// binding. No call media is borrowed, and enqueuing is not output readiness.
+@@ -104,7 +155,7 @@
+         port.validate(&frame)?;
+         let ticket = port.ticket();
+         let credential = self.credential_snapshot();
+-        let (_lease, admission, deadline) = self.admit_local_audio(
++        let (_lease, admission, deadline, preparation) = self.admit_local_audio(
+             &port,
+             &ticket,
+             &purpose,
+@@ -132,6 +183,7 @@
+                 local: Some(LocalAudioStamp {
+                     purpose,
+                     credential,
++                    preparation,
+                 }),
+                 sources: vec![],
+                 target: port.clone(),
+@@ -155,6 +207,13 @@
+         Fut: Future<Output = ControlResult<()>>,
+     {
+         let local = self.local.as_ref().ok_or(StreamControlError::Authority)?;
++        if local
++            .preparation
++            .as_ref()
++            .is_some_and(CancellationToken::is_cancelled)
++        {
++            return Err(StreamControlError::Cancelled);
++        }
+         if self.data.is_some() || !self.sources.is_empty() || self.frame.kind != StreamKind::Audio {
+             return Err(StreamControlError::Authority);
+         }
+@@ -172,7 +231,7 @@
+             .as_ref()
+             .ok_or(StreamControlError::Authority)?;
+         let _subscription = subscription.begin_local(&target)?;
+-        let (_lease, admission, deadline) = target.admit_local_audio(
++        let (_lease, admission, deadline, _) = target.admit_local_audio(
+             &self.target,
+             &self.target_ticket,
+             &local.purpose,
+@@ -180,6 +239,9 @@
+             scene_consumer::SceneCheck::retained_publish(self.target_scene.as_ref()),
+         )?;
+         let mut tokens = vec![target.shutdown.clone(), subscription.cancel.clone()];
++        if let Some(preparation) = &local.preparation {
++            tokens.push(preparation.clone());
++        }
+         if let Some(s) = &admission.consumer {
+             tokens.push(s.cancellation.clone());
+         }
+--- /dev/null
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/private_consult/endpoint_preparation.rs
+@@ -0,0 +1,243 @@
++//! Real muted/Observer decoding and guarded output, without readiness flags.
++use super::*;
++use crate::staged_streams::{
++    endpoint_preparation::AudioEndpointPreparation, local_audio::LocalAudioPurpose,
++};
++struct Target {
++    room: Room,
++    preparation: AudioEndpointPreparation,
++}
++impl Target {
++    async fn new(observer: bool) -> Self {
++        let mut room = Room::new().await;
++        room.add("fresh", Some("public"), true).await;
++        if observer {
++            room.scene
++                .role_targets(&[ConnectionId::from_string("fresh")])
++                .remove(0)
++                .prepare_role(deadline(), CancellationToken::new())
++                .await
++                .unwrap()
++                .commit(false);
++        }
++        assert!(room.publish("fresh", 12000).is_err());
++        let id = ConnectionId::from_string("fresh");
++        assert!(room
++            .scene
++            .prepare_audio_endpoint(&id, "prepare-fresh")
++            .is_err());
++        room.domain
++            .local_preparations
++            .lock()
++            .unwrap()
++            .insert(id.clone(), "prepare-fresh".into());
++        assert!(room
++            .scene
++            .prepare_audio_endpoint(&id, "wrong-operation")
++            .is_err());
++        let preparation = room
++            .scene
++            .prepare_audio_endpoint(&id, "prepare-fresh")
++            .unwrap();
++        assert!(room
++            .scene
++            .prepare_audio_endpoint(&id, "prepare-fresh")
++            .is_err());
++        Self { room, preparation }
++    }
++    fn plan(&self) -> ControlResult<AudioHandoffPlan> {
++        let mut r = self.room.handoff_request(OldHandoffDisposition::Observer);
++        r.admitted = ConnectionId::from_string("fresh");
++        self.room
++            .scene
++            .plan_prepared_audio_handoff(self.preparation.audience(), None, r)
++    }
++    fn queue(&mut self) {
++        use rvoip_media_core::{codec::factory::CodecFactory, AudioFrame};
++        let n = self.room.nodes.get_mut("fresh").unwrap();
++        n.sequence += 1;
++        let p = n.adapter.port(Medium::Audio);
++        let mut f = frame(&p, n.sequence);
++        f.payload = CodecFactory::create_codec(0, Some(8000), Some(1))
++            .unwrap()
++            .encode(&AudioFrame {
++                samples: vec![0; 160],
++                sample_rate: 8000,
++                channels: 1,
++                duration: Duration::from_millis(20),
++                timestamp: n.sequence,
++            })
++            .unwrap()
++            .into();
++        n.controller
++            .try_queue_local_audio(
++                &desired(Medium::Audio).logical_id,
++                f,
++                LocalAudioPurpose::EndpointPreparation {
++                    operation_id: "prepare-fresh".into(),
++                },
++            )
++            .unwrap();
++    }
++}
++#[tokio::test]
++async fn endpoint_preparation_muted_and_observer_proof_discards_input_and_requires_completed_output(
++) {
++    for observer in [false, true] {
++        let mut t = Target::new(observer).await;
++        assert!(matches!(t.plan(), Err(StreamControlError::NotReady)));
++        t.room.publish("fresh", 12000).unwrap();
++        t.room.tick();
++        t.room.silent(&["alice", "bob", "public", "hold", "fresh"]);
++        assert!(matches!(t.plan(), Err(StreamControlError::NotReady)));
++        t.queue();
++        assert!(
++            matches!(t.plan(), Err(StreamControlError::NotReady)),
++            "queued is not delivered"
++        );
++        t.room.heard("fresh", 0).await;
++        assert!(t.plan().is_ok());
++        let c = &t.room.nodes["fresh"].controller;
++        assert!(
++            c.state.lock().unwrap().model.streams()[&desired(Medium::Audio).logical_id]
++                .source_muted
++        );
++        assert_eq!(
++            c.audio_consumer
++                .lock()
++                .unwrap()
++                .as_ref()
++                .unwrap()
++                .upgrade()
++                .unwrap()
++                .role_snapshot()
++                .0,
++            !observer
++        );
++        t.room.publish("alice", 800).unwrap();
++        t.room.tick();
++        t.room.heard("bob", 800).await;
++        t.room.heard("public", 800).await;
++        t.room.silent(&["fresh"]);
++    }
++}
++#[tokio::test]
++async fn endpoint_preparation_current_denial_drop_and_physical_epoch_invalidate_proof_without_opening_routes(
++) {
++    for change in ["permission", "port", "role"] {
++        let mut t = Target::new(true).await;
++        t.room.publish("fresh", 12000).unwrap();
++        t.queue();
++        t.room.heard("fresh", 0).await;
++        let stale = t.plan().unwrap();
++        match change {
++            "permission" => {
++                t.room
++                    .domain
++                    .local_preparations
++                    .lock()
++                    .unwrap()
++                    .remove(&ConnectionId::from_string("fresh"));
++                assert!(t.room.publish("fresh", 12000).is_err());
++            }
++            "port" => {
++                t.room.nodes["fresh"]
++                    .adapter
++                    .port(Medium::Audio)
++                    .report_terminal()
++                    .unwrap();
++                assert!(t.plan().is_err());
++            }
++            _ => {
++                t.room
++                    .scene
++                    .role_targets(&[ConnectionId::from_string("fresh")])
++                    .remove(0)
++                    .prepare_role(deadline(), CancellationToken::new())
++                    .await
++                    .unwrap()
++                    .commit(false);
++                assert!(t.plan().is_err());
++            }
++        }
++        if change != "permission" {
++            assert!(t.room.handoff(stale).await.is_err());
++        }
++        t.room.publish("alice", 800).unwrap();
++        t.room.tick();
++        t.room.heard("bob", 800).await;
++        t.room.heard("public", 800).await;
++        t.room.silent(&["fresh"]);
++    }
++}
++#[tokio::test]
++async fn endpoint_preparation_atomic_handoff_unmutes_only_at_commit() {
++    for observer in [false, true] {
++        let mut t = Target::new(observer).await;
++        t.room.publish("fresh", 12000).unwrap();
++        t.queue();
++        t.room.heard("fresh", 0).await;
++        let plan = t.plan().unwrap();
++        assert_eq!(
++            plan.audience().request().activate_muted,
++            Some(ConnectionId::from_string("fresh"))
++        );
++        t.room.handoff(plan).await.unwrap();
++        assert!(t.plan().is_err());
++        if observer {
++            assert!(
++                t.room.publish("fresh", 7600).is_err(),
++                "a media-only commit cannot promote the managed Participant role"
++            );
++        } else {
++            t.room.publish("fresh", 7600).unwrap();
++            t.room.tick();
++            t.room.heard("bob", 7600).await;
++            t.room.heard("alice", 7600).await;
++            t.room.silent(&["public", "fresh"]);
++        }
++        t.room.publish("bob", 2400).unwrap();
++        t.room.tick();
++        t.room.heard("fresh", 2400).await;
++        t.room.heard("alice", 2400).await;
++        t.room.silent(&["public", "bob"]);
++    }
++}
++
++#[tokio::test]
++async fn endpoint_preparation_owned_drop_invalidates_a_cloned_handle_and_old_plan() {
++    let mut t = Target::new(true).await;
++    t.room.publish("fresh", 12000).unwrap();
++    t.queue();
++    t.room.heard("fresh", 0).await;
++    let stale = t.plan().unwrap();
++    let audience = t.preparation.audience().clone();
++    t.queue();
++    let queued = t
++        .room
++        .nodes
++        .get_mut("fresh")
++        .unwrap()
++        .out
++        .try_recv()
++        .unwrap();
++    drop(t.preparation);
++    assert!(queued
++        .deliver(|_| async { panic!("dropped preparation emitted an old prompt") })
++        .await
++        .is_err());
++    assert!(t.room.publish("fresh", 12000).is_err());
++    let mut request = t.room.handoff_request(OldHandoffDisposition::Observer);
++    request.admitted = ConnectionId::from_string("fresh");
++    assert!(t
++        .room
++        .scene
++        .plan_prepared_audio_handoff(&audience, None, request)
++        .is_err());
++    assert!(t.room.handoff(stale).await.is_err());
++    t.room.publish("alice", 800).unwrap();
++    t.room.tick();
++    t.room.heard("bob", 800).await;
++    t.room.heard("public", 800).await;
++    t.room.silent(&["fresh"]);
++}
+--- a/crates/foundation/rvoip-core/src/staged_streams/tests/private_consult.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/private_consult.rs
+@@ -133,6 +133,13 @@
+     }
+ }
+ impl MediaPolicy for Domain {
++    fn current_audio_preparation(
++        &self,
++        scope: &MediaScope<'_>,
++        purpose: &crate::staged_streams::local_audio::LocalAudioPurpose,
++    ) -> ControlResult<Box<dyn MediaAuthorityLease>> {
++        self.current_local_audio(scope, purpose)
++    }
+     fn current_local_audio(
+         &self,
+         scope: &MediaScope<'_>,
+@@ -2297,3 +2304,6 @@
+ }
+ 
+ mod prepared_handoff;
++
++#[path = "private_consult/endpoint_preparation.rs"]
++mod endpoint_preparation;
+--- a/crates/foundation/rvoip-core/src/staged_streams.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams.rs
+@@ -291,6 +291,16 @@
+         Err(StreamControlError::Unsupported)
+     }
+ 
++    /// Separate current permission to decode and discard an isolated muted
++    /// endpoint's input. This never authorizes ordinary publication or routing.
++    fn current_audio_preparation(
++        &self,
++        _scope: &MediaScope<'_>,
++        _purpose: &local_audio::LocalAudioPurpose,
++    ) -> ControlResult<Box<dyn MediaAuthorityLease>> {
++        Err(StreamControlError::Unsupported)
++    }
++
+     /// Separate current permission for host-generated audio. A normal receive,
+     /// publication or routing grant does not implicitly authorize a local source.
+     /// Retain the actual current domain guard through the guarded send.
+@@ -658,6 +668,17 @@
+             .owner
+             .upgrade()
+             .ok_or(StreamControlError::Cancelled)?;
++        if data.is_none() && held.is_none() && self.0.kind() == StreamKind::Audio {
++            let probe = owner
++                .audio_preparation
++                .lock()
++                .unwrap_or_else(|p| p.into_inner())
++                .as_ref()
++                .and_then(Weak::upgrade);
++            if let Some(result) = probe.and_then(|p| p.observe(&owner, &self.0, frame)) {
++                return result;
++            }
++        }
+         let ticket = self.0.ticket();
+         let (_lease, admission, deadline) = owner.admit_with_data(
+             &self.0,
+@@ -1115,6 +1136,7 @@
+     slots: Arc<Semaphore>,
+     state: Mutex<State>,
+     audio_consumer: Mutex<Option<Weak<audio_consumer::AudioConsumer>>>,
++    audio_preparation: Mutex<Option<Weak<endpoint_preparation::Probe>>>,
+     scene_consumer: Mutex<Option<Weak<scene_consumer::SceneConsumer>>>,
+     direct_subscriptions: Arc<direct_subscriptions::DirectGate>,
+     selection_changed: Mutex<Option<Weak<tokio::sync::Notify>>>,
+@@ -1332,6 +1354,7 @@
+                 closed: false,
+             }),
+             audio_consumer: Mutex::new(None),
++            audio_preparation: Mutex::new(None),
+             scene_consumer: Mutex::new(None),
+             direct_subscriptions: direct_subscriptions::DirectGate::new(lifetime.child_token()),
+             selection_changed: Mutex::new(None),
+@@ -2635,3 +2658,5 @@
+ pub(crate) mod signal;
+ 
+ mod dtmf_source;
++
++pub mod endpoint_preparation;

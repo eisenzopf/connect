@@ -162,7 +162,12 @@ impl Store {
                 (correction_id, format!("{kind}_correction"), correction_body)
             }
         };
-        let recipients = recipients(&tx, &authority.conversation_id)?;
+        let recipients = crate::audience::source_members(
+            &tx,
+            &authority.conversation_id,
+            connect_protocol::membership::ContentKind::Session,
+            session_id,
+        )?;
         if !recipients.iter().any(|identity| identity == &sender) {
             return Err(Error::forbidden());
         }
@@ -178,10 +183,11 @@ impl Store {
             ));
         }
         tx.execute(
-            "INSERT INTO messages(id,conversation_id,sender,body) VALUES(?1,?2,?3,?4)",
-            params![id, authority.conversation_id, sender, stored_body],
+            "INSERT INTO messages(id,conversation_id,sender,body,audience_mode,content_type,label) VALUES(?1,?2,?3,?4,'explicit','application/json',?5)",
+            params![id, authority.conversation_id, sender, stored_body,event_kind],
         )
         .map_err(|_| Error::storage())?;
+        tx.execute("INSERT INTO message_audiences SELECT ?1,conversation_id,participant_id,membership_epoch,CASE WHEN participant_id=(SELECT participant_id FROM participants WHERE conversation_id=?2 AND identity_id=?3) THEN 'sender' ELSE 'recipient' END FROM resource_audiences WHERE kind='session' AND id=?4",params![id,authority.conversation_id,sender,session_id]).map_err(|_|Error::storage())?;
         for recipient in recipients {
             crate::conversations::insert_event(
                 &tx,
@@ -191,18 +197,14 @@ impl Store {
                 Some(&id),
             )?;
         }
-        let message = Message {
-            id,
-            conversation_id: authority.conversation_id,
-            sender,
-            body: stored_body,
-        };
+        let message = crate::messages::get(&tx, &authority.conversation_id, &id)?;
         tx.commit().map_err(|_| Error::storage())?;
         Ok(message)
     }
 }
 
 fn session_authority(tx: &Transaction<'_>, session_id: &str) -> Result<SessionAuthority> {
+    crate::connection_control::private_consultation::require_connection_context(tx, session_id)?;
     let (conversation_id, initiator_id, participant_id, state): (String, String, String, String) =
         tx.query_row(
             "SELECT conversation_id,initiator_id,participant_id,state FROM sessions WHERE id=?1",
@@ -212,7 +214,7 @@ fn session_authority(tx: &Transaction<'_>, session_id: &str) -> Result<SessionAu
         .optional()
         .map_err(|_| Error::storage())?
         .ok_or_else(Error::forbidden)?;
-    if !matches!(state.as_str(), "accepted" | "ready" | "ended") {
+    if !matches!(state.as_str(), "accepted" | "ready" | "active" | "ended") {
         return Err(Error::forbidden());
     }
     Ok(SessionAuthority {
@@ -222,35 +224,17 @@ fn session_authority(tx: &Transaction<'_>, session_id: &str) -> Result<SessionAu
     })
 }
 
-fn recipients(tx: &Transaction<'_>, conversation_id: &str) -> Result<Vec<String>> {
-    let mut statement = tx
-        .prepare(
-            "SELECT identity_id FROM participants WHERE conversation_id=?1 ORDER BY identity_id",
-        )
-        .map_err(|_| Error::storage())?;
-    let values = statement
-        .query_map([conversation_id], |row| row.get::<_, String>(0))
-        .map_err(|_| Error::storage())?
-        .collect::<rusqlite::Result<Vec<_>>>()
-        .map_err(|_| Error::storage())?;
-    Ok(values)
-}
-
 fn existing_message(tx: &Transaction<'_>, id: &str) -> Result<Option<Message>> {
-    tx.query_row(
-        "SELECT id,conversation_id,sender,body FROM messages WHERE id=?1",
-        [id],
-        |row| {
-            Ok(Message {
-                id: row.get(0)?,
-                conversation_id: row.get(1)?,
-                sender: row.get(2)?,
-                body: row.get(3)?,
-            })
-        },
-    )
-    .optional()
-    .map_err(|_| Error::storage())
+    let cid: Option<String> = tx
+        .query_row(
+            "SELECT conversation_id FROM messages WHERE id=?1",
+            [id],
+            |r| r.get(0),
+        )
+        .optional()
+        .map_err(|_| Error::storage())?;
+    cid.map(|cid| crate::messages::get(tx, &cid, id))
+        .transpose()
 }
 
 fn validate_provider_ref(provider_ref: &str) -> Result<()> {

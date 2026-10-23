@@ -80,7 +80,7 @@ pub(super) fn event_data(
             |r| r.get(0),
         )
         .map_err(|_| Error::storage())?;
-    if !super::budget::fits(c, store.limits.journal_events, count, 1)? {
+    if !super::budget::journal(c, store.limits.journal_events, count, 1)? {
         return Err(Error::new(
             "capacity-exceeded",
             "Task journal capacity exceeded; no acceptance recorded",
@@ -100,7 +100,17 @@ pub(super) fn event_data(
     Ok(())
 }
 pub(super) fn digest<T: Serialize>(value: &T) -> Result<String> {
-    let canonical = serde_json::to_value(value).map_err(|_| Error::storage())?;
+    let mut canonical = serde_json::to_value(value).map_err(|_| Error::storage())?;
+    if canonical.get("task_profile").is_some()
+        && canonical
+            .pointer("/command/action")
+            .and_then(|v| v.as_str())
+            == Some("invoke")
+    {
+        if let Some(operation) = canonical.pointer_mut("/command/operation") {
+            *operation = crate::artifact_links::canonical_intent(operation.take());
+        }
+    }
     Ok(format!(
         "task-v1:{}",
         hex::encode(Sha256::digest(json(&canonical)?.as_bytes()))
@@ -159,12 +169,12 @@ pub(super) fn save_outcome(
 ) -> Result<()> {
     let count: u64 = c
         .query_row(
-            "SELECT (SELECT COUNT(*) FROM requests)+(SELECT COUNT(*) FROM task_requests)",
+            "SELECT (SELECT COUNT(*) FROM operations)+(SELECT COUNT(*) FROM task_requests)",
             [],
             |r| r.get(0),
         )
         .map_err(|_| Error::storage())?;
-    if !super::budget::fits(c, store.limits.operation_receipts, count, 1)? {
+    if !super::budget::receipts(c, store.limits.operation_receipts, count, 1)? {
         return Err(Error::new(
             "capacity-exceeded",
             "Task receipt capacity exceeded; no acceptance recorded",

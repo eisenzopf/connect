@@ -1,0 +1,269 @@
+{
+  "task": "G6-046",
+  "recorded_at": "2026-10-22T23:35:32.317341+00:00",
+  "status": "single-participant-admission-installed-and-u6-req-0122-qualified-local-native",
+  "full_task_complete": false,
+  "full_goal_complete": false,
+  "acceptance_qualified": false,
+  "schema_version": 91,
+  "pinned_patches": 148,
+  "qualified_cases": [
+    {
+      "case_id": "u6-req-0122",
+      "profile": "Local macOS arm64 production native QUIC and public signed Rust SDK (EdDSA/ES256 for solo) with current bearer HTTP replay. Tested N=1,2,4, multiple Connections per Participant, bounded by configured capacity.",
+      "tests": [
+        "canonical_native_connections::solo::production_solo_session_admits_actual_native_flow_and_preserves_original_receipt_when_growing",
+        "canonical_native_connections::production_native_audio_survives_another_participant_leaving",
+        "canonical_native_connections::production_accepted_live_video_upgrade_adds_connections_and_preserves_existing_audio",
+        "general_session_control::signed_and_http_general_session_lifecycle_share_four_party_receipts_and_current_views"
+      ],
+      "assertions": [
+        "An empty initial to admits exactly one present initiator with accepted capability intent, an owner-only original Session audience and no outbound invitation source. No Active or actual media claim is made by admission.",
+        "The actual native single-Participant sendonly Connection negotiates current resources. A reliable barrier confirms no premature flow hint; real RTP then produces signed connection.ready and stream.opened for the exact Session/Connection/Stream.",
+        "Another Conversation member cannot end the solo Session before admission. Adding and accepting a later Participant retains the same SID; initial native and HTTP replay retains the exact original receipt without repeating media work.",
+        "Four actual identity kinds own six independent native Connections and distinct per-physical stream handles. Real audio survives one Participant leaving. An additive video profile negotiates separate Connections while preserving the original audio.",
+        "Four-party native/HTTP control accepts compatible capability subsets, with independent appearance/role/current view and immutable receipt behavior. Single-Participant Store tests cover restart, no-op existing invitation refusal, later growth, terminal state and no resurrection."
+      ],
+      "limits": "Qualification covers bounded local native behavior for clause0122. Full Session Active/started/joined/left boundaries, subscriber/current+future routing clauses, vCon clauses, Linux, remote/browser/provider profiles and task/acceptance closure remain assigned."
+    }
+  ],
+  "implementation": [
+    "The initiator is implicit in the initial target list. Empty targets create accepted capability intent, one exact present appearance and no pending invitation. Existing multi-target behavior and current capacity/recipient policy remain shared.",
+    "A fresh empty invitation on an existing Session refuses before writes. The immutable original solo operation still recovers its original result after growth, restart or termination. Explicit self references remain refused.",
+    "The existing Session identity projection uses the initiator for a solo Session rather than indexing a nonexistent target. No legacy dispatch, schema downgrade or automatic media grant is added.",
+    "The shared SDK/protocol normalization and generated SessionInvite schema accept an empty initial target array. HTTP reference and developer documentation describe its exact state and replay semantics."
+  ],
+  "source_lock": {
+    "path": "dependencies/source-lock.json",
+    "sha256": "052490b48d72b66fd2f4cb6e88caa7d3a3210c331ef978c2fac58318807c7f9d"
+  },
+  "compiled_inputs": {
+    "path": ".local/gate-6/dtmf-current-admission/solo-build-inputs.json",
+    "sha256": "7167b719f02a8d6530575edfe90a2809d585c130385b191d2063c9b12f25be78"
+  },
+  "prepared_upstream": {
+    "path": ".local/gate-6/dtmf-current-admission/solo-upstream-inputs.json",
+    "sha256": "99d0b8b829b9de17191582c7412425b6a9bf14a3c1090ea17d84c1dccc6bf8f3"
+  },
+  "inputs_unchanged_after_tests": true,
+  "runtime_build": {
+    "path": ".local/gate-6/dtmf-current-admission/solo-runtime-build-final.log",
+    "sha256": "9203139efc1cf99fa3c4b360814095f54c2ece2b197a7d056443e0221cb61e05"
+  },
+  "binary": {
+    "path": "target/debug/deps/gate6_canonical_runtime-1b0da6e3c5cdb2d1",
+    "sha256": "2f2a8e01f43a8a5b391bf7ef93959a486f4c35bb4ad2166a5f6bd489e50d53d1"
+  },
+  "source_inputs": [
+    {
+      "path": "crates/connect-protocol/src/session_control.rs",
+      "sha256": "b4d2c7462c6e6c523fcb22c38909f53aac7612e465ab9c05f27dee91717a777c"
+    },
+    {
+      "path": "crates/connect-store/src/session_control.rs",
+      "sha256": "c3f615cfbe96db03267d34f5c549697b5b5ba9efe37b9dd087a200146f9231a3"
+    },
+    {
+      "path": "crates/connect-store/src/session_control_tests.rs",
+      "sha256": "16f921102f1a7f376de9a31788df24bae3b47d560973e6b662b091df83e84da0"
+    },
+    {
+      "path": "crates/connect-server/tests/support/canonical_native_connections.rs",
+      "sha256": "52193d8f7729f1b2de37679fe16bb316136ab15475a17bac7968324dd05a35f3"
+    },
+    {
+      "path": "crates/connect-server/tests/support/canonical_native_connections/solo.rs",
+      "sha256": "b898c30fda9f54f56360a16164100db83c8b14f148c36d02f67be021cf2550ea"
+    },
+    {
+      "path": "patches/rvoip/gate6-solo-session-wire.patch",
+      "sha256": "e9152fabd6891c10edc3d097c4844fbe2761dcb234a19d9ffaaa3ec24d44cbc8"
+    },
+    {
+      "path": "scripts/generate-gate6-schemas.py",
+      "sha256": "0e0065a492e28a4f1dadf5b914d3b3bf5693d445010f816c486953b9d7ceef38"
+    },
+    {
+      "path": "contracts/schemas/uctp-envelope-2.schema.json",
+      "sha256": "f18c5e536d2fd98d522463e6c8baad7389adf24dc57a006c19d59ff71bec806b"
+    },
+    {
+      "path": "contracts/uctp-vectors/gate6-envelope.json",
+      "sha256": "debd4b605fceb1451de63c3e661cbbe69f30382386d959795268909c836f9011"
+    },
+    {
+      "path": "scripts/generate-canonical-http-openapi.py",
+      "sha256": "76c5814f30d794d30c00f74790effa7023c2e11a0a7769f3ad198644537634b2"
+    },
+    {
+      "path": "contracts/openapi-canonical-http.json",
+      "sha256": "15dbcd52078346c49eefdc3051b9a1b13ca2ed297946222d6cf7d0770448a5f9"
+    },
+    {
+      "path": "docs/developer/general-sessions.md",
+      "sha256": "052f06e63a47acfe02ae8f73cb613abcb2847007b72413db71eddddc1ccb4095"
+    }
+  ],
+  "results": [
+    {
+      "name": "store",
+      "passed": 30,
+      "failed": 0,
+      "evidence": {
+        "path": ".local/gate-6/dtmf-current-admission/solo-store-final.log",
+        "sha256": "4b1cff973f888ed63e00e6b99e7f80893fb8223835d008616e85bbe0246cc9e0"
+      }
+    },
+    {
+      "name": "upstream-golden",
+      "passed": 1,
+      "failed": 0,
+      "evidence": {
+        "path": ".local/gate-6/dtmf-current-admission/solo-upstream-golden-final.log",
+        "sha256": "c34bf565611311b37521e3de304c3ca677a6707c48acf54c1cb07aae80a2f35c"
+      }
+    },
+    {
+      "name": "native",
+      "passed": 1,
+      "failed": 0,
+      "evidence": {
+        "path": ".local/gate-6/dtmf-current-admission/solo-native-final.log",
+        "sha256": "78fc30765f0132e34937f0594f48fbe30116bc5d1af332914e3e4c19fef994c5"
+      }
+    },
+    {
+      "name": "multiparty",
+      "passed": 1,
+      "failed": 0,
+      "evidence": {
+        "path": ".local/gate-6/dtmf-current-admission/solo-multiparty-final.log",
+        "sha256": "b3e04e7e7931bf97a7667da59a4f0131e499730e2565a999ff68900e7fef9d04"
+      }
+    },
+    {
+      "name": "live-upgrade",
+      "passed": 1,
+      "failed": 0,
+      "evidence": {
+        "path": ".local/gate-6/dtmf-current-admission/solo-live-upgrade-final.log",
+        "sha256": "bd5d6b18e265cf03bbbb98d544876f210be76d029f79e0443063bff096777e9f"
+      }
+    },
+    {
+      "name": "general",
+      "passed": 3,
+      "failed": 0,
+      "evidence": {
+        "path": ".local/gate-6/dtmf-current-admission/solo-general-final.log",
+        "sha256": "a84ae2cbf31318c427229604b5b91ffe32f10a6b079eb9a3eb73350926d2d5be"
+      }
+    }
+  ],
+  "red_green": {
+    "red": {
+      "path": ".local/gate-6/dtmf-current-admission/solo-store-red.log",
+      "sha256": "de8639ed7af64c922b304a46852a189ee03a420a3f735cd66c5d0b3db2e67917"
+    },
+    "red_inputs": {
+      "path": ".local/gate-6/dtmf-current-admission/solo-red-inputs.json",
+      "sha256": "3e54493b52da535d7cb40b7bbc650a05f4dd813152e427e927f1e265370a9fab"
+    },
+    "red_scope": "The new actual Store test fails on the predecessor empty-target protocol rejection before Session creation. Later branches are only exercised by the green run.",
+    "green": {
+      "path": ".local/gate-6/dtmf-current-admission/solo-store-final.log",
+      "sha256": "4b1cff973f888ed63e00e6b99e7f80893fb8223835d008616e85bbe0246cc9e0"
+    },
+    "target_fixture_refusal": {
+      "evidence": {
+        "path": ".local/gate-6/dtmf-current-admission/solo-native-final-v2.log",
+        "sha256": "4662312676f835c7d9948e5d3f4560aff3c12ef723b80bda262629a103b5ad04"
+      },
+      "scope": "After patch148 the first EdDSA branch admits the solo Session, receives actual-flow ready/opened facts and grows the invitation on the same SID. Target accept correctly refuses because the original agent fixture credential lacks session.accept. The final test issues the same explicit named collaboration credential used by existing Session fixtures; it does not relax product authorization. Later ES256/growth-replay branches are exercised by the final run."
+    },
+    "native_pre_embedded_fix": {
+      "path": ".local/gate-6/dtmf-current-admission/solo-native-final-v1.log",
+      "sha256": "df84935bbe947b5122fde0a8ad332423e0425e8bee6c8f3f0dfeeefd1afe5b7c"
+    },
+    "native_pre_embedded_fix_scope": "The Store and repository schema accept solo admission, but the public signed SDK returns Protocol before admission because its separately embedded SessionInvite.to schema still requires one recipient. Patch148 changes only that embedded minimum and adds actual Envelope golden vectors. The earlier native run fails in the first EdDSA branch; ES256 and media/growth branches are exercised only by the final run.",
+    "interrupted_default_check": {
+      "evidence": {
+        "path": ".local/gate-6/dtmf-current-admission/solo-default-check-v1.log",
+        "sha256": "527cd002d294c3d2283707019c715ec8631a09fc91d3b57ff6898de3183c28f5"
+      },
+      "status": "interrupted-not-a-pass",
+      "reason": "Stopped the obsolete predecessor check after the actual SDK exposed the additional embedded wire schema fix; replaced with the current148-patch production check."
+    }
+  },
+  "checks": [
+    {
+      "name": "dependencies",
+      "exit_code": 0,
+      "evidence": {
+        "path": ".local/gate-6/dtmf-current-admission/solo-dependencies.log",
+        "sha256": "fd9d7b181e3ccba9b643af55a186cf132c60aac99c734b2ee4e4e549afe5ffc2"
+      }
+    },
+    {
+      "name": "default-check",
+      "exit_code": 0,
+      "evidence": {
+        "path": ".local/gate-6/dtmf-current-admission/solo-default-check.log",
+        "sha256": "ffbccbd65b8134b6b703a7a52db41ea83b11e3ec2d2406c858989b79d8c96199"
+      }
+    },
+    {
+      "name": "format-check",
+      "exit_code": 0,
+      "evidence": {
+        "path": ".local/gate-6/dtmf-current-admission/solo-format-check.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    {
+      "name": "http-reference",
+      "exit_code": 0,
+      "evidence": {
+        "path": ".local/gate-6/dtmf-current-admission/solo-http-reference.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    {
+      "name": "contracts",
+      "exit_code": 0,
+      "evidence": {
+        "path": ".local/gate-6/dtmf-current-admission/solo-contracts.log",
+        "sha256": "862505201d418f3b6921999e9743540555df3a332a09f8def03a3b9b77bfac3e"
+      }
+    },
+    {
+      "name": "progress",
+      "exit_code": 0,
+      "evidence": {
+        "path": ".local/gate-6/dtmf-current-admission/solo-progress.log",
+        "sha256": "fedbc03549729d27ac031eee0766ae72281991ae1e9494232887c3160cf754cc"
+      }
+    },
+    {
+      "name": "diff",
+      "exit_code": 0,
+      "evidence": {
+        "path": ".local/gate-6/dtmf-current-admission/solo-diff.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    }
+  ],
+  "schema_validation": {
+    "path": ".local/gate-6/dtmf-current-admission/solo-contracts.json",
+    "sha256": "66dd809e49fab8ab0cf6dbd2f22ceb6ff8e8e63405394ef5c3d68fa07748a477"
+  },
+  "previous_evidence": [
+    "docs/evidence/gate-6/auxiliary-native-connection-clauses.json",
+    "docs/evidence/gate-6/general-session-runtime.json"
+  ],
+  "limits": [
+    "26/61 G6-046 clauses locally qualified,35 remaining. All105 tasks remain in scope.",
+    "Qualification covers bounded local native behavior for clause0122. Full Session Active/started/joined/left boundaries, subscriber/current+future routing clauses, vCon clauses, Linux, remote/browser/provider profiles and task/acceptance closure remain assigned.",
+    "No publication or designated remote/provider rehearsal."
+  ]
+}

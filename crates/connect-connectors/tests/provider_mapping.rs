@@ -106,6 +106,7 @@ fn telephone_manifest_declares_control_without_promising_audio_or_sms() {
             ConnectorOperation::VoiceStart,
             ConnectorOperation::VoiceDiscover,
             ConnectorOperation::VoiceStatus,
+            ConnectorOperation::VoiceReconcile,
             ConnectorOperation::VoiceEnd
         ]
         .into()

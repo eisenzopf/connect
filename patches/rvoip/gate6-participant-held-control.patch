@@ -1,0 +1,1033 @@
+diff --git a/crates/foundation/rvoip-core/src/orchestrator/participant_control.rs b/crates/foundation/rvoip-core/src/orchestrator/participant_control.rs
+--- a/crates/foundation/rvoip-core/src/orchestrator/participant_control.rs
++++ b/crates/foundation/rvoip-core/src/orchestrator/participant_control.rs
+@@ -2,7 +2,8 @@
+ //!
+ //! This is an engine primitive. Connect owns durable admission/effects and
+ //! installs a policy backed by its current grants. Policy leases hold authority
+-//! stable only for a synchronous commit; no adapter I/O runs under a lease.
++//! stable for a synchronous commit. An explicit held control retains the caller's
++//! invocation guard across bounded preparation; no packet port owns that proof.
+ 
+ use super::*;
+ use crate::conference::{Conference, ConferenceMember, DeliveryGuard, DeliveryLease};
+@@ -11,7 +12,7 @@
+     ParticipantTransitionError, PreparedParticipantAdmission,
+ };
+ use crate::relationships::{EndpointBinding, Membership};
+-use std::collections::BTreeMap;
++use std::{any::Any, collections::BTreeMap, time::Duration};
+ 
+ #[derive(Debug, thiserror::Error)]
+ pub enum ParticipantControlError {
+@@ -19,6 +20,8 @@
+     Transition(#[from] ParticipantTransitionError),
+     #[error(transparent)]
+     Core(#[from] RvoipError),
++    #[error("held participant control is unsupported")]
++    Unsupported,
+     #[error("participant authority denied")]
+     Authority,
+     #[error("participant transition cancelled")]
+@@ -50,7 +53,8 @@
+ }
+ 
+ /// Implementations retain a current-authority read/transaction lock until drop.
+-/// Do not call the Orchestrator while holding that same authority lock elsewhere.
++/// Ordinary calls must not hold the same authority lock elsewhere; use the
++/// explicit held-control entry points to compose with an existing owned guard.
+ pub trait ParticipantAuthorityLease {
+     fn authority(&self) -> &ParticipantAuthority;
+ }
+@@ -59,6 +63,105 @@
+         &self,
+         scope: &ParticipantScope<'_>,
+     ) -> ControlResult<Box<dyn ParticipantAuthorityLease + '_>>;
++    /// Validate the exact domain, actor, resources, action and revision under
++    /// the invocation's owned guard. Never reacquire it or fall back to current.
++    fn current_control(
++        &self,
++        _scope: &ParticipantScope<'_>,
++        _held: &(dyn Any + Send + Sync),
++    ) -> ControlResult<ParticipantControl> {
++        Err(ParticipantControlError::Unsupported)
++    }
++}
++
++/// Owned current grant for one control invocation, never a mixer/media grant.
++/// The policy rederives exact current facts under this same retained guard.
++pub trait ParticipantControlLease: Send + Sync {
++    fn current(&self, scope: &ParticipantScope<'_>) -> ControlResult<ParticipantAuthority>;
++}
++pub struct ParticipantControl {
++    lease: Box<dyn ParticipantControlLease>,
++    cancellation: CancellationToken,
++    deadline: tokio::time::Instant,
++}
++impl ParticipantControl {
++    pub fn new(
++        lease: Box<dyn ParticipantControlLease>,
++        cancellation: CancellationToken,
++        deadline: tokio::time::Instant,
++    ) -> ControlResult<Self> {
++        let value = Self {
++            lease,
++            cancellation,
++            deadline: deadline.min(tokio::time::Instant::now() + Duration::from_secs(30)),
++        };
++        value.check()?;
++        Ok(value)
++    }
++    fn check(&self) -> ControlResult<()> {
++        if self.cancellation.is_cancelled() {
++            return Err(ParticipantControlError::Cancelled);
++        }
++        if tokio::time::Instant::now() >= self.deadline {
++            return Err(ParticipantControlError::Deadline);
++        }
++        Ok(())
++    }
++    fn current(&self, scope: &ParticipantScope<'_>) -> ControlResult<ParticipantAuthority> {
++        self.check()?;
++        let authority = self.lease.current(scope)?;
++        self.check()?;
++        Ok(authority)
++    }
++}
++enum ControlRead<'a> {
++    Current(Box<dyn ParticipantAuthorityLease + 'a>),
++    Held(ParticipantAuthority),
++}
++impl ControlRead<'_> {
++    fn authority(&self) -> &ParticipantAuthority {
++        match self {
++            Self::Current(lease) => lease.authority(),
++            Self::Held(authority) => authority,
++        }
++    }
++}
++fn control_read<'a>(
++    policy: &'a dyn ParticipantPolicy,
++    scope: &ParticipantScope<'_>,
++    held: Option<&ParticipantControl>,
++) -> ControlResult<ControlRead<'a>> {
++    match held {
++        Some(control) => Ok(ControlRead::Held(control.current(scope)?)),
++        None => Ok(ControlRead::Current(policy.current(scope)?)),
++    }
++}
++fn principal_expiry(principal: &AuthenticatedPrincipal) -> Option<chrono::DateTime<Utc>> {
++    match &principal.assurance {
++        crate::identity::IdentityAssurance::TaskScoped { expires_at, .. } => Some(
++            principal
++                .expires_at
++                .map_or(*expires_at, |expiry| expiry.min(*expires_at)),
++        ),
++        _ => principal.expires_at,
++    }
++}
++fn invocation_current(
++    cancellation: &CancellationToken,
++    control: Option<&ParticipantControl>,
++    peer: Option<&CancellationToken>,
++    deadline: tokio::time::Instant,
++) -> ControlResult<()> {
++    if cancellation.is_cancelled() || peer.is_some_and(|p| p.is_cancelled()) {
++        return Err(ParticipantControlError::Cancelled);
++    }
++    if let Some(control) = control {
++        control.check()?;
++    }
++    if tokio::time::Instant::now() >= deadline {
++        return Err(ParticipantControlError::Deadline);
++    }
++    Ok(())
+ }
+ 
+ #[derive(Clone, Copy, Debug)]
+@@ -294,7 +397,7 @@
+         scope: &ParticipantScope<'_>,
+         authority: &ParticipantAuthority,
+     ) -> ControlResult<()> {
+-        if scope.principal.is_expired_at(Utc::now())
++        if principal_expiry(scope.principal).is_some_and(|expiry| expiry <= Utc::now())
+             || authority.target.participant() != &scope.mutation.participant
+             || authority.actor.conversation() != scope.conversation
+             || authority.target.conversation() != scope.conversation
+@@ -315,7 +418,8 @@
+ 
+     /// One checked participant operation. No caller-supplied ready boolean.
+     /// Accepted transport signaling is followed by negotiated duplex stream
+-    /// readiness, generation fencing and a NEW policy lease at final commit.
++    /// readiness, generation fencing and a new policy lease at final commit. The
++    /// explicit held-control variant rederives facts under its same owned guard.
+     pub async fn change_session_participant(
+         self: &Arc<Self>,
+         session_id: &SessionId,
+@@ -331,6 +435,7 @@
+             deadline,
+             cancellation,
+             None,
++            None,
+         )
+         .await
+     }
+@@ -357,6 +462,53 @@
+             deadline,
+             cancellation,
+             Some(peer),
++            None,
++        )
++        .await
++    }
++    /// Reuse a signed application's exact current control proof through
++    /// preparation and commit; never install it as a publication grant.
++    pub async fn change_session_participant_with_held(
++        self: &Arc<Self>,
++        session_id: &SessionId,
++        principal: AuthenticatedPrincipal,
++        mutation: ParticipantMutation,
++        deadline: tokio::time::Instant,
++        cancellation: CancellationToken,
++        held: &(dyn Any + Send + Sync),
++    ) -> ControlResult<ParticipantObservation> {
++        self.change_participant_internal(
++            session_id,
++            principal,
++            mutation,
++            deadline,
++            cancellation,
++            None,
++            Some(held),
++        )
++        .await
++    }
++    pub async fn admit_peer_session_connection_with_held(
++        self: &Arc<Self>,
++        peer: Arc<crate::peer_admission::PeerAdmission>,
++        session_id: &SessionId,
++        principal: AuthenticatedPrincipal,
++        mutation: ParticipantMutation,
++        deadline: tokio::time::Instant,
++        cancellation: CancellationToken,
++        held: &(dyn Any + Send + Sync),
++    ) -> ControlResult<ParticipantObservation> {
++        if !matches!(mutation.change, ParticipantChange::Admit { .. }) {
++            return Err(ParticipantControlError::Authority);
++        }
++        self.change_participant_internal(
++            session_id,
++            principal,
++            mutation,
++            deadline,
++            cancellation,
++            Some(peer),
++            Some(held),
+         )
+         .await
+     }
+@@ -368,11 +520,43 @@
+         deadline: tokio::time::Instant,
+         cancellation: CancellationToken,
+         peer: Option<Arc<crate::peer_admission::PeerAdmission>>,
++        held: Option<&(dyn Any + Send + Sync)>,
+     ) -> ControlResult<ParticipantObservation> {
+         let runtime = self.participant_runtime(session_id)?;
+         let peer_cancel = peer.as_ref().map(|peer| peer.cancellation());
+-        let deadline =
+-            deadline.min(tokio::time::Instant::now() + self.config.bridge_stream_deadline);
++        let now = tokio::time::Instant::now();
++        let mut deadline = deadline.min(now + self.config.bridge_stream_deadline);
++        if let Some(expiry) = principal_expiry(&principal) {
++            let remaining = expiry - Utc::now();
++            if remaining <= chrono::Duration::zero() {
++                return Err(ParticipantControlError::Authority);
++            }
++            deadline = deadline.min(now + remaining.to_std().unwrap_or_default());
++        }
++        invocation_current(&cancellation, None, peer_cancel.as_ref(), deadline)?;
++        let control = match held {
++            Some(held) => Some(runtime.policy.current_control(
++                &ParticipantScope {
++                    session: session_id,
++                    conversation: &runtime.conversation,
++                    principal: &principal,
++                    mutation: &mutation,
++                    connection_generation: None,
++                },
++                held,
++            )?),
++            None => None,
++        };
++        if let Some(control) = &control {
++            deadline = deadline.min(control.deadline);
++        }
++        let control_cancel = control.as_ref().map(|c| c.cancellation.clone());
++        invocation_current(
++            &cancellation,
++            control.as_ref(),
++            peer_cancel.as_ref(),
++            deadline,
++        )?;
+         let mut candidate = {
+             let mut state = runtime.state.lock().unwrap_or_else(|p| p.into_inner());
+             let scope = ParticipantScope {
+@@ -382,7 +566,7 @@
+                 mutation: &mutation,
+                 connection_generation: None,
+             };
+-            let lease = runtime.policy.current(&scope)?;
++            let lease = control_read(runtime.policy.as_ref(), &scope, control.as_ref())?;
+             let authority = lease.authority();
+             Self::check_participant_authority(&scope, authority)?;
+             if let Some(peer) = &peer {
+@@ -396,6 +580,12 @@
+                 )
+                 .map_err(peer_error)?;
+             }
++            invocation_current(
++                &cancellation,
++                control.as_ref(),
++                peer_cancel.as_ref(),
++                deadline,
++            )?;
+             if let Some(receipt) =
+                 state
+                     .controller
+@@ -618,13 +808,22 @@
+                 biased;
+                 _=async{match &peer_cancel {Some(token)=>token.cancelled().await,None=>std::future::pending::<()>().await}}=>return Err(ParticipantControlError::Cancelled),
+                 _ = cancellation.cancelled() => return Err(ParticipantControlError::Cancelled),
++                _ = async { match &control_cancel { Some(token)=>token.cancelled().await, None=>std::future::pending::<()>().await } } => return Err(ParticipantControlError::Cancelled),
+                 _ = terminal_cancellation.cancelled() => return Err(ParticipantTransitionError::Inactive.into()),
+                 result = tokio::time::timeout_at(deadline, preparation) => {
+-                    result.map_err(|_| ParticipantControlError::Deadline)??;
+-                }
+-            }
+-        }
+-        let mut members = runtime.mixer.members.lock().await;
++                    let result = result.map_err(|_| ParticipantControlError::Deadline)?;
++                    invocation_current(&cancellation, control.as_ref(), peer_cancel.as_ref(), deadline)?;
++                    result?;
++                }
++            }
++        }
++        let mut members = tokio::select! {
++            biased;
++            _ = cancellation.cancelled()=>return Err(ParticipantControlError::Cancelled),
++            _ = async { match &control_cancel { Some(token)=>token.cancelled().await, None=>std::future::pending::<()>().await } }=>return Err(ParticipantControlError::Cancelled),
++            _ = async { match &peer_cancel { Some(token)=>token.cancelled().await, None=>std::future::pending::<()>().await } }=>return Err(ParticipantControlError::Cancelled),
++            result = tokio::time::timeout_at(deadline, runtime.mixer.members.lock()) => result.map_err(|_|ParticipantControlError::Deadline)?,
++        };
+         let result = {
+             let mut state = runtime.state.lock().unwrap_or_else(|p| p.into_inner());
+             let scope = ParticipantScope {
+@@ -634,7 +833,7 @@
+                 mutation: &mutation,
+                 connection_generation: candidate.as_ref().map(|c| c.lifecycle.generation),
+             };
+-            let lease = runtime.policy.current(&scope)?;
++            let lease = control_read(runtime.policy.as_ref(), &scope, control.as_ref())?;
+             let authority = lease.authority();
+             Self::check_participant_authority(&scope, authority)?;
+             if let Some(peer) = &peer {
+@@ -648,6 +847,12 @@
+                 )
+                 .map_err(peer_error)?;
+             }
++            invocation_current(
++                &cancellation,
++                control.as_ref(),
++                peer_cancel.as_ref(),
++                deadline,
++            )?;
+             if let Some(receipt) =
+                 state
+                     .controller
+@@ -778,6 +983,12 @@
+             if tokio::time::Instant::now() >= deadline {
+                 return Err(ParticipantControlError::Deadline);
+             }
++            invocation_current(
++                &cancellation,
++                control.as_ref(),
++                peer_cancel.as_ref(),
++                deadline,
++            )?;
+             let observation = state.controller.apply(
+                 &authority.actor,
+                 &authority.target,
+@@ -1090,3 +1301,6 @@
+ 
+ #[cfg(test)]
+ mod end_session_tests;
++
++#[cfg(test)]
++mod held_control_tests;
+diff --git a/crates/foundation/rvoip-core/src/orchestrator/participant_control/held_control_tests.rs b/crates/foundation/rvoip-core/src/orchestrator/participant_control/held_control_tests.rs
+new file mode 100644
+--- /dev/null
++++ b/crates/foundation/rvoip-core/src/orchestrator/participant_control/held_control_tests.rs
+@@ -0,0 +1,662 @@
++use super::*;
++#[allow(dead_code)]
++#[path = "../../../tests/support/participant_control_fixture.rs"]
++mod fixture;
++use crate::ids::IdentityId;
++use crate::participant_transitions::DepartureCause;
++use fixture::{participant, principal, until, Fixture, TestPolicy};
++use std::sync::atomic::{AtomicUsize, Ordering};
++use tokio::sync::{OwnedRwLockReadGuard, RwLock};
++
++struct Policy {
++    id: uuid::Uuid,
++    facts: Arc<TestPolicy>,
++    grant: Arc<RwLock<bool>>,
++    standalone: AtomicUsize,
++}
++#[derive(Clone)]
++struct Context {
++    domain: uuid::Uuid,
++    session: SessionId,
++    conversation: ConversationId,
++    principal: AuthenticatedPrincipal,
++    mutation: ParticipantMutation,
++    grant: Arc<OwnedRwLockReadGuard<bool>>,
++    cancellation: CancellationToken,
++    deadline: tokio::time::Instant,
++    cancel_at_commit: bool,
++}
++fn same_invocation(context: &Context, scope: &ParticipantScope<'_>) -> bool {
++    context.session == *scope.session
++        && context.conversation == *scope.conversation
++        && context.principal.ownership_key() == scope.principal.ownership_key()
++        && context.principal.expires_at == scope.principal.expires_at
++        && context.principal.scopes == scope.principal.scopes
++        && principal_expiry(&context.principal) == principal_expiry(scope.principal)
++        && context.principal.method == scope.principal.method
++        && context.mutation.operation_id == scope.mutation.operation_id
++        && context.mutation.correlation_id == scope.mutation.correlation_id
++        && context.mutation.expected_revision == scope.mutation.expected_revision
++        && context.mutation.participant == scope.mutation.participant
++        && context.mutation.change == scope.mutation.change
++}
++fn facts(policy: &TestPolicy, scope: &ParticipantScope<'_>) -> ControlResult<ParticipantAuthority> {
++    // Relationship/readiness facts have a separate short mutex; the real
++    // current grant is retained by Context and never reacquired here.
++    let lease = policy.current(scope)?;
++    let value = lease.authority();
++    Ok(ParticipantAuthority {
++        actor: value.actor.clone(),
++        target: value.target.clone(),
++        endpoint: value.endpoint.clone(),
++        may_send_audio: value.may_send_audio,
++        may_receive_audio: value.may_receive_audio,
++        confirmation_required: value.confirmation_required,
++        confirmed_generation: value.confirmed_generation,
++    })
++}
++struct Lease {
++    context: Context,
++    facts: Arc<TestPolicy>,
++}
++impl ParticipantControlLease for Lease {
++    fn current(&self, scope: &ParticipantScope<'_>) -> ControlResult<ParticipantAuthority> {
++        if !same_invocation(&self.context, scope) || !**self.context.grant {
++            return Err(ParticipantControlError::Authority);
++        }
++        let value = facts(&self.facts, scope)?;
++        if scope.connection_generation.is_some() && self.context.cancel_at_commit {
++            self.context.cancellation.cancel();
++        }
++        Ok(value)
++    }
++}
++struct Ordinary {
++    _grant: OwnedRwLockReadGuard<bool>,
++    authority: ParticipantAuthority,
++}
++impl ParticipantAuthorityLease for Ordinary {
++    fn authority(&self) -> &ParticipantAuthority {
++        &self.authority
++    }
++}
++impl ParticipantPolicy for Policy {
++    fn current(
++        &self,
++        scope: &ParticipantScope<'_>,
++    ) -> ControlResult<Box<dyn ParticipantAuthorityLease + '_>> {
++        self.standalone.fetch_add(1, Ordering::AcqRel);
++        let grant = self
++            .grant
++            .clone()
++            .try_read_owned()
++            .map_err(|_| ParticipantControlError::Authority)?;
++        if !*grant {
++            return Err(ParticipantControlError::Authority);
++        }
++        Ok(Box::new(Ordinary {
++            _grant: grant,
++            authority: facts(&self.facts, scope)?,
++        }))
++    }
++    fn current_control(
++        &self,
++        scope: &ParticipantScope<'_>,
++        held: &(dyn Any + Send + Sync),
++    ) -> ControlResult<ParticipantControl> {
++        let context = held
++            .downcast_ref::<Context>()
++            .ok_or(ParticipantControlError::Unsupported)?;
++        if context.domain != self.id || !same_invocation(context, scope) || !**context.grant {
++            return Err(ParticipantControlError::Authority);
++        }
++        ParticipantControl::new(
++            Box::new(Lease {
++                context: context.clone(),
++                facts: self.facts.clone(),
++            }),
++            context.cancellation.clone(),
++            context.deadline,
++        )
++    }
++}
++struct HeldFixture {
++    base: Fixture,
++    session: SessionId,
++    policy: Arc<Policy>,
++}
++impl HeldFixture {
++    async fn new() -> Self {
++        let base = Fixture::new().await;
++        let session = base
++            .orch
++            .start_session(base.conversation.clone(), SessionMedium::Voice, vec![])
++            .await
++            .unwrap();
++        let policy = Arc::new(Policy {
++            id: uuid::Uuid::new_v4(),
++            facts: base.policy.clone(),
++            grant: Arc::new(RwLock::new(true)),
++            standalone: AtomicUsize::new(0),
++        });
++        base.orch
++            .enable_participant_control(&session, policy.clone(), ParticipantLimits::default())
++            .unwrap();
++        Self {
++            base,
++            session,
++            policy,
++        }
++    }
++    async fn context(
++        &self,
++        mutation: ParticipantMutation,
++        principal: AuthenticatedPrincipal,
++    ) -> Context {
++        Context {
++            domain: self.policy.id,
++            session: self.session.clone(),
++            conversation: self.base.conversation.clone(),
++            principal,
++            mutation,
++            grant: Arc::new(self.policy.grant.clone().read_owned().await),
++            cancellation: CancellationToken::new(),
++            deadline: tokio::time::Instant::now() + Duration::from_secs(5),
++            cancel_at_commit: false,
++        }
++    }
++    fn mutation(&self, name: &str, id: &str, change: ParticipantChange) -> ParticipantMutation {
++        self.base.intent(&self.session, name, id, change)
++    }
++    async fn apply(&self, context: &Context) -> ControlResult<ParticipantObservation> {
++        self.base
++            .orch
++            .change_session_participant_with_held(
++                &self.session,
++                context.principal.clone(),
++                context.mutation.clone(),
++                tokio::time::Instant::now() + Duration::from_secs(2),
++                CancellationToken::new(),
++                context,
++            )
++            .await
++    }
++    async fn join(&self, name: &str) -> (ConnectionId, Arc<fixture::TestStream>) {
++        let (id, stream) = self.base.connection(name, true).await;
++        let context = self
++            .context(
++                self.mutation(
++                    name,
++                    &format!("held-join-{name}"),
++                    ParticipantChange::Admit {
++                        connection: id.clone(),
++                        role_override: None,
++                    },
++                ),
++                principal("owner"),
++            )
++            .await;
++        self.apply(&context).await.unwrap();
++        (id, stream)
++    }
++}
++#[tokio::test]
++async fn held_participant_admission_role_departure_progress_behind_real_writer_and_preserve_audio()
++{
++    let f = HeldFixture::new().await;
++    let (alice, audio) = f.base.connection("alice", true).await;
++    let context = f
++        .context(
++            f.mutation(
++                "alice",
++                "held-writer",
++                ParticipantChange::Admit {
++                    connection: alice,
++                    role_override: None,
++                },
++            ),
++            principal("owner"),
++        )
++        .await;
++    let gate = f.policy.grant.clone();
++    let writer = tokio::spawn(async move {
++        let _guard = gate.write_owned().await;
++    });
++    until(|| f.policy.grant.try_read().is_err()).await;
++    tokio::time::timeout(Duration::from_secs(1), f.apply(&context))
++        .await
++        .unwrap()
++        .unwrap();
++    assert!(
++        !writer.is_finished(),
++        "caller still owns proof through delivery"
++    );
++    assert_eq!(f.policy.standalone.load(Ordering::Acquire), 0);
++    drop(context);
++    tokio::time::timeout(Duration::from_secs(1), writer)
++        .await
++        .unwrap()
++        .unwrap();
++    let (_, bob) = f.join("bob").await;
++    let (stop, tone) = audio.continuous_tone();
++    bob.assert_receives_audio().await;
++    f.join("carol").await;
++    bob.assert_receives_audio().await;
++    let role = f
++        .context(
++            f.mutation(
++                "carol",
++                "held-role",
++                ParticipantChange::SetSessionRole {
++                    role: ParticipantRole::Observer,
++                },
++            ),
++            principal("owner"),
++        )
++        .await;
++    f.apply(&role).await.unwrap();
++    drop(role);
++    let leave = f
++        .context(
++            f.mutation(
++                "carol",
++                "held-leave",
++                ParticipantChange::Depart {
++                    cause: DepartureCause::Left,
++                },
++            ),
++            principal("owner"),
++        )
++        .await;
++    f.apply(&leave).await.unwrap();
++    drop(leave);
++    bob.assert_receives_audio().await;
++    assert_eq!(
++        f.base.orch.participant_capacity(&f.session).unwrap(),
++        (2, 0)
++    );
++    assert_eq!(
++        f.base
++            .orch
++            .session(&f.session)
++            .unwrap()
++            .read()
++            .unwrap()
++            .state,
++        SessionState::Active
++    );
++    assert_eq!(f.policy.standalone.load(Ordering::Acquire), 0);
++    stop.cancel();
++    tone.await.unwrap();
++}
++#[tokio::test]
++async fn held_participant_unknown_foreign_or_changed_context_never_falls_back_or_prepares() {
++    let f = HeldFixture::new().await;
++    let (id, _) = f.base.connection("alice", true).await;
++    let mutation = f.mutation(
++        "alice",
++        "held-bound",
++        ParticipantChange::Admit {
++            connection: id,
++            role_override: None,
++        },
++    );
++    let context = f.context(mutation.clone(), principal("owner")).await;
++    for mode in 0..5 {
++        let mut changed = context.clone();
++        match mode {
++            0 => changed.domain = uuid::Uuid::new_v4(),
++            1 => changed.session = SessionId::new(),
++            2 => changed.mutation.expected_revision += 1,
++            3 => changed.mutation.operation_id = "other".into(),
++            _ => changed.principal.subject = "alice".into(),
++        }
++        assert!(matches!(
++            f.base
++                .orch
++                .change_session_participant_with_held(
++                    &f.session,
++                    principal("owner"),
++                    mutation.clone(),
++                    tokio::time::Instant::now() + Duration::from_secs(1),
++                    CancellationToken::new(),
++                    &changed
++                )
++                .await,
++            Err(ParticipantControlError::Authority)
++        ));
++    }
++    assert!(matches!(
++        f.base
++            .orch
++            .change_session_participant_with_held(
++                &f.session,
++                principal("owner"),
++                mutation.clone(),
++                tokio::time::Instant::now() + Duration::from_secs(1),
++                CancellationToken::new(),
++                &()
++            )
++            .await,
++        Err(ParticipantControlError::Unsupported)
++    ));
++    // Existing policies must explicitly opt in; no standalone read fallback.
++    assert!(matches!(
++        f.base
++            .orch
++            .change_session_participant_with_held(
++                &f.base.session,
++                principal("owner"),
++                mutation,
++                tokio::time::Instant::now() + Duration::from_secs(1),
++                CancellationToken::new(),
++                &context
++            )
++            .await,
++        Err(ParticipantControlError::Unsupported)
++    ));
++    assert_eq!(f.base.adapter.accepted.load(Ordering::Acquire), 0);
++    assert_eq!(
++        f.base.orch.participant_capacity(&f.session).unwrap(),
++        (0, 0)
++    );
++    assert_eq!(f.policy.standalone.load(Ordering::Acquire), 0);
++}
++#[tokio::test]
++async fn held_participant_cancel_and_future_drop_release_candidate_and_current_grant() {
++    let f = HeldFixture::new().await;
++    let (_, audio) = f.join("alice").await;
++    let (_, bob) = f.join("bob").await;
++    let (stop, tone) = audio.continuous_tone();
++    bob.assert_receives_audio().await;
++    for (name, abort) in [("carol", false), ("dave", true)] {
++        let (id, _) = f.base.connection(name, false).await;
++        let context = f
++            .context(
++                f.mutation(
++                    name,
++                    &format!("held-cancel-{name}"),
++                    ParticipantChange::Admit {
++                        connection: id.clone(),
++                        role_override: None,
++                    },
++                ),
++                principal("owner"),
++            )
++            .await;
++        let cancel = context.cancellation.clone();
++        let owner = f.base.orch.clone();
++        let sid = f.session.clone();
++        let task = tokio::spawn(async move {
++            owner
++                .change_session_participant_with_held(
++                    &sid,
++                    context.principal.clone(),
++                    context.mutation.clone(),
++                    tokio::time::Instant::now() + Duration::from_secs(2),
++                    CancellationToken::new(),
++                    &context,
++                )
++                .await
++        });
++        until(|| f.base.orch.participant_capacity(&f.session).unwrap() == (2, 1)).await;
++        let gate = f.policy.grant.clone();
++        let writer = tokio::spawn(async move {
++            let _guard = gate.write_owned().await;
++        });
++        until(|| f.policy.grant.try_read().is_err()).await;
++        if abort {
++            task.abort();
++            assert!(task.await.unwrap_err().is_cancelled());
++        } else {
++            cancel.cancel();
++            assert!(matches!(
++                task.await.unwrap(),
++                Err(ParticipantControlError::Cancelled)
++            ));
++        }
++        tokio::time::timeout(Duration::from_secs(1), writer)
++            .await
++            .unwrap()
++            .unwrap();
++        until(|| f.base.orch.participant_capacity(&f.session).unwrap() == (2, 0)).await;
++        assert!(!f
++            .base
++            .orch
++            .session(&f.session)
++            .unwrap()
++            .read()
++            .unwrap()
++            .connections
++            .contains_key(&id));
++        bob.assert_receives_audio().await;
++    }
++    stop.cancel();
++    tone.await.unwrap();
++}
++#[tokio::test]
++async fn held_participant_original_credential_and_task_expiry_bound_preparation() {
++    for task_expiry in [false, true] {
++        let f = HeldFixture::new().await;
++        let (id, _) = f.base.connection("alice", false).await;
++        let mut actor = principal("owner");
++        let expiry = Utc::now() + chrono::Duration::milliseconds(90);
++        if task_expiry {
++            actor.expires_at = Some(Utc::now() + chrono::Duration::seconds(20));
++            actor.assurance = crate::identity::IdentityAssurance::TaskScoped {
++                identity: IdentityId::from_string("id_owner"),
++                task_id: "held-task".into(),
++                scopes: actor.scopes.clone(),
++                expires_at: expiry,
++            };
++        } else {
++            actor.expires_at = Some(expiry);
++        }
++        let context = f
++            .context(
++                f.mutation(
++                    "alice",
++                    "held-expiry",
++                    ParticipantChange::Admit {
++                        connection: id,
++                        role_override: None,
++                    },
++                ),
++                actor,
++            )
++            .await;
++        assert!(Utc::now() < expiry);
++        let result = tokio::time::timeout(Duration::from_millis(700), f.apply(&context))
++            .await
++            .unwrap();
++        assert!(
++            matches!(
++                result,
++                Err(ParticipantControlError::Deadline) | Err(ParticipantControlError::Authority)
++            ),
++            "{result:?}"
++        );
++        assert_eq!(
++            f.base.orch.participant_capacity(&f.session).unwrap(),
++            (0, 0)
++        );
++        assert!(f
++            .base
++            .orch
++            .session(&f.session)
++            .unwrap()
++            .read()
++            .unwrap()
++            .participants
++            .is_empty());
++    }
++}
++#[tokio::test]
++async fn held_participant_cancellation_and_deadline_bound_mixer_wait_before_role_commit() {
++    let f = HeldFixture::new().await;
++    f.join("alice").await;
++    let revision = f.base.orch.participant_revision(&f.session).unwrap();
++    for deadline in [false, true] {
++        let mut context = f
++            .context(
++                f.mutation(
++                    "alice",
++                    if deadline {
++                        "held-mixer-deadline"
++                    } else {
++                        "held-mixer-cancel"
++                    },
++                    ParticipantChange::SetSessionRole {
++                        role: ParticipantRole::Observer,
++                    },
++                ),
++                principal("owner"),
++            )
++            .await;
++        if deadline {
++            context.deadline = tokio::time::Instant::now() + Duration::from_millis(75);
++        }
++        let runtime = f.base.orch.participant_runtime(&f.session).unwrap();
++        let mixer = runtime.mixer.members.clone().lock_owned().await;
++        let cancel = context.cancellation.clone();
++        let owner = f.base.orch.clone();
++        let sid = f.session.clone();
++        let task = tokio::spawn(async move {
++            owner
++                .change_session_participant_with_held(
++                    &sid,
++                    context.principal.clone(),
++                    context.mutation.clone(),
++                    tokio::time::Instant::now() + Duration::from_secs(2),
++                    CancellationToken::new(),
++                    &context,
++                )
++                .await
++        });
++        if !deadline {
++            tokio::time::sleep(Duration::from_millis(25)).await;
++            cancel.cancel();
++        }
++        let result = tokio::time::timeout(Duration::from_millis(600), task)
++            .await
++            .unwrap()
++            .unwrap();
++        assert!(matches!(
++            result,
++            Err(ParticipantControlError::Cancelled) | Err(ParticipantControlError::Deadline)
++        ));
++        assert_eq!(
++            f.base
++                .orch
++                .participant_session_role(&f.session, &participant("alice"))
++                .unwrap(),
++            Some(ParticipantRole::Agent)
++        );
++        assert_eq!(
++            f.base.orch.participant_revision(&f.session).unwrap(),
++            revision
++        );
++        drop(mixer);
++    }
++}
++#[tokio::test]
++async fn held_participant_final_current_facts_and_callback_cancellation_precede_presence() {
++    for cancel in [false, true] {
++        let f = HeldFixture::new().await;
++        let revision = f.base.orch.participant_revision(&f.session).unwrap();
++        let (id, stream) = f.base.connection("alice", false).await;
++        let mut context = f
++            .context(
++                f.mutation(
++                    "alice",
++                    "held-final-current",
++                    ParticipantChange::Admit {
++                        connection: id,
++                        role_override: None,
++                    },
++                ),
++                principal("owner"),
++            )
++            .await;
++        context.cancel_at_commit = cancel;
++        let owner = f.base.orch.clone();
++        let sid = f.session.clone();
++        let task = tokio::spawn(async move {
++            owner
++                .change_session_participant_with_held(
++                    &sid,
++                    context.principal.clone(),
++                    context.mutation.clone(),
++                    tokio::time::Instant::now() + Duration::from_secs(2),
++                    CancellationToken::new(),
++                    &context,
++                )
++                .await
++        });
++        until(|| f.base.orch.participant_capacity(&f.session).unwrap() == (0, 1)).await;
++        if !cancel {
++            f.base.policy.0.write().unwrap().denied = true;
++        }
++        stream.ready.store(true, Ordering::Release);
++        let result = task.await.unwrap();
++        assert!(matches!(
++            result,
++            Err(ParticipantControlError::Authority) | Err(ParticipantControlError::Cancelled)
++        ));
++        assert_eq!(
++            f.base.orch.participant_revision(&f.session).unwrap(),
++            revision
++        );
++        assert_eq!(
++            f.base.orch.participant_capacity(&f.session).unwrap(),
++            (0, 0)
++        );
++    }
++}
++#[tokio::test]
++async fn held_participant_saved_cancelled_context_cannot_replay_or_lend_extended_credentials() {
++    let f = HeldFixture::new().await;
++    let (id, _) = f.base.connection("alice", true).await;
++    let mut actor = principal("owner");
++    actor.expires_at = Some(Utc::now() + chrono::Duration::seconds(5));
++    let context = f
++        .context(
++            f.mutation(
++                "alice",
++                "held-original",
++                ParticipantChange::Admit {
++                    connection: id,
++                    role_override: None,
++                },
++            ),
++            actor.clone(),
++        )
++        .await;
++    f.apply(&context).await.unwrap();
++    let revision = f.base.orch.participant_revision(&f.session).unwrap();
++    let mut extended = actor;
++    extended.expires_at = Some(Utc::now() + chrono::Duration::seconds(60));
++    assert!(matches!(
++        f.base
++            .orch
++            .change_session_participant_with_held(
++                &f.session,
++                extended,
++                context.mutation.clone(),
++                tokio::time::Instant::now() + Duration::from_secs(1),
++                CancellationToken::new(),
++                &context
++            )
++            .await,
++        Err(ParticipantControlError::Authority)
++    ));
++    context.cancellation.cancel();
++    assert!(matches!(
++        f.apply(&context).await,
++        Err(ParticipantControlError::Cancelled)
++    ));
++    assert_eq!(
++        f.base.orch.participant_revision(&f.session).unwrap(),
++        revision
++    );
++}

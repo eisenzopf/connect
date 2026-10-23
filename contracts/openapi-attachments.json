@@ -1,0 +1,1267 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Connect Gate 6 attachment links and recipient receipts",
+    "version": "0.1.0",
+    "description": "Current authenticated message/file audiences, short-lived non-bearer references and recipient-specific observations. Local macOS qualification. Read reporting is opt-in; client reports never establish human action. Canonical message.read shares these original-recipient and opt-in checks and the logical operation ledger. Wire read_at is diagnostic; receipt evidence and typed hints retain server observation time and explicit client_reported provenance. Receipt hints precede their conversation.event cursor fact; production canonical native installation remains open."
+  },
+  "paths": {
+    "/v1/operations": {
+      "post": {
+        "operationId": "attachmentsAndReceiptsControl",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Operation"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Authenticated artifact/link/evidence result or typed rejection",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Response"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid typed draft"
+          },
+          "403": {
+            "description": "Current authority or reference denied"
+          },
+          "409": {
+            "description": "Changed logical intent or unavailable message ID"
+          },
+          "503": {
+            "description": "Current authority is busy or unavailable. Retry the same logical mutation ID after current delivery owners settle. No new mutation is admitted by this refusal.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Response"
+                }
+              }
+            }
+          }
+        },
+        "description": "Attachment link redemption rechecks credential, runtime, resource, original epoch, task/grant context and expiry. Receipt reports are self-only original recipient actions; read preference defaults false. Query filters current preferences and recipient scope before paging. Preserve logical IDs across link renewal or transport uncertainty."
+      }
+    },
+    "/v1/conversations/{conversation_id}/artifacts/{artifact_id}/links/{token}": {
+      "get": {
+        "operationId": "downloadAttachmentLinkBytes",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "description": "Current ordinary recipient credentials required; exact message and artifact binding is in the signed reference. Delegated clients use Task Invoke. Bounded raw bytes, no-store and nosniff.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "conversation_id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            }
+          },
+          {
+            "in": "path",
+            "name": "artifact_id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            }
+          },
+          {
+            "in": "path",
+            "name": "token",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "maxLength": 8192,
+              "pattern": "^[A-Za-z0-9_-]+\\.[a-f0-9]{64}$"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 32768
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Authorized bounded bytes",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "const": "no-store"
+                }
+              },
+              "X-Content-Type-Options": {
+                "schema": {
+                  "const": "nosniff"
+                }
+              },
+              "X-Connect-Offset": {
+                "schema": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991
+                }
+              },
+              "X-Connect-Eof": {
+                "schema": {
+                  "enum": [
+                    "true",
+                    "false"
+                  ]
+                }
+              }
+            },
+            "content": {
+              "application/octet-stream": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "403": {
+            "description": "Current source, credential, purpose or lifetime denied"
+          }
+        }
+      },
+      "put": {
+        "operationId": "uploadAttachmentLinkBytes",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "description": "Current original owner required. Keep request_id, offset and bytes across link renewal; one logical chunk is appended once.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "conversation_id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            }
+          },
+          {
+            "in": "path",
+            "name": "artifact_id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            }
+          },
+          {
+            "in": "path",
+            "name": "token",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "maxLength": 8192,
+              "pattern": "^[A-Za-z0-9_-]+\\.[a-f0-9]{64}$"
+            }
+          },
+          {
+            "in": "query",
+            "name": "request_id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/octet-stream": {
+              "schema": {
+                "type": "string",
+                "format": "binary",
+                "minLength": 1,
+                "maxLength": 32768
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Authenticated artifact/link/evidence result or typed rejection",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Response"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid typed draft"
+          },
+          "403": {
+            "description": "Current authority or reference denied"
+          },
+          "409": {
+            "description": "Changed logical intent or unavailable message ID"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer"
+      }
+    },
+    "schemas": {
+      "Error": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "code",
+          "message"
+        ]
+      },
+      "Response": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "profile": {
+            "const": "connect-control/1"
+          },
+          "result": {
+            "oneOf": [
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "Ok": {
+                    "$ref": "#/components/schemas/Outcome"
+                  }
+                },
+                "required": [
+                  "Ok"
+                ]
+              },
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "Err": {
+                    "$ref": "#/components/schemas/Error"
+                  }
+                },
+                "required": [
+                  "Err"
+                ]
+              }
+            ]
+          }
+        },
+        "required": [
+          "profile",
+          "result"
+        ]
+      },
+      "Artifact": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          },
+          "conversation_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          },
+          "owner_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          },
+          "media_type": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          },
+          "sha256": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          },
+          "state": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          },
+          "size": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "received": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "created_at": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "expires_at": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": 0
+          }
+        },
+        "required": [
+          "id",
+          "conversation_id",
+          "owner_id",
+          "name",
+          "media_type",
+          "sha256",
+          "state",
+          "size",
+          "received",
+          "created_at",
+          "expires_at"
+        ]
+      },
+      "ArtifactLink": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "conversation_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          },
+          "artifact_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          },
+          "message_id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "path": {
+            "type": "string",
+            "maxLength": 8192,
+            "pattern": "^/v1/conversations/[A-Za-z0-9._~-]+/artifacts/[A-Za-z0-9._~-]+/links/[A-Za-z0-9_-]+\\.[a-f0-9]{64}$"
+          },
+          "expires_at": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9007199254740991
+          },
+          "purpose": {
+            "enum": [
+              "upload",
+              "download"
+            ]
+          }
+        },
+        "required": [
+          "conversation_id",
+          "artifact_id",
+          "message_id",
+          "path",
+          "expires_at",
+          "purpose"
+        ]
+      },
+      "ArtifactChunk": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "artifact": {
+            "$ref": "#/components/schemas/Artifact"
+          },
+          "offset": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "data": {
+            "type": "string",
+            "maxLength": 43692
+          },
+          "eof": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "artifact",
+          "offset",
+          "data",
+          "eof"
+        ]
+      },
+      "RecipientReceipt": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "conversation_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          },
+          "message_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          },
+          "participant_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          },
+          "membership_epoch": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9007199254740991
+          },
+          "channel": {
+            "enum": [
+              "native",
+              "provider"
+            ]
+          },
+          "delivery_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          },
+          "state": {
+            "enum": [
+              "queued",
+              "accepted",
+              "delivered",
+              "read",
+              "failed",
+              "unknown"
+            ]
+          },
+          "provenance": {
+            "enum": [
+              "journal",
+              "client_reported",
+              "provider_observation",
+              "provider_state",
+              "local_attempt"
+            ]
+          },
+          "observed_at": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          }
+        },
+        "required": [
+          "conversation_id",
+          "message_id",
+          "participant_id",
+          "membership_epoch",
+          "channel",
+          "delivery_id",
+          "state",
+          "provenance",
+          "observed_at"
+        ]
+      },
+      "ReceiptPage": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "receipts": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RecipientReceipt"
+            }
+          },
+          "next": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "receipts",
+          "next"
+        ]
+      },
+      "ReceiptPreferences": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "conversation_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          },
+          "participant_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          },
+          "membership_epoch": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9007199254740991
+          },
+          "delivery": {
+            "type": "boolean"
+          },
+          "read": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "conversation_id",
+          "participant_id",
+          "membership_epoch",
+          "delivery",
+          "read"
+        ]
+      },
+      "ReceiptAcknowledgement": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "conversation_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          },
+          "message_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          },
+          "participant_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          },
+          "membership_epoch": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9007199254740991
+          },
+          "recorded": {
+            "enum": [
+              null,
+              "delivered",
+              "read"
+            ]
+          }
+        },
+        "required": [
+          "conversation_id",
+          "message_id",
+          "participant_id",
+          "membership_epoch",
+          "recorded"
+        ]
+      },
+      "Outcome": {
+        "oneOf": [
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "kind": {
+                "const": "artifact"
+              },
+              "data": {
+                "$ref": "#/components/schemas/Artifact"
+              }
+            },
+            "required": [
+              "kind",
+              "data"
+            ]
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "kind": {
+                "const": "artifact_chunk"
+              },
+              "data": {
+                "$ref": "#/components/schemas/ArtifactChunk"
+              }
+            },
+            "required": [
+              "kind",
+              "data"
+            ]
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "kind": {
+                "const": "artifact_link"
+              },
+              "data": {
+                "$ref": "#/components/schemas/ArtifactLink"
+              }
+            },
+            "required": [
+              "kind",
+              "data"
+            ]
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "kind": {
+                "const": "message_receipts"
+              },
+              "data": {
+                "$ref": "#/components/schemas/ReceiptPage"
+              }
+            },
+            "required": [
+              "kind",
+              "data"
+            ]
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "kind": {
+                "const": "receipt_preferences"
+              },
+              "data": {
+                "$ref": "#/components/schemas/ReceiptPreferences"
+              }
+            },
+            "required": [
+              "kind",
+              "data"
+            ]
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "kind": {
+                "const": "receipt_acknowledged"
+              },
+              "data": {
+                "$ref": "#/components/schemas/ReceiptAcknowledgement"
+              }
+            },
+            "required": [
+              "kind",
+              "data"
+            ]
+          }
+        ]
+      },
+      "Operation": {
+        "oneOf": [
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "op": {
+                "const": "artifact_begin"
+              },
+              "request_id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128
+              },
+              "conversation_id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128
+              },
+              "to": {
+                "oneOf": [
+                  {
+                    "const": "all"
+                  },
+                  {
+                    "type": "array",
+                    "minItems": 1,
+                    "maxItems": 100,
+                    "uniqueItems": true,
+                    "items": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 128
+                    }
+                  }
+                ]
+              },
+              "name": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256
+              },
+              "media_type": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128
+              },
+              "size": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              "sha256": {
+                "type": "string",
+                "pattern": "^[a-fA-F0-9]{64}$"
+              },
+              "expires_at": {
+                "type": [
+                  "integer",
+                  "null"
+                ]
+              }
+            },
+            "required": [
+              "op",
+              "request_id",
+              "conversation_id",
+              "to",
+              "name",
+              "media_type",
+              "size",
+              "sha256"
+            ]
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "op": {
+                "const": "artifact_append"
+              },
+              "request_id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128
+              },
+              "conversation_id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128
+              },
+              "artifact_id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128
+              },
+              "offset": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              "data": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 43692
+              }
+            },
+            "required": [
+              "op",
+              "request_id",
+              "conversation_id",
+              "artifact_id",
+              "offset",
+              "data"
+            ]
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "op": {
+                "const": "artifact_finish"
+              },
+              "request_id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128
+              },
+              "conversation_id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128
+              },
+              "artifact_id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128
+              }
+            },
+            "required": [
+              "op",
+              "request_id",
+              "conversation_id",
+              "artifact_id"
+            ]
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "op": {
+                "const": "artifact_delete"
+              },
+              "request_id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128
+              },
+              "conversation_id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128
+              },
+              "artifact_id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128
+              }
+            },
+            "required": [
+              "op",
+              "request_id",
+              "conversation_id",
+              "artifact_id"
+            ]
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "op": {
+                "const": "artifact_get"
+              },
+              "conversation_id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128
+              },
+              "artifact_id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128
+              },
+              "offset": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              "limit": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 32768
+              }
+            },
+            "required": [
+              "op",
+              "conversation_id",
+              "artifact_id",
+              "offset",
+              "limit"
+            ]
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "op": {
+                "const": "artifact_inspect"
+              },
+              "conversation_id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128
+              },
+              "artifact_id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128
+              }
+            },
+            "required": [
+              "op",
+              "conversation_id",
+              "artifact_id"
+            ]
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "op": {
+                "const": "artifact_upload_link"
+              },
+              "conversation_id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128
+              },
+              "artifact_id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128
+              },
+              "expires_in": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 300
+              }
+            },
+            "required": [
+              "op",
+              "conversation_id",
+              "artifact_id",
+              "expires_in"
+            ]
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "op": {
+                "const": "artifact_download_link"
+              },
+              "conversation_id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128
+              },
+              "artifact_id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128
+              },
+              "expires_in": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 300
+              },
+              "message_id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128
+              }
+            },
+            "required": [
+              "op",
+              "conversation_id",
+              "artifact_id",
+              "expires_in",
+              "message_id"
+            ]
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "op": {
+                "const": "artifact_link_append"
+              },
+              "request_id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128
+              },
+              "conversation_id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128
+              },
+              "artifact_id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128
+              },
+              "link": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 8192
+              },
+              "offset": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              "data": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 43692
+              }
+            },
+            "required": [
+              "op",
+              "request_id",
+              "conversation_id",
+              "artifact_id",
+              "link",
+              "offset",
+              "data"
+            ]
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "op": {
+                "const": "artifact_link_get"
+              },
+              "conversation_id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128
+              },
+              "artifact_id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128
+              },
+              "link": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 8192
+              },
+              "offset": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              "limit": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 32768
+              }
+            },
+            "required": [
+              "op",
+              "conversation_id",
+              "artifact_id",
+              "link",
+              "offset",
+              "limit"
+            ]
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "op": {
+                "const": "message_receipts"
+              },
+              "conversation_id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128
+              },
+              "message_id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128
+              },
+              "after": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "limit": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 100
+              }
+            },
+            "required": [
+              "op",
+              "conversation_id",
+              "message_id",
+              "limit"
+            ]
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "op": {
+                "const": "message_receipt"
+              },
+              "request_id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128
+              },
+              "conversation_id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128
+              },
+              "message_id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128
+              },
+              "state": {
+                "enum": [
+                  "delivered",
+                  "read"
+                ]
+              }
+            },
+            "required": [
+              "op",
+              "request_id",
+              "conversation_id",
+              "message_id",
+              "state"
+            ]
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "op": {
+                "const": "receipt_preferences_get"
+              },
+              "conversation_id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128
+              }
+            },
+            "required": [
+              "op",
+              "conversation_id"
+            ]
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "op": {
+                "const": "receipt_preferences_set"
+              },
+              "request_id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128
+              },
+              "conversation_id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128
+              },
+              "delivery": {
+                "type": "boolean"
+              },
+              "read": {
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "op",
+              "request_id",
+              "conversation_id",
+              "delivery",
+              "read"
+            ]
+          }
+        ]
+      }
+    }
+  }
+}

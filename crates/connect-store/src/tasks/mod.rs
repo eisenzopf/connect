@@ -1,11 +1,13 @@
 //! Durable application task state. No media socket or host session owns its lifetime.
 mod authority;
+mod authority_fences;
 pub(crate) mod budget;
 mod claims;
 mod clock;
 mod defaults;
 pub use defaults::TaskCreateDefaults;
 mod effects;
+pub use effects::TaskObservationBinding;
 mod grants;
 pub use grants::{IssuedTaskGrant, NativeTaskAuthority, TaskInvocation};
 mod inbox;
@@ -46,6 +48,14 @@ pub(crate) fn authorize_effect_link(
     resource: &str,
     timestamp: i64,
 ) -> Result<()> {
+    effect_link_deadline(c, kind, resource, timestamp).map(|_| ())
+}
+pub(crate) fn effect_link_deadline(
+    c: &rusqlite::Connection,
+    kind: &str,
+    resource: &str,
+    timestamp: i64,
+) -> Result<i64> {
     use rusqlite::OptionalExtension;
     let id: Option<String> = c
         .query_row(
@@ -56,7 +66,7 @@ pub(crate) fn authorize_effect_link(
         .optional()
         .map_err(|_| Error::storage())?;
     if let Some(id) = id {
-        effects::authorize_effect(c, &id, timestamp)?;
+        return effects::effect_deadline(c, &id, timestamp);
     } else if let Some(operation) = match kind {
         "call" => Some("call_start"),
         "sip_leg" => Some("sip_dial"),
@@ -70,9 +80,9 @@ pub(crate) fn authorize_effect_link(
             return Err(Error::forbidden());
         }
     }
-    Ok(())
+    Ok(i64::MAX)
 }
-pub(crate) use effects::authorize_effect;
+pub(crate) use effects::{authorize_effect, effect_deadline};
 pub(crate) use effects::{provider_task_context, provider_task_reply, ProviderTaskContext};
 
 #[cfg(test)]
@@ -88,4 +98,41 @@ pub(crate) fn task_sms_decision(
     conversation: &str,
 ) -> connect_protocol::Result<Option<std::result::Result<String, &'static str>>> {
     sms::dispatch(c, job, phone, sender, conversation)
+}
+
+/// Context reads retain only explicitly delegated record permission. Other
+/// operations keep their existing command admission; no backing wildcard is
+/// borrowed to add record bodies to a narrower task/invocation context.
+pub(crate) fn context_actor(
+    c: &rusqlite::Connection,
+    actor: &crate::Actor,
+    task_id: &str,
+    grant: Option<&str>,
+) -> connect_protocol::Result<crate::Actor> {
+    let task = storage::load(c, task_id)?.record;
+    let mut allowed = task
+        .scope
+        .operations
+        .contains(&connect_protocol::tasks::TaskPermission::RecordGet);
+    if let Some(grant) = grant {
+        let raw: String = c
+            .query_row(
+                "SELECT operations_json FROM task_grants WHERE id=?1 AND task_id=?2",
+                rusqlite::params![grant, task_id],
+                |r| r.get(0),
+            )
+            .map_err(|_| connect_protocol::Error::forbidden())?;
+        let ops: Vec<connect_protocol::tasks::TaskPermission> =
+            serde_json::from_str(&raw).map_err(|_| connect_protocol::Error::storage())?;
+        allowed &= ops.contains(&connect_protocol::tasks::TaskPermission::RecordGet);
+    }
+    let mut narrowed = actor.clone();
+    if !allowed {
+        narrowed.scope.operations = ["context_view", "history"]
+            .into_iter()
+            .filter(|op| actor.permits(op))
+            .map(str::to_owned)
+            .collect();
+    }
+    Ok(narrowed)
 }

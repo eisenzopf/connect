@@ -40,9 +40,10 @@ fn native_provider_route_cannot_inherit_the_owners_broader_context_projection() 
         m.f.store
             .prepare_vapi_session_context(&subject, &session.id)
             .unwrap();
-    let selection: TaskOutcome = serde_json::from_str(&context.json).unwrap();
+    let selection: connect_connector_api::host_context::TaskProjection =
+        serde_json::from_str(&context.json).unwrap();
     assert!(
-        matches!(selection, TaskOutcome::Recall { sources, next: None, omitted: 0 } if sources.is_empty())
+        matches!(selection, connect_connector_api::host_context::TaskProjection::Recall { sources, next: None, omitted: None } if sources.is_empty())
     );
     let deliveries: u64 =
         m.f.store
@@ -62,7 +63,9 @@ fn session_in_another_conversation_is_denied_despite_current_owner_membership() 
                 &m.f.key.id,
                 &Operation::Create {
                     request_id: "other-conversation".into(),
-                    participants: vec![m.peer_id.clone()],
+                    request: connect_protocol::conversations::CreateRequest::persistent(vec![m
+                        .peer_id
+                        .clone()]),
                 },
             )
             .unwrap()

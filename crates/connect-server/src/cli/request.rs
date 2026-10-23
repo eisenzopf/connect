@@ -1,30 +1,26 @@
-//! One bounded JSON operation through the public native client.
-//!
-//! Task discovery uses the same backing credential and never issues authority.
-//! The optional envelope preserves structured application errors; rejected
-//! requests still exit unsuccessfully. No request body appears in diagnostics.
+//! One bounded canonical command, or an explicitly selected application API.
 use super::client_errors::client_error;
-use connect_client::{ClientConfig, ConnectClient};
-use connect_protocol::{Error, Operation, Outcome, Response, PROFILE};
+use connect_client::{
+    application::{ApplicationClient, ApplicationClientConfig, ApplicationOperation},
+    canonical::{CanonicalClient, CanonicalClientConfig, Command},
+};
+use connect_protocol::{Error, Operation, PROFILE};
+use serde_json::{json, Value};
 use std::path::Path;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
-
 const MAX_INPUT: u64 = 65_536;
 
-/// Read one operation, execute it, close the peer and write one JSON result.
 pub async fn execute(
     path: &Path,
+    application: bool,
     task_address: Option<&str>,
     task_id: Option<&str>,
     envelope: bool,
 ) -> anyhow::Result<()> {
-    let result = exchange(path, task_address, task_id).await;
+    let result = exchange(path, application, task_address, task_id).await;
     let rejected = result.is_err();
     let bytes = if envelope {
-        serde_json::to_vec(&Response {
-            profile: PROFILE.into(),
-            result,
-        })?
+        serde_json::to_vec(&json!({"profile":PROFILE,"result":result}))?
     } else {
         serde_json::to_vec(&result.map_err(anyhow::Error::from)?)?
     };
@@ -38,48 +34,76 @@ pub async fn execute(
     );
     Ok(())
 }
-
 async fn exchange(
     path: &Path,
+    application: bool,
     task_address: Option<&str>,
     task_id: Option<&str>,
-) -> Result<Outcome, Error> {
+) -> Result<Value, Error> {
     let mut bytes = Vec::new();
     tokio::io::stdin()
         .take(MAX_INPUT + 1)
         .read_to_end(&mut bytes)
         .await
-        .map_err(|_| Error::new("invalid-request", "Could not read operation input"))?;
+        .map_err(|_| Error::new("invalid-request", "Could not read command input"))?;
     if bytes.len() as u64 > MAX_INPUT {
         return Err(Error::new(
             "invalid-request",
-            "Operation input exceeds 64 KiB",
+            "Command input exceeds 64 KiB",
         ));
     }
-    let operation: Operation = serde_json::from_slice(&bytes)
-        .map_err(|_| Error::new("invalid-request", "Invalid operation JSON"))?;
-    let config = ClientConfig::load(path).map_err(client_error)?;
-    let mut client = ConnectClient::open(config).await.map_err(client_error)?;
-    let result = async {
-        if matches!(operation, Operation::Task { .. }) {
-            if let Some(task_id) = task_id {
-                client.negotiate_task(task_id).await.map_err(client_error)?;
+    if application {
+        let operation: Operation = serde_json::from_slice(&bytes)
+            .map_err(|_| Error::new("invalid-request", "Invalid application operation JSON"))?;
+        let task = matches!(operation, Operation::Task { .. });
+        let cid = operation.conversation_id().map(str::to_owned);
+        let operation = ApplicationOperation::try_from(operation).map_err(client_error)?;
+        let config = ApplicationClientConfig::load(path).map_err(client_error)?;
+        let mut client = ApplicationClient::open(config)
+            .await
+            .map_err(client_error)?;
+        if task {
+            if let Some(id) = task_id {
+                client.negotiate_task(id).await.map_err(client_error)?;
             } else {
-                let address = task_address.ok_or_else(|| {
-                    Error::new(
-                        "unsupported-profile",
-                        "Task request requires --task-address or --task-id for explicit discovery",
-                    )
-                })?;
                 client
-                    .negotiate_tasks(address, operation.conversation_id())
+                    .negotiate_tasks(
+                        task_address.ok_or_else(|| {
+                            Error::new(
+                                "unsupported-profile",
+                                "Task request requires --task-address or --task-id",
+                            )
+                        })?,
+                        cid.as_deref(),
+                    )
                     .await
                     .map_err(client_error)?;
             }
+        } else if task_address.is_some() || task_id.is_some() {
+            return Err(Error::new(
+                "invalid-request",
+                "Task discovery flags require a task application operation",
+            ));
         }
-        client.request(operation).await.map_err(client_error)
+        return serde_json::to_value(client.execute(operation).await.map_err(client_error)?)
+            .map_err(|_| Error::new("invalid-response", "Application result encoding failed"));
     }
-    .await;
-    client.close().await;
+    if task_address.is_some() || task_id.is_some() {
+        return Err(Error::new(
+            "invalid-request",
+            "Task discovery requires --application",
+        ));
+    }
+    let command: Command = serde_json::from_slice(&bytes)
+        .map_err(|_| Error::new("invalid-request", "Invalid canonical command JSON"))?;
+    let config = CanonicalClientConfig::load(path).map_err(client_error)?;
+    let mut client = CanonicalClient::open(config).await.map_err(client_error)?;
+    let result=async {
+        let batch=client.request(command.command,command.scope).await.map_err(client_error)?;
+        batch.ack().map_err(client_error)?;
+        Ok(json!({"kind":"canonical_reply","data":{"request_id":batch.request_id,"frames":batch.frames.iter().map(|f|f.original()).collect::<Vec<_>>()}}))
+    }.await;
+    // Preserve a verified command result even if the protocol drain times out.
+    let _ = client.shutdown().await;
     result
 }

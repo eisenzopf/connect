@@ -1,0 +1,5 @@
+Synthetic VP8 keyframe, 640 x 360, generated from black pixels with FFmpeg/libvpx.
+Source: ffmpeg -f lavfi -i color=c=black:s=640x360:r=1 -frames:v 1 -c:v libvpx -deadline realtime -cpu-used 8 -b:v 100k -f ivf output.ivf
+Fixture is the single 424-byte frame after the 32-byte IVF header and 12-byte frame record.
+SHA-256: 609475934e989888713520c5bb2ff8c2ae832d0a50c9af82c2353f576da354f2
+Default tests use this bounded fixture and need no encoder process or capture device.

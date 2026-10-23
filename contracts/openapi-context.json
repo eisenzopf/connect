@@ -1,0 +1,634 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Connect audience-scoped context and captured provider receipts",
+    "version": "schema-81",
+    "description": "Named HTTP application reads, independently scoped from canonical communication. The native destination is the captured Connection/generation, including after its retirement. Private generations come from the original saved private snapshot. Lifecycle facts describe provider control observations, not audio readiness. Null metadata means this lane has no such captured native observation; it is never evidence of success. A receipt, destination ID or provider reference is not authority to export, attach media, reopen memory or clean up a call. Authorized record projections require independent record_get permission; broader tenant roles do not supply context membership or listener source rights. The record reference contains only the caller-authorized projection digest. Raw whole-record and manifest fingerprints are private. Retention deadlines are data; actual IO and opaque-memory reuse require fresh owned authority."
+  },
+  "paths": {
+    "/v1/operations": {
+      "post": {
+        "operationId": "readContextOrDeliveries",
+        "description": "Requires current context_view, active membership/resource audience at its original epoch, and recipient ceilings. Pages use immutable insertion order, newest first, and an identity/Conversation-bound cursor. A read reports current receipt state without rewriting saved selected history. Responses include no selection_json, credentials, secret references or runtime transport identities. Model-facing recipient projections omit receipt lists. The original private audience controls private receipts; current whole-Conversation membership is insufficient. cleanup_admitted/cleanup_uncertain are null where that lane records no independent cleanup admission. They do not claim that a packet was sent. Exact ACK, truncation/refusal, uncertainty and terminal-before-ACK remain distinguishable. Actual public provider forwarding, voice initialization/update, restart journeys and remote profiles retain their separate qualification.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Operation"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Current projection/page, or a named application error in result.Err (including invalid limits and cursor conflicts).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Response"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Malformed JSON request (transport rejection; no application Response envelope)."
+          },
+          "401": {
+            "description": "Invalid, revoked or expired bearer.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Response"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Current member, resource audience or recipient ceiling refused.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Response"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Encoded request exceeds the HTTP body limit (transport rejection; no application Response envelope)."
+          },
+          "503": {
+            "description": "Authority/storage unavailable; retry the same cursor.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Response"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "JSON does not decode as an operation (transport rejection; no application Response envelope)."
+          }
+        },
+        "x-max-encoded-request-bytes": 65536,
+        "x-max-encoded-response-bytes": 2097152,
+        "x-response-limit-owner": "ApplicationClient decode limit; not a server response cap"
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer"
+      }
+    },
+    "schemas": {
+      "Destination": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "connection_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          },
+          "generation": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9007199254740991
+          },
+          "purpose": {
+            "enum": [
+              "public_session",
+              "private_consultation"
+            ]
+          }
+        },
+        "required": [
+          "connection_id",
+          "generation",
+          "purpose"
+        ]
+      },
+      "Lifecycle": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "creation_admitted": {
+            "type": "boolean"
+          },
+          "creation_confirmed": {
+            "type": "boolean"
+          },
+          "export_admitted": {
+            "type": "boolean"
+          },
+          "delivery_confirmed": {
+            "type": "boolean"
+          },
+          "cleanup_admitted": {
+            "oneOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "cleanup_uncertain": {
+            "oneOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "closed": {
+            "type": "boolean"
+          },
+          "phase": {
+            "enum": [
+              "initialization",
+              "post_creation",
+              "update"
+            ]
+          },
+          "parent_delivery_id": {
+            "oneOf": [
+              {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "creation_admitted",
+          "creation_confirmed",
+          "export_admitted",
+          "delivery_confirmed",
+          "cleanup_admitted",
+          "cleanup_uncertain",
+          "closed",
+          "phase",
+          "parent_delivery_id"
+        ]
+      },
+      "Delivery": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          },
+          "session_id": {
+            "oneOf": [
+              {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "provider": {
+            "type": "string"
+          },
+          "watermark": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "state": {
+            "type": "string"
+          },
+          "provider_ref": {
+            "oneOf": [
+              {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 512
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "created_at": {
+            "type": "integer"
+          },
+          "updated_at": {
+            "type": "integer"
+          },
+          "destination": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/Destination"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "problem": {
+            "oneOf": [
+              {
+                "enum": [
+                  "rejected",
+                  "truncated",
+                  "incomplete",
+                  "unknown"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "lifecycle": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/Lifecycle"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "session_id",
+          "provider",
+          "watermark",
+          "state",
+          "provider_ref",
+          "created_at",
+          "updated_at",
+          "destination",
+          "problem",
+          "lifecycle"
+        ]
+      },
+      "ContextItem": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "sequence": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "kind": {
+            "type": "string"
+          },
+          "source_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          },
+          "actor_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          },
+          "body": {
+            "type": "string"
+          },
+          "record": {
+            "$ref": "#/components/schemas/ContextRecord"
+          }
+        },
+        "required": [
+          "sequence",
+          "kind",
+          "source_id",
+          "actor_id",
+          "body"
+        ]
+      },
+      "ContextView": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "conversation_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          },
+          "watermark": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ContextItem"
+            }
+          },
+          "omitted": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "deliveries": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Delivery"
+            }
+          },
+          "deliveries_omitted": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          }
+        },
+        "required": [
+          "conversation_id",
+          "watermark",
+          "items",
+          "omitted",
+          "deliveries",
+          "deliveries_omitted"
+        ]
+      },
+      "DeliveryPage": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "deliveries": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Delivery"
+            }
+          },
+          "next": {
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "deliveries",
+          "next"
+        ]
+      },
+      "Operation": {
+        "oneOf": [
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "op": {
+                "const": "context_view"
+              },
+              "conversation_id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128
+              },
+              "limit": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 4294967295,
+                "description": "Also bounded by the installation page_size limit."
+              }
+            },
+            "required": [
+              "op",
+              "conversation_id",
+              "limit"
+            ]
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "op": {
+                "const": "context_deliveries"
+              },
+              "conversation_id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128
+              },
+              "before": {
+                "oneOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "limit": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 4294967295,
+                "description": "Also bounded by the installation page_size limit."
+              }
+            },
+            "required": [
+              "op",
+              "conversation_id",
+              "limit"
+            ]
+          }
+        ]
+      },
+      "Outcome": {
+        "oneOf": [
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "kind": {
+                "const": "context_view"
+              },
+              "data": {
+                "$ref": "#/components/schemas/ContextView"
+              }
+            },
+            "required": [
+              "kind",
+              "data"
+            ]
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "kind": {
+                "const": "context_deliveries"
+              },
+              "data": {
+                "$ref": "#/components/schemas/DeliveryPage"
+              }
+            },
+            "required": [
+              "kind",
+              "data"
+            ]
+          }
+        ]
+      },
+      "Error": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "code",
+          "message"
+        ]
+      },
+      "Response": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "profile": {
+            "const": "connect-control/1"
+          },
+          "result": {
+            "oneOf": [
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "Ok": {
+                    "$ref": "#/components/schemas/Outcome"
+                  }
+                },
+                "required": [
+                  "Ok"
+                ]
+              },
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "Err": {
+                    "$ref": "#/components/schemas/Error"
+                  }
+                },
+                "required": [
+                  "Err"
+                ]
+              }
+            ]
+          }
+        },
+        "required": [
+          "profile",
+          "result"
+        ]
+      },
+      "ContextRecord": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "uuid",
+          "session_id",
+          "revision",
+          "state",
+          "content_hash",
+          "valid_until"
+        ],
+        "properties": {
+          "uuid": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "session_id": {
+            "type": "string"
+          },
+          "revision": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9007199254740991
+          },
+          "state": {
+            "type": "string",
+            "enum": [
+              "available",
+              "unavailable",
+              "deleted"
+            ]
+          },
+          "content_hash": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Digest of this authorized unsigned projection only."
+          },
+          "valid_until": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": 0,
+            "maximum": 9007199254740991
+          }
+        },
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "state": {
+                  "const": "available"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "content_hash": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              }
+            },
+            "else": {
+              "properties": {
+                "content_hash": {
+                  "type": "null"
+                }
+              }
+            }
+          }
+        ]
+      }
+    }
+  }
+}

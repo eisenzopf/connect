@@ -39,7 +39,9 @@ fn sip_intent_is_authorized_idempotent_recoverable_and_terminable() {
             &app_key.id,
             &Operation::Create {
                 request_id: "sip-create".into(),
-                participants: vec![agent.id.clone()],
+                request: connect_protocol::conversations::CreateRequest::persistent(vec![agent
+                    .id
+                    .clone()]),
             },
         )
         .unwrap()
@@ -327,7 +329,9 @@ fn media_fixture() -> MediaFixture {
             &app_key,
             &Operation::Create {
                 request_id: "profile-conversation".into(),
-                participants: vec![agent.clone()],
+                request: connect_protocol::conversations::CreateRequest::persistent(vec![
+                    agent.clone()
+                ]),
             },
         )
         .unwrap()
@@ -431,20 +435,20 @@ fn av_sip_dial_is_canonically_rejected_without_intent_and_same_conversation_audi
     assert_eq!(
         count(
             &f,
-            "SELECT COUNT(*) FROM requests WHERE id='unsupported-av-dial'"
+            "SELECT COUNT(*) FROM operations WHERE operation_id='unsupported-av-dial'"
         ),
         1
     );
     let saved: String = rusqlite::Connection::open(f.store.path())
         .unwrap()
         .query_row(
-            "SELECT result FROM requests WHERE id='unsupported-av-dial'",
+            "SELECT problem_json FROM operations WHERE operation_id='unsupported-av-dial'",
             [],
             |row| row.get(0),
         )
         .unwrap();
-    let rejection: connect_protocol::Result<Outcome> = serde_json::from_str(&saved).unwrap();
-    assert_eq!(rejection.unwrap_err().code, "unsupported-media-profile");
+    let rejection: connect_protocol::Error = serde_json::from_str(&saved).unwrap();
+    assert_eq!(rejection.code, "unsupported-media-profile");
     assert_eq!(count(&f, "SELECT COUNT(*) FROM journal"), events);
     assert!(f.store.claim_sip_leg_job().unwrap().is_none());
     let Outcome::SipLeg(audio) = f

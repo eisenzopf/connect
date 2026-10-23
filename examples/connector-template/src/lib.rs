@@ -121,6 +121,7 @@ impl Connector for LocalProvider {
         &self,
         mutation_id: &str,
         request: &DeliveryRequest,
+        permit: connect_connector_api::DispatchPermit,
     ) -> Result<Completion, Failure> {
         let context = match &request.context {
             None => vec![],
@@ -131,19 +132,27 @@ impl Connector for LocalProvider {
             .messaging_items()?,
         };
         let receipt = self
-            .send(&MessageRequest {
-                mutation_id: mutation_id.into(),
-                target: request.target.clone(),
-                body: request.body.clone(),
-                context,
-            })
+            .send(
+                &MessageRequest {
+                    mutation_id: mutation_id.into(),
+                    target: request.target.clone(),
+                    body: request.body.clone(),
+                    context,
+                },
+                permit,
+            )
             .await?;
         Ok(Completion {
             provider_id: receipt.observation.external_id.ok_or(Failure::Uncertain)?,
             reply: receipt.reply,
         })
     }
-    async fn deliver(&self, _request: &DeliveryRequest) -> Result<Completion, Failure> {
+    async fn deliver(
+        &self,
+        _request: &DeliveryRequest,
+        permit: connect_connector_api::DispatchPermit,
+    ) -> Result<Completion, Failure> {
+        permit.admit_effect()?;
         // A fixture that promises idempotency requires the host's logical ID.
         // Do not silently invent one from text or external provider identifiers.
         Err(Failure::Rejected)
@@ -151,8 +160,13 @@ impl Connector for LocalProvider {
 }
 #[async_trait]
 impl MessageExtension for LocalProvider {
-    async fn message_status(&self, id: &str) -> Result<MessageReceipt, Failure> {
+    async fn message_status(
+        &self,
+        id: &str,
+        permit: connect_connector_api::DispatchPermit,
+    ) -> Result<MessageReceipt, Failure> {
         let mut state = self.state.lock().map_err(|_| Failure::Uncertain)?;
+        permit.check()?;
         let entry = state.messages.get_mut(id).ok_or(Failure::Rejected)?;
         entry.uncertain = false;
         let mut receipt = entry.receipt.clone();
@@ -161,7 +175,12 @@ impl MessageExtension for LocalProvider {
         self.save(&state)?;
         Ok(receipt)
     }
-    async fn send(&self, request: &MessageRequest) -> Result<MessageReceipt, Failure> {
+    async fn send(
+        &self,
+        request: &MessageRequest,
+        permit: connect_connector_api::DispatchPermit,
+    ) -> Result<MessageReceipt, Failure> {
+        permit.admit_effect()?;
         let m = Connector::manifest(self);
         if request.mutation_id.is_empty()
             || request.mutation_id.len() > 256
@@ -179,6 +198,7 @@ impl MessageExtension for LocalProvider {
             return Err(Failure::Rejected);
         }
         let mut state = self.state.lock().map_err(|_| Failure::Uncertain)?;
+        permit.check()?;
         if let Some(old) = state.messages.get(&request.mutation_id) {
             if &old.request != request {
                 return Err(Failure::Rejected);

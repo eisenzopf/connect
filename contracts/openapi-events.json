@@ -1,0 +1,5081 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Connect authorized snapshots, events and observations",
+    "version": "schema-88",
+    "description": "Current typed control facade. Canonical physical conversation.subscribe uses the same Store pages through explicit per-peer composition (63 facts with optional typed Conversation closure, Session termination, receipt and record readiness hints before cursor events and final ACK, eight live Conversations, fixed at-most-30-second lease); native QUIC confirmation and managed admission emit typed ready/retired facts; explicit native audio and VP8 resource subscriptions now retain one effect and record actual outcomes; additive live upgrades preserve old audio while new Connections negotiate media; owned connection.end records actual termination without closing other Connections; explicit screen VP8 upgrades and subscriptions preserve audio; native data admission freezes one durable message and original audience; exact signed physical publication and current queued-message authorization are installed; attributed local queue receipts grant no physical-write or delivery claim; native writer observations reserve capacity before IO and distinguish local writes, refusals and uncertainty, with separate runtime recovery provenance; complete media-profile qualification remains open. Canonical GET route dispatch is G6-037; physical/provider normalization is G6-038/G6-043/G6-044. Fresh candidate state only."
+  },
+  "paths": {
+    "/v1/operations": {
+      "post": {
+        "operationId": "conversationEventControl",
+        "description": "One service authority. Snapshots capture a consistent watermark; drain pages before acting. Current credentials/member epochs/recipient ceilings and selected source owners are checked under owned reader fences on pages and events; changing read sources refuse the page for bounded retry of the same cursor. Leases end within 30 seconds/credential expiry; event catch-up holds at most256 references and512KiB encoded. Retention/expiry/eviction/restart is explicit resync, never an empty proof of catch-up. Source handles, provider publishing and maintenance are not public operation verbs. Missing speech is not silence, and an action proposal does not execute an operation.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Operation"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Authorized page or typed business rejection in result.Ok/result.Err.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Response"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing/invalid current bearer credential"
+          },
+          "413": {
+            "description": "Request exceeds encoded budget"
+          },
+          "422": {
+            "description": "Malformed or unknown closed typed operation/query fields"
+          },
+          "503": {
+            "description": "Bounded HTTP capacity or current authority busy/unavailable; retry the same logical mutation ID after delivery owners settle.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Response"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer"
+      }
+    },
+    "schemas": {
+      "Msg_AttachmentRef": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128,
+            "pattern": "^[A-Za-z0-9._~-]+$"
+          },
+          "content_type": {
+            "type": "string",
+            "maxLength": 128
+          },
+          "size_bytes": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          }
+        },
+        "required": [
+          "id",
+          "content_type",
+          "size_bytes"
+        ]
+      },
+      "Msg_MessageDraft": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "to": {
+            "oneOf": [
+              {
+                "const": "all"
+              },
+              {
+                "type": "array",
+                "minItems": 1,
+                "maxItems": 100,
+                "uniqueItems": true,
+                "items": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 128,
+                  "pattern": "^[A-Za-z0-9._~-]+$"
+                }
+              }
+            ]
+          },
+          "content_type": {
+            "type": "string",
+            "maxLength": 128
+          },
+          "body": {
+            "type": "string"
+          },
+          "body_encoding": {
+            "enum": [
+              "utf8",
+              "base64"
+            ]
+          },
+          "label": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128,
+            "pattern": "^[A-Za-z0-9._~-]+$"
+          },
+          "attachments": {
+            "type": "array",
+            "maxItems": 16,
+            "items": {
+              "$ref": "#/components/schemas/Msg_AttachmentRef"
+            }
+          },
+          "in_reply_to_msg": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "msg_id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "to",
+          "content_type",
+          "body",
+          "body_encoding",
+          "label",
+          "attachments"
+        ]
+      },
+      "Msg_Message": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 512,
+            "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+          },
+          "conversation_id": {
+            "type": "string"
+          },
+          "sender": {
+            "type": "string"
+          },
+          "body": {
+            "type": "string"
+          },
+          "sender_participant_id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "audience": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "participant_id": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 128,
+                  "pattern": "^[A-Za-z0-9._~-]+$"
+                },
+                "membership_epoch": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 9007199254740991
+                }
+              },
+              "required": [
+                "participant_id",
+                "membership_epoch"
+              ]
+            }
+          },
+          "content_type": {
+            "type": "string"
+          },
+          "body_encoding": {
+            "enum": [
+              "utf8",
+              "base64"
+            ]
+          },
+          "label": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128,
+            "pattern": "^[A-Za-z0-9._~-]+$"
+          },
+          "attachments": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Msg_AttachmentRef"
+            }
+          },
+          "in_reply_to_msg": {
+            "anyOf": [
+              {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 512,
+                "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "accepted_at": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "conversation_id",
+          "sender",
+          "body",
+          "sender_participant_id",
+          "audience",
+          "content_type",
+          "body_encoding",
+          "label",
+          "attachments",
+          "in_reply_to_msg",
+          "accepted_at"
+        ]
+      },
+      "Msg_Accepted": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "request_id": {
+            "type": "string"
+          },
+          "message_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128,
+            "pattern": "^[A-Za-z0-9._~-]+$"
+          },
+          "conversation_id": {
+            "type": "string"
+          },
+          "receipt": {
+            "$ref": "#/components/schemas/Msg_MutationReceipt"
+          }
+        },
+        "required": [
+          "request_id",
+          "message_id",
+          "conversation_id",
+          "receipt"
+        ]
+      },
+      "Msg_History": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "messages": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Msg_Message"
+            }
+          },
+          "next": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "messages",
+          "next"
+        ]
+      },
+      "Msg_Operation": {
+        "oneOf": [
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "op": {
+                "const": "send"
+              },
+              "request_id": {
+                "type": "string"
+              },
+              "conversation_id": {
+                "type": "string"
+              },
+              "message": {
+                "$ref": "#/components/schemas/Msg_MessageDraft"
+              }
+            },
+            "required": [
+              "op",
+              "request_id",
+              "conversation_id",
+              "message"
+            ]
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "op": {
+                "const": "history"
+              },
+              "conversation_id": {
+                "type": "string"
+              },
+              "after": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "limit": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 100
+              }
+            },
+            "required": [
+              "op",
+              "conversation_id",
+              "after",
+              "limit"
+            ]
+          }
+        ]
+      },
+      "Msg_Outcome": {
+        "oneOf": [
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "kind": {
+                "const": "accepted"
+              },
+              "data": {
+                "$ref": "#/components/schemas/Msg_Accepted"
+              }
+            },
+            "required": [
+              "kind",
+              "data"
+            ]
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "kind": {
+                "const": "history"
+              },
+              "data": {
+                "$ref": "#/components/schemas/Msg_History"
+              }
+            },
+            "required": [
+              "kind",
+              "data"
+            ]
+          }
+        ]
+      },
+      "Msg_Error": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "code",
+          "message"
+        ]
+      },
+      "Msg_Response": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "profile": {
+            "const": "connect-control/1"
+          },
+          "result": {
+            "oneOf": [
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "Ok": {
+                    "$ref": "#/components/schemas/Msg_Outcome"
+                  }
+                },
+                "required": [
+                  "Ok"
+                ]
+              },
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "Err": {
+                    "$ref": "#/components/schemas/Msg_Error"
+                  }
+                },
+                "required": [
+                  "Err"
+                ]
+              }
+            ]
+          }
+        },
+        "required": [
+          "profile",
+          "result"
+        ]
+      },
+      "Msg_MutationReceipt": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "operation_id": {
+            "type": "string"
+          },
+          "conversation_id": {
+            "type": "string"
+          },
+          "state": {
+            "const": "completed"
+          },
+          "completion_boundary": {
+            "const": "local-mutation"
+          },
+          "status_reference": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "action": {
+                "const": "get"
+              },
+              "operation_id": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "action",
+              "operation_id"
+            ]
+          }
+        },
+        "required": [
+          "operation_id",
+          "conversation_id",
+          "state",
+          "completion_boundary",
+          "status_reference"
+        ]
+      },
+      "Ledger_Error": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "code",
+          "message"
+        ]
+      },
+      "Ledger_Response": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "profile": {
+            "const": "connect-control/1"
+          },
+          "result": {
+            "oneOf": [
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "Ok": {
+                    "$ref": "#/components/schemas/Ledger_Outcome"
+                  }
+                },
+                "required": [
+                  "Ok"
+                ]
+              },
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "Err": {
+                    "$ref": "#/components/schemas/Ledger_Error"
+                  }
+                },
+                "required": [
+                  "Err"
+                ]
+              }
+            ]
+          }
+        },
+        "required": [
+          "profile",
+          "result"
+        ]
+      },
+      "Ledger_Intent": {
+        "oneOf": [
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "type": {
+                "const": "session.consult"
+              },
+              "retained_connid": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128,
+                "pattern": "^[A-Za-z0-9._~-]+$"
+              },
+              "private_participants": {
+                "type": "array",
+                "minItems": 1,
+                "maxItems": 100,
+                "uniqueItems": true,
+                "items": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 128,
+                  "pattern": "^[A-Za-z0-9._~-]+$"
+                }
+              },
+              "hold_treatment": {
+                "enum": [
+                  "silence",
+                  "configured-media"
+                ],
+                "default": "silence"
+              }
+            },
+            "required": [
+              "type",
+              "retained_connid",
+              "private_participants"
+            ]
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "type": {
+                "const": "session.handoff"
+              },
+              "source_participant": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128,
+                "pattern": "^[A-Za-z0-9._~-]+$"
+              },
+              "target_participant": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128,
+                "pattern": "^[A-Za-z0-9._~-]+$"
+              },
+              "retained_connid": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128,
+                "pattern": "^[A-Za-z0-9._~-]+$"
+              },
+              "candidate_connid": {
+                "oneOf": [
+                  {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 128,
+                    "pattern": "^[A-Za-z0-9._~-]+$"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "outgoing": {
+                "enum": [
+                  "leave",
+                  "observe"
+                ]
+              },
+              "role_scope": {
+                "enum": [
+                  "conversation",
+                  "session"
+                ],
+                "default": "conversation"
+              },
+              "expected_conversation_revision": {
+                "oneOf": [
+                  {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 9007199254740991
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            },
+            "required": [
+              "type",
+              "source_participant",
+              "target_participant",
+              "retained_connid",
+              "outgoing"
+            ],
+            "allOf": [
+              {
+                "if": {
+                  "properties": {
+                    "role_scope": {
+                      "const": "session"
+                    }
+                  },
+                  "required": [
+                    "role_scope"
+                  ]
+                },
+                "then": {
+                  "properties": {
+                    "expected_conversation_revision": {
+                      "type": "null"
+                    }
+                  }
+                },
+                "else": {
+                  "required": [
+                    "expected_conversation_revision"
+                  ],
+                  "properties": {
+                    "expected_conversation_revision": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    }
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "type": {
+                "const": "connection.replace"
+              },
+              "endpoint_id": {
+                "oneOf": [
+                  {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 128,
+                    "pattern": "^[A-Za-z0-9._~-]+$"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "candidate_connid": {
+                "oneOf": [
+                  {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 128,
+                    "pattern": "^[A-Za-z0-9._~-]+$"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "retained_connid": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128,
+                "pattern": "^[A-Za-z0-9._~-]+$"
+              }
+            },
+            "required": [
+              "type",
+              "retained_connid"
+            ],
+            "oneOf": [
+              {
+                "required": [
+                  "endpoint_id"
+                ],
+                "properties": {
+                  "endpoint_id": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 128,
+                    "pattern": "^[A-Za-z0-9._~-]+$"
+                  },
+                  "candidate_connid": {
+                    "type": "null"
+                  }
+                }
+              },
+              {
+                "required": [
+                  "candidate_connid"
+                ],
+                "properties": {
+                  "candidate_connid": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 128,
+                    "pattern": "^[A-Za-z0-9._~-]+$"
+                  },
+                  "endpoint_id": {
+                    "type": "null"
+                  }
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "Ledger_TransitionRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "operation_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128,
+            "pattern": "^[A-Za-z0-9._~-]+$"
+          },
+          "conversation_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128,
+            "pattern": "^[A-Za-z0-9._~-]+$"
+          },
+          "session_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128,
+            "pattern": "^[A-Za-z0-9._~-]+$"
+          },
+          "connection_id": {
+            "oneOf": [
+              {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128,
+                "pattern": "^[A-Za-z0-9._~-]+$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "expected_revision": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "expires_at": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9007199254740991
+          },
+          "intent": {
+            "$ref": "#/components/schemas/Ledger_Intent"
+          }
+        },
+        "required": [
+          "operation_id",
+          "conversation_id",
+          "session_id",
+          "expected_revision",
+          "expires_at",
+          "intent"
+        ],
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "intent": {
+                  "properties": {
+                    "type": {
+                      "const": "connection.replace"
+                    }
+                  },
+                  "required": [
+                    "type"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "required": [
+                "connection_id"
+              ],
+              "properties": {
+                "connection_id": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 128,
+                  "pattern": "^[A-Za-z0-9._~-]+$"
+                }
+              }
+            }
+          }
+        ]
+      },
+      "Ledger_OperationAction": {
+        "oneOf": [
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "action": {
+                "const": "get"
+              },
+              "operation_id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128,
+                "pattern": "^[A-Za-z0-9._~-]+$"
+              }
+            },
+            "required": [
+              "action",
+              "operation_id"
+            ]
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "action": {
+                "const": "cancel"
+              },
+              "operation_id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128,
+                "pattern": "^[A-Za-z0-9._~-]+$"
+              },
+              "target_operation_id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128,
+                "pattern": "^[A-Za-z0-9._~-]+$"
+              },
+              "reason": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "maxLength": 512,
+                "pattern": "^[^\\u0000-\\u001f\\u007f-\\u009f]*$"
+              }
+            },
+            "required": [
+              "action",
+              "operation_id",
+              "target_operation_id"
+            ]
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "action": {
+                "const": "reconcile"
+              },
+              "operation_id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128,
+                "pattern": "^[A-Za-z0-9._~-]+$"
+              },
+              "target_operation_id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128,
+                "pattern": "^[A-Za-z0-9._~-]+$"
+              },
+              "outcome": {
+                "enum": [
+                  "completed",
+                  "cancelled",
+                  "failed"
+                ]
+              },
+              "evidence_id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128,
+                "pattern": "^[A-Za-z0-9._~-]+$"
+              }
+            },
+            "required": [
+              "action",
+              "operation_id",
+              "target_operation_id",
+              "outcome",
+              "evidence_id"
+            ]
+          }
+        ]
+      },
+      "Ledger_Operation": {
+        "oneOf": [
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "op": {
+                "const": "transition"
+              },
+              "request": {
+                "$ref": "#/components/schemas/Ledger_TransitionRequest"
+              }
+            },
+            "required": [
+              "op",
+              "request"
+            ]
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "op": {
+                "const": "durable_operation"
+              },
+              "request": {
+                "$ref": "#/components/schemas/Ledger_OperationAction"
+              }
+            },
+            "required": [
+              "op",
+              "request"
+            ]
+          }
+        ]
+      },
+      "Ledger_Effect": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128,
+            "pattern": "^[A-Za-z0-9._~-]+$"
+          },
+          "provider": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128,
+            "pattern": "^[A-Za-z0-9._~-]+$"
+          },
+          "correlation_key": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128,
+            "pattern": "^[A-Za-z0-9._~-]+$"
+          },
+          "idempotency": {
+            "enum": [
+              "none",
+              "provider-key",
+              "status-query"
+            ]
+          },
+          "state": {
+            "enum": [
+              "prepared",
+              "submitting",
+              "confirmed",
+              "failed",
+              "cancelled",
+              "unknown"
+            ]
+          },
+          "attempt": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "compensates_effect_id": {
+            "oneOf": [
+              {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128,
+                "pattern": "^[A-Za-z0-9._~-]+$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "submission_generation": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          }
+        },
+        "required": [
+          "id",
+          "provider",
+          "correlation_key",
+          "idempotency",
+          "state",
+          "attempt",
+          "compensates_effect_id",
+          "submission_generation"
+        ]
+      },
+      "Ledger_OperationRecord": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "operation_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128,
+            "pattern": "^[A-Za-z0-9._~-]+$"
+          },
+          "record_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128,
+            "pattern": "^[A-Za-z0-9._~-]+$"
+          },
+          "command_type": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128,
+            "pattern": "^[A-Za-z0-9._~-]+$"
+          },
+          "conversation_id": {
+            "oneOf": [
+              {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128,
+                "pattern": "^[A-Za-z0-9._~-]+$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "session_id": {
+            "oneOf": [
+              {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128,
+                "pattern": "^[A-Za-z0-9._~-]+$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "connection_id": {
+            "oneOf": [
+              {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128,
+                "pattern": "^[A-Za-z0-9._~-]+$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "expected_revision": {
+            "oneOf": [
+              {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "state": {
+            "type": "string",
+            "enum": [
+              "accepted",
+              "preparing",
+              "ready",
+              "committing",
+              "completed",
+              "cancelled",
+              "failed",
+              "interrupted",
+              "unknown"
+            ]
+          },
+          "revision": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "expires_at": {
+            "oneOf": [
+              {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "created_at": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "updated_at": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "cancel_requested": {
+            "type": "boolean"
+          },
+          "result": {
+            "type": [
+              "object",
+              "null"
+            ],
+            "description": "Typed by command_type: transition completion, decision receipt, or the existing authorized provisioning/membership result. A decision being completed does not imply that its target is cancelled/completed."
+          },
+          "effects": {
+            "type": "array",
+            "maxItems": 64,
+            "items": {
+              "$ref": "#/components/schemas/Ledger_Effect"
+            }
+          },
+          "causal_event_ids": {
+            "type": "array",
+            "maxItems": 100,
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128,
+              "pattern": "^[A-Za-z0-9._~-]+$"
+            }
+          },
+          "events_omitted": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "problem": {
+            "type": "object",
+            "description": "Durable refusal or uncertain outcome. Native DTMF attaches its stopped local work and per-recipient facts under signal; result remains reserved for completed operations.",
+            "properties": {
+              "code": {
+                "type": "string"
+              },
+              "message": {
+                "type": "string"
+              },
+              "signal": {
+                "$ref": "#/components/schemas/Ledger_NativeDtmfSubmission"
+              }
+            },
+            "required": [
+              "code",
+              "message"
+            ],
+            "additionalProperties": true
+          }
+        },
+        "required": [
+          "operation_id",
+          "record_id",
+          "command_type",
+          "conversation_id",
+          "session_id",
+          "connection_id",
+          "expected_revision",
+          "state",
+          "revision",
+          "expires_at",
+          "created_at",
+          "updated_at",
+          "cancel_requested",
+          "result",
+          "effects",
+          "causal_event_ids",
+          "events_omitted"
+        ]
+      },
+      "Ledger_Outcome": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "kind": {
+            "const": "durable_operation"
+          },
+          "data": {
+            "$ref": "#/components/schemas/Ledger_OperationRecord"
+          }
+        },
+        "required": [
+          "kind",
+          "data"
+        ]
+      },
+      "Ledger_NativeDtmfSubmission": {
+        "type": "object",
+        "description": "Frozen native DTMF source and per-recipient local writer facts. Local submission does not prove remote receipt or playback. Exposed only after all owned local jobs stop; uncertain writes stay uncertain and never schedule replay.",
+        "additionalProperties": false,
+        "properties": {
+          "connection_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128,
+            "pattern": "^[A-Za-z0-9._~-]+$"
+          },
+          "stream_revision": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9007199254740991
+          },
+          "resources_changed": {
+            "const": false
+          },
+          "signal_source": {
+            "const": "uctp-native"
+          },
+          "source_observation_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128,
+            "pattern": "^[A-Za-z0-9._~-]+$"
+          },
+          "received_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "local_submission_only": {
+            "const": true
+          },
+          "local_work_complete": {
+            "const": true
+          },
+          "recipients": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 512,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "connection_id": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 128,
+                  "pattern": "^[A-Za-z0-9._~-]+$"
+                },
+                "participant_id": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 128,
+                  "pattern": "^[A-Za-z0-9._~-]+$"
+                },
+                "membership_epoch": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 9007199254740991
+                },
+                "generation": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 9007199254740991
+                },
+                "disposition": {
+                  "enum": [
+                    "not_started",
+                    "local_submitted",
+                    "outcome_unknown"
+                  ]
+                },
+                "frame_id": {
+                  "oneOf": [
+                    {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 128,
+                      "pattern": "^[A-Za-z0-9._~-]+$"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                }
+              },
+              "required": [
+                "connection_id",
+                "participant_id",
+                "membership_epoch",
+                "generation",
+                "disposition",
+                "frame_id"
+              ],
+              "allOf": [
+                {
+                  "if": {
+                    "properties": {
+                      "disposition": {
+                        "enum": [
+                          "local_submitted",
+                          "outcome_unknown"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "disposition"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "frame_id": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 128,
+                        "pattern": "^[A-Za-z0-9._~-]+$"
+                      }
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        },
+        "required": [
+          "connection_id",
+          "stream_revision",
+          "resources_changed",
+          "signal_source",
+          "source_observation_id",
+          "received_at",
+          "local_submission_only",
+          "local_work_complete",
+          "recipients"
+        ]
+      },
+      "Session": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 512,
+            "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+          },
+          "conversation_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 512,
+            "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+          },
+          "initiator_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 512,
+            "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+          },
+          "participant_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 512,
+            "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+          },
+          "state": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 512,
+            "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+          },
+          "media": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 512,
+              "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+            },
+            "maxItems": 16
+          },
+          "created_at": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "updated_at": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "ended_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "conversation_id",
+          "initiator_id",
+          "participant_id",
+          "state",
+          "media",
+          "created_at",
+          "updated_at",
+          "ended_reason"
+        ]
+      },
+      "SessionSnapshot": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 512,
+            "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+          },
+          "conversation_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 512,
+            "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+          },
+          "state": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 512,
+            "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+          },
+          "media": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 512,
+              "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+            },
+            "maxItems": 16
+          },
+          "intent": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "capabilities_offer": {
+            "anyOf": [
+              {
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "codec_preferences": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 16
+          },
+          "is_main": {
+            "type": "boolean"
+          },
+          "revision": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "topology_revision": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "created_at": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "updated_at": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "ended_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "conversation_id",
+          "state",
+          "media",
+          "intent",
+          "capabilities_offer",
+          "codec_preferences",
+          "is_main",
+          "revision",
+          "topology_revision",
+          "created_at",
+          "updated_at",
+          "ended_reason"
+        ]
+      },
+      "SessionParticipantJoined": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "fact_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 512,
+            "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+          },
+          "session": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/SessionSnapshot"
+              },
+              {
+                "properties": {
+                  "state": {
+                    "const": "active"
+                  }
+                }
+              }
+            ]
+          },
+          "membership_epoch": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9007199254740991
+          },
+          "participant": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "participant_id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 512,
+                "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+              },
+              "identity_id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 512,
+                "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+              },
+              "kind": {
+                "enum": [
+                  "human",
+                  "ai",
+                  "system",
+                  "external"
+                ]
+              },
+              "role": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 64
+              },
+              "display_name": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256
+              },
+              "joined_at": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 9007199254740991
+              }
+            },
+            "required": [
+              "participant_id",
+              "identity_id",
+              "kind",
+              "role",
+              "display_name",
+              "joined_at"
+            ]
+          },
+          "via_connection": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 512,
+            "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+          }
+        },
+        "required": [
+          "fact_id",
+          "session",
+          "membership_epoch",
+          "participant",
+          "via_connection"
+        ]
+      },
+      "SessionParticipantLeft": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "fact_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 512,
+            "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+          },
+          "session": {
+            "$ref": "#/components/schemas/SessionSnapshot"
+          },
+          "membership_epoch": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9007199254740991
+          },
+          "participant_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 512,
+            "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+          },
+          "left_at": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9007199254740991
+          },
+          "reason": {
+            "enum": [
+              "explicit-leave",
+              "all-connections-ended",
+              "kicked",
+              "transferred-out"
+            ]
+          }
+        },
+        "required": [
+          "fact_id",
+          "session",
+          "membership_epoch",
+          "participant_id",
+          "left_at",
+          "reason"
+        ]
+      },
+      "SessionStartedFact": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "session": {
+            "$ref": "#/components/schemas/SessionSnapshot"
+          },
+          "started_at": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9007199254740991
+          },
+          "participants_present": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 512,
+              "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+            },
+            "minItems": 1,
+            "maxItems": 256,
+            "uniqueItems": true
+          },
+          "active_connections": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 256,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "connid": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 512,
+                  "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+                },
+                "participant_id": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 512,
+                  "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+                },
+                "transport": {
+                  "enum": [
+                    "quic",
+                    "webtransport",
+                    "websocket+webrtc",
+                    "sip-interop",
+                    "webrtc-interop"
+                  ]
+                }
+              },
+              "required": [
+                "connid",
+                "participant_id",
+                "transport"
+              ]
+            }
+          },
+          "negotiated_capabilities": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "session",
+          "started_at",
+          "participants_present",
+          "active_connections",
+          "negotiated_capabilities"
+        ]
+      },
+      "SessionEndedFact": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "session": {
+            "$ref": "#/components/schemas/SessionSnapshot"
+          },
+          "by_participant": {
+            "anyOf": [
+              {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 512,
+                "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "by_membership_epoch": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 9007199254740991
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "reason_code": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 65535
+          },
+          "reason": {
+            "type": "string",
+            "maxLength": 512,
+            "pattern": "^[^\\u0000-\\u001f\\u007f-\\u009f]*$",
+            "x-max-utf8-bytes": 512
+          },
+          "ended_at": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9007199254740991
+          }
+        },
+        "required": [
+          "session",
+          "by_participant",
+          "by_membership_epoch",
+          "reason_code",
+          "reason",
+          "ended_at"
+        ],
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "by_participant": {
+                  "type": "null"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "by_membership_epoch": {
+                  "type": "null"
+                }
+              }
+            },
+            "else": {
+              "properties": {
+                "by_membership_epoch": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 9007199254740991
+                }
+              }
+            }
+          }
+        ],
+        "description": "Immutable original terminal Session snapshot and attribution, retained independently of later vCon storage/retention. Runtime paths without a supplied numeric reason use0 (unspecified); no provider status is inferred. Current Session source authority is still required on every read."
+      },
+      "ConnectionPrepared": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "connection_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 512,
+            "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+          },
+          "conversation_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 512,
+            "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+          },
+          "session_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 512,
+            "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+          },
+          "participant_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 512,
+            "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+          },
+          "membership_epoch": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9007199254740991
+          },
+          "endpoint_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 512,
+            "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+          },
+          "generation": {
+            "const": 1
+          },
+          "revision": {
+            "const": 0
+          },
+          "state": {
+            "const": "preparing"
+          }
+        },
+        "required": [
+          "connection_id",
+          "conversation_id",
+          "session_id",
+          "participant_id",
+          "membership_epoch",
+          "endpoint_id",
+          "generation",
+          "revision",
+          "state"
+        ]
+      },
+      "Member": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "participant_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 512,
+            "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+          },
+          "conversation_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 512,
+            "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+          },
+          "identity_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 512,
+            "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+          },
+          "kind": {
+            "enum": [
+              "human",
+              "ai",
+              "system",
+              "external"
+            ]
+          },
+          "role": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64
+          },
+          "membership_epoch": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9007199254740991
+          },
+          "active": {
+            "type": "boolean"
+          },
+          "removal_reason": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 512
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "participant_id",
+          "conversation_id",
+          "identity_id",
+          "kind",
+          "role",
+          "membership_epoch",
+          "active",
+          "removal_reason"
+        ]
+      },
+      "ConversationState": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "conversation_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 512,
+            "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+          },
+          "revision": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "closed": {
+            "type": "boolean"
+          },
+          "policy": {
+            "enum": [
+              "persistent",
+              "ephemeral"
+            ]
+          }
+        },
+        "required": [
+          "conversation_id",
+          "revision",
+          "closed",
+          "policy"
+        ]
+      },
+      "ConversationClosedFact": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "conversation_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 512,
+            "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+          },
+          "reason_code": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "reason": {
+            "type": "string",
+            "maxLength": 512,
+            "pattern": "^[^\\u0000-\\u001f\\u007f-\\u009f]*$",
+            "x-max-utf8-bytes": 512
+          },
+          "closed_at": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9007199254740991
+          }
+        },
+        "required": [
+          "conversation_id",
+          "reason_code",
+          "reason",
+          "closed_at"
+        ],
+        "description": "Immutable original closure shared by the cursor-bearing journal fact and signed conversation.closed observation. Observations remain hints; current membership and recipient ceilings govern every actual delivery."
+      },
+      "Appearance": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "session_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 512,
+            "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+          },
+          "participant_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 512,
+            "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+          },
+          "membership_epoch": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9007199254740991
+          },
+          "role": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64
+          },
+          "state": {
+            "enum": [
+              "invited",
+              "joining",
+              "present",
+              "left",
+              "removed"
+            ]
+          }
+        },
+        "required": [
+          "session_id",
+          "participant_id",
+          "membership_epoch",
+          "role",
+          "state"
+        ]
+      },
+      "Connection": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "connection_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 512,
+            "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+          },
+          "session_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 512,
+            "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+          },
+          "participant_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 512,
+            "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+          },
+          "membership_epoch": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9007199254740991
+          },
+          "endpoint_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 512,
+            "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+          },
+          "device_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 512,
+            "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+          },
+          "generation": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9007199254740991
+          },
+          "revision": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "state": {
+            "enum": [
+              "preparing",
+              "ready",
+              "active",
+              "held",
+              "retiring",
+              "retired",
+              "interrupted",
+              "unknown",
+              "failed"
+            ]
+          },
+          "replaces": {
+            "anyOf": [
+              {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 512,
+                "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "connection_id",
+          "session_id",
+          "participant_id",
+          "membership_epoch",
+          "endpoint_id",
+          "device_id",
+          "generation",
+          "revision",
+          "state",
+          "replaces"
+        ]
+      },
+      "ConnectionReady": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "connection_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 512,
+            "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+          },
+          "session_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 512,
+            "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+          },
+          "participant_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 512,
+            "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+          },
+          "membership_epoch": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9007199254740991
+          },
+          "endpoint_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 512,
+            "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+          },
+          "device_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 512,
+            "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+          },
+          "generation": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9007199254740991
+          },
+          "revision": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9007199254740991
+          },
+          "state": {
+            "const": "ready"
+          },
+          "replaces": {
+            "anyOf": [
+              {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 512,
+                "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "connection_id",
+          "session_id",
+          "participant_id",
+          "membership_epoch",
+          "endpoint_id",
+          "device_id",
+          "generation",
+          "revision",
+          "state",
+          "replaces"
+        ]
+      },
+      "ConnectionRetired": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "connection_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 512,
+            "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+          },
+          "session_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 512,
+            "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+          },
+          "participant_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 512,
+            "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+          },
+          "membership_epoch": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9007199254740991
+          },
+          "endpoint_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 512,
+            "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+          },
+          "device_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 512,
+            "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+          },
+          "generation": {
+            "type": "integer",
+            "minimum": 2,
+            "maximum": 9007199254740991
+          },
+          "revision": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9007199254740991
+          },
+          "state": {
+            "const": "retired"
+          },
+          "replaces": {
+            "anyOf": [
+              {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 512,
+                "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "connection_id",
+          "session_id",
+          "participant_id",
+          "membership_epoch",
+          "endpoint_id",
+          "device_id",
+          "generation",
+          "revision",
+          "state",
+          "replaces"
+        ]
+      },
+      "Stream": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "stream_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 512,
+            "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+          },
+          "session_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 512,
+            "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+          },
+          "participant_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 512,
+            "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+          },
+          "connection_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 512,
+                "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "medium": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 512,
+            "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+          },
+          "state": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 512,
+            "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+          },
+          "revision": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          }
+        },
+        "required": [
+          "stream_id",
+          "session_id",
+          "participant_id",
+          "connection_id",
+          "medium",
+          "state",
+          "revision"
+        ]
+      },
+      "ProviderCall": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 512,
+            "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+          },
+          "operation_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 512,
+            "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+          },
+          "conversation_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 512,
+            "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+          },
+          "session_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 512,
+            "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+          },
+          "participant_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 512,
+            "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+          },
+          "membership_epoch": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9007199254740991
+          },
+          "endpoint_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 512,
+            "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+          },
+          "state": {
+            "enum": [
+              "starting",
+              "active",
+              "ended",
+              "failed",
+              "unknown"
+            ]
+          },
+          "direction": {
+            "enum": [
+              "inbound",
+              "outbound"
+            ]
+          },
+          "remote_identity_verified": {
+            "const": false
+          },
+          "revision": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9007199254740991
+          },
+          "observed_at": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "closed_at": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "ended_reason": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 256,
+                "pattern": "^[^\\u0000-\\u001f\\u007f]*$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "problem": {
+            "anyOf": [
+              {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128,
+                "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "local_media": {
+            "const": false
+          }
+        },
+        "required": [
+          "id",
+          "operation_id",
+          "conversation_id",
+          "session_id",
+          "participant_id",
+          "membership_epoch",
+          "endpoint_id",
+          "state",
+          "direction",
+          "remote_identity_verified",
+          "revision",
+          "observed_at",
+          "closed_at",
+          "ended_reason",
+          "problem",
+          "local_media"
+        ]
+      },
+      "RecordAvailability": {
+        "oneOf": [
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "state": {
+                "const": "pending"
+              },
+              "session_id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128,
+                "pattern": "^[A-Za-z0-9._~-]+$"
+              }
+            },
+            "required": [
+              "state",
+              "session_id"
+            ]
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "state": {
+                "const": "ready"
+              },
+              "session_id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128,
+                "pattern": "^[A-Za-z0-9._~-]+$"
+              },
+              "uuid": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "revision": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 9007199254740991
+              }
+            },
+            "required": [
+              "state",
+              "session_id",
+              "uuid",
+              "revision"
+            ]
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "state": {
+                "const": "unavailable"
+              },
+              "session_id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128,
+                "pattern": "^[A-Za-z0-9._~-]+$"
+              }
+            },
+            "required": [
+              "state",
+              "session_id"
+            ]
+          }
+        ],
+        "description": "Authorized shared metadata only. Requires record_get, current Session source access and original frozen membership epoch or explicit current Session history share. Ready UUID/revision is a hint, not a source grant, storage URL, canonical digest or captured-audio claim. Fetch independently projects current sources. Pending has no ready handle; unavailable has no UUID or digest."
+      },
+      "SnapshotItem": {
+        "oneOf": [
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "kind": {
+                "const": "record"
+              },
+              "data": {
+                "$ref": "#/components/schemas/RecordAvailability"
+              }
+            },
+            "required": [
+              "kind",
+              "data"
+            ]
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "kind": {
+                "const": "provider_call"
+              },
+              "data": {
+                "$ref": "#/components/schemas/ProviderCall"
+              }
+            },
+            "required": [
+              "kind",
+              "data"
+            ]
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "kind": {
+                "const": "conversation"
+              },
+              "data": {
+                "$ref": "#/components/schemas/ConversationState"
+              }
+            },
+            "required": [
+              "kind",
+              "data"
+            ]
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "kind": {
+                "const": "participant"
+              },
+              "data": {
+                "$ref": "#/components/schemas/Member"
+              }
+            },
+            "required": [
+              "kind",
+              "data"
+            ]
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "kind": {
+                "const": "session"
+              },
+              "data": {
+                "$ref": "#/components/schemas/SessionSnapshot"
+              }
+            },
+            "required": [
+              "kind",
+              "data"
+            ]
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "kind": {
+                "const": "session_participant"
+              },
+              "data": {
+                "$ref": "#/components/schemas/Appearance"
+              }
+            },
+            "required": [
+              "kind",
+              "data"
+            ]
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "kind": {
+                "const": "connection"
+              },
+              "data": {
+                "$ref": "#/components/schemas/Connection"
+              }
+            },
+            "required": [
+              "kind",
+              "data"
+            ]
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "kind": {
+                "const": "stream"
+              },
+              "data": {
+                "$ref": "#/components/schemas/Stream"
+              }
+            },
+            "required": [
+              "kind",
+              "data"
+            ]
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "kind": {
+                "const": "operation"
+              },
+              "data": {
+                "$ref": "#/components/schemas/Ledger_OperationRecord"
+              }
+            },
+            "required": [
+              "kind",
+              "data"
+            ]
+          }
+        ]
+      },
+      "SnapshotPage": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "conversation_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 512,
+            "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+          },
+          "snapshot_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 512,
+            "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+          },
+          "revision": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "cursor": {
+            "type": "string",
+            "minLength": 4,
+            "maxLength": 2048,
+            "pattern": "^ev1_[A-Za-z0-9_-]+$"
+          },
+          "expires_at": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SnapshotItem"
+            },
+            "maxItems": 500
+          },
+          "next": {
+            "anyOf": [
+              {
+                "type": "string",
+                "minLength": 4,
+                "maxLength": 2048,
+                "pattern": "^ev1_[A-Za-z0-9_-]+$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "has_more": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "conversation_id",
+          "snapshot_id",
+          "revision",
+          "cursor",
+          "expires_at",
+          "items",
+          "next",
+          "has_more"
+        ],
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "has_more": {
+                  "const": false
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "next": {
+                  "type": "null"
+                }
+              }
+            },
+            "else": {
+              "properties": {
+                "next": {
+                  "type": "string",
+                  "minLength": 4,
+                  "maxLength": 2048,
+                  "pattern": "^ev1_[A-Za-z0-9_-]+$"
+                }
+              }
+            }
+          }
+        ]
+      },
+      "Source": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "kind": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128,
+            "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+          },
+          "correlation_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 512,
+            "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+          }
+        },
+        "required": [
+          "kind",
+          "correlation_id"
+        ]
+      },
+      "Audience": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "participant_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 512,
+            "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+          },
+          "membership_epoch": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9007199254740991
+          }
+        },
+        "required": [
+          "participant_id",
+          "membership_epoch"
+        ]
+      },
+      "Artifact": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 512,
+            "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+          },
+          "conversation_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 512,
+            "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+          },
+          "owner_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 512,
+            "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+          },
+          "name": {
+            "type": "string"
+          },
+          "media_type": {
+            "type": "string"
+          },
+          "size": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "received": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "sha256": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          },
+          "state": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 512,
+            "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+          },
+          "created_at": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "expires_at": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "conversation_id",
+          "owner_id",
+          "name",
+          "media_type",
+          "size",
+          "received",
+          "sha256",
+          "state",
+          "created_at",
+          "expires_at"
+        ]
+      },
+      "Call": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 512,
+            "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+          },
+          "conversation_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 512,
+            "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+          },
+          "route_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 512,
+            "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+          },
+          "destination": {
+            "type": "string"
+          },
+          "state": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 512,
+            "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+          },
+          "provider_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "ended_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "direction": {
+            "enum": [
+              "inbound",
+              "outbound"
+            ]
+          },
+          "end_requested": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "conversation_id",
+          "route_id",
+          "destination",
+          "state",
+          "provider_id",
+          "ended_reason",
+          "direction",
+          "end_requested"
+        ]
+      },
+      "Receipt": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "conversation_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 512,
+            "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+          },
+          "message_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 512,
+            "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+          },
+          "participant_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 512,
+            "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+          },
+          "membership_epoch": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9007199254740991
+          },
+          "channel": {
+            "enum": [
+              "native",
+              "provider"
+            ]
+          },
+          "delivery_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 512,
+            "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+          },
+          "state": {
+            "enum": [
+              "queued",
+              "accepted",
+              "delivered",
+              "read",
+              "failed",
+              "unknown"
+            ]
+          },
+          "provenance": {
+            "enum": [
+              "journal",
+              "client_reported",
+              "provider_observation",
+              "provider_state",
+              "local_attempt"
+            ]
+          },
+          "observed_at": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          }
+        },
+        "required": [
+          "conversation_id",
+          "message_id",
+          "participant_id",
+          "membership_epoch",
+          "channel",
+          "delivery_id",
+          "state",
+          "provenance",
+          "observed_at"
+        ],
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "state": {
+                  "const": "read"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "channel": {
+                  "const": "native"
+                },
+                "provenance": {
+                  "const": "client_reported"
+                }
+              }
+            }
+          }
+        ]
+      },
+      "NativeDataWrite": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "message_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 512,
+            "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+          },
+          "source_connection_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 512,
+            "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+          },
+          "target_connection_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 512,
+            "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+          },
+          "participant_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 512,
+            "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+          },
+          "membership_epoch": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9007199254740991
+          },
+          "generation": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9007199254740991
+          },
+          "disposition": {
+            "enum": [
+              "not_started",
+              "local_written",
+              "submission_unknown"
+            ]
+          },
+          "provenance": {
+            "enum": [
+              "local_writer",
+              "runtime_recovery"
+            ]
+          },
+          "observed_at": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          }
+        },
+        "required": [
+          "message_id",
+          "source_connection_id",
+          "target_connection_id",
+          "participant_id",
+          "membership_epoch",
+          "generation",
+          "disposition",
+          "provenance",
+          "observed_at"
+        ],
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "provenance": {
+                  "const": "runtime_recovery"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "disposition": {
+                  "const": "submission_unknown"
+                }
+              }
+            }
+          }
+        ]
+      },
+      "JournalData": {
+        "oneOf": [
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "kind": {
+                "const": "session_participant_joined"
+              },
+              "data": {
+                "$ref": "#/components/schemas/SessionParticipantJoined"
+              }
+            },
+            "required": [
+              "kind",
+              "data"
+            ]
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "kind": {
+                "const": "session_participant_left"
+              },
+              "data": {
+                "$ref": "#/components/schemas/SessionParticipantLeft"
+              }
+            },
+            "required": [
+              "kind",
+              "data"
+            ]
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "kind": {
+                "const": "session_started"
+              },
+              "data": {
+                "$ref": "#/components/schemas/SessionStartedFact"
+              }
+            },
+            "required": [
+              "kind",
+              "data"
+            ]
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "kind": {
+                "const": "session_ended"
+              },
+              "data": {
+                "$ref": "#/components/schemas/SessionEndedFact"
+              }
+            },
+            "required": [
+              "kind",
+              "data"
+            ]
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "kind": {
+                "const": "conversation_closed"
+              },
+              "data": {
+                "$ref": "#/components/schemas/ConversationClosedFact"
+              }
+            },
+            "required": [
+              "kind",
+              "data"
+            ]
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "kind": {
+                "const": "record"
+              },
+              "data": {
+                "$ref": "#/components/schemas/RecordAvailability"
+              }
+            },
+            "required": [
+              "kind",
+              "data"
+            ]
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "kind": {
+                "const": "provider_call"
+              },
+              "data": {
+                "$ref": "#/components/schemas/ProviderCall"
+              }
+            },
+            "required": [
+              "kind",
+              "data"
+            ]
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "kind": {
+                "const": "connection_prepared"
+              },
+              "data": {
+                "$ref": "#/components/schemas/ConnectionPrepared"
+              }
+            },
+            "required": [
+              "kind",
+              "data"
+            ]
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "kind": {
+                "const": "connection_ready"
+              },
+              "data": {
+                "$ref": "#/components/schemas/ConnectionReady"
+              }
+            },
+            "required": [
+              "kind",
+              "data"
+            ]
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "kind": {
+                "const": "connection_retired"
+              },
+              "data": {
+                "$ref": "#/components/schemas/ConnectionRetired"
+              }
+            },
+            "required": [
+              "kind",
+              "data"
+            ]
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "kind": {
+                "const": "session_control"
+              },
+              "data": {
+                "$ref": "#/components/schemas/SessionSnapshot"
+              }
+            },
+            "required": [
+              "kind",
+              "data"
+            ]
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "kind": {
+                "const": "message"
+              },
+              "data": {
+                "$ref": "#/components/schemas/Msg_Message"
+              }
+            },
+            "required": [
+              "kind",
+              "data"
+            ]
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "kind": {
+                "const": "session"
+              },
+              "data": {
+                "$ref": "#/components/schemas/Session"
+              }
+            },
+            "required": [
+              "kind",
+              "data"
+            ]
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "kind": {
+                "const": "artifact"
+              },
+              "data": {
+                "$ref": "#/components/schemas/Artifact"
+              }
+            },
+            "required": [
+              "kind",
+              "data"
+            ]
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "kind": {
+                "const": "call"
+              },
+              "data": {
+                "$ref": "#/components/schemas/Call"
+              }
+            },
+            "required": [
+              "kind",
+              "data"
+            ]
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "kind": {
+                "const": "receipt"
+              },
+              "data": {
+                "$ref": "#/components/schemas/Receipt"
+              }
+            },
+            "required": [
+              "kind",
+              "data"
+            ]
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "kind": {
+                "const": "native_data_write"
+              },
+              "data": {
+                "$ref": "#/components/schemas/NativeDataWrite"
+              }
+            },
+            "required": [
+              "kind",
+              "data"
+            ]
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "kind": {
+                "const": "membership"
+              },
+              "data": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "participant_id": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 512,
+                        "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "identity_id": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 512,
+                        "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "role": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "active": {
+                    "anyOf": [
+                      {
+                        "type": "boolean"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "membership_epoch": {
+                    "anyOf": [
+                      {
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 9007199254740991
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "removal_reason": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "maxLength": 512
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                },
+                "required": [
+                  "participant_id",
+                  "identity_id",
+                  "role",
+                  "active",
+                  "membership_epoch",
+                  "removal_reason"
+                ]
+              }
+            },
+            "required": [
+              "kind",
+              "data"
+            ]
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "kind": {
+                "const": "operation"
+              },
+              "data": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "operation_id": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 512,
+                    "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+                  },
+                  "record_id": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 512,
+                    "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+                  },
+                  "state": {
+                    "enum": [
+                      "accepted",
+                      "preparing",
+                      "ready",
+                      "committing",
+                      "completed",
+                      "cancelled",
+                      "failed",
+                      "interrupted",
+                      "unknown"
+                    ]
+                  }
+                },
+                "required": [
+                  "operation_id",
+                  "record_id",
+                  "state"
+                ]
+              }
+            },
+            "required": [
+              "kind",
+              "data"
+            ]
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "kind": {
+                "const": "changed"
+              },
+              "data": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "resource_kind": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 512,
+                        "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "resource_id": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 512,
+                        "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                },
+                "required": [
+                  "resource_kind",
+                  "resource_id"
+                ]
+              }
+            },
+            "required": [
+              "kind",
+              "data"
+            ]
+          }
+        ]
+      },
+      "JournalEvent": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "event_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 512,
+            "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+          },
+          "cursor": {
+            "type": "string",
+            "minLength": 4,
+            "maxLength": 2048,
+            "pattern": "^ev1_[A-Za-z0-9_-]+$"
+          },
+          "conversation_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 512,
+            "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+          },
+          "session_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 512,
+                "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "connection_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 512,
+                "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "participant_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 512,
+                "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "operation_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 512,
+                "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "kind": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128,
+            "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+          },
+          "revision": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "source": {
+            "$ref": "#/components/schemas/Source"
+          },
+          "observed_at": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "audience": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Audience"
+            },
+            "maxItems": 100,
+            "minItems": 1
+          },
+          "data": {
+            "$ref": "#/components/schemas/JournalData"
+          }
+        },
+        "required": [
+          "event_id",
+          "cursor",
+          "conversation_id",
+          "session_id",
+          "connection_id",
+          "participant_id",
+          "operation_id",
+          "kind",
+          "revision",
+          "source",
+          "observed_at",
+          "audience",
+          "data"
+        ]
+      },
+      "EventPage": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "conversation_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 512,
+            "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+          },
+          "events": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/JournalEvent"
+            },
+            "maxItems": 256
+          },
+          "cursor": {
+            "type": "string",
+            "minLength": 4,
+            "maxLength": 2048,
+            "pattern": "^ev1_[A-Za-z0-9_-]+$"
+          },
+          "has_more": {
+            "type": "boolean"
+          },
+          "lease": {
+            "anyOf": [
+              {
+                "type": "string",
+                "minLength": 4,
+                "maxLength": 2048,
+                "pattern": "^ev1_[A-Za-z0-9_-]+$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "expires_at": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "resync_required": {
+            "type": "boolean"
+          },
+          "snapshot": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SnapshotPage"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "conversation_id",
+          "events",
+          "cursor",
+          "has_more",
+          "lease",
+          "expires_at",
+          "resync_required",
+          "snapshot"
+        ],
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "resync_required": {
+                  "const": true
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "snapshot": {
+                  "$ref": "#/components/schemas/SnapshotPage"
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "lease": {
+                  "type": "null"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "expires_at": {
+                  "type": "null"
+                }
+              }
+            },
+            "else": {
+              "properties": {
+                "expires_at": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991
+                }
+              }
+            }
+          }
+        ]
+      },
+      "ObservationCapabilities": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "transcript": {
+            "type": "boolean"
+          },
+          "speech": {
+            "type": "boolean"
+          },
+          "actions": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128,
+              "pattern": "^[A-Za-z0-9._~-]+$"
+            },
+            "maxItems": 16,
+            "uniqueItems": true
+          }
+        },
+        "required": [
+          "transcript",
+          "speech",
+          "actions"
+        ]
+      },
+      "ObservationWork": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "task_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 512,
+            "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+          },
+          "effect_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 512,
+            "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+          },
+          "question_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 512,
+            "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+          }
+        },
+        "required": [
+          "task_id",
+          "effect_id",
+          "question_id"
+        ],
+        "description": "Server-verified committed question exported to this host work context. Historical provenance only, not a task grant, semantic answer or logical action identity. Current task authority is independently required."
+      },
+      "ObservationRoute": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "work": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ObservationWork"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "correlation_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128,
+            "pattern": "^[A-Za-z0-9._~-]+$"
+          },
+          "participant_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 512,
+            "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+          },
+          "connection_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 512,
+            "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+          },
+          "generation": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9007199254740991
+          },
+          "source": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128,
+            "pattern": "^[A-Za-z0-9._~-]+$"
+          },
+          "capabilities": {
+            "$ref": "#/components/schemas/ObservationCapabilities"
+          }
+        },
+        "required": [
+          "work",
+          "correlation_id",
+          "participant_id",
+          "connection_id",
+          "generation",
+          "source",
+          "capabilities"
+        ]
+      },
+      "AgentGap": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "first_sequence": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9007199254740991
+          },
+          "last_sequence": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9007199254740991
+          },
+          "observations": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9007199254740991
+          }
+        },
+        "required": [
+          "first_sequence",
+          "last_sequence",
+          "observations"
+        ],
+        "description": "first <= last and observations=last-first+1; missing_before.last < local_sequence."
+      },
+      "AgentContent": {
+        "oneOf": [
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "kind": {
+                "const": "transcript"
+              },
+              "text": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "speaker_role": {
+                "anyOf": [
+                  {
+                    "enum": [
+                      "user",
+                      "assistant",
+                      "system",
+                      "other"
+                    ]
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "completeness": {
+                "enum": [
+                  "partial",
+                  "final",
+                  "unavailable"
+                ]
+              }
+            },
+            "required": [
+              "kind",
+              "text",
+              "speaker_role",
+              "completeness"
+            ]
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "kind": {
+                "const": "speech"
+              },
+              "state": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 512,
+                    "description": "At most512 UTF-8 bytes, nonblank and control-free. Data only; never a Core identifier."
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "speaker_role": {
+                "anyOf": [
+                  {
+                    "enum": [
+                      "user",
+                      "assistant",
+                      "system",
+                      "other"
+                    ]
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "turn": {
+                "anyOf": [
+                  {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 9007199254740991
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "completeness": {
+                "enum": [
+                  "partial",
+                  "final",
+                  "unavailable"
+                ]
+              }
+            },
+            "required": [
+              "kind",
+              "state",
+              "speaker_role",
+              "turn",
+              "completeness"
+            ]
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "kind": {
+                "const": "action"
+              },
+              "name": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 512,
+                    "description": "At most512 UTF-8 bytes, nonblank and control-free. Data only; never a Core identifier."
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "call_id": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 512,
+                    "description": "At most512 UTF-8 bytes, nonblank and control-free. Data only; never a Core identifier."
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "phase": {
+                "enum": [
+                  "requested",
+                  "result-observed",
+                  "unknown"
+                ]
+              },
+              "arguments": {},
+              "result": {},
+              "completeness": {
+                "enum": [
+                  "partial",
+                  "final",
+                  "unavailable"
+                ]
+              }
+            },
+            "required": [
+              "kind",
+              "name",
+              "call_id",
+              "phase",
+              "arguments",
+              "result",
+              "completeness"
+            ]
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "kind": {
+                "const": "provider-status"
+              },
+              "state": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 512,
+                "description": "At most512 UTF-8 bytes, nonblank and control-free. Data only; never a Core identifier."
+              }
+            },
+            "required": [
+              "kind",
+              "state"
+            ]
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "kind": {
+                "const": "unavailable"
+              },
+              "issue": {
+                "enum": [
+                  "missing-fields",
+                  "malformed-event",
+                  "mismatched-session",
+                  "unsupported-event",
+                  "sequence-exhausted"
+                ]
+              }
+            },
+            "required": [
+              "kind",
+              "issue"
+            ]
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "kind": {
+                "const": "gap"
+              },
+              "first_sequence": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 9007199254740991
+              },
+              "last_sequence": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 9007199254740991
+              },
+              "observations": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 9007199254740991
+              }
+            },
+            "required": [
+              "kind",
+              "first_sequence",
+              "last_sequence",
+              "observations"
+            ]
+          }
+        ]
+      },
+      "AgentObservation": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "local_sequence": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9007199254740991
+          },
+          "capture_complete": {
+            "const": false
+          },
+          "missing_before": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AgentGap"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "provider_session_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 512,
+                "description": "At most512 UTF-8 bytes, nonblank and control-free. Data only; never a Core identifier."
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "provider_event_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 512,
+                "description": "At most512 UTF-8 bytes, nonblank and control-free. Data only; never a Core identifier."
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "captured_at": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "content": {
+            "$ref": "#/components/schemas/AgentContent"
+          }
+        },
+        "required": [
+          "local_sequence",
+          "capture_complete",
+          "missing_before",
+          "provider_session_id",
+          "provider_event_id",
+          "captured_at",
+          "content"
+        ],
+        "description": "At most65536 encoded UTF-8 bytes. Provider roles and references are data, reported results are not execution receipts, final describes one fragment, and capture_complete is always false. A content gap ends at local_sequence."
+      },
+      "ObservationDraft": {
+        "oneOf": [
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "kind": {
+                "const": "agent"
+              },
+              "observation": {
+                "$ref": "#/components/schemas/AgentObservation"
+              }
+            },
+            "required": [
+              "kind",
+              "observation"
+            ]
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "kind": {
+                "const": "transcript"
+              },
+              "text": {
+                "type": "string",
+                "minLength": 1
+              },
+              "completeness": {
+                "enum": [
+                  "interim",
+                  "final",
+                  "incomplete"
+                ]
+              },
+              "turn_id": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 128,
+                    "pattern": "^[A-Za-z0-9._~-]+$"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "fragment_id": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 128,
+                    "pattern": "^[A-Za-z0-9._~-]+$"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            },
+            "required": [
+              "kind",
+              "text",
+              "completeness",
+              "turn_id",
+              "fragment_id"
+            ]
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "kind": {
+                "const": "speech"
+              },
+              "state": {
+                "enum": [
+                  "started",
+                  "stopped"
+                ]
+              },
+              "turn_id": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 128,
+                    "pattern": "^[A-Za-z0-9._~-]+$"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            },
+            "required": [
+              "kind",
+              "state",
+              "turn_id"
+            ]
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "kind": {
+                "const": "action-request"
+              },
+              "action": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128,
+                "pattern": "^[A-Za-z0-9._~-]+$"
+              },
+              "provider_tool_call_id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128,
+                "pattern": "^[A-Za-z0-9._~-]+$"
+              },
+              "arguments": {
+                "type": "object"
+              },
+              "turn_id": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 128,
+                    "pattern": "^[A-Za-z0-9._~-]+$"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            },
+            "required": [
+              "kind",
+              "action",
+              "provider_tool_call_id",
+              "arguments",
+              "turn_id"
+            ]
+          }
+        ],
+        "description": "Generic drafts are at most16KiB encoded; agent drafts are at most70KiB with a65536-byte bounded inner observation. Source capabilities gate transcript/speech/action content. Provider metadata and all arguments/results are data only; no automatic dispatch or completion authority."
+      },
+      "Observation": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "work": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ObservationWork"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "observation_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 512,
+            "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+          },
+          "conversation_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 512,
+            "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+          },
+          "session_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 512,
+            "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+          },
+          "participant_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 512,
+            "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+          },
+          "membership_epoch": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9007199254740991
+          },
+          "connection_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 512,
+            "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+          },
+          "generation": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9007199254740991
+          },
+          "source": {
+            "$ref": "#/components/schemas/Source"
+          },
+          "observed_at": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "data": {
+            "$ref": "#/components/schemas/ObservationDraft"
+          }
+        },
+        "required": [
+          "work",
+          "observation_id",
+          "conversation_id",
+          "session_id",
+          "participant_id",
+          "membership_epoch",
+          "connection_id",
+          "generation",
+          "source",
+          "observed_at",
+          "data"
+        ]
+      },
+      "ObservationPage": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "conversation_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 512,
+            "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+          },
+          "session_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 512,
+            "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+          },
+          "observations": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Observation"
+            },
+            "maxItems": 256
+          },
+          "expires_at": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "routes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ObservationRoute"
+            },
+            "maxItems": 128
+          },
+          "cursor": {
+            "type": "string",
+            "minLength": 4,
+            "maxLength": 2048,
+            "pattern": "^ev1_[A-Za-z0-9_-]+$"
+          },
+          "has_more": {
+            "type": "boolean"
+          },
+          "resync_required": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "conversation_id",
+          "session_id",
+          "observations",
+          "expires_at",
+          "routes",
+          "cursor",
+          "has_more",
+          "resync_required"
+        ]
+      },
+      "SnapshotQuery": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "page": {
+            "anyOf": [
+              {
+                "type": "string",
+                "minLength": 4,
+                "maxLength": 2048,
+                "pattern": "^ev1_[A-Za-z0-9_-]+$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "limit": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 500
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": []
+      },
+      "EventQuery": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "after": {
+            "anyOf": [
+              {
+                "type": "string",
+                "minLength": 4,
+                "maxLength": 2048,
+                "pattern": "^ev1_[A-Za-z0-9_-]+$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "limit": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 500
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "lease": {
+            "anyOf": [
+              {
+                "type": "string",
+                "minLength": 4,
+                "maxLength": 2048,
+                "pattern": "^ev1_[A-Za-z0-9_-]+$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "lease_seconds": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 30
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "wait_ms": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 30000
+          }
+        },
+        "required": []
+      },
+      "ObservationQuery": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "after": {
+            "anyOf": [
+              {
+                "type": "string",
+                "minLength": 4,
+                "maxLength": 2048,
+                "pattern": "^ev1_[A-Za-z0-9_-]+$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "limit": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 500
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "wait_ms": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 30000
+          }
+        },
+        "required": []
+      },
+      "Operation": {
+        "oneOf": [
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "op": {
+                "const": "conversation_snapshot"
+              },
+              "conversation_id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128,
+                "pattern": "^[A-Za-z0-9._~-]+$"
+              },
+              "query": {
+                "$ref": "#/components/schemas/SnapshotQuery"
+              }
+            },
+            "required": [
+              "op",
+              "conversation_id",
+              "query"
+            ]
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "op": {
+                "const": "conversation_events"
+              },
+              "conversation_id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128,
+                "pattern": "^[A-Za-z0-9._~-]+$"
+              },
+              "query": {
+                "$ref": "#/components/schemas/EventQuery"
+              }
+            },
+            "required": [
+              "op",
+              "conversation_id",
+              "query"
+            ]
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "op": {
+                "const": "session_observations"
+              },
+              "conversation_id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128,
+                "pattern": "^[A-Za-z0-9._~-]+$"
+              },
+              "session_id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128,
+                "pattern": "^[A-Za-z0-9._~-]+$"
+              },
+              "query": {
+                "$ref": "#/components/schemas/ObservationQuery"
+              }
+            },
+            "required": [
+              "op",
+              "conversation_id",
+              "session_id",
+              "query"
+            ]
+          }
+        ]
+      },
+      "Outcome": {
+        "oneOf": [
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "kind": {
+                "const": "conversation_snapshot"
+              },
+              "data": {
+                "$ref": "#/components/schemas/SnapshotPage"
+              }
+            },
+            "required": [
+              "kind",
+              "data"
+            ]
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "kind": {
+                "const": "conversation_events"
+              },
+              "data": {
+                "$ref": "#/components/schemas/EventPage"
+              }
+            },
+            "required": [
+              "kind",
+              "data"
+            ]
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "kind": {
+                "const": "session_observations"
+              },
+              "data": {
+                "$ref": "#/components/schemas/ObservationPage"
+              }
+            },
+            "required": [
+              "kind",
+              "data"
+            ]
+          }
+        ]
+      },
+      "Error": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "code",
+          "message"
+        ]
+      },
+      "Response": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "profile": {
+            "const": "connect-control/1"
+          },
+          "result": {
+            "oneOf": [
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "Ok": {
+                    "$ref": "#/components/schemas/Outcome"
+                  }
+                },
+                "required": [
+                  "Ok"
+                ]
+              },
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "Err": {
+                    "$ref": "#/components/schemas/Error"
+                  }
+                },
+                "required": [
+                  "Err"
+                ]
+              }
+            ]
+          }
+        },
+        "required": [
+          "profile",
+          "result"
+        ]
+      }
+    }
+  }
+}

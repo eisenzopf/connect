@@ -44,7 +44,10 @@ fn an_immutable_room_cannot_broadcast_outside_the_task_recipient_ceiling() {
             &f.key.id,
             &Operation::Create {
                 request_id: "room".into(),
-                participants: vec![alice.clone(), bob],
+                request: connect_protocol::conversations::CreateRequest::persistent(vec![
+                    alice.clone(),
+                    bob,
+                ]),
             },
         )
         .unwrap()
@@ -81,7 +84,9 @@ fn an_immutable_room_cannot_broadcast_outside_the_task_recipient_ceiling() {
         Operation::Send {
             request_id: "send".into(),
             conversation_id: f.cid.clone(),
-            body: "This room also contains an unauthorized recipient".into(),
+            message: connect_protocol::messages::MessageDraft::text_all(
+                "This room also contains an unauthorized recipient",
+            ),
         },
         Operation::Resolve {
             address: "connect:bob@local".into(),

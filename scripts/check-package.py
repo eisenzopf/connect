@@ -228,7 +228,7 @@ try:
             pair(state)
             assert json.loads(run('demo', 'verify', '--config', state/'operator.toml').stdout)['result'] == 'passed'
             created = request(state, 'reviews', {'op': 'create', 'request_id': 'log-create', 'participants': [agent]})['data']['id']
-            sent = run('request', '--config', state/'reviews.toml', value={'op': 'send', 'request_id': logical, 'conversation_id': created, 'body': canary})
+            sent = run('request', '--config', state/'reviews.toml', value={'op': 'send', 'request_id': logical, 'conversation_id': created, "message": {'to': 'all', 'content_type': 'text/plain', 'body': canary, 'body_encoding': 'utf8', 'label': 'connect-messages', 'attachments': [], 'in_reply_to_msg': None, 'msg_id': None}})
             logs += sent.stderr  # stdout is an intentional API result, not a diagnostic log.
             server.log.seek(0)
             logs += server.log.read()

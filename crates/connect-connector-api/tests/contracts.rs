@@ -283,3 +283,26 @@ fn sms_manifest_cannot_turn_a_message_route_into_a_call_leg() {
     ]);
     assert_eq!(manifest.validate(), Err(ContractError::Manifest));
 }
+
+#[test]
+fn correlation_capability_needs_independent_status_and_cleanup_without_creation_permission() {
+    let mut m = Manifest::messaging(connect_connector_api::VAPI);
+    m.messaging = false;
+    m.context = false;
+    m.address = connect_connector_api::AddressKind::E164Pair;
+    m.operations = [
+        ConnectorOperation::VoiceReconcile,
+        ConnectorOperation::VoiceStatus,
+        ConnectorOperation::VoiceEnd,
+    ]
+    .into();
+    m.validate().unwrap();
+    for op in [
+        ConnectorOperation::VoiceStatus,
+        ConnectorOperation::VoiceEnd,
+    ] {
+        let mut bad = m.clone();
+        bad.operations.remove(&op);
+        assert_eq!(bad.validate(), Err(ContractError::Manifest));
+    }
+}

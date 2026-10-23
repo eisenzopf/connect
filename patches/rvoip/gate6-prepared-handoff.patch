@@ -1,0 +1,680 @@
+--- a/crates/foundation/rvoip-core/src/orchestrator/participant_control.rs
++++ b/crates/foundation/rvoip-core/src/orchestrator/participant_control.rs
+@@ -770,6 +770,39 @@
+             .as_ref()
+             .ok_or(ParticipantControlError::Unsupported)?
+             .plan_audio_handoff(context, request)?;
++        Ok(ManagedAudioHandoffPlan {
++            media,
++            expected_revision: expected_participant_revision,
++            correlation_id,
++            incoming_role,
++        })
++    }
++    /// A fresh target's isolated actual audio readiness is independent of the
++    /// old private conversation. Both scene-issued contexts are consumed by one
++    /// role/media commit; this method performs no IO or speaking-role change.
++    pub fn plan_staged_prepared_audio_handoff(
++        &self,
++        session: &SessionId,
++        expected_participant_revision: u64,
++        correlation_id: String,
++        incoming_role: ParticipantRole,
++        preparation: &crate::staged_streams::audience::AudioAudienceHandle,
++        previous: Option<&crate::staged_streams::audience::AudioAudienceHandle>,
++        request: crate::staged_streams::handoff::AudioHandoffRequest,
++    ) -> ControlResult<ManagedAudioHandoffPlan> {
++        let runtime = self.participant_runtime(session)?;
++        {
++            let state = runtime.state.lock().unwrap_or_else(|p| p.into_inner());
++            if state.ended || state.controller.revision() != expected_participant_revision {
++                return Err(ParticipantTransitionError::Conflict.into());
++            }
++        }
++        let media = runtime
++            .mixer
++            .staged
++            .as_ref()
++            .ok_or(ParticipantControlError::Unsupported)?
++            .plan_prepared_audio_handoff(preparation, previous, request)?;
+         Ok(ManagedAudioHandoffPlan {
+             media,
+             expected_revision: expected_participant_revision,
+--- a/crates/foundation/rvoip-core/src/staged_streams/audience.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/audience.rs
+@@ -201,7 +201,7 @@
+     pub(super) controllers: BTreeMap<ConnectionId, Weak<StreamController>>,
+     pub(super) restore: Option<AudioAudienceHandle>,
+     pub(super) replaced_preparation: Option<Arc<ClosedAudience>>,
+-    pub(super) replaced_audience: Option<Arc<ClosedAudience>>,
++    pub(super) replaced_audiences: Vec<Arc<ClosedAudience>>,
+     pub(super) handoff: Option<Arc<super::handoff::HandoffIntent>>,
+     pub(super) replacement: Option<Arc<super::device_replacement::ReplacementIntent>>,
+ }
+@@ -221,11 +221,12 @@
+                     .is_some_and(|old| Weak::ptr_eq(c, old))
+             })
+             && self.restore.is_some() == other.restore.is_some()
+-            && match (&self.replaced_audience, &other.replaced_audience) {
+-                (None, None) => true,
+-                (Some(a), Some(b)) => Arc::ptr_eq(a, b),
+-                _ => false,
+-            }
++            && self.replaced_audiences.len() == other.replaced_audiences.len()
++            && self
++                .replaced_audiences
++                .iter()
++                .zip(&other.replaced_audiences)
++                .all(|(a, b)| Arc::ptr_eq(a, b))
+             && match (&self.replacement, &other.replacement) {
+                 (None, None) => true,
+                 (Some(a), Some(b)) => Arc::ptr_eq(a, b),
+@@ -376,7 +377,20 @@
+         request: AudioAudienceRequest,
+         replaced: Option<&AudioAudienceHandle>,
+     ) -> ControlResult<AudioAudiencePlan> {
++        let contexts = replaced.into_iter().collect::<Vec<_>>();
++        self.plan_audio_audience_replacing_contexts(request, &contexts)
++    }
++    /// Every consumed context is scene-issued and pinned in the resulting plan.
++    /// Replacement and independent preparation are removed at the same commit.
++    pub(super) fn plan_audio_audience_replacing_contexts(
++        &self,
++        request: AudioAudienceRequest,
++        replaced: &[&AudioAudienceHandle],
++    ) -> ControlResult<AudioAudiencePlan> {
+         request.validate()?;
++        if replaced.len() > 2 {
++            return Err(MediaTransitionError::Invalid.into());
++        }
+         let members = self.members.lock().unwrap_or_else(|p| p.into_inner());
+         let registry = self.audiences.lock().unwrap_or_else(|p| p.into_inner());
+         if registry.revision != request.expected_revision
+@@ -429,24 +443,24 @@
+                 Some(prepared.clone())
+             }
+         };
+-        let replaced_audience = match replaced {
+-            None => None,
+-            Some(handle) => {
+-                if handle.scene != self.id
+-                    || !registry
+-                        .groups
+-                        .get(&handle.group.operation)
+-                        .is_some_and(|g| Arc::ptr_eq(g, &handle.group))
+-                {
+-                    return Err(MediaTransitionError::Conflict.into());
+-                }
+-                Some(handle.group.clone())
+-            }
+-        };
++        let mut replaced_audiences = Vec::new();
++        for handle in replaced {
++            if handle.scene != self.id
++                || replaced_audiences
++                    .iter()
++                    .any(|g: &Arc<ClosedAudience>| Arc::ptr_eq(g, &handle.group))
++                || !registry
++                    .groups
++                    .get(&handle.group.operation)
++                    .is_some_and(|g| Arc::ptr_eq(g, &handle.group))
++            {
++                return Err(MediaTransitionError::Conflict.into());
++            }
++            replaced_audiences.push(handle.group.clone());
++        }
++        replaced_audiences.sort_by(|a, b| a.operation.cmp(&b.operation));
+         if registry.groups.values().any(|old| {
+-            !replaced_audience
+-                .as_ref()
+-                .is_some_and(|g| Arc::ptr_eq(g, old))
++            !replaced_audiences.iter().any(|g| Arc::ptr_eq(g, old))
+                 && !replaced_preparation
+                     .as_ref()
+                     .is_some_and(|p| Arc::ptr_eq(p, old))
+@@ -472,7 +486,7 @@
+             controllers,
+             restore: None,
+             replaced_preparation,
+-            replaced_audience,
++            replaced_audiences,
+             handoff: None,
+             replacement: None,
+         })
+@@ -533,7 +547,7 @@
+             controllers,
+             restore: Some(handle.clone()),
+             replaced_preparation: None,
+-            replaced_audience: None,
++            replaced_audiences: Vec::new(),
+             handoff: None,
+             replacement: None,
+         })
+@@ -696,12 +710,38 @@
+                         return Err(MediaTransitionError::Conflict.into());
+                     }
+                 }
+-                if let Some(replaced) = &plan.replaced_audience {
++                for replaced in &plan.replaced_audiences {
+                     if !groups
+                         .remove(&replaced.operation)
+                         .is_some_and(|g| Arc::ptr_eq(&g, replaced))
+                     {
+                         return Err(MediaTransitionError::Conflict.into());
++                    }
++                    if let Some(handoff) = &plan.handoff {
++                        // A separate fresh target never inherits the old private
++                        // model's content. Unselected original private ports keep
++                        // a closed quarantine after their audience is consumed.
++                        let origins = replaced
++                            .origins
++                            .iter()
++                            .filter(|origin| {
++                                members.values().any(|m| origin.matches(&m.controller))
++                                    && !plan.group.origins.iter().any(|new| {
++                                        Weak::ptr_eq(&new.controller, &origin.controller)
++                                    })
++                                    && !handoff.outgoing.contains_key(&origin.connection)
++                            })
++                            .cloned()
++                            .collect::<Vec<_>>();
++                        if !origins.is_empty() {
++                            groups.insert(
++                                replaced.operation.clone(),
++                                Arc::new(ClosedAudience {
++                                    operation: replaced.operation.clone(),
++                                    origins,
++                                }),
++                            );
++                        }
+                     }
+                 }
+                 groups.insert(plan.group.operation.clone(), plan.group.clone());
+@@ -1064,6 +1104,9 @@
+                 .unwrap_or_default();
+             // Track only applied, unconsumed restoration identities. Neither
+             // an unsubmitted preparation nor post-return quarantine pins one.
++            for consumed in &plan.replaced_audiences {
++                registry.restorable.remove(&consumed.operation);
++            }
+             registry
+                 .restorable
+                 .retain(|operation| next_groups.contains_key(operation));
+--- a/crates/foundation/rvoip-core/src/staged_streams/device_replacement.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/device_replacement.rs
+@@ -323,7 +323,7 @@
+                 controllers,
+                 restore: None,
+                 replaced_preparation: None,
+-                replaced_audience,
++                replaced_audiences: replaced_audience.into_iter().collect(),
+                 handoff: None,
+                 replacement: Some(replacement),
+             },
+--- a/crates/foundation/rvoip-core/src/staged_streams/handoff.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/handoff.rs
+@@ -168,11 +168,32 @@
+         context: &AudioAudienceHandle,
+         request: AudioHandoffRequest,
+     ) -> ControlResult<AudioHandoffPlan> {
++        self.plan_audio_handoff_context(context, None, request, false)
++    }
++    /// The incoming target proved real duplex IO in its own one-member closed
++    /// audience, using independently authorized local audio rather than private
++    /// speech. Optionally consume the outgoing party's old private audience in
++    /// the same transaction. Planning never opens either route or changes roles.
++    pub(crate) fn plan_prepared_audio_handoff(
++        &self,
++        preparation: &AudioAudienceHandle,
++        previous: Option<&AudioAudienceHandle>,
++        request: AudioHandoffRequest,
++    ) -> ControlResult<AudioHandoffPlan> {
++        self.plan_audio_handoff_context(preparation, previous, request, true)
++    }
++    fn plan_audio_handoff_context(
++        &self,
++        context: &AudioAudienceHandle,
++        previous: Option<&AudioAudienceHandle>,
++        request: AudioHandoffRequest,
++        prepared: bool,
++    ) -> ControlResult<AudioHandoffPlan> {
+         if context.scene != self.id
+             || request.old == request.retained
+             || request.old == request.admitted
+             || request.retained == request.admitted
+-            || context.group.origins.len() != 2
++            || context.group.origins.len() != if prepared { 1 } else { 2 }
+         {
+             return Err(MediaTransitionError::Invalid.into());
+         }
+@@ -204,9 +225,22 @@
+             {
+                 return Err(MediaTransitionError::Invalid.into());
+             }
+-            if !context.group.contains(old)
++            if context.group.contains(old) == prepared
+                 || !context.group.contains(&new.controller)
+                 || context.group.contains(retained)
++                || (prepared
++                    && registry.groups.values().any(|g| {
++                        g.contains(old) && !previous.is_some_and(|p| Arc::ptr_eq(g, &p.group))
++                    }))
++                || previous.is_some_and(|p| {
++                    p.scene != self.id
++                        || !p.group.contains(old)
++                        || p.group.contains(&new.controller)
++                        || !registry
++                            .groups
++                            .get(&p.group.operation)
++                            .is_some_and(|g| Arc::ptr_eq(g, &p.group))
++                })
+             {
+                 return Err(StreamControlError::Authority);
+             }
+@@ -256,7 +290,25 @@
+         for id in outgoing.keys() {
+             receivers.insert(id.clone(), old_program.clone());
+         }
+-        let mut audience = self.plan_audio_audience_replacing(
++        let contexts = std::iter::once(context).chain(previous).collect::<Vec<_>>();
++        // Close the receive programmes of any private model/port left behind.
++        // Its source remains in a closed quarantine in the resulting registry.
++        {
++            let members = self.members.lock().unwrap_or_else(|p| p.into_inner());
++            for prior in &contexts {
++                for origin in &prior.group.origins {
++                    if !private_connections.contains(&origin.connection)
++                        && !outgoing.contains_key(&origin.connection)
++                        && members
++                            .get(&origin.connection)
++                            .is_some_and(|m| origin.matches(&m.controller))
++                    {
++                        receivers.insert(origin.connection.clone(), Vec::new());
++                    }
++                }
++            }
++        }
++        let mut audience = self.plan_audio_audience_replacing_contexts(
+             AudioAudienceRequest {
+                 operation_id: request.operation_id.clone(),
+                 expected_revision: request.expected_revision,
+@@ -264,7 +316,7 @@
+                 receivers,
+                 activate_muted: None,
+             },
+-            Some(context),
++            &contexts,
+         )?;
+         for (id, origin) in &origins {
+             if !audience
+--- /dev/null
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/private_consult/prepared_handoff.rs
+@@ -0,0 +1,324 @@
++//! Actual isolated duplex IO, independent of the old private model audience.
++use super::*;
++use crate::staged_streams::{
++    consultation::PrivateConsultationHandle, local_audio::LocalAudioPurpose,
++};
++
++struct Prepared {
++    room: Room,
++    old: Option<PrivateConsultationHandle>,
++    incoming: AudioAudienceHandle,
++}
++impl Prepared {
++    async fn new(private: bool) -> Self {
++        let mut room =
++            Room::new_with_kinds(BTreeMap::from([("public".into(), ParticipantKind::Ai)])).await;
++        let old = if private {
++            Some(room.handoff_ready().await)
++        } else {
++            None
++        };
++        room.add("fresh", Some("public"), true).await;
++        let plan = room
++            .scene
++            .plan_audio_audience(AudioAudienceRequest {
++                operation_id: "isolated-fresh-public-target".into(),
++                expected_revision: room.scene.audience_revision(),
++                private_connections: BTreeSet::from([ConnectionId::from_string("fresh")]),
++                receivers: BTreeMap::from([(ConnectionId::from_string("fresh"), vec![])]),
++                activate_muted: Some(ConnectionId::from_string("fresh")),
++            })
++            .unwrap();
++        let (_, incoming) = room.apply(plan).await.unwrap();
++        room.domain
++            .local_preparations
++            .lock()
++            .unwrap()
++            .insert(ConnectionId::from_string("fresh"), "handoff-1".into());
++        Self {
++            room,
++            old,
++            incoming,
++        }
++    }
++    fn plan(&self, disposition: OldHandoffDisposition) -> ControlResult<AudioHandoffPlan> {
++        let mut request = self.room.handoff_request(disposition);
++        request.admitted = ConnectionId::from_string("fresh");
++        self.room.scene.plan_prepared_audio_handoff(
++            &self.incoming,
++            self.old.as_ref().map(|h| h.audience()),
++            request,
++        )
++    }
++    fn queue_silence(&mut self) -> ControlResult<()> {
++        use rvoip_media_core::{codec::factory::CodecFactory, AudioFrame};
++        let n = self.room.nodes.get_mut("fresh").unwrap();
++        n.sequence += 1;
++        let port = n.adapter.port(Medium::Audio);
++        let mut f = frame(&port, n.sequence);
++        f.payload = CodecFactory::create_codec(0, Some(8000), Some(1))
++            .unwrap()
++            .encode(&AudioFrame {
++                samples: vec![0; 160],
++                sample_rate: 8000,
++                channels: 1,
++                duration: Duration::from_millis(20),
++                timestamp: n.sequence,
++            })
++            .unwrap()
++            .into();
++        n.controller.try_queue_local_audio(
++            &desired(Medium::Audio).logical_id,
++            f,
++            LocalAudioPurpose::EndpointPreparation {
++                operation_id: "handoff-1".into(),
++            },
++        )
++    }
++    async fn ready(&mut self) {
++        self.room.publish("fresh", 12000).unwrap();
++        self.room.tick();
++        self.room
++            .silent(&["alice", "bob", "public", "hold", "fresh"]);
++        if self.old.is_some() {
++            self.room.silent(&["consult"]);
++        }
++        self.queue_silence().unwrap();
++        self.room.heard("fresh", 0).await;
++    }
++    async fn original(&mut self) {
++        self.room.publish("alice", 800).unwrap();
++        self.room.tick();
++        if self.old.is_some() {
++            self.room.heard("consult", 800).await;
++            self.room.silent(&["bob", "public", "fresh"]);
++            self.room.publish("consult", 5200).unwrap();
++            self.room.tick();
++            self.room.heard("alice", 5200).await;
++            self.room.silent(&["bob", "public", "fresh"]);
++        } else {
++            self.room.heard("bob", 800).await;
++            self.room.heard("public", 800).await;
++            self.room.silent(&["fresh"]);
++        }
++    }
++}
++#[tokio::test]
++async fn prepared_handoff_requires_actual_decoding_and_completed_local_delivery() {
++    for missing in ["both", "decoded", "delivery", "queued-only"] {
++        let mut p = Prepared::new(true).await;
++        if missing != "decoded" && missing != "both" {
++            p.room.publish("fresh", 12000).unwrap();
++            p.room.tick();
++        }
++        if missing != "delivery" && missing != "both" {
++            p.queue_silence().unwrap();
++            if missing == "decoded" {
++                p.room.heard("fresh", 0).await;
++            }
++        }
++        assert!(matches!(
++            p.plan(OldHandoffDisposition::Leave),
++            Err(StreamControlError::NotReady)
++        ));
++        if missing == "queued-only" {
++            p.room.heard("fresh", 0).await;
++        }
++        p.original().await;
++        p.ready().await;
++        assert!(p.plan(OldHandoffDisposition::Leave).is_ok());
++    }
++}
++#[tokio::test]
++async fn prepared_handoff_consumes_isolation_and_old_private_context_without_model_audio_leakage() {
++    for private in [false, true] {
++        for disposition in [
++            OldHandoffDisposition::Observer,
++            OldHandoffDisposition::Leave,
++        ] {
++            let mut p = Prepared::new(private).await;
++            p.original().await;
++            p.ready().await;
++            let remote = p.room.nodes["bob"].controller.active_bindings()[0].clone();
++            let before = p.room.scene.audience_revision();
++            let plan = p.plan(disposition).unwrap();
++            let stale = plan.clone();
++            assert!(!p.room.nodes["alice"].controller.shutdown.is_cancelled());
++            // A prompt queued in the old isolation may not cross the commit.
++            p.queue_silence().unwrap();
++            let queued = p
++                .room
++                .nodes
++                .get_mut("fresh")
++                .unwrap()
++                .out
++                .try_recv()
++                .unwrap();
++            let (outcome, handle) = p.room.handoff(plan).await.unwrap();
++            assert_eq!(outcome.media.audience_revision, before + 1);
++            assert_eq!(outcome.retained, ConnectionId::from_string("bob"));
++            assert_eq!(outcome.admitted, ConnectionId::from_string("fresh"));
++            assert!(queued
++                .deliver(|_| async { panic!("old isolation prompt crossed handoff") })
++                .await
++                .is_err());
++            assert!(p.room.handoff(stale).await.is_err());
++            assert!(p.plan(disposition).is_err());
++            assert!(p
++                .room
++                .scene
++                .plan_restore_audio_audience(
++                    &p.incoming,
++                    "reuse-preparation".into(),
++                    p.room.scene.audience_revision()
++                )
++                .is_err());
++            p.room.publish("bob", 2400).unwrap();
++            p.room.tick();
++            p.room.heard("fresh", 2400).await;
++            if disposition == OldHandoffDisposition::Observer {
++                p.room.heard("alice", 2400).await;
++            }
++            p.room.silent(&["public", "bob"]);
++            if private {
++                p.room.silent(&["consult"]);
++            }
++            assert!(p.room.publish("alice", 800).is_err());
++            if private {
++                let participant = p.room.nodes["fresh"]
++                    .controller
++                    .origin_member
++                    .participant()
++                    .clone();
++                p.room
++                    .select("bob", vec![AudioSubscription::Participant(participant)])
++                    .await;
++            }
++            p.room.publish("fresh", 7600).unwrap();
++            p.room.tick();
++            p.room.heard("bob", 7600).await;
++            if disposition == OldHandoffDisposition::Observer {
++                p.room.heard("alice", 7600).await;
++            }
++            p.room.silent(&["public", "fresh"]);
++            if private {
++                let old = p.old.as_ref().unwrap();
++                assert!(p
++                    .room
++                    .scene
++                    .plan_restore_audio_audience(
++                        old.audience(),
++                        "revive-private-model".into(),
++                        p.room.scene.audience_revision()
++                    )
++                    .is_err());
++                let c = &p.room.nodes["public"].controller;
++                assert!(matches!(
++                    p.room
++                        .scene
++                        .change_subscriptions(
++                            &c.connection,
++                            c.revision(),
++                            AudioSubscriptionChange::Subscribe(vec![
++                                AudioSubscription::Connection(ConnectionId::from_string("consult"))
++                            ]),
++                            deadline(),
++                            CancellationToken::new(),
++                            None
++                        )
++                        .await,
++                    Err(StreamControlError::Authority)
++                ));
++
++                p.room.publish("consult", 5200).unwrap();
++                p.room.tick();
++                p.room
++                    .silent(&["alice", "bob", "public", "fresh", "consult"]);
++                let registry = p.room.scene.audiences.lock().unwrap();
++                assert!(!registry.restorable.contains(old.audience().operation_id()));
++                assert!(
++                    registry
++                        .groups
++                        .values()
++                        .any(|g| g.origins.len() == 1
++                            && g.origins[0].connection.as_str() == "consult")
++                );
++            }
++            let now = p.room.nodes["bob"].controller.active_bindings()[0].clone();
++            assert_eq!(remote.transport_id, now.transport_id);
++            assert_eq!(remote.stream_local_id, now.stream_local_id);
++            assert_eq!(handle.old_disposition(), disposition);
++        }
++    }
++}
++#[tokio::test]
++async fn prepared_handoff_rejects_wrong_context_or_missing_private_replacement() {
++    let mut p = Prepared::new(true).await;
++    p.ready().await;
++    let mut request = p.room.handoff_request(OldHandoffDisposition::Leave);
++    request.admitted = ConnectionId::from_string("fresh");
++    assert!(p
++        .room
++        .scene
++        .plan_prepared_audio_handoff(&p.incoming, None, request.clone())
++        .is_err());
++    let old = p.old.as_ref().unwrap();
++    assert!(p
++        .room
++        .scene
++        .plan_prepared_audio_handoff(old.audience(), None, request.clone())
++        .is_err());
++    assert!(p
++        .room
++        .scene
++        .plan_prepared_audio_handoff(&p.incoming, Some(&p.incoming), request.clone())
++        .is_err());
++    let other = Prepared::new(false).await;
++    assert!(p
++        .room
++        .scene
++        .plan_prepared_audio_handoff(&other.incoming, Some(old.audience()), request)
++        .is_err());
++    p.original().await;
++    assert!(p.plan(OldHandoffDisposition::Leave).is_ok());
++}
++#[tokio::test]
++async fn prepared_handoff_current_revocation_and_cancellation_preserve_the_original_private_route()
++{
++    for revoke in [false, true] {
++        let mut p = Prepared::new(true).await;
++        p.ready().await;
++        let plan = p.plan(OldHandoffDisposition::Leave).unwrap();
++        let before = p.room.scene.audience_revision();
++        if revoke {
++            p.room
++                .domain
++                .base
++                .0
++                .write()
++                .await
++                .revoked
++                .insert("public".into());
++            assert!(p.room.handoff(plan).await.is_err());
++            p.room.domain.base.0.write().await.revoked.remove("public");
++        } else {
++            let cancel = CancellationToken::new();
++            cancel.cancel();
++            let grant = p
++                .room
++                .grant(Approval::Audience(plan.audience().clone()))
++                .await;
++            assert!(matches!(
++                p.room
++                    .scene
++                    .commit_audio_handoff(plan, deadline(), cancel, &grant)
++                    .await,
++                Err(StreamControlError::Cancelled)
++            ));
++            drop(grant);
++        }
++        assert_eq!(p.room.scene.audience_revision(), before);
++        assert!(!p.room.nodes["alice"].controller.shutdown.is_cancelled());
++        p.original().await;
++    }
++}
+--- a/crates/foundation/rvoip-core/src/staged_streams/tests/private_consult.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/private_consult.rs
+@@ -11,6 +11,7 @@
+     deny_handoff: AtomicBool,
+     deny_replacement: AtomicBool,
+     resources: Mutex<BTreeMap<ConnectionId, ReplacementResources>>,
++    local_preparations: Mutex<BTreeMap<ConnectionId, String>>,
+ }
+ enum Approval {
+     Resources {
+@@ -141,11 +142,17 @@
+             operation_id,
+         } = purpose;
+         if !self
+-            .resources
++            .local_preparations
+             .lock()
+             .unwrap()
+             .get(scope.connection)
+-            .is_some_and(|r| r.pending.intent().operation_id == *operation_id)
++            .is_some_and(|expected| expected == operation_id)
++            && !self
++                .resources
++                .lock()
++                .unwrap()
++                .get(scope.connection)
++                .is_some_and(|r| r.pending.intent().operation_id == *operation_id)
+         {
+             return Err(StreamControlError::Unsupported);
+         }
+@@ -341,6 +348,7 @@
+             deny_handoff: AtomicBool::new(false),
+             deny_replacement: AtomicBool::new(false),
+             resources: Mutex::new(BTreeMap::new()),
++            local_preparations: Mutex::new(BTreeMap::new()),
+         });
+         let scene = GuardedMediaScene::new(
+             ConversationId::from_string("conversation"),
+@@ -2287,3 +2295,5 @@
+     r.heard("public", 800).await;
+     r.silent(&["unsubmitted-256"]);
+ }
++
++mod prepared_handoff;

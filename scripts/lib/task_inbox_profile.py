@@ -41,7 +41,7 @@ def qualify(profile, peer):
         'action': 'invoke', 'request_id': 'profile-question', 'task_id': task_id,
         'step_id': 'profile-question', 'reply_to': None, 'wait_for_reply': False,
         'operation': {'op': 'send', 'request_id': 'profile-question',
-                      'conversation_id': cid, 'body': 'Q' * 16384},
+                      'conversation_id': cid, "message": {'to': 'all', 'content_type': 'text/plain', 'body': 'Q' * 16384, 'body_encoding': 'utf8', 'label': 'connect-messages', 'attachments': [], 'in_reply_to_msg': None, 'msg_id': None}},
     })
     assert question['kind'] == 'tool' and question['data']['status'] == 'completed'
     message_id = question['data']['outcome']['data']['message_id']

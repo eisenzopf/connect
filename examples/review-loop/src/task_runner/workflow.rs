@@ -129,7 +129,9 @@ async fn question(clients: &mut Clients, state: &mut TaskStore) -> Result<()> {
             operation: Box::new(Operation::Send {
                 request_id,
                 conversation_id: state.binding.conversation_id.clone(),
-                body: "Please review draft-002 and reply to this question.".into(),
+                message: connect_client::messages::MessageDraft::text_all(
+                    "Please review draft-002 and reply to this question.",
+                ),
             }),
             reply_to: None,
             wait_for_reply: true,

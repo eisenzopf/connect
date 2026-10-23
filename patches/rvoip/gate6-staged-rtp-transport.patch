@@ -1,0 +1,2108 @@
+diff --git a/crates/foundation/rvoip-core-traits/src/stream.rs b/crates/foundation/rvoip-core-traits/src/stream.rs
+index a5e3dc4..d6e8ad1 100644
+--- a/crates/foundation/rvoip-core-traits/src/stream.rs
++++ b/crates/foundation/rvoip-core-traits/src/stream.rs
+@@ -335,6 +335,9 @@ impl DataMessageBridgePolicy for PassThroughDataMessageBridgePolicy {
+ /// avoid per-frame async overhead at high frame rates.
+ #[async_trait::async_trait]
+ pub trait MediaStream: Send + Sync {
++    /// Synchronously fence new delivery when the owning physical route is
++    /// retired. Already-admitted local sends are drained by owned cleanup.
++    fn retire_delivery(&self) {}
+     /// Attach one bounded numeric collector. Existing implementations may omit
+     /// telemetry; an omitted observation never becomes a delivery claim.
+     fn set_media_diagnostics(&self, _value: Arc<crate::media_diagnostics::MediaDiagnostics>) {}
+diff --git a/crates/foundation/rvoip-core/src/adapter.rs b/crates/foundation/rvoip-core/src/adapter.rs
+index 44a2091..c6659d6 100644
+--- a/crates/foundation/rvoip-core/src/adapter.rs
++++ b/crates/foundation/rvoip-core/src/adapter.rs
+@@ -541,7 +541,10 @@ pub trait ConnectionAdapter: Send + Sync {
+     /// Opt in only when preparation leaves existing media untouched and owns
+     /// cancellation-safe, idempotent cleanup for every candidate port. There
+     /// is no fallback to the live-mutating renegotiation helper.
+-    fn staged_media(&self) -> Option<Arc<dyn crate::staged_streams::StagedMediaAdapter>> {
++    fn staged_media(
++        &self,
++        _connection: &ConnectionId,
++    ) -> Option<Arc<dyn crate::staged_streams::StagedMediaAdapter>> {
+         None
+     }
+ 
+diff --git a/crates/foundation/rvoip-core/src/staged_streams.rs b/crates/foundation/rvoip-core/src/staged_streams.rs
+index 1901788..ac347d2 100644
+--- a/crates/foundation/rvoip-core/src/staged_streams.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams.rs
+@@ -12,6 +12,7 @@ use crate::{
+ };
+ use rvoip_core_traits::peer_switch::PeerRouteTicket;
+ use std::{
++    any::Any,
+     collections::{BTreeMap, BTreeSet},
+     future::Future,
+     sync::{
+@@ -46,20 +47,65 @@ pub type ControlResult<T> = std::result::Result<T, StreamControlError>;
+ 
+ /// Share exactly one allocator across all Connections on one physical peer.
+ /// Failed candidates burn handles. Exhaustion never wraps or reuses a handle.
+-pub struct StreamHandleAllocator(AtomicU32);
++pub struct StreamHandleAllocator {
++    next: AtomicU32,
++    shared: Option<Arc<dyn StreamHandleReserver>>,
++}
++/// Keep the transport's actual reservation alive until registration/cleanup.
++pub trait StreamHandleReserver: Send + Sync {
++    fn reserve(&self) -> ControlResult<StreamHandleAllocation>;
++}
++pub struct StreamHandleAllocation {
++    local_id: u16,
++    owner: Arc<dyn Any + Send + Sync>,
++    unprepared_cleanup: Option<Arc<dyn MediaPortCleanup>>,
++}
++impl StreamHandleAllocation {
++    pub fn new(local_id: u16, owner: Arc<dyn Any + Send + Sync>) -> ControlResult<Self> {
++        if local_id == 0 {
++            return Err(MediaTransitionError::Invalid.into());
++        }
++        Ok(Self {
++            local_id,
++            owner,
++            unprepared_cleanup: None,
++        })
++    }
++    pub fn with_unprepared_cleanup(mut self, cleanup: Arc<dyn MediaPortCleanup>) -> Self {
++        self.unprepared_cleanup = Some(cleanup);
++        self
++    }
++    pub fn local_id(&self) -> u16 {
++        self.local_id
++    }
++}
+ impl Default for StreamHandleAllocator {
+     fn default() -> Self {
+-        Self(AtomicU32::new(1))
++        Self {
++            next: AtomicU32::new(1),
++            shared: None,
++        }
+     }
+ }
+ impl StreamHandleAllocator {
+-    fn allocate(&self) -> ControlResult<u16> {
+-        self.0
++    pub fn shared(reserver: Arc<dyn StreamHandleReserver>) -> Arc<Self> {
++        Arc::new(Self {
++            next: AtomicU32::new(1),
++            shared: Some(reserver),
++        })
++    }
++    fn allocate(&self) -> ControlResult<StreamHandleAllocation> {
++        if let Some(shared) = &self.shared {
++            return shared.reserve();
++        }
++        let id = self
++            .next
+             .fetch_update(Ordering::AcqRel, Ordering::Acquire, |n| {
+                 (n <= u16::MAX as u32).then_some(n + 1)
+             })
+             .map(|n| n as u16)
+-            .map_err(|_| MediaTransitionError::Capacity.into())
++            .map_err(|_| StreamControlError::from(MediaTransitionError::Capacity))?;
++        StreamHandleAllocation::new(id, Arc::new(()))
+     }
+ }
+ 
+@@ -174,6 +220,7 @@ struct Port {
+     egress: mpsc::Sender<QueuedMedia>,
+     output: Mutex<Option<mpsc::Receiver<QueuedMedia>>>,
+     slot: Mutex<Option<OwnedSemaphorePermit>>,
++    allocation: Mutex<Option<StreamHandleAllocation>>,
+ }
+ impl Port {
+     fn retire(&self) {
+@@ -252,6 +299,43 @@ impl AdapterMediaPort {
+     pub fn binding(&self) -> &ReadyMediaBinding {
+         &self.0.binding
+     }
++    pub fn allocation_owner(&self) -> ControlResult<Arc<dyn Any + Send + Sync>> {
++        self.0
++            .allocation
++            .lock()
++            .unwrap_or_else(|p| p.into_inner())
++            .as_ref()
++            .map(|a| a.owner.clone())
++            .ok_or(StreamControlError::NotReady)
++    }
++    pub fn ingress_capacity(&self) -> (usize, usize) {
++        (self.0.ingress.max_capacity(), self.0.ingress.capacity())
++    }
++    pub fn ingress_is_closed(&self) -> bool {
++        self.0.ingress.is_closed()
++    }
++    pub fn status(&self) -> PortStatus {
++        self.0
++            .state
++            .lock()
++            .unwrap_or_else(|p| p.into_inner())
++            .status
++    }
++    pub fn context_ids(&self) -> ControlResult<(ConversationId, SessionId, ConnectionId)> {
++        let owner = self
++            .0
++            .owner
++            .upgrade()
++            .ok_or(StreamControlError::Cancelled)?;
++        Ok((
++            owner.conversation.clone(),
++            owner.session.clone(),
++            owner.connection.clone(),
++        ))
++    }
++    pub fn downgrade(&self) -> WeakAdapterMediaPort {
++        WeakAdapterMediaPort(Arc::downgrade(&self.0))
++    }
+     pub fn install_cleanup(&self, cleanup: Arc<dyn MediaPortCleanup>) -> ControlResult<()> {
+         let mut state = self.0.state.lock().unwrap_or_else(|p| p.into_inner());
+         if state.cleanup.is_some() || state.status != PortStatus::Prepared {
+@@ -347,6 +431,14 @@ impl AdapterMediaPort {
+     }
+ }
+ 
++#[derive(Clone)]
++pub struct WeakAdapterMediaPort(Weak<Port>);
++impl WeakAdapterMediaPort {
++    pub fn upgrade(&self) -> Option<AdapterMediaPort> {
++        self.0.upgrade().map(AdapterMediaPort)
++    }
++}
++
+ pub struct MediaPacket {
+     frame: MediaFrame,
+     source: Arc<Port>,
+@@ -755,7 +847,8 @@ impl StreamController {
+                 .clone()
+                 .try_acquire_owned()
+                 .map_err(|_| MediaTransitionError::Capacity)?;
+-            let handle = self.handles.allocate()?;
++            let allocation = self.handles.allocate()?;
++            let handle = allocation.local_id();
+             let baseline = PeerRouteTicket::initial();
+             let ticket = baseline.stage().ok_or(MediaTransitionError::Capacity)?;
+             let capacity = if plan.requested.medium == Medium::Audio {
+@@ -794,6 +887,7 @@ impl StreamController {
+                 egress,
+                 output: Mutex::new(Some(output)),
+                 slot: Mutex::new(Some(slot)),
++                allocation: Mutex::new(Some(allocation)),
+             });
+             self.state
+                 .lock()
+@@ -1032,7 +1126,14 @@ impl StreamController {
+                 .lock()
+                 .unwrap_or_else(|p| p.into_inner())
+                 .cleanup
+-                .clone();
++                .clone()
++                .or_else(|| {
++                    port.allocation
++                        .lock()
++                        .unwrap_or_else(|p| p.into_inner())
++                        .as_ref()
++                        .and_then(|a| a.unprepared_cleanup.clone())
++                });
+             let drained = matches!(
+                 tokio::time::timeout_at(deadline, port.ticket().wait_retired_drained()).await,
+                 Ok(true)
+@@ -1053,6 +1154,10 @@ impl StreamController {
+             if confirmed {
+                 port.state.lock().unwrap_or_else(|p| p.into_inner()).status = PortStatus::Closed;
+                 port.slot.lock().unwrap_or_else(|p| p.into_inner()).take();
++                port.allocation
++                    .lock()
++                    .unwrap_or_else(|p| p.into_inner())
++                    .take();
+                 self.state
+                     .lock()
+                     .unwrap_or_else(|p| p.into_inner())
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/tests.rs b/crates/foundation/rvoip-core/src/staged_streams/tests.rs
+index 60299a8..0fb7ff2 100644
+--- a/crates/foundation/rvoip-core/src/staged_streams/tests.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests.rs
+@@ -964,7 +964,7 @@ async fn shutdown_cancels_preparation_and_confirms_only_owned_resources() {
+ fn shared_physical_peer_handle_allocator_never_wraps() {
+     let allocator = StreamHandleAllocator::default();
+     for expected in 1..=u16::MAX {
+-        assert_eq!(allocator.allocate().unwrap(), expected);
++        assert_eq!(allocator.allocate().unwrap().local_id(), expected);
+     }
+     assert!(allocator.allocate().is_err());
+     assert!(allocator.allocate().is_err());
+diff --git a/crates/uctp/rvoip-quic/src/adapter.rs b/crates/uctp/rvoip-quic/src/adapter.rs
+index 0c19862..daf8398 100644
+--- a/crates/uctp/rvoip-quic/src/adapter.rs
++++ b/crates/uctp/rvoip-quic/src/adapter.rs
+@@ -257,6 +257,52 @@ pub struct UctpQuicAdapter {
+ }
+ 
+ impl UctpQuicAdapter {
++    /// Bind staged RTP to an existing authenticated physical route. The
++    /// application must install a negotiator for its selected canonical
++    /// profile; this does not enable a new public profile on legacy ingress.
++    pub fn staged_rtp_media(
++        &self,
++        connection: &ConnectionId,
++        negotiator: Arc<dyn rvoip_uctp::staged_media::StagedRtpNegotiator>,
++    ) -> RvoipResult<Arc<rvoip_uctp::staged_media::StagedRtpMedia>> {
++        let route = self
++            .route(connection)
++            .ok_or_else(|| RvoipError::ConnectionNotFound(connection.clone()))?;
++        let principal =
++            route
++                .coordinator
++                .authenticated_principal()
++                .ok_or(RvoipError::AdmissionRejected(
++                    "staged peer is unauthenticated",
++                ))?;
++        if route.route_cancel.is_cancelled()
++            || !route.binding.is_owned_by(&principal)
++            || principal
++                .expires_at
++                .is_some_and(|expiry| expiry <= Utc::now())
++        {
++            return Err(RvoipError::AdmissionRejected(
++                "staged peer authority is unavailable",
++            ));
++        }
++        let wire_connection =
++            rvoip_uctp::adapter_helpers::require_bound_wire_connection(&route.binding)?.to_string();
++        Ok(rvoip_uctp::staged_media::StagedRtpMedia::new(
++            rvoip_uctp::staged_media::StagedRtpScope {
++                session: route.core_session_id,
++                connection: route.core_connection_id,
++                owner: route.binding.owner().clone(),
++                wire_conversation: route.cid,
++                wire_session: route.sid,
++                wire_connection,
++            },
++            route.media_router,
++            route.streams,
++            negotiator,
++            Arc::new(QuicStagedDatagrams(route.conn)),
++            route.route_cancel,
++        ))
++    }
+     /// Return the coordinator's current authenticated principal for one
+     /// canonical Connection. This reflects successful `auth.refresh`
+     /// rotations and is intended for application-owned, continuously
+@@ -420,6 +466,21 @@ impl UctpQuicAdapter {
+     }
+ }
+ 
++struct QuicStagedDatagrams(quinn::Connection);
++impl rvoip_uctp::staged_media::StagedDatagramTransport for QuicStagedDatagrams {
++    fn maximum_datagram_bytes(&self) -> Option<usize> {
++        self.0.max_datagram_size()
++    }
++    fn send_datagram(&self, bytes: bytes::Bytes) -> rvoip_core::staged_streams::ControlResult<()> {
++        self.0
++            .send_datagram(bytes)
++            .map_err(|_| rvoip_core::staged_streams::StreamControlError::Backpressure)
++    }
++    fn is_closed(&self) -> bool {
++        self.0.close_reason().is_some()
++    }
++}
++
+ #[async_trait]
+ impl ConnectionAdapter for UctpQuicAdapter {
+     fn transport(&self) -> Transport {
+diff --git a/crates/uctp/rvoip-quic/src/media_stream.rs b/crates/uctp/rvoip-quic/src/media_stream.rs
+index 9f247e2..92c2efe 100644
+--- a/crates/uctp/rvoip-quic/src/media_stream.rs
++++ b/crates/uctp/rvoip-quic/src/media_stream.rs
+@@ -945,6 +945,7 @@ mod receiver_ownership_tests {
+             quality: parking_lot::RwLock::new(QualitySnapshot::default()),
+             cancel: CancellationToken::new(),
+             outbound_task: StdMutex::new(None),
++            diagnostics: Arc::new(StdMutex::new(None)),
+         };
+ 
+         let reservation = stream.reserve_frames_in().expect("reserve receiver");
+diff --git a/crates/uctp/rvoip-uctp/src/lib.rs b/crates/uctp/rvoip-uctp/src/lib.rs
+index 916d7d8..05a7a29 100644
+--- a/crates/uctp/rvoip-uctp/src/lib.rs
++++ b/crates/uctp/rvoip-uctp/src/lib.rs
+@@ -56,5 +56,6 @@ pub use crate::types::MessageType;
+ 
+ pub mod application;
+ 
++pub mod staged_media;
+ /// Version 2 wire contract and checked command payloads.
+ pub mod v2;
+diff --git a/crates/uctp/rvoip-uctp/src/staged_media.rs b/crates/uctp/rvoip-uctp/src/staged_media.rs
+new file mode 100644
+index 0000000..809474a
+--- /dev/null
++++ b/crates/uctp/rvoip-uctp/src/staged_media.rs
+@@ -0,0 +1,751 @@
++//! Shared staged RTP port integration for QUIC and WebTransport adapters.
++//! Negotiation is supplied by the authenticated application profile; this
++//! module never invents peer readiness or translates legacy control commands.
++use crate::substrate::{
++    observe_rtp, pack_observed_rtp_datagram, pack_rtp_datagram, CheckedMediaIngress,
++    ObservedRtpDatagram, PeerMediaRegistration, PeerMediaReservation, PeerMediaRouteKey,
++    PeerMediaRouter, RtpDatagram, RtpMediaPayload,
++};
++use async_trait::async_trait;
++use bytes::Bytes;
++use dashmap::DashMap;
++use futures::{
++    future::{BoxFuture, Shared},
++    FutureExt,
++};
++use rvoip_core::{
++    capability::CodecInfo,
++    connection::Direction,
++    error::{Result as CoreResult, RvoipError},
++    identity::PrincipalOwnershipKey,
++    ids::{ConnectionId, SessionId, StreamId},
++    staged_streams::*,
++    stream::{MediaFrame, MediaStream, QualitySnapshot, StreamKind},
++    stream_lifecycle::{MediaFormat, Medium, ReadyMediaBinding, StreamDirection},
++};
++use std::{
++    num::NonZeroU16,
++    sync::{
++        atomic::{AtomicU64, Ordering},
++        Arc, Mutex, Weak,
++    },
++};
++use tokio::sync::mpsc;
++use tokio_util::sync::CancellationToken;
++
++#[derive(Clone)]
++pub struct StagedRtpScope {
++    pub session: SessionId,
++    pub connection: ConnectionId,
++    pub owner: PrincipalOwnershipKey,
++    pub wire_conversation: Option<String>,
++    pub wire_session: String,
++    pub wire_connection: String,
++}
++impl std::fmt::Debug for StagedRtpScope {
++    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
++        f.write_str("StagedRtpScope(redacted)")
++    }
++}
++#[derive(Clone, Debug)]
++pub struct PreparedRtpAnswer {
++    pub binding: ReadyMediaBinding,
++    pub payload_type: u8,
++}
++#[async_trait]
++pub trait StagedRtpNegotiator: Send + Sync {
++    /// The installed profile must validate authenticated version, exact scope,
++    /// correlation, capabilities and actual peer readiness before returning.
++    /// Offers are provisional: cancellation must leave existing media intact.
++    async fn prepare(
++        &self,
++        scope: &StagedRtpScope,
++        offers: &[ReadyMediaBinding],
++        deadline: tokio::time::Instant,
++        cancellation: CancellationToken,
++    ) -> ControlResult<Vec<PreparedRtpAnswer>>;
++    /// Confirm the peer's exact prepared routes after server ingress/egress
++    /// exist. Media received in this phase is checked and discarded, not
++    /// buffered for a later grant. This is not a public activation outcome.
++    async fn confirm(
++        &self,
++        scope: &StagedRtpScope,
++        answers: &[PreparedRtpAnswer],
++        deadline: tokio::time::Instant,
++        cancellation: CancellationToken,
++    ) -> ControlResult<()>;
++}
++pub trait StagedDatagramTransport: Send + Sync {
++    fn maximum_datagram_bytes(&self) -> Option<usize>;
++    /// Nonblocking local transport admission only, not remote delivery.
++    fn send_datagram(&self, bytes: Bytes) -> ControlResult<()>;
++    fn is_closed(&self) -> bool;
++}
++
++struct RouterHandle {
++    router: Weak<PeerMediaRouter>,
++    owner: PrincipalOwnershipKey,
++    id: NonZeroU16,
++    reservation: Mutex<Option<PeerMediaReservation>>,
++    committed: Mutex<bool>,
++    cancellation: CancellationToken,
++}
++impl RouterHandle {
++    fn commit(&self, registration: PeerMediaRegistration) -> ControlResult<()> {
++        let reservation = self
++            .reservation
++            .lock()
++            .unwrap_or_else(|p| p.into_inner())
++            .take()
++            .ok_or(StreamControlError::NotReady)?;
++        reservation
++            .commit(registration)
++            .map_err(|_| StreamControlError::NotReady)?;
++        *self.committed.lock().unwrap_or_else(|p| p.into_inner()) = true;
++        Ok(())
++    }
++    fn remove(&self) -> ControlResult<()> {
++        self.reservation
++            .lock()
++            .unwrap_or_else(|p| p.into_inner())
++            .take();
++        if let Some(router) = self.router.upgrade() {
++            router
++                .remove_local_id_owned(self.id, &self.owner)
++                .map_err(|_| StreamControlError::Authority)?;
++        }
++        *self.committed.lock().unwrap_or_else(|p| p.into_inner()) = false;
++        Ok(())
++    }
++}
++#[async_trait]
++impl MediaPortCleanup for RouterHandle {
++    async fn close(&self) -> ControlResult<()> {
++        // Fallback only for a port whose adapter preparation never began.
++        if *self.committed.lock().unwrap_or_else(|p| p.into_inner()) {
++            return Err(StreamControlError::CleanupUnconfirmed);
++        }
++        self.remove()
++    }
++}
++struct RouterAllocator {
++    router: Arc<PeerMediaRouter>,
++    owner: PrincipalOwnershipKey,
++}
++impl StreamHandleReserver for RouterAllocator {
++    fn reserve(&self) -> ControlResult<StreamHandleAllocation> {
++        let reservation = self.router.reserve().map_err(|_| {
++            StreamControlError::from(rvoip_core::stream_lifecycle::MediaTransitionError::Capacity)
++        })?;
++        let handle = Arc::new(RouterHandle {
++            router: Arc::downgrade(&self.router),
++            owner: self.owner.clone(),
++            id: reservation.local_id(),
++            cancellation: reservation.cancellation_token(),
++            reservation: Mutex::new(Some(reservation)),
++            committed: Mutex::new(false),
++        });
++        Ok(
++            StreamHandleAllocation::new(handle.id.get(), handle.clone())?
++                .with_unprepared_cleanup(handle),
++        )
++    }
++}
++
++#[derive(Default)]
++pub struct StagedRtpCounters {
++    accepted: AtomicU64,
++    rejected: AtomicU64,
++    local_sends: AtomicU64,
++    send_errors: AtomicU64,
++}
++#[derive(Clone, Copy, Debug)]
++pub struct StagedRtpSnapshot {
++    pub ingress_accepted: u64,
++    pub ingress_rejected: u64,
++    pub local_sends: u64,
++    pub send_errors: u64,
++}
++impl StagedRtpCounters {
++    pub fn snapshot(&self) -> StagedRtpSnapshot {
++        StagedRtpSnapshot {
++            ingress_accepted: self.accepted.load(Ordering::Acquire),
++            ingress_rejected: self.rejected.load(Ordering::Acquire),
++            local_sends: self.local_sends.load(Ordering::Acquire),
++            send_errors: self.send_errors.load(Ordering::Acquire),
++        }
++    }
++}
++struct PortIngress {
++    port: WeakAdapterMediaPort,
++    counters: Arc<StagedRtpCounters>,
++}
++impl CheckedMediaIngress for PortIngress {
++    fn try_send(&self, frame: MediaFrame) -> Result<(), mpsc::error::TrySendError<MediaFrame>> {
++        let result = self
++            .port
++            .upgrade()
++            .ok_or(StreamControlError::Cancelled)
++            .and_then(|p| p.try_publish(&frame));
++        match result {
++            Ok(()) => {
++                self.counters.accepted.fetch_add(1, Ordering::AcqRel);
++                Ok(())
++            }
++            Err(error) => {
++                self.counters.rejected.fetch_add(1, Ordering::AcqRel);
++                if matches!(error, StreamControlError::Backpressure) {
++                    Err(mpsc::error::TrySendError::Full(frame))
++                } else {
++                    Err(mpsc::error::TrySendError::Closed(frame))
++                }
++            }
++        }
++    }
++    fn capacity(&self) -> usize {
++        self.port.upgrade().map_or(0, |p| p.ingress_capacity().1)
++    }
++    fn max_capacity(&self) -> usize {
++        self.port.upgrade().map_or(0, |p| p.ingress_capacity().0)
++    }
++    fn is_closed(&self) -> bool {
++        self.port.upgrade().is_none_or(|p| p.ingress_is_closed())
++    }
++}
++struct RoutedStream {
++    port: AdapterMediaPort,
++    codec: CodecInfo,
++}
++#[async_trait]
++impl MediaStream for RoutedStream {
++    fn retire_delivery(&self) {
++        let _ = self.port.report_terminal();
++    }
++    fn id(&self) -> StreamId {
++        self.port.binding().transport_id.clone()
++    }
++    fn kind(&self) -> StreamKind {
++        match self.port.binding().negotiated.requested.medium {
++            Medium::Audio => StreamKind::Audio,
++            Medium::Video | Medium::Screen => StreamKind::Video,
++            Medium::Data => StreamKind::Data,
++        }
++    }
++    fn codec(&self) -> CodecInfo {
++        self.codec.clone()
++    }
++    fn direction(&self) -> Direction {
++        if self.port.binding().negotiated.requested.direction == StreamDirection::Send {
++            Direction::Outbound
++        } else {
++            Direction::Inbound
++        }
++    }
++    fn source_ready(&self) -> bool {
++        self.port.status() == PortStatus::Active && self.port.binding().source_ready
++    }
++    fn frames_in(&self) -> mpsc::Receiver<MediaFrame> {
++        mpsc::channel(1).1
++    }
++    fn try_frames_in(&self) -> CoreResult<mpsc::Receiver<MediaFrame>> {
++        Err(RvoipError::NotImplemented(
++            "staged ingress requires authorized packets",
++        ))
++    }
++    fn frames_out(&self) -> mpsc::Sender<MediaFrame> {
++        mpsc::channel(1).0
++    }
++    fn try_frames_out(&self) -> CoreResult<mpsc::Sender<MediaFrame>> {
++        Err(RvoipError::NotImplemented(
++            "staged egress requires delivery guards",
++        ))
++    }
++    fn quality_snapshot(&self) -> QualitySnapshot {
++        QualitySnapshot::default()
++    }
++    fn has_quality_measurement(&self) -> bool {
++        false
++    }
++    async fn close(self: Arc<Self>) -> CoreResult<()> {
++        self.port
++            .report_terminal()
++            .map_err(|_| RvoipError::InvalidState("staged terminal failed"))?;
++        Ok(())
++    }
++}
++
++struct PortResources {
++    handle: Arc<RouterHandle>,
++    streams: Arc<DashMap<StreamId, Arc<dyn MediaStream>>>,
++    stream_id: StreamId,
++    stream: Mutex<Option<Weak<dyn MediaStream>>>,
++    cancel: CancellationToken,
++    task: Mutex<Option<Shared<BoxFuture<'static, Result<(), ()>>>>>,
++}
++#[async_trait]
++impl MediaPortCleanup for PortResources {
++    async fn close(&self) -> ControlResult<()> {
++        self.cancel.cancel();
++        self.handle.remove()?;
++        let stream = self
++            .stream
++            .lock()
++            .unwrap_or_else(|p| p.into_inner())
++            .as_ref()
++            .and_then(Weak::upgrade);
++        if let Some(stream) = stream {
++            self.streams
++                .remove_if(&self.stream_id, |_, value| Arc::ptr_eq(value, &stream));
++        }
++        let task = self.task.lock().unwrap_or_else(|p| p.into_inner()).clone();
++        if let Some(task) = task {
++            let result = task.await;
++            self.task.lock().unwrap_or_else(|p| p.into_inner()).take();
++            result.map_err(|_| StreamControlError::CleanupUnconfirmed)?;
++        }
++        self.stream.lock().unwrap_or_else(|p| p.into_inner()).take();
++        Ok(())
++    }
++}
++
++pub struct StagedRtpMedia {
++    scope: StagedRtpScope,
++    router: Arc<PeerMediaRouter>,
++    streams: Arc<DashMap<StreamId, Arc<dyn MediaStream>>>,
++    handles: Arc<StreamHandleAllocator>,
++    negotiator: Arc<dyn StagedRtpNegotiator>,
++    transport: Arc<dyn StagedDatagramTransport>,
++    lifetime: CancellationToken,
++    counters: Arc<StagedRtpCounters>,
++}
++impl StagedRtpMedia {
++    pub fn new(
++        scope: StagedRtpScope,
++        router: Arc<PeerMediaRouter>,
++        streams: Arc<DashMap<StreamId, Arc<dyn MediaStream>>>,
++        negotiator: Arc<dyn StagedRtpNegotiator>,
++        transport: Arc<dyn StagedDatagramTransport>,
++        lifetime: CancellationToken,
++    ) -> Arc<Self> {
++        let handles = StreamHandleAllocator::shared(Arc::new(RouterAllocator {
++            router: router.clone(),
++            owner: scope.owner.clone(),
++        }));
++        Arc::new(Self {
++            scope,
++            router,
++            streams,
++            handles,
++            negotiator,
++            transport,
++            lifetime,
++            counters: Arc::new(StagedRtpCounters::default()),
++        })
++    }
++    pub fn handle_allocator(&self) -> Arc<StreamHandleAllocator> {
++        self.handles.clone()
++    }
++    pub fn counters(&self) -> Arc<StagedRtpCounters> {
++        self.counters.clone()
++    }
++}
++fn codec(format: &MediaFormat, medium: Medium, pt: Option<u8>) -> ControlResult<CodecInfo> {
++    let MediaFormat::Encoded {
++        name,
++        clock_rate_hz,
++        channels,
++        fmtp,
++    } = format
++    else {
++        return Err(StreamControlError::Unsupported);
++    };
++    let name = name.to_ascii_lowercase();
++    let valid = match (medium, name.as_str()) {
++        (Medium::Audio, "pcmu") => {
++            *clock_rate_hz == 8000
++                && *channels == 1
++                && pt.is_none_or(|p| p == 0 || p >= 96 && p < 128)
++        }
++        (Medium::Audio, "pcma") => {
++            *clock_rate_hz == 8000
++                && *channels == 1
++                && pt.is_none_or(|p| p == 8 || p >= 96 && p < 128)
++        }
++        (Medium::Audio, "opus") => {
++            *clock_rate_hz == 48000 && *channels == 1 && pt.is_none_or(|p| p >= 96 && p < 128)
++        }
++        (Medium::Video | Medium::Screen, "vp8") => {
++            *clock_rate_hz == 90000 && *channels == 0 && pt.is_none_or(|p| p >= 96 && p < 128)
++        }
++        _ => false,
++    };
++    if !valid {
++        return Err(StreamControlError::Unsupported);
++    }
++    Ok(CodecInfo {
++        name: name.clone(),
++        clock_rate_hz: *clock_rate_hz,
++        channels: *channels,
++        fmtp: fmtp.clone(),
++        payload_type: pt,
++    })
++}
++struct Packetizer {
++    outer: u32,
++    rtp: u16,
++    ssrc: u32,
++    video: rvoip_core::video_packetizer::Vp8Packetizer,
++}
++impl Packetizer {
++    fn send(
++        &mut self,
++        frame: MediaFrame,
++        binding: &ReadyMediaBinding,
++        pt: u8,
++        transport: &dyn StagedDatagramTransport,
++    ) -> ControlResult<usize> {
++        if frame
++            .source_clock
++            .as_ref()
++            .is_some_and(|clock| !(clock.is_current)())
++        {
++            return Err(StreamControlError::NotReady);
++        }
++        let maximum = transport
++            .maximum_datagram_bytes()
++            .ok_or(StreamControlError::NotReady)?;
++        let packets = if frame.kind == StreamKind::Video {
++            let input = rvoip_core::video_bridge::normalize_packet(&frame, self.ssrc, pt)
++                .ok_or(StreamControlError::NotReady)?;
++            let packets = self
++                .video
++                .packetize(input, maximum.saturating_sub(8).min(1180))
++                .ok_or(StreamControlError::NotReady)?;
++            packets
++                .into_iter()
++                .map(|packet| {
++                    observe_rtp(packet).and_then(|rtp| {
++                        pack_observed_rtp_datagram(&ObservedRtpDatagram {
++                            flags: 0,
++                            stream_local_id: binding.stream_local_id,
++                            seq: {
++                                let seq = self.outer;
++                                self.outer = self.outer.wrapping_add(1);
++                                seq
++                            },
++                            rtp,
++                        })
++                    })
++                })
++                .collect::<Result<Vec<_>, _>>()
++                .map_err(|_| StreamControlError::NotReady)?
++        } else {
++            let packet = pack_rtp_datagram(&RtpDatagram {
++                flags: 0,
++                stream_local_id: binding.stream_local_id,
++                seq: self.outer,
++                rtp: RtpMediaPayload {
++                    payload: frame.payload,
++                    payload_type: pt,
++                    sequence_number: self.rtp,
++                    timestamp: frame.timestamp_rtp,
++                    ssrc: self.ssrc,
++                },
++            })
++            .map_err(|_| StreamControlError::NotReady)?;
++            self.outer = self.outer.wrapping_add(1);
++            self.rtp = self.rtp.wrapping_add(1);
++            vec![packet]
++        };
++        let count = packets.len();
++        for packet in packets {
++            if packet.len() > maximum {
++                return Err(StreamControlError::NotReady);
++            }
++            transport.send_datagram(packet)?;
++        }
++        Ok(count)
++    }
++}
++#[async_trait]
++impl StagedMediaAdapter for StagedRtpMedia {
++    async fn prepare(
++        &self,
++        ports: Vec<PortPreparation>,
++        deadline: tokio::time::Instant,
++        cancellation: CancellationToken,
++    ) -> ControlResult<()> {
++        if self.lifetime.is_cancelled() || self.transport.is_closed() {
++            return Err(StreamControlError::Cancelled);
++        }
++        let mut pending = Vec::new();
++        for preparation in &ports {
++            let port = &preparation.port;
++            let (_, session, connection) = port.context_ids()?;
++            if session != self.scope.session || connection != self.scope.connection {
++                return Err(StreamControlError::Authority);
++            }
++            codec(
++                &port.binding().negotiated.format,
++                port.binding().negotiated.requested.medium,
++                None,
++            )?;
++            let allocation = port
++                .allocation_owner()?
++                .downcast::<RouterHandle>()
++                .map_err(|_| StreamControlError::Authority)?;
++            if allocation.id.get() != port.binding().stream_local_id
++                || allocation.owner != self.scope.owner
++                || allocation
++                    .router
++                    .upgrade()
++                    .is_none_or(|router| !Arc::ptr_eq(&router, &self.router))
++            {
++                return Err(StreamControlError::Authority);
++            }
++            if !preparation.is_new {
++                continue;
++            }
++            // Cleanup owns only this candidate, and is registered before peer
++            // negotiation, task creation or router publication.
++            let cancel = allocation.cancellation.child_token();
++            let resources = Arc::new(PortResources {
++                handle: allocation,
++                streams: self.streams.clone(),
++                stream_id: port.binding().transport_id.clone(),
++                stream: Mutex::new(None),
++                cancel,
++                task: Mutex::new(None),
++            });
++            port.install_cleanup(resources.clone())?;
++            pending.push((port.clone(), resources));
++        }
++        if pending.is_empty() {
++            return Ok(());
++        }
++        let offers = pending
++            .iter()
++            .map(|(p, _)| p.binding().clone())
++            .collect::<Vec<_>>();
++        let answers = self
++            .negotiator
++            .prepare(&self.scope, &offers, deadline, cancellation.clone())
++            .await?;
++        if answers.len() != offers.len() {
++            return Err(StreamControlError::NotReady);
++        }
++        let mut used = std::collections::HashSet::new();
++        for answer in &answers {
++            if !used.insert(answer.binding.transport_id.clone())
++                || !offers
++                    .iter()
++                    .any(|offer| same_binding(offer, &answer.binding))
++            {
++                return Err(StreamControlError::NotReady);
++            }
++            codec(
++                &answer.binding.negotiated.format,
++                answer.binding.negotiated.requested.medium,
++                Some(answer.payload_type),
++            )?;
++        }
++        if cancellation.is_cancelled() || self.lifetime.is_cancelled() || self.transport.is_closed()
++        {
++            return Err(StreamControlError::Cancelled);
++        }
++        for (port, resources) in pending {
++            let answer = answers
++                .iter()
++                .find(|a| a.binding.transport_id == port.binding().transport_id)
++                .ok_or(StreamControlError::NotReady)?;
++            let descriptor = codec(
++                &answer.binding.negotiated.format,
++                answer.binding.negotiated.requested.medium,
++                Some(answer.payload_type),
++            )?;
++            if self.streams.contains_key(&port.binding().transport_id) {
++                return Err(StreamControlError::NotReady);
++            }
++            let stream: Arc<dyn MediaStream> = Arc::new(RoutedStream {
++                port: port.clone(),
++                codec: descriptor,
++            });
++            let registration = PeerMediaRegistration::checked(
++                self.scope.owner.clone(),
++                PeerMediaRouteKey::new(
++                    self.scope.session.clone(),
++                    self.scope.connection.clone(),
++                    port.binding().transport_id.clone(),
++                ),
++                stream.clone(),
++                Arc::new(PortIngress {
++                    port: port.downgrade(),
++                    counters: self.counters.clone(),
++                }),
++            );
++            resources.handle.commit(registration)?;
++            *resources.stream.lock().unwrap_or_else(|p| p.into_inner()) =
++                Some(Arc::downgrade(&stream));
++            self.streams
++                .insert(port.binding().transport_id.clone(), stream);
++            let binding = port.binding().clone();
++            let pt = answer.payload_type;
++            let transport = self.transport.clone();
++            let cancel = resources.cancel.clone();
++            let lifetime = self.lifetime.clone();
++            let weak = port.downgrade();
++            let counters = self.counters.clone();
++            let mut receiver = if binding.sink_ready {
++                Some(port.take_egress()?)
++            } else {
++                None
++            };
++            let task = tokio::spawn(async move {
++                let mut packetizer = Packetizer {
++                    outer: 0,
++                    rtp: 0,
++                    ssrc: u32::from_be_bytes(
++                        uuid::Uuid::new_v4().as_bytes()[..4].try_into().unwrap(),
++                    ),
++                    video: Default::default(),
++                };
++                loop {
++                    let next = async {
++                        match receiver.as_mut() {
++                            Some(receiver) => receiver.recv().await,
++                            None => std::future::pending().await,
++                        }
++                    };
++                    let queued = tokio::select! {biased;_=cancel.cancelled()=>break,_=lifetime.cancelled()=>break,next=next=>match next {Some(value)=>value,None=>break}};
++                    let result = queued
++                        .deliver(|frame| {
++                            let result = packetizer
++                                .send(frame, &binding, pt, transport.as_ref())
++                                .map(|count| {
++                                    counters
++                                        .local_sends
++                                        .fetch_add(count as u64, Ordering::AcqRel);
++                                });
++                            std::future::ready(result)
++                        })
++                        .await;
++                    if result.is_err() {
++                        counters.send_errors.fetch_add(1, Ordering::AcqRel);
++                    }
++                    if transport.is_closed() {
++                        break;
++                    }
++                }
++                if let Some(port) = weak.upgrade() {
++                    let _ = port.report_terminal();
++                }
++            });
++            *resources.task.lock().unwrap_or_else(|p| p.into_inner()) =
++                Some(async move { task.await.map_err(|_| ()) }.boxed().shared());
++            port.observe_ready(
++                &answer.binding.negotiated.format,
++                answer.binding.source_ready,
++                answer.binding.sink_ready,
++                Some(pt),
++            )?;
++        }
++        self.negotiator
++            .confirm(&self.scope, &answers, deadline, cancellation)
++            .await?;
++        if self.lifetime.is_cancelled() || self.transport.is_closed() {
++            return Err(StreamControlError::Cancelled);
++        }
++        Ok(())
++    }
++}
++fn same_binding(a: &ReadyMediaBinding, b: &ReadyMediaBinding) -> bool {
++    a.negotiated == b.negotiated
++        && a.transport_id == b.transport_id
++        && a.stream_local_id == b.stream_local_id
++        && a.generation == b.generation
++        && a.connection_generation == b.connection_generation
++        && (!a.source_ready || b.source_ready)
++        && (!a.sink_ready || b.sink_ready)
++}
++
++#[cfg(test)]
++mod tests {
++    use super::*;
++    #[test]
++    fn rtp_codec_profiles_require_the_actual_negotiated_payload_type() {
++        let audio = MediaFormat::Encoded {
++            name: "opus".into(),
++            clock_rate_hz: 48000,
++            channels: 1,
++            fmtp: None,
++        };
++        assert!(codec(&audio, Medium::Audio, Some(111)).is_ok());
++        assert!(codec(&audio, Medium::Audio, Some(0)).is_err());
++        assert!(codec(&audio, Medium::Video, Some(111)).is_err());
++        assert!(codec(
++            &MediaFormat::ReliableOrdered(rvoip_core::capability::DataProtocol::Json),
++            Medium::Data,
++            None
++        )
++        .is_err());
++    }
++    #[test]
++    fn retired_clock_routes_cannot_reach_the_datagram_transport() {
++        struct NoSend;
++        impl StagedDatagramTransport for NoSend {
++            fn maximum_datagram_bytes(&self) -> Option<usize> {
++                Some(1200)
++            }
++            fn send_datagram(&self, _: Bytes) -> ControlResult<()> {
++                panic!("retired clock route sent")
++            }
++            fn is_closed(&self) -> bool {
++                false
++            }
++        }
++        let binding = ReadyMediaBinding {
++            negotiated: rvoip_core::stream_lifecycle::NegotiatedStream {
++                requested: rvoip_core::stream_lifecycle::DesiredStream {
++                    logical_id: StreamId::new(),
++                    medium: Medium::Audio,
++                    direction: StreamDirection::Both,
++                },
++                format: MediaFormat::Encoded {
++                    name: "pcmu".into(),
++                    clock_rate_hz: 8000,
++                    channels: 1,
++                    fmtp: None,
++                },
++            },
++            transport_id: StreamId::new(),
++            stream_local_id: 1,
++            generation: 1,
++            connection_generation: 1,
++            source_ready: true,
++            sink_ready: true,
++        };
++        let frame = MediaFrame {
++            stream_id: binding.transport_id.clone(),
++            kind: StreamKind::Audio,
++            payload: Bytes::from_static(b"encoded"),
++            timestamp_rtp: 0,
++            captured_at: chrono::Utc::now(),
++            payload_type: Some(0),
++            source_clock: Some(rvoip_core::stream::MediaSourceClock {
++                source_id: 1,
++                generation: 1,
++                anchor: None,
++                supported: true,
++                rtp_offset: 0,
++                is_current: Arc::new(|| false),
++            }),
++        };
++        let mut packetizer = Packetizer {
++            outer: 0,
++            rtp: 0,
++            ssrc: 1,
++            video: Default::default(),
++        };
++        assert!(packetizer.send(frame, &binding, 0, &NoSend).is_err());
++    }
++}
+diff --git a/crates/uctp/rvoip-uctp/src/substrate/mod.rs b/crates/uctp/rvoip-uctp/src/substrate/mod.rs
+index 070096c..55a5e88 100644
+--- a/crates/uctp/rvoip-uctp/src/substrate/mod.rs
++++ b/crates/uctp/rvoip-uctp/src/substrate/mod.rs
+@@ -22,9 +22,9 @@ pub use datagram::{
+ pub use datagram::{pack, unpack, MediaDatagram};
+ pub use framing::{envelope_reader, envelope_writer, length_prefixed_codec};
+ pub use peer_media_router::{
+-    PeerMediaBinding, PeerMediaBindingSnapshot, PeerMediaConnectionKey, PeerMediaFanoutKey,
+-    PeerMediaRegistration, PeerMediaReservation, PeerMediaRouteKey, PeerMediaRouter,
+-    PeerMediaRouterError, PeerMediaRouterSnapshot,
++    CheckedMediaIngress, PeerMediaBinding, PeerMediaBindingSnapshot, PeerMediaConnectionKey,
++    PeerMediaFanoutKey, PeerMediaIngress, PeerMediaRegistration, PeerMediaReservation,
++    PeerMediaRouteKey, PeerMediaRouter, PeerMediaRouterError, PeerMediaRouterSnapshot,
+ };
+ pub use quinn::{
+     dispatch_by_alpn, make_client_endpoint, make_server_endpoint, spawn_stats_sampler, AlpnRoutes,
+diff --git a/crates/uctp/rvoip-uctp/src/substrate/peer_media_router.rs b/crates/uctp/rvoip-uctp/src/substrate/peer_media_router.rs
+index f00c78d..be1b559 100644
+--- a/crates/uctp/rvoip-uctp/src/substrate/peer_media_router.rs
++++ b/crates/uctp/rvoip-uctp/src/substrate/peer_media_router.rs
+@@ -20,6 +20,46 @@ use rvoip_core::stream::{MediaFrame, MediaStream, StreamKind};
+ use tokio::sync::mpsc;
+ use tokio_util::sync::CancellationToken;
+ 
++/// Runs at physical ingress before any channel buffering. Staged routes use
++/// this to reject packets while their engine generation is still inactive.
++pub trait CheckedMediaIngress: Send + Sync {
++    fn try_send(&self, frame: MediaFrame) -> Result<(), mpsc::error::TrySendError<MediaFrame>>;
++    fn capacity(&self) -> usize;
++    fn max_capacity(&self) -> usize;
++    fn is_closed(&self) -> bool;
++}
++#[derive(Clone)]
++pub enum PeerMediaIngress {
++    Channel(mpsc::Sender<MediaFrame>),
++    Checked(Arc<dyn CheckedMediaIngress>),
++}
++impl PeerMediaIngress {
++    pub fn try_send(&self, frame: MediaFrame) -> Result<(), mpsc::error::TrySendError<MediaFrame>> {
++        match self {
++            Self::Channel(tx) => tx.try_send(frame),
++            Self::Checked(ingress) => ingress.try_send(frame),
++        }
++    }
++    pub fn capacity(&self) -> usize {
++        match self {
++            Self::Channel(tx) => tx.capacity(),
++            Self::Checked(ingress) => ingress.capacity(),
++        }
++    }
++    pub fn max_capacity(&self) -> usize {
++        match self {
++            Self::Channel(tx) => tx.max_capacity(),
++            Self::Checked(ingress) => ingress.max_capacity(),
++        }
++    }
++    pub fn is_closed(&self) -> bool {
++        match self {
++            Self::Channel(tx) => tx.is_closed(),
++            Self::Checked(ingress) => ingress.is_closed(),
++        }
++    }
++}
++
+ /// A core Session/Connection pair sharing one authenticated UCTP peer.
+ #[derive(Clone, Eq, Hash, Ord, PartialEq, PartialOrd)]
+ pub struct PeerMediaConnectionKey {
+@@ -109,7 +149,7 @@ pub struct PeerMediaRegistration {
+     pub route: PeerMediaRouteKey,
+     pub fanout: Option<PeerMediaFanoutKey>,
+     pub stream: Arc<dyn MediaStream>,
+-    pub ingress: mpsc::Sender<MediaFrame>,
++    pub ingress: PeerMediaIngress,
+ }
+ 
+ impl PeerMediaRegistration {
+@@ -124,7 +164,22 @@ impl PeerMediaRegistration {
+             route,
+             fanout: None,
+             stream,
+-            ingress,
++            ingress: PeerMediaIngress::Channel(ingress),
++        }
++    }
++
++    pub fn checked(
++        owner: PrincipalOwnershipKey,
++        route: PeerMediaRouteKey,
++        stream: Arc<dyn MediaStream>,
++        ingress: Arc<dyn CheckedMediaIngress>,
++    ) -> Self {
++        Self {
++            owner,
++            route,
++            fanout: None,
++            stream,
++            ingress: PeerMediaIngress::Checked(ingress),
+         }
+     }
+ 
+@@ -151,7 +206,7 @@ pub struct PeerMediaBinding {
+     route: PeerMediaRouteKey,
+     fanout: Option<PeerMediaFanoutKey>,
+     stream: Arc<dyn MediaStream>,
+-    ingress: mpsc::Sender<MediaFrame>,
++    ingress: PeerMediaIngress,
+     cancel: CancellationToken,
+ }
+ 
+@@ -176,7 +231,7 @@ impl PeerMediaBinding {
+         &self.stream
+     }
+ 
+-    pub fn ingress(&self) -> mpsc::Sender<MediaFrame> {
++    pub fn ingress(&self) -> PeerMediaIngress {
+         self.ingress.clone()
+     }
+ 
+@@ -190,6 +245,7 @@ impl PeerMediaBinding {
+ 
+     fn cancel(&self) {
+         self.cancel.cancel();
++        self.stream.retire_delivery();
+     }
+ 
+     fn snapshot(&self) -> PeerMediaBindingSnapshot {
+diff --git a/crates/uctp/rvoip-uctp/tests/staged_media.rs b/crates/uctp/rvoip-uctp/tests/staged_media.rs
+new file mode 100644
+index 0000000..6ac2157
+--- /dev/null
++++ b/crates/uctp/rvoip-uctp/tests/staged_media.rs
+@@ -0,0 +1,800 @@
++//! Actual local QUIC/RTP routing with a controlled readiness provider. This is
++//! not public envelope-v2 authentication or a browser/provider qualification.
++use async_trait::async_trait;
++use bytes::Bytes;
++use dashmap::DashMap;
++use rvoip_core::{
++    connection::Transport,
++    identity::{AuthenticatedPrincipal, AuthenticationMethod, IdentityAssurance},
++    ids::*,
++    participant::{ParticipantKind, ParticipantRole},
++    relationships::*,
++    staged_streams::*,
++    stream_lifecycle::*,
++};
++use rvoip_uctp::{
++    staged_media::*,
++    substrate::{
++        dev_client_config_trusting, make_server_endpoint, observe_rtp, observe_rtp_datagram,
++        pack_observed_rtp_datagram, pack_rtp_datagram, self_signed_for_dev, ObservedRtpDatagram,
++        PeerMediaRouter, RtpDatagram, RtpMediaPayload,
++    },
++};
++use std::{
++    collections::{BTreeMap, BTreeSet, HashMap},
++    net::SocketAddr,
++    sync::{
++        atomic::{AtomicBool, Ordering},
++        Arc, Mutex,
++    },
++    time::Duration,
++};
++use tokio::sync::{mpsc, Notify, OwnedRwLockReadGuard, RwLock};
++use tokio_util::sync::CancellationToken;
++
++fn pcmu() -> MediaFormat {
++    MediaFormat::Encoded {
++        name: "pcmu".into(),
++        clock_rate_hz: 8000,
++        channels: 1,
++        fmtp: None,
++    }
++}
++fn vp8() -> MediaFormat {
++    MediaFormat::Encoded {
++        name: "vp8".into(),
++        clock_rate_hz: 90000,
++        channels: 0,
++        fmtp: None,
++    }
++}
++fn desired(kind: Medium) -> DesiredStream {
++    DesiredStream {
++        logical_id: StreamId::from_string(match kind {
++            Medium::Audio => "audio",
++            Medium::Video => "video",
++            Medium::Screen => "screen",
++            Medium::Data => "data",
++        }),
++        medium: kind,
++        direction: StreamDirection::Both,
++    }
++}
++fn profile() -> EndpointMediaCapabilities {
++    let values = vec![
++        MediaCapability {
++            medium: Medium::Audio,
++            formats: vec![pcmu()],
++        },
++        MediaCapability {
++            medium: Medium::Video,
++            formats: vec![vp8()],
++        },
++        MediaCapability {
++            medium: Medium::Screen,
++            formats: vec![vp8()],
++        },
++    ];
++    EndpointMediaCapabilities {
++        send: values.clone(),
++        receive: values,
++        max_streams: 8,
++        renegotiation: true,
++    }
++}
++fn principal(name: &str) -> AuthenticatedPrincipal {
++    AuthenticatedPrincipal {
++        subject: name.into(),
++        tenant: Some("tenant".into()),
++        scopes: vec![],
++        issuer: Some("local-fixture".into()),
++        expires_at: Some(chrono::Utc::now() + chrono::Duration::hours(1)),
++        method: AuthenticationMethod::Bearer,
++        assurance: IdentityAssurance::Anonymous,
++    }
++}
++fn owner(name: &str) -> MediaOwner {
++    let identity = IdentityBinding::from_authenticated(
++        &principal(name),
++        IdentityId::from_string(name),
++        chrono::Utc::now(),
++    )
++    .unwrap();
++    let member = Membership::admit(
++        identity.clone(),
++        ConversationId::from_string("conversation"),
++        ParticipantId::from_string(format!("participant-{name}")),
++        ParticipantKind::Human,
++        ParticipantRole::Agent,
++    )
++    .unwrap();
++    let presence =
++        SessionAppearance::admit(&member, SessionId::from_string("session"), None).unwrap();
++    let mut endpoint = EndpointBinding::provision(
++        identity.clone(),
++        EndpointId::from_string(format!("endpoint-{name}")),
++        DeviceId::from_string(format!("device-{name}")),
++        Transport::Quic,
++        "fixture-endpoint".into(),
++    )
++    .unwrap();
++    endpoint
++        .verify(&identity, "fixture-proof".into(), chrono::Utc::now())
++        .unwrap();
++    let mut connection = ConnectionBinding::prepare(
++        &member,
++        &presence,
++        &endpoint,
++        ConnectionId::from_string(name),
++    )
++    .unwrap();
++    connection
++        .observe_ready(&member, &presence, &endpoint, 1)
++        .unwrap();
++    connection.activate(&member, &presence, &endpoint).unwrap();
++    MediaOwner {
++        actor: member.clone(),
++        member,
++        presence,
++        endpoint,
++        connection,
++        may_control: true,
++        send_media: [Medium::Audio, Medium::Video, Medium::Screen]
++            .into_iter()
++            .collect(),
++        receive_media: [Medium::Audio, Medium::Video, Medium::Screen]
++            .into_iter()
++            .collect(),
++        local: profile(),
++        remote: profile(),
++        may_route_source: true,
++    }
++}
++struct PolicyState {
++    owners: HashMap<String, MediaOwner>,
++    private: bool,
++}
++struct Policy(Arc<RwLock<PolicyState>>);
++struct Lease {
++    owner: MediaOwner,
++    _guard: OwnedRwLockReadGuard<PolicyState>,
++}
++impl MediaAuthorityLease for Lease {
++    fn authority(&self) -> &MediaOwner {
++        &self.owner
++    }
++}
++impl MediaPolicy for Policy {
++    fn current(&self, scope: &MediaScope<'_>) -> ControlResult<Box<dyn MediaAuthorityLease>> {
++        let guard = self
++            .0
++            .clone()
++            .try_read_owned()
++            .map_err(|_| StreamControlError::Authority)?;
++        let mut owner = guard
++            .owners
++            .get(scope.connection.as_str())
++            .ok_or(StreamControlError::Authority)?
++            .clone();
++        if let MediaPurpose::Receive { source } = scope.purpose {
++            let original = guard
++                .owners
++                .get(source.connection.as_str())
++                .ok_or(StreamControlError::Authority)?;
++            if source.participant != *original.member.participant()
++                || source.membership_epoch != original.member.epoch()
++                || source.connection_generation != original.connection.generation()
++                || source.session != *scope.session
++                || source.conversation != *scope.conversation
++            {
++                return Err(StreamControlError::Authority);
++            }
++            owner.may_route_source = !guard.private;
++        }
++        Ok(Box::new(Lease {
++            owner,
++            _guard: guard,
++        }))
++    }
++}
++struct Negotiator {
++    offers: Mutex<BTreeMap<StreamId, ReadyMediaBinding>>,
++    hold: AtomicBool,
++    wrong: AtomicBool,
++    entered: Notify,
++    release: Notify,
++    video_pt: u8,
++}
++impl Negotiator {
++    fn new(video_pt: u8) -> Arc<Self> {
++        Arc::new(Self {
++            offers: Mutex::new(BTreeMap::new()),
++            hold: AtomicBool::new(false),
++            wrong: AtomicBool::new(false),
++            entered: Notify::new(),
++            release: Notify::new(),
++            video_pt,
++        })
++    }
++    fn binding(&self, kind: Medium) -> ReadyMediaBinding {
++        self.offers
++            .lock()
++            .unwrap()
++            .get(&desired(kind).logical_id)
++            .unwrap()
++            .clone()
++    }
++}
++#[async_trait]
++impl StagedRtpNegotiator for Negotiator {
++    async fn prepare(
++        &self,
++        _: &StagedRtpScope,
++        offers: &[ReadyMediaBinding],
++        _: tokio::time::Instant,
++        _: CancellationToken,
++    ) -> ControlResult<Vec<PreparedRtpAnswer>> {
++        let mut answers = Vec::new();
++        for binding in offers {
++            self.offers.lock().unwrap().insert(
++                binding.negotiated.requested.logical_id.clone(),
++                binding.clone(),
++            );
++            let mut binding = binding.clone();
++            if self.wrong.load(Ordering::Acquire) {
++                binding.connection_generation += 1;
++            }
++            let pt = if binding.negotiated.requested.medium == Medium::Audio {
++                0
++            } else {
++                self.video_pt
++            };
++            answers.push(PreparedRtpAnswer {
++                binding,
++                payload_type: pt,
++            });
++        }
++        Ok(answers)
++    }
++    async fn confirm(
++        &self,
++        _: &StagedRtpScope,
++        _: &[PreparedRtpAnswer],
++        _: tokio::time::Instant,
++        _: CancellationToken,
++    ) -> ControlResult<()> {
++        if self.hold.load(Ordering::Acquire) {
++            self.entered.notify_one();
++            self.release.notified().await;
++        }
++        Ok(())
++    }
++}
++struct Carrier(quinn::Connection);
++impl StagedDatagramTransport for Carrier {
++    fn maximum_datagram_bytes(&self) -> Option<usize> {
++        self.0.max_datagram_size()
++    }
++    fn send_datagram(&self, bytes: Bytes) -> ControlResult<()> {
++        self.0
++            .send_datagram(bytes)
++            .map_err(|_| StreamControlError::Backpressure)
++    }
++    fn is_closed(&self) -> bool {
++        self.0.close_reason().is_some()
++    }
++}
++struct Peer {
++    host: quinn::Connection,
++    remote: quinn::Connection,
++    _server: quinn::Endpoint,
++    _client: quinn::Endpoint,
++    router: Arc<PeerMediaRouter>,
++    lifetime: CancellationToken,
++    reader: Option<tokio::task::JoinHandle<()>>,
++}
++impl Peer {
++    async fn new() -> Self {
++        let _ = rustls::crypto::ring::default_provider().install_default();
++        let (cert, key) = self_signed_for_dev(&["localhost".into()]).unwrap();
++        let mut server_tls = rustls::ServerConfig::builder()
++            .with_no_client_auth()
++            .with_single_cert(vec![cert.clone()], key)
++            .unwrap();
++        server_tls.alpn_protocols = vec![b"staged-rtp-fixture".to_vec()];
++        let server = make_server_endpoint(
++            "127.0.0.1:0".parse::<SocketAddr>().unwrap(),
++            Arc::new(server_tls),
++            quinn::TransportConfig::default(),
++        )
++        .unwrap();
++        let mut client_tls = dev_client_config_trusting(&cert).unwrap();
++        client_tls.alpn_protocols = vec![b"staged-rtp-fixture".to_vec()];
++        let crypto = quinn::crypto::rustls::QuicClientConfig::try_from(client_tls).unwrap();
++        let mut client = quinn::Endpoint::client("127.0.0.1:0".parse().unwrap()).unwrap();
++        client.set_default_client_config(quinn::ClientConfig::new(Arc::new(crypto)));
++        let connecting = client
++            .connect(server.local_addr().unwrap(), "localhost")
++            .unwrap();
++        let accept = async { server.accept().await.unwrap().await.unwrap() };
++        let (remote, host) = tokio::join!(connecting, accept);
++        let remote = remote.unwrap();
++        Self {
++            host,
++            remote,
++            _server: server,
++            _client: client,
++            router: PeerMediaRouter::new(),
++            lifetime: CancellationToken::new(),
++            reader: None,
++        }
++    }
++    fn start(&mut self) {
++        self.reader = Some(rvoip_quic::spawn_datagram_reader_with_cancel(
++            self.host.clone(),
++            self.router.clone(),
++            None,
++            self.lifetime.clone(),
++        ));
++    }
++    async fn stop(&mut self) {
++        self.lifetime.cancel();
++        self.router.shutdown();
++        if let Some(reader) = self.reader.take() {
++            reader.await.unwrap();
++        }
++        self.remote.close(0u32.into(), b"fixture complete");
++    }
++}
++impl Drop for Peer {
++    fn drop(&mut self) {
++        self.lifetime.cancel();
++        if let Some(reader) = self.reader.take() {
++            reader.abort();
++        }
++    }
++}
++struct Fixture {
++    a_peer: Peer,
++    b_peer: Peer,
++    a: Arc<StreamController>,
++    b: Arc<StreamController>,
++    aa: Arc<StagedRtpMedia>,
++    ba: Arc<StagedRtpMedia>,
++    an: Arc<Negotiator>,
++    bn: Arc<Negotiator>,
++    policy: Arc<Policy>,
++}
++impl Fixture {
++    async fn new() -> Self {
++        let mut a_peer = Peer::new().await;
++        let mut b_peer = Peer::new().await;
++        let policy = Arc::new(Policy(Arc::new(RwLock::new(PolicyState {
++            owners: [
++                ("alice".into(), owner("alice")),
++                ("bob".into(), owner("bob")),
++            ]
++            .into_iter()
++            .collect(),
++            private: false,
++        }))));
++        let an = Negotiator::new(96);
++        let bn = Negotiator::new(97);
++        let make = |name: &str, peer: &Peer, negotiator: Arc<Negotiator>| {
++            let p = principal(name);
++            let scope = StagedRtpScope {
++                session: SessionId::from_string("session"),
++                connection: ConnectionId::from_string(name),
++                owner: p.ownership_key(),
++                wire_conversation: Some("wire-conversation".into()),
++                wire_session: "wire-session".into(),
++                wire_connection: format!("wire-{name}"),
++            };
++            let backend = StagedRtpMedia::new(
++                scope,
++                peer.router.clone(),
++                Arc::new(DashMap::new()),
++                negotiator,
++                Arc::new(Carrier(peer.host.clone())),
++                peer.lifetime.clone(),
++            );
++            let controller = StreamController::new(
++                ConversationId::from_string("conversation"),
++                SessionId::from_string("session"),
++                ConnectionId::from_string(name),
++                p,
++                policy.clone(),
++                backend.clone(),
++                backend.handle_allocator(),
++                16,
++            )
++            .unwrap();
++            (controller, backend)
++        };
++        let (a, aa) = make("alice", &a_peer, an.clone());
++        let (b, ba) = make("bob", &b_peer, bn.clone());
++        a_peer.start();
++        b_peer.start();
++        Self {
++            a_peer,
++            b_peer,
++            a,
++            b,
++            aa,
++            ba,
++            an,
++            bn,
++            policy,
++        }
++    }
++    async fn start(&self, kinds: &[Medium]) {
++        let desired = kinds.iter().map(|k| desired(*k)).collect::<Vec<_>>();
++        self.a
++            .change(
++                self.a.revision(),
++                &desired,
++                &BTreeSet::new(),
++                deadline(),
++                CancellationToken::new(),
++            )
++            .await
++            .unwrap();
++        self.b
++            .change(
++                self.b.revision(),
++                &desired,
++                &BTreeSet::new(),
++                deadline(),
++                CancellationToken::new(),
++            )
++            .await
++            .unwrap();
++    }
++    async fn stop(&mut self) {
++        assert_eq!(self.a.shutdown(deadline()).await, 0);
++        assert_eq!(self.b.shutdown(deadline()).await, 0);
++        self.a_peer.stop().await;
++        self.b_peer.stop().await;
++    }
++}
++fn deadline() -> tokio::time::Instant {
++    tokio::time::Instant::now() + Duration::from_secs(3)
++}
++fn tone() -> Bytes {
++    use rvoip_media_core::{codec::factory::CodecFactory, AudioFrame};
++    let mut codec = CodecFactory::create_codec(0, Some(8000), Some(1)).unwrap();
++    codec
++        .encode(&AudioFrame {
++            samples: vec![1800; 160],
++            sample_rate: 8000,
++            channels: 1,
++            duration: Duration::from_millis(20),
++            timestamp: 0,
++        })
++        .unwrap()
++        .into()
++}
++fn audio_datagram(id: u16, stamp: u32) -> Bytes {
++    pack_rtp_datagram(&RtpDatagram {
++        flags: 0,
++        stream_local_id: id,
++        seq: stamp,
++        rtp: RtpMediaPayload {
++            payload: tone(),
++            payload_type: 0,
++            sequence_number: stamp as u16,
++            timestamp: stamp,
++            ssrc: 7,
++        },
++    })
++    .unwrap()
++}
++fn video_datagram(id: u16, stamp: u32) -> Bytes {
++    let mut packet = vec![0x80, 0x80 | 96, 0, 17];
++    packet.extend_from_slice(&stamp.to_be_bytes());
++    packet.extend_from_slice(&23u32.to_be_bytes());
++    packet.extend_from_slice(&[0x10, 1, 2, 3]);
++    pack_observed_rtp_datagram(&ObservedRtpDatagram {
++        flags: 0,
++        stream_local_id: id,
++        seq: 17,
++        rtp: observe_rtp(packet.into()).unwrap(),
++    })
++    .unwrap()
++}
++async fn incoming(input: &mut mpsc::Receiver<MediaPacket>) -> MediaPacket {
++    tokio::time::timeout(Duration::from_secs(2), input.recv())
++        .await
++        .unwrap()
++        .unwrap()
++}
++async fn wire(peer: &Peer) -> ObservedRtpDatagram {
++    let packet = tokio::time::timeout(Duration::from_secs(2), peer.remote.read_datagram())
++        .await
++        .unwrap()
++        .unwrap();
++    observe_rtp_datagram(&packet).unwrap()
++}
++fn decoded_tone(packet: &ObservedRtpDatagram) {
++    let mut decoder =
++        rvoip_media_core::codec::factory::CodecFactory::create_codec(0, Some(8000), Some(1))
++            .unwrap();
++    assert!(decoder
++        .decode(&packet.rtp.packet().payload)
++        .unwrap()
++        .samples
++        .iter()
++        .any(|s| s.unsigned_abs() > 500));
++}
++
++#[tokio::test]
++async fn real_quic_packets_use_shared_router_reservations_and_guarded_delivery() {
++    let mut f = Fixture::new().await;
++    // Burn a real production-router reservation before the staged controller.
++    let abandoned = f.a_peer.router.reserve().unwrap();
++    let first = abandoned.local_id().get();
++    drop(abandoned);
++    f.start(&[Medium::Audio]).await;
++    assert!(f.an.binding(Medium::Audio).stream_local_id > first);
++    let mut a_input =
++        f.a.take_ingress(&desired(Medium::Audio).logical_id)
++            .unwrap();
++    let mut b_input =
++        f.b.take_ingress(&desired(Medium::Audio).logical_id)
++            .unwrap();
++    f.a_peer
++        .remote
++        .send_datagram(audio_datagram(
++            f.an.binding(Medium::Audio).stream_local_id,
++            160,
++        ))
++        .unwrap();
++    incoming(&mut a_input)
++        .await
++        .try_forward_to(&f.b, &desired(Medium::Audio).logical_id)
++        .unwrap();
++    let delivered = wire(&f.b_peer).await;
++    assert_eq!(
++        delivered.stream_local_id,
++        f.bn.binding(Medium::Audio).stream_local_id
++    );
++    decoded_tone(&delivered);
++    f.b_peer
++        .remote
++        .send_datagram(audio_datagram(
++            f.bn.binding(Medium::Audio).stream_local_id,
++            320,
++        ))
++        .unwrap();
++    incoming(&mut b_input)
++        .await
++        .try_forward_to(&f.a, &desired(Medium::Audio).logical_id)
++        .unwrap();
++    decoded_tone(&wire(&f.a_peer).await);
++    assert!(f.aa.counters().snapshot().local_sends > 0);
++    assert!(f.ba.counters().snapshot().local_sends > 0);
++    f.stop().await;
++}
++
++#[tokio::test]
++async fn real_precommit_rtp_is_rejected_without_buffering_while_audio_continues() {
++    let mut f = Fixture::new().await;
++    f.start(&[Medium::Audio]).await;
++    let mut audio =
++        f.a.take_ingress(&desired(Medium::Audio).logical_id)
++            .unwrap();
++    f.an.hold.store(true, Ordering::Release);
++    let a = f.a.clone();
++    let upgrade = tokio::spawn(async move {
++        a.change(
++            1,
++            &[desired(Medium::Audio), desired(Medium::Video)],
++            &BTreeSet::new(),
++            deadline(),
++            CancellationToken::new(),
++        )
++        .await
++    });
++    f.an.entered.notified().await;
++    let video = f.an.binding(Medium::Video);
++    f.a_peer
++        .remote
++        .send_datagram(video_datagram(video.stream_local_id, 9000))
++        .unwrap();
++    tokio::time::timeout(Duration::from_secs(1), async {
++        while f.aa.counters().snapshot().ingress_rejected == 0 {
++            tokio::task::yield_now().await;
++        }
++    })
++    .await
++    .unwrap();
++    f.a_peer
++        .remote
++        .send_datagram(audio_datagram(
++            f.an.binding(Medium::Audio).stream_local_id,
++            160,
++        ))
++        .unwrap();
++    incoming(&mut audio)
++        .await
++        .try_forward_to(&f.b, &desired(Medium::Audio).logical_id)
++        .unwrap();
++    decoded_tone(&wire(&f.b_peer).await);
++    f.an.release.notify_one();
++    upgrade.await.unwrap().unwrap();
++    let mut input =
++        f.a.take_ingress(&desired(Medium::Video).logical_id)
++            .unwrap();
++    assert!(input.try_recv().is_err());
++    f.a_peer
++        .remote
++        .send_datagram(video_datagram(video.stream_local_id, 18000))
++        .unwrap();
++    let _ = incoming(&mut input).await;
++    f.stop().await;
++}
++
++#[tokio::test]
++async fn actual_rtp_video_forwarding_preserves_marker_and_rewrites_destination_payload_type() {
++    let mut f = Fixture::new().await;
++    f.start(&[Medium::Video]).await;
++    let mut input =
++        f.a.take_ingress(&desired(Medium::Video).logical_id)
++            .unwrap();
++    f.a_peer
++        .remote
++        .send_datagram(video_datagram(
++            f.an.binding(Medium::Video).stream_local_id,
++            3600,
++        ))
++        .unwrap();
++    incoming(&mut input)
++        .await
++        .try_forward_to(&f.b, &desired(Medium::Video).logical_id)
++        .unwrap();
++    let delivered = wire(&f.b_peer).await;
++    assert_eq!(delivered.rtp.packet().header.payload_type, 97);
++    assert!(delivered.rtp.packet().header.marker);
++    assert_eq!(delivered.rtp.packet().header.timestamp, 3600);
++    assert!(delivered.rtp.packet().header.csrc.is_empty());
++
++    f.stop().await;
++}
++
++#[tokio::test]
++async fn physical_router_retirement_fences_queued_and_future_staged_media() {
++    let mut f = Fixture::new().await;
++    f.start(&[Medium::Audio]).await;
++    let mut input =
++        f.a.take_ingress(&desired(Medium::Audio).logical_id)
++            .unwrap();
++    let old = f.an.binding(Medium::Audio);
++    f.a_peer
++        .remote
++        .send_datagram(audio_datagram(old.stream_local_id, 160))
++        .unwrap();
++    let packet = incoming(&mut input).await;
++    f.a_peer
++        .router
++        .remove_local_id(std::num::NonZeroU16::new(old.stream_local_id).unwrap());
++    assert!(packet
++        .try_forward_to(&f.b, &desired(Medium::Audio).logical_id)
++        .is_err());
++    assert_eq!(f.a.revision(), 2);
++    assert_eq!(f.a.reconcile_cleanup(deadline()).await, 0);
++    assert!(f
++        .a_peer
++        .router
++        .lookup(std::num::NonZeroU16::new(old.stream_local_id).unwrap())
++        .is_none());
++    f.stop().await;
++}
++
++#[tokio::test]
++async fn cancelled_ready_ports_clean_router_entries_and_never_reuse_their_handle() {
++    let mut f = Fixture::new().await;
++    f.start(&[Medium::Audio]).await;
++    f.an.hold.store(true, Ordering::Release);
++    let a = f.a.clone();
++    let token = CancellationToken::new();
++    let cancel = token.clone();
++    let upgrade = tokio::spawn(async move {
++        a.change(
++            1,
++            &[desired(Medium::Audio), desired(Medium::Video)],
++            &BTreeSet::new(),
++            deadline(),
++            cancel,
++        )
++        .await
++    });
++    f.an.entered.notified().await;
++    let failed = f.an.binding(Medium::Video);
++    token.cancel();
++    assert!(matches!(
++        upgrade.await.unwrap(),
++        Err(StreamControlError::Cancelled)
++    ));
++    assert_eq!(f.a.reconcile_cleanup(deadline()).await, 0);
++    assert!(f
++        .a_peer
++        .router
++        .lookup(std::num::NonZeroU16::new(failed.stream_local_id).unwrap())
++        .is_none());
++    f.an.hold.store(false, Ordering::Release);
++    f.a.change(
++        1,
++        &[desired(Medium::Audio), desired(Medium::Video)],
++        &BTreeSet::new(),
++        deadline(),
++        CancellationToken::new(),
++    )
++    .await
++    .unwrap();
++    assert!(f.an.binding(Medium::Video).stream_local_id > failed.stream_local_id);
++    f.stop().await;
++}
++
++#[tokio::test]
++async fn wrong_generation_readiness_is_rejected_without_altering_live_audio() {
++    let mut f = Fixture::new().await;
++    f.start(&[Medium::Audio]).await;
++    let original = f.an.binding(Medium::Audio);
++    f.an.wrong.store(true, Ordering::Release);
++    assert!(f
++        .a
++        .change(
++            1,
++            &[desired(Medium::Audio), desired(Medium::Video)],
++            &BTreeSet::new(),
++            deadline(),
++            CancellationToken::new()
++        )
++        .await
++        .is_err());
++    assert_eq!(f.a.revision(), 1);
++    assert_eq!(f.a.reconcile_cleanup(deadline()).await, 0);
++    assert!(f
++        .a_peer
++        .router
++        .lookup(std::num::NonZeroU16::new(original.stream_local_id).unwrap())
++        .is_some());
++    f.stop().await;
++}
++
++#[tokio::test]
++async fn current_private_audience_prevents_actual_network_fanout() {
++    let mut f = Fixture::new().await;
++    f.start(&[Medium::Audio]).await;
++    let mut input =
++        f.a.take_ingress(&desired(Medium::Audio).logical_id)
++            .unwrap();
++    f.a_peer
++        .remote
++        .send_datagram(audio_datagram(
++            f.an.binding(Medium::Audio).stream_local_id,
++            160,
++        ))
++        .unwrap();
++    let packet = incoming(&mut input).await;
++    f.policy.0.write().await.private = true;
++    assert!(packet
++        .try_forward_to(&f.b, &desired(Medium::Audio).logical_id)
++        .is_err());
++    assert_eq!(f.ba.counters().snapshot().local_sends, 0);
++    f.stop().await;
++}
++
++#[tokio::test]
++async fn staged_route_cannot_be_borrowed_by_unguarded_media_stream_consumers() {
++    let mut f = Fixture::new().await;
++    f.start(&[Medium::Audio]).await;
++    let binding = f
++        .a_peer
++        .router
++        .lookup(std::num::NonZeroU16::new(f.an.binding(Medium::Audio).stream_local_id).unwrap())
++        .unwrap();
++    assert!(binding.stream().try_frames_out().is_err());
++    assert!(binding.stream().try_frames_in().is_err());
++    f.stop().await;
++}
+diff --git a/crates/uctp/rvoip-webtransport/src/adapter.rs b/crates/uctp/rvoip-webtransport/src/adapter.rs
+index 20af71a..f1313da 100644
+--- a/crates/uctp/rvoip-webtransport/src/adapter.rs
++++ b/crates/uctp/rvoip-webtransport/src/adapter.rs
+@@ -197,6 +197,51 @@ pub struct UctpWtAdapter {
+ }
+ 
+ impl UctpWtAdapter {
++    /// Staged RTP backend for an already authenticated WT route. The selected
++    /// canonical profile supplies peer negotiation; no legacy alias is added.
++    pub fn staged_rtp_media(
++        &self,
++        connection: &ConnectionId,
++        negotiator: Arc<dyn rvoip_uctp::staged_media::StagedRtpNegotiator>,
++    ) -> RvoipResult<Arc<rvoip_uctp::staged_media::StagedRtpMedia>> {
++        let route = self
++            .route(connection)
++            .ok_or_else(|| RvoipError::ConnectionNotFound(connection.clone()))?;
++        let principal =
++            route
++                .coordinator
++                .authenticated_principal()
++                .ok_or(RvoipError::AdmissionRejected(
++                    "staged peer is unauthenticated",
++                ))?;
++        if route.route_cancel.is_cancelled()
++            || !route.binding.is_owned_by(&principal)
++            || principal
++                .expires_at
++                .is_some_and(|expiry| expiry <= Utc::now())
++        {
++            return Err(RvoipError::AdmissionRejected(
++                "staged peer authority is unavailable",
++            ));
++        }
++        let wire_connection =
++            rvoip_uctp::adapter_helpers::require_bound_wire_connection(&route.binding)?.to_string();
++        Ok(rvoip_uctp::staged_media::StagedRtpMedia::new(
++            rvoip_uctp::staged_media::StagedRtpScope {
++                session: route.core_session_id,
++                connection: route.core_connection_id,
++                owner: route.binding.owner().clone(),
++                wire_conversation: route.cid,
++                wire_session: route.sid,
++                wire_connection,
++            },
++            route.media_router,
++            route.streams,
++            negotiator,
++            Arc::new(WtStagedDatagrams(route.session)),
++            route.route_cancel,
++        ))
++    }
+     pub async fn new(config: UctpWtConfig) -> Result<Arc<Self>, crate::errors::UctpWtError> {
+         Self::new_inner(config, None).await
+     }
+@@ -326,6 +371,21 @@ impl UctpWtAdapter {
+     }
+ }
+ 
++struct WtStagedDatagrams(web_transport_quinn::Session);
++impl rvoip_uctp::staged_media::StagedDatagramTransport for WtStagedDatagrams {
++    fn maximum_datagram_bytes(&self) -> Option<usize> {
++        Some(self.0.max_datagram_size())
++    }
++    fn send_datagram(&self, bytes: bytes::Bytes) -> rvoip_core::staged_streams::ControlResult<()> {
++        self.0
++            .send_datagram(bytes)
++            .map_err(|_| rvoip_core::staged_streams::StreamControlError::Backpressure)
++    }
++    fn is_closed(&self) -> bool {
++        self.0.close_reason().is_some()
++    }
++}
++
+ #[async_trait]
+ impl ConnectionAdapter for UctpWtAdapter {
+     fn transport(&self) -> Transport {

@@ -1,0 +1,1745 @@
+diff --git a/crates/foundation/rvoip-core/src/staged_streams.rs b/crates/foundation/rvoip-core/src/staged_streams.rs
+index ac347d2..277d0a2 100644
+--- a/crates/foundation/rvoip-core/src/staged_streams.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams.rs
+@@ -554,6 +554,7 @@ impl QueuedMedia {
+ 
+ struct State {
+     model: StreamLifecycle,
++    opened_ports: usize,
+     active: BTreeMap<StreamId, Arc<Port>>,
+     all: BTreeMap<StreamId, Arc<Port>>,
+     closed: bool,
+@@ -610,6 +611,29 @@ impl StreamController {
+         adapter: Arc<dyn StagedMediaAdapter>,
+         handles: Arc<StreamHandleAllocator>,
+         maximum_ports: usize,
++    ) -> ControlResult<Arc<Self>> {
++        Self::with_open_limit(
++            conversation,
++            session,
++            connection,
++            principal,
++            policy,
++            adapter,
++            handles,
++            maximum_ports,
++            DEFAULT_OPENED_STREAM_LIMIT,
++        )
++    }
++    pub fn with_open_limit(
++        conversation: ConversationId,
++        session: SessionId,
++        connection: ConnectionId,
++        principal: AuthenticatedPrincipal,
++        policy: Arc<dyn MediaPolicy>,
++        adapter: Arc<dyn StagedMediaAdapter>,
++        handles: Arc<StreamHandleAllocator>,
++        maximum_ports: usize,
++        opened_limit: usize,
+     ) -> ControlResult<Arc<Self>> {
+         if !(1..=512).contains(&maximum_ports) {
+             return Err(MediaTransitionError::Capacity.into());
+@@ -624,7 +648,7 @@ impl StreamController {
+         let lease = policy.current(&scope)?;
+         let authority = lease.authority();
+         Self::check(&scope, authority)?;
+-        let model = StreamLifecycle::new(&authority.current())?;
++        let model = StreamLifecycle::with_open_limit(&authority.current(), opened_limit)?;
+         drop(lease);
+         Ok(Arc::new(Self {
+             conversation,
+@@ -637,6 +661,7 @@ impl StreamController {
+             slots: Arc::new(Semaphore::new(maximum_ports)),
+             state: Mutex::new(State {
+                 model,
++                opened_ports: 0,
+                 active: BTreeMap::new(),
+                 all: BTreeMap::new(),
+                 closed: false,
+@@ -668,6 +693,12 @@ impl StreamController {
+         }
+         Ok(())
+     }
++    /// Aggregate configured limit and cumulative attempted opens. Counts include
++    /// uncertain/failed batches and do not reset on cleanup, pause or reoffer.
++    pub fn stream_open_budget(&self) -> (usize, usize) {
++        let state = self.state.lock().unwrap_or_else(|p| p.into_inner());
++        (state.opened_ports, state.model.opened_stream_limit())
++    }
+     pub fn revision(&self) -> u64 {
+         self.state
+             .lock()
+@@ -799,7 +830,7 @@ impl StreamController {
+             let lease = self.policy.current(&scope)?;
+             let auth = lease.authority();
+             Self::check(&scope, auth)?;
+-            state.model.prepare(
++            let ticket = state.model.prepare(
+                 &auth.current(),
+                 expected,
+                 &auth.local,
+@@ -807,7 +838,25 @@ impl StreamController {
+                 desired,
+                 now,
+                 deadline.into_std(),
+-            )?
++            )?;
++            let new_ports = ticket
++                .streams()
++                .iter()
++                .filter(|plan| {
++                    state
++                        .active
++                        .get(&plan.requested.logical_id)
++                        .is_none_or(|old| {
++                            old.binding.negotiated != **plan
++                                || replace.contains(&plan.requested.logical_id)
++                        })
++                })
++                .count();
++            if state.opened_ports.saturating_add(new_ports) > state.model.opened_stream_limit() {
++                state.model.abort(ticket)?;
++                return Err(MediaTransitionError::Capacity.into());
++            }
++            ticket
+         };
+         let mut candidate = Candidate {
+             owner: self.clone(),
+@@ -900,6 +949,23 @@ impl StreamController {
+                 is_new: true,
+             });
+         }
++        // One prepare call may partially open its batch even when it fails or
++        // is cancelled. Consume its new-port budget before polling adapter I/O;
++        // cleanup never refunds cumulative opens or lets reoffers reset it.
++        if cancellation.is_cancelled() || self.shutdown.is_cancelled() {
++            return Err(StreamControlError::Cancelled);
++        }
++        let new_ports = selected.iter().filter(|port| port.is_new).count();
++        {
++            let mut state = self.state.lock().unwrap_or_else(|p| p.into_inner());
++            if state.closed {
++                return Err(StreamControlError::Cancelled);
++            }
++            if state.opened_ports.saturating_add(new_ports) > state.model.opened_stream_limit() {
++                return Err(MediaTransitionError::Capacity.into());
++            }
++            state.opened_ports += new_ports;
++        }
+         tokio::select! {biased;_ = cancellation.cancelled()=>return Err(StreamControlError::Cancelled),_=self.shutdown.cancelled()=>return Err(StreamControlError::Cancelled),result=tokio::time::timeout_at(deadline,self.adapter.prepare(selected.clone(),deadline,candidate.cancellation.clone()))=>result.map_err(|_|StreamControlError::Deadline)??}
+         let removed = {
+             let state = self.state.lock().unwrap_or_else(|p| p.into_inner());
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/tests.rs b/crates/foundation/rvoip-core/src/staged_streams/tests.rs
+index 0fb7ff2..237d355 100644
+--- a/crates/foundation/rvoip-core/src/staged_streams/tests.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests.rs
+@@ -1224,3 +1224,90 @@ async fn controlled_stream_end_preserves_the_session_and_unrelated_media() {
+     assert_eq!(f.aa.outstanding.load(Ordering::Acquire), 1);
+     assert_eq!(f.ba.outstanding.load(Ordering::Acquire), 2);
+ }
++
++#[tokio::test]
++async fn cumulative_open_limit_rejects_replacement_before_adapter_io_and_preserves_old_media() {
++    let f = Fixture::new(8);
++    f.start(&[Medium::Audio]).await;
++    let replacement = [desired(Medium::Audio).logical_id].into_iter().collect();
++    for _ in 1..16 {
++        f.a.change(
++            f.a.revision(),
++            &[desired(Medium::Audio)],
++            &replacement,
++            deadline(),
++            CancellationToken::new(),
++        )
++        .await
++        .unwrap();
++        assert_eq!(f.a.reconcile_cleanup(deadline()).await, 0);
++    }
++    assert_eq!(f.a.stream_open_budget(), (16, 16));
++    let old = f.aa.port(Medium::Audio);
++    let revision = f.a.revision();
++    assert!(matches!(
++        f.a.change(
++            revision,
++            &[desired(Medium::Audio)],
++            &replacement,
++            deadline(),
++            CancellationToken::new()
++        )
++        .await,
++        Err(StreamControlError::Model(MediaTransitionError::Capacity))
++    ));
++    assert_eq!(f.a.revision(), revision);
++    assert_eq!(f.a.stream_open_budget(), (16, 16));
++    assert_eq!(f.aa.outstanding.load(Ordering::Acquire), 1);
++    old.try_publish(&frame(&old, 1)).unwrap();
++    f.a.change(
++        revision,
++        &[desired(Medium::Audio)],
++        &BTreeSet::new(),
++        deadline(),
++        CancellationToken::new(),
++    )
++    .await
++    .unwrap();
++    assert_eq!(f.a.stream_open_budget(), (16, 16));
++    assert_eq!(f.a.reconcile_cleanup(deadline()).await, 0);
++    assert_eq!(f.a.shutdown(deadline()).await, 0);
++    assert_eq!(f.a.stream_open_budget(), (16, 16));
++}
++#[tokio::test]
++async fn failed_prepare_batches_consume_open_budget_without_reset_on_cleanup() {
++    let f = Fixture::new(8);
++    f.start(&[Medium::Audio]).await;
++    f.aa.mode.store(2, Ordering::Release);
++    for expected in 2..=16 {
++        assert!(matches!(
++            f.a.change(
++                1,
++                &[desired(Medium::Audio), desired(Medium::Video)],
++                &BTreeSet::new(),
++                deadline(),
++                CancellationToken::new()
++            )
++            .await,
++            Err(StreamControlError::NotReady)
++        ));
++        assert_eq!(f.a.stream_open_budget(), (expected, 16));
++        assert_eq!(f.a.reconcile_cleanup(deadline()).await, 0);
++    }
++    f.aa.mode.store(0, Ordering::Release);
++    assert!(matches!(
++        f.a.change(
++            1,
++            &[desired(Medium::Audio), desired(Medium::Video)],
++            &BTreeSet::new(),
++            deadline(),
++            CancellationToken::new()
++        )
++        .await,
++        Err(StreamControlError::Model(MediaTransitionError::Capacity))
++    ));
++    assert_eq!(f.aa.outstanding.load(Ordering::Acquire), 1);
++    assert_eq!(f.a.revision(), 1);
++    let old = f.aa.port(Medium::Audio);
++    old.try_publish(&frame(&old, 1)).unwrap();
++}
+diff --git a/crates/foundation/rvoip-core/src/stream_lifecycle.rs b/crates/foundation/rvoip-core/src/stream_lifecycle.rs
+index 55d4afb..bcf96e8 100644
+--- a/crates/foundation/rvoip-core/src/stream_lifecycle.rs
++++ b/crates/foundation/rvoip-core/src/stream_lifecycle.rs
+@@ -15,6 +15,8 @@ use std::time::{Duration, Instant};
+ const MAX_REVISION: u64 = 9_007_199_254_740_991;
+ const MAX_STREAMS: usize = 32;
+ const MAX_BINDINGS: usize = 4096;
++/// Secure default for cumulative new transport bindings per Connection.
++pub const DEFAULT_OPENED_STREAM_LIMIT: usize = 16;
+ 
+ #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
+ pub enum Medium {
+@@ -319,9 +321,19 @@ pub struct StreamLifecycle {
+     used_transport_ids: BTreeSet<StreamId>,
+     used_handles: BTreeSet<u16>,
+     pending: Option<(uuid::Uuid, Instant)>,
++    opened_limit: usize,
+ }
+ impl StreamLifecycle {
+     pub fn new(authority: &CurrentMediaAuthority<'_>) -> Result<Self> {
++        Self::with_open_limit(authority, DEFAULT_OPENED_STREAM_LIMIT)
++    }
++    pub fn with_open_limit(
++        authority: &CurrentMediaAuthority<'_>,
++        opened_limit: usize,
++    ) -> Result<Self> {
++        if opened_limit == 0 || opened_limit > MAX_BINDINGS {
++            return Err(MediaTransitionError::Capacity);
++        }
+         let value = Self {
+             controller: uuid::Uuid::new_v4(),
+             owner: authority.member.clone(),
+@@ -331,10 +343,17 @@ impl StreamLifecycle {
+             used_transport_ids: BTreeSet::new(),
+             used_handles: BTreeSet::new(),
+             pending: None,
++            opened_limit,
+         };
+         value.authorize(authority)?;
+         Ok(value)
+     }
++    pub fn opened_stream_limit(&self) -> usize {
++        self.opened_limit
++    }
++    pub fn opened_binding_count(&self) -> usize {
++        self.used_handles.len()
++    }
+     pub fn revision(&self) -> u64 {
+         self.revision
+     }
+@@ -430,7 +449,7 @@ impl StreamLifecycle {
+             .iter()
+             .filter(|s| !self.streams.contains_key(&s.requested.logical_id))
+             .count();
+-        if self.streams.len() + new_ids > MAX_BINDINGS {
++        if self.streams.len() + new_ids > self.opened_limit {
+             return Err(MediaTransitionError::Capacity);
+         }
+         let nonce = uuid::Uuid::new_v4();
+@@ -532,7 +551,7 @@ impl StreamLifecycle {
+                 },
+             );
+         }
+-        if self.used_handles.len() + new_handles > MAX_BINDINGS {
++        if self.used_handles.len() + new_handles > self.opened_limit {
+             return Err(MediaTransitionError::Capacity);
+         }
+         // Nothing above mutates the committed snapshot. The owner commits the
+diff --git a/crates/foundation/rvoip-core/src/stream_lifecycle/tests.rs b/crates/foundation/rvoip-core/src/stream_lifecycle/tests.rs
+index 8d2d5cf..8055951 100644
+--- a/crates/foundation/rvoip-core/src/stream_lifecycle/tests.rs
++++ b/crates/foundation/rvoip-core/src/stream_lifecycle/tests.rs
+@@ -160,7 +160,10 @@ fn bindings(prepared: &PreparedMediaChange) -> Vec<ReadyMediaBinding> {
+         .collect()
+ }
+ fn initial(f: &Fixture) -> StreamLifecycle {
+-    let mut state = StreamLifecycle::new(&f.authority()).unwrap();
++    initial_with_limit(f, DEFAULT_OPENED_STREAM_LIMIT)
++}
++fn initial_with_limit(f: &Fixture, limit: usize) -> StreamLifecycle {
++    let mut state = StreamLifecycle::with_open_limit(&f.authority(), limit).unwrap();
+     let now = Instant::now();
+     let p = profile();
+     let candidate = state
+@@ -760,7 +763,7 @@ fn unsupported_renegotiation_and_foreign_tickets_preserve_committed_media() {
+ #[test]
+ fn retired_transport_handles_are_never_reused_and_history_is_bounded() {
+     let f = Fixture::new();
+-    let mut state = initial(&f);
++    let mut state = initial_with_limit(&f, MAX_BINDINGS);
+     let now = Instant::now();
+     let p = profile();
+     let request = [desired("audio", Medium::Audio)];
+@@ -931,3 +934,115 @@ fn screen_permission_revoked_during_preparation_preserves_authorized_audio() {
+     assert_eq!(state.streams(), &before);
+     assert_eq!(state.revision(), 1);
+ }
++
++#[test]
++fn default_cumulative_stream_limit_survives_reoffers_endings_and_unchanged_bindings() {
++    let f = Fixture::new();
++    let mut state = initial(&f);
++    let p = profile();
++    let now = Instant::now();
++    let request = [desired("audio", Medium::Audio)];
++    assert_eq!(state.opened_stream_limit(), 16);
++    for index in 2..=16u64 {
++        let candidate = state
++            .prepare(
++                &f.authority(),
++                state.revision(),
++                &p,
++                &p,
++                &request,
++                now,
++                now + Duration::from_secs(10),
++            )
++            .unwrap();
++        let mut ready = bindings(&candidate);
++        ready[0].transport_id = StreamId::from_string(format!("transport-{index}"));
++        ready[0].stream_local_id = index as u16;
++        ready[0].generation = index;
++        state
++            .commit(&f.authority(), &candidate, &ready, now)
++            .unwrap();
++    }
++    assert_eq!(state.opened_binding_count(), 16);
++    let last = state.streams().values().next().unwrap().clone();
++    let candidate = state
++        .prepare(
++            &f.authority(),
++            state.revision(),
++            &p,
++            &p,
++            &request,
++            now,
++            now + Duration::from_secs(10),
++        )
++        .unwrap();
++    let ready = [ReadyMediaBinding {
++        negotiated: last.negotiated.clone(),
++        transport_id: last.transport_id.clone(),
++        stream_local_id: last.stream_local_id,
++        generation: last.generation,
++        connection_generation: 1,
++        source_ready: true,
++        sink_ready: true,
++    }];
++    state
++        .commit(&f.authority(), &candidate, &ready, now)
++        .unwrap();
++    assert_eq!(state.opened_binding_count(), 16);
++    let candidate = state
++        .prepare(
++            &f.authority(),
++            state.revision(),
++            &p,
++            &p,
++            &request,
++            now,
++            now + Duration::from_secs(10),
++        )
++        .unwrap();
++    let mut overflow = ready.clone();
++    overflow[0].generation = 17;
++    overflow[0].stream_local_id = 17;
++    overflow[0].transport_id = StreamId::from_string("overflow");
++    assert_eq!(
++        state.commit(&f.authority(), &candidate, &overflow, now),
++        Err(MediaTransitionError::Capacity)
++    );
++    state.abort(candidate).unwrap();
++    state
++        .end_stream(
++            &f.authority(),
++            state.revision(),
++            &StreamId::from_string("audio"),
++        )
++        .unwrap();
++    assert_eq!(state.opened_binding_count(), 16);
++    let new = [desired("new-audio", Medium::Audio)];
++    let candidate = state
++        .prepare(
++            &f.authority(),
++            state.revision(),
++            &p,
++            &p,
++            &new,
++            now,
++            now + Duration::from_secs(10),
++        )
++        .unwrap();
++    overflow[0].negotiated = candidate.streams()[0].clone();
++    overflow[0].generation = 1;
++    assert_eq!(
++        state.commit(&f.authority(), &candidate, &overflow, now),
++        Err(MediaTransitionError::Capacity)
++    );
++    assert_eq!(state.opened_binding_count(), 16);
++}
++#[test]
++fn configured_cumulative_stream_limit_is_bounded_and_reported() {
++    let f = Fixture::new();
++    assert!(StreamLifecycle::with_open_limit(&f.authority(), 0).is_err());
++    assert!(StreamLifecycle::with_open_limit(&f.authority(), MAX_BINDINGS + 1).is_err());
++    let state = StreamLifecycle::with_open_limit(&f.authority(), 23).unwrap();
++    assert_eq!(state.opened_stream_limit(), 23);
++    assert_eq!(state.opened_binding_count(), 0);
++}
+diff --git a/crates/uctp/rvoip-uctp/src/v2/auth_dispatch.rs b/crates/uctp/rvoip-uctp/src/v2/auth_dispatch.rs
+index c3c6dce..d40a208 100644
+--- a/crates/uctp/rvoip-uctp/src/v2/auth_dispatch.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/auth_dispatch.rs
+@@ -34,6 +34,8 @@ pub enum DispatchError {
+     Authentication,
+     #[error("current authority unavailable or denied")]
+     Authority,
++    #[error("required command scope unavailable")]
++    ScopeDenied,
+     #[error("signature required or invalid")]
+     Signature,
+     #[error("signature required")]
+@@ -407,11 +409,13 @@ impl AuthenticatedDispatch {
+     ) -> Result<AuthorizedEnvelope, DispatchError> {
+         drop(self.authority.acquire(&self.principal, &envelope).await?);
+         self.require_active(deadline)?;
++        self.replay.preflight(envelope.id())?;
+         self.verifier
+             .verify_for_principal(envelope.original(), &self.principal)
+             .await
+             .map_err(DispatchError::from)?;
+         self.replay.consume(envelope.id())?;
++        super::scope_policy::require(&self.principal, envelope.payload())?;
+         let lease = self.authority.acquire(&self.principal, &envelope).await?;
+         self.require_active(deadline)?;
+         Ok(AuthorizedEnvelope {
+@@ -442,6 +446,13 @@ impl AuthenticatedDispatch {
+             {
+                 return Err(DispatchError::ReplyMismatch);
+             }
++            if entry
++                .expectation
++                .required_scope
++                .is_some_and(|scope| !self.principal.has_scope(scope))
++            {
++                return Err(DispatchError::ScopeDenied);
++            }
+             let entry = pending
+                 .remove(reply_to)
+                 .expect("entry held under same lock");
+@@ -480,6 +491,7 @@ impl AuthenticatedDispatch {
+         }
+         previous.require_active(held.origin.deadline)?;
+         let deadline = self.active_deadline(requested.min(held.origin.deadline))?;
++        super::scope_policy::require(&self.principal, held.envelope.payload())?;
+         let authorized = AuthorizedEnvelope {
+             envelope: held.envelope,
+             principal: self.principal.clone(),
+@@ -570,6 +582,7 @@ struct ReplyExpectation {
+     connid: String,
+     operation: Option<String>,
+     family: &'static str,
++    required_scope: Option<&'static str>,
+ }
+ impl ReplyExpectation {
+     fn new(request: &Envelope) -> Result<Self, DispatchError> {
+@@ -594,6 +607,7 @@ impl ReplyExpectation {
+             connid: required(Scope::Connection)?,
+             operation: request.scope(Scope::Operation).map(str::to_owned),
+             family,
++            required_scope: super::scope_policy::required_scope(request.payload()),
+         })
+     }
+     fn matches(&self, reply: &Envelope) -> bool {
+diff --git a/crates/uctp/rvoip-uctp/src/v2/auth_peer.rs b/crates/uctp/rvoip-uctp/src/v2/auth_peer.rs
+index 62c9b38..3d13256 100644
+--- a/crates/uctp/rvoip-uctp/src/v2/auth_peer.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/auth_peer.rs
+@@ -35,6 +35,7 @@ pub use step_up::AssuranceRequirement;
+ use step_up::PendingStepUp;
+ 
+ pub const AUTHENTICATION_TIMEOUT: Duration = Duration::from_secs(10);
++pub const PREAUTH_REPLAY_CAPACITY: usize = 8;
+ 
+ /// Installed policy must validate the credential's token ID/issued-at metadata,
+ /// current subject/issuer/tenant, signing-key revocation, device ownership and
+@@ -172,6 +173,7 @@ pub struct CanonicalPeer {
+     auth_deadline: Instant,
+     failures: u8,
+     replay: Arc<ReplayFence>,
++    preauth: ReplayFence,
+     step_up_failure: Arc<parking_lot::Mutex<Option<step_up::FailureRecord>>>,
+     routes: Option<PeerRoutes>,
+     outbound: Option<tokio::sync::mpsc::Receiver<Outbound>>,
+@@ -197,6 +199,7 @@ impl CanonicalPeer {
+             auth_deadline: Instant::now() + AUTHENTICATION_TIMEOUT,
+             failures: 0,
+             replay: Arc::new(ReplayFence::new(replay_capacity)?),
++            preauth: ReplayFence::new(PREAUTH_REPLAY_CAPACITY)?,
+             step_up_failure: Arc::new(parking_lot::Mutex::new(None)),
+             routes: None,
+             outbound: None,
+@@ -221,6 +224,9 @@ impl CanonicalPeer {
+     /// Bind sibling media/signaling work to this incarnation. Closing this peer
+     /// cancels that work without cancelling a shared parent endpoint.
+     /// Operator counts only, without identifiers or credentials.
++    pub fn preauth_replay_usage(&self) -> (usize, usize) {
++        self.preauth.usage()
++    }
+     pub fn replay_usage(&self) -> (usize, usize) {
+         self.replay.usage()
+     }
+@@ -315,6 +321,16 @@ impl CanonicalPeer {
+         deadline: Instant,
+     ) -> Result<PeerOutput, DispatchError> {
+         let envelope = Envelope::parse(bytes)?;
++        // Consume before any credential validation await. Cancelled or failed
++        // pre-auth attempts require a fresh wire ID; never evict within a peer.
++        if matches!(self.state, State::Hello | State::Challenge(_))
++            && matches!(
++                envelope.payload(),
++                Payload::AuthHello(_) | Payload::AuthResponse(_)
++            )
++        {
++            self.preauth.consume(envelope.id())?;
++        }
+         // Direct integrations discard expired holds before accepting more input;
+         // the driven stream loop additionally publishes the timeout observation.
+         self.discard_expired_step_up();
+@@ -339,7 +355,7 @@ impl CanonicalPeer {
+                 if methods.is_empty() {
+                     return Err(DispatchError::UnsupportedMethod);
+                 }
+-                let challenge = self.reply("auth.challenge", json!({"nonce":fresh_token(),"accepted_methods":methods,"server_capabilities":{"application_profiles":[APPLICATION_PROFILE],"envelope_versions":[2],"signing_algorithms":["EdDSA"],"signature_required":true,"peer_replay_capacity":self.replay.usage().1}}), Some(&envelope))?;
++                let challenge = self.reply("auth.challenge", json!({"nonce":fresh_token(),"accepted_methods":methods,"server_capabilities":{"application_profiles":[APPLICATION_PROFILE],"envelope_versions":[2],"signing_algorithms":["EdDSA"],"signature_required":true,"peer_replay_capacity":self.replay.usage().1,"preauth_replay_capacity":self.preauth.usage().1,"default_scopes":{"session":super::scope_policy::SESSION,"data":super::scope_policy::DATA,"subscribe":super::scope_policy::SUBSCRIBE}}}), Some(&envelope))?;
+                 self.state = State::Challenge(Challenge {
+                     id: challenge.id().into(),
+                     device: hello.device.clone(),
+@@ -636,6 +652,7 @@ impl CanonicalPeer {
+         principal: &AuthenticatedPrincipal,
+         envelope: &Envelope,
+     ) -> Result<(), DispatchError> {
++        self.replay.preflight(envelope.id())?;
+         self.config
+             .verifier
+             .verify_for_principal(envelope.original(), principal)
+@@ -930,6 +947,7 @@ fn same_scopes(a: &[String], b: &[String]) -> bool {
+ }
+ fn error_reason(error: DispatchError) -> &'static str {
+     match error {
++        DispatchError::ScopeDenied => "insufficient_scope",
+         DispatchError::SubmissionUnknown => "submission_unknown",
+         DispatchError::Replay => "replay_detected",
+         DispatchError::Signature => "invalid_signature",
+@@ -948,7 +966,7 @@ fn error_reason(error: DispatchError) -> &'static str {
+ fn error_code(error: DispatchError) -> u16 {
+     match error {
+         DispatchError::SubmissionUnknown => 409,
+-        DispatchError::Authority => 403,
++        DispatchError::Authority | DispatchError::ScopeDenied => 403,
+         DispatchError::Wire(
+             super::WireError::UnsupportedVersion | super::WireError::UnsupportedProfile,
+         ) => 426,
+diff --git a/crates/uctp/rvoip-uctp/src/v2/auth_peer/step_up.rs b/crates/uctp/rvoip-uctp/src/v2/auth_peer/step_up.rs
+index ef1f4a3..0a9dcea 100644
+--- a/crates/uctp/rvoip-uctp/src/v2/auth_peer/step_up.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/auth_peer/step_up.rs
+@@ -291,6 +291,8 @@ impl CanonicalPeer {
+         {
+             return Err(DispatchError::Authority);
+         }
++        // Definitive scope denial must precede the execution/unknown marker.
++        super::super::scope_policy::require(&credential.principal, blocked.payload())?;
+         let next = self.binding(
+             credential,
+             binding.device.clone(),
+diff --git a/crates/uctp/rvoip-uctp/src/v2/mod.rs b/crates/uctp/rvoip-uctp/src/v2/mod.rs
+index 4797b8b..162ea58 100644
+--- a/crates/uctp/rvoip-uctp/src/v2/mod.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/mod.rs
+@@ -10,6 +10,7 @@ pub mod auth_dispatch;
+ pub mod auth_peer;
+ pub mod reachability;
+ mod replay;
++pub mod scope_policy;
+ pub mod server;
+ pub use auth_peer::AssuranceRequirement;
+ pub mod payloads;
+diff --git a/crates/uctp/rvoip-uctp/src/v2/replay.rs b/crates/uctp/rvoip-uctp/src/v2/replay.rs
+index 56caed1..02e2460 100644
+--- a/crates/uctp/rvoip-uctp/src/v2/replay.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/replay.rs
+@@ -20,6 +20,17 @@ impl ReplayFence {
+             ids: Mutex::new(HashSet::new()),
+         })
+     }
++    /// Bound shared verifier/replay-store work once this peer is full. This
++    /// only denies new IDs; it never establishes signature or resource authority.
++    /// consume still performs the atomic verified claim after all crypto awaits.
++    pub(super) fn preflight(&self, id: &str) -> Result<(), DispatchError> {
++        let ids = self.ids.lock();
++        if ids.len() >= self.capacity && !ids.contains(id) {
++            Err(DispatchError::ReplayCapacity)
++        } else {
++            Ok(())
++        }
++    }
+     /// Call only after actual signature/freshness verification. The mutex makes
+     /// duplicate lookup and insertion one operation, including under contention.
+     pub(super) fn consume(&self, id: &str) -> Result<(), DispatchError> {
+diff --git a/crates/uctp/rvoip-uctp/src/v2/scope_policy.rs b/crates/uctp/rvoip-uctp/src/v2/scope_policy.rs
+new file mode 100644
+index 0000000..0819c1b
+--- /dev/null
++++ b/crates/uctp/rvoip-uctp/src/v2/scope_policy.rs
+@@ -0,0 +1,88 @@
++//! Canonical secure command floors, independent of resource authorization.
++use super::{auth_dispatch::DispatchError, Payload};
++use rvoip_auth_core::bearer::AuthenticatedPrincipal;
++pub const SESSION: &str = "uctp:session";
++pub const DATA: &str = "uctp:data";
++pub const SUBSCRIBE: &str = "uctp:subscribe";
++
++/// Exhaustive typed mapping: adding a wire family requires reviewing its floor.
++/// Generic operation commands are resolved by the installed current-authority
++/// policy against their original operation/resource; they have no blanket grant.
++/// Authentication and step-up prove credentials; the resumed command is checked
++/// again against the successor principal's floor and resource authority.
++pub fn required_scope(payload: &Payload) -> Option<&'static str> {
++    use Payload::*;
++    match payload {
++        ConversationCreate(_)
++        | ConversationOpened(_)
++        | ConversationClosed(_)
++        | ConversationClose(_)
++        | ConversationList(_)
++        | ConversationGet(_)
++        | ConversationParticipantAdd(_)
++        | ConversationParticipantUpdate(_)
++        | ConversationParticipantRemove(_)
++        | ConversationParticipantChanged(_)
++        | SessionInvite(_)
++        | SessionAccept(_)
++        | SessionReject(_)
++        | SessionCancel(_)
++        | SessionEnd(_)
++        | SessionStarted(_)
++        | SessionEnded(_)
++        | SessionUpdate(_)
++        | SessionParticipantJoined(_)
++        | SessionParticipantLeft(_)
++        | SessionConsult(_)
++        | SessionHandoff(_)
++        | SessionObservation(_)
++        | ConnectionOffer(_)
++        | ConnectionAnswer(_)
++        | ConnectionReady(_)
++        | ConnectionUpdate(_)
++        | ConnectionEnd(_)
++        | ConnectionIceCandidate(_)
++        | ConnectionQuality(_)
++        | ConnectionReplace(_)
++        | StreamOpened(_)
++        | StreamClosed(_)
++        | StreamActiveSpeaker(_)
++        | CapabilityAdvertise(_)
++        | RecordingVconReady(_)
++        | RecordingVconFetch(_)
++        | RecordingVconFetched(_) => Some(SESSION),
++        MessageSend(_) | MessageDelivered(_) | MessageRead(_) | MessageHistory(_) | DtmfSend(_)
++        | DtmfReceived(_) => Some(DATA),
++        StreamSubscribe(_)
++        | StreamUnsubscribe(_)
++        | ConversationSubscribe(_)
++        | ConversationSnapshot(_)
++        | ConversationEvent(_) => Some(SUBSCRIBE),
++        AuthHello(_)
++        | AuthChallenge(_)
++        | AuthResponse(_)
++        | AuthSession(_)
++        | AuthKeepalive(_)
++        | AuthBye(_)
++        | AuthRefresh(_)
++        | IdentityAssuranceChanged(_)
++        | IdentityStepUpRequest(_)
++        | IdentityStepUpResponse(_)
++        | Ack(_)
++        | Error(_)
++        | OperationGet(_)
++        | OperationCancel(_)
++        | OperationReconcile(_)
++        | OperationUpdated(_) => None,
++    }
++}
++pub(super) fn require(
++    principal: &AuthenticatedPrincipal,
++    payload: &Payload,
++) -> Result<(), DispatchError> {
++    if required_scope(payload).is_some_and(|scope| !principal.has_scope(scope)) {
++        Err(DispatchError::ScopeDenied)
++    } else {
++        Ok(())
++    }
++}
+diff --git a/crates/uctp/rvoip-uctp/tests/staged_media.rs b/crates/uctp/rvoip-uctp/tests/staged_media.rs
+index 6ac2157..d9d2c06 100644
+--- a/crates/uctp/rvoip-uctp/tests/staged_media.rs
++++ b/crates/uctp/rvoip-uctp/tests/staged_media.rs
+@@ -715,7 +715,9 @@ async fn cancelled_ready_ports_clean_router_entries_and_never_reuse_their_handle
+         upgrade.await.unwrap(),
+         Err(StreamControlError::Cancelled)
+     ));
++    assert_eq!(f.a.stream_open_budget(), (2, 16));
+     assert_eq!(f.a.reconcile_cleanup(deadline()).await, 0);
++    assert_eq!(f.a.stream_open_budget(), (2, 16));
+     assert!(f
+         .a_peer
+         .router
+@@ -732,6 +734,7 @@ async fn cancelled_ready_ports_clean_router_entries_and_never_reuse_their_handle
+     .await
+     .unwrap();
+     assert!(f.an.binding(Medium::Video).stream_local_id > failed.stream_local_id);
++    assert_eq!(f.a.stream_open_budget(), (3, 16));
+     f.stop().await;
+ }
+ 
+@@ -798,3 +801,59 @@ async fn staged_route_cannot_be_borrowed_by_unguarded_media_stream_consumers() {
+     assert!(binding.stream().try_frames_in().is_err());
+     f.stop().await;
+ }
++
++#[tokio::test]
++async fn cumulative_open_budget_blocks_seventeenth_rtp_reoffer_before_router_allocation() {
++    let mut f = Fixture::new().await;
++    f.start(&[Medium::Audio]).await;
++    let replace = [desired(Medium::Audio).logical_id].into_iter().collect();
++    for _ in 1..16 {
++        f.a.change(
++            f.a.revision(),
++            &[desired(Medium::Audio)],
++            &replace,
++            deadline(),
++            CancellationToken::new(),
++        )
++        .await
++        .unwrap();
++        assert_eq!(f.a.reconcile_cleanup(deadline()).await, 0);
++    }
++    assert_eq!(f.a.stream_open_budget(), (16, 16));
++    let before = f.an.binding(Medium::Audio);
++    let revision = f.a.revision();
++    assert!(matches!(
++        f.a.change(
++            revision,
++            &[desired(Medium::Audio)],
++            &replace,
++            deadline(),
++            CancellationToken::new()
++        )
++        .await,
++        Err(StreamControlError::Model(
++            rvoip_core::stream_lifecycle::MediaTransitionError::Capacity
++        ))
++    ));
++    let after = f.an.binding(Medium::Audio);
++    assert_eq!(before.transport_id, after.transport_id);
++    assert_eq!(before.stream_local_id, after.stream_local_id);
++    assert_eq!(f.a.revision(), revision);
++    assert_eq!(f.a.stream_open_budget(), (16, 16));
++    let probe = f.a_peer.router.reserve().unwrap();
++    assert_eq!(probe.local_id().get(), 17);
++    drop(probe);
++    let mut input =
++        f.a.take_ingress(&desired(Medium::Audio).logical_id)
++            .unwrap();
++    f.a_peer
++        .remote
++        .send_datagram(audio_datagram(before.stream_local_id, 160))
++        .unwrap();
++    incoming(&mut input)
++        .await
++        .try_forward_to(&f.b, &desired(Medium::Audio).logical_id)
++        .unwrap();
++    decoded_tone(&wire(&f.b_peer).await);
++    f.stop().await;
++}
+diff --git a/crates/uctp/rvoip-uctp/tests/v2_auth_dispatch.rs b/crates/uctp/rvoip-uctp/tests/v2_auth_dispatch.rs
+index 320df56..cb0670f 100644
+--- a/crates/uctp/rvoip-uctp/tests/v2_auth_dispatch.rs
++++ b/crates/uctp/rvoip-uctp/tests/v2_auth_dispatch.rs
+@@ -38,7 +38,12 @@ fn principal() -> AuthenticatedPrincipal {
+         tenant: Some("tenant".into()),
+         issuer: Some("issuer".into()),
+         expires_at: Some(Utc::now() + ChronoDuration::hours(1)),
+-        scopes: vec!["control".into()],
++        scopes: vec![
++            "control".into(),
++            "uctp:session".into(),
++            "uctp:data".into(),
++            "uctp:subscribe".into(),
++        ],
+         method: AuthenticationMethod::Bearer,
+         assurance: IdentityAssurance::Identified {
+             credential_kind: CredentialKind::Oidc,
+diff --git a/crates/uctp/rvoip-uctp/tests/v2_auth_peer.rs b/crates/uctp/rvoip-uctp/tests/v2_auth_peer.rs
+index cbf5e28..19f4eec 100644
+--- a/crates/uctp/rvoip-uctp/tests/v2_auth_peer.rs
++++ b/crates/uctp/rvoip-uctp/tests/v2_auth_peer.rs
+@@ -67,7 +67,12 @@ fn principal(token: &str) -> AuthenticatedPrincipal {
+         subject: "alice".into(),
+         tenant: Some("tenant".into()),
+         issuer: Some("issuer".into()),
+-        scopes: vec!["control".into()],
++        scopes: vec![
++            "control".into(),
++            "uctp:session".into(),
++            "uctp:data".into(),
++            "uctp:subscribe".into(),
++        ],
+         expires_at: Some(Utc::now() + chrono::Duration::hours(1)),
+         method: AuthenticationMethod::Bearer,
+         assurance: IdentityAssurance::Identified {
+diff --git a/crates/uctp/rvoip-uctp/tests/v2_auth_recovery.rs b/crates/uctp/rvoip-uctp/tests/v2_auth_recovery.rs
+index e6cf511..97db809 100644
+--- a/crates/uctp/rvoip-uctp/tests/v2_auth_recovery.rs
++++ b/crates/uctp/rvoip-uctp/tests/v2_auth_recovery.rs
+@@ -71,7 +71,12 @@ fn principal(token: &str) -> AuthenticatedPrincipal {
+         subject: "alice".into(),
+         tenant: Some("tenant".into()),
+         issuer: Some("issuer".into()),
+-        scopes: vec!["control".into()],
++        scopes: vec![
++            "control".into(),
++            "uctp:session".into(),
++            "uctp:data".into(),
++            "uctp:subscribe".into(),
++        ],
+         expires_at: Some(Utc::now() + chrono::Duration::hours(1)),
+         method: AuthenticationMethod::Bearer,
+         assurance: IdentityAssurance::Identified {
+@@ -680,6 +685,16 @@ async fn capacity_fails_closed_without_eviction_and_invalid_signatures_do_not_bu
+     );
+     assert_eq!(peer.replay_usage(), (3, 3));
+     assert_eq!(h.calls.load(Ordering::SeqCst), 2);
++    assert_eq!(f.store.accepted.load(Ordering::SeqCst), 3);
++    for _ in 0..32 {
++        assert_eq!(
++            peer.handle(&f.sign(command()), &h, deadline())
++                .await
++                .unwrap_err(),
++            DispatchError::ReplayCapacity
++        );
++    }
++    assert_eq!(f.store.accepted.load(Ordering::SeqCst), 3);
+     f.clock.advance(301);
+     assert_eq!(
+         peer.handle(&f.sign(first), &h, deadline())
+diff --git a/crates/uctp/rvoip-uctp/tests/v2_canonical_transports.rs b/crates/uctp/rvoip-uctp/tests/v2_canonical_transports.rs
+index 0e42a1a..62df2ff 100644
+--- a/crates/uctp/rvoip-uctp/tests/v2_canonical_transports.rs
++++ b/crates/uctp/rvoip-uctp/tests/v2_canonical_transports.rs
+@@ -68,7 +68,12 @@ fn principal(token: &str) -> AuthenticatedPrincipal {
+         subject: "alice".into(),
+         tenant: Some("tenant".into()),
+         issuer: Some("issuer".into()),
+-        scopes: vec!["control".into()],
++        scopes: vec![
++            "control".into(),
++            "uctp:session".into(),
++            "uctp:data".into(),
++            "uctp:subscribe".into(),
++        ],
+         expires_at: Some(Utc::now() + chrono::Duration::hours(1)),
+         method: AuthenticationMethod::Bearer,
+         assurance: IdentityAssurance::Identified {
+@@ -82,6 +87,7 @@ fn principal(token: &str) -> AuthenticatedPrincipal {
+         "expired" => p.expires_at = Some(Utc::now() - chrono::Duration::seconds(1)),
+         "no-expiry" => p.expires_at = None,
+         "short" => p.expires_at = Some(Utc::now() + chrono::Duration::seconds(1)),
++        "no-default" => p.scopes.retain(|scope| scope == "control"),
+         "reduced" => p.scopes.clear(),
+         "user" | "user-new" => {
+             p.assurance = IdentityAssurance::UserAuthorized {
+@@ -1112,3 +1118,44 @@ async fn last_server_control_drop_aborts_and_joins_noncooperative_peer() {
+         .await
+         .expect("retained supervisor aborted peer after bounded cleanup");
+ }
++
++#[tokio::test]
++async fn canonical_drivers_publish_scope_denial_and_recover_only_after_authorized_refresh() {
++    for kind in ["quic", "wt", "ws"] {
++        let f = Fixture::new();
++        let handler = Arc::new(Handler::default());
++        let profile = CanonicalProfile::new(f.config.clone(), handler.clone(), 8).unwrap();
++        let mut wire = wire(kind, profile, "/uctp", Some("https://allowed.example"))
++            .await
++            .unwrap();
++        authenticate_wire(&mut wire, &f).await;
++        wire.send(f.sign(envelope(
++            "auth.refresh",
++            json!({"method":"bearer","credential":"no-default"}),
++        )))
++        .await;
++        assert_eq!(wire.read().await.kind(), "auth.session");
++        let request = command();
++        wire.send(f.sign(request.clone())).await;
++        let problem = wire.read().await;
++        f.verify_server(&problem).await;
++        assert_eq!(problem.kind(), "error");
++        assert_eq!(problem.scope(Scope::Reply), request["id"].as_str());
++        assert_eq!(problem.original()["payload"]["code"], 403);
++        assert_eq!(
++            problem.original()["payload"]["reason"],
++            "insufficient_scope"
++        );
++        assert_eq!(handler.calls.load(Ordering::SeqCst), 0);
++        wire.send(f.sign(envelope(
++            "auth.refresh",
++            json!({"method":"bearer","credential":"new"}),
++        )))
++        .await;
++        assert_eq!(wire.read().await.kind(), "auth.session");
++        wire.send(f.sign(command())).await;
++        assert_eq!(wire.read().await.kind(), "ack");
++        assert_eq!(handler.calls.load(Ordering::SeqCst), 1);
++        wire.server.shutdown().await.unwrap();
++    }
++}
+diff --git a/crates/uctp/rvoip-uctp/tests/v2_reachability.rs b/crates/uctp/rvoip-uctp/tests/v2_reachability.rs
+index b806b64..a1652d0 100644
+--- a/crates/uctp/rvoip-uctp/tests/v2_reachability.rs
++++ b/crates/uctp/rvoip-uctp/tests/v2_reachability.rs
+@@ -67,7 +67,12 @@ fn principal(token: &str) -> AuthenticatedPrincipal {
+         subject: "alice".into(),
+         tenant: Some("tenant".into()),
+         issuer: Some("issuer".into()),
+-        scopes: vec!["control".into()],
++        scopes: vec![
++            "control".into(),
++            "uctp:session".into(),
++            "uctp:data".into(),
++            "uctp:subscribe".into(),
++        ],
+         expires_at: Some(Utc::now() + chrono::Duration::hours(1)),
+         method: AuthenticationMethod::Bearer,
+         assurance: IdentityAssurance::Identified {
+diff --git a/crates/uctp/rvoip-uctp/tests/v2_secure_profile.rs b/crates/uctp/rvoip-uctp/tests/v2_secure_profile.rs
+new file mode 100644
+index 0000000..c43a28d
+--- /dev/null
++++ b/crates/uctp/rvoip-uctp/tests/v2_secure_profile.rs
+@@ -0,0 +1,684 @@
++//! Secure defaults execute before handlers and waiter delivery.
++#![allow(dead_code)]
++use async_trait::async_trait;
++use bytes::Bytes;
++use chrono::Utc;
++use futures::{SinkExt, StreamExt};
++use ring::signature::{Ed25519KeyPair, KeyPair};
++use rvoip_auth_core::{
++    bearer::{
++        AuthenticatedPrincipal, AuthenticationMethod, BearerAuthError, BearerValidator,
++        ValidatedBearer,
++    },
++    sig9421::{KeyResolver, ResolvedVerificationKey, Sig9421Signer, Sig9421Verifier},
++};
++use rvoip_core::identity::{CredentialKind, IdentityAssurance};
++use rvoip_uctp::v2::{
++    auth_dispatch::*, auth_peer::*, payloads::Device, Envelope, Identifier, Scope, RAW_QUIC_ALPN,
++};
++use serde_json::{json, Value};
++use std::{
++    collections::HashSet,
++    sync::{
++        atomic::{AtomicBool, AtomicUsize, Ordering},
++        Arc,
++    },
++    time::Duration,
++};
++use tokio::{
++    sync::{Notify, RwLock},
++    time::Instant,
++};
++use tokio_util::{
++    codec::{FramedRead, FramedWrite},
++    sync::CancellationToken,
++};
++
++fn deadline() -> Instant {
++    Instant::now() + Duration::from_secs(3)
++}
++fn envelope(kind: &str, payload: Value) -> Value {
++    json!({"v":2,"type":kind,"id":format!("env_{}",uuid::Uuid::new_v4().simple()),"ts":Utc::now(),"payload":payload})
++}
++fn hello() -> Value {
++    envelope(
++        "auth.hello",
++        json!({"device":{"id":"device-alice","kind":"desktop","platform":"fixture","sdk_version":"fixture"},"auth_methods":["unknown","bearer","aauth"],"application_profiles":["connect/2"]}),
++    )
++}
++fn response(challenge: &Envelope, token: &str) -> Value {
++    let mut v = envelope(
++        "auth.response",
++        json!({"method":"bearer","credential":token}),
++    );
++    v["in_reply_to"] = json!(challenge.id());
++    v
++}
++fn command() -> Value {
++    let mut v = envelope("connection.update", json!({"action":"hold"}));
++    v["cid"] = json!("conversation");
++    v["sid"] = json!("session");
++    v["connid"] = json!("connection");
++    v["operation_id"] = json!("logical-op");
++    v["expected_revision"] = json!(1);
++    v
++}
++fn principal(token: &str) -> AuthenticatedPrincipal {
++    let mut p = AuthenticatedPrincipal {
++        subject: "alice".into(),
++        tenant: Some("tenant".into()),
++        issuer: Some("issuer".into()),
++        scopes: vec![
++            "control".into(),
++            "uctp:session".into(),
++            "uctp:data".into(),
++            "uctp:subscribe".into(),
++        ],
++        expires_at: Some(Utc::now() + chrono::Duration::hours(1)),
++        method: AuthenticationMethod::Bearer,
++        assurance: IdentityAssurance::Identified {
++            credential_kind: CredentialKind::Oidc,
++        },
++    };
++    match token {
++        "bob" => p.subject = "bob".into(),
++        "other-tenant" => p.tenant = Some("other".into()),
++        "other-issuer" => p.issuer = Some("other".into()),
++        "expired" => p.expires_at = Some(Utc::now() - chrono::Duration::seconds(1)),
++        "no-expiry" => p.expires_at = None,
++        "short" => p.expires_at = Some(Utc::now() + chrono::Duration::seconds(1)),
++        "reduced" => p.scopes.clear(),
++        "user" | "user-new" => {
++            p.assurance = IdentityAssurance::UserAuthorized {
++                identity: rvoip_core::IdentityId::from_string("identity-alice"),
++                user_id: rvoip_core::IdentityId::from_string("user-alice"),
++                scopes: vec!["control".into()],
++            }
++        }
++        "wrong-user" => {
++            p.assurance = IdentityAssurance::UserAuthorized {
++                identity: rvoip_core::IdentityId::from_string("identity-alice"),
++                user_id: rvoip_core::IdentityId::from_string("user-bob"),
++                scopes: vec!["control".into()],
++            }
++        }
++        _ => {}
++    };
++    p
++}
++struct Validator {
++    calls: AtomicUsize,
++    hold: AtomicBool,
++    entered: Notify,
++    release: Notify,
++}
++#[async_trait]
++impl BearerValidator for Validator {
++    async fn validate(&self, token: &str) -> Result<IdentityAssurance, BearerAuthError> {
++        Ok(principal(token).assurance)
++    }
++    async fn validate_credential(&self, token: &str) -> Result<ValidatedBearer, BearerAuthError> {
++        self.calls.fetch_add(1, Ordering::SeqCst);
++        if self.hold.load(Ordering::SeqCst) {
++            self.entered.notify_one();
++            self.release.notified().await;
++        }
++        if token == "unavailable" {
++            return Err(BearerAuthError::Unavailable(
++                "private-provider-detail".into(),
++            ));
++        }
++        ValidatedBearer::new(
++            principal(token),
++            Some(token.into()),
++            Some(std::time::SystemTime::now() - Duration::from_secs(1)),
++        )
++    }
++}
++#[derive(Default)]
++struct Policy {
++    revoked: Arc<RwLock<HashSet<String>>>,
++    deny_refresh: AtomicBool,
++    calls: AtomicUsize,
++}
++impl Policy {
++    async fn guard(
++        &self,
++        c: &ValidatedBearer,
++        device: &Device,
++        id: &Identifier,
++        env: &Envelope,
++    ) -> Result<AuthorityLease, DispatchError> {
++        self.calls.fetch_add(1, Ordering::SeqCst);
++        let guard = self.revoked.clone().read_owned().await;
++        if c.token_id
++            .as_ref()
++            .is_none_or(|token| guard.contains(token))
++            || c.issued_at.is_none()
++            || c.principal.is_expired()
++            || device.id.as_str() != "device-alice"
++            || id.as_str() != "identity-alice"
++            || (env.kind() == "connection.update" && !c.principal.has_scope("control"))
++        {
++            return Err(DispatchError::Authority);
++        }
++        Ok(AuthorityLease::holding(guard))
++    }
++}
++#[async_trait]
++impl PeerAuthority for Policy {
++    async fn identity(&self, c: &ValidatedBearer, d: &Device) -> Result<Identifier, DispatchError> {
++        if c.principal.subject != "alice" || d.id.as_str() != "device-alice" {
++            return Err(DispatchError::Authority);
++        }
++        Identifier::try_from("identity-alice".to_owned()).map_err(DispatchError::from)
++    }
++    async fn acquire(
++        &self,
++        c: &ValidatedBearer,
++        d: &Device,
++        i: &Identifier,
++        e: &Envelope,
++    ) -> Result<AuthorityLease, DispatchError> {
++        self.guard(c, d, i, e).await
++    }
++    async fn refresh(
++        &self,
++        old: &ValidatedBearer,
++        new: &ValidatedBearer,
++        d: &Device,
++        i: &Identifier,
++        e: &Envelope,
++    ) -> Result<AuthorityLease, DispatchError> {
++        if self.deny_refresh.load(Ordering::SeqCst) {
++            return Err(DispatchError::Authority);
++        }
++        let lease = self.guard(new, d, i, e).await?;
++        if old.token_id.as_ref().is_none_or(|token| {
++            self.revoked
++                .try_read()
++                .map_or(true, |set| set.contains(token))
++        }) {
++            return Err(DispatchError::Authority);
++        }
++        Ok(lease)
++    }
++}
++struct Keys {
++    client: Vec<u8>,
++    server: Vec<u8>,
++}
++impl KeyResolver for Keys {
++    fn resolve(&self, _: &str) -> Option<Vec<u8>> {
++        None
++    }
++    fn resolve_for_principal(
++        &self,
++        p: &AuthenticatedPrincipal,
++        k: &str,
++        a: &str,
++        _: chrono::DateTime<Utc>,
++    ) -> Option<ResolvedVerificationKey> {
++        if p.tenant.as_deref() != Some("tenant")
++            || p.issuer.as_deref() != Some("issuer")
++            || a != "EdDSA"
++        {
++            return None;
++        }
++        let bytes = match (p.subject.as_str(), k) {
++            ("alice", "client") => self.client.clone(),
++            ("server", "server") => self.server.clone(),
++            _ => return None,
++        };
++        Some(ResolvedVerificationKey {
++            public_key: bytes,
++            algorithm: "EdDSA".into(),
++            not_before: None,
++            expires_at: None,
++            revoked: false,
++        })
++    }
++}
++#[derive(Default)]
++struct Handler {
++    calls: AtomicUsize,
++}
++#[async_trait]
++impl AuthenticatedHandler for Handler {
++    async fn handle(&self, env: AuthorizedEnvelope) -> Result<Envelope, DispatchError> {
++        assert_eq!(env.principal().subject, "alice");
++        self.calls.fetch_add(1, Ordering::SeqCst);
++        Envelope::from_value(envelope("ack", json!({}))).map_err(DispatchError::from)
++    }
++}
++struct Fixture {
++    config: Arc<PeerConfig>,
++    client: Sig9421Signer,
++    server_verify: Sig9421Verifier,
++    policy: Arc<Policy>,
++    validator: Arc<Validator>,
++}
++impl Fixture {
++    fn new() -> Self {
++        let client_key = Ed25519KeyPair::generate_pkcs8(&ring::rand::SystemRandom::new()).unwrap();
++        let server_key = Ed25519KeyPair::generate_pkcs8(&ring::rand::SystemRandom::new()).unwrap();
++        let client = Sig9421Signer::ed25519("client", client_key.as_ref()).unwrap();
++        let server = Sig9421Signer::ed25519("server", server_key.as_ref()).unwrap();
++        let resolver = Arc::new(Keys {
++            client: Ed25519KeyPair::from_pkcs8(client_key.as_ref())
++                .unwrap()
++                .public_key()
++                .as_ref()
++                .to_vec(),
++            server: Ed25519KeyPair::from_pkcs8(server_key.as_ref())
++                .unwrap()
++                .public_key()
++                .as_ref()
++                .to_vec(),
++        });
++        let validator = Arc::new(Validator {
++            calls: AtomicUsize::new(0),
++            hold: AtomicBool::new(false),
++            entered: Notify::new(),
++            release: Notify::new(),
++        });
++        let policy = Arc::new(Policy::default());
++        let config = Arc::new(PeerConfig {
++            methods: Arc::new(AuthenticationMethods::new(Some(validator.clone()))),
++            verifier: Arc::new(Sig9421Verifier::new(resolver.clone())),
++            signer: Arc::new(server),
++            authority: policy.clone(),
++            pending_capacity: 2,
++        });
++        Self {
++            config,
++            client,
++            server_verify: Sig9421Verifier::new(resolver),
++            policy,
++            validator,
++        }
++    }
++    fn peer(&self) -> CanonicalPeer {
++        CanonicalPeer::new(self.config.clone(), CancellationToken::new()).unwrap()
++    }
++    fn sign(&self, v: Value) -> Vec<u8> {
++        serde_json::to_vec(&self.client.sign(&v).unwrap()).unwrap()
++    }
++    async fn authenticate(&self, peer: &mut CanonicalPeer, token: &str) -> Envelope {
++        let output = peer
++            .handle(
++                &serde_json::to_vec(&hello()).unwrap(),
++                &Handler::default(),
++                deadline(),
++            )
++            .await
++            .unwrap();
++        let challenge = output.envelopes()[0].clone();
++        drop(output);
++        let output = peer
++            .handle(
++                &self.sign(response(&challenge, token)),
++                &Handler::default(),
++                deadline(),
++            )
++            .await
++            .unwrap();
++        output.envelopes()[0].clone()
++    }
++    async fn verify_server(&self, env: &Envelope) {
++        let mut p = principal("old");
++        p.subject = "server".into();
++        self.server_verify
++            .verify_for_principal(env.original(), &p)
++            .await
++            .unwrap();
++    }
++}
++
++use rvoip_uctp::v2::{scope_policy, Payload};
++struct ScopeValidator(Arc<Validator>);
++#[async_trait]
++impl BearerValidator for ScopeValidator {
++    async fn validate(&self, token: &str) -> Result<IdentityAssurance, BearerAuthError> {
++        Ok(principal(token).assurance)
++    }
++    async fn validate_credential(&self, token: &str) -> Result<ValidatedBearer, BearerAuthError> {
++        let mut credential = self.0.validate_credential(token).await?;
++        let scope = match token {
++            "no-default" => None,
++            "session-only" => Some(scope_policy::SESSION),
++            "data-only" => Some(scope_policy::DATA),
++            "subscribe-only" => Some(scope_policy::SUBSCRIBE),
++            _ => return Ok(credential),
++        };
++        credential.principal.scopes = vec!["control".into()];
++        if let Some(scope) = scope {
++            credential.principal.scopes.push(scope.into());
++        }
++        Ok(credential)
++    }
++}
++fn fixture() -> Fixture {
++    let mut f = Fixture::new();
++    let old = &f.config;
++    f.config = Arc::new(PeerConfig {
++        methods: Arc::new(AuthenticationMethods::new(Some(Arc::new(ScopeValidator(
++            f.validator.clone(),
++        ))))),
++        verifier: old.verifier.clone(),
++        signer: old.signer.clone(),
++        authority: old.authority.clone(),
++        pending_capacity: old.pending_capacity,
++    });
++    f
++}
++fn vector(kind: &str) -> Value {
++    let vectors: Value =
++        serde_json::from_str(include_str!("../src/v2/golden-vectors.json")).unwrap();
++    let mut value = vectors["vectors"]
++        .as_array()
++        .unwrap()
++        .iter()
++        .find(|row| row["id"] == format!("schema-{kind}"))
++        .unwrap()["envelope"]
++        .clone();
++    value["id"] = json!(format!("env_{}", uuid::Uuid::new_v4().simple()));
++    value["ts"] = json!(Utc::now());
++    value["cid"] = json!("conversation");
++    value["sid"] = json!("session");
++    value["connid"] = json!("connection");
++    value["operation_id"] = json!("logical-op");
++    value["expected_revision"] = json!(1);
++    value.as_object_mut().unwrap().remove("in_reply_to");
++    value
++}
++async fn send(
++    peer: &mut CanonicalPeer,
++    f: &Fixture,
++    value: Value,
++    handler: &Handler,
++) -> Result<PeerOutput, DispatchError> {
++    peer.handle(&f.sign(value), handler, deadline()).await
++}
++
++#[tokio::test]
++async fn default_session_data_and_subscription_floors_are_independent_and_not_policy_substitutes() {
++    for (token, allowed, denied) in [
++        ("session-only", "connection.update", "message.send"),
++        ("data-only", "message.send", "stream.subscribe"),
++        ("subscribe-only", "stream.subscribe", "connection.update"),
++    ] {
++        let f = fixture();
++        let mut peer = f.peer();
++        f.authenticate(&mut peer, token).await;
++        let handler = Handler::default();
++        let output = send(&mut peer, &f, vector(allowed), &handler)
++            .await
++            .unwrap();
++        drop(output);
++        assert_eq!(handler.calls.load(Ordering::SeqCst), 1);
++        assert!(matches!(
++            send(&mut peer, &f, vector(denied), &handler).await,
++            Err(DispatchError::ScopeDenied)
++        ));
++        assert_eq!(handler.calls.load(Ordering::SeqCst), 1);
++        f.policy.revoked.write().await.insert(token.into());
++        assert!(matches!(
++            send(&mut peer, &f, vector(allowed), &handler).await,
++            Err(DispatchError::Authority)
++        ));
++        assert_eq!(handler.calls.load(Ordering::SeqCst), 1);
++    }
++}
++#[tokio::test]
++async fn command_scope_cannot_be_forged_by_payload_claim_or_satisfied_by_fixture_policy() {
++    let f = fixture();
++    let mut peer = f.peer();
++    f.authenticate(&mut peer, "no-default").await;
++    let handler = Handler::default();
++    let mut value = command();
++    value["payload"]["scopes"] = json!([scope_policy::SESSION]);
++    value["scopes"] = json!(["*"]);
++    value["payload"]["identity_id"] = json!("administrator");
++    assert!(matches!(
++        send(&mut peer, &f, value, &handler).await,
++        Err(DispatchError::ScopeDenied)
++    ));
++    assert_eq!(handler.calls.load(Ordering::SeqCst), 0);
++    assert!(f.policy.calls.load(Ordering::SeqCst) > 0);
++}
++#[tokio::test]
++async fn refresh_can_reduce_and_restore_default_scope_without_reusing_old_principal() {
++    let f = fixture();
++    let mut peer = f.peer();
++    f.authenticate(&mut peer, "old").await;
++    let handler = Handler::default();
++    send(&mut peer, &f, command(), &handler).await.unwrap();
++    assert_eq!(handler.calls.load(Ordering::SeqCst), 1);
++    send(
++        &mut peer,
++        &f,
++        envelope(
++            "auth.refresh",
++            json!({"method":"bearer","credential":"no-default"}),
++        ),
++        &handler,
++    )
++    .await
++    .unwrap();
++    assert!(matches!(
++        send(&mut peer, &f, command(), &handler).await,
++        Err(DispatchError::ScopeDenied)
++    ));
++    assert_eq!(handler.calls.load(Ordering::SeqCst), 1);
++    send(
++        &mut peer,
++        &f,
++        envelope(
++            "auth.refresh",
++            json!({"method":"bearer","credential":"new"}),
++        ),
++        &handler,
++    )
++    .await
++    .unwrap();
++    send(&mut peer, &f, command(), &handler).await.unwrap();
++    assert_eq!(handler.calls.load(Ordering::SeqCst), 2);
++}
++#[tokio::test]
++async fn authenticated_replies_need_their_family_floor_before_waiter_consumption() {
++    let f = fixture();
++    let mut peer = f.peer();
++    f.authenticate(&mut peer, "no-default").await;
++    let handler = Handler::default();
++    let request = Envelope::from_value(vector("connection.offer")).unwrap();
++    let ticket = peer.register_reply(&request, deadline()).unwrap();
++    let mut answer = vector("connection.answer");
++    answer["in_reply_to"] = json!(request.id());
++    assert!(matches!(
++        send(&mut peer, &f, answer, &handler).await,
++        Err(DispatchError::ScopeDenied)
++    ));
++    assert_eq!(handler.calls.load(Ordering::SeqCst), 0);
++    drop(ticket);
++}
++#[tokio::test]
++async fn preauth_duplicate_hello_and_response_never_repeat_credential_work() {
++    let f = fixture();
++    let mut peer = f.peer();
++    let handler = Handler::default();
++    let bytes = serde_json::to_vec(&hello()).unwrap();
++    let challenge = peer
++        .handle(&bytes, &handler, deadline())
++        .await
++        .unwrap()
++        .envelopes()[0]
++        .clone();
++    assert!(matches!(
++        peer.handle(&bytes, &handler, deadline()).await,
++        Err(DispatchError::Replay)
++    ));
++    let failed = f.sign(response(&challenge, "unavailable"));
++    assert!(peer.handle(&failed, &handler, deadline()).await.is_err());
++    assert_eq!(f.validator.calls.load(Ordering::SeqCst), 1);
++    assert!(matches!(
++        peer.handle(&failed, &handler, deadline()).await,
++        Err(DispatchError::Replay)
++    ));
++    assert_eq!(f.validator.calls.load(Ordering::SeqCst), 1);
++    assert_eq!(peer.preauth_replay_usage(), (2, 8));
++    assert_eq!(peer.replay_usage().0, 0);
++    assert_eq!(handler.calls.load(Ordering::SeqCst), 0);
++}
++#[tokio::test]
++async fn preauth_cache_exhaustion_is_non_evicting_and_closes_before_ninth_credential_attempt() {
++    let f = fixture();
++    let mut peer = f.peer();
++    let handler = Handler::default();
++    let challenge = peer
++        .handle(&serde_json::to_vec(&hello()).unwrap(), &handler, deadline())
++        .await
++        .unwrap()
++        .envelopes()[0]
++        .clone();
++    for _ in 0..7 {
++        assert!(peer
++            .handle(
++                &f.sign(response(&challenge, "unavailable")),
++                &handler,
++                deadline()
++            )
++            .await
++            .is_err());
++    }
++    assert_eq!(peer.preauth_replay_usage(), (8, 8));
++    assert!(!peer.cancellation().is_cancelled());
++    assert!(matches!(
++        peer.handle(&f.sign(response(&challenge, "old")), &handler, deadline())
++            .await,
++        Err(DispatchError::ReplayCapacity)
++    ));
++    assert_eq!(f.validator.calls.load(Ordering::SeqCst), 7);
++    assert!(peer.cancellation().is_cancelled());
++    assert_eq!(peer.preauth_replay_usage(), (8, 8));
++}
++#[tokio::test]
++async fn cancelled_pre_auth_validation_requires_fresh_wire_id_but_preserves_challenge() {
++    let f = fixture();
++    let mut peer = f.peer();
++    let handler = Handler::default();
++    let challenge = peer
++        .handle(&serde_json::to_vec(&hello()).unwrap(), &handler, deadline())
++        .await
++        .unwrap()
++        .envelopes()[0]
++        .clone();
++    let bytes = f.sign(response(&challenge, "old"));
++    f.validator.hold.store(true, Ordering::SeqCst);
++    let mut work = Box::pin(peer.handle(&bytes, &handler, deadline()));
++    tokio::select! {biased;_=f.validator.entered.notified()=>{},_=work.as_mut()=>panic!("validation should wait")};
++    drop(work);
++    f.validator.hold.store(false, Ordering::SeqCst);
++    assert_eq!(peer.preauth_replay_usage(), (2, 8));
++    assert!(matches!(
++        peer.handle(&bytes, &handler, deadline()).await,
++        Err(DispatchError::Replay)
++    ));
++    assert_eq!(f.validator.calls.load(Ordering::SeqCst), 1);
++    let output = peer
++        .handle(&f.sign(response(&challenge, "old")), &handler, deadline())
++        .await
++        .unwrap();
++    assert_eq!(output.envelopes()[0].kind(), "auth.session");
++    assert_eq!(peer.preauth_replay_usage(), (3, 8));
++    assert_eq!(peer.replay_usage().0, 1);
++}
++#[test]
++fn typed_floor_mapping_covers_all_sixty_five_wire_families() {
++    let vectors: Value =
++        serde_json::from_str(include_str!("../src/v2/golden-vectors.json")).unwrap();
++    let mut kinds = HashSet::new();
++    let mut counts = [0usize; 4];
++    for row in
++        vectors["vectors"].as_array().unwrap().iter().filter(|row| {
++            row["valid"] == true && row["id"].as_str().unwrap().starts_with("schema-")
++        })
++    {
++        let value = Envelope::from_value(row["envelope"].clone()).unwrap();
++        kinds.insert(value.kind().to_owned());
++        let floor = scope_policy::required_scope(value.payload());
++        counts[match floor {
++            Some(scope_policy::SESSION) => 0,
++            Some(scope_policy::DATA) => 1,
++            Some(scope_policy::SUBSCRIBE) => 2,
++            None => 3,
++            _ => panic!("unknown scope floor"),
++        }] += 1;
++        if matches!(
++            value.payload(),
++            Payload::MessageSend(_) | Payload::DtmfSend(_)
++        ) {
++            assert_eq!(floor, Some(scope_policy::DATA));
++        }
++        if matches!(
++            value.payload(),
++            Payload::StreamSubscribe(_) | Payload::StreamUnsubscribe(_)
++        ) {
++            assert_eq!(floor, Some(scope_policy::SUBSCRIBE));
++        }
++    }
++    assert_eq!(kinds.len(), 65);
++    assert_eq!(counts, [38, 6, 5, 16]);
++}
++
++#[tokio::test]
++async fn generic_ack_inherits_registered_request_floor_and_cannot_consume_waiter() {
++    let f = fixture();
++    let mut peer = f.peer();
++    f.authenticate(&mut peer, "no-default").await;
++    let handler = Handler::default();
++    for kind in ["connection.update", "stream.subscribe"] {
++        let request = Envelope::from_value(vector(kind)).unwrap();
++        let ticket = peer.register_reply(&request, deadline()).unwrap();
++        let mut ack = envelope("ack", json!({}));
++        for field in ["cid", "sid", "connid", "operation_id"] {
++            ack[field] = request.original()[field].clone();
++        }
++        ack["in_reply_to"] = json!(request.id());
++        assert!(matches!(
++            send(&mut peer, &f, ack, &handler).await,
++            Err(DispatchError::ScopeDenied)
++        ));
++        assert!(matches!(
++            peer.register_reply(&request, deadline()),
++            Err(DispatchError::Capacity)
++        ));
++        drop(ticket);
++    }
++    assert_eq!(handler.calls.load(Ordering::SeqCst), 0);
++}
++
++#[tokio::test]
++async fn verified_but_scope_denied_ids_consume_peer_budget_and_cannot_flood_shared_replay_work() {
++    let f = fixture();
++    let mut peer =
++        CanonicalPeer::with_replay_capacity(f.config.clone(), CancellationToken::new(), 3).unwrap();
++    f.authenticate(&mut peer, "no-default").await;
++    let h = Handler::default();
++    assert_eq!(peer.replay_usage(), (1, 3));
++    for expected in 2..=3 {
++        assert!(matches!(
++            send(&mut peer, &f, command(), &h).await,
++            Err(DispatchError::ScopeDenied)
++        ));
++        assert_eq!(peer.replay_usage(), (expected, 3));
++    }
++    for _ in 0..16 {
++        assert!(matches!(
++            send(&mut peer, &f, command(), &h).await,
++            Err(DispatchError::ReplayCapacity)
++        ));
++        assert_eq!(peer.replay_usage(), (3, 3));
++    }
++    assert_eq!(h.calls.load(Ordering::SeqCst), 0);
++}
+diff --git a/crates/uctp/rvoip-uctp/tests/v2_step_up.rs b/crates/uctp/rvoip-uctp/tests/v2_step_up.rs
+index 31d6f01..a72988b 100644
+--- a/crates/uctp/rvoip-uctp/tests/v2_step_up.rs
++++ b/crates/uctp/rvoip-uctp/tests/v2_step_up.rs
+@@ -67,7 +67,12 @@ fn principal(token: &str) -> AuthenticatedPrincipal {
+         subject: "alice".into(),
+         tenant: Some("tenant".into()),
+         issuer: Some("issuer".into()),
+-        scopes: vec!["control".into()],
++        scopes: vec![
++            "control".into(),
++            "uctp:session".into(),
++            "uctp:data".into(),
++            "uctp:subscribe".into(),
++        ],
+         expires_at: Some(Utc::now() + chrono::Duration::hours(1)),
+         method: AuthenticationMethod::Bearer,
+         assurance: IdentityAssurance::Identified {
+@@ -115,7 +120,7 @@ fn principal(token: &str) -> AuthenticatedPrincipal {
+         "no-expiry" => p.expires_at = None,
+         "short" => p.expires_at = Some(Utc::now() + chrono::Duration::seconds(1)),
+         "reduced" => p.scopes.clear(),
+-        "user" | "user-new" => {
++        "user" | "user-new" | "user-no-default" => {
+             p.assurance = IdentityAssurance::UserAuthorized {
+                 identity: rvoip_core::IdentityId::from_string("identity-alice"),
+                 user_id: rvoip_core::IdentityId::from_string("user-alice"),
+@@ -131,6 +136,9 @@ fn principal(token: &str) -> AuthenticatedPrincipal {
+         }
+         _ => {}
+     };
++    if token == "user-no-default" {
++        p.scopes.retain(|scope| scope == "control");
++    }
+     p
+ }
+ struct Validator {
+@@ -1024,3 +1032,43 @@ async fn resumed_request_keeps_expected_revision_and_can_fail_current_business_v
+     assert_eq!(reply.scope(Scope::Operation), Some("logical-op"));
+     assert_eq!(h.effects.load(Ordering::SeqCst), 0);
+ }
++
++#[tokio::test]
++async fn stepped_up_credential_without_original_default_scope_is_rejected_before_execution() {
++    let f = Fixture::new();
++    let mut peer = f.peer();
++    f.authenticate(&mut peer, "old").await;
++    let h = Tracking::default();
++    let (request, challenge) = blocked(&f, &mut peer, &h).await;
++    let response = proof(&challenge, "user-no-default");
++    assert_eq!(
++        peer.handle(&f.sign(response.clone()), &h, deadline())
++            .await
++            .unwrap_err(),
++        DispatchError::ScopeDenied
++    );
++    assert_eq!(h.calls.load(Ordering::SeqCst), 0);
++    assert_eq!(peer.generation(), Some(1));
++    assert!(!peer.cancellation().is_cancelled());
++    let failures = peer.drain_step_up_failures().unwrap().unwrap();
++    assert_eq!(
++        failures.envelopes()[0].scope(Scope::Reply),
++        request["id"].as_str()
++    );
++    assert_eq!(failures.envelopes()[0].original()["payload"]["code"], 403);
++    assert!(failures.envelopes()[0].original()["payload"]
++        .get("details")
++        .is_none());
++    assert_eq!(
++        failures.envelopes()[1].scope(Scope::Reply),
++        response["id"].as_str()
++    );
++    drop(failures);
++    let (_, challenge) = blocked(&f, &mut peer, &h).await;
++    let output = peer
++        .handle(&f.sign(proof(&challenge, "user")), &h, deadline())
++        .await
++        .unwrap();
++    assert_eq!(output.envelopes()[0].kind(), "auth.session");
++    assert_eq!(h.calls.load(Ordering::SeqCst), 1);
++}

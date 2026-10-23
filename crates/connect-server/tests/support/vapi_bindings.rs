@@ -108,5 +108,5 @@ pub async fn http(headers: reqwest_mcp::header::HeaderMap) -> reqwest_mcp::Clien
 
 pub fn mutation(id: &str) -> serde_json::Value {
     serde_json::json!({"jsonrpc":"2.0","id":2,"method":"tools/call","params":{
-        "name":"connect_send","arguments":{"request_id":id,"step_id":"draft","body":"Provider-scoped draft"}}})
+        "name":"connect_send","arguments":{"request_id":id,"step_id":"draft","message": connect_protocol::messages::MessageDraft::text_all(("Provider-scoped draft").to_string())}}})
 }

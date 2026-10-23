@@ -49,15 +49,27 @@ fn current_operator_metadata_installation_and_expiry_guard_vault_access() {
     let database = state.join("state.sqlite3");
     let store = Store::open(&database, Default::default()).unwrap();
     let actor = store.authenticate(&original.credential).unwrap();
+    let c = rusqlite::Connection::open(&database).unwrap();
+    c.execute(
+        "UPDATE credentials SET expires_at=0 WHERE id=?1",
+        [&original.credential_id],
+    )
+    .unwrap();
+    assert!(vault.authorize().is_err());
+    c.execute(
+        "UPDATE credentials SET expires_at=?2 WHERE id=?1",
+        rusqlite::params![original.credential_id, actor.expires_at],
+    )
+    .unwrap();
     store.revoke(&actor, &original.credential_id).unwrap();
     assert!(vault.reference(operation).is_err());
     assert!(vault.read(&reference).is_err());
     assert!(CheckpointVault::open(&operator_path, &server_path, None).is_err());
-    let c = rusqlite::Connection::open(database).unwrap();
-    c.execute(
-        "UPDATE credentials SET revoked=0,expires_at=0 WHERE id=?1",
-        [&original.credential_id],
-    )
-    .unwrap();
+    assert!(c
+        .execute(
+            "UPDATE credentials SET revoked=0 WHERE id=?1",
+            [&original.credential_id],
+        )
+        .is_err());
     assert!(vault.authorize().is_err());
 }

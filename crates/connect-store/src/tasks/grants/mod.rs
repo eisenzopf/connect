@@ -48,6 +48,12 @@ impl Store {
         task_id: &str,
         binding: &InvocationBinding,
     ) -> Result<()> {
+        let _authority = self.task_owner_write_authority(
+            credential_id,
+            task_id,
+            "task_grant",
+            super::clock::Clock::Current,
+        )?;
         let mut c = self.connection()?;
         let tx = c
             .transaction_with_behavior(TransactionBehavior::Immediate)
@@ -77,6 +83,21 @@ impl Store {
     }
     /// Revocation remains available to a currently authorized owner after expiry.
     pub fn revoke_task_grant(&self, credential_id: &str, grant_id: &str) -> Result<()> {
+        let _authority = self.stable_authority(
+            &crate::AuthorityWait::new(crate::authority_fences::DEFAULT_WAIT),
+            || {
+                let c = self.connection()?;
+                let actor = actor_from_connection_at(&c, credential_id, crate::now())?;
+                actor.require("task_grant")?;
+                let row = rows::get(&c, grant_id)?;
+                let task = tasks::task(&c, &actor, &row.grant.task_id)?;
+                crate::authority_admission::conversation_scopes(
+                    &c,
+                    &task.record.conversation_id,
+                    crate::AuthorityMode::Write,
+                )
+            },
+        )?;
         let mut c = self.connection()?;
         let tx = c
             .transaction_with_behavior(TransactionBehavior::Immediate)
@@ -123,13 +144,14 @@ fn current(
     let task = storage::load(c, &row.grant.task_id)?;
     tasks::continuation(c, &task, timestamp, false)?;
     bindings::check(c, &task.record, binding, timestamp)?;
-    let actor = authority::subset(
+    let mut actor = authority::subset(
         c,
         &row.credential_id,
         &task.record,
         &row.grant.operations,
         timestamp,
     )?;
+    actor.expires_at = actor.expires_at.min(row.grant.expires_at);
     crate::conversations::authorized_conversation(c, &actor, &task.record.conversation_id)?;
     if authority::intent(&row.definition(), &row.credential_id, &task.record)? != row.digest {
         return Err(Error::forbidden());
@@ -137,12 +159,12 @@ fn current(
     Ok((actor, task.record))
 }
 /// Reconstruct authority only from the committed effect's protected grant row.
-pub(super) fn authorize_effect(
+pub(super) fn effect_deadline(
     c: &Connection,
     grant_id: &str,
     request: &TaskRequest,
     timestamp: i64,
-) -> Result<()> {
+) -> Result<i64> {
     let row = rows::get(c, grant_id)?;
     let invocation = TaskInvocation {
         grant_id: grant_id.into(),
@@ -150,7 +172,8 @@ pub(super) fn authorize_effect(
         binding: row.grant.binding.clone(),
         installation_id: installation_id(c)?,
     };
-    admission::authorize(c, &invocation, request, timestamp).map(|_| ())
+    let (actor, task) = admission::authorize(c, &invocation, request, timestamp)?;
+    Ok(actor.expires_at.min(task.expires_at))
 }
 
 /// Reconstruct the original invocation's context ceiling for provider dispatch.

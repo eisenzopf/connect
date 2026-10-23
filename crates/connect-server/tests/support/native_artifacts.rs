@@ -78,6 +78,7 @@ impl Fixture {
             .invoke(
                 "begin",
                 Operation::ArtifactBegin {
+                    to: connect_protocol::messages::MessageAudience::all(),
                     request_id: "begin".into(),
                     conversation_id: self.h.cid.clone(),
                     name: "binary.bin".into(),

@@ -90,6 +90,7 @@ async fn app_and_server_restarts_retain_actual_provider_uncertainty_without_redi
                 target: "12345678-1234-1234-1234-123456789012".into(),
                 source: None,
                 enabled: true,
+                incoming_to: connect_protocol::messages::MessageAudience::all(),
             },
         )
         .unwrap();
@@ -97,6 +98,7 @@ async fn app_and_server_restarts_retain_actual_provider_uncertainty_without_redi
         f.server.as_ref().unwrap().service.clone(),
         vec![driver.clone()],
     )
+    .await
     .unwrap();
     let mut app = f.spawn(Some("after-invocation-ack"), None);
     exited(&mut app, 86).await;
@@ -116,8 +118,9 @@ async fn app_and_server_restarts_retain_actual_provider_uncertainty_without_redi
 
     // Neither the old grant nor the durable app state is replaced on restart.
     f.restart().await;
-    let provider =
-        Worker::with_drivers(f.server.as_ref().unwrap().service.clone(), vec![driver]).unwrap();
+    let provider = Worker::with_drivers(f.server.as_ref().unwrap().service.clone(), vec![driver])
+        .await
+        .unwrap();
     app = f.spawn(None, None);
     let stats = f.settled(0).await;
     assert_eq!(stats.task_id, f.task.id);

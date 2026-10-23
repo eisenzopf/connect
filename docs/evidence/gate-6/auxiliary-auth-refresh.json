@@ -1,0 +1,237 @@
+{
+  "task": "G6-046",
+  "title": "Public signed native credential refresh through current Store-backed peer authority",
+  "status": "in-progress",
+  "component_passed": true,
+  "full_task_complete": false,
+  "full_goal_complete": false,
+  "created_at": "2026-10-21T13:19:50.988787+00:00",
+  "schema_version": 74,
+  "scope": "Isolated local macOS arm64; complete current client library and two actual production-listener/public-client integration cases. No Store/service/server library-wide or vCon/remaining auxiliary behavior qualification by this component.",
+  "fresh_distinct_passed_tests": 53,
+  "verification": [
+    {
+      "name": "Complete current client library",
+      "binary": {
+        "path": "target/debug/deps/connect_client-90572cd07441bafb",
+        "sha256": "282254905e8f09592d3b856154cbe996da9171bac73eeab2196098f690270ea9"
+      },
+      "arguments": [
+        "--test-threads=1"
+      ],
+      "passed": 51,
+      "failed": 0,
+      "ignored": 0,
+      "tests": [
+        "application::tests::application_configuration_rejects_header_controls_and_command_input_rejects_authority_claims",
+        "application::tests::application_errors_never_echo_untrusted_server_reason_or_code",
+        "application::tests::application_partial_cancellation_is_explicit_and_retry_preserves_logical_id",
+        "application::tests::application_preflight_cancellation_expiry_and_task_discovery_have_no_network_effect",
+        "application::tests::application_redirects_do_not_forward_the_credential",
+        "application::tests::application_responses_require_matching_profile_kind_and_success_status",
+        "application::tests::application_size_bounds_cover_announced_and_chunked_bodies",
+        "application::tests::canonical_commands_cannot_be_constructed_as_application_operations",
+        "application::tests::credential_revocation_correlates_immutable_target_and_requires_revoked_state",
+        "application::tests::incoming_contacts::incoming_decisions_correlate_original_contact_candidate_operation_state_and_kind",
+        "application::tests::incoming_contacts::incoming_invalid_cancelled_and_expired_commands_have_no_http_effect",
+        "application::tests::incoming_contacts::incoming_provider_errors_are_sanitized_and_never_retried_with_another_operation",
+        "application::tests::protected_application_task_grant_replaces_owner_and_cannot_extend_original_expiry",
+        "application::tests::provisioning_correlates_target_revision_revocation_profile_kind_and_status",
+        "application::tests::provisioning_preflight_rejects_path_injection_cancellation_expiry_and_oversize_without_network",
+        "application::tests::provisioning_uses_bounded_streaming_and_sanitized_errors_without_retry",
+        "application::tests::ready_http_chunks_cannot_extend_deadline_or_original_expiry",
+        "canonical::native::tests::native_confirmation_is_fresh_and_binds_every_original_resource",
+        "canonical::tests::atomic_native_datagram_wait_does_not_retire_signed_control_peer",
+        "canonical::tests::auth_refresh::canonical_refresh_correlated_refusal_preserves_the_previous_binding_without_echoing_backend_text",
+        "canonical::tests::auth_refresh::canonical_refresh_invalid_input_and_pre_cancelled_intent_send_no_command",
+        "canonical::tests::auth_refresh::canonical_refresh_missing_foreign_and_streaming_replies_cannot_extend_the_old_absolute_deadline",
+        "canonical::tests::auth_refresh::canonical_refresh_validates_signed_owner_profile_assurance_expiry_and_rotated_token",
+        "canonical::tests::cancellation_after_signed_partial_batch_retires_physical_peer",
+        "canonical::tests::canonical_cursor_facts_bind_outer_resources_to_the_authoritative_journal_event",
+        "canonical::tests::original_command_values_preserve_extensions_without_bypassing_validation_or_auth",
+        "canonical::tests::original_credential_and_server_pin_expiry_bound_the_entire_batch",
+        "canonical::tests::signed_foreign_scope_retires_collector_peer",
+        "canonical::tests::signed_live_inbox_count_and_byte_bounds_retire_collector_peer",
+        "canonical::tests::signed_missing_completion_times_out_without_reporting_logical_success",
+        "canonical::tests::signed_ready_stream_cannot_extend_absolute_batch_deadline",
+        "canonical::tests::signed_reply_count_and_byte_bounds_retire_collector_peer",
+        "canonical::tests::typed_operation_get_keeps_signed_unknown_state_after_batch_ack",
+        "media::frame_debug_tests::frame_debug_exposes_metadata_without_recorded_media",
+        "media_end::tests::terminal_events_require_the_current_binding_and_valid_payload",
+        "task_diagnostics::readiness_tests::ready_server_never_masks_stopped_unknown_or_unconfigured_execution",
+        "task_diagnostics::readiness_tests::server_failure_and_sample_changes_remain_explicit_without_mutating_original_views",
+        "task_diagnostics::tests::arbitrary_text_is_removed_but_reconciliation_and_source_ids_are_retained",
+        "video::assembly::tests::a_missing_fragment_and_a_conflicting_duplicate_never_complete",
+        "video::assembly::tests::expired_frame_cannot_restart_its_deadline_or_reconstruct_from_late_fragments",
+        "video::assembly::tests::many_partial_sources_keep_observed_usage_inside_frozen_limits",
+        "video::assembly::tests::marker_without_a_start_packet_cannot_publish_sequence_metadata",
+        "video::assembly::tests::reordered_wrap_and_duplicate_packets_complete_once_without_losing_bytes",
+        "video::assembly::tests::sequence_metadata_uses_buffered_marker_and_clears_before_an_incomplete_or_invalid_push",
+        "video::assembly::tests::sources_and_timestamps_cannot_contaminate_each_other",
+        "video::packet::tests::caller_mutation_cannot_panic_the_fragment_parser",
+        "video::packet::tests::rejects_oversized_and_truncated_packet_extensions",
+        "video::signaling::tests::negotiation_errors_require_current_request_or_exact_connection",
+        "video::signaling::tests::selected_codec_metadata_cannot_silently_change_the_fixed_profile",
+        "video::timebase::tests::muted_or_stalled_capture_resumes_in_the_same_audio_video_epoch",
+        "video::timebase::tests::queued_capture_and_rtp_wrap_never_run_the_clock_backwards"
+      ],
+      "log": {
+        "path": ".local/gate-6/aux-auth-client-qualified.log",
+        "sha256": "bcddd25d7f64512699bb6076f073c695b9f6546c7d2bcc18434da1ec9468d4ea"
+      }
+    },
+    {
+      "name": "Actual Connect listener/public signed SDK refresh",
+      "binary": {
+        "path": "target/debug/deps/gate6_auxiliary-ae4187c13ec3fdf9",
+        "sha256": "27083c9b75cc858d82832093290f71e78ec4067cbe3fdff79f8beeedd24c6a0d"
+      },
+      "arguments": [
+        "--test-threads=1"
+      ],
+      "passed": 2,
+      "failed": 0,
+      "ignored": 0,
+      "tests": [
+        "public_refresh_cannot_borrow_an_unbound_successor_or_another_owner",
+        "public_signed_refresh_preserves_owner_and_narrows_scope_beyond_the_predecessor_expiry"
+      ],
+      "log": {
+        "path": ".local/gate-6/aux-auth-runtime-qualified.log",
+        "sha256": "a29c4cee71a9359253078994e3de1aa98e9eb5ea775c9375ef12c7970781c59d"
+      }
+    }
+  ],
+  "qualification_inputs": {
+    "path": ".local/gate-6/aux-auth-inputs.json",
+    "sha256": "0311b3fdd9eda7c5b283ccffeb516b5c7e34c040825e1f87a8de0e0ef97bf25a"
+  },
+  "qualification_input_count": 1241,
+  "source_lock": {
+    "path": "dependencies/source-lock.json",
+    "sha256": "098ba5eba45b5ccaceed905914d0a2972938f7852b8ee1cfab4948ddd98020ec"
+  },
+  "pinned_patches": 127,
+  "implementation": [
+    {
+      "path": "crates/connect-client/src/canonical.rs",
+      "sha256": "2d5cf8e6b61c3ff79cf01ee309fdda0d02ed0ac1f8a034622f0287760b2f6ca8"
+    },
+    {
+      "path": "crates/connect-client/src/canonical/tests.rs",
+      "sha256": "eea268969d2e5a2221ba53b4ba869f73fe12c595c3c3a0681b88cd98910f70b9"
+    },
+    {
+      "path": "crates/connect-client/src/canonical/tests/auth_refresh.rs",
+      "sha256": "4c1353e302e440b72abfb0c330d6e48b652542e9a3684b67da90813c9eaf1cef"
+    },
+    {
+      "path": "crates/connect-server/tests/gate6_auxiliary.rs",
+      "sha256": "94a2133323dffd22bce75d7fe34986abda73f7184ceca98e2521d24b4f670bc5"
+    },
+    {
+      "path": "docs/developer/canonical-runtime.md",
+      "sha256": "17f08694156894e3d3b0e632219d13084c1f624a552bd5a5d387389d9c684a5d"
+    }
+  ],
+  "prerequisite_implementation": [
+    {
+      "path": "crates/connect-service/src/peer_authority.rs",
+      "sha256": "2c1b4532918abcaf139c88f0370d661adb4ec1371f3a2348e6ed2a1a4914722d"
+    },
+    {
+      "path": "crates/connect-service/src/authentication.rs",
+      "sha256": "d021789e30bef84bb0e92fd523977ff37a16dcf88a39ba0de2514f4a8fb75700"
+    },
+    {
+      "path": ".deps/rvoip/crates/uctp/rvoip-uctp/src/v2/auth_peer.rs",
+      "sha256": "83617179abb0b9d7ada84125e4020b364e9422d1057e57cdbfb96da4b4307c24"
+    }
+  ],
+  "behavior": [
+    "CanonicalClient now has dedicated refresh_credential and cancellation-aware refresh_credential_with_cancel methods, while generic command paths continue to refuse auth.*. Callers supply their successor bearer and explicitly provision its current key/device/credential binding; no credential issuance, implicit enrollment or fallback is added.",
+    "The same physical signed peer verifies correlated auth.session, original Identity, connect/2, unchanged identified assurance, future expiry and a new bounded opaque token before installing state. Returned CanonicalAuthentication exposes no token/credential. Current usable expiry is bounded by the pinned server key; the prior incarnation bounds the entire refresh exchange.",
+    "Controlled signed peers exercise foreign owner/profile/assurance, expired/empty/unchanged tokens, wrong reply correlation, missing and streaming replies, explicit signed refusal, cancellation and invalid input. Bad or uncertain exchanges retire the physical peer without installing candidate state; explicit correlated refusal preserves the previous local state and sanitizes backend text.",
+    "The actual Connect listener/public SDK positive case runs both EdDSA and ES256. A seven-second predecessor is replaced with a separately issued/bound history-only successor. New conversation creation is refused, history still succeeds after actual predecessor expiry and keepalive works with the new opaque token. This proves real listener/Store authority, client expiry update and effective attenuation, not only upstream peer unit behavior.",
+    "The second actual listener case rejects a valid same-owner successor lacking an explicit signing-key binding and rejects a different owner. The original gate still creates a Conversation and acknowledges its old keepalive afterwards. No test-only protocol driver is installed in these runtime cases."
+  ],
+  "checks": [
+    {
+      "path": ".local/gate-6/aux-auth-prepare.log",
+      "sha256": "fd9d7b181e3ccba9b643af55a186cf132c60aac99c734b2ee4e4e549afe5ffc2"
+    },
+    {
+      "path": ".local/gate-6/aux-auth-format-check.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": ".local/gate-6/aux-auth-whitespace.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": ".local/gate-6/aux-auth-progress-check.log",
+      "sha256": "fedbc03549729d27ac031eee0766ae72281991ae1e9494232887c3160cf754cc"
+    }
+  ],
+  "build_logs": [
+    {
+      "path": ".local/gate-6/aux-auth-client-build-first.log",
+      "sha256": "2a07d4ca8181054ce551161fe635905f8f261dcc74853cf874fbca82771f41d3"
+    },
+    {
+      "path": ".local/gate-6/aux-auth-build-second.log",
+      "sha256": "724778690cd0f25ae09c6c263a3d42e0953a6d09718cf48f813ef000a49be344"
+    },
+    {
+      "path": ".local/gate-6/aux-auth-build-third.log",
+      "sha256": "3a990d3f766facf23d057c51710dcb5e3452497c727493b7c8d88190db17ebca"
+    },
+    {
+      "path": ".local/gate-6/aux-auth-build-fourth.log",
+      "sha256": "3970dc067687efb28441a83c19859f855aa7ee09863b3e6e1fa0c44f3521571b"
+    }
+  ],
+  "intermediate_runs": [
+    {
+      "log": {
+        "path": ".local/gate-6/aux-auth-build-second.log",
+        "sha256": "724778690cd0f25ae09c6c263a3d42e0953a6d09718cf48f813ef000a49be344"
+      },
+      "result": "Fixture used a nonexistent IssuedCredential.expiry field and compared canonical Identifier with a raw string. Corrected to the actual persisted CredentialMetadata.actor.expires_at and Identifier.as_str(), preserving the real predecessor-expiry and stable-message assertions."
+    },
+    {
+      "log": {
+        "path": ".local/gate-6/aux-auth-client-tests-first.log",
+        "sha256": "ba897c997875217e7495124f33a7517fa24b1492b4da6d022f331524e0c00ab8"
+      },
+      "result": "Intermediate51 client case pass; final current51 counted once."
+    },
+    {
+      "log": {
+        "path": ".local/gate-6/aux-auth-runtime-first.log",
+        "sha256": "926075a76ba4076555ddeea56f9f045f46c97f2b876e3ef5eb969baefd3e4b09"
+      },
+      "result": "Intermediate actual two-algorithm positive case pass. Final runtime suite includes both positive and refusal cases and is counted once."
+    }
+  ],
+  "remaining_work": [
+    "G6-046 remains in progress: implement persisted actual Connect vCon capture/outcome/fetch/readiness, truthful partial/unavailable state, current source/content audiences including consultations, redaction/retention and authorized link retrieval. Current Runtime::new still selects default process-local MemoryVconStore through Core Config and CanonicalHandler/StorePeerAuthority have no recording command branch. Do not expose that default memory store as durable completed integration.",
+    "Implement/prove required assurance/step-up, DTMF, quality and capability events/outcomes through Connect/current public SDK. Refresh deliberately preserves identified assurance and is not a step-up substitute. The client still treats identity.assurance-changed as terminal, so legitimate verified upgrades need their own composed handling.",
+    "Execute and audit all assigned auxiliary vectors through Connect, including the61 retained source clauses/shared prerequisite mappings in auxiliary-protocol-scope.json. Keep the full original work/verify scope, later designated external profiles and acceptance open."
+  ],
+  "plan_counts": {
+    "done": 45,
+    "in_progress": 1,
+    "not_started": 59,
+    "acceptance_done": 0
+  },
+  "native_credential_refresh_continuation": {
+    "evidence": "docs/evidence/gate-6/native-credential-refresh.json",
+    "recorded_at": "2026-10-22T14:05:11.719486+00:00",
+    "schema_version": 86,
+    "pinned_patches": 135,
+    "production_refresh_tests": 3,
+    "production_regression_tests": 11,
+    "meaning": "The previously failing existing-media refresh path now passes explicit Store epoch/Core revision checks, successor DTMF send/receive and independently decoded RTP after original expiry for both signing algorithms. Earlier results remain historical; full G6-046 and broader profiles remain open."
+  }
+}

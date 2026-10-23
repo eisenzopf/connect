@@ -1,0 +1,157 @@
+{
+  "task": "G6-024",
+  "passed": true,
+  "implementation_status": "complete",
+  "full_task_qualification": true,
+  "qualification": "M1 reusable local macOS arm64 engine primitives against the G6-024 work/verification checklist. Component execution counts remain separate; this audit does not combine historical totals or assert one combined current-source runtime graph.",
+  "executed_at": "2026-10-18T20:41:44.035130+00:00",
+  "components": {
+    "media-profiles": {
+      "path": "docs/evidence/gate-6/media-profiles.json",
+      "sha256": "0ac0e940c72f9813591f98a105c03bce201d682319a29a304beead3b75aa664c",
+      "scope": "Approved G6-024 local engine profile matrix: checked Rust/browser-module framing, exact peer-scoped stream IDs, decoded PCMU/PCMA/Opus and independently decoded VP8 camera/screen on real signed QUIC/WebTransport peers with unequal fixed physical MTUs, visible loss gaps and recovery, malformed/oversized/expired refusal, reliable text/JSON/binary on QUIC/WT/WSS, feedback/RTC repair, owned current DTMF IO and measured native quality. Controlled host-policy fixtures; no production application or remote/browser/hosting acceptance claim.",
+      "source_inputs": 3721,
+      "runtime_tests": 1123,
+      "runtime_unique_tests": 1123,
+      "required_cases": 75,
+      "steps": 37
+    },
+    "websocket-media": {
+      "path": "docs/evidence/gate-6/websocket-media.json",
+      "sha256": "8709a1e646de0e7bf9d75e9fc758ed7fd34551604a5575ec037c8e468a8f1d5a",
+      "scope": "Local optional WebSocket co-located WebRTC primitive: automatically attached delayed bidirectional mono Opus with actual decode, Core-bridged decoded audio without manual priming, owned idle shutdown, SDP-envelope/trickle/WSS/library regressions. Reuses existing isolated backend signaling fixtures.",
+      "source_inputs": 3724,
+      "runtime_tests": 58,
+      "runtime_unique_tests": 58,
+      "required_cases": 10,
+      "steps": 14
+    }
+  },
+  "checklist": [
+    {
+      "obligation": "Checked cross-runtime complete RTP framing",
+      "component": "media-profiles",
+      "named_cases": [
+        "cross_runtime_media_vectors_match_checked_rust_and_browser_boundaries"
+      ],
+      "passed": true
+    },
+    {
+      "obligation": "Physical-peer stream identity and exact route indexes",
+      "component": "media-profiles",
+      "named_cases": [
+        "peer_ids_are_nonzero_monotonic_and_never_reused",
+        "route_session_and_connection_indexes_remove_exact_bindings"
+      ],
+      "passed": true
+    },
+    {
+      "obligation": "Negotiated decoded PCMU, PCMA and mono Opus",
+      "component": "media-profiles",
+      "named_cases": [
+        "peer_native::canonical_media::native_offers::media_profiles::actual_signed_native_three_audio_codecs_decode_across_unequal_mtu_peers_and_sequence_wrap"
+      ],
+      "passed": true
+    },
+    {
+      "obligation": "Decoded camera/screen VP8, actual physical MTU fragmentation, sequence wrap, loss and recovery",
+      "component": "media-profiles",
+      "named_cases": [
+        "peer_native::canonical_media::native_offers::media_profiles::actual_signed_native_camera_and_screen_refragment_to_physical_mtu_and_independently_decode_vp8"
+      ],
+      "passed": true
+    },
+    {
+      "obligation": "Malformed, late and oversized refusal plus live recovery",
+      "component": "media-profiles",
+      "named_cases": [
+        "peer_native::canonical_media::native_offers::media_profiles::actual_signed_native_malformed_oversized_and_expired_packets_are_isolated_and_live_audio_recovers"
+      ],
+      "passed": true
+    },
+    {
+      "obligation": "Reliable ordered text/JSON/binary on QUIC, WebTransport and WSS",
+      "component": "media-profiles",
+      "named_cases": [
+        "peer_native::canonical_media::reliable_data::actual_signed_reliable_text_json_and_binary_profiles_validate_decode_and_recover_on_all_native_wires"
+      ],
+      "passed": true
+    },
+    {
+      "obligation": "Explicit codec negotiation, atomic change and transcoding",
+      "component": "media-profiles",
+      "named_cases": [
+        "bridge::frame_pump::tests::g711_transcoding_relabels_primary_payload_and_preserves_decodable_marker",
+        "media_graph::tests::configured_transcoder_honors_canonical_opus_mono",
+        "peer_native::canonical_media::native_offers::actual_native_codec_update_wrong_confirmation_preserves_audio_and_retry_burns_provisional_handle"
+      ],
+      "passed": true
+    },
+    {
+      "obligation": "Payload-owned feedback and primary repair",
+      "component": "media-profiles",
+      "named_cases": [
+        "nack::responder::tests::negotiated_audio_nack_does_not_replay_telephone_event_or_unknown_payloads_on_its_ssrc",
+        "peer_connection::handler::endpoint::rtx_feedback_tests::declared_rtx_first_packet_reaches_primary_track_without_feedback_reset"
+      ],
+      "passed": true
+    },
+    {
+      "obligation": "Live source/recipient DTMF attribution, original operation, method, timing and current permission",
+      "component": "media-profiles",
+      "named_cases": [
+        "actual_srtp_received_source_routes_through_core_with_exact_timing_and_fresh_signal_authority",
+        "peer_native::canonical_media::native_offers::dtmf_route::actual_received_sip_info_and_rtp_reach_signed_native_with_original_source_method_and_timing",
+        "peer_native::canonical_media::native_offers::dtmf_route::native_core_recipient_stream_retirement_after_grant_prevents_actual_sink_poll"
+      ],
+      "passed": true
+    },
+    {
+      "obligation": "Measured quality intervals, physical-peer accounting and no fabricated metrics",
+      "component": "media-profiles",
+      "named_cases": [
+        "peer_native::canonical_media::native_offers::quality::actual_native_default_quality_measures_accepted_rtp_without_fabricated_metrics",
+        "peer_native::canonical_media::native_offers::quality::actual_native_quality_measures_each_physical_recipient_datagram_and_not_its_peer",
+        "peer_native::canonical_media::native_offers::quality::actual_native_tuned_quality_counts_only_current_accepted_stream_interval_and_idle_zeroes"
+      ],
+      "passed": true
+    },
+    {
+      "obligation": "Co-located fallback DTLS-SRTP mono audio with automatic delayed attachment and ten-frame queues",
+      "component": "websocket-media",
+      "named_cases": [
+        "delayed_bidirectional_opus_is_automatically_attached_and_decodes_after_connection_wait",
+        "ws_to_ws_bridge_flows_frames_end_to_end"
+      ],
+      "passed": true
+    },
+    {
+      "obligation": "Owned fallback teardown, SDP-envelope, trickle ICE and WSS boundaries",
+      "component": "websocket-media",
+      "named_cases": [
+        "closing_idle_bridge_joins_track_attacher_and_cannot_recreate_media",
+        "envelope_only_sdp_exchange_completes_dtls_handshake",
+        "loopback_auth_handshake_over_wss",
+        "trickle_ice_candidate_api_round_trips_between_bridges"
+      ],
+      "passed": true
+    }
+  ],
+  "source_lock_sha256": "e8620215b25ad0c95c1e7e9333936bc0e5564890a09724f12ca2be0b014020d6",
+  "patches": 97,
+  "source_audit": {
+    "unchanged_prior_production_files": 1842,
+    "changed_production_files": [
+      ".deps/rvoip/crates/uctp/rvoip-websocket/src/media_bridge.rs",
+      ".deps/rvoip/crates/webrtc/rvoip-webrtc/src/media/mod.rs",
+      ".deps/rvoip/crates/webrtc/rvoip-webrtc/src/media/stream.rs"
+    ],
+    "change_scope": "Optional fallback bridge ownership/bounds plus a public bounded-stream constructor delegating existing internals; patch96 adds fixture profiles. Prior Core/SIP/DTMF/transport algorithms are unchanged."
+  },
+  "audit_script_sha256": "f00d1cde5417a488204c6328a2aee0393facf1de60342d17bcebc085284a4081",
+  "not_qualified": [
+    "G6-028 combined current-source upstream qualification and clean consumer preparation.",
+    "Production canonical Store/journal/service/HTTP/SDK installation and public session orchestration in G6-037/G6-038 and dependent tasks.",
+    "Live browser AV/fallback and extended operating/impairment/performance workloads, Linux x86_64 and named remote/provider G6-093 rehearsals, independent conformance, Gate 6 acceptance and publication."
+  ]
+}

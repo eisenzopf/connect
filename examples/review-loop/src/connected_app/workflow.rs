@@ -117,7 +117,7 @@ pub(super) fn send(
         operation: Box::new(Operation::Send {
             request_id,
             conversation_id: cid.into(),
-            body,
+            message: connect_client::MessageDraft::text_all(body),
         }),
         reply_to: reply,
         wait_for_reply: wait,

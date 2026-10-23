@@ -1,0 +1,218 @@
+--- a/crates/uctp/rvoip-uctp/src/v2/envelope.schema.json
++++ b/crates/uctp/rvoip-uctp/src/v2/envelope.schema.json
+@@ -74,7 +74,8 @@
+         "operation.cancel",
+         "operation.reconcile",
+         "operation.updated",
+-        "session.observation"
++        "session.observation",
++        "session.consult.return"
+       ]
+     },
+     "id": {
+@@ -2387,6 +2388,22 @@
+       ],
+       "additionalProperties": true
+     },
++    "SessionConsultReturn": {
++      "type": "object",
++      "properties": {
++        "consultation_record_id": {
++          "$ref": "#/$defs/Identifier"
++        },
++        "retained_connid": {
++          "$ref": "#/$defs/Identifier"
++        }
++      },
++      "required": [
++        "consultation_record_id",
++        "retained_connid"
++      ],
++      "additionalProperties": true
++    },
+     "SessionHandoff": {
+       "type": "object",
+       "properties": {
+@@ -4291,6 +4308,40 @@
+           "sid"
+         ]
+       }
++    },
++    {
++      "if": {
++        "properties": {
++          "type": {
++            "const": "session.consult.return"
++          }
++        }
++      },
++      "then": {
++        "properties": {
++          "payload": {
++            "$ref": "#/$defs/SessionConsultReturn"
++          }
++        },
++        "required": [
++          "cid",
++          "sid",
++          "connid"
++        ],
++        "anyOf": [
++          {
++            "required": [
++              "operation_id",
++              "expected_revision"
++            ]
++          },
++          {
++            "required": [
++              "in_reply_to"
++            ]
++          }
++        ]
++      }
+     }
+   ]
+ }
+--- a/crates/uctp/rvoip-uctp/src/v2/golden-vectors.json
++++ b/crates/uctp/rvoip-uctp/src/v2/golden-vectors.json
+@@ -3169,6 +3169,84 @@
+           "correlation_id": "example",
+           "data": {}
+         }
++      }
++    },
++    {
++      "id": "schema-session.consult.return",
++      "scope": "schema-only",
++      "valid": true,
++      "envelope": {
++        "v": 2,
++        "type": "session.consult.return",
++        "id": "env_vector_65",
++        "ts": "2026-10-15T12:00:00Z",
++        "cid": "conv_example",
++        "sid": "sess_example",
++        "connid": "conn_example",
++        "payload": {
++          "consultation_record_id": "example",
++          "retained_connid": "example"
++        },
++        "operation_id": "op_vector_65",
++        "expected_revision": 1
++      }
++    },
++    {
++      "id": "schema-unsupported-version-session.consult.return",
++      "scope": "schema-only",
++      "valid": false,
++      "envelope": {
++        "v": 1,
++        "type": "session.consult.return",
++        "id": "env_vector_65",
++        "ts": "2026-10-15T12:00:00Z",
++        "cid": "conv_example",
++        "sid": "sess_example",
++        "connid": "conn_example",
++        "payload": {
++          "consultation_record_id": "example",
++          "retained_connid": "example"
++        },
++        "operation_id": "op_vector_65",
++        "expected_revision": 1
++      }
++    },
++    {
++      "id": "schema-missing-operation-session.consult.return",
++      "scope": "schema-only",
++      "valid": false,
++      "envelope": {
++        "v": 2,
++        "type": "session.consult.return",
++        "id": "env_vector_65",
++        "ts": "2026-10-15T12:00:00Z",
++        "cid": "conv_example",
++        "sid": "sess_example",
++        "connid": "conn_example",
++        "payload": {
++          "consultation_record_id": "example",
++          "retained_connid": "example"
++        },
++        "expected_revision": 1
++      }
++    },
++    {
++      "id": "schema-missing-revision-session.consult.return",
++      "scope": "schema-only",
++      "valid": false,
++      "envelope": {
++        "v": 2,
++        "type": "session.consult.return",
++        "id": "env_vector_65",
++        "ts": "2026-10-15T12:00:00Z",
++        "cid": "conv_example",
++        "sid": "sess_example",
++        "connid": "conn_example",
++        "payload": {
++          "consultation_record_id": "example",
++          "retained_connid": "example"
++        },
++        "operation_id": "op_vector_65"
+       }
+     },
+     {
+--- a/crates/uctp/rvoip-uctp/src/v2/payloads.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/payloads.rs
+@@ -1047,6 +1047,17 @@
+ impl std::fmt::Debug for SessionConsult {
+     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+         f.write_str("SessionConsult(redacted)")
++    }
++}
++
++#[derive(Clone, Serialize, Deserialize)]
++pub struct SessionConsultReturn {
++    pub consultation_record_id: Identifier,
++    pub retained_connid: Identifier,
++}
++impl std::fmt::Debug for SessionConsultReturn {
++    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
++        f.write_str("SessionConsultReturn(redacted)")
+     }
+ }
+ 
+@@ -1581,6 +1592,8 @@
+     ConversationEvent(ConversationEvent),
+     #[serde(rename = "session.consult")]
+     SessionConsult(SessionConsult),
++    #[serde(rename = "session.consult.return")]
++    SessionConsultReturn(SessionConsultReturn),
+     #[serde(rename = "session.handoff")]
+     SessionHandoff(SessionHandoff),
+     #[serde(rename = "connection.replace")]
+@@ -1658,6 +1671,7 @@
+             Self::ConversationSnapshot(_) => "conversation.snapshot",
+             Self::ConversationEvent(_) => "conversation.event",
+             Self::SessionConsult(_) => "session.consult",
++            Self::SessionConsultReturn(_) => "session.consult.return",
+             Self::SessionHandoff(_) => "session.handoff",
+             Self::ConnectionReplace(_) => "connection.replace",
+             Self::OperationGet(_) => "operation.get",
+@@ -1729,6 +1743,7 @@
+     ("conversation.snapshot", false, false),
+     ("conversation.event", false, false),
+     ("session.consult", true, true),
++    ("session.consult.return", true, true),
+     ("session.handoff", true, true),
+     ("connection.replace", true, true),
+     ("operation.get", false, false),
+--- a/crates/uctp/rvoip-uctp/src/v2/scope_policy.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/scope_policy.rs
+@@ -34,6 +34,7 @@
+         | SessionParticipantJoined(_)
+         | SessionParticipantLeft(_)
+         | SessionConsult(_)
++        | SessionConsultReturn(_)
+         | SessionHandoff(_)
+         | SessionObservation(_)
+         | ConnectionOffer(_)

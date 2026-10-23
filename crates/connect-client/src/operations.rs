@@ -4,6 +4,7 @@ use tokio_util::sync::CancellationToken;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct SendReceipt {
+    pub receipt: connect_protocol::transitions::MutationReceipt,
     pub request_id: String,
     pub message_id: String,
     pub conversation_id: String,
@@ -36,6 +37,7 @@ pub struct ServerHealth {
 /// Metadata declared before a resumable artifact upload accepts bytes.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ArtifactUpload {
+    pub to: connect_protocol::messages::MessageAudience,
     pub name: String,
     pub media_type: String,
     pub size: u64,
@@ -51,6 +53,7 @@ impl ArtifactUpload {
         sha256: impl Into<String>,
     ) -> Self {
         Self {
+            to: connect_protocol::messages::MessageAudience::all(),
             name: name.into(),
             media_type: media_type.into(),
             size,
@@ -59,6 +62,11 @@ impl ArtifactUpload {
         }
     }
 
+    /// Freeze the artifact audience at upload acceptance, including the owner.
+    pub fn with_audience(mut self, to: connect_protocol::messages::MessageAudience) -> Self {
+        self.to = to;
+        self
+    }
     /// Set an absolute Unix timestamp after which bytes are unavailable.
     pub fn with_expiry(mut self, expires_at: i64) -> Self {
         self.expires_at = Some(expires_at);
@@ -286,11 +294,90 @@ impl ConnectClient {
         self.artifact_operation(Operation::ArtifactBegin {
             request_id: request_id.into(),
             conversation_id: conversation_id.into(),
+            to: upload.to,
             name: upload.name,
             media_type: upload.media_type,
             size: upload.size,
             sha256: upload.sha256,
             expires_at: upload.expires_at,
+        })
+        .await
+    }
+    pub async fn artifact_inspect(&mut self, cid: &str, id: &str) -> Result<crate::Artifact> {
+        self.artifact_operation(Operation::ArtifactInspect {
+            conversation_id: cid.into(),
+            artifact_id: id.into(),
+        })
+        .await
+    }
+    pub async fn artifact_upload_link(
+        &mut self,
+        cid: &str,
+        id: &str,
+        expires_in: u32,
+    ) -> Result<crate::ArtifactLink> {
+        self.link_operation(Operation::ArtifactUploadLink {
+            conversation_id: cid.into(),
+            artifact_id: id.into(),
+            expires_in,
+        })
+        .await
+    }
+    pub async fn artifact_download_link(
+        &mut self,
+        cid: &str,
+        id: &str,
+        message_id: &str,
+        expires_in: u32,
+    ) -> Result<crate::ArtifactLink> {
+        self.link_operation(Operation::ArtifactDownloadLink {
+            conversation_id: cid.into(),
+            artifact_id: id.into(),
+            message_id: message_id.into(),
+            expires_in,
+        })
+        .await
+    }
+    async fn link_operation(&mut self, operation: Operation) -> Result<crate::ArtifactLink> {
+        match self.request(operation).await? {
+            Outcome::ArtifactLink(value) => Ok(value),
+            _ => Err(ClientError::Protocol),
+        }
+    }
+    pub async fn artifact_link_get(
+        &mut self,
+        link: &crate::ArtifactLink,
+        offset: u64,
+        limit: u32,
+    ) -> Result<crate::ArtifactChunk> {
+        match self
+            .request(Operation::ArtifactLinkGet {
+                conversation_id: link.conversation_id.clone(),
+                artifact_id: link.artifact_id.clone(),
+                link: link.path.clone(),
+                offset,
+                limit,
+            })
+            .await?
+        {
+            Outcome::ArtifactChunk(value) => Ok(value),
+            _ => Err(ClientError::Protocol),
+        }
+    }
+    pub async fn artifact_link_append(
+        &mut self,
+        request_id: &str,
+        link: &crate::ArtifactLink,
+        offset: u64,
+        data: &str,
+    ) -> Result<crate::Artifact> {
+        self.artifact_operation(Operation::ArtifactLinkAppend {
+            request_id: request_id.into(),
+            conversation_id: link.conversation_id.clone(),
+            artifact_id: link.artifact_id.clone(),
+            link: link.path.clone(),
+            offset,
+            data: data.into(),
         })
         .await
     }
@@ -419,14 +506,124 @@ impl ConnectClient {
         request_id: &str,
         participants: Vec<String>,
     ) -> Result<Conversation> {
+        self.create_conversation(
+            request_id,
+            connect_protocol::conversations::CreateRequest::persistent(participants),
+        )
+        .await
+    }
+    /// Create with explicit conversation policy, metadata and membership roles.
+    pub async fn create_conversation(
+        &mut self,
+        request_id: &str,
+        mut request: connect_protocol::conversations::CreateRequest,
+    ) -> Result<Conversation> {
+        request.normalize().map_err(|_| ClientError::Protocol)?;
         match self
             .request(Operation::Create {
                 request_id: request_id.into(),
-                participants,
+                request,
             })
             .await?
         {
-            Outcome::Conversation(c) => Ok(c),
+            Outcome::Conversation(c)
+                if c.receipt
+                    == Some(connect_protocol::transitions::MutationReceipt::committed(
+                        request_id.into(),
+                        c.id.clone(),
+                    )) =>
+            {
+                Ok(c)
+            }
+            _ => Err(ClientError::Protocol),
+        }
+    }
+    pub async fn list_conversations(
+        &mut self,
+        query: connect_protocol::conversations::ListQuery,
+    ) -> Result<connect_protocol::conversations::ListPage> {
+        match self.request(Operation::Conversations { query }).await? {
+            Outcome::Conversations(page) => Ok(page),
+            _ => Err(ClientError::Protocol),
+        }
+    }
+    pub async fn close_conversation_with_options(
+        &mut self,
+        request_id: &str,
+        conversation_id: &str,
+        options: connect_protocol::conversations::CloseOptions,
+    ) -> Result<Conversation> {
+        match self
+            .request(Operation::Close {
+                request_id: request_id.into(),
+                conversation_id: conversation_id.into(),
+                options,
+            })
+            .await?
+        {
+            Outcome::Conversation(c)
+                if c.id == conversation_id
+                    && c.receipt
+                        == Some(connect_protocol::transitions::MutationReceipt::committed(
+                            request_id.into(),
+                            c.id.clone(),
+                        )) =>
+            {
+                Ok(c)
+            }
+            _ => Err(ClientError::Protocol),
+        }
+    }
+    pub async fn change_membership(
+        &mut self,
+        request: connect_protocol::membership::MembershipRequest,
+    ) -> Result<connect_protocol::membership::MembershipOutcome> {
+        let reference = connect_protocol::transitions::MutationReceipt::committed(
+            request.operation_id.clone(),
+            request.conversation_id.clone(),
+        );
+        match self.request(Operation::Membership { request }).await? {
+            Outcome::Membership(value)
+                if value.receipt() == Some(&reference)
+                    && value.conversation_id() == reference.conversation_id =>
+            {
+                Ok(value)
+            }
+            _ => Err(ClientError::Protocol),
+        }
+    }
+    pub async fn membership_snapshot(
+        &mut self,
+        conversation_id: &str,
+    ) -> Result<connect_protocol::membership::MembershipSnapshot> {
+        match self
+            .request(Operation::MembershipSnapshot {
+                conversation_id: conversation_id.into(),
+            })
+            .await?
+        {
+            Outcome::MembershipSnapshot(value)
+                if value.conversation_id == conversation_id
+                    && value
+                        .participants
+                        .iter()
+                        .all(|p| p.conversation_id == conversation_id) =>
+            {
+                Ok(value)
+            }
+            _ => Err(ClientError::Protocol),
+        }
+    }
+    pub async fn membership_invitations(
+        &mut self,
+        after: Option<String>,
+        limit: u32,
+    ) -> Result<connect_protocol::membership::InvitationPage> {
+        match self
+            .request(Operation::MembershipInvitations { after, limit })
+            .await?
+        {
+            Outcome::MembershipInvitations(value) => Ok(value),
             _ => Err(ClientError::Protocol),
         }
     }
@@ -437,23 +634,44 @@ impl ConnectClient {
         conversation_id: &str,
         body: &str,
     ) -> Result<SendReceipt> {
+        self.send_message(
+            request_id,
+            conversation_id,
+            connect_protocol::messages::MessageDraft::text_all(body),
+        )
+        .await
+    }
+    /// Send an explicit audience and typed body. The caller retains the logical request ID.
+    pub async fn send_message(
+        &mut self,
+        request_id: &str,
+        conversation_id: &str,
+        message: connect_protocol::messages::MessageDraft,
+    ) -> Result<SendReceipt> {
         match self
             .request(Operation::Send {
                 request_id: request_id.into(),
                 conversation_id: conversation_id.into(),
-                body: body.into(),
+                message,
             })
             .await?
         {
             Outcome::Accepted {
-                request_id,
+                receipt: Some(receipt),
+                request_id: accepted_id,
                 message_id,
-                conversation_id,
-            } => Ok(SendReceipt {
-                request_id,
-                message_id,
-                conversation_id,
-            }),
+                conversation_id: accepted_cid,
+            } if accepted_id == request_id
+                && accepted_cid == conversation_id
+                && receipt.matches(request_id, conversation_id) =>
+            {
+                Ok(SendReceipt {
+                    receipt,
+                    request_id: accepted_id,
+                    message_id,
+                    conversation_id: accepted_cid,
+                })
+            }
             _ => Err(ClientError::Protocol),
         }
     }
@@ -518,16 +736,8 @@ impl ConnectClient {
         request_id: &str,
         conversation_id: &str,
     ) -> Result<Conversation> {
-        match self
-            .request(Operation::Close {
-                request_id: request_id.into(),
-                conversation_id: conversation_id.into(),
-            })
-            .await?
-        {
-            Outcome::Conversation(c) => Ok(c),
-            _ => Err(ClientError::Protocol),
-        }
+        self.close_conversation_with_options(request_id, conversation_id, Default::default())
+            .await
     }
     /// Most recent bounded page of provider deliveries for this conversation.
     pub async fn provider_status(

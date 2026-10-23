@@ -1,0 +1,1398 @@
+diff --git a/crates/uctp/rvoip-uctp/src/v2/auth_peer.rs b/crates/uctp/rvoip-uctp/src/v2/auth_peer.rs
+index 9497874..b8f357f 100644
+--- a/crates/uctp/rvoip-uctp/src/v2/auth_peer.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/auth_peer.rs
+@@ -31,7 +31,10 @@ use tokio_util::{
+ };
+ 
+ pub(super) mod exchange;
++mod retirement;
+ mod step_up;
++use retirement::RetirementRecord;
++pub use retirement::{AuthorityLifetime, RetirementReason};
+ pub use step_up::AssuranceRequirement;
+ use step_up::PendingStepUp;
+ 
+@@ -43,6 +46,16 @@ pub const PREAUTH_REPLAY_CAPACITY: usize = 8;
+ /// resource grants. Identity resolution is not a payload-selected actor.
+ #[async_trait]
+ pub trait PeerAuthority: Send + Sync {
++    /// Register current credential/key/delegation/Identity/Device retirement
++    /// signals under this exact owned lease. No lock reacquisition or await.
++    fn authority_lifetime(
++        &self,
++        credential: &ValidatedBearer,
++        device: &Device,
++        identity: &Identifier,
++        held: &AuthorityLease,
++    ) -> Result<AuthorityLifetime, DispatchError>;
++
+     async fn identity(
+         &self,
+         credential: &ValidatedBearer,
+@@ -203,6 +216,7 @@ struct Binding {
+     generation: u64,
+     step_up: Option<PendingStepUp>,
+     route: Option<Registration>,
++    authority_lifetime: AuthorityLifetime,
+ }
+ enum State {
+     Hello,
+@@ -243,6 +257,7 @@ pub struct CanonicalPeer {
+     routes: Option<PeerRoutes>,
+     outbound: Option<tokio::sync::mpsc::Receiver<Outbound>>,
+     exchanges: Option<exchange::ExchangeSender>,
++    retirement: Option<RetirementRecord>,
+ }
+ impl CanonicalPeer {
+     pub fn new(config: Arc<PeerConfig>, parent: CancellationToken) -> Result<Self, DispatchError> {
+@@ -271,6 +286,7 @@ impl CanonicalPeer {
+             routes: None,
+             outbound: None,
+             exchanges: None,
++            retirement: None,
+         })
+     }
+     /// Install an actual actor-backed route and required current delivery policy.
+@@ -309,7 +325,8 @@ impl CanonicalPeer {
+             State::Authenticated(binding)
+                 if !binding.credential.principal.is_expired()
+                     && binding.expires > Instant::now()
+-                    && !self.lifetime.is_cancelled() =>
++                    && !self.lifetime.is_cancelled()
++                    && self.current_retirement().is_none() =>
+             {
+                 Some(&binding.identity)
+             }
+@@ -328,7 +345,9 @@ impl CanonicalPeer {
+         deadline: Instant,
+     ) -> Result<ReplyTicket, DispatchError> {
+         match &self.state {
+-            State::Authenticated(b) => b.dispatch.register_reply(request, deadline),
++            State::Authenticated(b) if self.current_retirement().is_none() => {
++                b.dispatch.register_reply(request, deadline)
++            }
+             _ => Err(DispatchError::Authentication),
+         }
+     }
+@@ -352,6 +371,9 @@ impl CanonicalPeer {
+         handler: &dyn AuthenticatedHandler,
+         requested: Instant,
+     ) -> Result<PeerOutput, DispatchError> {
++        if let Some(error) = self.poll_retirement() {
++            return Err(error);
++        }
+         if self.lifetime.is_cancelled() || matches!(self.state, State::Closed) {
+             return Err(DispatchError::Closed);
+         }
+@@ -365,12 +387,22 @@ impl CanonicalPeer {
+             return Err(DispatchError::Closed);
+         }
+         let lifetime = self.lifetime.clone();
++        let authority_lifetime = match &self.state {
++            State::Authenticated(binding) => Some(binding.authority_lifetime.clone()),
++            _ => None,
++        };
++        let route_authority = self.route_authority();
+         let result = tokio::select! {
+             biased;
++            _ = async { match &authority_lifetime { Some(lifetime) => { lifetime.retired().await; }, None => std::future::pending().await } } => Err(DispatchError::Authority),
++            _ = async { match &route_authority { Some(token) => token.cancelled().await, None => std::future::pending().await } } => Err(DispatchError::Authority),
+             _ = lifetime.cancelled() => Err(DispatchError::Closed),
+             _ = tokio::time::sleep_until(deadline) => Err(DispatchError::Closed),
+             result = self.handle_inner(bytes, handler, deadline) => result,
+         };
++        if let Some(error) = self.poll_retirement() {
++            return Err(error);
++        }
+         if result.is_err() {
+             self.failures = self.failures.saturating_add(1);
+             if self.lifetime.is_cancelled()
+@@ -462,7 +494,7 @@ impl CanonicalPeer {
+                     .authority
+                     .acquire(&credential, &device, &identity, &envelope)
+                     .await?;
+-                let binding = self.binding(credential, device, identity, 1)?;
++                let binding = self.binding(credential, device, identity, 1, &lease)?;
+                 let session = self.session(&binding, &envelope)?;
+                 self.commit_binding(binding)?;
+                 Ok(output(vec![session], Some(lease)))
+@@ -536,6 +568,7 @@ impl CanonicalPeer {
+                             .generation
+                             .checked_add(1)
+                             .ok_or(DispatchError::Capacity)?,
++                        &lease,
+                     )?;
+                     let session = self.session(&next, &envelope)?;
+                     let mut replies = vec![session];
+@@ -631,8 +664,16 @@ impl CanonicalPeer {
+         device: Device,
+         identity: Identifier,
+         generation: u64,
++        held: &AuthorityLease,
+     ) -> Result<Binding, DispatchError> {
+         let expiry = credential_expiry(&credential.principal)?;
++        let authority_lifetime =
++            self.config
++                .authority
++                .authority_lifetime(&credential, &device, &identity, held)?;
++        if authority_lifetime.reason().is_some() {
++            return Err(DispatchError::Authority);
++        }
+         let identity_id = rvoip_core::IdentityId::from_string(identity.as_str());
+         let device_id = rvoip_core::DeviceId::from_string(device.id.as_str());
+         let (peer, peer_owner) = match &self.peer_owner {
+@@ -695,9 +736,16 @@ impl CanonicalPeer {
+             generation,
+             step_up: None,
+             route,
++            authority_lifetime,
+         })
+     }
+     fn commit_binding(&mut self, mut binding: Binding) -> Result<(), DispatchError> {
++        if binding.authority_lifetime.reason().is_some() {
++            return Err(DispatchError::Authority);
++        }
++        if binding.expires <= Instant::now() {
++            return Err(DispatchError::Closed);
++        }
+         if let Some(route) = &binding.route {
+             route.publish()?;
+         }
+diff --git a/crates/uctp/rvoip-uctp/src/v2/auth_peer/exchange.rs b/crates/uctp/rvoip-uctp/src/v2/auth_peer/exchange.rs
+index 1b9cfad..e3d1a6b 100644
+--- a/crates/uctp/rvoip-uctp/src/v2/auth_peer/exchange.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/auth_peer/exchange.rs
+@@ -250,7 +250,7 @@ async fn writes<W: Sink<Bytes, Error = DispatchError> + Send + Unpin>(
+     }
+     Ok(())
+ }
+-fn signed(config: &PeerConfig, mut value: Value) -> Result<Envelope, DispatchError> {
++pub(super) fn signed(config: &PeerConfig, mut value: Value) -> Result<Envelope, DispatchError> {
+     value
+         .as_object_mut()
+         .ok_or(DispatchError::Closed)?
+@@ -315,13 +315,49 @@ struct Snapshot {
+     deadline: Instant,
+     authority: Option<CancellationToken>,
+     authenticated: bool,
++    authority_lifetime: Option<AuthorityLifetime>,
++    previous_assurance: Option<String>,
++    utc_expiry: Option<chrono::DateTime<chrono::Utc>>,
++    expiry_reason: RetirementReason,
+     pending: Instant,
+ }
++impl Snapshot {
++    fn record(&self, reason: RetirementReason) -> Option<RetirementRecord> {
++        self.previous_assurance
++            .as_ref()
++            .map(|previous| RetirementRecord {
++                previous: previous.clone(),
++                reason,
++            })
++    }
++}
+ fn snapshot(peer: &CanonicalPeer) -> Snapshot {
+     Snapshot {
+         deadline: peer.effective_deadline(),
+         authority: peer.route_authority(),
+         authenticated: matches!(peer.state, State::Authenticated(_)),
++        authority_lifetime: match &peer.state {
++            State::Authenticated(binding) => Some(binding.authority_lifetime.clone()),
++            _ => None,
++        },
++        previous_assurance: match &peer.state {
++            State::Authenticated(binding) => {
++                Some(binding.credential.principal.assurance.kind().into())
++            }
++            _ => None,
++        },
++        utc_expiry: match &peer.state {
++            State::Authenticated(binding) => {
++                retirement::effective_expiry_for_snapshot(&binding.credential.principal)
++            }
++            _ => None,
++        },
++        expiry_reason: match &peer.state {
++            State::Authenticated(binding) => {
++                retirement::expiry_reason(&binding.credential.principal)
++            }
++            _ => RetirementReason::CredentialExpired,
++        },
+         pending: peer
+             .pending_step_up_deadline()
+             .unwrap_or(peer.effective_deadline()),
+@@ -383,7 +419,7 @@ where
+     let mut verifying = FuturesUnordered::<Verification<'_>>::new();
+     let mut queued = VecDeque::<Bytes>::new();
+     let mut view = snapshot(state.as_ref().expect("owned peer"));
+-    let mut bye = None;
++    let mut retired: Option<RetirementRecord> = None;
+     let terminal = Arc::new(parking_lot::Mutex::new(None));
+     let mut writer_done = false;
+     let mut outbound_completions = FuturesUnordered::<BoxFuture<'_, ()>>::new();
+@@ -446,12 +482,15 @@ where
+             .min()
+             .unwrap_or(view.deadline);
+         tokio::select! {biased;
+-              _=async{match &view.authority{Some(token)=>token.cancelled().await,None=>std::future::pending().await}}=>{bye=Some("authority-retired");*terminal.lock()=Some(DispatchError::Authority);break Err(DispatchError::Authority);}
+-              _=physical.cancelled()=>break Err(DispatchError::Closed),
+-              _=tokio::time::sleep_until(view.deadline)=>{if view.authenticated{bye=Some("session-expired");}break Err(DispatchError::Closed);}
++              reason=async{match &view.authority_lifetime{Some(lifetime)=>lifetime.retired().await,None=>std::future::pending().await}}=>{retired=view.record(reason);*terminal.lock()=Some(reason.error());break Err(reason.error());}
++              _=async{match &view.authority{Some(token)=>token.cancelled().await,None=>std::future::pending().await}}=>{retired=view.record(RetirementReason::AuthorityRetired);*terminal.lock()=Some(DispatchError::Authority);break Err(DispatchError::Authority);}
++              _=physical.cancelled()=>{if view.utc_expiry.is_some_and(|expiry|expiry<=chrono::Utc::now()){retired=view.record(view.expiry_reason);}break Err(DispatchError::Closed);},
++              _=tokio::time::sleep_until(view.deadline)=>{if view.authenticated{retired=view.record(view.expiry_reason);}break Err(DispatchError::Closed);}
+               result=&mut writing=>{writer_done=true;break result;},
+               completed=async{match &mut active{Some(work)=>work.await,None=>std::future::pending().await}}=>{
+-               active=None;let(owner,result,slot,deadline,correlation,outbound_request)=completed;view=snapshot(&owner);let closed=matches!(owner.state,State::Closed);state=Some(owner);
++               active=None;let(mut owner,result,slot,deadline,correlation,outbound_request)=completed;
++               if let Some(record)=owner.retirement.take(){let error=record.reason.error();retired=Some(record);*terminal.lock()=Some(error);break Err(error);}
++               view=snapshot(&owner);let closed=matches!(owner.state,State::Closed);state=Some(owner);
+           if let Some(request)=outbound_request {
+            match result {
+             Ok(output)=>{if request.reply.is_closed(){continue;}let mut send=job(output,deadline,&physical,view.authority.clone(),Some(slot));send.started=Some(request.started);let(reply,ready)=oneshot::channel();send.completion=Some(reply);write_tx.try_send(send).map_err(|_|DispatchError::Capacity)?;outbound_completions.push(async move{let result=ready.await.unwrap_or(Err(DispatchError::SubmissionUnknown)).map(Outbound::submitted);let _=request.reply.send(result);}.boxed());}
+@@ -504,10 +543,9 @@ where
+     pending.clear();
+     drop(verifying);
+     stop_writes.cancel();
+-    if let Some(reason) = bye {
+-        let value = json!({"v":2,"type":"auth.bye","id":fresh_id(),"ts":chrono::Utc::now(),"payload":{"reason":reason}});
++    if let Some(record) = retired {
+         let mut send = job(
+-            output(vec![signed(&config, value)?], None),
++            retirement::terminal_output(&config, record)?,
+             Instant::now() + Duration::from_secs(1),
+             &physical,
+             None,
+diff --git a/crates/uctp/rvoip-uctp/src/v2/auth_peer/retirement.rs b/crates/uctp/rvoip-uctp/src/v2/auth_peer/retirement.rs
+new file mode 100644
+index 0000000..881b9a0
+--- /dev/null
++++ b/crates/uctp/rvoip-uctp/src/v2/auth_peer/retirement.rs
+@@ -0,0 +1,190 @@
++//! Current credential-incarnation retirement. These policy signals carry no
++//! resource grants and cannot establish a replacement or lower assurance.
++use super::*;
++use futures::{stream::FuturesUnordered, FutureExt};
++
++#[derive(Clone, Copy, Debug, PartialEq, Eq)]
++pub enum RetirementReason {
++    CredentialExpired,
++    DelegationExpired,
++    SigningKeyRevoked,
++    CredentialRevoked,
++    DelegationRevoked,
++    DeviceRevoked,
++    IdentityRevoked,
++    AuthorityRetired,
++}
++impl RetirementReason {
++    pub fn as_str(self) -> &'static str {
++        match self {
++            Self::CredentialExpired => "credential-expired",
++            Self::DelegationExpired => "delegation-expired",
++            Self::SigningKeyRevoked => "key-revoked",
++            Self::CredentialRevoked => "credential-revoked",
++            Self::DelegationRevoked => "delegation-revoked",
++            Self::DeviceRevoked => "device-revoked",
++            Self::IdentityRevoked => "identity-revoked",
++            Self::AuthorityRetired => "authority-retired",
++        }
++    }
++    fn expired(self) -> bool {
++        matches!(self, Self::CredentialExpired | Self::DelegationExpired)
++    }
++    pub(super) fn error(self) -> DispatchError {
++        if self.expired() {
++            DispatchError::Closed
++        } else {
++            DispatchError::Authority
++        }
++    }
++}
++
++/// Required installed-policy lifetime for one validated credential, Identity
++/// and Device incarnation. The policy registers these signals synchronously
++/// under the supplied current lease, without reacquiring its authority lock.
++/// Owners must cancel them when the named fact is invalidated. They must not
++/// reuse a successor's credential signal for old work or cancel a shared parent
++/// endpoint. The peer observes cancellation; it never cancels policy signals.
++#[derive(Clone)]
++pub struct AuthorityLifetime {
++    signals: Vec<(CancellationToken, RetirementReason)>,
++}
++impl AuthorityLifetime {
++    pub fn new(signal: CancellationToken, reason: RetirementReason) -> Self {
++        Self {
++            signals: vec![(signal, reason)],
++        }
++    }
++    /// At most eight independently owned facts. If several are already retired,
++    /// installation order selects one true cause; no untrusted reason is echoed.
++    pub fn with_signal(
++        mut self,
++        signal: CancellationToken,
++        reason: RetirementReason,
++    ) -> Result<Self, DispatchError> {
++        if self.signals.len() >= 8 {
++            return Err(DispatchError::Capacity);
++        }
++        self.signals.push((signal, reason));
++        Ok(self)
++    }
++    pub fn reason(&self) -> Option<RetirementReason> {
++        self.signals
++            .iter()
++            .find_map(|(signal, reason)| signal.is_cancelled().then_some(*reason))
++    }
++    pub async fn retired(&self) -> RetirementReason {
++        if let Some(reason) = self.reason() {
++            return reason;
++        }
++        let mut waits = self
++            .signals
++            .iter()
++            .map(|(signal, reason)| {
++                let signal = signal.clone();
++                let reason = *reason;
++                async move {
++                    signal.cancelled().await;
++                    reason
++                }
++                .boxed()
++            })
++            .collect::<FuturesUnordered<_>>();
++        // Construction always installs at least one signal.
++        let reason = waits.next().await.expect("nonempty authority lifetime");
++        self.reason().unwrap_or(reason)
++    }
++}
++impl fmt::Debug for AuthorityLifetime {
++    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
++        f.debug_struct("AuthorityLifetime")
++            .field("signals", &self.signals.len())
++            .finish_non_exhaustive()
++    }
++}
++
++#[derive(Clone)]
++pub(super) struct RetirementRecord {
++    pub previous: String,
++    pub reason: RetirementReason,
++}
++pub(super) fn effective_expiry_for_snapshot(
++    principal: &AuthenticatedPrincipal,
++) -> Option<chrono::DateTime<chrono::Utc>> {
++    effective_expiry(principal).ok()
++}
++pub(super) fn expiry_reason(principal: &AuthenticatedPrincipal) -> RetirementReason {
++    match &principal.assurance {
++        IdentityAssurance::TaskScoped { expires_at, .. }
++            if principal
++                .expires_at
++                .is_none_or(|credential| *expires_at <= credential) =>
++        {
++            RetirementReason::DelegationExpired
++        }
++        _ => RetirementReason::CredentialExpired,
++    }
++}
++pub(super) fn terminal_output(
++    config: &PeerConfig,
++    record: RetirementRecord,
++) -> Result<PeerOutput, DispatchError> {
++    // The entire authenticated physical binding is retired. Anonymous denotes
++    // absence of an authenticated binding, never permission to keep executing.
++    // No Conversation/Session/Connection is invented from untrusted input.
++    let changed = exchange::signed(
++        config,
++        json!({"v":2,"type":"identity.assurance-changed","id":fresh_id(),"ts":chrono::Utc::now(),"payload":{"previous":record.previous,"current":"anonymous","reason":record.reason.as_str()}}),
++    )?;
++    let bye = exchange::signed(
++        config,
++        json!({"v":2,"type":"auth.bye","id":fresh_id(),"ts":chrono::Utc::now(),"payload":{"reason":if record.reason.expired(){"session-expired"}else{"authority-retired"}}}),
++    )?;
++    Ok(output(vec![changed, bye], None))
++}
++
++impl CanonicalPeer {
++    pub(super) fn current_retirement(&self) -> Option<RetirementRecord> {
++        let State::Authenticated(binding) = &self.state else {
++            return None;
++        };
++        let reason = binding
++            .authority_lifetime
++            .reason()
++            .or_else(|| {
++                binding
++                    .route
++                    .as_ref()
++                    .filter(|route| route.authority().is_cancelled())
++                    .map(|_| RetirementReason::AuthorityRetired)
++            })
++            .or_else(|| {
++                (binding.expires <= Instant::now()
++                    || effective_expiry(&binding.credential.principal)
++                        .is_ok_and(|expiry| expiry <= chrono::Utc::now()))
++                .then(|| expiry_reason(&binding.credential.principal))
++            })?;
++        Some(RetirementRecord {
++            previous: binding.credential.principal.assurance.kind().into(),
++            reason,
++        })
++    }
++    pub(super) fn poll_retirement(&mut self) -> Option<DispatchError> {
++        let record = self.current_retirement()?;
++        let error = record.reason.error();
++        self.retirement = Some(record);
++        self.close();
++        Some(error)
++    }
++    /// Direct `handle` integrations must drive their policy/expiry lifecycle and
++    /// retain this one-use, signed terminal output through bounded writer
++    /// admission. `run`/`run_frames` do that automatically. This returns an
++    /// observation, not a result for any interrupted business operation.
++    pub fn take_retirement_output(&mut self) -> Result<Option<PeerOutput>, DispatchError> {
++        self.poll_retirement();
++        self.retirement
++            .take()
++            .map(|record| terminal_output(&self.config, record))
++            .transpose()
++    }
++}
+diff --git a/crates/uctp/rvoip-uctp/src/v2/auth_peer/step_up.rs b/crates/uctp/rvoip-uctp/src/v2/auth_peer/step_up.rs
+index 8bb68ca..67ab215 100644
+--- a/crates/uctp/rvoip-uctp/src/v2/auth_peer/step_up.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/auth_peer/step_up.rs
+@@ -295,9 +295,14 @@ impl CanonicalPeer {
+                 .generation
+                 .checked_add(1)
+                 .ok_or(DispatchError::Capacity)?,
++            &lease,
+         )?;
+         failure.execution_started = true;
+-        let reply = next
++        let candidate_lifetime = next.authority_lifetime.clone();
++        let reply = tokio::select! {
++            biased;
++            _ = candidate_lifetime.retired() => return Err(DispatchError::Authority),
++            result = next
+             .dispatch
+             .execute_held(
+                 pending.held,
+@@ -305,8 +310,8 @@ impl CanonicalPeer {
+                 lease.retained(),
+                 handler,
+                 deadline,
+-            )
+-            .await?;
++            ) => result?,
++        };
+         let session = self.session(&next, &response)?;
+         let changed = self.reply("identity.assurance-changed",json!({"previous":binding.credential.principal.assurance.kind(),"current":next.credential.principal.assurance.kind(),"reason":"verified-step-up"}),Some(&response))?;
+         let reply = self.handler_reply(reply, &blocked)?;
+diff --git a/crates/uctp/rvoip-uctp/tests/support/assurance_retirement.rs b/crates/uctp/rvoip-uctp/tests/support/assurance_retirement.rs
+new file mode 100644
+index 0000000..28769b0
+--- /dev/null
++++ b/crates/uctp/rvoip-uctp/tests/support/assurance_retirement.rs
+@@ -0,0 +1,329 @@
++//! Exact credential lifecycle signals under the real current grant guard.
++use super::*;
++
++#[path = "retirement_policy.rs"]
++mod policy;
++use policy::LifetimePolicy;
++fn install(f: &mut Fixture) -> Arc<LifetimePolicy> {
++    let policy = LifetimePolicy::new(f.policy.clone());
++    f.config = Arc::new(PeerConfig {
++        methods: f.config.methods.clone(),
++        verifier: f.config.verifier.clone(),
++        signer: f.config.signer.clone(),
++        authority: policy.clone(),
++        pending_capacity: 2,
++    });
++    policy
++}
++fn check_terminal(output: &PeerOutput, previous: &str, reason: &str) {
++    assert_eq!(output.envelopes().len(), 2);
++    let changed = &output.envelopes()[0];
++    assert_eq!(changed.kind(), "identity.assurance-changed");
++    assert_eq!(
++        changed.original()["payload"],
++        json!({"previous":previous,"current":"anonymous","reason":reason})
++    );
++    assert_eq!(output.envelopes()[1].kind(), "auth.bye");
++    for envelope in output.envelopes() {
++        for scope in [
++            Scope::Conversation,
++            Scope::Session,
++            Scope::Connection,
++            Scope::Operation,
++            Scope::Reply,
++        ] {
++            assert!(envelope.scope(scope).is_none());
++        }
++    }
++}
++
++#[tokio::test]
++async fn retired_current_key_denies_direct_control_and_emits_one_signed_terminal_transition() {
++    let mut f = Fixture::new();
++    let policy = install(&mut f);
++    let parent = CancellationToken::new();
++    let mut peer = CanonicalPeer::new(f.config.clone(), parent.clone()).unwrap();
++    f.authenticate(&mut peer, "old").await;
++    let h = Handler::default();
++    policy.signal("old").cancel();
++    assert!(peer.authenticated_identity().is_none());
++    assert!(peer
++        .register_reply(&Envelope::from_value(command()).unwrap(), deadline())
++        .is_err());
++    assert_eq!(
++        peer.handle(&f.sign(command()), &h, deadline())
++            .await
++            .unwrap_err(),
++        DispatchError::Authority
++    );
++    assert_eq!(h.calls.load(Ordering::SeqCst), 0);
++    let output = peer.take_retirement_output().unwrap().unwrap();
++    check_terminal(&output, "identified", "key-revoked");
++    for e in output.envelopes() {
++        f.verify_server(e).await;
++    }
++    assert!(peer.take_retirement_output().unwrap().is_none());
++    assert!(peer.cancellation().is_cancelled());
++    assert!(!parent.is_cancelled());
++    assert!(f.policy.revoked.try_write().is_ok());
++}
++
++#[tokio::test]
++async fn old_credential_signal_cannot_retire_refreshed_binding_and_failed_candidate_keeps_old_live()
++{
++    let mut f = Fixture::new();
++    let policy = install(&mut f);
++    let mut peer = f.peer();
++    f.authenticate(&mut peer, "old").await;
++    policy.signal("bad-candidate").cancel();
++    let refresh = |token| {
++        f.sign(envelope(
++            "auth.refresh",
++            json!({"method":"bearer","credential":token}),
++        ))
++    };
++    assert_eq!(
++        peer.handle(&refresh("bad-candidate"), &Handler::default(), deadline())
++            .await
++            .unwrap_err(),
++        DispatchError::Authority
++    );
++    assert_eq!(peer.generation(), Some(1));
++    assert!(peer.take_retirement_output().unwrap().is_none());
++    drop(
++        peer.handle(&refresh("new"), &Handler::default(), deadline())
++            .await
++            .unwrap(),
++    );
++    assert_eq!(peer.generation(), Some(2));
++    policy.signal("old").cancel();
++    assert!(peer.authenticated_identity().is_some());
++    assert!(peer.take_retirement_output().unwrap().is_none());
++    let h = Handler::default();
++    drop(
++        peer.handle(&f.sign(command()), &h, deadline())
++            .await
++            .unwrap(),
++    );
++    assert_eq!(h.calls.load(Ordering::SeqCst), 1);
++    policy.signal("new").cancel();
++    check_terminal(
++        &peer.take_retirement_output().unwrap().unwrap(),
++        "identified",
++        "key-revoked",
++    );
++}
++
++#[tokio::test(start_paused = true)]
++async fn task_expiry_is_observed_as_delegation_expiry_without_reusing_longer_credential() {
++    let f = Fixture::new();
++    let mut peer = f.peer();
++    f.authenticate(&mut peer, "short-task").await;
++    let lifetime = peer.cancellation();
++    let (a, b) = tokio::io::duplex(8192);
++    let (rd, wr) = tokio::io::split(a);
++    let (crd, _cwr) = tokio::io::split(b);
++    let server = tokio::spawn(async move { peer.run(rd, wr, &Handler::default()).await });
++    let mut reader = FramedRead::new(crd, rvoip_uctp::substrate::length_prefixed_codec());
++    let changed = Envelope::parse(&reader.next().await.unwrap().unwrap()).unwrap();
++    assert_eq!(changed.kind(), "identity.assurance-changed");
++    assert_eq!(
++        changed.original()["payload"],
++        json!({"previous":"task-scoped","current":"anonymous","reason":"delegation-expired"})
++    );
++    f.verify_server(&changed).await;
++    let bye = Envelope::parse(&reader.next().await.unwrap().unwrap()).unwrap();
++    f.verify_server(&bye).await;
++    assert_eq!(bye.kind(), "auth.bye");
++    assert_eq!(server.await.unwrap().unwrap_err(), DispatchError::Closed);
++    assert!(lifetime.is_cancelled());
++}
++
++#[tokio::test]
++async fn revocation_interrupts_owned_handler_releases_guard_and_preserves_unrelated_peer() {
++    struct Block {
++        entered: Arc<Notify>,
++        dropped: Arc<AtomicBool>,
++    }
++    struct OnDrop(Arc<AtomicBool>);
++    impl Drop for OnDrop {
++        fn drop(&mut self) {
++            self.0.store(true, Ordering::SeqCst);
++        }
++    }
++    #[async_trait]
++    impl AuthenticatedHandler for Block {
++        async fn handle(&self, _env: AuthorizedEnvelope) -> Result<Envelope, DispatchError> {
++            let _drop = OnDrop(self.dropped.clone());
++            self.entered.notify_one();
++            std::future::pending().await
++        }
++    }
++    let mut f = Fixture::new();
++    let policy = install(&mut f);
++    let mut peer = f.peer();
++    f.authenticate(&mut peer, "old").await;
++    let mut other = f.peer();
++    f.authenticate(&mut other, "other").await;
++    let token = peer.cancellation();
++    let entered = Arc::new(Notify::new());
++    let dropped = Arc::new(AtomicBool::new(false));
++    let h = Block {
++        entered: entered.clone(),
++        dropped: dropped.clone(),
++    };
++    let wire = f.sign(command());
++    let work = async { peer.handle(&wire, &h, deadline()).await };
++    tokio::pin!(work);
++    tokio::select! {result=&mut work=>panic!("early {result:?}"),_=entered.notified()=>{}}
++    policy.signal("old").cancel();
++    assert_eq!(work.await.unwrap_err(), DispatchError::Authority);
++    assert!(dropped.load(Ordering::SeqCst));
++    assert!(token.is_cancelled());
++    assert!(!other.cancellation().is_cancelled());
++    assert!(f.policy.revoked.try_write().is_ok());
++    drop(
++        other
++            .handle(&f.sign(command()), &Handler::default(), deadline())
++            .await
++            .unwrap(),
++    );
++}
++
++#[tokio::test]
++async fn bounded_authority_signals_report_only_true_trusted_causes_and_never_cancel_their_owner() {
++    let root = CancellationToken::new();
++    let key = CancellationToken::new();
++    let mut lifetime = AuthorityLifetime::new(root.clone(), RetirementReason::IdentityRevoked)
++        .with_signal(key.clone(), RetirementReason::SigningKeyRevoked)
++        .unwrap();
++    for _ in 2..8 {
++        lifetime = lifetime
++            .with_signal(
++                CancellationToken::new(),
++                RetirementReason::CredentialRevoked,
++            )
++            .unwrap();
++    }
++    assert!(matches!(
++        lifetime
++            .clone()
++            .with_signal(CancellationToken::new(), RetirementReason::DeviceRevoked),
++        Err(DispatchError::Capacity)
++    ));
++    key.cancel();
++    assert_eq!(
++        lifetime.retired().await,
++        RetirementReason::SigningKeyRevoked
++    );
++    assert_eq!(lifetime.reason(), Some(RetirementReason::SigningKeyRevoked));
++    drop(lifetime);
++    assert!(!root.is_cancelled());
++}
++
++#[tokio::test]
++async fn actual_tls_quic_key_revocation_publishes_signed_terminal_pair_and_retires_only_its_peer() {
++    let mut f = Fixture::new();
++    let policy = install(&mut f);
++    let (_server, _client, host, remote) = quic_pair().await;
++    let _host_lifetime = host.clone();
++    let parent = CancellationToken::new();
++    let peer = CanonicalPeer::new(f.config.clone(), parent.clone()).unwrap();
++    let lifetime = peer.cancellation();
++    let server = tokio::spawn(async move {
++        let (tx, rx) = host.accept_bi().await.unwrap();
++        peer.run(rx, tx, &Handler::default()).await
++    });
++    let (tx, rx) = remote.open_bi().await.unwrap();
++    let mut writer = FramedWrite::new(tx, rvoip_uctp::substrate::length_prefixed_codec());
++    let mut reader = FramedRead::new(rx, rvoip_uctp::substrate::length_prefixed_codec());
++    writer
++        .send(Bytes::from(serde_json::to_vec(&hello()).unwrap()))
++        .await
++        .unwrap();
++    let challenge = Envelope::parse(&reader.next().await.unwrap().unwrap()).unwrap();
++    writer
++        .send(Bytes::from(f.sign(response(&challenge, "old"))))
++        .await
++        .unwrap();
++    let session = Envelope::parse(&reader.next().await.unwrap().unwrap()).unwrap();
++    assert_eq!(session.kind(), "auth.session");
++    policy.signal("old").cancel();
++    let changed = Envelope::parse(&reader.next().await.unwrap().unwrap()).unwrap();
++    assert_eq!(changed.kind(), "identity.assurance-changed");
++    assert_eq!(changed.original()["payload"]["reason"], "key-revoked");
++    f.verify_server(&changed).await;
++    let bye = Envelope::parse(&reader.next().await.unwrap().unwrap()).unwrap();
++    assert_eq!(bye.kind(), "auth.bye");
++    f.verify_server(&bye).await;
++    assert_eq!(server.await.unwrap().unwrap_err(), DispatchError::Authority);
++    assert!(lifetime.is_cancelled());
++    assert!(!parent.is_cancelled());
++    assert!(f.policy.revoked.try_write().is_ok());
++}
++
++#[tokio::test]
++async fn current_key_retirement_during_refresh_validation_cannot_install_candidate() {
++    let mut f = Fixture::new();
++    let policy = install(&mut f);
++    let mut peer = f.peer();
++    f.authenticate(&mut peer, "old").await;
++    f.validator.hold.store(true, Ordering::SeqCst);
++    let wire = f.sign(envelope(
++        "auth.refresh",
++        json!({"method":"bearer","credential":"new"}),
++    ));
++    let h = Handler::default();
++    {
++        let work = peer.handle(&wire, &h, deadline());
++        tokio::pin!(work);
++        tokio::select! {result=&mut work=>panic!("early {result:?}"),_=f.validator.entered.notified()=>{}}
++        policy.signal("old").cancel();
++        assert_eq!(work.await.unwrap_err(), DispatchError::Authority);
++    }
++    assert_eq!(peer.generation(), None);
++    assert!(peer.authenticated_identity().is_none());
++    check_terminal(
++        &peer.take_retirement_output().unwrap().unwrap(),
++        "identified",
++        "key-revoked",
++    );
++    assert!(f.policy.revoked.try_write().is_ok());
++    assert_eq!(h.calls.load(Ordering::SeqCst), 0);
++}
++
++#[tokio::test]
++async fn key_retirement_interrupts_blocked_writer_without_claiming_terminal_delivery() {
++    let mut f = Fixture::new();
++    let policy = install(&mut f);
++    let mut peer = f.peer();
++    f.authenticate(&mut peer, "old").await;
++    let lifetime = peer.cancellation();
++    let entered = Arc::new(Notify::new());
++    let writing = entered.clone();
++    let writer = futures::sink::unfold((), move |(), _bytes: Bytes| {
++        let writing = writing.clone();
++        async move {
++            writing.notify_one();
++            std::future::pending::<Result<(), DispatchError>>().await
++        }
++    });
++    let reader = futures::stream::iter([Ok(Bytes::from(f.sign(command())))])
++        .chain(futures::stream::pending());
++    let h = Handler::default();
++    let work = peer.run_frames(Box::pin(reader), Box::pin(writer), &h);
++    tokio::pin!(work);
++    tokio::select! { result = &mut work => panic!("early {result:?}"), _ = entered.notified() => {} }
++    assert!(f.policy.revoked.try_write().is_err());
++    policy.signal("old").cancel();
++    assert_eq!(
++        tokio::time::timeout(Duration::from_millis(500), &mut work)
++            .await
++            .unwrap()
++            .unwrap_err(),
++        DispatchError::Authority
++    );
++    assert!(lifetime.is_cancelled());
++    assert!(f.policy.revoked.try_write().is_ok());
++    assert_eq!(h.calls.load(Ordering::SeqCst), 1);
++}
+diff --git a/crates/uctp/rvoip-uctp/tests/support/media_control.rs b/crates/uctp/rvoip-uctp/tests/support/media_control.rs
+index ff73295..ee1d982 100644
+--- a/crates/uctp/rvoip-uctp/tests/support/media_control.rs
++++ b/crates/uctp/rvoip-uctp/tests/support/media_control.rs
+@@ -118,6 +118,19 @@ struct Authority {
+ }
+ #[async_trait]
+ impl PeerAuthority for Authority {
++    fn authority_lifetime(
++        &self,
++        _credential: &ValidatedBearer,
++        _device: &Device,
++        _identity: &Identifier,
++        _held: &AuthorityLease,
++    ) -> Result<AuthorityLifetime, DispatchError> {
++        Ok(AuthorityLifetime::new(
++            CancellationToken::new(),
++            RetirementReason::AuthorityRetired,
++        ))
++    }
++
+     async fn identity(&self, c: &ValidatedBearer, d: &Device) -> Result<Identifier, DispatchError> {
+         self.base.identity(c, d).await
+     }
+diff --git a/crates/uctp/rvoip-uctp/tests/support/peer_exchange.rs b/crates/uctp/rvoip-uctp/tests/support/peer_exchange.rs
+index f9dd425..7ff578b 100644
+--- a/crates/uctp/rvoip-uctp/tests/support/peer_exchange.rs
++++ b/crates/uctp/rvoip-uctp/tests/support/peer_exchange.rs
+@@ -30,6 +30,19 @@ impl ExchangePolicy {
+ }
+ #[async_trait]
+ impl PeerAuthority for ExchangePolicy {
++    fn authority_lifetime(
++        &self,
++        _credential: &ValidatedBearer,
++        _device: &Device,
++        _identity: &Identifier,
++        _held: &AuthorityLease,
++    ) -> Result<AuthorityLifetime, DispatchError> {
++        Ok(AuthorityLifetime::new(
++            CancellationToken::new(),
++            RetirementReason::AuthorityRetired,
++        ))
++    }
++
+     fn assurance_requirement(
+         &self,
+         _: &ValidatedBearer,
+@@ -595,6 +608,13 @@ async fn credential_expiry_interrupts_pending_exchange_and_emits_bye() {
+     auth(&mut wire, &f, "short").await;
+     wire.send(f.sign(command())).await;
+     assert_eq!(wire.read().await.kind(), "connection.update");
++    let changed = wire.read().await;
++    assert_eq!(changed.kind(), "identity.assurance-changed");
++    assert_eq!(
++        changed.original()["payload"]["reason"],
++        "credential-expired"
++    );
++    f.verify_server(&changed).await;
+     let bye = wire.read().await;
+     assert_eq!(bye.kind(), "auth.bye");
+     f.verify_server(&bye).await;
+diff --git a/crates/uctp/rvoip-uctp/tests/support/peer_native.rs b/crates/uctp/rvoip-uctp/tests/support/peer_native.rs
+index 286634c..3869e7f 100644
+--- a/crates/uctp/rvoip-uctp/tests/support/peer_native.rs
++++ b/crates/uctp/rvoip-uctp/tests/support/peer_native.rs
+@@ -728,6 +728,19 @@ impl WirePolicy {
+ }
+ #[async_trait]
+ impl PeerAuthority for WirePolicy {
++    fn authority_lifetime(
++        &self,
++        _credential: &ValidatedBearer,
++        _device: &Device,
++        _identity: &Identifier,
++        _held: &AuthorityLease,
++    ) -> Result<AuthorityLifetime, DispatchError> {
++        Ok(AuthorityLifetime::new(
++            CancellationToken::new(),
++            RetirementReason::AuthorityRetired,
++        ))
++    }
++
+     async fn identity(&self, c: &ValidatedBearer, d: &Device) -> Result<Identifier, DispatchError> {
+         self.base.identity(c, d).await
+     }
+diff --git a/crates/uctp/rvoip-uctp/tests/support/peer_sessions.rs b/crates/uctp/rvoip-uctp/tests/support/peer_sessions.rs
+index 151fb7f..1c1a899 100644
+--- a/crates/uctp/rvoip-uctp/tests/support/peer_sessions.rs
++++ b/crates/uctp/rvoip-uctp/tests/support/peer_sessions.rs
+@@ -86,6 +86,19 @@ impl SessionPolicy {
+ }
+ #[async_trait]
+ impl PeerAuthority for SessionPolicy {
++    fn authority_lifetime(
++        &self,
++        _credential: &ValidatedBearer,
++        _device: &Device,
++        _identity: &Identifier,
++        _held: &AuthorityLease,
++    ) -> Result<AuthorityLifetime, DispatchError> {
++        Ok(AuthorityLifetime::new(
++            CancellationToken::new(),
++            RetirementReason::AuthorityRetired,
++        ))
++    }
++
+     async fn identity(&self, c: &ValidatedBearer, d: &Device) -> Result<Identifier, DispatchError> {
+         self.base.identity(c, d).await
+     }
+diff --git a/crates/uctp/rvoip-uctp/tests/support/retirement_policy.rs b/crates/uctp/rvoip-uctp/tests/support/retirement_policy.rs
+new file mode 100644
+index 0000000..905d5bb
+--- /dev/null
++++ b/crates/uctp/rvoip-uctp/tests/support/retirement_policy.rs
+@@ -0,0 +1,124 @@
++//! Controlled current policy with exact credential-incarnation signals.
++use super::*;
++use std::{collections::HashMap, sync::Mutex};
++struct Proof {
++    _base: AuthorityLease,
++    domain: Arc<()>,
++    token: Option<String>,
++    device: Identifier,
++    identity: Identifier,
++    lifetime: AuthorityLifetime,
++}
++pub(super) struct LifetimePolicy {
++    base: Arc<dyn PeerAuthority>,
++    domain: Arc<()>,
++    signals: Mutex<HashMap<String, CancellationToken>>,
++}
++impl LifetimePolicy {
++    pub(super) fn new(base: Arc<dyn PeerAuthority>) -> Arc<Self> {
++        Arc::new(Self {
++            base,
++            domain: Arc::new(()),
++            signals: Mutex::new(HashMap::new()),
++        })
++    }
++    pub(super) fn signal(&self, token: &str) -> CancellationToken {
++        self.signals
++            .lock()
++            .unwrap()
++            .entry(token.into())
++            .or_default()
++            .clone()
++    }
++    fn wrap(
++        &self,
++        c: &ValidatedBearer,
++        d: &Device,
++        i: &Identifier,
++        base: AuthorityLease,
++    ) -> AuthorityLease {
++        let token = c.token_id.as_deref().unwrap();
++        AuthorityLease::holding(Proof {
++            _base: base,
++            domain: self.domain.clone(),
++            token: c.token_id.clone(),
++            device: d.id.clone(),
++            identity: i.clone(),
++            lifetime: AuthorityLifetime::new(
++                self.signal(token),
++                RetirementReason::SigningKeyRevoked,
++            ),
++        })
++    }
++}
++#[async_trait]
++impl PeerAuthority for LifetimePolicy {
++    fn assurance_requirement(
++        &self,
++        c: &ValidatedBearer,
++        d: &Device,
++        i: &Identifier,
++        e: &Envelope,
++    ) -> Result<Option<AssuranceRequirement>, DispatchError> {
++        self.base.assurance_requirement(c, d, i, e)
++    }
++    async fn step_up(
++        &self,
++        old: &ValidatedBearer,
++        next: &ValidatedBearer,
++        d: &Device,
++        i: &Identifier,
++        r: &AssuranceRequirement,
++        blocked: &Envelope,
++        response: &Envelope,
++    ) -> Result<AuthorityLease, DispatchError> {
++        Ok(self.wrap(
++            next,
++            d,
++            i,
++            self.base
++                .step_up(old, next, d, i, r, blocked, response)
++                .await?,
++        ))
++    }
++
++    fn authority_lifetime(
++        &self,
++        c: &ValidatedBearer,
++        d: &Device,
++        i: &Identifier,
++        held: &AuthorityLease,
++    ) -> Result<AuthorityLifetime, DispatchError> {
++        let proof = held.authority::<Proof>().ok_or(DispatchError::Authority)?;
++        if !Arc::ptr_eq(&proof.domain, &self.domain)
++            || proof.token != c.token_id
++            || proof.device != d.id
++            || &proof.identity != i
++        {
++            return Err(DispatchError::Authority);
++        }
++        Ok(proof.lifetime.clone())
++    }
++    async fn identity(&self, c: &ValidatedBearer, d: &Device) -> Result<Identifier, DispatchError> {
++        self.base.identity(c, d).await
++    }
++    async fn acquire(
++        &self,
++        c: &ValidatedBearer,
++        d: &Device,
++        i: &Identifier,
++        e: &Envelope,
++    ) -> Result<AuthorityLease, DispatchError> {
++        Ok(self.wrap(c, d, i, self.base.acquire(c, d, i, e).await?))
++    }
++    async fn refresh(
++        &self,
++        old: &ValidatedBearer,
++        next: &ValidatedBearer,
++        d: &Device,
++        i: &Identifier,
++        e: &Envelope,
++    ) -> Result<AuthorityLease, DispatchError> {
++        Ok(self.wrap(next, d, i, self.base.refresh(old, next, d, i, e).await?))
++    }
++}
+diff --git a/crates/uctp/rvoip-uctp/tests/v2_auth_peer.rs b/crates/uctp/rvoip-uctp/tests/v2_auth_peer.rs
+index 19f4eec..b21dd39 100644
+--- a/crates/uctp/rvoip-uctp/tests/v2_auth_peer.rs
++++ b/crates/uctp/rvoip-uctp/tests/v2_auth_peer.rs
+@@ -85,6 +85,14 @@ fn principal(token: &str) -> AuthenticatedPrincipal {
+         "other-issuer" => p.issuer = Some("other".into()),
+         "expired" => p.expires_at = Some(Utc::now() - chrono::Duration::seconds(1)),
+         "no-expiry" => p.expires_at = None,
++        "short-task" => {
++            p.assurance = IdentityAssurance::TaskScoped {
++                identity: rvoip_core::IdentityId::from_string("identity-alice"),
++                task_id: "bounded-task".into(),
++                scopes: vec!["control".into()],
++                expires_at: Utc::now() + chrono::Duration::seconds(1),
++            }
++        }
+         "short" => p.expires_at = Some(Utc::now() + chrono::Duration::seconds(1)),
+         "reduced" => p.scopes.clear(),
+         "user" | "user-new" => {
+@@ -166,6 +174,19 @@ impl Policy {
+ }
+ #[async_trait]
+ impl PeerAuthority for Policy {
++    fn authority_lifetime(
++        &self,
++        _credential: &ValidatedBearer,
++        _device: &Device,
++        _identity: &Identifier,
++        _held: &AuthorityLease,
++    ) -> Result<AuthorityLifetime, DispatchError> {
++        Ok(AuthorityLifetime::new(
++            CancellationToken::new(),
++            RetirementReason::AuthorityRetired,
++        ))
++    }
++
+     async fn identity(&self, c: &ValidatedBearer, d: &Device) -> Result<Identifier, DispatchError> {
+         if c.principal.subject != "alice" || d.id.as_str() != "device-alice" {
+             return Err(DispatchError::Authority);
+@@ -889,7 +910,14 @@ async fn credential_expiry_emits_bye_and_cancels_sibling_lifetime_on_idle_stream
+     let mut reader = FramedRead::new(client_rd, rvoip_uctp::substrate::length_prefixed_codec());
+     let result = tokio::join!(&mut server, reader.next());
+     assert_eq!(result.0.unwrap_err(), DispatchError::Closed);
+-    let bye = Envelope::parse(&result.1.unwrap().unwrap()).unwrap();
++    let changed = Envelope::parse(&result.1.unwrap().unwrap()).unwrap();
++    assert_eq!(changed.kind(), "identity.assurance-changed");
++    assert_eq!(
++        changed.original()["payload"]["reason"],
++        "credential-expired"
++    );
++    f.verify_server(&changed).await;
++    let bye = Envelope::parse(&reader.next().await.unwrap().unwrap()).unwrap();
+     assert_eq!(bye.kind(), "auth.bye");
+     assert_eq!(bye.original()["payload"]["reason"], "session-expired");
+     assert!(lifetime.is_cancelled());
+@@ -979,3 +1007,6 @@ async fn keepalive_token_is_not_portable_to_another_authenticated_peer() {
+     assert_eq!(second.generation(), Some(1));
+     assert_eq!(h.calls.load(Ordering::SeqCst), 0);
+ }
++
++#[path = "support/assurance_retirement.rs"]
++mod assurance_retirement;
+diff --git a/crates/uctp/rvoip-uctp/tests/v2_auth_recovery.rs b/crates/uctp/rvoip-uctp/tests/v2_auth_recovery.rs
+index 97db809..5fa07f5 100644
+--- a/crates/uctp/rvoip-uctp/tests/v2_auth_recovery.rs
++++ b/crates/uctp/rvoip-uctp/tests/v2_auth_recovery.rs
+@@ -207,6 +207,19 @@ impl Policy {
+ }
+ #[async_trait]
+ impl PeerAuthority for Policy {
++    fn authority_lifetime(
++        &self,
++        _credential: &ValidatedBearer,
++        _device: &Device,
++        _identity: &Identifier,
++        _held: &AuthorityLease,
++    ) -> Result<AuthorityLifetime, DispatchError> {
++        Ok(AuthorityLifetime::new(
++            CancellationToken::new(),
++            RetirementReason::AuthorityRetired,
++        ))
++    }
++
+     fn assurance_requirement(
+         &self,
+         _c: &ValidatedBearer,
+diff --git a/crates/uctp/rvoip-uctp/tests/v2_canonical_transports.rs b/crates/uctp/rvoip-uctp/tests/v2_canonical_transports.rs
+index c2dd183..52c564d 100644
+--- a/crates/uctp/rvoip-uctp/tests/v2_canonical_transports.rs
++++ b/crates/uctp/rvoip-uctp/tests/v2_canonical_transports.rs
+@@ -168,6 +168,19 @@ impl Policy {
+ }
+ #[async_trait]
+ impl PeerAuthority for Policy {
++    fn authority_lifetime(
++        &self,
++        _credential: &ValidatedBearer,
++        _device: &Device,
++        _identity: &Identifier,
++        _held: &AuthorityLease,
++    ) -> Result<AuthorityLifetime, DispatchError> {
++        Ok(AuthorityLifetime::new(
++            CancellationToken::new(),
++            RetirementReason::AuthorityRetired,
++        ))
++    }
++
+     async fn identity(&self, c: &ValidatedBearer, d: &Device) -> Result<Identifier, DispatchError> {
+         if c.principal.subject != "alice" || d.id.as_str() != "device-alice" {
+             return Err(DispatchError::Authority);
+@@ -873,6 +886,10 @@ async fn routed_lifecycle(kind: &str) {
+     let observed = wire.read().await;
+     f.verify_server(&observed).await;
+     policy.revoke("new", "device-alice");
++    let changed = wire.read().await;
++    assert_eq!(changed.kind(), "identity.assurance-changed");
++    assert_eq!(changed.original()["payload"]["reason"], "authority-retired");
++    f.verify_server(&changed).await;
+     let bye = wire.read().await;
+     assert_eq!(bye.kind(), "auth.bye");
+     f.verify_server(&bye).await;
+diff --git a/crates/uctp/rvoip-uctp/tests/v2_peer_admission.rs b/crates/uctp/rvoip-uctp/tests/v2_peer_admission.rs
+index b7d26bb..71b1a16 100644
+--- a/crates/uctp/rvoip-uctp/tests/v2_peer_admission.rs
++++ b/crates/uctp/rvoip-uctp/tests/v2_peer_admission.rs
+@@ -170,6 +170,19 @@ impl Policy {
+ }
+ #[async_trait]
+ impl PeerAuthority for Policy {
++    fn authority_lifetime(
++        &self,
++        _credential: &ValidatedBearer,
++        _device: &Device,
++        _identity: &Identifier,
++        _held: &AuthorityLease,
++    ) -> Result<AuthorityLifetime, DispatchError> {
++        Ok(AuthorityLifetime::new(
++            CancellationToken::new(),
++            RetirementReason::AuthorityRetired,
++        ))
++    }
++
+     async fn identity(&self, c: &ValidatedBearer, d: &Device) -> Result<Identifier, DispatchError> {
+         if c.principal.subject != "alice" || d.id.as_str() != "device_alice" {
+             return Err(DispatchError::Authority);
+diff --git a/crates/uctp/rvoip-uctp/tests/v2_reachability.rs b/crates/uctp/rvoip-uctp/tests/v2_reachability.rs
+index a1652d0..4b741c5 100644
+--- a/crates/uctp/rvoip-uctp/tests/v2_reachability.rs
++++ b/crates/uctp/rvoip-uctp/tests/v2_reachability.rs
+@@ -203,6 +203,19 @@ impl Policy {
+ }
+ #[async_trait]
+ impl PeerAuthority for Policy {
++    fn authority_lifetime(
++        &self,
++        _credential: &ValidatedBearer,
++        _device: &Device,
++        _identity: &Identifier,
++        _held: &AuthorityLease,
++    ) -> Result<AuthorityLifetime, DispatchError> {
++        Ok(AuthorityLifetime::new(
++            CancellationToken::new(),
++            RetirementReason::AuthorityRetired,
++        ))
++    }
++
+     fn assurance_requirement(
+         &self,
+         _c: &ValidatedBearer,
+@@ -933,6 +946,10 @@ async fn actual_tls_quic_registry_route_delivers_signed_frame_under_current_reci
+     tokio::select! {result=&mut pending=>panic!("early {result:?}"),_=policy.entered.notified()=>{}}
+     policy.revoke("old", "device-alice");
+     assert!(matches!(pending.await, Err(DispatchError::Authority)));
++    let changed = Envelope::parse(&reader.next().await.unwrap().unwrap()).unwrap();
++    assert_eq!(changed.kind(), "identity.assurance-changed");
++    assert_eq!(changed.original()["payload"]["current"], "anonymous");
++    f.verify_server(&changed).await;
+     let bye = Envelope::parse(&reader.next().await.unwrap().unwrap()).unwrap();
+     assert_eq!(bye.kind(), "auth.bye");
+     assert_eq!(bye.original()["payload"]["reason"], "authority-retired");
+@@ -1049,6 +1066,10 @@ async fn route_hint_cannot_outlive_credential_and_idle_expiry_retires_registrati
+     let (crd, _cwr) = tokio::io::split(b);
+     let server = tokio::spawn(async move { peer.run(rd, wr, &Handler::default()).await });
+     let mut reader = FramedRead::new(crd, rvoip_uctp::substrate::length_prefixed_codec());
++    let changed = Envelope::parse(&reader.next().await.unwrap().unwrap()).unwrap();
++    assert_eq!(changed.kind(), "identity.assurance-changed");
++    assert_eq!(changed.original()["payload"]["current"], "anonymous");
++    f.verify_server(&changed).await;
+     let bye = Envelope::parse(&reader.next().await.unwrap().unwrap()).unwrap();
+     assert_eq!(bye.kind(), "auth.bye");
+     assert!(server.await.unwrap().is_err());
+diff --git a/crates/uctp/rvoip-uctp/tests/v2_secure_profile.rs b/crates/uctp/rvoip-uctp/tests/v2_secure_profile.rs
+index c43a28d..82fe279 100644
+--- a/crates/uctp/rvoip-uctp/tests/v2_secure_profile.rs
++++ b/crates/uctp/rvoip-uctp/tests/v2_secure_profile.rs
+@@ -167,6 +167,19 @@ impl Policy {
+ }
+ #[async_trait]
+ impl PeerAuthority for Policy {
++    fn authority_lifetime(
++        &self,
++        _credential: &ValidatedBearer,
++        _device: &Device,
++        _identity: &Identifier,
++        _held: &AuthorityLease,
++    ) -> Result<AuthorityLifetime, DispatchError> {
++        Ok(AuthorityLifetime::new(
++            CancellationToken::new(),
++            RetirementReason::AuthorityRetired,
++        ))
++    }
++
+     async fn identity(&self, c: &ValidatedBearer, d: &Device) -> Result<Identifier, DispatchError> {
+         if c.principal.subject != "alice" || d.id.as_str() != "device-alice" {
+             return Err(DispatchError::Authority);
+diff --git a/crates/uctp/rvoip-uctp/tests/v2_step_up.rs b/crates/uctp/rvoip-uctp/tests/v2_step_up.rs
+index a5f42bf..9816c43 100644
+--- a/crates/uctp/rvoip-uctp/tests/v2_step_up.rs
++++ b/crates/uctp/rvoip-uctp/tests/v2_step_up.rs
+@@ -206,6 +206,19 @@ impl Policy {
+ }
+ #[async_trait]
+ impl PeerAuthority for Policy {
++    fn authority_lifetime(
++        &self,
++        _credential: &ValidatedBearer,
++        _device: &Device,
++        _identity: &Identifier,
++        _held: &AuthorityLease,
++    ) -> Result<AuthorityLifetime, DispatchError> {
++        Ok(AuthorityLifetime::new(
++            CancellationToken::new(),
++            RetirementReason::AuthorityRetired,
++        ))
++    }
++
+     fn assurance_requirement(
+         &self,
+         _c: &ValidatedBearer,
+@@ -1117,3 +1130,90 @@ async fn blocked_after_first(
+     assert_eq!(challenge.kind(), "identity.step-up-request");
+     (request, challenge)
+ }
++
++#[path = "support/retirement_policy.rs"]
++mod retirement_policy;
++
++fn with_retirement_policy(f: &mut Fixture) -> Arc<retirement_policy::LifetimePolicy> {
++    let policy = retirement_policy::LifetimePolicy::new(f.policy.clone());
++    f.config = Arc::new(PeerConfig {
++        methods: f.config.methods.clone(),
++        verifier: f.config.verifier.clone(),
++        signer: f.config.signer.clone(),
++        authority: policy.clone(),
++        pending_capacity: 2,
++    });
++    policy
++}
++
++#[tokio::test]
++async fn stepup_installs_new_lifetime_without_old_credential_retiring_its_successor() {
++    let mut f = Fixture::new();
++    let policy = with_retirement_policy(&mut f);
++    let mut peer = f.peer();
++    f.authenticate(&mut peer, "old").await;
++    let h = Tracking::default();
++    let (_, challenge) = blocked(&f, &mut peer, &h).await;
++    drop(
++        peer.handle(&f.sign(proof(&challenge, "user")), &h, deadline())
++            .await
++            .unwrap(),
++    );
++    assert_eq!(peer.generation(), Some(2));
++    policy.signal("old").cancel();
++    assert!(peer.authenticated_identity().is_some());
++    assert!(peer.take_retirement_output().unwrap().is_none());
++    policy.signal("user").cancel();
++    let output = peer.take_retirement_output().unwrap().unwrap();
++    assert_eq!(
++        output.envelopes()[0].original()["payload"],
++        json!({"previous":"user-authorized","current":"anonymous","reason":"key-revoked"})
++    );
++    for e in output.envelopes() {
++        f.verify_server(e).await;
++    }
++    assert!(f.policy.revoked.try_write().is_ok());
++}
++
++#[tokio::test]
++async fn candidate_key_retirement_interrupts_held_stepup_execution_without_retiring_valid_old_binding(
++) {
++    struct Block(Arc<Notify>);
++    #[async_trait]
++    impl AuthenticatedHandler for Block {
++        async fn handle(&self, _env: AuthorizedEnvelope) -> Result<Envelope, DispatchError> {
++            self.0.notify_one();
++            std::future::pending().await
++        }
++    }
++    let mut f = Fixture::new();
++    let policy = with_retirement_policy(&mut f);
++    let mut peer = f.peer();
++    f.authenticate(&mut peer, "old").await;
++    let (_, challenge) = blocked(&f, &mut peer, &Tracking::default()).await;
++    let wire = f.sign(proof(&challenge, "user"));
++    let entered = Arc::new(Notify::new());
++    let h = Block(entered.clone());
++    {
++        let work = peer.handle(&wire, &h, deadline());
++        tokio::pin!(work);
++        tokio::select! {result=&mut work=>panic!("early {result:?}"),_=entered.notified()=>{}}
++        policy.signal("user").cancel();
++        assert_eq!(work.await.unwrap_err(), DispatchError::Authority);
++    }
++    assert_eq!(peer.generation(), Some(1));
++    assert!(peer.authenticated_identity().is_some());
++    assert!(!peer.has_pending_step_up());
++    assert!(peer.take_retirement_output().unwrap().is_none());
++    let failures = peer.drain_step_up_failures().unwrap().unwrap();
++    assert_eq!(
++        failures.envelopes()[0].original()["payload"]["reason"],
++        "operation_interrupted"
++    );
++    assert_eq!(
++        failures.envelopes()[0].original()["payload"]["details"]["outcome"],
++        "unknown"
++    );
++    drop(failures);
++    assert!(f.policy.revoked.try_write().is_ok());
++}

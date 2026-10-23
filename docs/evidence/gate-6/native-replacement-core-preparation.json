@@ -1,0 +1,486 @@
+{
+  "kind": "gate6-component-evidence",
+  "task": "G6-041",
+  "status": "in-progress",
+  "passed": true,
+  "recorded_at": "2026-10-20T01:18:28.537112+00:00",
+  "scope": "Local macOS arm64 actual Core preparation through public canonical HTTP and signed native source clients. Three real native audio scenarios: speaking source with public cancel; observer source with independent controller revocation; speaking source with provisioned target endpoint revocation. No target allocation, callback/DTMF, movement commit, remote profile or publication claim.",
+  "schema_version": 55,
+  "pinned_patches": 111,
+  "source_lock": {
+    "path": "dependencies/source-lock.json",
+    "sha256": "a30becafde1bee7c0bffdcd9198f7abc55246c4330c6d1e019a4322bed4e79ed"
+  },
+  "verification": [
+    {
+      "name": "full-store",
+      "command": [
+        "/Users/jonathaneisenzopf/.local/share/connect/compiler-cache/gate6-active/qualification/replacement-core-full-store",
+        "--test-threads=2"
+      ],
+      "exit_code": 0,
+      "passed": 579,
+      "ignored": 3,
+      "log": {
+        "path": ".local/gate-6/replacement-core-full-store.log",
+        "sha256": "515066163afade508966de32ee4fa9cdd062a6d46d947e49a39db3e3182bbac6"
+      },
+      "executed_binary": {
+        "path": "/Users/jonathaneisenzopf/.local/share/connect/compiler-cache/gate6-active/qualification/replacement-core-full-store",
+        "sha256": "dcd8e7db725f13e2688668b03fe527ab25c2bf4bc6760f82b9555e80fa446f1f",
+        "exit_code": 0
+      }
+    },
+    {
+      "name": "libraries",
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "--offline",
+        "-j1",
+        "-p",
+        "connect-client",
+        "-p",
+        "connect-protocol",
+        "-p",
+        "connect-service",
+        "--lib",
+        "--",
+        "--test-threads=2"
+      ],
+      "path": ".local/gate-6/replacement-core-final-libraries.log",
+      "exit_code": 0,
+      "sha256": "2f49c3a485c2780f69d20725d8ffd9fc0c1afe5b546f04af933a61e3e79768bf",
+      "passed": 94,
+      "ignored": 0,
+      "test_binaries": [
+        {
+          "path": "target/debug/deps/connect_client-2762510abbc111f5",
+          "sha256": "aa5cf1a23c242e4473fb78b877e174e36190abcd4e59509ab80bef2d9d22ff3f"
+        },
+        {
+          "path": "target/debug/deps/connect_protocol-d4433b2cc5f1474e",
+          "sha256": "0cf301a400280745ead63bfe0d526454171feeebb94051b2a560b6a43f75c377"
+        },
+        {
+          "path": "target/debug/deps/connect_service-f0c8ec9c56711d06",
+          "sha256": "98d59e4c5e09cbbb4142d71360324af4ee4c3336db91733c1e1cabdd6a608804"
+        }
+      ]
+    },
+    {
+      "name": "transitions",
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "--offline",
+        "-j1",
+        "-p",
+        "connect-server",
+        "--test",
+        "gate6_canonical_transitions"
+      ],
+      "path": ".local/gate-6/replacement-core-final-transitions.log",
+      "exit_code": 0,
+      "sha256": "4603f71762bb59af0297d0c8e1f0266f7f819d7ad5df1fef62b50bacd943e631",
+      "passed": 5,
+      "ignored": 0,
+      "test_binaries": [
+        {
+          "path": "target/debug/deps/gate6_canonical_transitions-3c1fd287bcc3e17e",
+          "sha256": "e2573e9a9fcd977bf638b07cc06ae59bf1ff4b8197bd409c8e0662f1d95f8bea"
+        }
+      ]
+    },
+    {
+      "name": "schema",
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "--offline",
+        "-j1",
+        "-p",
+        "connect-store",
+        "--test",
+        "gate6_schema",
+        "--",
+        "--test-threads=2"
+      ],
+      "path": ".local/gate-6/replacement-core-final-schema.log",
+      "exit_code": 0,
+      "sha256": "d4d5afe009b97aea4b061323842b99a380b7454f717eaf1c7da30d55553590e6",
+      "passed": 4,
+      "ignored": 0,
+      "test_binaries": [
+        {
+          "path": "target/debug/deps/gate6_schema-2d4cc6d15be4352e",
+          "sha256": "6088b16d1c7ffc0f3e4938e538d5c59388b6c3961f052ad02b8951036bf1a196"
+        }
+      ]
+    },
+    {
+      "name": "selected-store-overlaps-full-suite",
+      "passed": 23,
+      "ignored": 0,
+      "exit_code": 0,
+      "log": {
+        "path": ".local/gate-6/replacement-core-store4.log",
+        "sha256": "52206470b55a733165efde8e0c0972f2ee6c4fe30a58f7d2e17c297b01fd6711"
+      },
+      "included_in_full_store_count": true,
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "--offline",
+        "-j1",
+        "-p",
+        "connect-store",
+        "--lib",
+        "replacement_sources",
+        "--",
+        "--test-threads=2",
+        "--nocapture"
+      ]
+    },
+    {
+      "name": "actual-core-preparation",
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "--offline",
+        "-j1",
+        "-p",
+        "connect-server",
+        "--test",
+        "gate6_canonical_runtime",
+        "production_replacement_prepares_actual_core_once",
+        "--",
+        "--test-threads=1",
+        "--nocapture"
+      ],
+      "exit_code": 0,
+      "passed": 1,
+      "ignored": 0,
+      "scenarios": 3,
+      "log": {
+        "path": ".local/gate-6/replacement-core-native4.log",
+        "sha256": "c6fe30fbd6d7afed9be6717c984f5dce91d4244f129668ff907b31596f5c33d8"
+      },
+      "test_binaries": [
+        {
+          "path": "target/debug/deps/gate6_canonical_runtime-09465e13dc9bb922",
+          "sha256": "88fdacc36299f09a1b4a438fb545e2fd43b548b50bbc20cda457f9620f206ee5"
+        }
+      ],
+      "decoded_audio_probes": [
+        {
+          "name": "replace-before-prepare-remote",
+          "source": 0,
+          "allowed": [
+            1
+          ],
+          "decoded_frames": [
+            0,
+            86
+          ]
+        },
+        {
+          "name": "replace-before-prepare-source",
+          "source": 1,
+          "allowed": [
+            0
+          ],
+          "decoded_frames": [
+            81,
+            0
+          ]
+        },
+        {
+          "name": "replace-real-preparation-retains-remote-audio",
+          "source": 0,
+          "allowed": [
+            1
+          ],
+          "decoded_frames": [
+            0,
+            79
+          ]
+        },
+        {
+          "name": "replace-real-preparation-retains-source-role",
+          "source": 1,
+          "allowed": [
+            0
+          ],
+          "decoded_frames": [
+            81,
+            0
+          ]
+        },
+        {
+          "name": "replace-after-stop-remote-audio",
+          "source": 0,
+          "allowed": [
+            1
+          ],
+          "decoded_frames": [
+            0,
+            84
+          ]
+        },
+        {
+          "name": "replace-after-stop-source-role",
+          "source": 1,
+          "allowed": [
+            0
+          ],
+          "decoded_frames": [
+            83,
+            0
+          ]
+        },
+        {
+          "name": "replace-before-prepare-remote",
+          "source": 0,
+          "allowed": [
+            1
+          ],
+          "decoded_frames": [
+            0,
+            79
+          ]
+        },
+        {
+          "name": "replace-before-prepare-source",
+          "source": 1,
+          "allowed": [],
+          "decoded_frames": [
+            0,
+            0
+          ]
+        },
+        {
+          "name": "replace-real-preparation-retains-remote-audio",
+          "source": 0,
+          "allowed": [
+            1
+          ],
+          "decoded_frames": [
+            0,
+            82
+          ]
+        },
+        {
+          "name": "replace-real-preparation-retains-source-role",
+          "source": 1,
+          "allowed": [],
+          "decoded_frames": [
+            0,
+            0
+          ]
+        },
+        {
+          "name": "replace-after-stop-remote-audio",
+          "source": 0,
+          "allowed": [
+            1
+          ],
+          "decoded_frames": [
+            0,
+            82
+          ]
+        },
+        {
+          "name": "replace-after-stop-source-role",
+          "source": 1,
+          "allowed": [],
+          "decoded_frames": [
+            0,
+            0
+          ]
+        },
+        {
+          "name": "replace-before-prepare-remote",
+          "source": 0,
+          "allowed": [
+            1
+          ],
+          "decoded_frames": [
+            0,
+            80
+          ]
+        },
+        {
+          "name": "replace-before-prepare-source",
+          "source": 1,
+          "allowed": [
+            0
+          ],
+          "decoded_frames": [
+            85,
+            0
+          ]
+        },
+        {
+          "name": "replace-real-preparation-retains-remote-audio",
+          "source": 0,
+          "allowed": [
+            1
+          ],
+          "decoded_frames": [
+            0,
+            85
+          ]
+        },
+        {
+          "name": "replace-real-preparation-retains-source-role",
+          "source": 1,
+          "allowed": [
+            0
+          ],
+          "decoded_frames": [
+            72,
+            0
+          ]
+        },
+        {
+          "name": "replace-after-stop-remote-audio",
+          "source": 0,
+          "allowed": [
+            1
+          ],
+          "decoded_frames": [
+            0,
+            82
+          ]
+        },
+        {
+          "name": "replace-after-stop-source-role",
+          "source": 1,
+          "allowed": [
+            0
+          ],
+          "decoded_frames": [
+            82,
+            0
+          ]
+        }
+      ]
+    }
+  ],
+  "static_checks": [
+    {
+      "name": "format",
+      "command": [
+        "bash",
+        "scripts/format.sh",
+        "--",
+        "--check"
+      ],
+      "path": ".local/gate-6/replacement-core-final-format.log",
+      "exit_code": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "http",
+      "command": [
+        "python3",
+        "scripts/generate-canonical-http-openapi.py",
+        "--check"
+      ],
+      "path": ".local/gate-6/replacement-core-final-http.log",
+      "exit_code": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "contracts",
+      "command": [
+        ".local/gate-6/verification-venv/bin/python",
+        "scripts/check-gate6-contracts.py",
+        "--output",
+        ".local/gate-6/replacement-core-final-contracts.json"
+      ],
+      "path": ".local/gate-6/replacement-core-final-contracts.log",
+      "exit_code": 0,
+      "sha256": "2c29557f8945b4bb522a5436f85876aa8ab90eca617dcf64588af05e9a81b1bc"
+    },
+    {
+      "name": "dependencies",
+      "command": [
+        "bash",
+        "scripts/prepare-dependencies.sh"
+      ],
+      "path": ".local/gate-6/replacement-core-final-dependencies.log",
+      "exit_code": 0,
+      "sha256": "fd9d7b181e3ccba9b643af55a186cf132c60aac99c734b2ee4e4e549afe5ffc2"
+    },
+    {
+      "name": "diff",
+      "command": [
+        "git",
+        "diff",
+        "--check"
+      ],
+      "path": ".local/gate-6/replacement-core-final-diff.log",
+      "exit_code": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ],
+  "fresh_tests_excluding_overlapping_selected_run": 683,
+  "ignored_tests": "Three standalone Store crash helpers are ignored as individual cases and invoked by their passing parent tests.",
+  "implemented": [
+    "Exact current independent operator, original native source and retained authority feed Prepare-only ParticipantReplacementControl.",
+    "One durable begin invokes one real Core owned DeviceReplacementPreparation. Actual binding/appearance/role are captured; recording retries never invoke Core again.",
+    "No authority reader survives in the ticket or worker between bounded actions; nonblocking current polling tolerates transient writer contention.",
+    "Public cancel, current controller revocation and provisioned target revocation cancel only the actual uncommitted preparation; original native media and roles remain intact.",
+    "Idempotent protected local-stop capture is allowed after controller revocation and refuses if any non-prepare step began.",
+    "Definitive exact-command refusal before reservation cannot close reserved or possibly invoked work.",
+    "Ordinary native preparation cannot take a replacement-reserved logical candidate ID before or after cancellation.",
+    "Released Core preparation capacity is reused by a distinct later root in both speaking and observer scenarios. Reserved candidate IDs remain tombstoned."
+  ],
+  "unqualified": [
+    "Target signed allocation and replacement binding lineage/generation adoption",
+    "Independent allocate/start/commit attempt APIs",
+    "Actual isolated target duplex and trusted configured answer/DTMF",
+    "Managed movement commit, native confirmation, durable projection and intended old-source retirement",
+    "No-answer, voicemail, rejected confirmation, callback timeout, unknown submission/no redial and complete late-event/restart matrix",
+    "Gate6 acceptance, remote/provider/performance scopes and publication"
+  ],
+  "source_inputs": {
+    "path": ".local/gate-6/replacement-core-inputs.json",
+    "sha256": "e5c301869e067837631ba39030e242f2d87c28696fe72ba3f19ab3f366d20f9b"
+  },
+  "source_input_count": 1302,
+  "prior_custody_report": {
+    "path": "docs/evidence/gate-6/native-replacement-preparation-custody.json",
+    "sha256": "30e2256fc440eb48fac089e38287af0fa8f2cc3cc9bade6306cc37ac5fdaecce"
+  },
+  "all_105_tasks_remain_in_scope": true,
+  "goal_status": "active",
+  "task_counts": {
+    "done": 40,
+    "in_progress": 1,
+    "not_started": 64,
+    "acceptance_closed": 0
+  },
+  "progress_check": {
+    "command": [
+      "python3",
+      "scripts/check-gate6-progress.py"
+    ],
+    "exit_code": 0,
+    "path": ".local/gate-6/replacement-core-progress.log",
+    "sha256": "3c9a42760866b510a9b7fc81b2b57b9bf6791a239d0bf0de8cdf06058e513f78"
+  },
+  "post_test_plan_delta": {
+    "docs/connect-gate-6-implementation.html": {
+      "before": "d8ffad11afb8987c1e06e5f2622fdc7c0a8f3bb7708fdcad75540dc828a69663",
+      "after": "e1bebf86427df5173402b86d17e9da4bbf3dc4065c38e651e3305eb37cac5494"
+    }
+  }
+}

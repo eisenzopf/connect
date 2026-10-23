@@ -138,7 +138,7 @@ class Journey:
 
     def send(self, role, cid, request_id, body):
         return self.request(role, {'op': 'send', 'request_id': request_id,
-            'conversation_id': cid, 'body': json.dumps(body)})
+            'conversation_id': cid, "message": {'to': 'all', 'content_type': 'text/plain', 'body': json.dumps(body), 'body_encoding': 'utf8', 'label': 'connect-messages', 'attachments': [], 'in_reply_to_msg': None, 'msg_id': None}})
 
     def history(self, role, cid):
         return self.request(role, {'op': 'history', 'conversation_id': cid,

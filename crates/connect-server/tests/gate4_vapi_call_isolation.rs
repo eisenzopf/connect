@@ -137,7 +137,7 @@ async fn concurrent_first_calls_and_identical_tool_intents_stay_bound_to_their_o
         assert_eq!(status.structured_content.unwrap()["data"]["id"], task.id);
     }
     isolation::cross_denials(&f, &first_post, &second_post, [&first_dir, &second_dir]).await;
-    let args = json!({"request_id":"same-tool-intent","step_id":"draft","body":"Own task draft"})
+    let args = json!({"request_id":"same-tool-intent","step_id":"draft","message": connect_protocol::messages::MessageDraft::text_all(("Own task draft").to_string())})
         .as_object()
         .unwrap()
         .clone();
@@ -176,7 +176,7 @@ async fn concurrent_first_calls_and_identical_tool_intents_stay_bound_to_their_o
     for (tool, other) in [(&tools_one, &task_two), (&tools_two, &f.task)] {
         let arguments = json!({
             "request_id": "foreign-task", "step_id": "draft",
-            "body": "Forbidden draft", "task_id": other.id
+            "message": connect_protocol::messages::MessageDraft::text_all(("Forbidden draft").to_string()), "task_id": other.id
         });
         let result = tool
             .call_tool(

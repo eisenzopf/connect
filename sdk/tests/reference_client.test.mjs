@@ -86,10 +86,10 @@ const storage = () => {const values=new Map();return {getItem:k=>values.get(k)??
 test('reference client reuses saved mutation identity after lost acknowledgement and reload',async()=>{
  const saved=storage(), submitted=[];
  const client={request:async op=>{submitted.push(op);if(submitted.length===1)throw Error('lost ack');return {kind:'message',data:{id:'one'}};}};
- const input={op:'send',conversation_id:'c',body:'one'};
+ const input={op:'send',conversation_id:'c',message:{to:'all',content_type:'text/plain',body:'one',body_encoding:'utf8',label:'connect-messages',attachments:[],in_reply_to_msg:null,msg_id:null}};
  await assert.rejects(new IntentJournal(saved,'identity').run(client,'send:c',input),/lost ack/);
  const reloaded=new IntentJournal(saved,'identity');
- await assert.rejects(reloaded.run(client,'send:c',{...input,body:'different'}),/unresolved/);
+ await assert.rejects(reloaded.run(client,'send:c',{...input,message:{...input.message,body:'different'}}),/unresolved/);
  await reloaded.retry(client);
  assert.deepEqual(submitted[0],submitted[1]);
  await reloaded.run(client,'send:c',input); assert.equal(submitted.length,2);
@@ -139,7 +139,7 @@ test('actual reference UI continues history, exposes failed context receipts and
 });
 test('definite initial rejection permits corrected input; denial after uncertainty preserves intent',async()=>{
  const saved=storage(),journal=new IntentJournal(saved,'identity');
- const input={op:'send',conversation_id:'c',body:'too large'};
+ const input={op:'send',conversation_id:'c',message:{to:'all',content_type:'text/plain',body:'too large',body_encoding:'utf8',label:'connect-messages',attachments:[],in_reply_to_msg:null,msg_id:null}};
  const denied=async()=>{throw Object.assign(Error('invalid'),{code:'invalid-request'});};
  await assert.rejects(journal.run({request:denied},'send:c',input));
  assert.deepEqual(journal.read(),{});

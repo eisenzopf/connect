@@ -8,6 +8,15 @@
     "op": "send",
     "request_id": "send-1",
     "conversation_id": "conversation-1",
-    "body": "Review the draft"
+    "message": {
+      "to": "all",
+      "content_type": "text/plain",
+      "body": "Review the draft",
+      "body_encoding": "utf8",
+      "label": "connect-messages",
+      "attachments": [],
+      "in_reply_to_msg": null,
+      "msg_id": null
+    }
   }
 }

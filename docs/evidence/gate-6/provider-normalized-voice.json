@@ -1,0 +1,291 @@
+{
+  "kind": "gate6-component-evidence",
+  "task": "G6-044",
+  "status": "in-progress",
+  "component_passed": true,
+  "recorded_at": "2026-10-21T00:03:10.316122+00:00",
+  "platform": {
+    "system": "Darwin",
+    "machine": "arm64"
+  },
+  "schema_version": 64,
+  "pinned_patches": 124,
+  "source_lock": {
+    "path": "dependencies/source-lock.json",
+    "sha256": "5d120c35bb38597b4ddc12292dc770856ea09c084c0d4065e373dcd61e379826"
+  },
+  "qualification_inputs": {
+    "path": ".local/gate-6/provider-normalized-inputs-qualified.json",
+    "sha256": "21b9a67d33bb62d4e48819fcb6d8ec220717738f4e8194ce4f146a46bbb1614e",
+    "paths": 943
+  },
+  "fresh_distinct_passed_tests": 93,
+  "verification": [
+    {
+      "label": "connector receipt contract",
+      "passed": 4,
+      "failed": 0,
+      "ignored": 0,
+      "tests": [
+        "invalid_mutation_never_reaches_transport",
+        "discovery_returns_attributed_unbound_receipts_and_preserves_decoder_failure",
+        "normalization_failure_after_possible_io_remains_uncertain",
+        "successful_receipts_keep_logical_binding_and_status_is_reconciliation"
+      ],
+      "log": {
+        "path": ".local/gate-6/provider-normalized-inbound-api.log",
+        "sha256": "4e1163b3d6adbfa54322277d15758273d4da820fcb562b26ef3d84d223f959c7"
+      },
+      "binary": {
+        "path": "target/debug/deps/voice_receipts-39d3c15f74b17588",
+        "sha256": "e75b95d19050b7aeaa71db58c59804bd8c35fffc95c879d2bd9a6dc52c5ecc16"
+      }
+    },
+    {
+      "label": "Store telephone lifecycle and atomic import",
+      "passed": 11,
+      "failed": 0,
+      "ignored": 0,
+      "tests": [
+        "end_dispatch_uses_the_current_authority_of_the_actual_requester",
+        "call_metadata_is_covered_by_verified_backup",
+        "end_intent_survives_a_racing_poll_and_uncertain_end_is_not_repeated",
+        "inbound_import_atomically_binds_typed_receipt_and_rechecks_replays",
+        "inbound_import_refuses_unverified_mismatched_and_invalid_receipts_without_effects",
+        "inbound_is_deduplicated_scoped_recoverable_and_not_a_dial",
+        "inbound_projection_storage_failure_rolls_back_call_and_journal",
+        "inbound_scan_watermark_is_durable_and_rechecked_on_commit",
+        "pending_end_cancels_without_provider_effect_and_journal_snapshots_are_immutable",
+        "replay_is_one_start_and_crash_is_never_redialed",
+        "voice_requires_grant_destination_membership_and_current_dispatch_authority"
+      ],
+      "log": {
+        "path": ".local/gate-6/provider-normalized-inbound-store.log",
+        "sha256": "1c673f9543e8cfaae9c888655aa994c280aa936377ae4ef4468f8d445434f932"
+      },
+      "binary": {
+        "path": "target/debug/deps/voice-e5a7480f233184f7",
+        "sha256": "c530008d5e8d123b9d729c92c8c3ac49ad9879554dc3d228f8bbd79078a03d1e"
+      }
+    },
+    {
+      "label": "typed worker lifecycle and discovery",
+      "passed": 5,
+      "failed": 0,
+      "ignored": 0,
+      "tests": [
+        "discovery_decoder_failure_keeps_scan_cursor_without_import_or_dial",
+        "discovery_imports_terminal_typed_receipt_once_without_dial_and_replays_on_restart",
+        "failed_normalization_after_start_is_uncertain_and_restart_never_redials",
+        "missing_start_capability_refuses_before_io_and_records_typed_failure",
+        "worker_uses_declared_receipts_for_start_status_end_and_replays_once"
+      ],
+      "log": {
+        "path": ".local/gate-6/provider-normalized-inbound-worker-final.log",
+        "sha256": "1a9807f6587aa28a38b791f0fedcca8456726d24efaac1aa71baf025947d07ef"
+      },
+      "binary": {
+        "path": "target/debug/deps/gate6_voice_worker-ada56d678d9efdcd",
+        "sha256": "a0aad5e92cf6a9e1d2d77f019e1b1f83cf9b0439cf9cf4647245538fd4c94baa"
+      }
+    },
+    {
+      "label": "task cancellation and independent owner hangup",
+      "passed": 1,
+      "failed": 0,
+      "ignored": 0,
+      "tests": [
+        "cancelled_task_has_no_provider_effect_and_fresh_owner_hangup_still_works"
+      ],
+      "log": {
+        "path": ".local/gate-6/provider-normalized-inbound-authority.log",
+        "sha256": "a7168787b86ccf039a8093c83829a091322055047b2fc53e42b26bd5e15ad298"
+      },
+      "binary": {
+        "path": "target/debug/deps/gate4_voice_authority-dd5f23d36b1af22d",
+        "sha256": "df742bedd62ac9f713989e0c83726b79c1c3b6579b62d98902934e9e279b35af"
+      }
+    },
+    {
+      "label": "actual connector API fixtures",
+      "passed": 9,
+      "failed": 0,
+      "ignored": 0,
+      "tests": [
+        "chat_context::tests::context_requires_a_system_prompt_variable",
+        "vapi_endpoint::tests::accepts_secure_or_explicit_loopback_origins_only",
+        "voice::inbound_tests::discovery_uses_scoped_filters_and_rejects_truncated_history",
+        "voice::tests::control_capability_is_bound_to_provider_call",
+        "voice_native_setup::tests::exclusively_owned_application_gets_the_owned_outbound_profile",
+        "voice::inbound_tests::saturated_windows_split_without_losing_timestamp_ties_or_ids",
+        "voice_native_setup::tests::shared_application_is_read_only_and_retains_its_existing_limits",
+        "voice_setup::tests::names_are_bounded_stable_and_distinct",
+        "voice_native_setup::tests::selected_integration_key_is_transient_even_when_creation_is_uncertain"
+      ],
+      "log": {
+        "path": ".local/gate-6/provider-normalized-connector-units.log",
+        "sha256": "4ee987f028f9cbb9eed4214ccbd796cc067a2bd81303969133546b99f6bc5567"
+      },
+      "binary": {
+        "path": "target/debug/deps/connect_connectors-211d20a3d2cfd14e",
+        "sha256": "8a7832a8885c2afbb28e9733e446db11a7e1d239a2ccd78706c4ff6384a04723"
+      }
+    },
+    {
+      "label": "server units including SIP/provider cleanup",
+      "passed": 63,
+      "failed": 0,
+      "ignored": 0,
+      "tests": [
+        "agent_observations::tests::undeclared_model_capabilities_publish_unavailable_without_untrusted_body",
+        "agent_observations::tests::stalled_capture_queue_drops_without_blocking_and_next_delivery_reports_exact_loss",
+        "canonical::tests::configuration_errors_do_not_echo_private_file_contents",
+        "cli::agent_access::tests::changed_credential_assets_or_access_mode_cannot_resume_an_existing_installation",
+        "cli::agent_access::tests::export_rejects_admin_revoked_and_mismatched_authority_before_creating_output",
+        "cli::agent_access::tests::identity_setup_replays_original_receipt_and_denies_conflict_or_non_admin",
+        "cli::agent_access::tests::regular_export_keeps_one_agent_key_without_task_grants_or_admin_secret",
+        "cli::agent_access::tests::removal_deletes_only_verified_connect_configuration_and_preserves_other_files",
+        "cli::agent_access::tests::regular_host_resumes_exact_session_and_redacts_its_key_without_grant_refresh",
+        "cli::canonical_init::tests::destination_created_after_preflight_is_preserved_even_when_empty",
+        "cli::media_stdio::tests::framing_is_bounded_and_binary_safe",
+        "cli::media_stdio::tests::input_reader_preserves_a_frame_when_next_is_cancelled",
+        "cli::task_access::codex_host::diagnostics::tests::concurrent_state_change_never_combines_session_metadata_or_retains_probe_lock",
+        "cli::task_access::codex_host::group_status::tests::native_snapshot_rejects_live_group_and_accepts_its_unreaped_zombie",
+        "cli::vapi_task::manifest::tests::rejects_ambiguous_modes_public_binding_and_callback_credentials",
+        "cli::vapi_task::manifest::tests::rejects_oversized_or_nonregular_private_inputs",
+        "cli::vapi_task::manifest::tests::supported_modes_resolve_state_beside_private_manifest",
+        "config::tests::outbound_sip_fields_reject_ambiguous_input",
+        "config::tests::wildcard_sip_requires_a_concrete_media_bind_interface",
+        "media_transports::tests::outbound_trunk_fails_closed_without_a_password",
+        "media_transports::tests::outbound_trunk_uses_environment_secret_without_logging_it",
+        "private_vapi::audio::tests::expired_partial_speech_cannot_be_combined_with_a_fresh_provider_message",
+        "private_vapi::audio::tests::forwarding_stall_expires_complete_speech_and_replaces_it_with_silence",
+        "private_vapi::audio::tests::provider_message_boundaries_do_not_split_pcmu_frames",
+        "private_vapi::audio::tests::queued_audio_keeps_only_the_newest_bounded_frames_and_partial",
+        "private_vapi::transcripts::tests::archive_retries_same_callback_only_after_busy_store_result",
+        "private_vapi::transcripts::tests::cancellation_drains_admitted_write_and_does_not_start_queued_callback",
+        "cli::agent_access::tests::unknown_host_or_missing_model_auth_preserves_installation_and_does_not_launch",
+        "private_vapi::transport::tests::private_receiver_must_bind_the_captured_call_and_exact_configured_origin",
+        "private_vapi::transport::tests::private_transport_requires_explicit_secure_or_numeric_loopback_origins",
+        "private_vapi::transcripts::tests::pending_archive_does_not_block_media_ticks_and_preserves_order_and_capacity",
+        "registration_monitor::tests::accepted_lease_refreshes_after_idle_and_rejected_refresh_can_recover_on_restart",
+        "secrets::tests::explicit_missing_or_locked_provider_reference_cannot_read_ambient_key",
+        "secrets::tests::provider_api_key_whitespace_preserves_legacy_headers_and_password_bytes",
+        "secrets::tests::references_and_debug_never_contain_secret_values",
+        "setup_vault::discovery_tests::unselected_provider_credentials_are_never_resolved",
+        "sip_outbound::tests::a_late_worker_outcome_cannot_replace_an_observed_terminal_connection",
+        "sip_outbound::tests::cancellation::active_hangup_waits_for_cleanup_and_keeps_failure_uncertain",
+        "sip_outbound::tests::cancellation::cancellation_callback_and_successful_cleanup_have_one_result_in_either_order",
+        "sip_outbound::tests::cancellation::cancellation_callback_cannot_conceal_failed_cleanup_in_either_order",
+        "sip_outbound::tests::cancellation::cancellation_event_for_an_active_leg_without_owned_cleanup_settles_ended",
+        "registration_monitor::tests::dropped_refresh_does_not_leave_an_expired_binding_ready",
+        "sip_outbound::tests::failed_cancellation_cleanup_is_uncertain_and_cannot_be_redispatched",
+        "sip_outbound::tests::lost_authority_during_activation_runs_cleanup_and_persists_cancellation",
+        "sip_outbound::tests::cancellation::normal_remote_end_and_failure_remain_authoritative_during_cancellation",
+        "sip_registration::tests::carrier_registration_authenticates_and_shutdown_removes_binding",
+        "sip_registration::tests::rejected_registration_does_not_report_ready",
+        "sms_authority::synchronization_tests::authenticated_snapshot_rejects_redirects_and_revision_replay",
+        "sms_authority::tests::reject_unsafe_authority_configuration",
+        "startup::tests::failed_startup_releases_endpoint_owned_by_a_pending_accept_task",
+        "startup::tests::successful_startup_keeps_accept_open_for_runtime_ownership",
+        "transports::http::tests::browser_origins_are_limited_to_loopback_http",
+        "vapi_bootstrap::call_failure::tests::diagnostics_expose_only_the_stage_even_with_a_sensitive_cause",
+        "vapi_bootstrap::voice_model::tests::absent_tools_are_supported_but_malformed_saved_models_are_rejected",
+        "vapi_bootstrap::voice_model::tests::scoped_mcp_discovery_preserves_saved_model_and_other_tools",
+        "vapi_observer::tests::cancelling_observer_drain_does_not_detach_the_receiver",
+        "vapi_observer::tests::queued_provider_report_is_not_replaced_by_missing_status",
+        "vapi_observer::tests::teardown_drains_queued_transcripts_and_records_missing_report",
+        "worker::tests::cancelling_shutdown_aborts_owned_tasks",
+        "worker::tests::failure_does_not_detach_a_stalled_sibling",
+        "worker::tests::panic_is_reported_and_other_tasks_are_still_drained",
+        "worker::tests::supervised_panic_wakes_readiness_without_waiting_for_shutdown",
+        "sip_outbound::tests::stalled_cancellation_cleanup_is_bounded_and_does_not_detach_activation"
+      ],
+      "log": {
+        "path": ".local/gate-6/provider-normalized-server-units.log",
+        "sha256": "4497c739fb71c0803faa63e9fba935a849caf06207d61d66745cd291fc32b79d"
+      },
+      "binary": {
+        "path": "target/debug/deps/connect_server-616f548a437d1869",
+        "sha256": "23928e2ccdea84bd24e9a289f95047463431b5e17230718910c990d45727b0a0"
+      }
+    }
+  ],
+  "changes": [
+    "Telephone worker requires a validated declared manifest before recovery/claims, has one with_driver composition and always applies normalized start/status/end receipts; removed optional manifest/normalized flag/with_observed_driver/raw dispatch branch.",
+    "Required adapter normalizer and manifest replace permissive defaults. Logical IDs are bounded before transport. Decoder failure after possible start/end/status transport becomes uncertain, including a local decoder rejection. Restart never redials an uncertain start.",
+    "Read-only inbound discovery returns InboundVoiceReceipt with external call data, normalized voice state, stable event ID and reconciliation provenance. It has no local logical mutation ID; the authorized Store import mints and binds that ID inside its transaction.",
+    "Inbound import rejects local-attempt provenance, mismatched carrier/typed state and invalid event IDs. Current ingress credential/route/assistant/phone/caller/time/conversation checks precede duplicate handling. Projection, local call and journal commit together. Projection storage failure rolls back the whole import; retry creates one call.",
+    "Discovery decoder failure preserves scan cursor without importing or dialing. Repeated terminal inbound discovery and worker restart produce one typed terminal call and zero outbound starts. Existing status polling owns later updates.",
+    "Updated connector contract and affected fixture implementations. Raw transport methods remain adapter primitives, not an alternate worker dispatch. No retired public call API was restored."
+  ],
+  "unresolved_checks": [
+    {
+      "label": "retired public voice_flow fixture",
+      "passed": 0,
+      "failed": 5,
+      "tests": [
+        "inbound_discovery_reaches_native_sdk_and_restart_never_redials",
+        "normalized_voice_without_discovery_does_not_call_inbound_but_retains_outbound_control",
+        "quic_http_replay_starts_once_and_end_reaches_journal",
+        "normalized_voice_without_start_refuses_creation_but_retains_inbound_status_and_cleanup",
+        "uncertain_provider_start_is_never_retried_after_worker_restart"
+      ],
+      "reason": "All five cases fail at ConnectClient::create with unsupported-command: Use the canonical command API. These public intent cases still require migration together with actual generic provider/endpoint integration; backend fixtures do not replace that requirement.",
+      "log": {
+        "path": ".local/gate-6/provider-normalized-inbound-retired-public-flow.log",
+        "sha256": "dd7d2442538e067b29ae23ff336ad7fca7c3e57474f1b53a1c5aa225d3bdfd8f"
+      },
+      "binary": {
+        "path": "target/debug/deps/voice_flow-efcbccbc67774352",
+        "sha256": "c2abb11e2d675f4e940536a1d17ffa784951f71b66429664b3114b6b43b6138c"
+      }
+    }
+  ],
+  "scope": "Bounded local macOS arm64 telephone receipt and discovery component. G6-044 as a whole and all acceptance remain unqualified. No new public HTTP operation or OpenAPI shape was introduced.",
+  "remaining": [
+    "Automatic stock public Vapi job installation and owned supervision on the canonical runtime.",
+    "Complete generic operation/endpoint policy linkage for Vapi voice/chat, SIP/Telnyx telephone and SMS, current reconciliation and truthful capability limitations; remove remaining application-specific public handoff and legacy dispatch paths.",
+    "Migrate and execute all five public voice behavior cases on canonical API, with actual public provider endpoints, rather than legacy command fallback.",
+    "Complete approved outbound/inbound/private fanout/cancel/uncertain/duplicate/transcript/teardown matrix and preserve callback verification and SMS enrollment."
+  ],
+  "live_proofs_to_rerun": "Vapi telephone outbound/inbound, lost create response and decoder uncertainty, duplicate discovery/callback, cancel/restart and teardown under G6-093 concrete bounded configuration and designated test endpoints. Existing private-archive proof requirements and the unexplained one-frame incident remain unchanged.",
+  "not_run": [
+    "Full workspace and full Store suite after this component",
+    "Actual native/provider context lifecycle rerun after these telephone-only edits",
+    "Linux x86_64/browser/remote/installed-package and named live-provider lanes",
+    "Publication or independent acceptance"
+  ],
+  "builds": [
+    {
+      "path": ".local/gate-6/provider-normalized-prepare.log",
+      "sha256": "fd9d7b181e3ccba9b643af55a186cf132c60aac99c734b2ee4e4e549afe5ffc2"
+    },
+    {
+      "path": ".local/gate-6/provider-normalized-format.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": ".local/gate-6/provider-normalized-inbound-build.log",
+      "sha256": "bd91e067dac101cd1b61d05759309bbef121bff0cb8438f2e0b8f5a5ea44f007"
+    },
+    {
+      "path": ".local/gate-6/provider-normalized-units-build.log",
+      "sha256": "85106dd182cf0d7dab7df70f727fd7fa1e54dc59261ae55e0dad0318febededc"
+    },
+    {
+      "path": ".local/gate-6/provider-normalized-final-build.log",
+      "sha256": "b6223216bc1c2d4a305d9a448c571af61074e336c35580fa9c2ae7da434b4483"
+    }
+  ],
+  "prior_component": {
+    "path": "docs/evidence/gate-6/provider-private-archive.json",
+    "sha256": "07f7876a24001744ab2778e5a1c2d9b7da00ec61131b8e14714ef2b4d5695a9e"
+  },
+  "gate_counts": {
+    "done": 43,
+    "in_progress": 1,
+    "not_started": 61,
+    "acceptance_qualified": 0
+  }
+}

@@ -1,0 +1,441 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Connect local record mutations",
+    "version": "connect/2",
+    "description": "Named HTTP application API for current metadata outcome records; no physical-peer grant. Local erasure preserves private replay authority facts and reports remote_deletion:not-attempted. Publication, remote operating profiles and full G6-046 qualification are separate."
+  },
+  "paths": {
+    "/v2/records/{uuid}/mutations": {
+      "post": {
+        "operationId": "mutateRecord",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "uuid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "not": {
+                "const": "00000000-0000-0000-0000-000000000000"
+              },
+              "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+            }
+          }
+        ],
+        "description": "Authentication precedes parsing. Route and body UUID must agree. Ordinary callers require record_get and record_redact/record_delete plus current original Session source access; selected and actual dependency changes must all be authorized. Independent installation erasure requires current admin and record_admin plus the action permission. Neither membership nor role labels alone grants mutation. Expected revision binds the original intent without exposing full canonical hashes. Replays bind original identity and exact request (including array order), recheck current permissions/recipient ceilings/source epochs and return the original fact even after later deletion. Successful record availability journal hints commit atomically; replay appends none. Core canonical/dependency validation remains required. No provider deletion or physical disk sanitization is asserted.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Request"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Original local mutation committed, or its exact receipt recovered under current authority.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Response"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid bounded request, malformed input or unsupported canonical redaction.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Response"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Current credential unavailable.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Response"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Named permission or current source footprint denied; unknown and unauthorized semantic source selectors share this refusal.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Response"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Record or scope unavailable.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Response"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Original actor/intent or expected revision conflicts.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Response"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Encoded body exceeds64KiB.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Response"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Mutation or journal capacity exhausted; transaction unchanged.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Response"
+                }
+              }
+            }
+          },
+          "501": {
+            "description": "Record mutation policy unavailable.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Response"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Authority/storage unavailable or acceptance uncertain. Preserve original operation ID and complete request.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Response"
+                }
+              }
+            }
+          }
+        },
+        "x-max-request-bytes": 65536,
+        "x-deadline-seconds": 5,
+        "x-cache-control": "no-store"
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer"
+      }
+    },
+    "schemas": {
+      "Request": {
+        "type": "object",
+        "properties": {
+          "operation_id": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9._~-]{1,128}$"
+          },
+          "conversation_id": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9._~-]{1,128}$"
+          },
+          "session_id": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9._~-]{1,128}$"
+          },
+          "uuid": {
+            "type": "string",
+            "format": "uuid",
+            "not": {
+              "const": "00000000-0000-0000-0000-000000000000"
+            },
+            "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+          },
+          "expected_revision": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9007199254740990
+          },
+          "action": {
+            "oneOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "kind": {
+                    "const": "redact"
+                  },
+                  "sources": {
+                    "type": "array",
+                    "minItems": 1,
+                    "maxItems": 128,
+                    "uniqueItems": true,
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "target": {
+                          "oneOf": [
+                            {
+                              "type": "object",
+                              "properties": {
+                                "kind": {
+                                  "const": "document"
+                                }
+                              },
+                              "required": [
+                                "kind"
+                              ],
+                              "additionalProperties": false
+                            },
+                            {
+                              "type": "object",
+                              "properties": {
+                                "kind": {
+                                  "const": "session-outcome"
+                                }
+                              },
+                              "required": [
+                                "kind"
+                              ],
+                              "additionalProperties": false
+                            },
+                            {
+                              "type": "object",
+                              "properties": {
+                                "kind": {
+                                  "const": "capture-diagnostics"
+                                }
+                              },
+                              "required": [
+                                "kind"
+                              ],
+                              "additionalProperties": false
+                            },
+                            {
+                              "type": "object",
+                              "properties": {
+                                "kind": {
+                                  "const": "participant"
+                                },
+                                "participant_id": {
+                                  "type": "string",
+                                  "pattern": "^[A-Za-z0-9._~-]{1,128}$"
+                                },
+                                "membership_epoch": {
+                                  "type": "integer",
+                                  "minimum": 1,
+                                  "maximum": 9007199254740991
+                                }
+                              },
+                              "required": [
+                                "kind",
+                                "participant_id",
+                                "membership_epoch"
+                              ],
+                              "additionalProperties": false
+                            },
+                            {
+                              "type": "object",
+                              "properties": {
+                                "kind": {
+                                  "const": "connection"
+                                },
+                                "connection_id": {
+                                  "type": "string",
+                                  "pattern": "^[A-Za-z0-9._~-]{1,128}$"
+                                },
+                                "generation": {
+                                  "type": "integer",
+                                  "minimum": 1,
+                                  "maximum": 9007199254740991
+                                }
+                              },
+                              "required": [
+                                "kind",
+                                "connection_id",
+                                "generation"
+                              ],
+                              "additionalProperties": false
+                            }
+                          ]
+                        },
+                        "mode": {
+                          "enum": [
+                            "content",
+                            "metadata"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "target",
+                        "mode"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "x-unique-targets": true
+                  }
+                },
+                "required": [
+                  "kind",
+                  "sources"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "kind": {
+                    "const": "delete"
+                  }
+                },
+                "required": [
+                  "kind"
+                ],
+                "additionalProperties": false
+              }
+            ]
+          }
+        },
+        "required": [
+          "operation_id",
+          "conversation_id",
+          "session_id",
+          "uuid",
+          "expected_revision",
+          "action"
+        ],
+        "additionalProperties": false
+      },
+      "Outcome": {
+        "type": "object",
+        "properties": {
+          "operation_id": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9._~-]{1,128}$"
+          },
+          "uuid": {
+            "type": "string",
+            "format": "uuid",
+            "not": {
+              "const": "00000000-0000-0000-0000-000000000000"
+            },
+            "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+          },
+          "revision": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9007199254740991
+          },
+          "action": {
+            "enum": [
+              "redact",
+              "delete"
+            ]
+          },
+          "at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "remote_deletion": {
+            "const": "not-attempted"
+          }
+        },
+        "required": [
+          "operation_id",
+          "uuid",
+          "revision",
+          "action",
+          "at",
+          "remote_deletion"
+        ],
+        "additionalProperties": false
+      },
+      "Response": {
+        "type": "object",
+        "properties": {
+          "profile": {
+            "const": "connect/2"
+          },
+          "result": {
+            "oneOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "Ok": {
+                    "$ref": "#/components/schemas/Outcome"
+                  }
+                },
+                "required": [
+                  "Ok"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "Err": {
+                    "$ref": "#/components/schemas/Error"
+                  }
+                },
+                "required": [
+                  "Err"
+                ],
+                "additionalProperties": false
+              }
+            ]
+          }
+        },
+        "required": [
+          "profile",
+          "result"
+        ],
+        "additionalProperties": false
+      },
+      "Error": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "maxLength": 128
+          },
+          "message": {
+            "type": "string",
+            "maxLength": 2048
+          }
+        },
+        "required": [
+          "code",
+          "message"
+        ],
+        "additionalProperties": false
+      }
+    }
+  }
+}

@@ -96,13 +96,13 @@ async def qualify(state, binary, observations=None):
             conversation = await independent.request({'op': 'create', 'request_id': 'independent-create',
                                                         'participants': [identity['data']['id']]})
             cid = conversation['data']['id']
-            send = {'op': 'send', 'request_id': 'independent-send', 'conversation_id': cid, 'body': 'independent hello'}
+            send = {'op': 'send', 'request_id': 'independent-send', 'conversation_id': cid, "message": {'to': 'all', 'content_type': 'text/plain', 'body': 'independent hello', 'body_encoding': 'utf8', 'label': 'connect-messages', 'attachments': [], 'in_reply_to_msg': None, 'msg_id': None}}
             receipt = await independent.request(send)
             assert receipt['kind'] == 'accepted'
             first_inbox = native(state, {'op': 'inbox', 'cursor': None, 'limit': 100, 'wait_ms': 0}, binary)['result']['Ok']['data']
             message_events = [e for e in first_inbox['events'] if e.get('message') and e['message']['id'] == receipt['data']['message_id']]
             assert len(message_events) == 1
-            native_reply = native(state, {'op': 'send', 'request_id': 'native-reply', 'conversation_id': cid, 'body': 'native reply'}, binary)['result']['Ok']
+            native_reply = native(state, {'op': 'send', 'request_id': 'native-reply', 'conversation_id': cid, "message": {'to': 'all', 'content_type': 'text/plain', 'body': 'native reply', 'body_encoding': 'utf8', 'label': 'connect-messages', 'attachments': [], 'in_reply_to_msg': None, 'msg_id': None}}, binary)['result']['Ok']
             page = await independent.request({'op': 'inbox', 'cursor': None, 'limit': 100, 'wait_ms': 0})
             events = page['data']['events']
             assert any(e.get('message') and e['message']['id'] == native_reply['data']['message_id'] for e in events)
@@ -112,8 +112,8 @@ async def qualify(state, binary, observations=None):
             assert await independent.request(send) == receipt
             await expect_error(independent, dict(send, body='conflicting replay'), 'conflict')
             await expect_error(independent, {'op': 'resolve', 'address': 'connect:operator@local'}, 'forbidden')
-            await expect_error(independent, {'op': 'send', 'request_id': 'foreign-send', 'conversation_id': 'foreign-conversation', 'body': 'denied'}, 'forbidden')
-            await expect_error(independent, {'op': 'send', 'request_id': 'large-send', 'conversation_id': cid, 'body': 'x' * 16385}, 'invalid-request')
+            await expect_error(independent, {'op': 'send', 'request_id': 'foreign-send', 'conversation_id': 'foreign-conversation', "message": {'to': 'all', 'content_type': 'text/plain', 'body': 'denied', 'body_encoding': 'utf8', 'label': 'connect-messages', 'attachments': [], 'in_reply_to_msg': None, 'msg_id': None}}, 'forbidden')
+            await expect_error(independent, {'op': 'send', 'request_id': 'large-send', 'conversation_id': cid, "message": {'to': 'all', 'content_type': 'text/plain', 'body': 'x' * 16385, 'body_encoding': 'utf8', 'label': 'connect-messages', 'attachments': [], 'in_reply_to_msg': None, 'msg_id': None}}, 'invalid-request')
             await expect_error(independent, {'op': 'health', 'unrecognized': True}, 'invalid-request')
             vectors = json.loads((ROOT / 'contracts/fixtures/wire/rejections-v1.json').read_text())['vectors']
             for vector in vectors:
@@ -127,7 +127,7 @@ async def qualify(state, binary, observations=None):
         # Independent incoming contact creates another conversation while peer is offline.
         observations['stage'] = 'incoming-and-cursor-reconnect'
         incoming = native(state, {'op': 'create', 'request_id': 'native-create', 'participants': [tomllib.loads(config.read_text())['identity_id']]}, binary)['result']['Ok']['data']['id']
-        incoming_receipt = native(state, {'op': 'send', 'request_id': 'incoming-contact', 'conversation_id': incoming, 'body': 'independently initiated'}, binary)['result']['Ok']['data']
+        incoming_receipt = native(state, {'op': 'send', 'request_id': 'incoming-contact', 'conversation_id': incoming, "message": {'to': 'all', 'content_type': 'text/plain', 'body': 'independently initiated', 'body_encoding': 'utf8', 'label': 'connect-messages', 'attachments': [], 'in_reply_to_msg': None, 'msg_id': None}}, binary)['result']['Ok']['data']
         async with open_client(config, packet_trace) as resumed:
             page = await resumed.request({'op': 'inbox', 'cursor': cursor, 'limit': 100, 'wait_ms': 0})
             resumed_events = page['data']['events']
@@ -162,7 +162,7 @@ async def qualify(state, binary, observations=None):
     observations['stage'] = 'server-restart-readiness'
     with Server(state, binary=binary, log_path=state.parent / 'server-restart.log'):
         observations['stage'] = 'restart-cursor-replay-and-current-authority'
-        after_restart = native(state, {'op': 'send', 'request_id': 'native-after-restart', 'conversation_id': incoming, 'body': 'after restart'}, binary)['result']['Ok']['data']
+        after_restart = native(state, {'op': 'send', 'request_id': 'native-after-restart', 'conversation_id': incoming, "message": {'to': 'all', 'content_type': 'text/plain', 'body': 'after restart', 'body_encoding': 'utf8', 'label': 'connect-messages', 'attachments': [], 'in_reply_to_msg': None, 'msg_id': None}}, binary)['result']['Ok']['data']
         async with open_client(config, packet_trace) as restarted:
             restart_page = await restarted.request({'op': 'inbox', 'cursor': resumed_cursor, 'limit': 100, 'wait_ms': 0})
             assert any(e.get('message') and e['message']['id'] == after_restart['message_id'] for e in restart_page['data']['events'])

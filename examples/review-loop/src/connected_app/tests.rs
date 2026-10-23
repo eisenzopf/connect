@@ -90,7 +90,7 @@ fn full_command_ledger_preserves_existing_exact_intent() {
     let store = AppStore::open(&path, &config, &policy).unwrap();
     let original = Operation::Create {
         request_id: "original".into(),
-        participants: vec!["peer".into()],
+        request: connect_client::conversations::CreateRequest::persistent(vec!["peer".into()]),
     };
     ledger::insert(&store.connection, "same-key", &original).unwrap();
     store.connection.execute_batch("WITH RECURSIVE n(i) AS (SELECT 1 UNION ALL SELECT i+1 FROM n WHERE i<9999) INSERT INTO app_commands(key,operation) SELECT 'filler-'||i,'{}' FROM n;").unwrap();
@@ -99,7 +99,7 @@ fn full_command_ledger_preserves_existing_exact_intent() {
         "same-key",
         &Operation::Create {
             request_id: "must-not-replace".into(),
-            participants: vec!["other".into()],
+            request: connect_client::conversations::CreateRequest::persistent(vec!["other".into()]),
         },
     )
     .unwrap();
@@ -128,10 +128,22 @@ fn changed_journal_identity_rolls_back_page_without_advancing_cursor() {
             conversation_id: "cid".into(),
             sender: "peer".into(),
             body: "Original".into(),
+            sender_participant_id: Some("part_peer".into()),
+            audience: vec![connect_client::messages::MessageRecipient {
+                participant_id: "part_owner".into(),
+                membership_epoch: 1,
+            }],
+            content_type: "text/plain".into(),
+            body_encoding: connect_client::messages::BodyEncoding::Utf8,
+            label: "connect-messages".into(),
+            attachments: vec![],
+            in_reply_to_msg: None,
+            accepted_at: Some(1),
         }),
         call: None,
         session: None,
         artifact: None,
+        receipt: None,
     };
     store
         .stage(InboxPage {

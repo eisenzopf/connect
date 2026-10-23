@@ -10,11 +10,19 @@ use connect_connector_template::LocalProvider;
 struct Broken(LocalProvider);
 #[async_trait]
 impl MessageExtension for Broken {
-    async fn message_status(&self, id: &str) -> Result<MessageReceipt, Failure> {
-        self.0.message_status(id).await
+    async fn message_status(
+        &self,
+        id: &str,
+        permit: connect_connector_api::DispatchPermit,
+    ) -> Result<MessageReceipt, Failure> {
+        self.0.message_status(id, permit).await
     }
-    async fn send(&self, r: &MessageRequest) -> Result<MessageReceipt, Failure> {
-        self.0.send(r).await
+    async fn send(
+        &self,
+        r: &MessageRequest,
+        permit: connect_connector_api::DispatchPermit,
+    ) -> Result<MessageReceipt, Failure> {
+        self.0.send(r, permit).await
     }
 }
 #[async_trait]

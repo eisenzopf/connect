@@ -1,0 +1,1713 @@
+diff --git a/crates/uctp/rvoip-uctp/src/v2/auth_dispatch.rs b/crates/uctp/rvoip-uctp/src/v2/auth_dispatch.rs
+index 1458127..1504b50 100644
+--- a/crates/uctp/rvoip-uctp/src/v2/auth_dispatch.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/auth_dispatch.rs
+@@ -7,7 +7,7 @@
+ //! application handler. A correlated reply is an observation, never an authority
+ //! grant for a subsequent effect.
+ 
+-use super::{Envelope, Scope, WireError};
++use super::{replay::ReplayFence, Envelope, Scope, WireError};
+ use async_trait::async_trait;
+ use parking_lot::Mutex;
+ use rvoip_auth_core::bearer::{
+@@ -36,6 +36,12 @@ pub enum DispatchError {
+     Authority,
+     #[error("signature required or invalid")]
+     Signature,
++    #[error("signature required")]
++    SignatureRequired,
++    #[error("signature timestamp outside freshness window")]
++    StaleSignature,
++    #[error("peer replay capacity exhausted")]
++    ReplayCapacity,
+     #[error("envelope replay")]
+     Replay,
+     #[error("signature replay protection unavailable")]
+@@ -50,6 +56,18 @@ pub enum DispatchError {
+     Closed,
+ }
+ 
++impl From<Sig9421Error> for DispatchError {
++    fn from(error: Sig9421Error) -> Self {
++        match error {
++            Sig9421Error::MissingSignature => Self::SignatureRequired,
++            Sig9421Error::StaleTimestamp(_) => Self::StaleSignature,
++            Sig9421Error::ReplayDetected(_) => Self::Replay,
++            Sig9421Error::ReplayStoreUnavailable => Self::ReplayUnavailable,
++            _ => Self::Signature,
++        }
++    }
++}
++
+ impl From<WireError> for DispatchError {
+     fn from(value: WireError) -> Self {
+         Self::Wire(value)
+@@ -235,6 +253,7 @@ pub struct AuthenticatedDispatch {
+     pending: Arc<Mutex<HashMap<String, PendingEntry>>>,
+     capacity: usize,
+     incarnation: uuid::Uuid,
++    replay: Arc<ReplayFence>,
+ }
+ impl AuthenticatedDispatch {
+     /// `principal` is a trusted validator result, not a deserialized payload.
+@@ -244,6 +263,23 @@ impl AuthenticatedDispatch {
+         authority: Arc<dyn CurrentAuthority>,
+         lifetime: CancellationToken,
+         pending_capacity: usize,
++    ) -> Result<Self, DispatchError> {
++        Self::with_replay_fence(
++            principal,
++            verifier,
++            authority,
++            lifetime,
++            pending_capacity,
++            Arc::new(ReplayFence::new(ReplayFence::DEFAULT_CAPACITY)?),
++        )
++    }
++    pub(super) fn with_replay_fence(
++        principal: AuthenticatedPrincipal,
++        verifier: Arc<Sig9421Verifier>,
++        authority: Arc<dyn CurrentAuthority>,
++        lifetime: CancellationToken,
++        pending_capacity: usize,
++        replay: Arc<ReplayFence>,
+     ) -> Result<Self, DispatchError> {
+         if pending_capacity == 0 || pending_capacity > 256 {
+             return Err(DispatchError::Capacity);
+@@ -256,6 +292,7 @@ impl AuthenticatedDispatch {
+             pending: Arc::new(Mutex::new(HashMap::new())),
+             capacity: pending_capacity,
+             incarnation: uuid::Uuid::new_v4(),
++            replay,
+         })
+     }
+ 
+@@ -371,11 +408,8 @@ impl AuthenticatedDispatch {
+         self.verifier
+             .verify_for_principal(envelope.original(), &self.principal)
+             .await
+-            .map_err(|error| match error {
+-                Sig9421Error::ReplayDetected(_) => DispatchError::Replay,
+-                Sig9421Error::ReplayStoreUnavailable => DispatchError::ReplayUnavailable,
+-                _ => DispatchError::Signature,
+-            })?;
++            .map_err(DispatchError::from)?;
++        self.replay.consume(envelope.id())?;
+         let lease = self.authority.acquire(&self.principal, &envelope).await?;
+         self.require_active(deadline)?;
+         Ok(AuthorizedEnvelope {
+diff --git a/crates/uctp/rvoip-uctp/src/v2/auth_peer.rs b/crates/uctp/rvoip-uctp/src/v2/auth_peer.rs
+index 133e256..dd74fea 100644
+--- a/crates/uctp/rvoip-uctp/src/v2/auth_peer.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/auth_peer.rs
+@@ -3,15 +3,15 @@
+ //! one actor. This never delegates a command to a v1 coordinator.
+ 
+ use super::{
+-    auth_dispatch::*, payloads::*, select_application_profile, Envelope, Identifier, Scope,
+-    APPLICATION_PROFILE,
++    auth_dispatch::*, payloads::*, replay::ReplayFence, select_application_profile, Envelope,
++    Identifier, Scope, APPLICATION_PROFILE,
+ };
+ use async_trait::async_trait;
+ use bytes::Bytes;
+ use futures::{SinkExt, StreamExt};
+ use rvoip_auth_core::{
+     bearer::{opaque_session_token_matches, AuthenticatedPrincipal, ValidatedBearer},
+-    sig9421::{Sig9421Error, Sig9421Signer, Sig9421Verifier},
++    sig9421::{Sig9421Signer, Sig9421Verifier},
+ };
+ use rvoip_core::identity::IdentityAssurance;
+ use serde_json::{json, Value};
+@@ -165,9 +165,20 @@ pub struct CanonicalPeer {
+     lifetime: CancellationToken,
+     auth_deadline: Instant,
+     failures: u8,
++    replay: Arc<ReplayFence>,
++    step_up_failure: Arc<parking_lot::Mutex<Option<step_up::FailureRecord>>>,
+ }
+ impl CanonicalPeer {
+     pub fn new(config: Arc<PeerConfig>, parent: CancellationToken) -> Result<Self, DispatchError> {
++        Self::with_replay_capacity(config, parent, ReplayFence::DEFAULT_CAPACITY)
++    }
++    /// Capacity applies to this physical peer across every credential
++    /// incarnation. Exhaustion fails closed; old IDs are never evicted.
++    pub fn with_replay_capacity(
++        config: Arc<PeerConfig>,
++        parent: CancellationToken,
++        replay_capacity: usize,
++    ) -> Result<Self, DispatchError> {
+         if config.pending_capacity == 0 || config.pending_capacity > 256 {
+             return Err(DispatchError::Capacity);
+         }
+@@ -177,10 +188,16 @@ impl CanonicalPeer {
+             lifetime: parent.child_token(),
+             auth_deadline: Instant::now() + AUTHENTICATION_TIMEOUT,
+             failures: 0,
++            replay: Arc::new(ReplayFence::new(replay_capacity)?),
++            step_up_failure: Arc::new(parking_lot::Mutex::new(None)),
+         })
+     }
+     /// Bind sibling media/signaling work to this incarnation. Closing this peer
+     /// cancels that work without cancelling a shared parent endpoint.
++    /// Operator counts only, without identifiers or credentials.
++    pub fn replay_usage(&self) -> (usize, usize) {
++        self.replay.usage()
++    }
+     pub fn cancellation(&self) -> CancellationToken {
+         self.lifetime.clone()
+     }
+@@ -218,6 +235,7 @@ impl CanonicalPeer {
+     pub fn close(&mut self) {
+         self.lifetime.cancel();
+         self.state = State::Closed;
++        self.step_up_failure.lock().take();
+     }
+     fn effective_deadline(&self) -> Instant {
+         match &self.state {
+@@ -295,7 +313,7 @@ impl CanonicalPeer {
+                 if methods.is_empty() {
+                     return Err(DispatchError::UnsupportedMethod);
+                 }
+-                let challenge = self.reply("auth.challenge", json!({"nonce":fresh_token(),"accepted_methods":methods,"server_capabilities":{"application_profiles":[APPLICATION_PROFILE],"envelope_versions":[2],"signing_algorithms":["EdDSA"],"signature_required":true}}), Some(&envelope))?;
++                let challenge = self.reply("auth.challenge", json!({"nonce":fresh_token(),"accepted_methods":methods,"server_capabilities":{"application_profiles":[APPLICATION_PROFILE],"envelope_versions":[2],"signing_algorithms":["EdDSA"],"signature_required":true,"peer_replay_capacity":self.replay.usage().1}}), Some(&envelope))?;
+                 self.state = State::Challenge(Challenge {
+                     id: challenge.id().into(),
+                     device: hello.device.clone(),
+@@ -500,7 +518,7 @@ impl CanonicalPeer {
+         generation: u64,
+     ) -> Result<Binding, DispatchError> {
+         let expiry = credential_expiry(&credential.principal)?;
+-        let dispatch = AuthenticatedDispatch::new(
++        let dispatch = AuthenticatedDispatch::with_replay_fence(
+             credential.principal.clone(),
+             self.config.verifier.clone(),
+             Arc::new(BoundAuthority {
+@@ -511,6 +529,7 @@ impl CanonicalPeer {
+             }),
+             self.lifetime.clone(),
+             self.config.pending_capacity,
++            self.replay.clone(),
+         )?;
+         Ok(Binding {
+             credential,
+@@ -532,11 +551,8 @@ impl CanonicalPeer {
+             .verifier
+             .verify_for_principal(envelope.original(), principal)
+             .await
+-            .map_err(|error| match error {
+-                Sig9421Error::ReplayDetected(_) => DispatchError::Replay,
+-                Sig9421Error::ReplayStoreUnavailable => DispatchError::ReplayUnavailable,
+-                _ => DispatchError::Signature,
+-            })
++            .map_err(DispatchError::from)?;
++        self.replay.consume(envelope.id())
+     }
+     fn session(&self, binding: &Binding, request: &Envelope) -> Result<Envelope, DispatchError> {
+         self.reply("auth.session", json!({"identity_id":binding.identity,"session_token":binding.token,"expires_at":effective_expiry(&binding.credential.principal)?,"assurance":binding.credential.principal.assurance.kind(),"application_profile":APPLICATION_PROFILE}), Some(request))
+@@ -570,6 +586,26 @@ impl CanonicalPeer {
+         self.signed(value)
+     }
+ 
++    async fn write_output<W: AsyncWrite + Send + Unpin>(
++        &self,
++        writer: &mut FramedWrite<W, tokio_util::codec::LengthDelimitedCodec>,
++        output: &PeerOutput,
++    ) -> Result<(), DispatchError> {
++        for envelope in output.envelopes() {
++            let bytes = serde_json::to_vec(envelope).map_err(|_| DispatchError::Closed)?;
++            let deadline = self
++                .effective_deadline()
++                .min(Instant::now() + MAX_DISPATCH_WAIT);
++            tokio::select! {
++                biased;
++                _ = self.lifetime.cancelled(), if !matches!(self.state, State::Closed) => return Err(DispatchError::Closed),
++                _ = tokio::time::sleep_until(deadline) => return Err(DispatchError::Closed),
++                result = writer.send(Bytes::from(bytes)) => result.map_err(|_| DispatchError::Closed)?,
++            }
++        }
++        Ok(())
++    }
++
+     /// Canonical length-prefixed server loop for an already negotiated secure
+     /// reliable stream. Its caller must enforce ALPN/profile ownership and TLS.
+     /// EOF, expiry, cancellation and write failure retire this peer's lifetime.
+@@ -586,6 +622,9 @@ impl CanonicalPeer {
+         let mut reader = FramedRead::new(reader, crate::substrate::length_prefixed_codec());
+         let mut writer = FramedWrite::new(writer, crate::substrate::length_prefixed_codec());
+         loop {
++            if let Some(output) = self.drain_step_up_failures()? {
++                self.write_output(&mut writer, &output).await?;
++            }
+             let pending_deadline = self
+                 .pending_step_up_deadline()
+                 .unwrap_or(self.effective_deadline());
+@@ -601,15 +640,7 @@ impl CanonicalPeer {
+                 }
+                 _ = tokio::time::sleep_until(pending_deadline) => {
+                     if let Some(output) = self.expire_step_up()? {
+-                        for envelope in output.envelopes() {
+-                            let bytes = serde_json::to_vec(envelope).map_err(|_| DispatchError::Closed)?;
+-                            tokio::select! {
+-                                biased;
+-                                _ = self.lifetime.cancelled() => return Err(DispatchError::Closed),
+-                                _ = tokio::time::sleep_until(self.effective_deadline().min(Instant::now() + MAX_DISPATCH_WAIT)) => return Err(DispatchError::Closed),
+-                                result = writer.send(Bytes::from(bytes)) => result.map_err(|_| DispatchError::Closed)?,
+-                            }
+-                        }
++                        self.write_output(&mut writer, &output).await?;
+                     }
+                     continue;
+                 }
+@@ -628,10 +659,13 @@ impl CanonicalPeer {
+                     if matches!(self.state, State::Closed) {
+                         return Err(error);
+                     }
+-                    // Correlate only a validated envelope. Never echo malformed
+-                    // JSON or credential/payload content into a problem.
+-                    let request = Envelope::parse(&frame).ok();
+-                    output(
++                    if let Some(output) = self.drain_step_up_failures()? {
++                        output
++                    } else {
++                        // Correlate only a validated envelope. Never echo malformed
++                        // JSON or credential/payload content into a problem.
++                        let request = Envelope::parse(&frame).ok();
++                        output(
+                         vec![self.reply(
+                             "error",
+                             json!({"code":error_code(error),"category":"auth","reason":error_reason(error)}),
+@@ -639,20 +673,10 @@ impl CanonicalPeer {
+                         )?],
+                         None,
+                     )
++                    }
+                 }
+             };
+-            for envelope in output.envelopes() {
+-                let bytes = serde_json::to_vec(envelope).map_err(|_| DispatchError::Closed)?;
+-                let deadline = self
+-                    .effective_deadline()
+-                    .min(Instant::now() + MAX_DISPATCH_WAIT);
+-                tokio::select! {
+-                    biased;
+-                    _ = self.lifetime.cancelled(), if !matches!(self.state, State::Closed) => return Err(DispatchError::Closed),
+-                    _ = tokio::time::sleep_until(deadline) => return Err(DispatchError::Closed),
+-                    result = writer.send(Bytes::from(bytes)) => result.map_err(|_| DispatchError::Closed)?,
+-                }
+-            }
++            self.write_output(&mut writer, &output).await?;
+             if matches!(self.state, State::Closed) {
+                 return Ok(());
+             }
+@@ -759,7 +783,12 @@ fn same_scopes(a: &[String], b: &[String]) -> bool {
+ }
+ fn error_reason(error: DispatchError) -> &'static str {
+     match error {
+-        DispatchError::Replay => "envelope_replay",
++        DispatchError::Replay => "replay_detected",
++        DispatchError::Signature => "invalid_signature",
++        DispatchError::SignatureRequired => "signature_required",
++        DispatchError::StaleSignature => "stale_timestamp",
++        DispatchError::ReplayCapacity => "replay_capacity_exhausted",
++        DispatchError::ReplayUnavailable => "replay_protection_unavailable",
+         DispatchError::ReplyMismatch => "reply_scope_mismatch",
+         DispatchError::UnsupportedMethod => "unsupported_auth_method",
+         DispatchError::Wire(_) => "invalid_envelope",
+@@ -776,7 +805,8 @@ fn error_code(error: DispatchError) -> u16 {
+         ) => 426,
+         DispatchError::Wire(_) | DispatchError::ReplyMismatch => 400,
+         DispatchError::Unsupported => 501,
+-        DispatchError::Capacity => 429,
++        DispatchError::Capacity | DispatchError::ReplayCapacity => 429,
++        DispatchError::ReplayUnavailable => 503,
+         DispatchError::Closed => 408,
+         _ => 401,
+     }
+diff --git a/crates/uctp/rvoip-uctp/src/v2/auth_peer/step_up.rs b/crates/uctp/rvoip-uctp/src/v2/auth_peer/step_up.rs
+index 0e28d6b..bb5b43a 100644
+--- a/crates/uctp/rvoip-uctp/src/v2/auth_peer/step_up.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/auth_peer/step_up.rs
+@@ -122,7 +122,7 @@ impl CanonicalPeer {
+         if let Some(requirement) = requirement {
+             requirement.validate()?;
+             if !requirement.meets(&binding.credential.principal, &binding.identity) {
+-                if binding.step_up.is_some() {
++                if binding.step_up.is_some() || self.step_up_failure.lock().is_some() {
+                     return Err(DispatchError::Capacity);
+                 }
+                 let methods: Vec<String> = self
+@@ -229,6 +229,12 @@ impl CanonicalPeer {
+         // Matching authenticated completion gets one validation attempt. Any
+         // failure or cancellation below discards the hold without executing it.
+         let pending = binding.step_up.take().ok_or(DispatchError::ReplyMismatch)?;
++        let mut failure = FailureGuard::new(
++            pending.held.envelope(),
++            &response,
++            self.step_up_failure.clone(),
++            self.lifetime.clone(),
++        );
+         if !pending.methods.contains(&payload.method) {
+             return Err(DispatchError::UnsupportedMethod);
+         }
+@@ -294,6 +300,7 @@ impl CanonicalPeer {
+                 .checked_add(1)
+                 .ok_or(DispatchError::Capacity)?,
+         )?;
++        failure.execution_started = true;
+         let reply = next
+             .dispatch
+             .execute_held(
+@@ -308,6 +315,7 @@ impl CanonicalPeer {
+         let changed = self.reply("identity.assurance-changed",json!({"previous":binding.credential.principal.assurance.kind(),"current":next.credential.principal.assurance.kind(),"reason":"verified-step-up"}),Some(&response))?;
+         let reply = self.handler_reply(reply, &blocked)?;
+         self.state = State::Authenticated(next);
++        failure.record = None;
+         Ok(output(vec![session, changed, reply], Some(lease)))
+     }
+ 
+@@ -355,3 +363,98 @@ impl CanonicalPeer {
+             .transpose()
+     }
+ }
++
++/// Minimal correlation only: deferred failures retain no credentials, body or
++/// arbitrary signed extensions. Exactly one slot exists per physical peer.
++pub(super) struct FailureRecord {
++    original: Value,
++    response: Value,
++    execution_started: bool,
++}
++struct FailureGuard {
++    record: Option<FailureRecord>,
++    slot: Arc<parking_lot::Mutex<Option<FailureRecord>>>,
++    lifetime: CancellationToken,
++    execution_started: bool,
++}
++impl FailureGuard {
++    fn new(
++        original: &Envelope,
++        response: &Envelope,
++        slot: Arc<parking_lot::Mutex<Option<FailureRecord>>>,
++        lifetime: CancellationToken,
++    ) -> Self {
++        Self {
++            record: Some(FailureRecord {
++                original: correlation(original),
++                response: correlation(response),
++                execution_started: false,
++            }),
++            slot,
++            lifetime,
++            execution_started: false,
++        }
++    }
++}
++impl Drop for FailureGuard {
++    fn drop(&mut self) {
++        let Some(mut record) = self.record.take() else {
++            return;
++        };
++        if self.lifetime.is_cancelled() {
++            return;
++        }
++        record.execution_started = self.execution_started;
++        let mut slot = self.slot.lock();
++        if slot.is_some() {
++            self.lifetime.cancel();
++            return;
++        }
++        *slot = Some(record);
++    }
++}
++fn correlation(envelope: &Envelope) -> Value {
++    let mut value = json!({"in_reply_to":envelope.id()});
++    for name in ["cid", "sid", "connid", "operation_id"] {
++        if let Some(item) = envelope.original().get(name) {
++            value[name] = item.clone();
++        }
++    }
++    value
++}
++impl CanonicalPeer {
++    /// Drive after an error or cancellation when using `handle` directly. `run`
++    /// drains this bounded slot automatically before accepting another frame.
++    /// A validation failure is definitive; interruption after execution starts
++    /// is explicitly unknown and must be reconciled under the logical ID.
++    pub fn drain_step_up_failures(&self) -> Result<Option<PeerOutput>, DispatchError> {
++        let Some(record) = self.step_up_failure.lock().take() else {
++            return Ok(None);
++        };
++        if self.lifetime.is_cancelled() || self.effective_deadline() <= Instant::now() {
++            return Ok(None);
++        }
++        let (code, reason) = if record.execution_started {
++            (409, "operation_interrupted")
++        } else {
++            (403, "assurance_not_established")
++        };
++        let mut original = json!({"v":2,"type":"error","id":fresh_id(),"ts":chrono::Utc::now(),"payload":{"code":code,"category":"auth","reason":reason}});
++        if record.execution_started {
++            original["payload"]["details"] = json!({"outcome":"unknown"});
++        }
++        let mut response = json!({"v":2,"type":"error","id":fresh_id(),"ts":chrono::Utc::now(),"payload":{"code":if record.execution_started {408}else{401},"category":"auth","reason":if record.execution_started {"step_up_interrupted"}else{"step_up_failed"}}});
++        original
++            .as_object_mut()
++            .expect("object")
++            .extend(record.original.as_object().expect("correlation").clone());
++        response
++            .as_object_mut()
++            .expect("object")
++            .extend(record.response.as_object().expect("correlation").clone());
++        Ok(Some(output(
++            vec![self.signed(original)?, self.signed(response)?],
++            None,
++        )))
++    }
++}
+diff --git a/crates/uctp/rvoip-uctp/src/v2/mod.rs b/crates/uctp/rvoip-uctp/src/v2/mod.rs
+index cc52e14..aabf883 100644
+--- a/crates/uctp/rvoip-uctp/src/v2/mod.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/mod.rs
+@@ -8,6 +8,7 @@
+ 
+ pub mod auth_dispatch;
+ pub mod auth_peer;
++mod replay;
+ pub use auth_peer::AssuranceRequirement;
+ pub mod payloads;
+ mod validation;
+diff --git a/crates/uctp/rvoip-uctp/src/v2/replay.rs b/crates/uctp/rvoip-uctp/src/v2/replay.rs
+new file mode 100644
+index 0000000..56caed1
+--- /dev/null
++++ b/crates/uctp/rvoip-uctp/src/v2/replay.rs
+@@ -0,0 +1,40 @@
++use super::{auth_dispatch::DispatchError, Identifier};
++use parking_lot::Mutex;
++use std::collections::HashSet;
++
++/// Defense independent of timestamp freshness and external replay-store TTL.
++/// One fence belongs to one physical peer, across refresh and step-up. Signed
++/// IDs remain consumed until that peer is retired. No age/LRU eviction exists.
++pub(super) struct ReplayFence {
++    capacity: usize,
++    ids: Mutex<HashSet<String>>,
++}
++impl ReplayFence {
++    pub(super) const DEFAULT_CAPACITY: usize = 4096;
++    pub(super) fn new(capacity: usize) -> Result<Self, DispatchError> {
++        if capacity == 0 || capacity > Self::DEFAULT_CAPACITY {
++            return Err(DispatchError::Capacity);
++        }
++        Ok(Self {
++            capacity,
++            ids: Mutex::new(HashSet::new()),
++        })
++    }
++    /// Call only after actual signature/freshness verification. The mutex makes
++    /// duplicate lookup and insertion one operation, including under contention.
++    pub(super) fn consume(&self, id: &str) -> Result<(), DispatchError> {
++        Identifier::try_from(id.to_owned())?;
++        let mut ids = self.ids.lock();
++        if ids.contains(id) {
++            return Err(DispatchError::Replay);
++        }
++        if ids.len() >= self.capacity {
++            return Err(DispatchError::ReplayCapacity);
++        }
++        ids.insert(id.to_owned());
++        Ok(())
++    }
++    pub(super) fn usage(&self) -> (usize, usize) {
++        (self.ids.lock().len(), self.capacity)
++    }
++}
+diff --git a/crates/uctp/rvoip-uctp/tests/v2_auth_dispatch.rs b/crates/uctp/rvoip-uctp/tests/v2_auth_dispatch.rs
+index 7f3cdcd..320df56 100644
+--- a/crates/uctp/rvoip-uctp/tests/v2_auth_dispatch.rs
++++ b/crates/uctp/rvoip-uctp/tests/v2_auth_dispatch.rs
+@@ -259,7 +259,7 @@ async fn unsigned_and_unsupported_signature_algorithms_fail_closed() {
+         peer.dispatch(&serde_json::to_vec(&request()).unwrap(), &h, deadline())
+             .await
+             .unwrap_err(),
+-        DispatchError::Signature
++        DispatchError::SignatureRequired
+     );
+     let mut value: Value = serde_json::from_slice(&signed(request(), &kp)).unwrap();
+     value["signature"]["alg"] = json!("ES256");
+@@ -382,7 +382,7 @@ async fn unsigned_or_revoked_replies_leave_the_waiter_registered() {
+         peer.dispatch(&serde_json::to_vec(&ack(&request)).unwrap(), &h, deadline())
+             .await
+             .unwrap_err(),
+-        DispatchError::Signature
++        DispatchError::SignatureRequired
+     );
+     *policy.revoked.write().await = true;
+     let wire = signed(ack(&request), &kp);
+diff --git a/crates/uctp/rvoip-uctp/tests/v2_auth_peer.rs b/crates/uctp/rvoip-uctp/tests/v2_auth_peer.rs
+index a185d97..cbf5e28 100644
+--- a/crates/uctp/rvoip-uctp/tests/v2_auth_peer.rs
++++ b/crates/uctp/rvoip-uctp/tests/v2_auth_peer.rs
+@@ -443,7 +443,7 @@ async fn auth_requires_signed_proof_and_current_owned_device_and_token() {
+         )
+         .await
+         .unwrap_err(),
+-        DispatchError::Signature
++        DispatchError::SignatureRequired
+     );
+     f.policy.revoked.write().await.insert("old".into());
+     assert_eq!(
+diff --git a/crates/uctp/rvoip-uctp/tests/v2_auth_recovery.rs b/crates/uctp/rvoip-uctp/tests/v2_auth_recovery.rs
+new file mode 100644
+index 0000000..e6cf511
+--- /dev/null
++++ b/crates/uctp/rvoip-uctp/tests/v2_auth_recovery.rs
+@@ -0,0 +1,1124 @@
++use rvoip_auth_core::sig9421::{
++    InMemorySignatureReplayStore, ReplayConsumeError, SignatureClock, SignatureReplayStore,
++    SignatureVerificationContext,
++};
++// Canonical recovery tests with real signatures and an injectable verifier clock.
++use async_trait::async_trait;
++use bytes::Bytes;
++use chrono::Utc;
++use futures::{SinkExt, StreamExt};
++use ring::signature::{Ed25519KeyPair, KeyPair};
++use rvoip_auth_core::{
++    bearer::{
++        AuthenticatedPrincipal, AuthenticationMethod, BearerAuthError, BearerValidator,
++        ValidatedBearer,
++    },
++    sig9421::{KeyResolver, ResolvedVerificationKey, Sig9421Signer, Sig9421Verifier},
++};
++use rvoip_core::identity::{CredentialKind, IdentityAssurance};
++use rvoip_uctp::v2::{
++    auth_dispatch::*, auth_peer::*, payloads::Device, Envelope, Identifier, Scope, RAW_QUIC_ALPN,
++};
++use serde_json::{json, Value};
++use std::{
++    collections::HashSet,
++    sync::{
++        atomic::{AtomicBool, AtomicUsize, Ordering},
++        Arc,
++    },
++    time::Duration,
++};
++use tokio::{
++    sync::{Notify, RwLock},
++    time::Instant,
++};
++use tokio_util::{
++    codec::{FramedRead, FramedWrite},
++    sync::CancellationToken,
++};
++
++fn deadline() -> Instant {
++    Instant::now() + Duration::from_secs(3)
++}
++fn envelope(kind: &str, payload: Value) -> Value {
++    json!({"v":2,"type":kind,"id":format!("env_{}",uuid::Uuid::new_v4().simple()),"ts":Utc::now(),"payload":payload})
++}
++fn hello() -> Value {
++    envelope(
++        "auth.hello",
++        json!({"device":{"id":"device-alice","kind":"desktop","platform":"fixture","sdk_version":"fixture"},"auth_methods":["unknown","bearer","aauth"],"application_profiles":["connect/2"]}),
++    )
++}
++fn response(challenge: &Envelope, token: &str) -> Value {
++    let mut v = envelope(
++        "auth.response",
++        json!({"method":"bearer","credential":token}),
++    );
++    v["in_reply_to"] = json!(challenge.id());
++    v
++}
++fn command() -> Value {
++    let mut v = envelope("connection.update", json!({"action":"hold"}));
++    v["cid"] = json!("conversation");
++    v["sid"] = json!("session");
++    v["connid"] = json!("connection");
++    v["operation_id"] = json!("logical-op");
++    v["expected_revision"] = json!(1);
++    v
++}
++fn principal(token: &str) -> AuthenticatedPrincipal {
++    let mut p = AuthenticatedPrincipal {
++        subject: "alice".into(),
++        tenant: Some("tenant".into()),
++        issuer: Some("issuer".into()),
++        scopes: vec!["control".into()],
++        expires_at: Some(Utc::now() + chrono::Duration::hours(1)),
++        method: AuthenticationMethod::Bearer,
++        assurance: IdentityAssurance::Identified {
++            credential_kind: CredentialKind::Oidc,
++        },
++    };
++    match token {
++        "task" | "wrong-task" | "expired-task" => {
++            p.assurance = IdentityAssurance::TaskScoped {
++                identity: rvoip_core::IdentityId::from_string("identity-alice"),
++                task_id: if token == "wrong-task" {
++                    "other-task"
++                } else {
++                    "task-private"
++                }
++                .into(),
++                scopes: vec!["control".into()],
++                expires_at: Utc::now()
++                    + chrono::Duration::seconds(if token == "expired-task" { -1 } else { 3600 }),
++            };
++        }
++        "wrong-identity" | "missing-scope" | "grantless-user" => {
++            if token == "grantless-user" {
++                p.scopes.clear();
++            }
++            p.assurance = IdentityAssurance::UserAuthorized {
++                identity: rvoip_core::IdentityId::from_string(if token == "wrong-identity" {
++                    "another-identity"
++                } else {
++                    "identity-alice"
++                }),
++                user_id: rvoip_core::IdentityId::from_string("user-alice"),
++                scopes: vec![if token == "missing-scope" {
++                    "unrelated"
++                } else {
++                    "control"
++                }
++                .into()],
++            };
++        }
++        "bob" => p.subject = "bob".into(),
++        "other-tenant" => p.tenant = Some("other".into()),
++        "other-issuer" => p.issuer = Some("other".into()),
++        "expired" => p.expires_at = Some(Utc::now() - chrono::Duration::seconds(1)),
++        "no-expiry" => p.expires_at = None,
++        "short" => p.expires_at = Some(Utc::now() + chrono::Duration::seconds(1)),
++        "reduced" => p.scopes.clear(),
++        "user" | "user-new" => {
++            p.assurance = IdentityAssurance::UserAuthorized {
++                identity: rvoip_core::IdentityId::from_string("identity-alice"),
++                user_id: rvoip_core::IdentityId::from_string("user-alice"),
++                scopes: vec!["control".into()],
++            }
++        }
++        "wrong-user" => {
++            p.assurance = IdentityAssurance::UserAuthorized {
++                identity: rvoip_core::IdentityId::from_string("identity-alice"),
++                user_id: rvoip_core::IdentityId::from_string("user-bob"),
++                scopes: vec!["control".into()],
++            }
++        }
++        _ => {}
++    };
++    p
++}
++struct Validator {
++    calls: AtomicUsize,
++    hold: AtomicBool,
++    entered: Notify,
++    release: Notify,
++}
++#[async_trait]
++impl BearerValidator for Validator {
++    async fn validate(&self, token: &str) -> Result<IdentityAssurance, BearerAuthError> {
++        Ok(principal(token).assurance)
++    }
++    async fn validate_credential(&self, token: &str) -> Result<ValidatedBearer, BearerAuthError> {
++        self.calls.fetch_add(1, Ordering::SeqCst);
++        if self.hold.load(Ordering::SeqCst) {
++            self.entered.notify_one();
++            self.release.notified().await;
++        }
++        if token == "unavailable" {
++            return Err(BearerAuthError::Unavailable(
++                "private-provider-detail".into(),
++            ));
++        }
++        ValidatedBearer::new(
++            principal(token),
++            Some(token.into()),
++            Some(std::time::SystemTime::now() - Duration::from_secs(1)),
++        )
++    }
++}
++#[derive(Default)]
++struct Policy {
++    require_stepup: AtomicBool,
++    deny_stepup: AtomicBool,
++    task_requirement: AtomicBool,
++    changed_requirement: AtomicBool,
++    revoked: Arc<RwLock<HashSet<String>>>,
++    deny_refresh: AtomicBool,
++    calls: AtomicUsize,
++}
++impl Policy {
++    async fn guard(
++        &self,
++        c: &ValidatedBearer,
++        device: &Device,
++        id: &Identifier,
++        env: &Envelope,
++    ) -> Result<AuthorityLease, DispatchError> {
++        self.calls.fetch_add(1, Ordering::SeqCst);
++        let guard = self.revoked.clone().read_owned().await;
++        if c.token_id
++            .as_ref()
++            .is_none_or(|token| guard.contains(token))
++            || c.issued_at.is_none()
++            || c.principal.is_expired()
++            || device.id.as_str() != "device-alice"
++            || id.as_str() != "identity-alice"
++            || (env.kind() == "connection.update" && !c.principal.has_scope("control"))
++        {
++            return Err(DispatchError::Authority);
++        }
++        Ok(AuthorityLease::holding(guard))
++    }
++}
++#[async_trait]
++impl PeerAuthority for Policy {
++    fn assurance_requirement(
++        &self,
++        _c: &ValidatedBearer,
++        _d: &Device,
++        _i: &Identifier,
++        e: &Envelope,
++    ) -> Result<Option<AssuranceRequirement>, DispatchError> {
++        if e.kind() != "connection.update" || !self.require_stepup.load(Ordering::SeqCst) {
++            return Ok(None);
++        }
++        Ok(Some(if self.task_requirement.load(Ordering::SeqCst) {
++            AssuranceRequirement::TaskScoped {
++                task_id: "task-private".into(),
++                scopes: vec!["control".into()],
++            }
++        } else {
++            AssuranceRequirement::UserAuthorized {
++                user_id: rvoip_core::IdentityId::from_string(
++                    if self.changed_requirement.load(Ordering::SeqCst) {
++                        "different-user"
++                    } else {
++                        "user-alice"
++                    },
++                ),
++                scopes: vec!["control".into()],
++            }
++        }))
++    }
++    async fn step_up(
++        &self,
++        old: &ValidatedBearer,
++        new: &ValidatedBearer,
++        d: &Device,
++        i: &Identifier,
++        _required: &AssuranceRequirement,
++        blocked: &Envelope,
++        _response: &Envelope,
++    ) -> Result<AuthorityLease, DispatchError> {
++        if self.deny_stepup.load(Ordering::SeqCst) {
++            return Err(DispatchError::Authority);
++        }
++        let lease = self.guard(new, d, i, blocked).await?;
++        if old.token_id.as_ref().is_none_or(|token| {
++            self.revoked
++                .try_read()
++                .map_or(true, |set| set.contains(token))
++        }) {
++            return Err(DispatchError::Authority);
++        }
++        Ok(lease)
++    }
++    async fn identity(&self, c: &ValidatedBearer, d: &Device) -> Result<Identifier, DispatchError> {
++        if c.principal.subject != "alice" || d.id.as_str() != "device-alice" {
++            return Err(DispatchError::Authority);
++        }
++        Identifier::try_from("identity-alice".to_owned()).map_err(DispatchError::from)
++    }
++    async fn acquire(
++        &self,
++        c: &ValidatedBearer,
++        d: &Device,
++        i: &Identifier,
++        e: &Envelope,
++    ) -> Result<AuthorityLease, DispatchError> {
++        self.guard(c, d, i, e).await
++    }
++    async fn refresh(
++        &self,
++        old: &ValidatedBearer,
++        new: &ValidatedBearer,
++        d: &Device,
++        i: &Identifier,
++        e: &Envelope,
++    ) -> Result<AuthorityLease, DispatchError> {
++        if self.deny_refresh.load(Ordering::SeqCst) {
++            return Err(DispatchError::Authority);
++        }
++        let lease = self.guard(new, d, i, e).await?;
++        if old.token_id.as_ref().is_none_or(|token| {
++            self.revoked
++                .try_read()
++                .map_or(true, |set| set.contains(token))
++        }) {
++            return Err(DispatchError::Authority);
++        }
++        Ok(lease)
++    }
++}
++struct Keys {
++    client: Vec<u8>,
++    server: Vec<u8>,
++}
++impl KeyResolver for Keys {
++    fn resolve(&self, _: &str) -> Option<Vec<u8>> {
++        None
++    }
++    fn resolve_for_principal(
++        &self,
++        p: &AuthenticatedPrincipal,
++        k: &str,
++        a: &str,
++        _: chrono::DateTime<Utc>,
++    ) -> Option<ResolvedVerificationKey> {
++        if p.tenant.as_deref() != Some("tenant")
++            || p.issuer.as_deref() != Some("issuer")
++            || a != "EdDSA"
++        {
++            return None;
++        }
++        let bytes = match (p.subject.as_str(), k) {
++            ("alice", "client") => self.client.clone(),
++            ("server", "server") => self.server.clone(),
++            _ => return None,
++        };
++        Some(ResolvedVerificationKey {
++            public_key: bytes,
++            algorithm: "EdDSA".into(),
++            not_before: None,
++            expires_at: None,
++            revoked: false,
++        })
++    }
++}
++#[derive(Default)]
++struct Handler {
++    calls: AtomicUsize,
++}
++#[async_trait]
++impl AuthenticatedHandler for Handler {
++    async fn handle(&self, env: AuthorizedEnvelope) -> Result<Envelope, DispatchError> {
++        assert_eq!(env.principal().subject, "alice");
++        self.calls.fetch_add(1, Ordering::SeqCst);
++        Envelope::from_value(envelope("ack", json!({}))).map_err(DispatchError::from)
++    }
++}
++struct Fixture {
++    clock: Arc<TestClock>,
++    store: Arc<RecordingStore>,
++    config: Arc<PeerConfig>,
++    client: Sig9421Signer,
++    server_verify: Sig9421Verifier,
++    policy: Arc<Policy>,
++    validator: Arc<Validator>,
++}
++impl Fixture {
++    fn new() -> Self {
++        let client_key = Ed25519KeyPair::generate_pkcs8(&ring::rand::SystemRandom::new()).unwrap();
++        let server_key = Ed25519KeyPair::generate_pkcs8(&ring::rand::SystemRandom::new()).unwrap();
++        let client = Sig9421Signer::ed25519("client", client_key.as_ref()).unwrap();
++        let server = Sig9421Signer::ed25519("server", server_key.as_ref()).unwrap();
++        let resolver = Arc::new(Keys {
++            client: Ed25519KeyPair::from_pkcs8(client_key.as_ref())
++                .unwrap()
++                .public_key()
++                .as_ref()
++                .to_vec(),
++            server: Ed25519KeyPair::from_pkcs8(server_key.as_ref())
++                .unwrap()
++                .public_key()
++                .as_ref()
++                .to_vec(),
++        });
++        let validator = Arc::new(Validator {
++            calls: AtomicUsize::new(0),
++            hold: AtomicBool::new(false),
++            entered: Notify::new(),
++            release: Notify::new(),
++        });
++        let policy = Arc::new(Policy::default());
++        policy.require_stepup.store(true, Ordering::SeqCst);
++        let clock = Arc::new(TestClock(std::sync::Mutex::new(Utc::now())));
++        let store = Arc::new(RecordingStore {
++            unavailable: AtomicBool::new(false),
++            inner: InMemorySignatureReplayStore::new(256).unwrap(),
++            accepted: AtomicUsize::new(0),
++        });
++        let config = Arc::new(PeerConfig {
++            methods: Arc::new(AuthenticationMethods::new(Some(validator.clone()))),
++            verifier: Arc::new(
++                Sig9421Verifier::with_security_dependencies(
++                    resolver.clone(),
++                    store.clone(),
++                    clock.clone(),
++                    Duration::from_secs(300),
++                    Duration::from_secs(30),
++                    1_048_576,
++                )
++                .unwrap(),
++            ),
++            signer: Arc::new(server),
++            authority: policy.clone(),
++            pending_capacity: 2,
++        });
++        Self {
++            clock,
++            store,
++            config,
++            client,
++            server_verify: Sig9421Verifier::new(resolver),
++            policy,
++            validator,
++        }
++    }
++    fn peer(&self) -> CanonicalPeer {
++        CanonicalPeer::new(self.config.clone(), CancellationToken::new()).unwrap()
++    }
++    fn sign(&self, mut v: Value) -> Vec<u8> {
++        v["ts"] = json!(self.clock.now());
++        serde_json::to_vec(&self.client.sign(&v).unwrap()).unwrap()
++    }
++    async fn authenticate(&self, peer: &mut CanonicalPeer, token: &str) -> Envelope {
++        let output = peer
++            .handle(
++                &serde_json::to_vec(&hello()).unwrap(),
++                &Handler::default(),
++                deadline(),
++            )
++            .await
++            .unwrap();
++        let challenge = output.envelopes()[0].clone();
++        drop(output);
++        let output = peer
++            .handle(
++                &self.sign(response(&challenge, token)),
++                &Handler::default(),
++                deadline(),
++            )
++            .await
++            .unwrap();
++        output.envelopes()[0].clone()
++    }
++    async fn verify_server(&self, env: &Envelope) {
++        let mut p = principal("old");
++        p.subject = "server".into();
++        self.server_verify
++            .verify_for_principal(env.original(), &p)
++            .await
++            .unwrap();
++    }
++}
++
++#[derive(Default)]
++struct Tracking {
++    calls: AtomicUsize,
++    effects: std::sync::Mutex<HashSet<String>>,
++    requests: std::sync::Mutex<Vec<Value>>,
++}
++#[async_trait]
++impl AuthenticatedHandler for Tracking {
++    async fn handle(&self, env: AuthorizedEnvelope) -> Result<Envelope, DispatchError> {
++        self.calls.fetch_add(1, Ordering::SeqCst);
++        assert_eq!(env.principal().subject, "alice");
++        assert!(matches!(
++            env.principal().assurance,
++            IdentityAssurance::UserAuthorized { .. } | IdentityAssurance::TaskScoped { .. }
++        ));
++        self.effects
++            .lock()
++            .unwrap()
++            .insert(env.envelope().scope(Scope::Operation).unwrap().into());
++        self.requests
++            .lock()
++            .unwrap()
++            .push(env.envelope().signature_input());
++        Envelope::from_value(envelope("ack", json!({}))).map_err(DispatchError::from)
++    }
++}
++fn proof(challenge: &Envelope, token: &str) -> Value {
++    let mut value = envelope(
++        "identity.step-up-response",
++        json!({"method":"bearer","credential":token}),
++    );
++    value["in_reply_to"] = json!(challenge.id());
++    for field in ["cid", "sid", "connid", "operation_id"] {
++        if let Some(item) = challenge.original().get(field) {
++            value[field] = item.clone();
++        }
++    }
++    value
++}
++async fn blocked(f: &Fixture, peer: &mut CanonicalPeer, h: &Tracking) -> (Value, Envelope) {
++    let request = command();
++    let output = peer
++        .handle(&f.sign(request.clone()), h, deadline())
++        .await
++        .unwrap();
++    assert_eq!(h.calls.load(Ordering::SeqCst), 0);
++    let challenge = output.envelopes()[0].clone();
++    assert_eq!(challenge.kind(), "identity.step-up-request");
++    assert!(peer.has_pending_step_up());
++    (request, challenge)
++}
++
++struct TestClock(std::sync::Mutex<chrono::DateTime<Utc>>);
++impl SignatureClock for TestClock {
++    fn now(&self) -> chrono::DateTime<Utc> {
++        *self.0.lock().unwrap()
++    }
++}
++impl TestClock {
++    fn advance(&self, seconds: i64) {
++        *self.0.lock().unwrap() += chrono::Duration::seconds(seconds);
++    }
++}
++struct RecordingStore {
++    unavailable: AtomicBool,
++    inner: InMemorySignatureReplayStore,
++    accepted: AtomicUsize,
++}
++#[async_trait]
++impl SignatureReplayStore for RecordingStore {
++    async fn consume(
++        &self,
++        c: &SignatureVerificationContext,
++        id: &str,
++        expiry: chrono::DateTime<Utc>,
++        now: chrono::DateTime<Utc>,
++    ) -> Result<(), ReplayConsumeError> {
++        if self.unavailable.load(Ordering::SeqCst) {
++            return Err(ReplayConsumeError::Unavailable);
++        }
++        let result = self.inner.consume(c, id, expiry, now).await;
++        if result.is_ok() {
++            self.accepted.fetch_add(1, Ordering::SeqCst);
++        }
++        result
++    }
++}
++#[derive(Default)]
++struct AnyHandler {
++    calls: AtomicUsize,
++    effects: std::sync::Mutex<HashSet<String>>,
++}
++#[async_trait]
++impl AuthenticatedHandler for AnyHandler {
++    async fn handle(&self, e: AuthorizedEnvelope) -> Result<Envelope, DispatchError> {
++        self.calls.fetch_add(1, Ordering::SeqCst);
++        self.effects
++            .lock()
++            .unwrap()
++            .insert(e.envelope().scope(Scope::Operation).unwrap().into());
++        Envelope::from_value(envelope("ack", json!({}))).map_err(DispatchError::from)
++    }
++}
++#[tokio::test]
++async fn fresh_signature_after_external_replay_ttl_cannot_reuse_id_in_same_peer() {
++    let f = Fixture::new();
++    f.policy.require_stepup.store(false, Ordering::SeqCst);
++    let mut peer = f.peer();
++    f.authenticate(&mut peer, "old").await;
++    let h = AnyHandler::default();
++    let request = command();
++    assert!(peer
++        .handle(&f.sign(request.clone()), &h, deadline())
++        .await
++        .is_ok());
++    assert_eq!(peer.replay_usage(), (2, 4096));
++    assert_eq!(f.store.accepted.load(Ordering::SeqCst), 2);
++    f.clock.advance(301);
++    assert_eq!(
++        peer.handle(&f.sign(request.clone()), &h, deadline())
++            .await
++            .unwrap_err(),
++        DispatchError::Replay
++    );
++    assert_eq!(
++        f.store.accepted.load(Ordering::SeqCst),
++        3,
++        "actual external replay entry expired and cryptographic verification passed"
++    );
++    assert_eq!(h.calls.load(Ordering::SeqCst), 1);
++    assert_eq!(peer.replay_usage(), (2, 4096));
++    let mut fresh = request;
++    fresh["id"] = json!("fresh-operation-attempt");
++    assert!(peer.handle(&f.sign(fresh), &h, deadline()).await.is_ok());
++    assert_eq!(h.calls.load(Ordering::SeqCst), 2);
++    assert_eq!(h.effects.lock().unwrap().len(), 1);
++}
++#[tokio::test]
++async fn refresh_reuses_physical_peer_fence_for_control_and_auth_envelope_ids() {
++    let f = Fixture::new();
++    f.policy.require_stepup.store(false, Ordering::SeqCst);
++    let mut peer = f.peer();
++    f.authenticate(&mut peer, "old").await;
++    let h = AnyHandler::default();
++    let request = command();
++    peer.handle(&f.sign(request.clone()), &h, deadline())
++        .await
++        .unwrap();
++    let refresh = envelope(
++        "auth.refresh",
++        json!({"method":"bearer","credential":"new"}),
++    );
++    peer.handle(&f.sign(refresh.clone()), &h, deadline())
++        .await
++        .unwrap();
++    assert_eq!(peer.generation(), Some(2));
++    assert_eq!(peer.replay_usage().0, 3);
++    f.clock.advance(301);
++    assert_eq!(
++        peer.handle(&f.sign(request), &h, deadline())
++            .await
++            .unwrap_err(),
++        DispatchError::Replay
++    );
++    assert_eq!(
++        peer.handle(&f.sign(refresh), &h, deadline())
++            .await
++            .unwrap_err(),
++        DispatchError::Replay
++    );
++    assert_eq!(peer.generation(), Some(2));
++    assert_eq!(h.calls.load(Ordering::SeqCst), 1);
++    assert_eq!(f.store.accepted.load(Ordering::SeqCst), 5);
++}
++#[tokio::test]
++async fn stepup_single_use_resume_does_not_reconsume_id_and_lifetime_fence_survives_new_binding() {
++    let f = Fixture::new();
++    let mut peer = f.peer();
++    f.authenticate(&mut peer, "old").await;
++    let h = Tracking::default();
++    let (request, challenge) = blocked(&f, &mut peer, &h).await;
++    let output = peer
++        .handle(&f.sign(proof(&challenge, "user")), &h, deadline())
++        .await
++        .unwrap();
++    assert_eq!(output.envelopes().len(), 3);
++    drop(output);
++    assert_eq!(peer.replay_usage().0, 3);
++    assert_eq!(h.calls.load(Ordering::SeqCst), 1);
++    f.clock.advance(301);
++    assert_eq!(
++        peer.handle(&f.sign(request), &h, deadline())
++            .await
++            .unwrap_err(),
++        DispatchError::Replay
++    );
++    assert_eq!(f.store.accepted.load(Ordering::SeqCst), 4);
++    assert_eq!(h.calls.load(Ordering::SeqCst), 1);
++}
++#[tokio::test]
++async fn capacity_fails_closed_without_eviction_and_invalid_signatures_do_not_burn_slots() {
++    let f = Fixture::new();
++    f.policy.require_stepup.store(false, Ordering::SeqCst);
++    let mut peer =
++        CanonicalPeer::with_replay_capacity(f.config.clone(), CancellationToken::new(), 3).unwrap();
++    f.authenticate(&mut peer, "old").await;
++    let h = AnyHandler::default();
++    let first = command();
++    peer.handle(&f.sign(first.clone()), &h, deadline())
++        .await
++        .unwrap();
++    assert_eq!(
++        peer.handle(&serde_json::to_vec(&command()).unwrap(), &h, deadline())
++            .await
++            .unwrap_err(),
++        DispatchError::SignatureRequired
++    );
++    let mut tampered: Value = serde_json::from_slice(&f.sign(command())).unwrap();
++    tampered["tampered"] = json!(true);
++    assert_eq!(
++        peer.handle(&serde_json::to_vec(&tampered).unwrap(), &h, deadline())
++            .await
++            .unwrap_err(),
++        DispatchError::Signature
++    );
++    assert_eq!(peer.replay_usage(), (2, 3));
++    peer.handle(&f.sign(command()), &h, deadline())
++        .await
++        .unwrap();
++    assert_eq!(
++        peer.handle(&f.sign(command()), &h, deadline())
++            .await
++            .unwrap_err(),
++        DispatchError::ReplayCapacity
++    );
++    assert_eq!(peer.replay_usage(), (3, 3));
++    assert_eq!(h.calls.load(Ordering::SeqCst), 2);
++    f.clock.advance(301);
++    assert_eq!(
++        peer.handle(&f.sign(first), &h, deadline())
++            .await
++            .unwrap_err(),
++        DispatchError::Replay
++    );
++    assert_eq!(peer.replay_usage(), (3, 3));
++}
++#[tokio::test]
++async fn auth_and_keepalive_share_the_same_id_namespace_after_ttl_expiry() {
++    let f = Fixture::new();
++    let mut peer = f.peer();
++    let session = f.authenticate(&mut peer, "old").await;
++    let mut keepalive = envelope(
++        "auth.keepalive",
++        json!({"session_token":session.original()["payload"]["session_token"]}),
++    );
++    keepalive["id"] = json!(session.scope(Scope::Reply).unwrap());
++    f.clock.advance(301);
++    assert_eq!(
++        peer.handle(&f.sign(keepalive), &AnyHandler::default(), deadline())
++            .await
++            .unwrap_err(),
++        DispatchError::Replay
++    );
++    assert_eq!(f.store.accepted.load(Ordering::SeqCst), 2);
++    assert_eq!(peer.replay_usage().0, 1);
++}
++async fn quic_pair() -> (
++    quinn::Endpoint,
++    quinn::Endpoint,
++    quinn::Connection,
++    quinn::Connection,
++) {
++    use rvoip_uctp::substrate::{
++        dev_client_config_trusting, make_server_endpoint, self_signed_for_dev,
++    };
++    let _ = rustls::crypto::ring::default_provider().install_default();
++    let (cert, key) = self_signed_for_dev(&["localhost".into()]).unwrap();
++    let mut tls = rustls::ServerConfig::builder()
++        .with_no_client_auth()
++        .with_single_cert(vec![cert.clone()], key)
++        .unwrap();
++    tls.alpn_protocols = vec![RAW_QUIC_ALPN.to_vec()];
++    let server = make_server_endpoint(
++        "127.0.0.1:0".parse().unwrap(),
++        Arc::new(tls),
++        quinn::TransportConfig::default(),
++    )
++    .unwrap();
++    let mut tls = dev_client_config_trusting(&cert).unwrap();
++    tls.alpn_protocols = vec![RAW_QUIC_ALPN.to_vec()];
++    let crypto = quinn::crypto::rustls::QuicClientConfig::try_from(tls).unwrap();
++    let mut client = quinn::Endpoint::client("127.0.0.1:0".parse().unwrap()).unwrap();
++    client.set_default_client_config(quinn::ClientConfig::new(Arc::new(crypto)));
++    let connect = client
++        .connect(server.local_addr().unwrap(), "localhost")
++        .unwrap();
++    let accept = async { server.accept().await.unwrap().await.unwrap() };
++    let (remote, host) = tokio::join!(connect, accept);
++    (server, client, host, remote.unwrap())
++}
++
++#[tokio::test]
++async fn actual_tls_quic_signature_problems_are_distinct_safe_and_signed_logout_closes_peer() {
++    let f = Fixture::new();
++    let (_server, _client, host, remote) = quic_pair().await;
++    let _host_lifetime = host.clone();
++    let peer = f.peer();
++    let lifetime = peer.cancellation();
++    let server = tokio::spawn(async move {
++        let (tx, rx) = host.accept_bi().await.unwrap();
++        peer.run(rx, tx, &AnyHandler::default()).await
++    });
++    let (tx, rx) = remote.open_bi().await.unwrap();
++    let mut writer = FramedWrite::new(tx, rvoip_uctp::substrate::length_prefixed_codec());
++    let mut reader = FramedRead::new(rx, rvoip_uctp::substrate::length_prefixed_codec());
++    writer
++        .send(Bytes::from(serde_json::to_vec(&hello()).unwrap()))
++        .await
++        .unwrap();
++    let challenge = Envelope::parse(&reader.next().await.unwrap().unwrap()).unwrap();
++    let unsigned = response(&challenge, "private-never-echo");
++    let mut stale = response(&challenge, "old");
++    stale["ts"] = json!(f.clock.now() - chrono::Duration::seconds(301));
++    let stale = serde_json::to_vec(&f.client.sign(&stale).unwrap()).unwrap();
++    let mut unknown: Value = serde_json::from_slice(&f.sign(response(&challenge, "old"))).unwrap();
++    unknown["signature"]["keyid"] = json!("private-missing-key");
++    let mut invalid: Value = serde_json::from_slice(&f.sign(response(&challenge, "old"))).unwrap();
++    invalid["signature"]["sig"] = json!("AAAA");
++    let wires = [
++        serde_json::to_vec(&unsigned).unwrap(),
++        stale,
++        serde_json::to_vec(&unknown).unwrap(),
++        serde_json::to_vec(&invalid).unwrap(),
++    ];
++    let mut generic = Vec::new();
++    for (wire, reason) in wires.into_iter().zip([
++        "signature_required",
++        "stale_timestamp",
++        "invalid_signature",
++        "invalid_signature",
++    ]) {
++        let request: Value = serde_json::from_slice(&wire).unwrap();
++        writer.send(Bytes::from(wire)).await.unwrap();
++        let problem = Envelope::parse(&reader.next().await.unwrap().unwrap()).unwrap();
++        assert_eq!(problem.original()["payload"]["code"], 401);
++        assert_eq!(problem.original()["payload"]["reason"], reason);
++        assert_eq!(problem.scope(Scope::Reply), request["id"].as_str());
++        let text = serde_json::to_string(&problem).unwrap();
++        assert!(!text.contains("private-never-echo") && !text.contains("private-missing-key"));
++        f.verify_server(&problem).await;
++        if reason == "invalid_signature" {
++            generic.push(problem.original()["payload"].clone());
++        }
++    }
++    assert_eq!(generic[0], generic[1]);
++    writer
++        .send(Bytes::from(f.sign(response(&challenge, "old"))))
++        .await
++        .unwrap();
++    assert_eq!(
++        Envelope::parse(&reader.next().await.unwrap().unwrap())
++            .unwrap()
++            .kind(),
++        "auth.session"
++    );
++    f.store.unavailable.store(true, Ordering::SeqCst);
++    writer.send(Bytes::from(f.sign(command()))).await.unwrap();
++    let unavailable = Envelope::parse(&reader.next().await.unwrap().unwrap()).unwrap();
++    assert_eq!(unavailable.original()["payload"]["code"], 503);
++    assert_eq!(
++        unavailable.original()["payload"]["reason"],
++        "replay_protection_unavailable"
++    );
++    f.verify_server(&unavailable).await;
++    f.store.unavailable.store(false, Ordering::SeqCst);
++    let bye = envelope("auth.bye", json!({"reason":"user-logout"}));
++    writer.send(Bytes::from(f.sign(bye.clone()))).await.unwrap();
++    let ack = Envelope::parse(
++        &tokio::time::timeout(Duration::from_secs(3), reader.next())
++            .await
++            .unwrap()
++            .unwrap()
++            .unwrap(),
++    )
++    .unwrap();
++    assert_eq!(ack.kind(), "ack");
++    assert_eq!(ack.scope(Scope::Reply), bye["id"].as_str());
++    assert!(tokio::time::timeout(Duration::from_secs(3), server)
++        .await
++        .unwrap()
++        .unwrap()
++        .is_ok());
++    assert!(lifetime.is_cancelled());
++}
++
++#[tokio::test]
++async fn matching_invalid_stepup_has_one_failure_for_original_and_one_for_response_without_private_data(
++) {
++    let f = Fixture::new();
++    let mut peer = f.peer();
++    f.authenticate(&mut peer, "old").await;
++    let h = Tracking::default();
++    let mut request = command();
++    request["optional_sensitive"] = json!("private-original-body");
++    let output = peer
++        .handle(&f.sign(request.clone()), &h, deadline())
++        .await
++        .unwrap();
++    let challenge = output.envelopes()[0].clone();
++    drop(output);
++    let response = proof(&challenge, "private-credential-secret");
++    assert_eq!(
++        peer.handle(&f.sign(response.clone()), &h, deadline())
++            .await
++            .unwrap_err(),
++        DispatchError::Authentication
++    );
++    let failure = peer.drain_step_up_failures().unwrap().unwrap();
++    assert_eq!(failure.envelopes().len(), 2);
++    for (reply, id, code, reason) in [
++        (
++            failure.envelopes()[0].clone(),
++            request["id"].clone(),
++            403,
++            "assurance_not_established",
++        ),
++        (
++            failure.envelopes()[1].clone(),
++            response["id"].clone(),
++            401,
++            "step_up_failed",
++        ),
++    ] {
++        assert_eq!(reply.scope(Scope::Reply), id.as_str());
++        assert_eq!(reply.scope(Scope::Operation), Some("logical-op"));
++        assert_eq!(reply.original()["payload"]["code"], code);
++        assert_eq!(reply.original()["payload"]["reason"], reason);
++        let text = serde_json::to_string(&reply).unwrap();
++        assert!(
++            !text.contains("private-original-body") && !text.contains("private-credential-secret")
++        );
++        f.verify_server(&reply).await;
++    }
++    assert!(peer.drain_step_up_failures().unwrap().is_none());
++    assert_eq!(h.calls.load(Ordering::SeqCst), 0);
++    assert_eq!(peer.generation(), Some(1));
++}
++#[tokio::test]
++async fn cancelled_validation_records_definite_no_execution_and_bounded_failure_metadata() {
++    let f = Fixture::new();
++    let mut peer = f.peer();
++    f.authenticate(&mut peer, "old").await;
++    let h = Tracking::default();
++    let (request, challenge) = blocked(&f, &mut peer, &h).await;
++    f.validator.hold.store(true, Ordering::SeqCst);
++    let response = proof(&challenge, "user");
++    let wire = f.sign(response.clone());
++    let mut future = Box::pin(peer.handle(&wire, &h, deadline()));
++    tokio::select! {result=&mut future=>panic!("early {result:?}"),_=f.validator.entered.notified()=>{}}
++    drop(future);
++    assert!(f.policy.revoked.try_write().is_ok());
++    let output = peer.drain_step_up_failures().unwrap().unwrap();
++    assert_eq!(
++        output.envelopes()[0].scope(Scope::Reply),
++        request["id"].as_str()
++    );
++    assert_eq!(output.envelopes()[0].original()["payload"]["code"], 403);
++    assert!(output.envelopes()[0].original()["payload"]
++        .get("details")
++        .is_none());
++    assert_eq!(
++        output.envelopes()[1].scope(Scope::Reply),
++        response["id"].as_str()
++    );
++    assert_eq!(h.calls.load(Ordering::SeqCst), 0);
++}
++struct UncertainHandler {
++    entered: Notify,
++    release: Notify,
++    effects: AtomicUsize,
++}
++#[async_trait]
++impl AuthenticatedHandler for UncertainHandler {
++    async fn handle(&self, _: AuthorizedEnvelope) -> Result<Envelope, DispatchError> {
++        self.effects.fetch_add(1, Ordering::SeqCst);
++        self.entered.notify_one();
++        self.release.notified().await;
++        Envelope::from_value(envelope("ack", json!({}))).map_err(DispatchError::from)
++    }
++}
++#[tokio::test]
++async fn interrupted_execution_is_unknown_not_falsely_rejected_and_proof_cannot_execute_again() {
++    let f = Fixture::new();
++    let mut peer = f.peer();
++    f.authenticate(&mut peer, "old").await;
++    let base = Tracking::default();
++    let (request, challenge) = blocked(&f, &mut peer, &base).await;
++    let h = UncertainHandler {
++        entered: Notify::new(),
++        release: Notify::new(),
++        effects: AtomicUsize::new(0),
++    };
++    let response = proof(&challenge, "user");
++    let wire = f.sign(response.clone());
++    let mut future = Box::pin(peer.handle(&wire, &h, deadline()));
++    tokio::select! {result=&mut future=>panic!("early {result:?}"),_=h.entered.notified()=>{}}
++    assert!(f.policy.revoked.try_write().is_err());
++    drop(future);
++    assert!(f.policy.revoked.try_write().is_ok());
++    let output = peer.drain_step_up_failures().unwrap().unwrap();
++    assert_eq!(
++        output.envelopes()[0].scope(Scope::Reply),
++        request["id"].as_str()
++    );
++    assert_eq!(output.envelopes()[0].original()["payload"]["code"], 409);
++    assert_eq!(
++        output.envelopes()[0].original()["payload"]["reason"],
++        "operation_interrupted"
++    );
++    assert_eq!(
++        output.envelopes()[0].original()["payload"]["details"]["outcome"],
++        "unknown"
++    );
++    assert_eq!(output.envelopes()[1].original()["payload"]["code"], 408);
++    assert_eq!(h.effects.load(Ordering::SeqCst), 1);
++    assert_eq!(
++        peer.handle(&f.sign(request), &base, deadline())
++            .await
++            .unwrap_err(),
++        DispatchError::Replay
++    );
++    assert!(!peer.has_pending_step_up());
++    assert_eq!(peer.generation(), Some(1));
++}
++#[tokio::test]
++async fn actual_tls_quic_invalid_stepup_finishes_both_waiters_then_fresh_logical_retry_can_recover()
++{
++    let f = Fixture::new();
++    let (_server, _client, host, remote) = quic_pair().await;
++    let _host_lifetime = host.clone();
++    let peer = f.peer();
++    let h = Arc::new(AnyHandler::default());
++    let hh = h.clone();
++    let server = tokio::spawn(async move {
++        let (tx, rx) = host.accept_bi().await.unwrap();
++        peer.run(rx, tx, hh.as_ref()).await
++    });
++    let (tx, rx) = remote.open_bi().await.unwrap();
++    let mut writer = FramedWrite::new(tx, rvoip_uctp::substrate::length_prefixed_codec());
++    let mut reader = FramedRead::new(rx, rvoip_uctp::substrate::length_prefixed_codec());
++    writer
++        .send(Bytes::from(serde_json::to_vec(&hello()).unwrap()))
++        .await
++        .unwrap();
++    let challenge = Envelope::parse(&reader.next().await.unwrap().unwrap()).unwrap();
++    writer
++        .send(Bytes::from(f.sign(response(&challenge, "old"))))
++        .await
++        .unwrap();
++    assert_eq!(
++        Envelope::parse(&reader.next().await.unwrap().unwrap())
++            .unwrap()
++            .kind(),
++        "auth.session"
++    );
++    let request = command();
++    writer
++        .send(Bytes::from(f.sign(request.clone())))
++        .await
++        .unwrap();
++    let challenge = Envelope::parse(&reader.next().await.unwrap().unwrap()).unwrap();
++    let bad = proof(&challenge, "private-secret");
++    writer.send(Bytes::from(f.sign(bad.clone()))).await.unwrap();
++    for (id, code, reason) in [
++        (request["id"].clone(), 403, "assurance_not_established"),
++        (bad["id"].clone(), 401, "step_up_failed"),
++    ] {
++        let problem = Envelope::parse(
++            &tokio::time::timeout(Duration::from_secs(3), reader.next())
++                .await
++                .unwrap()
++                .unwrap()
++                .unwrap(),
++        )
++        .unwrap();
++        assert_eq!(problem.scope(Scope::Reply), id.as_str());
++        assert_eq!(problem.original()["payload"]["code"], code);
++        assert_eq!(problem.original()["payload"]["reason"], reason);
++        assert!(!serde_json::to_string(&problem)
++            .unwrap()
++            .contains("private-secret"));
++        f.verify_server(&problem).await;
++    }
++    assert_eq!(h.calls.load(Ordering::SeqCst), 0);
++    writer
++        .send(Bytes::from(f.sign(request.clone())))
++        .await
++        .unwrap();
++    assert_eq!(
++        Envelope::parse(&reader.next().await.unwrap().unwrap())
++            .unwrap()
++            .original()["payload"]["reason"],
++        "replay_detected"
++    );
++    let mut retry = request;
++    retry["id"] = json!("fresh-original-after-rejection");
++    writer
++        .send(Bytes::from(f.sign(retry.clone())))
++        .await
++        .unwrap();
++    let challenge = Envelope::parse(&reader.next().await.unwrap().unwrap()).unwrap();
++    writer
++        .send(Bytes::from(f.sign(proof(&challenge, "user"))))
++        .await
++        .unwrap();
++    for kind in ["auth.session", "identity.assurance-changed", "ack"] {
++        let reply = Envelope::parse(&reader.next().await.unwrap().unwrap()).unwrap();
++        assert_eq!(reply.kind(), kind);
++        if kind == "ack" {
++            assert_eq!(reply.scope(Scope::Reply), retry["id"].as_str());
++        }
++    }
++    assert_eq!(h.calls.load(Ordering::SeqCst), 1);
++    assert_eq!(h.effects.lock().unwrap().len(), 1);
++    writer.close().await.unwrap();
++    assert!(tokio::time::timeout(Duration::from_secs(3), server)
++        .await
++        .unwrap()
++        .unwrap()
++        .is_ok());
++}
++
++#[tokio::test(start_paused = true)]
++async fn driven_validation_timeout_finishes_original_and_response_without_losing_valid_peer() {
++    let f = Fixture::new();
++    let mut peer = f.peer();
++    let session = f.authenticate(&mut peer, "old").await;
++    let h = Tracking::default();
++    let (request, challenge) = blocked(&f, &mut peer, &h).await;
++    let lifetime = peer.cancellation();
++    f.validator.hold.store(true, Ordering::SeqCst);
++    let (a, b) = tokio::io::duplex(8192);
++    let (rd, wr) = tokio::io::split(a);
++    let (crd, cwr) = tokio::io::split(b);
++    let server = tokio::spawn(async move { peer.run(rd, wr, &AnyHandler::default()).await });
++    let mut writer = FramedWrite::new(cwr, rvoip_uctp::substrate::length_prefixed_codec());
++    let mut reader = FramedRead::new(crd, rvoip_uctp::substrate::length_prefixed_codec());
++    let response = proof(&challenge, "user");
++    writer
++        .send(Bytes::from(f.sign(response.clone())))
++        .await
++        .unwrap();
++    for (id, code, reason) in [
++        (request["id"].clone(), 403, "assurance_not_established"),
++        (response["id"].clone(), 401, "step_up_failed"),
++    ] {
++        let reply = Envelope::parse(&reader.next().await.unwrap().unwrap()).unwrap();
++        assert_eq!(reply.scope(Scope::Reply), id.as_str());
++        assert_eq!(reply.original()["payload"]["code"], code);
++        assert_eq!(reply.original()["payload"]["reason"], reason);
++    }
++    assert!(!lifetime.is_cancelled());
++    writer
++        .send(Bytes::from(f.sign(envelope(
++            "auth.keepalive",
++            json!({"session_token":session.original()["payload"]["session_token"]}),
++        ))))
++        .await
++        .unwrap();
++    assert_eq!(
++        Envelope::parse(&reader.next().await.unwrap().unwrap())
++            .unwrap()
++            .kind(),
++        "ack"
++    );
++    writer.close().await.unwrap();
++    assert!(server.await.unwrap().is_ok());
++    assert_eq!(h.calls.load(Ordering::SeqCst), 0);
++}
+diff --git a/crates/uctp/rvoip-uctp/tests/v2_step_up.rs b/crates/uctp/rvoip-uctp/tests/v2_step_up.rs
+index f5c3443..31d6f01 100644
+--- a/crates/uctp/rvoip-uctp/tests/v2_step_up.rs
++++ b/crates/uctp/rvoip-uctp/tests/v2_step_up.rs
+@@ -555,7 +555,7 @@ async fn wrong_scope_or_unsigned_stepup_cannot_consume_the_pending_request() {
+         )
+         .await
+         .unwrap_err(),
+-        DispatchError::Signature
++        DispatchError::SignatureRequired
+     );
+     assert!(peer.has_pending_step_up());
+     assert_eq!(f.validator.calls.load(Ordering::SeqCst), calls);
+@@ -891,7 +891,7 @@ async fn actual_uctp2_tls_quic_stepup_emits_scoped_assurance_then_original_respo
+     }
+     writer.send(Bytes::from(wire)).await.unwrap();
+     let problem = Envelope::parse(&reader.next().await.unwrap().unwrap()).unwrap();
+-    assert_eq!(problem.original()["payload"]["reason"], "envelope_replay");
++    assert_eq!(problem.original()["payload"]["reason"], "replay_detected");
+     assert_eq!(h.calls.load(Ordering::SeqCst), 1);
+     writer.close().await.unwrap();
+     assert!(tokio::time::timeout(Duration::from_secs(3), server)

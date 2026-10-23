@@ -1,0 +1,467 @@
+diff --git a/crates/foundation/rvoip-core/src/lib.rs b/crates/foundation/rvoip-core/src/lib.rs
+index 51aca02..c976501 100644
+--- a/crates/foundation/rvoip-core/src/lib.rs
++++ b/crates/foundation/rvoip-core/src/lib.rs
+@@ -116,6 +116,10 @@
+ 
+ pub use rvoip_core_traits::peer_media;
+ 
++// Share the real participant-control fixture between unit and integration tests.
++#[cfg(test)]
++extern crate self as rvoip_core;
++
+ pub mod adapter;
+ pub mod addressed_messages;
+ pub mod bridge;
+diff --git a/crates/foundation/rvoip-core/src/orchestrator.rs b/crates/foundation/rvoip-core/src/orchestrator.rs
+index c5c78ae..4a9e5c4 100644
+--- a/crates/foundation/rvoip-core/src/orchestrator.rs
++++ b/crates/foundation/rvoip-core/src/orchestrator.rs
+@@ -4228,7 +4228,10 @@ impl Orchestrator {
+             .map(|entry| Arc::clone(entry.value()))
+             .ok_or_else(|| RvoipError::SessionNotFound(session_id.clone()))?;
+         let sess = sess_arc.read().expect("session lock poisoned");
+-        if matches!(sess.state, SessionState::Ended | SessionState::Failed) {
++        if matches!(
++            sess.state,
++            SessionState::Ending | SessionState::Ended | SessionState::Failed
++        ) {
+             return Err(RvoipError::InvalidState(
+                 "originate_connection: target session is ended",
+             ));
+@@ -4300,7 +4303,7 @@ impl Orchestrator {
+         let mut session_guard = session.write().expect("session lock poisoned");
+         if matches!(
+             session_guard.state,
+-            SessionState::Ended | SessionState::Failed
++            SessionState::Ending | SessionState::Ended | SessionState::Failed
+         ) {
+             return Err(RvoipError::InvalidState(
+                 "route_inbound_connection: target session is ended",
+@@ -4472,7 +4475,7 @@ impl Orchestrator {
+         let mut session_guard = session.write().expect("session lock poisoned");
+         if matches!(
+             session_guard.state,
+-            SessionState::Ended | SessionState::Failed
++            SessionState::Ending | SessionState::Ended | SessionState::Failed
+         ) {
+             return Err(RvoipError::InvalidState(
+                 "originate_connection: target session is ended",
+@@ -5898,8 +5901,10 @@ impl Orchestrator {
+ 
+     /// End a Session. Transitions state to `Ended`, drops multi-party
+     /// subscriptions, clears the reverse Connection→Session index, and
+-    /// emits `Event::SessionEnded`. Idempotent: ending an already-
+-    /// Ended or Failed Session returns `Ok(())`.
++    /// emits `Event::SessionEnded`. `Ending` fences new work before cleanup
++    /// waits; a cancelled call can be retried to finish the same teardown.
++    /// Concurrent callers preserve the first end reason and emit one completion.
++    /// Ending an already-Ended or Failed Session returns `Ok(())`.
+     #[instrument(skip(self), fields(session_id = %session_id, reason = ?reason))]
+     pub async fn end_session(&self, session_id: SessionId, reason: EndReason) -> Result<()> {
+         let sess_arc = self
+@@ -5908,26 +5913,38 @@ impl Orchestrator {
+             .map(|e| Arc::clone(e.value()))
+             .ok_or_else(|| RvoipError::SessionNotFound(session_id.clone()))?;
+ 
+-        let now = Utc::now();
+         let conv_id = {
+             let mut sess = sess_arc.write().expect("session lock poisoned");
+             if matches!(sess.state, SessionState::Ended | SessionState::Failed) {
+                 return Ok(());
+             }
+-            sess.state = SessionState::Ended;
+-            sess.ended_at = Some(now);
+-            sess.end_reason = Some(reason);
++            if sess.state != SessionState::Ending {
++                sess.state = SessionState::Ending;
++                sess.end_reason = Some(reason);
++            }
+             sess.conversation_id.clone()
+         };
+ 
+         self.retire_session_views(&session_id);
+         self.retire_native_session_connections(&session_id);
+-        self.end_managed_participant_session(&session_id).await;
+-
+-        // Multi-party cleanup + reverse-index cleanup.
++        // Retire direct fanout and reverse lookup before any cleanup wait too.
+         self.drop_session_subscriptions(&session_id);
+         self.sessions_by_connection
+             .retain(|_, sid| sid != &session_id);
++        self.end_managed_participant_session(&session_id).await;
++
++        // No suspension follows this completion decision. Only one concurrent
++        // caller owns finalization/events; cancellation before here leaves an
++        // Ending Session that another caller can resume.
++        let now = Utc::now();
++        {
++            let mut sess = sess_arc.write().expect("session lock poisoned");
++            if matches!(sess.state, SessionState::Ended | SessionState::Failed) {
++                return Ok(());
++            }
++            sess.state = SessionState::Ended;
++            sess.ended_at = Some(now);
++        }
+ 
+         // P3 — finalize the Session's vCon: convert into the canonical
+         // model, validate, serialize, persist, then emit VconReady.
+diff --git a/crates/foundation/rvoip-core/src/orchestrator/participant_control.rs b/crates/foundation/rvoip-core/src/orchestrator/participant_control.rs
+index 403aaad..f0b1cee 100644
+--- a/crates/foundation/rvoip-core/src/orchestrator/participant_control.rs
++++ b/crates/foundation/rvoip-core/src/orchestrator/participant_control.rs
+@@ -1049,8 +1049,10 @@ impl Orchestrator {
+         else {
+             return;
+         };
++        // Fence admission, pending work and every live generation before the
++        // first await. Cancellation of the caller must not leave audio running
++        // merely because another operation currently owns the mixer lock.
+         let routes = {
+-            let mut mixer = runtime.mixer.members.lock().await;
+             let mut state = runtime.state.lock().unwrap_or_else(|p| p.into_inner());
+             state.ended = true;
+             for pending in state.pending.values() {
+@@ -1058,15 +1060,18 @@ impl Orchestrator {
+             }
+             let revision = state.controller.revision();
+             let _ = state.controller.end(revision);
+-            mixer.clear();
+-            runtime.mixer.task.abort();
+             std::mem::take(&mut state.routes)
+         };
++        runtime.mixer.task.abort();
+         if let Some(owner) = self.self_weak.get().and_then(Weak::upgrade) {
+             for (connection, _) in routes {
+                 owner.retire_participant_route(&connection);
+             }
+         }
++        // This is the only suspension point. A retry while SessionState is
++        // Ending repeats this idempotent local cleanup, without granting new
++        // authority or spawning an unowned teardown task.
++        runtime.mixer.members.lock().await.clear();
+     }
+ }
+ 
+@@ -1079,3 +1084,6 @@ fn peer_error(error: crate::peer_admission::PeerAdmissionError) -> ParticipantCo
+         Authority => ParticipantControlError::Authority,
+     }
+ }
++
++#[cfg(test)]
++mod end_session_tests;
+diff --git a/crates/foundation/rvoip-core/src/orchestrator/participant_control/end_session_tests.rs b/crates/foundation/rvoip-core/src/orchestrator/participant_control/end_session_tests.rs
+new file mode 100644
+index 0000000..44cf377
+--- /dev/null
++++ b/crates/foundation/rvoip-core/src/orchestrator/participant_control/end_session_tests.rs
+@@ -0,0 +1,309 @@
++use super::*;
++#[allow(dead_code)]
++#[path = "../../../tests/support/participant_control_fixture.rs"]
++mod fixture;
++use fixture::{participant, principal, until, Fixture};
++
++fn ended_events(events: &mut broadcast::Receiver<Event>, session: &SessionId) -> usize {
++    let mut count = 0;
++    while let Ok(event) = events.try_recv() {
++        if matches!(event, Event::SessionEnded { session_id, .. } if &session_id == session) {
++            count += 1;
++        }
++    }
++    count
++}
++
++async fn start_blocked_end(f: &Fixture, reason: EndReason) -> tokio::task::JoinHandle<Result<()>> {
++    let owner = f.orch.clone();
++    let sid = f.session.clone();
++    let task = tokio::spawn(async move { owner.end_session(sid, reason).await });
++    until(|| {
++        matches!(
++            f.orch.session(&f.session).unwrap().read().unwrap().state,
++            SessionState::Ending | SessionState::Ended
++        )
++    })
++    .await;
++    assert!(
++        !task.is_finished(),
++        "mixer lock deliberately holds teardown"
++    );
++    task
++}
++
++#[tokio::test]
++async fn aborted_session_end_fences_media_and_pending_before_wait_and_retry_finishes_once() {
++    let f = Fixture::new().await;
++    let (live, _) = f.connection("alice", true).await;
++    f.join(&f.session, "alice", &live).await;
++    let (pending, _) = f.connection("bob", false).await;
++    let intent = f.intent(
++        &f.session,
++        "bob",
++        "pending-end",
++        ParticipantChange::Admit {
++            connection: pending.clone(),
++            role_override: None,
++        },
++    );
++    let owner = f.orch.clone();
++    let sid = f.session.clone();
++    let admission = tokio::spawn(async move {
++        owner
++            .change_session_participant(
++                &sid,
++                principal("owner"),
++                intent,
++                tokio::time::Instant::now() + Duration::from_secs(5),
++                CancellationToken::new(),
++            )
++            .await
++    });
++    until(|| f.orch.participant_capacity(&f.session).unwrap() == (1, 1)).await;
++    let runtime = f.orch.participant_runtime(&f.session).unwrap();
++    let held = runtime.mixer.members.clone().lock_owned().await;
++    let stream = StreamId::new();
++    let subscriber = ConnectionId::new();
++    f.orch
++        .add_subscription(f.session.clone(), subscriber, live.clone(), stream.clone());
++    assert_eq!(f.orch.subscribers_for(&f.session, &live, &stream).len(), 1);
++    let mut events = f.orch.subscribe_events();
++    let end = start_blocked_end(&f, EndReason::Cancelled).await;
++    assert!(f
++        .orch
++        .subscribers_for(&f.session, &live, &stream)
++        .is_empty());
++    assert_eq!(f.orch.session_of(&live), None);
++    assert!(
++        runtime.state.lock().unwrap().ended,
++        "logical end precedes mixer wait"
++    );
++    assert!(
++        !f.orch
++            .connection_lifecycles
++            .get(&live)
++            .unwrap()
++            .lock()
++            .unwrap()
++            .active
++    );
++    assert!(tokio::time::timeout(Duration::from_secs(1), admission)
++        .await
++        .unwrap()
++        .unwrap()
++        .is_err());
++    end.abort();
++    assert!(end.await.unwrap_err().is_cancelled());
++    assert_eq!(
++        f.orch.session(&f.session).unwrap().read().unwrap().state,
++        SessionState::Ending
++    );
++    assert_eq!(
++        ended_events(&mut events, &f.session),
++        0,
++        "no completed event before cleanup"
++    );
++    assert!(f.orch.bind_connection_to_session_probe(&f.session).is_err());
++    drop(held);
++    f.orch
++        .end_session(f.session.clone(), EndReason::Normal)
++        .await
++        .unwrap();
++    assert!(runtime.mixer.members.lock().await.is_empty());
++    assert_eq!(f.orch.participant_capacity(&f.session).unwrap(), (0, 0));
++    let session = f.orch.session(&f.session).unwrap();
++    let session = session.read().unwrap();
++    assert_eq!(session.state, SessionState::Ended);
++    assert!(session.ended_at.is_some());
++    assert!(matches!(session.end_reason, Some(EndReason::Cancelled)));
++    assert_eq!(f.orch.session_of(&live), None);
++    assert_eq!(f.orch.session_of(&pending), None);
++    assert_eq!(ended_events(&mut events, &f.session), 1);
++    drop(session);
++    f.orch
++        .end_session(f.session.clone(), EndReason::Timeout)
++        .await
++        .unwrap();
++    assert_eq!(ended_events(&mut events, &f.session), 0);
++}
++
++#[tokio::test]
++async fn concurrent_session_end_keeps_first_reason_and_emits_one_completion() {
++    let f = Fixture::new().await;
++    let (live, _) = f.connection("alice", true).await;
++    f.join(&f.session, "alice", &live).await;
++    let runtime = f.orch.participant_runtime(&f.session).unwrap();
++    let before = f.orch.participant_revision(&f.session).unwrap();
++    let held = runtime.mixer.members.clone().lock_owned().await;
++    let mut events = f.orch.subscribe_events();
++    let first = start_blocked_end(&f, EndReason::Timeout).await;
++    let mut others = vec![];
++    for _ in 0..8 {
++        let owner = f.orch.clone();
++        let sid = f.session.clone();
++        others.push(tokio::spawn(async move {
++            owner.end_session(sid, EndReason::Normal).await
++        }));
++    }
++    tokio::task::yield_now().await;
++    drop(held);
++    first.await.unwrap().unwrap();
++    for task in others {
++        task.await.unwrap().unwrap();
++    }
++    assert_eq!(f.orch.participant_revision(&f.session).unwrap(), before + 1);
++    assert_eq!(ended_events(&mut events, &f.session), 1);
++    assert!(matches!(
++        f.orch
++            .session(&f.session)
++            .unwrap()
++            .read()
++            .unwrap()
++            .end_reason,
++        Some(EndReason::Timeout)
++    ));
++    assert!(runtime.mixer.members.lock().await.is_empty());
++}
++
++#[tokio::test]
++async fn cancelled_force_close_resumes_ending_session_before_closing_conversation() {
++    let f = Fixture::new().await;
++    let (live, _) = f.connection("alice", true).await;
++    f.join(&f.session, "alice", &live).await;
++    let runtime = f.orch.participant_runtime(&f.session).unwrap();
++    let held = runtime.mixer.members.clone().lock_owned().await;
++    let owner = f.orch.clone();
++    let cid = f.conversation.clone();
++    let close = tokio::spawn(async move { owner.close_conversation(cid, true).await });
++    until(|| {
++        matches!(
++            f.orch.session(&f.session).unwrap().read().unwrap().state,
++            SessionState::Ending | SessionState::Ended
++        )
++    })
++    .await;
++    close.abort();
++    assert!(close.await.unwrap_err().is_cancelled());
++    assert_eq!(
++        f.orch
++            .conversation(&f.conversation)
++            .unwrap()
++            .read()
++            .unwrap()
++            .state,
++        ConversationState::Open
++    );
++    assert!(f
++        .orch
++        .close_conversation(f.conversation.clone(), false)
++        .await
++        .is_err());
++    drop(held);
++    f.orch
++        .close_conversation(f.conversation.clone(), true)
++        .await
++        .unwrap();
++    assert!(runtime.mixer.members.lock().await.is_empty());
++    assert_eq!(
++        f.orch.session(&f.session).unwrap().read().unwrap().state,
++        SessionState::Ended
++    );
++    assert_eq!(
++        f.orch
++            .conversation(&f.conversation)
++            .unwrap()
++            .read()
++            .unwrap()
++            .state,
++        ConversationState::Closed
++    );
++}
++
++#[tokio::test]
++async fn cancelled_session_end_leaves_other_session_audio_and_membership_live() {
++    let f = Fixture::new().await;
++    let other = f.second_session().await;
++    let (a, _) = f.connection("alice", true).await;
++    f.join(&f.session, "alice", &a).await;
++    let (b, source) = f.connection("bob", true).await;
++    f.join(&other, "bob", &b).await;
++    let (c, sink) = f.connection("carol", true).await;
++    f.join(&other, "carol", &c).await;
++    let (cancel, tone) = source.continuous_tone();
++    sink.assert_receives_audio().await;
++    let runtime = f.orch.participant_runtime(&f.session).unwrap();
++    let held = runtime.mixer.members.clone().lock_owned().await;
++    let end = start_blocked_end(&f, EndReason::Normal).await;
++    end.abort();
++    let _ = end.await;
++    sink.assert_receives_audio().await;
++    assert_eq!(f.orch.session_of(&b), Some(other.clone()));
++    assert_eq!(
++        f.orch
++            .participant_session_role(&other, &participant("bob"))
++            .unwrap(),
++        Some(ParticipantRole::Agent)
++    );
++    drop(held);
++    f.orch
++        .end_session(f.session.clone(), EndReason::Normal)
++        .await
++        .unwrap();
++    sink.assert_receives_audio().await;
++    assert_eq!(f.orch.participant_capacity(&other).unwrap(), (2, 0));
++    cancel.cancel();
++    tone.await.unwrap();
++    f.orch.end_session(other, EndReason::Normal).await.unwrap();
++}
++
++#[tokio::test]
++async fn ending_session_rejects_legacy_route_probe_and_both_commit_paths() {
++    let f = Fixture::new().await;
++    let sid = f
++        .orch
++        .start_session(f.conversation.clone(), SessionMedium::Voice, vec![])
++        .await
++        .unwrap();
++    let (conn, _) = f.connection("alice", true).await;
++    let ticket = f
++        .orch
++        .capture_connection_lifecycles(std::slice::from_ref(&conn))
++        .unwrap()
++        .remove(0);
++    f.orch.session(&sid).unwrap().write().unwrap().state = SessionState::Ending;
++    assert!(matches!(
++        f.orch.bind_connection_to_session_probe(&sid),
++        Err(RvoipError::InvalidState(_))
++    ));
++    f.orch
++        .connections
++        .get_mut(&conn)
++        .unwrap()
++        .inbound_publication = InboundPublicationState::Published;
++    assert!(matches!(
++        f.orch
++            .bind_published_connection_to_session(&ticket, &sid, participant("alice")),
++        Err(RvoipError::InvalidState(_))
++    ));
++    {
++        let mut entry = f.orch.connections.get_mut(&conn).unwrap();
++        entry.direction = Direction::Outbound;
++        entry.inbound_publication = InboundPublicationState::NotInbound;
++    }
++    assert!(matches!(
++        f.orch
++            .commit_outbound_connection(&ticket, Transport::Sip, &sid, participant("alice")),
++        Err(RvoipError::InvalidState(_))
++    ));
++    assert_eq!(f.orch.session_of(&conn), None);
++    assert!(f
++        .orch
++        .session(&sid)
++        .unwrap()
++        .read()
++        .unwrap()
++        .connections
++        .is_empty());
++    f.orch.end_session(sid, EndReason::Normal).await.unwrap();
++}

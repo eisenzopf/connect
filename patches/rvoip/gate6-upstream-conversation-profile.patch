@@ -1,0 +1,85 @@
+diff --git a/crates/foundation/rvoip-core/tests/conversation_lifecycle.rs b/crates/foundation/rvoip-core/tests/conversation_lifecycle.rs
+--- a/crates/foundation/rvoip-core/tests/conversation_lifecycle.rs
++++ b/crates/foundation/rvoip-core/tests/conversation_lifecycle.rs
+@@ -126,9 +126,10 @@
+ #[tokio::test]
+ async fn close_with_force_ends_active_sessions_then_closes() {
+     let orch = Orchestrator::new(Config::default());
+-    let cid = orch
+-        .open_conversation(
+-            TenantId::new(),
++    let tenant = TenantId::new();
++    let cid = orch
++        .open_conversation(
++            tenant.clone(),
+             ConversationPolicy::default(),
+             HashMap::new(),
+         )
+@@ -147,26 +148,64 @@
+         .await
+         .expect("force-close");
+ 
+-    // Order: SessionEnded (from the in-flight end_session) then
+-    // ConversationClosed.
++    // Force-close owns each bounded session finalization before publishing
++    // ConversationClosed. A successful default vCon store contributes its
++    // own correctly scoped record readiness after SessionEnded.
+     let mut saw_session_ended = false;
+     let mut saw_conversation_closed = false;
+-    for _ in 0..2 {
++    let mut saw_record_ready = false;
++    let expected = if cfg!(feature = "vcon") { 3 } else { 2 };
++    for _ in 0..expected {
+         match next_event(&mut events).await {
+             Event::SessionEnded { session_id, .. } => {
+                 assert_eq!(session_id, sid);
++                assert!(!saw_session_ended, "duplicate session completion");
+                 saw_session_ended = true;
+             }
+             Event::ConversationClosed {
+                 conversation_id, ..
+             } => {
+                 assert_eq!(conversation_id, cid);
++                assert!(
++                    saw_session_ended,
++                    "conversation closed before session completion"
++                );
++                assert_eq!(saw_record_ready, cfg!(feature = "vcon"));
++                assert!(
++                    !saw_conversation_closed,
++                    "duplicate conversation completion"
++                );
+                 saw_conversation_closed = true;
++            }
++            #[cfg(feature = "vcon")]
++            Event::VconReady {
++                session_id, handle, ..
++            } => {
++                assert_eq!(session_id, sid);
++                assert!(saw_session_ended && !saw_conversation_closed);
++                assert!(!saw_record_ready, "duplicate record readiness");
++                let scope =
++                    rvoip_core::store::VconScope::new(tenant.clone(), cid.clone(), sid.clone());
++                assert!(
++                    orch.config
++                        .vcon_store
++                        .get(&scope, &handle)
++                        .await
++                        .unwrap()
++                        .is_some(),
++                    "record does not resolve in original scope"
++                );
++                saw_record_ready = true;
+             }
+             other => panic!("unexpected event during force-close: {other:?}"),
+         }
+     }
+     assert!(saw_session_ended && saw_conversation_closed);
++    assert_eq!(saw_record_ready, cfg!(feature = "vcon"));
++    assert_eq!(
++        orch.session(&sid).unwrap().read().unwrap().state,
++        rvoip_core::session::SessionState::Ended
++    );
+ }
+ 
+ #[tokio::test]

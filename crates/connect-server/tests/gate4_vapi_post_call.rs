@@ -82,7 +82,7 @@ async fn voice_question_and_decision_survive_restart_then_chat_replies_once_in_s
         .any(|s| s.body.as_deref() == Some("Earlier draft goal: choose a release color.")));
     let question_args = json!({
         "request_id":"voice-question", "step_id":"approval",
-        "body":"Which channel should I use after the call?", "wait_for_reply":true
+        "message": connect_protocol::messages::MessageDraft::text_all(("Which channel should I use after the call?").to_string()), "wait_for_reply":true
     });
     let TaskOutcome::Tool(TaskToolResult::Pending {
         task_id,
@@ -314,7 +314,7 @@ async fn voice_question_and_decision_survive_restart_then_chat_replies_once_in_s
         decision.body.as_ref().unwrap(),
         answered.body.as_ref().unwrap()
     );
-    let args = json!({"request_id":"post-call-followup","step_id":"draft","body":body,"reply_to":reply_id});
+    let args = json!({"request_id":"post-call-followup","step_id":"draft","message": connect_protocol::messages::MessageDraft::text_all((body).to_string()),"reply_to":reply_id});
     let first = tools::outcome(tools::call(&chat, "connect_send", args.clone()).await);
     assert_eq!(
         tools::outcome(tools::call(&chat, "connect_send", args).await),

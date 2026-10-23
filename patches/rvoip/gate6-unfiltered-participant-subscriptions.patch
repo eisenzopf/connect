@@ -1,0 +1,67 @@
+--- a/crates/uctp/rvoip-uctp/src/v2/native_subscriptions.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/native_subscriptions.rs
+@@ -27,6 +27,7 @@
+ pub(crate) fn parse(
+     e: &Envelope,
+     participant: &ParticipantId,
++    defaults: &BTreeSet<Medium>,
+ ) -> Result<MediaSelectionChange, NativeOfferError> {
+     if e.expected_revision().is_none()
+         || e.scope(Scope::Operation).is_none()
+@@ -59,12 +60,13 @@
+                         let mut media = BTreeSet::new();
+                         match kinds {
+                             None => {
+-                                media.extend([
+-                                    Medium::Audio,
+-                                    Medium::Video,
+-                                    Medium::Screen,
+-                                    Medium::Data,
+-                                ]);
++                                // Omission selects every compatible declared receive
++                                // kind within the installed profile. It must not
++                                // request unsupported media or create capability.
++                                if defaults.is_empty() {
++                                    return Err(NativeOfferError::Unsupported);
++                                }
++                                media.extend(defaults.iter().copied());
+                             }
+                             Some(kinds) if !kinds.is_empty() && kinds.len() <= 4 => {
+                                 for kind in kinds {
+--- a/crates/uctp/rvoip-uctp/src/v2/native_negotiation/mod.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/native_negotiation/mod.rs
+@@ -393,6 +393,22 @@
+             .substrate
+             .clone();
+         self.begin_plan(invocation, expected, plan, substrate)
++    }
++    /// Metadata for an unfiltered Participant selector. The installed profile
++    /// and last confirmed/declarative receiver capabilities bound future kinds;
++    /// this neither grants source authority nor allocates a receive port.
++    pub(crate) fn subscription_media(
++        &self,
++    ) -> Result<std::collections::BTreeSet<Medium>, NativeOfferError> {
++        let retained = self.retained.lock().unwrap_or_else(|p| p.into_inner());
++        let retained = retained.as_ref().ok_or(NativeOfferError::NotReady)?;
++        let remote = retained.future_capabilities();
++        Ok(self.profile.local.send.iter().filter(|local| {
++            remote.receive.iter().any(|peer| {
++                peer.medium == local.medium
++                    && local.formats.iter().any(|f| peer.formats.contains(f))
++            })
++        }).map(|c| c.medium).collect())
+     }
+     pub(crate) fn plan_subscriptions(
+         &self,
+--- a/crates/uctp/rvoip-uctp/src/v2/native.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/native.rs
+@@ -1078,7 +1078,8 @@
+         if !installed.backend.flow.confirmed_at(expected) {
+             return Err(NativeOfferError::NotReady);
+         }
+-        let input = parse(a.envelope(), route.member.participant())?;
++        let defaults = broker.subscription_media()?;
++        let input = parse(a.envelope(), route.member.participant(), &defaults)?;
+         let selection = core
+             .plan_staged_media_selection(&route.session, id, expected, &input)
+             .map_err(core_error)?;

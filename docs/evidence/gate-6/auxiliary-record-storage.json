@@ -1,0 +1,336 @@
+{
+  "task": "G6-046",
+  "title": "Durable Connect vCon storage and protected record mutations",
+  "status": "component-qualified",
+  "component_passed": true,
+  "full_task_complete": false,
+  "full_goal_complete": false,
+  "created_at": "2026-10-21T13:36:39.546519+00:00",
+  "schema_version": 75,
+  "scope": "Isolated local macOS arm64. Trusted Connect Service/Core VconStore adapter, actual Connect SQLite Store and actual filesystem/process locks. Not public vCon transport, Session capture/outcome coverage, source-audience policy or complete auxiliary-protocol qualification.",
+  "fresh_distinct_passed_tests": 135,
+  "ignored_top_level_subprocess_helpers": 2,
+  "verification": [
+    {
+      "name": "Complete current Service library",
+      "binary": {
+        "path": "target/debug/deps/connect_service-0c9533d243d07904",
+        "sha256": "0fe34fd82718300c868c14a2e1ae7aa8522f173bd527e3a4a8d1b50b30a9da55"
+      },
+      "arguments": [
+        "--test-threads=1"
+      ],
+      "passed": 33,
+      "failed": 0,
+      "ignored": 1,
+      "tests": [
+        "canonical_conversations::tests::canonical_conversation_assertions_and_unknown_filter_fields_are_not_discarded",
+        "canonical_media::tests::assistant_registry_contention_is_retryable_without_claiming_a_missing_source",
+        "canonical_media::tests::canonical_reliable_data_class_keeps_native_format_intersection_explicit",
+        "canonical_media::tests::native_plan_refuses_missing_current_acceptance_endpoint_or_original_offer_codec",
+        "canonical_media::tests::native_plan_selects_accepted_fallback_before_unaccepted_preferred_codec",
+        "canonical_media::tests::screen_planning_requires_each_explicit_screen_floor_instead_of_camera_permission",
+        "canonical_receipts::tests::read_report_parsing_keeps_diagnostic_claim_exact_and_rejects_other_resource_assertions",
+        "canonical_records::tests::durable_failed_transform_and_wrong_digests_preserve_original_record_and_snapshot",
+        "canonical_records::tests::durable_read_retains_cross_process_custody_until_delivery_drop",
+        "canonical_records::tests::durable_record_read_fences_other_handle_writer_while_independent_record_proceeds",
+        "canonical_records::tests::durable_record_reopens_exact_bytes_manifest_and_local_selector_scope",
+        "canonical_records::tests::durable_redaction_and_deletion_recover_original_facts_without_resurrection",
+        "canonical_session_decisions::tests::legacy_application_profile_cannot_dispatch_new_invitation_decisions",
+        "canonical_session_decisions::tests::session_decision_parser_refuses_extra_resources_missing_ids_and_oversized_reason",
+        "canonical_session_decisions::tests::session_decision_parser_retains_every_typed_field",
+        "canonical_sessions::http_projection_tests::ordinary_http_decision_projects_a_checked_empty_core_under_its_existing_fence",
+        "canonical_subscriptions::tests::receipt_hints_precede_cursor_facts_within_batch_budget_and_require_data_floor",
+        "canonical_subscriptions::tests::subscription_parser_bounds_batch_lease_and_rejects_extra_resource_assertions",
+        "event_tests::closing_a_physical_peer_cancels_both_journal_and_observation_waits",
+        "event_tests::event_catchup_requeries_the_journal_after_missing_or_duplicate_wake_hints",
+        "event_tests::event_wait_reauthorizes_before_delivering_after_membership_removal",
+        "messages::authority_tests::cancelled_handler_retains_authority_until_uncancellable_store_work_settles",
+        "readiness::tests::optional_absence_does_not_mask_failure_or_claim_operational_readiness",
+        "session_bindings::tests::native_resource_projection_checks_origin_binding_and_current_authority",
+        "session_bindings::tests::native_video_grant_admits_exact_profile_and_rejects_duplicate_unsupported_streams",
+        "session_init::tests::dropping_final_service_cancels_host_job_retaining_runtime",
+        "session_init::tests::host_registry_refuses_duplicate_names_capacity_and_retired_runtime",
+        "session_init::tests::independent_hosts_receive_exact_committed_metadata_and_one_failure_does_not_skip_another",
+        "session_init::tests::queued_snapshot_cannot_add_work_after_host_closure",
+        "tasks::tests::commit_between_task_catchup_and_wait_is_not_lost_for_owner_or_grant",
+        "tasks::tests::revocation_during_wait_is_rechecked_before_returning_events",
+        "tests::commit_between_catchup_and_wait_is_not_lost",
+        "tests::inbox_wait_is_bounded_and_cancelled_with_physical_peer"
+      ],
+      "log": {
+        "path": ".local/gate-6/aux-record-service-tests.log",
+        "sha256": "c254bf1a28a4fb5a3b4d520b33e9701bcfef1e56542b1f96289119d7c65afbd5"
+      }
+    },
+    {
+      "name": "Store authority fences",
+      "binary": {
+        "path": "target/debug/deps/connect_store-34efc355090fb9eb",
+        "sha256": "3c73481498a83d07f0d8ec8a4e094e7e988e965e349a863c53c23cf074535fad"
+      },
+      "arguments": [
+        "authority_fences::",
+        "--test-threads=2"
+      ],
+      "passed": 30,
+      "failed": 0,
+      "ignored": 1,
+      "tests": [
+        "authority_fences::tests::actual_child_death_releases_kernel_reader_without_persistent_phantom_authority",
+        "authority_fences::tests::actual_child_process_revocation_waits_for_parent_delivery_guard_and_admin_open_preserves_runtime",
+        "authority_fences::tests::cancellation_deadline_and_partial_acquisition_release_every_scope",
+        "authority_fences::tests::actual_key_and_device_retirement_wait_for_current_identity_delivery",
+        "authority_fences::tests::immediate_admission_refuses_queued_writer_and_releases_partial_scopes",
+        "authority_fences::tests::immediate_admission_refuses_reader_map_contention_without_waiting",
+        "authority_fences::tests::immediate_sql_refuses_mutex_and_database_contention_and_restores_timeout",
+        "authority_fences::tests::membership_removal_and_other_member_revocation_wait_for_snapshot_delivery",
+        "authority_fences::tests::mutations::contact_pairing_changes_wait_for_both_current_identity_authorities",
+        "authority_fences::tests::mutations::held_write_proof_reuses_exact_scope_and_refuses_read_upgrade_partial_and_foreign_proofs",
+        "authority_fences::tests::mutations::membership_and_provisioning_reuse_sufficient_write_proofs_without_reentering",
+        "authority_fences::tests::mutations::ordinary_close_privacy_and_artifact_deletion_wait_for_current_delivery",
+        "authority_fences::tests::mutations::ordinary_session_authority_changes_wait_for_delivery_and_recheck_original_state",
+        "authority_fences::tests::mutations::exact_current_grant_replay_is_read_only_during_delivery_and_never_refreshes_denied_authority",
+        "authority_fences::tests::mutations::owner_and_narrow_invocation_artifact_deletion_share_the_ordinary_write_fence",
+        "authority_fences::tests::mutations::shared_engine_refuses_authority_mutation_without_a_current_owned_write_proof",
+        "authority_fences::tests::mutations::task_cancel_grant_retirement_and_new_issuance_wait_for_current_delivery",
+        "authority_fences::tests::mutations::trusted_bind_unbind_and_session_end_wait_for_current_delivery",
+        "authority_fences::tests::namespace_privacy_symlink_alias_hardlink_refusal_and_foreign_guard_are_enforced",
+        "authority_fences::tests::runtime::copied_provider_job_cannot_switch_the_persisted_route_at_completion",
+        "authority_fences::tests::runtime::global_phone_stop_covers_other_sender_and_conversation_authority",
+        "authority_fences::tests::runtime::provider_claim_completion_receipt_recovery_and_route_disable_wait_for_delivery",
+        "authority_fences::tests::runtime::raw_voice_results_cannot_reopen_terminal_state_or_rebind_an_owned_remote_effect",
+        "authority_fences::tests::runtime::a_different_time_eligible_voice_candidate_refuses_uncovered_transaction_then_retries",
+        "authority_fences::tests::runtime::sip_claim_preparation_dispatch_result_and_recovery_wait_for_delivery",
+        "authority_fences::tests::runtime::sms_refresh_retirement_stop_and_authority_expiry_wait_for_current_delivery",
+        "authority_fences::tests::runtime::voice_route_admin_cannot_cross_tenant_even_with_wildcard_recipients",
+        "authority_fences::tests::runtime::voice_route_disabling_and_ingress_configuration_wait_for_delivery",
+        "authority_fences::tests::runtime::voice_claim_dispatch_completion_and_recovery_wait_for_delivery",
+        "authority_fences::tests::writer_intent_stops_new_readers_held_proof_reuses_without_reentry_and_other_identity_proceeds"
+      ],
+      "log": {
+        "path": ".local/gate-6/aux-record-authority-tests.log",
+        "sha256": "d3150c48e02519a746d93db5f78b0dd18857f1b1354be3bbe5555fa4e5de08cf"
+      }
+    },
+    {
+      "name": "Gate 6 schema and backup boundary",
+      "binary": {
+        "path": "target/debug/deps/gate6_schema-b8961ab79a063843",
+        "sha256": "5509dcb163e61c900c03b4ee5d98c04c77a4e26f62fbd9e9feee2e904a29843f"
+      },
+      "arguments": [
+        "--test-threads=1"
+      ],
+      "passed": 4,
+      "failed": 0,
+      "ignored": 0,
+      "tests": [
+        "gate6_backup_preserves_ids_audiences_unknown_effects_and_fences_live_claims",
+        "gate6_constraints_reject_rebinding_stale_epoch_cross_owner_and_false_completion",
+        "gate6_incompatible_state_refusal_preserves_files_and_requires_explicit_new_path",
+        "gate6_snapshot_digest_covers_new_private_and_effect_metadata"
+      ],
+      "log": {
+        "path": ".local/gate-6/aux-record-schema-tests.log",
+        "sha256": "4ae7d899b6da83c4ad3f470e23debf311194be88f0862236f7522d7f66a7ab33"
+      }
+    },
+    {
+      "name": "Store recovery",
+      "binary": {
+        "path": "target/debug/deps/recovery-c96cf09fe07e0c8e",
+        "sha256": "64e4a45de3f68d7e05cd9a5525c3fa0e41fec13738f7700ce1ec50438262f315"
+      },
+      "arguments": [
+        "--test-threads=1"
+      ],
+      "passed": 2,
+      "failed": 0,
+      "ignored": 0,
+      "tests": [
+        "online_snapshot_recovers_wal_receipts_events_and_cursors",
+        "receipt_capacity_bounds_rejected_operations_without_losing_existing_receipts"
+      ],
+      "log": {
+        "path": ".local/gate-6/aux-record-recovery-tests.log",
+        "sha256": "b5632b2c458c2d403ec8c1c878b4304bd2b4e33a9fc2eaa8f503fafde27f74b9"
+      }
+    },
+    {
+      "name": "Complete current Server library",
+      "binary": {
+        "path": "target/debug/deps/connect_server-616f548a437d1869",
+        "sha256": "fc4dba90e008e800e0c2580f7e46c5ee386d6a1bd38e947178220a011f716e2c"
+      },
+      "arguments": [
+        "--test-threads=1"
+      ],
+      "passed": 66,
+      "failed": 0,
+      "ignored": 0,
+      "tests": [
+        "agent_observations::tests::stalled_capture_queue_drops_without_blocking_and_next_delivery_reports_exact_loss",
+        "agent_observations::tests::undeclared_model_capabilities_publish_unavailable_without_untrusted_body",
+        "canonical::tests::configuration_errors_do_not_echo_private_file_contents",
+        "canonical_assistants::tests::configured_assistant_assets_require_private_regular_files_without_echoing_contents",
+        "canonical_assistants::tests::public_profile_never_enables_insecure_nonfixture_transport_or_duplicate_proposal_tools",
+        "canonical_assistants::tests::strict_host_configuration_preserves_explicit_paths_policy_and_rejects_unknown_fields",
+        "cli::agent_access::tests::changed_credential_assets_or_access_mode_cannot_resume_an_existing_installation",
+        "cli::agent_access::tests::export_rejects_admin_revoked_and_mismatched_authority_before_creating_output",
+        "cli::agent_access::tests::identity_setup_replays_original_receipt_and_denies_conflict_or_non_admin",
+        "cli::agent_access::tests::regular_export_keeps_one_agent_key_without_task_grants_or_admin_secret",
+        "cli::agent_access::tests::regular_host_resumes_exact_session_and_redacts_its_key_without_grant_refresh",
+        "cli::agent_access::tests::removal_deletes_only_verified_connect_configuration_and_preserves_other_files",
+        "cli::agent_access::tests::unknown_host_or_missing_model_auth_preserves_installation_and_does_not_launch",
+        "cli::canonical_init::tests::destination_created_after_preflight_is_preserved_even_when_empty",
+        "cli::media_stdio::tests::framing_is_bounded_and_binary_safe",
+        "cli::media_stdio::tests::input_reader_preserves_a_frame_when_next_is_cancelled",
+        "cli::task_access::codex_host::diagnostics::tests::concurrent_state_change_never_combines_session_metadata_or_retains_probe_lock",
+        "cli::task_access::codex_host::group_status::tests::native_snapshot_rejects_live_group_and_accepts_its_unreaped_zombie",
+        "cli::vapi_task::manifest::tests::rejects_ambiguous_modes_public_binding_and_callback_credentials",
+        "cli::vapi_task::manifest::tests::rejects_oversized_or_nonregular_private_inputs",
+        "cli::vapi_task::manifest::tests::supported_modes_resolve_state_beside_private_manifest",
+        "config::tests::outbound_sip_fields_reject_ambiguous_input",
+        "config::tests::wildcard_sip_requires_a_concrete_media_bind_interface",
+        "media_transports::tests::outbound_trunk_fails_closed_without_a_password",
+        "media_transports::tests::outbound_trunk_uses_environment_secret_without_logging_it",
+        "private_vapi::audio::tests::expired_partial_speech_cannot_be_combined_with_a_fresh_provider_message",
+        "private_vapi::audio::tests::forwarding_stall_expires_complete_speech_and_replaces_it_with_silence",
+        "private_vapi::audio::tests::provider_message_boundaries_do_not_split_pcmu_frames",
+        "private_vapi::audio::tests::queued_audio_keeps_only_the_newest_bounded_frames_and_partial",
+        "private_vapi::transcripts::tests::archive_retries_same_callback_only_after_busy_store_result",
+        "private_vapi::transcripts::tests::cancellation_drains_admitted_write_and_does_not_start_queued_callback",
+        "private_vapi::transcripts::tests::pending_archive_does_not_block_media_ticks_and_preserves_order_and_capacity",
+        "private_vapi::transport::tests::private_receiver_must_bind_the_captured_call_and_exact_configured_origin",
+        "private_vapi::transport::tests::private_transport_requires_explicit_secure_or_numeric_loopback_origins",
+        "registration_monitor::tests::accepted_lease_refreshes_after_idle_and_rejected_refresh_can_recover_on_restart",
+        "registration_monitor::tests::dropped_refresh_does_not_leave_an_expired_binding_ready",
+        "secrets::tests::explicit_missing_or_locked_provider_reference_cannot_read_ambient_key",
+        "secrets::tests::provider_api_key_whitespace_preserves_legacy_headers_and_password_bytes",
+        "secrets::tests::references_and_debug_never_contain_secret_values",
+        "setup_vault::discovery_tests::unselected_provider_credentials_are_never_resolved",
+        "sip_outbound::tests::a_late_worker_outcome_cannot_replace_an_observed_terminal_connection",
+        "sip_outbound::tests::cancellation::active_hangup_waits_for_cleanup_and_keeps_failure_uncertain",
+        "sip_outbound::tests::cancellation::cancellation_callback_and_successful_cleanup_have_one_result_in_either_order",
+        "sip_outbound::tests::cancellation::cancellation_callback_cannot_conceal_failed_cleanup_in_either_order",
+        "sip_outbound::tests::cancellation::cancellation_event_for_an_active_leg_without_owned_cleanup_settles_ended",
+        "sip_outbound::tests::cancellation::normal_remote_end_and_failure_remain_authoritative_during_cancellation",
+        "sip_outbound::tests::failed_cancellation_cleanup_is_uncertain_and_cannot_be_redispatched",
+        "sip_outbound::tests::lost_authority_during_activation_runs_cleanup_and_persists_cancellation",
+        "sip_outbound::tests::stalled_cancellation_cleanup_is_bounded_and_does_not_detach_activation",
+        "sip_registration::tests::carrier_registration_authenticates_and_shutdown_removes_binding",
+        "sip_registration::tests::rejected_registration_does_not_report_ready",
+        "sms_authority::synchronization_tests::authenticated_snapshot_rejects_redirects_and_revision_replay",
+        "sms_authority::tests::reject_unsafe_authority_configuration",
+        "startup::tests::failed_startup_releases_endpoint_owned_by_a_pending_accept_task",
+        "startup::tests::successful_startup_keeps_accept_open_for_runtime_ownership",
+        "transports::http::tests::browser_origins_are_limited_to_loopback_http",
+        "vapi_bootstrap::call_failure::tests::diagnostics_expose_only_the_stage_even_with_a_sensitive_cause",
+        "vapi_bootstrap::voice_model::tests::absent_tools_are_supported_but_malformed_saved_models_are_rejected",
+        "vapi_bootstrap::voice_model::tests::scoped_mcp_discovery_preserves_saved_model_and_other_tools",
+        "vapi_observer::tests::cancelling_observer_drain_does_not_detach_the_receiver",
+        "vapi_observer::tests::queued_provider_report_is_not_replaced_by_missing_status",
+        "vapi_observer::tests::teardown_drains_queued_transcripts_and_records_missing_report",
+        "worker::tests::cancelling_shutdown_aborts_owned_tasks",
+        "worker::tests::failure_does_not_detach_a_stalled_sibling",
+        "worker::tests::panic_is_reported_and_other_tasks_are_still_drained",
+        "worker::tests::supervised_panic_wakes_readiness_without_waiting_for_shutdown"
+      ],
+      "log": {
+        "path": ".local/gate-6/aux-record-server-tests.log",
+        "sha256": "c7701ebf893e1be5d8cc5cce28f6d3563eee4e3eb5929c8983039a4a5d9978b5"
+      }
+    }
+  ],
+  "qualification_inputs": {
+    "path": ".local/gate-6/aux-record-inputs.json",
+    "sha256": "d5d0cddf24e82448c3fb6092e83324f98d670902fc88d7567d2cf43daf2db12c"
+  },
+  "qualification_input_count": 1259,
+  "source_lock": {
+    "path": "dependencies/source-lock.json",
+    "sha256": "098ba5eba45b5ccaceed905914d0a2972938f7852b8ee1cfab4948ddd98020ec"
+  },
+  "pinned_patches": 127,
+  "implementation": [
+    "crates/connect-store/migrations/075_records.sql",
+    "crates/connect-store/src/records.rs",
+    "crates/connect-store/src/authority_fences.rs",
+    "crates/connect-store/src/authority_fences/tests.rs",
+    "crates/connect-store/src/lib.rs",
+    "crates/connect-store/src/recovery.rs",
+    "crates/connect-service/src/canonical_records.rs",
+    "crates/connect-service/src/canonical_records/tests.rs",
+    "crates/connect-service/src/canonical_runtime.rs",
+    "crates/connect-service/src/lib.rs",
+    "docs/developer/connect-record-store.md",
+    "docs/developer/canonical-runtime.md"
+  ],
+  "behavior": [
+    "Core Runtime supplies the Service-owned SQLite VconStore instead of MemoryVconStore; Store remains independent of Core types.",
+    "Stable UUID, original exact Tenant/Conversation/Session, body/manifest and hashes bind creation atomically. Identical live revision-one retry recovers the original handle; changed intent/owner/revision/deletion cannot overwrite or resurrect.",
+    "UUID/location selectors agree exactly; arbitrary URLs are local misses and never fetched. Foreign scopes miss. Exact read integrity and expected-handle checks retain one backend reservation in VconRead.",
+    "Fair per-record cross-process custody is separate from Identity/Conversation authority. Tests retain reads while another Store handle/process attempts deletion; independent records proceed.",
+    "Redaction uses the current canonical source/dependency transform. Exclusive original-operation CAS commits changed bytes and immutable mutation fact atomically, preserving historical exact redaction replay after later deletion.",
+    "Local deletion removes live body/manifest columns, invalidates old live handles and retains a tombstone. Redaction-history capacity reserves a terminal deletion slot. This is not provider erasure or physical disk sanitization.",
+    "Failed transforms and wrong expected digests leave original bytes and snapshot unchanged. Snapshot logical integrity includes both new tables; online backup/reopen recovers exact record body and manifest."
+  ],
+  "checks": [
+    {
+      "path": ".local/gate-6/aux-record-prepare.log",
+      "sha256": "fd9d7b181e3ccba9b643af55a186cf132c60aac99c734b2ee4e4e549afe5ffc2"
+    },
+    {
+      "path": ".local/gate-6/aux-record-format-check.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": ".local/gate-6/aux-record-whitespace.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": ".local/gate-6/aux-record-progress-check.log",
+      "sha256": "fedbc03549729d27ac031eee0766ae72281991ae1e9494232887c3160cf754cc"
+    }
+  ],
+  "build_logs": [
+    {
+      "path": ".local/gate-6/aux-record-build.log",
+      "sha256": "f6d3ae5050204fc246f518418f9388d80f5ca8c2dbcbdeb85c9422e9f5f69f89",
+      "exit_code": 101,
+      "reason": "New record lock variant required an exhaustive match in an existing authority test helper; corrected before qualification."
+    },
+    {
+      "path": ".local/gate-6/aux-record-build-second.log",
+      "sha256": "79ec2ec4f6e7134c96d66e35b15bd2caf014f4cd52fa5f4122a4ea666c7623d0",
+      "exit_code": 0,
+      "scope": "Current client/server/service/store libraries plus Store gate6_schema/recovery integration binaries compiled."
+    }
+  ],
+  "intermediate_runs": [
+    {
+      "log": {
+        "path": ".local/gate-6/aux-record-tests.log",
+        "sha256": "3b20373db532c3297c1da5a2a43ef7693583206b654946f50206a7b66930a776"
+      },
+      "passed": 5,
+      "ignored": 1,
+      "counted_again": false,
+      "reason": "All five component cases are included once in the complete Service library33 suite."
+    }
+  ],
+  "remaining_work": [
+    "External Session projection does not initialize Core automatic Session records. Add durable original baseline outcome/capture intent atomically with every terminal durable Session, including no-media and no-Core cases; recover the same frozen record after restart.",
+    "Install current Store source-audience and epoch policy, including consultation sources, retained through public native/HTTP delivery; backend locks alone confer no audience grant.",
+    "Install public vCon fetch/ready/unavailable contracts, truthful partial capture, retention and current-authorized expiring media/large-record retrieval. No unfiltered/public record route is installed by this component.",
+    "Complete remaining assurance/step-up, DTMF, quality/capability events and execute all61 assigned auxiliary source vectors plus explicit work requirements through actual Connect.",
+    "Linux, remote/native/browser and designated actual-provider rehearsals and Gate 6 acceptance remain separate; no actual provider or remote resources used."
+  ],
+  "plan_counts": {
+    "done": 45,
+    "in_progress": 1,
+    "not_started": 59,
+    "acceptance_done": 0
+  }
+}

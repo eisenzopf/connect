@@ -1,0 +1,262 @@
+{
+  "task": "G6-045",
+  "title": "Private account-scoped incoming custody foundation",
+  "component_passed": true,
+  "full_task_complete": false,
+  "status": "in-progress",
+  "created_at": "2026-10-21T11:23:42.589200+00:00",
+  "schema_version": 72,
+  "platform": "isolated local macOS arm64; synthetic protected Store custody/metadata fixtures and actual SQLite backup/restore; no provider IO or public HTTP contact-resolution fixture",
+  "previous_component": {
+    "path": "docs/evidence/gate-6/provider-integration-audit.json",
+    "sha256": "44bdca40369daa7d212e1bb356aa258c90098795b70e70de3bfe99797a528501"
+  },
+  "qualification_inputs": {
+    "path": ".local/gate-6/incoming-contact-inputs.json",
+    "sha256": "be269dec8760b110fe884c6034608cfed6868de9e2d5219a2af6db25b5a7800a"
+  },
+  "qualification_input_count": 1220,
+  "source_lock": {
+    "path": "dependencies/source-lock.json",
+    "sha256": "098ba5eba45b5ccaceed905914d0a2972938f7852b8ee1cfab4948ddd98020ec"
+  },
+  "pinned_patches": 127,
+  "fresh_distinct_passed_tests": 25,
+  "verification": [
+    {
+      "name": "Private custody foundation",
+      "binary": {
+        "path": "target/debug/deps/connect_store-500690b8d898aed1",
+        "sha256": "86e57ff06430a47b1b5766bb7276f94d257c366f5f096bdf76acf2f6249cd95a"
+      },
+      "arguments": [
+        "incoming_contacts::tests",
+        "--test-threads=2"
+      ],
+      "passed": 13,
+      "failed": 0,
+      "ignored": 0,
+      "tests": [
+        "incoming_contacts::tests::account_custody_holding_is_private_and_does_not_create_communication",
+        "incoming_contacts::tests::administrative_store_cannot_capture_provider_evidence",
+        "incoming_contacts::tests::current_admin_owner_recipient_scope_and_revocation_precede_read_or_replay",
+        "incoming_contacts::tests::current_candidate_epoch_and_payload_budgets_refuse_without_partial_custody",
+        "incoming_contacts::tests::custody_capacity_refuses_before_reserving_a_resource_or_event",
+        "incoming_contacts::tests::delivery_sql_requires_original_candidate_real_message_and_one_resource",
+        "incoming_contacts::tests::event_and_resource_replay_preserve_original_candidates_and_one_hold",
+        "incoming_contacts::tests::original_custody_and_rejection_audit_are_immutable_and_in_snapshot_digest",
+        "incoming_contacts::tests::private_cursor_is_bounded_owner_and_scope_bound",
+        "incoming_contacts::tests::receipt_audit_and_hold_rows_roll_back_together_on_storage_failure",
+        "incoming_contacts::tests::rejected_contact_has_one_attributed_current_receipt_and_no_delivery",
+        "incoming_contacts::tests::restored_custody_preserves_opaque_cursor_rejection_and_resource_replay",
+        "incoming_contacts::tests::reused_resource_content_is_quarantined_and_account_reference_scopes_ids"
+      ],
+      "log": {
+        "path": ".local/gate-6/incoming-contact-foundation-qualified.log",
+        "sha256": "829b36f19f9ea0d7376ddeb1ee62f4397d9aee8fb4d69e515ac112a0d668012c"
+      }
+    },
+    {
+      "name": "Selected Store library backup cases",
+      "binary": {
+        "path": "target/debug/deps/connect_store-500690b8d898aed1",
+        "sha256": "86e57ff06430a47b1b5766bb7276f94d257c366f5f096bdf76acf2f6249cd95a"
+      },
+      "arguments": [
+        "backup",
+        "--test-threads=2"
+      ],
+      "passed": 6,
+      "failed": 0,
+      "ignored": 0,
+      "tests": [
+        "connection_control::tests::replacement_sources::custody::replacement_backup_digest_covers_reservation_and_step_state",
+        "connection_control::tests::replacement_sources::telephone::runtime::media::telephone_media_backup_digest_covers_actual_resource_capture_rows",
+        "provider_dispatch::tests::admitted_custody_and_queued_route_order_survive_backup_without_a_second_creation",
+        "events::tests::backup_preserves_retention_floors_and_cursors_newer_than_restored_state_require_resync",
+        "transitions::tests::backup_after_submit_is_unknown_reserved_and_never_automatically_submitted_again",
+        "session_control::tests::original_session_receipt_and_source_facts_survive_backup_and_capability_storage_failure_recovers"
+      ],
+      "log": {
+        "path": ".local/gate-6/incoming-contact-backup-qualified.log",
+        "sha256": "f8e090dea06997fbb32b2c9f6cdbccb420cb7d99bdf08e1bc968dab520a98057"
+      }
+    },
+    {
+      "name": "Gate6 schema integration",
+      "binary": {
+        "path": "target/debug/deps/gate6_schema-2d4cc6d15be4352e",
+        "sha256": "7454b0e1311dd8775d3fc1fbe4f516b5f3504e55eb0df2bfcbecf0233fb1f3dc"
+      },
+      "arguments": [
+        "--test-threads=2"
+      ],
+      "passed": 4,
+      "failed": 0,
+      "ignored": 0,
+      "tests": [
+        "gate6_constraints_reject_rebinding_stale_epoch_cross_owner_and_false_completion",
+        "gate6_backup_preserves_ids_audiences_unknown_effects_and_fences_live_claims",
+        "gate6_snapshot_digest_covers_new_private_and_effect_metadata",
+        "gate6_incompatible_state_refusal_preserves_files_and_requires_explicit_new_path"
+      ],
+      "log": {
+        "path": ".local/gate-6/incoming-contact-schema-qualified.log",
+        "sha256": "5b212fee1bc4ba252eb56a845226d6c5d7537d47538c1dfba4d7719187a37a3f"
+      }
+    },
+    {
+      "name": "Recovery integration",
+      "binary": {
+        "path": "target/debug/deps/recovery-e1c95b01fc28d7a9",
+        "sha256": "75ce8fb2545855fd1add3fda0e226c4f2b0c1c4d7e0d99f0a899f23e65435f24"
+      },
+      "arguments": [
+        "--test-threads=2"
+      ],
+      "passed": 2,
+      "failed": 0,
+      "ignored": 0,
+      "tests": [
+        "receipt_capacity_bounds_rejected_operations_without_losing_existing_receipts",
+        "online_snapshot_recovers_wal_receipts_events_and_cursors"
+      ],
+      "log": {
+        "path": ".local/gate-6/incoming-contact-recovery-qualified.log",
+        "sha256": "f9c1ca7ba5adc461cb81d350ab626bafc4c698b0c03eb7f16179e92d863318eb"
+      }
+    }
+  ],
+  "verification_scope": "13 new private custody library unit cases, six selected library backup cases, four schema integration cases and two recovery integration cases. These are25 distinct successful cases, not the complete Store library/integration suites, current server/provider flows or full G6-045 qualification.",
+  "behavior": [
+    "Schema72 separates account-scoped resources, private holds, immutable event receipts, one-resource delivery bindings, rejections and attributed audit. Inspection includes all six tables. Provider/caller identifiers are data; capture creates no message, Session, member, consent or public Conversation event.",
+    "Private capture uses current runtime ownership and configured source credential/tenant/recipient authority, bounded encoded payload/candidate/source budgets and retained original candidates. The adapter remains responsible for actual provider authentication and exact source policy before this internal function. Tests construct synthetic protected candidates; they are not actual verified Endpoint or callback fixtures.",
+    "Identical event replay and another event for the same account resource/content retain one original hold without rebasing candidates. Different data under the same event conflicts. Reused resource content is quarantined, and a different explicitly configured account reference has its own namespace. This applies to private capture only: ordinary SMS/voice producer resource deduplication is not wired yet.",
+    "Administrative metadata omits held body/model context/control URLs. Current administrator, original account owner, tenant and recipient ceiling are required; another owner, narrowed recipient scope or revoked credential cannot read or replay. Pages use bounded sizes and opaque installation/owner/current-scope-bound AEAD cursors.",
+    "Explicit rejection atomically commits an attributed immutable rejection/audit and shared logical operation receipt. Identical current-authority replay adds no decision; changed intent, a competing decision or revocation refuses. No public HTTP/client contact decision interface is installed by this foundation.",
+    "Delivery SQL requires the exact original stored candidate, an unclaimed resource, matching attribution identity/credential ownership and a real corresponding message or incoming provider Session. The SMS fixture proves wrong Conversation, absent message, altered candidate and wrong credential refuse; one valid private fixture binding prevents a second delivery/rejection. This is a SQL guard fixture, not a production selected-candidate resolver.",
+    "Forced audit failure rolls back resource, hold and receipt together. Capacity, stale epoch, duplicate candidate and oversized payload refuse without partial custody. Original rows and audit are immutable and affect snapshot digests. A real backup/restore preserves rejected private custody, opaque cursor and original resource/decision replay across a new runtime epoch without duplicating messages/audit or changing backup bytes.",
+    "Current schema integration retains old audience/unknown-effect/live-claim safety and incompatible-state refusal. The stale version61 assertion was replaced by inspecting the fresh database header against the declared current SCHEMA_VERSION; other fidelity assertions remain intact."
+  ],
+  "implementation": [
+    {
+      "path": "crates/connect-protocol/src/incoming_contacts.rs",
+      "sha256": "c6e354ce3cee90b27011b23782aac52f635aa77f82839f6c3f4d0104cfb669cb"
+    },
+    {
+      "path": "crates/connect-protocol/src/lib.rs",
+      "sha256": "64e6fb8fad9bc963a932e9c831b82472151fca10b3e587ad39728b4c08daed7b"
+    },
+    {
+      "path": "crates/connect-store/migrations/072_incoming_contacts.sql",
+      "sha256": "f5a42a7a54d5c8857111947552175b289064164b61aafad03de0c6d1a0a9667b"
+    },
+    {
+      "path": "crates/connect-store/src/incoming_contacts.rs",
+      "sha256": "4807661bf3f6cc4f077c088d1f16f03b58fc6d2c2afa8e05961116f40ed05b96"
+    },
+    {
+      "path": "crates/connect-store/src/incoming_contacts/tests.rs",
+      "sha256": "db7bcca474a1bc3e6eb93a458f3aabfb1d2bf10cab22daa7e27ed8c82215d9f4"
+    },
+    {
+      "path": "crates/connect-store/src/lib.rs",
+      "sha256": "a1740ea82b670cc946eff7f8acebbb6919f74ca570d4bc174f30386489a18237"
+    },
+    {
+      "path": "crates/connect-store/src/recovery.rs",
+      "sha256": "b739c15841904ee3a709bd2b1e5ae649d3019dd17ca4ffea439a3aa62058d8bc"
+    },
+    {
+      "path": "crates/connect-store/tests/gate6_schema.rs",
+      "sha256": "e6b02f959286d4d0f128b330ce8b882475cfe9c142f07cd4f8783f0c1a5540ba"
+    },
+    {
+      "path": "docs/developer/incoming-contact-routing.md",
+      "sha256": "2406bbee78e6df5dfb70971d66d52f6e14caaf2cfef56309cf46e3ddd1ac518e"
+    }
+  ],
+  "build_logs": [
+    {
+      "path": ".local/gate-6/incoming-contact-build-v1.log",
+      "sha256": "118e2ceaf35fc9f36f68cdc130a0d2078e30325bac9df1361914a5c95c6e156b"
+    },
+    {
+      "path": ".local/gate-6/incoming-contact-build-v2.log",
+      "sha256": "f8b6ec5f15d118368685e0e0d1b2eedbe2bdbab40a692d4237c19a4ef15f1ddf"
+    },
+    {
+      "path": ".local/gate-6/incoming-contact-build-v3.log",
+      "sha256": "37a697d14ad15fcdb50bda5985dddedaaa62c0d6bf972ba1763979965af74bd1"
+    },
+    {
+      "path": ".local/gate-6/incoming-contact-build-v4.log",
+      "sha256": "4a529a342551153232d3969be60bb97fda7f5b0469a049431dff5030400d24a2"
+    },
+    {
+      "path": ".local/gate-6/incoming-contact-recovery-build.log",
+      "sha256": "2f706c939553a19a3d0cb7f79d0494ae28909b63e0e0a51d6af313e172f9c1d4"
+    },
+    {
+      "path": ".local/gate-6/incoming-contact-recovery-build-v2.log",
+      "sha256": "c1e597a9ae594d851567abf69605199798cf6d5128db0a98b184c2a57f120a12"
+    }
+  ],
+  "checks": [
+    {
+      "path": ".local/gate-6/incoming-contact-prepare.log",
+      "sha256": "fd9d7b181e3ccba9b643af55a186cf132c60aac99c734b2ee4e4e549afe5ffc2"
+    },
+    {
+      "path": ".local/gate-6/incoming-contact-format-check.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": ".local/gate-6/incoming-contact-whitespace.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": ".local/gate-6/incoming-contact-progress-check.log",
+      "sha256": "eb2a8530bf8b94dd79bbdc3b7f23ab84e66d802aca51caf08cdd9601fa14183e"
+    }
+  ],
+  "failed_and_intermediate_runs": [
+    {
+      "log": {
+        "path": ".local/gate-6/incoming-contact-tests-v1.log",
+        "sha256": "c72041b7924401b5acbcd768ef4e28e0c79cdf500d430de1dbcf53654cab8088"
+      },
+      "scope": "Seven passed; first fixture used obsolete events table name. Corrected to the actual journal table, preserving the no-communication assertion."
+    },
+    {
+      "log": {
+        "path": ".local/gate-6/incoming-contact-schema-tests.log",
+        "sha256": "317bd1d95cc231713b4a2fc565e6547da406893c08e3ae473ca5c337a2e55560"
+      },
+      "scope": "Three passed; backup fixture still asserted schema61 before reaching backup behavior. Replaced with actual fresh snapshot header/current compiled version equality. Final four cases pass."
+    },
+    {
+      "log": {
+        "path": ".local/gate-6/incoming-contact-tests-v2.log",
+        "sha256": "20a731e4666d663b8f13870d6c20e12aebb9f4f725a6d62c9c333a29611f92c0"
+      },
+      "scope": "Intermediate11-case pass; superseded by final13 including actual delivery binding and restore/resource replay. Not counted twice."
+    }
+  ],
+  "remaining_work": [
+    "Wire SMS route overlap selection and authenticated event/resource admission before creating a message. Current receive_sms_scope still selects a single route and configure_route still refuses duplicate number pairs. Preserve raw signature/STOP/enrollment behavior, source/account/Endpoint authority and original audience epochs. Track original provider resource IDs and current event identities, including unique routed/ignored events, so reused IDs and late replies cannot silently attach to another Conversation.",
+    "Wire canonical voice discovery across all matching configured ingress policies before Session import, preserving original authenticated resource/cursor custody and exact source account binding. Current scan_loop imports each ingress independently. Hold ambiguous observations privately rather than letting scan order select a Conversation or create multiple Sessions. Validate account-reference ownership consistently across configured profiles.",
+    "Implement attributed selected-candidate resolution with exact original candidate, current Endpoint/account/member/consent and frozen audience checks, atomic actual message/Session delivery, receipt and audit. Already-claimed/conflicting resources cannot become another delivery. Current foundation supports rejection/metadata and SQL constraints, not that complete resolver.",
+    "Implement the documented HTTP/OpenAPI and public administrative client interface. Add actual canonical signed/HTTP behavior fixtures for overlap, reused provider IDs, late replies, membership/epoch change, conflicting/repeated decisions, refusal, rollback/restart and private visibility. Run appropriate complete schema/current integration qualification after producer/resolver source changes.",
+    "The current hold receipt model is for held resources, not all ordinary unique/ignored ingress events. Evolve common admission/resource/delivery custody deliberately before producer wiring; preserve recorded schema/source identity and increment the schema for later shape changes rather than silently opening older data as the same shape."
+  ],
+  "not_qualified": [
+    "G6-045 remains in progress. No SMS/voice producer migration, real selected-candidate resolver, HTTP/client resolution surface, actual provider/callback/media IO, complete current Store/server/workspace suite, Linux/browser/remote/live/PSTN, package/publication or acceptance closure. Four expected unused private capture/type warnings remain until producer wiring; they are not hidden."
+  ],
+  "plan_counts": {
+    "done": 44,
+    "in_progress": 1,
+    "not_started": 60,
+    "acceptance_done": 0
+  }
+}

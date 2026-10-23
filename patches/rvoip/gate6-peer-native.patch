@@ -1,0 +1,2135 @@
+diff --git a/crates/foundation/rvoip-core/src/adapter.rs b/crates/foundation/rvoip-core/src/adapter.rs
+index c6659d6..c4d3d60 100644
+--- a/crates/foundation/rvoip-core/src/adapter.rs
++++ b/crates/foundation/rvoip-core/src/adapter.rs
+@@ -265,6 +265,38 @@ pub trait ConnectionAdapter: Send + Sync {
+         AdapterLifecycleCapabilities::default()
+     }
+ 
++    /// Opt in only when local native route allocation is synchronous, dormant,
++    /// uses the exact Core-issued ID, and cannot publish events or retain work
++    /// after this hook returns. Cleanup/liveness cover even failed allocation.
++    fn supports_peer_native_preparation(&self) -> bool {
++        false
++    }
++
++    /// Called only after Core owns the physical quota and never-reused ID.
++    /// No await, signaling, readiness claim, Core callback or detached task is
++    /// permitted here. The installed adapter must own the trusted transport
++    /// context and reject any other physical peer/transport. The default fails
++    /// closed; ordinary outbound origination is not an allocation fallback.
++    fn prepare_peer_native_connection(
++        &self,
++        _request: &crate::orchestrator::peer_native::NativeConnectionRequest,
++    ) -> Result<ConnectionHandle> {
++        Err(RvoipError::NotImplemented(
++            "native peer preparation is unsupported",
++        ))
++    }
++
++    /// Continuing source ownership for an already prepared native candidate.
++    /// Unlike liveness used as cleanup proof, this fails on physical closure
++    /// even while local route resources still await teardown.
++    fn is_peer_native_preparation_current(
++        &self,
++        _connection: &ConnectionId,
++        _peer: &Arc<crate::peer_admission::PeerAdmission>,
++    ) -> bool {
++        false
++    }
++
+     /// Whether this adapter consumes final inbound-admission confirmations.
+     ///
+     /// This is intentionally a separate, source-compatible capability rather
+diff --git a/crates/foundation/rvoip-core/src/orchestrator.rs b/crates/foundation/rvoip-core/src/orchestrator.rs
+index 8a73c5c..c5c78ae 100644
+--- a/crates/foundation/rvoip-core/src/orchestrator.rs
++++ b/crates/foundation/rvoip-core/src/orchestrator.rs
+@@ -11,6 +11,7 @@
+ //! (CARVE_PLAN §3) land in subsequent steps.
+ 
+ pub mod participant_control;
++pub mod peer_native;
+ pub mod peer_sessions;
+ 
+ use crate::adapter::{
+@@ -360,6 +361,7 @@ enum AtomicPublishedDuplicateDecision {
+ struct ConnectionLifecycleState {
+     peer_admission: Option<Arc<crate::peer_admission::PeerRoutePermit>>,
+     peer_origin: Option<uuid::Uuid>,
++    peer_preparation: Option<peer_native::NativePreparationScope>,
+     generation: u64,
+     active: bool,
+     retired: bool,
+@@ -3740,6 +3742,7 @@ impl Orchestrator {
+                     operational_connected_emitted: false,
+                     peer_admission: None,
+                     peer_origin: None,
++                    peer_preparation: None,
+                 }))
+             })
+             .clone();
+@@ -3771,6 +3774,7 @@ impl Orchestrator {
+                 operational_connected_emitted: false,
+                 peer_admission: None,
+                 peer_origin: None,
++                peer_preparation: None,
+             })),
+         );
+     }
+@@ -3862,6 +3866,7 @@ impl Orchestrator {
+                 operational_connected_emitted: false,
+                 peer_admission: None,
+                 peer_origin: None,
++                peer_preparation: None,
+             }));
+             self.connection_lifecycles
+                 .insert(connection_id.clone(), Arc::clone(&lifecycle));
+@@ -3929,6 +3934,7 @@ impl Orchestrator {
+             operational_connected_emitted: false,
+             peer_admission: None,
+             peer_origin: None,
++            peer_preparation: None,
+         }));
+         self.connection_lifecycles
+             .insert(connection_id.clone(), Arc::clone(&state));
+@@ -5036,6 +5042,7 @@ impl Orchestrator {
+                         operational_connected_emitted: false,
+                         peer_admission: None,
+                         peer_origin: None,
++                        peer_preparation: None,
+                     })),
+                 );
+             } else {
+@@ -5914,6 +5921,7 @@ impl Orchestrator {
+         };
+ 
+         self.retire_session_views(&session_id);
++        self.retire_native_session_connections(&session_id);
+         self.end_managed_participant_session(&session_id).await;
+ 
+         // Multi-party cleanup + reverse-index cleanup.
+@@ -6398,6 +6406,7 @@ impl Orchestrator {
+             sess.end_reason = Some(EndReason::Normal);
+         }
+         self.retire_session_views(&sid);
++        self.retire_native_session_connections(&sid);
+         self.drop_session_subscriptions(&sid);
+         if let Some(conv_arc) = self
+             .conversations
+@@ -13290,6 +13299,7 @@ mod cross_crate_publisher_tests {
+                 operational_connected_emitted: false,
+                 peer_admission: None,
+                 peer_origin: None,
++                peer_preparation: None,
+             })),
+         );
+ 
+diff --git a/crates/foundation/rvoip-core/src/orchestrator/participant_control.rs b/crates/foundation/rvoip-core/src/orchestrator/participant_control.rs
+index b55ec54..403aaad 100644
+--- a/crates/foundation/rvoip-core/src/orchestrator/participant_control.rs
++++ b/crates/foundation/rvoip-core/src/orchestrator/participant_control.rs
+@@ -517,19 +517,35 @@ impl Orchestrator {
+                         {
+                             return Err(ParticipantControlError::Authority);
+                         }
+-                        let permit = peer
+-                            .reserve(self, session_id, connection, endpoint.transport())
+-                            .map_err(peer_error)?;
+                         let mut current = lifecycle.state.lock().unwrap_or_else(|p| p.into_inner());
+                         if !current.active
+                             || current.retired
+                             || current.generation != lifecycle.generation
+-                            || current.peer_admission.is_some()
+                         {
+                             return Err(ParticipantTransitionError::Conflict.into());
+                         }
+-                        current.peer_origin = Some(peer.incarnation());
+-                        current.peer_admission = Some(permit);
++                        if let Some(permit) = &current.peer_admission {
++                            if !permit.belongs_to(peer.incarnation())
++                                || !self
++                                    .adapter(endpoint.transport())?
++                                    .is_peer_native_preparation_current(connection, peer)
++                                || permit.transport != endpoint.transport()
++                                || !current.peer_preparation.as_ref().is_some_and(|scope| {
++                                    scope.matches(session_id, &authority.target, endpoint)
++                                })
++                            {
++                                return Err(ParticipantTransitionError::Conflict.into());
++                            }
++                            // Native allocation already reserved the same physical
++                            // route. Transfer its existing charge, never reserve twice.
++                            current.peer_preparation = None;
++                        } else {
++                            let permit = peer
++                                .reserve(self, session_id, connection, endpoint.transport())
++                                .map_err(peer_error)?;
++                            current.peer_origin = Some(peer.incarnation());
++                            current.peer_admission = Some(permit);
++                        }
+                     }
+                     let cancellation = CancellationToken::new();
+                     state.pending.insert(
+diff --git a/crates/foundation/rvoip-core/src/orchestrator/peer_native.rs b/crates/foundation/rvoip-core/src/orchestrator/peer_native.rs
+new file mode 100644
+index 0000000..829c18c
+--- /dev/null
++++ b/crates/foundation/rvoip-core/src/orchestrator/peer_native.rs
+@@ -0,0 +1,397 @@
++//! Core-owned native route IDs and quota, reserved before adapter allocation.
++//! Preparation is local and dormant; it is not media readiness or presence.
++use super::*;
++use crate::connection::ConnectionState;
++use crate::{
++    peer_admission::{PeerAdmission, PeerAdmissionError},
++    relationships::{EndpointBinding, Membership},
++};
++use std::any::Any;
++
++#[derive(Clone, PartialEq, Eq)]
++pub(super) struct NativePreparationScope {
++    session: SessionId,
++    participant: ParticipantId,
++    epoch: u64,
++    endpoint: crate::ids::EndpointId,
++}
++impl std::fmt::Debug for NativePreparationScope {
++    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
++        f.write_str("NativePreparationScope(redacted)")
++    }
++}
++impl NativePreparationScope {
++    pub(super) fn matches(
++        &self,
++        session: &SessionId,
++        member: &Membership,
++        endpoint: &EndpointBinding,
++    ) -> bool {
++        &self.session == session
++            && &self.participant == member.participant()
++            && self.epoch == member.epoch()
++            && &self.endpoint == endpoint.endpoint()
++    }
++}
++#[derive(Clone, PartialEq, Eq)]
++pub struct PeerNativeIntent {
++    pub session: SessionId,
++    pub connection: ConnectionId,
++    pub transport: Transport,
++}
++pub struct PeerNativeAuthority {
++    pub actor: Membership,
++    pub endpoint: EndpointBinding,
++    pub may_prepare: bool,
++}
++/// Trusted current policy composition. Hold the real grant/membership/device
++/// read guard through preparation/retention. A snapshot boolean is not a lease.
++pub trait PeerNativeAuthorityLease {
++    fn authority(&self) -> &PeerNativeAuthority;
++}
++#[derive(Clone, Copy, Debug, PartialEq, Eq, thiserror::Error)]
++pub enum PeerNativeError {
++    #[error("current native peer authority denied")]
++    Authority,
++    #[error("native peer capacity exhausted")]
++    Capacity,
++    #[error("native peer ID or route conflicts")]
++    Conflict,
++    #[error("native peer or Session closed")]
++    Closed,
++    #[error("native peer allocation unsupported")]
++    Unsupported,
++    #[error("native peer allocation failed")]
++    Adapter,
++}
++impl From<PeerAdmissionError> for PeerNativeError {
++    fn from(e: PeerAdmissionError) -> Self {
++        match e {
++            PeerAdmissionError::Authority => Self::Authority,
++            PeerAdmissionError::Capacity => Self::Capacity,
++            PeerAdmissionError::Conflict => Self::Conflict,
++            PeerAdmissionError::Closed => Self::Closed,
++        }
++    }
++}
++/// Only Core constructs requests. Adapter context is installed by the trusted
++/// physical transport factory, never deserialized from a wire body.
++pub struct NativeConnectionRequest {
++    intent: PeerNativeIntent,
++    peer: Arc<PeerAdmission>,
++    participant: ParticipantId,
++    context: Arc<dyn Any + Send + Sync>,
++    cancellation: CancellationToken,
++}
++impl NativeConnectionRequest {
++    pub fn intent(&self) -> &PeerNativeIntent {
++        &self.intent
++    }
++    pub fn peer(&self) -> &Arc<PeerAdmission> {
++        &self.peer
++    }
++    pub fn participant(&self) -> &ParticipantId {
++        &self.participant
++    }
++    pub fn context<T: Any + Send + Sync>(&self) -> Option<Arc<T>> {
++        self.context.clone().downcast().ok()
++    }
++    pub fn cancellation(&self) -> CancellationToken {
++        self.cancellation.clone()
++    }
++}
++/// An unretained candidate retires on drop, including caller cancellation.
++/// Retention leaves a Connecting, peer-owned route; readiness and Participant
++/// admission remain separate checked operations.
++#[must_use = "drop retires this native candidate"]
++pub struct PreparedPeerNativeConnection {
++    owner: Weak<Orchestrator>,
++    peer: Arc<PeerAdmission>,
++    intent: PeerNativeIntent,
++    scope: NativePreparationScope,
++    retained: bool,
++}
++impl PreparedPeerNativeConnection {
++    pub fn connection_id(&self) -> &ConnectionId {
++        &self.intent.connection
++    }
++    pub fn retain(
++        mut self,
++        principal: &AuthenticatedPrincipal,
++        lease: &dyn PeerNativeAuthorityLease,
++    ) -> std::result::Result<ConnectionId, PeerNativeError> {
++        let core = self.owner.upgrade().ok_or(PeerNativeError::Closed)?;
++        let _serial = core
++            .externally_projected_sessions
++            .lock()
++            .expect("external projection lock poisoned");
++        let registry = core.peer_sessions.lock().unwrap_or_else(|p| p.into_inner());
++        core.check_native_authority(
++            &self.peer,
++            principal,
++            &self.intent,
++            lease.authority(),
++            &registry,
++        )?;
++        if !self.scope.matches(
++            &self.intent.session,
++            &lease.authority().actor,
++            &lease.authority().endpoint,
++        ) {
++            return Err(PeerNativeError::Authority);
++        }
++        let lifecycle = core
++            .connection_lifecycles
++            .get(&self.intent.connection)
++            .ok_or(PeerNativeError::Closed)?;
++        let state = lifecycle.lock().unwrap_or_else(|p| p.into_inner());
++        if !state.active
++            || state.retired
++            || state.peer_origin != Some(self.peer.incarnation())
++            || state.peer_preparation.as_ref() != Some(&self.scope)
++        {
++            return Err(PeerNativeError::Closed);
++        }
++        if !core.adapter(self.intent.transport).is_ok_and(|a| {
++            a.is_peer_native_preparation_current(&self.intent.connection, &self.peer)
++        }) {
++            return Err(PeerNativeError::Closed);
++        }
++        self.retained = true;
++        Ok(self.intent.connection.clone())
++    }
++}
++impl Drop for PreparedPeerNativeConnection {
++    fn drop(&mut self) {
++        if !self.retained {
++            if let Some(core) = self.owner.upgrade() {
++                core.retire_peer_admission_route(&self.intent.connection, self.peer.incarnation());
++            }
++        }
++    }
++}
++fn identifier(value: &str) -> bool {
++    !value.is_empty()
++        && value.len() <= 128
++        && value
++            .bytes()
++            .all(|b| b.is_ascii_alphanumeric() || b"._~-".contains(&b))
++}
++impl Orchestrator {
++    pub(super) fn retire_native_session_connections(&self, session: &SessionId) {
++        let routes = self
++            .connection_lifecycles
++            .iter()
++            .filter_map(|entry| {
++                let state = entry.lock().unwrap_or_else(|p| p.into_inner());
++                if state.active
++                    && !state.retired
++                    && state
++                        .peer_preparation
++                        .as_ref()
++                        .is_some_and(|scope| &scope.session == session)
++                {
++                    state.peer_origin.map(|peer| (entry.key().clone(), peer))
++                } else {
++                    None
++                }
++            })
++            .collect::<Vec<_>>();
++        if let Some(owner) = self.self_weak.get().and_then(Weak::upgrade) {
++            for (connection, peer) in routes {
++                owner.retire_peer_admission_route(&connection, peer);
++            }
++        }
++    }
++    fn check_native_authority(
++        &self,
++        peer: &PeerAdmission,
++        principal: &AuthenticatedPrincipal,
++        intent: &PeerNativeIntent,
++        authority: &PeerNativeAuthority,
++        registry: &peer_sessions::PeerSessionRegistry,
++    ) -> std::result::Result<(), PeerNativeError> {
++        if !identifier(intent.connection.as_str()) || !identifier(intent.session.as_str()) {
++            return Err(PeerNativeError::Conflict);
++        }
++        if !matches!(
++            intent.transport,
++            Transport::Quic | Transport::WebTransport | Transport::WebSocket
++        ) {
++            return Err(PeerNativeError::Unsupported);
++        }
++        if !authority.may_prepare || authority.endpoint.transport() != intent.transport {
++            return Err(PeerNativeError::Authority);
++        }
++        peer.check_target(principal, &authority.actor, &authority.endpoint)?;
++        authority
++            .endpoint
++            .usable_by(&authority.actor)
++            .map_err(|_| PeerNativeError::Authority)?;
++        let session = self
++            .sessions
++            .get(&intent.session)
++            .ok_or(PeerNativeError::Authority)?;
++        let session = session.read().expect("session lock poisoned");
++        if matches!(
++            session.state,
++            SessionState::Ending | SessionState::Ended | SessionState::Failed
++        ) || registry.closing.contains(&session.conversation_id)
++        {
++            return Err(PeerNativeError::Closed);
++        }
++        if authority.actor.conversation() != &session.conversation_id {
++            return Err(PeerNativeError::Authority);
++        }
++        let conversation = self
++            .conversations
++            .get(&session.conversation_id)
++            .ok_or(PeerNativeError::Authority)?;
++        let conversation = conversation.read().expect("conversation lock poisoned");
++        if conversation.state != ConversationState::Open {
++            return Err(PeerNativeError::Closed);
++        }
++        if &conversation.tenant_id != authority.actor.tenant() {
++            return Err(PeerNativeError::Authority);
++        }
++        Ok(())
++    }
++    /// Reserve a never-reused Core ID and physical Session/Connection quota before
++    /// any adapter hook. Synchronous local preparation cannot escape an await.
++    /// Failed hooks keep lifecycle/quarantine ownership until actual local cleanup.
++    pub fn prepare_peer_native_connection(
++        self: &Arc<Self>,
++        peer: Arc<PeerAdmission>,
++        principal: &AuthenticatedPrincipal,
++        intent: PeerNativeIntent,
++        lease: &dyn PeerNativeAuthorityLease,
++        context: Arc<dyn Any + Send + Sync>,
++    ) -> std::result::Result<PreparedPeerNativeConnection, PeerNativeError> {
++        self.ensure_operational_event_stream_healthy()
++            .map_err(|_| PeerNativeError::Closed)?;
++        let adapter = self
++            .adapter(intent.transport)
++            .map_err(|_| PeerNativeError::Unsupported)?;
++        if !adapter.supports_peer_native_preparation()
++            || !adapter.lifecycle_capabilities().authoritative_liveness
++        {
++            return Err(PeerNativeError::Unsupported);
++        }
++        let authority = lease.authority();
++        let candidate = {
++            let _serial = self
++                .externally_projected_sessions
++                .lock()
++                .expect("external projection lock poisoned");
++            let registry = self.peer_sessions.lock().unwrap_or_else(|p| p.into_inner());
++            self.check_native_authority(&peer, principal, &intent, authority, &registry)?;
++            let _ids = self
++                .connection_registry_lock
++                .lock()
++                .unwrap_or_else(|p| p.into_inner());
++            if self.connection_lifecycles.contains_key(&intent.connection)
++                || self.connections.contains_key(&intent.connection)
++            {
++                return Err(PeerNativeError::Conflict);
++            }
++            if self.connection_lifecycles.len() >= self.connection_id_budget.load(Ordering::Relaxed)
++            {
++                return Err(PeerNativeError::Capacity);
++            }
++            if self
++                .connection_lifecycle_tasks
++                .draining
++                .load(Ordering::Acquire)
++            {
++                return Err(PeerNativeError::Closed);
++            }
++            let permit =
++                peer.reserve(self, &intent.session, &intent.connection, intent.transport)?;
++            let state = Arc::new(Mutex::new(ConnectionLifecycleState {
++                peer_admission: Some(permit),
++                peer_origin: Some(peer.incarnation()),
++                peer_preparation: Some(NativePreparationScope {
++                    session: intent.session.clone(),
++                    participant: authority.actor.participant().clone(),
++                    epoch: authority.actor.epoch(),
++                    endpoint: authority.endpoint.endpoint().clone(),
++                }),
++                generation: 1,
++                active: true,
++                retired: false,
++                admission_outcomes_notified: HashSet::new(),
++                operational_connected_emitted: false,
++            }));
++            self.connection_lifecycles
++                .insert(intent.connection.clone(), state.clone());
++            self.connections.insert(
++                intent.connection.clone(),
++                ConnectionEntry {
++                    transport: intent.transport,
++                    direction: Direction::Inbound,
++                    principal: Some(principal.clone()),
++                    inbound_context: None,
++                    inbound_context_retired: true,
++                    inbound_publication: InboundPublicationState::Published,
++                    inbound_admission_terminal: None,
++                    staged_inbound_data: None,
++                    normalized_lifecycle_was_visible: false,
++                    deferred_authentication: None,
++                    deferred_principal_authentication: None,
++                },
++            );
++            let candidate = PreparedPeerNativeConnection {
++                owner: Arc::downgrade(self),
++                peer: peer.clone(),
++                intent: intent.clone(),
++                scope: NativePreparationScope {
++                    session: intent.session.clone(),
++                    participant: authority.actor.participant().clone(),
++                    epoch: authority.actor.epoch(),
++                    endpoint: authority.endpoint.endpoint().clone(),
++                },
++                retained: false,
++            };
++            let request = NativeConnectionRequest {
++                intent: intent.clone(),
++                peer: peer.clone(),
++                participant: authority.actor.participant().clone(),
++                context,
++                cancellation: peer.cancellation().child_token(),
++            };
++            // The adapter hook is dormant and cannot call Core or publish events.
++            // Hold lifecycle ownership so simultaneous EOF cannot clean a route before
++            // its synchronous allocation has finished.
++            let current = state.lock().unwrap_or_else(|p| p.into_inner());
++            let result = if peer.is_closed() {
++                Err(PeerNativeError::Closed)
++            } else {
++                std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
++                    let handle = adapter
++                        .prepare_peer_native_connection(&request)
++                        .map_err(|_| PeerNativeError::Adapter)?;
++                    let c = &handle.connection;
++                    if c.id != intent.connection
++                        || c.session_id != intent.session
++                        || c.participant_id != candidate.scope.participant
++                        || c.transport != intent.transport
++                        || c.direction != Direction::Inbound
++                        || c.state != ConnectionState::Connecting
++                        || !c.streams.is_empty()
++                        || !adapter.is_peer_native_preparation_current(&intent.connection, &peer)
++                    {
++                        Err(PeerNativeError::Adapter)
++                    } else {
++                        Ok(())
++                    }
++                }))
++                .unwrap_or(Err(PeerNativeError::Adapter))
++            };
++            drop(current);
++            (candidate, result)
++        };
++        let (candidate, result) = candidate;
++        result?;
++        Ok(candidate)
++    }
++}
+diff --git a/crates/foundation/rvoip-core/tests/support/participant_control_fixture.rs b/crates/foundation/rvoip-core/tests/support/participant_control_fixture.rs
+index 0ca122e..8978221 100644
+--- a/crates/foundation/rvoip-core/tests/support/participant_control_fixture.rs
++++ b/crates/foundation/rvoip-core/tests/support/participant_control_fixture.rs
+@@ -26,7 +26,7 @@ pub struct TestStream {
+     receiver: tokio::sync::Mutex<mpsc::Receiver<MediaFrame>>,
+ }
+ impl TestStream {
+-    fn new(ready: bool) -> Arc<Self> {
++    pub fn new(ready: bool) -> Arc<Self> {
+         let (input, inbound) = mpsc::channel(128);
+         let (output, receiver) = mpsc::channel(128);
+         Arc::new(Self {
+diff --git a/crates/uctp/rvoip-quic/src/canonical.rs b/crates/uctp/rvoip-quic/src/canonical.rs
+index f8ff15c..51efe0d 100644
+--- a/crates/uctp/rvoip-quic/src/canonical.rs
++++ b/crates/uctp/rvoip-quic/src/canonical.rs
+@@ -3,7 +3,7 @@ use rvoip_uctp::v2::{
+     auth_dispatch::DispatchError,
+     auth_peer::AUTHENTICATION_TIMEOUT,
+     reachability::PeerTransport,
+-    server::{CanonicalProfile, ProfileServer},
++    server::{CanonicalProfile, NativeTransportContext, ProfileServer},
+     RAW_QUIC_ALPN,
+ };
+ use tokio::sync::mpsc;
+@@ -37,6 +37,11 @@ pub fn start(
+                 if alpn.as_deref() != Some(RAW_QUIC_ALPN) {
+                     return Err(DispatchError::Unsupported);
+                 }
++                let handler = profile.physical_handler(NativeTransportContext::new(
++                    PeerTransport::Quic,
++                    cancel.clone(),
++                    connection.clone(),
++                ))?;
+                 let deadline = tokio::time::Instant::now() + AUTHENTICATION_TIMEOUT;
+                 let peer = profile.peer(PeerTransport::Quic, &contact, cancel.clone())?;
+                 let (mut writer, reader) = tokio::select! {
+@@ -44,9 +49,7 @@ pub fn start(
+                     _=cancel.cancelled()=>return Err(DispatchError::Closed),
+                     result=tokio::time::timeout_at(deadline,connection.accept_bi())=>result.map_err(|_|DispatchError::Closed)?.map_err(|_|DispatchError::Closed)?,
+                 };
+-                let result = peer
+-                    .run(reader, &mut writer, profile.handler.as_ref())
+-                    .await;
++                let result = peer.run(reader, &mut writer, handler.as_ref()).await;
+                 // FIN and bounded acknowledgement precede CONNECTION_CLOSE;
+                 // closing immediately can discard the final signed auth.bye.
+                 if writer.finish().is_ok() {
+diff --git a/crates/uctp/rvoip-uctp/src/v2/mod.rs b/crates/uctp/rvoip-uctp/src/v2/mod.rs
+index 162ea58..7065e02 100644
+--- a/crates/uctp/rvoip-uctp/src/v2/mod.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/mod.rs
+@@ -8,6 +8,7 @@
+ 
+ pub mod auth_dispatch;
+ pub mod auth_peer;
++pub mod native;
+ pub mod reachability;
+ mod replay;
+ pub mod scope_policy;
+diff --git a/crates/uctp/rvoip-uctp/src/v2/native.rs b/crates/uctp/rvoip-uctp/src/v2/native.rs
+new file mode 100644
+index 0000000..87522c5
+--- /dev/null
++++ b/crates/uctp/rvoip-uctp/src/v2/native.rs
+@@ -0,0 +1,291 @@
++//! Dormant canonical native Connection routes, allocated only through Core's
++//! pre-admission ticket. No v1 coordinator, protocol downgrade or ready ACK.
++use super::{reachability::PeerTransport, server::NativeTransportContext};
++use dashmap::DashMap;
++use rvoip_core::{
++    adapter::*,
++    capability::{CapabilityDescriptor, NegotiatedCodecs},
++    connection::{Connection, ConnectionState, Direction, Transport, TransportHandle},
++    error::{Result, RvoipError},
++    ids::*,
++    message::Message,
++    orchestrator::peer_native::NativeConnectionRequest,
++    peer_admission::PeerAdmission,
++    stream::MediaStream,
++};
++use std::sync::{
++    atomic::{AtomicUsize, Ordering},
++    Arc, Mutex, Weak,
++};
++use tokio::sync::mpsc;
++use tokio_util::sync::CancellationToken;
++
++/// One server-accepted TLS transport. It binds at most once to the exact
++/// authenticated physical resource context, surviving credential refresh.
++pub struct NativePhysicalBinding {
++    context: NativeTransportContext,
++    peer: Mutex<Option<Weak<PeerAdmission>>>,
++}
++impl NativePhysicalBinding {
++    pub fn new(context: NativeTransportContext) -> Arc<Self> {
++        Arc::new(Self {
++            context,
++            peer: Mutex::new(None),
++        })
++    }
++    pub fn transport(&self) -> Transport {
++        match self.context.transport {
++            PeerTransport::Quic => Transport::Quic,
++            PeerTransport::WebTransport => Transport::WebTransport,
++            PeerTransport::WebSocket => Transport::WebSocket,
++        }
++    }
++    pub fn native<T: std::any::Any + Send + Sync>(&self) -> Option<&T> {
++        self.context.native()
++    }
++    fn bind(&self, peer: &Arc<PeerAdmission>) -> Result<()> {
++        if peer.is_closed() || self.context.lifetime.is_cancelled() {
++            return Err(RvoipError::AdmissionRejected("native physical peer closed"));
++        }
++        let mut owner = self.peer.lock().unwrap_or_else(|p| p.into_inner());
++        let current = Arc::downgrade(peer);
++        if owner
++            .as_ref()
++            .is_some_and(|old| !Weak::ptr_eq(old, &current))
++        {
++            return Err(RvoipError::AdmissionRejected(
++                "native physical owner conflicts",
++            ));
++        }
++        *owner = Some(current);
++        Ok(())
++    }
++}
++struct Route {
++    physical: Arc<NativePhysicalBinding>,
++    cancel: CancellationToken,
++}
++impl Drop for Route {
++    fn drop(&mut self) {
++        self.cancel.cancel();
++    }
++}
++/// Register one adapter per native transport in the owning Core. Its routes
++/// start Connecting with no media/presence. Media negotiation/install and
++/// reliable data delivery must opt in separately; no readiness is invented.
++pub struct CanonicalNativeAdapter {
++    transport: Transport,
++    routes: DashMap<ConnectionId, Route>,
++    events: mpsc::Sender<OrchestratorAdapterEvent>,
++    receiver: Mutex<Option<mpsc::Receiver<OrchestratorAdapterEvent>>>,
++    allocated: AtomicUsize,
++    lifecycle: AdapterLifecycleSinkSlot,
++}
++impl CanonicalNativeAdapter {
++    pub fn new(transport: Transport) -> Result<Arc<Self>> {
++        if !matches!(
++            transport,
++            Transport::Quic | Transport::WebTransport | Transport::WebSocket
++        ) {
++            return Err(RvoipError::NotImplemented("non-native transport"));
++        }
++        let (events, receiver) = mpsc::channel(64);
++        Ok(Arc::new(Self {
++            transport,
++            routes: DashMap::new(),
++            events,
++            lifecycle: AdapterLifecycleSinkSlot::default(),
++            receiver: Mutex::new(Some(receiver)),
++            allocated: AtomicUsize::new(0),
++        }))
++    }
++    pub fn route_count(&self) -> usize {
++        self.routes.len()
++    }
++    pub fn total_allocations(&self) -> usize {
++        self.allocated.load(Ordering::Acquire)
++    }
++    /// Trusted server lookup of the exact physical source for further native
++    /// negotiation. Callers still need current authorization and Core lifecycle.
++    pub fn physical_source(&self, id: &ConnectionId) -> Result<Arc<NativePhysicalBinding>> {
++        let route = self
++            .routes
++            .get(id)
++            .ok_or_else(|| RvoipError::ConnectionNotFound(id.clone()))?;
++        if route.cancel.is_cancelled() || route.physical.context.lifetime.is_cancelled() {
++            return Err(RvoipError::AdmissionRejected("native route retired"));
++        }
++        Ok(route.physical.clone())
++    }
++}
++#[async_trait::async_trait]
++impl ConnectionAdapter for CanonicalNativeAdapter {
++    fn transport(&self) -> Transport {
++        self.transport
++    }
++    fn kind(&self) -> AdapterKind {
++        AdapterKind::Substrate
++    }
++    fn lifecycle_capabilities(&self) -> AdapterLifecycleCapabilities {
++        AdapterLifecycleCapabilities {
++            authoritative_liveness: true,
++            terminal_fallback: true,
++            ..Default::default()
++        }
++    }
++    fn install_lifecycle_sink(&self, sink: Arc<dyn AdapterLifecycleSink>) -> Result<()> {
++        self.lifecycle
++            .install(sink)
++            .map_err(|_| RvoipError::InvalidState("native lifecycle sink already installed"))
++    }
++    fn supports_peer_native_preparation(&self) -> bool {
++        true
++    }
++    fn prepare_peer_native_connection(
++        &self,
++        request: &NativeConnectionRequest,
++    ) -> Result<ConnectionHandle> {
++        let physical = request
++            .context::<NativePhysicalBinding>()
++            .ok_or(RvoipError::AdmissionRejected(
++                "native transport context required",
++            ))?
++            .clone();
++        if physical.transport() != self.transport || request.intent().transport != self.transport {
++            return Err(RvoipError::AdmissionRejected("native transport mismatch"));
++        }
++        physical.bind(request.peer())?;
++        let id = request.intent().connection.clone();
++        let route = Route {
++            physical,
++            cancel: request.cancellation(),
++        };
++        match self.routes.entry(id.clone()) {
++            dashmap::mapref::entry::Entry::Vacant(entry) => {
++                entry.insert(route);
++            }
++            dashmap::mapref::entry::Entry::Occupied(_) => {
++                return Err(RvoipError::AdmissionRejected("native route ID conflicts"))
++            }
++        }
++        self.allocated.fetch_add(1, Ordering::AcqRel);
++        Ok(ConnectionHandle::new(Connection {
++            id,
++            session_id: request.intent().session.clone(),
++            participant_id: request.participant().clone(),
++            transport: self.transport,
++            direction: Direction::Inbound,
++            state: ConnectionState::Connecting,
++            capabilities: CapabilityDescriptor::default(),
++            negotiated_codecs: NegotiatedCodecs::default(),
++            streams: vec![],
++            messaging_enabled: false,
++            transport_handle: TransportHandle(Arc::new(())),
++            opened_at: chrono::Utc::now(),
++            closed_at: None,
++        }))
++    }
++    fn is_peer_native_preparation_current(
++        &self,
++        id: &ConnectionId,
++        peer: &Arc<PeerAdmission>,
++    ) -> bool {
++        self.routes.get(id).is_some_and(|r| {
++            !peer.is_closed()
++                && !r.cancel.is_cancelled()
++                && !r.physical.context.lifetime.is_cancelled()
++                && r.physical
++                    .peer
++                    .lock()
++                    .unwrap_or_else(|p| p.into_inner())
++                    .as_ref()
++                    .is_some_and(|bound| Weak::ptr_eq(bound, &Arc::downgrade(peer)))
++        })
++    }
++    fn is_connection_live(&self, id: &ConnectionId) -> bool {
++        self.routes.contains_key(id)
++    }
++    async fn originate(&self, _: OriginateRequest) -> Result<ConnectionHandle> {
++        Err(RvoipError::NotImplemented(
++            "canonical native requires Core preparation",
++        ))
++    }
++    async fn accept(&self, _: ConnectionId) -> Result<()> {
++        Err(RvoipError::NotImplemented(
++            "canonical native media negotiation required",
++        ))
++    }
++    async fn reject(&self, id: ConnectionId, _: RejectReason) -> Result<()> {
++        self.end(id, EndReason::Normal).await
++    }
++    async fn end(&self, id: ConnectionId, reason: EndReason) -> Result<()> {
++        if let Some((_, route)) = self.routes.remove(&id) {
++            route.cancel.cancel();
++            self.lifecycle
++                .queue_or_deliver_orchestrator_terminal(
++                    &self.events,
++                    AdapterEvent::Ended {
++                        connection_id: id,
++                        reason,
++                    },
++                )
++                .await;
++        }
++        Ok(())
++    }
++    async fn hold(&self, _: ConnectionId) -> Result<()> {
++        Err(RvoipError::NotImplemented("canonical native hold"))
++    }
++    async fn resume(&self, _: ConnectionId) -> Result<()> {
++        Err(RvoipError::NotImplemented("canonical native resume"))
++    }
++    async fn transfer(&self, _: ConnectionId, _: TransferTarget) -> Result<()> {
++        Err(RvoipError::NotImplemented("canonical native transfer"))
++    }
++    async fn streams(&self, id: ConnectionId) -> Result<Vec<Arc<dyn MediaStream>>> {
++        self.physical_source(&id)?;
++        Ok(vec![])
++    }
++    async fn send_message(&self, _: ConnectionId, _: Message) -> Result<()> {
++        Err(RvoipError::NotImplemented(
++            "canonical native reliable data required",
++        ))
++    }
++    async fn send_dtmf(&self, _: ConnectionId, _: &str, _: u32) -> Result<()> {
++        Err(RvoipError::NotImplemented("canonical native DTMF"))
++    }
++    async fn renegotiate_media(
++        &self,
++        _: ConnectionId,
++        _: CapabilityDescriptor,
++    ) -> Result<NegotiatedCodecs> {
++        Err(RvoipError::NotImplemented(
++            "canonical native staged media required",
++        ))
++    }
++    async fn verify_request_signature(
++        &self,
++        _: ConnectionId,
++        _: SignatureHeaders,
++    ) -> Result<rvoip_core::identity::IdentityAssurance> {
++        Err(RvoipError::NotImplemented(
++            "canonical signatures require authenticated dispatch",
++        ))
++    }
++    fn subscribe_events(&self) -> mpsc::Receiver<AdapterEvent> {
++        legacy_normalized_event_receiver(self.subscribe_orchestrator_events(), 64)
++    }
++    fn subscribe_orchestrator_events(&self) -> mpsc::Receiver<OrchestratorAdapterEvent> {
++        self.receiver
++            .lock()
++            .unwrap_or_else(|p| p.into_inner())
++            .take()
++            .unwrap_or_else(|| {
++                let (_, rx) = mpsc::channel(1);
++                rx
++            })
++    }
++    fn capabilities(&self) -> CapabilityDescriptor {
++        CapabilityDescriptor::default()
++    }
++}
+diff --git a/crates/uctp/rvoip-uctp/src/v2/server.rs b/crates/uctp/rvoip-uctp/src/v2/server.rs
+index 4e7dfff..7c55781 100644
+--- a/crates/uctp/rvoip-uctp/src/v2/server.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/server.rs
+@@ -22,11 +22,45 @@ use tokio::{
+ };
+ use tokio_util::sync::CancellationToken;
+ 
++/// Server-created physical transport context, after TLS/profile checks. The
++/// opaque native handle is retained for this physical handler only; wire IDs
++/// cannot construct or replace it. WSS has no cloneable DATAGRAM handle.
++pub struct NativeTransportContext {
++    pub transport: PeerTransport,
++    pub lifetime: CancellationToken,
++    native: Arc<dyn std::any::Any + Send + Sync>,
++}
++impl NativeTransportContext {
++    pub fn new<T: std::any::Any + Send + Sync>(
++        transport: PeerTransport,
++        lifetime: CancellationToken,
++        native: T,
++    ) -> Self {
++        Self {
++            transport,
++            lifetime,
++            native: Arc::new(native),
++        }
++    }
++    pub fn native<T: std::any::Any + Send + Sync>(&self) -> Option<&T> {
++        self.native.downcast_ref()
++    }
++}
++/// Trusted server composition: derive a handler from the actual accepted
++/// physical transport, never a client-supplied connection/peer identifier.
++pub trait PhysicalHandlerFactory: Send + Sync {
++    fn handler(
++        &self,
++        context: NativeTransportContext,
++    ) -> Result<Arc<dyn AuthenticatedHandler>, DispatchError>;
++}
++
+ #[derive(Clone)]
+ pub struct CanonicalProfile {
+     peer: Arc<PeerConfig>,
+     pub handler: Arc<dyn AuthenticatedHandler>,
+     max_connections: usize,
++    handlers: Option<Arc<dyn PhysicalHandlerFactory>>,
+     routes: Option<(
+         Arc<ReachabilityRegistry>,
+         Arc<dyn RouteAuthority>,
+@@ -47,9 +81,26 @@ impl CanonicalProfile {
+             peer,
+             handler,
+             max_connections,
++            handlers: None,
+             routes: None,
+         })
+     }
++    pub fn with_physical_handlers(mut self, factory: Arc<dyn PhysicalHandlerFactory>) -> Self {
++        self.handlers = Some(factory);
++        self
++    }
++    pub fn physical_handler(
++        &self,
++        context: NativeTransportContext,
++    ) -> Result<Arc<dyn AuthenticatedHandler>, DispatchError> {
++        if context.lifetime.is_cancelled() {
++            return Err(DispatchError::Closed);
++        }
++        match &self.handlers {
++            Some(factory) => factory.handler(context),
++            None => Ok(self.handler.clone()),
++        }
++    }
+     pub fn with_reachability(
+         mut self,
+         registry: Arc<ReachabilityRegistry>,
+diff --git a/crates/uctp/rvoip-uctp/tests/support/peer_native.rs b/crates/uctp/rvoip-uctp/tests/support/peer_native.rs
+new file mode 100644
+index 0000000..a92d40a
+--- /dev/null
++++ b/crates/uctp/rvoip-uctp/tests/support/peer_native.rs
+@@ -0,0 +1,1039 @@
++//! Native Core IDs/quota before allocation, actual canonical transport sources.
++use super::*;
++use rvoip_core::{
++    adapter::*,
++    connection::Transport,
++    error::{Result as CoreResult, RvoipError},
++    ids::*,
++    message::Message,
++    orchestrator::peer_native::*,
++    peer_admission::{PeerAdmissionLimits, PeerAdmissionOwner},
++    relationships::Membership,
++    session::SessionState,
++    stream::MediaStream,
++};
++use rvoip_uctp::v2::{
++    native::*,
++    reachability::PeerTransport,
++    server::{NativeTransportContext, PhysicalHandlerFactory},
++};
++use std::collections::HashMap;
++fn actor(name: &str) -> AuthenticatedPrincipal {
++    let mut p = core_fixture::principal(name);
++    p.expires_at = Some(Utc::now() + chrono::Duration::hours(1));
++    p.assurance = IdentityAssurance::Identified {
++        credential_kind: CredentialKind::Oidc,
++    };
++    p
++}
++fn owner(name: &str, limits: PeerAdmissionLimits) -> PeerAdmissionOwner {
++    PeerAdmissionOwner::new(
++        &actor(name),
++        IdentityId::from_string(format!("id_{name}")),
++        DeviceId::from_string(format!("device_{name}")),
++        CancellationToken::new(),
++        limits,
++    )
++    .unwrap()
++}
++fn peer_kind(kind: Transport) -> PeerTransport {
++    match kind {
++        Transport::Quic => PeerTransport::Quic,
++        Transport::WebTransport => PeerTransport::WebTransport,
++        Transport::WebSocket => PeerTransport::WebSocket,
++        _ => panic!(),
++    }
++}
++fn endpoint(name: &str, kind: Transport) -> EndpointBinding {
++    let binding = IdentityBinding::from_authenticated(
++        &actor(name),
++        IdentityId::from_string(format!("id_{name}")),
++        Utc::now(),
++    )
++    .unwrap();
++    let mut ep = EndpointBinding::provision(
++        binding.clone(),
++        EndpointId::from_string(format!("endpoint_{name}_{kind:?}")),
++        DeviceId::from_string(format!("device_{name}")),
++        kind,
++        "controlled-native-peer".into(),
++    )
++    .unwrap();
++    ep.verify(&binding, "native-transport-proof".into(), Utc::now())
++        .unwrap();
++    ep
++}
++struct Lease<'a> {
++    _guard: std::sync::RwLockReadGuard<'a, core_fixture::PolicyState>,
++    authority: PeerNativeAuthority,
++}
++impl PeerNativeAuthorityLease for Lease<'_> {
++    fn authority(&self) -> &PeerNativeAuthority {
++        &self.authority
++    }
++}
++fn lease<'a>(f: &'a core_fixture::Fixture, name: &str, kind: Transport) -> Lease<'a> {
++    let guard = f.policy.0.read().unwrap();
++    let authority = PeerNativeAuthority {
++        actor: guard.members[&core_fixture::participant(name)].clone(),
++        endpoint: endpoint(name, kind),
++        may_prepare: !guard.denied,
++    };
++    Lease {
++        _guard: guard,
++        authority,
++    }
++}
++fn physical(kind: Transport) -> Arc<NativePhysicalBinding> {
++    NativePhysicalBinding::new(NativeTransportContext::new(
++        peer_kind(kind),
++        CancellationToken::new(),
++        (),
++    ))
++}
++fn intent(f: &core_fixture::Fixture, kind: Transport) -> PeerNativeIntent {
++    PeerNativeIntent {
++        session: f.session.clone(),
++        connection: ConnectionId::new(),
++        transport: kind,
++    }
++}
++fn prepare(
++    f: &core_fixture::Fixture,
++    peer: &Arc<PeerAdmission>,
++    intent: PeerNativeIntent,
++    source: &Arc<NativePhysicalBinding>,
++) -> Result<PreparedPeerNativeConnection, PeerNativeError> {
++    f.orch.prepare_peer_native_connection(
++        peer.clone(),
++        &actor("alice"),
++        intent.clone(),
++        &lease(f, "alice", intent.transport),
++        source.clone(),
++    )
++}
++fn retain(
++    f: &core_fixture::Fixture,
++    p: &Arc<PeerAdmission>,
++    i: PeerNativeIntent,
++    s: &Arc<NativePhysicalBinding>,
++) -> Result<ConnectionId, PeerNativeError> {
++    let kind = i.transport;
++    prepare(f, p, i, s)?.retain(&actor("alice"), &lease(f, "alice", kind))
++}
++async fn fixture(kind: Transport) -> (Arc<core_fixture::Fixture>, Arc<CanonicalNativeAdapter>) {
++    let f = Arc::new(core_fixture::Fixture::new().await);
++    let adapter = CanonicalNativeAdapter::new(kind).unwrap();
++    f.orch.register(adapter.clone()).unwrap();
++    (f, adapter)
++}
++#[tokio::test]
++async fn native_default_sixty_four_is_reserved_before_allocation_and_eof_retires_only_resources() {
++    for kind in [
++        Transport::Quic,
++        Transport::WebTransport,
++        Transport::WebSocket,
++    ] {
++        let (f, a) = fixture(kind).await;
++        let o = owner("alice", Default::default());
++        let p = o.peer();
++        let s = physical(kind);
++        for _ in 0..64 {
++            let id = retain(&f, &p, intent(&f, kind), &s).unwrap();
++            assert_eq!(f.orch.connection_transport(&id).unwrap(), kind);
++            assert_eq!(
++                f.orch.connection_principal(&id).unwrap().ownership_key(),
++                actor("alice").ownership_key()
++            );
++        }
++        assert_eq!(p.snapshot().sessions, 1);
++        assert_eq!(p.snapshot().connections, 64);
++        assert_eq!(a.route_count(), 64);
++        let denied = intent(&f, kind);
++        assert!(matches!(
++            prepare(&f, &p, denied.clone(), &s),
++            Err(PeerNativeError::Capacity)
++        ));
++        assert_eq!(a.total_allocations(), 64);
++        assert!(f.orch.connection_transport(&denied.connection).is_err());
++        assert_eq!(f.orch.participant_capacity(&f.session).unwrap(), (0, 0));
++        drop(o);
++        core_fixture::until(|| a.route_count() == 0 && p.snapshot().connections == 0).await;
++        assert_eq!(
++            f.orch.session(&f.session).unwrap().read().unwrap().state,
++            SessionState::Initiating
++        );
++    }
++}
++#[tokio::test]
++async fn native_distinct_session_union_rejects_thirty_third_before_allocating() {
++    let kind = Transport::Quic;
++    let (f, a) = fixture(kind).await;
++    let o = owner("alice", Default::default());
++    let s = physical(kind);
++    for _ in 0..32 {
++        let mut i = intent(&f, kind);
++        i.session = f.second_session().await;
++        retain(&f, &o.peer(), i, &s).unwrap();
++    }
++    let mut i = intent(&f, kind);
++    i.session = f.second_session().await;
++    assert!(matches!(
++        prepare(&f, &o.peer(), i, &s),
++        Err(PeerNativeError::Capacity)
++    ));
++    assert_eq!(a.total_allocations(), 32);
++    assert_eq!(o.peer().snapshot().sessions, 32);
++}
++#[tokio::test]
++async fn unretained_native_candidate_retires_and_core_id_cannot_be_reused() {
++    let kind = Transport::Quic;
++    let (f, a) = fixture(kind).await;
++    let o = owner("alice", Default::default());
++    let s = physical(kind);
++    let i = intent(&f, kind);
++    let candidate = prepare(&f, &o.peer(), i.clone(), &s).unwrap();
++    assert_eq!(o.peer().snapshot().connections, 1);
++    drop(candidate);
++    core_fixture::until(|| o.peer().snapshot().connections == 0).await;
++    assert_eq!(a.route_count(), 0);
++    assert!(matches!(
++        prepare(&f, &o.peer(), i, &s),
++        Err(PeerNativeError::Conflict)
++    ));
++    assert_eq!(a.total_allocations(), 1);
++}
++#[tokio::test]
++async fn native_identity_device_current_grant_and_expiry_denials_precede_allocation() {
++    let kind = Transport::Quic;
++    let (f, a) = fixture(kind).await;
++    let o = owner("alice", Default::default());
++    let s = physical(kind);
++    for which in [
++        "subject",
++        "issuer",
++        "expiry",
++        "endpoint",
++        "grant",
++        "transport",
++    ] {
++        let mut p = actor("alice");
++        let mut l = lease(&f, "alice", kind);
++        match which {
++            "subject" => p.subject = "bob".into(),
++            "issuer" => p.issuer = Some("other".into()),
++            "expiry" => p.expires_at = Some(Utc::now() - chrono::Duration::seconds(1)),
++            "endpoint" => l.authority.endpoint = endpoint("bob", kind),
++            "grant" => l.authority.may_prepare = false,
++            _ => l.authority.endpoint = endpoint("alice", Transport::WebTransport),
++        };
++        assert!(f
++            .orch
++            .prepare_peer_native_connection(o.peer(), &p, intent(&f, kind), &l, s.clone())
++            .is_err());
++    }
++    assert_eq!(a.total_allocations(), 0);
++    assert_eq!(o.peer().snapshot().connections, 0);
++}
++#[tokio::test]
++async fn native_source_cannot_be_borrowed_by_another_physical_peer_or_transport() {
++    let kind = Transport::Quic;
++    let (f, a) = fixture(kind).await;
++    let o = owner("alice", Default::default());
++    let s = physical(kind);
++    retain(&f, &o.peer(), intent(&f, kind), &s).unwrap();
++    let other = owner("alice", Default::default());
++    assert!(prepare(&f, &other.peer(), intent(&f, kind), &s).is_err());
++    core_fixture::until(|| other.peer().snapshot().connections == 0).await;
++    assert_eq!(o.peer().snapshot().connections, 1);
++    assert_eq!(a.route_count(), 1);
++    assert_eq!(a.total_allocations(), 1);
++    let wrong = physical(Transport::WebTransport);
++    assert!(prepare(&f, &o.peer(), intent(&f, kind), &wrong).is_err());
++    core_fixture::until(|| o.peer().snapshot().connections == 1).await;
++    assert_eq!(a.route_count(), 1);
++}
++#[tokio::test]
++async fn ending_session_retires_native_routes_before_any_participant_admission() {
++    let kind = Transport::Quic;
++    let (f, a) = fixture(kind).await;
++    let o = owner("alice", Default::default());
++    let s = physical(kind);
++    let pending = prepare(&f, &o.peer(), intent(&f, kind), &s).unwrap();
++    retain(&f, &o.peer(), intent(&f, kind), &s).unwrap();
++    f.orch
++        .end_session(f.session.clone(), EndReason::Normal)
++        .await
++        .unwrap();
++    assert!(pending
++        .retain(&actor("alice"), &lease(&f, "alice", kind))
++        .is_err());
++    core_fixture::until(|| a.route_count() == 0 && o.peer().snapshot().connections == 0).await;
++    assert!(prepare(&f, &o.peer(), intent(&f, kind), &s).is_err());
++    assert_eq!(a.total_allocations(), 2);
++}
++#[tokio::test]
++async fn current_native_retention_denial_closes_only_its_candidate() {
++    let kind = Transport::Quic;
++    let (f, a) = fixture(kind).await;
++    let o = owner("alice", Default::default());
++    let s = physical(kind);
++    retain(&f, &o.peer(), intent(&f, kind), &s).unwrap();
++    let pending = prepare(&f, &o.peer(), intent(&f, kind), &s).unwrap();
++    f.policy.0.write().unwrap().denied = true;
++    assert!(pending
++        .retain(&actor("alice"), &lease(&f, "alice", kind))
++        .is_err());
++    core_fixture::until(|| a.route_count() == 1 && o.peer().snapshot().connections == 1).await;
++}
++#[tokio::test]
++async fn native_owner_eof_preserves_other_physical_peer_and_logical_session() {
++    let kind = Transport::Quic;
++    let (f, a) = fixture(kind).await;
++    let alice = owner("alice", Default::default());
++    let bob = owner("bob", Default::default());
++    let s = physical(kind);
++    retain(&f, &alice.peer(), intent(&f, kind), &s).unwrap();
++    let other = physical(kind);
++    let i = intent(&f, kind);
++    let b = f
++        .orch
++        .prepare_peer_native_connection(
++            bob.peer(),
++            &actor("bob"),
++            i,
++            &lease(&f, "bob", kind),
++            other,
++        )
++        .unwrap();
++    let id = b.retain(&actor("bob"), &lease(&f, "bob", kind)).unwrap();
++    drop(alice);
++    core_fixture::until(|| a.route_count() == 1).await;
++    assert!(a.is_connection_live(&id));
++    assert_eq!(bob.peer().snapshot().connections, 1);
++    assert_eq!(
++        f.orch.session(&f.session).unwrap().read().unwrap().state,
++        SessionState::Initiating
++    );
++}
++#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
++async fn native_concurrent_allocation_cannot_exceed_physical_cap() {
++    let kind = Transport::Quic;
++    let (f, a) = fixture(kind).await;
++    let o = owner("alice", Default::default());
++    let s = physical(kind);
++    let mut tasks = vec![];
++    for _ in 0..80 {
++        let f = f.clone();
++        let p = o.peer();
++        let s = s.clone();
++        tasks.push(tokio::task::spawn_blocking(move || {
++            retain(&f, &p, intent(&f, kind), &s)
++        }));
++    }
++    let mut ok = 0;
++    let mut cap = 0;
++    for t in tasks {
++        match t.await.unwrap() {
++            Ok(_) => ok += 1,
++            Err(PeerNativeError::Capacity) => cap += 1,
++            other => panic!("unexpected result {}", other.is_ok()),
++        }
++    }
++    assert_eq!((ok, cap), (64, 16));
++    assert_eq!(a.total_allocations(), 64);
++    assert_eq!(a.route_count(), 64);
++}
++#[tokio::test]
++async fn legacy_adapter_is_not_a_native_allocation_fallback() {
++    let f = core_fixture::Fixture::new().await;
++    let o = owner("alice", Default::default());
++    let i = intent(&f, Transport::Sip);
++    assert!(matches!(
++        prepare(&f, &o.peer(), i, &physical(Transport::Quic)),
++        Err(PeerNativeError::Unsupported)
++    ));
++    assert_eq!(o.peer().snapshot().connections, 0);
++    assert_eq!(f.adapter.accepted.load(Ordering::Acquire), 0);
++}
++struct FaultAdapter {
++    inner: Arc<CanonicalNativeAdapter>,
++    mode: AtomicUsize,
++    hold_end: AtomicBool,
++    accepted: AtomicUsize,
++    stream: Arc<core_fixture::TestStream>,
++}
++#[async_trait]
++impl ConnectionAdapter for FaultAdapter {
++    fn transport(&self) -> Transport {
++        self.inner.transport()
++    }
++    fn kind(&self) -> AdapterKind {
++        self.inner.kind()
++    }
++    fn lifecycle_capabilities(&self) -> AdapterLifecycleCapabilities {
++        self.inner.lifecycle_capabilities()
++    }
++    fn supports_peer_native_preparation(&self) -> bool {
++        true
++    }
++    fn prepare_peer_native_connection(
++        &self,
++        r: &NativeConnectionRequest,
++    ) -> CoreResult<ConnectionHandle> {
++        assert!(r.peer().snapshot().connections >= 1);
++        let handle = self.inner.prepare_peer_native_connection(r)?;
++        match self.mode.load(Ordering::Acquire) {
++            1 => Err(RvoipError::Adapter("controlled allocation failure".into())),
++            2 => panic!("controlled allocation panic"),
++            _ => Ok(handle),
++        }
++    }
++    fn is_peer_native_preparation_current(
++        &self,
++        id: &ConnectionId,
++        p: &Arc<PeerAdmission>,
++    ) -> bool {
++        self.inner.is_peer_native_preparation_current(id, p)
++    }
++    fn install_lifecycle_sink(&self, s: Arc<dyn AdapterLifecycleSink>) -> CoreResult<()> {
++        self.inner.install_lifecycle_sink(s)
++    }
++    fn is_connection_live(&self, id: &ConnectionId) -> bool {
++        self.inner.is_connection_live(id)
++    }
++    async fn originate(&self, r: OriginateRequest) -> CoreResult<ConnectionHandle> {
++        self.inner.originate(r).await
++    }
++    async fn accept(&self, _: ConnectionId) -> CoreResult<()> {
++        self.accepted.fetch_add(1, Ordering::AcqRel);
++        Ok(())
++    }
++    async fn reject(&self, id: ConnectionId, _: RejectReason) -> CoreResult<()> {
++        self.end(id, EndReason::Normal).await
++    }
++    async fn end(&self, id: ConnectionId, r: EndReason) -> CoreResult<()> {
++        if self.hold_end.load(Ordering::Acquire) {
++            Err(RvoipError::Adapter("controlled cleanup uncertainty".into()))
++        } else {
++            self.inner.end(id, r).await
++        }
++    }
++    async fn hold(&self, id: ConnectionId) -> CoreResult<()> {
++        self.inner.hold(id).await
++    }
++    async fn resume(&self, id: ConnectionId) -> CoreResult<()> {
++        self.inner.resume(id).await
++    }
++    async fn transfer(&self, id: ConnectionId, t: TransferTarget) -> CoreResult<()> {
++        self.inner.transfer(id, t).await
++    }
++    async fn streams(&self, id: ConnectionId) -> CoreResult<Vec<Arc<dyn MediaStream>>> {
++        self.inner.physical_source(&id)?;
++        Ok(vec![self.stream.clone()])
++    }
++    async fn send_message(&self, id: ConnectionId, m: Message) -> CoreResult<()> {
++        self.inner.send_message(id, m).await
++    }
++    async fn send_dtmf(&self, id: ConnectionId, d: &str, t: u32) -> CoreResult<()> {
++        self.inner.send_dtmf(id, d, t).await
++    }
++    async fn renegotiate_media(
++        &self,
++        id: ConnectionId,
++        c: rvoip_core::capability::CapabilityDescriptor,
++    ) -> CoreResult<rvoip_core::capability::NegotiatedCodecs> {
++        self.inner.renegotiate_media(id, c).await
++    }
++    async fn verify_request_signature(
++        &self,
++        id: ConnectionId,
++        s: SignatureHeaders,
++    ) -> CoreResult<IdentityAssurance> {
++        self.inner.verify_request_signature(id, s).await
++    }
++    fn subscribe_events(&self) -> mpsc::Receiver<AdapterEvent> {
++        self.inner.subscribe_events()
++    }
++    fn subscribe_orchestrator_events(&self) -> mpsc::Receiver<OrchestratorAdapterEvent> {
++        self.inner.subscribe_orchestrator_events()
++    }
++    fn capabilities(&self) -> rvoip_core::capability::CapabilityDescriptor {
++        self.inner.capabilities()
++    }
++}
++async fn faulty() -> (Arc<core_fixture::Fixture>, Arc<FaultAdapter>) {
++    let f = Arc::new(core_fixture::Fixture::new().await);
++    let a = Arc::new(FaultAdapter {
++        inner: CanonicalNativeAdapter::new(Transport::Quic).unwrap(),
++        mode: AtomicUsize::new(0),
++        hold_end: AtomicBool::new(false),
++        accepted: AtomicUsize::new(0),
++        stream: core_fixture::TestStream::new(true),
++    });
++    f.orch.register(a.clone()).unwrap();
++    (f, a)
++}
++#[tokio::test]
++async fn failed_or_panicking_native_allocation_retains_quota_until_actual_cleanup() {
++    for mode in [1, 2] {
++        let (f, a) = faulty().await;
++        let o = owner(
++            "alice",
++            PeerAdmissionLimits {
++                sessions: 1,
++                connections: 1,
++            },
++        );
++        let s = physical(Transport::Quic);
++        let i = intent(&f, Transport::Quic);
++        a.mode.store(mode, Ordering::Release);
++        a.hold_end.store(true, Ordering::Release);
++        assert!(matches!(
++            prepare(&f, &o.peer(), i.clone(), &s),
++            Err(PeerNativeError::Adapter)
++        ));
++        assert_eq!(o.peer().snapshot().connections, 1);
++        assert_eq!(a.inner.route_count(), 1);
++        assert!(f.orch.connection_transport(&i.connection).is_err());
++        assert!(matches!(
++            prepare(&f, &o.peer(), intent(&f, Transport::Quic), &s),
++            Err(PeerNativeError::Capacity)
++        ));
++        a.hold_end.store(false, Ordering::Release);
++        a.inner
++            .end(i.connection.clone(), EndReason::Normal)
++            .await
++            .unwrap();
++        core_fixture::until(|| o.peer().snapshot().connections == 0).await;
++        assert!(matches!(
++            prepare(&f, &o.peer(), i, &s),
++            Err(PeerNativeError::Conflict)
++        ));
++        a.mode.store(0, Ordering::Release);
++        retain(&f, &o.peer(), intent(&f, Transport::Quic), &s).unwrap();
++    }
++}
++#[tokio::test]
++async fn managed_native_admission_reuses_existing_permit_and_cannot_borrow_another_peer() {
++    let (f, a) = faulty().await;
++    let o = owner(
++        "alice",
++        PeerAdmissionLimits {
++            sessions: 1,
++            connections: 1,
++        },
++    );
++    let s = physical(Transport::Quic);
++    let id = retain(&f, &o.peer(), intent(&f, Transport::Quic), &s).unwrap();
++    f.policy
++        .0
++        .write()
++        .unwrap()
++        .endpoints
++        .insert(id.clone(), endpoint("alice", Transport::Quic));
++    let other = owner("alice", Default::default());
++    let mutation = f.intent(
++        &f.session,
++        "alice",
++        "native_other",
++        ParticipantChange::Admit {
++            connection: id.clone(),
++            role_override: None,
++        },
++    );
++    assert!(f
++        .orch
++        .admit_peer_session_connection(
++            other.peer(),
++            &f.session,
++            actor("alice"),
++            mutation,
++            deadline(),
++            CancellationToken::new()
++        )
++        .await
++        .is_err());
++    assert_eq!(a.accepted.load(Ordering::Acquire), 0);
++    let mutation = f.intent(
++        &f.session,
++        "alice",
++        "native_admit",
++        ParticipantChange::Admit {
++            connection: id.clone(),
++            role_override: None,
++        },
++    );
++    f.orch
++        .admit_peer_session_connection(
++            o.peer(),
++            &f.session,
++            actor("alice"),
++            mutation,
++            deadline(),
++            CancellationToken::new(),
++        )
++        .await
++        .unwrap();
++    assert_eq!(a.accepted.load(Ordering::Acquire), 1);
++    assert_eq!(o.peer().snapshot().connections, 1);
++    assert_eq!(a.inner.total_allocations(), 1);
++    assert_eq!(f.orch.participant_capacity(&f.session).unwrap().0, 1);
++    drop(o);
++    core_fixture::until(|| a.inner.route_count() == 0).await;
++}
++#[tokio::test]
++async fn membership_epoch_change_cannot_retain_or_admit_prepared_native_route() {
++    let (f, a) = faulty().await;
++    let o = owner("alice", Default::default());
++    let s = physical(Transport::Quic);
++    let candidate = prepare(&f, &o.peer(), intent(&f, Transport::Quic), &s).unwrap();
++    let retained = retain(&f, &o.peer(), intent(&f, Transport::Quic), &s).unwrap();
++    {
++        let mut state = f.policy.0.write().unwrap();
++        let member = state
++            .members
++            .get_mut(&core_fixture::participant("alice"))
++            .unwrap();
++        member.remove(member.revision()).unwrap();
++        let binding = IdentityBinding::from_authenticated(
++            &actor("alice"),
++            IdentityId::from_string("id_alice"),
++            Utc::now(),
++        )
++        .unwrap();
++        member.readmit(&binding, member.revision()).unwrap();
++        state
++            .endpoints
++            .insert(retained.clone(), endpoint("alice", Transport::Quic));
++    }
++    assert!(candidate
++        .retain(&actor("alice"), &lease(&f, "alice", Transport::Quic))
++        .is_err());
++    let mutation = f.intent(
++        &f.session,
++        "alice",
++        "old_native_epoch",
++        ParticipantChange::Admit {
++            connection: retained,
++            role_override: None,
++        },
++    );
++    assert!(f
++        .orch
++        .admit_peer_session_connection(
++            o.peer(),
++            &f.session,
++            actor("alice"),
++            mutation,
++            deadline(),
++            CancellationToken::new()
++        )
++        .await
++        .is_err());
++    assert_eq!(a.accepted.load(Ordering::Acquire), 0);
++}
++#[tokio::test]
++async fn closing_native_transport_fails_retention_while_resource_liveness_remains_until_cleanup() {
++    let kind = Transport::Quic;
++    let (f, a) = fixture(kind).await;
++    let o = owner("alice", Default::default());
++    let parent = CancellationToken::new();
++    let s = NativePhysicalBinding::new(NativeTransportContext::new(
++        peer_kind(kind),
++        parent.clone(),
++        (),
++    ));
++    let i = intent(&f, kind);
++    let pending = prepare(&f, &o.peer(), i.clone(), &s).unwrap();
++    parent.cancel();
++    assert!(a.is_connection_live(&i.connection));
++    assert!(!a.is_peer_native_preparation_current(&i.connection, &o.peer()));
++    assert!(pending
++        .retain(&actor("alice"), &lease(&f, "alice", kind))
++        .is_err());
++    core_fixture::until(|| o.peer().snapshot().connections == 0).await;
++}
++struct WireGrants {
++    denied: bool,
++    member: Membership,
++    connections: HashMap<String, ConnectionId>,
++}
++struct WireProof {
++    _base: AuthorityLease,
++    _guard: tokio::sync::OwnedRwLockReadGuard<WireGrants>,
++    authorities: HashMap<Transport, PeerNativeAuthority>,
++    connection: Option<ConnectionId>,
++}
++struct View<'a>(&'a PeerNativeAuthority);
++impl PeerNativeAuthorityLease for View<'_> {
++    fn authority(&self) -> &PeerNativeAuthority {
++        self.0
++    }
++}
++struct WirePolicy {
++    base: Arc<Policy>,
++    grants: Arc<RwLock<WireGrants>>,
++}
++impl WirePolicy {
++    async fn proof(
++        &self,
++        base: AuthorityLease,
++        e: &Envelope,
++    ) -> Result<AuthorityLease, DispatchError> {
++        let guard = self.grants.clone().read_owned().await;
++        if guard.denied {
++            return Err(DispatchError::Authority);
++        }
++        let connection = if e.kind() == "connection.offer" {
++            if e.scope(Scope::Conversation) != Some("conversation")
++                || e.scope(Scope::Session) != Some("session")
++            {
++                return Err(DispatchError::Authority);
++            }
++            Some(
++                guard
++                    .connections
++                    .get(e.scope(Scope::Connection).ok_or(DispatchError::Authority)?)
++                    .ok_or(DispatchError::Authority)?
++                    .clone(),
++            )
++        } else {
++            None
++        };
++        let authorities = [
++            Transport::Quic,
++            Transport::WebTransport,
++            Transport::WebSocket,
++        ]
++        .into_iter()
++        .map(|kind| {
++            (
++                kind,
++                PeerNativeAuthority {
++                    actor: guard.member.clone(),
++                    endpoint: endpoint("alice", kind),
++                    may_prepare: true,
++                },
++            )
++        })
++        .collect();
++        Ok(AuthorityLease::holding(WireProof {
++            _base: base,
++            _guard: guard,
++            authorities,
++            connection,
++        }))
++    }
++}
++#[async_trait]
++impl PeerAuthority for WirePolicy {
++    async fn identity(&self, c: &ValidatedBearer, d: &Device) -> Result<Identifier, DispatchError> {
++        self.base.identity(c, d).await
++    }
++    async fn acquire(
++        &self,
++        c: &ValidatedBearer,
++        d: &Device,
++        i: &Identifier,
++        e: &Envelope,
++    ) -> Result<AuthorityLease, DispatchError> {
++        self.proof(self.base.guard(c, d, i, e).await?, e).await
++    }
++    async fn refresh(
++        &self,
++        old: &ValidatedBearer,
++        new: &ValidatedBearer,
++        d: &Device,
++        i: &Identifier,
++        e: &Envelope,
++    ) -> Result<AuthorityLease, DispatchError> {
++        self.proof(self.base.refresh(old, new, d, i, e).await?, e)
++            .await
++    }
++}
++#[derive(Default)]
++struct PhysicalRecord {
++    peer: std::sync::Mutex<Option<Arc<PeerAdmission>>>,
++    connections: std::sync::Mutex<Vec<ConnectionId>>,
++}
++struct Factory {
++    core: Arc<core_fixture::Fixture>,
++    adapters: HashMap<Transport, Arc<CanonicalNativeAdapter>>,
++    records: std::sync::Mutex<Vec<Arc<PhysicalRecord>>>,
++}
++struct NativeHandler {
++    core: Arc<core_fixture::Fixture>,
++    source: Arc<NativePhysicalBinding>,
++    record: Arc<PhysicalRecord>,
++}
++impl PhysicalHandlerFactory for Factory {
++    fn handler(
++        &self,
++        context: NativeTransportContext,
++    ) -> Result<Arc<dyn AuthenticatedHandler>, DispatchError> {
++        if context.transport == PeerTransport::Quic {
++            assert!(context.native::<quinn::Connection>().is_some());
++        } else if context.transport == PeerTransport::WebSocket {
++            assert!(context.native::<()>().is_some());
++        } else {
++            assert!(context.native::<()>().is_none());
++        }
++        let record = Arc::new(PhysicalRecord::default());
++        self.records.lock().unwrap().push(record.clone());
++        Ok(Arc::new(NativeHandler {
++            core: self.core.clone(),
++            source: NativePhysicalBinding::new(context),
++            record,
++        }))
++    }
++}
++#[async_trait]
++impl AuthenticatedHandler for NativeHandler {
++    async fn handle(&self, authorized: AuthorizedEnvelope) -> Result<Envelope, DispatchError> {
++        let proof = authorized
++            .authority::<WireProof>()
++            .ok_or(DispatchError::Authority)?;
++        let peer = authorized
++            .peer_admission()
++            .ok_or(DispatchError::Authority)?
++            .clone();
++        let kind = self.source.transport();
++        let request = authorized.envelope();
++        if request.kind() != "connection.offer" {
++            return Err(DispatchError::Unsupported);
++        }
++        let expected = match kind {
++            Transport::Quic => "quic",
++            Transport::WebTransport => "webtransport",
++            _ => "websocket",
++        };
++        if request.original()["payload"]["substrate"] != json!(expected) {
++            return Err(DispatchError::Authority);
++        }
++        let connection = proof
++            .connection
++            .as_ref()
++            .ok_or(DispatchError::Authority)?
++            .clone();
++        {
++            let mut previous = self.record.peer.lock().unwrap();
++            if let Some(previous) = &*previous {
++                assert!(Arc::ptr_eq(previous, &peer));
++            } else {
++                *previous = Some(peer.clone());
++            }
++        }
++        let mut reply = envelope("ack", json!({"details":{"reserved":true}}));
++        for field in ["cid", "sid", "connid", "operation_id"] {
++            reply[field] = request.original()[field].clone();
++        }
++        reply["in_reply_to"] = json!(request.id());
++        let reply = Envelope::from_value(reply)?;
++        let intent = PeerNativeIntent {
++            session: self.core.session.clone(),
++            connection: connection.clone(),
++            transport: kind,
++        };
++        let lease = View(&proof.authorities[&kind]);
++        let pending = self
++            .core
++            .orch
++            .prepare_peer_native_connection(
++                peer,
++                authorized.principal(),
++                intent,
++                &lease,
++                self.source.clone(),
++            )
++            .map_err(|e| match e {
++                PeerNativeError::Capacity => DispatchError::Capacity,
++                _ => DispatchError::Authority,
++            })?;
++        pending
++            .retain(authorized.principal(), &lease)
++            .map_err(|_| DispatchError::Authority)?;
++        self.record.connections.lock().unwrap().push(connection);
++        Ok(reply)
++    }
++}
++async fn wire_setup() -> (Fixture, Arc<Factory>, Arc<WirePolicy>) {
++    let mut f = Fixture::new();
++    let core = Arc::new(core_fixture::Fixture::new().await);
++    let member = core.policy.0.read().unwrap().members[&core_fixture::participant("alice")].clone();
++    let policy = Arc::new(WirePolicy {
++        base: f.policy.clone(),
++        grants: Arc::new(RwLock::new(WireGrants {
++            denied: false,
++            member,
++            connections: (0..65)
++                .map(|n| (format!("native_{n}"), ConnectionId::new()))
++                .collect(),
++        })),
++    });
++    Arc::get_mut(&mut f.config).unwrap().authority = policy.clone();
++    let mut adapters = HashMap::new();
++    for kind in [
++        Transport::Quic,
++        Transport::WebTransport,
++        Transport::WebSocket,
++    ] {
++        let adapter = CanonicalNativeAdapter::new(kind).unwrap();
++        core.orch.register(adapter.clone()).unwrap();
++        adapters.insert(kind, adapter);
++    }
++    let factory = Arc::new(Factory {
++        core,
++        adapters,
++        records: Default::default(),
++    });
++    (f, factory, policy)
++}
++fn native_offer(n: usize, kind: &str) -> Value {
++    let mut v = offer();
++    v["payload"]["substrate"] = json!(match kind {
++        "wt" => "webtransport",
++        "ws" => "websocket",
++        _ => "quic",
++    });
++    v["connid"] = json!(format!("native_{n}"));
++    v["operation_id"] = json!(format!("native_prepare_{n}"));
++    v
++}
++#[tokio::test]
++async fn actual_tls_factories_reserve_native_routes_before_allocating_and_keep_quota_across_refresh(
++) {
++    for kind in ["quic", "wt", "ws"] {
++        let (f, factory, _) = wire_setup().await;
++        let profile = CanonicalProfile::new(f.config.clone(), Arc::new(Handler::default()), 8)
++            .unwrap()
++            .with_physical_handlers(factory.clone());
++        let mut wire = wire(kind, profile, "/uctp", Some("https://allowed.example"))
++            .await
++            .unwrap();
++        authenticate_wire(&mut wire, &f).await;
++        for n in 0..64 {
++            if n == 32 {
++                wire.send(f.sign(envelope(
++                    "auth.refresh",
++                    json!({"method":"bearer","credential":"new"}),
++                )))
++                .await;
++                assert_eq!(wire.read().await.kind(), "auth.session");
++            }
++            wire.send(f.sign(native_offer(n, kind))).await;
++            let reply = wire.read().await;
++            assert_eq!(reply.kind(), "ack");
++            f.verify_server(&reply).await;
++        }
++        let record = factory.records.lock().unwrap()[0].clone();
++        let p = record.peer.lock().unwrap().clone().unwrap();
++        assert_eq!(p.snapshot().connections, 64);
++        assert_eq!(p.snapshot().sessions, 1);
++        assert_eq!(record.connections.lock().unwrap().len(), 64);
++        let transport = match kind {
++            "quic" => Transport::Quic,
++            "wt" => Transport::WebTransport,
++            _ => Transport::WebSocket,
++        };
++        let adapter = &factory.adapters[&transport];
++        assert_eq!(adapter.total_allocations(), 64);
++        wire.send(f.sign(native_offer(64, kind))).await;
++        let error = wire.read().await;
++        assert_eq!(error.kind(), "error");
++        assert_eq!(adapter.total_allocations(), 64);
++        assert_eq!(adapter.route_count(), 64);
++        assert_eq!(p.snapshot().connections, 64);
++        assert_eq!(
++            factory
++                .core
++                .orch
++                .participant_capacity(&factory.core.session)
++                .unwrap(),
++            (0, 0)
++        );
++        wire.server.shutdown().await.unwrap();
++        core_fixture::until(|| adapter.route_count() == 0 && p.snapshot().connections == 0).await;
++        assert_eq!(
++            factory
++                .core
++                .orch
++                .session(&factory.core.session)
++                .unwrap()
++                .read()
++                .unwrap()
++                .state,
++            SessionState::Initiating
++        );
++    }
++}
++#[tokio::test]
++async fn rejected_tls_upgrade_never_creates_a_physical_handler_or_native_route() {
++    for kind in ["wt", "ws"] {
++        let (_, factory, _) = wire_setup().await;
++        let f = Fixture::new();
++        let profile = CanonicalProfile::new(f.config.clone(), Arc::new(Handler::default()), 8)
++            .unwrap()
++            .with_physical_handlers(factory.clone());
++        assert!(
++            wire(kind, profile, "/wrong", Some("https://allowed.example"))
++                .await
++                .is_err()
++        );
++        assert!(factory.records.lock().unwrap().is_empty());
++        assert!(factory
++            .adapters
++            .values()
++            .all(|a| a.total_allocations() == 0));
++    }
++}
++#[tokio::test]
++async fn native_cross_core_reuse_is_denied_before_second_adapter_allocation() {
++    let kind = Transport::Quic;
++    let (f, a) = fixture(kind).await;
++    let o = owner("alice", Default::default());
++    retain(&f, &o.peer(), intent(&f, kind), &physical(kind)).unwrap();
++    let (other, b) = fixture(kind).await;
++    assert!(matches!(
++        prepare(&other, &o.peer(), intent(&other, kind), &physical(kind)),
++        Err(PeerNativeError::Authority)
++    ));
++    assert_eq!(a.total_allocations(), 1);
++    assert_eq!(b.total_allocations(), 0);
++    assert_eq!(o.peer().snapshot().connections, 1);
++}
++#[tokio::test]
++async fn claimed_wire_substrate_cannot_replace_the_actual_tls_transport() {
++    for kind in ["quic", "wt", "ws"] {
++        let (f, factory, _) = wire_setup().await;
++        let profile = CanonicalProfile::new(f.config.clone(), Arc::new(Handler::default()), 8)
++            .unwrap()
++            .with_physical_handlers(factory.clone());
++        let mut wire = wire(kind, profile, "/uctp", Some("https://allowed.example"))
++            .await
++            .unwrap();
++        authenticate_wire(&mut wire, &f).await;
++        let mut request = native_offer(0, kind);
++        request["payload"]["substrate"] = json!(if kind == "quic" { "websocket" } else { "quic" });
++        wire.send(f.sign(request)).await;
++        assert_eq!(wire.read().await.kind(), "error");
++        assert!(factory
++            .adapters
++            .values()
++            .all(|a| a.total_allocations() == 0));
++        wire.server.shutdown().await.unwrap();
++    }
++}
++#[tokio::test]
++async fn native_allocation_after_lifecycle_supervisor_drain_has_no_effect() {
++    let kind = Transport::Quic;
++    let (f, a) = fixture(kind).await;
++    let o = owner("alice", Default::default());
++    f.orch.drain_connection_lifecycle_tasks().await;
++    assert!(matches!(
++        prepare(&f, &o.peer(), intent(&f, kind), &physical(kind)),
++        Err(PeerNativeError::Closed)
++    ));
++    assert_eq!(a.total_allocations(), 0);
++    assert_eq!(o.peer().snapshot().connections, 0);
++}
+diff --git a/crates/uctp/rvoip-uctp/tests/v2_peer_admission.rs b/crates/uctp/rvoip-uctp/tests/v2_peer_admission.rs
+index 761ed42..b7d26bb 100644
+--- a/crates/uctp/rvoip-uctp/tests/v2_peer_admission.rs
++++ b/crates/uctp/rvoip-uctp/tests/v2_peer_admission.rs
+@@ -788,3 +788,6 @@ async fn failed_refresh_does_not_retire_or_replace_the_engine_peer_context() {
+ 
+ #[path = "support/peer_sessions.rs"]
+ mod peer_sessions;
++
++#[path = "support/peer_native.rs"]
++mod peer_native;
+diff --git a/crates/uctp/rvoip-websocket/src/canonical.rs b/crates/uctp/rvoip-websocket/src/canonical.rs
+index 0bd2f31..b2d1c71 100644
+--- a/crates/uctp/rvoip-websocket/src/canonical.rs
++++ b/crates/uctp/rvoip-websocket/src/canonical.rs
+@@ -5,7 +5,7 @@ use rvoip_uctp::v2::{
+     auth_dispatch::DispatchError,
+     auth_peer::AUTHENTICATION_TIMEOUT,
+     reachability::PeerTransport,
+-    server::{origin_allowed, CanonicalProfile, ProfileServer},
++    server::{origin_allowed, CanonicalProfile, NativeTransportContext, ProfileServer},
+     MAX_ENVELOPE_BYTES,
+ };
+ use std::{collections::HashSet, sync::Arc};
+@@ -86,6 +86,11 @@ pub fn start(
+                     _=cancel.cancelled()=>return Err(DispatchError::Closed),
+                     result=tokio::time::timeout_at(deadline,upgrade)=>result.map_err(|_|DispatchError::Closed)??,
+                 };
++                let handler = profile.physical_handler(NativeTransportContext::new(
++                    PeerTransport::WebSocket,
++                    cancel.clone(),
++                    (),
++                ))?;
+                 let (writer, reader) = websocket.split();
+                 let reader = futures::stream::unfold(reader, |mut reader| async move {
+                     loop {
+@@ -106,7 +111,7 @@ pub fn start(
+                             .map_err(|_| tokio_tungstenite::tungstenite::Error::ConnectionClosed)
+                     })
+                     .sink_map_err(|_| DispatchError::Closed);
+-                peer.run_frames(Box::pin(reader), Box::pin(writer), profile.handler.as_ref())
++                peer.run_frames(Box::pin(reader), Box::pin(writer), handler.as_ref())
+                     .await
+             }
+         },
+diff --git a/crates/uctp/rvoip-webtransport/src/canonical.rs b/crates/uctp/rvoip-webtransport/src/canonical.rs
+index f97bae3..3494b39 100644
+--- a/crates/uctp/rvoip-webtransport/src/canonical.rs
++++ b/crates/uctp/rvoip-webtransport/src/canonical.rs
+@@ -4,7 +4,7 @@ use rvoip_uctp::v2::{
+     auth_dispatch::DispatchError,
+     auth_peer::AUTHENTICATION_TIMEOUT,
+     reachability::PeerTransport,
+-    server::{origin_allowed, CanonicalProfile, ProfileServer},
++    server::{origin_allowed, CanonicalProfile, NativeTransportContext, ProfileServer},
+     MAX_ENVELOPE_BYTES,
+ };
+ use std::{collections::HashSet, sync::Arc};
+@@ -82,6 +82,11 @@ pub fn start(
+                     _=cancel.cancelled()=>return Err(DispatchError::Closed),
+                     result=tokio::time::timeout_at(deadline,upgrade)=>result.map_err(|_|DispatchError::Closed)??,
+                 };
++                let handler = profile.physical_handler(NativeTransportContext::new(
++                    PeerTransport::WebTransport,
++                    cancel.clone(),
++                    _session.clone(),
++                ))?;
+                 // Retain the native read API: the Tokio adapter can lose the wake
+                 // after consuming a coalesced WebTransport stream header.
+                 let reader = futures::stream::unfold(
+@@ -114,7 +119,7 @@ pub fn start(
+                     },
+                 );
+                 let result = peer
+-                    .run_frames(Box::pin(reader), Box::pin(writer), profile.handler.as_ref())
++                    .run_frames(Box::pin(reader), Box::pin(writer), handler.as_ref())
+                     .await;
+                 // Keep the CONNECT session and physical connection until the
+                 // signaling FIN is acknowledged, bounded by shutdown/one second.

@@ -1,0 +1,1088 @@
+--- /dev/null
++++ b/crates/foundation/rvoip-core/src/staged_streams/capability_declaration.rs
+@@ -0,0 +1,36 @@
++//! Local declaration metadata serializes with stream and credential changes.
++use super::*;
++impl StreamController {
++    /// Run a synchronous metadata commit under this exact live incarnation.
++    /// The host must independently hold current named declaration authority.
++    /// `commit` must be a leaf: no Core/controller or domain-policy reentry,
++    /// network IO or retained guard. This never changes media or grants rights.
++    pub fn commit_capability_declaration<T>(
++        &self,
++        principal: &AuthenticatedPrincipal,
++        expected_revision: u64,
++        commit: impl FnOnce() -> T,
++    ) -> ControlResult<T> {
++        let state = self
++            .state
++            .try_lock()
++            .map_err(|_| StreamControlError::NotReady)?;
++        let credential = self
++            .credential
++            .try_lock()
++            .map_err(|_| StreamControlError::NotReady)?;
++        if self.shutdown.is_cancelled() || state.closed {
++            return Err(StreamControlError::Cancelled);
++        }
++        if state.model.revision() != expected_revision {
++            return Err(MediaTransitionError::Conflict.into());
++        }
++        if !reliable_data::same_credential(&credential.principal, principal)
++            || Self::principal_expiry(&credential.principal)
++                .is_some_and(|t| t <= chrono::Utc::now())
++        {
++            return Err(StreamControlError::Authority);
++        }
++        Ok(commit())
++    }
++}
+--- a/crates/foundation/rvoip-core/src/staged_streams/tests.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests.rs
+@@ -2665,3 +2665,66 @@
+     f.a.retire();
+     assert!(matches!(stamp.check(), Err(StreamControlError::Cancelled)));
+ }
++
++#[tokio::test]
++async fn capability_declaration_metadata_requires_exact_live_credential_revision_and_never_changes_ports(
++) {
++    let f = Fixture::new(8);
++    f.start(&[Medium::Audio]).await;
++    let principal = f.a.credential_snapshot().principal;
++    let revision = f.a.revision();
++    let before =
++        f.a.active_bindings()
++            .iter()
++            .map(|b| (b.negotiated.clone(), b.stream_local_id, b.generation))
++            .collect::<Vec<_>>();
++    let budget = f.a.stream_open_budget();
++    let calls = AtomicUsize::new(0);
++    let received =
++        f.a.commit_capability_declaration(&principal, revision, || {
++            calls.fetch_add(1, Ordering::SeqCst);
++            "received"
++        })
++        .unwrap();
++    assert_eq!(received, "received");
++    assert_eq!(f.a.revision(), revision);
++    assert_eq!(f.a.stream_open_budget(), budget);
++    assert_eq!(
++        f.a.active_bindings()
++            .iter()
++            .map(|b| (b.negotiated.clone(), b.stream_local_id, b.generation))
++            .collect::<Vec<_>>(),
++        before
++    );
++    assert!(f
++        .a
++        .commit_capability_declaration(&principal, revision + 1, || calls
++            .fetch_add(1, Ordering::SeqCst))
++        .is_err());
++    let foreign = f.b.credential_snapshot().principal;
++    assert!(f
++        .a
++        .commit_capability_declaration(&foreign, revision, || calls.fetch_add(1, Ordering::SeqCst))
++        .is_err());
++    let held = f.a.state.lock().unwrap();
++    assert!(matches!(
++        f.a.commit_capability_declaration(&principal, revision, || calls
++            .fetch_add(1, Ordering::SeqCst)),
++        Err(StreamControlError::NotReady)
++    ));
++    drop(held);
++    let held = f.a.credential.lock().unwrap();
++    assert!(matches!(
++        f.a.commit_capability_declaration(&principal, revision, || calls
++            .fetch_add(1, Ordering::SeqCst)),
++        Err(StreamControlError::NotReady)
++    ));
++    drop(held);
++    f.a.shutdown.cancel();
++    assert!(f
++        .a
++        .commit_capability_declaration(&principal, revision, || calls
++            .fetch_add(1, Ordering::SeqCst))
++        .is_err());
++    assert_eq!(calls.load(Ordering::SeqCst), 1);
++}
+--- a/crates/foundation/rvoip-core/src/staged_streams.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams.rs
+@@ -2678,6 +2678,7 @@
+ 
+ pub(crate) mod signal;
+ 
++mod capability_declaration;
+ mod dtmf_source;
+ 
+ pub mod endpoint_preparation;
+--- a/crates/uctp/rvoip-uctp/src/v2/mod.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/mod.rs
+@@ -9,6 +9,7 @@
+ pub mod auth_dispatch;
+ pub mod auth_peer;
+ pub mod native;
++pub mod native_capabilities;
+ pub mod native_control;
+ pub mod native_dtmf;
+ pub mod native_dtmf_egress;
+--- a/crates/uctp/rvoip-uctp/src/v2/native.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/native.rs
+@@ -164,20 +164,39 @@
+             let installed = route.installation.lock().unwrap_or_else(|p| p.into_inner());
+             let installed = installed.as_ref().ok_or(NativeOfferError::NotReady)?;
+             let bindings = installed.controller.active_bindings();
+-            if bindings.is_empty() || bindings.iter().any(|b| b.negotiated.requested.medium != rvoip_core::stream_lifecycle::Medium::Audio) {
++            if bindings.is_empty()
++                || bindings.iter().any(|b| {
++                    b.negotiated.requested.medium != rvoip_core::stream_lifecycle::Medium::Audio
++                })
++            {
+                 return Err(NativeOfferError::Unsupported);
+             }
+-            (installed.controller.clone(), installed.backend.flow.clone(),
+-             bindings.iter().map(|b| b.negotiated.requested.logical_id.clone()).collect())
++            (
++                installed.controller.clone(),
++                installed.backend.flow.clone(),
++                bindings
++                    .iter()
++                    .map(|b| b.negotiated.requested.logical_id.clone())
++                    .collect(),
++            )
+         };
+         let previous = controller.revision();
+-        if !flow.confirmed_at(previous) { return Err(NativeOfferError::NotReady); }
+-        let (revision, _) = controller.set_media_gate_with_held(
+-            previous, &ids, rvoip_core::stream_lifecycle::StreamGateAction::Mute,
+-            deadline, held,
+-        ).await?;
++        if !flow.confirmed_at(previous) {
++            return Err(NativeOfferError::NotReady);
++        }
++        let (revision, _) = controller
++            .set_media_gate_with_held(
++                previous,
++                &ids,
++                rvoip_core::stream_lifecycle::StreamGateAction::Mute,
++                deadline,
++                held,
++            )
++            .await?;
+         flow.controlled_revision(previous, revision);
+-        if !flow.confirmed_at(revision) { return Err(NativeOfferError::Conflict); }
++        if !flow.confirmed_at(revision) {
++            return Err(NativeOfferError::Conflict);
++        }
+         Ok(revision)
+     }
+     /// Carry existing signed resource confirmation across an actual Core
+@@ -1024,8 +1043,8 @@
+         {
+             return Err(NativeOfferError::Unsupported);
+         }
+-        let media = broker.plan_subscriptions(a, &selection)?;
+         let bindings = installed.controller.active_bindings();
++        let media = broker.plan_subscriptions(a, &selection, &bindings)?;
+         let resources = media.selected().len() != bindings.len()
+             || media
+                 .selected()
+@@ -1191,8 +1210,8 @@
+         if !selection.requires_reconciliation() {
+             return Ok(None);
+         }
+-        let media = broker.plan_reconciliation(&selection)?;
+         let bindings = controller.active_bindings();
++        let media = broker.plan_reconciliation(&selection, &bindings)?;
+         let resources = media.selected().len() != bindings.len()
+             || media
+                 .selected()
+@@ -1310,8 +1329,105 @@
+         )
+         .map_err(NativeOfferError::Dispatch)
+     }
+-    /// Seal this recipient's own signed physical origin. Egress still requires
+-    /// a fresh exact source/recipient signal policy for every bounded delivery.
++    /// Install a peer's complete declaration for future negotiation only.
++    /// Existing bindings, stream revision and media clocks remain unchanged.
++    /// Every returned error precedes this synchronous local metadata commit.
++    /// A host must capture actual success before durable recording; uncertainty
++    /// must never be retried by manufacturing another native declaration.
++    pub fn declare_native_capabilities(
++        &self,
++        id: &ConnectionId,
++        a: &super::auth_dispatch::AuthorizedEnvelope,
++        policy: &dyn super::native_capabilities::NativeCapabilityDeclarationPolicy,
++    ) -> std::result::Result<(), super::native_negotiation::NativeOfferError> {
++        use super::{native_negotiation::NativeOfferError, payloads::Payload, Scope};
++        let route = self.data_route(id, a)?;
++        let installed = route.installation.lock().unwrap_or_else(|p| p.into_inner());
++        let installed = installed.as_ref().ok_or(NativeOfferError::NotReady)?;
++        let broker = installed
++            .backend
++            .negotiation
++            .as_ref()
++            .ok_or(NativeOfferError::Unsupported)?;
++        let c = &installed.controller;
++        let flow = &installed.backend.flow;
++        let Payload::CapabilityAdvertise(declaration) = a.envelope().payload() else {
++            return Err(NativeOfferError::Unsupported);
++        };
++        let expected = a
++            .envelope()
++            .expected_revision()
++            .ok_or(NativeOfferError::Invalid)?;
++        if a.envelope().scope(Scope::Reply).is_some()
++            || a.envelope().scope(Scope::Operation).is_none()
++            || !a.supports_native_negotiation()
++            || a.envelope().kind() != "capability.advertise"
++            || broker.scope().wire_conversation.is_none()
++            || a.envelope().scope(Scope::Conversation)
++                != broker.scope().wire_conversation.as_deref()
++            || a.envelope().scope(Scope::Session) != Some(broker.scope().wire_session.as_str())
++            || a.envelope().scope(Scope::Connection)
++                != Some(broker.scope().wire_connection.as_str())
++            || declaration.by_participant.as_ref().map(|p| p.as_str())
++                != Some(route.member.participant().as_str())
++            || !matches!(
++                declaration.trigger.as_str(),
++                "endpoint-change" | "operator-policy" | "renegotiation-requested" | "network-adapt"
++            )
++            || serde_json::to_vec(&a.envelope().original()["payload"])
++                .map_err(|_| NativeOfferError::Invalid)?
++                .len()
++                > 32 * 1024
++        {
++            return Err(NativeOfferError::Invalid);
++        }
++        if expected == 0
++            || expected != c.revision()
++            || !flow.confirmed_at(expected)
++            || !broker.declaration_ready()
++        {
++            return Err(NativeOfferError::Conflict);
++        }
++        // This same slot serializes real parameter requests and their final
++        // retained-snapshot commit. A racing old negotiation cannot overwrite
++        // the newly declared descriptor after this local call returns.
++        let _slot = broker
++            .request_slot
++            .clone()
++            .try_acquire_owned()
++            .map_err(|_| NativeOfferError::Conflict)?;
++        let remote = super::native_negotiation::NativeOfferPlan::declaration(
++            &declaration.capabilities,
++            &broker.profile,
++            a.principal(),
++        )?;
++        let scope = super::native_lifecycle::NativeLifecycleScope {
++            principal: a.principal().clone(),
++            media: broker.scope().clone(),
++            participant: route.member.participant().clone(),
++            membership_epoch: route.member.epoch(),
++            device: route.endpoint.device().clone(),
++            endpoint: route.endpoint.endpoint().clone(),
++            identity: route.member.identity().clone(),
++        };
++        let authority = policy
++            .authorize(&scope, a, &declaration.capabilities)
++            .map_err(NativeOfferError::Dispatch)?;
++        if !authority.current()
++            || !a.retain_authority().current()
++            || a.invocation_cancellation().is_cancelled()
++            || !flow.current()
++        {
++            return Err(NativeOfferError::Authority);
++        }
++        // Pure domain policy is resolved before entering controller locks.
++        // The leaf only replaces broker metadata, with no IO/policy reentry.
++        c.commit_capability_declaration(a.principal(), expected, || {
++            broker.declare_capabilities(remote)
++        })??;
++        Ok(())
++    }
++    /// Configure local cadence under the exact current held domain authority.
+     pub fn configure_native_quality(
+         &self,
+         id: &ConnectionId,
+@@ -1378,6 +1494,8 @@
+         }
+         Ok(interval)
+     }
++    /// Seal this recipient's own signed physical origin. Egress still requires
++    /// a fresh exact source/recipient signal policy for every bounded delivery.
+     pub fn native_dtmf_registration(
+         &self,
+         id: &ConnectionId,
+--- /dev/null
++++ b/crates/uctp/rvoip-uctp/src/v2/native_capabilities.rs
+@@ -0,0 +1,16 @@
++//! Peer declarations affect future negotiation, never current media bindings.
++use super::{auth_dispatch::*, native_lifecycle::NativeLifecycleScope};
++use serde_json::Value;
++/// Derive a current grant from the actual declaration's held original domain.
++/// The callback is pure: never enter Core/controller locks or acquire another
++/// policy reader. A descriptor is metadata, not authenticated/media authority.
++pub trait NativeCapabilityDeclarationPolicy: Send + Sync {
++    fn authorize(
++        &self,
++        _scope: &NativeLifecycleScope,
++        _request: &AuthorizedEnvelope,
++        _descriptor: &Value,
++    ) -> Result<AuthorityLease, DispatchError> {
++        Err(DispatchError::Unsupported)
++    }
++}
+--- a/crates/uctp/rvoip-uctp/src/v2/native_negotiation/catalog.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/native_negotiation/catalog.rs
+@@ -111,59 +111,69 @@
+     pub(crate) selected: Vec<NegotiatedStream>,
+     pub(crate) rejected: Vec<super::super::Identifier>,
+     pub(crate) remote: EndpointMediaCapabilities,
++    pub(crate) declaration_generation: Option<u64>,
+ }
+ impl NativeOfferPlan {
+     pub(crate) fn subscription(
+         input: &rvoip_core::staged_streams::subscription_plan::MediaSubscriptionPlan,
+         profile: &NativeMediaProfile,
+         remote: &EndpointMediaCapabilities,
++        bindings: &[ReadyMediaBinding],
+     ) -> Result<Self, NativeOfferError> {
++        let local = &profile.local;
++        let mut effective = remote.clone();
++        let mut retained = 0;
++        let mut selected = Vec::with_capacity(input.desired().len());
++        for desired in input.desired() {
++            if let Some(binding) = bindings.iter().find(|b| {
++                b.negotiated.requested == *desired
++                    && input
++                        .required_formats()
++                        .get(&desired.logical_id)
++                        .is_none_or(|f| f == &b.negotiated.format)
++            }) {
++                // Selector changes retain the exact already negotiated port.
++                // A declaration cannot retrospectively disable that binding.
++                retain_binding(&mut effective, &binding.negotiated);
++                selected.push(binding.negotiated.clone());
++                retained += 1;
++                continue;
++            }
++            // A new logical port/direction/format cannot borrow a withdrawn
++            // format merely because another existing binding still uses it.
++            let mut choice = negotiate_streams(local, remote, std::slice::from_ref(desired))
++                .map_err(|_| NativeOfferError::Unsupported)?;
++            let choice = choice.first_mut().ok_or(NativeOfferError::Unsupported)?;
++            if let Some(required) = input.required_formats().get(&desired.logical_id) {
++                choice.format = required.clone();
++            }
++            validate_selected_streams(local, remote, std::slice::from_ref(choice))
++                .map_err(|_| NativeOfferError::Unsupported)?;
++            selected.push(choice.clone());
++        }
++        effective.max_streams = effective.max_streams.max(retained);
+         for medium in input.future_media() {
+-            let local = profile
+-                .local
++            let local = local
+                 .send
+                 .iter()
+                 .find(|c| c.medium == medium)
+                 .ok_or(NativeOfferError::Unsupported)?;
+-            let peer = remote
++            let peer = effective
+                 .receive
+                 .iter()
+                 .find(|c| c.medium == medium)
+                 .ok_or(NativeOfferError::Unsupported)?;
+-            if !local
+-                .formats
+-                .iter()
+-                .any(|format| peer.formats.contains(format))
+-            {
++            if !local.formats.iter().any(|f| peer.formats.contains(f)) {
+                 return Err(NativeOfferError::Unsupported);
+             }
+         }
+-        let local = profile.local.clone();
+-        let mut selected = negotiate_streams(&local, remote, input.desired())
++        validate_selected_streams(local, &effective, &selected)
+             .map_err(|_| NativeOfferError::Unsupported)?;
+-        for plan in &mut selected {
+-            if let Some(required) = input.required_formats().get(&plan.requested.logical_id) {
+-                let sets = match plan.requested.direction {
+-                    StreamDirection::Send => vec![&local.send, &remote.receive],
+-                    StreamDirection::Receive => vec![&local.receive, &remote.send],
+-                    StreamDirection::Both => {
+-                        vec![&local.send, &remote.receive, &local.receive, &remote.send]
+-                    }
+-                };
+-                if !sets.into_iter().all(|set| {
+-                    set.iter().any(|cap| {
+-                        cap.medium == plan.requested.medium && cap.formats.contains(required)
+-                    })
+-                }) {
+-                    return Err(NativeOfferError::Unsupported);
+-                }
+-                plan.format = required.clone();
+-            }
+-        }
+         Ok(Self {
+             selected,
+-            rejected: Vec::new(),
+-            remote: remote.clone(),
++            rejected: vec![],
++            remote: effective,
++            declaration_generation: None,
+         })
+     }
+     /// Select new parameters from the actual update and the last confirmed
+@@ -224,9 +234,13 @@
+             return Err(NativeOfferError::NotReady);
+         }
+         let mut selected = Vec::with_capacity(bindings.len());
++        let mut effective = remote.clone();
++        let mut retained = 0;
+         for binding in bindings {
+             let previous = &binding.negotiated;
+             if !targets.contains(previous.requested.logical_id.as_str()) {
++                retain_binding(&mut effective, previous);
++                retained += 1;
+                 selected.push(previous.clone());
+                 continue;
+             }
+@@ -266,29 +280,38 @@
+             }
+             selected.push(chosen.ok_or(NativeOfferError::Unsupported)?);
+         }
+-        validate_selected_streams(&profile.local, remote, &selected)
++        effective.max_streams = effective.max_streams.max(retained);
++        validate_selected_streams(&profile.local, &effective, &selected)
+             .map_err(|_| NativeOfferError::Unsupported)?;
+         Ok(Self {
+             selected,
+             rejected: vec![],
+-            remote: remote.clone(),
++            remote: effective,
++            declaration_generation: None,
+         })
+     }
+-    pub fn selected(&self) -> &[NegotiatedStream] {
+-        &self.selected
+-    }
+-    pub fn rejected(&self) -> &[super::super::Identifier] {
+-        &self.rejected
+-    }
+-    pub fn remote_capabilities(&self) -> &EndpointMediaCapabilities {
+-        &self.remote
+-    }
+-    pub fn parse(
+-        offer: &super::super::payloads::ConnectionOffer,
++    /// A complete peer declaration for future negotiation. Empty catalogs can
++    /// withdraw future support without changing current negotiated streams.
++    pub(crate) fn declaration(
++        value: &Value,
+         profile: &NativeMediaProfile,
+         principal: &rvoip_core::identity::AuthenticatedPrincipal,
+-    ) -> Result<Self, NativeOfferError> {
+-        let v = &offer.capabilities;
++    ) -> Result<EndpointMediaCapabilities, NativeOfferError> {
++        if serde_json::to_vec(value)
++            .map_err(|_| NativeOfferError::Invalid)?
++            .len()
++            > 16 * 1024
++        {
++            return Err(NativeOfferError::Capacity);
++        }
++        Self::remote_descriptor(value, profile, principal, true)
++    }
++    fn remote_descriptor(
++        v: &Value,
++        profile: &NativeMediaProfile,
++        principal: &rvoip_core::identity::AuthenticatedPrincipal,
++        declaration: bool,
++    ) -> Result<EndpointMediaCapabilities, NativeOfferError> {
+         if !v.is_object() {
+             return Err(NativeOfferError::Invalid);
+         }
+@@ -308,24 +331,20 @@
+                 return Err(NativeOfferError::Authority);
+             }
+         }
+-        let maximum = v
+-            .get("max_streams_per_connection")
+-            .and_then(Value::as_u64)
+-            .ok_or(NativeOfferError::Invalid)?;
+-        if maximum == 0
+-            || maximum > 65535
+-            || offer.streams_offered.is_empty()
+-            || offer.streams_offered.len() > 32
+-            || offer.streams_offered.len() > maximum as usize
+-        {
++        let maximum = match v.get("max_streams_per_connection") {
++            Some(value) => value.as_u64().ok_or(NativeOfferError::Invalid)?,
++            None if declaration => profile.local.max_streams as u64,
++            None => return Err(NativeOfferError::Invalid),
++        };
++        if (!declaration && maximum == 0) || maximum > if declaration { 32 } else { 65535 } {
+             return Err(NativeOfferError::Capacity);
+         }
+-        let audio = codecs(v.get("audio_codecs"), Medium::Audio)?;
+-        let video = codecs(v.get("video_codecs"), Medium::Video)?;
++        let audio = codecs(v.get("audio_codecs"), Medium::Audio, declaration)?;
++        let video = codecs(v.get("video_codecs"), Medium::Video, declaration)?;
+         let mut data = Vec::new();
+         if let Some(values) = v.get("data_protocols") {
+             let values = values.as_array().ok_or(NativeOfferError::Invalid)?;
+-            if values.len() > 3 {
++            if values.len() > if declaration { 32 } else { 3 } {
+                 return Err(NativeOfferError::Capacity);
+             }
+             for value in values {
+@@ -333,6 +352,7 @@
+                     Some("text") => DataProtocol::Text,
+                     Some("json") => DataProtocol::Json,
+                     Some("binary") => DataProtocol::Binary,
++                    _ if declaration && value.as_str().is_some() => continue,
+                     _ => return Err(NativeOfferError::Invalid),
+                 });
+                 if data.contains(&format) {
+@@ -356,18 +376,40 @@
+                 return Err(NativeOfferError::Unsupported);
+             }
+             (
+-                directional(native.get("send"), &caps)?,
+-                directional(native.get("receive"), &caps)?,
++                directional(native.get("send"), &caps, declaration)?,
++                directional(native.get("receive"), &caps, declaration)?,
+             )
+         } else {
+             (caps.clone(), caps)
+         };
+-        let remote = EndpointMediaCapabilities {
++        Ok(EndpointMediaCapabilities {
+             send,
+             receive,
+             max_streams: maximum.min(32) as usize,
+             renegotiation: true,
+-        };
++        })
++    }
++    pub fn selected(&self) -> &[NegotiatedStream] {
++        &self.selected
++    }
++    pub fn rejected(&self) -> &[super::super::Identifier] {
++        &self.rejected
++    }
++    pub fn remote_capabilities(&self) -> &EndpointMediaCapabilities {
++        &self.remote
++    }
++    pub fn parse(
++        offer: &super::super::payloads::ConnectionOffer,
++        profile: &NativeMediaProfile,
++        principal: &rvoip_core::identity::AuthenticatedPrincipal,
++    ) -> Result<Self, NativeOfferError> {
++        let remote = Self::remote_descriptor(&offer.capabilities, profile, principal, false)?;
++        if offer.streams_offered.is_empty()
++            || offer.streams_offered.len() > 32
++            || offer.streams_offered.len() > remote.max_streams
++        {
++            return Err(NativeOfferError::Capacity);
++        }
+         let mut selected = Vec::new();
+         let mut rejected = Vec::new();
+         let mut ids = BTreeSet::new();
+@@ -451,7 +493,40 @@
+             selected,
+             rejected,
+             remote,
++            declaration_generation: None,
+         })
++    }
++}
++// Preserve a specific already negotiated binding in an effective validation
++// snapshot. Planners separately validate every new choice against the latest
++// declaration, so this cannot become an unrestricted future capability.
++fn retain_binding(remote: &mut EndpointMediaCapabilities, binding: &NegotiatedStream) {
++    let add = |set: &mut Vec<MediaCapability>| {
++        if let Some(cap) = set
++            .iter_mut()
++            .find(|c| c.medium == binding.requested.medium)
++        {
++            if !cap.formats.contains(&binding.format) {
++                cap.formats.push(binding.format.clone());
++            }
++        } else {
++            set.push(MediaCapability {
++                medium: binding.requested.medium,
++                formats: vec![binding.format.clone()],
++            });
++        }
++    };
++    if matches!(
++        binding.requested.direction,
++        StreamDirection::Receive | StreamDirection::Both
++    ) {
++        add(&mut remote.send);
++    }
++    if matches!(
++        binding.requested.direction,
++        StreamDirection::Send | StreamDirection::Both
++    ) {
++        add(&mut remote.receive);
+     }
+ }
+ pub(crate) fn check_native(format: &MediaFormat, medium: Medium) -> Result<(), NativeOfferError> {
+@@ -462,7 +537,11 @@
+             .map_err(|_| NativeOfferError::Unsupported),
+     }
+ }
+-fn codecs(v: Option<&Value>, medium: Medium) -> Result<Vec<MediaFormat>, NativeOfferError> {
++fn codecs(
++    v: Option<&Value>,
++    medium: Medium,
++    declaration: bool,
++) -> Result<Vec<MediaFormat>, NativeOfferError> {
+     let Some(v) = v else { return Ok(vec![]) };
+     let values = v.as_array().ok_or(NativeOfferError::Invalid)?;
+     if values.len() > 32 {
+@@ -482,11 +561,16 @@
+         {
+             return Err(NativeOfferError::Invalid);
+         }
+-        let params = value
+-            .get("params")
+-            .and_then(Value::as_object)
+-            .ok_or(NativeOfferError::Invalid)?;
++        let empty = serde_json::Map::new();
++        let params = match value.get("params") {
++            None if declaration => &empty,
++            Some(Value::Object(value)) => value,
++            _ => return Err(NativeOfferError::Invalid),
++        };
+         if params.len() > 16 {
++            if declaration {
++                continue;
++            }
+             return Err(NativeOfferError::Capacity);
+         }
+         let name = normalize(name);
+@@ -547,6 +631,7 @@
+ fn directional(
+     value: Option<&Value>,
+     catalog: &[MediaCapability],
++    declaration: bool,
+ ) -> Result<Vec<MediaCapability>, NativeOfferError> {
+     let values = value
+         .and_then(Value::as_array)
+@@ -594,7 +679,7 @@
+             }
+             data
+         } else {
+-            codecs(value.get("formats"), medium)?
++            codecs(value.get("formats"), medium, declaration)?
+         };
+         if formats.is_empty()
+             || formats.iter().any(|f| {
+--- a/crates/uctp/rvoip-uctp/src/v2/native_negotiation/mod.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/native_negotiation/mod.rs
+@@ -128,6 +128,17 @@
+         }
+     }
+ }
++struct RetainedPeer {
++    negotiated: EndpointMediaCapabilities,
++    declared: Option<EndpointMediaCapabilities>,
++    substrate: String,
++    declaration_generation: u64,
++}
++impl RetainedPeer {
++    fn future_capabilities(&self) -> &EndpointMediaCapabilities {
++        self.declared.as_ref().unwrap_or(&self.negotiated)
++    }
++}
+ pub(crate) struct NativeNegotiation {
+     pub(crate) scope: StagedRtpScope,
+     pub(crate) profile: Arc<NativeMediaProfile>,
+@@ -137,7 +148,7 @@
+     lifetime: CancellationToken,
+     current: Mutex<Option<Weak<Operation>>>,
+     pub(crate) request_slot: Arc<tokio::sync::Semaphore>,
+-    retained: Mutex<Option<(EndpointMediaCapabilities, String)>>,
++    retained: Mutex<Option<RetainedPeer>>,
+ }
+ pub(crate) struct NegotiationGuard {
+     broker: Arc<NativeNegotiation>,
+@@ -197,14 +208,32 @@
+         self.operation.envelope.id()
+     }
+     pub(crate) fn committed(&self) {
+-        *self
++        let mut retained = self
+             .broker
+             .retained
+             .lock()
+-            .unwrap_or_else(|p| p.into_inner()) = Some((
+-            self.operation.plan.remote.clone(),
+-            self.operation.substrate.clone(),
+-        ));
++            .unwrap_or_else(|p| p.into_inner());
++        if let Some(retained) = retained.as_mut() {
++            retained.negotiated = self.operation.plan.remote.clone();
++            retained.substrate = self.operation.substrate.clone();
++            if self
++                .operation
++                .command()
++                .is_some_and(|a| a.envelope().kind() == "connection.offer")
++            {
++                // A new explicit offer supersedes the previous declaration.
++                // begin_plan checked capacity before any possible media IO.
++                retained.declared = None;
++                retained.declaration_generation += 1;
++            }
++        } else {
++            *retained = Some(RetainedPeer {
++                negotiated: self.operation.plan.remote.clone(),
++                declared: None,
++                substrate: self.operation.substrate.clone(),
++                declaration_generation: 0,
++            });
++        }
+     }
+     pub(crate) fn error(&self, error: StreamControlError) -> NativeOfferError {
+         self.operation
+@@ -282,6 +311,42 @@
+         let substrate = offer.substrate.clone();
+         self.begin_plan(invocation, expected, plan, substrate)
+     }
++    /// Leaf commit, serialized by the actual controller and request slot. Only
++    /// a validated declaration may replace this future-negotiation snapshot.
++    pub(crate) fn declare_capabilities(
++        &self,
++        remote: EndpointMediaCapabilities,
++    ) -> Result<(), NativeOfferError> {
++        let mut retained = self.retained.lock().unwrap_or_else(|p| p.into_inner());
++        let retained = retained.as_mut().ok_or(NativeOfferError::NotReady)?;
++        if retained.declaration_generation >= super::MAX_SAFE_REVISION {
++            return Err(NativeOfferError::Capacity);
++        }
++        retained.declared = Some(remote);
++        retained.declaration_generation += 1;
++        Ok(())
++    }
++    fn stamp_declaration(mut plan: NativeOfferPlan, generation: u64) -> NativeOfferPlan {
++        plan.declaration_generation = Some(generation);
++        plan
++    }
++    fn require_declaration_generation(
++        &self,
++        plan: &NativeOfferPlan,
++    ) -> Result<(), NativeOfferError> {
++        let retained = self.retained.lock().unwrap_or_else(|p| p.into_inner());
++        let retained = retained.as_ref().ok_or(NativeOfferError::NotReady)?;
++        if plan.declaration_generation != Some(retained.declaration_generation) {
++            return Err(NativeOfferError::Conflict);
++        }
++        Ok(())
++    }
++    pub(crate) fn declaration_ready(&self) -> bool {
++        self.retained
++            .lock()
++            .unwrap_or_else(|p| p.into_inner())
++            .is_some()
++    }
+     pub(crate) fn plan_update(
+         &self,
+         a: &AuthorizedEnvelope,
+@@ -296,8 +361,14 @@
+             return Err(NativeOfferError::Unsupported);
+         };
+         let retained = self.retained.lock().unwrap_or_else(|p| p.into_inner());
+-        let (remote, _) = retained.as_ref().ok_or(NativeOfferError::NotReady)?;
+-        NativeOfferPlan::codec_update(update, &self.profile, remote, bindings)
++        let retained = retained.as_ref().ok_or(NativeOfferError::NotReady)?;
++        NativeOfferPlan::codec_update(
++            update,
++            &self.profile,
++            retained.future_capabilities(),
++            bindings,
++        )
++        .map(|plan| Self::stamp_declaration(plan, retained.declaration_generation))
+     }
+     pub(crate) fn begin_update(
+         self: &Arc<Self>,
+@@ -312,7 +383,7 @@
+             .unwrap_or_else(|p| p.into_inner())
+             .as_ref()
+             .ok_or(NativeOfferError::NotReady)?
+-            .1
++            .substrate
+             .clone();
+         self.begin_plan(invocation, expected, plan, substrate)
+     }
+@@ -320,6 +391,7 @@
+         &self,
+         a: &AuthorizedEnvelope,
+         input: &rvoip_core::staged_streams::subscription_plan::MediaSubscriptionPlan,
++        bindings: &[ReadyMediaBinding],
+     ) -> Result<NativeOfferPlan, NativeOfferError> {
+         if !a.supports_native_negotiation()
+             || !scope_matches_kind(a.envelope(), &self.scope, a.envelope().kind())
+@@ -331,16 +403,29 @@
+             return Err(NativeOfferError::Scope);
+         }
+         let retained = self.retained.lock().unwrap_or_else(|p| p.into_inner());
+-        let (remote, _) = retained.as_ref().ok_or(NativeOfferError::NotReady)?;
+-        NativeOfferPlan::subscription(input, &self.profile, remote)
++        let retained = retained.as_ref().ok_or(NativeOfferError::NotReady)?;
++        NativeOfferPlan::subscription(
++            input,
++            &self.profile,
++            retained.future_capabilities(),
++            bindings,
++        )
++        .map(|plan| Self::stamp_declaration(plan, retained.declaration_generation))
+     }
+     pub(crate) fn plan_reconciliation(
+         &self,
+         input: &rvoip_core::staged_streams::subscription_plan::MediaSubscriptionPlan,
++        bindings: &[ReadyMediaBinding],
+     ) -> Result<NativeOfferPlan, NativeOfferError> {
+         let retained = self.retained.lock().unwrap_or_else(|p| p.into_inner());
+-        let (remote, _) = retained.as_ref().ok_or(NativeOfferError::NotReady)?;
+-        NativeOfferPlan::subscription(input, &self.profile, remote)
++        let retained = retained.as_ref().ok_or(NativeOfferError::NotReady)?;
++        NativeOfferPlan::subscription(
++            input,
++            &self.profile,
++            retained.future_capabilities(),
++            bindings,
++        )
++        .map(|plan| Self::stamp_declaration(plan, retained.declaration_generation))
+     }
+     pub(crate) fn begin_subscriptions(
+         self: &Arc<Self>,
+@@ -354,7 +439,7 @@
+             .unwrap_or_else(|p| p.into_inner())
+             .as_ref()
+             .ok_or(NativeOfferError::NotReady)?
+-            .1
++            .substrate
+             .clone();
+         self.begin_plan(a, expected, plan, substrate)
+     }
+@@ -367,6 +452,17 @@
+     ) -> Result<NegotiationGuard, NativeOfferError> {
+         let request_slot = super::native_requests::NativeRequestSlot::acquire(&self.request_slot)
+             .map_err(|_| NativeOfferError::Conflict)?;
++        if invocation.envelope().kind() != "connection.offer" {
++            self.require_declaration_generation(&plan)?;
++        } else if self
++            .retained
++            .lock()
++            .unwrap_or_else(|p| p.into_inner())
++            .as_ref()
++            .is_some_and(|r| r.declaration_generation >= super::MAX_SAFE_REVISION)
++        {
++            return Err(NativeOfferError::Capacity);
++        }
+         let mut current = self.current.lock().unwrap_or_else(|p| p.into_inner());
+         if self.lifetime.is_cancelled() {
+             return Err(NativeOfferError::Cancelled);
+@@ -408,6 +504,7 @@
+         if !slot.belongs_to(&self.request_slot) {
+             return Err(NativeOfferError::Scope);
+         }
++        self.require_declaration_generation(&invocation.plan().media)?;
+         if !invocation.current() || self.lifetime.is_cancelled() {
+             return Err(NativeOfferError::Cancelled);
+         }
+@@ -425,7 +522,7 @@
+             .unwrap_or_else(|p| p.into_inner())
+             .as_ref()
+             .ok_or(NativeOfferError::NotReady)?
+-            .1
++            .substrate
+             .clone();
+         let envelope=Envelope::from_value(json!({"v":2,"type":"connection.offer","id":format!("reconcile_{}",uuid::Uuid::new_v4().simple()),"ts":chrono::Utc::now(),
+             "cid":scope.wire_conversation,"sid":scope.wire_session,"connid":scope.wire_connection,"operation_id":invocation.operation(),"expected_revision":invocation.scope().stream_revision,
+--- a/crates/uctp/rvoip-uctp/src/v2/native_negotiation/tests.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/native_negotiation/tests.rs
+@@ -263,3 +263,178 @@
+         Err(NativeOfferError::Unsupported)
+     ));
+ }
++
++#[test]
++fn capability_declarations_replace_future_catalogs_without_expanding_the_local_profile() {
++    let profile = profile();
++    let before = profile.capabilities().clone();
++    let remote=NativeOfferPlan::declaration(&json!({"audio_codecs":[{"name":"pcma","params":{"sample_rate":8000}}],"data_protocols":["future-protocol","json"],"future":{"exact":true}}),&profile,&actor()).unwrap();
++    assert_eq!(remote.max_streams, 8);
++    assert_eq!(
++        remote
++            .send
++            .iter()
++            .find(|m| m.medium == Medium::Audio)
++            .unwrap()
++            .formats,
++        vec![audio("pcma")]
++    );
++    assert_eq!(
++        remote
++            .send
++            .iter()
++            .find(|m| m.medium == Medium::Data)
++            .unwrap()
++            .formats,
++        vec![MediaFormat::ReliableOrdered(
++            rvoip_core::capability::DataProtocol::Json
++        )]
++    );
++    let withdrawn = NativeOfferPlan::declaration(&json!({}), &profile, &actor()).unwrap();
++    assert!(withdrawn.send.is_empty() && withdrawn.receive.is_empty());
++    let zero = NativeOfferPlan::declaration(
++        &json!({"max_streams_per_connection":0,"audio_codecs":[{"name":"pcmu"}]}),
++        &profile,
++        &actor(),
++    )
++    .unwrap();
++    assert_eq!(zero.max_streams, 0);
++    assert_eq!(profile.capabilities(), &before);
++    assert!(NativeOfferPlan::declaration(
++        &json!({"identity_assurance_offered":"user-authorized"}),
++        &profile,
++        &actor()
++    )
++    .is_err());
++    assert!(NativeOfferPlan::declaration(
++        &json!({"identity_assurance_required":"user-authorized"}),
++        &profile,
++        &actor()
++    )
++    .is_err());
++    assert!(NativeOfferPlan::declaration(
++        &json!({"max_streams_per_connection":33}),
++        &profile,
++        &actor()
++    )
++    .is_err());
++}
++#[test]
++fn new_capability_declarations_invalidate_old_prepared_negotiation_metadata() {
++    let principal = actor();
++    let profile = Arc::new(profile());
++    let broker = NativeNegotiation::new(
++        StagedRtpScope {
++            session: SessionId::from_string("session"),
++            connection: ConnectionId::from_string("connection"),
++            owner: principal.ownership_key(),
++            wire_conversation: Some("conversation".into()),
++            wire_session: "session".into(),
++            wire_connection: "connection".into(),
++        },
++        profile.clone(),
++        ParticipantId::from_string("participant"),
++        None,
++        CancellationToken::new(),
++        "quic",
++    );
++    let initial = NativeOfferPlan::parse(&offer(), &profile, &principal).unwrap();
++    assert!(broker.declare_capabilities(initial.remote.clone()).is_err());
++    *broker.retained.lock().unwrap() = Some(RetainedPeer {
++        negotiated: initial.remote.clone(),
++        declared: None,
++        substrate: "quic".into(),
++        declaration_generation: 0,
++    });
++    let old = NativeNegotiation::stamp_declaration(initial.clone(), 0);
++    broker.require_declaration_generation(&old).unwrap();
++    let changed = NativeOfferPlan::declaration(
++        &json!({"audio_codecs":[{"name":"pcma","params":{}}]}),
++        &profile,
++        &principal,
++    )
++    .unwrap();
++    broker.declare_capabilities(changed).unwrap();
++    assert!(matches!(
++        broker.require_declaration_generation(&old),
++        Err(NativeOfferError::Conflict)
++    ));
++    let now = NativeNegotiation::stamp_declaration(initial, 1);
++    broker.require_declaration_generation(&now).unwrap();
++    let retained = broker.retained.lock().unwrap();
++    assert_eq!(
++        retained.as_ref().unwrap().declared.as_ref().unwrap().send[0].formats,
++        vec![audio("pcma")]
++    );
++    drop(retained);
++    broker
++        .retained
++        .lock()
++        .unwrap()
++        .as_mut()
++        .unwrap()
++        .declaration_generation = super::super::MAX_SAFE_REVISION;
++    assert!(matches!(
++        broker.declare_capabilities(
++            NativeOfferPlan::declaration(&json!({}), &profile, &principal).unwrap()
++        ),
++        Err(NativeOfferError::Capacity)
++    ));
++    assert_eq!(
++        broker
++            .retained
++            .lock()
++            .unwrap()
++            .as_ref()
++            .unwrap()
++            .declared
++            .as_ref()
++            .unwrap()
++            .send[0]
++            .formats,
++        vec![audio("pcma")]
++    );
++}
++
++#[test]
++fn new_declarations_keep_untouched_confirmed_bindings_without_reauthorizing_new_withdrawn_formats()
++{
++    let profile = profile();
++    let principal = actor();
++    let mut original = offer();
++    original.streams_offered[0].codec_preferences = vec!["pcmu".into()];
++    let plan = NativeOfferPlan::parse(&original, &profile, &principal).unwrap();
++    let mut bindings = codec_bindings(&plan);
++    bindings[1].negotiated = NegotiatedStream {
++        requested: DesiredStream {
++            logical_id: StreamId::from_string("existing-data"),
++            medium: Medium::Data,
++            direction: StreamDirection::Both,
++        },
++        format: MediaFormat::ReliableOrdered(rvoip_core::capability::DataProtocol::Binary),
++    };
++    let latest = NativeOfferPlan::declaration(
++        &json!({"audio_codecs":[{"name":"pcma","params":{}}]}),
++        &profile,
++        &principal,
++    )
++    .unwrap();
++    let update = codec_request(Some(vec!["one"]), &["pcma"]);
++    let changed = NativeOfferPlan::codec_update(&update, &profile, &latest, &bindings).unwrap();
++    assert_eq!(changed.selected()[0].format, audio("pcma"));
++    assert_eq!(changed.selected()[1], bindings[1].negotiated);
++    assert!(changed
++        .remote
++        .receive
++        .iter()
++        .any(|c| c.medium == Medium::Data));
++    // The effective retained-port snapshot does not change the declaration.
++    assert!(latest.receive.iter().all(|c| c.medium != Medium::Data));
++    assert!(NativeOfferPlan::codec_update(
++        &codec_request(Some(vec!["one"]), &["pcmu"]),
++        &profile,
++        &latest,
++        &bindings
++    )
++    .is_err());
++}

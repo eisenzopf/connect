@@ -4,6 +4,20 @@ use crate::{
     Outcome, Result,
 };
 impl ConnectClient {
+    /// Resolve a current permitted participant endpoint. This does not allocate
+    /// media or grant a reusable authorization lease; addresses stay private.
+    pub async fn participant_route(
+        &mut self,
+        request: connect_protocol::routing::ParticipantRouteRequest,
+    ) -> Result<connect_protocol::routing::ParticipantRoute> {
+        match self
+            .request(Operation::ParticipantRoute { request })
+            .await?
+        {
+            Outcome::ParticipantRoute(value) => Ok(value),
+            _ => Err(ClientError::Protocol),
+        }
+    }
     /// Discover caller-permitted routes, limits and configuration (not guaranteed reachability).
     pub async fn capabilities(
         &mut self,

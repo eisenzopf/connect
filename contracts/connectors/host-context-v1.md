@@ -44,10 +44,62 @@ or serialized session/artifact metadata; it is never artifact bytes or a server
 path. In this ordinary projection, session/artifact metadata is the saved event
 snapshot. No item or external reference grants permission.
 
+Ready canonical records use `kind: "record_ready"`; a later explicit share can
+produce `record_history_shared`. Their `source_id` is the record UUID. Each carries
+an optional `record` reference with `uuid`, `session_id`, `revision`, `state`,
+`content_hash`, and `valid_until`. State is `available`, `unavailable`, or `deleted`.
+An available body is the unsigned canonical projection for the current owner,
+delegate, and actual listener audience. Its hash covers only that projection.
+Unavailable and deleted rows retain an empty body and a null hash. Neither the
+whole-record hash, manifest hash, storage locator, nor source URLs are exported.
+The reference grants no access; `record_get` is required independently of
+`context_view`, including each task and invocation-grant ceiling. Record history
+sharing preserves the original private Connection audience restrictions.
+
+`valid_until` is the earliest visible retention boundary, or null. The host
+shortens actual transport custody to that boundary and compares the original
+selection against current authorization and record content before export or
+opaque-memory reuse. Adapters must retain the reference in provenance and must
+not resolve it to a broader record.
+
+Canonical Session outcomes use `kind: "session_control"`. Their body is the
+serialized `session_control::SessionView` from that exact journal event, including
+its observed state and revision. A later accept/end or server restart does not
+rewrite an earlier invite outcome. `actor_id` attributes the Session initiator
+who owns the source; it does not assert who performed every subsequent action.
+The host applies both current principals and the destination audience before
+selection limits and omitted counts. Delivery admission binds the original
+journal kind, source ID and body; replacing a historical body with current
+metadata or relabeling its event is refused.
+
+A public native assistant export is bound to its actual Connection generation,
+verified provider Endpoint and every current Session listener. A private export
+is bound to its original private purpose and every original private listener.
+Both selection and later opaque-memory use must check every source against that
+whole audience. When the context owner and assistant delegate are the same AI,
+that identity cannot substitute for another listener's source permission.
+
 A delivery entry has fields `id`, `session_id` (string/null), `provider`,
 `watermark`, `state`, `provider_ref` (string/null), `created_at`, `updated_at`.
-The two nullable fields may be absent and decode to None; all other fields are required.
-Times are Unix seconds. Receipts are observations of exported selections, not
+Native control receipts additionally carry nullable `destination`, `problem` and
+`lifecycle` fields. `destination` contains the original `connection_id`,
+`generation`, and `purpose` (`public_session` or `private_consultation`). Retirement
+or a later generation does not rewrite that binding. Private generations are read
+from the saved private selection, never the current mutable Connection row.
+`problem` is `rejected`, `truncated`, `incomplete` or `unknown` when observed.
+`lifecycle` records `creation_admitted`, `creation_confirmed`, `export_admitted`,
+`delivery_confirmed`, `closed`, and nullable `cleanup_admitted`/`cleanup_uncertain`.
+Its `phase` is `initialization`, `post_creation` or `update`; nullable
+`parent_delivery_id` binds an update to the original captured instance. Update
+children admit no creation and may confirm the already captured instance.
+Their cleanup fields describe that parent instance, including its later closure.
+An initialization export is admitted before its creation response, so an uncertain
+receipt with no provider reference may still describe history sent inline.
+Null cleanup fields mean that lane records no separate admitted cleanup phase.
+These facts describe control observations, including terminal status without an
+end packet; they do not establish audio readiness. Ordinary unbound receipts have
+null native metadata. The [HTTP reference](../openapi-context.json) describes the
+current named application read API. Times are Unix seconds. Receipts are observations of exported selections, not
 additional model-visible history or credentials. `deliveries_omitted` counts older
 receipts outside this recent list; authorized public receipt pagination is separate.
 
@@ -87,6 +139,10 @@ oldest first. Task session/artifact bodies are current authorized metadata, and
 provenance explicitly records `current-session-metadata` or
 `current-artifact-metadata;bytes-require-artifact-get`, rather than claiming the
 saved event snapshot.
+
+Record task sources carry the same optional `record` reference. Their provenance
+includes `current-authorized-record-projection`; missing bodies remain null.
+The strict body-bearing conversion refuses unavailable/deleted task sources.
 
 `state` is `available`, `deleted`, `expired` or `unavailable`. Missing bodies are
 null; unavailable attribution may have empty `actor_id`. Retain these absences.

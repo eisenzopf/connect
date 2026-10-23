@@ -1,0 +1,3700 @@
+diff --git a/crates/foundation/rvoip-core/src/orchestrator/participant_control.rs b/crates/foundation/rvoip-core/src/orchestrator/participant_control.rs
+--- a/crates/foundation/rvoip-core/src/orchestrator/participant_control.rs
++++ b/crates/foundation/rvoip-core/src/orchestrator/participant_control.rs
+@@ -61,6 +61,17 @@
+     fn authority(&self) -> &ParticipantAuthority;
+ }
+ pub trait ParticipantPolicy: Send + Sync {
++    /// Separate current operator/role permission for the exact compound
++    /// handoff. Derive from the supplied actual grant; never reenter engine
++    /// state, reacquire its domain or fall back to ordinary media permission.
++    fn current_handoff_control(
++        &self,
++        _scope: &ParticipantHandoffScope<'_>,
++        _held: &(dyn Any + Send + Sync),
++    ) -> ControlResult<ParticipantHandoffControl> {
++        Err(ParticipantControlError::Unsupported)
++    }
++
+     fn current(
+         &self,
+         scope: &ParticipantScope<'_>,
+@@ -187,6 +198,7 @@
+ #[derive(Clone, Debug)]
+ pub enum ParticipantRuntimeEvent {
+     Committed(ParticipantObservation),
++    HandoffCommitted(crate::participant_transitions::ParticipantHandoffObservation),
+     ConnectionEnded {
+         participant: ParticipantId,
+         connection: ConnectionId,
+@@ -571,6 +583,31 @@
+             .ok_or(ParticipantControlError::Unsupported)?
+             .plan_audio_audience(request)?)
+     }
++    /// Explicitly retarget an active audience under a newly approved whole
++    /// plan. This enables a later consultation/handoff in the retained call;
++    /// it cannot implicitly restore pre-handoff programmes or old authority.
++    pub fn plan_retarget_staged_audio_audience(
++        &self,
++        session: &SessionId,
++        context: &crate::staged_streams::audience::AudioAudienceHandle,
++        request: crate::staged_streams::audience::AudioAudienceRequest,
++    ) -> ControlResult<crate::staged_streams::audience::AudioAudiencePlan> {
++        let runtime = self.participant_runtime(session)?;
++        if runtime
++            .state
++            .lock()
++            .unwrap_or_else(|p| p.into_inner())
++            .ended
++        {
++            return Err(ParticipantTransitionError::Ended.into());
++        }
++        Ok(runtime
++            .mixer
++            .staged
++            .as_ref()
++            .ok_or(ParticipantControlError::Unsupported)?
++            .plan_audio_audience_replacing(request, Some(context))?)
++    }
+     pub fn plan_restore_staged_audio_audience(
+         &self,
+         session: &SessionId,
+@@ -694,6 +731,167 @@
+             .ok_or(ParticipantControlError::Unsupported)?
+             .wait_private_consultation_audio(handle, deadline, cancellation)
+             .await?)
++    }
++    pub fn plan_staged_audio_handoff(
++        &self,
++        session: &SessionId,
++        expected_participant_revision: u64,
++        correlation_id: String,
++        incoming_role: ParticipantRole,
++        context: &crate::staged_streams::audience::AudioAudienceHandle,
++        request: crate::staged_streams::handoff::AudioHandoffRequest,
++    ) -> ControlResult<ManagedAudioHandoffPlan> {
++        let runtime = self.participant_runtime(session)?;
++        {
++            let state = runtime.state.lock().unwrap_or_else(|p| p.into_inner());
++            if state.ended || state.controller.revision() != expected_participant_revision {
++                return Err(ParticipantTransitionError::Conflict.into());
++            }
++        }
++        let media = runtime
++            .mixer
++            .staged
++            .as_ref()
++            .ok_or(ParticipantControlError::Unsupported)?
++            .plan_audio_handoff(context, request)?;
++        Ok(ManagedAudioHandoffPlan {
++            media,
++            expected_revision: expected_participant_revision,
++            correlation_id,
++            incoming_role,
++        })
++    }
++    /// Exact historical local handoff observation, after fresh current role
++    /// authority. This performs no media IO, prepares no replacement and says
++    /// nothing about whether a later operation changed the active bridge.
++    pub fn replay_staged_audio_handoff(
++        &self,
++        session: &SessionId,
++        principal: &AuthenticatedPrincipal,
++        plan: &ManagedAudioHandoffPlan,
++        held: &(dyn Any + Send + Sync),
++    ) -> ControlResult<Option<crate::participant_transitions::ParticipantHandoffObservation>> {
++        use crate::participant_transitions::{
++            ParticipantHandoffDisposition, ParticipantHandoffMutation,
++        };
++        let runtime = self.participant_runtime(session)?;
++        let scope = ParticipantHandoffScope {
++            conversation: &runtime.conversation,
++            session,
++            principal,
++            plan,
++        };
++        let control = runtime.policy.current_handoff_control(&scope, held)?;
++        let state = runtime.state.lock().unwrap_or_else(|p| p.into_inner());
++        let authority = control.current(&scope)?;
++        let (outgoing, incoming) = plan.media.participants();
++        if authority.outgoing.participant() != &outgoing
++            || authority.incoming.participant() != &incoming
++            || authority.actor.conversation() != &runtime.conversation
++        {
++            return Err(ParticipantControlError::Authority);
++        }
++        authority
++            .actor
++            .revalidate_principal(principal, Utc::now())
++            .map_err(|_| ParticipantControlError::Authority)?;
++        let request = plan.media.request();
++        let intent = ParticipantHandoffMutation {
++            operation_id: request.operation_id.clone(),
++            correlation_id: plan.correlation_id.clone(),
++            expected_revision: plan.expected_revision,
++            outgoing,
++            incoming,
++            retained: request.retained.clone(),
++            admitted: request.admitted.clone(),
++            incoming_role: plan.incoming_role.clone(),
++            outgoing_disposition: match request.old_disposition {
++                crate::staged_streams::handoff::OldHandoffDisposition::Observer => {
++                    ParticipantHandoffDisposition::Observe
++                }
++                crate::staged_streams::handoff::OldHandoffDisposition::Leave => {
++                    ParticipantHandoffDisposition::Leave
++                }
++            },
++        };
++        Ok(state.controller.replay_handoff(
++            &authority.actor,
++            &authority.outgoing,
++            &authority.incoming,
++            &intent,
++        )?)
++    }
++    pub async fn commit_staged_audio_handoff_with_held(
++        self: &Arc<Self>,
++        session: &SessionId,
++        principal: AuthenticatedPrincipal,
++        plan: ManagedAudioHandoffPlan,
++        deadline: tokio::time::Instant,
++        cancel: CancellationToken,
++        held: &(dyn Any + Send + Sync),
++    ) -> ControlResult<(
++        crate::staged_streams::handoff::AudioHandoffOutcome,
++        crate::staged_streams::handoff::AudioHandoffHandle,
++    )> {
++        let runtime = self.participant_runtime(session)?;
++        let control = runtime.policy.current_handoff_control(
++            &ParticipantHandoffScope {
++                conversation: &runtime.conversation,
++                session,
++                principal: &principal,
++                plan: &plan,
++            },
++            held,
++        )?;
++        let ids = plan
++            .media
++            .outgoing_connections()
++            .into_iter()
++            .chain([
++                plan.media.request().retained.clone(),
++                plan.media.request().admitted.clone(),
++            ])
++            .collect::<std::collections::BTreeSet<_>>();
++        let lifecycles = {
++            let state = runtime.state.lock().unwrap_or_else(|p| p.into_inner());
++            if state.ended || state.controller.revision() != plan.expected_revision {
++                return Err(ParticipantTransitionError::Conflict.into());
++            }
++            ids.iter()
++                .map(|id| {
++                    state
++                        .routes
++                        .get(id)
++                        .map(|r| r.lifecycle.clone())
++                        .ok_or(ParticipantControlError::Authority)
++                })
++                .collect::<ControlResult<Vec<_>>>()?
++        };
++        let context = handoff::ManagedHandoffContext {
++            owner: self.clone(),
++            runtime: runtime.clone(),
++            plan: plan.clone(),
++            principal,
++            control,
++            conversation: self
++                .conversation(&runtime.conversation)
++                .ok_or_else(|| RvoipError::ConversationNotFound(runtime.conversation.clone()))?,
++            session: self
++                .session(session)
++                .ok_or_else(|| RvoipError::SessionNotFound(session.clone()))?,
++            lifecycles,
++        };
++        let result = runtime
++            .mixer
++            .staged
++            .as_ref()
++            .ok_or(ParticipantControlError::Unsupported)?
++            .commit_audio_handoff_managed(plan.media, deadline, cancel, held, Some(context))
++            .await?;
++        for id in &result.0.retiring {
++            self.retire_participant_route(id);
++        }
++        Ok(result)
+     }
+     /// Wake hints only. A reconciliation must re-read the committed selection
+     /// and source catalog and acquire fresh current policy independently.
+@@ -1492,11 +1690,12 @@
+                     runtime.mixer.staged.as_ref().expect("staged scene").insert(
+                         ready.connection.clone(),
+                         member,
+-                        authority.may_send_audio,
++                        authority.may_send_audio && observation.role != ParticipantRole::Observer,
+                     );
+                 } else {
+                     let mut member = ready.member.take().expect("prepared mixer member");
+-                    member.contributes = authority.may_send_audio;
++                    member.contributes =
++                        authority.may_send_audio && observation.role != ParticipantRole::Observer;
+                     members.insert(ready.connection.clone(), member);
+                 }
+                 session.participants.insert(mutation.participant.clone());
+@@ -1573,11 +1772,14 @@
+                 session.participants.remove(&mutation.participant);
+             }
+             for change in role_changes {
+-                change.commit(authority.may_send_audio);
++                change.commit(
++                    authority.may_send_audio && observation.role != ParticipantRole::Observer,
++                );
+             }
+             for connection in state.controller.connections(&mutation.participant) {
+                 if let Some(member) = members.get_mut(&connection) {
+-                    member.contributes = authority.may_send_audio;
++                    member.contributes =
++                        authority.may_send_audio && observation.role != ParticipantRole::Observer;
+                 }
+             }
+             conversation.last_activity_at = Utc::now();
+@@ -1814,3 +2016,9 @@
+ 
+ #[cfg(test)]
+ mod held_control_tests;
++
++pub(crate) mod handoff;
++pub use handoff::{
++    ManagedAudioHandoffPlan, ParticipantHandoffAuthority, ParticipantHandoffControl,
++    ParticipantHandoffLease, ParticipantHandoffScope,
++};
+diff --git a/crates/foundation/rvoip-core/src/orchestrator/participant_control/handoff.rs b/crates/foundation/rvoip-core/src/orchestrator/participant_control/handoff.rs
+new file mode 100644
+--- /dev/null
++++ b/crates/foundation/rvoip-core/src/orchestrator/participant_control/handoff.rs
+@@ -0,0 +1,341 @@
++//! Current operator authority and one managed Session/media commit fence.
++use super::*;
++use crate::participant_transitions::{
++    ParticipantHandoffDisposition, ParticipantHandoffMutation, ParticipantHandoffObservation,
++    PreparedParticipantHandoff,
++};
++use crate::staged_streams::{
++    audience::AudioAudiencePlan,
++    handoff::{AudioHandoffPlan, OldHandoffDisposition},
++    StreamControlError,
++};
++#[derive(Clone)]
++pub struct ManagedAudioHandoffPlan {
++    pub(super) media: AudioHandoffPlan,
++    pub(super) expected_revision: u64,
++    pub(super) correlation_id: String,
++    pub(super) incoming_role: ParticipantRole,
++}
++impl ManagedAudioHandoffPlan {
++    pub fn media(&self) -> &AudioHandoffPlan {
++        &self.media
++    }
++    pub fn expected_participant_revision(&self) -> u64 {
++        self.expected_revision
++    }
++    pub fn incoming_role(&self) -> &ParticipantRole {
++        &self.incoming_role
++    }
++    pub fn same_intent(&self, other: &Self) -> bool {
++        self.expected_revision == other.expected_revision
++            && self.correlation_id == other.correlation_id
++            && self.incoming_role == other.incoming_role
++            && self.media.audience().same_intent(other.media.audience())
++    }
++}
++pub struct ParticipantHandoffScope<'a> {
++    pub conversation: &'a ConversationId,
++    pub session: &'a SessionId,
++    pub principal: &'a AuthenticatedPrincipal,
++    pub plan: &'a ManagedAudioHandoffPlan,
++}
++pub struct ParticipantHandoffAuthority {
++    pub actor: Membership,
++    pub outgoing: Membership,
++    pub incoming: Membership,
++    /// Explicit current permission, independently of the requested role label.
++    pub incoming_may_send_audio: bool,
++    pub outgoing_may_receive_audio: bool,
++}
++pub trait ParticipantHandoffLease: Send + Sync {
++    fn current(
++        &self,
++        scope: &ParticipantHandoffScope<'_>,
++    ) -> ControlResult<ParticipantHandoffAuthority>;
++}
++pub struct ParticipantHandoffControl {
++    lease: Box<dyn ParticipantHandoffLease>,
++    cancellation: CancellationToken,
++    deadline: tokio::time::Instant,
++}
++impl ParticipantHandoffControl {
++    pub fn new(
++        lease: Box<dyn ParticipantHandoffLease>,
++        cancellation: CancellationToken,
++        deadline: tokio::time::Instant,
++    ) -> ControlResult<Self> {
++        let value = Self {
++            lease,
++            cancellation,
++            deadline: deadline.min(tokio::time::Instant::now() + Duration::from_secs(30)),
++        };
++        value.check()?;
++        Ok(value)
++    }
++    fn check(&self) -> ControlResult<()> {
++        if self.cancellation.is_cancelled() {
++            return Err(ParticipantControlError::Cancelled);
++        }
++        if tokio::time::Instant::now() >= self.deadline {
++            return Err(ParticipantControlError::Deadline);
++        }
++        Ok(())
++    }
++    pub(super) fn current(
++        &self,
++        scope: &ParticipantHandoffScope<'_>,
++    ) -> ControlResult<ParticipantHandoffAuthority> {
++        self.check()?;
++        let authority = self.lease.current(scope)?;
++        self.check()?;
++        Ok(authority)
++    }
++}
++fn media_error(error: ParticipantControlError) -> StreamControlError {
++    match error {
++        ParticipantControlError::Media(e) => e,
++        ParticipantControlError::Cancelled => StreamControlError::Cancelled,
++        ParticipantControlError::Deadline => StreamControlError::Deadline,
++        ParticipantControlError::Unsupported => StreamControlError::Unsupported,
++        ParticipantControlError::Transition(
++            ParticipantTransitionError::Conflict | ParticipantTransitionError::Capacity,
++        ) => crate::stream_lifecycle::MediaTransitionError::Conflict.into(),
++        _ => StreamControlError::Authority,
++    }
++}
++pub(crate) struct ManagedHandoffContext {
++    pub(super) owner: Arc<Orchestrator>,
++    pub(super) runtime: Arc<ManagedParticipantSession>,
++    pub(super) plan: ManagedAudioHandoffPlan,
++    pub(super) principal: AuthenticatedPrincipal,
++    pub(super) control: ParticipantHandoffControl,
++    pub(super) conversation: Arc<RwLock<Conversation>>,
++    pub(super) session: Arc<RwLock<Session>>,
++    pub(super) lifecycles: Vec<ConnectionLifecycleTicket>,
++}
++impl ManagedHandoffContext {
++    pub(crate) fn deadline(&self) -> tokio::time::Instant {
++        let mut deadline = self.control.deadline;
++        if let Some(expiry) = principal_expiry(&self.principal) {
++            deadline = deadline.min(
++                tokio::time::Instant::now() + (expiry - Utc::now()).to_std().unwrap_or_default(),
++            );
++        }
++        deadline
++    }
++    pub(crate) fn cancellation(&self) -> CancellationToken {
++        self.control.cancellation.clone()
++    }
++    fn authority(
++        &self,
++        plan: &AudioAudiencePlan,
++    ) -> std::result::Result<ParticipantHandoffAuthority, StreamControlError> {
++        if !self.plan.media.audience().same_intent(plan) {
++            return Err(StreamControlError::Authority);
++        }
++        let authority = self
++            .control
++            .current(&ParticipantHandoffScope {
++                conversation: &self.runtime.conversation,
++                session: &self.runtime.session,
++                principal: &self.principal,
++                plan: &self.plan,
++            })
++            .map_err(media_error)?;
++        let (old, new) = self.plan.media.participants();
++        if authority.outgoing.participant() != &old
++            || authority.incoming.participant() != &new
++            || authority.actor.conversation() != &self.runtime.conversation
++            || authority.outgoing.conversation() != &self.runtime.conversation
++            || authority.incoming.conversation() != &self.runtime.conversation
++            || !authority.incoming_may_send_audio
++            || (self.plan.media.request().old_disposition == OldHandoffDisposition::Observer
++                && !authority.outgoing_may_receive_audio)
++            || self.plan.incoming_role == ParticipantRole::Observer
++        {
++            return Err(StreamControlError::Authority);
++        }
++        authority
++            .actor
++            .revalidate_principal(&self.principal, Utc::now())
++            .map_err(|_| StreamControlError::Authority)?;
++        Ok(authority)
++    }
++    pub(crate) fn check(
++        &self,
++        plan: &AudioAudiencePlan,
++    ) -> std::result::Result<(), StreamControlError> {
++        self.authority(plan).map(|_| ())
++    }
++    pub(crate) fn lock<'a>(
++        &'a self,
++        plan: &AudioAudiencePlan,
++    ) -> std::result::Result<ManagedHandoffGuard<'a>, StreamControlError> {
++        // Same lock order as ordinary managed participant publication. No
++        // mutex or live current-authority lookup is held over an IO await.
++        let mixer = self
++            .runtime
++            .mixer
++            .members
++            .try_lock()
++            .map_err(|_| crate::stream_lifecycle::MediaTransitionError::Conflict)?;
++        let state = self.runtime.state.lock().unwrap_or_else(|p| p.into_inner());
++        let registry = self
++            .owner
++            .connection_registry_lock
++            .lock()
++            .unwrap_or_else(|p| p.into_inner());
++        let lifecycles = self
++            .owner
++            .lock_connection_lifecycles(&self.lifecycles)
++            .map_err(|e| media_error(e.into()))?;
++        if lifecycles.iter().any(|state| {
++            state
++                .peer_admission
++                .as_ref()
++                .is_some_and(|p| p.peer.is_closed())
++        }) {
++            return Err(StreamControlError::Cancelled);
++        }
++        let conversation = self.conversation.write().unwrap_or_else(|p| p.into_inner());
++        let session = self.session.write().unwrap_or_else(|p| p.into_inner());
++        if state.ended
++            || state.controller.revision() != self.plan.expected_revision
++            || conversation.state != ConversationState::Open
++            || matches!(
++                session.state,
++                SessionState::Ending | SessionState::Ended | SessionState::Failed
++            )
++        {
++            return Err(crate::stream_lifecycle::MediaTransitionError::Conflict.into());
++        }
++        let authority = self.authority(plan)?;
++        let request = self.plan.media.request();
++        let outgoing = state
++            .controller
++            .connections(authority.outgoing.participant())
++            .into_iter()
++            .collect::<std::collections::BTreeSet<_>>();
++        if outgoing != self.plan.media.outgoing_connections() {
++            return Err(crate::stream_lifecycle::MediaTransitionError::Conflict.into());
++        }
++        for id in outgoing
++            .iter()
++            .chain([&request.retained, &request.admitted])
++        {
++            if !self
++                .owner
++                .adapter_for(id)
++                .is_ok_and(|a| a.is_connection_live(id))
++            {
++                return Err(StreamControlError::NotReady);
++            }
++            if !session.connections.contains_key(id)
++                || !state.routes.get(id).is_some_and(|r| {
++                    self.lifecycles.iter().any(|ticket| {
++                        ticket.connection_id == *id
++                            && ticket.generation == r.lifecycle.generation
++                            && Arc::ptr_eq(&ticket.state, &r.lifecycle.state)
++                    })
++                })
++            {
++                return Err(StreamControlError::NotReady);
++            }
++        }
++        let mutation = ParticipantHandoffMutation {
++            operation_id: request.operation_id.clone(),
++            correlation_id: self.plan.correlation_id.clone(),
++            expected_revision: self.plan.expected_revision,
++            outgoing: authority.outgoing.participant().clone(),
++            incoming: authority.incoming.participant().clone(),
++            retained: request.retained.clone(),
++            admitted: request.admitted.clone(),
++            incoming_role: self.plan.incoming_role.clone(),
++            outgoing_disposition: match request.old_disposition {
++                OldHandoffDisposition::Observer => ParticipantHandoffDisposition::Observe,
++                OldHandoffDisposition::Leave => ParticipantHandoffDisposition::Leave,
++            },
++        };
++        let prepared = state
++            .controller
++            .prepare_handoff(
++                &authority.actor,
++                &authority.outgoing,
++                &authority.incoming,
++                mutation,
++            )
++            .map_err(|e| media_error(e.into()))?;
++        Ok(ManagedHandoffGuard {
++            context: self,
++            _mixer: mixer,
++            state,
++            _registry: registry,
++            lifecycles,
++            conversation,
++            session,
++            prepared: Some(prepared),
++        })
++    }
++}
++pub(crate) struct ManagedHandoffGuard<'a> {
++    context: &'a ManagedHandoffContext,
++    _mixer: tokio::sync::MutexGuard<'a, HashMap<ConnectionId, ConferenceMember>>,
++    state: std::sync::MutexGuard<'a, ManagedState>,
++    _registry: std::sync::MutexGuard<'a, ()>,
++    lifecycles: Vec<std::sync::MutexGuard<'a, ConnectionLifecycleState>>,
++    conversation: std::sync::RwLockWriteGuard<'a, Conversation>,
++    session: std::sync::RwLockWriteGuard<'a, Session>,
++    prepared: Option<PreparedParticipantHandoff>,
++}
++impl ManagedHandoffGuard<'_> {
++    pub(crate) fn check(
++        &self,
++        plan: &AudioAudiencePlan,
++    ) -> std::result::Result<(), StreamControlError> {
++        self.context.check(plan)
++    }
++    pub(crate) fn commit(&mut self) -> ParticipantHandoffObservation {
++        let observation = self
++            .state
++            .controller
++            .commit_handoff(self.prepared.take().expect("one managed handoff commit"));
++        for id in &observation.retired {
++            self.session.connections.remove(id);
++            self.context.owner.sessions_by_connection.remove(id);
++            self.state.routes.remove(id);
++            let index = self
++                .context
++                .lifecycles
++                .iter()
++                .position(|ticket| ticket.connection_id == *id)
++                .expect("validated outgoing lifecycle");
++            let state = &mut self.lifecycles[index];
++            state.active = false;
++            state.retired = true;
++            if let Some(permit) = &state.peer_admission {
++                permit.retire_delivery();
++            }
++            state.generation = state.generation.saturating_add(1);
++        }
++        if observation.outgoing_role.is_none() {
++            self.session.participants.remove(&observation.outgoing);
++            for pending in self
++                .state
++                .pending
++                .values()
++                .filter(|p| p.participant == observation.outgoing)
++            {
++                pending.cancellation.cancel();
++            }
++        }
++        self.conversation.last_activity_at = Utc::now();
++        let _ = self
++            .context
++            .runtime
++            .events
++            .send(ParticipantRuntimeEvent::HandoffCommitted(
++                observation.clone(),
++            ));
++        observation
++    }
++}
+diff --git a/crates/foundation/rvoip-core/src/participant_transitions.rs b/crates/foundation/rvoip-core/src/participant_transitions.rs
+--- a/crates/foundation/rvoip-core/src/participant_transitions.rs
++++ b/crates/foundation/rvoip-core/src/participant_transitions.rs
+@@ -165,6 +165,7 @@
+     participants: BTreeMap<ParticipantId, Presence>,
+     used_connections: HashSet<ConnectionId>,
+     receipts: HashMap<(ParticipantId, String), Receipt>,
++    handoffs: HashMap<(ParticipantId, String), handoff::HandoffReceipt>,
+ }
+ 
+ fn identifier(value: &str) -> Result<()> {
+@@ -206,6 +207,7 @@
+             participants: BTreeMap::new(),
+             used_connections: HashSet::new(),
+             receipts: HashMap::new(),
++            handoffs: HashMap::new(),
+         })
+     }
+ 
+@@ -326,6 +328,9 @@
+             return Err(ParticipantTransitionError::OwnerMismatch);
+         }
+         let key = (actor.participant().clone(), mutation.operation_id.clone());
++        if self.handoffs.contains_key(&key) {
++            return Err(ParticipantTransitionError::Conflict);
++        }
+         if let Some(receipt) = self.receipts.get(&key) {
+             if receipt.actor_identity != *actor.identity()
+                 || receipt.actor_epoch != actor.epoch()
+@@ -389,7 +394,7 @@
+         if self.revision != mutation.expected_revision || self.revision >= MAX_REVISION {
+             return Err(ParticipantTransitionError::Conflict);
+         }
+-        if self.receipts.len() >= self.max_operations {
++        if self.receipts.len() + self.handoffs.len() >= self.max_operations {
+             return Err(ParticipantTransitionError::Capacity);
+         }
+         let revision = self.revision + 1;
+@@ -542,8 +547,17 @@
+     PreparedParticipantAdmission,
+     ParticipantChange,
+     ParticipantMutation,
+-    ParticipantObservation
++    ParticipantObservation,
++    ParticipantHandoffMutation,
++    ParticipantHandoffObservation,
++    PreparedParticipantHandoff
+ );
+ 
+ #[cfg(test)]
+ mod tests;
++
++mod handoff;
++pub(crate) use handoff::PreparedParticipantHandoff;
++pub use handoff::{
++    ParticipantHandoffDisposition, ParticipantHandoffMutation, ParticipantHandoffObservation,
++};
+diff --git a/crates/foundation/rvoip-core/src/participant_transitions/handoff.rs b/crates/foundation/rvoip-core/src/participant_transitions/handoff.rs
+new file mode 100644
+--- /dev/null
++++ b/crates/foundation/rvoip-core/src/participant_transitions/handoff.rs
+@@ -0,0 +1,239 @@
++//! One local role/departure revision paired with an actual media handoff.
++//! The owning coordinator supplies fresh authorized memberships and commits the
++//! opaque candidate only inside the same synchronous graph publication fence.
++use super::*;
++#[derive(Clone, Copy, Debug, PartialEq, Eq)]
++pub enum ParticipantHandoffDisposition {
++    Observe,
++    Leave,
++}
++#[derive(Clone, PartialEq, Eq)]
++pub struct ParticipantHandoffMutation {
++    pub operation_id: String,
++    pub correlation_id: String,
++    pub expected_revision: u64,
++    pub outgoing: ParticipantId,
++    pub incoming: ParticipantId,
++    pub retained: ConnectionId,
++    pub admitted: ConnectionId,
++    pub incoming_role: ParticipantRole,
++    pub outgoing_disposition: ParticipantHandoffDisposition,
++}
++#[derive(Clone, PartialEq, Eq)]
++pub struct ParticipantHandoffObservation {
++    pub session: SessionId,
++    pub operation_id: String,
++    pub correlation_id: String,
++    pub revision: u64,
++    pub outgoing: ParticipantId,
++    pub outgoing_epoch: u64,
++    pub incoming: ParticipantId,
++    pub incoming_epoch: u64,
++    pub outgoing_role: Option<ParticipantRole>,
++    pub incoming_role: ParticipantRole,
++    pub retained: ConnectionId,
++    pub admitted: ConnectionId,
++    pub retired: Vec<ConnectionId>,
++}
++#[derive(Clone)]
++pub(super) struct HandoffReceipt {
++    actor_identity: IdentityId,
++    actor_participant: ParticipantId,
++    actor_epoch: u64,
++    outgoing_identity: IdentityId,
++    incoming_identity: IdentityId,
++    intent: ParticipantHandoffMutation,
++    observation: ParticipantHandoffObservation,
++}
++pub(crate) struct PreparedParticipantHandoff {
++    expected: u64,
++    next: ParticipantSession,
++    observation: ParticipantHandoffObservation,
++}
++impl ParticipantSession {
++    pub fn replay_handoff(
++        &self,
++        actor: &Membership,
++        outgoing: &Membership,
++        incoming: &Membership,
++        intent: &ParticipantHandoffMutation,
++    ) -> Result<Option<ParticipantHandoffObservation>> {
++        identifier(&intent.operation_id)?;
++        identifier(&intent.correlation_id)?;
++        self.check_member(actor, true)?;
++        // History is metadata: current authorization belongs to the owner.
++        // An authorized status read may name a departed target, but never lend
++        // its receipt to a different identity or membership epoch.
++        self.check_member(outgoing, false)?;
++        self.check_member(incoming, false)?;
++        if outgoing.participant() != &intent.outgoing
++            || incoming.participant() != &intent.incoming
++            || outgoing.participant() == incoming.participant()
++        {
++            return Err(ParticipantTransitionError::OwnerMismatch);
++        }
++        let key = (actor.participant().clone(), intent.operation_id.clone());
++        if self.receipts.contains_key(&key) {
++            return Err(ParticipantTransitionError::Conflict);
++        }
++        if let Some(old) = self.handoffs.get(&key) {
++            if old.actor_identity != *actor.identity()
++                || old.actor_participant != *actor.participant()
++                || old.actor_epoch != actor.epoch()
++                || old.outgoing_identity != *outgoing.identity()
++                || old.incoming_identity != *incoming.identity()
++                || old.observation.outgoing_epoch != outgoing.epoch()
++                || old.observation.incoming_epoch != incoming.epoch()
++            {
++                return Err(ParticipantTransitionError::OwnerMismatch);
++            }
++            let mut actual = intent.clone();
++            actual.correlation_id = old.intent.correlation_id.clone();
++            if actual != old.intent {
++                return Err(ParticipantTransitionError::Conflict);
++            }
++            return Ok(Some(old.observation.clone()));
++        }
++        Ok(None)
++    }
++    pub(crate) fn prepare_handoff(
++        &self,
++        actor: &Membership,
++        outgoing: &Membership,
++        incoming: &Membership,
++        intent: ParticipantHandoffMutation,
++    ) -> Result<PreparedParticipantHandoff> {
++        if self
++            .replay_handoff(actor, outgoing, incoming, &intent)?
++            .is_some()
++        {
++            return Err(ParticipantTransitionError::Conflict);
++        }
++        self.check_member(outgoing, true)?;
++        self.check_member(incoming, true)?;
++        if self.ended {
++            return Err(ParticipantTransitionError::Ended);
++        }
++        if self.revision != intent.expected_revision || self.revision >= MAX_REVISION {
++            return Err(ParticipantTransitionError::Conflict);
++        }
++        if self.receipts.len() + self.handoffs.len() >= self.max_operations {
++            return Err(ParticipantTransitionError::Capacity);
++        }
++        if intent.incoming_role == ParticipantRole::Observer {
++            return Err(ParticipantTransitionError::Invalid);
++        }
++        let old = self
++            .participants
++            .get(outgoing.participant())
++            .ok_or(ParticipantTransitionError::Inactive)?;
++        let new = self
++            .participants
++            .get(incoming.participant())
++            .ok_or(ParticipantTransitionError::Inactive)?;
++        self.check_presence(outgoing, old)?;
++        self.check_presence(incoming, new)?;
++        old.appearance.require_current(outgoing)?;
++        new.appearance.require_current(incoming)?;
++        let admitted = new
++            .connections
++            .get(&intent.admitted)
++            .ok_or(ParticipantTransitionError::NotReady)?;
++        admitted.require_current(incoming, &new.appearance)?;
++        if !self.participants.iter().any(|(id, p)| {
++            id != outgoing.participant()
++                && id != incoming.participant()
++                && p.connections.contains_key(&intent.retained)
++        }) {
++            return Err(ParticipantTransitionError::NotReady);
++        }
++        let mut participants = self.participants.clone();
++        let mut appearance = new.appearance.clone();
++        appearance.change_role(
++            incoming,
++            appearance.revision(),
++            intent.incoming_role.clone(),
++        )?;
++        participants
++            .get_mut(incoming.participant())
++            .expect("validated incoming")
++            .appearance = appearance;
++        let (outgoing_role, retired) = match intent.outgoing_disposition {
++            ParticipantHandoffDisposition::Observe => {
++                let mut appearance = old.appearance.clone();
++                appearance.change_role(
++                    outgoing,
++                    appearance.revision(),
++                    ParticipantRole::Observer,
++                )?;
++                participants
++                    .get_mut(outgoing.participant())
++                    .expect("validated outgoing")
++                    .appearance = appearance;
++                (Some(ParticipantRole::Observer), vec![])
++            }
++            ParticipantHandoffDisposition::Leave => {
++                participants.remove(outgoing.participant());
++                (None, old.connections.keys().cloned().collect())
++            }
++        };
++        let observation = ParticipantHandoffObservation {
++            session: self.session.clone(),
++            operation_id: intent.operation_id.clone(),
++            correlation_id: intent.correlation_id.clone(),
++            revision: self.revision + 1,
++            outgoing: intent.outgoing.clone(),
++            outgoing_epoch: outgoing.epoch(),
++            incoming: intent.incoming.clone(),
++            incoming_epoch: incoming.epoch(),
++            outgoing_role,
++            incoming_role: intent.incoming_role.clone(),
++            retained: intent.retained.clone(),
++            admitted: intent.admitted.clone(),
++            retired,
++        };
++        let mut handoffs = self.handoffs.clone();
++        handoffs.insert(
++            (actor.participant().clone(), intent.operation_id.clone()),
++            HandoffReceipt {
++                actor_identity: actor.identity().clone(),
++                actor_participant: actor.participant().clone(),
++                actor_epoch: actor.epoch(),
++                outgoing_identity: outgoing.identity().clone(),
++                incoming_identity: incoming.identity().clone(),
++                intent,
++                observation: observation.clone(),
++            },
++        );
++        Ok(PreparedParticipantHandoff {
++            expected: self.revision,
++            next: ParticipantSession {
++                tenant: self.tenant.clone(),
++                conversation: self.conversation.clone(),
++                session: self.session.clone(),
++                revision: self.revision + 1,
++                ended: false,
++                max_participants: self.max_participants,
++                max_connections: self.max_connections,
++                max_operations: self.max_operations,
++                participants,
++                used_connections: self.used_connections.clone(),
++                receipts: self.receipts.clone(),
++                handoffs,
++            },
++            observation,
++        })
++    }
++    pub(crate) fn commit_handoff(
++        &mut self,
++        prepared: PreparedParticipantHandoff,
++    ) -> ParticipantHandoffObservation {
++        assert_eq!(
++            self.revision, prepared.expected,
++            "handoff owner must hold its original Session commit fence"
++        );
++        assert_eq!(self.session, prepared.next.session);
++        *self = prepared.next;
++        prepared.observation
++    }
++}
+diff --git a/crates/foundation/rvoip-core/src/participant_transitions/tests.rs b/crates/foundation/rvoip-core/src/participant_transitions/tests.rs
+--- a/crates/foundation/rvoip-core/src/participant_transitions/tests.rs
++++ b/crates/foundation/rvoip-core/src/participant_transitions/tests.rs
+@@ -630,3 +630,199 @@
+     let result = s.apply(&m, &m, intent, Some(ticket), Some(&ep)).unwrap();
+     assert!(!format!("{result:?}").contains("private_canary"));
+ }
++
++fn handoff_room() -> (
++    ParticipantSession,
++    Membership,
++    IdentityBinding,
++    Membership,
++    Membership,
++) {
++    let mut s = session("handoff_session");
++    let (old, binding) = member("tenant_test", "alice");
++    let (new, nb) = member("tenant_test", "bob");
++    let (remote, rb) = member("tenant_test", "remote");
++    let ep = endpoint(&binding, "alice");
++    join(&mut s, &old, &ep, "old_1");
++    join(&mut s, &old, &ep, "old_2");
++    join(&mut s, &new, &endpoint(&nb, "bob"), "new_1");
++    join(&mut s, &remote, &endpoint(&rb, "remote"), "retained");
++    (s, old, binding, new, remote)
++}
++fn handoff_intent(
++    s: &ParticipantSession,
++    old: &Membership,
++    new: &Membership,
++    disposition: ParticipantHandoffDisposition,
++) -> ParticipantHandoffMutation {
++    ParticipantHandoffMutation {
++        operation_id: "handoff_logical".into(),
++        correlation_id: "handoff_correlation".into(),
++        expected_revision: s.revision(),
++        outgoing: old.participant().clone(),
++        incoming: new.participant().clone(),
++        retained: ConnectionId::from_string("retained"),
++        admitted: ConnectionId::from_string("new_1"),
++        incoming_role: ParticipantRole::Supervisor,
++        outgoing_disposition: disposition,
++    }
++}
++#[test]
++fn handoff_model_stages_both_participant_roles_without_publishing_then_commits_one_revision() {
++    let (mut s, old, _, new, _) = handoff_room();
++    let before = s.revision();
++    let intent = handoff_intent(&s, &old, &new, ParticipantHandoffDisposition::Observe);
++    let prepared = s.prepare_handoff(&old, &old, &new, intent.clone()).unwrap();
++    assert_eq!(s.revision(), before);
++    assert_eq!(s.role(old.participant()), Some(&ParticipantRole::Agent));
++    assert_eq!(s.role(new.participant()), Some(&ParticipantRole::Agent));
++    drop(prepared);
++    assert_eq!(s.revision(), before);
++    let prepared = s.prepare_handoff(&old, &old, &new, intent.clone()).unwrap();
++    let observation = s.commit_handoff(prepared);
++    assert_eq!(s.revision(), before + 1);
++    assert_eq!(s.role(old.participant()), Some(&ParticipantRole::Observer));
++    assert_eq!(
++        s.role(new.participant()),
++        Some(&ParticipantRole::Supervisor)
++    );
++    assert_eq!(s.connection_count(), 4);
++    assert!(observation.retired.is_empty());
++    assert_eq!(observation.retained, ConnectionId::from_string("retained"));
++    let replay = s
++        .replay_handoff(
++            &old,
++            &old,
++            &new,
++            &ParticipantHandoffMutation {
++                correlation_id: "retry_correlation".into(),
++                ..intent
++            },
++        )
++        .unwrap()
++        .unwrap();
++    assert_eq!(replay, observation);
++    assert_eq!(replay.correlation_id, "handoff_correlation");
++    assert_eq!(s.revision(), before + 1);
++}
++#[test]
++fn handoff_model_leave_retires_all_outgoing_connections_and_preserves_retained_session() {
++    let (mut s, old, _, new, remote) = handoff_room();
++    let intent = handoff_intent(&s, &old, &new, ParticipantHandoffDisposition::Leave);
++    let prepared = s.prepare_handoff(&old, &old, &new, intent.clone()).unwrap();
++    let observation = s.commit_handoff(prepared);
++    assert_eq!(
++        observation.retired,
++        vec![
++            ConnectionId::from_string("old_1"),
++            ConnectionId::from_string("old_2")
++        ]
++    );
++    assert_eq!(s.role(old.participant()), None);
++    assert_eq!(s.participant_count(), 2);
++    assert_eq!(s.connection_count(), 2);
++    assert_eq!(
++        s.connections(remote.participant()),
++        vec![ConnectionId::from_string("retained")]
++    );
++    assert_eq!(
++        s.role(new.participant()),
++        Some(&ParticipantRole::Supervisor)
++    );
++    assert_eq!(
++        s.replay_handoff(&old, &old, &new, &intent)
++            .unwrap()
++            .unwrap(),
++        observation
++    );
++}
++#[test]
++fn handoff_model_replays_reject_changed_intent_foreign_actor_and_readmitted_membership_epoch() {
++    let (mut s, mut old, binding, new, _) = handoff_room();
++    let intent = handoff_intent(&s, &old, &new, ParticipantHandoffDisposition::Observe);
++    let prepared = s.prepare_handoff(&old, &old, &new, intent.clone()).unwrap();
++    s.commit_handoff(prepared);
++    let mut changed = intent.clone();
++    changed.outgoing_disposition = ParticipantHandoffDisposition::Leave;
++    assert_eq!(
++        s.replay_handoff(&old, &old, &new, &changed),
++        Err(ParticipantTransitionError::Conflict)
++    );
++    changed = intent.clone();
++    changed.expected_revision += 1;
++    assert_eq!(
++        s.replay_handoff(&old, &old, &new, &changed),
++        Err(ParticipantTransitionError::Conflict)
++    );
++    let (foreign, _) = member("tenant_other", "alice");
++    assert_eq!(
++        s.replay_handoff(&foreign, &old, &new, &intent),
++        Err(ParticipantTransitionError::OwnerMismatch)
++    );
++    old.remove(old.revision()).unwrap();
++    old.readmit(&binding, old.revision()).unwrap();
++    assert_eq!(
++        s.replay_handoff(&old, &old, &new, &intent),
++        Err(ParticipantTransitionError::OwnerMismatch)
++    );
++}
++#[test]
++fn handoff_model_missing_candidate_remote_and_cross_family_operation_ids_never_mutate_roles() {
++    let (mut s, old, _, new, _) = handoff_room();
++    let before = s.revision();
++    let mut intent = handoff_intent(&s, &old, &new, ParticipantHandoffDisposition::Observe);
++    intent.admitted = ConnectionId::from_string("missing");
++    assert!(matches!(
++        s.prepare_handoff(&old, &old, &new, intent),
++        Err(ParticipantTransitionError::NotReady)
++    ));
++    assert_eq!(s.revision(), before);
++    let mut intent = handoff_intent(&s, &old, &new, ParticipantHandoffDisposition::Observe);
++    intent.retained = ConnectionId::from_string("old_1");
++    assert!(matches!(
++        s.prepare_handoff(&old, &old, &new, intent),
++        Err(ParticipantTransitionError::NotReady)
++    ));
++    assert_eq!(s.role(old.participant()), Some(&ParticipantRole::Agent));
++    let intent = handoff_intent(&s, &old, &new, ParticipantHandoffDisposition::Observe);
++    let prepared = s.prepare_handoff(&old, &old, &new, intent.clone()).unwrap();
++    s.commit_handoff(prepared);
++    let ordinary = ParticipantMutation {
++        operation_id: intent.operation_id,
++        correlation_id: "other_family".into(),
++        expected_revision: s.revision(),
++        participant: old.participant().clone(),
++        change: ParticipantChange::SetSessionRole {
++            role: ParticipantRole::Agent,
++        },
++    };
++    assert_eq!(
++        s.apply(&old, &old, ordinary, None, None),
++        Err(ParticipantTransitionError::Conflict)
++    );
++}
++
++#[test]
++fn handoff_model_authorized_history_can_name_a_removed_target_but_new_effects_require_active_membership(
++) {
++    let (mut s, old, _, mut new, _) = handoff_room();
++    let intent = handoff_intent(&s, &old, &new, ParticipantHandoffDisposition::Observe);
++    let prepared = s.prepare_handoff(&old, &old, &new, intent.clone()).unwrap();
++    let observed = s.commit_handoff(prepared);
++    new.remove(new.revision()).unwrap();
++    // This pure metadata read is allowed only after the owner has separately
++    // checked current caller access; it cannot authorize an effect or replay a
++    // later membership epoch.
++    assert_eq!(
++        s.replay_handoff(&old, &old, &new, &intent)
++            .unwrap()
++            .unwrap(),
++        observed
++    );
++    let mut next = handoff_intent(&s, &old, &new, ParticipantHandoffDisposition::Observe);
++    next.operation_id = "new_after_removal".into();
++    assert!(matches!(
++        s.prepare_handoff(&old, &old, &new, next),
++        Err(ParticipantTransitionError::Inactive)
++    ));
++}
+diff --git a/crates/foundation/rvoip-core/src/staged_streams.rs b/crates/foundation/rvoip-core/src/staged_streams.rs
+--- a/crates/foundation/rvoip-core/src/staged_streams.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams.rs
+@@ -227,6 +227,10 @@
+     AudioAudience {
+         plan: &'a audience::AudioAudiencePlan,
+     },
++    /// A speaking/role handoff is separately approved from ordinary routing.
++    Handoff {
++        plan: &'a audience::AudioAudiencePlan,
++    },
+     ChangeSubscriptions {
+         expected: u64,
+         desired: &'a [DesiredStream],
+@@ -1023,11 +1027,34 @@
+         } else {
+             None
+         };
+-        tokio::select! {
++        let result = tokio::select! {
+             biased;
+-            _=audio_consumer::any_cancelled(tokens)=>Err(StreamControlError::Cancelled),
++            _=audio_consumer::any_cancelled(tokens.clone())=>Err(StreamControlError::Cancelled),
+             result=tokio::time::timeout_at(deadline,send(self.frame,origin))=>result.map_err(|_|StreamControlError::Deadline)?,
+-        }
++        };
++        if result.is_ok()
++            && !tokens.iter().any(CancellationToken::is_cancelled)
++            && tokio::time::Instant::now() < deadline
++        {
++            if let (Some(stamp), Some(subscription)) = (&self.target_consumer, &self.subscription) {
++                if let Some(consumer) = target
++                    .audio_consumer
++                    .lock()
++                    .unwrap_or_else(|p| p.into_inner())
++                    .as_ref()
++                    .and_then(Weak::upgrade)
++                {
++                    consumer.observed_delivery(
++                        &self.target,
++                        &self.target_ticket,
++                        stamp,
++                        subscription,
++                        self.admitted_at,
++                    );
++                }
++            }
++        }
++        result
+     }
+ }
+ 
+@@ -2569,3 +2596,4 @@
+ 
+ pub mod audience;
+ pub mod consultation;
++pub mod handoff;
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/audience.rs b/crates/foundation/rvoip-core/src/staged_streams/audience.rs
+--- a/crates/foundation/rvoip-core/src/staged_streams/audience.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/audience.rs
+@@ -56,7 +56,7 @@
+ pub(super) struct AudienceOrigin {
+     pub(super) controller: Weak<StreamController>,
+     pub(super) connection: ConnectionId,
+-    member: Membership,
++    pub(super) member: Membership,
+     owner: Arc<AuthenticatedPrincipal>,
+ }
+ impl AudienceOrigin {
+@@ -116,6 +116,7 @@
+     pub receiver_revisions: BTreeMap<ConnectionId, u64>,
+     pub restored: bool,
+     pub departed_connections: BTreeSet<ConnectionId>,
++    pub participant_handoff: Option<crate::participant_transitions::ParticipantHandoffObservation>,
+ }
+ /// Actual scene/controller pins and original programmes. A handle grants no
+ /// future restoration authority and never retains the original command reader.
+@@ -128,6 +129,7 @@
+     pub(super) muted_source: Option<AudienceOrigin>,
+     pub(super) committed_at: Instant,
+     commit: AudioAudienceCommit,
++    restore_allowed: bool,
+ }
+ impl AudioAudienceHandle {
+     pub fn commit(&self) -> &AudioAudienceCommit {
+@@ -197,6 +199,8 @@
+     pub(super) controllers: BTreeMap<ConnectionId, Weak<StreamController>>,
+     pub(super) restore: Option<AudioAudienceHandle>,
+     pub(super) replaced_preparation: Option<Arc<ClosedAudience>>,
++    pub(super) replaced_audience: Option<Arc<ClosedAudience>>,
++    pub(super) handoff: Option<Arc<super::handoff::HandoffIntent>>,
+ }
+ impl AudioAudiencePlan {
+     /// Exact scene-issued plan identity for a held policy's approval. Matching
+@@ -214,6 +218,16 @@
+                     .is_some_and(|old| Weak::ptr_eq(c, old))
+             })
+             && self.restore.is_some() == other.restore.is_some()
++            && match (&self.replaced_audience, &other.replaced_audience) {
++                (None, None) => true,
++                (Some(a), Some(b)) => Arc::ptr_eq(a, b),
++                _ => false,
++            }
++            && match (&self.handoff, &other.handoff) {
++                (None, None) => true,
++                (Some(a), Some(b)) => Arc::ptr_eq(a, b),
++                _ => false,
++            }
+             && match (&self.replaced_preparation, &other.replaced_preparation) {
+                 (None, None) => true,
+                 (Some(a), Some(b)) => Arc::ptr_eq(a, b),
+@@ -225,6 +239,9 @@
+     }
+     pub fn expected_receiver_revisions(&self) -> &BTreeMap<ConnectionId, u64> {
+         &self.expected
++    }
++    pub fn handoff_request(&self) -> Option<&super::handoff::AudioHandoffRequest> {
++        self.handoff.as_ref().map(|h| &h.request)
+     }
+     pub fn is_restore(&self) -> bool {
+         self.restore.is_some()
+@@ -337,6 +354,13 @@
+     pub(crate) fn plan_audio_audience(
+         &self,
+         request: AudioAudienceRequest,
++    ) -> ControlResult<AudioAudiencePlan> {
++        self.plan_audio_audience_replacing(request, None)
++    }
++    pub(crate) fn plan_audio_audience_replacing(
++        &self,
++        request: AudioAudienceRequest,
++        replaced: Option<&AudioAudienceHandle>,
+     ) -> ControlResult<AudioAudiencePlan> {
+         request.validate()?;
+         let members = self.members.lock().unwrap_or_else(|p| p.into_inner());
+@@ -391,10 +415,27 @@
+                 Some(prepared.clone())
+             }
+         };
++        let replaced_audience = match replaced {
++            None => None,
++            Some(handle) => {
++                if handle.scene != self.id
++                    || !registry
++                        .groups
++                        .get(&handle.group.operation)
++                        .is_some_and(|g| Arc::ptr_eq(g, &handle.group))
++                {
++                    return Err(MediaTransitionError::Conflict.into());
++                }
++                Some(handle.group.clone())
++            }
++        };
+         if registry.groups.values().any(|old| {
+-            !replaced_preparation
++            !replaced_audience
+                 .as_ref()
+-                .is_some_and(|p| Arc::ptr_eq(p, old))
++                .is_some_and(|g| Arc::ptr_eq(g, old))
++                && !replaced_preparation
++                    .as_ref()
++                    .is_some_and(|p| Arc::ptr_eq(p, old))
+                 && members
+                     .values()
+                     .any(|m| old.contains(&m.controller) && group.contains(&m.controller))
+@@ -417,6 +458,8 @@
+             controllers,
+             restore: None,
+             replaced_preparation,
++            replaced_audience,
++            handoff: None,
+         })
+     }
+     pub(crate) fn plan_restore_audio_audience(
+@@ -425,6 +468,9 @@
+         operation: String,
+         expected_revision: u64,
+     ) -> ControlResult<AudioAudiencePlan> {
++        if !handle.restore_allowed {
++            return Err(StreamControlError::Unsupported);
++        }
+         if handle.scene != self.id
+             || operation.is_empty()
+             || operation.len() > 128
+@@ -472,6 +518,8 @@
+             controllers,
+             restore: Some(handle.clone()),
+             replaced_preparation: None,
++            replaced_audience: None,
++            handoff: None,
+         })
+     }
+ }
+@@ -482,6 +530,7 @@
+     audio: AudioPlan,
+     ports: Vec<(Arc<Port>, PeerRouteTicket, PeerRouteTicket)>,
+     gate: Option<StreamGateAction>,
++    role: Option<(Arc<audio_consumer::AudioConsumer>, bool)>,
+ }
+ fn exact_members(
+     members: &std::collections::HashMap<ConnectionId, SceneMember>,
+@@ -517,6 +566,17 @@
+         deadline: tokio::time::Instant,
+         cancel: CancellationToken,
+         held: &(dyn Any + Send + Sync),
++    ) -> ControlResult<(AudioAudienceOutcome, AudioAudienceHandle)> {
++        self.apply_audio_audience_managed(plan, deadline, cancel, held, None)
++            .await
++    }
++    pub(crate) async fn apply_audio_audience_managed(
++        &self,
++        plan: AudioAudiencePlan,
++        deadline: tokio::time::Instant,
++        cancel: CancellationToken,
++        held: &(dyn Any + Send + Sync),
++        managed: Option<crate::orchestrator::participant_control::handoff::ManagedHandoffContext>,
+     ) -> ControlResult<(AudioAudienceOutcome, AudioAudienceHandle)> {
+         if plan.scene != self.id {
+             return Err(StreamControlError::Authority);
+@@ -542,15 +602,19 @@
+             (controllers, flights)
+         };
+         let mut controls = BTreeMap::new();
+-        let mut deadline = deadline;
++        let mut deadline = deadline.min(managed.as_ref().map_or(deadline, |m| m.deadline()));
++        if let Some(managed) = &managed {
++            managed.check(&plan)?;
++        }
+         for (id, controller) in &controllers {
+             let credential = controller.credential_snapshot();
+             let scope = controller.scope(&credential.principal, MediaPurpose::Control);
+-            let control = controller.policy.current_control(
+-                &scope,
+-                &MediaControlIntent::AudioAudience { plan: &plan },
+-                held,
+-            )?;
++            let intent = if plan.handoff.is_some() {
++                MediaControlIntent::Handoff { plan: &plan }
++            } else {
++                MediaControlIntent::AudioAudience { plan: &plan }
++            };
++            let control = controller.policy.current_control(&scope, &intent, held)?;
+             deadline = deadline
+                 .min(control.deadline)
+                 .min(StreamController::command_deadline(
+@@ -605,6 +669,14 @@
+                         return Err(MediaTransitionError::Conflict.into());
+                     }
+                 }
++                if let Some(replaced) = &plan.replaced_audience {
++                    if !groups
++                        .remove(&replaced.operation)
++                        .is_some_and(|g| Arc::ptr_eq(&g, replaced))
++                    {
++                        return Err(MediaTransitionError::Conflict.into());
++                    }
++                }
+                 groups.insert(plan.group.operation.clone(), plan.group.clone());
+                 for id in plan.request.receivers.keys() {
+                     let target = &members[id];
+@@ -626,6 +698,9 @@
+                 let state = controller.state.lock().unwrap_or_else(|p| p.into_inner());
+                 if state.closed || controller.shutdown.is_cancelled() {
+                     return Err(StreamControlError::Cancelled);
++                }
++                if let Some(handoff) = &plan.handoff {
++                    handoff.validate_target(controller, &state)?;
+                 }
+                 let scope = controller.scope(&credential.principal, MediaPurpose::Control);
+                 let owner = control.authority()?;
+@@ -711,11 +786,19 @@
+                     audio,
+                     ports,
+                     gate,
++                    role: plan
++                        .handoff
++                        .as_ref()
++                        .filter(|h| h.outgoing.contains_key(id))
++                        .map(|_| (member.audio_consumer.clone(), false)),
+                 });
+             }
+             (targets, groups, muted_source)
+         };
+         let mut tokens = vec![cancel.clone()];
++        if let Some(managed) = &managed {
++            tokens.push(managed.cancellation());
++        }
+         let mut tickets = Vec::new();
+         for target in &targets {
+             current(target, deadline, &cancel)?;
+@@ -725,6 +808,20 @@
+             tickets.extend(target.audio.tickets());
+             tickets.extend(target.ports.iter().map(|(_, old, _)| old.clone()));
+         }
++        let requested_roles = targets
++            .iter()
++            .filter_map(|target| target.role.clone())
++            .collect::<Vec<_>>();
++        let mut roles = Vec::new();
++        // Keep only owned consumer metadata across this await. A live domain
++        // control lease is Send, but deliberately need not be shared as Sync.
++        for (consumer, speaks) in requested_roles {
++            let prepared = tokio::select! {biased;
++                _=audio_consumer::any_cancelled(tokens.clone())=>return Err(StreamControlError::Cancelled),
++                result=consumer.prepare_role(deadline,cancel.clone())=>result?,
++            };
++            roles.push((prepared, speaks));
++        }
+         let mut drained = Vec::new();
+         for ticket in tickets {
+             drained.push(tokio::select!{biased;
+@@ -733,6 +830,7 @@
+         });
+         }
+         let (outcome, commit, committed_at) = {
++            let mut logical = managed.as_ref().map(|m| m.lock(&plan)).transpose()?;
+             let members = self.members.lock().unwrap_or_else(|p| p.into_inner());
+             let mut registry = self.audiences.lock().unwrap_or_else(|p| p.into_inner());
+             if !exact_members(&members, &plan)
+@@ -757,6 +855,9 @@
+                 let scope = target
+                     .controller
+                     .scope(&target.credential.principal, MediaPurpose::Control);
++                if let Some(handoff) = &plan.handoff {
++                    handoff.validate_target(&target.controller, &state)?;
++                }
+                 let owner = target.control.authority()?;
+                 StreamController::check(&scope, &owner)?;
+                 state
+@@ -773,6 +874,9 @@
+                     None,
+                 )?);
+                 owners.push(owner);
++            }
++            for (role, _) in &roles {
++                role.validate()?;
+             }
+             let mut states = targets
+                 .iter()
+@@ -810,8 +914,14 @@
+                 .iter()
+                 .map(|t| t.audio.lock())
+                 .collect::<ControlResult<Vec<_>>>()?;
+-            for target in &targets {
++            for (target, state) in targets.iter().zip(&states) {
+                 current(target, deadline, &cancel)?;
++                if let Some(handoff) = &plan.handoff {
++                    handoff.validate_target(&target.controller, state)?;
++                }
++            }
++            if let Some(logical) = &logical {
++                logical.check(&plan)?;
+             }
+             // No fallible work after the first model or programme is published.
+             for (((target, state), model), commit) in targets
+@@ -827,6 +937,26 @@
+                 }
+                 commit.commit(&target.audio);
+             }
++            for (role, speaks) in roles {
++                role.commit(speaks);
++            }
++            if let Some(handoff) = &plan.handoff {
++                if handoff.request.old_disposition == super::handoff::OldHandoffDisposition::Leave {
++                    for (target, state) in
++                        targets.iter().zip(states.iter_mut()).filter(|(target, _)| {
++                            handoff.outgoing.contains_key(&target.controller.connection)
++                        })
++                    {
++                        target.controller.shutdown.cancel();
++                        state.closed = true;
++                        for port in state.active.values() {
++                            port.retire();
++                        }
++                        state.active.clear();
++                    }
++                }
++            }
++            let participant_handoff = logical.as_mut().map(|logical| logical.commit());
+             registry.groups = next_groups;
+             if let Some(id) = &plan.request.activate_muted {
+                 registry.preparations.remove(id);
+@@ -863,6 +993,7 @@
+                     receiver_revisions: revisions,
+                     restored: plan.restore.is_some(),
+                     departed_connections: departed,
++                    participant_handoff,
+                 },
+                 commit,
+                 Instant::now(),
+@@ -878,6 +1009,7 @@
+             muted_source,
+             committed_at,
+             commit,
++            restore_allowed: plan.handoff.is_none(),
+         };
+         Ok((outcome, handle))
+     }
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/audio_consumer.rs b/crates/foundation/rvoip-core/src/staged_streams/audio_consumer.rs
+--- a/crates/foundation/rvoip-core/src/staged_streams/audio_consumer.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/audio_consumer.rs
+@@ -15,17 +15,143 @@
+     state: Mutex<ConsumerState>,
+     cancellation: CancellationToken,
+     decoded: Mutex<Option<DecodedAudio>>,
++    delivered: Mutex<Option<DeliveredAudio>>,
+     pub(super) decoded_changed: tokio::sync::Notify,
+ }
++#[derive(Clone)]
+ struct DecodedAudio {
++    credential: CredentialSnapshot,
+     port: Weak<Port>,
+     ticket: PeerRouteTicket,
+     consumer: Option<ConsumerStamp>,
+     admitted_at: Instant,
+ }
++#[derive(Clone)]
++struct DeliveredAudio {
++    credential: CredentialSnapshot,
++    port: Weak<Port>,
++    ticket: PeerRouteTicket,
++    consumer: ConsumerStamp,
++    subscription: super::audio_subscriptions::SubscriptionStamp,
++    admitted_at: Instant,
++}
++/// Sealed actual duplex IO metadata, never a grant or a public presence fact.
++/// Only the scene's decoder and successful guarded writer can mint its sides.
++#[derive(Clone)]
++pub(super) struct AudioDuplexStamp {
++    controller: Weak<StreamController>,
++    decoded: DecodedAudio,
++    delivered: DeliveredAudio,
++    since: Instant,
++}
++impl AudioDuplexStamp {
++    pub(super) fn current(
++        &self,
++        controller: &StreamController,
++        state: &State,
++    ) -> ControlResult<()> {
++        if !self
++            .controller
++            .upgrade()
++            .is_some_and(|old| std::ptr::eq(old.as_ref(), controller))
++        {
++            return Err(StreamControlError::Authority);
++        }
++        controller.check_credential_snapshot(&self.decoded.credential)?;
++        controller.check_credential_snapshot(&self.delivered.credential)?;
++        if state.closed || controller.shutdown.is_cancelled() {
++            return Err(StreamControlError::Cancelled);
++        }
++        let d = &self.decoded;
++        let s = &self.delivered;
++        let bound = |p: &Weak<Port>| {
++            p.upgrade().is_some_and(|p| {
++                state
++                    .active
++                    .values()
++                    .any(|current| Arc::ptr_eq(current, &p))
++                    && {
++                        let state = p.state.lock().unwrap_or_else(|p| p.into_inner());
++                        state.ready && state.status == PortStatus::Active
++                    }
++            })
++        };
++        if d.admitted_at < self.since
++            || s.admitted_at < self.since
++            || !d.ticket.is_current()
++            || !s.ticket.is_current()
++            || !d.consumer.as_ref().is_some_and(ConsumerStamp::is_current)
++            || !s.consumer.is_current()
++            || !s.subscription.is_current()
++            || !bound(&d.port)
++            || !bound(&s.port)
++        {
++            return Err(StreamControlError::NotReady);
++        }
++        Ok(())
++    }
++}
++impl AudioConsumer {
++    /// Called only after actual guarded audio output completed successfully,
++    /// while its current source/target grants and delivery guards still live.
++    pub(super) fn observed_delivery(
++        &self,
++        port: &Arc<Port>,
++        ticket: &PeerRouteTicket,
++        consumer: &ConsumerStamp,
++        subscription: &super::audio_subscriptions::SubscriptionStamp,
++        admitted_at: Instant,
++    ) {
++        let Some(owner) = port.owner.upgrade() else {
++            return;
++        };
++        let credential = owner.credential_snapshot();
++        *self.delivered.lock().unwrap_or_else(|p| p.into_inner()) = Some(DeliveredAudio {
++            credential,
++            port: Arc::downgrade(port),
++            ticket: ticket.clone(),
++            consumer: consumer.clone(),
++            subscription: subscription.clone(),
++            admitted_at,
++        });
++        self.decoded_changed.notify_waiters();
++    }
++    pub(super) fn duplex_since(
++        &self,
++        controller: &Arc<StreamController>,
++        since: Instant,
++        state: &State,
++    ) -> ControlResult<AudioDuplexStamp> {
++        let decoded = self
++            .decoded
++            .lock()
++            .unwrap_or_else(|p| p.into_inner())
++            .clone()
++            .ok_or(StreamControlError::NotReady)?;
++        let delivered = self
++            .delivered
++            .lock()
++            .unwrap_or_else(|p| p.into_inner())
++            .clone()
++            .ok_or(StreamControlError::NotReady)?;
++        let stamp = AudioDuplexStamp {
++            controller: Arc::downgrade(controller),
++            decoded,
++            delivered,
++            since,
++        };
++        stamp.current(controller, state)?;
++        Ok(stamp)
++    }
++}
+ impl AudioConsumer {
+     pub(super) fn observed_decoded(&self, packet: &MediaPacket) {
++        let Some(owner) = packet.source.owner.upgrade() else {
++            return;
++        };
++        let credential = owner.credential_snapshot();
+         *self.decoded.lock().unwrap_or_else(|p| p.into_inner()) = Some(DecodedAudio {
++            credential,
+             port: Arc::downgrade(&packet.source),
+             ticket: packet.ticket.clone(),
+             consumer: packet.consumer.clone(),
+@@ -100,6 +226,23 @@
+     _drained: rvoip_core_traits::peer_switch::PeerQuiescenceGuard,
+ }
+ impl PreparedAudioRole {
++    pub(super) fn validate(&self) -> ControlResult<()> {
++        let state = self
++            .consumer
++            .state
++            .lock()
++            .unwrap_or_else(|p| p.into_inner());
++        if !state.active || self.consumer.cancellation.is_cancelled() {
++            return Err(StreamControlError::Cancelled);
++        }
++        if state.epoch != self.previous.epoch
++            || state.epoch == u64::MAX
++            || !self.previous.ticket.is_current()
++        {
++            return Err(MediaTransitionError::Conflict.into());
++        }
++        Ok(())
++    }
+     pub(crate) fn commit(self, speaks: bool) {
+         let mut state = self
+             .consumer
+@@ -149,6 +292,7 @@
+             }),
+             cancellation: CancellationToken::new(),
+             decoded: Mutex::new(None),
++            delivered: Mutex::new(None),
+             decoded_changed: tokio::sync::Notify::new(),
+         })
+     }
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/handoff.rs b/crates/foundation/rvoip-core/src/staged_streams/handoff.rs
+new file mode 100644
+--- /dev/null
++++ b/crates/foundation/rvoip-core/src/staged_streams/handoff.rs
+@@ -0,0 +1,349 @@
++//! Readiness-gated three-leg handoff in the retained managed Session.
++//! Acceptance is the host's fresh authorization of the exact scene-issued plan.
++//! A proposal or a resource-ready port cannot authorize/commit a handoff.
++use super::{
++    audience::*, audio_consumer::AudioDuplexStamp, audio_subscriptions::AudioSubscription,
++    media_scene::GuardedMediaScene, *,
++};
++#[derive(Clone, Copy, Debug, PartialEq, Eq)]
++pub enum OldHandoffDisposition {
++    Observer,
++    Leave,
++}
++#[derive(Clone, Debug, PartialEq, Eq)]
++pub struct AudioHandoffRequest {
++    pub operation_id: String,
++    pub expected_revision: u64,
++    pub old: ConnectionId,
++    pub retained: ConnectionId,
++    pub admitted: ConnectionId,
++    pub old_disposition: OldHandoffDisposition,
++}
++#[derive(Clone)]
++pub(super) struct HandoffIntent {
++    pub request: AudioHandoffRequest,
++    origins: BTreeMap<ConnectionId, AudienceOrigin>,
++    pub(super) outgoing: BTreeMap<ConnectionId, AudienceOrigin>,
++    readiness: AudioDuplexStamp,
++}
++impl HandoffIntent {
++    pub(super) fn validate_target(
++        &self,
++        controller: &StreamController,
++        state: &State,
++    ) -> ControlResult<()> {
++        if let Some(origin) = self.origins.get(&controller.connection) {
++            if !origin.matches(controller) {
++                return Err(StreamControlError::Authority);
++            }
++        }
++        if self.request.admitted == controller.connection {
++            self.readiness.current(controller, state)?;
++        }
++        Ok(())
++    }
++}
++#[derive(Clone)]
++pub struct AudioHandoffPlan {
++    audience: AudioAudiencePlan,
++}
++impl AudioHandoffPlan {
++    pub fn audience(&self) -> &AudioAudiencePlan {
++        &self.audience
++    }
++    pub(crate) fn participants(&self) -> (crate::ids::ParticipantId, crate::ids::ParticipantId) {
++        let intent = self.audience.handoff.as_ref().expect("sealed handoff plan");
++        (
++            intent.origins[&intent.request.old]
++                .member
++                .participant()
++                .clone(),
++            intent.origins[&intent.request.admitted]
++                .member
++                .participant()
++                .clone(),
++        )
++    }
++    pub(crate) fn outgoing_connections(&self) -> BTreeSet<ConnectionId> {
++        self.audience
++            .handoff
++            .as_ref()
++            .expect("sealed handoff plan")
++            .outgoing
++            .keys()
++            .cloned()
++            .collect()
++    }
++    pub fn request(&self) -> &AudioHandoffRequest {
++        &self
++            .audience
++            .handoff
++            .as_ref()
++            .expect("sealed handoff plan")
++            .request
++    }
++}
++/// Physical/provider cleanup is a separate post-commit observation. Unknown
++/// cannot turn a known local bridge commit into a successful external rollback.
++#[derive(Clone, Copy, Debug, PartialEq, Eq)]
++pub enum HandoffCleanupOutcome {
++    NotRequested,
++    Pending,
++    LocalMediaClosed,
++    Unconfirmed,
++}
++#[derive(Clone, Debug, PartialEq, Eq)]
++pub struct AudioHandoffOutcome {
++    pub media: AudioAudienceOutcome,
++    pub retained: ConnectionId,
++    pub admitted: ConnectionId,
++    pub observer: Option<ConnectionId>,
++    pub observer_connections: BTreeSet<ConnectionId>,
++    pub retiring: BTreeSet<ConnectionId>,
++    pub cleanup: HandoffCleanupOutcome,
++}
++/// Committed metadata and the actual old controller pin; no command grant.
++#[derive(Clone)]
++pub struct AudioHandoffHandle {
++    audience: AudioAudienceHandle,
++    old: AudienceOrigin,
++    outgoing: BTreeMap<ConnectionId, AudienceOrigin>,
++    disposition: OldHandoffDisposition,
++}
++impl AudioHandoffHandle {
++    pub fn audience(&self) -> &AudioAudienceHandle {
++        &self.audience
++    }
++    pub fn old_connection(&self) -> &ConnectionId {
++        &self.old.connection
++    }
++    pub fn outgoing_connections(&self) -> impl Iterator<Item = &ConnectionId> {
++        self.outgoing.keys()
++    }
++    pub fn old_disposition(&self) -> OldHandoffDisposition {
++        self.disposition
++    }
++    /// Confirm only owned local media cleanup. Adapter/remote outcomes are
++    /// independent; this method neither closes an active route nor asserts a
++    /// remote participant departure. Retrying this observation keeps the same
++    /// committed bridge and original resource identity.
++    pub async fn finish_local_media_cleanup(
++        &self,
++        deadline: tokio::time::Instant,
++    ) -> HandoffCleanupOutcome {
++        if self.disposition == OldHandoffDisposition::Observer {
++            return HandoffCleanupOutcome::NotRequested;
++        }
++        let mut confirmed = true;
++        for origin in self.outgoing.values() {
++            let Some(controller) = origin.controller.upgrade() else {
++                confirmed = false;
++                continue;
++            };
++            if !origin.matches(&controller) {
++                confirmed = false;
++                continue;
++            }
++            let fenced = {
++                let state = controller.state.lock().unwrap_or_else(|p| p.into_inner());
++                state.closed && controller.shutdown.is_cancelled()
++            };
++            if !fenced || controller.shutdown(deadline).await != 0 {
++                confirmed = false;
++            }
++        }
++        if confirmed {
++            HandoffCleanupOutcome::LocalMediaClosed
++        } else {
++            HandoffCleanupOutcome::Unconfirmed
++        }
++    }
++}
++impl GuardedMediaScene {
++    /// The incoming leg is already admitted in an isolated two-party audience.
++    /// Both actual audio directions must have flowed in that current context.
++    /// Planning never retires a route and retains no policy reader.
++    pub(crate) fn plan_audio_handoff(
++        &self,
++        context: &AudioAudienceHandle,
++        request: AudioHandoffRequest,
++    ) -> ControlResult<AudioHandoffPlan> {
++        if context.scene != self.id
++            || request.old == request.retained
++            || request.old == request.admitted
++            || request.retained == request.admitted
++            || context.group.origins.len() != 2
++        {
++            return Err(MediaTransitionError::Invalid.into());
++        }
++        let (origins, readiness, outgoing) = {
++            let members = self.members.lock().unwrap_or_else(|p| p.into_inner());
++            let registry = self.audiences.lock().unwrap_or_else(|p| p.into_inner());
++            if !registry
++                .groups
++                .get(&context.group.operation)
++                .is_some_and(|g| Arc::ptr_eq(g, &context.group))
++            {
++                return Err(MediaTransitionError::Conflict.into());
++            }
++            let old = &members
++                .get(&request.old)
++                .ok_or(StreamControlError::NotReady)?
++                .controller;
++            let new = members
++                .get(&request.admitted)
++                .ok_or(StreamControlError::NotReady)?;
++            let retained = &members
++                .get(&request.retained)
++                .ok_or(StreamControlError::NotReady)?
++                .controller;
++            if old.origin_member.participant() == new.controller.origin_member.participant()
++                || retained.origin_member.participant() == old.origin_member.participant()
++                || retained.origin_member.participant()
++                    == new.controller.origin_member.participant()
++            {
++                return Err(MediaTransitionError::Invalid.into());
++            }
++            if !context.group.contains(old)
++                || !context.group.contains(&new.controller)
++                || context.group.contains(retained)
++            {
++                return Err(StreamControlError::Authority);
++            }
++            let state = new
++                .controller
++                .state
++                .try_lock()
++                .map_err(|_| MediaTransitionError::Conflict)?;
++            let readiness =
++                new.audio_consumer
++                    .duplex_since(&new.controller, context.committed_at, &state)?;
++            let outgoing = members
++                .values()
++                .filter(|m| {
++                    m.controller.origin_member.participant() == old.origin_member.participant()
++                })
++                .map(|m| {
++                    (
++                        m.controller.connection.clone(),
++                        AudienceOrigin::new(&m.controller),
++                    )
++                })
++                .collect::<BTreeMap<_, _>>();
++            let mut origins = [old, &new.controller, retained]
++                .into_iter()
++                .map(|c| (c.connection.clone(), AudienceOrigin::new(c)))
++                .collect::<BTreeMap<_, _>>();
++            origins.extend(outgoing.clone());
++            (origins, readiness, outgoing)
++        };
++        let source = |id: ConnectionId| vec![AudioSubscription::Connection(id)];
++        let mut private_connections =
++            BTreeSet::from([request.retained.clone(), request.admitted.clone()]);
++        let old_program = if request.old_disposition == OldHandoffDisposition::Observer {
++            private_connections.extend(outgoing.keys().cloned());
++            vec![
++                AudioSubscription::Connection(request.retained.clone()),
++                AudioSubscription::Connection(request.admitted.clone()),
++            ]
++        } else {
++            vec![]
++        };
++        let mut receivers = BTreeMap::from([
++            (request.retained.clone(), source(request.admitted.clone())),
++            (request.admitted.clone(), source(request.retained.clone())),
++        ]);
++        for id in outgoing.keys() {
++            receivers.insert(id.clone(), old_program.clone());
++        }
++        let mut audience = self.plan_audio_audience_replacing(
++            AudioAudienceRequest {
++                operation_id: request.operation_id.clone(),
++                expected_revision: request.expected_revision,
++                private_connections,
++                receivers,
++                activate_muted: None,
++            },
++            Some(context),
++        )?;
++        for (id, origin) in &origins {
++            if !audience
++                .controllers
++                .get(id)
++                .is_some_and(|c| Weak::ptr_eq(c, &origin.controller))
++            {
++                return Err(MediaTransitionError::Conflict.into());
++            }
++        }
++        audience.handoff = Some(Arc::new(HandoffIntent {
++            request,
++            origins,
++            readiness,
++            outgoing,
++        }));
++        Ok(AudioHandoffPlan { audience })
++    }
++    pub(crate) async fn commit_audio_handoff(
++        &self,
++        plan: AudioHandoffPlan,
++        deadline: tokio::time::Instant,
++        cancel: CancellationToken,
++        held: &(dyn Any + Send + Sync),
++    ) -> ControlResult<(AudioHandoffOutcome, AudioHandoffHandle)> {
++        self.commit_audio_handoff_managed(plan, deadline, cancel, held, None)
++            .await
++    }
++    pub(crate) async fn commit_audio_handoff_managed(
++        &self,
++        plan: AudioHandoffPlan,
++        deadline: tokio::time::Instant,
++        cancel: CancellationToken,
++        held: &(dyn Any + Send + Sync),
++        managed: Option<crate::orchestrator::participant_control::handoff::ManagedHandoffContext>,
++    ) -> ControlResult<(AudioHandoffOutcome, AudioHandoffHandle)> {
++        let intent = plan
++            .audience
++            .handoff
++            .clone()
++            .ok_or(StreamControlError::Authority)?;
++        let (media, audience) = self
++            .apply_audio_audience_managed(plan.audience, deadline, cancel, held, managed)
++            .await?;
++        let request = &intent.request;
++        let leaving = request.old_disposition == OldHandoffDisposition::Leave;
++        if leaving {
++            for id in intent.outgoing.keys() {
++                self.remove(id);
++            }
++        }
++        Ok((
++            AudioHandoffOutcome {
++                media,
++                retained: request.retained.clone(),
++                admitted: request.admitted.clone(),
++                observer: (!leaving).then(|| request.old.clone()),
++                observer_connections: if leaving {
++                    BTreeSet::new()
++                } else {
++                    intent.outgoing.keys().cloned().collect()
++                },
++                retiring: if leaving {
++                    intent.outgoing.keys().cloned().collect()
++                } else {
++                    BTreeSet::new()
++                },
++                cleanup: if leaving {
++                    HandoffCleanupOutcome::Pending
++                } else {
++                    HandoffCleanupOutcome::NotRequested
++                },
++            },
++            AudioHandoffHandle {
++                audience,
++                old: intent.origins[&request.old].clone(),
++                outgoing: intent.outgoing.clone(),
++                disposition: request.old_disposition,
++            },
++        ))
++    }
++}
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/tests/private_consult.rs b/crates/foundation/rvoip-core/src/staged_streams/tests/private_consult.rs
+--- a/crates/foundation/rvoip-core/src/staged_streams/tests/private_consult.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/private_consult.rs
+@@ -3,6 +3,7 @@
+ struct Domain {
+     base: Arc<Policy>,
+     fresh: AtomicUsize,
++    deny_handoff: AtomicBool,
+ }
+ enum Approval {
+     Prepare {
+@@ -83,6 +84,11 @@
+         intent: &MediaControlIntent<'_>,
+         held: &(dyn Any + Send + Sync),
+     ) -> ControlResult<MediaControl> {
++        if matches!(intent, MediaControlIntent::Handoff { .. })
++            && self.deny_handoff.load(Ordering::Acquire)
++        {
++            return Err(StreamControlError::Unsupported);
++        }
+         let grant = held
+             .downcast_ref::<Arc<Grant>>()
+             .ok_or(StreamControlError::Authority)?;
+@@ -110,7 +116,15 @@
+                 },
+             ) => connection == scope.connection && operation == actual && expected == revision,
+             (Approval::Audience(approved), MediaControlIntent::AudioAudience { plan }) => {
+-                approved.same_intent(plan)
++                plan.handoff_request().is_none()
++                    && approved.same_intent(plan)
++                    && plan
++                        .expected_receiver_revisions()
++                        .contains_key(scope.connection)
++            }
++            (Approval::Audience(approved), MediaControlIntent::Handoff { plan }) => {
++                plan.handoff_request().is_some()
++                    && approved.same_intent(plan)
+                     && plan
+                         .expected_receiver_revisions()
+                         .contains_key(scope.connection)
+@@ -150,9 +164,13 @@
+     domain: Arc<Domain>,
+     scene: Arc<GuardedMediaScene>,
+     nodes: BTreeMap<String, Node>,
++    kinds: BTreeMap<String, ParticipantKind>,
+ }
+ impl Room {
+     async fn new() -> Self {
++        Self::new_with_kinds(BTreeMap::new()).await
++    }
++    async fn new_with_kinds(kinds: BTreeMap<String, ParticipantKind>) -> Self {
+         let base = Arc::new(Policy(Arc::new(RwLock::new(PolicyState {
+             owners: HashMap::new(),
+             revoked: HashSet::new(),
+@@ -161,6 +179,7 @@
+         let domain = Arc::new(Domain {
+             base,
+             fresh: AtomicUsize::new(0),
++            deny_handoff: AtomicBool::new(false),
+         });
+         let scene = GuardedMediaScene::new(
+             ConversationId::from_string("conversation"),
+@@ -172,6 +191,7 @@
+             domain,
+             scene,
+             nodes: BTreeMap::new(),
++            kinds,
+         };
+         for name in ["alice", "bob", "public", "hold"] {
+             r.add(name, None, false).await;
+@@ -216,6 +236,41 @@
+     async fn add(&mut self, name: &str, alias: Option<&str>, private: bool) {
+         let subject = alias.unwrap_or(name);
+         let mut o = owner(subject);
++        if let Some(kind) = self.kinds.get(subject) {
++            let binding = IdentityBinding::from_authenticated(
++                &principal(subject),
++                o.member.identity().clone(),
++                chrono::Utc::now(),
++            )
++            .unwrap();
++            let member = Membership::admit(
++                binding,
++                o.member.conversation().clone(),
++                o.member.participant().clone(),
++                kind.clone(),
++                o.member.default_role().clone(),
++            )
++            .unwrap();
++            let presence =
++                SessionAppearance::admit(&member, o.presence.session().clone(), None).unwrap();
++            let mut connection = ConnectionBinding::prepare(
++                &member,
++                &presence,
++                &o.endpoint,
++                o.connection.connection().clone(),
++            )
++            .unwrap();
++            connection
++                .observe_ready(&member, &presence, &o.endpoint, 1)
++                .unwrap();
++            connection
++                .activate(&member, &presence, &o.endpoint)
++                .unwrap();
++            o.actor = member.clone();
++            o.member = member;
++            o.presence = presence;
++            o.connection = connection;
++        }
+         if alias.is_some() {
+             o.connection = ConnectionBinding::prepare(
+                 &o.member,
+@@ -1183,3 +1238,769 @@
+             .unwrap(),
+     );
+ }
++
++use crate::staged_streams::handoff::*;
++impl Room {
++    async fn handoff_ready(
++        &mut self,
++    ) -> crate::staged_streams::consultation::PrivateConsultationHandle {
++        self.add("consult", Some("public"), true).await;
++        let handle = self.start_consultation().await;
++        self.publish("alice", 800).unwrap();
++        self.tick();
++        self.heard("consult", 800).await;
++        self.publish("consult", 5200).unwrap();
++        self.tick();
++        self.heard("alice", 5200).await;
++        handle
++    }
++    fn handoff_request(&self, disposition: OldHandoffDisposition) -> AudioHandoffRequest {
++        AudioHandoffRequest {
++            operation_id: "handoff-1".into(),
++            expected_revision: self.scene.audience_revision(),
++            old: ConnectionId::from_string("alice"),
++            retained: ConnectionId::from_string("bob"),
++            admitted: ConnectionId::from_string("consult"),
++            old_disposition: disposition,
++        }
++    }
++    async fn handoff(
++        &self,
++        plan: AudioHandoffPlan,
++    ) -> ControlResult<(AudioHandoffOutcome, AudioHandoffHandle)> {
++        let grant = self
++            .grant(Approval::Audience(plan.audience().clone()))
++            .await;
++        self.scene
++            .commit_audio_handoff(plan, deadline(), CancellationToken::new(), &grant)
++            .await
++    }
++}
++#[tokio::test]
++async fn handoff_observer_commits_only_new_bridge_and_retains_decoded_authorized_observation() {
++    let mut r = Room::new().await;
++    let context = r.handoff_ready().await;
++    let original = r
++        .nodes
++        .iter()
++        .map(|(id, n)| (id.clone(), n.controller.active_bindings()[0].clone()))
++        .collect::<BTreeMap<_, _>>();
++    r.publish("consult", 5200).unwrap();
++    r.tick();
++    let private_tail = r.nodes.get_mut("alice").unwrap().out.try_recv().unwrap();
++    let plan = r
++        .scene
++        .plan_audio_handoff(
++            context.audience(),
++            r.handoff_request(OldHandoffDisposition::Observer),
++        )
++        .unwrap();
++    let (outcome, handle) = r.handoff(plan).await.unwrap();
++    assert_eq!(outcome.retained, ConnectionId::from_string("bob"));
++    assert_eq!(outcome.admitted, ConnectionId::from_string("consult"));
++    assert_eq!(outcome.observer, Some(ConnectionId::from_string("alice")));
++    assert!(outcome.retiring.is_empty());
++    assert_eq!(outcome.cleanup, HandoffCleanupOutcome::NotRequested);
++    assert!(private_tail
++        .deliver(|_| async { panic!("old private tail crossed handoff") })
++        .await
++        .is_err());
++    assert!(r.publish("alice", 800).is_err());
++    r.publish("bob", 2400).unwrap();
++    r.tick();
++    r.heard("consult", 2400).await;
++    r.heard("alice", 2400).await;
++    r.silent(&["public", "bob"]);
++    r.publish("consult", 5200).unwrap();
++    r.tick();
++    r.heard("bob", 5200).await;
++    r.heard("alice", 5200).await;
++    r.silent(&["public", "consult"]);
++    for (id, before) in original {
++        let now = &r.nodes[&id].controller.active_bindings()[0];
++        assert_eq!(now.transport_id, before.transport_id);
++        assert_eq!(now.stream_local_id, before.stream_local_id);
++        assert_eq!(now.connection_generation, before.connection_generation);
++    }
++    // A simple source unmute cannot turn the committed observer into a speaker.
++    let c = &r.nodes["alice"].controller;
++    c.set_media_gate(
++        c.revision(),
++        &BTreeSet::from([desired(Medium::Audio).logical_id]),
++        StreamGateAction::Unmute,
++        deadline(),
++    )
++    .await
++    .unwrap();
++    assert!(r.publish("alice", 800).is_err());
++    assert!(r
++        .scene
++        .plan_restore_audio_audience(
++            context.audience(),
++            "old-private-restore".into(),
++            r.scene.audience_revision()
++        )
++        .is_err());
++    assert!(r
++        .scene
++        .plan_restore_audio_audience(
++            handle.audience(),
++            "implicit-rollback".into(),
++            r.scene.audience_revision()
++        )
++        .is_err());
++    drop(
++        tokio::time::timeout(Duration::from_secs(1), r.domain.base.0.write())
++            .await
++            .unwrap(),
++    );
++}
++#[tokio::test]
++async fn handoff_leave_fences_old_media_only_after_commit_and_reports_uncertain_cleanup_without_rollback(
++) {
++    let mut r = Room::new().await;
++    let context = r.handoff_ready().await;
++    let before = r.nodes["bob"].controller.active_bindings()[0].clone();
++    r.nodes["alice"]
++        .adapter
++        .uncertain
++        .store(true, Ordering::Release);
++    let plan = r
++        .scene
++        .plan_audio_handoff(
++            context.audience(),
++            r.handoff_request(OldHandoffDisposition::Leave),
++        )
++        .unwrap();
++    assert!(
++        !r.nodes["alice"].controller.shutdown.is_cancelled(),
++        "planning is not a retirement"
++    );
++    let (outcome, handle) = r.handoff(plan).await.unwrap();
++    assert_eq!(
++        outcome.retiring,
++        BTreeSet::from([ConnectionId::from_string("alice")])
++    );
++    assert_eq!(outcome.observer, None);
++    assert_eq!(outcome.cleanup, HandoffCleanupOutcome::Pending);
++    assert!(r.nodes["alice"].controller.shutdown.is_cancelled());
++    assert!(r.publish("alice", 800).is_err());
++    assert_eq!(
++        handle.finish_local_media_cleanup(deadline()).await,
++        HandoffCleanupOutcome::Unconfirmed
++    );
++    r.publish("bob", 2400).unwrap();
++    r.tick();
++    r.heard("consult", 2400).await;
++    r.silent(&["alice", "public"]);
++    r.publish("consult", 5200).unwrap();
++    r.tick();
++    r.heard("bob", 5200).await;
++    r.silent(&["alice", "public"]);
++    assert_eq!(
++        r.nodes["bob"].controller.active_bindings()[0].transport_id,
++        before.transport_id
++    );
++    r.nodes["alice"]
++        .adapter
++        .uncertain
++        .store(false, Ordering::Release);
++    assert_eq!(
++        handle.finish_local_media_cleanup(deadline()).await,
++        HandoffCleanupOutcome::LocalMediaClosed
++    );
++    assert_eq!(
++        r.nodes["alice"].adapter.outstanding.load(Ordering::Acquire),
++        0
++    );
++    r.publish("bob", 2400).unwrap();
++    r.tick();
++    r.heard("consult", 2400).await;
++}
++
++#[tokio::test]
++async fn handoff_requires_both_actual_io_directions_and_keeps_generation_proof_through_silence() {
++    let mut r = Room::new().await;
++    r.add("consult", Some("public"), true).await;
++    let context = r.start_consultation().await;
++    assert!(matches!(
++        r.scene.plan_audio_handoff(
++            context.audience(),
++            r.handoff_request(OldHandoffDisposition::Observer)
++        ),
++        Err(StreamControlError::NotReady)
++    ));
++    r.publish("consult", 5200).unwrap();
++    r.tick();
++    r.heard("alice", 5200).await;
++    assert!(matches!(
++        r.scene.plan_audio_handoff(
++            context.audience(),
++            r.handoff_request(OldHandoffDisposition::Observer)
++        ),
++        Err(StreamControlError::NotReady)
++    ));
++    r.publish("alice", 800).unwrap();
++    r.tick();
++    let queued = r.nodes.get_mut("consult").unwrap().out.try_recv().unwrap();
++    assert!(queued
++        .deliver(|_| async { Err(StreamControlError::NotReady) })
++        .await
++        .is_err());
++    assert!(matches!(
++        r.scene.plan_audio_handoff(
++            context.audience(),
++            r.handoff_request(OldHandoffDisposition::Observer)
++        ),
++        Err(StreamControlError::NotReady)
++    ));
++    r.publish("alice", 800).unwrap();
++    r.tick();
++    r.heard("consult", 800).await;
++    tokio::time::sleep(Duration::from_millis(220)).await;
++    let plan = r
++        .scene
++        .plan_audio_handoff(
++            context.audience(),
++            r.handoff_request(OldHandoffDisposition::Observer),
++        )
++        .unwrap();
++    let before = r.scene.audience_revision();
++    let c = &r.nodes["consult"].controller;
++    c.set_media_gate(
++        c.revision(),
++        &BTreeSet::from([desired(Medium::Audio).logical_id]),
++        StreamGateAction::Unmute,
++        deadline(),
++    )
++    .await
++    .unwrap();
++    assert!(r.handoff(plan).await.is_err());
++    assert_eq!(r.scene.audience_revision(), before);
++    assert!(matches!(
++        r.scene.plan_audio_handoff(
++            context.audience(),
++            r.handoff_request(OldHandoffDisposition::Observer)
++        ),
++        Err(StreamControlError::NotReady)
++    ));
++    r.publish("alice", 800).unwrap();
++    r.tick();
++    r.heard("consult", 800).await;
++    r.publish("consult", 5200).unwrap();
++    r.tick();
++    r.heard("alice", 5200).await;
++    r.handoff(
++        r.scene
++            .plan_audio_handoff(
++                context.audience(),
++                r.handoff_request(OldHandoffDisposition::Observer),
++            )
++            .unwrap(),
++    )
++    .await
++    .unwrap();
++}
++
++#[tokio::test]
++async fn handoff_cancelled_or_timed_out_actual_send_drain_preserves_private_bridge_and_retry_intent(
++) {
++    for timeout in [false, true] {
++        let mut r = Room::new().await;
++        let context = r.handoff_ready().await;
++        r.publish("alice", 800).unwrap();
++        r.tick();
++        let queued = r.nodes.get_mut("consult").unwrap().out.try_recv().unwrap();
++        let entered = Arc::new(Notify::new());
++        let release = Arc::new(Notify::new());
++        let sending = tokio::spawn({
++            let entered = entered.clone();
++            let release = release.clone();
++            async move {
++                queued
++                    .deliver(|_| async move {
++                        entered.notify_one();
++                        release.notified().await;
++                        Ok(())
++                    })
++                    .await
++            }
++        });
++        entered.notified().await;
++        let plan = r
++            .scene
++            .plan_audio_handoff(
++                context.audience(),
++                r.handoff_request(OldHandoffDisposition::Leave),
++            )
++            .unwrap();
++        let grant = r.grant(Approval::Audience(plan.audience().clone())).await;
++        let revisions = r
++            .nodes
++            .iter()
++            .map(|(id, n)| (id.clone(), n.controller.revision()))
++            .collect::<BTreeMap<_, _>>();
++        let before = r.scene.audience_revision();
++        let cancel = CancellationToken::new();
++        let work = tokio::spawn({
++            let scene = r.scene.clone();
++            let cancel = cancel.clone();
++            async move {
++                scene
++                    .commit_audio_handoff(
++                        plan,
++                        if timeout {
++                            tokio::time::Instant::now() + Duration::from_millis(30)
++                        } else {
++                            deadline()
++                        },
++                        cancel,
++                        &grant,
++                    )
++                    .await
++            }
++        });
++        tokio::time::sleep(Duration::from_millis(10)).await;
++        assert!(!work.is_finished());
++        if !timeout {
++            cancel.cancel();
++        }
++        let result = work.await.unwrap();
++        if timeout {
++            assert!(matches!(result, Err(StreamControlError::Deadline)));
++        } else {
++            assert!(matches!(result, Err(StreamControlError::Cancelled)));
++        }
++        assert!(!r.nodes["alice"].controller.shutdown.is_cancelled());
++        assert_eq!(r.scene.audience_revision(), before);
++        for (id, rev) in revisions {
++            assert_eq!(
++                r.nodes[&id].controller.revision(),
++                rev,
++                "partial commit for {id}"
++            );
++        }
++        release.notify_one();
++        sending.await.unwrap().unwrap();
++        r.publish("alice", 800).unwrap();
++        r.tick();
++        r.heard("consult", 800).await;
++        r.silent(&["bob", "public"]);
++        let plan = r
++            .scene
++            .plan_audio_handoff(
++                context.audience(),
++                r.handoff_request(OldHandoffDisposition::Leave),
++            )
++            .unwrap();
++        let (outcome, handle) = r.handoff(plan).await.unwrap();
++        assert_eq!(outcome.media.operation_id, "handoff-1");
++        assert_eq!(
++            handle.finish_local_media_cleanup(deadline()).await,
++            HandoffCleanupOutcome::LocalMediaClosed
++        );
++        r.publish("consult", 5200).unwrap();
++        r.tick();
++        r.heard("bob", 5200).await;
++    }
++}
++
++#[tokio::test]
++async fn handoff_fresh_whole_plan_approval_rejects_substitution_and_current_revocation_before_effects(
++) {
++    let mut r = Room::new().await;
++    let context = r.handoff_ready().await;
++    let plan = r
++        .scene
++        .plan_audio_handoff(
++            context.audience(),
++            r.handoff_request(OldHandoffDisposition::Observer),
++        )
++        .unwrap();
++    let other = r
++        .scene
++        .plan_audio_handoff(
++            context.audience(),
++            r.handoff_request(OldHandoffDisposition::Leave),
++        )
++        .unwrap();
++    let grant = r.grant(Approval::Audience(plan.audience().clone())).await;
++    assert!(matches!(
++        r.scene
++            .commit_audio_handoff(other, deadline(), CancellationToken::new(), &grant)
++            .await,
++        Err(StreamControlError::Authority)
++    ));
++    drop(grant);
++    let before = r.scene.audience_revision();
++    r.domain.base.0.write().await.revoked.insert("alice".into());
++    assert!(matches!(
++        r.handoff(plan).await,
++        Err(StreamControlError::Authority)
++    ));
++    assert_eq!(before, r.scene.audience_revision());
++    assert!(!r.nodes["alice"].controller.shutdown.is_cancelled());
++    r.domain.base.0.write().await.revoked.remove("alice");
++    r.publish("alice", 800).unwrap();
++    r.tick();
++    r.heard("consult", 800).await;
++    let plan = r
++        .scene
++        .plan_audio_handoff(
++            context.audience(),
++            r.handoff_request(OldHandoffDisposition::Observer),
++        )
++        .unwrap();
++    let grant = r.grant(Approval::Audience(plan.audience().clone())).await;
++    let writer = tokio::spawn({
++        let state = r.domain.base.0.clone();
++        async move {
++            state.write().await.revoked.insert("alice".into());
++        }
++    });
++    tokio::time::sleep(Duration::from_millis(10)).await;
++    let fresh = r.domain.fresh.load(Ordering::Acquire);
++    tokio::time::timeout(
++        Duration::from_secs(1),
++        r.scene
++            .commit_audio_handoff(plan, deadline(), CancellationToken::new(), &grant),
++    )
++    .await
++    .unwrap()
++    .unwrap();
++    assert_eq!(fresh, r.domain.fresh.load(Ordering::Acquire));
++    drop(grant);
++    tokio::time::timeout(Duration::from_secs(1), writer)
++        .await
++        .unwrap()
++        .unwrap();
++    assert!(r.publish("alice", 800).is_err());
++    r.publish("consult", 5200).unwrap();
++    r.tick();
++    r.heard("bob", 5200).await;
++    r.silent(&["alice", "public"]);
++}
++
++#[tokio::test]
++async fn handoff_remote_termination_refuses_stale_acceptance_without_retiring_healthy_private_route(
++) {
++    let mut r = Room::new().await;
++    let context = r.handoff_ready().await;
++    let plan = r
++        .scene
++        .plan_audio_handoff(
++            context.audience(),
++            r.handoff_request(OldHandoffDisposition::Leave),
++        )
++        .unwrap();
++    r.scene.remove(&ConnectionId::from_string("bob"));
++    assert!(r.handoff(plan).await.is_err());
++    assert!(!r.nodes["alice"].controller.shutdown.is_cancelled());
++    assert!(r
++        .scene
++        .plan_audio_handoff(
++            context.audience(),
++            r.handoff_request(OldHandoffDisposition::Leave)
++        )
++        .is_err());
++    r.publish("alice", 800).unwrap();
++    r.tick();
++    r.heard("consult", 800).await;
++    r.publish("consult", 5200).unwrap();
++    r.tick();
++    r.heard("alice", 5200).await;
++    let restored = r.restore_consultation(&context).await;
++    assert!(restored
++        .departed_connections
++        .contains(&ConnectionId::from_string("bob")));
++    r.publish("alice", 800).unwrap();
++    r.tick();
++    r.heard("public", 800).await;
++    r.silent(&["consult"]);
++}
++
++#[tokio::test]
++async fn handoff_competing_acceptances_commit_one_bridge_and_duplicate_old_plan_has_no_second_effect(
++) {
++    let mut r = Room::new().await;
++    let context = r.handoff_ready().await;
++    r.publish("alice", 800).unwrap();
++    r.tick();
++    let queued = r.nodes.get_mut("consult").unwrap().out.try_recv().unwrap();
++    let entered = Arc::new(Notify::new());
++    let release = Arc::new(Notify::new());
++    let sending = tokio::spawn({
++        let entered = entered.clone();
++        let release = release.clone();
++        async move {
++            queued
++                .deliver(|_| async move {
++                    entered.notify_one();
++                    release.notified().await;
++                    Ok(())
++                })
++                .await
++        }
++    });
++    entered.notified().await;
++    let plan = r
++        .scene
++        .plan_audio_handoff(
++            context.audience(),
++            r.handoff_request(OldHandoffDisposition::Observer),
++        )
++        .unwrap();
++    let duplicate = plan.clone();
++    let grant = r.grant(Approval::Audience(plan.audience().clone())).await;
++    let work = tokio::spawn({
++        let scene = r.scene.clone();
++        async move {
++            scene
++                .commit_audio_handoff(plan, deadline(), CancellationToken::new(), &grant)
++                .await
++        }
++    });
++    tokio::time::sleep(Duration::from_millis(10)).await;
++    assert!(!work.is_finished());
++    let mut competing = r.handoff_request(OldHandoffDisposition::Leave);
++    competing.operation_id = "handoff-competing".into();
++    let competing = r
++        .scene
++        .plan_audio_handoff(context.audience(), competing)
++        .unwrap();
++    assert!(r.handoff(competing).await.is_err());
++    assert!(!r.nodes["alice"].controller.shutdown.is_cancelled());
++    release.notify_one();
++    sending.await.unwrap().unwrap();
++    let (outcome, _) = work.await.unwrap().unwrap();
++    let revision = r.scene.audience_revision();
++    assert_eq!(outcome.media.audience_revision, revision);
++    assert!(r.handoff(duplicate).await.is_err());
++    assert_eq!(r.scene.audience_revision(), revision);
++    r.publish("bob", 2400).unwrap();
++    r.tick();
++    r.heard("consult", 2400).await;
++    r.heard("alice", 2400).await;
++    assert!(r.publish("alice", 800).is_err());
++}
++
++#[tokio::test]
++async fn handoff_same_participant_endpoint_change_is_not_a_participant_handoff() {
++    let mut r = Room::new().await;
++    r.add("consult", Some("alice"), true).await;
++    let context = r.start_consultation().await;
++    assert!(matches!(
++        r.scene.plan_audio_handoff(
++            context.audience(),
++            r.handoff_request(OldHandoffDisposition::Leave)
++        ),
++        Err(StreamControlError::Model(MediaTransitionError::Invalid))
++    ));
++    assert!(!r.nodes["alice"].controller.shutdown.is_cancelled());
++}
++
++#[tokio::test]
++async fn handoff_outgoing_participant_disposition_covers_all_its_admitted_connections() {
++    for disposition in [
++        OldHandoffDisposition::Observer,
++        OldHandoffDisposition::Leave,
++    ] {
++        let mut r = Room::new().await;
++        let context = r.handoff_ready().await;
++        r.add("alice2", Some("alice"), false).await;
++        let plan = r
++            .scene
++            .plan_audio_handoff(context.audience(), r.handoff_request(disposition))
++            .unwrap();
++        let (outcome, handle) = r.handoff(plan).await.unwrap();
++        let outgoing = BTreeSet::from([
++            ConnectionId::from_string("alice"),
++            ConnectionId::from_string("alice2"),
++        ]);
++        assert_eq!(
++            handle
++                .outgoing_connections()
++                .cloned()
++                .collect::<BTreeSet<_>>(),
++            outgoing
++        );
++        if disposition == OldHandoffDisposition::Observer {
++            assert_eq!(outcome.observer_connections, outgoing);
++        } else {
++            assert_eq!(outcome.retiring, outgoing);
++        }
++        assert!(r.publish("alice", 800).is_err());
++        assert!(r.publish("alice2", 1600).is_err());
++        r.publish("bob", 2400).unwrap();
++        r.tick();
++        r.heard("consult", 2400).await;
++        if disposition == OldHandoffDisposition::Observer {
++            r.heard("alice", 2400).await;
++            r.heard("alice2", 2400).await;
++        } else {
++            r.silent(&["alice", "alice2"]);
++            assert_eq!(
++                handle.finish_local_media_cleanup(deadline()).await,
++                HandoffCleanupOutcome::LocalMediaClosed
++            );
++        }
++        r.silent(&["public"]);
++    }
++}
++
++#[tokio::test]
++async fn handoff_human_to_ai_and_ai_to_human_use_the_same_authorized_ready_bridge_primitive() {
++    for (old, new) in [
++        (ParticipantKind::Human, ParticipantKind::Ai),
++        (ParticipantKind::Ai, ParticipantKind::Human),
++    ] {
++        let mut r = Room::new_with_kinds(BTreeMap::from([
++            ("alice".into(), old.clone()),
++            ("public".into(), new.clone()),
++        ]))
++        .await;
++        let context = r.handoff_ready().await;
++        assert_eq!(r.nodes["alice"].controller.origin_member.kind(), &old);
++        assert_eq!(r.nodes["consult"].controller.origin_member.kind(), &new);
++        let remote = r.nodes["bob"].controller.active_bindings()[0].clone();
++        let plan = r
++            .scene
++            .plan_audio_handoff(
++                context.audience(),
++                r.handoff_request(OldHandoffDisposition::Observer),
++            )
++            .unwrap();
++        r.handoff(plan).await.unwrap();
++        assert!(r.publish("alice", 800).is_err());
++        r.publish("consult", 5200).unwrap();
++        r.tick();
++        r.heard("bob", 5200).await;
++        r.heard("alice", 5200).await;
++        r.publish("bob", 2400).unwrap();
++        r.tick();
++        r.heard("consult", 2400).await;
++        r.heard("alice", 2400).await;
++        assert_eq!(
++            r.nodes["bob"].controller.active_bindings()[0].transport_id,
++            remote.transport_id
++        );
++        r.silent(&["public"]);
++    }
++}
++
++#[tokio::test]
++async fn handoff_requires_its_explicit_policy_intent_and_never_borrows_ordinary_audience_approval()
++{
++    let mut r = Room::new().await;
++    let context = r.handoff_ready().await;
++    r.domain.deny_handoff.store(true, Ordering::Release);
++    let before = r.scene.audience_revision();
++    let plan = r
++        .scene
++        .plan_audio_handoff(
++            context.audience(),
++            r.handoff_request(OldHandoffDisposition::Leave),
++        )
++        .unwrap();
++    assert!(matches!(
++        r.handoff(plan).await,
++        Err(StreamControlError::Unsupported)
++    ));
++    assert_eq!(r.scene.audience_revision(), before);
++    assert!(!r.nodes["alice"].controller.shutdown.is_cancelled());
++    r.publish("alice", 800).unwrap();
++    r.tick();
++    r.heard("consult", 800).await;
++    r.domain.deny_handoff.store(false, Ordering::Release);
++    r.handoff(
++        r.scene
++            .plan_audio_handoff(
++                context.audience(),
++                r.handoff_request(OldHandoffDisposition::Leave),
++            )
++            .unwrap(),
++    )
++    .await
++    .unwrap();
++}
++
++#[tokio::test]
++async fn handoff_later_consultation_and_second_handoff_keep_remote_binding_and_fence_old_controllers(
++) {
++    let mut r = Room::new().await;
++    let first = r.handoff_ready().await;
++    let retained = r.nodes["bob"].controller.active_bindings()[0].clone();
++    let plan = r
++        .scene
++        .plan_audio_handoff(
++            first.audience(),
++            r.handoff_request(OldHandoffDisposition::Observer),
++        )
++        .unwrap();
++    let stale = plan.clone();
++    let (_, first_handoff) = r.handoff(plan).await.unwrap();
++    let source = |name: &str| {
++        vec![AudioSubscription::Connection(ConnectionId::from_string(
++            name,
++        ))]
++    };
++    let plan = r
++        .scene
++        .plan_audio_audience_replacing(
++            AudioAudienceRequest {
++                operation_id: "second-private-context".into(),
++                expected_revision: r.scene.audience_revision(),
++                private_connections: BTreeSet::from([
++                    ConnectionId::from_string("consult"),
++                    ConnectionId::from_string("hold"),
++                ]),
++                receivers: BTreeMap::from([
++                    (ConnectionId::from_string("consult"), source("hold")),
++                    (ConnectionId::from_string("hold"), source("consult")),
++                    (ConnectionId::from_string("bob"), vec![]),
++                ]),
++                activate_muted: None,
++            },
++            Some(first_handoff.audience()),
++        )
++        .unwrap();
++    let (_, second) = r.apply(plan).await.unwrap();
++    r.publish("consult", 5200).unwrap();
++    r.tick();
++    r.heard("hold", 5200).await;
++    r.silent(&["alice", "bob", "public"]);
++    r.publish("hold", 10400).unwrap();
++    r.tick();
++    r.heard("consult", 10400).await;
++    let plan = r
++        .scene
++        .plan_audio_handoff(
++            &second,
++            AudioHandoffRequest {
++                operation_id: "handoff-2".into(),
++                expected_revision: r.scene.audience_revision(),
++                old: ConnectionId::from_string("consult"),
++                retained: ConnectionId::from_string("bob"),
++                admitted: ConnectionId::from_string("hold"),
++                old_disposition: OldHandoffDisposition::Observer,
++            },
++        )
++        .unwrap();
++    let (outcome, _) = r.handoff(plan).await.unwrap();
++    assert_eq!(outcome.retained, ConnectionId::from_string("bob"));
++    assert!(r.handoff(stale).await.is_err());
++    r.publish("bob", 2400).unwrap();
++    r.tick();
++    r.heard("hold", 2400).await;
++    r.heard("consult", 2400).await;
++    r.publish("hold", 10400).unwrap();
++    r.tick();
++    r.heard("bob", 10400).await;
++    r.heard("consult", 10400).await;
++    assert!(r.publish("consult", 5200).is_err());
++    assert!(r.publish("alice", 800).is_err());
++    assert_eq!(
++        r.nodes["bob"].controller.active_bindings()[0].transport_id,
++        retained.transport_id
++    );
++}
+diff --git a/crates/foundation/rvoip-core/tests/participant_control.rs b/crates/foundation/rvoip-core/tests/participant_control.rs
+--- a/crates/foundation/rvoip-core/tests/participant_control.rs
++++ b/crates/foundation/rvoip-core/tests/participant_control.rs
+@@ -513,8 +513,10 @@
+             .role,
+         ParticipantRole::Agent
+     );
+-    // Speaking authority is explicit policy, never inferred from a role label.
+-    bs.assert_audible_from(&as_).await;
++    // Observer is a receive-only role ceiling; permission alone cannot make it
++    // speak. The other Session and Conversation defaults remain unchanged.
++    bs.assert_silent_from(&as_).await;
++    as_.assert_audible_from(&bs).await;
+ }
+ 
+ #[tokio::test]
+@@ -551,9 +553,20 @@
+     let intent = f.intent(
+         &f.session,
+         "alice",
++        "observer",
++        ParticipantChange::SetSessionRole {
++            role: ParticipantRole::Observer,
++        },
++    );
++    f.apply(&f.session, intent).await.unwrap();
++    bs.assert_silent_from(&as_).await;
++    as_.assert_audible_from(&bs).await;
++    let intent = f.intent(
++        &f.session,
++        "alice",
+         "restore",
+         ParticipantChange::SetSessionRole {
+-            role: ParticipantRole::Observer,
++            role: ParticipantRole::Agent,
+         },
+     );
+     f.apply(&f.session, intent).await.unwrap();
+diff --git a/crates/uctp/rvoip-uctp/tests/support/canonical_media/guarded_mixer.rs b/crates/uctp/rvoip-uctp/tests/support/canonical_media/guarded_mixer.rs
+--- a/crates/uctp/rvoip-uctp/tests/support/canonical_media/guarded_mixer.rs
++++ b/crates/uctp/rvoip-uctp/tests/support/canonical_media/guarded_mixer.rs
+@@ -231,12 +231,29 @@
+         Self::new_with_audio_policy(kind_name, kinds, !kinds.contains(&Medium::Audio)).await
+     }
+     async fn new_with_audio_policy(kind_name: &str, kinds: &[Medium], deny_audio: bool) -> Self {
++        Self::new_mode(kind_name, kinds, deny_audio, false, false).await
++    }
++    async fn new_handoff(kind_name: &str) -> Self {
++        Self::new_mode(kind_name, &[Medium::Audio], false, true, true).await
++    }
++    async fn new_mode(
++        kind_name: &str,
++        kinds: &[Medium],
++        deny_audio: bool,
++        handoff: bool,
++        handoff_roles: bool,
++    ) -> Self {
+         let has_audio = kinds.contains(&Medium::Audio);
+         let grants = Arc::new(MediaGrants(Arc::new(RwLock::new(PolicyState {
+             owners: HashMap::new(),
+             denied: BTreeSet::new(),
+             private: false,
+         }))));
++        let media_policy: Arc<dyn rvoip_core::staged_streams::MediaPolicy> = if handoff {
++            Arc::new(handoff::Media(grants.clone()))
++        } else {
++            grants.clone()
++        };
+         let mut core = core_fixture::Fixture::new().await;
+         let session = core
+             .orch
+@@ -250,12 +267,17 @@
+         core.orch
+             .enable_staged_participant_control(
+                 &session,
+-                if !deny_audio {
++                if handoff && handoff_roles {
++                    Arc::new(handoff::Roles {
++                        base: core.policy.clone(),
++                        domain: grants.clone(),
++                    }) as Arc<dyn ParticipantPolicy>
++                } else if !deny_audio {
+                     core.policy.clone() as Arc<dyn ParticipantPolicy>
+                 } else {
+                     Arc::new(NoAudioPolicy(core.policy.clone()))
+                 },
+-                grants.clone(),
++                media_policy.clone(),
+                 ParticipantLimits::default(),
+             )
+             .unwrap();
+@@ -357,7 +379,7 @@
+                         wire_session: "session".into(),
+                         wire_connection: "native_0".into(),
+                     },
+-                    grants.clone(),
++                    media_policy.clone(),
+                     readiness.clone(),
+                     16,
+                 )
+@@ -1092,3 +1114,6 @@
+         s.stop().await;
+     }
+ }
++
++#[path = "guarded_mixer/handoff.rs"]
++mod handoff;
+diff --git a/crates/uctp/rvoip-uctp/tests/support/canonical_media/guarded_mixer/handoff.rs b/crates/uctp/rvoip-uctp/tests/support/canonical_media/guarded_mixer/handoff.rs
+new file mode 100644
+--- /dev/null
++++ b/crates/uctp/rvoip-uctp/tests/support/canonical_media/guarded_mixer/handoff.rs
+@@ -0,0 +1,641 @@
++//! Distinct signed TLS identities through the actual managed Session commit.
++use super::*;
++use rvoip_core::{
++    orchestrator::participant_control::{
++        ControlResult as ParticipantResult, ManagedAudioHandoffPlan, ParticipantControlError,
++        ParticipantHandoffAuthority, ParticipantHandoffControl, ParticipantHandoffLease,
++        ParticipantHandoffScope,
++    },
++    staged_streams::{
++        audience::*, handoff::*, ControlResult as MediaResult, MediaAuthorityLease, MediaControl,
++        MediaControlIntent, MediaPolicy, MediaScope, MediaSource, StreamControlError,
++    },
++};
++use std::any::Any;
++use tokio::sync::OwnedRwLockReadGuard;
++enum Approval {
++    Audience(AudioAudiencePlan),
++    Handoff(ManagedAudioHandoffPlan),
++}
++struct Invocation {
++    domain: Arc<MediaGrants>,
++    guard: Arc<OwnedRwLockReadGuard<PolicyState>>,
++    approval: Approval,
++    principal: AuthenticatedPrincipal,
++}
++struct Lease {
++    invocation: Arc<Invocation>,
++    owner: MediaOwner,
++}
++impl MediaAuthorityLease for Lease {
++    fn authority(&self) -> &MediaOwner {
++        &self.owner
++    }
++    fn control_receive(&self, source: &MediaSource) -> MediaResult<Box<MediaOwner>> {
++        let original = self
++            .invocation
++            .guard
++            .owners
++            .get(&source.connection)
++            .ok_or(StreamControlError::Authority)?;
++        original
++            .connection
++            .require_current(&original.member, &original.presence)
++            .map_err(|_| StreamControlError::Authority)?;
++        if self.invocation.guard.private
++            || self.invocation.guard.denied.contains(&source.connection)
++            || source.conversation != *original.member.conversation()
++            || source.session != *original.presence.session()
++            || source.participant != *original.member.participant()
++            || source.membership_epoch != original.member.epoch()
++            || source.connection_generation != original.connection.generation()
++            || !original.receive_media.contains(&Medium::Audio)
++        {
++            return Err(StreamControlError::Authority);
++        }
++        let mut target = self.owner.clone();
++        target.may_route_source = true;
++        Ok(Box::new(target))
++    }
++}
++pub(super) struct Media(pub Arc<MediaGrants>);
++impl MediaPolicy for Media {
++    fn current(&self, scope: &MediaScope<'_>) -> MediaResult<Box<dyn MediaAuthorityLease>> {
++        self.0.current(scope)
++    }
++    fn current_control(
++        &self,
++        scope: &MediaScope<'_>,
++        intent: &MediaControlIntent<'_>,
++        held: &(dyn Any + Send + Sync),
++    ) -> MediaResult<MediaControl> {
++        let invocation = held
++            .downcast_ref::<Arc<Invocation>>()
++            .ok_or(StreamControlError::Authority)?;
++        if !Arc::ptr_eq(&self.0, &invocation.domain)
++            || invocation.guard.private
++            || invocation.guard.denied.contains(scope.connection)
++        {
++            return Err(StreamControlError::Authority);
++        }
++        let approved = match (&invocation.approval, intent) {
++            (Approval::Audience(approved), MediaControlIntent::AudioAudience { plan }) => {
++                approved.same_intent(plan)
++            }
++            (Approval::Handoff(approved), MediaControlIntent::Handoff { plan }) => {
++                approved.media().audience().same_intent(plan)
++            }
++            _ => false,
++        };
++        if !approved {
++            return Err(StreamControlError::Authority);
++        }
++        let owner = invocation
++            .guard
++            .owners
++            .get(scope.connection)
++            .ok_or(StreamControlError::Authority)?
++            .clone();
++        owner
++            .actor
++            .revalidate_principal(scope.principal, Utc::now())
++            .map_err(|_| StreamControlError::Authority)?;
++        MediaControl::new(
++            Box::new(Lease {
++                invocation: invocation.clone(),
++                owner,
++            }),
++            CancellationToken::new(),
++            deadline(),
++        )
++    }
++}
++pub(super) struct Roles {
++    pub base: Arc<core_fixture::TestPolicy>,
++    pub domain: Arc<MediaGrants>,
++}
++struct RoleLease(Arc<Invocation>);
++impl ParticipantHandoffLease for RoleLease {
++    fn current(
++        &self,
++        scope: &ParticipantHandoffScope<'_>,
++    ) -> ParticipantResult<ParticipantHandoffAuthority> {
++        let Approval::Handoff(plan) = &self.0.approval else {
++            return Err(ParticipantControlError::Authority);
++        };
++        if !plan.same_intent(scope.plan)
++            || !rvoip_core::staged_streams::reliable_data::same_credential(
++                &self.0.principal,
++                scope.principal,
++            )
++            || self.0.guard.private
++        {
++            return Err(ParticipantControlError::Authority);
++        }
++        let request = plan.media().request();
++        if self.0.guard.denied.contains(&request.old)
++            || self.0.guard.denied.contains(&request.admitted)
++        {
++            return Err(ParticipantControlError::Authority);
++        }
++        let old = self
++            .0
++            .guard
++            .owners
++            .get(&request.old)
++            .ok_or(ParticipantControlError::Authority)?;
++        let new = self
++            .0
++            .guard
++            .owners
++            .get(&request.admitted)
++            .ok_or(ParticipantControlError::Authority)?;
++        if !old.may_control || !new.may_control {
++            return Err(ParticipantControlError::Authority);
++        }
++        old.actor
++            .revalidate_principal(scope.principal, Utc::now())
++            .map_err(|_| ParticipantControlError::Authority)?;
++        Ok(ParticipantHandoffAuthority {
++            actor: old.actor.clone(),
++            outgoing: old.member.clone(),
++            incoming: new.member.clone(),
++            incoming_may_send_audio: new.receive_media.contains(&Medium::Audio),
++            outgoing_may_receive_audio: old.send_media.contains(&Medium::Audio),
++        })
++    }
++}
++impl ParticipantPolicy for Roles {
++    fn current(
++        &self,
++        scope: &ParticipantScope<'_>,
++    ) -> ParticipantResult<Box<dyn ParticipantAuthorityLease + '_>> {
++        self.base.current(scope)
++    }
++    fn current_handoff_control(
++        &self,
++        scope: &ParticipantHandoffScope<'_>,
++        held: &(dyn Any + Send + Sync),
++    ) -> ParticipantResult<ParticipantHandoffControl> {
++        let invocation = held
++            .downcast_ref::<Arc<Invocation>>()
++            .ok_or(ParticipantControlError::Authority)?;
++        if !Arc::ptr_eq(&self.domain, &invocation.domain) {
++            return Err(ParticipantControlError::Authority);
++        }
++        let lease = RoleLease(invocation.clone());
++        let _ = lease.current(scope)?;
++        ParticipantHandoffControl::new(Box::new(lease), CancellationToken::new(), deadline())
++    }
++}
++async fn grant(s: &Scene, approval: Approval) -> Arc<Invocation> {
++    Arc::new(Invocation {
++        domain: s.grants.clone(),
++        guard: Arc::new(s.grants.0.clone().read_owned().await),
++        approval,
++        principal: named_actor("alice"),
++    })
++}
++async fn private_context(s: &Scene) -> AudioAudienceHandle {
++    let source = |index: usize| {
++        vec![
++            rvoip_core::staged_streams::audio_subscriptions::AudioSubscription::Connection(
++                s.live[index].leg.id.clone(),
++            ),
++        ]
++    };
++    let plan = s
++        .core
++        .orch
++        .plan_staged_audio_audience(
++            &s.core.session,
++            AudioAudienceRequest {
++                operation_id: "native-private-context".into(),
++                expected_revision: s
++                    .core
++                    .orch
++                    .audio_audience_revision(&s.core.session)
++                    .unwrap(),
++                private_connections: BTreeSet::from([
++                    s.live[0].leg.id.clone(),
++                    s.live[2].leg.id.clone(),
++                ]),
++                receivers: std::collections::BTreeMap::from([
++                    (s.live[0].leg.id.clone(), source(2)),
++                    (s.live[2].leg.id.clone(), source(0)),
++                    (s.live[1].leg.id.clone(), source(3)),
++                ]),
++                activate_muted: None,
++            },
++        )
++        .unwrap();
++    let invocation = grant(s, Approval::Audience(plan.clone())).await;
++    let (_, handle) = s
++        .core
++        .orch
++        .change_staged_audio_audience_with_held(
++            &s.core.session,
++            plan,
++            deadline(),
++            CancellationToken::new(),
++            &invocation,
++        )
++        .await
++        .unwrap();
++    drop(invocation);
++    s.tone(0, 2).await;
++    s.tone(2, 0).await;
++    handle
++}
++#[tokio::test]
++async fn actual_tls_managed_handoff_commits_role_and_media_together_with_retained_remote_connection(
++) {
++    for kind in ["quic", "wt"] {
++        for disposition in [
++            OldHandoffDisposition::Observer,
++            OldHandoffDisposition::Leave,
++        ] {
++            let s = Scene::new_handoff(kind).await;
++            let context = private_context(&s).await;
++            let remote = binding(&s.live[1].leg, Medium::Audio);
++            let session = s.core.session.clone();
++            let revision = s.core.orch.participant_revision(&session).unwrap();
++            let plan = s
++                .core
++                .orch
++                .plan_staged_audio_handoff(
++                    &session,
++                    revision,
++                    "native-handoff-correlation".into(),
++                    ParticipantRole::Agent,
++                    &context,
++                    AudioHandoffRequest {
++                        operation_id: "native-managed-handoff".into(),
++                        expected_revision: s.core.orch.audio_audience_revision(&session).unwrap(),
++                        old: s.live[0].leg.id.clone(),
++                        retained: s.live[1].leg.id.clone(),
++                        admitted: s.live[2].leg.id.clone(),
++                        old_disposition: disposition,
++                    },
++                )
++                .unwrap();
++            let replay_plan = plan.clone();
++            let invocation = grant(&s, Approval::Handoff(plan.clone())).await;
++            let (outcome, handle) = s
++                .core
++                .orch
++                .commit_staged_audio_handoff_with_held(
++                    &session,
++                    invocation.principal.clone(),
++                    plan,
++                    deadline(),
++                    CancellationToken::new(),
++                    &invocation,
++                )
++                .await
++                .unwrap();
++            drop(invocation);
++            let logical = outcome
++                .media
++                .participant_handoff
++                .as_ref()
++                .expect("managed logical observation");
++            let replay_grant = grant(&s, Approval::Handoff(replay_plan.clone())).await;
++            let replay = s
++                .core
++                .orch
++                .replay_staged_audio_handoff(
++                    &session,
++                    &replay_grant.principal,
++                    &replay_plan,
++                    &replay_grant,
++                )
++                .unwrap()
++                .unwrap();
++            assert_eq!(&replay, logical);
++            drop(replay_grant);
++            assert_eq!(logical.revision, revision + 1);
++            assert_eq!(logical.retained, s.live[1].leg.id);
++            assert_eq!(logical.admitted, s.live[2].leg.id);
++            assert_eq!(
++                s.core
++                    .orch
++                    .participant_session_role(&session, &core_fixture::participant("alice"))
++                    .unwrap(),
++                if disposition == OldHandoffDisposition::Observer {
++                    Some(ParticipantRole::Observer)
++                } else {
++                    None
++                }
++            );
++            assert_eq!(
++                s.core
++                    .orch
++                    .participant_session_role(&session, &core_fixture::participant("carol"))
++                    .unwrap(),
++                Some(ParticipantRole::Agent)
++            );
++            assert_eq!(
++                s.core.orch.participant_revision(&session).unwrap(),
++                revision + 1
++            );
++            s.tone(2, 1).await;
++            s.tone(1, 2).await;
++            if disposition == OldHandoffDisposition::Observer {
++                s.tone(2, 0).await;
++                s.no_tone(0, 1).await;
++            } else {
++                assert!(outcome.retiring.contains(&s.live[0].leg.id));
++                let _ = handle.finish_local_media_cleanup(deadline()).await;
++            }
++            assert_eq!(
++                binding(&s.live[1].leg, Medium::Audio).transport_id,
++                remote.transport_id
++            );
++            assert_eq!(s.core.session, session);
++            s.stop().await;
++        }
++    }
++}
++
++#[tokio::test]
++async fn actual_tls_managed_handoff_without_explicit_role_policy_preserves_ready_private_bridge() {
++    let s = Scene::new_mode("quic", &[Medium::Audio], false, true, false).await;
++    let context = private_context(&s).await;
++    let revision = s.core.orch.participant_revision(&s.core.session).unwrap();
++    let before = s
++        .core
++        .orch
++        .audio_audience_revision(&s.core.session)
++        .unwrap();
++    let plan = s
++        .core
++        .orch
++        .plan_staged_audio_handoff(
++            &s.core.session,
++            revision,
++            "denied-role-correlation".into(),
++            ParticipantRole::Agent,
++            &context,
++            AudioHandoffRequest {
++                operation_id: "role-policy-required".into(),
++                expected_revision: before,
++                old: s.live[0].leg.id.clone(),
++                retained: s.live[1].leg.id.clone(),
++                admitted: s.live[2].leg.id.clone(),
++                old_disposition: OldHandoffDisposition::Leave,
++            },
++        )
++        .unwrap();
++    let invocation = grant(&s, Approval::Handoff(plan.clone())).await;
++    assert!(matches!(
++        s.core
++            .orch
++            .commit_staged_audio_handoff_with_held(
++                &s.core.session,
++                invocation.principal.clone(),
++                plan,
++                deadline(),
++                CancellationToken::new(),
++                &invocation
++            )
++            .await,
++        Err(ParticipantControlError::Unsupported)
++    ));
++    drop(invocation);
++    assert_eq!(
++        s.core.orch.participant_revision(&s.core.session).unwrap(),
++        revision
++    );
++    assert_eq!(
++        s.core
++            .orch
++            .audio_audience_revision(&s.core.session)
++            .unwrap(),
++        before
++    );
++    s.tone(0, 2).await;
++    s.tone(2, 0).await;
++    s.stop().await;
++}
++
++#[tokio::test]
++async fn actual_tls_managed_handoff_current_role_denial_and_queued_writer_keep_one_authoritative_commit(
++) {
++    let s = Scene::new_handoff("quic").await;
++    let context = private_context(&s).await;
++    let revision = s.core.orch.participant_revision(&s.core.session).unwrap();
++    let audience = s
++        .core
++        .orch
++        .audio_audience_revision(&s.core.session)
++        .unwrap();
++    let plan = s
++        .core
++        .orch
++        .plan_staged_audio_handoff(
++            &s.core.session,
++            revision,
++            "role-race-correlation".into(),
++            ParticipantRole::Agent,
++            &context,
++            AudioHandoffRequest {
++                operation_id: "native-role-race".into(),
++                expected_revision: audience,
++                old: s.live[0].leg.id.clone(),
++                retained: s.live[1].leg.id.clone(),
++                admitted: s.live[2].leg.id.clone(),
++                old_disposition: OldHandoffDisposition::Observer,
++            },
++        )
++        .unwrap();
++    s.grants
++        .0
++        .write()
++        .await
++        .owners
++        .get_mut(&s.live[0].leg.id)
++        .unwrap()
++        .may_control = false;
++    let invocation = grant(&s, Approval::Handoff(plan.clone())).await;
++    assert!(matches!(
++        s.core
++            .orch
++            .commit_staged_audio_handoff_with_held(
++                &s.core.session,
++                invocation.principal.clone(),
++                plan.clone(),
++                deadline(),
++                CancellationToken::new(),
++                &invocation
++            )
++            .await,
++        Err(ParticipantControlError::Authority)
++    ));
++    drop(invocation);
++    assert_eq!(
++        s.core.orch.participant_revision(&s.core.session).unwrap(),
++        revision
++    );
++    assert_eq!(
++        s.core
++            .orch
++            .audio_audience_revision(&s.core.session)
++            .unwrap(),
++        audience
++    );
++    s.grants
++        .0
++        .write()
++        .await
++        .owners
++        .get_mut(&s.live[0].leg.id)
++        .unwrap()
++        .may_control = true;
++    let invocation = grant(&s, Approval::Handoff(plan.clone())).await;
++    let writer = tokio::spawn({
++        let domain = s.grants.0.clone();
++        let old = s.live[0].leg.id.clone();
++        async move {
++            domain
++                .write()
++                .await
++                .owners
++                .get_mut(&old)
++                .unwrap()
++                .may_control = false;
++        }
++    });
++    tokio::time::sleep(Duration::from_millis(10)).await;
++    assert!(!writer.is_finished());
++    let (outcome, _) = tokio::time::timeout(
++        Duration::from_secs(1),
++        s.core.orch.commit_staged_audio_handoff_with_held(
++            &s.core.session,
++            invocation.principal.clone(),
++            plan.clone(),
++            deadline(),
++            CancellationToken::new(),
++            &invocation,
++        ),
++    )
++    .await
++    .unwrap()
++    .unwrap();
++    assert_eq!(
++        outcome.media.participant_handoff.as_ref().unwrap().revision,
++        revision + 1
++    );
++    drop(invocation);
++    tokio::time::timeout(Duration::from_secs(1), writer)
++        .await
++        .unwrap()
++        .unwrap();
++    let invocation = grant(&s, Approval::Handoff(plan.clone())).await;
++    assert!(matches!(
++        s.core.orch.replay_staged_audio_handoff(
++            &s.core.session,
++            &invocation.principal,
++            &plan,
++            &invocation
++        ),
++        Err(ParticipantControlError::Authority)
++    ));
++    drop(invocation);
++    assert_eq!(
++        s.core.orch.participant_revision(&s.core.session).unwrap(),
++        revision + 1
++    );
++    s.tone(2, 1).await;
++    s.tone(1, 2).await;
++    s.stop().await;
++}
++
++#[tokio::test]
++async fn actual_tls_managed_handoff_cancel_or_remote_end_never_publishes_roles_or_retires_healthy_old_route(
++) {
++    for mode in ["cancel", "remote-end"] {
++        let s = Scene::new_handoff("quic").await;
++        let context = private_context(&s).await;
++        let revision = s.core.orch.participant_revision(&s.core.session).unwrap();
++        let audience = s
++            .core
++            .orch
++            .audio_audience_revision(&s.core.session)
++            .unwrap();
++        let plan = s
++            .core
++            .orch
++            .plan_staged_audio_handoff(
++                &s.core.session,
++                revision,
++                "cancel-or-end-correlation".into(),
++                ParticipantRole::Agent,
++                &context,
++                AudioHandoffRequest {
++                    operation_id: "native-cancel-or-end".into(),
++                    expected_revision: audience,
++                    old: s.live[0].leg.id.clone(),
++                    retained: s.live[1].leg.id.clone(),
++                    admitted: s.live[2].leg.id.clone(),
++                    old_disposition: OldHandoffDisposition::Leave,
++                },
++            )
++            .unwrap();
++        let cancel = CancellationToken::new();
++        if mode == "cancel" {
++            cancel.cancel();
++        } else {
++            s.live[1].wire.server.shutdown().await.unwrap();
++            core_fixture::until(|| {
++                !s.factory.adapters[&Transport::Quic].is_connection_live(&s.live[1].leg.id)
++            })
++            .await;
++        }
++        let invocation = grant(&s, Approval::Handoff(plan.clone())).await;
++        assert!(s
++            .core
++            .orch
++            .commit_staged_audio_handoff_with_held(
++                &s.core.session,
++                invocation.principal.clone(),
++                plan.clone(),
++                deadline(),
++                cancel,
++                &invocation
++            )
++            .await
++            .is_err());
++        assert!(s
++            .core
++            .orch
++            .replay_staged_audio_handoff(&s.core.session, &invocation.principal, &plan, &invocation)
++            .unwrap()
++            .is_none());
++        drop(invocation);
++        assert_eq!(
++            s.core
++                .orch
++                .participant_session_role(&s.core.session, &core_fixture::participant("alice"))
++                .unwrap(),
++            Some(ParticipantRole::Agent)
++        );
++        assert!(!s.live[0].peer.is_closed());
++        s.tone(0, 2).await;
++        s.tone(2, 0).await;
++        if mode == "cancel" {
++            assert_eq!(
++                s.core.orch.participant_revision(&s.core.session).unwrap(),
++                revision
++            );
++            assert_eq!(
++                s.core
++                    .orch
++                    .audio_audience_revision(&s.core.session)
++                    .unwrap(),
++                audience
++            );
++        }
++        s.stop().await;
++    }
++}
+diff --git a/crates/uctp/rvoip-uctp/tests/support/media_control.rs b/crates/uctp/rvoip-uctp/tests/support/media_control.rs
+--- a/crates/uctp/rvoip-uctp/tests/support/media_control.rs
++++ b/crates/uctp/rvoip-uctp/tests/support/media_control.rs
+@@ -177,7 +177,8 @@
+             | MediaControlIntent::DirectSubscriptions { .. }
+             | MediaControlIntent::AudioSubscriptions { .. }
+             | MediaControlIntent::PreparePrivateAudio { .. }
+-            | MediaControlIntent::AudioAudience { .. } => false,
++            | MediaControlIntent::AudioAudience { .. }
++            | MediaControlIntent::Handoff { .. } => false,
+         };
+         if !intent_matches {
+             return Err(StreamControlError::Authority);

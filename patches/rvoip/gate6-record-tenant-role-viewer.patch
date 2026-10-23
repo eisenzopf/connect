@@ -1,0 +1,552 @@
+--- a/crates/foundation/rvoip-core/src/records/capture.rs
++++ b/crates/foundation/rvoip-core/src/records/capture.rs
+@@ -524,7 +524,13 @@
+         assert_eq!(sources.len(), MAX_CAPTURE_ITEMS);
+         assert!(sources
+             .iter()
+-            .all(|source| source.admits(&recipient) && !source.admits(&outsider)));
++            .all(|source| source.admits(&RecordViewer::Participant {
++                participant: recipient.clone(),
++                membership_epoch: 1
++            }) && !source.admits(&RecordViewer::Participant {
++                participant: outsider.clone(),
++                membership_epoch: 1
++            })));
+         assert!(
+             buffer
+                 .finish(
+@@ -622,7 +628,10 @@
+             NamedLimits.retention(&scope, RecordCategory::Metadata)
+         );
+         assert!(
+-            !reference.admits(&ParticipantId::new()),
++            !reference.admits(&RecordViewer::Participant {
++                participant: ParticipantId::new(),
++                membership_epoch: 1
++            }),
+             "raw builder grants nobody"
+         );
+         builder.add_dialog(VconDialog {
+--- a/crates/foundation/rvoip-core/src/records/projection.rs
++++ b/crates/foundation/rvoip-core/src/records/projection.rs
+@@ -1,9 +1,6 @@
+ //! Current policy and source visibility projection over a retained stored read.
+ use super::*;
+-use crate::{
+-    ids::ParticipantId,
+-    store::{VconRead, VconScope},
+-};
++use crate::store::{VconRead, VconScope};
+ use serde_json::{json, Value};
+ use std::{collections::VecDeque, time::Duration};
+ use tokio::time::Instant;
+@@ -30,7 +27,7 @@
+ #[derive(Clone, Eq, PartialEq)]
+ pub struct RecordViewRequest {
+     scope: VconScope,
+-    viewer: ParticipantId,
++    viewer: RecordViewer,
+     uuid: Uuid,
+     revision: u64,
+     body_hash: String,
+@@ -40,7 +37,7 @@
+ impl RecordViewRequest {
+     pub fn new(
+         scope: VconScope,
+-        viewer: ParticipantId,
++        viewer: RecordViewer,
+         uuid: Uuid,
+         revision: u64,
+         body_hash: String,
+@@ -51,7 +48,7 @@
+             || body_hash.len() > 512
+             || manifest_hash.is_empty()
+             || manifest_hash.len() > 512
+-            || !id(viewer.as_str())
++            || !viewer.valid_for(&scope)
+             || !id(&correlation)
+             || uuid.is_nil()
+             || revision == 0
+@@ -72,7 +69,7 @@
+     pub fn scope(&self) -> &VconScope {
+         &self.scope
+     }
+-    pub fn viewer(&self) -> &ParticipantId {
++    pub fn viewer(&self) -> &RecordViewer {
+         &self.viewer
+     }
+     pub fn uuid(&self) -> Uuid {
+--- a/crates/foundation/rvoip-core/src/records/tests.rs
++++ b/crates/foundation/rvoip-core/src/records/tests.rs
+@@ -115,7 +115,10 @@
+ ) {
+     let request = RecordViewRequest::new(
+         scope,
+-        viewer,
++        RecordViewer::Participant {
++            participant: viewer,
++            membership_epoch: 1,
++        },
+         record.uuid(),
+         1,
+         crate::store::vcon_store::stored_content_hash(record.body()),
+@@ -160,11 +163,12 @@
+         record.manifest_hash().unwrap()
+     );
+     let unattributed = VconRecord::unattributed(record.body().clone()).unwrap();
+-    assert!(unattributed
+-        .manifest()
+-        .sources()
+-        .iter()
+-        .all(|s| !s.admits(&b)));
++    assert!(unattributed.manifest().sources().iter().all(|s| !s.admits(
++        &RecordViewer::Participant {
++            participant: b.clone(),
++            membership_epoch: 1
++        }
++    )));
+     let mut missing: Value = serde_json::from_slice(&encoded).unwrap();
+     missing["sources"].as_array_mut().unwrap().pop();
+     let incomplete = RecordManifest::decode(&serde_json::to_vec(&missing).unwrap()).unwrap();
+@@ -976,3 +980,71 @@
+         std::fs::write(dir.join("actual-inline-media-view.json"), view.body).unwrap();
+     }
+ }
++
++#[test]
++fn tenant_role_viewer_keeps_private_source_policy_and_tenant_scope_explicit() {
++    let (record, _, _, _) = fixture();
++    let scope = scope();
++    let viewer = RecordViewer::TenantRole {
++        identity: crate::ids::IdentityId::from_string("identity_auditor"),
++        tenant: scope.tenant_id().clone(),
++        role: "auditor".into(),
++        revision: 1,
++        private_sources: false,
++    };
++    let private = record
++        .manifest()
++        .sources()
++        .iter()
++        .find(|s| matches!(&s.audience, RecordAudience::Participants(_)))
++        .unwrap();
++    assert!(!private.admits(&viewer));
++    let RecordViewer::TenantRole {
++        identity,
++        tenant,
++        role,
++        revision,
++        ..
++    } = viewer.clone()
++    else {
++        unreachable!()
++    };
++    let full = RecordViewer::TenantRole {
++        identity,
++        tenant,
++        role,
++        revision,
++        private_sources: true,
++    };
++    assert!(private.admits(&full));
++    let request = |viewer| {
++        RecordViewRequest::new(
++            scope.clone(),
++            viewer,
++            record.uuid(),
++            1,
++            crate::store::vcon_store::stored_content_hash(record.body()),
++            record.manifest_hash().unwrap(),
++            "role-view".into(),
++        )
++    };
++    assert!(request(viewer).is_ok());
++    let RecordViewer::TenantRole {
++        identity,
++        role,
++        revision,
++        private_sources,
++        ..
++    } = full
++    else {
++        unreachable!()
++    };
++    assert!(request(RecordViewer::TenantRole {
++        identity,
++        tenant: crate::ids::TenantId::from_string("other_tenant"),
++        role,
++        revision,
++        private_sources
++    })
++    .is_err());
++}
+--- a/crates/foundation/rvoip-core/src/records.rs
++++ b/crates/foundation/rvoip-core/src/records.rs
+@@ -2,7 +2,7 @@
+ use crate::{
+     agent::ObservationCompleteness,
+     error::{Result, RvoipError},
+-    ids::ParticipantId,
++    ids::{IdentityId, ParticipantId, TenantId},
+ };
+ use bytes::Bytes;
+ use chrono::{DateTime, Utc};
+@@ -12,6 +12,58 @@
+     fmt, io,
+ };
+ use uuid::Uuid;
++
++/// The current host-authorized reader. A tenant role is never a Participant
++/// appearance, and this value alone grants no source access: the current lease
++/// must independently select every permitted source.
++#[derive(Clone, Eq, PartialEq)]
++pub enum RecordViewer {
++    Participant {
++        participant: ParticipantId,
++        membership_epoch: u64,
++    },
++    TenantRole {
++        identity: IdentityId,
++        tenant: TenantId,
++        role: String,
++        revision: u64,
++        private_sources: bool,
++    },
++}
++impl RecordViewer {
++    fn valid_for(&self, scope: &crate::store::VconScope) -> bool {
++        match self {
++            Self::Participant {
++                participant,
++                membership_epoch,
++            } => {
++                id(participant.as_str())
++                    && *membership_epoch > 0
++                    && *membership_epoch <= crate::store::vcon_store::MAX_VCON_REVISION
++            }
++            Self::TenantRole {
++                identity,
++                tenant,
++                role,
++                revision,
++                ..
++            } => {
++                id(identity.as_str())
++                    && id(tenant.as_str())
++                    && tenant == scope.tenant_id()
++                    && id(role)
++                    && role.len() <= 64
++                    && *revision > 0
++                    && *revision <= crate::store::vcon_store::MAX_VCON_REVISION
++            }
++        }
++    }
++}
++impl fmt::Debug for RecordViewer {
++    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
++        f.write_str("RecordViewer([redacted])")
++    }
++}
+ 
+ pub const MAX_RECORD_BYTES: usize = 16 * 1024 * 1024;
+ pub const MAX_RECORD_MANIFEST_BYTES: usize = 1024 * 1024;
+@@ -181,12 +233,17 @@
+     pub fn state(&self) -> RecordSourceState {
+         self.state
+     }
+-    pub fn admits(&self, participant: &ParticipantId) -> bool {
++    pub fn admits(&self, viewer: &RecordViewer) -> bool {
+         if self.state == RecordSourceState::MetadataUnavailable {
+             return false;
+         }
+         match &self.audience {
+-            RecordAudience::Participants(ids) => ids.contains(participant),
++            RecordAudience::Participants(ids) => match viewer {
++                RecordViewer::Participant { participant, .. } => ids.contains(participant),
++                RecordViewer::TenantRole {
++                    private_sources, ..
++                } => *private_sources && !ids.is_empty(),
++            },
+             RecordAudience::Policy => true,
+         }
+     }
+--- a/crates/foundation/rvoip-core/tests/messaging.rs
++++ b/crates/foundation/rvoip-core/tests/messaging.rs
+@@ -1010,10 +1010,30 @@
+         .iter()
+         .find(|source| source.id() == format!("message.{id}"))
+         .unwrap();
+-    assert!(source.admits(&participants[0]));
+-    assert!(source.admits(&participants[1]));
+-    assert!(!source.admits(&participants[2]));
+-    assert!(!source.admits(&ParticipantId::from_string("forbidden-capture-outsider")));
++    assert!(
++        source.admits(&rvoip_core::records::RecordViewer::Participant {
++            participant: participants[0].clone(),
++            membership_epoch: 1
++        })
++    );
++    assert!(
++        source.admits(&rvoip_core::records::RecordViewer::Participant {
++            participant: participants[1].clone(),
++            membership_epoch: 1
++        })
++    );
++    assert!(
++        !source.admits(&rvoip_core::records::RecordViewer::Participant {
++            participant: participants[2].clone(),
++            membership_epoch: 1
++        })
++    );
++    assert!(
++        !source.admits(&rvoip_core::records::RecordViewer::Participant {
++            participant: ParticipantId::from_string("forbidden-capture-outsider"),
++            membership_epoch: 1
++        })
++    );
+     assert_eq!(
+         source.provenance().producing_participant.as_ref(),
+         Some(&participants[0])
+@@ -1060,7 +1080,10 @@
+             .unwrap();
+         let request = RecordViewRequest::new(
+             scope.clone(),
+-            viewer,
++            rvoip_core::records::RecordViewer::Participant {
++                participant: viewer,
++                membership_epoch: 1,
++            },
+             uuid,
+             handle.revision,
+             handle.content_hash.clone(),
+--- a/crates/uctp/rvoip-uctp/src/v2/recording.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/recording.rs
+@@ -9,10 +9,9 @@
+ use chrono::{DateTime, Utc};
+ use rvoip_auth_core::bearer::AuthenticatedPrincipal;
+ use rvoip_core::{
+-    ids::ParticipantId,
+     records::{
+         RecordProjection, RecordView, RecordViewControl, RecordViewError, RecordViewLease,
+-        RecordViewRequest,
++        RecordViewRequest, RecordViewer,
+     },
+     store::{VconLocator, VconScope, VconStore},
+ };
+@@ -121,7 +120,7 @@
+     envelope: &Envelope,
+     principal: &AuthenticatedPrincipal,
+     scope: VconScope,
+-    viewer: ParticipantId,
++    viewer: RecordViewer,
+     authority: AuthorityLease,
+     store: &dyn VconStore,
+     sources: F,
+@@ -334,7 +333,9 @@
+         request: &RecordViewRequest,
+         view: &RecordView<'_>,
+     ) -> Result<RecordReference, RecordFetchError> {
+-        if !self.is_available() { return Err(RecordFetchError::Delivery); }
++        if !self.is_available() {
++            return Err(RecordFetchError::Delivery);
++        }
+         if request.uuid() != view.uuid || request.revision() != view.revision {
+             return Err(RecordFetchError::Changed);
+         }
+@@ -344,7 +345,9 @@
+             .entries
+             .lock()
+             .map_err(|_| RecordFetchError::Delivery)?;
+-        if !self.is_available() { return Err(RecordFetchError::Delivery); }
++        if !self.is_available() {
++            return Err(RecordFetchError::Delivery);
++        }
+         entries.retain(|_, entry| entry.end > instant && entry.expires_at > now);
+         if entries.len() >= self.capacity {
+             return Err(RecordFetchError::Delivery);
+@@ -365,15 +368,26 @@
+     }
+     /// Endpoint lifetime only. Closing grants no future access and wakes
+     /// already-owned raw writers; entries contain metadata, never authority.
+-    pub fn close(&self) { self.endpoint.cancel(); }
+-    pub fn is_available(&self) -> bool { !self.endpoint.is_cancelled() }
++    pub fn close(&self) {
++        self.endpoint.cancel();
++    }
++    pub fn is_available(&self) -> bool {
++        !self.endpoint.is_cancelled()
++    }
+     /// Trusted adapter resource lookup, NOT admission. The adapter must derive
+     /// fresh credential/resource/source authority before calling retrieve.
+     /// Never serialize this private backend binding as a public URL grant.
+     pub fn reference_request(&self, url: &str) -> Result<RecordViewRequest, RecordFetchError> {
+-        if !self.is_available() { return Err(RecordFetchError::Changed); }
+-        let entry = self.entries.lock().map_err(|_|RecordFetchError::Delivery)?
+-            .get(url).cloned().ok_or(RecordFetchError::Missing)?;
++        if !self.is_available() {
++            return Err(RecordFetchError::Changed);
++        }
++        let entry = self
++            .entries
++            .lock()
++            .map_err(|_| RecordFetchError::Delivery)?
++            .get(url)
++            .cloned()
++            .ok_or(RecordFetchError::Missing)?;
+         if !self.is_available() || entry.end <= Instant::now() || entry.expires_at <= Utc::now() {
+             return Err(RecordFetchError::Changed);
+         }
+@@ -384,7 +398,7 @@
+         &self,
+         url: &str,
+         scope: &VconScope,
+-        viewer: &ParticipantId,
++        viewer: &RecordViewer,
+         authority: AuthorityLease,
+         store: &dyn VconStore,
+         sources: F,
+@@ -401,7 +415,9 @@
+         if !authority.current() {
+             return Err(RecordFetchError::Authority);
+         }
+-        if !self.is_available() { return Err(RecordFetchError::Changed); }
++        if !self.is_available() {
++            return Err(RecordFetchError::Changed);
++        }
+         let entry = self
+             .entries
+             .lock()
+@@ -470,7 +486,9 @@
+ }
+ impl GuardedRecordBody {
+     /// Includes original reference TTL, current authority and dispatch bounds.
+-    pub fn deadline(&self) -> Instant { self.deadline }
++    pub fn deadline(&self) -> Instant {
++        self.deadline
++    }
+     pub fn view(&self) -> Result<RecordView<'_>, RecordFetchError> {
+         if !self.authority.current()
+             || self.endpoint.is_cancelled()
+--- a/crates/uctp/rvoip-uctp/tests/support/record_fetch.rs
++++ b/crates/uctp/rvoip-uctp/tests/support/record_fetch.rs
+@@ -5,7 +5,7 @@
+     records::{
+         RecordAudience, RecordCategory, RecordManifest, RecordRetention, RecordSource,
+         RecordTarget, RecordViewError, RecordViewLease, RecordViewRequest, RecordViewResult,
+-        VconRecord,
++        RecordViewer, VconRecord,
+     },
+     store::{
+         MemoryVconStore, VconDeletion, VconHandle, VconLocator, VconRead, VconScope, VconStore,
+@@ -184,7 +184,11 @@
+     fn current(&self, r: &RecordViewRequest) -> RecordViewResult<BTreeSet<String>> {
+         if r != &self.request
+             || r.scope() != &self.held.scope
+-            || r.viewer() != &self.held.viewer
++            || r.viewer()
++                != &(RecordViewer::Participant {
++                    participant: self.held.viewer.clone(),
++                    membership_epoch: 1,
++                })
+             || !self.held.original.current()
+         {
+             return Err(RecordViewError::Authority);
+@@ -199,7 +203,13 @@
+     let held = a
+         .authority::<Arc<Inner>>()
+         .ok_or(DispatchError::Authority)?;
+-    if r.scope() != &held.scope || r.viewer() != &held.viewer {
++    if r.scope() != &held.scope
++        || r.viewer()
++            != &(RecordViewer::Participant {
++                participant: held.viewer.clone(),
++                membership_epoch: 1,
++            })
++    {
+         return Err(DispatchError::Authority);
+     }
+     Ok(Box::new(Sources {
+@@ -270,7 +280,10 @@
+             e,
+             &c.principal,
+             scope(),
+-            self.viewer.clone(),
++            RecordViewer::Participant {
++                participant: self.viewer.clone(),
++                membership_epoch: 1,
++            },
+             a,
+             self.backend.as_ref(),
+             source_lease,
+@@ -553,7 +566,10 @@
+             .retrieve(
+                 &url,
+                 &scope(),
+-                &p.viewer,
++                &RecordViewer::Participant {
++                    participant: p.viewer.clone(),
++                    membership_epoch: 1
++                },
+                 AuthorityLease::holding(()),
+                 p.backend.as_ref(),
+                 source_lease,
+@@ -568,7 +584,10 @@
+             .retrieve(
+                 &url,
+                 &scope(),
+-                &ParticipantId::new(),
++                &RecordViewer::Participant {
++                    participant: ParticipantId::new(),
++                    membership_epoch: 1
++                },
+                 fresh(&f, &p, &parsed).await,
+                 p.backend.as_ref(),
+                 source_lease,
+@@ -582,7 +601,10 @@
+         .retrieve(
+             &url,
+             &scope(),
+-            &p.viewer,
++            &RecordViewer::Participant {
++                participant: p.viewer.clone(),
++                membership_epoch: 1,
++            },
+             fresh(&f, &p, &parsed).await,
+             p.backend.as_ref(),
+             source_lease,
+@@ -615,7 +637,10 @@
+             .retrieve(
+                 &url,
+                 &scope(),
+-                &p.viewer,
++                &RecordViewer::Participant {
++                    participant: p.viewer.clone(),
++                    membership_epoch: 1
++                },
+                 fresh(&f, &p, &parsed).await,
+                 p.backend.as_ref(),
+                 source_lease,
+@@ -649,7 +674,10 @@
+             .retrieve(
+                 &url,
+                 &scope(),
+-                &p.viewer,
++                &RecordViewer::Participant {
++                    participant: p.viewer.clone(),
++                    membership_epoch: 1
++                },
+                 fresh(&f, &p, &parsed).await,
+                 p.backend.as_ref(),
+                 source_lease,
+@@ -665,7 +693,10 @@
+             .retrieve(
+                 &url,
+                 &scope(),
+-                &p.viewer,
++                &RecordViewer::Participant {
++                    participant: p.viewer.clone(),
++                    membership_epoch: 1
++                },
+                 fresh(&f, &p, &parsed).await,
+                 p.backend.as_ref(),
+                 source_lease,

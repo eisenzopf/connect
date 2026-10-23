@@ -206,9 +206,15 @@ impl Prism {
 
 #[async_trait]
 impl MessageExtension for Prism {
-    async fn send(&self, request: &MessageRequest) -> Result<MessageReceipt> {
+    async fn send(
+        &self,
+        request: &MessageRequest,
+        permit: connect_connector_api::DispatchPermit,
+    ) -> Result<MessageReceipt> {
+        permit.admit_effect()?;
         self.validate_message(request)?;
         let _gate = self.gate.lock().map_err(|_| Failure::Uncertain)?;
+        permit.check()?;
         let mut ledger = self.read()?;
         if ledger.sessions.contains_key(&request.mutation_id) {
             return Err(Failure::Rejected);
@@ -275,8 +281,13 @@ impl MessageExtension for Prism {
             Ok(receipt)
         }
     }
-    async fn message_status(&self, id: &str) -> Result<MessageReceipt> {
+    async fn message_status(
+        &self,
+        id: &str,
+        permit: connect_connector_api::DispatchPermit,
+    ) -> Result<MessageReceipt> {
         let _gate = self.gate.lock().map_err(|_| Failure::Uncertain)?;
+        permit.check()?;
         let mut ledger = self.read()?;
         let posted = ledger.messages.get_mut(id).ok_or(Failure::Rejected)?;
         posted.uncertain = false;
@@ -315,14 +326,24 @@ impl Connector for Prism {
             Readiness::Ready
         }
     }
-    async fn deliver(&self, _: &DeliveryRequest) -> Result<Completion> {
+    async fn deliver(
+        &self,
+        _: &DeliveryRequest,
+        permit: connect_connector_api::DispatchPermit,
+    ) -> Result<Completion> {
+        permit.admit_effect()?;
         Err(Failure::Rejected)
     }
     fn message_extension(&self) -> Option<&dyn MessageExtension> {
         Some(self)
     }
-    async fn deliver_attempt(&self, id: &str, request: &DeliveryRequest) -> Result<Completion> {
-        let receipt = self.deliver_observed(id, request).await?;
+    async fn deliver_attempt(
+        &self,
+        id: &str,
+        request: &DeliveryRequest,
+        permit: connect_connector_api::DispatchPermit,
+    ) -> Result<Completion> {
+        let receipt = self.deliver_observed(id, request, permit).await?;
         Ok(Completion {
             provider_id: receipt.observation.external_id.ok_or(Failure::Uncertain)?,
             reply: receipt.reply,
@@ -332,6 +353,7 @@ impl Connector for Prism {
         &self,
         id: &str,
         request: &DeliveryRequest,
+        permit: connect_connector_api::DispatchPermit,
     ) -> Result<MessageReceipt> {
         self.contract()
             .validate_address(&request.target, request.source.as_deref())
@@ -376,7 +398,7 @@ impl Connector for Prism {
             ledger.host_requests.insert(id.into(), envelope);
             self.write(&ledger)?;
         }
-        self.send(&translated).await
+        self.send(&translated, permit).await
     }
 }
 

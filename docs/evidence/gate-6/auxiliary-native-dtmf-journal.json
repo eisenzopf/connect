@@ -1,0 +1,118 @@
+{
+  "task": "G6-046",
+  "title": "Durable native DTMF source journal foundation",
+  "recorded_at": "2026-10-22T07:10:50.991215+00:00",
+  "status": "source-journal-foundation-local-component-qualified",
+  "full_task_complete": false,
+  "full_goal_complete": false,
+  "acceptance_qualified": false,
+  "scope": "Isolated local macOS arm64 protocol and Store libraries. Controlled native parent/source fixtures establish durable source custody, not actual signaling IO or received DTMF.",
+  "schema_version": 83,
+  "implementation": [
+    "Exact dtmf.send logical identity, original payload and extensions, digit spelling, requested method and optional stream revision survive retries. Named dtmf.send permission is independent of media permission; existing credential issuance is unchanged.",
+    "Complete sequence validation precedes acceptance:1..32 ASCII telephone digits, RFC4733 duration40..6000ms or INFO100..5000ms,30second total including70ms gaps,32KiB payload. Schema83 repeats these bounds and retains all original credential/key/Device/Endpoint/member/runtime/generation/expiry source constraints.",
+    "One common journal attempt is reserved before any future engine call. Changed intent conflicts; cancellation/restart after attempt preserves original uncertainty and never resubmits. Definite no-effect refusal closes custody. A media/quality/capability/data receipt cannot complete a DTMF attempt. No DTMF success receipt or public dispatch is enabled before recipient effects are integrated."
+  ],
+  "verification": {
+    "distinct_checks_passed": 895,
+    "protocol": {
+      "passed": 33,
+      "failed": 0,
+      "ignored": 0,
+      "new_dtmf_cases": 3,
+      "log": ".local/gate-6/native-dtmf-foundation-protocol-v1.log"
+    },
+    "store": {
+      "passed": 862,
+      "failed": 0,
+      "ignored": 3,
+      "seconds": 497.82,
+      "log": ".local/gate-6/native-dtmf-foundation-store-full-v4.log",
+      "explicit_helpers": [
+        "test authority_fences::tests::process_worker ... ignored, explicitly executed by the cross-process parent tests",
+        "test installation_ownership::tests::process_worker ... ignored, subprocess fixture explicitly invoked by ownership refusal and process-death parents",
+        "test transitions::tests::crash_worker ... ignored, subprocess fixture, explicitly invoked by crash and administration parent tests"
+      ]
+    },
+    "focused": {
+      "passed": 76,
+      "failed": 0,
+      "ignored": 0,
+      "log": ".local/gate-6/native-dtmf-foundation-store-focused-v4.log",
+      "counted_within_full_store": true
+    },
+    "new_store_dtmf_cases": [
+      "connection_control::tests::native_stream_authority::dtmf::native_dtmf_acceptance_cannot_lend_old_authority_to_a_later_signal_attempt",
+      "connection_control::tests::native_stream_authority::dtmf::native_dtmf_attempt_cannot_be_completed_with_a_media_or_descriptor_receipt",
+      "connection_control::tests::native_stream_authority::dtmf::native_dtmf_cancellation_preserves_the_actual_attempt_cutoff_and_reserved_identity",
+      "connection_control::tests::native_stream_authority::dtmf::native_dtmf_definite_no_effect_failure_releases_control_without_a_delivery_claim",
+      "connection_control::tests::native_stream_authority::dtmf::native_dtmf_needs_its_named_signal_permission_and_a_current_completed_physical_parent",
+      "connection_control::tests::native_stream_authority::dtmf::native_dtmf_preserves_exact_intent_and_replay_never_creates_another_attempt",
+      "connection_control::tests::native_stream_authority::dtmf::native_dtmf_source_schema_rejects_malformed_sequences_even_without_rust_validation",
+      "connection_control::tests::native_stream_authority::dtmf::native_dtmf_stale_revision_fails_durably_before_any_signal_attempt",
+      "connection_control::tests::native_stream_authority::dtmf::native_dtmf_successor_recovers_original_uncertainty_without_automatic_resubmission"
+    ]
+  },
+  "initial_attempts": [
+    {
+      "log": ".local/gate-6/native-dtmf-foundation-store-v1.log",
+      "passed": 67,
+      "failed": 7,
+      "cause": "Initialization wrote83 while SCHEMA_VERSION still82. Corrected constant83; all failed reopen/recovery cases pass in final run. No old-schema conversion added."
+    },
+    {
+      "log": ".local/gate-6/native-dtmf-foundation-store-v2.log",
+      "status": "interrupted",
+      "cause": "New test held Store connection while its assertion requested the same mutex through Fixture.count. Actual thread sample confirms test-only nested acquisition. Explicitly dropped that connection before counting. Interrupted run not counted as a completed suite.",
+      "sample": ".local/gate-6/native-dtmf-foundation-store-v2-thread-sample.txt"
+    },
+    {
+      "log": ".local/gate-6/native-dtmf-foundation-store-focused-v3.log",
+      "passed": 8,
+      "failed": 1,
+      "cause": "New fixture tried an illegal membership-epoch transition; corrected to valid membership removal. Source authorization contract unchanged."
+    }
+  ],
+  "inputs": {
+    "path": ".local/gate-6/native-dtmf-foundation-inputs-v4.json",
+    "entries": 1374,
+    "sha256": "e2e656fe3b542eb7a1870169223524492cf489d9308ca36aa6ae714fb597dec1"
+  },
+  "source_lock": {
+    "path": "dependencies/source-lock.json",
+    "patches": 133,
+    "sha256": "98847052fe65b787fe5686aa1c40b32ebaa58a8404e3f2edd8d20767a080a524",
+    "unchanged": true
+  },
+  "compiled_binaries": [
+    {
+      "path": "target/debug/deps/connect_protocol-9a8f3351c7948a23",
+      "archive": ".local/gate-6/native-dtmf-foundation-artifacts-v1/connect_protocol-9a8f3351c7948a23-148614f548a5.gz",
+      "sha256": "148614f548a5b93cab361095fefcebe3676a8d858c0d6f96151bf25005dafecd",
+      "bytes": 18371488,
+      "gzip_bytes": 3314017,
+      "archive_sha256": "3d2b1f82e3f9e005b9fc15017364f2cf45b7bca176c5d51431c984bc48ac3db4",
+      "restored_bytes_verified": true
+    },
+    {
+      "path": "target/debug/deps/connect_store-2bc54b64bb656bb4",
+      "archive": ".local/gate-6/native-dtmf-foundation-artifacts-v1/connect_store-2bc54b64bb656bb4-a47dd8b3d176.gz",
+      "sha256": "a47dd8b3d176624f00db3302b3a56fbc1f6643d114e205b5e30604d05983af76",
+      "bytes": 68738240,
+      "gzip_bytes": 14733063,
+      "archive_sha256": "51c37cf7aa505cbae6fd6790ea23c3aa133673e3308e72b562b1be50720fdbd0",
+      "restored_bytes_verified": true
+    }
+  ],
+  "unchanged_auxiliary_ledger": {
+    "contracts/uctp-gate-6-requirements.json": "c21ef7e8b9068520303638047252022a93891a46ab59ee588f810c8ba69677da",
+    "docs/evidence/gate-6/auxiliary-protocol-scope.json": "6ed6113452c8507e1c8af7b7542899fd55bda55c316aa5d1b545aa3f6f3cd2f5"
+  },
+  "not_qualified": [
+    "Actual signed native DTMF source capture, original/current private audience through actual IO, frozen intended recipients and independent fresh recipient signal permission.",
+    "Per-recipient durable writer results, partial IO/cancel/key/member/Endpoint/expiry/restart recovery and truthful local-submission outcome. Remote playback is not established by a local write.",
+    "Service registration and writer driving, public SDK operation, server HTTP/OpenAPI reference, actual EdDSA/ES256 peers and SIP/WebRTC attribution.",
+    "Assurance/step-up, exact61 auxiliary vectors, remaining Gate6 tasks, Linux x86_64/remote/browser/provider profiles and all acceptance/publication."
+  ],
+  "next": "Continue durable DTMF physical delivery with original and current privacy, current independent source/recipient signal authority, exact observed provenance and original-operation recovery. Then approved assurance/step-up and exact auxiliary vector reconciliation."
+}

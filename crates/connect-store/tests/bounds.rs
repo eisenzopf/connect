@@ -31,7 +31,10 @@ fn cursor_pagination_utf8_bounds_and_participant_normalization() {
             &key.id,
             &Operation::Create {
                 request_id: "create".into(),
-                participants: vec![agent.id.clone(), agent.id],
+                request: connect_protocol::conversations::CreateRequest::persistent(vec![
+                    agent.id.clone(),
+                    agent.id,
+                ]),
             },
         )
         .unwrap()
@@ -48,7 +51,10 @@ fn cursor_pagination_utf8_bounds_and_participant_normalization() {
                 &key.id,
                 &Operation::Create {
                     request_id: "too-many".into(),
-                    participants: vec![third.id, "nonexistent".into()]
+                    request: connect_protocol::conversations::CreateRequest::persistent(vec![
+                        third.id,
+                        "nonexistent".into()
+                    ])
                 }
             )
             .unwrap_err()
@@ -62,7 +68,7 @@ fn cursor_pagination_utf8_bounds_and_participant_normalization() {
                 &Operation::Send {
                     request_id: request.into(),
                     conversation_id: id.clone(),
-                    body: body.into(),
+                    message: connect_protocol::messages::MessageDraft::text_all(body),
                 },
             )
             .unwrap();
@@ -74,7 +80,7 @@ fn cursor_pagination_utf8_bounds_and_participant_normalization() {
                 &Operation::Send {
                     request_id: "oversize".into(),
                     conversation_id: id.clone(),
-                    body: "ééé".into()
+                    message: connect_protocol::messages::MessageDraft::text_all("ééé")
                 }
             )
             .unwrap_err()
@@ -199,7 +205,7 @@ fn concurrent_admission_cannot_overshoot_journal_capacity() {
             &key.id,
             &Operation::Create {
                 request_id: "create".into(),
-                participants: vec![agent.id],
+                request: connect_protocol::conversations::CreateRequest::persistent(vec![agent.id]),
             },
         )
         .unwrap()
@@ -218,7 +224,7 @@ fn concurrent_admission_cannot_overshoot_journal_capacity() {
                     &Operation::Send {
                         request_id: format!("send-{index}"),
                         conversation_id: id,
-                        body: "bounded".into(),
+                        message: connect_protocol::messages::MessageDraft::text_all("bounded"),
                     },
                 )
             })
@@ -260,7 +266,9 @@ fn current_authority_filters_inbox_without_hiding_storage_failure() {
             &broad.id,
             &Operation::Create {
                 request_id: "create".into(),
-                participants: vec![agent.id],
+                request: connect_protocol::conversations::CreateRequest::persistent(vec![agent
+                    .id
+                    .clone()]),
             },
         )
         .unwrap()
@@ -285,6 +293,19 @@ fn current_authority_filters_inbox_without_hiding_storage_failure() {
             .code,
         "forbidden"
     );
+    let peer = store
+        .issue(&agent.id, Scope::messaging(vec![app.id.clone()]), expiry)
+        .unwrap();
+    store
+        .execute(
+            &peer.id,
+            &Operation::Send {
+                request_id: "private-from-peer".into(),
+                conversation_id: id.clone(),
+                message: connect_protocol::messages::MessageDraft::text_all("UNPERMITTED-SOURCE"),
+            },
+        )
+        .unwrap();
     let narrow = store
         .issue(&app.id, Scope::messaging(vec![]), expiry)
         .unwrap();
@@ -298,9 +319,16 @@ fn current_authority_filters_inbox_without_hiding_storage_failure() {
             },
         )
         .unwrap();
-    assert!(matches!(inbox,Outcome::Inbox {events,cursor:Some(_)} if events.is_empty()));
+    // Own Conversation metadata remains visible; the peer's source is
+    // filtered before pagination under the narrowed recipient ceiling.
+    assert!(
+        matches!(inbox,Outcome::Inbox {events,cursor:Some(_)} if events.len()==1 && events[0].kind=="conversation_created" && events[0].message.is_none())
+    );
     let db = rusqlite::Connection::open(store.path()).unwrap();
-    db.execute_batch("DROP TABLE participants;").unwrap();
+    // Deliberate corruption in a disposable fixture still surfaces storage
+    // failure, rather than treating a broken policy view as an empty inbox.
+    db.execute_batch("PRAGMA foreign_keys=OFF; DROP TABLE participants;")
+        .unwrap();
     assert_eq!(
         store
             .execute(

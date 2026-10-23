@@ -15,6 +15,7 @@ use tower_http::cors::{AllowOrigin, CorsLayer};
 #[derive(Clone)]
 pub(super) struct HttpState {
     pub(super) service: Arc<Service>,
+    pub(super) provider_routes: Option<Arc<Vec<String>>>,
     pub(super) verifier: Option<Arc<telnyx::webhooks::Verifier>>,
     pub(super) capacity: Arc<tokio::sync::Semaphore>,
     pub(super) cancellation: CancellationToken,
@@ -27,16 +28,26 @@ pub struct Listener {
     pub address: SocketAddr,
     stop: CancellationToken,
     task: Option<tokio::task::JoinHandle<std::io::Result<()>>>,
+    _retirement: Arc<dyn connect_store::RuntimeRetirementSignal>,
 }
 
+struct Retirement(CancellationToken);
+impl connect_store::RuntimeRetirementSignal for Retirement {
+    fn retire(&self) {
+        self.0.cancel()
+    }
+}
 impl Listener {
+    pub(crate) fn begin_shutdown(&self) {
+        self.stop.cancel()
+    }
     /// Bind the complete loopback application facade.
     pub async fn bind(
         address: SocketAddr,
         service: Arc<Service>,
         public_key: Option<&str>,
     ) -> anyhow::Result<Self> {
-        Self::bind_mode(address, service, public_key, false).await
+        Self::bind_mode(address, service, public_key, false, None).await
     }
 
     /// Bind only the callback route. A tunnel may expose this listener without
@@ -46,7 +57,27 @@ impl Listener {
         service: Arc<Service>,
         public_key: Option<&str>,
     ) -> anyhow::Result<Self> {
-        Self::bind_mode(address, service, public_key, true).await
+        Self::bind_mode(address, service, public_key, true, None).await
+    }
+
+    pub(crate) async fn bind_canonical_webhooks(
+        address: SocketAddr,
+        service: Arc<Service>,
+        public_key: &str,
+        routes: Vec<String>,
+    ) -> anyhow::Result<Self> {
+        anyhow::ensure!(
+            !routes.is_empty(),
+            "Canonical callbacks require selected routes"
+        );
+        Self::bind_mode(
+            address,
+            service,
+            Some(public_key),
+            true,
+            Some(Arc::new(routes)),
+        )
+        .await
     }
 
     async fn bind_mode(
@@ -54,6 +85,7 @@ impl Listener {
         service: Arc<Service>,
         public_key: Option<&str>,
         webhooks_only: bool,
+        provider_routes: Option<Arc<Vec<String>>>,
     ) -> anyhow::Result<Self> {
         anyhow::ensure!(address.ip().is_loopback(), "HTTP listener must be loopback");
         let verifier = public_key
@@ -65,9 +97,13 @@ impl Listener {
             service.store.limits().connections,
         ));
         let stop = CancellationToken::new();
+        let retirement: Arc<dyn connect_store::RuntimeRetirementSignal> =
+            Arc::new(Retirement(stop.clone()));
+        service.store.register_runtime_retirement(&retirement)?;
         let listener = tokio::net::TcpListener::bind(address).await?;
         let address = listener.local_addr()?;
         let state = HttpState {
+            provider_routes,
             service,
             verifier,
             capacity,
@@ -82,7 +118,28 @@ impl Listener {
             ))
             .layer(DefaultBodyLimit::max(65_536));
         let administration = Router::new()
+            .route(
+                "/v2/incoming-contacts",
+                post(super::incoming_contacts::command),
+            )
             .route("/v2/identities", post(super::provisioning::identity))
+            .route(
+                "/v2/credentials/{id}/revoke",
+                post(super::provisioning::scoped),
+            )
+            .route(
+                "/v2/identities/{id}/record-read-role",
+                post(super::provisioning::scoped),
+            )
+            .route(
+                "/v2/identities/{id}/signing-keys",
+                post(super::provisioning::scoped),
+            )
+            .route(
+                "/v2/signing-keys/{id}/revoke",
+                post(super::provisioning::scoped),
+            )
+            .route("/v2/devices/{id}/revoke", post(super::provisioning::scoped))
             .route(
                 "/v2/identities/{id}/endpoints",
                 post(super::provisioning::scoped),
@@ -113,11 +170,19 @@ impl Listener {
             app
         } else {
             app.route("/v1/operations", post(operation))
+                .merge(super::canonical_http::router(state.clone()))
+                .merge(super::record_mutations::router(state.clone()))
+                .merge(super::user_delegation::router(state.clone()))
                 .merge(access)
                 .merge(administration)
                 .route(
                     "/v1/conversations/{conversation_id}/artifacts/{artifact_id}",
                     put(super::artifact_http::put_chunk).get(super::artifact_http::get_chunk),
+                )
+                .route(
+                    "/v1/conversations/{conversation_id}/artifacts/{artifact_id}/links/{token}",
+                    put(super::artifact_http::put_link_chunk)
+                        .get(super::artifact_http::get_link_chunk),
                 )
                 .layer(browser_cors())
         };
@@ -132,14 +197,24 @@ impl Listener {
             .with_state(state);
         let token = stop.clone();
         let task = tokio::spawn(async move {
-            axum::serve(listener, app)
-                .with_graceful_shutdown(token.cancelled_owned())
-                .await
+            let guarded = super::http_record_io::GuardedListener {
+                listener,
+                cancellation: token.clone(),
+                tls: None,
+                handshakes: Arc::new(tokio::sync::Semaphore::new(1)),
+            };
+            axum::serve(
+                guarded,
+                app.into_make_service_with_connect_info::<super::http_record_io::Custody>(),
+            )
+            .with_graceful_shutdown(token.cancelled_owned())
+            .await
         });
         Ok(Self {
             address,
             stop,
             task: Some(task),
+            _retirement: retirement,
         })
     }
 
@@ -225,7 +300,7 @@ pub(super) async fn authenticated_credential(
     }
 }
 
-fn bearer_token(headers: &HeaderMap) -> Result<String, Error> {
+pub(super) fn bearer_token(headers: &HeaderMap) -> Result<String, Error> {
     let mut values = headers.get_all(header::AUTHORIZATION).iter();
     let value = values.next();
     if values.next().is_some() {
@@ -277,13 +352,29 @@ async fn operation(
         Ok(value) => value,
         Err(response) => return response,
     };
-    let result = state
-        .service
-        .execute_authenticated(credential, operation)
-        .await;
+    let result = if connect_protocol::application_api::response_kind(&operation).is_none() {
+        Err(Error::new(
+            "unsupported-command",
+            "Use the canonical /v2/commands API",
+        ))
+    } else {
+        state
+            .service
+            .execute_authenticated(credential, operation)
+            .await
+    };
     let status = match &result {
+        Err(value) if value.code == "unsupported-command" => StatusCode::NOT_IMPLEMENTED,
         Err(value) if value.code == "unauthorized" => StatusCode::UNAUTHORIZED,
         Err(value) if value.code == "forbidden" => StatusCode::FORBIDDEN,
+        Err(value)
+            if matches!(
+                value.code.as_str(),
+                "authority-busy" | "authority-unavailable" | "storage-unavailable"
+            ) =>
+        {
+            StatusCode::SERVICE_UNAVAILABLE
+        }
         _ => StatusCode::OK,
     };
     (

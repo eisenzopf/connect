@@ -100,6 +100,7 @@ async fn qualify_uncertain_recovery(restore: bool) {
                 target: "12345678-1234-1234-1234-123456789012".into(),
                 source: None,
                 enabled: true,
+                incoming_to: connect_protocol::messages::MessageAudience::all(),
             },
         )
         .unwrap();
@@ -116,14 +117,18 @@ async fn qualify_uncertain_recovery(restore: bool) {
         .await
         .unwrap();
     client.negotiate_task(&task.id).await.unwrap();
-    let worker = Worker::with_drivers(h.server.service.clone(), vec![driver.clone()]).unwrap();
+    let worker = Worker::with_drivers(h.server.service.clone(), vec![driver.clone()])
+        .await
+        .unwrap();
     let question = grants::wrapped(
         &task.id,
         "retained-mutation",
         Operation::Send {
             request_id: "retained-mutation".into(),
             conversation_id: h.cid.clone(),
-            body: "Accept once, even if the receipt is lost.".into(),
+            message: connect_protocol::messages::MessageDraft::text_all(
+                "Accept once, even if the receipt is lost.",
+            ),
         },
     );
     assert!(matches!(
@@ -149,7 +154,9 @@ async fn qualify_uncertain_recovery(restore: bool) {
         .await
         .unwrap();
     client.negotiate_task(&task.id).await.unwrap();
-    let worker = Worker::with_drivers(h.server.service.clone(), vec![driver]).unwrap();
+    let worker = Worker::with_drivers(h.server.service.clone(), vec![driver])
+        .await
+        .unwrap();
     assert_eq!(uncertain(&mut client, question.clone()).await, effect_id);
     // Multiple worker polls and matching public replays cannot dispatch again.
     tokio::time::sleep(Duration::from_millis(300)).await;

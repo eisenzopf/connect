@@ -1,0 +1,384 @@
+{
+  "task": "G6-046",
+  "title": "Actual private provider record context, current listener grants and pending-export custody",
+  "updated_at": "2026-10-21T23:11:26.194815+00:00",
+  "status": "local-private-provider-cases-verified-with-return-refusal-investigation-open",
+  "full_task_complete": false,
+  "full_goal_complete": false,
+  "full_private_record_context_qualified": false,
+  "scope": "Local macOS arm64, real signed EdDSA native peers and designated loopback HTTP/WebSocket provider fixture. Actual metadata-only prior records arise through native Session invitation/cancellation/discovery. No fabricated record readiness or audience is inserted. No captured media, named remote/provider, Linux/browser, provider erasure or publication claim.",
+  "schema_version": 81,
+  "pinned_patches": 130,
+  "record_cases": [
+    {
+      "name": "production_private_ai_record_context_erasure_stops_memory_and_preserves_return",
+      "observed": "Exact actual private add-message ContextView record UUID/Session/revision1/available unsigned vCon and matching SHA512. Private whole-record/manifest fingerprints absent. Actual private duplex; public HTTP erasure ends original provider once, no repeated creation/export, identity remains current; actual return restores original audio. Passes the current six-case cohort."
+    },
+    {
+      "name": "production_private_ai_record_context_permission_has_no_execution_owner_fallback",
+      "observed": "Remove only record_get from separate context credential while broad execution credential remains. Actual message omits all record references and UUID; authorized history/duplex/primary return remain. Passes the current six-case cohort. Cleanup uses existing Return expectation when actual return retires the private leg."
+    },
+    {
+      "name": "production_private_ai_record_context_retention_stops_memory_and_preserves_return",
+      "observed": "Frozen named private-context-expiry metadata30sec, later default restored; actual wire reference carries original future cutoff, private duplex occurs and original provider stops after cutoff while identity remains current. Actual original return passes in current six-case cohort and eight-case v9 baseline. Earlier v7 complete cohorts failed at that return (Accepted with no effect through35sec); root cause remains unresolved. Passing current cases do not establish general return reliability."
+    },
+    {
+      "name": "production_private_ai_record_context_cancel_pending_export_retains_erasure_custody",
+      "observed": "Exact actual record-bearing add-message received, original acknowledgement deliberately held. Public cancellation records intent before native effect. Independently authorized public HTTP erasure reserves member authority; immediate read admission probes all current member identities and observes authority-busy while erasure is unfinished. Exact original ACK released, erasure completes at revision2 and replay preserves original immutable receipt. No native consultation effect or repeated provider creation/export, owned provider closes once; original remote/primary audio usable both directions. Focused and current six-case cohort pass. This is pending acknowledgement custody, not unfinished socket WRITE backpressure."
+    },
+    {
+      "name": "production_private_ai_record_context_requires_actual_listener_original_audience",
+      "observed": "Actual prior Session invitation includes owner and remote, explicitly excludes the later private AI listener identity. Owner actual HTTP ContextView sees the ready Record as Available while retaining context_view/record_get; broad execution authority remains. Actual private add-message excludes every Record reference and the source UUID because the listener lacks its original audience. Other authorized history, actual private duplex and actual original return remain usable. Focused12.92sec and current six-case cohort pass."
+    },
+    {
+      "name": "production_private_ai_record_context_listener_share_revocation_stops_original_memory",
+      "observed": "Same real prior source excludes AI. Owner grants an explicit Record-only history share to that actual listener through public named MembershipSnapshot/ShareHistory APIs; committed mutation receipt and current revision are checked. Actual private export contains exact UUID/Session/revision, available canonical vCon and matching unsigned digest; duplex is observed. Revoke that original sharing ID through the public facade under current revision. The same opaque provider instance stops, private audio remains stopped and credentials remain current; no second creation/export occurs. Actual primary return completes. Focused12.72sec and current six-case cohort pass. This is a Record resource grant, not a grant to private captured Connection epochs."
+    }
+  ],
+  "source_at_both_cohorts": {
+    "path": ".local/gate-6/record-provider-private-inputs-v7.json",
+    "sha256": "a6066058d6314c4d17d83109d06d6224eaf3fdc0ec1f074e5f741679552d92c2",
+    "count": 1319
+  },
+  "isolated_checks": [
+    {
+      "path": ".local/gate-6/record-provider-private-pending-focused-v7.log",
+      "sha256": "76bc97739ec4455b9c9275c6dcb6c4d561c5892c219506052a4d49ed05c71c81",
+      "passed": 1,
+      "failed": 0,
+      "seconds": 10.3
+    },
+    {
+      "path": ".local/gate-6/record-provider-private-retention-diagnostic-v7.log",
+      "sha256": "78e118bc6e586b665b09270a0e034e088ca9cf5be23c05661befe3588cbdad54",
+      "passed": 1,
+      "failed": 0,
+      "seconds": 34.93,
+      "qualification": "Does not override either failing complete cohort."
+    }
+  ],
+  "failure_diagnosis": {
+    "established": "Final cohort return-stage trace matches the retained original audience handle, then returns forbidden before any effect is persisted. No origin/read/plan/original-observation refusal stage appears. Native return remains Accepted with effects empty. Reproduced twice in final cohorts.",
+    "unestablished": "Exact failing preparation predicate is not yet known. A changing candidate native EOF/scene snapshot during current-authority planning is a hypothesis, not an established cause.",
+    "current_change": "Service debug events report only read currency, source/receiver counts and preparation-refusal stage. Static Store refusal messages now distinguish stale planning read, unrecorded/different departure, source/receiver mismatch, source-set change and stream-revision change; Service debug includes that reason. Error codes, current authorization, timeouts, operation IDs and one possible native effect are unchanged.",
+    "diagnostic_inputs": {
+      "path": ".local/gate-6/record-provider-return-inputs-v9.json",
+      "sha256": "dcf9b721fdb8ecd383822a1161c19cd3870bf7c176f8bd4081fa5fb5128786fe",
+      "count": 1319
+    },
+    "current_observation": "Current v9 complete eight-case cohort and current v11 six-record-case cohort pass. The refusal did not recur with detailed Store reasons enabled, so no exact failing predicate or functional fix is established. Retention return current reads reported matching Store/Core sets. Inspection ruled out the proposed outside-receiver departure mismatch: original private request receivers are exactly primary, consultant and remote, matching the stored context."
+  },
+  "observation_fixture": "Existing AI-owned-context composite initially lost user sequence2 with explicit gap, then a whole-batch post-duplex release still hit its5sec read deadline after9 samples. Final v7 fixture releases exhaustive samples individually after actual duplex/completion, waiting for each exact local sequence through public observation API before its successor. No missing sample is resent or gap called capture. Existing role/completeness/provenance/large payload/repeated tool ID/no action dispatch/independent return assertions remain. Composite passes both final v7 cohorts.",
+  "intermediate_runs": [
+    {
+      "path": ".local/gate-6/record-provider-private-focused-v1.log",
+      "sha256": "24a8d2ca0a11528b11cad7ad8846443b03ae67f3012fa315c753479407d084d1",
+      "result": "fail: assertion parsed private framing as JSON; fixed exact known framing"
+    },
+    {
+      "path": ".local/gate-6/record-provider-private-regression-v2.log",
+      "sha256": "0ac6b2225eb8babef05812c73e74de6fdf3b03838742474127593c943507f69d",
+      "result": "4pass; earlier source"
+    },
+    {
+      "path": ".local/gate-6/record-provider-private-focused-v3.log",
+      "sha256": "572b1a9517e0e68ddf2ffd129498a1ea6f1a5f1fda828441b5970d0c4b047ed1",
+      "result": "2pass1fail; permission omission/duplex/return succeeded but final cleanup unwrap failed; matched existing manual Return cleanup"
+    },
+    {
+      "path": ".local/gate-6/record-provider-private-regression-v4.log",
+      "sha256": "0f3cfa1bf11d08504b68a0f4f0c23f6843190917f6a60f973551dec2d774edf6",
+      "result": "5pass1fail; new3 pass, old AI caller observation gap"
+    },
+    {
+      "path": ".local/gate-6/record-provider-private-regression-v5.log",
+      "sha256": "0462dfebf3a74919d3b49ba88aaafc9f11bcf41ae78f4006bbaf87e9b7ddefaa",
+      "result": "5pass1fail; new3 pass, old AI caller batch observation deadline"
+    },
+    {
+      "path": ".local/gate-6/record-provider-private-pending-focused-v6.log",
+      "sha256": "c7c1d48ee022989ba66c3cb3b538354b7192c57209471cfdba98a6c192916ce1",
+      "result": "0selected145filtered; incorrect --exact filter is NOT verification"
+    },
+    {
+      "path": ".local/gate-6/record-provider-private-pending-focused-v6b.log",
+      "sha256": "5e9bc918a39be247fb1f6987d0b04126b2020fa6d30d85f1b773e888b3f901f2",
+      "result": "fail; probe watched Conversation after writer blocked on earlier member Identity. Probe all current member identities; actual unfinished-writer assertion retained."
+    }
+  ],
+  "previous_component": {
+    "path": "docs/evidence/gate-6/record-context-public-provider.json",
+    "sha256": "9e314c3a83214ba6b2d725d827b96e24bbd3cf7b6ba39658131d95f9c1df9837"
+  },
+  "previous_selection": {
+    "path": "docs/evidence/gate-6/record-context-selection.json",
+    "sha256": "201c47962b2dfe0587e0ccd687bf5e6b423d368628a4098e5c84a1c96b1403d4"
+  },
+  "historical_verification": "Selection1068 Connect/153 SDK and public14-case module retain their source hashes and original scopes; they were not broadly rerun. This phase reruns impacted Store11, complete Service44 and actual runtime cohorts, not the unrelated851-case Store library. Protocol/SDK/Core/record-context inputs remain unchanged; only two return diagnostic files differ in production. Runtime union10 private cases (eight v9 baseline plus two new listener cases) is recorded across the reconciled scoped candidates, not as a complete147-case runtime-suite pass.",
+  "source_lock": {
+    "path": "dependencies/source-lock.json",
+    "sha256": "bbea3c588146a0e9e12aacb1b1f64883409dda0eda81529afd23960a60f95aeb"
+  },
+  "remaining": [
+    "Resolve the earlier reproducible retention return refusal before broad reliability/full qualification. Current scoped passes and added refusal diagnostics do not establish its root cause or a functional fix.",
+    "Mixed private captured Connection source projections for every actual listener and current source changes; these new cases establish original Record resource audience and explicit Record-only sharing, not captured media epochs.",
+    "Actual unfinished provider socket WRITE backpressure through expiry/cancellation/source mutation, Native Record QUIC backpressure/revocation/expiry/cancellation/deletion, and actual private-source TLS link invalidation. Pending acknowledgement custody does not establish these distinct IO cases.",
+    "All61 assigned G6-046 clause evidence and remaining assurance/step-up/DTMF/quality/capability behaviors, then remaining59 plan tasks. Full105-task goal remains active; no acceptance/publication promotion."
+  ],
+  "plan_counts": {
+    "done": 45,
+    "in_progress": 1,
+    "not_started": 59,
+    "acceptance_qualified": 0
+  },
+  "diagnostic_verification": {
+    "path": ".local/gate-6/record-provider-return-diagnostic-v8.log",
+    "sha256": "c7f0167df4ac738101a71aca4047dfae7c84ba7c43b932bd33e2ef2e77d7af5c",
+    "passed": 4,
+    "failed": 0,
+    "ignored": 0,
+    "filtered": 141,
+    "seconds": 78.8,
+    "test_threads": 1,
+    "qualification": "Narrow current diagnostic cohort. Does not override the two complete-cohort failures."
+  },
+  "builds": [
+    {
+      "path": ".local/gate-6/record-provider-return-build-v8.log",
+      "sha256": "7b0921c077e05e97deea6d54e06aa0b0360a2a8d22f3642fea3d86741f37e357",
+      "exit": 101,
+      "reason": "compiler-cache disk exhaustion while archiving server"
+    },
+    {
+      "path": ".local/gate-6/record-provider-return-build-v8b.log",
+      "sha256": "860369661203852e86be6c5ad6201430cfe820489dfdb151325a601833d90515",
+      "exit": 0,
+      "seconds": 92
+    },
+    {
+      "path": ".local/gate-6/record-provider-return-build-v9.log",
+      "sha256": "6aaa12a6773930d770ec81cc9b435f62859c19704431e53bde4ad7fb139d0032",
+      "exit": 0,
+      "seconds": 76
+    },
+    {
+      "path": ".local/gate-6/record-provider-listener-build-v10.log",
+      "sha256": "0be949d0f69787bc3157ff0a3629d05e42c0d96e0886b1f192c573ef77bd99a0",
+      "exit": 0,
+      "seconds": 11.85
+    },
+    {
+      "path": ".local/gate-6/record-provider-listener-build-v11.log",
+      "sha256": "8668e789f76b721f613f807f6772e9ae212e29751a0b3a89a5ff8ed68d3afd7d",
+      "exit": 0,
+      "seconds": 12.19
+    }
+  ],
+  "checks": [
+    {
+      "path": ".local/gate-6/record-provider-return-prepare-v8.log",
+      "sha256": "fd9d7b181e3ccba9b643af55a186cf132c60aac99c734b2ee4e4e549afe5ffc2"
+    },
+    {
+      "path": ".local/gate-6/record-provider-return-format-check-v8.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": ".local/gate-6/record-provider-return-diff-check-v8.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": ".local/gate-6/record-provider-return-prepare-v9.log",
+      "sha256": "fd9d7b181e3ccba9b643af55a186cf132c60aac99c734b2ee4e4e549afe5ffc2"
+    },
+    {
+      "path": ".local/gate-6/record-provider-return-format-check-v9.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": ".local/gate-6/record-provider-return-diff-check-v9.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": ".local/gate-6/record-provider-listener-prepare-v11.log",
+      "sha256": "fd9d7b181e3ccba9b643af55a186cf132c60aac99c734b2ee4e4e549afe5ffc2"
+    },
+    {
+      "path": ".local/gate-6/record-provider-listener-format-check-v11.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": ".local/gate-6/record-provider-listener-diff-check-v11.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ],
+  "generated_cache_cleanup": [
+    {
+      "path": ".local/gate-6/record-provider-return-old-executable-cleanup-v8.json",
+      "sha256": "35865eadc36179dc9785530fa50fd098f81456dd50756a7018ca9d8b2e227574"
+    },
+    {
+      "path": ".local/gate-6/record-provider-return-incremental-cleanup-v8.json",
+      "sha256": "89cd3864d39c2924d9ddce6898c74edbb9992477878aaafc250e44856072cf2e"
+    },
+    {
+      "path": ".local/gate-6/record-provider-return-upstream-incremental-cleanup-v9.json",
+      "sha256": "b608cad82efc440f96c66a27880d14308c39b894f30701993d7abce778386f94"
+    }
+  ],
+  "actual_private_record_export_verified": true,
+  "actual_listener_record_audience_verified": true,
+  "listener_record_share_revocation_verified": true,
+  "original_memory_invalidation_verified": true,
+  "pending_ack_record_custody_verified": true,
+  "unfinished_socket_write_backpressure_qualified": false,
+  "retention_return_reliability_qualified": false,
+  "current_runtime_verification": {
+    "path": ".local/gate-6/record-provider-private-record-cohort-v11.log",
+    "sha256": "b60bee166b69f29ca32f7e7d856ab472209f0534ed9a302f77ca61e988de4ca4",
+    "passed": 6,
+    "failed": 0,
+    "ignored": 0,
+    "filtered": 141,
+    "test_threads": 1,
+    "seconds": 96.49,
+    "cases": [
+      "canonical_native_connections::consultation::production_private_ai_record_context_cancel_pending_export_retains_erasure_custody",
+      "canonical_native_connections::consultation::production_private_ai_record_context_erasure_stops_memory_and_preserves_return",
+      "canonical_native_connections::consultation::production_private_ai_record_context_listener_share_revocation_stops_original_memory",
+      "canonical_native_connections::consultation::production_private_ai_record_context_permission_has_no_execution_owner_fallback",
+      "canonical_native_connections::consultation::production_private_ai_record_context_requires_actual_listener_original_audience",
+      "canonical_native_connections::consultation::production_private_ai_record_context_retention_stops_memory_and_preserves_return"
+    ]
+  },
+  "broad_runtime_baseline": {
+    "path": ".local/gate-6/record-provider-return-cohort-v9.log",
+    "sha256": "3ca79174eb5fda517c58ab59640d0e11e50a0bcf41bb0a1cff02509cfcef09e5",
+    "passed": 8,
+    "failed": 0,
+    "ignored": 0,
+    "filtered": 137,
+    "test_threads": 1,
+    "seconds": 169.91,
+    "inputs": {
+      "path": ".local/gate-6/record-provider-return-inputs-v9.json",
+      "sha256": "dcf9b721fdb8ecd383822a1161c19cd3870bf7c176f8bd4081fa5fb5128786fe"
+    }
+  },
+  "final_inputs": {
+    "path": ".local/gate-6/record-provider-private-inputs-final-v12.json",
+    "sha256": "8e7328dd182da2c3964572bab6cfe618b23e490c892e0265fec3247f30954f02",
+    "count": 1319
+  },
+  "record_cohort_inputs": {
+    "path": ".local/gate-6/record-provider-listener-inputs-v11.json",
+    "sha256": "1a605f9a286f7f6f41acc2c5ec0622d4eb60d8809632f33bd03edd745fbba1ba",
+    "count": 1319
+  },
+  "input_reconciliation": "Final v12 changes only the developer evidence/status paragraph from tested v11. v11 changes only two private fixture files from v9: adds original-listener denial and explicit Record-only sharing/revocation cases. All production code matches the eight-case v9 runtime baseline, Store11 return-authority cases and complete Service44 library. No production behavior was changed to make a refusal pass.",
+  "library_verification": [
+    {
+      "path": ".local/gate-6/record-provider-return-store-v9.log",
+      "sha256": "1afae76a4b03df071b4e1f30691f05bc24f3ffbca0c86375b53768704bb9845b",
+      "passed": 11,
+      "failed": 0,
+      "ignored": 0,
+      "filtered": 840,
+      "test_threads": 1,
+      "seconds": 14.99,
+      "scope": "Every current native_return Store case: current permission, exact original context/epoch, malformed plan refusal, source departures, cancellation, single possible attempt, captured observations after revocation, restart/uncertainty and retained private floors."
+    },
+    {
+      "path": ".local/gate-6/record-provider-return-service-v9.log",
+      "sha256": "5046186fe9067311aeb57a4c6c3efdd41561e1eaaad0c2e52309e7cc8ffe7a11",
+      "passed": 44,
+      "failed": 0,
+      "ignored": 1,
+      "filtered": 0,
+      "test_threads": 4,
+      "seconds": 9.82,
+      "scope": "Complete Service library; one explicit subprocess helper remains ignored at top level."
+    }
+  ],
+  "listener_focused_verification": [
+    {
+      "path": ".local/gate-6/record-provider-listener-focused-v10.log",
+      "sha256": "4766ca068979059c8cfb57c7cf2d34efcd2dbd7ec59edd9d4419f1b7bbc71d58",
+      "passed": 1,
+      "failed": 0,
+      "filtered": 145,
+      "seconds": 12.92
+    },
+    {
+      "path": ".local/gate-6/record-provider-listener-share-focused-v11.log",
+      "sha256": "0ce175ab6acb00cabb760e92b71e58b64945f80036f1e67ff9f9318d79982975",
+      "passed": 1,
+      "failed": 0,
+      "filtered": 146,
+      "seconds": 12.72
+    }
+  ],
+  "earlier_complete_cohort_failures": [
+    {
+      "path": ".local/gate-6/record-provider-private-regression-final-v7.log",
+      "sha256": "2c12d01d26326e24e394972e0809eba958ee58430d7c1b1fa707dcc098ef11c8",
+      "passed": 7,
+      "failed": 1,
+      "ignored": 0,
+      "filtered": 137,
+      "test_threads": 1,
+      "seconds": 216.31,
+      "qualified": false
+    },
+    {
+      "path": ".local/gate-6/record-provider-private-regression-v7.log",
+      "sha256": "06c0c36982b0fddf32baeb131ae8e301663d12e68171ce1f998d3c460265f6ef",
+      "passed": 7,
+      "failed": 1,
+      "filtered": 137,
+      "seconds": 205.68,
+      "qualified": false
+    }
+  ],
+  "production_changes": "Only return diagnostics and static non-sensitive refusal descriptions. Record selection, storage, source locks, authorization, SDKs and wire schemas remain unchanged in this phase. Actual listener/share cases change only fixtures.",
+  "october22_continuation": {
+    "evidence": "docs/evidence/gate-6/private-provider-metadata-admission.json",
+    "retention_focused": {
+      "artifact": {
+        "path": ".local/gate-6/retention-return-current-focused-v1.log",
+        "sha256": "7e33b6b36903d1135d3f59196294e0ab43d3cda64684e3a08a297d295a9d4189",
+        "bytes": 1221
+      },
+      "passed": 1,
+      "seconds": 35.27
+    },
+    "stack_regression": "An actual default-stack overflow in nested fixture futures was corrected by heap-owning the three fixture wrapper futures. The original runtime stack size/bounds remain unchanged. The first observation-helper-only boxing attempt still overflowed and was superseded. Crash reports are preserved under ignored .local/gate-6/.",
+    "cohort_before_owned_refresh": {
+      "artifact": {
+        "path": ".local/gate-6/retention-return-current-private-cohort-v3.log",
+        "sha256": "27a275438f6ab25951d8bbdc01f0766edba3225ce09efd199d966085db6e266e",
+        "bytes": 9081
+      },
+      "passed": 7,
+      "failed": 1,
+      "seconds": 158.87
+    },
+    "isolated_auto_caller_after_diagnostics": {
+      "artifact": {
+        "path": ".local/gate-6/retention-return-initialization-diagnostic-v4.log",
+        "sha256": "d9b18ad1dfc123b4679d9337680c777570d92142ef739aaacfd6753b6e191be0",
+        "bytes": 9343
+      },
+      "passed": 1,
+      "seconds": 66.35
+    },
+    "historical_return_predicate_resolved": false,
+    "rejected_hypothesis": "scene_origins source hash is e51dbe3b3ad5dfaa5ba6d1083c5368d0dd502a00bdea186e26f24b25ab1a33ea at both original failures and current inspection. A later try-lock-to-lock change does not explain these failures.",
+    "after_queued_metadata_admission": {
+      "evidence": "docs/evidence/gate-6/private-provider-metadata-admission.json",
+      "original_private_provider_cases_passed": 8,
+      "historical_return_predicate_resolved": false,
+      "scope": "The13-case current cohort passes12 and fails1 at the independent media refresh/rebind target. All8 original private-provider/record-return cases pass; no historical exact preparation predicate has been established."
+    }
+  }
+}

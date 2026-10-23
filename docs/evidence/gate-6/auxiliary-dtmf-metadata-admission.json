@@ -1,0 +1,426 @@
+{
+  "task": "G6-046",
+  "title": "Bound original DTMF metadata admission before IO and qualify native received shape",
+  "recorded_at": "2026-10-22T23:05:42.292325+00:00",
+  "status": "native-metadata-contention-repaired-and-u6-req-0114-qualified-local-native",
+  "full_task_complete": false,
+  "full_goal_complete": false,
+  "acceptance_qualified": false,
+  "schema_version": 91,
+  "pinned_patches": 147,
+  "platform": {
+    "os": "Darwin",
+    "architecture": "arm64"
+  },
+  "runtime_profile": "Production native code with test-support enabled for the explicit actual Core metadata-lock fixtures; ordinary cases install no fault. Default production configuration is separately compile-checked.",
+  "source_lock": {
+    "path": "dependencies/source-lock.json",
+    "sha256": "a778044e87da40fa2bbaa08904eb7194a111e8d5e19d37455d6a065de4d825f2"
+  },
+  "runtime_build": {
+    "path": ".local/gate-6/dtmf-current-admission/runtime-build-v3.log",
+    "sha256": "87912452f9902c08338188380ea555c98a3b038fdd5cfd7700ddc2d89b60943d"
+  },
+  "binaries": [
+    {
+      "path": "target/debug/deps/dtmf_auto_route-6262b4e902a330e8",
+      "sha256": "75a1dfc32faf0b5bb00693eff9890e4373050cc97547b9629b9c63d5ba2252a0"
+    },
+    {
+      "path": "target/debug/deps/v2_peer_admission-1fa46536746da31a",
+      "sha256": "67c54ec86e7733e4ebe872e7a4bdccba383f5a71457deac7984372191e0a0f4c"
+    },
+    {
+      "path": "target/debug/deps/gate6_canonical_runtime-1b0da6e3c5cdb2d1",
+      "sha256": "d2d20b282d4dd35f980c6a0050d1d4736a0bfc304e7434ba7c85d91f820748c9"
+    },
+    {
+      "path": "target/debug/deps/gate6_auxiliary-fe878566bb21d716",
+      "sha256": "99c0b3cce95c479c2ab3ca820270df843d6e225e319fbf899805ee4bab21d669"
+    }
+  ],
+  "compiled_inputs": {
+    "path": ".local/gate-6/dtmf-current-admission/build-inputs-final.json",
+    "sha256": "8a10fde89d9a14a675f5f8a1722390f550dbd87402716778f89f88439215d2c5"
+  },
+  "prepared_upstream": {
+    "path": ".local/gate-6/dtmf-current-admission/upstream-inputs-final.json",
+    "sha256": "4b0574fc4cd55670baa15adc0172771dac3fbe19b14a26a8530fa281a807be22"
+  },
+  "contract_inputs": {
+    "path": ".local/gate-6/dtmf-current-admission/contract-inputs-final.json",
+    "sha256": "17323cd4f8e17a38f1d65e29b9ae9f2a737e12949da6215976f07ca64a1a790a"
+  },
+  "inputs_unchanged_after_tests": true,
+  "source_inputs": [
+    {
+      "path": "crates/connect-service/src/canonical_native_dtmf.rs",
+      "sha256": "a39f83378820d4c8654e172c935373bb68ca13964cce541e348de25b63bc8d72"
+    },
+    {
+      "path": "crates/connect-service/src/lib.rs",
+      "sha256": "93c5dd7ecfb8ba162da4d8769590693afe586b2c57c1f0607b538359251d257a"
+    },
+    {
+      "path": "crates/connect-server/tests/support/canonical_native_connections.rs",
+      "sha256": "11f8c4aa89ce0edf0292ce0f8dde8adfa4476b2d3a01e76faf52879192fd9b90"
+    },
+    {
+      "path": "crates/connect-server/tests/support/canonical_native_connections/dtmf.rs",
+      "sha256": "aa4c43832d598f2d57146d221a6eb58c35d9a32d7c670e48056cda6da0eeba70"
+    },
+    {
+      "path": "crates/connect-server/tests/support/canonical_native_connections/dtmf_diagnostics.rs",
+      "sha256": "ddee8475fadfb6370eda691a4c91f0a3695b4b9a21c748d6c22edc2216f63b6c"
+    },
+    {
+      "path": "patches/rvoip/gate6-dtmf-metadata-wait.patch",
+      "sha256": "bd3f7f4e176e9d80b90b724ba04cfacc1ef65ea6f33246e8dd4245db6025fe29"
+    },
+    {
+      "path": "patches/rvoip/gate6-dtmf-source-contention.patch",
+      "sha256": "1e6e0a4f813ea49aa7e052c12d346d4f6892ca513b309bb48a9e13646180f311"
+    },
+    {
+      "path": "patches/rvoip/gate6-dtmf-fence-admission.patch",
+      "sha256": "6d7479cb57c33bf681d9f7ba66d7552cfee990154a6eb3969b165dfb15f8e0bd"
+    },
+    {
+      "path": "contracts/native-signals-profile.md",
+      "sha256": "8ef9e3ecd502602050cba2014749d9890d3706a7b48e27fe321b8e3a0fd1a8ca"
+    },
+    {
+      "path": "docs/developer/native-dtmf-journal.md",
+      "sha256": "6ae798b38d4804f63c5ba992ed5c0077dbabaa62e074f02b97f262f1450daf45"
+    },
+    {
+      "path": "scripts/generate-canonical-http-openapi.py",
+      "sha256": "18ef82eb98e213d342c6d666d4a6be5727de42cdc01863efbb22fa05c8bad8ea"
+    },
+    {
+      "path": "contracts/openapi-canonical-http.json",
+      "sha256": "bdb3757a3926d742c7ce944a8c7557a1191879c8acae2cbac90c2edcdb829a00"
+    },
+    {
+      "path": "scripts/validate-gate6-auxiliary-dtmf-events.py",
+      "sha256": "6aa391bdf8f6dc4a1c141acc0f012270a6893ee39ed7f648b891747f0b100707"
+    }
+  ],
+  "qualified_cases": [
+    {
+      "case_id": "u6-req-0114",
+      "algorithms": [
+        "EdDSA",
+        "ES256"
+      ],
+      "profile": "Local native QUIC production service/Store, public signed Rust SDK and current bearer HTTP operation status. Native uctp-native source only.",
+      "tests": [
+        "canonical_native_connections::dtmf::production_native_dtmf_signed_sdk_delivery_and_replay_preserve_original_effects",
+        "canonical_native_connections::dtmf::production_native_dtmf_http_status_projects_actual_local_frame_summary",
+        "canonical_native_connections::dtmf::production_native_dtmf_queued_during_another_sdk_command_keeps_actual_provenance_and_order"
+      ],
+      "assertions": [
+        "Actual signed dtmf.received carries the recipient Conversation, Session and Connection, exact digits/duration, a parseable original received_at no later than publication, and source=uctp-native.",
+        "Current HTTP status names the same actual output frame ID and original receive time as the received event. Local submission is distinct from remote playback.",
+        "Logical replay preserves the immutable original result and emits no second signal. A supplied sip-info source assertion does not change native provenance."
+      ],
+      "observations": {
+        "path": ".local/gate-6/dtmf-current-admission/native-dtmf-observations-final.json",
+        "sha256": "86ceb3864b8939841e95cc358e988641493de6c5fb50276989efa72e958bc25f"
+      },
+      "validation": {
+        "path": ".local/gate-6/dtmf-current-admission/dtmf-wire-final.json",
+        "sha256": "0811356d8b88d12097b767c118f853fcca310d31ab79ff89a88be6816faa44fb"
+      },
+      "limits": "The SIP/WebRTC source alternatives, actual gateway translation, full DTMF group and broader transport/hosting profiles remain open."
+    }
+  ],
+  "results": [
+    {
+      "name": "core-routing",
+      "passed": 16,
+      "failed": 0,
+      "evidence": {
+        "path": ".local/gate-6/dtmf-current-admission/core-routing-final.log",
+        "sha256": "1da19bb1f0940d6c1a39df825872cbe6ff2a2ba3320a6b41c7cfe9241e479183"
+      }
+    },
+    {
+      "name": "native-source-routing",
+      "passed": 23,
+      "failed": 0,
+      "evidence": {
+        "path": ".local/gate-6/dtmf-current-admission/native-source-routing-final.log",
+        "sha256": "f23e4bcb061a580a59f53e3347ad9b2a2637c1a2b25477acfb250270ae3a5c7b"
+      }
+    },
+    {
+      "name": "production-metadata",
+      "passed": 2,
+      "failed": 0,
+      "evidence": {
+        "path": ".local/gate-6/dtmf-current-admission/production-metadata-final.log",
+        "sha256": "813308193d728b49c908fd785d366ebde3520ba8b118ec0f337efaf729a39b44"
+      }
+    },
+    {
+      "name": "production-dtmf",
+      "passed": 17,
+      "failed": 0,
+      "evidence": {
+        "path": ".local/gate-6/dtmf-current-admission/production-dtmf-final.log",
+        "sha256": "363be397f7e85325e1d45e6a91ec25d300e49a74b2fc08b13b93c195c2caf482"
+      }
+    },
+    {
+      "name": "production-dtmf-loaded",
+      "passed": 17,
+      "failed": 0,
+      "evidence": {
+        "path": ".local/gate-6/dtmf-current-admission/production-dtmf-loaded-final.log",
+        "sha256": "8c65f95bee66c5ea0756f7eab7684ec19d8629b5ce297cc424c0282dc0f61d41"
+      }
+    },
+    {
+      "name": "production-auxiliary",
+      "passed": 10,
+      "failed": 0,
+      "evidence": {
+        "path": ".local/gate-6/dtmf-current-admission/production-auxiliary-final.log",
+        "sha256": "0784bda486f2a4dc58fc489f8cfc8d95ea532db4b3d7cc8d27933b5a925a7c27"
+      }
+    },
+    {
+      "name": "production-caller-cancellation",
+      "passed": 2,
+      "failed": 0,
+      "evidence": {
+        "path": ".local/gate-6/dtmf-current-admission/production-caller-cancellation-final.log",
+        "sha256": "8d256f96676e1afe443da4d187500f194dd3fbd28dca02f57198c2ecbac208e5"
+      }
+    },
+    {
+      "name": "production-pair",
+      "passed": 1,
+      "failed": 0,
+      "evidence": {
+        "path": ".local/gate-6/dtmf-current-admission/production-pair-final.log",
+        "sha256": "47b1bcb49aff8aa068f5b8f0feec76e485a88e493492d72eecfa8740a64fdda6"
+      }
+    },
+    {
+      "name": "production-codec",
+      "passed": 1,
+      "failed": 0,
+      "evidence": {
+        "path": ".local/gate-6/dtmf-current-admission/production-codec-final.log",
+        "sha256": "a84d7777dd44746abc5a89efafd9c048b74fd828012d1a0c6cfe77fb736725df"
+      }
+    },
+    {
+      "name": "production-lifecycle",
+      "passed": 1,
+      "failed": 0,
+      "evidence": {
+        "path": ".local/gate-6/dtmf-current-admission/production-lifecycle-final.log",
+        "sha256": "d1e9e6bf61cb9936bfced5fb3474626e9732febb1f831c79eaebce3fa85d8c86"
+      }
+    },
+    {
+      "name": "production-records",
+      "passed": 1,
+      "failed": 0,
+      "evidence": {
+        "path": ".local/gate-6/dtmf-current-admission/production-records-final.log",
+        "sha256": "a903632fb966ef59380aa85c1a5da9d7e8e347b2c47c46efd95b029149ffde78"
+      }
+    }
+  ],
+  "red_green": {
+    "production_red": {
+      "path": ".local/gate-6/dtmf-current-admission/production-controlled-red.log",
+      "sha256": "82cdc785ba1922f1ca47be7991a9a065f022da6aa8c302e153c4e0e5eb98acd2"
+    },
+    "production_red_inputs": {
+      "path": ".local/gate-6/dtmf-current-admission/build-inputs-red.json",
+      "sha256": "921f8963b1d02fce1b65a21dacc590a6dd590f495aed9961972ece66a6fb2c67"
+    },
+    "production_red_lock": {
+      "path": ".local/gate-6/dtmf-current-admission/source-lock-production-red.json",
+      "sha256": "0f4b641f71c972f6e5f3a12010e79d8d793173ddf83f229db8abff4fa0827805"
+    },
+    "production_red_binary": {
+      "path": ".local/gate-6/dtmf-current-admission/red-binary.json",
+      "sha256": "86283a33e396453eef9e3fc323f69c11301b712f1e7328e38d91bcf318b7c859"
+    },
+    "production_red_scope": "Actual Core Session metadata is held while a signed native source freezes its original receipt and recipient. The predecessor records Failed/not_started/NULL frame ID immediately; rejection-only logging captures NotReady at route-preparation. The first EdDSA branch fails, so the later ES256 branch is not executed in this red run.",
+    "core_red": {
+      "path": ".local/gate-6/dtmf-current-admission/core-controlled-red.log",
+      "sha256": "36889997f893f81db5617d6fb2a6bb818592fca54a32f051b5fff07affd56727"
+    },
+    "core_red_inputs": {
+      "path": ".local/gate-6/dtmf-current-admission/upstream-core-red.json",
+      "sha256": "65bdbf1debef46d947706f3d9a929747a430ae7a643c8ca3bd34d4e7784b3ffe"
+    },
+    "core_red_lock": {
+      "path": ".local/gate-6/dtmf-current-admission/source-lock-core-red.json",
+      "sha256": "7f1efb8c28cabf9d7f0f3bb3701df4ad7838bcb37dfba9a41f9203f0a086f448"
+    },
+    "core_red_binary": {
+      "path": ".local/gate-6/dtmf-current-admission/core-red-binary.json",
+      "sha256": "e3b7b36b817ef80fc2d699ffce4c00d1148f36947b7271316024405aa4eba991"
+    },
+    "core_red_scope": "A previously captured route with actual Session metadata held returns Err(NotReady) before waiting. The first release branch fails, so its later cancel/deadline branches are not executed in this red run.",
+    "green": [
+      {
+        "path": ".local/gate-6/dtmf-current-admission/production-metadata-final.log",
+        "sha256": "813308193d728b49c908fd785d366ebde3520ba8b118ec0f337efaf729a39b44"
+      },
+      {
+        "path": ".local/gate-6/dtmf-current-admission/core-routing-final.log",
+        "sha256": "1da19bb1f0940d6c1a39df825872cbe6ff2a2ba3320a6b41c7cfe9241e479183"
+      },
+      {
+        "path": ".local/gate-6/dtmf-current-admission/native-source-routing-final.log",
+        "sha256": "f23e4bcb061a580a59f53e3347ad9b2a2637c1a2b25477acfb250270ae3a5c7b"
+      }
+    ],
+    "fence_red": {
+      "path": ".local/gate-6/dtmf-current-admission/fence-controlled-red.log",
+      "sha256": "3eefd04e3b2646de0cdfe0597e67de2f38101b2d280aa7902e4ac514d2803b72"
+    },
+    "fence_red_inputs": {
+      "path": ".local/gate-6/dtmf-current-admission/upstream-fence-red.json",
+      "sha256": "d1f7be0d6971189bf4aa6825dc74a0224215c6d47b2ff5850c18dc89ec260ea9"
+    },
+    "fence_red_lock": {
+      "path": ".local/gate-6/dtmf-current-admission/source-lock-fence-red.json",
+      "sha256": "a42fb68e67e5bb74eccadd2d4dd20e925d154bd6c7aae1e94aefb9d2b9fa7635"
+    },
+    "fence_red_binary": {
+      "path": ".local/gate-6/dtmf-current-admission/fence-red-binary.json",
+      "sha256": "a23e656a66cf213515a8833d4c79effa693196d545da7f47541ca744ba7f7b62"
+    },
+    "fence_red_scope": "Attaching a valid physical source fence while actual Core Session metadata is held reports Refused rather than temporary NotReady. The final builder preserves the exact error; its return is metadata only and cannot grant IO.",
+    "native_source_red": {
+      "path": ".local/gate-6/dtmf-current-admission/native-source-controlled-red.log",
+      "sha256": "941a50c7509ffc990143652605ebf1b3195cf199ac68ad1eb4c949bba9fef3b4"
+    },
+    "native_source_red_inputs": {
+      "path": ".local/gate-6/dtmf-current-admission/upstream-source-red.json",
+      "sha256": "3a57a2ac1f5f8aaafed99f157e910db1b3d1f40f3ceb2eb9c637132d41999656"
+    },
+    "native_source_red_lock": {
+      "path": ".local/gate-6/dtmf-current-admission/source-lock-source-red.json",
+      "sha256": "8a39669c4330a69d5d18145fe508dd319ec0c353e62977383e5ff4e2cb86196e"
+    },
+    "native_source_red_binary": {
+      "path": ".local/gate-6/dtmf-current-admission/native-source-red-binary.json",
+      "sha256": "5044c04497b963c34686179d6da3e3ca6ae819f7bb42064ad4c4b560ff0d6157"
+    },
+    "native_source_red_scope": "An actual signed negotiated source has its real controller guards held on another thread. Route preparation incorrectly reports Refused rather than NotReady. The first QUIC branch fails; WebTransport is only exercised by the green run.",
+    "repair_checks": [
+      "Release of actual metadata produces one original signal, with no reserved frame or retained source/recipient permission reader during the wait.",
+      "Production planning deadline and public operation cancellation record not_started with no frame ID; native replay retains that immutable failure/cancellation, and a distinct fresh intention recovers after metadata release.",
+      "Core release, caller cancellation and deadline cases check policy invocation counters and actual UDP output."
+    ]
+  },
+  "implementation": [
+    "Connect recaptures only the same original sealed source observation and frozen recipient when Core route preparation reports NotReady. This phase creates no writer, adapter invocation or IO grant, and is bounded by two seconds and the unchanged original operation expiry.",
+    "Native source preparation preserves NotReady from actual source flow/controller contention rather than collapsing it to Refused. Passive liveness metadata may wait; actual source polls still guard every IO and never revive retirement.",
+    "Core uses its existing wait_current path at schedule entry before reserving capacity or invoking downstream policy. Actual policy and physical IO are each still invoked once; refusal, caller cancellation and deadline remain bounded.",
+    "Actual writes retain fresh independent Store permissions, original/current audience and physical/credential/generation fences. No possibly submitted signal is retried. The previous sink-retirement-before-reader-release guarantee remains intact.",
+    "The test-support-only Session handle exposes actual metadata for isolated contention, never a permission grant or transport API. Failure-only test logging avoids successful-write timing disturbance."
+  ],
+  "previous_evidence": "docs/evidence/gate-6/auxiliary-dtmf-writer-retirement.json",
+  "investigation_limits": "Passing traced focused runs were not treated as a repair. Controlled actual-lock failures identify two concrete admission gaps matching the observed known pre-IO refusal class; finite passing regressions do not prove absence of every possible timing defect.",
+  "intermediate_native_refusal": {
+    "evidence": {
+      "path": ".local/gate-6/dtmf-current-admission/production-metadata-v1.log",
+      "sha256": "107a65b7c06beefeefad3811edf58fb6fed0606abcf509c6a40656bcfb8bb576"
+    },
+    "diagnostic": {
+      "path": ".local/gate-6/dtmf-current-admission/production-metadata-diagnostic-v2.log",
+      "sha256": "642125a66a615e863ac3f986ce57b8687e0895801397da660ebffcff41bfe039"
+    },
+    "status": "temporary-source-poll-NotReady-was-collapsed-to-Refused",
+    "repair": "Preserve the exact source poll status during metadata admission. A passive liveness hint may remain live on NotReady, but the actual source poll must still hold and revalidate every physical guard around IO; cancellation and retirement still refuse."
+  },
+  "checks": [
+    {
+      "name": "dependencies",
+      "exit_code": 0,
+      "evidence": {
+        "path": ".local/gate-6/dtmf-current-admission/dependencies-final.log",
+        "sha256": "fd9d7b181e3ccba9b643af55a186cf132c60aac99c734b2ee4e4e549afe5ffc2"
+      }
+    },
+    {
+      "name": "format",
+      "exit_code": 0,
+      "evidence": {
+        "path": ".local/gate-6/dtmf-current-admission/format-final.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    {
+      "name": "upstream-format",
+      "exit_code": 0,
+      "evidence": {
+        "path": ".local/gate-6/dtmf-current-admission/upstream-format-final.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    {
+      "name": "http-reference",
+      "exit_code": 0,
+      "evidence": {
+        "path": ".local/gate-6/dtmf-current-admission/http-reference-final.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    {
+      "name": "event-reference",
+      "exit_code": 0,
+      "evidence": {
+        "path": ".local/gate-6/dtmf-current-admission/event-reference-final.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    {
+      "name": "default-check",
+      "exit_code": 0,
+      "evidence": {
+        "path": ".local/gate-6/dtmf-current-admission/default-check-final.log",
+        "sha256": "a2ba0d6cb79708fe2f2d47064cd51d9d149f4d44cb9af415b7279a7e0efb2ebe"
+      }
+    },
+    {
+      "name": "progress",
+      "exit_code": 0,
+      "evidence": {
+        "path": ".local/gate-6/dtmf-current-admission/progress-final.log",
+        "sha256": "fedbc03549729d27ac031eee0766ae72281991ae1e9494232887c3160cf754cc"
+      }
+    },
+    {
+      "name": "diff",
+      "exit_code": 0,
+      "evidence": {
+        "path": ".local/gate-6/dtmf-current-admission/diff-final.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    }
+  ],
+  "limits": [
+    "G6-046 remains25/61 assigned clauses locally qualified,36 remaining. All105 tasks remain in scope.",
+    "Only native uctp-native received shape0114 is added. Gateway translation0112, interop ingress0113 and mixed-source provenance0115 remain open.",
+    "Full Session lifecycle0081, handle allocation0109, other auxiliary behavior and remaining private/queued DTMF faults still require their assigned evidence.",
+    "No Linux, remote/browser/provider, named G6-093 rehearsal, acceptance qualification or publication."
+  ],
+  "reproduce": [
+    "bash scripts/prepare-dependencies.sh",
+    "CARGO_INCREMENTAL=0 cargo test -p connect-server --features test-support --test gate6_canonical_runtime --locked --offline -j4 canonical_native_connections::dtmf:: -- --test-threads=1",
+    "CARGO_INCREMENTAL=0 cargo test --manifest-path .deps/rvoip/Cargo.toml --target-dir target -p rvoip-core --features rvoip-core/opus,rvoip-core/vcon-signing --test dtmf_auto_route --locked --offline -j4 -- --test-threads=1"
+  ]
+}

@@ -35,7 +35,9 @@ async fn create(f: &Fixture, who: &str, id: &str) -> String {
             who,
             Operation::Create {
                 request_id: id.into(),
-                participants: vec![f.identity("reviews")],
+                request: connect_protocol::conversations::CreateRequest::persistent(vec![
+                    f.identity("reviews")
+                ]),
             },
         )
         .await

@@ -660,3 +660,341 @@ fn previous_gate6_candidate_schema_is_refused_without_touching_existing_state() 
     );
     assert_eq!(std::fs::read(&path).unwrap(), before);
 }
+
+fn credential_revoke(operation_id: &str, credential_id: &str) -> ProvisioningCommand {
+    ProvisioningCommand::RevokeCredential {
+        operation_id: operation_id.into(),
+        credential_id: credential_id.into(),
+    }
+}
+#[test]
+fn credential_revocation_replays_one_receipt_and_conflicting_intent_has_no_effect() {
+    use connect_protocol::transitions::OperationAction;
+    let f = Fixture::new();
+    let alice = f.identity("credential-alice", "credential-alice");
+    let one = f
+        .store
+        .issue(
+            &alice,
+            Scope::messaging(vec![]),
+            chrono::Utc::now().timestamp() + 3600,
+        )
+        .unwrap();
+    let two = f
+        .store
+        .issue(
+            &alice,
+            Scope::messaging(vec![]),
+            chrono::Utc::now().timestamp() + 3600,
+        )
+        .unwrap();
+    let command = credential_revoke("credential-revoke", &one.id);
+    let first = f
+        .store
+        .execute_provisioning(&f.admin, command.clone())
+        .unwrap();
+    assert!(
+        matches!(&first,ProvisioningOutcome::Credential{credential_id,identity_id,revoked:true,..} if credential_id==&one.id && identity_id==&alice)
+    );
+    assert_eq!(
+        f.store.authenticate(&one.token).unwrap_err().code,
+        "unauthorized"
+    );
+    assert_eq!(
+        f.store
+            .execute_provisioning(&f.admin, command.clone())
+            .unwrap(),
+        first
+    );
+    assert_eq!(
+        f.store
+            .execute_provisioning(&f.admin, credential_revoke("credential-revoke", &two.id))
+            .unwrap_err()
+            .code,
+        "conflict"
+    );
+    f.store.authenticate(&two.token).unwrap();
+    let record = f
+        .store
+        .execute_operation_action(
+            &f.admin,
+            OperationAction::Get {
+                operation_id: "credential-revoke".into(),
+            },
+        )
+        .unwrap();
+    assert_eq!(record.result, Some(serde_json::to_value(&first).unwrap()));
+    let public = serde_json::to_string(&first).unwrap();
+    assert!(!public.contains(&one.token));
+    assert!(!public.contains("verifier"));
+    assert!(!public.contains("operations"));
+    assert_eq!(
+        f.connection()
+            .query_row(
+                "SELECT COUNT(*) FROM operations WHERE operation_id='credential-revoke'",
+                [],
+                |r| r.get::<_, u64>(0)
+            )
+            .unwrap(),
+        1
+    );
+    f.connection().execute("UPDATE operations SET tombstoned=1,intent_json=NULL,result_json=NULL WHERE operation_id='credential-revoke'",[]).unwrap();
+    assert_eq!(
+        f.store
+            .execute_provisioning(&f.admin, command)
+            .unwrap_err()
+            .code,
+        "gone"
+    );
+}
+#[test]
+fn credential_revocation_requires_current_tenant_recipient_admin_and_owner_on_replay() {
+    use connect_protocol::transitions::OperationAction;
+    let f = Fixture::new();
+    let alice = f.identity("credential-alice", "credential-alice");
+    let target = f
+        .store
+        .issue(
+            &alice,
+            Scope::messaging(vec![]),
+            chrono::Utc::now().timestamp() + 3600,
+        )
+        .unwrap();
+    let scoped = f
+        .store
+        .issue(
+            &f.owner,
+            Scope {
+                operations: vec!["admin".into(), "operation.get".into()],
+                recipients: vec![alice.clone()],
+            },
+            chrono::Utc::now().timestamp() + 3600,
+        )
+        .unwrap();
+    let command = credential_revoke("credential-scoped", &target.id);
+    f.store
+        .execute_provisioning(&scoped.id, command.clone())
+        .unwrap();
+    let c = f.connection();
+    c.execute(
+        "UPDATE credentials SET recipients='[]' WHERE id=?1",
+        [&scoped.id],
+    )
+    .unwrap();
+    assert_eq!(
+        f.store
+            .execute_provisioning(&scoped.id, command.clone())
+            .unwrap_err()
+            .code,
+        "forbidden"
+    );
+    assert_eq!(
+        f.store
+            .execute_operation_action(
+                &scoped.id,
+                OperationAction::Get {
+                    operation_id: "credential-scoped".into()
+                }
+            )
+            .unwrap_err()
+            .code,
+        "forbidden"
+    );
+    c.execute(
+        "UPDATE credentials SET operations='[\"health\"]',recipients='[\"*\"]' WHERE id=?1",
+        [&scoped.id],
+    )
+    .unwrap();
+    assert_eq!(
+        f.store
+            .execute_provisioning(&scoped.id, command.clone())
+            .unwrap_err()
+            .code,
+        "forbidden"
+    );
+    c.execute_batch("INSERT INTO tenants(id) VALUES('credential_foreign'); INSERT INTO identities(id,alias,capabilities,tenant_id) VALUES('id_credential_foreign','credential-foreign','[]','credential_foreign');").unwrap();
+    let foreign = f
+        .store
+        .issue(
+            "id_credential_foreign",
+            Scope::operator(),
+            chrono::Utc::now().timestamp() + 3600,
+        )
+        .unwrap();
+    assert_eq!(
+        f.store
+            .execute_provisioning(
+                &f.admin,
+                credential_revoke("cross-tenant-credential", &foreign.id)
+            )
+            .unwrap_err()
+            .code,
+        "forbidden"
+    );
+    assert_eq!(
+        f.store
+            .execute_provisioning(&foreign.id, command.clone())
+            .unwrap_err()
+            .code,
+        "forbidden"
+    );
+    assert_eq!(
+        f.store
+            .execute_provisioning(
+                &f.admin,
+                credential_revoke("unknown-credential", "credential_missing")
+            )
+            .unwrap_err()
+            .code,
+        "forbidden"
+    );
+    f.store.authenticate(&foreign.token).unwrap();
+    c.execute("UPDATE credentials SET revoked=1 WHERE id=?1", [&f.admin])
+        .unwrap();
+    assert_eq!(
+        f.store
+            .execute_provisioning(&f.admin, command)
+            .unwrap_err()
+            .code,
+        "unauthorized"
+    );
+}
+#[test]
+fn credential_revocation_self_revoke_commits_and_recovery_needs_current_replacement_authority() {
+    let f = Fixture::new();
+    let replacement = f
+        .store
+        .issue(
+            &f.owner,
+            Scope::operator(),
+            chrono::Utc::now().timestamp() + 3600,
+        )
+        .unwrap();
+    let command = credential_revoke("self-revocation", &f.admin);
+    let result = f
+        .store
+        .execute_provisioning(&f.admin, command.clone())
+        .unwrap();
+    assert!(matches!(
+        result,
+        ProvisioningOutcome::Credential { revoked: true, .. }
+    ));
+    assert_eq!(
+        f.store
+            .execute_provisioning(&f.admin, command.clone())
+            .unwrap_err()
+            .code,
+        "unauthorized"
+    );
+    assert_eq!(
+        f.store
+            .execute_provisioning(&replacement.id, command)
+            .unwrap(),
+        result
+    );
+}
+#[test]
+fn credential_revocation_reuses_owned_writer_and_busy_or_foreign_proofs_do_not_fall_back() {
+    use connect_store::{AuthorityMode, AuthorityScope, AuthorityWait};
+    let f = Fixture::new();
+    let alice = f.identity("credential-alice", "credential-alice");
+    let target = f
+        .store
+        .issue(
+            &alice,
+            Scope::messaging(vec![]),
+            chrono::Utc::now().timestamp() + 3600,
+        )
+        .unwrap();
+    let command = credential_revoke("credential-owned-proof", &target.id);
+    let read = f
+        .store
+        .acquire_authority(
+            &[AuthorityScope::identity(&alice, AuthorityMode::Read).unwrap()],
+            &AuthorityWait::new(std::time::Duration::from_secs(1)),
+        )
+        .unwrap();
+    assert_eq!(
+        f.store
+            .execute_provisioning_with_authority(&f.admin, command.clone(), &read)
+            .unwrap_err()
+            .code,
+        "forbidden"
+    );
+    assert_eq!(
+        f.store
+            .execute_provisioning(&f.admin, command.clone())
+            .unwrap_err()
+            .code,
+        "authority-busy"
+    );
+    f.store.authenticate(&target.token).unwrap();
+    drop(read);
+    let other = Fixture::new();
+    let foreign = other
+        .store
+        .acquire_authority(
+            &[AuthorityScope::identity(&alice, AuthorityMode::Write).unwrap()],
+            &AuthorityWait::new(std::time::Duration::from_secs(1)),
+        )
+        .unwrap();
+    assert_eq!(
+        f.store
+            .execute_provisioning_with_authority(&f.admin, command.clone(), &foreign)
+            .unwrap_err()
+            .code,
+        "forbidden"
+    );
+    let writer = f
+        .store
+        .acquire_authority(
+            &[AuthorityScope::identity(&alice, AuthorityMode::Write).unwrap()],
+            &AuthorityWait::new(std::time::Duration::from_secs(1)),
+        )
+        .unwrap();
+    f.store
+        .execute_provisioning_with_authority(&f.admin, command, &writer)
+        .unwrap();
+    assert_eq!(
+        f.store.authenticate(&target.token).unwrap_err().code,
+        "unauthorized"
+    );
+}
+#[test]
+fn queued_credential_revocation_rechecks_expired_actor_before_any_effect() {
+    let f = Fixture::new();
+    let alice = f.identity("credential-alice", "credential-alice");
+    let target = f
+        .store
+        .issue(
+            &alice,
+            Scope::messaging(vec![]),
+            chrono::Utc::now().timestamp() + 3600,
+        )
+        .unwrap();
+    let lock = f.connection();
+    lock.execute_batch("BEGIN IMMEDIATE").unwrap();
+    // Fault fixture makes the current expiry change visible when the SQL wait ends.
+    lock.execute(
+        "UPDATE credentials SET expires_at=?2 WHERE id=?1",
+        params![f.admin, chrono::Utc::now().timestamp() - 1],
+    )
+    .unwrap();
+    let store = f.store.clone();
+    let admin = f.admin.clone();
+    let command = credential_revoke("expired-queued-revocation", &target.id);
+    let worker = std::thread::spawn(move || store.execute_provisioning(&admin, command));
+    std::thread::sleep(std::time::Duration::from_millis(80));
+    lock.execute_batch("COMMIT").unwrap();
+    assert_eq!(worker.join().unwrap().unwrap_err().code, "unauthorized");
+    f.store.authenticate(&target.token).unwrap();
+    assert_eq!(
+        lock.query_row(
+            "SELECT COUNT(*) FROM operations WHERE operation_id='expired-queued-revocation'",
+            [],
+            |r| r.get::<_, u64>(0)
+        )
+        .unwrap(),
+        0
+    );
+}

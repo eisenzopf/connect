@@ -1,0 +1,96 @@
+--- a/crates/foundation/rvoip-core/src/staged_streams/tests.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests.rs
+@@ -2732,25 +2732,74 @@
+ #[tokio::test]
+ async fn readiness_metadata_capture_fences_actual_generation_epoch_and_port_retirement() {
+     let f = Fixture::new(4);
+-    f.start_unsubscribed(&[Medium::Audio,Medium::Data]).await;
+-    let actor=principal("alice");
+-    let connection=ConnectionId::from_string("alice");
+-    let revision=f.a.revision();
+-    let epoch=CancellationToken::new();
+-    let captured=f.a.capture_ready_metadata(&actor,&connection,revision,|credential,bindings| {
+-        assert_eq!(credential,1);assert_eq!(bindings.len(),2);
+-        Ok((bindings.to_vec(),epoch.clone()))
+-    }).unwrap();
+-    assert_eq!(captured.len(),2);
+-    assert!(matches!(f.a.capture_ready_metadata(&actor,&ConnectionId::from_string("bob"),revision,|_,_|Ok(((),epoch.clone()))),Err(StreamControlError::Authority)));
+-    assert!(matches!(f.a.capture_ready_metadata(&actor,&connection,revision+1,|_,_|Ok(((),epoch.clone()))),Err(StreamControlError::Authority)));
+-    assert!(matches!(f.a.capture_ready_metadata(&actor,&connection,revision,|_,_| {epoch.cancel();Ok(((),epoch.clone()))}),Err(StreamControlError::Authority)));
+-    let guard=f.a.state.lock().unwrap();
+-    assert!(matches!(f.a.capture_ready_metadata(&actor,&connection,revision,|_,_|Ok(((),CancellationToken::new()))),Err(StreamControlError::NotReady)));
++    f.start_unsubscribed(&[Medium::Audio, Medium::Data]).await;
++    let actor = f.a.credential.lock().unwrap().principal.clone();
++    let connection = ConnectionId::from_string("alice");
++    let revision = f.a.revision();
++    let epoch = CancellationToken::new();
++    let captured =
++        f.a.capture_ready_metadata(&actor, &connection, revision, |credential, bindings| {
++            assert_eq!(credential, 1);
++            assert_eq!(bindings.len(), 2);
++            Ok((bindings.to_vec(), epoch.clone()))
++        })
++        .unwrap();
++    assert_eq!(captured.len(), 2);
++    assert!(matches!(
++        f.a.capture_ready_metadata(
++            &actor,
++            &ConnectionId::from_string("bob"),
++            revision,
++            |_, _| Ok(((), epoch.clone()))
++        ),
++        Err(StreamControlError::Authority)
++    ));
++    assert!(matches!(
++        f.a.capture_ready_metadata(&actor, &connection, revision + 1, |_, _| Ok((
++            (),
++            epoch.clone()
++        ))),
++        Err(StreamControlError::Authority)
++    ));
++    assert!(matches!(
++        f.a.capture_ready_metadata(&actor, &connection, revision, |_, _| {
++            epoch.cancel();
++            Ok(((), epoch.clone()))
++        }),
++        Err(StreamControlError::Authority)
++    ));
++    let guard = f.a.state.lock().unwrap();
++    assert!(matches!(
++        f.a.capture_ready_metadata(&actor, &connection, revision, |_, _| Ok((
++            (),
++            CancellationToken::new()
++        ))),
++        Err(StreamControlError::NotReady)
++    ));
+     drop(guard);
+-    let port=f.a.state.lock().unwrap().active.values().next().unwrap().clone();
++    let port =
++        f.a.state
++            .lock()
++            .unwrap()
++            .active
++            .values()
++            .next()
++            .unwrap()
++            .clone();
+     port.retire();
+-    assert!(matches!(f.a.capture_ready_metadata(&actor,&connection,revision,|_,_|Ok(((),CancellationToken::new()))),Err(StreamControlError::Authority)));
++    assert!(matches!(
++        f.a.capture_ready_metadata(&actor, &connection, revision, |_, _| Ok((
++            (),
++            CancellationToken::new()
++        ))),
++        Err(StreamControlError::Authority)
++    ));
+     f.a.shutdown.cancel();
+-    assert!(matches!(f.a.capture_ready_metadata(&actor,&connection,revision,|_,_|Ok(((),CancellationToken::new()))),Err(StreamControlError::Authority)));
+-}
++    assert!(matches!(
++        f.a.capture_ready_metadata(&actor, &connection, revision, |_, _| Ok((
++            (),
++            CancellationToken::new()
++        ))),
++        Err(StreamControlError::Authority)
++    ));
++}

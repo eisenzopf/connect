@@ -1,0 +1,289 @@
+--- /dev/null
++++ b/crates/foundation/rvoip-core/src/staged_streams/readiness_observation.rs
+@@ -0,0 +1,55 @@
++//! Capture historical metadata under actual controller/credential/port custody.
++use super::*;
++impl StreamController {
++    /// `capture` may inspect independent metadata but must not reenter Core or
++    /// retain an IO grant. Its epoch must cover every captured fact. Flow locks
++    /// leave the callback before port locks are acquired (flow -> port order).
++    /// The returned value proves a past observation, never permission for IO.
++    pub fn capture_ready_metadata<T>(
++        &self,
++        principal: &AuthenticatedPrincipal,
++        connection: &ConnectionId,
++        revision: u64,
++        capture: impl FnOnce(u64, &[ReadyMediaBinding]) -> ControlResult<(T, CancellationToken)>,
++    ) -> ControlResult<T> {
++        let state = self
++            .state
++            .try_lock()
++            .map_err(|_| StreamControlError::NotReady)?;
++        let credential = self
++            .credential
++            .try_lock()
++            .map_err(|_| StreamControlError::NotReady)?;
++        if self.shutdown.is_cancelled()
++            || &self.connection != connection
++            || state.closed
++            || state.model.revision() != revision
++            || !reliable_data::same_credential(&credential.principal, principal)
++            || state.active.is_empty()
++            || state.active.len() > 64
++        {
++            return Err(StreamControlError::Authority);
++        }
++        let bindings = state
++            .active
++            .values()
++            .map(|p| p.binding.clone())
++            .collect::<Vec<_>>();
++        let (value, epoch) = capture(credential.revision, &bindings)?;
++        let mut guards = Vec::with_capacity(state.active.len());
++        for port in state.active.values() {
++            let guard = port
++                .state
++                .try_lock()
++                .map_err(|_| StreamControlError::NotReady)?;
++            if guard.status != PortStatus::Active {
++                return Err(StreamControlError::Authority);
++            }
++            guards.push(guard);
++        }
++        if self.shutdown.is_cancelled() || epoch.is_cancelled() {
++            return Err(StreamControlError::Authority);
++        }
++        Ok(value)
++    }
++}
+--- a/crates/foundation/rvoip-core/src/staged_streams/tests.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests.rs
+@@ -2728,3 +2728,29 @@
+         .is_err());
+     assert_eq!(calls.load(Ordering::SeqCst), 1);
+ }
++
++#[tokio::test]
++async fn readiness_metadata_capture_fences_actual_generation_epoch_and_port_retirement() {
++    let f = Fixture::new(4);
++    f.start_unsubscribed(&[Medium::Audio,Medium::Data]).await;
++    let actor=principal("alice");
++    let connection=ConnectionId::from_string("alice");
++    let revision=f.a.revision();
++    let epoch=CancellationToken::new();
++    let captured=f.a.capture_ready_metadata(&actor,&connection,revision,|credential,bindings| {
++        assert_eq!(credential,1);assert_eq!(bindings.len(),2);
++        Ok((bindings.to_vec(),epoch.clone()))
++    }).unwrap();
++    assert_eq!(captured.len(),2);
++    assert!(matches!(f.a.capture_ready_metadata(&actor,&ConnectionId::from_string("bob"),revision,|_,_|Ok(((),epoch.clone()))),Err(StreamControlError::Authority)));
++    assert!(matches!(f.a.capture_ready_metadata(&actor,&connection,revision+1,|_,_|Ok(((),epoch.clone()))),Err(StreamControlError::Authority)));
++    assert!(matches!(f.a.capture_ready_metadata(&actor,&connection,revision,|_,_| {epoch.cancel();Ok(((),epoch.clone()))}),Err(StreamControlError::Authority)));
++    let guard=f.a.state.lock().unwrap();
++    assert!(matches!(f.a.capture_ready_metadata(&actor,&connection,revision,|_,_|Ok(((),CancellationToken::new()))),Err(StreamControlError::NotReady)));
++    drop(guard);
++    let port=f.a.state.lock().unwrap().active.values().next().unwrap().clone();
++    port.retire();
++    assert!(matches!(f.a.capture_ready_metadata(&actor,&connection,revision,|_,_|Ok(((),CancellationToken::new()))),Err(StreamControlError::Authority)));
++    f.a.shutdown.cancel();
++    assert!(matches!(f.a.capture_ready_metadata(&actor,&connection,revision,|_,_|Ok(((),CancellationToken::new()))),Err(StreamControlError::Authority)));
++}
+--- a/crates/foundation/rvoip-core/src/staged_streams.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams.rs
+@@ -2681,5 +2681,6 @@
+ mod capability_declaration;
+ pub(crate) mod capability_disclosure;
+ mod dtmf_source;
++mod readiness_observation;
+ 
+ pub mod endpoint_preparation;
+--- a/crates/uctp/rvoip-uctp/src/native_flow.rs
++++ b/crates/uctp/rvoip-uctp/src/native_flow.rs
+@@ -33,6 +33,50 @@
+     pub(crate) changed: Notify,
+ }
+ impl NativeFlow {
++    pub(crate) fn observe_ready(
++        &self,
++        controller: &StreamController,
++        principal: &rvoip_core::AuthenticatedPrincipal,
++        connection: &rvoip_core::ids::ConnectionId,
++        revision: u64,
++    ) -> ControlResult<crate::v2::native_lifecycle::NativeConnectionReadyObservation> {
++        controller.capture_ready_metadata(
++            principal,
++            connection,
++            revision,
++            |credential_revision, bindings| {
++                let state = self
++                    .state
++                    .try_lock()
++                    .map_err(|_| StreamControlError::NotReady)?;
++                if !self.current()
++                    || state.confirmed_revision != Some(revision)
++                    || bindings.iter().any(|b| {
++                        !state.ports.get(&b.transport_id).is_some_and(|p| {
++                            crate::staged_media::same_binding(&p.binding, b)
++                                && (b.negotiated.requested.direction == StreamDirection::Send
++                                    || p.received)
++                                && (b.negotiated.requested.direction == StreamDirection::Receive
++                                    || p.sent)
++                        })
++                    })
++                {
++                    return Err(StreamControlError::NotReady);
++                }
++                Ok((
++                    crate::v2::native_lifecycle::NativeConnectionReadyObservation {
++                        connection: connection.clone(),
++                        principal: principal.clone(),
++                        revision,
++                        credential_revision,
++                        observed_at: chrono::Utc::now(),
++                        streams: bindings.to_vec(),
++                    },
++                    state.epoch.child_token(),
++                ))
++            },
++        )
++    }
+     pub(crate) fn new(lifetime: CancellationToken) -> Arc<Self> {
+         Arc::new(Self {
+             state: Mutex::new(State {
+--- a/crates/uctp/rvoip-uctp/src/v2/native_lifecycle.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/native_lifecycle.rs
+@@ -19,6 +19,7 @@
+ pub enum NativeLifecycleEvent {
+     ConnectionReady {
+         streams: Vec<ReadyMediaBinding>,
++        observation: NativeConnectionReadyObservation,
+     },
+     ConnectionQuality {
+         streams: Vec<ReadyMediaBinding>,
+@@ -40,6 +41,37 @@
+         closed_at: chrono::DateTime<chrono::Utc>,
+     },
+ }
++/// Engine-minted historical readiness. No deserialization or public constructor;
++/// cloning preserves facts, and supplies no current media or delivery authority.
++#[derive(Clone)]
++pub struct NativeConnectionReadyObservation {
++    pub(crate) connection: ConnectionId,
++    pub(crate) principal: AuthenticatedPrincipal,
++    pub(crate) revision: u64,
++    pub(crate) credential_revision: u64,
++    pub(crate) observed_at: chrono::DateTime<chrono::Utc>,
++    pub(crate) streams: Vec<ReadyMediaBinding>,
++}
++impl NativeConnectionReadyObservation {
++    pub fn connection(&self) -> &ConnectionId {
++        &self.connection
++    }
++    pub fn principal(&self) -> &AuthenticatedPrincipal {
++        &self.principal
++    }
++    pub fn revision(&self) -> u64 {
++        self.revision
++    }
++    pub fn credential_revision(&self) -> u64 {
++        self.credential_revision
++    }
++    pub fn observed_at(&self) -> chrono::DateTime<chrono::Utc> {
++        self.observed_at
++    }
++    pub fn streams(&self) -> &[ReadyMediaBinding] {
++        &self.streams
++    }
++}
+ impl std::fmt::Debug for NativeLifecycleEvent {
+     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+         f.write_str("NativeLifecycleEvent(redacted)")
+@@ -103,7 +135,7 @@
+         }
+         let active = c.active_bindings();
+         let observed = match &self.event {
+-            NativeLifecycleEvent::ConnectionReady { streams } => {
++            NativeLifecycleEvent::ConnectionReady { streams, .. } => {
+                 self.flow.confirmed_at(self.revision)
+                     && !streams.is_empty()
+                     && active.len() == streams.len()
+@@ -303,7 +335,14 @@
+                     continue;
+                 }
+             }
+-            let event = choose(&mut state, &active, revision, &self.flow);
++            let event = choose(
++                &mut state,
++                &active,
++                revision,
++                &self.flow,
++                &controller,
++                &self.scope,
++            );
+             let Some(event) = event else {
+                 drop(state);
+                 tokio::select! {_=self.origin.cancellation().cancelled_owned()=>return Err(DispatchError::Closed),_=&mut changed=>{},_=tokio::time::sleep(Duration::from_millis(20))=>{}}
+@@ -319,8 +358,13 @@
+             let origin = self.origin.with_fence(fence);
+             let deadline = Instant::now() + Duration::from_secs(1);
+             let cancellation = origin.cancellation();
+-            let authority = tokio::select! {biased;_=cancellation.cancelled()=>return Err(DispatchError::Closed),_=tokio::time::sleep_until(deadline)=>return Err(DispatchError::Closed),r=self.policy.authorize(&self.scope,&event)=>match r {
++            let authority = tokio::select! {biased;_=cancellation.cancelled()=>return Err(DispatchError::Closed),_=tokio::time::sleep_until(deadline)=>{if matches!(event, NativeLifecycleEvent::ConnectionReady { .. }) {drop(state);tokio::time::sleep(Duration::from_millis(20)).await;continue;}return Err(DispatchError::Closed);},r=self.policy.authorize(&self.scope,&event)=>match r {
+                 Ok(guard)=>guard,
++                Err(DispatchError::StorageUnavailable) if matches!(event, NativeLifecycleEvent::ConnectionReady { .. })=>{
++                    drop(state);
++                    tokio::time::sleep(Duration::from_millis(20)).await;
++                    continue;
++                },
+                 Err(_) if matches!(event, NativeLifecycleEvent::ConnectionQuality { .. })=>{drop(state);continue;},
+                 Err(error)=>return Err(error),
+             }};
+@@ -369,15 +413,25 @@
+     active: &[ReadyMediaBinding],
+     revision: u64,
+     flow: &NativeFlow,
++    controller: &StreamController,
++    scope: &NativeLifecycleScope,
+ ) -> Option<NativeLifecycleEvent> {
+     if !state.ready {
+         if !active.is_empty()
+             && flow.confirmed_at(revision)
+             && active.iter().all(|b| flow.flowing(b))
+         {
+-            return Some(NativeLifecycleEvent::ConnectionReady {
+-                streams: active.to_vec(),
+-            });
++            if let Ok(observation) = flow.observe_ready(
++                controller,
++                &scope.principal,
++                &scope.media.connection,
++                revision,
++            ) {
++                return Some(NativeLifecycleEvent::ConnectionReady {
++                    streams: observation.streams().to_vec(),
++                    observation,
++                });
++            }
+         }
+         return flow
+             .take_quality(revision, active)
+@@ -511,7 +565,7 @@
+             "connection.quality",
+             serde_json::to_value(report).map_err(|_| DispatchError::Unsupported)?,
+         ),
+-        NativeLifecycleEvent::ConnectionReady { streams } => (
++        NativeLifecycleEvent::ConnectionReady { streams, .. } => (
+             "connection.ready",
+             json!({"streams":streams.iter().map(binding).collect::<Vec<_>>()}),
+         ),
+--- a/crates/uctp/rvoip-uctp/tests/support/canonical_media/native_offers.rs
++++ b/crates/uctp/rvoip-uctp/tests/support/canonical_media/native_offers.rs
+@@ -1373,7 +1373,7 @@
+             return Err(DispatchError::Authority);
+         }
+         let streams = match event {
+-            NativeLifecycleEvent::ConnectionReady { streams }
++            NativeLifecycleEvent::ConnectionReady { streams, .. }
+             | NativeLifecycleEvent::ConnectionQuality { streams, .. } => streams.as_slice(),
+             NativeLifecycleEvent::StreamOpened { stream }
+             | NativeLifecycleEvent::StreamClosed { stream, .. } => std::slice::from_ref(stream),

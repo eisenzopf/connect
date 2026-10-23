@@ -7,7 +7,7 @@ let input=''; for await (const chunk of process.stdin) input+=chunk;
 const {token,task,other,cid}=JSON.parse(input);
 const open=()=>mode==='native'?new NativeClient(config,executable):mode==='browser'?new BrowserHttpClient(url,token):new HttpClient(url,token);
 async function denied(fn,code) { await assert.rejects(fn,e=>e instanceof ConnectError && e.code===code); }
-const command={action:'invoke',task_id:task,request_id:'typescript-'+mode,step_id:'read',operation:{op:'send',request_id:'typescript-'+mode,conversation_id:cid,body:'Task-scoped SDK message'},reply_to:null,wait_for_reply:false};
+const command={action:'invoke',task_id:task,request_id:'typescript-'+mode,step_id:'read',operation:{op:'send',request_id:'typescript-'+mode,conversation_id:cid,message:{to:'all',content_type:'text/plain',body:'Task-scoped SDK message',body_encoding:'utf8',label:'connect-messages',attachments:[],in_reply_to_msg:null,msg_id:null}},reply_to:null,wait_for_reply:false};
 let client=open(), outcome;
 try {
     await denied(()=>client.task({action:'get',task_id:task}),'unsupported-profile');

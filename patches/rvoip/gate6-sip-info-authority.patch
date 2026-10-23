@@ -1,0 +1,1259 @@
+diff --git a/crates/sip/sip-dialog/src/api/unified.rs b/crates/sip/sip-dialog/src/api/unified.rs
+--- a/crates/sip/sip-dialog/src/api/unified.rs
++++ b/crates/sip/sip-dialog/src/api/unified.rs
+@@ -2993,6 +2993,45 @@
+             .map_err(ApiError::from)
+     }
+ 
++    /// One immutable INFO transaction with caller-owned effects. Permission is
++    /// acquired at each actual first/retransmitted write. No candidate or
++    /// authentication retry is scheduled by this entrypoint. Drop at any await
++    /// cancels write custody, including before this function returns.
++    pub async fn send_info_with_options_authorized(
++        &self,
++        dialog_id: &DialogId,
++        opts: InfoRequestOptions,
++        authority: Arc<dyn crate::transaction::egress::ClientRequestWriteAuthority>,
++        deadline: tokio::time::Instant,
++    ) -> ApiResult<crate::transaction::egress::OwnedInfoDelivery> {
++        let (owner, authority) =
++            crate::transaction::egress::ClientRequestWriteOwner::new(authority, deadline);
++        let (transaction, completion) = self
++            .manager
++            .inner_manager()
++            .send_info_request_snapshot_owned(
++                dialog_id,
++                crate::manager::transaction_integration::InfoRequestSnapshot::exact(
++                    opts.content_type,
++                    opts.body,
++                    opts.extra_headers,
++                )
++                .authorized(authority),
++            )
++            .await
++            .map_err(ApiError::from)?;
++        let completion = completion.ok_or_else(|| {
++            ApiError::from(crate::errors::DialogError::protocol_error(
++                "INFO completion unavailable",
++            ))
++        })?;
++        Ok(crate::transaction::egress::OwnedInfoDelivery::new(
++            transaction,
++            completion,
++            owner,
++        ))
++    }
++
+     /// BYE with full options.
+     ///
+     /// When `opts.reason` is set, an RFC 3326 `Reason:` header is
+diff --git a/crates/sip/sip-dialog/src/manager/transaction_integration.rs b/crates/sip/sip-dialog/src/manager/transaction_integration.rs
+--- a/crates/sip/sip-dialog/src/manager/transaction_integration.rs
++++ b/crates/sip/sip-dialog/src/manager/transaction_integration.rs
+@@ -30,6 +30,7 @@
+ use std::collections::{BTreeSet, HashMap};
+ use std::net::SocketAddr;
+ use std::sync::atomic::{AtomicU8, Ordering};
++use std::sync::Arc;
+ use std::time::{Duration, Instant};
+ use tracing::{debug, error, info, warn};
+ 
+@@ -98,6 +99,7 @@
+ /// wire.
+ #[derive(Clone)]
+ pub(crate) struct InfoRequestSnapshot {
++    write_authority: Option<Arc<dyn crate::transaction::egress::ClientRequestWriteAuthority>>,
+     content_type: String,
+     body: bytes::Bytes,
+     extra_headers: Vec<TypedHeader>,
+@@ -105,9 +107,18 @@
+ }
+ 
+ impl InfoRequestSnapshot {
++    pub(crate) fn authorized(
++        mut self,
++        authority: Arc<dyn crate::transaction::egress::ClientRequestWriteAuthority>,
++    ) -> Self {
++        self.write_authority = Some(authority);
++        self
++    }
++
+     /// Compatibility shape for the generic/legacy INFO facades.
+     pub(crate) fn legacy(body: Option<bytes::Bytes>, extra_headers: Vec<TypedHeader>) -> Self {
+         Self {
++            write_authority: None,
+             content_type: "application/info".to_string(),
+             body: body.unwrap_or_else(|| bytes::Bytes::from_static(b"Application info")),
+             extra_headers,
+@@ -122,6 +133,7 @@
+         extra_headers: Vec<TypedHeader>,
+     ) -> Self {
+         Self {
++            write_authority: None,
+             content_type,
+             body,
+             extra_headers,
+@@ -136,6 +148,7 @@
+         extra_headers: Vec<TypedHeader>,
+     ) -> Self {
+         Self {
++            write_authority: None,
+             content_type,
+             body,
+             extra_headers,
+@@ -1854,7 +1867,7 @@
+             .map(|(transaction_id, _completion)| transaction_id)
+     }
+ 
+-    async fn send_info_request_snapshot_owned(
++    pub(crate) async fn send_info_request_snapshot_owned(
+         &self,
+         dialog_id: &DialogId,
+         snapshot: InfoRequestSnapshot,
+@@ -1900,8 +1913,13 @@
+             materialize_info_request_snapshot(&context, &snapshot)?
+         };
+ 
+-        self.send_materialized_in_dialog_request_owned(dialog_id, Method::Info, request)
+-            .await
++        self.send_materialized_in_dialog_request_authorized(
++            dialog_id,
++            Method::Info,
++            request,
++            snapshot.write_authority,
++        )
++        .await
+     }
+ 
+     /// Dispatch one immutable NOTIFY snapshot through the sole NOTIFY
+@@ -1994,6 +2012,20 @@
+         TransactionKey,
+         Option<crate::transaction::ClientTransactionCompletionHandle>,
+     )> {
++        self.send_materialized_in_dialog_request_authorized(dialog_id, method, request, None)
++            .await
++    }
++
++    async fn send_materialized_in_dialog_request_authorized(
++        &self,
++        dialog_id: &DialogId,
++        method: Method,
++        request: Request,
++        write_authority: Option<Arc<dyn crate::transaction::egress::ClientRequestWriteAuthority>>,
++    ) -> DialogResult<(
++        TransactionKey,
++        Option<crate::transaction::ClientTransactionCompletionHandle>,
++    )> {
+         let next_hop =
+             crate::transaction::transport::multiplexed::exact_next_hop_uri_for_request(&request)
+                 .map_err(|_| {
+@@ -2017,11 +2049,12 @@
+                 && self.local_contact_uri().is_none(),
+         };
+         let (transaction_id, _address, completion) = self
+-            .send_request_with_candidate_wire_plan_owned(
++            .send_request_with_candidate_wire_plan_authorized(
+                 request,
+                 candidates,
+                 Some(dialog_id),
+                 wire_plan,
++                write_authority,
+             )
+             .await?;
+         debug!(
+@@ -5923,6 +5956,28 @@
+         std::net::SocketAddr,
+         Option<crate::transaction::ClientTransactionCompletionHandle>,
+     )> {
++        self.send_request_with_candidate_wire_plan_authorized(
++            request,
++            candidates,
++            tx_to_dialog,
++            wire_plan,
++            None,
++        )
++        .await
++    }
++
++    async fn send_request_with_candidate_wire_plan_authorized(
++        &self,
++        request: rvoip_sip_core::Request,
++        candidates: Vec<rvoip_sip_transport::resolver::ResolvedTarget>,
++        tx_to_dialog: Option<&DialogId>,
++        wire_plan: CandidateWirePlan,
++        write_authority: Option<Arc<dyn crate::transaction::egress::ClientRequestWriteAuthority>>,
++    ) -> DialogResult<(
++        TransactionKey,
++        std::net::SocketAddr,
++        Option<crate::transaction::ClientTransactionCompletionHandle>,
++    )> {
+         use crate::manager::RequestLifecycle;
+ 
+         let _operation = self.enter_invite_failover_operation().ok_or_else(|| {
+@@ -5932,6 +5987,11 @@
+             }
+         })?;
+         let method = request.method();
++        if write_authority.is_some() && method != Method::Info {
++            return Err(crate::errors::DialogError::protocol_error(
++                "owned write policy requires INFO",
++            ));
++        }
+         if candidates.is_empty() {
+             return Err(crate::errors::DialogError::routing_error(
+                 "No address candidates for the exact request next hop",
+@@ -5976,10 +6036,22 @@
+             if let Some(authority) = target.authority.clone() {
+                 request_route.authority = Some(authority);
+             }
+-            let tx_result = self
+-                .transaction_manager
+-                .create_client_transaction_on_route_with_completion(req, request_route)
+-                .await;
++            let tx_result = match write_authority.as_ref() {
++                Some(authority) => {
++                    self.transaction_manager
++                        .create_client_transaction_on_route_with_write_authority(
++                            req,
++                            request_route,
++                            Arc::clone(authority),
++                        )
++                        .await
++                }
++                None => {
++                    self.transaction_manager
++                        .create_client_transaction_on_route_with_completion(req, request_route)
++                        .await
++                }
++            };
+             let (tx_id, completion) = match tx_result {
+                 Ok(created) => created,
+                 Err(_error) => {
+@@ -5990,6 +6062,9 @@
+                             &method,
+                         ),
+                     });
++                    if write_authority.is_some() {
++                        break;
++                    }
+                     continue;
+                 }
+             };
+@@ -6025,7 +6100,7 @@
+                 Err(e) => {
+                     let is_transport_failure =
+                         matches!(&e, crate::transaction::error::Error::TransportError { .. });
+-                    if is_transport_failure && idx + 1 < total {
++                    if write_authority.is_none() && is_transport_failure && idx + 1 < total {
+                         debug!(
+                             attempt,
+                             total,
+diff --git a/crates/sip/sip-dialog/src/transaction/client/data.rs b/crates/sip/sip-dialog/src/transaction/client/data.rs
+--- a/crates/sip/sip-dialog/src/transaction/client/data.rs
++++ b/crates/sip/sip-dialog/src/transaction/client/data.rs
+@@ -118,6 +118,9 @@
+     /// Exact manager-index publisher installed before this transaction is
+     /// made visible. Standalone transactions intentionally leave it absent.
+     pub(crate) request_route_publisher: std::sync::OnceLock<RequestRoutePublisher>,
++    /// Selected per-write policy, installed before manager publication.
++    pub(crate) request_write_authority:
++        std::sync::OnceLock<Arc<dyn crate::transaction::egress::ClientRequestWriteAuthority>>,
+ 
+     /// Transport layer for sending SIP messages
+     pub transport: Arc<dyn Transport>,
+@@ -235,6 +238,14 @@
+         let _ = self.request_route_publisher.set(publisher);
+     }
+ 
++    pub(crate) fn install_request_write_authority(
++        &self,
++        authority: Arc<dyn crate::transaction::egress::ClientRequestWriteAuthority>,
++    ) {
++        self.request_write_authority
++            .set(authority)
++            .unwrap_or_else(|_| panic!("request write authority already installed"));
++    }
+     fn publish_request_route(&self, route: &TransportRoute) -> bool {
+         self.request_route_publisher
+             .get()
+@@ -463,11 +474,33 @@
+         // still fail with zero bytes attempted, while any error returned after
+         // this point is treated as wire-unknown and retains the compact
+         // request/route needed for CANCEL and late-response handling.
+-        self.mark_initial_send_attempted();
+-        let bound = self
+-            .transport
+-            .send_message_on_route(message, prepared)
+-            .await?;
++        let bound = if let Some(authority) = self.request_write_authority.get() {
++            let physical_message = message.clone();
++            let physical_route = prepared.clone();
++            let io = Box::pin(async move {
++                // Policy refusal before this future's first poll is a
++                // definitive non-write, not a fabricated uncertain send.
++                self.mark_initial_send_attempted();
++                self.transport
++                    .send_message_on_route(physical_message, physical_route)
++                    .await
++            });
++            authority
++                .write(
++                    &crate::transaction::egress::ClientRequestWriteScope {
++                        transaction: &self.id,
++                        message: &message,
++                        route: &prepared,
++                    },
++                    io,
++                )
++                .await?
++        } else {
++            self.mark_initial_send_attempted();
++            self.transport
++                .send_message_on_route(message, prepared)
++                .await?
++        };
+         *self.request_route.lock().await = bound.clone();
+         // A response may have retired the transaction before the transport
+         // returns. In that case the pre-wire prepared route remains the
+diff --git a/crates/sip/sip-dialog/src/transaction/client/invite.rs b/crates/sip/sip-dialog/src/transaction/client/invite.rs
+--- a/crates/sip/sip-dialog/src/transaction/client/invite.rs
++++ b/crates/sip/sip-dialog/src/transaction/client/invite.rs
+@@ -943,6 +943,7 @@
+             remote_addr,
+             request_route: Arc::new(Mutex::new(request_route)),
+             request_route_publisher: std::sync::OnceLock::new(),
++            request_write_authority: std::sync::OnceLock::new(),
+             transport,
+             events_tx: events_tx.into(),
+             cmd_tx: cmd_tx.clone(),
+diff --git a/crates/sip/sip-dialog/src/transaction/client/non_invite.rs b/crates/sip/sip-dialog/src/transaction/client/non_invite.rs
+--- a/crates/sip/sip-dialog/src/transaction/client/non_invite.rs
++++ b/crates/sip/sip-dialog/src/transaction/client/non_invite.rs
+@@ -771,6 +771,7 @@
+             remote_addr,
+             request_route: Arc::new(Mutex::new(request_route)),
+             request_route_publisher: std::sync::OnceLock::new(),
++            request_write_authority: std::sync::OnceLock::new(),
+             transport,
+             events_tx: events_tx.into(),
+             cmd_tx: cmd_tx.clone(), // For the transaction itself to send commands to its loop
+diff --git a/crates/sip/sip-dialog/src/transaction/egress.rs b/crates/sip/sip-dialog/src/transaction/egress.rs
+new file mode 100644
+--- /dev/null
++++ b/crates/sip/sip-dialog/src/transaction/egress.rs
+@@ -0,0 +1,296 @@
++//! Per-write authorization at the exact client request transport boundary.
++//! The policy is installed before transaction publication. Its retained object
++//! carries no idle grant; every first send and retransmission calls it anew.
++use super::TransactionKey;
++use async_trait::async_trait;
++use rvoip_sip_core::Message;
++use rvoip_sip_transport::{Result, TransportRoute};
++use std::{future::Future, pin::Pin};
++pub type ClientRequestWriteFuture<'a> =
++    Pin<Box<dyn Future<Output = Result<TransportRoute>> + Send + 'a>>;
++/// Actual immutable transaction/message and prepared route. Message content or
++/// a matching branch is never authority. The IO future owns the exact send;
++/// a policy cannot substitute another message or destination through this seam.
++pub struct ClientRequestWriteScope<'a> {
++    pub transaction: &'a TransactionKey,
++    pub message: &'a Message,
++    pub route: &'a TransportRoute,
++}
++impl std::fmt::Debug for ClientRequestWriteScope<'_> {
++    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
++        f.write_str("ClientRequestWriteScope(redacted)")
++    }
++}
++/// Acquire current permission and retain its owned guard through this actual
++/// IO, including abortion. Do not detach the supplied future, hold a reader
++/// between retries, or treat a prior success as a grant for another write.
++#[async_trait]
++pub trait ClientRequestWriteAuthority: Send + Sync {
++    async fn write(
++        &self,
++        _scope: &ClientRequestWriteScope<'_>,
++        _io: ClientRequestWriteFuture<'_>,
++    ) -> Result<TransportRoute> {
++        Err(rvoip_sip_transport::Error::InvalidState(
++            "client request write authority denied".into(),
++        ))
++    }
++}
++
++/// Custody of all writes of one client operation. Drop aborts any pending
++/// owned IO and prohibits every later retransmission, without retaining a
++/// permission guard during timers or response waits.
++#[must_use = "dropping the owner cancels current and later request writes"]
++pub struct ClientRequestWriteOwner {
++    stop: tokio::sync::watch::Sender<bool>,
++    poll_fence: std::sync::Arc<std::sync::Mutex<bool>>,
++}
++impl ClientRequestWriteOwner {
++    pub fn new(
++        authority: std::sync::Arc<dyn ClientRequestWriteAuthority>,
++        deadline: tokio::time::Instant,
++    ) -> (Self, std::sync::Arc<dyn ClientRequestWriteAuthority>) {
++        let (stop, cancelled) = tokio::sync::watch::channel(false);
++        let poll_fence = std::sync::Arc::new(std::sync::Mutex::new(false));
++        (
++            Self {
++                stop,
++                poll_fence: poll_fence.clone(),
++            },
++            std::sync::Arc::new(OwnedRequestWriteAuthority {
++                authority,
++                poll_fence,
++                cancelled,
++                deadline,
++            }),
++        )
++    }
++    pub fn cancel(&self) {
++        // Linearize cancellation with actual bounded transport polls. No
++        // guard survives Pending, and no policy callback runs under this lock.
++        *self
++            .poll_fence
++            .lock()
++            .unwrap_or_else(|poisoned| poisoned.into_inner()) = true;
++        self.stop.send_replace(true);
++    }
++}
++impl Drop for ClientRequestWriteOwner {
++    fn drop(&mut self) {
++        self.cancel();
++    }
++}
++impl std::fmt::Debug for ClientRequestWriteOwner {
++    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
++        f.write_str("ClientRequestWriteOwner(redacted)")
++    }
++}
++struct OwnedRequestWriteAuthority {
++    poll_fence: std::sync::Arc<std::sync::Mutex<bool>>,
++    authority: std::sync::Arc<dyn ClientRequestWriteAuthority>,
++    cancelled: tokio::sync::watch::Receiver<bool>,
++    deadline: tokio::time::Instant,
++}
++#[async_trait]
++impl ClientRequestWriteAuthority for OwnedRequestWriteAuthority {
++    async fn write(
++        &self,
++        scope: &ClientRequestWriteScope<'_>,
++        io: ClientRequestWriteFuture<'_>,
++    ) -> Result<TransportRoute> {
++        let mut cancelled = self.cancelled.clone();
++        if *cancelled.borrow_and_update() || tokio::time::Instant::now() >= self.deadline {
++            return Err(rvoip_sip_transport::Error::InvalidState(
++                "request write owner ended".into(),
++            ));
++        }
++        let mut io = io;
++        let io = Box::pin(std::future::poll_fn(|cx| {
++            let Ok(ended) = self.poll_fence.try_lock() else {
++                return std::task::Poll::Ready(Err(rvoip_sip_transport::Error::InvalidState(
++                    "request write custody busy".into(),
++                )));
++            };
++            if *ended || tokio::time::Instant::now() >= self.deadline {
++                return std::task::Poll::Ready(Err(rvoip_sip_transport::Error::InvalidState(
++                    "request write owner ended".into(),
++                )));
++            }
++            io.as_mut().poll(cx)
++        }));
++        tokio::select! {biased;
++            _=cancelled.changed()=>Err(rvoip_sip_transport::Error::InvalidState("request write owner ended".into())),
++            _=tokio::time::sleep_until(self.deadline)=>Err(rvoip_sip_transport::Error::InvalidState("request write owner deadline".into())),
++            result=self.authority.write(scope,io)=>result,
++        }
++    }
++}
++/// Exact INFO transaction and write custody returned together. The completion
++/// is factual SIP transaction evidence, never proof that a peer played a tone.
++#[must_use = "keep this delivery alive while awaiting its exact completion"]
++#[derive(Debug)]
++pub struct OwnedInfoDelivery {
++    transaction: TransactionKey,
++    completion: super::ClientTransactionCompletionHandle,
++    _owner: ClientRequestWriteOwner,
++}
++impl OwnedInfoDelivery {
++    pub(crate) fn new(
++        transaction: TransactionKey,
++        completion: super::ClientTransactionCompletionHandle,
++        owner: ClientRequestWriteOwner,
++    ) -> Self {
++        Self {
++            transaction,
++            completion,
++            _owner: owner,
++        }
++    }
++    pub fn transaction(&self) -> &TransactionKey {
++        &self.transaction
++    }
++    pub fn completion(&self) -> &super::ClientTransactionCompletionHandle {
++        &self.completion
++    }
++    pub fn cancel(&self) {
++        self._owner.cancel();
++    }
++}
++
++#[cfg(test)]
++mod tests {
++    use super::*;
++    use std::{
++        sync::{
++            atomic::{AtomicBool, Ordering},
++            Arc,
++        },
++        task::Poll,
++        time::Duration,
++    };
++    struct Allow;
++    #[async_trait]
++    impl ClientRequestWriteAuthority for Allow {
++        async fn write(
++            &self,
++            _scope: &ClientRequestWriteScope<'_>,
++            io: ClientRequestWriteFuture<'_>,
++        ) -> Result<TransportRoute> {
++            io.await
++        }
++    }
++    struct DropProbe(Arc<AtomicBool>);
++    impl Drop for DropProbe {
++        fn drop(&mut self) {
++            self.0.store(true, Ordering::Release);
++        }
++    }
++    #[tokio::test(start_paused = true)]
++    async fn owner_drop_or_deadline_discards_pending_actual_io_before_a_ready_poll() {
++        for expired in [false, true] {
++            let request = Message::Request(rvoip_sip_core::Request::new(
++                rvoip_sip_core::Method::Info,
++                "sip:fixture@127.0.0.1".parse().unwrap(),
++            ));
++            let transaction = TransactionKey::new(
++                "z9hG4bK.owned-info-poll".into(),
++                rvoip_sip_core::Method::Info,
++                false,
++            );
++            let route = TransportRoute::new("127.0.0.1:5060".parse().unwrap());
++            let scope = ClientRequestWriteScope {
++                transaction: &transaction,
++                message: &request,
++                route: &route,
++            };
++            let (owner, authority) = ClientRequestWriteOwner::new(
++                Arc::new(Allow),
++                tokio::time::Instant::now() + Duration::from_millis(50),
++            );
++            let dropped = Arc::new(AtomicBool::new(false));
++            let ready = Arc::new(AtomicBool::new(false));
++            let wrote = Arc::new(AtomicBool::new(false));
++            let probe = DropProbe(dropped.clone());
++            let ready_io = ready.clone();
++            let wrote_io = wrote.clone();
++            let actual_route = route.clone();
++            let io = Box::pin(async move {
++                let _probe = probe;
++                std::future::poll_fn(move |_| {
++                    if ready_io.load(Ordering::Acquire) {
++                        wrote_io.store(true, Ordering::Release);
++                        Poll::Ready(Ok(actual_route.clone()))
++                    } else {
++                        Poll::Pending
++                    }
++                })
++                .await
++            });
++            let mut writing = Box::pin(authority.write(&scope, io));
++            assert!(futures::poll!(&mut writing).is_pending());
++            assert!(!dropped.load(Ordering::Acquire));
++            if expired {
++                tokio::time::advance(Duration::from_millis(51)).await;
++            } else {
++                owner.cancel();
++            }
++            ready.store(true, Ordering::Release);
++            assert!(writing.await.is_err());
++            assert!(dropped.load(Ordering::Acquire));
++            assert!(!wrote.load(Ordering::Acquire));
++            drop(owner);
++        }
++    }
++    #[tokio::test]
++    async fn cancellation_stops_delayed_policy_even_if_it_catches_up_after_owner_ends() {
++        struct Delayed {
++            ready: tokio::sync::Notify,
++        }
++        #[async_trait]
++        impl ClientRequestWriteAuthority for Delayed {
++            async fn write(
++                &self,
++                _scope: &ClientRequestWriteScope<'_>,
++                io: ClientRequestWriteFuture<'_>,
++            ) -> Result<TransportRoute> {
++                self.ready.notified().await;
++                io.await
++            }
++        }
++        let request = Message::Request(rvoip_sip_core::Request::new(
++            rvoip_sip_core::Method::Info,
++            "sip:fixture@127.0.0.1".parse().unwrap(),
++        ));
++        let transaction = TransactionKey::new(
++            "z9hG4bK.owned-info-policy".into(),
++            rvoip_sip_core::Method::Info,
++            false,
++        );
++        let route = TransportRoute::new("127.0.0.1:5060".parse().unwrap());
++        let scope = ClientRequestWriteScope {
++            transaction: &transaction,
++            message: &request,
++            route: &route,
++        };
++        let policy = Arc::new(Delayed {
++            ready: tokio::sync::Notify::new(),
++        });
++        let (owner, authority) = ClientRequestWriteOwner::new(
++            policy.clone(),
++            tokio::time::Instant::now() + Duration::from_secs(1),
++        );
++        let wrote = Arc::new(AtomicBool::new(false));
++        let actual_wrote = wrote.clone();
++        let actual_route = route.clone();
++        let io = Box::pin(async move {
++            actual_wrote.store(true, Ordering::Release);
++            Ok(actual_route)
++        });
++        let mut writing = Box::pin(authority.write(&scope, io));
++        assert!(futures::poll!(&mut writing).is_pending());
++        owner.cancel();
++        policy.ready.notify_one();
++        assert!(writing.await.is_err());
++        assert!(!wrote.load(Ordering::Acquire));
++    }
++}
+diff --git a/crates/sip/sip-dialog/src/transaction/manager/mod.rs b/crates/sip/sip-dialog/src/transaction/manager/mod.rs
+--- a/crates/sip/sip-dialog/src/transaction/manager/mod.rs
++++ b/crates/sip/sip-dialog/src/transaction/manager/mod.rs
+@@ -7324,7 +7324,7 @@
+         request: Request,
+         request_route: TransportRoute,
+     ) -> Result<TransactionKey> {
+-        self.create_client_transaction_on_route_inner(request, request_route, None)
++        self.create_client_transaction_on_route_inner(request, request_route, None, None)
+             .await
+             .map(|(key, _owner, _completion)| key)
+     }
+@@ -7340,7 +7340,7 @@
+         request: Request,
+         request_route: TransportRoute,
+     ) -> Result<(TransactionKey, ClientTransactionCompletionHandle)> {
+-        self.create_client_transaction_on_route_inner(request, request_route, None)
++        self.create_client_transaction_on_route_inner(request, request_route, None, None)
+             .await
+             .map(|(key, _owner, completion)| (key, completion))
+     }
+@@ -7356,9 +7356,28 @@
+     ) -> Result<(TransactionKey, TransactionAdmissionOwner)> {
+         let mut timer_settings = self.timer_settings.clone();
+         timer_settings.transaction_timeout = transaction_timeout.max(Duration::from_millis(1));
+-        self.create_client_transaction_on_route_inner(request, request_route, Some(timer_settings))
++        self.create_client_transaction_on_route_inner(
++            request,
++            request_route,
++            Some(timer_settings),
++            None,
++        )
++        .await
++        .map(|(key, owner, _completion)| (key, owner))
++    }
++
++    /// Create one exact transaction with mandatory per-write policy installed
++    /// before its key/runner can be observed. Completion remains read-only;
++    /// the policy owner must cancel its own effects when its caller ends.
++    pub async fn create_client_transaction_on_route_with_write_authority(
++        &self,
++        request: Request,
++        route: TransportRoute,
++        authority: Arc<dyn crate::transaction::egress::ClientRequestWriteAuthority>,
++    ) -> Result<(TransactionKey, ClientTransactionCompletionHandle)> {
++        self.create_client_transaction_on_route_inner(request, route, None, Some(authority))
+             .await
+-            .map(|(key, owner, _completion)| (key, owner))
++            .map(|(key, _, completion)| (key, completion))
+     }
+ 
+     async fn create_client_transaction_on_route_inner(
+@@ -7366,6 +7385,7 @@
+         request: Request,
+         mut request_route: TransportRoute,
+         timer_settings_override: Option<TimerSettings>,
++        write_authority: Option<Arc<dyn crate::transaction::egress::ClientRequestWriteAuthority>>,
+     ) -> Result<(
+         TransactionKey,
+         TransactionAdmissionOwner,
+@@ -7635,6 +7655,11 @@
+             }
+         };
+ 
++        if let Some(authority) = write_authority {
++            transaction
++                .data()
++                .install_request_write_authority(authority);
++        }
+         if let Some(cleanup_tx) = self.terminated_cleanup_tx.as_ref() {
+             transaction
+                 .data()
+diff --git a/crates/sip/sip-dialog/src/transaction/manager/tests.rs b/crates/sip/sip-dialog/src/transaction/manager/tests.rs
+--- a/crates/sip/sip-dialog/src/transaction/manager/tests.rs
++++ b/crates/sip/sip-dialog/src/transaction/manager/tests.rs
+@@ -8905,4 +8905,237 @@
+         manager.shutdown().await;
+         Ok(())
+     }
++    struct OwnedInfoTestPolicy {
++        permission: Arc<tokio::sync::RwLock<bool>>,
++        acquisitions: AtomicUsize,
++        wire: std::sync::Mutex<Vec<(Vec<u8>, TransportRoute)>>,
++    }
++    impl OwnedInfoTestPolicy {
++        fn new() -> Arc<Self> {
++            Arc::new(Self {
++                permission: Arc::new(tokio::sync::RwLock::new(true)),
++                acquisitions: AtomicUsize::new(0),
++                wire: std::sync::Mutex::new(Vec::new()),
++            })
++        }
++    }
++    #[async_trait::async_trait]
++    impl crate::transaction::egress::ClientRequestWriteAuthority for OwnedInfoTestPolicy {
++        async fn write(
++            &self,
++            scope: &crate::transaction::egress::ClientRequestWriteScope<'_>,
++            io: crate::transaction::egress::ClientRequestWriteFuture<'_>,
++        ) -> rvoip_sip_transport::Result<TransportRoute> {
++            self.acquisitions.fetch_add(1, Ordering::AcqRel);
++            let guard = Arc::clone(&self.permission).read_owned().await;
++            if !*guard {
++                return Err(rvoip_sip_transport::Error::InvalidState(
++                    "test permission withdrawn".into(),
++                ));
++            }
++            self.wire
++                .lock()
++                .unwrap()
++                .push((scope.message.to_bytes().to_vec(), scope.route.clone()));
++            let result = io.await;
++            drop(guard);
++            result
++        }
++    }
++    struct DenyInfoWrite;
++    #[async_trait::async_trait]
++    impl crate::transaction::egress::ClientRequestWriteAuthority for DenyInfoWrite {}
++
++    fn owned_info_request(branch: &str) -> Request {
++        create_dispatch_request(Method::Info, branch, 441)
++            .unwrap()
++            .with_header(TypedHeader::ContentType(
++                "application/dtmf-relay".parse().unwrap(),
++            ))
++            .with_body(bytes::Bytes::from_static(b"Signal=5\r\nDuration=160\r\n"))
++    }
++    #[tokio::test]
++    async fn owned_info_default_denial_precedes_first_transport_poll() -> Result<()> {
++        let transport = Arc::new(WireBoundaryMockTransport::success());
++        let (_tx, rx) = mpsc::channel(8);
++        let (manager, _events) = TransactionManager::new(transport.clone(), rx, Some(8)).await?;
++        let (key, _completion) = manager
++            .create_client_transaction_on_route_with_write_authority(
++                owned_info_request("z9hG4bK.info-denial"),
++                TransportRoute::new("192.0.2.85:5060".parse().unwrap()),
++                Arc::new(DenyInfoWrite),
++            )
++            .await?;
++        let data = manager
++            .client_transactions
++            .get(&key)
++            .unwrap()
++            .data()
++            .clone();
++        assert!(manager.send_request(&key).await.is_err());
++        assert_eq!(transport.wire_attempts(), 0);
++        assert!(!data.initial_send_attempted());
++        manager.shutdown().await;
++        Ok(())
++    }
++    #[tokio::test]
++    async fn owned_info_timer_e_reacquires_without_idle_reader_and_refuses_revocation() -> Result<()>
++    {
++        let transport = Arc::new(WireBoundaryMockTransport::success());
++        let (_tx, rx) = mpsc::channel(8);
++        let (manager, _events) = TransactionManager::new(transport.clone(), rx, Some(8)).await?;
++        let policy = OwnedInfoTestPolicy::new();
++        let (owner, authority) = crate::transaction::egress::ClientRequestWriteOwner::new(
++            policy.clone(),
++            tokio::time::Instant::now() + Duration::from_secs(3),
++        );
++        let (key, completion) = manager
++            .create_client_transaction_on_route_with_write_authority(
++                owned_info_request("z9hG4bK.info-revoke"),
++                TransportRoute::new("192.0.2.85:5060".parse().unwrap()),
++                authority,
++            )
++            .await?;
++        manager.send_request(&key).await?;
++        assert_eq!(transport.wire_attempts(), 1);
++        let mut writer =
++            tokio::time::timeout(Duration::from_millis(100), policy.permission.write())
++                .await
++                .expect("idle retry retained permission");
++        *writer = false;
++        drop(writer);
++        assert!(matches!(
++            completion.wait_for_outcome(Duration::from_secs(2)).await?,
++            Some(crate::transaction::ClientTransactionOutcome::Failure(
++                crate::transaction::ClientTransactionFailure::Transport
++            ))
++        ));
++        assert_eq!(policy.acquisitions.load(Ordering::Acquire), 2);
++        assert_eq!(transport.wire_attempts(), 1);
++        drop(owner);
++        manager.shutdown().await;
++        Ok(())
++    }
++    #[tokio::test]
++    async fn owned_info_timer_e_preserves_exact_branch_cseq_body_and_route() -> Result<()> {
++        let transport = Arc::new(WireBoundaryMockTransport::success());
++        let (_tx, rx) = mpsc::channel(8);
++        let (manager, _events) = TransactionManager::new(transport.clone(), rx, Some(8)).await?;
++        let policy = OwnedInfoTestPolicy::new();
++        let (owner, authority) = crate::transaction::egress::ClientRequestWriteOwner::new(
++            policy.clone(),
++            tokio::time::Instant::now() + Duration::from_secs(3),
++        );
++        let (key, completion) = manager
++            .create_client_transaction_on_route_with_write_authority(
++                owned_info_request("z9hG4bK.info-exact"),
++                TransportRoute::new("192.0.2.85:5060".parse().unwrap()),
++                authority,
++            )
++            .await?;
++        manager.send_request(&key).await?;
++        tokio::time::timeout(Duration::from_secs(2), async {
++            while transport.wire_attempts() < 2 {
++                tokio::time::sleep(Duration::from_millis(5)).await;
++            }
++        })
++        .await
++        .expect("Timer E resend");
++        let attempts = transport.attempted().await;
++        assert_eq!(attempts.len(), 2);
++        assert_eq!(attempts[0].0.to_bytes(), attempts[1].0.to_bytes());
++        assert_eq!(attempts[0].1.destination, attempts[1].1.destination);
++        assert_eq!(attempts[0].1.flow_id, attempts[1].1.flow_id);
++        assert_eq!(policy.acquisitions.load(Ordering::Acquire), 2);
++        drop(owner);
++        assert!(completion
++            .wait_for_outcome(Duration::from_secs(2))
++            .await?
++            .is_some());
++        assert_eq!(transport.wire_attempts(), 2);
++        manager.shutdown().await;
++        Ok(())
++    }
++    #[tokio::test]
++    async fn owned_info_owner_drop_aborts_pending_io_and_releases_write_guard() -> Result<()> {
++        let destination = "192.0.2.85:5060".parse().unwrap();
++        let transport = PreparedRouteBarrierTransport::new(destination, TransportType::Udp, None);
++        let (_tx, rx) = mpsc::channel(8);
++        let (manager, _events) = TransactionManager::new(transport.clone(), rx, Some(8)).await?;
++        let policy = OwnedInfoTestPolicy::new();
++        let (owner, authority) = crate::transaction::egress::ClientRequestWriteOwner::new(
++            policy.clone(),
++            tokio::time::Instant::now() + Duration::from_secs(3),
++        );
++        let (key, completion) = manager
++            .create_client_transaction_on_route_with_write_authority(
++                owned_info_request("z9hG4bK.info-cancel"),
++                TransportRoute::new(destination),
++                authority,
++            )
++            .await?;
++        let sending = {
++            let manager = manager.clone();
++            tokio::spawn(async move { manager.send_request(&key).await })
++        };
++        tokio::time::timeout(Duration::from_secs(1), transport.wire_entered.notified())
++            .await
++            .expect("actual pending IO");
++        assert!(
++            policy.permission.try_write().is_err(),
++            "grant released before pending IO ended"
++        );
++        drop(owner);
++        assert!(tokio::time::timeout(Duration::from_secs(1), sending)
++            .await
++            .expect("send did not abort")
++            .unwrap()
++            .is_err());
++        let writer = policy
++            .permission
++            .try_write()
++            .expect("pending IO retained guard after cancellation");
++        drop(writer);
++        transport.release_wire.notify_one();
++        assert!(completion.current_outcome()?.is_some());
++        assert_eq!(policy.acquisitions.load(Ordering::Acquire), 1);
++        manager.shutdown().await;
++        Ok(())
++    }
++    #[tokio::test]
++    async fn owned_info_expired_or_dropped_owner_cannot_start_first_write() -> Result<()> {
++        for expired in [false, true] {
++            let transport = Arc::new(WireBoundaryMockTransport::success());
++            let (_tx, rx) = mpsc::channel(8);
++            let (manager, _events) =
++                TransactionManager::new(transport.clone(), rx, Some(8)).await?;
++            let policy = OwnedInfoTestPolicy::new();
++            let deadline = if expired {
++                tokio::time::Instant::now() - Duration::from_millis(1)
++            } else {
++                tokio::time::Instant::now() + Duration::from_secs(3)
++            };
++            let (owner, authority) =
++                crate::transaction::egress::ClientRequestWriteOwner::new(policy.clone(), deadline);
++            let owner = if expired {
++                Some(owner)
++            } else {
++                drop(owner);
++                None
++            };
++            let (key, _) = manager
++                .create_client_transaction_on_route_with_write_authority(
++                    owned_info_request("z9hG4bK.info-no-start"),
++                    TransportRoute::new("192.0.2.85:5060".parse().unwrap()),
++                    authority,
++                )
++                .await?;
++            assert!(manager.send_request(&key).await.is_err());
++            assert_eq!(transport.wire_attempts(), 0);
++            assert_eq!(policy.acquisitions.load(Ordering::Acquire), 0);
++            drop(owner);
++            manager.shutdown().await;
++        }
++        Ok(())
++    }
+ }
+diff --git a/crates/sip/sip-dialog/src/transaction/mod.rs b/crates/sip/sip-dialog/src/transaction/mod.rs
+--- a/crates/sip/sip-dialog/src/transaction/mod.rs
++++ b/crates/sip/sip-dialog/src/transaction/mod.rs
+@@ -90,6 +90,7 @@
+ mod authorization;
+ pub mod common_logic;
+ mod completion;
++pub mod egress;
+ pub mod error;
+ pub mod event;
+ pub mod event_sender;
+diff --git a/crates/sip/sip-dialog/tests/owned_info.rs b/crates/sip/sip-dialog/tests/owned_info.rs
+new file mode 100644
+--- /dev/null
++++ b/crates/sip/sip-dialog/tests/owned_info.rs
+@@ -0,0 +1,290 @@
++//! Real isolated UDP through the public canonical INFO API and real Timer E.
++use async_trait::async_trait;
++use bytes::Bytes;
++use rvoip_sip_core::{parse_message, HeaderName, Message, Method, StatusCode, TypedHeader};
++use rvoip_sip_dialog::transaction::{
++    egress::{ClientRequestWriteAuthority, ClientRequestWriteFuture, ClientRequestWriteScope},
++    transport::{TransportManager, TransportManagerConfig},
++    utils::response_builders::create_response,
++    ClientTransactionOutcome, TransactionManager,
++};
++use rvoip_sip_dialog::{
++    api::unified::{InfoRequestOptions, UnifiedDialogApi},
++    config::DialogManagerConfig,
++    Dialog, DialogState,
++};
++use rvoip_sip_transport::TransportRoute;
++use std::{
++    sync::{
++        atomic::{AtomicUsize, Ordering},
++        Arc, Mutex,
++    },
++    time::Duration,
++};
++use tokio::{
++    net::UdpSocket,
++    sync::RwLock,
++    time::{timeout, Instant},
++};
++type TestResult = Result<(), Box<dyn std::error::Error>>;
++struct Policy {
++    permission: Arc<RwLock<bool>>,
++    acquisitions: AtomicUsize,
++    wire: Mutex<Vec<Vec<u8>>>,
++}
++impl Policy {
++    fn new() -> Arc<Self> {
++        Arc::new(Self {
++            permission: Arc::new(RwLock::new(true)),
++            acquisitions: AtomicUsize::new(0),
++            wire: Mutex::new(Vec::new()),
++        })
++    }
++}
++#[async_trait]
++impl ClientRequestWriteAuthority for Policy {
++    async fn write(
++        &self,
++        scope: &ClientRequestWriteScope<'_>,
++        io: ClientRequestWriteFuture<'_>,
++    ) -> rvoip_sip_transport::Result<TransportRoute> {
++        self.acquisitions.fetch_add(1, Ordering::AcqRel);
++        let guard = self.permission.clone().read_owned().await;
++        if !*guard {
++            return Err(rvoip_sip_transport::Error::InvalidState(
++                "fixture refusal".into(),
++            ));
++        }
++        assert!(
++            matches!(scope.message,Message::Request(request) if request.method()==Method::Info)
++        );
++        self.wire
++            .lock()
++            .unwrap()
++            .push(scope.message.to_bytes().to_vec());
++        let result = io.await;
++        drop(guard);
++        result
++    }
++}
++struct Fixture {
++    api: UnifiedDialogApi,
++    transactions: Arc<TransactionManager>,
++    peer: UdpSocket,
++    dialog: rvoip_sip_dialog::DialogId,
++}
++impl Fixture {
++    async fn new() -> Result<Self, Box<dyn std::error::Error>> {
++        let peer = UdpSocket::bind("127.0.0.1:0").await?;
++        let address = peer.local_addr()?;
++        let config = TransportManagerConfig {
++            enable_udp: true,
++            enable_tcp: false,
++            enable_ws: false,
++            enable_tls: false,
++            bind_addresses: vec!["127.0.0.1:0".parse()?],
++            ..Default::default()
++        };
++        let (mut transport, rx) = TransportManager::new(config).await?;
++        transport.initialize().await?;
++        let local = transport
++            .default_transport()
++            .await
++            .ok_or("no transport")?
++            .local_addr()?;
++        let (transactions, _) =
++            TransactionManager::with_transport_manager(transport, rx, Some(32)).await?;
++        let transactions = Arc::new(transactions);
++        let api = UnifiedDialogApi::new(
++            transactions.clone(),
++            DialogManagerConfig::client(local)
++                .with_from_uri("sip:fixture@127.0.0.1")
++                .build(),
++        )
++        .await?;
++        api.start().await?;
++        let mut dialog = Dialog::new(
++            "owned-info-fixture".into(),
++            format!("sip:fixture@{local}").parse()?,
++            format!("sip:peer@{address}").parse()?,
++            Some("fixture-local".into()),
++            Some("fixture-peer".into()),
++            true,
++        );
++        dialog.state = DialogState::Confirmed;
++        let id = dialog.id.clone();
++        api.dialog_manager()
++            .inner_manager()
++            .store_dialog(dialog)
++            .await?;
++        Ok(Self {
++            api,
++            transactions,
++            peer,
++            dialog: id,
++        })
++    }
++    async fn receive(&self) -> (Vec<u8>, std::net::SocketAddr) {
++        let mut buffer = vec![0; 65536];
++        let (n, peer) = timeout(Duration::from_secs(2), self.peer.recv_from(&mut buffer))
++            .await
++            .expect("INFO UDP deadline")
++            .unwrap();
++        buffer.truncate(n);
++        (buffer, peer)
++    }
++    async fn stop(self) {
++        self.api.stop().await.unwrap();
++        self.transactions.shutdown().await;
++    }
++}
++fn options() -> InfoRequestOptions {
++    InfoRequestOptions {
++        content_type: "application/dtmf-relay".into(),
++        body: Bytes::from_static(b"Signal=5\r\nDuration=160\r\n"),
++        extra_headers: Vec::new(),
++    }
++}
++#[tokio::test]
++async fn owned_info_public_udp_retransmits_exact_request_under_fresh_permission() -> TestResult {
++    let fixture = Fixture::new().await?;
++    let policy = Policy::new();
++    let delivery = fixture
++        .api
++        .send_info_with_options_authorized(
++            &fixture.dialog,
++            options(),
++            policy.clone(),
++            Instant::now() + Duration::from_secs(4),
++        )
++        .await?;
++    let (first, peer) = fixture.receive().await;
++    let (second, retry_peer) = fixture.receive().await;
++    assert_eq!(peer, retry_peer);
++    assert_eq!(first, second);
++    let request = match parse_message(&first)? {
++        Message::Request(request) => request,
++        _ => panic!("request"),
++    };
++    assert_eq!(request.method(), Method::Info);
++    assert_eq!(request.body(), b"Signal=5\r\nDuration=160\r\n");
++    assert!(
++        matches!(request.header(&HeaderName::ContentType),Some(TypedHeader::ContentType(value)) if value.to_string()=="application/dtmf-relay")
++    );
++    assert_eq!(policy.acquisitions.load(Ordering::Acquire), 2);
++    assert_eq!(
++        policy.wire.lock().unwrap().as_slice(),
++        &[first.clone(), second]
++    );
++    let writer = timeout(Duration::from_millis(100), policy.permission.write())
++        .await
++        .expect("idle grant retained");
++    drop(writer);
++    let response = create_response(&request, StatusCode::Ok);
++    fixture
++        .peer
++        .send_to(&Message::Response(response).to_bytes(), peer)
++        .await?;
++    assert!(
++        matches!(delivery.completion().wait_for_outcome(Duration::from_secs(1)).await?,Some(ClientTransactionOutcome::FinalResponse(response)) if response.status()==StatusCode::Ok)
++    );
++    drop(delivery);
++    fixture.stop().await;
++    Ok(())
++}
++#[tokio::test]
++async fn owned_info_public_drop_stops_udp_retry_after_first_effect() -> TestResult {
++    let fixture = Fixture::new().await?;
++    let policy = Policy::new();
++    let delivery = fixture
++        .api
++        .send_info_with_options_authorized(
++            &fixture.dialog,
++            options(),
++            policy.clone(),
++            Instant::now() + Duration::from_secs(3),
++        )
++        .await?;
++    fixture.receive().await;
++    drop(delivery);
++    let mut buffer = [0; 2048];
++    assert!(timeout(
++        Duration::from_millis(750),
++        fixture.peer.recv_from(&mut buffer)
++    )
++    .await
++    .is_err());
++    assert_eq!(policy.acquisitions.load(Ordering::Acquire), 1);
++    fixture.stop().await;
++    Ok(())
++}
++#[tokio::test]
++async fn owned_info_public_refusal_and_expiry_produce_no_datagram() -> TestResult {
++    for expired in [false, true] {
++        let fixture = Fixture::new().await?;
++        let policy = Policy::new();
++        *policy.permission.write().await = false;
++        let deadline = if expired {
++            Instant::now() - Duration::from_millis(1)
++        } else {
++            Instant::now() + Duration::from_secs(1)
++        };
++        assert!(fixture
++            .api
++            .send_info_with_options_authorized(&fixture.dialog, options(), policy.clone(), deadline)
++            .await
++            .is_err());
++        let mut buffer = [0; 2048];
++        assert!(timeout(
++            Duration::from_millis(100),
++            fixture.peer.recv_from(&mut buffer)
++        )
++        .await
++        .is_err());
++        assert_eq!(
++            policy.acquisitions.load(Ordering::Acquire),
++            usize::from(!expired)
++        );
++        fixture.stop().await;
++    }
++    Ok(())
++}
++#[tokio::test]
++async fn owned_info_public_401_is_exact_final_response_without_automatic_effect_retry() -> TestResult
++{
++    let fixture = Fixture::new().await?;
++    let policy = Policy::new();
++    let delivery = fixture
++        .api
++        .send_info_with_options_authorized(
++            &fixture.dialog,
++            options(),
++            policy.clone(),
++            Instant::now() + Duration::from_secs(3),
++        )
++        .await?;
++    let (first, peer) = fixture.receive().await;
++    let request = match parse_message(&first)? {
++        Message::Request(request) => request,
++        _ => panic!("request"),
++    };
++    let response = create_response(&request, StatusCode::Unauthorized);
++    fixture
++        .peer
++        .send_to(&Message::Response(response).to_bytes(), peer)
++        .await?;
++    assert!(
++        matches!(delivery.completion().wait_for_outcome(Duration::from_secs(1)).await?,Some(ClientTransactionOutcome::FinalResponse(response)) if response.status()==StatusCode::Unauthorized)
++    );
++    let mut buffer = [0; 2048];
++    assert!(timeout(
++        Duration::from_millis(750),
++        fixture.peer.recv_from(&mut buffer)
++    )
++    .await
++    .is_err());
++    assert_eq!(policy.acquisitions.load(Ordering::Acquire), 1);
++    drop(delivery);
++    fixture.stop().await;
++    Ok(())
++}

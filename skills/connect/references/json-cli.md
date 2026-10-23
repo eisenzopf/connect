@@ -18,7 +18,12 @@ For an ordinary message, `send.json` uses native fields:
   "op": "send",
   "request_id": "saved-logical-message-id",
   "conversation_id": "EXISTING_CONVERSATION_ID",
-  "body": "Here is the review update."
+  "message": {
+    "to": "all", "content_type": "text/plain",
+    "body": "Here is the review update.", "body_encoding": "utf8",
+    "label": "connect-messages", "attachments": [],
+    "in_reply_to_msg": null, "msg_id": null
+  }
 }
 ```
 

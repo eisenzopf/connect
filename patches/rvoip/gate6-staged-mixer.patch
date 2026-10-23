@@ -1,0 +1,2931 @@
+diff --git a/crates/foundation/rvoip-core/src/adapter.rs b/crates/foundation/rvoip-core/src/adapter.rs
+--- a/crates/foundation/rvoip-core/src/adapter.rs
++++ b/crates/foundation/rvoip-core/src/adapter.rs
+@@ -345,6 +345,15 @@
+         true
+     }
+ 
++    /// The registered guarded controller for this exact physical connection.
++    /// A staged scene never consumes the adapter's unguarded frame interface.
++    fn staged_controller(
++        &self,
++        _conn: &ConnectionId,
++    ) -> Option<Arc<crate::staged_streams::StreamController>> {
++        None
++    }
++
+     /// Take adapter-owned context captured for one inbound connection.
+     ///
+     /// Implementations must bind the value to the exact connection,
+diff --git a/crates/foundation/rvoip-core/src/conference.rs b/crates/foundation/rvoip-core/src/conference.rs
+--- a/crates/foundation/rvoip-core/src/conference.rs
++++ b/crates/foundation/rvoip-core/src/conference.rs
+@@ -232,22 +232,52 @@
+ pub(crate) struct Conference {
+     pub(crate) members: Arc<Mutex<HashMap<ConnectionId, ConferenceMember>>>,
+     pub(crate) mix_rate_hz: u32,
++    pub(crate) staged: Option<Arc<crate::staged_streams::guarded_audio::GuardedAudioMixer>>,
+     pub(crate) task: JoinHandle<()>,
+ }
+ 
+ impl Conference {
+     /// Start a conference mixing at `mix_rate_hz`.
+     pub(crate) fn start(mix_rate_hz: u32) -> Self {
++        Self::start_inner(mix_rate_hz, None)
++    }
++    pub(crate) fn start_staged(
++        mix_rate_hz: u32,
++        conversation: crate::ids::ConversationId,
++        session: crate::ids::SessionId,
++        policy: Arc<dyn crate::staged_streams::MediaPolicy>,
++    ) -> Self {
++        Self::start_inner(
++            mix_rate_hz,
++            Some(
++                crate::staged_streams::guarded_audio::GuardedAudioMixer::new(
++                    conversation,
++                    session,
++                    policy,
++                    mix_rate_hz,
++                ),
++            ),
++        )
++    }
++    fn start_inner(
++        mix_rate_hz: u32,
++        staged: Option<Arc<crate::staged_streams::guarded_audio::GuardedAudioMixer>>,
++    ) -> Self {
+         let members: Arc<Mutex<HashMap<ConnectionId, ConferenceMember>>> =
+             Arc::new(Mutex::new(HashMap::new()));
+         let task_members = Arc::clone(&members);
+         let samples_per_tick = (mix_rate_hz / 50).max(1) as usize;
++        let task_staged = staged.clone();
+         let task = tokio::spawn(async move {
+             let mut ticker = tokio::time::interval(MIX_INTERVAL);
+             ticker.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Skip);
+             loop {
+                 ticker.tick().await;
+                 let mut members = task_members.lock().await;
++                if let Some(staged) = &task_staged {
++                    staged.tick();
++                    continue;
++                }
+                 if members.is_empty() {
+                     continue;
+                 }
+@@ -257,6 +287,7 @@
+         Self {
+             members,
+             mix_rate_hz,
++            staged,
+             task,
+         }
+     }
+@@ -265,6 +296,9 @@
+ impl Drop for Conference {
+     fn drop(&mut self) {
+         self.task.abort();
++        if let Some(staged) = &self.staged {
++            staged.clear();
++        }
+     }
+ }
+ 
+diff --git a/crates/foundation/rvoip-core/src/orchestrator/participant_control.rs b/crates/foundation/rvoip-core/src/orchestrator/participant_control.rs
+--- a/crates/foundation/rvoip-core/src/orchestrator/participant_control.rs
++++ b/crates/foundation/rvoip-core/src/orchestrator/participant_control.rs
+@@ -20,6 +20,8 @@
+     Transition(#[from] ParticipantTransitionError),
+     #[error(transparent)]
+     Core(#[from] RvoipError),
++    #[error(transparent)]
++    Media(#[from] crate::staged_streams::StreamControlError),
+     #[error("held participant control is unsupported")]
+     Unsupported,
+     #[error("participant authority denied")]
+@@ -252,6 +254,7 @@
+     lifecycle: ConnectionLifecycleTicket,
+     ticket: Option<PreparedParticipantAdmission>,
+     member: Option<ConferenceMember>,
++    staged_member: Option<crate::staged_streams::guarded_audio::AudioMember>,
+     stream: Option<Arc<dyn crate::stream::MediaStream>>,
+     slot: Option<OwnedSemaphorePermit>,
+     cancellation: CancellationToken,
+@@ -282,6 +285,29 @@
+         &self,
+         session_id: &SessionId,
+         policy: Arc<dyn ParticipantPolicy>,
++        limits: ParticipantLimits,
++    ) -> ControlResult<()> {
++        self.enable_participant_control_inner(session_id, policy, None, limits)
++    }
++
++    /// Enable participant control over ready guarded audio ports. The media
++    /// policy must be the same instance installed on the registered controllers.
++    /// Native admission requires the exact PeerAdmission lifetime; unsupported
++    /// adapters are refused without falling back to raw frame access.
++    pub fn enable_staged_participant_control(
++        &self,
++        session_id: &SessionId,
++        policy: Arc<dyn ParticipantPolicy>,
++        media: Arc<dyn crate::staged_streams::MediaPolicy>,
++        limits: ParticipantLimits,
++    ) -> ControlResult<()> {
++        self.enable_participant_control_inner(session_id, policy, Some(media), limits)
++    }
++    fn enable_participant_control_inner(
++        &self,
++        session_id: &SessionId,
++        policy: Arc<dyn ParticipantPolicy>,
++        media: Option<Arc<dyn crate::staged_streams::MediaPolicy>>,
+         limits: ParticipantLimits,
+     ) -> ControlResult<()> {
+         if limits.participants == 0
+@@ -331,7 +357,15 @@
+                 session: session_id.clone(),
+                 conversation: conversation.id.clone(),
+                 policy,
+-                mixer: Arc::new(Conference::start(limits.mix_rate_hz)),
++                mixer: Arc::new(match media {
++                    Some(media) => Conference::start_staged(
++                        limits.mix_rate_hz,
++                        conversation.id.clone(),
++                        session_id.clone(),
++                        media,
++                    ),
++                    None => Conference::start(limits.mix_rate_hz),
++                }),
+                 slots: Arc::new(Semaphore::new(limits.connections)),
+                 limits,
+                 state: Mutex::new(ManagedState {
+@@ -754,6 +788,7 @@
+                         lifecycle,
+                         ticket: Some(ticket),
+                         member: None,
++                        staged_member: None,
+                         stream: None,
+                         slot: Some(slot),
+                         cancellation,
+@@ -768,6 +803,40 @@
+             let terminal_cancellation = ready.cancellation.clone();
+             let preparation = async {
+                 let adapter = self.adapter_for(&ready.connection)?;
++                if let Some(staged) = &runtime.mixer.staged {
++                    // Only physical native ownership currently supplies a delivery
++                    // lifetime retired synchronously by participant departure.
++                    if peer.is_none()
++                        || !matches!(
++                            adapter.transport(),
++                            Transport::Quic | Transport::WebTransport
++                        )
++                    {
++                        return Err(ParticipantControlError::Unsupported);
++                    }
++                    loop {
++                        if !adapter.is_connection_live(&ready.connection) {
++                            return Err(ParticipantTransitionError::NotReady.into());
++                        }
++                        if let Some(controller) = adapter.staged_controller(&ready.connection) {
++                            match staged.prepare(controller) {
++                                Ok(mut member) => {
++                                    member.quiesce(deadline, ready.cancellation.clone()).await?;
++                                    ready.staged_member = Some(member);
++                                    return Ok(());
++                                }
++                                Err(
++                                    crate::staged_streams::StreamControlError::NotReady
++                                    | crate::staged_streams::StreamControlError::Model(
++                                        crate::stream_lifecycle::MediaTransitionError::Conflict,
++                                    ),
++                                ) => {}
++                                Err(error) => return Err(error.into()),
++                            }
++                        }
++                        tokio::time::sleep(Duration::from_millis(5)).await;
++                    }
++                }
+                 // Managed candidates are not yet Session-bound. This accepts
+                 // only their exact physical route; failure/drop retires it.
+                 if ready.inbound {
+@@ -817,6 +886,26 @@
+                 }
+             }
+         }
++        let mut role_changes = Vec::new();
++        if matches!(mutation.change, ParticipantChange::SetSessionRole { .. }) {
++            if let Some(staged) = &runtime.mixer.staged {
++                let targets = {
++                    let state = runtime.state.lock().unwrap_or_else(|p| p.into_inner());
++                    let ids = state.controller.connections(&mutation.participant);
++                    staged.role_targets(&ids)
++                };
++                for target in targets {
++                    let preparation = target.prepare_role(deadline, cancellation.clone());
++                    let prepared = tokio::select! {
++                        biased;
++                        _=async{match &peer_cancel {Some(token)=>token.cancelled().await,None=>std::future::pending::<()>().await}}=>return Err(ParticipantControlError::Cancelled),
++                        _=async{match &control_cancel {Some(token)=>token.cancelled().await,None=>std::future::pending::<()>().await}}=>return Err(ParticipantControlError::Cancelled),
++                        result=preparation=>result?,
++                    };
++                    role_changes.push(prepared);
++                }
++            }
++        }
+         let mut members = tokio::select! {
+             biased;
+             _ = cancellation.cancelled()=>return Err(ParticipantControlError::Cancelled),
+@@ -938,22 +1027,29 @@
+                 {
+                     return Err(ParticipantTransitionError::Conflict.into());
+                 }
+-                let stream = ready
+-                    .stream
+-                    .as_ref()
+-                    .ok_or(ParticipantTransitionError::NotReady)?;
+-                if !stream.source_ready()
+-                    || stream.try_frames_out()?.is_closed()
+-                    || !self
+-                        .adapter_for(&ready.connection)?
+-                        .is_connection_live(&ready.connection)
+-                {
+-                    return Err(ParticipantTransitionError::NotReady.into());
+-                }
+                 let endpoint = authority
+                     .endpoint
+                     .as_ref()
+                     .ok_or(ParticipantControlError::Authority)?;
++                if !self
++                    .adapter_for(&ready.connection)?
++                    .is_connection_live(&ready.connection)
++                {
++                    return Err(ParticipantTransitionError::NotReady.into());
++                }
++                if let Some(member) = &ready.staged_member {
++                    if !member.ready() || !member.bound_to(&authority.target, endpoint) {
++                        return Err(ParticipantTransitionError::NotReady.into());
++                    }
++                } else {
++                    let stream = ready
++                        .stream
++                        .as_ref()
++                        .ok_or(ParticipantTransitionError::NotReady)?;
++                    if !stream.source_ready() || stream.try_frames_out()?.is_closed() {
++                        return Err(ParticipantTransitionError::NotReady.into());
++                    }
++                }
+                 let mut ticket = ready
+                     .ticket
+                     .take()
+@@ -999,9 +1095,17 @@
+             // All fallible checks precede the state commit. Below are local map
+             // changes under the mixer, Session and authority commit fences.
+             if let Some(ready) = &mut candidate {
+-                let mut member = ready.member.take().expect("prepared mixer member");
+-                member.contributes = authority.may_send_audio;
+-                members.insert(ready.connection.clone(), member);
++                if let Some(member) = ready.staged_member.take() {
++                    runtime.mixer.staged.as_ref().expect("staged scene").insert(
++                        ready.connection.clone(),
++                        member,
++                        authority.may_send_audio,
++                    );
++                } else {
++                    let mut member = ready.member.take().expect("prepared mixer member");
++                    member.contributes = authority.may_send_audio;
++                    members.insert(ready.connection.clone(), member);
++                }
+                 session.participants.insert(mutation.participant.clone());
+                 session.connections.insert(
+                     ready.connection.clone(),
+@@ -1050,6 +1154,9 @@
+             }
+             for connection in &observation.retired {
+                 members.remove(connection);
++                if let Some(staged) = &runtime.mixer.staged {
++                    staged.remove(connection);
++                }
+                 session.connections.remove(connection);
+                 self.sessions_by_connection.remove(connection);
+                 if let Some(route) = state.routes.remove(connection) {
+@@ -1071,6 +1178,9 @@
+             }
+             if matches!(mutation.change, ParticipantChange::Depart { .. }) {
+                 session.participants.remove(&mutation.participant);
++            }
++            for change in role_changes {
++                change.commit(authority.may_send_audio);
+             }
+             for connection in state.controller.connections(&mutation.participant) {
+                 if let Some(member) = members.get_mut(&connection) {
+@@ -1236,6 +1346,9 @@
+             pending.cancellation.cancel();
+         }
+         state.routes.remove(connection);
++        if let Some(staged) = &runtime.mixer.staged {
++            staged.remove(connection);
++        }
+         if let Some(session) = self.session(&runtime.session) {
+             let mut session = session.write().expect("session lock poisoned");
+             session.connections.remove(connection);
+@@ -1285,7 +1398,11 @@
+         // This is the only suspension point. A retry while SessionState is
+         // Ending repeats this idempotent local cleanup, without granting new
+         // authority or spawning an unowned teardown task.
+-        runtime.mixer.members.lock().await.clear();
++        let mut members = runtime.mixer.members.lock().await;
++        members.clear();
++        if let Some(staged) = &runtime.mixer.staged {
++            staged.clear();
++        }
+     }
+ }
+ 
+diff --git a/crates/foundation/rvoip-core/src/staged_streams.rs b/crates/foundation/rvoip-core/src/staged_streams.rs
+--- a/crates/foundation/rvoip-core/src/staged_streams.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams.rs
+@@ -199,6 +199,9 @@
+     },
+ }
+ pub trait MediaPolicy: Send + Sync {
++    /// Called under engine state/route fences and sometimes another owned
++    /// lease from this domain. Never block or reenter engine state; use bounded
++    /// nonblocking authority acquisition and refuse a contended read.
+     fn current(&self, scope: &MediaScope<'_>) -> ControlResult<Box<dyn MediaAuthorityLease>>;
+     /// Derive current control authority from a trusted invocation's already-held
+     /// guard. Check the exact policy domain, actor/resource scope and grants.
+@@ -503,7 +506,13 @@
+             .upgrade()
+             .ok_or(StreamControlError::Cancelled)?;
+         let ticket = self.0.ticket();
+-        let (_lease, _delivery, deadline) = owner.admit(&self.0, &ticket, false, None)?;
++        let (_lease, admission, deadline) = owner.admit(
++            &self.0,
++            &ticket,
++            false,
++            None,
++            audio_consumer::ConsumerCheck::Current,
++        )?;
+         if tokio::time::Instant::now() >= deadline {
+             return Err(StreamControlError::Deadline);
+         }
+@@ -514,6 +523,7 @@
+                 source: self.0.clone(),
+                 ticket,
+                 admitted_at: Instant::now(),
++                consumer: admission.consumer.clone(),
+             })
+             .map_err(|error| match error {
+                 mpsc::error::TrySendError::Full(_) => StreamControlError::Backpressure,
+@@ -569,6 +579,7 @@
+     source: Arc<Port>,
+     ticket: PeerRouteTicket,
+     admitted_at: Instant,
++    consumer: Option<audio_consumer::ConsumerStamp>,
+ }
+ impl MediaPacket {
+     pub fn try_forward_to(
+@@ -606,12 +617,33 @@
+         {
+             return Err(StreamControlError::Unsupported);
+         }
++        // A managed audio destination has one scene-owned output. Ordinary
++        // forwarding cannot inject an unmixed or pre-admission packet into it.
++        if target.binding.negotiated.requested.medium == Medium::Audio
++            && destination
++                .audio_consumer
++                .lock()
++                .unwrap_or_else(|p| p.into_inner())
++                .is_some()
++        {
++            return Err(StreamControlError::Unsupported);
++        }
+         let descriptor = source.descriptor(&self.source)?;
+-        let (_source_lease, _source_guard, source_deadline) =
+-            source.admit(&self.source, &self.ticket, false, None)?;
++        let (_source_lease, _source_guard, source_deadline) = source.admit(
++            &self.source,
++            &self.ticket,
++            false,
++            None,
++            audio_consumer::ConsumerCheck::Retained(self.consumer.as_ref()),
++        )?;
+         let ticket = target.ticket();
+-        let (_target_lease, _target_guard, target_deadline) =
+-            destination.admit(&target, &ticket, true, Some(&descriptor))?;
++        let (_target_lease, target_admission, target_deadline) = destination.admit(
++            &target,
++            &ticket,
++            true,
++            Some(&descriptor),
++            audio_consumer::ConsumerCheck::OrdinaryForward,
++        )?;
+         if source.shutdown.is_cancelled() || destination.shutdown.is_cancelled() {
+             return Err(StreamControlError::Cancelled);
+         }
+@@ -624,11 +656,15 @@
+             .egress
+             .try_send(QueuedMedia {
+                 frame,
+-                source: self.source.clone(),
+-                source_ticket: self.ticket.clone(),
++                sources: vec![Contribution {
++                    source: self.source.clone(),
++                    ticket: self.ticket.clone(),
++                    consumer: self.consumer.clone(),
++                    descriptor,
++                }],
+                 target: target.clone(),
+                 target_ticket: ticket,
+-                descriptor,
++                target_consumer: target_admission.consumer.clone(),
+                 admitted_at: self.admitted_at,
+             })
+             .map_err(|error| match error {
+@@ -639,13 +675,19 @@
+ }
+ /// No raw payload accessor: admission is repeated after dequeue, and the
+ /// current policy plus both route-generation guards live through the send.
++#[derive(Clone)]
++struct Contribution {
++    source: Arc<Port>,
++    ticket: PeerRouteTicket,
++    consumer: Option<audio_consumer::ConsumerStamp>,
++    descriptor: MediaSource,
++}
+ pub struct QueuedMedia {
+     frame: MediaFrame,
+-    source: Arc<Port>,
+-    source_ticket: PeerRouteTicket,
++    sources: Vec<Contribution>,
+     target: Arc<Port>,
+     target_ticket: PeerRouteTicket,
+-    descriptor: MediaSource,
++    target_consumer: Option<audio_consumer::ConsumerStamp>,
+     admitted_at: Instant,
+ }
+ impl QueuedMedia {
+@@ -654,40 +696,82 @@
+         F: FnOnce(MediaFrame) -> Fut,
+         Fut: Future<Output = ControlResult<()>>,
+     {
+-        if self.source.kind() != StreamKind::Data
++        if self.frame.kind != StreamKind::Data
+             && self.admitted_at.elapsed() > Duration::from_millis(200)
+         {
+             return Err(StreamControlError::Deadline);
+         }
+-        let source = self
+-            .source
+-            .owner
+-            .upgrade()
+-            .ok_or(StreamControlError::Cancelled)?;
+         let target = self
+             .target
+             .owner
+             .upgrade()
+             .ok_or(StreamControlError::Cancelled)?;
+-        let (_source_lease, _source_guard, source_deadline) =
+-            source.admit(&self.source, &self.source_ticket, false, None)?;
+-        let (_target_lease, _target_guard, target_deadline) = target.admit(
+-            &self.target,
+-            &self.target_ticket,
+-            true,
+-            Some(&self.descriptor),
+-        )?;
+-        if source.shutdown.is_cancelled() || target.shutdown.is_cancelled() {
++        let mut leases = Vec::new();
++        let mut admissions = Vec::new();
++        let mut tokens = vec![target.shutdown.clone()];
++        let mut deadline = tokio::time::Instant::now() + Duration::from_millis(200);
++        if self.sources.is_empty() {
++            return Err(StreamControlError::Authority);
++        }
++        for provenance in &self.sources {
++            if tokens.iter().any(CancellationToken::is_cancelled) {
++                return Err(StreamControlError::Cancelled);
++            }
++            if tokio::time::Instant::now() >= deadline {
++                return Err(StreamControlError::Deadline);
++            }
++            let source = provenance
++                .source
++                .owner
++                .upgrade()
++                .ok_or(StreamControlError::Cancelled)?;
++            if source.conversation != target.conversation
++                || source.session != target.session
++                || !Arc::ptr_eq(&source.policy, &target.policy)
++            {
++                return Err(StreamControlError::Authority);
++            }
++            let (lease, admission, bound) = source.admit(
++                &provenance.source,
++                &provenance.ticket,
++                false,
++                None,
++                audio_consumer::ConsumerCheck::Retained(provenance.consumer.as_ref()),
++            )?;
++            if let Some(stamp) = &admission.consumer {
++                tokens.push(stamp.cancellation.clone());
++            }
++            leases.push(lease);
++            admissions.push(admission);
++            deadline = deadline.min(bound);
++            tokens.push(source.shutdown.clone());
++            if tokio::time::Instant::now() >= deadline {
++                return Err(StreamControlError::Deadline);
++            }
++            let (lease, admission, bound) = target.admit(
++                &self.target,
++                &self.target_ticket,
++                true,
++                Some(&provenance.descriptor),
++                audio_consumer::ConsumerCheck::Retained(self.target_consumer.as_ref()),
++            )?;
++            if let Some(stamp) = &admission.consumer {
++                tokens.push(stamp.cancellation.clone());
++            }
++            leases.push(lease);
++            admissions.push(admission);
++            deadline = deadline.min(bound);
++        }
++        if tokens.iter().any(CancellationToken::is_cancelled) {
+             return Err(StreamControlError::Cancelled);
+         }
+-        if tokio::time::Instant::now() >= source_deadline.min(target_deadline) {
++        if tokio::time::Instant::now() >= deadline {
+             return Err(StreamControlError::Deadline);
+         }
+         tokio::select! {
+             biased;
+-            _=source.shutdown.cancelled()=>Err(StreamControlError::Cancelled),
+-            _=target.shutdown.cancelled()=>Err(StreamControlError::Cancelled),
+-            result=tokio::time::timeout_at(source_deadline.min(target_deadline), send(self.frame))=>result.map_err(|_|StreamControlError::Deadline)?,
++            _=audio_consumer::any_cancelled(tokens)=>Err(StreamControlError::Cancelled),
++            result=tokio::time::timeout_at(deadline,send(self.frame))=>result.map_err(|_|StreamControlError::Deadline)?,
+         }
+     }
+ }
+@@ -716,6 +800,7 @@
+     handles: Arc<StreamHandleAllocator>,
+     slots: Arc<Semaphore>,
+     state: Mutex<State>,
++    audio_consumer: Mutex<Option<Weak<audio_consumer::AudioConsumer>>>,
+     cleanup_lock: tokio::sync::Mutex<()>,
+     inflight: Arc<Semaphore>,
+     shutdown: CancellationToken,
+@@ -915,6 +1000,7 @@
+                 all: BTreeMap::new(),
+                 closed: false,
+             }),
++            audio_consumer: Mutex::new(None),
+             cleanup_lock: tokio::sync::Mutex::new(()),
+             inflight: Arc::new(Semaphore::new(1)),
+             shutdown: lifetime,
+@@ -1079,9 +1165,10 @@
+         ticket: &PeerRouteTicket,
+         sending: bool,
+         source: Option<&MediaSource>,
++        consumer: audio_consumer::ConsumerCheck<'_>,
+     ) -> ControlResult<(
+         Box<dyn MediaAuthorityLease>,
+-        rvoip_core_traits::peer_switch::PeerDeliveryGuard,
++        audio_consumer::MediaAdmission,
+         tokio::time::Instant,
+     )> {
+         let state = self.state.lock().unwrap_or_else(|p| p.into_inner());
+@@ -1131,9 +1218,10 @@
+         let guard = ticket
+             .try_begin_delivery()
+             .ok_or(StreamControlError::NotReady)?;
++        let admission = self.consumer_admission(port, sending, consumer, guard)?;
+         Ok((
+             lease,
+-            guard,
++            admission,
+             Self::command_deadline(
+                 &credential.principal,
+                 tokio::time::Instant::now() + Duration::from_millis(200),
+@@ -1239,6 +1327,10 @@
+                 now,
+                 deadline.into_std(),
+             )?;
++            if let Err(error) = self.validate_audio_consumer_plans(ticket.streams()) {
++                state.model.abort(ticket)?;
++                return Err(error);
++            }
+             let new_ports = ticket
+                 .streams()
+                 .iter()
+@@ -1355,6 +1447,9 @@
+         if cancellation.is_cancelled() || self.shutdown.is_cancelled() {
+             return Err(StreamControlError::Cancelled);
+         }
++        if tokio::time::Instant::now() >= deadline {
++            return Err(StreamControlError::Deadline);
++        }
+         let new_ports = selected.iter().filter(|port| port.is_new).count();
+         {
+             let mut state = self.state.lock().unwrap_or_else(|p| p.into_inner());
+@@ -1367,6 +1462,7 @@
+             state.opened_ports += new_ports;
+         }
+         tokio::select! {biased;_ = cancellation.cancelled()=>return Err(StreamControlError::Cancelled),_=control_cancel.cancelled()=>return Err(StreamControlError::Cancelled),_=self.shutdown.cancelled()=>return Err(StreamControlError::Cancelled),result=tokio::time::timeout_at(deadline,self.adapter.prepare(selected.clone(),deadline,candidate.cancellation.clone()))=>result.map_err(|_|StreamControlError::Deadline)??}
++        self.validate_audio_consumer_ports(&selected)?;
+         let removed = {
+             let state = self.state.lock().unwrap_or_else(|p| p.into_inner());
+             state
+@@ -1781,3 +1877,6 @@
+ mod tests;
+ 
+ mod credential_rebind;
++
++mod audio_consumer;
++pub(crate) mod guarded_audio;
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/audio_consumer.rs b/crates/foundation/rvoip-core/src/staged_streams/audio_consumer.rs
+new file mode 100644
+--- /dev/null
++++ b/crates/foundation/rvoip-core/src/staged_streams/audio_consumer.rs
+@@ -0,0 +1,220 @@
++use super::*;
++
++struct ConsumerState {
++    ticket: PeerRouteTicket,
++    epoch: u64,
++    active: bool,
++    speaks: bool,
++    started: Instant,
++}
++/// Additional live scene fence, never a substitute for current MediaPolicy.
++pub(crate) struct AudioConsumer {
++    pub(super) logical: StreamId,
++    pub(super) mix_rate: u32,
++    state: Mutex<ConsumerState>,
++    cancellation: CancellationToken,
++}
++impl Drop for AudioConsumer {
++    fn drop(&mut self) {
++        self.cancellation.cancel();
++        self.state
++            .get_mut()
++            .unwrap_or_else(|p| p.into_inner())
++            .ticket
++            .retire_if_current();
++    }
++}
++#[derive(Clone)]
++pub(super) struct ConsumerStamp {
++    owner: Weak<AudioConsumer>,
++    ticket: PeerRouteTicket,
++    epoch: u64,
++    pub(super) started: Instant,
++    pub(super) cancellation: CancellationToken,
++}
++impl ConsumerStamp {
++    pub(super) fn is_current(&self) -> bool {
++        self.owner.upgrade().is_some_and(|owner| {
++            let state = owner.state.lock().unwrap_or_else(|p| p.into_inner());
++            state.active
++                && state.epoch == self.epoch
++                && self.ticket.is_current()
++                && !self.cancellation.is_cancelled()
++        })
++    }
++}
++pub(super) enum ConsumerCheck<'a> {
++    Current,
++    OrdinaryForward,
++    Retained(Option<&'a ConsumerStamp>),
++}
++pub(super) struct MediaAdmission {
++    pub(super) consumer: Option<ConsumerStamp>,
++    _port: rvoip_core_traits::peer_switch::PeerDeliveryGuard,
++    _consumer: Option<rvoip_core_traits::peer_switch::PeerDeliveryGuard>,
++}
++pub(crate) struct PreparedAudioRole {
++    consumer: Arc<AudioConsumer>,
++    previous: ConsumerStamp,
++    next: PeerRouteTicket,
++    _drained: rvoip_core_traits::peer_switch::PeerQuiescenceGuard,
++}
++impl PreparedAudioRole {
++    pub(crate) fn commit(self, speaks: bool) {
++        let mut state = self
++            .consumer
++            .state
++            .lock()
++            .unwrap_or_else(|p| p.into_inner());
++        assert_eq!(
++            state.epoch, self.previous.epoch,
++            "private audio role epoch changed outside scene fence"
++        );
++        state.speaks = speaks;
++        assert!(
++            self.next.commit_from(&self.previous.ticket),
++            "private audio role delivery changed outside scene fence"
++        );
++        state.ticket = self.next.clone();
++        state.epoch += 1;
++        state.started = Instant::now();
++    }
++}
++impl AudioConsumer {
++    pub(crate) fn retire(&self) {
++        self.cancellation.cancel();
++        let mut state = self.state.lock().unwrap_or_else(|p| p.into_inner());
++        state.active = false;
++        state.ticket.retire_if_current();
++    }
++    pub(super) fn new(logical: StreamId, mix_rate: u32) -> Arc<Self> {
++        Arc::new(Self {
++            logical,
++            mix_rate,
++            state: Mutex::new(ConsumerState {
++                ticket: PeerRouteTicket::initial(),
++                epoch: 1,
++                active: false,
++                speaks: false,
++                started: Instant::now(),
++            }),
++            cancellation: CancellationToken::new(),
++        })
++    }
++    pub(super) fn activate(&self, speaks: bool) {
++        let mut state = self.state.lock().unwrap_or_else(|p| p.into_inner());
++        state.speaks = speaks;
++        state.started = Instant::now();
++        state.active = true;
++    }
++    pub(super) fn stamp(self: &Arc<Self>) -> ConsumerStamp {
++        let state = self.state.lock().unwrap_or_else(|p| p.into_inner());
++        ConsumerStamp {
++            owner: Arc::downgrade(self),
++            ticket: state.ticket.clone(),
++            epoch: state.epoch,
++            started: state.started,
++            cancellation: self.cancellation.clone(),
++        }
++    }
++    pub(super) fn begin(
++        self: &Arc<Self>,
++        stamp: &ConsumerStamp,
++        sending: bool,
++    ) -> ControlResult<rvoip_core_traits::peer_switch::PeerDeliveryGuard> {
++        if !Weak::ptr_eq(&Arc::downgrade(self), &stamp.owner) {
++            return Err(StreamControlError::Authority);
++        }
++        let state = self.state.lock().unwrap_or_else(|p| p.into_inner());
++        if !state.active || state.epoch != stamp.epoch || self.cancellation.is_cancelled() {
++            return Err(StreamControlError::NotReady);
++        }
++        if !sending && !state.speaks {
++            return Err(StreamControlError::Authority);
++        }
++        stamp
++            .ticket
++            .try_begin_delivery()
++            .ok_or(StreamControlError::NotReady)
++    }
++    pub(crate) async fn prepare_role(
++        self: &Arc<Self>,
++        deadline: tokio::time::Instant,
++        cancellation: CancellationToken,
++    ) -> ControlResult<PreparedAudioRole> {
++        let previous = self.stamp();
++        let next = previous
++            .ticket
++            .stage()
++            .ok_or(MediaTransitionError::Capacity)?;
++        let drained = tokio::select! {
++            biased;
++            _=cancellation.cancelled()=>return Err(StreamControlError::Cancelled),
++            _=self.cancellation.cancelled()=>return Err(StreamControlError::Cancelled),
++            result=tokio::time::timeout_at(deadline,previous.ticket.quiesce())=>result.map_err(|_|StreamControlError::Deadline)?.ok_or(MediaTransitionError::Conflict)?,
++        };
++        Ok(PreparedAudioRole {
++            consumer: self.clone(),
++            previous,
++            next,
++            _drained: drained,
++        })
++    }
++}
++impl StreamController {
++    pub(super) fn consumer_admission(
++        &self,
++        port: &Port,
++        sending: bool,
++        expected: ConsumerCheck<'_>,
++        port_guard: rvoip_core_traits::peer_switch::PeerDeliveryGuard,
++    ) -> ControlResult<MediaAdmission> {
++        let slot = self
++            .audio_consumer
++            .lock()
++            .unwrap_or_else(|p| p.into_inner());
++        let consumer = match slot.as_ref() {
++            None => None,
++            Some(owner) => Some(owner.upgrade().ok_or(StreamControlError::NotReady)?),
++        };
++        let consumer =
++            consumer.filter(|owner| owner.logical == port.binding.negotiated.requested.logical_id);
++        let Some(consumer) = consumer else {
++            if matches!(expected, ConsumerCheck::Retained(Some(_))) {
++                return Err(StreamControlError::NotReady);
++            }
++            return Ok(MediaAdmission {
++                consumer: None,
++                _port: port_guard,
++                _consumer: None,
++            });
++        };
++        let stamp = match expected {
++            ConsumerCheck::Current | ConsumerCheck::OrdinaryForward => consumer.stamp(),
++            ConsumerCheck::Retained(Some(stamp)) => stamp.clone(),
++            ConsumerCheck::Retained(None) => return Err(StreamControlError::NotReady),
++        };
++        let guard = consumer.begin(&stamp, sending)?;
++        Ok(MediaAdmission {
++            consumer: Some(stamp),
++            _port: port_guard,
++            _consumer: Some(guard),
++        })
++    }
++}
++
++pub(super) async fn any_cancelled(tokens: Vec<CancellationToken>) {
++    let mut futures = tokens
++        .into_iter()
++        .map(|token| Box::pin(token.cancelled_owned()))
++        .collect::<Vec<_>>();
++    std::future::poll_fn(move |context| {
++        for future in &mut futures {
++            if future.as_mut().poll(context).is_ready() {
++                return std::task::Poll::Ready(());
++            }
++        }
++        std::task::Poll::Pending
++    })
++    .await
++}
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/guarded_audio.rs b/crates/foundation/rvoip-core/src/staged_streams/guarded_audio.rs
+new file mode 100644
+--- /dev/null
++++ b/crates/foundation/rvoip-core/src/staged_streams/guarded_audio.rs
+@@ -0,0 +1,711 @@
++//! Guarded audio scene bindings for the general participant controller.
++use super::audio_consumer::{AudioConsumer, ConsumerCheck, ConsumerStamp};
++use super::*;
++use crate::capability::CodecInfo;
++use crate::ids::ParticipantId;
++use rvoip_media_core::{
++    codec::factory::CodecFactory, processing::format::resampler::Resampler, AudioFrame,
++};
++use std::collections::{HashMap, VecDeque};
++
++struct Codecs {
++    info: CodecInfo,
++    decoder: Box<dyn rvoip_media_core::codec::audio::common::AudioCodec>,
++    encoder: Box<dyn rvoip_media_core::codec::audio::common::AudioCodec>,
++    to_mix: Option<Resampler>,
++    from_mix: Option<Resampler>,
++}
++impl Codecs {
++    fn new(format: &MediaFormat, payload_type: u8, mix_rate: u32) -> ControlResult<Self> {
++        let MediaFormat::Encoded {
++            name,
++            clock_rate_hz,
++            channels,
++            fmtp,
++        } = format
++        else {
++            return Err(StreamControlError::Unsupported);
++        };
++        let normalized = name.to_ascii_lowercase();
++        let valid_layout = match normalized.as_str() {
++            "pcmu" | "pcma" | "g729" | "amr" => *clock_rate_hz == 8000 && *channels == 1,
++            "amr-wb" => *clock_rate_hz == 16000 && *channels == 1,
++            "opus" => *clock_rate_hz == 48000 && [1, 2].contains(channels),
++            _ => false,
++        };
++        if !valid_layout || payload_type > 127 {
++            return Err(StreamControlError::Unsupported);
++        }
++        let selector = match normalized.as_str() {
++            "pcmu" => 0,
++            "pcma" => 8,
++            "g729" => 18,
++            "opus" => 111,
++            "amr" | "amr-wb" => payload_type,
++            _ => return Err(StreamControlError::Unsupported),
++        };
++        if payload_type < 96 && payload_type != selector {
++            return Err(StreamControlError::Unsupported);
++        }
++        let make = || {
++            CodecFactory::create_negotiated_codec(
++                selector,
++                name,
++                Some(*clock_rate_hz),
++                Some((*channels).into()),
++                fmtp.as_deref(),
++            )
++            .map_err(|_| StreamControlError::Unsupported)
++        };
++        let resample = |from, to| {
++            if from == to {
++                Ok(None)
++            } else {
++                Resampler::new(from, to, 5)
++                    .map(Some)
++                    .map_err(|_| StreamControlError::Unsupported)
++            }
++        };
++        let decoder = make()?;
++        let encoder = make()?;
++        for actual in [decoder.get_info(), encoder.get_info()] {
++            if actual.sample_rate != *clock_rate_hz || actual.channels != *channels {
++                return Err(StreamControlError::Unsupported);
++            }
++        }
++        Ok(Self {
++            info: CodecInfo {
++                name: name.clone(),
++                clock_rate_hz: *clock_rate_hz,
++                channels: *channels,
++                fmtp: fmtp.clone(),
++                payload_type: Some(payload_type),
++            },
++            decoder,
++            encoder,
++            to_mix: resample(*clock_rate_hz, mix_rate)?,
++            from_mix: resample(mix_rate, *clock_rate_hz)?,
++        })
++    }
++    fn decode(&mut self, frame: &MediaFrame) -> ControlResult<Vec<i16>> {
++        let decoded = self
++            .decoder
++            .decode(&frame.payload)
++            .map_err(|_| StreamControlError::NotReady)?;
++        let channels = usize::from(decoded.channels);
++        if decoded.sample_rate != self.info.clock_rate_hz
++            || decoded.channels != self.info.channels
++            || channels == 0
++            || !decoded.samples.len().is_multiple_of(channels)
++        {
++            return Err(StreamControlError::NotReady);
++        }
++        let mono = decoded
++            .samples
++            .chunks_exact(channels)
++            .map(|frame| {
++                (frame.iter().map(|v| i64::from(*v)).sum::<i64>() / channels as i64) as i16
++            })
++            .collect::<Vec<_>>();
++        match &mut self.to_mix {
++            Some(resample) => resample
++                .resample(&mono)
++                .map_err(|_| StreamControlError::NotReady),
++            None => Ok(mono),
++        }
++    }
++    fn encode(&mut self, mono: Vec<i16>, timestamp: u32) -> ControlResult<MediaFrame> {
++        let samples = match &mut self.from_mix {
++            Some(resample) => resample
++                .resample(&mono)
++                .map_err(|_| StreamControlError::NotReady)?,
++            None => mono,
++        };
++        let interleaved = samples
++            .into_iter()
++            .flat_map(|sample| std::iter::repeat_n(sample, usize::from(self.info.channels)))
++            .collect();
++        let payload = self
++            .encoder
++            .encode(&AudioFrame {
++                samples: interleaved,
++                sample_rate: self.info.clock_rate_hz,
++                channels: self.info.channels,
++                duration: Duration::from_millis(20),
++                timestamp,
++            })
++            .map_err(|_| StreamControlError::NotReady)?;
++        Ok(MediaFrame {
++            source_clock: None,
++            stream_id: StreamId::from_string("unbound-mix"),
++            kind: StreamKind::Audio,
++            payload: payload.into(),
++            timestamp_rtp: timestamp,
++            captured_at: chrono::Utc::now(),
++            payload_type: self.info.payload_type,
++        })
++    }
++}
++struct Chunk {
++    packet: MediaPacket,
++    samples: VecDeque<i16>,
++}
++struct Segment {
++    offset: usize,
++    samples: Vec<i16>,
++    origin: Contribution,
++    admitted_at: Instant,
++    deadline: tokio::time::Instant,
++}
++pub(crate) struct AudioMember {
++    controller: Arc<StreamController>,
++    logical: StreamId,
++    participant: ParticipantId,
++    consumer: Arc<AudioConsumer>,
++    port: Arc<Port>,
++    ticket: PeerRouteTicket,
++    stamp: ConsumerStamp,
++    input: mpsc::Receiver<MediaPacket>,
++    codecs: Codecs,
++    pending: VecDeque<Chunk>,
++    ticks: u64,
++    target_started: Instant,
++    previous_sources: Vec<Contribution>,
++    flight: Option<OwnedSemaphorePermit>,
++    preparation: Option<rvoip_core_traits::peer_switch::PeerQuiescenceGuard>,
++}
++impl AudioMember {
++    /// The inactive scene marker refuses new admissions while the original
++    /// physical port's admitted local sends drain. Keep this gate until commit.
++    pub(crate) async fn quiesce(
++        &mut self,
++        deadline: tokio::time::Instant,
++        cancellation: CancellationToken,
++    ) -> ControlResult<()> {
++        self.preparation = Some(tokio::select! {
++            biased;
++            _=cancellation.cancelled()=>return Err(StreamControlError::Cancelled),
++            _=self.controller.shutdown.cancelled()=>return Err(StreamControlError::Cancelled),
++            result=tokio::time::timeout_at(deadline,self.ticket.quiesce())=>result.map_err(|_|StreamControlError::Deadline)?.ok_or(MediaTransitionError::Conflict)?,
++        });
++        Ok(())
++    }
++    pub(crate) fn ready(&self) -> bool {
++        let state = self
++            .controller
++            .state
++            .lock()
++            .unwrap_or_else(|p| p.into_inner());
++        self.preparation.is_some()
++            && !state.closed
++            && !self.controller.shutdown.is_cancelled()
++            && state
++                .active
++                .get(&self.logical)
++                .is_some_and(|port| Arc::ptr_eq(port, &self.port))
++            && state
++                .model
++                .streams()
++                .get(&self.logical)
++                .is_some_and(|stream| stream.state == LogicalStreamState::Active)
++            && self
++                .port
++                .state
++                .lock()
++                .unwrap_or_else(|p| p.into_inner())
++                .status
++                == PortStatus::Active
++    }
++    pub(crate) fn bound_to(&self, member: &Membership, endpoint: &EndpointBinding) -> bool {
++        self.controller.is_bound_to(member, endpoint)
++    }
++    pub(crate) fn activate(&mut self, speaks: bool) {
++        self.consumer.activate(speaks);
++        self.stamp = self.consumer.stamp();
++        self.target_started = self.stamp.started;
++        self.preparation.take();
++        self.flight.take();
++    }
++    fn refresh(&mut self) -> ControlResult<()> {
++        let port = {
++            let state = self
++                .controller
++                .state
++                .lock()
++                .unwrap_or_else(|p| p.into_inner());
++            if state.closed || self.controller.shutdown.is_cancelled() {
++                return Err(StreamControlError::Cancelled);
++            }
++            state
++                .active
++                .get(&self.logical)
++                .cloned()
++                .ok_or(StreamControlError::NotReady)?
++        };
++        let stamp = self.consumer.stamp();
++        let changed = !Arc::ptr_eq(&port, &self.port);
++        let epoch = !self.ticket.is_current() || !self.stamp.is_current();
++        if changed || epoch {
++            let pt = port
++                .state
++                .lock()
++                .unwrap_or_else(|p| p.into_inner())
++                .payload_type
++                .ok_or(StreamControlError::NotReady)?;
++            let codecs = Codecs::new(&port.binding.negotiated.format, pt, self.consumer.mix_rate)?;
++            if changed {
++                self.input = port
++                    .input
++                    .lock()
++                    .unwrap_or_else(|p| p.into_inner())
++                    .take()
++                    .ok_or(MediaTransitionError::Conflict)?;
++            }
++            self.port = port;
++            self.ticket = self.port.ticket();
++            self.stamp = stamp;
++            self.codecs = codecs;
++            self.pending.clear();
++            self.previous_sources.clear();
++            self.target_started = Instant::now().max(self.stamp.started);
++        }
++        Ok(())
++    }
++    fn collect(&mut self) {
++        for _ in 0..16 {
++            let Ok(packet) = self.input.try_recv() else {
++                break;
++            };
++            if packet.admitted_at.elapsed() > Duration::from_millis(200) {
++                continue;
++            }
++            let Ok((_lease, _admission, deadline)) = self.controller.admit(
++                &packet.source,
++                &packet.ticket,
++                false,
++                None,
++                ConsumerCheck::Retained(packet.consumer.as_ref()),
++            ) else {
++                continue;
++            };
++            let Ok(samples) = self.codecs.decode(&packet.frame) else {
++                continue;
++            };
++            if tokio::time::Instant::now() >= deadline {
++                continue;
++            }
++            self.pending.push_back(Chunk {
++                packet,
++                samples: samples.into(),
++            });
++        }
++        let mut count = self
++            .pending
++            .iter()
++            .map(|chunk| chunk.samples.len())
++            .sum::<usize>();
++        while count > 8000 {
++            let first = self.pending.front_mut().unwrap();
++            let remove = (count - 8000).min(first.samples.len());
++            first.samples.drain(..remove);
++            count -= remove;
++            if first.samples.is_empty() {
++                self.pending.pop_front();
++            }
++        }
++    }
++    fn take(
++        &mut self,
++        size: usize,
++        leases: &mut Vec<Box<dyn MediaAuthorityLease>>,
++        admissions: &mut Vec<audio_consumer::MediaAdmission>,
++    ) -> Vec<Segment> {
++        let mut segments = Vec::new();
++        let mut offset = 0;
++        while offset < size {
++            let Some(chunk) = self.pending.front_mut() else {
++                break;
++            };
++            if chunk.packet.admitted_at.elapsed() > Duration::from_millis(200) {
++                self.pending.pop_front();
++                continue;
++            }
++            let Ok((lease, admission, deadline)) = self.controller.admit(
++                &chunk.packet.source,
++                &chunk.packet.ticket,
++                false,
++                None,
++                ConsumerCheck::Retained(chunk.packet.consumer.as_ref()),
++            ) else {
++                self.pending.pop_front();
++                continue;
++            };
++            let descriptor = MediaSource {
++                conversation: self.controller.conversation.clone(),
++                session: self.controller.session.clone(),
++                connection: self.controller.connection.clone(),
++                participant: self.participant.clone(),
++                membership_epoch: self.controller.origin_member.epoch(),
++                connection_generation: chunk.packet.source.binding.connection_generation,
++                logical_id: self.logical.clone(),
++                transport_id: chunk.packet.source.binding.transport_id.clone(),
++                stream_generation: chunk.packet.source.binding.generation,
++            };
++            let amount = (size - offset).min(chunk.samples.len());
++            let samples = chunk.samples.drain(..amount).collect();
++            segments.push(Segment {
++                offset,
++                samples,
++                origin: Contribution {
++                    source: chunk.packet.source.clone(),
++                    ticket: chunk.packet.ticket.clone(),
++                    consumer: chunk.packet.consumer.clone(),
++                    descriptor,
++                },
++                admitted_at: chunk.packet.admitted_at,
++                deadline,
++            });
++            leases.push(lease);
++            admissions.push(admission);
++            offset += amount;
++            if chunk.samples.is_empty() {
++                self.pending.pop_front();
++            }
++        }
++        segments
++    }
++}
++pub(crate) struct GuardedAudioMixer {
++    conversation: ConversationId,
++    session: SessionId,
++    policy: Arc<dyn MediaPolicy>,
++    rate: u32,
++    members: Mutex<HashMap<ConnectionId, AudioMember>>,
++}
++impl GuardedAudioMixer {
++    pub(crate) fn new(
++        conversation: ConversationId,
++        session: SessionId,
++        policy: Arc<dyn MediaPolicy>,
++        rate: u32,
++    ) -> Arc<Self> {
++        Arc::new(Self {
++            conversation,
++            session,
++            policy,
++            rate,
++            members: Mutex::new(HashMap::new()),
++        })
++    }
++    pub(crate) fn prepare(&self, controller: Arc<StreamController>) -> ControlResult<AudioMember> {
++        if controller.conversation != self.conversation
++            || controller.session != self.session
++            || !Arc::ptr_eq(&controller.policy, &self.policy)
++        {
++            return Err(StreamControlError::Authority);
++        }
++        let flight = controller
++            .inflight
++            .clone()
++            .try_acquire_owned()
++            .map_err(|_| MediaTransitionError::Conflict)?;
++        let state = controller.state.lock().unwrap_or_else(|p| p.into_inner());
++        if state.closed || controller.shutdown.is_cancelled() {
++            return Err(StreamControlError::Cancelled);
++        }
++        let ports = state
++            .active
++            .values()
++            .filter(|port| {
++                port.binding.negotiated.requested.medium == Medium::Audio
++                    && state
++                        .model
++                        .streams()
++                        .get(&port.binding.negotiated.requested.logical_id)
++                        .is_some_and(|stream| stream.state == LogicalStreamState::Active)
++            })
++            .cloned()
++            .collect::<Vec<_>>();
++        if ports.is_empty() {
++            return Err(StreamControlError::NotReady);
++        }
++        if ports.len() != 1 {
++            return Err(StreamControlError::Unsupported);
++        }
++        let port = ports[0].clone();
++        if port.binding.negotiated.requested.direction != StreamDirection::Both {
++            return Err(StreamControlError::Unsupported);
++        }
++        let pt = {
++            let state = port.state.lock().unwrap_or_else(|p| p.into_inner());
++            if !state.ready || state.status != PortStatus::Active {
++                return Err(StreamControlError::NotReady);
++            }
++            state.payload_type.ok_or(StreamControlError::NotReady)?
++        };
++        let codecs = Codecs::new(&port.binding.negotiated.format, pt, self.rate)?;
++        let mut slot = controller
++            .audio_consumer
++            .lock()
++            .unwrap_or_else(|p| p.into_inner());
++        if slot.is_some() {
++            return Err(MediaTransitionError::Conflict.into());
++        }
++        let input = port
++            .input
++            .lock()
++            .unwrap_or_else(|p| p.into_inner())
++            .take()
++            .ok_or(MediaTransitionError::Conflict)?;
++        let consumer = AudioConsumer::new(
++            port.binding.negotiated.requested.logical_id.clone(),
++            self.rate,
++        );
++        let stamp = consumer.stamp();
++        *slot = Some(Arc::downgrade(&consumer));
++        drop(slot);
++        drop(state);
++        Ok(AudioMember {
++            logical: consumer.logical.clone(),
++            participant: controller.origin_member.participant().clone(),
++            controller,
++            consumer,
++            port: port.clone(),
++            ticket: port.ticket(),
++            stamp,
++            input,
++            codecs,
++            pending: VecDeque::new(),
++            ticks: 0,
++            target_started: Instant::now(),
++            previous_sources: Vec::new(),
++            flight: Some(flight),
++            preparation: None,
++        })
++    }
++    pub(crate) fn insert(&self, id: ConnectionId, mut member: AudioMember, speaks: bool) {
++        // Final current-readiness checks precede the Participant commit. EOF
++        // may linearize immediately afterwards; it must retire that committed
++        // route rather than panic after the logical mutation already applied.
++        assert!(
++            member.preparation.is_some(),
++            "staged member must drain original sends before admission"
++        );
++        member.activate(speaks);
++        self.members
++            .lock()
++            .unwrap_or_else(|p| p.into_inner())
++            .insert(id, member);
++    }
++    pub(crate) fn remove(&self, id: &ConnectionId) {
++        if let Some(member) = self
++            .members
++            .lock()
++            .unwrap_or_else(|p| p.into_inner())
++            .remove(id)
++        {
++            member.consumer.retire();
++        }
++    }
++    pub(crate) fn clear(&self) {
++        for (_, member) in self
++            .members
++            .lock()
++            .unwrap_or_else(|p| p.into_inner())
++            .drain()
++        {
++            member.consumer.retire();
++        }
++    }
++    pub(crate) fn role_targets(&self, ids: &[ConnectionId]) -> Vec<Arc<AudioConsumer>> {
++        let members = self.members.lock().unwrap_or_else(|p| p.into_inner());
++        ids.iter()
++            .filter_map(|id| members.get(id).map(|member| member.consumer.clone()))
++            .collect()
++    }
++    pub(crate) fn tick(&self) {
++        let mut members = self.members.lock().unwrap_or_else(|p| p.into_inner());
++        let mut leases = Vec::new();
++        let mut admissions = Vec::new();
++        let mut inputs = HashMap::new();
++        for (id, member) in &mut *members {
++            member.ticks = member.ticks.wrapping_add(1);
++            if member.refresh().is_err() {
++                member.pending.clear();
++                continue;
++            }
++            member.collect();
++            let segments = member.take((self.rate / 50) as usize, &mut leases, &mut admissions);
++            inputs.insert(id.clone(), (member.participant.clone(), segments));
++        }
++        for member in members.values_mut() {
++            let mut total = vec![0i32; (self.rate / 50) as usize];
++            let mut provenance = Vec::new();
++            let mut oldest = Instant::now();
++            let target_ticket = member.port.ticket();
++            let mut target_consumer = None;
++            let mut bound = tokio::time::Instant::now() + Duration::from_millis(200);
++            for (participant, segments) in inputs.values() {
++                if participant == &member.participant {
++                    continue;
++                }
++                for segment in segments {
++                    if segment.admitted_at < member.target_started
++                        || tokio::time::Instant::now() >= segment.deadline
++                    {
++                        continue;
++                    }
++                    let Ok((lease, admission, deadline)) = member.controller.admit(
++                        &member.port,
++                        &target_ticket,
++                        true,
++                        Some(&segment.origin.descriptor),
++                        ConsumerCheck::Current,
++                    ) else {
++                        continue;
++                    };
++                    target_consumer = admission.consumer.clone();
++                    bound = bound.min(deadline).min(segment.deadline);
++                    for (index, sample) in segment.samples.iter().enumerate() {
++                        total[segment.offset + index] += i32::from(*sample);
++                    }
++                    oldest = oldest.min(segment.admitted_at);
++                    // All retained source guards stay live through this tick,
++                    // so one current port/scene generation covers its chunks.
++                    if !provenance
++                        .iter()
++                        .any(|old: &Contribution| Arc::ptr_eq(&old.source, &segment.origin.source))
++                    {
++                        provenance.push(segment.origin.clone());
++                    }
++                    leases.push(lease);
++                    admissions.push(admission);
++                }
++            }
++            if provenance.is_empty() {
++                member.previous_sources.clear();
++                continue;
++            }
++            let changed = member.previous_sources.len() != provenance.len()
++                || member.previous_sources.iter().any(|old| {
++                    !old.ticket.is_current()
++                        || old
++                            .consumer
++                            .as_ref()
++                            .is_some_and(|stamp| !stamp.is_current())
++                        || !provenance
++                            .iter()
++                            .any(|new| Arc::ptr_eq(&old.source, &new.source))
++                });
++            if changed {
++                let Some(pt) = member
++                    .port
++                    .state
++                    .lock()
++                    .unwrap_or_else(|p| p.into_inner())
++                    .payload_type
++                else {
++                    continue;
++                };
++                let Ok(codecs) = Codecs::new(&member.port.binding.negotiated.format, pt, self.rate)
++                else {
++                    continue;
++                };
++                member.codecs.encoder = codecs.encoder;
++                member.codecs.from_mix = codecs.from_mix;
++            }
++            if tokio::time::Instant::now() >= bound {
++                continue;
++            }
++            let timestamp = (member
++                .ticks
++                .wrapping_mul(u64::from(member.codecs.info.clock_rate_hz / 50)))
++                as u32;
++            let Ok(mut frame) = member.codecs.encode(
++                total
++                    .into_iter()
++                    .map(|sample| sample.clamp(i32::from(i16::MIN), i32::from(i16::MAX)) as i16)
++                    .collect(),
++                timestamp,
++            ) else {
++                continue;
++            };
++            frame.stream_id = member.port.binding.transport_id.clone();
++            if tokio::time::Instant::now() >= bound {
++                continue;
++            }
++            member.previous_sources = provenance.clone();
++            let _ = member.port.egress.try_send(QueuedMedia {
++                frame,
++                sources: provenance,
++                target: member.port.clone(),
++                target_ticket,
++                target_consumer,
++                admitted_at: oldest,
++            });
++        }
++    }
++}
++
++impl StreamController {
++    pub(super) fn validate_audio_consumer_plans(
++        &self,
++        plans: &[NegotiatedStream],
++    ) -> ControlResult<()> {
++        let slot = self
++            .audio_consumer
++            .lock()
++            .unwrap_or_else(|p| p.into_inner());
++        let Some(consumer) = slot.as_ref() else {
++            return Ok(());
++        };
++        let consumer = consumer.upgrade().ok_or(StreamControlError::NotReady)?;
++        if plans.iter().any(|plan| {
++            plan.requested.medium == Medium::Audio && plan.requested.logical_id != consumer.logical
++        }) {
++            return Err(StreamControlError::Unsupported);
++        }
++        for plan in plans
++            .iter()
++            .filter(|plan| plan.requested.logical_id == consumer.logical)
++        {
++            if plan.requested.medium != Medium::Audio
++                || plan.requested.direction != StreamDirection::Both
++            {
++                return Err(StreamControlError::Unsupported);
++            }
++            Codecs::new(&plan.format, 96, consumer.mix_rate)?;
++        }
++        Ok(())
++    }
++    pub(super) fn validate_audio_consumer_ports(
++        &self,
++        ports: &[PortPreparation],
++    ) -> ControlResult<()> {
++        let slot = self
++            .audio_consumer
++            .lock()
++            .unwrap_or_else(|p| p.into_inner());
++        let Some(consumer) = slot.as_ref() else {
++            return Ok(());
++        };
++        let consumer = consumer.upgrade().ok_or(StreamControlError::NotReady)?;
++        for selected in ports
++            .iter()
++            .filter(|port| port.port.0.binding.negotiated.requested.logical_id == consumer.logical)
++        {
++            let state = selected
++                .port
++                .0
++                .state
++                .lock()
++                .unwrap_or_else(|p| p.into_inner());
++            Codecs::new(
++                &selected.port.0.binding.negotiated.format,
++                state.payload_type.ok_or(StreamControlError::NotReady)?,
++                consumer.mix_rate,
++            )?;
++        }
++        Ok(())
++    }
++}
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/tests.rs b/crates/foundation/rvoip-core/src/staged_streams/tests.rs
+--- a/crates/foundation/rvoip-core/src/staged_streams/tests.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests.rs
+@@ -208,6 +208,7 @@
+ struct Adapter {
+     ports: Mutex<BTreeMap<StreamId, AdapterMediaPort>>,
+     mode: AtomicUsize,
++    audio_pt: AtomicUsize,
+     entered: Notify,
+     release: Notify,
+     outstanding: Arc<AtomicUsize>,
+@@ -218,6 +219,7 @@
+         Arc::new(Self {
+             ports: Mutex::new(BTreeMap::new()),
+             mode: AtomicUsize::new(0),
++            audio_pt: AtomicUsize::new(0),
+             entered: Notify::new(),
+             release: Notify::new(),
+             outstanding: Arc::new(AtomicUsize::new(0)),
+@@ -256,7 +258,7 @@
+                 self.outstanding.fetch_add(1, Ordering::AcqRel);
+                 let format = preparation.port.binding().negotiated.format.clone();
+                 let pt = match preparation.port.binding().negotiated.requested.medium {
+-                    Medium::Audio => Some(0),
++                    Medium::Audio => Some(self.audio_pt.load(Ordering::Acquire) as u8),
+                     Medium::Video | Medium::Screen => Some(96),
+                     Medium::Data => None,
+                 };
+@@ -2242,3 +2244,5 @@
+ 
+ #[path = "credential_rebind_tests.rs"]
+ mod credential_rebind_tests;
++
++mod guarded_mixer;
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/tests/guarded_mixer.rs b/crates/foundation/rvoip-core/src/staged_streams/tests/guarded_mixer.rs
+new file mode 100644
+--- /dev/null
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/guarded_mixer.rs
+@@ -0,0 +1,731 @@
++use super::*;
++use crate::staged_streams::guarded_audio::GuardedAudioMixer;
++
++struct Scene {
++    policy: Arc<Policy>,
++    mixer: Arc<GuardedAudioMixer>,
++    controllers: Vec<Arc<StreamController>>,
++    adapters: Vec<Arc<Adapter>>,
++}
++impl Scene {
++    async fn new(people: &[(&str, &str, MediaFormat, u8)], rate: u32) -> Self {
++        let mut owners = HashMap::new();
++        for (connection, person, format, _) in people {
++            let mut own = owner(person);
++            let identity = IdentityBinding::from_authenticated(
++                &principal(person),
++                own.member.identity().clone(),
++                chrono::Utc::now(),
++            )
++            .unwrap();
++            let mut ep = EndpointBinding::provision(
++                identity.clone(),
++                EndpointId::from_string(format!("ep-{connection}")),
++                DeviceId::from_string(format!("device-{connection}")),
++                Transport::Quic,
++                "local-fixture".into(),
++            )
++            .unwrap();
++            ep.verify(&identity, "local-proof".into(), chrono::Utc::now())
++                .unwrap();
++            let mut binding = ConnectionBinding::prepare(
++                &own.member,
++                &own.presence,
++                &ep,
++                ConnectionId::from_string(*connection),
++            )
++            .unwrap();
++            binding
++                .observe_ready(&own.member, &own.presence, &ep, 1)
++                .unwrap();
++            binding.activate(&own.member, &own.presence, &ep).unwrap();
++            own.endpoint = ep;
++            own.connection = binding;
++            let caps = EndpointMediaCapabilities {
++                send: vec![MediaCapability {
++                    medium: Medium::Audio,
++                    formats: vec![format.clone()],
++                }],
++                receive: vec![MediaCapability {
++                    medium: Medium::Audio,
++                    formats: vec![format.clone()],
++                }],
++                max_streams: 8,
++                renegotiation: true,
++            };
++            own.local = caps.clone();
++            own.remote = caps;
++            owners.insert(connection.to_string(), own);
++        }
++        let policy = Arc::new(Policy(Arc::new(RwLock::new(PolicyState {
++            owners,
++            revoked: HashSet::new(),
++            private: false,
++        }))));
++        let mixer = GuardedAudioMixer::new(
++            ConversationId::from_string("conversation"),
++            SessionId::from_string("session"),
++            policy.clone(),
++            rate,
++        );
++        let mut controllers = Vec::new();
++        let mut adapters = Vec::new();
++        for (connection, person, _, pt) in people {
++            let adapter = Adapter::new();
++            adapter.audio_pt.store((*pt).into(), Ordering::Release);
++            let controller = StreamController::new(
++                ConversationId::from_string("conversation"),
++                SessionId::from_string("session"),
++                ConnectionId::from_string(*connection),
++                principal(person),
++                policy.clone(),
++                adapter.clone(),
++                Arc::new(StreamHandleAllocator::default()),
++                16,
++            )
++            .unwrap();
++            controller
++                .change(
++                    0,
++                    &[desired(Medium::Audio)],
++                    &BTreeSet::new(),
++                    deadline(),
++                    CancellationToken::new(),
++                )
++                .await
++                .unwrap();
++            controllers.push(controller);
++            adapters.push(adapter);
++        }
++        Self {
++            policy,
++            mixer,
++            controllers,
++            adapters,
++        }
++    }
++    async fn bind(&self, index: usize, speaks: bool) {
++        let controller = self.controllers[index].clone();
++        let mut member = self.mixer.prepare(controller.clone()).unwrap();
++        member
++            .quiesce(deadline(), CancellationToken::new())
++            .await
++            .unwrap();
++        assert!(member.ready());
++        self.mixer
++            .insert(controller.connection.clone(), member, speaks);
++    }
++    fn port(&self, index: usize) -> AdapterMediaPort {
++        self.adapters[index].port(Medium::Audio)
++    }
++    fn publish(&self, index: usize, value: i16) {
++        let port = self.port(index);
++        let MediaFormat::Encoded {
++            name,
++            clock_rate_hz,
++            channels,
++            fmtp,
++        } = &port.binding().negotiated.format
++        else {
++            panic!()
++        };
++        let selector = if name.eq_ignore_ascii_case("opus") {
++            111
++        } else {
++            0
++        };
++        let mut codec = rvoip_media_core::codec::factory::CodecFactory::create_negotiated_codec(
++            selector,
++            name,
++            Some(*clock_rate_hz),
++            Some((*channels).into()),
++            fmtp.as_deref(),
++        )
++        .unwrap();
++        let payload = codec
++            .encode(&rvoip_media_core::AudioFrame {
++                samples: vec![value; (*clock_rate_hz / 50) as usize * usize::from(*channels)],
++                sample_rate: *clock_rate_hz,
++                channels: *channels,
++                duration: Duration::from_millis(20),
++                timestamp: 0,
++            })
++            .unwrap();
++        let payload_type = port.0.state.lock().unwrap().payload_type;
++        port.try_publish(&MediaFrame {
++            stream_id: port.binding().transport_id.clone(),
++            kind: StreamKind::Audio,
++            payload: payload.into(),
++            timestamp_rtp: 0,
++            source_clock: None,
++            captured_at: chrono::Utc::now(),
++            payload_type,
++        })
++        .unwrap();
++    }
++}
++async fn heard(queue: QueuedMedia, expected: i16) {
++    queue
++        .deliver(|frame| async move {
++            let mut decoder = rvoip_media_core::codec::factory::CodecFactory::create_codec(
++                0,
++                Some(8000),
++                Some(1),
++            )
++            .unwrap();
++            let samples = decoder.decode(&frame.payload).unwrap().samples;
++            assert_eq!(samples.len(), 160);
++            assert!(
++                (i32::from(samples[80]) - i32::from(expected)).abs() < 350,
++                "expected {expected}, got {}",
++                samples[80]
++            );
++            Ok(())
++        })
++        .await
++        .unwrap();
++}
++fn four() -> Vec<(&'static str, &'static str, MediaFormat, u8)> {
++    vec![
++        ("alice-one", "alice", audio(), 0),
++        ("bob-one", "bob", audio(), 0),
++        ("carol-one", "carol", audio(), 0),
++        ("alice-two", "alice", audio(), 0),
++        ("dave-one", "dave", audio(), 0),
++    ]
++}
++#[tokio::test]
++async fn guarded_mixer_decodes_four_people_five_devices_and_excludes_all_own_devices() {
++    let s = Scene::new(&four(), 8000).await;
++    let mut outputs = (0..5)
++        .map(|i| s.port(i).take_egress().unwrap())
++        .collect::<Vec<_>>();
++    for i in 0..5 {
++        s.bind(i, true).await;
++    }
++    for (i, value) in [1000, 2000, 4000, 500, 8000].into_iter().enumerate() {
++        s.publish(i, value);
++    }
++    s.mixer.tick();
++    for (i, expected) in [14000, 13500, 11500, 14000, 7500].into_iter().enumerate() {
++        heard(outputs[i].try_recv().unwrap(), expected).await;
++    }
++}
++#[tokio::test]
++async fn guarded_mixer_admission_excludes_old_packets_and_inactive_candidate_cannot_publish() {
++    let s = Scene::new(&four()[..3], 8000).await;
++    let mut input = s.controllers[2]
++        .take_ingress(&desired(Medium::Audio).logical_id)
++        .unwrap();
++    let mut output = s.port(0).take_egress().unwrap();
++    s.publish(2, 1000);
++    receive(&mut input)
++        .await
++        .try_forward_to(&s.controllers[0], &desired(Medium::Audio).logical_id)
++        .unwrap();
++    let queued = output.try_recv().unwrap();
++    let entered = Arc::new(Notify::new());
++    let release = Arc::new(Notify::new());
++    let sent = tokio::spawn({
++        let entered = entered.clone();
++        let release = release.clone();
++        async move {
++            queued
++                .deliver(|_| async move {
++                    entered.notify_one();
++                    release.notified().await;
++                    Ok(())
++                })
++                .await
++        }
++    });
++    entered.notified().await;
++    s.publish(0, 7000);
++    let mut candidate = s.mixer.prepare(s.controllers[0].clone()).unwrap();
++    let mut drain = tokio::spawn(async move {
++        candidate
++            .quiesce(deadline(), CancellationToken::new())
++            .await?;
++        Ok::<_, StreamControlError>(candidate)
++    });
++    assert!(tokio::time::timeout(Duration::from_millis(25), &mut drain)
++        .await
++        .is_err());
++    release.notify_one();
++    sent.await.unwrap().unwrap();
++    let candidate = drain.await.unwrap().unwrap();
++    assert!(s.port(0).try_publish(&frame(&s.port(0), 160)).is_err());
++    s.mixer
++        .insert(s.controllers[0].connection.clone(), candidate, true);
++    s.publish(0, 7000); // queued before target activation must never be heard
++    s.bind(1, true).await;
++    let mut out = s.port(1).take_egress().unwrap();
++    s.mixer.tick();
++    assert!(out.try_recv().is_err());
++    s.publish(0, 1000);
++    s.mixer.tick();
++    heard(out.try_recv().unwrap(), 1000).await;
++}
++#[tokio::test]
++async fn guarded_mixer_rechecks_every_contributor_and_audience_after_dequeue() {
++    let s = Scene::new(&four()[..3], 8000).await;
++    for i in 0..3 {
++        s.bind(i, true).await;
++    }
++    let mut out = s.port(2).take_egress().unwrap();
++    s.publish(0, 1000);
++    s.publish(1, 2000);
++    s.mixer.tick();
++    let queued = out.try_recv().unwrap();
++    s.policy.0.write().await.revoked.insert("bob".into());
++    assert!(queued
++        .deliver(|_| async { panic!("revoked contributor reached local IO") })
++        .await
++        .is_err());
++    s.publish(0, 1000);
++    s.mixer.tick();
++    heard(out.try_recv().unwrap(), 1000).await;
++    s.publish(0, 1000);
++    s.mixer.tick();
++    let queued = out.try_recv().unwrap();
++    s.policy.0.write().await.private = true;
++    assert!(queued
++        .deliver(|_| async { panic!("private audience reached local IO") })
++        .await
++        .is_err());
++    s.publish(0, 1000);
++    s.mixer.tick();
++    assert!(out.try_recv().is_err());
++}
++#[tokio::test]
++async fn guarded_mixer_role_change_drains_send_and_invalidates_queued_old_voice() {
++    let s = Scene::new(&four()[..2], 8000).await;
++    for i in 0..2 {
++        s.bind(i, true).await;
++    }
++    let mut out = s.port(1).take_egress().unwrap();
++    s.publish(0, 1000);
++    s.mixer.tick();
++    let queued = out.try_recv().unwrap();
++    s.publish(0, 1000);
++    s.mixer.tick();
++    let pending = out.try_recv().unwrap();
++    let entered = Arc::new(Notify::new());
++    let release = Arc::new(Notify::new());
++    let sent = tokio::spawn({
++        let entered = entered.clone();
++        let release = release.clone();
++        async move {
++            queued
++                .deliver(|_| async move {
++                    entered.notify_one();
++                    release.notified().await;
++                    Ok(())
++                })
++                .await
++        }
++    });
++    entered.notified().await;
++    let consumer = s
++        .mixer
++        .role_targets(&[s.controllers[0].connection.clone()])
++        .pop()
++        .unwrap();
++    let mut role = tokio::spawn(async move {
++        consumer
++            .prepare_role(deadline(), CancellationToken::new())
++            .await
++    });
++    assert!(tokio::time::timeout(Duration::from_millis(25), &mut role)
++        .await
++        .is_err());
++    release.notify_one();
++    sent.await.unwrap().unwrap();
++    role.await.unwrap().unwrap().commit(false);
++    assert!(pending
++        .deliver(|_| async { panic!("old voice delivered after role commit") })
++        .await
++        .is_err());
++    assert!(s.port(0).try_publish(&frame(&s.port(0), 320)).is_err());
++    let consumer = s
++        .mixer
++        .role_targets(&[s.controllers[0].connection.clone()])
++        .pop()
++        .unwrap();
++    consumer
++        .prepare_role(deadline(), CancellationToken::new())
++        .await
++        .unwrap()
++        .commit(true);
++    s.mixer.tick();
++    s.publish(0, 2000);
++    s.mixer.tick();
++    heard(out.try_recv().unwrap(), 2000).await;
++}
++#[tokio::test]
++async fn guarded_mixer_departure_cancels_admitted_send_and_preserves_other_members() {
++    let s = Scene::new(&four()[..3], 8000).await;
++    for i in 0..3 {
++        s.bind(i, true).await;
++    }
++    let mut out = s.port(2).take_egress().unwrap();
++    s.publish(0, 1000);
++    s.mixer.tick();
++    let queue = out.try_recv().unwrap();
++    let entered = Arc::new(Notify::new());
++    let sent = tokio::spawn({
++        let entered = entered.clone();
++        async move {
++            queue
++                .deliver(|_| async move {
++                    entered.notify_one();
++                    std::future::pending().await
++                })
++                .await
++        }
++    });
++    entered.notified().await;
++    // Even an outstanding role preparation Arc must not keep departure live.
++    let _retained = s.mixer.role_targets(&[s.controllers[0].connection.clone()]);
++    s.mixer.remove(&s.controllers[0].connection);
++    assert!(matches!(
++        tokio::time::timeout(Duration::from_millis(100), sent)
++            .await
++            .unwrap()
++            .unwrap(),
++        Err(StreamControlError::Cancelled)
++    ));
++    assert!(s.port(0).try_publish(&frame(&s.port(0), 0)).is_err());
++    s.publish(1, 2000);
++    s.mixer.tick();
++    heard(out.try_recv().unwrap(), 2000).await;
++}
++#[tokio::test]
++async fn guarded_mixer_replacement_keeps_logical_id_and_discards_old_decoded_samples() {
++    let s = Scene::new(&four()[..2], 8000).await;
++    for i in 0..2 {
++        s.bind(i, true).await;
++    }
++    let mut out = s.port(1).take_egress().unwrap();
++    s.publish(0, 7000);
++    s.mixer.tick();
++    let old_queue = out.try_recv().unwrap();
++    s.publish(0, 7000);
++    let old = s.port(0);
++    let revision = s.controllers[0].revision();
++    s.controllers[0]
++        .change(
++            revision,
++            &[desired(Medium::Audio)],
++            &[desired(Medium::Audio).logical_id].into_iter().collect(),
++            deadline(),
++            CancellationToken::new(),
++        )
++        .await
++        .unwrap();
++    assert_ne!(old.binding().transport_id, s.port(0).binding().transport_id);
++    assert_eq!(
++        old.binding().negotiated.requested.logical_id,
++        s.port(0).binding().negotiated.requested.logical_id
++    );
++    assert!(old_queue
++        .deliver(|_| async { panic!("old port mixed output survived replacement") })
++        .await
++        .is_err());
++    s.mixer.tick();
++    s.publish(0, 1000);
++    s.mixer.tick();
++    heard(out.try_recv().unwrap(), 1000).await;
++}
++#[tokio::test]
++async fn guarded_mixer_unknown_codec_replacement_rejected_before_adapter_open_preserves_audio() {
++    let s = Scene::new(&four()[..2], 8000).await;
++    for i in 0..2 {
++        s.bind(i, true).await;
++    }
++    let old = s.port(0);
++    let revision = s.controllers[0].revision();
++    let opened = s.adapters[0].outstanding.load(Ordering::Acquire);
++    {
++        let mut policy = s.policy.0.write().await;
++        let owner = policy.owners.get_mut("alice-one").unwrap();
++        let bogus = MediaFormat::Encoded {
++            name: "unsupported-private-codec".into(),
++            clock_rate_hz: 8000,
++            channels: 1,
++            fmtp: None,
++        };
++        for cap in owner
++            .local
++            .send
++            .iter_mut()
++            .chain(owner.local.receive.iter_mut())
++            .chain(owner.remote.send.iter_mut())
++            .chain(owner.remote.receive.iter_mut())
++        {
++            cap.formats = vec![bogus.clone()];
++        }
++    }
++    assert!(matches!(
++        s.controllers[0]
++            .change(
++                revision,
++                &[desired(Medium::Audio)],
++                &BTreeSet::new(),
++                deadline(),
++                CancellationToken::new()
++            )
++            .await,
++        Err(StreamControlError::Unsupported)
++    ));
++    assert_eq!(revision, s.controllers[0].revision());
++    assert_eq!(opened, s.adapters[0].outstanding.load(Ordering::Acquire));
++    assert_eq!(old.binding().transport_id, s.port(0).binding().transport_id);
++    // Restore current capabilities; old actual audio remains usable.
++    {
++        let mut policy = s.policy.0.write().await;
++        let owner = policy.owners.get_mut("alice-one").unwrap();
++        owner.local = profile();
++        owner.remote = profile();
++    }
++    let mut out = s.port(1).take_egress().unwrap();
++    s.publish(0, 1000);
++    s.mixer.tick();
++    heard(out.try_recv().unwrap(), 1000).await;
++}
++#[cfg(feature = "opus")]
++#[tokio::test]
++async fn guarded_mixer_dynamic_payload_names_and_stereo_resampling_use_negotiated_codec() {
++    let opus = MediaFormat::Encoded {
++        name: "opus".into(),
++        clock_rate_hz: 48000,
++        channels: 2,
++        fmtp: Some("stereo=1".into()),
++    };
++    let s = Scene::new(
++        &[
++            ("alice-one", "alice", audio(), 110),
++            ("bob-one", "bob", opus, 112),
++        ],
++        48000,
++    )
++    .await;
++    for i in 0..2 {
++        s.bind(i, true).await;
++    }
++    let mut opus_out = s.port(1).take_egress().unwrap();
++    let mut pcmu_out = s.port(0).take_egress().unwrap();
++    s.publish(0, 4000);
++    s.publish(1, 2000);
++    s.mixer.tick();
++    let q = opus_out.try_recv().unwrap();
++    q.deliver(|frame| async move {
++        assert_eq!(frame.payload_type, Some(112));
++        let mut codec =
++            rvoip_media_core::codec::factory::CodecFactory::create_codec(111, Some(48000), Some(2))
++                .unwrap();
++        let decoded = codec.decode(&frame.payload).unwrap();
++        assert_eq!(decoded.channels, 2);
++        assert_eq!(decoded.samples_per_channel(), 960);
++        assert!(decoded.samples.iter().any(|v| v.unsigned_abs() > 500));
++        Ok(())
++    })
++    .await
++    .unwrap();
++    pcmu_out
++        .try_recv()
++        .unwrap()
++        .deliver(|frame| async move {
++            assert_eq!(frame.payload_type, Some(110));
++            let mut codec = rvoip_media_core::codec::factory::CodecFactory::create_codec(
++                0,
++                Some(8000),
++                Some(1),
++            )
++            .unwrap();
++            let decoded = codec.decode(&frame.payload).unwrap();
++            assert_eq!(decoded.samples.len(), 160);
++            assert!(decoded.samples.iter().any(|v| v.unsigned_abs() > 500));
++            Ok(())
++        })
++        .await
++        .unwrap();
++}
++
++#[tokio::test]
++async fn guarded_mixer_failed_role_drain_restores_original_authority_and_queue() {
++    let s = Scene::new(&four()[..2], 8000).await;
++    for i in 0..2 {
++        s.bind(i, true).await;
++    }
++    let mut out = s.port(1).take_egress().unwrap();
++    s.publish(0, 1000);
++    s.mixer.tick();
++    let queued = out.try_recv().unwrap();
++    let consumer = s
++        .mixer
++        .role_targets(&[s.controllers[0].connection.clone()])
++        .pop()
++        .unwrap();
++    let stamp = consumer.stamp();
++    let guard = consumer.begin(&stamp, false).unwrap();
++    assert!(matches!(
++        consumer
++            .prepare_role(
++                tokio::time::Instant::now() + Duration::from_millis(20),
++                CancellationToken::new()
++            )
++            .await,
++        Err(StreamControlError::Deadline)
++    ));
++    drop(guard);
++    assert!(stamp.is_current());
++    heard(queued, 1000).await;
++    s.publish(0, 2000);
++    s.mixer.tick();
++    heard(out.try_recv().unwrap(), 2000).await;
++}
++#[tokio::test]
++async fn guarded_mixer_queued_policy_writer_drops_tick_without_reentering_owned_reader() {
++    let s = Scene::new(&four()[..2], 8000).await;
++    for i in 0..2 {
++        s.bind(i, true).await;
++    }
++    let mut out = s.port(1).take_egress().unwrap();
++    s.publish(0, 1000);
++    let held = s.policy.0.clone().read_owned().await;
++    let acquired = Arc::new(Notify::new());
++    let writer = tokio::spawn({
++        let policy = s.policy.0.clone();
++        let acquired = acquired.clone();
++        async move {
++            let mut state = policy.write().await;
++            state.revoked.insert("alice".into());
++            acquired.notify_one();
++        }
++    });
++    tokio::time::sleep(Duration::from_millis(10)).await;
++    let start = Instant::now();
++    s.mixer.tick();
++    assert!(start.elapsed() < Duration::from_millis(100));
++    assert!(out.try_recv().is_err());
++    drop(held);
++    tokio::time::timeout(Duration::from_millis(100), writer)
++        .await
++        .unwrap()
++        .unwrap();
++    assert!(s.port(0).try_publish(&frame(&s.port(0), 0)).is_err());
++}
++#[tokio::test]
++async fn guarded_mixer_pause_resume_discards_pending_and_queued_audio_without_reopening_ports() {
++    let s = Scene::new(&four()[..2], 8000).await;
++    for i in 0..2 {
++        s.bind(i, true).await;
++    }
++    let mut out = s.port(1).take_egress().unwrap();
++    s.publish(0, 7000);
++    s.mixer.tick();
++    let queued = out.try_recv().unwrap();
++    s.publish(0, 7000);
++    let c = &s.controllers[0];
++    let logical = desired(Medium::Audio).logical_id;
++    let budget = c.stream_open_budget();
++    let transport = s.port(0).binding().transport_id.clone();
++    c.set_paused(&logical, c.revision(), true, deadline())
++        .await
++        .unwrap();
++    assert!(queued
++        .deliver(|_| async { panic!("pre-pause voice delivered") })
++        .await
++        .is_err());
++    s.mixer.tick();
++    assert!(out.try_recv().is_err());
++    c.set_paused(&logical, c.revision(), false, deadline())
++        .await
++        .unwrap();
++    s.mixer.tick();
++    s.publish(0, 1000);
++    s.mixer.tick();
++    heard(out.try_recv().unwrap(), 1000).await;
++    assert_eq!(budget, c.stream_open_budget());
++    assert_eq!(transport, s.port(0).binding().transport_id);
++}
++#[tokio::test]
++async fn guarded_mixer_wrong_static_payload_replacement_keeps_old_ready_port() {
++    let s = Scene::new(&four()[..2], 8000).await;
++    for i in 0..2 {
++        s.bind(i, true).await;
++    }
++    let old = s.port(0);
++    let revision = s.controllers[0].revision();
++    let budget = s.controllers[0].stream_open_budget();
++    s.adapters[0].audio_pt.store(8, Ordering::Release);
++    assert!(matches!(
++        s.controllers[0]
++            .change(
++                revision,
++                &[desired(Medium::Audio)],
++                &[desired(Medium::Audio).logical_id].into_iter().collect(),
++                deadline(),
++                CancellationToken::new()
++            )
++            .await,
++        Err(StreamControlError::Unsupported)
++    ));
++    assert_eq!(revision, s.controllers[0].revision());
++    assert_eq!(
++        s.controllers[0].stream_open_budget(),
++        (budget.0 + 1, budget.1)
++    );
++    assert!(Arc::ptr_eq(
++        s.controllers[0]
++            .state
++            .lock()
++            .unwrap()
++            .active
++            .get(&desired(Medium::Audio).logical_id)
++            .unwrap(),
++        &old.0
++    ));
++    s.adapters[0]
++        .ports
++        .lock()
++        .unwrap()
++        .insert(desired(Medium::Audio).logical_id, old);
++    s.adapters[0].audio_pt.store(0, Ordering::Release);
++    let mut out = s.port(1).take_egress().unwrap();
++    s.publish(0, 1000);
++    s.mixer.tick();
++    heard(out.try_recv().unwrap(), 1000).await;
++}
++#[tokio::test]
++async fn guarded_mixer_closed_scene_never_falls_back_to_unmanaged_forwarding() {
++    let s = Scene::new(&four()[..3], 8000).await;
++    for i in 0..2 {
++        s.bind(i, true).await;
++    }
++    let mut input = s.controllers[2]
++        .take_ingress(&desired(Medium::Audio).logical_id)
++        .unwrap();
++    s.publish(2, 7000);
++    assert!(matches!(
++        receive(&mut input)
++            .await
++            .try_forward_to(&s.controllers[1], &desired(Medium::Audio).logical_id),
++        Err(StreamControlError::Unsupported)
++    ));
++    s.mixer.clear();
++    assert!(s.port(0).try_publish(&frame(&s.port(0), 0)).is_err());
++    let revision = s.controllers[0].revision();
++    assert!(s.controllers[0]
++        .change(
++            revision,
++            &[desired(Medium::Audio)],
++            &BTreeSet::new(),
++            deadline(),
++            CancellationToken::new()
++        )
++        .await
++        .is_err());
++    assert_eq!(revision, s.controllers[0].revision());
++}
+diff --git a/crates/uctp/rvoip-uctp/src/v2/native.rs b/crates/uctp/rvoip-uctp/src/v2/native.rs
+--- a/crates/uctp/rvoip-uctp/src/v2/native.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/native.rs
+@@ -443,6 +443,9 @@
+                     .as_ref()
+                     .is_some_and(|bound| Weak::ptr_eq(bound, &Arc::downgrade(peer)))
+         })
++    }
++    fn staged_controller(&self, id: &ConnectionId) -> Option<Arc<StreamController>> {
++        self.media_controller(id).ok()
+     }
+     fn is_connection_live(&self, id: &ConnectionId) -> bool {
+         self.routes.contains_key(id)
+diff --git a/crates/uctp/rvoip-uctp/tests/support/canonical_media.rs b/crates/uctp/rvoip-uctp/tests/support/canonical_media.rs
+--- a/crates/uctp/rvoip-uctp/tests/support/canonical_media.rs
++++ b/crates/uctp/rvoip-uctp/tests/support/canonical_media.rs
+@@ -1234,3 +1234,6 @@
+ 
+ #[path = "media_control.rs"]
+ mod media_control;
++
++#[path = "canonical_media/guarded_mixer.rs"]
++mod guarded_mixer;
+diff --git a/crates/uctp/rvoip-uctp/tests/support/canonical_media/guarded_mixer.rs b/crates/uctp/rvoip-uctp/tests/support/canonical_media/guarded_mixer.rs
+new file mode 100644
+--- /dev/null
++++ b/crates/uctp/rvoip-uctp/tests/support/canonical_media/guarded_mixer.rs
+@@ -0,0 +1,548 @@
++//! Local signed TLS peers plus trusted participant SPI, not public workflow installation.
++use super::*;
++use rvoip_core::orchestrator::participant_control::ParticipantLimits;
++use rvoip_core::participant::ParticipantRole;
++use rvoip_core::participant_transitions::DepartureCause;
++fn named_actor(name: &str) -> AuthenticatedPrincipal {
++    let mut p = principal("old");
++    p.subject = name.into();
++    p
++}
++struct NamedValidator(&'static str);
++#[async_trait]
++impl BearerValidator for NamedValidator {
++    async fn validate(&self, token: &str) -> Result<IdentityAssurance, BearerAuthError> {
++        Ok(self.validate_credential(token).await?.principal.assurance)
++    }
++    async fn validate_credential(&self, token: &str) -> Result<ValidatedBearer, BearerAuthError> {
++        if token != self.0 {
++            return Err(BearerAuthError::Unavailable("fixture credential".into()));
++        }
++        ValidatedBearer::new(
++            named_actor(self.0),
++            Some(format!("fixture-{}", self.0)),
++            Some(std::time::SystemTime::now() - Duration::from_secs(1)),
++        )
++    }
++}
++struct NamedKeys {
++    name: &'static str,
++    base: Keys,
++}
++impl KeyResolver for NamedKeys {
++    fn resolve(&self, _: &str) -> Option<Vec<u8>> {
++        None
++    }
++    fn resolve_for_principal(
++        &self,
++        p: &AuthenticatedPrincipal,
++        k: &str,
++        a: &str,
++        time: chrono::DateTime<Utc>,
++    ) -> Option<ResolvedVerificationKey> {
++        if p.subject != self.name && p.subject != "server" {
++            return None;
++        }
++        let mut bound = p.clone();
++        if p.subject == self.name {
++            bound.subject = "alice".into();
++        }
++        self.base.resolve_for_principal(&bound, k, a, time)
++    }
++}
++struct NamedPolicy {
++    name: &'static str,
++    grants: Arc<RwLock<WireGrants>>,
++}
++#[async_trait]
++impl PeerAuthority for NamedPolicy {
++    fn authority_lifetime(
++        &self,
++        _: &ValidatedBearer,
++        _: &Device,
++        _: &Identifier,
++        _: &AuthorityLease,
++    ) -> Result<AuthorityLifetime, DispatchError> {
++        Ok(AuthorityLifetime::new(
++            CancellationToken::new(),
++            RetirementReason::AuthorityRetired,
++        ))
++    }
++    async fn identity(&self, c: &ValidatedBearer, d: &Device) -> Result<Identifier, DispatchError> {
++        if c.principal.subject != self.name || d.id.as_str() != format!("device_{}", self.name) {
++            return Err(DispatchError::Authority);
++        }
++        Identifier::try_from(format!("id_{}", self.name)).map_err(DispatchError::from)
++    }
++    async fn acquire(
++        &self,
++        c: &ValidatedBearer,
++        d: &Device,
++        i: &Identifier,
++        e: &Envelope,
++    ) -> Result<AuthorityLease, DispatchError> {
++        if self.identity(c, d).await? != *i || c.principal.is_expired() {
++            return Err(DispatchError::Authority);
++        }
++        let guard = self.grants.clone().read_owned().await;
++        if guard.denied {
++            return Err(DispatchError::Authority);
++        }
++        let connection = if e.kind() == "connection.offer" {
++            if e.scope(Scope::Conversation) != Some("conversation")
++                || e.scope(Scope::Session) != Some("session")
++            {
++                return Err(DispatchError::Authority);
++            }
++            Some(
++                guard
++                    .connections
++                    .get(e.scope(Scope::Connection).ok_or(DispatchError::Authority)?)
++                    .ok_or(DispatchError::Authority)?
++                    .clone(),
++            )
++        } else {
++            None
++        };
++        let authorities = [Transport::Quic, Transport::WebTransport]
++            .into_iter()
++            .map(|kind| {
++                (
++                    kind,
++                    PeerNativeAuthority {
++                        actor: guard.member.clone(),
++                        endpoint: endpoint(self.name, kind),
++                        may_prepare: true,
++                    },
++                )
++            })
++            .collect();
++        Ok(AuthorityLease::holding(WireProof {
++            _base: AuthorityLease::holding(()),
++            _guard: guard,
++            authorities,
++            connection,
++        }))
++    }
++    async fn refresh(
++        &self,
++        _: &ValidatedBearer,
++        c: &ValidatedBearer,
++        d: &Device,
++        i: &Identifier,
++        e: &Envelope,
++    ) -> Result<AuthorityLease, DispatchError> {
++        self.acquire(c, d, i, e).await
++    }
++}
++fn named_fixture(name: &'static str, member: Membership, id: ConnectionId) -> Fixture {
++    let mut f = Fixture::new();
++    let client_key = Ed25519KeyPair::generate_pkcs8(&ring::rand::SystemRandom::new()).unwrap();
++    let server_key = Ed25519KeyPair::generate_pkcs8(&ring::rand::SystemRandom::new()).unwrap();
++    let keys = Arc::new(NamedKeys {
++        name,
++        base: Keys {
++            client: Ed25519KeyPair::from_pkcs8(client_key.as_ref())
++                .unwrap()
++                .public_key()
++                .as_ref()
++                .to_vec(),
++            server: Ed25519KeyPair::from_pkcs8(server_key.as_ref())
++                .unwrap()
++                .public_key()
++                .as_ref()
++                .to_vec(),
++        },
++    });
++    f.client = Sig9421Signer::ed25519("client", client_key.as_ref()).unwrap();
++    f.server_verify = Sig9421Verifier::new(keys.clone());
++    let config = Arc::get_mut(&mut f.config).unwrap();
++    config.methods = Arc::new(AuthenticationMethods::new(Some(Arc::new(NamedValidator(
++        name,
++    )))));
++    config.verifier = Arc::new(Sig9421Verifier::new(keys));
++    config.signer = Arc::new(Sig9421Signer::ed25519("server", server_key.as_ref()).unwrap());
++    config.authority = Arc::new(NamedPolicy {
++        name,
++        grants: Arc::new(RwLock::new(WireGrants {
++            denied: false,
++            member,
++            connections: HashMap::from([("native_0".into(), id)]),
++        })),
++    });
++    f
++}
++struct Live {
++    wire: Wire,
++    leg: Leg,
++    peer: Arc<PeerAdmission>,
++}
++struct Scene {
++    core: Arc<core_fixture::Fixture>,
++    factory: Arc<Factory>,
++    grants: Arc<MediaGrants>,
++    live: Vec<Live>,
++}
++impl Scene {
++    async fn new(kind_name: &str) -> Self {
++        let grants = Arc::new(MediaGrants(Arc::new(RwLock::new(PolicyState {
++            owners: HashMap::new(),
++            denied: BTreeSet::new(),
++            private: false,
++        }))));
++        let mut core = core_fixture::Fixture::new().await;
++        let session = core
++            .orch
++            .start_session(
++                core.conversation.clone(),
++                rvoip_core::session::SessionMedium::Voice,
++                vec![],
++            )
++            .await
++            .unwrap();
++        core.orch
++            .enable_staged_participant_control(
++                &session,
++                core.policy.clone(),
++                grants.clone(),
++                ParticipantLimits::default(),
++            )
++            .unwrap();
++        core.session = session;
++        let core = Arc::new(core);
++        let kind = if kind_name == "quic" {
++            Transport::Quic
++        } else {
++            Transport::WebTransport
++        };
++        let adapter = CanonicalNativeAdapter::new(kind).unwrap();
++        core.orch.register(adapter.clone()).unwrap();
++        let factory = Arc::new(Factory {
++            core: core.clone(),
++            adapters: HashMap::from([(kind, adapter.clone())]),
++            records: Default::default(),
++        });
++        let mut live = Vec::new();
++        for name in ["alice", "bob", "carol", "dave"] {
++            let member =
++                core.policy.0.read().unwrap().members[&core_fixture::participant(name)].clone();
++            let id = ConnectionId::new();
++            let f = named_fixture(name, member.clone(), id.clone());
++            let profile = CanonicalProfile::new(f.config.clone(), Arc::new(Handler::default()), 8)
++                .unwrap()
++                .with_physical_handlers(factory.clone());
++            let mut wire = wire(kind_name, profile, "/uctp", Some("https://allowed.example"))
++                .await
++                .unwrap();
++            let mut greeting = hello();
++            greeting["payload"]["device"]["id"] = json!(format!("device_{name}"));
++            wire.send(serde_json::to_vec(&greeting).unwrap()).await;
++            let challenge = wire.read().await;
++            assert_eq!(challenge.kind(), "auth.challenge");
++            f.verify_server(&challenge).await;
++            wire.send(f.sign(response(&challenge, name))).await;
++            let auth = wire.read().await;
++            assert_eq!(auth.kind(), "auth.session");
++            f.verify_server(&auth).await;
++            wire.send(f.sign(native_offer(0, kind_name))).await;
++            let ack = wire.read().await;
++            assert_eq!(ack.kind(), "ack");
++            f.verify_server(&ack).await;
++            let record = factory.records.lock().unwrap().last().unwrap().clone();
++            assert_eq!(record.connections.lock().unwrap().as_slice(), &[id.clone()]);
++            let peer = record.peer.lock().unwrap().as_ref().unwrap().clone();
++            assert_eq!(peer.snapshot().connections, 1);
++            let presence = SessionAppearance::admit(&member, core.session.clone(), None).unwrap();
++            let ep = endpoint(name, kind);
++            let mut binding =
++                ConnectionBinding::prepare(&member, &presence, &ep, id.clone()).unwrap();
++            binding.observe_ready(&member, &presence, &ep, 1).unwrap();
++            binding.activate(&member, &presence, &ep).unwrap();
++            core.policy
++                .0
++                .write()
++                .unwrap()
++                .endpoints
++                .insert(id.clone(), ep.clone());
++            grants.0.write().await.owners.insert(
++                id.clone(),
++                MediaOwner {
++                    actor: member.clone(),
++                    member,
++                    presence,
++                    endpoint: ep,
++                    connection: binding,
++                    may_control: true,
++                    send_media: [Medium::Audio, Medium::Video].into_iter().collect(),
++                    receive_media: [Medium::Audio, Medium::Video].into_iter().collect(),
++                    local: capabilities(),
++                    remote: capabilities(),
++                    may_route_source: true,
++                },
++            );
++            let readiness = Readiness::new();
++            let controller = adapter
++                .configure_rtp(
++                    &id,
++                    named_actor(name),
++                    core.conversation.clone(),
++                    StagedRtpScope {
++                        session: core.session.clone(),
++                        connection: id.clone(),
++                        owner: named_actor(name).ownership_key(),
++                        wire_conversation: Some("conversation".into()),
++                        wire_session: "session".into(),
++                        wire_connection: "native_0".into(),
++                    },
++                    grants.clone(),
++                    readiness.clone(),
++                    16,
++                )
++                .unwrap();
++            controller
++                .change(
++                    0,
++                    &[desired(Medium::Audio)],
++                    &BTreeSet::new(),
++                    deadline(),
++                    CancellationToken::new(),
++                )
++                .await
++                .unwrap();
++            let intent = core.intent(
++                &core.session,
++                name,
++                &format!("admit-{name}"),
++                ParticipantChange::Admit {
++                    connection: id.clone(),
++                    role_override: None,
++                },
++            );
++            core.orch
++                .admit_peer_session_connection(
++                    peer.clone(),
++                    &core.session,
++                    named_actor(name),
++                    intent,
++                    deadline(),
++                    CancellationToken::new(),
++                )
++                .await
++                .unwrap();
++            let media = adapter.physical_source(&id).unwrap().media().unwrap();
++            live.push(Live {
++                wire,
++                leg: Leg {
++                    id,
++                    controller,
++                    readiness,
++                    media,
++                },
++                peer,
++            });
++        }
++        assert_eq!(
++            core.orch.participant_capacity(&core.session).unwrap(),
++            (4, 0)
++        );
++        assert_eq!(
++            core.orch
++                .session(&core.session)
++                .unwrap()
++                .read()
++                .unwrap()
++                .connections
++                .len(),
++            4
++        );
++        Self {
++            core,
++            factory,
++            grants,
++            live,
++        }
++    }
++    async fn drain(wire: &Wire) {
++        loop {
++            let bytes = tokio::time::timeout(Duration::from_millis(30), async {
++                if let Some(wt) = &wire.wt {
++                    let _ = wt.read_datagram().await;
++                } else {
++                    let _ = wire.quic.as_ref().unwrap().2.read_datagram().await;
++                }
++            })
++            .await;
++            if bytes.is_err() {
++                break;
++            }
++        }
++    }
++    async fn no_tone(&self, source: usize, target: usize) {
++        Self::drain(&self.live[target].wire).await;
++        let offer = binding(&self.live[source].leg, Medium::Audio);
++        send(&self.live[source].wire, audio(offer.stream_local_id, 0));
++        let wire = &self.live[target].wire;
++        assert!(
++            tokio::time::timeout(Duration::from_millis(100), async {
++                if let Some(wt) = &wire.wt {
++                    wt.read_datagram().await.unwrap()
++                } else {
++                    wire.quic.as_ref().unwrap().2.read_datagram().await.unwrap()
++                }
++            })
++            .await
++            .is_err(),
++            "denied source reached native output"
++        );
++    }
++    async fn tone(&self, source: usize, target: usize) {
++        Self::drain(&self.live[target].wire).await;
++        let offer = binding(&self.live[source].leg, Medium::Audio);
++        send(&self.live[source].wire, audio(offer.stream_local_id, 0));
++        let packet = received(&self.live[target].wire).await;
++        assert_eq!(
++            packet.stream_local_id,
++            binding(&self.live[target].leg, Medium::Audio).stream_local_id
++        );
++        decoded(&packet);
++    }
++    async fn stop(&self) {
++        for live in &self.live {
++            live.wire.server.shutdown().await.unwrap();
++        }
++        self.core.orch.drain_connection_lifecycle_tasks().await;
++    }
++}
++#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
++async fn actual_tls_guarded_mixer_admits_four_distinct_people_reoffers_and_preserves_other_audio() {
++    for kind in ["quic", "wt"] {
++        let s = Scene::new(kind).await;
++        s.tone(0, 1).await;
++        let before = binding(&s.live[0].leg, Medium::Audio);
++        let controller = &s.live[0].leg.controller;
++        controller
++            .change(
++                controller.revision(),
++                &[desired(Medium::Audio), desired(Medium::Video)],
++                &BTreeSet::new(),
++                deadline(),
++                CancellationToken::new(),
++            )
++            .await
++            .unwrap();
++        assert_eq!(
++            binding(&s.live[0].leg, Medium::Audio).transport_id,
++            before.transport_id
++        );
++        s.tone(0, 2).await;
++        controller
++            .change(
++                controller.revision(),
++                &[desired(Medium::Audio), desired(Medium::Video)],
++                &[desired(Medium::Audio).logical_id].into_iter().collect(),
++                deadline(),
++                CancellationToken::new(),
++            )
++            .await
++            .unwrap();
++        assert_ne!(
++            binding(&s.live[0].leg, Medium::Audio).transport_id,
++            before.transport_id
++        );
++        tokio::time::sleep(Duration::from_millis(25)).await;
++        s.tone(0, 3).await;
++        assert!(s
++            .live
++            .iter()
++            .all(|live| live.peer.snapshot().connections == 1));
++        let leave = s.core.intent(
++            &s.core.session,
++            "alice",
++            "leave-alice",
++            ParticipantChange::Depart {
++                cause: DepartureCause::Left,
++            },
++        );
++        s.core.apply(&s.core.session, leave).await.unwrap();
++        assert_eq!(
++            s.core.orch.participant_capacity(&s.core.session).unwrap(),
++            (3, 0)
++        );
++        s.tone(1, 2).await;
++        s.stop().await;
++    }
++}
++#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
++async fn actual_tls_guarded_mixer_role_permission_revocation_and_eof_preserve_remaining_routes() {
++    for kind in ["quic", "wt"] {
++        let s = Scene::new(kind).await;
++        s.tone(0, 1).await;
++        s.core.policy.0.write().unwrap().send = false;
++        let mute = s.core.intent(
++            &s.core.session,
++            "alice",
++            "mute-alice",
++            ParticipantChange::SetSessionRole {
++                role: ParticipantRole::Supervisor,
++            },
++        );
++        s.core.apply(&s.core.session, mute).await.unwrap();
++        s.no_tone(0, 1).await;
++        // A label does not grant publication; explicit current speaking permission does.
++        assert_eq!(
++            s.core
++                .orch
++                .participant_session_role(&s.core.session, &core_fixture::participant("alice"))
++                .unwrap(),
++            Some(ParticipantRole::Supervisor)
++        );
++        s.core.policy.0.write().unwrap().send = true;
++        let unmute = s.core.intent(
++            &s.core.session,
++            "alice",
++            "unmute-alice",
++            ParticipantChange::SetSessionRole {
++                role: ParticipantRole::Supervisor,
++            },
++        );
++        s.core.apply(&s.core.session, unmute).await.unwrap();
++        tokio::time::sleep(Duration::from_millis(25)).await;
++        s.tone(0, 2).await;
++        s.grants
++            .0
++            .write()
++            .await
++            .denied
++            .insert(s.live[0].leg.id.clone());
++        s.no_tone(0, 1).await;
++        s.tone(1, 3).await;
++        s.live[0].wire.server.shutdown().await.unwrap();
++        core_fixture::until(|| s.core.orch.participant_capacity(&s.core.session).unwrap().0 == 3)
++            .await;
++        s.tone(1, 2).await;
++        s.core
++            .orch
++            .end_session(s.core.session.clone(), EndReason::Normal)
++            .await
++            .unwrap();
++        s.core.orch.drain_connection_lifecycle_tasks().await;
++        assert_eq!(
++            s.core.orch.participant_capacity(&s.core.session).unwrap(),
++            (0, 0)
++        );
++        assert!(s
++            .live
++            .iter()
++            .all(|live| live.peer.snapshot().connections == 0));
++        assert!(s
++            .factory
++            .adapters
++            .values()
++            .all(|adapter| adapter.route_count() == 0));
++        s.no_tone(1, 2).await;
++        for live in &s.live[1..] {
++            live.wire.server.shutdown().await.unwrap();
++        }
++        s.core.orch.drain_connection_lifecycle_tasks().await;
++    }
++}

@@ -54,7 +54,7 @@ fn initialize_profile(
     if directory.exists() {
         let config = ServerConfig::load(&directory.join("server.toml"))
             .context("Existing directory is not a complete installation; select a new directory")?;
-        Store::open(&config.database, config.limits)?.integrity_check()?;
+        Store::open_administration(&config.database, config.limits)?.integrity_check()?;
         if print_status {
             println!("Existing installation preserved: {}", directory.display());
         }

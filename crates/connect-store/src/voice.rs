@@ -34,6 +34,10 @@ pub struct VoiceJob {
     /// Exact claimed end generation; no bearer capability is exposed here.
     pub end_intent_id: Option<String>,
 }
+mod custody;
+#[cfg(test)]
+pub(crate) use custody::pause_after_admission;
+pub use custody::{CapturedVoiceResult, VoiceDispatch};
 mod dispatch;
 mod jobs;
 
@@ -186,10 +190,22 @@ pub(crate) fn end(
 impl Store {
     /// Immutable operator binding. Enable/disable is the only in-place change.
     pub fn configure_voice_route(&self, operator: &str, value: &VoiceRoute) -> Result<()> {
+        let authority = self.admin_runtime_authority(
+            operator,
+            "SELECT ?2 UNION SELECT conversation_id FROM voice_routes WHERE id=?1",
+            &[&value.id, &value.conversation_id],
+        )?;
         let mut c = self.connection()?;
         let tx = c
             .transaction_with_behavior(TransactionBehavior::Immediate)
             .map_err(|_| Error::storage())?;
+        let targets = self.admin_runtime_targets(
+            &tx,
+            operator,
+            "SELECT ?2 UNION SELECT conversation_id FROM voice_routes WHERE id=?1",
+            &[&value.id, &value.conversation_id],
+        )?;
+        self.require_runtime_conversations(&tx, &authority, &targets)?;
         let actor = actor_from_connection(&tx, operator)?;
         actor.require("admin")?;
         let allowed:bool=tx.query_row("SELECT EXISTS(SELECT 1 FROM conversations c JOIN participants p ON p.conversation_id=c.id WHERE c.id=?1 AND c.closed=0 AND p.identity_id=?2)",params![value.conversation_id,value.identity_id],|r|r.get(0)).map_err(|_|Error::storage())?;
@@ -267,10 +283,18 @@ impl Store {
     /// Crashed starts are never retried: provider creation may have succeeded.
     /// Interrupted end requests can be reconciled by read-only status polling.
     pub fn recover_voice_calls(&self) -> Result<()> {
+        let authority =
+            self.runtime_query_authority(crate::authority_admission::runtime::VOICE_RECOVERY, &[])?;
         let mut c = self.connection()?;
         let tx = c
             .transaction_with_behavior(TransactionBehavior::Immediate)
             .map_err(|_| Error::storage())?;
+        self.require_runtime_query(
+            &tx,
+            &authority,
+            crate::authority_admission::runtime::VOICE_RECOVERY,
+            &[],
+        )?;
         let rows = {
             let mut stmt=tx.prepare("SELECT id,conversation_id FROM voice_calls WHERE state IN ('starting','ending')").map_err(|_| Error::storage())?;
             let rows = stmt
@@ -298,7 +322,7 @@ impl Store {
         control_url: Option<&str>,
         reason: Option<&str>,
     ) -> Result<()> {
-        self.finish_voice_result(job, state, provider_id, control_url, reason, None)
+        self.finish_voice_result(job, state, provider_id, control_url, reason, None, false)
     }
     /// Trusted physical observation of an already admitted/bound leg. This
     /// cannot initiate an operation under a revoked principal; cleanup status
@@ -319,6 +343,7 @@ impl Store {
             control_url,
             reason,
             Some(observation),
+            false,
         )
     }
     fn finish_voice_result(
@@ -329,6 +354,7 @@ impl Store {
         control_url: Option<&str>,
         reason: Option<&str>,
         observation: Option<&connect_connector_api::lifecycle::Observation>,
+        immediate: bool,
     ) -> Result<()> {
         if ![
             "queued",
@@ -343,11 +369,66 @@ impl Store {
         {
             return Err(invalid());
         }
-        let mut c = self.connection()?;
+        let authority = if immediate {
+            let c = self.try_connection()?;
+            let ids = crate::authority_admission::runtime::conversations(
+                &c,
+                crate::authority_admission::runtime::VOICE_CALL,
+                &[&job.call.id],
+            )?;
+            let mut needed = vec![];
+            for cid in ids {
+                needed.extend(crate::authority_admission::conversation_scopes(
+                    &c,
+                    &cid,
+                    crate::AuthorityMode::Write,
+                )?);
+            }
+            let needed = crate::AuthorityScope::merged(&needed)?;
+            drop(c);
+            self.try_acquire_authority(&needed)?
+        } else {
+            self.runtime_query_authority(
+                crate::authority_admission::runtime::VOICE_CALL,
+                &[&job.call.id],
+            )?
+        };
+        let mut c = if immediate {
+            self.try_connection()?
+        } else {
+            self.connection()?
+        };
         let tx = c
             .transaction_with_behavior(TransactionBehavior::Immediate)
             .map_err(|_| Error::storage())?;
+        self.require_runtime_query(
+            &tx,
+            &authority,
+            crate::authority_admission::runtime::VOICE_CALL,
+            &[&job.call.id],
+        )?;
         let old = get(&tx, &job.call.conversation_id, &job.call.id)?;
+        if old.provider_id.is_some()
+            && provider_id.is_some()
+            && old.provider_id.as_deref() != provider_id
+        {
+            return Err(Error::new(
+                "conflict",
+                "Voice result cannot replace its remote effect binding",
+            ));
+        }
+        if observation.is_none()
+            && matches!(
+                old.state.as_str(),
+                "ended" | "failed" | "cancelled" | "forbidden"
+            )
+            && state != old.state
+        {
+            return Err(Error::new(
+                "conflict",
+                "Terminal voice state requires attributed reconciliation",
+            ));
+        }
         if let Some(observation) = observation {
             use connect_connector_api::lifecycle::{
                 Apply, Projection, State, Verification, VoiceState,
@@ -435,10 +516,22 @@ impl Store {
         if uuid::Uuid::parse_str(phone).is_err() {
             return Err(invalid());
         }
+        let authority = self.admin_runtime_authority(
+            operator,
+            "SELECT conversation_id FROM voice_routes WHERE id=?1",
+            &[&route_id],
+        )?;
         let mut c = self.connection()?;
         let tx = c
             .transaction_with_behavior(TransactionBehavior::Immediate)
             .map_err(|_| Error::storage())?;
+        let targets = self.admin_runtime_targets(
+            &tx,
+            operator,
+            "SELECT conversation_id FROM voice_routes WHERE id=?1",
+            &[&route_id],
+        )?;
+        self.require_runtime_conversations(&tx, &authority, &targets)?;
         let actor = actor_from_connection(&tx, operator)?;
         actor.require("admin")?;
         let r = route(&tx, route_id)?;
@@ -499,10 +592,20 @@ impl Store {
     }
     /// Advance only after every retrieved record was committed or denied by policy.
     pub fn complete_voice_scan(&self, binding: &VoiceIngress) -> Result<()> {
+        let authority = self.runtime_query_authority(
+            crate::authority_admission::runtime::VOICE_ROUTE,
+            &[&binding.route.id],
+        )?;
         let mut c = self.connection()?;
         let tx = c
             .transaction_with_behavior(TransactionBehavior::Immediate)
             .map_err(|_| Error::storage())?;
+        self.require_runtime_query(
+            &tx,
+            &authority,
+            crate::authority_admission::runtime::VOICE_ROUTE,
+            &[&binding.route.id],
+        )?;
         let r = route(&tx, &binding.route.id)?;
         let key: String = tx
             .query_row(
@@ -526,7 +629,30 @@ impl Store {
         .map_err(|_| Error::storage())?;
         tx.commit().map_err(|_| Error::storage())
     }
-    pub fn import_voice_call(&self, route_id: &str, incoming: &InboundCall) -> Result<bool> {
+    pub fn import_voice_call(
+        &self,
+        route_id: &str,
+        receipt: &connect_connector_api::InboundVoiceReceipt,
+    ) -> Result<bool> {
+        use connect_connector_api::lifecycle::{
+            Observation, Projection, State, Verification, VoiceState,
+        };
+        let incoming = &receipt.call;
+        let state = match incoming.state.as_str() {
+            "queued" | "ringing" => VoiceState::Starting,
+            "in-progress" => VoiceState::Active,
+            "ended" => VoiceState::Ended,
+            "uncertain" => VoiceState::Uncertain,
+            _ => return Err(invalid()),
+        };
+        if receipt.state != state
+            || receipt.verification == Verification::LocalAttempt
+            || receipt.event_id.is_empty()
+            || receipt.event_id.len() > 256
+            || receipt.event_id.chars().any(char::is_control)
+        {
+            return Err(invalid());
+        }
         if uuid::Uuid::parse_str(&incoming.provider_id).is_err()
             || !["queued", "ringing", "in-progress", "ended", "uncertain"]
                 .contains(&incoming.state.as_str())
@@ -537,10 +663,20 @@ impl Store {
         {
             return Err(invalid());
         }
+        let authority = self.runtime_query_authority(
+            crate::authority_admission::runtime::VOICE_ROUTE,
+            &[&route_id],
+        )?;
         let mut c = self.connection()?;
         let tx = c
             .transaction_with_behavior(TransactionBehavior::Immediate)
             .map_err(|_| Error::storage())?;
+        self.require_runtime_query(
+            &tx,
+            &authority,
+            crate::authority_admission::runtime::VOICE_ROUTE,
+            &[&route_id],
+        )?;
         let r = route(&tx, route_id)?;
         let (phone, key, since): (String, String, i64) = tx
             .query_row(
@@ -580,7 +716,29 @@ impl Store {
             ));
         }
         let id = uuid::Uuid::new_v4().to_string();
+        let mut projection = Projection::new(id.clone(), State::Voice(VoiceState::Starting))
+            .map_err(|_| invalid())?;
+        projection
+            .apply(
+                Observation {
+                    mutation_id: id.clone(),
+                    external_id: Some(incoming.provider_id.clone()),
+                    event_id: receipt.event_id.clone(),
+                    state: State::Voice(receipt.state),
+                    verification: receipt.verification,
+                },
+                true,
+            )
+            .map_err(|_| invalid())?;
         tx.execute("INSERT INTO voice_calls(id,conversation_id,route_id,credential_id,destination,state,provider_id,control_url,ended_reason,direction) VALUES(?1,?2,?3,?4,?5,?6,?7,?8,?9,'inbound')",params![id,r.conversation_id,route_id,key,incoming.caller,incoming.state,incoming.provider_id,incoming.control_url,incoming.ended_reason]).map_err(|_| Error::storage())?;
+        tx.execute(
+            "INSERT INTO connector_voice_observations VALUES(?1,?2)",
+            params![
+                id,
+                serde_json::to_string(&projection).map_err(|_| Error::storage())?
+            ],
+        )
+        .map_err(|_| Error::storage())?;
         event(&tx, &get(&tx, &r.conversation_id, &id)?, self)?;
         tx.commit().map_err(|_| Error::storage())?;
         Ok(true)

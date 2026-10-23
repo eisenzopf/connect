@@ -36,6 +36,7 @@ pub enum ConnectorOperation {
     VoiceStart,
     VoiceDiscover,
     VoiceStatus,
+    VoiceReconcile,
     VoiceEnd,
     MediaExchange,
 }
@@ -135,6 +136,7 @@ impl Manifest {
             || self.context != has(ContextExport)
             || (has(MessageStatus) && !self.messaging)
             || (has(VoiceStart) && (!has(VoiceStatus) || !has(VoiceEnd)))
+            || (has(VoiceReconcile) && (!has(VoiceStatus) || !has(VoiceEnd)))
             || (has(MediaExchange) && (self.audio.is_none() || !has(VoiceStart)))
             || (self.audio.is_some() && !has(MediaExchange))
             || (self.context && !self.messaging && !has(VoiceStart))
@@ -146,6 +148,7 @@ impl Manifest {
                     || has(VoiceStart)
                     || has(VoiceDiscover)
                     || has(VoiceStatus)
+                    || has(VoiceReconcile)
                     || has(VoiceEnd)
                     || has(MediaExchange)))
             || !(1..=1_048_576).contains(&l.message_bytes)

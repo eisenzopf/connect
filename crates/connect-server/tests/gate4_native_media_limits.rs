@@ -57,6 +57,7 @@ async fn read_only_and_ambiguous_provider_routes_fail_before_creating_media_or_c
                 target: "12345678-1234-1234-1234-123456789015".into(),
                 source: None,
                 enabled: true,
+                incoming_to: connect_protocol::messages::MessageAudience::all(),
             },
         )
         .unwrap();

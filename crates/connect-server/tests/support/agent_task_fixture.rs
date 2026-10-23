@@ -52,7 +52,7 @@ pub async fn question(client: &mcp::Client, record: &TaskRecord, id: &str) -> St
             client,
             "connect_task_send",
             json!({"request_id":id,"task_id":record.id,"step_id":id,
-                "conversation_id":record.conversation_id,"body":"Please review the retained facts.",
+                "conversation_id":record.conversation_id,"message": connect_protocol::messages::MessageDraft::text_all(("Please review the retained facts.").to_string()),
                 "wait_for_reply":true}),
         )
         .await,

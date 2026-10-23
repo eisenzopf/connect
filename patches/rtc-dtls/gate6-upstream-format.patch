@@ -1,0 +1,184 @@
+diff --git a/src/endpoint.rs b/src/endpoint.rs
+--- a/src/endpoint.rs
++++ b/src/endpoint.rs
+@@ -276,16 +276,24 @@
+     use std::time::Duration;
+ 
+     fn endpoint(client: bool, address: SocketAddr) -> Endpoint {
+-        let config = Arc::new(ConfigBuilder::default()
+-            .with_psk(Some(Arc::new(|_| Ok(vec![0xab, 0xc1, 0x23]))))
+-            .with_psk_identity_hint(Some(b"local-regression".to_vec()))
+-            .with_cipher_suites(vec![CipherSuiteId::Tls_Psk_With_Aes_128_Gcm_Sha256])
+-            .with_flight_interval(Duration::from_millis(100))
+-            .build(client, None).unwrap());
+-        let mut endpoint = Endpoint::new(address, TransportProtocol::UDP,
+-            if client { None } else { Some(config.clone()) });
++        let config = Arc::new(
++            ConfigBuilder::default()
++                .with_psk(Some(Arc::new(|_| Ok(vec![0xab, 0xc1, 0x23]))))
++                .with_psk_identity_hint(Some(b"local-regression".to_vec()))
++                .with_cipher_suites(vec![CipherSuiteId::Tls_Psk_With_Aes_128_Gcm_Sha256])
++                .with_flight_interval(Duration::from_millis(100))
++                .build(client, None)
++                .unwrap(),
++        );
++        let mut endpoint = Endpoint::new(
++            address,
++            TransportProtocol::UDP,
++            if client { None } else { Some(config.clone()) },
++        );
+         if client {
+-            endpoint.connect("127.0.0.1:42002".parse().unwrap(), config, None).unwrap();
++            endpoint
++                .connect("127.0.0.1:42002".parse().unwrap(), config, None)
++                .unwrap();
+         }
+         endpoint
+     }
+@@ -293,7 +301,8 @@
+     fn transfer(from: &mut Endpoint, to: &mut Endpoint, source: SocketAddr) -> usize {
+         let mut count = 0;
+         while let Some(packet) = from.poll_transmit() {
+-            to.read(Instant::now(), source, None, packet.message).unwrap();
++            to.read(Instant::now(), source, None, packet.message)
++                .unwrap();
+             count += 1;
+         }
+         count
+@@ -309,38 +318,65 @@
+         assert!(transfer(&mut client, &mut server, client_addr) > 0);
+         assert!(transfer(&mut server, &mut client, server_addr) > 0);
+         assert!(transfer(&mut client, &mut server, client_addr) > 0);
+-        let original_deadline = server.connections[&client_addr].current_retransmit_timer
++        let original_deadline = server.connections[&client_addr]
++            .current_retransmit_timer
+             .expect("server response flight must arm retransmission");
+         let mut dropped = 0;
+-        while server.poll_transmit().is_some() { dropped += 1; }
+-        assert!(dropped > 0, "drop the real serialized server response flight");
++        while server.poll_transmit().is_some() {
++            dropped += 1;
++        }
++        assert!(
++            dropped > 0,
++            "drop the real serialized server response flight"
++        );
+         // Fire the client's existing timer. New record sequence, same handshake flight.
+-        let client_deadline = client.connections[&server_addr].current_retransmit_timer.unwrap();
++        let client_deadline = client.connections[&server_addr]
++            .current_retransmit_timer
++            .unwrap();
+         client.handle_timeout(server_addr, client_deadline).unwrap();
+         assert!(transfer(&mut client, &mut server, client_addr) > 0);
+-        assert_eq!(server.connections[&client_addr].current_retransmit_timer,
+-            Some(original_deadline), "incomplete/old handshake input must not cancel the pending server flight");
++        assert_eq!(
++            server.connections[&client_addr].current_retransmit_timer,
++            Some(original_deadline),
++            "incomplete/old handshake input must not cancel the pending server flight"
++        );
+         // The unchanged timer retransmits without changing a timeout or retry limit.
+-        server.handle_timeout(client_addr, original_deadline).unwrap();
++        server
++            .handle_timeout(client_addr, original_deadline)
++            .unwrap();
+         assert!(transfer(&mut server, &mut client, server_addr) > 0);
+         for _ in 0..8 {
+             transfer(&mut client, &mut server, client_addr);
+             transfer(&mut server, &mut client, server_addr);
+             if client.connections[&server_addr].is_handshake_completed()
+-                && server.connections[&client_addr].is_handshake_completed() { break; }
++                && server.connections[&client_addr].is_handshake_completed()
++            {
++                break;
++            }
+         }
+         assert!(client.connections[&server_addr].is_handshake_completed());
+         assert!(server.connections[&client_addr].is_handshake_completed());
+         // Completion must establish useful keys, not merely a reported FSM state.
+-        client.write(server_addr, b"after lost server flight").unwrap();
+-        let packet = client.poll_transmit().expect("encrypted application record");
+-        let events = server.read(Instant::now(), client_addr, None, packet.message).unwrap();
+-        assert!(events.iter().any(|event| matches!(event, EndpointEvent::ApplicationData(bytes)
+-            if bytes.as_ref() == b"after lost server flight")));
++        client
++            .write(server_addr, b"after lost server flight")
++            .unwrap();
++        let packet = client
++            .poll_transmit()
++            .expect("encrypted application record");
++        let events = server
++            .read(Instant::now(), client_addr, None, packet.message)
++            .unwrap();
++        assert!(events.iter().any(
++            |event| matches!(event, EndpointEvent::ApplicationData(bytes)
++            if bytes.as_ref() == b"after lost server flight")
++        ));
+     }
+ 
+     #[derive(Debug)]
+-    struct ParseFailure { alert: bool, error: bool }
++    struct ParseFailure {
++        alert: bool,
++        error: bool,
++    }
+ 
+     impl std::fmt::Display for ParseFailure {
+         fn fmt(&self, output: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+@@ -349,18 +385,33 @@
+     }
+ 
+     impl crate::flight::Flight for ParseFailure {
+-        fn parse(&self, _: &mut State, _: &crate::handshake::handshake_cache::HandshakeCache,
+-            _: &HandshakeConfig) -> std::result::Result<Box<dyn crate::flight::Flight>,
+-                (Option<crate::alert::Alert>, Option<Error>)> {
+-            Err((self.alert.then_some(crate::alert::Alert {
+-                alert_level: crate::alert::AlertLevel::Fatal,
+-                alert_description: crate::alert::AlertDescription::HandshakeFailure,
+-            }), self.error.then_some(Error::ErrInvalidFsmTransition)))
+-        }
+-
+-        fn generate(&self, _: &mut State, _: &crate::handshake::handshake_cache::HandshakeCache,
+-            _: &HandshakeConfig) -> std::result::Result<Vec<crate::flight::Packet>,
+-                (Option<crate::alert::Alert>, Option<Error>)> {
++        fn parse(
++            &self,
++            _: &mut State,
++            _: &crate::handshake::handshake_cache::HandshakeCache,
++            _: &HandshakeConfig,
++        ) -> std::result::Result<
++            Box<dyn crate::flight::Flight>,
++            (Option<crate::alert::Alert>, Option<Error>),
++        > {
++            Err((
++                self.alert.then_some(crate::alert::Alert {
++                    alert_level: crate::alert::AlertLevel::Fatal,
++                    alert_description: crate::alert::AlertDescription::HandshakeFailure,
++                }),
++                self.error.then_some(Error::ErrInvalidFsmTransition),
++            ))
++        }
++
++        fn generate(
++            &self,
++            _: &mut State,
++            _: &crate::handshake::handshake_cache::HandshakeCache,
++            _: &HandshakeConfig,
++        ) -> std::result::Result<
++            Vec<crate::flight::Packet>,
++            (Option<crate::alert::Alert>, Option<Error>),
++        > {
+             panic!("terminal parse failure must not generate another flight")
+         }
+     }
+@@ -383,7 +434,9 @@
+             // Consume any alert once; firing the old deadline must not resend it
+             // or resurrect the preceding handshake flight.
+             while connection.outgoing_raw_packet().is_some() {}
+-            client.handle_timeout(server_addr, original_deadline).unwrap();
++            client
++                .handle_timeout(server_addr, original_deadline)
++                .unwrap();
+             assert!(client.poll_transmit().is_none());
+             let connection = &client.connections[&server_addr];
+             assert!(connection.current_retransmit_timer.is_none());

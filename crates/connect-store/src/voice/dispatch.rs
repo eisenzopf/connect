@@ -10,14 +10,40 @@ impl Store {
     /// Recheck a claimed mutation immediately before calling the provider. A
     /// repeated admission cannot resubmit a possibly sent request. Polling is
     /// observation and continues without borrowing a revoked task's authority.
-    pub fn voice_dispatch_allowed(&self, job: &VoiceJob) -> Result<bool> {
+    pub(super) fn admit_voice_dispatch(&self, job: &VoiceJob) -> Result<bool> {
         if job.action == VoiceAction::Poll {
+            let c = self.connection()?;
+            binding(&c, job)?;
+            if job.call.provider_id.is_none()
+                || matches!(
+                    job.call.state.as_str(),
+                    "pending"
+                        | "starting"
+                        | "ending"
+                        | "ended"
+                        | "failed"
+                        | "cancelled"
+                        | "forbidden"
+                )
+            {
+                return Err(Error::forbidden());
+            }
             return Ok(true);
         }
+        let authority = self.runtime_query_authority(
+            crate::authority_admission::runtime::VOICE_CALL,
+            &[&job.call.id],
+        )?;
         let mut c = self.connection()?;
         let tx = c
             .transaction_with_behavior(TransactionBehavior::Immediate)
             .map_err(|_| Error::storage())?;
+        self.require_runtime_query(
+            &tx,
+            &authority,
+            crate::authority_admission::runtime::VOICE_CALL,
+            &[&job.call.id],
+        )?;
         let mut call = get(&tx, &job.call.conversation_id, &job.call.id)?;
         let expected = if job.action == VoiceAction::Start {
             "starting"
@@ -27,6 +53,7 @@ impl Store {
         if call.state != expected {
             return Ok(false);
         }
+        binding(&tx, job)?;
         if job.action == VoiceAction::Start {
             let allowed = (|| {
                 let credential: String = tx
@@ -38,6 +65,23 @@ impl Store {
                     .map_err(|_| Error::storage())?;
                 let actor = actor_from_connection(&tx, &credential)?;
                 actor.require("call_start")?;
+                crate::audience::require_original(
+                    &tx,
+                    &actor,
+                    &call.conversation_id,
+                    connect_protocol::membership::ContentKind::Call,
+                    &call.id,
+                )?;
+                let target = route(&tx, &call.route_id)?.identity_id;
+                if !crate::audience::original_to_identity(
+                    &tx,
+                    &target,
+                    &call.conversation_id,
+                    connect_protocol::membership::ContentKind::Call,
+                    &call.id,
+                )? {
+                    return Err(Error::forbidden());
+                }
                 crate::tasks::authorize_effect_link(&tx, "call", &call.id, crate::now())?;
                 let conversation = authorized_conversation(&tx, &actor, &call.conversation_id)?;
                 Ok(!conversation.closed
@@ -72,7 +116,16 @@ impl Store {
             crate::now(),
             Some(intent),
         )
-        .and_then(|(actor, _)| authorized_conversation(&tx, &actor, &call.conversation_id));
+        .and_then(|(actor, _)| {
+            crate::audience::require_original(
+                &tx,
+                &actor,
+                &call.conversation_id,
+                connect_protocol::membership::ContentKind::Call,
+                &call.id,
+            )?;
+            authorized_conversation(&tx, &actor, &call.conversation_id)
+        });
         if media_end::permitted(allowed)?.is_none() {
             if let Some(current) = media_end::reject_claim(&tx, intent)? {
                 tx.execute("UPDATE voice_calls SET state='uncertain',end_requested=CASE WHEN ?2 THEN 0 ELSE end_requested END,next_poll=0 WHERE id=?1",params![call.id,current]).map_err(|_|Error::storage())?;
@@ -85,4 +138,22 @@ impl Store {
         tx.commit().map_err(|_| Error::storage())?;
         Ok(true)
     }
+}
+
+pub(super) fn binding(c: &rusqlite::Connection, job: &VoiceJob) -> Result<()> {
+    let call = get(c, &job.call.conversation_id, &job.call.id)?;
+    let control: Option<String> = c
+        .query_row(
+            "SELECT control_url FROM voice_calls WHERE id=?1",
+            [&call.id],
+            |r| r.get(0),
+        )
+        .map_err(|_| Error::storage())?;
+    let mut current_route = route(c, &call.route_id)?;
+    // Enable/disable is current policy, not a new provider address binding.
+    current_route.enabled = job.route.enabled;
+    if call != job.call || current_route != job.route || control != job.control_url {
+        return Err(Error::forbidden());
+    }
+    Ok(())
 }

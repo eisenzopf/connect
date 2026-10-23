@@ -1,0 +1,1477 @@
+diff --git a/crates/uctp/rvoip-uctp/src/v2/auth_dispatch.rs b/crates/uctp/rvoip-uctp/src/v2/auth_dispatch.rs
+--- a/crates/uctp/rvoip-uctp/src/v2/auth_dispatch.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/auth_dispatch.rs
+@@ -157,6 +157,17 @@
+     ) -> Result<AuthorityLease, DispatchError> {
+         Err(DispatchError::Unsupported)
+     }
++    /// Explicit approval of an exact correlated offer answer under the same
++    /// current invocation guard. Never reacquire storage or infer readiness.
++    fn negotiation_answer(
++        &self,
++        _principal: &AuthenticatedPrincipal,
++        _offer: &Envelope,
++        _answer: &Envelope,
++        _held: &AuthorityLease,
++    ) -> Result<AuthorityLease, DispatchError> {
++        Err(DispatchError::Unsupported)
++    }
+     fn exchange_reply(
+         &self,
+         _principal: &AuthenticatedPrincipal,
+@@ -186,8 +197,25 @@
+     peer: Option<Arc<rvoip_core::peer_admission::PeerAdmission>>,
+     exchange: Option<super::auth_peer::exchange::ExchangeContext>,
+     invocation: CancellationToken,
++    answer_state: Arc<offer_answer::OfferAnswerState>,
+ }
+ impl AuthorizedEnvelope {
++    pub(super) fn claim_answer(&self) -> bool {
++        self.answer_state
++            .submitted
++            .compare_exchange(
++                false,
++                true,
++                std::sync::atomic::Ordering::AcqRel,
++                std::sync::atomic::Ordering::Acquire,
++            )
++            .is_ok()
++    }
++    pub(super) fn release_answer_claim(&self) {
++        self.answer_state
++            .submitted
++            .store(false, std::sync::atomic::Ordering::Release);
++    }
+     pub(super) fn retain_authority(&self) -> AuthorityLease {
+         self._lease.retained()
+     }
+@@ -210,6 +238,37 @@
+             .request(self, request, deadline, self.invocation.clone())
+             .await
+     }
++    /// Write one correlated connection.answer during this ongoing offer. The
++    /// physical actor keeps reading and writing while preparation continues.
++    /// Requires explicit held-policy approval. Never establishes media readiness.
++    pub async fn answer_offer(
++        &self,
++        answer: Envelope,
++        deadline: Instant,
++    ) -> Result<OfferAnswerSubmission, DispatchError> {
++        let receipt = self
++            .exchange
++            .as_ref()
++            .ok_or(DispatchError::Unsupported)?
++            .answer(self, answer, deadline)
++            .await?;
++        self.answer_state
++            .written
++            .store(true, std::sync::atomic::Ordering::Release);
++        Ok(receipt)
++    }
++    /// Finish an offer after its answer was actually written, without an
++    /// invented final ACK. Dispatch validates this exact private proof again.
++    pub fn finish_answered_offer(&self) -> Result<HandlerReplies, DispatchError> {
++        if !self
++            .answer_state
++            .written
++            .load(std::sync::atomic::Ordering::Acquire)
++        {
++            return Err(DispatchError::ReplyMismatch);
++        }
++        Ok(HandlerReplies(Vec::new(), Some(self.answer_state.clone())))
++    }
+     pub fn envelope(&self) -> &Envelope {
+         &self.envelope
+     }
+@@ -242,6 +301,11 @@
+ }
+ 
+ mod data;
++mod offer_answer;
++pub use offer_answer::OfferAnswerSubmission;
++pub(in crate::v2) use offer_answer::{
++    validate_offer_answer, AnswerCancellation, AnswerPermit, PendingAnswer,
++};
+ mod subscriptions;
+ pub use data::{native_data_message, DataOrigin, DataReceipt, DataSubmission, NativeDataMessage};
+ pub(in crate::v2) use data::{DataPending, DeliveryOrigin};
+@@ -251,7 +315,7 @@
+ pub const MAX_HANDLER_REPLY_BYTES: usize = 2 * super::MAX_ENVELOPE_BYTES;
+ /// Bounded reliable application reply sequence, owned by one invocation. Never
+ /// truncates a history page or releases its current guard between frames.
+-pub struct HandlerReplies(Vec<Envelope>);
++pub struct HandlerReplies(Vec<Envelope>, Option<Arc<offer_answer::OfferAnswerState>>);
+ impl HandlerReplies {
+     pub fn new(envelopes: Vec<Envelope>) -> Result<Self, DispatchError> {
+         if envelopes.is_empty() || envelopes.len() > MAX_HANDLER_REPLIES {
+@@ -270,7 +334,37 @@
+                 return Err(DispatchError::Capacity);
+             }
+         }
+-        Ok(Self(envelopes))
++        Ok(Self(envelopes, None))
++    }
++    fn validate_answer_completion(
++        &self,
++        state: &Arc<offer_answer::OfferAnswerState>,
++    ) -> Result<(), DispatchError> {
++        if self.0.is_empty() {
++            if !self
++                .1
++                .as_ref()
++                .is_some_and(|proof| Arc::ptr_eq(proof, state))
++                || !state.written.load(std::sync::atomic::Ordering::Acquire)
++            {
++                return Err(DispatchError::ReplyMismatch);
++            }
++        } else if self.1.is_some()
++            || self
++                .0
++                .iter()
++                .filter(|frame| frame.kind() == "connection.answer")
++                .count()
++                > 1
++            || (state.submitted.load(std::sync::atomic::Ordering::Acquire)
++                && self
++                    .0
++                    .iter()
++                    .any(|frame| frame.kind() == "connection.answer"))
++        {
++            return Err(DispatchError::ReplyMismatch);
++        }
++        Ok(())
+     }
+     pub fn envelopes(&self) -> &[Envelope] {
+         &self.0
+@@ -620,6 +714,7 @@
+                 )
+             }),
+             invocation: self.lifetime.child_token(),
++            answer_state: Arc::new(offer_answer::OfferAnswerState::default()),
+             peer: self.peer.clone(),
+             envelope,
+             principal: self.principal.clone(),
+@@ -670,13 +765,15 @@
+         if is_reply_kind(authorized.envelope.kind()) {
+             return Err(DispatchError::ReplyMismatch);
+         }
++        let answer_state = authorized.answer_state.clone();
+         let _invocation = authorized.invocation.clone().drop_guard();
+         tokio::select! {
+             biased;
+             _ = self.lifetime.cancelled() => Err(DispatchError::Closed),
+             _ = tokio::time::sleep_until(deadline) => Err(DispatchError::Closed),
+-            result = handler.handle_replies(authorized) => result.map(|batch| {
+-                if batch.envelopes().len()==1 { DispatchOutcome::Handled(batch.into_one().expect("one reply")) } else { DispatchOutcome::HandledBatch(batch) }
++            result = handler.handle_replies(authorized) => result.and_then(|batch| {
++                batch.validate_answer_completion(&answer_state)?;
++                Ok(if batch.envelopes().len()==1 { DispatchOutcome::Handled(batch.into_one().expect("one reply")) } else { DispatchOutcome::HandledBatch(batch) })
+             }),
+         }
+     }
+@@ -713,6 +810,7 @@
+                 )
+             }),
+             invocation: self.lifetime.child_token(),
++            answer_state: Arc::new(offer_answer::OfferAnswerState::default()),
+             peer: self.peer.clone(),
+             envelope: held.envelope,
+             principal: self.principal.clone(),
+@@ -723,13 +821,14 @@
+                 deadline,
+             },
+         };
++        let answer_state = authorized.answer_state.clone();
+         let _invocation = authorized.invocation.clone().drop_guard();
+         tokio::select! {
+             biased;
+             _ = previous.lifetime.cancelled() => Err(DispatchError::Closed),
+             _ = self.lifetime.cancelled() => Err(DispatchError::Closed),
+             _ = tokio::time::sleep_until(deadline) => Err(DispatchError::Closed),
+-            result = handler.handle_replies(authorized) => result,
++            result = handler.handle_replies(authorized) => result.and_then(|batch| {batch.validate_answer_completion(&answer_state)?;Ok(batch)}),
+         }
+     }
+ }
+diff --git a/crates/uctp/rvoip-uctp/src/v2/auth_dispatch/data.rs b/crates/uctp/rvoip-uctp/src/v2/auth_dispatch/data.rs
+--- a/crates/uctp/rvoip-uctp/src/v2/auth_dispatch/data.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/auth_dispatch/data.rs
+@@ -168,10 +168,8 @@
+         member: &Membership,
+         endpoint: &EndpointBinding,
+     ) -> Result<Self, DispatchError> {
+-        if !matches!(
+-            a.envelope.kind(),
+-            "connection.offer" | "connection.update" | "stream.open"
+-        ) || a.peer.is_none()
++        if !matches!(a.envelope.kind(), "connection.offer" | "connection.update")
++            || a.peer.is_none()
+             || !a
+                 .exchange
+                 .as_ref()
+diff --git a/crates/uctp/rvoip-uctp/src/v2/auth_dispatch/offer_answer.rs b/crates/uctp/rvoip-uctp/src/v2/auth_dispatch/offer_answer.rs
+new file mode 100644
+--- /dev/null
++++ b/crates/uctp/rvoip-uctp/src/v2/auth_dispatch/offer_answer.rs
+@@ -0,0 +1,193 @@
++//! One exact answer to an ongoing offer, through its physical actor's writer.
++//! An answer establishes negotiated parameters, never readiness or presence.
++use super::*;
++use std::sync::atomic::{AtomicBool, Ordering};
++
++/// Actual local signed-writer completion only, not a durable/media receipt.
++#[derive(Debug)]
++pub struct OfferAnswerSubmission {
++    pub envelope_id: super::super::Identifier,
++}
++pub(in crate::v2) fn validate_offer_answer(
++    invocation: &Envelope,
++    answer: &Envelope,
++) -> Result<(), DispatchError> {
++    if invocation.kind() != "connection.offer"
++        || invocation.scope(Scope::Reply).is_some()
++        || answer.kind() != "connection.answer"
++        || answer.scope(Scope::Reply) != Some(invocation.id())
++    {
++        return Err(DispatchError::ReplyMismatch);
++    }
++    for scope in [
++        Scope::Conversation,
++        Scope::Session,
++        Scope::Connection,
++        Scope::Operation,
++    ] {
++        if invocation.scope(scope).is_none() || invocation.scope(scope) != answer.scope(scope) {
++            return Err(DispatchError::ReplyMismatch);
++        }
++    }
++    if invocation.scope(Scope::Operation) != answer.scope(Scope::Operation) {
++        return Err(DispatchError::ReplyMismatch);
++    }
++    if serde_json::to_vec(answer)
++        .map_err(|_| DispatchError::Capacity)?
++        .len()
++        .checked_add(4096)
++        .ok_or(DispatchError::Capacity)?
++        > super::super::MAX_ENVELOPE_BYTES
++    {
++        return Err(DispatchError::Capacity);
++    }
++    // Application policy additionally checks actual membership/participant,
++    // capabilities, exact native route and negotiated bindings under its guard.
++    Ok(())
++}
++
++#[derive(Default)]
++pub(super) struct OfferAnswerState {
++    pub(super) submitted: AtomicBool,
++    pub(super) written: AtomicBool,
++}
++pub(in crate::v2) struct AnswerPermit {
++    lease: Mutex<Option<AuthorityLease>>,
++    claimed: AtomicBool,
++    pub cancel: CancellationToken,
++    pub deadline: Instant,
++}
++impl AnswerPermit {
++    pub fn new(lease: AuthorityLease, cancel: CancellationToken, deadline: Instant) -> Arc<Self> {
++        Arc::new(Self {
++            deadline: lease.deadline().map_or(deadline, |end| end.min(deadline)),
++            lease: Mutex::new(Some(lease)),
++            claimed: AtomicBool::new(false),
++            cancel,
++        })
++    }
++    pub fn current(&self) -> bool {
++        !self.cancel.is_cancelled() && Instant::now() < self.deadline
++    }
++    /// Actual writer alone transfers the real guard after its dequeue. Queue
++    /// copies own only this cancellable slot, not independent retained readers.
++    pub fn begin_write(&self) -> Result<AuthorityLease, DispatchError> {
++        let mut lease = self.lease.lock();
++        if !self.current() || self.claimed.load(Ordering::Acquire) {
++            return Err(DispatchError::Closed);
++        }
++        if lease.as_ref().is_none_or(|guard| !guard.current()) {
++            lease.take();
++            return Err(DispatchError::Closed);
++        }
++        // Claim and pending cancellation serialize under the same mutex.
++        self.claimed.store(true, Ordering::Release);
++        lease.take().ok_or(DispatchError::Closed)
++    }
++    pub fn cancel(&self) {
++        self.cancel.cancel();
++        // An active guard has already moved into actual sink/IO custody.
++        self.lease.lock().take();
++    }
++    pub fn uncertainty(&self) -> DispatchError {
++        if self.claimed.load(Ordering::Acquire) {
++            DispatchError::SubmissionUnknown
++        } else {
++            DispatchError::Closed
++        }
++    }
++}
++pub(in crate::v2) struct AnswerCancellation(pub Arc<AnswerPermit>);
++impl Drop for AnswerCancellation {
++    fn drop(&mut self) {
++        self.0.cancel();
++    }
++}
++pub(in crate::v2) struct PendingAnswer {
++    pub permit: Arc<AnswerPermit>,
++    pub completion: Option<oneshot::Sender<Result<super::super::Identifier, DispatchError>>>,
++}
++impl Drop for PendingAnswer {
++    fn drop(&mut self) {
++        self.permit.cancel();
++        if let Some(done) = self.completion.take() {
++            let _ = done.send(Err(self.permit.uncertainty()));
++        }
++    }
++}
++
++#[cfg(test)]
++mod tests {
++    use super::*;
++    #[tokio::test]
++    async fn pending_answer_cancel_drops_reader_while_active_writer_custody_retains_it() {
++        let domain = Arc::new(tokio::sync::RwLock::new(()));
++        let pending = AnswerPermit::new(
++            AuthorityLease::holding(domain.clone().read_owned().await),
++            CancellationToken::new(),
++            Instant::now() + Duration::from_secs(1),
++        );
++        let queue_copy = pending.clone();
++        assert!(domain.try_write().is_err());
++        pending.cancel();
++        assert!(domain.try_write().is_ok());
++        assert!(queue_copy.begin_write().is_err());
++        let active = AnswerPermit::new(
++            AuthorityLease::holding(domain.clone().read_owned().await),
++            CancellationToken::new(),
++            Instant::now() + Duration::from_secs(1),
++        );
++        let actual_writer_guard = active.begin_write().unwrap();
++        active.cancel();
++        assert!(domain.try_write().is_err());
++        assert!(active.begin_write().is_err());
++        drop(actual_writer_guard);
++        assert!(domain.try_write().is_ok());
++    }
++    #[test]
++    fn completed_answer_proof_cannot_be_borrowed_or_replaced_by_a_duplicate_answer() {
++        let source = Arc::new(OfferAnswerState::default());
++        source.submitted.store(true, Ordering::Release);
++        let proof = HandlerReplies(Vec::new(), Some(source.clone()));
++        assert_eq!(
++            proof.validate_answer_completion(&source),
++            Err(DispatchError::ReplyMismatch)
++        );
++        source.written.store(true, Ordering::Release);
++        assert!(proof.validate_answer_completion(&source).is_ok());
++        let other = Arc::new(OfferAnswerState::default());
++        other.written.store(true, Ordering::Release);
++        assert_eq!(
++            proof.validate_answer_completion(&other),
++            Err(DispatchError::ReplyMismatch)
++        );
++        assert_eq!(
++            HandlerReplies(Vec::new(), None).validate_answer_completion(&source),
++            Err(DispatchError::ReplyMismatch)
++        );
++    }
++    #[test]
++    fn logical_operation_is_required_on_offer_and_preserved_on_answer() {
++        use serde_json::json;
++        let mut offer = json!({"v":2,"type":"connection.offer","id":"offer","ts":chrono::Utc::now(),"cid":"c","sid":"s","connid":"n","payload":{"substrate":"quic","capabilities":{},"streams_offered":[]}});
++        let mut answer = json!({"v":2,"type":"connection.answer","id":"answer","ts":chrono::Utc::now(),"cid":"c","sid":"s","connid":"n","in_reply_to":"offer","payload":{"substrate":"quic","capabilities":{},"streams_answered":[]}});
++        assert_eq!(
++            Envelope::from_value(offer.clone()).unwrap_err(),
++            WireError::MissingScope
++        );
++        offer["operation_id"] = json!("stable_operation");
++        assert_eq!(
++            validate_offer_answer(
++                &Envelope::from_value(offer.clone()).unwrap(),
++                &Envelope::from_value(answer.clone()).unwrap()
++            ),
++            Err(DispatchError::ReplyMismatch)
++        );
++        answer["operation_id"] = json!("stable_operation");
++        assert!(validate_offer_answer(
++            &Envelope::from_value(offer).unwrap(),
++            &Envelope::from_value(answer).unwrap()
++        )
++        .is_ok());
++    }
++}
+diff --git a/crates/uctp/rvoip-uctp/src/v2/auth_peer.rs b/crates/uctp/rvoip-uctp/src/v2/auth_peer.rs
+--- a/crates/uctp/rvoip-uctp/src/v2/auth_peer.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/auth_peer.rs
+@@ -93,6 +93,17 @@
+     ) -> Result<AuthorityLease, DispatchError> {
+         Err(DispatchError::Unsupported)
+     }
++    fn negotiation_answer(
++        &self,
++        _credential: &ValidatedBearer,
++        _device: &Device,
++        _identity: &Identifier,
++        _offer: &Envelope,
++        _answer: &Envelope,
++        _held: &AuthorityLease,
++    ) -> Result<AuthorityLease, DispatchError> {
++        Err(DispatchError::Unsupported)
++    }
+     fn exchange_reply(
+         &self,
+         _credential: &ValidatedBearer,
+@@ -176,6 +187,25 @@
+             &self.identity,
+             invocation,
+             request,
++            held,
++        )
++    }
++    fn negotiation_answer(
++        &self,
++        principal: &AuthenticatedPrincipal,
++        offer: &Envelope,
++        answer: &Envelope,
++        held: &AuthorityLease,
++    ) -> Result<AuthorityLease, DispatchError> {
++        if !principal.has_same_owner(&self.credential.principal) {
++            return Err(DispatchError::Authority);
++        }
++        self.policy.negotiation_answer(
++            &self.credential,
++            &self.device,
++            &self.identity,
++            offer,
++            answer,
+             held,
+         )
+     }
+diff --git a/crates/uctp/rvoip-uctp/src/v2/auth_peer/exchange.rs b/crates/uctp/rvoip-uctp/src/v2/auth_peer/exchange.rs
+--- a/crates/uctp/rvoip-uctp/src/v2/auth_peer/exchange.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/auth_peer/exchange.rs
+@@ -1,7 +1,10 @@
+ //! Scoped, bounded request/reply exchanges while the ordered control actor waits.
+ //! All futures remain owned/polled by the physical actor. No detached workers.
+ use super::*;
+-use crate::v2::auth_dispatch::{DataPending, ReplyExpectation};
++use crate::v2::auth_dispatch::{
++    validate_offer_answer, AnswerCancellation, AnswerPermit, DataPending, OfferAnswerSubmission,
++    PendingAnswer, ReplyExpectation,
++};
+ use futures::{future::BoxFuture, stream::FuturesUnordered, FutureExt};
+ use std::{
+     collections::{HashMap, VecDeque},
+@@ -90,7 +93,7 @@
+         };
+         self.sender
+             .sender
+-            .try_send(Call {
++            .try_send(Call::Request(RequestCall {
+                 request,
+                 context: self.reply.clone(),
+                 held,
+@@ -98,7 +101,7 @@
+                 cancel: cancel.clone(),
+                 started: started.clone(),
+                 reply,
+-            })
++            }))
+             .map_err(|e| match e {
+                 mpsc::error::TrySendError::Full(_) => DispatchError::Capacity,
+                 mpsc::error::TrySendError::Closed(_) => DispatchError::Closed,
+@@ -113,6 +116,71 @@
+         tokio::select! {biased;_=self.reply.lifetime.cancelled()=>Err(unknown()),_=cancel.cancelled()=>Err(unknown()),_=tokio::time::sleep_until(deadline)=>Err(unknown()),result=receiver=>result.unwrap_or_else(|_|Err(unknown()))}
+     }
+ }
++impl ExchangeContext {
++    pub(in crate::v2) async fn answer(
++        &self,
++        invocation: &AuthorizedEnvelope,
++        answer: Envelope,
++        requested: Instant,
++    ) -> Result<OfferAnswerSubmission, DispatchError> {
++        validate_offer_answer(invocation.envelope(), &answer)?;
++        let deadline = requested
++            .min(self.reply.deadline)
++            .min(Instant::now() + MAX_DISPATCH_WAIT);
++        self.reply.active(deadline)?;
++        let cancel = invocation.invocation_cancellation();
++        if cancel.is_cancelled() {
++            return Err(DispatchError::Closed);
++        }
++        super::super::scope_policy::require(&self.reply.principal, answer.payload())?;
++        let original = invocation.retain_authority();
++        if !original.current() {
++            return Err(DispatchError::Authority);
++        }
++        let held = self.reply.authority.negotiation_answer(
++            &self.reply.principal,
++            invocation.envelope(),
++            &answer,
++            &original,
++        )?;
++        if !held.current() {
++            return Err(DispatchError::Authority);
++        }
++        if !invocation.claim_answer() {
++            return Err(DispatchError::ReplyMismatch);
++        }
++        let permit = AnswerPermit::new(held, cancel, deadline);
++        let _custody = AnswerCancellation(permit.clone());
++        let (done, receiver) = oneshot::channel();
++        if let Err(error) = self.sender.sender.try_send(Call::Answer(AnswerCall {
++            answer,
++            context: self.reply.clone(),
++            pending: PendingAnswer {
++                permit: permit.clone(),
++                completion: Some(done),
++            },
++        })) {
++            invocation.release_answer_claim();
++            return Err(match error {
++                mpsc::error::TrySendError::Full(_) => DispatchError::Capacity,
++                mpsc::error::TrySendError::Closed(_) => DispatchError::Closed,
++            });
++        }
++        // Prefer an already observed local completion over simultaneous expiry.
++        let result = tokio::select! {biased;
++            result=receiver=>result.unwrap_or_else(|_|Err(permit.uncertainty())),
++            _=self.reply.lifetime.cancelled()=>Err(permit.uncertainty()),
++            _=permit.cancel.cancelled()=>Err(permit.uncertainty()),
++            _=tokio::time::sleep_until(permit.deadline)=>Err(permit.uncertainty()),
++        };
++        if result == Err(DispatchError::Capacity) {
++            // Only a refused pre-IO queue admission produces Capacity here.
++            // It is safe to retry the same answer on this invocation.
++            invocation.release_answer_claim();
++        }
++        result.map(|envelope_id| OfferAnswerSubmission { envelope_id })
++    }
++}
+ impl ReplyContext {
+     fn active(&self, deadline: Instant) -> Result<(), DispatchError> {
+         if self.lifetime.is_cancelled() || deadline <= Instant::now() {
+@@ -131,7 +199,16 @@
+         self.changed.notify_one();
+     }
+ }
+-struct Call {
++enum Call {
++    Request(RequestCall),
++    Answer(AnswerCall),
++}
++struct AnswerCall {
++    answer: Envelope,
++    context: Arc<ReplyContext>,
++    pending: PendingAnswer,
++}
++struct RequestCall {
+     request: Envelope,
+     context: Arc<ReplyContext>,
+     held: AuthorityLease,
+@@ -214,6 +291,7 @@
+     delivery: Option<oneshot::Sender<Result<(), DispatchError>>>,
+     bye: bool,
+     data: Option<DataPending>,
++    answer: Option<PendingAnswer>,
+ }
+ // A sink may own its in-progress IO future after SinkExt::send is dropped.
+ // On cancellation/future drop, destroy that sink before releasing authority.
+@@ -233,6 +311,10 @@
+ ) -> Result<(), DispatchError> {
+     let mut writer = Some(writer);
+     while let Some(mut job) = incoming.recv().await {
++        if let Some(answer) = job.answer.take() {
++            write_answer(&mut writer, &mut job, answer, &stop).await?;
++            continue;
++        }
+         if let Some(data) = job.data.take() {
+             write_data(&mut writer, &mut job, data, &stop).await?;
+             continue;
+@@ -300,6 +382,92 @@
+         result?;
+     }
+     Ok(())
++}
++// One ongoing offer owns one answer. Pending cancellation releases its real
++// guard promptly; after claim the sink/IO alone owns it through abortion.
++async fn write_answer<W: Sink<Bytes, Error = DispatchError> + Send + Unpin>(
++    writer: &mut Option<W>,
++    job: &mut WriteJob,
++    mut answer: PendingAnswer,
++    stop: &CancellationToken,
++) -> Result<(), DispatchError> {
++    let ready = || {
++        !stop.is_cancelled()
++            && !job.lifetime.is_cancelled()
++            && job.deadline > Instant::now()
++            && answer.permit.current()
++            && !job
++                .authority
++                .as_ref()
++                .is_some_and(CancellationToken::is_cancelled)
++    };
++    let prepared = if ready() && job.output.envelopes().len() == 1 {
++        serde_json::to_vec(&job.output.envelopes()[0])
++            .ok()
++            .map(Bytes::from)
++    } else {
++        None
++    };
++    let lease = prepared
++        .as_ref()
++        .and_then(|_| answer.permit.begin_write().ok());
++    let touched = AtomicBool::new(false);
++    let result = if let (Some(bytes), Some(lease)) = (prepared, lease) {
++        let mut io = IoCustody {
++            writer: writer.take(),
++            _guard: lease,
++        };
++        let result = {
++            let sending = io
++                .writer
++                .as_mut()
++                .expect("unique physical writer")
++                .send(bytes);
++            tokio::pin!(sending);
++            let sending = std::future::poll_fn(|cx| {
++                if !ready() || !io._guard.current() {
++                    return std::task::Poll::Ready(Err(DispatchError::Closed));
++                }
++                touched.store(true, Ordering::Release);
++                std::future::Future::poll(sending.as_mut(), cx)
++            });
++            tokio::select! {biased;
++                _=answer.permit.cancel.cancelled()=>Err(DispatchError::Closed),
++                _=stop.cancelled()=>Err(DispatchError::Closed),
++                _=job.lifetime.cancelled()=>Err(DispatchError::Closed),
++                _=async{match &job.authority{Some(t)=>t.cancelled().await,None=>std::future::pending().await}}=>Err(DispatchError::Authority),
++                _=tokio::time::sleep_until(job.deadline)=>Err(DispatchError::Closed),
++                result=sending=>result,
++            }
++        };
++        if result.is_ok() || !touched.load(Ordering::Acquire) {
++            *writer = io.writer.take();
++        } else {
++            job.lifetime.cancel();
++        }
++        drop(io);
++        result
++    } else {
++        Err(DispatchError::Closed)
++    };
++    let unknown = touched.load(Ordering::Acquire);
++    if let Some(done) = answer.completion.take() {
++        let result = match &result {
++            Ok(()) => Identifier::try_from(job.output.envelopes()[0].id().to_owned())
++                .map_err(DispatchError::from),
++            Err(_) => Err(if unknown {
++                DispatchError::SubmissionUnknown
++            } else {
++                DispatchError::Closed
++            }),
++        };
++        let _ = done.send(result);
++    }
++    if result.is_err() && unknown {
++        Err(DispatchError::SubmissionUnknown)
++    } else {
++        Ok(())
++    }
+ }
+ // Data has distinct pre-IO cancellation and partial-write uncertainty. The
+ // only physical writer claims Core custody here, after its own dequeue.
+@@ -455,6 +623,7 @@
+         bye: false,
+         delivery: None,
+         data: None,
++        answer: None,
+     }
+ }
+ struct RetainedOutbound {
+@@ -684,6 +853,7 @@
+           }
+ 
+                let output=match result{Ok(output)=>output,Err(error)=>{if closed{break Err(error);}if let Some(output)=state.as_ref().expect("owner").drain_step_up_failures()?{output}else{problem(&config,error,correlation.as_ref())?}}};
++               if output.envelopes().is_empty() {if closed {break Ok(());}else{continue;}}
+                // Preserve exact validated correlation even for an interrupted invocation.
+                {let mut send=job(output,deadline,&physical,view.authority.clone(),Some(slot));send.bye=closed;write_tx.try_send(send)}.map_err(|_|DispatchError::Capacity)?;
+                if closed{break Ok(());}
+@@ -693,6 +863,25 @@
+                if let Err(error)=result{write_tx.try_send(job(problem(&config,error,Some(&reply))?,call.deadline,&physical,view.authority.clone(),None)).map_err(|_|DispatchError::Capacity)?;}else if pending.get(&id).is_some_and(|current|Arc::ptr_eq(current,&call)){pending.remove(&id);}
+               }
+               Some(call)=calls.recv()=>{
++               let call=match call {
++                 Call::Request(call)=>call,
++                 Call::Answer(call)=>{
++                   if !call.pending.permit.current()
++                       || call.context.active(call.pending.permit.deadline).is_err() {continue;}
++                   let mut value=call.answer.original().clone();value["id"]=json!(fresh_id());value["ts"]=json!(chrono::Utc::now());
++                   let frame=signed(&config,value)?;
++                   let mut send=job(output(vec![frame],None),call.pending.permit.deadline,&physical,view.authority.clone(),None);
++                   send.answer=Some(call.pending);
++                   if let Err(error)=write_tx.try_send(send) {
++                     let reason=match &error {mpsc::error::TrySendError::Full(_)=>DispatchError::Capacity,mpsc::error::TrySendError::Closed(_)=>DispatchError::Closed};
++                     let mut refused=error.into_inner();
++                     if let Some(pending)=&mut refused.answer {
++                       if let Some(done)=pending.completion.take(){let _=done.send(Err(reason));}
++                     }
++                   }
++                   continue;
++                 }
++               };
+                if call.cancel.is_cancelled()||call.reply.is_closed()||call.context.active(call.deadline).is_err(){let _=call.reply.send(Err(DispatchError::Closed));continue;}
+                if pending.len()>=capacity{let _=call.reply.send(Err(DispatchError::Capacity));continue;}
+                let mut v=call.request.original().clone();v["id"]=json!(fresh_id());v["ts"]=json!(chrono::Utc::now());let request=signed(&config,v)?;let id=request.id().to_owned();let expectation=ReplyExpectation::new(&request)?;
+@@ -825,4 +1014,55 @@
+             assert!(domain.try_write().is_ok());
+         }
+     }
+-}
++    #[tokio::test]
++    async fn offer_answer_abort_or_deadline_destroys_sink_before_owned_reader() {
++        for abort in [true, false] {
++            let domain = Arc::new(tokio::sync::RwLock::new(()));
++            let live = Arc::new(AtomicBool::new(true));
++            let entered = Arc::new(Notify::new());
++            let sink = PendingSink {
++                domain: domain.clone(),
++                live: live.clone(),
++                entered: entered.clone(),
++            };
++            let deadline = Instant::now() + Duration::from_millis(80);
++            let permit = AnswerPermit::new(
++                AuthorityLease::holding(domain.clone().read_owned().await),
++                CancellationToken::new(),
++                deadline,
++            );
++            let frame=Envelope::from_value(json!({"v":2,"type":"connection.answer","id":"answer_probe","ts":chrono::Utc::now(),"in_reply_to":"offer","cid":"c","sid":"s","connid":"n","payload":{"substrate":"quic","capabilities":{},"streams_answered":[]}})).unwrap();
++            let mut queued = job(
++                output(vec![frame], None),
++                deadline,
++                &CancellationToken::new(),
++                None,
++                None,
++            );
++            let (done, observed) = oneshot::channel();
++            queued.answer = Some(PendingAnswer {
++                permit: permit.clone(),
++                completion: Some(done),
++            });
++            let (send, receive) = mpsc::channel(1);
++            send.send(queued).await.unwrap();
++            let task = tokio::spawn(writes(sink, receive, CancellationToken::new()));
++            tokio::time::timeout(Duration::from_secs(1), entered.notified())
++                .await
++                .unwrap();
++            assert!(domain.try_write().is_err());
++            if abort {
++                task.abort();
++                assert!(task.await.unwrap_err().is_cancelled());
++            } else {
++                assert_eq!(task.await.unwrap(), Err(DispatchError::SubmissionUnknown));
++            }
++            assert_eq!(
++                observed.await.unwrap(),
++                Err(DispatchError::SubmissionUnknown)
++            );
++            assert!(!live.load(Ordering::Acquire));
++            assert!(domain.try_write().is_ok());
++        }
++    }
++}
+diff --git a/crates/uctp/rvoip-uctp/src/v2/auth_peer/step_up.rs b/crates/uctp/rvoip-uctp/src/v2/auth_peer/step_up.rs
+--- a/crates/uctp/rvoip-uctp/src/v2/auth_peer/step_up.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/auth_peer/step_up.rs
+@@ -164,6 +164,9 @@
+         {
+             DispatchOutcome::ReplyDelivered => Ok(output(Vec::new(), None)),
+             DispatchOutcome::HandledBatch(batch) => {
++                if batch.envelopes().is_empty() {
++                    return Ok(output(Vec::new(), None));
++                }
+                 let replies = batch
+                     .into_envelopes()
+                     .into_iter()
+@@ -328,7 +331,11 @@
+             .into_iter()
+             .map(|reply| self.handler_reply(reply, &blocked))
+             .collect::<Result<Vec<_>, _>>()?;
+-        let replies = HandlerReplies::new(replies)?.into_envelopes();
++        let replies = if replies.is_empty() {
++            replies
++        } else {
++            HandlerReplies::new(replies)?.into_envelopes()
++        };
+         self.commit_binding(next)?;
+         failure.record = None;
+         let mut result = vec![session, changed];
+diff --git a/crates/uctp/rvoip-uctp/tests/support/offer_answers.rs b/crates/uctp/rvoip-uctp/tests/support/offer_answers.rs
+new file mode 100644
+--- /dev/null
++++ b/crates/uctp/rvoip-uctp/tests/support/offer_answers.rs
+@@ -0,0 +1,646 @@
++//! Real signed answers during one ongoing offer; no media readiness is inferred.
++use super::*;
++use rvoip_uctp::v2::server::{NativeTransportContext, PhysicalHandlerFactory};
++use std::sync::Mutex;
++struct Grants {
++    deny: bool,
++}
++struct Proof {
++    _base: AuthorityLease,
++    grant: tokio::sync::OwnedRwLockReadGuard<Grants>,
++}
++struct AnswerPolicy {
++    base: Arc<Policy>,
++    grants: Arc<RwLock<Grants>>,
++    approvals: AtomicUsize,
++    require_user: AtomicBool,
++    allow_rpc: AtomicBool,
++}
++#[async_trait]
++impl PeerAuthority for AnswerPolicy {
++    fn authority_lifetime(
++        &self,
++        c: &ValidatedBearer,
++        d: &Device,
++        i: &Identifier,
++        h: &AuthorityLease,
++    ) -> Result<AuthorityLifetime, DispatchError> {
++        self.base.authority_lifetime(c, d, i, h)
++    }
++    async fn identity(&self, c: &ValidatedBearer, d: &Device) -> Result<Identifier, DispatchError> {
++        self.base.identity(c, d).await
++    }
++    async fn acquire(
++        &self,
++        c: &ValidatedBearer,
++        d: &Device,
++        i: &Identifier,
++        e: &Envelope,
++    ) -> Result<AuthorityLease, DispatchError> {
++        let base = self.base.guard(c, d, i, e).await?;
++        if e.kind() != "connection.offer" {
++            return Ok(base);
++        }
++        Ok(AuthorityLease::holding(Proof {
++            _base: base,
++            grant: self.grants.clone().read_owned().await,
++        }))
++    }
++    async fn refresh(
++        &self,
++        a: &ValidatedBearer,
++        b: &ValidatedBearer,
++        d: &Device,
++        i: &Identifier,
++        e: &Envelope,
++    ) -> Result<AuthorityLease, DispatchError> {
++        self.base.refresh(a, b, d, i, e).await
++    }
++    fn assurance_requirement(
++        &self,
++        _: &ValidatedBearer,
++        _: &Device,
++        _: &Identifier,
++        e: &Envelope,
++    ) -> Result<Option<AssuranceRequirement>, DispatchError> {
++        Ok(
++            (self.require_user.load(Ordering::Acquire) && e.kind() == "connection.offer").then(
++                || AssuranceRequirement::UserAuthorized {
++                    user_id: rvoip_core::IdentityId::from_string("user-alice"),
++                    scopes: vec!["control".into()],
++                },
++            ),
++        )
++    }
++    async fn step_up(
++        &self,
++        previous: &ValidatedBearer,
++        next: &ValidatedBearer,
++        d: &Device,
++        i: &Identifier,
++        _: &AssuranceRequirement,
++        _: &Envelope,
++        response: &Envelope,
++    ) -> Result<AuthorityLease, DispatchError> {
++        let base = self.base.guard(next, d, i, response).await?;
++        let revoked = base
++            .authority::<tokio::sync::OwnedRwLockReadGuard<HashSet<String>>>()
++            .ok_or(DispatchError::Authority)?;
++        if previous.principal.is_expired()
++            || !previous.principal.has_same_owner(&next.principal)
++            || previous
++                .token_id
++                .as_ref()
++                .is_none_or(|id| revoked.contains(id))
++        {
++            return Err(DispatchError::Authority);
++        }
++        Ok(AuthorityLease::holding(Proof {
++            _base: base,
++            grant: self.grants.clone().read_owned().await,
++        }))
++    }
++    fn exchange_request(
++        &self,
++        _: &ValidatedBearer,
++        _: &Device,
++        _: &Identifier,
++        offer: &Envelope,
++        request: &Envelope,
++        held: &AuthorityLease,
++    ) -> Result<AuthorityLease, DispatchError> {
++        let proof = held.authority::<Proof>().ok_or(DispatchError::Authority)?;
++        if !self.allow_rpc.load(Ordering::Acquire)
++            || proof.grant.deny
++            || offer.kind() != "connection.offer"
++            || request.kind() != "connection.update"
++        {
++            return Err(DispatchError::Unsupported);
++        }
++        Ok(held.retained())
++    }
++    fn negotiation_answer(
++        &self,
++        c: &ValidatedBearer,
++        d: &Device,
++        _: &Identifier,
++        offer: &Envelope,
++        answer: &Envelope,
++        h: &AuthorityLease,
++    ) -> Result<AuthorityLease, DispatchError> {
++        let proof = h.authority::<Proof>().ok_or(DispatchError::Authority)?;
++        if proof.grant.deny
++            || c.principal.subject != "alice"
++            || d.id.as_str() != "device_alice"
++            || offer.kind() != "connection.offer"
++            || answer.original()["payload"]["by_participant"] != "part_alice"
++        {
++            return Err(DispatchError::ScopeDenied);
++        }
++        self.approvals.fetch_add(1, Ordering::AcqRel);
++        Ok(h.retained())
++    }
++}
++#[derive(Clone, Copy)]
++enum Mode {
++    Normal,
++    WrongScopes,
++    Concurrent,
++    DuplicateFinal,
++    NoWrite,
++    Saved,
++    Pending,
++    Partial,
++    CapacityRetry,
++}
++struct AnswerHandler {
++    mode: Mode,
++    entered: Notify,
++    release: Notify,
++    finished: Notify,
++    full: Notify,
++    hold: AtomicBool,
++    large_control: AtomicBool,
++    errors: Mutex<Vec<DispatchError>>,
++    saved: Mutex<Option<Arc<AuthorizedEnvelope>>>,
++    written: AtomicUsize,
++    connection: Mutex<Option<::quinn::Connection>>,
++}
++impl AnswerHandler {
++    fn new(mode: Mode) -> Self {
++        Self {
++            mode,
++            entered: Notify::new(),
++            release: Notify::new(),
++            finished: Notify::new(),
++            full: Notify::new(),
++            hold: AtomicBool::new(false),
++            large_control: AtomicBool::new(false),
++            errors: Mutex::new(vec![]),
++            saved: Mutex::new(None),
++            written: AtomicUsize::new(0),
++            connection: Mutex::new(None),
++        }
++    }
++}
++struct Factory(Arc<AnswerHandler>);
++impl PhysicalHandlerFactory for Factory {
++    fn handler(
++        &self,
++        c: NativeTransportContext,
++    ) -> Result<Arc<dyn AuthenticatedHandler>, DispatchError> {
++        *self.0.connection.lock().unwrap() = c.native::<::quinn::Connection>().cloned();
++        Ok(self.0.clone())
++    }
++}
++fn query() -> Value {
++    let mut v = envelope("conversation.get", json!({}));
++    v["cid"] = json!("conversation");
++    v
++}
++fn offered() -> Value {
++    let mut v = envelope(
++        "connection.offer",
++        json!({"by_participant":"part_alice","substrate":"quic","capabilities":{},"streams_offered":[{"id":"audio","kind":"audio","direction":"sendrecv","codec_preferences":["pcmu"]}]}),
++    );
++    for (k, vv) in [
++        ("cid", "conversation"),
++        ("sid", "session"),
++        ("connid", "connection"),
++        ("operation_id", "offer_operation"),
++    ] {
++        v[k] = json!(vv);
++    }
++    v
++}
++fn answered(a: &AuthorizedEnvelope, large: bool) -> Envelope {
++    let mut v = envelope(
++        "connection.answer",
++        json!({"by_participant":"part_alice","substrate":"quic","capabilities":{},"streams_answered":[{"id":"audio","kind":"audio","direction":"sendrecv","codec":{"name":"pcmu","params":{"sample_rate":8000,"channels":1}}}]}),
++    );
++    v["id"] = json!("backend_answer_placeholder");
++    v["in_reply_to"] = json!(a.envelope().id());
++    for k in ["cid", "sid", "connid", "operation_id"] {
++        v[k] = a.envelope().original()[k].clone();
++    }
++    if large {
++        v["payload"]["capabilities"]["bounded_answer_fixture"] = json!("x".repeat(65536));
++    }
++    Envelope::from_value(v).unwrap()
++}
++#[async_trait]
++impl AuthenticatedHandler for AnswerHandler {
++    async fn handle(&self, _: AuthorizedEnvelope) -> Result<Envelope, DispatchError> {
++        Err(DispatchError::Unsupported)
++    }
++    async fn handle_replies(&self, a: AuthorizedEnvelope) -> Result<HandlerReplies, DispatchError> {
++        if a.envelope().kind() != "connection.offer" {
++            let mut v = envelope("ack", json!({}));
++            v["in_reply_to"] = json!(a.envelope().id());
++            if self.large_control.swap(false, Ordering::AcqRel) {
++                v["payload"]["details"] = json!({"bounded_control_fixture":"x".repeat(65536)});
++            }
++            return HandlerReplies::new(vec![Envelope::from_value(v)?]);
++        }
++        let a = Arc::new(a);
++        self.entered.notify_one();
++        if matches!(self.mode, Mode::NoWrite) {
++            return a.finish_answered_offer();
++        }
++        if self.hold.load(Ordering::Acquire) {
++            self.release.notified().await;
++        }
++        if matches!(self.mode, Mode::WrongScopes) {
++            for field in [
++                "cid",
++                "sid",
++                "connid",
++                "operation_id",
++                "in_reply_to",
++                "type",
++            ] {
++                let mut v = answered(&a, false).original().clone();
++                v[field] = json!(if field == "type" {
++                    "connection.ready"
++                } else {
++                    "foreign"
++                });
++                if field == "type" {
++                    v["payload"] = json!({"streams":[{"strm_id":"audio","kind":"audio","direction":"sendrecv","stream_local_id":1,"codec":{"name":"pcmu","params":{"sample_rate":8000,"channels":1}}}]});
++                }
++                let error = a
++                    .answer_offer(Envelope::from_value(v)?, deadline())
++                    .await
++                    .unwrap_err();
++                self.errors.lock().unwrap().push(error);
++            }
++        }
++        if matches!(self.mode, Mode::CapacityRetry) {
++            let mut full = false;
++            for _ in 0..32 {
++                let mut request = command();
++                request["operation_id"] = json!("offer_operation");
++                match a
++                    .exchange(
++                        Envelope::from_value(request)?,
++                        Instant::now() + Duration::from_millis(20),
++                    )
++                    .await
++                {
++                    Err(DispatchError::Capacity) => {
++                        full = true;
++                        break;
++                    }
++                    Err(DispatchError::Closed) => {}
++                    other => panic!("unexpected blocked pre-IO request result: {other:?}"),
++                }
++            }
++            assert!(full, "fixture must fill the actual bounded writer queue");
++            let refused = a
++                .answer_offer(answered(&a, false), deadline())
++                .await
++                .unwrap_err();
++            self.errors.lock().unwrap().push(refused);
++            self.full.notify_one();
++            self.release.notified().await;
++        }
++        let frame = answered(&a, matches!(self.mode, Mode::Partial));
++        let end = if matches!(self.mode, Mode::Pending | Mode::Partial) {
++            Instant::now() + Duration::from_millis(150)
++        } else {
++            deadline()
++        };
++        let result = if matches!(self.mode, Mode::Concurrent) {
++            let (a1, a2) = tokio::join!(
++                a.answer_offer(frame.clone(), end),
++                a.answer_offer(frame.clone(), end)
++            );
++            let mut success = None;
++            for r in [a1, a2] {
++                match r {
++                    Ok(v) => success = Some(v),
++                    Err(e) => self.errors.lock().unwrap().push(e),
++                }
++            }
++            success.ok_or(DispatchError::Closed)
++        } else {
++            a.answer_offer(frame.clone(), end).await
++        };
++        let receipt = match result {
++            Ok(r) => r,
++            Err(e) => {
++                self.errors.lock().unwrap().push(e);
++                self.finished.notify_one();
++                return Err(e);
++            }
++        };
++        assert_ne!(receipt.envelope_id.as_str(), "backend_answer_placeholder");
++        self.written.fetch_add(1, Ordering::AcqRel);
++        self.finished.notify_one();
++        if matches!(self.mode, Mode::DuplicateFinal) {
++            return HandlerReplies::new(vec![frame]);
++        }
++        let complete = a.finish_answered_offer();
++        if matches!(self.mode, Mode::Saved) {
++            *self.saved.lock().unwrap() = Some(a);
++        }
++        complete
++    }
++}
++fn setup(mode: Mode) -> (Fixture, Arc<AnswerPolicy>, Arc<AnswerHandler>) {
++    let mut f = Fixture::new();
++    let p = Arc::new(AnswerPolicy {
++        base: f.policy.clone(),
++        grants: Arc::new(RwLock::new(Grants { deny: false })),
++        approvals: AtomicUsize::new(0),
++        require_user: AtomicBool::new(false),
++        allow_rpc: AtomicBool::new(false),
++    });
++    let c = Arc::get_mut(&mut f.config).unwrap();
++    c.authority = p.clone();
++    c.pending_capacity = 4;
++    (f, p, Arc::new(AnswerHandler::new(mode)))
++}
++async fn open(kind: &str, f: &Fixture, h: Arc<AnswerHandler>, window: Option<u32>) -> Wire {
++    let profile = CanonicalProfile::new(f.config.clone(), h.clone(), 8)
++        .unwrap()
++        .with_physical_handlers(Arc::new(Factory(h)));
++    let mut w = wire_with_window(
++        kind,
++        profile,
++        "/uctp",
++        Some("https://allowed.example"),
++        window,
++    )
++    .await
++    .unwrap();
++    w.send(serde_json::to_vec(&hello()).unwrap()).await;
++    let challenge = w.read().await;
++    w.send(f.sign(response(&challenge, "old"))).await;
++    assert_eq!(w.read().await.kind(), "auth.session");
++    w
++}
++async fn progress(mut f: impl FnMut() -> bool) {
++    tokio::time::timeout(Duration::from_secs(2), async {
++        while !f() {
++            tokio::task::yield_now().await;
++        }
++    })
++    .await
++    .unwrap();
++}
++#[tokio::test]
++async fn signed_answer_finishes_without_fake_ack_or_readiness_on_all_native_transports() {
++    for kind in ["quic", "wt", "ws"] {
++        let (f, p, h) = setup(Mode::Normal);
++        let mut w = open(kind, &f, h.clone(), None).await;
++        let offer = offered();
++        w.send(f.sign(offer.clone())).await;
++        let answer = w.read().await;
++        f.verify_server(&answer).await;
++        assert_eq!(answer.kind(), "connection.answer");
++        assert_eq!(answer.scope(Scope::Reply), offer["id"].as_str());
++        assert_eq!(answer.scope(Scope::Operation), Some("offer_operation"));
++        assert_ne!(answer.id(), "backend_answer_placeholder");
++        progress(|| h.written.load(Ordering::Acquire) == 1).await;
++        assert!(tokio::time::timeout(Duration::from_millis(40), w.read())
++            .await
++            .is_err());
++        w.send(f.sign(query())).await;
++        assert_eq!(w.read().await.kind(), "ack");
++        assert_eq!(p.approvals.load(Ordering::Acquire), 1);
++        w.server.shutdown().await.unwrap();
++    }
++}
++#[tokio::test]
++async fn answer_uses_same_held_guard_behind_a_queued_authority_writer() {
++    use std::future::Future;
++    let (f, p, h) = setup(Mode::Normal);
++    h.hold.store(true, Ordering::Release);
++    let mut w = open("quic", &f, h.clone(), None).await;
++    w.send(f.sign(offered())).await;
++    h.entered.notified().await;
++    let queued = Arc::new(Notify::new());
++    let notify = queued.clone();
++    let grants = p.grants.clone();
++    let writer = tokio::spawn(async move {
++        let mut wait = Box::pin(grants.write_owned());
++        let mut guard = futures::future::poll_fn(|cx| {
++            let r = wait.as_mut().poll(cx);
++            if r.is_pending() {
++                notify.notify_one();
++            }
++            r
++        })
++        .await;
++        guard.deny = true;
++    });
++    queued.notified().await;
++    let calls = f.policy.calls.load(Ordering::Acquire);
++    h.hold.store(false, Ordering::Release);
++    h.release.notify_one();
++    assert_eq!(w.read().await.kind(), "connection.answer");
++    tokio::time::timeout(Duration::from_secs(1), writer)
++        .await
++        .unwrap()
++        .unwrap();
++    assert_eq!(f.policy.calls.load(Ordering::Acquire), calls);
++    w.send(f.sign(offered())).await;
++    assert_eq!(w.read().await.kind(), "error");
++    w.server.shutdown().await.unwrap();
++}
++#[tokio::test]
++async fn wrong_answer_family_scope_or_correlation_fails_before_claim_then_recovers() {
++    let (f, p, h) = setup(Mode::WrongScopes);
++    let mut w = open("quic", &f, h.clone(), None).await;
++    w.send(f.sign(offered())).await;
++    assert_eq!(w.read().await.kind(), "connection.answer");
++    progress(|| h.written.load(Ordering::Acquire) == 1).await;
++    assert_eq!(
++        h.errors.lock().unwrap().as_slice(),
++        &[DispatchError::ReplyMismatch; 6]
++    );
++    assert_eq!(p.approvals.load(Ordering::Acquire), 1);
++    w.server.shutdown().await.unwrap();
++}
++#[tokio::test]
++async fn one_offer_refuses_concurrent_or_final_duplicate_answers() {
++    for mode in [Mode::Concurrent, Mode::DuplicateFinal] {
++        let (f, _, h) = setup(mode);
++        let mut w = open("quic", &f, h.clone(), None).await;
++        w.send(f.sign(offered())).await;
++        assert_eq!(w.read().await.kind(), "connection.answer");
++        if matches!(mode, Mode::DuplicateFinal) {
++            assert_eq!(w.read().await.kind(), "error");
++        } else {
++            progress(|| !h.errors.lock().unwrap().is_empty()).await;
++            assert_eq!(h.errors.lock().unwrap()[0], DispatchError::ReplyMismatch);
++        }
++        assert!(tokio::time::timeout(Duration::from_millis(40), w.read())
++            .await
++            .is_err());
++        w.server.shutdown().await.unwrap();
++    }
++}
++#[tokio::test]
++async fn unwritten_or_returned_offer_cannot_claim_completion_or_lend_saved_context() {
++    for mode in [Mode::NoWrite, Mode::Saved] {
++        let (f, _, h) = setup(mode);
++        let mut w = open("quic", &f, h.clone(), None).await;
++        w.send(f.sign(offered())).await;
++        if matches!(mode, Mode::NoWrite) {
++            assert_eq!(w.read().await.kind(), "error");
++        } else {
++            assert_eq!(w.read().await.kind(), "connection.answer");
++            progress(|| h.saved.lock().unwrap().is_some()).await;
++            let a = h.saved.lock().unwrap().take().unwrap();
++            progress(|| a.invocation_cancellation().is_cancelled()).await;
++            assert_eq!(
++                a.answer_offer(answered(&a, false), deadline())
++                    .await
++                    .unwrap_err(),
++                DispatchError::Closed
++            );
++        }
++        w.server.shutdown().await.unwrap();
++    }
++}
++#[tokio::test]
++async fn pending_answer_deadline_releases_reader_without_late_io_behind_real_quic_control() {
++    let (f, p, h) = setup(Mode::Pending);
++    h.large_control.store(true, Ordering::Release);
++    let mut w = open("quic", &f, h.clone(), Some(2048)).await;
++    w.send(f.sign(query())).await;
++    let conn = h.connection.lock().unwrap().clone().unwrap();
++    progress(|| conn.stats().frame_tx.stream_data_blocked > 0).await;
++    w.send(f.sign(offered())).await;
++    h.finished.notified().await;
++    let mut guard = tokio::time::timeout(Duration::from_secs(1), p.grants.write())
++        .await
++        .unwrap();
++    guard.deny = true;
++    drop(guard);
++    assert_eq!(w.read().await.kind(), "ack");
++    assert_eq!(w.read().await.kind(), "error");
++    assert_eq!(h.errors.lock().unwrap()[0], DispatchError::Closed);
++    assert!(tokio::time::timeout(Duration::from_millis(40), w.read())
++        .await
++        .is_err());
++    w.send(f.sign(query())).await;
++    assert_eq!(w.read().await.kind(), "ack");
++    w.server.shutdown().await.unwrap();
++}
++#[tokio::test]
++async fn partial_answer_write_keeps_reader_until_io_abort_then_reports_unknown() {
++    let (f, p, h) = setup(Mode::Partial);
++    let mut w = open("quic", &f, h.clone(), Some(2048)).await;
++    let conn = h.connection.lock().unwrap().clone().unwrap();
++    w.send(f.sign(offered())).await;
++    progress(|| conn.stats().frame_tx.stream_data_blocked > 0).await;
++    let mut writer = tokio::spawn({
++        let grants = p.grants.clone();
++        async move { grants.write_owned().await }
++    });
++    assert!(tokio::time::timeout(Duration::from_millis(20), &mut writer)
++        .await
++        .is_err());
++    drop(
++        tokio::time::timeout(Duration::from_secs(1), writer)
++            .await
++            .unwrap()
++            .unwrap(),
++    );
++    w.retired().await;
++    assert_eq!(h.written.load(Ordering::Acquire), 0);
++    assert!(h
++        .errors
++        .lock()
++        .unwrap()
++        .iter()
++        .all(|e| *e == DispatchError::SubmissionUnknown));
++    w.server.shutdown().await.unwrap();
++}
++
++#[tokio::test]
++async fn ordinary_current_command_authority_does_not_implicitly_authorize_an_offer_answer() {
++    let f = Fixture::new();
++    let h = Arc::new(AnswerHandler::new(Mode::Normal));
++    let mut w = open("quic", &f, h.clone(), None).await;
++    w.send(f.sign(offered())).await;
++    assert_eq!(w.read().await.kind(), "error");
++    assert_eq!(
++        h.errors.lock().unwrap().as_slice(),
++        &[DispatchError::Unsupported]
++    );
++    assert!(tokio::time::timeout(Duration::from_millis(40), w.read())
++        .await
++        .is_err());
++    w.send(f.sign(query())).await;
++    assert_eq!(w.read().await.kind(), "ack");
++    w.server.shutdown().await.unwrap();
++}
++
++#[tokio::test]
++async fn resumed_step_up_offer_writes_answer_and_preserves_authentication_transition_replies() {
++    let (f, p, h) = setup(Mode::Normal);
++    p.require_user.store(true, Ordering::Release);
++    let mut w = open("quic", &f, h.clone(), None).await;
++    let offer = offered();
++    w.send(f.sign(offer.clone())).await;
++    let challenge = w.read().await;
++    assert_eq!(challenge.kind(), "identity.step-up-request");
++    let mut next = envelope(
++        "identity.step-up-response",
++        json!({"method":"bearer","credential":"user"}),
++    );
++    next["in_reply_to"] = json!(challenge.id());
++    for key in ["cid", "sid", "connid", "operation_id"] {
++        next[key] = offer[key].clone();
++    }
++    w.send(f.sign(next)).await;
++    let answer = w.read().await;
++    assert_eq!(answer.kind(), "connection.answer");
++    assert_eq!(answer.scope(Scope::Reply), offer["id"].as_str());
++    f.verify_server(&answer).await;
++    assert_eq!(w.read().await.kind(), "auth.session");
++    assert_eq!(w.read().await.kind(), "identity.assurance-changed");
++    assert!(tokio::time::timeout(Duration::from_millis(40), w.read())
++        .await
++        .is_err());
++    w.send(f.sign(query())).await;
++    assert_eq!(w.read().await.kind(), "ack");
++    w.server.shutdown().await.unwrap();
++}
++
++#[tokio::test]
++async fn refused_full_writer_queue_reports_capacity_and_retries_same_offer_without_late_rpc_io() {
++    let (f, p, h) = setup(Mode::CapacityRetry);
++    p.allow_rpc.store(true, Ordering::Release);
++    h.large_control.store(true, Ordering::Release);
++    let mut w = open("quic", &f, h.clone(), Some(2048)).await;
++    w.send(f.sign(query())).await;
++    let conn = h.connection.lock().unwrap().clone().unwrap();
++    progress(|| conn.stats().frame_tx.stream_data_blocked > 0).await;
++    let offer = offered();
++    w.send(f.sign(offer.clone())).await;
++    tokio::time::timeout(Duration::from_secs(2), h.full.notified())
++        .await
++        .unwrap();
++    assert_eq!(
++        h.errors.lock().unwrap().as_slice(),
++        &[DispatchError::Capacity]
++    );
++    assert_eq!(w.read().await.kind(), "ack");
++    // Draining the blocked control write lets cancelled queued RPCs be dropped.
++    h.release.notify_one();
++    let answer = w.read().await;
++    assert_eq!(answer.kind(), "connection.answer");
++    assert_eq!(answer.scope(Scope::Reply), offer["id"].as_str());
++    f.verify_server(&answer).await;
++    assert!(tokio::time::timeout(Duration::from_millis(40), w.read())
++        .await
++        .is_err());
++    w.send(f.sign(query())).await;
++    assert_eq!(w.read().await.kind(), "ack");
++    w.server.shutdown().await.unwrap();
++}
+diff --git a/crates/uctp/rvoip-uctp/tests/v2_peer_admission.rs b/crates/uctp/rvoip-uctp/tests/v2_peer_admission.rs
+--- a/crates/uctp/rvoip-uctp/tests/v2_peer_admission.rs
++++ b/crates/uctp/rvoip-uctp/tests/v2_peer_admission.rs
+@@ -831,3 +831,6 @@
+ 
+ #[path = "support/peer_native.rs"]
+ mod peer_native;
++
++#[path = "support/offer_answers.rs"]
++mod offer_answers;

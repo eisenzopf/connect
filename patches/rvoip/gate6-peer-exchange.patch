@@ -1,0 +1,2210 @@
+diff --git a/crates/identity/auth-core/src/sig9421.rs b/crates/identity/auth-core/src/sig9421.rs
+index 995e6e1..b440601 100644
+--- a/crates/identity/auth-core/src/sig9421.rs
++++ b/crates/identity/auth-core/src/sig9421.rs
+@@ -234,6 +234,42 @@ impl fmt::Debug for ResolvedVerificationKey {
+     }
+ }
+ 
++/// A current policy's key snapshot for one exact owner and key ID. Trusted
++/// composition only: keep its key/revocation guard alive throughout verification.
++/// This avoids a second key-store read under an already-held authority lease.
++#[derive(Clone)]
++pub struct PrincipalVerificationKey {
++    owner: crate::bearer::PrincipalOwnershipKey,
++    keyid: String,
++    key: ResolvedVerificationKey,
++}
++impl PrincipalVerificationKey {
++    pub fn from_current(
++        principal: &crate::bearer::AuthenticatedPrincipal,
++        keyid: String,
++        key: ResolvedVerificationKey,
++    ) -> Result<Self, Sig9421Error> {
++        if principal.subject.is_empty()
++            || principal.tenant.as_ref().is_none_or(|v| v.is_empty())
++            || principal.issuer.as_ref().is_none_or(|v| v.is_empty())
++            || keyid.is_empty()
++            || keyid.len() > 256
++        {
++            return Err(Sig9421Error::KeyRejected);
++        }
++        Ok(Self {
++            owner: principal.ownership_key(),
++            keyid,
++            key,
++        })
++    }
++}
++impl fmt::Debug for PrincipalVerificationKey {
++    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
++        f.write_str("PrincipalVerificationKey(redacted)")
++    }
++}
++
+ /// Atomic replay-consumption result. Store failures are distinct from a
+ /// duplicate and fail closed at the verifier boundary.
+ #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+@@ -513,7 +549,7 @@ impl Sig9421Verifier {
+         envelope: &serde_json::Value,
+         context: &SignatureVerificationContext,
+     ) -> Result<(), Sig9421Error> {
+-        self.verify_scoped(envelope, context, None).await
++        self.verify_scoped(envelope, context, None, None).await
+     }
+ 
+     /// Verify with a key owned by the authenticated subject as well as its
+@@ -540,7 +576,35 @@ impl Sig9421Verifier {
+         {
+             return Err(Sig9421Error::KeyRejected);
+         }
+-        self.verify_scoped(envelope, &context, Some(principal))
++        self.verify_scoped(envelope, &context, Some(principal), None)
++            .await
++    }
++
++    /// Same signature, freshness, owner and GLOBAL replay checks as ordinary
++    /// verification, using a key resolved under the caller's still-held guard.
++    pub async fn verify_with_current_key(
++        &self,
++        envelope: &serde_json::Value,
++        principal: &crate::bearer::AuthenticatedPrincipal,
++        key: &PrincipalVerificationKey,
++    ) -> Result<(), Sig9421Error> {
++        let context = SignatureVerificationContext::new(
++            principal
++                .tenant
++                .as_deref()
++                .ok_or(Sig9421Error::MissingVerificationContext)?,
++            principal
++                .issuer
++                .as_deref()
++                .ok_or(Sig9421Error::MissingVerificationContext)?,
++        )?;
++        if principal.expires_at.is_none()
++            || principal.is_expired_at(self.clock.now())
++            || key.owner != principal.ownership_key()
++        {
++            return Err(Sig9421Error::KeyRejected);
++        }
++        self.verify_scoped(envelope, &context, Some(principal), Some(key))
+             .await
+     }
+ 
+@@ -549,6 +613,7 @@ impl Sig9421Verifier {
+         envelope: &serde_json::Value,
+         context: &SignatureVerificationContext,
+         principal: Option<&crate::bearer::AuthenticatedPrincipal>,
++        current: Option<&PrincipalVerificationKey>,
+     ) -> Result<(), Sig9421Error> {
+         if context.tenant.is_empty() || context.issuer.is_empty() {
+             return Err(Sig9421Error::MissingVerificationContext);
+@@ -603,16 +668,25 @@ impl Sig9421Verifier {
+         }
+ 
+         // 4. Resolve the signing key and verify.
+-        let resolved = match principal {
+-            Some(principal) => self.resolver.resolve_for_principal(
+-                principal,
+-                &signature.keyid,
+-                &signature.alg,
+-                now,
+-            ),
+-            None => {
+-                self.resolver
+-                    .resolve_contextual(context, &signature.keyid, &signature.alg, now)
++        let resolved = if let Some(current) = current {
++            if principal.is_none_or(|p| current.owner != p.ownership_key())
++                || current.keyid != signature.keyid
++            {
++                return Err(Sig9421Error::KeyRejected);
++            }
++            Some(current.key.clone())
++        } else {
++            match principal {
++                Some(principal) => self.resolver.resolve_for_principal(
++                    principal,
++                    &signature.keyid,
++                    &signature.alg,
++                    now,
++                ),
++                None => {
++                    self.resolver
++                        .resolve_contextual(context, &signature.keyid, &signature.alg, now)
++                }
+             }
+         }
+         .ok_or_else(|| Sig9421Error::UnknownKeyid(signature.keyid.clone()))?;
+diff --git a/crates/uctp/rvoip-uctp/src/v2/auth_dispatch.rs b/crates/uctp/rvoip-uctp/src/v2/auth_dispatch.rs
+index d39bf23..68f6db5 100644
+--- a/crates/uctp/rvoip-uctp/src/v2/auth_dispatch.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/auth_dispatch.rs
+@@ -86,11 +86,16 @@ pub struct AuthorityLease {
+     _guard: Arc<dyn std::any::Any + Send + Sync>,
+ }
+ impl AuthorityLease {
+-    pub(super) fn retained(&self) -> Self {
++    /// Retain protection for this ongoing invocation/response only. This is
++    /// not authorization for a future invocation; enforce its origin lifetime.
++    pub fn retained(&self) -> Self {
+         Self {
+             _guard: self._guard.clone(),
+         }
+     }
++    pub fn authority<T: std::any::Any + Send + Sync>(&self) -> Option<&T> {
++        self._guard.downcast_ref()
++    }
+     pub fn holding<T: Send + Sync + 'static>(guard: T) -> Self {
+         Self {
+             _guard: Arc::new(guard),
+@@ -110,6 +115,33 @@ pub trait CurrentAuthority: Send + Sync {
+         principal: &AuthenticatedPrincipal,
+         envelope: &Envelope,
+     ) -> Result<AuthorityLease, DispatchError>;
++    /// Synchronous policy checks under the invocation's existing current guard.
++    /// No lock reentry. Outbound intent and incoming correlated reply each need
++    /// their own approval; a role or original command grant is insufficient.
++    fn exchange_request(
++        &self,
++        _principal: &AuthenticatedPrincipal,
++        _invocation: &Envelope,
++        _request: &Envelope,
++        _held: &AuthorityLease,
++    ) -> Result<AuthorityLease, DispatchError> {
++        Err(DispatchError::Unsupported)
++    }
++    fn exchange_reply(
++        &self,
++        _principal: &AuthenticatedPrincipal,
++        _request: &Envelope,
++        _reply: &Envelope,
++        _held: &AuthorityLease,
++    ) -> Result<ExchangeReplyAuthority, DispatchError> {
++        Err(DispatchError::Unsupported)
++    }
++}
++/// Policy resolved current key + authority for the exact correlated reply.
++/// The guard protects the full owner/key/revocation and reply resource scope.
++pub struct ExchangeReplyAuthority {
++    pub lease: AuthorityLease,
++    pub key: rvoip_auth_core::sig9421::PrincipalVerificationKey,
+ }
+ 
+ /// Only the dispatch gate can construct this proof. The handler receives the
+@@ -122,6 +154,8 @@ pub struct AuthorizedEnvelope {
+     _lease: AuthorityLease,
+     origin: RequestOrigin,
+     peer: Option<Arc<rvoip_core::peer_admission::PeerAdmission>>,
++    exchange: Option<super::auth_peer::exchange::ExchangeContext>,
++    invocation: CancellationToken,
+ }
+ impl AuthorizedEnvelope {
+     pub(super) fn retain_authority(&self) -> AuthorityLease {
+@@ -132,6 +166,20 @@ impl AuthorizedEnvelope {
+     pub fn authority<T: std::any::Any + Send + Sync>(&self) -> Option<&T> {
+         self._lease._guard.downcast_ref()
+     }
++    /// One same-peer scoped request/reply during this invocation. Actor mode
++    /// only; direct handle/standalone dispatch fails closed. Receiving a reply
++    /// establishes an observation, not a future mutation/media grant.
++    pub async fn exchange(
++        &self,
++        request: Envelope,
++        deadline: Instant,
++    ) -> Result<Envelope, DispatchError> {
++        self.exchange
++            .as_ref()
++            .ok_or(DispatchError::Unsupported)?
++            .request(self, request, deadline, self.invocation.clone())
++            .await
++    }
+     pub fn envelope(&self) -> &Envelope {
+         &self.envelope
+     }
+@@ -144,6 +192,11 @@ impl AuthorizedEnvelope {
+         &self.principal
+     }
+ }
++impl Drop for AuthorizedEnvelope {
++    fn drop(&mut self) {
++        self.invocation.cancel();
++    }
++}
+ impl fmt::Debug for AuthorizedEnvelope {
+     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+         f.debug_struct("AuthorizedEnvelope")
+@@ -270,6 +323,7 @@ pub struct AuthenticatedDispatch {
+     incarnation: uuid::Uuid,
+     replay: Arc<ReplayFence>,
+     peer: Option<Arc<rvoip_core::peer_admission::PeerAdmission>>,
++    pub(super) exchanges: Option<super::auth_peer::exchange::ExchangeSender>,
+ }
+ impl AuthenticatedDispatch {
+     /// `principal` is a trusted validator result, not a deserialized payload.
+@@ -310,6 +364,7 @@ impl AuthenticatedDispatch {
+             incarnation: uuid::Uuid::new_v4(),
+             replay,
+             peer: None,
++            exchanges: None,
+         })
+     }
+ 
+@@ -441,6 +496,18 @@ impl AuthenticatedDispatch {
+         let lease = self.authority.acquire(&self.principal, &envelope).await?;
+         self.require_active(deadline)?;
+         Ok(AuthorizedEnvelope {
++            exchange: self.exchanges.as_ref().map(|sender| {
++                super::auth_peer::exchange::ExchangeContext::new(
++                    sender.clone(),
++                    self.authority.clone(),
++                    self.verifier.clone(),
++                    self.replay.clone(),
++                    self.principal.clone(),
++                    self.lifetime.clone(),
++                    deadline,
++                )
++            }),
++            invocation: self.lifetime.child_token(),
+             peer: self.peer.clone(),
+             envelope,
+             principal: self.principal.clone(),
+@@ -481,13 +548,14 @@ impl AuthenticatedDispatch {
+                 .expect("entry held under same lock");
+             entry
+                 .sender
+-                .send(authorized.envelope)
++                .send(authorized.envelope.clone())
+                 .map_err(|_| DispatchError::ReplyMismatch)?;
+             return Ok(DispatchOutcome::ReplyDelivered);
+         }
+         if is_reply_kind(authorized.envelope.kind()) {
+             return Err(DispatchError::ReplyMismatch);
+         }
++        let _invocation = authorized.invocation.clone().drop_guard();
+         tokio::select! {
+             biased;
+             _ = self.lifetime.cancelled() => Err(DispatchError::Closed),
+@@ -516,6 +584,18 @@ impl AuthenticatedDispatch {
+         let deadline = self.active_deadline(requested.min(held.origin.deadline))?;
+         super::scope_policy::require(&self.principal, held.envelope.payload())?;
+         let authorized = AuthorizedEnvelope {
++            exchange: self.exchanges.as_ref().map(|sender| {
++                super::auth_peer::exchange::ExchangeContext::new(
++                    sender.clone(),
++                    self.authority.clone(),
++                    self.verifier.clone(),
++                    self.replay.clone(),
++                    self.principal.clone(),
++                    self.lifetime.clone(),
++                    deadline,
++                )
++            }),
++            invocation: self.lifetime.child_token(),
+             peer: self.peer.clone(),
+             envelope: held.envelope,
+             principal: self.principal.clone(),
+@@ -526,6 +606,7 @@ impl AuthenticatedDispatch {
+                 deadline,
+             },
+         };
++        let _invocation = authorized.invocation.clone().drop_guard();
+         tokio::select! {
+             biased;
+             _ = previous.lifetime.cancelled() => Err(DispatchError::Closed),
+@@ -536,6 +617,7 @@ impl AuthenticatedDispatch {
+     }
+ }
+ 
++#[derive(Clone)]
+ struct RequestOrigin {
+     incarnation: uuid::Uuid,
+     lifetime: CancellationToken,
+@@ -557,9 +639,9 @@ impl HeldRequest {
+             return Err(DispatchError::Unsupported);
+         }
+         Ok(Self {
+-            envelope: authorized.envelope,
+-            owner: authorized.principal,
+-            origin: authorized.origin,
++            envelope: authorized.envelope.clone(),
++            owner: authorized.principal.clone(),
++            origin: authorized.origin.clone(),
+         })
+     }
+     pub(super) fn envelope(&self) -> &Envelope {
+@@ -600,16 +682,16 @@ struct PendingEntry {
+     deadline: Instant,
+     token: uuid::Uuid,
+ }
+-struct ReplyExpectation {
++pub(super) struct ReplyExpectation {
+     cid: String,
+     sid: String,
+     connid: String,
+     operation: Option<String>,
+     family: &'static str,
+-    required_scope: Option<&'static str>,
++    pub(super) required_scope: Option<&'static str>,
+ }
+ impl ReplyExpectation {
+-    fn new(request: &Envelope) -> Result<Self, DispatchError> {
++    pub(super) fn new(request: &Envelope) -> Result<Self, DispatchError> {
+         if request.scope(Scope::Reply).is_some() {
+             return Err(DispatchError::Unsupported);
+         }
+@@ -634,7 +716,7 @@ impl ReplyExpectation {
+             required_scope: super::scope_policy::required_scope(request.payload()),
+         })
+     }
+-    fn matches(&self, reply: &Envelope) -> bool {
++    pub(super) fn matches(&self, reply: &Envelope) -> bool {
+         reply.scope(Scope::Conversation) == Some(self.cid.as_str())
+             && reply.scope(Scope::Session) == Some(self.sid.as_str())
+             && reply.scope(Scope::Connection) == Some(self.connid.as_str())
+diff --git a/crates/uctp/rvoip-uctp/src/v2/auth_peer.rs b/crates/uctp/rvoip-uctp/src/v2/auth_peer.rs
+index 7534d37..9497874 100644
+--- a/crates/uctp/rvoip-uctp/src/v2/auth_peer.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/auth_peer.rs
+@@ -30,6 +30,7 @@ use tokio_util::{
+     sync::CancellationToken,
+ };
+ 
++pub(super) mod exchange;
+ mod step_up;
+ pub use step_up::AssuranceRequirement;
+ use step_up::PendingStepUp;
+@@ -66,6 +67,30 @@ pub trait PeerAuthority: Send + Sync {
+     ) -> Result<Option<AssuranceRequirement>, DispatchError> {
+         Ok(None)
+     }
++    /// Verify these intents using the held invocation/transition guard. These
++    /// hooks must not await or reacquire its grant/key-store lock.
++    fn exchange_request(
++        &self,
++        _credential: &ValidatedBearer,
++        _device: &Device,
++        _identity: &Identifier,
++        _invocation: &Envelope,
++        _request: &Envelope,
++        _held: &AuthorityLease,
++    ) -> Result<AuthorityLease, DispatchError> {
++        Err(DispatchError::Unsupported)
++    }
++    fn exchange_reply(
++        &self,
++        _credential: &ValidatedBearer,
++        _device: &Device,
++        _identity: &Identifier,
++        _request: &Envelope,
++        _reply: &Envelope,
++        _held: &AuthorityLease,
++    ) -> Result<ExchangeReplyAuthority, DispatchError> {
++        Err(DispatchError::Unsupported)
++    }
+     /// Current authority for both credentials, exact response, original blocked
+     /// mutation and unchanged identity/device. Keep this guard through execution.
+     async fn step_up(
+@@ -122,6 +147,44 @@ impl CurrentAuthority for BoundAuthority {
+             .acquire(&self.credential, &self.device, &self.identity, envelope)
+             .await
+     }
++    fn exchange_request(
++        &self,
++        p: &AuthenticatedPrincipal,
++        invocation: &Envelope,
++        request: &Envelope,
++        held: &AuthorityLease,
++    ) -> Result<AuthorityLease, DispatchError> {
++        if !p.has_same_owner(&self.credential.principal) {
++            return Err(DispatchError::Authority);
++        }
++        self.policy.exchange_request(
++            &self.credential,
++            &self.device,
++            &self.identity,
++            invocation,
++            request,
++            held,
++        )
++    }
++    fn exchange_reply(
++        &self,
++        p: &AuthenticatedPrincipal,
++        request: &Envelope,
++        reply: &Envelope,
++        held: &AuthorityLease,
++    ) -> Result<ExchangeReplyAuthority, DispatchError> {
++        if !p.has_same_owner(&self.credential.principal) {
++            return Err(DispatchError::Authority);
++        }
++        self.policy.exchange_reply(
++            &self.credential,
++            &self.device,
++            &self.identity,
++            request,
++            reply,
++            held,
++        )
++    }
+ }
+ 
+ struct Challenge {
+@@ -179,6 +242,7 @@ pub struct CanonicalPeer {
+     step_up_failure: Arc<parking_lot::Mutex<Option<step_up::FailureRecord>>>,
+     routes: Option<PeerRoutes>,
+     outbound: Option<tokio::sync::mpsc::Receiver<Outbound>>,
++    exchanges: Option<exchange::ExchangeSender>,
+ }
+ impl CanonicalPeer {
+     pub fn new(config: Arc<PeerConfig>, parent: CancellationToken) -> Result<Self, DispatchError> {
+@@ -206,6 +270,7 @@ impl CanonicalPeer {
+             step_up_failure: Arc::new(parking_lot::Mutex::new(None)),
+             routes: None,
+             outbound: None,
++            exchanges: None,
+         })
+     }
+     /// Install an actual actor-backed route and required current delivery policy.
+@@ -590,7 +655,7 @@ impl CanonicalPeer {
+                 (peer, Some(owner))
+             }
+         };
+-        let dispatch = AuthenticatedDispatch::with_replay_fence(
++        let mut dispatch = AuthenticatedDispatch::with_replay_fence(
+             credential.principal.clone(),
+             self.config.verifier.clone(),
+             Arc::new(BoundAuthority {
+@@ -604,6 +669,7 @@ impl CanonicalPeer {
+             self.replay.clone(),
+         )?
+         .with_peer(peer)?;
++        dispatch.exchanges = self.exchanges.clone();
+         let route = self
+             .routes
+             .as_ref()
+@@ -723,28 +789,6 @@ impl CanonicalPeer {
+         self.signed(value)
+     }
+ 
+-    async fn write_output<W: Sink<Bytes, Error = DispatchError> + Send + Unpin>(
+-        &self,
+-        writer: &mut W,
+-        output: &PeerOutput,
+-    ) -> Result<(), DispatchError> {
+-        for envelope in output.envelopes() {
+-            let bytes = serde_json::to_vec(envelope).map_err(|_| DispatchError::Closed)?;
+-            let deadline = self
+-                .effective_deadline()
+-                .min(Instant::now() + MAX_DISPATCH_WAIT);
+-            let authority = self.route_authority();
+-            tokio::select! {
+-                biased;
+-                _ = async { match authority {Some(token)=>token.cancelled().await,None=>std::future::pending::<()>().await} } => return Err(DispatchError::Authority),
+-                _ = self.lifetime.cancelled(), if !matches!(self.state, State::Closed) => return Err(DispatchError::Closed),
+-                _ = tokio::time::sleep_until(deadline) => return Err(DispatchError::Closed),
+-                result = writer.send(Bytes::from(bytes)) => result.map_err(|_| DispatchError::Closed)?,
+-            }
+-        }
+-        Ok(())
+-    }
+-
+     /// Canonical length-prefixed server loop for an already negotiated secure
+     /// reliable stream. Its caller must enforce ALPN/profile ownership and TLS.
+     /// EOF, expiry, cancellation and write failure retire this peer's lifetime.
+@@ -774,108 +818,16 @@ impl CanonicalPeer {
+     /// frames. Drivers must bound allocation, validate TLS/profile and provide
+     /// exactly one owner for each ordered reader/writer.
+     pub async fn run_frames<R, W>(
+-        mut self,
+-        mut reader: R,
+-        mut writer: W,
++        self,
++        reader: R,
++        writer: W,
+         handler: &dyn AuthenticatedHandler,
+     ) -> Result<(), DispatchError>
+     where
+         R: Stream<Item = Result<Bytes, DispatchError>> + Send + Unpin,
+         W: Sink<Bytes, Error = DispatchError> + Send + Unpin,
+     {
+-        let mut outbound = self.outbound.take();
+-        loop {
+-            if let Some(output) = self.drain_step_up_failures()? {
+-                self.write_output(&mut writer, &output).await?;
+-            }
+-            let pending_deadline = self
+-                .pending_step_up_deadline()
+-                .unwrap_or(self.effective_deadline());
+-            let authority = self.route_authority();
+-            let frame = tokio::select! {
+-                biased;
+-                _ = async {match authority {Some(token)=>token.cancelled().await,None=>std::future::pending::<()>().await}} => {
+-                    let bye=self.reply("auth.bye",json!({"reason":"authority-retired"}),None)?;
+-                    let _=tokio::time::timeout(Duration::from_secs(1),writer.send(Bytes::from(serde_json::to_vec(&bye).map_err(|_|DispatchError::Closed)?))).await;
+-                    return Err(DispatchError::Authority);
+-                }
+-                _ = self.lifetime.cancelled() => return Err(DispatchError::Closed),
+-                _ = tokio::time::sleep_until(self.effective_deadline()) => {
+-                    if matches!(self.state, State::Authenticated(_)) {
+-                        let bye = self.reply("auth.bye", json!({"reason":"session-expired"}), None)?;
+-                        let _ = tokio::time::timeout(Duration::from_secs(1), writer.send(Bytes::from(serde_json::to_vec(&bye).map_err(|_| DispatchError::Closed)?))).await;
+-                    }
+-                    return Err(DispatchError::Closed);
+-                }
+-                _ = tokio::time::sleep_until(pending_deadline) => {
+-                    if let Some(output) = self.expire_step_up()? {
+-                        self.write_output(&mut writer, &output).await?;
+-                    }
+-                    continue;
+-                }
+-                message = async {match &mut outbound {Some(receiver)=>receiver.recv().await,None=>std::future::pending().await}} => {
+-                    let Some(request)=message else{return Err(DispatchError::Closed);};
+-                    match self.outbound_output(&request).await {
+-                        Ok(output)=>{
+-                            if request.reply.is_closed(){continue;}
+-                            request.started.store(true,std::sync::atomic::Ordering::Release);
+-                            let result=tokio::select! {
+-                                biased;
+-                                _=tokio::time::sleep_until(request.deadline)=>Err(DispatchError::Closed),
+-                                result=self.write_output(&mut writer,&output)=>result,
+-                            };
+-                            if result.is_ok(){
+-                                let id=Identifier::try_from(output.envelopes()[0].id().to_owned())?;
+-                                let _=request.reply.send(Ok(Outbound::submitted(id)));
+-                            }else{
+-                                let _=request.reply.send(Err(DispatchError::SubmissionUnknown));
+-                                return result;
+-                            }
+-                        }
+-                        Err(error)=>{let _=request.reply.send(Err(error));}
+-                    }
+-                    continue;
+-                }
+-                frame = reader.next() => frame,
+-            };
+-            let Some(frame) = frame else {
+-                return Ok(());
+-            };
+-            let frame = frame?;
+-            if frame.len() > super::MAX_ENVELOPE_BYTES {
+-                return Err(DispatchError::Wire(super::WireError::TooLarge));
+-            }
+-            let output = match self
+-                .handle(&frame, handler, Instant::now() + MAX_DISPATCH_WAIT)
+-                .await
+-            {
+-                Ok(output) => output,
+-                Err(error) => {
+-                    if matches!(self.state, State::Closed) {
+-                        return Err(error);
+-                    }
+-                    if let Some(output) = self.drain_step_up_failures()? {
+-                        output
+-                    } else {
+-                        // Correlate only a validated envelope. Never echo malformed
+-                        // JSON or credential/payload content into a problem.
+-                        let request = Envelope::parse(&frame).ok();
+-                        output(
+-                        vec![self.reply(
+-                            "error",
+-                            json!({"code":error_code(error),"category":"auth","reason":error_reason(error)}),
+-                            request.as_ref(),
+-                        )?],
+-                        None,
+-                    )
+-                    }
+-                }
+-            };
+-            self.write_output(&mut writer, &output).await?;
+-            if matches!(self.state, State::Closed) {
+-                return Ok(());
+-            }
+-        }
++        exchange::drive(self, reader, writer, handler).await
+     }
+ }
+ impl Drop for CanonicalPeer {
+diff --git a/crates/uctp/rvoip-uctp/src/v2/auth_peer/exchange.rs b/crates/uctp/rvoip-uctp/src/v2/auth_peer/exchange.rs
+new file mode 100644
+index 0000000..1b9cfad
+--- /dev/null
++++ b/crates/uctp/rvoip-uctp/src/v2/auth_peer/exchange.rs
+@@ -0,0 +1,524 @@
++//! Scoped, bounded request/reply exchanges while the ordered control actor waits.
++//! All futures remain owned/polled by the physical actor. No detached workers.
++use super::*;
++use crate::v2::auth_dispatch::ReplyExpectation;
++use futures::{future::BoxFuture, stream::FuturesUnordered, FutureExt};
++use std::{
++    collections::{HashMap, VecDeque},
++    sync::atomic::{AtomicBool, Ordering},
++};
++use tokio::sync::{mpsc, oneshot, Notify, OwnedSemaphorePermit, Semaphore};
++
++#[derive(Clone)]
++pub(in crate::v2) struct ExchangeSender {
++    sender: mpsc::Sender<Call>,
++    changed: Arc<Notify>,
++}
++struct ReplyContext {
++    authority: Arc<dyn CurrentAuthority>,
++    verifier: Arc<Sig9421Verifier>,
++    replay: Arc<ReplayFence>,
++    principal: AuthenticatedPrincipal,
++    lifetime: CancellationToken,
++    deadline: Instant,
++}
++pub(in crate::v2) struct ExchangeContext {
++    sender: ExchangeSender,
++    reply: Arc<ReplyContext>,
++}
++impl ExchangeContext {
++    pub(in crate::v2) fn new(
++        sender: ExchangeSender,
++        authority: Arc<dyn CurrentAuthority>,
++        verifier: Arc<Sig9421Verifier>,
++        replay: Arc<ReplayFence>,
++        principal: AuthenticatedPrincipal,
++        lifetime: CancellationToken,
++        deadline: Instant,
++    ) -> Self {
++        Self {
++            sender,
++            reply: Arc::new(ReplyContext {
++                authority,
++                verifier,
++                replay,
++                principal,
++                lifetime,
++                deadline,
++            }),
++        }
++    }
++    pub(in crate::v2) async fn request(
++        &self,
++        invocation: &AuthorizedEnvelope,
++        request: Envelope,
++        requested: Instant,
++        invoked: CancellationToken,
++    ) -> Result<Envelope, DispatchError> {
++        let deadline = requested.min(self.reply.deadline);
++        self.reply.active(deadline)?;
++        if invoked.is_cancelled() {
++            return Err(DispatchError::Closed);
++        }
++        for scope in [
++            Scope::Conversation,
++            Scope::Session,
++            Scope::Connection,
++            Scope::Operation,
++        ] {
++            if request.scope(scope) != invocation.envelope().scope(scope) {
++                return Err(DispatchError::ReplyMismatch);
++            }
++        }
++        let _ = ReplyExpectation::new(&request)?;
++        super::super::scope_policy::require(&self.reply.principal, request.payload())?;
++        let held = self.reply.authority.exchange_request(
++            &self.reply.principal,
++            invocation.envelope(),
++            &request,
++            &invocation.retain_authority(),
++        )?;
++        let cancel = invoked.child_token();
++        let started = Arc::new(AtomicBool::new(false));
++        let (reply, receiver) = oneshot::channel();
++        let _drop = CancelWait {
++            cancel: cancel.clone(),
++            changed: self.sender.changed.clone(),
++        };
++        self.sender
++            .sender
++            .try_send(Call {
++                request,
++                context: self.reply.clone(),
++                held,
++                deadline,
++                cancel: cancel.clone(),
++                started: started.clone(),
++                reply,
++            })
++            .map_err(|e| match e {
++                mpsc::error::TrySendError::Full(_) => DispatchError::Capacity,
++                mpsc::error::TrySendError::Closed(_) => DispatchError::Closed,
++            })?;
++        let unknown = || {
++            if started.load(Ordering::Acquire) {
++                DispatchError::SubmissionUnknown
++            } else {
++                DispatchError::Closed
++            }
++        };
++        tokio::select! {biased;_=self.reply.lifetime.cancelled()=>Err(unknown()),_=cancel.cancelled()=>Err(unknown()),_=tokio::time::sleep_until(deadline)=>Err(unknown()),result=receiver=>result.unwrap_or_else(|_|Err(unknown()))}
++    }
++}
++impl ReplyContext {
++    fn active(&self, deadline: Instant) -> Result<(), DispatchError> {
++        if self.lifetime.is_cancelled() || deadline <= Instant::now() {
++            return Err(DispatchError::Closed);
++        }
++        checked_principal(self.principal.clone()).map(|_| ())
++    }
++}
++struct CancelWait {
++    cancel: CancellationToken,
++    changed: Arc<Notify>,
++}
++impl Drop for CancelWait {
++    fn drop(&mut self) {
++        self.cancel.cancel();
++        self.changed.notify_one();
++    }
++}
++struct Call {
++    request: Envelope,
++    context: Arc<ReplyContext>,
++    held: AuthorityLease,
++    deadline: Instant,
++    cancel: CancellationToken,
++    started: Arc<AtomicBool>,
++    reply: oneshot::Sender<Result<Envelope, DispatchError>>,
++}
++struct PendingCall {
++    request: Envelope,
++    expectation: ReplyExpectation,
++    context: Arc<ReplyContext>,
++    held: AuthorityLease,
++    deadline: Instant,
++    cancel: CancellationToken,
++    started: Arc<AtomicBool>,
++    reply: parking_lot::Mutex<Option<oneshot::Sender<Result<Envelope, DispatchError>>>>,
++    verifying: AtomicBool,
++}
++impl PendingCall {
++    fn live(&self) -> bool {
++        !self.cancel.is_cancelled()
++            && self.context.active(self.deadline).is_ok()
++            && self
++                .reply
++                .lock()
++                .as_ref()
++                .is_some_and(|reply| !reply.is_closed())
++    }
++    async fn accept(&self, envelope: &Envelope) -> Result<(), DispatchError> {
++        if !self.live() {
++            return Err(DispatchError::Closed);
++        }
++        self.context.replay.preflight(envelope.id())?;
++        let authority = self.context.authority.exchange_reply(
++            &self.context.principal,
++            &self.request,
++            envelope,
++            &self.held,
++        )?;
++        self.context
++            .verifier
++            .verify_with_current_key(envelope.original(), &self.context.principal, &authority.key)
++            .await
++            .map_err(DispatchError::from)?;
++        self.context.replay.consume(envelope.id())?;
++        if !self.expectation.matches(envelope)
++            || envelope.scope(Scope::Reply) != Some(self.request.id())
++        {
++            return Err(DispatchError::ReplyMismatch);
++        }
++        if self
++            .expectation
++            .required_scope
++            .is_some_and(|scope| !self.context.principal.has_scope(scope))
++        {
++            return Err(DispatchError::ScopeDenied);
++        }
++        if !self.live() || !self.started.load(Ordering::Acquire) {
++            return Err(DispatchError::Closed);
++        }
++        self.reply
++            .lock()
++            .take()
++            .ok_or(DispatchError::Closed)?
++            .send(Ok(envelope.clone()))
++            .map_err(|_| DispatchError::Closed)
++    }
++}
++
++struct WriteJob {
++    output: PeerOutput,
++    deadline: Instant,
++    lifetime: CancellationToken,
++    authority: Option<CancellationToken>,
++    cancel: Option<CancellationToken>,
++    started: Option<Arc<AtomicBool>>,
++    completion: Option<oneshot::Sender<Result<Identifier, DispatchError>>>,
++    _slot: Option<OwnedSemaphorePermit>,
++    bye: bool,
++}
++async fn writes<W: Sink<Bytes, Error = DispatchError> + Send + Unpin>(
++    mut writer: W,
++    mut incoming: mpsc::Receiver<WriteJob>,
++    stop: CancellationToken,
++) -> Result<(), DispatchError> {
++    while let Some(mut job) = incoming.recv().await {
++        if !job.bye
++            && (job.lifetime.is_cancelled()
++                || job.cancel.as_ref().is_some_and(|c| c.is_cancelled())
++                || job.deadline <= Instant::now())
++        {
++            if let Some(done) = job.completion.take() {
++                let _ = done.send(Err(DispatchError::Closed));
++            }
++            continue;
++        }
++        let result=async{
++   for envelope in job.output.envelopes(){
++    let bytes=Bytes::from(serde_json::to_vec(envelope).map_err(|_|DispatchError::Closed)?);
++    if let Some(started)=&job.started{started.store(true,Ordering::Release);}
++    tokio::select!{biased;_=async{match &job.authority{Some(token)=>token.cancelled().await,None=>std::future::pending().await}},if !job.bye=>return Err(DispatchError::Authority),_=job.lifetime.cancelled(),if !job.bye=>return Err(DispatchError::Closed),_=stop.cancelled(),if !job.bye=>return Err(DispatchError::Closed),_=async{match &job.cancel{Some(c)=>c.cancelled().await,None=>std::future::pending().await}},if !job.bye=>return Err(DispatchError::Closed),_=tokio::time::sleep_until(job.deadline)=>return Err(DispatchError::Closed),r=writer.send(bytes)=>r?}
++   }
++   Ok(())
++  }.await;
++        if let Some(done) = job.completion.take() {
++            let id = job
++                .output
++                .envelopes()
++                .first()
++                .map(|e| Identifier::try_from(e.id().to_owned()))
++                .transpose()?;
++            let _ = done.send(match &result {
++                Ok(()) => id.ok_or(DispatchError::Closed),
++                Err(_) => Err(DispatchError::SubmissionUnknown),
++            });
++        }
++        result?;
++    }
++    Ok(())
++}
++fn signed(config: &PeerConfig, mut value: Value) -> Result<Envelope, DispatchError> {
++    value
++        .as_object_mut()
++        .ok_or(DispatchError::Closed)?
++        .remove("signature");
++    let env = Envelope::from_value(value)?;
++    Envelope::from_value(
++        config
++            .signer
++            .sign(env.original())
++            .map_err(|_| DispatchError::Signature)?,
++    )
++    .map_err(DispatchError::from)
++}
++fn problem(
++    config: &PeerConfig,
++    error: DispatchError,
++    request: Option<&Envelope>,
++) -> Result<PeerOutput, DispatchError> {
++    let mut v = json!({"v":2,"type":"error","id":fresh_id(),"ts":chrono::Utc::now(),"payload":{"code":error_code(error),"category":"auth","reason":error_reason(error)}});
++    if let Some(request) = request {
++        v["in_reply_to"] = json!(request.id());
++        for name in ["cid", "sid", "connid", "operation_id"] {
++            if let Some(value) = request.original().get(name) {
++                v[name] = value.clone();
++            }
++        }
++    }
++    Ok(output(vec![signed(config, v)?], None))
++}
++fn job(
++    output: PeerOutput,
++    deadline: Instant,
++    lifetime: &CancellationToken,
++    authority: Option<CancellationToken>,
++    slot: Option<OwnedSemaphorePermit>,
++) -> WriteJob {
++    WriteJob {
++        output,
++        deadline,
++        lifetime: lifetime.clone(),
++        authority,
++        cancel: None,
++        started: None,
++        completion: None,
++        _slot: slot,
++        bye: false,
++    }
++}
++struct RetainedOutbound {
++    request: Option<Outbound>,
++    terminal: Arc<parking_lot::Mutex<Option<DispatchError>>>,
++}
++impl Drop for RetainedOutbound {
++    fn drop(&mut self) {
++        if let Some(request) = self.request.take() {
++            let error = self.terminal.lock().unwrap_or(DispatchError::Closed);
++            let _ = request.reply.send(Err(error));
++        }
++    }
++}
++struct Snapshot {
++    deadline: Instant,
++    authority: Option<CancellationToken>,
++    authenticated: bool,
++    pending: Instant,
++}
++fn snapshot(peer: &CanonicalPeer) -> Snapshot {
++    Snapshot {
++        deadline: peer.effective_deadline(),
++        authority: peer.route_authority(),
++        authenticated: matches!(peer.state, State::Authenticated(_)),
++        pending: peer
++            .pending_step_up_deadline()
++            .unwrap_or(peer.effective_deadline()),
++    }
++}
++type Work<'a> = BoxFuture<
++    'a,
++    (
++        CanonicalPeer,
++        Result<PeerOutput, DispatchError>,
++        OwnedSemaphorePermit,
++        Instant,
++        Option<Envelope>,
++        Option<Outbound>,
++    ),
++>;
++type Verification<'a> = BoxFuture<
++    'a,
++    (
++        String,
++        Arc<PendingCall>,
++        Envelope,
++        Result<(), DispatchError>,
++    ),
++>;
++
++pub(in crate::v2) async fn drive<R, W>(
++    mut peer: CanonicalPeer,
++    mut reader: R,
++    writer: W,
++    handler: &dyn AuthenticatedHandler,
++) -> Result<(), DispatchError>
++where
++    R: Stream<Item = Result<Bytes, DispatchError>> + Send + Unpin,
++    W: Sink<Bytes, Error = DispatchError> + Send + Unpin,
++{
++    let capacity = peer.config.pending_capacity;
++    let config = peer.config.clone();
++    let physical = peer.lifetime.clone();
++    let mut outbound = peer.outbound.take();
++    let (call_tx, mut calls) = mpsc::channel(capacity);
++    let changed = Arc::new(Notify::new());
++    let sender = ExchangeSender {
++        sender: call_tx,
++        changed: changed.clone(),
++    };
++    peer.exchanges = Some(sender.clone());
++    if let State::Authenticated(binding) = &mut peer.state {
++        binding.dispatch.exchanges = Some(sender);
++    }
++    let (write_tx, write_rx) = mpsc::channel(capacity * 2 + 4);
++    let stop_writes = CancellationToken::new();
++    let writing = writes(writer, write_rx, stop_writes.clone());
++    tokio::pin!(writing);
++    let slots = Arc::new(Semaphore::new(capacity));
++    let mut state = Some(peer);
++    let mut active: Option<Work<'_>> = None;
++    let mut pending = HashMap::<String, Arc<PendingCall>>::new();
++    let mut verifying = FuturesUnordered::<Verification<'_>>::new();
++    let mut queued = VecDeque::<Bytes>::new();
++    let mut view = snapshot(state.as_ref().expect("owned peer"));
++    let mut bye = None;
++    let terminal = Arc::new(parking_lot::Mutex::new(None));
++    let mut writer_done = false;
++    let mut outbound_completions = FuturesUnordered::<BoxFuture<'_, ()>>::new();
++    let result = loop {
++        pending.retain(|_, call| call.live());
++        if active.is_none() {
++            if let Some(peer) = &mut state {
++                if peer
++                    .pending_step_up_deadline()
++                    .is_some_and(|deadline| deadline <= Instant::now())
++                {
++                    if let Some(output) = peer.expire_step_up()? {
++                        write_tx
++                            .try_send(job(
++                                output,
++                                view.deadline,
++                                &physical,
++                                view.authority.clone(),
++                                None,
++                            ))
++                            .map_err(|_| DispatchError::Capacity)?;
++                    }
++                    view = snapshot(peer);
++                }
++                if let Some(output) = peer.drain_step_up_failures()? {
++                    write_tx
++                        .try_send(job(
++                            output,
++                            view.deadline.min(Instant::now() + MAX_DISPATCH_WAIT),
++                            &physical,
++                            view.authority.clone(),
++                            None,
++                        ))
++                        .map_err(|_| DispatchError::Capacity)?;
++                }
++                if let Some(frame) = queued.front() {
++                    if let Ok(slot) = slots.clone().try_acquire_owned() {
++                        let frame = frame.clone();
++                        queued.pop_front();
++                        let mut owner = state.take().expect("ordered owner");
++                        let deadline = owner
++                            .effective_deadline()
++                            .min(Instant::now() + MAX_DISPATCH_WAIT);
++                        view = snapshot(&owner);
++                        active = Some(
++                            async move {
++                                let correlation = Envelope::parse(&frame).ok();
++                                let result = owner.handle(&frame, handler, deadline).await;
++                                (owner, result, slot, deadline, correlation, None)
++                            }
++                            .boxed(),
++                        );
++                    }
++                }
++            }
++        }
++        let next_call = pending
++            .values()
++            .map(|p| p.deadline)
++            .min()
++            .unwrap_or(view.deadline);
++        tokio::select! {biased;
++              _=async{match &view.authority{Some(token)=>token.cancelled().await,None=>std::future::pending().await}}=>{bye=Some("authority-retired");*terminal.lock()=Some(DispatchError::Authority);break Err(DispatchError::Authority);}
++              _=physical.cancelled()=>break Err(DispatchError::Closed),
++              _=tokio::time::sleep_until(view.deadline)=>{if view.authenticated{bye=Some("session-expired");}break Err(DispatchError::Closed);}
++              result=&mut writing=>{writer_done=true;break result;},
++              completed=async{match &mut active{Some(work)=>work.await,None=>std::future::pending().await}}=>{
++               active=None;let(owner,result,slot,deadline,correlation,outbound_request)=completed;view=snapshot(&owner);let closed=matches!(owner.state,State::Closed);state=Some(owner);
++          if let Some(request)=outbound_request {
++           match result {
++            Ok(output)=>{if request.reply.is_closed(){continue;}let mut send=job(output,deadline,&physical,view.authority.clone(),Some(slot));send.started=Some(request.started);let(reply,ready)=oneshot::channel();send.completion=Some(reply);write_tx.try_send(send).map_err(|_|DispatchError::Capacity)?;outbound_completions.push(async move{let result=ready.await.unwrap_or(Err(DispatchError::SubmissionUnknown)).map(Outbound::submitted);let _=request.reply.send(result);}.boxed());}
++            Err(error)=>{let _=request.reply.send(Err(error));}
++           }
++           continue;
++          }
++
++               let output=match result{Ok(output)=>output,Err(error)=>{if closed{break Err(error);}if let Some(output)=state.as_ref().expect("owner").drain_step_up_failures()?{output}else{problem(&config,error,correlation.as_ref())?}}};
++               // Preserve exact validated correlation even for an interrupted invocation.
++               {let mut send=job(output,deadline,&physical,view.authority.clone(),Some(slot));send.bye=closed;write_tx.try_send(send)}.map_err(|_|DispatchError::Capacity)?;
++               if closed{break Ok(());}
++              }
++              Some((id,call,reply,result))=verifying.next(),if !verifying.is_empty()=>{
++               call.verifying.store(false,Ordering::Release);
++               if let Err(error)=result{write_tx.try_send(job(problem(&config,error,Some(&reply))?,call.deadline,&physical,view.authority.clone(),None)).map_err(|_|DispatchError::Capacity)?;}else if pending.get(&id).is_some_and(|current|Arc::ptr_eq(current,&call)){pending.remove(&id);}
++              }
++              Some(call)=calls.recv()=>{
++               if call.cancel.is_cancelled()||call.reply.is_closed()||call.context.active(call.deadline).is_err(){let _=call.reply.send(Err(DispatchError::Closed));continue;}
++               if pending.len()>=capacity{let _=call.reply.send(Err(DispatchError::Capacity));continue;}
++               let mut v=call.request.original().clone();v["id"]=json!(fresh_id());v["ts"]=json!(chrono::Utc::now());let request=signed(&config,v)?;let id=request.id().to_owned();let expectation=ReplyExpectation::new(&request)?;
++               let output=output(vec![request.clone()],Some(call.held.retained()));
++               let registered=Arc::new(PendingCall{request,expectation,context:call.context,held:call.held,deadline:call.deadline,cancel:call.cancel.clone(),started:call.started.clone(),reply:parking_lot::Mutex::new(Some(call.reply)),verifying:AtomicBool::new(false)});
++               pending.insert(id.clone(),registered.clone());let mut send=job(output,call.deadline,&physical,view.authority.clone(),None);send.cancel=Some(call.cancel);send.started=Some(call.started);
++               if write_tx.try_send(send).is_err(){pending.remove(&id);if let Some(reply)=registered.reply.lock().take(){let _=reply.send(Err(DispatchError::Capacity));}}
++              }
++              _=changed.notified()=>{},
++              _=tokio::time::sleep_until(next_call),if !pending.is_empty()=>{},
++              _=tokio::time::sleep_until(view.pending),if active.is_none()&&view.pending<view.deadline=>{if let Some(peer)=&mut state{if let Some(output)=peer.expire_step_up()?{write_tx.try_send(job(output,view.deadline,&physical,view.authority.clone(),None)).map_err(|_|DispatchError::Capacity)?;}view=snapshot(peer);}}
++              message=async{match &mut outbound{Some(receiver)=>receiver.recv().await,None=>std::future::pending().await}},if active.is_none()=>{
++         let Some(request)=message else{break Err(DispatchError::Closed);};
++         let slot=match slots.clone().try_acquire_owned(){Ok(slot)=>slot,Err(_)=>{let _=request.reply.send(Err(DispatchError::Capacity));continue;}};
++         let owner=state.take().expect("ordered owner");let deadline=request.deadline.min(owner.effective_deadline());view=snapshot(&owner);
++         let mut retained=RetainedOutbound{request:Some(request),terminal:terminal.clone()};
++          active=Some(async move{let result=owner.outbound_output(retained.request.as_ref().expect("retained outbound")).await;let request=retained.request.take();(owner,result,slot,deadline,None,request)}.boxed());
++        }
++        _=outbound_completions.next(),if !outbound_completions.is_empty()=>{},
++              frame=reader.next()=>{
++               let Some(frame)=frame else{break Ok(());};let frame=frame?;if frame.len()>super::super::MAX_ENVELOPE_BYTES{break Err(DispatchError::Wire(super::super::WireError::TooLarge));}
++               let parsed=Envelope::parse(&frame);
++               if let Ok(envelope)=&parsed{if let Some(id)=envelope.scope(Scope::Reply){if let Some(call)=pending.get(id){if !call.verifying.swap(true,Ordering::AcqRel){let id=id.to_owned();let call=call.clone();let envelope=envelope.clone();verifying.push(async move{let result=tokio::select!{biased;_=call.cancel.cancelled()=>Err(DispatchError::Closed),_=tokio::time::sleep_until(call.deadline)=>Err(DispatchError::Closed),result=call.accept(&envelope)=>result};(id,call,envelope,result)}.boxed());}continue;}}}
++               if queued.len()>=capacity{let output=problem(&config,DispatchError::Capacity,parsed.as_ref().ok())?;write_tx.try_send(job(output,view.deadline.min(Instant::now()+MAX_DISPATCH_WAIT),&physical,view.authority.clone(),None)).map_err(|_|DispatchError::Capacity)?;}else{queued.push_back(frame);}
++              }
++             }
++    };
++    // Drop the unique peer owner/invocations before waiting for the writer. No
++    // pending authority or physical route survives EOF/shutdown/cancelled drive.
++    drop(active);
++    drop(state);
++    pending.clear();
++    drop(verifying);
++    stop_writes.cancel();
++    if let Some(reason) = bye {
++        let value = json!({"v":2,"type":"auth.bye","id":fresh_id(),"ts":chrono::Utc::now(),"payload":{"reason":reason}});
++        let mut send = job(
++            output(vec![signed(&config, value)?], None),
++            Instant::now() + Duration::from_secs(1),
++            &physical,
++            None,
++            None,
++        );
++        send.bye = true;
++        let _ = write_tx.try_send(send);
++    }
++    drop(write_tx);
++    if !writer_done {
++        let _ = tokio::time::timeout(Duration::from_secs(1), &mut writing).await;
++    }
++    result
++}
+diff --git a/crates/uctp/rvoip-uctp/tests/support/peer_exchange.rs b/crates/uctp/rvoip-uctp/tests/support/peer_exchange.rs
+new file mode 100644
+index 0000000..f9dd425
+--- /dev/null
++++ b/crates/uctp/rvoip-uctp/tests/support/peer_exchange.rs
+@@ -0,0 +1,1021 @@
++//! Actual canonical peer actor exchanges, current read/key guard and bounded IO.
++use super::*;
++use rvoip_auth_core::sig9421::{PrincipalVerificationKey, Sig9421Error};
++use std::sync::Mutex;
++struct Grants {
++    deny: bool,
++    deny_request: bool,
++    deny_reply: bool,
++    key: ResolvedVerificationKey,
++}
++struct Held {
++    _base: AuthorityLease,
++    guard: tokio::sync::OwnedRwLockReadGuard<Grants>,
++}
++struct ExchangePolicy {
++    base: Arc<Policy>,
++    grants: Arc<RwLock<Grants>>,
++    requests: AtomicUsize,
++    replies: AtomicUsize,
++    require_user: AtomicBool,
++}
++impl ExchangePolicy {
++    async fn held(&self, base: AuthorityLease) -> Result<AuthorityLease, DispatchError> {
++        let guard = self.grants.clone().read_owned().await;
++        if guard.deny {
++            return Err(DispatchError::Authority);
++        }
++        Ok(AuthorityLease::holding(Held { _base: base, guard }))
++    }
++}
++#[async_trait]
++impl PeerAuthority for ExchangePolicy {
++    fn assurance_requirement(
++        &self,
++        _: &ValidatedBearer,
++        _: &Device,
++        _: &Identifier,
++        e: &Envelope,
++    ) -> Result<Option<AssuranceRequirement>, DispatchError> {
++        Ok(
++            (self.require_user.load(Ordering::Acquire) && e.kind() == "connection.update").then(
++                || AssuranceRequirement::UserAuthorized {
++                    user_id: rvoip_core::IdentityId::from_string("user-alice"),
++                    scopes: vec!["control".into()],
++                },
++            ),
++        )
++    }
++
++    async fn identity(&self, c: &ValidatedBearer, d: &Device) -> Result<Identifier, DispatchError> {
++        self.base.identity(c, d).await
++    }
++    async fn acquire(
++        &self,
++        c: &ValidatedBearer,
++        d: &Device,
++        i: &Identifier,
++        e: &Envelope,
++    ) -> Result<AuthorityLease, DispatchError> {
++        self.held(self.base.guard(c, d, i, e).await?).await
++    }
++    async fn refresh(
++        &self,
++        old: &ValidatedBearer,
++        new: &ValidatedBearer,
++        d: &Device,
++        i: &Identifier,
++        e: &Envelope,
++    ) -> Result<AuthorityLease, DispatchError> {
++        self.held(self.base.refresh(old, new, d, i, e).await?).await
++    }
++    fn exchange_request(
++        &self,
++        c: &ValidatedBearer,
++        _: &Device,
++        _: &Identifier,
++        invocation: &Envelope,
++        request: &Envelope,
++        held: &AuthorityLease,
++    ) -> Result<AuthorityLease, DispatchError> {
++        let current = held.authority::<Held>().ok_or(DispatchError::Authority)?;
++        if current.guard.deny
++            || current.guard.deny_request
++            || !c.principal.has_scope("control")
++            || invocation.scope(Scope::Conversation) != Some("conversation")
++            || request.kind() != "connection.update"
++        {
++            return Err(DispatchError::ScopeDenied);
++        }
++        self.requests.fetch_add(1, Ordering::AcqRel);
++        Ok(held.retained())
++    }
++    fn exchange_reply(
++        &self,
++        c: &ValidatedBearer,
++        _: &Device,
++        _: &Identifier,
++        request: &Envelope,
++        _reply: &Envelope,
++        held: &AuthorityLease,
++    ) -> Result<ExchangeReplyAuthority, DispatchError> {
++        let current = held.authority::<Held>().ok_or(DispatchError::Authority)?;
++        if current.guard.deny
++            || current.guard.deny_reply
++            || request.scope(Scope::Conversation) != Some("conversation")
++            || request.scope(Scope::Session) != Some("session")
++            || request.scope(Scope::Connection) != Some("connection")
++        {
++            return Err(DispatchError::Authority);
++        }
++        self.replies.fetch_add(1, Ordering::AcqRel);
++        let key = PrincipalVerificationKey::from_current(
++            &c.principal,
++            "client".into(),
++            current.guard.key.clone(),
++        )
++        .map_err(|_| DispatchError::Authority)?;
++        Ok(ExchangeReplyAuthority {
++            lease: held.retained(),
++            key,
++        })
++    }
++}
++struct CountingKeys {
++    key: Vec<u8>,
++    calls: AtomicUsize,
++}
++impl KeyResolver for CountingKeys {
++    fn resolve(&self, _: &str) -> Option<Vec<u8>> {
++        None
++    }
++    fn resolve_for_principal(
++        &self,
++        p: &AuthenticatedPrincipal,
++        k: &str,
++        a: &str,
++        _: chrono::DateTime<Utc>,
++    ) -> Option<ResolvedVerificationKey> {
++        self.calls.fetch_add(1, Ordering::AcqRel);
++        (p.subject == "alice"
++            && p.issuer.as_deref() == Some("issuer")
++            && p.tenant.as_deref() == Some("tenant")
++            && k == "client"
++            && a == "EdDSA")
++            .then(|| key(self.key.clone()))
++    }
++}
++fn key(public_key: Vec<u8>) -> ResolvedVerificationKey {
++    ResolvedVerificationKey {
++        public_key,
++        algorithm: "EdDSA".into(),
++        not_before: None,
++        expires_at: None,
++        revoked: false,
++    }
++}
++struct DropWatch(Arc<AtomicUsize>);
++impl Drop for DropWatch {
++    fn drop(&mut self) {
++        self.0.fetch_add(1, Ordering::AcqRel);
++    }
++}
++struct ExchangeHandler {
++    entered: Notify,
++    effects: AtomicUsize,
++    drops: Arc<AtomicUsize>,
++    errors: Mutex<Vec<DispatchError>>,
++    peer: Mutex<Option<Arc<rvoip_core::peer_admission::PeerAdmission>>>,
++    timeout: Duration,
++    mismatch: bool,
++    parallel: bool,
++}
++impl ExchangeHandler {
++    fn new() -> Self {
++        Self {
++            entered: Notify::new(),
++            effects: AtomicUsize::new(0),
++            drops: Arc::new(AtomicUsize::new(0)),
++            errors: Mutex::new(vec![]),
++            peer: Mutex::new(None),
++            timeout: Duration::from_secs(2),
++            mismatch: false,
++            parallel: false,
++        }
++    }
++}
++fn ack_for(request: &Envelope) -> Value {
++    let mut v = envelope("ack", json!({"details":{"ready":true}}));
++    v["in_reply_to"] = json!(request.id());
++    for field in ["cid", "sid", "connid", "operation_id"] {
++        if let Some(value) = request.original().get(field) {
++            v[field] = value.clone();
++        }
++    }
++    v
++}
++#[async_trait]
++impl AuthenticatedHandler for ExchangeHandler {
++    async fn handle(&self, authorized: AuthorizedEnvelope) -> Result<Envelope, DispatchError> {
++        let _drop = DropWatch(self.drops.clone());
++        *self.peer.lock().unwrap() = authorized.peer_admission().cloned();
++        self.entered.notify_one();
++        let original = authorized.envelope();
++        let mut request = command();
++        request["id"] = json!("backend-placeholder");
++        if self.mismatch {
++            request["connid"] = json!("another-connection");
++        }
++        let request = Envelope::from_value(request)?;
++        let reply = Envelope::from_value(ack_for(original))?;
++        let result = if self.parallel {
++            let (first, second, third) = tokio::join!(
++                authorized.exchange(request.clone(), Instant::now() + self.timeout),
++                authorized.exchange(request.clone(), Instant::now() + self.timeout),
++                authorized.exchange(request, Instant::now() + self.timeout)
++            );
++            let mut successes = 0;
++            for result in [first, second, third] {
++                match result {
++                    Ok(_) => successes += 1,
++                    Err(e) => self.errors.lock().unwrap().push(e),
++                }
++            }
++            if successes == 2 {
++                Ok(reply.clone())
++            } else {
++                Err(DispatchError::Authority)
++            }
++        } else {
++            authorized
++                .exchange(request, Instant::now() + self.timeout)
++                .await
++        };
++        match result {
++            Ok(observation) => {
++                if observation.kind() != "ack" {
++                    return Err(DispatchError::Authority);
++                }
++                self.effects.fetch_add(1, Ordering::AcqRel);
++                Ok(reply)
++            }
++            Err(e) => {
++                self.errors.lock().unwrap().push(e);
++                Err(e)
++            }
++        }
++    }
++}
++fn setup() -> (Fixture, Arc<ExchangePolicy>, Arc<CountingKeys>) {
++    let mut f = Fixture::new();
++    let policy = Arc::new(ExchangePolicy {
++        base: f.policy.clone(),
++        grants: Arc::new(RwLock::new(Grants {
++            deny: false,
++            deny_request: false,
++            deny_reply: false,
++            key: key(f.client_public.clone()),
++        })),
++        requests: AtomicUsize::new(0),
++        replies: AtomicUsize::new(0),
++        require_user: AtomicBool::new(false),
++    });
++    let resolver = Arc::new(CountingKeys {
++        key: f.client_public.clone(),
++        calls: AtomicUsize::new(0),
++    });
++    let config = Arc::get_mut(&mut f.config).unwrap();
++    config.authority = policy.clone();
++    config.verifier = Arc::new(Sig9421Verifier::new(resolver.clone()));
++    (f, policy, resolver)
++}
++async fn auth(wire: &mut Wire, f: &Fixture, token: &str) {
++    wire.send(serde_json::to_vec(&hello()).unwrap()).await;
++    let challenge = wire.read().await;
++    assert_eq!(challenge.kind(), "auth.challenge");
++    wire.send(f.sign(response(&challenge, token))).await;
++    assert_eq!(wire.read().await.kind(), "auth.session");
++}
++async fn open(kind: &str, f: &Fixture, h: Arc<ExchangeHandler>) -> Wire {
++    let profile = CanonicalProfile::new(f.config.clone(), h, 8).unwrap();
++    wire(kind, profile, "/uctp", Some("https://allowed.example"))
++        .await
++        .unwrap()
++}
++async fn until(mut predicate: impl FnMut() -> bool) {
++    tokio::time::timeout(Duration::from_secs(2), async {
++        while !predicate() {
++            tokio::task::yield_now().await;
++        }
++    })
++    .await
++    .unwrap();
++}
++#[tokio::test]
++async fn local_tls_same_peer_exchange_completes_while_handler_waits_on_all_transports() {
++    for kind in ["quic", "wt", "ws"] {
++        let (f, policy, resolver) = setup();
++        let h = Arc::new(ExchangeHandler::new());
++        let mut wire = open(kind, &f, h.clone()).await;
++        auth(&mut wire, &f, "old").await;
++        let original = command();
++        wire.send(f.sign(original.clone())).await;
++        let callback = wire.read().await;
++        assert_eq!(callback.kind(), "connection.update");
++        assert_ne!(callback.id(), "backend-placeholder");
++        assert_ne!(callback.id(), original["id"].as_str().unwrap());
++        f.verify_server(&callback).await;
++        let reads = resolver.calls.load(Ordering::Acquire);
++        wire.send(f.sign(ack_for(&callback))).await;
++        let result = wire.read().await;
++        assert_eq!(result.kind(), "ack");
++        assert_eq!(result.scope(Scope::Reply), original["id"].as_str());
++        f.verify_server(&result).await;
++        assert_eq!(h.effects.load(Ordering::Acquire), 1);
++        assert_eq!(policy.requests.load(Ordering::Acquire), 1);
++        assert_eq!(policy.replies.load(Ordering::Acquire), 1);
++        assert_eq!(resolver.calls.load(Ordering::Acquire), reads);
++        wire.server.shutdown().await.unwrap();
++        assert!(h.peer.lock().unwrap().as_ref().unwrap().is_closed());
++    }
++}
++#[tokio::test]
++async fn queued_grant_writer_cannot_deadlock_reply_key_or_scope_verification() {
++    use std::future::Future;
++    let (f, policy, resolver) = setup();
++    let h = Arc::new(ExchangeHandler::new());
++    let mut wire = open("quic", &f, h.clone()).await;
++    auth(&mut wire, &f, "old").await;
++    wire.send(f.sign(command())).await;
++    let callback = wire.read().await;
++    h.entered.notified().await;
++    let queued = Arc::new(Notify::new());
++    let signal = queued.clone();
++    let grants = policy.grants.clone();
++    let writer = tokio::spawn(async move {
++        let mut future = Box::pin(grants.write_owned());
++        let mut guard = futures::future::poll_fn(|cx| {
++            let r = future.as_mut().poll(cx);
++            if r.is_pending() {
++                signal.notify_one();
++            }
++            r
++        })
++        .await;
++        guard.deny = true;
++    });
++    queued.notified().await;
++    assert!(!writer.is_finished());
++    let reads = resolver.calls.load(Ordering::Acquire);
++    wire.send(f.sign(ack_for(&callback))).await;
++    assert_eq!(wire.read().await.kind(), "ack");
++    assert_eq!(resolver.calls.load(Ordering::Acquire), reads);
++    tokio::time::timeout(Duration::from_secs(1), writer)
++        .await
++        .unwrap()
++        .unwrap();
++    wire.send(f.sign(command())).await;
++    assert_eq!(wire.read().await.kind(), "error");
++    assert_eq!(h.effects.load(Ordering::Acquire), 1);
++    wire.server.shutdown().await.unwrap();
++}
++#[tokio::test]
++async fn request_permission_and_resource_scope_are_checked_before_callback_submission() {
++    for mismatch in [false, true] {
++        let (f, policy, _) = setup();
++        policy.grants.write().await.deny_request = !mismatch;
++        let mut handler = ExchangeHandler::new();
++        handler.mismatch = mismatch;
++        let h = Arc::new(handler);
++        let mut wire = open("quic", &f, h.clone()).await;
++        auth(&mut wire, &f, "old").await;
++        let original = command();
++        wire.send(f.sign(original.clone())).await;
++        let error = wire.read().await;
++        assert_eq!(error.kind(), "error");
++        assert_eq!(error.scope(Scope::Reply), original["id"].as_str());
++        assert_eq!(policy.requests.load(Ordering::Acquire), 0);
++        assert_eq!(h.effects.load(Ordering::Acquire), 0);
++        assert!(h.errors.lock().unwrap().contains(&if mismatch {
++            DispatchError::ReplyMismatch
++        } else {
++            DispatchError::ScopeDenied
++        }));
++        wire.server.shutdown().await.unwrap();
++    }
++}
++#[tokio::test]
++async fn absent_exchange_policy_and_direct_handle_fail_closed_without_effect() {
++    let f = Fixture::new();
++    let h = Arc::new(ExchangeHandler::new());
++    let mut wire = open("quic", &f, h.clone()).await;
++    auth(&mut wire, &f, "old").await;
++    wire.send(f.sign(command())).await;
++    assert_eq!(wire.read().await.kind(), "error");
++    assert!(h
++        .errors
++        .lock()
++        .unwrap()
++        .contains(&DispatchError::Unsupported));
++    wire.server.shutdown().await.unwrap();
++    let (f, _, _) = setup();
++    let mut p = f.peer();
++    f.authenticate(&mut p, "old").await;
++    let h = ExchangeHandler::new();
++    assert!(p.handle(&f.sign(command()), &h, deadline()).await.is_err());
++    assert_eq!(h.effects.load(Ordering::Acquire), 0);
++}
++#[tokio::test]
++async fn invalid_signature_and_wrong_scope_do_not_consume_the_registered_reply_slot() {
++    for wrong_scope in [false, true] {
++        let (f, _, _) = setup();
++        let h = Arc::new(ExchangeHandler::new());
++        let mut wire = open("quic", &f, h.clone()).await;
++        auth(&mut wire, &f, "old").await;
++        wire.send(f.sign(command())).await;
++        let callback = wire.read().await;
++        let mut wrong = ack_for(&callback);
++        if wrong_scope {
++            wrong["connid"] = json!("wrong-connection");
++            wire.send(f.sign(wrong)).await;
++        } else {
++            let mut signed: Value = serde_json::from_slice(&f.sign(wrong)).unwrap();
++            signed["payload"]["details"]["ready"] = json!(false);
++            wire.send(serde_json::to_vec(&signed).unwrap()).await;
++        }
++        assert_eq!(wire.read().await.kind(), "error");
++        assert_eq!(h.effects.load(Ordering::Acquire), 0);
++        wire.send(f.sign(ack_for(&callback))).await;
++        assert_eq!(wire.read().await.kind(), "ack");
++        assert_eq!(h.effects.load(Ordering::Acquire), 1);
++        wire.server.shutdown().await.unwrap();
++    }
++}
++#[tokio::test]
++async fn wrong_reply_family_and_current_reply_denial_do_not_authorize_handler_effect() {
++    for deny in [false, true] {
++        let (f, policy, _) = setup();
++        policy.grants.write().await.deny_reply = deny;
++        let h = Arc::new(ExchangeHandler::new());
++        let mut wire = open("quic", &f, h.clone()).await;
++        auth(&mut wire, &f, "old").await;
++        wire.send(f.sign(command())).await;
++        let callback = wire.read().await;
++        let mut reply = ack_for(&callback);
++        if !deny {
++            reply["type"] = json!("connection.answer");
++            reply["payload"] = json!({"substrate":"quic","capabilities":{},"streams_answered":[]});
++        }
++        wire.send(f.sign(reply)).await;
++        assert_eq!(wire.read().await.kind(), "error");
++        assert_eq!(h.effects.load(Ordering::Acquire), 0);
++        wire.server.shutdown().await.unwrap();
++    }
++}
++#[tokio::test]
++async fn exchange_timeout_after_writer_admission_is_unknown_and_not_a_completed_effect() {
++    let (f, policy, _) = setup();
++    let mut handler = ExchangeHandler::new();
++    handler.timeout = Duration::from_millis(60);
++    let h = Arc::new(handler);
++    let mut wire = open("quic", &f, h.clone()).await;
++    auth(&mut wire, &f, "old").await;
++    let original = command();
++    wire.send(f.sign(original.clone())).await;
++    assert_eq!(wire.read().await.kind(), "connection.update");
++    let error = wire.read().await;
++    assert_eq!(error.kind(), "error");
++    assert_eq!(error.scope(Scope::Reply), original["id"].as_str());
++    assert!(h
++        .errors
++        .lock()
++        .unwrap()
++        .contains(&DispatchError::SubmissionUnknown));
++    assert_eq!(h.effects.load(Ordering::Acquire), 0);
++    until(|| policy.grants.try_write().is_ok()).await;
++    wire.server.shutdown().await.unwrap();
++}
++#[tokio::test]
++async fn command_queue_capacity_does_not_block_the_registered_reply_lane() {
++    let (f, _, _) = setup();
++    let h = Arc::new(ExchangeHandler::new());
++    let mut wire = open("quic", &f, h.clone()).await;
++    auth(&mut wire, &f, "old").await;
++    let first = command();
++    wire.send(f.sign(first.clone())).await;
++    let callback = wire.read().await;
++    let mut ids = vec![];
++    for _ in 0..3 {
++        let next = command();
++        ids.push(next["id"].as_str().unwrap().to_owned());
++        wire.send(f.sign(next)).await;
++    }
++    let capacity = wire.read().await;
++    assert_eq!(capacity.kind(), "error");
++    assert_eq!(capacity.scope(Scope::Reply), Some(ids[2].as_str()));
++    wire.send(f.sign(ack_for(&callback))).await;
++    let reply = wire.read().await;
++    assert_eq!(reply.kind(), "ack");
++    assert_eq!(reply.scope(Scope::Reply), first["id"].as_str());
++    wire.server.shutdown().await.unwrap();
++}
++#[tokio::test]
++async fn concurrent_exchange_requests_are_bounded_and_receive_fresh_actor_ids() {
++    let (f, _, _) = setup();
++    let mut handler = ExchangeHandler::new();
++    handler.parallel = true;
++    let h = Arc::new(handler);
++    let mut wire = open("quic", &f, h.clone()).await;
++    auth(&mut wire, &f, "old").await;
++    wire.send(f.sign(command())).await;
++    let first = wire.read().await;
++    let second = wire.read().await;
++    assert_eq!(first.kind(), "connection.update");
++    assert_eq!(second.kind(), "connection.update");
++    assert_ne!(first.id(), second.id());
++    wire.send(f.sign(ack_for(&first))).await;
++    wire.send(f.sign(ack_for(&second))).await;
++    assert_eq!(wire.read().await.kind(), "ack");
++    assert!(h.errors.lock().unwrap().contains(&DispatchError::Capacity));
++    assert_eq!(h.effects.load(Ordering::Acquire), 1);
++    wire.server.shutdown().await.unwrap();
++}
++#[tokio::test]
++async fn refresh_is_ordered_after_active_exchange_without_lending_new_authority() {
++    let (f, _, _) = setup();
++    let h = Arc::new(ExchangeHandler::new());
++    let mut wire = open("quic", &f, h.clone()).await;
++    auth(&mut wire, &f, "old").await;
++    let original = command();
++    wire.send(f.sign(original.clone())).await;
++    let callback = wire.read().await;
++    wire.send(f.sign(envelope(
++        "auth.refresh",
++        json!({"method":"bearer","credential":"new"}),
++    )))
++    .await;
++    assert!(
++        tokio::time::timeout(Duration::from_millis(20), wire.reader.next())
++            .await
++            .is_err()
++    );
++    wire.send(f.sign(ack_for(&callback))).await;
++    let complete = wire.read().await;
++    assert_eq!(complete.kind(), "ack");
++    assert_eq!(complete.scope(Scope::Reply), original["id"].as_str());
++    assert_eq!(wire.read().await.kind(), "auth.session");
++    assert_eq!(h.effects.load(Ordering::Acquire), 1);
++    wire.server.shutdown().await.unwrap();
++}
++#[tokio::test]
++async fn duplicate_verified_reply_cannot_execute_the_handler_twice() {
++    let (f, _, _) = setup();
++    let h = Arc::new(ExchangeHandler::new());
++    let mut wire = open("quic", &f, h.clone()).await;
++    auth(&mut wire, &f, "old").await;
++    wire.send(f.sign(command())).await;
++    let callback = wire.read().await;
++    let signed = f.sign(ack_for(&callback));
++    wire.send(signed.clone()).await;
++    wire.send(signed).await;
++    assert_eq!(wire.read().await.kind(), "ack");
++    assert_eq!(wire.read().await.kind(), "error");
++    assert_eq!(h.effects.load(Ordering::Acquire), 1);
++    wire.server.shutdown().await.unwrap();
++}
++#[tokio::test]
++async fn shutdown_and_eof_drop_pending_handler_and_all_current_guards() {
++    for abrupt in [false, true] {
++        let (f, policy, _) = setup();
++        let h = Arc::new(ExchangeHandler::new());
++        let mut wire = open("quic", &f, h.clone()).await;
++        auth(&mut wire, &f, "old").await;
++        wire.send(f.sign(command())).await;
++        assert_eq!(wire.read().await.kind(), "connection.update");
++        if abrupt {
++            wire.quic
++                .as_ref()
++                .unwrap()
++                .1
++                .close(0u32.into(), b"fixture-eof");
++        } else {
++            wire.server.shutdown().await.unwrap();
++        }
++        until(|| h.drops.load(Ordering::Acquire) == 1 && policy.grants.try_write().is_ok()).await;
++        assert_eq!(h.effects.load(Ordering::Acquire), 0);
++        assert!(h.peer.lock().unwrap().as_ref().unwrap().is_closed());
++        wire.server.shutdown().await.unwrap();
++    }
++}
++#[tokio::test]
++async fn credential_expiry_interrupts_pending_exchange_and_emits_bye() {
++    let (f, policy, _) = setup();
++    let h = Arc::new(ExchangeHandler::new());
++    let mut wire = open("quic", &f, h.clone()).await;
++    auth(&mut wire, &f, "short").await;
++    wire.send(f.sign(command())).await;
++    assert_eq!(wire.read().await.kind(), "connection.update");
++    let bye = wire.read().await;
++    assert_eq!(bye.kind(), "auth.bye");
++    f.verify_server(&bye).await;
++    until(|| policy.grants.try_write().is_ok()).await;
++    assert_eq!(h.effects.load(Ordering::Acquire), 0);
++    wire.server.shutdown().await.unwrap();
++}
++#[tokio::test]
++async fn current_key_verification_keeps_global_replay_and_exact_owner_key_scope() {
++    let (f, _, _) = setup();
++    let p = principal("old");
++    let current =
++        PrincipalVerificationKey::from_current(&p, "client".into(), key(f.client_public.clone()))
++            .unwrap();
++    let request: Value = serde_json::from_slice(&f.sign(command())).unwrap();
++    f.config
++        .verifier
++        .verify_with_current_key(&request, &p, &current)
++        .await
++        .unwrap();
++    assert!(matches!(
++        f.config.verifier.verify_for_principal(&request, &p).await,
++        Err(Sig9421Error::ReplayDetected(_))
++    ));
++    let request: Value = serde_json::from_slice(&f.sign(command())).unwrap();
++    f.config
++        .verifier
++        .verify_for_principal(&request, &p)
++        .await
++        .unwrap();
++    assert!(matches!(
++        f.config
++            .verifier
++            .verify_with_current_key(&request, &p, &current)
++            .await,
++        Err(Sig9421Error::ReplayDetected(_))
++    ));
++    let mut wrong = p.clone();
++    wrong.subject = "bob".into();
++    let wrong_owner = PrincipalVerificationKey::from_current(
++        &wrong,
++        "client".into(),
++        key(f.client_public.clone()),
++    )
++    .unwrap();
++    let wrong_kid = PrincipalVerificationKey::from_current(
++        &p,
++        "other-key".into(),
++        key(f.client_public.clone()),
++    )
++    .unwrap();
++    let request: Value = serde_json::from_slice(&f.sign(command())).unwrap();
++    for proof in [wrong_owner, wrong_kid] {
++        assert!(matches!(
++            f.config
++                .verifier
++                .verify_with_current_key(&request, &p, &proof)
++                .await,
++            Err(Sig9421Error::KeyRejected)
++        ));
++    }
++}
++#[tokio::test]
++async fn current_key_verification_checks_expiry_revocation_freshness_and_signature() {
++    let (f, _, _) = setup();
++    let p = principal("old");
++    for case in ["revoked", "expired-key", "wrong-algorithm", "wrong-bytes"] {
++        let mut k = key(f.client_public.clone());
++        match case {
++            "revoked" => k.revoked = true,
++            "expired-key" => k.expires_at = Some(Utc::now() - chrono::Duration::seconds(1)),
++            "wrong-algorithm" => k.algorithm = "RS256".into(),
++            _ => k.public_key = vec![0; 32],
++        };
++        let proof = PrincipalVerificationKey::from_current(&p, "client".into(), k).unwrap();
++        let request: Value = serde_json::from_slice(&f.sign(command())).unwrap();
++        assert!(f
++            .config
++            .verifier
++            .verify_with_current_key(&request, &p, &proof)
++            .await
++            .is_err());
++    }
++    let proof =
++        PrincipalVerificationKey::from_current(&p, "client".into(), key(f.client_public.clone()))
++            .unwrap();
++    let mut request = command();
++    request["ts"] = json!(Utc::now() - chrono::Duration::minutes(10));
++    let signed: Value = serde_json::from_slice(&f.sign(request)).unwrap();
++    assert!(matches!(
++        f.config
++            .verifier
++            .verify_with_current_key(&signed, &p, &proof)
++            .await,
++        Err(Sig9421Error::StaleTimestamp(_))
++    ));
++}
++struct BlockedSink {
++    polled: Arc<AtomicBool>,
++    dropped: Arc<AtomicBool>,
++}
++impl Drop for BlockedSink {
++    fn drop(&mut self) {
++        self.dropped.store(true, Ordering::Release);
++    }
++}
++impl Sink<Bytes> for BlockedSink {
++    type Error = DispatchError;
++    fn poll_ready(
++        self: std::pin::Pin<&mut Self>,
++        _: &mut std::task::Context<'_>,
++    ) -> std::task::Poll<Result<(), Self::Error>> {
++        self.polled.store(true, Ordering::Release);
++        std::task::Poll::Pending
++    }
++    fn start_send(self: std::pin::Pin<&mut Self>, _: Bytes) -> Result<(), Self::Error> {
++        panic!("blocked writer must not claim submission")
++    }
++    fn poll_flush(
++        self: std::pin::Pin<&mut Self>,
++        _: &mut std::task::Context<'_>,
++    ) -> std::task::Poll<Result<(), Self::Error>> {
++        std::task::Poll::Pending
++    }
++    fn poll_close(
++        self: std::pin::Pin<&mut Self>,
++        _: &mut std::task::Context<'_>,
++    ) -> std::task::Poll<Result<(), Self::Error>> {
++        std::task::Poll::Ready(Ok(()))
++    }
++}
++#[tokio::test]
++async fn reader_eof_interrupts_blocked_writer_and_pending_handler_without_detached_work() {
++    let (f, policy, _) = setup();
++    let mut p = f.peer();
++    f.authenticate(&mut p, "old").await;
++    let h = Arc::new(ExchangeHandler::new());
++    let handler = h.clone();
++    let (tx, rx) = mpsc::channel::<Vec<u8>>(2);
++    let reader = futures::stream::unfold(rx, |mut rx| async move {
++        rx.recv().await.map(|bytes| (Ok(Bytes::from(bytes)), rx))
++    });
++    let polled = Arc::new(AtomicBool::new(false));
++    let dropped = Arc::new(AtomicBool::new(false));
++    let sink = BlockedSink {
++        polled: polled.clone(),
++        dropped: dropped.clone(),
++    };
++    let run =
++        tokio::spawn(async move { p.run_frames(Box::pin(reader), sink, handler.as_ref()).await });
++    tx.send(f.sign(command())).await.unwrap();
++    until(|| polled.load(Ordering::Acquire)).await;
++    drop(tx);
++    tokio::time::timeout(Duration::from_secs(1), run)
++        .await
++        .unwrap()
++        .unwrap()
++        .unwrap();
++    assert!(dropped.load(Ordering::Acquire));
++    assert_eq!(h.drops.load(Ordering::Acquire), 1);
++    assert_eq!(h.effects.load(Ordering::Acquire), 0);
++    assert!(policy.grants.try_write().is_ok());
++    assert!(h.peer.lock().unwrap().as_ref().unwrap().is_closed());
++}
++#[tokio::test]
++async fn blocked_exchange_write_has_a_finite_deadline_and_retires_all_guards() {
++    let (f, policy, _) = setup();
++    let mut p = f.peer();
++    f.authenticate(&mut p, "old").await;
++    let mut handler = ExchangeHandler::new();
++    handler.timeout = Duration::from_millis(60);
++    let h = Arc::new(handler);
++    let handler = h.clone();
++    let (tx, rx) = mpsc::channel::<Vec<u8>>(2);
++    let reader = futures::stream::unfold(rx, |mut rx| async move {
++        rx.recv().await.map(|bytes| (Ok(Bytes::from(bytes)), rx))
++    });
++    let polled = Arc::new(AtomicBool::new(false));
++    let dropped = Arc::new(AtomicBool::new(false));
++    let sink = BlockedSink {
++        polled: polled.clone(),
++        dropped: dropped.clone(),
++    };
++    let run =
++        tokio::spawn(async move { p.run_frames(Box::pin(reader), sink, handler.as_ref()).await });
++    tx.send(f.sign(command())).await.unwrap();
++    assert!(tokio::time::timeout(Duration::from_secs(1), run)
++        .await
++        .unwrap()
++        .unwrap()
++        .is_err());
++    assert!(polled.load(Ordering::Acquire));
++    assert!(dropped.load(Ordering::Acquire));
++    assert_eq!(h.drops.load(Ordering::Acquire), 1);
++    assert_eq!(h.effects.load(Ordering::Acquire), 0);
++    assert!(policy.grants.try_write().is_ok());
++    drop(tx);
++}
++struct SavingHandler(Mutex<Option<AuthorizedEnvelope>>);
++#[async_trait]
++impl AuthenticatedHandler for SavingHandler {
++    async fn handle(&self, authorized: AuthorizedEnvelope) -> Result<Envelope, DispatchError> {
++        let reply = Envelope::from_value(ack_for(authorized.envelope()))?;
++        *self.0.lock().unwrap() = Some(authorized);
++        Ok(reply)
++    }
++}
++#[tokio::test]
++async fn returned_handler_cannot_reuse_a_saved_envelope_for_a_later_exchange() {
++    let (f, policy, _) = setup();
++    let h = Arc::new(SavingHandler(Mutex::new(None)));
++    let profile = CanonicalProfile::new(f.config.clone(), h.clone(), 8).unwrap();
++    let mut wire = wire("quic", profile, "/uctp", Some("https://allowed.example"))
++        .await
++        .unwrap();
++    auth(&mut wire, &f, "old").await;
++    wire.send(f.sign(command())).await;
++    assert_eq!(wire.read().await.kind(), "ack");
++    let saved = h.0.lock().unwrap().take().unwrap();
++    assert_eq!(
++        saved
++            .exchange(Envelope::from_value(command()).unwrap(), deadline())
++            .await
++            .unwrap_err(),
++        DispatchError::Closed
++    );
++    assert_eq!(policy.requests.load(Ordering::Acquire), 0);
++    drop(saved);
++    wire.server.shutdown().await.unwrap();
++}
++fn routed_peer(f: &Fixture) -> (CanonicalPeer, Arc<ReachabilityRegistry>, Arc<RoutePolicy>) {
++    let registry = ReachabilityRegistry::new(4).unwrap();
++    let route = RoutePolicy::new(f.policy.clone());
++    let peer = CanonicalPeer::with_reachability(
++        f.config.clone(),
++        CancellationToken::new(),
++        registry.clone(),
++        rvoip_uctp::v2::reachability::TrustedPeerRoute::new(
++            rvoip_uctp::v2::reachability::PeerTransport::Quic,
++            "quic://configured-local",
++            1,
++            Duration::from_secs(5),
++        )
++        .unwrap(),
++        route.clone(),
++    )
++    .unwrap();
++    (peer, registry, route)
++}
++#[tokio::test]
++async fn expired_stepup_is_reported_before_a_reply_queued_behind_delivery_work() {
++    let (f, policy, _) = setup();
++    policy.require_user.store(true, Ordering::Release);
++    let (mut peer, registry, route) = routed_peer(&f);
++    f.authenticate(&mut peer, "old").await;
++    let original = command();
++    let challenge = {
++        let output = peer
++            .handle(
++                &f.sign(original.clone()),
++                &Handler::default(),
++                Instant::now() + Duration::from_millis(60),
++            )
++            .await
++            .unwrap();
++        output.envelopes()[0].clone()
++    };
++    assert_eq!(challenge.kind(), "identity.step-up-request");
++    let (input, rx) = mpsc::channel::<Vec<u8>>(4);
++    let reader = futures::stream::unfold(rx, |mut rx| async move {
++        rx.recv().await.map(|bytes| (Ok(Bytes::from(bytes)), rx))
++    });
++    let (output, mut observations) = mpsc::channel::<Bytes>(8);
++    let writer = futures::sink::unfold(output, |sender, bytes| async move {
++        sender
++            .send(bytes)
++            .await
++            .map_err(|_| DispatchError::Closed)?;
++        Ok::<_, DispatchError>(sender)
++    });
++    let run = tokio::spawn(async move {
++        peer.run_frames(Box::pin(reader), Box::pin(writer), &Handler::default())
++            .await
++    });
++    route.hold.store(true, Ordering::Release);
++    let handle = routes(&registry).remove(0);
++    let sending = tokio::spawn(async move { handle.submit(event(), deadline()).await });
++    route.entered.notified().await;
++    tokio::time::sleep(Duration::from_millis(80)).await;
++    let mut late = envelope(
++        "identity.step-up-response",
++        json!({"method":"bearer","credential":"user"}),
++    );
++    late["in_reply_to"] = json!(challenge.id());
++    for name in ["cid", "sid", "connid", "operation_id"] {
++        late[name] = original[name].clone();
++    }
++    let late_id = late["id"].as_str().unwrap().to_owned();
++    input.send(f.sign(late)).await.unwrap();
++    route.release.notify_one();
++    let mut seen = vec![];
++    for _ in 0..3 {
++        let bytes = tokio::time::timeout(Duration::from_secs(1), observations.recv())
++            .await
++            .unwrap()
++            .unwrap();
++        seen.push(Envelope::parse(&bytes).unwrap());
++    }
++    assert_eq!(seen[0].kind(), "conversation.event");
++    assert_eq!(seen[1].scope(Scope::Reply), original["id"].as_str());
++    assert_eq!(
++        seen[1].original()["payload"]["reason"],
++        json!("step_up_expired")
++    );
++    assert_eq!(seen[2].scope(Scope::Reply), Some(late_id.as_str()));
++    sending.await.unwrap().unwrap();
++    drop(input);
++    run.await.unwrap().unwrap();
++}
++struct GateOutput {
++    values: Mutex<Vec<Envelope>>,
++    blocked: AtomicBool,
++    waker: futures::task::AtomicWaker,
++}
++struct GateSink(Arc<GateOutput>);
++impl Sink<Bytes> for GateSink {
++    type Error = DispatchError;
++    fn poll_ready(
++        self: std::pin::Pin<&mut Self>,
++        _: &mut std::task::Context<'_>,
++    ) -> std::task::Poll<Result<(), Self::Error>> {
++        std::task::Poll::Ready(Ok(()))
++    }
++    fn start_send(self: std::pin::Pin<&mut Self>, bytes: Bytes) -> Result<(), Self::Error> {
++        let envelope = Envelope::parse(&bytes)?;
++        if envelope.kind() == "ack" {
++            self.0.blocked.store(true, Ordering::Release);
++        }
++        self.0.values.lock().unwrap().push(envelope);
++        Ok(())
++    }
++    fn poll_flush(
++        self: std::pin::Pin<&mut Self>,
++        cx: &mut std::task::Context<'_>,
++    ) -> std::task::Poll<Result<(), Self::Error>> {
++        self.0.waker.register(cx.waker());
++        if self.0.blocked.load(Ordering::Acquire) {
++            std::task::Poll::Pending
++        } else {
++            std::task::Poll::Ready(Ok(()))
++        }
++    }
++    fn poll_close(
++        self: std::pin::Pin<&mut Self>,
++        _: &mut std::task::Context<'_>,
++    ) -> std::task::Poll<Result<(), Self::Error>> {
++        std::task::Poll::Ready(Ok(()))
++    }
++}
++#[tokio::test]
++async fn writer_progress_breaks_the_queued_grant_writer_and_delivery_read_dependency() {
++    use std::future::Future;
++    let (f, _, _) = setup();
++    let (mut peer, registry, route) = routed_peer(&f);
++    f.authenticate(&mut peer, "old").await;
++    let h = Arc::new(ExchangeHandler::new());
++    let handler = h.clone();
++    let (input, rx) = mpsc::channel::<Vec<u8>>(4);
++    let reader = futures::stream::unfold(rx, |mut rx| async move {
++        rx.recv().await.map(|bytes| (Ok(Bytes::from(bytes)), rx))
++    });
++    let output = Arc::new(GateOutput {
++        values: Mutex::new(vec![]),
++        blocked: AtomicBool::new(false),
++        waker: futures::task::AtomicWaker::new(),
++    });
++    let sink = GateSink(output.clone());
++    let run = tokio::spawn(async move {
++        peer.run_frames(Box::pin(reader), sink, handler.as_ref())
++            .await
++    });
++    input.send(f.sign(command())).await.unwrap();
++    until(|| !output.values.lock().unwrap().is_empty()).await;
++    let callback = output.values.lock().unwrap()[0].clone();
++    input.send(f.sign(ack_for(&callback))).await.unwrap();
++    until(|| output.blocked.load(Ordering::Acquire)).await;
++    let queued = Arc::new(Notify::new());
++    let signal = queued.clone();
++    let grants = f.policy.revoked.clone();
++    let writer = tokio::spawn(async move {
++        let mut future = Box::pin(grants.write_owned());
++        let _guard = futures::future::poll_fn(|cx| {
++            let result = future.as_mut().poll(cx);
++            if result.is_pending() {
++                signal.notify_one();
++            }
++            result
++        })
++        .await;
++    });
++    queued.notified().await;
++    let handle = routes(&registry).remove(0);
++    let sending = tokio::spawn(async move { handle.submit(event(), deadline()).await });
++    route.entered.notified().await;
++    assert!(!writer.is_finished());
++    output.blocked.store(false, Ordering::Release);
++    output.waker.wake();
++    tokio::time::timeout(Duration::from_secs(1), writer)
++        .await
++        .unwrap()
++        .unwrap();
++    tokio::time::timeout(Duration::from_secs(1), sending)
++        .await
++        .unwrap()
++        .unwrap()
++        .unwrap();
++    assert_eq!(h.effects.load(Ordering::Acquire), 1);
++    let values = output.values.lock().unwrap();
++    assert_eq!(values.len(), 3);
++    assert_eq!(values[2].kind(), "conversation.event");
++    drop(values);
++    drop(input);
++    run.await.unwrap().unwrap();
++}
+diff --git a/crates/uctp/rvoip-uctp/tests/v2_canonical_transports.rs b/crates/uctp/rvoip-uctp/tests/v2_canonical_transports.rs
+index 62df2ff..c2dd183 100644
+--- a/crates/uctp/rvoip-uctp/tests/v2_canonical_transports.rs
++++ b/crates/uctp/rvoip-uctp/tests/v2_canonical_transports.rs
+@@ -253,6 +253,7 @@ impl AuthenticatedHandler for Handler {
+     }
+ }
+ struct Fixture {
++    client_public: Vec<u8>,
+     config: Arc<PeerConfig>,
+     client: Sig9421Signer,
+     server_verify: Sig9421Verifier,
+@@ -294,6 +295,7 @@ impl Fixture {
+         Self {
+             config,
+             client,
++            client_public: resolver.client.clone(),
+             server_verify: Sig9421Verifier::new(resolver),
+             policy,
+             validator,
+@@ -1159,3 +1161,6 @@ async fn canonical_drivers_publish_scope_denial_and_recover_only_after_authorize
+         wire.server.shutdown().await.unwrap();
+     }
+ }
++
++#[path = "support/peer_exchange.rs"]
++mod peer_exchange;

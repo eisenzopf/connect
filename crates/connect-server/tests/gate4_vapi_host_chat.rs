@@ -46,7 +46,7 @@ fn intent(state: &native_tasks::StoppedHost) -> Value {
 fn send() -> CallToolRequestParams {
     CallToolRequestParams::new("connect_send").with_arguments(
         json!({"request_id":"installed-once",
-        "step_id":"follow-up","body":"Installed assistant follow-up"})
+        "step_id":"follow-up","message": connect_protocol::messages::MessageDraft::text_all(("Installed assistant follow-up").to_string())})
         .as_object()
         .unwrap()
         .clone(),

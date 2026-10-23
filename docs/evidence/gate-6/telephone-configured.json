@@ -1,0 +1,205 @@
+{
+  "kind": "gate6-component-evidence",
+  "task": "G6-041",
+  "status": "in-progress",
+  "passed": true,
+  "recorded_at": "2026-10-20T13:37:21.202064+00:00",
+  "schema_version": 61,
+  "pinned_patches": 120,
+  "source_lock": {
+    "path": "dependencies/source-lock.json",
+    "sha256": "6493d464739925eaf371f86fa1d8f0bc3d116f91f5a1de405b9a8daef871fa3d"
+  },
+  "scope": "Local macOS arm64 normal canonical server telephone TOML installation, owned startup/drop/shutdown cleanup, public callback movement/cancellation and answered refusal/restart behavior with isolated IPv4 SIP/RTP fixtures.",
+  "verification": [
+    {
+      "name": "telephone-public",
+      "command": "RUST_LOG=connect_service=debug target/debug/deps/gate6_canonical_runtime-2e3e18c2008aaebe production_telephone_ --test-threads=2 --nocapture",
+      "passed": 15,
+      "ignored": 0,
+      "exit_code": 0,
+      "log": {
+        "path": ".local/gate-6/telephone-configured-runtime-3.log",
+        "sha256": "08cda3de353f6398b3f3e838a308c7351f5c0f5006b9213447fbd3f17a7a8196"
+      },
+      "test_binary": {
+        "path": "target/debug/deps/gate6_canonical_runtime-2e3e18c2008aaebe",
+        "sha256": "bb681bf8eb8e86172d52f888f1e51c10631c75cde5f4af7cf847aa8928b14287"
+      }
+    },
+    {
+      "name": "installed-bootstrap",
+      "command": "cargo test --locked --offline -j2 -p connect-server --test gate6_canonical_bootstrap -- --test-threads=2",
+      "passed": 5,
+      "ignored": 0,
+      "exit_code": 0,
+      "log": {
+        "path": ".local/gate-6/telephone-configured-bootstrap.log",
+        "sha256": "74d2c1cd627a2b9da75d76b31ab42f678ee22bbcbc9c9ebaab35e38c6c2e3025"
+      },
+      "test_binary": {
+        "path": "target/debug/deps/gate6_canonical_bootstrap-732034b3efb06a38",
+        "sha256": "29b03205ec46e8bdc86162421623fff7209e7fd25605a6cabceb650f8e0a6bfc"
+      }
+    },
+    {
+      "name": "service",
+      "command": "cargo test --locked --offline -j2 -p connect-service --lib -- --test-threads=2",
+      "passed": 22,
+      "ignored": 0,
+      "exit_code": 0,
+      "log": {
+        "path": ".local/gate-6/telephone-movement-service-tests.log",
+        "sha256": "0f647b235ada4af9db57d99a0456277920bc257711845c3c3f718000f8a732a0"
+      },
+      "test_binary": {
+        "path": "target/debug/deps/connect_service-ea774b1cfc228d6b",
+        "sha256": "2a2372242060fd246893644a08576ca68b0e95418f7700385b36b86bba6a4795"
+      }
+    }
+  ],
+  "fresh_distinct_passed_tests": 42,
+  "static_checks": [
+    {
+      "name": "dependencies",
+      "exit_code": 0,
+      "log": {
+        "path": ".local/gate-6/telephone-configured-static-dependencies.log",
+        "sha256": "fd9d7b181e3ccba9b643af55a186cf132c60aac99c734b2ee4e4e549afe5ffc2"
+      }
+    },
+    {
+      "name": "format",
+      "exit_code": 0,
+      "log": {
+        "path": ".local/gate-6/telephone-configured-static-format.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    {
+      "name": "contracts",
+      "exit_code": 0,
+      "log": {
+        "path": ".local/gate-6/telephone-configured-static-contracts.log",
+        "sha256": "2c29557f8945b4bb522a5436f85876aa8ab90eca617dcf64588af05e9a81b1bc"
+      }
+    },
+    {
+      "name": "http",
+      "exit_code": 0,
+      "log": {
+        "path": ".local/gate-6/telephone-configured-static-http.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    {
+      "name": "progress",
+      "exit_code": 0,
+      "log": {
+        "path": ".local/gate-6/telephone-configured-static-progress.log",
+        "sha256": "3c9a42760866b510a9b7fc81b2b57b9bf6791a239d0bf0de8cdf06058e513f78"
+      }
+    },
+    {
+      "name": "diff",
+      "exit_code": 0,
+      "log": {
+        "path": ".local/gate-6/telephone-configured-static-diff.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    }
+  ],
+  "telephone_actual_managed_moves": 3,
+  "telephone_strict_native_audio_probes": 40,
+  "cli_binary": {
+    "path": "target/debug/connect",
+    "sha256": "0dbba2fe92b5668f602b3a5acd249a7f9b262cf89412d0ebe23723b1a8945ac0"
+  },
+  "upstream_inputs": {
+    "path": ".local/gate-6/telephone-movement-upstream-inputs.json",
+    "sha256": "7b8f78f1f27f9e9cbbd50299b1d3ae7d6e3fafa96907ee52e6da3fc86a32a4a6"
+  },
+  "upstream_input_count": 2789,
+  "source_input_count": 1437,
+  "previous_checkpoint": {
+    "path": "docs/evidence/gate-6/telephone-movement.json",
+    "sha256": "6207aaa33633f7a34a94e57b729e023bcec91703d7047cdbee7912e2eba9c821"
+  },
+  "behavior": [
+    "CanonicalServerConfig.telephone loads explicit SIP bind/RTP bounds, route credential references and frozen telephone policy from TOML. The normal server installs the adapter on the same Core before HTTP/native intake; no test host hook installs the configured cases. Endpoint destinations remain independently provisioned and verified Store facts.",
+    "One configured PCMU actual movement and the two existing PCMU/PCMA host moves preserve attributed private 55# readiness, independent established duplex, old source/controller revocation, late cancellation, preparation expiry, replay without redial and own-route loss cleanup.",
+    "A configured public ringing cancellation preserves original duplex and releases UDP/TCP listeners. Missing route account refuses before binding and releases installation custody. Later HTTP bind failure cleans an already started SIP listener; dropping a live server also releases its owned SIP sockets.",
+    "Configured shutdown during actual ringing sends CANCEL and observes ACK, then releases SIP sockets. A new normal server reuses that listener; public operation.get and matching transition replay retain unknown and emit no further INVITE.",
+    "Answered PCMU input without digits models an audio-producing endpoint such as voicemail; it cannot satisfy configured confirmation or move. Incorrect 99# also stays unready and times out. Cancellation during actual private duplex sends BYE. All three retain zero readiness/commit result, one call across replay, original native duplex and released configured listeners.",
+    "Five installed CLI initialization/serving tests still pass with telephone omitted, including signed client enrollment, receipt restart/replay and configuration/key/file refusal. Twenty-two current Service tests pass; its sources are unchanged by the server composition work."
+  ],
+  "preliminary_observations": [
+    "The new nested test module initially used the default module path despite its parent explicit path attribute; formatting refused that path. An explicit telephone/configured.rs path corrected it before compilation. This was not a passing check.",
+    "Early two-case configured movement/cancel and six-case configured cleanup runs passed. The final unchanged-source all-fifteen telephone run includes their required behavior and the three additional answered refusal cases; earlier overlapping totals are not added.",
+    "Obsolete generated SIP libraries/incremental caches were removed with local manifests to keep compiler space available. Sources, patches and historical standalone test executables were retained."
+  ],
+  "preliminary_logs": [
+    {
+      "path": ".local/gate-6/telephone-configured-build-1.log",
+      "sha256": "05968f7b7a655dbf1b3142893d38c3fa1813aa6c35e7bf49910c067ac15fd138"
+    },
+    {
+      "path": ".local/gate-6/telephone-configured-build-2.log",
+      "sha256": "e44ceee82e94ca448c0d60e61335649892b0156d24cbaa1b7c50db8d44f588ab"
+    },
+    {
+      "path": ".local/gate-6/telephone-configured-build-4.log",
+      "sha256": "2ac999dddfd225e7451a1a7ed7f70e6c52f92485bb9e6e73230143cc3f4ab910"
+    },
+    {
+      "path": ".local/gate-6/telephone-configured-build-5.log",
+      "sha256": "9197406ae9e1c188d6a8a119ea2af02604e2c861876329cf679ce9a168aedd4a"
+    },
+    {
+      "path": ".local/gate-6/telephone-configured-runtime-1.log",
+      "sha256": "7f36c025e6c978a273b26b73837da0f5414bb86001e09418dcaeacf514001dd2"
+    },
+    {
+      "path": ".local/gate-6/telephone-configured-runtime-2.log",
+      "sha256": "92ee7e0834e5ce61ba92827f0b603a51edc6f105ace04ccadfb24114dca6cfa3"
+    },
+    {
+      "path": ".local/gate-6/telephone-configured-restart-1.log",
+      "sha256": "1e2f9041a854969fded16c495693b39934fed20f50e023410d0be931859b6fac"
+    }
+  ],
+  "final_build": {
+    "path": ".local/gate-6/telephone-configured-build-6.log",
+    "sha256": "39586c190ffad5d06c6aaaebc0851dc72ecaeecc547a1df24c2a5c2bd60e153c"
+  },
+  "not_qualified": [
+    "Current telephone lifetime/claim recovery after a known completed movement across server restart; full late old-leg/unknown physical submission and private-phase restart fault matrix.",
+    "Telephone-to-other-device movement and mixed selector/role/private-context churn; established refresh INVITE wire qualification.",
+    "Optional trunk/registration fields reuse the existing server SIP composition, but canonical carrier registration/failure profiles are not exercised by these tests. No provider/PSTN/Linux/browser/remote/performance/independent acceptance or publication claim.",
+    "Full Store/Core suites from the previous movement checkpoint are historical and not added to this fresh count."
+  ],
+  "task_counts": {
+    "done": 40,
+    "in_progress": 1,
+    "not_started": 64,
+    "acceptance_closed": 0
+  },
+  "all_105_tasks_remain_in_scope": true,
+  "goal_status": "active",
+  "progress": {
+    "path": ".local/gate-6/telephone-configured-static-progress-final.log",
+    "sha256": "3c9a42760866b510a9b7fc81b2b57b9bf6791a239d0bf0de8cdf06058e513f78"
+  },
+  "diff": {
+    "path": ".local/gate-6/telephone-configured-static-diff-final.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "source_inputs": {
+    "path": ".local/gate-6/telephone-configured-inputs-final.json",
+    "sha256": "1f29c4b7662451eceb30d7af8e8abc09a4b293a445b831afdd54e941bfe9619f"
+  },
+  "post_verification_changes": [
+    "docs/connect-gate-6-implementation.html",
+    "docs/developer/telephone-replacement.md"
+  ]
+}

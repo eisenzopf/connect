@@ -10,7 +10,7 @@ use connect_client::ClientError;
 use connect_protocol::{AvailabilityState, Operation, Outcome, PROFILE};
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
-async fn all_twenty_three_existing_communication_tools_match_native_normal_credential_outcomes() {
+async fn all_communication_tools_match_native_normal_credential_outcomes() {
     let f = agent::Fixture::start().await;
     let client = mcp::client(f.server.mcp_address.unwrap(), &f.agent.credential).await;
     let mut native = f.agent_client().await;
@@ -20,7 +20,7 @@ async fn all_twenty_three_existing_communication_tools_match_native_normal_crede
         .unwrap()
         .id;
     let cases = operations::cases(&cid, &f.peer.identity_id);
-    assert_eq!(cases.len(), 23);
+    assert_eq!(cases.len(), 29);
     let mut passed = 0;
     let mut denied = 0;
     for operation in cases {
@@ -38,7 +38,7 @@ async fn all_twenty_three_existing_communication_tools_match_native_normal_crede
             Err(error) => panic!("{name} failed outside the application contract: {error}"),
         }
     }
-    assert_eq!((passed, denied), (7, 16));
+    assert_eq!((passed, denied), (7, 22));
     assert_eq!(
         native
             .history(&cid, None, 100)
@@ -116,6 +116,7 @@ async fn ordinary_discovery_availability_delivery_and_close_do_not_expose_privat
     let close = Operation::Close {
         request_id: "ordinary-close".into(),
         conversation_id: cid.clone(),
+        options: Default::default(),
     };
     let closed = mcp::outcome(mcp::operation(&client, &close).await);
     assert!(matches!(&closed, Outcome::Conversation(value) if value.closed));

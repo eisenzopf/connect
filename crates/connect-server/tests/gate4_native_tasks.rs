@@ -124,7 +124,9 @@ async fn native_question_reply_recall_and_terminal_receipts_keep_the_same_conver
         operation: Box::new(Operation::Send {
             request_id: "question".into(),
             conversation_id: h.cid.clone(),
-            body: "Approve the violet draft?".into(),
+            message: connect_protocol::messages::MessageDraft::text_all(
+                "Approve the violet draft?",
+            ),
         }),
         reply_to: None,
         wait_for_reply: true,
@@ -177,7 +179,12 @@ async fn native_question_reply_recall_and_terminal_receipts_keep_the_same_conver
             body: "Approved: violet.".into()
         })
     );
-    let TaskOutcome::ReplyAccepted { reply, .. } = answering.unwrap() else {
+    let TaskOutcome::ReplyAccepted {
+        reply,
+        message_id: answer_id,
+        ..
+    } = answering.unwrap()
+    else {
         panic!("reply")
     };
     assert_eq!(reply.task_id.as_deref(), Some(task.id.as_str()));
@@ -219,9 +226,16 @@ async fn native_question_reply_recall_and_terminal_receipts_keep_the_same_conver
     else {
         panic!("recall")
     };
-    assert!(sources
+    let source = sources
         .iter()
-        .any(|s| s.body.as_deref() == Some("Approved: violet.")));
+        .find(|s| s.source_id == answer_id)
+        .expect("source-backed reply");
+    let message: connect_protocol::Message =
+        serde_json::from_str(source.body.as_deref().expect("typed reply projection")).unwrap();
+    assert_eq!(message.body, "Approved: violet.");
+    assert_eq!(message.in_reply_to_msg, reply.reply_to);
+    assert_eq!(source.created_at, message.accepted_at);
+    assert!(source.created_at.is_some());
     assert_eq!(task.state, TaskState::Ready);
     // Receiving/consuming an answer does not claim that the application resumed
     // its work. The runner explicitly transitions ready -> running first.

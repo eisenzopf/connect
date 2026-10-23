@@ -1,0 +1,491 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Connect participant endpoint routing",
+    "version": "gate6-routing-1",
+    "description": "Implemented participant_route subset of the current shared control facade. Selection is read-only and does not authorize allocation or prove physical media. Other operations and later canonical Gate 6 routes are separate references."
+  },
+  "servers": [
+    {
+      "url": "http://127.0.0.1:8090",
+      "description": "Configured loopback HTTP listener; use the actual bound address."
+    }
+  ],
+  "paths": {
+    "/v1/operations": {
+      "post": {
+        "operationId": "ParticipantRoute",
+        "summary": "Select a currently permitted participant endpoint",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "description": "Requires current resolve, availability_get and the requested communication permission; outgoing telephone/SIP additionally require their origination permissions. Incoming requests may select only the caller identity. Explicit transport and failover choices never silently widen identity, channel or requested media. Addresses, provider route IDs and secret references are not returned. Missing or expired observation is unknown. Freshness is bounded to 60 seconds. Selection must be revalidated before use. No body-selected observation or approval is accepted.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Operation"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Selection or typed application rejection",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Response"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthenticated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Response"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Response"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Bounded HTTP capacity, or current authority busy/unavailable. For an authority refusal retry the same logical mutation ID after delivery owners settle.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Response"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Malformed JSON or unknown routing request fields; framework rejection.",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "bearer": {
+        "type": "http",
+        "scheme": "bearer"
+      }
+    },
+    "schemas": {
+      "RouteRequest": {
+        "type": "object",
+        "properties": {
+          "conversation_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128,
+            "pattern": "^[A-Za-z0-9._~-]+$"
+          },
+          "participant_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128,
+            "pattern": "^[A-Za-z0-9._~-]+$"
+          },
+          "purpose": {
+            "enum": [
+              "session",
+              "message"
+            ]
+          },
+          "direction": {
+            "enum": [
+              "outgoing",
+              "incoming"
+            ]
+          },
+          "media": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 6,
+            "uniqueItems": true,
+            "items": {
+              "enum": [
+                "audio",
+                "video",
+                "screen",
+                "data",
+                "messages",
+                "files"
+              ]
+            }
+          },
+          "transports": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 8,
+            "uniqueItems": true,
+            "items": {
+              "enum": [
+                "quic",
+                "webtransport",
+                "webrtc",
+                "sip",
+                "telephone",
+                "sms",
+                "vapi-voice",
+                "vapi-chat"
+              ]
+            }
+          },
+          "preferred_device_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128,
+                "pattern": "^[A-Za-z0-9._~-]+$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "failover": {
+            "enum": [
+              "none",
+              "other_available_device"
+            ]
+          },
+          "reachability": {
+            "enum": [
+              "require_fresh",
+              "allow_unknown"
+            ],
+            "default": "require_fresh",
+            "description": "Unknown may be attempted only explicitly; this never bypasses known offline/busy, permission, consent, verification or capability checks."
+          }
+        },
+        "required": [
+          "conversation_id",
+          "participant_id",
+          "purpose",
+          "direction",
+          "media",
+          "transports",
+          "failover"
+        ],
+        "additionalProperties": false,
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "purpose": {
+                  "const": "session"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "media": {
+                  "items": {
+                    "enum": [
+                      "audio",
+                      "video",
+                      "screen",
+                      "data"
+                    ]
+                  }
+                }
+              }
+            },
+            "else": {
+              "properties": {
+                "media": {
+                  "items": {
+                    "enum": [
+                      "messages",
+                      "files"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        ]
+      },
+      "Operation": {
+        "type": "object",
+        "properties": {
+          "op": {
+            "const": "participant_route"
+          },
+          "request": {
+            "$ref": "#/components/schemas/RouteRequest"
+          }
+        },
+        "required": [
+          "op",
+          "request"
+        ],
+        "additionalProperties": true
+      },
+      "Candidate": {
+        "type": "object",
+        "properties": {
+          "endpoint_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128,
+            "pattern": "^[A-Za-z0-9._~-]+$"
+          },
+          "device_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128,
+            "pattern": "^[A-Za-z0-9._~-]+$"
+          },
+          "transport": {
+            "enum": [
+              "quic",
+              "webtransport",
+              "webrtc",
+              "sip",
+              "telephone",
+              "sms",
+              "vapi-voice",
+              "vapi-chat"
+            ]
+          },
+          "endpoint_revision": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "reason": {
+            "enum": [
+              "selected",
+              "ambiguous",
+              "no_endpoint",
+              "unverified",
+              "unsupported_capability",
+              "unconfigured",
+              "permission_required",
+              "consent_required",
+              "offline",
+              "busy",
+              "unknown",
+              "prerequisites_missing",
+              "attempt_allowed"
+            ]
+          },
+          "reachability": {
+            "enum": [
+              "reachable",
+              "offline",
+              "busy",
+              "unknown"
+            ]
+          },
+          "observation_sequence": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "valid_until": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "endpoint_id",
+          "device_id",
+          "transport",
+          "endpoint_revision",
+          "reason",
+          "reachability",
+          "observation_sequence",
+          "valid_until"
+        ],
+        "additionalProperties": false
+      },
+      "Selection": {
+        "type": "object",
+        "properties": {
+          "conversation_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128,
+            "pattern": "^[A-Za-z0-9._~-]+$"
+          },
+          "conversation_revision": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "participant_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128,
+            "pattern": "^[A-Za-z0-9._~-]+$"
+          },
+          "membership_epoch": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9007199254740991
+          },
+          "reason": {
+            "enum": [
+              "selected",
+              "ambiguous",
+              "no_endpoint",
+              "unverified",
+              "unsupported_capability",
+              "unconfigured",
+              "permission_required",
+              "consent_required",
+              "offline",
+              "busy",
+              "unknown",
+              "prerequisites_missing",
+              "attempt_allowed"
+            ]
+          },
+          "selected": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Candidate"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "candidates": {
+            "type": "array",
+            "maxItems": 64,
+            "items": {
+              "$ref": "#/components/schemas/Candidate"
+            }
+          }
+        },
+        "required": [
+          "conversation_id",
+          "conversation_revision",
+          "participant_id",
+          "membership_epoch",
+          "reason",
+          "selected",
+          "candidates"
+        ],
+        "additionalProperties": false
+      },
+      "Outcome": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "const": "participant_route"
+          },
+          "data": {
+            "$ref": "#/components/schemas/Selection"
+          }
+        },
+        "required": [
+          "kind",
+          "data"
+        ],
+        "additionalProperties": false
+      },
+      "Error": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "code",
+          "message"
+        ],
+        "additionalProperties": false
+      },
+      "Response": {
+        "type": "object",
+        "properties": {
+          "profile": {
+            "const": "connect-control/1"
+          },
+          "result": {
+            "oneOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "Ok": {
+                    "$ref": "#/components/schemas/Outcome"
+                  }
+                },
+                "required": [
+                  "Ok"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "Err": {
+                    "$ref": "#/components/schemas/Error"
+                  }
+                },
+                "required": [
+                  "Err"
+                ],
+                "additionalProperties": false
+              }
+            ]
+          }
+        },
+        "required": [
+          "profile",
+          "result"
+        ],
+        "additionalProperties": false
+      }
+    }
+  }
+}

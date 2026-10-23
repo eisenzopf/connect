@@ -34,7 +34,10 @@ fn permitted_task_context_is_bounded_source_backed_and_does_not_inherit_remote_h
                 &Operation::Send {
                     request_id: format!("seed-{index}"),
                     conversation_id: f.cid.clone(),
-                    body: format!("Fact {index}: {}", "x".repeat(16_000)),
+                    message: connect_protocol::messages::MessageDraft::text_all(format!(
+                        "Fact {index}: {}",
+                        "x".repeat(16_000)
+                    )),
                 },
             )
             .unwrap();
@@ -49,7 +52,7 @@ fn permitted_task_context_is_bounded_source_backed_and_does_not_inherit_remote_h
             &f.key.id,
             &Operation::Create {
                 request_id: "other-cid".into(),
-                participants: vec![],
+                request: connect_protocol::conversations::CreateRequest::persistent(vec![]),
             },
         )
         .unwrap()
@@ -62,7 +65,9 @@ fn permitted_task_context_is_bounded_source_backed_and_does_not_inherit_remote_h
             &Operation::Send {
                 request_id: "other-secret".into(),
                 conversation_id: other.id,
-                body: "DO-NOT-DISCLOSE-OTHER-CONVERSATION".into(),
+                message: connect_protocol::messages::MessageDraft::text_all(
+                    "DO-NOT-DISCLOSE-OTHER-CONVERSATION",
+                ),
             },
         )
         .unwrap();
@@ -78,15 +83,12 @@ fn permitted_task_context_is_bounded_source_backed_and_does_not_inherit_remote_h
     let raw = job.context.unwrap();
     assert!(raw.len() <= TASK_CONTEXT_BYTES);
     assert!(!raw.contains("DO-NOT-DISCLOSE"));
-    let TaskOutcome::Recall {
+    let connect_connector_api::host_context::TaskProjection::Recall {
         sources,
         next,
         omitted,
-    } = serde_json::from_str(&raw).unwrap()
-    else {
-        panic!("recall")
-    };
-    assert!(!sources.is_empty() && next.is_some() && omitted > 0);
+    } = serde_json::from_str(&raw).unwrap();
+    assert!(!sources.is_empty() && next.is_none() && omitted.is_none());
     assert!(sources
         .iter()
         .all(|s| s.provenance.starts_with("conversation-journal:") && !s.source_id.is_empty()));

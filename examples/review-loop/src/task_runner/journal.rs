@@ -177,7 +177,9 @@ impl TaskStore {
                         operation: Box::new(Operation::Send {
                             request_id,
                             conversation_id: binding.conversation_id.clone(),
-                            body: "Your draft response is recorded.".into(),
+                            message: connect_client::messages::MessageDraft::text_all(
+                                "Your draft response is recorded.",
+                            ),
                         }),
                         reply_to: Some(reply.event_id.clone()),
                         wait_for_reply: false,

@@ -75,3 +75,11 @@ pub(crate) fn get(c: &Connection, identity_id: &str) -> Result<Availability> {
         }),
     }
 }
+
+pub(crate) fn get_for_actor(c: &Connection, actor: &Actor, identity: &str) -> Result<Availability> {
+    let same:bool=c.query_row("SELECT EXISTS(SELECT 1 FROM identities target JOIN identities owner ON owner.tenant_id=target.tenant_id WHERE target.id=?1 AND owner.id=?2 AND target.revoked=0 AND owner.revoked=0)",params![identity,actor.identity_id],|r|r.get(0)).map_err(|_|Error::storage())?;
+    if !same || !actor.permits_recipient(identity) {
+        return Err(Error::forbidden());
+    }
+    get(c, identity)
+}

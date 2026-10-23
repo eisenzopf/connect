@@ -28,6 +28,7 @@ pub struct RunningServer {
     pub webhook_address: Option<std::net::SocketAddr>,
     webhook: Option<crate::transports::http::Listener>,
     providers: Option<crate::providers::Worker>,
+    conversation_policy: Option<crate::conversation_policy::Worker>,
     voice: Option<crate::voice::Worker>,
     orchestrator: Arc<Orchestrator>,
     media_lifecycle: Option<crate::media_lifecycle::MediaLifecycle>,
@@ -97,10 +98,26 @@ impl RunningServer {
         injected_vapi_media: Option<Arc<VapiAdapter>>,
     ) -> Result<Self> {
         config.validate()?;
-        let installation = crate::installation::InstallationLock::acquire(&config.database)?;
-        let store = Arc::new(Store::open(&config.database, config.limits.clone())?);
-        store.integrity_check()?;
-        store.reconcile_interrupted_video_connections()?;
+        let database = config.database.clone();
+        let limits = config.limits.clone();
+        // File gates and SQLite startup maintenance run off the async executor.
+        // Cancellation drops the completed result only after blocking work settles.
+        let (installation, store) = tokio::task::spawn_blocking(move || -> Result<_> {
+            let installation = crate::installation::InstallationLock::acquire(&database)?;
+            let store = Arc::new(Store::open_with_ownership(
+                &database,
+                limits,
+                installation.proof(),
+            )?);
+            // Also fence old leases on a same-process restart. Reading a second
+            // Store handle alone does not disrupt the currently running worker.
+            while store.fence_transition_workers(1000)? > 0 {}
+            while store.recover_transition_work(1000)? > 0 {}
+            store.integrity_check()?;
+            store.reconcile_interrupted_video_connections()?;
+            Ok((installation, store))
+        })
+        .await??;
         let telnyx_key = if providers {
             crate::secrets::optional("TELNYX_API_KEY")?
         } else {
@@ -112,6 +129,7 @@ impl RunningServer {
             None
         };
         let mut discovery = connect_store::DiscoveryRuntime {
+            endpoints: Default::default(),
             native_audio: true,
             native_video: true,
             sip: config
@@ -141,6 +159,69 @@ impl RunningServer {
                 },
             }),
         };
+        {
+            use connect_protocol::{
+                provisioning::EndpointTransport as T, routing::RouteMedium as M,
+            };
+            use connect_store::EndpointProfile;
+            let mut profiles = vec![EndpointProfile {
+                transport: T::Quic,
+                media: vec![M::Audio, M::Video, M::Messages, M::Files],
+            }];
+            if discovery.browser.is_some() {
+                profiles.push(EndpointProfile {
+                    transport: T::Webrtc,
+                    media: vec![M::Audio, M::Video],
+                });
+            }
+            if discovery.sip {
+                profiles.push(EndpointProfile {
+                    transport: T::Sip,
+                    media: vec![M::Audio],
+                });
+            }
+            if discovery.vapi_audio {
+                profiles.push(EndpointProfile {
+                    transport: T::VapiVoice,
+                    media: vec![M::Audio],
+                });
+            }
+            if discovery.providers.iter().any(|p| p == "vapi") {
+                profiles.push(EndpointProfile {
+                    transport: T::Telephone,
+                    media: vec![M::Audio],
+                });
+                profiles.push(EndpointProfile {
+                    transport: T::VapiChat,
+                    media: vec![M::Messages],
+                });
+            }
+            if discovery.providers.iter().any(|p| p == "telnyx") {
+                profiles.push(EndpointProfile {
+                    transport: T::Sms,
+                    media: vec![M::Messages],
+                });
+            }
+            let mut refs = vec![];
+            if discovery.providers.iter().any(|p| p == "vapi") {
+                refs.extend([
+                    (T::Telephone, "env_VAPI_PRIVATE_KEY".into()),
+                    (T::VapiChat, "env_VAPI_PRIVATE_KEY".into()),
+                ]);
+            }
+            if discovery.vapi_audio {
+                refs.push((T::VapiVoice, "env_VAPI_PRIVATE_KEY".into()));
+            }
+            if discovery.providers.iter().any(|p| p == "telnyx") {
+                refs.push((T::Sms, "env_TELNYX_API_KEY".into()));
+            }
+            if discovery.sip {
+                refs.push((T::Sip, "config_sip_outbound".into()));
+            }
+            discovery.endpoints = connect_store::EndpointRuntime::new(profiles)
+                .and_then(|r| r.with_secret_refs(refs))
+                .map_err(|e| anyhow::anyhow!("Endpoint profile: {}", e.code))?;
+        }
         let readiness = Arc::new(connect_service::readiness::OperationalReadiness::default());
         let orchestrator = Orchestrator::new(crate::media_profile::orchestrator_config());
         let media_diagnostics = orchestrator.media_diagnostics();
@@ -283,7 +364,7 @@ impl RunningServer {
             None
         };
         let providers = if providers {
-            Some(crate::providers::Worker::start(service.clone())?)
+            Some(crate::providers::Worker::start(service.clone()).await?)
         } else {
             None
         };
@@ -358,6 +439,7 @@ impl RunningServer {
             connect_protocol::ReadinessState::Ready,
             "listener-bound",
         );
+        let conversation_policy = Some(crate::conversation_policy::Worker::start(service.clone()));
         let server = Self {
             _installation: installation,
             endpoint,
@@ -372,6 +454,7 @@ impl RunningServer {
             http_address,
             http,
             providers,
+            conversation_policy,
             voice,
             orchestrator,
             media_lifecycle: Some(media_lifecycle),
@@ -427,6 +510,11 @@ impl RunningServer {
             }
         }
         stage("providers");
+        if let Some(policy) = self.conversation_policy.take() {
+            if let Err(error) = policy.shutdown().await {
+                failures.push(error.to_string());
+            }
+        }
         if let Some(providers) = self.providers.take() {
             if let Err(error) = providers.shutdown().await {
                 failures.push(error.to_string());
@@ -476,6 +564,7 @@ impl RunningServer {
 }
 impl Drop for RunningServer {
     fn drop(&mut self) {
+        self._installation.retire();
         self.adapter.begin_drain();
         self.endpoint.close(0u32.into(), b"server dropped");
     }

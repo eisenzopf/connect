@@ -49,7 +49,9 @@ async fn inbound_sip_uses_configured_authority_and_bridges_vapi_audio() {
             &app_key.id,
             &Operation::Create {
                 request_id: "sip-create".into(),
-                participants: vec![agent.identity_id.clone()],
+                request: connect_protocol::conversations::CreateRequest::persistent(vec![agent
+                    .identity_id
+                    .clone()]),
             },
         )
         .unwrap()
@@ -63,7 +65,9 @@ async fn inbound_sip_uses_configured_authority_and_bridges_vapi_audio() {
             &Operation::Send {
                 request_id: "sip-context".into(),
                 conversation_id: conversation.id.clone(),
-                body: "The SIP route fact is amber-four.".into(),
+                message: connect_protocol::messages::MessageDraft::text_all(
+                    "The SIP route fact is amber-four.",
+                ),
             },
         )
         .unwrap();

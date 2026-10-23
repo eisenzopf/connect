@@ -1,0 +1,255 @@
+{
+  "task": "G6-046",
+  "title": "Native capability listener delivery",
+  "recorded_at": "2026-10-22T05:52:04.054204+00:00",
+  "status": "local-delivery-privacy-and-IO-cases-passed; remaining-integration-open",
+  "outgoing_listener_delivery_qualified": false,
+  "full_task_complete": false,
+  "full_goal_complete": false,
+  "acceptance_qualified": false,
+  "scope": "Isolated local macOS arm64 actual signed native QUIC peers; EdDSA and ES256 public SDK descriptors, private consultation and actual 4096-byte-window QUIC partial-write custody. Named local checks only; full G6-046 and acceptance remain open.",
+  "implementation": [
+    "After durable journal completion, queue metadata-only declarations for the exact actual recipient physical writer; coalesce pending latest descriptor without republishing completed replay.",
+    "Core stamps exact original runtime, lifecycle, controllers, credentials and private disclosure audience; actual IO requires both original and current audience plus fresh joint Store source/recipient authority.",
+    "Keep actual unfinished reliable sink in custody until destroyed, before source/recipient readers leave scope. Actual write bounded by source, recipient and current authority deadlines.",
+    "Core try-lock contention during listener capture is retried only for NotReady within the original admitted offer deadline. Multi-thread real QUIC fixtures exercise the original race and pass after this correction; actual authority refusals remain terminal."
+  ],
+  "actual_cases": [
+    {
+      "cases": 5,
+      "inputs": ".local/gate-6/native-capability-delivery-inputs-v5.json",
+      "result": "passed",
+      "scope": "Exact signed recipient writer/source wire scope, latest descriptors, RPC inbox preservation, completed replay no republication, named permission, gained codec/withdrawal, journal failure no publication then exactly one after recovery. Both signing algorithms where specified by test."
+    },
+    {
+      "cases": 42,
+      "inputs": ".local/gate-6/native-capability-delivery-inputs-v5.json",
+      "result": "41 initial passes; one initial provider creation timeout passes unchanged isolated rerun",
+      "scope": "Affected native codec, private provider, real provider socket custody, data, future streams, lifecycle, quality and owned provider regression selection. No timeout/source change for rerun."
+    },
+    {
+      "cases": 14,
+      "inputs": ".local/gate-6/native-capability-delivery-inputs-v5.json",
+      "result": "passed",
+      "scope": "Core exact live declaration guard and original+current private scene metadata guard; all12 native negotiation unit cases. Controlled Core callbacks are not socket evidence."
+    },
+    {
+      "cases": 1,
+      "inputs": ".local/gate-6/native-capability-delivery-inputs-v6.json",
+      "result": "passed",
+      "scope": "Actual EdDSA+ES256 private consultant and primary receive exact descriptors. Retained remote and same-Participant public consultant never receive them across reliable keepalive barriers. After actual return fresh public descriptor reaches restored original peer; actual duplex audio preserved."
+    }
+  ],
+  "partial_quic_attempt": {
+    "inputs": ".local/gate-6/native-capability-delivery-inputs-v7.json",
+    "result": "failed before partial write: original codec subscription NotReady after capability-registration failure",
+    "repeat": "same refusal on unchanged rerun; diagnostic identifies capability-registration stage",
+    "test_boundary": "Real TLS, Sig9421 auth and actual native offer/parameter answer; 4096-byte stream+connection receive windows; legal 12KiB future descriptor. Partial IO assertions have not yet executed.",
+    "correction": "Bounded Service NotReady retry fixed actual admission retirement; subsequent raw offer fixture used pcmu outside Session g.711-mu preferences and was corrected. Source-revoke fixture initially expected guaranteed normal-recipient delivery despite source fencing; corrected to exact old-or-none reliable barrier, preserving source-revoke refusal and partial custody assertions.",
+    "later_result": "Final actual four partial cases pass for both algorithms; initial failures remain recorded."
+  },
+  "source_lock": {
+    "patches": 133,
+    "path": "dependencies/source-lock.json",
+    "sha256": "98847052fe65b787fe5686aa1c40b32ebaa58a8404e3f2edd8d20767a080a524"
+  },
+  "upstream_patch": {
+    "path": "patches/rvoip/gate6-native-capability-delivery.patch",
+    "sha256": "89b8b6e026a2c4db01e0d4069a04b4c7e4f1cb130300a426f53eb97f6a3c6c4b"
+  },
+  "latest_inputs": {
+    "path": ".local/gate-6/native-capability-delivery-inputs-v11.json",
+    "sha256": "13c0ccccac47368d9280fc3cf3bef7cb287f3b224fbd12b85767b61c17dca596",
+    "entries": 1368
+  },
+  "schema_version": 82,
+  "schema_changed_this_phase": false,
+  "check_logs": [
+    {
+      "path": ".local/gate-6/native-capability-delivery-receiver-v1.log",
+      "sha256": "76d8210480e313c95c3cd001996cf10e5de2cd1c062bf63cf4bda2059f004f57"
+    },
+    {
+      "path": ".local/gate-6/native-capability-delivery-existing-cases-v1.log",
+      "sha256": "19a23521d303a9fd9a80227de430bee670a69264c35163c7c9dbc271bf6be284"
+    },
+    {
+      "path": ".local/gate-6/native-capability-delivery-regression-v1.log",
+      "sha256": "6d5ed192e45a555e931f04d2f6d94ac1d758e27c02186f02cf5d51e889319d8f"
+    },
+    {
+      "path": ".local/gate-6/native-capability-delivery-regression-custody-recheck-v1.log",
+      "sha256": "66b7c5585141de5afe81f646ca3785e9612459bfe939621f958366ef319a888b"
+    },
+    {
+      "path": ".local/gate-6/native-capability-delivery-core-leaf-v1.log",
+      "sha256": "870511141224688eab94ff0d0a4d7702560545b37c3c0c0a5e21046b52521bf2"
+    },
+    {
+      "path": ".local/gate-6/native-capability-delivery-core-private-v1.log",
+      "sha256": "7c84320eeae4deee5b43d1c8a7d2bc0febbf88e59b3ad755607f1ccf5e75ac21"
+    },
+    {
+      "path": ".local/gate-6/native-capability-delivery-broker-v1.log",
+      "sha256": "94932b0f037d4e4c6f0663091dc2e10fcce2fc5ac949761ee8e3e922e0d2c6b5"
+    },
+    {
+      "path": ".local/gate-6/native-capability-delivery-private-v1.log",
+      "sha256": "79a0c1304e15943c4ef49032a2d3c8cd43c50f283598258b47dd9e0018e93d2d"
+    },
+    {
+      "path": ".local/gate-6/native-capability-delivery-partial-v1.log",
+      "sha256": "03a1cb52c9d86b3e554156ced9e5de1b13f5b330ee1ee1ffbb3897c1f563994d"
+    },
+    {
+      "path": ".local/gate-6/native-capability-delivery-partial-v1-recheck.log",
+      "sha256": "c9d7a4538a61b940e803dfad78181aa1e06399e26898b6304c4e6b509dea0d42"
+    },
+    {
+      "path": ".local/gate-6/native-capability-delivery-partial-v1-diagnostic.log",
+      "sha256": "2c8b0cf7ae21acfcae70b8f54b5bc3979e73b2003bcc449453af122c1713c5c9"
+    },
+    {
+      "path": ".local/gate-6/native-capability-delivery-partial-v2.log",
+      "sha256": "0ae2ce870740b8a96070b9723e0b9b6a6c144a5904a5421051043d624795b9cb"
+    },
+    {
+      "path": ".local/gate-6/native-capability-delivery-partial-v3.log",
+      "sha256": "0f1cd888380d11f29dd3eb2f63a7a31fadee82a9fa69152f95107412808c7a51"
+    },
+    {
+      "path": ".local/gate-6/native-capability-delivery-partial-v4.log",
+      "sha256": "495826280c9edd672dd4c5bfa23ab6c981120ae60323d5067c6acc3aa6cd80f9"
+    },
+    {
+      "path": ".local/gate-6/native-capability-delivery-source-revoke-v2.log",
+      "sha256": "c9cfbc3e08290fa1fd8e3021be803fad851de0a6b7a3aaa29523f2d0578a678f"
+    },
+    {
+      "path": ".local/gate-6/native-capability-delivery-final-cases-v1.log",
+      "sha256": "eb20cb69d86089ddcbcfe6ca3bf107d8d641d7335789b2712fc1106161fbefb9"
+    },
+    {
+      "path": ".local/gate-6/native-capability-delivery-regression-v2.log",
+      "sha256": "8ada033fb9f0444385d65bd43d95fd54bab6d02ce7173efbef6eb5b3fcfc56cc"
+    },
+    {
+      "path": ".local/gate-6/native-capability-delivery-session-end-recheck-v1.log",
+      "sha256": "5fd46c9e118650a054159073fbd13354e62cb09680cef74f896d5433bfa24ae6"
+    },
+    {
+      "path": ".local/gate-6/native-capability-delivery-wire-validation-v2.json",
+      "sha256": "9044f593f09fb6c4c67971e6d8d45e3d567a2c066583a368e6042109e3ba7d23"
+    },
+    {
+      "path": ".local/gate-6/native-capability-delivery-progress-v1.log",
+      "sha256": "fedbc03549729d27ac031eee0766ae72281991ae1e9494232887c3160cf754cc"
+    }
+  ],
+  "remaining_required_work": [
+    "Continue owned-provider continuous reliable signaling, then approved assurance/step-up and durable DTMF.",
+    "Direct pending source/recipient Endpoint/key/member-loss, source-expiry and delayed private-tail compositions are not separately qualified by these named local checks. Preserve original+current fences while completing exact required vector evidence.",
+    "Reconcile all61 exact assigned auxiliary vectors without promoting component reports to individual vector passes.",
+    "All59 other approved tasks remain in dependency graph. Linux/remote/browser profiles and G6-093 designated endpoint rehearsals are not qualified by local cases. Publication remains separate."
+  ],
+  "assigned_clause_inventory": "Original61 G6-046 clauses, IDs, source excerpts and applicability remain authoritative in auxiliary-protocol-scope.json; no exact vector status promoted by this intermediate report.",
+  "plan_counts": {
+    "done": 45,
+    "in-progress": 1,
+    "not-started": 59,
+    "total": 105
+  },
+  "not_qualified": [
+    "Full listener integration, complete G6-046, any acceptance criterion, full workspace/upstream suites, Linux, remote, external providers, browser or publication.",
+    "Earlier retention/primary return refusal remains unresolved; passing selected returns does not establish a general fix."
+  ],
+  "local_listener_behavior_qualified": true,
+  "current_verification": {
+    "connect_distinct_cases": 52,
+    "focused_listener_cases": 10,
+    "focused_log": ".local/gate-6/native-capability-delivery-final-cases-v1.log",
+    "focused_result": "10 passed,0 failed,156 other runtime cases filtered; both algorithms in actual receiving/private/partial cases.",
+    "affected_regressions": {
+      "distinct_cases": 42,
+      "initial_passed": 41,
+      "initial_failed": 1,
+      "initial_failure": "Session-close conflict assertion at codecs.rs679",
+      "unchanged_isolated_recheck": "passed with diagnostic logging and no source or timeout workaround",
+      "initial_log": ".local/gate-6/native-capability-delivery-regression-v2.log",
+      "isolated_log": ".local/gate-6/native-capability-delivery-session-end-recheck-v1.log",
+      "scope": "Current production Service change. Final runtime later adds/corrects source-revoke fixture only; no further production source change."
+    },
+    "upstream_distinct_cases": 14,
+    "wire_schema": {
+      "status": "passed",
+      "scope": "Contract shape of actual isolated SDK-verified Connect native listener facts. This checker does not verify signatures, privacy, actual delivery custody, or unexecuted vectors.",
+      "observations": ".local/gate-6/native-capability-delivery-final-observations-v11.jsonl",
+      "observations_sha256": "2435b8e74c300628e6ff67e1f6a794de69bedf3d3e0354d10dc1a3bfdd083cfb",
+      "schema_sha256": "2e547385b0bd09484d0988bb2ed8fe496f42cb27c73266e2e2ee0495068b10ad",
+      "actual_frames": 21,
+      "samples": {
+        "ES256": 10,
+        "EdDSA": 11
+      }
+    },
+    "total_runtime_cases": 166,
+    "not_requalified_runtime_cases": 114,
+    "other_workspace_libraries": "Not requalified in this delivery phase; previous negotiation report retains its exact132-source scopes.",
+    "source_schema": 82
+  },
+  "actual_delivery_failure_and_recovery": [
+    "No outgoing hint before journal completion; original captured declaration publishes after journal recording recovery; completed replay does not republish.",
+    "Private primary/consultant receive exact descriptors; retained remote and same-Participant public Connection are excluded; actual public return restores fresh public delivery. Controlled Core original-audience stamp also refuses historical private disclosure after return.",
+    "Real flow-controlled healthy partial frame finishes before queued newer descriptor and same physical writer remains usable; both original media peers remain audible.",
+    "Real stalled partial frame retains source and recipient guards independently, blocks a joint authority writer, then destroys incomplete reliable IO before writer admission.",
+    "Actual recipient credential revocation waits behind unfinished IO; incomplete destination stream retires; other physical peers and decoded duplex audio remain current.",
+    "Actual source credential revocation waits behind unfinished IO, retires partial destination bytes and refuses subsequent source advertisements. Another listener may have an already completed old hint or none; a durable receipt does not guarantee remote delivery."
+  ],
+  "compiled_binaries": [
+    {
+      "target": "gate6_canonical_runtime",
+      "path": "target/debug/deps/gate6_canonical_runtime-f39476f2f6c7ff5d",
+      "archive": ".local/gate-6/native-capability-delivery-artifacts/gate6_canonical_runtime-f39476f2f6c7ff5d-aafaf79aecfd.gz",
+      "bytes": 359568312,
+      "gzip_bytes": 79022992,
+      "sha256": "aafaf79aecfddda945c52682e1362521f3faff0bd4a1d5664fa4274e544e804b",
+      "archive_sha256": "050e4eedba020abc4f6ea9c955c96168cb776385e596bbed69ee2bcdb8d9c82a",
+      "restored_bytes_verified": true
+    },
+    {
+      "target": "connect",
+      "path": "target/debug/connect",
+      "archive": ".local/gate-6/native-capability-delivery-artifacts/connect-aeb7ca5be38b.gz",
+      "bytes": 419784552,
+      "gzip_bytes": 92186175,
+      "sha256": "aeb7ca5be38b000b224f3398456807c5617f1f236992fa93c8343a59eba6b418",
+      "archive_sha256": "af90fb2415307c30ad453e0bec6aa26addc318f6c76d6aa9f1c0a42a0d73d027",
+      "restored_bytes_verified": true
+    },
+    {
+      "target": "rvoip_core",
+      "path": "target/debug/deps/rvoip_core-39a0e6730cf80230",
+      "archive": ".local/gate-6/native-capability-delivery-artifacts/rvoip_core-39a0e6730cf80230-d0dfba97fae0.gz",
+      "bytes": 81613656,
+      "gzip_bytes": 15622725,
+      "sha256": "d0dfba97fae0c539c661f12e6c16a174e58512cb0e586294be5b2f96f87e67a2",
+      "archive_sha256": "8169a7b3c60589977bd2c6d847942ae191e77eb925a2dee1d8fda26b08950b80",
+      "restored_bytes_verified": true
+    },
+    {
+      "target": "rvoip_uctp",
+      "path": "target/debug/deps/rvoip_uctp-9b5c75228aaa7b9b",
+      "archive": ".local/gate-6/native-capability-delivery-artifacts/rvoip_uctp-9b5c75228aaa7b9b-4e7e10f8582d.gz",
+      "bytes": 34441016,
+      "gzip_bytes": 7818657,
+      "sha256": "4e7e10f8582d0a3434f444d7af092caaa6a9594dfbafa1924d94d59ede1fef5e",
+      "archive_sha256": "9eced329eee0e0fb04822ece84c605715dbeb01dcf0258fc5dd27d684a464879",
+      "restored_bytes_verified": true
+    }
+  ],
+  "binary_archive_manifest": {
+    "path": ".local/gate-6/native-capability-delivery-qualified-binary-archives-v1.json",
+    "sha256": "e48f0b08b0fb7581c5e626922ebfa2b1236cbcaa7e856f5d6d60cac46bcded21",
+    "independently_decompressed": 4
+  }
+}

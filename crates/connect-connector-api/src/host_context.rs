@@ -1,6 +1,7 @@
 //! Exact host context envelopes passed in `DeliveryRequest::context`.
 //!
-//! These API-only DTOs mirror the public ContextView and task Recall result.
+//! These API-only DTOs describe ContextView and a selected task Recall export.
+//! Exported task cursors/counts may be withheld after audience intersection.
 //! They select no data and grant no access. The host journals and authorizes the
 //! exact selection before dispatch. Unknown event kinds remain opaque records.
 use crate::{lifecycle::ContextItem, Failure};
@@ -36,6 +37,8 @@ pub struct JournalItem {
     pub actor_id: String,
     /// Unchanged text or serialized session/artifact metadata; never file bytes.
     pub body: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub record: Option<ContextRecord>,
 }
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -48,7 +51,55 @@ pub struct ContextDelivery {
     pub provider_ref: Option<String>,
     pub created_at: i64,
     pub updated_at: i64,
+    pub destination: Option<ContextDeliveryDestination>,
+    pub problem: Option<ContextDeliveryProblem>,
+    pub lifecycle: Option<ContextDeliveryLifecycle>,
 }
+/// Captured native destination. This describes the original export and grants no access.
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(deny_unknown_fields)]
+pub struct ContextDeliveryDestination {
+    pub connection_id: String,
+    pub generation: u64,
+    pub purpose: ContextDeliveryPurpose,
+}
+#[derive(Clone, Copy, Debug, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum ContextDeliveryPurpose {
+    PublicSession,
+    PrivateConsultation,
+}
+#[derive(Clone, Copy, Debug, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum ContextDeliveryProblem {
+    Rejected,
+    Truncated,
+    Incomplete,
+    Unknown,
+}
+#[derive(Clone, Copy, Debug, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum ContextDeliveryPhase {
+    Initialization,
+    PostCreation,
+    Update,
+}
+/// Observed control lifecycle, independent of media readiness. None means that
+/// lane does not record an independently admitted cleanup phase.
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(deny_unknown_fields)]
+pub struct ContextDeliveryLifecycle {
+    pub phase: ContextDeliveryPhase,
+    pub parent_delivery_id: Option<String>,
+    pub creation_admitted: bool,
+    pub creation_confirmed: bool,
+    pub export_admitted: bool,
+    pub delivery_confirmed: bool,
+    pub cleanup_admitted: Option<bool>,
+    pub cleanup_uncertain: Option<bool>,
+    pub closed: bool,
+}
+
 /// Only the recall result is an admissible task context envelope.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(
@@ -61,7 +112,9 @@ pub enum TaskProjection {
     Recall {
         sources: Vec<TaskSource>,
         next: Option<String>,
-        omitted: u64,
+        /// None means the provider receives a bounded audience intersection;
+        /// the owner's hidden count and continuation are not exported.
+        omitted: Option<u64>,
     },
 }
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -75,6 +128,34 @@ pub struct TaskSource {
     pub provenance: String,
     pub state: String,
     pub body: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub record: Option<ContextRecord>,
+}
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct ContextRecord {
+    pub uuid: String,
+    pub session_id: String,
+    pub revision: u64,
+    pub state: ContextRecordState,
+    pub content_hash: Option<String>,
+    pub valid_until: Option<i64>,
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum ContextRecordState {
+    Available,
+    Unavailable,
+    Deleted,
+}
+fn source_record(
+    mut value: serde_json::Value,
+    record: &Option<ContextRecord>,
+) -> Result<String, Failure> {
+    if let Some(record) = record {
+        value["record"] = serde_json::to_value(record).map_err(|_| Failure::Rejected)?;
+    }
+    serde_json::to_string(&value).map_err(|_| Failure::Rejected)
 }
 impl HostContext {
     /// Bound bytes before parsing. Malformed/unsupported envelopes fail before
@@ -99,10 +180,10 @@ impl HostContext {
                     Ok(ContextItem {
                     event_id: format!("journal:{}:{}", item.sequence, item.source_id),
                     author_id: item.actor_id.clone(),
-                    source: serde_json::to_string(&serde_json::json!({
+                    source: source_record(serde_json::json!({
                         "kind": item.kind, "source_id": item.source_id,
                         "sequence": item.sequence, "watermark": p.watermark, "omitted": p.omitted,
-                    })).map_err(|_| Failure::Rejected)?,
+                    }),&item.record)?,
                     derived: derived_kind(&item.kind),
                     body: item.body.clone(),
                 })
@@ -130,12 +211,11 @@ impl HostContext {
                     Ok(ContextItem {
                         event_id: event.into(),
                         author_id: item.actor_id.clone(),
-                        source: serde_json::to_string(&serde_json::json!({
+                        source: source_record(serde_json::json!({
                             "kind": item.kind, "source_id": item.source_id, "state": item.state,
                             "created_at": item.created_at, "provenance": item.provenance,
                             "omitted": omitted, "continuation_available": next.is_some(),
-                        }))
-                        .map_err(|_| Failure::Rejected)?,
+                        }),&item.record)?,
                         derived: derived_kind(&item.kind),
                         body: item.body.clone().ok_or(Failure::Rejected)?,
                     })

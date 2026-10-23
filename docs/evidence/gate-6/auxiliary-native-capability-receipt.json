@@ -1,0 +1,305 @@
+{
+  "task": "G6-046",
+  "title": "Current native peer capability receipt and durable descriptor replacement",
+  "recorded_at": "2026-10-22T03:10:45.343305+00:00",
+  "status": "receive-component-qualified; full-capability-integration-open",
+  "incoming_receipt_qualified": true,
+  "outgoing_listener_delivery_qualified": false,
+  "latest_descriptor_negotiation_integration_qualified": false,
+  "full_task_complete": false,
+  "full_goal_complete": false,
+  "acceptance_qualified": false,
+  "scope": "Isolated local macOS arm64 actual signed native QUIC peers and public SDK, EdDSA and ES256; controlled Store custody and fresh schema82 boundaries. Server receipt is not publication to other peers, renegotiation or remote consumption.",
+  "schema_version": 82,
+  "pinned_patches": 131,
+  "upstream_edits": false,
+  "implementation": [
+    "Native capability declarations retain exact bounded descriptor and future extensions:16KiB,32 codec/feature entries, JSON depth8,2048 nodes,2048-byte value strings. Full wire scope/operation/expected stream revision, explicit original participant and a defined trigger are required. Empty descriptors/lists can withdraw declared capabilities without changing existing bindings.",
+    "New normal communications grants include explicit capability.advertise; existing narrow grants still require that named permission. Store native source checks retain original credential/key, Device, Endpoint, member epoch, generation, live parent and current actor/recipient authority. Service additionally checks the actual original physical binding, controller credential/revision, active media owner and original held source readers.",
+    "A claimed offered assurance must agree with the verified current credential; a descriptor cannot create assurance or media authority. Declaration receipt is metadata; no media engine mutation is fabricated.",
+    "An opaque attempt captures the exact payload. Descriptor replacement and operation completion commit in one transaction; immutable old replay does not overwrite a newer descriptor. Delayed recording cannot revive retired media. Original readers are released during captured-record storage recovery.",
+    "Schema82 registers capability.advertise in native_stream_binding and adds participant/descriptor/trigger checks. Every prior source condition remains byte-identical. Incompatible state is explicitly refused without changing files; no legacy compatibility or downgrade path was added.",
+    "CanonicalClient.advertise_native_capabilities validates exact completed Connection generation, unchanged stream revision, participant, descriptor, trigger and stable advertisement record. Legit preparing/failed/unknown outcomes remain visible for original reconciliation. HTTP cannot obtain physical native control authority."
+  ],
+  "actual_cases": [
+    "Both algorithms: receive a bounded descriptor, replace it with an empty audio declaration and future protocol/extension values, replay the old operation and observe the newer stored descriptor preserved. Exact descriptor values survive; changing the original trigger conflicts. Actual original audio handles continue carrying marked audio in both directions.",
+    "Wrong participant and foreign physical peer are refused, stale stream revision fails, HTTP refuses native control, and a false user-authorized assurance declaration fails without changing the current descriptor.",
+    "Actual same-owner current peer can negotiate using connection.offer but cannot advertise without capability.advertise; no operation is admitted and authenticated keepalive remains usable.",
+    "A real journal-completion fault leaves preparing with no partially stored descriptor. Audio remains usable; an Identity writer completes after original source readers release. Removing the fault records exactly one original effect and original replay returns completion."
+  ],
+  "verification": {
+    "distinct_current_connect_tests": 313,
+    "logs": {
+      "protocol": {
+        "path": ".local/gate-6/native-capability-protocol-v2.log",
+        "sha256": "66a1f22d4b2b434d5e7338a01f2cba39d889b8c494c9eb6212b847317022192d",
+        "passed": 30,
+        "failed": 0,
+        "ignored": 0,
+        "filtered": 0,
+        "seconds": 0.01,
+        "nested_summaries": 0
+      },
+      "client": {
+        "path": ".local/gate-6/native-capability-client-v2.log",
+        "sha256": "d583441c12f83cc476f382cd2e0f1c89c5dcb0bfb79e9ce2e2914580077e2c16",
+        "passed": 56,
+        "failed": 0,
+        "ignored": 0,
+        "filtered": 0,
+        "seconds": 0.94,
+        "nested_summaries": 0
+      },
+      "store_native_controls": {
+        "path": ".local/gate-6/native-capability-store-v3.log",
+        "sha256": "6531f2b8abbd1cf8d1fa841f39a10a706bd385cba95475643b8d0a4bbd1769b8",
+        "passed": 67,
+        "failed": 0,
+        "ignored": 0,
+        "filtered": 789,
+        "seconds": 36.89,
+        "nested_summaries": 0
+      },
+      "service": {
+        "path": ".local/gate-6/native-capability-service-v1.log",
+        "sha256": "3d041411c68324beefb2b924e348d2f4f672ac645b14e956306b4f243ffb0f34",
+        "passed": 44,
+        "failed": 0,
+        "ignored": 1,
+        "filtered": 0,
+        "seconds": 11.45,
+        "nested_summaries": 0
+      },
+      "server": {
+        "path": ".local/gate-6/native-capability-server-v1.log",
+        "sha256": "33336329ea9917893758e87619f516d1e19d0dd0c89c42df8c979278e9a45496",
+        "passed": 66,
+        "failed": 0,
+        "ignored": 0,
+        "filtered": 0,
+        "seconds": 14.25,
+        "nested_summaries": 0
+      },
+      "actual_capability_receipt": {
+        "path": ".local/gate-6/native-capability-focused-v1.log",
+        "sha256": "cab3ba416453f45601efdb95ccbb6a4d49c816d693480f23732418905dae4f4c",
+        "passed": 3,
+        "failed": 0,
+        "ignored": 0,
+        "filtered": 156,
+        "seconds": 11.39,
+        "nested_summaries": 0
+      },
+      "affected_runtime": {
+        "path": ".local/gate-6/native-capability-regression-v1.log",
+        "sha256": "6385cb9aea6bbf4025c0de93918cec73280a51d95061b6c71813f45bf125ad24",
+        "passed": 42,
+        "failed": 0,
+        "ignored": 0,
+        "filtered": 117,
+        "seconds": 295.83,
+        "nested_summaries": 2
+      },
+      "store_schema": {
+        "path": ".local/gate-6/native-capability-schema-v1.log",
+        "sha256": "eaba0b6aad663f3afdd69470067695b1cfa4ec1529e8a6f463bd57b96d07c006",
+        "passed": 4,
+        "failed": 0,
+        "ignored": 0,
+        "filtered": 0,
+        "seconds": 28.25,
+        "nested_summaries": 0
+      },
+      "first_run_schema": {
+        "path": ".local/gate-6/native-capability-first-run-schema-v1.log",
+        "sha256": "aacaccd1869d16debad10ff82425aaad2992b9150cd40d6ffd6e807fac31ca65",
+        "passed": 1,
+        "failed": 0,
+        "ignored": 0,
+        "filtered": 0,
+        "seconds": 10.83,
+        "nested_summaries": 0
+      }
+    },
+    "ignored": "One Service subprocess helper ignored in the direct library run; its parent invokes it. Provider subprocess output is not counted as additional distinct cases.",
+    "store_scope": "67 native-control Store cases and4 schema cases qualify this changed scope.789 other library cases were filtered and are not called a current full Store pass.",
+    "runtime_scope": "45 of159 runtime cases qualified:3 capability receipt and42 affected existing cases, including quality/lifecycle/codec/data/future media, assistant/startup, consultation and provider partial-WRITE recovery.114 other runtime cases were not requalified."
+  },
+  "qualification_inputs": {
+    "path": ".local/gate-6/native-capability-inputs-v5.json",
+    "sha256": "54673fb5b84279b9f1740621a499eecc8653f19fb9be99acec53eb1a550691db",
+    "count": 1342,
+    "compiled_sources_unchanged": true,
+    "post_compile_documentation_changes": [
+      "docs/developer/native-capabilities.md"
+    ],
+    "source_scope": "Final production code is unchanged after v4. Only the Store test fixture mutex lifetime changed for v5; Cargo v4 confirms the runtime, Service, Server, SDK and Protocol targets fresh. Store test and added schema targets were rebuilt."
+  },
+  "compiled_binaries": [
+    {
+      "target": "first_run_schema_boundary",
+      "path": "target/debug/deps/first_run_schema_boundary-d5275605ea070f6f",
+      "archive": ".local/gate-6/native-capability-receipt-artifacts/first_run_schema_boundary-d5275605ea070f6f.gz",
+      "bytes": 33285768,
+      "gzip_bytes": 7648711,
+      "sha256": "cdf23828d94fbb3f56bd2b2efc4e9730f7d96a9e4973a30eecd746fd1e60cdea",
+      "restored_bytes_verified": true
+    },
+    {
+      "target": "gate6_canonical_runtime",
+      "path": "target/debug/deps/gate6_canonical_runtime-f39476f2f6c7ff5d",
+      "archive": ".local/gate-6/native-capability-receipt-artifacts/gate6_canonical_runtime-f39476f2f6c7ff5d.gz",
+      "bytes": 357818296,
+      "gzip_bytes": 78631059,
+      "sha256": "56f1b4abfa665f5bf26b6b314f39e6f4a8c9b4d517af1114147df25e5aad553d",
+      "restored_bytes_verified": true
+    },
+    {
+      "target": "connect_server",
+      "path": "target/debug/deps/connect_server-46f24f804f4446cb",
+      "archive": ".local/gate-6/native-capability-receipt-artifacts/connect_server-46f24f804f4446cb.gz",
+      "bytes": 187657504,
+      "gzip_bytes": 43448887,
+      "sha256": "2d499bb3428af492300a88aae2029b08f9886646a573ba0489db9c58ba69f644",
+      "restored_bytes_verified": true
+    },
+    {
+      "target": "connect",
+      "path": "target/debug/connect",
+      "archive": ".local/gate-6/native-capability-receipt-artifacts/connect.gz",
+      "bytes": 418451192,
+      "gzip_bytes": 91912256,
+      "sha256": "b90207fb21020502459a3116ddbd1756bb151884a4f3ef46516a2c4baddb5822",
+      "restored_bytes_verified": true
+    },
+    {
+      "target": "connect_client",
+      "path": "target/debug/deps/connect_client-bbfa952562fc37de",
+      "archive": ".local/gate-6/native-capability-receipt-artifacts/connect_client-bbfa952562fc37de.gz",
+      "bytes": 53177552,
+      "gzip_bytes": 13247708,
+      "sha256": "9582ae917f8783dbc0d136469f58da7fe0333ba0625f74908f5afa74843f7ba3",
+      "restored_bytes_verified": true
+    },
+    {
+      "target": "connect_protocol",
+      "path": "target/debug/deps/connect_protocol-224c5053f7141bf0",
+      "archive": ".local/gate-6/native-capability-receipt-artifacts/connect_protocol-224c5053f7141bf0.gz",
+      "bytes": 18540480,
+      "gzip_bytes": 3782884,
+      "sha256": "277d8b68aec4884cfaa762920bb60c0fe9c649af3048843202b92f6c8f1feb73",
+      "restored_bytes_verified": true
+    },
+    {
+      "target": "connect_store",
+      "path": "target/debug/deps/connect_store-a1decb98be4c971e",
+      "archive": ".local/gate-6/native-capability-receipt-artifacts/connect_store-a1decb98be4c971e.gz",
+      "bytes": 69450272,
+      "gzip_bytes": 16733415,
+      "sha256": "b8a064f6aced051c5c37ec2fced63435000f1e9157394ff9b4dc756275b30ab3",
+      "restored_bytes_verified": true
+    },
+    {
+      "target": "connect_service",
+      "path": "target/debug/deps/connect_service-fec6187532f3bbcb",
+      "archive": ".local/gate-6/native-capability-receipt-artifacts/connect_service-fec6187532f3bbcb.gz",
+      "bytes": 156378576,
+      "gzip_bytes": 35201905,
+      "sha256": "0f11b4451a0fc4b7132ec765fb13af0f7401b3dc6c15fb03f2b428241224dede",
+      "restored_bytes_verified": true
+    },
+    {
+      "target": "gate6_schema",
+      "path": "target/debug/deps/gate6_schema-0eed28e10358a363",
+      "archive": ".local/gate-6/native-capability-receipt-artifacts/gate6_schema-0eed28e10358a363.gz",
+      "bytes": 27112928,
+      "gzip_bytes": 6077025,
+      "sha256": "cd0bd1e11479746c309c548dafe91088697ecc65b0caa716602329dc72a259a9",
+      "restored_bytes_verified": true
+    }
+  ],
+  "binary_archive_manifest": {
+    "path": ".local/gate-6/native-capability-qualified-binary-archives-v1.json",
+    "sha256": "f63dde93fdf34ce6100bd233b2ccbe1d515a6f399c602f8a466cc78e14fc95d2",
+    "verified_archives": 9,
+    "includes_cli_dependency": true
+  },
+  "source_lock": {
+    "path": "dependencies/source-lock.json",
+    "sha256": "7e6bbe02467fdd28b09b51cab033459a4e84c5906cd27b3ba976e0a773b0f7e6"
+  },
+  "schema_binding_preservation": {
+    "status": "passed",
+    "scope": "Exact source preservation audit, not runtime qualification. Schema82 adds command admission plus capability participant/descriptor/trigger checks; all prior native source binding conditions remain byte-identical.",
+    "prior_trigger_path": "crates/connect-store/migrations/057_native_replacement_lifetimes.sql",
+    "prior_file_sha256": "d2defab5a2c0ae091e3de98b4926ff226173841b333ef0f6dbb75d81406f83d5",
+    "new_migration_path": "crates/connect-store/migrations/082_native_capability_advertisements.sql",
+    "new_migration_sha256": "c2e1083a4da0bb06aac2045c22bc0044068fd5d5e0ef4dd13c311c93c8ba14fe",
+    "all_prior_trigger_conditions_preserved": true,
+    "runtime_cases_pending": true
+  },
+  "builds": {
+    "profile": "CARGO_INCREMENTAL=0 and-j1; unchanged dev optimization/assertions; prepare verified131 patches. No upstream source or Cargo.toml profile changes.",
+    "qualified": ".local/gate-6/native-capability-all-build-v4.log",
+    "full_build": ".local/gate-6/native-capability-all-build-v3.log"
+  },
+  "earlier_attempts": [
+    {
+      "log": ".local/gate-6/native-capability-store-v1.log",
+      "passed": 65,
+      "failed": 2,
+      "cause": "Schema81 native_stream_binding rejected the unregistered capability command. Schema82 explicitly registered it while preserving original guards."
+    },
+    {
+      "log": ".local/gate-6/native-capability-runtime-build-v1.log",
+      "exit_code": 130,
+      "cause": "Intentionally interrupted the known-incomplete schema81 build after the Store failures proved schema82 necessary; actual Cargo/rustc were confirmed terminal before edits."
+    },
+    {
+      "log": ".local/gate-6/native-capability-all-build-v2.log",
+      "exit_code": 101,
+      "cause": "Redundant .into() caused E0283 generic type ambiguity; corrected to direct &str."
+    },
+    {
+      "log": ".local/gate-6/native-capability-store-v2.log",
+      "exit_code": 130,
+      "cause": "One new Store test held its database mutex while calling back into Store. Confirmed idle process and over60sec warning, interrupted that test process, and fixed fixture drop order. This incomplete run is not a pass; final67 all pass."
+    }
+  ],
+  "remaining_required_work": [
+    "Install real capability.advertise delivery to current authorized listeners. Preserve original disclosure audience as well as current source/recipient authorization and private Connection/consultation boundaries through actual reliable IO. A received descriptor or operation receipt is not outgoing delivery.",
+    "Integrate the latest declaration into later native codec negotiation. The current broker retains last confirmed capabilities; metadata receipt alone does not make gained codecs usable or withdrawn codecs unavailable to future negotiation. Add actual gained-PCMA negotiation with signed answer and decoded duplex evidence.",
+    "Finish continuous owned-provider reliable signaling, assurance/step-up, durable DTMF, exact61 assigned-vector reconciliation, unresolved earlier retention/primary-return behavior and all remaining Gate6 tasks."
+  ],
+  "not_qualified": [
+    "Full capability integration",
+    "789 filtered Store library cases",
+    "114 other native runtime cases",
+    "Linux x86_64, browser, named remote/provider profiles",
+    "Gate6 acceptance or publication"
+  ],
+  "assigned_clause_inventory": {
+    "preserved": 61,
+    "new_individual_clause_passes": 0,
+    "applicability_changed": false
+  },
+  "plan_counts": {
+    "done": 45,
+    "in_progress": 1,
+    "not_started": 59,
+    "acceptance_qualified": 0
+  },
+  "checks": {
+    "prepared_dependencies": true,
+    "format": true,
+    "openapi_current": true,
+    "whitespace": true,
+    "plan_integrity": true
+  },
+  "final_inputs": {
+    "path": ".local/gate-6/native-capability-inputs-final-v6.json",
+    "sha256": "5e51cdc296a3f8c03010f4cf7510d0bc7d10384d1d19619167ba7cbaec5761a3",
+    "count": 1342,
+    "only_post_compile_change": "docs/developer/native-capabilities.md verification status; all compiled sources unchanged"
+  }
+}

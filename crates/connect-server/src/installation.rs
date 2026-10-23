@@ -1,33 +1,27 @@
-//! Process ownership of local state; ports are not a database ownership boundary.
-use anyhow::{Context, Result};
-use fs2::FileExt;
-use std::{
-    fs::{File, OpenOptions},
-    path::Path,
-};
+//! A runtime/maintenance root for Store's installation protocol. This wrapper
+//! retires admissions on every exit, including failed or cancelled startup.
+use anyhow::Result;
+use connect_store::InstallationOwnership;
+use std::{path::Path, sync::Arc};
 
 pub struct InstallationLock {
-    _file: File,
+    ownership: Arc<InstallationOwnership>,
 }
 impl InstallationLock {
     pub fn acquire(database: &Path) -> Result<Self> {
-        let database = database
-            .canonicalize()
-            .context("State database must exist before serving or migrating")?;
-        let lock_path = database.with_extension("sqlite3.lock");
-        let mut options = OpenOptions::new();
-        options.read(true).write(true).create(true).truncate(false);
-        #[cfg(unix)]
-        {
-            use std::os::unix::fs::OpenOptionsExt;
-            options.mode(0o600);
-        }
-        let file = options
-            .open(lock_path)
-            .context("Open protected installation lock")?;
-        file.try_lock_exclusive().context(
-            "This installation is already in use; stop its server before this operation",
-        )?;
-        Ok(Self { _file: file })
+        Ok(Self {
+            ownership: InstallationOwnership::acquire(database)?,
+        })
+    }
+    pub(crate) fn proof(&self) -> &Arc<InstallationOwnership> {
+        &self.ownership
+    }
+    pub(crate) fn retire(&self) {
+        self.ownership.retire();
+    }
+}
+impl Drop for InstallationLock {
+    fn drop(&mut self) {
+        self.retire();
     }
 }

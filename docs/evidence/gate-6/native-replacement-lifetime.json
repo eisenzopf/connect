@@ -1,0 +1,151 @@
+{
+  "kind": "gate6-component-evidence",
+  "task": "G6-041",
+  "status": "in-progress",
+  "passed": true,
+  "recorded_at": "2026-10-20T04:17:10.276688+00:00",
+  "scope": "Local macOS arm64 Store-controlled once-only movement custody, captured metadata failure/recovery, atomic established target projection, exact next-generation lineage, original-source retirement ordering and independent current target authority. No physical movement is executed by these Store tests.",
+  "schema_version": 57,
+  "ignored_standalone_subprocess_fixtures": [
+    "authority_fences::tests::process_worker",
+    "installation_ownership::tests::process_worker",
+    "transitions::tests::crash_worker"
+  ],
+  "ignored_fixture_note": "These three entry points are marked ignored for direct execution and are invoked by parent tests included in the passing library run.",
+  "pinned_patches": 114,
+  "source_lock": {
+    "path": "dependencies/source-lock.json",
+    "sha256": "f0211a1a8040d930684b3af493be19ce4d48515897bdd13ed657a027c9a5f553"
+  },
+  "verification": [
+    {
+      "command": "cargo test --locked --offline -j1 -p connect-store --lib -- --test-threads=1",
+      "exit_code": 0,
+      "passed": 597,
+      "ignored": 3,
+      "log": {
+        "path": ".local/gate-6/replacement-lifetime-store-all.log",
+        "sha256": "4309ad44fbd5a1e9dcc61e6795c812d0491b7614b31be7e12b653270ea628015"
+      },
+      "test_binaries": [
+        {
+          "path": "target/debug/deps/connect_store-500690b8d898aed1",
+          "sha256": "4167acbde7556b1154f8882ac31fbbe131238b6bc6b93fb4b298df2ac129f606"
+        }
+      ]
+    },
+    {
+      "command": "cargo test --locked --offline -j1 -p connect-store --test gate6_schema",
+      "exit_code": 0,
+      "passed": 4,
+      "ignored": 0,
+      "log": {
+        "path": ".local/gate-6/replacement-lifetime-schema.log",
+        "sha256": "1995a3a09f906ddf52ab7f3a516f54dc6874d438a41eb08775da646f6065e023"
+      },
+      "test_binaries": [
+        {
+          "path": "target/debug/deps/gate6_schema-2d4cc6d15be4352e",
+          "sha256": "5b6facf3377e72d2d89308c738cdbc7b90eff96347e0cce6c722e7b60994ad10"
+        }
+      ]
+    }
+  ],
+  "fresh_tests": 601,
+  "service_typecheck": {
+    "command": "cargo check --locked --offline -j1 -p connect-service",
+    "exit_code": 0,
+    "log": {
+      "path": ".local/gate-6/replacement-lifetime-service-check.log",
+      "sha256": "4fb3c46b0681685063503f6437e7f79da07fef198921229803f835817aeefdbb"
+    }
+  },
+  "static_checks": [
+    {
+      "name": "format",
+      "exit_code": 0,
+      "log": {
+        "path": ".local/gate-6/replacement-lifetime-static-format.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    {
+      "name": "http",
+      "exit_code": 0,
+      "log": {
+        "path": ".local/gate-6/replacement-lifetime-static-http.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    {
+      "name": "contracts",
+      "exit_code": 0,
+      "log": {
+        "path": ".local/gate-6/replacement-lifetime-static-contracts.log",
+        "sha256": "2c29557f8945b4bb522a5436f85876aa8ab90eca617dcf64588af05e9a81b1bc"
+      }
+    },
+    {
+      "name": "dependencies",
+      "exit_code": 0,
+      "log": {
+        "path": ".local/gate-6/replacement-lifetime-static-dependencies.log",
+        "sha256": "fd9d7b181e3ccba9b643af55a186cf132c60aac99c734b2ee4e4e549afe5ffc2"
+      }
+    },
+    {
+      "name": "diff",
+      "exit_code": 0,
+      "log": {
+        "path": ".local/gate-6/replacement-lifetime-static-diff.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    }
+  ],
+  "source_inputs": {
+    "path": ".local/gate-6/replacement-lifetime-inputs.json",
+    "sha256": "712c294e5b52ca03c54c53496434d4dbe998e73c662ac41b35b9c6b59e65c3ee"
+  },
+  "source_input_count": 1321,
+  "upstream_rust_manifest_lock_inputs": {
+    "path": ".local/gate-6/private-readiness-upstream-inputs.json",
+    "sha256": "283547904bda6a7e7bbdfbfee678f20a54fa31417bb2ef659d8ae50b101a2987"
+  },
+  "upstream_input_count": 2680,
+  "previous_native_report": {
+    "path": "docs/evidence/gate-6/native-replacement-private-readiness.json",
+    "sha256": "755690be5603e604fc86a4613c14239622019a8c969f9349bef4eb8ebceb53fe"
+  },
+  "implemented": [
+    "One movement attempt after current complete scene authority and confirmed private readiness; known/uncertain captures survive cancellation and revoked original credentials without replay.",
+    "Strict managed observation and exact ready target/stream capture; uncertain movement refuses local candidate cleanup and generic worker retry.",
+    "Atomic idempotent projection of actual generation-two target, lineage, old-only retirement, topology, lifecycle journal and original operation completion; injected failure rolls back all projection writes.",
+    "Independent target admission/lifetime, proper initial/replacement admission view and cleanup reserve; no fabricated initial offer or generation-one binding.",
+    "Old native cleanup ordering and original key revocation preserve target reads; target revocation refuses reads; immutable lifetime rows remain reserved.",
+    "Generation-three successor planning and generation-two stream parent admission use the real replacement root/candidate and the target independent named permission."
+  ],
+  "unqualified": [
+    "Actual automatic final managed movement, native confirmation transfer, actual committed binding adoption and post-move/native-end/next-generation media behavior.",
+    "Telephone callback, configured answer/DTMF and full failure/late-event/unknown/restart matrix without redial.",
+    "Native, HTTP and service behavior suites and Core/all-workspace execution after schema57; earlier native/Core reports remain historical.",
+    "Linux/browser/remote/provider/performance profiles, Gate6 acceptance and publication."
+  ],
+  "task_counts": {
+    "done": 40,
+    "in_progress": 1,
+    "not_started": 64,
+    "acceptance_closed": 0
+  },
+  "all_105_tasks_remain_in_scope": true,
+  "goal_status": "active",
+  "progress_update_note": "Plan evidence/notes and reference prose updated after runtime compilation; compiled Store Rust/schema inputs remained unchanged throughout final qualification.",
+  "plan_integrity_check": {
+    "command": "python3 scripts/check-gate6-progress.py",
+    "exit_code": 0,
+    "scope": "Plan integrity only; no runtime qualification.",
+    "log": {
+      "path": ".local/gate-6/replacement-lifetime-progress.log",
+      "sha256": "3c9a42760866b510a9b7fc81b2b57b9bf6791a239d0bf0de8cdf06058e513f78"
+    }
+  }
+}

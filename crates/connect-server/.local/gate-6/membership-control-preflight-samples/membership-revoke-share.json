@@ -1,0 +1,42 @@
+{
+  "api": "membership",
+  "request": {
+    "op": "membership",
+    "request": {
+      "change": {
+        "action": "revoke_history_share",
+        "sharing_id": "share_d14c1005-d29f-4607-966a-94d0bdefaee4"
+      },
+      "conversation_id": "conv_18f811c7b0944cc0997da31aa4547324",
+      "expected_revision": 7,
+      "operation_id": "revoke-share"
+    }
+  },
+  "response": {
+    "profile": "connect-control/1",
+    "result": {
+      "Ok": {
+        "data": {
+          "active": false,
+          "conversation_id": "conv_18f811c7b0944cc0997da31aa4547324",
+          "kind": "sharing",
+          "receipt": {
+            "completion_boundary": "local-mutation",
+            "conversation_id": "conv_18f811c7b0944cc0997da31aa4547324",
+            "operation_id": "revoke-share",
+            "state": "completed",
+            "status_reference": {
+              "action": "get",
+              "operation_id": "revoke-share"
+            }
+          },
+          "revision": 8,
+          "sharing_id": "share_d14c1005-d29f-4607-966a-94d0bdefaee4"
+        },
+        "kind": "membership"
+      }
+    }
+  },
+  "route": "/v1/operations",
+  "status": 200
+}

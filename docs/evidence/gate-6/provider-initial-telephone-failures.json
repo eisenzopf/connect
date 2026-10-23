@@ -1,0 +1,285 @@
+{
+  "kind": "gate6-component-evidence",
+  "task": "G6-044",
+  "status": "in-progress",
+  "component_passed": true,
+  "recorded_at": "2026-10-21T06:15:21.574808+00:00",
+  "scope": "Isolated local macOS arm64 configured canonical initial telephone failure/recovery and Service owner-loss. No task closure or acceptance claim.",
+  "fresh_distinct_passed_tests": 145,
+  "verification": [
+    {
+      "name": "initial-public",
+      "passed": 7,
+      "failed": 0,
+      "ignored": 0,
+      "seconds": 19.39,
+      "arguments": [
+        "production_initial_telephone_",
+        "--test-threads=1",
+        "--nocapture"
+      ],
+      "log": {
+        "path": ".local/gate-6/initial-telephone-failures-initial-public-final.log",
+        "sha256": "109fbf2f874219bfafa3b0954f236c82c2270bc20898a8e3f4d8a083eef7ef6a"
+      },
+      "binary": {
+        "path": "target/debug/deps/gate6_canonical_runtime-2e3e18c2008aaebe",
+        "sha256": "0433688d685c5dfc58c69dfce0d88097340c0e8a8fce751eba170cd4c0b867ae"
+      }
+    },
+    {
+      "name": "service",
+      "passed": 28,
+      "failed": 0,
+      "ignored": 0,
+      "seconds": 2.34,
+      "arguments": [
+        "--test-threads=2"
+      ],
+      "log": {
+        "path": ".local/gate-6/initial-telephone-failures-service-final.log",
+        "sha256": "1e93de9a9cc7ced6bca5bb865f66d2012bf7f3c01e3aa8549cca64cf87cb06b1"
+      },
+      "binary": {
+        "path": "target/debug/deps/connect_service-0c9533d243d07904",
+        "sha256": "f16b54429a516ec5ab6eee80022b02754e4cc23403270bcb99f31891a03a2403"
+      }
+    },
+    {
+      "name": "server",
+      "passed": 66,
+      "failed": 0,
+      "ignored": 0,
+      "seconds": 16.32,
+      "arguments": [
+        "--test-threads=1"
+      ],
+      "log": {
+        "path": ".local/gate-6/initial-telephone-failures-server-final.log",
+        "sha256": "8aca485a30763200b7844429822a3331408582bb3b5abd0c15ad18e419401414"
+      },
+      "binary": {
+        "path": "target/debug/deps/connect_server-616f548a437d1869",
+        "sha256": "4192762999b99a9fe887322e0ec2c3332a9727b38900ced66b3ae50b7175bb1c"
+      }
+    },
+    {
+      "name": "sip",
+      "passed": 10,
+      "failed": 0,
+      "ignored": 0,
+      "seconds": 1.02,
+      "arguments": [
+        "--test-threads=1",
+        "--nocapture"
+      ],
+      "log": {
+        "path": ".local/gate-6/initial-telephone-failures-sip-final.log",
+        "sha256": "b147d17493bc1860acf72e69125cc3b4c06225fb242d4354ac0906fc333edcde"
+      },
+      "binary": {
+        "path": "target/debug/deps/gate6_initial_sip_custody-47ce1b7324768ae6",
+        "sha256": "45979b5435ab03dbbe00a59ea60b2989f226ebd170e0c4edaefc0c18680177f6"
+      }
+    },
+    {
+      "name": "store-focused",
+      "passed": 20,
+      "failed": 0,
+      "ignored": 0,
+      "seconds": 3.03,
+      "arguments": [
+        "initial_telephone",
+        "--test-threads=2"
+      ],
+      "log": {
+        "path": ".local/gate-6/initial-telephone-failures-store-focused-final.log",
+        "sha256": "9bcc8959ac26863c3e662188c9e434ff14bdb13fa43364a5d42dd86920687f70"
+      },
+      "binary": {
+        "path": "target/debug/deps/connect_store-34efc355090fb9eb",
+        "sha256": "57204cafc682052e043dff62e8cae4079d947fb82267bcd8ca8a4810848791db"
+      }
+    },
+    {
+      "name": "session",
+      "passed": 3,
+      "failed": 0,
+      "ignored": 0,
+      "seconds": 1.46,
+      "arguments": [
+        "general_session_control",
+        "--test-threads=1"
+      ],
+      "log": {
+        "path": ".local/gate-6/initial-telephone-failures-session-final.log",
+        "sha256": "7e7e696dc021cfc3382efc5e877ac022348843207b1bd4b1ccb311b0419d85a2"
+      },
+      "binary": {
+        "path": "target/debug/deps/gate6_canonical_runtime-2e3e18c2008aaebe",
+        "sha256": "0433688d685c5dfc58c69dfce0d88097340c0e8a8fce751eba170cd4c0b867ae"
+      }
+    },
+    {
+      "name": "public-ai",
+      "passed": 9,
+      "failed": 0,
+      "ignored": 0,
+      "seconds": 9.4,
+      "arguments": [
+        "public_assistant",
+        "--test-threads=1"
+      ],
+      "log": {
+        "path": ".local/gate-6/initial-telephone-failures-public-ai-final.log",
+        "sha256": "279523fbd576b6238e6dca34a483b934a780f2e217c8b09bf5af47a05b9d9e7d"
+      },
+      "binary": {
+        "path": "target/debug/deps/gate6_canonical_runtime-2e3e18c2008aaebe",
+        "sha256": "0433688d685c5dfc58c69dfce0d88097340c0e8a8fce751eba170cd4c0b867ae"
+      }
+    },
+    {
+      "name": "telephone",
+      "passed": 1,
+      "failed": 0,
+      "ignored": 0,
+      "seconds": 20.49,
+      "arguments": [
+        "production_telephone_movement_actual_pcmu_commits_once_survives_old_authority_and_retires_on_route_loss",
+        "--test-threads=1"
+      ],
+      "log": {
+        "path": ".local/gate-6/initial-telephone-failures-telephone-final.log",
+        "sha256": "1ed875c74a5dde5c700889fdad498eee39092b8d7e2094ae0bf17564fe4b2993"
+      },
+      "binary": {
+        "path": "target/debug/deps/gate6_canonical_runtime-2e3e18c2008aaebe",
+        "sha256": "0433688d685c5dfc58c69dfce0d88097340c0e8a8fce751eba170cd4c0b867ae"
+      }
+    },
+    {
+      "name": "private-ai",
+      "passed": 1,
+      "failed": 0,
+      "ignored": 0,
+      "seconds": 57.4,
+      "arguments": [
+        "production_private_ai_automatic_ai_caller_uses_own_context_grant_and_independent_owner_return",
+        "--test-threads=1"
+      ],
+      "log": {
+        "path": ".local/gate-6/initial-telephone-failures-private-ai-final.log",
+        "sha256": "85348a8ef527aefaadf413e3a4ed7b885f5672cdd6ac24d1848962fad0a702d3"
+      },
+      "binary": {
+        "path": "target/debug/deps/gate6_canonical_runtime-2e3e18c2008aaebe",
+        "sha256": "0433688d685c5dfc58c69dfce0d88097340c0e8a8fce751eba170cd4c0b867ae"
+      }
+    }
+  ],
+  "qualification_inputs": {
+    "path": ".local/gate-6/initial-telephone-failures-inputs.json",
+    "sha256": "0ccb9ecaa357c5c74fda619771288b1e8885d8fca17f71a385a3a59b5e7119b9"
+  },
+  "changed_inputs": [
+    "crates/connect-server/tests/support/canonical_native_connections/consultation/groups/replacement/telephone/initial.rs",
+    "crates/connect-service/src/initial_telephone.rs",
+    "crates/connect-service/src/session_init.rs",
+    "docs/developer/initial-telephone-admission.md"
+  ],
+  "source_lock": {
+    "path": "dependencies/source-lock.json",
+    "sha256": "098ba5eba45b5ccaceed905914d0a2972938f7852b8ee1cfab4948ddd98020ec"
+  },
+  "schema_version": 66,
+  "pinned_patches": 127,
+  "behavior": [
+    "Pre-allocation Endpoint credential refusal sends zero INVITEs, creates no initial child and drains cleanly, including public invitation replay.",
+    "Public Session end while ringing cancels the original actual UDP dialog; no accepted answer or ConnectionReady is fabricated.",
+    "Endpoint credential revocation while ringing cannot admit media. The bounded original attempt is cancelled and locally retired. This fixture replies180 and does not establish a separate INVITE retransmission proof.",
+    "A no-answer preparation deadline cancels the original dialog; public invitation replay retains the same recorded Core/SIP pair and cannot redial.",
+    "An actual PCMA answer to a PCMU-only public invitation is retained as an observed answer without Session acceptance/readiness; actual BYE and local retirement are observed.",
+    "Local cleanup confirms its own compensation effect. Unanswered original submissions remain unknown; captured answers remain confirmed. Neither outcome is strengthened by local absence.",
+    "No-Core rejection handling is bounded to the prepare/allocation/authority checks before prepare_outbound_connection. Errors after actual Core allocation retain the existing conservative unconfirmed-drain behavior. Earlier failed jobs remain sticky; no drain flag is reset.",
+    "Dropping a nonfinal Service Arc leaves the host running. Dropping the last Service owner cancels the registry and runtime; a real hosted async job releases the Runtime it retained, breaking Runtime/registry/job ownership. Cancellation requests cleanup and does not publish a cleanup observation.",
+    "Existing successful public initial SIP/native marked duplex, Session-end generation fencing, public/private AI, signed/HTTP Session, actual telephone replacement movement and SIP custody cases pass against the rebuilt affected binaries."
+  ],
+  "prior_component": {
+    "path": "docs/evidence/gate-6/provider-initial-telephone-host.json",
+    "sha256": "d4ac7cc5212839f3aa95f27e9625f3a0e5a2f4d7070426d0dc7d0cfccc5f4fdc"
+  },
+  "retained_store_qualification": {
+    "previous_full_store_passed": 718,
+    "ignored_helpers": 3,
+    "fresh_subset": 20,
+    "additional_distinct_retained_passes": 698,
+    "binary": {
+      "path": "target/debug/deps/connect_store-34efc355090fb9eb",
+      "sha256": "57204cafc682052e043dff62e8cae4079d947fb82267bcd8ca8a4810848791db"
+    },
+    "source_unchanged": true,
+    "reason": "Only Service and server integration fixture inputs changed. The full Store unit executable is byte-identical to the prior718-pass evidence. Its20initial telephone tests are freshly repeated and not double-counted."
+  },
+  "regression_before": {
+    "path": ".local/gate-6/initial-telephone-failures-before.log",
+    "sha256": "1f4d84bf3e20f1c0a2501c830f5611f5d475c43a8fe74c784d599304e31c3035"
+  },
+  "build": {
+    "path": ".local/gate-6/initial-telephone-failures-build-retry.log",
+    "sha256": "5a03d09ac7ab45cfc736d0903707cbc0e94d82da42ba56e4f95be5409cf7ef69"
+  },
+  "failed_builds": [
+    {
+      "path": ".local/gate-6/initial-telephone-failures-build.log",
+      "sha256": "db6dbaff48bfcafa8257d80d78754df335f018e1665af649a0efa938b923f525"
+    },
+    {
+      "path": ".local/gate-6/initial-telephone-failures-build-final.log",
+      "sha256": "dff6c621ef86a75b5f073788c6c1979c432c0c04f58e8b379402c2190b5a3594"
+    }
+  ],
+  "build_notes": [
+    "Compiler required an explicit protocol Result type on the pre-Core async phase; corrected without changing behavior.",
+    "A subsequent build exhausted generated-cache space. Removed only obsolete ABI single-link loose objects with no compiler live; preserved current hashes, archives/executables, sources, state and evidence. Retried the same build after adding the owner-loss check."
+  ],
+  "cache_cleanup": {
+    "path": ".local/gate-6/initial-telephone-failures-cache-cleanup.json",
+    "sha256": "e9f8e1fd8cfe7fa06dcb311519db7cb56d4da9ce95532a9b68ed3c0fbbad8128"
+  },
+  "checks": [
+    {
+      "path": ".local/gate-6/initial-telephone-failures-format-check.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": ".local/gate-6/initial-telephone-failures-prepare.log",
+      "sha256": "fd9d7b181e3ccba9b643af55a186cf132c60aac99c734b2ee4e4e549afe5ffc2"
+    },
+    {
+      "path": ".local/gate-6/initial-telephone-failures-format.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": ".local/gate-6/initial-telephone-failures-http-check.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": ".local/gate-6/initial-telephone-failures-whitespace.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ],
+  "remaining_work": [
+    "G6-044 remains open for the approved normalized Vapi voice/chat, SIP/Telnyx telephone and SMS endpoint/context/typed observation/reconciliation matrix. Preserve the five retired voice_flow functional requirements; these SIP tests do not replace them.",
+    "Historical early-answer/decline/terminal custody across failed activation and cancellation races, original Task/grant context, selected actual trunk/secret and runtime discovery binding, uncertain physical Core slot quarantine/recovery, process-kill recovery and initial multiparty/private/role profiles remain unqualified.",
+    "The prior public shutdown and private one-frame incidents remain causally unestablished; this reproduced terminal-replay drain failure is a separate identified defect.",
+    "No fresh full workspace, Linux x86_64 hosting, browser, remote/NAT, live provider/PSTN, installed-package, independent acceptance or publication proof. Named provider lanes need the bounded G6-093 configuration and designated endpoints."
+  ],
+  "plan_counts": {
+    "done": 43,
+    "in_progress": 1,
+    "not_started": 61,
+    "acceptance_done": 0
+  },
+  "distinct_qualified_component_tests": 843
+}

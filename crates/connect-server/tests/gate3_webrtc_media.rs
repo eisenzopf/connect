@@ -43,7 +43,9 @@ async fn inbound_webrtc_uses_configured_authority_and_bridges_vapi_audio() {
             &app_key.id,
             &Operation::Create {
                 request_id: "webrtc-create".into(),
-                participants: vec![agent.identity_id.clone()],
+                request: connect_protocol::conversations::CreateRequest::persistent(vec![agent
+                    .identity_id
+                    .clone()]),
             },
         )
         .unwrap()
@@ -57,7 +59,9 @@ async fn inbound_webrtc_uses_configured_authority_and_bridges_vapi_audio() {
             &Operation::Send {
                 request_id: "webrtc-context".into(),
                 conversation_id: conversation.id.clone(),
-                body: "The browser route fact is violet-six.".into(),
+                message: connect_protocol::messages::MessageDraft::text_all(
+                    "The browser route fact is violet-six.",
+                ),
             },
         )
         .unwrap();

@@ -165,6 +165,7 @@ fn terminal_tasks_and_closed_conversations_retain_authorized_owner_journal_and_s
                 &Operation::Close {
                     request_id: "close-conversation".into(),
                     conversation_id: f.cid.clone(),
+                    options: Default::default(),
                 },
             )
             .unwrap();
@@ -229,7 +230,7 @@ fn retained_inspection_still_requires_current_reader_scope_owner_membership_and_
         .connection()
         .unwrap()
         .execute(
-            "DELETE FROM participants WHERE conversation_id=?1",
+            "UPDATE participants SET active=0 WHERE conversation_id=?1",
             [&f.cid],
         )
         .unwrap();

@@ -20,7 +20,7 @@ def denied(fn, code):
     else:
         raise AssertionError("Expected denial")
 
-command = {"action": "invoke", "task_id": data["task"], "request_id": "python-" + mode, "step_id": "read", "operation": {"op": "send", "request_id": "python-" + mode, "conversation_id": data["cid"], "body": "Task-scoped SDK message"}, "reply_to": None, "wait_for_reply": False}
+command = {"action": "invoke", "task_id": data["task"], "request_id": "python-" + mode, "step_id": "read", "operation": {"op": "send", "request_id": "python-" + mode, "conversation_id": data["cid"], "message": {'to': 'all', 'content_type': 'text/plain', 'body': "Task-scoped SDK message", 'body_encoding': 'utf8', 'label': 'connect-messages', 'attachments': [], 'in_reply_to_msg': None, 'msg_id': None}}, "reply_to": None, "wait_for_reply": False}
 client = open_client()
 try:
     denied(lambda: client.task({"action": "get", "task_id": data["task"]}), "unsupported-profile")

@@ -1,0 +1,2475 @@
+diff --git a/crates/foundation/rvoip-core-traits/src/peer_switch.rs b/crates/foundation/rvoip-core-traits/src/peer_switch.rs
+index 097e159..2b12ca3 100644
+--- a/crates/foundation/rvoip-core-traits/src/peer_switch.rs
++++ b/crates/foundation/rvoip-core-traits/src/peer_switch.rs
+@@ -181,6 +181,32 @@ impl PeerRouteTicket {
+         true
+     }
+ 
++    /// Await already-admitted sends after permanent retirement. No new send
++    /// can enter while this waits. Cleanup must use a bounded caller deadline.
++    pub async fn wait_retired_drained(&self) -> bool {
++        let mut idle = {
++            let state = self.state.lock().unwrap_or_else(|e| e.into_inner());
++            if !state.retired {
++                return false;
++            }
++            state.idle.subscribe()
++        };
++        loop {
++            if self
++                .state
++                .lock()
++                .unwrap_or_else(|e| e.into_inner())
++                .deliveries
++                == 0
++            {
++                return true;
++            }
++            if idle.changed().await.is_err() {
++                return false;
++            }
++        }
++    }
++
+     /// Forward only for this active generation. Capacity is reserved without
+     /// holding the switch lock; the final check and channel send share the same
+     /// lock as commit. Thus a send blocked before commit cannot publish later
+@@ -220,6 +246,31 @@ impl PeerRouteTicket {
+ mod tests {
+     use super::*;
+ 
++    #[tokio::test]
++    async fn retired_drain_waits_for_the_last_admitted_local_send() {
++        let ticket = PeerRouteTicket::initial();
++        assert!(!ticket.wait_retired_drained().await);
++        let sending = ticket.try_begin_delivery().unwrap();
++        assert!(ticket.retire_if_current());
++        let retired = ticket.clone();
++        let drain = tokio::spawn(async move { retired.wait_retired_drained().await });
++        tokio::task::yield_now().await;
++        assert!(!drain.is_finished());
++        drop(sending);
++        assert!(drain.await.unwrap());
++        assert!(ticket.try_begin_delivery().is_none());
++    }
++
++    #[tokio::test]
++    async fn unactivated_candidate_can_drain_after_its_private_baseline_is_retired() {
++        let baseline = PeerRouteTicket::initial();
++        let staged = baseline.stage().unwrap();
++        assert!(staged.try_begin_delivery().is_none());
++        assert!(baseline.retire_if_current());
++        assert!(staged.wait_retired_drained().await);
++        assert!(!staged.commit_from(&baseline));
++    }
++
+     #[tokio::test]
+     async fn quiescence_timeout_restores_admission() {
+         let old = PeerRouteTicket::initial();
+diff --git a/crates/foundation/rvoip-core/src/adapter.rs b/crates/foundation/rvoip-core/src/adapter.rs
+index 7c2a508..44a2091 100644
+--- a/crates/foundation/rvoip-core/src/adapter.rs
++++ b/crates/foundation/rvoip-core/src/adapter.rs
+@@ -538,6 +538,13 @@ pub trait ConnectionAdapter: Send + Sync {
+         capabilities: CapabilityDescriptor,
+     ) -> Result<NegotiatedCodecs>;
+ 
++    /// Opt in only when preparation leaves existing media untouched and owns
++    /// cancellation-safe, idempotent cleanup for every candidate port. There
++    /// is no fallback to the live-mutating renegotiation helper.
++    fn staged_media(&self) -> Option<Arc<dyn crate::staged_streams::StagedMediaAdapter>> {
++        None
++    }
++
+     /// P2 — local mute/unmute on a per-direction basis. Default
+     /// `NotImplemented` so adapters opt in; the Orchestrator surfaces
+     /// the error verbatim when a caller invokes mute against a
+diff --git a/crates/foundation/rvoip-core/src/lib.rs b/crates/foundation/rvoip-core/src/lib.rs
+index f6f1719..fa48392 100644
+--- a/crates/foundation/rvoip-core/src/lib.rs
++++ b/crates/foundation/rvoip-core/src/lib.rs
+@@ -147,6 +147,7 @@ pub mod signing;
+ pub mod store;
+ pub mod stream;
+ pub mod stream_lifecycle;
++pub mod staged_streams;
+ pub mod subscriptions;
+ pub mod vcon;
+ pub mod video_bridge;
+diff --git a/crates/foundation/rvoip-core/src/staged_streams.rs b/crates/foundation/rvoip-core/src/staged_streams.rs
+new file mode 100644
+index 0000000..1901788
+--- /dev/null
++++ b/crates/foundation/rvoip-core/src/staged_streams.rs
+@@ -0,0 +1,1112 @@
++//! Staged, generation-fenced media port ownership. Adapters explicitly opt in;
++//! the old live-mutating renegotiation API is never used as a fallback.
++//! Connect still owns durable operations and installs current policy. Built-in
++//! transport adapters must implement this contract before advertising it.
++
++use crate::{
++    identity::AuthenticatedPrincipal,
++    ids::{ConnectionId, ConversationId, SessionId, StreamId},
++    relationships::{ConnectionBinding, EndpointBinding, Membership, SessionAppearance},
++    stream::{MediaFrame, StreamKind},
++    stream_lifecycle::*,
++};
++use rvoip_core_traits::peer_switch::PeerRouteTicket;
++use std::{
++    collections::{BTreeMap, BTreeSet},
++    future::Future,
++    sync::{
++        atomic::{AtomicU32, Ordering},
++        Arc, Mutex, Weak,
++    },
++    time::{Duration, Instant},
++};
++use tokio::sync::{mpsc, OwnedSemaphorePermit, Semaphore};
++use tokio_util::sync::CancellationToken;
++
++#[derive(Debug, thiserror::Error)]
++pub enum StreamControlError {
++    #[error(transparent)]
++    Model(#[from] MediaTransitionError),
++    #[error("staged media is unsupported")]
++    Unsupported,
++    #[error("staged media authority denied")]
++    Authority,
++    #[error("staged media cancelled")]
++    Cancelled,
++    #[error("staged media deadline expired")]
++    Deadline,
++    #[error("staged media is not ready")]
++    NotReady,
++    #[error("staged media backpressure")]
++    Backpressure,
++    #[error("staged media cleanup is unconfirmed")]
++    CleanupUnconfirmed,
++}
++pub type ControlResult<T> = std::result::Result<T, StreamControlError>;
++
++/// Share exactly one allocator across all Connections on one physical peer.
++/// Failed candidates burn handles. Exhaustion never wraps or reuses a handle.
++pub struct StreamHandleAllocator(AtomicU32);
++impl Default for StreamHandleAllocator {
++    fn default() -> Self {
++        Self(AtomicU32::new(1))
++    }
++}
++impl StreamHandleAllocator {
++    fn allocate(&self) -> ControlResult<u16> {
++        self.0
++            .fetch_update(Ordering::AcqRel, Ordering::Acquire, |n| {
++                (n <= u16::MAX as u32).then_some(n + 1)
++            })
++            .map(|n| n as u16)
++            .map_err(|_| MediaTransitionError::Capacity.into())
++    }
++}
++
++#[derive(Clone)]
++pub struct MediaOwner {
++    pub actor: Membership,
++    pub member: Membership,
++    pub presence: SessionAppearance,
++    pub endpoint: EndpointBinding,
++    pub connection: ConnectionBinding,
++    pub may_control: bool,
++    pub send_media: BTreeSet<Medium>,
++    pub receive_media: BTreeSet<Medium>,
++    pub local: EndpointMediaCapabilities,
++    pub remote: EndpointMediaCapabilities,
++    /// Current source audience permission, separately from receive capability.
++    pub may_route_source: bool,
++}
++impl MediaOwner {
++    fn current(&self) -> CurrentMediaAuthority<'_> {
++        CurrentMediaAuthority {
++            member: &self.member,
++            presence: &self.presence,
++            endpoint: &self.endpoint,
++            connection: &self.connection,
++            may_negotiate: self.may_control,
++            send_media: self.send_media.clone(),
++            receive_media: self.receive_media.clone(),
++        }
++    }
++}
++#[derive(Clone, Debug)]
++pub struct MediaSource {
++    pub conversation: ConversationId,
++    pub session: SessionId,
++    pub connection: ConnectionId,
++    pub participant: crate::ids::ParticipantId,
++    pub membership_epoch: u64,
++    pub connection_generation: u64,
++    pub logical_id: StreamId,
++    pub transport_id: StreamId,
++    pub stream_generation: u64,
++}
++pub enum MediaPurpose<'a> {
++    Control,
++    Publish,
++    Receive { source: &'a MediaSource },
++}
++pub struct MediaScope<'a> {
++    pub conversation: &'a ConversationId,
++    pub session: &'a SessionId,
++    pub connection: &'a ConnectionId,
++    pub principal: &'a AuthenticatedPrincipal,
++    pub purpose: MediaPurpose<'a>,
++}
++/// Owned, Send authority lease. Retain the policy's generation/authorization
++/// fence through a bounded local send. Queued permission snapshots are invalid.
++pub trait MediaAuthorityLease: Send {
++    fn authority(&self) -> &MediaOwner;
++}
++pub trait MediaPolicy: Send + Sync {
++    fn current(&self, scope: &MediaScope<'_>) -> ControlResult<Box<dyn MediaAuthorityLease>>;
++}
++
++#[async_trait::async_trait]
++pub trait MediaPortCleanup: Send + Sync {
++    /// Idempotent and exact-port scoped. Success confirms owned local resources
++    /// have stopped; it must not end an unchanged route on the same Connection.
++    async fn close(&self) -> ControlResult<()>;
++}
++#[async_trait::async_trait]
++pub trait StagedMediaAdapter: Send + Sync {
++    /// Register cleanup before allocating resources. Report readiness only
++    /// from the exact negotiated route. Dropping this future must release its
++    /// own provisional work; engine ports are fenced immediately on failure.
++    /// Existing ports are read-only and must remain untouched during prepare.
++    async fn prepare(
++        &self,
++        ports: Vec<PortPreparation>,
++        deadline: tokio::time::Instant,
++        cancellation: CancellationToken,
++    ) -> ControlResult<()>;
++}
++#[derive(Clone)]
++pub struct PortPreparation {
++    pub port: AdapterMediaPort,
++    pub is_new: bool,
++}
++#[derive(Clone, Copy, Debug, PartialEq, Eq)]
++pub enum PortStatus {
++    Prepared,
++    Active,
++    Paused,
++    Retired,
++    Quarantined,
++    Closed,
++}
++struct PortState {
++    status: PortStatus,
++    ready: bool,
++    payload_type: Option<u8>,
++    cleanup: Option<Arc<dyn MediaPortCleanup>>,
++}
++struct Port {
++    owner: Weak<StreamController>,
++    binding: ReadyMediaBinding,
++    baseline: PeerRouteTicket,
++    ticket: Mutex<PeerRouteTicket>,
++    state: Mutex<PortState>,
++    ingress: mpsc::Sender<MediaPacket>,
++    input: Mutex<Option<mpsc::Receiver<MediaPacket>>>,
++    egress: mpsc::Sender<QueuedMedia>,
++    output: Mutex<Option<mpsc::Receiver<QueuedMedia>>>,
++    slot: Mutex<Option<OwnedSemaphorePermit>>,
++}
++impl Port {
++    fn retire(&self) {
++        let mut state = self.state.lock().unwrap_or_else(|p| p.into_inner());
++        if matches!(
++            state.status,
++            PortStatus::Closed | PortStatus::Retired | PortStatus::Quarantined
++        ) {
++            return;
++        }
++        let ticket = self.ticket.lock().unwrap_or_else(|p| p.into_inner());
++        if !ticket.retire_if_current() {
++            self.baseline.retire_if_current();
++        }
++        state.status = PortStatus::Retired;
++    }
++    fn kind(&self) -> StreamKind {
++        match self.binding.negotiated.requested.medium {
++            Medium::Audio => StreamKind::Audio,
++            Medium::Video | Medium::Screen => StreamKind::Video,
++            Medium::Data => StreamKind::Data,
++        }
++    }
++    fn validate(&self, frame: &MediaFrame) -> ControlResult<()> {
++        let maximum = match self.kind() {
++            StreamKind::Audio => 16 * 1024,
++            StreamKind::Video => 1180,
++            StreamKind::Data => 16 * 1024,
++        };
++        if frame.stream_id != self.binding.transport_id
++            || frame.kind != self.kind()
++            || frame.payload.is_empty()
++            || frame.payload.len() > maximum
++        {
++            return Err(StreamControlError::NotReady);
++        }
++        let state = self.state.lock().unwrap_or_else(|p| p.into_inner());
++        if !state.ready || frame.payload_type != state.payload_type {
++            return Err(StreamControlError::NotReady);
++        }
++        if let MediaFormat::ReliableOrdered(protocol) = &self.binding.negotiated.format {
++            use crate::capability::DataProtocol;
++            match protocol {
++                DataProtocol::Text => {
++                    std::str::from_utf8(&frame.payload)
++                        .map_err(|_| StreamControlError::NotReady)?;
++                }
++                DataProtocol::Json => {
++                    serde_json::from_slice::<serde_json::Value>(&frame.payload)
++                        .map_err(|_| StreamControlError::NotReady)?;
++                }
++                DataProtocol::Binary => {}
++            }
++        }
++        if self.kind() == StreamKind::Video {
++            let packet = rvoip_rtp_core::RtpPacket::parse(&frame.payload)
++                .map_err(|_| StreamControlError::NotReady)?;
++            if Some(packet.header.payload_type) != state.payload_type
++                || packet.header.timestamp != frame.timestamp_rtp
++            {
++                return Err(StreamControlError::NotReady);
++            }
++        }
++        Ok(())
++    }
++    fn ticket(&self) -> PeerRouteTicket {
++        self.ticket
++            .lock()
++            .unwrap_or_else(|p| p.into_inner())
++            .clone()
++    }
++}
++#[derive(Clone)]
++pub struct AdapterMediaPort(Arc<Port>);
++impl AdapterMediaPort {
++    pub fn binding(&self) -> &ReadyMediaBinding {
++        &self.0.binding
++    }
++    pub fn install_cleanup(&self, cleanup: Arc<dyn MediaPortCleanup>) -> ControlResult<()> {
++        let mut state = self.0.state.lock().unwrap_or_else(|p| p.into_inner());
++        if state.cleanup.is_some() || state.status != PortStatus::Prepared {
++            return Err(MediaTransitionError::Conflict.into());
++        }
++        state.cleanup = Some(cleanup);
++        Ok(())
++    }
++    pub fn observe_ready(
++        &self,
++        format: &MediaFormat,
++        source_ready: bool,
++        sink_ready: bool,
++        payload_type: Option<u8>,
++    ) -> ControlResult<()> {
++        let mut state = self.0.state.lock().unwrap_or_else(|p| p.into_inner());
++        if state.status != PortStatus::Prepared
++            || state.cleanup.is_none()
++            || format != &self.0.binding.negotiated.format
++            || (!source_ready && self.0.binding.source_ready)
++            || (!sink_ready && self.0.binding.sink_ready)
++        {
++            return Err(StreamControlError::NotReady);
++        }
++        if (self.0.kind() == StreamKind::Data && payload_type.is_some())
++            || (self.0.kind() != StreamKind::Data && !payload_type.is_some_and(|pt| pt < 128))
++            || (state.ready && state.payload_type != payload_type)
++        {
++            return Err(StreamControlError::NotReady);
++        }
++        state.payload_type = payload_type;
++        state.ready = true;
++        Ok(())
++    }
++    /// Source perspective is the core: Receive means endpoint -> core.
++    /// A full queue is explicit backpressure. Reliable data adapters must stop
++    /// reading/retry the same message; they must never acknowledge a drop.
++    pub fn try_publish(&self, frame: &MediaFrame) -> ControlResult<()> {
++        self.0.validate(frame)?;
++        let owner = self
++            .0
++            .owner
++            .upgrade()
++            .ok_or(StreamControlError::Cancelled)?;
++        let ticket = self.0.ticket();
++        let (_lease, _delivery) = owner.admit(&self.0, &ticket, false, None)?;
++        self.0
++            .ingress
++            .try_send(MediaPacket {
++                frame: frame.clone(),
++                source: self.0.clone(),
++                ticket,
++                admitted_at: Instant::now(),
++            })
++            .map_err(|error| match error {
++                mpsc::error::TrySendError::Full(_) => StreamControlError::Backpressure,
++                mpsc::error::TrySendError::Closed(_) => StreamControlError::NotReady,
++            })
++    }
++    pub fn take_egress(&self) -> ControlResult<mpsc::Receiver<QueuedMedia>> {
++        self.0
++            .output
++            .lock()
++            .unwrap_or_else(|p| p.into_inner())
++            .take()
++            .ok_or(MediaTransitionError::Conflict.into())
++    }
++    /// Exact protected adapter callback. A terminal callback for an old
++    /// transport cannot end the replacement sharing its logical stream ID.
++    pub fn report_terminal(&self) -> ControlResult<bool> {
++        let Some(owner) = self.0.owner.upgrade() else {
++            self.0.retire();
++            return Ok(false);
++        };
++        let mut state = owner.state.lock().unwrap_or_else(|p| p.into_inner());
++        self.0.retire();
++        let logical = &self.0.binding.negotiated.requested.logical_id;
++        if !state
++            .active
++            .get(logical)
++            .is_some_and(|current| Arc::ptr_eq(current, &self.0))
++        {
++            return Ok(false);
++        }
++        state.active.remove(logical);
++        Ok(state.model.observe_ended(
++            logical,
++            &self.0.binding.transport_id,
++            self.0.binding.stream_local_id,
++            self.0.binding.generation,
++            self.0.binding.connection_generation,
++        )?)
++    }
++}
++
++pub struct MediaPacket {
++    frame: MediaFrame,
++    source: Arc<Port>,
++    ticket: PeerRouteTicket,
++    admitted_at: Instant,
++}
++impl MediaPacket {
++    pub fn try_forward_to(
++        &self,
++        destination: &Arc<StreamController>,
++        logical: &StreamId,
++    ) -> ControlResult<()> {
++        if self.source.kind() != StreamKind::Data
++            && self.admitted_at.elapsed() > Duration::from_millis(200)
++        {
++            return Err(StreamControlError::Deadline);
++        }
++        let source = self
++            .source
++            .owner
++            .upgrade()
++            .ok_or(StreamControlError::Cancelled)?;
++        if source.conversation != destination.conversation
++            || source.session != destination.session
++            || !Arc::ptr_eq(&source.policy, &destination.policy)
++        {
++            return Err(StreamControlError::Authority);
++        }
++        let target = {
++            let state = destination.state.lock().unwrap_or_else(|p| p.into_inner());
++            state
++                .active
++                .get(logical)
++                .cloned()
++                .ok_or(StreamControlError::NotReady)?
++        };
++        if self.source.binding.negotiated.requested.medium
++            != target.binding.negotiated.requested.medium
++            || self.source.binding.negotiated.format != target.binding.negotiated.format
++        {
++            return Err(StreamControlError::Unsupported);
++        }
++        let descriptor = source.descriptor(&self.source)?;
++        let (_source_lease, _source_guard) =
++            source.admit(&self.source, &self.ticket, false, None)?;
++        let ticket = target.ticket();
++        let (_target_lease, _target_guard) =
++            destination.admit(&target, &ticket, true, Some(&descriptor))?;
++        let mut frame = self.frame.clone();
++        frame.stream_id = target.binding.transport_id.clone();
++        target
++            .egress
++            .try_send(QueuedMedia {
++                frame,
++                source: self.source.clone(),
++                source_ticket: self.ticket.clone(),
++                target: target.clone(),
++                target_ticket: ticket,
++                descriptor,
++                admitted_at: self.admitted_at,
++            })
++            .map_err(|error| match error {
++                mpsc::error::TrySendError::Full(_) => StreamControlError::Backpressure,
++                mpsc::error::TrySendError::Closed(_) => StreamControlError::NotReady,
++            })
++    }
++}
++/// No raw payload accessor: admission is repeated after dequeue, and the
++/// current policy plus both route-generation guards live through the send.
++pub struct QueuedMedia {
++    frame: MediaFrame,
++    source: Arc<Port>,
++    source_ticket: PeerRouteTicket,
++    target: Arc<Port>,
++    target_ticket: PeerRouteTicket,
++    descriptor: MediaSource,
++    admitted_at: Instant,
++}
++impl QueuedMedia {
++    pub async fn deliver<F, Fut>(self, send: F) -> ControlResult<()>
++    where
++        F: FnOnce(MediaFrame) -> Fut,
++        Fut: Future<Output = ControlResult<()>>,
++    {
++        if self.source.kind() != StreamKind::Data
++            && self.admitted_at.elapsed() > Duration::from_millis(200)
++        {
++            return Err(StreamControlError::Deadline);
++        }
++        let source = self
++            .source
++            .owner
++            .upgrade()
++            .ok_or(StreamControlError::Cancelled)?;
++        let target = self
++            .target
++            .owner
++            .upgrade()
++            .ok_or(StreamControlError::Cancelled)?;
++        let (_source_lease, _source_guard) =
++            source.admit(&self.source, &self.source_ticket, false, None)?;
++        let (_target_lease, _target_guard) = target.admit(
++            &self.target,
++            &self.target_ticket,
++            true,
++            Some(&self.descriptor),
++        )?;
++        tokio::time::timeout(Duration::from_millis(200), send(self.frame))
++            .await
++            .map_err(|_| StreamControlError::Deadline)?
++    }
++}
++
++struct State {
++    model: StreamLifecycle,
++    active: BTreeMap<StreamId, Arc<Port>>,
++    all: BTreeMap<StreamId, Arc<Port>>,
++    closed: bool,
++}
++pub struct StreamController {
++    conversation: ConversationId,
++    session: SessionId,
++    connection: ConnectionId,
++    principal: AuthenticatedPrincipal,
++    policy: Arc<dyn MediaPolicy>,
++    adapter: Arc<dyn StagedMediaAdapter>,
++    handles: Arc<StreamHandleAllocator>,
++    slots: Arc<Semaphore>,
++    state: Mutex<State>,
++    cleanup_lock: tokio::sync::Mutex<()>,
++    inflight: Arc<Semaphore>,
++    shutdown: CancellationToken,
++}
++struct Candidate {
++    owner: Arc<StreamController>,
++    ticket: Option<PreparedMediaChange>,
++    ports: Vec<Arc<Port>>,
++    committed: bool,
++    cancellation: CancellationToken,
++    _flight: OwnedSemaphorePermit,
++}
++impl Drop for Candidate {
++    fn drop(&mut self) {
++        if self.committed {
++            return;
++        }
++        self.cancellation.cancel();
++        for port in &self.ports {
++            port.retire();
++        }
++        if let Some(ticket) = self.ticket.take() {
++            let _ = self
++                .owner
++                .state
++                .lock()
++                .unwrap_or_else(|p| p.into_inner())
++                .model
++                .abort(ticket);
++        }
++    }
++}
++impl StreamController {
++    pub fn new(
++        conversation: ConversationId,
++        session: SessionId,
++        connection: ConnectionId,
++        principal: AuthenticatedPrincipal,
++        policy: Arc<dyn MediaPolicy>,
++        adapter: Arc<dyn StagedMediaAdapter>,
++        handles: Arc<StreamHandleAllocator>,
++        maximum_ports: usize,
++    ) -> ControlResult<Arc<Self>> {
++        if !(1..=512).contains(&maximum_ports) {
++            return Err(MediaTransitionError::Capacity.into());
++        }
++        let scope = MediaScope {
++            conversation: &conversation,
++            session: &session,
++            connection: &connection,
++            principal: &principal,
++            purpose: MediaPurpose::Control,
++        };
++        let lease = policy.current(&scope)?;
++        let authority = lease.authority();
++        Self::check(&scope, authority)?;
++        let model = StreamLifecycle::new(&authority.current())?;
++        drop(lease);
++        Ok(Arc::new(Self {
++            conversation,
++            session,
++            connection,
++            principal,
++            policy,
++            adapter,
++            handles,
++            slots: Arc::new(Semaphore::new(maximum_ports)),
++            state: Mutex::new(State {
++                model,
++                active: BTreeMap::new(),
++                all: BTreeMap::new(),
++                closed: false,
++            }),
++            cleanup_lock: tokio::sync::Mutex::new(()),
++            inflight: Arc::new(Semaphore::new(1)),
++            shutdown: CancellationToken::new(),
++        }))
++    }
++    fn scope<'a>(&'a self, purpose: MediaPurpose<'a>) -> MediaScope<'a> {
++        MediaScope {
++            conversation: &self.conversation,
++            session: &self.session,
++            connection: &self.connection,
++            principal: &self.principal,
++            purpose,
++        }
++    }
++    fn check(scope: &MediaScope<'_>, authority: &MediaOwner) -> ControlResult<()> {
++        authority
++            .actor
++            .revalidate_principal(scope.principal, chrono::Utc::now())
++            .map_err(|_| StreamControlError::Authority)?;
++        if authority.member.conversation() != scope.conversation
++            || authority.presence.session() != scope.session
++            || authority.connection.connection() != scope.connection
++        {
++            return Err(StreamControlError::Authority);
++        }
++        Ok(())
++    }
++    pub fn revision(&self) -> u64 {
++        self.state
++            .lock()
++            .unwrap_or_else(|p| p.into_inner())
++            .model
++            .revision()
++    }
++    pub fn cleanup_status(&self) -> Vec<(StreamId, PortStatus)> {
++        self.state
++            .lock()
++            .unwrap_or_else(|p| p.into_inner())
++            .all
++            .values()
++            .map(|p| {
++                (
++                    p.binding.transport_id.clone(),
++                    p.state.lock().unwrap_or_else(|p| p.into_inner()).status,
++                )
++            })
++            .collect()
++    }
++    pub fn take_ingress(&self, logical: &StreamId) -> ControlResult<mpsc::Receiver<MediaPacket>> {
++        let state = self.state.lock().unwrap_or_else(|p| p.into_inner());
++        let port = state
++            .active
++            .get(logical)
++            .ok_or(StreamControlError::NotReady)?;
++        let result = port
++            .input
++            .lock()
++            .unwrap_or_else(|p| p.into_inner())
++            .take()
++            .ok_or(MediaTransitionError::Conflict.into());
++        result
++    }
++    fn descriptor(&self, port: &Port) -> ControlResult<MediaSource> {
++        let state = self.state.lock().unwrap_or_else(|p| p.into_inner());
++        let lease = self.policy.current(&self.scope(MediaPurpose::Publish))?;
++        let auth = lease.authority();
++        Self::check(&self.scope(MediaPurpose::Publish), auth)?;
++        state.model.authorize_binding(&auth.current())?;
++        Ok(MediaSource {
++            conversation: self.conversation.clone(),
++            session: self.session.clone(),
++            connection: self.connection.clone(),
++            participant: auth.member.participant().clone(),
++            membership_epoch: auth.member.epoch(),
++            connection_generation: auth.connection.generation(),
++            logical_id: port.binding.negotiated.requested.logical_id.clone(),
++            transport_id: port.binding.transport_id.clone(),
++            stream_generation: port.binding.generation,
++        })
++    }
++    fn admit(
++        &self,
++        port: &Arc<Port>,
++        ticket: &PeerRouteTicket,
++        sending: bool,
++        source: Option<&MediaSource>,
++    ) -> ControlResult<(
++        Box<dyn MediaAuthorityLease>,
++        rvoip_core_traits::peer_switch::PeerDeliveryGuard,
++    )> {
++        let state = self.state.lock().unwrap_or_else(|p| p.into_inner());
++        if state.closed
++            || !state
++                .active
++                .get(&port.binding.negotiated.requested.logical_id)
++                .is_some_and(|p| Arc::ptr_eq(p, port))
++        {
++            return Err(StreamControlError::NotReady);
++        }
++        if state
++            .model
++            .streams()
++            .get(&port.binding.negotiated.requested.logical_id)
++            .is_none_or(|s| s.state != LogicalStreamState::Active)
++        {
++            return Err(StreamControlError::NotReady);
++        }
++        let scope = self.scope(match source {
++            Some(source) => MediaPurpose::Receive { source },
++            None => MediaPurpose::Publish,
++        });
++        let lease = self.policy.current(&scope)?;
++        let auth = lease.authority();
++        Self::check(&scope, auth)?;
++        state.model.authorize_binding(&auth.current())?;
++        let medium = port.binding.negotiated.requested.medium;
++        let direction = port.binding.negotiated.requested.direction;
++        if (sending
++            && (direction == StreamDirection::Receive
++                || !auth.send_media.contains(&medium)
++                || !auth.may_route_source))
++            || (!sending
++                && (direction == StreamDirection::Send || !auth.receive_media.contains(&medium)))
++        {
++            return Err(StreamControlError::Authority);
++        }
++        let guard = ticket
++            .try_begin_delivery()
++            .ok_or(StreamControlError::NotReady)?;
++        Ok((lease, guard))
++    }
++    pub async fn change(
++        self: &Arc<Self>,
++        expected: u64,
++        desired: &[DesiredStream],
++        replace: &BTreeSet<StreamId>,
++        deadline: tokio::time::Instant,
++        cancellation: CancellationToken,
++    ) -> ControlResult<()> {
++        if cancellation.is_cancelled() {
++            return Err(StreamControlError::Cancelled);
++        }
++        let flight = self
++            .inflight
++            .clone()
++            .try_acquire_owned()
++            .map_err(|_| MediaTransitionError::Conflict)?;
++        let deadline = deadline.min(tokio::time::Instant::now() + Duration::from_secs(30));
++        let now = Instant::now();
++        let ticket = {
++            let state = &mut *self.state.lock().unwrap_or_else(|p| p.into_inner());
++            if state.closed {
++                return Err(StreamControlError::Cancelled);
++            }
++            let scope = self.scope(MediaPurpose::Control);
++            let lease = self.policy.current(&scope)?;
++            let auth = lease.authority();
++            Self::check(&scope, auth)?;
++            state.model.prepare(
++                &auth.current(),
++                expected,
++                &auth.local,
++                &auth.remote,
++                desired,
++                now,
++                deadline.into_std(),
++            )?
++        };
++        let mut candidate = Candidate {
++            owner: self.clone(),
++            ticket: Some(ticket),
++            ports: vec![],
++            committed: false,
++            cancellation: CancellationToken::new(),
++            _flight: flight,
++        };
++        if replace
++            .iter()
++            .any(|id| !desired.iter().any(|s| &s.logical_id == id))
++        {
++            return Err(MediaTransitionError::Invalid.into());
++        }
++        let mut selected = Vec::new();
++        for plan in candidate.ticket.as_ref().unwrap().streams() {
++            let existing = {
++                self.state
++                    .lock()
++                    .unwrap_or_else(|p| p.into_inner())
++                    .active
++                    .get(&plan.requested.logical_id)
++                    .cloned()
++            };
++            if let Some(old) = existing.as_ref().filter(|old| {
++                old.binding.negotiated == *plan && !replace.contains(&plan.requested.logical_id)
++            }) {
++                selected.push(PortPreparation {
++                    port: AdapterMediaPort(old.clone()),
++                    is_new: false,
++                });
++                continue;
++            }
++            let slot = self
++                .slots
++                .clone()
++                .try_acquire_owned()
++                .map_err(|_| MediaTransitionError::Capacity)?;
++            let handle = self.handles.allocate()?;
++            let baseline = PeerRouteTicket::initial();
++            let ticket = baseline.stage().ok_or(MediaTransitionError::Capacity)?;
++            let capacity = if plan.requested.medium == Medium::Audio {
++                10
++            } else {
++                64
++            };
++            let (ingress, input) = mpsc::channel(capacity);
++            let (egress, output) = mpsc::channel(capacity);
++            let binding = ReadyMediaBinding {
++                negotiated: plan.clone(),
++                transport_id: StreamId::new(),
++                stream_local_id: handle,
++                generation: existing.as_ref().map_or(1, |p| p.binding.generation + 1),
++                connection_generation: {
++                    let scope = self.scope(MediaPurpose::Control);
++                    let lease = self.policy.current(&scope)?;
++                    lease.authority().connection.generation()
++                },
++                source_ready: plan.requested.direction != StreamDirection::Send,
++                sink_ready: plan.requested.direction != StreamDirection::Receive,
++            };
++            let port = Arc::new(Port {
++                owner: Arc::downgrade(self),
++                binding,
++                baseline,
++                ticket: Mutex::new(ticket),
++                state: Mutex::new(PortState {
++                    status: PortStatus::Prepared,
++                    ready: false,
++                    payload_type: None,
++                    cleanup: None,
++                }),
++                ingress,
++                input: Mutex::new(Some(input)),
++                egress,
++                output: Mutex::new(Some(output)),
++                slot: Mutex::new(Some(slot)),
++            });
++            self.state
++                .lock()
++                .unwrap_or_else(|p| p.into_inner())
++                .all
++                .insert(port.binding.transport_id.clone(), port.clone());
++            candidate.ports.push(port.clone());
++            selected.push(PortPreparation {
++                port: AdapterMediaPort(port),
++                is_new: true,
++            });
++        }
++        tokio::select! {biased;_ = cancellation.cancelled()=>return Err(StreamControlError::Cancelled),_=self.shutdown.cancelled()=>return Err(StreamControlError::Cancelled),result=tokio::time::timeout_at(deadline,self.adapter.prepare(selected.clone(),deadline,candidate.cancellation.clone()))=>result.map_err(|_|StreamControlError::Deadline)??}
++        let removed = {
++            let state = self.state.lock().unwrap_or_else(|p| p.into_inner());
++            state
++                .active
++                .values()
++                .filter(|old| !selected.iter().any(|p| Arc::ptr_eq(&p.port.0, old)))
++                .cloned()
++                .collect::<Vec<_>>()
++        };
++        let mut quiesced = Vec::new();
++        for old in &removed {
++            let ticket = old.ticket();
++            let guard = tokio::select! {biased;_=cancellation.cancelled()=>return Err(StreamControlError::Cancelled),_=self.shutdown.cancelled()=>return Err(StreamControlError::Cancelled),result=tokio::time::timeout_at(deadline,ticket.quiesce())=>result.map_err(|_|StreamControlError::Deadline)?.ok_or(StreamControlError::NotReady)?};
++            quiesced.push(guard);
++        }
++        {
++            let mut state = self.state.lock().unwrap_or_else(|p| p.into_inner());
++            let scope = self.scope(MediaPurpose::Control);
++            let lease = self.policy.current(&scope)?;
++            let auth = lease.authority();
++            Self::check(&scope, auth)?;
++            if state.closed || cancellation.is_cancelled() {
++                return Err(StreamControlError::Cancelled);
++            }
++            if tokio::time::Instant::now() >= deadline {
++                return Err(StreamControlError::Deadline);
++            }
++            if selected.iter().any(|p| {
++                let s = p.port.0.state.lock().unwrap_or_else(|p| p.into_inner());
++                !s.ready
++                    || (p.is_new && s.status != PortStatus::Prepared)
++                    || (!p.is_new && !matches!(s.status, PortStatus::Active | PortStatus::Paused))
++            }) {
++                return Err(StreamControlError::NotReady);
++            }
++            let bindings = selected
++                .iter()
++                .map(|p| p.port.0.binding.clone())
++                .collect::<Vec<_>>();
++            state.model.commit(
++                &auth.current(),
++                candidate.ticket.as_ref().unwrap(),
++                &bindings,
++                Instant::now(),
++            )?;
++            for port in &candidate.ports {
++                let mut status = port.state.lock().unwrap_or_else(|p| p.into_inner());
++                let ticket = port.ticket();
++                assert!(
++                    ticket.commit_from(&port.baseline),
++                    "private staged port generation changed outside controller"
++                );
++                status.status = PortStatus::Active;
++            }
++            for old in &removed {
++                old.retire();
++            }
++            state.active = selected
++                .into_iter()
++                .map(|p| {
++                    (
++                        p.port.0.binding.negotiated.requested.logical_id.clone(),
++                        p.port.0,
++                    )
++                })
++                .collect();
++            candidate.committed = true;
++        }
++        drop(quiesced);
++        Ok(())
++    }
++    /// Drain admitted local sends, then advance the private delivery generation
++    /// with the logical pause/resume. Frames buffered before either edge expire.
++    pub async fn set_paused(
++        &self,
++        logical: &StreamId,
++        expected: u64,
++        paused: bool,
++        deadline: tokio::time::Instant,
++    ) -> ControlResult<()> {
++        let _flight = self
++            .inflight
++            .clone()
++            .try_acquire_owned()
++            .map_err(|_| MediaTransitionError::Conflict)?;
++        let port = {
++            let state = self.state.lock().unwrap_or_else(|p| p.into_inner());
++            let scope = self.scope(MediaPurpose::Control);
++            let lease = self.policy.current(&scope)?;
++            let auth = lease.authority();
++            Self::check(&scope, auth)?;
++            state.model.authorize_binding(&auth.current())?;
++            if state.closed || !auth.may_control {
++                return Err(StreamControlError::Authority);
++            }
++            if state.model.revision() != expected {
++                return Err(MediaTransitionError::Conflict.into());
++            }
++            state
++                .active
++                .get(logical)
++                .cloned()
++                .ok_or(StreamControlError::NotReady)?
++        };
++        let old = port.ticket();
++        let next = old.stage().ok_or(MediaTransitionError::Capacity)?;
++        let drained = tokio::select! {biased;_=self.shutdown.cancelled()=>return Err(StreamControlError::Cancelled),result=tokio::time::timeout_at(deadline,old.quiesce())=>result.map_err(|_|StreamControlError::Deadline)?.ok_or(StreamControlError::NotReady)?};
++        {
++            let mut state = self.state.lock().unwrap_or_else(|p| p.into_inner());
++            let scope = self.scope(MediaPurpose::Control);
++            let lease = self.policy.current(&scope)?;
++            let auth = lease.authority();
++            Self::check(&scope, auth)?;
++            if state.closed {
++                return Err(StreamControlError::Cancelled);
++            }
++            if tokio::time::Instant::now() >= deadline {
++                return Err(StreamControlError::Deadline);
++            }
++            state
++                .model
++                .set_paused(&auth.current(), expected, logical, paused)?;
++            assert!(
++                next.commit_from(&old),
++                "private paused delivery generation changed outside controller"
++            );
++            *port.ticket.lock().unwrap_or_else(|p| p.into_inner()) = next;
++            port.state.lock().unwrap_or_else(|p| p.into_inner()).status = if paused {
++                PortStatus::Paused
++            } else {
++                PortStatus::Active
++            };
++        }
++        drop(drained);
++        Ok(())
++    }
++    /// End one logical stream after its admitted local sends drain. The
++    /// Session and its unrelated ports remain; resource cleanup is separate.
++    pub async fn end_stream(
++        &self,
++        logical: &StreamId,
++        expected: u64,
++        deadline: tokio::time::Instant,
++    ) -> ControlResult<()> {
++        let _flight = self
++            .inflight
++            .clone()
++            .try_acquire_owned()
++            .map_err(|_| MediaTransitionError::Conflict)?;
++        let port = {
++            let state = self.state.lock().unwrap_or_else(|p| p.into_inner());
++            let scope = self.scope(MediaPurpose::Control);
++            let lease = self.policy.current(&scope)?;
++            let auth = lease.authority();
++            Self::check(&scope, auth)?;
++            state.model.authorize_binding(&auth.current())?;
++            if state.closed || !auth.may_control {
++                return Err(StreamControlError::Authority);
++            }
++            if state.model.revision() != expected {
++                return Err(MediaTransitionError::Conflict.into());
++            }
++            state
++                .active
++                .get(logical)
++                .cloned()
++                .ok_or(StreamControlError::NotReady)?
++        };
++        let ticket = port.ticket();
++        let drained = tokio::select! {biased;_=self.shutdown.cancelled()=>return Err(StreamControlError::Cancelled),result=tokio::time::timeout_at(deadline,ticket.quiesce())=>result.map_err(|_|StreamControlError::Deadline)?.ok_or(StreamControlError::NotReady)?};
++        {
++            let mut state = self.state.lock().unwrap_or_else(|p| p.into_inner());
++            let scope = self.scope(MediaPurpose::Control);
++            let lease = self.policy.current(&scope)?;
++            let auth = lease.authority();
++            Self::check(&scope, auth)?;
++            if state.closed {
++                return Err(StreamControlError::Cancelled);
++            }
++            if tokio::time::Instant::now() >= deadline {
++                return Err(StreamControlError::Deadline);
++            }
++            state.model.end_stream(&auth.current(), expected, logical)?;
++            port.retire();
++            state.active.remove(logical);
++        }
++        drop(drained);
++        Ok(())
++    }
++    /// One bounded cleanup attempt per retired port. Quarantined ports retain
++    /// their capacity and exact resources until cleanup actually confirms.
++    pub async fn reconcile_cleanup(&self, deadline: tokio::time::Instant) -> usize {
++        let _cleanup = match tokio::time::timeout_at(deadline, self.cleanup_lock.lock()).await {
++            Ok(guard) => guard,
++            Err(_) => {
++                return self
++                    .cleanup_status()
++                    .iter()
++                    .filter(|(_, status)| {
++                        matches!(status, PortStatus::Retired | PortStatus::Quarantined)
++                    })
++                    .count()
++            }
++        };
++        let ports = {
++            self.state
++                .lock()
++                .unwrap_or_else(|p| p.into_inner())
++                .all
++                .values()
++                .filter(|p| {
++                    matches!(
++                        p.state.lock().unwrap_or_else(|p| p.into_inner()).status,
++                        PortStatus::Retired | PortStatus::Quarantined
++                    )
++                })
++                .cloned()
++                .collect::<Vec<_>>()
++        };
++        for port in ports {
++            let cleanup = port
++                .state
++                .lock()
++                .unwrap_or_else(|p| p.into_inner())
++                .cleanup
++                .clone();
++            let drained = matches!(
++                tokio::time::timeout_at(deadline, port.ticket().wait_retired_drained()).await,
++                Ok(true)
++            );
++            let confirmed = if let Some(cleanup) = cleanup {
++                drained
++                    && matches!(
++                        tokio::time::timeout_at(
++                            deadline.min(tokio::time::Instant::now() + Duration::from_secs(1)),
++                            cleanup.close()
++                        )
++                        .await,
++                        Ok(Ok(()))
++                    )
++            } else {
++                false
++            };
++            if confirmed {
++                port.state.lock().unwrap_or_else(|p| p.into_inner()).status = PortStatus::Closed;
++                port.slot.lock().unwrap_or_else(|p| p.into_inner()).take();
++                self.state
++                    .lock()
++                    .unwrap_or_else(|p| p.into_inner())
++                    .all
++                    .remove(&port.binding.transport_id);
++            } else {
++                port.state.lock().unwrap_or_else(|p| p.into_inner()).status =
++                    PortStatus::Quarantined;
++            }
++        }
++        self.state
++            .lock()
++            .unwrap_or_else(|p| p.into_inner())
++            .all
++            .values()
++            .filter(|p| {
++                matches!(
++                    p.state.lock().unwrap_or_else(|p| p.into_inner()).status,
++                    PortStatus::Retired | PortStatus::Quarantined
++                )
++            })
++            .count()
++    }
++    pub async fn shutdown(&self, deadline: tokio::time::Instant) -> usize {
++        self.shutdown.cancel();
++        {
++            let mut state = self.state.lock().unwrap_or_else(|p| p.into_inner());
++            state.closed = true;
++            for port in state.active.values() {
++                port.retire();
++            }
++            state.active.clear();
++        }
++        let _flight =
++            match tokio::time::timeout_at(deadline, self.inflight.clone().acquire_owned()).await {
++                Ok(Ok(permit)) => permit,
++                _ => return self.cleanup_status().len(),
++            };
++        self.reconcile_cleanup(deadline).await
++    }
++}
++impl Drop for StreamController {
++    fn drop(&mut self) {
++        for port in self
++            .state
++            .get_mut()
++            .unwrap_or_else(|p| p.into_inner())
++            .all
++            .values()
++        {
++            port.retire();
++        }
++    }
++}
++
++#[cfg(test)]
++mod tests;
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/tests.rs b/crates/foundation/rvoip-core/src/staged_streams/tests.rs
+new file mode 100644
+index 0000000..60299a8
+--- /dev/null
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests.rs
+@@ -0,0 +1,1226 @@
++use super::*;
++use crate::{
++    capability::DataProtocol,
++    connection::Transport,
++    identity::{AuthenticationMethod, IdentityAssurance},
++    ids::{DeviceId, EndpointId, IdentityId, ParticipantId},
++    participant::{ParticipantKind, ParticipantRole},
++    relationships::IdentityBinding,
++};
++use bytes::Bytes;
++use std::{
++    collections::{HashMap, HashSet},
++    sync::atomic::{AtomicBool, AtomicUsize},
++};
++use tokio::sync::{Notify, OwnedRwLockReadGuard, RwLock};
++
++fn principal(name: &str) -> AuthenticatedPrincipal {
++    AuthenticatedPrincipal {
++        subject: name.into(),
++        tenant: Some("tenant".into()),
++        scopes: vec![],
++        issuer: Some("fixture".into()),
++        expires_at: Some(chrono::Utc::now() + chrono::Duration::hours(1)),
++        method: AuthenticationMethod::Bearer,
++        assurance: IdentityAssurance::Anonymous,
++    }
++}
++fn audio() -> MediaFormat {
++    MediaFormat::Encoded {
++        name: "pcmu".into(),
++        clock_rate_hz: 8000,
++        channels: 1,
++        fmtp: None,
++    }
++}
++fn video() -> MediaFormat {
++    MediaFormat::Encoded {
++        name: "vp8".into(),
++        clock_rate_hz: 90000,
++        channels: 0,
++        fmtp: None,
++    }
++}
++fn profile() -> EndpointMediaCapabilities {
++    let capabilities = vec![
++        MediaCapability {
++            medium: Medium::Audio,
++            formats: vec![audio()],
++        },
++        MediaCapability {
++            medium: Medium::Video,
++            formats: vec![video()],
++        },
++        MediaCapability {
++            medium: Medium::Screen,
++            formats: vec![video()],
++        },
++        MediaCapability {
++            medium: Medium::Data,
++            formats: vec![MediaFormat::ReliableOrdered(DataProtocol::Json)],
++        },
++    ];
++    EndpointMediaCapabilities {
++        send: capabilities.clone(),
++        receive: capabilities,
++        max_streams: 8,
++        renegotiation: true,
++    }
++}
++fn desired(kind: Medium) -> DesiredStream {
++    DesiredStream {
++        logical_id: StreamId::from_string(match kind {
++            Medium::Audio => "audio",
++            Medium::Video => "video",
++            Medium::Screen => "screen",
++            Medium::Data => "data",
++        }),
++        medium: kind,
++        direction: StreamDirection::Both,
++    }
++}
++fn owner(name: &str) -> MediaOwner {
++    let principal = principal(name);
++    let identity = IdentityBinding::from_authenticated(
++        &principal,
++        IdentityId::from_string(name),
++        chrono::Utc::now(),
++    )
++    .unwrap();
++    let member = Membership::admit(
++        identity.clone(),
++        ConversationId::from_string("conversation"),
++        ParticipantId::from_string(format!("participant-{name}")),
++        ParticipantKind::Human,
++        ParticipantRole::Agent,
++    )
++    .unwrap();
++    let presence =
++        SessionAppearance::admit(&member, SessionId::from_string("session"), None).unwrap();
++    let mut endpoint = EndpointBinding::provision(
++        identity.clone(),
++        EndpointId::from_string(format!("endpoint-{name}")),
++        DeviceId::from_string(format!("device-{name}")),
++        Transport::Quic,
++        "fixture-address".into(),
++    )
++    .unwrap();
++    endpoint
++        .verify(&identity, "fixture-evidence".into(), chrono::Utc::now())
++        .unwrap();
++    let mut connection = ConnectionBinding::prepare(
++        &member,
++        &presence,
++        &endpoint,
++        ConnectionId::from_string(name),
++    )
++    .unwrap();
++    connection
++        .observe_ready(&member, &presence, &endpoint, 1)
++        .unwrap();
++    connection.activate(&member, &presence, &endpoint).unwrap();
++    MediaOwner {
++        actor: member.clone(),
++        member,
++        presence,
++        endpoint,
++        connection,
++        may_control: true,
++        send_media: [Medium::Audio, Medium::Video, Medium::Screen, Medium::Data]
++            .into_iter()
++            .collect(),
++        receive_media: [Medium::Audio, Medium::Video, Medium::Screen, Medium::Data]
++            .into_iter()
++            .collect(),
++        local: profile(),
++        remote: profile(),
++        may_route_source: true,
++    }
++}
++struct PolicyState {
++    owners: HashMap<String, MediaOwner>,
++    revoked: HashSet<String>,
++    private: bool,
++}
++struct Policy(Arc<RwLock<PolicyState>>);
++struct Lease {
++    authority: MediaOwner,
++    _guard: OwnedRwLockReadGuard<PolicyState>,
++}
++impl MediaAuthorityLease for Lease {
++    fn authority(&self) -> &MediaOwner {
++        &self.authority
++    }
++}
++impl MediaPolicy for Policy {
++    fn current(&self, scope: &MediaScope<'_>) -> ControlResult<Box<dyn MediaAuthorityLease>> {
++        let guard = self
++            .0
++            .clone()
++            .try_read_owned()
++            .map_err(|_| StreamControlError::Authority)?;
++        if guard.revoked.contains(&scope.principal.subject) {
++            return Err(StreamControlError::Authority);
++        }
++        let mut authority = guard
++            .owners
++            .get(scope.connection.as_str())
++            .ok_or(StreamControlError::Authority)?
++            .clone();
++        if let MediaPurpose::Receive { source } = scope.purpose {
++            let original = guard
++                .owners
++                .get(source.connection.as_str())
++                .ok_or(StreamControlError::Authority)?;
++            if source.conversation != *scope.conversation
++                || source.session != *scope.session
++                || source.participant != *original.member.participant()
++                || source.membership_epoch != original.member.epoch()
++                || source.connection_generation != original.connection.generation()
++            {
++                return Err(StreamControlError::Authority);
++            }
++            authority.may_route_source = !guard.private;
++        }
++        Ok(Box::new(Lease {
++            authority,
++            _guard: guard,
++        }))
++    }
++}
++struct Cleanup {
++    outstanding: Arc<AtomicUsize>,
++    closed: AtomicBool,
++    uncertain: Arc<AtomicBool>,
++}
++#[async_trait::async_trait]
++impl MediaPortCleanup for Cleanup {
++    async fn close(&self) -> ControlResult<()> {
++        if self.uncertain.load(Ordering::Acquire) {
++            return Err(StreamControlError::CleanupUnconfirmed);
++        }
++        if !self.closed.swap(true, Ordering::AcqRel) {
++            self.outstanding.fetch_sub(1, Ordering::AcqRel);
++        }
++        Ok(())
++    }
++}
++struct Adapter {
++    ports: Mutex<BTreeMap<StreamId, AdapterMediaPort>>,
++    mode: AtomicUsize,
++    entered: Notify,
++    release: Notify,
++    outstanding: Arc<AtomicUsize>,
++    uncertain: Arc<AtomicBool>,
++}
++impl Adapter {
++    fn new() -> Arc<Self> {
++        Arc::new(Self {
++            ports: Mutex::new(BTreeMap::new()),
++            mode: AtomicUsize::new(0),
++            entered: Notify::new(),
++            release: Notify::new(),
++            outstanding: Arc::new(AtomicUsize::new(0)),
++            uncertain: Arc::new(AtomicBool::new(false)),
++        })
++    }
++    fn port(&self, kind: Medium) -> AdapterMediaPort {
++        self.ports
++            .lock()
++            .unwrap()
++            .get(&desired(kind).logical_id)
++            .unwrap()
++            .clone()
++    }
++}
++#[async_trait::async_trait]
++impl StagedMediaAdapter for Adapter {
++    async fn prepare(
++        &self,
++        ports: Vec<PortPreparation>,
++        _: tokio::time::Instant,
++        _: CancellationToken,
++    ) -> ControlResult<()> {
++        let mode = self.mode.load(Ordering::Acquire);
++        for preparation in ports {
++            if preparation.is_new {
++                if mode == 3 {
++                    return Err(StreamControlError::Unsupported);
++                }
++                let cleanup = Arc::new(Cleanup {
++                    outstanding: self.outstanding.clone(),
++                    closed: AtomicBool::new(false),
++                    uncertain: self.uncertain.clone(),
++                });
++                preparation.port.install_cleanup(cleanup)?;
++                self.outstanding.fetch_add(1, Ordering::AcqRel);
++                let format = preparation.port.binding().negotiated.format.clone();
++                let pt = match preparation.port.binding().negotiated.requested.medium {
++                    Medium::Audio => Some(0),
++                    Medium::Video | Medium::Screen => Some(96),
++                    Medium::Data => None,
++                };
++                if mode != 4 {
++                    preparation.port.observe_ready(&format, true, true, pt)?;
++                }
++            }
++            self.ports.lock().unwrap().insert(
++                preparation
++                    .port
++                    .binding()
++                    .negotiated
++                    .requested
++                    .logical_id
++                    .clone(),
++                preparation.port,
++            );
++        }
++        if mode == 1 {
++            self.entered.notify_one();
++            self.release.notified().await;
++        }
++        if mode == 2 {
++            return Err(StreamControlError::NotReady);
++        }
++        Ok(())
++    }
++}
++struct Fixture {
++    policy: Arc<Policy>,
++    a: Arc<StreamController>,
++    b: Arc<StreamController>,
++    aa: Arc<Adapter>,
++    ba: Arc<Adapter>,
++}
++impl Fixture {
++    fn new(maximum: usize) -> Self {
++        let policy = Arc::new(Policy(Arc::new(RwLock::new(PolicyState {
++            owners: [
++                ("alice".into(), owner("alice")),
++                ("bob".into(), owner("bob")),
++            ]
++            .into_iter()
++            .collect(),
++            revoked: HashSet::new(),
++            private: false,
++        }))));
++        let handles = Arc::new(StreamHandleAllocator::default());
++        let aa = Adapter::new();
++        let ba = Adapter::new();
++        let create = |name: &str, adapter: Arc<Adapter>| {
++            StreamController::new(
++                ConversationId::from_string("conversation"),
++                SessionId::from_string("session"),
++                ConnectionId::from_string(name),
++                principal(name),
++                policy.clone(),
++                adapter,
++                handles.clone(),
++                maximum,
++            )
++            .unwrap()
++        };
++        Self {
++            a: create("alice", aa.clone()),
++            b: create("bob", ba.clone()),
++            policy,
++            aa,
++            ba,
++        }
++    }
++    async fn start(&self, kinds: &[Medium]) {
++        let request = kinds.iter().map(|k| desired(*k)).collect::<Vec<_>>();
++        self.a
++            .change(
++                self.a.revision(),
++                &request,
++                &BTreeSet::new(),
++                deadline(),
++                CancellationToken::new(),
++            )
++            .await
++            .unwrap();
++        self.b
++            .change(
++                self.b.revision(),
++                &request,
++                &BTreeSet::new(),
++                deadline(),
++                CancellationToken::new(),
++            )
++            .await
++            .unwrap();
++    }
++}
++fn deadline() -> tokio::time::Instant {
++    tokio::time::Instant::now() + Duration::from_secs(2)
++}
++fn frame(port: &AdapterMediaPort, sequence: u32) -> MediaFrame {
++    let medium = port.binding().negotiated.requested.medium;
++    let payload = match medium {
++        Medium::Audio => {
++            use rvoip_media_core::{codec::factory::CodecFactory, AudioFrame};
++            let mut encoder = CodecFactory::create_codec(0, Some(8000), Some(1)).unwrap();
++            encoder
++                .encode(&AudioFrame {
++                    samples: vec![1800; 160],
++                    sample_rate: 8000,
++                    channels: 1,
++                    duration: Duration::from_millis(20),
++                    timestamp: sequence,
++                })
++                .unwrap()
++        }
++        Medium::Video | Medium::Screen => {
++            let mut packet = vec![0x80, 96, 0, 1];
++            packet.extend_from_slice(&sequence.to_be_bytes());
++            packet.extend_from_slice(&1u32.to_be_bytes());
++            packet.extend_from_slice(&[0x10, 0, 1, 2]);
++            packet
++        }
++        Medium::Data => format!("{{\"sequence\":{sequence}}}").into_bytes(),
++    };
++    MediaFrame {
++        stream_id: port.binding().transport_id.clone(),
++        kind: port.0.kind(),
++        payload: Bytes::from(payload),
++        timestamp_rtp: sequence,
++        source_clock: None,
++        captured_at: chrono::Utc::now(),
++        payload_type: if medium == Medium::Data {
++            None
++        } else if medium == Medium::Audio {
++            Some(0)
++        } else {
++            Some(96)
++        },
++    }
++}
++async fn receive(receiver: &mut mpsc::Receiver<MediaPacket>) -> MediaPacket {
++    tokio::time::timeout(Duration::from_secs(1), receiver.recv())
++        .await
++        .unwrap()
++        .unwrap()
++}
++async fn outgoing(receiver: &mut mpsc::Receiver<QueuedMedia>) -> QueuedMedia {
++    tokio::time::timeout(Duration::from_secs(1), receiver.recv())
++        .await
++        .unwrap()
++        .unwrap()
++}
++async fn assert_audio(queued: QueuedMedia) {
++    queued
++        .deliver(|frame| async move {
++            let mut decoder = rvoip_media_core::codec::factory::CodecFactory::create_codec(
++                0,
++                Some(8000),
++                Some(1),
++            )
++            .unwrap();
++            assert!(decoder
++                .decode(&frame.payload)
++                .unwrap()
++                .samples
++                .iter()
++                .any(|s| s.unsigned_abs() > 500));
++            Ok(())
++        })
++        .await
++        .unwrap();
++}
++
++#[tokio::test]
++async fn encoded_audio_crosses_only_committed_current_authorized_ports() {
++    let f = Fixture::new(8);
++    f.start(&[Medium::Audio]).await;
++    let source = f.aa.port(Medium::Audio);
++    let target = f.ba.port(Medium::Audio);
++    let mut input =
++        f.a.take_ingress(&desired(Medium::Audio).logical_id)
++            .unwrap();
++    let mut output = target.take_egress().unwrap();
++    source.try_publish(&frame(&source, 160)).unwrap();
++    receive(&mut input)
++        .await
++        .try_forward_to(&f.b, &desired(Medium::Audio).logical_id)
++        .unwrap();
++    assert_audio(outgoing(&mut output).await).await;
++    let reverse = f.ba.port(Medium::Audio);
++    let mut input =
++        f.b.take_ingress(&desired(Medium::Audio).logical_id)
++            .unwrap();
++    let mut output = source.take_egress().unwrap();
++    reverse.try_publish(&frame(&reverse, 160)).unwrap();
++    receive(&mut input)
++        .await
++        .try_forward_to(&f.a, &desired(Medium::Audio).logical_id)
++        .unwrap();
++    assert_audio(outgoing(&mut output).await).await;
++}
++
++#[tokio::test]
++async fn blocked_and_failed_video_upgrade_preserves_decoded_existing_audio() {
++    let f = Fixture::new(8);
++    f.start(&[Medium::Audio]).await;
++    let source = f.aa.port(Medium::Audio);
++    let mut input =
++        f.a.take_ingress(&desired(Medium::Audio).logical_id)
++            .unwrap();
++    let mut output = f.ba.port(Medium::Audio).take_egress().unwrap();
++    f.aa.mode.store(1, Ordering::Release);
++    let a = f.a.clone();
++    let task = tokio::spawn(async move {
++        a.change(
++            1,
++            &[desired(Medium::Audio), desired(Medium::Video)],
++            &BTreeSet::new(),
++            deadline(),
++            CancellationToken::new(),
++        )
++        .await
++    });
++    f.aa.entered.notified().await;
++    let candidate = f.aa.port(Medium::Video);
++    assert!(candidate.try_publish(&frame(&candidate, 1)).is_err());
++    for index in 0..4 {
++        source.try_publish(&frame(&source, index * 160)).unwrap();
++        receive(&mut input)
++            .await
++            .try_forward_to(&f.b, &desired(Medium::Audio).logical_id)
++            .unwrap();
++        assert_audio(outgoing(&mut output).await).await;
++    }
++    f.aa.release.notify_one();
++    task.await.unwrap().unwrap();
++    assert_eq!(f.a.revision(), 2);
++    assert_eq!(
++        f.aa.port(Medium::Audio).binding().transport_id,
++        source.binding().transport_id
++    );
++    f.aa.mode.store(2, Ordering::Release);
++    assert!(f
++        .a
++        .change(
++            2,
++            &[
++                desired(Medium::Audio),
++                desired(Medium::Video),
++                desired(Medium::Screen)
++            ],
++            &BTreeSet::new(),
++            deadline(),
++            CancellationToken::new()
++        )
++        .await
++        .is_err());
++    source.try_publish(&frame(&source, 800)).unwrap();
++    receive(&mut input)
++        .await
++        .try_forward_to(&f.b, &desired(Medium::Audio).logical_id)
++        .unwrap();
++    assert_audio(outgoing(&mut output).await).await;
++    assert_eq!(f.a.revision(), 2);
++}
++
++#[tokio::test]
++async fn cancelled_candidates_quarantine_capacity_until_cleanup_confirms() {
++    let f = Fixture::new(2);
++    f.start(&[Medium::Audio]).await;
++    f.aa.mode.store(1, Ordering::Release);
++    f.aa.uncertain.store(true, Ordering::Release);
++    let token = CancellationToken::new();
++    let cancel = token.clone();
++    let a = f.a.clone();
++    let task = tokio::spawn(async move {
++        a.change(
++            1,
++            &[desired(Medium::Audio), desired(Medium::Video)],
++            &BTreeSet::new(),
++            deadline(),
++            cancel,
++        )
++        .await
++    });
++    f.aa.entered.notified().await;
++    let failed = f.aa.port(Medium::Video);
++    token.cancel();
++    assert!(matches!(
++        task.await.unwrap(),
++        Err(StreamControlError::Cancelled)
++    ));
++    assert_eq!(f.a.reconcile_cleanup(deadline()).await, 1);
++    assert!(f
++        .a
++        .cleanup_status()
++        .iter()
++        .any(|(_, s)| *s == PortStatus::Quarantined));
++    f.aa.mode.store(0, Ordering::Release);
++    assert!(matches!(
++        f.a.change(
++            1,
++            &[desired(Medium::Audio), desired(Medium::Video)],
++            &BTreeSet::new(),
++            deadline(),
++            CancellationToken::new()
++        )
++        .await,
++        Err(StreamControlError::Model(MediaTransitionError::Capacity))
++    ));
++    f.aa.uncertain.store(false, Ordering::Release);
++    assert_eq!(f.a.reconcile_cleanup(deadline()).await, 0);
++    f.a.change(
++        1,
++        &[desired(Medium::Audio), desired(Medium::Video)],
++        &BTreeSet::new(),
++        deadline(),
++        CancellationToken::new(),
++    )
++    .await
++    .unwrap();
++    assert!(f.aa.port(Medium::Video).binding().stream_local_id > failed.binding().stream_local_id);
++    assert!(failed.try_publish(&frame(&failed, 1)).is_err());
++}
++
++#[tokio::test]
++async fn queued_private_or_revoked_source_media_is_rejected_after_dequeue() {
++    let f = Fixture::new(8);
++    f.start(&[Medium::Audio]).await;
++    let source = f.aa.port(Medium::Audio);
++    let mut input =
++        f.a.take_ingress(&desired(Medium::Audio).logical_id)
++            .unwrap();
++    let mut output = f.ba.port(Medium::Audio).take_egress().unwrap();
++    source.try_publish(&frame(&source, 160)).unwrap();
++    let packet = receive(&mut input).await;
++    packet
++        .try_forward_to(&f.b, &desired(Medium::Audio).logical_id)
++        .unwrap();
++    f.policy.0.write().await.private = true;
++    let called = Arc::new(AtomicBool::new(false));
++    let observe = called.clone();
++    assert!(outgoing(&mut output)
++        .await
++        .deliver(|_| async move {
++            observe.store(true, Ordering::Release);
++            Ok(())
++        })
++        .await
++        .is_err());
++    assert!(!called.load(Ordering::Acquire));
++    f.policy.0.write().await.private = false;
++    packet
++        .try_forward_to(&f.b, &desired(Medium::Audio).logical_id)
++        .unwrap();
++    f.policy.0.write().await.revoked.insert("alice".into());
++    assert!(outgoing(&mut output)
++        .await
++        .deliver(|_| async { panic!("revoked source reached local send") })
++        .await
++        .is_err());
++    assert!(source.try_publish(&frame(&source, 320)).is_err());
++}
++
++#[tokio::test]
++async fn replacement_fences_old_ingress_and_queued_target_frames() {
++    let f = Fixture::new(8);
++    f.start(&[Medium::Audio]).await;
++    let source = f.aa.port(Medium::Audio);
++    let mut input =
++        f.a.take_ingress(&desired(Medium::Audio).logical_id)
++            .unwrap();
++    let old_target = f.ba.port(Medium::Audio);
++    let mut output = old_target.take_egress().unwrap();
++    source.try_publish(&frame(&source, 160)).unwrap();
++    let old = receive(&mut input).await;
++    old.try_forward_to(&f.b, &desired(Medium::Audio).logical_id)
++        .unwrap();
++    f.b.change(
++        1,
++        &[desired(Medium::Audio)],
++        &[desired(Medium::Audio).logical_id].into_iter().collect(),
++        deadline(),
++        CancellationToken::new(),
++    )
++    .await
++    .unwrap();
++    assert!(outgoing(&mut output)
++        .await
++        .deliver(|_| async { panic!("old target queue sent after replacement") })
++        .await
++        .is_err());
++    f.a.change(
++        1,
++        &[desired(Medium::Audio)],
++        &[desired(Medium::Audio).logical_id].into_iter().collect(),
++        deadline(),
++        CancellationToken::new(),
++    )
++    .await
++    .unwrap();
++    assert!(old
++        .try_forward_to(&f.b, &desired(Medium::Audio).logical_id)
++        .is_err());
++    assert!(source.try_publish(&frame(&source, 320)).is_err());
++    let next = f.aa.port(Medium::Audio);
++    assert_eq!(next.binding().generation, 2);
++    let mut input =
++        f.a.take_ingress(&desired(Medium::Audio).logical_id)
++            .unwrap();
++    let mut output = f.ba.port(Medium::Audio).take_egress().unwrap();
++    next.try_publish(&frame(&next, 480)).unwrap();
++    receive(&mut input)
++        .await
++        .try_forward_to(&f.b, &desired(Medium::Audio).logical_id)
++        .unwrap();
++    assert_audio(outgoing(&mut output).await).await;
++}
++
++#[tokio::test]
++async fn active_local_send_is_drained_before_replacement() {
++    let f = Fixture::new(8);
++    f.start(&[Medium::Audio]).await;
++    let source = f.aa.port(Medium::Audio);
++    let mut input =
++        f.a.take_ingress(&desired(Medium::Audio).logical_id)
++            .unwrap();
++    let mut output = f.ba.port(Medium::Audio).take_egress().unwrap();
++    source.try_publish(&frame(&source, 160)).unwrap();
++    receive(&mut input)
++        .await
++        .try_forward_to(&f.b, &desired(Medium::Audio).logical_id)
++        .unwrap();
++    let entered = Arc::new(Notify::new());
++    let release = Arc::new(Notify::new());
++    let started = entered.clone();
++    let finish = release.clone();
++    let queued = outgoing(&mut output).await;
++    let send = tokio::spawn(async move {
++        queued
++            .deliver(|_| async move {
++                started.notify_one();
++                finish.notified().await;
++                Ok(())
++            })
++            .await
++    });
++    entered.notified().await;
++    let b = f.b.clone();
++    let switch = tokio::spawn(async move {
++        b.change(
++            1,
++            &[desired(Medium::Audio)],
++            &[desired(Medium::Audio).logical_id].into_iter().collect(),
++            deadline(),
++            CancellationToken::new(),
++        )
++        .await
++    });
++    tokio::task::yield_now().await;
++    assert_eq!(f.b.revision(), 1);
++    assert!(!switch.is_finished());
++    release.notify_one();
++    send.await.unwrap().unwrap();
++    switch.await.unwrap().unwrap();
++    assert_eq!(f.b.revision(), 2);
++}
++
++#[tokio::test]
++async fn pause_resume_fences_buffered_media_without_changing_transport_identity() {
++    let f = Fixture::new(8);
++    f.start(&[Medium::Audio]).await;
++    let source = f.aa.port(Medium::Audio);
++    let mut input =
++        f.a.take_ingress(&desired(Medium::Audio).logical_id)
++            .unwrap();
++    let mut output = f.ba.port(Medium::Audio).take_egress().unwrap();
++    source.try_publish(&frame(&source, 160)).unwrap();
++    let old = receive(&mut input).await;
++    old.try_forward_to(&f.b, &desired(Medium::Audio).logical_id)
++        .unwrap();
++    f.a.set_paused(&desired(Medium::Audio).logical_id, 1, true, deadline())
++        .await
++        .unwrap();
++    assert!(source.try_publish(&frame(&source, 320)).is_err());
++    assert!(outgoing(&mut output)
++        .await
++        .deliver(|_| async { panic!("queued pre-pause media sent") })
++        .await
++        .is_err());
++    f.a.set_paused(&desired(Medium::Audio).logical_id, 2, false, deadline())
++        .await
++        .unwrap();
++    assert!(old
++        .try_forward_to(&f.b, &desired(Medium::Audio).logical_id)
++        .is_err());
++    source.try_publish(&frame(&source, 480)).unwrap();
++    receive(&mut input)
++        .await
++        .try_forward_to(&f.b, &desired(Medium::Audio).logical_id)
++        .unwrap();
++    assert_audio(outgoing(&mut output).await).await;
++    assert_eq!(f.a.revision(), 3);
++}
++
++#[tokio::test]
++async fn missing_readiness_and_missing_cleanup_never_become_success() {
++    let f = Fixture::new(8);
++    f.aa.mode.store(4, Ordering::Release);
++    assert!(f
++        .a
++        .change(
++            0,
++            &[desired(Medium::Audio)],
++            &BTreeSet::new(),
++            deadline(),
++            CancellationToken::new()
++        )
++        .await
++        .is_err());
++    assert_eq!(f.a.revision(), 0);
++    assert_eq!(f.a.reconcile_cleanup(deadline()).await, 0);
++    f.aa.mode.store(3, Ordering::Release);
++    assert!(f
++        .a
++        .change(
++            0,
++            &[desired(Medium::Audio)],
++            &BTreeSet::new(),
++            deadline(),
++            CancellationToken::new()
++        )
++        .await
++        .is_err());
++    assert_eq!(f.a.reconcile_cleanup(deadline()).await, 1);
++    assert!(f
++        .a
++        .cleanup_status()
++        .iter()
++        .all(|(_, s)| *s == PortStatus::Quarantined));
++}
++
++#[tokio::test]
++async fn data_backpressure_preserves_retry_and_sequence() {
++    let f = Fixture::new(8);
++    f.start(&[Medium::Data]).await;
++    let source = f.aa.port(Medium::Data);
++    let mut input = f.a.take_ingress(&desired(Medium::Data).logical_id).unwrap();
++    let mut output = f.ba.port(Medium::Data).take_egress().unwrap();
++    for sequence in 0..64 {
++        source.try_publish(&frame(&source, sequence)).unwrap();
++        receive(&mut input)
++            .await
++            .try_forward_to(&f.b, &desired(Medium::Data).logical_id)
++            .unwrap();
++    }
++    source.try_publish(&frame(&source, 64)).unwrap();
++    let retry = receive(&mut input).await;
++    assert!(matches!(
++        retry.try_forward_to(&f.b, &desired(Medium::Data).logical_id),
++        Err(StreamControlError::Backpressure)
++    ));
++    outgoing(&mut output)
++        .await
++        .deliver(|frame| async move {
++            assert_eq!(
++                serde_json::from_slice::<serde_json::Value>(&frame.payload).unwrap()["sequence"],
++                0
++            );
++            Ok(())
++        })
++        .await
++        .unwrap();
++    retry
++        .try_forward_to(&f.b, &desired(Medium::Data).logical_id)
++        .unwrap();
++    for sequence in 1..=64 {
++        outgoing(&mut output)
++            .await
++            .deliver(|frame| async move {
++                assert_eq!(
++                    serde_json::from_slice::<serde_json::Value>(&frame.payload).unwrap()
++                        ["sequence"],
++                    sequence
++                );
++                Ok(())
++            })
++            .await
++            .unwrap();
++    }
++}
++
++#[tokio::test]
++async fn packet_kind_format_and_video_rtp_are_checked_at_ingress() {
++    let f = Fixture::new(8);
++    f.start(&[Medium::Audio, Medium::Video, Medium::Data]).await;
++    let port = f.aa.port(Medium::Video);
++    let mut bad = frame(&port, 1);
++    bad.payload = Bytes::from_static(b"bad RTP");
++    assert!(port.try_publish(&bad).is_err());
++    bad = frame(&port, 1);
++    bad.payload_type = Some(97);
++    assert!(port.try_publish(&bad).is_err());
++    let audio = f.aa.port(Medium::Audio);
++    let mut bad = frame(&audio, 1);
++    bad.kind = StreamKind::Video;
++    assert!(audio.try_publish(&bad).is_err());
++    bad = frame(&audio, 1);
++    bad.stream_id = port.binding().transport_id.clone();
++    assert!(audio.try_publish(&bad).is_err());
++    let data = f.aa.port(Medium::Data);
++    let mut bad = frame(&data, 1);
++    bad.payload = Bytes::from_static(b"not json");
++    assert!(data.try_publish(&bad).is_err());
++    let mut input =
++        f.a.take_ingress(&desired(Medium::Video).logical_id)
++            .unwrap();
++    let mut output = f.ba.port(Medium::Video).take_egress().unwrap();
++    port.try_publish(&frame(&port, 42)).unwrap();
++    receive(&mut input)
++        .await
++        .try_forward_to(&f.b, &desired(Medium::Video).logical_id)
++        .unwrap();
++    outgoing(&mut output)
++        .await
++        .deliver(|frame| async move {
++            assert_eq!(
++                rvoip_rtp_core::RtpPacket::parse(&frame.payload)
++                    .unwrap()
++                    .header
++                    .timestamp,
++                42
++            );
++            Ok(())
++        })
++        .await
++        .unwrap();
++}
++
++#[tokio::test]
++async fn stale_media_expires_while_ordered_data_remains_explicitly_buffered() {
++    let f = Fixture::new(8);
++    f.start(&[Medium::Audio, Medium::Data]).await;
++    let audio = f.aa.port(Medium::Audio);
++    let data = f.aa.port(Medium::Data);
++    let mut input =
++        f.a.take_ingress(&desired(Medium::Audio).logical_id)
++            .unwrap();
++    let mut data_input = f.a.take_ingress(&desired(Medium::Data).logical_id).unwrap();
++    let mut output = f.ba.port(Medium::Audio).take_egress().unwrap();
++    let mut data_output = f.ba.port(Medium::Data).take_egress().unwrap();
++    audio.try_publish(&frame(&audio, 160)).unwrap();
++    receive(&mut input)
++        .await
++        .try_forward_to(&f.b, &desired(Medium::Audio).logical_id)
++        .unwrap();
++    data.try_publish(&frame(&data, 1)).unwrap();
++    receive(&mut data_input)
++        .await
++        .try_forward_to(&f.b, &desired(Medium::Data).logical_id)
++        .unwrap();
++    tokio::time::sleep(Duration::from_millis(210)).await;
++    assert!(matches!(
++        outgoing(&mut output)
++            .await
++            .deliver(|_| async { panic!("expired audio reached sink") })
++            .await,
++        Err(StreamControlError::Deadline)
++    ));
++    outgoing(&mut data_output)
++        .await
++        .deliver(|_| async { Ok(()) })
++        .await
++        .unwrap();
++}
++
++#[tokio::test]
++async fn shutdown_cancels_preparation_and_confirms_only_owned_resources() {
++    let f = Fixture::new(8);
++    f.start(&[Medium::Audio]).await;
++    f.aa.mode.store(1, Ordering::Release);
++    let a = f.a.clone();
++    let task = tokio::spawn(async move {
++        a.change(
++            1,
++            &[desired(Medium::Audio), desired(Medium::Video)],
++            &BTreeSet::new(),
++            deadline(),
++            CancellationToken::new(),
++        )
++        .await
++    });
++    f.aa.entered.notified().await;
++    assert_eq!(f.a.shutdown(deadline()).await, 0);
++    assert!(matches!(
++        task.await.unwrap(),
++        Err(StreamControlError::Cancelled)
++    ));
++    assert_eq!(f.aa.outstanding.load(Ordering::Acquire), 0);
++    assert_eq!(f.ba.outstanding.load(Ordering::Acquire), 1);
++    let other = f.ba.port(Medium::Audio);
++    other.try_publish(&frame(&other, 160)).unwrap();
++}
++
++#[test]
++fn shared_physical_peer_handle_allocator_never_wraps() {
++    let allocator = StreamHandleAllocator::default();
++    for expected in 1..=u16::MAX {
++        assert_eq!(allocator.allocate().unwrap(), expected);
++    }
++    assert!(allocator.allocate().is_err());
++    assert!(allocator.allocate().is_err());
++}
++
++#[tokio::test]
++async fn terminal_callbacks_are_exact_and_do_not_revive_logical_streams() {
++    let f = Fixture::new(8);
++    f.start(&[Medium::Audio]).await;
++    let old = f.aa.port(Medium::Audio);
++    f.a.change(
++        1,
++        &[desired(Medium::Audio)],
++        &[desired(Medium::Audio).logical_id].into_iter().collect(),
++        deadline(),
++        CancellationToken::new(),
++    )
++    .await
++    .unwrap();
++    assert!(!old.report_terminal().unwrap());
++    assert_eq!(f.a.revision(), 2);
++    let current = f.aa.port(Medium::Audio);
++    assert!(current.report_terminal().unwrap());
++    assert_eq!(f.a.revision(), 3);
++    assert!(!current.report_terminal().unwrap());
++    assert!(current.try_publish(&frame(&current, 160)).is_err());
++    assert!(f
++        .a
++        .change(
++            3,
++            &[desired(Medium::Audio)],
++            &BTreeSet::new(),
++            deadline(),
++            CancellationToken::new()
++        )
++        .await
++        .is_err());
++    assert_eq!(f.b.revision(), 1);
++}
++
++#[tokio::test]
++async fn permission_revoked_during_adapter_preparation_prevents_activation() {
++    let f = Fixture::new(8);
++    f.start(&[Medium::Audio]).await;
++    let audio = f.aa.port(Medium::Audio);
++    f.aa.mode.store(1, Ordering::Release);
++    let a = f.a.clone();
++    let task = tokio::spawn(async move {
++        a.change(
++            1,
++            &[desired(Medium::Audio), desired(Medium::Video)],
++            &BTreeSet::new(),
++            deadline(),
++            CancellationToken::new(),
++        )
++        .await
++    });
++    f.aa.entered.notified().await;
++    f.policy
++        .0
++        .write()
++        .await
++        .owners
++        .get_mut("alice")
++        .unwrap()
++        .send_media
++        .remove(&Medium::Video);
++    f.aa.release.notify_one();
++    assert!(task.await.unwrap().is_err());
++    assert_eq!(f.a.revision(), 1);
++    assert!(f
++        .aa
++        .port(Medium::Video)
++        .try_publish(&frame(&f.aa.port(Medium::Video), 1))
++        .is_err());
++    audio.try_publish(&frame(&audio, 160)).unwrap();
++    assert_eq!(f.a.reconcile_cleanup(deadline()).await, 0);
++}
++
++#[tokio::test]
++async fn authority_lease_remains_held_through_the_bounded_local_send() {
++    let f = Fixture::new(8);
++    f.start(&[Medium::Audio]).await;
++    let source = f.aa.port(Medium::Audio);
++    let mut input =
++        f.a.take_ingress(&desired(Medium::Audio).logical_id)
++            .unwrap();
++    let mut output = f.ba.port(Medium::Audio).take_egress().unwrap();
++    source.try_publish(&frame(&source, 160)).unwrap();
++    receive(&mut input)
++        .await
++        .try_forward_to(&f.b, &desired(Medium::Audio).logical_id)
++        .unwrap();
++    let entered = Arc::new(Notify::new());
++    let release = Arc::new(Notify::new());
++    let started = entered.clone();
++    let finish = release.clone();
++    let queued = outgoing(&mut output).await;
++    let send = tokio::spawn(async move {
++        queued
++            .deliver(|_| async move {
++                started.notify_one();
++                finish.notified().await;
++                Ok(())
++            })
++            .await
++    });
++    entered.notified().await;
++    let policy = f.policy.clone();
++    let revoked = tokio::spawn(async move {
++        policy.0.write().await.private = true;
++    });
++    tokio::task::yield_now().await;
++    assert!(!revoked.is_finished());
++    release.notify_one();
++    send.await.unwrap().unwrap();
++    revoked.await.unwrap();
++}
++
++#[tokio::test]
++async fn dropping_the_control_future_cancels_and_retains_cleanup_evidence() {
++    let f = Fixture::new(8);
++    f.start(&[Medium::Audio]).await;
++    f.aa.mode.store(1, Ordering::Release);
++    let a = f.a.clone();
++    let task = tokio::spawn(async move {
++        a.change(
++            1,
++            &[desired(Medium::Audio), desired(Medium::Video)],
++            &BTreeSet::new(),
++            deadline(),
++            CancellationToken::new(),
++        )
++        .await
++    });
++    f.aa.entered.notified().await;
++    task.abort();
++    assert!(task.await.unwrap_err().is_cancelled());
++    assert_eq!(f.a.revision(), 1);
++    assert!(f
++        .a
++        .cleanup_status()
++        .iter()
++        .any(|(_, status)| *status == PortStatus::Retired));
++    assert_eq!(f.a.reconcile_cleanup(deadline()).await, 0);
++    assert_eq!(f.aa.outstanding.load(Ordering::Acquire), 1);
++}
++
++#[tokio::test]
++async fn terminal_cleanup_waits_for_the_final_guard_and_never_closes_another_port() {
++    let f = Fixture::new(8);
++    f.start(&[Medium::Audio]).await;
++    let source = f.aa.port(Medium::Audio);
++    let target = f.ba.port(Medium::Audio);
++    let mut input =
++        f.a.take_ingress(&desired(Medium::Audio).logical_id)
++            .unwrap();
++    let mut output = target.take_egress().unwrap();
++    source.try_publish(&frame(&source, 160)).unwrap();
++    receive(&mut input)
++        .await
++        .try_forward_to(&f.b, &desired(Medium::Audio).logical_id)
++        .unwrap();
++    let entered = Arc::new(Notify::new());
++    let release = Arc::new(Notify::new());
++    let started = entered.clone();
++    let finish = release.clone();
++    let queued = outgoing(&mut output).await;
++    let send = tokio::spawn(async move {
++        queued
++            .deliver(|_| async move {
++                started.notify_one();
++                finish.notified().await;
++                Ok(())
++            })
++            .await
++    });
++    entered.notified().await;
++    assert!(target.report_terminal().unwrap());
++    let b = f.b.clone();
++    let cleanup = tokio::spawn(async move { b.reconcile_cleanup(deadline()).await });
++    tokio::task::yield_now().await;
++    assert!(!cleanup.is_finished());
++    assert_eq!(f.ba.outstanding.load(Ordering::Acquire), 1);
++    release.notify_one();
++    send.await.unwrap().unwrap();
++    assert_eq!(cleanup.await.unwrap(), 0);
++    assert_eq!(f.ba.outstanding.load(Ordering::Acquire), 0);
++    assert_eq!(f.aa.outstanding.load(Ordering::Acquire), 1);
++}
++
++#[tokio::test]
++async fn local_send_timeout_releases_authority_and_cleanup_fences() {
++    let f = Fixture::new(8);
++    f.start(&[Medium::Audio]).await;
++    let source = f.aa.port(Medium::Audio);
++    let target = f.ba.port(Medium::Audio);
++    let mut input =
++        f.a.take_ingress(&desired(Medium::Audio).logical_id)
++            .unwrap();
++    let mut output = target.take_egress().unwrap();
++    source.try_publish(&frame(&source, 160)).unwrap();
++    receive(&mut input)
++        .await
++        .try_forward_to(&f.b, &desired(Medium::Audio).logical_id)
++        .unwrap();
++    let entered = Arc::new(Notify::new());
++    let started = entered.clone();
++    let queued = outgoing(&mut output).await;
++    let send = tokio::spawn(async move {
++        queued
++            .deliver(|_| async move {
++                started.notify_one();
++                std::future::pending().await
++            })
++            .await
++    });
++    entered.notified().await;
++    assert!(target.report_terminal().unwrap());
++    assert_eq!(
++        f.b.reconcile_cleanup(tokio::time::Instant::now() + Duration::from_millis(5))
++            .await,
++        1
++    );
++    assert!(matches!(
++        send.await.unwrap(),
++        Err(StreamControlError::Deadline)
++    ));
++    assert_eq!(f.b.reconcile_cleanup(deadline()).await, 0);
++    assert!(f.policy.0.try_write().is_ok());
++}
++
++#[tokio::test]
++async fn controlled_stream_end_preserves_the_session_and_unrelated_media() {
++    let f = Fixture::new(8);
++    f.start(&[Medium::Audio, Medium::Video]).await;
++    let source = f.aa.port(Medium::Audio);
++    let video = f.aa.port(Medium::Video);
++    let mut input =
++        f.a.take_ingress(&desired(Medium::Audio).logical_id)
++            .unwrap();
++    source.try_publish(&frame(&source, 160)).unwrap();
++    let buffered = receive(&mut input).await;
++    f.a.end_stream(&desired(Medium::Audio).logical_id, 1, deadline())
++        .await
++        .unwrap();
++    assert_eq!(f.a.revision(), 2);
++    assert!(buffered
++        .try_forward_to(&f.b, &desired(Medium::Audio).logical_id)
++        .is_err());
++    assert!(source.try_publish(&frame(&source, 320)).is_err());
++    video.try_publish(&frame(&video, 42)).unwrap();
++    f.ba.port(Medium::Audio)
++        .try_publish(&frame(&f.ba.port(Medium::Audio), 160))
++        .unwrap();
++    assert_eq!(f.a.reconcile_cleanup(deadline()).await, 0);
++    assert_eq!(f.aa.outstanding.load(Ordering::Acquire), 1);
++    assert_eq!(f.ba.outstanding.load(Ordering::Acquire), 2);
++}
+diff --git a/crates/foundation/rvoip-core/src/stream_lifecycle.rs b/crates/foundation/rvoip-core/src/stream_lifecycle.rs
+index 83aba3c..55d4afb 100644
+--- a/crates/foundation/rvoip-core/src/stream_lifecycle.rs
++++ b/crates/foundation/rvoip-core/src/stream_lifecycle.rs
+@@ -342,6 +342,13 @@ impl StreamLifecycle {
+         &self.streams
+     }
+     fn authorize(&self, authority: &CurrentMediaAuthority<'_>) -> Result<()> {
++        self.authorize_binding(authority)?;
++        if !authority.may_negotiate {
++            return Err(MediaTransitionError::Authority);
++        }
++        Ok(())
++    }
++    pub(crate) fn authorize_binding(&self, authority: &CurrentMediaAuthority<'_>) -> Result<()> {
+         authority
+             .connection
+             .require_current(authority.member, authority.presence)
+@@ -363,7 +370,6 @@ impl StreamLifecycle {
+             || authority.endpoint.endpoint() != self.binding.endpoint()
+             || authority.endpoint.device() != self.binding.device()
+             || authority.connection.state() != BindingState::Active
+-            || !authority.may_negotiate
+         {
+             return Err(MediaTransitionError::Authority);
+         }

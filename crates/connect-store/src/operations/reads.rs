@@ -2,6 +2,7 @@
 use super::receipts::{check_receipt_authority, receipt, valid_id};
 use crate::conversations::{authorized_conversation, page_limit};
 use crate::{Actor, Store};
+use connect_protocol::membership::ContentKind;
 use connect_protocol::{Error, Operation, Outcome, Result};
 use rusqlite::Connection;
 pub(super) fn read(
@@ -10,8 +11,29 @@ pub(super) fn read(
     operation: &Operation,
     runtime: &crate::DiscoveryRuntime,
     store: &Store,
+    context: Option<&crate::artifact_links::TaskLinkContext>,
 ) -> Result<Option<Outcome>> {
     let outcome = match operation {
+        Operation::MessageReceipts {
+            conversation_id,
+            message_id,
+            after,
+            limit,
+        } => Outcome::MessageReceipts(crate::recipient_receipts::page(
+            c,
+            actor,
+            conversation_id,
+            message_id,
+            after.as_deref(),
+            *limit,
+            store,
+        )?),
+        Operation::ReceiptPreferencesGet { conversation_id } => Outcome::ReceiptPreferences(
+            crate::recipient_receipts::preferences(c, actor, conversation_id)?,
+        ),
+        Operation::ParticipantRoute { request } => Outcome::ParticipantRoute(
+            crate::participant_routes::resolve(c, actor, request.clone(), runtime, store)?,
+        ),
         Operation::ContactState { peer_identity_id } => {
             Outcome::Contact(crate::contacts::state(c, actor, peer_identity_id)?)
         }
@@ -55,7 +77,12 @@ pub(super) fn read(
         Operation::ProviderStatus { conversation_id } => {
             authorized_conversation(c, actor, conversation_id)?;
             Outcome::ProviderStatus {
-                deliveries: crate::providers::status(c, conversation_id, store.limits.page_size)?,
+                deliveries: crate::providers::status(
+                    c,
+                    actor,
+                    conversation_id,
+                    store.limits.page_size,
+                )?,
             }
         }
         Operation::CallStatus {
@@ -63,6 +90,7 @@ pub(super) fn read(
             call_id,
         } => {
             authorized_conversation(c, actor, conversation_id)?;
+            crate::audience::require(c, actor, conversation_id, ContentKind::Call, call_id)?;
             Outcome::Call(crate::voice::get(c, conversation_id, call_id)?)
         }
         Operation::SessionGet {
@@ -70,6 +98,7 @@ pub(super) fn read(
             session_id,
         } => {
             authorized_conversation(c, actor, conversation_id)?;
+            crate::audience::require(c, actor, conversation_id, ContentKind::Session, session_id)?;
             Outcome::Session(crate::sessions::get(c, conversation_id, session_id)?)
         }
         Operation::SipStatus {
@@ -77,13 +106,11 @@ pub(super) fn read(
             sip_leg_id,
         } => {
             authorized_conversation(c, actor, conversation_id)?;
+            crate::audience::require(c, actor, conversation_id, ContentKind::SipLeg, sip_leg_id)?;
             Outcome::SipLeg(crate::sip_legs::status(c, conversation_id, sip_leg_id)?)
         }
         Operation::AvailabilityGet { identity_id } => {
-            if !actor.permits_recipient(identity_id) {
-                return Err(Error::forbidden());
-            }
-            Outcome::Availability(crate::availability::get(c, identity_id)?)
+            Outcome::Availability(crate::availability::get_for_actor(c, actor, identity_id)?)
         }
         Operation::ContextView {
             conversation_id,
@@ -91,8 +118,83 @@ pub(super) fn read(
         } => {
             page_limit(*limit, store.limits.page_size)?;
             authorized_conversation(c, actor, conversation_id)?;
-            Outcome::ContextView(crate::context::view(c, actor, conversation_id, *limit)?)
+            {
+                let selected = if let Some(task) = context {
+                    crate::tasks::context_actor(c, actor, &task.task_id, task.grant_id.as_deref())?
+                } else {
+                    actor.clone()
+                };
+                Outcome::ContextView(crate::context::view(
+                    store,
+                    c,
+                    &selected,
+                    conversation_id,
+                    *limit,
+                )?)
+            }
         }
+        Operation::ArtifactInspect {
+            conversation_id,
+            artifact_id,
+        } => {
+            crate::audience::require(
+                c,
+                actor,
+                conversation_id,
+                ContentKind::Artifact,
+                artifact_id,
+            )?;
+            let mut value = crate::artifacts::metadata(c, conversation_id, artifact_id)?;
+            if value.state != "deleted" && value.expires_at.is_some_and(|t| t <= crate::now()) {
+                value.state = "expired".into();
+            }
+            Outcome::Artifact(value)
+        }
+        Operation::ArtifactUploadLink {
+            conversation_id,
+            artifact_id,
+            expires_in,
+        } => Outcome::ArtifactLink(crate::artifact_links::issue(
+            c,
+            actor,
+            conversation_id,
+            artifact_id,
+            None,
+            connect_protocol::attachments::LinkPurpose::Upload,
+            *expires_in,
+            context,
+            store,
+        )?),
+        Operation::ArtifactDownloadLink {
+            conversation_id,
+            artifact_id,
+            message_id,
+            expires_in,
+        } => Outcome::ArtifactLink(crate::artifact_links::issue(
+            c,
+            actor,
+            conversation_id,
+            artifact_id,
+            Some(message_id),
+            connect_protocol::attachments::LinkPurpose::Download,
+            *expires_in,
+            context,
+            store,
+        )?),
+        Operation::ArtifactLinkGet {
+            conversation_id,
+            artifact_id,
+            offset,
+            limit,
+            ..
+        } => Outcome::ArtifactChunk(crate::artifacts::get_chunk(
+            c,
+            conversation_id,
+            artifact_id,
+            *offset,
+            *limit,
+            store,
+        )?),
         Operation::ArtifactGet {
             conversation_id,
             artifact_id,
@@ -100,6 +202,13 @@ pub(super) fn read(
             limit,
         } => {
             authorized_conversation(c, actor, conversation_id)?;
+            crate::audience::require(
+                c,
+                actor,
+                conversation_id,
+                ContentKind::Artifact,
+                artifact_id,
+            )?;
             Outcome::ArtifactChunk(crate::artifacts::get_chunk(
                 c,
                 conversation_id,
@@ -149,8 +258,8 @@ pub(super) fn read(
             valid_id(request_id)?;
             let saved = receipt(c, &actor.identity_id, request_id)?;
             if let Some(saved) = saved {
-                check_receipt_authority(actor, &saved)?;
-                match saved.result {
+                check_receipt_authority(c, actor, &saved, context)?;
+                match super::receipts::view_result(c, actor, &saved)? {
                     Ok(result) => Outcome::RequestStatus {
                         state: "accepted".into(),
                         outcome: Some(Box::new(result)),

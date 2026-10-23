@@ -1,3 +1,4 @@
+import type { ContextRecord } from "./record_context.js";
 import type { Operation, Outcome } from "./types.js";
 
 /** Application policy carried by Connect control over UCTP, not a new transport. */
@@ -23,6 +24,7 @@ export type TaskPermission =
     | "send"
     | "history"
     | "context_view"
+    | "record_get"
     | "context_deliveries"
     | "inbox"
     | "request_status"
@@ -123,6 +125,7 @@ export interface TaskSource {
     provenance: string;
     state: "available" | "deleted" | "expired" | "unavailable";
     body: string | null;
+    record?: ContextRecord;
 }
 export type TaskToolResult =
     | { status: "completed"; task_id: string; outcome: Outcome }

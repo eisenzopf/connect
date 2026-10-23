@@ -1,0 +1,1308 @@
+diff --git a/crates/foundation/rvoip-core/src/lib.rs b/crates/foundation/rvoip-core/src/lib.rs
+index 3d94a73..492263d 100644
+--- a/crates/foundation/rvoip-core/src/lib.rs
++++ b/crates/foundation/rvoip-core/src/lib.rs
+@@ -139,6 +139,7 @@ pub mod message;
+ pub mod operational_events;
+ pub mod orchestrator;
+ pub mod participant;
++pub mod participant_transitions;
+ pub mod relationships;
+ pub mod rtp_boundary;
+ pub mod session;
+diff --git a/crates/foundation/rvoip-core/src/orchestrator.rs b/crates/foundation/rvoip-core/src/orchestrator.rs
+index dc92888..afaf0ec 100644
+--- a/crates/foundation/rvoip-core/src/orchestrator.rs
++++ b/crates/foundation/rvoip-core/src/orchestrator.rs
+@@ -5982,11 +5982,10 @@ impl Orchestrator {
+         Ok(())
+     }
+ 
+-    /// Remove a Participant from a Session. Sets `left_at` on the
+-    /// matching Conversation-level `Participant` entry if present.
+-    /// Emits `Event::ParticipantLeft`. Idempotent — leaving a Session
+-    /// the Participant isn't in is a no-op (still emits the event so
+-    /// downstream consumers see the intent).
++    /// Remove only the Participant's Session presence. Conversation
++    /// membership and other Sessions are unchanged. Emits ParticipantLeft
++    /// once for a real departure; an absent Participant is a no-op.
++    /// Adapter/media retirement still belongs to the owning coordinator.
+     pub async fn leave_session(
+         &self,
+         session_id: SessionId,
+@@ -6001,7 +6000,9 @@ impl Orchestrator {
+         let now = Utc::now();
+         let conv_id = {
+             let mut sess = sess_arc.write().expect("session lock poisoned");
+-            sess.participants.remove(&participant_id);
++            if !sess.participants.remove(&participant_id) {
++                return Ok(());
++            }
+             sess.conversation_id.clone()
+         };
+ 
+@@ -6011,13 +6012,6 @@ impl Orchestrator {
+             .map(|e| Arc::clone(e.value()))
+         {
+             let mut conv = conv_arc.write().expect("conversation lock poisoned");
+-            if let Some(p) = conv
+-                .participants
+-                .iter_mut()
+-                .find(|p| p.id == participant_id)
+-            {
+-                p.left_at = Some(now);
+-            }
+             conv.last_activity_at = now;
+         }
+ 
+diff --git a/crates/foundation/rvoip-core/src/participant_transitions.rs b/crates/foundation/rvoip-core/src/participant_transitions.rs
+new file mode 100644
+index 0000000..a8a733c
+--- /dev/null
++++ b/crates/foundation/rvoip-core/src/participant_transitions.rs
+@@ -0,0 +1,512 @@
++//! Fenced, process-local participant transitions for a single live Session.
++//!
++//! The owner serializes access and supplies CURRENT authoritative Membership
++//! and EndpointBinding values after checking caller permission. Roles never
++//! grant authority here. These values do not perform adapter I/O, persist an
++//! operation, or replace Connect's journal. Commit the returned route changes
++//! through the owning media coordinator before publishing public observations.
++
++use crate::ids::{ConnectionId, ConversationId, IdentityId, ParticipantId, SessionId, TenantId};
++use crate::participant::ParticipantRole;
++use crate::relationships::{
++    ConnectionBinding, EndpointBinding, Membership, RelationshipError, SessionAppearance,
++};
++use std::collections::{BTreeMap, HashMap, HashSet};
++
++const MAX_REVISION: u64 = 9_007_199_254_740_991;
++
++#[derive(Clone, Copy, Debug, PartialEq, Eq, thiserror::Error)]
++pub enum ParticipantTransitionError {
++    #[error("invalid participant transition")]
++    Invalid,
++    #[error("participant transition conflicts with current state")]
++    Conflict,
++    #[error("participant transition requires current membership")]
++    Inactive,
++    #[error("participant transition crosses an ownership boundary")]
++    OwnerMismatch,
++    #[error("participant connection is not ready")]
++    NotReady,
++    #[error("participant transition capacity exhausted")]
++    Capacity,
++    #[error("session has ended")]
++    Ended,
++}
++
++impl From<RelationshipError> for ParticipantTransitionError {
++    fn from(value: RelationshipError) -> Self {
++        match value {
++            RelationshipError::InvalidValue => Self::Invalid,
++            RelationshipError::Conflict => Self::Conflict,
++            RelationshipError::Inactive => Self::Inactive,
++            RelationshipError::OwnerMismatch => Self::OwnerMismatch,
++            RelationshipError::NotReady => Self::NotReady,
++        }
++    }
++}
++
++type Result<T> = std::result::Result<T, ParticipantTransitionError>;
++
++#[derive(Clone, Copy, Debug, PartialEq, Eq)]
++pub enum DepartureCause {
++    Left,
++    Removed,
++}
++
++#[derive(Clone, PartialEq, Eq)]
++pub enum ParticipantChange {
++    Admit {
++        connection: ConnectionId,
++        role_override: Option<ParticipantRole>,
++    },
++    Depart {
++        cause: DepartureCause,
++    },
++    SetSessionRole {
++        role: ParticipantRole,
++    },
++}
++
++/// Session/tenant are supplied by this controller, actor by current authority.
++/// Correlation is observation metadata; changing it on a retry does not change
++/// business intent or rewrite the original observation.
++#[derive(Clone)]
++pub struct ParticipantMutation {
++    pub operation_id: String,
++    pub correlation_id: String,
++    pub expected_revision: u64,
++    pub participant: ParticipantId,
++    pub change: ParticipantChange,
++}
++
++#[derive(Clone, Copy, Debug, PartialEq, Eq)]
++pub enum ParticipantObservationKind {
++    Joined,
++    ConnectionAdded,
++    Left,
++    Removed,
++    RoleChanged,
++}
++
++/// A committed local topology observation, not a provider/media completion.
++#[derive(Clone, PartialEq, Eq)]
++pub struct ParticipantObservation {
++    pub session: SessionId,
++    pub participant: ParticipantId,
++    pub membership_epoch: u64,
++    pub revision: u64,
++    pub operation_id: String,
++    pub correlation_id: String,
++    pub kind: ParticipantObservationKind,
++    pub role: ParticipantRole,
++    pub admitted: Vec<ConnectionId>,
++    pub retired: Vec<ConnectionId>,
++}
++
++#[derive(Clone)]
++struct Presence {
++    appearance: SessionAppearance,
++    identity: IdentityId,
++    connections: BTreeMap<ConnectionId, ConnectionBinding>,
++}
++
++#[derive(Clone)]
++struct Receipt {
++    actor_identity: IdentityId,
++    actor_participant: ParticipantId,
++    actor_epoch: u64,
++    target_identity: IdentityId,
++    intent: ParticipantMutation,
++    observation: ParticipantObservation,
++}
++
++/// A negotiation ticket is bound to the Session revision, target membership
++/// revision/epoch, role and exact connection generation. A failed commit never
++/// retires an already admitted connection.
++pub struct PreparedParticipantAdmission {
++    revision: u64,
++    membership_revision: u64,
++    appearance: SessionAppearance,
++    connection: ConnectionBinding,
++}
++
++impl PreparedParticipantAdmission {
++    pub fn generation(&self) -> u64 {
++        self.connection.generation()
++    }
++
++    /// Trusted media adapter calls this only after negotiated ingress/egress
++    /// and configured endpoint confirmation. Signaling acceptance is not proof.
++    pub fn observe_ready(
++        &mut self,
++        member: &Membership,
++        endpoint: &EndpointBinding,
++        generation: u64,
++    ) -> Result<()> {
++        self.connection
++            .observe_ready(member, &self.appearance, endpoint, generation)?;
++        Ok(())
++    }
++}
++
++/// Pure engine state. Keep this within the same serialized/transactional owner
++/// as its authoritative Session. Bounds retain operation and connection ID
++/// tombstones; exhausting them refuses NEW work rather than evicting retry
++/// protection. End this controller and its owning Session together.
++pub struct ParticipantSession {
++    tenant: TenantId,
++    conversation: ConversationId,
++    session: SessionId,
++    revision: u64,
++    ended: bool,
++    max_participants: usize,
++    max_connections: usize,
++    max_operations: usize,
++    participants: BTreeMap<ParticipantId, Presence>,
++    used_connections: HashSet<ConnectionId>,
++    receipts: HashMap<(ParticipantId, String), Receipt>,
++}
++
++fn identifier(value: &str) -> Result<()> {
++    if value.is_empty()
++        || value.len() > 128
++        || !value
++            .bytes()
++            .all(|b| b.is_ascii_alphanumeric() || b"._~-".contains(&b))
++    {
++        return Err(ParticipantTransitionError::Invalid);
++    }
++    Ok(())
++}
++
++impl ParticipantSession {
++    pub fn new(
++        tenant: TenantId,
++        conversation: ConversationId,
++        session: SessionId,
++        max_participants: usize,
++        max_connections: usize,
++        max_operations: usize,
++    ) -> Result<Self> {
++        identifier(tenant.as_str())?;
++        identifier(conversation.as_str())?;
++        identifier(session.as_str())?;
++        if max_participants == 0 || max_connections == 0 || max_operations == 0 {
++            return Err(ParticipantTransitionError::Invalid);
++        }
++        Ok(Self {
++            tenant,
++            conversation,
++            session,
++            revision: 1,
++            ended: false,
++            max_participants,
++            max_connections,
++            max_operations,
++            participants: BTreeMap::new(),
++            used_connections: HashSet::new(),
++            receipts: HashMap::new(),
++        })
++    }
++
++    pub fn revision(&self) -> u64 {
++        self.revision
++    }
++    pub fn participant_count(&self) -> usize {
++        self.participants.len()
++    }
++    pub fn connection_count(&self) -> usize {
++        self.participants
++            .values()
++            .map(|p| p.connections.len())
++            .sum()
++    }
++    pub fn role(&self, participant: &ParticipantId) -> Option<&ParticipantRole> {
++        self.participants
++            .get(participant)
++            .map(|p| p.appearance.role())
++    }
++    pub fn connections(&self, participant: &ParticipantId) -> Vec<ConnectionId> {
++        self.participants
++            .get(participant)
++            .map(|p| p.connections.keys().cloned().collect())
++            .unwrap_or_default()
++    }
++
++    fn check_member(&self, member: &Membership, active: bool) -> Result<()> {
++        if member.tenant() != &self.tenant || member.conversation() != &self.conversation {
++            return Err(ParticipantTransitionError::OwnerMismatch);
++        }
++        if active && !member.is_active() {
++            return Err(ParticipantTransitionError::Inactive);
++        }
++        Ok(())
++    }
++
++    fn check_presence(&self, member: &Membership, presence: &Presence) -> Result<()> {
++        if presence.identity != *member.identity()
++            || presence.appearance.membership_epoch() != member.epoch()
++        {
++            return Err(ParticipantTransitionError::OwnerMismatch);
++        }
++        Ok(())
++    }
++
++    pub fn prepare_admission(
++        &self,
++        member: &Membership,
++        endpoint: &EndpointBinding,
++        connection: ConnectionId,
++        role_override: Option<ParticipantRole>,
++    ) -> Result<PreparedParticipantAdmission> {
++        self.check_member(member, true)?;
++        if self.ended {
++            return Err(ParticipantTransitionError::Ended);
++        }
++        self.check_admission_capacity(member.participant(), &connection)?;
++        let appearance = match self.participants.get(member.participant()) {
++            Some(presence) => {
++                presence.appearance.require_current(member)?;
++                if role_override
++                    .as_ref()
++                    .is_some_and(|r| r != presence.appearance.role())
++                {
++                    return Err(ParticipantTransitionError::Conflict);
++                }
++                presence.appearance.clone()
++            }
++            None => SessionAppearance::admit(member, self.session.clone(), role_override)?,
++        };
++        let binding = ConnectionBinding::prepare(member, &appearance, endpoint, connection)?;
++        Ok(PreparedParticipantAdmission {
++            revision: self.revision,
++            membership_revision: member.revision(),
++            appearance,
++            connection: binding,
++        })
++    }
++
++    fn check_admission_capacity(
++        &self,
++        participant: &ParticipantId,
++        connection: &ConnectionId,
++    ) -> Result<()> {
++        if self.used_connections.contains(connection) {
++            return Err(ParticipantTransitionError::Conflict);
++        }
++        if (!self.participants.contains_key(participant)
++            && self.participants.len() >= self.max_participants)
++            || self.connection_count() >= self.max_connections
++            || self.used_connections.len() >= self.max_operations
++        {
++            return Err(ParticipantTransitionError::Capacity);
++        }
++        Ok(())
++    }
++
++    /// Invoke after current application authorization, under the owning
++    /// Session's mutation lock/transaction. Replays recheck current actor and
++    /// target membership before returning a retained receipt.
++    pub fn apply(
++        &mut self,
++        actor: &Membership,
++        target: &Membership,
++        mutation: ParticipantMutation,
++        admission: Option<PreparedParticipantAdmission>,
++        endpoint: Option<&EndpointBinding>,
++    ) -> Result<ParticipantObservation> {
++        identifier(&mutation.operation_id)?;
++        identifier(&mutation.correlation_id)?;
++        self.check_member(actor, true)?;
++        let removed = matches!(
++            mutation.change,
++            ParticipantChange::Depart {
++                cause: DepartureCause::Removed
++            }
++        );
++        self.check_member(target, !removed)?;
++        if target.participant() != &mutation.participant {
++            return Err(ParticipantTransitionError::OwnerMismatch);
++        }
++        let key = (actor.participant().clone(), mutation.operation_id.clone());
++        if let Some(receipt) = self.receipts.get(&key) {
++            if receipt.actor_identity != *actor.identity()
++                || receipt.actor_epoch != actor.epoch()
++                || receipt.actor_participant != *actor.participant()
++                || receipt.target_identity != *target.identity()
++                || receipt.observation.membership_epoch != target.epoch()
++            {
++                return Err(ParticipantTransitionError::OwnerMismatch);
++            }
++            if receipt.intent.expected_revision != mutation.expected_revision
++                || receipt.intent.participant != mutation.participant
++                || receipt.intent.change != mutation.change
++            {
++                return Err(ParticipantTransitionError::Conflict);
++            }
++            return Ok(receipt.observation.clone());
++        }
++        if self.ended {
++            return Err(ParticipantTransitionError::Ended);
++        }
++        if self.revision != mutation.expected_revision || self.revision >= MAX_REVISION {
++            return Err(ParticipantTransitionError::Conflict);
++        }
++        if self.receipts.len() >= self.max_operations {
++            return Err(ParticipantTransitionError::Capacity);
++        }
++        let revision = self.revision + 1;
++        let (kind, role, admitted, retired) = match &mutation.change {
++            ParticipantChange::Admit {
++                connection,
++                role_override,
++            } => {
++                self.check_admission_capacity(target.participant(), connection)?;
++                let mut ready = admission.ok_or(ParticipantTransitionError::NotReady)?;
++                let endpoint = endpoint.ok_or(ParticipantTransitionError::NotReady)?;
++                if ready.revision != self.revision
++                    || ready.membership_revision != target.revision()
++                    || ready.appearance.session() != &self.session
++                    || ready.connection.connection() != connection
++                {
++                    return Err(ParticipantTransitionError::Conflict);
++                }
++                ready.appearance.require_current(target)?;
++                let expected_role = role_override.as_ref().unwrap_or_else(|| {
++                    self.role(target.participant())
++                        .unwrap_or_else(|| target.default_role())
++                });
++                if ready.appearance.role() != expected_role {
++                    return Err(ParticipantTransitionError::Conflict);
++                }
++                // Rechecks the CURRENT endpoint, not the preparation snapshot.
++                ready
++                    .connection
++                    .activate(target, &ready.appearance, endpoint)?;
++                let role = ready.appearance.role().clone();
++                let joining = !self.participants.contains_key(target.participant());
++                let presence = self
++                    .participants
++                    .entry(target.participant().clone())
++                    .or_insert_with(|| Presence {
++                        appearance: ready.appearance,
++                        identity: target.identity().clone(),
++                        connections: BTreeMap::new(),
++                    });
++                presence
++                    .connections
++                    .insert(connection.clone(), ready.connection);
++                self.used_connections.insert(connection.clone());
++                (
++                    if joining {
++                        ParticipantObservationKind::Joined
++                    } else {
++                        ParticipantObservationKind::ConnectionAdded
++                    },
++                    role,
++                    vec![connection.clone()],
++                    vec![],
++                )
++            }
++            ParticipantChange::Depart { cause } => {
++                let presence = self
++                    .participants
++                    .get(target.participant())
++                    .ok_or(ParticipantTransitionError::Inactive)?;
++                self.check_presence(target, presence)?;
++                let role = presence.appearance.role().clone();
++                let retired = presence.connections.keys().cloned().collect();
++                self.participants.remove(target.participant());
++                (
++                    if *cause == DepartureCause::Left {
++                        ParticipantObservationKind::Left
++                    } else {
++                        ParticipantObservationKind::Removed
++                    },
++                    role,
++                    vec![],
++                    retired,
++                )
++            }
++            ParticipantChange::SetSessionRole { role } => {
++                let presence = self
++                    .participants
++                    .get(target.participant())
++                    .ok_or(ParticipantTransitionError::Inactive)?;
++                let mut appearance = presence.appearance.clone();
++                appearance.change_role(target, appearance.revision(), role.clone())?;
++                self.participants
++                    .get_mut(target.participant())
++                    .expect("checked presence")
++                    .appearance = appearance;
++                (
++                    ParticipantObservationKind::RoleChanged,
++                    role.clone(),
++                    vec![],
++                    vec![],
++                )
++            }
++        };
++        self.revision = revision;
++        let observation = ParticipantObservation {
++            session: self.session.clone(),
++            participant: target.participant().clone(),
++            membership_epoch: target.epoch(),
++            revision,
++            operation_id: mutation.operation_id.clone(),
++            correlation_id: mutation.correlation_id.clone(),
++            kind,
++            role,
++            admitted,
++            retired,
++        };
++        self.receipts.insert(
++            key,
++            Receipt {
++                actor_identity: actor.identity().clone(),
++                actor_participant: actor.participant().clone(),
++                actor_epoch: actor.epoch(),
++                target_identity: target.identity().clone(),
++                intent: mutation,
++                observation: observation.clone(),
++            },
++        );
++        Ok(observation)
++    }
++
++    /// Explicit end fences all negotiation tickets and returns only this
++    /// Session's admitted route IDs. It never changes Conversation membership.
++    pub fn end(&mut self, expected_revision: u64) -> Result<Vec<ConnectionId>> {
++        if self.revision != expected_revision || self.revision >= MAX_REVISION {
++            return Err(ParticipantTransitionError::Conflict);
++        }
++        if self.ended {
++            return Ok(vec![]);
++        }
++        let routes = self
++            .participants
++            .values()
++            .flat_map(|p| p.connections.keys().cloned())
++            .collect();
++        self.participants.clear();
++        self.revision += 1;
++        self.ended = true;
++        Ok(routes)
++    }
++}
++
++macro_rules! redacted_debug {
++    ($($name:ty),*) => { $(impl std::fmt::Debug for $name {
++        fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result { f.write_str(concat!(stringify!($name), "(redacted)")) }
++    })* };
++}
++redacted_debug!(
++    ParticipantSession,
++    PreparedParticipantAdmission,
++    ParticipantChange,
++    ParticipantMutation,
++    ParticipantObservation
++);
++
++#[cfg(test)]
++mod tests;
+diff --git a/crates/foundation/rvoip-core/src/participant_transitions/tests.rs b/crates/foundation/rvoip-core/src/participant_transitions/tests.rs
+new file mode 100644
+index 0000000..13528ed
+--- /dev/null
++++ b/crates/foundation/rvoip-core/src/participant_transitions/tests.rs
+@@ -0,0 +1,632 @@
++use super::*;
++use crate::{
++    connection::Transport,
++    identity::{AuthenticatedPrincipal, AuthenticationMethod, IdentityAssurance},
++    ids::{DeviceId, EndpointId},
++    participant::ParticipantKind,
++    relationships::IdentityBinding,
++};
++use chrono::Utc;
++use std::sync::{Arc, Barrier, Mutex};
++
++fn member(tenant: &str, name: &str) -> (Membership, IdentityBinding) {
++    let principal = AuthenticatedPrincipal {
++        subject: name.into(),
++        tenant: Some(tenant.into()),
++        scopes: vec![],
++        issuer: None,
++        expires_at: None,
++        method: AuthenticationMethod::Bearer,
++        assurance: IdentityAssurance::Anonymous,
++    };
++    let binding = IdentityBinding::from_authenticated(
++        &principal,
++        IdentityId::from_string(format!("id_{name}")),
++        Utc::now(),
++    )
++    .unwrap();
++    let membership = Membership::admit(
++        binding.clone(),
++        ConversationId::from_string("conv_test"),
++        ParticipantId::from_string(format!("part_{name}")),
++        ParticipantKind::Human,
++        ParticipantRole::Agent,
++    )
++    .unwrap();
++    (membership, binding)
++}
++fn endpoint(binding: &IdentityBinding, name: &str) -> EndpointBinding {
++    let mut ep = EndpointBinding::provision(
++        binding.clone(),
++        EndpointId::from_string(format!("ep_{name}")),
++        DeviceId::from_string(format!("dev_{name}")),
++        Transport::WebRtc,
++        "private:canary-address".into(),
++    )
++    .unwrap();
++    ep.verify(binding, "proof_test".into(), Utc::now()).unwrap();
++    ep
++}
++fn session(name: &str) -> ParticipantSession {
++    ParticipantSession::new(
++        TenantId::from_string("tenant_test"),
++        ConversationId::from_string("conv_test"),
++        SessionId::from_string(name),
++        4,
++        6,
++        64,
++    )
++    .unwrap()
++}
++fn mutation(
++    s: &ParticipantSession,
++    member: &Membership,
++    op: &str,
++    change: ParticipantChange,
++) -> ParticipantMutation {
++    ParticipantMutation {
++        operation_id: op.into(),
++        correlation_id: format!("corr_{op}"),
++        expected_revision: s.revision(),
++        participant: member.participant().clone(),
++        change,
++    }
++}
++fn prepare(
++    s: &ParticipantSession,
++    member: &Membership,
++    ep: &EndpointBinding,
++    conn: &str,
++) -> PreparedParticipantAdmission {
++    let mut ticket = s
++        .prepare_admission(member, ep, ConnectionId::from_string(conn), None)
++        .unwrap();
++    ticket
++        .observe_ready(member, ep, ticket.generation())
++        .unwrap();
++    ticket
++}
++fn join(
++    s: &mut ParticipantSession,
++    member: &Membership,
++    ep: &EndpointBinding,
++    conn: &str,
++) -> ParticipantObservation {
++    let ticket = prepare(s, member, ep, conn);
++    let intent = mutation(
++        s,
++        member,
++        &format!("join_{conn}"),
++        ParticipantChange::Admit {
++            connection: ConnectionId::from_string(conn),
++            role_override: None,
++        },
++    );
++    s.apply(member, member, intent, Some(ticket), Some(ep))
++        .unwrap()
++}
++
++#[test]
++fn four_participants_six_connections_departure_retires_only_target_routes() {
++    let mut s = session("sess_test");
++    let mut members = vec![];
++    for name in ["alice", "bob", "carol", "dave"] {
++        let (m, b) = member("tenant_test", name);
++        let ep = endpoint(&b, name);
++        let result = join(&mut s, &m, &ep, &format!("conn_{name}"));
++        assert_eq!(result.kind, ParticipantObservationKind::Joined);
++        members.push((m, ep));
++    }
++    for (index, (m, ep)) in members.iter().take(2).enumerate() {
++        assert_eq!(
++            join(&mut s, m, ep, &format!("conn_extra_{index}")).kind,
++            ParticipantObservationKind::ConnectionAdded
++        );
++    }
++    assert_eq!((s.participant_count(), s.connection_count()), (4, 6));
++    let (alice, _) = &members[0];
++    let intent = mutation(
++        &s,
++        alice,
++        "leave_alice",
++        ParticipantChange::Depart {
++            cause: DepartureCause::Left,
++        },
++    );
++    let result = s.apply(alice, alice, intent, None, None).unwrap();
++    assert_eq!(
++        result.retired,
++        vec![
++            ConnectionId::from_string("conn_alice"),
++            ConnectionId::from_string("conn_extra_0")
++        ]
++    );
++    assert_eq!(result.kind, ParticipantObservationKind::Left);
++    assert_eq!((s.participant_count(), s.connection_count()), (3, 4));
++    assert!(alice.is_active());
++    assert_eq!(s.connections(members[1].0.participant()).len(), 2);
++    assert_eq!(s.connections(members[2].0.participant()).len(), 1);
++}
++
++#[test]
++fn prepared_negotiation_is_not_presence_or_readiness() {
++    let mut s = session("sess_test");
++    let (m, b) = member("tenant_test", "alice");
++    let ep = endpoint(&b, "alice");
++    let conn = ConnectionId::from_string("conn_alice");
++    let ticket = s.prepare_admission(&m, &ep, conn.clone(), None).unwrap();
++    assert_eq!(
++        (s.revision(), s.participant_count(), s.connection_count()),
++        (1, 0, 0)
++    );
++    let intent = mutation(
++        &s,
++        &m,
++        "join_alice",
++        ParticipantChange::Admit {
++            connection: conn,
++            role_override: None,
++        },
++    );
++    assert_eq!(
++        s.apply(&m, &m, intent, Some(ticket), Some(&ep)),
++        Err(ParticipantTransitionError::NotReady)
++    );
++    assert_eq!(
++        (s.revision(), s.participant_count(), s.connection_count()),
++        (1, 0, 0)
++    );
++}
++
++#[test]
++fn matching_replay_returns_original_observation_and_changed_intent_conflicts() {
++    let mut s = session("sess_test");
++    let (m, b) = member("tenant_test", "alice");
++    let ep = endpoint(&b, "alice");
++    let ticket = prepare(&s, &m, &ep, "conn_alice");
++    let mut intent = mutation(
++        &s,
++        &m,
++        "join_alice",
++        ParticipantChange::Admit {
++            connection: ConnectionId::from_string("conn_alice"),
++            role_override: None,
++        },
++    );
++    let original = s
++        .apply(&m, &m, intent.clone(), Some(ticket), Some(&ep))
++        .unwrap();
++    intent.correlation_id = "new_transport_correlation".into();
++    assert_eq!(
++        s.apply(&m, &m, intent.clone(), None, None).unwrap(),
++        original
++    );
++    assert_eq!(s.revision(), 2);
++    intent.change = ParticipantChange::SetSessionRole {
++        role: ParticipantRole::Observer,
++    };
++    assert_eq!(
++        s.apply(&m, &m, intent, None, None),
++        Err(ParticipantTransitionError::Conflict)
++    );
++    assert_eq!(s.role(m.participant()), Some(&ParticipantRole::Agent));
++}
++
++#[test]
++fn competing_changes_with_same_revision_have_exactly_one_winner() {
++    let mut s = session("sess_test");
++    let (m, b) = member("tenant_test", "alice");
++    let ep = endpoint(&b, "alice");
++    join(&mut s, &m, &ep, "conn_alice");
++    let commands = [
++        mutation(
++            &s,
++            &m,
++            "role_a",
++            ParticipantChange::SetSessionRole {
++                role: ParticipantRole::Observer,
++            },
++        ),
++        mutation(
++            &s,
++            &m,
++            "role_b",
++            ParticipantChange::SetSessionRole {
++                role: ParticipantRole::Supervisor,
++            },
++        ),
++    ];
++    let state = Arc::new(Mutex::new(s));
++    let barrier = Arc::new(Barrier::new(3));
++    let threads: Vec<_> = commands
++        .into_iter()
++        .map(|command| {
++            let state = state.clone();
++            let barrier = barrier.clone();
++            let m = m.clone();
++            std::thread::spawn(move || {
++                barrier.wait();
++                state.lock().unwrap().apply(&m, &m, command, None, None)
++            })
++        })
++        .collect();
++    barrier.wait();
++    let results: Vec<_> = threads.into_iter().map(|t| t.join().unwrap()).collect();
++    assert_eq!(results.iter().filter(|r| r.is_ok()).count(), 1);
++    assert_eq!(
++        results
++            .iter()
++            .filter(|r| matches!(r, Err(ParticipantTransitionError::Conflict)))
++            .count(),
++        1
++    );
++    assert_eq!(state.lock().unwrap().revision(), 3);
++}
++
++#[test]
++fn membership_revoked_during_negotiation_cannot_commit_or_replay() {
++    let mut s = session("sess_test");
++    let (mut m, b) = member("tenant_test", "alice");
++    let ep = endpoint(&b, "alice");
++    let ticket = prepare(&s, &m, &ep, "conn_alice");
++    let intent = mutation(
++        &s,
++        &m,
++        "join_alice",
++        ParticipantChange::Admit {
++            connection: ConnectionId::from_string("conn_alice"),
++            role_override: None,
++        },
++    );
++    m.remove(m.revision()).unwrap();
++    assert_eq!(
++        s.apply(&m, &m, intent.clone(), Some(ticket), Some(&ep)),
++        Err(ParticipantTransitionError::Inactive)
++    );
++    assert_eq!(s.revision(), 1);
++    m.readmit(&b, m.revision()).unwrap();
++    let ticket = prepare(&s, &m, &ep, "conn_alice");
++    s.apply(&m, &m, intent.clone(), Some(ticket), Some(&ep))
++        .unwrap();
++    m.remove(m.revision()).unwrap();
++    assert_eq!(
++        s.apply(&m, &m, intent, None, None),
++        Err(ParticipantTransitionError::Inactive)
++    );
++}
++
++#[test]
++fn revoked_endpoint_and_stale_ready_generation_preserve_existing_routes() {
++    let mut s = session("sess_test");
++    let (m, b) = member("tenant_test", "alice");
++    let ep = endpoint(&b, "alice");
++    join(&mut s, &m, &ep, "conn_old");
++    let mut ticket = s
++        .prepare_admission(&m, &ep, ConnectionId::from_string("conn_new"), None)
++        .unwrap();
++    assert_eq!(
++        ticket.observe_ready(&m, &ep, ticket.generation() + 1),
++        Err(ParticipantTransitionError::Conflict)
++    );
++    ticket.observe_ready(&m, &ep, ticket.generation()).unwrap();
++    let mut revoked = ep.clone();
++    revoked.revoke();
++    let intent = mutation(
++        &s,
++        &m,
++        "join_new",
++        ParticipantChange::Admit {
++            connection: ConnectionId::from_string("conn_new"),
++            role_override: None,
++        },
++    );
++    assert_eq!(
++        s.apply(&m, &m, intent, Some(ticket), Some(&revoked)),
++        Err(ParticipantTransitionError::NotReady)
++    );
++    assert_eq!(
++        s.connections(m.participant()),
++        vec![ConnectionId::from_string("conn_old")]
++    );
++    assert_eq!(s.revision(), 2);
++}
++
++#[test]
++fn session_role_and_departure_do_not_rewrite_conversation_or_other_session() {
++    let (mut m, b) = member("tenant_test", "alice");
++    let ep = endpoint(&b, "alice");
++    let mut a = session("sess_a");
++    let mut other = session("sess_other");
++    join(&mut a, &m, &ep, "conn_a");
++    join(&mut other, &m, &ep, "conn_other");
++    m.change_role(m.revision(), ParticipantRole::Supervisor)
++        .unwrap();
++    let intent = mutation(
++        &a,
++        &m,
++        "role_change",
++        ParticipantChange::SetSessionRole {
++            role: ParticipantRole::Observer,
++        },
++    );
++    let observation = a.apply(&m, &m, intent, None, None).unwrap();
++    assert_eq!(observation.kind, ParticipantObservationKind::RoleChanged);
++    assert_eq!(observation.operation_id, "role_change");
++    assert_eq!(observation.correlation_id, "corr_role_change");
++    assert_eq!(a.role(m.participant()), Some(&ParticipantRole::Observer));
++    assert_eq!(other.role(m.participant()), Some(&ParticipantRole::Agent));
++    assert_eq!(m.default_role(), &ParticipantRole::Supervisor);
++    let intent = mutation(
++        &a,
++        &m,
++        "leave",
++        ParticipantChange::Depart {
++            cause: DepartureCause::Left,
++        },
++    );
++    a.apply(&m, &m, intent, None, None).unwrap();
++    assert!(m.is_active());
++    assert_eq!(other.connection_count(), 1);
++    assert_eq!(other.revision(), 2);
++}
++
++#[test]
++fn moderator_removes_revoked_member_without_reviving_or_touching_other_routes() {
++    let mut s = session("sess_test");
++    let (mut target, tb) = member("tenant_test", "target");
++    let ep = endpoint(&tb, "target");
++    join(&mut s, &target, &ep, "conn_target");
++    let (actor, ab) = member("tenant_test", "actor");
++    let aep = endpoint(&ab, "actor");
++    join(&mut s, &actor, &aep, "conn_actor");
++    target.remove(target.revision()).unwrap();
++    let intent = mutation(
++        &s,
++        &target,
++        "remove",
++        ParticipantChange::Depart {
++            cause: DepartureCause::Removed,
++        },
++    );
++    let obs = s
++        .apply(&actor, &target, intent.clone(), None, None)
++        .unwrap();
++    assert_eq!(obs.kind, ParticipantObservationKind::Removed);
++    assert_eq!(obs.retired, vec![ConnectionId::from_string("conn_target")]);
++    assert_eq!(s.connection_count(), 1);
++    assert!(!target.is_active());
++    assert_eq!(s.apply(&actor, &target, intent, None, None).unwrap(), obs);
++}
++
++#[test]
++fn tenant_identity_and_membership_epoch_cannot_adopt_receipts_or_tickets() {
++    let mut s = session("sess_test");
++    let (mut m, b) = member("tenant_test", "alice");
++    let ep = endpoint(&b, "alice");
++    let ticket = prepare(&s, &m, &ep, "conn_alice");
++    let intent = mutation(
++        &s,
++        &m,
++        "join",
++        ParticipantChange::Admit {
++            connection: ConnectionId::from_string("conn_alice"),
++            role_override: None,
++        },
++    );
++    let (foreign, _) = member("tenant_other", "alice");
++    assert_eq!(
++        s.apply(&foreign, &m, intent.clone(), None, None),
++        Err(ParticipantTransitionError::OwnerMismatch)
++    );
++    s.apply(&m, &m, intent.clone(), Some(ticket), Some(&ep))
++        .unwrap();
++    m.remove(m.revision()).unwrap();
++    m.readmit(&b, m.revision()).unwrap();
++    assert_eq!(
++        s.apply(&m, &m, intent, None, None),
++        Err(ParticipantTransitionError::OwnerMismatch)
++    );
++    let remove = mutation(
++        &s,
++        &m,
++        "remove_new_epoch",
++        ParticipantChange::Depart {
++            cause: DepartureCause::Removed,
++        },
++    );
++    assert_eq!(
++        s.apply(&m, &m, remove, None, None),
++        Err(ParticipantTransitionError::OwnerMismatch)
++    );
++    assert_eq!(s.connection_count(), 1);
++}
++
++#[test]
++fn competing_admission_or_membership_role_change_invalidates_pending_ticket() {
++    let mut s = session("sess_test");
++    let (mut m, b) = member("tenant_test", "alice");
++    let ep = endpoint(&b, "alice");
++    let ticket = prepare(&s, &m, &ep, "conn_stale");
++    m.change_role(m.revision(), ParticipantRole::Supervisor)
++        .unwrap();
++    let intent = mutation(
++        &s,
++        &m,
++        "stale",
++        ParticipantChange::Admit {
++            connection: ConnectionId::from_string("conn_stale"),
++            role_override: None,
++        },
++    );
++    assert_eq!(
++        s.apply(&m, &m, intent, Some(ticket), Some(&ep)),
++        Err(ParticipantTransitionError::Conflict)
++    );
++    let ticket = prepare(&s, &m, &ep, "conn_race");
++    let intent = mutation(
++        &s,
++        &m,
++        "race",
++        ParticipantChange::Admit {
++            connection: ConnectionId::from_string("conn_race"),
++            role_override: None,
++        },
++    );
++    join(&mut s, &m, &ep, "conn_winner");
++    assert_eq!(
++        s.apply(&m, &m, intent, Some(ticket), Some(&ep)),
++        Err(ParticipantTransitionError::Conflict)
++    );
++    assert_eq!(s.connection_count(), 1);
++}
++
++#[test]
++fn exhausted_capacity_keeps_receipts_and_retired_connection_tombstones() {
++    let (m, b) = member("tenant_test", "alice");
++    let ep = endpoint(&b, "alice");
++    let mut s = ParticipantSession::new(
++        TenantId::from_string("tenant_test"),
++        ConversationId::from_string("conv_test"),
++        SessionId::from_string("sess_test"),
++        1,
++        1,
++        2,
++    )
++    .unwrap();
++    let obs = join(&mut s, &m, &ep, "conn_alice");
++    let (bob, bb) = member("tenant_test", "bob");
++    let bep = endpoint(&bb, "bob");
++    assert!(matches!(
++        s.prepare_admission(&bob, &bep, ConnectionId::new(), None),
++        Err(ParticipantTransitionError::Capacity)
++    ));
++    let intent = mutation(
++        &s,
++        &m,
++        "leave",
++        ParticipantChange::Depart {
++            cause: DepartureCause::Left,
++        },
++    );
++    s.apply(&m, &m, intent, None, None).unwrap();
++    assert!(matches!(
++        s.prepare_admission(&m, &ep, ConnectionId::from_string("conn_alice"), None),
++        Err(ParticipantTransitionError::Conflict)
++    ));
++    let ticket = prepare(&s, &m, &ep, "conn_new");
++    let intent = mutation(
++        &s,
++        &m,
++        "new",
++        ParticipantChange::Admit {
++            connection: ConnectionId::from_string("conn_new"),
++            role_override: None,
++        },
++    );
++    assert_eq!(
++        s.apply(&m, &m, intent, Some(ticket), Some(&ep)),
++        Err(ParticipantTransitionError::Capacity)
++    );
++    let intent = ParticipantMutation {
++        expected_revision: 1,
++        ..mutation(
++            &s,
++            &m,
++            "join_conn_alice",
++            ParticipantChange::Admit {
++                connection: ConnectionId::from_string("conn_alice"),
++                role_override: None,
++            },
++        )
++    };
++    assert_eq!(s.apply(&m, &m, intent, None, None).unwrap(), obs);
++    assert_eq!(s.connection_count(), 0);
++}
++
++#[test]
++fn explicit_end_fences_pending_admission_and_preserves_membership() {
++    let mut s = session("sess_test");
++    let (m, b) = member("tenant_test", "alice");
++    let ep = endpoint(&b, "alice");
++    join(&mut s, &m, &ep, "conn_old");
++    let ticket = prepare(&s, &m, &ep, "conn_pending");
++    let intent = mutation(
++        &s,
++        &m,
++        "pending",
++        ParticipantChange::Admit {
++            connection: ConnectionId::from_string("conn_pending"),
++            role_override: None,
++        },
++    );
++    assert_eq!(
++        s.end(s.revision()).unwrap(),
++        vec![ConnectionId::from_string("conn_old")]
++    );
++    assert_eq!(
++        s.apply(&m, &m, intent, Some(ticket), Some(&ep)),
++        Err(ParticipantTransitionError::Ended)
++    );
++    assert!(m.is_active());
++    assert_eq!(s.participant_count(), 0);
++}
++
++#[test]
++fn invalid_role_or_wrong_session_ticket_has_no_partial_mutation() {
++    let mut s = session("sess_test");
++    let (m, b) = member("tenant_test", "alice");
++    let ep = endpoint(&b, "alice");
++    join(&mut s, &m, &ep, "conn_old");
++    let revision = s.revision();
++    let intent = mutation(
++        &s,
++        &m,
++        "bad_role",
++        ParticipantChange::SetSessionRole {
++            role: ParticipantRole::Custom("\nprivate".into()),
++        },
++    );
++    assert_eq!(
++        s.apply(&m, &m, intent, None, None),
++        Err(ParticipantTransitionError::Invalid)
++    );
++    assert_eq!(s.revision(), revision);
++    assert_eq!(s.role(m.participant()), Some(&ParticipantRole::Agent));
++    let mut other = session("sess_other");
++    let ticket = prepare(&s, &m, &ep, "conn_wrong");
++    let intent = mutation(
++        &other,
++        &m,
++        "wrong",
++        ParticipantChange::Admit {
++            connection: ConnectionId::from_string("conn_wrong"),
++            role_override: None,
++        },
++    );
++    assert_eq!(
++        other.apply(&m, &m, intent, Some(ticket), Some(&ep)),
++        Err(ParticipantTransitionError::Conflict)
++    );
++    assert_eq!(other.revision(), 1);
++}
++
++#[test]
++fn transition_diagnostics_redact_private_role_ids_and_correlation() {
++    let mut s = session("sess_private_canary");
++    let (m, b) = member("tenant_test", "private_canary");
++    let ep = endpoint(&b, "private_canary");
++    let ticket = prepare(&s, &m, &ep, "conn_private_canary");
++    let intent = mutation(
++        &s,
++        &m,
++        "private_canary",
++        ParticipantChange::Admit {
++            connection: ConnectionId::from_string("conn_private_canary"),
++            role_override: None,
++        },
++    );
++    let debug = format!("{s:?} {ticket:?} {intent:?}");
++    assert!(!debug.contains("private_canary"));
++    let result = s.apply(&m, &m, intent, Some(ticket), Some(&ep)).unwrap();
++    assert!(!format!("{result:?}").contains("private_canary"));
++}
+diff --git a/crates/foundation/rvoip-core/tests/session_lifecycle.rs b/crates/foundation/rvoip-core/tests/session_lifecycle.rs
+index e433119..e56567f 100644
+--- a/crates/foundation/rvoip-core/tests/session_lifecycle.rs
++++ b/crates/foundation/rvoip-core/tests/session_lifecycle.rs
+@@ -262,7 +262,7 @@ async fn join_session_first_join_transitions_to_active() {
+ }
+ 
+ #[tokio::test]
+-async fn leave_session_emits_participant_left_and_sets_left_at() {
++async fn leave_session_emits_participant_left_and_preserves_membership() {
+     let orch = Orchestrator::new(Config::default());
+     let cid = orch
+         .open_conversation(
+@@ -310,7 +310,10 @@ async fn leave_session_emits_participant_left_and_sets_left_at() {
+         .iter()
+         .find(|p| p.id == pid)
+         .expect("participant present");
+-    assert!(p.left_at.is_some(), "left_at populated after leave_session");
++    assert!(
++        p.left_at.is_none(),
++        "Session departure preserves Conversation membership"
++    );
+ }
+ 
+ #[tokio::test]
+@@ -550,3 +553,69 @@ async fn adapter_ended_auto_ends_session_when_last_connection_leaves() {
+     // Reverse index cleared.
+     assert_eq!(orch.session_of(&connid), None);
+ }
++
++#[tokio::test]
++async fn leave_one_session_preserves_other_presence_and_replay_has_no_event() {
++    let orch = Orchestrator::new(Config::default());
++    let cid = orch
++        .open_conversation(
++            TenantId::new(),
++            ConversationPolicy::default(),
++            HashMap::new(),
++        )
++        .await
++        .unwrap();
++    let first = orch
++        .start_session(cid.clone(), SessionMedium::Voice, vec![])
++        .await
++        .unwrap();
++    let other = orch
++        .start_session(cid.clone(), SessionMedium::Voice, vec![])
++        .await
++        .unwrap();
++    let participant = ParticipantId::new();
++    for sid in [&first, &other] {
++        orch.join_session(
++            sid.clone(),
++            participant.clone(),
++            ParticipantKind::Human,
++            ParticipantRole::Agent,
++        )
++        .await
++        .unwrap();
++    }
++    let mut events = orch.subscribe_events();
++    orch.leave_session(first.clone(), participant.clone())
++        .await
++        .unwrap();
++    assert!(
++        matches!(next_event(&mut events).await, Event::ParticipantLeft { session_id, .. } if session_id == first)
++    );
++    orch.leave_session(first.clone(), participant.clone())
++        .await
++        .unwrap();
++    assert!(matches!(
++        events.try_recv(),
++        Err(tokio::sync::broadcast::error::TryRecvError::Empty)
++    ));
++    assert!(!orch
++        .session(&first)
++        .unwrap()
++        .read()
++        .unwrap()
++        .participants
++        .contains(&participant));
++    let other = orch.session(&other).unwrap();
++    let other = other.read().unwrap();
++    assert!(other.participants.contains(&participant));
++    assert_eq!(other.state, SessionState::Active);
++    let conversation = orch.conversation(&cid).unwrap();
++    let conversation = conversation.read().unwrap();
++    let member = conversation
++        .participants
++        .iter()
++        .find(|p| p.id == participant)
++        .unwrap();
++    assert!(member.left_at.is_none());
++    assert_eq!(member.role, ParticipantRole::Agent);
++}

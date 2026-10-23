@@ -1,0 +1,104 @@
+--- a/crates/uctp/rvoip-uctp/src/v2/native_dtmf.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/native_dtmf.rs
+@@ -93,11 +93,14 @@
+         }
+         (origin.poll)(io)
+     }
++    fn source_state(&self) -> Result<(), rvoip_core::dtmf::DtmfWriteError> {
++        match self.poll_source(&mut || std::task::Poll::Ready(Ok(()))) {
++            std::task::Poll::Ready(result) => result,
++            std::task::Poll::Pending => Err(rvoip_core::dtmf::DtmfWriteError::NotReady),
++        }
++    }
+     pub(crate) fn current_source(&self) -> bool {
+-        matches!(
+-            self.poll_source(&mut || std::task::Poll::Ready(Ok(()))),
+-            std::task::Poll::Ready(Ok(()))
+-        )
++        self.source_state().is_ok()
+     }
+     /// Bind actual sealed native ingress to Core metadata and immutable intent.
+     /// No old invocation/permission is retained. The caller must journal the
+@@ -117,9 +120,12 @@
+         let installed = core
+             .adapter(self.transport)
+             .map_err(|_| DtmfWriteError::Refused)?;
+-        if !std::sync::Arc::ptr_eq(&actual, &installed) || !self.current_source() {
++        if !std::sync::Arc::ptr_eq(&actual, &installed) {
+             return Err(DtmfWriteError::Refused);
+         }
++        // This is metadata admission, not an IO grant. Preserve temporary
++        // source lock contention so the caller can wait for the same source.
++        self.source_state()?;
+         let method = match self.method {
+             NativeDtmfMethod::Info => DtmfMethod::Info,
+             NativeDtmfMethod::Rfc4733 => DtmfMethod::Rfc4733,
+@@ -142,7 +148,12 @@
+         struct PhysicalSource(NativeDtmfObservation);
+         impl DtmfSourceFence for PhysicalSource {
+             fn current(&self) -> bool {
+-                self.0.current_source()
++                // A passive liveness hint does not retire a busy source.
++                // poll() still takes all actual source guards around IO.
++                matches!(
++                    self.0.source_state(),
++                    Ok(()) | Err(DtmfWriteError::NotReady)
++                )
+             }
+             fn poll(&self, io: &mut dyn FnMut() -> DtmfIoPoll) -> DtmfIoPoll {
+                 self.0.poll_source(io)
+--- a/crates/uctp/rvoip-uctp/tests/support/canonical_media/native_offers/dtmf_route.rs
++++ b/crates/uctp/rvoip-uctp/tests/support/canonical_media/native_offers/dtmf_route.rs
+@@ -1674,3 +1674,52 @@
+     r.no_native_signal().await;
+     r.stop().await;
+ }
++
++#[tokio::test]
++async fn actual_native_source_contention_preserves_not_ready_and_never_revives_retirement() {
++    for kind in ["quic", "wt"] {
++        let mut r = RouteRig::new(kind).await;
++        let observed = r.observation("8", 100, "info").await;
++        let controller = r.scene.controller();
++        let held_controller = controller.clone();
++        let principal = observed.principal().clone();
++        let revision = observed.stream_revision();
++        let credential = observed.credential_revision();
++        let audio = observed.audio_bindings().to_vec();
++        let (entered, ready) = std::sync::mpsc::channel();
++        let (release, wait) = std::sync::mpsc::channel();
++        let holding = std::thread::spawn(move || {
++            held_controller.poll_dtmf_source_io(
++                &principal,
++                revision,
++                credential,
++                &audio,
++                &mut || {
++                    entered.send(()).unwrap();
++                    wait.recv_timeout(Duration::from_secs(2)).unwrap();
++                    std::task::Poll::Ready(Ok(()))
++                },
++            )
++        });
++        ready.recv_timeout(Duration::from_secs(2)).unwrap();
++        let result = observed.prepare_core_route(&r.scene.native.core.orch, r.target.clone());
++        release.send(()).unwrap();
++        assert_eq!(holding.join().unwrap(), std::task::Poll::Ready(Ok(())));
++        assert!(
++            matches!(result, Err(DtmfWriteError::NotReady)),
++            "busy actual source was classified as retired: {result:?}"
++        );
++        r.peer.no_info(Duration::from_millis(30)).await;
++        let policy = SignalPolicy::new(&r, &observed);
++        let sending = r.start(&observed, policy);
++        r.peer.next().await;
++        assert_eq!(sending.await.unwrap(), Ok(()));
++        r.peer.no_info(Duration::from_millis(30)).await;
++        controller.retire();
++        assert!(matches!(
++            observed.prepare_core_route(&r.scene.native.core.orch, r.target.clone()),
++            Err(DtmfWriteError::Refused)
++        ));
++        r.stop().await;
++    }
++}

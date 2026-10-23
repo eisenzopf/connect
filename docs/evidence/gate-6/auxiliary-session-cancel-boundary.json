@@ -1,0 +1,255 @@
+{
+  "task": "G6-046",
+  "title": "Cancellation ends at the first accepted invitee",
+  "status": "u6-req-0090-qualified-local-native-and-http; remaining44-open",
+  "recorded_at": "2026-10-22T20:02:40.514951+00:00",
+  "full_task_complete": false,
+  "full_goal_complete": false,
+  "acceptance_qualified": false,
+  "schema_version": 90,
+  "platform": {
+    "os": "Darwin",
+    "architecture": "arm64"
+  },
+  "pinned_patches": 140,
+  "source_lock": {
+    "path": "dependencies/source-lock.json",
+    "sha256": "157ebcfccf05ca070088e64ad566a4ebb67ccab7a7a6ff0c7b1b16ede2075b93"
+  },
+  "compiled_inputs": {
+    "path": ".local/gate-6/session-cancel-boundary/build-inputs-v3.json",
+    "sha256": "f7267594bb9bdc012737990abbe7f20a883b48a169452bb1079b2aad390cd757",
+    "count": 1265
+  },
+  "compiled_inputs_unchanged_after_tests": true,
+  "source_inputs": [
+    {
+      "path": "crates/connect-store/src/session_control.rs",
+      "sha256": "183aa1f120cc876683e3ee8540583170f6ba077307a52d6c3924ce163dbed0d7"
+    },
+    {
+      "path": "crates/connect-store/src/session_control_tests.rs",
+      "sha256": "164fbd2603c46f9572e4af8a9effc9754fd1cf1839495a1912d42fc66db50218"
+    },
+    {
+      "path": "crates/connect-server/tests/support/canonical_auxiliary_clauses.rs",
+      "sha256": "054d651c1d12a88bf530eafeb535159b78d2738b8da2db86c7c5da596f8a825f"
+    },
+    {
+      "path": "docs/developer/general-sessions.md",
+      "sha256": "57cd03f69a7323e192a4f832435fc4096e102bcd94ee07bfdab8450e425e66fb"
+    },
+    {
+      "path": "docs/developer/session-decisions.md",
+      "sha256": "e626076321d24df3fd3ddba11fc240ee42e0a4457b4e0759f3beaa6ba4a45f0c"
+    },
+    {
+      "path": "scripts/generate-canonical-http-openapi.py",
+      "sha256": "31178512cb18a600fa93157f5fdc75933c07a5528e8004dad0e2c6a3f9f1823b"
+    },
+    {
+      "path": "contracts/openapi-canonical-http.json",
+      "sha256": "cf3608819d001751e6a499038127b9d84a6a470ff3a0896030aaf7fa89b39087"
+    }
+  ],
+  "binaries": [
+    {
+      "path": "target/debug/deps/connect_store-2bc54b64bb656bb4",
+      "sha256": "c5b0e0fe43f0e6a08e97df62b34f904d71bda754b01cf72ff29c4366d23247bf"
+    },
+    {
+      "path": "target/debug/deps/gate6_canonical_runtime-f39476f2f6c7ff5d",
+      "sha256": "0f6146ec5b8fe9536019ecccaac60b05fe47a4a2ebc47659230958b8c56df98f"
+    }
+  ],
+  "regression_reproduction": {
+    "evidence": {
+      "path": ".local/gate-6/session-cancel-boundary/store-boundary-red-v2.log",
+      "sha256": "21a4ecaddd405d032f999d8105a9451aeaa20aef666f94589c38c193a6db9b35"
+    },
+    "finding": "Before the fix, a current revision cancellation after one accepted invitee returned a completed cancellation decision at revision2 and removed other pending invitees. The exact test expects conflict."
+  },
+  "results": [
+    {
+      "name": "store-cancellation-boundary",
+      "passed": 1,
+      "failed": 0,
+      "evidence": {
+        "path": ".local/gate-6/session-cancel-boundary/store-boundary-green-v1.log",
+        "sha256": "9139cf449b166e060b965fbcca16795877dfdf1a632becb3458d2ad6f20257db"
+      }
+    },
+    {
+      "name": "store-session-control",
+      "passed": 35,
+      "failed": 0,
+      "evidence": {
+        "path": ".local/gate-6/session-cancel-boundary/store-control-final.log",
+        "sha256": "939e29425db4afd01887d0033cb7d5c695ff2f3f4b93f801050568b9d7379709"
+      }
+    },
+    {
+      "name": "store-events",
+      "passed": 22,
+      "failed": 0,
+      "evidence": {
+        "path": ".local/gate-6/session-cancel-boundary/store-events-final.log",
+        "sha256": "42d97dfc9a4a8b1969f7cc30819019f059479547da934543c3e50bb214216f10"
+      }
+    },
+    {
+      "name": "store-pending-decisions",
+      "passed": 4,
+      "failed": 0,
+      "evidence": {
+        "path": ".local/gate-6/session-cancel-boundary/store-decisions-final.log",
+        "sha256": "61a1386c6ed282161a7b2ebf697d64597b78438c1df1ac6e8ae54b1df3424d7a"
+      }
+    },
+    {
+      "name": "production-cancellation-boundary",
+      "passed": 1,
+      "failed": 0,
+      "evidence": {
+        "path": ".local/gate-6/session-cancel-boundary/production-boundary-final.log",
+        "sha256": "296a3aab3977750bd594b7625cf8c7f5edfcca3df1e0227da93c17d4dbb5ce5c"
+      }
+    },
+    {
+      "name": "production-auxiliary-regression",
+      "passed": 9,
+      "failed": 0,
+      "evidence": {
+        "path": ".local/gate-6/session-cancel-boundary/production-auxiliary-final.log",
+        "sha256": "e1efb500fb0cf2d81c692873799e6cc77bc493ba79b8dae848943eb10834d953"
+      }
+    },
+    {
+      "name": "production-four-party",
+      "passed": 1,
+      "failed": 0,
+      "evidence": {
+        "path": ".local/gate-6/session-cancel-boundary/production-four-party-final.log",
+        "sha256": "bca71e2e7b3400739385d8c91340133cb7a41a57f8297773c5fbe773e876d837"
+      }
+    }
+  ],
+  "test_fixture_repair": {
+    "evidence": {
+      "path": ".local/gate-6/session-cancel-boundary/production-boundary-fixture-failure-v2.log",
+      "sha256": "e7e54d9e3726a133512f3239a8db3fd12632afafa07ee90e80798926e0b5f807"
+    },
+    "reason": "The initial test reused the default agent credential without the named canonical collaboration scope. The final case issues an explicit bounded collaboration credential before both acceptance checks."
+  },
+  "build_attempts": [
+    {
+      "exit_code": 101,
+      "reason": "New production test lacked its local SnapshotItem import; corrected before the final build.",
+      "evidence": {
+        "path": ".local/gate-6/session-cancel-boundary/runtime-build-v1.log",
+        "sha256": "34c92dbcbaf71a1eb50d741edd4b1e7c4ca93b2fa76b063d7b47005c75234b10"
+      }
+    },
+    {
+      "exit_code": 0,
+      "evidence": {
+        "path": ".local/gate-6/session-cancel-boundary/runtime-build-v2.log",
+        "sha256": "35f5e87d0c7343b4cfbeb4f494cadf4aef81de830d5f58a9245c5ed13a1fcdb7"
+      }
+    },
+    {
+      "exit_code": 0,
+      "evidence": {
+        "path": ".local/gate-6/session-cancel-boundary/runtime-build-v3.log",
+        "sha256": "b232e78bee34e1d023b45fd74660776d82f1b95c2344db4a06a59e69419d3c7b"
+      }
+    }
+  ],
+  "checks": [
+    {
+      "name": "dependencies",
+      "exit_code": 0,
+      "evidence": {
+        "path": ".local/gate-6/session-cancel-boundary/dependencies-final.log",
+        "sha256": "fd9d7b181e3ccba9b643af55a186cf132c60aac99c734b2ee4e4e549afe5ffc2"
+      }
+    },
+    {
+      "name": "format",
+      "exit_code": 0,
+      "evidence": {
+        "path": ".local/gate-6/session-cancel-boundary/format-final.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    {
+      "name": "http-reference",
+      "exit_code": 0,
+      "evidence": {
+        "path": ".local/gate-6/session-cancel-boundary/http-reference-final.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    {
+      "name": "event-reference",
+      "exit_code": 0,
+      "evidence": {
+        "path": ".local/gate-6/session-cancel-boundary/event-reference-final.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    {
+      "name": "progress",
+      "exit_code": 0,
+      "evidence": {
+        "path": ".local/gate-6/session-cancel-boundary/progress-final.log",
+        "sha256": "fedbc03549729d27ac031eee0766ae72281991ae1e9494232887c3160cf754cc"
+      }
+    },
+    {
+      "name": "diff",
+      "exit_code": 0,
+      "evidence": {
+        "path": ".local/gate-6/session-cancel-boundary/diff-final.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    }
+  ],
+  "qualified_cases": [
+    {
+      "case_id": "u6-req-0090",
+      "algorithms": [
+        "EdDSA",
+        "ES256"
+      ],
+      "test": "auxiliary_clauses::production_cancellation_stops_at_first_acceptance_and_requires_end_through_native_and_http",
+      "profile": "Actual local signed native QUIC caller and bearer HTTP commands through the public SDK, with publicly created Conversation/Session and current snapshots; no injected Session rows.",
+      "assertions": [
+        "A fresh unaccepted invitation cancels with its exact reason, increments topology once and replays the same immutable receipt over HTTP.",
+        "A fresh accept after successful cancellation conflicts and cannot revive the Session.",
+        "Once one invitee accepts, native and fresh logical HTTP cancellation at the current topology revision both conflict even while another invitee remains pending.",
+        "Rejected cancellation preserves the accepted state, current topology revision and both accepted/pending appearances.",
+        "The original caller can use session.end at that same revision after acceptance."
+      ]
+    }
+  ],
+  "implementation": [
+    "The Session-control transaction checks the unaccepted state before changing any pending appearance. After acceptance, session.end supplies the separately authorized terminal action.",
+    "Ordinary operation receipt, source, participant epoch, recipient ceiling and current credential/Device/key authorization remain in their existing owners; no compatibility path or new authority reader."
+  ],
+  "limits": [
+    "17 of61 assigned clauses are locally qualified;44 remain. G6-046 and the105-task goal remain incomplete.",
+    "Correlated session.cancel in_reply_to and recipient notification are separate clause0091 and remain open.",
+    "Full0081 lifecycle, started/joined/left and loss/grace boundaries, URI targets and broader profiles remain open.",
+    "No Linux, production remote/browser/provider or named G6-093 qualification, publication or acceptance claim."
+  ],
+  "related_evidence": [
+    "docs/evidence/gate-6/auxiliary-session-caller-relays.json",
+    "docs/evidence/gate-6/auxiliary-owned-session-invitations.json"
+  ],
+  "reproduce": [
+    "bash scripts/prepare-dependencies.sh",
+    "CARGO_INCREMENTAL=0 cargo test -p connect-store --lib --locked --offline -j1 session_control::tests::cancellation_requires_unaccepted_session_and_preserves_pending_invitees_after_acceptance -- --exact --test-threads=1",
+    "CARGO_INCREMENTAL=0 cargo test -p connect-server --test gate6_canonical_runtime --locked --offline -j1 auxiliary_clauses::production_cancellation_stops_at_first_acceptance_and_requires_end_through_native_and_http -- --exact --test-threads=1"
+  ]
+}

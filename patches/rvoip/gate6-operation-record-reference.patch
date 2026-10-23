@@ -1,0 +1,12 @@
+--- a/crates/uctp/rvoip-uctp/src/v2/payloads.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/payloads.rs
+@@ -971,6 +971,9 @@
+ #[derive(Clone, Serialize, Deserialize)]
+ pub struct OperationUpdated {
+     pub operation_id: Identifier,
++    /// Stable authoritative record reference when supplied by the host Store.
++    #[serde(default, skip_serializing_if = "Option::is_none")]
++    pub record_id: Option<Identifier>,
+     pub state: OperationState,
+     pub revision: u64,
+     #[serde(default, skip_serializing_if = "Option::is_none")]

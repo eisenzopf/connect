@@ -1,0 +1,298 @@
+{
+  "kind": "gate6-component-evidence",
+  "task": "G6-044",
+  "status": "in-progress",
+  "component_passed": true,
+  "recorded_at": "2026-10-21T02:13:15.851604+00:00",
+  "platform": {
+    "system": "Darwin",
+    "machine": "arm64"
+  },
+  "schema_version": 64,
+  "pinned_patches": 124,
+  "source_lock": {
+    "path": "dependencies/source-lock.json",
+    "sha256": "5d120c35bb38597b4ddc12292dc770856ea09c084c0d4065e373dcd61e379826"
+  },
+  "qualification_inputs": {
+    "path": ".local/gate-6/initial-sip-projection-inputs-qualified.json",
+    "sha256": "b4779eff84f62b85954f52f3fb24ab136bd9dd2ccf8e9cdb035376647b39ae00",
+    "paths": 979
+  },
+  "fresh_distinct_passed_tests": 106,
+  "verification": [
+    {
+      "label": "Service units, including actual empty checked Core",
+      "passed": 27,
+      "failed": 0,
+      "ignored": 0,
+      "duration_seconds": 2.5,
+      "arguments": "--test-threads=2",
+      "tests": [
+        "canonical_conversations::tests::canonical_conversation_assertions_and_unknown_filter_fields_are_not_discarded",
+        "canonical_media::tests::canonical_reliable_data_class_keeps_native_format_intersection_explicit",
+        "canonical_media::tests::native_plan_refuses_missing_current_acceptance_endpoint_or_original_offer_codec",
+        "canonical_media::tests::native_plan_selects_accepted_fallback_before_unaccepted_preferred_codec",
+        "canonical_media::tests::screen_planning_requires_each_explicit_screen_floor_instead_of_camera_permission",
+        "canonical_receipts::tests::read_report_parsing_keeps_diagnostic_claim_exact_and_rejects_other_resource_assertions",
+        "canonical_media::tests::assistant_registry_contention_is_retryable_without_claiming_a_missing_source",
+        "canonical_session_decisions::tests::session_decision_parser_refuses_extra_resources_missing_ids_and_oversized_reason",
+        "canonical_session_decisions::tests::session_decision_parser_retains_every_typed_field",
+        "canonical_session_decisions::tests::legacy_application_profile_cannot_dispatch_new_invitation_decisions",
+        "canonical_subscriptions::tests::receipt_hints_precede_cursor_facts_within_batch_budget_and_require_data_floor",
+        "canonical_subscriptions::tests::subscription_parser_bounds_batch_lease_and_rejects_extra_resource_assertions",
+        "canonical_sessions::http_projection_tests::ordinary_http_decision_projects_a_checked_empty_core_under_its_existing_fence",
+        "event_tests::closing_a_physical_peer_cancels_both_journal_and_observation_waits",
+        "event_tests::event_wait_reauthorizes_before_delivering_after_membership_removal",
+        "event_tests::event_catchup_requeries_the_journal_after_missing_or_duplicate_wake_hints",
+        "readiness::tests::optional_absence_does_not_mask_failure_or_claim_operational_readiness",
+        "messages::authority_tests::cancelled_handler_retains_authority_until_uncancellable_store_work_settles",
+        "session_bindings::tests::native_resource_projection_checks_origin_binding_and_current_authority",
+        "session_bindings::tests::native_video_grant_admits_exact_profile_and_rejects_duplicate_unsupported_streams",
+        "session_init::tests::host_registry_refuses_duplicate_names_capacity_and_retired_runtime",
+        "session_init::tests::independent_hosts_receive_exact_committed_metadata_and_one_failure_does_not_skip_another",
+        "session_init::tests::queued_snapshot_cannot_add_work_after_host_closure",
+        "tasks::tests::revocation_during_wait_is_rechecked_before_returning_events",
+        "tasks::tests::commit_between_task_catchup_and_wait_is_not_lost_for_owner_or_grant",
+        "tests::commit_between_catchup_and_wait_is_not_lost",
+        "tests::inbox_wait_is_bounded_and_cancelled_with_physical_peer"
+      ],
+      "log": {
+        "path": ".local/gate-6/initial-sip-projection-service-final.log",
+        "sha256": "692aac225823b98b341fb03645855dc235e648d9bccdf01d987be7eede3d364c"
+      },
+      "binary": {
+        "path": "target/debug/deps/connect_service-0c9533d243d07904",
+        "sha256": "0be28a7a29c54601fc5b6c8b383647db2d9427616398f1b7a6885826796fdef3"
+      }
+    },
+    {
+      "label": "Server units",
+      "passed": 66,
+      "failed": 0,
+      "ignored": 0,
+      "duration_seconds": 20.76,
+      "arguments": "--test-threads=1",
+      "tests": [
+        "agent_observations::tests::stalled_capture_queue_drops_without_blocking_and_next_delivery_reports_exact_loss",
+        "agent_observations::tests::undeclared_model_capabilities_publish_unavailable_without_untrusted_body",
+        "canonical::tests::configuration_errors_do_not_echo_private_file_contents",
+        "canonical_assistants::tests::configured_assistant_assets_require_private_regular_files_without_echoing_contents",
+        "canonical_assistants::tests::public_profile_never_enables_insecure_nonfixture_transport_or_duplicate_proposal_tools",
+        "canonical_assistants::tests::strict_host_configuration_preserves_explicit_paths_policy_and_rejects_unknown_fields",
+        "cli::agent_access::tests::changed_credential_assets_or_access_mode_cannot_resume_an_existing_installation",
+        "cli::agent_access::tests::export_rejects_admin_revoked_and_mismatched_authority_before_creating_output",
+        "cli::agent_access::tests::identity_setup_replays_original_receipt_and_denies_conflict_or_non_admin",
+        "cli::agent_access::tests::regular_export_keeps_one_agent_key_without_task_grants_or_admin_secret",
+        "cli::agent_access::tests::regular_host_resumes_exact_session_and_redacts_its_key_without_grant_refresh",
+        "cli::agent_access::tests::removal_deletes_only_verified_connect_configuration_and_preserves_other_files",
+        "cli::agent_access::tests::unknown_host_or_missing_model_auth_preserves_installation_and_does_not_launch",
+        "cli::canonical_init::tests::destination_created_after_preflight_is_preserved_even_when_empty",
+        "cli::media_stdio::tests::framing_is_bounded_and_binary_safe",
+        "cli::media_stdio::tests::input_reader_preserves_a_frame_when_next_is_cancelled",
+        "cli::task_access::codex_host::diagnostics::tests::concurrent_state_change_never_combines_session_metadata_or_retains_probe_lock",
+        "cli::task_access::codex_host::group_status::tests::native_snapshot_rejects_live_group_and_accepts_its_unreaped_zombie",
+        "cli::vapi_task::manifest::tests::rejects_ambiguous_modes_public_binding_and_callback_credentials",
+        "cli::vapi_task::manifest::tests::rejects_oversized_or_nonregular_private_inputs",
+        "cli::vapi_task::manifest::tests::supported_modes_resolve_state_beside_private_manifest",
+        "config::tests::outbound_sip_fields_reject_ambiguous_input",
+        "config::tests::wildcard_sip_requires_a_concrete_media_bind_interface",
+        "media_transports::tests::outbound_trunk_fails_closed_without_a_password",
+        "media_transports::tests::outbound_trunk_uses_environment_secret_without_logging_it",
+        "private_vapi::audio::tests::expired_partial_speech_cannot_be_combined_with_a_fresh_provider_message",
+        "private_vapi::audio::tests::forwarding_stall_expires_complete_speech_and_replaces_it_with_silence",
+        "private_vapi::audio::tests::provider_message_boundaries_do_not_split_pcmu_frames",
+        "private_vapi::audio::tests::queued_audio_keeps_only_the_newest_bounded_frames_and_partial",
+        "private_vapi::transcripts::tests::archive_retries_same_callback_only_after_busy_store_result",
+        "private_vapi::transcripts::tests::cancellation_drains_admitted_write_and_does_not_start_queued_callback",
+        "private_vapi::transcripts::tests::pending_archive_does_not_block_media_ticks_and_preserves_order_and_capacity",
+        "private_vapi::transport::tests::private_receiver_must_bind_the_captured_call_and_exact_configured_origin",
+        "private_vapi::transport::tests::private_transport_requires_explicit_secure_or_numeric_loopback_origins",
+        "registration_monitor::tests::accepted_lease_refreshes_after_idle_and_rejected_refresh_can_recover_on_restart",
+        "registration_monitor::tests::dropped_refresh_does_not_leave_an_expired_binding_ready",
+        "secrets::tests::explicit_missing_or_locked_provider_reference_cannot_read_ambient_key",
+        "secrets::tests::provider_api_key_whitespace_preserves_legacy_headers_and_password_bytes",
+        "secrets::tests::references_and_debug_never_contain_secret_values",
+        "setup_vault::discovery_tests::unselected_provider_credentials_are_never_resolved",
+        "sip_outbound::tests::a_late_worker_outcome_cannot_replace_an_observed_terminal_connection",
+        "sip_outbound::tests::cancellation::active_hangup_waits_for_cleanup_and_keeps_failure_uncertain",
+        "sip_outbound::tests::cancellation::cancellation_callback_and_successful_cleanup_have_one_result_in_either_order",
+        "sip_outbound::tests::cancellation::cancellation_callback_cannot_conceal_failed_cleanup_in_either_order",
+        "sip_outbound::tests::cancellation::cancellation_event_for_an_active_leg_without_owned_cleanup_settles_ended",
+        "sip_outbound::tests::cancellation::normal_remote_end_and_failure_remain_authoritative_during_cancellation",
+        "sip_outbound::tests::failed_cancellation_cleanup_is_uncertain_and_cannot_be_redispatched",
+        "sip_outbound::tests::lost_authority_during_activation_runs_cleanup_and_persists_cancellation",
+        "sip_outbound::tests::stalled_cancellation_cleanup_is_bounded_and_does_not_detach_activation",
+        "sip_registration::tests::carrier_registration_authenticates_and_shutdown_removes_binding",
+        "sip_registration::tests::rejected_registration_does_not_report_ready",
+        "sms_authority::synchronization_tests::authenticated_snapshot_rejects_redirects_and_revision_replay",
+        "sms_authority::tests::reject_unsafe_authority_configuration",
+        "startup::tests::failed_startup_releases_endpoint_owned_by_a_pending_accept_task",
+        "startup::tests::successful_startup_keeps_accept_open_for_runtime_ownership",
+        "transports::http::tests::browser_origins_are_limited_to_loopback_http",
+        "vapi_bootstrap::call_failure::tests::diagnostics_expose_only_the_stage_even_with_a_sensitive_cause",
+        "vapi_bootstrap::voice_model::tests::absent_tools_are_supported_but_malformed_saved_models_are_rejected",
+        "vapi_bootstrap::voice_model::tests::scoped_mcp_discovery_preserves_saved_model_and_other_tools",
+        "vapi_observer::tests::cancelling_observer_drain_does_not_detach_the_receiver",
+        "vapi_observer::tests::queued_provider_report_is_not_replaced_by_missing_status",
+        "vapi_observer::tests::teardown_drains_queued_transcripts_and_records_missing_report",
+        "worker::tests::cancelling_shutdown_aborts_owned_tasks",
+        "worker::tests::failure_does_not_detach_a_stalled_sibling",
+        "worker::tests::panic_is_reported_and_other_tasks_are_still_drained",
+        "worker::tests::supervised_panic_wakes_readiness_without_waiting_for_shutdown"
+      ],
+      "log": {
+        "path": ".local/gate-6/initial-sip-projection-server-final.log",
+        "sha256": "90b8bc21a8cf1eeca1a34ade9231cec06d867f560ecce585769a9180cb54364e"
+      },
+      "binary": {
+        "path": "target/debug/deps/connect_server-616f548a437d1869",
+        "sha256": "fbd43b1436f5ad64f0c663eef1f70508a0652f827f791e0c3004d4d16b6b746e"
+      }
+    },
+    {
+      "label": "Actual signed and HTTP general Session lifecycle",
+      "passed": 3,
+      "failed": 0,
+      "ignored": 0,
+      "duration_seconds": 1.71,
+      "arguments": "general_session_control --test-threads=1",
+      "tests": [
+        "general_session_control::http_only_session_creates_empty_checked_core_and_later_native_attaches_without_recreation",
+        "general_session_control::signed_and_http_general_session_lifecycle_share_four_party_receipts_and_current_views",
+        "general_session_control::signed_session_projection_uses_actual_physical_peers_and_replay_cannot_resurrect_end"
+      ],
+      "log": {
+        "path": ".local/gate-6/initial-sip-projection-session-final.log",
+        "sha256": "75ced51f2847b10ca922ca247079faf89c10c1cbabd84a014e7723fae1d134ee"
+      },
+      "binary": {
+        "path": "target/debug/deps/gate6_canonical_runtime-2e3e18c2008aaebe",
+        "sha256": "936fdb287b3ec35ab095ca8e5f3bfc3cf6b3527287babf789321f8a04f0f0284"
+      }
+    },
+    {
+      "label": "Actual public AI supervision/startup/discovery",
+      "passed": 9,
+      "failed": 0,
+      "ignored": 0,
+      "duration_seconds": 9.75,
+      "arguments": "public_assistant --test-threads=1",
+      "tests": [
+        "canonical_native_connections::public_assistant::accepted_public_ai_starts_one_owned_provider_and_drains_before_server_retirement",
+        "canonical_native_connections::public_assistant::http_public_ai_acceptance_starts_one_owned_signed_provider_peer",
+        "canonical_native_connections::public_assistant::public_ai_acceptance_without_context_permission_has_no_owner_fallback",
+        "canonical_native_connections::public_assistant::public_ai_unknown_reachability_refuses_without_provider_io",
+        "canonical_native_connections::public_assistant::public_ai_without_installed_endpoint_profile_has_no_provider_io",
+        "canonical_native_connections::public_assistant::startup::configured_host_ambiguous_native_endpoints_refuse_discovery_and_provider_io",
+        "canonical_native_connections::public_assistant::startup::configured_host_key_revocation_changes_public_discovery_and_refuses_provider_io",
+        "canonical_native_connections::public_assistant::startup::configured_startup_exposes_only_hosted_endpoint_and_owns_http_accepted_provider_job",
+        "canonical_native_connections::public_assistant::startup::missing_selected_secret_cannot_use_another_reference_or_open_a_second_installation"
+      ],
+      "log": {
+        "path": ".local/gate-6/initial-sip-projection-public-final.log",
+        "sha256": "82c5fd0f8ca02db29aac024907521437f8fe3224215c613af6210431ee7c268a"
+      },
+      "binary": {
+        "path": "target/debug/deps/gate6_canonical_runtime-2e3e18c2008aaebe",
+        "sha256": "936fdb287b3ec35ab095ca8e5f3bfc3cf6b3527287babf789321f8a04f0f0284"
+      }
+    },
+    {
+      "label": "Actual private AI caller/context/return/restart",
+      "passed": 1,
+      "failed": 0,
+      "ignored": 0,
+      "duration_seconds": 59.65,
+      "arguments": "production_private_ai_automatic_ai_caller_uses_own_context_grant_and_independent_owner_return --test-threads=1",
+      "tests": [
+        "canonical_native_connections::consultation::production_private_ai_automatic_ai_caller_uses_own_context_grant_and_independent_owner_return"
+      ],
+      "log": {
+        "path": ".local/gate-6/initial-sip-projection-private-final.log",
+        "sha256": "cc2adc991262d49f27eec7e76260a534649f954b97dfcb64b46f59244f00bc67"
+      },
+      "binary": {
+        "path": "target/debug/deps/gate6_canonical_runtime-2e3e18c2008aaebe",
+        "sha256": "936fdb287b3ec35ab095ca8e5f3bfc3cf6b3527287babf789321f8a04f0f0284"
+      }
+    }
+  ],
+  "observations": [
+    "Completed canonical HTTP Session decisions now project the exact durable CID/SID into the existing Core and install its staged participant coordinator while retaining the original Store command writer. The current actor is revalidated and must match the fenced projection; its ordinary canonical principal supplies the installation tenant. There is no reacquired authority fence, fabricated Device or native physical-peer admission.",
+    "The shared project_session_container helper is used by both HTTP and actual signed attachment. It refuses stopped runtime, terminal Session and absent actor; Core preserves its existing external projection origin and terminal tombstones. Replays ensure the checked coordinator exists without replacing it. This reuses existing project_external_session and attach_peer_session support; no new managed Session origin, upstream patch, schema or public wire field is needed.",
+    "The direct Service test inspects the actual Core Session: empty Participants/Connections, zero pending/admitted capacity and no physical peers. Its checked coordinator begins at revision1 and replay preserves that revision. The actual HTTP SDK fixture creates/invites and accepts without native peers or media, then an actual signed native peer replays the same invitation and attaches to that one Session. HTTP end retires it; HTTP and signed older invitation replay retain the original receipt without recreating the Core.",
+    "The other2general Session cases preserve four-party shared HTTP/signed receipts and actual physical peer retirement. Service27, server66serial, public9 and privateAI caller/context/return/restart1 pass on the final unchanged source. This qualifies the empty shared-container prerequisite, not physical initial SIP, telephone provider mapping or general availability."
+  ],
+  "build": {
+    "path": ".local/gate-6/initial-sip-projection-build-final.log",
+    "sha256": "4890c3349c31a5ca6af32b86c19ecec0bf77796762e665d30983bd6b4457acda"
+  },
+  "preparation": {
+    "path": ".local/gate-6/initial-sip-projection-prepare.log",
+    "sha256": "fd9d7b181e3ccba9b643af55a186cf132c60aac99c734b2ee4e4e549afe5ffc2"
+  },
+  "format": {
+    "path": ".local/gate-6/initial-sip-projection-format.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "whitespace": {
+    "path": ".local/gate-6/initial-sip-projection-diff-check.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "http_reference": {
+    "path": "contracts/openapi-canonical-http.json",
+    "sha256": "18003440c3d50d924098b784a37f1dc8b4a77b2c56b68f36a291bf12c57f04e3",
+    "scope": "Wire shapes unchanged; canonical-http.md and general-sessions.md document HTTP empty checked runtime projection and separate physical/media admission."
+  },
+  "http_reference_check": {
+    "path": ".local/gate-6/initial-sip-projection-http-check.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "prior_failed_attempts": [
+    {
+      "path": ".local/gate-6/initial-sip-projection-build-initial-failed.log",
+      "sha256": "f8ba0b8f105263813a42c09bc2c7ae2042df04ff27073c1b0f79f3da543498cc",
+      "reason": "TenantId generic inference; corrected owned String before final build."
+    },
+    {
+      "path": ".local/gate-6/initial-sip-projection-build-disk-failed.log",
+      "sha256": "cec3adce7f590fa1f6cd729cdad63e57297542dad8bff22e5ed6f8ce59924934",
+      "reason": "Server CLI link exhausted local cache volume. Only4197single-link inactive feature-ABI debug/codegen objects reclaimed,2.80GBallocated; active libraries/executables/source/evidence/state retained. Final build passed."
+    },
+    {
+      "path": ".local/gate-6/initial-sip-projection-http-first-initial.log",
+      "sha256": "d53772f64be93c040df94f504d7008d68837fdc9892b0cf4768273fb332bf734",
+      "reason": "New HTTP fixture omitted mandatory explicit tenant; corrected fixture, retaining public validation."
+    },
+    {
+      "path": ".local/gate-6/initial-sip-projection-service-initial-failed.log",
+      "sha256": "87ae423b35a24f9223133464179c049e23297bba4f99d4cf487b18290473d472",
+      "reason": "New unit expected empty coordinator revision0; actual ParticipantSession constructor initializes1. Corrected expectation; zero admission and exact replay assertions retained."
+    },
+    {
+      "path": ".local/gate-6/initial-sip-projection-public-concurrent-failed.log",
+      "sha256": "ccfbaa68c27341d7d7712a5e8188be5b538977a5de412786f7bd1625d359b4db",
+      "reason": "First public9run:8passed/1failed owned public shutdown (public Session jobs). Same final source/binary rerun passed all9. The earlier run overlapped other focused suites; the rerun may still have overlapped the private regression at startup. Cause is not established. No assertion, timeout or cleanup refusal was relaxed; this remains a provider shutdown reliability limitation, not a claim that concurrency caused it."
+    }
+  ],
+  "generated_cache_cleanup": {
+    "path": ".local/gate-6/initial-sip-projection-cache-cleanup.json",
+    "sha256": "2f9a38b1beae80ec34540985a64d20dbc4f633be717175227bd8f274207f2661"
+  },
+  "remaining_work": [
+    "Full G6-044 remains active. Implement actual initial SIP/telephone adapter custody and checked Participant admission with exact verified endpoint/current source, actual Call-ID, guarded per-write media and original logical operation linkage. Existing replacement confirmation is not initial-call proof.",
+    "Generic PreparedOutboundConnection owns actual dormant route/lifecycle and inserts Core Connection, but commit refuses checked Sessions; staged admission currently requires a real native peer and SIP staged controller/media are tied to device-replacement contexts. Add a purpose-correct initial lane without fabricated replacement/source ticket, fake peer or legacy join.",
+    "Migrate5retired voice_flow public cases through real canonical initial-call workflows. Complete Vapi voice/chat, SIP/Telnyx telephone and SMS endpoint/effect/reconciliation mapping and full outbound/inbound/private-fanout/cancel/uncertain/duplicate/transcript/teardown matrix. No retired dispatch fallback.",
+    "Investigate the observed owned public shutdown refusal and finish provider restart/update/cancel/uncertain-create ownership. The prior private-duplex one-frame incident also remains causally unestablished; passing local cases do not prove general provider availability."
+  ],
+  "not_qualified": [
+    "No initial telephone implementation, physical SIP admission or public voice_flow migration is claimed. Store source unchanged: no fresh full Store run. No unrelated fullworkspace, Linux x86_64, browser, remote/NAT, installed packages, live provider/PSTN, independent acceptance or publication. Named external lanes still require concrete bounded G6-093 configuration/designated endpoints."
+  ],
+  "plan_counts": {
+    "done": 43,
+    "in_progress": 1,
+    "not_started": 61,
+    "acceptance_done": 0
+  }
+}

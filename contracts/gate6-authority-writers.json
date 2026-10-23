@@ -1,0 +1,571 @@
+{
+  "format": 1,
+  "task": "G6-037",
+  "schema": 34,
+  "status": "partial-integration",
+  "production_policy_installed": false,
+  "invariant": "Derive exact current scopes under a short SQLite read, release the mutex before a bounded file wait, rederive after acquisition, and reauthorize within the original transaction. Protected composition may reuse only an owned sufficient proof; no read-to-write upgrade, foreign proof, or fallback reacquisition.",
+  "shared_engine_enforcement": "operations::execute_context requires a Store-owned sufficient write proof for every classified ordinary authority mutation, including nested owner/narrow task execution; absence or mismatch refuses before effects/receipts.",
+  "qualified_groups": [
+    {
+      "id": "ordinary-authority-mutations",
+      "predicate": "Conversation closed, Session state, call/SIP end, artifact deletion, optional receipt privacy, contact pairing state/current credential relations",
+      "paths": [
+        "crates/connect-store/src/authority_admission/operations.rs",
+        "crates/connect-store/src/conversations.rs",
+        "crates/connect-store/src/operations/mod.rs"
+      ],
+      "operations": [
+        "close",
+        "session_accept",
+        "session_reject",
+        "session_cancel",
+        "session_end",
+        "call_end",
+        "sip_end",
+        "artifact_delete",
+        "receipt_preferences_set",
+        "contact_pairing_start",
+        "contact_pairing_complete",
+        "contact_pairing_revoke"
+      ],
+      "scopes": "Affected Conversation and all current member Identities write; frozen source member Identities write where required. Contact pairing uses both affected Identities.",
+      "required_tests": [
+        "authority_fences::tests::mutations::ordinary_close_privacy_and_artifact_deletion_wait_for_current_delivery",
+        "authority_fences::tests::mutations::ordinary_session_authority_changes_wait_for_delivery_and_recheck_original_state",
+        "authority_fences::tests::mutations::contact_pairing_changes_wait_for_both_current_identity_authorities",
+        "authority_fences::tests::mutations::shared_engine_refuses_authority_mutation_without_a_current_owned_write_proof"
+      ]
+    },
+    {
+      "id": "task-control-and-delegated-effects",
+      "predicate": "Task terminal state/lazy expiry, effect settlement, worker claims, task origin/grant registration/issuance/revocation and nested resource mutations",
+      "paths": [
+        "crates/connect-store/src/tasks/authority_fences.rs",
+        "crates/connect-store/src/tasks/owner.rs",
+        "crates/connect-store/src/tasks/grants/execution.rs",
+        "crates/connect-store/src/tasks/grants/issuance.rs",
+        "crates/connect-store/src/tasks/grants/mod.rs",
+        "crates/connect-store/src/tasks/effects/mod.rs",
+        "crates/connect-store/src/tasks/effects/dispatch.rs"
+      ],
+      "scopes": "Current owned Task Conversation/member write set for owner mutations, lazy Get/EffectGet/ClaimGet, Invoke and grant changes. Read-only Inbox/Wait/Recall/Replies do not acquire a new writer. Nested ordinary mutations retain their shared-engine write proof. Task defaults are still constructed in the original transaction.",
+      "required_tests": [
+        "authority_fences::tests::mutations::owner_and_narrow_invocation_artifact_deletion_share_the_ordinary_write_fence",
+        "authority_fences::tests::mutations::task_cancel_grant_retirement_and_new_issuance_wait_for_current_delivery"
+      ]
+    },
+    {
+      "id": "protected-graph-commits",
+      "predicate": "Reserved Session topology and participant/Connection state committed by the protected coordinator callback, including explicit local reconciliation",
+      "paths": [
+        "crates/connect-store/src/transitions/workers.rs"
+      ],
+      "scopes": "Current authorized source Conversation/all active member Identities write; original lease/evidence/reservation/completion checks still run inside and after the callback in the same transaction.",
+      "required_tests": [
+        "transitions::tests::protected_graph_commit_and_reconciliation_wait_for_current_delivery"
+      ]
+    },
+    {
+      "id": "trusted-session-facades",
+      "predicate": "Session binding readiness/interruption and routed admission/end",
+      "paths": [
+        "crates/connect-store/src/sessions.rs"
+      ],
+      "functions": [
+        "admit_routed_inbound_session",
+        "end_routed_inbound_session",
+        "bind_session_connection",
+        "unbind_session_connection"
+      ],
+      "scopes": "Exact current Session Conversation/all member Identities write; unbind derives all Conversations referenced by that physical connection, not just the first returned Session. Native task binding rechecks its protected current task authority.",
+      "required_tests": [
+        "authority_fences::tests::mutations::trusted_bind_unbind_and_session_end_wait_for_current_delivery"
+      ]
+    },
+    {
+      "id": "held-composition",
+      "predicate": "Sufficient owned write scope without a cached authorization grant",
+      "paths": [
+        "crates/connect-store/src/authority_admission.rs",
+        "crates/connect-store/src/membership.rs",
+        "crates/connect-store/src/provisioning.rs",
+        "crates/connect-store/src/conversations.rs"
+      ],
+      "functions": [
+        "execute_authority_mutation",
+        "execute_membership_with_authority",
+        "execute_provisioning_with_authority"
+      ],
+      "required_tests": [
+        "authority_fences::tests::mutations::held_write_proof_reuses_exact_scope_and_refuses_read_upgrade_partial_and_foreign_proofs",
+        "authority_fences::tests::mutations::membership_and_provisioning_reuse_sufficient_write_proofs_without_reentering"
+      ]
+    },
+    {
+      "id": "http-retry",
+      "predicate": "Bounded unavailable current authority produces 503 before a mutation/receipt; same logical ID succeeds after reader release",
+      "paths": [
+        "crates/connect-server/src/transports/http.rs",
+        "contracts/openapi-attachments.json"
+      ],
+      "required_tests": [
+        "ordinary_privacy_busy_refusal_preserves_state_and_same_id_retry"
+      ]
+    },
+    {
+      "id": "provider-runtime-writers",
+      "paths": [
+        "crates/connect-store/src/providers.rs",
+        "crates/connect-store/src/connector_observations.rs"
+      ],
+      "functions": [
+        "recover_provider_jobs",
+        "claim_provider_job",
+        "finish_provider_job",
+        "apply_connector_receipt",
+        "receive_connector_message",
+        "receive_sms",
+        "delivery_sms"
+      ],
+      "required_tests": [
+        "authority_fences::tests::runtime::provider_claim_completion_receipt_recovery_and_route_disable_wait_for_delivery",
+        "authority_fences::tests::runtime::copied_provider_job_cannot_switch_the_persisted_route_at_completion"
+      ],
+      "scopes": "Persisted job/route Conversations, never a copied job route; queue candidates are checked inside the transaction. Recovery retains uncertain outcomes and never resubmits them."
+    },
+    {
+      "id": "voice-sip-runtime-writers",
+      "paths": [
+        "crates/connect-store/src/voice.rs",
+        "crates/connect-store/src/voice/jobs.rs",
+        "crates/connect-store/src/voice/dispatch.rs",
+        "crates/connect-store/src/sip_legs.rs",
+        "crates/connect-store/src/sip_legs/dispatch.rs",
+        "crates/connect-store/src/sip_legs/termination.rs"
+      ],
+      "functions": [
+        "claim_voice_job",
+        "voice_dispatch_allowed",
+        "finish_voice_result",
+        "recover_voice_calls",
+        "claim_sip_leg_job",
+        "sip_dispatch_allowed",
+        "prepare_sip_leg",
+        "finish_sip_leg_job",
+        "observe_sip_connection_end",
+        "recover_sip_legs",
+        "complete_voice_scan",
+        "import_voice_call"
+      ],
+      "required_tests": [
+        "authority_fences::tests::runtime::voice_claim_dispatch_completion_and_recovery_wait_for_delivery",
+        "authority_fences::tests::runtime::sip_claim_preparation_dispatch_result_and_recovery_wait_for_delivery",
+        "authority_fences::tests::runtime::raw_voice_results_cannot_reopen_terminal_state_or_rebind_an_owned_remote_effect"
+      ],
+      "scopes": "Exact persisted effect/Connection/route Conversations and current member Identities write. Raw voice completion cannot rebind an existing provider ID or reopen terminal state; attributed normalized reconciliation retains its existing rules."
+    },
+    {
+      "id": "provider-route-tenant-authority",
+      "paths": [
+        "crates/connect-store/src/providers.rs",
+        "crates/connect-store/src/voice.rs"
+      ],
+      "functions": [
+        "configure_route",
+        "configure_voice_route",
+        "configure_voice_ingress"
+      ],
+      "required_tests": [
+        "authority_fences::tests::runtime::voice_route_disabling_and_ingress_configuration_wait_for_delivery",
+        "authority_fences::tests::runtime::voice_route_admin_cannot_cross_tenant_even_with_wildcard_recipients"
+      ],
+      "scopes": "Current administrator and matching tenant before waiting and inside the transaction; old and proposed route Conversation scopes. Bindings remain immutable except enable/disable."
+    },
+    {
+      "id": "sms-policy-authority",
+      "paths": [
+        "crates/connect-store/src/sms_eligibility.rs"
+      ],
+      "functions": [
+        "expire_sms_authorities",
+        "refresh_sms_grants",
+        "receive_sms_control"
+      ],
+      "required_tests": [
+        "authority_fences::tests::runtime::sms_refresh_retirement_stop_and_authority_expiry_wait_for_current_delivery",
+        "authority_fences::tests::runtime::global_phone_stop_covers_other_sender_and_conversation_authority"
+      ],
+      "scopes": "Old and new authenticated snapshot grant Conversations; global phone STOP spans all known grants/routes across senders, not just the event sender. Snapshot refresh does not clear STOP."
+    },
+    {
+      "id": "runtime-candidate-recheck",
+      "paths": [
+        "crates/connect-store/src/authority_admission/runtime.rs"
+      ],
+      "functions": [
+        "runtime_query_authority",
+        "require_runtime_query",
+        "require_runtime_conversations"
+      ],
+      "required_tests": [
+        "authority_fences::tests::runtime::a_different_time_eligible_voice_candidate_refuses_uncovered_transaction_then_retries"
+      ],
+      "scopes": "Static protected queries derive at most 1024 distinct Conversation IDs and merged scopes. Current transaction-selected targets must be covered; a newly time-eligible uncovered candidate returns authority-unavailable before a claim/write, preserving retryable state."
+    },
+    {
+      "id": "protected-provider-task-setup",
+      "paths": [
+        "crates/connect-store/src/tasks/media_setup.rs",
+        "crates/connect-store/src/tasks/media_setup_binding.rs"
+      ],
+      "functions": [
+        "admit_vapi_task_session_call",
+        "register_vapi_task_session_setup"
+      ],
+      "required_tests": [
+        "tasks::tests::media_setup::one_physical_call_admission_never_repeats_and_denied_source_cannot_borrow_owner",
+        "tasks::tests::media_setup::sqlite_failure_rolls_back_physical_admission_and_exact_retry_is_possible",
+        "tasks::tests::media_setup_binding::original_setup_survives_reopen_and_cannot_be_replaced_or_borrowed",
+        "tasks::tests::media_setup_binding::failed_setup_registration_rolls_back_and_preserves_retry_identity"
+      ],
+      "scopes": "Current checked Task/Session Conversation before waiting; original protected definition/route/caller/admission checks remain in the transaction. This is a stored possible-send boundary, not a network delivery lease."
+    },
+    {
+      "id": "signed-callback-busy-retry",
+      "paths": [
+        "crates/connect-server/src/transports/telnyx_http.rs",
+        "contracts/openapi-provider-observations.json"
+      ],
+      "required_tests": [
+        "signed_sms_vapi_reply_delivery_and_http_quic_replay_share_one_journal"
+      ],
+      "scopes": "An actual signed local STOP is refused 503 before event/policy writes while delivery authority is held; identical data/event ID succeeds 204 after release. No signature or bearer is serialized into public evidence."
+    },
+    {
+      "id": "operation-worker-and-bounded-recovery",
+      "paths": [
+        "crates/connect-store/src/transitions/admission.rs",
+        "crates/connect-store/src/transitions/mod.rs",
+        "crates/connect-store/src/transitions/actions.rs",
+        "crates/connect-store/src/transitions/workers.rs",
+        "crates/connect-store/src/transitions/effects.rs",
+        "crates/connect-store/src/transitions/cleanup.rs",
+        "crates/connect-store/src/lib.rs",
+        "crates/connect-server/src/runtime.rs"
+      ],
+      "functions": [
+        "admit_transition",
+        "execute_operation_action",
+        "execute_operation_action_with_authority",
+        "claim_transition",
+        "renew_transition_lease",
+        "advance_transition",
+        "prepare_transition_effect",
+        "begin_transition_effect",
+        "observe_transition_effect",
+        "record_transition_evidence",
+        "claim_transition_cleanup",
+        "settle_abandoned_transition",
+        "transition_batch_authority",
+        "transition_batch_rows",
+        "recover_transition_work",
+        "fence_transition_workers",
+        "purge_transition_results"
+      ],
+      "scopes": "Metadata-only operation changes fence saved owner Identity and optional Conversation write; repair also fences current actor Identity for its receipt. Original current source/tenant/lease/replay/settlement checks run inside the transaction. Graph/role callbacks retain their separately qualified broader member set. Batches use an eligible deterministic prefix with at most 64 merged write scopes; original selected IDs and current eligibility/coverage rechecked inside the transaction before writes; startup drains on >0, not ==requested limit.",
+      "required_tests": [
+        "transitions::tests::authority_tests::operation_admission_leases_effects_cancel_and_reconcile_wait_for_delivery",
+        "transitions::tests::authority_tests::operation_get_and_admission_replay_fence_lazy_recovery_without_resubmission",
+        "transitions::tests::authority_tests::operation_action_reuses_only_owned_sufficient_proof_and_rechecks_current_authority",
+        "transitions::tests::authority_tests::cleanup_settlement_fences_both_target_owner_and_repair_receipt_owner",
+        "transitions::tests::authority_tests::bounded_worker_batches_drain_large_valid_state_on_open_and_preserve_unknown_effects",
+        "transitions::tests::authority_tests::administration_recovery_skips_live_foreign_workers_and_rechecks_exact_batch_ids",
+        "transitions::tests::authority_tests::purge_batches_skip_unsettled_old_rows_and_wait_for_current_delivery",
+        "transitions::tests::legacy_provisioning_and_membership_status_reuses_current_source_replay_policy",
+        "transitions::tests::authority_tests::changed_decision_target_conflicts_without_borrowing_another_conversation_fence"
+      ]
+    },
+    {
+      "id": "owned-runtime-startup",
+      "paths": [
+        "crates/connect-store/src/installation_ownership.rs",
+        "crates/connect-store/src/startup_authority.rs",
+        "crates/connect-store/src/runtime_epoch.rs",
+        "crates/connect-store/src/sessions.rs",
+        "crates/connect-store/src/lib.rs",
+        "crates/connect-server/src/installation.rs",
+        "crates/connect-server/src/runtime.rs"
+      ],
+      "functions": [
+        "acquire",
+        "retire",
+        "require_runtime_owner",
+        "open_with_ownership",
+        "fence_unobserved_connections",
+        "reconcile_interrupted_video_connections",
+        "startup_batch",
+        "startup_rows"
+      ],
+      "scopes": "Exclusive owned installation proof is checked before startup maintenance; same-process ordinary handles share one owner, server/offline repair acquire exclusively and administration does not adopt. Server Store handles borrow the root, admitted SQL retains proof, retirement refuses new admissions. Each new owner has a fresh observation epoch, including same-process restart/restored copies. Exact epoch targets fence Conversation+Connection-owner Identity write; video Session/binding metadata fences Conversation write. Prefix max1000 rows/64merged scopes, rederived after waiting and exact original IDs/eligibility/coverage checked in original transaction before writes. Startup runs off the async executor. This is not network/body/media-cleanup ownership.",
+      "required_tests": [
+        "installation_ownership::tests::ordinary_handles_share_owner_but_exclusive_runtime_and_foreign_proofs_refuse",
+        "installation_ownership::tests::retired_runtime_store_cannot_revive_and_active_sql_retains_kernel_ownership",
+        "installation_ownership::tests::ownership_namespace_unifies_aliases_and_different_extensions_do_not_collide",
+        "installation_ownership::tests::unsafe_or_replaced_lock_namespace_never_proves_ownership",
+        "installation_ownership::tests::actual_child_cannot_adopt_live_parent_but_administration_remains_non_adopting",
+        "installation_ownership::tests::actual_owner_process_death_releases_kernel_ownership_despite_stale_file",
+        "runtime_epoch::tests::owned_connection_epoch_waits_for_delivery_and_never_revives_unknown_or_terminal_state",
+        "runtime_epoch::tests::owned_video_reconciliation_waits_for_conversation_and_is_idempotent",
+        "runtime_epoch::tests::bounded_startup_drains_1030_connection_and_video_scopes_under_owned_runtime",
+        "runtime_epoch::tests::startup_batch_never_substitutes_newly_eligible_ids_after_admission",
+        "runtime_epoch::tests::administration_open_cannot_run_epoch_video_or_global_worker_startup",
+        "runtime_epoch::tests::new_owner_in_same_process_and_restored_copy_require_fresh_connection_observations",
+        "exclusive_runtime_restart_retires_old_store_handles_and_uses_a_fresh_observation_epoch",
+        "expired_tls_invalid_config_and_occupied_port_do_not_start",
+        "tls_rotation_is_explicit_and_old_trust_fails_closed",
+        "minting_checks_current_operator_authority_inside_transaction",
+        "ipv6_loopback_native_identity_path",
+        "fresh_exchanges_and_current_credentials_share_one_durable_transition_receipt",
+        "crashed_video_bindings_reconcile_without_resurrecting_media_or_ending_history",
+        "gate6_incompatible_state_refusal_preserves_files_and_requires_explicit_new_path",
+        "gate6_backup_preserves_ids_audiences_unknown_effects_and_fences_live_claims"
+      ]
+    },
+    {
+      "id": "provider-message-dispatch-custody",
+      "predicate": "Current single-use last-mile message creation, immutable source lineage and bounded provider recovery",
+      "paths": [
+        "crates/connect-store/src/provider_dispatch.rs",
+        "crates/connect-store/src/provider_dispatch/tests.rs",
+        "crates/connect-store/src/installation_ownership.rs",
+        "crates/connect-server/src/providers.rs",
+        "crates/connect-server/tests/gate6_provider_dispatch.rs",
+        "crates/connect-connector-http/src/lib.rs",
+        "crates/connect-connector-http/src/tests.rs",
+        "crates/connect-connector-api/src/dispatch.rs",
+        "crates/connect-connector-api/src/conformance.rs",
+        "crates/connect-connectors/src/lib.rs"
+      ],
+      "functions": [
+        "admit_provider_dispatch",
+        "reject_provider_claim",
+        "recover_provider_batch",
+        "acquire_provider_worker"
+      ],
+      "scopes": "Admission retains current Conversation/all member Identity reads and exact runtime role through actual HTTP/TLS socket cleanup. Recovery uses exact eligible <=1000 job prefixes / <=64 Conversation write scopes. Retired/pending role cannot be adopted.",
+      "required_tests": [
+        "provider_dispatch::tests::dispatch_is_single_use_exact_claim_and_body_bound_with_no_foreign_role_fallback",
+        "provider_dispatch::tests::current_source_changes_between_claim_and_dispatch_deny_without_admission",
+        "provider_dispatch::tests::retired_worker_keeps_pending_authority_until_last_transport_clone_and_does_not_adopt",
+        "provider_dispatch::tests::admitted_custody_and_queued_route_order_survive_backup_without_a_second_creation",
+        "provider_dispatch::tests::restored_provider_recovery_drains_1030_conversations_in_bounded_exact_batches",
+        "real_provider_io_retains_authority_until_cancelled_connection_closes_and_retry_revokes",
+        "provider_dispatch::tests::dispatch_deadline_is_bounded_by_the_original_credential_expiry",
+        "authority_fences::tests::mutations::exact_current_grant_replay_is_read_only_during_delivery_and_never_refreshes_denied_authority",
+        "interrupted_chat_context_delivery_is_uncertain_and_not_replayed",
+        "provider_state_is_included_in_current_backup",
+        "slow_provider_effect_remains_pending_then_reconnect_catches_up_exact_reply_once"
+      ]
+    },
+    {
+      "id": "provider-read-only-reconciliation",
+      "predicate": "Current registered status lookup and retained runtime/resource read custody through actual observation transport cleanup; no creation permission",
+      "paths": [
+        "crates/connect-store/src/provider_reconciliation.rs",
+        "crates/connect-store/src/provider_reconciliation/tests.rs",
+        "crates/connect-store/src/connector_observations.rs",
+        "crates/connect-server/src/providers.rs",
+        "crates/connect-server/tests/gate6_provider_dispatch.rs",
+        "crates/connect-connector-api/src/dispatch.rs",
+        "crates/connect-connector-api/src/lifecycle.rs",
+        "crates/connect-connector-http/src/tests.rs"
+      ],
+      "functions": [
+        "admit_provider_reconciliation",
+        "inspect_connector_reconciliation_job"
+      ],
+      "scopes": "Exact current effect Conversation/all current member Identity reads; credential expiry +35s bound; installation owner retained to socket cleanup. Settlement separately rechecks existing write/reply policy.",
+      "required_tests": [
+        "provider_reconciliation::tests::reconciliation_is_read_only_exact_current_and_cannot_be_forwarded_into_creation",
+        "provider_reconciliation::tests::observation_requires_registered_status_capability_existing_effect_and_runtime_owner",
+        "provider_reconciliation::tests::status_custody_blocks_actual_source_retirement_until_transport_releases_it",
+        "provider_reconciliation::tests::status_transport_retains_retired_runtime_kernel_ownership_until_cleanup",
+        "provider_reconciliation::tests::status_deadline_uses_original_source_credential_expiry_without_changing_the_attempt",
+        "actual_status_get_cancellation_releases_authority_and_read_only_retry_never_creates_again"
+      ]
+    },
+    {
+      "id": "schema33-conversation-control",
+      "scope": "Selected explicit canonical conversation create/list/close command proof and shared Store SQL path, current receipt projection readers and bounded trusted idle policy. Production listener/full facade response custody and physical media termination remain open.",
+      "paths": [
+        "crates/connect-protocol/src/conversations.rs",
+        "crates/connect-store/migrations/033_conversation_control.sql",
+        "crates/connect-store/src/conversation_control.rs",
+        "crates/connect-store/src/conversations.rs",
+        "crates/connect-store/src/operations/mod.rs",
+        "crates/connect-store/src/operations/receipts.rs",
+        "crates/connect-store/src/peer_authority.rs",
+        "crates/connect-service/src/canonical_conversations.rs",
+        "crates/connect-service/src/canonical.rs",
+        "crates/connect-server/src/conversation_policy.rs",
+        "crates/connect-server/tests/gate6_canonical_operations.rs"
+      ],
+      "functions": [
+        "create_plan",
+        "create_authority",
+        "list_conversations_held",
+        "require_peer_conversation",
+        "execute_conversation_with_peer",
+        "expire_idle_conversations",
+        "view_result"
+      ],
+      "required_tests": [
+        "peer_authority::tests::conversation_peer_proof_binds_exact_create_close_and_list_without_reentry",
+        "peer_authority::tests::conversation_create_source_expiring_behind_sql_wait_rolls_back_without_receipt",
+        "peer_authority::tests::conversation_receipt_projection_retains_new_current_member_identity",
+        "actual_canonical_conversation_quic_http_native_sdk_recovery_and_idle_worker"
+      ]
+    },
+    {
+      "id": "schema34-membership-control",
+      "scope": "Selected membership shared SQL and signed Add/Update/Remove command/reply path. Named MCP/native/HTTP/SDK actions and current queries. Production canonical listener configuration, per-write HTTP response custody and physical media retirement remain open.",
+      "paths": [
+        "crates/connect-store/migrations/034_membership_control.sql",
+        "crates/connect-store/src/membership/control.rs",
+        "crates/connect-store/src/membership/queries.rs",
+        "crates/connect-store/src/peer_authority.rs",
+        "crates/connect-service/src/canonical_membership.rs"
+      ],
+      "functions": [
+        "execute_membership_with_peer",
+        "membership_snapshot",
+        "membership_invitations"
+      ],
+      "required_tests": [
+        "peer_authority::tests::membership_peer_proof_binds_every_field_credential_and_installation_without_mutation",
+        "peer_authority::tests::membership_peer_held_writer_finishes_before_queued_key_retirement_without_reentry",
+        "peer_authority::tests::membership_peer_source_expiring_behind_sql_wait_rolls_back_effect_receipt_and_journal",
+        "all_membership_actions_share_receipts_across_mcp_native_http_and_public_sdks",
+        "actual_canonical_membership_unread_reply_rotation_and_http_native_replay_share_one_ledger"
+      ]
+    },
+    {
+      "id": "schema34-canonical-subscriptions",
+      "scope": "Selected exact snapshot/subscription reads and explicit per-physical live composition through the shared guarded writer. Production signed native listener/SDK installation, complete HTTP body custody and media retirement remain open.",
+      "paths": [
+        "crates/connect-store/src/events/admission.rs",
+        "crates/connect-store/src/events/snapshots.rs",
+        "crates/connect-store/src/events/mod.rs",
+        "crates/connect-store/src/peer_authority.rs",
+        "crates/connect-store/src/peer_authority/subscriptions.rs",
+        "crates/connect-service/src/canonical_subscriptions.rs",
+        "patches/rvoip/gate6-subscription-delivery.patch"
+      ],
+      "functions": [
+        "start_peer_subscription",
+        "read_peer_subscription",
+        "require_peer_subscription",
+        "require_peer_snapshot",
+        "snapshot_attempt",
+        "events_held"
+      ],
+      "required_tests": [
+        "peer_authority::tests::subscription_peer_proof_binds_query_live_mode_and_snapshot_page_without_mutation",
+        "peer_authority::tests::subscription_wait_holds_no_read_lock_but_prepared_page_holds_current_key_until_delivery_drop",
+        "peer_authority::tests::subscription_source_is_installation_and_original_epoch_bound_and_expiry_produces_resync",
+        "peer_authority::tests::subscription_prepared_message_keeps_departed_source_owner_fenced_without_reader_reentry",
+        "peer_authority::tests::subscription_source_growth_retries_same_cursor_without_upgrading_old_guard",
+        "actual_canonical_subscription_snapshot_live_journal_catchup_and_lease_end_resync",
+        "actual_canonical_subscription_refresh_retires_old_stream_without_borrowing_successor_scope",
+        "actual_canonical_subscription_credential_revocation_has_no_idle_guard_and_emits_terminal_pair",
+        "actual_canonical_subscription_does_not_revive_after_member_removal_and_readmission",
+        "actual_canonical_subscription_capacity_replacement_and_http_cursor_parity",
+        "subscription_origin_outlives_only_its_handler_and_refuses_changed_scope_and_refresh_reuse",
+        "subscription_foreign_physical_origin_is_never_submitted_and_completion_releases_real_guard",
+        "subscription_blocked_writer_uses_live_end_instead_of_terminal_grace_and_releases_actual_authority",
+        "canonical_subscriptions::tests::subscription_parser_bounds_batch_lease_and_rejects_extra_resource_assertions"
+      ]
+    },
+    {
+      "id": "schema34-canonical-read-receipts",
+      "scope": "Canonical client read reports reuse original current recipient authority, opt-in and the ordinary operation ledger. Receipt hints precede their cursor-bearing journal facts under current source readers and a fixed live deadline. Production canonical native installation and full HTTP body custody remain open.",
+      "paths": [
+        "crates/connect-store/src/peer_authority/read_receipts.rs",
+        "crates/connect-store/src/recipient_receipts.rs",
+        "crates/connect-service/src/canonical_receipts.rs",
+        "crates/connect-service/src/canonical_subscriptions.rs",
+        "patches/rvoip/gate6-receipt-observations.patch"
+      ],
+      "functions": [
+        "execute_read_receipt_with_peer",
+        "require_peer_read_receipt",
+        "canonical_read_receipt_held",
+        "observation"
+      ],
+      "required_tests": [
+        "peer_authority::tests::read_receipts::canonical_read_receipt_exact_claim_and_original_recipient_share_control_ledger",
+        "peer_authority::tests::read_receipts::canonical_read_receipt_keeps_departed_sender_fenced_without_reader_reentry",
+        "peer_authority::tests::read_receipts::canonical_read_receipt_source_expiring_behind_sql_wait_leaves_no_fact_or_ledger_effect",
+        "peer_authority::tests::read_receipts::canonical_read_receipt_readmission_and_explicit_history_do_not_restore_report_authority",
+        "peer_authority::tests::read_receipts::canonical_read_receipt_storage_failure_rolls_back_fact_and_ledger_then_same_id_recovers",
+        "canonical_receipts::tests::read_report_parsing_keeps_diagnostic_claim_exact_and_rejects_other_resource_assertions",
+        "canonical_subscriptions::tests::receipt_hints_precede_cursor_facts_within_batch_budget_and_require_data_floor",
+        "read_receipts::actual_canonical_read_reports_share_native_http_replay_and_project_only_opted_in_receipts",
+        "read_receipts::actual_canonical_receipt_pages_preserve_all_cursors_across_typed_hint_batch_boundaries",
+        "subscription_receipt_observations_are_origin_bound_live_facts_and_release_actual_guard",
+        "subscription_receipt_blocked_writer_uses_live_deadline_and_releases_actual_guard"
+      ]
+    }
+  ],
+  "remaining_audit": [
+    {
+      "area": "provider and media jobs",
+      "paths": [
+        "crates/connect-store/src/providers.rs",
+        "crates/connect-store/src/voice.rs",
+        "crates/connect-store/src/voice/jobs.rs",
+        "crates/connect-store/src/sip_legs.rs",
+        "crates/connect-store/src/tasks/media_setup.rs",
+        "crates/connect-store/src/tasks/media_setup_binding.rs",
+        "crates/connect-store/src/tasks/effects/provider.rs"
+      ],
+      "work": "Selected provider/message/voice/SIP claims, completions, normalized receipts, SMS policy and route writers are covered in runtime-authority.json. Remaining work includes retained dispatch/effect permits through actual network admission and cleanup, task/transition held-proof composition, complete negating-writer/predicate audit and supporting runtime/retention work. These selected local write hooks do not qualify complete provider lifecycle or native cleanup. Selected message creation now retains actual HTTP/TLS socket custody; built-in status capability expansion, voice/SIP and other bulk/expiry profiles remain open."
+    },
+    {
+      "area": "runtime/recovery and operation workers",
+      "paths": [
+        "crates/connect-store/src/runtime_epoch.rs",
+        "crates/connect-store/src/transitions/actions.rs",
+        "crates/connect-store/src/transitions/workers.rs",
+        "crates/connect-store/src/sessions.rs"
+      ],
+      "work": "Owned installation startup, bounded connection epoch/video metadata reconciliation and selected operation-worker batches are covered. Complete resource/source reader scopes, owned permits through actual network/body admission, external cleanup and natural expiry remain open. The legacy video projection is not the canonical G6-038 Session lifecycle. Selected message creation now retains actual HTTP/TLS socket custody; built-in status capability expansion, voice/SIP and other bulk/expiry profiles remain open."
+    },
+    {
+      "area": "retention and natural expiry",
+      "paths": [
+        "crates/connect-store/src/artifacts.rs",
+        "crates/connect-store/src/artifact_links.rs",
+        "crates/connect-store/src/events/mod.rs"
+      ],
+      "work": "Audit resource/link expiry, deletion/garbage collection, retained page/source invalidation and any other negation of current delivery authorization; natural expiry also needs bounded current writer lifetimes."
+    },
+    {
+      "area": "production reader/delivery integration",
+      "paths": [
+        "crates/connect-service/src/canonical.rs",
+        "crates/connect-server/src/runtime.rs"
+      ],
+      "work": "Complete per-command current scope derivation (including non-Conversation referenced resources), task/transition held-proof composition, exact signed-key Device validation, generation-safe retirement watchers, cancellation and actual HTTP/signed writer admission. The production canonical listener remains uninstalled."
+    }
+  ],
+  "not_qualified": [
+    "Complete authority-writer coverage",
+    "Production authority/retirement policy",
+    "Actual native media retirement",
+    "Full canonical command/extension dispatch and QUIC/HTTP/SDK parity",
+    "Linux, remote/browser/live-provider qualification",
+    "Publication or any Gate 6 acceptance"
+  ]
+}

@@ -31,6 +31,15 @@ impl Scope {
                 "session_invite",
                 "session_accept",
                 "session_reject",
+                "connection.offer",
+                "connection.update",
+                "capability.advertise",
+                "session.invite",
+                "session.accept",
+                "session.update",
+                "session.end",
+                "session.reject",
+                "session.cancel",
                 "session_cancel",
                 "session_end",
                 "session_get",
@@ -42,15 +51,36 @@ impl Scope {
         );
         scope
     }
+    /// Ordinary participant/agent authority; no task grant or role promotion.
+    pub fn collaboration(recipients: Vec<String>) -> Self {
+        let mut scope = Self::communications(recipients);
+        scope.operations.extend(
+            [
+                "conversation.get",
+                "conversation.list",
+                "conversation.subscribe",
+                "session.observation",
+                "record_get",
+                "conversation.participant.add",
+                "conversation.participant.update",
+                "conversation.participant.remove",
+                "conversation.history.share",
+            ]
+            .map(str::to_owned),
+        );
+        scope
+    }
     pub fn messaging(recipients: Vec<String>) -> Self {
         Self {
             operations: [
                 "resolve",
                 "create",
+                "conversation.list",
                 "send",
                 "history",
                 "inbox",
                 "request_status",
+                "operation.get",
                 "close",
                 "health",
                 "provider_status",
@@ -111,78 +141,21 @@ impl Store {
         request_id: &str,
         alias: &str,
     ) -> Result<Identity> {
-        use connect_protocol::Outcome;
-        use sha2::{Digest, Sha256};
-        if request_id.is_empty()
-            || request_id.len() > 128
-            || !request_id
-                .bytes()
-                .all(|b| b.is_ascii_alphanumeric() || b"-_".contains(&b))
-        {
-            return Err(Error::new(
-                "invalid-request",
-                "Invalid identity creation request ID",
-            ));
+        use connect_protocol::provisioning::{
+            IdentityKind, ProvisioningCommand, ProvisioningOutcome,
+        };
+        match self.execute_provisioning(
+            &actor.credential_id,
+            ProvisioningCommand::Identity {
+                operation_id: request_id.into(),
+                alias: alias.into(),
+                kind: IdentityKind::Human,
+                display_name: None,
+            },
+        )? {
+            ProvisioningOutcome::Identity { identity_id, .. } => self.identity(&identity_id),
+            _ => Err(Error::storage()),
         }
-        let mut connection = self.connection()?;
-        let tx = connection
-            .transaction_with_behavior(rusqlite::TransactionBehavior::Immediate)
-            .map_err(|_| Error::storage())?;
-        let actor = actor_from_connection(&tx, &actor.credential_id)?;
-        actor.require("admin")?;
-        let intent = format!(
-            "identity-create/1:{}",
-            hex::encode(Sha256::digest(alias.as_bytes()))
-        );
-        let saved: Option<(String, String, String)> = tx
-            .query_row(
-                "SELECT digest,operation,result FROM requests WHERE actor=?1 AND id=?2",
-                params![actor.identity_id, request_id],
-                |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?)),
-            )
-            .optional()
-            .map_err(|_| Error::storage())?;
-        if let Some((digest, operation, result)) = saved {
-            if digest != intent || operation != "admin" {
-                return Err(Error::new(
-                    "conflict",
-                    "Logical request ID already has different inputs",
-                ));
-            }
-            let outcome: Result<Outcome> =
-                serde_json::from_str(&result).map_err(|_| Error::storage())?;
-            return match outcome? {
-                Outcome::Identity(identity) => Ok(identity),
-                _ => Err(Error::storage()),
-            };
-        }
-        let receipts: u64 = tx
-            .query_row(
-                "SELECT (SELECT COUNT(*) FROM requests)+(SELECT COUNT(*) FROM task_requests)",
-                [],
-                |r| r.get(0),
-            )
-            .map_err(|_| Error::storage())?;
-        if !crate::tasks::budget::fits(&tx, self.limits.operation_receipts, receipts, 1)? {
-            return Err(Error::new(
-                "capacity-exceeded",
-                "Durable request receipt capacity exceeded",
-            ));
-        }
-        let identity = create_identity_on_connection(&tx, alias)?;
-        let result: Result<Outcome> = Ok(Outcome::Identity(identity.clone()));
-        tx.execute(
-            "INSERT INTO requests VALUES(?1,?2,?3,'admin','[]',?4)",
-            params![
-                actor.identity_id,
-                request_id,
-                intent,
-                serde_json::to_string(&result).map_err(|_| Error::storage())?
-            ],
-        )
-        .map_err(|_| Error::storage())?;
-        tx.commit().map_err(|_| Error::storage())?;
-        Ok(identity)
     }
     pub fn identity(&self, id: &str) -> Result<Identity> {
         self.connection()?
@@ -223,6 +196,7 @@ impl Store {
         scope: Scope,
         expires_at: i64,
     ) -> Result<IssuedCredential> {
+        let _authority = self.write_identity_authority(identity_id)?;
         let connection = self.connection()?;
         issue_on_connection(&connection, identity_id, scope, expires_at)
     }
@@ -234,6 +208,7 @@ impl Store {
         scope: Scope,
         expires_at: i64,
     ) -> Result<IssuedCredential> {
+        let _authority = self.write_identity_authority(identity_id)?;
         let mut connection = self.connection()?;
         let tx = connection
             .transaction_with_behavior(rusqlite::TransactionBehavior::Immediate)
@@ -308,6 +283,14 @@ impl Store {
         actor_from_connection(&connection, credential_id)
     }
     pub fn revoke(&self, actor: &Actor, id: &str) -> Result<()> {
+        let owner = self.credential_owner(id)?;
+        let _authority = self.stable_authority(
+            &crate::AuthorityWait::new(std::time::Duration::from_secs(2)),
+            || {
+                let c = self.connection()?;
+                crate::user_delegation::write_scopes(&c, &owner)
+            },
+        )?;
         let mut connection = self.connection()?;
         let tx = connection
             .transaction_with_behavior(rusqlite::TransactionBehavior::Immediate)
@@ -382,7 +365,16 @@ pub(crate) fn actor_from_connection_at(
     credential_id: &str,
     timestamp: i64,
 ) -> Result<Actor> {
-    connection.query_row("SELECT id,identity_id,operations,recipients,expires_at FROM credentials WHERE id=?1 AND revoked=0 AND expires_at>?2 AND EXISTS(SELECT 1 FROM identities i WHERE i.id=credentials.identity_id AND i.revoked=0)",params![credential_id,timestamp],|row| {
+    let actor = base_actor_from_connection_at(connection, credential_id, timestamp)?;
+    crate::user_delegation::revalidate(connection, &actor, timestamp)?;
+    Ok(actor)
+}
+pub(crate) fn base_actor_from_connection_at(
+    connection: &rusqlite::Connection,
+    credential_id: &str,
+    timestamp: i64,
+) -> Result<Actor> {
+    connection.prepare_cached("SELECT id,identity_id,operations,recipients,expires_at FROM credentials WHERE id=?1 AND revoked=0 AND expires_at>?2 AND EXISTS(SELECT 1 FROM identities i WHERE i.id=credentials.identity_id AND i.revoked=0)").map_err(|_|Error::storage())?.query_row(params![credential_id,timestamp],|row| {
             let ops:String=row.get(2)?;let recipients:String=row.get(3)?;
             Ok(Actor { credential_id:row.get(0)?,identity_id:row.get(1)?,scope:Scope { operations:serde_json::from_str(&ops).map_err(|_|rusqlite::Error::InvalidQuery)?,recipients:serde_json::from_str(&recipients).map_err(|_|rusqlite::Error::InvalidQuery)? },expires_at:row.get(4)? })
         }).optional().map_err(|_|Error::storage())?.ok_or_else(Error::unauthorized)
@@ -420,6 +412,6 @@ fn issue_on_connection(
         id: uuid::Uuid::new_v4().to_string(),
         token: random_secret(),
     };
-    connection.execute("INSERT INTO credentials(id,identity_id,verifier,operations,recipients,expires_at) VALUES(?1,?2,?3,?4,?5,?6)",params![issued.id,identity_id,verifier(&issued.token),serde_json::to_string(&scope.operations).map_err(|_|Error::storage())?,serde_json::to_string(&scope.recipients).map_err(|_|Error::storage())?,expires_at]).map_err(|_|Error::storage())?;
+    connection.execute("INSERT INTO credentials(id,identity_id,verifier,operations,recipients,expires_at,issued_at) VALUES(?1,?2,?3,?4,?5,?6,?7)",params![issued.id,identity_id,verifier(&issued.token),serde_json::to_string(&scope.operations).map_err(|_|Error::storage())?,serde_json::to_string(&scope.recipients).map_err(|_|Error::storage())?,expires_at,now()]).map_err(|_|Error::storage())?;
     Ok(issued)
 }

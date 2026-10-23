@@ -1,0 +1,575 @@
+//! Production local canonical connect/2 listener. Uses the durable service;
+//! unsupported media/task families remain explicit refusals, never stock fallthrough.
+use anyhow::{Context, Result};
+use connect_service::{CanonicalHandler, Service, StoreKeyResolver, StoreValidator};
+use connect_store::Store;
+use rvoip_auth_core::sig9421::{Sig9421Signer, Sig9421Verifier};
+use rvoip_uctp::v2::{
+    auth_dispatch::AuthenticationMethods,
+    auth_peer::PeerConfig,
+    server::{CanonicalProfile, ProfileServer},
+    RAW_QUIC_ALPN,
+};
+use serde::{Deserialize, Serialize};
+use std::{
+    net::SocketAddr,
+    path::{Path, PathBuf},
+    sync::{
+        atomic::{AtomicU64, Ordering},
+        Arc,
+    },
+    time::Duration,
+};
+use tokio::task::{JoinHandle, JoinSet};
+use tokio_util::sync::CancellationToken;
+
+#[derive(Clone, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct CanonicalServerConfig {
+    pub bind: SocketAddr,
+    pub database: PathBuf,
+    pub certificate: PathBuf,
+    pub private_key: PathBuf,
+    pub signing_key_id: String,
+    pub signing_algorithm: String,
+    pub signing_private_key: PathBuf,
+    pub signing_key_not_before: chrono::DateTime<chrono::Utc>,
+    pub signing_key_expires_at: chrono::DateTime<chrono::Utc>,
+    pub http_bind: Option<SocketAddr>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub record_https: Option<crate::transports::record_https::RecordHttpsConfig>,
+    #[serde(default)]
+    pub record_retention: connect_protocol::record_retention::Policy,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub user_assurance: Vec<connect_protocol::user_delegation::UserAssuranceRule>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub telephone: Option<crate::canonical_telephone::CanonicalTelephoneConfig>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub public_vapi: Option<crate::canonical_assistants::CanonicalPublicVapiConfig>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub provider_voice: Option<crate::canonical_provider_voice::CanonicalProviderVoiceConfig>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub provider_messages: Option<crate::canonical_messages::CanonicalMessagesConfig>,
+    #[serde(default)]
+    pub limits: connect_protocol::Limits,
+    #[serde(default = "default_session_reconnect_grace")]
+    pub session_reconnect_grace_seconds: u32,
+}
+fn default_session_reconnect_grace() -> u32 {
+    30
+}
+impl CanonicalServerConfig {
+    pub fn load(path: &Path) -> Result<Self> {
+        let raw = std::fs::read_to_string(path).context("Read canonical server configuration")?;
+        let mut value: Self = toml::from_str(&raw)
+            .map_err(|_| anyhow::anyhow!("Invalid canonical server configuration"))?;
+        for p in [
+            &mut value.database,
+            &mut value.certificate,
+            &mut value.private_key,
+            &mut value.signing_private_key,
+        ] {
+            if p.is_relative() {
+                *p = path.parent().unwrap_or(Path::new(".")).join(&*p);
+            }
+        }
+        if let Some(hosting) = &mut value.public_vapi {
+            hosting.resolve_paths(path.parent().unwrap_or(Path::new(".")));
+        }
+        value.validate()?;
+        Ok(value)
+    }
+    pub fn validate(&self) -> Result<()> {
+        anyhow::ensure!(
+            self.user_assurance.len() <= 64,
+            "Assurance policy capacity exceeded"
+        );
+        for rule in &self.user_assurance {
+            rule.validate()?;
+        }
+        self.record_retention.validate()?;
+        anyhow::ensure!(
+            self.session_reconnect_grace_seconds <= 300,
+            "Invalid Session reconnect grace"
+        );
+        if let Some(messages) = &self.provider_messages {
+            messages.validate(self.limits.connections)?;
+        }
+        if let Some(records) = &self.record_https {
+            records.validate()?;
+        }
+        let now = chrono::Utc::now();
+        anyhow::ensure!(
+            self.bind.ip().is_loopback() && self.http_bind.is_none_or(|a| a.ip().is_loopback()),
+            "Canonical local listeners require loopback addresses"
+        );
+        anyhow::ensure!(
+            (1..=1024).contains(&self.limits.connections)
+                && (1..=60_000).contains(&self.limits.request_timeout_ms),
+            "Invalid canonical listener bounds"
+        );
+        anyhow::ensure!(
+            matches!(self.signing_algorithm.as_str(), "EdDSA" | "ES256"),
+            "Invalid canonical signing algorithm"
+        );
+        anyhow::ensure!(
+            self.signing_key_not_before <= now
+                && self.signing_key_expires_at > now
+                && self.signing_key_not_before < self.signing_key_expires_at,
+            "Canonical signing key is not current"
+        );
+        rvoip_uctp::v2::Identifier::try_from(self.signing_key_id.clone())
+            .map_err(|_| anyhow::anyhow!("Invalid canonical signing key ID"))?;
+        if let Some(telephone) = &self.telephone {
+            telephone.validate(self.limits.connections)?;
+        }
+        if let Some(voice) = &self.provider_voice {
+            voice.validate(self.limits.connections)?;
+        }
+        if let Some(hosting) = &self.public_vapi {
+            hosting.validate(self.limits.connections)?;
+        }
+        Ok(())
+    }
+}
+/// Owns the installation, native intake, authenticated peers, idle policy and
+/// optional HTTP facade. Dropping it fences the installation and every peer.
+pub struct RunningCanonicalServer {
+    installation: crate::installation::InstallationLock,
+    endpoint: Arc<quinn::Endpoint>,
+    profile: ProfileServer,
+    maximum_rtt_ms: Arc<AtomicU64>,
+    stop: CancellationToken,
+    intake: Option<JoinHandle<Result<()>>>,
+    http: Option<crate::HttpListener>,
+    record_https: Option<crate::transports::record_https::RecordHttpsListener>,
+    idle: Option<crate::conversation_policy::Worker>,
+    records: Option<crate::record_outcomes::Worker>,
+    telephone: Option<crate::canonical_telephone::TelephoneTransport>,
+    public_assistants: Option<crate::canonical_assistants::Hosting>,
+    provider_voice: Option<crate::canonical_provider_voice::Worker>,
+    provider_messages: Option<crate::canonical_messages::Host>,
+    pub telnyx_callback_address: Option<SocketAddr>,
+    pub address: SocketAddr,
+    pub http_address: Option<SocketAddr>,
+    pub record_https_address: Option<SocketAddr>,
+    pub store: Arc<Store>,
+    pub service: Arc<Service>,
+}
+impl RunningCanonicalServer {
+    pub async fn start(config: CanonicalServerConfig) -> Result<Self> {
+        Self::start_with_message_drivers(config, None, None).await
+    }
+    /// Protected adapter composition; public clients cannot inject credentials
+    /// or providers. The same exact config/account/Endpoint checks still run.
+    pub async fn start_with_message_drivers(
+        config: CanonicalServerConfig,
+        drivers: Option<Vec<Arc<dyn connect_connector_api::Connector>>>,
+        policy: Option<Arc<dyn crate::SmsPolicy>>,
+    ) -> Result<Self> {
+        anyhow::ensure!(
+            drivers.is_none() || config.provider_messages.is_some(),
+            "Message injection requires protected hosting configuration"
+        );
+        config.validate()?;
+        // All key/TLS validation precedes installation recovery and binding.
+        let mut tls =
+            (*crate::tls::server_config(&config.certificate, &config.private_key)?).clone();
+        tls.alpn_protocols = vec![RAW_QUIC_ALPN.to_vec()];
+        let secret = read_key(&config.signing_private_key)?;
+        let signer = Arc::new(
+            match config.signing_algorithm.as_str() {
+                "EdDSA" => Sig9421Signer::ed25519(&config.signing_key_id, &secret),
+                "ES256" => Sig9421Signer::es256(&config.signing_key_id, &secret),
+                _ => unreachable!("validated algorithm"),
+            }
+            .map_err(|_| anyhow::anyhow!("Invalid canonical signing key"))?,
+        );
+        let configured_assistants = crate::canonical_assistants::Loaded::load(&config)?;
+        let database = config.database.clone();
+        let limits = config.limits.clone();
+        let record_retention = config.record_retention.clone();
+        let reconnect_grace = config.session_reconnect_grace_seconds;
+        let (installation, store) = tokio::task::spawn_blocking(move || -> Result<_> {
+            let installation = crate::installation::InstallationLock::acquire(&database)?;
+            let store = Arc::new(Store::open_with_ownership(
+                &database,
+                limits,
+                installation.proof(),
+            )?);
+            while store.fence_transition_workers(1000)? > 0 {}
+            while store.recover_transition_work(1000)? > 0 {}
+            while store.recover_native_credential_refreshes(1000)? > 0 {}
+            store.integrity_check()?;
+            store.configure_record_retention(&record_retention)?;
+            store.configure_session_reconnect_grace(reconnect_grace)?;
+            store.reconcile_interrupted_video_connections()?;
+            Ok((installation, store))
+        })
+        .await??;
+        // Core owns disposable peer views. Negotiation still requires the
+        // current Store capability policy; accepting datagrams grants no route.
+        let prepared_assistants = match configured_assistants {
+            Some(hosting) => {
+                let store = store.clone();
+                Some(tokio::task::spawn_blocking(move || hosting.prepare(&store)).await??)
+            }
+            None => None,
+        };
+        let mut runtime = match &prepared_assistants {
+            Some(hosting) => hosting.runtime.clone(),
+            None => crate::canonical_assistants::native_runtime()?,
+        };
+        if let Some(messages) = &config.provider_messages {
+            runtime = messages.runtime(runtime)?;
+        }
+        let service = Service::with_runtime(store.clone(), runtime);
+        service.install_canonical_assurance(config.user_assurance.clone())?;
+        service.install_canonical_runtime()?;
+        let record_https = match &config.record_https {
+            Some(records) => Some(
+                crate::transports::record_https::RecordHttpsListener::bind(
+                    records,
+                    service.clone(),
+                    tls.clone(),
+                    &config.certificate,
+                )
+                .await?,
+            ),
+            None => None,
+        };
+        let record_https_address = record_https.as_ref().map(|r| r.address);
+        let record_references = record_https.as_ref().map(|r| r.registry.clone());
+        let authority = service
+            .canonical_peer_authority(config.limits.connections, record_references)
+            .await
+            .map_err(|_| anyhow::anyhow!("Cannot establish canonical authority"))?;
+        let routes =
+            rvoip_uctp::v2::reachability::ReachabilityRegistry::new(config.limits.connections)
+                .map_err(|_| anyhow::anyhow!("Invalid canonical route capacity"))?;
+        service.install_canonical_invitation_routes(routes.clone())?;
+        let route_authority = authority.clone();
+        let peer = Arc::new(PeerConfig {
+            methods: Arc::new(AuthenticationMethods::new(Some(StoreValidator::canonical(
+                store.clone(),
+            )))),
+            verifier: Arc::new(Sig9421Verifier::new(StoreKeyResolver::new(store.clone()))),
+            signer,
+            authority,
+            pending_capacity: config.limits.connections.min(256),
+        });
+        let profile = CanonicalProfile::new(
+            peer,
+            CanonicalHandler::new(service.clone()),
+            config.limits.connections,
+        )
+        .map_err(|_| anyhow::anyhow!("Invalid canonical profile"))?
+        .with_physical_handlers(CanonicalHandler::physical_factory(service.clone()))
+        .with_reachability(
+            routes,
+            route_authority,
+            std::time::Duration::from_secs(60),
+            10,
+        )
+        .map_err(|_| anyhow::anyhow!("Invalid canonical invitation routes"))?;
+        // Install on this exact Core before either HTTP or native intake opens.
+        // The owner also drains SIP when any later startup step fails.
+        if let (Some(telephone), Some(voice)) = (&config.telephone, &config.provider_voice) {
+            let mut sip_targets = std::collections::BTreeSet::new();
+            for route in &telephone.initial {
+                sip_targets.insert(store.revalidate(&route.endpoint_credential_id)?.identity_id);
+            }
+            for route in &voice.routes {
+                let (_, target) = store.provider_session_voice_binding(route)?;
+                anyhow::ensure!(
+                    !sip_targets.contains(&target),
+                    "Ambiguous automatic telephone provider for one identity"
+                );
+            }
+        }
+        let provider_voice = config
+            .provider_voice
+            .as_ref()
+            .map(|voice| crate::canonical_provider_voice::Worker::start(voice, &service))
+            .transpose()?;
+        let provider_messages = match &config.provider_messages {
+            Some(messages) => Some(
+                crate::canonical_messages::Host::start(messages, service.clone(), drivers, policy)
+                    .await?,
+            ),
+            None => None,
+        };
+        let telnyx_callback_address = provider_messages
+            .as_ref()
+            .and_then(|h| h.callback_address());
+        let telephone = match &config.telephone {
+            Some(telephone) => Some(
+                crate::canonical_telephone::TelephoneTransport::start(telephone, &store, &service)
+                    .await?,
+            ),
+            None => None,
+        };
+        let mut transport = quinn::TransportConfig::default();
+        transport.max_concurrent_bidi_streams(1u32.into());
+        transport.max_concurrent_uni_streams(0u32.into());
+        transport.datagram_receive_buffer_size(Some(64 * 1024));
+        transport.datagram_send_buffer_size(64 * 1024);
+        transport.max_idle_timeout(Some(Duration::from_secs(30).try_into()?));
+        let endpoint = Arc::new(rvoip_uctp::substrate::make_server_endpoint(
+            config.bind,
+            Arc::new(tls),
+            transport,
+        )?);
+        let startup = crate::startup::EndpointStartup::new(&endpoint);
+        let address = endpoint.local_addr()?;
+        let public_assistants = prepared_assistants
+            .map(|hosting| hosting.install(&service, address))
+            .transpose()?;
+        if public_assistants.is_none() {
+            service.readiness.unconfigured("public-assistant-host");
+        }
+        let http = match config.http_bind {
+            Some(address) => Some(crate::HttpListener::bind(address, service.clone(), None).await?),
+            None => None,
+        };
+        let http_address = http.as_ref().map(|h| h.address);
+        let (sender, receiver) = tokio::sync::mpsc::channel(config.limits.connections);
+        let profile = rvoip_quic::canonical::start(
+            receiver,
+            profile,
+            format!("quic://localhost:{}", address.port()),
+        )
+        .map_err(|_| anyhow::anyhow!("Cannot start canonical supervisor"))?;
+        let stop = CancellationToken::new();
+        let cancelled = stop.clone();
+        let accepted = endpoint.clone();
+        let peers = profile.clone();
+        let key_deadline = tokio::time::Instant::now()
+            + (config.signing_key_expires_at - chrono::Utc::now())
+                .to_std()
+                .context("Canonical signing key expired during startup")?;
+        let maximum_rtt_ms = Arc::new(AtomicU64::new(0));
+        let observed_rtt = maximum_rtt_ms.clone();
+        let readiness = service.readiness.clone();
+        let intake = crate::worker::spawn(
+            readiness,
+            "canonical-intake",
+            stop.clone(),
+            async move {
+                struct Intake(Arc<quinn::Endpoint>, ProfileServer);
+                impl Drop for Intake {
+                    fn drop(&mut self) {
+                        self.1.begin_drain();
+                        self.0.close(0u32.into(), b"canonical intake stopped");
+                    }
+                }
+                let _owned = Intake(accepted.clone(), peers.clone());
+                let mut handshakes = JoinSet::new();
+                loop {
+                    tokio::select! {biased;
+                        _=cancelled.cancelled()=>break,
+                        _=tokio::time::sleep_until(key_deadline)=>{accepted.close(0u32.into(),b"canonical signing key expired");let _=peers.shutdown().await;anyhow::bail!("Canonical signing key expired");},
+                        done=handshakes.join_next(),if !handshakes.is_empty()=>{if done.is_some_and(|r|r.is_err()){anyhow::bail!("Canonical TLS admission task failed");}},
+                        incoming=accepted.accept()=>{
+                            let Some(incoming)=incoming else{break;};
+                            if handshakes.len()>=config.limits.connections{incoming.refuse();continue;}
+                            let sender=sender.clone();let cancelled=cancelled.clone();let observed_rtt=observed_rtt.clone();
+                            handshakes.spawn(async move{
+                                let connection=tokio::select!{biased;_=cancelled.cancelled()=>return,result=tokio::time::timeout(Duration::from_secs(5),incoming)=>match result{Ok(Ok(c))=>c,_=>return}};
+                                struct ObservedPath(quinn::Connection,Arc<AtomicU64>);
+                                impl Drop for ObservedPath{fn drop(&mut self){self.1.fetch_max(self.0.stats().path.rtt.as_millis().min(u64::MAX as u128) as u64,Ordering::AcqRel);}}
+                                let _path=ObservedPath(connection.clone(),observed_rtt);
+                                if let Err(error)=sender.try_send(connection.clone()){error.into_inner().close(0u32.into(),b"canonical admission full");return;}
+                                // Retain this physical slot through the entire peer lifetime.
+                                tokio::select!{biased;_=cancelled.cancelled()=>{connection.close(0u32.into(),b"canonical admission stopped");},_=connection.closed()=>{}}
+                            });
+                        },
+                    }
+                }
+                handshakes.abort_all();
+                while handshakes.join_next().await.is_some() {}
+                Ok(())
+            },
+        );
+        let idle = Some(crate::conversation_policy::Worker::start(service.clone()));
+        let records = Some(crate::record_outcomes::Worker::start(service.clone()));
+        let server = Self {
+            installation,
+            endpoint,
+            profile,
+            maximum_rtt_ms,
+            stop,
+            intake: Some(intake),
+            http,
+            record_https,
+            idle,
+            records,
+            telephone,
+            public_assistants,
+            provider_voice,
+            provider_messages,
+            telnyx_callback_address,
+            address,
+            http_address,
+            record_https_address,
+            store,
+            service,
+        };
+        startup.finish();
+        Ok(server)
+    }
+    /// Protected runtime inspection. No configuration or provider key is exposed.
+    pub fn public_assistant_host(
+        &self,
+    ) -> Option<&Arc<crate::assistant_vapi::PublicVapiCoordinator>> {
+        self.public_assistants.as_ref().map(|h| &h.0)
+    }
+    pub async fn shutdown(mut self) -> Result<()> {
+        self.stop.cancel();
+        if let Some(http) = &self.http {
+            http.begin_shutdown()
+        }
+        if let Some(records) = &self.record_https {
+            records.begin_shutdown()
+        }
+        self.profile.begin_drain();
+        let mut failures = Vec::new();
+        if let Some(messages) = self.provider_messages.take() {
+            if messages.shutdown().await.is_err() {
+                failures.push("provider messages");
+            }
+        }
+
+        let public_session_failure = self.service.drain_session_initialization().await.err();
+        if public_session_failure.is_some() {
+            failures.push("public Session jobs");
+        }
+        if self
+            .service
+            .drain_consultation_initialization()
+            .await
+            .is_err()
+        {
+            failures.push("private consultation jobs");
+        }
+        self.endpoint
+            .close(0u32.into(), b"canonical server shutdown");
+        if self.profile.shutdown().await.is_err() {
+            failures.push("canonical peers");
+        }
+        if let Some(voice) = self.provider_voice.take() {
+            if voice.shutdown().await.is_err() {
+                failures.push("provider telephone");
+            }
+        }
+        self.service.drain_canonical_runtime().await;
+        if let Some(mut telephone) = self.telephone.take() {
+            if telephone.shutdown().await.is_err() {
+                failures.push("telephone");
+            }
+        }
+        if crate::worker::drain(
+            self.intake.take().into_iter().collect(),
+            Duration::from_secs(5),
+        )
+        .await
+        .is_err()
+        {
+            failures.push("canonical intake");
+        }
+        if let Some(records) = self.record_https.take() {
+            if records.shutdown().await.is_err() {
+                failures.push("record HTTPS");
+            }
+        }
+        if let Some(http) = self.http.take() {
+            if http.shutdown().await.is_err() {
+                failures.push("HTTP");
+            }
+        }
+        if let Some(idle) = self.idle.take() {
+            if idle.shutdown().await.is_err() {
+                failures.push("conversation policy");
+            }
+        }
+        if let Some(records) = self.records.take() {
+            if records.shutdown().await.is_err() {
+                failures.push("Session records");
+            }
+        }
+        // Current installation authority covers the actual owned drains. Stop
+        // the policy worker before retirement so an in-flight check cannot
+        // mistake requested shutdown for a runtime ownership failure.
+        self.installation.retire();
+        // Quinn retains closed paths for 3 PTOs. Its RTT estimator maintains
+        // variance <= 2 * smoothed RTT, so the RTT part of that interval is
+        // bounded by 3 * (RTT + 4 * 2 * RTT). Include local profile ACK delay,
+        // millisecond rounding and scheduling margin. This is separate from
+        // worker drain and remains capped even for an unresponsive peer.
+        let maximum_rtt_ms = self.maximum_rtt_ms.load(Ordering::Acquire);
+        let protocol_drain_budget =
+            Duration::from_millis(maximum_rtt_ms.saturating_mul(27).saturating_add(250))
+                .clamp(Duration::from_secs(5), Duration::from_secs(30));
+        let protocol_drain_started = tokio::time::Instant::now();
+        if tokio::time::timeout(protocol_drain_budget, self.endpoint.wait_idle())
+            .await
+            .is_err()
+        {
+            anyhow::bail!("Canonical protocol drain timed out after owned workers stopped: open={}, maximum observed RTT={}ms, protocol allowance={}ms; other failures={}",self.endpoint.open_connections(),maximum_rtt_ms,protocol_drain_budget.as_millis(),failures.join(", "));
+        }
+        tracing::debug!(
+            elapsed_ms = protocol_drain_started.elapsed().as_millis(),
+            allowance_ms = protocol_drain_budget.as_millis(),
+            "Canonical protocol drain complete"
+        );
+        anyhow::ensure!(
+            failures.is_empty(),
+            "Canonical shutdown failed: {}; public Session failure: {:?}",
+            failures.join(", "),
+            public_session_failure
+        );
+        Ok(())
+    }
+}
+impl Drop for RunningCanonicalServer {
+    fn drop(&mut self) {
+        self.service.cancel_session_initialization();
+        self.service.cancel_consultation_initialization();
+        self.installation.retire();
+        self.stop.cancel();
+        self.profile.begin_drain();
+        self.endpoint
+            .close(0u32.into(), b"canonical server dropped");
+        if let Some(task) = &self.intake {
+            task.abort();
+        }
+    }
+}
+fn read_key(path: &Path) -> Result<Vec<u8>> {
+    use std::io::Read;
+    let file = std::fs::File::open(path).context("Read canonical signing key")?;
+    let mut bytes = Vec::new();
+    file.take(16_385).read_to_end(&mut bytes)?;
+    anyhow::ensure!(
+        !bytes.is_empty() && bytes.len() <= 16_384,
+        "Invalid canonical signing key size"
+    );
+    Ok(bytes)
+}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn configuration_errors_do_not_echo_private_file_contents() {
+        let temp = tempfile::tempdir().expect("private config directory");
+        let path = temp.path().join("server.toml");
+        let canary = "private-config-canary-never-print";
+        std::fs::write(&path, format!("credential = {canary:?}")).expect("write malformed config");
+        let Err(error) = super::CanonicalServerConfig::load(&path) else {
+            panic!("invalid configuration accepted")
+        };
+        assert!(!format!("{error:#}").contains(canary));
+    }
+}
+
+pub use crate::transports::record_https::RecordHttpsConfig;

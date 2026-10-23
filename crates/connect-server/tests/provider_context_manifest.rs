@@ -1,13 +1,20 @@
-//! Preserve authorized legacy context through manifest admission and the real Vapi SDK.
+//! Preserve canonical public context through manifest admission and the real Vapi SDK.
 #![allow(clippy::unwrap_used)]
-#[path = "support/native_tasks.rs"]
-mod native_tasks;
-
+use connect_client::{
+    application::{ApplicationClient, ApplicationClientConfig, ApplicationOperation},
+    canonical::CanonicalHttpClient,
+    ClientConfig, MessageDraft,
+};
 use connect_connectors::Vapi;
 use connect_protocol::ContextView;
+use connect_protocol::{Operation, Outcome};
 use connect_server::providers::Worker;
+use connect_server::{
+    canonical::{CanonicalServerConfig, RunningCanonicalServer},
+    cli::init,
+    config::ServerConfig,
+};
 use connect_store::{Route, Scope};
-use native_tasks::Harness;
 use serde_json::{json, Value};
 use std::{sync::Arc, time::Duration};
 use wiremock::{
@@ -16,6 +23,91 @@ use wiremock::{
 };
 
 const ASSISTANT: &str = "12345678-1234-1234-1234-123456789012";
+
+struct Harness {
+    _temp: tempfile::TempDir,
+    server: RunningCanonicalServer,
+    owner: CanonicalHttpClient,
+    application: ApplicationClient,
+    owner_config: ClientConfig,
+    peer_id: String,
+    cid: String,
+}
+impl Harness {
+    async fn start() -> Self {
+        let temp = tempfile::tempdir().unwrap();
+        let directory = temp.path().join("state");
+        init::initialize(&directory, true, "127.0.0.1:0".parse().unwrap()).unwrap();
+        let old = ServerConfig::load(&directory.join("server.toml")).unwrap();
+        let mut owner_config = ClientConfig::load(&directory.join("reviews.toml")).unwrap();
+        let peer = ClientConfig::load(&directory.join("agent.toml")).unwrap();
+        let key = rcgen::KeyPair::generate_for(&rcgen::PKCS_ED25519).unwrap();
+        let signing = temp.path().join("canonical-server.der");
+        std::fs::write(&signing, key.serialize_der()).unwrap();
+        let server = RunningCanonicalServer::start(CanonicalServerConfig {
+            session_reconnect_grace_seconds: 30,
+            bind: old.bind,
+            database: old.database,
+            certificate: old.certificate,
+            private_key: old.private_key,
+            signing_key_id: "context-manifest-server".into(),
+            signing_algorithm: "EdDSA".into(),
+            signing_private_key: signing,
+            signing_key_not_before: chrono::Utc::now() - chrono::Duration::seconds(1),
+            signing_key_expires_at: chrono::Utc::now() + chrono::Duration::hours(1),
+            http_bind: Some("127.0.0.1:0".parse().unwrap()),
+            record_https: None,
+            record_retention: Default::default(),
+            user_assurance: Vec::new(),
+            telephone: None,
+            public_vapi: None,
+            provider_voice: None,
+            provider_messages: None,
+            limits: old.limits,
+        })
+        .await
+        .unwrap();
+        let credential = server
+            .store
+            .issue(
+                &owner_config.identity_id,
+                Scope::operator(),
+                chrono::Utc::now().timestamp() + 3600,
+            )
+            .unwrap();
+        owner_config.credential_id = credential.id;
+        owner_config.credential = credential.token;
+        let config = ApplicationClientConfig {
+            endpoint: server.http_address.unwrap(),
+            credential: owner_config.credential.clone(),
+            expires_at: chrono::Utc::now() + chrono::Duration::minutes(10),
+            timeout_ms: 10_000,
+        };
+        let mut owner = CanonicalHttpClient::open(config.clone()).await.unwrap();
+        let application = ApplicationClient::open(config).await.unwrap();
+        let mut request = connect_client::conversations::CreateRequest::persistent(vec![peer
+            .identity_id
+            .clone()]);
+        request.tenant_id = Some("tnt_default".into());
+        let cid = owner
+            .create_conversation("context-manifest-conversation", request)
+            .await
+            .unwrap()
+            .id;
+        Self {
+            _temp: temp,
+            server,
+            owner,
+            application,
+            owner_config,
+            peer_id: peer.identity_id,
+            cid,
+        }
+    }
+    async fn close(self) {
+        self.server.shutdown().await.unwrap();
+    }
+}
 
 #[tokio::test(flavor = "multi_thread")]
 async fn escaped_ordinary_context_over_128k_reaches_vapi_intact_with_source_provenance() {
@@ -50,7 +142,12 @@ async fn escaped_ordinary_context_over_128k_reaches_vapi_intact_with_source_prov
     for index in 0..3 {
         original.push(
             h.owner
-                .send(&format!("escaped-history-{index}"), &h.cid, &body)
+                .send_message(
+                    &format!("escaped-history-{index}"),
+                    &h.cid,
+                    &format!("escaped-history-message-{index}"),
+                    MessageDraft::text_all(&body),
+                )
                 .await
                 .unwrap(),
         );
@@ -77,22 +174,38 @@ async fn escaped_ordinary_context_over_128k_reaches_vapi_intact_with_source_prov
                 target: ASSISTANT.into(),
                 source: None,
                 enabled: true,
+                incoming_to: connect_protocol::messages::MessageAudience::all(),
             },
         )
         .unwrap();
-    let worker = Worker::with_drivers(h.server.service.clone(), vec![adapter]).unwrap();
+    let worker = Worker::with_drivers(h.server.service.clone(), vec![adapter])
+        .await
+        .unwrap();
     let question = h
         .owner
-        .send(
+        .send_message(
             "escaped-context-question",
             &h.cid,
-            "Use the attributed history",
+            "escaped-context-question-message",
+            MessageDraft::text_all("Use the attributed history"),
         )
         .await
         .unwrap();
     tokio::time::timeout(Duration::from_secs(10), async {
         loop {
-            let jobs = h.owner.provider_status(&h.cid).await.unwrap();
+            let Outcome::ProviderStatus { deliveries: jobs } = h
+                .application
+                .execute(
+                    ApplicationOperation::try_from(Operation::ProviderStatus {
+                        conversation_id: h.cid.clone(),
+                    })
+                    .unwrap(),
+                )
+                .await
+                .unwrap()
+            else {
+                panic!("provider status")
+            };
             if jobs.len() == 1 && jobs[0].state == "completed" {
                 break;
             }
@@ -140,10 +253,11 @@ async fn escaped_ordinary_context_over_128k_reaches_vapi_intact_with_source_prov
     assert!(!request.to_string().contains("owned-loopback-key"));
     assert_eq!(
         h.owner
-            .send(
+            .send_message(
                 "escaped-context-question",
                 &h.cid,
-                "Use the attributed history"
+                "escaped-context-question-message",
+                MessageDraft::text_all("Use the attributed history")
             )
             .await
             .unwrap()

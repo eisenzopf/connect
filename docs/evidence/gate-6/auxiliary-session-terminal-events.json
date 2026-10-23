@@ -1,0 +1,465 @@
+{
+  "task": "G6-046",
+  "title": "Original Session terminal metadata and typed subscription observation",
+  "status": "local explicit-end native/HTTP component qualified; full auxiliary task open",
+  "recorded_at": "2026-10-22T17:31:50.503313+00:00",
+  "full_task_complete": false,
+  "full_goal_complete": false,
+  "acceptance_qualified": false,
+  "platform": {
+    "os": "Darwin",
+    "architecture": "arm64"
+  },
+  "schema_version": 88,
+  "pinned_patches": 138,
+  "source_lock": {
+    "path": "dependencies/source-lock.json",
+    "sha256": "d5447e896ce316cdde4d7ad2affb4c0bf39785fe558da35bce72368284143212"
+  },
+  "compiled_inputs": {
+    "path": ".local/gate-6/session-ended/build-inputs-v3.json",
+    "sha256": "1bbcc40d2f40a328b49c5ec21b8feec2016e7576d941df17225bb517536e62bc",
+    "count": 1254
+  },
+  "compiled_inputs_unchanged_after_tests": true,
+  "source_inputs": [
+    {
+      "path": "crates/connect-protocol/src/events.rs",
+      "sha256": "54876aa79d867ed8c2a599d132b55f2dcab3be85e0c7f770a8a9dca74219a2d7"
+    },
+    {
+      "path": "crates/connect-store/src/lib.rs",
+      "sha256": "0e41610280916101969ce32ca688325081d86aa533e6ac583723a30c1ab0d539"
+    },
+    {
+      "path": "crates/connect-store/migrations/088_session_terminal_facts.sql",
+      "sha256": "71076a98415e552b29ef3927d63ed60a865f4c9e131ddd0120b7c51f9d439b47"
+    },
+    {
+      "path": "crates/connect-store/src/events/journal.rs",
+      "sha256": "65fd5462ea3c47ddffbc92f887e9ebd54dfac4746ebad574a06341c7fcd78ddb"
+    },
+    {
+      "path": "crates/connect-store/src/events/admission.rs",
+      "sha256": "87f89fda6f894bee3d4ce93a8c306c9f1271d152431f6106d8c13a1caad23801"
+    },
+    {
+      "path": "crates/connect-store/src/events/tests.rs",
+      "sha256": "4404f15a28a3ecc7c39e23d75b7ac81ac6e38f7c18fcaf5a3b999bd6669bb6c5"
+    },
+    {
+      "path": "crates/connect-store/src/session_control_tests.rs",
+      "sha256": "e17d302184e20c04909de09b908bc656b72b141c5074983ce191753dd60b8fcb"
+    },
+    {
+      "path": "crates/connect-service/src/canonical_subscriptions.rs",
+      "sha256": "54c12030fca5bfa455704ae0a03878d8d19ba6d8f7f52b64836e6aa90bbc1f32"
+    },
+    {
+      "path": "crates/connect-client/src/canonical.rs",
+      "sha256": "f7139e088a33a4f4866d976398b62e233be7678846e7d7ba916d9d873a2ac79f"
+    },
+    {
+      "path": "crates/connect-server/tests/support/canonical_auxiliary_clauses.rs",
+      "sha256": "695089eeb51a9386a751cac20d6fd7e5277ac343e9da593080ddb6e85c2e5039"
+    },
+    {
+      "path": "sdk/typescript/src/events.ts",
+      "sha256": "8538d7a63a6aab2d63973d7f938544bf8d1377c62badeb7a7c4b19e77085c9cc"
+    },
+    {
+      "path": "sdk/typescript/src/event_validation.ts",
+      "sha256": "4cde1bea0a21239f507423d2d396910745c553d7177c9ca8d1dff7751166d549"
+    },
+    {
+      "path": "sdk/python/connect_sdk/event_validation.py",
+      "sha256": "58b01c20722747d4ba9694cebe29ca915b3535efeb971dcbd73f134b5b2b1250"
+    },
+    {
+      "path": "sdk/tests/events_matrix.json",
+      "sha256": "5e284151965d0113452b15ee0c68a603525ab176cff96706e12195a450653cd4"
+    },
+    {
+      "path": "scripts/generate-gate6-event-reference.py",
+      "sha256": "7be8a0202938317965bc047a6c8e499c606078afbb214772ed88448bd0a5438d"
+    },
+    {
+      "path": "scripts/generate-canonical-http-openapi.py",
+      "sha256": "adf6b2d24760207df713bbd06e6f98c275b3cc0f92577670626ba14929ab419f"
+    },
+    {
+      "path": "contracts/openapi-events.json",
+      "sha256": "c33d19b40001902b312cca1acf58876bf8f035dd85655055053b1ca375394c37"
+    },
+    {
+      "path": "contracts/openapi-canonical-http.json",
+      "sha256": "bb17dcc1fc33d552a6fe75da4ee2797dac7a0fcb346b9a4a92126e806abd9f13"
+    },
+    {
+      "path": "patches/rvoip/gate6-subscription-session-terminal-hint.patch",
+      "sha256": "7ef12b614b9108df53ce5bc55c63479672145df86dd2ab0e32c27e1b8f01e8c7"
+    },
+    {
+      "path": "docs/developer/events.md",
+      "sha256": "0800737dd1e791ea4f35b12a75b2f058dfbdd777d3b67e1fb2334ed8422b56ab"
+    },
+    {
+      "path": "docs/developer/general-sessions.md",
+      "sha256": "6e1e121db6cfe77d786a75df7cd50841ab98f5357fe8142e8d82584d0d9a8760"
+    }
+  ],
+  "binaries": [
+    {
+      "path": "target/debug/deps/connect_store-2bc54b64bb656bb4",
+      "sha256": "255c3b10afebc890ddb7ea9f29b50764b557ff6835d46fbbdf5099d96d77dbfb"
+    },
+    {
+      "path": "target/debug/deps/connect_client-14427ed49690b71c",
+      "sha256": "3197f27b68180e0ecd9032ec862bfc3753662a057e6701a9dd8a48e710f806a5"
+    },
+    {
+      "path": "target/debug/deps/gate6_canonical_runtime-f39476f2f6c7ff5d",
+      "sha256": "08c1ef1dd493fbb2822df787a37f43e50a21398d3c61cb6704d037e37ec92696"
+    },
+    {
+      "path": "target/debug/deps/gate6_auxiliary-0342ca629847fff9",
+      "sha256": "f9573b44156855ee5b76a9da9f293d7cb0f835b502b7be70e9c4bdf3d2c9af61"
+    }
+  ],
+  "results": [
+    {
+      "name": "store-session-control",
+      "passed": 22,
+      "failed": 0,
+      "evidence": {
+        "path": ".local/gate-6/session-ended/store-session-control-v1.log",
+        "sha256": "ad2e4bc3825f35867f4a3af5a59d5ec6be4d4aa5a95843645a0c5851a3824bdc"
+      }
+    },
+    {
+      "name": "store-events",
+      "passed": 22,
+      "failed": 0,
+      "evidence": {
+        "path": ".local/gate-6/session-ended/store-events-v1.log",
+        "sha256": "ca30be4e3143f3ee7f935d6cd692623f1ff7489dd9bd60bfe9d1f7e44cc5a4cf"
+      }
+    },
+    {
+      "name": "rust-sdk",
+      "passed": 80,
+      "failed": 0,
+      "evidence": {
+        "path": ".local/gate-6/session-ended/rust-sdk-v1.log",
+        "sha256": "3e8755d50094f3e644a2fd72d3f6cf99274dd77d428106a23fb337ddd2b64e38"
+      }
+    },
+    {
+      "name": "production-terminal",
+      "passed": 1,
+      "failed": 0,
+      "evidence": {
+        "path": ".local/gate-6/session-ended/production-terminal-v2.log",
+        "sha256": "1d035c23acf9879aae8e80dfc417156da8d4131695389c1d75c0ca5baa95e917"
+      }
+    },
+    {
+      "name": "production-conversation-regression",
+      "passed": 1,
+      "failed": 0,
+      "evidence": {
+        "path": ".local/gate-6/session-ended/production-conversations-v1.log",
+        "sha256": "3cd7eabbf552363d0909a2374da853969397e03b18baeebfd1ba53dc98084bfc"
+      }
+    },
+    {
+      "name": "production-identity-regression",
+      "passed": 1,
+      "failed": 0,
+      "evidence": {
+        "path": ".local/gate-6/session-ended/production-identity-v1.log",
+        "sha256": "c10befaac5acc57df6a50d11bd43e9d18ce61fb44ca63b03f438728c063cc659"
+      }
+    },
+    {
+      "name": "production-record-regression",
+      "passed": 1,
+      "failed": 0,
+      "evidence": {
+        "path": ".local/gate-6/session-ended/production-records-v1.log",
+        "sha256": "a179d8fb67f441ffceb18d0bd962bdd900944fb6cdf816e0c7d57eef073940a2"
+      }
+    },
+    {
+      "name": "typescript-sdk",
+      "passed": 378,
+      "failed": 0,
+      "evidence": {
+        "path": ".local/gate-6/session-ended/typescript-all-v2.log",
+        "sha256": "72e8a7d0e67e87e095bf7946152a2c55fe7c981bee89a07270d13a734f57417c"
+      }
+    },
+    {
+      "name": "python-sdk",
+      "passed": 36,
+      "failed": 0,
+      "evidence": {
+        "path": ".local/gate-6/session-ended/python-all-v2.log",
+        "sha256": "f92428f2d40fff46f71c453e1a4fc4613fe250b26e7a50282e9e348972f426e5"
+      }
+    },
+    {
+      "name": "openapi-positive-vectors",
+      "passed": 33,
+      "failed": 0,
+      "evidence": {
+        "path": ".local/gate-6/session-ended/openapi-events-v2.log",
+        "sha256": "a67c86317086a69dd0815df20f361d42d2a778ca04f1e6be43764631eef7dd12"
+      }
+    }
+  ],
+  "checks": [
+    {
+      "name": "dependencies",
+      "command": [
+        "bash",
+        "scripts/prepare-dependencies.sh"
+      ],
+      "exit_code": 0,
+      "evidence": {
+        "path": ".local/gate-6/session-ended/dependencies-final.log",
+        "sha256": "fd9d7b181e3ccba9b643af55a186cf132c60aac99c734b2ee4e4e549afe5ffc2"
+      }
+    },
+    {
+      "name": "format",
+      "command": [
+        "bash",
+        "scripts/format.sh",
+        "--check"
+      ],
+      "exit_code": 0,
+      "evidence": {
+        "path": ".local/gate-6/session-ended/format-final.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    {
+      "name": "canonical-http",
+      "command": [
+        "python3",
+        "scripts/generate-canonical-http-openapi.py",
+        "--check"
+      ],
+      "exit_code": 0,
+      "evidence": {
+        "path": ".local/gate-6/session-ended/canonical-http-final.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    {
+      "name": "event-reference",
+      "command": [
+        "python3",
+        "scripts/generate-gate6-event-reference.py",
+        "--check"
+      ],
+      "exit_code": 0,
+      "evidence": {
+        "path": ".local/gate-6/session-ended/event-reference-final.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    {
+      "name": "typescript-format",
+      "command": [
+        "sdk/typescript/node_modules/.bin/prettier",
+        "--check",
+        "sdk/typescript/src/events.ts",
+        "sdk/typescript/src/event_validation.ts"
+      ],
+      "exit_code": 0,
+      "evidence": {
+        "path": ".local/gate-6/session-ended/typescript-format-final.log",
+        "sha256": "17aa973d3f004560237d9a95171210b0671deff23d61628eecf7322ff5938f20"
+      }
+    },
+    {
+      "name": "progress",
+      "command": [
+        "python3",
+        "scripts/check-gate6-progress.py"
+      ],
+      "exit_code": 0,
+      "evidence": {
+        "path": ".local/gate-6/session-ended/progress-final.log",
+        "sha256": "fedbc03549729d27ac031eee0766ae72281991ae1e9494232887c3160cf754cc"
+      }
+    },
+    {
+      "name": "diff",
+      "command": [
+        "git",
+        "diff",
+        "--check"
+      ],
+      "exit_code": 0,
+      "evidence": {
+        "path": ".local/gate-6/session-ended/diff-final.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    }
+  ],
+  "qualified_cases": {
+    "u6-req-0095": {
+      "test": "auxiliary_clauses::production_auxiliary_session_terminal_multicast_survives_record_finalization",
+      "algorithms": [
+        "EdDSA",
+        "ES256"
+      ],
+      "profile": "Explicit logical Session end; signed native live subscriptions; finite HTTP catch-up; actual asynchronous local vCon finalization",
+      "assertions": [
+        "Original reason_code/reason, known actor Participant/epoch and timestamp agree with the stored original Session outcome for two subscribed identities.",
+        "The signed session.ended payload has cid/sid and original subscription correlation, and precedes its cursor-bearing original fact.",
+        "No synchronous vCon handle is invented. Actual later recording.vcon-ready precedes record_ready and names the discovered original record.",
+        "Finite HTTP catch-up returns the same original terminal metadata after the larger pending record snapshot has been released; public native record fetch succeeds.",
+        "Exact end replay emits no second terminal fact; a current same-identity credential lacking session_get/record_get sees no terminal or record hints."
+      ],
+      "evidence": {
+        "path": ".local/gate-6/session-ended/production-terminal-v2.log",
+        "sha256": "1d035c23acf9879aae8e80dfc417156da8d4131695389c1d75c0ca5baa95e917"
+      }
+    }
+  },
+  "conversation_clause_recheck_witnesses": [
+    {
+      "path": ".local/gate-6/session-ended/conversation-witnesses/EdDSA-u6-req-0069.json",
+      "sha256": "0349aabc973e17259f92908af6062d586d59fa74bac342fa027dd068ac0fc0df"
+    },
+    {
+      "path": ".local/gate-6/session-ended/conversation-witnesses/EdDSA-u6-req-0070.json",
+      "sha256": "277c5ef7bcf852b3a2e01f48db0c6435bedd3fc9f77711ade4a09a5564bd8f87"
+    },
+    {
+      "path": ".local/gate-6/session-ended/conversation-witnesses/EdDSA-u6-req-0071.json",
+      "sha256": "e8159a87a1251f7086baab9365566d0eb3b3ce5344dbaf1782f334943e3cd54a"
+    },
+    {
+      "path": ".local/gate-6/session-ended/conversation-witnesses/EdDSA-u6-req-0072.json",
+      "sha256": "65e690f350ac563b3b80b5ce9aa19d55af4671313ac30c48c7d305cac394f21c"
+    },
+    {
+      "path": ".local/gate-6/session-ended/conversation-witnesses/EdDSA-u6-req-0073.json",
+      "sha256": "8635f2971e8c2378d89c8d68011bd7cee57d0679d66ea3c9a23b1333b9fe847f"
+    },
+    {
+      "path": ".local/gate-6/session-ended/conversation-witnesses/EdDSA-u6-req-0074.json",
+      "sha256": "6d8dbf0943444bcb52724c97f333e20bcc9ec23141afde9e0c35f68afd9543c7"
+    },
+    {
+      "path": ".local/gate-6/session-ended/conversation-witnesses/EdDSA-u6-req-0075.json",
+      "sha256": "b0cd6bcb628cfbf125ffef5e80f91809ef1d818e2016db28469f84bc372c54fb"
+    },
+    {
+      "path": ".local/gate-6/session-ended/conversation-witnesses/EdDSA-u6-req-0076.json",
+      "sha256": "1ee2485f43d6bf0e80e6076799866fda36c01efd04d149edfb5c99b0bd1ccb48"
+    },
+    {
+      "path": ".local/gate-6/session-ended/conversation-witnesses/EdDSA-u6-req-0077.json",
+      "sha256": "8f854fd372f40fc61eb1172c3887bbcd514d6323ef0681019e8bbf92cacaabbe"
+    },
+    {
+      "path": ".local/gate-6/session-ended/conversation-witnesses/EdDSA-u6-req-0078.json",
+      "sha256": "9015c978bee18ecc58609665a35c32064e4dfd110f61efb1f8be7669948a7e23"
+    },
+    {
+      "path": ".local/gate-6/session-ended/conversation-witnesses/EdDSA-u6-req-0079.json",
+      "sha256": "44d0f42902b5bf53d6a93f9a58ef4225a3d4229c4e6e806e8bdf47ecc46dde67"
+    },
+    {
+      "path": ".local/gate-6/session-ended/conversation-witnesses/EdDSA-u6-req-0080.json",
+      "sha256": "4dd40b644df59143712d292ef154fd4a944ba7583a8841310093e3dba897099c"
+    },
+    {
+      "path": ".local/gate-6/session-ended/conversation-witnesses/ES256-u6-req-0069.json",
+      "sha256": "926fbf05ad19ba1512dfdb7405be6b6475aee6c33fb8b2a85d5bb81b35846b88"
+    },
+    {
+      "path": ".local/gate-6/session-ended/conversation-witnesses/ES256-u6-req-0070.json",
+      "sha256": "1de96654532839e0ebd803dc665a9e84e6b1b074b87665fb5ce3d1f3a185c57b"
+    },
+    {
+      "path": ".local/gate-6/session-ended/conversation-witnesses/ES256-u6-req-0071.json",
+      "sha256": "0e04748452cba60b7e772545d3d3a2947d70ab4907f07794817a2f2c8575f315"
+    },
+    {
+      "path": ".local/gate-6/session-ended/conversation-witnesses/ES256-u6-req-0072.json",
+      "sha256": "6a5f029993a4c1d600ce1d2d95ab9bbec2ccedb6d141312d755bf1ba6b9742b4"
+    },
+    {
+      "path": ".local/gate-6/session-ended/conversation-witnesses/ES256-u6-req-0073.json",
+      "sha256": "fe4a8d123bce8bbcc38d2972d582d668ece165b940dece9fe8f13ff96daed9c4"
+    },
+    {
+      "path": ".local/gate-6/session-ended/conversation-witnesses/ES256-u6-req-0074.json",
+      "sha256": "9c0d68224f7f34a20a6aa6c7af399630f10b06a6a58a2f8cf1632bfa8f1801d6"
+    },
+    {
+      "path": ".local/gate-6/session-ended/conversation-witnesses/ES256-u6-req-0075.json",
+      "sha256": "87c7f37198cd24f43a9f878d4ff1a286375a96bf781347d37a6047330d7852ad"
+    },
+    {
+      "path": ".local/gate-6/session-ended/conversation-witnesses/ES256-u6-req-0076.json",
+      "sha256": "7ba29ac321e87b10ade120fd314d8a133862043a5accab021391d32d1aae5b70"
+    },
+    {
+      "path": ".local/gate-6/session-ended/conversation-witnesses/ES256-u6-req-0077.json",
+      "sha256": "9b75390dbfc8bfb4fafe035221d89c6ed63c638a69c6c0388ebfa67160e4fa75"
+    },
+    {
+      "path": ".local/gate-6/session-ended/conversation-witnesses/ES256-u6-req-0078.json",
+      "sha256": "c0a57ca60908bba65215b108ecb1272cd40e6a4589f6d32947887a1413311d42"
+    },
+    {
+      "path": ".local/gate-6/session-ended/conversation-witnesses/ES256-u6-req-0079.json",
+      "sha256": "8e4ebb5bae85975e91f1aee442746b4239c749305b501402ae966b0703b9d07f"
+    },
+    {
+      "path": ".local/gate-6/session-ended/conversation-witnesses/ES256-u6-req-0080.json",
+      "sha256": "757ee32caac82160264ba162871ee8cd709fdb532e35e3734898a8d7d888987f"
+    }
+  ],
+  "implementation": [
+    "Fresh schema88 freezes a small immutable terminal fact at original journal insertion while the terminal record snapshot is still pending. Capture is independent of later record snapshot release.",
+    "Current session_get and original/current Session source access remain required. Selected Session resource readers are included through actual native delivery.",
+    "Canonical and generic terminal Session journal writers retain original Session view/reason/time and known ordinary actor attribution. Unspecified runtime numeric reasons use0 and missing text uses unspecified; no provider result is inferred.",
+    "The pinned dispatcher admits session.ended only under its original Conversation/reply scope and deadline. The SDK validates Session-scoped terminal hints in finite batches.",
+    "TypeScript/Python now use the current shared Session snapshot and session_control shapes instead of the obsolete initiator/counterpart snapshot. Both decode terminal metadata with exact Session/revision/time binding and bounded reason/actor fields.",
+    "All33 positive shared event vectors now match generated schema88 OpenAPI; the earlier stale snapshot vector/schema mismatch is resolved."
+  ],
+  "initial_attempts": [
+    {
+      "evidence": {
+        "path": ".local/gate-6/session-ended/production-terminal-v1.log",
+        "sha256": "d796cbad35b51c6e458260d292edae046e354cfe02a07ee6874daad25d5a989e"
+      },
+      "result": "Positive delivery, finalization, catch-up and replay assertions succeeded before the final negative fixture used a cursor from another identity and correctly received forbidden. Corrected to the same identity under narrower current rights; full test then passes both algorithms."
+    }
+  ],
+  "reproduce": [
+    "bash scripts/prepare-dependencies.sh",
+    "CARGO_INCREMENTAL=0 cargo test -p connect-store --lib --locked --offline -j1 session_control:: -- --test-threads=1",
+    "CARGO_INCREMENTAL=0 cargo test -p connect-store --lib --locked --offline -j1 events::tests:: -- --test-threads=1",
+    "CARGO_INCREMENTAL=0 cargo test -p connect-client --lib --locked --offline -j1 -- --test-threads=1",
+    "CARGO_INCREMENTAL=0 cargo test -p connect-server --test gate6_canonical_runtime --locked --offline -j1 auxiliary_clauses::production_auxiliary_session_terminal_multicast_survives_record_finalization -- --exact --test-threads=1",
+    "npm --prefix sdk/typescript run build",
+    "node --test sdk/tests/*.test.mjs",
+    "PYTHONPATH=sdk/python python3 -m unittest discover -s sdk/tests -p 'test_*.py'"
+  ],
+  "limits": [
+    "The exact payload/example clause0095 is qualified for this explicit local end profile. Automatic media-loss/grace expiry, started/joined/left and original invitation/reply relays remain their own open Session clauses.",
+    "Runtime by:null production paths, retention erasure after finalization and SIP/WebRTC/remote/browser/Linux end profiles are not separately qualified here. Existing scoped evidence remains historical.",
+    "Interop URI invitation targets remain open under0083; task-scoped enrollment/step-up remains G6-055 and prerequisites. The full105-task dependency graph is unchanged.",
+    "No full auxiliary task, gate acceptance, provider hangup, remote playback, audio capture or publication claim."
+  ]
+}

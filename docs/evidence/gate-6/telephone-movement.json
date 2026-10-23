@@ -1,0 +1,235 @@
+{
+  "kind": "gate6-component-evidence",
+  "task": "G6-041",
+  "status": "in-progress",
+  "passed": true,
+  "recorded_at": "2026-10-20T13:20:53.207879+00:00",
+  "schema_version": 61,
+  "pinned_patches": 120,
+  "source_lock": {
+    "path": "dependencies/source-lock.json",
+    "sha256": "6493d464739925eaf371f86fa1d8f0bc3d116f91f5a1de405b9a8daef871fa3d"
+  },
+  "scope": "Local macOS arm64 actual public canonical telephone compound movement with independent SIP account, PCMU/PCMA duplex, old authority and preparation expiry independence, exact target loss cleanup, plus native compound movement regression.",
+  "verification": [
+    {
+      "name": "core",
+      "command": "target/debug/deps/rvoip_core-c6c2afcb97584f02 --test-threads=2",
+      "passed": 436,
+      "ignored": 0,
+      "exit_code": 0,
+      "log": {
+        "path": ".local/gate-6/telephone-retarget-core-full.log",
+        "sha256": "8deed8bdf4f43eeff2142f7a80bfd6c8157c968e367b7125a32fdfa298c36d34"
+      },
+      "test_binary": {
+        "path": "target/debug/deps/rvoip_core-c6c2afcb97584f02",
+        "sha256": "1e719a126a931ce596cc7e07f21e5391d4c48a3c66ae1b3d768444085c01e571"
+      }
+    },
+    {
+      "name": "store",
+      "command": "cargo test --locked --offline -j2 -p connect-store --lib -- --test-threads=2",
+      "passed": 642,
+      "ignored": 3,
+      "exit_code": 0,
+      "log": {
+        "path": ".local/gate-6/telephone-movement-store-full.log",
+        "sha256": "72d75ec2464c067a8c735a752e7e405aada1ef8666e469611fe73c1b62baee87"
+      },
+      "test_binary": {
+        "path": "target/debug/deps/connect_store-500690b8d898aed1",
+        "sha256": "c3bc91ed9f3ae41f7949498a12183b07faf7f878b24e607687b47ce43ed78370"
+      }
+    },
+    {
+      "name": "schema",
+      "command": "cargo test --locked --offline -j2 -p connect-store --test gate6_schema -- --test-threads=2",
+      "passed": 4,
+      "ignored": 0,
+      "exit_code": 0,
+      "log": {
+        "path": ".local/gate-6/telephone-movement-schema.log",
+        "sha256": "7db74911a9d7f2295240b3ae8f380c00180a23e4103854fc34ced13e28303181"
+      },
+      "test_binary": {
+        "path": "target/debug/deps/gate6_schema-2d4cc6d15be4352e",
+        "sha256": "ddac04f96eca86409a060e9dc8dc84f18faa0a68dfd0bdec962f4e49ebf4d4ab"
+      }
+    },
+    {
+      "name": "telephone-public",
+      "command": "RUST_LOG=connect_service=debug target/debug/deps/gate6_canonical_runtime-2e3e18c2008aaebe production_telephone_ --test-threads=2 --nocapture",
+      "passed": 6,
+      "ignored": 0,
+      "exit_code": 0,
+      "log": {
+        "path": ".local/gate-6/telephone-movement-runtime-3.log",
+        "sha256": "718a4982730ba495ca72652bbc70cdc8273c1abf9abb2f099a0f3dbbad38157a"
+      },
+      "test_binary": {
+        "path": "target/debug/deps/gate6_canonical_runtime-2e3e18c2008aaebe",
+        "sha256": "76f988486e1e8491611b66060cf45655810f80576b9ca8cb7ac003cc401053af"
+      }
+    },
+    {
+      "name": "native-movement",
+      "command": "RUST_LOG=connect_service=debug target/debug/deps/gate6_canonical_runtime-2e3e18c2008aaebe production_replacement_actual_movement --test-threads=1 --nocapture",
+      "passed": 1,
+      "ignored": 0,
+      "exit_code": 0,
+      "log": {
+        "path": ".local/gate-6/telephone-movement-native-regression.log",
+        "sha256": "6931ef6ba5c7c5ff350291c5d47c2771a590732cf2c35d8f3ebd0370a0db75c5"
+      },
+      "test_binary": {
+        "path": "target/debug/deps/gate6_canonical_runtime-2e3e18c2008aaebe",
+        "sha256": "76f988486e1e8491611b66060cf45655810f80576b9ca8cb7ac003cc401053af"
+      }
+    }
+  ],
+  "fresh_distinct_passed_tests": 1089,
+  "static_checks": [
+    {
+      "name": "dependencies",
+      "exit_code": 0,
+      "log": {
+        "path": ".local/gate-6/telephone-movement-static-dependencies.log",
+        "sha256": "fd9d7b181e3ccba9b643af55a186cf132c60aac99c734b2ee4e4e549afe5ffc2"
+      }
+    },
+    {
+      "name": "format",
+      "exit_code": 0,
+      "log": {
+        "path": ".local/gate-6/telephone-movement-static-format.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    {
+      "name": "contracts",
+      "exit_code": 0,
+      "log": {
+        "path": ".local/gate-6/telephone-movement-static-contracts.log",
+        "sha256": "2c29557f8945b4bb522a5436f85876aa8ab90eca617dcf64588af05e9a81b1bc"
+      }
+    },
+    {
+      "name": "http",
+      "exit_code": 0,
+      "log": {
+        "path": ".local/gate-6/telephone-movement-static-http.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    {
+      "name": "progress",
+      "exit_code": 0,
+      "log": {
+        "path": ".local/gate-6/telephone-movement-static-progress.log",
+        "sha256": "3c9a42760866b510a9b7fc81b2b57b9bf6791a239d0bf0de8cdf06058e513f78"
+      }
+    },
+    {
+      "name": "diff",
+      "exit_code": 0,
+      "log": {
+        "path": ".local/gate-6/telephone-movement-static-diff.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    }
+  ],
+  "telephone_actual_managed_moves": 2,
+  "telephone_strict_native_audio_probes": 22,
+  "native_strict_audio_probes": 45,
+  "native_actual_managed_moves": 5,
+  "cli_binary": {
+    "path": "target/debug/connect",
+    "sha256": "f7c6b5d8c9e30cd4c30fe7c53578d60b2316cae853c76636e64df1683276ea3d"
+  },
+  "upstream_inputs": {
+    "path": ".local/gate-6/telephone-movement-upstream-inputs.json",
+    "sha256": "7b8f78f1f27f9e9cbbd50299b1d3ae7d6e3fafa96907ee52e6da3fc86a32a4a6"
+  },
+  "upstream_input_count": 2789,
+  "source_inputs": {
+    "path": ".local/gate-6/telephone-movement-inputs-final.json",
+    "sha256": "caa6556771f65f30d36260c04dd036561058306b67afe05e77eda87627ed7c40"
+  },
+  "source_input_count": 1356,
+  "behavior": [
+    "Actual Core compound commit follows verified logical Participant membership across a distinct configured SIP account. Exact stream/connection selectors retain physical owner checks; per-packet current authorization remains mandatory.",
+    "Schema61 retains one exact begun commit and immutable known/unknown captures. Projection creates the actual SIP connection and standalone telephone lifetime, retires only the original source, and updates exact audience revisions atomically. Store tests cover once-only phases, wrong captures, late known metadata, rollback, independent authority and exact absence cleanup.",
+    "Both actual answered PCMU/PCMA public flows refuse early/output-only and wrong/retransmitted confirmation, quarantine decoded private input, then require attributed 55# and real private duplex before generation2 movement. Eight effects confirm at attempt1; replay emits no new INVITE.",
+    "Actual telephone/native programme works both directions after commit, after old source and controller credential revocation plus late cancel/replay, and after the original preparation expires. Own route credential revocation yields actual BYE, candidate absence and one durable retirement while the retained native connection and completed root remain.",
+    "Host scene snapshots copy bounded metadata under the short registry lock before Store/Core admission. Temporary packet lookup or SQL contention cannot be treated as authority loss; adoption retries only metadata."
+  ],
+  "preliminary_failures": [
+    "The first movement pair exposed immediate post-commit SQL contention being treated as target authority loss. Adoption now retries metadata only.",
+    "Subsequent parallel PCMU cases exposed the host scene registry try_lock reporting temporary packet lookup contention as forbidden. The source watcher cancelled the preparation; detailed SIP logs confirmed actual BYE and distinct RTP ports. Host snapshots now use the short registry lock. Final all-six parallel telephone suite passes."
+  ],
+  "preliminary_logs": [
+    {
+      "path": ".local/gate-6/telephone-movement-build-1.log",
+      "sha256": "45601524ba2b7b6e00020fd5e5ea904df15e4dba212419e73e8fe495042ada23"
+    },
+    {
+      "path": ".local/gate-6/telephone-movement-build-2.log",
+      "sha256": "dbe8e8ad1f3933b5356725170f36430d3c60771cdad39f87284c8cb6b0bca5d3"
+    },
+    {
+      "path": ".local/gate-6/telephone-movement-build-3.log",
+      "sha256": "5fa5da6105740ed1b46ba1fb7d30e37818d24b57c69977771cb1b345aed7bb8a"
+    },
+    {
+      "path": ".local/gate-6/telephone-movement-runtime-1.log",
+      "sha256": "f847948f843575d8a2da8b0cc65df74eba5439e49920955f3f7ec8d3e5925b13"
+    },
+    {
+      "path": ".local/gate-6/telephone-movement-runtime-2.log",
+      "sha256": "ad757e60776ba6c4d31f99c454c42e7ee5c138a3974923dbf428f3683463429a"
+    },
+    {
+      "path": ".local/gate-6/telephone-movement-pcmu-diagnostic.log",
+      "sha256": "7b32f0107a379dea613c0cffce0a9af81f1029d5bf4c3107a43135940e7158b1"
+    },
+    {
+      "path": ".local/gate-6/telephone-movement-pair-diagnostic.log",
+      "sha256": "6f85ae4c1b1e8a9e3b4a612760a422d5e49169dbbc271c3223594edd99f9cc31"
+    },
+    {
+      "path": ".local/gate-6/telephone-movement-pair-diagnostic-2.log",
+      "sha256": "177242f49542b344cc869bd86ae0c2ab5486267fbd87baf1782e41eb8a8cfd4a"
+    }
+  ],
+  "final_build": {
+    "path": ".local/gate-6/telephone-movement-build-4.log",
+    "sha256": "0d5fc2839cb6da7c3875491a476ea954eb35920e1581844ce306ceb8efafc8e4"
+  },
+  "ignored_tests": "Three Store subprocess helper entrypoints are ignored as standalone tests; passing parent cases explicitly execute them.",
+  "not_qualified": [
+    "Normal installed server configuration/adapter lifecycle composition; the public fixture uses the protected pre-intake host hook.",
+    "Complete voicemail/rejected-confirmation/timeout/cancel/late-old/unknown/restart matrix after private preparation and movement; telephone-to-other-device movement; mixed selector/role/private-context churn.",
+    "Established refresh INVITE wire qualification, provider/PSTN/Linux/browser/remote/performance profiles, independent acceptance and publication.",
+    "Earlier report test totals are historical and are not added. Targeted standalone telephone Store reruns overlap the full Store suite and are not double counted."
+  ],
+  "task_counts": {
+    "done": 40,
+    "in_progress": 1,
+    "not_started": 64,
+    "acceptance_closed": 0
+  },
+  "all_105_tasks_remain_in_scope": true,
+  "goal_status": "active",
+  "progress": {
+    "path": ".local/gate-6/telephone-movement-static-progress-final.log",
+    "sha256": "3c9a42760866b510a9b7fc81b2b57b9bf6791a239d0bf0de8cdf06058e513f78"
+  },
+  "diff": {
+    "path": ".local/gate-6/telephone-movement-static-diff-final.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "post_verification_changes": [
+    "docs/connect-gate-6-implementation.html"
+  ]
+}

@@ -20,7 +20,7 @@ fn job(name: &str) -> DeliveryRequest {
     }
 }
 #[tokio::test]
-async fn telnyx_uses_users_sdk_and_submits_only_once_on_server_error() {
+async fn telnyx_sdk_payload_uses_owned_transport_and_submits_only_once_on_server_error() {
     let server = MockServer::start().await;
     Mock::given(method("POST"))
         .and(path("/messages"))
@@ -33,7 +33,13 @@ async fn telnyx_uses_users_sdk_and_submits_only_once_on_server_error() {
         .await;
     let client = Telnyx::new("test-secret", &server.uri()).unwrap();
     assert_eq!(
-        client.deliver(&job("telnyx")).await.err(),
+        client
+            .deliver(
+                &job("telnyx"),
+                connect_connector_api::conformance::dispatch_permit()
+            )
+            .await
+            .err(),
         Some(Failure::Uncertain)
     );
 }
@@ -42,7 +48,13 @@ async fn vapi_preserves_context_and_never_repeats_uncertain_mutations() {
     let server = MockServer::start().await;
     Mock::given(method("POST")).and(path("/chat")).and(body_partial_json(serde_json::json!({"previousChatId":"previous-chat","input":"hello"}))).respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({"id":"chat-2","output":[{"role":"assistant","content":"hello human"}]}))).expect(1).mount(&server).await;
     let client = Vapi::new("test-secret", &server.uri()).unwrap();
-    let done = client.deliver(&job("vapi")).await.unwrap();
+    let done = client
+        .deliver(
+            &job("vapi"),
+            connect_connector_api::conformance::dispatch_permit(),
+        )
+        .await
+        .unwrap();
     assert_eq!(done.provider_id, "chat-2");
     assert_eq!(done.reply.as_deref(), Some("hello human"));
     server.reset().await;
@@ -53,7 +65,13 @@ async fn vapi_preserves_context_and_never_repeats_uncertain_mutations() {
         .mount(&server)
         .await;
     assert_eq!(
-        client.deliver(&job("vapi")).await.err(),
+        client
+            .deliver(
+                &job("vapi"),
+                connect_connector_api::conformance::dispatch_permit()
+            )
+            .await
+            .err(),
         Some(Failure::Uncertain)
     );
 }
@@ -69,7 +87,10 @@ async fn definite_rejection_differs_from_unknown_remote_effect() {
     assert_eq!(
         Telnyx::new("test-secret", &server.uri())
             .unwrap()
-            .deliver(&job("telnyx"))
+            .deliver(
+                &job("telnyx"),
+                connect_connector_api::conformance::dispatch_permit()
+            )
             .await
             .err(),
         Some(Failure::Rejected)
@@ -99,7 +120,10 @@ async fn vapi_chat_receives_authorized_history_separate_from_the_current_input()
         Some("{\"items\":[{\"kind\":\"voice_transcript\",\"body\":\"orchard violet\"}]}".into());
     let reply = Vapi::new("test-secret", &server.uri())
         .unwrap()
-        .deliver(&request)
+        .deliver(
+            &request,
+            connect_connector_api::conformance::dispatch_permit(),
+        )
         .await
         .unwrap();
     assert_eq!(reply.reply.as_deref(), Some("orchard violet"));
@@ -137,7 +161,10 @@ async fn chat_context_is_rejected_without_the_required_assistant_template() {
     assert_eq!(
         Vapi::new("test-secret", &server.uri())
             .unwrap()
-            .deliver(&request)
+            .deliver(
+                &request,
+                connect_connector_api::conformance::dispatch_permit()
+            )
             .await
             .err(),
         Some(Failure::Rejected)

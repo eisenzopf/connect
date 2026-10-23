@@ -1,0 +1,41 @@
+--- a/crates/uctp/rvoip-uctp/src/v2/native.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/native.rs
+@@ -147,6 +147,38 @@
+             receiver: Mutex::new(Some(receiver)),
+             allocated: AtomicUsize::new(0),
+         }))
++    }
++    /// Mute an original, confirmed native audio batch before managed private
++    /// admission. The actual held media policy must separately approve the
++    /// exact Gate intent. This does not admit a participant or activate speech.
++    pub async fn mute_native_audio_for_private_admission(
++        &self,
++        id: &ConnectionId,
++        a: &super::auth_dispatch::AuthorizedEnvelope,
++        held: Arc<dyn std::any::Any + Send + Sync>,
++        deadline: tokio::time::Instant,
++    ) -> std::result::Result<u64, super::native_negotiation::NativeOfferError> {
++        use super::native_negotiation::NativeOfferError;
++        let route = self.data_route(id, a)?;
++        let (controller, flow, ids) = {
++            let installed = route.installation.lock().unwrap_or_else(|p| p.into_inner());
++            let installed = installed.as_ref().ok_or(NativeOfferError::NotReady)?;
++            let bindings = installed.controller.active_bindings();
++            if bindings.is_empty() || bindings.iter().any(|b| b.negotiated.requested.medium != rvoip_core::stream_lifecycle::Medium::Audio) {
++                return Err(NativeOfferError::Unsupported);
++            }
++            (installed.controller.clone(), installed.backend.flow.clone(),
++             bindings.iter().map(|b| b.negotiated.requested.logical_id.clone()).collect())
++        };
++        let previous = controller.revision();
++        if !flow.confirmed_at(previous) { return Err(NativeOfferError::NotReady); }
++        let (revision, _) = controller.set_media_gate_with_held(
++            previous, &ids, rvoip_core::stream_lifecycle::StreamGateAction::Mute,
++            deadline, held,
++        ).await?;
++        flow.controlled_revision(previous, revision);
++        if !flow.confirmed_at(revision) { return Err(NativeOfferError::Conflict); }
++        Ok(revision)
+     }
+     /// Carry existing signed resource confirmation across an actual Core
+     /// audience commit on this exact installed route. This does not authorize

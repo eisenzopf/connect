@@ -23,6 +23,28 @@ handled. Retention loss returns an explicit resync-required result and snapshot
 reference, never an apparently complete empty page. Reads use fresh request IDs;
 operation retry cannot be used to pin an indefinitely stale authorized snapshot.
 
+## Session start
+
+Schema93 atomically commits the first verified public native flow observation,
+the Session's Active phase, an immutable `session_started` fact and one journal
+row per admitted present Participant. Negotiation and acceptance alone do not
+start the Session. A storage failure rolls the entire transaction back; metadata
+retry uses the existing observed flow without submitting more media.
+
+`session.started` carries CID/SID, original `started_at`, `participants_present`,
+`active_connections` with Connection ID, Participant ID and transport, and actual
+`negotiated_capabilities`. An unsolicited native hint has no Connection scope,
+operation ID or reply correlation. Each current authenticated recipient route
+is independently authorized immediately before writing; no media Connection or
+subscription is needed. A narrow recipient ceiling cannot expose the snapshot.
+Finite HTTP/native journal catch-up also emits the original typed hint before
+its cursor-bearing event, with the subscription's reply correlation.
+
+Hints are bounded best effort. Later invitations, replay and hint loss do not
+rewrite the original fact. Current source access and membership epochs govern
+recovery. The native first-start implementation does not yet qualify Participant
+joined/left, last-Connection loss/grace, browser, SIP or remote hosting profiles.
+
 ## Bounded delivery
 
 Default page limit is 100, maximum 500 and 512 KiB encoded response. Default live
@@ -49,3 +71,29 @@ A separate worker may wait for observed speech completion and validate an action
 proposal. It owns scheduling, prompts, approval decisions and business state.
 Connect supplies observations, durable operations, context and authorized
 execution. A model's requested action is not permission or completion.
+
+## Participant connected presence
+
+Schema94 separates the accepted Session appearance from verified public connected
+presence. A first public ready observation appends `session_participant_joined`
+with its original role/name/kind/identity, membership epoch and via-Connection.
+More Connections for that same appearance do not create more joined events.
+Logical pending/replacement Connections preserve that appearance while settlement
+is in flight. Explicit Session leave and membership removal, or confirmation that
+the last Connection has ended, append an immutable left fact. Re-entry after a
+left fact creates a new joined fact on the same SID; it cannot rewrite old facts.
+
+Start, joined and left use one bounded source-ordered native hint worker. Every
+actual write reacquires current recipient authority; hints hold no idle media
+reader and confer no IO rights. Historical typed hints are available through
+finite HTTP/native catch-up and precede their original cursor-bearing events.
+Role/name changes do not rewrite prior joined bodies. Full reconnect grace,
+rapid-loss/restart aggregation and private promotion require separate evidence.
+
+Participant facts retain their own stable `fact_id`. Every native or catch-up
+hint has a fresh envelope ID. Native delivery authorizes the exact internal fact
+reference and CID/SID before the guarded transport assigns the final signed wire
+ID; wire IDs are not source grants or journal deduplication keys.
+Journal recipient PID/epoch and owner-only operation correlation are supplied
+at insertion, including when departure removes the subject's current membership.
+Later admission cannot rewrite or revive an old recipient epoch.

@@ -27,7 +27,9 @@ pub(super) async fn bootstrap(
             "outgoing-conversation",
             Operation::Create {
                 request_id: id(),
-                participants: vec![peer.id.clone()],
+                request: connect_client::conversations::CreateRequest::persistent(vec![peer
+                    .id
+                    .clone()]),
             },
         )
         .await?

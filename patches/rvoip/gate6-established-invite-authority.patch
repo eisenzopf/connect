@@ -1,0 +1,217 @@
+--- a/crates/sip/sip-dialog/src/dialog/dialog_impl.rs
++++ b/crates/sip/sip-dialog/src/dialog/dialog_impl.rs
+@@ -25,6 +25,13 @@
+ /// A SIP dialog as defined in RFC 3261
+ #[derive(Clone, Serialize, Deserialize)]
+ pub struct Dialog {
++    /// Current host INVITE write policy, retained only by this actual dialog.
++    /// This is a policy object, never an idle authorization grant. It is not
++    /// serializable and cannot survive restoration as a live capability.
++    #[serde(skip)]
++    pub(crate) invite_write_authority:
++        Option<std::sync::Arc<dyn crate::transaction::egress::ClientRequestWriteAuthority>>,
++
+     /// Unique identifier for this dialog
+     pub id: DialogId,
+ 
+@@ -186,6 +193,7 @@
+             (Scheme::Sips, _) | (_, Scheme::Sips)
+         );
+         Self {
++            invite_write_authority: None,
+             id: DialogId::new(),
+             state: DialogState::Initial,
+             call_id,
+@@ -391,6 +399,7 @@
+         let route_set = extract_route_set(response, is_initiator);
+ 
+         Some(Self {
++            invite_write_authority: None,
+             id: DialogId::new(),
+             state: DialogState::Confirmed,
+             call_id,
+@@ -508,6 +517,7 @@
+         let route_set = extract_route_set(response, is_initiator);
+ 
+         Some(Self {
++            invite_write_authority: None,
+             id: DialogId::new(),
+             state: DialogState::Early,
+             call_id,
+--- a/crates/sip/sip-dialog/src/manager/transaction_integration.rs
++++ b/crates/sip/sip-dialog/src/manager/transaction_integration.rs
+@@ -33,6 +33,47 @@
+ use std::sync::Arc;
+ use std::time::{Duration, Instant};
+ use tracing::{debug, error, info, warn};
++
++// Bind this transaction's immutable request to the actual confirmed dialog.
++// A non-2xx ACK completes that admitted transaction without authorizing another
++// INVITE; the host still evaluates every INVITE/retransmission independently.
++struct DialogInviteWritePolicy {
++    authority: Arc<dyn crate::transaction::egress::ClientRequestWriteAuthority>,
++    call_id: String,
++    local_tag: Option<String>,
++    remote_tag: Option<String>,
++}
++#[async_trait::async_trait]
++impl crate::transaction::egress::ClientRequestWriteAuthority for DialogInviteWritePolicy {
++    async fn write(
++        &self,
++        scope: &crate::transaction::egress::ClientRequestWriteScope<'_>,
++        io: crate::transaction::egress::ClientRequestWriteFuture<'_>,
++    ) -> rvoip_sip_transport::Result<rvoip_sip_transport::TransportRoute> {
++        let rvoip_sip_core::Message::Request(request) = scope.message else {
++            return Err(rvoip_sip_transport::Error::InvalidState(
++                "dialog INVITE write refused".into(),
++            ));
++        };
++        if self.local_tag.is_none()
++            || self.remote_tag.is_none()
++            || request.call_id().map(|id| id.value()).as_deref() != Some(self.call_id.as_str())
++            || request.from().and_then(|from| from.tag()) != self.local_tag.as_deref()
++            || request.to().and_then(|to| to.tag()) != self.remote_tag.as_deref()
++        {
++            return Err(rvoip_sip_transport::Error::InvalidState(
++                "dialog INVITE identity refused".into(),
++            ));
++        }
++        match request.method() {
++            Method::Invite => self.authority.write(scope, io).await,
++            Method::Ack => io.await,
++            _ => Err(rvoip_sip_transport::Error::InvalidState(
++                "dialog INVITE method refused".into(),
++            )),
++        }
++    }
++}
+ 
+ // The application policy owns INVITE submission permission. Generated non-2xx
+ // ACKs complete the already admitted transaction and do not originate a call.
+@@ -2216,7 +2257,7 @@
+ 
+         // Get dialog context and build the request. Destination is resolved
+         // from the final request next hop after Route headers are present.
+-        let (candidates, request, wire_plan) = {
++        let (candidates, request, wire_plan, write_authority) = {
+             let mut dialog = self.get_dialog_mut(dialog_id)?;
+ 
+             // Convert body to String if provided
+@@ -2505,6 +2546,11 @@
+             })?;
+ 
+             let mut request = request;
++            // The remote Contact is the current target. Dialog identity URIs
++            // remain From/To identities, and must not become the next hop.
++            if method == Method::Invite {
++                request.uri = template.target_uri.clone();
++            }
+             // RFC 3262: advertise or demand the `100rel` extension on outgoing
+             // INVITEs per dialog config. Applies to both initial and re-INVITE.
+             if method == Method::Invite {
+@@ -2548,7 +2594,20 @@
+                 regenerate_stack_default_contact: request.header(&HeaderName::Contact).is_some()
+                     && self.local_contact_uri().is_none(),
+             };
+-            (candidates, request, wire_plan)
++            let write_authority = if method == Method::Invite {
++                dialog.invite_write_authority.as_ref().map(|authority| {
++                    Arc::new(DialogInviteWritePolicy {
++                        authority: authority.clone(),
++                        call_id: dialog.call_id.clone(),
++                        local_tag: dialog.local_tag.clone(),
++                        remote_tag: dialog.remote_tag.clone(),
++                    })
++                        as Arc<dyn crate::transaction::egress::ClientRequestWriteAuthority>
++                })
++            } else {
++                None
++            };
++            (candidates, request, wire_plan, write_authority)
+         };
+ 
+         // RFC 3263 §4.3 multi-candidate failover. STIR/SHAKEN signing
+@@ -2558,11 +2617,12 @@
+         // methods (BYE / REFER / UPDATE / etc.) still surface real
+         // transport failures.
+         let (transaction_id, _addr, completion) = self
+-            .send_request_with_candidate_wire_plan_owned(
++            .send_request_with_candidate_wire_plan_authorized(
+                 request,
+                 candidates,
+                 Some(dialog_id),
+                 wire_plan,
++                write_authority,
+             )
+             .await?;
+ 
+@@ -4955,11 +5015,29 @@
+         let InitialInviteHeaderPlan {
+             contact_uri,
+             appended,
+-        } = plan_initial_invite_headers(opts.contact_uri, opts.extra_headers)?;
++        } = plan_initial_invite_headers(opts.contact_uri.clone(), opts.extra_headers.clone())?;
+         let wire_plan = CandidateWirePlan {
+             regenerate_stack_default_contact: contact_uri.is_none()
+                 && self.local_contact_uri().is_none(),
+         };
++
++        let mut opts = opts;
++        {
++            let mut dialog = self.get_dialog_mut(dialog_id)?;
++            match (
++                &dialog.invite_write_authority,
++                &opts.request_write_authority,
++            ) {
++                (Some(existing), Some(authority)) if !Arc::ptr_eq(existing, authority) => {
++                    return Err(crate::errors::DialogError::protocol_error(
++                        "dialog INVITE policy changed",
++                    ));
++                }
++                (Some(existing), None) => opts.request_write_authority = Some(existing.clone()),
++                (None, Some(authority)) => dialog.invite_write_authority = Some(authority.clone()),
++                _ => (),
++            }
++        }
+ 
+         debug!(dialog=%dialog_id, ?timer_policy, "Sending initial INVITE through canonical path");
+ 
+@@ -6188,10 +6266,10 @@
+                 .is_some_and(|to_header| to_header.tag().is_none());
+         if write_authority.is_some()
+             && method != Method::Info
+-            && !(is_initial_invite && tx_to_dialog.is_some())
++            && !(method == Method::Invite && tx_to_dialog.is_some())
+         {
+             return Err(crate::errors::DialogError::protocol_error(
+-                "owned write policy requires INFO or an owned initial INVITE",
++                "owned write policy requires INFO or an owned INVITE",
+             ));
+         }
+         if let (true, Some(dialog_id)) = (is_initial_invite, tx_to_dialog) {
+--- a/crates/sip/rvoip-sip/src/state_machine/actions.rs
++++ b/crates/sip/rvoip-sip/src/state_machine/actions.rs
+@@ -3674,7 +3674,7 @@
+                             outbound_proxy_uri: invite_opts.outbound_proxy_uri,
+                             supported_100rel: invite_opts.supported_100rel,
+                             registered_flow_routes: invite_opts.registered_flow_routes,
+-                        request_write_authority: invite_opts.request_write_authority,
++                            request_write_authority: invite_opts.request_write_authority,
+                         },
+                         apply_global_proxy,
+                     )
+@@ -4827,7 +4827,13 @@
+                 )
+                 .into());
+             };
+-            let snapshot = (*options).clone();
++            let mut snapshot = (*options).clone();
++            // A timer refresh repeats the current negotiated local offer. The
++            // dialog layer requires SDP for re-INVITE; do not silently accept
++            // an offerless refresh that never reaches a transaction.
++            if snapshot.session_timer_refresh && snapshot.sdp.is_none() {
++                snapshot.sdp = session.local_sdp.clone();
++            }
+             let local_offer = snapshot.sdp.clone().filter(|sdp| !sdp.trim().is_empty());
+             if local_offer.is_none() && !snapshot.session_timer_refresh {
+                 return Err(crate::errors::SessionError::InvalidTransition(

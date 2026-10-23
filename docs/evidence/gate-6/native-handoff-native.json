@@ -1,0 +1,337 @@
+{
+  "kind": "gate6-component-evidence",
+  "recorded_at": "2026-10-19T21:38:06.853867+00:00",
+  "task": "G6-040",
+  "status": "in-progress",
+  "passed": true,
+  "scope": "Actual provider-free local macOS arm64 native QUIC/G.711 handoff from original private human target, observe and leave, current physical audio lifetime and public operation references.",
+  "schema_version": 54,
+  "pinned_patches": 109,
+  "source_lock": {
+    "path": "dependencies/source-lock.json",
+    "sha256": "f547c50c795d0957d09b102c2583c100d33b70be1e65f92cb6c57be912bb83c9"
+  },
+  "verification": [
+    {
+      "name": "store",
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "--offline",
+        "-j1",
+        "-p",
+        "connect-store",
+        "--lib",
+        "--",
+        "--test-threads=2"
+      ],
+      "path": ".local/gate-6/handoff-native-final-store.log",
+      "exit_code": 0,
+      "sha256": "f2c38db3ec7e0bf7d37912242c5c5a119f90ff330e64f113c3356228d77d18ad",
+      "passed": 547,
+      "ignored": 3,
+      "test_binaries": [
+        {
+          "path": "target/debug/deps/connect_store-500690b8d898aed1",
+          "sha256": "1f90cde8ae738e59f63d7b76173faf86fa3ffdf4aeb72c6145f634d73746ac08"
+        }
+      ]
+    },
+    {
+      "name": "libraries",
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "--offline",
+        "-j1",
+        "-p",
+        "connect-client",
+        "-p",
+        "connect-protocol",
+        "-p",
+        "connect-service",
+        "--lib",
+        "--",
+        "--test-threads=2"
+      ],
+      "path": ".local/gate-6/handoff-native-final-libraries.log",
+      "exit_code": 0,
+      "sha256": "a44b10a7244783ac08439541478749fb6bf37ea1622deefbaa311eeeb4e7d144",
+      "passed": 94,
+      "ignored": 0,
+      "test_binaries": [
+        {
+          "path": "target/debug/deps/connect_client-2762510abbc111f5",
+          "sha256": "af70083eded3526c215ea1a754b8a6cf108ee328c2ee0f00b559c8495e1c6b33"
+        },
+        {
+          "path": "target/debug/deps/connect_protocol-d4433b2cc5f1474e",
+          "sha256": "9bc41dcdbaec33147ee27d37a736c948ecfcd4cddbcf8c7790bb06c3b1d60f0e"
+        },
+        {
+          "path": "target/debug/deps/connect_service-f0c8ec9c56711d06",
+          "sha256": "1335f34fc24b922f3fd5bfcd59f288db4a7d50548c2447386960799b3870cb1e"
+        }
+      ]
+    },
+    {
+      "name": "transitions",
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "--offline",
+        "-j1",
+        "-p",
+        "connect-server",
+        "--test",
+        "gate6_canonical_transitions",
+        "--",
+        "--test-threads=2"
+      ],
+      "path": ".local/gate-6/handoff-native-final-transitions.log",
+      "exit_code": 0,
+      "sha256": "479b8ec5d26f9a6f02a2fbc1812a5f2be981f95558a7ffe2d46d4c3a9ba5a98d",
+      "passed": 5,
+      "ignored": 0,
+      "test_binaries": [
+        {
+          "path": "target/debug/deps/gate6_canonical_transitions-3c1fd287bcc3e17e",
+          "sha256": "0e9e9651bba8d85a52e067ee5d2e33a0ffb735c97b72c570d90d16d275207b99"
+        }
+      ]
+    },
+    {
+      "name": "private-groups",
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "--offline",
+        "-j1",
+        "-p",
+        "connect-server",
+        "--test",
+        "gate6_canonical_runtime",
+        "production_disjoint_private_consultations",
+        "--",
+        "--test-threads=1",
+        "--nocapture"
+      ],
+      "path": ".local/gate-6/handoff-native-final-private-groups.log",
+      "exit_code": 0,
+      "sha256": "e68c1777ad38d2ae1df4c716f9807ef5db6f299df7551ce44273903442dea8ba",
+      "passed": 1,
+      "ignored": 0,
+      "test_binaries": [
+        {
+          "path": "target/debug/deps/gate6_canonical_runtime-09465e13dc9bb922",
+          "sha256": "6eb77be9e8cd12ba64177c5b07a43fe3515d8466e89e8043bcc1dc7089419593"
+        }
+      ]
+    },
+    {
+      "name": "actual-handoff",
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "--offline",
+        "-j1",
+        "-p",
+        "connect-server",
+        "--test",
+        "gate6_canonical_runtime",
+        "production_native_private_handoff",
+        "--",
+        "--test-threads=1",
+        "--nocapture"
+      ],
+      "path": ".local/gate-6/handoff-native-final-actual.log",
+      "exit_code": 0,
+      "sha256": "ed73cbde90d68cc01d84a74b32706d13754d402fdbbe94904c54cde5f031aa33",
+      "passed": 1,
+      "ignored": 0,
+      "test_binaries": [
+        {
+          "path": "target/debug/deps/gate6_canonical_runtime-09465e13dc9bb922",
+          "sha256": "6eb77be9e8cd12ba64177c5b07a43fe3515d8466e89e8043bcc1dc7089419593"
+        }
+      ]
+    }
+  ],
+  "passed_rust_tests": 648,
+  "ignored_note": "Three Store crash helpers invoked by passing parents; not standalone passes.",
+  "native_behavior": {
+    "handoff_scenarios": 2,
+    "strict_audio_probes": 12,
+    "passed": [
+      "Actual opaque managed Core participant and media commit",
+      "Incoming and retained duplex; observer receives both with zero publication",
+      "Audio survives original reader expiry and outgoing observer EOF",
+      "Two remaining native slots; outgoing Connection retired in public snapshot",
+      "Signed SDK operation_get stable policy record reference; public HTTP completion and same stable record/result",
+      "Replay of same logical mutation retains one attempt"
+    ]
+  },
+  "static_checks": [
+    {
+      "name": "wire-reference",
+      "command": [
+        "python3",
+        "scripts/generate-gate6-schemas.py",
+        "--check"
+      ],
+      "path": ".local/gate-6/handoff-native-final-wire-reference.log",
+      "sha256": "2f420729df64a60c717aec134b117888f5772d20553050f2ad8af91db0f6c14b",
+      "exit_code": 0
+    },
+    {
+      "name": "event-reference",
+      "command": [
+        "python3",
+        "scripts/generate-gate6-event-reference.py",
+        "--check"
+      ],
+      "path": ".local/gate-6/handoff-native-final-event-reference.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "exit_code": 0
+    },
+    {
+      "name": "http-reference",
+      "command": [
+        "python3",
+        "scripts/generate-canonical-http-openapi.py",
+        "--check"
+      ],
+      "path": ".local/gate-6/handoff-native-final-http-reference.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "exit_code": 0
+    },
+    {
+      "name": "contracts",
+      "command": [
+        ".local/gate-6/verification-venv/bin/python",
+        "scripts/check-gate6-contracts.py",
+        "--output",
+        ".local/gate-6/handoff-native-final-contracts.json"
+      ],
+      "path": ".local/gate-6/handoff-native-final-contracts.log",
+      "sha256": "0d7eaec1890a697fdbc4795fefda1fcf7165edb61512a82cc6993dc7399fccef",
+      "exit_code": 0
+    },
+    {
+      "name": "dependencies",
+      "command": [
+        "bash",
+        "scripts/prepare-dependencies.sh"
+      ],
+      "path": ".local/gate-6/handoff-native-final-dependencies.log",
+      "sha256": "fd9d7b181e3ccba9b643af55a186cf132c60aac99c734b2ee4e4e549afe5ffc2",
+      "exit_code": 0
+    },
+    {
+      "name": "format",
+      "command": [
+        "bash",
+        "scripts/format.sh",
+        "--",
+        "--check"
+      ],
+      "path": ".local/gate-6/handoff-native-final-format.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "exit_code": 0
+    },
+    {
+      "name": "diff",
+      "command": [
+        "git",
+        "diff",
+        "--check"
+      ],
+      "path": ".local/gate-6/handoff-native-final-diff.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "exit_code": 0
+    },
+    {
+      "name": "progress",
+      "command": [
+        "python3",
+        "scripts/check-gate6-progress.py"
+      ],
+      "path": ".local/gate-6/handoff-native-final-progress.log",
+      "sha256": "f3b9b4aefb902a70b4b09f47531c703f1026a2ea42e13759c3e88205978e6125",
+      "exit_code": 0
+    }
+  ],
+  "implemented": [
+    "Owned canonical current-authorized native handoff dispatch and once-only attempt/captured role-result projection",
+    "Exact typed Core observer role and actual outgoing physical cleanup",
+    "Current captured handoff audio validates own physical credentials/member/device/endpoint and exact pair independent of departed peer and old execution grant",
+    "Pending uncertain handoff fails media closed without falsely retiring healthy ports",
+    "Consumed original private context cannot be returned/reused; private history retained",
+    "Pinned upstream optional stable record reference, service status and schema/HTTP references"
+  ],
+  "not_implemented": [
+    "Implement actual Core generic prepared/fresh safe public target without private AI leakage or early publication; use upstream patch/source-lock and public SDK.",
+    "Qualify AI/human directions, actual Conversation scope, competing/stale/permission/cancel and uncertainty/restart recovery."
+  ],
+  "initial_test_source_snapshot": {
+    "path": ".local/gate-6/handoff-native-final-inputs.json",
+    "sha256": "a52b2d1e53d0dca028aa22a391eaf21e6e78d4bb2f8fa6332219a5e9ad5bb9cc",
+    "inputs": 1171
+  },
+  "sealed_source_snapshot": {
+    "path": ".local/gate-6/handoff-native-sealed-inputs.json",
+    "sha256": "3167fbdbb70c102e0ceb1066bcbd8e7947cea5e474429c3a999de0a48757eacc",
+    "inputs": 1171
+  },
+  "pre_seal_source_delta": {
+    "path": ".local/gate-6/handoff-native-pre-seal-delta.json",
+    "sha256": "1a895d4d7b1d16e874355151c2d1ca1682d274bd885ce00ccf95c3b37830b201",
+    "detail": {
+      "delta": {
+        "crates/connect-server/tests/support/canonical_native_connections/consultation/groups/handoff.rs": {
+          "before": "73d88a864afdc1e4d21d39fba7f90d8387459ef152c55dadfe20db4ef27b3415",
+          "after": "cf72746925d5d8da4bf989dbb7f26e12ec826bb8208114e535c8d0838ad89c93"
+        },
+        "docs/developer/native-handoff.md": {
+          "before": "149682c1852010788a8cdd3b14781eeda222e86fed88fd77214c45f828399499",
+          "after": "1aa79c98dbe8b886e1239164419f18274a3cb9b4d1f31093cd96266bac6be0d9"
+        }
+      },
+      "production_and_store_client_protocol_service_test_inputs_unchanged": true,
+      "native_test_only_delta_covered_by": ".local/gate-6/handoff-native-final-actual.log",
+      "guide_delta": "Documentation of the actual installed profile and outstanding requirements"
+    }
+  },
+  "post_test_documentation_delta": {
+    "docs/connect-gate-6-implementation.html": {
+      "before": "47311a2a53c456b181a7d500c4959d84093d4a2682eb361e95e1ab9c1fab721d",
+      "after": "e4c6e86747c1a3bf8452f1e32624dec00fcb1258f8f8a16c7e230121c3009bbd"
+    }
+  },
+  "production_inputs_unchanged_since_regressions": true,
+  "previous_checkpoint": {
+    "path": "docs/evidence/gate-6/native-handoff-custody.json",
+    "sha256": "58213977e0612699a0cb066babdcdb122d9bc97a42e335a1529d50d01f46d4c0"
+  },
+  "next_requirements": {
+    "path": ".local/gate-6/handoff-native-next.json",
+    "sha256": "f3b585ed2d83e30c1d6ac5c29d74d8acfb8591c2efe454b3275ec3c80061db5c"
+  },
+  "diagnostics": [
+    "Initial missing signed SDK record reference fixed through service plus pinned upstream patch109; final actual status passes.",
+    "Initial Core Media(Authority) denial fixed by matching exact Handoff purpose instead of AudioAudience; final actual role/audio/retirement passes.",
+    "Initial link ran out of cache disk; only task-owned generated incremental cache removed, logs and sources preserved. Correct final target is gate6_canonical_runtime; earlier zero-test run is not counted."
+  ],
+  "not_claimed": [
+    "Generic fresh safe AI target or actual AI/human direction",
+    "Whole-workspace or 425 Core test rerun",
+    "Live model/provider, Linux/browser/remote/performance/acceptance qualification",
+    "Commit, push or publication"
+  ],
+  "all_started_processes_terminal": true
+}

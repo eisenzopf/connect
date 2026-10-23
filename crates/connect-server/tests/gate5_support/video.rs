@@ -51,7 +51,9 @@ impl Fixture {
                 &lk.id,
                 &Operation::Create {
                     request_id: "video-create".into(),
-                    participants: vec![right.identity_id.clone()],
+                    request: connect_protocol::conversations::CreateRequest::persistent(vec![
+                        right.identity_id.clone(),
+                    ]),
                 },
             )
             .unwrap()

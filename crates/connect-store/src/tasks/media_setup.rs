@@ -35,10 +35,27 @@ impl Store {
         session_id: &str,
         expected: &VapiSessionRoute,
     ) -> Result<bool> {
+        let authority = self.runtime_conversation_authority(|c| {
+            let (_, task) = check_definition(
+                c,
+                credential_id,
+                definition,
+                session_id,
+                expected,
+                crate::now(),
+            )?;
+            Ok(vec![task.conversation_id])
+        })?;
         let mut c = self.connection()?;
         let tx = c
             .transaction_with_behavior(TransactionBehavior::Immediate)
             .map_err(|_| Error::storage())?;
+        self.require_runtime_query(
+            &tx,
+            &authority,
+            "SELECT conversation_id FROM sessions WHERE id=?1",
+            &[&session_id],
+        )?;
         let now = crate::now();
         let (actor, task) =
             check_definition(&tx, credential_id, definition, session_id, expected, now)?;
@@ -114,7 +131,7 @@ fn check(
             .scope
             .recipients
             .contains(&session.participant_id)
-        || !matches!(session.state.as_str(), "accepted" | "ready")
+        || !matches!(session.state.as_str(), "accepted" | "ready" | "active")
     {
         return Err(Error::forbidden());
     }

@@ -27,7 +27,9 @@ fn fixture() -> Fixture {
             &key,
             &Operation::Create {
                 request_id: "create".into(),
-                participants: vec![bot.clone()],
+                request: connect_protocol::conversations::CreateRequest::persistent(vec![
+                    bot.clone()
+                ]),
             },
         )
         .unwrap()
@@ -256,8 +258,14 @@ fn inbound_is_deduplicated_scoped_recoverable_and_not_a_dial() {
         control_url: None,
         ended_reason: None,
     };
-    assert!(f.store.import_voice_call(&f.route.id, &incoming).unwrap());
-    assert!(!f.store.import_voice_call(&f.route.id, &incoming).unwrap());
+    assert!(f
+        .store
+        .import_voice_call(&f.route.id, &incoming_receipt(&incoming))
+        .unwrap());
+    assert!(!f
+        .store
+        .import_voice_call(&f.route.id, &incoming_receipt(&incoming))
+        .unwrap());
     f.store.recover_voice_calls().unwrap();
     let job = f.store.claim_voice_job().unwrap().unwrap();
     assert_eq!(job.action, VoiceAction::Poll);
@@ -276,7 +284,7 @@ fn inbound_is_deduplicated_scoped_recoverable_and_not_a_dial() {
     incoming.caller = "+15555559999".into();
     assert_eq!(
         f.store
-            .import_voice_call(&f.route.id, &incoming)
+            .import_voice_call(&f.route.id, &incoming_receipt(&incoming))
             .unwrap_err()
             .code,
         "forbidden"
@@ -285,7 +293,7 @@ fn inbound_is_deduplicated_scoped_recoverable_and_not_a_dial() {
     incoming.phone_number_id = uuid::Uuid::new_v4().to_string();
     assert_eq!(
         f.store
-            .import_voice_call(&f.route.id, &incoming)
+            .import_voice_call(&f.route.id, &incoming_receipt(&incoming))
             .unwrap_err()
             .code,
         "forbidden"
@@ -294,7 +302,7 @@ fn inbound_is_deduplicated_scoped_recoverable_and_not_a_dial() {
     incoming.created_at -= 3600;
     assert_eq!(
         f.store
-            .import_voice_call(&f.route.id, &incoming)
+            .import_voice_call(&f.route.id, &incoming_receipt(&incoming))
             .unwrap_err()
             .code,
         "forbidden"
@@ -308,7 +316,7 @@ fn inbound_is_deduplicated_scoped_recoverable_and_not_a_dial() {
     assert!(f.store.voice_ingresses().unwrap().is_empty());
     assert_eq!(
         f.store
-            .import_voice_call(&f.route.id, &incoming)
+            .import_voice_call(&f.route.id, &incoming_receipt(&incoming))
             .unwrap_err()
             .code,
         "forbidden"
@@ -321,7 +329,7 @@ fn inbound_is_deduplicated_scoped_recoverable_and_not_a_dial() {
         .unwrap();
     assert_eq!(
         f.store
-            .import_voice_call(&f.route.id, &incoming)
+            .import_voice_call(&f.route.id, &incoming_receipt(&incoming))
             .unwrap_err()
             .code,
         "unauthorized"
@@ -474,4 +482,142 @@ fn inbound_scan_watermark_is_durable_and_rechecked_on_commit() {
         f.store.complete_voice_scan(&b).unwrap_err().code,
         "unauthorized"
     );
+}
+
+fn incoming_receipt(c: &connect_store::InboundCall) -> connect_connector_api::InboundVoiceReceipt {
+    use connect_connector_api::lifecycle::{Verification, VoiceState};
+    connect_connector_api::InboundVoiceReceipt {
+        call: connect_store::InboundCall {
+            provider_id: c.provider_id.clone(),
+            assistant_id: c.assistant_id.clone(),
+            phone_number_id: c.phone_number_id.clone(),
+            caller: c.caller.clone(),
+            created_at: c.created_at,
+            state: c.state.clone(),
+            control_url: c.control_url.clone(),
+            ended_reason: c.ended_reason.clone(),
+        },
+        event_id: format!("discover:{}:{}", c.provider_id, c.state),
+        state: match c.state.as_str() {
+            "queued" | "ringing" => VoiceState::Starting,
+            "in-progress" => VoiceState::Active,
+            "ended" => VoiceState::Ended,
+            _ => VoiceState::Uncertain,
+        },
+        verification: Verification::Reconciliation,
+    }
+}
+fn inbound_fixture(f: &Fixture) -> connect_connector_api::InboundVoiceReceipt {
+    f.store
+        .configure_voice_ingress(&f.operator, &f.route.id, &f.route.phone_number_id)
+        .unwrap();
+    incoming_receipt(&connect_store::InboundCall {
+        provider_id: uuid::Uuid::new_v4().to_string(),
+        assistant_id: f.route.assistant_id.clone(),
+        phone_number_id: f.route.phone_number_id.clone(),
+        caller: f.route.destinations[0].clone(),
+        created_at: chrono::Utc::now().timestamp(),
+        state: "ended".into(),
+        control_url: None,
+        ended_reason: Some("customer-ended-call".into()),
+    })
+}
+#[test]
+fn inbound_import_atomically_binds_typed_receipt_and_rechecks_replays() {
+    use connect_connector_api::lifecycle::{Projection, State, VoiceState};
+    let f = fixture();
+    let receipt = inbound_fixture(&f);
+    assert!(f.store.import_voice_call(&f.route.id, &receipt).unwrap());
+    assert!(!f.store.import_voice_call(&f.route.id, &receipt).unwrap());
+    let db = rusqlite::Connection::open(f.store.path()).unwrap();
+    let (id, json):(String,String)=db.query_row("SELECT c.id,o.projection_json FROM voice_calls c JOIN connector_voice_observations o ON o.call_id=c.id WHERE c.provider_id=?1",[&receipt.call.provider_id],|r|Ok((r.get(0)?,r.get(1)?))).unwrap();
+    let p: Projection = serde_json::from_str(&json).unwrap();
+    assert_eq!(p.mutation_id, id);
+    assert_eq!(
+        p.external_id.as_deref(),
+        Some(receipt.call.provider_id.as_str())
+    );
+    assert_eq!(p.state, State::Voice(VoiceState::Ended));
+    assert_eq!(
+        serde_json::to_value(&p).unwrap()["events"]
+            .as_object()
+            .unwrap()
+            .len(),
+        1
+    );
+    let owner = f.store.revalidate(&f.operator).unwrap();
+    f.store.revoke(&owner, &f.operator).unwrap();
+    assert_eq!(
+        f.store
+            .import_voice_call(&f.route.id, &receipt)
+            .unwrap_err()
+            .code,
+        "unauthorized"
+    );
+}
+#[test]
+fn inbound_import_refuses_unverified_mismatched_and_invalid_receipts_without_effects() {
+    use connect_connector_api::lifecycle::{Verification, VoiceState};
+    let f = fixture();
+    for case in 0..5 {
+        let mut r = inbound_fixture(&f);
+        match case {
+            0 => r.state = VoiceState::Active,
+            1 => r.verification = Verification::LocalAttempt,
+            2 => r.event_id.clear(),
+            3 => r.event_id = "x".repeat(257),
+            _ => r.event_id = "bad\nreference".into(),
+        }
+        assert_eq!(
+            f.store.import_voice_call(&f.route.id, &r).unwrap_err().code,
+            "invalid-request"
+        );
+    }
+    let db = rusqlite::Connection::open(f.store.path()).unwrap();
+    assert_eq!(
+        db.query_row("SELECT COUNT(*) FROM voice_calls", [], |r| r
+            .get::<_, u64>(0))
+            .unwrap(),
+        0
+    );
+    assert_eq!(
+        db.query_row(
+            "SELECT COUNT(*) FROM connector_voice_observations",
+            [],
+            |r| r.get::<_, u64>(0)
+        )
+        .unwrap(),
+        0
+    );
+}
+#[test]
+fn inbound_projection_storage_failure_rolls_back_call_and_journal() {
+    let f = fixture();
+    let receipt = inbound_fixture(&f);
+    let db = rusqlite::Connection::open(f.store.path()).unwrap();
+    let before: u64 = db
+        .query_row("SELECT COUNT(*) FROM journal", [], |r| r.get(0))
+        .unwrap();
+    db.execute_batch("CREATE TRIGGER refuse_voice_projection BEFORE INSERT ON connector_voice_observations BEGIN SELECT RAISE(ABORT, 'designated fixture storage failure'); END;").unwrap();
+    assert_eq!(
+        f.store
+            .import_voice_call(&f.route.id, &receipt)
+            .unwrap_err()
+            .code,
+        "storage-unavailable"
+    );
+    assert_eq!(
+        db.query_row("SELECT COUNT(*) FROM voice_calls", [], |r| r
+            .get::<_, u64>(0))
+            .unwrap(),
+        0
+    );
+    assert_eq!(
+        db.query_row("SELECT COUNT(*) FROM journal", [], |r| r.get::<_, u64>(0))
+            .unwrap(),
+        before
+    );
+    db.execute_batch("DROP TRIGGER refuse_voice_projection")
+        .unwrap();
+    assert!(f.store.import_voice_call(&f.route.id, &receipt).unwrap());
 }

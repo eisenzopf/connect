@@ -13,7 +13,11 @@ use rusqlite::Connection;
 pub(crate) enum Context {
     Ordinary,
     Restricted,
-    Selected { json: String, watermark: u64 },
+    Selected {
+        json: String,
+        watermark: u64,
+        actor: Actor,
+    },
 }
 
 fn effect(c: &Connection, job: &str) -> Result<Option<StoredEffect>> {
@@ -83,6 +87,7 @@ pub(crate) fn context(c: &Connection, job: &str, store: &Store) -> Result<Contex
     {
         return Ok(Context::Restricted);
     }
+    let actor = tasks::context_actor(c, &actor, &task.id, saved.grant_id.as_deref())?;
     let selection = tasks::recall::read(
         c,
         &actor,
@@ -104,6 +109,7 @@ pub(crate) fn context(c: &Connection, job: &str, store: &Store) -> Result<Contex
     Ok(Context::Selected {
         json: serde_json::to_string(&selection).map_err(|_| Error::storage())?,
         watermark: watermark as u64,
+        actor,
     })
 }
 
@@ -148,6 +154,7 @@ pub(crate) fn reply(
             conversation_id,
             reply_to: message_id,
             body,
+            message: None,
         },
         &intent,
         crate::now(),

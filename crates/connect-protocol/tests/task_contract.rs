@@ -81,7 +81,7 @@ fn uncertain_or_terminal_effect_can_never_be_redispatched() {
     }
 }
 #[test]
-fn task_profile_is_explicit_and_old_control_is_unchanged() {
+fn task_profile_is_explicit_and_send_requires_an_explicit_typed_draft() {
     let mut request = TaskRequest::new(TaskCommand::Create {
         request_id: "create-task".into(),
         definition: definition(),
@@ -92,11 +92,16 @@ fn task_profile_is_explicit_and_old_control_is_unchanged() {
         request.validate(1_000).unwrap_err().code,
         "unsupported-profile"
     );
-    let old: Operation = serde_json::from_value(
-        json!({"op":"send","request_id":"old","conversation_id":"conversation-a","body":"hello"}),
-    )
-    .unwrap();
-    assert_eq!(old.name(), "send");
+    let old = serde_json::json!({"op":"send","request_id":"old","conversation_id":"conversation-a","body":"hello"});
+    assert!(serde_json::from_value::<Operation>(old.clone()).is_err());
+    let mut current = old;
+    current.as_object_mut().unwrap().remove("body");
+    current["message"] =
+        serde_json::to_value(connect_protocol::messages::MessageDraft::text_all("hello")).unwrap();
+    assert_eq!(
+        serde_json::from_value::<Operation>(current).unwrap().name(),
+        "send"
+    );
     assert!(serde_json::from_value::<Operation>(json!({"op":"task","task_profile":"connect-task/1","command":{"action":"get","task_id":"task-a"}})).is_err(),"Integration remains a later item; the previous enum fails closed");
 }
 #[test]
@@ -198,7 +203,7 @@ fn nested_admin_commands_and_rekeyed_mutations_are_denied() {
     let send = |id: &str| Operation::Send {
         request_id: id.into(),
         conversation_id: "conversation-a".into(),
-        body: "ask".into(),
+        message: connect_protocol::messages::MessageDraft::text_all("ask"),
     };
     invoke(send("logical-a")).validate(1_000).unwrap();
     assert_eq!(
@@ -211,7 +216,9 @@ fn nested_admin_commands_and_rekeyed_mutations_are_denied() {
     assert_eq!(
         invoke(Operation::Create {
             request_id: "logical-a".into(),
-            participants: vec!["human-a".into()]
+            request: connect_protocol::conversations::CreateRequest::persistent(vec![
+                "human-a".into()
+            ])
         })
         .validate(1_000)
         .unwrap_err()
@@ -221,7 +228,8 @@ fn nested_admin_commands_and_rekeyed_mutations_are_denied() {
     assert_eq!(
         invoke(Operation::Close {
             request_id: "logical-a".into(),
-            conversation_id: "conversation-a".into()
+            conversation_id: "conversation-a".into(),
+            options: Default::default(),
         })
         .validate(1_000)
         .unwrap_err()
@@ -233,7 +241,7 @@ fn nested_admin_commands_and_rekeyed_mutations_are_denied() {
 
 #[test]
 fn explicit_question_intent_is_additive_but_only_messages_can_await_or_bind_replies() {
-    let json = serde_json::json!({"task_profile":TASK_PROFILE,"command":{"action":"invoke","request_id":"ask","task_id":"task","step_id":"step","operation":{"op":"send","request_id":"ask","conversation_id":"conversation","body":"question"},"reply_to":null}});
+    let json = serde_json::json!({"task_profile":TASK_PROFILE,"command":{"action":"invoke","request_id":"ask","task_id":"task","step_id":"step","operation":{"op":"send","request_id":"ask","conversation_id":"conversation","message":connect_protocol::messages::MessageDraft::text_all("question")},"reply_to":null}});
     let mut request: TaskRequest = serde_json::from_value(json.clone()).unwrap();
     request.validate(1_000).unwrap();
     assert_eq!(serde_json::to_value(&request).unwrap(), json);

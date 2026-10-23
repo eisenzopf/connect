@@ -40,7 +40,9 @@ async fn native_and_ws_share_state_replay_authority_and_notifications() {
     );
     let create = Operation::Create {
         request_id: "cross-create".into(),
-        participants: vec![agent_config.identity_id.clone()],
+        request: connect_protocol::conversations::CreateRequest::persistent(vec![agent_config
+            .identity_id
+            .clone()]),
     };
     let original = ws.request(create.clone()).await.unwrap();
     assert_eq!(native.request(create).await.unwrap(), original);
@@ -63,7 +65,7 @@ async fn native_and_ws_share_state_replay_authority_and_notifications() {
     let send = Operation::Send {
         request_id: "cross-send".into(),
         conversation_id: id.clone(),
-        body: "same shared service".into(),
+        message: connect_protocol::messages::MessageDraft::text_all("same shared service"),
     };
     let waiting = native.request(Operation::Inbox {
         cursor,
@@ -94,6 +96,7 @@ async fn native_and_ws_share_state_replay_authority_and_notifications() {
     let close = Operation::Close {
         request_id: "cross-close".into(),
         conversation_id: id.clone(),
+        options: Default::default(),
     };
     assert_eq!(
         ws.request(close.clone()).await.unwrap(),
@@ -114,7 +117,7 @@ async fn native_and_ws_share_state_replay_authority_and_notifications() {
         Operation::Send {
             request_id: "foreign-send".into(),
             conversation_id: "foreign".into(),
-            body: "denied".into(),
+            message: connect_protocol::messages::MessageDraft::text_all("denied"),
         },
     ] {
         let native_error = match native.request(operation.clone()).await.unwrap_err() {
@@ -243,7 +246,9 @@ async fn large_escaped_pages_fit_wire_budget_and_resume_without_skipping() {
     let id = match native
         .request(Operation::Create {
             request_id: "create".into(),
-            participants: vec![agent.identity_id],
+            request: connect_protocol::conversations::CreateRequest::persistent(vec![
+                agent.identity_id,
+            ]),
         })
         .await
         .unwrap()
@@ -257,7 +262,7 @@ async fn large_escaped_pages_fit_wire_budget_and_resume_without_skipping() {
             .request(Operation::Send {
                 request_id: format!("send-{index}"),
                 conversation_id: id.clone(),
-                body: body.clone(),
+                message: connect_protocol::messages::MessageDraft::text_all(body.clone()),
             })
             .await
             .unwrap();
@@ -406,7 +411,7 @@ async fn conversation_headers_match_payload_and_legacy_missing_headers_still_wor
         let Outcome::Conversation(conv) = peer
             .request(Operation::Create {
                 request_id: uuid::Uuid::new_v4().to_string(),
-                participants: vec![],
+                request: connect_protocol::conversations::CreateRequest::persistent(vec![]),
             })
             .await
             .unwrap()

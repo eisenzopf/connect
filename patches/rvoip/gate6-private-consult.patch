@@ -1,0 +1,3706 @@
+diff --git a/crates/foundation/rvoip-core-traits/src/peer_switch.rs b/crates/foundation/rvoip-core-traits/src/peer_switch.rs
+--- a/crates/foundation/rvoip-core-traits/src/peer_switch.rs
++++ b/crates/foundation/rvoip-core-traits/src/peer_switch.rs
+@@ -5,6 +5,7 @@
+ 
+ struct State {
+     current: u64,
++    committed_at: std::time::Instant,
+     retired: bool,
+     next: u64,
+     deliveries: usize,
+@@ -17,6 +18,7 @@
+     fn default() -> Self {
+         Self {
+             current: 0,
++            committed_at: std::time::Instant::now(),
+             retired: false,
+             next: 0,
+             deliveries: 0,
+@@ -87,6 +89,13 @@
+     pub fn is_current(&self) -> bool {
+         let state = self.state.lock().unwrap_or_else(|e| e.into_inner());
+         !state.retired && state.current == self.generation
++    }
++
++    /// Actual local cutover time for this current generation. This is only a
++    /// queue-age boundary; it grants no authority and proves no media readiness.
++    pub fn committed_at(&self) -> Option<std::time::Instant> {
++        let state = self.state.lock().unwrap_or_else(|e| e.into_inner());
++        (!state.retired && state.current == self.generation).then_some(state.committed_at)
+     }
+ 
+     /// Await permanent retirement or a successor. Temporary quiescence does
+@@ -182,6 +191,7 @@
+             return false;
+         }
+         state.current = self.generation;
++        state.committed_at = std::time::Instant::now();
+         state.paused = false;
+         state.changes.send_replace(self.generation);
+         true
+diff --git a/crates/foundation/rvoip-core/src/orchestrator/participant_control.rs b/crates/foundation/rvoip-core/src/orchestrator/participant_control.rs
+--- a/crates/foundation/rvoip-core/src/orchestrator/participant_control.rs
++++ b/crates/foundation/rvoip-core/src/orchestrator/participant_control.rs
+@@ -533,6 +533,168 @@
+         }
+         Ok(scene.plan_selection(connection, expected, input)?)
+     }
++    pub fn audio_audience_revision(&self, session: &SessionId) -> ControlResult<u64> {
++        let runtime = self.participant_runtime(session)?;
++        if runtime
++            .state
++            .lock()
++            .unwrap_or_else(|p| p.into_inner())
++            .ended
++        {
++            return Err(ParticipantTransitionError::Ended.into());
++        }
++        Ok(runtime
++            .mixer
++            .staged
++            .as_ref()
++            .ok_or(ParticipantControlError::Unsupported)?
++            .audience_revision())
++    }
++    pub fn plan_staged_audio_audience(
++        &self,
++        session: &SessionId,
++        request: crate::staged_streams::audience::AudioAudienceRequest,
++    ) -> ControlResult<crate::staged_streams::audience::AudioAudiencePlan> {
++        let runtime = self.participant_runtime(session)?;
++        if runtime
++            .state
++            .lock()
++            .unwrap_or_else(|p| p.into_inner())
++            .ended
++        {
++            return Err(ParticipantTransitionError::Ended.into());
++        }
++        Ok(runtime
++            .mixer
++            .staged
++            .as_ref()
++            .ok_or(ParticipantControlError::Unsupported)?
++            .plan_audio_audience(request)?)
++    }
++    pub fn plan_restore_staged_audio_audience(
++        &self,
++        session: &SessionId,
++        handle: &crate::staged_streams::audience::AudioAudienceHandle,
++        operation: String,
++        expected: u64,
++    ) -> ControlResult<crate::staged_streams::audience::AudioAudiencePlan> {
++        let runtime = self.participant_runtime(session)?;
++        if runtime
++            .state
++            .lock()
++            .unwrap_or_else(|p| p.into_inner())
++            .ended
++        {
++            return Err(ParticipantTransitionError::Ended.into());
++        }
++        Ok(runtime
++            .mixer
++            .staged
++            .as_ref()
++            .ok_or(ParticipantControlError::Unsupported)?
++            .plan_restore_audio_audience(handle, operation, expected)?)
++    }
++    pub async fn change_staged_audio_audience_with_held(
++        &self,
++        session: &SessionId,
++        plan: crate::staged_streams::audience::AudioAudiencePlan,
++        deadline: tokio::time::Instant,
++        cancellation: CancellationToken,
++        held: &(dyn Any + Send + Sync),
++    ) -> ControlResult<(
++        crate::staged_streams::audience::AudioAudienceOutcome,
++        crate::staged_streams::audience::AudioAudienceHandle,
++    )> {
++        let runtime = self.participant_runtime(session)?;
++        if runtime
++            .state
++            .lock()
++            .unwrap_or_else(|p| p.into_inner())
++            .ended
++        {
++            return Err(ParticipantTransitionError::Ended.into());
++        }
++        Ok(runtime
++            .mixer
++            .staged
++            .as_ref()
++            .ok_or(ParticipantControlError::Unsupported)?
++            .apply_audio_audience(plan, deadline, cancellation, held)
++            .await?)
++    }
++    pub fn plan_private_consultation(
++        &self,
++        session: &SessionId,
++        request: crate::staged_streams::consultation::PrivateConsultationRequest,
++    ) -> ControlResult<crate::staged_streams::consultation::PrivateConsultationPlan> {
++        let runtime = self.participant_runtime(session)?;
++        if runtime
++            .state
++            .lock()
++            .unwrap_or_else(|p| p.into_inner())
++            .ended
++        {
++            return Err(ParticipantTransitionError::Ended.into());
++        }
++        Ok(runtime
++            .mixer
++            .staged
++            .as_ref()
++            .ok_or(ParticipantControlError::Unsupported)?
++            .plan_private_consultation(request)?)
++    }
++    pub async fn start_private_consultation_with_held(
++        &self,
++        session: &SessionId,
++        plan: crate::staged_streams::consultation::PrivateConsultationPlan,
++        deadline: tokio::time::Instant,
++        cancellation: CancellationToken,
++        held: &(dyn Any + Send + Sync),
++    ) -> ControlResult<(
++        crate::staged_streams::audience::AudioAudienceOutcome,
++        crate::staged_streams::consultation::PrivateConsultationHandle,
++    )> {
++        let runtime = self.participant_runtime(session)?;
++        if runtime
++            .state
++            .lock()
++            .unwrap_or_else(|p| p.into_inner())
++            .ended
++        {
++            return Err(ParticipantTransitionError::Ended.into());
++        }
++        Ok(runtime
++            .mixer
++            .staged
++            .as_ref()
++            .ok_or(ParticipantControlError::Unsupported)?
++            .start_private_consultation(plan, deadline, cancellation, held)
++            .await?)
++    }
++    pub async fn wait_private_consultation_audio(
++        &self,
++        session: &SessionId,
++        handle: &crate::staged_streams::consultation::PrivateConsultationHandle,
++        deadline: tokio::time::Instant,
++        cancellation: CancellationToken,
++    ) -> ControlResult<crate::staged_streams::consultation::PrivateConsultationMediaOutcome> {
++        let runtime = self.participant_runtime(session)?;
++        if runtime
++            .state
++            .lock()
++            .unwrap_or_else(|p| p.into_inner())
++            .ended
++        {
++            return Err(ParticipantTransitionError::Ended.into());
++        }
++        Ok(runtime
++            .mixer
++            .staged
++            .as_ref()
++            .ok_or(ParticipantControlError::Unsupported)?
++            .wait_private_consultation_audio(handle, deadline, cancellation)
++            .await?)
++    }
+     /// Wake hints only. A reconciliation must re-read the committed selection
+     /// and source catalog and acquire fresh current policy independently.
+     pub fn staged_media_selection_changes(
+@@ -629,6 +791,7 @@
+             cancellation,
+             None,
+             None,
++            false,
+         )
+         .await
+     }
+@@ -656,6 +819,7 @@
+             cancellation,
+             Some(peer),
+             None,
++            false,
+         )
+         .await
+     }
+@@ -678,6 +842,7 @@
+             cancellation,
+             None,
+             Some(held),
++            false,
+         )
+         .await
+     }
+@@ -702,6 +867,36 @@
+             cancellation,
+             Some(peer),
+             Some(held),
++            false,
++        )
++        .await
++    }
++    /// Admit an explicitly authorized, already-muted private voice leg. Its
++    /// publication and receive audience is quarantined before scene activation.
++    /// The media policy must separately approve PreparePrivateAudio using the
++    /// same actual held invocation; ordinary admission grants cannot imply it.
++    pub async fn admit_private_peer_session_connection_with_held(
++        self: &Arc<Self>,
++        peer: Arc<crate::peer_admission::PeerAdmission>,
++        session_id: &SessionId,
++        principal: AuthenticatedPrincipal,
++        mutation: ParticipantMutation,
++        deadline: tokio::time::Instant,
++        cancellation: CancellationToken,
++        held: &(dyn Any + Send + Sync),
++    ) -> ControlResult<ParticipantObservation> {
++        if !matches!(mutation.change, ParticipantChange::Admit { .. }) {
++            return Err(ParticipantControlError::Authority);
++        }
++        self.change_participant_internal(
++            session_id,
++            principal,
++            mutation,
++            deadline,
++            cancellation,
++            Some(peer),
++            Some(held),
++            true,
+         )
+         .await
+     }
+@@ -714,6 +909,7 @@
+         cancellation: CancellationToken,
+         peer: Option<Arc<crate::peer_admission::PeerAdmission>>,
+         held: Option<&(dyn Any + Send + Sync)>,
++        private_audio: bool,
+     ) -> ControlResult<ParticipantObservation> {
+         let runtime = self.participant_runtime(session_id)?;
+         let peer_cancel = peer.as_ref().map(|peer| peer.cancellation());
+@@ -987,7 +1183,16 @@
+                             return Err(ParticipantTransitionError::NotReady.into());
+                         }
+                         if let Some(controller) = adapter.staged_controller(&ready.connection) {
+-                            match staged.prepare(controller) {
++                            let prepared = if private_audio {
++                                staged.prepare_private(
++                                    controller,
++                                    &mutation.operation_id,
++                                    held.ok_or(ParticipantControlError::Authority)?,
++                                )
++                            } else {
++                                staged.prepare(controller)
++                            };
++                            match prepared {
+                                 Ok(mut member) => {
+                                     member.quiesce(deadline, ready.cancellation.clone()).await?;
+                                     ready.staged_member = Some(member);
+diff --git a/crates/foundation/rvoip-core/src/staged_streams.rs b/crates/foundation/rvoip-core/src/staged_streams.rs
+--- a/crates/foundation/rvoip-core/src/staged_streams.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams.rs
+@@ -220,6 +220,13 @@
+ /// It carries no grant and is never deserialized from an authority assertion.
+ pub enum MediaControlIntent<'a> {
+     Initialize,
++    PreparePrivateAudio {
++        operation: &'a str,
++        expected: u64,
++    },
++    AudioAudience {
++        plan: &'a audience::AudioAudiencePlan,
++    },
+     ChangeSubscriptions {
+         expected: u64,
+         desired: &'a [DesiredStream],
+@@ -2559,3 +2566,6 @@
+ pub mod subscription_plan;
+ 
+ pub mod selection_intent;
++
++pub mod audience;
++pub mod consultation;
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/audience.rs b/crates/foundation/rvoip-core/src/staged_streams/audience.rs
+new file mode 100644
+--- /dev/null
++++ b/crates/foundation/rvoip-core/src/staged_streams/audience.rs
+@@ -0,0 +1,884 @@
++//! Closed audio audiences in the retained managed Session.
++//!
++//! Plans and restore handles contain pinned metadata, never a policy lease.
++//! A host must authorize the complete audience operation under its current
++//! domain grant. These local outcomes are not durable operation receipts.
++use super::audio_subscriptions::AudioPlan;
++use super::{audio_subscriptions::*, media_scene::*, *};
++
++#[derive(Clone, Debug, PartialEq, Eq)]
++pub struct AudioAudienceRequest {
++    pub operation_id: String,
++    pub expected_revision: u64,
++    /// Exact retained Connections in the private conversation. Other devices
++    /// of the same Participant do not inherit this private provider context.
++    pub private_connections: BTreeSet<ConnectionId>,
++    /// Complete replacement programmes, not sequential clear/subscribe calls.
++    pub receivers: BTreeMap<ConnectionId, Vec<AudioSubscription>>,
++    /// An admitted consulting source must start muted. Activation unmutes it
++    /// in the same transaction that installs every receiver's audience fence.
++    pub activate_muted: Option<ConnectionId>,
++}
++impl AudioAudienceRequest {
++    pub(super) fn validate(&self) -> ControlResult<()> {
++        let valid = |s: &str| {
++            !s.is_empty()
++                && s.len() <= 128
++                && s.bytes()
++                    .all(|b| b.is_ascii_alphanumeric() || b"-._~:".contains(&b))
++        };
++        if !valid(&self.operation_id)
++            || self.private_connections.len() < 2
++            || self.private_connections.len() > 16
++            || self.receivers.len() > 32
++            || self.receivers.is_empty()
++            || self
++                .private_connections
++                .iter()
++                .any(|id| !valid(id.as_str()))
++            || self.receivers.keys().any(|id| !valid(id.as_str()))
++            || self
++                .activate_muted
++                .as_ref()
++                .is_some_and(|id| !self.private_connections.contains(id))
++        {
++            return Err(MediaTransitionError::Invalid.into());
++        }
++        for sources in self.receivers.values() {
++            if !sources.is_empty() {
++                validate(&AudioSubscriptionChange::Subscribe(sources.clone()))?;
++            }
++        }
++        Ok(())
++    }
++}
++#[derive(Clone)]
++pub(super) struct AudienceOrigin {
++    pub(super) controller: Weak<StreamController>,
++    pub(super) connection: ConnectionId,
++    member: Membership,
++    owner: Arc<AuthenticatedPrincipal>,
++}
++impl AudienceOrigin {
++    pub(super) fn new(controller: &Arc<StreamController>) -> Self {
++        Self {
++            controller: Arc::downgrade(controller),
++            connection: controller.connection.clone(),
++            member: controller.origin_member.clone(),
++            owner: controller.credential_snapshot().principal,
++        }
++    }
++    pub(super) fn matches(&self, controller: &StreamController) -> bool {
++        self.controller
++            .upgrade()
++            .is_some_and(|old| std::ptr::eq(old.as_ref(), controller))
++            && self.member.participant() == controller.origin_member.participant()
++            && self.member.identity() == controller.origin_member.identity()
++            && self.member.epoch() == controller.origin_member.epoch()
++            && self
++                .owner
++                .has_same_owner(&controller.credential_snapshot().principal)
++    }
++}
++#[derive(Clone)]
++pub(super) struct ClosedAudience {
++    pub operation: String,
++    pub origins: Vec<AudienceOrigin>,
++}
++impl ClosedAudience {
++    pub(super) fn contains(&self, controller: &StreamController) -> bool {
++        self.origins.iter().any(|origin| origin.matches(controller))
++    }
++}
++/// A receiver-specific projection of the same scene-issued closed audience.
++/// It is checked again on actual queued-frame admission, so changing an ordinary
++/// subscription cannot route private speech across the audience boundary.
++#[derive(Clone)]
++pub(super) struct AudioAudienceRule {
++    pub group: Arc<ClosedAudience>,
++    pub inside: bool,
++}
++impl AudioAudienceRule {
++    pub(super) fn allows(&self, source: &StreamController) -> bool {
++        self.inside == self.group.contains(source)
++    }
++    pub(super) fn same(&self, other: &Self) -> bool {
++        self.inside == other.inside && Arc::ptr_eq(&self.group, &other.group)
++    }
++}
++pub(super) fn same_rules(a: &[AudioAudienceRule], b: &[AudioAudienceRule]) -> bool {
++    a.len() == b.len() && a.iter().zip(b).all(|(a, b)| a.same(b))
++}
++#[derive(Clone, Debug, PartialEq, Eq)]
++pub struct AudioAudienceOutcome {
++    pub operation_id: String,
++    pub audience_revision: u64,
++    pub receiver_revisions: BTreeMap<ConnectionId, u64>,
++    pub restored: bool,
++    pub departed_connections: BTreeSet<ConnectionId>,
++}
++/// Actual scene/controller pins and original programmes. A handle grants no
++/// future restoration authority and never retains the original command reader.
++#[derive(Clone)]
++pub struct AudioAudienceHandle {
++    pub(super) scene: u128,
++    pub(super) group: Arc<ClosedAudience>,
++    pub(super) original: BTreeMap<ConnectionId, SavedAudioProgram>,
++    pub(super) receivers: BTreeMap<ConnectionId, AudienceOrigin>,
++    pub(super) muted_source: Option<AudienceOrigin>,
++    pub(super) committed_at: Instant,
++    commit: AudioAudienceCommit,
++}
++impl AudioAudienceHandle {
++    pub fn commit(&self) -> &AudioAudienceCommit {
++        &self.commit
++    }
++    pub fn operation_id(&self) -> &str {
++        &self.group.operation
++    }
++    pub fn connections(&self) -> BTreeSet<ConnectionId> {
++        self.receivers.keys().cloned().collect()
++    }
++}
++/// Core-issued evidence of a route-only commit. Private fields pin actual
++/// controllers and unchanged ports; public outcome fields are not receipts.
++/// This may carry forward an existing wire confirmation, never create one.
++#[derive(Clone)]
++pub struct AudioAudienceCommit {
++    targets: BTreeMap<ConnectionId, AudienceCommitTarget>,
++}
++#[derive(Clone)]
++struct AudienceCommitTarget {
++    controller: Weak<StreamController>,
++    credential: CredentialSnapshot,
++    previous: u64,
++    revision: u64,
++    ports: Vec<Weak<Port>>,
++}
++impl AudioAudienceCommit {
++    pub fn connections(&self) -> impl Iterator<Item = &ConnectionId> {
++        self.targets.keys()
++    }
++    pub fn revisions_for(&self, controller: &Arc<StreamController>) -> ControlResult<(u64, u64)> {
++        let target = self
++            .targets
++            .get(&controller.connection)
++            .ok_or(StreamControlError::Authority)?;
++        if !Weak::ptr_eq(&target.controller, &Arc::downgrade(controller))
++            || controller.shutdown.is_cancelled()
++        {
++            return Err(StreamControlError::Authority);
++        }
++        controller.check_credential_snapshot(&target.credential)?;
++        let state = controller.state.lock().unwrap_or_else(|p| p.into_inner());
++        if state.closed
++            || state.model.revision() != target.revision
++            || state.active.len() != target.ports.len()
++            || target.ports.iter().any(|p| {
++                !p.upgrade().is_some_and(|p| {
++                    state
++                        .active
++                        .values()
++                        .any(|current| Arc::ptr_eq(current, &p))
++                })
++            })
++        {
++            return Err(MediaTransitionError::Conflict.into());
++        }
++        Ok((target.previous, target.revision))
++    }
++}
++#[derive(Clone)]
++pub struct AudioAudiencePlan {
++    pub(super) scene: u128,
++    pub(super) request: AudioAudienceRequest,
++    pub(super) group: Arc<ClosedAudience>,
++    pub(super) expected: BTreeMap<ConnectionId, u64>,
++    pub(super) controllers: BTreeMap<ConnectionId, Weak<StreamController>>,
++    pub(super) restore: Option<AudioAudienceHandle>,
++    pub(super) replaced_preparation: Option<Arc<ClosedAudience>>,
++}
++impl AudioAudiencePlan {
++    /// Exact scene-issued plan identity for a held policy's approval. Matching
++    /// caller-supplied IDs alone is insufficient to approve another scene.
++    pub fn same_intent(&self, other: &Self) -> bool {
++        self.scene == other.scene
++            && self.request == other.request
++            && self.expected == other.expected
++            && Arc::ptr_eq(&self.group, &other.group)
++            && self.controllers.len() == other.controllers.len()
++            && self.controllers.iter().all(|(id, c)| {
++                other
++                    .controllers
++                    .get(id)
++                    .is_some_and(|old| Weak::ptr_eq(c, old))
++            })
++            && self.restore.is_some() == other.restore.is_some()
++            && match (&self.replaced_preparation, &other.replaced_preparation) {
++                (None, None) => true,
++                (Some(a), Some(b)) => Arc::ptr_eq(a, b),
++                _ => false,
++            }
++    }
++    pub fn request(&self) -> &AudioAudienceRequest {
++        &self.request
++    }
++    pub fn expected_receiver_revisions(&self) -> &BTreeMap<ConnectionId, u64> {
++        &self.expected
++    }
++    pub fn is_restore(&self) -> bool {
++        self.restore.is_some()
++    }
++}
++#[derive(Default)]
++pub(super) struct AudienceState {
++    pub revision: u64,
++    pub groups: BTreeMap<String, Arc<ClosedAudience>>,
++    pub preparations: BTreeMap<ConnectionId, Arc<ClosedAudience>>,
++    pub pending: BTreeMap<String, Weak<StreamController>>,
++}
++impl AudienceState {
++    pub(super) fn rules(&self, controller: &StreamController) -> Vec<AudioAudienceRule> {
++        self.groups
++            .values()
++            .map(|group| AudioAudienceRule {
++                group: group.clone(),
++                inside: group.contains(controller),
++            })
++            .collect()
++    }
++}
++
++pub(super) struct PreparedPrivateAudience {
++    pub group: Arc<ClosedAudience>,
++    pub control: MediaControl,
++    state: Arc<Mutex<AudienceState>>,
++    controller: Weak<StreamController>,
++    committed: bool,
++}
++impl PreparedPrivateAudience {
++    pub(super) fn reserve(
++        state: &Arc<Mutex<AudienceState>>,
++        controller: &Arc<StreamController>,
++        operation: &str,
++        control: MediaControl,
++    ) -> ControlResult<Self> {
++        if operation.is_empty()
++            || operation.len() > 128
++            || !operation
++                .bytes()
++                .all(|b| b.is_ascii_alphanumeric() || b"-._~:".contains(&b))
++        {
++            return Err(MediaTransitionError::Invalid.into());
++        }
++        let mut registry = state.lock().unwrap_or_else(|p| p.into_inner());
++        if registry.groups.contains_key(operation) || registry.pending.contains_key(operation) {
++            return Err(MediaTransitionError::Conflict.into());
++        }
++        if registry.groups.len() + registry.pending.len() >= 256
++            || registry.revision >= u64::MAX - 256
++        {
++            return Err(MediaTransitionError::Capacity.into());
++        }
++        registry
++            .pending
++            .insert(operation.into(), Arc::downgrade(controller));
++        Ok(Self {
++            group: Arc::new(ClosedAudience {
++                operation: operation.into(),
++                origins: vec![AudienceOrigin::new(controller)],
++            }),
++            control,
++            state: state.clone(),
++            controller: Arc::downgrade(controller),
++            committed: false,
++        })
++    }
++    pub(super) fn commit(&mut self, state: &mut AudienceState, controller: &Arc<StreamController>) {
++        assert!(state
++            .pending
++            .get(&self.group.operation)
++            .is_some_and(|old| Weak::ptr_eq(old, &self.controller)));
++        assert!(state
++            .groups
++            .insert(self.group.operation.clone(), self.group.clone())
++            .is_none());
++        assert!(state
++            .preparations
++            .insert(controller.connection.clone(), self.group.clone())
++            .is_none());
++        state.pending.remove(&self.group.operation);
++        state.revision += 1;
++        self.committed = true;
++    }
++}
++impl Drop for PreparedPrivateAudience {
++    fn drop(&mut self) {
++        if !self.committed {
++            let mut state = self.state.lock().unwrap_or_else(|p| p.into_inner());
++            if state
++                .pending
++                .get(&self.group.operation)
++                .is_some_and(|old| Weak::ptr_eq(old, &self.controller))
++            {
++                state.pending.remove(&self.group.operation);
++            }
++        }
++    }
++}
++
++impl GuardedMediaScene {
++    pub(crate) fn audience_revision(&self) -> u64 {
++        self.audiences
++            .lock()
++            .unwrap_or_else(|p| p.into_inner())
++            .revision
++    }
++    pub(crate) fn plan_audio_audience(
++        &self,
++        request: AudioAudienceRequest,
++    ) -> ControlResult<AudioAudiencePlan> {
++        request.validate()?;
++        let members = self.members.lock().unwrap_or_else(|p| p.into_inner());
++        let registry = self.audiences.lock().unwrap_or_else(|p| p.into_inner());
++        if registry.revision != request.expected_revision
++            || registry.groups.contains_key(&request.operation_id)
++        {
++            return Err(MediaTransitionError::Conflict.into());
++        }
++        if registry.groups.len() + registry.pending.len() >= 256 || registry.revision == u64::MAX {
++            return Err(MediaTransitionError::Capacity.into());
++        }
++        if request.receivers.keys().any(|id| !members.contains_key(id)) {
++            return Err(StreamControlError::NotReady);
++        }
++        let mut origins = Vec::new();
++        for id in &request.private_connections {
++            let source = members.get(id).ok_or(StreamControlError::NotReady)?;
++            let state = source
++                .controller
++                .state
++                .try_lock()
++                .map_err(|_| MediaTransitionError::Conflict)?;
++            if source.controller.shutdown.is_cancelled()
++                || source.current_descriptor(&state, true)?.is_none()
++                || source.current_descriptor(&state, false)?.is_none()
++            {
++                return Err(StreamControlError::NotReady);
++            }
++            origins.push(AudienceOrigin::new(&source.controller));
++        }
++        let group = Arc::new(ClosedAudience {
++            operation: request.operation_id.clone(),
++            origins,
++        });
++        let replaced_preparation = match &request.activate_muted {
++            None => None,
++            Some(id) => {
++                let prepared = registry
++                    .preparations
++                    .get(id)
++                    .ok_or(StreamControlError::Authority)?;
++                let source = &members[id].controller;
++                if !prepared.contains(source)
++                    || !registry
++                        .groups
++                        .get(&prepared.operation)
++                        .is_some_and(|old| Arc::ptr_eq(old, prepared))
++                {
++                    return Err(StreamControlError::Authority);
++                }
++                Some(prepared.clone())
++            }
++        };
++        if registry.groups.values().any(|old| {
++            !replaced_preparation
++                .as_ref()
++                .is_some_and(|p| Arc::ptr_eq(p, old))
++                && members
++                    .values()
++                    .any(|m| old.contains(&m.controller) && group.contains(&m.controller))
++        }) {
++            return Err(MediaTransitionError::Conflict.into());
++        }
++        let expected = members
++            .iter()
++            .map(|(id, m)| (id.clone(), m.controller.revision()))
++            .collect();
++        let controllers = members
++            .iter()
++            .map(|(id, m)| (id.clone(), Arc::downgrade(&m.controller)))
++            .collect();
++        Ok(AudioAudiencePlan {
++            scene: self.id,
++            request,
++            group,
++            expected,
++            controllers,
++            restore: None,
++            replaced_preparation,
++        })
++    }
++    pub(crate) fn plan_restore_audio_audience(
++        &self,
++        handle: &AudioAudienceHandle,
++        operation: String,
++        expected_revision: u64,
++    ) -> ControlResult<AudioAudiencePlan> {
++        if handle.scene != self.id
++            || operation.is_empty()
++            || operation.len() > 128
++            || !operation
++                .bytes()
++                .all(|b| b.is_ascii_alphanumeric() || b"-._~:".contains(&b))
++        {
++            return Err(StreamControlError::Authority);
++        }
++        let members = self.members.lock().unwrap_or_else(|p| p.into_inner());
++        let registry = self.audiences.lock().unwrap_or_else(|p| p.into_inner());
++        if registry.revision != expected_revision
++            || !registry
++                .groups
++                .get(&handle.group.operation)
++                .is_some_and(|g| Arc::ptr_eq(g, &handle.group))
++        {
++            return Err(MediaTransitionError::Conflict.into());
++        }
++        let request = AudioAudienceRequest {
++            operation_id: operation,
++            expected_revision,
++            private_connections: handle
++                .group
++                .origins
++                .iter()
++                .map(|o| o.connection.clone())
++                .collect(),
++            receivers: BTreeMap::new(),
++            activate_muted: None,
++        };
++        let expected = members
++            .iter()
++            .map(|(id, m)| (id.clone(), m.controller.revision()))
++            .collect();
++        let controllers = members
++            .iter()
++            .map(|(id, m)| (id.clone(), Arc::downgrade(&m.controller)))
++            .collect();
++        Ok(AudioAudiencePlan {
++            scene: self.id,
++            request,
++            group: handle.group.clone(),
++            expected,
++            controllers,
++            restore: Some(handle.clone()),
++            replaced_preparation: None,
++        })
++    }
++}
++struct AudienceTarget {
++    controller: Arc<StreamController>,
++    credential: CredentialSnapshot,
++    control: MediaControl,
++    audio: AudioPlan,
++    ports: Vec<(Arc<Port>, PeerRouteTicket, PeerRouteTicket)>,
++    gate: Option<StreamGateAction>,
++}
++fn exact_members(
++    members: &std::collections::HashMap<ConnectionId, SceneMember>,
++    plan: &AudioAudiencePlan,
++) -> bool {
++    members.len() == plan.controllers.len()
++        && members.iter().all(|(id, m)| {
++            plan.controllers
++                .get(id)
++                .is_some_and(|old| Weak::ptr_eq(old, &Arc::downgrade(&m.controller)))
++        })
++}
++fn current(
++    target: &AudienceTarget,
++    deadline: tokio::time::Instant,
++    cancel: &CancellationToken,
++) -> ControlResult<()> {
++    if cancel.is_cancelled() || target.controller.shutdown.is_cancelled() {
++        return Err(StreamControlError::Cancelled);
++    }
++    if tokio::time::Instant::now() >= deadline {
++        return Err(StreamControlError::Deadline);
++    }
++    target.control.valid()?;
++    target
++        .controller
++        .check_credential_snapshot(&target.credential)
++}
++impl GuardedMediaScene {
++    pub(crate) async fn apply_audio_audience(
++        &self,
++        plan: AudioAudiencePlan,
++        deadline: tokio::time::Instant,
++        cancel: CancellationToken,
++        held: &(dyn Any + Send + Sync),
++    ) -> ControlResult<(AudioAudienceOutcome, AudioAudienceHandle)> {
++        if plan.scene != self.id {
++            return Err(StreamControlError::Authority);
++        }
++        let (controllers, _flights) = {
++            let members = self.members.lock().unwrap_or_else(|p| p.into_inner());
++            if !exact_members(&members, &plan) {
++                return Err(MediaTransitionError::Conflict.into());
++            }
++            let controllers = members
++                .iter()
++                .map(|(id, m)| (id.clone(), m.controller.clone()))
++                .collect::<BTreeMap<_, _>>();
++            let flights = controllers
++                .values()
++                .map(|c| {
++                    c.inflight
++                        .clone()
++                        .try_acquire_owned()
++                        .map_err(|_| MediaTransitionError::Conflict.into())
++                })
++                .collect::<ControlResult<Vec<_>>>()?;
++            (controllers, flights)
++        };
++        let mut controls = BTreeMap::new();
++        let mut deadline = deadline;
++        for (id, controller) in &controllers {
++            let credential = controller.credential_snapshot();
++            let scope = controller.scope(&credential.principal, MediaPurpose::Control);
++            let control = controller.policy.current_control(
++                &scope,
++                &MediaControlIntent::AudioAudience { plan: &plan },
++                held,
++            )?;
++            deadline = deadline
++                .min(control.deadline)
++                .min(StreamController::command_deadline(
++                    &credential.principal,
++                    deadline,
++                ));
++            controls.insert(id.clone(), (credential, control));
++        }
++        let mut original = BTreeMap::new();
++        let mut receiver_origins = BTreeMap::new();
++        let (targets, next_groups, muted_source) = {
++            let members = self.members.lock().unwrap_or_else(|p| p.into_inner());
++            let registry = self.audiences.lock().unwrap_or_else(|p| p.into_inner());
++            if !exact_members(&members, &plan)
++                || registry.revision != plan.request.expected_revision
++            {
++                return Err(MediaTransitionError::Conflict.into());
++            }
++            let mut groups = registry.groups.clone();
++            let muted_source = if let Some(restore) = &plan.restore {
++                if !groups
++                    .get(&plan.group.operation)
++                    .is_some_and(|g| Arc::ptr_eq(g, &plan.group))
++                {
++                    return Err(MediaTransitionError::Conflict.into());
++                }
++                groups.remove(&plan.group.operation);
++                if let Some(source) = restore
++                    .muted_source
++                    .as_ref()
++                    .filter(|origin| members.values().any(|m| origin.matches(&m.controller)))
++                {
++                    // Keep the old private provider Context isolated after main
++                    // audio resumes, even if external cleanup is uncertain.
++                    groups.insert(
++                        plan.group.operation.clone(),
++                        Arc::new(ClosedAudience {
++                            operation: plan.group.operation.clone(),
++                            origins: vec![source.clone()],
++                        }),
++                    );
++                }
++                original = restore.original.clone();
++                receiver_origins = restore.receivers.clone();
++                restore.muted_source.clone()
++            } else {
++                if let Some(prepared) = &plan.replaced_preparation {
++                    if !groups
++                        .remove(&prepared.operation)
++                        .is_some_and(|g| Arc::ptr_eq(&g, prepared))
++                    {
++                        return Err(MediaTransitionError::Conflict.into());
++                    }
++                }
++                groups.insert(plan.group.operation.clone(), plan.group.clone());
++                for id in plan.request.receivers.keys() {
++                    let target = &members[id];
++                    original.insert(
++                        id.clone(),
++                        target.audio_consumer.subscriptions.saved_program(),
++                    );
++                    receiver_origins.insert(id.clone(), AudienceOrigin::new(&target.controller));
++                }
++                plan.request
++                    .activate_muted
++                    .as_ref()
++                    .map(|id| AudienceOrigin::new(&members[id].controller))
++            };
++            let mut targets = Vec::new();
++            for (id, controller) in &controllers {
++                let member = &members[id];
++                let (credential, control) = controls.remove(id).unwrap();
++                let state = controller.state.lock().unwrap_or_else(|p| p.into_inner());
++                if state.closed || controller.shutdown.is_cancelled() {
++                    return Err(StreamControlError::Cancelled);
++                }
++                let scope = controller.scope(&credential.principal, MediaPurpose::Control);
++                let owner = control.authority()?;
++                StreamController::check(&scope, &owner)?;
++                state
++                    .model
++                    .check_routing(&owner.current(), plan.expected[id])?;
++                let rules = groups
++                    .values()
++                    .map(|group| AudioAudienceRule {
++                        group: group.clone(),
++                        inside: group.contains(controller),
++                    })
++                    .collect();
++                let saved = plan.restore.as_ref().and_then(|restore| {
++                    restore
++                        .receivers
++                        .get(id)
++                        .filter(|origin| origin.matches(controller))
++                        .and_then(|_| restore.original.get(id))
++                });
++                let replacement = if plan.restore.is_none() {
++                    plan.request.receivers.get(id).map(Vec::as_slice)
++                } else {
++                    None
++                };
++                let audio = AudioPlan::audience(
++                    self,
++                    &members,
++                    member,
++                    &state,
++                    &scope,
++                    &owner,
++                    replacement,
++                    saved,
++                    rules,
++                    &control,
++                )?;
++                let gate = muted_source
++                    .as_ref()
++                    .filter(|source| source.matches(controller))
++                    .map(|_| {
++                        if plan.restore.is_some() {
++                            StreamGateAction::Mute
++                        } else {
++                            StreamGateAction::Unmute
++                        }
++                    });
++                let mut ports = Vec::new();
++                if let Some(action) = gate {
++                    let ids = state
++                        .active
++                        .iter()
++                        .filter(|(_, p)| {
++                            p.binding.negotiated.requested.medium == Medium::Audio
++                                && p.binding.negotiated.requested.direction != StreamDirection::Send
++                        })
++                        .map(|(id, _)| id.clone())
++                        .collect::<BTreeSet<_>>();
++                    if ids.is_empty() {
++                        return Err(StreamControlError::NotReady);
++                    }
++                    if plan.restore.is_none()
++                        && ids.iter().any(|id| !state.model.streams()[id].source_muted)
++                    {
++                        return Err(StreamControlError::Authority);
++                    }
++                    state
++                        .model
++                        .validate_gate(&owner.current(), plan.expected[id], &ids, action)?;
++                    for id in ids {
++                        let port = state.active[&id].clone();
++                        let old = port.ticket();
++                        let next = old.stage().ok_or(MediaTransitionError::Capacity)?;
++                        ports.push((port, old, next));
++                    }
++                }
++                drop(state);
++                targets.push(AudienceTarget {
++                    controller: controller.clone(),
++                    credential,
++                    control,
++                    audio,
++                    ports,
++                    gate,
++                });
++            }
++            (targets, groups, muted_source)
++        };
++        let mut tokens = vec![cancel.clone()];
++        let mut tickets = Vec::new();
++        for target in &targets {
++            current(target, deadline, &cancel)?;
++            tokens.push(target.control.cancellation.clone());
++            tokens.push(target.controller.shutdown.clone());
++            tokens.push(target.audio.cancellation());
++            tickets.extend(target.audio.tickets());
++            tickets.extend(target.ports.iter().map(|(_, old, _)| old.clone()));
++        }
++        let mut drained = Vec::new();
++        for ticket in tickets {
++            drained.push(tokio::select!{biased;
++            _=audio_consumer::any_cancelled(tokens.clone())=>return Err(StreamControlError::Cancelled),
++            result=tokio::time::timeout_at(deadline,ticket.quiesce())=>result.map_err(|_|StreamControlError::Deadline)?.ok_or(MediaTransitionError::Conflict)?,
++        });
++        }
++        let (outcome, commit, committed_at) = {
++            let members = self.members.lock().unwrap_or_else(|p| p.into_inner());
++            let mut registry = self.audiences.lock().unwrap_or_else(|p| p.into_inner());
++            if !exact_members(&members, &plan)
++                || registry.revision != plan.request.expected_revision
++                || registry.revision == u64::MAX
++            {
++                return Err(MediaTransitionError::Conflict.into());
++            }
++            let mut owners = Vec::new();
++            let mut receive = Vec::new();
++            // Validate one receiver at a time: another receiver is often also
++            // its publisher. Holding all state locks here would reenter them.
++            for target in &targets {
++                current(target, deadline, &cancel)?;
++                let id = &target.controller.connection;
++                let member = &members[id];
++                let state = target
++                    .controller
++                    .state
++                    .lock()
++                    .unwrap_or_else(|p| p.into_inner());
++                let scope = target
++                    .controller
++                    .scope(&target.credential.principal, MediaPurpose::Control);
++                let owner = target.control.authority()?;
++                StreamController::check(&scope, &owner)?;
++                state
++                    .model
++                    .check_routing(&owner.current(), plan.expected[id])?;
++                receive.extend(target.audio.validate(
++                    self,
++                    &members,
++                    member,
++                    &state,
++                    &scope,
++                    &owner,
++                    Some(&target.control),
++                    None,
++                )?);
++                owners.push(owner);
++            }
++            let mut states = targets
++                .iter()
++                .map(|t| t.controller.state.lock().unwrap_or_else(|p| p.into_inner()))
++                .collect::<Vec<_>>();
++            let mut models = Vec::new();
++            let mut revisions = BTreeMap::new();
++            for ((target, state), owner) in targets.iter().zip(&states).zip(&owners) {
++                current(target, deadline, &cancel)?;
++                if state.closed {
++                    return Err(StreamControlError::Cancelled);
++                }
++                let id = &target.controller.connection;
++                let mut next = state
++                    .model
++                    .routing_candidate(&owner.current(), plan.expected[id])?;
++                if let Some(action) = target.gate {
++                    let ids = target
++                        .ports
++                        .iter()
++                        .map(|(p, _, _)| p.binding.negotiated.requested.logical_id.clone())
++                        .collect();
++                    next.set_gates(&owner.current(), plan.expected[id], &ids, action)?;
++                } else {
++                    next.commit_routing(
++                        &owner.current(),
++                        plan.expected[id],
++                        target.audio.changed(),
++                    )?;
++                }
++                revisions.insert(id.clone(), next.revision());
++                models.push(next);
++            }
++            let mut commits = targets
++                .iter()
++                .map(|t| t.audio.lock())
++                .collect::<ControlResult<Vec<_>>>()?;
++            for target in &targets {
++                current(target, deadline, &cancel)?;
++            }
++            // No fallible work after the first model or programme is published.
++            for (((target, state), model), commit) in targets
++                .iter()
++                .zip(states.iter_mut())
++                .zip(models)
++                .zip(commits.iter_mut())
++            {
++                state.model = model;
++                for (port, old, next) in &target.ports {
++                    assert!(next.commit_from(old));
++                    *port.ticket.lock().unwrap_or_else(|p| p.into_inner()) = next.clone();
++                }
++                commit.commit(&target.audio);
++            }
++            registry.groups = next_groups;
++            if let Some(id) = &plan.request.activate_muted {
++                registry.preparations.remove(id);
++            }
++            registry.revision += 1;
++            let departed = receiver_origins
++                .iter()
++                .filter(|(_, origin)| !members.values().any(|m| origin.matches(&m.controller)))
++                .map(|(id, _)| id.clone())
++                .collect();
++            let commit = AudioAudienceCommit {
++                targets: targets
++                    .iter()
++                    .zip(&states)
++                    .map(|(target, state)| {
++                        let id = target.controller.connection.clone();
++                        (
++                            id.clone(),
++                            AudienceCommitTarget {
++                                controller: Arc::downgrade(&target.controller),
++                                credential: target.credential.clone(),
++                                previous: plan.expected[&id],
++                                revision: state.model.revision(),
++                                ports: state.active.values().map(Arc::downgrade).collect(),
++                            },
++                        )
++                    })
++                    .collect(),
++            };
++            (
++                AudioAudienceOutcome {
++                    operation_id: plan.request.operation_id.clone(),
++                    audience_revision: registry.revision,
++                    receiver_revisions: revisions,
++                    restored: plan.restore.is_some(),
++                    departed_connections: departed,
++                },
++                commit,
++                Instant::now(),
++            )
++        };
++        drop(drained);
++        self.selection_changed.notify_waiters();
++        let handle = AudioAudienceHandle {
++            scene: self.id,
++            group: plan.group.clone(),
++            original,
++            receivers: receiver_origins,
++            muted_source,
++            committed_at,
++            commit,
++        };
++        Ok((outcome, handle))
++    }
++}
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/audio_consumer.rs b/crates/foundation/rvoip-core/src/staged_streams/audio_consumer.rs
+--- a/crates/foundation/rvoip-core/src/staged_streams/audio_consumer.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/audio_consumer.rs
+@@ -14,6 +14,42 @@
+     pub(super) subscriptions: Arc<super::audio_subscriptions::SubscriptionGate>,
+     state: Mutex<ConsumerState>,
+     cancellation: CancellationToken,
++    decoded: Mutex<Option<DecodedAudio>>,
++    pub(super) decoded_changed: tokio::sync::Notify,
++}
++struct DecodedAudio {
++    port: Weak<Port>,
++    ticket: PeerRouteTicket,
++    consumer: Option<ConsumerStamp>,
++    admitted_at: Instant,
++}
++impl AudioConsumer {
++    pub(super) fn observed_decoded(&self, packet: &MediaPacket) {
++        *self.decoded.lock().unwrap_or_else(|p| p.into_inner()) = Some(DecodedAudio {
++            port: Arc::downgrade(&packet.source),
++            ticket: packet.ticket.clone(),
++            consumer: packet.consumer.clone(),
++            admitted_at: packet.admitted_at,
++        });
++        self.decoded_changed.notify_waiters();
++    }
++    pub(super) fn decoded_since(&self, controller: &StreamController, since: Instant) -> bool {
++        self.decoded
++            .lock()
++            .unwrap_or_else(|p| p.into_inner())
++            .as_ref()
++            .is_some_and(|d| {
++                d.admitted_at >= since
++                    && d.admitted_at.elapsed() <= Duration::from_millis(200)
++                    && d.ticket.is_current()
++                    && d.consumer.as_ref().is_some_and(ConsumerStamp::is_current)
++                    && d.port.upgrade().is_some_and(|p| {
++                        p.owner
++                            .upgrade()
++                            .is_some_and(|c| std::ptr::eq(c.as_ref(), controller))
++                    })
++            })
++    }
+ }
+ impl Drop for AudioConsumer {
+     fn drop(&mut self) {
+@@ -112,6 +148,8 @@
+                 started: Instant::now(),
+             }),
+             cancellation: CancellationToken::new(),
++            decoded: Mutex::new(None),
++            decoded_changed: tokio::sync::Notify::new(),
+         })
+     }
+     pub(super) fn activate(&self, speaks: bool) {
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/audio_subscriptions.rs b/crates/foundation/rvoip-core/src/staged_streams/audio_subscriptions.rs
+--- a/crates/foundation/rvoip-core/src/staged_streams/audio_subscriptions.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/audio_subscriptions.rs
+@@ -1,4 +1,5 @@
+ //! Retained audio selection intent. Grants are rederived for every frame.
++use super::audience::{same_rules, AudioAudienceRule};
+ use super::media_scene::{GuardedMediaScene, SceneMember};
+ use super::*;
+ use crate::ids::ParticipantId;
+@@ -12,6 +13,9 @@
+ #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
+ pub enum AudioSubscription {
+     Stream(MediaStreamRef),
++    /// The selected audio of this exact admitted Connection, including a later
++    /// logical audio replacement. Other devices of its owner are excluded.
++    Connection(ConnectionId),
+     /// All current and future selected audio streams of this admitted owner.
+     Participant(ParticipantId),
+ }
+@@ -51,6 +55,13 @@
+                         .upgrade()
+                         .is_some_and(|original| std::ptr::eq(original.as_ref(), source))
+             }
++            AudioSubscription::Connection(id) => {
++                id == &source.connection
++                    && self
++                        .publisher
++                        .upgrade()
++                        .is_some_and(|old| std::ptr::eq(old.as_ref(), source))
++            }
+             AudioSubscription::Participant(id) => id == source.origin_member.participant(),
+         }
+     }
+@@ -60,7 +71,9 @@
+             && self.origin.epoch() == other.origin.epoch()
+             && self.owner.has_same_owner(&other.owner)
+             && match self.request {
+-                AudioSubscription::Stream(_) => Weak::ptr_eq(&self.publisher, &other.publisher),
++                AudioSubscription::Stream(_) | AudioSubscription::Connection(_) => {
++                    Weak::ptr_eq(&self.publisher, &other.publisher)
++                }
+                 _ => true,
+             }
+     }
+@@ -89,8 +102,16 @@
+                 .all(|selection| other.selections.iter().any(|other| selection.same(other)))
+     }
+ }
++#[derive(Clone)]
++pub(super) struct SavedAudioProgram(Program);
++impl Default for SavedAudioProgram {
++    fn default() -> Self {
++        Self(Program::default())
++    }
++}
+ struct GateState {
+     ticket: PeerRouteTicket,
++    rules: Vec<AudioAudienceRule>,
+     program: Program,
+     started: Instant,
+ }
+@@ -104,10 +125,43 @@
+             state: Mutex::new(GateState {
+                 ticket: PeerRouteTicket::initial(),
+                 program: Program::default(),
++                rules: Vec::new(),
+                 started: Instant::now(),
+             }),
+             cancel: CancellationToken::new(),
+         })
++    }
++    pub(super) fn saved_program(&self) -> SavedAudioProgram {
++        SavedAudioProgram(
++            self.state
++                .lock()
++                .unwrap_or_else(|p| p.into_inner())
++                .program
++                .clone(),
++        )
++    }
++    pub(super) fn rules(&self) -> Vec<AudioAudienceRule> {
++        self.state
++            .lock()
++            .unwrap_or_else(|p| p.into_inner())
++            .rules
++            .clone()
++    }
++    pub(super) fn add_new_source_rule(&self, rule: AudioAudienceRule) {
++        let mut state = self.state.lock().unwrap_or_else(|p| p.into_inner());
++        assert!(!state
++            .rules
++            .iter()
++            .any(|old| old.group.operation == rule.group.operation));
++        state.rules.push(rule);
++    }
++    pub(super) fn initial_rules(&self, rules: Vec<AudioAudienceRule>) {
++        let mut state = self.state.lock().unwrap_or_else(|p| p.into_inner());
++        assert!(
++            state.program.selections.is_empty() && state.program.excluded.is_empty(),
++            "only a new inactive member receives initial audience rules"
++        );
++        state.rules = rules;
+     }
+     pub(super) fn exact_keys(&self, ids: &[StreamId]) -> Vec<MediaStreamRef> {
+         self.state
+@@ -185,6 +239,7 @@
+         if self.cancel.is_cancelled()
+             || !self.ticket.is_current()
+             || !state.program.allows(source, logical)
++            || state.rules.iter().any(|rule| !rule.allows(source))
+         {
+             return Err(StreamControlError::Authority);
+         }
+@@ -210,6 +265,7 @@
+                 && items.len() <= 128
+                 && items.iter().all(|item| match item {
+                     AudioSubscription::Stream(item) => key(item),
++                    AudioSubscription::Connection(id) => identifier(id.as_str()),
+                     AudioSubscription::Participant(id) => identifier(id.as_str()),
+                 })
+         }
+@@ -273,6 +329,7 @@
+         target_state: Option<&State>,
+         target_owner: &MediaOwner,
+         prepared: Option<&[ReadyMediaBinding]>,
++        planned_rules: Option<&[AudioAudienceRule]>,
+     ) -> ControlResult<Vec<ControlRead>> {
+         let mut leases = Vec::new();
+         let AudioSubscriptionChange::Subscribe(requests) = change else {
+@@ -326,6 +383,14 @@
+                                 && selection.matches(&source.controller, &logical)
+                         })
+                     }
++                    AudioSubscription::Connection(id) => {
++                        &source.controller.connection == id
++                            && selection.owner_matches(&source.controller)
++                            && selection
++                                .publisher
++                                .upgrade()
++                                .is_some_and(|old| Arc::ptr_eq(&old, &source.controller))
++                    }
+                     AudioSubscription::Participant(id) => {
+                         source.controller.origin_member.participant() == id
+                             && selection.owner_matches(&source.controller)
+@@ -336,6 +401,25 @@
+                 return Err(StreamControlError::NotReady);
+             }
+             for source in sources {
++                let current_rules;
++                let rules = match planned_rules {
++                    Some(rules) => rules,
++                    None => {
++                        current_rules = target.audio_consumer.subscriptions.rules();
++                        &current_rules
++                    }
++                };
++                if rules.iter().any(|rule| !rule.allows(&source.controller)) {
++                    // A retained Participant programme may span an old public
++                    // device and a separately quarantined private Context. The
++                    // audience filters that broad intent on actual IO; it must
++                    // not prevent restoring the allowed public device. Exact
++                    // source requests still fail rather than imply access.
++                    if matches!(request, AudioSubscription::Participant(_)) {
++                        continue;
++                    }
++                    return Err(StreamControlError::Authority);
++                }
+                 let source_credential = source.controller.credential_snapshot();
+                 source
+                     .controller
+@@ -378,7 +462,10 @@
+                     source.current_descriptor(&state, true)
+                 };
+                 let descriptor = match (request, descriptor) {
+-                    (AudioSubscription::Participant(_), Err(StreamControlError::NotReady)) => None,
++                    (
++                        AudioSubscription::Participant(_) | AudioSubscription::Connection(_),
++                        Err(StreamControlError::NotReady),
++                    ) => None,
+                     (_, result) => result?,
+                 };
+                 let authority = if let Some(descriptor) = descriptor {
+@@ -398,9 +485,12 @@
+                         }
+                     }
+                 } else {
+-                    let AudioSubscription::Participant(_) = request else {
++                    if !matches!(
++                        request,
++                        AudioSubscription::Participant(_) | AudioSubscription::Connection(_)
++                    ) {
+                         return Err(StreamControlError::NotReady);
+-                    };
++                    }
+                     let descriptor = MediaParticipantSource {
+                         conversation: source.controller.conversation.clone(),
+                         session: source.controller.session.clone(),
+@@ -445,6 +535,7 @@
+     next: Option<PeerRouteTicket>,
+     program: Program,
+     change: AudioSubscriptionChange,
++    rules: Option<Vec<AudioAudienceRule>>,
+ }
+ impl AudioPlan {
+     pub(super) fn prepare(
+@@ -458,55 +549,79 @@
+         control: Option<&MediaControl>,
+         prepared: Option<&[ReadyMediaBinding]>,
+     ) -> ControlResult<Self> {
++        Self::prepare_inner(
++            scene, members, target, state, scope, owner, change, control, prepared, None, true,
++            None,
++        )
++    }
++    fn prepare_inner(
++        scene: &GuardedMediaScene,
++        members: &std::collections::HashMap<ConnectionId, SceneMember>,
++        target: &SceneMember,
++        state: &State,
++        scope: &MediaScope<'_>,
++        owner: &MediaOwner,
++        change: &AudioSubscriptionChange,
++        control: Option<&MediaControl>,
++        prepared: Option<&[ReadyMediaBinding]>,
++        replacement: Option<&SavedAudioProgram>,
++        apply_change: bool,
++        rules: Option<Vec<AudioAudienceRule>>,
++    ) -> ControlResult<Self> {
+         let gate = target.audio_consumer.subscriptions.clone();
+-        let mut program = gate
+-            .state
+-            .lock()
+-            .unwrap_or_else(|p| p.into_inner())
+-            .program
+-            .clone();
+-        match change {
+-            AudioSubscriptionChange::Clear => program = Program::default(),
+-            AudioSubscriptionChange::Unsubscribe(keys) => {
+-                for key in keys {
+-                    program.selections.retain(|selection| {
+-                        selection.request != AudioSubscription::Stream(key.clone())
+-                    });
+-                    program.excluded.insert(key.clone());
++        let mut program = replacement
++            .map(|saved| saved.0.clone())
++            .unwrap_or_else(|| gate.saved_program().0);
++        if apply_change {
++            match change {
++                AudioSubscriptionChange::Clear => program = Program::default(),
++                AudioSubscriptionChange::Unsubscribe(keys) => {
++                    for key in keys {
++                        program.selections.retain(|selection| {
++                            selection.request != AudioSubscription::Stream(key.clone())
++                        });
++                        program.excluded.insert(key.clone());
++                    }
+                 }
+-            }
+-            AudioSubscriptionChange::Subscribe(selections) => {
+-                for request in selections {
+-                    let source = members
+-                        .values()
+-                        .find(|member| match request {
++                AudioSubscriptionChange::Subscribe(selections) => {
++                    for request in selections {
++                        let source = members
++                            .values()
++                            .find(|member| match request {
++                                AudioSubscription::Stream(key) => {
++                                    member.controller.connection == key.connection
++                                        && member.current_logical().as_ref() == Some(&key.logical)
++                                }
++                                AudioSubscription::Connection(id) => {
++                                    &member.controller.connection == id
++                                }
++                                AudioSubscription::Participant(id) => {
++                                    member.controller.origin_member.participant() == id
++                                }
++                            })
++                            .ok_or(StreamControlError::NotReady)?;
++                        let selection = Selection {
++                            request: request.clone(),
++                            origin: source.controller.origin_member.clone(),
++                            owner: source.controller.credential_snapshot().principal,
++                            publisher: Arc::downgrade(&source.controller),
++                        };
++                        program.selections.retain(|old| old.request != *request);
++                        program.selections.push(selection);
++                        match request {
++                            AudioSubscription::Connection(id) => {
++                                program.excluded.retain(|key| &key.connection != id);
++                            }
+                             AudioSubscription::Stream(key) => {
+-                                member.controller.connection == key.connection
+-                                    && member.current_logical().as_ref() == Some(&key.logical)
++                                program.excluded.remove(key);
+                             }
+                             AudioSubscription::Participant(id) => {
+-                                member.controller.origin_member.participant() == id
++                                program.excluded.retain(|key| {
++                                    members.get(&key.connection).is_none_or(|member| {
++                                        member.controller.origin_member.participant() != id
++                                    })
++                                });
+                             }
+-                        })
+-                        .ok_or(StreamControlError::NotReady)?;
+-                    let selection = Selection {
+-                        request: request.clone(),
+-                        origin: source.controller.origin_member.clone(),
+-                        owner: source.controller.credential_snapshot().principal,
+-                        publisher: Arc::downgrade(&source.controller),
+-                    };
+-                    program.selections.retain(|old| old.request != *request);
+-                    program.selections.push(selection);
+-                    match request {
+-                        AudioSubscription::Stream(key) => {
+-                            program.excluded.remove(key);
+-                        }
+-                        AudioSubscription::Participant(id) => {
+-                            program.excluded.retain(|key| {
+-                                members.get(&key.connection).is_none_or(|member| {
+-                                    member.controller.origin_member.participant() != id
+-                                })
+-                            });
+                         }
+                     }
+                 }
+@@ -526,6 +641,7 @@
+             Some(state),
+             owner,
+             prepared,
++            rules.as_deref(),
+         )?;
+         let old = gate.stamp();
+         let changed = !gate
+@@ -534,6 +650,10 @@
+             .unwrap_or_else(|p| p.into_inner())
+             .program
+             .same(&program);
++        let changed = changed
++            || rules
++                .as_ref()
++                .is_some_and(|next| !same_rules(&gate.rules(), next));
+         let next = if changed {
+             Some(old.ticket.stage().ok_or(MediaTransitionError::Capacity)?)
+         } else {
+@@ -545,7 +665,81 @@
+             next,
+             program,
+             change: change.clone(),
++            rules,
+         })
++    }
++    pub(super) fn audience(
++        scene: &GuardedMediaScene,
++        members: &std::collections::HashMap<ConnectionId, SceneMember>,
++        target: &SceneMember,
++        state: &State,
++        scope: &MediaScope<'_>,
++        owner: &MediaOwner,
++        replacement: Option<&[AudioSubscription]>,
++        saved: Option<&SavedAudioProgram>,
++        rules: Vec<AudioAudienceRule>,
++        control: &MediaControl,
++    ) -> ControlResult<Self> {
++        let base = if let Some(saved) = saved {
++            let mut saved = saved.clone();
++            saved.0.selections.retain(|selection| {
++                members.values().any(|source| {
++                    !source.controller.shutdown.is_cancelled()
++                        && selection.owner_matches(&source.controller)
++                        && match &selection.request {
++                            AudioSubscription::Participant(_) => true,
++                            AudioSubscription::Connection(id) => {
++                                id == &source.controller.connection
++                                    && selection
++                                        .publisher
++                                        .upgrade()
++                                        .is_some_and(|old| Arc::ptr_eq(&old, &source.controller))
++                            }
++                            AudioSubscription::Stream(key) => {
++                                selection.matches(&source.controller, &key.logical)
++                                    && source.current_logical().as_ref() == Some(&key.logical)
++                            }
++                        }
++                })
++            });
++            saved
++        } else {
++            SavedAudioProgram::default()
++        };
++        let requests = replacement.map(|r| r.to_vec()).unwrap_or_else(|| {
++            base.0
++                .selections
++                .iter()
++                .map(|s| s.request.clone())
++                .collect()
++        });
++        let change = if requests.is_empty() {
++            AudioSubscriptionChange::Clear
++        } else {
++            AudioSubscriptionChange::Subscribe(requests)
++        };
++        let apply_change = saved.is_none() && replacement.is_some();
++        let existing;
++        let replacement = if replacement.is_none() && saved.is_none() {
++            existing = target.audio_consumer.subscriptions.saved_program();
++            &existing
++        } else {
++            &base
++        };
++        Self::prepare_inner(
++            scene,
++            members,
++            target,
++            state,
++            scope,
++            owner,
++            &change,
++            Some(control),
++            None,
++            Some(replacement),
++            apply_change,
++            Some(rules),
++        )
+     }
+     pub(super) fn validate(
+         &self,
+@@ -571,6 +765,7 @@
+             Some(state),
+             owner,
+             prepared,
++            self.rules.as_deref(),
+         )
+     }
+     pub(super) fn tickets(&self) -> Vec<PeerRouteTicket> {
+@@ -604,6 +799,9 @@
+             );
+             self.0.ticket = next.clone();
+             self.0.program = plan.program.clone();
++            if let Some(rules) = &plan.rules {
++                self.0.rules = rules.clone();
++            }
+             self.0.started = Instant::now();
+         }
+     }
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/consultation.rs b/crates/foundation/rvoip-core/src/staged_streams/consultation.rs
+new file mode 100644
+--- /dev/null
++++ b/crates/foundation/rvoip-core/src/staged_streams/consultation.rs
+@@ -0,0 +1,225 @@
++//! General private consultation lifecycle in one retained managed Session.
++//!
++//! The host creates/adopts a private leg with the existing bounded admission
++//! operation first. Failed leg creation never switches the original bridge.
++//! The engine owns audience isolation, hold, actual audio observation and
++//! restoration. Prompts, provider Context content and business approval belong
++//! to the host. Handles retain metadata, never a live authorization reader.
++use super::{
++    audience::*, audio_subscriptions::AudioSubscription, media_scene::GuardedMediaScene, *,
++};
++
++#[derive(Clone, Debug, PartialEq, Eq)]
++pub struct PrivateConsultationRequest {
++    pub operation_id: String,
++    pub expected_revision: u64,
++    pub primary: ConnectionId,
++    pub remote: ConnectionId,
++    pub consultant: ConnectionId,
++    /// None means silence. Some selects an already admitted, authorized source;
++    /// no prompt or hold-media bytes are interpreted by this engine.
++    pub hold_source: Option<ConnectionId>,
++}
++#[derive(Clone)]
++pub struct PrivateConsultationPlan {
++    audience: AudioAudiencePlan,
++    primary: AudienceOrigin,
++    remote: AudienceOrigin,
++    consultant: AudienceOrigin,
++}
++impl PrivateConsultationPlan {
++    pub fn audience(&self) -> &AudioAudiencePlan {
++        &self.audience
++    }
++}
++#[derive(Clone)]
++pub struct PrivateConsultationHandle {
++    audience: AudioAudienceHandle,
++    primary: AudienceOrigin,
++    remote: AudienceOrigin,
++    consultant: AudienceOrigin,
++}
++impl PrivateConsultationHandle {
++    pub fn audience(&self) -> &AudioAudienceHandle {
++        &self.audience
++    }
++}
++/// Bounded media preparation outcome, not Connection.ready or presence.
++/// A non-audio outcome requires a fresh, authorized restore operation. The
++/// private audience remains closed while restoration is pending or denied.
++#[derive(Clone, Copy, Debug, PartialEq, Eq)]
++pub enum PrivateConsultationMediaOutcome {
++    DecodedAudioObserved,
++    MediaTimeout,
++    Cancelled,
++    PrimaryEnded,
++    RemoteEnded,
++    ConsultantEnded,
++    AlreadyRestored,
++}
++impl GuardedMediaScene {
++    pub(crate) fn plan_private_consultation(
++        &self,
++        request: PrivateConsultationRequest,
++    ) -> ControlResult<PrivateConsultationPlan> {
++        if request.primary == request.remote
++            || request.primary == request.consultant
++            || request.remote == request.consultant
++            || request.hold_source.as_ref().is_some_and(|id| {
++                id == &request.primary || id == &request.remote || id == &request.consultant
++            })
++        {
++            return Err(MediaTransitionError::Invalid.into());
++        }
++        let (primary, remote, consultant) = {
++            let members = self.members.lock().unwrap_or_else(|p| p.into_inner());
++            let get = |id: &ConnectionId| {
++                members
++                    .get(id)
++                    .map(|m| AudienceOrigin::new(&m.controller))
++                    .ok_or(StreamControlError::NotReady)
++            };
++            (
++                get(&request.primary)?,
++                get(&request.remote)?,
++                get(&request.consultant)?,
++            )
++        };
++        let source = |id: ConnectionId| vec![AudioSubscription::Connection(id)];
++        let audience = self.plan_audio_audience(AudioAudienceRequest {
++            operation_id: request.operation_id,
++            expected_revision: request.expected_revision,
++            private_connections: BTreeSet::from([
++                request.primary.clone(),
++                request.consultant.clone(),
++            ]),
++            receivers: BTreeMap::from([
++                (request.primary, source(request.consultant.clone())),
++                (
++                    request.consultant.clone(),
++                    source(primary.connection.clone()),
++                ),
++                (
++                    request.remote,
++                    request.hold_source.map(source).unwrap_or_default(),
++                ),
++            ]),
++            activate_muted: Some(request.consultant),
++        })?;
++        // The plan pins every admitted controller, including the retained remote.
++        for origin in [&primary, &remote, &consultant] {
++            if !audience
++                .controllers
++                .get(&origin.connection)
++                .is_some_and(|c| Weak::ptr_eq(c, &origin.controller))
++            {
++                return Err(MediaTransitionError::Conflict.into());
++            }
++        }
++        Ok(PrivateConsultationPlan {
++            audience,
++            primary,
++            remote,
++            consultant,
++        })
++    }
++    pub(crate) async fn start_private_consultation(
++        &self,
++        plan: PrivateConsultationPlan,
++        deadline: tokio::time::Instant,
++        cancel: CancellationToken,
++        held: &(dyn Any + Send + Sync),
++    ) -> ControlResult<(AudioAudienceOutcome, PrivateConsultationHandle)> {
++        let (outcome, audience) = self
++            .apply_audio_audience(plan.audience, deadline, cancel, held)
++            .await?;
++        Ok((
++            outcome,
++            PrivateConsultationHandle {
++                audience,
++                primary: plan.primary,
++                remote: plan.remote,
++                consultant: plan.consultant,
++            },
++        ))
++    }
++    pub(crate) async fn wait_private_consultation_audio(
++        &self,
++        handle: &PrivateConsultationHandle,
++        deadline: tokio::time::Instant,
++        cancel: CancellationToken,
++    ) -> ControlResult<PrivateConsultationMediaOutcome> {
++        use PrivateConsultationMediaOutcome as Outcome;
++        if handle.audience.scene != self.id {
++            return Err(StreamControlError::Authority);
++        }
++        loop {
++            // Register before inspecting state so neither a decoded frame nor a
++            // departure can be lost between inspection and sleeping.
++            let membership = self.selection_changed.notified();
++            tokio::pin!(membership);
++            membership.as_mut().enable();
++            let (consumer, primary_lifetime, remote_lifetime) = {
++                let members = self.members.lock().unwrap_or_else(|p| p.into_inner());
++                let registry = self.audiences.lock().unwrap_or_else(|p| p.into_inner());
++                if !registry
++                    .groups
++                    .get(&handle.audience.group.operation)
++                    .is_some_and(|g| Arc::ptr_eq(g, &handle.audience.group))
++                {
++                    return Ok(Outcome::AlreadyRestored);
++                }
++                for (origin, ended) in [
++                    (&handle.primary, Outcome::PrimaryEnded),
++                    (&handle.remote, Outcome::RemoteEnded),
++                    (&handle.consultant, Outcome::ConsultantEnded),
++                ] {
++                    if !members.get(&origin.connection).is_some_and(|m| {
++                        origin.matches(&m.controller) && !m.controller.shutdown.is_cancelled()
++                    }) {
++                        return Ok(ended);
++                    }
++                }
++                (
++                    members[&handle.consultant.connection]
++                        .audio_consumer
++                        .clone(),
++                    members[&handle.primary.connection]
++                        .controller
++                        .shutdown
++                        .clone(),
++                    members[&handle.remote.connection]
++                        .controller
++                        .shutdown
++                        .clone(),
++                )
++            };
++            let audio = consumer.decoded_changed.notified();
++            tokio::pin!(audio);
++            audio.as_mut().enable();
++            if cancel.is_cancelled() {
++                return Ok(Outcome::Cancelled);
++            }
++            if tokio::time::Instant::now() >= deadline {
++                return Ok(Outcome::MediaTimeout);
++            }
++            let controller = handle
++                .consultant
++                .controller
++                .upgrade()
++                .ok_or(StreamControlError::NotReady)?;
++            if consumer.decoded_since(&controller, handle.audience.committed_at) {
++                return Ok(Outcome::DecodedAudioObserved);
++            }
++            tokio::select! { biased;
++                _=cancel.cancelled()=>return Ok(Outcome::Cancelled),
++                _=tokio::time::sleep_until(deadline)=>return Ok(Outcome::MediaTimeout),
++                _=&mut membership=>{},
++                _=&mut audio=>{},
++                _=controller.shutdown.cancelled()=>{},
++                _=primary_lifetime.cancelled()=>{},
++                _=remote_lifetime.cancelled()=>{},
++            }
++        }
++    }
++}
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/guarded_audio.rs b/crates/foundation/rvoip-core/src/staged_streams/guarded_audio.rs
+--- a/crates/foundation/rvoip-core/src/staged_streams/guarded_audio.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/guarded_audio.rs
+@@ -225,7 +225,12 @@
+             self.codecs = codecs;
+             self.pending.clear();
+             self.previous_sources.clear();
+-            self.target_started = Instant::now().max(self.stamp.started);
++            self.target_started = self
++                .ticket
++                .committed_at()
++                .ok_or(StreamControlError::NotReady)?
++                .max(self.stamp.started)
++                .max(self.subscriptions.stamp().started);
+         }
+         Ok(())
+     }
+@@ -253,6 +258,9 @@
+             };
+             if tokio::time::Instant::now() >= deadline {
+                 continue;
++            }
++            if !samples.is_empty() {
++                self.consumer.observed_decoded(&packet);
+             }
+             self.pending.push_back(Chunk {
+                 packet,
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/media_scene.rs b/crates/foundation/rvoip-core/src/staged_streams/media_scene.rs
+--- a/crates/foundation/rvoip-core/src/staged_streams/media_scene.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/media_scene.rs
+@@ -28,6 +28,7 @@
+     ports: Vec<Arc<Port>>,
+     flight: Option<OwnedSemaphorePermit>,
+     prepared: Option<Vec<PeerQuiescenceGuard>>,
++    private_preparation: Option<super::audience::PreparedPrivateAudience>,
+ }
+ impl Drop for SceneMember {
+     fn drop(&mut self) {
+@@ -84,11 +85,22 @@
+         deadline: tokio::time::Instant,
+         cancel: CancellationToken,
+     ) -> ControlResult<()> {
++        let deadline = deadline.min(
++            self.private_preparation
++                .as_ref()
++                .map_or(deadline, |p| p.control.deadline),
++        );
++        let private_cancel = self
++            .private_preparation
++            .as_ref()
++            .map(|p| p.control.cancellation.clone())
++            .unwrap_or_default();
+         let mut guards = Vec::new();
+         for port in &self.ports {
+             let ticket = port.ticket();
+             guards.push(tokio::select! {biased;
+             _=cancel.cancelled()=>return Err(StreamControlError::Cancelled),
++            _=private_cancel.cancelled()=>return Err(StreamControlError::Cancelled),
+             _=self.controller.shutdown.cancelled()=>return Err(StreamControlError::Cancelled),
+             result=tokio::time::timeout_at(deadline,ticket.quiesce())=>result.map_err(|_|StreamControlError::Deadline)?.ok_or(MediaTransitionError::Conflict)?,
+         });
+@@ -102,7 +114,17 @@
+             .state
+             .lock()
+             .unwrap_or_else(|p| p.into_inner());
++        let private_current = self.private_preparation.as_ref().is_none_or(|p| {
++            let credential = self.controller.credential_snapshot();
++            let scope = self
++                .controller
++                .scope(&credential.principal, MediaPurpose::Control);
++            p.control
++                .authority()
++                .is_ok_and(|owner| StreamController::check(&scope, &owner).is_ok())
++        });
+         self.prepared.is_some()
++            && private_current
+             && !s.closed
+             && !self.controller.shutdown.is_cancelled()
+             && self.ports.iter().all(|port| {
+@@ -134,6 +156,7 @@
+         Mutex<BTreeMap<ConnectionId, Arc<super::selection_intent::SelectionProgram>>>,
+     pub(super) selection_changed: Arc<tokio::sync::Notify>,
+     pub(super) members: Mutex<HashMap<ConnectionId, SceneMember>>,
++    pub(super) audiences: Arc<Mutex<super::audience::AudienceState>>,
+     audio: Arc<GuardedAudioMixer>,
+ }
+ impl GuardedMediaScene {
+@@ -153,12 +176,28 @@
+             selections: Mutex::new(BTreeMap::new()),
+             selection_changed: Arc::new(tokio::sync::Notify::new()),
+             members: Mutex::new(HashMap::new()),
++            audiences: Arc::new(Mutex::new(super::audience::AudienceState::default())),
+         })
+     }
+     pub(crate) fn selection_changes(&self) -> Arc<tokio::sync::Notify> {
+         self.selection_changed.clone()
+     }
+     pub(crate) fn prepare(&self, controller: Arc<StreamController>) -> ControlResult<SceneMember> {
++        self.prepare_inner(controller, None)
++    }
++    pub(crate) fn prepare_private(
++        &self,
++        controller: Arc<StreamController>,
++        operation: &str,
++        held: &(dyn Any + Send + Sync),
++    ) -> ControlResult<SceneMember> {
++        self.prepare_inner(controller, Some((operation, held)))
++    }
++    fn prepare_inner(
++        &self,
++        controller: Arc<StreamController>,
++        private: Option<(&str, &(dyn Any + Send + Sync))>,
++    ) -> ControlResult<SceneMember> {
+         if controller.conversation != self.conversation
+             || controller.session != self.session
+             || !Arc::ptr_eq(&controller.policy, &self.policy)
+@@ -178,6 +217,52 @@
+         if state.closed || controller.shutdown.is_cancelled() {
+             return Err(StreamControlError::Cancelled);
+         }
++        let private_preparation = if let Some((operation, held)) = private {
++            let credential = controller.credential_snapshot();
++            let scope = controller.scope(&credential.principal, MediaPurpose::Control);
++            let control = controller.policy.current_control(
++                &scope,
++                &MediaControlIntent::PreparePrivateAudio {
++                    operation,
++                    expected: state.model.revision(),
++                },
++                held,
++            )?;
++            let owner = control.authority()?;
++            StreamController::check(&scope, &owner)?;
++            state
++                .model
++                .check_routing(&owner.current(), state.model.revision())?;
++            if state.active.is_empty()
++                || state
++                    .active
++                    .values()
++                    .any(|p| p.binding.negotiated.requested.medium != Medium::Audio)
++                || !state.model.streams().values().any(|s| {
++                    s.negotiated.requested.direction != StreamDirection::Send
++                        && s.state != LogicalStreamState::Ended
++                })
++                || state
++                    .model
++                    .streams()
++                    .values()
++                    .filter(|s| {
++                        s.state != LogicalStreamState::Ended
++                            && s.negotiated.requested.direction != StreamDirection::Send
++                    })
++                    .any(|s| !s.source_muted)
++            {
++                return Err(StreamControlError::Unsupported);
++            }
++            Some(super::audience::PreparedPrivateAudience::reserve(
++                &self.audiences,
++                &controller,
++                operation,
++                control,
++            )?)
++        } else {
++            None
++        };
+         let ports = state.active.values().cloned().collect::<Vec<_>>();
+         if ports.is_empty() {
+             return Err(StreamControlError::NotReady);
+@@ -261,6 +346,7 @@
+             ports,
+             flight: Some(flight),
+             prepared: None,
++            private_preparation,
+         })
+     }
+     pub(crate) fn insert(&self, id: ConnectionId, mut member: SceneMember, speaks: bool) {
+@@ -268,6 +354,29 @@
+             member.prepared.is_some(),
+             "scene member must drain original sends before admission"
+         );
++        let mut members = self.members.lock().unwrap_or_else(|p| p.into_inner());
++        assert!(
++            !members.contains_key(&id),
++            "a prepared scene member cannot replace an active controller"
++        );
++        {
++            let mut audiences = self.audiences.lock().unwrap_or_else(|p| p.into_inner());
++            if let Some(mut private) = member.private_preparation.take() {
++                private.commit(&mut audiences, &member.controller);
++                for previous in members.values() {
++                    previous.audio_consumer.subscriptions.add_new_source_rule(
++                        super::audience::AudioAudienceRule {
++                            group: private.group.clone(),
++                            inside: private.group.contains(&previous.controller),
++                        },
++                    );
++                }
++            }
++            member
++                .audio_consumer
++                .subscriptions
++                .initial_rules(audiences.rules(&member.controller));
++        }
+         member.consumer.activate();
+         member.audio_consumer.activate(speaks);
+         if let Some(mut audio) = member.audio.take() {
+@@ -278,10 +387,7 @@
+         member.prepared.take();
+         member.ports.clear();
+         member.flight.take();
+-        self.members
+-            .lock()
+-            .unwrap_or_else(|p| p.into_inner())
+-            .insert(id, member);
++        members.insert(id, member);
+         self.selection_changed.notify_waiters();
+     }
+     pub(crate) fn remove(&self, id: &ConnectionId) {
+@@ -291,6 +397,15 @@
+             member.audio_consumer.retire();
+             self.audio.detach(id);
+         }
++        {
++            let mut audiences = self.audiences.lock().unwrap_or_else(|p| p.into_inner());
++            audiences.preparations.remove(id);
++            audiences.groups.retain(|_, group| {
++                members
++                    .values()
++                    .any(|member| group.contains(&member.controller))
++            });
++        }
+         self.selections
+             .lock()
+             .unwrap_or_else(|p| p.into_inner())
+@@ -303,6 +418,12 @@
+             member.consumer.retire();
+             member.audio_consumer.retire();
+             self.audio.detach(&id);
++        }
++        {
++            let mut audiences = self.audiences.lock().unwrap_or_else(|p| p.into_inner());
++            audiences.groups.clear();
++            audiences.preparations.clear();
++            audiences.pending.clear();
+         }
+         self.selections
+             .lock()
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/tests.rs b/crates/foundation/rvoip-core/src/staged_streams/tests.rs
+--- a/crates/foundation/rvoip-core/src/staged_streams/tests.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests.rs
+@@ -2641,3 +2641,5 @@
+     drop(held);
+     assert_eq!(f.a.shutdown(deadline()).await, 0);
+ }
++
++mod private_consult;
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/tests/private_consult.rs b/crates/foundation/rvoip-core/src/staged_streams/tests/private_consult.rs
+new file mode 100644
+--- /dev/null
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/private_consult.rs
+@@ -0,0 +1,1185 @@
++use super::*;
++use crate::staged_streams::{audience::*, audio_subscriptions::*, media_scene::GuardedMediaScene};
++struct Domain {
++    base: Arc<Policy>,
++    fresh: AtomicUsize,
++}
++enum Approval {
++    Prepare {
++        connection: ConnectionId,
++        operation: String,
++        expected: u64,
++    },
++    Audience(AudioAudiencePlan),
++}
++struct Grant {
++    domain: Arc<Domain>,
++    guard: Arc<OwnedRwLockReadGuard<PolicyState>>,
++    approval: Approval,
++}
++struct Held {
++    grant: Arc<Grant>,
++    owner: MediaOwner,
++}
++impl MediaAuthorityLease for Held {
++    fn authority(&self) -> &MediaOwner {
++        &self.owner
++    }
++    fn control_receive(&self, source: &MediaSource) -> ControlResult<Box<MediaOwner>> {
++        let old = self
++            .grant
++            .guard
++            .owners
++            .get(source.connection.as_str())
++            .ok_or(StreamControlError::Authority)?;
++        old.connection
++            .require_current(&old.member, &old.presence)
++            .map_err(|_| StreamControlError::Authority)?;
++        if self.grant.guard.private
++            || self
++                .grant
++                .guard
++                .revoked
++                .contains(&old.actor.identity().to_string())
++            || source.conversation != *old.member.conversation()
++            || source.session != *old.presence.session()
++            || source.participant != *old.member.participant()
++            || source.membership_epoch != old.member.epoch()
++            || source.connection_generation != old.connection.generation()
++        {
++            return Err(StreamControlError::Authority);
++        }
++        let mut owner = self.owner.clone();
++        owner.may_route_source = true;
++        Ok(Box::new(owner))
++    }
++    fn control_participant_receive(
++        &self,
++        source: &MediaParticipantSource,
++    ) -> ControlResult<Box<MediaOwner>> {
++        future_participant_owner(
++            &self.grant.guard,
++            self.owner.connection.connection(),
++            source,
++        )
++        .map(Box::new)
++    }
++}
++impl MediaPolicy for Domain {
++    fn current(&self, scope: &MediaScope<'_>) -> ControlResult<Box<dyn MediaAuthorityLease>> {
++        self.fresh.fetch_add(1, Ordering::AcqRel);
++        self.base.current(scope)
++    }
++    fn current_participant_receive(
++        &self,
++        scope: &MediaScope<'_>,
++        source: &MediaParticipantSource,
++    ) -> ControlResult<Box<dyn MediaAuthorityLease>> {
++        self.base.current_participant_receive(scope, source)
++    }
++    fn current_control(
++        &self,
++        scope: &MediaScope<'_>,
++        intent: &MediaControlIntent<'_>,
++        held: &(dyn Any + Send + Sync),
++    ) -> ControlResult<MediaControl> {
++        let grant = held
++            .downcast_ref::<Arc<Grant>>()
++            .ok_or(StreamControlError::Authority)?;
++        if !Arc::ptr_eq(&self.base, &grant.domain.base)
++            || grant.guard.private
++            || grant.guard.revoked.contains("alice")
++            || !grant
++                .guard
++                .owners
++                .get("alice")
++                .is_some_and(|owner| owner.may_control)
++        {
++            return Err(StreamControlError::Authority);
++        }
++        let valid = match (&grant.approval, intent) {
++            (
++                Approval::Prepare {
++                    connection,
++                    operation,
++                    expected,
++                },
++                MediaControlIntent::PreparePrivateAudio {
++                    operation: actual,
++                    expected: revision,
++                },
++            ) => connection == scope.connection && operation == actual && expected == revision,
++            (Approval::Audience(approved), MediaControlIntent::AudioAudience { plan }) => {
++                approved.same_intent(plan)
++                    && plan
++                        .expected_receiver_revisions()
++                        .contains_key(scope.connection)
++            }
++            _ => false,
++        };
++        if !valid || grant.guard.revoked.contains(&scope.principal.subject) {
++            return Err(StreamControlError::Authority);
++        }
++        let owner = grant
++            .guard
++            .owners
++            .get(scope.connection.as_str())
++            .ok_or(StreamControlError::Authority)?
++            .clone();
++        owner
++            .actor
++            .revalidate_principal(scope.principal, chrono::Utc::now())
++            .map_err(|_| StreamControlError::Authority)?;
++        MediaControl::new(
++            Box::new(Held {
++                grant: grant.clone(),
++                owner,
++            }),
++            CancellationToken::new(),
++            deadline(),
++        )
++    }
++}
++struct Node {
++    controller: Arc<StreamController>,
++    adapter: Arc<Adapter>,
++    out: mpsc::Receiver<QueuedMedia>,
++    sequence: u32,
++}
++struct Room {
++    domain: Arc<Domain>,
++    scene: Arc<GuardedMediaScene>,
++    nodes: BTreeMap<String, Node>,
++}
++impl Room {
++    async fn new() -> Self {
++        let base = Arc::new(Policy(Arc::new(RwLock::new(PolicyState {
++            owners: HashMap::new(),
++            revoked: HashSet::new(),
++            private: false,
++        }))));
++        let domain = Arc::new(Domain {
++            base,
++            fresh: AtomicUsize::new(0),
++        });
++        let scene = GuardedMediaScene::new(
++            ConversationId::from_string("conversation"),
++            SessionId::from_string("session"),
++            domain.clone(),
++            8000,
++        );
++        let mut r = Self {
++            domain,
++            scene,
++            nodes: BTreeMap::new(),
++        };
++        for name in ["alice", "bob", "public", "hold"] {
++            r.add(name, None, false).await;
++        }
++        r.select(
++            "alice",
++            vec![AudioSubscription::Connection(ConnectionId::from_string(
++                "bob",
++            ))],
++        )
++        .await;
++        r.select(
++            "bob",
++            vec![
++                AudioSubscription::Connection(ConnectionId::from_string("alice")),
++                AudioSubscription::Participant(
++                    r.nodes["public"]
++                        .controller
++                        .origin_member
++                        .participant()
++                        .clone(),
++                ),
++            ],
++        )
++        .await;
++        r.select(
++            "public",
++            vec![AudioSubscription::Connection(ConnectionId::from_string(
++                "alice",
++            ))],
++        )
++        .await;
++        r
++    }
++    async fn grant(&self, approval: Approval) -> Arc<Grant> {
++        Arc::new(Grant {
++            domain: self.domain.clone(),
++            guard: Arc::new(self.domain.base.0.clone().read_owned().await),
++            approval,
++        })
++    }
++    async fn add(&mut self, name: &str, alias: Option<&str>, private: bool) {
++        let subject = alias.unwrap_or(name);
++        let mut o = owner(subject);
++        if alias.is_some() {
++            o.connection = ConnectionBinding::prepare(
++                &o.member,
++                &o.presence,
++                &o.endpoint,
++                ConnectionId::from_string(name),
++            )
++            .unwrap();
++            o.connection
++                .observe_ready(&o.member, &o.presence, &o.endpoint, 1)
++                .unwrap();
++            o.connection
++                .activate(&o.member, &o.presence, &o.endpoint)
++                .unwrap();
++        }
++        self.domain
++            .base
++            .0
++            .write()
++            .await
++            .owners
++            .insert(name.into(), o);
++        let adapter = Adapter::new();
++        let c = StreamController::new(
++            ConversationId::from_string("conversation"),
++            SessionId::from_string("session"),
++            ConnectionId::from_string(name),
++            principal(subject),
++            self.domain.clone(),
++            adapter.clone(),
++            Arc::new(StreamHandleAllocator::default()),
++            16,
++        )
++        .unwrap();
++        c.change(
++            0,
++            &[desired(Medium::Audio)],
++            &BTreeSet::new(),
++            deadline(),
++            CancellationToken::new(),
++        )
++        .await
++        .unwrap();
++        let grant = if private {
++            c.set_media_gate(
++                c.revision(),
++                &BTreeSet::from([desired(Medium::Audio).logical_id]),
++                StreamGateAction::Mute,
++                deadline(),
++            )
++            .await
++            .unwrap();
++            Some(
++                self.grant(Approval::Prepare {
++                    connection: c.connection.clone(),
++                    operation: format!("prepare-{name}"),
++                    expected: c.revision(),
++                })
++                .await,
++            )
++        } else {
++            None
++        };
++        let mut member = match &grant {
++            Some(g) => self
++                .scene
++                .prepare_private(c.clone(), &format!("prepare-{name}"), g)
++                .unwrap(),
++            None => self.scene.prepare(c.clone()).unwrap(),
++        };
++        member
++            .quiesce(deadline(), CancellationToken::new())
++            .await
++            .unwrap();
++        assert!(member.ready());
++        self.scene.insert(c.connection.clone(), member, true);
++        drop(grant);
++        let out = adapter.port(Medium::Audio).take_egress().unwrap();
++        self.nodes.insert(
++            name.into(),
++            Node {
++                controller: c,
++                adapter,
++                out,
++                sequence: 0,
++            },
++        );
++    }
++    async fn select(&self, target: &str, sources: Vec<AudioSubscription>) {
++        let c = &self.nodes[target].controller;
++        self.scene
++            .change_subscriptions(
++                &c.connection,
++                c.revision(),
++                AudioSubscriptionChange::Subscribe(sources),
++                deadline(),
++                CancellationToken::new(),
++                None,
++            )
++            .await
++            .unwrap();
++    }
++    fn publish(&mut self, name: &str, sample: i16) -> ControlResult<()> {
++        use rvoip_media_core::{codec::factory::CodecFactory, AudioFrame};
++        let n = self.nodes.get_mut(name).unwrap();
++        n.sequence += 1;
++        let p = n.adapter.port(Medium::Audio);
++        let mut f = frame(&p, n.sequence);
++        let mut codec = CodecFactory::create_codec(0, Some(8000), Some(1)).unwrap();
++        f.payload = codec
++            .encode(&AudioFrame {
++                samples: vec![sample; 160],
++                sample_rate: 8000,
++                channels: 1,
++                duration: Duration::from_millis(20),
++                timestamp: n.sequence,
++            })
++            .unwrap()
++            .into();
++        p.try_publish(&f)
++    }
++    fn tick(&self) {
++        self.scene.tick();
++    }
++    async fn heard(&mut self, name: &str, sample: i16) {
++        outgoing(&mut self.nodes.get_mut(name).unwrap().out)
++            .await
++            .deliver(move |f| async move {
++                use rvoip_media_core::codec::factory::CodecFactory;
++                let mut codec = CodecFactory::create_codec(0, Some(8000), Some(1)).unwrap();
++                let a = codec.decode(&f.payload).unwrap();
++                let mean =
++                    a.samples.iter().map(|s| i32::from(*s)).sum::<i32>() / a.samples.len() as i32;
++                assert!(
++                    (mean - i32::from(sample)).abs() < 400,
++                    "speaker expected {sample}, got {mean}"
++                );
++                Ok(())
++            })
++            .await
++            .unwrap();
++    }
++    fn silent(&mut self, names: &[&str]) {
++        for name in names {
++            assert!(
++                self.nodes.get_mut(*name).unwrap().out.try_recv().is_err(),
++                "unexpected audio at {name}"
++            );
++        }
++    }
++    fn begin_plan(&self) -> AudioAudiencePlan {
++        self.scene
++            .plan_audio_audience(AudioAudienceRequest {
++                operation_id: "consult-1".into(),
++                expected_revision: self.scene.audience_revision(),
++                private_connections: BTreeSet::from([
++                    ConnectionId::from_string("alice"),
++                    ConnectionId::from_string("consult"),
++                ]),
++                receivers: BTreeMap::from([
++                    (
++                        ConnectionId::from_string("alice"),
++                        vec![AudioSubscription::Connection(ConnectionId::from_string(
++                            "consult",
++                        ))],
++                    ),
++                    (
++                        ConnectionId::from_string("consult"),
++                        vec![AudioSubscription::Connection(ConnectionId::from_string(
++                            "alice",
++                        ))],
++                    ),
++                    (
++                        ConnectionId::from_string("bob"),
++                        vec![AudioSubscription::Connection(ConnectionId::from_string(
++                            "hold",
++                        ))],
++                    ),
++                ]),
++                activate_muted: Some(ConnectionId::from_string("consult")),
++            })
++            .unwrap()
++    }
++    async fn apply(
++        &self,
++        plan: AudioAudiencePlan,
++    ) -> ControlResult<(AudioAudienceOutcome, AudioAudienceHandle)> {
++        let grant = self.grant(Approval::Audience(plan.clone())).await;
++        self.scene
++            .apply_audio_audience(plan, deadline(), CancellationToken::new(), &grant)
++            .await
++    }
++}
++#[tokio::test]
++async fn private_audience_quarantines_same_participant_context_and_restores_decoded_main_audio() {
++    let mut r = Room::new().await;
++    let bindings = r
++        .nodes
++        .iter()
++        .map(|(id, n)| (id.clone(), n.controller.active_bindings()[0].clone()))
++        .collect::<BTreeMap<_, _>>();
++    r.publish("alice", 800).unwrap();
++    r.tick();
++    r.heard("bob", 800).await;
++    r.heard("public", 800).await;
++    r.add("consult", Some("public"), true).await;
++    assert!(r.publish("consult", 5200).is_err());
++    let c = &r.nodes["consult"].controller;
++    c.set_media_gate(
++        c.revision(),
++        &BTreeSet::from([desired(Medium::Audio).logical_id.clone()]),
++        StreamGateAction::Unmute,
++        deadline(),
++    )
++    .await
++    .unwrap();
++    r.publish("consult", 5200).unwrap();
++    r.tick();
++    r.silent(&["alice", "bob", "public", "hold", "consult"]);
++    let c = &r.nodes["consult"].controller;
++    c.set_media_gate(
++        c.revision(),
++        &BTreeSet::from([desired(Medium::Audio).logical_id.clone()]),
++        StreamGateAction::Mute,
++        deadline(),
++    )
++    .await
++    .unwrap();
++    r.publish("alice", 800).unwrap();
++    r.tick();
++    let old = r.nodes.get_mut("bob").unwrap().out.try_recv().unwrap();
++    r.heard("public", 800).await;
++    let (started, handle) = r.apply(r.begin_plan()).await.unwrap();
++    assert!(!started.restored);
++    assert!(old
++        .deliver(|_| async { panic!("old main audio crossed audience boundary") })
++        .await
++        .is_err());
++    r.publish("alice", 800).unwrap();
++    r.tick();
++    r.heard("consult", 800).await;
++    r.silent(&["bob", "public", "hold", "alice"]);
++    r.publish("consult", 5200).unwrap();
++    r.tick();
++    r.heard("alice", 5200).await;
++    r.silent(&["bob", "public", "hold", "consult"]);
++    r.publish("hold", 10400).unwrap();
++    r.tick();
++    r.heard("bob", 10400).await;
++    r.silent(&["alice", "consult", "public"]);
++    r.publish("bob", 2400).unwrap();
++    r.tick();
++    r.silent(&["alice", "consult", "public", "hold"]);
++    for (target, source) in [
++        ("bob", "consult"),
++        ("public", "alice"),
++        ("alice", "bob"),
++        ("consult", "public"),
++    ] {
++        let c = &r.nodes[target].controller;
++        assert!(r
++            .scene
++            .change_subscriptions(
++                &c.connection,
++                c.revision(),
++                AudioSubscriptionChange::Subscribe(vec![AudioSubscription::Connection(
++                    ConnectionId::from_string(source)
++                )]),
++                deadline(),
++                CancellationToken::new(),
++                None
++            )
++            .await
++            .is_err());
++    }
++    r.publish("consult", 5200).unwrap();
++    r.tick();
++    let private = r.nodes.get_mut("alice").unwrap().out.try_recv().unwrap();
++    let plan = r
++        .scene
++        .plan_restore_audio_audience(&handle, "restore-1".into(), r.scene.audience_revision())
++        .unwrap();
++    let (restored, _) = r.apply(plan).await.unwrap();
++    assert!(restored.restored);
++    assert!(private
++        .deliver(|_| async { panic!("private tail crossed restore") })
++        .await
++        .is_err());
++    r.publish("alice", 800).unwrap();
++    r.tick();
++    r.heard("bob", 800).await;
++    r.heard("public", 800).await;
++    r.silent(&["consult"]);
++    r.publish("bob", 2400).unwrap();
++    r.tick();
++    r.heard("alice", 2400).await;
++    // Uncertain provider cleanup cannot make its old private Context public.
++    let c = &r.nodes["consult"].controller;
++    c.set_media_gate(
++        c.revision(),
++        &BTreeSet::from([desired(Medium::Audio).logical_id]),
++        StreamGateAction::Unmute,
++        deadline(),
++    )
++    .await
++    .unwrap();
++    r.publish("consult", 5200).unwrap();
++    r.tick();
++    r.silent(&["alice", "bob", "public", "hold"]);
++    r.publish("public", -3600).unwrap();
++    r.tick();
++    r.heard("bob", -3600).await;
++    for (id, old) in bindings {
++        let n = &r.nodes[&id];
++        let now = &n.controller.active_bindings()[0];
++        assert_eq!(old.transport_id, now.transport_id);
++        assert_eq!(old.stream_local_id, now.stream_local_id);
++        assert_eq!(n.controller.stream_open_budget().0, 1);
++    }
++    drop(
++        tokio::time::timeout(Duration::from_secs(1), r.domain.base.0.write())
++            .await
++            .unwrap(),
++    );
++}
++
++#[tokio::test]
++async fn private_audience_cancel_timeout_and_dropped_drain_preserve_every_original_programme() {
++    for mode in ["cancel", "timeout", "drop"] {
++        let mut r = Room::new().await;
++        r.add("consult", Some("public"), true).await;
++        r.publish("alice", 800).unwrap();
++        r.tick();
++        let queued = r.nodes.get_mut("bob").unwrap().out.try_recv().unwrap();
++        r.heard("public", 800).await;
++        let entered = Arc::new(Notify::new());
++        let release = Arc::new(Notify::new());
++        let sending = tokio::spawn({
++            let entered = entered.clone();
++            let release = release.clone();
++            async move {
++                queued
++                    .deliver(|_| async move {
++                        entered.notify_one();
++                        release.notified().await;
++                        Ok(())
++                    })
++                    .await
++            }
++        });
++        entered.notified().await;
++        let revisions = r
++            .nodes
++            .iter()
++            .map(|(id, n)| (id.clone(), n.controller.revision()))
++            .collect::<BTreeMap<_, _>>();
++        let audience = r.scene.audience_revision();
++        let plan = r.begin_plan();
++        let grant = r.grant(Approval::Audience(plan.clone())).await;
++        let cancel = CancellationToken::new();
++        let work = tokio::spawn({
++            let scene = r.scene.clone();
++            let cancel = cancel.clone();
++            async move {
++                scene
++                    .apply_audio_audience(
++                        plan,
++                        if mode == "timeout" {
++                            tokio::time::Instant::now() + Duration::from_millis(30)
++                        } else {
++                            deadline()
++                        },
++                        cancel,
++                        &grant,
++                    )
++                    .await
++            }
++        });
++        tokio::time::sleep(Duration::from_millis(10)).await;
++        assert!(
++            !work.is_finished(),
++            "the actual admitted send must fence publication"
++        );
++        if mode == "cancel" {
++            cancel.cancel();
++        }
++        if mode == "drop" {
++            work.abort();
++        }
++        match mode {
++            "drop" => assert!(matches!(work.await, Err(e) if e.is_cancelled())),
++            "cancel" => assert!(matches!(
++                work.await.unwrap(),
++                Err(StreamControlError::Cancelled)
++            )),
++            _ => assert!(matches!(
++                work.await.unwrap(),
++                Err(StreamControlError::Deadline)
++            )),
++        }
++        assert_eq!(audience, r.scene.audience_revision());
++        for (id, revision) in revisions {
++            assert_eq!(
++                revision,
++                r.nodes[&id].controller.revision(),
++                "partial audience at {id}"
++            );
++        }
++        release.notify_one();
++        sending.await.unwrap().unwrap();
++        r.publish("alice", 800).unwrap();
++        r.tick();
++        r.heard("bob", 800).await;
++        r.heard("public", 800).await;
++        r.silent(&["consult"]);
++        assert!(r.publish("consult", 5200).is_err());
++        drop(
++            tokio::time::timeout(Duration::from_secs(1), r.domain.base.0.write())
++                .await
++                .unwrap(),
++        );
++        let (_, handle) = r.apply(r.begin_plan()).await.unwrap();
++        let plan = r
++            .scene
++            .plan_restore_audio_audience(
++                &handle,
++                "retry-restore".into(),
++                r.scene.audience_revision(),
++            )
++            .unwrap();
++        r.apply(plan).await.unwrap();
++    }
++}
++
++#[tokio::test]
++async fn private_audience_reuses_actual_grant_under_queued_writer_and_future_media_rechecks_policy()
++{
++    let mut r = Room::new().await;
++    r.add("consult", Some("public"), true).await;
++    let plan = r.begin_plan();
++    let grant = r.grant(Approval::Audience(plan.clone())).await;
++    let writer = tokio::spawn({
++        let state = r.domain.base.0.clone();
++        async move {
++            state.write().await.revoked.insert("alice".into());
++        }
++    });
++    tokio::time::sleep(Duration::from_millis(10)).await;
++    let fresh = r.domain.fresh.load(Ordering::Acquire);
++    let (_, handle) = tokio::time::timeout(
++        Duration::from_secs(1),
++        r.scene
++            .apply_audio_audience(plan, deadline(), CancellationToken::new(), &grant),
++    )
++    .await
++    .unwrap()
++    .unwrap();
++    assert_eq!(fresh, r.domain.fresh.load(Ordering::Acquire));
++    drop(grant);
++    tokio::time::timeout(Duration::from_secs(1), writer)
++        .await
++        .unwrap()
++        .unwrap();
++    assert!(r.publish("alice", 800).is_err());
++    let restore = r
++        .scene
++        .plan_restore_audio_audience(
++            &handle,
++            "denied-restore".into(),
++            r.scene.audience_revision(),
++        )
++        .unwrap();
++    assert!(matches!(
++        r.apply(restore).await,
++        Err(StreamControlError::Authority)
++    ));
++    r.domain.base.0.write().await.revoked.remove("alice");
++    let restore = r
++        .scene
++        .plan_restore_audio_audience(&handle, "fresh-restore".into(), r.scene.audience_revision())
++        .unwrap();
++    r.apply(restore).await.unwrap();
++    r.publish("alice", 800).unwrap();
++    r.tick();
++    r.heard("bob", 800).await;
++    r.heard("public", 800).await;
++}
++
++#[tokio::test]
++async fn private_audience_foreign_denied_and_stale_whole_intents_never_publish_partial_routes() {
++    let mut r = Room::new().await;
++    r.add("consult", Some("public"), true).await;
++    let foreign = Room::new().await;
++    let plan = r.begin_plan();
++    let grant = r.grant(Approval::Audience(plan.clone())).await;
++    assert!(matches!(
++        foreign
++            .scene
++            .apply_audio_audience(plan.clone(), deadline(), CancellationToken::new(), &grant)
++            .await,
++        Err(StreamControlError::Authority)
++    ));
++    // Caller fields cannot substitute for the actual scene-issued plan.
++    let other = r.begin_plan();
++    assert!(matches!(
++        r.scene
++            .apply_audio_audience(other, deadline(), CancellationToken::new(), &grant)
++            .await,
++        Err(StreamControlError::Authority)
++    ));
++    drop(grant);
++    r.select(
++        "bob",
++        vec![AudioSubscription::Connection(ConnectionId::from_string(
++            "hold",
++        ))],
++    )
++    .await;
++    let before = r.scene.audience_revision();
++    assert!(r.apply(plan).await.is_err());
++    assert_eq!(before, r.scene.audience_revision());
++    r.publish("alice", 800).unwrap();
++    r.tick();
++    r.heard("bob", 800).await;
++    r.heard("public", 800).await;
++    r.silent(&["consult"]);
++    assert!(r.publish("consult", 5200).is_err());
++}
++
++#[tokio::test]
++async fn private_audience_remote_hangup_restores_survivors_and_reports_departed_connection() {
++    let mut r = Room::new().await;
++    r.add("consult", Some("public"), true).await;
++    let (_, handle) = r.apply(r.begin_plan()).await.unwrap();
++    r.publish("consult", 5200).unwrap();
++    r.tick();
++    let tail = r.nodes.get_mut("alice").unwrap().out.try_recv().unwrap();
++    r.scene.remove(&ConnectionId::from_string("bob"));
++    let plan = r
++        .scene
++        .plan_restore_audio_audience(&handle, "remote-ended".into(), r.scene.audience_revision())
++        .unwrap();
++    let (outcome, _) = r.apply(plan).await.unwrap();
++    assert_eq!(
++        outcome.departed_connections,
++        BTreeSet::from([ConnectionId::from_string("bob")])
++    );
++    assert!(tail
++        .deliver(|_| async { panic!("private tail survived recovery") })
++        .await
++        .is_err());
++    r.publish("alice", 800).unwrap();
++    r.tick();
++    r.heard("public", 800).await;
++    r.silent(&["consult", "bob"]);
++    assert!(r.publish("consult", 5200).is_err());
++    r.publish("bob", 2400).unwrap_err();
++    r.tick();
++    r.silent(&["alice", "consult", "public"]);
++}
++
++impl Room {
++    fn consultation_plan(&self) -> crate::staged_streams::consultation::PrivateConsultationPlan {
++        use crate::staged_streams::consultation::*;
++        self.scene
++            .plan_private_consultation(PrivateConsultationRequest {
++                operation_id: "private-call".into(),
++                expected_revision: self.scene.audience_revision(),
++                primary: ConnectionId::from_string("alice"),
++                remote: ConnectionId::from_string("bob"),
++                consultant: ConnectionId::from_string("consult"),
++                hold_source: Some(ConnectionId::from_string("hold")),
++            })
++            .unwrap()
++    }
++    async fn start_consultation(
++        &self,
++    ) -> crate::staged_streams::consultation::PrivateConsultationHandle {
++        let plan = self.consultation_plan();
++        let grant = self
++            .grant(Approval::Audience(plan.audience().clone()))
++            .await;
++        self.scene
++            .start_private_consultation(plan, deadline(), CancellationToken::new(), &grant)
++            .await
++            .unwrap()
++            .1
++    }
++    async fn restore_consultation(
++        &self,
++        handle: &crate::staged_streams::consultation::PrivateConsultationHandle,
++    ) -> AudioAudienceOutcome {
++        let plan = self
++            .scene
++            .plan_restore_audio_audience(
++                handle.audience(),
++                "consult-restore".into(),
++                self.scene.audience_revision(),
++            )
++            .unwrap();
++        self.apply(plan).await.unwrap().0
++    }
++}
++
++#[tokio::test]
++async fn private_consultation_actual_decoded_audio_is_scoped_to_the_new_private_connection() {
++    use crate::staged_streams::consultation::PrivateConsultationMediaOutcome as O;
++    let mut r = Room::new().await;
++    r.add("consult", Some("public"), true).await;
++    let handle = r.start_consultation().await;
++    r.publish("public", -3600).unwrap();
++    r.tick();
++    // Remote playback is explicitly on hold; activity on the old public AI
++    // neither leaves that hold programme nor readies the private AI Context.
++    r.silent(&["alice", "bob", "consult", "public"]);
++    assert_eq!(
++        r.scene
++            .wait_private_consultation_audio(
++                &handle,
++                tokio::time::Instant::now() + Duration::from_millis(20),
++                CancellationToken::new()
++            )
++            .await
++            .unwrap(),
++        O::MediaTimeout
++    );
++    let scene = r.scene.clone();
++    let wait_handle = handle.clone();
++    let waiting = tokio::spawn(async move {
++        scene
++            .wait_private_consultation_audio(&wait_handle, deadline(), CancellationToken::new())
++            .await
++    });
++    tokio::task::yield_now().await;
++    assert!(!waiting.is_finished());
++    r.publish("consult", 5200).unwrap();
++    r.tick();
++    r.heard("alice", 5200).await;
++    r.silent(&["bob", "public"]);
++    assert_eq!(waiting.await.unwrap().unwrap(), O::DecodedAudioObserved);
++    r.restore_consultation(&handle).await;
++    assert_eq!(
++        r.scene
++            .wait_private_consultation_audio(&handle, deadline(), CancellationToken::new())
++            .await
++            .unwrap(),
++        O::AlreadyRestored
++    );
++    r.publish("alice", 800).unwrap();
++    r.tick();
++    r.heard("bob", 800).await;
++    r.heard("public", 800).await;
++    r.silent(&["consult"]);
++}
++
++#[tokio::test]
++async fn private_consultation_timeout_cancel_and_each_hangup_restore_only_surviving_original_paths()
++{
++    use crate::staged_streams::consultation::PrivateConsultationMediaOutcome as O;
++    for (mode, expected) in [
++        ("timeout", O::MediaTimeout),
++        ("cancel", O::Cancelled),
++        ("bob", O::RemoteEnded),
++        ("consult", O::ConsultantEnded),
++        ("alice", O::PrimaryEnded),
++    ] {
++        let mut r = Room::new().await;
++        r.add("consult", Some("public"), true).await;
++        let handle = r.start_consultation().await;
++        // Holding the remote retains its original transport and its independent
++        // public source while the private pair is closed.
++        r.publish("hold", 10400).unwrap();
++        r.tick();
++        r.heard("bob", 10400).await;
++        r.silent(&["alice", "consult", "public"]);
++        let cancel = CancellationToken::new();
++        let scene = r.scene.clone();
++        let wait_handle = handle.clone();
++        let wait_cancel = cancel.clone();
++        let waiting = tokio::spawn(async move {
++            scene
++                .wait_private_consultation_audio(
++                    &wait_handle,
++                    tokio::time::Instant::now() + Duration::from_millis(60),
++                    wait_cancel,
++                )
++                .await
++        });
++        tokio::task::yield_now().await;
++        if mode == "cancel" {
++            cancel.cancel();
++        }
++        if ["bob", "consult", "alice"].contains(&mode) {
++            r.nodes[mode].controller.shutdown.cancel();
++        }
++        assert_eq!(waiting.await.unwrap().unwrap(), expected);
++        if ["bob", "consult", "alice"].contains(&mode) {
++            r.scene.remove(&ConnectionId::from_string(mode));
++        }
++        let restored = r.restore_consultation(&handle).await;
++        assert!(restored.restored);
++        assert_eq!(
++            restored.departed_connections.len(),
++            usize::from(["bob", "consult", "alice"].contains(&mode))
++        );
++        if mode != "alice" {
++            r.publish("alice", 800).unwrap();
++            r.tick();
++            r.heard("public", 800).await;
++            if mode != "bob" {
++                r.heard("bob", 800).await;
++            }
++            r.silent(&["consult"]);
++        }
++        if mode != "alice" && mode != "bob" {
++            r.publish("bob", 2400).unwrap();
++            r.tick();
++            r.heard("alice", 2400).await;
++        }
++        if mode != "consult" {
++            assert!(r.publish("consult", 5200).is_err());
++        }
++        drop(
++            tokio::time::timeout(Duration::from_secs(1), r.domain.base.0.write())
++                .await
++                .unwrap(),
++        );
++    }
++}
++
++#[tokio::test]
++async fn private_consultation_failed_leg_creation_and_missing_media_leave_main_bridge_untouched() {
++    for mode in [3, 4] {
++        let mut r = Room::new().await;
++        r.domain
++            .base
++            .0
++            .write()
++            .await
++            .owners
++            .insert("consult".into(), owner("consult"));
++        let adapter = Adapter::new();
++        adapter.mode.store(mode, Ordering::Release);
++        let c = StreamController::new(
++            ConversationId::from_string("conversation"),
++            SessionId::from_string("session"),
++            ConnectionId::from_string("consult"),
++            principal("consult"),
++            r.domain.clone(),
++            adapter.clone(),
++            Arc::new(StreamHandleAllocator::default()),
++            16,
++        )
++        .unwrap();
++        let before = r
++            .nodes
++            .iter()
++            .map(|(id, n)| (id.clone(), n.controller.revision()))
++            .collect::<BTreeMap<_, _>>();
++        assert!(c
++            .change(
++                0,
++                &[desired(Medium::Audio)],
++                &BTreeSet::new(),
++                deadline(),
++                CancellationToken::new()
++            )
++            .await
++            .is_err());
++        assert_eq!(r.scene.audience_revision(), 0);
++        assert!(r
++            .scene
++            .plan_audio_audience(AudioAudienceRequest {
++                operation_id: "cannot-start".into(),
++                expected_revision: 0,
++                private_connections: BTreeSet::from([
++                    ConnectionId::from_string("alice"),
++                    ConnectionId::from_string("consult")
++                ]),
++                receivers: BTreeMap::from([(ConnectionId::from_string("alice"), vec![])]),
++                activate_muted: Some(ConnectionId::from_string("consult"))
++            })
++            .is_err());
++        for (id, revision) in before {
++            assert_eq!(r.nodes[&id].controller.revision(), revision);
++        }
++        r.publish("alice", 800).unwrap();
++        r.tick();
++        r.heard("bob", 800).await;
++        r.heard("public", 800).await;
++        r.publish("bob", 2400).unwrap();
++        r.tick();
++        r.heard("alice", 2400).await;
++    }
++}
++
++#[tokio::test]
++async fn private_consultation_new_outside_connection_inherits_the_closed_audience() {
++    let mut r = Room::new().await;
++    r.add("consult", Some("public"), true).await;
++    let handle = r.start_consultation().await;
++    r.add("eve", None, false).await;
++    let c = &r.nodes["eve"].controller;
++    assert!(r
++        .scene
++        .change_subscriptions(
++            &c.connection,
++            c.revision(),
++            AudioSubscriptionChange::Subscribe(vec![AudioSubscription::Connection(
++                ConnectionId::from_string("alice")
++            )]),
++            deadline(),
++            CancellationToken::new(),
++            None
++        )
++        .await
++        .is_err());
++    r.select(
++        "eve",
++        vec![AudioSubscription::Connection(ConnectionId::from_string(
++            "bob",
++        ))],
++    )
++    .await;
++    r.publish("alice", 800).unwrap();
++    r.tick();
++    r.heard("consult", 800).await;
++    r.silent(&["eve", "bob", "public"]);
++    r.publish("bob", 2400).unwrap();
++    r.tick();
++    r.heard("eve", 2400).await;
++    r.silent(&["alice", "consult"]);
++    r.restore_consultation(&handle).await;
++    r.publish("alice", 800).unwrap();
++    r.tick();
++    r.heard("bob", 800).await;
++    r.heard("public", 800).await;
++    r.silent(&["eve", "consult"]);
++}
++
++#[tokio::test]
++async fn private_audience_sealed_commit_cannot_confirm_foreign_or_later_controller_revisions() {
++    let mut r = Room::new().await;
++    r.add("consult", Some("public"), true).await;
++    let before = r.nodes["alice"].controller.revision();
++    let (_, handle) = r.apply(r.begin_plan()).await.unwrap();
++    assert_eq!(
++        handle
++            .commit()
++            .revisions_for(&r.nodes["alice"].controller)
++            .unwrap(),
++        (before, before + 1)
++    );
++    let foreign = Room::new().await;
++    assert!(handle
++        .commit()
++        .revisions_for(&foreign.nodes["alice"].controller)
++        .is_err());
++    let restore = r
++        .scene
++        .plan_restore_audio_audience(&handle, "restore-proof".into(), r.scene.audience_revision())
++        .unwrap();
++    let (_, restored) = r.apply(restore).await.unwrap();
++    assert!(handle
++        .commit()
++        .revisions_for(&r.nodes["alice"].controller)
++        .is_err());
++    assert_eq!(
++        restored
++            .commit()
++            .revisions_for(&r.nodes["alice"].controller)
++            .unwrap(),
++        (before + 1, before + 2)
++    );
++}
++
++#[tokio::test]
++async fn private_consultation_unmuted_preparation_is_rejected_before_taking_source_inputs() {
++    let mut r = Room::new().await;
++    r.domain
++        .base
++        .0
++        .write()
++        .await
++        .owners
++        .insert("consult".into(), owner("consult"));
++    let adapter = Adapter::new();
++    let c = StreamController::new(
++        ConversationId::from_string("conversation"),
++        SessionId::from_string("session"),
++        ConnectionId::from_string("consult"),
++        principal("consult"),
++        r.domain.clone(),
++        adapter.clone(),
++        Arc::new(StreamHandleAllocator::default()),
++        16,
++    )
++    .unwrap();
++    c.change(
++        0,
++        &[desired(Medium::Audio)],
++        &BTreeSet::new(),
++        deadline(),
++        CancellationToken::new(),
++    )
++    .await
++    .unwrap();
++    let grant = r
++        .grant(Approval::Prepare {
++            connection: c.connection.clone(),
++            operation: "unmuted-prepare".into(),
++            expected: c.revision(),
++        })
++        .await;
++    assert!(matches!(
++        r.scene
++            .prepare_private(c.clone(), "unmuted-prepare", &grant),
++        Err(StreamControlError::Unsupported)
++    ));
++    assert!(adapter
++        .port(Medium::Audio)
++        .0
++        .input
++        .lock()
++        .unwrap()
++        .is_some());
++    assert_eq!(r.scene.audience_revision(), 0);
++    drop(grant);
++    c.set_media_gate(
++        c.revision(),
++        &BTreeSet::from([desired(Medium::Audio).logical_id]),
++        StreamGateAction::Mute,
++        deadline(),
++    )
++    .await
++    .unwrap();
++    let grant = r
++        .grant(Approval::Prepare {
++            connection: c.connection.clone(),
++            operation: "unmuted-prepare".into(),
++            expected: c.revision(),
++        })
++        .await;
++    let mut member = r
++        .scene
++        .prepare_private(c.clone(), "unmuted-prepare", &grant)
++        .unwrap();
++    member
++        .quiesce(deadline(), CancellationToken::new())
++        .await
++        .unwrap();
++    assert!(member.ready());
++    // Dropping a prepared but unpublished leg releases its reservation/grant;
++    // it never changes the original programme or activates a private source.
++    drop(member);
++    drop(grant);
++    assert_eq!(r.scene.audience_revision(), 0);
++    r.publish("alice", 800).unwrap();
++    r.tick();
++    r.heard("bob", 800).await;
++    r.heard("public", 800).await;
++    drop(
++        tokio::time::timeout(Duration::from_secs(1), r.domain.base.0.write())
++            .await
++            .unwrap(),
++    );
++}
+diff --git a/crates/foundation/rvoip-core/src/stream_lifecycle.rs b/crates/foundation/rvoip-core/src/stream_lifecycle.rs
+--- a/crates/foundation/rvoip-core/src/stream_lifecycle.rs
++++ b/crates/foundation/rvoip-core/src/stream_lifecycle.rs
+@@ -720,6 +720,28 @@
+         }
+         Ok(())
+     }
++    pub(crate) fn routing_candidate(
++        &self,
++        authority: &CurrentMediaAuthority<'_>,
++        expected: u64,
++    ) -> Result<Self> {
++        self.check_routing(authority, expected)?;
++        if self.revision == u64::MAX {
++            return Err(MediaTransitionError::Capacity);
++        }
++        Ok(Self {
++            controller: self.controller,
++            owner: self.owner.clone(),
++            binding: self.binding.clone(),
++            revision: self.revision,
++            streams: self.streams.clone(),
++            used_transport_ids: self.used_transport_ids.clone(),
++            used_handles: self.used_handles.clone(),
++            pending: self.pending,
++            initial_preparation: self.initial_preparation,
++            opened_limit: self.opened_limit,
++        })
++    }
+     pub(crate) fn commit_routing(
+         &mut self,
+         authority: &CurrentMediaAuthority<'_>,
+diff --git a/crates/uctp/rvoip-uctp/src/v2/native.rs b/crates/uctp/rvoip-uctp/src/v2/native.rs
+--- a/crates/uctp/rvoip-uctp/src/v2/native.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/native.rs
+@@ -146,6 +146,38 @@
+             receiver: Mutex::new(Some(receiver)),
+             allocated: AtomicUsize::new(0),
+         }))
++    }
++    /// Carry existing signed resource confirmation across an actual Core
++    /// audience commit on this exact installed route. This does not authorize
++    /// an operation or assert Connection readiness or Participant presence.
++    pub fn observe_audio_audience_commit(
++        &self,
++        id: &ConnectionId,
++        commit: &rvoip_core::staged_streams::audience::AudioAudienceCommit,
++    ) -> std::result::Result<(), super::native_negotiation::NativeOfferError> {
++        use super::native_negotiation::NativeOfferError;
++        let route = self.routes.get(id).ok_or(NativeOfferError::NotReady)?;
++        if route.cancel.is_cancelled()
++            || route.physical.context.lifetime.is_cancelled()
++            || route.peer.upgrade().is_none_or(|p| p.is_closed())
++        {
++            return Err(NativeOfferError::NotReady);
++        }
++        let installed = route.installation.lock().unwrap_or_else(|p| p.into_inner());
++        let installed = installed.as_ref().ok_or(NativeOfferError::NotReady)?;
++        let (previous, revision) = commit.revisions_for(&installed.controller)?;
++        let flow = &installed.backend.flow;
++        if flow.confirmed_at(revision) {
++            return Ok(());
++        }
++        if !flow.confirmed_at(previous) {
++            return Err(NativeOfferError::Conflict);
++        }
++        flow.controlled_revision(previous, revision);
++        if !flow.confirmed_at(revision) {
++            return Err(NativeOfferError::Conflict);
++        }
++        Ok(())
+     }
+     pub fn route_count(&self) -> usize {
+         self.routes.len()
+diff --git a/crates/uctp/rvoip-uctp/tests/support/canonical_media/native_offers.rs b/crates/uctp/rvoip-uctp/tests/support/canonical_media/native_offers.rs
+--- a/crates/uctp/rvoip-uctp/tests/support/canonical_media/native_offers.rs
++++ b/crates/uctp/rvoip-uctp/tests/support/canonical_media/native_offers.rs
+@@ -138,6 +138,9 @@
+         intent: &MediaControlIntent<'_>,
+         held: &(dyn Any + Send + Sync),
+     ) -> ControlResult<MediaControl> {
++        if let Some(control) = audiences::held(self, s, intent, held) {
++            return control;
++        }
+         if let Some(control) = future_subscriptions::held(self, s, intent, held) {
+             return control;
+         }
+@@ -2202,3 +2205,6 @@
+ 
+ #[path = "native_offers/future_subscriptions.rs"]
+ mod future_subscriptions;
++
++#[path = "native_offers/audiences.rs"]
++mod audiences;
+diff --git a/crates/uctp/rvoip-uctp/tests/support/canonical_media/native_offers/audiences.rs b/crates/uctp/rvoip-uctp/tests/support/canonical_media/native_offers/audiences.rs
+new file mode 100644
+--- /dev/null
++++ b/crates/uctp/rvoip-uctp/tests/support/canonical_media/native_offers/audiences.rs
+@@ -0,0 +1,201 @@
++//! Current host audience grant over real signed-confirmed TLS native routes.
++use super::*;
++use rvoip_core::staged_streams::{audience::*, audio_subscriptions::AudioSubscription};
++struct Invocation {
++    domain: Arc<Grants>,
++    guard: Arc<OwnedRwLockReadGuard<State>>,
++    plan: AudioAudiencePlan,
++}
++struct Held {
++    invocation: Arc<Invocation>,
++    owner: MediaOwner,
++}
++impl MediaAuthorityLease for Held {
++    fn authority(&self) -> &MediaOwner {
++        &self.owner
++    }
++    fn control_receive(&self, source: &MediaSource) -> ControlResult<Box<MediaOwner>> {
++        subscriptions::receive(&self.invocation.guard, self.owner.clone(), source)
++    }
++    fn control_participant_receive(
++        &self,
++        source: &MediaParticipantSource,
++    ) -> ControlResult<Box<MediaOwner>> {
++        future_subscriptions::participant_receive(
++            &self.invocation.guard,
++            self.owner.clone(),
++            source,
++        )
++    }
++}
++pub(super) fn held(
++    domain: &Grants,
++    scope: &MediaScope<'_>,
++    intent: &MediaControlIntent<'_>,
++    held: &(dyn Any + Send + Sync),
++) -> Option<ControlResult<MediaControl>> {
++    let invocation = held.downcast_ref::<Arc<Invocation>>()?;
++    Some((|| {
++        let MediaControlIntent::AudioAudience { plan } = intent else {
++            return Err(StreamControlError::Authority);
++        };
++        if !Arc::ptr_eq(&domain.0, &invocation.domain.0)
++            || invocation.guard.denied
++            || !invocation.plan.same_intent(plan)
++            || !plan
++                .expected_receiver_revisions()
++                .contains_key(scope.connection)
++        {
++            return Err(StreamControlError::Authority);
++        }
++        let mut owner = credential_owner(
++            invocation
++                .guard
++                .owners
++                .get(scope.connection)
++                .ok_or(StreamControlError::Authority)?
++                .clone(),
++            scope.principal,
++        )?;
++        if let Some(a) = invocation
++            .guard
++            .activations
++            .lock()
++            .unwrap()
++            .get(scope.connection)
++        {
++            owner = a.current(owner)?;
++        }
++        owner
++            .actor
++            .revalidate_principal(scope.principal, Utc::now())
++            .map_err(|_| StreamControlError::Authority)?;
++        if !owner.may_control {
++            return Err(StreamControlError::Authority);
++        }
++        MediaControl::new(
++            Box::new(Held {
++                invocation: invocation.clone(),
++                owner,
++            }),
++            CancellationToken::new(),
++            deadline(),
++        )
++    })())
++}
++#[tokio::test]
++async fn actual_native_closed_audience_commit_preserves_signed_confirmation_and_retained_bindings()
++{
++    for kind in ["quic", "wt"] {
++        let mut s = Scene::new_bootstrap(kind).await;
++        let (answer, callback) = s.prepared(lifecycle_offer(&s, 0, 0, "sendrecv")).await;
++        s.confirm(&callback).await;
++        s.wait(1).await;
++        let ah = answer.original()["payload"]["substrate_setup"]["streams"][0]["stream_local_id"]
++            .as_u64()
++            .unwrap() as u16;
++        let mut other = s.second_wire().await;
++        let (answer, callback) =
++            other_prepared(&s, &mut other, lifecycle_offer(&s, 1, 0, "sendrecv")).await;
++        other.send(s.f.sign(s.confirmation(&callback))).await;
++        s.wait(2).await;
++        let bh = answer.original()["payload"]["substrate_setup"]["streams"][0]["stream_local_id"]
++            .as_u64()
++            .unwrap() as u16;
++        let core = &s.native.core.orch;
++        let sid = &s.native.core.session;
++        let adapter = &s.native.adapters[&s.kind];
++        core_fixture::until(|| core.session(sid).unwrap().read().unwrap().connections.len() == 2)
++            .await;
++        let before = s.controller().active_bindings()[0].clone();
++        let revision = s.controller().revision();
++        let source = |id: ConnectionId| vec![AudioSubscription::Connection(id)];
++        let plan = core
++            .plan_staged_audio_audience(
++                sid,
++                AudioAudienceRequest {
++                    operation_id: "native-closed-audience".into(),
++                    expected_revision: core.audio_audience_revision(sid).unwrap(),
++                    private_connections: BTreeSet::from([s.id.clone(), s.second_id.clone()]),
++                    receivers: BTreeMap::from([
++                        (s.id.clone(), source(s.second_id.clone())),
++                        (s.second_id.clone(), source(s.id.clone())),
++                    ]),
++                    activate_muted: None,
++                },
++            )
++            .unwrap();
++        let invocation = Arc::new(Invocation {
++            domain: s.grants.clone(),
++            guard: Arc::new(s.grants.0.clone().read_owned().await),
++            plan: plan.clone(),
++        });
++        let (_, handle) = core
++            .change_staged_audio_audience_with_held(
++                sid,
++                plan,
++                deadline(),
++                CancellationToken::new(),
++                &invocation,
++            )
++            .await
++            .unwrap();
++        drop(invocation);
++        for id in [&s.id, &s.second_id] {
++            adapter
++                .observe_audio_audience_commit(id, handle.commit())
++                .unwrap();
++            adapter
++                .observe_audio_audience_commit(id, handle.commit())
++                .unwrap();
++        }
++        assert_eq!(s.controller().revision(), revision + 1);
++        assert_eq!(
++            s.controller().active_bindings()[0].stream_local_id,
++            before.stream_local_id
++        );
++        assert_eq!(
++            s.controller().active_bindings()[0].transport_id,
++            before.transport_id
++        );
++        // These two signed endpoints belong to the same Participant. MCU
++        // self-echo remains suppressed; distinct-owner Core tests qualify the
++        // decoded consultation paths. Here the proof is retained confirmation.
++        send(&s.wire, encoded_audio(ah, 0, 1));
++        send(&other, encoded_audio(bh, 0, 2));
++        let plan = core
++            .plan_restore_staged_audio_audience(
++                sid,
++                &handle,
++                "native-restore".into(),
++                core.audio_audience_revision(sid).unwrap(),
++            )
++            .unwrap();
++        let invocation = Arc::new(Invocation {
++            domain: s.grants.clone(),
++            guard: Arc::new(s.grants.0.clone().read_owned().await),
++            plan: plan.clone(),
++        });
++        let (_, restored) = core
++            .change_staged_audio_audience_with_held(
++                sid,
++                plan,
++                deadline(),
++                CancellationToken::new(),
++                &invocation,
++            )
++            .await
++            .unwrap();
++        drop(invocation);
++        assert!(adapter
++            .observe_audio_audience_commit(&s.id, handle.commit())
++            .is_err());
++        for id in [&s.id, &s.second_id] {
++            adapter
++                .observe_audio_audience_commit(id, restored.commit())
++                .unwrap();
++        }
++        s.wire.server.shutdown().await.unwrap();
++        other.server.shutdown().await.unwrap();
++    }
++}
+diff --git a/crates/uctp/rvoip-uctp/tests/support/media_control.rs b/crates/uctp/rvoip-uctp/tests/support/media_control.rs
+--- a/crates/uctp/rvoip-uctp/tests/support/media_control.rs
++++ b/crates/uctp/rvoip-uctp/tests/support/media_control.rs
+@@ -175,7 +175,9 @@
+             | MediaControlIntent::ChangeSubscriptions { .. }
+             | MediaControlIntent::Subscriptions { .. }
+             | MediaControlIntent::DirectSubscriptions { .. }
+-            | MediaControlIntent::AudioSubscriptions { .. } => false,
++            | MediaControlIntent::AudioSubscriptions { .. }
++            | MediaControlIntent::PreparePrivateAudio { .. }
++            | MediaControlIntent::AudioAudience { .. } => false,
+         };
+         if !intent_matches {
+             return Err(StreamControlError::Authority);

@@ -1,0 +1,230 @@
+{
+  "task": "G6-046",
+  "title": "Owned native audio continuous reliable signaling",
+  "recorded_at": "2026-10-22T06:45:02.957437+00:00",
+  "status": "owned-signaling-and-nonblocking-native-cleanup-local-component-qualified",
+  "reader_local_cases_passed": true,
+  "full_task_complete": false,
+  "full_goal_complete": false,
+  "acceptance_qualified": false,
+  "scope": "Isolated local macOS arm64: complete SDK61 plus54 distinct actual native runtime cases. Runtime includes42 affected cases,10 capability cases, new owned220-burst and blocked-cleanup case. Both signature algorithms exercised by named cases; no Linux/remote/browser/external-provider qualification.",
+  "implementation": [
+    "A single task owns the exact original reliable reader after actual signed audio preparation; verifier context and replay cache remain shared with the original peer.",
+    "Foreground audio/event waits do not cancel actual partial signaling IO. Selector command cancellation retains a separate uncertainty guard and retires its original physical peer.",
+    "Only five passive native fact kinds coalesce by exact resource; other replies/signals, including DTMF, retain order.128 frames/2MiB bound the inbox; explicit failure retires the peer.",
+    "Idle signaling does not inherit an RPC timeout. First frame byte starts the frame deadline; original credential and server-key expiry bound the entire task. Invalid/partial framing, signatures and terminal auth facts stop the original peer.",
+    "Public/private/handoff audio wrappers expose receive_signaling. Task ownership ends on peer destruction.",
+    "Terminal signed auth observations already received by the owned task remain readable from its bounded inbox after retirement. Ended inbox reads refuse immediately rather than waiting again. Cached facts cannot restart current transport IO.",
+    "Explicit Utc checks bound continuously-ready frames at credential/key expiry. Owned selector deadline is clipped to the original credential/key expiry and rechecks current state before applying an ACK."
+  ],
+  "actual_verification": [
+    {
+      "checks": 61,
+      "scope": "Complete current connect-client library. Real controlled signed QUIC reader cases include actual cancelled foreground waits, idle beyond RPC timeout, partial/invalid/auth failure, credential/key expiry,400 passive updates with ordered DTMF+ACK, terminal auth metadata after retirement and repeated ended reads.",
+      "result": "61 passed,0 failed,0 ignored",
+      "inputs": ".local/gate-6/native-owned-signaling-inputs-v5.json",
+      "log": ".local/gate-6/native-owned-signaling-sdk-tests-v3.log"
+    },
+    {
+      "checks": 54,
+      "scope": "Actual current canonical native runtime:42 affected native/provider cases,10 capability cases, new both-alg owned220-large-descriptor/decoded-duplex/selector-replay case and new blocked cleanup custody case. Existing owned replay belongs to42 and is not counted twice.",
+      "result": "42 affected pass in one run; owned2 and cleanup1 pass. Capability initial9pass1hint-wait timeout, unchanged isolated failed-case rerun passes both algorithms. No timeouts or source workaround used for that rerun.",
+      "total_runtime_cases": 168,
+      "not_requalified": 114,
+      "inputs": ".local/gate-6/native-owned-signaling-inputs-v5.json",
+      "logs": [
+        ".local/gate-6/native-owned-signaling-regression-v2.log",
+        ".local/gate-6/native-owned-signaling-final-owned-cases-v1.log",
+        ".local/gate-6/native-owned-signaling-cleanup-custody-v1.log",
+        ".local/gate-6/native-owned-signaling-cap-regression-v1.log",
+        ".local/gate-6/native-owned-signaling-cap-partial-recheck-v1.log"
+      ]
+    },
+    {
+      "scope": "Previously failing successor Session case repeats5 times on final executable after the cleanup correction; counted once within42. Earlier intermediate corrected executable also passes5 repeats.",
+      "result": "10 repeats passed across two source-specific executables, no timeout changes",
+      "logs": [
+        ".local/gate-6/native-owned-signaling-successor-final-v1.log",
+        ".local/gate-6/native-owned-signaling-successor-after-offload-v1.log"
+      ]
+    }
+  ],
+  "regression_attempt": {
+    "cases": 42,
+    "passed": 41,
+    "failed": 1,
+    "failure": "Successor Session invite timeout; repeated unchanged isolated timeout. Four subsequent monitored runs pass, with two actual thread samples identifying synchronous native cleanup authority waits on the async executor. No timeout changes or runtime workaround.",
+    "source": "Reader production sources unchanged between v2 and v3; v3 only fixes a controlled test liveness guard.",
+    "log": ".local/gate-6/native-owned-signaling-regression-v1.log",
+    "later_result": "Final source42-case run passes42/42 after actual executor cleanup fix; initial failure, unchanged isolated failure and monitored successes remain recorded. This does not establish a general retention/primary-return fix."
+  },
+  "cleanup_correction": {
+    "status": "local behavior qualified",
+    "root_cause": "native_worker synchronously called settle_native_offer_cleanup on the async executor, blocking in authority flock/sleep while completed journal replies needed that executor. Actual native thread samples and live journal snapshots identify the wait.",
+    "change": "Tracked native worker awaits each bounded blocking Store cleanup attempt. It retains an Arc of the same opaque metadata-only lease and actual adapter absence observation, without idle command readers. The exact metadata/quota custody remains until current Store settlement.",
+    "controlled_actual_case": "Hold a real Conversation write fence, close one actual native peer, and exchange4 signed keepalive/ACKs on a separately enrolled unrelated peer across the retirement tick in less than1second. Connection row remains ready/active and lifetime unretired while fenced. Releasing the writer settles actual retirement within5seconds; original other peer and probe stay usable. Existing production timeouts and profile limits are unchanged.",
+    "log": ".local/gate-6/native-owned-signaling-cleanup-custody-v1.log"
+  },
+  "earlier_attempts": [
+    "SDK initial60pass1fail: new test dropped an incomplete Pending liveness guard and deliberately retired its own peer. The corrected test completes that read-only check; all61 then pass.",
+    "Blocking cleanup failure and sampled successes remain recorded. No whole42 regression pass is claimed.",
+    "Final capability regression initially9pass1other-recipient hint wait timeout under partial-write fixture; unchanged isolated failed-case rerun passes both algorithms. Recorded as an initial failure and isolated pass, not a clean10-case run."
+  ],
+  "inputs": {
+    "path": ".local/gate-6/native-owned-signaling-inputs-v5.json",
+    "sha256": "88a3bc8fa5ece466d20a14b6f99fed9dba073937b3a9a7324ca7a974a4cf236e",
+    "entries": 1371
+  },
+  "source_lock": {
+    "patches": 133,
+    "sha256": "98847052fe65b787fe5686aa1c40b32ebaa58a8404e3f2edd8d20767a080a524",
+    "unchanged_in_reader_phase": true
+  },
+  "schema_version": 82,
+  "schema_changed": false,
+  "compiled_binaries": [
+    {
+      "target": "gate6_canonical_runtime",
+      "path": "target/debug/deps/gate6_canonical_runtime-f39476f2f6c7ff5d",
+      "archive": ".local/gate-6/native-owned-signaling-artifacts-v2/gate6_canonical_runtime-f39476f2f6c7ff5d-a0de09e8a6f5.gz",
+      "bytes": 360107640,
+      "gzip_bytes": 79139212,
+      "sha256": "a0de09e8a6f5effdbc2874f1a1ae9e83af16554f011b0283657484ea5b79a738",
+      "archive_sha256": "7a85e055f308d136947aea248cab82c8175c1be032c3e40ec101b85037bf8d01",
+      "restored_bytes_verified": true
+    },
+    {
+      "target": "connect_client",
+      "path": "target/debug/deps/connect_client-14427ed49690b71c",
+      "archive": ".local/gate-6/native-owned-signaling-artifacts-v2/connect_client-14427ed49690b71c-cad9837ac915.gz",
+      "bytes": 51921200,
+      "gzip_bytes": 12852241,
+      "sha256": "cad9837ac915c582a1768f349c7aeaa099b9efc9cd0e892ef54bd6cc302e7fb7",
+      "archive_sha256": "1f2d80f7ccf8b3d7148a8be18c74705adf4acf2dc41b265cef27a474be6a9626",
+      "restored_bytes_verified": true
+    },
+    {
+      "target": "connect",
+      "path": "target/debug/connect",
+      "archive": ".local/gate-6/native-owned-signaling-artifacts-v2/connect-1325c9bacd5c.gz",
+      "bytes": 420267784,
+      "gzip_bytes": 92271406,
+      "sha256": "1325c9bacd5cfeb64312412d1167ca1705b3e98feee77c38050584496f36edfb",
+      "archive_sha256": "29dbbb3bb0969ac2e53af251066ba9dc42b81367e759894be95f4953375877b9",
+      "restored_bytes_verified": true
+    }
+  ],
+  "binary_archive_manifest": {
+    "path": ".local/gate-6/native-owned-signaling-qualified-binary-archives-v2.json",
+    "sha256": "af69f777b142269110df1bc24a0d9cafc4e2c70b9d29624a9e562d15b7f0fa1b"
+  },
+  "archive_independently_decompressed": 3,
+  "check_logs": [
+    {
+      "path": ".local/gate-6/native-owned-signaling-sdk-tests-v1.log",
+      "sha256": "e9eb8f1bb6e0807233bc0e28d1278e3e7f043ce2722990c5fcf5d1091df9d4ed"
+    },
+    {
+      "path": ".local/gate-6/native-owned-signaling-sdk-tests-v2.log",
+      "sha256": "f1d1738f205b93990a791edc04b12d57ec05062734ccb185832d58c70e2bb616"
+    },
+    {
+      "path": ".local/gate-6/native-owned-signaling-runtime-burst-v1.log",
+      "sha256": "9fb73124c68e065f7560fdbe62376a82562fc6620414128586d25e1d17ddb847"
+    },
+    {
+      "path": ".local/gate-6/native-owned-signaling-owned-replay-v1.log",
+      "sha256": "796384b7f092f184e6aa66a913f06424d7bb4896f71bc6465495c176f0f59202"
+    },
+    {
+      "path": ".local/gate-6/native-owned-signaling-regression-v1.log",
+      "sha256": "a7ab862e8b97803b1a22c424faae3a2939041af64fad51f111fdb19ea5473280"
+    },
+    {
+      "path": ".local/gate-6/native-owned-signaling-session-end-recheck-v1.log",
+      "sha256": "4445a882a488abb2ed4263f6dee392e059997990fbb0de921e0ae01fc9165cbb"
+    },
+    {
+      "path": ".local/gate-6/native-owned-signaling-session-end-state-v1.log",
+      "sha256": "92d4a1f0d1d24f91e66a31594e2920774ab5624d1c91a69449c39542e6aacfe4"
+    },
+    {
+      "path": ".local/gate-6/native-owned-signaling-successor-samples-v1.log",
+      "sha256": "eb8e495ebb7b138af1980f4c610ffa2aabfa52bd85312d689049310b9e4d57f3"
+    },
+    {
+      "path": ".local/gate-6/native-owned-signaling-sdk-tests-v3.log",
+      "sha256": "cc0b382b908ca895c51a550ea93893a4e72edbd90a5893a0708cd238f3e24047"
+    },
+    {
+      "path": ".local/gate-6/native-owned-signaling-cleanup-custody-v1.log",
+      "sha256": "274ca5a7f877379382e2d726f17c1a191ae45f6e38d36b25a1455921bc3e7271"
+    },
+    {
+      "path": ".local/gate-6/native-owned-signaling-successor-after-offload-v1.log",
+      "sha256": "d70f6dc0599ef4f37f887fd6f19104ebc58a3534f82d35d73a5138350aef5c52"
+    },
+    {
+      "path": ".local/gate-6/native-owned-signaling-successor-final-v1.log",
+      "sha256": "115ff962bcfa43f4225ba72b958abe8ab7c4d2afd7caa17385ad98d0e7f7f12a"
+    },
+    {
+      "path": ".local/gate-6/native-owned-signaling-final-owned-cases-v1.log",
+      "sha256": "4b693dd98fe744bc51be2146e69833a5c40cdc07f96004c36556f943d7c89628"
+    },
+    {
+      "path": ".local/gate-6/native-owned-signaling-regression-v2.log",
+      "sha256": "2d266aa40bdc171295b169821d25ef0690eb1b31f828e0b06ccf9c4466ae8dac"
+    },
+    {
+      "path": ".local/gate-6/native-owned-signaling-cap-regression-v1.log",
+      "sha256": "ea808cea1a069aafac7c31f19976290725fe04792fb7470e8877bd90b5f2eb45"
+    },
+    {
+      "path": ".local/gate-6/native-owned-signaling-cap-partial-recheck-v1.log",
+      "sha256": "e3e4b3cf3414fd0d89035a0ce46d9e7853d2b6998261f8a03d0003b223f8b9ed"
+    },
+    {
+      "path": ".local/gate-6/native-owned-signaling-wire-validation-v1.json",
+      "sha256": "abf581772d5ad874539a08d3417f75c22e2f28894061b5a244536b671bca6b4e"
+    }
+  ],
+  "remaining_required_work": [
+    "Durable DTMF and approved assurance/step-up integration remain required, then exact61 auxiliary vector reconciliation and remaining direct capability-loss compositions.",
+    "All59 other approved tasks remain in dependency order; no acceptance, publication, Linux, remote or browser qualification.",
+    "Earlier retention/primary-return refusal remains unresolved; this observed executor cleanup correction is not a general return reliability claim."
+  ],
+  "plan_counts": {
+    "done": 45,
+    "in-progress": 1,
+    "not-started": 59,
+    "total": 105
+  },
+  "local_component_complete": true,
+  "fresh_distinct_connect_checks": 115,
+  "wire_schema": {
+    "status": "passed",
+    "scope": "Contract shape of actual isolated SDK-verified Connect native listener facts. This checker does not verify signatures, privacy, actual delivery custody, or unexecuted vectors.",
+    "observations": ".local/gate-6/native-owned-signaling-runtime-observations-v3.jsonl",
+    "observations_sha256": "3a5b3ace6f5d01796d7431803b3f60cde7da1dcddda648a318be2991d75fe4a9",
+    "schema_sha256": "2e547385b0bd09484d0988bb2ed8fe496f42cb27c73266e2e2ee0495068b10ad",
+    "actual_frames": 2,
+    "samples": {
+      "ES256": 1,
+      "EdDSA": 1
+    }
+  },
+  "final_inputs": {
+    "path": ".local/gate-6/native-owned-signaling-inputs-final-v6.json",
+    "sha256": "223ff7e490cd60eef7ef916c88b73bcb8f9b0aa4058f644c88e1de7c956e744b",
+    "verification": ".local/gate-6/native-owned-signaling-final-source-verification-v1.json",
+    "code_contract_patch_lock_sources_unchanged": true,
+    "documentation_only_changes_after_tests": [
+      {
+        "path": "docs/developer/native-capabilities.md",
+        "before": "4368b71510bb48366003abdc9fd24f21e3ad5ab042c93d78313d78050392f767",
+        "after": "fa1fc783a534ba82a96613706e236d0438880eb3a90c744111e1f28999cf0993"
+      }
+    ]
+  }
+}

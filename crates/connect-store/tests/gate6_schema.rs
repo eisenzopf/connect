@@ -19,12 +19,12 @@ fn seed(c: &Connection) {
          INSERT INTO session_participants VALUES('sess_one','conv_one','tnt_default','part_alice',1,'agent','present');
          INSERT INTO connections(id,session_id,participant_id,membership_epoch,identity_id,tenant_id,endpoint_id,generation,state,observed_runtime_id,observed_at,readiness_json)
           VALUES('conn_retained','sess_one','part_alice',1,'id_alice','tnt_default','ep_alice',3,'active','old_runtime',100,'{}');
-         INSERT INTO messages(id,conversation_id,sender,body,sender_participant_id) VALUES('msg_private','conv_one','id_alice','private content','part_alice');
+         INSERT INTO messages(id,conversation_id,sender,body,sender_participant_id,audience_mode) VALUES('msg_private','conv_one','id_alice','private content','part_alice','explicit');
          INSERT INTO message_audiences VALUES('msg_private','conv_one','part_alice',1,'sender'),('msg_private','conv_one','part_bob',1,'recipient');
          INSERT INTO operations(record_id,tenant_id,owner_id,operation_id,digest,command_type,conversation_id,session_id,connection_id,intent_json,state,created_at,updated_at)
           VALUES('opr_one','tnt_default','id_alice','op_one','aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa','connection.replace','conv_one','sess_one','conn_retained','{}','unknown',100,100);
          INSERT INTO operation_resources VALUES('opr_one','tnt_default','session','sess_one',1);
-         INSERT INTO operation_effects VALUES('effect_one','opr_one','fixture','correlation_one','none','unknown',1,'provider_reference',NULL);
+         INSERT INTO operation_effects(id,operation_record_id,provider,correlation_key,idempotency_mode,state,attempt,provider_ref,observation_json) VALUES('effect_one','opr_one','fixture','correlation_one','none','unknown',1,'provider_reference',NULL);
          INSERT INTO operation_observations VALUES('observation_one','opr_one','fixture','event_one','bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb','id_alice','{}',100);",
     ).unwrap();
 }
@@ -34,7 +34,10 @@ fn gate6_backup_preserves_ids_audiences_unknown_effects_and_fences_live_claims()
     let dir = tempfile::tempdir().unwrap();
     let path = dir.path().join("state.sqlite3");
     let store = Store::initialize(&path, Limits::default()).unwrap();
-    assert_eq!(SCHEMA_VERSION, 20);
+    assert_eq!(
+        Store::inspect_snapshot(&path).unwrap().schema,
+        SCHEMA_VERSION
+    );
     let c = Connection::open(&path).unwrap();
     seed(&c);
     let backup = dir.path().join("backup.sqlite3");
@@ -48,7 +51,7 @@ fn gate6_backup_preserves_ids_audiences_unknown_effects_and_fences_live_claims()
         restored.installation_id().unwrap(),
         snapshot.installation_id
     );
-    assert_eq!(restored.runtime_epoch(), store.runtime_epoch());
+    assert_ne!(restored.runtime_epoch(), store.runtime_epoch());
     let c = Connection::open(&restored_path).unwrap();
     let connection: (String, u64, Option<String>) = c
         .query_row(
@@ -91,35 +94,43 @@ fn gate6_backup_preserves_ids_audiences_unknown_effects_and_fences_live_claims()
 
 #[test]
 fn gate6_incompatible_state_refusal_preserves_files_and_requires_explicit_new_path() {
-    let dir = tempfile::tempdir().unwrap();
-    let path = dir.path().join("previous.sqlite3");
-    let store = Store::initialize(&path, Limits::default()).unwrap();
-    store.create_identity("preserve-me").unwrap();
-    drop(store);
-    let c = Connection::open(&path).unwrap();
-    c.execute_batch(
-        "PRAGMA wal_checkpoint(TRUNCATE); PRAGMA journal_mode=DELETE; PRAGMA user_version=18;",
-    )
+    for previous_version in 18..SCHEMA_VERSION {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("previous.sqlite3");
+        let store = Store::initialize(&path, Limits::default()).unwrap();
+        store.create_identity("preserve-me").unwrap();
+        drop(store);
+        let c = Connection::open(&path).unwrap();
+        // This fixture changes the version header rather than running an old
+        // binary. Restore its removed receipt table so historical backup
+        // inspection has the shape belonging to that header.
+        if previous_version < 32 {
+            c.execute_batch("CREATE TABLE requests(actor TEXT,id TEXT,digest TEXT,operation TEXT,resources TEXT,result TEXT,PRIMARY KEY(actor,id))").unwrap();
+        }
+        c.execute_batch(&format!("PRAGMA wal_checkpoint(TRUNCATE); PRAGMA journal_mode=DELETE; PRAGMA user_version={previous_version};"))
     .unwrap();
-    drop(c);
-    let original = std::fs::read(&path).unwrap();
-    let error = Store::open(&path, Limits::default()).err().unwrap();
-    assert_eq!(error.code, "unsupported-schema");
-    assert!(error.message.contains("backup") && error.message.contains("new Gate 6 state path"));
-    assert_eq!(std::fs::read(&path).unwrap(), original);
-    assert!(Store::initialize(&path, Limits::default()).is_err());
-    assert_eq!(std::fs::read(&path).unwrap(), original);
-    let backup = dir.path().join("preserved.sqlite3");
-    let before = Store::backup_database(&path, &backup).unwrap();
-    assert_eq!(
-        Store::migrate(&path, &backup, &before).unwrap_err().code,
-        "unsupported-schema"
-    );
-    assert_eq!(Store::inspect_snapshot(&backup).unwrap(), before);
-    assert_eq!(std::fs::read(&path).unwrap(), original);
-    let fresh =
-        Store::initialize(&dir.path().join("new-gate6.sqlite3"), Limits::default()).unwrap();
-    assert_ne!(fresh.installation_id().unwrap(), before.installation_id);
+        drop(c);
+        let original = std::fs::read(&path).unwrap();
+        let error = Store::open(&path, Limits::default()).err().unwrap();
+        assert_eq!(error.code, "unsupported-schema");
+        assert!(
+            error.message.contains("backup") && error.message.contains("new Gate 6 state path")
+        );
+        assert_eq!(std::fs::read(&path).unwrap(), original);
+        assert!(Store::initialize(&path, Limits::default()).is_err());
+        assert_eq!(std::fs::read(&path).unwrap(), original);
+        let backup = dir.path().join("preserved.sqlite3");
+        let before = Store::backup_database(&path, &backup).unwrap();
+        assert_eq!(
+            Store::migrate(&path, &backup, &before).unwrap_err().code,
+            "unsupported-schema"
+        );
+        assert_eq!(Store::inspect_snapshot(&backup).unwrap(), before);
+        assert_eq!(std::fs::read(&path).unwrap(), original);
+        let fresh =
+            Store::initialize(&dir.path().join("new-gate6.sqlite3"), Limits::default()).unwrap();
+        assert_ne!(fresh.installation_id().unwrap(), before.installation_id);
+    }
 }
 
 #[test]
@@ -135,7 +146,7 @@ fn gate6_constraints_reject_rebinding_stale_epoch_cross_owner_and_false_completi
         "UPDATE conversations SET revision=9007199254740992",
         "UPDATE operations SET result_json='{\"completed\":true}' WHERE state='unknown'",
         "INSERT INTO connections(id,session_id,participant_id,membership_epoch,identity_id,tenant_id,endpoint_id,generation,state) VALUES('conn_stolen','sess_one','part_alice',1,'id_bob','tnt_default','ep_alice',1,'preparing')",
-        "INSERT INTO message_receipts VALUES('msg_private','part_alice',2,'read',NULL,'{}',100)",
+        "INSERT INTO message_receipts(message_id,participant_id,membership_epoch,channel,delivery_id,kind,provenance,observed_at) VALUES('msg_private','part_alice',2,'native','part_alice','read','client_reported',100)",
         "INSERT INTO connections(id,session_id,participant_id,membership_epoch,identity_id,tenant_id,endpoint_id,generation,state,replaces) VALUES('conn_stale','sess_one','part_alice',1,'id_alice','tnt_default','ep_alice',2,'preparing','conn_retained')",
     ] { assert!(c.execute_batch(statement).is_err(),"constraint accepted: {statement}"); }
     c.execute(
@@ -196,6 +207,8 @@ fn gate6_snapshot_digest_covers_new_private_and_effect_metadata() {
         "UPDATE operation_observations SET data_json='{\"changed\":true}'",
         "UPDATE message_audiences SET purpose='sender' WHERE participant_id='part_bob'",
         "UPDATE operation_resources SET fencing_generation=2",
+        "UPDATE message_receipts SET observed_at=observed_at+1",
+        "INSERT INTO receipt_preferences VALUES('part_bob',1,1,1)",
     ] {
         c.execute_batch(statement).unwrap();
         let after = Store::inspect_snapshot(&path).unwrap();

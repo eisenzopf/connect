@@ -1,0 +1,221 @@
+{
+  "kind": "gate6-component-evidence",
+  "task": "G6-042",
+  "status": "in-progress",
+  "passed": true,
+  "recorded_at": "2026-10-20T17:02:05.436735+00:00",
+  "scope": "Local Store canonical Session outcome context, historical attribution and restart, current owner/recipient audience filtering, exact delivery selection validation, and existing provider-chat/membership integration. No new canonical server/provider media journey qualification.",
+  "schema_version": 61,
+  "pinned_patches": 123,
+  "source_lock": {
+    "path": "dependencies/source-lock.json",
+    "sha256": "79806adf28f4720a562879e62ab52d47144c0369e2053f626f7c3d3ebe84eba4"
+  },
+  "verification": [
+    {
+      "name": "Store library",
+      "passed": 650,
+      "ignored": 3,
+      "arguments": "--test-threads=2",
+      "log": {
+        "path": ".local/gate-6/context-outcomes-store-full.log",
+        "sha256": "1ee879e9b592f7fb9e7186bb6bd4a4d71c8ce13f4f85b07920daf6370c7c16c3"
+      },
+      "test_binary": {
+        "path": "target/debug/deps/connect_store-500690b8d898aed1",
+        "sha256": "b6bfddc2c19489ee96e11bbcf38015d77378cff071c00128c1214be057817e80"
+      }
+    },
+    {
+      "name": "discovery",
+      "passed": 1,
+      "ignored": 0,
+      "arguments": "--test-threads=2",
+      "log": {
+        "path": ".local/gate-6/context-outcomes-integration-3.log",
+        "sha256": "6be4802e4b12029107d90e866d7ec266a8f287671c7fc3a2b4a9e8298c3354f1"
+      },
+      "test_binary": {
+        "path": "target/debug/deps/discovery-29e30d59e2e04812",
+        "sha256": "52d6003b7aad979f37c70384b5e59b1e8d563a0a561922ef21422c0e3d113cdc"
+      }
+    },
+    {
+      "name": "membership",
+      "passed": 18,
+      "ignored": 0,
+      "arguments": "--test-threads=2",
+      "log": {
+        "path": ".local/gate-6/context-outcomes-integration-3.log",
+        "sha256": "6be4802e4b12029107d90e866d7ec266a8f287671c7fc3a2b4a9e8298c3354f1"
+      },
+      "test_binary": {
+        "path": "target/debug/deps/gate6_membership-4d421da469a65046",
+        "sha256": "e2fcf6c165f904525767aab6b409cd5412902141b626446deda2b9a7a568f78d"
+      }
+    },
+    {
+      "name": "provider chat context",
+      "passed": 4,
+      "ignored": 0,
+      "arguments": "--test-threads=2",
+      "log": {
+        "path": ".local/gate-6/context-outcomes-integration-3.log",
+        "sha256": "6be4802e4b12029107d90e866d7ec266a8f287671c7fc3a2b4a9e8298c3354f1"
+      },
+      "test_binary": {
+        "path": "target/debug/deps/provider_chat_context-acfdcf128ad00b27",
+        "sha256": "6de1819403eddfbdabf44630700dc8f42e6e5aa3e54e38e7326d21b96bc7c784"
+      }
+    }
+  ],
+  "fresh_distinct_passed_tests": 673,
+  "library_inputs": {
+    "path": ".local/gate-6/context-outcomes-library-inputs.json",
+    "sha256": "5e0138e59adf8266ffb73945f59e11dbbc4beb39ac24dba1f513d053ab75b79c"
+  },
+  "library_input_count": 267,
+  "final_store_inputs": {
+    "path": ".local/gate-6/context-outcomes-inputs-final.json",
+    "sha256": "5f6f92eb59a485df8f478ce0127dc5a1665573f75ccab2fbabba871e2b9f649b"
+  },
+  "behavior": [
+    "ContextView now selects authoritative session_control journal outcomes in addition to its existing message, Session and artifact sources. Each canonical outcome contains its original SessionView state/revision and creator/source-owner attribution. Later acceptance/end and restart do not rewrite earlier invite or accept outcomes.",
+    "Both current principals, resource audiences and recipient ceilings filter before selection limits and omitted counts. A newer owner/human-only Session cannot hide a shared AI Session by consuming the shared page limit, expose its body or alter omitted counts.",
+    "Canonical delivery admission reconstitutes the exact historical body from the referenced journal event rather than checking it against the current Session projection. A substituted current body or unrelated source is refused.",
+    "A failing regression demonstrated that an authorized canonical journal position could previously be relabeled session_ready and paired with current metadata, creating a pending receipt. Admission now binds the actual journal kind as well as position/source/body; the same regression refuses the relabeling.",
+    "Existing discovery/delivery pagination, membership and provider-chat recovery/privacy tests pass. Three new library regressions are included once in the full650 library total. Three intentionally ignored standalone subprocess helper entrypoints remain exercised through parent tests."
+  ],
+  "preliminary_observations": [
+    "The initial new test used optional rather than concrete Session End reason fields and failed to compile. This was a fixture error, corrected before runtime qualification.",
+    "The first outcome test assumed contiguous revisions. Actual public control results report their observed revisions; the final regression compares every snapshot to its corresponding public result rather than inventing revision increments.",
+    "The relabeling regression failed with an actual admitted receipt before the kind-binding fix and passes after it. That failing result is retained as defect evidence, not counted as a pass.",
+    "Two older membership fixtures duplicated Session presence already created by public acceptance. They now assert existing presence, explicitly adjust the selected role where needed, and select the intended participant/epoch rather than an arbitrary first row. Their original role/removal invariants remain. Only this integration test file changed during the unchanged-library full run; its final own compiled suite is separately recorded.",
+    "Inactive superseded generated incremental sessions were removed with a local manifest to preserve build space. No source, raw log or built test executable was removed by that cleanup.",
+    "The generated HTTP reference still described telephone movement as unfinished after G6-041 completion. Its generator and generated reference now describe the recorded native/telephone movement scope and retain later browser/remote/provider qualifications."
+  ],
+  "preliminary_logs": [
+    {
+      "path": ".local/gate-6/context-outcomes-store-1.log",
+      "sha256": "e7e1b8a33e6a6d7c550c8d3564efd5bd03692a5131a27cd90b7ed7b02d91ed7a"
+    },
+    {
+      "path": ".local/gate-6/context-outcomes-store-2.log",
+      "sha256": "25683102600ca5b50af1163f468a67347fbf035283afe69e7574b24e676e4aa1"
+    },
+    {
+      "path": ".local/gate-6/context-outcomes-forgery-before.log",
+      "sha256": "502aacaa65e55fc30c3ce45a07ee77d52ff3f2b9b2f54b929219cb4492eb6408"
+    },
+    {
+      "path": ".local/gate-6/context-outcomes-integration.log",
+      "sha256": "89e9ff776963e92a05f3a5a6f3c4d3891e98b41d3837cb7d307140a6b9ea1aba"
+    },
+    {
+      "path": ".local/gate-6/context-outcomes-integration-final.log",
+      "sha256": "9654143c5bf684724ed2b859a507f2ad2fcd24dccc2507e5a0f4aa4a83bc92b4"
+    }
+  ],
+  "not_qualified": [
+    "G6-042 is not complete. Explicit canonical multi-participant assistant/session destination binding, fresh/existing assistant provider initialization/export and exact acknowledgment/rejection/truncation/incompleteness journeys remain to implement/qualify.",
+    "The complete public-context call -> private-only consultation -> attributable follow-up after restart must run through actual canonical server/client and designated provider interfaces. This Store checkpoint does not substitute for that journey.",
+    "Ordinary older Session/artifact projection paths still need reconciliation with the host-context contract that specifies saved event snapshots; this phase adds canonical Session outcomes only. Task recall deliberately retains its separately documented current-metadata semantics.",
+    "No new SIP/Core/media/server runtime, Linux/browser/remote/provider/PSTN, performance, independent acceptance or publication qualification is claimed."
+  ],
+  "task_counts": {
+    "done": 41,
+    "in_progress": 1,
+    "not_started": 63,
+    "acceptance_closed": 0
+  },
+  "goal_status": "active",
+  "all_105_tasks_remain_in_scope": true,
+  "previous_checkpoint": {
+    "path": "docs/evidence/gate-6/telephone-roles.json",
+    "sha256": "7e2343406d9ccee8e39b9645357425c6fedd9577c11e1f62853c9d0c72167a71"
+  },
+  "source_changes": [
+    {
+      "path": "crates/connect-store/src/context.rs",
+      "sha256": "54c832eafb1b2be8b936b17de59c5676e54207b8d2d4471a6fed61decd603ce0"
+    },
+    {
+      "path": "crates/connect-store/src/context/session.rs",
+      "sha256": "44455c0958b312b3f322aba0511eb86d80f53f48fe0069d28616f834e7806d22"
+    },
+    {
+      "path": "crates/connect-store/src/session_control_tests.rs",
+      "sha256": "8cfba524eddd70ea52acb7dac970746b5fe7b61455c90a3d8730c2bca40b73a9"
+    },
+    {
+      "path": "crates/connect-store/tests/gate6_membership.rs",
+      "sha256": "2eb435a176a9c92360e8fe6b7b1679e2fd47b1df38cffc8500f91a3cda32b02c"
+    },
+    {
+      "path": "contracts/connectors/host-context-v1.md",
+      "sha256": "9b6232a73f079b8134dee609900925513ec9cba96b5a153f0c2df143b6b5b2cc"
+    },
+    {
+      "path": "scripts/generate-canonical-http-openapi.py",
+      "sha256": "1fbd6638b4dde5f4a4b88530abf35981d975cb4e92a392feb1876c1f1a5aed81"
+    },
+    {
+      "path": "contracts/openapi-canonical-http.json",
+      "sha256": "7e6429ad72928c41ee5e8449846a2cfeb26f4c4cfccc55b7e547a0acf9dff06a"
+    }
+  ],
+  "static_checks": [
+    {
+      "name": "dependencies",
+      "exit_code": 0,
+      "log": {
+        "path": ".local/gate-6/context-outcomes-static-dependencies.log",
+        "sha256": "fd9d7b181e3ccba9b643af55a186cf132c60aac99c734b2ee4e4e549afe5ffc2"
+      }
+    },
+    {
+      "name": "format",
+      "exit_code": 0,
+      "log": {
+        "path": ".local/gate-6/context-outcomes-static-format.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    {
+      "name": "contracts",
+      "exit_code": 0,
+      "log": {
+        "path": ".local/gate-6/context-outcomes-static-contracts.log",
+        "sha256": "2c29557f8945b4bb522a5436f85876aa8ab90eca617dcf64588af05e9a81b1bc"
+      }
+    },
+    {
+      "name": "http",
+      "exit_code": 0,
+      "log": {
+        "path": ".local/gate-6/context-outcomes-static-http.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    {
+      "name": "progress",
+      "exit_code": 0,
+      "log": {
+        "path": ".local/gate-6/context-outcomes-static-progress.log",
+        "sha256": "d2862144e346af612e59d056ca366093aea477e78bc07ddd61db37efedd5c787"
+      }
+    },
+    {
+      "name": "diff",
+      "exit_code": 0,
+      "log": {
+        "path": ".local/gate-6/context-outcomes-static-diff.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    }
+  ],
+  "plan_update": {
+    "path": "docs/connect-gate-6-implementation.html",
+    "sha256": "8b9412afc192afc5d750ca90d9257e9e7d3725fb0177d25335648ce917374081"
+  }
+}

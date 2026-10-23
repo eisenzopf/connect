@@ -1,9 +1,10 @@
+import type { ContextRecord } from "./record_context.js";
 import type { Operation, Outcome } from "./types.js";
 /** Application policy carried by Connect control over UCTP, not a new transport. */
 export declare const TASK_PROFILE: "connect-task/1";
 export type TaskState = "ready" | "running" | "waiting" | "completed" | "cancelled" | "failed" | "expired";
 export type EffectState = "prepared" | "dispatched" | "succeeded" | "failed" | "uncertain" | "cancelled";
-export type TaskPermission = "resolve" | "capabilities" | "send" | "history" | "context_view" | "context_deliveries" | "inbox" | "request_status" | "artifact_begin" | "artifact_append" | "artifact_finish" | "artifact_get" | "artifact_delete" | "session_invite" | "session_accept" | "session_reject" | "session_cancel" | "session_end" | "session_get" | "call_start" | "call_status" | "call_end" | "sip_dial" | "sip_status" | "sip_end" | "task_cancel";
+export type TaskPermission = "resolve" | "capabilities" | "send" | "history" | "context_view" | "record_get" | "context_deliveries" | "inbox" | "request_status" | "artifact_begin" | "artifact_append" | "artifact_finish" | "artifact_get" | "artifact_delete" | "session_invite" | "session_accept" | "session_reject" | "session_cancel" | "session_end" | "session_get" | "call_start" | "call_status" | "call_end" | "sip_dial" | "sip_status" | "sip_end" | "task_cancel";
 export interface TaskSmsEnrollment {
     source: string;
     grant_id: string;
@@ -95,6 +96,7 @@ export interface TaskSource {
     provenance: string;
     state: "available" | "deleted" | "expired" | "unavailable";
     body: string | null;
+    record?: ContextRecord;
 }
 export type TaskToolResult = {
     status: "completed";

@@ -32,7 +32,8 @@
             "page_size": 100,
             "audio_frame_ms": 20,
             "audio_codec": "PCMU/8000"
-          }
+          },
+          "participant_id": null
         }
       }
     }

@@ -15,7 +15,7 @@ use std::time::{Duration, Instant};
 async fn real_tools_share_one_effect_artifact_sources_and_pending_journal_handle() {
     let f = fixture::Fixture::start_permitted(true, permissions()).await;
     let client = client(&f).await;
-    let send = json!({"request_id":"send-once","step_id":"draft","body":"Please review the exact blue draft."});
+    let send = json!({"request_id":"send-once","step_id":"draft","message": connect_protocol::messages::MessageDraft::text_all(("Please review the exact blue draft.").to_string())});
     let accepted = call(&client, "connect_send", send.clone()).await;
     assert_ne!(accepted.is_error, Some(true));
     let accepted = accepted.structured_content.unwrap();
@@ -27,7 +27,7 @@ async fn real_tools_share_one_effect_artifact_sources_and_pending_journal_handle
         accepted
     );
     let mut changed = send.clone();
-    changed["body"] = json!("different intent");
+    changed["message"]["body"] = json!("different intent");
     let rejected = call(&client, "connect_send", changed).await;
     assert_eq!(rejected.is_error, Some(true));
     assert_eq!(
@@ -44,10 +44,13 @@ async fn real_tools_share_one_effect_artifact_sources_and_pending_journal_handle
         1,
         "matching retries duplicated a message"
     );
-    assert_eq!(history.messages[0].body, send["body"].as_str().unwrap());
+    assert_eq!(
+        history.messages[0].body,
+        send["message"]["body"].as_str().unwrap()
+    );
     let bytes = b"blue draft";
     let sha256 = hex::encode(Sha256::digest(bytes));
-    let artifact = success(call(&client, "connect_artifact_begin", json!({"request_id":"file-begin","step_id":"file","name":"draft.txt","media_type":"text/plain","size":bytes.len(),"sha256":sha256})).await);
+    let artifact = success(call(&client, "connect_artifact_begin", json!({"to":"all","request_id":"file-begin","step_id":"file","name":"draft.txt","media_type":"text/plain","size":bytes.len(),"sha256":sha256})).await);
     let id = artifact["data"]["outcome"]["data"]["id"].as_str().unwrap();
     use base64::Engine;
     let base64 = base64::engine::general_purpose::STANDARD.encode(bytes);
@@ -153,7 +156,7 @@ async fn every_advertised_schema_rejects_authority_selectors_and_invalid_shapes(
     let f = fixture::Fixture::start_permitted(true, permissions()).await;
     let client = client(&f).await;
     let tools = client.list_tools(None).await.unwrap();
-    assert_eq!(tools.tools.len(), 28);
+    assert_eq!(tools.tools.len(), 34);
     for tool in &tools.tools {
         assert_eq!(tool.input_schema["additionalProperties"], false);
         for selector in [
@@ -196,7 +199,7 @@ async fn every_advertised_schema_rejects_authority_selectors_and_invalid_shapes(
     assert!(client
         .call_tool(
             CallToolRequestParams::new("connect_send").with_arguments(
-                json!({"request_id":"bad id","step_id":"send","body":"x"})
+                json!({"request_id":"bad id","step_id":"send","message": connect_protocol::messages::MessageDraft::text_all(("x").to_string())})
                     .as_object()
                     .unwrap()
                     .clone()

@@ -96,6 +96,11 @@ pub(crate) fn specs() -> Vec<Spec> {
             P::Send,
         ),
         (
+            "connect_message_receipts",
+            "Page current per-recipient and per-channel receipt evidence. Acceptance is not delivery, reading or a human response.",
+            P::History,
+        ),
+        (
             "connect_history",
             "Read conversation message history through the task effect ledger.",
             P::History,
@@ -110,6 +115,11 @@ pub(crate) fn specs() -> Vec<Spec> {
             "Inspect context delivery observations in this conversation.",
             P::ContextDeliveries,
         ),
+        ("connect_artifact_inspect","Inspect current authorized upload metadata and progress.",P::ArtifactGet),
+        ("connect_artifact_upload_link","Issue a short-lived upload link bound to the current credential and delegation. The link alone never grants access.",P::ArtifactAppend),
+        ("connect_artifact_download_link","Issue an authorized attachment link intersecting the message and file audience.",P::ArtifactGet),
+        ("connect_artifact_link_get","Read a bounded chunk through a current authorized attachment link.",P::ArtifactGet),
+        ("connect_artifact_link_append","Append through a current upload link. Reuse the same request and chunk identity after renewal.",P::ArtifactAppend),
         (
             "connect_artifact_begin",
             "Begin a bounded artifact in the task conversation; never supply a server path.",

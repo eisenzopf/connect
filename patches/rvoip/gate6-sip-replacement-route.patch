@@ -1,0 +1,1123 @@
+diff --git a/crates/foundation/rvoip-core/src/orchestrator/participant_control/replacement.rs b/crates/foundation/rvoip-core/src/orchestrator/participant_control/replacement.rs
+--- a/crates/foundation/rvoip-core/src/orchestrator/participant_control/replacement.rs
++++ b/crates/foundation/rvoip-core/src/orchestrator/participant_control/replacement.rs
+@@ -1206,6 +1206,8 @@
+     event: DeviceReplacementEndpointEvent,
+     principal: AuthenticatedPrincipal,
+     controller: Option<ControllerSignalStamp>,
++    media_at_capture: bool,
++    answered_at_capture: bool,
+ }
+ impl DeviceReplacementEvent {
+     pub fn observe(&self) -> ControlResult<EndpointConfirmationObservation> {
+@@ -1278,7 +1280,11 @@
+             }
+             DeviceReplacementEndpointEvent::MediaObserved
+             | DeviceReplacementEndpointEvent::Dtmf { .. } => {
+-                if self.controller.is_none() {
++                if self.controller.is_none()
++                    || !self.media_at_capture
++                    || matches!(self.event, DeviceReplacementEndpointEvent::Dtmf { .. })
++                        && !self.answered_at_capture
++                {
+                     return Ok(EndpointConfirmationObservation::BeforeAnswerOrMedia);
+                 }
+                 let Some(context) = &state.context else {
+@@ -1372,6 +1378,20 @@
+             .staged_controller(&p.intent.replacement)
+             .map(|c| c.capture_signal_stamp())
+             .transpose()?;
++        // Delayed callback delivery cannot turn pre-media digits into a later
++        // confirmation. Pin the actual trusted scene state at event capture;
++        // observation still requires fresh current signal authority.
++        let pending = p.state.lock().unwrap_or_else(|v| v.into_inner());
++        let media_at_capture = controller.is_some()
++            && pending.context.as_ref().is_some_and(|context| {
++                p.runtime
++                    .mixer
++                    .staged
++                    .as_ref()
++                    .is_some_and(|scene| scene.replacement_endpoint_ready(context).is_ok())
++            });
++        let answered_at_capture = pending.ticket.has_answered();
++        drop(pending);
+         Ok(DeviceReplacementEvent {
+             owner: Arc::downgrade(self),
+             preparation: Arc::downgrade(p),
+@@ -1379,6 +1399,8 @@
+             controller,
+             source,
+             event,
++            media_at_capture,
++            answered_at_capture,
+         })
+     }
+ }
+diff --git a/crates/foundation/rvoip-core/src/participant_transitions/replacement.rs b/crates/foundation/rvoip-core/src/participant_transitions/replacement.rs
+--- a/crates/foundation/rvoip-core/src/participant_transitions/replacement.rs
++++ b/crates/foundation/rvoip-core/src/participant_transitions/replacement.rs
+@@ -87,6 +87,9 @@
+     confirmed: bool,
+ }
+ impl PreparedParticipantReplacement {
++    pub(crate) fn has_answered(&self) -> bool {
++        self.answered
++    }
+     pub fn generation(&self) -> u64 {
+         self.candidate.generation()
+     }
+diff --git a/crates/sip/rvoip-sip/Cargo.toml b/crates/sip/rvoip-sip/Cargo.toml
+--- a/crates/sip/rvoip-sip/Cargo.toml
++++ b/crates/sip/rvoip-sip/Cargo.toml
+@@ -343,6 +343,7 @@
+ 
+ [dependencies]
+ # Core dependencies
++tokio-util.workspace = true
+ tokio = { version = "1.40", features = ["full"] }
+ async-trait = "0.1"
+ tracing = "0.1"
+diff --git a/crates/sip/rvoip-sip/src/adapter/device_replacement.rs b/crates/sip/rvoip-sip/src/adapter/device_replacement.rs
+new file mode 100644
+--- /dev/null
++++ b/crates/sip/rvoip-sip/src/adapter/device_replacement.rs
+@@ -0,0 +1,359 @@
++//! Reserved SIP replacement routes and sealed actual route observations.
++//! These facts never grant current host authority or assert media readiness.
++use super::*;
++use rvoip_core::{
++    orchestrator::participant_control::{
++        DeviceReplacementAdapterRequest, DeviceReplacementAdapterRoute,
++        DeviceReplacementEndpointEvent, DeviceReplacementEvent, DeviceReplacementPreparation,
++        DeviceReplacementSignalSource,
++    },
++    participant_transitions::PreparedParticipantReplacement,
++    relationships::{EndpointBinding, EndpointState},
++    Orchestrator,
++};
++use tokio_util::sync::CancellationToken;
++
++/// Created by the installed adapter from the actual Core preparation and a
++/// protected host's current verified endpoint/principal. It cannot be built
++/// from a wire callback or consumed by ordinary origination.
++#[derive(Clone)]
++pub struct SipDeviceReplacementContext {
++    inner: Arc<Context>,
++}
++pub(super) struct Context {
++    adapter: Weak<SipAdapter>,
++    core: Weak<Orchestrator>,
++    preparation: Weak<DeviceReplacementPreparation>,
++    pending: PreparedParticipantReplacement,
++    endpoint: EndpointBinding,
++    principal: AuthenticatedPrincipal,
++    originate: Arc<SipOriginateContext>,
++    claimed: AtomicBool,
++    lifetime: OnceLock<CancellationToken>,
++    route: OnceLock<Weak<SipOutboundRoute>>,
++    signals: mpsc::Sender<SipDeviceReplacementSignal>,
++    receiver: StdMutex<Option<mpsc::Receiver<SipDeviceReplacementSignal>>>,
++}
++impl fmt::Debug for SipDeviceReplacementContext {
++    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
++        f.write_str("SipDeviceReplacementContext(redacted)")
++    }
++}
++impl SipDeviceReplacementContext {
++    /// Take the bounded exact-route observation receiver once. No permission
++    /// reader is retained by this receiver or its captured Core events.
++    pub fn take_signals(&self) -> CoreResult<mpsc::Receiver<SipDeviceReplacementSignal>> {
++        self.inner
++            .receiver
++            .lock()
++            .unwrap_or_else(|v| v.into_inner())
++            .take()
++            .ok_or(RvoipError::InvalidState(
++                "SIP replacement observations already taken",
++            ))
++    }
++    /// The exact Call-ID assigned by dormant allocation, so a host can persist
++    /// correlation before submitting any INVITE. This is planned identity,
++    /// not evidence of submission, answer, successful activation or media.
++    pub fn prepared_call_reference(&self) -> CoreResult<ExternalConnectionReference> {
++        let route =
++            self.inner
++                .route
++                .get()
++                .and_then(Weak::upgrade)
++                .ok_or(RvoipError::InvalidState(
++                    "SIP replacement route not allocated",
++                ))?;
++        let adapter = self
++            .inner
++            .adapter
++            .upgrade()
++            .ok_or(RvoipError::InvalidState("SIP replacement adapter retired"))?;
++        let _mapping = adapter
++            .mapping_lock
++            .lock()
++            .unwrap_or_else(|v| v.into_inner());
++        if !adapter
++            .outbound_routes
++            .get(&route.connection_id)
++            .is_some_and(|r| Arc::ptr_eq(r.value(), &route))
++        {
++            return Err(RvoipError::InvalidState("SIP replacement route retired"));
++        }
++        ExternalConnectionReference::new("sip.call-id", Arc::clone(&route.sip_call_id))
++            .map_err(|_| RvoipError::InvalidState("SIP replacement Call-ID invalid"))
++    }
++}
++/// Captured synchronously by the real exact-route event translator. The host
++/// receives an opaque Core event, including its actual capture-time media
++/// eligibility, rather than a reusable signal credential or caller-ready flag.
++/// Recording still needs fresh current host signal authority.
++pub struct SipDeviceReplacementSignal {
++    connection: ConnectionId,
++    event: DeviceReplacementEndpointEvent,
++    captured: DeviceReplacementEvent,
++}
++impl fmt::Debug for SipDeviceReplacementSignal {
++    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
++        f.write_str("SipDeviceReplacementSignal(redacted)")
++    }
++}
++impl SipDeviceReplacementSignal {
++    /// The exact never-reused reserved candidate that produced this signal.
++    pub fn connection(&self) -> &ConnectionId {
++        &self.connection
++    }
++    /// The actual captured dialog observation, for selecting current authority.
++    pub fn event(&self) -> &DeviceReplacementEndpointEvent {
++        &self.event
++    }
++    /// Consume this observation into its sealed Core event. Applying it still
++    /// requires fresh current signal authority and the original live route.
++    pub fn into_event(self) -> DeviceReplacementEvent {
++        self.captured
++    }
++}
++// Only this adapter can construct the exact route/epoch source accepted by
++// device_replacement_signal_principal. Context configuration alone is not one.
++struct SignalSource {
++    route: Weak<SipOutboundRoute>,
++    context: Weak<Context>,
++    session: SessionId,
++    admitted: Option<SessionRegistryHandle>,
++}
++impl SipAdapter {
++    /// Bind this installed adapter to one actual Core preparation and the
++    /// protected host's verified target endpoint/principal. This allocates no
++    /// route, sends no packet and grants no current execution authority.
++    pub fn device_replacement_context(
++        self: &Arc<Self>,
++        core: &Arc<Orchestrator>,
++        preparation: &Arc<DeviceReplacementPreparation>,
++        principal: AuthenticatedPrincipal,
++        endpoint: EndpointBinding,
++        originate: SipOriginateContext,
++    ) -> CoreResult<Arc<SipDeviceReplacementContext>> {
++        let pending = preparation.prepared_binding();
++        validate_sip_principal_at(&principal, Utc::now())
++            .map_err(|_| RvoipError::AdmissionRejected("SIP replacement principal invalid"))?;
++        if principal.method == rvoip_core::identity::AuthenticationMethod::Anonymous
++            || endpoint.state() != EndpointState::Verified
++            || endpoint.transport() != Transport::Sip
++            || endpoint.endpoint() != &pending.intent().endpoint
++            || endpoint.device() != &pending.intent().device
++            || preparation.is_committed()
++            || preparation.cancellation().is_cancelled()
++        {
++            return Err(RvoipError::AdmissionRejected(
++                "SIP replacement context does not match preparation",
++            ));
++        }
++        Self::validate_outbound_target(endpoint.address())?;
++        originate.validate().map_err(|_| {
++            RvoipError::AdmissionRejected("SIP replacement originate context invalid")
++        })?;
++        let (signals, receiver) = mpsc::channel(SIP_OUTBOUND_EVENT_STAGE_CAPACITY);
++        Ok(Arc::new(SipDeviceReplacementContext {
++            inner: Arc::new(Context {
++                adapter: Arc::downgrade(self),
++                core: Arc::downgrade(core),
++                preparation: Arc::downgrade(preparation),
++                pending,
++                endpoint,
++                principal,
++                originate: Arc::new(originate),
++                claimed: AtomicBool::new(false),
++                lifetime: OnceLock::new(),
++                route: OnceLock::new(),
++                signals,
++                receiver: StdMutex::new(Some(receiver)),
++            }),
++        }))
++    }
++    pub(super) fn prepare_replacement_route(
++        &self,
++        request: &DeviceReplacementAdapterRequest,
++    ) -> CoreResult<DeviceReplacementAdapterRoute> {
++        let public = request.context::<SipDeviceReplacementContext>().ok_or(
++            RvoipError::AdmissionRejected("foreign SIP replacement context"),
++        )?;
++        let context = &public.inner;
++        let ep = request.frozen_endpoint();
++        let expected = &context.endpoint;
++        if !context
++            .adapter
++            .upgrade()
++            .is_some_and(|a| std::ptr::eq(a.as_ref(), self))
++            || context.pending.intent() != request.pending().intent()
++            || !context
++                .pending
++                .binding()
++                .same_incarnation(request.pending().binding())
++            || ep.endpoint() != expected.endpoint()
++            || ep.device() != expected.device()
++            || ep.identity() != expected.identity()
++            || ep.transport() != Transport::Sip
++            || ep.state() != EndpointState::Verified
++            || ep.address() != expected.address()
++            || request.session() != context.pending.appearance().session()
++            || request.resource_lifetime().is_cancelled()
++        {
++            return Err(RvoipError::AdmissionRejected(
++                "SIP replacement reservation mismatch",
++            ));
++        }
++        request
++            .frozen_member()
++            .revalidate_principal(&context.principal, Utc::now())
++            .map_err(|_| {
++                RvoipError::AdmissionRejected("SIP replacement target principal mismatch")
++            })?;
++        if context.claimed.swap(true, Ordering::AcqRel) {
++            return Err(RvoipError::AdmissionRejected(
++                "SIP replacement allocation already attempted",
++            ));
++        }
++        context
++            .lifetime
++            .set(request.resource_lifetime())
++            .map_err(|_| RvoipError::InvalidState("SIP replacement lifetime already installed"))?;
++        let id = request.pending().intent().replacement.clone();
++        let stream = crate::media_stream::SipMediaStream::dormant_deferred_with_capacity(
++            Direction::Outbound,
++            self.audio_queue_capacity,
++        );
++        let route = SipOutboundRoute::new(
++            id.clone(),
++            SessionId::new(),
++            ep.address().to_owned(),
++            context.originate.clone(),
++            stream,
++        );
++        route
++            .replacement
++            .set(context.clone())
++            .map_err(|_| RvoipError::InvalidState("SIP replacement route already installed"))?;
++        // This synchronous step allocates only dormant state: no SIP packet,
++        // event, callback, task, timer or ordinary Participant binding.
++        self.reserve_outbound_route(route.clone())?;
++        context
++            .route
++            .set(Arc::downgrade(&route))
++            .map_err(|_| RvoipError::InvalidState("SIP replacement route already captured"))?;
++        Ok(DeviceReplacementAdapterRoute {
++            principal: context.principal.clone(),
++            handle: ConnectionHandle::new(Connection {
++                id,
++                session_id: request.session().clone(),
++                participant_id: request.frozen_member().participant().clone(),
++                transport: Transport::Sip,
++                direction: Direction::Outbound,
++                state: ConnectionState::Connecting,
++                capabilities: CapabilityDescriptor::default(),
++                negotiated_codecs: NegotiatedCodecs::default(),
++                streams: vec![],
++                messaging_enabled: false,
++                transport_handle: TransportHandle(public),
++                opened_at: Utc::now(),
++                closed_at: None,
++            }),
++        })
++    }
++    pub(super) fn replacement_signal_principal(
++        &self,
++        id: &ConnectionId,
++        source: &(dyn std::any::Any + Send + Sync),
++    ) -> Option<AuthenticatedPrincipal> {
++        let source = source.downcast_ref::<SignalSource>()?;
++        let route = source.route.upgrade()?;
++        let context = source.context.upgrade()?;
++        // A captured observation never strongly owns its prepared route:
++        // the bounded context queue must not form a route/context cycle.
++        let epoch = SipRouteEpoch {
++            session_id: source.session.clone(),
++            connection_id: id.clone(),
++            owner: source
++                .admitted
++                .clone()
++                .map(SipRouteEpochOwner::Admitted)
++                .unwrap_or_else(|| SipRouteEpochOwner::Prepared(route.clone())),
++        };
++        let _mapping = self.mapping_lock.lock().unwrap_or_else(|v| v.into_inner());
++        if &route.connection_id != id
++            || !self.epoch_is_current_locked(&epoch)
++            || !self
++                .outbound_routes
++                .get(id)
++                .is_some_and(|r| Arc::ptr_eq(r.value(), &route))
++            || !route
++                .replacement
++                .get()
++                .is_some_and(|c| Arc::ptr_eq(c, &context))
++            || !route.is_publicly_live()
++            || !replacement_lifetime_current(&context)
++            || context.principal.is_expired()
++        {
++            return None;
++        }
++        Some(context.principal.clone())
++    }
++}
++fn replacement_lifetime_current(context: &Context) -> bool {
++    context.lifetime.get().is_some_and(|v| !v.is_cancelled())
++}
++impl SipOutboundRoute {
++    pub(super) fn replacement_is_current(&self) -> bool {
++        self.replacement
++            .get()
++            .is_none_or(|c| replacement_lifetime_current(c))
++    }
++    /// Called only after releasing mapping_lock: Core capture synchronously
++    /// rechecks the exact epoch through the installed adapter hook.
++    pub(super) fn capture_replacement_signal(
++        self: &Arc<Self>,
++        epoch: &SipRouteEpoch,
++        event: &AdapterEvent,
++    ) -> bool {
++        let Some(context) = self.replacement.get() else {
++            return true;
++        };
++        let event = match event {
++            AdapterEvent::Connected { .. } => DeviceReplacementEndpointEvent::Answered,
++            AdapterEvent::Dtmf { digits, .. } => DeviceReplacementEndpointEvent::Dtmf {
++                digits: digits.clone(),
++            },
++            _ => return true,
++        };
++        let Some(preparation) = context.preparation.upgrade() else {
++            return true;
++        };
++        if preparation.is_committed() {
++            return true;
++        }
++        let Some(core) = context.core.upgrade() else {
++            return false;
++        };
++        let source = Arc::new(SignalSource {
++            route: Arc::downgrade(self),
++            context: Arc::downgrade(context),
++            session: epoch.session_id.clone(),
++            admitted: epoch.admitted_handle().cloned(),
++        });
++        let captured = match core.capture_device_replacement_event(
++            &preparation,
++            DeviceReplacementSignalSource::Adapter(source),
++            event.clone(),
++        ) {
++            Ok(v) => v,
++            Err(_) => return false,
++        };
++        context
++            .signals
++            .try_send(SipDeviceReplacementSignal {
++                connection: self.connection_id.clone(),
++                event,
++                captured,
++            })
++            .is_ok()
++    }
++}
+diff --git a/crates/sip/rvoip-sip/src/adapter.rs b/crates/sip/rvoip-sip/src/adapter.rs
+--- a/crates/sip/rvoip-sip/src/adapter.rs
++++ b/crates/sip/rvoip-sip/src/adapter.rs
+@@ -48,6 +48,9 @@
+ use tokio::sync::{mpsc, watch, Mutex as AsyncMutex};
+ use tracing::{debug, warn};
+ 
++mod device_replacement;
++pub use device_replacement::{SipDeviceReplacementContext, SipDeviceReplacementSignal};
++
+ const MAX_SIP_INBOUND_ALLOWLIST_HEADERS: usize = 32;
+ const MAX_PENDING_SIP_INBOUND_CONTEXTS: usize = 4_096;
+ const PENDING_SIP_INBOUND_CONTEXT_TTL: Duration = Duration::from_secs(120);
+@@ -326,6 +329,7 @@
+     activation: watch::Sender<Option<SipActivationCompletion>>,
+     cleanup: watch::Sender<Option<bool>>,
+     cancel: watch::Sender<bool>,
++    replacement: OnceLock<Arc<device_replacement::Context>>,
+ }
+ 
+ impl SipOutboundRoute {
+@@ -368,6 +372,7 @@
+             activation,
+             cleanup,
+             cancel,
++            replacement: OnceLock::new(),
+         })
+     }
+ 
+@@ -3273,16 +3278,34 @@
+             warn!("SipAdapter discarded event whose connection did not match its route epoch");
+             return true;
+         }
+-        if let Some(route) = self.outbound_routes.get(&epoch.connection_id) {
+-            if !epoch.matches_route(route.value()) {
++        let route = self
++            .outbound_routes
++            .get(&epoch.connection_id)
++            .map(|r| Arc::clone(r.value()));
++        let disposition = if let Some(route) = &route {
++            if !epoch.matches_route(route) {
+                 return true;
+             }
+-            match route.stage_event(event.clone()) {
+-                SipRouteStageDisposition::Retained | SipRouteStageDisposition::Discard => {
++            route.stage_event(event.clone())
++        } else {
++            SipRouteStageDisposition::Forward
++        };
++        let mut mapping = Some(_mapping);
++        if disposition != SipRouteStageDisposition::Discard {
++            if let Some(route) = route.as_ref().filter(|r| r.replacement.get().is_some()) {
++                drop(mapping.take());
++                if !route.capture_replacement_signal(epoch, &event) {
++                    route.cancel.send_replace(true);
++                    return false;
++                }
++                mapping = Some(self.mapping_lock.lock().unwrap_or_else(|v| v.into_inner()));
++                if !self.epoch_is_current_locked(epoch) {
+                     return true;
+                 }
+-                SipRouteStageDisposition::Forward => {}
+-            }
++            }
++        }
++        if disposition != SipRouteStageDisposition::Forward {
++            return true;
+         }
+         if let Err(error) = self
+             .out_tx
+@@ -3291,6 +3314,7 @@
+             warn!(%error, "SipAdapter event channel full or closed");
+             return false;
+         }
++        drop(mapping);
+         true
+     }
+ 
+@@ -4092,6 +4116,24 @@
+         }
+     }
+ 
++    fn supports_device_replacement_preparation(&self) -> bool {
++        true
++    }
++    fn prepare_device_replacement_connection(
++        &self,
++        request: &rvoip_core::orchestrator::participant_control::DeviceReplacementAdapterRequest,
++    ) -> CoreResult<rvoip_core::orchestrator::participant_control::DeviceReplacementAdapterRoute>
++    {
++        self.prepare_replacement_route(request)
++    }
++    fn device_replacement_signal_principal(
++        &self,
++        id: &ConnectionId,
++        source: &(dyn std::any::Any + Send + Sync),
++    ) -> Option<AuthenticatedPrincipal> {
++        self.replacement_signal_principal(id, source)
++    }
++
+     fn install_lifecycle_sink(&self, sink: Arc<dyn AdapterLifecycleSink>) -> CoreResult<()> {
+         self.lifecycle
+             .install(sink)
+@@ -4161,7 +4203,7 @@
+             .get(&conn)
+             .map(|entry| Arc::clone(entry.value()))
+             .ok_or_else(|| RvoipError::ConnectionNotFound(conn.clone()))?;
+-        if self.draining.load(Ordering::Acquire) {
++        if self.draining.load(Ordering::Acquire) || !route.replacement_is_current() {
+             route.complete_activation_failure(SipActivationFailure::RouteEnded);
+             begin_outbound_cleanup(
+                 self.self_weak.clone(),
+@@ -4508,6 +4550,15 @@
+     }
+ 
+     async fn streams(&self, conn: ConnectionId) -> CoreResult<Vec<Arc<dyn MediaStream>>> {
++        if self
++            .outbound_routes
++            .get(&conn)
++            .is_some_and(|r| r.replacement.get().is_some())
++        {
++            return Err(RvoipError::InvalidState(
++                "SIP replacement requires guarded media ports",
++            ));
++        }
+         // Streams are allocated locally in `build_connection`, so this lookup
+         // never waits for coordinator media. Inbound binding starts in the
+         // background; outbound binding starts only after durable activation.
+diff --git a/crates/sip/rvoip-sip/src/lib.rs b/crates/sip/rvoip-sip/src/lib.rs
+--- a/crates/sip/rvoip-sip/src/lib.rs
++++ b/crates/sip/rvoip-sip/src/lib.rs
+@@ -511,7 +511,10 @@
+ // ── Primary public API ──────────────────────────────────────────────────────
+ 
+ // Peer types
+-pub use adapter::{SipAdapter, SipInboundContextPolicy, SipInboundContextPolicyError};
++pub use adapter::{
++    SipAdapter, SipDeviceReplacementContext, SipDeviceReplacementSignal, SipInboundContextPolicy,
++    SipInboundContextPolicyError,
++};
+ pub use originate::{
+     SipInitialHeaders, SipInitialHeadersError, SipOriginateContext, SipOriginateContextError,
+     SipProfileRevision, SipProfileRevisionError, MAX_SIP_INITIAL_HEADERS,
+diff --git a/crates/uctp/rvoip-uctp/tests/support/canonical_media/guarded_mixer/replacement/adapter/sip.rs b/crates/uctp/rvoip-uctp/tests/support/canonical_media/guarded_mixer/replacement/adapter/sip.rs
+new file mode 100644
+--- /dev/null
++++ b/crates/uctp/rvoip-uctp/tests/support/canonical_media/guarded_mixer/replacement/adapter/sip.rs
+@@ -0,0 +1,454 @@
++//! Actual loopback SIP signaling through the reserved Core adapter hooks.
++//! No guarded SIP media/movement or public Connect projection is claimed here.
++use super::*;
++use rvoip_core::adapter::ConnectionAdapter;
++use rvoip_sip::{
++    api::unified::{Config as SipConfig, UnifiedCoordinator},
++    SipAdapter, SipDeviceReplacementContext, SipDeviceReplacementSignal, SipOriginateContext,
++};
++use rvoip_sip_core::{
++    parser::parse_message,
++    prelude::{Contact, HeaderName, Message, Method, StatusCode, TypedHeader},
++    types::headers::HeaderAccess,
++};
++use rvoip_sip_dialog::transaction::utils::response_builders::create_response;
++use std::{net::SocketAddr, str::FromStr};
++use tokio::net::UdpSocket;
++struct Dialog {
++    remote: SocketAddr,
++    from: String,
++    to: String,
++    call_id: String,
++}
++struct Peer {
++    socket: Arc<UdpSocket>,
++    _media: UdpSocket,
++    dialog: Arc<Mutex<Option<Dialog>>>,
++    invites: Arc<Mutex<Vec<String>>>,
++    methods: Arc<Mutex<Vec<Method>>>,
++    task: tokio::task::JoinHandle<()>,
++}
++impl Peer {
++    async fn new(answer: bool) -> Self {
++        let socket = Arc::new(UdpSocket::bind("127.0.0.1:0").await.unwrap());
++        let address = socket.local_addr().unwrap();
++        let media = UdpSocket::bind("127.0.0.1:0").await.unwrap();
++        let media_port = media.local_addr().unwrap().port();
++        let dialog = Arc::new(Mutex::new(None));
++        let invites = Arc::new(Mutex::new(Vec::new()));
++        let methods = Arc::new(Mutex::new(Vec::new()));
++        let wire = socket.clone();
++        let seen_dialog = dialog.clone();
++        let seen_invites = invites.clone();
++        let seen_methods = methods.clone();
++        let task = tokio::spawn(async move {
++            let mut packet = [0u8; 16_384];
++            let mut original = None;
++            loop {
++                let (n, remote) = wire.recv_from(&mut packet).await.unwrap();
++                let Ok(Message::Request(request)) = parse_message(&packet[..n]) else {
++                    continue;
++                };
++                seen_methods.lock().unwrap().push(request.method());
++                if request.method() == Method::Ack {
++                    continue;
++                }
++                let mut response = create_response(
++                    &request,
++                    if request.method() == Method::Invite && !answer {
++                        StatusCode::Ringing
++                    } else {
++                        StatusCode::Ok
++                    },
++                );
++                if request.method() == Method::Invite {
++                    original = Some(request.clone());
++                    seen_invites
++                        .lock()
++                        .unwrap()
++                        .push(request.call_id().unwrap().value());
++                    if let Some(TypedHeader::To(to)) = response
++                        .headers
++                        .iter_mut()
++                        .find(|h| matches!(h, TypedHeader::To(_)))
++                    {
++                        to.set_tag("replacement-sip-peer");
++                    }
++                    *seen_dialog.lock().unwrap() = Some(Dialog {
++                        remote,
++                        from: request.raw_header_value(&HeaderName::From).unwrap(),
++                        to: response.raw_header_value(&HeaderName::To).unwrap(),
++                        call_id: request.call_id().unwrap().value(),
++                    });
++                    if answer {
++                        response.headers.push(TypedHeader::Contact(
++                            Contact::from_str(&format!("<sip:peer@{address}>")).unwrap(),
++                        ));
++                        response.headers.push(TypedHeader::ContentType(
++                            rvoip_sip_core::types::ContentType::sdp(),
++                        ));
++                        response.body=bytes::Bytes::from(format!("v=0\r\no=replacement 1 1 IN IP4 127.0.0.1\r\ns=replacement\r\nc=IN IP4 127.0.0.1\r\nt=0 0\r\nm=audio {media_port} RTP/AVP 0 101\r\na=rtpmap:0 PCMU/8000\r\na=rtpmap:101 telephone-event/8000\r\na=fmtp:101 0-15\r\na=sendrecv\r\n"));
++                        response
++                            .headers
++                            .retain(|h| !matches!(h, TypedHeader::ContentLength(_)));
++                        response.headers.push(TypedHeader::ContentLength(
++                            rvoip_sip_core::types::ContentLength::new(response.body.len() as u32),
++                        ));
++                    }
++                }
++                wire.send_to(&Message::Response(response).to_bytes(), remote)
++                    .await
++                    .unwrap();
++                if request.method() == Method::Cancel {
++                    let mut final_response =
++                        create_response(original.as_ref().unwrap(), StatusCode::RequestTerminated);
++                    if let Some(TypedHeader::To(to)) = final_response
++                        .headers
++                        .iter_mut()
++                        .find(|h| matches!(h, TypedHeader::To(_)))
++                    {
++                        to.set_tag("replacement-sip-peer");
++                    }
++                    wire.send_to(&Message::Response(final_response).to_bytes(), remote)
++                        .await
++                        .unwrap();
++                }
++            }
++        });
++        Self {
++            socket,
++            _media: media,
++            dialog,
++            invites,
++            methods,
++            task,
++        }
++    }
++    fn address(&self) -> SocketAddr {
++        self.socket.local_addr().unwrap()
++    }
++    fn calls(&self) -> usize {
++        self.invites
++            .lock()
++            .unwrap()
++            .iter()
++            .collect::<BTreeSet<_>>()
++            .len()
++    }
++    async fn digit(&self, digit: &str) {
++        let (remote, from, to, call_id) = {
++            let guard = self.dialog.lock().unwrap();
++            let d = guard.as_ref().unwrap();
++            (d.remote, d.to.clone(), d.from.clone(), d.call_id.clone())
++        };
++        let body = format!("Signal={digit}\r\nDuration=160\r\n");
++        let message=format!("INFO sip:replacement@{remote} SIP/2.0\r\nVia: SIP/2.0/UDP {};branch=z9hG4bK-replacement-{};rport\r\nMax-Forwards: 70\r\nFrom: {from}\r\nTo: {to}\r\nCall-ID: {call_id}\r\nCSeq: 2 INFO\r\nContent-Type: application/dtmf-relay\r\nContent-Length: {}\r\n\r\n{body}",self.address(),uuid::Uuid::new_v4().simple(),body.len());
++        self.socket
++            .send_to(message.as_bytes(), remote)
++            .await
++            .unwrap();
++    }
++}
++impl Drop for Peer {
++    fn drop(&mut self) {
++        self.task.abort();
++    }
++}
++struct Candidate {
++    pending: Arc<DeviceReplacementPreparation>,
++    adapter: Arc<SipAdapter>,
++    coordinator: Arc<UnifiedCoordinator>,
++    context: Arc<SipDeviceReplacementContext>,
++    signals: mpsc::Receiver<SipDeviceReplacementSignal>,
++    principal: AuthenticatedPrincipal,
++}
++impl Candidate {
++    async fn new(s: &Scene, peer: &Peer) -> Self {
++        let old = s.grants.0.read().await.owners[&s.live[0].leg.id].clone();
++        let principal = named_actor("alice");
++        let identity = IdentityBinding::from_authenticated(
++            &principal,
++            old.member.identity().clone(),
++            Utc::now(),
++        )
++        .unwrap();
++        let mut endpoint = EndpointBinding::provision(
++            identity.clone(),
++            EndpointId::from_string("endpoint_alice_actual_sip"),
++            DeviceId::from_string("device_alice_actual_sip"),
++            Transport::Sip,
++            format!("sip:peer@{}", peer.address()),
++        )
++        .unwrap();
++        endpoint
++            .verify(&identity, "actual-loopback-sip-route".into(), Utc::now())
++            .unwrap();
++        let id = ConnectionId::new();
++        let intent = ParticipantReplacementMutation {
++            operation_id: "actual-sip-replacement".into(),
++            correlation_id: "actual-sip-replacement".into(),
++            expected_revision: s.core.orch.participant_revision(&s.core.session).unwrap(),
++            participant: old.member.participant().clone(),
++            source: s.live[0].leg.id.clone(),
++            replacement: id.clone(),
++            retained: s.live[1].leg.id.clone(),
++            endpoint: endpoint.endpoint().clone(),
++            device: endpoint.device().clone(),
++            confirmation: EndpointConfirmationPolicy::AnsweredDtmf { digits: "5".into() },
++        };
++        let mut planned = old.clone();
++        planned.endpoint = endpoint.clone();
++        planned.connection =
++            ConnectionBinding::prepare(&old.member, &old.presence, &endpoint, id.clone()).unwrap();
++        s.grants.0.write().await.owners.insert(id.clone(), planned);
++        let coordinator = UnifiedCoordinator::new(SipConfig::local("replacement-uac", 0))
++            .await
++            .unwrap();
++        let adapter = SipAdapter::new(coordinator.clone()).await.unwrap();
++        s.core.orch.register(adapter.clone()).unwrap();
++        let g = grant(s, &intent, &principal, Approval::Prepare).await;
++        let pending = s
++            .core
++            .orch
++            .prepare_staged_device_replacement_with_held(
++                &s.core.session,
++                principal.clone(),
++                intent.clone(),
++                tokio::time::Instant::now() + Duration::from_secs(15),
++                CancellationToken::new(),
++                &g,
++            )
++            .unwrap();
++        drop(g);
++        let prepared = pending.prepared_binding();
++        {
++            let mut state = s.grants.0.write().await;
++            let owner = state.owners.get_mut(&id).unwrap();
++            owner.connection = prepared.binding().clone();
++            owner.presence = prepared.appearance().clone();
++        }
++        s.replacement_media
++            .as_ref()
++            .unwrap()
++            .resources
++            .lock()
++            .unwrap()
++            .insert(
++                id.clone(),
++                Resources {
++                    pending: prepared,
++                    proof: None,
++                },
++            );
++        let context = adapter
++            .device_replacement_context(
++                &s.core.orch,
++                &pending,
++                principal.clone(),
++                endpoint,
++                SipOriginateContext::default(),
++            )
++            .unwrap();
++        assert!(context.prepared_call_reference().is_err());
++        let signals = context.take_signals().unwrap();
++        assert!(context.take_signals().is_err());
++        let g = grant(s, &intent, &principal, Approval::Allocate).await;
++        assert_eq!(
++            s.core
++                .orch
++                .prepare_adapter_device_replacement_with_held(&pending, context.clone(), &g)
++                .unwrap(),
++            id
++        );
++        drop(g);
++        assert!(adapter.is_connection_live(&id));
++        assert_eq!(
++            context.prepared_call_reference().unwrap().kind(),
++            "sip.call-id"
++        );
++        assert!(adapter.streams(id.clone()).await.is_err());
++        assert!(adapter
++            .device_replacement_signal_principal(&id, context.as_ref())
++            .is_none());
++        assert_eq!(peer.calls(), 0);
++        assert!(peer.methods.lock().unwrap().is_empty());
++        assert!(coordinator.list_sessions().await.is_empty());
++        Self {
++            pending,
++            adapter,
++            coordinator,
++            context,
++            signals,
++            principal,
++        }
++    }
++    async fn signal(&mut self, s: &Scene) -> Observation {
++        let signal = tokio::time::timeout(Duration::from_secs(3), self.signals.recv())
++            .await
++            .unwrap()
++            .unwrap();
++        assert_eq!(signal.connection(), &self.pending.intent().replacement);
++        let g = grant(
++            s,
++            self.pending.intent(),
++            &self.principal,
++            Approval::Signal(signal.event().clone()),
++        )
++        .await;
++        signal.into_event().observe_with_held(&g).unwrap()
++    }
++    async fn stop(&self, peer: &Peer, terminal: Option<Method>) {
++        self.pending.cancel();
++        if let Some(method) = terminal {
++            core_fixture::until(|| peer.methods.lock().unwrap().contains(&method)).await;
++        }
++        core_fixture::until(|| {
++            !self
++                .adapter
++                .is_connection_live(&self.pending.intent().replacement)
++        })
++        .await;
++        self.adapter.drain().await.unwrap();
++        self.coordinator
++            .shutdown_gracefully(Some(Duration::from_secs(3)))
++            .await
++            .unwrap();
++        assert!(!self
++            .adapter
++            .is_connection_live(&self.pending.intent().replacement));
++    }
++}
++#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
++async fn actual_sip_replacement_reserved_route_answers_and_captures_only_real_dialog_dtmf() {
++    let s = Scene::new_replacement("quic").await;
++    let peer = Peer::new(true).await;
++    let mut c = Candidate::new(&s, &peer).await;
++    tokio::time::sleep(Duration::from_millis(100)).await;
++    assert_eq!(peer.calls(), 0);
++    let before_submit = c.context.prepared_call_reference().unwrap();
++    let g = grant(&s, c.pending.intent(), &c.principal, Approval::Start).await;
++    let receipt = s
++        .core
++        .orch
++        .start_adapter_device_replacement_with_held(&c.pending, &g)
++        .await
++        .unwrap();
++    drop(g);
++    assert_eq!(receipt.external_references().len(), 1);
++    assert_eq!(
++        receipt.external_references()[0].expose_secret(),
++        before_submit.expose_secret()
++    );
++    assert_eq!(
++        peer.dialog.lock().unwrap().as_ref().unwrap().call_id,
++        before_submit.expose_secret()
++    );
++    assert_eq!(c.signal(&s).await, Observation::Answered);
++    core_fixture::until(|| peer.methods.lock().unwrap().contains(&Method::Ack)).await;
++    peer.digit("5").await;
++    let signal = tokio::time::timeout(Duration::from_secs(3), c.signals.recv())
++        .await
++        .unwrap()
++        .unwrap();
++    assert_eq!(
++        signal.event(),
++        &DeviceReplacementEndpointEvent::Dtmf { digits: "5".into() }
++    );
++    let captured = signal.into_event();
++    let event = DeviceReplacementEndpointEvent::Dtmf { digits: "5".into() };
++    let g = grant(
++        &s,
++        c.pending.intent(),
++        &c.principal,
++        Approval::Signal(event.clone()),
++    )
++    .await;
++    assert_eq!(
++        captured.observe_with_held(&g).unwrap(),
++        Observation::BeforeAnswerOrMedia
++    );
++    drop(g);
++    assert!(s
++        .core
++        .orch
++        .plan_staged_device_replacement(&c.pending)
++        .is_err());
++    for _ in 0..2 {
++        let g = grant(&s, c.pending.intent(), &c.principal, Approval::Start).await;
++        let replay = s
++            .core
++            .orch
++            .start_adapter_device_replacement_with_held(&c.pending, &g)
++            .await
++            .unwrap();
++        assert_eq!(
++            replay.external_references()[0].expose_secret(),
++            receipt.external_references()[0].expose_secret()
++        );
++    }
++    assert_eq!(peer.calls(), 1);
++    assert_eq!(
++        format!("{:?}", c.context),
++        "SipDeviceReplacementContext(redacted)"
++    );
++    s.tone(0, 1).await;
++    s.tone(1, 0).await;
++    c.stop(&peer, Some(Method::Bye)).await;
++    assert!(peer.methods.lock().unwrap().contains(&Method::Bye));
++    let g = grant(
++        &s,
++        c.pending.intent(),
++        &c.principal,
++        Approval::Signal(event),
++    )
++    .await;
++    assert!(
++        captured.observe_with_held(&g).is_err(),
++        "late exact-dialog digits cannot revive the retired candidate"
++    );
++    drop(g);
++    s.tone(0, 1).await;
++    s.tone(1, 0).await;
++    s.stop().await;
++}
++#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
++async fn actual_sip_replacement_lost_wait_no_answer_and_cancel_do_not_create_another_call() {
++    let s = Scene::new_replacement("quic").await;
++    let peer = Peer::new(false).await;
++    let mut c = Candidate::new(&s, &peer).await;
++    for _ in 0..2 {
++        let g = grant(&s, c.pending.intent(), &c.principal, Approval::Start).await;
++        assert!(tokio::time::timeout(
++            Duration::from_millis(150),
++            s.core
++                .orch
++                .start_adapter_device_replacement_with_held(&c.pending, &g)
++        )
++        .await
++        .is_err());
++        drop(g);
++    }
++    core_fixture::until(|| peer.calls() == 1).await;
++    assert_eq!(peer.calls(), 1);
++    assert!(c.signals.try_recv().is_err());
++    s.tone(0, 1).await;
++    s.tone(1, 0).await;
++    c.stop(&peer, Some(Method::Cancel)).await;
++    assert!(peer.methods.lock().unwrap().contains(&Method::Cancel));
++    assert_eq!(peer.calls(), 1);
++    s.tone(0, 1).await;
++    s.tone(1, 0).await;
++    s.stop().await;
++}
++#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
++async fn actual_sip_replacement_cancel_before_start_is_zero_wire() {
++    let s = Scene::new_replacement("quic").await;
++    let peer = Peer::new(true).await;
++    let c = Candidate::new(&s, &peer).await;
++    c.stop(&peer, None).await;
++    assert_eq!(peer.calls(), 0);
++    assert!(peer.methods.lock().unwrap().is_empty());
++    s.tone(0, 1).await;
++    s.tone(1, 0).await;
++    s.stop().await;
++}
+diff --git a/crates/uctp/rvoip-uctp/tests/support/canonical_media/guarded_mixer/replacement/adapter.rs b/crates/uctp/rvoip-uctp/tests/support/canonical_media/guarded_mixer/replacement/adapter.rs
+--- a/crates/uctp/rvoip-uctp/tests/support/canonical_media/guarded_mixer/replacement/adapter.rs
++++ b/crates/uctp/rvoip-uctp/tests/support/canonical_media/guarded_mixer/replacement/adapter.rs
+@@ -738,3 +738,74 @@
+         s.stop().await;
+     }
+ }
++
++#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
++async fn delayed_pre_answer_or_media_dtmf_cannot_become_confirmation_after_readiness() {
++    for mode in ["before-media", "before-answer"] {
++        let s = Scene::new_replacement("quic").await;
++        let mut c = Candidate::new(&s, Transport::Sip).await;
++        if mode == "before-media" {
++            assert_eq!(
++                c.event(&s, DeviceReplacementEndpointEvent::Answered).await,
++                Observation::Answered
++            );
++        } else {
++            c.prompt().await;
++        }
++        let event = DeviceReplacementEndpointEvent::Dtmf {
++            digits: "5#".into(),
++        };
++        let captured = s
++            .core
++            .orch
++            .capture_device_replacement_event(
++                &c.pending,
++                DeviceReplacementSignalSource::Adapter(c.adapter.context.clone()),
++                event.clone(),
++            )
++            .unwrap();
++        if mode == "before-media" {
++            c.prompt().await;
++        } else {
++            assert_eq!(
++                c.event(&s, DeviceReplacementEndpointEvent::Answered).await,
++                Observation::Answered
++            );
++        }
++        let g = grant(
++            &s,
++            c.pending.intent(),
++            &c.adapter.context.principal,
++            Approval::Signal(event),
++        )
++        .await;
++        assert_eq!(
++            captured.observe_with_held(&g).unwrap(),
++            Observation::BeforeAnswerOrMedia,
++            "{mode}"
++        );
++        drop(g);
++        assert!(s
++            .core
++            .orch
++            .plan_staged_device_replacement(&c.pending)
++            .is_err());
++        assert_eq!(
++            c.event(
++                &s,
++                DeviceReplacementEndpointEvent::Dtmf {
++                    digits: "5#".into()
++                }
++            )
++            .await,
++            Observation::Confirmed
++        );
++        c.pending.cancel();
++        s.tone(0, 1).await;
++        s.tone(1, 0).await;
++        s.stop().await;
++    }
++}
++
++#[path = "adapter/sip.rs"]
++mod sip;

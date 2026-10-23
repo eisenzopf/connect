@@ -1,0 +1,175 @@
+{
+  "task": "G6-046",
+  "status": "in-progress",
+  "passed": true,
+  "component_passed": true,
+  "full_task_complete": false,
+  "full_goal_complete": false,
+  "executed_at": "2026-10-23T03:52:58.573297+00:00",
+  "schema_version": 97,
+  "source_lock_patches": 151,
+  "scope": "Unfiltered current/future native Participant selection and exact Stream removal/reselection through production signed public clients.",
+  "newly_qualified_case_ids": [
+    "u6-req-0124",
+    "u6-req-0126",
+    "u6-req-0127"
+  ],
+  "qualified_clause_count": 43,
+  "assigned_clause_count": 61,
+  "remaining_case_ids": [
+    "u6-req-0082",
+    "u6-req-0083",
+    "u6-req-0085",
+    "u6-req-0088",
+    "u6-req-0089",
+    "u6-req-0100",
+    "u6-req-0102",
+    "u6-req-0103",
+    "u6-req-0104",
+    "u6-req-0105",
+    "u6-req-0109",
+    "u6-req-0112",
+    "u6-req-0113",
+    "u6-req-0115",
+    "u6-req-0123",
+    "u6-req-0125",
+    "u6-req-0128",
+    "u6-req-0129"
+  ],
+  "source_lock": {
+    "path": "dependencies/source-lock.json",
+    "sha256": "5be6a96b1f6d72d12d728f6d6701ee307eb690955ea1234f5d4aaeba819ff2d0"
+  },
+  "source_inputs": {
+    "path": ".local/gate-6/session-participants/wildcard-inputs-final.json",
+    "sha256": "f76cb475c53e331d416b23c3d2b9b75d9a1cf127fc58da3379a5b23e4dabbd44"
+  },
+  "sources_unchanged": true,
+  "binary": {
+    "path": "target/debug/deps/gate6_canonical_runtime-1b0da6e3c5cdb2d1",
+    "sha256": "8cc6fef08588693788cb3bcf8834ac4d2d0491ef739bd3126d36b2ab44e41e9d"
+  },
+  "rust_test_methods": 34,
+  "tests": [
+    "canonical_native_connections::codecs::production_native_admissions_keep_equal_owner_scoped_operation_ids_distinct",
+    "canonical_native_connections::codecs::production_native_codec_captured_commit_recovers_after_recording_failure_role_writer_and_cancel",
+    "canonical_native_connections::codecs::production_native_codec_change_confirms_decoded_pcma_preserves_old_audio_and_replays_without_reapplying",
+    "canonical_native_connections::codecs::production_native_codec_refusals_and_foreign_physical_replay_preserve_audio_and_pending_original",
+    "canonical_native_connections::codecs::production_native_main_session_end_and_successor_cancel_follow_explicit_conversation_closure_policy",
+    "canonical_native_connections::data::production_native_data_cancelled_queued_message_records_refusal_and_unblocks_following_data",
+    "canonical_native_connections::data::production_native_data_preflight_and_pending_replay_cannot_borrow_another_physical_peer",
+    "canonical_native_connections::data::production_native_data_routes_original_messages_and_records_local_writes_without_republishing_replay",
+    "canonical_native_connections::data::production_native_data_writer_storage_recovery_preserves_audio_and_other_connections",
+    "canonical_native_connections::data::production_native_participant_data_selection_routes_real_json",
+    "canonical_native_connections::data::production_native_role_projection_preserves_mixed_connections_and_custom_role_permissions",
+    "canonical_native_connections::data::production_native_text_and_binary_data_preserve_exact_encodings_and_local_write_identity",
+    "canonical_native_connections::future::production_native_es256_unfiltered_participant_selection_preserves_explicit_removal",
+    "canonical_native_connections::future::production_native_future_camera_captured_receipt_recovers_without_retaining_command_readers",
+    "canonical_native_connections::future::production_native_future_camera_reoffers_on_publication_and_retires_source_without_losing_audio",
+    "canonical_native_connections::future::production_native_unfiltered_participant_selection_routes_current_audio_and_future_camera",
+    "canonical_native_connections::journey::production_owned_native_session_runs_invite_relay_media_end_and_independent_private_record_multicast",
+    "canonical_native_connections::journey::production_record_ready_storage_failure_recovers_same_outcome_without_more_media_or_duplicate_notice",
+    "canonical_native_connections::lifecycle::production_native_lifecycle_closes_original_codec_binding_and_opens_only_observed_replacement",
+    "canonical_native_connections::lifecycle::production_native_lifecycle_quality_reports_actual_flow_through_signed_sdk",
+    "canonical_native_connections::lifecycle::production_owned_audio_continuously_reads_signed_capability_bursts_while_preserving_duplex_audio_and_selector_replay",
+    "canonical_native_connections::lifecycle::production_owned_native_audio_selection_replay_preserves_pending_lifecycle_events",
+    "canonical_native_connections::participants::production_confirmed_loss_deadline_survives_owned_listener_restart_and_policy_change",
+    "canonical_native_connections::participants::production_current_native_offer_in_flight_survives_grace_and_reconnects_same_session",
+    "canonical_native_connections::participants::production_default_thirty_second_loss_grace_ends_once_and_requires_new_invitation",
+    "canonical_native_connections::participants::production_participant_presence_joins_once_across_connections_and_leaves_only_last_then_rejoins_same_session",
+    "canonical_native_connections::participants::production_reconnect_grace_preserves_same_session_ignores_silence_and_explicit_end_is_immediate",
+    "canonical_native_connections::production_native_participant_screen_selection_routes_real_vp8",
+    "canonical_native_connections::production_native_participant_video_selection_routes_real_vp8",
+    "canonical_native_connections::production_native_stream_captured_commit_recovers_storage_without_retaining_original_readers_or_reapplying",
+    "canonical_native_connections::production_signed_native_stream_subscription_routes_audio_and_replays_without_another_effect",
+    "general_session_control::http_only_session_creates_empty_checked_core_and_later_native_attaches_without_recreation",
+    "general_session_control::signed_and_http_general_session_lifecycle_share_four_party_receipts_and_current_views",
+    "general_session_control::signed_session_projection_uses_actual_physical_peers_and_replay_cannot_resurrect_end"
+  ],
+  "results": {
+    "path": ".local/gate-6/session-participants/subscription-final.log",
+    "sha256": "38e3dd660ba75e09364b3afb32b46abc7135af63ed878b84b7f7a831f6ef4981"
+  },
+  "actual_samples": {
+    "path": ".local/gate-6/session-participants/subscription-journey-final.jsonl",
+    "sha256": "6fbac5475b508158dd450684259eab7d7f3a898936e9563335015e1df400555b"
+  },
+  "sample_validation": {
+    "path": ".local/gate-6/session-participants/subscription-validation-final.log",
+    "sha256": "36072e8ff9d15faa053fc47cb7c7451530a354595703ea6aca7fcd098680eed7"
+  },
+  "builds": [
+    {
+      "path": ".local/gate-6/session-participants/build-wildcard.log",
+      "sha256": "2f74dcffbcdddfc385d1cee33e7c123e4a4dc4651d8c9871cd1503d698b0666a"
+    },
+    {
+      "path": ".local/gate-6/session-participants/build-wildcard-final.log",
+      "sha256": "f9a04e03454fe54f9108542d74cc150c9f865c989f4bca5bd680f01a65cd62d2"
+    },
+    {
+      "path": ".local/gate-6/session-participants/build-wildcard-fixtures.log",
+      "sha256": "18a237daafa25a0521983d573084646a146b1bb5330769cf44d24b89e5abb54d"
+    },
+    {
+      "path": ".local/gate-6/session-participants/build-wildcard-fixtures-final.log",
+      "sha256": "664bfddc85191ca6510930756f9498e14b68238d6cd57cac7dec0b6d4aabf01f"
+    },
+    {
+      "path": ".local/gate-6/session-participants/default-check-wildcard.log",
+      "sha256": "19f8740f100bbc82d8bd465c0ec0f73626aad2c18dab1840f15c946611178390"
+    }
+  ],
+  "verification": [
+    {
+      "path": ".local/gate-6/session-participants/dependencies-selectors.log",
+      "sha256": "fd9d7b181e3ccba9b643af55a186cf132c60aac99c734b2ee4e4e549afe5ffc2"
+    },
+    {
+      "path": ".local/gate-6/session-participants/reference-selectors-check.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": ".local/gate-6/session-participants/schema-selectors.log",
+      "sha256": "1cc9e4e32dc7c1ba3833afe9c3ef9e27d11c113a977e310d1c88c4880e2701fb"
+    },
+    {
+      "path": ".local/gate-6/session-participants/format-selectors-check.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": ".local/gate-6/session-participants/diff-selectors.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ],
+  "implementation": [
+    "Recorded upstream patch and151st source-lock digest: resolve omitted kinds from the installed profile and compatible last confirmed or explicitly declared receiver capabilities. Exact requested kinds remain exact; no implicit receive route, synthetic media or new source authority is introduced.",
+    "Both signing algorithms prove failed mixed valid/unknown selectors and unsupported explicit screen produce no native effect or implicit audio. A single unfiltered Participant selector routes current real audio, then a later camera from another physical publisher after an exact signed reoffer.",
+    "Both signing algorithms prove camera removal overrides the retained Participant selector, original logical replay is byte-equivalent in result under a fresh envelope ID, a fresh repeated removal is a no-op with unchanged stream revision, audio continues, and exact resubscription restores fresh VP8 through the existing allocated handle.",
+    "Existing filtered future camera, receipt storage recovery, native exact/filtered audio/video/screen/data, codec/role controls, Session metadata, reconnect boundary, owned record journeys and shared native/HTTP general controls are rerun on the current binary.",
+    "Developer guides and generated HTTP reference describe the installed default selector, exclusion, operation outcome and resubscription semantics. Historical general Session documentation now identifies schema97 and installed lifecycle/reconnect/Record metadata work."
+  ],
+  "clause_evidence": {
+    "u6-req-0124": "Exact stream, Participant-only and Participant-with-kinds forms through actual production public QUIC commands and current signed replies; audio/video/screen/data cases retain their declared profiles.",
+    "u6-req-0126": "Exact strm_ids unsubscribe shape used by both signatures on a real selected camera; no new physical receiver allocation.",
+    "u6-req-0127": "Removed camera stays absent during fresh RTP while audio continues; identical logical replay and a new repeated removal preserve the same route exclusion/revision, explicit resubscription restores fresh camera packets."
+  },
+  "corrected_during_verification": [
+    "The new unfiltered journey first failed because omitted kinds requested all four media kinds even when the receiver supported only audio/video. The recorded upstream patch fixes that production defect.",
+    "Earlier data-only fixtures used the obsolete medium data. They now submit the approved text-chat value; no legacy API alias is installed.",
+    "The initial broad run exposed a local credential setup race: issue() refuses authority-busy before touching credential storage when invitation delivery holds its identity reader. The fixture now retries only that pre-effect refusal with frozen expiry for at most two seconds. The failing run is retained as private diagnostic evidence; all34 final current methods must pass."
+  ],
+  "historical_record_evidence": "docs/evidence/gate-6/auxiliary-session-record-journey.json",
+  "limits": [
+    "Isolated local macOS arm64 production QUIC/native only; EdDSA and ES256 wildcard journeys. Other rerun methods retain their explicit local configurations.",
+    "Omitted kinds retains compatible receive media in the installed current profile and last confirmed/declarative peer capabilities. It does not grant missing capability or promise automatic expansion after a later capability upgrade. Each source, captured member epoch and actual packet still needs current authorization.",
+    "Both native Participants have accepted audio/video capabilities in the new journeys. Current/future selectors for differing accepted Participant capability subsets and full multiparty composition remain separate scope.",
+    "Precise404/488 subscription-error behavior in0125, broader0123 multiparty composition, optional speaker schema/policy0128/0129, Session/update/readiness-policy and URI/DTMF interop clauses remain open.",
+    "Linux/browser/remote/provider rehearsal, full G6-046 completion, independent acceptance, publication and the all105-task objective remain open."
+  ],
+  "not_run": [
+    "Named Linux/browser/remote/provider profiles",
+    "Exact numeric404/488 wire outcomes and remaining18 clauses",
+    "Full task or Gate6 acceptance"
+  ]
+}

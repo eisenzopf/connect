@@ -74,7 +74,9 @@ async fn task_grant_native_audio_round_trip_detaches_and_reconnects_without_new_
             Operation::Send {
                 request_id: "after-voice".into(),
                 conversation_id: f.h.cid.clone(),
-                body: "Continue the same task after voice".into(),
+                message: connect_protocol::messages::MessageDraft::text_all(
+                    "Continue the same task after voice",
+                ),
             },
         ))
         .await

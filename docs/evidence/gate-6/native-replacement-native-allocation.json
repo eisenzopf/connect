@@ -1,0 +1,713 @@
+{
+  "kind": "gate6-component-evidence",
+  "task": "G6-041",
+  "status": "in-progress",
+  "passed": true,
+  "recorded_at": "2026-10-20T01:47:39.054215+00:00",
+  "scope": "Local macOS arm64 public signed native Quic target allocation/retention through the actual Core reservation and typed public SDK. Candidate media remains unstarted/closed; no candidate Connection row, target negotiation/resource activation, readiness/DTMF, movement commit or source retirement is claimed.",
+  "schema_version": 55,
+  "pinned_patches": 111,
+  "source_lock": {
+    "path": "dependencies/source-lock.json",
+    "sha256": "a30becafde1bee7c0bffdcd9198f7abc55246c4330c6d1e019a4322bed4e79ed"
+  },
+  "verification": [
+    {
+      "name": "store",
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "--offline",
+        "-j1",
+        "-p",
+        "connect-store",
+        "--lib",
+        "replacement_sources",
+        "--",
+        "--test-threads=2",
+        "--nocapture"
+      ],
+      "exit_code": 0,
+      "passed": 28,
+      "ignored": 0,
+      "log": {
+        "path": ".local/gate-6/replacement-allocation-store-final2.log",
+        "sha256": "399b084b1f0440223b503420b82d5dea244992f9e5bd856c66a9a646054b1374"
+      },
+      "test_binaries": [
+        {
+          "path": "target/debug/deps/connect_store-500690b8d898aed1",
+          "sha256": "65bc9d790ebc0abb904c157a7432182ba3ae180e057ac0f0f86bcb40b8262138"
+        }
+      ]
+    },
+    {
+      "name": "native",
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "--offline",
+        "-j1",
+        "-p",
+        "connect-server",
+        "--test",
+        "gate6_canonical_runtime",
+        "production_replacement_",
+        "--",
+        "--test-threads=1",
+        "--nocapture"
+      ],
+      "exit_code": 0,
+      "passed": 2,
+      "ignored": 0,
+      "log": {
+        "path": ".local/gate-6/replacement-allocation-native-final2.log",
+        "sha256": "8792c8d1feea8095743d2f467c72cb58a8511c722f4ae4aa834fa8b663cc96a5"
+      },
+      "test_binaries": [
+        {
+          "path": "target/debug/deps/gate6_canonical_runtime-09465e13dc9bb922",
+          "sha256": "507087f64046124e750fcb1d655f9b2ec7b96df31f918411ce59d5693ff66a65"
+        }
+      ]
+    },
+    {
+      "name": "public-boundaries",
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "--offline",
+        "-j1",
+        "-p",
+        "connect-server",
+        "--test",
+        "gate6_canonical_transitions"
+      ],
+      "exit_code": 0,
+      "passed": 5,
+      "ignored": 0,
+      "log": {
+        "path": ".local/gate-6/replacement-allocation-transitions-final.log",
+        "sha256": "08b14b58044dfe3472f7fc0e8d365d7afe49ceba7a2b2bcc79e9bdb7396208c2"
+      },
+      "test_binaries": [
+        {
+          "path": "target/debug/deps/gate6_canonical_transitions-3c1fd287bcc3e17e",
+          "sha256": "22f95294eccc106838e4757d29365216a08b95a37ec5c70b7c2f64f3644190b9"
+        }
+      ]
+    }
+  ],
+  "fresh_tests": 35,
+  "decoded_audio_probes": [
+    {
+      "name": "replace-before-prepare-remote",
+      "source": 0,
+      "allowed": [
+        1
+      ],
+      "decoded_frames": [
+        0,
+        84
+      ]
+    },
+    {
+      "name": "replace-before-prepare-source",
+      "source": 1,
+      "allowed": [
+        0
+      ],
+      "decoded_frames": [
+        84,
+        0
+      ]
+    },
+    {
+      "name": "replace-real-preparation-retains-remote-audio",
+      "source": 0,
+      "allowed": [
+        1
+      ],
+      "decoded_frames": [
+        0,
+        85
+      ]
+    },
+    {
+      "name": "replace-real-preparation-retains-source-role",
+      "source": 1,
+      "allowed": [
+        0
+      ],
+      "decoded_frames": [
+        79,
+        0
+      ]
+    },
+    {
+      "name": "replace-after-stop-remote-audio",
+      "source": 0,
+      "allowed": [
+        1
+      ],
+      "decoded_frames": [
+        0,
+        80
+      ]
+    },
+    {
+      "name": "replace-after-stop-source-role",
+      "source": 1,
+      "allowed": [
+        0
+      ],
+      "decoded_frames": [
+        82,
+        0
+      ]
+    },
+    {
+      "name": "replace-before-prepare-remote",
+      "source": 0,
+      "allowed": [
+        1
+      ],
+      "decoded_frames": [
+        0,
+        81
+      ]
+    },
+    {
+      "name": "replace-before-prepare-source",
+      "source": 1,
+      "allowed": [],
+      "decoded_frames": [
+        0,
+        0
+      ]
+    },
+    {
+      "name": "replace-real-preparation-retains-remote-audio",
+      "source": 0,
+      "allowed": [
+        1
+      ],
+      "decoded_frames": [
+        0,
+        82
+      ]
+    },
+    {
+      "name": "replace-real-preparation-retains-source-role",
+      "source": 1,
+      "allowed": [],
+      "decoded_frames": [
+        0,
+        0
+      ]
+    },
+    {
+      "name": "replace-after-stop-remote-audio",
+      "source": 0,
+      "allowed": [
+        1
+      ],
+      "decoded_frames": [
+        0,
+        85
+      ]
+    },
+    {
+      "name": "replace-after-stop-source-role",
+      "source": 1,
+      "allowed": [],
+      "decoded_frames": [
+        0,
+        0
+      ]
+    },
+    {
+      "name": "replace-before-prepare-remote",
+      "source": 0,
+      "allowed": [
+        1
+      ],
+      "decoded_frames": [
+        0,
+        83
+      ]
+    },
+    {
+      "name": "replace-before-prepare-source",
+      "source": 1,
+      "allowed": [
+        0
+      ],
+      "decoded_frames": [
+        83,
+        0
+      ]
+    },
+    {
+      "name": "replace-real-preparation-retains-remote-audio",
+      "source": 0,
+      "allowed": [
+        1
+      ],
+      "decoded_frames": [
+        0,
+        69
+      ]
+    },
+    {
+      "name": "replace-real-preparation-retains-source-role",
+      "source": 1,
+      "allowed": [
+        0
+      ],
+      "decoded_frames": [
+        76,
+        0
+      ]
+    },
+    {
+      "name": "replace-after-stop-remote-audio",
+      "source": 0,
+      "allowed": [
+        1
+      ],
+      "decoded_frames": [
+        0,
+        81
+      ]
+    },
+    {
+      "name": "replace-after-stop-source-role",
+      "source": 1,
+      "allowed": [
+        0
+      ],
+      "decoded_frames": [
+        85,
+        0
+      ]
+    },
+    {
+      "name": "replace-before-prepare-remote",
+      "source": 0,
+      "allowed": [
+        1
+      ],
+      "decoded_frames": [
+        0,
+        83
+      ]
+    },
+    {
+      "name": "replace-before-prepare-source",
+      "source": 1,
+      "allowed": [
+        0
+      ],
+      "decoded_frames": [
+        80,
+        0
+      ]
+    },
+    {
+      "name": "replace-real-preparation-retains-remote-audio",
+      "source": 0,
+      "allowed": [
+        1
+      ],
+      "decoded_frames": [
+        0,
+        73
+      ]
+    },
+    {
+      "name": "replace-real-preparation-retains-source-role",
+      "source": 1,
+      "allowed": [
+        0
+      ],
+      "decoded_frames": [
+        78,
+        0
+      ]
+    },
+    {
+      "name": "replace-after-stop-remote-audio",
+      "source": 0,
+      "allowed": [
+        1
+      ],
+      "decoded_frames": [
+        0,
+        85
+      ]
+    },
+    {
+      "name": "replace-after-stop-source-role",
+      "source": 1,
+      "allowed": [
+        0
+      ],
+      "decoded_frames": [
+        85,
+        0
+      ]
+    },
+    {
+      "name": "replace-before-prepare-remote",
+      "source": 0,
+      "allowed": [
+        1
+      ],
+      "decoded_frames": [
+        0,
+        86
+      ]
+    },
+    {
+      "name": "replace-before-prepare-source",
+      "source": 1,
+      "allowed": [
+        0
+      ],
+      "decoded_frames": [
+        84,
+        0
+      ]
+    },
+    {
+      "name": "replace-real-preparation-retains-remote-audio",
+      "source": 0,
+      "allowed": [
+        1
+      ],
+      "decoded_frames": [
+        0,
+        80
+      ]
+    },
+    {
+      "name": "replace-real-preparation-retains-source-role",
+      "source": 1,
+      "allowed": [
+        0
+      ],
+      "decoded_frames": [
+        75,
+        0
+      ]
+    },
+    {
+      "name": "replace-after-stop-remote-audio",
+      "source": 0,
+      "allowed": [
+        1
+      ],
+      "decoded_frames": [
+        0,
+        80
+      ]
+    },
+    {
+      "name": "replace-after-stop-source-role",
+      "source": 1,
+      "allowed": [
+        0
+      ],
+      "decoded_frames": [
+        81,
+        0
+      ]
+    },
+    {
+      "name": "replace-before-prepare-remote",
+      "source": 0,
+      "allowed": [
+        1
+      ],
+      "decoded_frames": [
+        0,
+        81
+      ]
+    },
+    {
+      "name": "replace-before-prepare-source",
+      "source": 1,
+      "allowed": [],
+      "decoded_frames": [
+        0,
+        0
+      ]
+    },
+    {
+      "name": "replace-real-preparation-retains-remote-audio",
+      "source": 0,
+      "allowed": [
+        1
+      ],
+      "decoded_frames": [
+        0,
+        83
+      ]
+    },
+    {
+      "name": "replace-real-preparation-retains-source-role",
+      "source": 1,
+      "allowed": [],
+      "decoded_frames": [
+        0,
+        0
+      ]
+    },
+    {
+      "name": "replace-after-stop-remote-audio",
+      "source": 0,
+      "allowed": [
+        1
+      ],
+      "decoded_frames": [
+        0,
+        83
+      ]
+    },
+    {
+      "name": "replace-after-stop-source-role",
+      "source": 1,
+      "allowed": [],
+      "decoded_frames": [
+        0,
+        0
+      ]
+    },
+    {
+      "name": "replace-before-prepare-remote",
+      "source": 0,
+      "allowed": [
+        1
+      ],
+      "decoded_frames": [
+        0,
+        84
+      ]
+    },
+    {
+      "name": "replace-before-prepare-source",
+      "source": 1,
+      "allowed": [
+        0
+      ],
+      "decoded_frames": [
+        83,
+        0
+      ]
+    },
+    {
+      "name": "replace-real-preparation-retains-remote-audio",
+      "source": 0,
+      "allowed": [
+        1
+      ],
+      "decoded_frames": [
+        0,
+        79
+      ]
+    },
+    {
+      "name": "replace-real-preparation-retains-source-role",
+      "source": 1,
+      "allowed": [
+        0
+      ],
+      "decoded_frames": [
+        84,
+        0
+      ]
+    },
+    {
+      "name": "replace-after-stop-remote-audio",
+      "source": 0,
+      "allowed": [
+        1
+      ],
+      "decoded_frames": [
+        0,
+        83
+      ]
+    },
+    {
+      "name": "replace-after-stop-source-role",
+      "source": 1,
+      "allowed": [
+        0
+      ],
+      "decoded_frames": [
+        80,
+        0
+      ]
+    }
+  ],
+  "native_scenarios": [
+    {
+      "observer": false,
+      "endpoint_revoked": false,
+      "target_key_revoked": false,
+      "allocated": true
+    },
+    {
+      "observer": true,
+      "endpoint_revoked": false,
+      "target_key_revoked": false,
+      "allocated": true
+    },
+    {
+      "observer": false,
+      "endpoint_revoked": true,
+      "target_key_revoked": false,
+      "allocated": true
+    },
+    {
+      "observer": false,
+      "endpoint_revoked": false,
+      "target_key_revoked": true,
+      "allocated": true
+    },
+    {
+      "observer": false,
+      "endpoint_revoked": false,
+      "target_key_revoked": false,
+      "allocated": false
+    },
+    {
+      "observer": true,
+      "endpoint_revoked": false,
+      "target_key_revoked": false,
+      "allocated": false
+    },
+    {
+      "observer": false,
+      "endpoint_revoked": true,
+      "target_key_revoked": false,
+      "allocated": false
+    }
+  ],
+  "static_checks": [
+    {
+      "name": "format",
+      "command": [
+        "bash",
+        "scripts/format.sh",
+        "--",
+        "--check"
+      ],
+      "path": ".local/gate-6/replacement-allocation-static-format.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "exit_code": 0
+    },
+    {
+      "name": "http",
+      "command": [
+        "python3",
+        "scripts/generate-canonical-http-openapi.py",
+        "--check"
+      ],
+      "path": ".local/gate-6/replacement-allocation-static-http.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "exit_code": 0
+    },
+    {
+      "name": "contracts",
+      "command": [
+        ".local/gate-6/verification-venv/bin/python",
+        "scripts/check-gate6-contracts.py",
+        "--output",
+        ".local/gate-6/replacement-allocation-contracts.json"
+      ],
+      "path": ".local/gate-6/replacement-allocation-static-contracts.log",
+      "sha256": "2c29557f8945b4bb522a5436f85876aa8ab90eca617dcf64588af05e9a81b1bc",
+      "exit_code": 0
+    },
+    {
+      "name": "dependencies",
+      "command": [
+        "bash",
+        "scripts/prepare-dependencies.sh"
+      ],
+      "path": ".local/gate-6/replacement-allocation-static-dependencies.log",
+      "sha256": "fd9d7b181e3ccba9b643af55a186cf132c60aac99c734b2ee4e4e549afe5ffc2",
+      "exit_code": 0
+    },
+    {
+      "name": "diff",
+      "command": [
+        "git",
+        "diff",
+        "--check"
+      ],
+      "path": ".local/gate-6/replacement-allocation-static-diff.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "exit_code": 0
+    }
+  ],
+  "source_inputs": {
+    "path": ".local/gate-6/replacement-allocation-inputs.json",
+    "sha256": "b9edb3a0b9e703f7acab6f9eedfbc78913a851504303cbb41fcbbc3f86a67ebd"
+  },
+  "source_input_count": 1305,
+  "prior_preparation_report": {
+    "path": "docs/evidence/gate-6/native-replacement-core-preparation.json",
+    "sha256": "2bbd05721542dd1bd2d5b67b4b406ed62aa5dde9d59b696baf431c21a8eaa213"
+  },
+  "historical_evidence_note": "The prior preparation checkpoint qualified683 fresh tests at its recorded source. Its full Store executable is archived. This checkpoint runs the relevant28 Store cases,2 actual native tests and5 public boundaries; it does not claim to rerun that full earlier suite.",
+  "implemented": [
+    "An independently current signed target Device/key/connection.offer command must match the original operation, reserved candidate and provisioned Endpoint/Device; original source/retained/operator checks remain separate.",
+    "Metadata-only allocation planning retries transient contention without effects. A separate durable begin atomically freezes one possible allocation; neither begin nor Core allocation is retried.",
+    "Core prepare_peer_native_device_replacement consumes the actual owned reservation and retains its exact binding/generation on the authenticated physical target. Captured writes reuse an existing target fence and retry only metadata.",
+    "The public CanonicalClient.allocate_native_replacement_target method preserves the original root and stable candidate ID. Same-physical identical replay returns progress; changed content or another physical peer cannot duplicate/adopt allocation.",
+    "Native target media remains closed and the original source audio/observer role continues. Actual cancellation/controller revocation/endpoint revocation/target credential revocation retire only the candidate and release preparation capacity.",
+    "Protected allocation cleanup requires actual absence of the exact native candidate and refuses after start/commit. Historical capture survives revoked target/cancel without granting new IO; unknown work cannot reexecute."
+  ],
+  "resolved_during_verification": [
+    "Contention in a planning read initially caused a transient public failure; retryable read was separated from once-only durable begin. Dedicated SQL contention test proves planning failures add no effect.",
+    "Captured writes now reuse an already held target interval instead of acquiring another reader behind a queued writer.",
+    "A test fixture initially checked a raw transport batch instead of its correlated application error; assertions now check the batch ACK.",
+    "A linker ran out of disk space. Obsolete task-owned compiler object variants were removed with no sources, archives or verification executables deleted; the resumed current build/test completed."
+  ],
+  "unqualified": [
+    "Start/attach/activation/commit custody and actual negotiated isolated target input/output",
+    "Durable candidate Connection projection and exact generation2+ replacement lineage adoption in native media/resource policy",
+    "Configured telephone callback, trusted answer/DTMF and full no-answer/voicemail/rejection/timeout/late-event/unknown/restart matrix without redial",
+    "One actual movement commit/native confirmation, role-preserving projection and intended old-source retirement",
+    "Gate6 acceptance, Linux/remote/provider/performance profiles and publication"
+  ],
+  "task_counts": {
+    "done": 40,
+    "in_progress": 1,
+    "not_started": 64,
+    "acceptance_closed": 0
+  },
+  "all_105_tasks_remain_in_scope": true,
+  "goal_status": "active",
+  "progress_check": {
+    "command": [
+      "python3",
+      "scripts/check-gate6-progress.py"
+    ],
+    "exit_code": 0,
+    "path": ".local/gate-6/replacement-allocation-progress.log",
+    "sha256": "3c9a42760866b510a9b7fc81b2b57b9bf6791a239d0bf0de8cdf06058e513f78"
+  },
+  "post_test_plan_delta": {
+    "docs/connect-gate-6-implementation.html": {
+      "before": "e1bebf86427df5173402b86d17e9da4bbf3dc4065c38e651e3305eb37cac5494",
+      "after": "975678e6b2ded2358f26296dcdf44409dc765aec07e2176361ec5b8f9f696c3e"
+    }
+  }
+}

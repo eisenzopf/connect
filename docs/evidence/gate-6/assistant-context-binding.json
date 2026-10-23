@@ -1,0 +1,301 @@
+{
+  "kind": "gate6-component-evidence",
+  "task": "G6-042",
+  "status": "in-progress",
+  "passed": true,
+  "recorded_at": "2026-10-20T17:58:19.710418+00:00",
+  "scope": "Local macOS arm64 Store and actual native/private HTTP-WebSocket provider fixtures. Explicit public native assistant selection/grant; not a public voice provider effect/delivery lifecycle or completed Gate6 journey.",
+  "schema_version": 61,
+  "pinned_patches": 123,
+  "source_lock": {
+    "path": "dependencies/source-lock.json",
+    "sha256": "79806adf28f4720a562879e62ab52d47144c0369e2053f626f7c3d3ebe84eba4"
+  },
+  "fresh_distinct_passed_tests": 703,
+  "verification": [
+    {
+      "name": "Store library",
+      "passed": 655,
+      "ignored": 3,
+      "arguments": "--test-threads=2",
+      "log": {
+        "path": ".local/gate-6/context-binding-store-verified.log",
+        "sha256": "071f13a3fbba88a63c2caa0cbb9084ddbbc280459015adc9c9e667e42d0104b3"
+      },
+      "test_binary": {
+        "path": "target/debug/deps/connect_store-500690b8d898aed1",
+        "sha256": "db3c899dc582aab8b3e24c87770bfabac84e86b307611bd9f9fec67ec8e9c85f"
+      }
+    },
+    {
+      "name": "Actual native/private provider runtime",
+      "passed": 21,
+      "ignored": 0,
+      "arguments": "production_private_ai --test-threads=2 --nocapture",
+      "log": {
+        "path": ".local/gate-6/context-binding-provider-runtime-verified.log",
+        "sha256": "02fc925c112b4bcb57b1e45f66fdb1a2aed9afc4a8dd1d43d73c04ae18ca7c4e"
+      },
+      "test_binary": {
+        "path": "target/debug/deps/gate6_canonical_runtime-2e3e18c2008aaebe",
+        "sha256": "33de32856327a27c7312403281996ca3b01543d634075efd66b6bbd9aaeebaa2"
+      }
+    },
+    {
+      "name": "Store discovery/artifact/membership/provider-chat integrations",
+      "passed": 26,
+      "ignored": 0,
+      "per_suite": [
+        1,
+        3,
+        18,
+        4
+      ],
+      "arguments": "--test-threads=2",
+      "log": {
+        "path": ".local/gate-6/context-binding-store-integration-verified.log",
+        "sha256": "762f127162a9b289d723e1e34c8668c83285ed47dc308add92211b854cee9cf7"
+      },
+      "test_binaries": [
+        {
+          "path": "target/debug/deps/discovery-29e30d59e2e04812",
+          "sha256": "6be88819bcbcfd3b67b6ec6f31aff6fd4f72f9609316033cfa9e86ea7decb42b"
+        },
+        {
+          "path": "target/debug/deps/gate3_artifact_lifecycle-308eefe6235f22d7",
+          "sha256": "19bb367057b11dc1fc078ab42d11389b8bbf240a13efbf1378e4a7871f51439e"
+        },
+        {
+          "path": "target/debug/deps/gate6_membership-4d421da469a65046",
+          "sha256": "aa5399de4cbbf897e429071408c0132947864cf111174b1b199ca729cf520639"
+        },
+        {
+          "path": "target/debug/deps/provider_chat_context-acfdcf128ad00b27",
+          "sha256": "21f46ac98ede5f544769669b3bef55c57249e7f41766011d091bfaa57360dca6"
+        }
+      ]
+    },
+    {
+      "name": "Canonical HTTP + connector manifest + real Vapi SDK context initialization",
+      "passed": 1,
+      "ignored": 0,
+      "arguments": "--test-threads=1",
+      "log": {
+        "path": ".local/gate-6/context-binding-provider-manifest-verified.log",
+        "sha256": "759813f215ffec7c4eccc704f9ac73edea6e4e3e8674a8e76174733fd8c95510"
+      },
+      "test_binary": {
+        "path": "target/debug/deps/provider_context_manifest-79a965dcbdf0b3fc",
+        "sha256": "01a1182b3dc8f7db9ef632858f558076a5f0bea9ab7ce5e1619088596b0e0197"
+      }
+    }
+  ],
+  "inputs": {
+    "path": ".local/gate-6/context-binding-inputs-verified.json",
+    "sha256": "fefdb1262114266b49e7eb596fa8eb627499ef7080c4acec24f8470e333ab180"
+  },
+  "input_count": 717,
+  "inputs_unchanged_during_final_verification": true,
+  "sources": [
+    {
+      "path": "crates/connect-store/src/context.rs",
+      "sha256": "48ef11ae45750121f8eef6828334e417a09bbb37f3164c939cf24eeb3af4ce5b"
+    },
+    {
+      "path": "crates/connect-store/src/context/session.rs",
+      "sha256": "2970bc0b3f1faf2746cb5e56b37cc2a808194868c6d84eb86ccd2702e841281e"
+    },
+    {
+      "path": "crates/connect-store/src/peer_authority/connection_media/assistant.rs",
+      "sha256": "8ee17b15272055626544cdbeb137279d150f9c652f3787d3d2a1746888900eb6"
+    },
+    {
+      "path": "crates/connect-store/src/peer_authority/connection_media.rs",
+      "sha256": "37d90ab3fc73224f86aac3dc5254b9c14568fe1cf97c2042e5daa5c0289c92bd"
+    },
+    {
+      "path": "crates/connect-store/src/peer_authority.rs",
+      "sha256": "67bff24f4f5b2d2328444c2e267883985dae8c01eaa730283636d11f813b2636"
+    },
+    {
+      "path": "crates/connect-store/src/lib.rs",
+      "sha256": "e56ea24481df9f19cd20ea4ab20daad661a8cc42c4c70404c45536330f0cc267"
+    },
+    {
+      "path": "crates/connect-store/src/connection_control/tests.rs",
+      "sha256": "580b18a78ab79c7214131fef3f9bce19a05e32e5fa55d07a8947d1344b504696"
+    },
+    {
+      "path": "crates/connect-store/src/connection_control/tests/assistant_context.rs",
+      "sha256": "2fd6a122e0872f9f7ca3aa3d90eed72ed37aa071c9b1788107aadbd4fc729936"
+    },
+    {
+      "path": "crates/connect-store/src/connection_control/tests/private_provider.rs",
+      "sha256": "3f3d4f6064610033cab6035d807ae559d3171f185d28e483c4649e60f712c7bd"
+    },
+    {
+      "path": "crates/connect-store/src/session_control_tests.rs",
+      "sha256": "b4711a551d41f50ce544f8b448ef72ab82dc3f2cc006cd5984750ee1f87f1a0a"
+    },
+    {
+      "path": "crates/connect-store/src/provider_dispatch/tests.rs",
+      "sha256": "86555acb189e114efc896783d262b2ca086929f5f0af1511d8aceb36144a1e9c"
+    },
+    {
+      "path": "crates/connect-store/tests/gate3_artifact_lifecycle.rs",
+      "sha256": "64e3ff463e9fb45f4c320c40424f88a9d4278dee36699e14f6f7a423ccd6d989"
+    },
+    {
+      "path": "crates/connect-service/src/assistant_context.rs",
+      "sha256": "80a56ba11667dad351e46db5102502c55380a513776e56ccb0a9321fa9af49bd"
+    },
+    {
+      "path": "crates/connect-service/src/canonical_media.rs",
+      "sha256": "e2179bc00fe102652bf41eb0c8ff291b29c5c662b6e7432a75d0eb13f5253476"
+    },
+    {
+      "path": "crates/connect-service/src/lib.rs",
+      "sha256": "c8bbf830b186e1c3908ea63b549d1b8b3fdf4365f5207ab08d847fec52dead8b"
+    },
+    {
+      "path": "crates/connect-server/tests/support/canonical_native_connections/consultation/provider.rs",
+      "sha256": "cb75b7d31cfbc55441f60379024999312cb10f7e5f827803a3e1d1c6a1530051"
+    },
+    {
+      "path": "crates/connect-server/tests/provider_context_manifest.rs",
+      "sha256": "00908dfc1a638f32c31e00c478866b4b31e5195f396d97a3e4e6b171ca09ed0f"
+    },
+    {
+      "path": "docs/developer/assistant-context.md",
+      "sha256": "3b1a216a09934ada0a06dbf11f214a5226b7ab506083f61af8e2644f00ef3022"
+    },
+    {
+      "path": "docs/developer/private-provider-context.md",
+      "sha256": "902439090d9552b468e63a9f8b6ac1fb144fa8ed8a50fd5ec405b7efce561889"
+    },
+    {
+      "path": "contracts/connectors/host-context-v1.md",
+      "sha256": "7cc43b14db38c50c97391f19186cdb0a784905b0543eee9ac91bf84f90fe76f7"
+    }
+  ],
+  "behavior": [
+    "Ordinary Session and artifact journal positions retain saved invite/accept and upload/ready metadata. Current source authorization remains independent. Exact saved deliveries admit; replacing an earlier body with later metadata refuses. Store dispatch preserves the selected pre-end watermark rather than rewriting it with current ended metadata.",
+    "Protected Store/Service assistant read selects the actual native Connection and exact generation, current AI participant/epoch, live adapter/activation, and verified vapi-voice endpoint for the same identity. It independently requires context permission and recipient ceilings from both credentials. Every current public Session listener must be able to read every source before limits/watermark/omission counts.",
+    "The public reader retains one complete original authorization interval, clipped to five seconds/current grants. Queued revocation waits until release; a later read refuses. It performs no provider effect, reservation, creation, receipt or delivery acknowledgment. Private physical destinations require their original private provider purpose.",
+    "Private selection and opaque-memory revalidation now check every original private listener against every selected source, including ordinary messages when the AI is both context owner and delegate. A new regression includes a publicly shared source, then revokes the human history share while the AI still retains access; further opaque-memory use refuses.",
+    "The actual signed-native AI-caller fixture uses the Service reader with its registered generation, excludes pair-only history publicly, exports that history through the exact acknowledged private provider purpose, excludes AI-only history from that private export, and refuses the public reader for the actual private incarnation. Actual private bidirectional audio and excluded-peer silence remain required.",
+    "The provider manifest test now creates/sends with CanonicalHttpClient against RunningCanonicalServer, retaining only the explicit ProviderStatus application extension. More than128KB escaped context reaches the real SDK HTTP request intact with source attribution; replay produces one POST. No legacy create compatibility was added.",
+    "The private media observation fixture requires at least16 marked frames in each direction plus400ms continued excluded-peer checks, bounded by12seconds. Original >10 assertions remain; this is behavior evidence, not a latency/performance SLA."
+  ],
+  "preliminary_observations": [
+    "A failing private-listener regression demonstrated ordinary AI-only history entering the sealed private selection before the all-source/all-listener fix. The final regression passes, including opaque-memory refusal after public history-share revocation.",
+    "An early full Store run failed under exhausted compiler storage and exposed a randomized first-invitee fixture assumption. The fixture now selects an AI explicitly different from the stored first invitee. Sources, raw logs and built test executables were preserved while only inactive generated compiler caches were pruned.",
+    "The previous full Store run passed654 and failed one obsolete metadata-revalidation expectation. Its corrected regression verifies that the exact accepted pre-end snapshot still admits while current authorization is rechecked; historical metadata is not rewritten.",
+    "The previous provider cohort passed15 and failed six input-frame thresholds in a fixed two-second probe despite completed native consultations and provider output. The adaptive bounded duplex observation retains the original thresholds and excluded-peer silence checks; all21 final cases pass.",
+    "The old provider manifest fixture invoked retired client create and failed unsupported-command. Its fixture was migrated to the canonical public client without restoring compatibility.",
+    "An exploratory chat reply-audience change was discarded after reading the actual reply writer: replies explicitly target the original sender, and route bindings are immutable. Final production provider_chat_context.rs/provider_dispatch.rs hashes match pre-experiment inputs. This does not assert an unfixed wider-chat exposure."
+  ],
+  "preliminary_logs": [
+    {
+      "path": ".local/gate-6/context-private-listeners-before.log",
+      "sha256": "26b0b2478b46518736c185f76ea54d7df8ef36ed45295f4bc26dd8e6ebf9e45d"
+    },
+    {
+      "path": ".local/gate-6/context-private-listeners-after-4.log",
+      "sha256": "235c0188cc136cdc35cc795fcf3ebde4eaaf2759e79e6d8c886912830a8ecad9"
+    },
+    {
+      "path": ".local/gate-6/context-binding-store-full.log",
+      "sha256": "d611f5dcf92f31555349742c14278828195334fc9ca5130efff2c798db138752"
+    },
+    {
+      "path": ".local/gate-6/context-binding-store-full-2.log",
+      "sha256": "690843b45e1bd8940807d7f79f4f3d73a217d304a4974adb7f4bd2625ca5586e"
+    },
+    {
+      "path": ".local/gate-6/context-binding-store-final.log",
+      "sha256": "9d7cb039bd50c2f38fee13524c85075a8ccbc00a05b9654e8897e2c0fb374047"
+    },
+    {
+      "path": ".local/gate-6/context-binding-provider-runtime-final.log",
+      "sha256": "3520670bc3ffdd22bf5f45a94e6c43bfaec63b16a19435db8497efe2db2bcb44"
+    },
+    {
+      "path": ".local/gate-6/context-binding-provider-manifest.log",
+      "sha256": "eb7785be72ae08e5a2a9d43fe9302f858b00dfde525ef85e70b0d9dad8208618"
+    },
+    {
+      "path": ".local/gate-6/context-binding-dispatch-tests.log",
+      "sha256": "51a70f44a98b9205b729c6d4c9a3a7bb9d3a1d08c24ac9136236e04b593fd7d9"
+    },
+    {
+      "path": ".local/gate-6/context-binding-dispatch-tests-2.log",
+      "sha256": "8870f86489a278f5ebaf7d93375c002600b7b83715e9dd825b6b39b353490431"
+    }
+  ],
+  "build": {
+    "path": ".local/gate-6/context-binding-server-build-final.log",
+    "sha256": "42015895adb6522300b82274b67516cc9822bbb6b030bfb0498f9fdd73604481"
+  },
+  "cache_cleanup": [
+    {
+      "path": ".local/gate-6/context-binding-inactive-build-cache.json",
+      "sha256": "bfdcdc27aab1502ab65a8bea801220fc8c7d2daf62c42aed2cd3893d64458c52"
+    },
+    {
+      "path": ".local/gate-6/context-binding-inactive-dependency-cache.json",
+      "sha256": "72884039c507a13dc40cbabe6a2474811c2c44a7ae0a4a263f49e9344d7908f4"
+    },
+    {
+      "path": ".local/gate-6/context-binding-superseded-sip-libraries.json",
+      "sha256": "0d4d58daeec6688bd9e66d50f28d8b0c59d97a676f71877847fb2f8f4d09da9b"
+    },
+    {
+      "path": ".local/gate-6/context-binding-superseded-cache-final.json",
+      "sha256": "a5ea03f3cf375206e1f05122ca702301cd852c57d5c13a8ea246d6c4588f9c1b"
+    },
+    {
+      "path": ".local/gate-6/context-binding-inactive-cache-recovery.json",
+      "sha256": "8744956b26ecc83c3fad31e60315314b208204e352710cd97e52c543f578d527"
+    }
+  ],
+  "checks": {
+    "format": {
+      "path": ".local/gate-6/context-binding-format-verified.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "contracts": {
+      "path": ".local/gate-6/context-binding-contracts-verified.log",
+      "sha256": "2c29557f8945b4bb522a5436f85876aa8ab90eca617dcf64588af05e9a81b1bc"
+    },
+    "http": {
+      "path": ".local/gate-6/context-binding-http-verified.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "diff": {
+      "path": ".local/gate-6/context-binding-diff-verified.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "progress": {
+      "path": ".local/gate-6/context-binding-progress-verified.log",
+      "sha256": "d2862144e346af612e59d056ca366093aea477e78bc07ddd61db37efedd5c787"
+    },
+    "dependencies": {
+      "path": ".local/gate-6/context-binding-prepare-verified.log",
+      "sha256": "fd9d7b181e3ccba9b643af55a186cf132c60aac99c734b2ee4e4e549afe5ffc2"
+    }
+  },
+  "remaining": [
+    "Owned canonical public voice provider creation/update/export and exact body acknowledgment, bound to the real native destination and original durable attempt; this component supplies selection/read authority only.",
+    "Full public-context call -> private-only consultation -> source-attributed follow-up after restart with same logical AI and fresh physical provider/native sessions.",
+    "Explicit rejected/truncated/incomplete public provider context and recovery receipts. Private wrong/missing-ack cases and existing Store/provider-gap tests do not substitute for that remaining public profile.",
+    "Later Linux/browser/remote/live-provider profiles require their own tasks and the explicit bounded G6-093 configuration. No publication or Gate6 acceptance closure."
+  ],
+  "progress": {
+    "done": 41,
+    "in_progress": 1,
+    "not_started": 63,
+    "acceptance_closed": 0,
+    "total": 105
+  }
+}

@@ -15,7 +15,7 @@ pub(super) fn send(
         operation: Box::new(Operation::Send {
             request_id: id.into(),
             conversation_id: f.cid.clone(),
-            body: body.into(),
+            message: connect_protocol::messages::MessageDraft::text_all(body),
         }),
         reply_to: None,
         wait_for_reply: wait,

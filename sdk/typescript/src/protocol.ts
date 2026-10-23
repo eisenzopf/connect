@@ -1,3 +1,7 @@
+import { validContextRecord } from "./record_context.js";
+import { validMembership } from "./membership_validation.js";
+import { validConversation } from "./conversations.js";
+import { validEvents } from "./event_validation.js";
 import { validMediaDiagnostics } from "./media_diagnostics.js";
 import { validContact } from "./contact_validation.js";
 import { array, fields, integer, object } from "./validation.js";
@@ -7,6 +11,9 @@ import type { Operation, Outcome } from "./types.js";
 export const MAX_REQUEST = 65537;
 export const MAX_RESPONSE = 600000;
 const kinds: Record<Operation["op"], Outcome["kind"]> = {
+    conversation_snapshot: "conversation_snapshot",
+    conversation_events: "conversation_events",
+    session_observations: "session_observations",
     task: "task",
     contact_pairing_start: "contact_pairing",
     contact_pairing_complete: "contact_pairing",
@@ -16,7 +23,11 @@ const kinds: Record<Operation["op"], Outcome["kind"]> = {
     capabilities: "capabilities",
     browser_binding: "browser_binding",
     context_deliveries: "context_deliveries",
+    membership: "membership",
+    membership_snapshot: "membership_snapshot",
+    membership_invitations: "membership_invitations",
     create: "conversation",
+    conversations: "conversations",
     close: "conversation",
     send: "accepted",
     history: "history",
@@ -38,10 +49,21 @@ const kinds: Record<Operation["op"], Outcome["kind"]> = {
     context_view: "context_view",
     availability_set: "availability",
     availability_get: "availability",
+    message_receipts: "message_receipts",
+    message_receipt: "receipt_acknowledged",
+    receipt_preferences_get: "receipt_preferences",
+    receipt_preferences_set: "receipt_preferences",
+    transition: "durable_operation",
+    durable_operation: "durable_operation",
     artifact_begin: "artifact",
     artifact_append: "artifact",
     artifact_finish: "artifact",
     artifact_get: "artifact_chunk",
+    artifact_inspect: "artifact",
+    artifact_upload_link: "artifact_link",
+    artifact_download_link: "artifact_link",
+    artifact_link_get: "artifact_chunk",
+    artifact_link_append: "artifact",
     artifact_delete: "artifact",
     health: "health",
 };
@@ -73,7 +95,34 @@ function readiness(value: unknown): boolean {
     );
 }
 function message(value: unknown): boolean {
-    return fields(value, ["id", "conversation_id", "sender", "body"]);
+    return (
+        fields(
+            value,
+            [
+                "id",
+                "conversation_id",
+                "sender",
+                "body",
+                "content_type",
+                "body_encoding",
+                "label",
+            ],
+            ["sender_participant_id", "in_reply_to_msg"],
+        ) &&
+        ["utf8", "base64"].includes(String(value.body_encoding)) &&
+        (value.accepted_at === null || integer(value.accepted_at)) &&
+        array(
+            value.audience,
+            (x) =>
+                fields(x, ["participant_id"]) &&
+                integer(x.membership_epoch) &&
+                Number(x.membership_epoch) > 0,
+        ) &&
+        array(
+            value.attachments,
+            (x) => fields(x, ["id", "content_type"]) && integer(x.size_bytes),
+        )
+    );
 }
 function session(value: unknown): boolean {
     return (
@@ -126,6 +175,22 @@ function artifact(value: unknown): boolean {
 }
 function validData(kind: unknown, data: unknown, depth = 0): boolean {
     if (!object(data) || depth > 8) return false;
+    if (
+        [
+            "conversation_snapshot",
+            "conversation_events",
+            "session_observations",
+        ].includes(String(kind))
+    )
+        return validEvents(kind, data, validData, depth);
+    if (
+        [
+            "membership",
+            "membership_snapshot",
+            "membership_invitations",
+        ].includes(String(kind))
+    )
+        return validMembership(String(kind), data);
     switch (kind) {
         case "task":
             return validTaskOutcome(data, validData, depth);
@@ -138,17 +203,39 @@ function validData(kind: unknown, data: unknown, depth = 0): boolean {
                 array(data.capabilities, (x) => typeof x === "string")
             );
         case "conversation":
+            return validConversation(data);
+        case "conversations":
             return (
-                fields(data, ["id"]) &&
-                typeof data.closed === "boolean" &&
-                array(data.participants, (x) => typeof x === "string")
+                object(data) &&
+                Object.keys(data).sort().join(",") ===
+                    "conversations,next_cursor" &&
+                Array.isArray(data.conversations) &&
+                data.conversations.length <= 100 &&
+                data.conversations.every(validConversation) &&
+                (data.next_cursor === null ||
+                    (typeof data.next_cursor === "string" &&
+                        data.next_cursor.length <= 2048))
             );
-        case "accepted":
-            return fields(data, [
-                "request_id",
-                "message_id",
-                "conversation_id",
-            ]);
+        case "accepted": {
+            if (!fields(data, ["request_id", "message_id", "conversation_id"]))
+                return false;
+            if (!("receipt" in data)) return true; // Task effect result, not a core receipt.
+            const r = data.receipt;
+            return (
+                object(r) &&
+                Object.keys(r).sort().join(",") ===
+                    "completion_boundary,conversation_id,operation_id,state,status_reference" &&
+                r.operation_id === data.request_id &&
+                r.conversation_id === data.conversation_id &&
+                r.state === "completed" &&
+                r.completion_boundary === "local-mutation" &&
+                object(r.status_reference) &&
+                Object.keys(r.status_reference).sort().join(",") ===
+                    "action,operation_id" &&
+                r.status_reference.action === "get" &&
+                r.status_reference.operation_id === data.request_id
+            );
+        }
         case "call":
             return (
                 fields(
@@ -185,6 +272,9 @@ function validData(kind: unknown, data: unknown, depth = 0): boolean {
         case "capabilities":
             return (
                 fields(data, ["identity_id"], ["conversation_id"]) &&
+                (!("participant_id" in data) ||
+                    data.participant_id === null ||
+                    typeof data.participant_id === "string") &&
                 (!("extensions" in data) ||
                     array(data.extensions, (x) => typeof x === "string")) &&
                 array(
@@ -226,7 +316,8 @@ function validData(kind: unknown, data: unknown, depth = 0): boolean {
                     data.items,
                     (x) =>
                         fields(x, ["kind", "source_id", "actor_id", "body"]) &&
-                        integer(x.sequence),
+                        integer(x.sequence) &&
+                        (x.record === undefined || (validContextRecord(x.record) && x.record.uuid === x.source_id)),
                 ) &&
                 array(
                     data.deliveries,
@@ -241,8 +332,94 @@ function validData(kind: unknown, data: unknown, depth = 0): boolean {
                         integer(x.updated_at),
                 )
             );
+        case "message_receipts":
+            return fields(data, [], ["next"]) && array(data.receipts, receipt);
+        case "receipt_preferences":
+            return (
+                fields(data, ["conversation_id", "participant_id"]) &&
+                integer(data.membership_epoch) &&
+                Number(data.membership_epoch) > 0 &&
+                typeof data.delivery === "boolean" &&
+                typeof data.read === "boolean"
+            );
+        case "receipt_acknowledged":
+            return (
+                fields(data, [
+                    "conversation_id",
+                    "message_id",
+                    "participant_id",
+                ]) &&
+                integer(data.membership_epoch) &&
+                Number(data.membership_epoch) > 0 &&
+                (data.recorded === null ||
+                    ["delivered", "read"].includes(data.recorded as string))
+            );
+        case "durable_operation":
+            return (
+                fields(
+                    data,
+                    ["operation_id", "record_id", "command_type"],
+                    ["conversation_id", "session_id", "connection_id"],
+                ) &&
+                integer(data.revision) &&
+                integer(data.created_at) &&
+                integer(data.updated_at) &&
+                typeof data.cancel_requested === "boolean" &&
+                (data.expected_revision === null ||
+                    integer(data.expected_revision)) &&
+                (data.expires_at === null || integer(data.expires_at)) &&
+                [
+                    "accepted",
+                    "preparing",
+                    "ready",
+                    "committing",
+                    "completed",
+                    "cancelled",
+                    "failed",
+                    "interrupted",
+                    "unknown",
+                ].includes(String(data.state)) &&
+                (data.result === null ||
+                    (typeof data.result === "object" &&
+                        !Array.isArray(data.result))) &&
+                array(data.causal_event_ids, (x) => typeof x === "string") &&
+                integer(data.events_omitted) &&
+                array(
+                    data.effects,
+                    (x) =>
+                        fields(
+                            x,
+                            ["id", "provider", "correlation_key"],
+                            ["compensates_effect_id"],
+                        ) &&
+                        ["none", "provider-key", "status-query"].includes(
+                            String(x.idempotency),
+                        ) &&
+                        [
+                            "prepared",
+                            "submitting",
+                            "confirmed",
+                            "failed",
+                            "cancelled",
+                            "unknown",
+                        ].includes(String(x.state)) &&
+                        integer(x.attempt) &&
+                        integer(x.submission_generation),
+                )
+            );
         case "artifact":
             return artifact(data);
+        case "artifact_link":
+            return (
+                fields(
+                    data,
+                    ["conversation_id", "artifact_id", "path"],
+                    ["message_id"],
+                ) &&
+                integer(data.expires_at) &&
+                ["upload", "download"].includes(data.purpose as string) &&
+                attachmentLinkPath(data)
+            );
         case "artifact_chunk":
             return (
                 artifact(data.artifact) &&
@@ -269,7 +446,8 @@ function validData(kind: unknown, data: unknown, depth = 0): boolean {
                         (x.call == null ||
                             validData("call", x.call, depth + 1)) &&
                         (x.session == null || session(x.session)) &&
-                        (x.artifact == null || artifact(x.artifact)),
+                        (x.artifact == null || artifact(x.artifact)) &&
+                        (x.receipt == null || receipt(x.receipt)),
                 )
             );
         case "provider_status":
@@ -362,5 +540,40 @@ function delivery(value: unknown): boolean {
         integer(value.watermark) &&
         integer(value.created_at) &&
         integer(value.updated_at)
+    );
+}
+
+function attachmentLinkPath(data: Record<string, unknown>): boolean {
+    const prefix = `/v1/conversations/${encodeURIComponent(data.conversation_id as string)}/artifacts/${encodeURIComponent(data.artifact_id as string)}/links/`;
+    return (
+        typeof data.path === "string" &&
+        data.path.startsWith(prefix) &&
+        /^[A-Za-z0-9_-]+\.[a-f0-9]{64}$/.test(data.path.slice(prefix.length))
+    );
+}
+
+function receipt(x: unknown): boolean {
+    return (
+        fields(x, [
+            "conversation_id",
+            "message_id",
+            "participant_id",
+            "delivery_id",
+            "provenance",
+        ]) &&
+        integer(x.membership_epoch) &&
+        Number(x.membership_epoch) > 0 &&
+        integer(x.observed_at) &&
+        ["native", "provider"].includes(x.channel as string) &&
+        [
+            "queued",
+            "accepted",
+            "delivered",
+            "read",
+            "failed",
+            "unknown",
+        ].includes(x.state as string) &&
+        (x.state !== "read" ||
+            (x.channel === "native" && x.provenance === "client_reported"))
     );
 }

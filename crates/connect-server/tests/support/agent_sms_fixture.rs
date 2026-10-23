@@ -21,6 +21,7 @@ pub fn install_route(f: &Fixture, conversation_id: &str) -> Route {
         target: PHONE.into(),
         source: Some(SENDER.into()),
         enabled: true,
+        incoming_to: connect_protocol::messages::MessageAudience::all(),
     };
     f.server
         .store
@@ -78,7 +79,9 @@ pub async fn dispatch(
     cid: &str,
     jobs: usize,
 ) -> Vec<ProviderDelivery> {
-    let worker = Worker::with_drivers(f.server.service.clone(), vec![driver]).unwrap();
+    let worker = Worker::with_drivers(f.server.service.clone(), vec![driver])
+        .await
+        .unwrap();
     let deliveries = tokio::time::timeout(Duration::from_secs(5), async {
         loop {
             let deliveries = peer.provider_status(cid).await.unwrap();

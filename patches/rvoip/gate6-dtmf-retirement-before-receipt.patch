@@ -1,0 +1,192 @@
+--- a/crates/uctp/rvoip-uctp/src/v2/native_dtmf_writer.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/native_dtmf_writer.rs
+@@ -58,6 +58,22 @@
+     pub async fn written(mut self) -> Result<(), DtmfWriteError> {
+         let receipt = self.receipt.take().ok_or(DtmfWriteError::Refused)?;
+         tokio::select! {biased;r=receipt=>r.unwrap_or_else(|_|Err(self.permit.error())),_=self.permit.cancel.cancelled()=>Err(self.permit.error()),_=tokio::time::sleep_until(self.permit.deadline)=>Err(self.permit.error())}
++    }
++}
++// A partially used sink retires its physical route while the enclosing
++// with_dtmf_write_lease still owns the exact source/recipient readers. This
++// also runs when the future is dropped, before a waiting worker can freeze
++// another audience after its Flight reader count reaches zero.
++struct SignalIo<W> {
++    writer: Option<W>,
++    physical: CancellationToken,
++}
++impl<W> Drop for SignalIo<W> {
++    fn drop(&mut self) {
++        if let Some(writer) = self.writer.take() {
++            drop(writer);
++            self.physical.cancel();
++        }
+     }
+ }
+ /// Own and destroy a stalled sink before the real write guard is released.
+@@ -128,14 +144,22 @@
+         // Nothing takes the physical writer until all source/recipient IO fences
+         // admit this actual future poll. Early refusal therefore leaves it usable.
+         with_dtmf_write_lease(lease, bound, async {
+-            let mut owned = writer.take().ok_or(DispatchError::Closed)?;
++            let mut owned = SignalIo {
++                writer: Some(writer.take().ok_or(DispatchError::Closed)?),
++                physical: physical.clone(),
++            };
+             pending.permit.touched.store(true, Ordering::Release);
+-            let result = owned.send(bytes::Bytes::from(bytes)).await;
++            let result = owned
++                .writer
++                .as_mut()
++                .unwrap()
++                .send(bytes::Bytes::from(bytes))
++                .await;
+             if result.is_ok() {
+-                *writer = Some(owned);
+-            }
+-            // If the future is cancelled while send is pending, `owned` drops here
+-            // before with_dtmf_write_lease releases its actual store/domain readers.
++                *writer = owned.writer.take();
++            }
++            // On failure or abortion, destroy the sink and cancel its physical
++            // route before the enclosing lease releases actual domain readers.
+             result
+         })
+         .await
+@@ -153,11 +177,13 @@
+     } else {
+         result
+     };
++    if matches!(result, Err(DtmfWriteError::OutcomeUnknown)) {
++        physical.cancel();
++    }
+     if let Some(done) = pending.completion.take() {
+         let _ = done.send(result);
+     }
+     if matches!(result, Err(DtmfWriteError::OutcomeUnknown)) {
+-        physical.cancel();
+         Err(DispatchError::SubmissionUnknown)
+     } else {
+         Ok(())
+@@ -177,15 +203,25 @@
+     struct Guard {
+         _reader: tokio::sync::OwnedRwLockReadGuard<bool>,
+         live: Arc<AtomicBool>,
++        physical: Option<CancellationToken>,
++        retired_at_release: Arc<AtomicBool>,
+     }
+     impl Drop for Guard {
+         fn drop(&mut self) {
++            self.retired_at_release.store(
++                self.physical
++                    .as_ref()
++                    .is_some_and(CancellationToken::is_cancelled),
++                Ordering::Release,
++            );
+             self.live.store(false, Ordering::Release);
+         }
+     }
+     struct Policy {
+         domain: Arc<tokio::sync::RwLock<bool>>,
+         live: Arc<AtomicBool>,
++        physical: std::sync::Mutex<Option<CancellationToken>>,
++        retired_at_release: Arc<AtomicBool>,
+     }
+     #[async_trait::async_trait]
+     impl DtmfNativeWriteAuthority for Policy {
+@@ -202,6 +238,8 @@
+                 Guard {
+                     _reader: reader,
+                     live: self.live.clone(),
++                    physical: self.physical.lock().unwrap().clone(),
++                    retired_at_release: self.retired_at_release.clone(),
+                 },
+                 Instant::now() + Duration::from_millis(200),
+                 || true,
+@@ -341,6 +379,8 @@
+         Arc::new(Policy {
+             domain: Arc::new(tokio::sync::RwLock::new(true)),
+             live: Arc::new(AtomicBool::new(false)),
++            physical: std::sync::Mutex::new(None),
++            retired_at_release: Arc::new(AtomicBool::new(false)),
+         })
+     }
+     fn sink(p: &Policy, stall: bool) -> (Option<Sink>, Arc<AtomicUsize>, Arc<AtomicBool>) {
+@@ -358,6 +398,51 @@
+             dropped,
+         )
+     }
++    struct ReceiptWake {
++        physical: CancellationToken,
++        dropped: Arc<AtomicBool>,
++        live: Arc<AtomicBool>,
++        retired_at_release: Arc<AtomicBool>,
++    }
++    impl std::task::Wake for ReceiptWake {
++        fn wake(self: Arc<Self>) {
++            self.wake_by_ref();
++        }
++        fn wake_by_ref(self: &Arc<Self>) {
++            assert!(
++                self.retired_at_release.load(Ordering::Acquire),
++                "physical route remained live at actual reader release"
++            );
++            assert!(
++                self.physical.is_cancelled(),
++                "uncertain receipt woke before physical retirement"
++            );
++            assert!(
++                self.dropped.load(Ordering::Acquire),
++                "uncertain receipt woke before sink destruction"
++            );
++            assert!(
++                !self.live.load(Ordering::Acquire),
++                "uncertain receipt woke before IO readers stopped"
++            );
++        }
++    }
++    fn watch_retirement(
++        receipt: &mut oneshot::Receiver<Result<(), DtmfWriteError>>,
++        physical: &CancellationToken,
++        dropped: &Arc<AtomicBool>,
++        policy: &Policy,
++    ) {
++        *policy.physical.lock().unwrap() = Some(physical.clone());
++        let waker = std::task::Waker::from(Arc::new(ReceiptWake {
++            physical: physical.clone(),
++            dropped: dropped.clone(),
++            live: policy.live.clone(),
++            retired_at_release: policy.retired_at_release.clone(),
++        }));
++        let mut context = Context::from_waker(&waker);
++        assert!(std::future::Future::poll(Pin::new(receipt), &mut context).is_pending());
++    }
+     #[tokio::test]
+     async fn pending_native_sink_cancellation_and_deadline_destroy_io_before_releasing_fresh_permission(
+     ) {
+@@ -366,8 +451,10 @@
+             let (mut writer, polls, dropped) = sink(&p, true);
+             let cancel = CancellationToken::new();
+             let valid = Arc::new(AtomicBool::new(true));
+-            let (frame, pending, receipt) = test_pending(p.clone(), valid.clone(), cancel.clone());
++            let (frame, pending, mut receipt) =
++                test_pending(p.clone(), valid.clone(), cancel.clone());
+             let physical = CancellationToken::new();
++            watch_retirement(&mut receipt, &physical, &dropped, &p);
+             let stop = CancellationToken::new();
+             let writing = write_owned(
+                 &mut writer,
+@@ -406,12 +493,13 @@
+     async fn dropping_native_physical_write_future_destroys_sink_before_owned_signal_guard() {
+         let p = policy();
+         let (mut writer, polls, dropped) = sink(&p, true);
+-        let (frame, pending, receipt) = test_pending(
++        let (frame, pending, mut receipt) = test_pending(
+             p.clone(),
+             Arc::new(AtomicBool::new(true)),
+             CancellationToken::new(),
+         );
+         let physical = CancellationToken::new();
++        watch_retirement(&mut receipt, &physical, &dropped, &p);
+         let stop = CancellationToken::new();
+         {
+             let writing = write_owned(

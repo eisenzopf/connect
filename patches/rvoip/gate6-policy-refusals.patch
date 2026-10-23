@@ -1,0 +1,101 @@
+--- a/crates/uctp/rvoip-uctp/src/v2/auth_dispatch.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/auth_dispatch.rs
+@@ -32,8 +32,12 @@
+     UnsupportedMethod,
+     #[error("authentication failed")]
+     Authentication,
+-    #[error("current authority unavailable or denied")]
++    #[error("current authority denied")]
+     Authority,
++    #[error("current authority temporarily unavailable")]
++    AuthorityUnavailable,
++    #[error("current policy storage unavailable")]
++    StorageUnavailable,
+     #[error("required command scope unavailable")]
+     ScopeDenied,
+     #[error("signature required or invalid")]
+--- a/crates/uctp/rvoip-uctp/src/v2/auth_peer.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/auth_peer.rs
+@@ -977,8 +977,20 @@
+     a.iter().collect::<std::collections::BTreeSet<_>>()
+         == b.iter().collect::<std::collections::BTreeSet<_>>()
+ }
++fn error_category(error: DispatchError) -> &'static str {
++    match error {
++        DispatchError::AuthorityUnavailable => "authorization",
++        DispatchError::StorageUnavailable => "storage",
++        DispatchError::Capacity => "capacity",
++        _ => "auth",
++    }
++}
+ fn error_reason(error: DispatchError) -> &'static str {
+     match error {
++        DispatchError::Authority => "forbidden",
++        DispatchError::AuthorityUnavailable => "authority_unavailable",
++        DispatchError::StorageUnavailable => "storage_unavailable",
++        DispatchError::Capacity => "capacity_exceeded",
+         DispatchError::ScopeDenied => "insufficient_scope",
+         DispatchError::SubmissionUnknown => "submission_unknown",
+         DispatchError::Replay => "replay_detected",
+@@ -1005,8 +1017,49 @@
+         DispatchError::Wire(_) | DispatchError::ReplyMismatch => 400,
+         DispatchError::Unsupported => 501,
+         DispatchError::Capacity | DispatchError::ReplayCapacity => 429,
+-        DispatchError::ReplayUnavailable => 503,
++        DispatchError::ReplayUnavailable
++        | DispatchError::AuthorityUnavailable
++        | DispatchError::StorageUnavailable => 503,
+         DispatchError::Closed => 408,
+         _ => 401,
+     }
+ }
++
++#[cfg(test)]
++mod policy_refusal_tests {
++    use super::*;
++    #[test]
++    fn installed_policy_refusals_distinguish_permission_capacity_storage_and_retryable_authority() {
++        for (error, code, category, reason) in [
++            (
++                DispatchError::Authentication,
++                401,
++                "auth",
++                "authentication_failed",
++            ),
++            (DispatchError::Authority, 403, "auth", "forbidden"),
++            (
++                DispatchError::AuthorityUnavailable,
++                503,
++                "authorization",
++                "authority_unavailable",
++            ),
++            (
++                DispatchError::StorageUnavailable,
++                503,
++                "storage",
++                "storage_unavailable",
++            ),
++            (
++                DispatchError::Capacity,
++                429,
++                "capacity",
++                "capacity_exceeded",
++            ),
++        ] {
++            assert_eq!(error_code(error), code);
++            assert_eq!(error_category(error), category);
++            assert_eq!(error_reason(error), reason);
++        }
++    }
++}
+--- a/crates/uctp/rvoip-uctp/src/v2/auth_peer/exchange.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/auth_peer/exchange.rs
+@@ -283,7 +283,7 @@
+     error: DispatchError,
+     request: Option<&Envelope>,
+ ) -> Result<PeerOutput, DispatchError> {
+-    let mut v = json!({"v":2,"type":"error","id":fresh_id(),"ts":chrono::Utc::now(),"payload":{"code":error_code(error),"category":"auth","reason":error_reason(error)}});
++    let mut v = json!({"v":2,"type":"error","id":fresh_id(),"ts":chrono::Utc::now(),"payload":{"code":error_code(error),"category":error_category(error),"reason":error_reason(error)}});
+     if let Some(request) = request {
+         v["in_reply_to"] = json!(request.id());
+         for name in ["cid", "sid", "connid", "operation_id"] {

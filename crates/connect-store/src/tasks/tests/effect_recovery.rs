@@ -45,7 +45,7 @@ fn competing_database_connections_commit_one_effect_and_one_message() {
     assert!(results.iter().all(|result| result == &results[0]));
     assert_eq!(count(&f, "messages"), 1);
     assert_eq!(count(&f, "task_effects"), 1);
-    assert_eq!(count(&f, "requests"), 2);
+    assert_eq!(count(&f, "operation_control_receipts"), 2);
 }
 #[test]
 fn completed_task_replays_known_effect_but_cannot_begin_another() {

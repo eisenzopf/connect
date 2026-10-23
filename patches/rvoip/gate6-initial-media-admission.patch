@@ -1,0 +1,838 @@
+diff --git a/crates/foundation/rvoip-core/src/stream_lifecycle.rs b/crates/foundation/rvoip-core/src/stream_lifecycle.rs
+--- a/crates/foundation/rvoip-core/src/stream_lifecycle.rs
++++ b/crates/foundation/rvoip-core/src/stream_lifecycle.rs
+@@ -321,6 +321,7 @@
+     used_transport_ids: BTreeSet<StreamId>,
+     used_handles: BTreeSet<u16>,
+     pending: Option<(uuid::Uuid, Instant)>,
++    initial_preparation: bool,
+     opened_limit: usize,
+ }
+ impl StreamLifecycle {
+@@ -343,9 +344,10 @@
+             used_transport_ids: BTreeSet::new(),
+             used_handles: BTreeSet::new(),
+             pending: None,
++            initial_preparation: authority.connection.state() != BindingState::Active,
+             opened_limit,
+         };
+-        value.authorize(authority)?;
++        value.authorize_preparation(authority)?;
+         Ok(value)
+     }
+     pub fn opened_stream_limit(&self) -> usize {
+@@ -367,7 +369,7 @@
+         }
+         Ok(())
+     }
+-    pub(crate) fn authorize_binding(&self, authority: &CurrentMediaAuthority<'_>) -> Result<()> {
++    fn authorize_scope(&self, authority: &CurrentMediaAuthority<'_>) -> Result<()> {
+         authority
+             .connection
+             .require_current(authority.member, authority.presence)
+@@ -388,11 +390,31 @@
+             || authority.connection.device() != self.binding.device()
+             || authority.endpoint.endpoint() != self.binding.endpoint()
+             || authority.endpoint.device() != self.binding.device()
+-            || authority.connection.state() != BindingState::Active
+         {
+             return Err(MediaTransitionError::Authority);
+         }
+         Ok(())
++    }
++    /// Preparation is not packet authority. A dormant model may propose its
++    /// first bindings; after activation a regressed Connection is refused.
++    fn authorize_preparation(&self, authority: &CurrentMediaAuthority<'_>) -> Result<()> {
++        self.authorize_scope(authority)?;
++        if !authority.may_negotiate
++            || (!self.initial_preparation && authority.connection.state() != BindingState::Active)
++        {
++            return Err(MediaTransitionError::Authority);
++        }
++        Ok(())
++    }
++    pub(crate) fn authorize_binding(&self, authority: &CurrentMediaAuthority<'_>) -> Result<()> {
++        self.authorize_scope(authority)?;
++        if authority.connection.state() != BindingState::Active {
++            return Err(MediaTransitionError::Authority);
++        }
++        Ok(())
++    }
++    pub fn is_initial_preparation(&self) -> bool {
++        self.initial_preparation
+     }
+     fn expected(&self, revision: u64) -> Result<()> {
+         if self.revision != revision {
+@@ -413,7 +435,7 @@
+         now: Instant,
+         deadline: Instant,
+     ) -> Result<PreparedMediaChange> {
+-        self.authorize(authority)?;
++        self.authorize_preparation(authority)?;
+         self.expected(expected)?;
+         if deadline <= now || deadline.duration_since(now) > Duration::from_secs(30) {
+             return Err(MediaTransitionError::Expired);
+@@ -566,6 +588,7 @@
+             self.used_transport_ids.insert(stream.transport_id.clone());
+             self.streams.insert(id, stream);
+         }
++        self.initial_preparation = false;
+         self.pending = None;
+         self.revision += 1;
+         Ok(())
+diff --git a/crates/foundation/rvoip-core/src/staged_streams.rs b/crates/foundation/rvoip-core/src/staged_streams.rs
+--- a/crates/foundation/rvoip-core/src/staged_streams.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams.rs
+@@ -165,6 +165,12 @@
+ /// fence through a bounded local send. Queued permission snapshots are invalid.
+ pub trait MediaAuthorityLease: Send {
+     fn authority(&self) -> &MediaOwner;
++    /// Recheck mutable readiness/relationship facts under this same owned
++    /// control grant. Never reacquire its grant lock or substitute credentials.
++    /// The default retains the original snapshot and cannot invent readiness.
++    fn control_owner(&self) -> ControlResult<Box<MediaOwner>> {
++        Ok(Box::new(self.authority().clone()))
++    }
+ }
+ /// Exact engine action to compare with the authenticated invocation's intent.
+ /// It carries no grant and is never deserialized from an authority assertion.
+@@ -221,21 +227,27 @@
+         value.authority()?;
+         Ok(value)
+     }
+-    fn authority(&self) -> ControlResult<&MediaOwner> {
++    fn valid(&self) -> ControlResult<()> {
+         if self.cancellation.is_cancelled() {
+             return Err(StreamControlError::Cancelled);
+         }
+         if tokio::time::Instant::now() >= self.deadline {
+             return Err(StreamControlError::Deadline);
+         }
+-        Ok(self.lease.authority())
+-    }
+-}
+-enum ControlRead<'a> {
+-    Held(&'a MediaOwner),
++        Ok(())
++    }
++    fn authority(&self) -> ControlResult<Box<MediaOwner>> {
++        self.valid()?;
++        let owner = self.lease.control_owner()?;
++        self.valid()?;
++        Ok(owner)
++    }
++}
++enum ControlRead {
++    Held(Box<MediaOwner>),
+     Current(Box<dyn MediaAuthorityLease>),
+ }
+-impl ControlRead<'_> {
++impl ControlRead {
+     fn authority(&self) -> &MediaOwner {
+         match self {
+             Self::Held(owner) => owner,
+@@ -243,11 +255,11 @@
+         }
+     }
+ }
+-fn control_read<'a>(
++fn control_read(
+     policy: &dyn MediaPolicy,
+     scope: &MediaScope<'_>,
+-    control: Option<&'a MediaControl>,
+-) -> ControlResult<ControlRead<'a>> {
++    control: Option<&MediaControl>,
++) -> ControlResult<ControlRead> {
+     match control {
+         Some(control) => Ok(ControlRead::Held(control.authority()?)),
+         None => Ok(ControlRead::Current(policy.current(scope)?)),
+diff --git a/crates/foundation/rvoip-core/src/stream_lifecycle/tests.rs b/crates/foundation/rvoip-core/src/stream_lifecycle/tests.rs
+--- a/crates/foundation/rvoip-core/src/stream_lifecycle/tests.rs
++++ b/crates/foundation/rvoip-core/src/stream_lifecycle/tests.rs
+@@ -1046,3 +1046,145 @@
+     assert_eq!(state.opened_stream_limit(), 23);
+     assert_eq!(state.opened_binding_count(), 0);
+ }
++
++#[test]
++fn initial_preparation_requires_verified_origin_and_does_not_activate_before_connection() {
++    let mut f = Fixture::new();
++    f.connection = ConnectionBinding::prepare(
++        &f.member,
++        &f.presence,
++        &f.endpoint,
++        f.connection.connection().clone(),
++    )
++    .unwrap();
++    let mut model = StreamLifecycle::new(&f.authority()).unwrap();
++    assert!(model.is_initial_preparation());
++    assert_eq!(model.revision(), 0);
++    assert!(model.streams().is_empty());
++    let now = Instant::now();
++    let candidate = model
++        .prepare(
++            &f.authority(),
++            0,
++            &profile(),
++            &profile(),
++            &[desired("audio", Medium::Audio)],
++            now,
++            now + Duration::from_secs(1),
++        )
++        .unwrap();
++    let ready = bindings(&candidate);
++    assert_eq!(
++        model.commit(&f.authority(), &candidate, &ready, now),
++        Err(MediaTransitionError::Authority)
++    );
++    assert_eq!(
++        model.authorize_binding(&f.authority()),
++        Err(MediaTransitionError::Authority)
++    );
++    assert_eq!(
++        f.connection
++            .observe_ready(&f.member, &f.presence, &f.endpoint, 2),
++        Err(crate::relationships::RelationshipError::Conflict)
++    );
++    assert_eq!(f.connection.state(), BindingState::Preparing);
++    assert!(model.streams().is_empty());
++    f.connection
++        .observe_ready(&f.member, &f.presence, &f.endpoint, 1)
++        .unwrap();
++    assert_eq!(
++        model.commit(&f.authority(), &candidate, &ready, now),
++        Err(MediaTransitionError::Authority)
++    );
++    f.connection
++        .activate(&f.member, &f.presence, &f.endpoint)
++        .unwrap();
++    model
++        .commit(&f.authority(), &candidate, &ready, now)
++        .unwrap();
++    assert!(!model.is_initial_preparation());
++    assert_eq!(model.revision(), 1);
++    assert_eq!(
++        model.streams()[&StreamId::from_string("audio")].state,
++        LogicalStreamState::Active
++    );
++    // An already active lifecycle never treats a regressed Connection as a
++    // fresh first offer, even when IDs and generation still match.
++    f.connection = ConnectionBinding::prepare(
++        &f.member,
++        &f.presence,
++        &f.endpoint,
++        f.connection.connection().clone(),
++    )
++    .unwrap();
++    assert!(matches!(
++        model.prepare(
++            &f.authority(),
++            1,
++            &profile(),
++            &profile(),
++            &[desired("audio", Medium::Audio)],
++            now,
++            now + Duration::from_secs(1)
++        ),
++        Err(MediaTransitionError::Authority)
++    ));
++    assert_eq!(model.revision(), 1);
++    assert_eq!(model.opened_binding_count(), 1);
++}
++#[test]
++fn initial_preparation_refuses_unverified_revoked_or_foreign_relationships_without_history() {
++    let mut f = Fixture::new();
++    f.connection = ConnectionBinding::prepare(
++        &f.member,
++        &f.presence,
++        &f.endpoint,
++        f.connection.connection().clone(),
++    )
++    .unwrap();
++    let mut denied = f.authority();
++    denied.may_negotiate = false;
++    assert!(matches!(
++        StreamLifecycle::new(&denied),
++        Err(MediaTransitionError::Authority)
++    ));
++    let foreign = Fixture::in_conversation("other");
++    let mut denied = f.authority();
++    denied.member = &foreign.member;
++    assert!(StreamLifecycle::new(&denied).is_err());
++    let mut model = StreamLifecycle::new(&f.authority()).unwrap();
++    let now = Instant::now();
++    assert!(matches!(
++        model.prepare(
++            &f.authority(),
++            0,
++            &profile(),
++            &profile(),
++            &[desired("audio", Medium::Audio)],
++            now,
++            now
++        ),
++        Err(MediaTransitionError::Expired)
++    ));
++    assert_eq!(model.revision(), 0);
++    assert_eq!(model.opened_binding_count(), 0);
++    assert!(model.is_initial_preparation());
++    f.endpoint.revoke();
++    assert!(matches!(
++        StreamLifecycle::new(&f.authority()),
++        Err(MediaTransitionError::Authority)
++    ));
++    assert!(model
++        .prepare(
++            &f.authority(),
++            0,
++            &profile(),
++            &profile(),
++            &[desired("audio", Medium::Audio)],
++            now,
++            now + Duration::from_secs(1)
++        )
++        .is_err());
++    assert_eq!(model.revision(), 0);
++    assert_eq!(model.opened_binding_count(), 0);
++}
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/tests.rs b/crates/foundation/rvoip-core/src/staged_streams/tests.rs
+--- a/crates/foundation/rvoip-core/src/staged_streams/tests.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests.rs
+@@ -1928,3 +1928,314 @@
+     assert!(policy.current_calls.load(Ordering::Acquire) >= 2);
+     assert_eq!(f.a.shutdown(deadline()).await, 0);
+ }
++
++struct PhasePolicy {
++    base: Arc<Policy>,
++    phase: Arc<AtomicUsize>,
++    current_calls: AtomicUsize,
++    rechecks: Arc<AtomicUsize>,
++}
++fn phase_owner(mut owner: MediaOwner, phase: usize) -> ControlResult<MediaOwner> {
++    if owner.connection.connection().as_str() != "alice" {
++        return Ok(owner);
++    }
++    if phase >= 1 {
++        owner
++            .connection
++            .observe_ready(
++                &owner.member,
++                &owner.presence,
++                &owner.endpoint,
++                owner.connection.generation(),
++            )
++            .map_err(|_| StreamControlError::Authority)?;
++    }
++    if phase >= 2 {
++        owner
++            .connection
++            .activate(&owner.member, &owner.presence, &owner.endpoint)
++            .map_err(|_| StreamControlError::Authority)?;
++    }
++    if phase == 3 {
++        owner.endpoint.revoke();
++    }
++    Ok(owner)
++}
++struct PhaseCurrentLease {
++    owner: MediaOwner,
++    _guard: Box<dyn MediaAuthorityLease>,
++}
++impl MediaAuthorityLease for PhaseCurrentLease {
++    fn authority(&self) -> &MediaOwner {
++        &self.owner
++    }
++}
++struct PhaseControlLease {
++    owner: MediaOwner,
++    _guard: Arc<OwnedRwLockReadGuard<PolicyState>>,
++    phase: Arc<AtomicUsize>,
++    rechecks: Arc<AtomicUsize>,
++    cancellation: CancellationToken,
++}
++impl MediaAuthorityLease for PhaseControlLease {
++    fn authority(&self) -> &MediaOwner {
++        &self.owner
++    }
++    fn control_owner(&self) -> ControlResult<Box<MediaOwner>> {
++        self.rechecks.fetch_add(1, Ordering::AcqRel);
++        let phase = self.phase.load(Ordering::Acquire);
++        let owner = phase_owner(self.owner.clone(), phase)?;
++        if phase == 9 {
++            self.cancellation.cancel();
++        }
++        Ok(Box::new(owner))
++    }
++}
++impl MediaPolicy for PhasePolicy {
++    fn current(&self, scope: &MediaScope<'_>) -> ControlResult<Box<dyn MediaAuthorityLease>> {
++        self.current_calls.fetch_add(1, Ordering::AcqRel);
++        let lease = self.base.current(scope)?;
++        Ok(Box::new(PhaseCurrentLease {
++            owner: phase_owner(
++                lease.authority().clone(),
++                self.phase.load(Ordering::Acquire),
++            )?,
++            _guard: lease,
++        }))
++    }
++    fn current_control(
++        &self,
++        scope: &MediaScope<'_>,
++        _: &MediaControlIntent<'_>,
++        held: &(dyn Any + Send + Sync),
++    ) -> ControlResult<MediaControl> {
++        let held = held
++            .downcast_ref::<HeldControlContext>()
++            .ok_or(StreamControlError::Authority)?;
++        if !Arc::ptr_eq(&self.base, &held.domain)
++            || held.connection != *scope.connection
++            || !held.principal.has_same_owner(scope.principal)
++            || held.guard.revoked.contains(&scope.principal.subject)
++        {
++            return Err(StreamControlError::Authority);
++        }
++        let owner = held
++            .guard
++            .owners
++            .get(scope.connection.as_str())
++            .ok_or(StreamControlError::Authority)?
++            .clone();
++        MediaControl::new(
++            Box::new(PhaseControlLease {
++                owner,
++                _guard: held.guard.clone(),
++                phase: self.phase.clone(),
++                rechecks: self.rechecks.clone(),
++                cancellation: held.cancellation.clone(),
++            }),
++            held.cancellation.clone(),
++            held.deadline,
++        )
++    }
++}
++impl PhasePolicy {
++    async fn new(f: &Fixture) -> Arc<Self> {
++        let mut grants = f.policy.0.write().await;
++        let owner = grants.owners.get_mut("alice").unwrap();
++        owner.connection = ConnectionBinding::prepare(
++            &owner.member,
++            &owner.presence,
++            &owner.endpoint,
++            owner.connection.connection().clone(),
++        )
++        .unwrap();
++        drop(grants);
++        Arc::new(Self {
++            base: f.policy.clone(),
++            phase: Arc::new(AtomicUsize::new(0)),
++            current_calls: AtomicUsize::new(0),
++            rechecks: Arc::new(AtomicUsize::new(0)),
++        })
++    }
++}
++#[tokio::test]
++async fn initial_held_preparation_rechecks_real_readiness_without_reentering_queued_grant_writer() {
++    let mut f = Fixture::new(8);
++    let policy = PhasePolicy::new(&f).await;
++    let held = held_context(&f, CancellationToken::new(), deadline()).await;
++    f.a = held_controller(&f, policy.clone(), held.as_ref()).unwrap();
++    assert_eq!(f.a.revision(), 0);
++    f.aa.mode.store(1, Ordering::Release);
++    let controller = f.a.clone();
++    let context = held.clone();
++    let work = tokio::spawn(async move {
++        controller
++            .change_with_held(
++                0,
++                &[desired(Medium::Audio)],
++                &BTreeSet::new(),
++                deadline(),
++                CancellationToken::new(),
++                context,
++            )
++            .await
++    });
++    f.aa.entered.notified().await;
++    let provisional = f.aa.port(Medium::Audio);
++    assert!(provisional.try_publish(&frame(&provisional, 160)).is_err());
++    assert_eq!(f.a.revision(), 0);
++    assert_eq!(provisional.status(), PortStatus::Prepared);
++    let gate = f.policy.0.clone();
++    let writer = tokio::spawn(async move { gate.write_owned().await });
++    tokio::task::yield_now().await;
++    assert!(!writer.is_finished());
++    policy.phase.store(2, Ordering::Release);
++    f.aa.release.notify_one();
++    tokio::time::timeout(Duration::from_millis(500), work)
++        .await
++        .unwrap()
++        .unwrap()
++        .unwrap();
++    assert_eq!(f.a.revision(), 1);
++    assert_eq!(f.a.stream_open_budget(), (1, 16));
++    assert!(policy.rechecks.load(Ordering::Acquire) >= 3);
++    assert_eq!(policy.current_calls.load(Ordering::Acquire), 0);
++    assert!(!writer.is_finished());
++    drop(held);
++    drop(writer.await.unwrap());
++    provisional.try_publish(&frame(&provisional, 320)).unwrap();
++    assert!(policy.current_calls.load(Ordering::Acquire) > 0);
++    assert_eq!(f.a.shutdown(deadline()).await, 0);
++}
++#[tokio::test]
++async fn initial_held_snapshot_cannot_invent_active_connection_from_ready_ports() {
++    let mut f = Fixture::new(8);
++    let _phase = PhasePolicy::new(&f).await;
++    let policy = HeldPolicy::new(&f);
++    let held = held_context(&f, CancellationToken::new(), deadline()).await;
++    f.a = held_controller(&f, policy.clone(), held.as_ref()).unwrap();
++    assert!(matches!(
++        f.a.change_with_held(
++            0,
++            &[desired(Medium::Audio)],
++            &BTreeSet::new(),
++            deadline(),
++            CancellationToken::new(),
++            held.clone()
++        )
++        .await,
++        Err(StreamControlError::Model(MediaTransitionError::Authority))
++    ));
++    let old = f.aa.port(Medium::Audio);
++    assert!(old.try_publish(&frame(&old, 160)).is_err());
++    assert_eq!(f.a.revision(), 0);
++    assert_eq!(f.a.stream_open_budget(), (1, 16));
++    assert_eq!(policy.current_calls.load(Ordering::Acquire), 0);
++    assert_eq!(f.a.reconcile_cleanup(deadline()).await, 0);
++    assert_eq!(f.aa.outstanding.load(Ordering::Acquire), 0);
++    assert_eq!(f.a.stream_open_budget(), (1, 16));
++}
++#[tokio::test]
++async fn initial_ready_without_activation_rolls_back_burns_handle_and_preserves_unrelated_audio() {
++    let mut f = Fixture::new(8);
++    f.b.change(
++        0,
++        &[desired(Medium::Audio)],
++        &BTreeSet::new(),
++        deadline(),
++        CancellationToken::new(),
++    )
++    .await
++    .unwrap();
++    let other = f.ba.port(Medium::Audio);
++    let policy = PhasePolicy::new(&f).await;
++    f.a = StreamController::with_open_limit(
++        f.a.conversation.clone(),
++        f.a.session.clone(),
++        f.a.connection.clone(),
++        f.a.principal.clone(),
++        policy.clone(),
++        f.aa.clone(),
++        f.a.handles.clone(),
++        8,
++        16,
++    )
++    .unwrap();
++    f.aa.mode.store(1, Ordering::Release);
++    let controller = f.a.clone();
++    let work = tokio::spawn(async move {
++        controller
++            .change(
++                0,
++                &[desired(Medium::Audio)],
++                &BTreeSet::new(),
++                deadline(),
++                CancellationToken::new(),
++            )
++            .await
++    });
++    f.aa.entered.notified().await;
++    let old = f.aa.port(Medium::Audio);
++    assert!(old.try_publish(&frame(&old, 160)).is_err());
++    other.try_publish(&frame(&other, 160)).unwrap();
++    policy.phase.store(1, Ordering::Release);
++    f.aa.release.notify_one();
++    assert!(work.await.unwrap().is_err());
++    assert_eq!(f.a.revision(), 0);
++    other.try_publish(&frame(&other, 320)).unwrap();
++    assert_eq!(f.a.reconcile_cleanup(deadline()).await, 0);
++    assert_eq!(f.aa.outstanding.load(Ordering::Acquire), 0);
++    policy.phase.store(2, Ordering::Release);
++    f.aa.mode.store(0, Ordering::Release);
++    f.a.change(
++        0,
++        &[desired(Medium::Audio)],
++        &BTreeSet::new(),
++        deadline(),
++        CancellationToken::new(),
++    )
++    .await
++    .unwrap();
++    let current = f.aa.port(Medium::Audio);
++    assert!(current.binding().stream_local_id > old.binding().stream_local_id);
++    assert!(old.try_publish(&frame(&old, 480)).is_err());
++    current.try_publish(&frame(&current, 480)).unwrap();
++    assert_eq!(f.a.stream_open_budget(), (2, 16));
++    assert_eq!(f.a.shutdown(deadline()).await, 0);
++    assert_eq!(f.b.shutdown(deadline()).await, 0);
++}
++#[tokio::test]
++async fn initial_control_recheck_revocation_and_callback_cancellation_never_commit_candidates() {
++    for phase in [3, 9] {
++        let mut f = Fixture::new(8);
++        let policy = PhasePolicy::new(&f).await;
++        let held = held_context(&f, CancellationToken::new(), deadline()).await;
++        f.a = held_controller(&f, policy.clone(), held.as_ref()).unwrap();
++        f.aa.mode.store(1, Ordering::Release);
++        let controller = f.a.clone();
++        let context = held.clone();
++        let work = tokio::spawn(async move {
++            controller
++                .change_with_held(
++                    0,
++                    &[desired(Medium::Audio)],
++                    &BTreeSet::new(),
++                    deadline(),
++                    CancellationToken::new(),
++                    context,
++                )
++                .await
++        });
++        f.aa.entered.notified().await;
++        policy.phase.store(phase, Ordering::Release);
++        f.aa.release.notify_one();
++        assert!(work.await.unwrap().is_err());
++        assert_eq!(f.a.revision(), 0);
++        assert_eq!(f.a.stream_open_budget(), (1, 16));
++        let old = f.aa.port(Medium::Audio);
++        assert!(old.try_publish(&frame(&old, 160)).is_err());
++        assert_eq!(f.a.reconcile_cleanup(deadline()).await, 0);
++        assert_eq!(f.aa.outstanding.load(Ordering::Acquire), 0);
++        assert_eq!(policy.current_calls.load(Ordering::Acquire), 0);
++    }
++}
+diff --git a/crates/uctp/rvoip-uctp/tests/support/media_control.rs b/crates/uctp/rvoip-uctp/tests/support/media_control.rs
+--- a/crates/uctp/rvoip-uctp/tests/support/media_control.rs
++++ b/crates/uctp/rvoip-uctp/tests/support/media_control.rs
+@@ -19,8 +19,44 @@
+ struct DerivedLease {
+     owner: MediaOwner,
+     _guard: Arc<OwnedRwLockReadGuard<PolicyState>>,
++    phase: Arc<AtomicUsize>,
++}
++fn current_phase(mut owner: MediaOwner, phase: usize) -> ControlResult<MediaOwner> {
++    if owner.connection.state() == BindingState::Preparing && phase >= 1 {
++        owner
++            .connection
++            .observe_ready(
++                &owner.member,
++                &owner.presence,
++                &owner.endpoint,
++                owner.connection.generation(),
++            )
++            .map_err(|_| StreamControlError::Authority)?;
++        if phase >= 2 {
++            owner
++                .connection
++                .activate(&owner.member, &owner.presence, &owner.endpoint)
++                .map_err(|_| StreamControlError::Authority)?;
++        }
++    }
++    Ok(owner)
+ }
+ impl MediaAuthorityLease for DerivedLease {
++    fn authority(&self) -> &MediaOwner {
++        &self.owner
++    }
++    fn control_owner(&self) -> ControlResult<Box<MediaOwner>> {
++        Ok(Box::new(current_phase(
++            self.owner.clone(),
++            self.phase.load(Ordering::Acquire),
++        )?))
++    }
++}
++struct PhaseFreshLease {
++    owner: MediaOwner,
++    _lease: Box<dyn MediaAuthorityLease>,
++}
++impl MediaAuthorityLease for PhaseFreshLease {
+     fn authority(&self) -> &MediaOwner {
+         &self.owner
+     }
+@@ -29,11 +65,19 @@
+     base: Arc<MediaGrants>,
+     fresh: AtomicUsize,
+     held: AtomicUsize,
++    phase: Arc<AtomicUsize>,
+ }
+ impl MediaPolicy for HeldWirePolicy {
+     fn current(&self, scope: &MediaScope<'_>) -> ControlResult<Box<dyn MediaAuthorityLease>> {
+         self.fresh.fetch_add(1, Ordering::AcqRel);
+-        self.base.current(scope)
++        let lease = self.base.current(scope)?;
++        Ok(Box::new(PhaseFreshLease {
++            owner: current_phase(
++                lease.authority().clone(),
++                self.phase.load(Ordering::Acquire),
++            )?,
++            _lease: lease,
++        }))
+     }
+     fn current_control(
+         &self,
+@@ -101,6 +145,7 @@
+             Box::new(DerivedLease {
+                 owner,
+                 _guard: held.guard.clone(),
++                phase: self.phase.clone(),
+             }),
+             held.cancellation.clone(),
+             held.deadline,
+@@ -373,6 +418,7 @@
+             })))),
+             fresh: AtomicUsize::new(0),
+             held: AtomicUsize::new(0),
++            phase: Arc::new(AtomicUsize::new(0)),
+         });
+         Arc::get_mut(&mut f.config).unwrap().authority = Arc::new(Authority {
+             base,
+@@ -602,3 +648,137 @@
+         h.stop().await;
+     }
+ }
++
++#[tokio::test]
++async fn canonical_preparing_connection_rechecks_ready_under_held_grant_without_reader_reentry() {
++    for kind in ["quic", "wt"] {
++        let mut h = Harness::new(kind).await;
++        {
++            let mut grants = h.media.base.0.write().await;
++            let owner = grants.owners.get_mut(&h.id).unwrap();
++            owner.connection = ConnectionBinding::prepare(
++                &owner.member,
++                &owner.presence,
++                &owner.endpoint,
++                h.id.clone(),
++            )
++            .unwrap();
++        }
++        h.readiness.hold.store(true, Ordering::Release);
++        h.wire
++            .send(h.f.sign(h.command("codec-renegotiate", 0)))
++            .await;
++        h.readiness.entered.notified().await;
++        let controller = h.adapter().media_controller(&h.id).unwrap();
++        assert_eq!(controller.revision(), 0);
++        assert_eq!(controller.stream_open_budget(), (1, 16));
++        let binding = h.readiness.offers.lock().unwrap()[0].clone();
++        let media = h.adapter().physical_source(&h.id).unwrap().media().unwrap();
++        let before = media.snapshot().ingress_rejected;
++        send(&h.wire, audio(binding.stream_local_id, 0));
++        core_fixture::until(|| media.snapshot().ingress_rejected > before).await;
++        let store = h.media.base.0.clone();
++        let writer = tokio::spawn(async move { store.write_owned().await });
++        tokio::task::yield_now().await;
++        assert!(h.media.base.0.clone().try_read_owned().is_err());
++        h.media.phase.store(2, Ordering::Release);
++        h.readiness.release.notify_one();
++        let ack = h.wire.read().await;
++        assert_eq!(ack.kind(), "ack");
++        h.f.verify_server(&ack).await;
++        assert_eq!(ack.original()["payload"]["details"]["media_revision"], 1);
++        assert_eq!(h.media.fresh.load(Ordering::Acquire), 0);
++        drop(
++            tokio::time::timeout(Duration::from_secs(1), writer)
++                .await
++                .unwrap()
++                .unwrap(),
++        );
++        let mut input = controller
++            .take_ingress(&StreamId::from_string("audio"))
++            .unwrap();
++        send(&h.wire, audio(binding.stream_local_id, 0));
++        let frame = packet(&mut input).await;
++        frame
++            .try_forward_to(&controller, &StreamId::from_string("audio"))
++            .unwrap();
++        decoded(&received(&h.wire).await);
++        assert_eq!(controller.stream_open_budget(), (1, 16));
++        h.stop().await;
++    }
++}
++#[tokio::test]
++async fn canonical_preparing_connection_ready_only_refusal_keeps_controller_quota_and_burned_handle(
++) {
++    for kind in ["quic", "wt"] {
++        let mut h = Harness::new(kind).await;
++        {
++            let mut grants = h.media.base.0.write().await;
++            let owner = grants.owners.get_mut(&h.id).unwrap();
++            owner.connection = ConnectionBinding::prepare(
++                &owner.member,
++                &owner.presence,
++                &owner.endpoint,
++                h.id.clone(),
++            )
++            .unwrap();
++        }
++        h.media.phase.store(1, Ordering::Release);
++        h.wire
++            .send(h.f.sign(h.command("codec-renegotiate", 0)))
++            .await;
++        let rejected = h.wire.read().await;
++        assert_eq!(rejected.kind(), "error");
++        h.f.verify_server(&rejected).await;
++        let controller = h.adapter().media_controller(&h.id).unwrap();
++        let first = h.readiness.offers.lock().unwrap()[0].clone();
++        assert_eq!(controller.revision(), 0);
++        assert_eq!(controller.stream_open_budget(), (1, 16));
++        assert_eq!(controller.reconcile_cleanup(deadline()).await, 0);
++        let quota = h.native.records.lock().unwrap()[0]
++            .peer
++            .lock()
++            .unwrap()
++            .as_ref()
++            .unwrap()
++            .snapshot();
++        h.media.phase.store(2, Ordering::Release);
++        h.wire
++            .send(h.f.sign(h.command("codec-renegotiate", 0)))
++            .await;
++        let ack = h.wire.read().await;
++        assert_eq!(ack.kind(), "ack");
++        h.f.verify_server(&ack).await;
++        assert!(Arc::ptr_eq(
++            &controller,
++            &h.adapter().media_controller(&h.id).unwrap()
++        ));
++        assert_eq!(controller.stream_open_budget(), (2, 16));
++        assert_eq!(
++            h.native.records.lock().unwrap()[0]
++                .peer
++                .lock()
++                .unwrap()
++                .as_ref()
++                .unwrap()
++                .snapshot(),
++            quota
++        );
++        let current = h.readiness.offers.lock().unwrap()[0].clone();
++        assert!(current.stream_local_id > first.stream_local_id);
++        let media = h.adapter().physical_source(&h.id).unwrap().media().unwrap();
++        let before = media.snapshot().ingress_rejected;
++        send(&h.wire, audio(first.stream_local_id, 0));
++        core_fixture::until(|| media.snapshot().ingress_rejected > before).await;
++        let mut input = controller
++            .take_ingress(&StreamId::from_string("audio"))
++            .unwrap();
++        send(&h.wire, audio(current.stream_local_id, 0));
++        let frame = packet(&mut input).await;
++        frame
++            .try_forward_to(&controller, &StreamId::from_string("audio"))
++            .unwrap();
++        decoded(&received(&h.wire).await);
++        h.stop().await;
++    }
++}

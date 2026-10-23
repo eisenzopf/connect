@@ -1,0 +1,118 @@
+{
+  "task": "G6-046",
+  "title": "Exact native multi-Connection and Connection-end clauses",
+  "recorded_at": "2026-10-22T20:02:40.742053+00:00",
+  "status": "u6-req-0101-and-0106-qualified-local-native",
+  "full_task_complete": false,
+  "full_goal_complete": false,
+  "acceptance_qualified": false,
+  "schema_version": 90,
+  "pinned_patches": 140,
+  "platform": {
+    "os": "Darwin",
+    "architecture": "arm64"
+  },
+  "algorithms": [
+    "EdDSA"
+  ],
+  "source_lock": {
+    "path": "dependencies/source-lock.json",
+    "sha256": "157ebcfccf05ca070088e64ad566a4ebb67ccab7a7a6ff0c7b1b16ede2075b93"
+  },
+  "source_inputs": [
+    {
+      "path": "crates/connect-server/tests/support/canonical_native_connections.rs",
+      "sha256": "5b13604bde4111db792328e9f85bf34543c98e1e849708de423e538f04fa2ff1"
+    },
+    {
+      "path": "crates/connect-service/src/canonical.rs",
+      "sha256": "dafa7a62bd48102e6cb4da9d8987f67c5a676a51077e85717b0f2993d4bceb69"
+    },
+    {
+      "path": "crates/connect-service/src/canonical_native_streams.rs",
+      "sha256": "2282eef62e22df7573488a3a547ab9ec8bfecadb7fc3ece85cad1af1f9254240"
+    },
+    {
+      "path": "docs/evidence/gate-6/native-offer.json",
+      "sha256": "1ac5f0f2a600123f46835b23d478fb81894e43c86ffcae7a1e22402bbd2b56c1"
+    }
+  ],
+  "compiled_inputs": {
+    "path": ".local/gate-6/session-cancel-boundary/build-inputs-v3.json",
+    "sha256": "f7267594bb9bdc012737990abbe7f20a883b48a169452bb1079b2aad390cd757",
+    "count": 1265
+  },
+  "compiled_inputs_unchanged_after_tests": true,
+  "binary": {
+    "path": "target/debug/deps/gate6_canonical_runtime-f39476f2f6c7ff5d",
+    "sha256": "0f6146ec5b8fe9536019ecccaac60b05fe47a4a2ebc47659230958b8c56df98f"
+  },
+  "results": [
+    {
+      "name": "six-simultaneous-connections",
+      "passed": 1,
+      "failed": 0,
+      "evidence": {
+        "path": ".local/gate-6/session-cancel-boundary/production-six-slots-final.log",
+        "sha256": "2bf43d6844a1f8179be544e3bfa0d0198cb776ed8fab3eb1b14edf713e078bc0"
+      }
+    },
+    {
+      "name": "end-one-connection-and-keep-session-media",
+      "passed": 1,
+      "failed": 0,
+      "evidence": {
+        "path": ".local/gate-6/session-cancel-boundary/production-connection-end-final.log",
+        "sha256": "21ecd7d70a8120489337501db10e26da933c668e5e02510f8050d78484f38b00"
+      }
+    },
+    {
+      "name": "recover-captured-end-after-journal-failure-and-cancellation",
+      "passed": 1,
+      "failed": 0,
+      "evidence": {
+        "path": ".local/gate-6/session-cancel-boundary/production-connection-end-recovery-final.log",
+        "sha256": "3ed0330ffdbe8399b5c652311a76404a0db7d2e85436c449ac26b888b9b8cd7c"
+      }
+    }
+  ],
+  "qualified_cases": [
+    {
+      "case_id": "u6-req-0101",
+      "test": "canonical_native_connections::production_four_kinds_six_native_slots_preserve_other_peers_after_one_leaves",
+      "assertions": [
+        "Four publicly admitted Participants of distinct kinds attach six actual native Connections to one public Session. Two Participants each hold two simultaneous Connections on their own authenticated physical peer.",
+        "Each original Connection negotiates distinct physical-peer stream handles and reaches completed admission; the runtime reports six actual slots and four physical readers.",
+        "One Participant leaving retires only its Connection. The current public snapshot contains five ready Connections, and Conversation close refuses while these remain. Explicit Session end retires all remaining Connections."
+      ]
+    },
+    {
+      "case_id": "u6-req-0106",
+      "test": "canonical_native_connections::production_accepted_live_video_upgrade_adds_connections_and_preserves_existing_audio",
+      "failure_recovery_test": "canonical_native_connections::production_native_connection_end_captured_outcome_recovers_after_recording_failure_and_cancel",
+      "assertions": [
+        "A signed public connection.end carries original cid/sid/connid/operation_id and reason_code1000/reason finished, plus an optional extension retained in its logical intent.",
+        "Only that original video Connection terminates; the completed result names the original connection_id and ended=true. Replay returns the same result without another effect.",
+        "Actual decoded audio continues on other Connections, and the same physical peer negotiates a replacement video Connection in the same Session.",
+        "A foreign authenticated peer cannot end the Connection or create a receipt. A captured termination survives journal failure and late cancellation without resubmitting the effect, and releases current authority while waiting for storage recovery."
+      ]
+    }
+  ],
+  "profile": "Existing actual production Connect listener/public signed native QUIC and bearer HTTP snapshot cases, newly rerun and reconciled to exact assigned clauses. Public create/invite/accept/offer/answer commands establish domain state; provisioning fixtures install credentials and the local media endpoint. No injected Session/Connection rows qualify the positive lifecycle.",
+  "implementation": "The existing native Connection coordinator already implements these clauses. This report reconciles exact current production behavior; no implementation change is attributed to it.",
+  "limits": [
+    "19 of61 assigned clauses locally qualified;42 remain. Full G6-046 and all105 tasks remain in scope.",
+    "These three production tests use EdDSA on local native QUIC. They do not newly qualify ES256, SIP/WebRTC/WebTransport/WSS production attachment, Linux or named remote/provider lanes.",
+    "Clause0102 still requires its full lifecycle/mid-life boundary; clauses0103\u20130105 and stream event clauses0107\u20130111 remain separate.",
+    "Correlated Session cancellation0091, full0081 Session lifecycle and automatic loss/grace remain open. Publication and acceptance are separate."
+  ],
+  "related_evidence": [
+    "docs/evidence/gate-6/auxiliary-session-cancel-boundary.json"
+  ],
+  "reproduce": [
+    "bash scripts/prepare-dependencies.sh",
+    "CARGO_INCREMENTAL=0 cargo test -p connect-server --test gate6_canonical_runtime --locked --offline -j1 canonical_native_connections::production_four_kinds_six_native_slots_preserve_other_peers_after_one_leaves -- --exact --test-threads=1",
+    "CARGO_INCREMENTAL=0 cargo test -p connect-server --test gate6_canonical_runtime --locked --offline -j1 canonical_native_connections::production_accepted_live_video_upgrade_adds_connections_and_preserves_existing_audio -- --exact --test-threads=1",
+    "CARGO_INCREMENTAL=0 cargo test -p connect-server --test gate6_canonical_runtime --locked --offline -j1 canonical_native_connections::production_native_connection_end_captured_outcome_recovers_after_recording_failure_and_cancel -- --exact --test-threads=1"
+  ]
+}

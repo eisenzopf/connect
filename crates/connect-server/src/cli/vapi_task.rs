@@ -75,7 +75,7 @@ fn load(arguments: &OwnerArguments) -> Result<(manifest::Manifest, ServerConfig)
     super::task_access::require_private(operator_path)?;
     let operator = ClientConfig::load(operator_path)?;
     Store::authorize_recovery(&config.database, &operator.credential)?;
-    let store = Store::open(&config.database, config.limits.clone())?;
+    let store = Store::open_administration(&config.database, config.limits.clone())?;
     let actor = store.authenticate(&owner.credential)?;
     anyhow::ensure!(
         actor.credential_id == manifest.definition.credential_id,
@@ -111,8 +111,10 @@ async fn serve(arguments: Arguments) -> Result<()> {
 async fn reconcile(arguments: OwnerArguments, resource: &str) -> Result<()> {
     let (manifest, config) = load(&arguments)?;
     let _installation = crate::installation::InstallationLock::acquire(&config.database)?;
-    let service =
-        connect_service::Service::new(Arc::new(Store::open(&config.database, config.limits)?));
+    let service = connect_service::Service::new(Arc::new(Store::open_administration(
+        &config.database,
+        config.limits,
+    )?));
     crate::vapi_bootstrap::verify_prepared(
         service.clone(),
         &manifest.definition,

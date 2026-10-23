@@ -1,0 +1,244 @@
+{
+  "task": "G6-046",
+  "title": "Actual private-consultation record erasure and current source boundaries",
+  "created_at": "2026-10-21T18:49:29.900051+00:00",
+  "status": "component-qualified",
+  "component_passed": true,
+  "full_task_complete": false,
+  "full_goal_complete": false,
+  "schema_version": 79,
+  "platform": "local macOS arm64",
+  "scope": "Actual production signed native consultation with decoded private duplex and public/remote isolation, followed by public SDK/HTTP erasure of its metadata outcome, conditional fetch refusal, deletion and restart. Record media capture remains disabled. EdDSA physical fixture only.",
+  "fresh_distinct_passed_tests": 4,
+  "runtime_binary": {
+    "path": "target/debug/deps/gate6_canonical_runtime-0805a8328b515b16",
+    "sha256": "5580389681d6beef2c716aaf62924775e480be29549b3f95b3015a33127d45ed"
+  },
+  "qualification_inputs": {
+    "path": ".local/gate-6/record-private-inputs.json",
+    "sha256": "fa164d994f89c627790b229e7fd1d35403b24d0130a2738650d4d5a1212b5f54"
+  },
+  "qualification_input_count": 1296,
+  "source_lock": {
+    "path": "dependencies/source-lock.json",
+    "sha256": "2ba05b6982b27441f474e319e153f4e226bc94beb0cf8d231c7ae474f88a9b3e"
+  },
+  "pinned_patches": 128,
+  "previous_component": {
+    "path": "docs/evidence/gate-6/auxiliary-record-retention.json",
+    "sha256": "e027e21b6255cd8cade3e018073464b39fff182bb6e42fb49d1bad5d61ae6121"
+  },
+  "production_inputs_unchanged": true,
+  "changed_inputs": [
+    "crates/connect-server/tests/support/canonical_native_connections/consultation.rs"
+  ],
+  "added_inputs": [
+    "crates/connect-server/tests/support/canonical_native_connections/consultation/record_erasure.rs"
+  ],
+  "unchanged_qualified_executables": [
+    {
+      "name": "store",
+      "binary": {
+        "path": "target/debug/deps/connect_store-34efc355090fb9eb",
+        "sha256": "fb3d85e6e38b7ecca62fdd5995843c9e87782a3b3e6375b937a794b49f8c3a44"
+      },
+      "previous_log": {
+        "path": ".local/gate-6/record-retention-store-final.log",
+        "sha256": "cdffe4d3e89ac712689e21a2cff52855fb026c593891a4ed8ab2b251d8fde38b"
+      },
+      "passed": 844,
+      "scope": "Previous qualified run; exact executable remains unchanged. Not counted as a fresh run."
+    },
+    {
+      "name": "client",
+      "binary": {
+        "path": "target/debug/deps/connect_client-6875aa276d41ab90",
+        "sha256": "9438a1928fbb23fce9c8bdce48cfcfea5d9d21351dbaf1380a2337c7c80761e6"
+      },
+      "previous_log": {
+        "path": ".local/gate-6/record-retention-client-final.log",
+        "sha256": "25ace53b480c827eb26f36399117b3a0ab843dd807e2da85e8a3905ad438680d"
+      },
+      "passed": 56,
+      "scope": "Previous qualified run; exact executable remains unchanged. Not counted as a fresh run."
+    },
+    {
+      "name": "service",
+      "binary": {
+        "path": "target/debug/deps/connect_service-0c9533d243d07904",
+        "sha256": "d1a2d21f369954d8234238400924911feed5559cc547076e9c66821189564e3b"
+      },
+      "previous_log": {
+        "path": ".local/gate-6/record-retention-service-final.log",
+        "sha256": "618bca4d1938ae6c35982488db76a8c12ceab551cf38697b076837372de8921c"
+      },
+      "passed": 38,
+      "scope": "Previous qualified run; exact executable remains unchanged. Not counted as a fresh run."
+    },
+    {
+      "name": "server",
+      "binary": {
+        "path": "target/debug/deps/connect_server-5fdf14b3529ba638",
+        "sha256": "33a7b8fe5a1ef70d738e37b5f18695745b531c295f5fe56f6fa924dbfbcdd76a"
+      },
+      "previous_log": {
+        "path": ".local/gate-6/record-retention-server-final.log",
+        "sha256": "0fe1bf8360b5251e44ece77fca94b1ada596bcede8e62e983f51c645c896a9e7"
+      },
+      "passed": 66,
+      "scope": "Previous qualified run; exact executable remains unchanged. Not counted as a fresh run."
+    },
+    {
+      "name": "auxiliary",
+      "binary": {
+        "path": "target/debug/deps/gate6_auxiliary-e7e5210218c4ce12",
+        "sha256": "506a4f30e4d67f45edb3768a0ac85d2513f316890df357fa76d4b4beea77a6b5"
+      },
+      "previous_log": {
+        "path": ".local/gate-6/record-retention-auxiliary-final.log",
+        "sha256": "4a46b870a497c42bc4a407d8a0d8a0ac7364ecda7ff8d8f239cafebf4c6dcfda"
+      },
+      "passed": 17,
+      "scope": "Previous qualified run; exact executable remains unchanged. Not counted as a fresh run."
+    },
+    {
+      "name": "schema",
+      "binary": {
+        "path": "target/debug/deps/gate6_schema-b8961ab79a063843",
+        "sha256": "363dd0361d5c6b8453351841cfa312c2c4868cd2a65be35e5aae008b7e809e32"
+      },
+      "previous_log": {
+        "path": ".local/gate-6/record-retention-schema-final.log",
+        "sha256": "9ac74fd126e5b37323ec53910024b0d5115cd368f28cab1d0e651bf00c673f3b"
+      },
+      "passed": 4,
+      "scope": "Previous qualified run; exact executable remains unchanged. Not counted as a fresh run."
+    },
+    {
+      "name": "recovery",
+      "binary": {
+        "path": "target/debug/deps/recovery-c96cf09fe07e0c8e",
+        "sha256": "ca8371a4d2311e0d8342b257fc67d3a0071acb9ac84872c94d8905731646bd26"
+      },
+      "previous_log": {
+        "path": ".local/gate-6/record-retention-recovery-final.log",
+        "sha256": "282ee3d6176b40d88d8ced79923f1a638954f75c628f34dd497e49e13508bc0d"
+      },
+      "passed": 2,
+      "scope": "Previous qualified run; exact executable remains unchanged. Not counted as a fresh run."
+    }
+  ],
+  "fresh_verification": [
+    {
+      "test": "canonical_native_connections::consultation::production_private_consultation_record_erasure_enforces_actual_lineage_and_replays_after_restart",
+      "passed": 1,
+      "log": {
+        "path": ".local/gate-6/record-private-focused.log",
+        "sha256": "cef608f9a61db6ad3722a87b04f351d133750cb11d4add0a11de6f4fc75be10e"
+      }
+    },
+    {
+      "test": "production_private_native_candidate_is_muted_and_quarantined_before_any_scene_publication",
+      "exit_code": 0,
+      "seconds": 14.34,
+      "log": ".local/gate-6/record-private-baseline-1.log",
+      "sha256": "0332e2126b7e36244ccfe5a8bf926bf22de2affbccf16d1a553ace30781676dd",
+      "binary_sha256": "5580389681d6beef2c716aaf62924775e480be29549b3f95b3015a33127d45ed",
+      "binary_unchanged": true
+    },
+    {
+      "test": "production_private_consultation_switches_actual_audio_without_leaking_to_remote_or_public_context",
+      "exit_code": 0,
+      "seconds": 20.19,
+      "log": ".local/gate-6/record-private-baseline-2.log",
+      "sha256": "933ac858b512f3c2b54e71c7b434630afaac507b04c9dc595798e0d280925847",
+      "binary_sha256": "5580389681d6beef2c716aaf62924775e480be29549b3f95b3015a33127d45ed",
+      "binary_unchanged": true
+    },
+    {
+      "test": "production_private_consultation_return_restores_original_audio_with_fresh_permission",
+      "exit_code": 0,
+      "seconds": 23.22,
+      "log": ".local/gate-6/record-private-baseline-3.log",
+      "sha256": "54c8cc4feb581e56d42be9c044800bf8449f824ffa0786ede7be01ca78f09a07",
+      "binary_sha256": "5580389681d6beef2c716aaf62924775e480be29549b3f95b3015a33127d45ed",
+      "binary_unchanged": true
+    }
+  ],
+  "behavior": [
+    "Reuses the actual consultation fixture: public primary audio initially reaches public context; confirmed private duplex then reaches only the private pair, while retained remote and previous public context remain silent. The primary ends the actual Session and owned finalization creates the original record. No record bytes, source audiences, manifest, intent or ready state are inserted by the new record test.",
+    "Actual consultant fetch contains its public and private Connection lineage. Retained remote fetch contains the shared consultant appearance and its own Connection, while both the remote and primary cannot see the consultant private lineage. These are current source-filtered SDK fetches after media ends.",
+    "An explicit record_redact credential for the retained remote is refused when erasing the shared consultant appearance would cascade into its actual private/public Connection sources. A direct private Connection selector is also refused. Authorized consultant bytes/digest remain unchanged after both refusals.",
+    "The consultant can erase its actual private Connection by semantic connection ID/generation and original record revision. Its public Connection remains visible, private lineage disappears, record revision advances once, and exact replay returns the same receipt. Fetching with the old projected digest conflicts.",
+    "The remote retains useful own lineage without private disclosure. A same-Identity credential lacking the action permission cannot borrow the receipt. Revoked original mutation credentials fail; a fresh current credential for the original owner recovers the exact receipt.",
+    "Retained remote whole-record deletion is refused because other source audiences remain. Independent installation administration deletes the record. All three participant fetches then return not-found. After all physical clients drain, a full owned server restart recovers the exact redaction and deletion receipts, retains not-found and returns public unavailable discovery.",
+    "The three existing quarantine, private-audio isolation and return-to-public fixtures pass through the shared test wrapper. Seven previous regression executables remain byte-identical; prior1033-test qualification is referenced as earlier evidence, not counted as a fresh run. Only the runtime test executable changed."
+  ],
+  "checks": [
+    {
+      "path": ".local/gate-6/record-private-prepare-second.log",
+      "sha256": "fd9d7b181e3ccba9b643af55a186cf132c60aac99c734b2ee4e4e549afe5ffc2"
+    },
+    {
+      "path": ".local/gate-6/record-private-format-check.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": ".local/gate-6/record-private-reference-check.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": ".local/gate-6/record-private-input-check.log",
+      "sha256": "eca626ad8368737d2c6a1d3a00e455a28044117a582cbc5cfd162cbbd41b5cb3"
+    },
+    {
+      "path": ".local/gate-6/record-private-diff-check.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": ".local/gate-6/record-private-progress-final.log",
+      "sha256": "fedbc03549729d27ac031eee0766ae72281991ae1e9494232887c3160cf754cc"
+    },
+    {
+      "path": ".local/gate-6/record-private-diff-final.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ],
+  "build_logs": [
+    {
+      "path": ".local/gate-6/record-private-build.log",
+      "sha256": "f088c86c5bbdcecfe0b614e177908d5dada44a67a1003e53b8790eeb604927a4",
+      "exit_code": 0
+    },
+    {
+      "path": ".local/gate-6/record-private-build-second.log",
+      "sha256": "e2e47275b293bdd3ff658e618cdc1cecf4492b191bc14056fcc0bd311c3e4898",
+      "exit_code": 0
+    }
+  ],
+  "initial_failed_fixture_attempt": {
+    "path": ".local/gate-6/record-private-first.log",
+    "sha256": "786ded606e1336449cef225ef94b2cf0575dc7182d2d7e9bf3f2ecc6f23b0fa3",
+    "failed": 1,
+    "reason": "All erasure/restart assertions completed; final discovery incorrectly used an intentionally narrow credential without conversation.get. The test now uses the existing discovery credential without broadening the mutation grant. Not counted as a pass."
+  },
+  "skipped_or_unqualified": [
+    "This is actual private audio and metadata erasure, not audio/transcript/provider capture or provider erasure. No already-delivered provider content is claimed erased.",
+    "Canonical vCon inputs are not currently selectable provider/task context sources in Connect. Full record-to-provider context delivery and its invalidation remain unqualified and require implementation, rather than treating a fetch digest as provider context evidence.",
+    "This fixture validates an old projected fetch condition, not blocked native QUIC record IO or an issued TLS link during actual private-source erasure. Those lanes remain separate.",
+    "Independent tenant vCon-read role/profile (U6-REQ-0121), remaining assurance/step-up/DTMF/quality/capability behavior, all61-clause reconciliation, named remote/Linux/browser profiles, independent conformance, acceptance and publication remain incomplete.",
+    "ES256 physical consultation erasure is not run by this component. The earlier metadata-only HTTP erasure/retention fixtures exercise both server signing configurations.",
+    "The other134 canonical-runtime cases are not requalified by these four selections. No full138-case runtime pass is claimed."
+  ],
+  "plan_counts": {
+    "done": 45,
+    "in_progress": 1,
+    "not_started": 59,
+    "acceptance_qualified": 0
+  },
+  "context_scope_sources": [
+    "crates/connect-store/src/tasks/recall/projection.rs",
+    "crates/connect-store/src/context.rs",
+    "crates/connect-store/src/tasks/effects/provider.rs"
+  ]
+}

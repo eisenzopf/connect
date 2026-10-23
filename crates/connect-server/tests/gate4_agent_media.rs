@@ -57,6 +57,7 @@ async fn ordinary_file_upload_survives_retry_and_is_readable_only_in_its_convers
         .id;
     let bytes = b"The project draft includes a verified file and voice conversation.";
     let begin = Operation::ArtifactBegin {
+        to: connect_protocol::messages::MessageAudience::all(),
         request_id: "file-begin".into(),
         conversation_id: cid.clone(),
         name: "draft.txt".into(),

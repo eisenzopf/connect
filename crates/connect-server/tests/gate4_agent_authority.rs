@@ -20,7 +20,7 @@ async fn revocation_denies_existing_mcp_native_replay_and_new_work_without_affec
         .create("revocation-room", vec![f.peer.identity_id.clone()])
         .await
         .unwrap();
-    let args = json!({"request_id":"accepted-before-revoke","conversation_id":conversation.id,"body":"Keep exactly this accepted message."});
+    let args = json!({"request_id":"accepted-before-revoke","conversation_id":conversation.id,"message": connect_protocol::messages::MessageDraft::text_all("Keep exactly this accepted message.")});
     let accepted = outcome(call(&client, "connect_send", args.clone()).await);
     assert!(matches!(accepted, Outcome::Accepted { .. }));
     f.revoke(&f.agent.credential_id);
@@ -46,12 +46,14 @@ async fn revocation_denies_existing_mcp_native_replay_and_new_work_without_affec
         Operation::Send {
             request_id: "accepted-before-revoke".into(),
             conversation_id: conversation.id.clone(),
-            body: "Keep exactly this accepted message.".into(),
+            message: connect_protocol::messages::MessageDraft::text_all(
+                "Keep exactly this accepted message.",
+            ),
         },
         Operation::Send {
             request_id: "new-after-revoke".into(),
             conversation_id: conversation.id.clone(),
-            body: "Must not be written.".into(),
+            message: connect_protocol::messages::MessageDraft::text_all("Must not be written."),
         },
     ] {
         assert!(matches!(native.request(operation).await,
@@ -106,7 +108,7 @@ async fn actual_normal_credential_expiry_denies_discovery_and_accepted_receipt_r
     )
     .await;
     let mut native = ConnectClient::open(config.clone()).await.unwrap();
-    let args = json!({"request_id":"accepted-before-expiry","conversation_id":conversation.id,"body":"Accepted under the normal identity credential."});
+    let args = json!({"request_id":"accepted-before-expiry","conversation_id":conversation.id,"message": connect_protocol::messages::MessageDraft::text_all("Accepted under the normal identity credential.")});
     outcome(call(&client, "connect_send", args.clone()).await);
     while chrono::Utc::now().timestamp() < expires_at {
         tokio::time::sleep(Duration::from_millis(25)).await;
@@ -254,14 +256,14 @@ async fn ordinary_credential_cannot_select_foreign_actor_conversation_task_or_pr
         ),
         ("task_id", json!(task.id)),
     ] {
-        let mut args = json!({"request_id":"malformed","conversation_id":allowed.id,"body":"Must not be sent."});
+        let mut args = json!({"request_id":"malformed","conversation_id":allowed.id,"message": connect_protocol::messages::MessageDraft::text_all("Must not be sent.")});
         args[key] = value;
         mcp::invalid(&client, "connect_send", args).await;
     }
     mcp::invalid(
         &client,
         "connect_send",
-        json!({"request_id":"bad-selector","conversation_id":17,"body":"Must not be sent."}),
+        json!({"request_id":"bad-selector","conversation_id":17,"message": connect_protocol::messages::MessageDraft::text_all("Must not be sent.")}),
     )
     .await;
     for header in ["x-call-id", "x-chat-id", "x-session-id"] {

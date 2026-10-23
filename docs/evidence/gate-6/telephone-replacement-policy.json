@@ -1,0 +1,146 @@
+{
+  "kind": "gate6-component-evidence",
+  "task": "G6-041",
+  "status": "in-progress",
+  "passed": true,
+  "recorded_at": "2026-10-20T05:27:08.558936+00:00",
+  "scope": "Local macOS arm64 Store custody for administrator telephone replacement policy, verified provisioned destination, independent current dial/route-owner authority, immutable policy/route reservation and once-only preparation. No telephone transport or provider submission was performed.",
+  "schema_version": 58,
+  "pinned_patches": 114,
+  "source_lock": {
+    "path": "dependencies/source-lock.json",
+    "sha256": "f0211a1a8040d930684b3af493be19ce4d48515897bdd13ed657a027c9a5f553"
+  },
+  "verification": [
+    {
+      "name": "replacement-store",
+      "command": "cargo test --locked --offline -j2 -p connect-store --lib replacement_sources -- --test-threads=4",
+      "exit_code": 0,
+      "passed": 53,
+      "ignored": 0,
+      "log": {
+        "path": ".local/gate-6/telephone-policy-store-sealed.log",
+        "sha256": "357ef282c5cfdd3d3e75bc5e0a9b0cf7a6f54c9e7f43e0f747ca392f2ab948c5"
+      },
+      "test_binaries": [
+        {
+          "path": "target/debug/deps/connect_store-500690b8d898aed1",
+          "sha256": "65e13fe8995dce6a2bdb7165e3122002e82e334707bce8e6e5ee8a1fb06540d0"
+        }
+      ]
+    },
+    {
+      "name": "service",
+      "command": "cargo test --locked --offline -j2 -p connect-service --lib -- --test-threads=2",
+      "exit_code": 0,
+      "passed": 22,
+      "ignored": 0,
+      "log": {
+        "path": ".local/gate-6/telephone-policy-service-sealed.log",
+        "sha256": "bd8b48de04e963275365f0dd90352f735f35b617df584c282695e1ab58d62070"
+      },
+      "test_binaries": [
+        {
+          "path": "target/debug/deps/connect_service-f0c8ec9c56711d06",
+          "sha256": "a0e17ba9d40f3d711f5000cef09bdc7d07527f4396cc723bec45a21ea8313059"
+        }
+      ]
+    }
+  ],
+  "fresh_tests": 75,
+  "new_telephone_policy_tests": 8,
+  "static_checks": [
+    {
+      "name": "dependencies",
+      "exit_code": 0,
+      "log": {
+        "path": ".local/gate-6/telephone-policy-dependencies.log",
+        "sha256": "fd9d7b181e3ccba9b643af55a186cf132c60aac99c734b2ee4e4e549afe5ffc2"
+      }
+    },
+    {
+      "name": "format",
+      "exit_code": 0,
+      "log": {
+        "path": ".local/gate-6/telephone-policy-static-format-final.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    {
+      "name": "http-reference",
+      "exit_code": 0,
+      "log": {
+        "path": ".local/gate-6/telephone-policy-static-http.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    {
+      "name": "contracts",
+      "exit_code": 0,
+      "log": {
+        "path": ".local/gate-6/telephone-policy-static-contracts.log",
+        "sha256": "2c29557f8945b4bb522a5436f85876aa8ab90eca617dcf64588af05e9a81b1bc"
+      }
+    },
+    {
+      "name": "diff",
+      "exit_code": 0,
+      "log": {
+        "path": ".local/gate-6/telephone-policy-static-diff.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    }
+  ],
+  "implemented": [
+    "Host-only TelephoneReplacementPolicy validates a bounded trunk reference, SIP authority, explicit answer/DTMF digits and 1-60 second preparation deadline; there is no default confirmation digit.",
+    "The exact verified telephone Endpoint selects the E.164 number, matching trunk secret reference and current route owner. Only the configured authority derives the SIP URI; payload-extension addresses/digits cannot replace policy.",
+    "Preparation and begin require independent current sip_dial plus connection.replace, original source/retained physical grants and the same merged route-owner identity fence.",
+    "Immutable reservation records the complete policy and resolved route. Same intention replays original IDs/deadline; changed trunk/authority/digits/timeout conflicts. Endpoint or route-owner revocation refuses begin.",
+    "Unknown managed preparation retains attempt 1 and cannot reserve another effect, Connection or legacy SIP leg. This does not assert an external call was submitted or undone.",
+    "The route-owner regression uses a distinct non-participant identity, separate from caller/source/retained, and exercises protected public revocation and writer contention."
+  ],
+  "source_inputs": {
+    "path": ".local/gate-6/telephone-policy-final-inputs.json",
+    "sha256": "1e327c4099187d1c4e5937408ee0b19a80ba2d73fefdf792dadd5b3a23c71edb"
+  },
+  "source_input_count": 1326,
+  "upstream_inputs": {
+    "path": ".local/gate-6/private-readiness-upstream-inputs.json",
+    "sha256": "283547904bda6a7e7bbdfbfee678f20a54fa31417bb2ef659d8ae50b101a2987"
+  },
+  "upstream_input_count": 2680,
+  "historical_native_report": {
+    "path": "docs/evidence/gate-6/native-replacement-movement.json",
+    "sha256": "bbf88f4d802cf249b6f99e9938281b8f51b3f576afb0089d92045ff249f78a03"
+  },
+  "unqualified": [
+    "Canonical runtime still rejects non-QUIC replacement before reservation. No server telephone adapter or public callback route is installed by this component.",
+    "Telephone allocation/start and stable external receipts, actual call submission, attributed answer/DTMF, media readiness, movement and independent established adapter lifetime remain required.",
+    "Telephone no-answer/voicemail/rejected-confirmation/timeout/cancel/late-event/unknown-submission/restart recovery without redial remains required.",
+    "Native actual media/HTTP integration and full Store/Core/workspace suites were not rerun; their prior reports are historical.",
+    "Retargeted selector/private-context churn, Linux/browser/remote/provider/performance profiles, independent acceptance and publication remain required."
+  ],
+  "diagnostics": "An initial run exposed outdated telephone fixture assumptions: collaboration credentials already include sip_dial, a manually verified fixture retained revision zero, and the older digits-only expectation now requires complete callback policy. Those fixtures were corrected without weakening permission or confirmation requirements. A separate route-owner fixture was added so existing source identity fences cannot satisfy that regression accidentally.",
+  "task_counts": {
+    "done": 40,
+    "in_progress": 1,
+    "not_started": 64,
+    "acceptance_closed": 0
+  },
+  "all_105_tasks_remain_in_scope": true,
+  "goal_status": "active",
+  "plan_integrity": {
+    "exit_code": 0,
+    "log": {
+      "path": ".local/gate-6/telephone-policy-progress.log",
+      "sha256": "3c9a42760866b510a9b7fc81b2b57b9bf6791a239d0bf0de8cdf06058e513f78"
+    }
+  },
+  "final_diff": {
+    "exit_code": 0,
+    "log": {
+      "path": ".local/gate-6/telephone-policy-static-diff-final.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  }
+}

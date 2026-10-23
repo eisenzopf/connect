@@ -1,0 +1,226 @@
+{
+  "task": "G6-044",
+  "title": "Integrate providers with generic operations and endpoint policy",
+  "created_at": "2026-10-21T10:57:01.949709+00:00",
+  "full_task_complete": true,
+  "completion_scope": "Approved implementation work/verify clauses with local macOS arm64 fixture evidence; not Gate6 acceptance or all operating-profile qualification",
+  "approved_work": "Map Vapi voice/chat, SIP/Telnyx telephone and SMS into endpoint provisioning, typed observations, context initialization and operation reconciliation. Remove app-specific handoff wiring from public workflows; expose provider-specific limitations through capabilities. Preserve existing callback verification and SMS enrollment rules.",
+  "approved_verify": "Fixture calls/messages cover outbound/inbound, private fanout, cancel, uncertain submission, duplicate callbacks, transcript import and teardown. Source changes identify which real provider proofs must be rerun.",
+  "dependencies": [
+    "G6-032",
+    "G6-034",
+    "G6-038",
+    "G6-041",
+    "G6-042",
+    "G6-043"
+  ],
+  "clauses": [
+    {
+      "clause": "Map Vapi voice/chat, SIP/Telnyx telephone and SMS into endpoint provisioning",
+      "evidence": [
+        {
+          "path": "docs/evidence/gate-6/provider-canonical-messages.json",
+          "sha256": "7565f0ed03662296f7e514f32c2933133f1ce3a151ebd8b5bc7103db2d2e4c68"
+        },
+        {
+          "path": "docs/evidence/gate-6/provider-session-voice-host.json",
+          "sha256": "2cb538b58132e3326f246373cb7b3e117525c28ada9931fdfb76def950e6a7ae"
+        },
+        {
+          "path": "docs/evidence/gate-6/provider-initial-telephone-host.json",
+          "sha256": "d4ac7cc5212839f3aa95f27e9625f3a0e5a2f4d7070426d0dc7d0cfccc5f4fdc"
+        }
+      ],
+      "finding": "Canonical startup owns message accounts and verified target/source Endpoint/member/device bindings; canonical provider voice owns telephone Session effects, assistant speaker identity and selected account; initial SIP host uses exact verified credential/Endpoint/native Core/trunk bindings. Caller numbers and provider IDs never create principals. Current full Store and public provider/voice fixtures cover their policy invariants.",
+      "status": "implementation-fixture-evidence-recorded"
+    },
+    {
+      "clause": "Typed observations and operation reconciliation",
+      "evidence": [
+        {
+          "path": "docs/evidence/gate-6/provider-canonical-messages.json",
+          "sha256": "7565f0ed03662296f7e514f32c2933133f1ce3a151ebd8b5bc7103db2d2e4c68"
+        },
+        {
+          "path": "docs/evidence/gate-6/provider-session-voice-quarantine-resolution.json",
+          "sha256": "7dbe80de5c81303d68cd3cd1dc24030b118827cfc8803edf90ca24a1e8d92730"
+        },
+        {
+          "path": "docs/evidence/gate-6/provider-session-voice-reconciliation.json",
+          "sha256": "9edfdc08d3a10d85a340b06290179c970011047932ea90e06601e4595b42a3b7"
+        }
+      ],
+      "finding": "All message attempts settle normalized observations transactionally. Signed SMS final facts reconcile the original effect, including callback-before-ack custody. Canonical voice has authenticated original-resource lookup and explicit positive quarantine proof. Parent command receipt stays immutable, uncertain effects are not blindly recreated, and no metadata creates media readiness. Unsupported chat/SMS read-only query capabilities remain undeclared.",
+      "status": "implementation-fixture-evidence-recorded"
+    },
+    {
+      "clause": "Context initialization and private source/recipient policy",
+      "evidence": [
+        {
+          "path": "docs/evidence/gate-6/provider-canonical-messages.json",
+          "sha256": "7565f0ed03662296f7e514f32c2933133f1ce3a151ebd8b5bc7103db2d2e4c68"
+        },
+        {
+          "path": "docs/evidence/gate-6/provider-public-startup.json",
+          "sha256": "b292d283dfbab6459a463e0a44bb4509016013cf97a7b11078a56e917e9b0d5a"
+        },
+        {
+          "path": "docs/evidence/gate-6/provider-private-archive.json",
+          "sha256": "07f7876a24001744ab2778e5a1c2d9b7da00ec61131b8e14714ef2b4d5695a9e"
+        }
+      ],
+      "finding": "Actual Vapi chat fixtures prove exact authorized context initialization, exclusion of observer-only history and original-sender reply audience. Public/private assistant hosts retain own Participant/epoch/source constraints. Full Store task/effect/context invariants pass. Retained private transcript implementation files are unchanged from their historical qualification. The older public Task-to-provider IO scenario is not freshly qualified; its retired create setup refusal is separately recorded.",
+      "status": "implementation-fixture-evidence-recorded"
+    },
+    {
+      "clause": "Remove app-specific handoff wiring from public workflows",
+      "evidence": [
+        {
+          "path": "docs/evidence/gate-6/provider-canonical-messages.json",
+          "sha256": "7565f0ed03662296f7e514f32c2933133f1ce3a151ebd8b5bc7103db2d2e4c68"
+        },
+        {
+          "path": "docs/evidence/gate-6/provider-session-voice-ingress.json",
+          "sha256": "ac555c8ba82fa0198a3f31376ffa3f44a6248d1c02ad6a27059c9ca93a35d2f3"
+        },
+        {
+          "path": "docs/evidence/gate-6/provider-initial-telephone-host.json",
+          "sha256": "d4ac7cc5212839f3aa95f27e9625f3a0e5a2f4d7070426d0dc7d0cfccc5f4fdc"
+        }
+      ],
+      "finding": "Both original provider message cases and all five original voice-flow functional requirements now use canonical public message/Session workflows. Server startup owns their adapters, workers, callback admission, compensation and shutdown. Ordinary message/telephone workflows do not require application Task/handoff wrapper APIs. Separate named Task APIs remain optional scoped application tooling; no legacy command fallback was installed.",
+      "status": "implementation-fixture-evidence-recorded"
+    },
+    {
+      "clause": "Expose provider-specific limitations through capabilities",
+      "evidence": [
+        {
+          "path": "docs/evidence/gate-6/provider-canonical-messages.json",
+          "sha256": "7565f0ed03662296f7e514f32c2933133f1ce3a151ebd8b5bc7103db2d2e4c68"
+        },
+        {
+          "path": "docs/evidence/gate-6/provider-normalized-voice.json",
+          "sha256": "ee296e2ff727ec0db36fb7193f8395cc7bab3ca1584afab109eebb41538eca38"
+        },
+        {
+          "path": "docs/evidence/gate-6/provider-session-voice-host.json",
+          "sha256": "2cb538b58132e3326f246373cb7b3e117525c28ada9931fdfb76def950e6a7ae"
+        }
+      ],
+      "finding": "Current contract/mapping/connector fixtures pass. Chat/SMS messaging, telephone control, native live media and read-only discovery/reconciliation are independent declarations. Configured references do not prove reachability; provider control metadata does not prove decoded audio or ConnectionReady.",
+      "status": "implementation-fixture-evidence-recorded"
+    },
+    {
+      "clause": "Preserve callback verification and SMS enrollment rules",
+      "evidence": [
+        {
+          "path": "docs/evidence/gate-6/provider-canonical-messages.json",
+          "sha256": "7565f0ed03662296f7e514f32c2933133f1ce3a151ebd8b5bc7103db2d2e4c68"
+        }
+      ],
+      "finding": "Actual signed canonical SMS fixtures retain exact raw-body/timestamp verification, event/digest and retry metadata semantics, STOP/START/HELP ordering and authority-busy retry. Unknown signed contacts may opt out an owned mounted source without enrollment or assistant input. Endpoint/account/member checks precede incoming/replay; mounted callback scope prevents unrelated routes. Production enrollment policy remains fail closed.",
+      "status": "implementation-fixture-evidence-recorded"
+    },
+    {
+      "clause": "Fixture matrix: outbound/inbound, private fanout, cancel, uncertain submission, duplicate callbacks, transcript import and teardown",
+      "evidence": [
+        {
+          "path": "docs/evidence/gate-6/provider-canonical-messages.json",
+          "sha256": "7565f0ed03662296f7e514f32c2933133f1ce3a151ebd8b5bc7103db2d2e4c68"
+        },
+        {
+          "path": "docs/evidence/gate-6/provider-session-voice-quarantine-resolution.json",
+          "sha256": "7dbe80de5c81303d68cd3cd1dc24030b118827cfc8803edf90ca24a1e8d92730"
+        },
+        {
+          "path": "docs/evidence/gate-6/provider-private-archive.json",
+          "sha256": "07f7876a24001744ab2778e5a1c2d9b7da00ec61131b8e14714ef2b4d5695a9e"
+        },
+        {
+          "path": "docs/evidence/gate-6/provider-initial-telephone-failures.json",
+          "sha256": "31902cd54a4f5374bc45faea7b7d80fd709815e8201549b7517a4c2de1199b58"
+        }
+      ],
+      "finding": "Current canonical provider_flow3 and voice_flow9 plus complete Store library suite777 cover outbound/inbound, private audience/refusal, original receipt replay, cancellation and uncertainty/no-resubmit, duplicate/conflicting callbacks, positive original-resource reconciliation and owned teardown. Transcript queue/import and initial SIP failure/recovery have retained historical actual fixture evidence with explicitly verified unchanged relevant sources. Those historical tests are not added to the890 fresh successful cases.",
+      "status": "implementation-fixture-evidence-recorded"
+    },
+    {
+      "clause": "Identify real provider proofs to rerun after source changes",
+      "evidence": [
+        {
+          "path": "docs/evidence/gate-6/provider-canonical-messages.json",
+          "sha256": "7565f0ed03662296f7e514f32c2933133f1ce3a151ebd8b5bc7103db2d2e4c68"
+        },
+        {
+          "path": "docs/evidence/gate-6/provider-session-voice-quarantine-resolution.json",
+          "sha256": "7dbe80de5c81303d68cd3cd1dc24030b118827cfc8803edf90ca24a1e8d92730"
+        }
+      ],
+      "finding": "Reports name exact selected Vapi chat/voice account/context/name/index/filter/time/status/End and Telnyx SMS sender/account/enrollment/signature/callback race/retry/delivery attribution proofs. Named external lanes require G6-093 concrete bounded authorized configuration. No live provider/PSTN proof is claimed from local SDK fixtures.",
+      "status": "implementation-fixture-evidence-recorded"
+    }
+  ],
+  "current_component": {
+    "path": "docs/evidence/gate-6/provider-canonical-messages.json",
+    "sha256": "7565f0ed03662296f7e514f32c2933133f1ce3a151ebd8b5bc7103db2d2e4c68"
+  },
+  "fresh_successful_cases": 890,
+  "retained_historical_scope": [
+    {
+      "report": {
+        "path": "docs/evidence/gate-6/provider-private-archive.json",
+        "sha256": "07f7876a24001744ab2778e5a1c2d9b7da00ec61131b8e14714ef2b4d5695a9e"
+      },
+      "scope": "Historical fixture proof; not fresh tests in this component",
+      "unchanged_relevant_sources": [
+        {
+          "path": "crates/connect-server/src/private_vapi/transcripts.rs",
+          "sha256": "7463523baa16d710750413e7bf044f91f65f89aeaec9dbe389e01013ed2ac8c8"
+        },
+        {
+          "path": "crates/connect-store/src/private_provider/observations.rs",
+          "sha256": "1320e58e88b6f22e25f37633e46bbd064ef7dc621dad24feeee2020bd29a809f"
+        }
+      ]
+    },
+    {
+      "report": {
+        "path": "docs/evidence/gate-6/provider-initial-telephone-failures.json",
+        "sha256": "31902cd54a4f5374bc45faea7b7d80fd709815e8201549b7517a4c2de1199b58"
+      },
+      "scope": "Historical fixture proof; not fresh tests in this component",
+      "unchanged_relevant_sources": [
+        {
+          "path": "crates/connect-server/src/canonical_telephone.rs",
+          "sha256": "4003bb865281a16b2671611aa4e7a92d4882999ba8e6ff9016740c6e7b3cb416"
+        },
+        {
+          "path": "crates/connect-service/src/initial_telephone.rs",
+          "sha256": "9eb6a0447f364e074094d06f2a45ad5cf5a0c53b75018e2d3d86334b88ecc84a"
+        },
+        {
+          "path": "crates/connect-store/src/transitions/initial_telephone/media.rs",
+          "sha256": "ffa0e2ba9a8fb529dc832e4be336845bfba37d54301921d6b3a30b81ec8ea5a8"
+        },
+        {
+          "path": "crates/connect-store/src/transitions/initial_telephone/lifecycle.rs",
+          "sha256": "841c00dae9f09da15acf63d7e28d2cf370fe2580aef25742d63469da9039bef8"
+        }
+      ]
+    }
+  ],
+  "explicit_limits": [
+    "One exploratory old gate4_provider_tasks test fails in shared native_tasks setup before provider setup because ordinary create is retired. The failure is retained, related common-harness task uncertainty/pending suites were built but not executed, and no fresh current public Task-to-provider IO proof is claimed. Current Store task/context/effect authority tests pass. Migrate required public developer/Task journeys through current canonical/ApplicationClient APIs during their applicable SDK/journey qualification; do not restore legacy APIs.",
+    "Historical concurrent-cache public AI initialization refusal/private one-frame causes remain unestablished. Existing later live-media/profile/recovery qualification must retain those incidents, exercise the applicable actual media/fault matrix and not treat local metadata or isolated passing fixtures as proof of their cause or general availability.",
+    "No full workspace, Linux x86_64, browser, remote/NAT, live API/PSTN, package, publication or independent acceptance qualification is inferred. Those remain in the approved later dependency graph; all105 implementation tasks remain the objective."
+  ],
+  "next_task": "G6-045",
+  "next_task_scope": "Hold ambiguous incoming contacts privately and expose attributed current-authority resolution without merging Conversations by phone/caller ID. Include reused provider IDs, overlapping Conversations, late replies, changed membership and atomic audit/delivery replay.",
+  "plan_counts_after_recording": {
+    "done": 44,
+    "in_progress": 1,
+    "not_started": 60,
+    "acceptance_done": 0
+  },
+  "verification_scope_note": "The890 successful cases include all777 Store library unit tests, plus the named integration/API/connector/server binaries. They do not imply all Store integration suites or full workspace coverage."
+}

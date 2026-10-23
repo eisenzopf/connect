@@ -16,7 +16,7 @@ def invoke(task_id, cid, request_id, body, waiting=False):
     return {'action': 'invoke', 'task_id': task_id, 'request_id': request_id,
             'step_id': request_id, 'reply_to': None, 'wait_for_reply': waiting,
             'operation': {'op': 'send', 'request_id': request_id,
-                          'conversation_id': cid, 'body': body}}
+                          'conversation_id': cid, "message": {'to': 'all', 'content_type': 'text/plain', 'body': body, 'body_encoding': 'utf8', 'label': 'connect-messages', 'attachments': [], 'in_reply_to_msg': None, 'msg_id': None}}}
 
 
 def inbox(client, task_id):

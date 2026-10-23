@@ -1,0 +1,437 @@
+--- a/crates/uctp/rvoip-uctp/src/v2/auth_peer/retirement.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/auth_peer/retirement.rs
+@@ -48,13 +48,34 @@
+ #[derive(Clone)]
+ pub struct AuthorityLifetime {
+     signals: Vec<(CancellationToken, RetirementReason)>,
++    custody: Option<Arc<dyn std::any::Any + Send + Sync>>,
++    deadline: Option<(Instant, RetirementReason)>,
+ }
+ impl AuthorityLifetime {
+     pub fn new(signal: CancellationToken, reason: RetirementReason) -> Self {
+         Self {
+             signals: vec![(signal, reason)],
+-        }
+-    }
++            custody: None,
++            deadline: None,
++        }
++    }
++    /// Keep the installed policy's registration alive for this binding only.
++    /// Custody carries no new authorization; it is supplied under the current
++    /// lease, cloned with the lifetime and released when its last owner drops.
++    pub fn with_custody(mut self, custody: impl std::any::Any + Send + Sync) -> Self {
++        self.custody = Some(Arc::new(custody));
++        self
++    }
++
++    /// An earlier installed key/credential fact deadline, checked by the actor
++    /// as well as by its pending-I/O retirement wait. No timer task is required.
++    pub fn with_deadline(mut self, deadline: Instant, reason: RetirementReason) -> Self {
++        if self.deadline.is_none_or(|(old, _)| deadline < old) {
++            self.deadline = Some((deadline, reason));
++        }
++        self
++    }
++
+     /// At most eight independently owned facts. If several are already retired,
+     /// installation order selects one true cause; no untrusted reason is echoed.
+     pub fn with_signal(
+@@ -72,6 +93,10 @@
+         self.signals
+             .iter()
+             .find_map(|(signal, reason)| signal.is_cancelled().then_some(*reason))
++            .or_else(|| {
++                self.deadline
++                    .and_then(|(end, reason)| (Instant::now() >= end).then_some(reason))
++            })
+     }
+     pub async fn retired(&self) -> RetirementReason {
+         if let Some(reason) = self.reason() {
+@@ -90,6 +115,15 @@
+                 .boxed()
+             })
+             .collect::<FuturesUnordered<_>>();
++        if let Some((deadline, reason)) = self.deadline {
++            waits.push(
++                async move {
++                    tokio::time::sleep_until(deadline).await;
++                    reason
++                }
++                .boxed(),
++            );
++        }
+         // Construction always installs at least one signal.
+         let reason = waits.next().await.expect("nonempty authority lifetime");
+         self.reason().unwrap_or(reason)
+@@ -188,3 +222,40 @@
+             .transpose()
+     }
+ }
++
++#[cfg(test)]
++mod custody_tests {
++    use super::*;
++    #[tokio::test]
++    async fn installed_fact_deadline_retires_pending_wait_without_cancelling_policy_signal() {
++        let signal = CancellationToken::new();
++        let lifetime = AuthorityLifetime::new(signal.clone(), RetirementReason::AuthorityRetired)
++            .with_deadline(
++                Instant::now() + Duration::from_millis(10),
++                RetirementReason::SigningKeyRevoked,
++            );
++        assert!(lifetime.reason().is_none());
++        assert_eq!(
++            lifetime.retired().await,
++            RetirementReason::SigningKeyRevoked
++        );
++        assert_eq!(lifetime.reason(), Some(RetirementReason::SigningKeyRevoked));
++        assert!(!signal.is_cancelled());
++    }
++    #[test]
++    fn policy_registration_custody_survives_lifetime_clones_and_releases_without_cancelling_signal()
++    {
++        let owner = Arc::new(());
++        let weak = Arc::downgrade(&owner);
++        let signal = CancellationToken::new();
++        let lifetime = AuthorityLifetime::new(signal.clone(), RetirementReason::AuthorityRetired)
++            .with_custody(owner);
++        let successor = lifetime.clone();
++        drop(lifetime);
++        assert!(weak.upgrade().is_some());
++        assert!(!signal.is_cancelled());
++        drop(successor);
++        assert!(weak.upgrade().is_none());
++        assert!(!signal.is_cancelled());
++    }
++}
+--- a/crates/identity/auth-core/src/sig9421.rs
++++ b/crates/identity/auth-core/src/sig9421.rs
+@@ -396,6 +396,7 @@
+ /// Trait the verifier uses to look up the public key bytes for a
+ /// `keyid`. Production deployments back this with their identity
+ /// store; tests typically use [`StaticKeyResolver`].
++#[async_trait::async_trait]
+ pub trait KeyResolver: Send + Sync {
+     /// Returns the raw public key bytes for `keyid`, or `None` if
+     /// the keyid is unknown. For Ed25519 the slice is the 32-byte
+@@ -414,6 +415,18 @@
+         _now: DateTime<Utc>,
+     ) -> Option<ResolvedVerificationKey> {
+         None
++    }
++
++    /// Async key admission. Memory resolvers use the nonblocking synchronous
++    /// implementation; storage-backed resolvers must offload blocking work.
++    async fn resolve_for_principal_async(
++        &self,
++        principal: &crate::bearer::AuthenticatedPrincipal,
++        keyid: &str,
++        algorithm: &str,
++        now: DateTime<Utc>,
++    ) -> Option<ResolvedVerificationKey> {
++        self.resolve_for_principal(principal, keyid, algorithm, now)
+     }
+ 
+     /// Resolve a key inside an authenticated tenant/issuer boundary. The
+@@ -721,12 +734,16 @@
+             Some(current.key.clone())
+         } else {
+             match principal {
+-                Some(principal) => self.resolver.resolve_for_principal(
+-                    principal,
+-                    &signature.keyid,
+-                    &signature.alg,
+-                    now,
+-                ),
++                Some(principal) => {
++                    self.resolver
++                        .resolve_for_principal_async(
++                            principal,
++                            &signature.keyid,
++                            &signature.alg,
++                            now,
++                        )
++                        .await
++                }
+                 None => {
+                     self.resolver
+                         .resolve_contextual(context, &signature.keyid, &signature.alg, now)
+--- a/crates/uctp/rvoip-uctp/src/v2/auth_dispatch.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/auth_dispatch.rs
+@@ -84,6 +84,8 @@
+ /// boolean authorization result. Construction is trusted backend composition.
+ pub struct AuthorityLease {
+     _guard: Arc<dyn std::any::Any + Send + Sync>,
++    validity: Option<Arc<dyn Fn() -> bool + Send + Sync>>,
++    deadline: Option<Instant>,
+ }
+ impl AuthorityLease {
+     /// Retain protection for this ongoing invocation/response only. This is
+@@ -91,6 +93,8 @@
+     pub fn retained(&self) -> Self {
+         Self {
+             _guard: self._guard.clone(),
++            validity: self.validity.clone(),
++            deadline: self.deadline,
+         }
+     }
+     pub fn authority<T: std::any::Any + Send + Sync>(&self) -> Option<&T> {
+@@ -99,7 +103,29 @@
+     pub fn holding<T: Send + Sync + 'static>(guard: T) -> Self {
+         Self {
+             _guard: Arc::new(guard),
+-        }
++            validity: None,
++            deadline: None,
++        }
++    }
++    /// A current owned guard with a nonblocking per-admission predicate and
++    /// deadline. The predicate must never enter storage or reacquire its lock.
++    pub fn checking<T: Send + Sync + 'static>(
++        guard: T,
++        deadline: Instant,
++        current: impl Fn() -> bool + Send + Sync + 'static,
++    ) -> Self {
++        Self {
++            _guard: Arc::new(guard),
++            validity: Some(Arc::new(current)),
++            deadline: Some(deadline),
++        }
++    }
++    pub fn current(&self) -> bool {
++        self.deadline.is_none_or(|end| Instant::now() < end)
++            && self.validity.as_ref().is_none_or(|check| check())
++    }
++    pub fn deadline(&self) -> Option<Instant> {
++        self.deadline
+     }
+ }
+ impl fmt::Debug for AuthorityLease {
+@@ -546,7 +572,7 @@
+         envelope: Envelope,
+         deadline: Instant,
+     ) -> Result<AuthorizedEnvelope, DispatchError> {
+-        drop(self.authority.acquire(&self.principal, &envelope).await?);
++        let lease = self.authority.acquire(&self.principal, &envelope).await?;
+         self.require_active(deadline)?;
+         self.replay.preflight(envelope.id())?;
+         self.verifier
+@@ -555,7 +581,10 @@
+             .map_err(DispatchError::from)?;
+         self.replay.consume(envelope.id())?;
+         super::scope_policy::require(&self.principal, envelope.payload())?;
+-        let lease = self.authority.acquire(&self.principal, &envelope).await?;
++        if !lease.current() {
++            return Err(DispatchError::Authority);
++        }
++        let deadline = lease.deadline().map_or(deadline, |end| end.min(deadline));
+         self.require_active(deadline)?;
+         Ok(AuthorizedEnvelope {
+             exchange: self.exchanges.as_ref().map(|sender| {
+@@ -587,6 +616,9 @@
+         handler: &dyn AuthenticatedHandler,
+         requested: Instant,
+     ) -> Result<DispatchOutcome, DispatchError> {
++        if !authorized._lease.current() {
++            return Err(DispatchError::Authority);
++        }
+         if authorized.origin.incarnation != self.incarnation {
+             return Err(DispatchError::Authority);
+         }
+--- a/crates/uctp/rvoip-uctp/src/v2/auth_peer.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/auth_peer.rs
+@@ -487,13 +487,16 @@
+                         )
+                         .await?,
+                 );
+-                self.verify(&credential.principal, &envelope).await?;
+                 let identity = self.config.authority.identity(&credential, &device).await?;
+                 let lease = self
+                     .config
+                     .authority
+                     .acquire(&credential, &device, &identity, &envelope)
+                     .await?;
++                self.verify(&credential.principal, &envelope).await?;
++                if !lease.current() {
++                    return Err(DispatchError::Authority);
++                }
+                 let binding = self.binding(credential, device, identity, 1, &lease)?;
+                 let session = self.session(&binding, &envelope)?;
+                 self.commit_binding(binding)?;
+@@ -503,19 +506,22 @@
+                 Payload::AuthRefresh(refresh) => {
+                     require_unscoped(&envelope, false)?;
+                     // Old credential/key must authorize its own replacement.
+-                    drop(
+-                        self.config
+-                            .authority
+-                            .acquire(
+-                                &binding.credential,
+-                                &binding.device,
+-                                &binding.identity,
+-                                &envelope,
+-                            )
+-                            .await?,
+-                    );
++                    let verification = self
++                        .config
++                        .authority
++                        .acquire(
++                            &binding.credential,
++                            &binding.device,
++                            &binding.identity,
++                            &envelope,
++                        )
++                        .await?;
+                     self.verify(&binding.credential.principal, &envelope)
+                         .await?;
++                    if !verification.current() {
++                        return Err(DispatchError::Authority);
++                    }
++                    drop(verification);
+                     let credential = Arc::new(
+                         self.config
+                             .methods
+@@ -584,22 +590,6 @@
+                 }
+                 Payload::AuthKeepalive(keepalive) => {
+                     require_unscoped(&envelope, false)?;
+-                    drop(
+-                        self.config
+-                            .authority
+-                            .acquire(
+-                                &binding.credential,
+-                                &binding.device,
+-                                &binding.identity,
+-                                &envelope,
+-                            )
+-                            .await?,
+-                    );
+-                    self.verify(&binding.credential.principal, &envelope)
+-                        .await?;
+-                    if !opaque_session_token_matches(&binding.token, &keepalive.session_token) {
+-                        return Err(DispatchError::Authentication);
+-                    }
+                     let lease = self
+                         .config
+                         .authority
+@@ -610,6 +600,14 @@
+                             &envelope,
+                         )
+                         .await?;
++                    self.verify(&binding.credential.principal, &envelope)
++                        .await?;
++                    if !opaque_session_token_matches(&binding.token, &keepalive.session_token) {
++                        return Err(DispatchError::Authentication);
++                    }
++                    if !lease.current() {
++                        return Err(DispatchError::Authority);
++                    }
+                     let details = match &binding.route {
+                         Some(route) => json!({"reachability":[route.renew()?]}),
+                         None => json!({}),
+@@ -619,8 +617,6 @@
+                 }
+                 Payload::AuthBye(_) => {
+                     require_unscoped(&envelope, false)?;
+-                    self.verify(&binding.credential.principal, &envelope)
+-                        .await?;
+                     let lease = self
+                         .config
+                         .authority
+@@ -631,6 +627,11 @@
+                             &envelope,
+                         )
+                         .await?;
++                    self.verify(&binding.credential.principal, &envelope)
++                        .await?;
++                    if !lease.current() {
++                        return Err(DispatchError::Authority);
++                    }
+                     let ack = self.reply("ack", json!({}), Some(&envelope))?;
+                     self.close();
+                     Ok(output(vec![ack], Some(lease)))
+--- a/crates/uctp/rvoip-uctp/src/v2/auth_peer/exchange.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/auth_peer/exchange.rs
+@@ -226,11 +226,25 @@
+             }
+             continue;
+         }
++        if !job.bye
++            && job
++                .output
++                ._lease
++                .as_ref()
++                .is_some_and(|lease| !lease.current())
++        {
++            return Err(DispatchError::Authority);
++        }
+         let result=async{
+    for envelope in job.output.envelopes(){
+     let bytes=Bytes::from(serde_json::to_vec(envelope).map_err(|_|DispatchError::Closed)?);
+     if let Some(started)=&job.started{started.store(true,Ordering::Release);}
+-    tokio::select!{biased;_=async{match &job.authority{Some(token)=>token.cancelled().await,None=>std::future::pending().await}},if !job.bye=>return Err(DispatchError::Authority),_=job.lifetime.cancelled(),if !job.bye=>return Err(DispatchError::Closed),_=stop.cancelled(),if !job.bye=>return Err(DispatchError::Closed),_=async{match &job.cancel{Some(c)=>c.cancelled().await,None=>std::future::pending().await}},if !job.bye=>return Err(DispatchError::Closed),_=tokio::time::sleep_until(job.deadline)=>return Err(DispatchError::Closed),r=writer.send(bytes)=>r?}
++    let sending=writer.send(bytes);tokio::pin!(sending);
++    let delivery=std::future::poll_fn(|cx| {
++        if !job.bye && job.output._lease.as_ref().is_some_and(|lease| !lease.current()) { return std::task::Poll::Ready(Err(DispatchError::Authority)); }
++        std::future::Future::poll(sending.as_mut(),cx)
++    });
++    tokio::select!{biased;_=async{match &job.authority{Some(token)=>token.cancelled().await,None=>std::future::pending().await}},if !job.bye=>return Err(DispatchError::Authority),_=job.lifetime.cancelled(),if !job.bye=>return Err(DispatchError::Closed),_=stop.cancelled(),if !job.bye=>return Err(DispatchError::Closed),_=async{match &job.cancel{Some(c)=>c.cancelled().await,None=>std::future::pending().await}},if !job.bye=>return Err(DispatchError::Closed),_=tokio::time::sleep_until(job.deadline)=>return Err(DispatchError::Closed),r=delivery=>r?}
+    }
+    Ok(())
+   }.await;
+@@ -287,6 +301,11 @@
+     authority: Option<CancellationToken>,
+     slot: Option<OwnedSemaphorePermit>,
+ ) -> WriteJob {
++    let deadline = output
++        ._lease
++        .as_ref()
++        .and_then(AuthorityLease::deadline)
++        .map_or(deadline, |end| end.min(deadline));
+     WriteJob {
+         output,
+         deadline,
+--- a/crates/uctp/rvoip-uctp/tests/v2_auth_dispatch.rs
++++ b/crates/uctp/rvoip-uctp/tests/v2_auth_dispatch.rs
+@@ -519,7 +519,7 @@
+     }
+ }
+ #[tokio::test]
+-async fn revocation_while_signature_replay_storage_is_pending_prevents_dispatch() {
++async fn current_authority_is_retained_while_signature_replay_storage_is_pending() {
+     let kp = keypair();
+     let policy = Arc::new(Policy::default());
+     let replay = Arc::new(BlockingReplay {
+@@ -553,10 +553,27 @@
+     let dispatch = peer.dispatch(&wire, &h, deadline());
+     tokio::pin!(dispatch);
+     tokio::select! { result=&mut dispatch=>panic!("completed early: {result:?}"),_ = replay.entered.notified()=>{} }
+-    *policy.revoked.write().await = true;
++    // The original owned admission spans replay storage. A revocation writer
++    // cannot complete until that invocation settles; do not drop/reacquire a
++    // fair reader after verification behind the waiting writer.
++    assert!(policy.revoked.try_write().is_err());
++    let revoke = policy.revoked.write();
++    tokio::pin!(revoke);
++    tokio::select! { biased; _=&mut revoke=>panic!("revocation passed active verification"), _=tokio::task::yield_now()=>{} }
+     replay.release.notify_one();
+-    assert_eq!(dispatch.await.unwrap_err(), DispatchError::Authority);
+-    assert_eq!(h.calls.load(Ordering::SeqCst), 0);
++    assert!(matches!(
++        dispatch.await.unwrap(),
++        DispatchOutcome::Handled(_)
++    ));
++    assert_eq!(h.calls.load(Ordering::SeqCst), 1);
++    *revoke.await = true;
++    assert_eq!(
++        peer.dispatch(&signed(request(), &kp), &h, deadline())
++            .await
++            .unwrap_err(),
++        DispatchError::Authority
++    );
++    assert_eq!(h.calls.load(Ordering::SeqCst), 1);
+ }
+ struct HeldHandler {
+     entered: Notify,

@@ -38,7 +38,9 @@ impl Fixture {
                 &key,
                 &Operation::Create {
                     request_id: "conversation".into(),
-                    participants: vec![peer.clone()],
+                    request: connect_protocol::conversations::CreateRequest::persistent(vec![
+                        peer.clone()
+                    ]),
                 },
             )
             .unwrap()

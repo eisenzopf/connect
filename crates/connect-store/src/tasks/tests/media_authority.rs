@@ -46,7 +46,7 @@ fn revoked_invocation_is_rechecked_after_claim_before_voice_dispatch() {
     f.store
         .revoke_task_grant(&f.key.id, &grant.grant.id)
         .unwrap();
-    assert!(!f.store.voice_dispatch_allowed(&job).unwrap());
+    assert!(!f.store.begin_voice_dispatch(&job).unwrap().is_some());
 }
 #[test]
 fn cancelled_task_is_rechecked_after_sip_preparation_before_commit() {
@@ -66,8 +66,8 @@ fn each_physical_start_can_be_admitted_only_once() {
         .execute(&f.key.id, &call_start(&f, "start"))
         .unwrap();
     let job = f.store.claim_voice_job().unwrap().unwrap();
-    assert!(f.store.voice_dispatch_allowed(&job).unwrap());
-    assert!(!f.store.voice_dispatch_allowed(&job).unwrap());
+    assert!(f.store.begin_voice_dispatch(&job).unwrap().is_some());
+    assert!(!f.store.begin_voice_dispatch(&job).unwrap().is_some());
     let (f, _, s) = sip_setup();
     f.store
         .execute(&f.key.id, &sip_start(&f, "start", &s))
@@ -89,7 +89,7 @@ fn blocked_task_voice_end_does_not_contaminate_a_new_ordinary_end() {
         .unwrap();
     let job = f.store.claim_voice_job().unwrap().unwrap();
     assert_eq!(job.action, VoiceAction::End);
-    assert!(f.store.voice_dispatch_allowed(&job).unwrap());
+    assert!(f.store.begin_voice_dispatch(&job).unwrap().is_some());
 }
 #[test]
 fn blocked_task_sip_end_does_not_contaminate_a_new_ordinary_end() {
@@ -122,7 +122,7 @@ fn cached_old_end_receipts_cannot_replace_the_current_generation() {
         before
     );
     let job = f.store.claim_voice_job().unwrap().unwrap();
-    assert!(f.store.voice_dispatch_allowed(&job).unwrap());
+    assert!(f.store.begin_voice_dispatch(&job).unwrap().is_some());
 }
 #[test]
 fn a_new_end_supersedes_a_claimed_generation_before_network_dispatch() {
@@ -135,11 +135,11 @@ fn a_new_end_supersedes_a_claimed_generation_before_network_dispatch() {
     f.store
         .execute(&f.key.id, &call_end(&f, "new", &call))
         .unwrap();
-    assert!(!f.store.voice_dispatch_allowed(&old).unwrap());
+    assert!(!f.store.begin_voice_dispatch(&old).unwrap().is_some());
     let new = f.store.claim_voice_job().unwrap().unwrap();
     assert_eq!(new.action, VoiceAction::End);
-    assert!(f.store.voice_dispatch_allowed(&new).unwrap());
-    assert!(!f.store.voice_dispatch_allowed(&old).unwrap());
+    assert!(f.store.begin_voice_dispatch(&new).unwrap().is_some());
+    assert!(!f.store.begin_voice_dispatch(&old).unwrap().is_some());
 }
 #[test]
 fn sip_end_uses_its_issuer_instead_of_the_dialer() {
@@ -176,13 +176,13 @@ fn expiry_and_membership_loss_deny_before_physical_voice_dispatch() {
             .unwrap();
         } else {
             c.execute(
-                "DELETE FROM participants WHERE conversation_id=?1",
+                "UPDATE participants SET active=0 WHERE conversation_id=?1",
                 [&f.cid],
             )
             .unwrap();
         }
         drop(c);
-        assert!(!f.store.voice_dispatch_allowed(&job).unwrap());
+        assert!(!f.store.begin_voice_dispatch(&job).unwrap().is_some());
     }
 }
 #[test]
@@ -252,7 +252,7 @@ fn rejected_historical_task_end_cannot_become_success_when_another_end_finishes(
         .execute(&replacement.id, &call_end(&f, "fresh", &call))
         .unwrap();
     let job = f.store.claim_voice_job().unwrap().unwrap();
-    assert!(f.store.voice_dispatch_allowed(&job).unwrap());
+    assert!(f.store.begin_voice_dispatch(&job).unwrap().is_some());
     f.store
         .finish_voice_job(&job, "ended", None, None, None)
         .unwrap();

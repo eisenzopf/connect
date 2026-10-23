@@ -1,0 +1,1494 @@
+diff --git a/crates/foundation/rvoip-core-traits/src/identity.rs b/crates/foundation/rvoip-core-traits/src/identity.rs
+index 6bd3aad..31a43a7 100644
+--- a/crates/foundation/rvoip-core-traits/src/identity.rs
++++ b/crates/foundation/rvoip-core-traits/src/identity.rs
+@@ -465,6 +465,7 @@ fn canonical_json(value: &serde_json::Value) -> String {
+ 
+ #[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
+ pub enum CredentialKind {
++    Bearer,
+     OAuth2Dpop,
+     Oidc,
+     SipDigest,
+@@ -475,6 +476,7 @@ pub enum CredentialKind {
+ impl CredentialKind {
+     pub const fn as_str(self) -> &'static str {
+         match self {
++            Self::Bearer => "bearer",
+             Self::OAuth2Dpop => "oauth2-dpop",
+             Self::Oidc => "oidc",
+             Self::SipDigest => "sip-digest",
+diff --git a/crates/sip/rvoip-sip/src/auth/mod.rs b/crates/sip/rvoip-sip/src/auth/mod.rs
+index 4cbd7d7..5896848 100644
+--- a/crates/sip/rvoip-sip/src/auth/mod.rs
++++ b/crates/sip/rvoip-sip/src/auth/mod.rs
+@@ -3390,6 +3390,7 @@ fn update_length_prefixed(digest: &mut Sha256, value: &[u8]) {
+ 
+ const fn credential_kind_label(kind: CredentialKind) -> &'static str {
+     match kind {
++        CredentialKind::Bearer => "bearer",
+         CredentialKind::OAuth2Dpop => "oauth2-dpop",
+         CredentialKind::Oidc => "oidc",
+         CredentialKind::SipDigest => "sip-digest",
+diff --git a/crates/uctp/rvoip-uctp/src/v2/auth_dispatch.rs b/crates/uctp/rvoip-uctp/src/v2/auth_dispatch.rs
+index eb14ac2..699744a 100644
+--- a/crates/uctp/rvoip-uctp/src/v2/auth_dispatch.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/auth_dispatch.rs
+@@ -211,12 +211,66 @@ impl fmt::Debug for AuthorizedEnvelope {
+     }
+ }
+ 
++pub const MAX_HANDLER_REPLIES: usize = 128;
++pub const MAX_HANDLER_REPLY_BYTES: usize = 2 * super::MAX_ENVELOPE_BYTES;
++/// Bounded reliable application reply sequence, owned by one invocation. Never
++/// truncates a history page or releases its current guard between frames.
++pub struct HandlerReplies(Vec<Envelope>);
++impl HandlerReplies {
++    pub fn new(envelopes: Vec<Envelope>) -> Result<Self, DispatchError> {
++        if envelopes.is_empty() || envelopes.len() > MAX_HANDLER_REPLIES {
++            return Err(DispatchError::Capacity);
++        }
++        let mut bytes = 0usize;
++        for envelope in &envelopes {
++            bytes = bytes
++                .checked_add(
++                    serde_json::to_vec(envelope)
++                        .map_err(|_| DispatchError::Closed)?
++                        .len(),
++                )
++                .ok_or(DispatchError::Capacity)?;
++            if bytes > MAX_HANDLER_REPLY_BYTES {
++                return Err(DispatchError::Capacity);
++            }
++        }
++        Ok(Self(envelopes))
++    }
++    pub fn envelopes(&self) -> &[Envelope] {
++        &self.0
++    }
++    pub fn into_envelopes(self) -> Vec<Envelope> {
++        self.0
++    }
++    pub fn into_one(mut self) -> Result<Envelope, DispatchError> {
++        if self.0.len() != 1 {
++            return Err(DispatchError::Unsupported);
++        }
++        Ok(self.0.remove(0))
++    }
++}
++impl fmt::Debug for HandlerReplies {
++    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
++        f.debug_struct("HandlerReplies")
++            .field("frames", &self.0.len())
++            .finish_non_exhaustive()
++    }
++}
++
+ #[async_trait]
+ pub trait AuthenticatedHandler: Send + Sync {
+     /// Exactly one application dispatch. Stable logical-operation deduplication
+     /// belongs here; a fresh signed envelope never bypasses current authority.
+     /// Cancellation may mean uncertain work: reconcile the same operation ID.
+     async fn handle(&self, envelope: AuthorizedEnvelope) -> Result<Envelope, DispatchError>;
++    /// One dispatch may produce a bounded sequence (for example history items
++    /// followed by its final ACK). Single-reply handlers are the one-item case.
++    async fn handle_replies(
++        &self,
++        envelope: AuthorizedEnvelope,
++    ) -> Result<HandlerReplies, DispatchError> {
++        HandlerReplies::new(vec![self.handle(envelope).await?])
++    }
+ }
+ 
+ /// Advertise only the credential validator actually installed at this boundary.
+@@ -305,6 +359,7 @@ pub(super) fn checked_principal(
+ 
+ pub enum DispatchOutcome {
+     Handled(Envelope),
++    HandledBatch(HandlerReplies),
+     ReplyDelivered,
+ }
+ impl fmt::Debug for DispatchOutcome {
+@@ -312,6 +367,7 @@ impl fmt::Debug for DispatchOutcome {
+         match self {
+             Self::Handled(envelope) => f.debug_tuple("Handled").field(envelope).finish(),
+             Self::ReplyDelivered => f.write_str("ReplyDelivered"),
++            Self::HandledBatch(batch) => batch.fmt(f),
+         }
+     }
+ }
+@@ -566,7 +622,9 @@ impl AuthenticatedDispatch {
+             biased;
+             _ = self.lifetime.cancelled() => Err(DispatchError::Closed),
+             _ = tokio::time::sleep_until(deadline) => Err(DispatchError::Closed),
+-            result = handler.handle(authorized) => result.map(DispatchOutcome::Handled),
++            result = handler.handle_replies(authorized) => result.map(|batch| {
++                if batch.envelopes().len()==1 { DispatchOutcome::Handled(batch.into_one().expect("one reply")) } else { DispatchOutcome::HandledBatch(batch) }
++            }),
+         }
+     }
+     /// Resume only a sealed, single-use proof from this exact prior incarnation.
+@@ -579,7 +637,7 @@ impl AuthenticatedDispatch {
+         lease: AuthorityLease,
+         handler: &dyn AuthenticatedHandler,
+         requested: Instant,
+-    ) -> Result<Envelope, DispatchError> {
++    ) -> Result<HandlerReplies, DispatchError> {
+         if held.origin.incarnation != previous.incarnation
+             || held.origin.lifetime.is_cancelled()
+             || !held.owner.has_same_owner(&self.principal)
+@@ -618,7 +676,7 @@ impl AuthenticatedDispatch {
+             _ = previous.lifetime.cancelled() => Err(DispatchError::Closed),
+             _ = self.lifetime.cancelled() => Err(DispatchError::Closed),
+             _ = tokio::time::sleep_until(deadline) => Err(DispatchError::Closed),
+-            result = handler.handle(authorized) => result,
++            result = handler.handle_replies(authorized) => result,
+         }
+     }
+ }
+diff --git a/crates/uctp/rvoip-uctp/src/v2/auth_peer.rs b/crates/uctp/rvoip-uctp/src/v2/auth_peer.rs
+index c899da6..7dee8fa 100644
+--- a/crates/uctp/rvoip-uctp/src/v2/auth_peer.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/auth_peer.rs
+@@ -456,7 +456,7 @@ impl CanonicalPeer {
+                 if methods.is_empty() {
+                     return Err(DispatchError::UnsupportedMethod);
+                 }
+-                let challenge = self.reply("auth.challenge", json!({"nonce":fresh_token(),"accepted_methods":methods,"server_capabilities":{"application_profiles":[APPLICATION_PROFILE],"envelope_versions":[2],"signing_algorithms":rvoip_auth_core::sig9421::SUPPORTED_SIGNATURE_ALGORITHMS,"signature_required":true,"identity_assurance_required":"identified","peer_replay_capacity":self.replay.usage().1,"preauth_replay_capacity":self.preauth.usage().1,"default_scopes":{"session":super::scope_policy::SESSION,"data":super::scope_policy::DATA,"subscribe":super::scope_policy::SUBSCRIBE}}}), Some(&envelope))?;
++                let challenge = self.reply("auth.challenge", json!({"nonce":fresh_token(),"accepted_methods":methods,"server_capabilities":{"application_profiles":[APPLICATION_PROFILE],"envelope_versions":[2],"signing_algorithms":rvoip_auth_core::sig9421::SUPPORTED_SIGNATURE_ALGORITHMS,"signature_required":true,"identity_assurance_required":"identified","max_reply_envelopes":MAX_HANDLER_REPLIES,"max_reply_bytes":MAX_HANDLER_REPLY_BYTES,"peer_replay_capacity":self.replay.usage().1,"preauth_replay_capacity":self.preauth.usage().1,"default_scopes":{"session":super::scope_policy::SESSION,"data":super::scope_policy::DATA,"subscribe":super::scope_policy::SUBSCRIBE}}}), Some(&envelope))?;
+                 self.state = State::Challenge(Challenge {
+                     id: challenge.id().into(),
+                     device: hello.device.clone(),
+diff --git a/crates/uctp/rvoip-uctp/src/v2/auth_peer/step_up.rs b/crates/uctp/rvoip-uctp/src/v2/auth_peer/step_up.rs
+index 67ab215..c7106f2 100644
+--- a/crates/uctp/rvoip-uctp/src/v2/auth_peer/step_up.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/auth_peer/step_up.rs
+@@ -163,6 +163,15 @@ impl CanonicalPeer {
+             .await?
+         {
+             DispatchOutcome::ReplyDelivered => Ok(output(Vec::new(), None)),
++            DispatchOutcome::HandledBatch(batch) => {
++                let replies = batch
++                    .into_envelopes()
++                    .into_iter()
++                    .map(|reply| self.handler_reply(reply, envelope))
++                    .collect::<Result<Vec<_>, _>>()?;
++                let replies = HandlerReplies::new(replies)?.into_envelopes();
++                Ok(output(replies, Some(lease)))
++            }
+             DispatchOutcome::Handled(reply) => {
+                 let reply = self.handler_reply(reply, envelope)?;
+                 Ok(output(vec![reply], Some(lease)))
+@@ -314,10 +323,17 @@ impl CanonicalPeer {
+         };
+         let session = self.session(&next, &response)?;
+         let changed = self.reply("identity.assurance-changed",json!({"previous":binding.credential.principal.assurance.kind(),"current":next.credential.principal.assurance.kind(),"reason":"verified-step-up"}),Some(&response))?;
+-        let reply = self.handler_reply(reply, &blocked)?;
++        let replies = reply
++            .into_envelopes()
++            .into_iter()
++            .map(|reply| self.handler_reply(reply, &blocked))
++            .collect::<Result<Vec<_>, _>>()?;
++        let replies = HandlerReplies::new(replies)?.into_envelopes();
+         self.commit_binding(next)?;
+         failure.record = None;
+-        Ok(output(vec![session, changed, reply], Some(lease)))
++        let mut result = vec![session, changed];
++        result.extend(replies);
++        Ok(output(result, Some(lease)))
+     }
+ 
+     pub(super) fn pending_step_up_deadline(&self) -> Option<Instant> {
+diff --git a/crates/uctp/rvoip-uctp/src/v2/envelope.schema.json b/crates/uctp/rvoip-uctp/src/v2/envelope.schema.json
+index dd5bd87..c6bf02a 100644
+--- a/crates/uctp/rvoip-uctp/src/v2/envelope.schema.json
++++ b/crates/uctp/rvoip-uctp/src/v2/envelope.schema.json
+@@ -833,7 +833,13 @@
+     "Ack": {
+       "type": "object",
+       "properties": {
+-        "details": {}
++        "details": {},
++        "next_cursor": {
++          "type": "string",
++          "minLength": 1,
++          "maxLength": 2048,
++          "pattern": "^[A-Za-z0-9._~-]+$"
++        }
+       },
+       "required": [],
+       "additionalProperties": true
+@@ -1081,14 +1087,10 @@
+       "properties": {
+         "filter": {},
+         "cursor": {
+-          "anyOf": [
+-            {
+-              "$ref": "#/$defs/Identifier"
+-            },
+-            {
+-              "type": "null"
+-            }
+-          ]
++          "type": "string",
++          "minLength": 1,
++          "maxLength": 2048,
++          "pattern": "^[A-Za-z0-9._~-]+$"
+         },
+         "limit": {
+           "anyOf": [
+@@ -1315,14 +1317,10 @@
+           ]
+         },
+         "cursor": {
+-          "anyOf": [
+-            {
+-              "$ref": "#/$defs/Identifier"
+-            },
+-            {
+-              "type": "null"
+-            }
+-          ]
++          "type": "string",
++          "minLength": 1,
++          "maxLength": 2048,
++          "pattern": "^[A-Za-z0-9._~-]+$"
+         },
+         "limit": {
+           "anyOf": [
+@@ -2401,7 +2399,19 @@
+     },
+     "ConversationGet": {
+       "type": "object",
+-      "properties": {},
++      "properties": {
++        "page": {
++          "type": "string",
++          "minLength": 1,
++          "maxLength": 2048,
++          "pattern": "^[A-Za-z0-9._~-]+$"
++        },
++        "limit": {
++          "type": "integer",
++          "minimum": 1,
++          "maximum": 127
++        }
++      },
+       "required": [],
+       "additionalProperties": true
+     },
+@@ -2409,7 +2419,10 @@
+       "type": "object",
+       "properties": {
+         "after": {
+-          "$ref": "#/$defs/Identifier"
++          "type": "string",
++          "minLength": 1,
++          "maxLength": 2048,
++          "pattern": "^[A-Za-z0-9._~-]+$"
+         },
+         "live": {
+           "type": "boolean"
+@@ -2437,7 +2450,10 @@
+           "maximum": 9007199254740991
+         },
+         "cursor": {
+-          "$ref": "#/$defs/Identifier"
++          "type": "string",
++          "minLength": 1,
++          "maxLength": 2048,
++          "pattern": "^[A-Za-z0-9._~-]+$"
+         },
+         "items": {
+           "type": "array",
+@@ -2450,6 +2466,12 @@
+         },
+         "has_more": {
+           "type": "boolean"
++        },
++        "next_page": {
++          "type": "string",
++          "minLength": 1,
++          "maxLength": 2048,
++          "pattern": "^[A-Za-z0-9._~-]+$"
+         }
+       },
+       "required": [
+@@ -2467,7 +2489,10 @@
+           "$ref": "#/$defs/Identifier"
+         },
+         "cursor": {
+-          "$ref": "#/$defs/Identifier"
++          "type": "string",
++          "minLength": 1,
++          "maxLength": 2048,
++          "pattern": "^[A-Za-z0-9._~-]+$"
+         },
+         "kind": {
+           "type": "string",
+@@ -2704,8 +2729,18 @@
+             "$ref": "#/$defs/ConversationCreate"
+           }
+         },
+-        "required": [
+-          "operation_id"
++        "required": [],
++        "anyOf": [
++          {
++            "required": [
++              "operation_id"
++            ]
++          },
++          {
++            "required": [
++              "in_reply_to"
++            ]
++          }
+         ]
+       }
+     },
+@@ -2762,8 +2797,19 @@
+           }
+         },
+         "required": [
+-          "operation_id",
+           "cid"
++        ],
++        "anyOf": [
++          {
++            "required": [
++              "operation_id"
++            ]
++          },
++          {
++            "required": [
++              "in_reply_to"
++            ]
++          }
+         ]
+       }
+     },
+@@ -2799,9 +2845,20 @@
+           }
+         },
+         "required": [
+-          "operation_id",
+           "cid",
+           "sid"
++        ],
++        "anyOf": [
++          {
++            "required": [
++              "operation_id"
++            ]
++          },
++          {
++            "required": [
++              "in_reply_to"
++            ]
++          }
+         ]
+       }
+     },
+@@ -2820,9 +2877,20 @@
+           }
+         },
+         "required": [
+-          "operation_id",
+           "cid",
+           "sid"
++        ],
++        "anyOf": [
++          {
++            "required": [
++              "operation_id"
++            ]
++          },
++          {
++            "required": [
++              "in_reply_to"
++            ]
++          }
+         ]
+       }
+     },
+@@ -2841,9 +2909,20 @@
+           }
+         },
+         "required": [
+-          "operation_id",
+           "cid",
+           "sid"
++        ],
++        "anyOf": [
++          {
++            "required": [
++              "operation_id"
++            ]
++          },
++          {
++            "required": [
++              "in_reply_to"
++            ]
++          }
+         ]
+       }
+     },
+@@ -2862,9 +2941,20 @@
+           }
+         },
+         "required": [
+-          "operation_id",
+           "cid",
+           "sid"
++        ],
++        "anyOf": [
++          {
++            "required": [
++              "operation_id"
++            ]
++          },
++          {
++            "required": [
++              "in_reply_to"
++            ]
++          }
+         ]
+       }
+     },
+@@ -2883,9 +2973,20 @@
+           }
+         },
+         "required": [
+-          "operation_id",
+           "cid",
+           "sid"
++        ],
++        "anyOf": [
++          {
++            "required": [
++              "operation_id"
++            ]
++          },
++          {
++            "required": [
++              "in_reply_to"
++            ]
++          }
+         ]
+       }
+     },
+@@ -2944,10 +3045,21 @@
+           }
+         },
+         "required": [
+-          "operation_id",
+-          "expected_revision",
+           "cid",
+           "sid"
++        ],
++        "anyOf": [
++          {
++            "required": [
++              "operation_id",
++              "expected_revision"
++            ]
++          },
++          {
++            "required": [
++              "in_reply_to"
++            ]
++          }
+         ]
+       }
+     },
+@@ -3006,10 +3118,21 @@
+           }
+         },
+         "required": [
+-          "operation_id",
+           "cid",
+           "sid",
+           "connid"
++        ],
++        "anyOf": [
++          {
++            "required": [
++              "operation_id"
++            ]
++          },
++          {
++            "required": [
++              "in_reply_to"
++            ]
++          }
+         ]
+       }
+     },
+@@ -3028,10 +3151,21 @@
+           }
+         },
+         "required": [
+-          "operation_id",
+           "cid",
+           "sid",
+           "connid"
++        ],
++        "anyOf": [
++          {
++            "required": [
++              "operation_id"
++            ]
++          },
++          {
++            "required": [
++              "in_reply_to"
++            ]
++          }
+         ]
+       }
+     },
+@@ -3071,11 +3205,22 @@
+           }
+         },
+         "required": [
+-          "operation_id",
+-          "expected_revision",
+           "cid",
+           "sid",
+           "connid"
++        ],
++        "anyOf": [
++          {
++            "required": [
++              "operation_id",
++              "expected_revision"
++            ]
++          },
++          {
++            "required": [
++              "in_reply_to"
++            ]
++          }
+         ]
+       }
+     },
+@@ -3094,10 +3239,21 @@
+           }
+         },
+         "required": [
+-          "operation_id",
+           "cid",
+           "sid",
+           "connid"
++        ],
++        "anyOf": [
++          {
++            "required": [
++              "operation_id"
++            ]
++          },
++          {
++            "required": [
++              "in_reply_to"
++            ]
++          }
+         ]
+       }
+     },
+@@ -3179,11 +3335,22 @@
+           }
+         },
+         "required": [
+-          "operation_id",
+-          "expected_revision",
+           "cid",
+           "sid",
+           "connid"
++        ],
++        "anyOf": [
++          {
++            "required": [
++              "operation_id",
++              "expected_revision"
++            ]
++          },
++          {
++            "required": [
++              "in_reply_to"
++            ]
++          }
+         ]
+       }
+     },
+@@ -3202,11 +3369,22 @@
+           }
+         },
+         "required": [
+-          "operation_id",
+-          "expected_revision",
+           "cid",
+           "sid",
+           "connid"
++        ],
++        "anyOf": [
++          {
++            "required": [
++              "operation_id",
++              "expected_revision"
++            ]
++          },
++          {
++            "required": [
++              "in_reply_to"
++            ]
++          }
+         ]
+       }
+     },
+@@ -3246,8 +3424,19 @@
+           }
+         },
+         "required": [
+-          "operation_id",
+           "cid"
++        ],
++        "anyOf": [
++          {
++            "required": [
++              "operation_id"
++            ]
++          },
++          {
++            "required": [
++              "in_reply_to"
++            ]
++          }
+         ]
+       }
+     },
+@@ -3285,8 +3474,19 @@
+           }
+         },
+         "required": [
+-          "operation_id",
+           "cid"
++        ],
++        "anyOf": [
++          {
++            "required": [
++              "operation_id"
++            ]
++          },
++          {
++            "required": [
++              "in_reply_to"
++            ]
++          }
+         ]
+       }
+     },
+@@ -3341,10 +3541,21 @@
+           }
+         },
+         "required": [
+-          "operation_id",
+           "cid",
+           "sid",
+           "connid"
++        ],
++        "anyOf": [
++          {
++            "required": [
++              "operation_id"
++            ]
++          },
++          {
++            "required": [
++              "in_reply_to"
++            ]
++          }
+         ]
+       }
+     },
+@@ -3560,9 +3771,20 @@
+           }
+         },
+         "required": [
+-          "operation_id",
+-          "expected_revision",
+           "cid"
++        ],
++        "anyOf": [
++          {
++            "required": [
++              "operation_id",
++              "expected_revision"
++            ]
++          },
++          {
++            "required": [
++              "in_reply_to"
++            ]
++          }
+         ]
+       }
+     },
+@@ -3581,9 +3803,20 @@
+           }
+         },
+         "required": [
+-          "operation_id",
+-          "expected_revision",
+           "cid"
++        ],
++        "anyOf": [
++          {
++            "required": [
++              "operation_id",
++              "expected_revision"
++            ]
++          },
++          {
++            "required": [
++              "in_reply_to"
++            ]
++          }
+         ]
+       }
+     },
+@@ -3602,9 +3835,20 @@
+           }
+         },
+         "required": [
+-          "operation_id",
+-          "expected_revision",
+           "cid"
++        ],
++        "anyOf": [
++          {
++            "required": [
++              "operation_id",
++              "expected_revision"
++            ]
++          },
++          {
++            "required": [
++              "in_reply_to"
++            ]
++          }
+         ]
+       }
+     },
+@@ -3699,10 +3943,21 @@
+           }
+         },
+         "required": [
+-          "operation_id",
+-          "expected_revision",
+           "cid",
+           "sid"
++        ],
++        "anyOf": [
++          {
++            "required": [
++              "operation_id",
++              "expected_revision"
++            ]
++          },
++          {
++            "required": [
++              "in_reply_to"
++            ]
++          }
+         ]
+       }
+     },
+@@ -3721,10 +3976,21 @@
+           }
+         },
+         "required": [
+-          "operation_id",
+-          "expected_revision",
+           "cid",
+           "sid"
++        ],
++        "anyOf": [
++          {
++            "required": [
++              "operation_id",
++              "expected_revision"
++            ]
++          },
++          {
++            "required": [
++              "in_reply_to"
++            ]
++          }
+         ]
+       }
+     },
+@@ -3743,11 +4009,22 @@
+           }
+         },
+         "required": [
+-          "operation_id",
+-          "expected_revision",
+           "cid",
+           "sid",
+           "connid"
++        ],
++        "anyOf": [
++          {
++            "required": [
++              "operation_id",
++              "expected_revision"
++            ]
++          },
++          {
++            "required": [
++              "in_reply_to"
++            ]
++          }
+         ]
+       }
+     },
+@@ -3782,8 +4059,18 @@
+             "$ref": "#/$defs/OperationCancel"
+           }
+         },
+-        "required": [
+-          "operation_id"
++        "required": [],
++        "anyOf": [
++          {
++            "required": [
++              "operation_id"
++            ]
++          },
++          {
++            "required": [
++              "in_reply_to"
++            ]
++          }
+         ]
+       }
+     },
+@@ -3801,8 +4088,18 @@
+             "$ref": "#/$defs/OperationReconcile"
+           }
+         },
+-        "required": [
+-          "operation_id"
++        "required": [],
++        "anyOf": [
++          {
++            "required": [
++              "operation_id"
++            ]
++          },
++          {
++            "required": [
++              "in_reply_to"
++            ]
++          }
+         ]
+       }
+     },
+diff --git a/crates/uctp/rvoip-uctp/src/v2/golden-vectors.json b/crates/uctp/rvoip-uctp/src/v2/golden-vectors.json
+index 5c5ddf3..994e968 100644
+--- a/crates/uctp/rvoip-uctp/src/v2/golden-vectors.json
++++ b/crates/uctp/rvoip-uctp/src/v2/golden-vectors.json
+@@ -3219,6 +3219,197 @@
+         },
+         "cid": "conversation_example"
+       }
++    },
++    {
++      "id": "history-correlated-message-observation",
++      "scope": "schema-only",
++      "valid": true,
++      "envelope": {
++        "v": 2,
++        "type": "message.send",
++        "id": "env_vector_33",
++        "ts": "2026-10-15T12:00:00Z",
++        "cid": "conv_example",
++        "sid": "sess_example",
++        "connid": "conn_example",
++        "payload": {
++          "msg_id": "example",
++          "to": "all",
++          "content_type": "example",
++          "body": "example"
++        },
++        "in_reply_to": "history_request"
++      }
++    },
++    {
++      "id": "empty-correlation-is-not-a-reply",
++      "scope": "schema-only",
++      "valid": false,
++      "envelope": {
++        "v": 2,
++        "type": "message.send",
++        "id": "env_vector_33",
++        "ts": "2026-10-15T12:00:00Z",
++        "cid": "conv_example",
++        "sid": "sess_example",
++        "connid": "conn_example",
++        "payload": {
++          "msg_id": "example",
++          "to": "all",
++          "content_type": "example",
++          "body": "example"
++        },
++        "in_reply_to": ""
++      }
++    },
++    {
++      "id": "history-opaque-cursor-distinct-from-resource-id",
++      "scope": "schema-only",
++      "valid": true,
++      "envelope": {
++        "v": 2,
++        "type": "message.history",
++        "id": "env_vector_36",
++        "ts": "2026-10-15T12:00:00Z",
++        "cid": "conv_example",
++        "sid": "sess_example",
++        "connid": "conn_example",
++        "payload": {
++          "cursor": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
++        }
++      }
++    },
++    {
++      "id": "history-cursor-bound",
++      "scope": "schema-only",
++      "valid": false,
++      "envelope": {
++        "v": 2,
++        "type": "message.history",
++        "id": "env_vector_36",
++        "ts": "2026-10-15T12:00:00Z",
++        "cid": "conv_example",
++        "sid": "sess_example",
++        "connid": "conn_example",
++        "payload": {
++          "cursor": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
++        }
++      }
++    },
++    {
++      "id": "ack-opaque-next-cursor",
++      "scope": "schema-only",
++      "valid": true,
++      "envelope": {
++        "v": 2,
++        "type": "ack",
++        "id": "env_vector_48",
++        "ts": "2026-10-15T12:00:00Z",
++        "cid": "conv_example",
++        "sid": "sess_example",
++        "connid": "conn_example",
++        "payload": {
++          "next_cursor": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
++        }
++      }
++    },
++    {
++      "id": "history-cursor-maximum",
++      "scope": "schema-only",
++      "valid": true,
++      "envelope": {
++        "v": 2,
++        "type": "message.history",
++        "id": "env_vector_36",
++        "ts": "2026-10-15T12:00:00Z",
++        "cid": "conv_example",
++        "sid": "sess_example",
++        "connid": "conn_example",
++        "payload": {
++          "cursor": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
++        }
++      }
++    },
++    {
++      "id": "history-cursor-empty",
++      "scope": "schema-only",
++      "valid": false,
++      "envelope": {
++        "v": 2,
++        "type": "message.history",
++        "id": "env_vector_36",
++        "ts": "2026-10-15T12:00:00Z",
++        "cid": "conv_example",
++        "sid": "sess_example",
++        "connid": "conn_example",
++        "payload": {
++          "cursor": ""
++        }
++      }
++    },
++    {
++      "id": "history-cursor-slash",
++      "scope": "schema-only",
++      "valid": false,
++      "envelope": {
++        "v": 2,
++        "type": "message.history",
++        "id": "env_vector_36",
++        "ts": "2026-10-15T12:00:00Z",
++        "cid": "conv_example",
++        "sid": "sess_example",
++        "connid": "conn_example",
++        "payload": {
++          "cursor": "a/b"
++        }
++      }
++    },
++    {
++      "id": "history-cursor-non-ascii",
++      "scope": "schema-only",
++      "valid": false,
++      "envelope": {
++        "v": 2,
++        "type": "message.history",
++        "id": "env_vector_36",
++        "ts": "2026-10-15T12:00:00Z",
++        "cid": "conv_example",
++        "sid": "sess_example",
++        "connid": "conn_example",
++        "payload": {
++          "cursor": "\u00e9"
++        }
++      }
++    },
++    {
++      "id": "resource-identifier-128",
++      "scope": "schema-only",
++      "valid": true,
++      "envelope": {
++        "v": 2,
++        "type": "message.history",
++        "id": "env_vector_36",
++        "ts": "2026-10-15T12:00:00Z",
++        "cid": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
++        "sid": "sess_example",
++        "connid": "conn_example",
++        "payload": {}
++      }
++    },
++    {
++      "id": "resource-identifier-129",
++      "scope": "schema-only",
++      "valid": false,
++      "envelope": {
++        "v": 2,
++        "type": "message.history",
++        "id": "env_vector_36",
++        "ts": "2026-10-15T12:00:00Z",
++        "cid": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
++        "sid": "sess_example",
++        "connid": "conn_example",
++        "payload": {}
++      }
+     }
+   ]
+ }
+diff --git a/crates/uctp/rvoip-uctp/src/v2/mod.rs b/crates/uctp/rvoip-uctp/src/v2/mod.rs
+index 5b12186..1c11c1a 100644
+--- a/crates/uctp/rvoip-uctp/src/v2/mod.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/mod.rs
+@@ -175,8 +175,9 @@ impl Envelope {
+                 )?;
+             }
+         }
+-        if (*operation && original.get("operation_id").is_none())
+-            || (*revision && original.get("expected_revision").is_none())
++        if original.get("in_reply_to").is_none()
++            && ((*operation && original.get("operation_id").is_none())
++                || (*revision && original.get("expected_revision").is_none()))
+         {
+             return Err(WireError::MissingScope);
+         }
+diff --git a/crates/uctp/rvoip-uctp/src/v2/payloads.rs b/crates/uctp/rvoip-uctp/src/v2/payloads.rs
+index 58da604..97aa271 100644
+--- a/crates/uctp/rvoip-uctp/src/v2/payloads.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/payloads.rs
+@@ -406,6 +406,8 @@ impl std::fmt::Debug for Error {
+ pub struct Ack {
+     #[serde(default, skip_serializing_if = "Option::is_none")]
+     pub details: Option<Value>,
++    #[serde(default, skip_serializing_if = "Option::is_none")]
++    pub next_cursor: Option<String>,
+ }
+ 
+ impl std::fmt::Debug for Ack {
+@@ -528,7 +530,7 @@ pub struct ConversationList {
+     #[serde(default, skip_serializing_if = "Option::is_none")]
+     pub filter: Option<Value>,
+     #[serde(default, skip_serializing_if = "Option::is_none")]
+-    pub cursor: Option<Identifier>,
++    pub cursor: Option<String>,
+     #[serde(default, skip_serializing_if = "Option::is_none")]
+     pub limit: Option<u64>,
+ }
+@@ -631,7 +633,7 @@ pub struct MessageHistory {
+     #[serde(default, skip_serializing_if = "Option::is_none")]
+     pub since_msg_id: Option<Identifier>,
+     #[serde(default, skip_serializing_if = "Option::is_none")]
+-    pub cursor: Option<Identifier>,
++    pub cursor: Option<String>,
+     #[serde(default, skip_serializing_if = "Option::is_none")]
+     pub limit: Option<u64>,
+     #[serde(default, skip_serializing_if = "Option::is_none")]
+@@ -1114,7 +1116,12 @@ impl std::fmt::Debug for OperationReconcile {
+ }
+ 
+ #[derive(Clone, Serialize, Deserialize)]
+-pub struct ConversationGet {}
++pub struct ConversationGet {
++    #[serde(default, skip_serializing_if = "Option::is_none")]
++    pub page: Option<String>,
++    #[serde(default, skip_serializing_if = "Option::is_none")]
++    pub limit: Option<u64>,
++}
+ 
+ impl std::fmt::Debug for ConversationGet {
+     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+@@ -1125,7 +1132,7 @@ impl std::fmt::Debug for ConversationGet {
+ #[derive(Clone, Serialize, Deserialize)]
+ pub struct ConversationSubscribe {
+     #[serde(default, skip_serializing_if = "Option::is_none")]
+-    pub after: Option<Identifier>,
++    pub after: Option<String>,
+     #[serde(default, skip_serializing_if = "Option::is_none")]
+     pub live: Option<bool>,
+     #[serde(default, skip_serializing_if = "Option::is_none")]
+@@ -1143,9 +1150,11 @@ impl std::fmt::Debug for ConversationSubscribe {
+ #[derive(Clone, Serialize, Deserialize)]
+ pub struct ConversationSnapshot {
+     pub revision: u64,
+-    pub cursor: Identifier,
++    pub cursor: String,
+     pub items: Vec<Value>,
+     pub has_more: bool,
++    #[serde(default, skip_serializing_if = "Option::is_none")]
++    pub next_page: Option<String>,
+ }
+ 
+ impl std::fmt::Debug for ConversationSnapshot {
+@@ -1157,7 +1166,7 @@ impl std::fmt::Debug for ConversationSnapshot {
+ #[derive(Clone, Serialize, Deserialize)]
+ pub struct ConversationEvent {
+     pub event_id: Identifier,
+-    pub cursor: Identifier,
++    pub cursor: String,
+     pub kind: String,
+     pub revision: u64,
+     pub data: Value,
+diff --git a/crates/uctp/rvoip-uctp/src/v2/validation.rs b/crates/uctp/rvoip-uctp/src/v2/validation.rs
+index 8b917a8..0fb3bc7 100644
+--- a/crates/uctp/rvoip-uctp/src/v2/validation.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/validation.rs
+@@ -151,7 +151,13 @@ fn matches_schema(schema: &Value, value: &Value) -> bool {
+         }
+         if let Some(pattern) = schema.get("pattern").and_then(Value::as_str) {
+             assert_eq!(pattern, "^[A-Za-z0-9._~-]+$");
+-            if super::Identifier::try_from(text.to_owned()).is_err() {
++            // Lexical pattern and field-specific length are independent. Opaque
++            // cursors use this alphabet with a larger bound than resource IDs.
++            if text.is_empty()
++                || !text
++                    .bytes()
++                    .all(|b| b.is_ascii_alphanumeric() || b"._~-".contains(&b))
++            {
+                 return false;
+             }
+         }
+diff --git a/crates/uctp/rvoip-uctp/tests/support/reply_batches.rs b/crates/uctp/rvoip-uctp/tests/support/reply_batches.rs
+new file mode 100644
+index 0000000..a6a49f6
+--- /dev/null
++++ b/crates/uctp/rvoip-uctp/tests/support/reply_batches.rs
+@@ -0,0 +1,189 @@
++use super::*;
++
++#[derive(Default)]
++struct BatchHandler {
++    calls: AtomicUsize,
++}
++#[async_trait]
++impl AuthenticatedHandler for BatchHandler {
++    async fn handle(&self, env: AuthorizedEnvelope) -> Result<Envelope, DispatchError> {
++        self.handle_replies(env).await?.into_one()
++    }
++    async fn handle_replies(&self, _: AuthorizedEnvelope) -> Result<HandlerReplies, DispatchError> {
++        self.calls.fetch_add(1, Ordering::SeqCst);
++        HandlerReplies::new(
++            (0..3)
++                .map(|n| {
++                    Envelope::from_value(envelope("ack", json!({"details":{"index":n}}))).unwrap()
++                })
++                .collect(),
++        )
++    }
++}
++
++#[tokio::test]
++async fn ordered_signed_batch_retains_current_lease_through_last_frame_with_queued_revocation() {
++    let f = Fixture::new();
++    let mut peer = f.peer();
++    f.authenticate(&mut peer, "old").await;
++    let handler = BatchHandler::default();
++    let request = command();
++    let output = peer
++        .handle(&f.sign(request.clone()), &handler, deadline())
++        .await
++        .unwrap();
++    assert_eq!(output.envelopes().len(), 3);
++    let revocations = f.policy.revoked.clone();
++    let queued = Arc::new(Notify::new());
++    let started = queued.clone();
++    let writer = tokio::spawn(async move {
++        started.notify_one();
++        revocations.write().await.insert("old".into());
++    });
++    queued.notified().await;
++    let mut ids = HashSet::new();
++    for (i, frame) in output.envelopes().iter().enumerate() {
++        assert_eq!(frame.original()["payload"]["details"]["index"], i);
++        assert_eq!(frame.scope(Scope::Reply), request["id"].as_str());
++        assert_eq!(frame.scope(Scope::Operation), Some("logical-op"));
++        assert!(ids.insert(frame.id()));
++        f.verify_server(frame).await;
++        assert!(!writer.is_finished());
++    }
++    assert_eq!(handler.calls.load(Ordering::SeqCst), 1);
++    drop(output);
++    tokio::time::timeout(Duration::from_secs(1), writer)
++        .await
++        .unwrap()
++        .unwrap();
++    assert_eq!(
++        peer.handle(&f.sign(command()), &handler, deadline())
++            .await
++            .unwrap_err(),
++        DispatchError::Authority
++    );
++    assert_eq!(handler.calls.load(Ordering::SeqCst), 1);
++}
++
++#[test]
++fn empty_overcount_and_overbyte_batches_reject_without_truncating() {
++    assert!(matches!(
++        HandlerReplies::new(vec![]),
++        Err(DispatchError::Capacity)
++    ));
++    let frame = Envelope::from_value(envelope("ack", json!({}))).unwrap();
++    assert!(HandlerReplies::new(vec![frame.clone(); MAX_HANDLER_REPLIES]).is_ok());
++    assert!(matches!(
++        HandlerReplies::new(vec![frame; MAX_HANDLER_REPLIES + 1]),
++        Err(DispatchError::Capacity)
++    ));
++    let large = Envelope::from_value(envelope(
++        "ack",
++        json!({"details":{"blob":"x".repeat(600_000)}}),
++    ))
++    .unwrap();
++    assert!(HandlerReplies::new(vec![large.clone(); 3]).is_ok());
++    assert!(matches!(
++        HandlerReplies::new(vec![large; 4]),
++        Err(DispatchError::Capacity)
++    ));
++}
++
++#[tokio::test]
++async fn forged_correlated_mutation_cannot_execute_or_consume_a_different_reply_family() {
++    let f = Fixture::new();
++    let mut peer = f.peer();
++    f.authenticate(&mut peer, "old").await;
++    let handler = Handler::default();
++    let request = Envelope::from_value(command()).unwrap();
++    let ticket = peer.register_reply(&request, deadline()).unwrap();
++    let mut forged = envelope(
++        "message.send",
++        json!({"msg_id":"forged","to":"all","content_type":"text/plain","body":"no effect"}),
++    );
++    forged["cid"] = json!("conversation");
++    forged["sid"] = json!("session");
++    forged["connid"] = json!("connection");
++    forged["in_reply_to"] = json!(request.id());
++    assert!(Envelope::from_value(forged.clone()).is_ok());
++    assert_eq!(
++        peer.handle(&f.sign(forged.clone()), &handler, deadline())
++            .await
++            .unwrap_err(),
++        DispatchError::ReplyMismatch
++    );
++    assert_eq!(handler.calls.load(Ordering::SeqCst), 0);
++    // Match every resource and operation field so only the wrong reply family
++    // can explain this second rejection. The original waiter still survives.
++    forged["id"] = json!("forged-with-matching-operation");
++    forged["operation_id"] = request.original()["operation_id"].clone();
++    assert_eq!(
++        peer.handle(&f.sign(forged), &handler, deadline())
++            .await
++            .unwrap_err(),
++        DispatchError::ReplyMismatch
++    );
++    assert_eq!(handler.calls.load(Ordering::SeqCst), 0);
++    let mut valid = envelope("ack", json!({}));
++    for field in ["cid", "sid", "connid", "operation_id"] {
++        valid[field] = request.original()[field].clone();
++    }
++    valid["in_reply_to"] = json!(request.id());
++    let output = peer
++        .handle(&f.sign(valid), &handler, deadline())
++        .await
++        .unwrap();
++    assert!(output.envelopes().is_empty());
++    assert_eq!(ticket.wait().await.unwrap().kind(), "ack");
++    assert_eq!(handler.calls.load(Ordering::SeqCst), 0);
++}
++
++#[tokio::test]
++async fn actual_tls_quic_preserves_multi_reply_order_correlation_and_signatures() {
++    let f = Fixture::new();
++    let (_server, _client, host, remote) = quic_pair().await;
++    let peer = f.peer();
++    let handler = Arc::new(BatchHandler::default());
++    let used = handler.clone();
++    let server = tokio::spawn(async move {
++        let (tx, rx) = host.accept_bi().await.unwrap();
++        peer.run(rx, tx, used.as_ref()).await
++    });
++    let (tx, rx) = remote.open_bi().await.unwrap();
++    let mut writer = FramedWrite::new(tx, rvoip_uctp::substrate::length_prefixed_codec());
++    let mut reader = FramedRead::new(rx, rvoip_uctp::substrate::length_prefixed_codec());
++    writer
++        .send(Bytes::from(serde_json::to_vec(&hello()).unwrap()))
++        .await
++        .unwrap();
++    let challenge = Envelope::parse(&reader.next().await.unwrap().unwrap()).unwrap();
++    writer
++        .send(Bytes::from(f.sign(response(&challenge, "old"))))
++        .await
++        .unwrap();
++    let session = Envelope::parse(&reader.next().await.unwrap().unwrap()).unwrap();
++    assert_eq!(session.kind(), "auth.session");
++    let request = command();
++    writer
++        .send(Bytes::from(f.sign(request.clone())))
++        .await
++        .unwrap();
++    for i in 0..3 {
++        let frame = tokio::time::timeout(Duration::from_secs(3), reader.next())
++            .await
++            .unwrap()
++            .unwrap()
++            .unwrap();
++        let frame = Envelope::parse(&frame).unwrap();
++        f.verify_server(&frame).await;
++        assert_eq!(frame.original()["payload"]["details"]["index"], i);
++        assert_eq!(frame.scope(Scope::Reply), request["id"].as_str());
++    }
++    writer.close().await.unwrap();
++    assert!(tokio::time::timeout(Duration::from_secs(3), server)
++        .await
++        .unwrap()
++        .unwrap()
++        .is_ok());
++    assert_eq!(handler.calls.load(Ordering::SeqCst), 1);
++}
+diff --git a/crates/uctp/rvoip-uctp/tests/v2_auth_peer.rs b/crates/uctp/rvoip-uctp/tests/v2_auth_peer.rs
+index baef8c8..64c837c 100644
+--- a/crates/uctp/rvoip-uctp/tests/v2_auth_peer.rs
++++ b/crates/uctp/rvoip-uctp/tests/v2_auth_peer.rs
+@@ -1183,3 +1183,6 @@ async fn advertised_identified_floor_rejects_lower_assurance_without_claiming_me
+     );
+     assert!(output.envelopes()[0].scope(Scope::Conversation).is_none());
+ }
++
++#[path = "support/reply_batches.rs"]
++mod reply_batches;
+diff --git a/crates/uctp/rvoip-uctp/tests/v2_step_up.rs b/crates/uctp/rvoip-uctp/tests/v2_step_up.rs
+index 9816c43..43af58f 100644
+--- a/crates/uctp/rvoip-uctp/tests/v2_step_up.rs
++++ b/crates/uctp/rvoip-uctp/tests/v2_step_up.rs
+@@ -1217,3 +1217,73 @@ async fn candidate_key_retirement_interrupts_held_stepup_execution_without_retir
+     drop(failures);
+     assert!(f.policy.revoked.try_write().is_ok());
+ }
++
++#[derive(Default)]
++struct MultiStep {
++    tracking: Tracking,
++}
++#[async_trait]
++impl AuthenticatedHandler for MultiStep {
++    async fn handle(&self, env: AuthorizedEnvelope) -> Result<Envelope, DispatchError> {
++        self.handle_replies(env).await?.into_one()
++    }
++    async fn handle_replies(
++        &self,
++        env: AuthorizedEnvelope,
++    ) -> Result<HandlerReplies, DispatchError> {
++        let reply = self.tracking.handle(env).await?;
++        HandlerReplies::new(
++            (0..2)
++                .map(|i| {
++                    let mut value = reply.original().clone();
++                    value["payload"] = json!({"details":{"batch_index":i}});
++                    Envelope::from_value(value).unwrap()
++                })
++                .collect(),
++        )
++    }
++}
++#[tokio::test]
++async fn stepup_executes_one_held_command_and_signs_every_ordered_batch_reply_under_transition_lease(
++) {
++    let f = Fixture::new();
++    let mut peer = f.peer();
++    f.authenticate(&mut peer, "old").await;
++    let handler = MultiStep::default();
++    let request = command();
++    let output = peer
++        .handle(&f.sign(request.clone()), &handler, deadline())
++        .await
++        .unwrap();
++    assert_eq!(output.envelopes()[0].kind(), "identity.step-up-request");
++    let challenge = output.envelopes()[0].clone();
++    drop(output);
++    assert_eq!(handler.tracking.calls.load(Ordering::SeqCst), 0);
++    let output = peer
++        .handle(&f.sign(proof(&challenge, "user")), &handler, deadline())
++        .await
++        .unwrap();
++    assert_eq!(
++        output
++            .envelopes()
++            .iter()
++            .map(Envelope::kind)
++            .collect::<Vec<_>>(),
++        ["auth.session", "identity.assurance-changed", "ack", "ack"]
++    );
++    let mut ids = HashSet::new();
++    for frame in output.envelopes() {
++        f.verify_server(frame).await;
++        assert!(ids.insert(frame.id()));
++    }
++    for (i, frame) in output.envelopes()[2..].iter().enumerate() {
++        assert_eq!(frame.scope(Scope::Reply), request["id"].as_str());
++        assert_eq!(frame.original()["payload"]["details"]["batch_index"], i);
++    }
++    assert_eq!(handler.tracking.calls.load(Ordering::SeqCst), 1);
++    assert!(f.policy.revoked.try_write().is_err());
++    drop(output);
++    assert!(f.policy.revoked.try_write().is_ok());
++    assert_eq!(peer.generation(), Some(2));
++    assert!(!peer.has_pending_step_up());
++}

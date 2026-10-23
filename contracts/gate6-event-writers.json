@@ -1,0 +1,85 @@
+{
+  "format": 1,
+  "task": "G6-036",
+  "schema": 34,
+  "metadata_binding": "migrations/027_event_provenance.sql stamps revision and provenance within each INSERT transaction; immutable afterward, apart from the separately attributed decision-record link. Initial state revision zero is a defined stored version, never a missing-value substitute.",
+  "correlation": "Authenticated core mutations use journal_context only inside their savepoint, clear it before commit and disclose their logical ID only to that same stable identity. Task invocation IDs stay in their task namespace. Operation-ledger IDs are already principal owned. Shared-room recipients do not acquire another actor's operation ID.",
+  "ordering": "Only opaque installation journal cursors order events. Revisions are scoped to the resource named by the fact; gaps are not private-event counts. Session state revision and topology revision are separate.",
+  "writers": [
+    {
+      "path": "crates/connect-store/src/conversations.rs",
+      "function": "insert_event",
+      "insert_sites": 1,
+      "versions": "Immutable message version 1; conversation membership/policy/close revision otherwise.",
+      "provenance": "Connect journal; protected voice transcript/outcome/context-gap writers identify provider-observation and correlate the immutable source message."
+    },
+    {
+      "path": "crates/connect-store/src/conversations.rs",
+      "function": "insert_session_event",
+      "insert_sites": 1,
+      "versions": "sessions.state_revision, including phase/media/end/topology changes; snapshots separately expose topology_revision for transition preconditions.",
+      "provenance": "Connect journal with the original session ID."
+    },
+    {
+      "path": "crates/connect-store/src/conversations.rs",
+      "function": "insert_artifact_event",
+      "insert_sites": 1,
+      "versions": "artifacts.state_revision includes byte progression and metadata/state changes, even when intermediate upload chunks are not separately journalled.",
+      "provenance": "Connect journal with artifact ID; existing file integrity and audience checks remain separate."
+    },
+    {
+      "path": "crates/connect-store/src/voice.rs",
+      "function": "event",
+      "insert_sites": 1,
+      "versions": "voice_calls.state_revision over visible call fields; private poll/lease/control credentials do not advance it.",
+      "provenance": "Connect journal with call ID; signalling or a provider answer is not proof of human reading or physical media."
+    },
+    {
+      "path": "crates/connect-store/src/membership/mutations.rs",
+      "function": "event membership",
+      "insert_sites": 1,
+      "versions": "Explicit conversation revision committed with the participant/invitation/sharing change.",
+      "provenance": "Connect journal and conversation ID; caller operation correlation remains owner only."
+    },
+    {
+      "path": "crates/connect-store/src/membership/mutations.rs",
+      "function": "event history sharing",
+      "insert_sites": 1,
+      "versions": "Original shared message/session/artifact/call version when a payload is emitted; SIP/context references use their stored state revision. Link-only future record kinds retain the explicit membership-grant revision, not a fabricated record version.",
+      "provenance": "history-share, correlated to the authorized source; this is a grant/reference fact, not a new mutation of an unknown future record."
+    },
+    {
+      "path": "crates/connect-store/src/transitions/rows.rs",
+      "function": "event",
+      "insert_sites": 1,
+      "versions": "Explicit operation ledger revision and immutable state captured at the original write.",
+      "provenance": "operation-ledger and its owner-authorized logical operation ID."
+    },
+    {
+      "path": "crates/connect-store/src/recipient_receipts.rs",
+      "function": "acknowledge",
+      "insert_sites": 1,
+      "versions": "Per-message/recipient-epoch/channel/delivery fact count, not a global sequence or a claim about human action.",
+      "provenance": "Stored receipt provenance and delivery ID; current optional receipt preferences still filter before delivery."
+    }
+  ],
+  "integration_boundaries": "Physical multi-party graphs and stream sources are G6-038. Provider-normalized speech/action/vCon integration remains G6-043/G6-044/G6-046; no provider behavior is inferred by this metadata layer.",
+  "canonical_read_boundary": "Explicit per-physical canonical subscription handlers reuse the retained journal/snapshot engine. Exact query proofs fence current selected source owners through bounded local submission; idle readers retain no guard. Source growth refuses the page and retries its unchanged cursor under a fresh proof within the original wait/lease. Fixed physical incarnation, credential/key, actor epoch and scope ceiling prevent refresh/readmission revival. Schema34; no new journal insertion sites or migration. Production canonical installation remains open.",
+  "canonical_receipt_projection": "Canonical message.read calls the existing original-recipient receipt mutation; no new journal insertion site or SQL migration. Current opt-in, recipient epoch, scope, source audience and provenance filter before projection. Eligible typed receipt hints precede their cursor-bearing facts; 63-fact canonical pages remain within 128 envelopes. Both typed receipt kinds are live facts and cannot use terminal snapshot grace. Client read_at is diagnostic; shared evidence uses server observation time. Production native canonical installation remains open.",
+  "session_started_writer": {
+    "schema": 93,
+    "path": "crates/connect-store/src/session_lifecycle.rs",
+    "function": "start",
+    "insert_sites": 1,
+    "versions": "Original sessions.state_revision after Active phase commit; separate immutable SessionStarted snapshot.",
+    "provenance": "connect-session-lifecycle with original Session ID, no caller operation or Connection envelope scope. One row per captured present Participant epoch, atomically with the first public verified native flow and phase; actual deliveries independently reauthorize."
+  },
+  "session_participant_writer": {
+    "schema": 94,
+    "path": "crates/connect-store/src/session_participant_lifecycle.rs",
+    "function": "append",
+    "insert_sites": 1,
+    "versions": "Explicit Session state_revision increment without changing topology_revision. Immutable original joined/left fact and captured subject/recipient membership epochs commit with readiness or departure.",
+    "provenance": "connect-session-lifecycle, correlated to the immutable fact. Authenticated mutation context binds operation correlation only to its owner before the journal fact is frozen. Unsolicited typed hints carry no operation scope; every emitted/catch-up envelope gets a fresh ID."
+  }
+}

@@ -122,7 +122,7 @@ async fn successful_session_tools_preserve_receipts_and_post_session_task_contex
     assert_eq!(status["data"]["conversation_id"], *cid);
     // Invoking a tool starts the task; ending its bounded legs does not finish it.
     assert_eq!(status["data"]["state"], "running");
-    success(call(&client, "connect_send", json!({"request_id":"continue","step_id":"follow-up","body":"Continue after the bounded session."})).await);
+    success(call(&client, "connect_send", json!({"request_id":"continue","step_id":"follow-up","message": connect_protocol::messages::MessageDraft::text_all(("Continue after the bounded session.").to_string())})).await);
     let history = peer.history(cid, None, 100).await.unwrap();
     assert_eq!(history.messages.len(), 1);
     assert_eq!(

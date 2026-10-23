@@ -182,7 +182,16 @@ byId("message-form").onsubmit = (event) => {
         await mutate(`send:${needConversation()}`, {
             op: "send",
             conversation_id: needConversation(),
-            body: value("message"),
+            message: {
+                to: "all",
+                content_type: "text/plain",
+                body: value("message"),
+                body_encoding: "utf8",
+                label: "connect-messages",
+                attachments: [],
+                in_reply_to_msg: null,
+                msg_id: null,
+            },
         });
         byId("message").value = "";
         await refresh();

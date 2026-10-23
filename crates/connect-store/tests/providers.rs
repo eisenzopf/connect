@@ -1,6 +1,7 @@
 #![allow(clippy::unwrap_used)]
+use connect_protocol::provisioning::*;
 use connect_protocol::{Limits, Operation, Outcome};
-use connect_store::{Route, Scope, Store};
+use connect_store::{ProviderMessageEndpoint, Route, Scope, SmsObservation, Store};
 struct Fixture {
     _dir: tempfile::TempDir,
     store: Store,
@@ -31,7 +32,9 @@ fn fixture() -> Fixture {
             &human_key,
             &Operation::Create {
                 request_id: "create".into(),
-                participants: vec![bot.clone()],
+                request: connect_protocol::conversations::CreateRequest::persistent(vec![
+                    bot.clone()
+                ]),
             },
         )
         .unwrap()
@@ -78,6 +81,7 @@ impl Fixture {
                 None
             },
             enabled: true,
+            incoming_to: connect_protocol::messages::MessageAudience::all(),
         }
     }
     fn enrollment(&self, revision: i64, active: bool) {
@@ -114,6 +118,59 @@ impl Fixture {
         self.store
             .configure_route(&self.operator, &self.route(sms))
             .unwrap();
+        if sms {
+            let enroll = |name: &str, address: &str| {
+                let ProvisioningOutcome::Endpoint { endpoint_id, .. } = self
+                    .store
+                    .execute_provisioning(
+                        &self.operator,
+                        ProvisioningCommand::Endpoint {
+                            operation_id: format!("enroll-{name}"),
+                            identity_id: self.human.clone(),
+                            device: DeviceSpec {
+                                id: format!("device-{name}"),
+                                kind: "service".into(),
+                                platform: "provider-fixture".into(),
+                            },
+                            transport: EndpointTransport::Sms,
+                            address: address.into(),
+                            capabilities: vec!["messaging".into()],
+                            secret_ref: Some("SMS_FIXTURE_ACCOUNT".into()),
+                        },
+                    )
+                    .unwrap()
+                else {
+                    panic!()
+                };
+                self.store
+                    .execute_provisioning(
+                        &self.operator,
+                        ProvisioningCommand::VerifyEndpoint {
+                            operation_id: format!("verify-{name}"),
+                            endpoint_id: endpoint_id.clone(),
+                            expected_revision: 0,
+                            evidence_ref: "fixture".into(),
+                        },
+                    )
+                    .unwrap();
+                endpoint_id
+            };
+            let target = enroll("sms-target", "+15555550101");
+            let source = enroll("sms-source", "+15555550102");
+            self.store
+                .bind_provider_message_endpoints(
+                    &self.operator,
+                    &[ProviderMessageEndpoint {
+                        route_id: "sms".into(),
+                        connector: "telnyx".into(),
+                        endpoint_id: target,
+                        source_endpoint_id: Some(source),
+                        account_credential_id: self.operator.clone(),
+                        secret_reference: "SMS_FIXTURE_ACCOUNT".into(),
+                    }],
+                )
+                .unwrap();
+        }
     }
     fn send(&self, id: &str, body: &str) -> Outcome {
         self.store
@@ -122,7 +179,7 @@ impl Fixture {
                 &Operation::Send {
                     request_id: id.into(),
                     conversation_id: self.conversation.clone(),
-                    body: body.into(),
+                    message: connect_protocol::messages::MessageDraft::text_all(body),
                 },
             )
             .unwrap()
@@ -250,6 +307,16 @@ fn replay_recovery_and_chat_context_do_not_duplicate_provider_work() {
     f.send("two", "continue");
     let next = f.store.claim_provider_job().unwrap().unwrap();
     assert_eq!(next.previous_chat_id.as_deref(), Some("chat-1"));
+    let role = f.store.acquire_provider_worker().unwrap();
+    let permit = f
+        .store
+        .admit_provider_dispatch(
+            &role,
+            &next,
+            &connect_store::AuthorityWait::new(std::time::Duration::from_secs(1)),
+        )
+        .unwrap();
+    drop(permit); // This fixture models possible external I/O, not an unadmitted claim.
     assert_eq!(f.store.recover_provider_jobs().unwrap(), 1);
     assert!(f.store.claim_provider_job().unwrap().is_none());
     assert!(f.status().iter().any(|j| j.state == "uncertain"));
@@ -264,40 +331,54 @@ fn signed_event_admission_is_atomic_deduplicated_and_scoped() {
     f.bind(true);
     assert!(f
         .store
-        .receive_sms(
-            "incoming",
-            "digest",
-            "+15555550101",
-            "+15555550102",
-            "question"
-        )
+        .receive_sms(&SmsObservation {
+            event_id: "incoming",
+            event_digest: "digest",
+            provider_id: "incoming",
+            from: "+15555550101",
+            to: "+15555550102",
+            body: "question",
+            occurred_at: None
+        })
         .unwrap());
     assert!(!f
         .store
-        .receive_sms(
-            "incoming",
-            "digest",
-            "+15555550101",
-            "+15555550102",
-            "question"
-        )
+        .receive_sms(&SmsObservation {
+            event_id: "incoming",
+            event_digest: "digest",
+            provider_id: "incoming",
+            from: "+15555550101",
+            to: "+15555550102",
+            body: "question",
+            occurred_at: None
+        })
         .unwrap());
     assert_eq!(
         f.store
-            .receive_sms(
-                "incoming",
-                "different",
-                "+15555550101",
-                "+15555550102",
-                "bad"
-            )
+            .receive_sms(&SmsObservation {
+                event_id: "incoming",
+                event_digest: "different",
+                provider_id: "incoming",
+                from: "+15555550101",
+                to: "+15555550102",
+                body: "bad",
+                occurred_at: None
+            })
             .unwrap_err()
             .code,
         "conflict"
     );
     assert_eq!(
         f.store
-            .receive_sms("other", "digest", "+15555550103", "+15555550102", "bad")
+            .receive_sms(&SmsObservation {
+                event_id: "other",
+                event_digest: "digest",
+                provider_id: "other",
+                from: "+15555550103",
+                to: "+15555550102",
+                body: "bad",
+                occurred_at: None
+            })
             .unwrap_err()
             .code,
         "forbidden"
@@ -310,15 +391,26 @@ fn signed_event_admission_is_atomic_deduplicated_and_scoped() {
     let sms = f.store.claim_provider_job().unwrap().unwrap();
     assert!(f
         .store
-        .delivery_sms("early", "early-digest", "sms-early", "delivered")
+        .delivery_sms_for_routes(
+            "early",
+            "early-digest",
+            "sms-early",
+            "delivered",
+            &["sms".into()],
+            Some(("+15555550102", "+15555550101"))
+        )
         .unwrap());
     f.store
         .finish_provider_job(&sms, "accepted", Some("sms-early"), None)
         .unwrap();
     assert!(f.status().iter().any(|j| j.state == "delivered"));
-    f.store
-        .delivery_sms("late-failure", "failed-digest", "sms-early", "failed")
-        .unwrap();
+    assert_eq!(
+        f.store
+            .delivery_sms("late-failure", "failed-digest", "sms-early", "failed")
+            .unwrap_err()
+            .code,
+        "conflict"
+    );
     assert!(f.status().iter().any(|j| j.state == "delivered")); // terminal state never regresses
 }
 #[test]
@@ -360,13 +452,36 @@ fn provider_state_is_included_in_current_backup() {
     let backup = f._dir.path().join("backup.sqlite3");
     let before = f.store.backup(&backup).unwrap();
     let job = f.store.claim_provider_job().unwrap().unwrap();
+    let role = f.store.acquire_provider_worker().unwrap();
+    let permit = f
+        .store
+        .admit_provider_dispatch(
+            &role,
+            &job,
+            &connect_store::AuthorityWait::new(std::time::Duration::from_secs(1)),
+        )
+        .unwrap();
+    drop(permit);
     f.store
         .finish_provider_job(&job, "uncertain", None, None)
         .unwrap();
     assert_ne!(before, Store::inspect_snapshot(f.store.path()).unwrap());
     let copy = Store::open(&backup, Limits::default()).unwrap();
-    assert_eq!(copy.recover_provider_jobs().unwrap(), 0);
-    assert!(copy.claim_provider_job().unwrap().is_some());
+    assert_eq!(Store::inspect_snapshot(&backup).unwrap(), before);
+    assert_eq!(copy.recover_provider_jobs().unwrap(), 1);
+    assert!(copy.claim_provider_job().unwrap().is_none());
+    let Outcome::ProviderStatus { deliveries } = copy
+        .execute(
+            &f.operator,
+            &Operation::ProviderStatus {
+                conversation_id: f.conversation.clone(),
+            },
+        )
+        .unwrap()
+    else {
+        panic!()
+    };
+    assert_eq!(deliveries[0].state, "uncertain");
 }
 
 #[test]
@@ -380,7 +495,9 @@ fn sms_eligibility_stop_ordering_replay_restart_and_revocation() {
                 &Operation::Send {
                     request_id: id.into(),
                     conversation_id: f.conversation.clone(),
-                    body: "Requested task update".into(),
+                    message: connect_protocol::messages::MessageDraft::text_all(
+                        "Requested task update",
+                    ),
                 },
             )
             .unwrap()
@@ -511,13 +628,15 @@ fn sms_start_without_form_and_cross_task_grants_do_not_authorize_delivery() {
         .unwrap();
     assert!(!f
         .store
-        .receive_sms(
-            "unenrolled",
-            "d",
-            "+15555550101",
-            "+15555550102",
-            "assistant, send a message"
-        )
+        .receive_sms(&SmsObservation {
+            event_id: "unenrolled",
+            event_digest: "d",
+            provider_id: "unenrolled",
+            from: "+15555550101",
+            to: "+15555550102",
+            body: "assistant, send a message",
+            occurred_at: None
+        })
         .unwrap());
     assert!(f.status().is_empty());
     let db = rusqlite::Connection::open(f.store.path()).unwrap();
@@ -539,7 +658,7 @@ fn sms_start_without_form_and_cross_task_grants_do_not_authorize_delivery() {
             &Operation::Send {
                 request_id: "cross-task".into(),
                 conversation_id: f.conversation.clone(),
-                body: "Wrong task".into(),
+                message: connect_protocol::messages::MessageDraft::text_all("Wrong task"),
             },
         )
         .unwrap();

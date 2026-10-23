@@ -23,7 +23,9 @@ fn create(store: &Store, actor: &str, peer: &str) -> String {
             actor,
             &Operation::Create {
                 request_id: "create-1".into(),
-                participants: vec![peer.into()],
+                request: connect_protocol::conversations::CreateRequest::persistent(vec![
+                    peer.into()
+                ]),
             },
         )
         .unwrap()
@@ -36,7 +38,7 @@ fn send(id: &str, body: &str, request: &str) -> Operation {
     Operation::Send {
         request_id: request.into(),
         conversation_id: id.into(),
-        body: body.into(),
+        message: connect_protocol::messages::MessageDraft::text_all(body),
     }
 }
 
@@ -133,6 +135,7 @@ fn replay_conflict_receipt_history_cursor_and_close_survive_restart() {
             &Operation::Close {
                 request_id: "close-1".into(),
                 conversation_id: id.clone(),
+                options: Default::default(),
             },
         )
         .unwrap();
@@ -212,14 +215,15 @@ fn serialized_capacity_and_failed_sqlite_write_never_acknowledge() {
         "invalid-request"
     );
     let db = rusqlite::Connection::open(dir.path().join("state.sqlite3")).unwrap();
-    db.execute_batch("CREATE TRIGGER write_fault BEFORE INSERT ON requests BEGIN SELECT RAISE(ABORT,'injected storage failure'); END;").unwrap();
+    db.execute_batch("CREATE TRIGGER write_fault BEFORE INSERT ON operation_control_receipts BEGIN SELECT RAISE(ABORT,'injected storage failure'); END;").unwrap();
     assert_eq!(
         store
             .execute(
                 &app,
                 &Operation::Close {
                     request_id: "fault-close".into(),
-                    conversation_id: id.clone()
+                    conversation_id: id.clone(),
+                    options: Default::default(),
                 }
             )
             .unwrap_err()

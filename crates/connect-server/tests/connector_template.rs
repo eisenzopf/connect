@@ -56,6 +56,7 @@ async fn fixture() -> (
                 target: "fixture-peer".into(),
                 source: None,
                 enabled: true,
+                incoming_to: connect_protocol::messages::MessageAudience::all(),
             },
         )
         .unwrap();
@@ -84,11 +85,15 @@ async fn delivery(client: &mut ConnectClient, conversation: &str, expected: &str
 #[tokio::test]
 async fn template_context_and_independent_contact_survive_host_and_adapter_restart() {
     let (tmp, server, mut client, cid, provider) = fixture().await;
-    let worker = Worker::with_drivers(server.service.clone(), vec![provider.clone()]).unwrap();
+    let worker = Worker::with_drivers(server.service.clone(), vec![provider.clone()])
+        .await
+        .unwrap();
     let send = Operation::Send {
         request_id: "contributor-first".into(),
         conversation_id: cid.clone(),
-        body: "The approved color is violet.".into(),
+        message: connect_protocol::messages::MessageDraft::text_all(
+            "The approved color is violet.",
+        ),
     };
     let receipt = client.request(send.clone()).await.unwrap();
     let id = delivery(&mut client, &cid, "delivered").await;
@@ -113,7 +118,9 @@ async fn template_context_and_independent_contact_survive_host_and_adapter_resta
     .await
     .unwrap();
     let provider = Arc::new(LocalProvider::open_fixture(tmp.path().join("provider.json")).unwrap());
-    let worker = Worker::with_drivers(server.service.clone(), vec![provider.clone()]).unwrap();
+    let worker = Worker::with_drivers(server.service.clone(), vec![provider.clone()])
+        .await
+        .unwrap();
     let mut config = ClientConfig::load(&state.join("reviews.toml")).unwrap();
     config.endpoint = server.address;
     let mut client = ConnectClient::open(config).await.unwrap();
@@ -210,11 +217,13 @@ async fn template_context_and_independent_contact_survive_host_and_adapter_resta
 async fn unknown_effect_is_not_repeated_after_worker_and_adapter_restart() {
     let (tmp, server, mut client, cid, provider) = fixture().await;
     provider.inject(Injection::UncertainMessage);
-    let worker = Worker::with_drivers(server.service.clone(), vec![provider.clone()]).unwrap();
+    let worker = Worker::with_drivers(server.service.clone(), vec![provider.clone()])
+        .await
+        .unwrap();
     let send = Operation::Send {
         request_id: "contributor-unknown".into(),
         conversation_id: cid.clone(),
-        body: "Uncertain provider response".into(),
+        message: connect_protocol::messages::MessageDraft::text_all("Uncertain provider response"),
     };
     let receipt = client.request(send.clone()).await.unwrap();
     let id = delivery(&mut client, &cid, "uncertain").await;
@@ -231,7 +240,9 @@ async fn unknown_effect_is_not_repeated_after_worker_and_adapter_restart() {
     .await
     .unwrap();
     let provider = Arc::new(LocalProvider::open_fixture(tmp.path().join("provider.json")).unwrap());
-    let worker = Worker::with_drivers(server.service.clone(), vec![provider.clone()]).unwrap();
+    let worker = Worker::with_drivers(server.service.clone(), vec![provider.clone()])
+        .await
+        .unwrap();
     let mut config = ClientConfig::load(&state.join("reviews.toml")).unwrap();
     config.endpoint = server.address;
     let mut client = ConnectClient::open(config).await.unwrap();
@@ -272,7 +283,9 @@ async fn unknown_effect_is_not_repeated_after_worker_and_adapter_restart() {
 async fn duplicate_composition_is_rejected_before_worker_claims() {
     let (_tmp, server, client, _cid, provider) = fixture().await;
     assert!(
-        Worker::with_drivers(server.service.clone(), vec![provider.clone(), provider]).is_err()
+        Worker::with_drivers(server.service.clone(), vec![provider.clone(), provider])
+            .await
+            .is_err()
     );
     drop(client);
     server.shutdown().await.unwrap();
@@ -293,7 +306,12 @@ async fn invalid_or_unready_composition_cannot_persist_contracts_or_claim_work()
         fn readiness(&self) -> Readiness {
             Readiness::MissingSecret
         }
-        async fn deliver(&self, _: &DeliveryRequest) -> Result<Completion, Failure> {
+        async fn deliver(
+            &self,
+            _: &DeliveryRequest,
+            permit: connect_connector_api::DispatchPermit,
+        ) -> Result<Completion, Failure> {
+            permit.admit_effect()?;
             panic!("must not dispatch");
         }
     }
@@ -308,7 +326,12 @@ async fn invalid_or_unready_composition_cannot_persist_contracts_or_claim_work()
             value.video = true;
             value
         }
-        async fn deliver(&self, _: &DeliveryRequest) -> Result<Completion, Failure> {
+        async fn deliver(
+            &self,
+            _: &DeliveryRequest,
+            permit: connect_connector_api::DispatchPermit,
+        ) -> Result<Completion, Failure> {
+            permit.admit_effect()?;
             panic!("must not dispatch");
         }
     }
@@ -321,11 +344,13 @@ async fn invalid_or_unready_composition_cannot_persist_contracts_or_claim_work()
         server.service.clone(),
         vec![provider.clone(), Arc::new(MissingSecret)]
     )
+    .await
     .is_err());
     assert!(Worker::with_drivers(
         server.service.clone(),
         vec![provider, Arc::new(Unsupported)]
     )
+    .await
     .is_err());
     let db = rusqlite::Connection::open(tmp.path().join("state/state.sqlite3")).unwrap();
     let manifests: u32 = db
@@ -348,7 +373,9 @@ async fn invalid_or_unready_composition_cannot_persist_contracts_or_claim_work()
 async fn normalized_host_receipts_preserve_sources_terminal_order_and_current_authority() {
     use connect_connector_api::lifecycle::*;
     let (tmp, server, mut client, cid, provider) = fixture().await;
-    let worker = Worker::with_drivers(server.service.clone(), vec![provider.clone()]).unwrap();
+    let worker = Worker::with_drivers(server.service.clone(), vec![provider.clone()])
+        .await
+        .unwrap();
     client
         .send("source-check", &cid, "Source color is violet.")
         .await
@@ -489,7 +516,19 @@ async fn final_callback_before_attempt_response_retains_answer_once() {
         previous_chat_id: job.previous_chat_id.clone(),
         context: job.context.clone(),
     };
-    let mut response = provider.deliver_observed(&job.id, &request).await.unwrap();
+    let dispatch_role = server.store.acquire_provider_worker().unwrap();
+    let dispatch = server
+        .store
+        .admit_provider_dispatch(
+            &dispatch_role,
+            &job,
+            &connect_store::AuthorityWait::new(std::time::Duration::from_secs(1)),
+        )
+        .unwrap();
+    let mut response = provider
+        .deliver_observed(&job.id, &request, dispatch)
+        .await
+        .unwrap();
     let mut final_receipt = response.clone();
     final_receipt.reply = None;
     final_receipt.reply_sources.clear();
@@ -601,7 +640,9 @@ impl Connector for ReceiveOnly {
     async fn deliver(
         &self,
         _: &connect_connector_api::DeliveryRequest,
+        permit: connect_connector_api::DispatchPermit,
     ) -> Result<connect_connector_api::Completion, connect_connector_api::Failure> {
+        permit.admit_effect()?;
         panic!("receive-only connector must never receive an outbound provider call")
     }
 }
@@ -639,10 +680,13 @@ async fn receive_only_manifest_retains_ingress_but_fails_outbound_before_claim_o
                 target: "fixture-peer".into(),
                 source: None,
                 enabled: true,
+                incoming_to: connect_protocol::messages::MessageAudience::all(),
             },
         )
         .unwrap();
-    let worker = Worker::with_drivers(server.service.clone(), vec![driver.clone()]).unwrap();
+    let worker = Worker::with_drivers(server.service.clone(), vec![driver.clone()])
+        .await
+        .unwrap();
     assert_eq!(
         server
             .store
@@ -721,7 +765,9 @@ async fn receive_only_manifest_retains_ingress_but_fails_outbound_before_claim_o
         0
     );
     worker.shutdown().await.unwrap();
-    let restarted = Worker::with_drivers(server.service.clone(), vec![driver.clone()]).unwrap();
+    let restarted = Worker::with_drivers(server.service.clone(), vec![driver.clone()])
+        .await
+        .unwrap();
     assert!(server.store.claim_provider_job().unwrap().is_none());
     restarted.shutdown().await.unwrap();
     client.close().await;
@@ -754,16 +800,22 @@ impl Connector for WrongAttemptReceipt {
     async fn deliver(
         &self,
         request: &connect_connector_api::DeliveryRequest,
+        permit: connect_connector_api::DispatchPermit,
     ) -> Result<connect_connector_api::Completion, connect_connector_api::Failure> {
-        self.provider.deliver(request).await
+        permit.admit_effect()?;
+        self.provider.deliver(request, permit).await
     }
     async fn deliver_observed(
         &self,
         mutation_id: &str,
         request: &connect_connector_api::DeliveryRequest,
+        permit: connect_connector_api::DispatchPermit,
     ) -> Result<connect_connector_api::lifecycle::MessageReceipt, connect_connector_api::Failure>
     {
-        let _actual = self.provider.deliver_observed(mutation_id, request).await?;
+        let _actual = self
+            .provider
+            .deliver_observed(mutation_id, request, permit)
+            .await?;
         let mut wrong = self.old.clone();
         wrong.observation.event_id = "wrong-attempt-binding".into();
         wrong.reply = None;
@@ -775,8 +827,9 @@ impl Connector for WrongAttemptReceipt {
 async fn wrong_attempt_receipt_preserves_original_uncertainty_and_exact_id_reconciliation() {
     use connect_connector_api::lifecycle::{Apply, MessageState, State, Verification};
     let (_tmp, server, mut client, cid, provider) = fixture().await;
-    let first_worker =
-        Worker::with_drivers(server.service.clone(), vec![provider.clone()]).unwrap();
+    let first_worker = Worker::with_drivers(server.service.clone(), vec![provider.clone()])
+        .await
+        .unwrap();
     client
         .send("first-attempt", &cid, "First answer")
         .await
@@ -794,11 +847,12 @@ async fn wrong_attempt_receipt_preserves_original_uncertainty_and_exact_id_recon
             old: old.clone(),
         })],
     )
+    .await
     .unwrap();
     let operation = Operation::Send {
         request_id: "second-attempt".into(),
         conversation_id: cid.clone(),
-        body: "Second answer".into(),
+        message: connect_protocol::messages::MessageDraft::text_all("Second answer"),
     };
     let sent = client.request(operation.clone()).await.unwrap();
     let second = delivery(&mut client, &cid, "uncertain").await;
@@ -829,7 +883,9 @@ async fn wrong_attempt_receipt_preserves_original_uncertainty_and_exact_id_recon
     // Replaying the business request and restarting the worker cannot send again.
     assert_eq!(client.request(operation).await.unwrap(), sent);
     worker.shutdown().await.unwrap();
-    let worker = Worker::with_drivers(server.service.clone(), vec![provider.clone()]).unwrap();
+    let worker = Worker::with_drivers(server.service.clone(), vec![provider.clone()])
+        .await
+        .unwrap();
     assert_eq!(delivery(&mut client, &cid, "uncertain").await, second);
     assert_eq!(
         Worker::reconcile(server.service.as_ref(), provider.as_ref(), &second)

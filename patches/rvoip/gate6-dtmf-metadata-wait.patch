@@ -1,0 +1,77 @@
+--- a/crates/foundation/rvoip-core/src/orchestrator/dtmf_routing.rs
++++ b/crates/foundation/rvoip-core/src/orchestrator/dtmf_routing.rs
+@@ -618,9 +618,11 @@
+         {
+             return Err(DtmfWriteError::Refused);
+         }
+-        route.check_current()?;
+         let deadline =
+             requested_deadline.min(Instant::now() + Duration::from_millis(MAX_DTMF_SEQUENCE_MS));
++        // This is still the same metadata-only schedule. Busy registries are
++        // not lost authority; wait without reserving a slot or invoking policy.
++        route.wait_current(&cancel, deadline).await?;
+         if Instant::now() >= deadline {
+             return Err(DtmfWriteError::DeadlineBeforeWrite);
+         }
+--- a/crates/foundation/rvoip-core/tests/dtmf_auto_route.rs
++++ b/crates/foundation/rvoip-core/tests/dtmf_auto_route.rs
+@@ -1276,3 +1276,59 @@
+     }
+     r.no_packet().await;
+ }
++
++#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
++#[allow(clippy::await_holding_lock)]
++async fn actual_route_metadata_contention_waits_before_policy_and_udp_and_remains_bounded() {
++    for mode in ["release", "cancel", "deadline"] {
++        let r = Rig::new().await;
++        let route = r.route("1", 60, DtmfMethod::Rfc4733);
++        let policy = Policy::new(&r);
++        let session = r.core.session(&r.sid).unwrap();
++        let held = session.write().unwrap();
++        let cancel = CancellationToken::new();
++        let waiting = r.core.route_dtmf(
++            &route,
++            policy.clone(),
++            cancel.clone(),
++            Instant::now()
++                + if mode == "deadline" {
++                    Duration::from_millis(60)
++                } else {
++                    Duration::from_secs(2)
++                },
++        );
++        tokio::pin!(waiting);
++        tokio::select! {
++            result = &mut waiting => {drop(held); panic!("busy actual metadata became terminal before waiting: {result:?}")},
++            _ = tokio::time::sleep(Duration::from_millis(20)) => {},
++        }
++        assert_eq!(policy.calls.load(Ordering::SeqCst), 0);
++        let mut packet = [0; 2048];
++        assert!(
++            matches!(r.receiver.try_recv(&mut packet), Err(e) if e.kind() == std::io::ErrorKind::WouldBlock)
++        );
++        if mode == "release" {
++            drop(held);
++            assert_eq!(waiting.await, Ok(()));
++            assert_eq!(r.receive().await.payload[0], 1);
++        } else {
++            if mode == "cancel" {
++                cancel.cancel();
++            }
++            assert_eq!(
++                waiting.await,
++                Err(if mode == "cancel" {
++                    DtmfWriteError::Refused
++                } else {
++                    DtmfWriteError::DeadlineBeforeWrite
++                })
++            );
++            assert_eq!(policy.calls.load(Ordering::SeqCst), 0);
++            assert!(
++                matches!(r.receiver.try_recv(&mut packet), Err(e) if e.kind() == std::io::ErrorKind::WouldBlock)
++            );
++            drop(held);
++        }
++    }
++}

@@ -1,0 +1,70 @@
+{
+  "task": "G6-046",
+  "recorded_at": "2026-10-22T22:45:48.639548+00:00",
+  "status": "Core-and-native-metadata-regressions-passed; production-requalification-pending",
+  "schema_version": 91,
+  "pinned_patches": 147,
+  "qualified_clauses": 24,
+  "remaining_clauses": 37,
+  "full_task_complete": false,
+  "full_goal_complete": false,
+  "acceptance_qualified": false,
+  "source_lock": {
+    "path": "dependencies/source-lock.json",
+    "sha256": "a778044e87da40fa2bbaa08904eb7194a111e8d5e19d37455d6a065de4d825f2"
+  },
+  "compiled_root_sources": {
+    "path": ".local/gate-6/dtmf-current-admission/build-inputs-final.json",
+    "sha256": "8a10fde89d9a14a675f5f8a1722390f550dbd87402716778f89f88439215d2c5"
+  },
+  "prepared_upstream": {
+    "path": ".local/gate-6/dtmf-current-admission/upstream-inputs-final.json",
+    "sha256": "4b0574fc4cd55670baa15adc0172771dac3fbe19b14a26a8530fa281a807be22"
+  },
+  "red_evidence": [
+    {
+      "path": ".local/gate-6/dtmf-current-admission/production-controlled-red.log",
+      "sha256": "82cdc785ba1922f1ca47be7991a9a065f022da6aa8c302e153c4e0e5eb98acd2"
+    },
+    {
+      "path": ".local/gate-6/dtmf-current-admission/core-controlled-red.log",
+      "sha256": "36889997f893f81db5617d6fb2a6bb818592fca54a32f051b5fff07affd56727"
+    },
+    {
+      "path": ".local/gate-6/dtmf-current-admission/native-source-controlled-red.log",
+      "sha256": "941a50c7509ffc990143652605ebf1b3195cf199ac68ad1eb4c949bba9fef3b4"
+    },
+    {
+      "path": ".local/gate-6/dtmf-current-admission/fence-controlled-red.log",
+      "sha256": "3eefd04e3b2646de0cdfe0597e67de2f38101b2d280aa7902e4ac514d2803b72"
+    }
+  ],
+  "passed_component_checks": [
+    {
+      "passed": 16,
+      "failed": 0,
+      "evidence": {
+        "path": ".local/gate-6/dtmf-current-admission/core-routing-final.log",
+        "sha256": "1da19bb1f0940d6c1a39df825872cbe6ff2a2ba3320a6b41c7cfe9241e479183"
+      }
+    },
+    {
+      "passed": 23,
+      "failed": 0,
+      "evidence": {
+        "path": ".local/gate-6/dtmf-current-admission/native-source-routing-final.log",
+        "sha256": "f23e4bcb061a580a59f53e3347ad9b2a2637c1a2b25477acfb250270ae3a5c7b"
+      }
+    }
+  ],
+  "implementation": [
+    "Connect waits for the same original source observation and frozen recipient metadata before any writer allocation, bounded by two seconds and unchanged operation expiry.",
+    "Core preserves NotReady when attaching source fences and waits before schedule policy or capacity acquisition.",
+    "Actual native flow/controller source status preserves temporary NotReady; passive liveness can wait but actual IO still takes every physical guard. Retired, cancelled and stale sources still refuse."
+  ],
+  "pending": [
+    "Production controlled metadata tests, full native DTMF suite, concurrent affected regressions and default production compile check must be rerun against all147 patches.",
+    "Exact received shape0114 assertions and validator are implemented but not yet qualified; count remains24/61.",
+    "Full G6-046, all105 tasks, Linux/remote/browser/provider profiles, acceptance and publication remain open."
+  ]
+}

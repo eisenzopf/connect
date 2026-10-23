@@ -85,7 +85,7 @@ fn current_grant_and_backing_authority_apply_to_every_continuation_page() {
                     .connection()
                     .unwrap()
                     .execute(
-                        "DELETE FROM participants WHERE conversation_id=?1",
+                        "UPDATE participants SET active=0 WHERE conversation_id=?1",
                         [&f.cid],
                     )
                     .unwrap();

@@ -1,0 +1,1934 @@
+diff --git a/crates/uctp/rvoip-uctp/src/lib.rs b/crates/uctp/rvoip-uctp/src/lib.rs
+--- a/crates/uctp/rvoip-uctp/src/lib.rs
++++ b/crates/uctp/rvoip-uctp/src/lib.rs
+@@ -60,3 +60,5 @@
+ pub mod staged_media;
+ /// Version 2 wire contract and checked command payloads.
+ pub mod v2;
++
++mod native_flow;
+diff --git a/crates/uctp/rvoip-uctp/src/native_flow.rs b/crates/uctp/rvoip-uctp/src/native_flow.rs
+new file mode 100644
+--- /dev/null
++++ b/crates/uctp/rvoip-uctp/src/native_flow.rs
+@@ -0,0 +1,155 @@
++//! Native IO observations, never a permission grant or a peer ready assertion.
++use rvoip_core::{ids::StreamId, staged_streams::*, stream_lifecycle::*};
++use std::{
++    collections::BTreeMap,
++    sync::{Arc, Mutex},
++};
++use tokio::sync::Notify;
++use tokio_util::sync::CancellationToken;
++struct Observed {
++    port: WeakAdapterMediaPort,
++    binding: ReadyMediaBinding,
++    received: bool,
++    sent: bool,
++}
++struct State {
++    ports: BTreeMap<StreamId, Observed>,
++    epoch: CancellationToken,
++    confirmed_revision: Option<u64>,
++    confirmed_offer: Option<String>,
++}
++pub(crate) struct NativeFlow {
++    state: Mutex<State>,
++    lifetime: CancellationToken,
++    pub(crate) changed: Notify,
++}
++impl NativeFlow {
++    pub(crate) fn new(lifetime: CancellationToken) -> Arc<Self> {
++        Arc::new(Self {
++            state: Mutex::new(State {
++                ports: BTreeMap::new(),
++                epoch: lifetime.child_token(),
++                confirmed_revision: None,
++                confirmed_offer: None,
++            }),
++            lifetime,
++            changed: Notify::new(),
++        })
++    }
++    pub(crate) fn current(&self) -> bool {
++        !self.lifetime.is_cancelled()
++    }
++    pub(crate) fn epoch(&self) -> CancellationToken {
++        self.state
++            .lock()
++            .unwrap_or_else(|p| p.into_inner())
++            .epoch
++            .child_token()
++    }
++    pub(crate) fn preparing(&self, ports: &[PortPreparation]) -> ControlResult<()> {
++        let mut s = self.state.lock().unwrap_or_else(|p| p.into_inner());
++        // A candidate invalidates queued observations conservatively. Real IO
++        // already in progress retains its actual grant through sink abortion.
++        s.epoch.cancel();
++        s.epoch = self.lifetime.child_token();
++        for p in ports {
++            let b = p.port.binding();
++            if let Some(old) = s.ports.get(&b.transport_id) {
++                if !crate::staged_media::same_binding(&old.binding, b) {
++                    return Err(StreamControlError::Authority);
++                }
++            } else {
++                // Core's cumulative opening limit is smaller than this bound.
++                if s.ports.len() >= 64 {
++                    return Err(StreamControlError::Backpressure);
++                }
++                s.ports.insert(
++                    b.transport_id.clone(),
++                    Observed {
++                        port: p.port.downgrade(),
++                        binding: b.clone(),
++                        received: false,
++                        sent: false,
++                    },
++                );
++            }
++        }
++        drop(s);
++        self.changed.notify_waiters();
++        Ok(())
++    }
++    pub(crate) fn confirmed(&self, revision: u64, offer: &str) {
++        let mut s = self.state.lock().unwrap_or_else(|p| p.into_inner());
++        s.epoch.cancel();
++        s.epoch = self.lifetime.child_token();
++        s.confirmed_revision = Some(revision);
++        s.confirmed_offer = Some(offer.to_owned());
++        drop(s);
++        self.changed.notify_waiters();
++    }
++    pub(crate) fn confirmed_at(&self, revision: u64) -> bool {
++        self.current()
++            && self
++                .state
++                .lock()
++                .unwrap_or_else(|p| p.into_inner())
++                .confirmed_revision
++                == Some(revision)
++    }
++    pub(crate) fn confirmed_for(&self, revision: u64, offer: &str) -> bool {
++        let s = self.state.lock().unwrap_or_else(|p| p.into_inner());
++        self.current()
++            && s.confirmed_revision == Some(revision)
++            && s.confirmed_offer.as_deref() == Some(offer)
++    }
++    pub(crate) fn received(&self, port: &AdapterMediaPort) {
++        self.record(port, true);
++    }
++    pub(crate) fn sent(&self, port: &AdapterMediaPort) {
++        self.record(port, false);
++    }
++    fn record(&self, port: &AdapterMediaPort, received: bool) {
++        if !self.current() || port.status() != PortStatus::Active {
++            return;
++        }
++        let mut s = self.state.lock().unwrap_or_else(|p| p.into_inner());
++        let Some(p) = s.ports.get_mut(&port.binding().transport_id) else {
++            return;
++        };
++        if !crate::staged_media::same_binding(&p.binding, port.binding()) {
++            return;
++        }
++        let value = if received {
++            &mut p.received
++        } else {
++            &mut p.sent
++        };
++        let changed = !*value;
++        *value = true;
++        drop(s);
++        if changed {
++            self.changed.notify_waiters();
++        }
++    }
++    pub(crate) fn flowing(&self, b: &ReadyMediaBinding) -> bool {
++        if !self.current() {
++            return false;
++        }
++        let s = self.state.lock().unwrap_or_else(|p| p.into_inner());
++        s.ports.get(&b.transport_id).is_some_and(|p| {
++            crate::staged_media::same_binding(&p.binding, b)
++                && p.port
++                    .upgrade()
++                    .is_some_and(|port| port.status() == PortStatus::Active)
++                && (b.negotiated.requested.direction == StreamDirection::Send || p.received)
++                && (b.negotiated.requested.direction == StreamDirection::Receive || p.sent)
++        })
++    }
++    pub(crate) fn terminal(&self) {
++        let mut s = self.state.lock().unwrap_or_else(|p| p.into_inner());
++        s.epoch.cancel();
++        s.epoch = self.lifetime.child_token();
++        drop(s);
++        self.changed.notify_waiters();
++    }
++}
+diff --git a/crates/uctp/rvoip-uctp/src/staged_data.rs b/crates/uctp/rvoip-uctp/src/staged_data.rs
+--- a/crates/uctp/rvoip-uctp/src/staged_data.rs
++++ b/crates/uctp/rvoip-uctp/src/staged_data.rs
+@@ -266,6 +266,7 @@
+     }
+ }
+ struct DataResource {
++    flow: Option<Arc<crate::native_flow::NativeFlow>>,
+     allocation: Arc<dyn MediaPortCleanup>,
+     cancel: CancellationToken,
+     task: Mutex<Option<Shared<BoxFuture<'static, Result<(), ()>>>>>,
+@@ -291,6 +292,9 @@
+         flush_outcome(&self.pending, self.observer.as_ref(), &self.scope)
+             .map_err(|_| StreamControlError::CleanupUnconfirmed)?;
+         self.allocation.close().await?;
++        if let Some(flow) = &self.flow {
++            flow.terminal();
++        }
+         if let Some(stream) = self
+             .stream
+             .lock()
+@@ -307,6 +311,7 @@
+     }
+ }
+ pub(crate) struct StagedNativeData {
++    flow: Option<Arc<crate::native_flow::NativeFlow>>,
+     scope: StagedRtpScope,
+     router: Option<Arc<crate::substrate::PeerMediaRouter>>,
+     physical: Arc<PhysicalData>,
+@@ -325,8 +330,10 @@
+         negotiator: Arc<dyn StagedDataNegotiator>,
+         lifetime: CancellationToken,
+         streams: Arc<dashmap::DashMap<StreamId, Arc<dyn rvoip_core::stream::MediaStream>>>,
++        flow: Option<Arc<crate::native_flow::NativeFlow>>,
+     ) -> Arc<Self> {
+         Arc::new(Self {
++            flow,
+             scope,
+             router,
+             physical,
+@@ -390,6 +397,9 @@
+             return Err(StreamControlError::NotReady);
+         }
+         ports[0].try_publish_data(data, Some(held))?;
++        if let Some(flow) = &self.flow {
++            flow.received(&ports[0]);
++        }
+         self.counters.accepted.fetch_add(1, Ordering::AcqRel);
+         Ok(())
+     }
+@@ -459,6 +469,7 @@
+                 .try_acquire_owned()
+                 .map_err(|_| MediaTransitionError::Capacity)?;
+             let resource = Arc::new(DataResource {
++                flow: self.flow.clone(),
+                 allocation,
+                 cancel: self.lifetime.child_token(),
+                 task: Mutex::new(None),
+@@ -527,6 +538,7 @@
+             let pending_outcome = resource.pending.clone();
+             let observer = self.negotiator.clone();
+             let scope = self.scope.clone();
++            let flow = self.flow.clone();
+             let task = tokio::spawn(async move {
+                 let identify = |q: &QueuedMedia, disposition: DataDisposition| {
+                     q.data_identity().and_then(|id| {
+@@ -578,6 +590,9 @@
+                             Ok(receipt) => match receipt.wait_or_cancel(cancelled.clone()).await {
+                                 Ok(_) => {
+                                     counters.written.fetch_add(1, Ordering::AcqRel);
++                                    if let (Some(flow), Some(port)) = (&flow, weak.upgrade()) {
++                                        flow.sent(&port);
++                                    }
+                                     outcome.disposition = DataDisposition::LocalWritten;
+                                     pending_outcome
+                                         .lock()
+@@ -648,6 +663,8 @@
+     }
+ }
+ pub(crate) struct NativeMedia {
++    pub(crate) announcements: Arc<tokio::sync::Mutex<crate::v2::native_lifecycle::Announcements>>,
++    pub(crate) flow: Arc<crate::native_flow::NativeFlow>,
+     pub(crate) negotiation: Option<Arc<crate::v2::native_negotiation::NativeNegotiation>>,
+     pub(crate) rtp: Option<Arc<StagedRtpMedia>>,
+     pub(crate) data: Option<Arc<StagedNativeData>>,
+@@ -671,6 +688,7 @@
+         }) {
+             return Err(StreamControlError::Unsupported);
+         }
++        self.flow.preparing(&ports)?;
+         if let Some(negotiation) = &self.negotiation {
+             negotiation.batch_started(&ports)?;
+         }
+diff --git a/crates/uctp/rvoip-uctp/src/staged_media.rs b/crates/uctp/rvoip-uctp/src/staged_media.rs
+--- a/crates/uctp/rvoip-uctp/src/staged_media.rs
++++ b/crates/uctp/rvoip-uctp/src/staged_media.rs
+@@ -220,6 +220,7 @@
+     }
+ }
+ struct PortIngress {
++    flow: Option<Arc<crate::native_flow::NativeFlow>>,
+     port: WeakAdapterMediaPort,
+     counters: Arc<StagedRtpCounters>,
+ }
+@@ -233,6 +234,9 @@
+         match result {
+             Ok(()) => {
+                 self.counters.accepted.fetch_add(1, Ordering::AcqRel);
++                if let (Some(flow), Some(port)) = (&self.flow, self.port.upgrade()) {
++                    flow.received(&port);
++                }
+                 Ok(())
+             }
+             Err(error) => {
+@@ -318,6 +322,7 @@
+ }
+ 
+ struct PortResources {
++    flow: Option<Arc<crate::native_flow::NativeFlow>>,
+     handle: Arc<RouterHandle>,
+     streams: Arc<DashMap<StreamId, Arc<dyn MediaStream>>>,
+     stream_id: StreamId,
+@@ -330,6 +335,9 @@
+     async fn close(&self) -> ControlResult<()> {
+         self.cancel.cancel();
+         self.handle.remove()?;
++        if let Some(flow) = &self.flow {
++            flow.terminal();
++        }
+         let stream = self
+             .stream
+             .lock()
+@@ -352,6 +360,7 @@
+ }
+ 
+ pub struct StagedRtpMedia {
++    flow: Option<Arc<crate::native_flow::NativeFlow>>,
+     scope: StagedRtpScope,
+     router: Arc<PeerMediaRouter>,
+     streams: Arc<DashMap<StreamId, Arc<dyn MediaStream>>>,
+@@ -370,11 +379,25 @@
+         transport: Arc<dyn StagedDatagramTransport>,
+         lifetime: CancellationToken,
+     ) -> Arc<Self> {
++        Self::new_with_flow(
++            scope, router, streams, negotiator, transport, lifetime, None,
++        )
++    }
++    pub(crate) fn new_with_flow(
++        scope: StagedRtpScope,
++        router: Arc<PeerMediaRouter>,
++        streams: Arc<DashMap<StreamId, Arc<dyn MediaStream>>>,
++        negotiator: Arc<dyn StagedRtpNegotiator>,
++        transport: Arc<dyn StagedDatagramTransport>,
++        lifetime: CancellationToken,
++        flow: Option<Arc<crate::native_flow::NativeFlow>>,
++    ) -> Arc<Self> {
+         let handles = StreamHandleAllocator::shared(Arc::new(RouterAllocator {
+             router: router.clone(),
+             owner: scope.owner.clone(),
+         }));
+         Arc::new(Self {
++            flow,
+             scope,
+             router,
+             streams,
+@@ -588,6 +611,7 @@
+             // negotiation, task creation or router publication.
+             let cancel = allocation.cancellation.child_token();
+             let resources = Arc::new(PortResources {
++                flow: self.flow.clone(),
+                 handle: allocation,
+                 streams: self.streams.clone(),
+                 stream_id: port.binding().transport_id.clone(),
+@@ -657,6 +681,7 @@
+                 ),
+                 stream.clone(),
+                 Arc::new(PortIngress {
++                    flow: self.flow.clone(),
+                     port: port.downgrade(),
+                     counters: self.counters.clone(),
+                 }),
+@@ -678,6 +703,7 @@
+             } else {
+                 None
+             };
++            let flow = self.flow.clone();
+             let task = tokio::spawn(async move {
+                 let mut packetizer = Packetizer {
+                     outer: 0,
+@@ -704,6 +730,11 @@
+                                     counters
+                                         .local_sends
+                                         .fetch_add(count as u64, Ordering::AcqRel);
++                                    if count > 0 {
++                                        if let (Some(flow), Some(port)) = (&flow, weak.upgrade()) {
++                                            flow.sent(&port);
++                                        }
++                                    }
+                                 });
+                             std::future::ready(result)
+                         })
+diff --git a/crates/uctp/rvoip-uctp/src/v2/auth_dispatch.rs b/crates/uctp/rvoip-uctp/src/v2/auth_dispatch.rs
+--- a/crates/uctp/rvoip-uctp/src/v2/auth_dispatch.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/auth_dispatch.rs
+@@ -309,6 +309,7 @@
+ pub(in crate::v2) use offer_answer::{
+     validate_offer_answer, AnswerCancellation, AnswerPermit, PendingAnswer,
+ };
++pub(in crate::v2) mod lifecycle;
+ mod subscriptions;
+ pub use data::{native_data_message, DataOrigin, DataReceipt, DataSubmission, NativeDataMessage};
+ pub(in crate::v2) use data::{DataPending, DeliveryOrigin};
+diff --git a/crates/uctp/rvoip-uctp/src/v2/auth_dispatch/data.rs b/crates/uctp/rvoip-uctp/src/v2/auth_dispatch/data.rs
+--- a/crates/uctp/rvoip-uctp/src/v2/auth_dispatch/data.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/auth_dispatch/data.rs
+@@ -229,6 +229,12 @@
+             && self.identity == other.identity
+             && self.device == other.device
+     }
++    pub(in crate::v2) fn incarnation(&self) -> uuid::Uuid {
++        self.origin.incarnation
++    }
++    pub(in crate::v2) fn cancellation(&self) -> CancellationToken {
++        self.origin.lifetime.clone()
++    }
+     pub fn is_ready(&self) -> bool {
+         self.initial.strong_count() == 0
+     }
+@@ -296,24 +302,28 @@
+ pub(in crate::v2) enum DeliveryOrigin {
+     Subscription(SubscriptionOrigin),
+     Data(DataOrigin),
++    NativeLifecycle(super::lifecycle::NativeLifecycleOrigin),
+ }
+ impl DeliveryOrigin {
+     pub(in crate::v2) fn current(&self) -> bool {
+         match self {
+             Self::Subscription(s) => s.current(),
+             Self::Data(s) => s.current(),
++            Self::NativeLifecycle(s) => s.current(),
+         }
+     }
+     pub(in crate::v2) fn incarnation(&self) -> uuid::Uuid {
+         match self {
+             Self::Subscription(s) => s.incarnation(),
+             Self::Data(s) => s.origin.incarnation,
++            Self::NativeLifecycle(s) => s.incarnation(),
+         }
+     }
+     pub(in crate::v2) fn cancellation(&self) -> CancellationToken {
+         match self {
+             Self::Subscription(s) => s.cancellation(),
+             Self::Data(s) => s.origin.lifetime.clone(),
++            Self::NativeLifecycle(s) => s.cancellation(),
+         }
+     }
+ }
+@@ -421,6 +431,7 @@
+                 frames: Some(frames),
+                 authority: Some(authority),
+                 completion: Some(sender),
++                native: None,
+                 data: Some(DataPending {
+                     admission,
+                     started,
+diff --git a/crates/uctp/rvoip-uctp/src/v2/auth_dispatch/lifecycle.rs b/crates/uctp/rvoip-uctp/src/v2/auth_dispatch/lifecycle.rs
+new file mode 100644
+--- /dev/null
++++ b/crates/uctp/rvoip-uctp/src/v2/auth_dispatch/lifecycle.rs
+@@ -0,0 +1,106 @@
++//! A native lifecycle origin carries metadata, never an idle current grant.
++use super::data::DataOrigin;
++use super::*;
++use crate::staged_media::StagedRtpScope;
++use crate::v2::Identifier;
++use rvoip_core::{
++    relationships::{EndpointBinding, Membership},
++    staged_streams::StreamController,
++};
++pub(crate) trait NativeLifecycleFence: Send + Sync {
++    fn current(&self) -> bool;
++    fn cancellation(&self) -> CancellationToken;
++}
++#[derive(Clone)]
++pub(in crate::v2) struct NativeLifecycleOrigin {
++    route: DataOrigin,
++    fence: Arc<dyn NativeLifecycleFence>,
++}
++impl NativeLifecycleOrigin {
++    pub(crate) fn seal(
++        a: &AuthorizedEnvelope,
++        controller: &Arc<StreamController>,
++        scope: StagedRtpScope,
++        member: &Membership,
++        endpoint: &EndpointBinding,
++        fence: Arc<dyn NativeLifecycleFence>,
++    ) -> Result<Self, DispatchError> {
++        Ok(Self {
++            route: DataOrigin::seal(a, controller, scope, member, endpoint)?,
++            fence,
++        })
++    }
++    pub(crate) fn with_fence(&self, fence: Arc<dyn NativeLifecycleFence>) -> Self {
++        Self {
++            route: self.route.clone(),
++            fence,
++        }
++    }
++    pub(crate) fn ready(&self) -> bool {
++        self.route.is_ready()
++    }
++    pub(crate) fn current(&self) -> bool {
++        self.route.current() && self.fence.current()
++    }
++    pub(crate) fn incarnation(&self) -> uuid::Uuid {
++        self.route.incarnation()
++    }
++    pub(crate) fn cancellation(&self) -> CancellationToken {
++        self.route.cancellation()
++    }
++    pub(crate) fn event_cancellation(&self) -> CancellationToken {
++        self.fence.cancellation()
++    }
++    pub(crate) fn retire(&self) {
++        self.route.retire();
++    }
++}
++pub(in crate::v2) struct NativePending {
++    pub answer: PendingAnswer,
++    pub origin: NativeLifecycleOrigin,
++}
++impl HandlerDelivery {
++    pub(in crate::v2) fn native_lifecycle(
++        origin: NativeLifecycleOrigin,
++        frame: Envelope,
++        permit: Arc<AnswerPermit>,
++        completion: oneshot::Sender<Result<Identifier, DispatchError>>,
++        deadline: Instant,
++    ) -> Result<Self, DispatchError> {
++        if !origin.ready()
++            || !origin.current()
++            || !permit.current()
++            || !matches!(
++                frame.kind(),
++                "connection.ready" | "stream.opened" | "stream.closed"
++            )
++        {
++            return Err(DispatchError::Authority);
++        }
++        Ok(Self {
++            origin: DeliveryOrigin::NativeLifecycle(origin.clone()),
++            frames: Some(HandlerReplies::new(vec![frame])?),
++            authority: None,
++            completion: None,
++            data: None,
++            native: Some(NativePending {
++                answer: PendingAnswer {
++                    cancel_on_drop: true,
++                    permit,
++                    completion: Some(completion),
++                },
++                origin,
++            }),
++            deadline,
++        })
++    }
++}
++
++impl NativeLifecycleFence for NativeLifecycleOrigin {
++    fn current(&self) -> bool {
++        NativeLifecycleOrigin::current(self)
++    }
++    fn cancellation(&self) -> CancellationToken {
++        self.event_cancellation()
++    }
++}
+diff --git a/crates/uctp/rvoip-uctp/src/v2/auth_dispatch/subscriptions.rs b/crates/uctp/rvoip-uctp/src/v2/auth_dispatch/subscriptions.rs
+--- a/crates/uctp/rvoip-uctp/src/v2/auth_dispatch/subscriptions.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/auth_dispatch/subscriptions.rs
+@@ -109,6 +109,7 @@
+     pub(super) authority: Option<AuthorityLease>,
+     pub(super) completion: Option<oneshot::Sender<Result<(), DispatchError>>>,
+     pub(super) data: Option<DataPending>,
++    pub(super) native: Option<super::lifecycle::NativePending>,
+     pub(super) deadline: Instant,
+ }
+ impl HandlerDelivery {
+@@ -158,6 +159,7 @@
+                 authority: Some(authority),
+                 completion: Some(sender),
+                 data: None,
++                native: None,
+                 deadline,
+             },
+             receiver,
+@@ -168,22 +170,25 @@
+     ) -> (
+         DeliveryOrigin,
+         HandlerReplies,
+-        AuthorityLease,
+-        oneshot::Sender<Result<(), DispatchError>>,
++        Option<AuthorityLease>,
++        Option<oneshot::Sender<Result<(), DispatchError>>>,
+         Instant,
+         Option<DataPending>,
++        Option<super::lifecycle::NativePending>,
+     ) {
+         let origin = match &self.origin {
+             DeliveryOrigin::Subscription(s) => DeliveryOrigin::Subscription(s.clone()),
+             DeliveryOrigin::Data(s) => DeliveryOrigin::Data(s.clone()),
++            DeliveryOrigin::NativeLifecycle(s) => DeliveryOrigin::NativeLifecycle(s.clone()),
+         };
+         (
+             origin,
+             self.frames.take().expect("one delivery"),
+-            self.authority.take().expect("owned authority"),
+-            self.completion.take().expect("one completion"),
++            self.authority.take(),
++            self.completion.take(),
+             self.deadline,
+             self.data.take(),
++            self.native.take(),
+         )
+     }
+ }
+diff --git a/crates/uctp/rvoip-uctp/src/v2/auth_peer/exchange.rs b/crates/uctp/rvoip-uctp/src/v2/auth_peer/exchange.rs
+--- a/crates/uctp/rvoip-uctp/src/v2/auth_peer/exchange.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/auth_peer/exchange.rs
+@@ -297,6 +297,7 @@
+     bye: bool,
+     data: Option<DataPending>,
+     answer: Option<PendingAnswer>,
++    native_fence: Option<Arc<dyn super::super::auth_dispatch::lifecycle::NativeLifecycleFence>>,
+ }
+ // A sink may own its in-progress IO future after SinkExt::send is dropped.
+ // On cancellation/future drop, destroy that sink before releasing authority.
+@@ -401,6 +402,14 @@
+             && !job.lifetime.is_cancelled()
+             && job.deadline > Instant::now()
+             && answer.permit.current()
++            && job
++                .native_fence
++                .as_ref()
++                .is_none_or(|origin| origin.current())
++            && !job
++                .cancel
++                .as_ref()
++                .is_some_and(CancellationToken::is_cancelled)
+             && !job
+                 .authority
+                 .as_ref()
+@@ -443,6 +452,7 @@
+             });
+             tokio::select! {biased;
+                 _=answer.permit.cancel.cancelled()=>Err(DispatchError::Closed),
++                _=async{match &job.cancel{Some(t)=>t.cancelled().await,None=>std::future::pending().await}}=>Err(DispatchError::Closed),
+                 _=stop.cancelled()=>Err(DispatchError::Closed),
+                 _=job.lifetime.cancelled()=>Err(DispatchError::Closed),
+                 _=async{match &job.authority{Some(t)=>t.cancelled().await,None=>std::future::pending().await}}=>Err(DispatchError::Authority),
+@@ -634,6 +644,7 @@
+         delivery: None,
+         data: None,
+         answer: None,
++        native_fence: None,
+     }
+ }
+ struct RetainedOutbound {
+@@ -833,18 +844,20 @@
+               result=&mut writing=>{writer_done=true;break result;},
+               result=&mut delivery,if view.authenticated && !defer_delivery=>{
+                 delivery=Box::pin(handler.next_delivery());
+-                let (origin,frames,lease,done,submission_deadline,data)=result?.into_parts();
+-                let is_data=data.is_some();defer_delivery=is_data;
+-                if !origin.current() || view.incarnation!=Some(origin.incarnation()) {let _=done.send(Err(DispatchError::Closed));continue;}
+-                // Leave a slot for control even under sustained data load.
+-                if is_data && slots.available_permits()<=1 {let _=done.send(Err(DispatchError::Capacity));continue;}
+-                let slot=match slots.clone().try_acquire_owned(){Ok(slot)=>slot,Err(_) if is_data=>{let _=done.send(Err(DispatchError::Capacity));continue;},Err(_)=>return Err(DispatchError::Capacity)};
++                let (origin,frames,lease,done,submission_deadline,data,native)=result?.into_parts();
++                let unsolicited=data.is_some()||native.is_some();defer_delivery=unsolicited;
++                if (native.is_some() && (data.is_some()||lease.is_some())) || (native.is_none()&&lease.is_none()) {return Err(DispatchError::Authority);}
++                if !origin.current() || view.incarnation!=Some(origin.incarnation()) {if let Some(done)=done{let _=done.send(Err(DispatchError::Closed));}continue;}
++                // Leave a slot for control under sustained data/event load.
++                if unsolicited && slots.available_permits()<=1 {if let Some(done)=done{let _=done.send(Err(DispatchError::Capacity));}continue;}
++                let slot=match slots.clone().try_acquire_owned(){Ok(slot)=>slot,Err(_) if unsolicited=>{if let Some(done)=done{let _=done.send(Err(DispatchError::Capacity));}continue;},Err(_)=>return Err(DispatchError::Capacity)};
+                 let frames=frames.into_envelopes().into_iter().map(|frame|signed(&config,frame.original().clone())).collect::<Result<Vec<_>,_>>()?;
+-                let mut send=job(output(frames,Some(lease)),submission_deadline.min(view.deadline),&physical,view.authority.clone(),Some(slot));
+-                send.cancel=Some(origin.cancellation());send.delivery=Some(done);send.data=data;
++                let mut send=job(output(frames,lease),submission_deadline.min(view.deadline),&physical,view.authority.clone(),Some(slot));
++                send.cancel=Some(origin.cancellation());send.delivery=done;send.data=data;
++                if let Some(native)=native{send.native_fence=Some(Arc::new(native.origin));send.answer=Some(native.answer);}
+                 if let Err(error)=write_tx.try_send(send) {
+                     let mut send=error.into_inner();
+-                    if is_data {if let Some(done)=send.delivery.take(){let _=done.send(Err(DispatchError::Capacity));}}
++                    if unsolicited {if let Some(done)=send.delivery.take(){let _=done.send(Err(DispatchError::Capacity));}}
+                     else {return Err(DispatchError::Capacity)}
+                 }
+ 
+@@ -949,6 +962,7 @@
+ #[cfg(test)]
+ mod tests {
+     use super::*;
++    use std::sync::atomic::AtomicUsize;
+     struct PendingSink {
+         domain: Arc<tokio::sync::RwLock<()>>,
+         live: Arc<AtomicBool>,
+@@ -1077,4 +1091,141 @@
+             assert!(domain.try_write().is_ok());
+         }
+     }
+-}
++    struct EventFence {
++        live: AtomicBool,
++        token: CancellationToken,
++    }
++    impl crate::v2::auth_dispatch::lifecycle::NativeLifecycleFence for EventFence {
++        fn current(&self) -> bool {
++            self.live.load(Ordering::Acquire) && !self.token.is_cancelled()
++        }
++        fn cancellation(&self) -> CancellationToken {
++            self.token.child_token()
++        }
++    }
++    #[derive(Default)]
++    struct CountingSink(Arc<AtomicUsize>);
++    impl Sink<Bytes> for CountingSink {
++        type Error = DispatchError;
++        fn poll_ready(
++            self: std::pin::Pin<&mut Self>,
++            _: &mut std::task::Context<'_>,
++        ) -> std::task::Poll<Result<(), Self::Error>> {
++            std::task::Poll::Ready(Ok(()))
++        }
++        fn start_send(self: std::pin::Pin<&mut Self>, _: Bytes) -> Result<(), Self::Error> {
++            self.0.fetch_add(1, Ordering::AcqRel);
++            Ok(())
++        }
++        fn poll_flush(
++            self: std::pin::Pin<&mut Self>,
++            _: &mut std::task::Context<'_>,
++        ) -> std::task::Poll<Result<(), Self::Error>> {
++            std::task::Poll::Ready(Ok(()))
++        }
++        fn poll_close(
++            self: std::pin::Pin<&mut Self>,
++            cx: &mut std::task::Context<'_>,
++        ) -> std::task::Poll<Result<(), Self::Error>> {
++            self.poll_flush(cx)
++        }
++    }
++    fn event_frame() -> Envelope {
++        Envelope::from_value(json!({"v":2,"type":"connection.ready","id":"event_probe","ts":chrono::Utc::now(),"cid":"c","sid":"s","connid":"n","payload":{"streams":[{"strm_id":"audio","kind":"audio","codec":{"name":"pcmu","params":{"sample_rate":8000,"channels":1,"payload_type":0}},"direction":"sendrecv","stream_local_id":1}]}})).unwrap()
++    }
++    #[tokio::test]
++    async fn native_lifecycle_stale_dequeued_fence_refuses_io_and_preserves_the_physical_writer() {
++        let domain = Arc::new(tokio::sync::RwLock::new(()));
++        let permit = AnswerPermit::new(
++            AuthorityLease::holding(domain.clone().read_owned().await),
++            CancellationToken::new(),
++            Instant::now() + Duration::from_secs(1),
++        );
++        let fence = Arc::new(EventFence {
++            live: AtomicBool::new(false),
++            token: CancellationToken::new(),
++        });
++        let sink = CountingSink::default();
++        let sent = sink.0.clone();
++        let mut writer = Some(sink);
++        let mut queued = job(
++            output(vec![event_frame()], None),
++            permit.deadline,
++            &CancellationToken::new(),
++            None,
++            None,
++        );
++        queued.native_fence = Some(fence);
++        let (done, receipt) = oneshot::channel();
++        let pending = PendingAnswer {
++            cancel_on_drop: true,
++            permit,
++            completion: Some(done),
++        };
++        write_answer(&mut writer, &mut queued, pending, &CancellationToken::new())
++            .await
++            .unwrap();
++        assert_eq!(receipt.await.unwrap(), Err(DispatchError::Closed));
++        assert_eq!(sent.load(Ordering::Acquire), 0);
++        assert!(writer.is_some());
++        assert!(domain.try_write().is_ok());
++    }
++    #[tokio::test]
++    async fn native_lifecycle_revision_or_credential_retirement_aborts_sink_before_releasing_reader(
++    ) {
++        for credential in [false, true] {
++            let domain = Arc::new(tokio::sync::RwLock::new(()));
++            let live = Arc::new(AtomicBool::new(true));
++            let entered = Arc::new(Notify::new());
++            let sink = PendingSink {
++                domain: domain.clone(),
++                live: live.clone(),
++                entered: entered.clone(),
++            };
++            let epoch = CancellationToken::new();
++            let credential_lifetime = CancellationToken::new();
++            let permit = AnswerPermit::new(
++                AuthorityLease::holding(domain.clone().read_owned().await),
++                epoch.child_token(),
++                Instant::now() + Duration::from_secs(1),
++            );
++            let mut queued = job(
++                output(vec![event_frame()], None),
++                permit.deadline,
++                &CancellationToken::new(),
++                None,
++                None,
++            );
++            queued.cancel = Some(credential_lifetime.clone());
++            queued.native_fence = Some(Arc::new(EventFence {
++                live: AtomicBool::new(true),
++                token: epoch.clone(),
++            }));
++            let (done, receipt) = oneshot::channel();
++            queued.answer = Some(PendingAnswer {
++                cancel_on_drop: true,
++                permit: permit.clone(),
++                completion: Some(done),
++            });
++            let (send, receive) = mpsc::channel(1);
++            send.send(queued).await.unwrap();
++            let task = tokio::spawn(writes(sink, receive, CancellationToken::new()));
++            tokio::time::timeout(Duration::from_secs(1), entered.notified())
++                .await
++                .unwrap();
++            assert!(domain.try_write().is_err());
++            if credential {
++                credential_lifetime.cancel();
++            } else {
++                epoch.cancel();
++            }
++            assert_eq!(task.await.unwrap(), Err(DispatchError::SubmissionUnknown));
++            assert_eq!(
++                receipt.await.unwrap(),
++                Err(DispatchError::SubmissionUnknown)
++            );
++            assert!(!live.load(Ordering::Acquire));
++            assert!(domain.try_write().is_ok());
++        }
++    }
++}
+diff --git a/crates/uctp/rvoip-uctp/src/v2/mod.rs b/crates/uctp/rvoip-uctp/src/v2/mod.rs
+--- a/crates/uctp/rvoip-uctp/src/v2/mod.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/mod.rs
+@@ -9,6 +9,7 @@
+ pub mod auth_dispatch;
+ pub mod auth_peer;
+ pub mod native;
++pub mod native_lifecycle;
+ pub mod native_media;
+ pub mod native_negotiation;
+ pub mod reachability;
+diff --git a/crates/uctp/rvoip-uctp/src/v2/native.rs b/crates/uctp/rvoip-uctp/src/v2/native.rs
+--- a/crates/uctp/rvoip-uctp/src/v2/native.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/native.rs
+@@ -329,17 +329,21 @@
+             Some(media) => crate::staged_media::native_handles(media.router(), scope.owner.clone()),
+             None => route.physical.data.handles(scope.owner.clone()),
+         };
++        let flow = crate::native_flow::NativeFlow::new(route.cancel.child_token());
+         let backend = Arc::new(crate::staged_data::NativeMedia {
++            flow: flow.clone(),
++            announcements: Arc::new(tokio::sync::Mutex::new(Default::default())),
+             negotiation,
+             rtp: rtp.map(|negotiator| {
+                 let media = media.as_ref().expect("RTP media checked");
+-                crate::staged_media::StagedRtpMedia::new(
++                crate::staged_media::StagedRtpMedia::new_with_flow(
+                     scope.clone(),
+                     media.router(),
+                     streams.clone(),
+                     negotiator,
+                     media.datagrams(),
+                     route.cancel.clone(),
++                    Some(flow.clone()),
+                 )
+             }),
+             data: data.map(|negotiator| {
+@@ -350,6 +354,7 @@
+                     negotiator,
+                     route.cancel.clone(),
+                     streams.clone(),
++                    Some(flow.clone()),
+                 )
+             }),
+         });
+@@ -563,9 +568,59 @@
+             )
+             .await
+         {
+-            Ok(()) => guard.result(&controller),
++            Ok(()) => {
++                if let Some(installed) = route
++                    .installation
++                    .lock()
++                    .unwrap_or_else(|p| p.into_inner())
++                    .as_ref()
++                {
++                    installed
++                        .backend
++                        .flow
++                        .confirmed(expected + 1, a.envelope().id());
++                }
++                guard.result(&controller)
++            }
+             Err(e) => Err(guard.error(e)),
+         }
++    }
++    /// A metadata-only event registration after this exact signed native
++    /// negotiation. Each delivery needs a new explicit current-policy lease.
++    pub fn native_lifecycle_registration(
++        &self,
++        id: &ConnectionId,
++        a: &super::auth_dispatch::AuthorizedEnvelope,
++        policy: Arc<dyn super::native_lifecycle::NativeLifecyclePolicy>,
++    ) -> std::result::Result<
++        Arc<super::native_lifecycle::NativeLifecycleRegistration>,
++        super::native_negotiation::NativeOfferError,
++    > {
++        use super::native_negotiation::NativeOfferError;
++        let route = self.data_route(id, a)?;
++        let installed = route.installation.lock().unwrap_or_else(|p| p.into_inner());
++        let installed = installed.as_ref().ok_or(NativeOfferError::Unsupported)?;
++        if installed.backend.negotiation.is_none() || !a.supports_native_negotiation() {
++            return Err(NativeOfferError::Scope);
++        }
++        let scope = installed
++            .backend
++            .negotiation
++            .as_ref()
++            .ok_or(NativeOfferError::Unsupported)?
++            .scope()
++            .clone();
++        super::native_lifecycle::NativeLifecycleRegistration::new(
++            a,
++            &installed.controller,
++            installed.backend.flow.clone(),
++            scope,
++            &route.member,
++            &route.endpoint,
++            policy,
++            installed.backend.announcements.clone(),
++        )
++        .map_err(NativeOfferError::Dispatch)
+     }
+     /// Bind the recipient's own authenticated incarnation to this exact route.
+     /// Later deliveries still need fresh source/recipient/key authority.
+diff --git a/crates/uctp/rvoip-uctp/src/v2/native_lifecycle.rs b/crates/uctp/rvoip-uctp/src/v2/native_lifecycle.rs
+new file mode 100644
+--- /dev/null
++++ b/crates/uctp/rvoip-uctp/src/v2/native_lifecycle.rs
+@@ -0,0 +1,434 @@
++//! Signed native lifecycle facts derived from exact installed ports and real IO.
++//! This is not Participant presence, durable Session projection or a receipt.
++use super::auth_dispatch::lifecycle::{NativeLifecycleFence, NativeLifecycleOrigin};
++use super::{auth_dispatch::*, Envelope};
++use crate::{native_flow::NativeFlow, staged_media::StagedRtpScope};
++use async_trait::async_trait;
++use rvoip_core::{
++    identity::AuthenticatedPrincipal, ids::*, staged_streams::StreamController, stream_lifecycle::*,
++};
++use serde_json::{json, Value};
++use std::{
++    collections::BTreeMap,
++    sync::{Arc, Mutex, Weak},
++    time::Duration,
++};
++use tokio::time::Instant;
++use tokio_util::sync::CancellationToken;
++#[derive(Clone)]
++pub enum NativeLifecycleEvent {
++    ConnectionReady {
++        streams: Vec<ReadyMediaBinding>,
++    },
++    StreamOpened {
++        stream: ReadyMediaBinding,
++    },
++    StreamClosed {
++        stream: ReadyMediaBinding,
++        replaced: bool,
++    },
++}
++impl std::fmt::Debug for NativeLifecycleEvent {
++    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
++        f.write_str("NativeLifecycleEvent(redacted)")
++    }
++}
++/// Immutable physical-origin scope. A host must derive a new current guard for
++/// the exact member/epoch/device, credential and event; metadata is no grant.
++pub struct NativeLifecycleScope {
++    pub principal: AuthenticatedPrincipal,
++    pub media: StagedRtpScope,
++    pub participant: ParticipantId,
++    pub membership_epoch: u64,
++    pub device: DeviceId,
++    pub endpoint: EndpointId,
++    pub identity: IdentityId,
++}
++#[async_trait]
++pub trait NativeLifecyclePolicy: Send + Sync {
++    async fn authorize(
++        &self,
++        scope: &NativeLifecycleScope,
++        event: &NativeLifecycleEvent,
++    ) -> Result<AuthorityLease, DispatchError>;
++}
++#[derive(Default)]
++pub(crate) struct Announcements {
++    ready: bool,
++    opened: BTreeMap<StreamId, ReadyMediaBinding>,
++    pending: Option<Pending>,
++}
++struct Pending {
++    event: NativeLifecycleEvent,
++    result: Arc<Mutex<Option<Result<(), DispatchError>>>>,
++    task: tokio::task::JoinHandle<()>,
++    permit: Arc<AnswerPermit>,
++}
++impl Drop for Pending {
++    fn drop(&mut self) {
++        self.permit.cancel();
++        self.task.abort();
++    }
++}
++struct FrameFence {
++    controller: Weak<StreamController>,
++    flow: Arc<NativeFlow>,
++    revision: u64,
++    event: NativeLifecycleEvent,
++    epoch: CancellationToken,
++}
++impl NativeLifecycleFence for FrameFence {
++    fn current(&self) -> bool {
++        if self.epoch.is_cancelled() || !self.flow.current() {
++            return false;
++        }
++        let Some(c) = self.controller.upgrade() else {
++            return false;
++        };
++        if c.revision() != self.revision {
++            return false;
++        }
++        let active = c.active_bindings();
++        let observed = match &self.event {
++            NativeLifecycleEvent::ConnectionReady { streams } => {
++                self.flow.confirmed_at(self.revision)
++                    && !streams.is_empty()
++                    && active.len() == streams.len()
++                    && streams.iter().all(|b| {
++                        active
++                            .iter()
++                            .any(|a| crate::staged_media::same_binding(a, b))
++                            && self.flow.flowing(b)
++                    })
++            }
++            NativeLifecycleEvent::StreamOpened { stream } => {
++                self.flow.confirmed_at(self.revision)
++                    && active
++                        .iter()
++                        .any(|a| crate::staged_media::same_binding(a, stream))
++                    && self.flow.flowing(stream)
++            }
++            NativeLifecycleEvent::StreamClosed { stream, .. } => {
++                !active.iter().any(|a| a.transport_id == stream.transport_id)
++            }
++        };
++        observed && !self.epoch.is_cancelled() && c.revision() == self.revision
++    }
++    fn cancellation(&self) -> CancellationToken {
++        self.epoch.child_token()
++    }
++}
++struct RouteFence {
++    flow: Arc<NativeFlow>,
++}
++impl NativeLifecycleFence for RouteFence {
++    fn current(&self) -> bool {
++        self.flow.current()
++    }
++    fn cancellation(&self) -> CancellationToken {
++        self.flow.epoch()
++    }
++}
++/// Register after actual signed parameter negotiation/local graph commit. The
++/// observer holds no original authority reader and cannot manufacture frames.
++pub struct NativeLifecycleRegistration {
++    origin: NativeLifecycleOrigin,
++    controller: Weak<StreamController>,
++    flow: Arc<NativeFlow>,
++    scope: NativeLifecycleScope,
++    policy: Arc<dyn NativeLifecyclePolicy>,
++    state: Arc<tokio::sync::Mutex<Announcements>>,
++    pending_write: Mutex<Option<Weak<AnswerPermit>>>,
++}
++impl Drop for NativeLifecycleRegistration {
++    fn drop(&mut self) {
++        self.origin.retire();
++        if let Some(permit) = self
++            .pending_write
++            .lock()
++            .unwrap_or_else(|p| p.into_inner())
++            .as_ref()
++            .and_then(Weak::upgrade)
++        {
++            permit.cancel();
++        }
++    }
++}
++impl NativeLifecycleRegistration {
++    pub(crate) fn new(
++        a: &AuthorizedEnvelope,
++        controller: &Arc<StreamController>,
++        flow: Arc<NativeFlow>,
++        scope: StagedRtpScope,
++        member: &rvoip_core::relationships::Membership,
++        endpoint: &rvoip_core::relationships::EndpointBinding,
++        policy: Arc<dyn NativeLifecyclePolicy>,
++        state: Arc<tokio::sync::Mutex<Announcements>>,
++    ) -> Result<Arc<Self>, DispatchError> {
++        if !flow.confirmed_for(controller.revision(), a.envelope().id())
++            || controller.revision() == 0
++        {
++            return Err(DispatchError::Authority);
++        }
++        let origin = NativeLifecycleOrigin::seal(
++            a,
++            controller,
++            scope.clone(),
++            member,
++            endpoint,
++            Arc::new(RouteFence { flow: flow.clone() }),
++        )?;
++        Ok(Arc::new(Self {
++            origin,
++            controller: Arc::downgrade(controller),
++            flow,
++            scope: NativeLifecycleScope {
++                principal: a.principal().clone(),
++                media: scope,
++                participant: member.participant().clone(),
++                membership_epoch: member.epoch(),
++                device: endpoint.device().clone(),
++                endpoint: endpoint.endpoint().clone(),
++                identity: member.identity().clone(),
++            },
++            policy,
++            state,
++            pending_write: Mutex::new(None),
++        }))
++    }
++    pub fn current(&self) -> bool {
++        self.origin.current()
++    }
++    pub async fn next_delivery(&self) -> Result<HandlerDelivery, DispatchError> {
++        loop {
++            if !self.origin.current() {
++                return Err(DispatchError::Closed);
++            }
++            let changed = self.flow.changed.notified();
++            tokio::pin!(changed);
++            changed.as_mut().enable();
++            if !self.origin.ready() {
++                tokio::select! {_=self.origin.cancellation().cancelled_owned()=>return Err(DispatchError::Closed),_=tokio::time::sleep(Duration::from_millis(5))=>{}}
++                continue;
++            }
++            let Some(controller) = self.controller.upgrade() else {
++                return Err(DispatchError::Closed);
++            };
++            let revision = controller.revision();
++            let active = controller.active_bindings();
++            let mut state = self.state.lock().await;
++            if let Some(pending) = state.pending.as_ref() {
++                let result = *pending.result.lock().unwrap_or_else(|p| p.into_inner());
++                if let Some(result) = result {
++                    let pending = state.pending.take().expect("locked pending event");
++                    if result.is_ok() {
++                        apply(&mut state, pending.event.clone());
++                    }
++                    // A failed/uncertain hint is reconstructed only from current
++                    // facts. It does not manufacture a committed business result.
++                } else {
++                    drop(state);
++                    tokio::select! {_=self.origin.cancellation().cancelled_owned()=>return Err(DispatchError::Closed),_=&mut changed=>{},_=tokio::time::sleep(Duration::from_millis(10))=>{}}
++                    continue;
++                }
++            }
++            let event = choose(&state, &active, revision, &self.flow);
++            let Some(event) = event else {
++                drop(state);
++                tokio::select! {_=self.origin.cancellation().cancelled_owned()=>return Err(DispatchError::Closed),_=&mut changed=>{},_=tokio::time::sleep(Duration::from_millis(20))=>{}}
++                continue;
++            };
++            let fence = Arc::new(FrameFence {
++                controller: Arc::downgrade(&controller),
++                flow: self.flow.clone(),
++                revision,
++                event: event.clone(),
++                epoch: self.flow.epoch(),
++            });
++            let origin = self.origin.with_fence(fence);
++            let deadline = Instant::now() + Duration::from_secs(1);
++            let cancellation = origin.cancellation();
++            let authority = tokio::select! {biased;_=cancellation.cancelled()=>return Err(DispatchError::Closed),_=tokio::time::sleep_until(deadline)=>return Err(DispatchError::Closed),r=self.policy.authorize(&self.scope,&event)=>r?};
++            if !origin.current() {
++                continue;
++            }
++            let permit = AnswerPermit::new(authority, origin.event_cancellation(), deadline);
++            let (written, receipt) = tokio::sync::oneshot::channel();
++            let result = Arc::new(Mutex::new(None));
++            let frame = frame(&self.scope.media, &event)?;
++            let delivery = HandlerDelivery::native_lifecycle(
++                origin.clone(),
++                frame,
++                permit.clone(),
++                written,
++                deadline,
++            )?;
++            *self.pending_write.lock().unwrap_or_else(|p| p.into_inner()) =
++                Some(Arc::downgrade(&permit));
++            let pending_result = result.clone();
++            let pending_permit = permit.clone();
++            let changed_flow = self.flow.clone();
++            let task = tokio::spawn(async move {
++                // Producer custody exists only for this bounded pending write.
++                // The real guard leaves the slot only when actual IO claims it.
++                let _custody = AnswerCancellation(permit.clone());
++                let cancelled = origin.cancellation();
++                // Writer completion wins a simultaneous retirement. Dropping
++                // its consumed PendingAnswer also cancels the spent permit.
++                let outcome = tokio::select! {biased;r=receipt=>r.unwrap_or(Err(DispatchError::Closed)).map(|_|()),_=cancelled.cancelled()=>Err(DispatchError::Closed),_=permit.cancel.cancelled()=>Err(DispatchError::Closed),_=tokio::time::sleep_until(permit.deadline)=>Err(permit.uncertainty())};
++                *result.lock().unwrap_or_else(|p| p.into_inner()) = Some(outcome);
++                changed_flow.changed.notify_waiters();
++            });
++            state.pending = Some(Pending {
++                event,
++                result: pending_result,
++                task,
++                permit: pending_permit,
++            });
++            return Ok(delivery);
++        }
++    }
++}
++fn choose(
++    state: &Announcements,
++    active: &[ReadyMediaBinding],
++    revision: u64,
++    flow: &NativeFlow,
++) -> Option<NativeLifecycleEvent> {
++    if !state.ready {
++        return (!active.is_empty()
++            && flow.confirmed_at(revision)
++            && active.iter().all(|b| flow.flowing(b)))
++        .then(|| NativeLifecycleEvent::ConnectionReady {
++            streams: active.to_vec(),
++        });
++    }
++    for old in state.opened.values() {
++        if !active
++            .iter()
++            .any(|a| crate::staged_media::same_binding(a, old))
++        {
++            return Some(NativeLifecycleEvent::StreamClosed {
++                stream: old.clone(),
++                replaced: active.iter().any(|a| {
++                    a.negotiated.requested.logical_id == old.negotiated.requested.logical_id
++                }),
++            });
++        }
++    }
++    for binding in active {
++        if !state
++            .opened
++            .contains_key(&binding.negotiated.requested.logical_id)
++            && flow.confirmed_at(revision)
++            && flow.flowing(binding)
++        {
++            return Some(NativeLifecycleEvent::StreamOpened {
++                stream: binding.clone(),
++            });
++        }
++    }
++    None
++}
++fn apply(state: &mut Announcements, event: NativeLifecycleEvent) {
++    match event {
++        NativeLifecycleEvent::ConnectionReady { .. } => state.ready = true,
++        NativeLifecycleEvent::StreamOpened { stream } => {
++            state
++                .opened
++                .insert(stream.negotiated.requested.logical_id.clone(), stream);
++        }
++        NativeLifecycleEvent::StreamClosed { stream, .. } => {
++            state.opened.remove(&stream.negotiated.requested.logical_id);
++        }
++    }
++}
++fn binding(b: &ReadyMediaBinding) -> Value {
++    use super::native_negotiation::catalog::{codec_wire, direction, kind, payload_type};
++    json!({"strm_id":b.negotiated.requested.logical_id.as_str(),"kind":kind(b.negotiated.requested.medium),"codec":codec_wire(&b.negotiated.format,payload_type(&b.negotiated.format)),"direction":direction(b.negotiated.requested.direction),"stream_local_id":b.stream_local_id})
++}
++fn frame(scope: &StagedRtpScope, event: &NativeLifecycleEvent) -> Result<Envelope, DispatchError> {
++    let (name, payload) = match event {
++        NativeLifecycleEvent::ConnectionReady { streams } => (
++            "connection.ready",
++            json!({"streams":streams.iter().map(binding).collect::<Vec<_>>()}),
++        ),
++        NativeLifecycleEvent::StreamOpened { stream } => {
++            let mut b = binding(stream);
++            b["opened_at"] = json!(chrono::Utc::now());
++            ("stream.opened", json!({"stream":b}))
++        }
++        NativeLifecycleEvent::StreamClosed { stream, replaced } => (
++            "stream.closed",
++            json!({"strm_id":stream.negotiated.requested.logical_id.as_str(),"closed_at":chrono::Utc::now(),"reason_code":200,"reason":if *replaced{"codec-renegotiated"}else{"native-stream-ended"}}),
++        ),
++    };
++    Envelope::from_value(json!({"v":2,"type":name,"id":format!("native_event_{}",uuid::Uuid::new_v4().simple()),"ts":chrono::Utc::now(),"cid":scope.wire_conversation,"sid":scope.wire_session,"connid":scope.wire_connection,"payload":payload})).map_err(DispatchError::from)
++}
++
++/// One physical handler can own many Connections. A refused or expired event
++/// registration is removed locally; it does not retire unrelated Connections.
++#[derive(Default)]
++pub struct NativeLifecycleMux {
++    registrations: Mutex<BTreeMap<ConnectionId, Arc<NativeLifecycleRegistration>>>,
++    changed: tokio::sync::Notify,
++}
++impl NativeLifecycleMux {
++    pub fn register(
++        &self,
++        id: ConnectionId,
++        registration: Arc<NativeLifecycleRegistration>,
++    ) -> Result<(), DispatchError> {
++        let mut entries = self.registrations.lock().unwrap_or_else(|p| p.into_inner());
++        if entries.len() >= 64 && !entries.contains_key(&id) {
++            return Err(DispatchError::Capacity);
++        }
++        entries.insert(id, registration);
++        drop(entries);
++        self.changed.notify_waiters();
++        Ok(())
++    }
++    pub fn remove(&self, id: &ConnectionId) {
++        self.registrations
++            .lock()
++            .unwrap_or_else(|p| p.into_inner())
++            .remove(id);
++        self.changed.notify_waiters();
++    }
++    pub async fn next_delivery(&self) -> Result<HandlerDelivery, DispatchError> {
++        use futures::{stream::FuturesUnordered, StreamExt};
++        loop {
++            let changed = self.changed.notified();
++            tokio::pin!(changed);
++            changed.as_mut().enable();
++            let snapshot = self
++                .registrations
++                .lock()
++                .unwrap_or_else(|p| p.into_inner())
++                .iter()
++                .map(|(id, reg)| (id.clone(), reg.clone()))
++                .collect::<Vec<_>>();
++            let mut waiting = FuturesUnordered::new();
++            for (id, registration) in snapshot {
++                waiting.push(async move {
++                    let result = registration.next_delivery().await;
++                    (id, registration, result)
++                });
++            }
++            let next = async {
++                if waiting.is_empty() {
++                    std::future::pending().await
++                } else {
++                    waiting.next().await.expect("nonempty registrations")
++                }
++            };
++            tokio::select! {
++                _=&mut changed=>continue,
++                (id,registration,result)=next=>match result{
++                    Ok(delivery)=>return Ok(delivery),
++                    Err(_)=>{let mut entries=self.registrations.lock().unwrap_or_else(|p|p.into_inner());if entries.get(&id).is_some_and(|current|Arc::ptr_eq(current,&registration)){entries.remove(&id);}}
++                }
++            }
++        }
++    }
++}
+diff --git a/crates/uctp/rvoip-uctp/src/v2/native_negotiation/mod.rs b/crates/uctp/rvoip-uctp/src/v2/native_negotiation/mod.rs
+--- a/crates/uctp/rvoip-uctp/src/v2/native_negotiation/mod.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/native_negotiation/mod.rs
+@@ -14,7 +14,7 @@
+ };
+ use tokio::time::Instant;
+ use tokio_util::sync::CancellationToken;
+-mod catalog;
++pub(crate) mod catalog;
+ use catalog::{codec_wire, direction, format_name, kind, payload_type, peer_direction};
+ pub use catalog::{NativeMediaProfile, NativeOfferPlan};
+ 
+@@ -173,6 +173,9 @@
+     }
+ }
+ impl NativeNegotiation {
++    pub(crate) fn scope(&self) -> &StagedRtpScope {
++        &self.scope
++    }
+     pub(crate) fn new(
+         scope: StagedRtpScope,
+         profile: Arc<NativeMediaProfile>,
+diff --git a/crates/uctp/rvoip-uctp/tests/support/canonical_media/native_offers.rs b/crates/uctp/rvoip-uctp/tests/support/canonical_media/native_offers.rs
+--- a/crates/uctp/rvoip-uctp/tests/support/canonical_media/native_offers.rs
++++ b/crates/uctp/rvoip-uctp/tests/support/canonical_media/native_offers.rs
+@@ -4,6 +4,7 @@
+ use super::*;
+ use rvoip_auth_core::sig9421::PrincipalVerificationKey;
+ use rvoip_core::capability::{AssuranceLevel, DataProtocol};
++use rvoip_uctp::v2::native_lifecycle::*;
+ use rvoip_uctp::{
+     staged_data::NativeDataOutcome,
+     v2::{native_negotiation::*, payloads::Payload},
+@@ -13,6 +14,8 @@
+ struct State {
+     owners: HashMap<ConnectionId, MediaOwner>,
+     denied: bool,
++    event_denied: BTreeSet<ConnectionId>,
++    wires: HashMap<String, ConnectionId>,
+     key: ResolvedVerificationKey,
+ }
+ struct Grants(Arc<RwLock<State>>);
+@@ -247,6 +250,11 @@
+ struct Record {
+     results: Mutex<Vec<Result<NativeOfferOutcome, NativeOfferError>>>,
+     media: Mutex<Option<Arc<NativePeerMedia>>>,
++    lifecycle: AtomicBool,
++    event_approvals: AtomicUsize,
++    event_attempts: AtomicUsize,
++    probe_other_scope: AtomicBool,
++    other_scope_refused: AtomicBool,
+ }
+ struct Observer;
+ impl NativeDataObserver for Observer {
+@@ -266,6 +274,7 @@
+     grants: Arc<Grants>,
+     profile: Arc<NativeMediaProfile>,
+     record: Arc<Record>,
++    events: Arc<NativeLifecycleMux>,
+ }
+ impl PhysicalHandlerFactory for OfferFactory {
+     fn handler(
+@@ -280,11 +289,15 @@
+             grants: self.grants.clone(),
+             profile: self.profile.clone(),
+             record: self.record.clone(),
++            events: Arc::new(NativeLifecycleMux::default()),
+         }))
+     }
+ }
+ #[async_trait]
+ impl AuthenticatedHandler for OfferHandler {
++    async fn next_delivery(&self) -> Result<HandlerDelivery, DispatchError> {
++        self.events.next_delivery().await
++    }
+     async fn handle(&self, _: AuthorizedEnvelope) -> Result<Envelope, DispatchError> {
+         Err(DispatchError::Unsupported)
+     }
+@@ -359,6 +372,40 @@
+         if !ok {
+             return Err(DispatchError::Authority);
+         }
++        if self.record.lifecycle.load(Ordering::Acquire) {
++            if self.record.probe_other_scope.load(Ordering::Acquire) {
++                let other = &proof.guard.wires["native_0"];
++                if other != &id {
++                    let denied = adapter
++                        .native_lifecycle_registration(
++                            other,
++                            &a,
++                            Arc::new(EventPolicy {
++                                grants: self.grants.clone(),
++                                record: self.record.clone(),
++                            }),
++                        )
++                        .is_err();
++                    if !denied {
++                        return Err(DispatchError::Authority);
++                    }
++                    self.record
++                        .other_scope_refused
++                        .store(true, Ordering::Release);
++                }
++            }
++            let registration = adapter
++                .native_lifecycle_registration(
++                    &id,
++                    &a,
++                    Arc::new(EventPolicy {
++                        grants: self.grants.clone(),
++                        record: self.record.clone(),
++                    }),
++                )
++                .map_err(|_| DispatchError::Authority)?;
++            self.events.register(id, registration)?;
++        }
+         a.finish_answered_offer()
+     }
+ }
+@@ -395,6 +442,8 @@
+     id: ConnectionId,
+     kind: Transport,
+     profile: Arc<NativeMediaProfile>,
++    factory: Arc<OfferFactory>,
++    second_id: ConnectionId,
+ }
+ impl Scene {
+     async fn new(kind: &str, data: bool) -> Self {
+@@ -405,6 +454,8 @@
+             Transport::Quic
+         };
+         let id = policy.grants.read().await.connections["native_0"].clone();
++        let wire_ids = policy.grants.read().await.connections.clone();
++        let second_id = wire_ids["native_1"].clone();
+         let profile = profile(data);
+         let mut owner = media_owner(&native.core, &id, transport);
+         owner.local = profile.engine_capabilities().clone();
+@@ -413,9 +464,18 @@
+             owner.send_media.insert(Medium::Data);
+             owner.receive_media.insert(Medium::Data);
+         }
++        let mut second_owner = media_owner(&native.core, &second_id, transport);
++        second_owner.local = profile.engine_capabilities().clone();
++        second_owner.remote = second_owner.local.clone();
++        if data {
++            second_owner.send_media.insert(Medium::Data);
++            second_owner.receive_media.insert(Medium::Data);
++        }
+         let grants = Arc::new(Grants(Arc::new(RwLock::new(State {
+-            owners: HashMap::from([(id.clone(), owner)]),
++            owners: HashMap::from([(id.clone(), owner), (second_id.clone(), second_owner)]),
+             denied: false,
++            event_denied: BTreeSet::new(),
++            wires: wire_ids,
+             key: ResolvedVerificationKey {
+                 public_key: f.client_public.clone(),
+                 algorithm: "EdDSA".into(),
+@@ -437,7 +497,7 @@
+         });
+         let canonical = CanonicalProfile::new(f.config.clone(), Arc::new(Handler::default()), 8)
+             .unwrap()
+-            .with_physical_handlers(factory);
++            .with_physical_handlers(factory.clone());
+         let mut wire = wire(kind, canonical, "/uctp", Some("https://allowed.example"))
+             .await
+             .unwrap();
+@@ -451,7 +511,29 @@
+             id,
+             kind: transport,
+             profile,
+-        }
++            factory,
++            second_id,
++        }
++    }
++    async fn second_wire(&self) -> Wire {
++        let canonical =
++            CanonicalProfile::new(self.f.config.clone(), Arc::new(Handler::default()), 8)
++                .unwrap()
++                .with_physical_handlers(self.factory.clone());
++        let mut second = wire(
++            if self.kind == Transport::Quic {
++                "quic"
++            } else {
++                "wt"
++            },
++            canonical,
++            "/uctp",
++            Some("https://allowed.example"),
++        )
++        .await
++        .unwrap();
++        authenticate_wire(&mut second, &self.f).await;
++        second
+     }
+     fn controller(&self) -> Arc<StreamController> {
+         self.native.adapters[&self.kind]
+@@ -731,3 +813,373 @@
+     assert!(s.record.results.lock().unwrap()[0].is_ok());
+     s.wire.server.shutdown().await.unwrap();
+ }
++
++struct EventPolicy {
++    grants: Arc<Grants>,
++    record: Arc<Record>,
++}
++#[async_trait]
++impl NativeLifecyclePolicy for EventPolicy {
++    async fn authorize(
++        &self,
++        s: &NativeLifecycleScope,
++        event: &NativeLifecycleEvent,
++    ) -> Result<AuthorityLease, DispatchError> {
++        self.record.event_attempts.fetch_add(1, Ordering::AcqRel);
++        let guard = self.grants.0.clone().read_owned().await;
++        let owner = credential_owner(
++            guard
++                .owners
++                .get(&s.media.connection)
++                .ok_or(DispatchError::Authority)?
++                .clone(),
++            &s.principal,
++        )
++        .map_err(|_| DispatchError::Authority)?;
++        if guard.denied
++            || guard.event_denied.contains(&s.media.connection)
++            || !owner.may_control
++            || s.media.wire_conversation.as_deref() != Some("conversation")
++            || s.media.wire_session != "session"
++            || guard.wires.get(&s.media.wire_connection) != Some(&s.media.connection)
++            || s.media.owner != s.principal.ownership_key()
++            || s.participant != *owner.member.participant()
++            || s.membership_epoch != owner.member.epoch()
++            || s.device != *owner.endpoint.device()
++        {
++            return Err(DispatchError::Authority);
++        }
++        owner
++            .actor
++            .revalidate_principal(&s.principal, Utc::now())
++            .map_err(|_| DispatchError::Authority)?;
++        owner
++            .connection
++            .require_current(&owner.member, &owner.presence)
++            .map_err(|_| DispatchError::Authority)?;
++        if owner.endpoint.state() != EndpointState::Verified
++            || owner.endpoint.identity() != owner.member.identity()
++            || s.endpoint != *owner.endpoint.endpoint()
++            || s.identity != *owner.member.identity()
++            || owner.connection.endpoint() != owner.endpoint.endpoint()
++            || owner.connection.state() != BindingState::Active
++            || owner.actor.identity() != owner.member.identity()
++            || owner.actor.tenant() != owner.member.tenant()
++        {
++            return Err(DispatchError::Authority);
++        }
++        let streams = match event {
++            NativeLifecycleEvent::ConnectionReady { streams } => streams.as_slice(),
++            NativeLifecycleEvent::StreamOpened { stream }
++            | NativeLifecycleEvent::StreamClosed { stream, .. } => std::slice::from_ref(stream),
++        };
++        for b in streams {
++            if b.connection_generation != owner.connection.generation() {
++                return Err(DispatchError::Authority);
++            }
++            let req = &b.negotiated.requested;
++            if (req.direction != StreamDirection::Receive
++                && !owner.send_media.contains(&req.medium))
++                || (req.direction != StreamDirection::Send
++                    && !owner.receive_media.contains(&req.medium))
++            {
++                return Err(DispatchError::Authority);
++            }
++        }
++        self.record.event_approvals.fetch_add(1, Ordering::AcqRel);
++        Ok(AuthorityLease::holding(guard))
++    }
++}
++fn lifecycle_offer(s: &Scene, which: u8, revision: u64, direction: &str) -> Value {
++    let mut offer = s.offer(revision, false);
++    offer["connid"] = json!(format!("native_{which}"));
++    offer["payload"]["streams_offered"] =
++        json!([{"id":"first","kind":"audio","direction":direction,"codec_preferences":["pcmu"]}]);
++    offer
++}
++async fn other_prepared(s: &Scene, wire: &mut Wire, offer: Value) -> (Envelope, Envelope) {
++    wire.send(s.f.sign(offer)).await;
++    let answer = wire.read().await;
++    assert_eq!(answer.kind(), "connection.answer", "{answer:?}");
++    s.f.verify_server(&answer).await;
++    let callback = wire.read().await;
++    assert_eq!(callback.kind(), "connection.offer");
++    s.f.verify_server(&callback).await;
++    (answer, callback)
++}
++async fn no_event(wire: &mut Wire) {
++    assert!(
++        tokio::time::timeout(Duration::from_millis(70), wire.reader.next())
++            .await
++            .is_err(),
++        "a parameter confirmation alone must not emit native lifecycle facts"
++    );
++}
++#[tokio::test]
++async fn actual_signed_native_ready_and_opened_require_both_directions_on_exact_tls_binding() {
++    for kind in ["quic", "wt"] {
++        let mut s = Scene::new(kind, false).await;
++        s.record.lifecycle.store(true, Ordering::Release);
++        let mut other = s.second_wire().await;
++        let (one, c1) = s.prepared(lifecycle_offer(&s, 0, 0, "sendrecv")).await;
++        s.confirm(&c1).await;
++        s.wait(1).await;
++        let (two, c2) = other_prepared(&s, &mut other, lifecycle_offer(&s, 1, 0, "sendrecv")).await;
++        other.send(s.f.sign(s.confirmation(&c2))).await;
++        s.wait(2).await;
++        no_event(&mut s.wire).await;
++        no_event(&mut other).await;
++        let a = s.controller();
++        let b = s.native.adapters[&s.kind]
++            .media_controller(&s.second_id)
++            .unwrap();
++        let first = StreamId::from_string("first");
++        let mut ai = a.take_ingress(&first).unwrap();
++        let mut bi = b.take_ingress(&first).unwrap();
++        let ah = one.original()["payload"]["substrate_setup"]["streams"][0]["stream_local_id"]
++            .as_u64()
++            .unwrap() as u16;
++        let bh = two.original()["payload"]["substrate_setup"]["streams"][0]["stream_local_id"]
++            .as_u64()
++            .unwrap() as u16;
++        send(&s.wire, audio(ah, 0));
++        packet(&mut ai).await.try_forward_to(&b, &first).unwrap();
++        let to_b = received(&other).await;
++        assert_eq!(to_b.stream_local_id, bh);
++        decoded(&to_b);
++        no_event(&mut s.wire).await;
++        no_event(&mut other).await;
++        send(&other, audio(bh, 0));
++        packet(&mut bi).await.try_forward_to(&a, &first).unwrap();
++        let to_a = received(&s.wire).await;
++        assert_eq!(to_a.stream_local_id, ah);
++        decoded(&to_a);
++        for (wire, id, handle) in [(&mut s.wire, "native_0", ah), (&mut other, "native_1", bh)] {
++            let ready = wire.read().await;
++            assert_eq!(ready.kind(), "connection.ready");
++            s.f.verify_server(&ready).await;
++            assert_eq!(ready.scope(Scope::Connection), Some(id));
++            assert_eq!(
++                ready.original()["payload"]["streams"][0]["stream_local_id"],
++                handle
++            );
++            let opened = wire.read().await;
++            assert_eq!(opened.kind(), "stream.opened");
++            s.f.verify_server(&opened).await;
++            assert_eq!(
++                opened.original()["payload"]["stream"]["stream_local_id"],
++                handle
++            );
++            no_event(wire).await;
++        }
++        assert_eq!(s.record.event_approvals.load(Ordering::Acquire), 4);
++        s.wire.server.shutdown().await.unwrap();
++        other.server.shutdown().await.unwrap();
++    }
++}
++#[tokio::test]
++async fn actual_native_one_way_flow_opens_without_inventing_an_opposite_direction() {
++    let mut s = Scene::new("quic", false).await;
++    s.record.lifecycle.store(true, Ordering::Release);
++    let (answer, callback) = s.prepared(lifecycle_offer(&s, 0, 0, "sendonly")).await;
++    s.confirm(&callback).await;
++    s.wait(1).await;
++    no_event(&mut s.wire).await;
++    let mut input = s
++        .controller()
++        .take_ingress(&StreamId::from_string("first"))
++        .unwrap();
++    let handle = answer.original()["payload"]["substrate_setup"]["streams"][0]["stream_local_id"]
++        .as_u64()
++        .unwrap() as u16;
++    send(&s.wire, audio(handle, 0));
++    let _packet = packet(&mut input).await;
++    let ready = s.wire.read().await;
++    assert_eq!(ready.kind(), "connection.ready");
++    assert_eq!(
++        ready.original()["payload"]["streams"][0]["direction"],
++        "recvonly"
++    );
++    s.f.verify_server(&ready).await;
++    let opened = s.wire.read().await;
++    assert_eq!(opened.kind(), "stream.opened");
++    s.f.verify_server(&opened).await;
++    no_event(&mut s.wire).await;
++    s.wire.server.shutdown().await.unwrap();
++}
++fn audio_sequence(id: u16, n: u16) -> Bytes {
++    pack_rtp_datagram(&RtpDatagram {
++        flags: 0,
++        stream_local_id: id,
++        seq: u32::from(n),
++        rtp: RtpMediaPayload {
++            payload: tone(),
++            payload_type: 0,
++            sequence_number: n,
++            timestamp: u32::from(n) * 160,
++            ssrc: 7,
++        },
++    })
++    .unwrap()
++}
++async fn ready_opened(f: &Fixture, wire: &mut Wire, handle: u16) {
++    let ready = wire.read().await;
++    assert_eq!(ready.kind(), "connection.ready");
++    f.verify_server(&ready).await;
++    let opened = wire.read().await;
++    assert_eq!(opened.kind(), "stream.opened");
++    f.verify_server(&opened).await;
++    assert_eq!(
++        opened.original()["payload"]["stream"]["stream_local_id"],
++        handle
++    );
++}
++#[tokio::test]
++async fn actual_native_replacement_closes_old_binding_and_cannot_reuse_its_flow_evidence() {
++    let mut s = Scene::new("quic", false).await;
++    s.record.lifecycle.store(true, Ordering::Release);
++    let mut other = s.second_wire().await;
++    let (a, ca) = s.prepared(lifecycle_offer(&s, 0, 0, "sendonly")).await;
++    s.confirm(&ca).await;
++    s.wait(1).await;
++    let (b, cb) = other_prepared(&s, &mut other, lifecycle_offer(&s, 1, 0, "sendonly")).await;
++    other.send(s.f.sign(s.confirmation(&cb))).await;
++    s.wait(2).await;
++    let ah = a.original()["payload"]["substrate_setup"]["streams"][0]["stream_local_id"]
++        .as_u64()
++        .unwrap() as u16;
++    let bh = b.original()["payload"]["substrate_setup"]["streams"][0]["stream_local_id"]
++        .as_u64()
++        .unwrap() as u16;
++    let first = StreamId::from_string("first");
++    let mut ai = s.controller().take_ingress(&first).unwrap();
++    let bc = s.native.adapters[&s.kind]
++        .media_controller(&s.second_id)
++        .unwrap();
++    let mut bi = bc.take_ingress(&first).unwrap();
++    send(&s.wire, audio_sequence(ah, 1));
++    let _old = packet(&mut ai).await;
++    ready_opened(&s.f, &mut s.wire, ah).await;
++    send(&other, audio_sequence(bh, 1));
++    let _old_other = packet(&mut bi).await;
++    ready_opened(&s.f, &mut other, bh).await;
++    let (replacement, callback) = s.prepared(lifecycle_offer(&s, 0, 1, "sendrecv")).await;
++    s.confirm(&callback).await;
++    s.wait(3).await;
++    let new_handle = replacement.original()["payload"]["substrate_setup"]["streams"][0]
++        ["stream_local_id"]
++        .as_u64()
++        .unwrap() as u16;
++    assert_ne!(new_handle, ah);
++    let closed = s.wire.read().await;
++    assert_eq!(closed.kind(), "stream.closed");
++    assert_eq!(closed.original()["payload"]["strm_id"], "first");
++    assert_eq!(closed.original()["payload"]["reason"], "codec-renegotiated");
++    s.f.verify_server(&closed).await;
++    no_event(&mut s.wire).await;
++    send(&s.wire, audio_sequence(ah, 2));
++    no_event(&mut s.wire).await;
++    send(&other, audio_sequence(bh, 2));
++    packet(&mut bi)
++        .await
++        .try_forward_to(&s.controller(), &first)
++        .unwrap();
++    let output = received(&s.wire).await;
++    assert_eq!(output.stream_local_id, new_handle);
++    decoded(&output);
++    no_event(&mut s.wire).await;
++    let mut new_input = s.controller().take_ingress(&first).unwrap();
++    send(&s.wire, audio_sequence(new_handle, 3));
++    let _new = packet(&mut new_input).await;
++    let opened = s.wire.read().await;
++    assert_eq!(opened.kind(), "stream.opened");
++    assert_eq!(
++        opened.original()["payload"]["stream"]["stream_local_id"],
++        new_handle
++    );
++    s.f.verify_server(&opened).await;
++    no_event(&mut s.wire).await;
++    no_event(&mut other).await;
++    s.wire.server.shutdown().await.unwrap();
++    other.server.shutdown().await.unwrap();
++}
++#[tokio::test]
++async fn actual_native_event_denial_is_scoped_and_recovers_after_current_reauthorization() {
++    let mut s = Scene::new("quic", false).await;
++    s.record.lifecycle.store(true, Ordering::Release);
++    let (a, callback) = s.prepared(lifecycle_offer(&s, 0, 0, "sendonly")).await;
++    s.confirm(&callback).await;
++    s.wait(1).await;
++    s.grants.0.write().await.event_denied.insert(s.id.clone());
++    let handle = a.original()["payload"]["substrate_setup"]["streams"][0]["stream_local_id"]
++        .as_u64()
++        .unwrap() as u16;
++    let mut input = s
++        .controller()
++        .take_ingress(&StreamId::from_string("first"))
++        .unwrap();
++    send(&s.wire, audio_sequence(handle, 1));
++    let _actual = packet(&mut input).await;
++    core_fixture::until(|| s.record.event_attempts.load(Ordering::Acquire) > 0).await;
++    no_event(&mut s.wire).await;
++    assert_eq!(s.record.event_approvals.load(Ordering::Acquire), 0);
++    s.grants.0.write().await.event_denied.clear();
++    let (again, callback) = s.prepared(lifecycle_offer(&s, 0, 1, "sendonly")).await;
++    s.confirm(&callback).await;
++    s.wait(2).await;
++    assert_eq!(
++        again.original()["payload"]["substrate_setup"]["streams"][0]["stream_local_id"],
++        handle
++    );
++    ready_opened(&s.f, &mut s.wire, handle).await;
++    assert_eq!(s.controller().revision(), 2);
++    no_event(&mut s.wire).await;
++    s.wire.server.shutdown().await.unwrap();
++}
++#[tokio::test]
++async fn native_lifecycle_mux_denial_preserves_other_connection_on_same_physical_writer() {
++    let mut s = Scene::new("quic", false).await;
++    s.record.lifecycle.store(true, Ordering::Release);
++    s.record.probe_other_scope.store(true, Ordering::Release);
++    let (a, ca) = s.prepared(lifecycle_offer(&s, 0, 0, "sendonly")).await;
++    s.confirm(&ca).await;
++    s.wait(1).await;
++    let (b, cb) = s.prepared(lifecycle_offer(&s, 1, 0, "sendonly")).await;
++    s.confirm(&cb).await;
++    s.wait(2).await;
++    let ah = a.original()["payload"]["substrate_setup"]["streams"][0]["stream_local_id"]
++        .as_u64()
++        .unwrap() as u16;
++    let bh = b.original()["payload"]["substrate_setup"]["streams"][0]["stream_local_id"]
++        .as_u64()
++        .unwrap() as u16;
++    assert_ne!(ah, bh);
++    let mut ai = s
++        .controller()
++        .take_ingress(&StreamId::from_string("first"))
++        .unwrap();
++    let second = s.native.adapters[&s.kind]
++        .media_controller(&s.second_id)
++        .unwrap();
++    let mut bi = second
++        .take_ingress(&StreamId::from_string("first"))
++        .unwrap();
++    s.grants.0.write().await.event_denied.insert(s.id.clone());
++    send(&s.wire, audio_sequence(ah, 1));
++    let _a = packet(&mut ai).await;
++    core_fixture::until(|| s.record.event_attempts.load(Ordering::Acquire) > 0).await;
++    send(&s.wire, audio_sequence(bh, 1));
++    let _b = packet(&mut bi).await;
++    for kind in ["connection.ready", "stream.opened"] {
++        let event = s.wire.read().await;
++        assert_eq!(event.kind(), kind);
++        assert_eq!(event.scope(Scope::Connection), Some("native_1"));
++        s.f.verify_server(&event).await;
++    }
++    no_event(&mut s.wire).await;
++    assert_eq!(s.controller().revision(), 1);
++    assert_eq!(second.revision(), 1);
++    assert_eq!(s.native.adapters[&s.kind].route_count(), 2);
++    assert!(s.record.other_scope_refused.load(Ordering::Acquire));
++    s.wire.server.shutdown().await.unwrap();
++}

@@ -11,34 +11,11 @@ fn conflict() -> Error {
     )
 }
 // Canonicalize explicitly so another dependency enabling preserve_order on
-// serde_json cannot change operation identity. This typed input has no floats.
-fn canonical_json(value: &serde_json::Value) -> Result<String> {
-    use serde_json::Value;
-    match value {
-        Value::Object(object) => {
-            let mut keys = object.keys().collect::<Vec<_>>();
-            keys.sort();
-            let mut fields = Vec::with_capacity(keys.len());
-            for key in keys {
-                fields.push(format!(
-                    "{}:{}",
-                    serde_json::to_string(key).map_err(|_| Error::storage())?,
-                    canonical_json(&object[key])?
-                ));
-            }
-            Ok(format!("{{{}}}", fields.join(",")))
-        }
-        Value::Array(values) => Ok(format!(
-            "[{}]",
-            values
-                .iter()
-                .map(canonical_json)
-                .collect::<Result<Vec<_>>>()?
-                .join(",")
-        )),
-        _ => serde_json::to_string(value).map_err(|_| Error::storage()),
-    }
+// serde_json cannot change operation identity. RFC 8785 also covers validated metadata.
+pub(crate) fn canonical_json(value: &serde_json::Value) -> Result<String> {
+    serde_jcs::to_string(value).map_err(|_| Error::storage())
 }
+
 fn storage(error: rusqlite::Error) -> Error {
     match error {
         rusqlite::Error::SqliteFailure(code, _)
@@ -59,7 +36,7 @@ fn identity_tenant(c: &Connection, identity: &str, active: bool) -> Result<Strin
     .map_err(|_| Error::storage())?
     .ok_or_else(Error::forbidden)
 }
-fn require_identity(
+pub(crate) fn require_identity(
     c: &Connection,
     actor: &Actor,
     tenant: &str,
@@ -104,6 +81,23 @@ fn identity(c: &Connection, id: &str) -> Result<ProvisioningOutcome> {
         revoked,
     })
 }
+fn credential(c: &Connection, id: &str) -> Result<ProvisioningOutcome> {
+    c.query_row(
+        "SELECT identity_id,expires_at,revoked FROM credentials WHERE id=?1",
+        [id],
+        |row| {
+            Ok(ProvisioningOutcome::Credential {
+                credential_id: id.into(),
+                identity_id: row.get(0)?,
+                expires_at: row.get(1)?,
+                revoked: row.get(2)?,
+            })
+        },
+    )
+    .optional()
+    .map_err(|_| Error::storage())?
+    .ok_or_else(Error::forbidden)
+}
 fn authorize_outcome(
     c: &Connection,
     actor: &Actor,
@@ -112,14 +106,57 @@ fn authorize_outcome(
 ) -> Result<ProvisioningOutcome> {
     let id = match &value {
         ProvisioningOutcome::Identity { identity_id, .. }
+        | ProvisioningOutcome::RecordReadRole { identity_id, .. }
+        | ProvisioningOutcome::Credential { identity_id, .. }
+        | ProvisioningOutcome::SigningKey { identity_id, .. }
+        | ProvisioningOutcome::Device { identity_id, .. }
         | ProvisioningOutcome::Endpoint { identity_id, .. }
         | ProvisioningOutcome::Participant { identity_id, .. } => identity_id,
     };
     require_identity(c, actor, tenant, id, false)?;
     match value {
+        ProvisioningOutcome::RecordReadRole { identity_id, .. } => {
+            crate::records::roles::outcome(c, &identity_id)
+        }
+        ProvisioningOutcome::Credential {
+            credential_id,
+            identity_id,
+            ..
+        } => {
+            let current = credential(c, &credential_id)?;
+            if !matches!(&current, ProvisioningOutcome::Credential { identity_id: owner, .. } if owner == &identity_id)
+            {
+                return Err(Error::forbidden());
+            }
+            Ok(current)
+        }
+        ProvisioningOutcome::SigningKey { key_id, .. } => {
+            crate::peer_credentials::key_outcome(c, &key_id)
+        }
+        ProvisioningOutcome::Device { device_id, .. } => {
+            crate::peer_credentials::device_outcome(c, &device_id)
+        }
         ProvisioningOutcome::Identity { identity_id, .. } => identity(c, &identity_id),
         ProvisioningOutcome::Endpoint { endpoint_id, .. } => endpoint(c, &endpoint_id),
-        value @ ProvisioningOutcome::Participant { .. } => Ok(value),
+        ProvisioningOutcome::Participant {
+            participant_id,
+            conversation_id,
+            identity_id,
+            membership_epoch,
+        } => {
+            let current = crate::audience::member(c, &identity_id, &conversation_id, true)?;
+            if current.participant_id != participant_id
+                || current.membership_epoch != membership_epoch
+            {
+                return Err(Error::forbidden());
+            }
+            Ok(ProvisioningOutcome::Participant {
+                participant_id,
+                conversation_id,
+                identity_id,
+                membership_epoch,
+            })
+        }
     }
 }
 impl Store {
@@ -129,8 +166,28 @@ impl Store {
     pub fn execute_provisioning(
         &self,
         credential_id: &str,
-        mut command: ProvisioningCommand,
+        command: ProvisioningCommand,
     ) -> Result<ProvisioningOutcome> {
+        self.provisioning_with_authority(credential_id, command, None)
+    }
+    /// Protected composition retains one sufficient write proof through delivery.
+    /// The proof never replaces current administrator, owner or intent checks.
+    pub fn execute_provisioning_with_authority(
+        &self,
+        credential_id: &str,
+        command: ProvisioningCommand,
+        held: &std::sync::Arc<crate::AuthorityGuardSet>,
+    ) -> Result<ProvisioningOutcome> {
+        self.provisioning_with_authority(credential_id, command, Some(held))
+    }
+    fn provisioning_with_authority(
+        &self,
+        credential_id: &str,
+        mut command: ProvisioningCommand,
+        held: Option<&std::sync::Arc<crate::AuthorityGuardSet>>,
+    ) -> Result<ProvisioningOutcome> {
+        command.normalize()?;
+        let _authority = self.provisioning_authority(credential_id, &command, held)?;
         let mut connection = self.connection()?;
         let tx = connection
             .transaction_with_behavior(TransactionBehavior::Immediate)
@@ -139,6 +196,7 @@ impl Store {
         actor.require("admin")?;
         let tenant = identity_tenant(&tx, &actor.identity_id, true)?;
         command.normalize()?;
+        crate::operations::reject_control_id(&tx, &actor, command.operation_id())?;
         // This typed contract contains strings, arrays and safe integers only.
         let mut intent = serde_json::to_value(&command).map_err(|_| Error::storage())?;
         intent
@@ -160,15 +218,26 @@ impl Store {
             let value = serde_json::from_str(&result).map_err(|_| Error::storage())?;
             return authorize_outcome(&tx, &actor, &tenant, value);
         }
-        let count:u64=tx.query_row("SELECT (SELECT COUNT(*) FROM operations)+(SELECT COUNT(*) FROM requests)+(SELECT COUNT(*) FROM task_requests)",[],|r|r.get(0)).map_err(|_|Error::storage())?;
+        let count: u64 = tx
+            .query_row(
+                "SELECT (SELECT COUNT(*) FROM operations)+(SELECT COUNT(*) FROM task_requests)",
+                [],
+                |r| r.get(0),
+            )
+            .map_err(|_| Error::storage())?;
         if count >= self.limits.operation_receipts {
             return Err(Error::new(
                 "capacity-exceeded",
                 "Durable request receipt capacity exceeded",
             ));
         }
-        let outcome = apply(&tx, &actor, &tenant, &command)?;
+        let outcome = apply(&tx, &actor, &tenant, &command, self)?;
         tx.execute("INSERT INTO operations(record_id,tenant_id,owner_id,operation_id,digest,command_type,intent_json,state,result_json,created_at,updated_at) VALUES(?1,?2,?3,?4,?5,?6,?7,'completed',?8,?9,?9)",params![format!("opr_{}",uuid::Uuid::new_v4()),tenant,actor.identity_id,command.operation_id(),digest,command.command_type(),intent,serde_json::to_string(&outcome).map_err(|_|Error::storage())?,now()]).map_err(storage)?;
+        // The transaction may intentionally revoke its own administrator.
+        // External policy edits are fenced; recheck the unfenced clock only.
+        if actor.expires_at <= now() {
+            return Err(Error::unauthorized());
+        }
         tx.commit().map_err(|_| Error::storage())?;
         Ok(outcome)
     }
@@ -178,8 +247,48 @@ fn apply(
     actor: &Actor,
     tenant: &str,
     command: &ProvisioningCommand,
+    store: &Store,
 ) -> Result<ProvisioningOutcome> {
     match command {
+        ProvisioningCommand::RecordReadRole {
+            identity_id,
+            role,
+            private_sources,
+            active,
+            expected_revision,
+            ..
+        } => {
+            require_identity(c, actor, tenant, identity_id, true)?;
+            crate::records::roles::configure(
+                c,
+                identity_id,
+                tenant,
+                role,
+                *private_sources,
+                *active,
+                *expected_revision,
+            )
+        }
+        ProvisioningCommand::RevokeCredential { credential_id, .. } => {
+            let ProvisioningOutcome::Credential { identity_id, .. } = credential(c, credential_id)?
+            else {
+                return Err(Error::storage());
+            };
+            require_identity(c, actor, tenant, &identity_id, false)?;
+            // Admission already owns the target Identity writer. Reentering the
+            // older Store::revoke helper would deadlock this owned composition.
+            c.execute(
+                "UPDATE credentials SET revoked=1 WHERE id=?1",
+                [credential_id],
+            )
+            .map_err(|_| Error::storage())?;
+            credential(c, credential_id)
+        }
+        ProvisioningCommand::SigningKey { .. }
+        | ProvisioningCommand::RevokeSigningKey { .. }
+        | ProvisioningCommand::RevokeDevice { .. } => {
+            crate::peer_credentials::apply(c, actor, tenant, command)
+        }
         ProvisioningCommand::Identity {
             alias,
             kind,
@@ -208,8 +317,20 @@ fn apply(
             if !permitted {
                 return Err(Error::forbidden());
             }
+            let count: u64 = c.query_row("SELECT COUNT(*) FROM participants p JOIN identities i ON i.id=p.identity_id WHERE p.conversation_id=?1 AND p.active=1 AND i.revoked=0",[conversation_id],|r|r.get(0)).map_err(storage)?;
+            if count >= store.limits.participants as u64 {
+                return Err(Error::new(
+                    "capacity-exceeded",
+                    "Conversation participant capacity exceeded",
+                ));
+            }
             let id = format!("part_{}", uuid::Uuid::new_v4());
             c.execute("INSERT INTO participants(conversation_id,identity_id,participant_id,tenant_id,kind,role) SELECT ?1,id,?2,tenant_id,kind,?3 FROM identities WHERE id=?4",params![conversation_id,id,role,identity_id]).map_err(storage)?;
+            c.execute(
+                "UPDATE conversations SET revision=revision+1 WHERE id=?1",
+                [conversation_id],
+            )
+            .map_err(storage)?;
             Ok(ProvisioningOutcome::Participant {
                 participant_id: id,
                 conversation_id: conversation_id.clone(),
@@ -281,6 +402,32 @@ fn apply(
             ..
         } => {
             require_identity(c, actor, tenant, identity_id, false)?;
+            let members = {
+                let mut st = c.prepare("SELECT conversation_id FROM participants WHERE identity_id=?1 AND active=1").map_err(storage)?;
+                let rows = st
+                    .query_map([identity_id], |r| r.get::<_, String>(0))
+                    .map_err(storage)?
+                    .collect::<rusqlite::Result<Vec<_>>>()
+                    .map_err(storage)?;
+                rows
+            };
+            for cid in members {
+                let member = crate::audience::member(c, identity_id, &cid, true)?;
+                c.execute(
+                    "UPDATE participants SET active=0,removed_at=?2 WHERE participant_id=?1",
+                    params![member.participant_id, now()],
+                )
+                .map_err(storage)?;
+                crate::membership::mutations::stop_presence(c, &member)?;
+                crate::session_participant_lifecycle::participant_departed(
+                    c, store, &member, "kicked",
+                )?;
+                c.execute(
+                    "UPDATE conversations SET revision=revision+1 WHERE id=?1",
+                    [&cid],
+                )
+                .map_err(storage)?;
+            }
             if c.execute(
                 "UPDATE identities SET revoked=1,revision=revision+1 WHERE id=?1 AND revision=?2",
                 params![identity_id, expected_revision],
@@ -296,11 +443,12 @@ fn apply(
             )
             .map_err(storage)?;
             c.execute(
-                "UPDATE devices SET revoked=1 WHERE identity_id=?1",
+                "UPDATE devices SET revoked=1,revision=revision+1 WHERE identity_id=?1 AND revoked=0",
                 [identity_id],
             )
             .map_err(storage)?;
             c.execute("UPDATE endpoints SET verification_state='revoked',secret_ref=NULL,revision=revision+1 WHERE identity_id=?1 AND verification_state!='revoked'",[identity_id]).map_err(storage)?;
+            c.execute("UPDATE membership_invitations SET state='cancelled' WHERE state='pending' AND (identity_id=?1 OR inviter_id=?1)",[identity_id]).map_err(storage)?;
             identity(c, identity_id)
         }
     }
@@ -321,4 +469,16 @@ fn authorize_endpoint(c: &Connection, actor: &Actor, tenant: &str, id: &str) -> 
         &owner.ok_or_else(Error::forbidden)?,
         false,
     )
+}
+
+/// Common operation status uses the exact existing provisioning replay policy.
+pub(crate) fn ledger_result(
+    c: &Connection,
+    actor: &Actor,
+    tenant: &str,
+    value: serde_json::Value,
+) -> Result<serde_json::Value> {
+    actor.require("admin")?;
+    let value = serde_json::from_value(value).map_err(|_| Error::storage())?;
+    serde_json::to_value(authorize_outcome(c, actor, tenant, value)?).map_err(|_| Error::storage())
 }

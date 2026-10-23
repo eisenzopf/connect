@@ -25,7 +25,7 @@ fn setup() -> MediaFixture {
             &Operation::Send {
                 request_id: "old-fact".into(),
                 conversation_id: m.f.cid.clone(),
-                body: "HISTORY-CANARY".into(),
+                message: connect_protocol::messages::MessageDraft::text_all("HISTORY-CANARY"),
             },
         )
         .unwrap();
@@ -56,9 +56,10 @@ fn voice_context_uses_invocation_ceiling_and_persists_exact_source_selection() {
             .prepare_vapi_session_context(&narrow, &session.id)
             .unwrap();
     assert!(!selected.json.contains("HISTORY-CANARY"));
-    let empty: TaskOutcome = serde_json::from_str(&selected.json).unwrap();
+    let empty: connect_connector_api::host_context::TaskProjection =
+        serde_json::from_str(&selected.json).unwrap();
     assert!(
-        matches!(empty, TaskOutcome::Recall {sources,next:None,omitted:0} if sources.is_empty())
+        matches!(empty, connect_connector_api::host_context::TaskProjection::Recall {sources,next:None,omitted:None} if sources.is_empty())
     );
     assert!(
         m.f.store.context_for_session(&narrow, &session.id).is_err(),
@@ -145,7 +146,7 @@ fn storage_failure_rolls_back_voice_intent_and_allows_definite_local_retry() {
 }
 
 #[test]
-fn native_voice_selection_preserves_budget_omissions_cursor_and_conversation_boundary() {
+fn native_voice_selection_preserves_budget_and_conversation_boundary_without_owner_cursor() {
     let m = setup();
     for i in 0..5 {
         m.f.store
@@ -154,7 +155,10 @@ fn native_voice_selection_preserves_budget_omissions_cursor_and_conversation_bou
                 &Operation::Send {
                     request_id: format!("large-{i}"),
                     conversation_id: m.f.cid.clone(),
-                    body: format!("FACT-{i}: {}", "x".repeat(16_000)),
+                    message: connect_protocol::messages::MessageDraft::text_all(format!(
+                        "FACT-{i}: {}",
+                        "x".repeat(16_000)
+                    )),
                 },
             )
             .unwrap();
@@ -165,7 +169,9 @@ fn native_voice_selection_preserves_budget_omissions_cursor_and_conversation_bou
                 &m.f.key.id,
                 &Operation::Create {
                     request_id: "other-conversation".into(),
-                    participants: vec![m.peer_id.clone()],
+                    request: connect_protocol::conversations::CreateRequest::persistent(vec![m
+                        .peer_id
+                        .clone()]),
                 },
             )
             .unwrap()
@@ -178,7 +184,9 @@ fn native_voice_selection_preserves_budget_omissions_cursor_and_conversation_bou
             &Operation::Send {
                 request_id: "other-fact".into(),
                 conversation_id: other.id,
-                body: "OTHER-CONVERSATION-CANARY".into(),
+                message: connect_protocol::messages::MessageDraft::text_all(
+                    "OTHER-CONVERSATION-CANARY",
+                ),
             },
         )
         .unwrap();
@@ -192,15 +200,12 @@ fn native_voice_selection_preserves_budget_omissions_cursor_and_conversation_bou
     assert!(!selected.json.contains("OTHER-CONVERSATION-CANARY"));
     assert!(selected.json.contains("HISTORY-CANARY"));
     assert!(selected.json.contains("conversation-journal"));
-    let TaskOutcome::Recall {
+    let connect_connector_api::host_context::TaskProjection::Recall {
         sources,
         next,
         omitted,
-    } = serde_json::from_str(&selected.json).unwrap()
-    else {
-        panic!("recall")
-    };
+    } = serde_json::from_str(&selected.json).unwrap();
     assert!(!sources.is_empty());
-    assert!(next.is_some());
-    assert!(omitted > 0);
+    assert!(next.is_none());
+    assert!(omitted.is_none());
 }
