@@ -460,6 +460,17 @@ async fn initial_selected_signal_case(
         )
         .await;
     }
+    if signal == Some("received-outcome-recovery") {
+        received::outcomes::exercise(
+            &f,
+            &peer,
+            &mut native[0],
+            &room.id,
+            &phone_credential,
+            algorithm,
+        )
+        .await;
+    }
     if let Some(method) = signal.filter(|v| {
         !matches!(
             *v,
@@ -468,6 +479,7 @@ async fn initial_selected_signal_case(
                 | "received-custody"
                 | "received-rejected-timing"
                 | "received-authority"
+                | "received-outcome-recovery"
         )
     }) {
         if method.starts_with("signal-only-") {
