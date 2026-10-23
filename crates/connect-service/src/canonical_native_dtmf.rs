@@ -1,4 +1,5 @@
 //! Original signed signal custody; queued work retains metadata, not readers.
+mod gateways;
 use crate::{
     canonical_media::Connection,
     canonical_runtime::{Physical, Runtime},
@@ -53,6 +54,7 @@ struct Capture {
     authorized: Arc<AuthorizedEnvelope>,
     lease: NativeStreamLease,
     candidates: Vec<NativeDtmfRecipient>,
+    gateways: Vec<connect_store::NativeDtmfGatewayRecipient>,
     batch: Mutex<Option<NativeDtmfBatch>>,
 }
 impl NativeDtmfPolicy for Capture {
@@ -105,10 +107,17 @@ impl NativeDtmfSink for Capture {
             .collect();
         let batch = self
             .store
-            .prepare_native_dtmf_with_peer(
+            .prepare_native_mixed_dtmf_with_peer(
                 &self.lease,
                 self.source.origin.clone(),
                 candidates,
+                self.gateways
+                    .iter()
+                    .map(|t| connect_store::NativeDtmfGatewayRecipient {
+                        origin: t.origin.clone(),
+                        registration_id: t.registration_id.clone(),
+                    })
+                    .collect(),
                 proof(&self.authorized).map_err(|_| DispatchError::Authority)?,
                 SourceObservation {
                     envelope_id: observed.observation_id().into(),
@@ -381,16 +390,52 @@ impl Runtime {
                         })
                 })
                 .await?;
-            if candidates.is_empty() {
-                return Err(Error::new(
-                    "not-recipient",
-                    "No current native signal recipient",
-                ));
+            let gateway_legs = self
+                .native_preflight(&a, preparation_deadline, || {
+                    self.media
+                        .initial_dtmf_targets(&source.origin)
+                        .map_err(|_| {
+                            Error::new("authority-busy", "Gateway registration metadata is busy")
+                        })
+                })
+                .await?
+                .into_iter()
+                .map(|leg| {
+                    (
+                        leg.dtmf_registration
+                            .get()
+                            .expect("ready SIP registration")
+                            .clone(),
+                        leg,
+                    )
+                })
+                .collect::<BTreeMap<_, _>>();
+            let gateways = self
+                .native_preflight(&a, preparation_deadline, || {
+                    let candidates = gateway_legs
+                        .iter()
+                        .map(|(id, leg)| {
+                            Ok(connect_store::NativeDtmfGatewayRecipient {
+                                origin: leg.media.get().cloned().ok_or_else(Error::forbidden)?,
+                                registration_id: id.clone(),
+                            })
+                        })
+                        .collect::<Result<Vec<_>>>()?;
+                    store.select_native_dtmf_gateways_with_peer(
+                        &lease,
+                        source.origin.clone(),
+                        candidates,
+                        proof(&a)?,
+                    )
+                })
+                .await?;
+            if candidates.is_empty() && gateways.is_empty() {
+                return Err(Error::new("not-recipient", "No current signal recipient"));
             }
-            Ok((listeners, candidates))
+            Ok((listeners, candidates, gateway_legs, gateways))
         }
         .await;
-        let (listeners, candidates) = match capture {
+        let (listeners, candidates, gateway_legs, gateways) = match capture {
             Ok(v) => v,
             Err(e) => {
                 let _ = tx.send(store.fail_native_stream_without_effect(lease, e).map(reply));
@@ -403,6 +448,7 @@ impl Runtime {
             authorized: a.clone(),
             lease,
             candidates,
+            gateways,
             batch: Mutex::new(None),
         };
         let observed = match self
@@ -528,6 +574,24 @@ impl Runtime {
                     }
                 }
                 tokio::select! {_=self.stop.cancelled()=>return,_=tokio::time::sleep(Duration::from_millis(10))=>{}}
+            }
+        }
+        for target in batch.gateway_targets() {
+            let Some(leg) = gateway_legs.get(target.registration_id()).cloned() else {
+                tracing::debug!("Original SIP DTMF registration is unavailable");
+                return;
+            };
+            if !gateways::deliver(
+                self.clone(),
+                source.clone(),
+                leg,
+                observed.clone(),
+                target.clone(),
+                signal_expires_at,
+            )
+            .await
+            {
+                return;
             }
         }
         loop {

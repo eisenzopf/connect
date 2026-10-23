@@ -2,6 +2,8 @@
 use super::*;
 #[path = "initial/activation.rs"]
 mod activation;
+#[path = "initial/dtmf.rs"]
+mod dtmf;
 #[path = "initial/gateways.rs"]
 mod gateways;
 use rusqlite::OptionalExtension;
@@ -43,6 +45,16 @@ async fn configured_initial_transport(
     timeout_seconds: u32,
     transport: EndpointTransport,
 ) -> ConfiguredInitial {
+    configured_initial_profile(algorithm, payload, timeout_seconds, transport, false, true).await
+}
+async fn configured_initial_profile(
+    algorithm: &str,
+    payload: Option<u8>,
+    timeout_seconds: u32,
+    transport: EndpointTransport,
+    dtmf: bool,
+    receive_dtmf: bool,
+) -> ConfiguredInitial {
     let _ = tracing_subscriber::fmt()
         .with_env_filter(
             tracing_subscriber::EnvFilter::try_from_default_env()
@@ -50,7 +62,11 @@ async fn configured_initial_transport(
         )
         .with_test_writer()
         .try_init();
-    let f = Fixture::with_native_end_scope(algorithm, 12).await;
+    let f = if dtmf {
+        Fixture::with_native_dtmf_scope(algorithm, 12).await
+    } else {
+        Fixture::with_native_end_scope(algorithm, 12).await
+    };
     let peer = PeerSip::with_audio_for_user(
         payload,
         if transport == EndpointTransport::Sip {
@@ -87,10 +103,23 @@ async fn configured_initial_transport(
             chrono::Utc::now().timestamp() + 600,
         )
         .unwrap();
+    let phone_scope = if receive_dtmf {
+        Scope::operator()
+    } else {
+        Scope {
+            operations: vec![
+                "connect:control".into(),
+                "connection.offer".into(),
+                "session.accept".into(),
+                "stream.subscribe".into(),
+            ],
+            recipients: vec!["*".into()],
+        }
+    };
     let phone_key = store
         .issue(
             &f.peer.identity_id,
-            Scope::operator(),
+            phone_scope,
             chrono::Utc::now().timestamp() + 600,
         )
         .unwrap();
@@ -205,12 +234,38 @@ async fn initial_selected_case(
     reference_kind: &str,
     http_first: bool,
 ) {
+    initial_selected_signal_case(
+        public_end,
+        algorithm,
+        transport,
+        reference_kind,
+        http_first,
+        None,
+    )
+    .await;
+}
+async fn initial_selected_signal_case(
+    public_end: bool,
+    algorithm: &str,
+    transport: EndpointTransport,
+    reference_kind: &str,
+    http_first: bool,
+    signal: Option<&str>,
+) {
     let ConfiguredInitial {
         f,
         peer,
         target_reference,
         ..
-    } = configured_initial_transport(algorithm, Some(0), 30, transport).await;
+    } = configured_initial_profile(
+        algorithm,
+        Some(0),
+        30,
+        transport,
+        signal.is_some(),
+        signal != Some("missing-receive"),
+    )
+    .await;
     let mut client = CanonicalClient::open(f.client.clone()).await.unwrap();
     let mut room_input =
         connect_client::conversations::CreateRequest::persistent(vec![f.peer.identity_id.clone()]);
@@ -361,6 +416,17 @@ async fn initial_selected_case(
         live: true,
     }];
     sip_native_duplex(&peer, &mut native, 0, "initial-public-native-duplex").await;
+    if let Some(method) = signal {
+        dtmf::exercise(
+            &f,
+            &peer,
+            &mut native[0].client,
+            &room.id,
+            algorithm,
+            method,
+        )
+        .await;
+    }
     if reference_kind != "participant" {
         gateways::capture(
             &f,

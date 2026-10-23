@@ -42,6 +42,7 @@ struct PeerSip {
     address: std::net::SocketAddr,
     calls: Arc<Mutex<Vec<String>>>,
     methods: Arc<Mutex<Vec<Method>>>,
+    info: Arc<Mutex<Vec<Vec<u8>>>>,
     reject_refresh: Arc<std::sync::atomic::AtomicBool>,
     ledger: Arc<Mutex<Option<std::path::PathBuf>>>,
     media: UdpSocket,
@@ -68,6 +69,8 @@ impl PeerSip {
         let address = socket.local_addr().unwrap();
         let calls = Arc::new(Mutex::new(Vec::new()));
         let methods = Arc::new(Mutex::new(Vec::new()));
+        let info = Arc::new(Mutex::new(Vec::new()));
+        let info_seen = info.clone();
         let ledger = Arc::new(Mutex::new(None::<std::path::PathBuf>));
         let recorded = ledger.clone();
         let captured = calls.clone();
@@ -140,6 +143,25 @@ impl PeerSip {
                             } else {
                                 StatusCode::Ringing
                             },
+                        )
+                    }
+                    Method::Info => {
+                        let established = seen_dialog.lock().unwrap().clone().unwrap();
+                        assert_eq!(request.call_id().unwrap().value(), established.call_id);
+                        assert_eq!(request.uri.user.as_deref(), Some("peer"));
+                        assert_eq!(request.uri.host_port(), address.to_string());
+                        let path = recorded.lock().unwrap().clone().unwrap();
+                        let db = rusqlite::Connection::open_with_flags(
+                            path,
+                            rusqlite::OpenFlags::SQLITE_OPEN_READ_ONLY,
+                        )
+                        .unwrap();
+                        let admitted: bool = db.query_row("SELECT EXISTS(SELECT 1 FROM native_dtmf_gateways g JOIN operations o ON o.record_id=g.operation_record_id WHERE json_extract(g.target_json,'$.sip_call_id')=?1 AND g.attempted=1 AND g.frame_id IS NOT NULL AND g.disposition IS NULL AND o.state='preparing' AND o.command_type='dtmf.send' AND json_extract(o.intent_json,'$.payload.method')='info')",[&established.call_id],|r|r.get(0)).unwrap();
+                        assert!(admitted, "SIP INFO preceded exact durable signal admission");
+                        info_seen.lock().unwrap().push(data[..n].to_vec());
+                        rvoip_sip_dialog::transaction::utils::response_builders::create_response(
+                            &request,
+                            StatusCode::Ok,
                         )
                     }
                     Method::Cancel | Method::Bye => {
@@ -232,6 +254,7 @@ impl PeerSip {
             address,
             calls,
             methods,
+            info,
             reject_refresh,
             ledger,
             media,

@@ -118,6 +118,7 @@ pub(crate) struct Leg {
     pub binding: OnceLock<ReadyMediaBinding>,
     pub proof: Mutex<Option<Arc<PreparedMediaObservation>>>,
     pub admitted: OnceLock<ParticipantObservation>,
+    pub dtmf_registration: OnceLock<String>,
 }
 #[derive(Clone)]
 pub(crate) struct DialInvocation {

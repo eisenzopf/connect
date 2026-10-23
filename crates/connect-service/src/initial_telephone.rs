@@ -401,6 +401,7 @@ impl Runner {
             binding: OnceLock::new(),
             proof: Mutex::new(None),
             admitted: OnceLock::new(),
+            dtmf_registration: OnceLock::new(),
         });
         runtime
             .media
@@ -642,6 +643,9 @@ impl Runner {
             .media
             .set(origin.clone())
             .map_err(|_| Error::forbidden())?;
+        leg.dtmf_registration
+            .set(format!("dtmfsip_{}", uuid::Uuid::new_v4().simple()))
+            .map_err(|_| Error::forbidden())?;
         let mut projected = std::collections::BTreeSet::new();
         loop {
             if leg.cancel.is_cancelled() || runtime.stop.is_cancelled() {
@@ -657,8 +661,30 @@ impl Runner {
             {
                 Ok(read) if read.current() => {}
                 Err(error) if matches!(error.code.as_str(), "forbidden" | "unauthorized") => {
-                    tracing::debug!(target:"connect_service::initial_telephone",code=%error.code,"Current initial telephone authority withdrawn");
-                    return Ok(());
+                    // Named signal authority is independent of media/codec
+                    // permission. Keeping this existing physical call alive
+                    // grants no RTP; every packet still uses its media guard.
+                    let mut alive = false;
+                    let mut busy = false;
+                    for direction in [
+                        connect_store::InitialTelephoneSignalDirection::FromTelephone,
+                        connect_store::InitialTelephoneSignalDirection::ToTelephone,
+                    ] {
+                        match runtime
+                            .media
+                            .store
+                            .try_initial_telephone_signal_read(origin.clone(), direction)
+                        {
+                            Ok(read) => alive |= read.current(),
+                            Err(e) => {
+                                busy |= !matches!(e.code.as_str(), "forbidden" | "unauthorized")
+                            }
+                        }
+                    }
+                    if !alive && !busy {
+                        tracing::debug!(target:"connect_service::initial_telephone",code=%error.code,"Current initial telephone media and signal authority withdrawn");
+                        return Ok(());
+                    }
                 }
                 // Packet guards still refuse while Store/fences are busy. A
                 // failed metadata probe is not evidence that a live leg ended.
