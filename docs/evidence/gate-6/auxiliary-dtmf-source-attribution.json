@@ -1,0 +1,47 @@
+{
+  "task": "G6-046",
+  "case_id": "u6-req-0115",
+  "status": "passed-local-native-and-loopback-sip",
+  "source_excerpt": "`source` lets the consumer attribute DTMF correctly when bridging across substrates (e.g., distinguish in-band SIP DTMF that survived translation from native UCTP DTMF).",
+  "verification": {
+    "passed": true,
+    "case_id": "u6-req-0115",
+    "signed_native_frames": 6,
+    "http_summaries": 6,
+    "source_kinds": [
+      "uctp-native",
+      "sip-info",
+      "rfc4733"
+    ],
+    "algorithms": [
+      "EdDSA",
+      "ES256"
+    ],
+    "scope": "Local source-field attribution: actual native INFO-method requests remain uctp-native; actual initial SIP INFO and RFC4733 inputs retain their physical source kinds. SDK verifies signatures. This does not qualify all gateway legs, WebRTC, fanout or full DTMF delivery."
+  },
+  "native_producer": "production_native_dtmf_http_status_projects_actual_local_frame_summary: signed native method=info remains source=uctp-native.",
+  "sip_producer": "production_initial_sip_received_info_and_rfc4733_keep_actual_provenance_and_sealed_audience: actual INFO and negotiated RTP event inputs retain sip-info/rfc4733 in signed native output and HTTP status.",
+  "negative_and_recovery_evidence": [
+    "docs/evidence/gate-6/auxiliary-received-dtmf-authority-recovery.json",
+    "docs/evidence/gate-6/auxiliary-native-dtmf-service.json"
+  ],
+  "attribution_implementation": [
+    "Native Capture derives observation from authenticated NativeDtmfObservation rather than payload source claims.",
+    "Received observation conversion accepts only actual SIP INFO/RFC4733 kinds; routing requires the same original physical observation and output source value.",
+    "Source and recipient permission/audience/lifecycle checks gate actual IO; no fabricated native signing custody is accepted for SIP."
+  ],
+  "capture_sha256": {
+    "native": "8bce19b535c36d31b1cf77904cf3bfc71a4a732b174cca55ec967fd1dee817c2",
+    "sip": "84a4518c8a0f3d4d2794a3759ea7a18e44192c05bdb4ff5afdfe9f782781d481"
+  },
+  "source_sha256": {
+    "crates/connect-service/src/canonical_native_dtmf.rs": "0e8f9bca93d3a559bf91c2613ea1fdc573eb88b203c6f63ab03cdb95f1b6382e",
+    "crates/connect-service/src/canonical_received_dtmf.rs": "f3f26cf9066eb524213153e53ca10dd62ef0f14d054ed4eada63a2436d2f28cf",
+    "scripts/validate-gate6-dtmf-source-attribution.py": "f0ceaf7c120a7fdf393120c6ed60b30addf6e8aa0a3f5bf3ebdc1b68b820cf51",
+    "contracts/openapi-operations.json": "44f0b8eee7f90fab4977867e39a125f98a72aa5e74b998e937da81637e07a5e4"
+  },
+  "limits": [
+    "This qualifies the source-field attribution clause for the recorded native/loopback-SIP profile, not all gateway delivery.",
+    "Other gateway legs, WebRTC source, full group/transport/privacy/recovery and gate acceptance remain open under their assigned requirements. No other clause or task credit."
+  ]
+}

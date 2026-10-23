@@ -1,0 +1,118 @@
+{
+  "task": "G6-046",
+  "status": "in-progress",
+  "scope": "Default local macOS arm64 initial SIP received-signal current authorization, captured outcome recovery and successor uncertainty. No full task qualification.",
+  "source_lock_revision": 165,
+  "schema": 101,
+  "source_commits": [
+    "8ae7d84e",
+    "d6c98cd4",
+    "a4edb7ea"
+  ],
+  "verification": {
+    "methods": [
+      "canonical_native_connections::consultation::groups::replacement::telephone::initial::received::authority::production_initial_sip_received_signal_only_and_current_direction_permissions_preserve_call_without_media",
+      "canonical_native_connections::consultation::groups::replacement::telephone::initial::received::outcomes::production_initial_sip_received_captured_output_settles_after_source_revocation_without_replay",
+      "canonical_native_connections::consultation::groups::replacement::telephone::initial::received::production_initial_sip_received_incomplete_and_fractional_rtp_never_synthesize_native_tones_and_fresh_input_recovers",
+      "canonical_native_connections::consultation::groups::replacement::telephone::initial::received::production_initial_sip_received_info_and_rfc4733_keep_actual_provenance_and_sealed_audience",
+      "canonical_native_connections::consultation::groups::replacement::telephone::initial::received::restart::production_initial_sip_received_restart_preserves_attempted_output_as_unknown_without_redelivery"
+    ],
+    "count": 5,
+    "new_methods": 3,
+    "source_scenes": 10,
+    "algorithms": [
+      "EdDSA",
+      "ES256"
+    ],
+    "log_sha256": "860427dd0124082dd615d2cd742b5573f85a2ae5945664c26f139766d1fd9186",
+    "native_attribution_method": [
+      "canonical_native_connections::dtmf::production_native_dtmf_http_status_projects_actual_local_frame_summary"
+    ],
+    "native_attribution_log_sha256": "8835df644090220b4ff360d66222812523373100250611cfaa8a36e86585158c"
+  },
+  "validators": {
+    "authority": {
+      "passed": true,
+      "algorithms": [
+        "EdDSA",
+        "ES256"
+      ],
+      "installed_scenes": 2,
+      "captured_signed_frames": 8,
+      "captured_http_summaries": 10,
+      "calls": 2,
+      "scope": "Actual initial SIP signal-only INFO/RFC4733, missing source-send and recipient-receive refusal, same-call recovery, and no marked audio after media withdrawal. Fenced credential edits are controlled fault setup, not a public credential-edit API pass. Native metadata protocol floors remain granted."
+    },
+    "outcomes": {
+      "passed": true,
+      "algorithms": [
+        "EdDSA",
+        "ES256"
+      ],
+      "captured_signed_frames": 2,
+      "http_summaries": 4,
+      "scope": "Actual initial SIP INFO to native output, forced outcome-storage failure, public Store source revocation and physical call retirement, captured settlement under a fresh same-owner HTTP credential, unchanged expiry/one attempt and no replay. No process-restart or broad recovery qualification."
+    },
+    "restart": {
+      "passed": true,
+      "algorithms": [
+        "EdDSA",
+        "ES256"
+      ],
+      "before_restart_signed_frames": 2,
+      "http_summaries": 4,
+      "scope": "Actual received initial SIP INFO output with deliberately unrecorded outcome; successor retains original unknown reservation/expiry/one attempt, and a fresh native connection receives no redelivery. No remote playback, abrupt process crash or full recovery qualification."
+    },
+    "delivery": {
+      "passed": true,
+      "installed_scenes": 2,
+      "received_signals": 4,
+      "http_summaries": 4,
+      "signed_native_frames": 4,
+      "unforwardable_failure_summaries": 4,
+      "scope": "Local configured initial SIP INFO/RFC4733 to native output with source-owner HTTP status. SDK verifies signatures; validator checks schemas and captured identity. No remote playback, other legs or complete Gate6 qualification."
+    }
+  },
+  "behavior": [
+    "Current named source-send and recipient-receive permissions gate actual output independently of media permission. INFO and negotiated RFC4733 still reach the same native writer after source media withdrawal; marked audio in both directions stops.",
+    "Recipient signal-only operation retains the authenticated peer protocol floors via metadata permissions while removing media offer/subscription permission. Removing advertised coarse floors invalidates the old principal; the test does not weaken that check.",
+    "Source receive permission alone cannot borrow send authority. A refused source input creates no accepted source operation and does not replay after rights return. Receiver media permission cannot borrow dtmf.receive; its frozen audience is empty and a fresh authorized input later recovers on the same call.",
+    "A trigger rejects outcome writes after actual signed output. Public Store source revocation acquires the real writer fence, retires the SIP call, and the captured local-submission fact subsequently commits under the original operation/frame/expiry with one attempt.",
+    "A stopped original callback cannot provide a local fact after restart. The successor recovers its attempted frame as unknown, retains exact source facts/expiry/one attempt and emits no duplicate to a fresh native connection."
+  ],
+  "captured_files": {
+    "authority": "f5510c675e8fc99462e022452211f4253df2682eb7bf0adb8d20b8ceba80db81",
+    "outcomes": "883f10f3470711c9994c402a866d0b9cbf9e1e26d769b5535a03165fb556eecc",
+    "restart": "53342ad6d5573b0516ebe4146e6f630b428ab6d3b4f0b835cde538216e1c95c5",
+    "delivery": "84a4518c8a0f3d4d2794a3759ea7a18e44192c05bdb4ff5afdfe9f782781d481",
+    "failures": "52b79ae3cec2408010dc32e7352ddaa91553a8f69ae20fce97155c1ace735084"
+  },
+  "captured_summary_counts": {
+    "source_signed_native_frames": 16,
+    "source_http_dtos": 26
+  },
+  "intermediate_failures": [
+    "Initial fixture compile used pub(super) for a grandparent caller; corrected visibility to the exact ancestor.",
+    "First native no-media scope removed its advertised session/subscription protocol floors. The existing principal correctly became invalid and transport closed during source-recovery receive. Corrected controlled setup retains metadata floor permissions while withholding actual media offer/subscription operations. Both unchanged authorization/transport policies remain enforced."
+  ],
+  "limits": [
+    "Credential operation edits take actual Store writer fences but are controlled fault setup, not a public credential-edit API pass.",
+    "Restart is orderly server shutdown with a deliberately unrecorded local outcome; abrupt process crash is not qualified.",
+    "No full50member/mixed-substrate, other SIP/WebRTC legs, complete private/current-audience/failure/recovery or received-custody retention/redaction qualification.",
+    "Default profile only; no new test-support/full workspace/Linux/browser/remote/provider/package/acceptance/publication qualification.",
+    "G6-046 and the full105-task goal remain active; task count remains45/105."
+  ],
+  "inputs": {
+    "crates/connect-server/tests/support/canonical_native_connections/consultation/groups/replacement/telephone/initial.rs": "c42a813978ee66b0df977ef2d90f214342abfbb26f5f3a66c7ba12f12f0040f4",
+    "crates/connect-server/tests/support/canonical_native_connections/consultation/groups/replacement/telephone/initial/received.rs": "58243545303e07df6d134dcedde8b6eee77ee58b844cb0d0abf1462dfdff78de",
+    "crates/connect-server/tests/support/canonical_native_connections/consultation/groups/replacement/telephone/initial/received/authority.rs": "500637773db32f498477defeccee2ace2bf8dbe585592de7361f9686d34cf940",
+    "crates/connect-server/tests/support/canonical_native_connections/consultation/groups/replacement/telephone/initial/received/outcomes.rs": "41ceab45810ad94ca20ac0260febb218c29210476dd81f040f8a59376dc73954",
+    "crates/connect-server/tests/support/canonical_native_connections/consultation/groups/replacement/telephone/initial/received/restart.rs": "9b650277a3c373b350894b76932a2f437d44dba0b7482f1197c922868290ed3d",
+    "scripts/validate-gate6-received-dtmf-authority.py": "503920cfc362fff839ece03b160029bad5106a8b07d4a7e114d27d986b4c13e3",
+    "scripts/validate-gate6-received-dtmf-outcomes.py": "5a6ae02d101ada3ef55dae265fdd77b78387d1c765b7d530234b50fc679691de",
+    "scripts/validate-gate6-received-dtmf-restart.py": "b71a5d1374d8be13c251692564c3a5983a924b317df82e0a7f4aeb4b447d8992",
+    "dependencies/source-lock.json": "28c871f1b2959b7e99bbaa23d8865a1142948770e2834b16b43142ef4a49b030",
+    "crates/connect-service/src/canonical_received_dtmf.rs": "f3f26cf9066eb524213153e53ca10dd62ef0f14d054ed4eada63a2436d2f28cf",
+    "crates/connect-store/src/transitions/received_dtmf.rs": "f85e87a0c8a9459ee83ac3774cecd5423204389337a4a515703404a98849b7e0"
+  }
+}

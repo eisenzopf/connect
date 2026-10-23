@@ -2744,7 +2744,7 @@
       "classification": "behavior-or-context",
       "applicability": "mandatory-behavior",
       "case_id": "u6-req-0115",
-      "runtime_status": "not-run",
+      "runtime_status": "passed-local-native-and-loopback-sip",
       "shared_implementation_items": [
         "G6-004",
         "G6-006",
@@ -2763,7 +2763,7 @@
         "G6-094"
       ],
       "connect_integration_audit": {
-        "status": "native-local-components-qualified; cross-substrate-integration-open",
+        "status": "passed-local-native-and-loopback-sip",
         "historical_component_reports": [
           "docs/evidence/gate-6/auxiliary-native-dtmf-service.json",
           "docs/evidence/gate-6/auxiliary-native-dtmf-recovery.json"
@@ -2777,9 +2777,19 @@
           "crates/connect-store/migrations/100_native_dtmf_gateways.sql",
           "crates/connect-store/src/transitions/native_streams/dtmf/gateways.rs"
         ],
-        "remaining": "Schema100 native-source mixed native/initial-SIP recipient custody passes76 current Store methods (11 new,65 regressions), plus5 actual controlled summary/OpenAPI checks and service compilation. No physical bridge or SIP-origin source is installed by this component. Extend actual Core SIP recipient audience fencing, install owned runtime IO, preserve exact provenance and verify failure/recovery before clause qualification.",
+        "remaining": "Broader gateway delivery, WebRTC and transport/group/private/recovery scopes remain independently assigned; this source-field attribution proof does not qualify them.",
         "current_sip_signal_authority_evidence": "docs/evidence/gate-6/auxiliary-sip-signal-authority.json",
-        "current_gateway_custody_evidence": "docs/evidence/gate-6/auxiliary-native-dtmf-gateway-custody.json"
+        "current_gateway_custody_evidence": "docs/evidence/gate-6/auxiliary-native-dtmf-gateway-custody.json",
+        "current_evidence": "docs/evidence/gate-6/auxiliary-dtmf-source-attribution.json"
+      },
+      "runtime_evidence": {
+        "report": "docs/evidence/gate-6/auxiliary-dtmf-source-attribution.json",
+        "case_id": "u6-req-0115",
+        "algorithms": [
+          "EdDSA",
+          "ES256"
+        ],
+        "platform": "macOS arm64; actual Connect listener, signed native SDK, UDP SIP INFO/RFC4733 and HTTP status"
       }
     },
     {
@@ -3405,10 +3415,10 @@
   ],
   "initial_observation": "Focused text search of these entrypoints/current native client modules found no direct recording.vcon/auth.refresh/auth.assurance/step-up/connection.quality/capabilities event strings. This is discovery context, not proof that behavior is absent or complete; indirect handlers/upstream runtime hooks must be inspected and exercised before classification.",
   "next_actions": [
-    "Extend Core original/current DTMF audience fencing for actual SIP recipient metadata; existing native_dtmf_audience_fence accepts only QUIC/WebTransport. Preserve original private groups and current audience under each physical IO poll. Do not fabricate a DtmfNativeRecipient for SIP or bypass this fence. Install native-to-SIP runtime selection/capture/owned schedule execution using this frozen mixed batch, original host registrations and the fresh gateway read. Validate true INFO/RFC4733 IO, cancellation, partial submission, late captured recording, replay and recovery through signed SDK observations.",
-    "Continue all105 tasks in approved dependency order; named remote/provider bounds remain G6-093 and publication is separate.",
-    "Keep task-scoped enrollment and step-up clauses0061\u20130066 in G6-055 and its prerequisites; preserve all105 tasks and dependency order.",
-    "Retain unresolved consultation/provider reliability failures explicitly; named remote/provider rehearsals require G6-093 bounded configuration; full task and acceptance remain open."
+    "Complete remaining G6-046 clauses0103,0109,0112,0113 and0123 against their full approved behavior/profile scope; preserve independent failures and source-bound evidence.",
+    "Extend received-source private/current-audience and IO-boundary cancellation/revocation/uncertainty cases, retention/redaction, other SIP/WebRTC legs and full50member/mixed-substrate profiles. Current initial SIP-to-native attribution, signal-only/current named permission, late captured outcome and orderly successor uncertainty cases are recorded; no full gateway delivery credit.",
+    "Continue all105 tasks in approved dependency order. G6-047 depends on complete G6-046; task-scoped enrollment and step-up0061\u20130066 remain G6-055.",
+    "Linux/browser/remote/provider, G6-094 and acceptance remain unqualified; named rehearsals require G6-093 bounded configuration and publication stays separate."
   ],
   "limits": [
     "This inventory preserves all61 original clause assignments and applicability. Referenced component reports qualify only their recorded source/profile/checks; they do not establish exact individual vector, full-task or Gate6 acceptance passes."
@@ -3711,10 +3721,16 @@
         "One first-run Identity fixture returned unknown for a native stream subscription while Store/control tests also ran. The cause remains unproven. It did not recur in the isolated repeat or corrected complete run; the observation remains open for u6-req-0123 stream/fault qualification. No general liveness/performance or complete stream-reliability claim is inferred.",
         "Method totals are scoped to this current component:128 distinct methods, not a sum with the historical232-method mixed activation report. Source independent conformance remains G6-094. G6-046, all105 tasks, acceptance and publication remain incomplete."
       ]
+    },
+    "received_source_authority_recovery": {
+      "status": "passed-local-initial-sip-to-native",
+      "evidence": "docs/evidence/gate-6/auxiliary-received-dtmf-authority-recovery.json",
+      "attribution_case": "u6-req-0115",
+      "full_task_complete": false
     }
   },
-  "qualified_clause_count": 55,
-  "remaining_clause_count": 6,
+  "qualified_clause_count": 56,
+  "remaining_clause_count": 5,
   "clause_qualification": {
     "status": "partial-local-native-http-and-loopback-sip",
     "evidence": "docs/evidence/gate-6/auxiliary-conversation-clauses.json",
@@ -3761,6 +3777,7 @@
       "u6-req-0110",
       "u6-req-0111",
       "u6-req-0114",
+      "u6-req-0115",
       "u6-req-0116",
       "u6-req-0117",
       "u6-req-0118",
@@ -3777,7 +3794,7 @@
     ],
     "full_task_complete": false,
     "continuation_evidence": "docs/evidence/gate-6/auxiliary-session-identity-targets.json",
-    "latest_evidence": "docs/evidence/gate-6/auxiliary-session-gateways.json",
-    "latest_component_evidence": "docs/evidence/gate-6/auxiliary-session-gateways.json"
+    "latest_evidence": "docs/evidence/gate-6/auxiliary-dtmf-source-attribution.json",
+    "latest_component_evidence": "docs/evidence/gate-6/auxiliary-received-dtmf-authority-recovery.json"
   }
 }
