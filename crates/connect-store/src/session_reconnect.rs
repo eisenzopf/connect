@@ -175,6 +175,7 @@ impl Store {
         Ok((next, pending))
     }
     pub fn reconcile_session_reconnect(&self, cid: &str, sid: &str) -> Result<bool> {
+        self.require_runtime_owner()?;
         // Do not queue an authority writer while an initial media admission
         // still owns its read interval. Only eligible observed readiness needs
         // the protected metadata activation transaction below.

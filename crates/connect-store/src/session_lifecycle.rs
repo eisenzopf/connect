@@ -32,6 +32,9 @@ fn pending_snapshot(
     if already {
         return Ok(None);
     }
+    if !readiness::observed_coverage(c, store, sid)? {
+        return Ok(None);
+    }
     let mut q=c.prepare("SELECT p.identity_id FROM session_participants sp JOIN participants p ON p.participant_id=sp.participant_id AND p.membership_epoch=sp.membership_epoch AND p.active=1 JOIN identities i ON i.id=p.identity_id AND i.revoked=0 WHERE sp.session_id=?1 AND sp.state='present' ORDER BY p.participant_id").map_err(|_|Error::storage())?;
     let ids = q
         .query_map([sid], |r| r.get::<_, String>(0))
