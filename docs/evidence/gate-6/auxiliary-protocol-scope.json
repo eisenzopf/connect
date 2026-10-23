@@ -2615,10 +2615,13 @@
           "crates/connect-store/src/transitions/native_streams/dtmf.rs",
           "crates/connect-client/src/canonical/dtmf.rs",
           "crates/connect-store/src/transitions/initial_telephone/media/signal.rs",
-          "crates/connect-store/src/connection_control/tests/native_stream_authority/sip_signal.rs"
+          "crates/connect-store/src/connection_control/tests/native_stream_authority/sip_signal.rs",
+          "crates/connect-store/migrations/100_native_dtmf_gateways.sql",
+          "crates/connect-store/src/transitions/native_streams/dtmf/gateways.rs"
         ],
-        "remaining": "Store-only SIP named-signal and joint public native/SIP authority now pass65 current methods (8 new,57 regressions). No media permission/codec or idle reader substitutes for the current exact signal pair. Durable mixed attempts, actual SIP/native translation and provenance, cancellation/partial IO and recovery remain unimplemented/unqualified; this does not close the clause.",
-        "current_sip_signal_authority_evidence": "docs/evidence/gate-6/auxiliary-sip-signal-authority.json"
+        "remaining": "Schema100 native-source mixed native/initial-SIP recipient custody passes76 current Store methods (11 new,65 regressions), plus5 actual controlled summary/OpenAPI checks and service compilation. No physical bridge or SIP-origin source is installed by this component. Extend actual Core SIP recipient audience fencing, install owned runtime IO, preserve exact provenance and verify failure/recovery before clause qualification.",
+        "current_sip_signal_authority_evidence": "docs/evidence/gate-6/auxiliary-sip-signal-authority.json",
+        "current_gateway_custody_evidence": "docs/evidence/gate-6/auxiliary-native-dtmf-gateway-custody.json"
       }
     },
     {
@@ -2657,10 +2660,13 @@
           "crates/connect-store/src/transitions/native_streams/dtmf.rs",
           "crates/connect-client/src/canonical/dtmf.rs",
           "crates/connect-store/src/transitions/initial_telephone/media/signal.rs",
-          "crates/connect-store/src/connection_control/tests/native_stream_authority/sip_signal.rs"
+          "crates/connect-store/src/connection_control/tests/native_stream_authority/sip_signal.rs",
+          "crates/connect-store/migrations/100_native_dtmf_gateways.sql",
+          "crates/connect-store/src/transitions/native_streams/dtmf/gateways.rs"
         ],
-        "remaining": "Store-only SIP named-signal and joint public native/SIP authority now pass65 current methods (8 new,57 regressions). No media permission/codec or idle reader substitutes for the current exact signal pair. Durable mixed attempts, actual SIP/native translation and provenance, cancellation/partial IO and recovery remain unimplemented/unqualified; this does not close the clause.",
-        "current_sip_signal_authority_evidence": "docs/evidence/gate-6/auxiliary-sip-signal-authority.json"
+        "remaining": "Schema100 native-source mixed native/initial-SIP recipient custody passes76 current Store methods (11 new,65 regressions), plus5 actual controlled summary/OpenAPI checks and service compilation. No physical bridge or SIP-origin source is installed by this component. Extend actual Core SIP recipient audience fencing, install owned runtime IO, preserve exact provenance and verify failure/recovery before clause qualification.",
+        "current_sip_signal_authority_evidence": "docs/evidence/gate-6/auxiliary-sip-signal-authority.json",
+        "current_gateway_custody_evidence": "docs/evidence/gate-6/auxiliary-native-dtmf-gateway-custody.json"
       }
     },
     {
@@ -2767,10 +2773,13 @@
           "crates/connect-store/src/transitions/native_streams/dtmf.rs",
           "crates/connect-client/src/canonical/dtmf.rs",
           "crates/connect-store/src/transitions/initial_telephone/media/signal.rs",
-          "crates/connect-store/src/connection_control/tests/native_stream_authority/sip_signal.rs"
+          "crates/connect-store/src/connection_control/tests/native_stream_authority/sip_signal.rs",
+          "crates/connect-store/migrations/100_native_dtmf_gateways.sql",
+          "crates/connect-store/src/transitions/native_streams/dtmf/gateways.rs"
         ],
-        "remaining": "Store-only SIP named-signal and joint public native/SIP authority now pass65 current methods (8 new,57 regressions). No media permission/codec or idle reader substitutes for the current exact signal pair. Durable mixed attempts, actual SIP/native translation and provenance, cancellation/partial IO and recovery remain unimplemented/unqualified; this does not close the clause.",
-        "current_sip_signal_authority_evidence": "docs/evidence/gate-6/auxiliary-sip-signal-authority.json"
+        "remaining": "Schema100 native-source mixed native/initial-SIP recipient custody passes76 current Store methods (11 new,65 regressions), plus5 actual controlled summary/OpenAPI checks and service compilation. No physical bridge or SIP-origin source is installed by this component. Extend actual Core SIP recipient audience fencing, install owned runtime IO, preserve exact provenance and verify failure/recovery before clause qualification.",
+        "current_sip_signal_authority_evidence": "docs/evidence/gate-6/auxiliary-sip-signal-authority.json",
+        "current_gateway_custody_evidence": "docs/evidence/gate-6/auxiliary-native-dtmf-gateway-custody.json"
       }
     },
     {
@@ -3396,7 +3405,7 @@
   ],
   "initial_observation": "Focused text search of these entrypoints/current native client modules found no direct recording.vcon/auth.refresh/auth.assurance/step-up/connection.quality/capabilities event strings. This is discovery context, not proof that behavior is absent or complete; indirect handlers/upstream runtime hooks must be inspected and exercised before classification.",
   "next_actions": [
-    "Complete durable mixed DTMF custody and actual SIP/native execution/provenance with the verified separate/joint signal readers; finish0103/0109/0112/0113/0115/0123 and retain the unresolved unknown subscription for0123.",
+    "Extend Core original/current DTMF audience fencing for actual SIP recipient metadata; existing native_dtmf_audience_fence accepts only QUIC/WebTransport. Preserve original private groups and current audience under each physical IO poll. Do not fabricate a DtmfNativeRecipient for SIP or bypass this fence. Install native-to-SIP runtime selection/capture/owned schedule execution using this frozen mixed batch, original host registrations and the fresh gateway read. Validate true INFO/RFC4733 IO, cancellation, partial submission, late captured recording, replay and recovery through signed SDK observations.",
     "Continue all105 tasks in approved dependency order; named remote/provider bounds remain G6-093 and publication is separate.",
     "Keep task-scoped enrollment and step-up clauses0061\u20130066 in G6-055 and its prerequisites; preserve all105 tasks and dependency order.",
     "Retain unresolved consultation/provider reliability failures explicitly; named remote/provider rehearsals require G6-093 bounded configuration; full task and acceptance remain open."

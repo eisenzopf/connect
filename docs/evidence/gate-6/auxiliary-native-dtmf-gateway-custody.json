@@ -1,0 +1,214 @@
+{
+  "task": "G6-046",
+  "status": "in-progress",
+  "component_passed": true,
+  "full_task_complete": false,
+  "full_goal_complete": false,
+  "executed_at": "2026-10-23T12:22:57.837030+00:00",
+  "scope": "Controlled Connect Store native-source mixed native/initial-SIP recipient custody and HTTP/OpenAPI summary shapes. No physical DTMF bridge is installed or qualified by this component.",
+  "schema_version": 100,
+  "source_lock_patches": 159,
+  "implementation_commit": "f62fd04b223a279c280d3037782d30302ab2c3f9",
+  "rust_test_methods": 76,
+  "new_test_methods": 11,
+  "regression_test_methods": 65,
+  "results": [
+    {
+      "name": "store-dtmf-current.log",
+      "passed": 37,
+      "failed": 0,
+      "test_names": [
+        "connection_control::tests::native_stream_authority::dtmf::native_dtmf_definite_no_effect_failure_releases_control_without_a_delivery_claim",
+        "connection_control::tests::native_stream_authority::dtmf::native_dtmf_cancellation_preserves_the_actual_attempt_cutoff_and_reserved_identity",
+        "connection_control::tests::native_stream_authority::dtmf::native_dtmf_preserves_exact_intent_and_replay_never_creates_another_attempt",
+        "connection_control::tests::native_stream_authority::dtmf::native_dtmf_needs_its_named_signal_permission_and_a_current_completed_physical_parent",
+        "connection_control::tests::native_stream_authority::dtmf::native_dtmf_attempt_cannot_be_completed_with_a_media_or_descriptor_receipt",
+        "connection_control::tests::native_stream_authority::dtmf::native_dtmf_source_schema_rejects_malformed_sequences_even_without_rust_validation",
+        "connection_control::tests::native_stream_authority::dtmf::native_dtmf_stale_revision_fails_durably_before_any_signal_attempt",
+        "connection_control::tests::native_stream_authority::dtmf::native_dtmf_successor_recovers_original_uncertainty_without_automatic_resubmission",
+        "connection_control::tests::native_stream_authority::dtmf_gateways::native_gateway_dtmf_cancellation_closes_unstarted_work_without_a_schedule",
+        "connection_control::tests::native_stream_authority::dtmf_gateways::native_gateway_dtmf_captured_outcome_survives_revocation_without_new_signal_authority",
+        "connection_control::tests::native_stream_authority::dtmf_gateways::native_gateway_dtmf_duplicate_registration_across_families_rolls_back_the_whole_set",
+        "connection_control::tests::native_stream_authority::dtmf::native_dtmf_acceptance_cannot_lend_old_authority_to_a_later_signal_attempt",
+        "connection_control::tests::native_stream_authority::dtmf_gateways::native_gateway_dtmf_freeze_and_outcomes_preserve_the_shared_journal_reservation",
+        "connection_control::tests::native_stream_authority::dtmf_gateways::native_gateway_dtmf_freezes_actual_call_without_native_lifetime_or_idle_permission",
+        "connection_control::tests::native_stream_authority::dtmf_gateways::native_gateway_dtmf_mixed_batch_aggregates_every_native_and_sip_recipient",
+        "connection_control::tests::native_stream_authority::dtmf_gateways::native_gateway_dtmf_reservation_storage_failure_retries_metadata_without_another_attempt",
+        "connection_control::tests::native_stream_authority::dtmf_gateways::native_gateway_dtmf_reserves_one_schedule_and_reports_only_local_submission",
+        "connection_control::tests::native_stream_authority::dtmf_recipients::dtmf_actual_signal_read_holds_both_current_identity_intervals_and_refuses_a_queued_writer",
+        "connection_control::tests::native_stream_authority::dtmf_gateways::native_gateway_dtmf_selected_pair_does_not_require_unrelated_session_recipients",
+        "connection_control::tests::native_stream_authority::dtmf_gateways::native_gateway_dtmf_restart_recovers_reserved_uncertainty_and_never_replays_a_schedule",
+        "connection_control::tests::native_stream_authority::dtmf_recipients::dtmf_captured_fact_survives_revocation_and_retirement_without_reviving_io",
+        "connection_control::tests::native_stream_authority::dtmf_recipients::dtmf_freeze_capacity_failure_leaves_no_half_source_or_recipient_set",
+        "connection_control::tests::native_stream_authority::dtmf_recipients::dtmf_current_source_and_recipient_signal_rights_are_rechecked_after_queueing",
+        "connection_control::tests::native_stream_authority::dtmf_recipients::dtmf_freezes_actual_observation_and_recipient_without_payload_provenance_or_an_idle_reader",
+        "connection_control::tests::native_stream_authority::dtmf_recipients::dtmf_outcome_storage_failure_rolls_back_its_fact_and_original_token_recovers_without_io",
+        "connection_control::tests::native_stream_authority::dtmf_recipients::dtmf_recipient_requires_separate_named_receive_permission_before_freezing_any_work",
+        "connection_control::tests::native_stream_authority::dtmf_recipients::dtmf_partial_known_submission_and_cancelled_no_effect_have_truthful_distinct_outcomes",
+        "connection_control::tests::native_stream_authority::dtmf_gateways::native_gateway_dtmf_queue_rechecks_independent_source_recipient_and_route_authority",
+        "connection_control::tests::native_stream_authority::dtmf_recipients::dtmf_reserved_outcome_and_final_state_can_finish_at_the_exact_shared_journal_capacity",
+        "connection_control::tests::native_stream_authority::dtmf_recipients::dtmf_recipient_selection_uses_held_named_grants_without_freezing_or_retaining_readers",
+        "connection_control::tests::native_stream_authority::dtmf_recipients::dtmf_reserves_one_actual_output_frame_and_records_immutable_local_submission_once",
+        "connection_control::tests::native_stream_authority::dtmf_recipients::dtmf_signal_only_source_and_receiver_keep_pair_ceilings_without_media_grants",
+        "connection_control::tests::native_stream_authority::dtmf_recipients::dtmf_source_and_sealed_recipient_binding_reject_changed_observation_and_late_targets",
+        "connection_control::tests::native_stream_authority::dtmf_recipients::dtmf_storage_contention_refuses_before_a_frame_is_reserved_and_preserves_original_work",
+        "connection_control::tests::native_stream_authority::dtmf_recipients::dtmf_successor_recovers_reserved_frames_as_unknown_and_unstarted_recipients_without_replay",
+        "connection_control::tests::native_stream_authority::dtmf_recipients::dtmf_unknown_local_outcome_preserves_identity_and_frees_only_stopped_control_work",
+        "connection_control::tests::native_stream_authority::dtmf_recipients::dtmf_queued_target_cannot_borrow_removed_signal_scope_key_device_endpoint_or_member_epoch"
+      ],
+      "log": {
+        "path": ".local/gate-6/dtmf-gateway/store-dtmf-current.log",
+        "sha256": "9082d099b3db77ca1903f6287c00481bfa9949854d5efe734896d53a16db28f6"
+      }
+    },
+    {
+      "name": "store-initial-current.log",
+      "passed": 36,
+      "failed": 0,
+      "test_names": [
+        "transitions::initial_telephone::tests::gateways::configured_gateway_sip_uri_uses_only_verified_endpoint_and_exact_configured_authority",
+        "transitions::initial_telephone::tests::answer_accepts_only_own_invited_participant_without_publishing_readiness",
+        "transitions::initial_telephone::tests::connected_phone_uses_own_endpoint_and_route_after_caller_credential_is_revoked",
+        "transitions::initial_telephone::tests::connected_answer_requires_exact_observation_and_cleanup_retries_emit_once",
+        "transitions::initial_telephone::tests::gateways::configured_gateway_tel_and_identity_selectors_keep_original_member_and_once_only_intent",
+        "transitions::initial_telephone::tests::gateways::frozen_uri_revision_cannot_adopt_a_later_verified_endpoint_revision",
+        "transitions::initial_telephone::tests::gateways::gateway_resolution_and_invitation_rows_roll_back_together_then_same_intent_recovers",
+        "transitions::initial_telephone::tests::gateways::uri_aliases_cannot_invite_one_participant_twice_or_resolve_an_outside_identity",
+        "transitions::initial_telephone::tests::gateways::original_uri_receipt_cannot_retarget_after_endpoint_revocation_and_address_reassignment",
+        "transitions::initial_telephone::tests::initial_allocation_and_signaling_are_once_only_with_exact_immutable_dialog_binding",
+        "transitions::initial_telephone::tests::initial_cancel_before_submission_retires_only_the_dormant_reservation",
+        "transitions::initial_telephone::tests::initial_cancel_after_submission_preserves_unknown_quota_and_forbids_generic_completion",
+        "transitions::initial_telephone::tests::initial_confirmed_cleanup_retires_an_already_fenced_session_end_without_another_generation",
+        "transitions::initial_telephone::tests::initial_database_dialog_and_once_only_markers_cannot_be_rewritten_or_deleted",
+        "transitions::initial_telephone::tests::initial_endpoint_policy_change_cannot_derive_a_second_child_under_the_same_invitation",
+        "transitions::initial_telephone::tests::initial_invite_child_replay_preserves_ids_owner_endpoint_and_has_no_io_or_acceptance",
+        "transitions::initial_telephone::tests::initial_local_absence_preserves_unknown_submission_and_records_separate_cleanup",
+        "transitions::initial_telephone::tests::initial_ready_activation_storage_failure_retries_metadata_without_new_media_or_operation_effects",
+        "transitions::initial_telephone::tests::initial_ready_phone_waits_for_other_accepted_participants_and_rows_cannot_rebuild_origin_custody",
+        "transitions::initial_telephone::tests::initial_receive_projection_is_original_source_scoped_and_metadata_retry_is_exact",
+        "transitions::initial_telephone::tests::initial_selected_policy_cannot_change_intent_or_borrow_another_identity",
+        "transitions::initial_telephone::tests::initial_recovery_without_signaling_can_retire_dormant_but_submission_stays_unknown",
+        "transitions::initial_telephone::tests::initial_source_requires_actual_successful_exact_invitation_and_explicit_target",
+        "transitions::initial_telephone::tests::gateways::gateway_selectors_refuse_current_credential_device_endpoint_host_and_recipient_withdrawal",
+        "transitions::initial_telephone::tests::initial_unknown_attempt_continues_to_consume_capacity_for_a_new_invitation",
+        "transitions::initial_telephone::tests::initial_withdrawal_after_the_submission_marker_issues_no_fresh_packet_interval",
+        "transitions::initial_telephone::tests::initial_withdrawal_in_allocation_to_signaling_gap_performs_no_submission",
+        "transitions::initial_telephone::tests::observed_answer_survives_withdrawn_authority_without_accepting_or_redialing",
+        "transitions::initial_telephone::tests::signal::initial_signal_codec_change_does_not_supply_or_remove_named_signal_permission",
+        "transitions::initial_telephone::tests::initial_ready_activation_rechecks_endpoint_route_generation_runtime_and_membership",
+        "transitions::initial_telephone::tests::signal::initial_signal_does_not_reuse_answer_or_registration_as_connected_authority",
+        "transitions::initial_telephone::tests::signal::initial_signal_requires_each_named_direction_and_never_borrows_media_permissions",
+        "transitions::initial_telephone::tests::signal::initial_signal_retains_current_authority_only_for_its_bounded_read",
+        "transitions::initial_telephone::tests::unready_session_scan_does_not_queue_a_writer_behind_an_existing_media_interval",
+        "transitions::initial_telephone::tests::unsupported_answer_codec_keeps_fact_and_rolls_back_own_acceptance",
+        "transitions::initial_telephone::tests::signal::initial_signal_rechecks_physical_endpoint_route_and_participant_lifetime"
+      ],
+      "log": {
+        "path": ".local/gate-6/dtmf-gateway/store-initial-current.log",
+        "sha256": "7d188cb5d20c6d195aed7312d6bb6f768ad5fd95846ec0d6706d839203f6ab72"
+      }
+    },
+    {
+      "name": "store-pair-current.log",
+      "passed": 3,
+      "failed": 0,
+      "test_names": [
+        "connection_control::tests::native_stream_authority::sip_signal::sip_native_signal_pair_holds_both_identity_fences_and_queues_no_reader",
+        "connection_control::tests::native_stream_authority::sip_signal::sip_native_signal_pair_requires_opposite_named_permissions_without_media_grants",
+        "connection_control::tests::native_stream_authority::sip_signal::sip_native_signal_pair_rechecks_native_physical_authority_and_both_recipient_ceilings"
+      ],
+      "log": {
+        "path": ".local/gate-6/dtmf-gateway/store-pair-current.log",
+        "sha256": "32ffc2b21d536d897af1d9735410160d1f9093a80062452c8af332d49e6c5e84"
+      }
+    }
+  ],
+  "controlled_store_summary_samples": 5,
+  "samples": {
+    "path": ".local/gate-6/dtmf-gateway/aggregates-current.jsonl",
+    "sha256": "f2a04e0be8b483e532a305490daea55532218871ccec7f06dae5d3f641481ad0"
+  },
+  "summary_validation": {
+    "passed": true,
+    "controlled_store_samples": 5,
+    "states": [
+      "cancelled",
+      "completed",
+      "failed",
+      "unknown"
+    ],
+    "physical_delivery_qualified": false,
+    "signature_conformance_qualified": false,
+    "log": {
+      "path": ".local/gate-6/dtmf-gateway/validate-results.log",
+      "sha256": "f5341cd891466a72ccfbaf76a8b70e3c4a80daa6dd3e0ecbc3cb2caf98213381"
+    }
+  },
+  "service_check": {
+    "passed": true,
+    "command": "CARGO_INCREMENTAL=1 cargo check -p connect-service --locked --offline -j4",
+    "log": {
+      "path": ".local/gate-6/dtmf-gateway/check-service.log",
+      "sha256": "96d885ad772e8004a3f97078630f7fd286eaaa8c89f6353e127e72f8fc79db84"
+    }
+  },
+  "test_build": {
+    "path": ".local/gate-6/dtmf-gateway/build-store-final.log",
+    "sha256": "03feae5e60e0d0c110a58661bc3a0534c45a42fa100c28ec11a38e08106b7ae6"
+  },
+  "source_lock": {
+    "path": "dependencies/source-lock.json",
+    "sha256": "12f8248f0be31e7bfc35af45c25733fe87d71356fd11f535927cab438bfa47cd"
+  },
+  "current_source_snapshot": {
+    "path": ".local/gate-6/dtmf-gateway/inputs.json",
+    "sha256": "4643f249ce2fae52499bbf1e1415e2e4d414bcd702dc0ce84d2be320fee839c0"
+  },
+  "source_snapshot_files": 481,
+  "commands": [
+    "bash scripts/prepare-dependencies.sh",
+    "bash scripts/format.sh",
+    "CARGO_INCREMENTAL=1 cargo test -p connect-store --lib native_stream_authority::dtmf_gateways:: --locked --offline -j4",
+    "CARGO_INCREMENTAL=1 cargo test -p connect-store --lib dtmf --no-run --locked --offline -j4",
+    "CONNECT_DTMF_GATEWAY_OBSERVATIONS=<private samples> target/debug/deps/connect_store-500690b8d898aed1 dtmf --test-threads=4",
+    "target/debug/deps/connect_store-500690b8d898aed1 transitions::initial_telephone::tests:: --test-threads=4",
+    "target/debug/deps/connect_store-500690b8d898aed1 native_stream_authority::sip_signal:: --test-threads=4",
+    ".local/gate-6/verification-venv/bin/python scripts/validate-gate6-dtmf-gateway-results.py <private samples>",
+    "python3 scripts/generate-canonical-http-openapi.py --check",
+    "git diff --check"
+  ],
+  "observations": [
+    "Schema100 stores native-source SIP recipients against their real initial_telephone_operations record and answered/connected call, without a manufactured native lifetime. Current original Endpoint revision/Device, generation, call ID and endpoint/route credential identities are immutable target metadata.",
+    "One signed native-source batch atomically freezes native and SIP intended registrations, with a combined bounded cardinality and globally unique registration IDs. Duplicate registrations, frozen binding mutation and insufficient capacity cannot leave a half source or recipient set.",
+    "Separate route-owner locking footprints cover current and frozen gateway metadata without adding operators to the signal audience. Exact selected pair and original Session-owner access replace unrelated Session-wide recipient requirements for signals; media permission checks are unchanged.",
+    "Fresh current independent dtmf.send/dtmf.receive, original source and frozen recipient rights are rechecked after queueing. Source scope/key, recipient scope/Device/Endpoint/member and route revocation prevent subsequent write admission.",
+    "One stable gateway schedule identity is durably reserved before possible IO; repeated metadata acquisition can use only that identity. A failed reservation transaction rolls back its attempted marker and can retry metadata. Queued targets retain origins and registrations, never readers.",
+    "Native and SIP recipients share outcome capacity, aggregation and settlement. A partial set cannot complete the operation. Captured stopped-writer facts can be journaled after credential loss without renewing authority; changed outcomes conflict.",
+    "Cancellation before a schedule closes not_started work. Restart recovers an unreserved gateway as not_started and a reserved gateway as outcome_unknown, closes only stopped local control work and schedules no replay. The original uncertain logical operation remains unknown.",
+    "Current Store snapshots include the mixed DTMF source and both recipient tables. Source-lock remains159 patches; no upstream source changed in this component.",
+    "Five actual controlled Store operation summaries validate against NativeDtmfSubmission in the HTTP/OpenAPI contract: completed, mixed partial failure, cancelled, unstarted-recovery failure and reserved-recovery uncertainty. They retain the native-source attribution required by this Store family despite an untrusted source payload extension. These are not signed HTTP/native production observations."
+  ],
+  "newly_qualified_case_ids": [],
+  "qualified_clause_count": 55,
+  "assigned_clause_count": 61,
+  "remaining_case_ids": [
+    "u6-req-0103",
+    "u6-req-0109",
+    "u6-req-0112",
+    "u6-req-0113",
+    "u6-req-0115",
+    "u6-req-0123"
+  ],
+  "not_run_or_unqualified": [
+    "No physical native-to-SIP or SIP-to-native worker/translation, actual signal provenance or socket-level failure/recovery was run. Runtime and upstream audience-fence integration remain necessary for0112/0113/0115; Store success does not qualify those clauses.",
+    "Existing Core native DTMF audience fencing is explicitly native-recipient-only. SIP requires an actual recipient binding/fence with original/current privacy, not a synthetic native descriptor.",
+    "Established/replacement SIP legs, SIP-originated durable sources, wider private/handoff combinations and mixed actual IO remain unqualified by this initial-SIP Store increment.",
+    "Linux x86_64/browser/remote/named provider lanes were not run. Other remaining clauses, the earlier unresolved unknown subscription for0123, G6-094 independent conformance, full G6-046, all105 tasks, acceptance and publication remain open."
+  ],
+  "next_required_work": [
+    "Extend Core original/current DTMF audience fencing for actual SIP recipient metadata; existing native_dtmf_audience_fence accepts only QUIC/WebTransport. Preserve original private groups and current audience under each physical IO poll. Do not fabricate a DtmfNativeRecipient for SIP or bypass this fence.",
+    "Install native-to-SIP runtime selection/capture/owned schedule execution using this frozen mixed batch, original host registrations and the fresh gateway read. Validate true INFO/RFC4733 IO, cancellation, partial submission, late captured recording, replay and recovery through signed SDK observations.",
+    "Implement sealed SIP-originated observations and deduplicated stable operations, actual SIP-to-native fanout and correct source attribution; include established/replacement SIP legs and remaining scopes.",
+    "Finish0103/0109/0112/0113/0115/0123, retain the earlier unresolved unknown subscription for0123, then follow the remaining all105 approved tasks in dependency order."
+  ]
+}
