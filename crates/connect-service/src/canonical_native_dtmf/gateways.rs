@@ -259,6 +259,13 @@ pub(super) async fn deliver(
         }
         Err(e) => Err(e),
     };
+    if let Err(error) = result {
+        tracing::debug!(
+            ?error,
+            touched = policy.touched.load(Ordering::Acquire),
+            "SIP DTMF delivery stopped"
+        );
+    }
     cancel.cancel();
     policy.flight.close();
     policy.flight.stopped().await;

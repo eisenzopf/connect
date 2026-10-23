@@ -1,0 +1,133 @@
+--- a/crates/media/media-core/src/relay/controller/dtmf_transmitter.rs
++++ b/crates/media/media-core/src/relay/controller/dtmf_transmitter.rs
+@@ -306,15 +306,27 @@
+         }
+     };
+     emit(u32::from(per_tick), false).await?;
+-    let count = duration_ms.div_ceil(20).saturating_sub(2);
+-    for tick in 0..count {
+-        tokio::time::sleep(TICK).await;
+-        emit((tick + 2) * u32::from(per_tick), false).await?;
++    // Authorization and actual writes are bounded but not free. Anchor tone
++    // timing after the first submitted packet; never add that work to every
++    // relative 20ms sleep. Skip missed continuation ticks instead of bursting
++    // an obsolete backlog. Every emitted packet still obtains fresh authority.
++    let started = tokio::time::Instant::now();
++    let ended = started + Duration::from_millis(u64::from(duration_ms));
++    let mut next = started + TICK;
++    while next < ended {
++        tokio::time::sleep_until(next).await;
++        if tokio::time::Instant::now() >= ended {
++            break;
++        }
++        let tick = started.elapsed().as_millis() / 20 + 1;
++        let samples = u32::try_from(tick * u128::from(per_tick))
++            .unwrap_or(total_samples)
++            .min(total_samples);
++        emit(samples, false).await?;
++        let elapsed = u64::try_from(started.elapsed().as_millis()).unwrap_or(u64::MAX - 20);
++        next = started + Duration::from_millis((elapsed / 20 + 1) * 20);
+     }
+-    tokio::time::sleep(Duration::from_millis(u64::from(
+-        duration_ms.saturating_sub((count + 1) * 20).max(1),
+-    )))
+-    .await;
++    tokio::time::sleep_until(ended).await;
+     emit(total_samples, true).await?;
+     Ok(())
+ }
+@@ -560,12 +572,11 @@
+             "all DTMF packets in one tone must share start timestamp, got {:?}",
+             timestamps
+         );
+-        // Durations must be strictly increasing in 160-sample steps.
++        // Delayed continuations may skip ticks, preserving the exact clock.
+         for w in durations.windows(2) {
+             assert!(
+-                w[1].saturating_sub(w[0]) == 0
+-                    || w[1].saturating_sub(w[0]) == samples_per_tick(DEFAULT_CLOCK_RATE),
+-                "duration must grow by one tick (160 samples) per continuation"
++                w[1] >= w[0] && (w[1] - w[0]) % samples_per_tick(DEFAULT_CLOCK_RATE) == 0,
++                "duration must advance by whole negotiated ticks"
+             );
+         }
+     }
+@@ -966,4 +977,78 @@
+         }
+         assert_eq!(finals, 3);
+     }
++    #[tokio::test]
++    async fn actual_udp_slow_permission_keeps_tone_clock_and_skips_obsolete_ticks() {
++        use rvoip_rtp_core::session::RtpSessionConfig;
++        struct Slow {
++            calls: AtomicUsize,
++        }
++        #[async_trait]
++        impl DtmfWriteAuthority for Slow {
++            async fn acquire(
++                &self,
++                scope: &DtmfWriteScope<'_>,
++            ) -> std::result::Result<DtmfWriteLease, DtmfWriteError> {
++                assert_eq!(scope.digits, "1");
++                assert_eq!(scope.duration_ms, 600);
++                // Longer than one RTP tick, still within the existing IO bound.
++                tokio::time::sleep(Duration::from_millis(35)).await;
++                self.calls.fetch_add(1, Ordering::AcqRel);
++                Ok(DtmfWriteLease::new(
++                    (),
++                    tokio::time::Instant::now() + DTMF_WRITE_DEADLINE,
++                    || true,
++                ))
++            }
++        }
++        let receiver = tokio::net::UdpSocket::bind("127.0.0.1:0").await.unwrap();
++        let session = RtpSession::new(RtpSessionConfig {
++            local_addr: "127.0.0.1:0".parse().unwrap(),
++            remote_addr: Some(receiver.local_addr().unwrap()),
++            ssrc: Some(0xcafebabe),
++            ..Default::default()
++        })
++        .await
++        .unwrap();
++        let transmitter = DtmfTransmitter::new(Arc::new(Mutex::new(session)));
++        let policy = Slow {
++            calls: AtomicUsize::new(0),
++        };
++        let started = tokio::time::Instant::now();
++        transmitter
++            .send_sequence_authorized("1", 600, 70, &policy)
++            .await
++            .unwrap();
++        let elapsed = started.elapsed();
++        assert!(
++            elapsed >= Duration::from_millis(600),
++            "tone ended early: {elapsed:?}"
++        );
++        assert!(
++            elapsed < Duration::from_millis(1000),
++            "permission work stretched the tone: {elapsed:?}"
++        );
++        let mut count = 0;
++        let mut ends = 0;
++        let mut last = 0;
++        while let Ok(packet) =
++            tokio::time::timeout(Duration::from_millis(40), receive(&receiver)).await
++        {
++            count += 1;
++            assert_eq!(packet.payload[0], 1);
++            let duration = u16::from_be_bytes([packet.payload[2], packet.payload[3]]);
++            assert!(duration >= last && duration <= 4800);
++            last = duration;
++            if packet.payload[1] & 0x80 != 0 {
++                assert_eq!(duration, 4800);
++                ends += 1;
++            }
++        }
++        assert_eq!(ends, 3);
++        assert_eq!(count, policy.calls.load(Ordering::Acquire));
++        assert!(
++            count > 5 && count < 30,
++            "obsolete ticks were not skipped: {count}"
++        );
++    }
+ }

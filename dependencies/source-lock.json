@@ -904,6 +904,16 @@
       "path": "patches/rvoip/gate6-native-to-sip-dtmf-audience.patch",
       "sha256": "e62e54d73e6fabb88ea246f5309357a2fbd49067cda83ade675b5a47b699503e",
       "source": "G6-046 actual managed SIP-recipient audience fencing for a sealed native DTMF source. Own the SIP controller credential during each IO callback, preserve original/current private audiences and exact live bindings, and never manufacture native recipient metadata. Controlled scene tests only; physical Connect bridge integration remains separate."
+    },
+    {
+      "path": "patches/rvoip/gate6-dtmf-operation-budget.patch",
+      "sha256": "f372b93143d3ae7a4445c32f0d910d8562c3b787333e3e0f371d1d894951e853",
+      "source": "G6-046 separate the bounded DTMF execution budget from the unchanged 30-second validated tone/gap limit. Core and SIP INFO allow metadata admission and terminal redundancy within 40 seconds, always narrowed by caller deadlines and current per-write source/recipient authority. Actual Connect maximum-sequence qualification is recorded separately."
+    },
+    {
+      "path": "patches/rvoip/gate6-dtmf-clocked-cadence.patch",
+      "sha256": "ac8fb4b21ab3010d3d2a3d4a0bfa8c82177b22102777bbb5d4582c6bc21ae3ac",
+      "source": "G6-046 clock RFC4733 packet scheduling independently of fresh authorization latency. Anchor after actual first submission, skip obsolete continuation ticks without buffering, retain exact negotiated sample duration and fresh per-packet IO custody. A real UDP slow-policy fixture checks wall time, all final packets and one grant per emitted packet; Connect maximum-sequence evidence remains separately required."
     }
   ]
 }

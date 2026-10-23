@@ -60,6 +60,61 @@ fn status(f: &Fixture) -> connect_protocol::transitions::OperationRecord {
 }
 
 #[test]
+fn native_dtmf_maximum_schedule_has_bounded_setup_margin_without_extending_original_source_or_replay(
+) {
+    for remaining in [7, 600] {
+        let (f, mut request) = fixture(true, true);
+        let PeerCommand::NativeStream(wire) = &mut request.command else {
+            panic!()
+        };
+        wire.payload = json!({"digits":"12345","duration_ms":5944,"method":"rfc4733"});
+        let mut proof = admit(&f, &request).unwrap();
+        proof.limit_expiry(crate::now() + remaining).unwrap();
+        let original_expiry = proof.expires_at();
+        let record = f
+            .store
+            .accept_native_stream_with_peer(&f.keys[0], &proof)
+            .unwrap();
+        let created: i64 = f
+            .store
+            .connection()
+            .unwrap()
+            .query_row(
+                "SELECT created_at FROM operations WHERE record_id=?1",
+                [&record.record_id],
+                |r| r.get(0),
+            )
+            .unwrap();
+        assert_eq!(record.expires_at, Some((created + 40).min(original_expiry)));
+        drop(proof);
+        // A later, longer admitted proof can read the original reservation;
+        // replay must not grant it a new schedule or later expiry.
+        let replay = accept(&f, &request);
+        assert_eq!(replay, record);
+    }
+    let (f, request, _) = parent(true, true);
+    let proof = admit(&f, &request).unwrap();
+    let record = f
+        .store
+        .accept_native_stream_with_peer(&f.keys[0], &proof)
+        .unwrap();
+    let created: i64 = f
+        .store
+        .connection()
+        .unwrap()
+        .query_row(
+            "SELECT created_at FROM operations WHERE record_id=?1",
+            [&record.record_id],
+            |r| r.get(0),
+        )
+        .unwrap();
+    assert_eq!(
+        record.expires_at,
+        Some((created + 30).min(proof.expires_at()))
+    );
+}
+
+#[test]
 fn native_dtmf_needs_its_named_signal_permission_and_a_current_completed_physical_parent() {
     for (granted, completed) in [(false, true), (true, false)] {
         let (f, request) = fixture(granted, completed);

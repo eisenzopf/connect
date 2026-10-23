@@ -65,8 +65,23 @@ the revoked source cannot replay, and a fresh credential of the same identity
 can read the original result. The quiet observation crosses the original tone
 duration and gap. Both signing algorithms execute these cases.
 
+The maximum RFC4733 fixture requests five 5944 ms digits with four 70 ms gaps:
+exactly 30 seconds of validated tone/gap time. It checks all five exact 47552
+sample terminal durations at 8 kHz, redundant end packets, one original call,
+one completed schedule and no replay. Its local elapsed bound is 35 seconds.
+
+DTMF admission and Core/INFO execution have a separate 40-second budget,
+narrowed by the original validated source, credential and caller deadlines.
+Replay cannot refresh it. Other native stream controls retain their 30-second
+budget. The packet's fresh signal grant remains bounded to 200 ms.
+RFC4733 packet cadence follows the monotonic tone clock after first submission,
+skipping obsolete continuation ticks when permission work is delayed. Fresh
+authorization still surrounds each emitted packet, including every final one.
+The controlled UDP delay case checks actual tone wall time and one grant per
+actual packet, alongside exact final sample duration and terminal redundancy.
+
 These checks qualify a bounded local macOS arm64 component. SIP-originated
-observations, established/replacement SIP legs, maximum-duration sequences,
+observations, established/replacement SIP legs, other maximum-duration profiles,
 larger fanout, target/route revocation, restart/socket uncertainty and remaining
 private combinations need further implementation or production checks. They do not
 close the cross-substrate DTMF clauses, G6-046, independent G6-094 conformance or

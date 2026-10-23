@@ -432,6 +432,21 @@ delivery. Local submission remains distinct from remote playback.
 
 ## Bounded metadata admission
 
+The complete requested DTMF schedule still has the 30-second bound. Its durable
+native operation has a separate 40-second admission-to-settlement budget so a
+valid maximum sequence retains bounded time for source/route preparation and
+terminal packet redundancy. The original validated source and credential expiry
+can only narrow this deadline; replay retains the first recorded expiry. Other
+native stream commands keep their existing 30-second operation budget. This
+does not lengthen a packet's 200 ms signal grant or retry a physical schedule.
+
+RFC4733 tone scheduling uses the monotonic clock after the first submitted
+packet. Fresh authorization work does not accumulate as an extra delay after
+every 20 ms tick. A delayed writer skips obsolete continuation ticks, keeping
+sample durations monotonic in the negotiated clock and retaining the exact
+final duration and terminal redundancy. It queues neither old packets nor
+permission readers while waiting for the next tick or interdigit gap.
+
 Temporary Core relationship metadata contention keeps the original native DTMF
 operation preparing before any writer is allocated. Connect recaptures only the
 same sealed source observation and frozen recipient, within at most two seconds

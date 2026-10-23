@@ -2,6 +2,21 @@
 use super::*;
 #[path = "dtmf/stops.rs"]
 mod stops;
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn production_native_to_initial_sip_maximum_rfc4733_sequence_keeps_exact_duration_and_all_terminal_packets(
+) {
+    for algorithm in ["EdDSA", "ES256"] {
+        initial_selected_signal_case(
+            false,
+            algorithm,
+            EndpointTransport::Telephone,
+            "participant",
+            false,
+            Some("rfc4733-maximum"),
+        )
+        .await;
+    }
+}
 pub(super) async fn signal_only(
     f: &Fixture,
     peer: &PeerSip,
@@ -69,11 +84,14 @@ pub(super) async fn exercise(
     let refused = method == "missing-receive";
     let wire_method = if refused || method == "info-refusal" || method == "signal-only-info" {
         "info"
-    } else if method == "signal-only-rfc4733" {
+    } else if matches!(method, "signal-only-rfc4733" | "rfc4733-maximum") {
         "rfc4733"
     } else {
         method
     };
+    let maximum = method == "rfc4733-maximum";
+    let digits = if maximum { "12345" } else { "58#" };
+    let duration = if maximum { 5944 } else { 100 };
     let operation = format!("native-sip-{method}");
     let scope = CommandScope {
         conversation_id: Some(cid.into()),
@@ -82,8 +100,9 @@ pub(super) async fn exercise(
         operation_id: Some(operation.clone()),
         expected_revision: None,
     };
+    let submitted_at = tokio::time::Instant::now();
     let accepted = client
-        .send_native_dtmf(scope.clone(), "58#", 100, wire_method)
+        .send_native_dtmf(scope.clone(), digits, duration, wire_method)
         .await
         .unwrap();
     if refused {
@@ -121,13 +140,32 @@ pub(super) async fn exercise(
     ));
     let mut events = std::collections::BTreeMap::<u32, (u8, usize)>::new();
     if wire_method == "rfc4733" {
-        let end = tokio::time::Instant::now() + Duration::from_secs(8);
+        let end = tokio::time::Instant::now() + Duration::from_secs(if maximum { 40 } else { 8 });
         let mut bytes = [0; 4096];
-        while events.len() < 3 || events.values().any(|(_, n)| *n < 3) {
-            let (n, from) = tokio::time::timeout_at(end, peer.media.recv_from(&mut bytes))
+        while events.len() < digits.len() || events.values().any(|(_, n)| *n < 3) {
+            let (n, from) = match tokio::time::timeout_at(end, peer.media.recv_from(&mut bytes))
                 .await
-                .unwrap()
-                .unwrap();
+            {
+                Ok(result) => result.unwrap(),
+                Err(error) => {
+                    let record = client
+                        .operation_get(
+                            &operation,
+                            CommandScope {
+                                conversation_id: Some(cid.into()),
+                                ..Default::default()
+                            },
+                        )
+                        .await;
+                    let db = rusqlite::Connection::open_with_flags(
+                        &f.config.database,
+                        rusqlite::OpenFlags::SQLITE_OPEN_READ_ONLY,
+                    )
+                    .unwrap();
+                    let timing:(i64,i64,i64)=db.query_row("SELECT o.created_at,o.expires_at,n.source_expires_at FROM operations o JOIN native_stream_operations n ON n.operation_record_id=o.record_id WHERE o.operation_id=?1",[&operation],|r|Ok((r.get(0)?,r.get(1)?,r.get(2)?))).unwrap();
+                    panic!("RTP terminal timeout: {error:?}; observed ends={events:?}; timing={timing:?}; status={record:?}");
+                }
+            };
             assert_eq!(from.ip(), peer.address.ip());
             if n > 1 && (200..=211).contains(&bytes[1]) {
                 continue;
@@ -140,7 +178,7 @@ pub(super) async fn exercise(
             if packet.payload[1] & 0x80 != 0 {
                 assert_eq!(
                     u16::from_be_bytes([packet.payload[2], packet.payload[3]]),
-                    800
+                    (duration * 8) as u16
                 );
                 let entry = events
                     .entry(packet.header.timestamp)
@@ -153,7 +191,21 @@ pub(super) async fn exercise(
             .values()
             .map(|(event, _)| *event)
             .collect::<std::collections::BTreeSet<_>>();
-        assert_eq!(actual, std::collections::BTreeSet::from([5, 8, 11]));
+        assert_eq!(
+            actual,
+            if maximum {
+                std::collections::BTreeSet::from([1, 2, 3, 4, 5])
+            } else {
+                std::collections::BTreeSet::from([5, 8, 11])
+            }
+        );
+        if maximum {
+            assert!(
+                submitted_at.elapsed() < Duration::from_secs(35),
+                "exact 30-second sequence drifted: {:?}",
+                submitted_at.elapsed()
+            );
+        }
     }
     let end = tokio::time::Instant::now() + Duration::from_secs(8);
     let completed = loop {
@@ -222,7 +274,7 @@ pub(super) async fn exercise(
     }
     assert_eq!(
         client
-            .send_native_dtmf(scope, "58#", 100, wire_method)
+            .send_native_dtmf(scope, digits, duration, wire_method)
             .await
             .unwrap()
             .result,
@@ -256,7 +308,7 @@ pub(super) async fn exercise(
             .unwrap()
             .join(".local/gate-6");
         assert!(path.is_absolute() && path.starts_with(root));
-        let mut bytes=serde_json::to_vec(&json!({"algorithm":algorithm,"method":wire_method,"profile":method,"completed":completed,"sip_calls":peer.unique(),"info_packets":before,"rtp_events":events})).unwrap();
+        let mut bytes=serde_json::to_vec(&json!({"algorithm":algorithm,"method":wire_method,"profile":method,"digits":digits,"duration_ms":duration,"elapsed_ms":submitted_at.elapsed().as_millis(),"completed":completed,"sip_calls":peer.unique(),"info_packets":before,"rtp_events":events})).unwrap();
         bytes.push(b'\n');
         std::fs::OpenOptions::new()
             .create(true)

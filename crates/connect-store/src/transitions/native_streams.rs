@@ -349,7 +349,15 @@ impl Store {
         }
         let (resources,parent_expiry):(String,i64)=tx.query_row("SELECT resources_json,source_expires_at FROM native_admission_sources WHERE operation_record_id=?1",[&source.parent_record_id],|r|Ok((r.get(0)?,r.get(1)?))).map_err(|_|Error::storage())?;
         let source_expiry = proof.expires_at().min(parent_expiry);
-        let expires = (crate::now() + 30).min(source_expiry);
+        // A valid DTMF sequence itself may consume the full 30 seconds.
+        // Admission, metadata capture and terminal packet redundancy need
+        // their own bounded margin, still inside the original source expiry.
+        let budget = if wire.command == Command::Dtmf {
+            40
+        } else {
+            30
+        };
+        let expires = (crate::now() + budget).min(source_expiry);
         if expires <= crate::now() {
             return Err(Error::forbidden());
         }

@@ -1,0 +1,63 @@
+--- a/crates/media/media-core/src/relay/controller/dtmf_transmitter.rs
++++ b/crates/media/media-core/src/relay/controller/dtmf_transmitter.rs
+@@ -66,6 +66,9 @@
+ /// Bound the complete sequence so an API request cannot monopolize its
+ /// connection control lane indefinitely.
+ pub const MAX_DTMF_SEQUENCE_MS: u64 = 30_000;
++/// Bounded execution also covers metadata admission and terminal redundancy.
++/// Requested tone/gap duration remains limited by MAX_DTMF_SEQUENCE_MS.
++pub const MAX_DTMF_OPERATION_MS: u64 = MAX_DTMF_SEQUENCE_MS + 10_000;
+ /// Default quiet interval between the final packet of one event and the first
+ /// packet of the next event.
+ pub const DEFAULT_DTMF_INTER_DIGIT_MS: u32 = 70;
+--- a/crates/foundation/rvoip-core/src/dtmf.rs
++++ b/crates/foundation/rvoip-core/src/dtmf.rs
+@@ -2,7 +2,7 @@
+ //! intent before scheduling any packet; these bounds are not an effect grant.
+ pub use rvoip_media_core::relay::controller::dtmf_transmitter::{
+     validate_dtmf_sequence, DEFAULT_DTMF_INTER_DIGIT_MS, MAX_DTMF_DURATION_MS,
+-    MAX_DTMF_SEQUENCE_DIGITS, MAX_DTMF_SEQUENCE_MS, MIN_DTMF_DURATION_MS,
++    MAX_DTMF_OPERATION_MS, MAX_DTMF_SEQUENCE_DIGITS, MAX_DTMF_SEQUENCE_MS, MIN_DTMF_DURATION_MS,
+ };
+ 
+ // The transport custody contract lives below Core so SIP and WebRTC share it.
+--- a/crates/foundation/rvoip-core/src/orchestrator/dtmf_routing.rs
++++ b/crates/foundation/rvoip-core/src/orchestrator/dtmf_routing.rs
+@@ -5,7 +5,7 @@
+     validate_dtmf_sequence, DtmfInfoWriteAuthority, DtmfInfoWriteScope, DtmfIoFence, DtmfIoPoll,
+     DtmfNativeWriteAuthority, DtmfNativeWriteScope, DtmfSourceKind, DtmfSourceObservation,
+     DtmfWriteAuthority, DtmfWriteError, DtmfWriteLease, DtmfWriteScope,
+-    DEFAULT_DTMF_INTER_DIGIT_MS, MAX_DTMF_SEQUENCE_MS,
++    DEFAULT_DTMF_INTER_DIGIT_MS, MAX_DTMF_OPERATION_MS,
+ };
+ use std::task::Poll;
+ use tokio::time::Instant;
+@@ -622,7 +622,7 @@
+             return Err(DtmfWriteError::Refused);
+         }
+         let deadline =
+-            requested_deadline.min(Instant::now() + Duration::from_millis(MAX_DTMF_SEQUENCE_MS));
++            requested_deadline.min(Instant::now() + Duration::from_millis(MAX_DTMF_OPERATION_MS));
+         // This is still the same metadata-only schedule. Busy registries are
+         // not lost authority; wait without reserving a slot or invoking policy.
+         route.wait_current(&cancel, deadline).await?;
+--- a/crates/sip/rvoip-sip/src/adapters/dialog_adapter.rs
++++ b/crates/sip/rvoip-sip/src/adapters/dialog_adapter.rs
+@@ -3714,7 +3714,7 @@
+     ) -> std::result::Result<(), rvoip_media_core::dtmf_authority::DtmfWriteError> {
+         use rvoip_media_core::dtmf_authority::*;
+         use rvoip_media_core::relay::controller::dtmf_transmitter::{
+-            validate_dtmf_sequence, DEFAULT_DTMF_INTER_DIGIT_MS, MAX_DTMF_SEQUENCE_MS,
++            validate_dtmf_sequence, DEFAULT_DTMF_INTER_DIGIT_MS, MAX_DTMF_OPERATION_MS,
+         };
+         validate_dtmf_sequence(digits, duration_ms, DEFAULT_DTMF_INTER_DIGIT_MS)
+             .map_err(|_| DtmfWriteError::Refused)?;
+@@ -3722,7 +3722,7 @@
+             return Err(DtmfWriteError::Refused);
+         }
+         let deadline = requested_deadline
+-            .min(tokio::time::Instant::now() + Duration::from_millis(MAX_DTMF_SEQUENCE_MS));
++            .min(tokio::time::Instant::now() + Duration::from_millis(MAX_DTMF_OPERATION_MS));
+         if tokio::time::Instant::now() >= deadline {
+             return Err(DtmfWriteError::DeadlineBeforeWrite);
+         }
