@@ -8,6 +8,7 @@ pub mod native_data;
 pub mod native_dtmf;
 pub mod native_gates;
 pub mod native_streams;
+pub mod received_dtmf;
 pub mod record_mutations;
 pub use conversations::Conversation;
 
