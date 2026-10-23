@@ -1,0 +1,236 @@
+{
+  "task": "G6-046",
+  "status": "in-progress",
+  "component_passed": true,
+  "full_task_complete": false,
+  "full_goal_complete": false,
+  "executed_at": "2026-10-23T14:14:16.799941+00:00",
+  "implementation_commit": "ef73edc651c03aa1ee54252553a3f3403f875be1",
+  "host": "Darwin arm64",
+  "scope": "Actual signed native subscription to an initial SIP source under controlled native binding metadata contention, plus bounded ordinary setup/replay rehearsals and authority regressions. Local macOS arm64 EdDSA/ES256. Fixes the proven contention failure class; earlier spontaneous failures are not uniquely attributed by this component.",
+  "schema_version": 100,
+  "source_lock_patches": 162,
+  "rust_test_methods": 24,
+  "new_test_methods": 2,
+  "regression_test_methods": 22,
+  "results": [
+    {
+      "passed": 2,
+      "failed": 0,
+      "test_names": [
+        "canonical_native_connections::consultation::groups::replacement::telephone::initial::subscriptions::production_initial_sip_subscription_signed_rehearsals_preserve_completed_route_and_replay",
+        "canonical_native_connections::consultation::groups::replacement::telephone::initial::subscriptions::production_initial_sip_subscription_waits_for_binding_metadata_without_unknown_or_reexecution"
+      ],
+      "log": {
+        "path": ".local/gate-6/dtmf-sip-fence/subscription-contention/fixed.log",
+        "sha256": "fec6787a96993a7069711de56470b3e400e19e0309312adfc8cd02140a328543"
+      }
+    },
+    {
+      "passed": 17,
+      "failed": 0,
+      "test_names": [
+        "canonical_native_connections::dtmf::production_native_dtmf_cancel_after_partial_io_preserves_uncertainty_and_stops_remaining_work",
+        "canonical_native_connections::dtmf::production_native_dtmf_http_cannot_borrow_native_source_custody",
+        "canonical_native_connections::dtmf::production_native_dtmf_http_status_projects_actual_local_frame_summary",
+        "canonical_native_connections::dtmf::production_native_dtmf_metadata_contention_waits_without_io_readers_and_keeps_original_intent",
+        "canonical_native_connections::dtmf::production_native_dtmf_metadata_deadline_and_cancel_refuse_before_io_and_replay_no_effect",
+        "canonical_native_connections::dtmf::production_native_dtmf_partial_credit_write_records_unknown_without_replay_and_releases_control",
+        "canonical_native_connections::dtmf::production_native_dtmf_queued_during_another_sdk_command_keeps_actual_provenance_and_order",
+        "canonical_native_connections::dtmf::production_native_dtmf_recipient_revoke_waits_for_partial_io_and_preserves_other_recipient",
+        "canonical_native_connections::dtmf::production_native_dtmf_requires_named_receive_permission_without_borrowing_subscription",
+        "canonical_native_connections::dtmf::production_native_dtmf_restart_keeps_unrecorded_actual_submission_unknown_and_never_redelivers",
+        "canonical_native_connections::dtmf::production_native_dtmf_signed_sdk_delivery_and_replay_preserve_original_effects",
+        "canonical_native_connections::dtmf::production_native_dtmf_source_revoke_waits_for_partial_io_and_never_revives_original_work",
+        "canonical_native_connections::dtmf::production_native_dtmf_writer_fact_storage_failure_recovers_without_another_delivery",
+        "canonical_native_connections::dtmf::production_native_refresh_retains_actual_decoded_rtp_after_original_expiry",
+        "canonical_native_connections::dtmf::production_owned_audio_dtmf_uses_its_exact_source_and_preserves_queued_received_signals",
+        "canonical_native_connections::dtmf::production_owned_audio_refresh_keeps_signed_reader_and_current_signal_authority",
+        "canonical_native_connections::dtmf::production_owned_audio_signaling_refresh_survives_original_credential_expiry"
+      ],
+      "log": {
+        "path": ".local/gate-6/dtmf-sip-fence/subscription-contention/native-regression.log",
+        "sha256": "386a766adb89fede4ae7a4ec8e1cdfecaeed6e5ff4ec55342acbc861a19c63bd"
+      }
+    },
+    {
+      "passed": 3,
+      "failed": 0,
+      "test_names": [
+        "canonical_native_connections::consultation::groups::replacement::telephone::initial::production_initial_telephone_public_end_confirms_original_cleanup_after_generation_fence",
+        "canonical_native_connections::consultation::groups::replacement::telephone::initial::production_initial_telephone_public_end_while_ringing_cancels_exact_dialog",
+        "canonical_native_connections::consultation::groups::replacement::telephone::initial::production_initial_telephone_public_invite_records_real_answer_and_guarded_admission_once"
+      ],
+      "log": {
+        "path": ".local/gate-6/dtmf-sip-fence/subscription-contention/default-sip-regression.log",
+        "sha256": "e2a2b789770a241230877349b66e40271ba78fa620ad0a60a2d6f9c67367b405"
+      }
+    },
+    {
+      "passed": 2,
+      "failed": 0,
+      "test_names": [
+        "canonical_native_connections::selector_policy::production_native_disjoint_data_formats_refuse_488_without_allocating_a_route",
+        "canonical_native_connections::selector_policy::production_native_heterogeneous_wildcard_preserves_audio_and_definitive_refusals"
+      ],
+      "log": {
+        "path": ".local/gate-6/dtmf-sip-fence/subscription-contention/selector-regression.log",
+        "sha256": "e71c4cc897b6f171fb7634f0d6a8ab4f3e682f70821ee284b5c749e5000de015"
+      }
+    }
+  ],
+  "controlled_contention_scenarios": 2,
+  "ordinary_setup_replay_scenarios": 8,
+  "actual_wire_frames": 36,
+  "actual_completed_subscription_responses": 18,
+  "actual_frames": {
+    "path": ".local/gate-6/dtmf-sip-fence/subscription-contention/fixed-frames.jsonl",
+    "sha256": "ee51d6a196f94bb069b55592b8e9b5fe6160660a081f4749714d64a80145fac1"
+  },
+  "wire_validation": {
+    "passed": true,
+    "actual_frames": 36,
+    "completed_responses": 18,
+    "signed_request_reply_pairs": 18,
+    "scenes": 10,
+    "algorithms": [
+      "EdDSA",
+      "ES256"
+    ],
+    "immutable_replay_scenes": 8,
+    "scope": "Local signed native subscription to an initial SIP source under controlled binding contention and bounded setup/replay rehearsals.",
+    "independent_signature_verification": false,
+    "full_subscription_or_reliability_qualification": false,
+    "log": {
+      "path": ".local/gate-6/dtmf-sip-fence/subscription-contention/validate-frames.log",
+      "sha256": "c14c10ae3927544c2313228035d40144585af932d8b58d8b5e91ddaf52665e93"
+    }
+  },
+  "baseline": {
+    "passed": false,
+    "expected_failure": true,
+    "log": {
+      "path": ".local/gate-6/dtmf-sip-fence/subscription-contention/baseline.log",
+      "sha256": "08459899de86b51ea0cd788763c5038f1acd281f1a025df8d4c9f09188d87431"
+    },
+    "frames": {
+      "path": ".local/gate-6/dtmf-sip-fence/subscription-contention/baseline-frames.jsonl",
+      "sha256": "62d5235f7c72c284cbfef8603165d8a20f455f1f771614e6d00211399a49f006"
+    },
+    "artifact": {
+      "path": ".local/gate-6/dtmf-sip-fence/subscription-contention/baseline-binary.json",
+      "sha256": "e5fa230601cbc4fe0cb1c456827735dfd2bcdc5c6fc849c444b47fdf3482fd22"
+    },
+    "source": {
+      "path": ".local/gate-6/dtmf-sip-fence/subscription-contention/baseline-source.json",
+      "sha256": "c6fc2398b1a93cc0b52a4655759c3ba12b2c59dcb7952e37e01fcdd78bcebfd9"
+    }
+  },
+  "builds": [
+    {
+      "profile": "test-support; same production policy and real listener, with one feature-gated leaf metadata holder",
+      "passed": true,
+      "command": "CARGO_INCREMENTAL=1 cargo test -p connect-server --test gate6_canonical_runtime --features test-support --no-run --locked --offline -j4",
+      "log": {
+        "path": ".local/gate-6/dtmf-sip-fence/subscription-contention/build-fixed.log",
+        "sha256": "893e2cc574b8f0926b15e07a4a0b07d87977e9f20bb1e58022ce9507838aec7e"
+      }
+    },
+    {
+      "profile": "default production features",
+      "passed": true,
+      "command": "CARGO_INCREMENTAL=1 cargo test -p connect-server --test gate6_canonical_runtime --no-run --locked --offline -j4",
+      "log": {
+        "path": ".local/gate-6/dtmf-sip-fence/subscription-contention/build-default.log",
+        "sha256": "ed8b7f00d603d993cf481a02379d5ce0e15d487816b49f32a331d517dc767302"
+      }
+    }
+  ],
+  "binaries": [
+    {
+      "path": "target/debug/deps/gate6_canonical_runtime-c5619768adc4e4fb",
+      "sha256": "d359fda29c2ffb3682aab99636df968a2f1c55121ba9c252218c6a9c890da763"
+    },
+    {
+      "path": "target/debug/deps/gate6_canonical_runtime-3bf705553dffa934",
+      "sha256": "7c4294d6b3e833a465bc1825e455f4c027e1881b0133a2e12087e0c0ad26d1c9"
+    }
+  ],
+  "verification": {
+    "dependencies": {
+      "path": ".local/gate-6/dtmf-sip-fence/subscription-contention/dependencies.log",
+      "sha256": "fd9d7b181e3ccba9b643af55a186cf132c60aac99c734b2ee4e4e549afe5ffc2"
+    },
+    "format": {
+      "path": ".local/gate-6/dtmf-sip-fence/subscription-contention/format-final.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "http_reference": {
+      "path": ".local/gate-6/dtmf-sip-fence/subscription-contention/http-reference-final.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "source_lock": {
+      "path": "dependencies/source-lock.json",
+      "sha256": "c66888abb83732fefa61d67846bf97c49b7ef4e59b1dca92e312e06f56aa9479"
+    }
+  },
+  "source_snapshot_files": 1398,
+  "current_source_snapshot": {
+    "path": ".local/gate-6/dtmf-sip-fence/subscription-contention/inputs.json",
+    "sha256": "af47ad2784f0883010d15c67f096c2dc024d8d004d0cbf6be28574ea87767d94"
+  },
+  "observations": [
+    "The controlled baseline holds the actual native Connection binding mutex without changing a permission or binding. The real signed stream.subscribe trace reports Native binding observation contended, a control-policy Authority refusal, engine Authority and an operation.updated unknown result. The observer also finds a terminal unknown while the metadata lock is still held. This is a concrete reproducer of the binding-contention failure class.",
+    "The production change waits on the native leaf binding mutex instead of treating try_lock contention as lost authority. All production holders were inspected: they compare relationship values, clone or assign them and release the binding guard before Core, Store or IO. The guard remains local to that relationship block. Poisoned metadata still refuses.",
+    "Current identity, membership, Endpoint, Device, binding generation and current control authorization checks are preserved. Waiting constructs no new grant, retries no Core/adapter operation and changes no operation ID. Existing Core deadline/cancellation/current-credential checks still precede commit.",
+    "The test-only callback receives no protected metadata or permission object. Its holder is bounded and cannot manufacture readiness or an engine receipt. An independent observer thread checks durable preparing state for150ms before releasing the real mutex, avoiding a timer dependency on runtime workers blocked by the deliberate fault.",
+    "With the fix, both signing algorithms retain a preparing operation under contention, then complete one effect after release. The parent fixture verifies marked real SIP/native duplex audio at the unchanged thresholds, one original call and exact cleanup.",
+    "Four ordinary fresh setup/replay rehearsals per signing algorithm complete, for eight scenes total. Each replay returns the original result with unchanged connection/readiness revisions and one effect. The two contention scenes add one completion each, yielding18 completed replies and18 acknowledgments across10 scenes. Request correlation, exact result revision/stream_revision, immutable replay payloads and both signing algorithms validate against the wire schema. Producing SDK signature verification is separate from this DTO validator.",
+    "All17 native DTMF methods in the test-support profile pass, including current independent permissions, source/recipient revocation, real partial-write uncertainty, restart/no replay, source metadata contention, deadline/cancel and credential refresh. Three default-feature SIP public admission/end/cleanup cases and two heterogeneous selector/definitive refusal cases pass.",
+    "The default production build passes independently. Source-lock162 and schema100 are unchanged; no upstream patch or prepared source was edited in this component."
+  ],
+  "build_recovery": {
+    "observation": "An initial incremental compile was sampled while validating the prior dependency graph, then explicitly interrupted. Its exact cache unit was archived after compiler/Cargo termination and rebuilt. The fresh cold test-support build completed in11m23s; a second sample showed deep async trait/borrow checking as well. Cache retirement alone is not established as a compiler-performance fix. The same-profile fixed build then completed in10.06s; the default build in1m. These compilation attempts are not runtime passes.",
+    "interrupted_log": {
+      "path": ".local/gate-6/dtmf-sip-fence/subscription-contention/build-baseline.log",
+      "sha256": "67e7ce472ea18c852680db2e662bac8f076cd37fc37c0cdd121d601b9a0944ff"
+    },
+    "compiler_profile": {
+      "path": ".local/gate-6/dtmf-sip-fence/subscription-contention/compiler-sample.txt",
+      "sha256": "75524f32591b323441fee44154f8143368ff589bf37108938e3efd2eaf5a1e51"
+    },
+    "cache_action": {
+      "path": ".local/gate-6/dtmf-sip-fence/subscription-contention/cache-recovery.json",
+      "sha256": "afbabbd1b99c28052070a85d521c70ff46f759e9360304d16dfd0f1ea42c2286"
+    },
+    "fresh_compiler_profile": {
+      "path": ".local/gate-6/dtmf-sip-fence/subscription-contention/compiler-fresh-sample.txt",
+      "sha256": "d6f1a3d7f0424f4cca3ff0233cd4bbaf8487d90775679f6cca161129b380235d"
+    },
+    "completed_cold_build": {
+      "path": ".local/gate-6/dtmf-sip-fence/subscription-contention/build-baseline-fresh.log",
+      "sha256": "0995d5c99d4b1b26de44042b03af12ecf8f3532491de154d1be76fc5b24d4c8a"
+    }
+  },
+  "newly_qualified_case_ids": [],
+  "qualified_clause_count": 55,
+  "assigned_clause_count": 61,
+  "remaining_case_ids": [
+    "u6-req-0103",
+    "u6-req-0109",
+    "u6-req-0112",
+    "u6-req-0113",
+    "u6-req-0115",
+    "u6-req-0123"
+  ],
+  "not_run_or_unqualified": [
+    "The earlier spontaneous ES256 stream.subscribe unknown and native fresh-recipient not_started lack equivalent cause-level traces. This component proves and fixes one matching failure class; it does not prove every historical instance had that cause or establish general reliability.",
+    "Full selector/multiparty50 scope, offer/ready-handle clauses, serial multi-recipient DTMF budget loss, actual SIP-originated durable provenance/output, established/replacement SIP legs and remaining privacy/recovery profiles still require work.",
+    "No new whole clause or task credit:45/105 tasks and55/61 G6-046 clauses remain. Linux/browser/remote/provider lanes, independent G6-094 conformance, acceptance and publication remain open."
+  ],
+  "next_required_work": [
+    "Continue remaining0123/0103/0109 validation with current authority and actual peer-scoped routes; preserve real uncertain results when effects cannot be proven.",
+    "Remove serial multi-recipient DTMF budget loss and implement true SIP-originated sealed durable custody/provenance/native output, including other approved SIP legs and recovery/privacy profiles.",
+    "Complete all105 tasks in dependency order; do not promote this contention fix to full task or reliability qualification."
+  ]
+}
