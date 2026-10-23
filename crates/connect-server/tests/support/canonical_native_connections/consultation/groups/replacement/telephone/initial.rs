@@ -51,7 +51,15 @@ async fn configured_initial_transport(
         .with_test_writer()
         .try_init();
     let f = Fixture::with_native_end_scope(algorithm, 12).await;
-    let peer = PeerSip::with_audio(payload).await;
+    let peer = PeerSip::with_audio_for_user(
+        payload,
+        if transport == EndpointTransport::Sip {
+            "callee"
+        } else {
+            "+14155550123"
+        },
+    )
+    .await;
     *peer.ledger.lock().unwrap() = Some(f.config.database.clone());
     let store = &f.server.store;
     let admin = store.authenticate(&f.admin).unwrap();

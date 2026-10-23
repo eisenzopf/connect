@@ -2,6 +2,7 @@
 """Check real gateway observations; signed replies were verified by the SDK."""
 import argparse
 import json
+from urllib.parse import unquote
 from pathlib import Path
 from jsonschema import Draft202012Validator, FormatChecker
 
@@ -18,7 +19,8 @@ for line in args.observations.read_text().splitlines():
     assert request['action']['kind'] == 'invite'
     assert request['action']['participants'] == [reference]
     assert row['sip_calls'] == 1
-    assert row['destination'] in row['actual_sip_to']
+    assert row['canonical_destination'] == row['actual_sip_uri']
+    assert unquote(row['destination']) == unquote(row['actual_sip_uri'])
     if row['reference_kind'] == 'uri':
         assert row['stored_reference'] == reference
         scheme = reference.split(':', 1)[0]

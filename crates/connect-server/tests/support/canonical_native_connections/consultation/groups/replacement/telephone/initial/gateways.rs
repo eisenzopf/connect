@@ -77,8 +77,18 @@ pub(super) async fn capture(
         1
     );
     assert_eq!(peer.unique(), 1);
-    let actual_sip_to = peer.dialog.lock().unwrap().as_ref().unwrap().to.clone();
-    assert!(actual_sip_to.contains(source["destination"].as_str().unwrap()));
+    let actual_sip_uri = peer
+        .dialog
+        .lock()
+        .unwrap()
+        .as_ref()
+        .unwrap()
+        .initial_uri
+        .clone();
+    let expected_uri: rvoip_sip_core::Uri =
+        source["destination"].as_str().unwrap().parse().unwrap();
+    let observed_uri: rvoip_sip_core::Uri = actual_sip_uri.parse().unwrap();
+    assert_eq!(observed_uri, expected_uri);
     let started = tokio::time::timeout(Duration::from_secs(5), async {
         loop {
             let frame = client.receive().await.unwrap();
@@ -134,7 +144,7 @@ pub(super) async fn capture(
     );
     if let Ok(path) = std::env::var("CONNECT_G6_GATEWAY_SAMPLES") {
         use std::io::Write;
-        let row = json!({"algorithm":algorithm,"reference_kind":reference_kind,"http_first":http_first,"requested_reference":participants[0],"stored_reference":stored,"logical_request":source["request"],"actual_sip_to":actual_sip_to,"destination":source["destination"],"sip_calls":peer.unique(),"reply":reply.original(),"started":started.original()});
+        let row = json!({"algorithm":algorithm,"reference_kind":reference_kind,"http_first":http_first,"requested_reference":participants[0],"stored_reference":stored,"logical_request":source["request"],"actual_sip_uri":actual_sip_uri,"canonical_destination":expected_uri.to_string(),"destination":source["destination"],"sip_calls":peer.unique(),"reply":reply.original(),"started":started.original()});
         let mut file = std::fs::OpenOptions::new()
             .create(true)
             .append(true)

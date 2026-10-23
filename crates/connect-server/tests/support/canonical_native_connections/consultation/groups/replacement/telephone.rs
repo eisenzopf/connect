@@ -31,6 +31,7 @@ struct Dialog {
     offer: String,
     to: String,
     call_id: String,
+    initial_uri: String,
 }
 struct PeerSip {
     socket: Arc<UdpSocket>,
@@ -52,6 +53,10 @@ impl PeerSip {
         Self::with_audio(None).await
     }
     async fn with_audio(payload: Option<u8>) -> Self {
+        Self::with_audio_for_user(payload, "+14155550123").await
+    }
+    async fn with_audio_for_user(payload: Option<u8>, user: &str) -> Self {
+        let expected_user = user.to_owned();
         let media = UdpSocket::bind("127.0.0.1:0").await.unwrap();
         let media_port = media.local_addr().unwrap().port();
         let media_target = Arc::new(Mutex::new(None));
@@ -116,7 +121,7 @@ impl PeerSip {
                                 durable,
                                 "SIP IO preceded durable exact allocation/submission correlation"
                             );
-                            assert_eq!(request.uri.user.as_deref(), Some("+14155550123"));
+                            assert_eq!(request.uri.user.as_deref(), Some(expected_user.as_str()));
                             original = Some(request.clone());
                         }
                         assert_eq!(request.uri.host_port(), address.to_string());
@@ -171,14 +176,20 @@ impl PeerSip {
                     {
                         to.set_tag("canonical-telephone-peer");
                     }
-                    *seen_dialog.lock().unwrap() = Some(Dialog {
+                    let mut observed_dialog = seen_dialog.lock().unwrap();
+                    let initial_uri = observed_dialog
+                        .as_ref()
+                        .map_or_else(|| request.uri.to_string(), |old| old.initial_uri.clone());
+                    *observed_dialog = Some(Dialog {
                         remote: from,
                         from: request.raw_header_value(&HeaderName::From).unwrap(),
                         local_tag: request.from().and_then(|from| from.tag()).unwrap().into(),
                         offer: std::str::from_utf8(&request.body).unwrap().into(),
                         to: response.raw_header_value(&HeaderName::To).unwrap(),
                         call_id: request.call_id().unwrap().value(),
+                        initial_uri,
                     });
+                    drop(observed_dialog);
                     response.headers.push(rvoip_sip_core::TypedHeader::Contact(
                         format!("<sip:peer@{address}>").parse().unwrap(),
                     ));
