@@ -117,7 +117,7 @@ def main():
         "actual_uncertain_sdk_summaries": len(failures),
         "actual_cancelled_or_revoked_summaries": len(stops),
         "maximum_sequence_profile": args.maximum,
-        "algorithms": ["EdDSA", "ES256"], "methods": ["info", "rfc4733"],
+        "algorithms": ["EdDSA", "ES256"], "methods": sorted({r["method"] for r in rows}),
         "scope": "Local macOS arm64 native-to-initial-SIP positive summaries and actual UDP observations.",
         "signature_verification": "The producing SDK verifies signatures; this validator checks recorded DTOs and HTTP/OpenAPI schema.",
         "full_dtmf_clause_qualification": False,

@@ -1,0 +1,319 @@
+{
+  "task": "G6-046",
+  "status": "in-progress",
+  "component_passed": true,
+  "full_task_complete": false,
+  "full_goal_complete": false,
+  "executed_at": "2026-10-23T13:43:18.553001+00:00",
+  "implementation_commit": "daf93b4e5267a2936d4dfbc742107f852f7699e0",
+  "host": "Darwin arm64",
+  "scope": "Actual signed local native-to-initial-SIP exact30-second RFC4733 schedule, clocked packet cadence with fresh authority and separate bounded operation margin. EdDSA/ES256, one original SIP call, 8kHz/PT101. Controlled UDP delayed-permission timing and Store original-expiry/replay boundaries.",
+  "schema_version": 100,
+  "source_lock_patches": 162,
+  "rust_test_methods": 77,
+  "new_test_methods": 3,
+  "regression_test_methods": 74,
+  "results": [
+    {
+      "passed": 38,
+      "failed": 0,
+      "test_names": [
+        "connection_control::tests::native_stream_authority::dtmf::native_dtmf_definite_no_effect_failure_releases_control_without_a_delivery_claim",
+        "connection_control::tests::native_stream_authority::dtmf::native_dtmf_cancellation_preserves_the_actual_attempt_cutoff_and_reserved_identity",
+        "connection_control::tests::native_stream_authority::dtmf::native_dtmf_maximum_schedule_has_bounded_setup_margin_without_extending_original_source_or_replay",
+        "connection_control::tests::native_stream_authority::dtmf::native_dtmf_attempt_cannot_be_completed_with_a_media_or_descriptor_receipt",
+        "connection_control::tests::native_stream_authority::dtmf::native_dtmf_needs_its_named_signal_permission_and_a_current_completed_physical_parent",
+        "connection_control::tests::native_stream_authority::dtmf::native_dtmf_source_schema_rejects_malformed_sequences_even_without_rust_validation",
+        "connection_control::tests::native_stream_authority::dtmf::native_dtmf_preserves_exact_intent_and_replay_never_creates_another_attempt",
+        "connection_control::tests::native_stream_authority::dtmf::native_dtmf_stale_revision_fails_durably_before_any_signal_attempt",
+        "connection_control::tests::native_stream_authority::dtmf::native_dtmf_successor_recovers_original_uncertainty_without_automatic_resubmission",
+        "connection_control::tests::native_stream_authority::dtmf_gateways::native_gateway_dtmf_cancellation_closes_unstarted_work_without_a_schedule",
+        "connection_control::tests::native_stream_authority::dtmf::native_dtmf_acceptance_cannot_lend_old_authority_to_a_later_signal_attempt",
+        "connection_control::tests::native_stream_authority::dtmf_gateways::native_gateway_dtmf_captured_outcome_survives_revocation_without_new_signal_authority",
+        "connection_control::tests::native_stream_authority::dtmf_gateways::native_gateway_dtmf_duplicate_registration_across_families_rolls_back_the_whole_set",
+        "connection_control::tests::native_stream_authority::dtmf_gateways::native_gateway_dtmf_freezes_actual_call_without_native_lifetime_or_idle_permission",
+        "connection_control::tests::native_stream_authority::dtmf_gateways::native_gateway_dtmf_freeze_and_outcomes_preserve_the_shared_journal_reservation",
+        "connection_control::tests::native_stream_authority::dtmf_gateways::native_gateway_dtmf_mixed_batch_aggregates_every_native_and_sip_recipient",
+        "connection_control::tests::native_stream_authority::dtmf_gateways::native_gateway_dtmf_reservation_storage_failure_retries_metadata_without_another_attempt",
+        "connection_control::tests::native_stream_authority::dtmf_gateways::native_gateway_dtmf_reserves_one_schedule_and_reports_only_local_submission",
+        "connection_control::tests::native_stream_authority::dtmf_recipients::dtmf_actual_signal_read_holds_both_current_identity_intervals_and_refuses_a_queued_writer",
+        "connection_control::tests::native_stream_authority::dtmf_gateways::native_gateway_dtmf_selected_pair_does_not_require_unrelated_session_recipients",
+        "connection_control::tests::native_stream_authority::dtmf_gateways::native_gateway_dtmf_restart_recovers_reserved_uncertainty_and_never_replays_a_schedule",
+        "connection_control::tests::native_stream_authority::dtmf_recipients::dtmf_captured_fact_survives_revocation_and_retirement_without_reviving_io",
+        "connection_control::tests::native_stream_authority::dtmf_recipients::dtmf_freeze_capacity_failure_leaves_no_half_source_or_recipient_set",
+        "connection_control::tests::native_stream_authority::dtmf_recipients::dtmf_current_source_and_recipient_signal_rights_are_rechecked_after_queueing",
+        "connection_control::tests::native_stream_authority::dtmf_recipients::dtmf_freezes_actual_observation_and_recipient_without_payload_provenance_or_an_idle_reader",
+        "connection_control::tests::native_stream_authority::dtmf_recipients::dtmf_outcome_storage_failure_rolls_back_its_fact_and_original_token_recovers_without_io",
+        "connection_control::tests::native_stream_authority::dtmf_recipients::dtmf_recipient_requires_separate_named_receive_permission_before_freezing_any_work",
+        "connection_control::tests::native_stream_authority::dtmf_recipients::dtmf_partial_known_submission_and_cancelled_no_effect_have_truthful_distinct_outcomes",
+        "connection_control::tests::native_stream_authority::dtmf_recipients::dtmf_reserved_outcome_and_final_state_can_finish_at_the_exact_shared_journal_capacity",
+        "connection_control::tests::native_stream_authority::dtmf_gateways::native_gateway_dtmf_queue_rechecks_independent_source_recipient_and_route_authority",
+        "connection_control::tests::native_stream_authority::dtmf_recipients::dtmf_recipient_selection_uses_held_named_grants_without_freezing_or_retaining_readers",
+        "connection_control::tests::native_stream_authority::dtmf_recipients::dtmf_reserves_one_actual_output_frame_and_records_immutable_local_submission_once",
+        "connection_control::tests::native_stream_authority::dtmf_recipients::dtmf_signal_only_source_and_receiver_keep_pair_ceilings_without_media_grants",
+        "connection_control::tests::native_stream_authority::dtmf_recipients::dtmf_source_and_sealed_recipient_binding_reject_changed_observation_and_late_targets",
+        "connection_control::tests::native_stream_authority::dtmf_recipients::dtmf_storage_contention_refuses_before_a_frame_is_reserved_and_preserves_original_work",
+        "connection_control::tests::native_stream_authority::dtmf_recipients::dtmf_successor_recovers_reserved_frames_as_unknown_and_unstarted_recipients_without_replay",
+        "connection_control::tests::native_stream_authority::dtmf_recipients::dtmf_unknown_local_outcome_preserves_identity_and_frees_only_stopped_control_work",
+        "connection_control::tests::native_stream_authority::dtmf_recipients::dtmf_queued_target_cannot_borrow_removed_signal_scope_key_device_endpoint_or_member_epoch"
+      ],
+      "log": {
+        "path": ".local/gate-6/dtmf-sip-fence/store-maximum.log",
+        "sha256": "7525ccb4714a0c72dd0b7b1e373dc2d3c748bd9e2adf6f968a8bf5a144f3bee6"
+      }
+    },
+    {
+      "passed": 31,
+      "failed": 0,
+      "test_names": [
+        "codec::audio::dtmf::tests::decode_ignores_reserved_bit",
+        "codec::audio::dtmf::tests::decode_tolerates_oversized_payload",
+        "codec::audio::dtmf::tests::decode_rejects_short_payload",
+        "codec::audio::dtmf::tests::digit_roundtrip_covers_all_dtmf_codes",
+        "codec::audio::dtmf::tests::encode_matches_rfc_example_digit_5",
+        "codec::audio::dtmf::tests::encode_sets_e_bit_on_end",
+        "codec::audio::dtmf::tests::encode_decode_roundtrip_every_digit",
+        "codec::audio::dtmf::tests::volume_saturates_at_63",
+        "codec::audio::dtmf::tests::lowercase_abcd_is_accepted",
+        "codec::audio::dtmf::tests::non_dtmf_characters_rejected",
+        "dtmf_authority::poll_fence_tests::synchronous_io_poll_fence_releases_on_pending_and_prevents_ready_io_after_retirement",
+        "dtmf_authority::tests::transport_failure_is_unknown_and_never_an_automatic_retry",
+        "relay::controller::dtmf_receive::tests::received_dtmf_media_update_invalidates_old_observation_and_queued_packet_without_successor_permission",
+        "relay::controller::dtmf_receive::tests::received_dtmf_observation_does_not_keep_an_removed_media_registry_or_udp_session_alive",
+        "relay::controller::dtmf_receive::tests::received_dtmf_start_before_media_update_cannot_borrow_new_generation_when_end_arrives_after_update",
+        "dtmf_authority::tests::dropping_request_aborts_pending_io_before_releasing_owned_guard",
+        "dtmf_authority::tests::retirement_and_deadline_abort_owned_io_before_releasing_guard",
+        "dtmf_authority::tests::denied_expired_and_stalled_acquisition_never_poll_io",
+        "relay::controller::dtmf_transmitter::tests::cancelling_owned_sequence_after_first_rtp_packet_stops_current_tone_and_suffix",
+        "relay::controller::dtmf_transmitter::authority_tests::completed_first_digit_then_gap_revocation_is_an_uncertain_sequence",
+        "relay::controller::dtmf_transmitter::tests::continuation_packets_share_timestamp_increment_duration",
+        "relay::controller::dtmf_transmitter::tests::invalid_suffix_rejects_the_complete_sequence_before_first_packet",
+        "relay::controller::dtmf_transmitter::authority_tests::actual_udp_slow_permission_keeps_tone_clock_and_skips_obsolete_ticks",
+        "relay::controller::dtmf_transmitter::tests::sequence_validation_bounds_duration_count_and_total_schedule",
+        "relay::controller::dtmf_transmitter::tests::start_packet_carries_e0_and_initial_duration",
+        "relay::controller::dtmf_transmitter::tests::non_tick_duration_is_not_truncated",
+        "relay::controller::dtmf_transmitter::tests::sequence_uses_requested_duration_and_inter_digit_quiet_interval",
+        "relay::controller::dtmf_transmitter::tests::three_end_of_event_packets_collapse_to_one",
+        "relay::controller::rtp_management::dtmf_configuration_tests::changed_configuration_between_packets_stops_old_suffix_and_preserves_whole_intent_uncertainty",
+        "relay::controller::rtp_management::dtmf_configuration_tests::renegotiation_during_permission_acquisition_cannot_submit_old_pt_or_clock",
+        "relay::controller::dtmf_transmitter::authority_tests::real_udp_permission_is_fresh_per_packet_and_revocation_does_not_wait_for_tone_or_gap"
+      ],
+      "log": {
+        "path": ".local/gate-6/dtmf-sip-fence/media-cadence-corrected.log",
+        "sha256": "c91e6185c6d3ddd7d44233fde310778af1c0460ea42a1531d006f99e276e49af"
+      }
+    },
+    {
+      "passed": 1,
+      "failed": 0,
+      "test_names": [
+        "canonical_native_connections::consultation::groups::replacement::telephone::initial::dtmf::production_native_to_initial_sip_maximum_rfc4733_sequence_keeps_exact_duration_and_all_terminal_packets"
+      ],
+      "log": {
+        "path": ".local/gate-6/dtmf-sip-fence/maximum-cadence-repeat.log",
+        "sha256": "3d4dc5bc803ee96abfed8b8f6e8f8431a1734e78ced0f7b1f223018ba89e894a"
+      }
+    },
+    {
+      "passed": 7,
+      "failed": 0,
+      "test_names": [
+        "canonical_native_connections::consultation::groups::replacement::telephone::initial::dtmf::production_native_to_initial_sip_info_failure_keeps_uncertainty_without_replay_and_preserves_call",
+        "canonical_native_connections::consultation::groups::replacement::telephone::initial::dtmf::production_native_to_initial_sip_info_uses_original_call_and_never_replays",
+        "canonical_native_connections::consultation::groups::replacement::telephone::initial::dtmf::production_native_to_initial_sip_requires_independent_named_receive_permission",
+        "canonical_native_connections::consultation::groups::replacement::telephone::initial::dtmf::production_native_to_initial_sip_rfc4733_uses_actual_negotiated_event_profile",
+        "canonical_native_connections::consultation::groups::replacement::telephone::initial::dtmf::stops::production_native_to_initial_sip_cancel_after_actual_info_stops_suffix_and_never_replays",
+        "canonical_native_connections::consultation::groups::replacement::telephone::initial::dtmf::stops::production_native_to_initial_sip_signal_only_authority_keeps_call_and_dtmf_without_rtp",
+        "canonical_native_connections::consultation::groups::replacement::telephone::initial::dtmf::stops::production_native_to_initial_sip_source_revocation_stops_next_digit_with_original_uncertainty"
+      ],
+      "log": {
+        "path": ".local/gate-6/dtmf-sip-fence/regression-sip-cadence.log",
+        "sha256": "f0b91bab59ea80194407db198a68f6db67cdcae549b1bbecbc7c85ecb87bf911"
+      }
+    }
+  ],
+  "actual_maximum_sdk_summaries": 2,
+  "elapsed_ms_by_algorithm": {
+    "EdDSA": 30877,
+    "ES256": 30786
+  },
+  "samples": {
+    "path": ".local/gate-6/dtmf-sip-fence/maximum-cadence-repeat.jsonl",
+    "sha256": "2cb496d89e91ecd8790711f1e8914bd6364f4fa789de8c6715728b38cae01c8f"
+  },
+  "summary_validation": {
+    "passed": true,
+    "actual_sdk_summaries": 2,
+    "actual_uncertain_sdk_summaries": 0,
+    "actual_cancelled_or_revoked_summaries": 0,
+    "maximum_sequence_profile": true,
+    "algorithms": [
+      "EdDSA",
+      "ES256"
+    ],
+    "methods": [
+      "rfc4733"
+    ],
+    "scope": "Local macOS arm64 native-to-initial-SIP positive summaries and actual UDP observations.",
+    "signature_verification": "The producing SDK verifies signatures; this validator checks recorded DTOs and HTTP/OpenAPI schema.",
+    "full_dtmf_clause_qualification": false,
+    "log": {
+      "path": ".local/gate-6/dtmf-sip-fence/validate-maximum-final.log",
+      "sha256": "b4116a1c02c76d054ef67bd9efcdad60f355b9632fa90e2bb12157f65cd7f661"
+    }
+  },
+  "build": {
+    "passed": true,
+    "command": "CARGO_INCREMENTAL=1 cargo test -p connect-server --test gate6_canonical_runtime --no-run --locked --offline -j4",
+    "log": {
+      "path": ".local/gate-6/dtmf-sip-fence/build-server-cadence-wire.log",
+      "sha256": "063e82ab5a25d37bfe63c7b02570553528771deb95de32aa5d5f72c97cba4cd0"
+    }
+  },
+  "binaries": [
+    {
+      "path": "target/debug/deps/gate6_canonical_runtime-3bf705553dffa934",
+      "sha256": "ff448f10f6f392242647a2df42a10f89439008f15ac3c80a03503aaae7228be0"
+    },
+    {
+      "path": "target/debug/deps/rvoip_media_core-78d0765c087f964b",
+      "sha256": "c137d2e3d7732c47eaa5e3d754d65da104544689717aedafb68d941269fa7957"
+    },
+    {
+      "path": "target/debug/deps/connect_store-500690b8d898aed1",
+      "sha256": "5a88fba85a4106914c3f6905a0ef65b70d61b95d37b40f26cdbbb8fbd3b507d0"
+    }
+  ],
+  "verification": {
+    "dependencies": {
+      "path": ".local/gate-6/dtmf-sip-fence/dependencies-cadence-final.log",
+      "sha256": "fd9d7b181e3ccba9b643af55a186cf132c60aac99c734b2ee4e4e549afe5ffc2"
+    },
+    "format": {
+      "path": ".local/gate-6/dtmf-sip-fence/format-cadence-final.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "upstream_format": {
+      "path": ".local/gate-6/dtmf-sip-fence/upstream-format-cadence-final.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "http_reference": {
+      "path": ".local/gate-6/dtmf-sip-fence/http-reference-cadence-final.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "source_lock": {
+      "path": "dependencies/source-lock.json",
+      "sha256": "c66888abb83732fefa61d67846bf97c49b7ef4e59b1dca92e312e06f56aa9479"
+    }
+  },
+  "source_snapshot_files": 1395,
+  "current_source_snapshot": {
+    "path": ".local/gate-6/dtmf-sip-fence/inputs-cadence.json",
+    "sha256": "a2c8c17d83be19991c721bbea8cb60993787d0fe37c36726f23f25b6fb62599f"
+  },
+  "tested_source_snapshot": {
+    "path": ".local/gate-6/dtmf-sip-fence/inputs-cadence-tested.json",
+    "sha256": "ef59f9c0503cda2f4b801726a593181cfef62796d4dc3231c87a83e43545ab5d"
+  },
+  "runtime_and_store_inputs_unchanged": true,
+  "verifier_label_correction": "After the wire run, the validator method label was derived from actual rows so a maximum-RFC4733 run does not also list INFO. Field/schema checks are unchanged; the captured rows were revalidated. The one verifier source difference is recorded above; runtime, Store, patches and producer sources stayed unchanged.",
+  "observations": [
+    "A validated request may contain30 seconds of tones/gaps. The old Store admission deadline and Core execution cap both equaled30 seconds, leaving no margin for metadata admission or actual packet redundancy. Store and the shared Core/SIP INFO operation cap now use a separate40-second budget, always narrowed by the original validated source/credential/caller expiry. Replay preserves the first reservation and expiry. Other native stream controls remain30 seconds; per-packet grants remain200ms.",
+    "The first operation-budget changes alone did not fix the full wire case. Diagnostic output showed only three complete long digits before40 seconds although the original source expiry remained far in the future. Relative20ms sleeps accumulated every fresh permission/IO cost, stretching each tone. The owned RFC4733 scheduler now anchors its monotonic clock after first submission, waits to absolute ticks and skips obsolete continuations instead of buffering a backlog.",
+    "The requested sequence/digit/duration bounds are unchanged. Every emitted packet, including all terminal packets, reacquires fresh actual authority and preserves source/route/audience IO fences. Final samples retain the exact requested negotiated clock. No reader survives a tick/gap, no schedule is retried and expiry/cancellation still retains possible-IO uncertainty.",
+    "The new real-UDP test delays each fresh policy acquisition by35ms, longer than a20ms tick, and requests a600ms tone. It verifies600ms<=elapsed<1000ms, skipped obsolete continuations, monotonic exact samples, all three terminal packets and exactly one grant per emitted packet. The no-delay progression test now permits skipped whole negotiated ticks while preserving monotonic clock assertions. All31 current media DTMF methods pass.",
+    "The new Store test verifies bounded40-second DTMF admission, a shorter original7-second source ceiling that cannot be extended by a later proof/replay, and unchanged30-second subscription admission. All38 current Store DTMF methods pass.",
+    "The actual signed maximum case sends12345 with5944ms per digit and four70ms gaps, exactly30000ms. Both algorithms observe all five events, exact47552-sample final duration at8kHz, at least three terminal packets per event, one actual call and one completed gateway schedule. Replay sends nothing. EdDSA elapsed30877ms and ES256 elapsed30786ms, each below the35-second local bound.",
+    "The seven existing native-to-initial-SIP methods pass with the current engine: ordinary INFO/RFC4733/replay, absent independent receive permission,403/fresh-operation recovery, actual first-INFO cancellation/source revocation and signal-only media withdrawal. Two maximum actual SDK summaries validate against HTTP/OpenAPI. The producing SDK verifies signatures; recorded DTO validation does not independently reverify them.",
+    "Gateway diagnostic logging records only error type and possible-IO state. Upstream edits are the two tracked patches with source-lock162 digests, installed via fresh verified source preparation at the unchanged compiler path; identical source mtimes were preserved only after Cargo/rustc had stopped."
+  ],
+  "failed_or_retried_checks": [
+    {
+      "scope": "Maximum baseline under source-lock160",
+      "observation": "The wire test timed out before all terminal packets. This was a pre-fix failure, not a passing qualification.",
+      "log": {
+        "path": ".local/gate-6/dtmf-sip-fence/maximum-baseline.log",
+        "sha256": "cd55abcab4cb3f08773c6ccc4fd72a1239f29e1fcc45efdb39f98572cf96fd5f"
+      },
+      "artifact": {
+        "path": ".local/gate-6/dtmf-sip-fence/maximum-baseline-artifact.json",
+        "sha256": "a23da77d49b6b366c81a434260b44c73aac470ec57ef02339fdd8a0c4ab96b34"
+      }
+    },
+    {
+      "scope": "Store margin only",
+      "observation": "Still timed out with the old Core execution cap and relative packet cadence.",
+      "log": {
+        "path": ".local/gate-6/dtmf-sip-fence/maximum-fixed.log",
+        "sha256": "435e1355a2b0566e7292c063478e6a9c9ebde3da22173ce2ad1fba44b926e70b"
+      }
+    },
+    {
+      "scope": "Store/Core margins without cadence fix",
+      "observation": "Still timed out. The diagnostic retained only three completed digits, operation lifetime40 seconds and original source expiry much later; actual possible IO settled as uncertainty.",
+      "log": {
+        "path": ".local/gate-6/dtmf-sip-fence/maximum-engine-fixed.log",
+        "sha256": "91d0c35c8c95ca81b45a7eaed1dce9faa7e1867526e5a2d44ffbfa76fff311c9"
+      },
+      "diagnostic": {
+        "path": ".local/gate-6/dtmf-sip-fence/maximum-diagnostic.log",
+        "sha256": "a98d67d885192c3d1d680b20bdce17b4961dc4700e4bd1e8f334f4ebeae70c44"
+      }
+    },
+    {
+      "scope": "New delayed-policy fixture compile",
+      "observation": "A missing local RtpSessionConfig import was corrected in the staged test before final prepared sources and the31 passing methods.",
+      "log": {
+        "path": ".local/gate-6/dtmf-sip-fence/media-cadence.log",
+        "sha256": "947164f7e994f8f60a5c225e2b00f32006f285279395cbac0e1d753675c56037"
+      }
+    },
+    {
+      "scope": "First clocked production matrix",
+      "observation": "EdDSA completed in30854ms. ES256 failed before DTMF because initial-select-phone stream.subscribe returned unknown. This reproduces the previously unresolved0123 setup observation. The full unchanged-source traced repeat passes both algorithms; cause remains unproven and reliability remains unqualified.",
+      "log": {
+        "path": ".local/gate-6/dtmf-sip-fence/maximum-cadence-final.log",
+        "sha256": "d3b062a68a6c1005e547f82b4a7c7c362915582c8aa0ec305c979fdddc514be8"
+      },
+      "partial_sample": {
+        "path": ".local/gate-6/dtmf-sip-fence/maximum-cadence-production.jsonl",
+        "sha256": "aaedfa367758d470a071ab906c68f5c67cb651dd4b0eabc5d10877d130e0d82e"
+      },
+      "passing_repeat": {
+        "path": ".local/gate-6/dtmf-sip-fence/maximum-cadence-repeat.log",
+        "sha256": "3d4dc5bc803ee96abfed8b8f6e8f8431a1734e78ced0f7b1f223018ba89e894a"
+      }
+    }
+  ],
+  "supplementary_budget_phase_native_regression": {
+    "source_lock_patches": 161,
+    "included_in_current_method_count": false,
+    "passed": 15,
+    "log": {
+      "path": ".local/gate-6/dtmf-sip-fence/regression-native-maximum.log",
+      "sha256": "eb57e99a2923222465da5b3ce2bd7ffbab651511dd087a9c08ff72c6c00a3b51"
+    }
+  },
+  "newly_qualified_case_ids": [],
+  "qualified_clause_count": 55,
+  "assigned_clause_count": 61,
+  "remaining_case_ids": [
+    "u6-req-0103",
+    "u6-req-0109",
+    "u6-req-0112",
+    "u6-req-0113",
+    "u6-req-0115",
+    "u6-req-0123"
+  ],
+  "not_run_or_unqualified": [
+    "No general reliability pass: the ES256 subscription-unknown setup failure and the earlier native fresh-recipient not_started observation remain unresolved. Successful repeats do not establish their causes.",
+    "This maximum wire case covers one initial SIP recipient with negotiated PT101/8kHz. Serial multi-recipient fanout, other maximum profiles, established/replacement legs, same-Participant separate-Connection gateway policy and remaining private/restart/target-route revocation cases remain open.",
+    "True SIP-originated sealed durable observations, correct provenance and SIP-to-native output remain required for0113/0115. This native-source component does not substitute for them.",
+    "No new clause/task credit:45/105 tasks and55/61 assigned G6-046 clauses remain. Linux/browser/remote/provider lanes, independent G6-094 conformance, acceptance and publication remain open."
+  ],
+  "next_required_work": [
+    "Investigate the now-reproduced ES256 stream.subscribe unknown setup outcome with exact engine/commit evidence; do not infer that cadence caused or fixed it.",
+    "Remove serial fanout budget loss and qualify actual multiple recipient schedules without renewing original source deadlines or replaying possible effects.",
+    "Implement actual SIP-originated durable custody/provenance/output and established/replacement legs; complete0103/0109/0112/0113/0115/0123 and all105 tasks in dependency order."
+  ]
+}
