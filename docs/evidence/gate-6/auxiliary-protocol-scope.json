@@ -2613,9 +2613,12 @@
         "source_entrypoints": [
           "crates/connect-service/src/canonical_native_dtmf.rs",
           "crates/connect-store/src/transitions/native_streams/dtmf.rs",
-          "crates/connect-client/src/canonical/dtmf.rs"
+          "crates/connect-client/src/canonical/dtmf.rs",
+          "crates/connect-store/src/transitions/initial_telephone/media/signal.rs",
+          "crates/connect-store/src/connection_control/tests/native_stream_authority/sip_signal.rs"
         ],
-        "remaining": "Native signed commands, durable original observations, frozen recipient sets, independent current signal authority, actual private/public delivery and local partial-IO recovery are installed and scoped-qualified. Actual SIP/WebRTC/general ingress and egress composition, remaining queued/private fault vectors and per-clause execution still require qualification."
+        "remaining": "Store-only SIP named-signal and joint public native/SIP authority now pass65 current methods (8 new,57 regressions). No media permission/codec or idle reader substitutes for the current exact signal pair. Durable mixed attempts, actual SIP/native translation and provenance, cancellation/partial IO and recovery remain unimplemented/unqualified; this does not close the clause.",
+        "current_sip_signal_authority_evidence": "docs/evidence/gate-6/auxiliary-sip-signal-authority.json"
       }
     },
     {
@@ -2652,9 +2655,12 @@
         "source_entrypoints": [
           "crates/connect-service/src/canonical_native_dtmf.rs",
           "crates/connect-store/src/transitions/native_streams/dtmf.rs",
-          "crates/connect-client/src/canonical/dtmf.rs"
+          "crates/connect-client/src/canonical/dtmf.rs",
+          "crates/connect-store/src/transitions/initial_telephone/media/signal.rs",
+          "crates/connect-store/src/connection_control/tests/native_stream_authority/sip_signal.rs"
         ],
-        "remaining": "Native signed commands, durable original observations, frozen recipient sets, independent current signal authority, actual private/public delivery and local partial-IO recovery are installed and scoped-qualified. Actual SIP/WebRTC/general ingress and egress composition, remaining queued/private fault vectors and per-clause execution still require qualification."
+        "remaining": "Store-only SIP named-signal and joint public native/SIP authority now pass65 current methods (8 new,57 regressions). No media permission/codec or idle reader substitutes for the current exact signal pair. Durable mixed attempts, actual SIP/native translation and provenance, cancellation/partial IO and recovery remain unimplemented/unqualified; this does not close the clause.",
+        "current_sip_signal_authority_evidence": "docs/evidence/gate-6/auxiliary-sip-signal-authority.json"
       }
     },
     {
@@ -2759,9 +2765,12 @@
         "source_entrypoints": [
           "crates/connect-service/src/canonical_native_dtmf.rs",
           "crates/connect-store/src/transitions/native_streams/dtmf.rs",
-          "crates/connect-client/src/canonical/dtmf.rs"
+          "crates/connect-client/src/canonical/dtmf.rs",
+          "crates/connect-store/src/transitions/initial_telephone/media/signal.rs",
+          "crates/connect-store/src/connection_control/tests/native_stream_authority/sip_signal.rs"
         ],
-        "remaining": "Native signed commands, durable original observations, frozen recipient sets, independent current signal authority, actual private/public delivery and local partial-IO recovery are installed and scoped-qualified. Actual SIP/WebRTC/general ingress and egress composition, remaining queued/private fault vectors and per-clause execution still require qualification."
+        "remaining": "Store-only SIP named-signal and joint public native/SIP authority now pass65 current methods (8 new,57 regressions). No media permission/codec or idle reader substitutes for the current exact signal pair. Durable mixed attempts, actual SIP/native translation and provenance, cancellation/partial IO and recovery remain unimplemented/unqualified; this does not close the clause.",
+        "current_sip_signal_authority_evidence": "docs/evidence/gate-6/auxiliary-sip-signal-authority.json"
       }
     },
     {
@@ -3387,7 +3396,7 @@
   ],
   "initial_observation": "Focused text search of these entrypoints/current native client modules found no direct recording.vcon/auth.refresh/auth.assurance/step-up/connection.quality/capabilities event strings. This is discovery context, not proof that behavior is absent or complete; indirect handlers/upstream runtime hooks must be inspected and exercised before classification.",
   "next_actions": [
-    "Finish literal G6-046 offer0103, ready-handle0109, cross-substrate DTMF0112/0113/0115 and multiparty selector0123; retain the observed unknown subscription for that remaining qualification.",
+    "Complete durable mixed DTMF custody and actual SIP/native execution/provenance with the verified separate/joint signal readers; finish0103/0109/0112/0113/0115/0123 and retain the unresolved unknown subscription for0123.",
     "Continue all105 tasks in approved dependency order; named remote/provider bounds remain G6-093 and publication is separate.",
     "Keep task-scoped enrollment and step-up clauses0061\u20130066 in G6-055 and its prerequisites; preserve all105 tasks and dependency order.",
     "Retain unresolved consultation/provider reliability failures explicitly; named remote/provider rehearsals require G6-093 bounded configuration; full task and acceptance remain open."

@@ -1,0 +1,175 @@
+{
+  "task": "G6-046",
+  "status": "in-progress",
+  "component_passed": true,
+  "full_task_complete": false,
+  "full_goal_complete": false,
+  "executed_at": "2026-10-23T12:06:31.789022+00:00",
+  "scope": "Controlled Store authority for an existing initial SIP audio leg and an exact public native/SIP signal pair; no physical DTMF delivery is claimed.",
+  "schema_version": 99,
+  "source_lock_patches": 159,
+  "implementation_commits": [
+    "8959b0981e801cfbacadf96e45ddda4d8201f361",
+    "3755b43c3d9e8a661add39479f0f2faa320a6f84"
+  ],
+  "new_test_methods": 8,
+  "regression_test_methods": 57,
+  "rust_test_methods": 65,
+  "results": [
+    {
+      "name": "initial SIP authority and regressions",
+      "passed": 36,
+      "failed": 0,
+      "test_names": [
+        "transitions::initial_telephone::tests::gateways::configured_gateway_sip_uri_uses_only_verified_endpoint_and_exact_configured_authority",
+        "transitions::initial_telephone::tests::answer_accepts_only_own_invited_participant_without_publishing_readiness",
+        "transitions::initial_telephone::tests::connected_phone_uses_own_endpoint_and_route_after_caller_credential_is_revoked",
+        "transitions::initial_telephone::tests::connected_answer_requires_exact_observation_and_cleanup_retries_emit_once",
+        "transitions::initial_telephone::tests::gateways::configured_gateway_tel_and_identity_selectors_keep_original_member_and_once_only_intent",
+        "transitions::initial_telephone::tests::gateways::gateway_resolution_and_invitation_rows_roll_back_together_then_same_intent_recovers",
+        "transitions::initial_telephone::tests::gateways::frozen_uri_revision_cannot_adopt_a_later_verified_endpoint_revision",
+        "transitions::initial_telephone::tests::gateways::original_uri_receipt_cannot_retarget_after_endpoint_revocation_and_address_reassignment",
+        "transitions::initial_telephone::tests::gateways::uri_aliases_cannot_invite_one_participant_twice_or_resolve_an_outside_identity",
+        "transitions::initial_telephone::tests::initial_allocation_and_signaling_are_once_only_with_exact_immutable_dialog_binding",
+        "transitions::initial_telephone::tests::initial_cancel_before_submission_retires_only_the_dormant_reservation",
+        "transitions::initial_telephone::tests::initial_cancel_after_submission_preserves_unknown_quota_and_forbids_generic_completion",
+        "transitions::initial_telephone::tests::initial_confirmed_cleanup_retires_an_already_fenced_session_end_without_another_generation",
+        "transitions::initial_telephone::tests::initial_database_dialog_and_once_only_markers_cannot_be_rewritten_or_deleted",
+        "transitions::initial_telephone::tests::initial_endpoint_policy_change_cannot_derive_a_second_child_under_the_same_invitation",
+        "transitions::initial_telephone::tests::initial_invite_child_replay_preserves_ids_owner_endpoint_and_has_no_io_or_acceptance",
+        "transitions::initial_telephone::tests::initial_local_absence_preserves_unknown_submission_and_records_separate_cleanup",
+        "transitions::initial_telephone::tests::initial_ready_activation_storage_failure_retries_metadata_without_new_media_or_operation_effects",
+        "transitions::initial_telephone::tests::initial_ready_phone_waits_for_other_accepted_participants_and_rows_cannot_rebuild_origin_custody",
+        "transitions::initial_telephone::tests::initial_receive_projection_is_original_source_scoped_and_metadata_retry_is_exact",
+        "transitions::initial_telephone::tests::initial_selected_policy_cannot_change_intent_or_borrow_another_identity",
+        "transitions::initial_telephone::tests::initial_recovery_without_signaling_can_retire_dormant_but_submission_stays_unknown",
+        "transitions::initial_telephone::tests::initial_source_requires_actual_successful_exact_invitation_and_explicit_target",
+        "transitions::initial_telephone::tests::gateways::gateway_selectors_refuse_current_credential_device_endpoint_host_and_recipient_withdrawal",
+        "transitions::initial_telephone::tests::initial_unknown_attempt_continues_to_consume_capacity_for_a_new_invitation",
+        "transitions::initial_telephone::tests::initial_withdrawal_after_the_submission_marker_issues_no_fresh_packet_interval",
+        "transitions::initial_telephone::tests::initial_withdrawal_in_allocation_to_signaling_gap_performs_no_submission",
+        "transitions::initial_telephone::tests::observed_answer_survives_withdrawn_authority_without_accepting_or_redialing",
+        "transitions::initial_telephone::tests::signal::initial_signal_codec_change_does_not_supply_or_remove_named_signal_permission",
+        "transitions::initial_telephone::tests::initial_ready_activation_rechecks_endpoint_route_generation_runtime_and_membership",
+        "transitions::initial_telephone::tests::signal::initial_signal_does_not_reuse_answer_or_registration_as_connected_authority",
+        "transitions::initial_telephone::tests::signal::initial_signal_requires_each_named_direction_and_never_borrows_media_permissions",
+        "transitions::initial_telephone::tests::signal::initial_signal_retains_current_authority_only_for_its_bounded_read",
+        "transitions::initial_telephone::tests::unready_session_scan_does_not_queue_a_writer_behind_an_existing_media_interval",
+        "transitions::initial_telephone::tests::unsupported_answer_codec_keeps_fact_and_rolls_back_own_acceptance",
+        "transitions::initial_telephone::tests::signal::initial_signal_rechecks_physical_endpoint_route_and_participant_lifetime"
+      ],
+      "log": {
+        "path": ".local/gate-6/sip-signal/store-initial-current.log",
+        "sha256": "43db65dab2a78d9cd92a909219cd7492d5c92f98866ae15c5b92989f264306d3"
+      }
+    },
+    {
+      "name": "existing native DTMF regressions",
+      "passed": 26,
+      "failed": 0,
+      "test_names": [
+        "connection_control::tests::native_stream_authority::dtmf::native_dtmf_definite_no_effect_failure_releases_control_without_a_delivery_claim",
+        "connection_control::tests::native_stream_authority::dtmf::native_dtmf_cancellation_preserves_the_actual_attempt_cutoff_and_reserved_identity",
+        "connection_control::tests::native_stream_authority::dtmf::native_dtmf_preserves_exact_intent_and_replay_never_creates_another_attempt",
+        "connection_control::tests::native_stream_authority::dtmf::native_dtmf_needs_its_named_signal_permission_and_a_current_completed_physical_parent",
+        "connection_control::tests::native_stream_authority::dtmf::native_dtmf_attempt_cannot_be_completed_with_a_media_or_descriptor_receipt",
+        "connection_control::tests::native_stream_authority::dtmf::native_dtmf_source_schema_rejects_malformed_sequences_even_without_rust_validation",
+        "connection_control::tests::native_stream_authority::dtmf::native_dtmf_stale_revision_fails_durably_before_any_signal_attempt",
+        "connection_control::tests::native_stream_authority::dtmf::native_dtmf_successor_recovers_original_uncertainty_without_automatic_resubmission",
+        "connection_control::tests::native_stream_authority::dtmf_recipients::dtmf_actual_signal_read_holds_both_current_identity_intervals_and_refuses_a_queued_writer",
+        "connection_control::tests::native_stream_authority::dtmf_recipients::dtmf_captured_fact_survives_revocation_and_retirement_without_reviving_io",
+        "connection_control::tests::native_stream_authority::dtmf::native_dtmf_acceptance_cannot_lend_old_authority_to_a_later_signal_attempt",
+        "connection_control::tests::native_stream_authority::dtmf_recipients::dtmf_freeze_capacity_failure_leaves_no_half_source_or_recipient_set",
+        "connection_control::tests::native_stream_authority::dtmf_recipients::dtmf_freezes_actual_observation_and_recipient_without_payload_provenance_or_an_idle_reader",
+        "connection_control::tests::native_stream_authority::dtmf_recipients::dtmf_current_source_and_recipient_signal_rights_are_rechecked_after_queueing",
+        "connection_control::tests::native_stream_authority::dtmf_recipients::dtmf_outcome_storage_failure_rolls_back_its_fact_and_original_token_recovers_without_io",
+        "connection_control::tests::native_stream_authority::dtmf_recipients::dtmf_recipient_requires_separate_named_receive_permission_before_freezing_any_work",
+        "connection_control::tests::native_stream_authority::dtmf_recipients::dtmf_partial_known_submission_and_cancelled_no_effect_have_truthful_distinct_outcomes",
+        "connection_control::tests::native_stream_authority::dtmf_recipients::dtmf_reserved_outcome_and_final_state_can_finish_at_the_exact_shared_journal_capacity",
+        "connection_control::tests::native_stream_authority::dtmf_recipients::dtmf_recipient_selection_uses_held_named_grants_without_freezing_or_retaining_readers",
+        "connection_control::tests::native_stream_authority::dtmf_recipients::dtmf_reserves_one_actual_output_frame_and_records_immutable_local_submission_once",
+        "connection_control::tests::native_stream_authority::dtmf_recipients::dtmf_signal_only_source_and_receiver_keep_pair_ceilings_without_media_grants",
+        "connection_control::tests::native_stream_authority::dtmf_recipients::dtmf_source_and_sealed_recipient_binding_reject_changed_observation_and_late_targets",
+        "connection_control::tests::native_stream_authority::dtmf_recipients::dtmf_storage_contention_refuses_before_a_frame_is_reserved_and_preserves_original_work",
+        "connection_control::tests::native_stream_authority::dtmf_recipients::dtmf_successor_recovers_reserved_frames_as_unknown_and_unstarted_recipients_without_replay",
+        "connection_control::tests::native_stream_authority::dtmf_recipients::dtmf_unknown_local_outcome_preserves_identity_and_frees_only_stopped_control_work",
+        "connection_control::tests::native_stream_authority::dtmf_recipients::dtmf_queued_target_cannot_borrow_removed_signal_scope_key_device_endpoint_or_member_epoch"
+      ],
+      "log": {
+        "path": ".local/gate-6/sip-signal/store-dtmf-current.log",
+        "sha256": "242d80401dd44ec484863ac8b0484d2b8ecb0e4a1c0b95e516615dc3ab317e0f"
+      }
+    },
+    {
+      "name": "joint SIP/native signal authority",
+      "passed": 3,
+      "failed": 0,
+      "test_names": [
+        "connection_control::tests::native_stream_authority::sip_signal::sip_native_signal_pair_holds_both_identity_fences_and_queues_no_reader",
+        "connection_control::tests::native_stream_authority::sip_signal::sip_native_signal_pair_requires_opposite_named_permissions_without_media_grants",
+        "connection_control::tests::native_stream_authority::sip_signal::sip_native_signal_pair_rechecks_native_physical_authority_and_both_recipient_ceilings"
+      ],
+      "log": {
+        "path": ".local/gate-6/sip-signal/store-pair.log",
+        "sha256": "b042db51070aca843baf859cc83e69ee4e536509f2afcbed8954f75f513740f5"
+      }
+    }
+  ],
+  "service_check": {
+    "passed": true,
+    "command": "CARGO_INCREMENTAL=1 cargo check -p connect-service --locked --offline -j4",
+    "log": {
+      "path": ".local/gate-6/sip-signal/check-service.log",
+      "sha256": "dcac642b787a944cc60e48caae551f42d08a36cdd2560b2089bc32195743faa4"
+    }
+  },
+  "source_lock": {
+    "path": "dependencies/source-lock.json",
+    "sha256": "12f8248f0be31e7bfc35af45c25733fe87d71356fd11f535927cab438bfa47cd"
+  },
+  "current_store_source_snapshot": {
+    "path": ".local/gate-6/sip-signal/inputs.json",
+    "sha256": "e2396aeeb72de92dddab162767124b51b9660b53615ec25f0f22d82436ca24d6"
+  },
+  "source_snapshot_files": 476,
+  "commands": [
+    "bash scripts/prepare-dependencies.sh",
+    "bash scripts/format.sh",
+    "CARGO_INCREMENTAL=1 cargo test -p connect-store --lib transitions::initial_telephone::tests::signal:: --locked --offline -j4",
+    "CARGO_INCREMENTAL=1 cargo test -p connect-store --lib native_stream_authority::sip_signal:: --locked --offline -j4",
+    "target/debug/deps/connect_store-500690b8d898aed1 transitions::initial_telephone::tests:: --test-threads=4",
+    "target/debug/deps/connect_store-500690b8d898aed1 dtmf --test-threads=4",
+    "python3 scripts/generate-canonical-http-openapi.py --check",
+    "git diff --check"
+  ],
+  "observations": [
+    "InitialTelephoneSignalRead is a distinct named-signal type, not convertible into InitialTelephoneMediaRead. FromTelephone requires dtmf.send; ToTelephone requires dtmf.receive.",
+    "An answered but unconnected leg is refused. Original connected incarnation, actual runtime marker, current verified Endpoint revision, Device, Participant epoch/presence, Session access and audio kind, route credential and recipient ceilings remain required.",
+    "Changing media codec preferences or removing connection.offer/stream.subscribe cannot replace the independent named signal permission. Existing media reads still refuse without their own authority and matching codecs.",
+    "InitialTelephoneNativeSignalRead acquires one merged authority interval, then checks both original origins, same public Session, distinct Participants, opposite send/receive permissions, current physical native key/credential/Device/Endpoint/epoch and both recipient ceilings.",
+    "The public pair reader excludes private consultation, handoff preparation and suspended-publication contexts. Controlled tests do not qualify a mixed private/handoff IO profile.",
+    "Actual read lifetime excludes identity writers on both sides. Dropping the reader releases both fences; queued origin metadata retains no reader. Reads are bounded by 30 seconds and both physical credential expiries.",
+    "Final existing initial SIP and native DTMF authority regressions pass. Fixture failures during construction (duplicate consent and invalid direct epoch mutation) were corrected; they are not runtime production failures or passes."
+  ],
+  "newly_qualified_case_ids": [],
+  "qualified_clause_count": 55,
+  "assigned_clause_count": 61,
+  "remaining_case_ids": [
+    "u6-req-0103",
+    "u6-req-0109",
+    "u6-req-0112",
+    "u6-req-0113",
+    "u6-req-0115",
+    "u6-req-0123"
+  ],
+  "not_run_or_unqualified": [
+    "No production SIP/native signal ingress/egress is installed by this Store increment. Durable mixed source/recipient custody, translation, actual provenance, refusal, cancellation and partial-IO/recovery still need implementation and physical tests for 0112/0113/0115.",
+    "No new native Connection offer/ready-handle or multiparty stream qualification is claimed for 0103/0109/0123. The earlier first-run unknown subscription remains unresolved; this component neither reproduces nor explains it.",
+    "Linux x86_64, browser, remote and named provider/remote lanes were not run. Independent G6-094 conformance, full G6-046, all105-task completion, acceptance and publication remain open."
+  ],
+  "next_required_work": [
+    "Implement durable mixed signal observation/recipient attempts with stable IDs and metadata-only recording retries; never replay a possibly submitted effect.",
+    "Install actual SIP INFO/RFC4733 ingress and native/SIP egress using sealed Core observations and the joint fresh signal reader. Preserve original/current audience and exact physical IO fences, and verify real attribution and failure/recovery.",
+    "Finish the other remaining G6-046 clauses, then follow all105 tasks in approved dependency order."
+  ]
+}
