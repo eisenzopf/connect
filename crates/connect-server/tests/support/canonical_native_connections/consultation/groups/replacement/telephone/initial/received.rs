@@ -1,5 +1,7 @@
 //! Actual installed initial SIP input, durable operation and signed native output.
 use super::*;
+#[path = "received/authority.rs"]
+pub(super) mod authority;
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
 async fn production_initial_sip_received_info_and_rfc4733_keep_actual_provenance_and_sealed_audience(
 ) {

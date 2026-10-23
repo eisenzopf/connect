@@ -449,6 +449,17 @@ async fn initial_selected_signal_case(
     if signal == Some("received-rejected-timing") {
         received::rejected_timing(&f, &peer, &mut native[0], &room.id, algorithm).await;
     }
+    if signal == Some("received-authority") {
+        received::authority::exercise(
+            &f,
+            &peer,
+            &mut native,
+            &room.id,
+            &phone_credential,
+            algorithm,
+        )
+        .await;
+    }
     if let Some(method) = signal.filter(|v| {
         !matches!(
             *v,
@@ -456,6 +467,7 @@ async fn initial_selected_signal_case(
                 | "subscription-rehearsal"
                 | "received-custody"
                 | "received-rejected-timing"
+                | "received-authority"
         )
     }) {
         if method.starts_with("signal-only-") {
