@@ -6,6 +6,13 @@ observed media flow in the negotiated directions; an accepted operation or a
 signed offer/answer alone cannot establish readiness. `stream.closed` describes
 a previously announced binding that has disappeared or been replaced.
 
+A busy native registry or current-state reader refuses that packet poll as
+`NotReady`. A readiness hint retries with fresh current authority when its media
+metadata is temporarily unavailable. The retry owns no permission reader while
+waiting and keeps the original physical source and observation. A missing source,
+poisoned registry, cancelled physical peer or withdrawn permission still refuses
+use of that source; temporary contention cannot supply authority or a new binding.
+
 `connection.quality` uses the engine's measured packet and byte counters at the
 default five-second cadence. Its stream IDs and wire Conversation, Session and
 Connection scopes belong to that peer. Unmeasured loss, jitter, RTT and MOS are

@@ -72,6 +72,14 @@ pub(crate) struct Invocation {
 fn denied<T>(_: T) -> StreamControlError {
     StreamControlError::Authority
 }
+/// A busy metadata registry cannot prove source retirement or withdrawn rights.
+/// Refuse this poll without converting transient contention into revocation.
+fn metadata_contention<T>(error: std::sync::TryLockError<T>) -> StreamControlError {
+    match error {
+        std::sync::TryLockError::WouldBlock => StreamControlError::NotReady,
+        std::sync::TryLockError::Poisoned(_) => StreamControlError::Authority,
+    }
+}
 /// Only transient Store contention is retryable at a packet boundary.
 pub(crate) fn packet_authority_error(error: connect_protocol::Error) -> StreamControlError {
     if error.code == "authority-busy" {
@@ -243,7 +251,11 @@ impl Connection {
         }
     }
     pub(crate) fn activation(&self) -> ControlResult<Option<Arc<NativeMediaActivation>>> {
-        Ok(self.activation.try_lock().map_err(denied)?.clone())
+        Ok(self
+            .activation
+            .try_lock()
+            .map_err(metadata_contention)?
+            .clone())
     }
     pub fn set_activation(&self, value: Arc<NativeMediaActivation>) -> ControlResult<()> {
         let mut activation = self.activation.lock().map_err(denied)?;
@@ -480,7 +492,7 @@ impl Policy {
         Ok(self
             .initial_targets
             .try_lock()
-            .map_err(denied)?
+            .map_err(metadata_contention)?
             .get(id)
             .and_then(Weak::upgrade))
     }
@@ -517,7 +529,7 @@ impl Policy {
         Ok(self
             .telephone_targets
             .try_lock()
-            .map_err(denied)?
+            .map_err(metadata_contention)?
             .get(id)
             .and_then(Weak::upgrade))
     }
@@ -554,7 +566,7 @@ impl Policy {
         Ok(self
             .replacement_targets
             .try_lock()
-            .map_err(denied)?
+            .map_err(metadata_contention)?
             .get(id)
             .and_then(Weak::upgrade))
     }
@@ -652,7 +664,7 @@ impl Policy {
     pub(crate) fn entry(&self, id: &ConnectionId) -> ControlResult<Arc<Connection>> {
         self.entries
             .try_lock()
-            .map_err(denied)?
+            .map_err(metadata_contention)?
             .get(id)
             .cloned()
             .ok_or(StreamControlError::Authority)
@@ -834,7 +846,7 @@ impl MediaPolicy for Policy {
             return target.current(scope);
         }
         let entry = self.entry(scope.connection)?;
-        self.scope(scope, &entry)?;
+        self.scope(scope, &entry).map_err(|error|{tracing::trace!(target:"connect_service::canonical_packet",connection=entry.origin.connection_id(),?error,"Native packet scope refused");error})?;
         if let MediaPurpose::Receive { source } = scope.purpose {
             if let Some(initial) = self.initial_target(&source.connection)? {
                 return initial.native_receive(scope, source, &entry);
@@ -853,7 +865,11 @@ impl MediaPolicy for Policy {
             source.as_ref().map(|(_, entry)| entry.origin.as_ref()),
         );
         tracing::trace!(target: "connect_service::canonical_packet",
+            connection = entry.origin.connection_id(),
             elapsed_us = started.elapsed().as_micros() as u64,
+            publishing = matches!(scope.purpose, MediaPurpose::Publish),
+            role = result.as_ref().ok().map(|r|r.target().presence_role.as_str()),
+            detail = result.as_ref().err().map(|e|e.message.as_str()),
             receiving = source.is_some(),
             private = entry.origin.connection_id().starts_with("pvc_"),
             problem = result.as_ref().err().map(|e| e.code.as_str()),
@@ -882,11 +898,11 @@ impl MediaPolicy for Policy {
                 read.source().ok_or(StreamControlError::Authority)?,
             )?;
         }
-        let owner = entry.owner(read.target(), scope.principal, source.is_some())?;
+        let owner = entry.owner(read.target(), scope.principal, source.is_some()).map_err(|error|{tracing::trace!(target:"connect_service::canonical_packet",connection=entry.origin.connection_id(),?error,"Native packet owner refused");error})?;
         let owner = entry
             .activation()?
             .ok_or(StreamControlError::NotReady)?
-            .current(owner)?;
+            .current(owner).map_err(|error|{tracing::trace!(target:"connect_service::canonical_packet",connection=entry.origin.connection_id(),?error,"Native packet activation refused");error})?;
         Ok(Box::new(Fresh { owner, _read: read }))
     }
     fn current_participant_receive(

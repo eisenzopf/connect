@@ -28,6 +28,15 @@ struct Delivery {
     _owner: MediaOwner,
     _read: Arc<connect_store::NativeMediaRead>,
 }
+fn media_error(error: rvoip_core::staged_streams::StreamControlError) -> DispatchError {
+    match error {
+        rvoip_core::staged_streams::StreamControlError::NotReady => {
+            DispatchError::StorageUnavailable
+        }
+        rvoip_core::staged_streams::StreamControlError::Cancelled => DispatchError::Closed,
+        _ => DispatchError::Authority,
+    }
+}
 struct FlowObservation(NativeConnectionReadyObservation);
 impl connect_store::NativeConnectionFlowObservation for FlowObservation {
     fn observe(&self) -> connect_protocol::Result<connect_store::NativeConnectionFlowFact> {
@@ -169,7 +178,10 @@ impl NativeLifecyclePolicy for Policy {
                 Err(e) if e.code == "storage-unavailable" => {
                     return Err(DispatchError::StorageUnavailable)
                 }
-                Err(_) => return Err(DispatchError::Authority),
+                Err(error) => {
+                    tracing::debug!(target:"connect_service::canonical_flow_ready",connection=self.entry.origin.connection_id(),code=%error.code,"Native lifecycle current source refused");
+                    return Err(DispatchError::Authority);
+                }
             }
         };
         let view = read.target();
@@ -207,22 +219,22 @@ impl NativeLifecyclePolicy for Policy {
                 .media
                 .store
                 .record_native_connection_flow(origin, &read, &FlowObservation(observation.clone()))
-                .map_err(|e| match e.code.as_str() {
+                .map_err(|e| {tracing::debug!(target:"connect_service::canonical_flow_ready",connection=origin.connection_id(),code=%e.code,"Native lifecycle flow recording deferred or refused");match e.code.as_str() {
                     "storage-unavailable" | "authority-busy" => DispatchError::StorageUnavailable,
                     _ => DispatchError::Authority,
-                })?;
+                }})?;
         }
         let owner = self
             .entry
             .owner(view, &scope.principal, false)
-            .map_err(|_| DispatchError::Authority)?;
+            .map_err(media_error)?;
         let owner = self
             .entry
             .activation()
-            .map_err(|_| DispatchError::Authority)?
+            .map_err(media_error)?
             .ok_or(DispatchError::Authority)?
             .current(owner)
-            .map_err(|_| DispatchError::Authority)?;
+            .map_err(media_error)?;
         let remaining = (chrono::DateTime::from_timestamp(read.expires_at(), 0)
             .ok_or(DispatchError::Authority)?
             - chrono::Utc::now())

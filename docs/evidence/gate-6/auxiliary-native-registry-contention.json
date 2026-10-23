@@ -1,0 +1,51 @@
+{
+  "task": "G6-046",
+  "title": "Retry native metadata contention without treating it as withdrawn authority",
+  "recorded_at": "2026-10-23T22:29:38.390439+00:00",
+  "status": "bounded-local-contention-fix-verified; fifty-participant-readiness-open",
+  "full_task_complete": false,
+  "full_goal_complete": false,
+  "qualified_case_ids": [],
+  "source_lock_patch_count": 170,
+  "store_schema": 103,
+  "implementation": [
+    "Read-only native metadata registries distinguish WouldBlock (NotReady) from poisoned state (Authority). Missing sources remain Authority and absent optional routes do not grant permission.",
+    "Native readiness authorization maps transient media NotReady to StorageUnavailable for the existing bounded upstream fresh-authority retry; cancellation remains Closed and other failures remain Authority. No old authority is retained across retry.",
+    "HTTP/OpenAPI extension and developer lifecycle reference describe the transient boundary. Schema and upstream sources remain unchanged."
+  ],
+  "verification": {
+    "distinct_rust_methods_passed": 16,
+    "service_unit_methods": 8,
+    "new_service_unit_methods": 2,
+    "production_regression_methods": 8,
+    "test_methods": [
+      "canonical_media::tests::assistant_registry_contention_is_retryable_without_claiming_a_missing_source",
+      "canonical_media::tests::canonical_reliable_data_class_keeps_native_format_intersection_explicit",
+      "canonical_media::tests::native_packet_poisoned_registry_is_authority_failure_rather_than_retry",
+      "canonical_media::tests::native_packet_registry_contention_preserves_retry_without_lending_missing_source_authority",
+      "canonical_media::tests::native_plan_refuses_missing_current_acceptance_endpoint_or_original_offer_codec",
+      "canonical_media::tests::native_plan_selects_accepted_fallback_before_unaccepted_preferred_codec",
+      "canonical_media::tests::packet_authority_only_temporary_contention_is_retryable",
+      "canonical_media::tests::screen_planning_requires_each_explicit_screen_floor_instead_of_camera_permission",
+      "canonical_native_connections::solo::production_native_flow_fact_precedes_hints_and_recovers_storage_without_more_media",
+      "canonical_native_connections::solo::production_session_started_multicasts_original_snapshot_without_recipient_media_and_denies_narrow_scope",
+      "canonical_native_connections::solo::production_solo_session_admits_actual_native_flow_and_preserves_original_receipt_when_growing",
+      "canonical_native_connections::lifecycle::production_native_lifecycle_closes_original_codec_binding_and_opens_only_observed_replacement",
+      "canonical_native_connections::lifecycle::production_native_lifecycle_quality_reports_actual_flow_through_signed_sdk",
+      "canonical_native_connections::lifecycle::production_owned_audio_continuously_reads_signed_capability_bursts_while_preserving_duplex_audio_and_selector_replay",
+      "canonical_native_connections::lifecycle::production_owned_native_audio_selection_replay_preserves_pending_lifecycle_events",
+      "production_current_key_revocation_retires_signed_client_without_borrowing_new_authority"
+    ],
+    "dependencies_prepared": true,
+    "format_script_passed": true,
+    "openapi_generation_check_passed": true,
+    "diff_check_passed": true,
+    "default_server_test_build_passed": true
+  },
+  "unresolved": [
+    "The actual 50-Participant fixture has not passed and supplies no clause credit. Directional publishers have accepted actual datagrams without all durable readiness facts. Original-peer recovery also failed; the latest trace observed 23 accepted packets on one unready original transport with its reader running and route open.",
+    "A follow-up full-count run is testing reliable notification draining during publication; no successful capture or fanout validation is claimed here.",
+    "Remaining clauses u6-req-0112, u6-req-0113 and u6-req-0123 stay open. G6-046 remains 58/61 and the overall plan remains 45/105 complete.",
+    "Full workspace, Linux/browser/remote/provider lanes, acceptance and publication are not qualified by these local checks."
+  ]
+}

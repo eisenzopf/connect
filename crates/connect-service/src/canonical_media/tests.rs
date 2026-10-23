@@ -28,6 +28,81 @@ fn assistant_registry_contention_is_retryable_without_claiming_a_missing_source(
         "not-ready"
     );
 }
+#[test]
+fn native_packet_registry_contention_preserves_retry_without_lending_missing_source_authority() {
+    let dir = tempfile::tempdir().unwrap();
+    let store = Arc::new(
+        Store::initialize(
+            &dir.path().join("state.sqlite3"),
+            connect_protocol::Limits::default(),
+        )
+        .unwrap(),
+    );
+    let policy = Policy::new(store, 8);
+    let id = ConnectionId::from_string("actual-source".to_owned());
+    {
+        let held = policy.entries.lock().unwrap();
+        assert!(matches!(
+            policy.entry(&id),
+            Err(StreamControlError::NotReady)
+        ));
+        drop(held);
+        assert!(matches!(
+            policy.entry(&id),
+            Err(StreamControlError::Authority)
+        ));
+    }
+    {
+        let held = policy.initial_targets.lock().unwrap();
+        assert!(matches!(
+            policy.initial_target(&id),
+            Err(StreamControlError::NotReady)
+        ));
+        drop(held);
+        assert!(policy.initial_target(&id).unwrap().is_none());
+    }
+    {
+        let held = policy.telephone_targets.lock().unwrap();
+        assert!(matches!(
+            policy.telephone_target(&id),
+            Err(StreamControlError::NotReady)
+        ));
+        drop(held);
+        assert!(policy.telephone_target(&id).unwrap().is_none());
+    }
+    {
+        let held = policy.replacement_targets.lock().unwrap();
+        assert!(matches!(
+            policy.replacement_target(&id),
+            Err(StreamControlError::NotReady)
+        ));
+        drop(held);
+        assert!(policy.replacement_target(&id).unwrap().is_none());
+    }
+}
+#[test]
+fn native_packet_poisoned_registry_is_authority_failure_rather_than_retry() {
+    let dir = tempfile::tempdir().unwrap();
+    let store = Arc::new(
+        Store::initialize(
+            &dir.path().join("state.sqlite3"),
+            connect_protocol::Limits::default(),
+        )
+        .unwrap(),
+    );
+    let policy = Policy::new(store, 8);
+    let other = policy.clone();
+    assert!(std::thread::spawn(move || {
+        let _held = other.entries.lock().unwrap();
+        panic!("controlled registry poison")
+    })
+    .join()
+    .is_err());
+    assert!(matches!(
+        policy.entry(&ConnectionId::from_string("actual-source".to_owned())),
+        Err(StreamControlError::Authority)
+    ));
+}
 fn audio(name: &str, rate: u32) -> MediaFormat {
     MediaFormat::Encoded {
         name: name.into(),
