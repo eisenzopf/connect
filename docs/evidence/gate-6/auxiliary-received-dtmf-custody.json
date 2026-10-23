@@ -1,0 +1,297 @@
+{
+  "task": "G6-046",
+  "status": "in-progress",
+  "component_passed": true,
+  "full_task_complete": false,
+  "full_goal_complete": false,
+  "executed_at": "2026-10-23T15:20:53.337343+00:00",
+  "implementation_commit": "40db4c23cd5122dc036765d6cabffd740a1b93bf",
+  "upstream_commit": "0af14b7c",
+  "host": "Darwin arm64",
+  "source_lock_patches": 165,
+  "schema_version": 100,
+  "scope": "Original managed SIP receive audience before its bounded Core source queue; source credential/current audience IO composition and actual configured Connect initial-call INFO/RFC4733 receive facts. Source-custody prerequisite only; production durable received-source forwarding/native output remains unfinished.",
+  "rust_test_methods": 78,
+  "new_test_methods": 8,
+  "regression_test_methods": 70,
+  "results": [
+    {
+      "passed": 56,
+      "failed": 0,
+      "test_names": [
+        "staged_streams::tests::private_consult::capability_disclosure_preserves_original_private_audience_after_return_and_checks_current_scene",
+        "staged_streams::tests::private_consult::endpoint_preparation::activated_closed_muted_endpoint_keeps_plan_identity_and_observer_isolation_until_real_duplex",
+        "staged_streams::tests::private_consult::endpoint_preparation::endpoint_preparation_atomic_handoff_unmutes_only_at_commit",
+        "staged_streams::tests::private_consult::endpoint_preparation::endpoint_preparation_current_denial_drop_and_physical_epoch_invalidate_proof_without_opening_routes",
+        "staged_streams::tests::private_consult::endpoint_preparation::endpoint_preparation_muted_and_observer_proof_discards_input_and_requires_completed_output",
+        "staged_streams::tests::private_consult::endpoint_preparation::endpoint_preparation_owned_drop_invalidates_a_cloned_handle_and_old_plan",
+        "staged_streams::tests::private_consult::handoff_cancelled_or_timed_out_actual_send_drain_preserves_private_bridge_and_retry_intent",
+        "staged_streams::tests::private_consult::handoff_competing_acceptances_commit_one_bridge_and_duplicate_old_plan_has_no_second_effect",
+        "staged_streams::tests::private_consult::handoff_fresh_whole_plan_approval_rejects_substitution_and_current_revocation_before_effects",
+        "staged_streams::tests::private_consult::handoff_human_to_ai_and_ai_to_human_use_the_same_authorized_ready_bridge_primitive",
+        "staged_streams::tests::private_consult::handoff_later_consultation_and_second_handoff_keep_remote_binding_and_fence_old_controllers",
+        "staged_streams::tests::private_consult::handoff_leave_fences_old_media_only_after_commit_and_reports_uncertain_cleanup_without_rollback",
+        "staged_streams::tests::private_consult::handoff_observer_commits_only_new_bridge_and_retains_decoded_authorized_observation",
+        "staged_streams::tests::private_consult::handoff_outgoing_participant_disposition_covers_all_its_admitted_connections",
+        "staged_streams::tests::private_consult::handoff_remote_termination_refuses_stale_acceptance_without_retiring_healthy_private_route",
+        "staged_streams::tests::private_consult::handoff_requires_both_actual_io_directions_and_keeps_generation_proof_through_silence",
+        "staged_streams::tests::private_consult::handoff_requires_its_explicit_policy_intent_and_never_borrows_ordinary_audience_approval",
+        "staged_streams::tests::private_consult::handoff_same_participant_endpoint_change_is_not_a_participant_handoff",
+        "staged_streams::tests::private_consult::native_dtmf_audience_binding_requires_exact_actual_recipient_relationship_and_credential_metadata",
+        "staged_streams::tests::private_consult::native_dtmf_audience_composes_with_physical_controller_fences_and_releases_pending_guards",
+        "staged_streams::tests::private_consult::native_dtmf_original_and_current_audiences_both_refuse_disclosure_across_private_return",
+        "staged_streams::tests::private_consult::prepared_handoff::prepared_handoff_consumes_isolation_and_old_private_context_without_model_audio_leakage",
+        "staged_streams::tests::private_consult::prepared_handoff::prepared_handoff_current_revocation_and_cancellation_preserve_the_original_private_route",
+        "staged_streams::tests::private_consult::prepared_handoff::prepared_handoff_rejects_wrong_context_or_missing_private_replacement",
+        "staged_streams::tests::private_consult::prepared_handoff::prepared_handoff_requires_actual_decoding_and_completed_local_delivery",
+        "staged_streams::tests::private_consult::private_audience_all_private_origins_departed_restores_survivors_once",
+        "staged_streams::tests::private_consult::private_audience_cancel_timeout_and_dropped_drain_preserve_every_original_programme",
+        "staged_streams::tests::private_consult::private_audience_departed_unsubmitted_preparation_releases_its_reservation",
+        "staged_streams::tests::private_consult::private_audience_foreign_denied_and_stale_whole_intents_never_publish_partial_routes",
+        "staged_streams::tests::private_consult::private_audience_quarantines_same_participant_context_and_restores_decoded_main_audio",
+        "staged_streams::tests::private_consult::private_audience_remote_hangup_restores_survivors_and_reports_departed_connection",
+        "staged_streams::tests::private_consult::private_audience_reuses_actual_grant_under_queued_writer_and_future_media_rechecks_policy",
+        "staged_streams::tests::private_consult::private_audience_sealed_commit_cannot_confirm_foreign_or_later_controller_revisions",
+        "staged_streams::tests::private_consult::private_consultation_actual_decoded_audio_is_scoped_to_the_new_private_connection",
+        "staged_streams::tests::private_consult::private_consultation_failed_leg_creation_and_missing_media_leave_main_bridge_untouched",
+        "staged_streams::tests::private_consult::private_consultation_new_outside_connection_inherits_the_closed_audience",
+        "staged_streams::tests::private_consult::private_consultation_timeout_cancel_and_each_hangup_restore_only_surviving_original_paths",
+        "staged_streams::tests::private_consult::private_consultation_unmuted_preparation_is_rejected_before_taking_source_inputs",
+        "staged_streams::tests::private_consult::received_dtmf_audience_owns_sip_source_without_reentering_native_target_and_releases_pending",
+        "staged_streams::tests::private_consult::received_dtmf_delayed_input_cannot_capture_a_later_private_or_returned_audience",
+        "staged_streams::tests::private_consult::received_dtmf_delayed_input_cannot_cross_membership_join_remove_or_aba",
+        "staged_streams::tests::private_consult::received_dtmf_fresh_io_refuses_changed_source_credential_and_retired_member",
+        "staged_streams::tests::private_consult::received_dtmf_input_during_member_commit_wait_cannot_borrow_post_commit_audience",
+        "staged_streams::tests::private_consult::received_dtmf_original_private_audience_survives_queued_return_without_public_disclosure",
+        "staged_streams::tests::private_consult::received_dtmf_source_capture_refuses_native_wrong_principal_boundary_and_future_time",
+        "staged_streams::tests::private_consult::replacement::replacement_distinct_route_account_follows_sealed_binding_and_logical_participant_intent_with_current_io",
+        "staged_streams::tests::private_consult::replacement::replacement_scene_current_role_change_invalidates_old_plan_and_receive_only_state_survives_move",
+        "staged_streams::tests::private_consult::replacement::replacement_scene_failed_local_send_missing_policy_and_changed_generations_cannot_lend_readiness",
+        "staged_streams::tests::private_consult::replacement::replacement_scene_keeps_old_audio_until_confirmed_then_maps_only_intended_device_and_preserves_other_senders",
+        "staged_streams::tests::private_consult::replacement::replacement_scene_preserves_original_closed_audience_and_combined_mute_hold_pause_gates",
+        "staged_streams::tests::private_consult::replacement::retained_media_participant_reconciles_after_distinct_route_replacement_without_lending_old_principal",
+        "staged_streams::tests::private_consult::sip_dtmf_audience_owns_actual_target_credential_inside_native_source_io",
+        "staged_streams::tests::private_consult::sip_dtmf_audience_pending_releases_source_target_and_registry_guards",
+        "staged_streams::tests::private_consult::sip_dtmf_audience_refuses_rebound_or_retired_actual_target_before_io",
+        "staged_streams::tests::private_consult::sip_dtmf_audience_requires_the_actual_registered_sip_controller_and_principal",
+        "staged_streams::tests::private_consult::sip_dtmf_original_and_current_audiences_survive_private_return_without_leaks"
+      ],
+      "log": {
+        "path": ".local/gate-6/received-dtmf-custody/privacy-regression165.log",
+        "sha256": "d423791bec09dcd66fc2d2d5fc4d1abdc5cba4898268df5b7d623a454fbe1f67"
+      }
+    },
+    {
+      "passed": 1,
+      "failed": 0,
+      "test_names": [
+        "staged_streams::tests::capability_declaration_metadata_requires_exact_live_credential_revision_and_never_changes_ports"
+      ],
+      "log": {
+        "path": ".local/gate-6/received-dtmf-custody/declaration-regression165.log",
+        "sha256": "64faa6d8ffeb412a7d12743f5dafd91fdc825c38cb8d3346c031a5ae79a76436"
+      }
+    },
+    {
+      "passed": 1,
+      "failed": 0,
+      "test_names": [
+        "orchestrator::dtmf_routing::received::binding_tests::binding_epoch_does_not_revive_after_session_aba_and_dead_sources_do_not_accumulate"
+      ],
+      "log": {
+        "path": ".local/gate-6/received-dtmf-custody/binding-regression165.log",
+        "sha256": "e14128405db9943b82c754e9e7f8af2c1fb285a2bc5ef49681848dc3adc84950"
+      }
+    },
+    {
+      "passed": 1,
+      "failed": 0,
+      "test_names": [
+        "canonical_native_connections::consultation::groups::replacement::telephone::initial::received::production_initial_sip_received_info_and_rfc4733_keep_actual_provenance_and_sealed_audience"
+      ],
+      "log": {
+        "path": ".local/gate-6/received-dtmf-custody/actual165.log",
+        "sha256": "f69496cc4ef03906dacac44c50679cb4fa8d74c9c504404f273d0714b6d6c901"
+      }
+    },
+    {
+      "passed": 17,
+      "failed": 0,
+      "test_names": [
+        "canonical_native_connections::dtmf::production_native_dtmf_cancel_after_partial_io_preserves_uncertainty_and_stops_remaining_work",
+        "canonical_native_connections::dtmf::production_native_dtmf_http_cannot_borrow_native_source_custody",
+        "canonical_native_connections::dtmf::production_native_dtmf_http_status_projects_actual_local_frame_summary",
+        "canonical_native_connections::dtmf::production_native_dtmf_metadata_contention_waits_without_io_readers_and_keeps_original_intent",
+        "canonical_native_connections::dtmf::production_native_dtmf_metadata_deadline_and_cancel_refuse_before_io_and_replay_no_effect",
+        "canonical_native_connections::dtmf::production_native_dtmf_partial_credit_write_records_unknown_without_replay_and_releases_control",
+        "canonical_native_connections::dtmf::production_native_dtmf_queued_during_another_sdk_command_keeps_actual_provenance_and_order",
+        "canonical_native_connections::dtmf::production_native_dtmf_recipient_revoke_waits_for_partial_io_and_preserves_other_recipient",
+        "canonical_native_connections::dtmf::production_native_dtmf_requires_named_receive_permission_without_borrowing_subscription",
+        "canonical_native_connections::dtmf::production_native_dtmf_restart_keeps_unrecorded_actual_submission_unknown_and_never_redelivers",
+        "canonical_native_connections::dtmf::production_native_dtmf_signed_sdk_delivery_and_replay_preserve_original_effects",
+        "canonical_native_connections::dtmf::production_native_dtmf_source_revoke_waits_for_partial_io_and_never_revives_original_work",
+        "canonical_native_connections::dtmf::production_native_dtmf_writer_fact_storage_failure_recovers_without_another_delivery",
+        "canonical_native_connections::dtmf::production_native_refresh_retains_actual_decoded_rtp_after_original_expiry",
+        "canonical_native_connections::dtmf::production_owned_audio_dtmf_uses_its_exact_source_and_preserves_queued_received_signals",
+        "canonical_native_connections::dtmf::production_owned_audio_refresh_keeps_signed_reader_and_current_signal_authority",
+        "canonical_native_connections::dtmf::production_owned_audio_signaling_refresh_survives_original_credential_expiry"
+      ],
+      "log": {
+        "path": ".local/gate-6/received-dtmf-custody/native-regression165.log",
+        "sha256": "e7b3482d5977291ba2de309844e195e58d0b24f03a70c50f21f65f66c2a3e633"
+      }
+    },
+    {
+      "passed": 2,
+      "failed": 0,
+      "test_names": [
+        "canonical_native_connections::consultation::groups::replacement::telephone::initial::dtmf::fanout::production_native_dtmf_two_initial_sip_recipients_overlap_long_schedules_without_replay",
+        "canonical_native_connections::consultation::groups::replacement::telephone::initial::dtmf::fanout::production_native_dtmf_two_initial_sip_recipients_settle_partial_refusal_after_other_finishes"
+      ],
+      "log": {
+        "path": ".local/gate-6/received-dtmf-custody/fanout-regression165.log",
+        "sha256": "1629b550fd952e220fab9989025d2832713662b0d85efd39cd5a283281cf018e"
+      }
+    }
+  ],
+  "controlled_new_cases": [
+    "Original SIP source credential plus actual native target custody coexist; Pending releases both and scene registries.",
+    "Original private audience remains restrictive across retained metadata and return; same-Participant outside Connection cannot inherit it.",
+    "Delayed physical input cannot capture a later private or returned audience.",
+    "Delayed input cannot cross committed membership join/removal/ABA.",
+    "Native/foreign-principal/wrong-controller/equal-boundary/future-time receive capture refuses.",
+    "Changed source credential or retired scene member refuses before IO callback.",
+    "Input arriving during a member retirement blocked on another metadata lock cannot borrow the post-commit audience.",
+    "Actual configured initial SIP INFO and RFC4733 preserve real source kind, receive time, physical observation ID,237ms duration and exact RTP metadata, with sealed audience present,2algorithms, one call and original cleanup."
+  ],
+  "actual_facts": {
+    "path": ".local/gate-6/received-dtmf-custody/observations165.jsonl",
+    "sha256": "ce9d234a6825bf70b02865c0b917666642deb8e707cf3f213d32092018ac61b5"
+  },
+  "facts_validation": {
+    "passed": true,
+    "actual_initial_sip_scenes": 2,
+    "actual_received_observations": 4,
+    "algorithms": [
+      "EdDSA",
+      "ES256"
+    ],
+    "kinds": [
+      "sip-info",
+      "rfc4733"
+    ],
+    "scope": "Actual configured Connect initial SIP calls feeding the managed Core source queue through a test-support accessor. Facts capture only; no public received DTO, durable forwarding, native output or new clause/task qualification."
+  },
+  "verification": {
+    "dependencies": {
+      "path": ".local/gate-6/received-dtmf-custody/dependencies-final165.log",
+      "sha256": "fd9d7b181e3ccba9b643af55a186cf132c60aac99c734b2ee4e4e549afe5ffc2"
+    },
+    "core_build_and_new_cases": {
+      "path": ".local/gate-6/received-dtmf-custody/core-tests-final165.log",
+      "sha256": "f0b7d6af3423832acba918a1107cd1a8e12eff5d4cf309b048fb1fdfe541e149"
+    },
+    "connect_test_support_build": {
+      "path": ".local/gate-6/received-dtmf-custody/build-support165.log",
+      "sha256": "8fcd1106b7bf665671d7ff63e6878ea264883a831a3a8ab0d4757a106f3b19b8"
+    },
+    "format": {
+      "path": ".local/gate-6/received-dtmf-custody/format-check165.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "upstream_format": {
+      "path": ".local/gate-6/received-dtmf-custody/upstream-format165.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "http_reference": {
+      "path": ".local/gate-6/received-dtmf-custody/http-reference165.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "plan_integrity": {
+      "path": ".local/gate-6/received-dtmf-custody/progress165.log",
+      "sha256": "fedbc03549729d27ac031eee0766ae72281991ae1e9494232887c3160cf754cc"
+    },
+    "facts": {
+      "path": ".local/gate-6/received-dtmf-custody/validate-observations165.log",
+      "sha256": "003d55bb7fe3ec78e928378b18193f414b5b2b19734c3ce8c22be0d7a3e087c2"
+    }
+  },
+  "executables": [
+    {
+      "path": "target/debug/deps/rvoip_core-2b4b8ad7637fb153",
+      "sha256": "5ef7f8ee1cb4126ea63e2534bd883dc5a0206e2cf01c8c427b492a75cb1966f6"
+    },
+    {
+      "path": "target/debug/deps/gate6_canonical_runtime-c5619768adc4e4fb",
+      "sha256": "d682be6540af47e666db4b7791c9bd33b145d94915987cc4355bc6ffe70c67b6"
+    }
+  ],
+  "source_snapshot_files": 1405,
+  "source_snapshot": {
+    "path": ".local/gate-6/received-dtmf-custody/inputs165.json",
+    "sha256": "8e2bfa4baef07ac73e9ce85add9ed1e340746d5bdc256abdf147d06792e344c5"
+  },
+  "source_lock": {
+    "path": "dependencies/source-lock.json",
+    "sha256": "28c871f1b2959b7e99bbaa23d8865a1142948770e2834b16b43142ef4a49b030"
+  },
+  "dependency_installations": [
+    {
+      "path": ".local/gate-6/received-dtmf-custody/install-165.json",
+      "sha256": "f473110a9914604cc97b52a69da240c7b71d434def3710620ab13c0308682f50"
+    },
+    {
+      "path": ".local/gate-6/received-dtmf-custody/install-final165.json",
+      "sha256": "8fb502c0426a956c4bbe4361ad1abe068b18a599b7f68c1f57fe31a0516d0e2a"
+    }
+  ],
+  "observations": [
+    "Managed subscribe validates the actual installed SIP adapter, source binding/lifecycle, exact managed controller and principal. Source publication captures ReceivedDtmfDisclosure before try_send into its bounded queue. The metadata retains original closed audiences and source incarnation, not domain permission readers or native signing facts.",
+    "A monotonic scene boundary is advanced after committed audience/member mutations under membership custody. Earlier, equal-boundary or future physical timestamps cannot acquire a later audience. Busy/stale managed capture increments drop counters; it is never reexecuted later under a new audience. Source registration replacement and binding epochs retain their existing invalidation behavior.",
+    "The received-to-native audience fence owns the SIP source managed credential during each real IO callback. Native target physical custody supplies its credential; it is not reentered. Original/current group and current member checks surround IO and release all synchronous guards on Pending. Actual host source/recipient permission and actual SIP source/native target physical fences remain separate mandatory custody.",
+    "Seven new controlled scene methods are included in the56method privacy suite; they are not counted a second time. Existing declaration exact-credential/revision/no-port-change and source binding epoch checks each pass once. All17actual native DTMF and2two-call native-to-SIP fanout methods pass after the Core refactor.",
+    "The new isolated actual Connect fixture uses the signed public client for Session invite/native setup, an actual configured answered SIP leg and negotiated RTP. A test-support-only accessor returns the actual installed adapter managed source subscription. It grants no delivery or media/signal permission. Actual INFO digest andRFC4733SSRC0x87654321/PT101/8kHz/1896samples/start-observed facts retain237ms without relabeling or clamping. Re-registering ends the original subscription; native_dtmf_sources remains empty, and original duplex thresholds and BYE/retired-answer cleanup still pass.",
+    "Captured source facts are private diagnostic records, not a newly supported HTTP/SDK DTO or independent SIP signature verification. EdDSA/ES256 cover the configured Connect native control composition; SIP input is the actual isolated UDP fixture."
+  ],
+  "retained_build_failure": {
+    "exit_code": 101,
+    "log": {
+      "path": ".local/gate-6/received-dtmf-custody/core-tests-165.log",
+      "sha256": "c63ff1c5118cd3818431240a68bb7d2ade3f74be27eb6c019405a9226dc62358"
+    },
+    "source_lock": {
+      "path": ".local/gate-6/received-dtmf-custody/first-source-lock-165.json",
+      "sha256": "53dfa6c965c54de8b3776ac8582f41940cc0a944f72fc7ba18f7c19a7116bf05"
+    },
+    "reason": "First Core lib-test compile found6old private helper calls after generic metadata-helper refactor. Updated those tests to explicit expected revisions. Review also moved retirement boundary marking to final commit and added its held-lock case. No initial failed build or earlier candidate counted as a runtime pass."
+  },
+  "compiler_observation": {
+    "sample": {
+      "path": ".local/gate-6/received-dtmf-custody/service-compiler-sample.txt",
+      "sha256": "b2e2daaf52217a06eab0bfc4fb36ed09f31e425c9e52ba4150c963c7cef50d87"
+    },
+    "result": "Confirmed active borrow/trait checking during the15m34s affected Connect dependency rebuild. Build completed without interruption or cache retirement."
+  },
+  "newly_qualified_case_ids": [],
+  "qualified_clause_count": 55,
+  "assigned_clause_count": 61,
+  "remaining_case_ids": [
+    "u6-req-0103",
+    "u6-req-0109",
+    "u6-req-0112",
+    "u6-req-0113",
+    "u6-req-0115",
+    "u6-req-0123"
+  ],
+  "not_run_or_unqualified": [
+    "No durable Store received-source operation/provenance/recipient/attempt journal or runtime ingress worker/native delivery is installed by this prerequisite. Schema100native signing custody is not repurposed forSIP. Public received HTTP/SDK summaries, recovery/replay and actual private-call integrations remain required.",
+    "Default-feature Connect rebuild and full workspace not run in this prerequisite phase. Current qualification is the test-support listener composition and the named Core suite; previous default-feature passes at164 are not reused as165passes. Default production ingress is a later still-required integration.",
+    "Actual managed WebRTC source custody and broader substrate/50member, established/replacement SIP, failure/recovery, Linux/browser/remote/provider profiles remain unqualified.",
+    "No new whole clause/task credit:45/105tasks and55/61G6-046clauses remain. G6-094independent conformance, acceptance and publication are open."
+  ],
+  "next_required_work": [
+    "Define separate actual received-source protocol/Store custody without native signing fields, stable source-call/physical-observation logical IDs, immutable original provenance/intent/recipient freeze, current named source/recipient authorization, physical attempts and captured outcomes.",
+    "Install the real runtime SIP source consumer and guarded native output using the sealed received observation and audience; add failure/recovery/private/default-profile evidence.",
+    "Complete the remaining G6-046 assigned clauses and all105plan tasks in dependency order."
+  ]
+}
