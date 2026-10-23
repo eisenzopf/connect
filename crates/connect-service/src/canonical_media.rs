@@ -72,6 +72,14 @@ pub(crate) struct Invocation {
 fn denied<T>(_: T) -> StreamControlError {
     StreamControlError::Authority
 }
+/// Only transient Store contention is retryable at a packet boundary.
+pub(crate) fn packet_authority_error(error: connect_protocol::Error) -> StreamControlError {
+    if error.code == "authority-busy" {
+        StreamControlError::NotReady
+    } else {
+        StreamControlError::Authority
+    }
+}
 fn codec_name(format: &MediaFormat) -> &str {
     match format {
         MediaFormat::Encoded { name, .. } => match name.as_str() {
@@ -830,7 +838,7 @@ impl MediaPolicy for Policy {
             private = entry.origin.connection_id().starts_with("pvc_"),
             problem = result.as_ref().err().map(|e| e.code.as_str()),
             "Current native packet authority");
-        let read = result.map_err(denied)?;
+        let read = result.map_err(packet_authority_error)?;
         if !read.current() {
             return Err(StreamControlError::Authority);
         }

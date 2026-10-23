@@ -232,3 +232,23 @@ fn canonical_reliable_data_class_keeps_native_format_intersection_explicit() {
         );
     }
 }
+
+#[test]
+fn packet_authority_only_temporary_contention_is_retryable() {
+    assert!(matches!(
+        packet_authority_error(connect_protocol::Error::new("authority-busy", "busy")),
+        StreamControlError::NotReady
+    ));
+    for code in [
+        "forbidden",
+        "authority-unavailable",
+        "storage",
+        "not-found",
+        "invalid-request",
+    ] {
+        assert!(matches!(
+            packet_authority_error(connect_protocol::Error::new(code, "refused")),
+            StreamControlError::Authority
+        ));
+    }
+}

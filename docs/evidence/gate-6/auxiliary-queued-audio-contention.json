@@ -1,0 +1,40 @@
+{
+  "format": 1,
+  "component_status": "final-queued-audio-admission-qualified; earlier-mixer-contention-open",
+  "source_lock_patch_count": 168,
+  "behavior": [
+    "Only Store authority-busy maps to temporary NotReady. Other Store errors remain authority refusals.",
+    "Queued audio retries only synchronous fresh admission, within the original 200ms frame lifetime and original source/target generation, scene and subscription metadata. All readers from a refused attempt are dropped before the 1ms bounded wait. Successful current grants remain held through actual IO.",
+    "The actual IO closure is invoked once. An IO NotReady is returned without resubmission. Cancellation, revocation, retired originals and expiry cannot become output. Ordered data retains its separate buffering policy."
+  ],
+  "verification": {
+    "core_media_methods_passed": 204,
+    "new_controlled_methods": 5,
+    "received_final_methods_passed": 6,
+    "received_final_methods_failed": 1,
+    "all_regressions_passed": false,
+    "final_failure": "Sibling SIP audio still yields10 marked frames, below unchanged >10 threshold, before DTMF. Earlier mixer source contention still discards accepted input.",
+    "candidate_fanout": "An earlier candidate passes both signing algorithms, but the final combined failure remains authoritative; no complete reliability claim.",
+    "service_mapping_unit_test": "still compiling at checkpoint; not counted as passed"
+  },
+  "intermediate_failure": "The first draft narrowed the ordered-data delivery deadline. Existing buffering regression caught it (203pass/1fail); corrected final run passes all204 methods.",
+  "next": "Preserve bounded original mixer input and decoded chunks across temporary source-admission contention; recheck current authority, original generation and expiry.",
+  "inputs": {
+    "dependencies/source-lock.json": "7e23ca932fd086ae76210704af496e47a75e65e9bddf792ed27c79de75c32df2",
+    "patches/rvoip/gate6-queued-audio-contention.patch": "0796b0118866bc8a9dc84ac6df1939d6985c610af1c6cacc4d28e10126971b48",
+    "crates/connect-service/src/canonical_media.rs": "457b1f48536770d3121e71ac9119e8f07966877ae3d7c821915db73f063a5565",
+    "crates/connect-service/src/initial_telephone/policy.rs": "06203eb55a435ae5aad423ba97a2598261a71aa6c6ad0f78cfe3f8df3b9f9e21",
+    "crates/connect-service/src/canonical_media/tests.rs": "f11da13a79a5c3ede24a9d4eec4933cc4beaecdef068a779253e057f5713f1b6"
+  },
+  "logs": {
+    "prepare-installed-audio168-final.log": "fd9d7b181e3ccba9b643af55a186cf132c60aac99c734b2ee4e4e549afe5ffc2",
+    "build-audio168-final.log": "3f11423e812b89bf555910f4b1947f72d97ca4505c7bece39a19761e9608fa56",
+    "core-staged-audio168-final.log": "e59708a8ae93a94cbb700469b04a361958fb3f862cb752136ec9f58d672b99f8",
+    "received-suite-audio168-final.log": "b87ad2322c00586e63441cb6cc591f5b84a43e6aaebf160217d533ec0f63be4f",
+    "fanout-audio168-candidate.log": "e479eb7e1ef00cf27ee20cd93ed9e2ef0136c57d00e9e60845b3add615456ed2"
+  },
+  "limits": [
+    "45/105 tasks complete; G6-046 56/61 clauses. No new whole task/clause credit.",
+    "No remote/browser/Linux/provider or publication qualification."
+  ]
+}

@@ -1,0 +1,353 @@
+--- a/crates/foundation/rvoip-core/src/staged_streams.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams.rs
+@@ -931,6 +931,15 @@
+     direct: Option<direct_subscriptions::DirectStamp>,
+     admitted_at: Instant,
+ }
++struct QueuedMediaAdmission {
++    target: Arc<StreamController>,
++    tokens: Vec<CancellationToken>,
++    deadline: tokio::time::Instant,
++    _leases: Vec<Box<dyn MediaAuthorityLease>>,
++    _subscriptions: Vec<rvoip_core_traits::peer_switch::PeerDeliveryGuard>,
++    _admissions: Vec<audio_consumer::MediaAdmission>,
++}
++
+ impl QueuedMedia {
+     pub async fn deliver<F, Fut>(self, send: F) -> ControlResult<()>
+     where
+@@ -966,6 +975,75 @@
+             drop(writing);
+             return result;
+         }
++        let admitted = loop {
++            match self.admit_queued_media() {
++                Ok(admitted) => break admitted,
++                Err(StreamControlError::NotReady) if self.frame.kind == StreamKind::Audio => {
++                    // Only metadata remains here: a failed attempt dropped every
++                    // source/target authority and generation reader. Never extend
++                    // the original frame's age or recapture a newer audience.
++                    let until = tokio::time::Instant::from_std(
++                        self.admitted_at + Duration::from_millis(200),
++                    );
++                    if tokio::time::Instant::now() >= until {
++                        return Err(StreamControlError::Deadline);
++                    }
++                    tokio::time::sleep_until(
++                        until.min(tokio::time::Instant::now() + Duration::from_millis(1)),
++                    )
++                    .await;
++                }
++                Err(problem) => return Err(problem),
++            }
++        };
++        let target = &admitted.target;
++        let tokens = &admitted.tokens;
++        let deadline = admitted.deadline;
++        let origin = if self.sources.len() == 1 {
++            let source = &self.sources[0].descriptor;
++            Some(MediaDeliveryOrigin {
++                connection: source.connection.clone(),
++                logical: source.logical_id.clone(),
++                transport: source.transport_id.clone(),
++                generation: source.stream_generation,
++            })
++        } else {
++            None
++        };
++        tracing::trace!(target: "rvoip_core::audio_path", target = %target.connection,
++            age_us = self.admitted_at.elapsed().as_micros() as u64, "Guarded audio entering IO");
++        let result = tokio::select! {
++            biased;
++            _=audio_consumer::any_cancelled(tokens.to_vec())=>Err(StreamControlError::Cancelled),
++            result=tokio::time::timeout_at(deadline,send(self.frame,origin))=>result.map_err(|_|StreamControlError::Deadline)?,
++        };
++        if result.is_ok()
++            && !tokens.iter().any(CancellationToken::is_cancelled)
++            && tokio::time::Instant::now() < deadline
++        {
++            if let (Some(stamp), Some(subscription)) = (&self.target_consumer, &self.subscription) {
++                if let Some(consumer) = target
++                    .audio_consumer
++                    .lock()
++                    .unwrap_or_else(|p| p.into_inner())
++                    .as_ref()
++                    .and_then(Weak::upgrade)
++                {
++                    consumer.observed_delivery(
++                        &self.target,
++                        &self.target_ticket,
++                        stamp,
++                        subscription,
++                        self.admitted_at,
++                    );
++                }
++            }
++        }
++        result
++    }
++    // Synchronous acquisition ensures a refused attempt releases all readers
++    // before the caller waits. These are exact original frame/ticket checks.
++    fn admit_queued_media(&self) -> ControlResult<QueuedMediaAdmission> {
+         if self.frame.kind != StreamKind::Data
+             && self.admitted_at.elapsed() > Duration::from_millis(200)
+         {
+@@ -980,7 +1058,11 @@
+         let mut subscription_guards = Vec::new();
+         let mut admissions = Vec::new();
+         let mut tokens = vec![target.shutdown.clone()];
+-        let mut deadline = tokio::time::Instant::now() + Duration::from_millis(200);
++        let mut deadline = if self.frame.kind == StreamKind::Audio {
++            tokio::time::Instant::from_std(self.admitted_at + Duration::from_millis(200))
++        } else {
++            tokio::time::Instant::now() + Duration::from_millis(200)
++        };
+         if let Some(scene) = &self.target_scene {
+             tokens.push(scene.cancel.clone());
+         }
+@@ -1015,6 +1097,9 @@
+                 || !Arc::ptr_eq(&source.policy, &target.policy)
+             {
+                 return Err(StreamControlError::Authority);
++            }
++            if source.shutdown.is_cancelled() {
++                return Err(StreamControlError::Cancelled);
+             }
+             let (lease, admission, bound) = source
+                 .admit(
+@@ -1081,47 +1166,14 @@
+         if tokio::time::Instant::now() >= deadline {
+             return Err(StreamControlError::Deadline);
+         }
+-        let origin = if self.sources.len() == 1 {
+-            let source = &self.sources[0].descriptor;
+-            Some(MediaDeliveryOrigin {
+-                connection: source.connection.clone(),
+-                logical: source.logical_id.clone(),
+-                transport: source.transport_id.clone(),
+-                generation: source.stream_generation,
+-            })
+-        } else {
+-            None
+-        };
+-        tracing::trace!(target: "rvoip_core::audio_path", target = %target.connection,
+-            age_us = self.admitted_at.elapsed().as_micros() as u64, "Guarded audio entering IO");
+-        let result = tokio::select! {
+-            biased;
+-            _=audio_consumer::any_cancelled(tokens.clone())=>Err(StreamControlError::Cancelled),
+-            result=tokio::time::timeout_at(deadline,send(self.frame,origin))=>result.map_err(|_|StreamControlError::Deadline)?,
+-        };
+-        if result.is_ok()
+-            && !tokens.iter().any(CancellationToken::is_cancelled)
+-            && tokio::time::Instant::now() < deadline
+-        {
+-            if let (Some(stamp), Some(subscription)) = (&self.target_consumer, &self.subscription) {
+-                if let Some(consumer) = target
+-                    .audio_consumer
+-                    .lock()
+-                    .unwrap_or_else(|p| p.into_inner())
+-                    .as_ref()
+-                    .and_then(Weak::upgrade)
+-                {
+-                    consumer.observed_delivery(
+-                        &self.target,
+-                        &self.target_ticket,
+-                        stamp,
+-                        subscription,
+-                        self.admitted_at,
+-                    );
+-                }
+-            }
+-        }
+-        result
++        Ok(QueuedMediaAdmission {
++            target,
++            tokens,
++            deadline,
++            _leases: leases,
++            _subscriptions: subscription_guards,
++            _admissions: admissions,
++        })
+     }
+ }
+ 
+--- a/crates/foundation/rvoip-core/src/staged_streams/tests.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests.rs
+@@ -2809,3 +2809,5 @@
+         Err(StreamControlError::Authority)
+     ));
+ }
++
++mod queued_contention_tests;
+--- /dev/null
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/queued_contention_tests.rs
+@@ -0,0 +1,169 @@
++//! Exact-frame recovery while fresh policy metadata is temporarily unavailable.
++use super::*;
++struct BusyPolicy {
++    inner: Arc<Policy>,
++    blocked: Arc<AtomicUsize>,
++    entered: Arc<Notify>,
++}
++impl MediaPolicy for BusyPolicy {
++    fn current(&self, scope: &MediaScope<'_>) -> ControlResult<Box<dyn MediaAuthorityLease>> {
++        let blocked = self.blocked.load(Ordering::Acquire);
++        if (blocked == 1 && scope.connection.as_str() == "alice")
++            || (blocked == 2 && scope.connection.as_str() == "bob")
++        {
++            self.entered.notify_one();
++            return Err(StreamControlError::NotReady);
++        }
++        self.inner.current(scope)
++    }
++}
++async fn queued() -> (Fixture, QueuedMedia, Arc<AtomicUsize>, Arc<Notify>) {
++    let blocked = Arc::new(AtomicUsize::new(0));
++    let entered = Arc::new(Notify::new());
++    let b = blocked.clone();
++    let e = entered.clone();
++    let f = Fixture::with_policy(
++        8,
++        Some(Box::new(move |inner| {
++            Arc::new(BusyPolicy {
++                inner,
++                blocked: b,
++                entered: e,
++            })
++        })),
++    );
++    f.start(&[Medium::Audio]).await;
++    let source = f.aa.port(Medium::Audio);
++    let mut input =
++        f.a.take_ingress(&desired(Medium::Audio).logical_id)
++            .unwrap();
++    let mut output = f.ba.port(Medium::Audio).take_egress().unwrap();
++    source.try_publish(&frame(&source, 160)).unwrap();
++    receive(&mut input)
++        .await
++        .try_forward_to(&f.b, &desired(Medium::Audio).logical_id)
++        .unwrap();
++    let q = outgoing(&mut output).await;
++    (f, q, blocked, entered)
++}
++#[tokio::test]
++async fn queued_audio_busy_retries_same_frame_and_releases_all_readers() {
++    for stage in [1, 2] {
++        let (f, q, blocked, entered) = queued().await;
++        blocked.store(stage, Ordering::Release);
++        let calls = AtomicUsize::new(0);
++        let mut delivery = Box::pin(q.deliver(|frame| {
++            assert_eq!(frame.timestamp_rtp, 160);
++            assert_eq!(
++                frame.stream_id,
++                f.ba.port(Medium::Audio).binding().transport_id
++            );
++            calls.fetch_add(1, Ordering::AcqRel);
++            std::future::ready(Ok(()))
++        }));
++        tokio::select! {
++            _ = entered.notified() => (),
++            result = delivery.as_mut() => panic!("busy delivery completed: {result:?}"),
++        }
++        // A target refusal must release the source reader too, before waiting.
++        drop(
++            f.policy
++                .0
++                .try_write()
++                .expect("authority retained during retry wait"),
++        );
++        assert_eq!(calls.load(Ordering::Acquire), 0);
++        blocked.store(0, Ordering::Release);
++        delivery.await.unwrap();
++        assert_eq!(calls.load(Ordering::Acquire), 1);
++    }
++}
++#[tokio::test]
++async fn queued_audio_busy_rechecks_source_and_target_revocation_without_output() {
++    for stage in [1, 2] {
++        for revoked in ["alice", "bob"] {
++            let (f, q, blocked, entered) = queued().await;
++            blocked.store(stage, Ordering::Release);
++            let calls = AtomicUsize::new(0);
++            let mut delivery = Box::pin(q.deliver(|_| {
++                calls.fetch_add(1, Ordering::AcqRel);
++                std::future::ready(Ok(()))
++            }));
++            tokio::select! {
++                _ = entered.notified() => (),
++                result = delivery.as_mut() => panic!("busy delivery completed: {result:?}"),
++            }
++            f.policy
++                .0
++                .try_write()
++                .unwrap()
++                .revoked
++                .insert(revoked.into());
++            blocked.store(0, Ordering::Release);
++            assert!(matches!(delivery.await, Err(StreamControlError::Authority)));
++            assert_eq!(calls.load(Ordering::Acquire), 0);
++        }
++    }
++}
++#[tokio::test]
++async fn queued_audio_busy_original_generation_and_cancellation_remain_fenced() {
++    for cancelled in [false, true] {
++        let (f, q, blocked, entered) = queued().await;
++        blocked.store(2, Ordering::Release);
++        let calls = AtomicUsize::new(0);
++        let mut delivery = Box::pin(q.deliver(|_| {
++            calls.fetch_add(1, Ordering::AcqRel);
++            std::future::ready(Ok(()))
++        }));
++        tokio::select! {
++            _ = entered.notified() => (),
++            result = delivery.as_mut() => panic!("busy delivery completed: {result:?}"),
++        }
++        drop(f.policy.0.try_write().unwrap());
++        if cancelled {
++            f.a.shutdown.cancel();
++        } else {
++            f.aa.port(Medium::Audio).0.retire();
++        }
++        blocked.store(0, Ordering::Release);
++        assert!(matches!(
++            delivery.await,
++            Err(StreamControlError::Deadline | StreamControlError::Cancelled)
++        ));
++        assert_eq!(calls.load(Ordering::Acquire), 0);
++    }
++}
++#[tokio::test]
++async fn queued_audio_busy_deadline_is_original_and_releases_readers() {
++    let (f, q, blocked, _) = queued().await;
++    blocked.store(2, Ordering::Release);
++    let calls = AtomicUsize::new(0);
++    assert!(matches!(
++        tokio::time::timeout(
++            Duration::from_millis(500),
++            q.deliver(|_| {
++                calls.fetch_add(1, Ordering::AcqRel);
++                std::future::ready(Ok(()))
++            })
++        )
++        .await
++        .unwrap(),
++        Err(StreamControlError::Deadline)
++    ));
++    assert_eq!(calls.load(Ordering::Acquire), 0);
++    drop(f.policy.0.try_write().unwrap());
++}
++#[tokio::test]
++async fn queued_audio_io_not_ready_is_never_resubmitted() {
++    let (_f, q, _, _) = queued().await;
++    let calls = AtomicUsize::new(0);
++    assert!(matches!(
++        q.deliver(|_| {
++            calls.fetch_add(1, Ordering::AcqRel);
++            std::future::ready(Err(StreamControlError::NotReady))
++        })
++        .await,
++        Err(StreamControlError::NotReady)
++    ));
++    assert_eq!(calls.load(Ordering::Acquire), 1);
++}

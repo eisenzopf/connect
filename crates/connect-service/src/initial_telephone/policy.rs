@@ -454,7 +454,7 @@ impl MediaPolicy for Leg {
             publishing = matches!(scope.purpose, MediaPurpose::Publish),
             problem = result.as_ref().err().map(|e| e.code.as_str()),
             "Current initial SIP packet authority");
-        let read = Arc::new(result.map_err(|_| StreamControlError::Authority)?);
+        let read = Arc::new(result.map_err(crate::canonical_media::packet_authority_error)?);
         if !matches!(scope.purpose, MediaPurpose::Control) && !read.is_connected() {
             return Err(StreamControlError::NotReady);
         }
@@ -464,7 +464,7 @@ impl MediaPolicy for Leg {
                 .media
                 .store
                 .try_initial_telephone_native_read(self.origin()?, native.origin.clone())
-                .map_err(|_| StreamControlError::Authority)?;
+                .map_err(crate::canonical_media::packet_authority_error)?;
             if !pair.current()
                 || !pair.phone().is_connected()
                 || !pair.phone().may_receive()
@@ -705,7 +705,7 @@ impl Leg {
             "Current initial SIP to native packet authority");
         let mut stage = "store-read";
         let result = (|| -> ControlResult<Box<dyn MediaAuthorityLease>> {
-            let read = result.map_err(|_| StreamControlError::Authority)?;
+            let read = result.map_err(crate::canonical_media::packet_authority_error)?;
             stage = "pair-current";
             if !read.current()
                 || !read.phone().is_connected()
