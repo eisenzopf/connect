@@ -1,0 +1,154 @@
+{
+  "task": "G6-046",
+  "status": "in-progress",
+  "component_passed": true,
+  "full_task_complete": false,
+  "full_goal_complete": false,
+  "executed_at": "2026-10-23T13:20:35.186147+00:00",
+  "implementation_commit": "27dccc7ad6595d07c7d554fb421dc313bb1e45ab",
+  "scope": "Actual local macOS arm64 native-to-initial-SIP first-INFO cancellation/source revocation and signal-only INFO/RFC4733 after media withdrawal, for EdDSA and ES256. Credential operations are edited as a controlled fault under the actual Store writer fence; no public credential-edit API qualification.",
+  "schema_version": 100,
+  "source_lock_patches": 160,
+  "rust_test_methods": 7,
+  "new_test_methods": 3,
+  "regression_test_methods": 4,
+  "results": [
+    {
+      "passed": 3,
+      "failed": 0,
+      "test_names": [
+        "canonical_native_connections::consultation::groups::replacement::telephone::initial::dtmf::stops::production_native_to_initial_sip_cancel_after_actual_info_stops_suffix_and_never_replays",
+        "canonical_native_connections::consultation::groups::replacement::telephone::initial::dtmf::stops::production_native_to_initial_sip_signal_only_authority_keeps_call_and_dtmf_without_rtp",
+        "canonical_native_connections::consultation::groups::replacement::telephone::initial::dtmf::stops::production_native_to_initial_sip_source_revocation_stops_next_digit_with_original_uncertainty"
+      ],
+      "log": {
+        "path": ".local/gate-6/dtmf-sip-fence/production-stops.log",
+        "sha256": "3bbbfdbe27b4ea07237c08259bba5ce211e7332a69bc3b4c3b56a34dae17a731"
+      }
+    },
+    {
+      "passed": 4,
+      "failed": 0,
+      "test_names": [
+        "canonical_native_connections::consultation::groups::replacement::telephone::initial::dtmf::production_native_to_initial_sip_info_failure_keeps_uncertainty_without_replay_and_preserves_call",
+        "canonical_native_connections::consultation::groups::replacement::telephone::initial::dtmf::production_native_to_initial_sip_info_uses_original_call_and_never_replays",
+        "canonical_native_connections::consultation::groups::replacement::telephone::initial::dtmf::production_native_to_initial_sip_requires_independent_named_receive_permission",
+        "canonical_native_connections::consultation::groups::replacement::telephone::initial::dtmf::production_native_to_initial_sip_rfc4733_uses_actual_negotiated_event_profile"
+      ],
+      "log": {
+        "path": ".local/gate-6/dtmf-sip-fence/regression-dtmf-after-stops.log",
+        "sha256": "1f9970e72b6a55c6b1f2d00519531bf9411d9b6c6922172a984908ffd71d7e9a"
+      }
+    }
+  ],
+  "actual_stop_sdk_http_samples": 4,
+  "actual_signal_only_sdk_samples": 4,
+  "stop_samples": {
+    "path": ".local/gate-6/dtmf-sip-fence/stops-production.jsonl",
+    "sha256": "758554af3467ee868f13d3a253f002fdedff4a28f5bde06bbb92a5b553e2e350"
+  },
+  "signal_only_samples": {
+    "path": ".local/gate-6/dtmf-sip-fence/signal-only-production.jsonl",
+    "sha256": "27f0c6524224601e4e6830711b01f26e42d918687a28b6f413a07e39e0583a51"
+  },
+  "summary_validation": {
+    "passed": true,
+    "actual_sdk_summaries": 4,
+    "actual_uncertain_sdk_summaries": 0,
+    "actual_cancelled_or_revoked_summaries": 4,
+    "algorithms": [
+      "EdDSA",
+      "ES256"
+    ],
+    "methods": [
+      "info",
+      "rfc4733"
+    ],
+    "scope": "Local macOS arm64 native-to-initial-SIP positive summaries and actual UDP observations.",
+    "signature_verification": "The producing SDK verifies signatures; this validator checks recorded DTOs and HTTP/OpenAPI schema.",
+    "full_dtmf_clause_qualification": false,
+    "log": {
+      "path": ".local/gate-6/dtmf-sip-fence/validate-stops.log",
+      "sha256": "759287b523715dfc0bc52144e11483749c46987d27fc7d33d0209879326049ac"
+    }
+  },
+  "build": {
+    "passed": true,
+    "command": "CARGO_INCREMENTAL=1 cargo test -p connect-server --test gate6_canonical_runtime --no-run --locked --offline -j4",
+    "log": {
+      "path": ".local/gate-6/dtmf-sip-fence/build-server-stops-final.log",
+      "sha256": "e4ac57e400686d24f244032d14c5a19affcd36e87a8f17a4c7fa8243b8ac921b"
+    }
+  },
+  "test_binary": {
+    "path": "target/debug/deps/gate6_canonical_runtime-3bf705553dffa934",
+    "sha256": "fcaec9319219896aa972c063f1b6105113e6fc406c3eb9dbf781cb544c9399c9"
+  },
+  "source_snapshot_files": 1392,
+  "current_source_snapshot": {
+    "path": ".local/gate-6/dtmf-sip-fence/inputs-stops.json",
+    "sha256": "9b7a15ccf3ec0803c443f30a72410619c4538c456916ad30f23ea52485f00c8e"
+  },
+  "verification": {
+    "dependencies": {
+      "path": ".local/gate-6/dtmf-sip-fence/dependencies-stops.log",
+      "sha256": "fd9d7b181e3ccba9b643af55a186cf132c60aac99c734b2ee4e4e549afe5ffc2"
+    },
+    "format": {
+      "path": ".local/gate-6/dtmf-sip-fence/format-stops-current.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "http_reference": {
+      "path": ".local/gate-6/dtmf-sip-fence/http-reference-stops.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  },
+  "observations": [
+    "Both signing algorithms begin each cancellation/revocation case with the peer observing the first real INFO digit5 of58#, Duration1000, on the original SIP call and with a durably reserved gateway schedule. Cancellation uses the public HTTP operation.cancel command. Source revocation uses the actual Store credential authority path.",
+    "After the first actual packet, both stops retain one reserved outcome_unknown recipient and a stopped local-work-complete unknown operation. The observation crosses the original1000ms tone plus70ms gap: no8/# suffix resumes. Cancellation replay returns the same immutable uncertainty without IO. The revoked native source cannot replay; a fresh credential of the same identity reads the original result through HTTP.",
+    "The signal-only case first proves existing marked duplex audio at unchanged thresholds. A controlled phone credential edit withdraws every operation except dtmf.receive while holding the actual identity writer fence. After waiting for the real call monitor and draining previously admitted packets, fresh marked native RTP is refused. The same original call remains connected without BYE.",
+    "Actual INFO and negotiated RFC4733 then each deliver58# on that signal-only call, for both signing algorithms. Replay emits no additional tones. The signal permission does not construct or borrow a media grant; this physically qualifies the initial call monitor change from the earlier runtime checkpoint.",
+    "Four current uncertain stop summaries and four current completed signal-only SDK summaries validate against NativeDtmfSubmission in HTTP/OpenAPI. The producing SDK/HTTP client handles signed exchanges; this DTO validator checks fields/schema and does not independently reverify signatures.",
+    "The four earlier initial-SIP DTMF production methods pass with the updated fixture, including403/fresh-operation recovery, ordinaryINFO/RFC4733 and missing independent receive permission. Runtime/Store/Core source remains unchanged by this test/documentation increment."
+  ],
+  "failed_or_retried_checks": [
+    {
+      "scope": "Initial new test module build",
+      "observation": "The explicitly path-mapped dtmf module required an explicit dtmf/stops.rs child path. Corrected without changing production code or behavior.",
+      "log": {
+        "path": ".local/gate-6/dtmf-sip-fence/build-server-stops.log",
+        "sha256": "b4290028df5bf5c7e8678c61f651e70702ac5c2a85c9251d6564feb47d7221c4"
+      }
+    },
+    {
+      "scope": "Controlled writer fixture compile",
+      "observation": "The actual acquire_authority API requires an explicit bounded AuthorityWait. Added the two-second bound; current build and production checks pass.",
+      "log": {
+        "path": ".local/gate-6/dtmf-sip-fence/build-server-stops-corrected.log",
+        "sha256": "94e2d866110dfafecbaf2f2e4dce4b6c440ac263d5ac834b8c8f496ba40bf7d3"
+      }
+    }
+  ],
+  "newly_qualified_case_ids": [],
+  "qualified_clause_count": 55,
+  "assigned_clause_count": 61,
+  "remaining_case_ids": [
+    "u6-req-0103",
+    "u6-req-0109",
+    "u6-req-0112",
+    "u6-req-0113",
+    "u6-req-0115",
+    "u6-req-0123"
+  ],
+  "not_run_or_unqualified": [
+    "Initial-SIP target/route revocation, restart/socket uncertainty and private-return combinations remain open beyond this source revocation/cancellation and signal-only lifetime component.",
+    "True SIP-originated durable observation/provenance/output, established/replacement SIP legs, maximum-duration/fanout and same-Participant separate-Connection gateway policy remain open.",
+    "The earlier native fresh-recipient not_started regression and unknown subscription observations remain unresolved. Passing these cases does not establish their causes or qualify reliability.",
+    "No whole clause/task credit:45/105 tasks and55/61 assigned G6-046 clauses remain recorded. Wider Linux/browser/remote/provider lanes, independent G6-094 conformance, acceptance and publication remain open."
+  ],
+  "next_required_work": [
+    "Fix and qualify the original maximum-sequence budget and multi-recipient scheduling, rather than reducing the supported sequence bounds.",
+    "Install actual SIP-originated durable custody and native output with original/current audience and correct provenance, then established/replacement SIP registrations.",
+    "Finish the remaining0103/0109/0112/0113/0115/0123 and all105 tasks in dependency order."
+  ]
+}
