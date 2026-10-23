@@ -1,0 +1,41 @@
+{
+  "format": 1,
+  "component_status": "core-qualified; installed-production-check-pending",
+  "source_lock_patch_count": 169,
+  "implementation": [
+    "One accepted undecoded frame can wait across temporary source admission contention, using its original admission time, route ticket, consumer and scene. Fresh ingress remains in the existing bounded queue.",
+    "Existing bounded decoded chunks can wait when current source policy is temporarily busy. Neither phase retains an authority grant while waiting or extends the200ms original age.",
+    "A retry additionally requires original route and consumer currentness and the original scene admission. Pre-binding, retired or stale packets are discarded; they cannot block fresh packets or cross pause/resume."
+  ],
+  "verification": {
+    "core_media_methods_passed": 208,
+    "new_mixer_controlled_methods": 4,
+    "prior_queued_controlled_methods": 5,
+    "service_error_classification_method_passed": 1,
+    "service_unit_built_against": "source-lock168 compiled dependency metadata; unchanged workspace mapper",
+    "cases": [
+      "collect and take recover the same frame once, with writer access during the wait",
+      "source revocation refuses original, no later replay, fresh input recovers",
+      "original expiry prevents output and fresh input recovers",
+      "pause/resume epoch discards pending original, fresh input recovers"
+    ],
+    "production_check": "pending final rebuild and actual unchanged sibling/received suite; no integration pass is inferred"
+  },
+  "intermediate_failure": "The initial hold rule also kept a pre-binding NotReady packet and delayed fresh input. An existing regression caught this (207pass/1fail). The final original-ticket/consumer/scene predicate restores all208 passes.",
+  "inputs": {
+    "dependencies/source-lock.json": "e3b13707bcfcbab5fab9d5414fbe8a22184215edae965071336694669b7eda5f",
+    "patches/rvoip/gate6-mixer-source-contention.patch": "d5770afedd1453b5e3c93b82add20e6b51385edaafb6e3d2390ebee9604e839f"
+  },
+  "logs": {
+    "prepare-installed-audio169-revalidated.log": "fd9d7b181e3ccba9b643af55a186cf132c60aac99c734b2ee4e4e549afe5ffc2",
+    "core-staged-audio169-revalidated.log": "b5eb59b94f0927e480fd84311370b5c8faa5e25e4c9b45665e93731e0d8c34d0",
+    "core-staged-audio169-final.log": "ccbc73c7650d5fbe733c91aa3358d4fe0feabc02c60244c3db16df9a31acaabb",
+    "service-audio168-final.log": "7df6eb25be728f9ff78c2a63d59e99b991563d8b08d6d19776f1b0673f6d6cd5"
+  },
+  "custody": "Fresh immutable prepared source; no direct .deps source edit. Unchanged source bytes/mtimes and independent target caches preserved. Installation occurred while unrelated callers consumed already compiled older dependency metadata; their completed artifacts require a coherent final rebuild before production qualification.",
+  "limits": [
+    "45/105 tasks complete; G6-04656/61 clauses. No new whole credit.",
+    "The final168 production sibling failure remains unresolved until current169 actual run passes.",
+    "No remote/provider/browser/Linux or publication qualification."
+  ]
+}

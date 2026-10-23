@@ -1,0 +1,286 @@
+--- a/crates/foundation/rvoip-core/src/staged_streams/guarded_audio.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/guarded_audio.rs
+@@ -172,6 +172,7 @@
+     ticket: PeerRouteTicket,
+     stamp: ConsumerStamp,
+     input: mpsc::Receiver<MediaPacket>,
++    waiting: Option<MediaPacket>,
+     codecs: Codecs,
+     pending: VecDeque<Chunk>,
+     ticks: u64,
+@@ -228,6 +229,7 @@
+             self.stamp = stamp;
+             self.codecs = codecs;
+             self.pending.clear();
++            self.waiting = None;
+             self.previous_sources.clear();
+             self.target_started = self
+                 .ticket
+@@ -240,13 +242,17 @@
+     }
+     fn collect(&mut self) {
+         for _ in 0..16 {
+-            let Ok(packet) = self.input.try_recv() else {
+-                break;
++            let packet = match self.waiting.take() {
++                Some(packet) => packet,
++                None => match self.input.try_recv() {
++                    Ok(packet) => packet,
++                    Err(_) => break,
++                },
+             };
+             if packet.admitted_at.elapsed() > Duration::from_millis(200) {
+                 continue;
+             }
+-            let Ok((_lease, _admission, deadline)) = self.controller.admit(
++            let (_lease, _admission, deadline) = match self.controller.admit(
+                 &packet.source,
+                 &packet.ticket,
+                 false,
+@@ -254,8 +260,27 @@
+                 ConsumerCheck::Retained(packet.consumer.as_ref()),
+                 None,
+                 scene_consumer::SceneCheck::retained_publish(packet.scene.as_ref()),
+-            ) else {
+-                continue;
++            ) {
++                Ok(admitted) => admitted,
++                Err(StreamControlError::NotReady)
++                    if packet.ticket.is_current()
++                        && packet
++                            .consumer
++                            .as_ref()
++                            .is_some_and(ConsumerStamp::is_current)
++                        && self
++                            .controller
++                            .scene_admission(scene_consumer::SceneCheck::retained_publish(
++                                packet.scene.as_ref(),
++                            ))
++                            .is_ok() =>
++                {
++                    // One bounded original frame; no authority survives the
++                    // refusal. Fresh ingress stays in the existing bounded queue.
++                    self.waiting = Some(packet);
++                    break;
++                }
++                Err(_) => continue,
+             };
+             let Ok(samples) = self.codecs.decode(&packet.frame) else {
+                 continue;
+@@ -302,7 +327,7 @@
+                 self.pending.pop_front();
+                 continue;
+             }
+-            let Ok((lease, admission, deadline)) = self.controller.admit(
++            let (lease, admission, deadline) = match self.controller.admit(
+                 &chunk.packet.source,
+                 &chunk.packet.ticket,
+                 false,
+@@ -310,9 +335,28 @@
+                 ConsumerCheck::Retained(chunk.packet.consumer.as_ref()),
+                 None,
+                 scene_consumer::SceneCheck::retained_publish(chunk.packet.scene.as_ref()),
+-            ) else {
+-                self.pending.pop_front();
+-                continue;
++            ) {
++                Ok(admitted) => admitted,
++                Err(StreamControlError::NotReady)
++                    if chunk.packet.ticket.is_current()
++                        && chunk
++                            .packet
++                            .consumer
++                            .as_ref()
++                            .is_some_and(ConsumerStamp::is_current)
++                        && self
++                            .controller
++                            .scene_admission(scene_consumer::SceneCheck::retained_publish(
++                                chunk.packet.scene.as_ref(),
++                            ))
++                            .is_ok() =>
++                {
++                    break
++                }
++                Err(_) => {
++                    self.pending.pop_front();
++                    continue;
++                }
+             };
+             let descriptor = MediaSource {
+                 conversation: self.controller.conversation.clone(),
+@@ -407,6 +451,7 @@
+             target_started: stamp.started,
+             stamp,
+             input,
++            waiting: None,
+             codecs,
+             pending: VecDeque::new(),
+             ticks: 0,
+@@ -440,6 +485,7 @@
+             member.ticks = member.ticks.wrapping_add(1);
+             if member.refresh().is_err() {
+                 member.pending.clear();
++                member.waiting = None;
+                 continue;
+             }
+             member.collect();
+--- a/crates/foundation/rvoip-core/src/staged_streams/tests/guarded_mixer.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/guarded_mixer.rs
+@@ -775,3 +775,5 @@
+ }
+ 
+ mod subscriptions;
++
++mod source_contention;
+--- /dev/null
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/guarded_mixer/source_contention.rs
+@@ -0,0 +1,149 @@
++//! A busy fresh source read does not discard an already accepted original frame.
++use super::*;
++struct BusySource {
++    inner: Arc<Policy>,
++    mode: Arc<AtomicUsize>,
++    reads: Arc<AtomicUsize>,
++}
++impl MediaPolicy for BusySource {
++    fn current_participant_receive(
++        &self,
++        scope: &MediaScope<'_>,
++        source: &MediaParticipantSource,
++    ) -> ControlResult<Box<dyn MediaAuthorityLease>> {
++        self.inner.current_participant_receive(scope, source)
++    }
++    fn current(&self, scope: &MediaScope<'_>) -> ControlResult<Box<dyn MediaAuthorityLease>> {
++        let mode = self.mode.load(Ordering::Acquire);
++        if mode != 0
++            && scope.connection.as_str() == "a"
++            && matches!(scope.purpose, MediaPurpose::Publish)
++        {
++            let count = self.reads.fetch_add(1, Ordering::AcqRel);
++            if mode == 1 || count > 0 {
++                return Err(StreamControlError::NotReady);
++            }
++        }
++        self.inner.current(scope)
++    }
++}
++async fn scene() -> (Scene, Arc<AtomicUsize>) {
++    let mode = Arc::new(AtomicUsize::new(0));
++    let saved = mode.clone();
++    let s = Scene::new_inner(
++        &[("a", "alice", audio(), 0), ("b", "bob", audio(), 0)],
++        8000,
++        Some(Box::new(move |inner| {
++            Arc::new(BusySource {
++                inner,
++                mode: saved,
++                reads: Arc::new(AtomicUsize::new(0)),
++            })
++        })),
++    )
++    .await;
++    s.bind(0, true).await;
++    s.bind(1, true).await;
++    (s, mode)
++}
++#[tokio::test]
++async fn guarded_mixer_busy_collect_and_take_keep_original_frame_without_idle_grants() {
++    for stage in [1, 2] {
++        let (s, mode) = scene().await;
++        let mut output = s.port(1).take_egress().unwrap();
++        s.publish(0, 1800);
++        mode.store(stage, Ordering::Release);
++        s.mixer.tick();
++        assert!(output.try_recv().is_err());
++        drop(
++            s.policy
++                .0
++                .try_write()
++                .expect("busy mixer retained authority"),
++        );
++        mode.store(0, Ordering::Release);
++        s.mixer.tick();
++        heard(
++            output
++                .try_recv()
++                .expect("original frame lost while source was busy"),
++            1800,
++        )
++        .await;
++        s.mixer.tick();
++        assert!(output.try_recv().is_err(), "original frame repeated");
++    }
++}
++#[tokio::test]
++async fn guarded_mixer_busy_collect_and_take_recheck_revocation_and_never_replay() {
++    for stage in [1, 2] {
++        let (s, mode) = scene().await;
++        let mut output = s.port(1).take_egress().unwrap();
++        s.publish(0, 1800);
++        mode.store(stage, Ordering::Release);
++        s.mixer.tick();
++        s.policy
++            .0
++            .try_write()
++            .unwrap()
++            .revoked
++            .insert("alice".into());
++        mode.store(0, Ordering::Release);
++        s.mixer.tick();
++        assert!(output.try_recv().is_err());
++        s.policy.0.try_write().unwrap().revoked.clear();
++        s.mixer.tick();
++        assert!(output.try_recv().is_err(), "refused original replayed");
++        s.publish(0, 1800);
++        s.mixer.tick();
++        heard(output.try_recv().unwrap(), 1800).await;
++    }
++}
++#[tokio::test]
++async fn guarded_mixer_busy_collect_and_take_expire_original_then_accept_fresh_input() {
++    for stage in [1, 2] {
++        let (s, mode) = scene().await;
++        let mut output = s.port(1).take_egress().unwrap();
++        s.publish(0, 1800);
++        mode.store(stage, Ordering::Release);
++        s.mixer.tick();
++        drop(s.policy.0.try_write().unwrap());
++        tokio::time::sleep(Duration::from_millis(210)).await;
++        mode.store(0, Ordering::Release);
++        s.mixer.tick();
++        assert!(output.try_recv().is_err(), "expired original escaped");
++        s.publish(0, 1800);
++        s.mixer.tick();
++        heard(output.try_recv().unwrap(), 1800).await;
++    }
++}
++#[tokio::test]
++async fn guarded_mixer_busy_original_does_not_cross_pause_resume_epoch() {
++    for stage in [1, 2] {
++        let (s, mode) = scene().await;
++        let mut output = s.port(1).take_egress().unwrap();
++        s.publish(0, 1800);
++        mode.store(stage, Ordering::Release);
++        s.mixer.tick();
++        assert!(output.try_recv().is_err());
++        let c = &s.controllers[0];
++        let logical = desired(Medium::Audio).logical_id;
++        c.set_paused(&logical, c.revision(), true, deadline())
++            .await
++            .unwrap();
++        mode.store(0, Ordering::Release);
++        s.mixer.tick();
++        assert!(output.try_recv().is_err());
++        c.set_paused(&logical, c.revision(), false, deadline())
++            .await
++            .unwrap();
++        s.mixer.tick();
++        assert!(
++            output.try_recv().is_err(),
++            "pre-pause frame replayed after resume"
++        );
++        s.publish(0, 1000);
++        s.mixer.tick();
++        heard(output.try_recv().unwrap(), 1000).await;
++    }
++}

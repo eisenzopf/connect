@@ -944,6 +944,11 @@
       "path": "patches/rvoip/gate6-queued-audio-contention.patch",
       "sha256": "0796b0118866bc8a9dc84ac6df1939d6985c610af1c6cacc4d28e10126971b48",
       "source": "Bounded same-frame audio admission retry for temporary NotReady; fresh current grants, original tickets/audience/deadline and no idle readers or IO resubmission."
+    },
+    {
+      "path": "patches/rvoip/gate6-mixer-source-contention.patch",
+      "sha256": "d5770afedd1453b5e3c93b82add20e6b51385edaafb6e3d2390ebee9604e839f",
+      "source": "Retain one bounded original mixer input and decoded source chunks across temporary fresh admission contention; no retained grants, new audience or extended deadline."
     }
   ]
 }
