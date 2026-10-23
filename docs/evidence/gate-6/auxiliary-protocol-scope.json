@@ -1351,7 +1351,7 @@
         "G6-094"
       ],
       "connect_integration_audit": {
-        "status": "evidence-to-reconcile",
+        "status": "qualified-local-native-sip",
         "historical_component_reports": [
           "docs/evidence/gate-6/session-control.json",
           "docs/evidence/gate-6/general-session-runtime.json"
@@ -1360,7 +1360,8 @@
           "crates/connect-server/tests/support/canonical_session_control.rs",
           "crates/connect-service/src/canonical_sessions.rs"
         ],
-        "remaining": "Reconcile existing actual invite/accept/reject/cancel/update/end, presence and boundary evidence; do not substitute Core-only peer cases for Connect runtime cases."
+        "remaining": "Wider transport/operating profiles and independent G6-094 conformance retain their assigned tasks.",
+        "current_activation_evidence": "docs/evidence/gate-6/auxiliary-session-activation-mixed.json"
       }
     },
     {
@@ -2022,7 +2023,7 @@
         "G6-094"
       ],
       "connect_integration_audit": {
-        "status": "evidence-to-reconcile",
+        "status": "qualified-local-boundary-context",
         "historical_component_reports": [
           "docs/evidence/gate-6/session-control.json",
           "docs/evidence/gate-6/general-session-runtime.json"
@@ -2031,7 +2032,8 @@
           "crates/connect-server/tests/support/canonical_session_control.rs",
           "crates/connect-service/src/canonical_sessions.rs"
         ],
-        "remaining": "Reconcile existing actual invite/accept/reject/cancel/update/end, presence and boundary evidence; do not substitute Core-only peer cases for Connect runtime cases."
+        "remaining": "Wider transport/operating profiles and independent G6-094 conformance retain their assigned tasks.",
+        "current_activation_evidence": "docs/evidence/gate-6/auxiliary-session-activation-mixed.json"
       }
     },
     {
@@ -3372,8 +3374,8 @@
   ],
   "initial_observation": "Focused text search of these entrypoints/current native client modules found no direct recording.vcon/auth.refresh/auth.assurance/step-up/connection.quality/capabilities event strings. This is discovery context, not proof that behavior is absent or complete; indirect handlers/upstream runtime hooks must be inspected and exercised before classification.",
   "next_actions": [
-    "Finish remaining G6-046 source clauses: URI invitation targets0082/0083; readiness-policy0085 and context0100; offer example0103 and readiness-handle0109; native/SIP DTMF0112/0113/0115; full multiparty selector0123. Reconcile existing actual evidence before adding missing behavior.",
-    "Follow the approved dependency graph through every remaining task and all105-task goal. Keep named remote/provider rehearsal bounds in G6-093 explicit; publication remains separate.",
+    "Finish the remaining literal G6-046 clauses: URI invitation0082/0083, offer0103, ready-handle0109, native/SIP DTMF0112/0113/0115, and multiparty selector0123.",
+    "Continue all105 approved tasks in dependency order. Named remote/provider rehearsals require G6-093 bounded configuration; publication remains separate.",
     "Keep task-scoped enrollment and step-up clauses0061\u20130066 in G6-055 and its prerequisites; preserve all105 tasks and dependency order.",
     "Retain unresolved consultation/provider reliability failures explicitly; named remote/provider rehearsals require G6-093 bounded configuration; full task and acceptance remain open."
   ],
@@ -3647,12 +3649,28 @@
         "This is an incomplete native implementation increment for u6-req-0085, with no new clause credit. Mixed SIP/native startup, initial and replacement telephone readiness, activation after accepted-set changes or public handoff/private-return promotion, and the full transition matrix remain required before that clause can close.",
         "The original Session start remains immutable. Its negotiated_capabilities currently comes from the final native flow observation; full mixed-source capability aggregation remains required."
       ]
+    },
+    "session_activation_mixed": {
+      "report": "docs/evidence/gate-6/auxiliary-session-activation-mixed.json",
+      "status": "qualified-local-native-and-loopback-sip",
+      "newly_qualified_case_ids": [
+        "u6-req-0085",
+        "u6-req-0100"
+      ],
+      "limits": [
+        "Local macOS arm64 canonical native QUIC and actual loopback UDP SIP. Mixed startup has six actual signed cases across EdDSA/ES256 and PCMU/PCMA; initial public handoff activation is an EdDSA case. Wider Linux, browser, remote/provider and frozen workload profiles retain their assigned tasks.",
+        "Initial readiness is an observed current Connection predicate. Native sources require actual direction-appropriate flow; initial SIP sources require actual owned dialog and guarded Core admission. This does not claim every packet was consumed remotely or every future cross-product/fault profile has been run.",
+        "The pre-start codec snapshot uses captured current native binding metadata; its targeted latest-binding regression is controlled Store evidence. Public live codec execution remains covered by the three current production worker regressions. No additional physical pre-start renegotiation scenario is inferred.",
+        "Only common selected descriptors are reported globally. Different selected formats have exact per-Connection descriptors; no union is presented as a common format. Actual SIP interop reports sip-interop, following the pinned protocol source.",
+        "The handoff case verifies initial phase/current trusted snapshot after actual public promotion, without new flow. Existing private-origin discovery and record/source visibility checks remain enforced; no broad disclosure of historical private metadata is inferred.",
+        "The source ledger independent conformance remains G6-094. The two credits are bounded local Connect qualification, including context0100 as a link to already implemented boundary behavior. G6-046, gate acceptance, publication and all105-task completion remain open."
+      ]
     }
   },
-  "qualified_clause_count": 51,
-  "remaining_clause_count": 10,
+  "qualified_clause_count": 53,
+  "remaining_clause_count": 8,
   "clause_qualification": {
-    "status": "partial-local-native",
+    "status": "partial-local-native-and-loopback-sip",
     "evidence": "docs/evidence/gate-6/auxiliary-conversation-clauses.json",
     "qualified_case_ids": [
       "u6-req-0069",
@@ -3669,6 +3687,7 @@
       "u6-req-0080",
       "u6-req-0081",
       "u6-req-0084",
+      "u6-req-0085",
       "u6-req-0086",
       "u6-req-0087",
       "u6-req-0088",
@@ -3683,6 +3702,7 @@
       "u6-req-0097",
       "u6-req-0098",
       "u6-req-0099",
+      "u6-req-0100",
       "u6-req-0101",
       "u6-req-0102",
       "u6-req-0104",
@@ -3709,7 +3729,7 @@
     ],
     "full_task_complete": false,
     "continuation_evidence": "docs/evidence/gate-6/auxiliary-session-identity-targets.json",
-    "latest_evidence": "docs/evidence/gate-6/auxiliary-session-codec-worker.json",
-    "latest_component_evidence": "docs/evidence/gate-6/auxiliary-session-activation-native.json"
+    "latest_evidence": "docs/evidence/gate-6/auxiliary-session-activation-mixed.json",
+    "latest_component_evidence": "docs/evidence/gate-6/auxiliary-session-activation-mixed.json"
   }
 }
