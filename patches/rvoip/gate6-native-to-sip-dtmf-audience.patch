@@ -1,0 +1,499 @@
+--- a/crates/foundation/rvoip-core/src/orchestrator/participant_control/capability_disclosure.rs
++++ b/crates/foundation/rvoip-core/src/orchestrator/participant_control/capability_disclosure.rs
+@@ -326,4 +326,65 @@
+             scene.native_dtmf_audience(&source.scene, recipient)?,
+         )))
+     }
+-}
++
++    /// Bind the actual managed SIP recipient controller/principal to this
++    /// original native source audience. No native descriptor is manufactured.
++    /// The returned fence owns the SIP controller credential during each IO
++    /// poll; actual Core source/recipient route/dialog fences and fresh host
++    /// signal permission must additionally surround that poll. This captures
++    /// metadata only and must run outside physical IO/engine locks.
++    pub fn native_sip_dtmf_audience_fence(
++        &self,
++        disclosure: &NativeDtmfDisclosure,
++        recipient: &ConnectionId,
++        controller: &Arc<StreamController>,
++        principal: &AuthenticatedPrincipal,
++    ) -> ControlResult<Arc<dyn crate::dtmf::DtmfIoFence>> {
++        let source = &disclosure.0;
++        if source.source == *recipient {
++            return Err(ParticipantControlError::Authority);
++        }
++        let runtime = self.participant_runtime(&source.session)?;
++        if !Weak::ptr_eq(&source.runtime, &Arc::downgrade(&runtime)) {
++            return Err(ParticipantControlError::Authority);
++        }
++        let state = runtime.state.try_lock().map_err(|_| busy())?;
++        if state.ended {
++            return Err(ParticipantControlError::Authority);
++        }
++        let origin = state
++            .routes
++            .get(&source.source)
++            .ok_or(ParticipantControlError::Authority)?;
++        let target = state
++            .routes
++            .get(recipient)
++            .ok_or(ParticipantControlError::Authority)?;
++        if !source.life.matches(&origin.lifecycle) {
++            return Err(ParticipantControlError::Authority);
++        }
++        let tickets = if source.source < *recipient {
++            [&origin.lifecycle, &target.lifecycle]
++        } else {
++            [&target.lifecycle, &origin.lifecycle]
++        };
++        let lives = tickets
++            .iter()
++            .map(|t| t.state.try_lock().map_err(|_| busy()))
++            .collect::<ControlResult<Vec<_>>>()?;
++        if tickets.iter().zip(&lives).any(|(t, l)| !live(t, l)) {
++            return Err(ParticipantControlError::Authority);
++        }
++        let scene = runtime
++            .mixer
++            .staged
++            .as_ref()
++            .ok_or(ParticipantControlError::Unsupported)?;
++        Ok(Arc::new(DtmfAudienceFence(scene.sip_dtmf_audience(
++            &source.scene,
++            recipient,
++            controller,
++            principal,
++        )?)))
++    }
++}
+--- a/crates/foundation/rvoip-core/src/staged_streams/capability_disclosure.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/capability_disclosure.rs
+@@ -227,6 +227,7 @@
+ pub(crate) struct SceneDtmfAudience {
+     source: SceneCapabilityDisclosure,
+     target: SceneCapabilityListener,
++    owns_target_credential: bool,
+ }
+ impl SceneCapabilityDisclosure {
+     pub(crate) fn matches_dtmf_source(
+@@ -278,13 +279,46 @@
+         Ok(SceneDtmfAudience {
+             source: source.clone(),
+             target: listener,
++            owns_target_credential: false,
++        })
++    }
++    /// Bind an actual managed SIP controller. The SIP transport fences its
++    /// route/dialog; this audience additionally owns the controller credential
++    /// during IO because no native recipient pump supplies that custody.
++    pub(crate) fn sip_dtmf_audience(
++        self: &Arc<Self>,
++        source: &SceneCapabilityDisclosure,
++        connection: &ConnectionId,
++        controller: &Arc<StreamController>,
++        principal: &AuthenticatedPrincipal,
++    ) -> ControlResult<SceneDtmfAudience> {
++        let source_controller = source
++            .source
++            .controller
++            .upgrade()
++            .ok_or(StreamControlError::Cancelled)?;
++        if !Weak::ptr_eq(&source.scene, &Arc::downgrade(self))
++            || controller.origin_endpoint.transport() != crate::connection::Transport::Sip
++            || &controller.connection != connection
++            || controller.session != source_controller.session
++            || controller.conversation != source_controller.conversation
++            || Arc::ptr_eq(&source_controller, controller)
++        {
++            return Err(StreamControlError::Authority);
++        }
++        let listener = self.capability_listener(connection, controller, principal)?;
++        Ok(SceneDtmfAudience {
++            source: source.clone(),
++            target: listener,
++            owns_target_credential: true,
+         })
+     }
+ }
+ impl SceneDtmfAudience {
+     /// Called only inside the exact physical source/recipient DTMF IO fences.
+-    /// Their credential checks bind these immutable principals to actual IO.
+-    /// No controller, Core, or domain-policy reentry occurs here.
++    /// Native credential guards are supplied by their physical pumps. The SIP
++    /// variant owns its target credential here. Neither variant reenters the
++    /// native source, Core or domain policy, and no guard survives Pending.
+     pub(crate) fn poll(
+         &self,
+         io: &mut dyn FnMut() -> crate::dtmf::DtmfIoPoll,
+@@ -309,6 +343,24 @@
+         {
+             return refuse();
+         }
++        // The native source's physical fence already owns its credential.
++        // Acquire only the actual SIP target here: never reenter the source or
++        // native target controller. All attempts are synchronous and release
++        // every guard on Pending, including audience/relationship contention.
++        let _target_custody = if self.owns_target_credential {
++            let Ok(state) = target.state.try_lock() else {
++                return Poll::Pending;
++            };
++            let Ok(credential) = target.credential.try_lock() else {
++                return Poll::Pending;
++            };
++            if state.closed || !self.target.recipient.matches(&credential) {
++                return refuse();
++            }
++            Some((state, credential))
++        } else {
++            None
++        };
+         let Ok(members) = scene.members.try_lock() else {
+             return Poll::Pending;
+         };
+--- a/crates/foundation/rvoip-core/src/staged_streams/tests/private_consult.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/private_consult.rs
+@@ -2672,3 +2672,343 @@
+         );
+     }
+ }
++
++// Explicit SIP controller fixtures; these are scene/IO-callback boundaries,
++// never actual SIP packets, independent signal permission or socket evidence.
++async fn add_sip_dtmf_node(room: &mut Room, name: &str, alias: Option<&str>, private: bool) {
++    let subject = alias.unwrap_or(name);
++    let mut o = owner(subject);
++    let identity = IdentityBinding::from_authenticated(
++        &principal(subject),
++        o.member.identity().clone(),
++        chrono::Utc::now(),
++    )
++    .unwrap();
++    let mut endpoint = EndpointBinding::provision(
++        identity.clone(),
++        EndpointId::from_string(format!("sip-endpoint-{name}")),
++        DeviceId::from_string(format!("sip-device-{name}")),
++        Transport::Sip,
++        format!("sip:{name}@fixture"),
++    )
++    .unwrap();
++    endpoint
++        .verify(
++            &identity,
++            "controlled-sip-evidence".into(),
++            chrono::Utc::now(),
++        )
++        .unwrap();
++    let mut connection = ConnectionBinding::prepare(
++        &o.member,
++        &o.presence,
++        &endpoint,
++        ConnectionId::from_string(name),
++    )
++    .unwrap();
++    connection
++        .observe_ready(&o.member, &o.presence, &endpoint, 1)
++        .unwrap();
++    connection
++        .activate(&o.member, &o.presence, &endpoint)
++        .unwrap();
++    o.endpoint = endpoint;
++    o.connection = connection;
++    room.add_owned(name, subject, o, private, None).await;
++}
++fn original_dtmf_scene(
++    room: &Room,
++    source: &Arc<StreamController>,
++) -> super::super::capability_disclosure::SceneCapabilityDisclosure {
++    let credential = source.credential_snapshot();
++    room.scene
++        .commit_capability_declaration(
++            &source.connection,
++            source,
++            &credential.principal,
++            source.revision(),
++            || (),
++        )
++        .unwrap()
++        .1
++}
++#[tokio::test]
++async fn sip_dtmf_audience_owns_actual_target_credential_inside_native_source_io() {
++    let mut room = Room::new().await;
++    add_sip_dtmf_node(&mut room, "phone", None, false).await;
++    let alice = room.nodes["alice"].controller.clone();
++    let phone = room.nodes["phone"].controller.clone();
++    let source = native_dtmf_recipient(&alice);
++    let disclosure = original_dtmf_scene(&room, &alice);
++    let audience = room
++        .scene
++        .sip_dtmf_audience(
++            &disclosure,
++            &phone.connection,
++            &phone,
++            &phone.credential_snapshot().principal,
++        )
++        .unwrap();
++    let calls = AtomicUsize::new(0);
++    let mut effect = || {
++        assert!(alice.state.try_lock().is_err());
++        assert!(alice.credential.try_lock().is_err());
++        assert!(phone.state.try_lock().is_err());
++        assert!(phone.credential.try_lock().is_err());
++        assert!(room.scene.members.try_lock().is_err());
++        assert!(room.scene.audiences.try_lock().is_err());
++        calls.fetch_add(1, Ordering::SeqCst);
++        std::task::Poll::Ready(Ok(()))
++    };
++    let result = alice.poll_dtmf_source_io(
++        &source.principal,
++        source.stream_revision,
++        source.credential_revision,
++        &source.audio_bindings,
++        &mut || audience.poll(&mut effect),
++    );
++    assert_eq!(result, std::task::Poll::Ready(Ok(())));
++    assert_eq!(calls.load(Ordering::SeqCst), 1);
++    assert!(alice.state.try_lock().is_ok());
++    assert!(alice.credential.try_lock().is_ok());
++    assert!(phone.state.try_lock().is_ok());
++    assert!(phone.credential.try_lock().is_ok());
++}
++#[tokio::test]
++async fn sip_dtmf_audience_pending_releases_source_target_and_registry_guards() {
++    let mut room = Room::new().await;
++    add_sip_dtmf_node(&mut room, "phone", None, false).await;
++    let alice = room.nodes["alice"].controller.clone();
++    let phone = room.nodes["phone"].controller.clone();
++    let source = native_dtmf_recipient(&alice);
++    let disclosure = original_dtmf_scene(&room, &alice);
++    let audience = room
++        .scene
++        .sip_dtmf_audience(
++            &disclosure,
++            &phone.connection,
++            &phone,
++            &phone.credential_snapshot().principal,
++        )
++        .unwrap();
++    let calls = AtomicUsize::new(0);
++    let mut effect = || {
++        calls.fetch_add(1, Ordering::SeqCst);
++        std::task::Poll::Ready(Ok(()))
++    };
++    let mut poll = || {
++        alice.poll_dtmf_source_io(
++            &source.principal,
++            source.stream_revision,
++            source.credential_revision,
++            &source.audio_bindings,
++            &mut || audience.poll(&mut effect),
++        )
++    };
++    let held = phone.credential.lock().unwrap();
++    assert_eq!(poll(), std::task::Poll::Pending);
++    assert!(alice.state.try_lock().is_ok());
++    assert!(alice.credential.try_lock().is_ok());
++    assert!(phone.state.try_lock().is_ok());
++    drop(held);
++    let held = room.scene.audiences.lock().unwrap();
++    assert_eq!(poll(), std::task::Poll::Pending);
++    assert!(alice.state.try_lock().is_ok());
++    assert!(alice.credential.try_lock().is_ok());
++    assert!(phone.state.try_lock().is_ok());
++    assert!(phone.credential.try_lock().is_ok());
++    assert!(room.scene.members.try_lock().is_ok());
++    assert_eq!(calls.load(Ordering::SeqCst), 0);
++    drop(held);
++    assert_eq!(poll(), std::task::Poll::Ready(Ok(())));
++    assert_eq!(calls.load(Ordering::SeqCst), 1);
++}
++#[tokio::test]
++async fn sip_dtmf_audience_refuses_rebound_or_retired_actual_target_before_io() {
++    use crate::dtmf::*;
++    for retired in [false, true] {
++        let mut room = Room::new().await;
++        add_sip_dtmf_node(&mut room, "phone", None, false).await;
++        let alice = room.nodes["alice"].controller.clone();
++        let phone = room.nodes["phone"].controller.clone();
++        let disclosure = original_dtmf_scene(&room, &alice);
++        let audience = room
++            .scene
++            .sip_dtmf_audience(
++                &disclosure,
++                &phone.connection,
++                &phone,
++                &phone.credential_snapshot().principal,
++            )
++            .unwrap();
++        if retired {
++            phone.retire();
++        } else {
++            phone.credential.lock().unwrap().revision += 1;
++        }
++        let calls = AtomicUsize::new(0);
++        let mut effect = || {
++            calls.fetch_add(1, Ordering::SeqCst);
++            std::task::Poll::Ready(Ok(()))
++        };
++        assert_eq!(
++            audience.poll(&mut effect),
++            std::task::Poll::Ready(Err(DtmfWriteError::Refused))
++        );
++        assert_eq!(calls.load(Ordering::SeqCst), 0);
++    }
++}
++#[tokio::test]
++async fn sip_dtmf_audience_requires_the_actual_registered_sip_controller_and_principal() {
++    let mut room = Room::new().await;
++    add_sip_dtmf_node(&mut room, "phone", None, false).await;
++    let alice = room.nodes["alice"].controller.clone();
++    let phone = room.nodes["phone"].controller.clone();
++    let bob = room.nodes["bob"].controller.clone();
++    let disclosure = original_dtmf_scene(&room, &alice);
++    assert!(room
++        .scene
++        .sip_dtmf_audience(
++            &disclosure,
++            &phone.connection,
++            &phone,
++            &phone.credential_snapshot().principal
++        )
++        .is_ok());
++    assert!(room
++        .scene
++        .sip_dtmf_audience(
++            &disclosure,
++            &phone.connection,
++            &phone,
++            &bob.credential_snapshot().principal
++        )
++        .is_err());
++    assert!(room
++        .scene
++        .sip_dtmf_audience(
++            &disclosure,
++            &bob.connection,
++            &bob,
++            &bob.credential_snapshot().principal
++        )
++        .is_err());
++    assert!(room
++        .scene
++        .sip_dtmf_audience(
++            &disclosure,
++            &bob.connection,
++            &phone,
++            &phone.credential_snapshot().principal
++        )
++        .is_err());
++    assert!(room
++        .scene
++        .sip_dtmf_audience(
++            &disclosure,
++            &phone.connection,
++            &bob,
++            &bob.credential_snapshot().principal
++        )
++        .is_err());
++    let mut other = Room::new().await;
++    add_sip_dtmf_node(&mut other, "phone", None, false).await;
++    let foreign = other.nodes["phone"].controller.clone();
++    assert!(room
++        .scene
++        .sip_dtmf_audience(
++            &disclosure,
++            &foreign.connection,
++            &foreign,
++            &phone.credential_snapshot().principal
++        )
++        .is_err());
++    assert!(other
++        .scene
++        .sip_dtmf_audience(
++            &disclosure,
++            &foreign.connection,
++            &foreign,
++            &phone.credential_snapshot().principal
++        )
++        .is_err());
++}
++#[tokio::test]
++async fn sip_dtmf_original_and_current_audiences_survive_private_return_without_leaks() {
++    use crate::dtmf::*;
++    let mut room = Room::new().await;
++    add_sip_dtmf_node(&mut room, "phone", Some("bob"), false).await;
++    let alice = room.nodes["alice"].controller.clone();
++    let phone = room.nodes["phone"].controller.clone();
++    let public_source = original_dtmf_scene(&room, &alice);
++    let public_to_phone = room
++        .scene
++        .sip_dtmf_audience(
++            &public_source,
++            &phone.connection,
++            &phone,
++            &phone.credential_snapshot().principal,
++        )
++        .unwrap();
++    let calls = AtomicUsize::new(0);
++    let mut effect = || {
++        calls.fetch_add(1, Ordering::SeqCst);
++        std::task::Poll::Ready(Ok(()))
++    };
++    assert_eq!(
++        public_to_phone.poll(&mut effect),
++        std::task::Poll::Ready(Ok(()))
++    );
++    add_sip_dtmf_node(&mut room, "consult", Some("public"), true).await;
++    let consult = room.nodes["consult"].controller.clone();
++    let (_, handle) = room.apply(room.begin_plan()).await.unwrap();
++    let private_source = original_dtmf_scene(&room, &alice);
++    let private_to_phone = room
++        .scene
++        .sip_dtmf_audience(
++            &private_source,
++            &phone.connection,
++            &phone,
++            &phone.credential_snapshot().principal,
++        )
++        .unwrap();
++    let private_to_consult = room
++        .scene
++        .sip_dtmf_audience(
++            &private_source,
++            &consult.connection,
++            &consult,
++            &consult.credential_snapshot().principal,
++        )
++        .unwrap();
++    assert_eq!(
++        private_to_consult.poll(&mut effect),
++        std::task::Poll::Ready(Ok(()))
++    );
++    for audience in [&public_to_phone, &private_to_phone] {
++        assert_eq!(
++            audience.poll(&mut effect),
++            std::task::Poll::Ready(Err(DtmfWriteError::Refused))
++        );
++    }
++    let restore = room
++        .scene
++        .plan_restore_audio_audience(
++            &handle,
++            "sip-dtmf-return".into(),
++            room.scene.audience_revision(),
++        )
++        .unwrap();
++    room.apply(restore).await.unwrap();
++    assert_eq!(
++        public_to_phone.poll(&mut effect),
++        std::task::Poll::Ready(Ok(()))
++    );
++    for audience in [&private_to_phone, &private_to_consult] {
++        assert_eq!(
++            audience.poll(&mut effect),
++            std::task::Poll::Ready(Err(DtmfWriteError::Refused))
++        );
++    }
++    assert_eq!(calls.load(Ordering::SeqCst), 3);
++}

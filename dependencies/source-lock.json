@@ -899,6 +899,11 @@
       "path": "patches/rvoip/gate6-session-gateway-targets.patch",
       "sha256": "00489102f36afece87a1b5f64158f70f825db933e5d2f9cdfc001791d934c2c7",
       "source": "G6-046 dedicated bounded Session invitation target selectors for member/Identity IDs and configured interop URI references; keep ordinary identifiers unchanged and synchronize fixed schema/golden vectors. No gateway authority is implied by decoding."
+    },
+    {
+      "path": "patches/rvoip/gate6-native-to-sip-dtmf-audience.patch",
+      "sha256": "e62e54d73e6fabb88ea246f5309357a2fbd49067cda83ade675b5a47b699503e",
+      "source": "G6-046 actual managed SIP-recipient audience fencing for a sealed native DTMF source. Own the SIP controller credential during each IO callback, preserve original/current private audiences and exact live bindings, and never manufacture native recipient metadata. Controlled scene tests only; physical Connect bridge integration remains separate."
     }
   ]
 }
