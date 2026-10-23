@@ -181,7 +181,7 @@ const STARTUP_BLOB_CLEANUP_LIMIT: usize = 100;
 pub struct Store {
     session_codec_coordinator: std::sync::atomic::AtomicBool,
     session_ready_origins:
-        Mutex<std::collections::BTreeMap<String, std::sync::Arc<NativeMediaOrigin>>>,
+        Mutex<std::collections::BTreeMap<String, session_lifecycle::ReadyOrigin>>,
     authority: std::sync::Arc<authority_fences::Manager>,
     runtime_ownership: installation_ownership::Binding,
     link_epoch: String,

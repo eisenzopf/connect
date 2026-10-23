@@ -115,7 +115,12 @@ impl Store {
             && !view.handoff_preparation
             && !view.publication_suspended
         {
-            crate::session_lifecycle::start(&tx, self, origin, &fact)?;
+            crate::session_lifecycle::activate(
+                &tx,
+                self,
+                origin.conversation_id(),
+                origin.session_id(),
+            )?;
             crate::session_participant_lifecycle::joined(&tx, self, origin, &fact)?;
         }
         crate::session_reconnect::connected(&tx, origin.session_id())?;

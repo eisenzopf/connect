@@ -18,20 +18,44 @@ follow their original durable order. The local verification scope is recorded
 in [Session reconnect evidence](../evidence/gate-6/auxiliary-session-reconnect.json)
 and [the owned invitation-to-record journey](../evidence/gate-6/auxiliary-session-record-journey.json).
 
-Initial native Session activation waits for a current observed public Connection
-for every accepted Participant. Several ready Connections for one Participant do
-not cover another. Acceptance, pending negotiation and provisional ready JSON
-alone leave the Session accepted. After activation, the separate last-Connection
-and reconnect-grace rules still apply. A second authenticated Device can supply
-readiness for a Participant whose notification-only physical peer has no media.
+Initial Session activation waits for a current observed public Connection for
+every accepted Participant. Several ready Connections for one Participant do
+not cover another. Native readiness is backed by actual direction-appropriate
+flow; SIP readiness is backed by the actual owned dialog and guarded media
+admission. Acceptance, pending negotiation and provisional ready JSON alone
+leave the Session accepted. Pending invitees do not count as accepted.
+
+Readiness retains only actual immutable native/SIP origin metadata, with no
+idle authority reader or IO grant. Each activation revalidates current own
+Endpoint, route, credentials, membership, runtime and generation. Initial SIP
+and established telephone replacements use the same current checks as guarded
+media reads; old caller/preparation authority cannot replace current Endpoint
+and route authority. A completed, attributed handoff can promote an actual
+observed private source into current public readiness while retaining its
+private provenance for other uses.
+
+The bounded lifecycle worker also scans accepted Sessions. A changed accepted
+set or current public scope can satisfy readiness without another packet.
+Activation records the server's durable activation time, the original accepted
+audience and all current ready public Connections once. SIP uses the protocol's
+`sip-interop` transport name. The global negotiated descriptor contains common
+selected formats; when formats differ, its `connections` extension preserves
+each Connection's exact selected descriptor instead of claiming their union is
+common. Original start replay remains immutable.
 
 A real ready Participant can join while the Session waits for the other accepted
-Participants. Such a joined observation does not claim that the Session is Active.
+Participants. Such an observation does not claim that the Session is Active.
 Explicit subscriptions are permitted during the accepted phase, allowing a
-receive-only Connection to establish its required flow before initial activation.
-The current predicate and native integration checks are in progress under
-G6-046; mixed SIP/transport readiness and the complete phase-transition matrix
-remain required work.
+receive-only native Connection to establish its required flow. Another Device
+can supply readiness for a Participant whose notification-only peer has no
+media. Once active, separate confirmed last-Connection loss and reconnect-grace
+rules apply; packet silence alone does not end a Session.
+
+A transient initial SIP connected-recording failure retains the exact admitted
+leg and retries only metadata within its original bounded deadline. It never
+originates or admits another call. Current authorization, cancellation and runtime
+ownership still apply on each retry. G6-046 qualification remains explicit in
+the linked evidence; these local fixtures do not qualify remote/provider lanes.
 
 The current signed native and explicit HTTP clients expose
 `session_command(session_control::Request)`. They use the same canonical service,

@@ -1,28 +1,75 @@
-//! Current public readiness from actual origins and committed flow facts.
+//! Current public readiness from actual origins and committed observations.
 //! Cached origins carry metadata only, never an IO grant or retained reader.
 use super::*;
+use crate::{NativeConnectionFlowFact, NativeMediaOrigin};
 use std::sync::Arc;
 
+#[derive(Clone)]
+pub(crate) enum ReadyOrigin {
+    Native(Arc<NativeMediaOrigin>),
+    InitialTelephone(Arc<crate::InitialTelephoneMediaOrigin>),
+    Telephone(Arc<crate::TelephoneMediaOrigin>),
+}
+impl ReadyOrigin {
+    fn id(&self) -> &str {
+        match self {
+            Self::Native(o) => o.connection_id(),
+            Self::InitialTelephone(o) => o.connection_id(),
+            Self::Telephone(o) => &o.snapshot().connection_id,
+        }
+    }
+    fn session(&self) -> &str {
+        match self {
+            Self::Native(o) => o.session_id(),
+            Self::InitialTelephone(o) => &o.source().request.session_id,
+            Self::Telephone(o) => &o.snapshot().session_id,
+        }
+    }
+    fn version(&self) -> (u64, u64) {
+        match self {
+            Self::Native(o) => (o.generation(), o.credential_epoch()),
+            Self::InitialTelephone(_) => (1, 0),
+            Self::Telephone(o) => (o.snapshot().generation, 0),
+        }
+    }
+}
+/// Validated metadata only. It cannot acquire a reader, admit media or call IO.
+pub(crate) struct ReadyConnection {
+    pub connection: SessionActiveConnection,
+    pub epoch: u64,
+    pub observed_at_millis: i64,
+    pub capabilities: serde_json::Value,
+    pub expires_at: i64,
+}
 impl Store {
     pub(crate) fn remember_session_ready_origin(
         &self,
         c: &Connection,
         origin: &NativeMediaOrigin,
     ) -> Result<()> {
+        if self
+            .session_ready_origins
+            .lock()
+            .map_err(|_| Error::storage())?
+            .get(origin.connection_id())
+            .is_some_and(|previous| {
+                previous.version() >= (origin.generation(), origin.credential_epoch())
+            })
+        {
+            return Ok(());
+        }
+        self.remember_session_ready(c, ReadyOrigin::Native(Arc::new(origin.clone())))
+    }
+    pub(crate) fn remember_session_ready(&self, c: &Connection, origin: ReadyOrigin) -> Result<()> {
         let mut origins = self
             .session_ready_origins
             .lock()
             .map_err(|_| Error::storage())?;
-        if let Some(previous) = origins.get(origin.connection_id()) {
-            if previous.generation() > origin.generation()
-                || (previous.generation() == origin.generation()
-                    && previous.credential_epoch() >= origin.credential_epoch())
-            {
+        if let Some(previous) = origins.get(origin.id()) {
+            if previous.version() >= origin.version() {
                 return Ok(());
             }
         } else if origins.len() >= self.limits.connections {
-            // Retired Connections do not consume the configured live bound.
-            // Never evict a current origin merely to guess another readiness.
             let mut q = c.prepare("SELECT id FROM connections WHERE observed_runtime_id=?1 AND state IN ('ready','active')").map_err(|_| Error::storage())?;
             let live = q
                 .query_map([self.runtime_epoch()], |r| r.get::<_, String>(0))
@@ -37,55 +84,163 @@ impl Store {
                 ));
             }
         }
-        origins.insert(origin.connection_id().into(), Arc::new(origin.clone()));
+        origins.insert(origin.id().into(), origin);
         Ok(())
     }
 }
-
-pub(super) fn native(
+fn native(
     c: &Connection,
     store: &Store,
-    sid: &str,
-) -> Result<Vec<(String, u64, SessionActiveConnection)>> {
-    let origins = store
-        .session_ready_origins
-        .lock()
-        .map_err(|_| Error::storage())?
-        .values()
-        .filter(|origin| origin.session_id() == sid)
-        .cloned()
-        .collect::<Vec<_>>();
-    let mut ready = Vec::new();
-    for origin in origins {
-        let observed: bool = c.query_row("SELECT EXISTS(SELECT 1 FROM native_connection_flow_facts f JOIN connections n ON n.id=f.connection_id AND n.generation=f.generation AND n.observed_runtime_id=f.runtime_epoch WHERE f.connection_id=?1 AND f.generation=?2 AND f.runtime_epoch=?3 AND f.runtime_connection_id=?4 AND f.participant_id=?5 AND f.membership_epoch=?6 AND n.state IN ('ready','active') AND n.readiness_json IS NOT NULL)", params![origin.connection_id(),origin.generation(),store.runtime_epoch(),origin.runtime_connection_id(),origin.participant_id(),origin.membership_epoch()], |r|r.get(0)).map_err(|_| Error::storage())?;
-        if !observed {
-            continue;
+    origin: &NativeMediaOrigin,
+) -> Result<Option<ReadyConnection>> {
+    let row: Option<(String,Option<String>)> = c.query_row("SELECT f.fact_json,json_extract(n.readiness_json,'$.codec_bindings') FROM native_connection_flow_facts f JOIN connections n ON n.id=f.connection_id AND n.generation=f.generation AND n.observed_runtime_id=f.runtime_epoch WHERE f.connection_id=?1 AND f.generation=?2 AND f.runtime_epoch=?3 AND f.runtime_connection_id=?4 AND f.participant_id=?5 AND f.membership_epoch=?6 AND n.state IN ('ready','active') AND n.readiness_json IS NOT NULL", params![origin.connection_id(),origin.generation(),store.runtime_epoch(),origin.runtime_connection_id(),origin.participant_id(),origin.membership_epoch()], |r|Ok((r.get(0)?,r.get(1)?))).optional().map_err(|_| Error::storage())?;
+    let Some((raw, bindings)) = row else {
+        return Ok(None);
+    };
+    let flow: NativeConnectionFlowFact =
+        serde_json::from_str(&raw).map_err(|_| Error::storage())?;
+    let capabilities = if let Some(raw) = bindings {
+        let bindings: Vec<connect_protocol::native_streams::CodecBinding> =
+            serde_json::from_str(&raw).map_err(|_| Error::storage())?;
+        connect_protocol::native_streams::validate_codec_bindings(&bindings)?;
+        if bindings
+            .iter()
+            .any(|b| b.connection_generation != origin.generation())
+        {
+            return Err(Error::forbidden());
         }
-        let view = match store.native_session_readiness_projection(c, &origin) {
-            Ok(view) => view,
-            Err(error) if error.code != "storage-unavailable" => continue,
-            Err(error) => return Err(error),
-        };
-        if view.private_consultation.is_some()
+        let mut out = serde_json::json!({});
+        for binding in bindings {
+            let key = match binding.medium.as_str() {
+                "audio" => "audio_codecs",
+                "video" | "screen" => "video_codecs",
+                "data" => "data_protocols",
+                _ => return Err(Error::forbidden()),
+            };
+            let mut codec = binding.codec;
+            let value = if binding.medium == "data" {
+                codec["name"].clone()
+            } else {
+                if let Some(name) = codec["name"].as_str() {
+                    codec["name"] = serde_json::json!(match name {
+                        "pcmu" => "g.711-mu",
+                        "pcma" => "g.711-a",
+                        name => name,
+                    });
+                }
+                let params = codec["params"].as_object_mut().ok_or_else(Error::storage)?;
+                params.remove("payload_type");
+                params.entry("fmtp").or_insert(serde_json::Value::Null);
+                codec
+            };
+            let values = out
+                .as_object_mut()
+                .ok_or_else(Error::storage)?
+                .entry(key)
+                .or_insert_with(|| serde_json::json!([]))
+                .as_array_mut()
+                .ok_or_else(Error::storage)?;
+            if !values.contains(&value) {
+                values.push(value);
+            }
+        }
+        out
+    } else {
+        flow.negotiated_capabilities
+    };
+    let (view, expires_at, public_handoff) =
+        store.native_session_readiness_projection(c, origin)?;
+    if !public_handoff
+        && (view.private_consultation.is_some()
             || view.handoff_preparation
             || view.publication_suspended
             || crate::connection_control::private_consultation::private_partner(
                 c,
                 origin.connection_id(),
             )?
-            .is_some()
-        {
-            continue;
+            .is_some())
+    {
+        return Ok(None);
+    }
+    Ok(Some(ReadyConnection {
+        connection: SessionActiveConnection {
+            connid: origin.connection_id().into(),
+            participant_id: origin.participant_id().into(),
+            transport: "quic".into(),
+        },
+        epoch: origin.membership_epoch(),
+        observed_at_millis: if public_handoff {
+            chrono::Utc::now().timestamp_millis()
+        } else {
+            flow.observed_at_millis
+        },
+        capabilities,
+        expires_at,
+    }))
+}
+pub(super) fn current(c: &Connection, store: &Store, sid: &str) -> Result<Vec<ReadyConnection>> {
+    let origins = store
+        .session_ready_origins
+        .lock()
+        .map_err(|_| Error::storage())?
+        .values()
+        .filter(|o| o.session() == sid)
+        .cloned()
+        .collect::<Vec<_>>();
+    let mut ready = vec![];
+    for origin in origins {
+        let value = match origin {
+            ReadyOrigin::Native(origin) => native(c, store, &origin),
+            ReadyOrigin::InitialTelephone(origin) => store
+                .initial_telephone_session_readiness(c, &origin)
+                .map(Some),
+            ReadyOrigin::Telephone(origin) => {
+                store.telephone_session_readiness(c, &origin).map(Some)
+            }
+        };
+        match value {
+            Ok(Some(value)) => ready.push(value),
+            Ok(None) => (),
+            Err(error) if error.code != "storage-unavailable" => (),
+            Err(error) => return Err(error),
         }
-        ready.push((
-            origin.participant_id().into(),
-            origin.membership_epoch(),
-            SessionActiveConnection {
-                connid: origin.connection_id().into(),
-                participant_id: origin.participant_id().into(),
-                transport: "quic".into(),
-            },
-        ));
     }
     Ok(ready)
+}
+pub(super) fn capabilities(ready: &[ReadyConnection]) -> serde_json::Value {
+    let Some(first) = ready.first() else {
+        return serde_json::json!({});
+    };
+    if ready.iter().all(|r| r.capabilities == first.capabilities) {
+        return first.capabilities.clone();
+    }
+    // Only actually common selected descriptors are global capabilities.
+    // A gateway can transcode distinct formats; preserve their attribution
+    // without presenting a union as a common endpoint agreement.
+    let mut out = first.capabilities.as_object().cloned().unwrap_or_default();
+    out.retain(|key, value| {
+        if let Some(values) = value.as_array_mut() {
+            values.retain(|value| {
+                ready.iter().all(|r| {
+                    r.capabilities
+                        .get(key)
+                        .and_then(|v| v.as_array())
+                        .is_some_and(|values| values.contains(value))
+                })
+            });
+            true
+        } else {
+            ready.iter().all(|r| r.capabilities.get(key) == Some(value))
+        }
+    });
+    out.insert(
+        "connections".into(),
+        serde_json::json!(ready
+            .iter()
+            .map(
+                |r| serde_json::json!({"connid":r.connection.connid,"capabilities":r.capabilities})
+            )
+            .collect::<Vec<_>>()),
+    );
+    serde_json::Value::Object(out)
 }

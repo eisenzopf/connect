@@ -308,3 +308,64 @@ fn session_activation_never_reconstructs_actual_origins_from_observed_rows() {
     assert_eq!(state(&f, &origin), "active");
     assert_eq!(f.count("session_started_facts"), 1);
 }
+
+#[test]
+fn initial_activation_reports_latest_captured_codec_bindings_without_rewriting_first_flow() {
+    let (f, mut request, _, origin) = parent_permissions_origin(true, true, false, false, true);
+    record(&f, &origin);
+    request.command = PeerCommand::NativeStream(connect_protocol::native_streams::Intent {
+        operation_id: "activation-latest-codec".into(),
+        conversation_id: f.cid.clone(),
+        session_id: "session".into(),
+        connection_id: origin.connection_id().into(),
+        expected_revision: Some(1),
+        by_participant: None,
+        command: connect_protocol::native_streams::Command::Update,
+        payload: json!({"action":"codec-renegotiate","streams":["audio"],"codec_preferences":["opus"]}),
+    });
+    let proof = f.admit(&request);
+    f.store
+        .accept_native_stream_with_peer(&f.keys[0], &proof)
+        .unwrap();
+    let (lease, _) = f
+        .store
+        .begin_native_stream_with_peer(&f.keys[0], &proof)
+        .unwrap()
+        .unwrap();
+    drop(proof);
+    let capture=lease.codecs_committed(2,vec![connect_protocol::native_streams::CodecBinding {
+        stream_id:"audio".into(),medium:"audio".into(),direction:"sendrecv".into(),codec:json!({"name":"opus","params":{"sample_rate":48000,"channels":1,"payload_type":111}}),
+        stream_local_id:9,stream_generation:2,connection_generation:origin.generation(),
+    }]).unwrap();
+    f.store.complete_native_stream(&capture).unwrap();
+    for actor in 1..4 {
+        let peer = completed_peer(&f, actor);
+        record(&f, &peer);
+    }
+    let start = f
+        .store
+        .session_started_template(&f.cid, "session")
+        .unwrap()
+        .0;
+    let exact = start.negotiated_capabilities["connections"]
+        .as_array()
+        .unwrap();
+    let own = exact
+        .iter()
+        .find(|c| c["connid"] == origin.connection_id())
+        .unwrap();
+    assert_eq!(own["capabilities"]["audio_codecs"][0]["name"], "opus");
+    let raw: String = f
+        .store
+        .connection()
+        .unwrap()
+        .query_row(
+            "SELECT fact_json FROM native_connection_flow_facts WHERE connection_id=?1",
+            [origin.connection_id()],
+            |r| r.get(0),
+        )
+        .unwrap();
+    let first: crate::NativeConnectionFlowFact = serde_json::from_str(&raw).unwrap();
+    assert_ne!(first.negotiated_capabilities, own["capabilities"]);
+    assert_eq!(first.stream_revision, 1);
+}

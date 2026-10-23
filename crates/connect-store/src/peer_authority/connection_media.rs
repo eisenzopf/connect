@@ -540,8 +540,17 @@ impl Store {
         &self,
         c: &Connection,
         origin: &NativeMediaOrigin,
-    ) -> Result<PeerConnectionProjection> {
-        facts(self, c, origin).map(|(view, _, _)| view)
+    ) -> Result<(PeerConnectionProjection, i64, bool)> {
+        let (view, _, expiry) = facts(self, c, origin)?;
+        // Keep private provenance for every other use. Public readiness may
+        // use an actually attributed, completed handoff only after the same
+        // lifetime validator has checked its current independent participants.
+        let public_handoff = if let Some(life) = handoff_lifetime::current(self, c, origin)? {
+            c.query_row("SELECT EXISTS(SELECT 1 FROM operations WHERE record_id=?1 AND state='completed' AND result_json IS NOT NULL)",[&life.record],|r|r.get(0)).map_err(|_|Error::storage())?
+        } else {
+            false
+        };
+        Ok((view, expiry, public_handoff))
     }
     /// Immediate fresh packet admission. Refuse contention instead of waiting
     /// under engine fences. Resolve again after acquiring the complete scope set.

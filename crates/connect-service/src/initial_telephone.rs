@@ -473,6 +473,7 @@ impl Runner {
                 Box::new(policy::DialInvocation {
                     leg: leg.clone(),
                     revision,
+                    media: None,
                 }),
             )
             .await
@@ -509,6 +510,30 @@ impl Runner {
             .set(origin.clone())
             .map_err(|_| Error::forbidden())?;
         leg.codec.set(codec).map_err(|_| Error::forbidden())?;
+        let admission_read = loop {
+            match runtime
+                .media
+                .store
+                .try_initial_telephone_media_read(origin.clone())
+            {
+                Ok(read) => break Arc::new(read),
+                Err(error)
+                    if matches!(
+                        error.code.as_str(),
+                        "storage-unavailable" | "authority-busy"
+                    ) && tokio::time::Instant::now() < deadline =>
+                {
+                    tokio::select! {biased;
+                        _=runtime.stop.cancelled()=>return Err(Error::forbidden()),
+                        _=leg.cancel.cancelled()=>return Err(Error::forbidden()),
+                        _=tokio::time::sleep_until(deadline)=>return Err(error),
+                        _=tokio::time::sleep(Duration::from_millis(10))=>{},
+                    }
+                }
+                Err(error) => return Err(error),
+            }
+        };
+        let callback_read = admission_read.clone();
         let revision = runtime
             .core
             .participant_revision(&sid)
@@ -516,7 +541,6 @@ impl Runner {
         let adapter = self.adapter.clone();
         let callback_leg = leg.clone();
         let media_policy = runtime.media.clone();
-        let store = runtime.media.store.clone();
         let retained_context = Arc::new(Mutex::new(None));
         let context_keeper = retained_context.clone();
         let (_, joined) = active
@@ -527,6 +551,7 @@ impl Runner {
                 Box::new(policy::DialInvocation {
                     leg: leg.clone(),
                     revision,
+                    media: Some(admission_read),
                 }),
                 move |p| async move {
                     callback_leg
@@ -540,15 +565,8 @@ impl Runner {
                         .context
                         .set(Arc::downgrade(&context))
                         .map_err(|_| ParticipantControlError::Authority)?;
-                    let read = Arc::new(
-                        store
-                            .try_initial_telephone_media_read(
-                                callback_leg
-                                    .origin()
-                                    .map_err(|_| ParticipantControlError::Authority)?,
-                            )
-                            .map_err(|_| ParticipantControlError::Authority)?,
-                    );
+                    if !callback_read.current() {return Err(ParticipantControlError::Authority);}
+                    let read=callback_read;
                     let invocation = policy::MediaInvocation {
                         leg: callback_leg.clone(),
                         read,
@@ -587,13 +605,34 @@ impl Runner {
             .await
             .map_err(|error| { tracing::debug!(target:"connect_service::initial_telephone",?error,"Guarded initial admission refused"); Error::forbidden() })?;
         leg.admitted.set(joined).map_err(|_| Error::forbidden())?;
-        let store = runtime.media.store.clone();
-        let saved = origin.clone();
-        let ready = policy::Ready { leg: leg.clone() };
-        crate::canonical_consultation::store_call(move || {
-            store.record_initial_telephone_connected(saved, &ready)
-        })
-        .await?;
+        // Core admission is already observed. Retain this exact owned leg and
+        // retry only its durable metadata, never originate/admit a second call.
+        loop {
+            let store = runtime.media.store.clone();
+            let saved = origin.clone();
+            let ready = policy::Ready { leg: leg.clone() };
+            match crate::canonical_consultation::store_call(move || {
+                store.record_initial_telephone_connected(saved, &ready)
+            })
+            .await
+            {
+                Ok(_) => break,
+                Err(error)
+                    if matches!(
+                        error.code.as_str(),
+                        "storage-unavailable" | "capacity-exceeded" | "authority-busy"
+                    ) && tokio::time::Instant::now() < deadline =>
+                {
+                    tokio::select! { biased;
+                        _=runtime.stop.cancelled()=>return Err(Error::forbidden()),
+                        _=leg.cancel.cancelled()=>return Err(Error::forbidden()),
+                        _=tokio::time::sleep_until(deadline)=>return Err(error),
+                        _=tokio::time::sleep(Duration::from_millis(50))=>{},
+                    }
+                }
+                Err(error) => return Err(error),
+            }
+        }
         writer
             .media
             .set(origin.clone())

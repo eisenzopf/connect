@@ -21,6 +21,15 @@ pub struct TelephoneMediaRead {
     accepted: serde_json::Value,
     expires: i64,
 }
+struct TelephoneProjection {
+    actor: Actor,
+    member: connect_protocol::membership::MemberView,
+    session: connect_protocol::session_control::SessionView,
+    conversation_revision: u64,
+    role: String,
+    accepted: serde_json::Value,
+    expires: i64,
+}
 pub trait TelephoneConnectionRuntimeObservation {
     fn observe_absent(&self, runtime_connection_id: &str, generation: u64) -> Result<()>;
 }
@@ -115,10 +124,35 @@ impl Store {
         held: Arc<crate::AuthorityGuardSet>,
         until: i64,
     ) -> Result<TelephoneMediaRead> {
-        local_owner(self, &origin.owner, &origin.runtime)?;
         if !self.authority_covers(&held, &scopes(c, &origin.snapshot)?) {
             return Err(Error::forbidden());
         }
+        let p = self.telephone_projection(c, &origin, until)?;
+        let owner = self.require_runtime_owner()?;
+        self.remember_session_ready(
+            c,
+            crate::session_lifecycle::ReadyOrigin::Telephone(origin.clone()),
+        )?;
+        Ok(TelephoneMediaRead {
+            origin,
+            owner,
+            _interval: held,
+            actor: p.actor,
+            member: p.member,
+            session: p.session,
+            conversation_revision: p.conversation_revision,
+            role: p.role,
+            accepted: p.accepted,
+            expires: p.expires,
+        })
+    }
+    fn telephone_projection(
+        &self,
+        c: &Connection,
+        origin: &TelephoneMediaOrigin,
+        until: i64,
+    ) -> Result<TelephoneProjection> {
+        local_owner(self, &origin.owner, &origin.runtime)?;
         require_origin(c, &origin, true)?;
         let s = &origin.snapshot;
         let actor = actor_from_connection(c, &s.route_credential_id)?;
@@ -174,11 +208,7 @@ impl Store {
         if crate::now() >= expires {
             return Err(Error::forbidden());
         }
-        let owner = self.require_runtime_owner()?;
-        Ok(TelephoneMediaRead {
-            origin,
-            owner,
-            _interval: held,
+        Ok(TelephoneProjection {
             actor,
             member,
             session,
@@ -186,6 +216,27 @@ impl Store {
             role,
             accepted,
             expires,
+        })
+    }
+
+    pub(crate) fn telephone_session_readiness(
+        &self,
+        c: &Connection,
+        origin: &TelephoneMediaOrigin,
+    ) -> Result<crate::session_lifecycle::ReadyConnection> {
+        let p = self.telephone_projection(c, origin, i64::MAX)?;
+        let s = &origin.snapshot;
+        let observed:i64=c.query_row("SELECT observed_at FROM connections WHERE id=?1 AND generation=?2 AND observed_runtime_id=?3 AND state IN ('ready','active') AND readiness_json IS NOT NULL",params![s.connection_id,s.generation,self.runtime_epoch()],|r|r.get(0)).optional().map_err(|_|Error::storage())?.ok_or_else(Error::forbidden)?;
+        Ok(crate::session_lifecycle::ReadyConnection {
+            connection: connect_protocol::events::SessionActiveConnection {
+                connid: s.connection_id.clone(),
+                participant_id: p.member.participant_id,
+                transport: "sip-interop".into(),
+            },
+            epoch: p.member.membership_epoch,
+            observed_at_millis: observed * 1000,
+            expires_at: p.expires,
+            capabilities: serde_json::json!({"audio_codecs":[{"name":match s.media.codec.to_ascii_lowercase().as_str() {"pcmu"=>"g.711-mu","pcma"=>"g.711-a",_=>&s.media.codec},"params":{"sample_rate":s.media.clock_rate_hz,"channels":s.media.channels,"fmtp":s.media.fmtp}}]}),
         })
     }
     pub fn project_telephone_replacement_committed(
@@ -302,6 +353,23 @@ impl Store {
             )?;
         }
         emit(&tx, &row, &s.connection_id, &s.identity_id, &s.recipients)?;
+        self.remember_session_ready(
+            &tx,
+            crate::session_lifecycle::ReadyOrigin::Telephone(origin.clone()),
+        )?;
+        crate::session_lifecycle::activate(&tx, self, &s.conversation_id, &s.session_id)?;
+        let ready = self.telephone_session_readiness(&tx, &origin)?;
+        crate::session_participant_lifecycle::observed_join(
+            &tx,
+            self,
+            &s.conversation_id,
+            &s.session_id,
+            &s.participant_id,
+            s.membership_epoch,
+            &s.connection_id,
+            ready.observed_at_millis,
+        )?;
+        crate::session_reconnect::connected(&tx, &s.session_id)?;
         require_origin(&tx, &origin, false)?;
         tx.commit().map_err(|_| Error::storage())?;
         Ok(origin)
@@ -357,6 +425,13 @@ impl Store {
                 &s.recipients,
             )?;
         }
+        crate::session_participant_lifecycle::reconcile(
+            &tx,
+            self,
+            &s.conversation_id,
+            &s.session_id,
+            None,
+        )?;
         self.require_runtime_owner()?;
         tx.commit().map_err(|_| Error::storage())?;
         drop(held);

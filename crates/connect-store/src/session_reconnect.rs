@@ -126,7 +126,7 @@ impl Store {
         Ok(())
     }
     /// Bounded committed metadata scan, independent of foreground media locks.
-    /// The cursor rotates through active Sessions; returned IDs confer no grant.
+    /// The cursor rotates through accepted/ready and active Sessions; returned IDs confer no grant.
     pub fn session_reconnect_page(&self, after: &str) -> Result<(String, Vec<(String, String)>)> {
         self.require_runtime_owner()?;
         let mut snapshot = Connection::open_with_flags(
@@ -140,13 +140,14 @@ impl Store {
         let tx = snapshot
             .transaction_with_behavior(rusqlite::TransactionBehavior::Deferred)
             .map_err(|_| Error::storage())?;
-        let mut q=tx.prepare("SELECT s.conversation_id,s.id,b.deadline_millis FROM sessions s JOIN session_started_facts f ON f.session_id=s.id JOIN session_reconnect_boundaries b ON b.session_id=s.id WHERE s.state='active' AND s.id>?1 ORDER BY s.id LIMIT 16").map_err(|_|Error::storage())?;
+        let mut q=tx.prepare("SELECT s.conversation_id,s.id,b.deadline_millis,s.state FROM sessions s LEFT JOIN session_reconnect_boundaries b ON b.session_id=s.id WHERE s.state IN ('accepted','ready','active') AND s.id>?1 ORDER BY s.id LIMIT 16").map_err(|_|Error::storage())?;
         let rows = q
             .query_map([after], |r| {
                 Ok((
                     r.get::<_, String>(0)?,
                     r.get::<_, String>(1)?,
                     r.get::<_, Option<i64>>(2)?,
+                    r.get::<_, String>(3)?,
                 ))
             })
             .map_err(|_| Error::storage())?
@@ -154,14 +155,18 @@ impl Store {
             .map_err(|_| Error::storage())?;
         let next = if rows.len() == 16 {
             rows.last()
-                .map(|(_, sid, _)| sid.clone())
+                .map(|(_, sid, _, _)| sid.clone())
                 .unwrap_or_default()
         } else {
             String::new()
         };
         let mut pending = vec![];
         let now = chrono::Utc::now().timestamp_millis();
-        for (cid, sid, deadline) in rows {
+        for (cid, sid, deadline, state) in rows {
+            if matches!(state.as_str(), "accepted" | "ready") {
+                pending.push((cid, sid));
+                continue;
+            }
             let live = connected_now(&tx, self, &sid)?;
             if (live && deadline.is_some()) || (!live && deadline.is_none_or(|d| d <= now)) {
                 pending.push((cid, sid));
@@ -170,12 +175,30 @@ impl Store {
         Ok((next, pending))
     }
     pub fn reconcile_session_reconnect(&self, cid: &str, sid: &str) -> Result<bool> {
+        // Do not queue an authority writer while an initial media admission
+        // still owns its read interval. Only eligible observed readiness needs
+        // the protected metadata activation transaction below.
+        {
+            let c = self.connection()?;
+            let phase = crate::session_control::view(&c, cid, sid)?.state;
+            if matches!(phase.as_str(), "accepted" | "ready")
+                && !crate::session_lifecycle::can_activate(&c, self, cid, sid)?
+            {
+                return Ok(false);
+            }
+        }
         let _authority = self.runtime_conversation_authority(|_| Ok(vec![cid.to_owned()]))?;
         let mut c = self.connection()?;
         let tx = c
             .transaction_with_behavior(rusqlite::TransactionBehavior::Immediate)
             .map_err(|_| Error::storage())?;
         let view = crate::session_control::view(&tx, cid, sid)?;
+        if matches!(view.state.as_str(), "accepted" | "ready") {
+            crate::session_lifecycle::activate(&tx, self, cid, sid)?;
+            self.require_runtime_owner()?;
+            tx.commit().map_err(|_| Error::storage())?;
+            return Ok(false);
+        }
         if view.state != "active" {
             return Ok(view.state == "ended");
         }

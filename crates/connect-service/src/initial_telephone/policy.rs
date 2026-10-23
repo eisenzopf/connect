@@ -123,6 +123,9 @@ pub(crate) struct Leg {
 pub(crate) struct DialInvocation {
     pub leg: Arc<Leg>,
     pub revision: u64,
+    // Initial dialing uses signaling authority. Once the actual answer has
+    // its own consent, media admission owns this fresh independent interval.
+    pub media: Option<Arc<InitialTelephoneMediaRead>>,
 }
 #[derive(Clone)]
 pub(crate) struct MediaInvocation {
@@ -307,6 +310,29 @@ impl ParticipantControlLease for DialInvocation {
         scope: &ParticipantScope<'_>,
     ) -> std::result::Result<ParticipantAuthority, ParticipantControlError> {
         let runtime = self.leg.runtime().map_err(participant_error)?;
+        if let Some(read) = &self.media {
+            if !read.current()
+                || read.source() != self.leg.signal.origin().source()
+                || read.endpoint_actor().identity_id != self.leg.target.principal.subject
+                || read.member().participant_id
+                    != self.leg.signal.origin().source().target.participant_id
+                || read.member().membership_epoch != self.leg.target.member.epoch()
+            {
+                return Err(ParticipantControlError::Authority);
+            }
+            let mut authority = self.leg.participant(scope, self.revision)?;
+            let current = member(
+                &self.leg.target.principal,
+                read.member(),
+                read.conversation_revision(),
+            )
+            .map_err(participant_error)?;
+            authority.actor = current.clone();
+            authority.target = current;
+            authority.may_send_audio = read.role() != "observer";
+            authority.may_receive_audio = read.may_receive();
+            return Ok(authority);
+        }
         // These are short metadata checks, not readers retained across ringing.
         let read = runtime
             .media

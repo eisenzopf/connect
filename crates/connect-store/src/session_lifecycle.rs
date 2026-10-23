@@ -1,8 +1,5 @@
 //! Durable Session activation from verified public Connection observations.
-use crate::{
-    Actor, AuthorityMode, AuthorityScope, NativeConnectionFlowFact, NativeMediaOrigin,
-    PeerAuthorityGuard, PeerCommand, Store,
-};
+use crate::{Actor, AuthorityMode, AuthorityScope, PeerAuthorityGuard, PeerCommand, Store};
 use connect_protocol::{
     events::{SessionActiveConnection, SessionStarted},
     membership::{ContentKind, MemberView},
@@ -10,56 +7,71 @@ use connect_protocol::{
 };
 use rusqlite::{params, Connection, OptionalExtension};
 mod readiness;
+pub(crate) use readiness::{ReadyConnection, ReadyOrigin};
 
-pub(crate) fn start(
+fn pending_snapshot(
     c: &Connection,
     store: &Store,
-    origin: &NativeMediaOrigin,
-    flow: &NativeConnectionFlowFact,
-) -> Result<()> {
-    let current = crate::session_control::view(c, origin.conversation_id(), origin.session_id())?;
+    cid: &str,
+    sid: &str,
+) -> Result<Option<(Vec<MemberView>, Vec<ReadyConnection>)>> {
+    let current = crate::session_control::view(c, cid, sid)?;
     if current.state == "active" {
-        return Ok(());
+        return Ok(None);
     }
     if !matches!(current.state.as_str(), "accepted" | "ready") {
-        return Err(Error::forbidden());
+        return Ok(None);
     }
     let already: bool = c
         .query_row(
             "SELECT EXISTS(SELECT 1 FROM session_started_facts WHERE session_id=?1)",
-            [origin.session_id()],
+            [sid],
             |r| r.get(0),
         )
         .map_err(|_| Error::storage())?;
     if already {
-        return Ok(());
+        return Ok(None);
     }
     let mut q=c.prepare("SELECT p.identity_id FROM session_participants sp JOIN participants p ON p.participant_id=sp.participant_id AND p.membership_epoch=sp.membership_epoch AND p.active=1 JOIN identities i ON i.id=p.identity_id AND i.revoked=0 WHERE sp.session_id=?1 AND sp.state='present' ORDER BY p.participant_id").map_err(|_|Error::storage())?;
     let ids = q
-        .query_map([origin.session_id()], |r| r.get::<_, String>(0))
+        .query_map([sid], |r| r.get::<_, String>(0))
         .map_err(|_| Error::storage())?
         .collect::<std::result::Result<Vec<_>, _>>()
         .map_err(|_| Error::storage())?;
     let audience = ids
         .iter()
-        .map(|id| crate::audience::member(c, id, origin.conversation_id(), true))
+        .map(|id| crate::audience::member(c, id, cid, true))
         .collect::<Result<Vec<_>>>()?;
-    if !audience.iter().any(|m| {
-        m.participant_id == origin.participant_id()
-            && m.membership_epoch == origin.membership_epoch()
-    }) {
-        return Err(Error::forbidden());
+    if audience.is_empty() {
+        return Ok(None);
     }
-    let ready = readiness::native(c, store, origin.session_id())?;
+    let ready = readiness::current(c, store, sid)?;
     if audience.iter().any(|member| {
-        !ready.iter().any(|(pid, epoch, _)| {
-            pid == &member.participant_id && *epoch == member.membership_epoch
+        !ready.iter().any(|value| {
+            value.connection.participant_id == member.participant_id
+                && value.epoch == member.membership_epoch
         })
     }) {
         // Accepted presence and provisional ready JSON cannot stand in for an
         // observed current public Connection for every accepted Participant.
-        return Ok(());
+        return Ok(None);
     }
+    if ready.iter().any(|value| value.expires_at <= crate::now()) {
+        return Ok(None);
+    }
+    Ok(Some((audience, ready)))
+}
+pub(crate) fn can_activate(c: &Connection, store: &Store, cid: &str, sid: &str) -> Result<bool> {
+    Ok(pending_snapshot(c, store, cid, sid)?.is_some())
+}
+pub(crate) fn activate(c: &Connection, store: &Store, cid: &str, sid: &str) -> Result<bool> {
+    let Some((audience, ready)) = pending_snapshot(c, store, cid, sid)? else {
+        return Ok(false);
+    };
+    // This is the durable activation observation. Accepted-set changes can
+    // make already observed Connections sufficient without another packet.
+    let started_at = crate::now();
+    let negotiated_capabilities = readiness::capabilities(&ready);
     if ready.len() > 256 || audience.len() > 256 {
         return Err(Error::new(
             "capacity-exceeded",
@@ -75,33 +87,42 @@ pub(crate) fn start(
     // Active is an observational live phase, with the same media permission
     // requirements as accepted/ready. Existing source readers fence affected
     // authority; no write grant is reentered while that reader is held.
-    c.execute("UPDATE sessions SET state='active',updated_at=?2 WHERE id=?1 AND state IN ('accepted','ready')",params![origin.session_id(),crate::now()]).map_err(|_|Error::storage())?;
+    c.execute("UPDATE sessions SET state='active',updated_at=?2 WHERE id=?1 AND state IN ('accepted','ready')",params![sid,crate::now()]).map_err(|_|Error::storage())?;
     let fact = SessionStarted {
-        session: crate::session_control::view(c, origin.conversation_id(), origin.session_id())?,
-        started_at: flow.observed_at_millis / 1000,
+        session: crate::session_control::view(c, cid, sid)?,
+        started_at,
         participants_present: audience.iter().map(|m| m.participant_id.clone()).collect(),
-        active_connections: ready
-            .into_iter()
-            .map(|(_, _, connection)| connection)
-            .collect(),
-        negotiated_capabilities: flow.negotiated_capabilities.clone(),
+        active_connections: ready.iter().map(|value| value.connection.clone()).collect(),
+        negotiated_capabilities,
     };
     let raw = serde_json::to_string(&fact).map_err(|_| Error::storage())?;
     c.execute(
         "INSERT INTO session_started_facts VALUES(?1,?2,?3,?4)",
         params![
-            origin.session_id(),
-            origin.conversation_id(),
+            sid,
+            cid,
             raw,
             serde_json::to_string(&audience).map_err(|_| Error::storage())?
         ],
     )
     .map_err(|_| Error::storage())?;
-    let data = serde_json::json!({"source_kind":"session","source_id":origin.session_id(),"session_id":origin.session_id(),"session_started":fact});
+    let data = serde_json::json!({"source_kind":"session","source_id":sid,"session_id":sid,"session_started":fact});
     for member in audience {
-        c.execute("INSERT INTO journal(id,recipient,conversation_id,kind,resource_revision,data_json,source_json) VALUES(?1,?2,?3,'session_started',?4,?5,?6)",params![format!("evt_{}",uuid::Uuid::new_v4().simple()),member.identity_id,origin.conversation_id(),fact.session.revision,data.to_string(),serde_json::json!({"kind":"connect-session-lifecycle","correlation_id":origin.session_id()}).to_string()]).map_err(|_|Error::storage())?;
+        c.execute("INSERT INTO journal(id,recipient,conversation_id,kind,resource_revision,data_json,source_json) VALUES(?1,?2,?3,'session_started',?4,?5,?6)",params![format!("evt_{}",uuid::Uuid::new_v4().simple()),member.identity_id,cid,fact.session.revision,data.to_string(),serde_json::json!({"kind":"connect-session-lifecycle","correlation_id":sid}).to_string()]).map_err(|_|Error::storage())?;
     }
-    Ok(())
+    for value in ready {
+        crate::session_participant_lifecycle::observed_join(
+            c,
+            store,
+            cid,
+            sid,
+            &value.connection.participant_id,
+            value.epoch,
+            &value.connection.connid,
+            value.observed_at_millis,
+        )?;
+    }
+    Ok(true)
 }
 pub(crate) fn stored(
     c: &Connection,

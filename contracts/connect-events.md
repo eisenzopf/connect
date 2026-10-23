@@ -31,15 +31,24 @@ Participant. The native source is an independently observed direction-appropriat
 flow under its original installed lifetime; provisional readiness JSON and
 negotiation alone cannot satisfy it. Private candidates, retired generations,
 foreign runtime rows and sources without current authority do not supply public
-readiness. Pending invitees do not count as accepted Participants.
+readiness. SIP additionally requires the actual owned connected observation and
+current independent Endpoint/route authority. Pending invitees do not count as
+accepted Participants. The bounded lifecycle worker rechecks accepted Sessions
+after membership/public-scope changes without another media submission.
 
-Schema93 atomically commits the last required native observation, the Session's
-Active phase, an immutable `session_started` fact with the observed ready public
-Connections, and one journal row per admitted present Participant. A storage
+Schema93 atomically commits the last required readiness observation, the Session's
+Active phase and server-observed activation time, an immutable `session_started`
+fact with the observed ready public Connections, and one journal row per admitted present Participant. A storage
 failure rolls that transaction back; metadata retry uses the existing observed
 flow without submitting more media. Once started, the separate last-Connection
 loss and permitted-negotiation grace rules govern the Session; a later invitation
 does not rewrite its original start.
+
+The transport name for actual telephone interop is `sip-interop`. Global selected
+capabilities retain only common descriptors. A `connections` extension records
+exact selected descriptors per Connection when they differ; a transcoded codec
+pair is not reported as a common endpoint format. The same current actual native
+and SIP origins govern this metadata snapshot; rows cannot reconstruct IO origins.
 
 `session.started` carries CID/SID, original `started_at`, `participants_present`,
 `active_connections` with Connection ID, Participant ID and transport, and actual

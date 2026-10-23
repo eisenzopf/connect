@@ -1079,3 +1079,255 @@ fn initial_local_absence_preserves_unknown_submission_and_records_separate_clean
         .begin_initial_telephone_allocation(signal.origin())
         .is_err());
 }
+
+// Controlled runtime witnesses at the Store boundary; physical mixed-transport
+// qualification is performed separately by the production listener tests.
+fn ready_phone(
+    f: &Fixture,
+) -> (
+    Arc<InitialTelephoneSignaling>,
+    Arc<InitialTelephoneMediaOrigin>,
+) {
+    let signal = Arc::new(f.signal());
+    let capture = signal.capture_answer(signal.sip_call_id(), "pcmu").unwrap();
+    let media = f
+        .store
+        .record_initial_telephone_answer(&capture)
+        .unwrap()
+        .media
+        .unwrap();
+    f.store
+        .record_initial_telephone_connected(
+            media.clone(),
+            &ReadyFixture(InitialTelephoneReadyObservation {
+                runtime_connection_id: signal.runtime_connection_id().into(),
+                call_id: signal.sip_call_id().into(),
+                participant_id: f.parts[1].clone(),
+                membership_epoch: 1,
+                generation: 1,
+                stream_revision: 1,
+                participant_revision: 1,
+                streams: vec!["telephone-audio".into()],
+            }),
+        )
+        .unwrap();
+    (signal, media)
+}
+fn creator_leaves(f: &Fixture) {
+    let view = f
+        .store
+        .session_view(
+            &f.keys[0],
+            &f.request.conversation_id,
+            &f.request.session_id,
+        )
+        .unwrap();
+    f.store
+        .execute(
+            &f.keys[0],
+            &Operation::SessionControl {
+                request: session_control::Request {
+                    operation_id: "unready-creator-leaves".into(),
+                    conversation_id: f.request.conversation_id.clone(),
+                    session_id: f.request.session_id.clone(),
+                    by_participant: Some(f.parts[0].clone()),
+                    expected_revision: Some(view.topology_revision),
+                    action: session_control::Action::Leave {
+                        participant_id: f.parts[0].clone(),
+                    },
+                },
+            },
+        )
+        .unwrap();
+}
+fn activation_phase(f: &Fixture) -> String {
+    f.store
+        .connection()
+        .unwrap()
+        .query_row(
+            "SELECT state FROM sessions WHERE id=?1",
+            [&f.request.session_id],
+            |r| r.get(0),
+        )
+        .unwrap()
+}
+#[test]
+fn initial_ready_phone_waits_for_other_accepted_participants_and_rows_cannot_rebuild_origin_custody(
+) {
+    let f = Fixture::new();
+    let (_, media) = ready_phone(&f);
+    assert_eq!(activation_phase(&f), "accepted");
+    assert_eq!(
+        f.store.session_reconnect_page("").unwrap().1,
+        vec![(
+            f.request.conversation_id.clone(),
+            f.request.session_id.clone()
+        )]
+    );
+    f.store.session_ready_origins.lock().unwrap().clear();
+    creator_leaves(&f);
+    assert!(!f
+        .store
+        .reconcile_session_reconnect(&f.request.conversation_id, &f.request.session_id)
+        .unwrap());
+    assert_eq!(
+        activation_phase(&f),
+        "accepted",
+        "committed ready rows cannot manufacture actual origin custody"
+    );
+    drop(f.store.try_initial_telephone_media_read(media).unwrap());
+    assert!(!f
+        .store
+        .reconcile_session_reconnect(&f.request.conversation_id, &f.request.session_id)
+        .unwrap());
+    assert_eq!(activation_phase(&f), "active");
+    let original = f
+        .store
+        .session_started_template(&f.request.conversation_id, &f.request.session_id)
+        .unwrap()
+        .0;
+    assert_eq!(original.participants_present, vec![f.parts[1].clone()]);
+    assert_eq!(original.active_connections.len(), 1);
+    assert_eq!(original.active_connections[0].transport, "sip-interop");
+    assert_eq!(
+        original.negotiated_capabilities["audio_codecs"][0]["name"],
+        "g.711-mu"
+    );
+    f.store
+        .reconcile_session_reconnect(&f.request.conversation_id, &f.request.session_id)
+        .unwrap();
+    assert_eq!(
+        f.store
+            .session_started_template(&f.request.conversation_id, &f.request.session_id)
+            .unwrap()
+            .0,
+        original
+    );
+}
+#[test]
+fn initial_ready_activation_rechecks_endpoint_route_generation_runtime_and_membership() {
+    for mode in [
+        "endpoint-credential",
+        "route-credential",
+        "endpoint",
+        "generation",
+        "runtime",
+        "membership",
+    ] {
+        let f = Fixture::new();
+        let _ready = ready_phone(&f);
+        creator_leaves(&f);
+        match mode {
+            "endpoint-credential" | "route-credential" => {
+                let id = if mode == "endpoint-credential" {
+                    &f.keys[1]
+                } else {
+                    &f.keys[0]
+                };
+                f.store
+                    .revoke(&f.store.revalidate(&f.keys[2]).unwrap(), id)
+                    .unwrap();
+            }
+            mode => {
+                let c = f.store.connection().unwrap();
+                match mode {
+                    "endpoint" => {
+                        c.execute("UPDATE endpoints SET verification_state='unverified',revision=revision+1 WHERE id='initial-phone'",[]).unwrap();
+                    }
+                    "generation" => {
+                        c.execute(
+                            "UPDATE connections SET generation=generation+1 WHERE session_id=?1",
+                            [&f.request.session_id],
+                        )
+                        .unwrap();
+                    }
+                    "runtime" => {
+                        c.execute("UPDATE connections SET observed_runtime_id='foreign' WHERE session_id=?1",[&f.request.session_id]).unwrap();
+                    }
+                    "membership" => {
+                        c.execute(
+                            "UPDATE participants SET active=0 WHERE participant_id=?1",
+                            [&f.parts[1]],
+                        )
+                        .unwrap();
+                    }
+                    _ => unreachable!(),
+                }
+            }
+        }
+        f.store
+            .reconcile_session_reconnect(&f.request.conversation_id, &f.request.session_id)
+            .unwrap();
+        assert_eq!(activation_phase(&f), "accepted", "{mode}");
+    }
+}
+#[test]
+fn initial_ready_activation_storage_failure_retries_metadata_without_new_media_or_operation_effects(
+) {
+    let f = Fixture::new();
+    let (_, media) = ready_phone(&f);
+    creator_leaves(&f);
+    f.store.connection().unwrap().execute_batch("CREATE TRIGGER reject_start BEFORE INSERT ON session_started_facts BEGIN SELECT RAISE(ABORT,'isolated activation write failure'); END;").unwrap();
+    assert!(f
+        .store
+        .reconcile_session_reconnect(&f.request.conversation_id, &f.request.session_id)
+        .is_err());
+    assert_eq!(activation_phase(&f), "accepted");
+    assert!(f
+        .store
+        .try_initial_telephone_media_read(media)
+        .unwrap()
+        .is_connected());
+    let before: u64 = f
+        .store
+        .connection()
+        .unwrap()
+        .query_row("SELECT COUNT(*) FROM operation_effects", [], |r| r.get(0))
+        .unwrap();
+    f.store
+        .connection()
+        .unwrap()
+        .execute_batch("DROP TRIGGER reject_start;")
+        .unwrap();
+    f.store
+        .reconcile_session_reconnect(&f.request.conversation_id, &f.request.session_id)
+        .unwrap();
+    assert_eq!(activation_phase(&f), "active");
+    let c = f.store.connection().unwrap();
+    assert_eq!(
+        c.query_row("SELECT COUNT(*) FROM operation_effects", [], |r| r
+            .get::<_, u64>(0))
+            .unwrap(),
+        before
+    );
+    assert_eq!(
+        c.query_row("SELECT COUNT(*) FROM session_started_facts", [], |r| r
+            .get::<_, u64>(0))
+            .unwrap(),
+        1
+    );
+    assert_eq!(
+        c.query_row(
+            "SELECT COUNT(*) FROM native_connection_flow_facts",
+            [],
+            |r| r.get::<_, u64>(0)
+        )
+        .unwrap(),
+        0
+    );
+}
+
+#[test]
+fn unready_session_scan_does_not_queue_a_writer_behind_an_existing_media_interval() {
+    let f = Fixture::new();
+    let (_, media) = ready_phone(&f);
+    let read = f.store.try_initial_telephone_media_read(media).unwrap();
+    let began = std::time::Instant::now();
+    assert!(!f
+        .store
+        .reconcile_session_reconnect(&f.request.conversation_id, &f.request.session_id)
+        .unwrap());
+    assert!(began.elapsed() < std::time::Duration::from_millis(250));
+    assert!(read.current());
+    assert_eq!(activation_phase(&f), "accepted");
+}

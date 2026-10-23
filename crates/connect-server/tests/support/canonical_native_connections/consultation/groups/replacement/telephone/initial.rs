@@ -1,5 +1,7 @@
 //! Actual signed public Session invite, configured initial agent and UDP SIP answer.
 use super::*;
+#[path = "initial/activation.rs"]
+mod activation;
 use rusqlite::OptionalExtension;
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
 async fn production_initial_telephone_public_invite_records_real_answer_and_guarded_admission_once()
@@ -17,11 +19,18 @@ struct ConfiguredInitial {
     phone_credential: String,
 }
 async fn configured_initial(payload: Option<u8>, timeout_seconds: u32) -> ConfiguredInitial {
+    configured_initial_for("EdDSA", payload, timeout_seconds).await
+}
+async fn configured_initial_for(
+    algorithm: &str,
+    payload: Option<u8>,
+    timeout_seconds: u32,
+) -> ConfiguredInitial {
     let _ = tracing_subscriber::fmt()
         .with_env_filter("connect_service=debug")
         .with_test_writer()
         .try_init();
-    let f = Fixture::with_native_end_scope("EdDSA", 12).await;
+    let f = Fixture::with_native_end_scope(algorithm, 12).await;
     let peer = PeerSip::with_audio(payload).await;
     *peer.ledger.lock().unwrap() = Some(f.config.database.clone());
     let store = &f.server.store;

@@ -39,6 +39,17 @@ pub struct InitialTelephoneMediaRead {
     expires: i64,
     connected: bool,
 }
+struct InitialTelephoneProjection {
+    endpoint_actor: Actor,
+    route_actor: Actor,
+    member: MemberView,
+    session: session_control::SessionView,
+    role: String,
+    accepted: Value,
+    conversation_revision: u64,
+    expires: i64,
+    connected: bool,
+}
 media_redacted!(
     InitialTelephoneAnswerCapture,
     InitialTelephoneMediaOrigin,
@@ -300,12 +311,44 @@ impl Store {
         interval: Arc<AuthorityGuardSet>,
         until: i64,
     ) -> Result<InitialTelephoneMediaRead> {
+        if !self.authority_covers(
+            &interval,
+            &current_scopes(c, origin.signal.origin(), false)?,
+        ) {
+            return Err(Error::forbidden());
+        }
+        let p = self.initial_telephone_projection(c, &origin, until)?;
+        let owner = self.require_runtime_owner()?;
+        if p.connected {
+            self.remember_session_ready(
+                c,
+                crate::session_lifecycle::ReadyOrigin::InitialTelephone(origin.clone()),
+            )?;
+        }
+        Ok(InitialTelephoneMediaRead {
+            origin,
+            owner,
+            _interval: interval,
+            endpoint_actor: p.endpoint_actor,
+            route_actor: p.route_actor,
+            member: p.member,
+            session: p.session,
+            role: p.role,
+            accepted: p.accepted,
+            conversation_revision: p.conversation_revision,
+            expires: p.expires,
+            connected: p.connected,
+        })
+    }
+    fn initial_telephone_projection(
+        &self,
+        c: &Connection,
+        origin: &InitialTelephoneMediaOrigin,
+        until: i64,
+    ) -> Result<InitialTelephoneProjection> {
         let row = historical(self, c, &origin.signal)?;
         let original = origin.signal.origin();
         let s = &original.source;
-        if !self.authority_covers(&interval, &current_scopes(c, original, false)?) {
-            return Err(Error::forbidden());
-        }
         let (saved,accepted,connected,retired):(String,bool,bool,bool)=c.query_row("SELECT observation_json,accepted,connected_at IS NOT NULL,retired_at IS NOT NULL FROM initial_telephone_answers WHERE operation_record_id=?1",[&original.record],|r|Ok((r.get(0)?,r.get(1)?,r.get(2)?,r.get(3)?))).map_err(|_|Error::forbidden())?;
         if saved != origin.observation
             || !accepted
@@ -381,10 +424,7 @@ impl Store {
         if expires <= crate::now() {
             return Err(Error::forbidden());
         }
-        Ok(InitialTelephoneMediaRead {
-            origin,
-            owner: self.require_runtime_owner()?,
-            _interval: interval,
+        Ok(InitialTelephoneProjection {
             endpoint_actor: endpoint,
             route_actor: route,
             member,
@@ -394,6 +434,28 @@ impl Store {
             conversation_revision,
             expires,
             connected,
+        })
+    }
+    pub(crate) fn initial_telephone_session_readiness(
+        &self,
+        c: &Connection,
+        origin: &InitialTelephoneMediaOrigin,
+    ) -> Result<crate::session_lifecycle::ReadyConnection> {
+        let p = self.initial_telephone_projection(c, origin, i64::MAX)?;
+        if !p.connected {
+            return Err(Error::forbidden());
+        }
+        let observed:i64=c.query_row("SELECT a.connected_at FROM initial_telephone_answers a JOIN operations o ON o.record_id=a.operation_record_id JOIN connections n ON n.id=o.connection_id WHERE a.operation_record_id=?1 AND a.connected_at IS NOT NULL AND a.retired_at IS NULL AND n.id=?2 AND n.generation=1 AND n.state IN ('ready','active') AND n.observed_runtime_id=?3 AND n.readiness_json IS NOT NULL",params![origin.record_id(),origin.connection_id(),self.runtime_epoch()],|r|r.get(0)).optional().map_err(|_|Error::storage())?.ok_or_else(Error::forbidden)?;
+        Ok(crate::session_lifecycle::ReadyConnection {
+            connection: connect_protocol::events::SessionActiveConnection {
+                connid: origin.connection_id().into(),
+                participant_id: p.member.participant_id,
+                transport: "sip-interop".into(),
+            },
+            epoch: p.member.membership_epoch,
+            observed_at_millis: observed * 1000,
+            expires_at: p.expires,
+            capabilities: json!({"audio_codecs":[{"name":origin.codec,"params":{"sample_rate":8000,"channels":1,"fmtp":null}}]}),
         })
     }
 }
@@ -490,6 +552,28 @@ impl Store {
         if observation.observe()? != value {
             return Err(Error::forbidden());
         }
+        self.remember_session_ready(
+            &tx,
+            crate::session_lifecycle::ReadyOrigin::InitialTelephone(origin.clone()),
+        )?;
+        crate::session_lifecycle::activate(
+            &tx,
+            self,
+            &s.request.conversation_id,
+            &s.request.session_id,
+        )?;
+        let ready = self.initial_telephone_session_readiness(&tx, &origin)?;
+        crate::session_participant_lifecycle::observed_join(
+            &tx,
+            self,
+            &s.request.conversation_id,
+            &s.request.session_id,
+            &s.target.participant_id,
+            s.target.membership_epoch,
+            origin.connection_id(),
+            ready.observed_at_millis,
+        )?;
+        crate::session_reconnect::connected(&tx, &s.request.session_id)?;
         super::super::workers::invalidate(&tx, origin.record_id())?;
         let result = rows::by_record(&tx, origin.record_id())?.record;
         tx.commit().map_err(|_| Error::storage())?;
@@ -715,6 +799,13 @@ impl Store {
         }
         absent.observe_absent(signal.runtime_connection_id(), 1)?;
         super::super::workers::invalidate(&tx, &original.record)?;
+        crate::session_participant_lifecycle::reconcile(
+            &tx,
+            self,
+            &original.source.request.conversation_id,
+            &original.source.request.session_id,
+            None,
+        )?;
         tx.commit().map_err(|_| Error::storage())
     }
 }

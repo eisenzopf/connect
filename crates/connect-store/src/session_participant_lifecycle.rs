@@ -111,37 +111,59 @@ pub(crate) fn joined(
     origin: &NativeMediaOrigin,
     flow: &NativeConnectionFlowFact,
 ) -> Result<()> {
-    let joined:bool=c.query_row("SELECT EXISTS(SELECT 1 FROM session_connected_presence WHERE session_id=?1 AND participant_id=?2 AND membership_epoch=?3 AND state='joined')",params![origin.session_id(),origin.participant_id(),origin.membership_epoch()],|r|r.get(0)).map_err(|_|Error::storage())?;
+    observed_join(
+        c,
+        store,
+        origin.conversation_id(),
+        origin.session_id(),
+        origin.participant_id(),
+        origin.membership_epoch(),
+        origin.connection_id(),
+        flow.observed_at_millis,
+    )
+}
+/// Metadata only, called after current authority and actual ready proof validation.
+pub(crate) fn observed_join(
+    c: &Connection,
+    store: &Store,
+    cid: &str,
+    sid: &str,
+    pid: &str,
+    epoch: u64,
+    connection: &str,
+    at: i64,
+) -> Result<()> {
+    let joined:bool=c.query_row("SELECT EXISTS(SELECT 1 FROM session_connected_presence WHERE session_id=?1 AND participant_id=?2 AND membership_epoch=?3 AND state='joined')",params![sid,pid,epoch],|r|r.get(0)).map_err(|_|Error::storage())?;
     if joined {
         return Ok(());
     }
     let identity: String = c
         .query_row(
             "SELECT identity_id FROM participants WHERE participant_id=?1",
-            [origin.participant_id()],
+            [pid],
             |r| r.get(0),
         )
         .map_err(|_| Error::storage())?;
-    let subject = crate::audience::member(c, &identity, origin.conversation_id(), true)?;
-    let (kind,role,name):(String,String,String)=c.query_row("SELECT p.kind,sp.role,COALESCE(i.display_name,i.alias) FROM participants p JOIN identities i ON i.id=p.identity_id JOIN session_participants sp ON sp.participant_id=p.participant_id AND sp.membership_epoch=p.membership_epoch WHERE sp.session_id=?1 AND p.participant_id=?2 AND p.membership_epoch=?3 AND sp.state='present' AND p.active=1",params![origin.session_id(),origin.participant_id(),origin.membership_epoch()],|r|Ok((r.get(0)?,r.get(1)?,r.get(2)?))).map_err(|_|Error::storage())?;
+    let subject = crate::audience::member(c, &identity, cid, true)?;
+    let (kind,role,name):(String,String,String)=c.query_row("SELECT p.kind,sp.role,COALESCE(i.display_name,i.alias) FROM participants p JOIN identities i ON i.id=p.identity_id JOIN session_participants sp ON sp.participant_id=p.participant_id AND sp.membership_epoch=p.membership_epoch WHERE sp.session_id=?1 AND p.participant_id=?2 AND p.membership_epoch=?3 AND sp.state='present' AND p.active=1",params![sid,pid,epoch],|r|Ok((r.get(0)?,r.get(1)?,r.get(2)?))).map_err(|_|Error::storage())?;
     c.execute(
         "UPDATE sessions SET state_revision=state_revision+1,updated_at=?2 WHERE id=?1",
-        params![origin.session_id(), crate::now()],
+        params![sid, crate::now()],
     )
     .map_err(|_| Error::storage())?;
     let data = JournalData::SessionParticipantJoined(SessionParticipantJoined {
         fact_id: format!("spf_{}", uuid::Uuid::new_v4().simple()),
-        session: crate::session_control::view(c, origin.conversation_id(), origin.session_id())?,
-        membership_epoch: origin.membership_epoch(),
+        session: crate::session_control::view(c, cid, sid)?,
+        membership_epoch: epoch,
         participant: SessionJoinedParticipant {
-            participant_id: origin.participant_id().into(),
+            participant_id: pid.into(),
             identity_id: subject.identity_id.clone(),
             kind: serde_json::from_value(serde_json::json!(kind)).map_err(|_| Error::storage())?,
             role,
             display_name: name,
-            joined_at: flow.observed_at_millis / 1000,
+            joined_at: at / 1000,
         },
-        via_connection: origin.connection_id().into(),
+        via_connection: connection.into(),
     });
     append(c, store, data, &subject)
 }
