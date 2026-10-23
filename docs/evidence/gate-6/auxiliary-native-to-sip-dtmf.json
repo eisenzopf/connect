@@ -1,0 +1,237 @@
+{
+  "task": "G6-046",
+  "status": "in-progress",
+  "component_passed": true,
+  "full_task_complete": false,
+  "full_goal_complete": false,
+  "executed_at": "2026-10-23T13:08:05.817081+00:00",
+  "scope": "Actual local macOS arm64 signed native-to-initial-SIP INFO/RFC4733 delivery on the original call, independent receive-permission refusal and replay; controlled original/current Core audience fencing.",
+  "schema_version": 100,
+  "source_lock_patches": 160,
+  "engine_commit": "b6ffcce6d22db508c4a4d24c9ba5e1593cc213d3",
+  "implementation_commit": "8b27b8bb42543d379b0a06ece11d0dcc3132812a",
+  "rust_test_methods": 31,
+  "new_test_methods": 8,
+  "regression_test_methods": 23,
+  "results": [
+    {
+      "name": "core-dtmf-current.log",
+      "passed": 10,
+      "failed": 0,
+      "test_names": [
+        "participant_transitions::tests::replacement::replacement_model_answer_and_attributed_dtmf_are_required_after_media_and_duplicates_are_observations",
+        "staged_streams::tests::private_consult::native_dtmf_audience_composes_with_physical_controller_fences_and_releases_pending_guards",
+        "staged_streams::tests::private_consult::native_dtmf_audience_binding_requires_exact_actual_recipient_relationship_and_credential_metadata",
+        "staged_streams::tests::private_consult::sip_dtmf_audience_owns_actual_target_credential_inside_native_source_io",
+        "staged_streams::tests::private_consult::sip_dtmf_audience_pending_releases_source_target_and_registry_guards",
+        "staged_streams::tests::private_consult::native_dtmf_original_and_current_audiences_both_refuse_disclosure_across_private_return",
+        "staged_streams::tests::private_consult::sip_dtmf_audience_refuses_rebound_or_retired_actual_target_before_io",
+        "staged_streams::tests::private_consult::sip_dtmf_audience_requires_the_actual_registered_sip_controller_and_principal",
+        "orchestrator::dtmf_routing::received::binding_tests::binding_epoch_does_not_revive_after_session_aba_and_dead_sources_do_not_accumulate",
+        "staged_streams::tests::private_consult::sip_dtmf_original_and_current_audiences_survive_private_return_without_leaks"
+      ],
+      "log": {
+        "path": ".local/gate-6/dtmf-sip-fence/core-dtmf-current.log",
+        "sha256": "d8b5074d57517202679783afbd3fb6f76f42638ff11a76e80bc4dc9b978fc800"
+      }
+    },
+    {
+      "name": "production.log",
+      "passed": 3,
+      "failed": 0,
+      "test_names": [
+        "canonical_native_connections::consultation::groups::replacement::telephone::initial::dtmf::production_native_to_initial_sip_info_uses_original_call_and_never_replays",
+        "canonical_native_connections::consultation::groups::replacement::telephone::initial::dtmf::production_native_to_initial_sip_requires_independent_named_receive_permission",
+        "canonical_native_connections::consultation::groups::replacement::telephone::initial::dtmf::production_native_to_initial_sip_rfc4733_uses_actual_negotiated_event_profile"
+      ],
+      "log": {
+        "path": ".local/gate-6/dtmf-sip-fence/production.log",
+        "sha256": "e88d50e97c39854848ab04ba9b2ad6054bd37154ff9a1502c3c228deb96140bd"
+      }
+    },
+    {
+      "name": "regression-sip.log",
+      "passed": 3,
+      "failed": 0,
+      "test_names": [
+        "canonical_native_connections::consultation::groups::replacement::telephone::initial::production_initial_telephone_public_end_confirms_original_cleanup_after_generation_fence",
+        "canonical_native_connections::consultation::groups::replacement::telephone::initial::production_initial_telephone_public_end_while_ringing_cancels_exact_dialog",
+        "canonical_native_connections::consultation::groups::replacement::telephone::initial::production_initial_telephone_public_invite_records_real_answer_and_guarded_admission_once"
+      ],
+      "log": {
+        "path": ".local/gate-6/dtmf-sip-fence/regression-sip.log",
+        "sha256": "1d2d193d4487e4be98c83f8d7e5b35083820586f092a9f9e2f898556b13f54be"
+      }
+    },
+    {
+      "name": "regression-native-repeat.log",
+      "passed": 15,
+      "failed": 0,
+      "test_names": [
+        "canonical_native_connections::dtmf::production_native_dtmf_cancel_after_partial_io_preserves_uncertainty_and_stops_remaining_work",
+        "canonical_native_connections::dtmf::production_native_dtmf_http_cannot_borrow_native_source_custody",
+        "canonical_native_connections::dtmf::production_native_dtmf_http_status_projects_actual_local_frame_summary",
+        "canonical_native_connections::dtmf::production_native_dtmf_partial_credit_write_records_unknown_without_replay_and_releases_control",
+        "canonical_native_connections::dtmf::production_native_dtmf_queued_during_another_sdk_command_keeps_actual_provenance_and_order",
+        "canonical_native_connections::dtmf::production_native_dtmf_recipient_revoke_waits_for_partial_io_and_preserves_other_recipient",
+        "canonical_native_connections::dtmf::production_native_dtmf_requires_named_receive_permission_without_borrowing_subscription",
+        "canonical_native_connections::dtmf::production_native_dtmf_restart_keeps_unrecorded_actual_submission_unknown_and_never_redelivers",
+        "canonical_native_connections::dtmf::production_native_dtmf_signed_sdk_delivery_and_replay_preserve_original_effects",
+        "canonical_native_connections::dtmf::production_native_dtmf_source_revoke_waits_for_partial_io_and_never_revives_original_work",
+        "canonical_native_connections::dtmf::production_native_dtmf_writer_fact_storage_failure_recovers_without_another_delivery",
+        "canonical_native_connections::dtmf::production_native_refresh_retains_actual_decoded_rtp_after_original_expiry",
+        "canonical_native_connections::dtmf::production_owned_audio_dtmf_uses_its_exact_source_and_preserves_queued_received_signals",
+        "canonical_native_connections::dtmf::production_owned_audio_refresh_keeps_signed_reader_and_current_signal_authority",
+        "canonical_native_connections::dtmf::production_owned_audio_signaling_refresh_survives_original_credential_expiry"
+      ],
+      "log": {
+        "path": ".local/gate-6/dtmf-sip-fence/regression-native-repeat.log",
+        "sha256": "43539da555e167d02e4d9b4b8ed999cfbb8a887e023d622ae5720a1ac7326b4d"
+      }
+    }
+  ],
+  "actual_sdk_summary_samples": 4,
+  "samples": {
+    "path": ".local/gate-6/dtmf-sip-fence/production.jsonl",
+    "sha256": "efc9b4cc2310f86d1db11d8be47ef357574b0ee5f4a807c01389f550bc22d9dd"
+  },
+  "summary_validation": {
+    "passed": true,
+    "actual_sdk_summaries": 4,
+    "algorithms": [
+      "EdDSA",
+      "ES256"
+    ],
+    "methods": [
+      "info",
+      "rfc4733"
+    ],
+    "scope": "Local macOS arm64 native-to-initial-SIP positive summaries and actual UDP observations.",
+    "signature_verification": "The producing SDK verifies signatures; this validator checks recorded DTOs and HTTP/OpenAPI schema.",
+    "full_dtmf_clause_qualification": false,
+    "log": {
+      "path": ".local/gate-6/dtmf-sip-fence/validate-results.log",
+      "sha256": "ded26d2c7c0159f7b55e42ad462e5f1565cda27750fa70c69a18fd48608c132a"
+    }
+  },
+  "build": {
+    "passed": true,
+    "command": "CARGO_INCREMENTAL=1 cargo test -p connect-server --test gate6_canonical_runtime --no-run --locked --offline -j4",
+    "log": {
+      "path": ".local/gate-6/dtmf-sip-fence/build-server-corrected.log",
+      "sha256": "0737e722c5108bc3fd5b897fcd96157c59e2bb29e493a4460e793c8476016a9b"
+    }
+  },
+  "service_check": {
+    "passed": true,
+    "command": "CARGO_INCREMENTAL=1 cargo check -p connect-service --locked --offline -j4",
+    "log": {
+      "path": ".local/gate-6/dtmf-sip-fence/check-service.log",
+      "sha256": "13c542b372cbf36bb52f361daa7000755bc5aad2f36317110eac33dc416671f9"
+    }
+  },
+  "verification": {
+    "dependencies": {
+      "path": ".local/gate-6/dtmf-sip-fence/dependencies-current.log",
+      "sha256": "fd9d7b181e3ccba9b643af55a186cf132c60aac99c734b2ee4e4e549afe5ffc2"
+    },
+    "format": {
+      "path": ".local/gate-6/dtmf-sip-fence/format-current.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "http_reference": {
+      "path": ".local/gate-6/dtmf-sip-fence/http-reference-current.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "source_lock": {
+      "path": "dependencies/source-lock.json",
+      "sha256": "36d4e755a7735d793cb4188b06b3e00daa9450c192972cb6f009cc2892323d5c"
+    }
+  },
+  "source_snapshot_files": 1391,
+  "source_snapshot_unchanged": true,
+  "current_source_snapshot": {
+    "path": ".local/gate-6/dtmf-sip-fence/inputs.json",
+    "sha256": "dd5aef532dadbb5757fb7d0c78adad3c7f6e8b91a1a1ff629447d855781a3ac6"
+  },
+  "binaries": [
+    {
+      "path": "target/debug/deps/gate6_canonical_runtime-3bf705553dffa934",
+      "sha256": "a1e2b4d389b947ef7ed24ceb72d3d4ef9e5ca23f8d9be8e6fad9467a6131a1ff"
+    },
+    {
+      "path": "target/debug/deps/rvoip_core-2b4b8ad7637fb153",
+      "sha256": "4c55769157d71f51f1e5c2c25772bc8e8bb17eb6baf22e1092bc3bd71a5309fd"
+    }
+  ],
+  "observations": [
+    "Source-lock160 adds a native-source SIP audience fence for the actual registered SIP controller/principal. Original and current scene groups, source lifecycle and exact target credential revision are checked at physical IO; no synthetic DtmfNativeRecipient is created and the already-owned source controller is not reentered. Pending releases all synchronous guards.",
+    "Five new controlled Core tests cover target credential ownership, Pending cleanup, rebound/retired target, actual registered principal/controller and private return. Ten current Core DTMF methods pass. These callback/scene tests are not SIP socket evidence.",
+    "The runtime registers the actual initial-SIP leg after connected Store admission. One original signed native batch freezes native and SIP recipients before IO and retains only original registrations/origins in queued work. Each gateway schedule has one stable ID, fresh independent named signal reads and exact actual source/call/Endpoint/Device/route custody.",
+    "Engine metadata is prepared before Store readers. The writer reserves its stable schedule before possible IO, uses the original sealed native source and actual route once, retains bounded named-signal readers only around actual writer work, then waits for physical leases to stop before recording local submission/not-started/uncertainty. Metadata contention and captured-outcome retries do not replay effects.",
+    "Three production methods run both EdDSA and ES256: actual INFO, actual negotiated RFC4733 and missing named receive permission. They retain one original SIP call, unchanged marked duplex thresholds and exact cleanup. INFO checks actual dialog/Contact Request-URI, digits/duration and a preexisting reserved journal row at real UDP receive. RFC4733 checks payload101, exact 800-sample terminal duration, events5/8/11 and at least three redundant end packets per event. Replay emits no additional tones.",
+    "Four actual SDK completed summaries validate against NativeDtmfSubmission in the existing HTTP/OpenAPI contract, with unique actual source observation IDs and gateway schedule IDs. The public SDK verifies signatures; the recorded DTO validator does not independently reverify signatures.",
+    "The initial call lifetime monitor now checks independent named signal directions if media authorization is withdrawn; each probe drops its read before the next probe. It constructs no RTP grant. This lifetime change is compiled but physical signal-only withdrawal is not yet qualified."
+  ],
+  "failed_or_retried_checks": [
+    {
+      "scope": "First Core fixtures",
+      "observation": "Five new tests initially failed because each test reconstructed a principal with a different expiry from the registered controller credential. Fixtures now use the actual credential snapshot; strict production validation was preserved. The corrected five and current ten-method suite pass.",
+      "log": {
+        "path": ".local/gate-6/dtmf-sip-fence/core-sip.log",
+        "sha256": "b7ec962996f3a6c8b0f2d796aec15e3d2b88d5ec4c42d8a62eb05acbee576de5"
+      },
+      "corrected_log": {
+        "path": ".local/gate-6/dtmf-sip-fence/core-sip-corrected.log",
+        "sha256": "ada18349dbd025f578e181f118b113771eb81a6b6fbf064aab5d2f71233c7961"
+      }
+    },
+    {
+      "scope": "First server test build",
+      "observation": "The running build resolved the manifest before the new direct RTP parser dev dependency was added. It failed on missing rvoip_rtp_core. The locked manifest/lock graph was corrected and the current test build passes.",
+      "log": {
+        "path": ".local/gate-6/dtmf-sip-fence/build-server.log",
+        "sha256": "7784daa1ea8ed2489c91fd612aa93c57b4424ff12c9375dec442d79dd5ac645a"
+      }
+    },
+    {
+      "scope": "First existing native regression suite",
+      "observation": "14/15 passed; the partial-credit deadline method failed because a subsequent fresh native recipient was not_started instead of submitted. The diagnostic single-method rerun and complete 15-method repeat both pass without code, assertion or timing changes. Cause remains unproven; the first failure remains an unresolved reliability observation.",
+      "log": {
+        "path": ".local/gate-6/dtmf-sip-fence/regression-native.log",
+        "sha256": "9cd4ee016591ee1adaa0931b5c14bbb2689f4fb66be308999e02b27734fe7503"
+      },
+      "single_method_rerun": {
+        "path": ".local/gate-6/dtmf-sip-fence/regression-deadline-diagnostic.log",
+        "sha256": "a9405e591667eff67c08d3048adf25d5878f8122a1023f2884e718652a895037"
+      },
+      "full_repeat": {
+        "path": ".local/gate-6/dtmf-sip-fence/regression-native-repeat.log",
+        "sha256": "43539da555e167d02e4d9b4b8ed999cfbb8a887e023d622ae5720a1ac7326b4d"
+      }
+    }
+  ],
+  "newly_qualified_case_ids": [],
+  "qualified_clause_count": 55,
+  "assigned_clause_count": 61,
+  "remaining_case_ids": [
+    "u6-req-0103",
+    "u6-req-0109",
+    "u6-req-0112",
+    "u6-req-0113",
+    "u6-req-0115",
+    "u6-req-0123"
+  ],
+  "not_run_or_unqualified": [
+    "SIP-originated sealed observation custody, durable deduplicated operation creation and actual SIP-to-native output remain unimplemented by this component.",
+    "Established/replacement SIP legs, same-Participant separate-Connection gateway policy, maximum-duration sequences and larger serial/mixed fanout remain unqualified. The current native Store operation expiry is30 seconds; this increment does not claim the full maximum-sequence budget.",
+    "Physical initial-SIP cancellation, mid-suffix revocation, private-return/recovery combinations and actual restart/partial socket uncertainty need further production checks. Controlled Core and prior Store evidence do not substitute for them.",
+    "The first native regression not_started failure and earlier unknown subscription for0123 remain unresolved observations; passing repeats do not establish their causes or reliability.",
+    "Linux x86_64, browser, remote and named provider lanes, independent G6-094 conformance, all remaining clauses, full G6-046, all105 tasks, acceptance and publication remain open."
+  ],
+  "next_required_work": [
+    "Add physical initial-SIP failure/recovery and signal-only lifetime checks, retaining stable schedule and original audience custody. Investigate the native fresh-recipient not_started observation from the first regression without relaxing assertions.",
+    "Implement real SIP-originated sealed observations, stable deduplicated durable sources and correct provenance through SIP-to-native output. Extend actual established/replacement SIP legs without manufacturing native custody.",
+    "Qualify remaining0103/0109/0112/0113/0115/0123 and follow all105 tasks in dependency order. Keep current55/61 clause and45/105 task counts until their full assigned behavior passes."
+  ]
+}
