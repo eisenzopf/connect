@@ -13,6 +13,7 @@ ROOT = pathlib.Path(__file__).resolve().parents[1]
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("samples", type=pathlib.Path)
+    parser.add_argument("--failure-samples", type=pathlib.Path)
     args = parser.parse_args()
     raw = args.samples.read_bytes()
     assert len(raw) <= 1024 * 1024
@@ -55,8 +56,32 @@ def main():
             assert len(row["rtp_events"]) == 3
             assert {event for event, count in row["rtp_events"].values()} == {5, 8, 11}
             assert all(count >= 3 for event, count in row["rtp_events"].values())
+    failures = []
+    if args.failure_samples:
+        raw = args.failure_samples.read_bytes()
+        assert len(raw) <= 1024 * 1024
+        failures = [json.loads(line) for line in raw.splitlines() if line.strip()]
+        assert len(failures) == 2
+        assert {r["algorithm"] for r in failures} == {"EdDSA", "ES256"}
+        for row in failures:
+            record = row["stopped"]
+            assert record["state"] == "unknown"
+            assert record["operation_id"] == "native-sip-info-refusal"
+            signal = record["problem"]["signal"]
+            validator.validate(signal)
+            assert signal["local_work_complete"] and signal["local_submission_only"]
+            assert signal["signal_source"] == "uctp-native"
+            assert signal["connection_id"] == "initial-native"
+            assert row["sip_calls"] == row["info_packets"] == 1
+            assert len(signal["recipients"]) == 1
+            recipient = signal["recipients"][0]
+            assert recipient["disposition"] == "outcome_unknown"
+            assert recipient["frame_id"].startswith("dtmfg_")
+            assert recipient["frame_id"] not in schedules
+            schedules.add(recipient["frame_id"])
     print(json.dumps({
         "passed": True, "actual_sdk_summaries": len(rows),
+        "actual_uncertain_sdk_summaries": len(failures),
         "algorithms": ["EdDSA", "ES256"], "methods": ["info", "rfc4733"],
         "scope": "Local macOS arm64 native-to-initial-SIP positive summaries and actual UDP observations.",
         "signature_verification": "The producing SDK verifies signatures; this validator checks recorded DTOs and HTTP/OpenAPI schema.",

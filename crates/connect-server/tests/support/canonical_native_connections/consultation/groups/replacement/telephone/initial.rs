@@ -417,6 +417,10 @@ async fn initial_selected_signal_case(
     }];
     sip_native_duplex(&peer, &mut native, 0, "initial-public-native-duplex").await;
     if let Some(method) = signal {
+        peer.reject_info.store(
+            method == "info-refusal",
+            std::sync::atomic::Ordering::Release,
+        );
         dtmf::exercise(
             &f,
             &peer,
@@ -426,6 +430,21 @@ async fn initial_selected_signal_case(
             method,
         )
         .await;
+        if method == "info-refusal" {
+            peer.reject_info
+                .store(false, std::sync::atomic::Ordering::Release);
+            peer.info.lock().unwrap().clear();
+            dtmf::exercise(
+                &f,
+                &peer,
+                &mut native[0].client,
+                &room.id,
+                algorithm,
+                "info",
+            )
+            .await;
+            assert_eq!(db.query_row("SELECT count(DISTINCT g.frame_id) FROM native_dtmf_gateways g JOIN operations o ON o.record_id=g.operation_record_id WHERE o.operation_id IN ('native-sip-info-refusal','native-sip-info') AND g.attempted=1",[],|r|r.get::<_,u64>(0)).unwrap(),2);
+        }
     }
     if reference_kind != "participant" {
         gateways::capture(

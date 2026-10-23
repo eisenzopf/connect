@@ -29,6 +29,21 @@ async fn production_native_to_initial_sip_rfc4733_uses_actual_negotiated_event_p
         .await;
     }
 }
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn production_native_to_initial_sip_info_failure_keeps_uncertainty_without_replay_and_preserves_call(
+) {
+    for algorithm in ["EdDSA", "ES256"] {
+        initial_selected_signal_case(
+            false,
+            algorithm,
+            EndpointTransport::Telephone,
+            "participant",
+            false,
+            Some("info-refusal"),
+        )
+        .await;
+    }
+}
 pub(super) async fn exercise(
     f: &Fixture,
     peer: &PeerSip,
@@ -38,7 +53,11 @@ pub(super) async fn exercise(
     method: &str,
 ) {
     let refused = method == "missing-receive";
-    let wire_method = if refused { "info" } else { method };
+    let wire_method = if refused || method == "info-refusal" {
+        "info"
+    } else {
+        method
+    };
     let operation = format!("native-sip-{method}");
     let scope = CommandScope {
         conversation_id: Some(cid.into()),
@@ -73,6 +92,10 @@ pub(super) async fn exercise(
             accepted.state
         );
         assert_eq!(peer.unique(), 1);
+        return;
+    }
+    if method == "info-refusal" {
+        info_refusal(f, peer, client, cid, algorithm, scope, &operation).await;
         return;
     }
     assert!(matches!(
@@ -218,6 +241,98 @@ pub(super) async fn exercise(
             .join(".local/gate-6");
         assert!(path.is_absolute() && path.starts_with(root));
         let mut bytes=serde_json::to_vec(&json!({"algorithm":algorithm,"method":method,"completed":completed,"sip_calls":peer.unique(),"info_packets":before,"rtp_events":events})).unwrap();
+        bytes.push(b'\n');
+        std::fs::OpenOptions::new()
+            .create(true)
+            .append(true)
+            .open(path)
+            .unwrap()
+            .write_all(&bytes)
+            .unwrap();
+    }
+}
+
+async fn info_refusal(
+    f: &Fixture,
+    peer: &PeerSip,
+    client: &mut CanonicalClient,
+    cid: &str,
+    algorithm: &str,
+    scope: CommandScope,
+    operation: &str,
+) {
+    let end = tokio::time::Instant::now() + Duration::from_secs(8);
+    let stopped = loop {
+        let record = client
+            .operation_get(
+                operation,
+                CommandScope {
+                    conversation_id: Some(cid.into()),
+                    ..Default::default()
+                },
+            )
+            .await
+            .unwrap();
+        if record.state == rvoip_uctp::v2::payloads::OperationState::Unknown {
+            break record;
+        }
+        assert_eq!(
+            record.state,
+            rvoip_uctp::v2::payloads::OperationState::Preparing,
+            "unexpected INFO refusal outcome: {record:?}"
+        );
+        assert!(
+            tokio::time::Instant::now() < end,
+            "INFO refusal never stopped"
+        );
+        tokio::time::sleep(Duration::from_millis(10)).await;
+    };
+    let signal = &stopped.problem.as_ref().unwrap()["signal"];
+    assert_eq!(signal["local_work_complete"], true);
+    assert_eq!(signal["local_submission_only"], true);
+    assert_eq!(signal["signal_source"], "uctp-native");
+    let recipients = signal["recipients"].as_array().unwrap();
+    assert_eq!(recipients.len(), 1);
+    assert_eq!(recipients[0]["disposition"], "outcome_unknown");
+    let packets = peer.info.lock().unwrap().clone();
+    assert_eq!(
+        packets.len(),
+        1,
+        "INFO refusal must stop the original suffix"
+    );
+    let Message::Request(request) = parse_message(&packets[0]).unwrap() else {
+        panic!()
+    };
+    assert_eq!(
+        std::str::from_utf8(&request.body).unwrap(),
+        "Signal=5\r\nDuration=100\r\n"
+    );
+    let db = rusqlite::Connection::open_with_flags(
+        &f.config.database,
+        rusqlite::OpenFlags::SQLITE_OPEN_READ_ONLY,
+    )
+    .unwrap();
+    assert_eq!(db.query_row("SELECT count(*) FROM native_dtmf_gateways g JOIN operations o ON o.record_id=g.operation_record_id WHERE o.operation_id=?1 AND g.attempted=1 AND g.disposition='outcome_unknown'",[operation],|r|r.get::<_,u64>(0)).unwrap(),1);
+    let replay = client
+        .send_native_dtmf(scope, "58#", 100, "info")
+        .await
+        .unwrap();
+    assert_eq!(replay.state, stopped.state);
+    assert_eq!(replay.problem, stopped.problem);
+    tokio::time::sleep(Duration::from_millis(200)).await;
+    assert_eq!(peer.info.lock().unwrap().len(), 1);
+    assert_eq!(peer.unique(), 1);
+    if let Some(path) = std::env::var_os("CONNECT_SIP_DTMF_FAILURE_OBSERVATIONS") {
+        use std::io::Write;
+        let path = std::path::PathBuf::from(path);
+        let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+            .parent()
+            .unwrap()
+            .parent()
+            .unwrap()
+            .join(".local/gate-6");
+        assert!(path.is_absolute() && path.starts_with(root));
+        let mut bytes = serde_json::to_vec(&json!({"algorithm":algorithm,"stopped":stopped,"sip_calls":peer.unique(),"info_packets":1})).unwrap();
         bytes.push(b'\n');
         std::fs::OpenOptions::new()
             .create(true)

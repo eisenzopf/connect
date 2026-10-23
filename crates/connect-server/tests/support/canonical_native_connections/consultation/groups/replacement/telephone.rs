@@ -43,6 +43,7 @@ struct PeerSip {
     calls: Arc<Mutex<Vec<String>>>,
     methods: Arc<Mutex<Vec<Method>>>,
     info: Arc<Mutex<Vec<Vec<u8>>>>,
+    reject_info: Arc<std::sync::atomic::AtomicBool>,
     reject_refresh: Arc<std::sync::atomic::AtomicBool>,
     ledger: Arc<Mutex<Option<std::path::PathBuf>>>,
     media: UdpSocket,
@@ -71,6 +72,8 @@ impl PeerSip {
         let methods = Arc::new(Mutex::new(Vec::new()));
         let info = Arc::new(Mutex::new(Vec::new()));
         let info_seen = info.clone();
+        let reject_info = Arc::new(std::sync::atomic::AtomicBool::new(false));
+        let info_rejected = reject_info.clone();
         let ledger = Arc::new(Mutex::new(None::<std::path::PathBuf>));
         let recorded = ledger.clone();
         let captured = calls.clone();
@@ -161,7 +164,11 @@ impl PeerSip {
                         info_seen.lock().unwrap().push(data[..n].to_vec());
                         rvoip_sip_dialog::transaction::utils::response_builders::create_response(
                             &request,
-                            StatusCode::Ok,
+                            if info_rejected.load(std::sync::atomic::Ordering::Acquire) {
+                                StatusCode::Forbidden
+                            } else {
+                                StatusCode::Ok
+                            },
                         )
                     }
                     Method::Cancel | Method::Bye => {
@@ -255,6 +262,7 @@ impl PeerSip {
             calls,
             methods,
             info,
+            reject_info,
             reject_refresh,
             ledger,
             media,

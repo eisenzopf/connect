@@ -45,6 +45,14 @@ redundant terminal packets. Both methods verify replay creates no extra tones.
 The independent receive-permission refusal runs through the same signed SDK.
 The fixture retains its existing marked duplex audio thresholds and cleanup.
 
+A further production case returns SIP403 after the first actual INFO. Both
+signing algorithms stop the original suffix, retain the reserved attempt as
+`outcome_unknown`, and recover the same uncertain journal result on replay
+without another packet. After the peer accepts INFO again, a fresh logical
+operation submits all three digits with a different schedule ID on that same
+call. This verifies local failure/recovery without claiming remote playback or
+retrying the uncertain operation.
+
 These checks qualify a bounded local macOS arm64 component. SIP-originated
 observations, established/replacement SIP legs, maximum-duration sequences,
 larger fanout, physical cancellation/revocation/recovery and remaining private
