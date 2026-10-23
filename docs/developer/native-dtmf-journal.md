@@ -86,6 +86,17 @@ grant. Mixed SIP/native DTMF execution, durable recipient custody and observed
 SIP/native provenance still require implementation and production verification;
 the Store reader alone does not qualify those clauses.
 
+`try_initial_telephone_native_signal_read` acquires the two sides together and
+rechecks the exact original public native/SIP pair under one merged authority
+interval. From the telephone Endpoint it requires `dtmf.send` plus the native
+party's `dtmf.receive`; toward that Endpoint the requirements are reversed.
+Both current recipient ceilings, physical credentials and original Session
+audiences still apply. Private consultation, preparation and suspended public
+publication contexts cannot use this public gateway reader. The pair retains
+no media grant and does not borrow `stream.subscribe` or `connection.offer`.
+Keep original origin metadata in a queue and acquire the reader at the actual
+signal boundary; release it before waiting for metadata writers.
+
 The signed native QUIC service installs a recipient registration on its actual
 physical handler and drives that handler's DTMF mux. The original source
 observation uses managed Core ingress. The Store selects current named signal

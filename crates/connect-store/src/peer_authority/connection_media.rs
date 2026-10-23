@@ -361,6 +361,34 @@ fn views_for(
     Ok((view, source, AuthorityScope::merged(&scopes)?, expires))
 }
 impl Store {
+    pub(crate) fn native_signal_facts_at(
+        &self,
+        c: &Connection,
+        origin: &NativeMediaOrigin,
+    ) -> Result<(PeerConnectionProjection, Vec<AuthorityScope>, i64)> {
+        facts_for(self, c, origin, ReadPurpose::Signal)
+    }
+    pub(crate) fn native_signal_read_in(
+        &self,
+        c: &Connection,
+        origin: &NativeMediaOrigin,
+        interval: Arc<AuthorityGuardSet>,
+        until: i64,
+    ) -> Result<NativeSignalRead> {
+        let (target, scopes, expiry) = self.native_signal_facts_at(c, origin)?;
+        let expires_at = expiry.min(until);
+        if !self.authority_covers(&interval, &scopes) || crate::now() >= expires_at {
+            return Err(Error::forbidden());
+        }
+        Ok(NativeSignalRead(NativeMediaRead {
+            target,
+            source: None,
+            _scopes: interval,
+            owner: current_owner(self, origin)?,
+            expires_at,
+            may_subscribe: false,
+        }))
+    }
     pub(crate) fn native_dtmf_pair_at(
         &self,
         c: &Connection,

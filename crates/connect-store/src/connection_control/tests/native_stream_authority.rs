@@ -5,6 +5,7 @@ use crate::{AuthorityWait, PeerAuthorityRequest, PeerCommand};
 use connect_protocol::native_streams::{Command, Intent};
 use std::time::Duration;
 mod flow_facts;
+mod sip_signal;
 
 fn parent(granted: bool, completed: bool) -> (Fixture, PeerAuthorityRequest, String) {
     parent_scoped(granted, completed, false)

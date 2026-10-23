@@ -10,7 +10,9 @@ macro_rules! media_redacted {
     })+};
 }
 mod signal;
-pub use signal::{InitialTelephoneSignalDirection, InitialTelephoneSignalRead};
+pub use signal::{
+    InitialTelephoneNativeSignalRead, InitialTelephoneSignalDirection, InitialTelephoneSignalRead,
+};
 
 pub struct InitialTelephoneAnswerCapture {
     signal: Arc<InitialTelephoneSignaling>,

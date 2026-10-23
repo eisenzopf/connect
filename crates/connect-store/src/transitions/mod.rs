@@ -7,8 +7,8 @@ pub(crate) mod provider_sessions;
 pub use initial_telephone::{
     InitialTelephoneAnswerCapture, InitialTelephoneAnswerRecorded, InitialTelephoneAttempt,
     InitialTelephoneMediaOrigin, InitialTelephoneMediaRead, InitialTelephoneNativeRead,
-    InitialTelephoneOrigin, InitialTelephonePolicy, InitialTelephoneRead,
-    InitialTelephoneReadyObservation, InitialTelephoneRuntimeObservation,
+    InitialTelephoneNativeSignalRead, InitialTelephoneOrigin, InitialTelephonePolicy,
+    InitialTelephoneRead, InitialTelephoneReadyObservation, InitialTelephoneRuntimeObservation,
     InitialTelephoneSignalDirection, InitialTelephoneSignalRead, InitialTelephoneSignaling,
     InitialTelephoneSource,
 };

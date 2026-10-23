@@ -25,6 +25,7 @@ pub struct InitialTelephoneSignalRead {
     owner: Arc<InstallationOwnership>,
     _interval: Arc<AuthorityGuardSet>,
     member: MemberView,
+    endpoint_actor: Actor,
     expires: i64,
 }
 media_redacted!(InitialTelephoneSignalRead);
@@ -61,18 +62,23 @@ impl Store {
         };
         let interval = self.try_acquire_authority(&required)?;
         let c = self.try_connection()?;
+        self.initial_telephone_signal_in(&c, origin, direction, interval, crate::now() + 30)
+    }
+    fn initial_telephone_signal_in(
+        &self,
+        c: &Connection,
+        origin: Arc<InitialTelephoneMediaOrigin>,
+        direction: InitialTelephoneSignalDirection,
+        interval: Arc<AuthorityGuardSet>,
+        until: i64,
+    ) -> Result<InitialTelephoneSignalRead> {
         if !self.authority_covers(
             &interval,
-            &current_scopes(&c, origin.signal.origin(), false)?,
+            &current_scopes(c, origin.signal.origin(), false)?,
         ) {
             return Err(Error::forbidden());
         }
-        let p = self.initial_telephone_projection(
-            &c,
-            &origin,
-            crate::now() + 30,
-            ProjectionPurpose::Signal,
-        )?;
+        let p = self.initial_telephone_projection(c, &origin, until, ProjectionPurpose::Signal)?;
         p.endpoint_actor.require(direction.permission())?;
         let connected: bool = c.query_row(
             "SELECT EXISTS(SELECT 1 FROM connections WHERE id=?1 AND generation=1 AND state IN ('ready','active') AND observed_runtime_id=?2 AND readiness_json IS NOT NULL)",
@@ -88,7 +94,86 @@ impl Store {
             owner: self.require_runtime_owner()?,
             _interval: interval,
             member: p.member,
+            endpoint_actor: p.endpoint_actor,
             expires: p.expires,
+        })
+    }
+}
+
+/// One complete authority interval for this exact public native/SIP pair.
+/// Queue metadata, never this reader. It supplies neither a durable attempt nor
+/// an actual transport observation, and cannot be converted into a media read.
+pub struct InitialTelephoneNativeSignalRead {
+    phone: InitialTelephoneSignalRead,
+    native: crate::NativeSignalRead,
+}
+media_redacted!(InitialTelephoneNativeSignalRead);
+impl InitialTelephoneNativeSignalRead {
+    pub fn current(&self) -> bool {
+        self.phone.current() && self.native.current()
+    }
+    pub fn phone(&self) -> &InitialTelephoneSignalRead {
+        &self.phone
+    }
+    pub fn native(&self) -> &crate::NativeSignalRead {
+        &self.native
+    }
+    pub fn expires_at(&self) -> i64 {
+        self.phone.expires_at()
+    }
+}
+impl Store {
+    /// Acquire both sides together, then recheck current named permissions,
+    /// original audiences and exact physical identities inside the same fence.
+    pub fn try_initial_telephone_native_signal_read(
+        &self,
+        phone: Arc<InitialTelephoneMediaOrigin>,
+        native: Arc<crate::NativeMediaOrigin>,
+        direction: InitialTelephoneSignalDirection,
+    ) -> Result<InitialTelephoneNativeSignalRead> {
+        let source = phone.source();
+        if native.conversation_id() != source.request.conversation_id
+            || native.session_id() != source.request.session_id
+            || native.participant_id() == source.target.participant_id
+        {
+            return Err(Error::forbidden());
+        }
+        let c = self.try_connection()?;
+        let (_, mut required, _) = self.native_signal_facts_at(&c, &native)?;
+        required.extend(current_scopes(&c, phone.signal.origin(), false)?);
+        let interval = self.try_acquire_authority(&AuthorityScope::merged(&required)?)?;
+        let (_, _, until) = self.native_signal_facts_at(&c, &native)?;
+        let phone = self.initial_telephone_signal_in(
+            &c,
+            phone,
+            direction,
+            interval.clone(),
+            until.min(crate::now() + 30),
+        )?;
+        let native_read = self.native_signal_read_in(&c, &native, interval, phone.expires_at())?;
+        let view = native_read.target();
+        let actor = self.native_media_route_actor(&c, &native)?;
+        actor.require(match direction {
+            InitialTelephoneSignalDirection::FromTelephone => "dtmf.receive",
+            InitialTelephoneSignalDirection::ToTelephone => "dtmf.send",
+        })?;
+        if !phone.current()
+            || !native_read.current()
+            || view.private_consultation.is_some()
+            || view.handoff_preparation
+            || view.publication_suspended
+            || !view.session.session.media.iter().any(|m| m == "audio")
+            || !view.endpoint_capabilities.iter().any(|m| m == "audio")
+            || !actor.permits_recipient(&phone.member.identity_id)
+            || !phone
+                .endpoint_actor
+                .permits_recipient(&view.session.actor.identity_id)
+        {
+            return Err(Error::forbidden());
+        }
+        Ok(InitialTelephoneNativeSignalRead {
+            phone,
+            native: native_read,
         })
     }
 }
