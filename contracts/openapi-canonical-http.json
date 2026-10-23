@@ -406,7 +406,7 @@
           "limits": "Implementation verification in progress under G6-046. Full Session grace, promotion/restart/loss matrix and browser/SIP/remote qualifications remain separate."
         },
         "x-session-started": {
-          "source": "Schema93 first public verified native flow, Active Session, immutable original snapshot and per-Participant journal rows commit atomically. Acceptance and negotiation alone do not start a Session.",
+          "source": "Schema93 initial activation waits for independently observed current public readiness covering every accepted Participant. Several ready Connections for one Participant do not cover another. The last required native observation, Active phase, immutable ready-Connection snapshot and per-Participant journal rows commit atomically. Acceptance and negotiation alone do not start a Session.",
           "payload": "Original started_at, admitted participants_present, observed active_connections with connid/participant_id/transport, and actual negotiated_capabilities. Later topology and replay do not rewrite the snapshot.",
           "delivery": "Bounded unsolicited native multicast independently reauthorizes each current physical recipient credential, signing key, Device, source, membership epoch and recipient ceiling. No media Connection or subscription is required. No connid/operation_id/in_reply_to envelope scope.",
           "http": "Finite conversation.subscribe catch-up includes the original session.started before its conversation.event, correlated to the subscription request. Journal recovery applies current source and epoch access.",

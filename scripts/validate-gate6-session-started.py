@@ -30,7 +30,8 @@ for path in paths:
     assert fact['session']['state'] == 'active' and sample['terminal_state'] == 'ended'
     assert fact['session']['revision'] == event['revision']
     assert len(payload['participants_present']) == 2
-    assert len(payload['active_connections']) == 1
+    assert len(payload['active_connections']) == 2
+    assert {c['participant_id'] for c in payload['active_connections']} == set(payload['participants_present'])
     assert sample['recipient_connections'] == 0
     assert sample['narrow_scope_barrier']['type'] == 'ack'
     assert datetime.datetime.fromisoformat(payload['started_at'].replace('Z', '+00:00')).timestamp() == fact['started_at']
@@ -38,9 +39,8 @@ for path in paths:
     for field in ['participants_present', 'active_connections', 'negotiated_capabilities']:
         assert payload[field] == fact[field]
     assert payload['negotiated_capabilities']['audio_codecs'][0]['name'] == 'g.711-mu'
-    assert payload['active_connections'][0]['participant_id'] in payload['participants_present']
-    assert payload['active_connections'][0]['connid'] == 'started-connection'
-    assert payload['active_connections'][0]['transport'] == 'quic'
+    assert {c['connid'] for c in payload['active_connections']} == {'started-connection', 'accepted-peer-bootstrap'}
+    assert all(c['transport'] == 'quic' for c in payload['active_connections'])
     typed = [e for e in sample['catchup'] if e['type'] == 'session.started']
     assert len(typed) == 1 and typed[0]['payload'] == payload and typed[0]['in_reply_to']
     print(f'{sample["algorithm"]}: original native start, narrow-scope refusal and terminal HTTP recovery verified')

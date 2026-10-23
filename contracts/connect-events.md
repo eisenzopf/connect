@@ -25,18 +25,30 @@ operation retry cannot be used to pin an indefinitely stale authorized snapshot.
 
 ## Session start
 
-Schema93 atomically commits the first verified public native flow observation,
-the Session's Active phase, an immutable `session_started` fact and one journal
-row per admitted present Participant. Negotiation and acceptance alone do not
-start the Session. A storage failure rolls the entire transaction back; metadata
-retry uses the existing observed flow without submitting more media.
+Initial activation requires a current ready public Connection for every accepted
+Participant. Multiple Connections for one Participant cannot cover another
+Participant. The native source is an independently observed direction-appropriate
+flow under its original installed lifetime; provisional readiness JSON and
+negotiation alone cannot satisfy it. Private candidates, retired generations,
+foreign runtime rows and sources without current authority do not supply public
+readiness. Pending invitees do not count as accepted Participants.
+
+Schema93 atomically commits the last required native observation, the Session's
+Active phase, an immutable `session_started` fact with the observed ready public
+Connections, and one journal row per admitted present Participant. A storage
+failure rolls that transaction back; metadata retry uses the existing observed
+flow without submitting more media. Once started, the separate last-Connection
+loss and permitted-negotiation grace rules govern the Session; a later invitation
+does not rewrite its original start.
 
 `session.started` carries CID/SID, original `started_at`, `participants_present`,
 `active_connections` with Connection ID, Participant ID and transport, and actual
 `negotiated_capabilities`. An unsolicited native hint has no Connection scope,
 operation ID or reply correlation. Each current authenticated recipient route
-is independently authorized immediately before writing; no media Connection or
-subscription is needed. A narrow recipient ceiling cannot expose the snapshot.
+is independently authorized immediately before writing. That physical recipient
+route needs no media Connection or subscription of its own; another current
+Device may supply readiness for the same accepted Participant. A narrow recipient
+ceiling cannot expose the snapshot.
 Finite HTTP/native journal catch-up also emits the original typed hint before
 its cursor-bearing event, with the subscription's reply correlation.
 

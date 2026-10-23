@@ -29,6 +29,50 @@ pub(super) async fn flow(client: &CanonicalClient, handle: u16, start: u32) {
         tokio::time::sleep(Duration::from_millis(20)).await;
     }
 }
+// Every accepted Participant supplies real readiness before initial activation.
+// The independent Device can then end its Connection; logical presence remains.
+pub(super) async fn cover_accepted_peer(
+    f: &Fixture,
+    cid: &str,
+    observer: Option<&mut CanonicalClient>,
+) -> CanonicalClient {
+    let config = party_with_streams(f, &f.peer.identity_id, 237, true);
+    let mut client = CanonicalClient::open(config.clone()).await.unwrap();
+    let handle = media(&mut client, cid, "accepted-peer-bootstrap").await;
+    wait_native_operation(f, &config.credential, cid, "accepted-peer-bootstrap-offer").await;
+    flow(&client, handle, 1).await;
+    if let Some(observer) = observer {
+        let joined = peer_event(observer, "session.participant.joined", cid).await;
+        assert_eq!(
+            joined.original()["payload"]["via_connection"],
+            "accepted-peer-bootstrap"
+        );
+        assert_eq!(
+            joined.original()["payload"]["participant"]["identity_id"],
+            f.peer.identity_id
+        );
+    }
+    client
+}
+pub(super) async fn end_coverage(
+    client: &mut CanonicalClient,
+    cid: &str,
+    observer: Option<&mut CanonicalClient>,
+) {
+    end_native_connection(
+        client,
+        cid,
+        "accepted-peer-bootstrap",
+        "accepted-peer-bootstrap-end",
+        None,
+        "completed",
+    )
+    .await;
+    if let Some(observer) = observer {
+        peer_event(observer, "session.participant.left", cid).await;
+    }
+    client.close();
+}
 async fn peer_event(peer: &mut CanonicalClient, kind: &str, cid: &str) -> Envelope {
     let event = peer.receive().await.unwrap();
     assert_eq!(event.kind(), kind, "{:?}", event.original());
@@ -79,10 +123,11 @@ async fn production_participant_presence_joins_once_across_connections_and_leave
             .unwrap()
             .cursor;
         let db = rusqlite::Connection::open(&f.config.database).unwrap();
+        let mut coverage = cover_accepted_peer(&f, &cid, Some(&mut peer)).await;
         let first = media(&mut source, &cid, "presence-first").await;
         quiet(&mut peer).await;
         assert_eq!(
-            db.query_row("SELECT COUNT(*) FROM session_participant_facts", [], |r| {
+            db.query_row("SELECT COUNT(*) FROM session_participant_facts WHERE participant_id=(SELECT participant_id FROM participants WHERE identity_id=?1 AND active=1)", [&f.client.identity_id], |r| {
                 r.get::<_, u64>(0)
             })
             .unwrap(),
@@ -91,6 +136,7 @@ async fn production_participant_presence_joins_once_across_connections_and_leave
         flow(&source, first, 1).await;
         let started = peer_event(&mut peer, "session.started", &cid).await;
         let joined = peer_event(&mut peer, "session.participant.joined", &cid).await;
+        end_coverage(&mut coverage, &cid, Some(&mut peer)).await;
         let participant = joined.original()["payload"]["participant"].clone();
         let pid = participant["participant_id"].as_str().unwrap().to_owned();
         assert_eq!(participant["identity_id"], f.client.identity_id);
@@ -100,7 +146,7 @@ async fn production_participant_presence_joins_once_across_connections_and_leave
             joined.original()["payload"]["via_connection"],
             "presence-first"
         );
-        let original:String=db.query_row("SELECT fact_json FROM session_participant_facts WHERE kind='session_participant_joined'",[],|r|r.get(0)).unwrap();
+        let original:String=db.query_row("SELECT fact_json FROM session_participant_facts WHERE kind='session_participant_joined' AND participant_id=(SELECT participant_id FROM participants WHERE identity_id=?1 AND active=1)",[&f.client.identity_id],|r|r.get(0)).unwrap();
         let original_id = serde_json::from_str::<Value>(&original).unwrap()["data"]["fact_id"]
             .as_str()
             .unwrap()
@@ -109,7 +155,7 @@ async fn production_participant_presence_joins_once_across_connections_and_leave
         flow(&source, second, 101).await;
         quiet(&mut peer).await;
         assert_eq!(
-            db.query_row("SELECT COUNT(*) FROM session_participant_facts", [], |r| {
+            db.query_row("SELECT COUNT(*) FROM session_participant_facts WHERE participant_id=(SELECT participant_id FROM participants WHERE identity_id=?1 AND active=1)", [&f.client.identity_id], |r| {
                 r.get::<_, u64>(0)
             })
             .unwrap(),
@@ -127,7 +173,7 @@ async fn production_participant_presence_joins_once_across_connections_and_leave
         wait_slots(&f, 1).await;
         quiet(&mut peer).await;
         assert_eq!(
-            db.query_row("SELECT COUNT(*) FROM session_participant_facts", [], |r| {
+            db.query_row("SELECT COUNT(*) FROM session_participant_facts WHERE participant_id=(SELECT participant_id FROM participants WHERE identity_id=?1 AND active=1)", [&f.client.identity_id], |r| {
                 r.get::<_, u64>(0)
             })
             .unwrap(),
@@ -219,6 +265,10 @@ async fn production_participant_presence_joins_once_across_connections_and_leave
             .frames
             .iter()
             .filter(|e| {
+                e.original()["payload"]["participant"]["participant_id"] == pid
+                    || e.original()["payload"]["participant_id"] == pid
+            })
+            .filter(|e| {
                 matches!(
                     e.kind(),
                     "session.participant.joined" | "session.participant.left"
@@ -242,11 +292,15 @@ async fn production_participant_presence_joins_once_across_connections_and_leave
             .filter_map(|e| {
                 let event: connect_protocol::events::JournalEvent =
                     serde_json::from_value(e.original()["payload"]["data"].clone()).unwrap();
-                if matches!(
-                    event.data,
-                    connect_protocol::events::JournalData::SessionParticipantJoined(_)
-                        | connect_protocol::events::JournalData::SessionParticipantLeft(_)
-                ) {
+                if match &event.data {
+                    connect_protocol::events::JournalData::SessionParticipantJoined(fact) => {
+                        fact.participant.participant_id == pid
+                    }
+                    connect_protocol::events::JournalData::SessionParticipantLeft(fact) => {
+                        fact.participant_id == pid
+                    }
+                    _ => false,
+                } {
                     Some(event)
                 } else {
                     None
@@ -288,10 +342,12 @@ async fn production_reconnect_grace_preserves_same_session_ignores_silence_and_e
             .await
             .unwrap()
             .cursor;
+        let mut coverage = cover_accepted_peer(&f, &cid, Some(&mut peer)).await;
         let first = media(&mut source, &cid, "grace-first").await;
         flow(&source, first, 1).await;
         peer_event(&mut peer, "session.started", &cid).await;
         peer_event(&mut peer, "session.participant.joined", &cid).await;
+        end_coverage(&mut coverage, &cid, Some(&mut peer)).await;
         tokio::time::sleep(Duration::from_millis(2200)).await;
         quiet(&mut peer).await;
         let db = rusqlite::Connection::open(&f.config.database).unwrap();
@@ -428,10 +484,12 @@ async fn production_default_thirty_second_loss_grace_ends_once_and_requires_new_
         ))
         .await
         .unwrap();
+        let mut coverage = cover_accepted_peer(&f, &cid, Some(&mut peer)).await;
         let first = media(&mut source, &cid, "default-grace-first").await;
         flow(&source, first, 1).await;
         peer_event(&mut peer, "session.started", &cid).await;
         peer_event(&mut peer, "session.participant.joined", &cid).await;
+        end_coverage(&mut coverage, &cid, Some(&mut peer)).await;
         end_native_connection(
             &mut source,
             &cid,
@@ -572,10 +630,12 @@ async fn production_current_native_offer_in_flight_survives_grace_and_reconnects
         ))
         .await
         .unwrap();
+        let mut coverage = cover_accepted_peer(&f, &cid, Some(&mut peer)).await;
         let first = media(&mut source, &cid, "pending-first").await;
         flow(&source, first, 1).await;
         peer_event(&mut peer, "session.started", &cid).await;
         peer_event(&mut peer, "session.participant.joined", &cid).await;
+        end_coverage(&mut coverage, &cid, Some(&mut peer)).await;
         end_native_connection(
             &mut source,
             &cid,
@@ -668,6 +728,7 @@ async fn production_confirmed_loss_deadline_survives_owned_listener_restart_and_
             .await
             .unwrap()
             .cursor;
+        let mut coverage = cover_accepted_peer(&f, &cid, None).await;
         let first = media(&mut source, &cid, "restart-grace-first").await;
         flow(&source, first, 1).await;
         let db = rusqlite::Connection::open(&f.config.database).unwrap();
@@ -685,6 +746,7 @@ async fn production_confirmed_loss_deadline_survives_owned_listener_restart_and_
             assert!(tokio::time::Instant::now() < until);
             tokio::time::sleep(Duration::from_millis(20)).await;
         }
+        end_coverage(&mut coverage, &cid, None).await;
         end_native_connection(
             &mut source,
             &cid,

@@ -20,8 +20,9 @@ pub trait NativeConnectionFlowObservation: Send + Sync {
 impl Store {
     /// Persist the first real flow observation for this original incarnation.
     /// Read custody is independently reacquired by the caller; this method
-    /// never calls Core, sends a hint or grants IO. The first public ready
-    /// observation atomically activates its Session and journals the original start.
+    /// never calls Core, sends a hint or grants IO. A public observation joins
+    /// its appearance; Session activation waits for current observed public
+    /// readiness covering every accepted Participant.
     pub fn record_native_connection_flow(
         &self,
         origin: &NativeMediaOrigin,
@@ -109,6 +110,7 @@ impl Store {
         if observation.observe()? != fact || !read.current() {
             return Err(Error::forbidden());
         }
+        self.remember_session_ready_origin(&tx, origin)?;
         if view.private_consultation.is_none()
             && !view.handoff_preparation
             && !view.publication_suspended

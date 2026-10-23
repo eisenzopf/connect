@@ -274,7 +274,10 @@ pub(crate) fn read(
             return Err(Error::forbidden());
         }
         if kind == "session_participant_joined"
-            && crate::session_control::view(c, cid, sid)?.state != "active"
+            && !matches!(
+                crate::session_control::view(c, cid, sid)?.state.as_str(),
+                "accepted" | "ready" | "active"
+            )
         {
             return Err(Error::forbidden());
         }

@@ -534,6 +534,15 @@ impl Store {
         }
         Ok(current_owner(self, origin)?.current() && crate::now() < expiry)
     }
+    /// Resolve metadata with the same current origin checks as native IO.
+    /// No authority reader or executable media handle is returned.
+    pub(crate) fn native_session_readiness_projection(
+        &self,
+        c: &Connection,
+        origin: &NativeMediaOrigin,
+    ) -> Result<PeerConnectionProjection> {
+        facts(self, c, origin).map(|(view, _, _)| view)
+    }
     /// Immediate fresh packet admission. Refuse contention instead of waiting
     /// under engine fences. Resolve again after acquiring the complete scope set.
     pub fn try_native_media_read(
@@ -555,6 +564,10 @@ impl Store {
         let owner = current_owner(self, target)?;
         if crate::now() >= expires_at {
             return Err(Error::forbidden());
+        }
+        self.remember_session_ready_origin(&c, target)?;
+        if let Some(source) = source {
+            self.remember_session_ready_origin(&c, source)?;
         }
         Ok(NativeMediaRead {
             target: target_view,

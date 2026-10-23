@@ -1,5 +1,6 @@
 //! Controlled attribution/rollback fixtures; production owns actual IO proof.
 use super::*;
+mod activation;
 struct Observation(crate::NativeConnectionFlowFact);
 impl crate::NativeConnectionFlowObservation for Observation {
     fn observe(&self) -> crate::Result<crate::NativeConnectionFlowFact> {
@@ -44,7 +45,7 @@ fn original_flow_fact_is_immutable_and_recapture_does_not_create_effects_or_rewr
         (f.count("operations"), f.count("operation_effects")),
         (before.0, before.1)
     );
-    assert_eq!(f.count("session_started_facts"), 1);
+    assert_eq!(f.count("session_started_facts"), 0); // Other accepted Participants are not ready.
     let starts: u64 = f
         .store
         .connection()
@@ -132,6 +133,12 @@ fn flow_fact_failure_rolls_back_and_original_source_can_recover_after_storage_re
 #[test]
 fn session_start_failure_rolls_back_readiness_phase_and_journal_then_recovers_one_original_fact() {
     let (f, request, _, origin) = parent_permissions_origin(true, true, false, false, true);
+    // The other accepted Participants have observed Connections. This last
+    // source is the one that can now atomically start the Session.
+    for actor in 1..4 {
+        let peer = activation::completed_peer(&f, actor);
+        activation::record(&f, &peer);
+    }
     let read = f.store.try_native_media_read(&origin, None).unwrap();
     let first = observed(&origin);
     f.store.connection().unwrap().execute_batch("CREATE TRIGGER fail_started BEFORE INSERT ON journal WHEN NEW.kind='session_started' BEGIN SELECT RAISE(ABORT,'isolated start failure'); END;").unwrap();
@@ -140,7 +147,7 @@ fn session_start_failure_rolls_back_readiness_phase_and_journal_then_recovers_on
         .store
         .record_native_connection_flow(&origin, &read, &first)
         .is_err());
-    assert_eq!(f.count("native_connection_flow_facts"), 0);
+    assert_eq!(f.count("native_connection_flow_facts"), 3);
     assert_eq!(f.count("session_started_facts"), 0);
     assert_eq!(f.count("journal"), before);
     assert_ne!(
@@ -164,10 +171,11 @@ fn session_start_failure_rolls_back_readiness_phase_and_journal_then_recovers_on
         .unwrap();
     assert_eq!(original.session.state, "active");
     assert!(audience.len() > 1);
-    assert_eq!(
-        original.active_connections[0].connid,
-        origin.connection_id()
-    );
+    assert_eq!(original.active_connections.len(), 4);
+    assert!(original
+        .active_connections
+        .iter()
+        .any(|c| c.connid == origin.connection_id()));
     let mut delivery = request.clone();
     delivery.command = PeerCommand::SessionStartedRead {
         conversation_id: origin.conversation_id().into(),
@@ -247,18 +255,16 @@ fn participant_join_failure_is_atomic_and_original_facts_survive_role_changes_an
         .record_native_connection_flow(&origin, &read, &fact)
         .unwrap();
     let page = f.store.session_lifecycle_hint_page(0).unwrap();
-    assert_eq!(page.len(), 2);
-    assert!(matches!(
-        page[0].2,
-        connect_protocol::events::JournalData::SessionStarted(_)
-    ));
-    let connect_protocol::events::JournalData::SessionParticipantJoined(joined) = &page[1].2 else {
+    assert_eq!(page.len(), 1);
+    // An actual Participant join precedes activation while other accepted
+    // Participants still lack ready Connections.
+    let connect_protocol::events::JournalData::SessionParticipantJoined(joined) = &page[0].2 else {
         panic!("joined source");
     };
     assert_eq!(joined.via_connection, origin.connection_id());
     assert_eq!(joined.membership_epoch, origin.membership_epoch());
     assert_eq!(joined.participant.participant_id, origin.participant_id());
-    let original = page[1].2.clone();
+    let original = page[0].2.clone();
     let id = joined.fact_id.clone();
     request.command = PeerCommand::SessionParticipantFactRead {
         conversation_id: origin.conversation_id().into(),
@@ -318,9 +324,9 @@ fn participant_join_failure_is_atomic_and_original_facts_survive_role_changes_an
     }
     drop(c);
     let page = f.store.session_lifecycle_hint_page(0).unwrap();
-    assert_eq!(page.len(), 3);
-    assert_eq!(page[1].2, original);
-    let connect_protocol::events::JournalData::SessionParticipantLeft(left) = &page[2].2 else {
+    assert_eq!(page.len(), 2);
+    assert_eq!(page[0].2, original);
+    let connect_protocol::events::JournalData::SessionParticipantLeft(left) = &page[1].2 else {
         panic!("left source");
     };
     assert_eq!(left.reason, "all-connections-ended");
@@ -392,7 +398,7 @@ fn lifecycle_hint_metadata_poll_does_not_take_the_foreground_connection_mutex() 
         let result = receive.recv_timeout(Duration::from_secs(1));
         drop(held);
         assert!(result.is_ok(),"background hint metadata must not occupy or wait for the foreground media/control SQL mutex");
-        assert_eq!(result.unwrap().unwrap().len(), 2);
+        assert_eq!(result.unwrap().unwrap().len(), 1);
     });
 }
 
@@ -417,11 +423,18 @@ fn started_fixture() -> (
     std::sync::Arc<crate::NativeMediaOrigin>,
 ) {
     let (f, request, _, origin) = parent_permissions_origin(true, true, true, false, true);
+    for actor in 1..4 {
+        let peer = activation::completed_peer(&f, actor);
+        activation::record(&f, &peer);
+    }
     let read = f.store.try_native_media_read(&origin, None).unwrap();
     f.store
         .record_native_connection_flow(&origin, &read, &observed(&origin))
         .unwrap();
     drop(read);
+    // Controlled prior departures leave this established fixture with one
+    // remaining live Connection for the last-Connection grace tests.
+    f.store.connection().unwrap().execute("UPDATE connections SET state='retired',generation=generation+1 WHERE session_id='session' AND id!=?1",[origin.connection_id()]).unwrap();
     (f, request, origin)
 }
 fn pending_offer(f: &Fixture, request: &crate::PeerAuthorityRequest) -> String {

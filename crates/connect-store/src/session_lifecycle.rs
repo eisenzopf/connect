@@ -9,6 +9,7 @@ use connect_protocol::{
     Error, Result,
 };
 use rusqlite::{params, Connection, OptionalExtension};
+mod readiness;
 
 pub(crate) fn start(
     c: &Connection,
@@ -49,6 +50,22 @@ pub(crate) fn start(
     }) {
         return Err(Error::forbidden());
     }
+    let ready = readiness::native(c, store, origin.session_id())?;
+    if audience.iter().any(|member| {
+        !ready.iter().any(|(pid, epoch, _)| {
+            pid == &member.participant_id && *epoch == member.membership_epoch
+        })
+    }) {
+        // Accepted presence and provisional ready JSON cannot stand in for an
+        // observed current public Connection for every accepted Participant.
+        return Ok(());
+    }
+    if ready.len() > 256 || audience.len() > 256 {
+        return Err(Error::new(
+            "capacity-exceeded",
+            "Session activation snapshot exceeds the wire bound",
+        ));
+    }
     if !crate::conversations::capacity(c, audience.len() as u64, 0, store)? {
         return Err(Error::new(
             "capacity-exceeded",
@@ -59,16 +76,14 @@ pub(crate) fn start(
     // requirements as accepted/ready. Existing source readers fence affected
     // authority; no write grant is reentered while that reader is held.
     c.execute("UPDATE sessions SET state='active',updated_at=?2 WHERE id=?1 AND state IN ('accepted','ready')",params![origin.session_id(),crate::now()]).map_err(|_|Error::storage())?;
-    let transport: String = c.query_row("SELECT e.transport FROM connections n JOIN endpoints e ON e.id=n.endpoint_id WHERE n.id=?1",[origin.connection_id()],|r|r.get(0)).map_err(|_|Error::storage())?;
     let fact = SessionStarted {
         session: crate::session_control::view(c, origin.conversation_id(), origin.session_id())?,
         started_at: flow.observed_at_millis / 1000,
         participants_present: audience.iter().map(|m| m.participant_id.clone()).collect(),
-        active_connections: vec![SessionActiveConnection {
-            connid: origin.connection_id().into(),
-            participant_id: origin.participant_id().into(),
-            transport,
-        }],
+        active_connections: ready
+            .into_iter()
+            .map(|(_, _, connection)| connection)
+            .collect(),
         negotiated_capabilities: flow.negotiated_capabilities.clone(),
     };
     let raw = serde_json::to_string(&fact).map_err(|_| Error::storage())?;

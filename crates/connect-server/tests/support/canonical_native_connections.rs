@@ -33,6 +33,8 @@ mod public_assistant;
 mod quality;
 #[path = "canonical_native_connections/selector_policy.rs"]
 mod selector_policy;
+#[path = "canonical_native_connections/session_activation.rs"]
+mod session_activation;
 #[path = "canonical_native_connections/session_codecs.rs"]
 mod session_codecs;
 #[path = "canonical_native_connections/solo.rs"]

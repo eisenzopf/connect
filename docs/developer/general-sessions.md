@@ -18,6 +18,21 @@ follow their original durable order. The local verification scope is recorded
 in [Session reconnect evidence](../evidence/gate-6/auxiliary-session-reconnect.json)
 and [the owned invitation-to-record journey](../evidence/gate-6/auxiliary-session-record-journey.json).
 
+Initial native Session activation waits for a current observed public Connection
+for every accepted Participant. Several ready Connections for one Participant do
+not cover another. Acceptance, pending negotiation and provisional ready JSON
+alone leave the Session accepted. After activation, the separate last-Connection
+and reconnect-grace rules still apply. A second authenticated Device can supply
+readiness for a Participant whose notification-only physical peer has no media.
+
+A real ready Participant can join while the Session waits for the other accepted
+Participants. Such a joined observation does not claim that the Session is Active.
+Explicit subscriptions are permitted during the accepted phase, allowing a
+receive-only Connection to establish its required flow before initial activation.
+The current predicate and native integration checks are in progress under
+G6-046; mixed SIP/transport readiness and the complete phase-transition matrix
+remain required work.
+
 The current signed native and explicit HTTP clients expose
 `session_command(session_control::Request)`. They use the same canonical service,
 current authorization and operation ledger. General control and the local native multi-participant coordinator are installed. See [canonical HTTP](canonical-http.md) and the generated
