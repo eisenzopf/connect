@@ -1,7 +1,7 @@
 {
   "task": "G6-046",
   "title": "Fresh native packet snapshots through immediate authority admission",
-  "recorded_at": "2026-10-23T23:55:59.613028+00:00",
+  "recorded_at": "2026-10-23T23:59:03.823827+00:00",
   "status": "component-verified; full-fifty-fanout-open",
   "full_task_complete": false,
   "full_goal_complete": false,
@@ -214,10 +214,11 @@
   },
   "failure_provenance": [
     "Before this Store optimization, a source173 diagnostic run passed all50 publisher lifecycle sets,99 actual admissions, zero implicit marked media, and all49 explicit subscriptions. Actual49-way marked media still failed: every receiver count0. All99 egress resource configurations were present; receive-only targets were sink-ready. All245 logged egress refusals were Deadline, before actual transport IO.",
-    "An earlier subscriber49 engine-plan Conflict did not repeat in the two following full runs. Its cause remains unproven; it is not silently retried or called resolved."
+    "An earlier subscriber49 engine-plan Conflict did not repeat in the two following full runs. Its cause remains unproven; it is not silently retried or called resolved.",
+    "The first full50 retest of2b3969c0 failed earlier, after30.86seconds:24 of50 publisher flow facts were present after initial concurrent input, and original-peer recovery of publisher5 exceeded its unchanged3second bound. Its durable Connection remained ready/current; fresh packet probes repeatedly refused authority-busy. No receive-only negotiation, subscriptions, fanout or ES256 scene was reached in this retest. This is an unresolved full-scale contention failure, not a pass or evidence that delivery deadlines improved."
   ],
   "unresolved": [
-    "The new Store optimization has not yet completed a full50 retest at this checkpoint. The uncommitted full50 producer and validator are not credited or included as completed work.",
+    "The full50 retest remains red at publisher readiness under SQL contention. Inspect packet/background readiness and lifetime authority scheduling before claiming a scaling improvement. The uncommitted full50 producer and validator are not credited or included as completed work.",
     "Complete both signing algorithms,49-way delivery, future publication to33 retained Participant selectors with16 exact-ID exclusions, source end/replay, unsubscribe/replay and departure/removal, then validate successful captures.",
     "G6-046 remains58/61 clauses;0112/0113/0123 remain open and overall45/105 tasks complete. This checkpoint does not qualify full workspace, Linux/browser/remote/provider profiles, acceptance or publication."
   ]
