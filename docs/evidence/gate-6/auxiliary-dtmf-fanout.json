@@ -1,0 +1,317 @@
+{
+  "task": "G6-046",
+  "status": "in-progress",
+  "component_passed": true,
+  "full_task_complete": false,
+  "full_goal_complete": false,
+  "executed_at": "2026-10-23T14:42:08.443830+00:00",
+  "implementation_commit": "e87c2541fcca4d77f51e823b2f5be087dc8aa5b6",
+  "host": "Darwin arm64",
+  "schema_version": 100,
+  "source_lock_patches": 164,
+  "scope": "Bounded concurrent frozen native/SIP DTMF delivery, two actual initial SIP recipients, and metadata admission independent of the short native physical write budget. EdDSA/ES256, isolated macOS arm64.",
+  "rust_test_methods": 41,
+  "new_test_methods": 5,
+  "regression_test_methods": 36,
+  "results": [
+    {
+      "passed": 5,
+      "failed": 0,
+      "test_names": [
+        "v2::native_dtmf_writer::tests::native_denial_and_stale_physical_fence_preserve_healthy_writer_for_fresh_authorized_command",
+        "v2::native_dtmf_writer::tests::dropping_native_physical_write_future_destroys_sink_before_owned_signal_guard",
+        "v2::native_dtmf_writer::tests::pending_native_sink_cancellation_and_deadline_destroy_io_before_releasing_fresh_permission",
+        "v2::native_dtmf_writer::tests::native_metadata_wait_keeps_original_deadline_and_cancellation_before_io",
+        "v2::native_dtmf_writer::tests::native_metadata_wait_preserves_short_physical_budget_and_holds_no_permission"
+      ],
+      "log": {
+        "path": ".local/gate-6/dtmf-sip-fence/fanout/writer-current-164.log",
+        "sha256": "443b912495d06b4a8a5cfdc334064506b80432367c407c9e556cfd913b6d04f1"
+      }
+    },
+    {
+      "passed": 9,
+      "failed": 0,
+      "test_names": [
+        "actual_core_info_routes_exact_source_recipient_original_operation_and_body",
+        "actual_info_401_stops_sequence_and_never_replays_a_challenged_effect",
+        "actual_info_drop_cancel_deadline_and_source_retirement_stop_pending_transaction",
+        "actual_info_metadata_wait_preserves_original_deadline_cancel_and_fresh_wire_permission",
+        "actual_info_refuses_independent_permission_and_invalid_whole_intent_without_raw_fallback",
+        "actual_info_retransmission_preserves_quiet_time_before_the_next_digit",
+        "actual_info_revocation_between_digits_stops_suffix_under_original_operation",
+        "actual_info_revocation_between_timer_e_writes_stops_retransmission",
+        "actual_info_transport_retry_reacquires_permission_and_preserves_exact_transaction"
+      ],
+      "log": {
+        "path": ".local/gate-6/dtmf-sip-fence/fanout/info-current-164.log",
+        "sha256": "2eb5e9ecb5fd16805558503147e7bc79e0392ba14634d5a8e1b2edeb2c5d3f8c"
+      }
+    },
+    {
+      "passed": 17,
+      "failed": 0,
+      "test_names": [
+        "canonical_native_connections::dtmf::production_native_dtmf_cancel_after_partial_io_preserves_uncertainty_and_stops_remaining_work",
+        "canonical_native_connections::dtmf::production_native_dtmf_http_cannot_borrow_native_source_custody",
+        "canonical_native_connections::dtmf::production_native_dtmf_http_status_projects_actual_local_frame_summary",
+        "canonical_native_connections::dtmf::production_native_dtmf_metadata_contention_waits_without_io_readers_and_keeps_original_intent",
+        "canonical_native_connections::dtmf::production_native_dtmf_metadata_deadline_and_cancel_refuse_before_io_and_replay_no_effect",
+        "canonical_native_connections::dtmf::production_native_dtmf_partial_credit_write_records_unknown_without_replay_and_releases_control",
+        "canonical_native_connections::dtmf::production_native_dtmf_queued_during_another_sdk_command_keeps_actual_provenance_and_order",
+        "canonical_native_connections::dtmf::production_native_dtmf_recipient_revoke_waits_for_partial_io_and_preserves_other_recipient",
+        "canonical_native_connections::dtmf::production_native_dtmf_requires_named_receive_permission_without_borrowing_subscription",
+        "canonical_native_connections::dtmf::production_native_dtmf_restart_keeps_unrecorded_actual_submission_unknown_and_never_redelivers",
+        "canonical_native_connections::dtmf::production_native_dtmf_signed_sdk_delivery_and_replay_preserve_original_effects",
+        "canonical_native_connections::dtmf::production_native_dtmf_source_revoke_waits_for_partial_io_and_never_revives_original_work",
+        "canonical_native_connections::dtmf::production_native_dtmf_writer_fact_storage_failure_recovers_without_another_delivery",
+        "canonical_native_connections::dtmf::production_native_refresh_retains_actual_decoded_rtp_after_original_expiry",
+        "canonical_native_connections::dtmf::production_owned_audio_dtmf_uses_its_exact_source_and_preserves_queued_received_signals",
+        "canonical_native_connections::dtmf::production_owned_audio_refresh_keeps_signed_reader_and_current_signal_authority",
+        "canonical_native_connections::dtmf::production_owned_audio_signaling_refresh_survives_original_credential_expiry"
+      ],
+      "log": {
+        "path": ".local/gate-6/dtmf-sip-fence/fanout/native-current-164.log",
+        "sha256": "1418a90bf6c92d71482cfe19f303d8ab4f1970ad0232df6780400a3bdbadfa89"
+      }
+    },
+    {
+      "passed": 10,
+      "failed": 0,
+      "test_names": [
+        "canonical_native_connections::consultation::groups::replacement::telephone::initial::dtmf::fanout::production_native_dtmf_two_initial_sip_recipients_overlap_long_schedules_without_replay",
+        "canonical_native_connections::consultation::groups::replacement::telephone::initial::dtmf::fanout::production_native_dtmf_two_initial_sip_recipients_settle_partial_refusal_after_other_finishes",
+        "canonical_native_connections::consultation::groups::replacement::telephone::initial::dtmf::production_native_to_initial_sip_info_failure_keeps_uncertainty_without_replay_and_preserves_call",
+        "canonical_native_connections::consultation::groups::replacement::telephone::initial::dtmf::production_native_to_initial_sip_info_uses_original_call_and_never_replays",
+        "canonical_native_connections::consultation::groups::replacement::telephone::initial::dtmf::production_native_to_initial_sip_maximum_rfc4733_sequence_keeps_exact_duration_and_all_terminal_packets",
+        "canonical_native_connections::consultation::groups::replacement::telephone::initial::dtmf::production_native_to_initial_sip_requires_independent_named_receive_permission",
+        "canonical_native_connections::consultation::groups::replacement::telephone::initial::dtmf::production_native_to_initial_sip_rfc4733_uses_actual_negotiated_event_profile",
+        "canonical_native_connections::consultation::groups::replacement::telephone::initial::dtmf::stops::production_native_to_initial_sip_cancel_after_actual_info_stops_suffix_and_never_replays",
+        "canonical_native_connections::consultation::groups::replacement::telephone::initial::dtmf::stops::production_native_to_initial_sip_signal_only_authority_keeps_call_and_dtmf_without_rtp",
+        "canonical_native_connections::consultation::groups::replacement::telephone::initial::dtmf::stops::production_native_to_initial_sip_source_revocation_stops_next_digit_with_original_uncertainty"
+      ],
+      "log": {
+        "path": ".local/gate-6/dtmf-sip-fence/fanout/sip-current-164.log",
+        "sha256": "49e84f2dfa71caf8be798bbade7e3c145d7abbad105ef64c90c0ee134821f82b"
+      }
+    }
+  ],
+  "actual_sdk_summaries": {
+    "path": ".local/gate-6/dtmf-sip-fence/fanout/observations-164.jsonl",
+    "sha256": "084e0679c9f091f8fe44fa781ac84b383e1529831722ca0eb5595ac67682d24d"
+  },
+  "wire_validation": {
+    "passed": true,
+    "actual_sdk_summaries": 4,
+    "distinct_schedules": 8,
+    "scope": "Two actual initial SIP recipients; overlapping long RFC4733 schedules and partial INFO refusal for EdDSA/ES256.",
+    "signature_verification": "Producing SDK verifies signatures; this validator checks captured DTOs and HTTP/OpenAPI schema.",
+    "full_dtmf_clause_qualification": false
+  },
+  "long_schedule_elapsed_ms": {
+    "EdDSA": 12645,
+    "ES256": 12680
+  },
+  "long_schedule_first_packet_observed_ms": {
+    "EdDSA": [
+      125,
+      86
+    ],
+    "ES256": [
+      103,
+      85
+    ]
+  },
+  "verification": {
+    "dependencies": {
+      "path": ".local/gate-6/dtmf-sip-fence/fanout/prepare-final-164.log",
+      "sha256": "fd9d7b181e3ccba9b643af55a186cf132c60aac99c734b2ee4e4e549afe5ffc2"
+    },
+    "writer_build_and_tests": {
+      "path": ".local/gate-6/dtmf-sip-fence/fanout/writer-current-164.log",
+      "sha256": "443b912495d06b4a8a5cfdc334064506b80432367c407c9e556cfd913b6d04f1"
+    },
+    "service_test_support_build": {
+      "path": ".local/gate-6/dtmf-sip-fence/fanout/build-current-164.log",
+      "sha256": "180b95549d060ba9cea78f4848f6611f54296c67e365a03b104397f3745e0b9d"
+    },
+    "default_production_build": {
+      "path": ".local/gate-6/dtmf-sip-fence/fanout/build-default-164.log",
+      "sha256": "eb135d981ae56733b2eff0bf2630ac0254a50548176d3c9c75c4bb63b62d4a6b"
+    },
+    "upstream_format": {
+      "path": ".local/gate-6/dtmf-sip-fence/fanout/upstream-format-164.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "format": {
+      "path": ".local/gate-6/dtmf-sip-fence/fanout/format-164.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "http_reference": {
+      "path": ".local/gate-6/dtmf-sip-fence/fanout/http-reference-164.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "sdk_summaries": {
+      "path": ".local/gate-6/dtmf-sip-fence/fanout/validate-observations-164.log",
+      "sha256": "5c1fa5832ba143f8701c6723743f557106fde2568905a3ce92964fc65cb8057b"
+    },
+    "plan_integrity": {
+      "path": ".local/gate-6/dtmf-sip-fence/fanout/progress-164.log",
+      "sha256": "fedbc03549729d27ac031eee0766ae72281991ae1e9494232887c3160cf754cc"
+    }
+  },
+  "source_lock": {
+    "path": "dependencies/source-lock.json",
+    "sha256": "55b489b07339f6f5b9b807eaf12e257a6abb2f5d5293016d56dec36a233319fa"
+  },
+  "source_snapshot_files": 1402,
+  "source_snapshot": {
+    "path": ".local/gate-6/dtmf-sip-fence/fanout/inputs-164.json",
+    "sha256": "4d973c9829c20137791c0891785e7db6b1a48f41d4f67b3478090d810ff9840b"
+  },
+  "executables": [
+    {
+      "path": "target/debug/deps/gate6_canonical_runtime-c5619768adc4e4fb",
+      "sha256": "8fbf7cd3473d6b49fc25ddecb7367d2b21b733e77780f0b3c0d27fbfd653e327"
+    },
+    {
+      "path": "target/debug/deps/gate6_canonical_runtime-3bf705553dffa934",
+      "sha256": "1e1ba8f13a8db0c0bbd97d6ad7bc155e5825d7101a9114e8b9e1fce8fe964752"
+    },
+    {
+      "path": "target/debug/deps/rvoip_uctp-0b1cc0db289541ed",
+      "sha256": "af91e9ac768fab146f1a0afeb83082a9743205a100133193100f34fe6d971a22"
+    },
+    {
+      "path": "target/debug/deps/dtmf_info_route-f0355abd24848fda",
+      "sha256": "172b40cb384d43aff24832afba44140d666adb5f4e57cfa2b4d06c8dd2f92ac1"
+    }
+  ],
+  "prior_verified_components": [
+    "8751d965",
+    "81a9a600"
+  ],
+  "observations": [
+    "Before fanout change, the real two-call long-schedule fixture failed its18second bound after18.99seconds. Frozen recipients were delivered serially. Native and SIP schedules now overlap with at most Core64workers per batch; queued recipients retain only original metadata and expiry. No queued permission or writer lease is retained.",
+    "Parent settlement awaits every started worker, including physical lease destruction and captured outcome storage. A missing registration or failed worker does not abort another recipient. Current per-write authority, source/recipient/private audience, stable attempt and no adapter reexecution remain unchanged.",
+    "Both algorithms admit two separate verified telephone identities/Devices/Endpoints, original SIP dialogs and two distinct gateway schedules. Two6000ms RTP events per peer finish within18seconds, observed first packets are within1second, each terminal is exactly48000samples, and each event has at least3terminal packets. Replay emits no additional signal; both original dialogs retire on shutdown.",
+    "Actual INFO403 on one original dialog retains one uncertain attempt while the other dialog submits its healthy two-digit suffix. Shared state remainsunknown with both outcomes, one schedule each and no replay. INFO reports local submission, so no final tone playback wait is inferred.",
+    "A fresh native recovery signal failed during authority-busy metadata reservation, before any physical IO. The trace endedDeadlineBeforeWrite about200ms after acquire started. The native writer had incorrectly started DTMF_WRITE_DEADLINE before metadata admission. Pin163 keeps admission within the original native1second job deadline, then starts the unchanged200ms physical budget after fresh host lease acquisition. Original shorter source/job/cancellation/current permission still narrows actual IO; no logical operation or signed frame is retried.",
+    "Actual SIP INFO metadata admission also had the early200ms cutoff. Pin164 starts the short physical budget after fresh host admission within the original sequence deadline. The actual Core/two-SIP-dialog test holds an independent current permission writer for300ms, then proves one original INFO request and fresh permission, or original150ms expiry/cancellation with no late packet. All9 INFO route methods pass.",
+    "Two controlled writer tests cover300ms admission without readers/IO, successful fresh output, actual stalled-sink200ms cutoff and cleanup, original150ms deadline and cancellation refusal before IO. Existing physical partial-write/revocation/retirement tests remain active. All17actual native DTMF methods and all10initial SIP DTMF methods pass at164, including the exact30second maximum, cancellation, source revocation, signal-only permission, missingreceive and INFO failure/fresh-operation recovery."
+  ],
+  "retained_failures": [
+    {
+      "stage": "pin163 actual SIP fanout INFO",
+      "exit_code": 101,
+      "log": {
+        "path": ".local/gate-6/dtmf-sip-fence/fanout/sip-current-163.log",
+        "sha256": "c9858c52ff96375aaa3764e229768eeb380d0fce95e6db59e0c73d4b5500b1d1"
+      },
+      "passed": 9,
+      "failed": 1,
+      "reason": "After the native writer fix, the two-SIP-recipient INFO refusal case captured not_started for the healthy recipient andDeadlineBeforeWrite/touchedfalse. SIP INFO used the same physical200ms cutoff before metadata admission. Pin164 separates admission from actual write time, preserving original sequence expiry and fresh physical grants."
+    },
+    {
+      "stage": "serial baseline",
+      "exit_code": 101,
+      "log": {
+        "path": ".local/gate-6/dtmf-sip-fence/fanout/baseline.log",
+        "sha256": "316106b47f8152b23fefd9afd252425628ccbe276c51ca397c52a2969177adf5"
+      },
+      "inputs": {
+        "path": ".local/gate-6/dtmf-sip-fence/fanout/baseline-inputs.json",
+        "sha256": "00f9535b7c4ca956670fbb90c2909714a0a3eda4e06d9693cfae6a792adfaa4d"
+      }
+    },
+    {
+      "stage": "first fanout run",
+      "exit_code": 101,
+      "log": {
+        "path": ".local/gate-6/dtmf-sip-fence/fanout/first-fixed.log",
+        "sha256": "fcda13b57d7a91891d7817bed3d7cdce8df059924938d53e0492a31887c9166e"
+      },
+      "reason": "Long two-recipient method passed. Partial INFO fixture incorrectly required2seconds before local completion; changed to require the actual1070ms suffix submission gap and both physical INFO requests, not remote final tone playback."
+    },
+    {
+      "stage": "pin162 default native regression",
+      "exit_code": 101,
+      "log": {
+        "path": ".local/gate-6/dtmf-sip-fence/fanout/native-regression.log",
+        "sha256": "dc39fac54775f233a206ffbc8d5e671bbe1f4a217f2cfc3ce17582f22f6854c5"
+      },
+      "passed": 14,
+      "failed": 1
+    },
+    {
+      "stage": "pin162 support native regression",
+      "exit_code": 101,
+      "log": {
+        "path": ".local/gate-6/dtmf-sip-fence/fanout/native-support-regression.log",
+        "sha256": "980c29f5718d9dcf4fd075fd9cb2187e9fe7fde615f7f6501ca576d33b7713a6"
+      },
+      "passed": 16,
+      "failed": 1
+    },
+    {
+      "stage": "pin162 cancellation trace repeat",
+      "exit_code": 101,
+      "log": {
+        "path": ".local/gate-6/dtmf-sip-fence/fanout/cancel-debug-repeat-4.log",
+        "sha256": "8a2ec93c4cf2ceacb44c39902ec64bb4f91d4fc9a3a67a69584a5aa65c7c3bba"
+      },
+      "rehearsals": {
+        "path": ".local/gate-6/dtmf-sip-fence/fanout/cancel-debug-repeats.json",
+        "sha256": "890b9df56e91a5004cad4f6d211ebee1ba43dd519338caa4e8a2e137a0e4e89f"
+      },
+      "reason": "First3traced repeated methods passed; fourth failed with authority-busy frame reservation and200msDeadlineBeforeWrite/touchedfalse. Stopped the bounded diagnostic loop at that first failure. Do not count unchanged-source repetitions as new methods."
+    },
+    {
+      "stage": "root workspace upstream unit selection",
+      "exit_code": 101,
+      "log": {
+        "path": ".local/gate-6/dtmf-sip-fence/fanout/writer-unit-163.log",
+        "sha256": "45a14dfadff491917af8b0a604a71fea71a4dd0ed481a58389f4b685919af8ef"
+      },
+      "reason": "Upstream dependency requires its dev-dependencies; used its manifest and shared target directory for actual unit execution."
+    }
+  ],
+  "compiler_observation": {
+    "sample": {
+      "path": ".local/gate-6/dtmf-sip-fence/fanout/sip-compiler-sample.txt",
+      "sha256": "ca2284798e6cc67da33deb44dfa7bfd0fc7f6044aea27ee5c220d241474e2209"
+    },
+    "result": "Observed LLVM code generation during cold wider-SIP feature compilation. Build was preserved and completed; no cache retirement or interruption."
+  },
+  "dependency_installation": [
+    {
+      "path": ".local/gate-6/dtmf-sip-fence/fanout/install-163.json",
+      "sha256": "02daa5ed9afae1446591c073dd64564b55d3547203628d76a0d61a720cd21700"
+    },
+    {
+      "path": ".local/gate-6/dtmf-sip-fence/fanout/install-164.json",
+      "sha256": "dec4a56ce9c594bc50a957adc34fc7d76968eb939f65b64dd9a914bc735b6c59"
+    }
+  ],
+  "newly_qualified_case_ids": [],
+  "qualified_clause_count": 55,
+  "assigned_clause_count": 61,
+  "remaining_case_ids": [
+    "u6-req-0103",
+    "u6-req-0109",
+    "u6-req-0112",
+    "u6-req-0113",
+    "u6-req-0115",
+    "u6-req-0123"
+  ],
+  "not_run_or_unqualified": [
+    "This fixes the traced native metadata-budget failure class. Earlier untraced fresh-recipient and spontaneous subscription failures are not uniquely attributed; general reliability is not established.",
+    "Two SIP recipients do not qualify full50member mixed native/browser/SIP fanout, every maximum-duration family, current target/route revocation, privacy/restart/socket combinations or actual SIP-originated durable provenance/output.",
+    "Actual SIP-originated sealed custody and native output, established/replacement SIP legs and remaining shared clauses need implementation and behavior evidence.",
+    "No new task/clause credit.45/105tasks and55/61G6-046clauses remain; Linux/browser/remote/provider lanes, independentG6-094conformance, acceptance and publication remain open."
+  ],
+  "next_required_work": [
+    "Implement actual SIP-originated sealed durable source/provenance and guarded native output without fabricating native observations/signing fields.",
+    "Continue remaining selector, multiparty50 and offer/ready-handle cases and complete all105tasks in dependency order."
+  ]
+}
