@@ -28,6 +28,7 @@ struct Selection {
     remote: Incarnation,
     private: Vec<Incarnation>,
     outside: Vec<Incarnation>,
+    outside_sip: Option<Vec<crate::peer_authority::SipSnapshot>>,
 }
 pub(crate) struct Established {
     pub primary: String,
@@ -67,7 +68,7 @@ pub(crate) fn validate(
         return Err(Error::forbidden());
     }
     // Validate even the unused metadata shape; it never adds authority.
-    let _ = selection.outside;
+    let _ = (selection.outside, selection.outside_sip);
     let mut scopes = vec![AuthorityScope::conversation(
         &conversation,
         AuthorityMode::Read,

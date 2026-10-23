@@ -174,3 +174,170 @@ fn initial_signal_rechecks_physical_endpoint_route_and_participant_lifetime() {
         }
     }
 }
+
+#[test]
+fn initial_sip_audience_requires_exact_complete_owned_roster_without_native_provenance() {
+    let f = Fixture::new();
+    let origin = connected(&f);
+    let c = f.store.connection().unwrap();
+    let (scopes, _, _) = f
+        .store
+        .initial_telephone_audience_facts(&c, &origin)
+        .unwrap();
+    assert!(!scopes.is_empty());
+    let (_, snapshot, _) = f
+        .store
+        .initial_telephone_audience_facts(&c, &origin)
+        .unwrap();
+    assert_eq!(snapshot["source_kind"], "initial-sip");
+    assert_eq!(snapshot["record_id"], origin.record_id());
+    assert_eq!(snapshot["sip_call_id"], origin.sip_call_id());
+    assert_eq!(snapshot["generation"], 1);
+    for key in [
+        "key_id",
+        "key_algorithm",
+        "public_key_sha256",
+        "signing_key_id",
+    ] {
+        assert!(
+            snapshot.get(key).is_none(),
+            "SIP source borrowed native provenance: {key}"
+        );
+    }
+    let facts = |sources: &[Arc<InitialTelephoneMediaOrigin>], native: Vec<String>| {
+        f.store.initial_sip_audience_facts(
+            &c,
+            &f.request.conversation_id,
+            &f.request.session_id,
+            sources,
+            native,
+        )
+    };
+    assert!(facts(&[origin.clone()], vec![]).is_ok());
+    assert_eq!(
+        facts(&[], vec![]).unwrap_err().code,
+        "authority-unavailable"
+    );
+    assert!(facts(&[origin.clone(), origin.clone()], vec![]).is_err());
+    assert!(facts(&[origin.clone()], vec![origin.connection_id().into()]).is_err());
+    assert!(f
+        .store
+        .initial_sip_audience_facts(
+            &c,
+            "wrong-conversation",
+            &f.request.session_id,
+            &[origin.clone()],
+            vec![]
+        )
+        .is_err());
+    assert!(f
+        .store
+        .initial_sip_audience_facts(
+            &c,
+            &f.request.conversation_id,
+            "wrong-session",
+            &[origin.clone()],
+            vec![]
+        )
+        .is_err());
+    let other = Fixture::new();
+    assert!(other
+        .store
+        .initial_telephone_audience_facts(&other.store.connection().unwrap(), &origin)
+        .is_err());
+    // Facts retain no idle permission; the public credential writer can finish.
+    drop(c);
+    let actor = f.store.revalidate(&f.keys[0]).unwrap();
+    f.store.revoke(&actor, &f.keys[1]).unwrap();
+    assert!(f
+        .store
+        .initial_telephone_audience_facts(&f.store.connection().unwrap(), &origin)
+        .is_err());
+}
+#[test]
+fn initial_sip_audience_refuses_answer_only_without_actual_connected_observation() {
+    let f = Fixture::new();
+    let origin = answered(&f);
+    assert!(f
+        .store
+        .initial_telephone_audience_facts(&f.store.connection().unwrap(), &origin)
+        .is_err());
+}
+#[test]
+fn initial_sip_audience_captured_revision_never_revives_retired_or_overwrites_newer_observation() {
+    let f = Fixture::new();
+    let signal = Arc::new(f.signal());
+    let origin = f
+        .store
+        .record_initial_telephone_answer(
+            &signal.capture_answer(signal.sip_call_id(), "pcmu").unwrap(),
+        )
+        .unwrap()
+        .media
+        .unwrap();
+    f.store
+        .record_initial_telephone_connected(
+            origin.clone(),
+            &ReadyFixture(InitialTelephoneReadyObservation {
+                runtime_connection_id: origin.runtime_connection_id().into(),
+                call_id: origin.sip_call_id().into(),
+                participant_id: f.parts[1].clone(),
+                membership_epoch: origin.source().target.membership_epoch,
+                generation: 1,
+                stream_revision: 1,
+                participant_revision: 1,
+                streams: vec!["telephone-audio".into()],
+            }),
+        )
+        .unwrap();
+    let c = f.store.connection().unwrap();
+    let (_, snapshot, _) = f
+        .store
+        .initial_telephone_audience_facts(&c, &origin)
+        .unwrap();
+    let revision = || {
+        c.query_row(
+            "SELECT json_extract(readiness_json,'$.stream_revision') FROM connections WHERE id=?1",
+            [origin.connection_id()],
+            |r| r.get::<_, u64>(0),
+        )
+        .unwrap()
+    };
+    f.store
+        .record_initial_telephone_audience_revision(&c, &snapshot, f.store.runtime_epoch(), 1, 2)
+        .unwrap();
+    assert_eq!(revision(), 2);
+    f.store
+        .record_initial_telephone_audience_revision(&c, &snapshot, f.store.runtime_epoch(), 1, 2)
+        .unwrap();
+    assert_eq!(revision(), 2);
+    f.store
+        .record_initial_telephone_audience_revision(&c, &snapshot, "foreign-runtime", 2, 3)
+        .unwrap();
+    assert_eq!(revision(), 2);
+    let mut native = snapshot.clone();
+    native["source_kind"] = json!("native");
+    assert!(f
+        .store
+        .record_initial_telephone_audience_revision(&c, &native, f.store.runtime_epoch(), 2, 3)
+        .is_err());
+    assert!(f
+        .store
+        .record_initial_telephone_audience_revision(&c, &snapshot, f.store.runtime_epoch(), 2, 4)
+        .is_err());
+    c.execute("UPDATE connections SET readiness_json=json_set(readiness_json,'$.stream_revision',5) WHERE id=?1",[origin.connection_id()]).unwrap();
+    f.store
+        .record_initial_telephone_audience_revision(&c, &snapshot, f.store.runtime_epoch(), 2, 3)
+        .unwrap();
+    assert_eq!(revision(), 5);
+    drop(c);
+    f.store
+        .settle_initial_telephone_cleanup(&signal, &AbsentFixture(true))
+        .unwrap();
+    let c = f.store.connection().unwrap();
+    f.store
+        .record_initial_telephone_audience_revision(&c, &snapshot, f.store.runtime_epoch(), 5, 6)
+        .unwrap();
+    let state: (String,u64,Option<String>,Option<String>) = c.query_row("SELECT state,generation,readiness_json,observed_runtime_id FROM connections WHERE id=?1",[origin.connection_id()],|r|Ok((r.get(0)?,r.get(1)?,r.get(2)?,r.get(3)?))).unwrap();
+    assert_eq!(state, ("retired".into(), 2, None, None));
+}

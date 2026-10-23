@@ -18,6 +18,7 @@ pub use assistant::{
     AssistantProviderUpdateRejected, AssistantProviderUpdateStatus, NativeAssistantContextRead,
 };
 mod consultation;
+pub(crate) mod consultation_sip;
 use admission::NativeMediaAdmission;
 mod handoff;
 mod handoff_lifetime;

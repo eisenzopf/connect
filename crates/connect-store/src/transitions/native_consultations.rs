@@ -693,6 +693,26 @@ impl Store {
                 // or rewrites a later native observation.
                 tx.execute("UPDATE connections SET readiness_json=json_set(readiness_json,'$.stream_revision',?4) WHERE id=?1 AND generation=?2 AND observed_runtime_id=?3 AND state IN ('ready','active') AND json_extract(readiness_json,'$.stream_revision')=?5 AND EXISTS(SELECT 1 FROM native_connection_lifetimes l WHERE l.connection_id=connections.id AND l.generation=connections.generation AND l.runtime_epoch=?3 AND l.retired=0)",params![id,generation,receipt.runtime,revision,previous]).map_err(|_|Error::storage())?;
             }
+            if let Some(sips) = selected.get("outside_sip") {
+                for binding in sips.as_array().ok_or_else(Error::storage)? {
+                    let runtime_id = binding["runtime_connection_id"]
+                        .as_str()
+                        .ok_or_else(Error::storage)?;
+                    let previous = plan["expected_receiver_revisions"][runtime_id]
+                        .as_u64()
+                        .ok_or_else(Error::storage)?;
+                    let revision = observed["receiver_revisions"][runtime_id]
+                        .as_u64()
+                        .ok_or_else(Error::storage)?;
+                    self.record_initial_telephone_audience_revision(
+                        &tx,
+                        binding,
+                        &receipt.runtime,
+                        previous,
+                        revision,
+                    )?;
+                }
+            }
             touch(&tx, &receipt.record, self)?;
         }
         if !owner.current() {

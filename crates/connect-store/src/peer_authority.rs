@@ -7,6 +7,7 @@ use connect_protocol::{transitions::OperationAction, Error, Result};
 use rusqlite::{params, Connection, OptionalExtension};
 use std::sync::Arc;
 mod connection_media;
+pub(crate) use connection_media::consultation_sip::SipSnapshot;
 pub(crate) mod connection_projection;
 pub(crate) mod native_data;
 mod native_endpoint;

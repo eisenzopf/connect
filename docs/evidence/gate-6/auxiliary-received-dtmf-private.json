@@ -1,0 +1,124 @@
+{
+  "task": "G6-046",
+  "created_at": "2026-10-23",
+  "status": "in-progress",
+  "component_passed": true,
+  "full_task_complete": false,
+  "full_goal_complete": false,
+  "all_regression_checks_passed": false,
+  "scope": "Local configured initial SIP source outside an actual native private pair, with a public Device of the private consultant's same Participant. Source admission, exact whole-scene audience control, actual SIP commit proof, current paired public audio restoration, received DTMF isolation and return/replay/recovery. Native QUIC under EdDSA and ES256; source-lock166/schema101.",
+  "fixture_prerequisite_commit": "c8af3cf5",
+  "problem": [
+    "Core included the live initial SIP Connection in its whole-scene audience descriptor, but native-only Store consultation and return selections omitted it. Native private activation remained accepted with invalid-request before effect.",
+    "After whole-scene validation and SIP exclusion were added, the service incorrectly asked the native QUIC adapter to carry confirmation for the SIP Connection; it reported native-confirmation-lost.",
+    "After actual private audio and signal isolation passed, return could not authorize the primary's original public SIP audio programme using native-only source views. The original return attempt was truthfully recorded unknown and was not blindly resubmitted."
+  ],
+  "implementation": [
+    "Consultation and return reads explicitly require the exact current initial-SIP outside set, including connection, call, Endpoint, Device, credential, membership, runtime and actual connection evidence. They reject omissions, duplicates, cross-role IDs and foreign ownership. Source snapshots retain real SIP provenance without native key/signature fields. Native-only snapshots remain native shapes; an optional SIP outside array describes actual mixed scenes.",
+    "All native and SIP domain scopes are merged before one bounded authority acquisition and revalidated together. SIP readers reuse this interval; no fresh grant is reacquired from inside Core and no queued/settlement permission reader is retained.",
+    "Initial SIP control validates the exact scene-issued audience intent and its current own media/dialog/codec authority. The initial SIP Connection is restricted to an unchanged outside programme and private exclusion; it cannot substitute for a private slot or an explicitly changed SIP receiver.",
+    "Confirmation uses actual Core commit controller/credential/port and before/after revision pins for the real SIP leg. Native peers retain their original signed-resource confirmation path; no native confirmation is invented for SIP.",
+    "Captured SIP revision facts update only the same live original runtime/call/generation at the expected prior revision. They never revive a retired call or overwrite a newer observation.",
+    "Return authorizes a restored public SIP source/native receiver edge under the same current interval and both named recipient policies. It shares the real native target view with a separate typed SIP source read, never a fabricated native source projection. Private/preparing/suspended receivers cannot obtain that edge."
+  ],
+  "verification": {
+    "production_test": "production_initial_sip_received_respects_private_physical_audience_and_return_does_not_replay",
+    "algorithms": [
+      "EdDSA",
+      "ES256"
+    ],
+    "distinct_mixed_scenes": 2,
+    "isolated_new_case_passed": true,
+    "repeated_new_case_in_combined_run_passed": true,
+    "duplicate_scene_credit": false,
+    "behavior": [
+      "Actual native private audio passes both directions with unchanged marked-frame and exclusion thresholds before SIP input. A public physical Device shares the consultant Participant but remains outside the private pair.",
+      "Baseline SIP INFO reaches both authorized public native peers. While private, Store excludes the privately admitted candidate before recipient freeze; the public primary remains metadata-eligible but current Core custody records not_started and emits no frame. Only the public sibling receives the actual SIP signal.",
+      "The primary may have a real reserved frame ID before its final physical audience fence refuses IO; both captured runs preserve that truthful not_started fact. Continuous pinned readers prove no delayed private signal after return.",
+      "Return retires only the private candidate, preserves its native remote, records one effect attempt, and replays the same result. Retransmitted private INFO is not resubmitted. Fresh actual RFC4733 reaches the restored primary and public sibling, preserving the original private-operation status.",
+      "Each scene has exactly three received-source operations and one SIP call; owned shutdown records original call cleanup once."
+    ],
+    "schema_validation": {
+      "passed": true,
+      "installed_scenes": 2,
+      "received_operations": 6,
+      "signed_native_frames": 10,
+      "scope": "Local initial SIP source outside an actual native private pair. Store excludes privately admitted recipient; current Core audience excludes the public primary while its private slot is active. A public Device of the same consultant Participant receives. Return/replay/fresh-input recovery and owned cleanup are tested by the production fixture. No other SIP legs, private SIP slots, WebRTC, crash, capacity or complete Gate6 claim."
+    },
+    "sample_sha256": "7e0bf2651e0b604f412ad2a9b57f24039b730f5c7aa749995eec80a8a0899b10",
+    "new_controlled_store_tests": 3,
+    "store_regression_counts": {
+      "store-consultation-mixed-final166": 61,
+      "store-initial-mixed-final166": 39,
+      "store-provider-mixed-final166": 36
+    },
+    "distinct_store_methods_passed": 135,
+    "native_private_dtmf_and_disjoint_groups_passed": 2,
+    "received_batch": {
+      "passed_methods": 5,
+      "failed_methods": 2,
+      "passed": false,
+      "failed_setup_cases": [
+        "received sibling fanout: second SIP audio burst yielded zero marked frames before DTMF",
+        "captured outcome case: initial public SIP subscription returned failed/forbidden before DTMF"
+      ]
+    },
+    "isolated_followups": {
+      "captured_outcomes": "passed under both algorithms",
+      "sibling_fanout": "failed again before DTMF: second SIP audio burst yielded one marked frame; unchanged >10 threshold remains"
+    },
+    "distinct_rust_methods_with_success_this_checkpoint": 143,
+    "known_unresolved_current_check": "Sibling fanout audio setup remains failing in the current checkpoint; this is not counted as a pass. It was already observed before this mixed-scene implementation. The mixed-scene code is not invoked by this failing setup.",
+    "commands": [
+      "bash scripts/prepare-dependencies.sh",
+      "CARGO_INCREMENTAL=1 cargo test -p connect-store --lib --locked --offline -j4 --no-run",
+      "Current default Store test binary: consultation, initial_telephone and private_provider filters serial within each isolated process",
+      "CARGO_INCREMENTAL=1 cargo test -p connect-server --test gate6_canonical_runtime --locked --offline -j4 --no-run",
+      "Current default server test binary: new mixed private method, all7 received-source methods serial, native private DTMF, native disjoint groups, then isolated failed received methods",
+      "scripts/validate-gate6-received-dtmf-private.py using actual final JSONL and private jsonschema Python",
+      "bash scripts/format.sh -- --check",
+      "python3 scripts/generate-canonical-http-openapi.py --check",
+      "python3 scripts/check-gate6-progress.py"
+    ]
+  },
+  "corrected_intermediate_failures": [
+    "The enrollment helper hardcoded a different immutable Session profile; corrected and pushed separately, preserving production checks. The fixture also now proves retained/outside native RTP readiness before consultation.",
+    "A new revision-record block was initially inserted in the wrong receipt method and failed compilation; moved to actual Core apply recording.",
+    "A new Store test retained the Store database inspection mutex across public cleanup/revalidation. A sampled live mutex wait identified the test-only deadlock; released inspection before calling the writer, then all3 final tests passed.",
+    "The three actual mixed production gaps above were observed in separate failed runs before their fixes; none is credited as a pass. Candidate logical retirement does not require physical control EOF; the fixture keeps its reader through recovery and verifies no DTMF rather than inventing a physical-close requirement."
+  ],
+  "limits": [
+    "No new whole clause/task credit:45/105 plan tasks complete; G6-04656/61 clauses remain. All105 tasks stay active.",
+    "Initial SIP outside a native private pair is the qualified shape here. Initial SIP as retained/private slot, other SIP legs, private SIP DTMF ingress/egress, WebRTC, full50member/mixed/failure matrix, IO-boundary recovery and source-custody retention/redaction remain open.",
+    "The common SIP audio/subscription setup failures above remain unresolved under the existing G6-046 media work. No threshold, current permission check or privacy assertion was weakened.",
+    "No full workspace/test-support/Linux x86_64/browser/remote/provider/abrupt-crash, independent acceptance or publication qualification. Controlled Store provider-context tests do not qualify real provider IO."
+  ],
+  "inputs": {
+    "Cargo.lock": "3d43b79adda5b07b6770acfe3666217fb6ee3c702fabfff11847c96f68226df3",
+    "contracts/openapi-operations.json": "44f0b8eee7f90fab4977867e39a125f98a72aa5e74b998e937da81637e07a5e4",
+    "contracts/schemas/uctp-envelope-2.schema.json": "8d3d5a1098c8eebafe30960b8b35d83e11f9c8ac09453ab7e528251368d11c32",
+    "crates/connect-server/tests/support/canonical_native_connections/consultation/groups/replacement/telephone/initial.rs": "ccd930b46d3de8cecca6db90514faa7484121c15fba5f503d4c05fa25fdd770e",
+    "crates/connect-server/tests/support/canonical_native_connections/consultation/groups/replacement/telephone/initial/received.rs": "2be15898e7f14d9139cbe42687777e99c4aac4862f533b027c922a0c512ce5d0",
+    "crates/connect-server/tests/support/canonical_native_connections/consultation/groups/replacement/telephone/initial/received/privacy.rs": "8b5a311e52da091e92910407f9c513649d1952a514468c9d96dd011c193547b9",
+    "crates/connect-service/src/canonical_consultation.rs": "636d8bb886155b315179f56097acc6da6b41fd4f7336c99d085f4422d90bfdfc",
+    "crates/connect-service/src/canonical_consultation_return.rs": "2433f27c046c9dc76d467f6ae4361683ebadaf125054d6f83f57cc456faae6b1",
+    "crates/connect-service/src/canonical_media/consultation.rs": "547272fcd0bc8c468b8becd21419ff1cdc497ed2861f920ce43b39b3a484dc5a",
+    "crates/connect-service/src/initial_telephone/policy.rs": "6167c5053fa824b2015e9bc39e8115ec3535dbff425a47b68f85e7985edb8e99",
+    "crates/connect-store/src/connection_control/private_consultation/active.rs": "5cc87718985c5a335930064782ed2aa768ffc35dac0f9ad32dbdba945b762bee",
+    "crates/connect-store/src/connection_control/tests/consultation_attempts.rs": "b3786a85d5d199b69492d2e122b1afe83dde8948ad3f6c4bd10a8215660f5069",
+    "crates/connect-store/src/connection_control/tests/consultation_audiences.rs": "6350ff0c920626c18c8afb87f6e4c2c8949022ae80af39fdb6703435547b48b6",
+    "crates/connect-store/src/connection_control/tests/consultation_returns.rs": "22cbc2d3d5fd96b0e3afbb53ae2184850429047b5c107fa44b32d2c07caa57f4",
+    "crates/connect-store/src/connection_control/tests/private_provider.rs": "0dd2f57c94520196480ebc572f2466a9bf1aa048c1044631e055b3aa2bd36e49",
+    "crates/connect-store/src/peer_authority.rs": "a7564eb477d8f67eb2cab0e10cc6d2a0030648e7d8520f6b891ea8156515979a",
+    "crates/connect-store/src/peer_authority/connection_media.rs": "623f02d32b01d3b6cd539055ad93e2470d13e0030b96f33d86acafbaa5ceae92",
+    "crates/connect-store/src/peer_authority/connection_media/consultation.rs": "d9f900152c276ca03b06bdf51089d276532e8b450d0ab9d8abaf49ddad2a6eca",
+    "crates/connect-store/src/peer_authority/connection_media/consultation_sip.rs": "fd6571682bae2776ca4e46b7afeca25e4f9d8a1b02b4bb3f9578549c990775c1",
+    "crates/connect-store/src/peer_authority/connection_media/returns.rs": "f28e32e0d6092fbf18555f993a10cf6121266269a00ad42b53dbbfe167870187",
+    "crates/connect-store/src/transitions/initial_telephone/media.rs": "13dd2ee3f19ded6663ea516eb903cc046d1710c3d7e567336c4dadf64e70aabf",
+    "crates/connect-store/src/transitions/initial_telephone/tests/signal.rs": "2a8943104f2127a6da227bf1a5229165dade587a952ee93260b64d562fc66eef",
+    "crates/connect-store/src/transitions/native_consultations.rs": "a73d611a9b8d5d664c8df6c3943cab993f7cf6ce6811b9bcd596faa5e643cb1d",
+    "crates/connect-store/src/transitions/native_returns/custody.rs": "b75d521055eba81ee1aed9c0f9216fd57b210f996fb98d0dd38387a36db8559f",
+    "dependencies/source-lock.json": "5f5b42799add7661e89531fee187397e2089899c1e673db0711ea0e8bc772419",
+    "scripts/validate-gate6-received-dtmf-private.py": "f363cb8aaf48e8707013d6f869e470e0e0da4f237c645b748de7e33b0cf005b6"
+  }
+}

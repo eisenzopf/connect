@@ -1,7 +1,10 @@
 //! Purpose-bound fresh native views for restoring one captured audience.
 //! No view here permits private-candidate content to enter a public receiver.
+use super::consultation_sip;
 use super::*;
-use crate::NativeConsultationReturnOrigin;
+use crate::{
+    InitialTelephoneMediaOrigin, InitialTelephoneMediaRead, NativeConsultationReturnOrigin,
+};
 use sha2::{Digest, Sha256};
 use std::collections::{BTreeMap, BTreeSet};
 
@@ -9,11 +12,14 @@ use std::collections::{BTreeMap, BTreeSet};
 pub struct NativeReturnSelection {
     pub(crate) origin: NativeConsultationReturnOrigin,
     sources: Vec<Arc<NativeMediaOrigin>>,
+    sips: Vec<Arc<InitialTelephoneMediaOrigin>>,
+    sip_snapshots: Vec<serde_json::Value>,
 }
 pub struct NativeReturnRead {
     selection: NativeReturnSelection,
     reads: BTreeMap<(String, Option<String>), Arc<NativeMediaRead>>,
     expires_at: i64,
+    sip_reads: BTreeMap<String, Arc<InitialTelephoneMediaRead>>,
 }
 impl NativeReturnRead {
     pub(crate) fn limit(&mut self, deadline: i64) -> Result<()> {
@@ -31,12 +37,31 @@ impl NativeReturnRead {
     }
 
     pub fn current(&self) -> bool {
-        crate::now() < self.expires_at && self.reads.values().all(|r| r.current())
+        crate::now() < self.expires_at
+            && self.reads.values().all(|r| r.current())
+            && self.sip_reads.values().all(|r| r.current())
+    }
+    pub fn initial_sip(&self, id: &str) -> Option<Arc<InitialTelephoneMediaRead>> {
+        self.sip_reads.get(id).cloned()
+    }
+    pub fn initial_sip_receive(
+        &self,
+        native: &str,
+        sip: &str,
+    ) -> Option<(&InitialTelephoneMediaRead, &NativeMediaRead)> {
+        let phone = self.sip_reads.get(sip)?;
+        let target = self.reads.get(&(native.into(), Some(sip.into())))?;
+        Some((phone.as_ref(), target.as_ref()))
     }
     pub fn expires_at(&self) -> i64 {
         self.expires_at
     }
     pub fn media(&self, target: &str, source: Option<&str>) -> Option<&NativeMediaRead> {
+        // SIP edges are available only as their typed source/target pair;
+        // they must never masquerade as a native source projection.
+        if source.is_some_and(|id| self.sip_reads.contains_key(id)) {
+            return None;
+        }
         self.reads
             .get(&(target.into(), source.map(str::to_owned)))
             .map(Arc::as_ref)
@@ -53,12 +78,14 @@ impl NativeReturnRead {
 }
 impl NativeReturnSelection {
     pub(crate) fn read(&self, store: &Store) -> Result<NativeReturnRead> {
-        store.try_native_return_read(&self.origin, &self.sources)
+        store.try_native_return_read(&self.origin, &self.sources, &self.sips)
     }
     pub(crate) fn snapshot(&self) -> serde_json::Value {
         let mut sources = self.sources.iter().collect::<Vec<_>>();
         sources.sort_by_key(|s| s.connection_id());
-        serde_json::json!(sources.into_iter().map(|s| describe(s)).collect::<Vec<_>>())
+        let mut selected = sources.into_iter().map(|s| describe(s)).collect::<Vec<_>>();
+        selected.extend(self.sip_snapshots.clone());
+        serde_json::json!(selected)
     }
     pub(crate) fn scopes(
         &self,
@@ -157,7 +184,7 @@ impl NativeReturnSelection {
         let revisions = plan["expected_receiver_revisions"]
             .as_object()
             .ok_or_else(Error::forbidden)?;
-        if revisions.len() != self.sources.len() {
+        if revisions.len() != self.sources.len() + self.sips.len() {
             return Err(Error::new(
                 "forbidden",
                 "Native return receiver and source sets differ",
@@ -179,6 +206,7 @@ impl NativeReturnSelection {
                 ));
             }
         }
+        consultation_sip::validate_revisions(c, &self.sips, plan)?;
         Ok(())
     }
 }
@@ -217,6 +245,19 @@ fn resolve(
     if actual.len() != selection.sources.len() {
         return Err(Error::forbidden());
     }
+    let mut runtime_ids = selection
+        .sources
+        .iter()
+        .map(|s| s.runtime_connection_id())
+        .collect::<BTreeSet<_>>();
+    if runtime_ids.len() != selection.sources.len()
+        || selection
+            .sips
+            .iter()
+            .any(|s| !runtime_ids.insert(s.runtime_connection_id()))
+    {
+        return Err(Error::forbidden());
+    }
     let mut statement=c.prepare("SELECT v.id FROM connections v JOIN native_connection_lifetimes l ON l.connection_id=v.id AND l.generation=v.generation AND l.runtime_epoch=v.observed_runtime_id AND l.retired=0 WHERE v.session_id=?1 AND v.observed_runtime_id=?2 AND v.state IN ('ready','active')").map_err(|_|Error::storage())?;
     let expected = statement
         .query_map(
@@ -229,6 +270,18 @@ fn resolve(
     if actual != expected {
         return Err(Error::new("forbidden", "Native return source set changed"));
     }
+    let (sip_scopes, sip_expiry) = store.initial_sip_audience_facts(
+        c,
+        &selection.origin.request.conversation_id,
+        &selection.origin.request.session_id,
+        &selection.sips,
+        selection
+            .sources
+            .iter()
+            .map(|s| s.connection_id().to_owned()),
+    )?;
+    scopes.extend(sip_scopes);
+    expires_at = expires_at.min(sip_expiry);
     let mut snapshots = BTreeMap::new();
     let mut may_subscribe = BTreeMap::new();
     for source in &selection.sources {
@@ -346,10 +399,16 @@ impl Store {
         &self,
         origin: &NativeConsultationReturnOrigin,
         sources: &[Arc<NativeMediaOrigin>],
+        sips: &[Arc<InitialTelephoneMediaOrigin>],
     ) -> Result<NativeReturnRead> {
         let selection = NativeReturnSelection {
             origin: origin.clone(),
             sources: sources.to_vec(),
+            sips: sips.to_vec(),
+            sip_snapshots: {
+                let c = self.try_connection()?;
+                consultation_sip::snapshot(self, &c, sips)?
+            },
         };
         let scopes = {
             let c = self.try_connection()?;
@@ -362,7 +421,7 @@ impl Store {
             return Err(Error::forbidden());
         }
         let owner = self.require_runtime_owner()?;
-        let reads = views
+        let mut reads = views
             .into_iter()
             .map(|(key, (target, source, may_subscribe))| {
                 (
@@ -378,10 +437,13 @@ impl Store {
                 )
             })
             .collect();
+        let sip_reads = consultation_sip::reads(self, &c, sips, held.clone(), expires_at)?;
+        consultation_sip::receive_edges(self, &c, sources, &sip_reads, &mut reads)?;
         Ok(NativeReturnRead {
             selection,
             reads,
             expires_at,
+            sip_reads,
         })
     }
 }

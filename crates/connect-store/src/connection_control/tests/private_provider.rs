@@ -124,6 +124,7 @@ fn read(
             &sources[1],
             &[sources[0].clone(), candidate.clone()],
             &[sources[2].clone()],
+            &[],
         )
         .unwrap()
 }
@@ -1407,6 +1408,7 @@ fn a_fresh_private_context_recalls_authorized_private_history_without_exporting_
             &remote,
             &[primary.clone(), next_candidate.clone()],
             &outside,
+            &[],
         )
         .unwrap();
     assert!(read

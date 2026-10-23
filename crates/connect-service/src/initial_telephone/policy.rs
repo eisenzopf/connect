@@ -138,6 +138,29 @@ fn participant_error<T>(_: T) -> ParticipantControlError {
     ParticipantControlError::Authority
 }
 impl Leg {
+    pub(crate) fn observe_audio_audience_commit(
+        &self,
+        read: &InitialTelephoneMediaRead,
+        commit: &rvoip_core::staged_streams::audience::AudioAudienceCommit,
+        previous: u64,
+    ) -> ControlResult<()> {
+        if read.source() != self.signal.origin().source() {
+            return Err(StreamControlError::Authority);
+        }
+        self.owner(read)?;
+        let controller = self
+            .controller
+            .get()
+            .and_then(Weak::upgrade)
+            .ok_or(StreamControlError::NotReady)?;
+        let (before, after) = commit.revisions_for(&controller)?;
+        if before != previous || before.checked_add(1) != Some(after) {
+            return Err(StreamControlError::Authority);
+        }
+        // SIP keeps its real codec/dialog admission and exact active ports.
+        // It has no native signed resource confirmation to fabricate or carry.
+        Ok(())
+    }
     pub fn connection(&self) -> ConnectionId {
         ConnectionId::from_string(self.signal.runtime_connection_id().to_owned())
     }
@@ -470,6 +493,34 @@ impl MediaPolicy for Leg {
         held: &(dyn Any + Send + Sync),
     ) -> ControlResult<MediaControl> {
         self.scope(scope)?;
+        if let Some(i) =
+            held.downcast_ref::<crate::canonical_media::consultation::AudienceInvocation>()
+        {
+            let runtime = self.runtime()?;
+            if !std::ptr::eq(runtime.media.as_ref(), i.policy.as_ref()) {
+                return Err(StreamControlError::Authority);
+            }
+            let read = i.initial_sip_read(
+                &self.connection(),
+                self.signal.origin().connection_id(),
+                intent,
+            )?;
+            if read.source() != self.signal.origin().source() {
+                return Err(StreamControlError::Authority);
+            }
+            let owner = self.owner(&read)?;
+            let remaining = (i.expires_at().min(read.expires_at()) - chrono::Utc::now().timestamp())
+                .max(0) as u64;
+            return MediaControl::new(
+                Box::new(Lease {
+                    leg: self.self_ref.clone(),
+                    owner,
+                    read,
+                }),
+                i.cancel.clone(),
+                tokio::time::Instant::now() + Duration::from_secs(remaining),
+            );
+        }
         let i = held
             .downcast_ref::<MediaInvocation>()
             .filter(|i| std::ptr::eq(self, Arc::as_ptr(&i.leg)))

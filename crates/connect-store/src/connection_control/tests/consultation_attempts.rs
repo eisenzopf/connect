@@ -598,6 +598,7 @@ fn native_consultation_scene_fences_outside_routes_without_issuing_private_recei
             &sources[1],
             &[sources[0].clone(), sources[2].clone()],
             &[outside.clone()],
+            &[],
         )
         .unwrap();
     assert!(read.media(outside.connection_id(), None).is_some());

@@ -295,7 +295,10 @@ fn prepared(
         .native_consultation_return_origin(key, command)
         .unwrap();
     let plan = return_plan(f, &origin, sources);
-    let read = f.store.try_native_return_read(&origin, sources).unwrap();
+    let read = f
+        .store
+        .try_native_return_read(&origin, sources, &[])
+        .unwrap();
     // Only the purpose-bound restore view can reopen the original public pair.
     assert!(read
         .media(sources[1].connection_id(), Some(sources[0].connection_id()))
@@ -330,7 +333,9 @@ fn native_return_single_attempt_and_captured_recording_lifts_only_primary_floor_
     let duplicate = f
         .store
         .prepare_native_consultation_return(
-            f.store.try_native_return_read(&origin, &sources).unwrap(),
+            f.store
+                .try_native_return_read(&origin, &sources, &[])
+                .unwrap(),
             plan.clone(),
         )
         .unwrap()
@@ -348,7 +353,9 @@ fn native_return_single_attempt_and_captured_recording_lifts_only_primary_floor_
         .store
         .begin_native_consultation_return(
             duplicate,
-            f.store.try_native_return_read(&origin, &sources).unwrap()
+            f.store
+                .try_native_return_read(&origin, &sources, &[])
+                .unwrap()
         )
         .is_err());
     assert!(f
@@ -452,7 +459,10 @@ fn native_return_uncertainty_and_cancel_never_lift_private_floor_or_allow_second
         .unwrap();
     let replay = f.store.admit_transition_command(&key, command).unwrap();
     assert_eq!(replay.state, OperationState::Unknown);
-    assert!(f.store.try_native_return_read(&origin, &sources).is_err());
+    assert!(f
+        .store
+        .try_native_return_read(&origin, &sources, &[])
+        .is_err());
     let _ = plan;
     let c = f.store.connection().unwrap();
     assert_eq!(c.query_row("SELECT COUNT(*) FROM native_private_content_floors WHERE operation_record_id=?1 AND is_candidate=0",[parent],|r|r.get::<_,u64>(0)).unwrap(),1);
@@ -492,7 +502,9 @@ fn native_return_duplicate_private_ports_and_changed_plan_revisions_refuse_befor
         assert!(f
             .store
             .prepare_native_consultation_return(
-                f.store.try_native_return_read(&origin, &sources).unwrap(),
+                f.store
+                    .try_native_return_read(&origin, &sources, &[])
+                    .unwrap(),
                 plan
             )
             .is_err());
@@ -535,7 +547,10 @@ fn return_after_source_departure(index: usize) {
         .unwrap();
     let mut plan = return_plan(&f, &origin, &sources);
     plan["known_departed_connections"] = json!([remote.runtime_connection_id()]);
-    let read = f.store.try_native_return_read(&origin, &sources).unwrap();
+    let read = f
+        .store
+        .try_native_return_read(&origin, &sources, &[])
+        .unwrap();
     assert!(read.media(remote.connection_id(), None).is_none());
     let lease = f
         .store

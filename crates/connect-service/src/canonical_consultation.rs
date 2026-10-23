@@ -43,6 +43,27 @@ impl Drop for Job {
 }
 
 impl Runtime {
+    pub(crate) fn carry_audio_audience_commit(
+        &self,
+        commit: &rvoip_core::staged_streams::audience::AudioAudienceCommit,
+        invocation: &AudienceInvocation,
+    ) -> bool {
+        let mut carried = true;
+        for connection in commit.connections() {
+            carried &= match self
+                .media
+                .observe_initial_audio_audience_commit(connection, commit, invocation)
+            {
+                Ok(Some(())) => true,
+                Ok(None) => self
+                    .native
+                    .observe_audio_audience_commit(connection, commit)
+                    .is_ok(),
+                Err(_) => false,
+            };
+        }
+        carried
+    }
     /// The queue retains IDs and immutable intent only, never the original
     /// HTTP/signed command readers. Every worker obtains its own current source.
     pub(crate) fn queue_consultation(
@@ -135,10 +156,17 @@ impl Runtime {
             }
         }
         let remote = remote.ok_or_else(Error::forbidden)?;
-        let read = self
+        let outside_sip = self
             .media
-            .store
-            .try_native_consultation_scene_read(origin, &remote, &selected, &outside)?;
+            .scene_initial_sip_origins(&origin.request().session_id)
+            .map_err(denied)?;
+        let read = self.media.store.try_native_consultation_scene_read(
+            origin,
+            &remote,
+            &selected,
+            &outside,
+            &outside_sip,
+        )?;
         for entry in [&primary, &candidate] {
             let view = read
                 .media(entry.connection_id(), None)
@@ -350,16 +378,8 @@ impl Runtime {
 
         // The sealed Core commit pins the exact unchanged native ports. This
         // carries confirmation; it is not another negotiation/readiness claim.
-        let mut carry_failed = false;
-        for connection in handle.audience().commit().connections() {
-            if let Err(error) = self
-                .native
-                .observe_audio_audience_commit(connection, handle.audience().commit())
-            {
-                let _ = error;
-                carry_failed = true;
-            }
-        }
+        let carry_failed =
+            !self.carry_audio_audience_commit(handle.audience().commit(), &invocation);
         if let Some(applied) = self
             .consultation_audiences
             .lock()

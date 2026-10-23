@@ -89,6 +89,7 @@ fn prepare(
             &sources[1],
             &[sources[0].clone(), candidate.clone()],
             &[sources[2].clone()],
+            &[],
         )
         .unwrap();
     f.store

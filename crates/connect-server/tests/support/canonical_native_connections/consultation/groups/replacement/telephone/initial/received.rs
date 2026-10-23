@@ -6,6 +6,8 @@ pub(super) mod authority;
 pub(super) mod fanout;
 #[path = "received/outcomes.rs"]
 pub(super) mod outcomes;
+#[path = "received/privacy.rs"]
+pub(super) mod privacy;
 #[path = "received/restart.rs"]
 pub(super) mod restart;
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]

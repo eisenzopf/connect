@@ -323,6 +323,66 @@ impl Store {
         let c = self.try_connection()?;
         self.initial_telephone_media_in(&c, origin, held, crate::now() + 30)
     }
+    /// Current metadata for an unchanged initial SIP outsider in a native
+    /// audience transaction. It grants no private receipt or native identity.
+    pub(crate) fn initial_telephone_audience_facts(
+        &self,
+        c: &Connection,
+        origin: &InitialTelephoneMediaOrigin,
+    ) -> Result<(Vec<AuthorityScope>, Value, i64)> {
+        historical_lifetime(self, c, &origin.signal)?;
+        let scopes = current_scopes(c, origin.signal.origin(), false)?;
+        let p = self.initial_telephone_projection(
+            c,
+            origin,
+            crate::now() + 5,
+            ProjectionPurpose::Media,
+        )?;
+        if !p.connected {
+            return Err(Error::forbidden());
+        }
+        let source = origin.source();
+        let value = json!({
+            "source_kind":"initial-sip", "record_id":origin.record_id(),
+            "connection_id":origin.connection_id(), "runtime_connection_id":origin.runtime_connection_id(),
+            "sip_call_id":origin.sip_call_id(), "generation":1,
+            "participant_id":p.member.participant_id, "membership_epoch":p.member.membership_epoch,
+            "identity_id":p.member.identity_id, "endpoint_id":source.endpoint_id,
+            "endpoint_revision":source.endpoint_revision, "device_id":source.device_id,
+            "endpoint_credential_id":p.endpoint_actor.credential_id,
+            "route_credential_id":p.route_actor.credential_id, "route_owner_id":source.route_owner_id,
+            "physical_expires_at":p.endpoint_actor.expires_at.min(p.route_actor.expires_at)
+        });
+        Ok((scopes, value, p.expires))
+    }
+    /// Captured Core outcome only. Historical custody never reauthorizes IO,
+    /// revives a retired call, or replaces a newer observed stream revision.
+    pub(crate) fn record_initial_telephone_audience_revision(
+        &self,
+        c: &Connection,
+        binding: &Value,
+        runtime: &str,
+        previous: u64,
+        revision: u64,
+    ) -> Result<()> {
+        if binding["source_kind"] != "initial-sip"
+            || binding["generation"] != 1
+            || previous.checked_add(1) != Some(revision)
+            || revision >= 9_007_199_254_740_991
+        {
+            return Err(Error::storage());
+        }
+        let id = binding["connection_id"]
+            .as_str()
+            .ok_or_else(Error::storage)?;
+        let parent = binding["record_id"].as_str().ok_or_else(Error::storage)?;
+        let core_id = binding["runtime_connection_id"]
+            .as_str()
+            .ok_or_else(Error::storage)?;
+        let call = binding["sip_call_id"].as_str().ok_or_else(Error::storage)?;
+        c.execute("UPDATE connections SET readiness_json=json_set(readiness_json,'$.stream_revision',?5) WHERE id=?1 AND generation=1 AND observed_runtime_id=?2 AND state IN ('ready','active') AND json_extract(readiness_json,'$.stream_revision')=?6 AND EXISTS(SELECT 1 FROM initial_telephone_operations p JOIN operations o ON o.record_id=p.operation_record_id JOIN initial_telephone_answers a ON a.operation_record_id=p.operation_record_id WHERE p.operation_record_id=?3 AND o.connection_id=connections.id AND p.attempt_runtime=?2 AND p.runtime_connection_id=?4 AND p.sip_call_id=?7 AND a.accepted=1 AND a.connected_at IS NOT NULL AND a.retired_at IS NULL)", params![id,runtime,parent,core_id,revision,previous,call]).map_err(|_|Error::storage())?;
+        Ok(())
+    }
     pub(crate) fn initial_telephone_media_in(
         &self,
         c: &Connection,

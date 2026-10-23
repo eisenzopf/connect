@@ -1,6 +1,7 @@
 //! Fresh complete private-route planning views. These do not reserve an engine attempt.
+use super::consultation_sip;
 use super::*;
-use crate::NativeConsultationOrigin;
+use crate::{InitialTelephoneMediaOrigin, InitialTelephoneMediaRead, NativeConsultationOrigin};
 use sha2::{Digest, Sha256};
 use std::collections::{BTreeMap, BTreeSet};
 
@@ -18,6 +19,7 @@ type Views = BTreeMap<
 pub struct NativeConsultationRead {
     origin: NativeConsultationOrigin,
     reads: BTreeMap<ReadKey, Arc<NativeMediaRead>>,
+    sip_reads: BTreeMap<String, Arc<InitialTelephoneMediaRead>>,
     expires_at: i64,
     selection: NativeConsultationSelection,
 }
@@ -28,6 +30,8 @@ pub struct NativeConsultationSelection {
     remote: Arc<NativeMediaOrigin>,
     private: Vec<Arc<NativeMediaOrigin>>,
     outside: Vec<Arc<NativeMediaOrigin>>,
+    outside_sip: Vec<Arc<InitialTelephoneMediaOrigin>>,
+    outside_sip_snapshots: Vec<serde_json::Value>,
 }
 impl NativeConsultationSelection {
     pub(crate) fn scopes(
@@ -43,6 +47,7 @@ impl NativeConsultationSelection {
             &self.remote,
             &self.private,
             &self.outside,
+            &self.outside_sip,
         )?
         .1;
         if write {
@@ -64,7 +69,11 @@ impl NativeConsultationSelection {
         {
             let mut outside = self.outside.iter().collect::<Vec<_>>();
             outside.sort_by_key(|s| s.connection_id());
-            serde_json::json!({"remote":describe(&self.remote),"private":private.into_iter().map(|s|describe(s)).collect::<Vec<_>>(),"outside":outside.into_iter().map(|s|describe(s)).collect::<Vec<_>>()})
+            let mut value = serde_json::json!({"remote":describe(&self.remote),"private":private.into_iter().map(|s|describe(s)).collect::<Vec<_>>(),"outside":outside.into_iter().map(|s|describe(s)).collect::<Vec<_>>()});
+            if !self.outside_sip_snapshots.is_empty() {
+                value["outside_sip"] = serde_json::json!(self.outside_sip_snapshots);
+            }
+            value
         }
     }
     pub(crate) fn validate_plan(&self, plan: &serde_json::Value) -> Result<()> {
@@ -135,6 +144,7 @@ impl NativeConsultationSelection {
             .copied()
             .chain(std::iter::once(self.remote.runtime_connection_id()))
             .chain(self.outside.iter().map(|p| p.runtime_connection_id()))
+            .chain(self.outside_sip.iter().map(|p| p.runtime_connection_id()))
             .collect::<BTreeSet<_>>();
         if revisions.len() > 512
             || revisions
@@ -177,6 +187,7 @@ impl NativeConsultationSelection {
                 ));
             }
         }
+        consultation_sip::validate_revisions(c, &self.outside_sip, plan)?;
         Ok(())
     }
     pub(crate) fn read(&self, store: &Store) -> Result<NativeConsultationRead> {
@@ -185,6 +196,7 @@ impl NativeConsultationSelection {
             &self.remote,
             &self.private,
             &self.outside,
+            &self.outside_sip,
         )
     }
 }
@@ -211,7 +223,12 @@ impl NativeConsultationRead {
     }
 
     pub fn current(&self) -> bool {
-        crate::now() < self.expires_at && self.reads.values().all(|r| r.current())
+        crate::now() < self.expires_at
+            && self.reads.values().all(|r| r.current())
+            && self.sip_reads.values().all(|r| r.current())
+    }
+    pub fn initial_sip(&self, connection: &str) -> Option<Arc<InitialTelephoneMediaRead>> {
+        self.sip_reads.get(connection).cloned()
     }
     pub fn origin(&self) -> &NativeConsultationOrigin {
         &self.origin
@@ -229,6 +246,7 @@ fn selected_views(
     remote: &NativeMediaOrigin,
     private: &[Arc<NativeMediaOrigin>],
     outside: &[Arc<NativeMediaOrigin>],
+    outside_sip: &[Arc<InitialTelephoneMediaOrigin>],
 ) -> Result<(Views, Vec<AuthorityScope>, i64)> {
     let (actor, mut scopes) = origin.require(store, c)?;
     let request = &origin.request;
@@ -267,11 +285,25 @@ fn selected_views(
     {
         return Err(Error::forbidden());
     }
+    let (sip_scopes, sip_expiry) = store.initial_sip_audience_facts(
+        c,
+        &request.conversation_id,
+        &request.session_id,
+        outside_sip,
+        std::iter::once(remote.connection_id().to_owned()).chain(
+            private
+                .iter()
+                .chain(outside)
+                .map(|s| s.connection_id().to_owned()),
+        ),
+    )?;
+    scopes.extend(sip_scopes);
     let mut result = BTreeMap::new();
     let mut expiry = request
         .expires_at
         .min(actor.expires_at)
-        .min(crate::now() + 5);
+        .min(crate::now() + 5)
+        .min(sip_expiry);
     let mut connections = BTreeSet::new();
     let mut runtime_ids = BTreeSet::new();
     for target in std::iter::once(remote)
@@ -309,6 +341,12 @@ fn selected_views(
             (target.connection_id().into(), None),
             (target_view, source_view, subscriptions),
         );
+    }
+    if outside_sip
+        .iter()
+        .any(|s| runtime_ids.contains(s.runtime_connection_id()))
+    {
+        return Err(Error::forbidden());
     }
     let mut roster=c.prepare("SELECT m.runtime_connection_id FROM connections n JOIN connection_offers m ON m.connection_id=n.id JOIN native_connection_lifetimes l ON l.connection_id=n.id AND l.generation=n.generation AND l.runtime_epoch=n.observed_runtime_id WHERE n.session_id=?1 AND n.state IN ('ready','active') AND n.observed_runtime_id=?2 AND l.retired=0").map_err(|_|Error::storage())?;
     let actual = roster
@@ -386,7 +424,7 @@ impl Store {
         remote: &NativeMediaOrigin,
         private: &[Arc<NativeMediaOrigin>],
     ) -> Result<NativeConsultationRead> {
-        self.try_native_consultation_scene_read(origin, remote, private, &[])
+        self.try_native_consultation_scene_read(origin, remote, private, &[], &[])
     }
     /// Outside routes keep their programmes. Their owned current views permit
     /// only the exact private-audience exclusion fence, never private receipt.
@@ -396,17 +434,19 @@ impl Store {
         remote: &NativeMediaOrigin,
         private: &[Arc<NativeMediaOrigin>],
         outside: &[Arc<NativeMediaOrigin>],
+        outside_sip: &[Arc<InitialTelephoneMediaOrigin>],
     ) -> Result<NativeConsultationRead> {
-        if private.len() + outside.len() + 1 > self.limits.connections {
+        if private.len() + outside.len() + outside_sip.len() + 1 > self.limits.connections {
             return Err(Error::forbidden());
         }
         let scopes = {
             let c = self.try_connection()?;
-            selected_views(self, &c, origin, remote, private, outside)?.1
+            selected_views(self, &c, origin, remote, private, outside, outside_sip)?.1
         };
         let held = self.try_acquire_authority(&scopes)?;
         let c = self.try_connection()?;
-        let (current, needed, expiry) = selected_views(self, &c, origin, remote, private, outside)?;
+        let (current, needed, expiry) =
+            selected_views(self, &c, origin, remote, private, outside, outside_sip)?;
         if !self.authority_covers(&held, &needed) {
             return Err(Error::forbidden());
         }
@@ -430,12 +470,15 @@ impl Store {
         let result = NativeConsultationRead {
             origin: origin.clone(),
             reads,
+            sip_reads: consultation_sip::reads(self, &c, outside_sip, held.clone(), expiry)?,
             expires_at: expiry,
             selection: NativeConsultationSelection {
                 origin: origin.clone(),
                 remote: Arc::new(remote.clone()),
                 private: private.to_vec(),
                 outside: outside.to_vec(),
+                outside_sip: outside_sip.to_vec(),
+                outside_sip_snapshots: consultation_sip::snapshot(self, &c, outside_sip)?,
             },
         };
         if !result.current() {

@@ -102,7 +102,8 @@ impl Runtime {
                 .media
                 .scene_origins(&command.session_id)
                 .map_err(|error|{tracing::debug!(target:"connect_service::canonical_consultation",stage="return-scene",?error,"Native return refused");Error::forbidden()})?;
-            let read = self.media.store.try_native_return_read(&origin, &sources).map_err(|error| {
+            let sips = self.media.scene_initial_sip_origins(&command.session_id).map_err(|_|Error::forbidden())?;
+            let read = self.media.store.try_native_return_read(&origin, &sources, &sips).map_err(|error| {
                 tracing::debug!(target:"connect_service::canonical_consultation",stage="return-read",code=%error.code,"Native return planning refused");error
             })?;
             let revision = self
@@ -166,7 +167,8 @@ impl Runtime {
             .await;
         let (outcome, handle) = match actual {
             Ok(result) => result,
-            Err(_) => {
+            Err(error) => {
+                tracing::debug!(target:"connect_service::canonical_consultation",stage="return-core",?error,"Actual native return did not complete");
                 drop(invocation);
                 let store = self.media.store.clone();
                 store_call(move || store.native_consultation_return_uncertain(attempt)).await?;
@@ -182,16 +184,7 @@ impl Runtime {
             .lock()
             .unwrap_or_else(|p| p.into_inner())
             .insert(origin.record_id().into(), receipt.clone());
-        let mut carry_failed = false;
-        for connection in handle.commit().connections() {
-            if self
-                .native
-                .observe_audio_audience_commit(connection, handle.commit())
-                .is_err()
-            {
-                carry_failed = true;
-            }
-        }
+        let carry_failed = !self.carry_audio_audience_commit(handle.commit(), &invocation);
         drop(invocation);
         retry_metadata(&self.stop, || {
             let store = self.media.store.clone();
