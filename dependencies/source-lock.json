@@ -919,6 +919,11 @@
       "path": "patches/rvoip/gate6-native-dtmf-metadata-budget.patch",
       "sha256": "814e22e965c0656a51ff5a7413a2289a678960d75703be3b24f73792f7ac2b09",
       "source": "G6-046 native DTMF metadata admission waits within the original bounded job deadline without a physical writer or permission readers. Start the unchanged short physical write budget only after fresh host authorization. Controlled delayed metadata tests preserve current permission, original deadlines/cancellation, partial IO uncertainty and cleanup; no adapter replay or deadline renewal."
+    },
+    {
+      "path": "patches/rvoip/gate6-sip-info-metadata-budget.patch",
+      "sha256": "6c81822f610286a980cce93209f2b02ec15b14ad3f13e397119af1c6b5c53763",
+      "source": "G6-046 SIP INFO metadata admission waits without readers or transport IO inside the original sequence deadline, then applies the unchanged short physical write budget to fresh host authority. Actual Core/two-dialog UDP tests hold the independent permission writer for300ms and verify one original request, original shorter expiry/cancellation and no late IO or adapter replay."
     }
   ]
 }

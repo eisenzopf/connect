@@ -1,0 +1,85 @@
+--- a/crates/sip/rvoip-sip/src/adapters/dialog_adapter.rs
++++ b/crates/sip/rvoip-sip/src/adapters/dialog_adapter.rs
+@@ -3825,8 +3825,10 @@
+                             if actual.route.transport_type!=Some(rvoip_sip_transport::transport::TransportType::Udp){return Err(DtmfWriteError::Unsupported);}
+                             if !(self.current)() || !matches!(actual.message,rvoip_sip_core::Message::Request(request) if request.method()==Method::Info && request.body()==self.body.as_ref()) {return Err(DtmfWriteError::Refused);}
+                             let wire=actual.message.to_bytes();let scope=DtmfInfoWriteScope{digits:&self.digits,duration_ms:self.duration,inter_digit_ms:DEFAULT_DTMF_INTER_DIGIT_MS,digit_index:self.index,wire_request:&wire,destination:actual.route.destination};
++                            // Metadata admission retains no permission or IO;
++                            // preserve the original sequence deadline while it waits.
++                            let lease=tokio::time::timeout_at(self.deadline,self.policy.acquire_info(&scope)).await.map_err(|_|DtmfWriteError::DeadlineBeforeWrite)??;
+                             let write_deadline=self.deadline.min(tokio::time::Instant::now()+DTMF_WRITE_DEADLINE);
+-                            let lease=tokio::time::timeout_at(write_deadline,self.policy.acquire_info(&scope)).await.map_err(|_|DtmfWriteError::DeadlineBeforeWrite)??;
+                             let lane=self.lane.clone().try_lock_owned().map_err(|_|DtmfWriteError::NotReady)?;
+                             let current=self.current.clone();
+                             let lease=lease.restrict(lane,move ||current()).with_fence(Arc::new(LifeFence{store:self.store.clone(),handle:self.handle.clone(),current:self.current.clone()}))?;
+--- a/crates/sip/rvoip-sip/tests/dtmf_info_route.rs
++++ b/crates/sip/rvoip-sip/tests/dtmf_info_route.rs
+@@ -727,3 +727,68 @@
+     assert!(interval>=Duration::from_millis(228),"local successful UDP submissions collapsed160ms tone +70ms gap (2ms clock tolerance): {interval:?}");
+     r.stop().await;
+ }
++
++#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
++async fn actual_info_metadata_wait_preserves_original_deadline_cancel_and_fresh_wire_permission() {
++    for mode in ["submit", "deadline", "cancel"] {
++        let mut r = Rig::new().await;
++        let p = Policy::new(&r);
++        // Delay only metadata admission. No policy reader or transport future
++        // may survive while the current domain writer owns this interval.
++        let writer = p.permission.clone().write_owned().await;
++        let cancel = CancellationToken::new();
++        let start = Instant::now();
++        let deadline = start
++            + if mode == "deadline" {
++                Duration::from_millis(150)
++            } else {
++                Duration::from_secs(2)
++            };
++        let send = r.sending(r.route("5", 160), p.clone(), cancel.clone(), deadline);
++        timeout(Duration::from_secs(1), async {
++            while p.calls.load(Ordering::Acquire) == 0 {
++                tokio::task::yield_now().await;
++            }
++        })
++        .await
++        .unwrap();
++        if mode == "cancel" {
++            cancel.cancel();
++        }
++        r.target_peer.no_info(Duration::from_millis(300)).await;
++        assert!(p.facts.lock().unwrap().is_empty());
++        if mode == "submit" {
++            assert!(
++                !send.is_finished(),
++                "metadata wait consumed physical write budget"
++            );
++        }
++        drop(writer);
++        if mode == "submit" {
++            let packet = r.target_peer.next().await;
++            assert_eq!(packet.request.body(), b"Signal=5\r\nDuration=160\r\n");
++            assert_eq!(send.await.unwrap(), Ok(()));
++            assert!(start.elapsed() >= Duration::from_millis(300));
++            let facts = p.facts.lock().unwrap().clone();
++            assert_eq!(facts, vec![(0, packet.bytes, r.target_peer.address())]);
++        } else {
++            assert_eq!(
++                send.await.unwrap(),
++                Err(if mode == "deadline" {
++                    DtmfWriteError::DeadlineBeforeWrite
++                } else {
++                    DtmfWriteError::Refused
++                })
++            );
++            r.target_peer.no_info(Duration::from_millis(100)).await;
++            assert!(p.facts.lock().unwrap().is_empty());
++        }
++        assert_eq!(
++            p.calls.load(Ordering::Acquire),
++            1,
++            "metadata wait must not invoke another adapter or transaction"
++        );
++        assert!(p.permission.try_write().is_ok());
++        r.stop().await;
++    }
++}
