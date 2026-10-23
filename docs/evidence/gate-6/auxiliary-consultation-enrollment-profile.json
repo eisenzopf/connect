@@ -1,0 +1,22 @@
+{
+  "task": "G6-046",
+  "created_at": "2026-10-23",
+  "status": "in-progress",
+  "component_passed": true,
+  "full_task_complete": false,
+  "scope": "Shared private-group test enrollment reuses existing canonical Session invitation intent/capabilities and accepts an explicit test credential scope. No production authorization or API behavior changes.",
+  "verification": {
+    "test": "production_disjoint_private_consultations_preserve_each_others_audio_and_return_independently",
+    "passed": true,
+    "behavior": "Two disjoint actual native private audiences preserve audio isolation and return independently; all existing marked-audio assertions remain unchanged.",
+    "additional_observation": "The new uncommitted mixed SIP privacy case passes participant invitation, actual native enrollment and baseline SIP delivery after preserving the initial call profile. Private activation is still unqualified and exposes a separate complete-scene planning gap under investigation."
+  },
+  "corrected_setup_failure": "The older helper hardcoded conference plus two codecs, conflicting with the initial SIP Session call plus single-codec immutable invitation. It now reads the exact existing Session intent/capabilities and uses those in invitation and acceptance. A local variable initially shadowed the capabilities() helper; the compile error was corrected before verification.",
+  "limits": [
+    "Fixture prerequisite only; no new whole clause/task credit and no claim that mixed private SIP behavior passes.",
+    "Gate6 remains45/105 complete; G6-04656/61 clauses. All105 tasks stay active."
+  ],
+  "inputs": {
+    "crates/connect-server/tests/support/canonical_native_connections/consultation/groups.rs": "fb8461c54adfa9ab198005f7f8a2204e3c367e14e7823a05954cede1bac9c94f"
+  }
+}

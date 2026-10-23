@@ -99,6 +99,30 @@ async fn enroll_kind(
     handoff: bool,
     kind: IdentityKind,
 ) -> Peer {
+    enroll_kind_with_scope(
+        f,
+        owner,
+        cid,
+        name,
+        index,
+        public_media,
+        handoff,
+        kind,
+        None,
+    )
+    .await
+}
+async fn enroll_kind_with_scope(
+    f: &Fixture,
+    owner: &mut CanonicalClient,
+    cid: &str,
+    name: &str,
+    index: usize,
+    public_media: bool,
+    handoff: bool,
+    kind: IdentityKind,
+    scope: Option<Scope>,
+) -> Peer {
     let admin = f.server.store.authenticate(&f.admin).unwrap().credential_id;
     let ProvisioningOutcome::Identity {
         identity_id: identity,
@@ -143,7 +167,9 @@ async fn enroll_kind(
     else {
         panic!()
     };
-    let config = if handoff {
+    let config = if let Some(scope) = scope {
+        party_with_scope(f, &identity, index, vec!["audio".into()], scope)
+    } else if handoff {
         let mut scope = Scope::collaboration(vec!["*".into()]);
         scope.operations.extend([
             "stream.subscribe".into(),
@@ -155,6 +181,20 @@ async fn enroll_kind(
         party_with_capabilities(f, &identity, index, true, vec!["audio".into()])
     };
     let mut client = CanonicalClient::open(config.clone()).await.unwrap();
+    // Existing invitations preserve their original Session intent/capabilities.
+    // Initial SIP fixtures use "call" and a narrower codec set than the older
+    // all-native conference fixture; enrollment must not renegotiate either.
+    let (intent, invitation_capabilities): (String, String) = rusqlite::Connection::open(
+        &f.config.database,
+    )
+    .unwrap()
+    .query_row(
+        "SELECT intent,capabilities_json FROM session_control WHERE session_id='native-session'",
+        [],
+        |r| Ok((r.get(0)?, r.get(1)?)),
+    )
+    .unwrap();
+    let invitation_capabilities: Value = serde_json::from_str(&invitation_capabilities).unwrap();
     owner
         .session_command(Request {
             operation_id: format!("invite-{name}"),
@@ -165,8 +205,8 @@ async fn enroll_kind(
             action: Action::Invite {
                 participants: vec![participant.participant_id.clone()],
                 medium: "voice".into(),
-                intent: "conference".into(),
-                capabilities: json!({"audio":["g.711-mu","g.711-a"]}),
+                intent,
+                capabilities: invitation_capabilities.clone(),
             },
         })
         .await
@@ -179,7 +219,7 @@ async fn enroll_kind(
             by_participant: None,
             expected_revision: Some(revision(f)),
             action: Action::Accept {
-                capabilities: json!({"audio":["g.711-mu","g.711-a"]}),
+                capabilities: invitation_capabilities,
             },
         })
         .await
