@@ -914,6 +914,11 @@
       "path": "patches/rvoip/gate6-dtmf-clocked-cadence.patch",
       "sha256": "ac8fb4b21ab3010d3d2a3d4a0bfa8c82177b22102777bbb5d4582c6bc21ae3ac",
       "source": "G6-046 clock RFC4733 packet scheduling independently of fresh authorization latency. Anchor after actual first submission, skip obsolete continuation ticks without buffering, retain exact negotiated sample duration and fresh per-packet IO custody. A real UDP slow-policy fixture checks wall time, all final packets and one grant per emitted packet; Connect maximum-sequence evidence remains separately required."
+    },
+    {
+      "path": "patches/rvoip/gate6-native-dtmf-metadata-budget.patch",
+      "sha256": "814e22e965c0656a51ff5a7413a2289a678960d75703be3b24f73792f7ac2b09",
+      "source": "G6-046 native DTMF metadata admission waits within the original bounded job deadline without a physical writer or permission readers. Start the unchanged short physical write budget only after fresh host authorization. Controlled delayed metadata tests preserve current permission, original deadlines/cancellation, partial IO uncertainty and cleanup; no adapter replay or deadline renewal."
     }
   ]
 }

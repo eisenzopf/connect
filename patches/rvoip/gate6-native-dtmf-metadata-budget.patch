@@ -1,0 +1,136 @@
+--- a/crates/uctp/rvoip-uctp/src/v2/native_dtmf_writer.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/native_dtmf_writer.rs
+@@ -133,14 +133,17 @@
+             recipient: &pending.recipient,
+             wire_envelope: &bytes,
+         };
+-        let bound = deadline.min(Instant::now() + DTMF_WRITE_DEADLINE);
+-        let lease = tokio::time::timeout_at(bound, pending.policy.acquire_native(&scope))
++        // Metadata admission may wait without holding a permission or writer.
++        // Keep the original job deadline; the short physical IO budget starts
++        // only after the host returns its fresh, independently bounded lease.
++        let lease = tokio::time::timeout_at(deadline, pending.policy.acquire_native(&scope))
+             .await
+             .map_err(|_| DtmfWriteError::DeadlineBeforeWrite)??;
+         if !ready() {
+             return Err(pending.permit.error());
+         }
+         let lease = lease.with_outer_fence(pending.fence.clone())?;
++        let bound = deadline.min(Instant::now() + DTMF_WRITE_DEADLINE);
+         // Nothing takes the physical writer until all source/recipient IO fences
+         // admit this actual future poll. Early refusal therefore leaves it usable.
+         with_dtmf_write_lease(lease, bound, async {
+@@ -398,6 +401,113 @@
+             dropped,
+         )
+     }
++    struct DelayedPolicy(Arc<Policy>);
++    #[async_trait::async_trait]
++    impl DtmfNativeWriteAuthority for DelayedPolicy {
++        async fn acquire_native(
++            &self,
++            scope: &DtmfNativeWriteScope<'_>,
++        ) -> Result<DtmfWriteLease, DtmfWriteError> {
++            tokio::time::sleep(Duration::from_millis(300)).await;
++            self.0.acquire_native(scope).await
++        }
++    }
++    #[tokio::test]
++    async fn native_metadata_wait_preserves_short_physical_budget_and_holds_no_permission() {
++        for stall in [false, true] {
++            let p = policy();
++            let (mut writer, polls, dropped) = sink(&p, stall);
++            let (frame, mut pending, receipt) = test_pending(
++                p.clone(),
++                Arc::new(AtomicBool::new(true)),
++                CancellationToken::new(),
++            );
++            pending.policy = Arc::new(DelayedPolicy(p.clone()));
++            let physical = CancellationToken::new();
++            let stop = CancellationToken::new();
++            let start = Instant::now();
++            let writing = write_owned(
++                &mut writer,
++                &frame,
++                pending,
++                &|| true,
++                &physical,
++                None,
++                &stop,
++                start + Duration::from_secs(1),
++            );
++            tokio::pin!(writing);
++            tokio::select! { r=&mut writing=>panic!("metadata wait ended early: {r:?}"), _=tokio::time::sleep(Duration::from_millis(250))=>{} }
++            assert_eq!(polls.load(Ordering::Acquire), 0);
++            assert!(!p.live.load(Ordering::Acquire));
++            assert!(p.domain.try_write().is_ok());
++            if stall {
++                assert_eq!(writing.await, Err(DispatchError::SubmissionUnknown));
++                assert_eq!(receipt.await.unwrap(), Err(DtmfWriteError::OutcomeUnknown));
++                assert!(start.elapsed() >= Duration::from_millis(500));
++                assert!(dropped.load(Ordering::Acquire));
++                assert!(physical.is_cancelled());
++            } else {
++                assert_eq!(writing.await, Ok(()));
++                assert_eq!(receipt.await.unwrap(), Ok(()));
++                assert!(start.elapsed() >= Duration::from_millis(300));
++                assert!(!physical.is_cancelled());
++            }
++            assert!(start.elapsed() < Duration::from_secs(1));
++            assert!(!p.live.load(Ordering::Acquire));
++            assert!(p.domain.try_write().is_ok());
++        }
++    }
++    #[tokio::test]
++    async fn native_metadata_wait_keeps_original_deadline_and_cancellation_before_io() {
++        for cancel_early in [false, true] {
++            let p = policy();
++            let (mut writer, polls, dropped) = sink(&p, false);
++            let cancel = CancellationToken::new();
++            let (frame, mut pending, receipt) =
++                test_pending(p.clone(), Arc::new(AtomicBool::new(true)), cancel.clone());
++            pending.policy = Arc::new(DelayedPolicy(p.clone()));
++            let physical = CancellationToken::new();
++            let stop = CancellationToken::new();
++            let start = Instant::now();
++            let deadline = start + Duration::from_millis(if cancel_early { 1000 } else { 150 });
++            {
++                let writing = write_owned(
++                    &mut writer,
++                    &frame,
++                    pending,
++                    &|| true,
++                    &physical,
++                    None,
++                    &stop,
++                    deadline,
++                );
++                tokio::pin!(writing);
++                tokio::select! { r=&mut writing=>panic!("metadata wait ended early: {r:?}"), _=tokio::time::sleep(Duration::from_millis(40))=>{} }
++                assert_eq!(polls.load(Ordering::Acquire), 0);
++                assert!(p.domain.try_write().is_ok());
++                if cancel_early {
++                    cancel.cancel();
++                }
++                assert_eq!(writing.await, Ok(()));
++            }
++            assert_eq!(
++                receipt.await.unwrap(),
++                Err(if cancel_early {
++                    DtmfWriteError::Refused
++                } else {
++                    DtmfWriteError::DeadlineBeforeWrite
++                })
++            );
++            assert!(start.elapsed() < Duration::from_millis(300));
++            assert_eq!(polls.load(Ordering::Acquire), 0);
++            assert!(writer.is_some());
++            assert!(!dropped.load(Ordering::Acquire));
++            assert!(!physical.is_cancelled());
++            assert!(!p.live.load(Ordering::Acquire));
++            assert!(p.domain.try_write().is_ok());
++        }
++    }
+     struct ReceiptWake {
+         physical: CancellationToken,
+         dropped: Arc<AtomicBool>,

@@ -2,6 +2,13 @@
 use super::*;
 use rvoip_uctp::v2::payloads::OperationState;
 async fn fixture(algorithm: &str, receive: bool) -> codecs::Running {
+    let _ = tracing_subscriber::fmt()
+        .with_env_filter(
+            tracing_subscriber::EnvFilter::try_from_default_env()
+                .unwrap_or_else(|_| "connect_service=debug".into()),
+        )
+        .with_test_writer()
+        .try_init();
     let f = Fixture::with_native_dtmf_scope(algorithm, 12).await;
     codecs::setup_started_dtmf(f, receive).await
 }
