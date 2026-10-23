@@ -1,0 +1,96 @@
+{
+  "task": "G6-046",
+  "status": "in-progress",
+  "component_passed": true,
+  "full_task_complete": false,
+  "full_goal_complete": false,
+  "created_at": "2026-10-23",
+  "source_lock_patch_count": 166,
+  "store_schema": 101,
+  "source_fix_commit": "c1d851ec",
+  "scope": "Configured initial SIP input to two live native Connections of the same Participant, with independent device credentials, per-Connection output facts and credential-local retirement. Local macOS arm64 default profile under EdDSA and ES256.",
+  "source_prerequisite": "docs/evidence/gate-6/auxiliary-received-dtmf-contention.json",
+  "behavior": [
+    "A second actual native client negotiates its own verified Device/Endpoint/key and stream, subscribes explicitly to telephone-audio, and passes the unchanged actual duplex audio helper. Both Store Connections have the same Participant and Identity but different Connection IDs.",
+    "One actual SIP INFO observation freezes both native Connections and delivers distinct signed dtmf.received frames with one stable operation ID, actual sip-info kind, original receive time/duration and separate local_submitted facts. SDK verifies signatures; source-owner HTTP reports two recipients with the same membership epoch and Participant.",
+    "Public Store credential revocation retires only the sibling Connection. The original native Connection remains ready. Retransmitting the original INFO creates no later frame; fresh actual RFC4733 creates a new operation and reaches only the survivor. Original operation status is unchanged.",
+    "Each scene ends with one SIP call, exactly two received source operations and three recipient facts. Existing owned cleanup remains in force."
+  ],
+  "verification": {
+    "server_test": "production_initial_sip_received_fanout_keeps_sibling_connections_distinct_and_revocation_local",
+    "signing_algorithms": [
+      "EdDSA",
+      "ES256"
+    ],
+    "actual_fanout_scenes": 2,
+    "received_operations": 4,
+    "signed_native_frames": 6,
+    "schema_validation": {
+      "passed": true,
+      "installed_scenes": 2,
+      "received_operations": 4,
+      "signed_native_frames": 6,
+      "scope": "Local initial SIP input to two native Connections of one Participant; revoking only one credential retires only that recipient, replay does not redeliver, fresh input reaches the survivor. SDK verifies signatures. No broader transport, privacy, crash, capacity or Gate6 completion claim."
+    },
+    "final_received_suite": {
+      "methods": 6,
+      "signing_algorithm_scenes": 12,
+      "passed": true,
+      "covers": [
+        "independent current signal permissions without media",
+        "same-Participant sibling fanout and credential-local revocation",
+        "captured output settlement after source retirement",
+        "incomplete/fractional RTP no-effect facts and fresh-input recovery",
+        "actual SIP INFO/RFC4733 provenance and sealed original audience",
+        "orderly successor uncertainty without redelivery"
+      ]
+    },
+    "source_component_tests": {
+      "core_routes": 18,
+      "original_private_audience": 7
+    },
+    "distinct_rust_methods_this_checkpoint": 31,
+    "commands": [
+      "bash scripts/prepare-dependencies.sh",
+      "CARGO_INCREMENTAL=1 cargo test -p connect-server --test gate6_canonical_runtime --locked --offline -j4 --no-run",
+      "target/debug/deps/gate6_canonical_runtime-3bf705553dffa934 production_initial_sip_received_ --nocapture --test-threads=1",
+      "scripts/validate-gate6-received-dtmf-fanout.py with actual captured JSONL and the private jsonschema environment",
+      "bash scripts/format.sh -- --check",
+      "python3 scripts/generate-canonical-http-openapi.py --check",
+      "python3 scripts/check-gate6-progress.py"
+    ],
+    "captured_samples_sha256": "4f34df068a6cafbcad6427ac3c31d2a72c3b06f9211de35767760d5017f2faa5"
+  },
+  "observed_failures": [
+    {
+      "phase": "before source-fence fix",
+      "result": "With both native peers live and both recipients frozen, either recipient could fail before host policy with Refused/touched=false, leaving that recipient not_started and no reserved frame. The accepted source was misclassifying concurrent metadata/physical busy as retirement."
+    },
+    {
+      "phase": "additional sibling audio setup",
+      "result": "An intermediate pre-fix run had one marked audio frame; the first post-fix run had zero, failing the unchanged >10 threshold before DTMF. No threshold or assertion was weakened. The unchanged next isolated run and final six-method suite passed both algorithms. The intermittent media setup failure remains unresolved under the broader G6-046 media work; these failed attempts receive no credit."
+    },
+    {
+      "phase": "new controlled Core setup",
+      "result": "Two new tests initially used operation IDs different from the shared policy-required stable-logical-operation and failed its existing assertion. Corrected only test identity; all18 final route tests and7 original private tests pass."
+    }
+  ],
+  "limits": [
+    "No additional whole clause or task is qualified. G6-046 remains56/61 clauses and45/105 plan tasks complete; the all105-task goal stays active.",
+    "This verifies one actual initial SIP source and two native sibling Connections, not all SIP/WebRTC legs,50member capacity or the complete gateway translation contract.",
+    "Original/current private-audience custody retains7 controlled Core tests; this checkpoint does not supply the remaining end-to-end private/IO-boundary failure matrix.",
+    "Received-source retention/redaction, abrupt crash, full workspace/test-support, Linux x86_64/browser/remote/provider, independent conformance, acceptance and publication remain open."
+  ],
+  "inputs": {
+    "Cargo.lock": "3d43b79adda5b07b6770acfe3666217fb6ee3c702fabfff11847c96f68226df3",
+    "dependencies/source-lock.json": "5f5b42799add7661e89531fee187397e2089899c1e673db0711ea0e8bc772419",
+    "patches/rvoip/gate6-received-dtmf-contention.patch": "86417c18ac8bd0506aa0595a553db3eaf11d7c4f33430cb3c4aed4ff3a119230",
+    "crates/connect-server/tests/support/canonical_native_connections/consultation/groups/replacement/telephone/initial/received/fanout.rs": "5b89eb1d8b4ef3a90fbee4137e1b6fa22f80c835e52532ced1a7653e55308f67",
+    "scripts/validate-gate6-received-dtmf-fanout.py": "469180b2b6d901241c4f3ebc365bb307173199e4293e44035244768ef84bea7a",
+    "crates/connect-server/tests/support/canonical_native_connections/consultation/groups/replacement/telephone/initial.rs": "0ca4d925ec7dce4c614d8f1965e2c57f7a461252648d2e1e433005d7ca78f52d",
+    "crates/connect-server/tests/support/canonical_native_connections/consultation/groups/replacement/telephone/initial/received.rs": "1e64d77f540eebc8bacf4c3cb52f465a0800bf89df360df143e2e4bf460d0898",
+    "crates/connect-service/src/canonical_received_dtmf.rs": "f3f26cf9066eb524213153e53ca10dd62ef0f14d054ed4eada63a2436d2f28cf",
+    "contracts/openapi-operations.json": "44f0b8eee7f90fab4977867e39a125f98a72aa5e74b998e937da81637e07a5e4",
+    "contracts/schemas/uctp-envelope-2.schema.json": "8d3d5a1098c8eebafe30960b8b35d83e11f9c8ac09453ab7e528251368d11c32"
+  }
+}

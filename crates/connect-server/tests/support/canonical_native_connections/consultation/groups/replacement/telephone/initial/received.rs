@@ -2,6 +2,8 @@
 use super::*;
 #[path = "received/authority.rs"]
 pub(super) mod authority;
+#[path = "received/fanout.rs"]
+pub(super) mod fanout;
 #[path = "received/outcomes.rs"]
 pub(super) mod outcomes;
 #[path = "received/restart.rs"]

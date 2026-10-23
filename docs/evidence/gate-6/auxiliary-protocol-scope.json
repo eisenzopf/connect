@@ -3795,6 +3795,6 @@
     "full_task_complete": false,
     "continuation_evidence": "docs/evidence/gate-6/auxiliary-session-identity-targets.json",
     "latest_evidence": "docs/evidence/gate-6/auxiliary-dtmf-source-attribution.json",
-    "latest_component_evidence": "docs/evidence/gate-6/auxiliary-received-dtmf-authority-recovery.json"
+    "latest_component_evidence": "docs/evidence/gate-6/auxiliary-received-dtmf-fanout.json"
   }
 }

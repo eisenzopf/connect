@@ -447,6 +447,9 @@ async fn initial_selected_signal_case(
         received::restart::exercise(f, peer, native, &room.id, algorithm).await;
         return;
     }
+    if signal == Some("received-fanout") {
+        received::fanout::exercise(&f, &peer, &mut native[0], &room.id, algorithm).await;
+    }
     if signal == Some("received-custody") {
         received::exercise(&f, &peer, &mut native[0], &room.id, algorithm).await;
     }
@@ -484,6 +487,7 @@ async fn initial_selected_signal_case(
                 | "received-rejected-timing"
                 | "received-authority"
                 | "received-outcome-recovery"
+                | "received-fanout"
         )
     }) {
         if method.starts_with("signal-only-") {
