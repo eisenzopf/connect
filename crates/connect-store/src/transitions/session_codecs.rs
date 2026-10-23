@@ -188,6 +188,10 @@ fn outcome(c: &Connection, record: &str) -> Result<ReconciliationOutcome> {
 impl Store {
     /// Install only with the actual worker and native executor. This is a
     /// feature-availability marker, never an authorization or media-ready fact.
+    pub fn uninstall_session_codec_coordinator(&self) {
+        self.session_codec_coordinator
+            .store(false, std::sync::atomic::Ordering::Release);
+    }
     pub fn install_session_codec_coordinator(&self) -> Result<()> {
         self.require_runtime_owner()?;
         self.session_codec_coordinator
@@ -264,7 +268,7 @@ impl Store {
             .transaction_with_behavior(TransactionBehavior::Immediate)
             .map_err(|_| Error::storage())?;
         let ids = {
-            let mut q=tx.prepare("SELECT b.operation_record_id FROM session_codec_batches b JOIN operations o ON o.record_id=b.operation_record_id WHERE o.state IN ('accepted','preparing','unknown') ORDER BY o.rowid LIMIT ?1").map_err(|_|Error::storage())?;
+            let mut q=tx.prepare("SELECT b.operation_record_id FROM session_codec_batches b JOIN operations o ON o.record_id=b.operation_record_id WHERE o.state IN ('accepted','preparing','unknown') ORDER BY CASE WHEN o.state='unknown' THEN 1 ELSE 0 END,o.rowid LIMIT ?1").map_err(|_|Error::storage())?;
             let rows = q
                 .query_map([limit as u64], |r| r.get::<_, String>(0))
                 .map_err(|_| Error::storage())?

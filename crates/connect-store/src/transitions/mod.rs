@@ -61,7 +61,7 @@ pub use native_offers::{
 pub(crate) use native_streams::retained_scopes as retained_native_stream_scopes;
 pub use native_streams::{
     NativeDtmfBatch, NativeDtmfRead, NativeDtmfRecipient, NativeDtmfTarget, NativeStreamCommitted,
-    NativeStreamLease,
+    NativeStreamLease, NativeStreamNoEffect,
 };
 mod peer;
 pub(crate) use peer::{current_control_record, operation_source_scopes, peer_operation_scopes};

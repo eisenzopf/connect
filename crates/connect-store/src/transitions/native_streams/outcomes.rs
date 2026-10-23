@@ -6,6 +6,20 @@ pub struct NativeStreamCommitted {
     lease: NativeStreamLease,
     outcome: CommittedOutcome,
 }
+/// Historical proof from the owned host that no native effect was submitted.
+/// It retains no grant and permits retrying only the same metadata recording.
+pub struct NativeStreamNoEffect {
+    lease: NativeStreamLease,
+    problem: Error,
+}
+impl NativeStreamLease {
+    pub fn without_effect(self, problem: Error) -> NativeStreamNoEffect {
+        NativeStreamNoEffect {
+            lease: self,
+            problem,
+        }
+    }
+}
 enum CommittedOutcome {
     Streams {
         revision: u64,
@@ -412,12 +426,20 @@ impl Store {
         lease: NativeStreamLease,
         problem: Error,
     ) -> Result<OperationRecord> {
+        self.record_native_stream_without_effect(&lease.without_effect(problem))
+    }
+    pub fn record_native_stream_without_effect(
+        &self,
+        receipt: &NativeStreamNoEffect,
+    ) -> Result<OperationRecord> {
+        let lease = &receipt.lease;
+        let problem = &receipt.problem;
         let owner = self.require_runtime_owner()?;
         let mut c = self.connection()?;
         let tx = c
             .transaction_with_behavior(TransactionBehavior::Immediate)
             .map_err(|_| Error::storage())?;
-        let row = exact(&tx, self, &lease)?;
+        let row = exact(&tx, self, lease)?;
         if lease.command == Command::Dtmf {
             let frozen: bool = tx
                 .query_row(
@@ -430,6 +452,15 @@ impl Store {
                 return Err(conflict());
             }
         }
+        if row.record.state == OperationState::Failed
+            && row.record.problem.as_ref()
+                == Some(&serde_json::to_value(problem).map_err(|_| Error::storage())?)
+        {
+            if !owner.current() {
+                return Err(Error::forbidden());
+            }
+            return Ok(row.record);
+        }
         if !matches!(
             row.record.state,
             OperationState::Preparing | OperationState::Unknown
@@ -437,7 +468,7 @@ impl Store {
             return Err(conflict());
         }
         tx.execute("UPDATE operation_effects SET state='failed' WHERE id=?1 AND state IN ('submitting','unknown')",[&lease.effect]).map_err(|_|Error::storage())?;
-        fail_before_effect(&tx, &row, &problem, self)?;
+        fail_before_effect(&tx, &row, problem, self)?;
         workers::invalidate(&tx, &lease.record)?;
         if !owner.current() {
             return Err(Error::forbidden());

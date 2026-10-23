@@ -9,7 +9,7 @@ mod session_codecs;
 use super::*;
 use crate::{AuthorityMode, AuthorityScope, PeerAuthorityGuard, PeerCommand};
 use connect_protocol::native_streams::{Command, Intent};
-pub use outcomes::NativeStreamCommitted;
+pub use outcomes::{NativeStreamCommitted, NativeStreamNoEffect};
 
 /// One local attempt, never reconstructed from a signed request or a retry.
 /// Completion must later carry an attributed outcome from the owned engine job.

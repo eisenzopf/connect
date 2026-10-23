@@ -141,3 +141,89 @@ fn session_codec_restart_cannot_reconstruct_old_queued_or_submitted_native_attem
         }
     }
 }
+
+#[test]
+fn session_codec_no_effect_capture_retries_recording_without_another_native_attempt() {
+    let (f, origin, manager) = fixture();
+    let (_, receipt, target) = queue(&f, &manager, "no-effect-policy");
+    let read = f
+        .store
+        .try_native_session_codec_read(&origin, &target)
+        .unwrap();
+    let lease = f
+        .store
+        .begin_native_session_codec(&read, "no-effect-child", json!({"streams":[]}))
+        .unwrap();
+    drop(read);
+    let captured =
+        lease.without_effect(Error::new("codec-refused", "Controlled preflight refusal"));
+    f.store.connection().unwrap().execute_batch("CREATE TRIGGER reject_codec_no_effect BEFORE UPDATE OF state ON operations WHEN NEW.state='failed' BEGIN SELECT RAISE(ABORT,'fixture'); END;").unwrap();
+    assert!(f
+        .store
+        .record_native_stream_without_effect(&captured)
+        .is_err());
+    assert_eq!(
+        status(&f, &manager, &receipt).state,
+        OperationState::Preparing
+    );
+    assert!(f
+        .store
+        .try_native_session_codec_read(&origin, &target)
+        .is_err());
+    assert_eq!(f.count("operation_effects"), 2);
+    f.store
+        .connection()
+        .unwrap()
+        .execute_batch("DROP TRIGGER reject_codec_no_effect")
+        .unwrap();
+    let recorded = f
+        .store
+        .record_native_stream_without_effect(&captured)
+        .unwrap();
+    assert_eq!(
+        f.store
+            .record_native_stream_without_effect(&captured)
+            .unwrap(),
+        recorded
+    );
+    f.store.reconcile_session_codec_jobs(8).unwrap();
+    let done = status(&f, &manager, &receipt);
+    assert_eq!(done.state, OperationState::Completed);
+    assert_eq!(counts(&done).refused, 1);
+    assert_eq!(f.count("operation_effects"), 2);
+}
+
+#[test]
+fn session_codec_bounded_reconciliation_prioritizes_pending_work_over_older_unknown_batches() {
+    let (f, origin, manager) = fixture();
+    let (_, older, target) = queue(&f, &manager, "older-unknown-policy");
+    let read = f
+        .store
+        .try_native_session_codec_read(&origin, &target)
+        .unwrap();
+    let lease = f
+        .store
+        .begin_native_session_codec(&read, "older-unknown-child", json!({"streams":[]}))
+        .unwrap();
+    drop(read);
+    f.store.native_stream_attempt_uncertain(&lease).unwrap();
+    f.store.reconcile_session_codec_jobs(1).unwrap();
+    assert_eq!(status(&f, &manager, &older).state, OperationState::Unknown);
+    let (_, newer, _) = queue(&f, &manager, "newer-pending-policy");
+    // Controlled physical retirement in this Store-only fixture. The scan
+    // must reach the queued target with its one-batch budget; it grants no IO.
+    f.store
+        .connection()
+        .unwrap()
+        .execute(
+            "UPDATE connections SET state='retired' WHERE id=?1",
+            [origin.connection_id()],
+        )
+        .unwrap();
+    f.store.reconcile_session_codec_jobs(1).unwrap();
+    let done = status(&f, &manager, &newer);
+    assert_eq!(done.state, OperationState::Completed);
+    assert_eq!(counts(&done).unavailable, 1);
+    assert_eq!(status(&f, &manager, &older).state, OperationState::Unknown);
+    assert_eq!(f.count("operation_effects"), 2);
+}
