@@ -1,0 +1,19 @@
+--- a/crates/uctp/rvoip-uctp/src/v2/native_lifecycle.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/native_lifecycle.rs
+@@ -358,9 +358,14 @@
+             let origin = self.origin.with_fence(fence);
+             let deadline = Instant::now() + Duration::from_secs(1);
+             let cancellation = origin.cancellation();
+-            let authority = tokio::select! {biased;_=cancellation.cancelled()=>return Err(DispatchError::Closed),_=tokio::time::sleep_until(deadline)=>{if matches!(event, NativeLifecycleEvent::ConnectionReady { .. }) {drop(state);tokio::time::sleep(Duration::from_millis(20)).await;continue;}return Err(DispatchError::Closed);},r=self.policy.authorize(&self.scope,&event)=>match r {
++            // Hint metadata may be unavailable before any writer is claimed.
++            // Keep the registration, release its current proposal, and derive a
++            // fresh event/authority on retry. Actual writes retain their separate
++            // completion custody; cancellation and definitive denial still end
++            // this observer. Quality waits for its next measurement cadence.
++            let authority = tokio::select! {biased;_=cancellation.cancelled()=>return Err(DispatchError::Closed),_=tokio::time::sleep_until(deadline)=>{drop(state);tokio::time::sleep(Duration::from_millis(20)).await;continue;},r=self.policy.authorize(&self.scope,&event)=>match r {
+                 Ok(guard)=>guard,
+-                Err(DispatchError::StorageUnavailable) if matches!(event, NativeLifecycleEvent::ConnectionReady { .. })=>{
++                Err(DispatchError::StorageUnavailable)=>{
+                     drop(state);
+                     tokio::time::sleep(Duration::from_millis(20)).await;
+                     continue;

@@ -169,6 +169,13 @@ impl NativeLifecyclePolicy for Policy {
             {
                 Ok(read) => break Arc::new(read),
                 Err(e) if e.code == "authority-busy" => {
+                    // Quality is advisory. Do not consume its entire write
+                    // deadline waiting for an authority reader: the engine's
+                    // timeout retires this registration, including future real
+                    // readiness. A fresh measurement can try again next cadence.
+                    if matches!(event, NativeLifecycleEvent::ConnectionQuality { .. }) {
+                        return Err(DispatchError::StorageUnavailable);
+                    }
                     tokio::select! {
                         _=runtime.stop.cancelled()=>return Err(DispatchError::Closed),
                         _=self.physical.cancelled()=>return Err(DispatchError::Closed),

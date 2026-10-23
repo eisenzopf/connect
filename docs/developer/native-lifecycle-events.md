@@ -13,6 +13,14 @@ waiting and keeps the original physical source and observation. A missing source
 poisoned registry, cancelled physical peer or withdrawn permission still refuses
 use of that source; temporary contention cannot supply authority or a new binding.
 
+Quality hints defer immediately when the current Store reader is busy. A metadata
+timeout or temporary storage refusal before a lifecycle write leaves its observer
+registered. The engine derives the next ready/opened/closed/replacement hint from
+current bindings and obtains fresh authority; a quality interval waits for its
+next cadence. This retries observation, without repeating an actual write or a
+business command. Physical cancellation and definitive authority denial still
+retire the observer.
+
 `connection.quality` uses the engine's measured packet and byte counters at the
 default five-second cadence. Its stream IDs and wire Conversation, Session and
 Connection scopes belong to that peer. Unmeasured loss, jitter, RTT and MOS are

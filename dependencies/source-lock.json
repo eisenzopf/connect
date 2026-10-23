@@ -954,6 +954,11 @@
       "path": "patches/rvoip/gate6-native-handle-boundary.patch",
       "sha256": "2e7dbd989d957f47b079a94bbf571e9d0874c3a6e9fd0bbf937117ccc744dd70",
       "source": "Controlled installed-native PeerMediaRouter full nonzero uint16 namespace exhaustion; abandoned reservations remain burned and repeated exhaustion cannot wrap or reuse."
+    },
+    {
+      "path": "patches/rvoip/gate6-native-lifecycle-contention.patch",
+      "sha256": "5e9978f4dc3fa660a89e885b78057a06be6fd1789ebecb161f3d88a157e7128f",
+      "source": "G6-046 retain native lifecycle observers across pre-IO metadata timeouts and temporary storage unavailability for ready/opened/closed/replaced/quality hints. Recompute current observed events and fresh authority without retaining readers or repeating an actual writer/business mutation; cancellation and definitive authority denial still retire the registration. Actual50-Participant readiness/opened regression and failure provenance are required separately."
     }
   ]
 }

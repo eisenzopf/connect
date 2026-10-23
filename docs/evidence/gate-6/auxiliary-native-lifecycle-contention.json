@@ -1,0 +1,45 @@
+{
+  "task": "G6-046",
+  "title": "Preserve native lifecycle observers across temporary metadata failure",
+  "recorded_at": "2026-10-23T22:45:40.015604+00:00",
+  "status": "bounded-lifecycle-fix-verified; full-fifty-fanout-open",
+  "full_task_complete": false,
+  "full_goal_complete": false,
+  "qualified_case_ids": [],
+  "source_lock_patch_count": 171,
+  "store_schema": 103,
+  "implementation": [
+    "Advisory quality immediately defers a busy current Store reader instead of exhausting the short lifecycle write deadline.",
+    "Tracked upstream patch retains observers across pre-IO metadata timeout or StorageUnavailable for ready/opened/closed/replaced/quality hints. Each retry derives current bindings and obtains fresh authority. Quality uses its next cadence. No current reader survives the wait and no business effect is replayed. Cancellation and definitive denial still retire observers.",
+    "Fresh pinned dependency preparation verifies patch digest and source bytes;4041 byte-identical unchanged files preserve timestamps for existing build caches. No prepared source byte was edited outside a tracked patch.",
+    "HTTP/OpenAPI extension and developer guide describe the retry boundary."
+  ],
+  "verification": {
+    "production_regression_methods_passed": 8,
+    "test_methods": [
+      "canonical_native_connections::solo::production_native_flow_fact_precedes_hints_and_recovers_storage_without_more_media",
+      "canonical_native_connections::solo::production_session_started_multicasts_original_snapshot_without_recipient_media_and_denies_narrow_scope",
+      "canonical_native_connections::solo::production_solo_session_admits_actual_native_flow_and_preserves_original_receipt_when_growing",
+      "canonical_native_connections::lifecycle::production_native_lifecycle_closes_original_codec_binding_and_opens_only_observed_replacement",
+      "canonical_native_connections::lifecycle::production_native_lifecycle_quality_reports_actual_flow_through_signed_sdk",
+      "canonical_native_connections::lifecycle::production_owned_audio_continuously_reads_signed_capability_bursts_while_preserving_duplex_audio_and_selector_replay",
+      "canonical_native_connections::lifecycle::production_owned_native_audio_selection_replay_preserves_pending_lifecycle_events",
+      "production_current_key_revocation_retires_signed_client_without_borrowing_new_authority"
+    ],
+    "default_server_test_build_passed": true,
+    "dependencies_prepared": true,
+    "format_script_passed": true,
+    "openapi_generation_check_passed": true,
+    "diff_check_passed": true
+  },
+  "diagnostic_observations": [
+    "Before the fix, the actual full-count EdDSA scene accepted original-source packets after its lifecycle registration had already been removed. Debug observation showed quality authorization followed by registration drop about one second later. This supplies failure provenance, not a pass.",
+    "A root quality deferral allowed all50 durable publisher flow facts, but one later opened hint remained absent. At171, repeated full-count EdDSA runs passed every publisher started/ready/opened/49-other-joined assertion before later receiver setup failed. This is partial diagnostic progress only; no complete50-Participant method or ES25650-Participant scene is counted.",
+    "The latest run kept all50 physical peers and readers live but had96 admitted Connections after49 receiver negotiations. Durable metadata showed3 receivers retired. Keepalive barriers and the existing5-second admission settling window did not fix it. Retirement cause remains under investigation."
+  ],
+  "unresolved": [
+    "The full50 publisher/subscriber fanout, replay and membership test has not passed or produced a complete validated capture. Future-publication composition and remaining receiver profiles stay open.",
+    "Remaining0112/0113/0123 stay open; G6-046 remains58/61 and the plan45/105.",
+    "Standalone service units, full workspace, Linux/browser/remote/provider lanes and acceptance were not rerun/qualified at171. Prior source170 checks remain separately recorded; publication stays separate."
+  ]
+}
