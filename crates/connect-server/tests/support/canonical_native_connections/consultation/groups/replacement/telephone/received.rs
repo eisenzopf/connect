@@ -1,5 +1,7 @@
 //! Real moved SIP source, durable custody and signed native delivery.
 use super::*;
+#[path = "received/refresh.rs"]
+pub(super) mod refresh;
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
 async fn production_moved_sip_received_info_and_rfc4733_preserve_actual_source_and_current_authority(
 ) {

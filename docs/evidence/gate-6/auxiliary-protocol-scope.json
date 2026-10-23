@@ -2657,11 +2657,12 @@
           "crates/connect-store/migrations/100_native_dtmf_gateways.sql",
           "crates/connect-store/src/transitions/native_streams/dtmf/gateways.rs"
         ],
-        "remaining": "Current local initial and committed SIP/native delivery is installed in both directions. Complete remaining composed credential-epoch DTMF/current-authority, established/retained SIP private-role and receiver-rights/retirement profiles before whole-clause credit; full50member/mixed-substrate and later transport/hosting/remote profiles retain their assigned scope.",
+        "remaining": "Current local initial and committed SIP/native delivery is installed in both directions; actual mixed credential refresh preserves queued epochs and fresh bidirectional delivery. Complete established/retained SIP private-role and remaining receiver-rights/current-authority/retirement profiles before whole-clause credit; full50member/mixed-substrate and later transport/hosting/remote profiles retain their assigned scope.",
         "current_sip_signal_authority_evidence": "docs/evidence/gate-6/auxiliary-sip-signal-authority.json",
         "current_gateway_custody_evidence": "docs/evidence/gate-6/auxiliary-native-dtmf-gateway-custody.json",
         "current_moved_sip_outgoing_evidence": "docs/evidence/gate-6/auxiliary-moved-sip-dtmf.json",
-        "current_received_established_evidence": "docs/evidence/gate-6/auxiliary-moved-sip-received-dtmf.json"
+        "current_received_established_evidence": "docs/evidence/gate-6/auxiliary-moved-sip-received-dtmf.json",
+        "current_credential_epoch_evidence": "docs/evidence/gate-6/auxiliary-dtmf-credential-refresh.json"
       }
     },
     {
@@ -2704,11 +2705,12 @@
           "crates/connect-store/migrations/100_native_dtmf_gateways.sql",
           "crates/connect-store/src/transitions/native_streams/dtmf/gateways.rs"
         ],
-        "remaining": "Current local initial and committed SIP/native delivery is installed in both directions. Complete remaining composed credential-epoch DTMF/current-authority, established/retained SIP private-role and receiver-rights/retirement profiles before whole-clause credit; full50member/mixed-substrate and later transport/hosting/remote profiles retain their assigned scope.",
+        "remaining": "Current local initial and committed SIP/native delivery is installed in both directions; actual mixed credential refresh preserves queued epochs and fresh bidirectional delivery. Complete established/retained SIP private-role and remaining receiver-rights/current-authority/retirement profiles before whole-clause credit; full50member/mixed-substrate and later transport/hosting/remote profiles retain their assigned scope.",
         "current_sip_signal_authority_evidence": "docs/evidence/gate-6/auxiliary-sip-signal-authority.json",
         "current_gateway_custody_evidence": "docs/evidence/gate-6/auxiliary-native-dtmf-gateway-custody.json",
         "current_moved_sip_outgoing_evidence": "docs/evidence/gate-6/auxiliary-moved-sip-dtmf.json",
-        "current_received_established_evidence": "docs/evidence/gate-6/auxiliary-moved-sip-received-dtmf.json"
+        "current_received_established_evidence": "docs/evidence/gate-6/auxiliary-moved-sip-received-dtmf.json",
+        "current_credential_epoch_evidence": "docs/evidence/gate-6/auxiliary-dtmf-credential-refresh.json"
       }
     },
     {
@@ -3820,6 +3822,14 @@
       "distinct_methods_passed": 111,
       "new_methods": 7,
       "qualified_case_ids": []
+    },
+    "dtmf_credential_refresh": {
+      "status": "local-mixed-credential-epoch-composition-verified; private-and-recipient-profiles-open",
+      "evidence": "docs/evidence/gate-6/auxiliary-dtmf-credential-refresh.json",
+      "store_schema": 103,
+      "distinct_methods_passed": 16,
+      "new_methods": 3,
+      "qualified_case_ids": []
     }
   },
   "qualified_clause_count": 58,
@@ -3890,6 +3900,6 @@
     "full_task_complete": false,
     "continuation_evidence": "docs/evidence/gate-6/auxiliary-session-identity-targets.json",
     "latest_evidence": "docs/evidence/gate-6/auxiliary-native-offer-fields.json",
-    "latest_component_evidence": "docs/evidence/gate-6/auxiliary-moved-sip-received-dtmf.json"
+    "latest_component_evidence": "docs/evidence/gate-6/auxiliary-dtmf-credential-refresh.json"
   }
 }

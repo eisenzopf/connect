@@ -150,3 +150,15 @@ original/current Core audience. Media and signal permission stay independent,
 and a retained signal direction can keep the call alive while media is denied.
 Private combinations, wider source profiles and later hosting/transport
 qualification remain separately recorded work.
+
+An observed native `auth.refresh` preserves the Connection, Stream and logical
+participant. Fresh DTMF source commands and newly captured native recipients
+use the applied credential epoch. The admission view resolves that current
+epoch while retaining the original offer record.
+
+Queued SIP input keeps its original recipient registration and credential
+epoch. Refresh can finish while reservation metadata waits without permission
+readers. If no frame was reserved, that old recipient stops as `not_started`;
+new input can use the new registration. Existing reserved/uncertain outcomes
+retain their original rules. Replaying an old operation cannot retarget it,
+refresh its deadline or submit its signal again.

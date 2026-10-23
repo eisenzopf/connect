@@ -472,6 +472,7 @@ enum Stop {
     StreamControl,
     Dtmf,
     DtmfReceive,
+    DtmfRefresh,
     ReturnNative,
     ReturnObserver,
     Refresh,
@@ -514,6 +515,7 @@ async fn telephone_case_profile(stop: Stop, configured: bool, algorithm: &str) {
         | Stop::StreamControl
         | Stop::Dtmf
         | Stop::DtmfReceive
+        | Stop::DtmfRefresh
         | Stop::ReturnNative
         | Stop::ReturnObserver
         | Stop::Refresh => Some(0),
@@ -622,6 +624,7 @@ async fn telephone_case_profile(stop: Stop, configured: bool, algorithm: &str) {
                         | Stop::StreamControl
                         | Stop::Dtmf
                         | Stop::DtmfReceive
+                        | Stop::DtmfRefresh
                         | Stop::ReturnNative
                         | Stop::ReturnObserver
                         | Stop::Refresh
@@ -667,7 +670,7 @@ async fn telephone_case_profile(stop: Stop, configured: bool, algorithm: &str) {
         },
         (endpoint, route_key, route_owner),
     ) = if configured {
-        if matches!(stop, Stop::Dtmf | Stop::DtmfReceive) {
+        if matches!(stop, Stop::Dtmf | Stop::DtmfReceive | Stop::DtmfRefresh) {
             codecs::setup_with_telephone_dtmf(algorithm, configure).await
         } else {
             codecs::setup_with_telephone(configure).await
@@ -1203,6 +1206,10 @@ async fn telephone_case_profile(stop: Stop, configured: bool, algorithm: &str) {
             )
             .await;
         }
+        if matches!(stop, Stop::DtmfRefresh) {
+            received::refresh::exercise(&f, &cid, &mut peers, &peer, payload, &done, algorithm)
+                .await;
+        }
         let refresh_session = if matches!(stop, Stop::Refresh) {
             let coordinator = coordinator.as_ref().unwrap();
             let sessions = coordinator.list_sessions().await;
@@ -1473,6 +1480,7 @@ async fn telephone_case_profile(stop: Stop, configured: bool, algorithm: &str) {
         | Stop::StreamControl
         | Stop::Dtmf
         | Stop::DtmfReceive
+        | Stop::DtmfRefresh
         | Stop::ReturnNative
         | Stop::ReturnObserver
         | Stop::Refresh => {
