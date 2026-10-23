@@ -160,6 +160,20 @@ impl Service {
             .ok_or_else(Error::forbidden)?;
         Ok(session)
     }
+    /// Hold actual leaf binding metadata for isolated contention tests. The
+    /// callback receives no binding, credential or authority object.
+    #[cfg(feature = "test-support")]
+    pub fn with_canonical_native_binding_for_test(
+        &self,
+        connection_id: &str,
+        hold: impl FnOnce(),
+    ) -> Result<()> {
+        self.canonical_runtime
+            .get()
+            .ok_or_else(Error::forbidden)?
+            .media
+            .with_native_binding_for_test(connection_id, hold)
+    }
     /// Drain the registered adapter's owned work after physical intake stops.
     pub async fn drain_canonical_runtime(&self) {
         let _ = self.drain_session_initialization().await;

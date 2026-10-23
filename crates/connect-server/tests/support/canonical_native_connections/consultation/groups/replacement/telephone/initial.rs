@@ -6,6 +6,9 @@ mod activation;
 mod dtmf;
 #[path = "initial/gateways.rs"]
 mod gateways;
+#[cfg(feature = "test-support")]
+#[path = "initial/subscriptions.rs"]
+mod subscriptions;
 use rusqlite::OptionalExtension;
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
 async fn production_initial_telephone_public_invite_records_real_answer_and_guarded_admission_once()
@@ -386,16 +389,37 @@ async fn initial_selected_signal_case(
     .await;
     wait_native_operation(&f, &f.client.credential, &room.id, "initial-native-offer").await;
     assert_eq!(db.query_row("SELECT c.state FROM connections c JOIN operations o ON o.connection_id=c.id JOIN initial_telephone_operations i ON i.operation_record_id=o.record_id",[],|r|r.get::<_,String>(0)).unwrap(),"ready");
-    stream_control(
-        &mut client,
-        &room.id,
-        "initial-native",
-        "initial-select-phone",
-        1,
-        "stream.subscribe",
-        json!({"subscriptions":[{"strm_id":"telephone-audio"}]}),
-    )
-    .await;
+    let selected = {
+        #[cfg(feature = "test-support")]
+        {
+            if signal == Some("subscription-binding-busy") {
+                subscriptions::binding_busy(&f, &mut client, &room.id).await;
+                true
+            } else {
+                false
+            }
+        }
+        #[cfg(not(feature = "test-support"))]
+        {
+            false
+        }
+    };
+    if !selected {
+        stream_control(
+            &mut client,
+            &room.id,
+            "initial-native",
+            "initial-select-phone",
+            1,
+            "stream.subscribe",
+            json!({"subscriptions":[{"strm_id":"telephone-audio"}]}),
+        )
+        .await;
+    }
+    #[cfg(feature = "test-support")]
+    if signal == Some("subscription-rehearsal") {
+        subscriptions::replay(&f, &mut client, &room.id).await;
+    }
     let handle = answer.original()["payload"]["substrate_setup"]["streams"][0]["stream_local_id"]
         .as_u64()
         .unwrap() as u16;
@@ -417,7 +441,9 @@ async fn initial_selected_signal_case(
         live: true,
     }];
     sip_native_duplex(&peer, &mut native, 0, "initial-public-native-duplex").await;
-    if let Some(method) = signal {
+    if let Some(method) =
+        signal.filter(|v| !matches!(*v, "subscription-binding-busy" | "subscription-rehearsal"))
+    {
         if method.starts_with("signal-only-") {
             dtmf::signal_only(&f, &peer, &mut native, &phone_credential).await;
         }

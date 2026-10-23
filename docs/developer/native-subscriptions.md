@@ -115,3 +115,21 @@ for silence/no dominant speaker. Missing this field is invalid. `strm_id` and
 authorization or Session completion from a hint or from its absence. Detection
 and cadence are implementation policy; no detector or emission guarantee is
 installed by this profile.
+
+Subscription authorization now waits for the native connection's leaf binding
+metadata lock. Its production holders perform only relationship comparisons,
+clones or assignment and release it before calling Core, Store or IO. A busy
+metadata read no longer becomes withdrawn authority and an uncertain operation.
+The same identity, endpoint, Device, membership, generation and current control
+checks still run before commit; poisoned metadata continues to refuse.
+
+The actual signed initial-SIP subscription fixture holds this exact native
+binding lock while admitting a command. The operation stays preparing until the
+lock is released, then completes one effect and passes the existing marked
+duplex audio thresholds. Both signing algorithms also run four ordinary setup
+and replay rehearsals each: replay retains the original result, connection
+revision and single effect. The pre-fix fixture reproduces an authority error
+and `unknown` result from binding contention. This establishes that failure
+class; the earlier spontaneous unknown outcomes lack enough tracing to attribute
+every instance to it. Full selector, multiparty and hosting qualification remain
+separate evidence obligations.

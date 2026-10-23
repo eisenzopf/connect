@@ -298,7 +298,14 @@ impl Connection {
         )
         .map_err(denied)?;
         let connection = {
-            let mut saved = self.binding.try_lock().map_err(|_| {tracing::debug!(target:"connect_service::canonical_native","Native binding observation contended");StreamControlError::Authority})?;
+            // This mutex contains only relationship values. Every production holder
+            // performs pure comparisons/clones/assignment and releases it before
+            // entering Core, Store or IO. Wait for that leaf metadata instead of
+            // turning a concurrent read into withdrawn authority.
+            let mut saved = self
+                .binding
+                .lock()
+                .map_err(|_| StreamControlError::Authority)?;
             if let Some(binding) = saved.as_ref() {
                 binding
                     .require_current(&member, &presence)
@@ -370,6 +377,27 @@ impl Connection {
     }
 }
 impl Policy {
+    #[cfg(feature = "test-support")]
+    pub(crate) fn with_native_binding_for_test(
+        &self,
+        connection_id: &str,
+        hold: impl FnOnce(),
+    ) -> connect_protocol::Result<()> {
+        let entry = self
+            .entries
+            .lock()
+            .map_err(|_| connect_protocol::Error::storage())?
+            .values()
+            .find(|e| e.origin.connection_id() == connection_id)
+            .cloned()
+            .ok_or_else(connect_protocol::Error::forbidden)?;
+        let _binding = entry
+            .binding
+            .lock()
+            .map_err(|_| connect_protocol::Error::storage())?;
+        hold();
+        Ok(())
+    }
     pub(crate) fn register_initial_telephone(
         &self,
         leg: &Arc<crate::initial_telephone::policy::Leg>,
