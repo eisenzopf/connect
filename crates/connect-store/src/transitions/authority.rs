@@ -298,6 +298,9 @@ pub(super) fn read(c: &Connection, actor: &Actor, row: &rows::Saved) -> Result<(
     if row.session_codecs {
         return super::session_codecs::read(c, actor, row);
     }
+    if row.received_dtmf {
+        return super::received_dtmf::read(c, actor, row);
+    }
     if row.native_stream {
         return super::native_streams::read(c, actor, row);
     }
@@ -417,6 +420,10 @@ pub(super) fn local_result(
 ) -> Result<Option<serde_json::Value>> {
     if row.session_codecs {
         super::session_codecs::read(c, actor, row)?;
+        return Ok(row.record.result.clone());
+    }
+    if row.received_dtmf {
+        super::received_dtmf::read(c, actor, row)?;
         return Ok(row.record.result.clone());
     }
     if row.native_stream {

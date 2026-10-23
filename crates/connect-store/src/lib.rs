@@ -66,6 +66,7 @@ pub use transitions::{
     NativeReplacementPreparationLease, NativeReplacementPrepared, NativeReplacementSceneRead,
     NativeReplacementStartAttempt, NativeReplacementStartRead, NativeReplacementStartUncertain,
     NativeReplacementStarted, NativeStreamCommitted, NativeStreamLease, NativeStreamNoEffect,
+    ReceivedDtmfBatch, ReceivedDtmfPreparation, ReceivedDtmfRead, ReceivedDtmfTarget,
     ReplacementConfirmation, ReplacementPreparationRequest, SessionCodecTarget,
     TelephoneAudioResources, TelephoneConnectionRuntimeObservation, TelephoneConnectionSnapshot,
     TelephoneMediaOrigin, TelephoneMediaRead, TelephoneNativeMediaRead,
@@ -178,7 +179,7 @@ pub use tasks::{
     IssuedTaskGrant, NativeTaskAuthority, TaskCreateDefaults, TaskInvocation,
     TaskObservationBinding, VapiSessionContext,
 };
-pub const SCHEMA_VERSION: u32 = 100;
+pub const SCHEMA_VERSION: u32 = 101;
 const STARTUP_BLOB_CLEANUP_LIMIT: usize = 100;
 
 mod session_gateways;
@@ -494,6 +495,8 @@ impl Store {
         ))
         .map_err(|_| Error::storage())?;
         tx.execute_batch(include_str!("../migrations/100_native_dtmf_gateways.sql"))
+            .map_err(|_| Error::storage())?;
+        tx.execute_batch(include_str!("../migrations/101_received_dtmf.sql"))
             .map_err(|_| Error::storage())?;
         tx.commit().map_err(|_| Error::storage())?;
         let blob_directory = Self::create_blob_directory(path)?;

@@ -54,6 +54,7 @@ pub use native_returns::{
     NativeConsultationReturnLease, NativeConsultationReturnOrigin,
 };
 pub(crate) mod native_streams;
+pub(crate) mod received_dtmf;
 pub(crate) use native_offers::NativeOfferMediaBinding;
 pub use native_offers::{
     NativeOfferLease, NativeOfferObservation, NativeOfferPreflightRefusal,
@@ -64,6 +65,9 @@ pub use native_streams::{
     NativeDtmfBatch, NativeDtmfGatewayRead, NativeDtmfGatewayRecipient, NativeDtmfGatewayTarget,
     NativeDtmfRead, NativeDtmfRecipient, NativeDtmfTarget, NativeStreamCommitted,
     NativeStreamLease, NativeStreamNoEffect,
+};
+pub use received_dtmf::{
+    ReceivedDtmfBatch, ReceivedDtmfPreparation, ReceivedDtmfRead, ReceivedDtmfTarget,
 };
 mod peer;
 pub(crate) use peer::{current_control_record, operation_source_scopes, peer_operation_scopes};

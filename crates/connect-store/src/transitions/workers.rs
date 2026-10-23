@@ -310,6 +310,9 @@ pub(super) fn recover_one(
     runtime: &str,
     store: &Store,
 ) -> Result<bool> {
+    if row.received_dtmf {
+        return super::received_dtmf::recover_one(c, row, store);
+    }
     if row.initial_telephone {
         return super::initial_telephone::recover_one(c, row, store);
     }

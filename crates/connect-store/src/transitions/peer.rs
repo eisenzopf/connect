@@ -30,6 +30,10 @@ fn projection_scopes(
         result.extend(super::session_codecs::projection_scopes(c, row)?);
         return Ok(());
     }
+    if row.received_dtmf {
+        result.extend(super::received_dtmf::projection_scopes(c, row)?);
+        return Ok(());
+    }
     if row.native || row.native_stream {
         return Ok(());
     }

@@ -813,7 +813,7 @@
           },
           "problem": {
             "type": "object",
-            "description": "Durable refusal or uncertain outcome. Native DTMF attaches its stopped local work and per-recipient facts under signal; result remains reserved for completed operations.",
+            "description": "Durable refusal or uncertain outcome. Native or received-SIP DTMF attaches stopped local work and per-recipient facts under signal; result remains reserved for completed operations.",
             "properties": {
               "code": {
                 "type": "string"
@@ -822,7 +822,14 @@
                 "type": "string"
               },
               "signal": {
-                "$ref": "#/components/schemas/NativeDtmfSubmission"
+                "oneOf": [
+                  {
+                    "$ref": "#/components/schemas/NativeDtmfSubmission"
+                  },
+                  {
+                    "$ref": "#/components/schemas/ReceivedDtmfSubmission"
+                  }
+                ]
               }
             },
             "required": [
@@ -1006,6 +1013,290 @@
           "local_submission_only",
           "local_work_complete",
           "recipients"
+        ]
+      },
+      "ReceivedDtmfSubmission": {
+        "type": "object",
+        "description": "Frozen actual received SIP input and per-native-recipient local writer facts. This separate trusted source has no native signing or stream revision. Empty recipients mean no submission. Status cannot authorize replay or physical IO; runtime delivery requires independent qualification.",
+        "additionalProperties": false,
+        "properties": {
+          "connection_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128,
+            "pattern": "^[A-Za-z0-9._~-]+$"
+          },
+          "resources_changed": {
+            "const": false
+          },
+          "signal_source": {
+            "enum": [
+              "sip-info",
+              "rfc4733"
+            ]
+          },
+          "source_observation_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128,
+            "pattern": "^[A-Za-z0-9._~-]+$"
+          },
+          "received_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "local_submission_only": {
+            "const": true
+          },
+          "local_work_complete": {
+            "const": true
+          },
+          "recipients": {
+            "type": "array",
+            "minItems": 0,
+            "maxItems": 512,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "connection_id": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 128,
+                  "pattern": "^[A-Za-z0-9._~-]+$"
+                },
+                "participant_id": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 128,
+                  "pattern": "^[A-Za-z0-9._~-]+$"
+                },
+                "membership_epoch": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 9007199254740991
+                },
+                "generation": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 9007199254740991
+                },
+                "disposition": {
+                  "enum": [
+                    "not_started",
+                    "local_submitted",
+                    "outcome_unknown"
+                  ]
+                },
+                "frame_id": {
+                  "oneOf": [
+                    {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 128,
+                      "pattern": "^[A-Za-z0-9._~-]+$"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "description": "Reserved local output identity: the signed native frame ID or one stable SIP gateway schedule ID. Reacquisition keeps the same identity; this field does not prove remote receipt or playback."
+                }
+              },
+              "required": [
+                "connection_id",
+                "participant_id",
+                "membership_epoch",
+                "generation",
+                "disposition",
+                "frame_id"
+              ],
+              "allOf": [
+                {
+                  "if": {
+                    "properties": {
+                      "disposition": {
+                        "enum": [
+                          "local_submitted",
+                          "outcome_unknown"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "disposition"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "frame_id": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 128,
+                        "pattern": "^[A-Za-z0-9._~-]+$"
+                      }
+                    }
+                  }
+                }
+              ]
+            }
+          },
+          "source_observation": {
+            "$ref": "#/components/schemas/ReceivedDtmfObservation"
+          }
+        },
+        "required": [
+          "connection_id",
+          "resources_changed",
+          "signal_source",
+          "source_observation_id",
+          "received_at",
+          "local_submission_only",
+          "local_work_complete",
+          "recipients",
+          "source_observation"
+        ]
+      },
+      "ReceivedDtmfRtpObservation": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "ssrc": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 4294967295
+          },
+          "payload_type": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 127
+          },
+          "clock_rate_hz": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 192000
+          },
+          "rtp_timestamp": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 4294967295
+          },
+          "extended_timestamp": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "last_segment_timestamp": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 4294967295
+          },
+          "duration_samples": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "event": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 15
+          },
+          "start_observed": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "ssrc",
+          "payload_type",
+          "clock_rate_hz",
+          "rtp_timestamp",
+          "extended_timestamp",
+          "last_segment_timestamp",
+          "duration_samples",
+          "event",
+          "start_observed"
+        ]
+      },
+      "ReceivedDtmfObservation": {
+        "type": "object",
+        "additionalProperties": false,
+        "description": "Actual physical receive facts, independent of native signing. RFC4733 duration_ms is the floor of observed samples divided by clock rate; incomplete or fractional timing is retained without fabricating a forwardable tone. Rust additionally checks event/digit and sample/duration consistency.",
+        "properties": {
+          "kind": {
+            "enum": [
+              "sip-info",
+              "rfc4733"
+            ]
+          },
+          "observation_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128,
+            "pattern": "^[A-Za-z0-9._~-]+$"
+          },
+          "received_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "digits": {
+            "type": "string",
+            "pattern": "^[0-9A-Da-d*#]$"
+          },
+          "duration_ms": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 4294967295
+          },
+          "rtp": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/ReceivedDtmfRtpObservation"
+              }
+            ]
+          }
+        },
+        "required": [
+          "kind",
+          "observation_id",
+          "received_at",
+          "digits",
+          "duration_ms",
+          "rtp"
+        ],
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "kind": {
+                  "const": "sip-info"
+                }
+              },
+              "required": [
+                "kind"
+              ]
+            },
+            "then": {
+              "properties": {
+                "rtp": {
+                  "type": "null"
+                },
+                "duration_ms": {
+                  "type": "integer",
+                  "minimum": 100,
+                  "maximum": 5000
+                }
+              }
+            },
+            "else": {
+              "properties": {
+                "rtp": {
+                  "$ref": "#/components/schemas/ReceivedDtmfRtpObservation"
+                }
+              }
+            }
+          }
         ]
       }
     }

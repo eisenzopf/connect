@@ -6,6 +6,7 @@ use connect_protocol::native_streams::{Command, Intent};
 use std::time::Duration;
 mod dtmf_gateways;
 mod flow_facts;
+mod received_dtmf;
 mod sip_signal;
 
 fn parent(granted: bool, completed: bool) -> (Fixture, PeerAuthorityRequest, String) {

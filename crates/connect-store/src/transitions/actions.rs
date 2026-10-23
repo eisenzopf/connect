@@ -185,12 +185,19 @@ impl Store {
         let initial_revision = row.record.revision;
         let mut disposition = "already_terminal";
         if !row.record.state.terminal() {
-            if !row.ledger && !row.native && !row.native_stream && !row.session_codecs {
+            if !row.ledger
+                && !row.native
+                && !row.native_stream
+                && !row.session_codecs
+                && !row.received_dtmf
+            {
                 return Err(Error::forbidden());
             }
             match &action {
                 OperationAction::Cancel { .. } => {
-                    if row.session_codecs {
+                    if row.received_dtmf {
+                        disposition = received_dtmf::cancel(&tx, &row, self)?;
+                    } else if row.session_codecs {
                         disposition = session_codecs::cancel(&tx, &row, self)?;
                     } else if row.initial_telephone {
                         disposition = initial_telephone::cancel(&tx, &row, self)?;
@@ -239,6 +246,7 @@ impl Store {
                     ..
                 } => {
                     if row.initial_telephone
+                        || row.received_dtmf
                         || row.session_codecs
                         || row.native
                         || row.native_stream

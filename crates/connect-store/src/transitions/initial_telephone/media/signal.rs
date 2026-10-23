@@ -57,6 +57,13 @@ impl Store {
     /// Recheck the original answered/connected incarnation under current
     /// authority. Signal permission is independent of codec, offer and receive
     /// media permissions; a retained origin alone never grants signaling IO.
+    pub(crate) fn initial_telephone_signal_scopes(
+        &self,
+        c: &Connection,
+        origin: &InitialTelephoneMediaOrigin,
+    ) -> Result<Vec<AuthorityScope>> {
+        current_scopes(c, origin.signal.origin(), false)
+    }
     pub fn try_initial_telephone_signal_read(
         &self,
         origin: Arc<InitialTelephoneMediaOrigin>,
@@ -71,7 +78,7 @@ impl Store {
         let c = self.try_connection()?;
         self.initial_telephone_signal_in(&c, origin, direction, interval, crate::now() + 30)
     }
-    fn initial_telephone_signal_in(
+    pub(crate) fn initial_telephone_signal_in(
         &self,
         c: &Connection,
         origin: Arc<InitialTelephoneMediaOrigin>,
