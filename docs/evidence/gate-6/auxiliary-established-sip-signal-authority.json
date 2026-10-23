@@ -1,0 +1,92 @@
+{
+  "task": "G6-046",
+  "title": "Independent signal authority for established replacement SIP incarnations",
+  "recorded_at": "2026-10-23T19:52:06.677172+00:00",
+  "status": "controlled-store-foundation-verified-runtime-integration-open",
+  "full_task_complete": false,
+  "full_goal_complete": false,
+  "qualified_case_ids": [],
+  "source_lock_patch_count": 170,
+  "store_schema": 101,
+  "implementation": [
+    "New typed TelephoneSignalRead uses the actual committed TelephoneMediaOrigin, exact current Connection generation/runtime and independently current configured route credential. It cannot be converted into an RTP or subscription grant and never borrows the retired native source credential.",
+    "Current projection retains call/route/endpoint/device/member/Session/audio/liveness checks while omitting codec permission only for signal. Named route dtmf.send and dtmf.receive are independent, with the established sip_dial route floor retained.",
+    "TelephoneNativeSignalRead acquires one merged source/recipient authority interval, requires the opposite native named direction and both recipient ceilings, and rejects retired/same-Participant/private-candidate/preparation/suspended native incarnations. Readers are bounded to at most30seconds and the earlier credential expiry."
+  ],
+  "verification": {
+    "distinct_methods_passed": 36,
+    "new_methods": 5,
+    "established_telephone_media_and_signal_methods": 25,
+    "initial_telephone_signal_and_native_pair_regressions": 11,
+    "test_methods": [
+      "connection_control::tests::replacement_sources::telephone::runtime::media::continuation::commit::telephone_commit_requires_confirmed_private_readiness_and_never_begins_twice",
+      "connection_control::tests::replacement_sources::telephone::runtime::media::continuation::commit::telephone_established_pair_requires_independent_named_subscribe_and_both_recipient_ceilings",
+      "connection_control::tests::replacement_sources::telephone::runtime::media::continuation::commit::telephone_established_cleanup_requires_exact_absence_preserves_retained_and_is_idempotent",
+      "connection_control::tests::replacement_sources::telephone::runtime::media::continuation::commit::signal::established_signal_requires_independent_named_directions_without_codec_or_media_permission",
+      "connection_control::tests::replacement_sources::telephone::runtime::media::continuation::commit::signal::established_signal_pair_holds_one_bounded_interval_and_refuses_fresh_read_after_route_revocation",
+      "connection_control::tests::replacement_sources::telephone::runtime::media::continuation::commit::telephone_commit_records_actual_capture_before_projection_and_established_read_ignores_old_credentials",
+      "connection_control::tests::replacement_sources::telephone::runtime::media::continuation::commit::telephone_commit_uncertainty_late_known_result_and_projection_rollback_never_reexecute",
+      "connection_control::tests::replacement_sources::telephone::runtime::media::continuation::commit::signal::established_signal_pair_requires_opposite_native_direction_and_both_recipient_ceilings",
+      "connection_control::tests::replacement_sources::telephone::runtime::media::continuation::commit::signal::established_signal_pair_rejects_same_participant_native_connection",
+      "connection_control::tests::replacement_sources::telephone::runtime::media::continuation::commit::telephone_stream_pair_reuses_complete_original_interval_behind_a_queued_route_writer",
+      "connection_control::tests::replacement_sources::telephone::runtime::media::continuation::commit::telephone_role_read_requires_complete_current_native_and_phone_sources_without_surrogate",
+      "connection_control::tests::replacement_sources::telephone::runtime::media::continuation::commit::telephone_role_read_retains_one_complete_interval_behind_queued_route_revocation",
+      "connection_control::tests::replacement_sources::telephone::runtime::media::continuation::commit::telephone_source_native_replacement_uses_independent_current_origin_and_generation_three",
+      "connection_control::tests::replacement_sources::telephone::runtime::media::telephone_media_known_activation_has_current_independent_route_not_native_target_or_readiness",
+      "connection_control::tests::replacement_sources::telephone::runtime::media::telephone_media_resource_begin_once_and_exact_muted_codec_capture_cannot_claim_duplex",
+      "connection_control::tests::replacement_sources::telephone::runtime::media::continuation::telephone_private_scene_requires_all_native_origins_and_fences_route_writer_without_fake_peer",
+      "connection_control::tests::replacement_sources::telephone::runtime::media::telephone_media_resource_failure_preserves_unknown_and_late_knowledge_without_reexecution",
+      "connection_control::tests::replacement_sources::telephone::runtime::media::telephone_media_resource_recording_failure_rolls_back_then_only_same_capture_retries",
+      "connection_control::tests::replacement_sources::telephone::runtime::media::telephone_media_backup_digest_covers_actual_resource_capture_rows",
+      "connection_control::tests::replacement_sources::telephone::runtime::media::continuation::telephone_private_unknown_then_late_capture_preserves_knowledge_without_restarting",
+      "connection_control::tests::replacement_sources::telephone::runtime::media::continuation::commit::telephone_stream_pair_uses_exact_signed_attempt_and_independent_receive_permissions",
+      "connection_control::tests::replacement_sources::telephone::runtime::media::continuation::telephone_private_capture_rollback_retries_same_fact_and_immutable_phase_is_retained",
+      "connection_control::tests::replacement_sources::telephone::runtime::media::continuation::telephone_private_phases_are_ordered_once_and_actual_audience_revisions_are_required",
+      "connection_control::tests::replacement_sources::telephone::runtime::media::telephone_media_revocation_refuses_new_resource_read_but_known_submission_can_be_abandoned",
+      "connection_control::tests::replacement_sources::telephone::runtime::media::continuation::commit::signal::established_signal_rechecks_actual_call_route_device_and_membership_lifetime",
+      "transitions::initial_telephone::tests::signal::initial_signal_codec_change_does_not_supply_or_remove_named_signal_permission",
+      "connection_control::tests::native_stream_authority::sip_signal::sip_native_signal_pair_holds_both_identity_fences_and_queues_no_reader",
+      "connection_control::tests::native_stream_authority::sip_signal::sip_native_signal_pair_requires_opposite_named_permissions_without_media_grants",
+      "transitions::initial_telephone::tests::signal::initial_signal_does_not_reuse_answer_or_registration_as_connected_authority",
+      "transitions::initial_telephone::tests::signal::initial_signal_requires_each_named_direction_and_never_borrows_media_permissions",
+      "transitions::initial_telephone::tests::signal::initial_signal_retains_current_authority_only_for_its_bounded_read",
+      "transitions::initial_telephone::tests::signal::initial_sip_audience_captured_revision_never_revives_retired_or_overwrites_newer_observation",
+      "transitions::initial_telephone::tests::signal::initial_sip_audience_refuses_answer_only_without_actual_connected_observation",
+      "transitions::initial_telephone::tests::signal::initial_sip_audience_requires_exact_complete_owned_roster_without_native_provenance",
+      "connection_control::tests::native_stream_authority::sip_signal::sip_native_signal_pair_rechecks_native_physical_authority_and_both_recipient_ceilings",
+      "transitions::initial_telephone::tests::signal::initial_signal_rechecks_physical_endpoint_route_and_participant_lifetime"
+    ],
+    "prepare_dependencies_passed": true,
+    "format_passed": true,
+    "plan_integrity_passed": true,
+    "http_openapi_check_passed": true
+  },
+  "behavior_evidence": [
+    "Changing accepted audio preferences invalidates the original media codec but preserves independently named signal directions; media operations do not grant either signal direction. Removing sip_dial refuses signal on this configured route.",
+    "Native paired signal succeeds with conversation.get/subscribe protocol floors and the opposite dtmf direction while connection.offer/stream.subscribe are absent. Each missing named direction and each recipient ceiling is refused, with recovery after restoring the exact original ceiling.",
+    "Ten independently controlled stale facts refuse both directions: Device, endpoint verification, generation, runtime, Connection state, route credential, membership, Session presence, Session state and route audience.",
+    "Retired source and an additional same-Participant native incarnation are refused. One paired read shares the identical native/phone authority interval; a queued route revocation waits for it, fresh readers cannot barge, and after release the revoked route remains refused with no idle native reader."
+  ],
+  "inputs": {
+    "crates/connect-store/src/transitions/native_replacements/telephone/runtime/media/signal.rs": "5aa970a5e92bd78fb918d83652c3571f1ec47fce20dfc5431d27a33d35a73342",
+    "crates/connect-store/src/transitions/native_replacements/telephone/runtime/media/lifetime.rs": "6047c531e37aa244bf371ebdd3284bcca8c132ac8a8182e773ce10036016064d",
+    "crates/connect-store/src/connection_control/tests/replacement_sources/telephone/runtime/media/continuation/commit/signal.rs": "bfdbbdce74acde9fbd24a5f78f65cc590ef2e5ef434386317d688cfccb37c465",
+    "dependencies/source-lock.json": "5af7fb3fb5c6bc99c1ba368d9ee62e89ff7881ab45248c6e57c7b69854f2f227",
+    "Cargo.lock": "3d43b79adda5b07b6770acfe3666217fb6ee3c702fabfff11847c96f68226df3"
+  },
+  "logs": {
+    "prepare-established-signal170.log": "fd9d7b181e3ccba9b643af55a186cf132c60aac99c734b2ee4e4e549afe5ffc2",
+    "format-established-signal170.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "store-established-signal170-first.log": "3e9ae02e08ae0c41535724e43007a72e7d07c6736b8313f1e21f175fc91f88b6",
+    "store-established-signal170-final.log": "9e3ed63e0c7668e728b319072bcb6e8131b192b955bbd1bf6feb326fe3b86ab2",
+    "store-initial-signal170-regression.log": "9a2b1606e8afc5975223b9c926459dd274d3d6c3867d30c70f87af749438c9e3",
+    "progress-established-signal170.log": "fedbc03549729d27ac031eee0766ae72281991ae1e9494232887c3160cf754cc",
+    "http-established-signal170.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "limits": [
+    "Controlled Store fixture captures establish authority semantics only. No physical SIP/native delivery, public credential-edit API, durable generalized received-source custody, or runtime installation is qualified by this component.",
+    "Initial SIP gateway source and target paths remain initial-specific. Integrate this actual established origin into typed custody and owned runtime IO before claiming moved/normal SIP DTMF completion.",
+    "No service/server or full workspace build was run for this Store-only checkpoint. No new schema, upstream patch, legacy compatibility, acceptance, hosting/browser/remote/provider or publication claim.",
+    "G6-046 remains58/61 clauses with0112/0113/0123 open;45/105 tasks remain complete and the all105-task goal remains active."
+  ]
+}

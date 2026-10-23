@@ -6,13 +6,13 @@ use std::sync::Arc;
 mod media;
 pub use media::{
     TelephoneAudioResources, TelephoneConnectionRuntimeObservation, TelephoneConnectionSnapshot,
-    TelephoneMediaOrigin, TelephoneMediaRead, TelephoneNativeMediaRead,
+    TelephoneMediaOrigin, TelephoneMediaRead, TelephoneNativeMediaRead, TelephoneNativeSignalRead,
     TelephoneReplacementAudienceCapture, TelephoneReplacementCommitAttempt,
     TelephoneReplacementCommitUncertain, TelephoneReplacementCommitted,
     TelephoneReplacementMediaOrigin, TelephoneReplacementMediaRead, TelephoneReplacementPhase,
     TelephoneReplacementPhaseAttempt, TelephoneReplacementPhaseCapture,
     TelephoneReplacementResourcesAttempt, TelephoneReplacementResourcesCapture,
-    TelephoneReplacementSceneRead,
+    TelephoneReplacementSceneRead, TelephoneSignalDirection, TelephoneSignalRead,
 };
 
 #[derive(Clone, Copy, PartialEq, Eq)]

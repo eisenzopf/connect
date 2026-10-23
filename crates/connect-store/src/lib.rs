@@ -69,7 +69,7 @@ pub use transitions::{
     ReceivedDtmfBatch, ReceivedDtmfPreparation, ReceivedDtmfRead, ReceivedDtmfTarget,
     ReplacementConfirmation, ReplacementPreparationRequest, SessionCodecTarget,
     TelephoneAudioResources, TelephoneConnectionRuntimeObservation, TelephoneConnectionSnapshot,
-    TelephoneMediaOrigin, TelephoneMediaRead, TelephoneNativeMediaRead,
+    TelephoneMediaOrigin, TelephoneMediaRead, TelephoneNativeMediaRead, TelephoneNativeSignalRead,
     TelephoneReplacementAllocated, TelephoneReplacementAttempt,
     TelephoneReplacementAudienceCapture, TelephoneReplacementCommitAttempt,
     TelephoneReplacementCommitUncertain, TelephoneReplacementCommitted,
@@ -78,7 +78,7 @@ pub use transitions::{
     TelephoneReplacementRead, TelephoneReplacementResourcesAttempt,
     TelephoneReplacementResourcesCapture, TelephoneReplacementSceneRead,
     TelephoneReplacementSubmitted, TelephoneReplacementUncertain, TelephoneReplacementWriteRead,
-    TransitionLease,
+    TelephoneSignalDirection, TelephoneSignalRead, TransitionLease,
 };
 mod authority_admission;
 mod authority_fences;

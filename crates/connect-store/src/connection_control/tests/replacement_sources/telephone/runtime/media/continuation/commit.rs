@@ -1,5 +1,6 @@
 //! Controlled journal captures; physical movement is qualified by production fixtures.
 use super::*;
+mod signal;
 fn prepared(
     f: &Fixture,
     origin: &NativeReplacementOrigin,

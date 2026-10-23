@@ -3793,6 +3793,13 @@
       "production_methods": 2,
       "actual_signed_callback_offers": 4,
       "actual_authority_refusals": 4
+    },
+    "established_sip_signal_authority": {
+      "status": "controlled-store-foundation-verified-runtime-integration-open",
+      "evidence": "docs/evidence/gate-6/auxiliary-established-sip-signal-authority.json",
+      "distinct_methods_passed": 36,
+      "new_methods": 5,
+      "qualified_case_ids": []
     }
   },
   "qualified_clause_count": 58,
@@ -3863,6 +3870,6 @@
     "full_task_complete": false,
     "continuation_evidence": "docs/evidence/gate-6/auxiliary-session-identity-targets.json",
     "latest_evidence": "docs/evidence/gate-6/auxiliary-native-offer-fields.json",
-    "latest_component_evidence": "docs/evidence/gate-6/auxiliary-native-offer-fields.json"
+    "latest_component_evidence": "docs/evidence/gate-6/auxiliary-established-sip-signal-authority.json"
   }
 }

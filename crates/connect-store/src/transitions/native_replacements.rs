@@ -57,7 +57,7 @@ mod allocation;
 mod telephone;
 pub use telephone::{
     TelephoneAudioResources, TelephoneConnectionRuntimeObservation, TelephoneConnectionSnapshot,
-    TelephoneMediaOrigin, TelephoneMediaRead, TelephoneNativeMediaRead,
+    TelephoneMediaOrigin, TelephoneMediaRead, TelephoneNativeMediaRead, TelephoneNativeSignalRead,
     TelephoneReplacementAllocated, TelephoneReplacementAttempt,
     TelephoneReplacementAudienceCapture, TelephoneReplacementCommitAttempt,
     TelephoneReplacementCommitUncertain, TelephoneReplacementCommitted,
@@ -66,6 +66,7 @@ pub use telephone::{
     TelephoneReplacementRead, TelephoneReplacementResourcesAttempt,
     TelephoneReplacementResourcesCapture, TelephoneReplacementSceneRead,
     TelephoneReplacementSubmitted, TelephoneReplacementUncertain, TelephoneReplacementWriteRead,
+    TelephoneSignalDirection, TelephoneSignalRead,
 };
 redacted!(
     NativeReplacementPreparationLease,

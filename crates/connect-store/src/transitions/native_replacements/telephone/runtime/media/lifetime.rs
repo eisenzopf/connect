@@ -21,14 +21,19 @@ pub struct TelephoneMediaRead {
     accepted: serde_json::Value,
     expires: i64,
 }
-struct TelephoneProjection {
-    actor: Actor,
-    member: connect_protocol::membership::MemberView,
+#[derive(Clone, Copy)]
+pub(super) enum ProjectionPurpose {
+    Media,
+    Signal,
+}
+pub(super) struct TelephoneProjection {
+    pub(super) actor: Actor,
+    pub(super) member: connect_protocol::membership::MemberView,
     session: connect_protocol::session_control::SessionView,
     conversation_revision: u64,
     role: String,
     accepted: serde_json::Value,
-    expires: i64,
+    pub(super) expires: i64,
 }
 pub trait TelephoneConnectionRuntimeObservation {
     fn observe_absent(&self, runtime_connection_id: &str, generation: u64) -> Result<()>;
@@ -127,7 +132,7 @@ impl Store {
         if !self.authority_covers(&held, &scopes(c, &origin.snapshot)?) {
             return Err(Error::forbidden());
         }
-        let p = self.telephone_projection(c, &origin, until)?;
+        let p = self.telephone_projection(c, &origin, until, ProjectionPurpose::Media)?;
         let owner = self.require_runtime_owner()?;
         self.remember_session_ready(
             c,
@@ -146,11 +151,12 @@ impl Store {
             expires: p.expires,
         })
     }
-    fn telephone_projection(
+    pub(super) fn telephone_projection(
         &self,
         c: &Connection,
         origin: &TelephoneMediaOrigin,
         until: i64,
+        purpose: ProjectionPurpose,
     ) -> Result<TelephoneProjection> {
         local_owner(self, &origin.owner, &origin.runtime)?;
         require_origin(c, &origin, true)?;
@@ -201,7 +207,9 @@ impl Store {
                 .as_array()
                 .is_some_and(|a| a.iter().any(|v| v.as_str().is_some_and(equivalent)))
         };
-        if !contains(&accepted) || !session.capabilities_offer.as_ref().is_some_and(contains) {
+        if matches!(purpose, ProjectionPurpose::Media)
+            && (!contains(&accepted) || !session.capabilities_offer.as_ref().is_some_and(contains))
+        {
             return Err(Error::forbidden());
         }
         let expires = until.min(actor.expires_at);
@@ -224,7 +232,7 @@ impl Store {
         c: &Connection,
         origin: &TelephoneMediaOrigin,
     ) -> Result<crate::session_lifecycle::ReadyConnection> {
-        let p = self.telephone_projection(c, origin, i64::MAX)?;
+        let p = self.telephone_projection(c, origin, i64::MAX, ProjectionPurpose::Media)?;
         let s = &origin.snapshot;
         let observed:i64=c.query_row("SELECT observed_at FROM connections WHERE id=?1 AND generation=?2 AND observed_runtime_id=?3 AND state IN ('ready','active') AND readiness_json IS NOT NULL",params![s.connection_id,s.generation,self.runtime_epoch()],|r|r.get(0)).optional().map_err(|_|Error::storage())?.ok_or_else(Error::forbidden)?;
         Ok(crate::session_lifecycle::ReadyConnection {

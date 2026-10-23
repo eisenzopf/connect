@@ -3,7 +3,7 @@ use super::*;
 mod runtime;
 pub use runtime::{
     TelephoneAudioResources, TelephoneConnectionRuntimeObservation, TelephoneConnectionSnapshot,
-    TelephoneMediaOrigin, TelephoneMediaRead, TelephoneNativeMediaRead,
+    TelephoneMediaOrigin, TelephoneMediaRead, TelephoneNativeMediaRead, TelephoneNativeSignalRead,
     TelephoneReplacementAllocated, TelephoneReplacementAttempt,
     TelephoneReplacementAudienceCapture, TelephoneReplacementCommitAttempt,
     TelephoneReplacementCommitUncertain, TelephoneReplacementCommitted,
@@ -11,7 +11,7 @@ pub use runtime::{
     TelephoneReplacementPhaseAttempt, TelephoneReplacementPhaseCapture, TelephoneReplacementRead,
     TelephoneReplacementResourcesAttempt, TelephoneReplacementResourcesCapture,
     TelephoneReplacementSceneRead, TelephoneReplacementSubmitted, TelephoneReplacementUncertain,
-    TelephoneReplacementWriteRead,
+    TelephoneReplacementWriteRead, TelephoneSignalDirection, TelephoneSignalRead,
 };
 
 #[derive(Clone, PartialEq, Eq, Serialize, Deserialize)]

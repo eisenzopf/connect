@@ -4,10 +4,12 @@ use super::*;
 mod commit;
 mod lifetime;
 mod pair;
+mod signal;
 pub use lifetime::{
     TelephoneConnectionRuntimeObservation, TelephoneMediaOrigin, TelephoneMediaRead,
 };
 pub use pair::TelephoneNativeMediaRead;
+pub use signal::{TelephoneNativeSignalRead, TelephoneSignalDirection, TelephoneSignalRead};
 mod continuation;
 pub use commit::{
     TelephoneConnectionSnapshot, TelephoneReplacementCommitAttempt,

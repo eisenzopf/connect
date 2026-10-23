@@ -27,7 +27,7 @@ pub use native_replacements::{
     NativeReplacementStartAttempt, NativeReplacementStartRead, NativeReplacementStartUncertain,
     NativeReplacementStarted, ReplacementConfirmation, ReplacementPreparationRequest,
     TelephoneAudioResources, TelephoneConnectionRuntimeObservation, TelephoneConnectionSnapshot,
-    TelephoneMediaOrigin, TelephoneMediaRead, TelephoneNativeMediaRead,
+    TelephoneMediaOrigin, TelephoneMediaRead, TelephoneNativeMediaRead, TelephoneNativeSignalRead,
     TelephoneReplacementAllocated, TelephoneReplacementAttempt,
     TelephoneReplacementAudienceCapture, TelephoneReplacementCommitAttempt,
     TelephoneReplacementCommitUncertain, TelephoneReplacementCommitted,
@@ -36,6 +36,7 @@ pub use native_replacements::{
     TelephoneReplacementRead, TelephoneReplacementResourcesAttempt,
     TelephoneReplacementResourcesCapture, TelephoneReplacementSceneRead,
     TelephoneReplacementSubmitted, TelephoneReplacementUncertain, TelephoneReplacementWriteRead,
+    TelephoneSignalDirection, TelephoneSignalRead,
 };
 pub use replacement_source::{NativeReplacementContext, NativeReplacementOrigin};
 mod native_handoffs;
