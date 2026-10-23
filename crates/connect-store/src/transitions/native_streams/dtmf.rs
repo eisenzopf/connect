@@ -3,10 +3,7 @@ use super::*;
 mod gateways;
 use crate::{NativeMediaOrigin, NativeSignalRead};
 use connect_protocol::native_dtmf::{SourceObservation, SubmissionDisposition as Disposition};
-pub use gateways::{
-    NativeDtmfGatewayOrigin, NativeDtmfGatewayRead, NativeDtmfGatewayRecipient,
-    NativeDtmfGatewayTarget,
-};
+pub use gateways::{NativeDtmfGatewayRead, NativeDtmfGatewayRecipient, NativeDtmfGatewayTarget};
 use std::{
     collections::BTreeSet,
     sync::{Arc, Weak},
@@ -515,7 +512,7 @@ impl Store {
             tx.execute("INSERT INTO native_dtmf_recipients(operation_record_id,target_record_id,registration_id,target_json) VALUES(?1,?2,?3,?4)",params![lease.record_id(),target.origin.offer_record_id(),target.registration_id,snapshot.to_string()]).map_err(|_|Error::storage())?;
         }
         for (target, snapshot) in &gateway_frozen {
-            tx.execute(&format!("INSERT INTO {}(operation_record_id,target_record_id,registration_id,target_json) VALUES(?1,?2,?3,?4)",target.origin.table()), params![lease.record_id(),target.origin.record_id(),target.registration_id,snapshot.to_string()]).map_err(|_|Error::storage())?;
+            tx.execute(&format!("INSERT INTO {}(operation_record_id,target_record_id,registration_id,target_json) VALUES(?1,?2,?3,?4)",target.origin.gateway_table()), params![lease.record_id(),target.origin.record_id(),target.registration_id,snapshot.to_string()]).map_err(|_|Error::storage())?;
         }
         tx.execute(
             "UPDATE native_dtmf_sources SET sealed=1 WHERE operation_record_id=?1",

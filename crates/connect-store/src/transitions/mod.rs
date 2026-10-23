@@ -3,6 +3,8 @@ mod actions;
 pub(crate) mod session_codecs;
 pub use session_codecs::SessionCodecTarget;
 mod initial_telephone;
+mod telephone_signals;
+pub use telephone_signals::{SipNativeSignalRead, SipSignalOrigin, SipSignalRead};
 pub(crate) mod provider_sessions;
 pub use initial_telephone::{
     InitialTelephoneAnswerCapture, InitialTelephoneAnswerRecorded, InitialTelephoneAttempt,
@@ -63,9 +65,9 @@ pub use native_offers::{
 };
 pub(crate) use native_streams::retained_scopes as retained_native_stream_scopes;
 pub use native_streams::{
-    NativeDtmfBatch, NativeDtmfGatewayOrigin, NativeDtmfGatewayRead, NativeDtmfGatewayRecipient,
-    NativeDtmfGatewayTarget, NativeDtmfRead, NativeDtmfRecipient, NativeDtmfTarget,
-    NativeStreamCommitted, NativeStreamLease, NativeStreamNoEffect,
+    NativeDtmfBatch, NativeDtmfGatewayRead, NativeDtmfGatewayRecipient, NativeDtmfGatewayTarget,
+    NativeDtmfRead, NativeDtmfRecipient, NativeDtmfTarget, NativeStreamCommitted,
+    NativeStreamLease, NativeStreamNoEffect,
 };
 pub use received_dtmf::{
     ReceivedDtmfBatch, ReceivedDtmfPreparation, ReceivedDtmfRead, ReceivedDtmfTarget,

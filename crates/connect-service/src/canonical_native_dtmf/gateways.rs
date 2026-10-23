@@ -1,110 +1,13 @@
 //! One frozen native-source SIP schedule; no queued permission readers.
 use super::*;
-use crate::initial_telephone::policy::Leg as InitialLeg;
-use connect_store::{NativeDtmfGatewayOrigin, NativeDtmfGatewayRead, NativeDtmfGatewayTarget};
+use crate::canonical_sip_signal::SipLeg;
+use connect_store::{NativeDtmfGatewayRead, NativeDtmfGatewayTarget, SipSignalOrigin};
 type WriteResult<T> = std::result::Result<T, DtmfWriteError>;
-
-#[derive(Clone)]
-pub(super) enum GatewayLeg {
-    Initial(Arc<InitialLeg>),
-    Established(Arc<crate::telephone_replacement::media::Policy>),
-}
-impl GatewayLeg {
-    pub(super) fn registration(&self) -> Option<&str> {
-        match self {
-            Self::Initial(leg) => leg.dtmf_registration.get().map(String::as_str),
-            Self::Established(policy) => Some(&policy.dtmf_registration),
-        }
-    }
-    pub(super) fn origin(&self) -> WriteResult<NativeDtmfGatewayOrigin> {
-        match self {
-            Self::Initial(leg) => leg
-                .media
-                .get()
-                .cloned()
-                .map(NativeDtmfGatewayOrigin::Initial)
-                .ok_or(DtmfWriteError::Refused),
-            Self::Established(policy) => policy
-                .established_origin()
-                .map(NativeDtmfGatewayOrigin::Established)
-                .ok_or(DtmfWriteError::Refused),
-        }
-    }
-    fn matches(&self, origin: &NativeDtmfGatewayOrigin) -> bool {
-        match (self, origin) {
-            (Self::Initial(leg), NativeDtmfGatewayOrigin::Initial(origin)) => leg
-                .media
-                .get()
-                .is_some_and(|actual| Arc::ptr_eq(actual, origin)),
-            (Self::Established(policy), NativeDtmfGatewayOrigin::Established(origin)) => policy
-                .established_origin()
-                .is_some_and(|actual| Arc::ptr_eq(&actual, origin)),
-            _ => false,
-        }
-    }
-    fn cancelled(&self) -> bool {
-        match self {
-            Self::Initial(leg) => leg.cancel.is_cancelled(),
-            Self::Established(policy) => !policy.established_signal_current(),
-        }
-    }
-    fn connection(&self) -> WriteResult<ConnectionId> {
-        self.origin()
-            .map(|origin| ConnectionId::from_string(origin.runtime_connection_id()))
-    }
-    fn principal(&self) -> WriteResult<rvoip_core::AuthenticatedPrincipal> {
-        match self {
-            Self::Initial(leg) => Ok(leg.target.principal.clone()),
-            Self::Established(policy) => policy.principal().map_err(|_| DtmfWriteError::Refused),
-        }
-    }
-    fn controller(&self) -> WriteResult<Arc<rvoip_core::staged_streams::StreamController>> {
-        if self.cancelled() {
-            return Err(DtmfWriteError::Refused);
-        }
-        match self {
-            Self::Initial(leg) => {
-                let controller = leg
-                    .controller
-                    .get()
-                    .and_then(Weak::upgrade)
-                    .ok_or(DtmfWriteError::Refused)?;
-                let prepared = leg.prepared.get().ok_or(DtmfWriteError::Refused)?;
-                if !prepared.is_current() || !controller.is_bound_to_outbound(prepared) {
-                    return Err(DtmfWriteError::Refused);
-                }
-                Ok(controller)
-            }
-            Self::Established(policy) => {
-                let controller = policy.controller().map_err(|_| DtmfWriteError::Refused)?;
-                if !controller.is_bound_to_replacement(&policy.pending) {
-                    return Err(DtmfWriteError::Refused);
-                }
-                Ok(controller)
-            }
-        }
-    }
-    fn matches_member(&self, member: &connect_protocol::membership::MemberView) -> bool {
-        match self {
-            Self::Initial(leg) => {
-                member.participant_id == leg.target.member.participant().as_str()
-                    && member.membership_epoch == leg.target.member.epoch()
-                    && member.identity_id == leg.target.principal.subject
-            }
-            Self::Established(policy) => policy.established_origin().is_some_and(|origin| {
-                let s = origin.snapshot();
-                member.participant_id == s.participant_id
-                    && member.membership_epoch == s.membership_epoch
-                    && member.identity_id == s.identity_id
-            }),
-        }
-    }
-}
 
 struct Policy {
     runtime: Weak<Runtime>,
     source: Arc<Connection>,
-    leg: GatewayLeg,
+    leg: SipLeg,
     observed: NativeDtmfObservation,
     target: NativeDtmfGatewayTarget,
     attempt: String,
@@ -140,18 +43,18 @@ impl Policy {
             || route.recipient.connection().as_str() != phone.runtime_connection_id()
             || route.recipient.session().as_str()
                 != match phone {
-                    NativeDtmfGatewayOrigin::Initial(o) => &o.source().request.session_id,
-                    NativeDtmfGatewayOrigin::Established(o) => &o.snapshot().session_id,
+                    SipSignalOrigin::Initial(o) => &o.source().request.session_id,
+                    SipSignalOrigin::Established(o) => &o.snapshot().session_id,
                 }
             || route.recipient.conversation().as_str()
                 != match phone {
-                    NativeDtmfGatewayOrigin::Initial(o) => &o.source().request.conversation_id,
-                    NativeDtmfGatewayOrigin::Established(o) => &o.snapshot().conversation_id,
+                    SipSignalOrigin::Initial(o) => &o.source().request.conversation_id,
+                    SipSignalOrigin::Established(o) => &o.snapshot().conversation_id,
                 }
             || route.recipient.participant().as_str()
                 != match phone {
-                    NativeDtmfGatewayOrigin::Initial(o) => &o.source().target.participant_id,
-                    NativeDtmfGatewayOrigin::Established(o) => &o.snapshot().participant_id,
+                    SipSignalOrigin::Initial(o) => &o.source().target.participant_id,
+                    SipSignalOrigin::Established(o) => &o.snapshot().participant_id,
                 }
             || route.recipient.transport() != rvoip_core::Transport::Sip
             || route.intent.operation_id() != self.target.intent().operation_id
@@ -322,7 +225,7 @@ impl DtmfRoutePolicy for Policy {
 pub(super) async fn deliver(
     runtime: Arc<Runtime>,
     source: Arc<Connection>,
-    leg: GatewayLeg,
+    leg: SipLeg,
     observed: NativeDtmfObservation,
     target: NativeDtmfGatewayTarget,
     expires_at: i64,

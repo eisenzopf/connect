@@ -447,11 +447,11 @@
           "qualification": "Service integration is in progress under G6-046; runtime evidence is required separately. No remote playback claim."
         },
         "x-received-sip-dtmf": {
-          "scope": "Schema101 separate trusted SIP source journal. HTTP cannot submit a physical source observation or supply native signing custody.",
-          "provenance": "Actual sip-info or rfc4733 source ID, receive time, digits, duration and optional original RTP facts are frozen with the answered connected initial SIP leg and original native recipients. No native stream revision or signing fields are invented.",
-          "authority": "Current dtmf.send on the source Endpoint and dtmf.receive on each exact native recipient, original/current membership and audience, installed runtime and physical binding remain required at actual IO. Signal permission never grants media.",
+          "scope": "Schema103 separate trusted SIP source journal with explicit initial or committed telephone lifetime kind. HTTP cannot submit a physical source observation or supply native signing custody.",
+          "provenance": "Actual sip-info or rfc4733 source ID, receive time, digits, duration and optional original RTP facts are frozen with the actual connected initial or committed replacement SIP incarnation and original native recipients. No native stream revision or signing fields are invented.",
+          "authority": "Current dtmf.send on the initial source Endpoint or committed source route, and dtmf.receive on each exact native recipient, original/current membership and audience, installed runtime and physical binding remain required at actual IO. Signal permission never grants media.",
           "recovery": "Reserve one actual signed native frame ID before IO. A successor records reserved attempts as outcome_unknown and unstarted recipients as not_started, without resubmission. Cancellation and expiry recovery wait for owned physical reads to release.",
-          "status": "The current original source-owner identity may use operation.get/cancel with current named source and audience permissions. Frozen recipients do not become operation owners. Completed results and problem.signal use ReceivedDtmfSubmission; empty audiences record no submission.",
+          "status": "The current original logical participant identity may use operation.get/cancel with current named source and audience permissions. An independent route credential authorizes signal IO but does not become the logical operation owner; frozen recipients do not become owners. Completed results and problem.signal use ReceivedDtmfSubmission; empty audiences record no submission.",
           "reference": "openapi-operations.json#/components/schemas/ReceivedDtmfSubmission",
           "qualification": "Controlled Store behavior is separate from installed physical receive-to-native delivery qualification under G6-046."
         },

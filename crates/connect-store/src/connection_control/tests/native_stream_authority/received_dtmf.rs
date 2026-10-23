@@ -26,7 +26,7 @@ fn freeze(
     match f
         .store
         .prepare_received_dtmf(
-            phone.clone(),
+            crate::SipSignalOrigin::Initial(phone.clone()),
             o,
             vec![NativeDtmfRecipient {
                 origin: native.clone(),
@@ -88,8 +88,10 @@ fn received_dtmf_freezes_real_sip_facts_and_original_expiry_without_a_native_sou
     // Use an earlier timestamp rather than waiting: replay ignores only the
     // delivery time, never extends the first receive window.
     later.received_at -= chrono::Duration::seconds(2);
-    let ReceivedDtmfPreparation::Replay(replay) =
-        f.store.prepare_received_dtmf(p, later, vec![]).unwrap()
+    let ReceivedDtmfPreparation::Replay(replay) = f
+        .store
+        .prepare_received_dtmf(crate::SipSignalOrigin::Initial(p), later, vec![])
+        .unwrap()
     else {
         panic!()
     };
@@ -220,7 +222,7 @@ fn received_dtmf_conflicting_physical_id_or_expired_input_cannot_reserve_another
     changed.digits = "6".into();
     assert_eq!(
         f.store
-            .prepare_received_dtmf(p.clone(), changed, vec![])
+            .prepare_received_dtmf(crate::SipSignalOrigin::Initial(p.clone()), changed, vec![])
             .unwrap_err()
             .code,
         "conflict"
@@ -229,7 +231,10 @@ fn received_dtmf_conflicting_physical_id_or_expired_input_cannot_reserve_another
         let mut o = o.clone();
         o.observation_id = format!("time-{delta}");
         o.received_at += chrono::Duration::seconds(delta);
-        assert!(f.store.prepare_received_dtmf(p.clone(), o, vec![]).is_err());
+        assert!(f
+            .store
+            .prepare_received_dtmf(crate::SipSignalOrigin::Initial(p.clone()), o, vec![])
+            .is_err());
     }
     assert_eq!(
         f.store
@@ -246,7 +251,7 @@ fn received_dtmf_empty_frozen_audience_is_a_truthful_no_submission_failure() {
     let (f, _n, p) = sip_signal::fixture();
     let ReceivedDtmfPreparation::New(b) = f
         .store
-        .prepare_received_dtmf(p, observed(), vec![])
+        .prepare_received_dtmf(crate::SipSignalOrigin::Initial(p), observed(), vec![])
         .unwrap()
     else {
         panic!()

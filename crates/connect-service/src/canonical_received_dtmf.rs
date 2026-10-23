@@ -2,7 +2,7 @@
 use crate::{
     canonical_native_dtmf::{Flight, Listener, Touch},
     canonical_runtime::Runtime,
-    initial_telephone::policy::Leg,
+    canonical_sip_signal::SipLeg,
 };
 use connect_protocol::{
     native_dtmf::SubmissionDisposition as D,
@@ -57,15 +57,16 @@ fn observation(observed: &ReceivedDtmfObservation) -> Result<SourceObservation> 
 impl Runtime {
     pub(crate) fn enqueue_received_dtmf(
         self: &Arc<Self>,
-        leg: Arc<Leg>,
+        leg: SipLeg,
         observed: ReceivedDtmfObservation,
     ) -> Result<()> {
-        let source = leg.media.get().ok_or_else(Error::forbidden)?;
+        let source = leg.origin().map_err(|_| Error::forbidden())?;
         if observed.disclosure().is_none()
-            || observed.source().connection() != &leg.connection()
-            || observed.source().session().as_str() != source.source().request.session_id
-            || observed.source().conversation().as_str() != source.source().request.conversation_id
-            || observed.source().participant().as_str() != source.source().target.participant_id
+            || observed.source().connection()
+                != &leg.connection().map_err(|_| Error::forbidden())?
+            || observed.source().session().as_str() != source.session_id()
+            || observed.source().conversation().as_str() != source.conversation_id()
+            || observed.source().participant().as_str() != source.participant_id()
         {
             return Err(Error::forbidden());
         }
@@ -81,15 +82,15 @@ impl Runtime {
             .filter(|v| {
                 v.registration.current()
                     && !v.physical.is_cancelled()
-                    && v.entry.origin.session_id() == source.source().request.session_id
-                    && v.entry.origin.conversation_id() == source.source().request.conversation_id
+                    && v.entry.origin.session_id() == source.session_id()
+                    && v.entry.origin.conversation_id() == source.conversation_id()
             })
             .map(|v| (v.id.clone(), v))
             .collect::<BTreeMap<_, _>>();
         let mut work = self.work.lock().map_err(|_| Error::storage())?;
         while work.try_join_next().is_some() {}
         if self.stop.is_cancelled()
-            || leg.cancel.is_cancelled()
+            || leg.cancelled()
             || work.len() >= self.media.store.limits().connections.saturating_mul(2)
         {
             return Err(Error::new(
@@ -107,15 +108,15 @@ impl Runtime {
     }
     async fn received_dtmf_worker(
         self: Arc<Self>,
-        leg: Arc<Leg>,
+        leg: SipLeg,
         observed: ReceivedDtmfObservation,
         facts: SourceObservation,
         listeners: BTreeMap<String, Arc<Listener>>,
     ) -> Result<()> {
-        let source = leg.media.get().ok_or_else(Error::forbidden)?.clone();
+        let source = leg.origin().map_err(|_| Error::forbidden())?;
         let deadline = Instant::now() + Duration::from_secs(2);
         let batch = loop {
-            if self.stop.is_cancelled() || leg.cancel.is_cancelled() || Instant::now() >= deadline {
+            if self.stop.is_cancelled() || leg.cancelled() || Instant::now() >= deadline {
                 return Err(Error::forbidden());
             }
             let candidates = listeners
@@ -173,7 +174,7 @@ impl Runtime {
     }
     async fn deliver_received_dtmf(
         self: Arc<Self>,
-        leg: Arc<Leg>,
+        leg: SipLeg,
         observed: ReceivedDtmfObservation,
         target: ReceivedDtmfTarget,
         listener: Arc<Listener>,
@@ -199,10 +200,7 @@ impl Runtime {
                 return Err(DtmfWriteError::Refused);
             }
             let route = loop {
-                if self.stop.is_cancelled()
-                    || leg.cancel.is_cancelled()
-                    || Instant::now() >= deadline
-                {
+                if self.stop.is_cancelled() || leg.cancelled() || Instant::now() >= deadline {
                     return Err(DtmfWriteError::Refused);
                 }
                 let method = match target.observation().kind {
@@ -251,7 +249,7 @@ impl Runtime {
 }
 struct Policy {
     runtime: Weak<Runtime>,
-    leg: Arc<Leg>,
+    leg: SipLeg,
     target: ReceivedDtmfTarget,
     listener: Arc<Listener>,
     observed: ReceivedDtmfObservation,
@@ -278,7 +276,7 @@ impl Policy {
     fn stopped(&self, runtime: &Runtime) -> bool {
         self.flight.state.lock().map_or(true, |s| s.0)
             || runtime.stop.is_cancelled()
-            || self.leg.cancel.is_cancelled()
+            || self.leg.cancelled()
             || self.listener.physical.is_cancelled()
             || !self.listener.registration.current()
     }
@@ -300,12 +298,12 @@ impl DtmfRoutePolicy for Policy {
             SourceKind::SipRfc4733 => DtmfMethod::Rfc4733,
         };
         if self.stopped(&runtime)
-            || !Arc::ptr_eq(self.leg.media.get().ok_or(DtmfWriteError::Refused)?, source)
+            || !self.leg.matches(source)
             || !Arc::ptr_eq(&self.listener.entry.origin, recipient)
-            || route.source.connection() != &self.leg.connection()
-            || route.source.session().as_str() != source.source().request.session_id
-            || route.source.conversation().as_str() != source.source().request.conversation_id
-            || route.source.participant().as_str() != source.source().target.participant_id
+            || route.source.connection() != &self.leg.connection()?
+            || route.source.session().as_str() != source.session_id()
+            || route.source.conversation().as_str() != source.conversation_id()
+            || route.source.participant().as_str() != source.participant_id()
             || route.recipient.connection().as_str() != recipient.runtime_connection_id()
             || route.recipient.session().as_str() != recipient.session_id()
             || route.recipient.conversation().as_str() != recipient.conversation_id()
@@ -432,7 +430,7 @@ impl DtmfRoutePolicy for Policy {
             }
             let current = Arc::downgrade(&read);
             let stop = runtime.stop.clone();
-            let leg = self.leg.cancel.clone();
+            let leg = self.leg.clone();
             let physical = self.listener.physical.clone();
             return DtmfWriteLease::new(
                 Lease {
@@ -444,7 +442,7 @@ impl DtmfRoutePolicy for Policy {
                 move || {
                     current.upgrade().is_some_and(|r| r.current())
                         && !stop.is_cancelled()
-                        && !leg.is_cancelled()
+                        && !leg.cancelled()
                         && !physical.is_cancelled()
                 },
             )

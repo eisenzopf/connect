@@ -1,9 +1,8 @@
 //! Trusted installed receive custody, immutable recipients and one physical attempt.
 use super::*;
 use crate::{
-    AuthorityScope, InitialTelephoneMediaOrigin, InitialTelephoneNativeSignalRead,
-    InitialTelephoneSignalDirection::FromTelephone, InitialTelephoneSignalRead,
-    NativeDtmfRecipient, NativeMediaOrigin,
+    AuthorityScope, NativeDtmfRecipient, NativeMediaOrigin, SipNativeSignalRead, SipSignalOrigin,
+    SipSignalRead, TelephoneSignalDirection::FromTelephone,
 };
 use connect_protocol::{
     native_dtmf::SubmissionDisposition as Disposition, received_dtmf::SourceObservation,
@@ -15,7 +14,7 @@ struct Source {
     effect: String,
     runtime: String,
     expires: i64,
-    phone: Arc<InitialTelephoneMediaOrigin>,
+    phone: SipSignalOrigin,
     observation: SourceObservation,
     snapshot: serde_json::Value,
     owner: Weak<crate::InstallationOwnership>,
@@ -32,7 +31,7 @@ pub struct ReceivedDtmfTarget {
     snapshot: serde_json::Value,
 }
 pub struct ReceivedDtmfRead {
-    pair: InitialTelephoneNativeSignalRead,
+    pair: SipNativeSignalRead,
     target: ReceivedDtmfTarget,
 }
 pub enum ReceivedDtmfPreparation {
@@ -67,7 +66,7 @@ impl ReceivedDtmfTarget {
     pub fn origin(&self) -> &Arc<NativeMediaOrigin> {
         &self.origin
     }
-    pub fn source(&self) -> &Arc<InitialTelephoneMediaOrigin> {
+    pub fn source(&self) -> &SipSignalOrigin {
         &self.source.phone
     }
     pub fn registration_id(&self) -> &str {
@@ -84,7 +83,7 @@ impl ReceivedDtmfTarget {
     }
 }
 impl ReceivedDtmfRead {
-    pub fn pair(&self) -> &InitialTelephoneNativeSignalRead {
+    pub fn pair(&self) -> &SipNativeSignalRead {
         &self.pair
     }
     pub fn current(&self) -> bool {
@@ -94,12 +93,7 @@ impl ReceivedDtmfRead {
         self.pair.expires_at().min(self.target.source.expires)
     }
 }
-fn snapshot(read: &InitialTelephoneSignalRead) -> serde_json::Value {
-    let o = read.origin();
-    let s = o.source();
-    serde_json::json!({"connection_id":o.connection_id(),"runtime_connection_id":o.runtime_connection_id(),"sip_call_id":o.sip_call_id(),"participant_id":read.member().participant_id,"membership_epoch":read.member().membership_epoch,"generation":1,"identity_id":read.member().identity_id,"endpoint_id":s.endpoint_id,"endpoint_revision":s.endpoint_revision,"device_id":s.device_id,"endpoint_credential_id":read.endpoint_actor().credential_id,"route_credential_id":read.route_actor().credential_id,"route_owner_id":s.route_owner_id})
-}
-fn logical_id(phone: &InitialTelephoneMediaOrigin, observation: &SourceObservation) -> String {
+fn logical_id(phone: &SipSignalOrigin, observation: &SourceObservation) -> String {
     let mut h = Sha256::new();
     h.update(phone.record_id());
     h.update([0]);
@@ -120,14 +114,14 @@ fn historical(c: &Connection, store: &Store, source: &Source) -> Result<rows::Sa
         return Err(Error::forbidden());
     }
     let row = rows::by_record(c, &source.record)?;
-    let exact:bool=c.query_row("SELECT EXISTS(SELECT 1 FROM received_dtmf_sources s JOIN operation_effects e ON e.operation_record_id=s.operation_record_id WHERE s.operation_record_id=?1 AND s.parent_record_id=?2 AND s.runtime_epoch=?3 AND s.observation_json=?4 AND s.source_json=?5 AND s.sealed=1 AND e.id=?6 AND e.provider='received-dtmf')",params![source.record,source.phone.record_id(),source.runtime,serde_json::to_string(&source.observation).map_err(|_|Error::storage())?,source.snapshot.to_string(),source.effect],|r|r.get(0)).map_err(|_|Error::storage())?;
+    let exact:bool=c.query_row("SELECT EXISTS(SELECT 1 FROM received_dtmf_sources s JOIN operation_effects e ON e.operation_record_id=s.operation_record_id WHERE s.operation_record_id=?1 AND s.parent_record_id=?2 AND s.runtime_epoch=?3 AND s.observation_json=?4 AND s.source_json=?5 AND s.sealed=1 AND e.id=?6 AND e.provider='received-dtmf' AND s.parent_kind=?7)",params![source.record,source.phone.record_id(),source.runtime,serde_json::to_string(&source.observation).map_err(|_|Error::storage())?,source.snapshot.to_string(),source.effect,source.phone.kind()],|r|r.get(0)).map_err(|_|Error::storage())?;
     let (digest, _) = super::digest(
         &serde_json::json!({"observation":source.observation,"source":source.snapshot}),
     )?;
     if !exact
         || row.record.command_type != "dtmf.send"
         || row.digest != digest
-        || row.owner != source.phone.source().target.identity_id
+        || row.owner != source.phone.identity_id()
         || row.record.operation_id != source.operation
         || row.record.expires_at != Some(source.expires)
     {
@@ -139,7 +133,7 @@ fn current(
     c: &Connection,
     store: &Store,
     target: &ReceivedDtmfTarget,
-    read: &InitialTelephoneNativeSignalRead,
+    read: &SipNativeSignalRead,
 ) -> Result<()> {
     let row = historical(c, store, &target.source)?;
     let exact:bool=c.query_row("SELECT EXISTS(SELECT 1 FROM received_dtmf_sources s JOIN received_dtmf_recipients r ON r.operation_record_id=s.operation_record_id WHERE s.operation_record_id=?1 AND s.closed=0 AND r.target_record_id=?2 AND r.registration_id=?3 AND r.target_json=?4 AND r.disposition IS NULL)",params![target.source.record,target.origin.offer_record_id(),target.registration,target.snapshot.to_string()],|r|r.get(0)).map_err(|_|Error::storage())?;
@@ -148,8 +142,8 @@ fn current(
         || row.record.cancel_requested
         || crate::now() >= target.source.expires
         || !read.current()
-        || read.phone().direction() != FromTelephone
-        || snapshot(read.phone()) != target.source.snapshot
+        || !read.matches(&target.source.phone, FromTelephone)
+        || read.snapshot() != target.source.snapshot
         || store.native_dtmf_origin_snapshot(c, &target.origin)? != target.snapshot
     {
         return Err(Error::forbidden());
@@ -169,6 +163,35 @@ pub(super) fn projection_scopes(c: &Connection, row: &rows::Saved) -> Result<Vec
         )?);
     }
     AuthorityScope::merged(&scopes)
+}
+// Installed receive replay uses the call's current signal credential. Its
+// logical operation owner is the actual participant, not an independent route
+// account. Original recipient ceilings are rechecked without rescheduling IO.
+fn require_source_replay(c: &Connection, read: &SipSignalRead, row: &rows::Saved) -> Result<()> {
+    let source: String = c
+        .query_row(
+            "SELECT source_json FROM received_dtmf_sources WHERE operation_record_id=?1",
+            [&row.record.record_id],
+            |r| r.get(0),
+        )
+        .map_err(|_| Error::storage())?;
+    let source: serde_json::Value = serde_json::from_str(&source).map_err(|_| Error::storage())?;
+    if !read.current() || row.owner != read.member().identity_id || source != read.snapshot() {
+        return Err(Error::forbidden());
+    }
+    let mut q=c.prepare("SELECT DISTINCT json_extract(target_json,'$.identity_id') FROM received_dtmf_recipients WHERE operation_record_id=?1").map_err(|_|Error::storage())?;
+    for id in q
+        .query_map([&row.record.record_id], |r| r.get::<_, String>(0))
+        .map_err(|_| Error::storage())?
+    {
+        let id = id.map_err(|_| Error::storage())?;
+        if !read.permission_actor().permits_recipient(&id)
+            || !read.route_actor().permits_recipient(&id)
+        {
+            return Err(Error::forbidden());
+        }
+    }
+    Ok(())
 }
 pub(super) fn read(c: &Connection, actor: &Actor, row: &rows::Saved) -> Result<()> {
     actor.require("dtmf.send")?;
@@ -410,7 +433,7 @@ impl Store {
     /// and current exact recipients; no reader or IO grant is queued.
     pub fn prepare_received_dtmf(
         &self,
-        phone: Arc<InitialTelephoneMediaOrigin>,
+        phone: SipSignalOrigin,
         observation: SourceObservation,
         candidates: Vec<NativeDtmfRecipient>,
     ) -> Result<ReceivedDtmfPreparation> {
@@ -418,13 +441,13 @@ impl Store {
         if candidates.len() > self.limits().connections.min(512) {
             return Err(invalid());
         }
-        let source_read = self.try_initial_telephone_signal_read(phone.clone(), FromTelephone)?;
+        let source_read = self.try_sip_signal_read(&phone, FromTelephone)?;
         let operation = logical_id(&phone, &observation);
         let required = {
             let c = self.try_connection()?;
-            let mut required = self.initial_telephone_signal_scopes(&c, &phone)?;
+            let mut required = phone.scopes(self, &c)?;
             for target in &candidates {
-                match self.initial_telephone_native_signal_scopes(&c, &phone, &target.origin) {
+                match phone.pair_scopes(self, &c, &target.origin) {
                     Ok(scopes) => required.extend(scopes),
                     Err(e) if matches!(e.code.as_str(), "forbidden" | "not-recipient") => (),
                     Err(e) => return Err(e),
@@ -446,26 +469,23 @@ impl Store {
         if observation.received_at.timestamp() > crate::now() || until <= crate::now() {
             return Err(Error::forbidden());
         }
-        let read = self.initial_telephone_signal_in(
-            &tx,
-            phone.clone(),
-            FromTelephone,
-            interval.clone(),
-            until,
-        )?;
-        let actor = read.endpoint_actor();
+        let read = phone.read_in(self, &tx, FromTelephone, interval.clone(), until)?;
+        let actor = read.permission_actor();
         let tenant = authority::tenant(&tx, actor)?;
-        if let Some(row) = rows::find(&tx, &tenant, &actor.identity_id, &operation)? {
-            let (old,parent):(String,String)=tx.query_row("SELECT observation_json,parent_record_id FROM received_dtmf_sources WHERE operation_record_id=?1",[&row.record.record_id],|r|Ok((r.get(0)?,r.get(1)?))).map_err(|_|conflict())?;
+        if let Some(row) = rows::find(&tx, &tenant, &read.member().identity_id, &operation)? {
+            let (old,parent,kind):(String,String,String)=tx.query_row("SELECT observation_json,parent_record_id,parent_kind FROM received_dtmf_sources WHERE operation_record_id=?1",[&row.record.record_id],|r|Ok((r.get(0)?,r.get(1)?,r.get(2)?))).map_err(|_|conflict())?;
             let old: SourceObservation =
                 serde_json::from_str(&old).map_err(|_| Error::storage())?;
-            if parent != phone.record_id() || !old.same_physical_input(&observation) {
+            if parent != phone.record_id()
+                || kind != phone.kind()
+                || !old.same_physical_input(&observation)
+            {
                 return Err(conflict());
             }
-            crate::transitions::received_dtmf::read(&tx, actor, &row)?;
+            require_source_replay(&tx, &read, &row)?;
             return Ok(ReceivedDtmfPreparation::Replay(row.record));
         }
-        let source_snapshot = snapshot(&read);
+        let source_snapshot = read.snapshot();
         let expires = read.expires_at();
         let mut frozen = Vec::new();
         let mut seen = BTreeSet::new();
@@ -477,9 +497,9 @@ impl Store {
             {
                 return Err(conflict());
             }
-            let pair = match self.initial_telephone_native_signal_in(
+            let pair = match phone.pair_in(
+                self,
                 &tx,
-                phone.clone(),
                 target.origin.clone(),
                 FromTelephone,
                 interval.clone(),
@@ -505,8 +525,8 @@ impl Store {
         let effect = format!("rde_{}", uuid::Uuid::new_v4().simple());
         let intent = serde_json::json!({"observation":observation,"source":source_snapshot});
         let (hash, json) = super::digest(&intent)?;
-        tx.execute("INSERT INTO operations(record_id,tenant_id,owner_id,operation_id,digest,command_type,conversation_id,session_id,connection_id,intent_json,state,created_at,updated_at,expires_at,ledger_version,worker_runtime) VALUES(?1,?2,?3,?4,?5,'dtmf.send',?6,?7,?8,?9,'accepted',?10,?10,?11,0,?12)",params![record,tenant,actor.identity_id,operation,hash,phone.source().request.conversation_id,phone.source().request.session_id,phone.connection_id(),json,crate::now(),expires,self.runtime_epoch()]).map_err(|_|Error::storage())?;
-        tx.execute("INSERT INTO received_dtmf_sources(operation_record_id,parent_record_id,runtime_epoch,observation_id,source_kind,observation_json,source_json) VALUES(?1,?2,?3,?4,?5,?6,?7)",params![record,phone.record_id(),self.runtime_epoch(),observation.observation_id,observation.kind.as_str(),serde_json::to_string(&observation).map_err(|_|Error::storage())?,source_snapshot.to_string()]).map_err(|_|Error::storage())?;
+        tx.execute("INSERT INTO operations(record_id,tenant_id,owner_id,operation_id,digest,command_type,conversation_id,session_id,connection_id,intent_json,state,created_at,updated_at,expires_at,ledger_version,worker_runtime) VALUES(?1,?2,?3,?4,?5,'dtmf.send',?6,?7,?8,?9,'accepted',?10,?10,?11,0,?12)",params![record,tenant,read.member().identity_id,operation,hash,phone.conversation_id(),phone.session_id(),phone.connection_id(),json,crate::now(),expires,self.runtime_epoch()]).map_err(|_|Error::storage())?;
+        tx.execute("INSERT INTO received_dtmf_sources(operation_record_id,parent_record_id,runtime_epoch,observation_id,source_kind,observation_json,source_json,parent_kind) VALUES(?1,?2,?3,?4,?5,?6,?7,?8)",params![record,phone.record_id(),self.runtime_epoch(),observation.observation_id,observation.kind.as_str(),serde_json::to_string(&observation).map_err(|_|Error::storage())?,source_snapshot.to_string(),phone.kind()]).map_err(|_|Error::storage())?;
         tx.execute(
             "INSERT INTO operation_members VALUES(?1,?2,?3,?4)",
             params![
@@ -558,8 +578,8 @@ impl Store {
         }))
     }
     pub fn try_received_dtmf_read(&self, target: &ReceivedDtmfTarget) -> Result<ReceivedDtmfRead> {
-        let pair = self.try_initial_telephone_native_signal_read(
-            target.source.phone.clone(),
+        let pair = self.try_sip_native_signal_read(
+            &target.source.phone,
             target.origin.clone(),
             FromTelephone,
         )?;

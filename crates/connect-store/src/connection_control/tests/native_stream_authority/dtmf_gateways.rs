@@ -57,7 +57,7 @@ fn fixture() -> Signal {
 }
 fn candidates(s: &Signal) -> Vec<NativeDtmfGatewayRecipient> {
     vec![NativeDtmfGatewayRecipient {
-        origin: crate::NativeDtmfGatewayOrigin::Initial(s.phone.clone()),
+        origin: crate::SipSignalOrigin::Initial(s.phone.clone()),
         registration_id: "original-sip-registration".into(),
     }]
 }

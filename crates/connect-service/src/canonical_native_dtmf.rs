@@ -399,7 +399,7 @@ impl Runtime {
                             Error::new("authority-busy", "Gateway registration metadata is busy")
                         })?
                         .into_iter()
-                        .map(gateways::GatewayLeg::Initial)
+                        .map(crate::canonical_sip_signal::SipLeg::Initial)
                         .collect::<Vec<_>>();
                     legs.extend(
                         self.media
@@ -408,7 +408,7 @@ impl Runtime {
                                 Error::new("authority-busy", "Established gateway metadata is busy")
                             })?
                             .into_iter()
-                            .map(gateways::GatewayLeg::Established),
+                            .map(crate::canonical_sip_signal::SipLeg::Established),
                     );
                     let mut registrations = BTreeMap::new();
                     for leg in legs {

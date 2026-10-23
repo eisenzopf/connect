@@ -42,6 +42,7 @@ mod canonical_records;
 mod canonical_runtime;
 mod canonical_session_codecs;
 mod canonical_session_lifecycle;
+mod canonical_sip_signal;
 pub use canonical_runtime::CanonicalRuntimeSnapshot;
 mod assistant_context;
 mod assistant_observations;

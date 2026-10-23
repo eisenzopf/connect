@@ -113,8 +113,7 @@ Both algorithms check separate schedule IDs, one call per peer and cleanup of
 both original dialogs. These are two-recipient checks, not the full 50-member
 or every-substrate qualification.
 
-These checks qualify a bounded local macOS arm64 component. SIP-originated
-observations, established/replacement SIP legs, other maximum-duration profiles,
+These checks qualify a bounded local macOS arm64 component. Other maximum-duration profiles,
 larger fanout, target/route revocation, restart/socket uncertainty and remaining
 private combinations need further implementation or production checks. They do not
 close the cross-substrate DTMF clauses, G6-046, independent G6-094 conformance or
@@ -133,5 +132,21 @@ original audience. Queued work holds metadata, and a new current-authority
 reader covers each physical write. Reservation failure retries metadata for
 only the original schedule. A captured local outcome can settle after rights
 loss; restart preserves reserved uncertainty and never replays the schedule.
-These native-to-SIP paths do not install received-source monitoring for moved
-SIP calls. That direction remains separate implementation work.
+
+Schema103 also records actual received input from a committed SIP call. The
+installed monitor subscribes with that call's original controller and route
+principal, then freezes INFO or RFC4733 input and original native registrations
+without holding permission readers in a queue. Initial and established calls
+share typed signal admission and delivery; each retains its actual lifetime
+kind, generation and call identity. Received operations belong to the logical
+participant. An independent route credential supplies current signal permission
+and does not become the operation owner or reuse a retired native credential.
+
+A fresh source-owner HTTP credential can inspect the original result. Repeated
+physical input cannot recapture recipients or refresh the original deadline;
+replay rechecks current source permission and original recipient ceilings.
+Every actual native write uses a fresh complete signal interval and the sealed
+original/current Core audience. Media and signal permission stay independent,
+and a retained signal direction can keep the call alive while media is denied.
+Private combinations, wider source profiles and later hosting/transport
+qualification remain separately recorded work.

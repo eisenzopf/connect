@@ -52,10 +52,10 @@ pub use transitions::{
     NativeConsultationLease, NativeConsultationOrigin, NativeConsultationPreparation,
     NativeConsultationReturnApplied, NativeConsultationReturnAttempt,
     NativeConsultationReturnLease, NativeConsultationReturnOrigin, NativeConsultationTarget,
-    NativeDtmfBatch, NativeDtmfGatewayOrigin, NativeDtmfGatewayRead, NativeDtmfGatewayRecipient,
-    NativeDtmfGatewayTarget, NativeDtmfRead, NativeDtmfRecipient, NativeDtmfTarget,
-    NativeHandoffApplied, NativeHandoffAttempt, NativeHandoffContext, NativeHandoffLease,
-    NativeHandoffOrigin, NativeOfferLease, NativeOfferObservation, NativeOfferPreflightRefusal,
+    NativeDtmfBatch, NativeDtmfGatewayRead, NativeDtmfGatewayRecipient, NativeDtmfGatewayTarget,
+    NativeDtmfRead, NativeDtmfRecipient, NativeDtmfTarget, NativeHandoffApplied,
+    NativeHandoffAttempt, NativeHandoffContext, NativeHandoffLease, NativeHandoffOrigin,
+    NativeOfferLease, NativeOfferObservation, NativeOfferPreflightRefusal,
     NativeOfferRecoveryObservation, NativeOfferRuntimeObservation, NativeReadyObservation,
     NativeReplacementAllocated, NativeReplacementAllocationAttempt,
     NativeReplacementAllocationRead, NativeReplacementAudienceCapture,
@@ -68,8 +68,9 @@ pub use transitions::{
     NativeReplacementStarted, NativeStreamCommitted, NativeStreamLease, NativeStreamNoEffect,
     ReceivedDtmfBatch, ReceivedDtmfPreparation, ReceivedDtmfRead, ReceivedDtmfTarget,
     ReplacementConfirmation, ReplacementPreparationRequest, SessionCodecTarget,
-    TelephoneAudioResources, TelephoneConnectionRuntimeObservation, TelephoneConnectionSnapshot,
-    TelephoneMediaOrigin, TelephoneMediaRead, TelephoneNativeMediaRead, TelephoneNativeSignalRead,
+    SipNativeSignalRead, SipSignalOrigin, SipSignalRead, TelephoneAudioResources,
+    TelephoneConnectionRuntimeObservation, TelephoneConnectionSnapshot, TelephoneMediaOrigin,
+    TelephoneMediaRead, TelephoneNativeMediaRead, TelephoneNativeSignalRead,
     TelephoneReplacementAllocated, TelephoneReplacementAttempt,
     TelephoneReplacementAudienceCapture, TelephoneReplacementCommitAttempt,
     TelephoneReplacementCommitUncertain, TelephoneReplacementCommitted,
@@ -179,7 +180,7 @@ pub use tasks::{
     IssuedTaskGrant, NativeTaskAuthority, TaskCreateDefaults, TaskInvocation,
     TaskObservationBinding, VapiSessionContext,
 };
-pub const SCHEMA_VERSION: u32 = 102;
+pub const SCHEMA_VERSION: u32 = 103;
 const STARTUP_BLOB_CLEANUP_LIMIT: usize = 100;
 
 mod session_gateways;
@@ -502,6 +503,8 @@ impl Store {
             "../migrations/102_established_dtmf_gateways.sql"
         ))
         .map_err(|_| Error::storage())?;
+        tx.execute_batch(include_str!("../migrations/103_received_sip_origins.sql"))
+            .map_err(|_| Error::storage())?;
         tx.commit().map_err(|_| Error::storage())?;
         let blob_directory = Self::create_blob_directory(path)?;
         let authority = Self::authority_manager(path, &connection)?;

@@ -64,7 +64,7 @@ fn observe(value: serde_json::Value) {
             .unwrap();
     }
 }
-async fn route_permissions(f: &Fixture, route: &str, operations: serde_json::Value) {
+pub(super) async fn route_permissions(f: &Fixture, route: &str, operations: serde_json::Value) {
     let store = f.server.store.clone();
     let route = route.to_owned();
     let path = f.config.database.clone();

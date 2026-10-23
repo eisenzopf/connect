@@ -1,8 +1,7 @@
 //! Controlled committed-SIP custody only; actual delivery is tested separately.
 use super::*;
 use crate::{
-    NativeDtmfBatch, NativeDtmfGatewayOrigin, NativeDtmfGatewayRecipient, PeerAuthorityRequest,
-    PeerCommand,
+    NativeDtmfBatch, NativeDtmfGatewayRecipient, PeerAuthorityRequest, PeerCommand, SipSignalOrigin,
 };
 use connect_protocol::native_dtmf::{SourceObservation, SubmissionDisposition as D};
 
@@ -58,7 +57,7 @@ fn fixture() -> Signal {
 }
 fn candidates(s: &Signal) -> Vec<NativeDtmfGatewayRecipient> {
     vec![NativeDtmfGatewayRecipient {
-        origin: NativeDtmfGatewayOrigin::Established(s.phone.clone()),
+        origin: SipSignalOrigin::Established(s.phone.clone()),
         registration_id: "actual-established-sip-registration".into(),
     }]
 }
@@ -309,7 +308,7 @@ fn established_gateway_dtmf_snapshot_digest_includes_recipient_only_reservation(
         .unwrap();
     drop(read);
     let after = Store::inspect_snapshot(s.f.store.path()).unwrap();
-    assert_eq!(before.schema, 102);
+    assert_eq!(before.schema, crate::SCHEMA_VERSION);
     assert_ne!(before.digest, after.digest);
 }
 

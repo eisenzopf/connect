@@ -159,25 +159,98 @@ impl Runtime {
         Ok(())
     }
     async fn watch_telephone_connection(
-        &self,
+        self: &Arc<Self>,
         origin: Arc<TelephoneMediaOrigin>,
         leg: &Arc<allocation::Allocated>,
         started: &Arc<media::Started>,
     ) {
+        let id = ConnectionId::from_string(origin.snapshot().runtime_connection_id.clone());
+        let signal_leg = crate::canonical_sip_signal::SipLeg::Established(started.policy.clone());
+        let Ok((adapter, _)) = self.telephone_route(&leg.route.policy.route_reference) else {
+            return;
+        };
+        let mut received = None;
+        let mut next_check = tokio::time::Instant::now();
         loop {
-            tokio::time::sleep(std::time::Duration::from_millis(100)).await;
-            if self.stop.is_cancelled() || !started.policy.physical_current() {
+            if self.stop.is_cancelled() || signal_leg.cancelled() {
                 break;
             }
-            match self.media.store.try_telephone_media_read(origin.clone()) {
-                Ok(read) if read.current() => (),
-                Ok(_) => break,
-                Err(error) if matches!(error.code.as_str(), "forbidden" | "unauthorized") => break,
-                Err(_) => continue,
+            if tokio::time::Instant::now() >= next_check {
+                // Existing RTP and each named signal direction are independent.
+                // All reads are released before metadata waits or queued inputs.
+                let media_current = match self.media.store.try_telephone_media_read(origin.clone())
+                {
+                    Ok(read) => read.current(),
+                    Err(error) if matches!(error.code.as_str(), "forbidden" | "unauthorized") => {
+                        false
+                    }
+                    Err(_) => {
+                        tokio::time::sleep(std::time::Duration::from_millis(25)).await;
+                        continue;
+                    }
+                };
+                if !media_current {
+                    let mut signal_current = false;
+                    let mut busy = false;
+                    for direction in [
+                        connect_store::TelephoneSignalDirection::FromTelephone,
+                        connect_store::TelephoneSignalDirection::ToTelephone,
+                    ] {
+                        match self
+                            .media
+                            .store
+                            .try_telephone_signal_read(origin.clone(), direction)
+                        {
+                            Ok(read) => signal_current |= read.current(),
+                            Err(error)
+                                if matches!(error.code.as_str(), "forbidden" | "unauthorized") =>
+                            {
+                                ()
+                            }
+                            Err(_) => busy = true,
+                        }
+                    }
+                    if !signal_current && !busy {
+                        break;
+                    }
+                    if !signal_current {
+                        tokio::time::sleep(std::time::Duration::from_millis(25)).await;
+                        continue;
+                    }
+                }
+                self.reconcile_connection_role(&id).await;
+                next_check = tokio::time::Instant::now() + std::time::Duration::from_millis(100);
             }
-            let id = ConnectionId::from_string(origin.snapshot().runtime_connection_id.clone());
-            self.reconcile_connection_role(&id).await;
+            if received.is_none() {
+                if let (Ok(controller), Ok(principal)) =
+                    (signal_leg.controller(), signal_leg.principal())
+                {
+                    if let Ok(subscription) = adapter.subscribe_managed_dtmf_source(
+                        &self.core,
+                        id.clone(),
+                        &controller,
+                        principal,
+                    ) {
+                        received = Some(subscription);
+                    }
+                }
+            }
+            if let Some(subscription) = received.as_mut() {
+                tokio::select! {biased;
+                    _=self.stop.cancelled()=>break,
+                    input=subscription.recv()=>match input {
+                        Some(observed)=>if let Err(error)=self.enqueue_received_dtmf(signal_leg.clone(),observed) {
+                            tracing::debug!(code=%error.code,"Established SIP received signal refused before journal admission");
+                        },
+                        None=>received=None,
+                    },
+                    _=tokio::time::sleep(std::time::Duration::from_millis(25))=>{},
+                }
+            } else {
+                tokio::time::sleep(std::time::Duration::from_millis(25)).await;
+            }
         }
+        drop(received);
         self.retire_telephone_connection(&origin, leg).await;
     }
     async fn retire_telephone_connection(

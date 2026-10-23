@@ -5,6 +5,8 @@ mod configured;
 mod dtmf;
 #[path = "telephone/initial.rs"]
 mod initial;
+#[path = "telephone/received.rs"]
+mod received;
 #[path = "telephone/restart.rs"]
 mod restart;
 #[path = "telephone/return_native.rs"]
@@ -469,6 +471,7 @@ enum Stop {
     LostReply,
     StreamControl,
     Dtmf,
+    DtmfReceive,
     ReturnNative,
     ReturnObserver,
     Refresh,
@@ -510,6 +513,7 @@ async fn telephone_case_profile(stop: Stop, configured: bool, algorithm: &str) {
         | Stop::CommittedDrop
         | Stop::StreamControl
         | Stop::Dtmf
+        | Stop::DtmfReceive
         | Stop::ReturnNative
         | Stop::ReturnObserver
         | Stop::Refresh => Some(0),
@@ -617,6 +621,7 @@ async fn telephone_case_profile(stop: Stop, configured: bool, algorithm: &str) {
                         | Stop::CommittedDrop
                         | Stop::StreamControl
                         | Stop::Dtmf
+                        | Stop::DtmfReceive
                         | Stop::ReturnNative
                         | Stop::ReturnObserver
                         | Stop::Refresh
@@ -662,7 +667,7 @@ async fn telephone_case_profile(stop: Stop, configured: bool, algorithm: &str) {
         },
         (endpoint, route_key, route_owner),
     ) = if configured {
-        if matches!(stop, Stop::Dtmf) {
+        if matches!(stop, Stop::Dtmf | Stop::DtmfReceive) {
             codecs::setup_with_telephone_dtmf(algorithm, configure).await
         } else {
             codecs::setup_with_telephone(configure).await
@@ -1185,6 +1190,19 @@ async fn telephone_case_profile(stop: Stop, configured: bool, algorithm: &str) {
         if matches!(stop, Stop::Dtmf) {
             dtmf::exercise(&f, &cid, &mut peers, &peer, payload, &done, &route_key.id).await;
         }
+        if matches!(stop, Stop::DtmfReceive) {
+            received::exercise(
+                &f,
+                &cid,
+                &mut peers,
+                &peer,
+                payload,
+                &done,
+                &route_key.id,
+                algorithm,
+            )
+            .await;
+        }
         let refresh_session = if matches!(stop, Stop::Refresh) {
             let coordinator = coordinator.as_ref().unwrap();
             let sessions = coordinator.list_sessions().await;
@@ -1454,6 +1472,7 @@ async fn telephone_case_profile(stop: Stop, configured: bool, algorithm: &str) {
         | Stop::CommittedDrop
         | Stop::StreamControl
         | Stop::Dtmf
+        | Stop::DtmfReceive
         | Stop::ReturnNative
         | Stop::ReturnObserver
         | Stop::Refresh => {

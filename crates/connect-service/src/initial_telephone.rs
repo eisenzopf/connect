@@ -752,7 +752,7 @@ impl Runner {
                     _ = runtime.stop.cancelled() => return Ok(()),
                     _ = leg.cancel.cancelled() => return Ok(()),
                     input = subscription.recv() => match input {
-                        Some(observed) => if let Err(error) = runtime.enqueue_received_dtmf(leg.clone(), observed) {
+                        Some(observed) => if let Err(error) = runtime.enqueue_received_dtmf(crate::canonical_sip_signal::SipLeg::Initial(leg.clone()), observed) {
                             tracing::debug!(code=%error.code, "Received SIP signal refused before journal admission");
                         },
                         None => received = None,
