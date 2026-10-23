@@ -1,0 +1,145 @@
+{
+  "task": "G6-046",
+  "status": "in-progress",
+  "component_passed": true,
+  "full_task_complete": false,
+  "full_goal_complete": false,
+  "executed_at": "2026-10-23T13:12:17.928898+00:00",
+  "implementation_commit": "5f2c744dd221880cb80830efad84ecd5cf569ff7",
+  "scope": "Actual local macOS arm64 native-to-initial-SIP INFO403 failure, stopped suffix, immutable uncertainty/replay and fresh-operation recovery on the same original call, for EdDSA and ES256.",
+  "schema_version": 100,
+  "source_lock_patches": 160,
+  "rust_test_methods": 7,
+  "new_test_methods": 1,
+  "regression_test_methods": 6,
+  "results": [
+    {
+      "passed": 1,
+      "failed": 0,
+      "test_names": [
+        "canonical_native_connections::consultation::groups::replacement::telephone::initial::dtmf::production_native_to_initial_sip_info_failure_keeps_uncertainty_without_replay_and_preserves_call"
+      ],
+      "log": {
+        "path": ".local/gate-6/dtmf-sip-fence/production-failure.log",
+        "sha256": "649b39f0d19843759f4ef6fde38d63ea011f3a4babd0e95ce06783b1ae2c1e44"
+      }
+    },
+    {
+      "passed": 3,
+      "failed": 0,
+      "test_names": [
+        "canonical_native_connections::consultation::groups::replacement::telephone::initial::dtmf::production_native_to_initial_sip_info_uses_original_call_and_never_replays",
+        "canonical_native_connections::consultation::groups::replacement::telephone::initial::dtmf::production_native_to_initial_sip_requires_independent_named_receive_permission",
+        "canonical_native_connections::consultation::groups::replacement::telephone::initial::dtmf::production_native_to_initial_sip_rfc4733_uses_actual_negotiated_event_profile"
+      ],
+      "log": {
+        "path": ".local/gate-6/dtmf-sip-fence/production-after-failure.log",
+        "sha256": "384d5ca521f93f2171e5b6fc39b5455f2948c43c405754f86b66046d239e864b"
+      }
+    },
+    {
+      "passed": 3,
+      "failed": 0,
+      "test_names": [
+        "canonical_native_connections::consultation::groups::replacement::telephone::initial::production_initial_telephone_public_end_confirms_original_cleanup_after_generation_fence",
+        "canonical_native_connections::consultation::groups::replacement::telephone::initial::production_initial_telephone_public_end_while_ringing_cancels_exact_dialog",
+        "canonical_native_connections::consultation::groups::replacement::telephone::initial::production_initial_telephone_public_invite_records_real_answer_and_guarded_admission_once"
+      ],
+      "log": {
+        "path": ".local/gate-6/dtmf-sip-fence/regression-sip-after-failure.log",
+        "sha256": "70361cabaf10cafaf767d2d6df8ca3dec0ed715c52ba15b07ee9d9065bdcb7ac"
+      }
+    }
+  ],
+  "actual_uncertain_sdk_samples": 2,
+  "actual_completed_sdk_samples": 4,
+  "failure_samples": {
+    "path": ".local/gate-6/dtmf-sip-fence/failure-production.jsonl",
+    "sha256": "c766a387e8f125d4bd0dd95b3258acbea1c64e0a3a632f3f0599cb7d87a9e6e0"
+  },
+  "completed_samples": {
+    "path": ".local/gate-6/dtmf-sip-fence/production-after-failure.jsonl",
+    "sha256": "50ada4179313c24f122873804739d115fa53e0b92b4746945bf6c51a1c6c9421"
+  },
+  "summary_validation": {
+    "passed": true,
+    "actual_sdk_summaries": 4,
+    "actual_uncertain_sdk_summaries": 2,
+    "algorithms": [
+      "EdDSA",
+      "ES256"
+    ],
+    "methods": [
+      "info",
+      "rfc4733"
+    ],
+    "scope": "Local macOS arm64 native-to-initial-SIP positive summaries and actual UDP observations.",
+    "signature_verification": "The producing SDK verifies signatures; this validator checks recorded DTOs and HTTP/OpenAPI schema.",
+    "full_dtmf_clause_qualification": false,
+    "log": {
+      "path": ".local/gate-6/dtmf-sip-fence/validate-failure-results.log",
+      "sha256": "b0d223b2fa4ef8284767905c1f0fe2c5a437b2cca42f4c29f036e914676ede39"
+    }
+  },
+  "build": {
+    "passed": true,
+    "command": "CARGO_INCREMENTAL=1 cargo test -p connect-server --test gate6_canonical_runtime --no-run --locked --offline -j4",
+    "log": {
+      "path": ".local/gate-6/dtmf-sip-fence/build-server-failure.log",
+      "sha256": "bfe1fb6e89162cb543a466f1f9aaa276a02c328ed49aa2cd7c909723675f3840"
+    }
+  },
+  "test_binary": {
+    "path": "target/debug/deps/gate6_canonical_runtime-3bf705553dffa934",
+    "sha256": "83780e8512724700642565428a203b6d605963fa2e9cf2a391378a7685665ced"
+  },
+  "source_snapshot_files": 1391,
+  "current_source_snapshot": {
+    "path": ".local/gate-6/dtmf-sip-fence/inputs-failure.json",
+    "sha256": "2c88d646ea0d0807c4557704d520a52b45d2a3c44e3191d589a87bf93a3d6348"
+  },
+  "verification": {
+    "dependencies": {
+      "path": ".local/gate-6/dtmf-sip-fence/dependencies-failure.log",
+      "sha256": "fd9d7b181e3ccba9b643af55a186cf132c60aac99c734b2ee4e4e549afe5ffc2"
+    },
+    "format": {
+      "path": ".local/gate-6/dtmf-sip-fence/format-failure-current.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "http_reference": {
+      "path": ".local/gate-6/dtmf-sip-fence/http-reference-failure-current.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  },
+  "prior_runtime_evidence": "docs/evidence/gate-6/auxiliary-native-to-sip-dtmf.json",
+  "observations": [
+    "The actual UDP peer receives exactly the first INFO digit5 with Duration100 on the original SIP dialog, verifies the durable attempted schedule while the operation is preparing and responds403. Core stops the remaining8/# suffix.",
+    "A known SIP refusal after possible physical IO conservatively preserves one reserved outcome_unknown recipient and an unknown logical operation, with local_work_complete=true and local_submission_only=true. No remote playback or whole-intent delivery claim is made.",
+    "A signed SDK retry returns the exact original uncertain problem. The peer still has one INFO packet after the replay observation interval. After the peer accepts INFO again, a fresh native-sip-info operation completes all58# under a distinct schedule ID on the same call. The test checks two distinct schedule IDs and retains its existing duplex thresholds and cleanup.",
+    "Both EdDSA and ES256 execute the failure and fresh-operation recovery. Two actual uncertain and four actual positive INFO/RFC4733 SDK summaries validate against NativeDtmfSubmission in HTTP/OpenAPI. The producing SDK verifies signatures; the DTO validator does not independently reverify them.",
+    "The three previous production DTMF methods and three existing initial SIP public admission/end/cleanup methods pass with this fixture. Runtime/Store/Core code is unchanged from the cited checkpoint; this increment changes tests, validator and developer documentation."
+  ],
+  "newly_qualified_case_ids": [],
+  "qualified_clause_count": 55,
+  "assigned_clause_count": 61,
+  "remaining_case_ids": [
+    "u6-req-0103",
+    "u6-req-0109",
+    "u6-req-0112",
+    "u6-req-0113",
+    "u6-req-0115",
+    "u6-req-0123"
+  ],
+  "not_run_or_unqualified": [
+    "Physical initial-SIP cancellation, mid-suffix revocation, signal-only media withdrawal, restart/socket uncertainty and private-return combinations remain open beyond this response-failure and fresh-operation recovery case.",
+    "True SIP-originated sealed observations/durable provenance/output, established/replacement SIP legs, maximum-duration/fanout and same-Participant separate-Connection gateway policy remain open.",
+    "The earlier native fresh-recipient not_started regression and unknown subscription observations remain unresolved. This test does not establish their causes or qualify reliability.",
+    "No new clause or whole task credit:45/105 tasks and55/61 G6-046 clauses remain the local counts. Linux/browser/remote/provider lanes, independent G6-094 conformance, acceptance and publication remain open."
+  ],
+  "next_required_work": [
+    "Qualify remaining actual initial-SIP cancellation/revocation/signal-only/restart/private cases while preserving original schedule IDs and audiences.",
+    "Implement actual SIP-originated durable custody and native delivery with correct provenance, then established/replacement SIP registrations and remaining profile budgets.",
+    "Complete0103/0109/0112/0113/0115/0123 and all105 tasks in dependency order."
+  ]
+}
