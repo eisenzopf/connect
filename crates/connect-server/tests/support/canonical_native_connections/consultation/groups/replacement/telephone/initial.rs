@@ -2,6 +2,8 @@
 use super::*;
 #[path = "initial/activation.rs"]
 mod activation;
+#[path = "initial/gateways.rs"]
+mod gateways;
 use rusqlite::OptionalExtension;
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
 async fn production_initial_telephone_public_invite_records_real_answer_and_guarded_admission_once()
@@ -17,6 +19,7 @@ struct ConfiguredInitial {
     f: Fixture,
     peer: PeerSip,
     phone_credential: String,
+    target_reference: String,
 }
 async fn configured_initial(payload: Option<u8>, timeout_seconds: u32) -> ConfiguredInitial {
     configured_initial_for("EdDSA", payload, timeout_seconds).await
@@ -25,6 +28,20 @@ async fn configured_initial_for(
     algorithm: &str,
     payload: Option<u8>,
     timeout_seconds: u32,
+) -> ConfiguredInitial {
+    configured_initial_transport(
+        algorithm,
+        payload,
+        timeout_seconds,
+        EndpointTransport::Telephone,
+    )
+    .await
+}
+async fn configured_initial_transport(
+    algorithm: &str,
+    payload: Option<u8>,
+    timeout_seconds: u32,
+    transport: EndpointTransport,
 ) -> ConfiguredInitial {
     let _ = tracing_subscriber::fmt()
         .with_env_filter(
@@ -69,6 +86,16 @@ async fn configured_initial_for(
             chrono::Utc::now().timestamp() + 600,
         )
         .unwrap();
+    let address = if transport == EndpointTransport::Sip {
+        format!("sip:callee@{}", peer.address)
+    } else {
+        "+14155550123".into()
+    };
+    let target_reference = if transport == EndpointTransport::Sip {
+        address.clone()
+    } else {
+        format!("tel:{address}")
+    };
     let ProvisioningOutcome::Endpoint { endpoint_id, .. } = store
         .execute_provisioning(
             &route_key.id,
@@ -80,8 +107,8 @@ async fn configured_initial_for(
                     kind: "telephone".into(),
                     platform: "isolated-canonical-fixture".into(),
                 },
-                transport: EndpointTransport::Telephone,
-                address: "+14155550123".into(),
+                transport,
+                address,
                 capabilities: vec!["audio".into()],
                 secret_ref: Some("config_initial_callback".into()),
             },
@@ -150,10 +177,32 @@ async fn configured_initial_for(
         f,
         peer,
         phone_credential: phone_key.id,
+        target_reference,
     }
 }
 async fn initial_case(public_end: bool) {
-    let ConfiguredInitial { f, peer, .. } = configured_initial(Some(0), 30).await;
+    initial_selected_case(
+        public_end,
+        "EdDSA",
+        EndpointTransport::Telephone,
+        "participant",
+        false,
+    )
+    .await;
+}
+async fn initial_selected_case(
+    public_end: bool,
+    algorithm: &str,
+    transport: EndpointTransport,
+    reference_kind: &str,
+    http_first: bool,
+) {
+    let ConfiguredInitial {
+        f,
+        peer,
+        target_reference,
+        ..
+    } = configured_initial_transport(algorithm, Some(0), 30, transport).await;
     let mut client = CanonicalClient::open(f.client.clone()).await.unwrap();
     let mut room_input =
         connect_client::conversations::CreateRequest::persistent(vec![f.peer.identity_id.clone()]);
@@ -183,13 +232,55 @@ async fn initial_case(public_end: bool) {
         by_participant: Some(caller),
         expected_revision: None,
         action: connect_protocol::session_control::Action::Invite {
-            participants: vec![target.clone()],
+            participants: vec![match reference_kind {
+                "uri" => target_reference.clone(),
+                "identity" => f.peer.identity_id.clone(),
+                _ => target.clone(),
+            }],
             medium: "voice".into(),
             intent: "call".into(),
             capabilities: json!({"audio":["g.711-mu"]}),
         },
     };
-    client.session_command(request.clone()).await.unwrap();
+    let mut http = if reference_kind != "participant" {
+        Some(
+            connect_client::canonical::CanonicalHttpClient::open(canonical_http_config(&f))
+                .await
+                .unwrap(),
+        )
+    } else {
+        None
+    };
+    let receipt = if http_first {
+        http.as_mut()
+            .unwrap()
+            .session_command(request.clone())
+            .await
+            .unwrap()
+    } else {
+        client.session_command(request.clone()).await.unwrap()
+    };
+    if let Some(http) = http.as_mut() {
+        assert_eq!(
+            http.session_command(request.clone()).await.unwrap(),
+            receipt
+        );
+        assert_eq!(
+            client.session_command(request.clone()).await.unwrap(),
+            receipt
+        );
+        let mut changed = request.clone();
+        let connect_protocol::session_control::Action::Invite { participants, .. } =
+            &mut changed.action
+        else {
+            unreachable!()
+        };
+        *participants = vec![target.clone()];
+        assert!(
+            client.session_command(changed).await.is_err(),
+            "original reference is part of immutable intent"
+        );
+    }
     let db = rusqlite::Connection::open_with_flags(
         &f.config.database,
         rusqlite::OpenFlags::SQLITE_OPEN_READ_ONLY,
@@ -214,7 +305,7 @@ async fn initial_case(public_end: bool) {
     assert_eq!(peer.unique(), 1);
     assert_eq!(db.query_row("SELECT count(*) FROM initial_telephone_answers WHERE accepted=1 AND connected_at IS NOT NULL AND retired_at IS NULL",[],|r|r.get::<_,u64>(0)).unwrap(),1);
     assert_eq!(db.query_row("SELECT state FROM session_participants WHERE session_id='native-session' AND participant_id=?1",[&target],|r|r.get::<_,String>(0)).unwrap(),"present");
-    client.session_command(request).await.unwrap();
+    client.session_command(request.clone()).await.unwrap();
     tokio::time::sleep(Duration::from_millis(100)).await;
     assert_eq!(peer.unique(), 1);
     assert!(peer.methods.lock().unwrap().contains(&Method::Ack));
@@ -262,6 +353,20 @@ async fn initial_case(public_end: bool) {
         live: true,
     }];
     sip_native_duplex(&peer, &mut native, 0, "initial-public-native-duplex").await;
+    if reference_kind != "participant" {
+        gateways::capture(
+            &f,
+            &peer,
+            &mut native[0].client,
+            &request,
+            &receipt,
+            algorithm,
+            &target_reference,
+            reference_kind,
+            http_first,
+        )
+        .await;
+    }
     if public_end {
         let actor = f.server.store.authenticate(&f.client.credential).unwrap();
         let session = f
@@ -335,6 +440,7 @@ async fn refusal_case(mode: Refusal) {
         f,
         peer,
         phone_credential,
+        ..
     } = configured_initial(
         if mode == Refusal::Codec {
             Some(8)

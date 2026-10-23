@@ -2,6 +2,8 @@
 use crate::{transitions::id, Error, Result};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
+mod targets;
+pub use targets::{sip_authority, Target};
 
 #[derive(Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -125,7 +127,7 @@ impl Request {
                 }
                 media(medium)?;
                 for value in participants.iter() {
-                    id(value)?;
+                    Target::parse(value)?;
                 }
                 participants.sort();
                 if participants.windows(2).any(|p| p[0] == p[1]) {

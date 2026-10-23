@@ -13,7 +13,7 @@ pub(crate) fn authorize(
         return crate::connection_control::resources(c, actor, request);
     }
     if let Operation::SessionControl { request } = operation {
-        return crate::session_control::resources(c, actor, request);
+        return crate::session_control::resources(c, store, actor, request);
     }
     if let Operation::SessionDecision { request } = operation {
         return crate::session_decisions::resources(c, actor, request);

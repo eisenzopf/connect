@@ -894,6 +894,11 @@
       "path": "patches/rvoip/gate6-refreshed-native-request-origin.patch",
       "sha256": "a82c7aef381541f94138a1eb5c8828a5b230ef5458a5f636a1017b90403bcca6",
       "source": "G6-046 derive an idle server-request origin only from an actual observed native credential refresh. Share this sealed factory with existing subscription refresh; future codec IO still requires fresh independent host authority and exact current origin/revision."
+    },
+    {
+      "path": "patches/rvoip/gate6-session-gateway-targets.patch",
+      "sha256": "00489102f36afece87a1b5f64158f70f825db933e5d2f9cdfc001791d934c2c7",
+      "source": "G6-046 dedicated bounded Session invitation target selectors for member/Identity IDs and configured interop URI references; keep ordinary identifiers unchanged and synchronize fixed schema/golden vectors. No gateway authority is implied by decoding."
     }
   ]
 }

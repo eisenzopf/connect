@@ -1569,7 +1569,7 @@
         "to": {
           "type": "array",
           "items": {
-            "$ref": "#/$defs/Identifier"
+            "$ref": "#/$defs/SessionTarget"
           },
           "minItems": 0,
           "maxItems": 256,
@@ -2199,6 +2199,19 @@
               "strm_id"
             ]
           }
+        }
+      ]
+    },
+    "SessionTarget": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Identifier"
+        },
+        {
+          "type": "string",
+          "minLength": 5,
+          "maxLength": 2048,
+          "pattern": "^(sip|sips|tel):[!-~]+$"
         }
       ]
     },

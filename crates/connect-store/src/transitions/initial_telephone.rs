@@ -152,6 +152,7 @@ impl InitialTelephoneOrigin {
         self.lifetime(store)?;
         let caller = actor_from_connection(c, &self.credential)?;
         let (source, ep, route, expires) = source(
+            store,
             c,
             &caller,
             &self.source.request,
@@ -214,6 +215,7 @@ impl InitialTelephoneRead {
     }
 }
 fn source(
+    store: &Store,
     c: &Connection,
     caller: &Actor,
     request: &session_control::Request,
@@ -226,17 +228,10 @@ fn source(
     if &normalized != request {
         return Err(invalid());
     }
-    let session_control::Action::Invite {
-        participants,
-        medium,
-        ..
-    } = &request.action
-    else {
+    let session_control::Action::Invite { medium, .. } = &request.action else {
         return Err(Error::forbidden());
     };
-    if !participants.iter().any(|p| p == target)
-        || !session_control::media(medium)?.iter().any(|v| v == "audio")
-    {
+    if !session_control::media(medium)?.iter().any(|v| v == "audio") {
         return Err(Error::forbidden());
     }
     let saved =
@@ -264,6 +259,7 @@ fn source(
     if target.identity_id == caller.identity_id || !saved.resources.contains(&identity) {
         return Err(Error::forbidden());
     }
+    crate::session_gateways::original_target(c, store, caller, request, &target, policy)?;
     let present:bool=c.query_row("SELECT EXISTS(SELECT 1 FROM session_participants p JOIN sessions s ON s.id=p.session_id JOIN conversations v ON v.id=s.conversation_id WHERE p.session_id=?1 AND p.participant_id=?2 AND p.membership_epoch=?3 AND p.state IN ('invited','present') AND s.state IN ('invited','accepted','ready') AND v.closed=0)",params![request.session_id,target.participant_id,target.membership_epoch],|r|r.get(0)).map_err(|_|Error::storage())?;
     if !present {
         return Err(Error::forbidden());
@@ -300,15 +296,11 @@ fn source(
         connect_protocol::membership::ContentKind::Session,
         &request.session_id,
     )?;
-    let (revision,device,kind,platform,address,owner,secret,caps):(u64,String,String,String,String,String,Option<String>,String)=c.query_row("SELECT e.revision,e.device_id,d.kind,d.platform,e.address,e.route_owner_id,e.secret_ref,e.capabilities_json FROM endpoints e JOIN devices d ON d.id=e.device_id AND d.identity_id=e.identity_id AND d.revoked=0 WHERE e.id=?1 AND e.identity_id=?2 AND e.verification_state='verified' AND e.transport='telephone'",params![policy.endpoint_id,identity],|r|Ok((r.get(0)?,r.get(1)?,r.get(2)?,r.get(3)?,r.get(4)?,r.get(5)?,r.get(6)?,r.get(7)?))).map_err(|_|Error::forbidden())?;
+    let (revision,device,kind,platform,address,owner,secret,caps,transport):(u64,String,String,String,String,String,Option<String>,String,String)=c.query_row("SELECT e.revision,e.device_id,d.kind,d.platform,e.address,e.route_owner_id,e.secret_ref,e.capabilities_json,e.transport FROM endpoints e JOIN devices d ON d.id=e.device_id AND d.identity_id=e.identity_id AND d.revoked=0 WHERE e.id=?1 AND e.identity_id=?2 AND e.verification_state='verified' AND e.transport IN ('telephone','sip')",params![policy.endpoint_id,identity],|r|Ok((r.get(0)?,r.get(1)?,r.get(2)?,r.get(3)?,r.get(4)?,r.get(5)?,r.get(6)?,r.get(7)?,r.get(8)?))).map_err(|_|Error::forbidden())?;
     let capabilities: Vec<String> = serde_json::from_str(&caps).map_err(|_| Error::storage())?;
     if owner != route.identity_id
         || secret.as_deref() != Some(&policy.route_reference)
         || !capabilities.iter().any(|v| v == "audio")
-        || !(9..=16).contains(&address.len())
-        || !address.starts_with('+')
-        || address.as_bytes()[1] == b'0'
-        || !address.as_bytes()[1..].iter().all(u8::is_ascii_digit)
     {
         return Err(Error::forbidden());
     }
@@ -325,7 +317,7 @@ fn source(
             device_id: device,
             device_kind: kind,
             device_platform: platform,
-            destination: format!("sip:{address}@{}", policy.sip_authority),
+            destination: crate::session_gateways::destination(&transport, &address, policy)?,
             address,
             route_owner_id: owner,
         },
@@ -374,7 +366,10 @@ impl Store {
             || {
                 let c = self.connection()?;
                 let actor = actor_from_connection(&c, credential)?;
-                scopes(&source(&c, &actor, &request, target, &policy)?.0, true)
+                scopes(
+                    &source(self, &c, &actor, &request, target, &policy)?.0,
+                    true,
+                )
             },
         )?;
         let mut c = self.connection()?;
@@ -382,7 +377,7 @@ impl Store {
             .transaction_with_behavior(TransactionBehavior::Immediate)
             .map_err(|_| Error::storage())?;
         let actor = actor_from_connection(&tx, credential)?;
-        let (source, _, _, expiry) = source(&tx, &actor, &request, target, &policy)?;
+        let (source, _, _, expiry) = source(self, &tx, &actor, &request, target, &policy)?;
         if !self.authority_covers(&guard, &scopes(&source, true)?) {
             return Err(Error::forbidden());
         }

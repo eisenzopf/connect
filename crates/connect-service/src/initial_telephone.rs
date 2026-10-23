@@ -38,6 +38,7 @@ struct Host {
     runtime: Weak<Runtime>,
     adapter: Arc<SipAdapter>,
     profiles: Vec<Profile>,
+    gateways: Arc<connect_store::InitialTelephoneGateways>,
     stop: CancellationToken,
     state: Mutex<State>,
     capacity: usize,
@@ -117,10 +118,17 @@ impl Service {
                 routes: BTreeMap::new(),
             }));
         }
+        let gateways = self.store.install_initial_telephone_gateways(
+            profiles
+                .iter()
+                .map(|profile| profile.route.policy.clone())
+                .collect(),
+        )?;
         let host = Arc::new(Host {
             runtime: Arc::downgrade(runtime),
             adapter,
             profiles,
+            gateways,
             stop: runtime.stop.child_token(),
             state: Mutex::new(State {
                 closed: false,
@@ -151,19 +159,15 @@ impl SessionInitializer for Initializer {
             }
             return Ok(());
         }
-        let Action::Invite { participants, .. } = &invocation.request.action else {
+        let Action::Invite { .. } = &invocation.request.action else {
             return Ok(());
         };
-        let snapshot = runtime.media.store.membership_snapshot(
-            &invocation.credential_id,
-            &invocation.request.conversation_id,
-        )?;
+        let members = runtime
+            .media
+            .store
+            .initial_telephone_invitees(&invocation.credential_id, &invocation.request)?;
         for profile in &host.profiles {
-            let Some(member) = snapshot.participants.iter().find(|m| {
-                m.identity_id == profile.identity
-                    && m.active
-                    && participants.contains(&m.participant_id)
-            }) else {
+            let Some(member) = members.iter().find(|m| m.identity_id == profile.identity) else {
                 continue;
             };
             let key = format!(
@@ -209,6 +213,7 @@ impl SessionInitializer for Initializer {
     fn cancel(&self) {
         let mut state = self.0.state.lock().unwrap_or_else(|p| p.into_inner());
         state.closed = true;
+        self.0.gateways.close();
         self.0.stop.cancel();
     }
     async fn drain(&self) -> Result<()> {

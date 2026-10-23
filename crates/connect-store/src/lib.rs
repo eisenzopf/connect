@@ -175,10 +175,14 @@ pub use tasks::{
     IssuedTaskGrant, NativeTaskAuthority, TaskCreateDefaults, TaskInvocation,
     TaskObservationBinding, VapiSessionContext,
 };
-pub const SCHEMA_VERSION: u32 = 98;
+pub const SCHEMA_VERSION: u32 = 99;
 const STARTUP_BLOB_CLEANUP_LIMIT: usize = 100;
 
+mod session_gateways;
+pub use session_gateways::InitialTelephoneGateways;
+
 pub struct Store {
+    initial_telephone_gateways: Mutex<std::sync::Weak<InitialTelephoneGateways>>,
     session_codec_coordinator: std::sync::atomic::AtomicBool,
     session_ready_origins:
         Mutex<std::collections::BTreeMap<String, session_lifecycle::ReadyOrigin>>,
@@ -482,6 +486,10 @@ impl Store {
             .map_err(|_| Error::storage())?;
         tx.execute_batch(include_str!("../migrations/098_session_codec_jobs.sql"))
             .map_err(|_| Error::storage())?;
+        tx.execute_batch(include_str!(
+            "../migrations/099_session_gateway_targets.sql"
+        ))
+        .map_err(|_| Error::storage())?;
         tx.commit().map_err(|_| Error::storage())?;
         let blob_directory = Self::create_blob_directory(path)?;
         let authority = Self::authority_manager(path, &connection)?;
@@ -499,6 +507,7 @@ impl Store {
             record_context_projector: Default::default(),
             session_codec_coordinator: Default::default(),
             session_ready_origins: Default::default(),
+            initial_telephone_gateways: Default::default(),
             connection: Mutex::new(connection),
             limits,
             path: path.into(),
@@ -586,6 +595,7 @@ impl Store {
             record_context_projector: Default::default(),
             session_codec_coordinator: Default::default(),
             session_ready_origins: Default::default(),
+            initial_telephone_gateways: Default::default(),
             connection: Mutex::new(connection),
             limits,
             path: path.into(),

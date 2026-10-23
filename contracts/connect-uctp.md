@@ -10,6 +10,12 @@ continuation status notes below retain their historical checkpoint scope.
 
 The installed general Session control routes invite, accept, update and end,
 with durable current appearances; physical orchestration remains unfinished.
+Session invitation `to` uses a dedicated bounded selector type: current
+Participant/Identity IDs or configured `tel:`/`sip:` references. URI resolution
+requires a verified Endpoint on a current member's Device and the installed
+host's exact gateway policy. The original invitation freezes its URI binding;
+replay cannot redirect after address reassignment. Ordinary routing/resource
+identifiers keep their existing alphabet and bound. Resolution grants no IO.
 See [general Sessions](../docs/developer/general-sessions.md). Its
 pending-invitation decisions route `session.reject` and
 `session.cancel` through the durable service and current original source

@@ -437,20 +437,10 @@ fn canonical_address(transport: &EndpointTransport, address: &str) -> Result<Str
             Ok(value.to_string())
         }
         EndpointTransport::Sip => {
-            let (scheme, tail) = address.split_once(':').ok_or_else(invalid)?;
-            let mut value =
-                url::Url::parse(&format!("{scheme}://{tail}")).map_err(|_| invalid())?;
-            if value.host_str().is_none()
-                || value.username().is_empty()
-                || value.password().is_some()
-                || value.query().is_some()
-                || value.fragment().is_some()
-                || !value.path().is_empty()
-            {
-                return Err(invalid());
+            match crate::session_control::Target::parse(address).map_err(|_| invalid())? {
+                crate::session_control::Target::Sip { address, .. } => Ok(address),
+                _ => Err(invalid()),
             }
-            value.set_path("");
-            Ok(value.to_string().replacen("://", ":", 1))
         }
         _ => Ok(address.to_owned()),
     }

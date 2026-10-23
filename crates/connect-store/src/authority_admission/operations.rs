@@ -89,5 +89,8 @@ pub(crate) fn operation_scopes(
             scopes.push(scope);
         }
     }
+    if let Operation::SessionControl { request } = operation {
+        scopes.extend(crate::session_gateways::scopes(c, store, actor, request)?);
+    }
     Ok(scopes)
 }

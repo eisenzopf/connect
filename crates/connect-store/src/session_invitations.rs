@@ -113,6 +113,7 @@ impl SessionInvitationRead {
 #[allow(clippy::too_many_arguments)]
 pub(crate) fn freeze(
     c: &Connection,
+    store: &Store,
     actor: &Actor,
     r: &Request,
     from: &MemberView,
@@ -134,6 +135,7 @@ pub(crate) fn freeze(
         c.execute("INSERT INTO session_invitation_targets(source_id,participant_id,identity_id,membership_epoch) VALUES(?1,?2,?3,?4)",params![source,target.participant_id,target.identity_id,target.membership_epoch]).map_err(|_|Error::storage())?;
         c.execute("INSERT INTO session_invitation_slots(session_id,participant_id,membership_epoch,source_id) VALUES(?1,?2,?3,?4) ON CONFLICT(session_id,participant_id,membership_epoch) DO UPDATE SET source_id=excluded.source_id",params![r.session_id,target.participant_id,target.membership_epoch,source]).map_err(|_|Error::storage())?;
     }
+    crate::session_gateways::freeze(c, store, &source, r, targets)?;
     Ok(())
 }
 

@@ -63,14 +63,31 @@ current authorization and operation ledger. General control and the local native
 [HTTP reference](../../contracts/openapi-canonical-http.json).
 
 A Session contains conversation-scoped Participant appearances at explicit
-membership epochs. An invitation accepts Participant IDs or Identity IDs of
-current members of that Conversation. The store resolves Identity IDs to the
+membership epochs. An invitation accepts Participant IDs, Identity IDs, or
+configured `tel:`/`sip:` gateway references for current members of that
+Conversation. The store resolves Identity IDs to the
 current Participant and membership epoch under the same resource authority as
 the mutation. This resolution does not admit a new Conversation member. Repeating
-a participant through both forms is refused, and current recipient limits apply
+a participant through several reference forms is refused, and current recipient limits apply
 to the resolved identities. Conversation membership alone does not grant Session presence.
 The invited participant joins by accepting. A later invitation names the same
 Session and its current topology revision; it does not create another Session.
+
+Gateway references select a verified Endpoint on an unrevoked Device belonging
+to a current member. The installed `telephone.initial` host must configure that
+exact Endpoint with its independent Endpoint and route credentials. `tel:` uses
+a canonical E.164 address and the configured SIP authority; a `sip:` Endpoint
+must have that same configured authority. A request cannot choose a new network
+host or create a member. The current UDP gateway explicitly refuses `sips:`;
+other schemes and unconfigured routes are unavailable.
+
+Schema 99 freezes the selected Endpoint, revision, address and policy in the
+original invitation transaction. Logical receipts retain the original requested
+references. An exact retry returns that receipt; address reassignment cannot
+redirect it to another member or Endpoint. A changed reference under the same
+operation ID conflicts, even when it resolves to the same member. Every actual
+dial and media interval still requires fresh current authority. Registration,
+resolution and an accepted invitation alone grant no IO or media readiness.
 
 The initiator is implicit in a new Session. Use `participants: []` (wire `to: []`)
 to create a Session with just that Participant. Its capability intent is

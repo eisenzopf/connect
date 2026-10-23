@@ -88,7 +88,8 @@ def build():
  definitions['MessageSend']['properties']['to']={'oneOf':[{'const':'all'},array(ref('Identifier'),1)]}
  definitions['MessageSend']['properties']['content_type']={'type':'string','minLength':1,'maxLength':255}
  definitions['MessageSend']['properties']['body']={'type':'string','maxLength':87384,'description':'Runtime enforces 64 KiB decoded UTF-8/binary bytes, independently of JSON character length.'}
- definitions['SessionInvite']['properties']['to']=array(ref('Identifier'))
+ definitions['SessionTarget']={'anyOf':[ref('Identifier'),{'type':'string','minLength':5,'maxLength':2048,'pattern':r'^(sip|sips|tel):[!-~]+$'}]}
+ definitions['SessionInvite']['properties']['to']=array(ref('SessionTarget'))
  definitions['StreamInfo']['properties']['stream_local_id']={'type':'integer','minimum':1,'maximum':65535}
  definitions['StreamSubscription']['oneOf']=[{'required':['strm_id'],'not':{'anyOf':[{'required':['from_participant']},{'required':['kinds']}]}},{'required':['from_participant'],'not':{'required':['strm_id']}}]
  definitions['ReadyStreamBinding']=obj({k:v for k,v in definitions['StreamInfo']['properties'].items() if k!='opened_at'})
@@ -234,6 +235,12 @@ def main():
  solo=next(copy.deepcopy(v['envelope']) for v in vectors if v['id']=='schema-session.invite')
  solo['payload']['to']=[]
  vectors.append(dict(id='session-invite-implicit-solo-initiator',scope='schema-only',valid=True,envelope=solo))
+ # Gateway references belong only to Session invitation selectors.
+ for label,targets,valid in [('sip',['sip:bob@example.com'],True),('tel',['tel:+14155550123'],True),('mixed',['part_one','id_two','sip:bob@example.com'],True),('unknown-scheme',['https://example.com'],False),('whitespace',['sip:bob@exa mple.com'],False),('overlong',['sip:'+('x'*2045)],False)]:
+  item=copy.deepcopy(solo);item['payload']['to']=targets
+  vectors.append(dict(id='session-invite-gateway-'+label,scope='schema-only',valid=valid,envelope=item))
+ item=copy.deepcopy(solo);item['cid']='sip:bob@example.com'
+ vectors.append(dict(id='session-invite-gateway-is-not-conversation-id',scope='schema-only',valid=False,envelope=item))
  # Preserve the original embedded invitation refusal vector IDs.
  for label,targets in [('duplicates',['part-one','part-one']),('null',None),('over-capacity',[f'part-{i}' for i in range(257)])]:
   invalid=copy.deepcopy(solo)

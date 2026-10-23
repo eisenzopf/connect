@@ -33,22 +33,14 @@ fn member(
 // original requested references in the receipt/digest; resolution grants no join.
 fn invite_targets(
     c: &Connection,
+    store: &Store,
     cid: &str,
     references: &[String],
 ) -> Result<Vec<connect_protocol::membership::MemberView>> {
     let mut targets = Vec::new();
     let mut seen = BTreeSet::new();
     for reference in references {
-        let mut query=c.prepare("SELECT DISTINCT identity_id FROM participants WHERE conversation_id=?1 AND (participant_id=?2 OR identity_id=?2) ORDER BY identity_id LIMIT 2").map_err(|_|Error::storage())?;
-        let identities = query
-            .query_map(params![cid, reference], |row| row.get::<_, String>(0))
-            .map_err(|_| Error::storage())?
-            .collect::<std::result::Result<Vec<_>, _>>()
-            .map_err(|_| Error::storage())?;
-        if identities.len() != 1 {
-            return Err(Error::forbidden());
-        }
-        let target = crate::audience::member(c, &identities[0], cid, true)?;
+        let target = crate::session_gateways::resolve(c, store, cid, reference)?;
         if !seen.insert(target.participant_id.clone()) {
             return Err(Error::new(
                 "invalid-request",
@@ -98,7 +90,12 @@ fn provider_role_supported(c: &Connection, r: &Request) -> Result<()> {
     }
     Ok(())
 }
-pub(crate) fn resources(c: &Connection, actor: &Actor, r: &Request) -> Result<Vec<String>> {
+pub(crate) fn resources(
+    c: &Connection,
+    store: &Store,
+    actor: &Actor,
+    r: &Request,
+) -> Result<Vec<String>> {
     let mut normalized = r.clone();
     normalized.normalize()?;
     actor.require(r.action.required_scope())?;
@@ -151,7 +148,7 @@ pub(crate) fn resources(c: &Connection, actor: &Actor, r: &Request) -> Result<Ve
                     ));
                 }
             }
-            for target in invite_targets(c, &r.conversation_id, participants)? {
+            for target in invite_targets(c, store, &r.conversation_id, participants)? {
                 if target.participant_id == own.participant_id {
                     return Err(Error::forbidden());
                 }
@@ -269,7 +266,7 @@ pub(crate) fn terminal(c: &Connection, r: &Request, state: &str, reason: &str) -
     Ok(())
 }
 pub(crate) fn apply(c: &Connection, actor: &Actor, r: &Request, store: &Store) -> Result<Outcome> {
-    resources(c, actor, r)?;
+    resources(c, store, actor, r)?;
     let own = own(c, actor, r)?;
     let current = view(c, &r.conversation_id, &r.session_id);
     let new = matches!(&current,Err(error) if error.code=="forbidden")
@@ -305,7 +302,7 @@ pub(crate) fn apply(c: &Connection, actor: &Actor, r: &Request, store: &Store) -
             if !supports(capabilities, capabilities, &kinds) {
                 return Err(unsupported());
             }
-            let targets = invite_targets(c, &r.conversation_id, participants)?;
+            let targets = invite_targets(c, store, &r.conversation_id, participants)?;
             for target in &targets {
                 if appearance(c, r, &target.participant_id, target.membership_epoch)?
                     .is_some_and(|s| !matches!(s.as_str(), "left" | "removed"))
@@ -372,6 +369,7 @@ pub(crate) fn apply(c: &Connection, actor: &Actor, r: &Request, store: &Store) -
             if !targets.is_empty() {
                 crate::session_invitations::freeze(
                     c,
+                    store,
                     actor,
                     r,
                     &own,

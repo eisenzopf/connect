@@ -378,19 +378,21 @@
             "mixed"
           ],
           "response": "A signed session.accept/session.reject observation must match the exact physical waiter, final server wire id, CID/SID and server invitation source correlation. It never enters ordinary command dispatch. A dedicated source decision enforces the same configured human-consent floor, then rechecks the original pending target slot, epochs, current named action, recipient ceiling and physical lifetime before atomic journal/decision commit. No ordinary caller operation is created for a response.",
-          "limits": "Original accept/reject decisions can be relayed to an exact registered native caller under fresh original receipt/epoch/source/key authority; native logical replay re-correlates a stored decision after disconnect. Designated interop URI targets, task-origin policy, Linux and remote/browser/provider qualification remain open. A local metadata submission or ACK does not assert recipient acceptance or Connection/media readiness."
+          "limits": "Original accept/reject decisions can be relayed to an exact registered native caller under fresh original receipt/epoch/source/key authority; native logical replay re-correlates a stored decision after disconnect. Configured tel:/sip: targets use separately owned gateway authority. Task-origin policy, Linux and remote/browser/provider qualification remain open. A local metadata submission or ACK does not assert recipient acceptance or Connection/media readiness."
         },
         "x-session-invitation-targets": {
           "single-participant": "The initiator is implicit. An initial session.invite with to:[] admits one present Participant with accepted capability intent, no outbound invitation and no claim of Active Session or media readiness. Current named permission, membership, Session source and capacity still apply. A fresh invitation on an existing Session requires at least one target; exact original solo replay keeps its initial receipt even after later participants join.",
           "accepted-references": [
             "current Conversation Participant ID",
-            "current Conversation member Identity ID"
+            "current Conversation member Identity ID",
+            "tel: reference to a verified configured current member Endpoint",
+            "sip: reference to a verified configured current member Endpoint"
           ],
-          "resolution": "Resolve each reference to its current Participant and membership epoch under the same Store resource authority. Identity resolution grants no implicit Conversation admission or Session acceptance.",
+          "resolution": "Resolve each reference to its current Participant and membership epoch under the same Store resource authority. Gateway selectors require the exact verified Endpoint, unrevoked Device and live installed initial gateway registration; current independent Endpoint/route credentials and configured SIP authority remain required. No implicit Conversation admission, directory-wide discovery or arbitrary URI dialing.",
           "authority": "The named session.invite permission and current resolved recipient ceiling are required. Removed, revoked, foreign, ambiguous and unadmitted targets refuse; duplicate aliases of one Participant refuse before mutation.",
           "replay": "Preserve original requested references in the immutable logical intent. Changing an Identity ID to its Participant ID under the same operation ID conflicts; exact replay does not reinvite or rewrite current presence.",
-          "durable-source": "Successful local admission captures immutable inviter/target membership epochs and a current per-target pending slot. Protected runtime metadata readers do not authorize physical delivery, response mutation or media.",
-          "limits": "Task-origin policy and designated interop URI targets remain open under G6-046. Installed native owned invitations/decisions do not assert Connection or media readiness."
+          "durable-source": "Successful local admission captures immutable inviter/target membership epochs and a current per-target pending slot. Schema99 freezes URI Endpoint ID/revision/address/policy with the invitation. Exact original replay keeps that binding after address reassignment and cannot dial another target; fresh actual IO and media require independent current authority. Registration and protected metadata readers grant no IO.",
+          "limits": "Installed UDP initial gateways support configured tel: and sip: targets. sips: requires a TLS gateway and is explicitly unsupported by this host; other schemes and unconfigured Endpoints refuse. Task-origin policy, wider Linux/browser/remote/provider qualification and the rest of G6-046 remain separate. Installed invitations/decisions do not assert Connection or media readiness."
         },
         "x-native-flow-facts": {
           "scope": "Schema92 installation-owned historical native readiness source; no public fact query or mutation command.",
@@ -2134,7 +2136,7 @@
           "to": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/WireIdentifier"
+              "$ref": "#/components/schemas/WireSessionTarget"
             },
             "minItems": 0,
             "maxItems": 256,
@@ -2764,6 +2766,19 @@
                 "strm_id"
               ]
             }
+          }
+        ]
+      },
+      "WireSessionTarget": {
+        "anyOf": [
+          {
+            "$ref": "#/components/schemas/WireIdentifier"
+          },
+          {
+            "type": "string",
+            "minLength": 5,
+            "maxLength": 2048,
+            "pattern": "^(sip|sips|tel):[!-~]+$"
           }
         ]
       },

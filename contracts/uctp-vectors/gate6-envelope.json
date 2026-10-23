@@ -3335,6 +3335,167 @@
       }
     },
     {
+      "id": "session-invite-gateway-sip",
+      "scope": "schema-only",
+      "valid": true,
+      "envelope": {
+        "v": 2,
+        "type": "session.invite",
+        "id": "env_vector_12",
+        "ts": "2026-10-15T12:00:00Z",
+        "cid": "conv_example",
+        "sid": "sess_example",
+        "connid": "conn_example",
+        "payload": {
+          "to": [
+            "sip:bob@example.com"
+          ],
+          "medium": "example",
+          "intent": "example",
+          "capabilities_offer": {}
+        },
+        "operation_id": "op_vector_12"
+      }
+    },
+    {
+      "id": "session-invite-gateway-tel",
+      "scope": "schema-only",
+      "valid": true,
+      "envelope": {
+        "v": 2,
+        "type": "session.invite",
+        "id": "env_vector_12",
+        "ts": "2026-10-15T12:00:00Z",
+        "cid": "conv_example",
+        "sid": "sess_example",
+        "connid": "conn_example",
+        "payload": {
+          "to": [
+            "tel:+14155550123"
+          ],
+          "medium": "example",
+          "intent": "example",
+          "capabilities_offer": {}
+        },
+        "operation_id": "op_vector_12"
+      }
+    },
+    {
+      "id": "session-invite-gateway-mixed",
+      "scope": "schema-only",
+      "valid": true,
+      "envelope": {
+        "v": 2,
+        "type": "session.invite",
+        "id": "env_vector_12",
+        "ts": "2026-10-15T12:00:00Z",
+        "cid": "conv_example",
+        "sid": "sess_example",
+        "connid": "conn_example",
+        "payload": {
+          "to": [
+            "part_one",
+            "id_two",
+            "sip:bob@example.com"
+          ],
+          "medium": "example",
+          "intent": "example",
+          "capabilities_offer": {}
+        },
+        "operation_id": "op_vector_12"
+      }
+    },
+    {
+      "id": "session-invite-gateway-unknown-scheme",
+      "scope": "schema-only",
+      "valid": false,
+      "envelope": {
+        "v": 2,
+        "type": "session.invite",
+        "id": "env_vector_12",
+        "ts": "2026-10-15T12:00:00Z",
+        "cid": "conv_example",
+        "sid": "sess_example",
+        "connid": "conn_example",
+        "payload": {
+          "to": [
+            "https://example.com"
+          ],
+          "medium": "example",
+          "intent": "example",
+          "capabilities_offer": {}
+        },
+        "operation_id": "op_vector_12"
+      }
+    },
+    {
+      "id": "session-invite-gateway-whitespace",
+      "scope": "schema-only",
+      "valid": false,
+      "envelope": {
+        "v": 2,
+        "type": "session.invite",
+        "id": "env_vector_12",
+        "ts": "2026-10-15T12:00:00Z",
+        "cid": "conv_example",
+        "sid": "sess_example",
+        "connid": "conn_example",
+        "payload": {
+          "to": [
+            "sip:bob@exa mple.com"
+          ],
+          "medium": "example",
+          "intent": "example",
+          "capabilities_offer": {}
+        },
+        "operation_id": "op_vector_12"
+      }
+    },
+    {
+      "id": "session-invite-gateway-overlong",
+      "scope": "schema-only",
+      "valid": false,
+      "envelope": {
+        "v": 2,
+        "type": "session.invite",
+        "id": "env_vector_12",
+        "ts": "2026-10-15T12:00:00Z",
+        "cid": "conv_example",
+        "sid": "sess_example",
+        "connid": "conn_example",
+        "payload": {
+          "to": [
+            "sip:xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+          ],
+          "medium": "example",
+          "intent": "example",
+          "capabilities_offer": {}
+        },
+        "operation_id": "op_vector_12"
+      }
+    },
+    {
+      "id": "session-invite-gateway-is-not-conversation-id",
+      "scope": "schema-only",
+      "valid": false,
+      "envelope": {
+        "v": 2,
+        "type": "session.invite",
+        "id": "env_vector_12",
+        "ts": "2026-10-15T12:00:00Z",
+        "cid": "sip:bob@example.com",
+        "sid": "sess_example",
+        "connid": "conn_example",
+        "payload": {
+          "to": [],
+          "medium": "example",
+          "intent": "example",
+          "capabilities_offer": {}
+        },
+        "operation_id": "op_vector_12"
+      }
+    },
+    {
       "id": "session-invite-duplicates",
       "scope": "schema-only",
       "valid": false,
