@@ -949,6 +949,11 @@
       "path": "patches/rvoip/gate6-mixer-source-contention.patch",
       "sha256": "d5770afedd1453b5e3c93b82add20e6b51385edaafb6e3d2390ebee9604e839f",
       "source": "Retain one bounded original mixer input and decoded source chunks across temporary fresh admission contention; no retained grants, new audience or extended deadline."
+    },
+    {
+      "path": "patches/rvoip/gate6-native-handle-boundary.patch",
+      "sha256": "2e7dbd989d957f47b079a94bbf571e9d0874c3a6e9fd0bbf937117ccc744dd70",
+      "source": "Controlled installed-native PeerMediaRouter full nonzero uint16 namespace exhaustion; abandoned reservations remain burned and repeated exhaustion cannot wrap or reuse."
     }
   ]
 }

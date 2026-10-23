@@ -2,9 +2,9 @@
   "format": 1,
   "task": "G6-046",
   "assigned_clause": "u6-req-0109",
-  "status": "actual-local-native-component-qualified; allocator-boundary-check-pending",
+  "status": "u6-req-0109-qualified-local-native-peer-handles",
   "full_task_complete": false,
-  "source_lock_patch_count": 169,
+  "source_lock_patch_count": 170,
   "algorithms": [
     "EdDSA",
     "ES256"
@@ -27,26 +27,51 @@
     "Six actual signed stream.opened facts follow their own connection.ready and name their exact logical stream and actual physical handle.",
     "The current existing codec replacement test preserves the logical Stream, closes its actual original binding and opens a new PCMA handle only after observed replacement flow; old/new handle1/2 differ on that same peer. Eight actual replacement lifecycle events validate."
   ],
-  "allocator_boundary": "Current Core default allocator exhaustion check passes within208; the installed native PeerMediaRouter-specific controlled boundary run is still compiling and is not counted as passed.",
+  "allocator_boundary": "All5 installed PeerMediaRouter controlled methods pass, including new full65535 nonzero uint16 exhaustion: dropped reservations remain burned, no active/reserved bindings leak, both subsequent allocations refuse LocalIdExhausted without wrapping or reusing. The current208-method Core media run separately covers default allocator exhaustion, initial activation rollback/burn and exact stale terminal callbacks.",
   "inputs": {
     "crates/connect-server/tests/support/canonical_native_connections.rs": "6fc29c8bf36bb1e68b176b4feba9fce58f4973bd764e59870e13691ef357fda2",
     "crates/connect-server/tests/support/canonical_native_connections/handles.rs": "01e3853c00044c81963410b067fd9c249b5745cab177a26f4d1de93d6a1111ce",
     "crates/connect-server/tests/support/canonical_native_connections/lifecycle.rs": "2e1d54e0d13bf56dfe227f200796d452d15df302ae25e20b74011b3d4f6cbcfe",
     "scripts/validate-gate6-native-handles.py": "bef96bb2c751a7de96c25a66e08af79fb90f812b6f60c1603e96b8740abe5241",
     "contracts/schemas/uctp-envelope-2.schema.json": "8d3d5a1098c8eebafe30960b8b35d83e11f9c8ac09453ab7e528251368d11c32",
-    "dependencies/source-lock.json": "e3b13707bcfcbab5fab9d5414fbe8a22184215edae965071336694669b7eda5f"
+    "dependencies/source-lock.json": "5af7fb3fb5c6bc99c1ba368d9ee62e89ff7881ab45248c6e57c7b69854f2f227",
+    "patches/rvoip/gate6-native-handle-boundary.patch": "2e7dbd989d957f47b079a94bbf571e9d0874c3a6e9fd0bbf937117ccc744dd70"
   },
   "logs": {
     "native-handles169.log": "704b870bb5e6fae32260e6bf72e62d408c43a24a141ef1796c76bc15914f3713",
     "native-handle-replacement169.log": "305d62f339d1942339cc958e8649986edf63db8bc8ec8d2784cf826299ac359c",
-    "validate-native-handles-replacement169.log": "22f3b4d64d213ea7b72e04265154dfe573db9300be730fda860d5a351cd856ed"
+    "validate-native-handles-replacement169.log": "22f3b4d64d213ea7b72e04265154dfe573db9300be730fda860d5a351cd856ed",
+    "prepare-installed-handles170.log": "fd9d7b181e3ccba9b643af55a186cf132c60aac99c734b2ee4e4e549afe5ffc2",
+    "native-router170.log": "d877139f58251938e28b9ed5cfb4fced6a1de7fc03a0cb87e129c0a30cbe78c6",
+    "handle170-library-equivalence.json": "480195b07adb3e84b66a5ee5a90138bc58744251fcf22d7cce720875292d100e",
+    "build-runtime170.log": "819dd727af3cb8ebeea638e69d8977df813a70618befa12c8317c2318889e4ae"
   },
   "samples": {
     "native-handles169.jsonl": "4c60f740d8f33679b12f23d5e5f62f3f01c32d6238f51670ee8b49a9757217fb",
     "native-handle-replacement169.jsonl": "56595163331206f09deb36a2345f41a84ae1822b496b9cf0d419b5472b8e9b7c"
   },
   "limits": [
-    "No whole clause credit yet; reconcile exact ready/bind allocation and native router boundary evidence before updating count.",
-    "Actual local macOS arm64 production QUIC/public SDK only. No other substrate,50-member capacity, remote or independent-client acceptance qualification."
-  ]
+    "Clause0109 is qualified for the selected actual local macOS arm64 Connect/native QUIC/public SDK profile, with both algorithms. Other substrate, Linux/browser/remote/50-member and independent-client acceptance profiles remain assigned to their later plan work.",
+    "57/61 auxiliary clauses; remaining0103/0112/0113/0123 and all105-task completion remain open. This is not full G6-046 or Gate6 acceptance."
+  ],
+  "qualified_case_ids": [
+    "u6-req-0109"
+  ],
+  "runtime_verification_pin": 169,
+  "controlled_native_router_pin": 170,
+  "library_byte_equivalence": {
+    "library_source_bytes_unchanged": true,
+    "unchanged_files": 4038,
+    "changed_files": [
+      "rvoip/crates/uctp/rvoip-uctp/tests/peer_media_router.rs"
+    ]
+  },
+  "readiness_binding": "Substrate negotiation reserves metadata; reservation alone is not flow readiness or an IO grant. Authenticated pre-flow barriers return ACK without ready/opened, wrong-peer input cannot activate a reservation, and each actual signed stream.opened follows its own connection.ready and identifies the real negotiated egress binding. Replacement facts preserve logical stream identity while retiring the old physical handle.",
+  "implementation_source": [
+    ".deps/rvoip/crates/uctp/rvoip-uctp/src/staged_media.rs: RouterAllocator delegates the same physical peer PeerMediaRouter and owner to each controller; owned resource preparation commits its exact registration.",
+    ".deps/rvoip/crates/uctp/rvoip-uctp/src/substrate/peer_media_router.rs: reserve uses a nonzero u16 handle and u32 exhausted sentinel; commit/index removal retain exact owner/session/connection/stream mapping.",
+    ".deps/rvoip/crates/uctp/rvoip-uctp/src/v2/native_negotiation/activation.rs: signed exact native resource confirmation and actual prepared bindings are required before activation; idle handles retain no grant."
+  ],
+  "controlled_router_methods": 5,
+  "qualified_at": "2026-10-23T19:19:08.974421+00:00"
 }

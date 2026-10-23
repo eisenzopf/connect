@@ -1,0 +1,27 @@
+--- a/crates/uctp/rvoip-uctp/tests/peer_media_router.rs
++++ b/crates/uctp/rvoip-uctp/tests/peer_media_router.rs
+@@ -233,3 +233,24 @@
+     assert!(snapshot.reserved_local_ids.is_empty());
+     assert!(router.shutdown().is_empty());
+ }
++
++#[test]
++fn peer_full_u16_namespace_exhaustion_never_wraps_or_reuses_abandoned_ids() {
++    let router = PeerMediaRouter::new();
++    for expected in 1..=u16::MAX {
++        let reservation = router.reserve().unwrap();
++        assert_eq!(reservation.local_id().get(), expected);
++        drop(reservation);
++    }
++    let snapshot = router.snapshot();
++    assert_eq!(snapshot.issued_local_ids, u32::from(u16::MAX));
++    assert!(snapshot.reserved_local_ids.is_empty());
++    assert!(snapshot.bindings.is_empty());
++    for _ in 0..2 {
++        assert!(matches!(
++            router.reserve(),
++            Err(PeerMediaRouterError::LocalIdExhausted)
++        ));
++    }
++    assert_eq!(router.snapshot().issued_local_ids, u32::from(u16::MAX));
++}

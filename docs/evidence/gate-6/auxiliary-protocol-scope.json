@@ -2425,7 +2425,7 @@
       "classification": "behavior-or-context",
       "applicability": "mandatory-behavior",
       "case_id": "u6-req-0109",
-      "runtime_status": "not-run",
+      "runtime_status": "passed-local-native-peer-handle-binding",
       "shared_implementation_items": [
         "G6-004",
         "G6-006",
@@ -2444,7 +2444,7 @@
         "G6-094"
       ],
       "connect_integration_audit": {
-        "status": "evidence-to-reconcile",
+        "status": "passed-exact-local-native-peer-handles",
         "historical_component_reports": [
           "docs/evidence/gate-6/general-session-runtime.json",
           "docs/evidence/gate-6/auxiliary-native-lifecycle.json"
@@ -2453,7 +2453,25 @@
           "crates/connect-server/tests/support/canonical_native_connections.rs",
           "crates/connect-server/tests/support/canonical_native_connections/codecs.rs"
         ],
-        "remaining": "Actual native Connection/stream lifecycle composition is now locally verified with current Store authority, per-physical delivery and signed SDK observations; PCMU-to-PCMA closure/reopening is observed. Reconcile exact assigned clause evidence and remaining Connection control profiles; this scoped component does not by itself close the entire clause group."
+        "remaining": "Other later substrate/hosting/remote/capacity/independent acceptance profiles remain separately assigned. No whole task or acceptance pass is inferred.",
+        "current_evidence": "docs/evidence/gate-6/auxiliary-native-handle-mapping.json"
+      },
+      "runtime_evidence": {
+        "case_id": "u6-req-0109",
+        "report": "docs/evidence/gate-6/auxiliary-native-handle-mapping.json",
+        "algorithms": [
+          "EdDSA",
+          "ES256"
+        ],
+        "test": "canonical_native_connections::handles::production_native_stream_handles_keep_same_peer_connections_distinct_and_foreign_peer_cannot_borrow_them",
+        "additional_test": "canonical_native_connections::lifecycle::production_native_lifecycle_closes_original_codec_binding_and_opens_only_observed_replacement",
+        "assertions": [
+          "Actual same-peer Connection handles1/2 are distinct, while another physical peer also uses1 for its own canonical binding. Wrong-peer handle2 produces neither media nor readiness/opening.",
+          "Fresh correct input recovers independently decoded audio on each actual datagram handle; all6 signed opened facts follow ready and match negotiated mapping.",
+          "Actual codec replacement preserves logical Stream and uses a different physical handle; all8 replacement events validate.",
+          "The exact native router burns all65535 nonzero handles, including abandoned reservations, and then refuses repeatedly without wrap/reuse."
+        ],
+        "profile": "Local production Connect native QUIC/public signed SDK, actual negotiation/resource confirmation, explicit subscriptions, independent FFmpeg decoded bidirectional audio, negative foreign physical input and live replacement. Upstream controlled router bounds are separately labeled; all runtime library sources are byte-identical between169 and test-only170."
       }
     },
     {
@@ -3415,7 +3433,7 @@
   ],
   "initial_observation": "Focused text search of these entrypoints/current native client modules found no direct recording.vcon/auth.refresh/auth.assurance/step-up/connection.quality/capabilities event strings. This is discovery context, not proof that behavior is absent or complete; indirect handlers/upstream runtime hooks must be inspected and exercised before classification.",
   "next_actions": [
-    "Complete remaining G6-046 clauses0103,0109,0112,0113 and0123 against their full approved behavior/profile scope; preserve independent failures and source-bound evidence.",
+    "Complete remaining G6-046 clauses0103,0112,0113 and0123 against their full approved behavior/profile scope; preserve independent failures and source-bound evidence.",
     "Extend received-source private/current-audience and IO-boundary cancellation/revocation/uncertainty cases, retention/redaction, other SIP/WebRTC legs and full50member/mixed-substrate profiles. Current initial SIP-to-native attribution, signal-only/current named permission, late captured outcome and orderly successor uncertainty cases are recorded; no full gateway delivery credit.",
     "Continue all105 tasks in approved dependency order. G6-047 depends on complete G6-046; task-scoped enrollment and step-up0061\u20130066 remain G6-055.",
     "Linux/browser/remote/provider, G6-094 and acceptance remain unqualified; named rehearsals require G6-093 bounded configuration and publication stays separate."
@@ -3727,10 +3745,24 @@
       "evidence": "docs/evidence/gate-6/auxiliary-received-dtmf-authority-recovery.json",
       "attribution_case": "u6-req-0115",
       "full_task_complete": false
+    },
+    "native_stream_handles": {
+      "status": "u6-req-0109-qualified-local-native-peer-handles",
+      "report": "docs/evidence/gate-6/auxiliary-native-handle-mapping.json",
+      "case_ids": [
+        "u6-req-0109"
+      ],
+      "algorithms": [
+        "EdDSA",
+        "ES256"
+      ],
+      "source_lock_patch_count": 170,
+      "production_methods": 2,
+      "controlled_native_router_methods": 5
     }
   },
-  "qualified_clause_count": 56,
-  "remaining_clause_count": 5,
+  "qualified_clause_count": 57,
+  "remaining_clause_count": 4,
   "clause_qualification": {
     "status": "partial-local-native-http-and-loopback-sip",
     "evidence": "docs/evidence/gate-6/auxiliary-conversation-clauses.json",
@@ -3774,6 +3806,7 @@
       "u6-req-0106",
       "u6-req-0107",
       "u6-req-0108",
+      "u6-req-0109",
       "u6-req-0110",
       "u6-req-0111",
       "u6-req-0114",
@@ -3794,7 +3827,7 @@
     ],
     "full_task_complete": false,
     "continuation_evidence": "docs/evidence/gate-6/auxiliary-session-identity-targets.json",
-    "latest_evidence": "docs/evidence/gate-6/auxiliary-dtmf-source-attribution.json",
-    "latest_component_evidence": "docs/evidence/gate-6/auxiliary-audio-recovery.json"
+    "latest_evidence": "docs/evidence/gate-6/auxiliary-native-handle-mapping.json",
+    "latest_component_evidence": "docs/evidence/gate-6/auxiliary-native-handle-mapping.json"
   }
 }
