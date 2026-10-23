@@ -124,13 +124,13 @@ impl Policy {
             .entry(&ConnectionId::from_string(
                 lease.runtime_connection_id().to_owned(),
             ))
-            .map_err(|_| connect_protocol::Error::forbidden())?;
-        let target = Arc::new(self.store.native_stream_media_read_with_peer(
-            &connection.origin,
-            None,
-            proof,
-            lease,
-        )?);
+            .map_err(|error| match error {
+                StreamControlError::NotReady => connect_protocol::Error::new(
+                    "authority-busy",
+                    "Native stream invocation metadata is busy",
+                ),
+                _ => connect_protocol::Error::forbidden(),
+            })?;
         let entries = self
             .entries
             .lock()
@@ -142,22 +142,24 @@ impl Policy {
             })
             .cloned()
             .collect::<Vec<_>>();
+        let origins = entries
+            .iter()
+            .map(|source| source.origin.as_ref())
+            .collect::<Vec<_>>();
+        let (target, reads) = self.store.native_stream_media_reads_with_peer(
+            &connection.origin,
+            &origins,
+            proof,
+            lease,
+        )?;
+        let target = Arc::new(target);
         let mut sources = BTreeMap::new();
-        for source in entries {
-            match self.store.native_stream_media_read_with_peer(
-                &connection.origin,
-                Some(&source.origin),
-                proof,
-                lease,
-            ) {
-                Ok(read) => {
-                    sources.insert(
-                        ConnectionId::from_string(source.origin.runtime_connection_id().to_owned()),
-                        StreamSource::Native(source, Arc::new(read)),
-                    );
-                }
-                Err(e) if e.code == "forbidden" => (),
-                Err(e) => return Err(e),
+        for (source, read) in entries.into_iter().zip(reads) {
+            if let Some(read) = read {
+                sources.insert(
+                    ConnectionId::from_string(source.origin.runtime_connection_id().to_owned()),
+                    StreamSource::Native(source, Arc::new(read)),
+                );
             }
         }
         for phone in self.telephone_sources(&connection)? {

@@ -676,8 +676,24 @@ impl Store {
             .ok_or_else(Error::forbidden)?;
         let projected = self.validate_native_stream_attempt(credential, proof, lease)?;
         let c = self.try_connection()?;
-        self.require_peer_source(&c, proof, credential)?;
-        let (target_view, source_view, scopes, expires_at) = views(self, &c, target, source)?;
+        self.native_stream_media_read_at(&c, target, source, proof, lease, &projected)
+    }
+    fn native_stream_media_read_at(
+        &self,
+        c: &Connection,
+        target: &NativeMediaOrigin,
+        source: Option<&NativeMediaOrigin>,
+        proof: &PeerAuthorityGuard,
+        lease: &crate::NativeStreamLease,
+        projected: &crate::NativeStreamProjection,
+    ) -> Result<NativeMediaRead> {
+        let credential = proof
+            .request
+            .credentials
+            .last()
+            .ok_or_else(Error::forbidden)?;
+        self.require_peer_source(c, proof, credential)?;
+        let (target_view, source_view, scopes, expires_at) = views(self, c, target, source)?;
         if projected.connection.runtime_connection_id != target_view.runtime_connection_id
             || projected.connection.connection != target_view.connection
             || target_view.runtime_connection_id != lease.runtime_connection_id()
@@ -697,8 +713,57 @@ impl Store {
             _scopes: proof._scopes.clone(),
             owner,
             expires_at,
-            may_subscribe: subscription_permission(&c, target)?,
+            may_subscribe: subscription_permission(c, target)?,
         })
+    }
+    /// Capture one bounded command's current native target/source metadata under
+    /// one Store connection interval. No Core call, IO or new authority reader
+    /// occurs here. Source refusal remains absent, exactly as individual reads;
+    /// any other error refuses the whole capture before returning any views.
+    pub fn native_stream_media_reads_with_peer(
+        &self,
+        target: &NativeMediaOrigin,
+        sources: &[&NativeMediaOrigin],
+        proof: &PeerAuthorityGuard,
+        lease: &crate::NativeStreamLease,
+    ) -> Result<(NativeMediaRead, Vec<Option<NativeMediaRead>>)> {
+        if sources.len() > self.limits.connections {
+            return Err(Error::new(
+                "capacity-exceeded",
+                "Native metadata scene exceeds Connection limit",
+            ));
+        }
+        let credential = proof
+            .request
+            .credentials
+            .last()
+            .ok_or_else(Error::forbidden)?;
+        let c = self.try_connection()?;
+        let projected = self.validate_native_stream_attempt_at(&c, credential, proof, lease)?;
+        let target_read =
+            self.native_stream_media_read_at(&c, target, None, proof, lease, &projected)?;
+        let reads = sources
+            .iter()
+            .map(|source| {
+                match self.native_stream_media_read_at(
+                    &c,
+                    target,
+                    Some(source),
+                    proof,
+                    lease,
+                    &projected,
+                ) {
+                    Ok(read) => Ok(Some(read)),
+                    Err(error) if error.code == "forbidden" => Ok(None),
+                    Err(error) => Err(error),
+                }
+            })
+            .collect::<Result<Vec<_>>>()?;
+        self.validate_native_stream_attempt_at(&c, credential, proof, lease)?;
+        if !target_read.current() {
+            return Err(Error::forbidden());
+        }
+        Ok((target_read, reads))
     }
 }
 

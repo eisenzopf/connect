@@ -531,7 +531,16 @@ impl Store {
         lease: &NativeStreamLease,
     ) -> Result<crate::NativeStreamProjection> {
         let c = self.connection()?;
-        let row = checked_row(&c, self, credential, proof)?;
+        self.validate_native_stream_attempt_at(&c, credential, proof, lease)
+    }
+    pub(crate) fn validate_native_stream_attempt_at(
+        &self,
+        c: &Connection,
+        credential: &str,
+        proof: &PeerAuthorityGuard,
+        lease: &NativeStreamLease,
+    ) -> Result<crate::NativeStreamProjection> {
+        let row = checked_row(c, self, credential, proof)?;
         if lease.runtime != self.runtime_epoch()
             || row.record.record_id != lease.record
             || row.record.state != OperationState::Preparing
@@ -544,8 +553,8 @@ impl Store {
         if !exact {
             return Err(Error::forbidden());
         }
-        let actor = actor_from_connection(&c, credential)?;
-        let source = self.native_stream_projection_at(&c, &actor, proof)?;
+        let actor = actor_from_connection(c, credential)?;
+        let source = self.native_stream_projection_at(c, &actor, proof)?;
         if source.parent_record_id != lease.parent
             || source.connection.runtime_connection_id != lease.core_connection
             || source.connection.connection.generation != lease.generation
@@ -553,7 +562,7 @@ impl Store {
         {
             return Err(conflict());
         }
-        self.require_peer_source(&c, proof, credential)?;
+        self.require_peer_source(c, proof, credential)?;
         Ok(source)
     }
 }

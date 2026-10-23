@@ -21,6 +21,12 @@ next cadence. This retries observation, without repeating an actual write or a
 business command. Physical cancellation and definitive authority denial still
 retire the observer.
 
+The final pre-write seal may also discard a proposal whose permit expired or
+whose binding changed after authorization. If the original observer remains
+live, it releases every proposal grant before deriving and authorizing the next
+hint. No writer has been claimed at this point. Fresh policy still refuses a
+withdrawn permission, and an expired or retired original source cannot retry.
+
 After a confirmed offer, temporary metadata contention while installing native
 subscription, lifecycle, capability or DTMF listeners retries within that offer's
 original deadline. The retry uses its already admitted route; it does not repeat

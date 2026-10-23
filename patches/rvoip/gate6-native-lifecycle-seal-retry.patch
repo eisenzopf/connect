@@ -1,0 +1,99 @@
+--- a/crates/uctp/rvoip-uctp/src/v2/native_lifecycle.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/native_lifecycle.rs
+@@ -380,13 +380,32 @@
+             let (written, receipt) = tokio::sync::oneshot::channel();
+             let result = Arc::new(Mutex::new(None));
+             let frames = frames(&self.scope.media, &event)?;
+-            let delivery = HandlerDelivery::native_lifecycle(
++            let delivery = match HandlerDelivery::native_lifecycle(
+                 origin.clone(),
+                 frames,
+                 permit.clone(),
+                 written,
+                 deadline,
+-            )?;
++            ) {
++                Ok(delivery) => delivery,
++                Err(DispatchError::Authority)
++                    if self.origin.current()
++                        && (Instant::now() >= deadline
++                            || !origin.current()
++                            || !permit.current()) =>
++                {
++                    // The proposal can expire or its binding can change between
++                    // authorization and sealing. No writer has been claimed.
++                    // Release every grant before deriving a fresh proposal; a
++                    // true permission withdrawal is refused by fresh policy.
++                    permit.cancel();
++                    drop(permit);
++                    drop(state);
++                    tokio::time::sleep(Duration::from_millis(20)).await;
++                    continue;
++                }
++                Err(error) => return Err(error),
++            };
+             *self.pending_write.lock().unwrap_or_else(|p| p.into_inner()) =
+                 Some(Arc::downgrade(&permit));
+             let pending_result = result.clone();
+--- a/crates/uctp/rvoip-uctp/tests/support/canonical_media/native_offers.rs
++++ b/crates/uctp/rvoip-uctp/tests/support/canonical_media/native_offers.rs
+@@ -431,6 +431,7 @@
+ }
+ #[derive(Default)]
+ struct Record {
++    lifecycle_stall_ready_once: AtomicBool,
+     quality_enabled: AtomicBool,
+     quality_default_config: AtomicBool,
+     quality_pause_event: AtomicBool,
+@@ -1321,6 +1322,16 @@
+             return Err(DispatchError::Unsupported);
+         }
+         self.record.event_attempts.fetch_add(1, Ordering::AcqRel);
++        if matches!(event, NativeLifecycleEvent::ConnectionReady { .. })
++            && self
++                .record
++                .lifecycle_stall_ready_once
++                .swap(false, Ordering::AcqRel)
++        {
++            // Controlled synchronous metadata stall: complete policy after the
++            // enclosing timer's poll, without retaining any authority reader.
++            std::thread::sleep(Duration::from_millis(1100));
++        }
+         let guard = self.grants.0.clone().read_owned().await;
+         let owner = credential_owner(
+             guard
+@@ -1627,6 +1638,34 @@
+     no_event(&mut other).await;
+     s.wire.server.shutdown().await.unwrap();
+     other.server.shutdown().await.unwrap();
++}
++#[tokio::test]
++async fn native_ready_seal_budget_race_recovers_original_flow_without_another_packet() {
++    let mut s = Scene::new("quic", false).await;
++    s.record.lifecycle.store(true, Ordering::Release);
++    s.record
++        .lifecycle_stall_ready_once
++        .store(true, Ordering::Release);
++    let (answer, callback) = s.prepared(lifecycle_offer(&s, 0, 0, "sendonly")).await;
++    s.confirm(&callback).await;
++    s.wait(1).await;
++    let handle = answer.original()["payload"]["substrate_setup"]["streams"][0]["stream_local_id"]
++        .as_u64()
++        .unwrap() as u16;
++    let mut input = s
++        .controller()
++        .take_ingress(&StreamId::from_string("first"))
++        .unwrap();
++    send(&s.wire, audio_sequence(handle, 1));
++    let _actual = packet(&mut input).await;
++    // No additional packet, offer, registration or authenticated identity.
++    ready_opened(&s.f, &mut s.wire, handle).await;
++    assert!(s.record.event_attempts.load(Ordering::Acquire) >= 3);
++    assert!(s.record.event_approvals.load(Ordering::Acquire) >= 3);
++    assert_eq!(s.controller().revision(), 1);
++    assert_eq!(s.native.adapters[&s.kind].route_count(), 1);
++    no_event(&mut s.wire).await;
++    s.wire.server.shutdown().await.unwrap();
+ }
+ #[tokio::test]
+ async fn actual_native_event_denial_is_scoped_and_recovers_after_current_reauthorization() {

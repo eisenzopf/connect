@@ -49,6 +49,16 @@ verified endpoint, membership, capability and native generation.
 The policy resolves the exact current Core plan before native IO. Its bounded
 held grant owns target and source readers and validates the actual native
 request scope, domain, operation, revision, selected media and routing delta.
+Temporary contention looking up that invocation's native source remains
+`authority-busy` and retries inside the original command deadline before the
+engine call. A missing or poisoned source still refuses; this metadata retry
+cannot repeat a routing effect or extend the command's lifetime.
+Native target and source reads are captured together under one bounded Store
+connection interval. The original attempt is validated before and after capture;
+each source retains the same audience, scope and expiry checks as an individual
+read. A refused source stays absent. Other capture errors return no partial
+snapshot. This releases the SQL connection before Core work, acquires no new
+authority interval and leaves each actual media callback's current checks intact.
 Core callbacks and signed-reply verification reuse those readers without SQL
 or grant reentry. A server reoffer must match the complete selected kind,
 direction, codec and prepared handle set. The current original signing key must

@@ -249,6 +249,7 @@ impl Runtime {
             && connect_protocol::native_gates::is_gate(&a.envelope().original()["payload"]);
         let codecs = a.envelope().kind() == "connection.update" && !quality && !gates;
         let advertising = a.envelope().kind() == "capability.advertise";
+        let mut preflight_stage = "source";
         let preflight = (|| {
             let p = proof(&a)?;
             let authority = a
@@ -270,6 +271,7 @@ impl Runtime {
             if ending || quality || advertising {
                 return Ok((id, None));
             }
+            preflight_stage = "engine-plan";
             let plan = if codecs {
                 self.native
                     .plan_native_codec_update(&id, &a)
@@ -282,7 +284,7 @@ impl Runtime {
                     .map(Plan::Subscriptions)
             }
             .map_err(|e| {
-                tracing::debug!(?e, "Native stream plan refused");
+                tracing::debug!(?e, requested_revision=?a.envelope().expected_revision(), actual_revision=?self.native.media_controller(&id).ok().map(|c| c.revision()), "Native stream plan refused");
                 match e {
                     rvoip_uctp::v2::native_negotiation::NativeOfferError::Conflict => {
                         Error::new("conflict", "Native stream revision or catalog conflicts")
@@ -309,6 +311,7 @@ impl Runtime {
             })?;
             if let Plan::Subscriptions(subscription) = &plan {
                 if a.envelope().kind() == "stream.subscribe" {
+                    preflight_stage = "source-compatibility";
                     let kinds = subscription
                         .default_media()
                         .iter()
@@ -326,6 +329,7 @@ impl Runtime {
                 }
             }
             if let Some(media) = plan.media() {
+                preflight_stage = "bind-plan";
                 crate::peer_authority::bind_native_stream_plan(&a, media)?;
             }
             Ok((id, Some(plan)))
@@ -333,6 +337,7 @@ impl Runtime {
         let (id, plan) = match preflight {
             Ok(v) => v,
             Err(e) => {
+                tracing::debug!(target: "connect_service::canonical_native_streams", stage=preflight_stage, code=%e.code, "Native stream metadata preflight refused");
                 let result = proof(&a)
                     .and_then(|p| {
                         store.refuse_native_stream_before_effect_with_peer(&credential, p, e)
@@ -411,6 +416,7 @@ impl Runtime {
         let (invocation, quality_invocation, advertisement) = match ready {
             Ok(v) => v,
             Err(e) => {
+                tracing::debug!(target: "connect_service::canonical_native_streams", code=%e.code, "Native stream invocation preparation refused");
                 let result = store
                     .fail_native_stream_without_effect(lease, e)
                     .map(|record| crate::canonical_native::Reply {

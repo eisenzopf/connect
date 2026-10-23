@@ -959,6 +959,11 @@
       "path": "patches/rvoip/gate6-native-lifecycle-contention.patch",
       "sha256": "5e9978f4dc3fa660a89e885b78057a06be6fd1789ebecb161f3d88a157e7128f",
       "source": "G6-046 retain native lifecycle observers across pre-IO metadata timeouts and temporary storage unavailability for ready/opened/closed/replaced/quality hints. Recompute current observed events and fresh authority without retaining readers or repeating an actual writer/business mutation; cancellation and definitive authority denial still retire the registration. Actual50-Participant readiness/opened regression and failure provenance are required separately."
+    },
+    {
+      "path": "patches/rvoip/gate6-native-lifecycle-seal-retry.patch",
+      "sha256": "64b418c946689c6a442fe7c96a64968c633319cbb1aca0871690f1e1218cca47",
+      "source": "G6-046 rederive native lifecycle proposals after pre-IO sealing loses current permit/binding while the original observer remains live. Cancel and release all proposal custody before retry; fresh policy still refuses permission withdrawal and retired origins. Controlled actual QUIC one-packet regression stalls metadata past the original timer without a reader and requires original ready/opened delivery with fresh grants, one route and no new packet or offer."
     }
   ]
 }
