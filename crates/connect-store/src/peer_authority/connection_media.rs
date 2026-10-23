@@ -20,6 +20,7 @@ pub use assistant::{
 mod consultation;
 pub(crate) mod consultation_sip;
 use admission::NativeMediaAdmission;
+pub use consultation_sip::{SipAudienceOrigin, SipAudienceRead};
 mod handoff;
 mod handoff_lifetime;
 mod replacement;

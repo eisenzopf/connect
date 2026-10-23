@@ -1,5 +1,7 @@
 //! Real moved SIP source, durable custody and signed native delivery.
 use super::*;
+#[path = "received/privacy.rs"]
+pub(super) mod privacy;
 #[path = "received/refresh.rs"]
 pub(super) mod refresh;
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]

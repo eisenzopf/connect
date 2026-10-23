@@ -1,7 +1,7 @@
 //! Fresh complete private-route planning views. These do not reserve an engine attempt.
 use super::consultation_sip;
 use super::*;
-use crate::{InitialTelephoneMediaOrigin, InitialTelephoneMediaRead, NativeConsultationOrigin};
+use crate::{NativeConsultationOrigin, SipAudienceOrigin, SipAudienceRead};
 use sha2::{Digest, Sha256};
 use std::collections::{BTreeMap, BTreeSet};
 
@@ -19,7 +19,7 @@ type Views = BTreeMap<
 pub struct NativeConsultationRead {
     origin: NativeConsultationOrigin,
     reads: BTreeMap<ReadKey, Arc<NativeMediaRead>>,
-    sip_reads: BTreeMap<String, Arc<InitialTelephoneMediaRead>>,
+    sip_reads: BTreeMap<String, Arc<SipAudienceRead>>,
     expires_at: i64,
     selection: NativeConsultationSelection,
 }
@@ -30,7 +30,7 @@ pub struct NativeConsultationSelection {
     remote: Arc<NativeMediaOrigin>,
     private: Vec<Arc<NativeMediaOrigin>>,
     outside: Vec<Arc<NativeMediaOrigin>>,
-    outside_sip: Vec<Arc<InitialTelephoneMediaOrigin>>,
+    outside_sip: Vec<SipAudienceOrigin>,
     outside_sip_snapshots: Vec<serde_json::Value>,
 }
 impl NativeConsultationSelection {
@@ -227,7 +227,7 @@ impl NativeConsultationRead {
             && self.reads.values().all(|r| r.current())
             && self.sip_reads.values().all(|r| r.current())
     }
-    pub fn initial_sip(&self, connection: &str) -> Option<Arc<InitialTelephoneMediaRead>> {
+    pub fn sip(&self, connection: &str) -> Option<Arc<SipAudienceRead>> {
         self.sip_reads.get(connection).cloned()
     }
     pub fn origin(&self) -> &NativeConsultationOrigin {
@@ -246,7 +246,7 @@ fn selected_views(
     remote: &NativeMediaOrigin,
     private: &[Arc<NativeMediaOrigin>],
     outside: &[Arc<NativeMediaOrigin>],
-    outside_sip: &[Arc<InitialTelephoneMediaOrigin>],
+    outside_sip: &[SipAudienceOrigin],
 ) -> Result<(Views, Vec<AuthorityScope>, i64)> {
     let (actor, mut scopes) = origin.require(store, c)?;
     let request = &origin.request;
@@ -285,7 +285,7 @@ fn selected_views(
     {
         return Err(Error::forbidden());
     }
-    let (sip_scopes, sip_expiry) = store.initial_sip_audience_facts(
+    let (sip_scopes, sip_expiry) = store.sip_audience_facts(
         c,
         &request.conversation_id,
         &request.session_id,
@@ -434,7 +434,7 @@ impl Store {
         remote: &NativeMediaOrigin,
         private: &[Arc<NativeMediaOrigin>],
         outside: &[Arc<NativeMediaOrigin>],
-        outside_sip: &[Arc<InitialTelephoneMediaOrigin>],
+        outside_sip: &[SipAudienceOrigin],
     ) -> Result<NativeConsultationRead> {
         if private.len() + outside.len() + outside_sip.len() + 1 > self.limits.connections {
             return Err(Error::forbidden());

@@ -2,9 +2,7 @@
 //! No view here permits private-candidate content to enter a public receiver.
 use super::consultation_sip;
 use super::*;
-use crate::{
-    InitialTelephoneMediaOrigin, InitialTelephoneMediaRead, NativeConsultationReturnOrigin,
-};
+use crate::{NativeConsultationReturnOrigin, SipAudienceOrigin, SipAudienceRead};
 use sha2::{Digest, Sha256};
 use std::collections::{BTreeMap, BTreeSet};
 
@@ -12,14 +10,14 @@ use std::collections::{BTreeMap, BTreeSet};
 pub struct NativeReturnSelection {
     pub(crate) origin: NativeConsultationReturnOrigin,
     sources: Vec<Arc<NativeMediaOrigin>>,
-    sips: Vec<Arc<InitialTelephoneMediaOrigin>>,
+    sips: Vec<SipAudienceOrigin>,
     sip_snapshots: Vec<serde_json::Value>,
 }
 pub struct NativeReturnRead {
     selection: NativeReturnSelection,
     reads: BTreeMap<(String, Option<String>), Arc<NativeMediaRead>>,
     expires_at: i64,
-    sip_reads: BTreeMap<String, Arc<InitialTelephoneMediaRead>>,
+    sip_reads: BTreeMap<String, Arc<SipAudienceRead>>,
 }
 impl NativeReturnRead {
     pub(crate) fn limit(&mut self, deadline: i64) -> Result<()> {
@@ -41,14 +39,14 @@ impl NativeReturnRead {
             && self.reads.values().all(|r| r.current())
             && self.sip_reads.values().all(|r| r.current())
     }
-    pub fn initial_sip(&self, id: &str) -> Option<Arc<InitialTelephoneMediaRead>> {
+    pub fn sip(&self, id: &str) -> Option<Arc<SipAudienceRead>> {
         self.sip_reads.get(id).cloned()
     }
-    pub fn initial_sip_receive(
+    pub fn sip_receive(
         &self,
         native: &str,
         sip: &str,
-    ) -> Option<(&InitialTelephoneMediaRead, &NativeMediaRead)> {
+    ) -> Option<(&SipAudienceRead, &NativeMediaRead)> {
         let phone = self.sip_reads.get(sip)?;
         let target = self.reads.get(&(native.into(), Some(sip.into())))?;
         Some((phone.as_ref(), target.as_ref()))
@@ -270,7 +268,7 @@ fn resolve(
     if actual != expected {
         return Err(Error::new("forbidden", "Native return source set changed"));
     }
-    let (sip_scopes, sip_expiry) = store.initial_sip_audience_facts(
+    let (sip_scopes, sip_expiry) = store.sip_audience_facts(
         c,
         &selection.origin.request.conversation_id,
         &selection.origin.request.session_id,
@@ -399,7 +397,7 @@ impl Store {
         &self,
         origin: &NativeConsultationReturnOrigin,
         sources: &[Arc<NativeMediaOrigin>],
-        sips: &[Arc<InitialTelephoneMediaOrigin>],
+        sips: &[SipAudienceOrigin],
     ) -> Result<NativeReturnRead> {
         let selection = NativeReturnSelection {
             origin: origin.clone(),

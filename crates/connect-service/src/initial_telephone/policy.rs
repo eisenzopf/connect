@@ -211,7 +211,7 @@ impl Leg {
             confirmed_generation: None,
         })
     }
-    fn owner(
+    pub(crate) fn owner(
         &self,
         read: &InitialTelephoneMediaRead,
     ) -> std::result::Result<MediaOwner, StreamControlError> {
@@ -500,11 +500,15 @@ impl MediaPolicy for Leg {
             if !std::ptr::eq(runtime.media.as_ref(), i.policy.as_ref()) {
                 return Err(StreamControlError::Authority);
             }
-            let read = i.initial_sip_read(
+            let read = i.sip_read(
                 &self.connection(),
                 self.signal.origin().connection_id(),
                 intent,
             )?;
+            let connect_store::SipAudienceRead::Initial(read) = read.as_ref() else {
+                return Err(StreamControlError::Authority);
+            };
+            let read = read.clone();
             if read.source() != self.signal.origin().source() {
                 return Err(StreamControlError::Authority);
             }

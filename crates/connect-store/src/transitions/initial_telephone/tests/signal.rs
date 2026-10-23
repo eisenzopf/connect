@@ -204,8 +204,8 @@ fn initial_sip_audience_requires_exact_complete_owned_roster_without_native_prov
             "SIP source borrowed native provenance: {key}"
         );
     }
-    let facts = |sources: &[Arc<InitialTelephoneMediaOrigin>], native: Vec<String>| {
-        f.store.initial_sip_audience_facts(
+    let facts = |sources: &[crate::SipAudienceOrigin], native: Vec<String>| {
+        f.store.sip_audience_facts(
             &c,
             &f.request.conversation_id,
             &f.request.session_id,
@@ -213,30 +213,41 @@ fn initial_sip_audience_requires_exact_complete_owned_roster_without_native_prov
             native,
         )
     };
-    assert!(facts(&[origin.clone()], vec![]).is_ok());
+    assert!(facts(&[crate::SipAudienceOrigin::Initial(origin.clone())], vec![]).is_ok());
     assert_eq!(
         facts(&[], vec![]).unwrap_err().code,
         "authority-unavailable"
     );
-    assert!(facts(&[origin.clone(), origin.clone()], vec![]).is_err());
-    assert!(facts(&[origin.clone()], vec![origin.connection_id().into()]).is_err());
+    assert!(facts(
+        &[
+            crate::SipAudienceOrigin::Initial(origin.clone()),
+            crate::SipAudienceOrigin::Initial(origin.clone())
+        ],
+        vec![]
+    )
+    .is_err());
+    assert!(facts(
+        &[crate::SipAudienceOrigin::Initial(origin.clone())],
+        vec![origin.connection_id().into()]
+    )
+    .is_err());
     assert!(f
         .store
-        .initial_sip_audience_facts(
+        .sip_audience_facts(
             &c,
             "wrong-conversation",
             &f.request.session_id,
-            &[origin.clone()],
+            &[crate::SipAudienceOrigin::Initial(origin.clone())],
             vec![]
         )
         .is_err());
     assert!(f
         .store
-        .initial_sip_audience_facts(
+        .sip_audience_facts(
             &c,
             &f.request.conversation_id,
             "wrong-session",
-            &[origin.clone()],
+            &[crate::SipAudienceOrigin::Initial(origin.clone())],
             vec![]
         )
         .is_err());

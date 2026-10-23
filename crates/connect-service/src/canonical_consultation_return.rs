@@ -102,7 +102,7 @@ impl Runtime {
                 .media
                 .scene_origins(&command.session_id)
                 .map_err(|error|{tracing::debug!(target:"connect_service::canonical_consultation",stage="return-scene",?error,"Native return refused");Error::forbidden()})?;
-            let sips = self.media.scene_initial_sip_origins(&command.session_id).map_err(|_|Error::forbidden())?;
+            let sips = self.media.scene_sip_origins(&command.session_id).map_err(|_|Error::forbidden())?;
             let read = self.media.store.try_native_return_read(&origin, &sources, &sips).map_err(|error| {
                 tracing::debug!(target:"connect_service::canonical_consultation",stage="return-read",code=%error.code,"Native return planning refused");error
             })?;

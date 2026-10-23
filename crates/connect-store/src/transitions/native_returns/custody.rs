@@ -386,8 +386,11 @@ impl Store {
                 let Some(revision) = observed["receiver_revisions"][runtime].as_u64() else {
                     continue;
                 };
-                if binding["source_kind"] == "initial-sip" {
-                    self.record_initial_telephone_audience_revision(
+                if matches!(
+                    binding["source_kind"].as_str(),
+                    Some("initial-sip" | "established-sip")
+                ) {
+                    self.record_sip_audience_revision(
                         &tx,
                         binding,
                         &receipt.runtime,

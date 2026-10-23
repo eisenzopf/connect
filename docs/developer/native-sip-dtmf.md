@@ -162,3 +162,12 @@ readers. If no frame was reserved, that old recipient stops as `not_started`;
 new input can use the new registration. Existing reserved/uncertain outcomes
 retain their original rules. Replaying an old operation cannot retarget it,
 refresh its deadline or submit its signal again.
+
+A native private consultation includes every current initial and committed moved
+SIP outsider in its exact audience scene. Each keeps its actual call lifetime,
+route owner, generation and current media permissions. The outside read permits
+unchanged public programmes and private exclusion; it cannot become a private
+slot or a native signing projection. Captured audience outcomes update only the
+original live call's next Stream revision. Return uses fresh current readers
+and carries the actual original controller's audience receipt. Old DTMF input
+keeps its original sealed audience after return.

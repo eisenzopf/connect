@@ -365,6 +365,12 @@ impl MediaPolicy for Policy {
         held: &(dyn Any + Send + Sync),
     ) -> ControlResult<MediaControl> {
         if let Some(i) =
+            held.downcast_ref::<crate::canonical_media::consultation::AudienceInvocation>()
+        {
+            self.established_scope(scope)?;
+            return i.telephone_control(self, scope, intent);
+        }
+        if let Some(i) =
             held.downcast_ref::<crate::canonical_replacement::continuation::Invocation>()
         {
             if !i.controls_telephone(self) {

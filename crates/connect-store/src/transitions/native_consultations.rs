@@ -704,7 +704,7 @@ impl Store {
                     let revision = observed["receiver_revisions"][runtime_id]
                         .as_u64()
                         .ok_or_else(Error::storage)?;
-                    self.record_initial_telephone_audience_revision(
+                    self.record_sip_audience_revision(
                         &tx,
                         binding,
                         &receipt.runtime,

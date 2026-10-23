@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Validate captured initial SIP input across an actual native private audience."""
+"""Validate captured SIP input across an actual native private audience."""
 import argparse
 import json
 from pathlib import Path
@@ -11,6 +11,7 @@ ROOT = Path(__file__).resolve().parents[1]
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('samples', type=Path)
+    parser.add_argument('--source-kind', choices=['initial-sip', 'established-sip'], default='initial-sip')
     args = parser.parse_args()
     raw = args.samples.read_bytes()
     assert len(raw) < 1024 * 1024
@@ -25,6 +26,18 @@ def main():
     frame_ids = set()
     for row in rows:
         assert row['calls'] == 1
+        if args.source_kind == 'established-sip':
+            assert row['private_audio_marked'] == [0, 0]
+            assert len(row['outside']) == 1
+            outside = row['outside'][0]
+            assert outside['source_kind'] == 'established-sip'
+            assert outside['record_id'] == row['moved_record'] and outside['generation'] == 2
+            assert outside['route_credential_id'] and outside['route_owner_id'] != outside['identity_id']
+            assert outside['connection_id'] != outside['runtime_connection_id']
+            assert outside['sip_call_id'] and outside['endpoint_id'] and outside['device_id']
+            for key in ['endpoint_credential_id', 'key_id', 'key_algorithm', 'public_key_sha256']:
+                assert key not in outside
+
         primary, private, public = row['private_primary'], row['private_candidate'], row['public_sibling']
         assert len({primary, private, public}) == 3
         operations, conversations = set(), set()
@@ -74,7 +87,7 @@ def main():
                 assert key not in result['source_observation']
         assert len(conversations) == 1 and len(operations) == 3
     assert len(frame_ids) == 10
-    print(json.dumps({'passed': True, 'installed_scenes': 2, 'received_operations': 6, 'signed_native_frames': 10, 'scope': 'Local initial SIP source outside an actual native private pair. Store excludes privately admitted recipient; current Core audience excludes the public primary while its private slot is active. A public Device of the same consultant Participant receives. Return/replay/fresh-input recovery and owned cleanup are tested by the production fixture. No other SIP legs, private SIP slots, WebRTC, crash, capacity or complete Gate6 claim.'}))
+    print(json.dumps({'passed': True, 'installed_scenes': 2, 'received_operations': 6, 'signed_native_frames': 10, 'source_kind': args.source_kind, 'scope': 'Local selected SIP source outside an actual native private pair. Store excludes privately admitted recipient; current Core audience excludes the public primary while its private slot is active. A public Device of the same consultant Participant receives. Return/replay/fresh-input recovery and owned cleanup are tested by the production fixture. No private SIP slots, WebRTC, crash, capacity or complete Gate6 claim.'}))
 
 
 if __name__ == '__main__':

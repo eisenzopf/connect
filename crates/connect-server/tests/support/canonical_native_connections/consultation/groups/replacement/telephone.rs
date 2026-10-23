@@ -473,6 +473,7 @@ enum Stop {
     Dtmf,
     DtmfReceive,
     DtmfRefresh,
+    DtmfPrivacy,
     ReturnNative,
     ReturnObserver,
     Refresh,
@@ -516,6 +517,7 @@ async fn telephone_case_profile(stop: Stop, configured: bool, algorithm: &str) {
         | Stop::Dtmf
         | Stop::DtmfReceive
         | Stop::DtmfRefresh
+        | Stop::DtmfPrivacy
         | Stop::ReturnNative
         | Stop::ReturnObserver
         | Stop::Refresh => Some(0),
@@ -625,6 +627,7 @@ async fn telephone_case_profile(stop: Stop, configured: bool, algorithm: &str) {
                         | Stop::Dtmf
                         | Stop::DtmfReceive
                         | Stop::DtmfRefresh
+                        | Stop::DtmfPrivacy
                         | Stop::ReturnNative
                         | Stop::ReturnObserver
                         | Stop::Refresh
@@ -670,7 +673,10 @@ async fn telephone_case_profile(stop: Stop, configured: bool, algorithm: &str) {
         },
         (endpoint, route_key, route_owner),
     ) = if configured {
-        if matches!(stop, Stop::Dtmf | Stop::DtmfReceive | Stop::DtmfRefresh) {
+        if matches!(
+            stop,
+            Stop::Dtmf | Stop::DtmfReceive | Stop::DtmfRefresh | Stop::DtmfPrivacy
+        ) {
             codecs::setup_with_telephone_dtmf(algorithm, configure).await
         } else {
             codecs::setup_with_telephone(configure).await
@@ -1210,6 +1216,15 @@ async fn telephone_case_profile(stop: Stop, configured: bool, algorithm: &str) {
             received::refresh::exercise(&f, &cid, &mut peers, &peer, payload, &done, algorithm)
                 .await;
         }
+        if matches!(stop, Stop::DtmfPrivacy) {
+            received::privacy::exercise(&f, &peer, &mut peers, &cid, algorithm, &done).await;
+            drop(peers);
+            f.server.shutdown().await.unwrap();
+            assert!(peer.methods.lock().unwrap().contains(&Method::Bye));
+            assert_eq!(peer.unique(), 1);
+            assert_sip_listener_released(sip_bind);
+            return;
+        }
         let refresh_session = if matches!(stop, Stop::Refresh) {
             let coordinator = coordinator.as_ref().unwrap();
             let sessions = coordinator.list_sessions().await;
@@ -1481,6 +1496,7 @@ async fn telephone_case_profile(stop: Stop, configured: bool, algorithm: &str) {
         | Stop::Dtmf
         | Stop::DtmfReceive
         | Stop::DtmfRefresh
+        | Stop::DtmfPrivacy
         | Stop::ReturnNative
         | Stop::ReturnObserver
         | Stop::Refresh => {

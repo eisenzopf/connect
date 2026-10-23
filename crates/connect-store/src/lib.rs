@@ -106,7 +106,8 @@ pub use peer_authority::{
     NativeStreamProjection, PeerAuthorityGuard, PeerAuthorityRequest, PeerCommand,
     PeerConnectionProjection, PeerConversationCommand, PeerDataCommand, PeerDeviceClaim,
     PeerOperationClaim, PeerReadReceiptCommand, PeerSessionProjection, PeerSubscriptionCommand,
-    PeerSubscriptionRead, PeerSubscriptionSource, SessionRoleMediaRead,
+    PeerSubscriptionRead, PeerSubscriptionSource, SessionRoleMediaRead, SipAudienceOrigin,
+    SipAudienceRead,
 };
 pub use user_delegation::{IssuedUserDelegation, UserAuthorization};
 mod private_provider;

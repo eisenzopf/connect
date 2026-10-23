@@ -52,7 +52,7 @@ impl Runtime {
         for connection in commit.connections() {
             carried &= match self
                 .media
-                .observe_initial_audio_audience_commit(connection, commit, invocation)
+                .observe_sip_audio_audience_commit(connection, commit, invocation)
             {
                 Ok(Some(())) => true,
                 Ok(None) => self
@@ -158,7 +158,7 @@ impl Runtime {
         let remote = remote.ok_or_else(Error::forbidden)?;
         let outside_sip = self
             .media
-            .scene_initial_sip_origins(&origin.request().session_id)
+            .scene_sip_origins(&origin.request().session_id)
             .map_err(denied)?;
         let read = self.media.store.try_native_consultation_scene_read(
             origin,

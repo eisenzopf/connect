@@ -26,6 +26,7 @@ pub use connection_media::{
     NativeReconciliationRead, NativeReplacementPreparationRead, NativeReplacementSelection,
     NativeReplacementSourceOrigin, NativeReplacementSourceRead, NativeReturnRead,
     NativeReturnSelection, NativeSessionCodecRead, NativeSignalRead, SessionRoleMediaRead,
+    SipAudienceOrigin, SipAudienceRead,
 };
 pub use native_data::NativeDataProjection;
 pub use native_streams::NativeStreamProjection;

@@ -1,5 +1,6 @@
 //! Controlled established-call authority only; these tests do not assert SIP IO.
 use super::*;
+mod audience;
 mod gateways;
 mod received;
 use crate::TelephoneSignalDirection::{FromTelephone, ToTelephone};

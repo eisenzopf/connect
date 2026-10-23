@@ -113,6 +113,20 @@ impl Store {
         require_origin(c, origin, true)?;
         scopes(c, &origin.snapshot)
     }
+    /// Current exact media facts for an unchanged committed SIP outsider.
+    /// The configured route is independent of the retired native source.
+    pub(crate) fn telephone_audience_facts(
+        &self,
+        c: &Connection,
+        origin: &TelephoneMediaOrigin,
+    ) -> Result<(Vec<crate::AuthorityScope>, serde_json::Value, i64)> {
+        let needed = self.telephone_established_scopes(c, origin)?;
+        let p = self.telephone_projection(c, origin, crate::now() + 5, ProjectionPurpose::Media)?;
+        let s = origin.snapshot();
+        let endpoint_revision:u64=c.query_row("SELECT e.revision FROM endpoints e JOIN devices d ON d.id=e.device_id AND d.identity_id=e.identity_id AND d.revoked=0 WHERE e.id=?1 AND e.identity_id=?2 AND e.device_id=?3 AND e.verification_state='verified'",params![s.endpoint_id,s.identity_id,s.device_id],|r|r.get(0)).map_err(|_|Error::forbidden())?;
+        let value = serde_json::json!({"source_kind":"established-sip","record_id":origin.record_id(),"connection_id":s.connection_id,"runtime_connection_id":s.runtime_connection_id,"sip_call_id":s.media.call_id,"generation":s.generation,"participant_id":p.member.participant_id,"membership_epoch":p.member.membership_epoch,"identity_id":p.member.identity_id,"endpoint_id":s.endpoint_id,"endpoint_revision":endpoint_revision,"device_id":s.device_id,"route_credential_id":p.actor.credential_id,"route_owner_id":s.route_owner_id,"physical_expires_at":p.actor.expires_at});
+        Ok((needed, value, p.expires))
+    }
     pub fn try_telephone_media_read(
         &self,
         origin: Arc<TelephoneMediaOrigin>,
