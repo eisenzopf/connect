@@ -52,7 +52,8 @@ pub use transitions::{
     NativeConsultationLease, NativeConsultationOrigin, NativeConsultationPreparation,
     NativeConsultationReturnApplied, NativeConsultationReturnAttempt,
     NativeConsultationReturnLease, NativeConsultationReturnOrigin, NativeConsultationTarget,
-    NativeDtmfBatch, NativeDtmfRead, NativeDtmfRecipient, NativeDtmfTarget, NativeHandoffApplied,
+    NativeDtmfBatch, NativeDtmfGatewayRead, NativeDtmfGatewayRecipient, NativeDtmfGatewayTarget,
+    NativeDtmfRead, NativeDtmfRecipient, NativeDtmfTarget, NativeHandoffApplied,
     NativeHandoffAttempt, NativeHandoffContext, NativeHandoffLease, NativeHandoffOrigin,
     NativeOfferLease, NativeOfferObservation, NativeOfferPreflightRefusal,
     NativeOfferRecoveryObservation, NativeOfferRuntimeObservation, NativeReadyObservation,
@@ -177,7 +178,7 @@ pub use tasks::{
     IssuedTaskGrant, NativeTaskAuthority, TaskCreateDefaults, TaskInvocation,
     TaskObservationBinding, VapiSessionContext,
 };
-pub const SCHEMA_VERSION: u32 = 99;
+pub const SCHEMA_VERSION: u32 = 100;
 const STARTUP_BLOB_CLEANUP_LIMIT: usize = 100;
 
 mod session_gateways;
@@ -492,6 +493,8 @@ impl Store {
             "../migrations/099_session_gateway_targets.sql"
         ))
         .map_err(|_| Error::storage())?;
+        tx.execute_batch(include_str!("../migrations/100_native_dtmf_gateways.sql"))
+            .map_err(|_| Error::storage())?;
         tx.commit().map_err(|_| Error::storage())?;
         let blob_directory = Self::create_blob_directory(path)?;
         let authority = Self::authority_manager(path, &connection)?;

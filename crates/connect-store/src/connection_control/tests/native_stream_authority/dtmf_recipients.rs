@@ -10,7 +10,11 @@ struct Signals {
     targets: Vec<Arc<crate::NativeMediaOrigin>>,
     lease: crate::NativeStreamLease,
 }
-fn target(f: &mut Fixture, actor: usize, receive: bool) -> Arc<crate::NativeMediaOrigin> {
+pub(super) fn target(
+    f: &mut Fixture,
+    actor: usize,
+    receive: bool,
+) -> Arc<crate::NativeMediaOrigin> {
     if receive {
         let owner = f.store.revalidate(&f.keys[actor]).unwrap().identity_id;
         let mut scope = Scope::collaboration(vec!["*".into()]);

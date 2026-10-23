@@ -103,7 +103,7 @@ pub(super) fn scopes(
     if let Some(mut retained) = crate::transitions::retained_native_stream_scopes(c, actor, intent)?
     {
         if intent.command == connect_protocol::native_streams::Command::Dtmf {
-            retained.extend(dtmf_scene_scopes(c, intent)?);
+            retained.extend(dtmf_scene_scopes(store, c, intent)?);
         }
         if intent.quality_interval_ms().is_none()
             && matches!(
@@ -136,7 +136,7 @@ pub(super) fn scopes(
         AuthorityMode::Read,
     )?;
     if intent.command == connect_protocol::native_streams::Command::Dtmf {
-        scopes.extend(dtmf_scene_scopes(c, intent)?);
+        scopes.extend(dtmf_scene_scopes(store, c, intent)?);
     }
     scopes.push(AuthorityScope::identity(
         &actor.identity_id,
@@ -161,7 +161,11 @@ pub(super) fn scopes(
     }
     AuthorityScope::merged(&scopes)
 }
-fn dtmf_scene_scopes(c: &Connection, intent: &Intent) -> Result<Vec<AuthorityScope>> {
+fn dtmf_scene_scopes(
+    store: &Store,
+    c: &Connection,
+    intent: &Intent,
+) -> Result<Vec<AuthorityScope>> {
     let mut q=c.prepare("SELECT DISTINCT p.identity_id FROM participants p JOIN session_participants sp ON sp.participant_id=p.participant_id AND sp.membership_epoch=p.membership_epoch WHERE p.conversation_id=?1 AND p.active=1 AND sp.session_id=?2 AND sp.state='present' ORDER BY p.identity_id LIMIT 257").map_err(|_|Error::storage())?;
     let ids = q
         .query_map(params![intent.conversation_id, intent.session_id], |r| {
@@ -176,9 +180,12 @@ fn dtmf_scene_scopes(c: &Connection, intent: &Intent) -> Result<Vec<AuthoritySco
             "DTMF scene exceeds its bounded profile",
         ));
     }
-    ids.iter()
+    let mut scopes = ids
+        .iter()
         .map(|id| AuthorityScope::identity(id, AuthorityMode::Read))
-        .collect()
+        .collect::<Result<Vec<_>>>()?;
+    scopes.extend(store.telephone_scene_scopes(c, &intent.conversation_id, &intent.session_id)?);
+    AuthorityScope::merged(&scopes)
 }
 impl Store {
     /// Early subscription diagnostics under the original command's complete

@@ -22,7 +22,7 @@ fn fits(c: &Connection, limit: u64, consumed: u64, additional: u64, journal: boo
     }, [], |r|r.get(0)).map_err(|_|Error::storage())?;
     let writers: u64 = if journal {
         c.query_row(
-            "SELECT (SELECT COUNT(*) FROM native_data_writes WHERE disposition IS NULL)+(SELECT COUNT(*) FROM native_dtmf_recipients WHERE disposition IS NULL)",
+            "SELECT (SELECT COUNT(*) FROM native_data_writes WHERE disposition IS NULL)+(SELECT COUNT(*) FROM native_dtmf_deliveries WHERE disposition IS NULL)",
             [],
             |r| r.get(0),
         )

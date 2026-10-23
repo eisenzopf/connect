@@ -870,7 +870,7 @@
       },
       "NativeDtmfSubmission": {
         "type": "object",
-        "description": "Frozen native DTMF source and per-recipient local writer facts. Local submission does not prove remote receipt or playback. Exposed only after all owned local jobs stop; uncertain writes stay uncertain and never schedule replay.",
+        "description": "Frozen native DTMF source and per-recipient local writer facts. Store custody supports native and initial SIP recipient bindings; installed physical delivery profiles are qualified separately. Local submission does not prove remote receipt or playback. Exposed only after all owned local jobs stop; uncertain writes stay uncertain and never schedule replay.",
         "additionalProperties": false,
         "properties": {
           "connection_id": {
@@ -954,7 +954,8 @@
                     {
                       "type": "null"
                     }
-                  ]
+                  ],
+                  "description": "Reserved local output identity: the signed native frame ID or one stable SIP gateway schedule ID. Reacquisition keeps the same identity; this field does not prove remote receipt or playback."
                 }
               },
               "required": [

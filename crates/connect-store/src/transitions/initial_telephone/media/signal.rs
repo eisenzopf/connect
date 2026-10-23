@@ -26,6 +26,7 @@ pub struct InitialTelephoneSignalRead {
     _interval: Arc<AuthorityGuardSet>,
     member: MemberView,
     endpoint_actor: Actor,
+    route_actor: Actor,
     expires: i64,
 }
 media_redacted!(InitialTelephoneSignalRead);
@@ -44,6 +45,12 @@ impl InitialTelephoneSignalRead {
     }
     pub fn expires_at(&self) -> i64 {
         self.expires
+    }
+    pub(crate) fn endpoint_actor(&self) -> &Actor {
+        &self.endpoint_actor
+    }
+    pub(crate) fn route_actor(&self) -> &Actor {
+        &self.route_actor
     }
 }
 impl Store {
@@ -95,6 +102,7 @@ impl Store {
             _interval: interval,
             member: p.member,
             endpoint_actor: p.endpoint_actor,
+            route_actor: p.route_actor,
             expires: p.expires,
         })
     }
@@ -121,6 +129,9 @@ impl InitialTelephoneNativeSignalRead {
     pub fn expires_at(&self) -> i64 {
         self.phone.expires_at()
     }
+    pub(crate) fn interval(&self) -> &Arc<AuthorityGuardSet> {
+        &self.phone._interval
+    }
 }
 impl Store {
     /// Acquire both sides together, then recheck current named permissions,
@@ -131,6 +142,24 @@ impl Store {
         native: Arc<crate::NativeMediaOrigin>,
         direction: InitialTelephoneSignalDirection,
     ) -> Result<InitialTelephoneNativeSignalRead> {
+        let c = self.try_connection()?;
+        let required = self.initial_telephone_native_signal_scopes(&c, &phone, &native)?;
+        let interval = self.try_acquire_authority(&required)?;
+        self.initial_telephone_native_signal_in(
+            &c,
+            phone,
+            native,
+            direction,
+            interval,
+            crate::now() + 30,
+        )
+    }
+    pub(crate) fn initial_telephone_native_signal_scopes(
+        &self,
+        c: &Connection,
+        phone: &InitialTelephoneMediaOrigin,
+        native: &crate::NativeMediaOrigin,
+    ) -> Result<Vec<AuthorityScope>> {
         let source = phone.source();
         if native.conversation_id() != source.request.conversation_id
             || native.session_id() != source.request.session_id
@@ -138,21 +167,34 @@ impl Store {
         {
             return Err(Error::forbidden());
         }
-        let c = self.try_connection()?;
-        let (_, mut required, _) = self.native_signal_facts_at(&c, &native)?;
-        required.extend(current_scopes(&c, phone.signal.origin(), false)?);
-        let interval = self.try_acquire_authority(&AuthorityScope::merged(&required)?)?;
-        let (_, _, until) = self.native_signal_facts_at(&c, &native)?;
+        let (_, mut required, _) = self.native_signal_facts_at(c, native)?;
+        required.extend(current_scopes(c, phone.signal.origin(), false)?);
+        AuthorityScope::merged(&required)
+    }
+    pub(crate) fn initial_telephone_native_signal_in(
+        &self,
+        c: &Connection,
+        phone: Arc<InitialTelephoneMediaOrigin>,
+        native: Arc<crate::NativeMediaOrigin>,
+        direction: InitialTelephoneSignalDirection,
+        interval: Arc<AuthorityGuardSet>,
+        until: i64,
+    ) -> Result<InitialTelephoneNativeSignalRead> {
+        let scopes = self.initial_telephone_native_signal_scopes(c, &phone, &native)?;
+        if !self.authority_covers(&interval, &scopes) {
+            return Err(Error::forbidden());
+        }
+        let (_, _, expiry) = self.native_signal_facts_at(c, &native)?;
         let phone = self.initial_telephone_signal_in(
-            &c,
+            c,
             phone,
             direction,
             interval.clone(),
-            until.min(crate::now() + 30),
+            until.min(expiry),
         )?;
-        let native_read = self.native_signal_read_in(&c, &native, interval, phone.expires_at())?;
+        let native_read = self.native_signal_read_in(c, &native, interval, phone.expires_at())?;
         let view = native_read.target();
-        let actor = self.native_media_route_actor(&c, &native)?;
+        let actor = self.native_media_route_actor(c, &native)?;
         actor.require(match direction {
             InitialTelephoneSignalDirection::FromTelephone => "dtmf.receive",
             InitialTelephoneSignalDirection::ToTelephone => "dtmf.send",
@@ -167,6 +209,9 @@ impl Store {
             || !actor.permits_recipient(&phone.member.identity_id)
             || !phone
                 .endpoint_actor
+                .permits_recipient(&view.session.actor.identity_id)
+            || !phone
+                .route_actor
                 .permits_recipient(&view.session.actor.identity_id)
         {
             return Err(Error::forbidden());

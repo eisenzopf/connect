@@ -82,9 +82,10 @@ reads continue to enforce their separate permission and codec checks.
 
 This reader is one leg of the bridge's authority boundary. It cannot authorize
 another party, freeze a source observation, reserve a delivery, or supply an RTP
-grant. Mixed SIP/native DTMF execution, durable recipient custody and observed
-SIP/native provenance still require implementation and production verification;
-the Store reader alone does not qualify those clauses.
+grant. The Store custody described below adds durable native-source SIP
+recipients. Mixed SIP/native DTMF execution and observed SIP/native provenance
+still require implementation and production verification; the Store reader
+alone does not qualify those clauses.
 
 `try_initial_telephone_native_signal_read` acquires the two sides together and
 rechecks the exact original public native/SIP pair under one merged authority
@@ -96,6 +97,38 @@ publication contexts cannot use this public gateway reader. The pair retains
 no media grant and does not borrow `stream.subscribe` or `connection.offer`.
 Keep original origin metadata in a queue and acquire the reader at the actual
 signal boundary; release it before waiting for metadata writers.
+
+Schema 100 extends a sealed native DTMF batch with
+`NativeDtmfGatewayRecipient` registrations. Native recipients retain their actual
+native Connection lifetimes; SIP recipients retain the original answered and
+connected SIP call, Endpoint revision, Device, generation and endpoint/route
+credential identities. No SIP call is represented as a native lifetime.
+`prepare_native_mixed_dtmf_with_peer` freezes both families atomically under the
+original signed source invocation. It checks a combined recipient bound and
+reserves every recipient's outcome capacity before sealing the batch. A batch
+can contain only SIP recipients, only native recipients, or both.
+
+The selection and fresh IO read use the exact pair's current recipient ceilings,
+including the original Session owner needed for source access. They do not
+require permission to reach unrelated Session members. Route-owner identities
+are separate locking footprints and do not enter the signal audience.
+
+`try_native_dtmf_gateway_read` independently reauthorizes the original source
+and frozen SIP recipient. Before possible IO, reserve one stable local schedule
+ID with `try_start_native_dtmf_gateway_write`. Per-packet or INFO retransmission
+checks may reacquire only that same schedule; another schedule conflicts.
+`try_record_native_dtmf_gateway_outcome` records a stopped local writer fact and
+can retry captured metadata after rights loss without granting another write.
+Both recipient families feed one operation summary. A partial result cannot
+complete the operation, and any uncertain submission keeps it unknown. Restart
+settles unreserved work as `not_started` and reserved work as `outcome_unknown`;
+it never constructs a delivery job from those rows.
+
+These Store APIs do not install a physical gateway worker. SIP-originated
+observations, runtime ingress/egress, original/current Core audience fences,
+translation, cancellation and actual partial-IO/provenance qualification remain
+open. In particular, the existing native-only Core audience fence cannot be
+substituted for a SIP recipient fence by fabricating native recipient metadata.
 
 The signed native QUIC service installs a recipient registration on its actual
 physical handler and drives that handler's DTMF mux. The original source

@@ -3,7 +3,7 @@ use super::*;
 use crate::{InitialTelephoneMediaOrigin, InitialTelephoneSignalDirection::*};
 use std::sync::Arc;
 
-fn fixture() -> (
+pub(super) fn fixture() -> (
     Fixture,
     Arc<crate::NativeMediaOrigin>,
     Arc<InitialTelephoneMediaOrigin>,

@@ -433,12 +433,16 @@ impl Store {
         {
             return Err(Error::forbidden());
         }
-        for identity in &crate::audience::source_members(
-            c,
-            &s.request.conversation_id,
-            connect_protocol::membership::ContentKind::Session,
-            &s.request.session_id,
-        )? {
+        for identity in &if matches!(purpose, ProjectionPurpose::Media) {
+            crate::audience::source_members(
+                c,
+                &s.request.conversation_id,
+                connect_protocol::membership::ContentKind::Session,
+                &s.request.session_id,
+            )?
+        } else {
+            Vec::new()
+        } {
             if !endpoint.permits_recipient(identity) || !route.permits_recipient(identity) {
                 return Err(Error::forbidden());
             }

@@ -1,7 +1,9 @@
 //! One original signal, frozen recipients and append-only local writer facts.
 use super::*;
+mod gateways;
 use crate::{NativeMediaOrigin, NativeSignalRead};
 use connect_protocol::native_dtmf::{SourceObservation, SubmissionDisposition as Disposition};
+pub use gateways::{NativeDtmfGatewayRead, NativeDtmfGatewayRecipient, NativeDtmfGatewayTarget};
 use std::{
     collections::BTreeSet,
     sync::{Arc, Weak},
@@ -31,10 +33,14 @@ pub struct NativeDtmfTarget {
 pub struct NativeDtmfBatch {
     source: Arc<Source>,
     targets: Vec<NativeDtmfTarget>,
+    gateways: Vec<NativeDtmfGatewayTarget>,
 }
 impl NativeDtmfBatch {
     pub fn targets(&self) -> &[NativeDtmfTarget] {
         &self.targets
+    }
+    pub fn gateway_targets(&self) -> &[NativeDtmfGatewayTarget] {
+        &self.gateways
     }
     pub fn observation(&self) -> &SourceObservation {
         &self.source.observation
@@ -93,20 +99,34 @@ pub(super) fn recipient_scopes(
     actor: &Actor,
     record: &str,
 ) -> Result<Vec<AuthorityScope>> {
-    let mut q=c.prepare("SELECT DISTINCT json_extract(target_json,'$.identity_id') FROM native_dtmf_recipients WHERE operation_record_id=?1 ORDER BY 1").map_err(|_|Error::storage())?;
+    let mut q=c.prepare("SELECT DISTINCT json_extract(target_json,'$.identity_id') FROM native_dtmf_deliveries WHERE operation_record_id=?1 ORDER BY 1").map_err(|_|Error::storage())?;
     let ids = q
         .query_map([record], |r| r.get::<_, String>(0))
         .map_err(|_| Error::storage())?
         .collect::<rusqlite::Result<Vec<_>>>()
         .map_err(|_| Error::storage())?;
-    ids.iter()
+    let mut scopes = ids
+        .iter()
         .map(|id| {
             if !actor.permits_recipient(id) {
                 return Err(Error::forbidden());
             }
             AuthorityScope::identity(id, crate::AuthorityMode::Read)
         })
-        .collect()
+        .collect::<Result<Vec<_>>>()?;
+    let mut q = c.prepare("SELECT DISTINCT json_extract(target_json,'$.route_owner_id') FROM native_dtmf_gateways WHERE operation_record_id=?1").map_err(|_|Error::storage())?;
+    let routes = q
+        .query_map([record], |r| r.get::<_, String>(0))
+        .map_err(|_| Error::storage())?
+        .collect::<rusqlite::Result<Vec<_>>>()
+        .map_err(|_| Error::storage())?;
+    for route in routes {
+        scopes.push(AuthorityScope::identity(
+            &route,
+            crate::AuthorityMode::Read,
+        )?);
+    }
+    AuthorityScope::merged(&scopes)
 }
 
 fn historical(c: &Connection, store: &Store, source: &Source) -> Result<rows::Saved> {
@@ -154,11 +174,19 @@ fn current(
     }
     Ok(())
 }
+fn delivery_table(c: &Connection, record: &str, target: &str) -> Result<&'static str> {
+    let kind: String = c.query_row("SELECT target_kind FROM native_dtmf_deliveries WHERE operation_record_id=?1 AND target_record_id=?2",params![record,target],|r|r.get(0)).map_err(|_|Error::forbidden())?;
+    match kind.as_str() {
+        "native" => Ok("native_dtmf_recipients"),
+        "sip-initial" => Ok("native_dtmf_gateways"),
+        _ => Err(Error::forbidden()),
+    }
+}
 fn aggregate(c: &Connection, record: &str, complete: bool) -> Result<serde_json::Value> {
     let (connection,observation):(String,String)=c.query_row("SELECT o.connection_id,d.observation_json FROM operations o JOIN native_dtmf_sources d ON d.operation_record_id=o.record_id WHERE o.record_id=?1",[record],|r|Ok((r.get(0)?,r.get(1)?))).map_err(|_|Error::storage())?;
     let observation: SourceObservation =
         serde_json::from_str(&observation).map_err(|_| Error::storage())?;
-    let mut q=c.prepare("SELECT target_json,disposition,frame_id FROM native_dtmf_recipients WHERE operation_record_id=?1 ORDER BY target_record_id").map_err(|_|Error::storage())?;
+    let mut q=c.prepare("SELECT target_json,disposition,frame_id FROM native_dtmf_deliveries WHERE operation_record_id=?1 ORDER BY target_record_id").map_err(|_|Error::storage())?;
     let rows = q
         .query_map([record], |r| {
             Ok((
@@ -188,7 +216,7 @@ fn outcome(
     disposition: Disposition,
     recovery: bool,
 ) -> Result<()> {
-    let (attempted,saved):(bool,Option<String>)=c.query_row("SELECT attempted,disposition FROM native_dtmf_recipients WHERE operation_record_id=?1 AND target_record_id=?2",params![record,target],|r|Ok((r.get(0)?,r.get(1)?))).optional().map_err(|_|Error::storage())?.ok_or_else(Error::forbidden)?;
+    let (attempted,saved):(bool,Option<String>)=c.query_row("SELECT attempted,disposition FROM native_dtmf_deliveries WHERE operation_record_id=?1 AND target_record_id=?2",params![record,target],|r|Ok((r.get(0)?,r.get(1)?))).optional().map_err(|_|Error::storage())?.ok_or_else(Error::forbidden)?;
     if let Some(saved) = saved {
         return if saved == disposition.as_str() {
             Ok(())
@@ -207,7 +235,8 @@ fn outcome(
         return Err(conflict());
     }
     let journal = format!("evt_{}", uuid::Uuid::new_v4().simple());
-    c.execute("UPDATE native_dtmf_recipients SET disposition=?3,provenance=?4,observed_at=?5,journal_id=?6 WHERE operation_record_id=?1 AND target_record_id=?2 AND disposition IS NULL",params![record,target,disposition.as_str(),if recovery {"runtime_recovery"} else {"local_writer"},crate::now(),journal]).map_err(|_|Error::storage())?;
+    let table = delivery_table(c, record, target)?;
+    c.execute(&format!("UPDATE {table} SET disposition=?3,provenance=?4,observed_at=?5,journal_id=?6 WHERE operation_record_id=?1 AND target_record_id=?2 AND disposition IS NULL"),params![record,target,disposition.as_str(),if recovery {"runtime_recovery"} else {"local_writer"},crate::now(),journal]).map_err(|_|Error::storage())?;
     if row.record.revision >= 9007199254740990 {
         return Err(conflict());
     }
@@ -228,7 +257,7 @@ fn outcome(
 }
 fn finish(c: &Connection, store: &Store, record: &str) -> Result<OperationRecord> {
     let row = rows::by_record(c, record)?;
-    let (pending,unknown,submitted,total):(u64,u64,u64,u64)=c.query_row("SELECT COALESCE(SUM(disposition IS NULL),0),COALESCE(SUM(disposition='outcome_unknown'),0),COALESCE(SUM(disposition='local_submitted'),0),COUNT(*) FROM native_dtmf_recipients WHERE operation_record_id=?1",[record],|r|Ok((r.get(0)?,r.get(1)?,r.get(2)?,r.get(3)?))).map_err(|_|Error::storage())?;
+    let (pending,unknown,submitted,total):(u64,u64,u64,u64)=c.query_row("SELECT COALESCE(SUM(disposition IS NULL),0),COALESCE(SUM(disposition='outcome_unknown'),0),COALESCE(SUM(disposition='local_submitted'),0),COUNT(*) FROM native_dtmf_deliveries WHERE operation_record_id=?1",[record],|r|Ok((r.get(0)?,r.get(1)?,r.get(2)?,r.get(3)?))).map_err(|_|Error::storage())?;
     if pending != 0 || total == 0 {
         return Err(conflict());
     }
@@ -377,6 +406,25 @@ impl Store {
         proof: &PeerAuthorityGuard,
         observation: SourceObservation,
     ) -> Result<NativeDtmfBatch> {
+        self.prepare_native_mixed_dtmf_with_peer(
+            lease,
+            source,
+            recipients,
+            Vec::new(),
+            proof,
+            observation,
+        )
+    }
+    /// Freeze one source and the complete native/SIP intended set atomically.
+    pub fn prepare_native_mixed_dtmf_with_peer(
+        &self,
+        lease: &NativeStreamLease,
+        source: Arc<NativeMediaOrigin>,
+        recipients: Vec<NativeDtmfRecipient>,
+        gateways: Vec<NativeDtmfGatewayRecipient>,
+        proof: &PeerAuthorityGuard,
+        observation: SourceObservation,
+    ) -> Result<NativeDtmfBatch> {
         observation.validate()?;
         let credential = proof
             .request
@@ -391,8 +439,8 @@ impl Store {
             || observation.credential_revision != source.credential_epoch() + 1
             || observation.signing_key_id != proof.request.key_id
             || observation.signing_algorithm != proof.request.algorithm
-            || recipients.is_empty()
-            || recipients.len() > self.limits().connections.min(512)
+            || recipients.len() + gateways.len() == 0
+            || recipients.len().saturating_add(gateways.len()) > self.limits().connections.min(512)
         {
             return Err(Error::forbidden());
         }
@@ -439,7 +487,20 @@ impl Store {
             let snapshot = self.native_dtmf_origin_snapshot(&tx, &target.origin)?;
             frozen.push((target, snapshot));
         }
-        if !crate::conversations::capacity(&tx, frozen.len() as u64, 0, self)? {
+        let gateway_frozen = self.freeze_native_dtmf_gateways(
+            &tx,
+            &source,
+            gateways,
+            proof,
+            &mut seen,
+            &mut registrations,
+        )?;
+        if !crate::conversations::capacity(
+            &tx,
+            (frozen.len() + gateway_frozen.len()) as u64,
+            0,
+            self,
+        )? {
             return Err(Error::new(
                 "capacity-exceeded",
                 "DTMF outcome capacity exhausted",
@@ -448,6 +509,9 @@ impl Store {
         tx.execute("INSERT INTO native_dtmf_sources(operation_record_id,runtime_epoch,observation_json) VALUES(?1,?2,?3)",params![lease.record_id(),self.runtime_epoch(),serde_json::to_string(&observation).map_err(|_|Error::storage())?]).map_err(|_|Error::storage())?;
         for (target, snapshot) in &frozen {
             tx.execute("INSERT INTO native_dtmf_recipients(operation_record_id,target_record_id,registration_id,target_json) VALUES(?1,?2,?3,?4)",params![lease.record_id(),target.origin.offer_record_id(),target.registration_id,snapshot.to_string()]).map_err(|_|Error::storage())?;
+        }
+        for (target, snapshot) in &gateway_frozen {
+            tx.execute("INSERT INTO native_dtmf_gateways(operation_record_id,target_record_id,registration_id,target_json) VALUES(?1,?2,?3,?4)", params![lease.record_id(),target.origin.record_id(),target.registration_id,snapshot.to_string()]).map_err(|_|Error::storage())?;
         }
         tx.execute(
             "UPDATE native_dtmf_sources SET sealed=1 WHERE operation_record_id=?1",
@@ -475,7 +539,20 @@ impl Store {
                 snapshot,
             })
             .collect();
-        Ok(NativeDtmfBatch { source, targets })
+        let gateways = gateway_frozen
+            .into_iter()
+            .map(|(t, snapshot)| NativeDtmfGatewayTarget {
+                source: source.clone(),
+                origin: t.origin,
+                registration: t.registration_id,
+                snapshot,
+            })
+            .collect();
+        Ok(NativeDtmfBatch {
+            source,
+            targets,
+            gateways,
+        })
     }
     /// Fresh independent named signal admission. No initial invocation is held.
     pub fn try_native_dtmf_read(&self, target: &NativeDtmfTarget) -> Result<NativeDtmfRead> {
@@ -593,7 +670,7 @@ impl Store {
         };
         for record in &records {
             let pending = {
-                let mut q=tx.prepare("SELECT target_record_id,attempted FROM native_dtmf_recipients WHERE operation_record_id=?1 AND disposition IS NULL ORDER BY target_record_id").map_err(|_|Error::storage())?;
+                let mut q=tx.prepare("SELECT target_record_id,attempted FROM native_dtmf_deliveries WHERE operation_record_id=?1 AND disposition IS NULL ORDER BY target_record_id").map_err(|_|Error::storage())?;
                 let rows = q
                     .query_map([record], |r| {
                         Ok((r.get::<_, String>(0)?, r.get::<_, bool>(1)?))

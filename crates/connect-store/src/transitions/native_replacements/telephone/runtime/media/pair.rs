@@ -113,7 +113,7 @@ impl Store {
         cid: &str,
         sid: &str,
     ) -> Result<Vec<crate::AuthorityScope>> {
-        let mut q=c.prepare("SELECT DISTINCT json_extract(t.descriptor_json,'$.route_owner_id') FROM telephone_connection_lifetimes l JOIN telephone_replacement_commits t ON t.operation_record_id=l.operation_record_id JOIN connections n ON n.id=l.connection_id JOIN sessions s ON s.id=n.session_id WHERE s.conversation_id=?1 AND n.session_id=?2 AND l.runtime_epoch=?3 AND l.retired=0 AND n.generation=l.generation AND n.observed_runtime_id=l.runtime_epoch AND n.state IN ('ready','active') ORDER BY 1 LIMIT ?4").map_err(|_|Error::storage())?;
+        let mut q=c.prepare("SELECT DISTINCT json_extract(t.descriptor_json,'$.route_owner_id') FROM telephone_connection_lifetimes l JOIN telephone_replacement_commits t ON t.operation_record_id=l.operation_record_id JOIN connections n ON n.id=l.connection_id JOIN sessions s ON s.id=n.session_id WHERE s.conversation_id=?1 AND n.session_id=?2 AND l.runtime_epoch=?3 AND l.retired=0 AND n.generation=l.generation AND n.observed_runtime_id=l.runtime_epoch AND n.state IN ('ready','active') UNION SELECT DISTINCT json_extract(t.source_json,'$.route_owner_id') FROM initial_telephone_operations t JOIN operations o ON o.record_id=t.operation_record_id JOIN initial_telephone_answers a ON a.operation_record_id=t.operation_record_id JOIN connections n ON n.id=o.connection_id WHERE o.conversation_id=?1 AND o.session_id=?2 AND t.attempt_runtime=?3 AND a.accepted=1 AND a.connected_at IS NOT NULL AND a.retired_at IS NULL AND n.generation=1 AND n.observed_runtime_id=?3 AND n.state IN ('ready','active') ORDER BY 1 LIMIT ?4").map_err(|_|Error::storage())?;
         let owners = q
             .query_map(
                 params![
