@@ -62,6 +62,40 @@ async fn configured_initial_profile(
     dtmf: bool,
     receive_dtmf: bool,
 ) -> ConfiguredInitial {
+    configured_initial_with_target(
+        algorithm,
+        payload,
+        timeout_seconds,
+        transport,
+        dtmf,
+        receive_dtmf,
+        false,
+    )
+    .await
+}
+
+async fn configured_initial_human(algorithm: &str) -> ConfiguredInitial {
+    configured_initial_with_target(
+        algorithm,
+        Some(0),
+        30,
+        EndpointTransport::Telephone,
+        true,
+        true,
+        true,
+    )
+    .await
+}
+
+async fn configured_initial_with_target(
+    algorithm: &str,
+    payload: Option<u8>,
+    timeout_seconds: u32,
+    transport: EndpointTransport,
+    dtmf: bool,
+    receive_dtmf: bool,
+    human: bool,
+) -> ConfiguredInitial {
     let _ = tracing_subscriber::fmt()
         .with_env_filter(
             tracing_subscriber::EnvFilter::try_from_default_env()
@@ -69,11 +103,44 @@ async fn configured_initial_profile(
         )
         .with_test_writer()
         .try_init();
-    let f = if dtmf {
+    let mut f = if dtmf {
         Fixture::with_native_dtmf_scope(algorithm, 12).await
     } else {
         Fixture::with_native_end_scope(algorithm, 12).await
     };
+    if human {
+        // A separately provisioned Human target. Existing AI/provider fixtures
+        // retain their original identity and independent readiness contract.
+        let admin = f.server.store.authenticate(&f.admin).unwrap();
+        let ProvisioningOutcome::Identity { identity_id, .. } = f
+            .server
+            .store
+            .execute_provisioning(
+                &admin.credential_id,
+                ProvisioningCommand::Identity {
+                    operation_id: "private-sip-human-target".into(),
+                    alias: "private-sip-human-target".into(),
+                    kind: IdentityKind::Human,
+                    display_name: None,
+                },
+            )
+            .unwrap()
+        else {
+            panic!()
+        };
+        let issued = f
+            .server
+            .store
+            .issue(
+                &identity_id,
+                Scope::operator(),
+                chrono::Utc::now().timestamp() + 600,
+            )
+            .unwrap();
+        f.peer.identity_id = identity_id;
+        f.peer.credential_id = issued.id;
+        f.peer.credential = issued.token;
+    }
     let peer = PeerSip::with_audio_for_user(
         payload,
         if transport == EndpointTransport::Sip {

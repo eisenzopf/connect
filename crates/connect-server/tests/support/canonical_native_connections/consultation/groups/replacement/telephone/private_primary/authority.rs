@@ -133,7 +133,7 @@ async fn recovered(
     (frame.original().clone(), status)
 }
 
-pub(super) async fn exercise(
+pub(in super::super) async fn exercise(
     f: &Fixture,
     peer: &PeerSip,
     peers: &mut [Peer],
