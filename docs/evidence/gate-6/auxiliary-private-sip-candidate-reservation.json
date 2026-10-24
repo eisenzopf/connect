@@ -1,6 +1,6 @@
 {
   "task": "G6-046",
-  "recorded_at": "2026-10-24T15:39:50.563471+00:00",
+  "recorded_at": "2026-10-24T15:43:23.658516+00:00",
   "status": "protected-sip-candidate-reservation-controlled-store-verified",
   "full_task_complete": false,
   "full_goal_complete": false,
@@ -115,13 +115,58 @@
       ]
     },
     "service_compile": {
-      "status": "running",
-      "log": ".local/gate-6/received-dtmf-runtime/sip-candidate-reservation-service-check.log"
+      "passed": true,
+      "exit_code": 0,
+      "command": [
+        "cargo",
+        "check",
+        "-p",
+        "connect-service",
+        "--locked",
+        "--offline",
+        "-j4",
+        "--target-dir",
+        "/Users/jonathaneisenzopf/.local/share/connect/store-received-snapshot-target"
+      ],
+      "log": ".local/gate-6/received-dtmf-runtime/sip-candidate-reservation-service-check.log",
+      "log_sha256": "800e33681691588b5cd65ac74758e671a3d9ed28ed3814f05d7ef2f2babc11ad",
+      "cargo_reported_elapsed": "9m 17s",
+      "source_inputs_unchanged": true
     },
     "schema_backup_recovery": {
-      "status": "waiting-for-build-lock",
-      "log": ".local/gate-6/received-dtmf-runtime/sip-candidate-reservation-schema.log"
-    }
+      "passed": true,
+      "exit_code": 0,
+      "command": [
+        "cargo",
+        "test",
+        "-p",
+        "connect-store",
+        "--test",
+        "gate6_schema",
+        "--locked",
+        "--offline",
+        "-j4",
+        "--target-dir",
+        "/Users/jonathaneisenzopf/.local/share/connect/store-received-snapshot-target",
+        "--",
+        "--test-threads=1"
+      ],
+      "log": ".local/gate-6/received-dtmf-runtime/sip-candidate-reservation-schema.log",
+      "log_sha256": "a7f2b399a740771736b8f631cad252bbe94451137e01bd8bd6ebd4d9c63dc942",
+      "executable_sha256": "120410953f4a1dfd68ac4296c08cd6af1df5496cdaa6923cab67afcca96fc526",
+      "methods": [
+        "gate6_backup_preserves_ids_audiences_unknown_effects_and_fences_live_claims",
+        "gate6_constraints_reject_rebinding_stale_epoch_cross_owner_and_false_completion",
+        "gate6_incompatible_state_refusal_preserves_files_and_requires_explicit_new_path",
+        "gate6_snapshot_digest_covers_new_private_and_effect_metadata"
+      ],
+      "passed_cases": 4,
+      "ignored_cases": 0,
+      "runtime_seconds": 46.86,
+      "cargo_reported_elapsed_including_build_lock_wait": "8m 43s",
+      "source_inputs_unchanged": true
+    },
+    "component_passed": true
   },
   "failed_attempts": [
     {
@@ -156,5 +201,6 @@
     "Remaining authority/retirement/concurrency/IO compositions and complete current G6-046 auxiliary matrix; no whole clause or task promotion.",
     "Named remote/provider profiles, Linux and independent conformance retain their separate approved qualification lanes."
   ],
-  "historical_runtime_scope": "The previous six-profile 48-frame and four-direction 24-frame SIP-primary evidence remains bound to its recorded schema103 sources and binary. It is not presented as a rerun of the current schema104 production Store."
+  "historical_runtime_scope": "The previous six-profile 48-frame and four-direction 24-frame SIP-primary evidence remains bound to its recorded schema103 sources and binary. It is not presented as a rerun of the current schema104 production Store.",
+  "implementation_commit": "d93427947715c3630907ba2faed66bc5587ef4f7"
 }
