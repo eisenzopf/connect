@@ -138,10 +138,20 @@ fn native_packet_pair_owned_reader_cannot_extend_original_source_expiry() {
         .try_native_media_read_under(&target, &source, &held)
         .unwrap();
     assert!(paired.current());
+    let unary = f
+        .store
+        .try_native_media_source_read_under(&source, &held)
+        .unwrap();
+    assert!(unary.expires_at() <= held.expires_at());
     assert!(paired.expires_at() <= held.expires_at());
     std::thread::sleep(Duration::from_millis(2100));
     assert!(!held.current());
     assert!(!paired.current());
+    assert!(!unary.current());
+    assert!(f
+        .store
+        .try_native_media_source_read_under(&source, &held)
+        .is_err());
     assert_eq!(
         f.store
             .try_native_media_read_under(&target, &source, &held)
@@ -150,4 +160,92 @@ fn native_packet_pair_owned_reader_cannot_extend_original_source_expiry() {
             .code,
         "forbidden"
     );
+}
+
+#[test]
+fn native_packet_source_rechecks_exact_current_origin_under_live_same_packet_custody() {
+    let f = Fixture::new();
+    let source = f.origin(1, "publisher");
+    let other = f.origin(0, "other-publisher");
+    let held = f.store.try_native_media_read(&source, None).unwrap();
+    let foreign = Fixture::new();
+    let foreign_source = foreign.origin(1, "publisher");
+    let foreign_held = foreign
+        .store
+        .try_native_media_read(&foreign_source, None)
+        .unwrap();
+    for denied in [
+        f.store
+            .try_native_media_source_read_under(&source, &foreign_held),
+        f.store.try_native_media_source_read_under(&other, &held),
+    ] {
+        assert_eq!(denied.err().unwrap().code, "forbidden");
+    }
+    let scope = AuthorityScope::conversation(&f.cid, AuthorityMode::Write).unwrap();
+    let peer = Store::open_administration(f.store.path(), f.store.limits.clone()).unwrap();
+    let write = scope.clone();
+    let writer = std::thread::spawn(move || {
+        peer.acquire_authority(&[write], &crate::AuthorityWait::new(Duration::from_secs(2)))
+    });
+    crate::authority_fences::test_wait_for_writer(&f.store, &scope);
+    assert_eq!(
+        f.store
+            .try_native_media_read(&source, None)
+            .err()
+            .unwrap()
+            .code,
+        "authority-busy"
+    );
+    let current = f
+        .store
+        .try_native_media_source_read_under(&source, &held)
+        .unwrap();
+    assert_eq!(
+        current.target().runtime_connection_id,
+        source.runtime_connection_id()
+    );
+    assert!(current.source().is_none());
+    assert!(current.current());
+    assert!(current.expires_at() <= held.expires_at());
+    drop(held);
+    assert!(!writer.is_finished());
+    drop(current);
+    drop(writer.join().unwrap().unwrap());
+    assert!(f.store.try_native_media_read(&source, None).is_ok());
+}
+
+#[test]
+fn native_packet_source_custody_rederives_mutated_facts_and_refuses_retirement() {
+    let f = Fixture::new();
+    let source = f.origin(1, "publisher");
+    let held = f.store.try_native_media_read(&source, None).unwrap();
+    let previous_role = held.target().presence_role.clone();
+    // Deliberately bypass the supported writer fences to test fresh SQL seals.
+    f.store
+        .connection()
+        .unwrap()
+        .execute(
+            "UPDATE session_participants SET role='observer' WHERE participant_id=?1",
+            [&f.pids[1]],
+        )
+        .unwrap();
+    let changed = f
+        .store
+        .try_native_media_source_read_under(&source, &held)
+        .unwrap();
+    assert_eq!(changed.target().presence_role, "observer");
+    assert_eq!(held.target().presence_role, previous_role);
+    drop(changed);
+    f.store
+        .connection()
+        .unwrap()
+        .execute(
+            "UPDATE connections SET state='retired' WHERE id=?1",
+            [source.connection_id()],
+        )
+        .unwrap();
+    assert!(f
+        .store
+        .try_native_media_source_read_under(&source, &held)
+        .is_err());
 }

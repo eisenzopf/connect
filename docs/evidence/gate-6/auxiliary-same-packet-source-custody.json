@@ -1,0 +1,31 @@
+{
+  "scope": "Local macOS arm64 Store component only. Same-original-packet source custody in Core/Service and actual host capacity remain unverified. No Gate6 clause/task promotion.",
+  "behavior": "Recheck the exact live source runtime binding, participant, membership epoch and generation under a same-namespace/runtime current reader; derive current complete scopes and SQL-versioned facts, cap expiry to the original reader. No foreign or different-source fallback.",
+  "verification": {
+    "command": "CARGO_INCREMENTAL=1 cargo test -p connect-store --target-dir /Users/jonathaneisenzopf/.local/share/connect/store-received-snapshot-target --lib --locked --offline -j4 connection_control::tests::media_authority::packet_reads -- --test-threads=1",
+    "summary": "test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 1056 filtered out; finished in 4.47s",
+    "log": ".local/gate-6/received-dtmf-runtime/admission178-store.log",
+    "log_sha256": "a37bf3940f126afa3c4ed9dc12d6b1a6f7f8ae5e9a3bc5c6cb31c9bc051e8631",
+    "tests": [
+      "connection_control::tests::media_authority::packet_reads::native_packet_pair_owned_file_custody_cannot_supply_target_named_permission",
+      "connection_control::tests::media_authority::packet_reads::native_packet_pair_owned_reader_cannot_extend_original_source_expiry",
+      "connection_control::tests::media_authority::packet_reads::native_packet_pair_rederives_exact_target_under_owned_source_reader_and_queued_writer",
+      "connection_control::tests::media_authority::packet_reads::native_packet_source_custody_rederives_mutated_facts_and_refuses_retirement",
+      "connection_control::tests::media_authority::packet_reads::native_packet_source_rechecks_exact_current_origin_under_live_same_packet_custody"
+    ],
+    "source_sha256": {
+      "crates/connect-store/src/peer_authority/connection_media.rs": "7d8f034194d2cedf6ef6075b97d3561c458ef240fd53cee94e6731aa9911dc6d",
+      "crates/connect-store/src/connection_control/tests/media_authority/packet_reads.rs": "3ddeeabd9456197e8ec74899e507fc15f9ab6ceefe34a8eeefceaf14deb408ef"
+    }
+  },
+  "negative_and_recovery_evidence": [
+    "Actual fair queued writer refuses standalone fresh admission while the exact active source can rederive current facts; final read release admits writer, then fresh admission recovers.",
+    "Foreign Store custody and a different actual source are refused.",
+    "Deliberate SQL-bypass role change is rederived and later Connection retirement refuses; the original held facts do not change.",
+    "Original source expiry bounds both paired and unary reads and later admission refuses."
+  ],
+  "remaining": [
+    "Complete tracked upstream and Service integration, Core controlled fanout/current-policy/deadline checks, exact host build and actual production regressions.",
+    "Full50 both-algorithm complete lifecycle capture remains required with unchanged thresholds. G6-04658/61,45/105;0112/0113/0123 open."
+  ]
+}

@@ -649,6 +649,31 @@ impl Store {
         }
         Ok(read)
     }
+    /// Recheck the original publisher for another concurrent copy of the same
+    /// bounded packet. Only its exact live source read can supply file custody;
+    /// the full current scope set and SQL version seals are revalidated.
+    pub fn try_native_media_source_read_under(
+        &self,
+        source: &NativeMediaOrigin,
+        held: &NativeMediaRead,
+    ) -> Result<NativeMediaRead> {
+        if !held.current()
+            || !self.authority.owns(held.interval())
+            || !Arc::ptr_eq(&self.require_runtime_owner()?, &held.owner)
+            || held.target.runtime_connection_id != source.runtime_connection_id()
+            || held.target.connection.participant_id != source.participant_id()
+            || held.target.connection.membership_epoch != source.membership_epoch()
+            || held.target.connection.generation != source.generation()
+        {
+            return Err(Error::forbidden());
+        }
+        let mut read = self.native_media_read_at(source, None, Some(held.interval()))?;
+        read.expires_at = read.expires_at.min(held.expires_at);
+        if !held.current() || !read.current() {
+            return Err(Error::forbidden());
+        }
+        Ok(read)
+    }
     fn native_media_read_at(
         &self,
         target: &NativeMediaOrigin,
