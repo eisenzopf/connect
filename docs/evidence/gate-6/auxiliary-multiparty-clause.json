@@ -1,0 +1,249 @@
+{
+  "task": "G6-046",
+  "case_id": "u6-req-0123",
+  "recorded_at": "2026-10-24T11:32:42.897201+00:00",
+  "status": "qualified-local-native-integration",
+  "full_task_complete": false,
+  "full_goal_complete": false,
+  "qualified_clause_count_before": 58,
+  "qualified_clause_count": 59,
+  "assigned_clause_count": 61,
+  "remaining_case_ids": [
+    "u6-req-0112",
+    "u6-req-0113"
+  ],
+  "scope": "Entire assigned multiparty clause audited for the installed local Connect native QUIC audio profile, combining fixed both-algorithm fifty-member and small-session/negative/codec/authority production evidence. Global independent conformance and other transport/hosting/remote profiles remain unqualified.",
+  "source_requirement": "U6-REQ-0123",
+  "source_excerpt_sha256": "0087c5427c3597aabb76456c03924fc9f59bc54f610ddd3816196fe1788fa0f3",
+  "source_patch_count": 183,
+  "store_schema": 103,
+  "source_lock_sha256": "3795c30528c83a11afff179b3649657babddac8073e0e5177aa34d14f742c3c9",
+  "executable_sha256": "18ff7d1ca439bd604c22dd92f93e6222bace6f1e3e478f2fb1a4ca3295b960b9",
+  "proof_report": {
+    "path": "docs/evidence/gate-6/auxiliary-native-ready-audio.json",
+    "sha256": "ff26bedc90cb8522026c161eddcb1153f515303f303323c8b86ff0c25581db1c"
+  },
+  "capacity_summary": {
+    "path": ".local/gate-6/fifty-native/native-ready183-release/summary.json",
+    "sha256": "92318539dbe98ef4137e8a0e3b93df5c718c3467d1f51703531418bf4149f24c"
+  },
+  "production_summary": {
+    "path": ".local/gate-6/received-dtmf-runtime/native-ready183-production-summary.json",
+    "sha256": "ef434ffe4930a6a8285bbd919aeec705fed002c6fc4cbce437366767f1acaf57"
+  },
+  "clause_audit": [
+    {
+      "requirement": "Participant joined/left lifecycle is multicast to every other current Participant.",
+      "evidence": "Both complete fifty scenes validate4900 actual joined multicasts,100 Session started frames and194 leave/removal multicasts, with exact recipient identities, source Connection and correlations; SDK verifies EdDSA/ES256 signatures."
+    },
+    {
+      "requirement": "Own offer/answer and readiness advertise each Participant publication.",
+      "evidence": "100 publisher answers and98 independent receiver answers; actual ready-before-opened lifecycle and exact per-peer handles.49 decoded subscriber startups per scene are backed by49 durable actual flow facts within original shared8s."
+    },
+    {
+      "requirement": "Subscription is explicit, with exact Stream, Participant and kind selection.",
+      "evidence": "No RTP at all before selection;49 exact/PID/PID+audio subscriptions per scene. Later publication reaches33 retained Participant selectors and excludes16 exact selectors. Unsubscribe/replay/no-op and membership loss preserve eligible recipients and silence excluded ones. Current production heterogeneous wildcard case covers missing/incompatible selectors and definitive refusals on both algorithms."
+    },
+    {
+      "requirement": "Server-side fanout resolves the authenticated physical binding and rewrites per-recipient Stream handles.",
+      "evidence": "Every intended recipient independently decodes actual G711; all observed egress handles equal that physical receiver binding, with>10 marked frames per allowed recipient at original bounds. Current small-session subscription/replay and foreign physical replay/codec refusal methods also pass. No queued metadata borrows another source/packet authority."
+    },
+    {
+      "requirement": "Active speaker is explicitly optional and never a correctness dependency.",
+      "evidence": "Installed policy does not emit active-speaker events. Positive media/lifecycle outcomes depend on actual decoded media, signed observations and current authority, not missing advisory energy events. No new optional feature is advertised or invented as a prerequisite."
+    },
+    {
+      "requirement": "No SFU-specific wire envelopes are exposed.",
+      "evidence": "Fifty publisher/receiver/subscription/departure readers reject unexpected envelope families; actual captures validate the unchanged canonical schema. Internal epoch scheduling adds no wire family. The same public SDK operates the small and fifty-member scenes."
+    },
+    {
+      "requirement": "A two-Participant Session uses the same envelopes and lifecycle as a fifty-Participant Session.",
+      "evidence": "Current exact-binary two-peer subscription/replay and both-algorithm lifecycle/quality methods pass alongside fifty-member scenes.22 actual lifecycle envelopes validate canonical ready/opened/closed/quality shapes and signing algorithms; the same protocol code and APIs serve both sizes."
+    }
+  ],
+  "current_production_methods": [
+    {
+      "index": 0,
+      "method": "canonical_native_connections::lifecycle::production_native_lifecycle_quality_reports_actual_flow_through_signed_sdk",
+      "exit_code": 0,
+      "passed": true,
+      "elapsed_seconds": 23.488681082846597,
+      "log": ".local/gate-6/received-dtmf-runtime/native-ready183-production-0.log",
+      "log_sha256": "6cb033a119a6ca975b659d62b5cb997eb9f3a5e3250e558cecc7afc30df2891e"
+    },
+    {
+      "index": 1,
+      "method": "canonical_native_connections::selector_policy::production_native_heterogeneous_wildcard_preserves_audio_and_definitive_refusals",
+      "exit_code": 0,
+      "passed": true,
+      "elapsed_seconds": 10.380333041073754,
+      "log": ".local/gate-6/received-dtmf-runtime/native-ready183-production-1.log",
+      "log_sha256": "9dc187596d1f2322323c026fe8c5b89434b7aa2bc5148d2db6b920d58402aba4"
+    },
+    {
+      "index": 3,
+      "method": "canonical_native_connections::production_signed_native_stream_subscription_routes_audio_and_replays_without_another_effect",
+      "exit_code": 0,
+      "passed": true,
+      "elapsed_seconds": 5.181297624949366,
+      "log": ".local/gate-6/received-dtmf-runtime/native-ready183-production-3.log",
+      "log_sha256": "19abb3bf583b3205af15fbe0e36d9bda0712ba37d9123a8c4900eaf852fbb521"
+    },
+    {
+      "index": 4,
+      "method": "canonical_native_connections::codecs::production_native_codec_refusals_and_foreign_physical_replay_preserve_audio_and_pending_original",
+      "exit_code": 0,
+      "passed": true,
+      "elapsed_seconds": 3.2823507499415427,
+      "log": ".local/gate-6/received-dtmf-runtime/native-ready183-production-4.log",
+      "log_sha256": "1670f808f2a6a3d2730671f8101d57bc2c0f9db084efe1e5746fb0ed1fc5b795"
+    },
+    {
+      "index": 5,
+      "method": "canonical_native_connections::consultation::production_private_consultation_switches_actual_audio_without_leaking_to_remote_or_public_context",
+      "exit_code": 0,
+      "passed": true,
+      "elapsed_seconds": 16.29812316596508,
+      "log": ".local/gate-6/received-dtmf-runtime/native-ready183-production-5.log",
+      "log_sha256": "22cde5e3d42ef492aa536c1f9fa007e350089bb616d0f964eb443a1961f13b38"
+    },
+    {
+      "index": 6,
+      "method": "canonical_native_connections::consultation::groups::handoff::production_native_private_handoff_commits_roles_and_retains_remote_audio",
+      "exit_code": 0,
+      "passed": true,
+      "elapsed_seconds": 86.60149062494747,
+      "log": ".local/gate-6/received-dtmf-runtime/native-ready183-production-6.log",
+      "log_sha256": "f25623397096c45116c203c58716c754a5b148bb211dc4a1aabf608db8a5e885"
+    },
+    {
+      "index": 7,
+      "method": "canonical_native_connections::dtmf::production_native_refresh_retains_actual_decoded_rtp_after_original_expiry",
+      "exit_code": 0,
+      "passed": true,
+      "elapsed_seconds": 15.892400374868885,
+      "log": ".local/gate-6/received-dtmf-runtime/native-ready183-production-7.log",
+      "log_sha256": "18e377541104b118b0c0286340274610ff78e0017ec35093ff79397d01f823ee"
+    },
+    {
+      "index": 8,
+      "method": "canonical_native_connections::consultation::groups::replacement::telephone::initial::received::privacy::production_initial_sip_received_respects_private_physical_audience_and_return_does_not_replay",
+      "exit_code": 0,
+      "passed": true,
+      "elapsed_seconds": 31.923369499854743,
+      "log": ".local/gate-6/received-dtmf-runtime/native-ready183-production-8.log",
+      "log_sha256": "603d1d933df8c9390cb77f8cbb105c3bd6dc5f6492e431230979d699952e4d43"
+    },
+    {
+      "index": 9,
+      "method": "canonical_native_connections::consultation::groups::replacement::telephone::received::privacy::production_moved_sip_received_private_audience_and_return_keep_actual_lifetime",
+      "exit_code": 0,
+      "passed": true,
+      "elapsed_seconds": 59.76186279207468,
+      "log": ".local/gate-6/received-dtmf-runtime/native-ready183-production-9.log",
+      "log_sha256": "6d02cf500743b9a2f020488a428cd451b9419121443b775c15d7a2e998f2ec74"
+    },
+    {
+      "index": 10,
+      "method": "canonical_native_connections::consultation::groups::replacement::telephone::received::refresh::production_moved_sip_dtmf_refresh_preserves_queued_epoch_and_fresh_bidirectional_delivery",
+      "exit_code": 0,
+      "passed": true,
+      "elapsed_seconds": 46.85208495799452,
+      "log": ".local/gate-6/received-dtmf-runtime/native-ready183-production-10.log",
+      "log_sha256": "6d1c8a7eea60150b7f8787c3c5accb6df7055c543d53a3f2687817154f4b6c0c"
+    },
+    {
+      "index": 11,
+      "method": "canonical_native_connections::codecs::production_native_codec_change_confirms_decoded_pcma_preserves_old_audio_and_replays_without_reapplying",
+      "exit_code": 0,
+      "passed": true,
+      "elapsed_seconds": 6.958011332899332,
+      "log": ".local/gate-6/received-dtmf-runtime/native-ready183-production-11.log",
+      "log_sha256": "75463e21e6de1c49f4fee665d6171e6a51e87e7ecc82fc436adaa0b5af36dc7e"
+    },
+    {
+      "index": 12,
+      "method": "canonical_native_connections::lifecycle::production_native_lifecycle_closes_original_codec_binding_and_opens_only_observed_replacement",
+      "exit_code": 0,
+      "passed": true,
+      "elapsed_seconds": 11.812292832881212,
+      "log": ".local/gate-6/received-dtmf-runtime/native-ready183-production-12.log",
+      "log_sha256": "e46f6a8d6cbb048bd952c2dfe8bec95541d877bc2b63f1dab01aed4bd4a4a61f"
+    }
+  ],
+  "capacity_validation": {
+    "passed": true,
+    "signing_scenes": 2,
+    "participants_per_scene": 50,
+    "signed_publisher_answers": 100,
+    "signed_receiver_answers": 98,
+    "signed_join_multicasts": 4900,
+    "signed_started_frames": 100,
+    "signed_left_multicasts": 194,
+    "actual_subscribers_per_scene": 49,
+    "scope": "Configured local native QUIC50-peer profile with explicit decoded fanout, per-peer handles, unsubscribe/replay and membership lifecycle. Includes later actual publication to33 retained Participant selectors while16 exact selectors remain excluded, and original49-way audio after source end/replay. Does not by itself qualify other substrates, remote/hosting profiles, whole clause or Gate6."
+  },
+  "lifecycle_validation": {
+    "exit_code": 0,
+    "log": ".local/gate-6/native-ready183-lifecycle/validation.log",
+    "log_sha256": "5624e7477f610c32a94c55a71c236f80c43b9719558e653db7c5904e93385801",
+    "capture": ".local/gate-6/native-ready183-lifecycle/observations.jsonl",
+    "capture_sha256": "7519c14891374af57bd8aa5ed2ee653cc76c6505f22c50000d53a4a1109e478f",
+    "result": {
+      "status": "passed",
+      "scope": "Actual isolated Connect listener events already verified by the signed public SDK; this checker validates contract shape and the required sample matrix, not cryptographic signatures or broader runtime behavior.",
+      "observations": "/Volumes/D2-2019/Developer/Connect/.local/gate-6/native-ready183-lifecycle/observations.jsonl",
+      "observations_sha256": "7519c14891374af57bd8aa5ed2ee653cc76c6505f22c50000d53a4a1109e478f",
+      "schema_sha256": "8d3d5a1098c8eebafe30960b8b35d83e11f9c8ac09453ab7e528251368d11c32",
+      "actual_frames": 22,
+      "samples": [
+        {
+          "algorithm": "ES256",
+          "type": "connection.quality",
+          "count": 3
+        },
+        {
+          "algorithm": "ES256",
+          "type": "connection.ready",
+          "count": 3
+        },
+        {
+          "algorithm": "ES256",
+          "type": "stream.closed",
+          "count": 1
+        },
+        {
+          "algorithm": "ES256",
+          "type": "stream.opened",
+          "count": 4
+        },
+        {
+          "algorithm": "EdDSA",
+          "type": "connection.quality",
+          "count": 3
+        },
+        {
+          "algorithm": "EdDSA",
+          "type": "connection.ready",
+          "count": 3
+        },
+        {
+          "algorithm": "EdDSA",
+          "type": "stream.closed",
+          "count": 1
+        },
+        {
+          "algorithm": "EdDSA",
+          "type": "stream.opened",
+          "count": 4
+        }
+      ]
+    }
+  },
+  "limits": [
+    "This promotes only the G6-046 recorded local integration clause from58/61 to59/61. Overall plan remains45/105 tasks done; no task or acceptance criterion closes.",
+    "Generated requirements/test-design independent-conformance rows remain not-run. SDK verification plus schema validation is not an independent cryptographic client.",
+    "No Linux x86_64, Connect WebTransport/WSS/browser/remote/provider, extended multi-session load or repeatability qualification is inferred from this fixed native QUIC run. Component upstream WebTransport cases retain their own narrower scope.",
+    "Historical failed/unoptimized capacity attempts, rejected input-discard prototype, quality/private-readiness timeouts and fixture/path errors remain preserved. Current successful runs do not prove every historical timeout cause resolved."
+  ]
+}

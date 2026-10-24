@@ -1,5 +1,5 @@
 {
-  "scope": "G6-046 bounded native ready-audio scheduler, verified optimized fixed both-algorithm fifty-participant local native rehearsal. Affected production methods remain pending.",
+  "scope": "G6-046 bounded native ready-audio scheduler; fixed optimized both-algorithm fifty-participant rehearsal and twelve affected actual local production methods pass, with captured lifecycle validation.",
   "source_patch_count": 183,
   "store_schema": 103,
   "patch": "patches/rvoip/gate6-native-ready-audio-epochs.patch",
@@ -122,10 +122,10 @@
     }
   ],
   "pending": [
-    "Run affected actual production methods on the exact optimized executable.",
-    "Reconcile source-bound clause evidence against its full original requirement; no task/acceptance promotion is automatic."
+    "Remaining retained/private SIP DTMF roles, receiver rights/current authority/retirement compositions and final complete G6-046 auxiliary qualification.",
+    "Other substrate, hosting, remote/provider, independent-client and extended performance/repeatability profiles retain their assigned tasks."
   ],
-  "limits": "231 Core primitive cases are separately recorded in auxiliary-ready-audio-batch.json. Prior full-fifty failures remain preserved. The current fixed local optimized both-algorithm rehearsal passes; no general performance/repeatability, whole-clause/task promotion, remote/provider/hosting/browser or whole-gate acceptance is claimed. Publication remains separate.",
+  "limits": "231 Core primitive cases are separately recorded in auxiliary-ready-audio-batch.json. Prior full-fifty failures remain preserved. The fixed local optimized both-algorithm rehearsal and twelve affected production methods pass. Local multiparty-clause reconciliation is recorded separately in auxiliary-multiparty-clause.json. No general performance/repeatability, whole-task, independent-client, remote/provider/hosting/browser or whole-gate acceptance is claimed. Publication remains separate.",
   "capacity": {
     "passed": true,
     "profile": "release",
@@ -336,5 +336,181 @@
         "remaining_connections": 95
       }
     ]
+  },
+  "production": {
+    "passed": true,
+    "methods": [
+      {
+        "index": 0,
+        "method": "canonical_native_connections::lifecycle::production_native_lifecycle_quality_reports_actual_flow_through_signed_sdk",
+        "exit_code": 0,
+        "passed": true,
+        "elapsed_seconds": 23.488681082846597,
+        "log": ".local/gate-6/received-dtmf-runtime/native-ready183-production-0.log",
+        "log_sha256": "6cb033a119a6ca975b659d62b5cb997eb9f3a5e3250e558cecc7afc30df2891e"
+      },
+      {
+        "index": 1,
+        "method": "canonical_native_connections::selector_policy::production_native_heterogeneous_wildcard_preserves_audio_and_definitive_refusals",
+        "exit_code": 0,
+        "passed": true,
+        "elapsed_seconds": 10.380333041073754,
+        "log": ".local/gate-6/received-dtmf-runtime/native-ready183-production-1.log",
+        "log_sha256": "9dc187596d1f2322323c026fe8c5b89434b7aa2bc5148d2db6b920d58402aba4"
+      },
+      {
+        "index": 3,
+        "method": "canonical_native_connections::production_signed_native_stream_subscription_routes_audio_and_replays_without_another_effect",
+        "exit_code": 0,
+        "passed": true,
+        "elapsed_seconds": 5.181297624949366,
+        "log": ".local/gate-6/received-dtmf-runtime/native-ready183-production-3.log",
+        "log_sha256": "19abb3bf583b3205af15fbe0e36d9bda0712ba37d9123a8c4900eaf852fbb521"
+      },
+      {
+        "index": 4,
+        "method": "canonical_native_connections::codecs::production_native_codec_refusals_and_foreign_physical_replay_preserve_audio_and_pending_original",
+        "exit_code": 0,
+        "passed": true,
+        "elapsed_seconds": 3.2823507499415427,
+        "log": ".local/gate-6/received-dtmf-runtime/native-ready183-production-4.log",
+        "log_sha256": "1670f808f2a6a3d2730671f8101d57bc2c0f9db084efe1e5746fb0ed1fc5b795"
+      },
+      {
+        "index": 5,
+        "method": "canonical_native_connections::consultation::production_private_consultation_switches_actual_audio_without_leaking_to_remote_or_public_context",
+        "exit_code": 0,
+        "passed": true,
+        "elapsed_seconds": 16.29812316596508,
+        "log": ".local/gate-6/received-dtmf-runtime/native-ready183-production-5.log",
+        "log_sha256": "22cde5e3d42ef492aa536c1f9fa007e350089bb616d0f964eb443a1961f13b38"
+      },
+      {
+        "index": 6,
+        "method": "canonical_native_connections::consultation::groups::handoff::production_native_private_handoff_commits_roles_and_retains_remote_audio",
+        "exit_code": 0,
+        "passed": true,
+        "elapsed_seconds": 86.60149062494747,
+        "log": ".local/gate-6/received-dtmf-runtime/native-ready183-production-6.log",
+        "log_sha256": "f25623397096c45116c203c58716c754a5b148bb211dc4a1aabf608db8a5e885"
+      },
+      {
+        "index": 7,
+        "method": "canonical_native_connections::dtmf::production_native_refresh_retains_actual_decoded_rtp_after_original_expiry",
+        "exit_code": 0,
+        "passed": true,
+        "elapsed_seconds": 15.892400374868885,
+        "log": ".local/gate-6/received-dtmf-runtime/native-ready183-production-7.log",
+        "log_sha256": "18e377541104b118b0c0286340274610ff78e0017ec35093ff79397d01f823ee"
+      },
+      {
+        "index": 8,
+        "method": "canonical_native_connections::consultation::groups::replacement::telephone::initial::received::privacy::production_initial_sip_received_respects_private_physical_audience_and_return_does_not_replay",
+        "exit_code": 0,
+        "passed": true,
+        "elapsed_seconds": 31.923369499854743,
+        "log": ".local/gate-6/received-dtmf-runtime/native-ready183-production-8.log",
+        "log_sha256": "603d1d933df8c9390cb77f8cbb105c3bd6dc5f6492e431230979d699952e4d43"
+      },
+      {
+        "index": 9,
+        "method": "canonical_native_connections::consultation::groups::replacement::telephone::received::privacy::production_moved_sip_received_private_audience_and_return_keep_actual_lifetime",
+        "exit_code": 0,
+        "passed": true,
+        "elapsed_seconds": 59.76186279207468,
+        "log": ".local/gate-6/received-dtmf-runtime/native-ready183-production-9.log",
+        "log_sha256": "6d02cf500743b9a2f020488a428cd451b9419121443b775c15d7a2e998f2ec74"
+      },
+      {
+        "index": 10,
+        "method": "canonical_native_connections::consultation::groups::replacement::telephone::received::refresh::production_moved_sip_dtmf_refresh_preserves_queued_epoch_and_fresh_bidirectional_delivery",
+        "exit_code": 0,
+        "passed": true,
+        "elapsed_seconds": 46.85208495799452,
+        "log": ".local/gate-6/received-dtmf-runtime/native-ready183-production-10.log",
+        "log_sha256": "6d1c8a7eea60150b7f8787c3c5accb6df7055c543d53a3f2687817154f4b6c0c"
+      },
+      {
+        "index": 11,
+        "method": "canonical_native_connections::codecs::production_native_codec_change_confirms_decoded_pcma_preserves_old_audio_and_replays_without_reapplying",
+        "exit_code": 0,
+        "passed": true,
+        "elapsed_seconds": 6.958011332899332,
+        "log": ".local/gate-6/received-dtmf-runtime/native-ready183-production-11.log",
+        "log_sha256": "75463e21e6de1c49f4fee665d6171e6a51e87e7ecc82fc436adaa0b5af36dc7e"
+      },
+      {
+        "index": 12,
+        "method": "canonical_native_connections::lifecycle::production_native_lifecycle_closes_original_codec_binding_and_opens_only_observed_replacement",
+        "exit_code": 0,
+        "passed": true,
+        "elapsed_seconds": 11.812292832881212,
+        "log": ".local/gate-6/received-dtmf-runtime/native-ready183-production-12.log",
+        "log_sha256": "e46f6a8d6cbb048bd952c2dfe8bec95541d877bc2b63f1dab01aed4bd4a4a61f"
+      }
+    ],
+    "summary": ".local/gate-6/received-dtmf-runtime/native-ready183-production-summary.json",
+    "summary_sha256": "ef434ffe4930a6a8285bbd919aeec705fed002c6fc4cbce437366767f1acaf57",
+    "source_inputs_unchanged": true,
+    "executable_unchanged": true,
+    "executable_sha256": "18ff7d1ca439bd604c22dd92f93e6222bace6f1e3e478f2fb1a4ca3295b960b9",
+    "lifecycle_validation": {
+      "exit_code": 0,
+      "log": ".local/gate-6/native-ready183-lifecycle/validation.log",
+      "log_sha256": "5624e7477f610c32a94c55a71c236f80c43b9719558e653db7c5904e93385801",
+      "capture": ".local/gate-6/native-ready183-lifecycle/observations.jsonl",
+      "capture_sha256": "7519c14891374af57bd8aa5ed2ee653cc76c6505f22c50000d53a4a1109e478f",
+      "result": {
+        "status": "passed",
+        "scope": "Actual isolated Connect listener events already verified by the signed public SDK; this checker validates contract shape and the required sample matrix, not cryptographic signatures or broader runtime behavior.",
+        "observations": "/Volumes/D2-2019/Developer/Connect/.local/gate-6/native-ready183-lifecycle/observations.jsonl",
+        "observations_sha256": "7519c14891374af57bd8aa5ed2ee653cc76c6505f22c50000d53a4a1109e478f",
+        "schema_sha256": "8d3d5a1098c8eebafe30960b8b35d83e11f9c8ac09453ab7e528251368d11c32",
+        "actual_frames": 22,
+        "samples": [
+          {
+            "algorithm": "ES256",
+            "type": "connection.quality",
+            "count": 3
+          },
+          {
+            "algorithm": "ES256",
+            "type": "connection.ready",
+            "count": 3
+          },
+          {
+            "algorithm": "ES256",
+            "type": "stream.closed",
+            "count": 1
+          },
+          {
+            "algorithm": "ES256",
+            "type": "stream.opened",
+            "count": 4
+          },
+          {
+            "algorithm": "EdDSA",
+            "type": "connection.quality",
+            "count": 3
+          },
+          {
+            "algorithm": "EdDSA",
+            "type": "connection.ready",
+            "count": 3
+          },
+          {
+            "algorithm": "EdDSA",
+            "type": "stream.closed",
+            "count": 1
+          },
+          {
+            "algorithm": "EdDSA",
+            "type": "stream.opened",
+            "count": 4
+          }
+        ]
+      }
+    },
+    "runtime_seconds_total": 318.4322980802972
   }
 }

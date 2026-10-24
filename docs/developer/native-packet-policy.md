@@ -121,6 +121,7 @@ sender finishes. Admission refusals may retry unchanged metadata; a submitted
 transport error is terminal. The [native scheduler component report](../evidence/gate-6/auxiliary-native-ready-audio.json)
 records bounded queue and actual QUIC cleanup/recovery evidence. The fixed optimized
 full-fifty rehearsal now passes both signing algorithms with complete validated
-captures; affected production regressions remain pending. This internal scheduling
+captures. All twelve affected production methods and22 captured lifecycle
+envelopes also pass on the same unchanged executable. This internal scheduling
 change leaves the [canonical HTTP reference](../../contracts/openapi-canonical-http.json)
 unchanged.

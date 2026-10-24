@@ -84,5 +84,7 @@ Source183 passes the fixed optimized rehearsal for both EdDSA and ES256, includi
 two complete validated captures and every original delivery/lifecycle threshold.
 The [native ready-audio report](../evidence/gate-6/auxiliary-native-ready-audio.json)
 records exact source/executable bindings, startup and decoded counts, and earlier
-failed attempts. Affected production regressions and full-clause reconciliation
-remain separate checks; this local result does not qualify other profiles.
+failed attempts. All twelve affected production methods and captured lifecycle validation also
+pass on the same executable. The [local multiparty clause audit](../evidence/gate-6/auxiliary-multiparty-clause.json)
+combines that small-session/negative proof with the full-fifty result; other
+profiles and independent conformance remain unqualified.

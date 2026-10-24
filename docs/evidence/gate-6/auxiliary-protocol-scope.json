@@ -3515,7 +3515,7 @@
       "classification": "explicit-normative",
       "applicability": "mandatory-when-condition-applies",
       "case_id": "u6-req-0123",
-      "runtime_status": "not-run",
+      "runtime_status": "qualified-local-native-multiparty",
       "shared_implementation_items": [
         "G6-004",
         "G6-006",
@@ -3534,16 +3534,20 @@
         "G6-094"
       ],
       "connect_integration_audit": {
-        "status": "evidence-to-reconcile",
+        "status": "qualified-local-native-multiparty",
         "historical_component_reports": [
           "docs/evidence/gate-6/general-session-runtime.json",
           "docs/evidence/gate-6/private-consultation-complete.json"
         ],
         "source_entrypoints": [
           "crates/connect-server/tests/support/canonical_native_connections.rs",
-          "crates/connect-server/tests/support/canonical_native_connections/future.rs"
+          "crates/connect-server/tests/support/canonical_native_connections/future.rs",
+          "crates/connect-server/tests/support/canonical_native_connections/multiparty.rs",
+          "crates/connect-server/tests/support/canonical_native_connections/multiparty/events.rs",
+          "crates/connect-server/tests/support/canonical_native_connections/multiparty/media.rs",
+          "crates/connect-server/tests/support/canonical_native_connections/multiparty/future.rs"
         ],
-        "remaining": "Reconcile actual multiparty routing/current+future selectors, unsubscribe idempotence and membership changes. Active speaker is optional per original clause; do not invent an acceptance prerequisite.",
+        "remaining": "Installed local native integration is qualified by complete both-algorithm fifty-member and current small-session/negative/lifecycle production evidence. Independent conformance and other assigned transport/hosting/remote/performance profiles remain unqualified.",
         "gateway_run_observation": {
           "scope": "u6-req-0123",
           "observation": "First-run Identity fixture native stream subscription returned unknown; cause unproven, later checks pass, no resolution or broader reliability pass inferred.",
@@ -3551,8 +3555,10 @@
             "path": ".local/gate-6/session-uri/production-before-uri-capture-fix.log",
             "sha256": "27496eb9defca4f5f20f7b813dd633d789dda2ca9c55e6f65f3cfaeca688a2cf"
           }
-        }
-      }
+        },
+        "current_qualification_evidence": "docs/evidence/gate-6/auxiliary-multiparty-clause.json"
+      },
+      "qualification_report": "docs/evidence/gate-6/auxiliary-multiparty-clause.json"
     },
     {
       "id": "U6-REQ-0124",
@@ -4274,8 +4280,8 @@
       "qualified_case_ids": []
     }
   },
-  "qualified_clause_count": 58,
-  "remaining_clause_count": 3,
+  "qualified_clause_count": 59,
+  "remaining_clause_count": 2,
   "clause_qualification": {
     "status": "partial-local-native-http-and-loopback-sip",
     "evidence": "docs/evidence/gate-6/auxiliary-conversation-clauses.json",
@@ -4332,6 +4338,7 @@
       "u6-req-0120",
       "u6-req-0121",
       "u6-req-0122",
+      "u6-req-0123",
       "u6-req-0124",
       "u6-req-0125",
       "u6-req-0126",
@@ -4341,8 +4348,8 @@
     ],
     "full_task_complete": false,
     "continuation_evidence": "docs/evidence/gate-6/auxiliary-session-identity-targets.json",
-    "latest_evidence": "docs/evidence/gate-6/auxiliary-native-offer-fields.json",
-    "latest_component_evidence": "docs/evidence/gate-6/auxiliary-native-packet-admission.json",
+    "latest_evidence": "docs/evidence/gate-6/auxiliary-multiparty-clause.json",
+    "latest_component_evidence": "docs/evidence/gate-6/auxiliary-native-ready-audio.json",
     "status_reconciliation_evidence": "docs/evidence/gate-6/auxiliary-clause-reconciliation.json"
   }
 }
