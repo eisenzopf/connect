@@ -1,5 +1,5 @@
 {
-  "scope": "Local macOS arm64 controlled Core component. Full222 staged-media methods pass; current optimized Service/host build is active. No current-source capacity or production pass inferred. G6-04658/61 and45/105 unchanged.",
+  "scope": "Local macOS arm64 Core222 controlled methods, corrected exact optimized host and8actual current-source production regressions pass. Source179 full50 still fails unchanged steady4..13 after all49 startups2781ms. No capacity or clause/task promotion.",
   "source_patch_count": 179,
   "store_schema": 103,
   "source_lock_sha256": "19ac5dbf1e8c885c02634c87dc13e1cc0002db3fb96357bb34f0ffe470aca747",
@@ -57,8 +57,167 @@
     }
   },
   "remaining": [
-    "Finish exact optimized source179 host build, wire native read expiry and stable active source anchor, then execute the unchanged complete fifty-peer two-algorithm lane and affected actual production regressions.",
+    "Measure remaining source179 exact optimized contention after the steady4..13 failure before further packet changes. Preserve all bounds and histories. Future/end/replay/departure/ES256 capacity remain unqualified.",
     "Current source179 default-host production was not run. Source178 default host8 regressions and optimized2..10 failure remain historical distinct results.",
     "No clause/task credit until actual required behavior passes;0112/0113/0123, hosting/browser/remote/provider/acceptance/publication remain open."
-  ]
+  ],
+  "host_first_attempt": {
+    "passed": false,
+    "exit_code": 101,
+    "failure": "Rust E0283: DateTime::MIN_UTC fallback requires an explicit UTC type. Remaining Service compiler terminated after confirmed compile error and all other dependency compilers had completed; not an observation timeout.",
+    "log": ".local/gate-6/received-dtmf-runtime/admission179-release-build.log",
+    "log_sha256": "b8c4c1d8c69f3eea506168cba8010be1723bca27ffb9f6a7fa1e9cd4938d8484",
+    "repair": "Use chrono::DateTime::<chrono::Utc>::MIN_UTC. Corrected exact optimized build is active; Core patch/tests unchanged. No host pass inferred."
+  },
+  "host_retry": {
+    "passed": true,
+    "exit_code": 0,
+    "duration_seconds": 741,
+    "profile": "default Cargo --release / optimized / CARGO_INCREMENTAL=0",
+    "log": ".local/gate-6/received-dtmf-runtime/admission179-release-retry.log",
+    "log_sha256": "a7e3b048ad4b2a8f8471f031fb827d8224cd199b05b520903145d789a7b6eb00",
+    "source179_service_sha256": "39af6c4697c2f7c4e2a98bb0151ac90758100fb96cbbb0fd65c913e6ff81f8d0",
+    "limitation": "Compilation only. Exact full50 rehearsal is active; current production regressions pending."
+  },
+  "optimized_full50": {
+    "passed": false,
+    "runtime_exit_code": 101,
+    "runtime_duration_seconds": 30.66,
+    "actual_connections": 99,
+    "completed_subscriptions": 49,
+    "actual_receiver_startup_ms": 2781,
+    "durable_receiver_flow_facts": 49,
+    "steady_decoded_range": [
+      4,
+      13
+    ],
+    "steady_decoded_by_peer": [
+      0,
+      5,
+      7,
+      5,
+      5,
+      13,
+      5,
+      7,
+      9,
+      8,
+      7,
+      8,
+      9,
+      4,
+      8,
+      9,
+      5,
+      9,
+      4,
+      8,
+      7,
+      12,
+      7,
+      5,
+      9,
+      4,
+      4,
+      7,
+      11,
+      7,
+      10,
+      5,
+      12,
+      9,
+      7,
+      9,
+      5,
+      6,
+      5,
+      7,
+      9,
+      9,
+      9,
+      6,
+      8,
+      6,
+      5,
+      8,
+      8,
+      4
+    ],
+    "required_each": ">10",
+    "future_phases_reached": false,
+    "second_algorithm_reached": false,
+    "complete_capture_rows": 0,
+    "validator": "Not run: no complete algorithm capture.",
+    "source_inputs_unchanged": true,
+    "source_revision": "2518c63f8e87743b72d7829ddce8c202d93ccc46",
+    "working_tree_status": [
+      " M crates/connect-service/src/canonical_media.rs",
+      " M docs/evidence/gate-6/auxiliary-packet-owned-expiry.json"
+    ],
+    "executable_sha256": "d6fe2ff48759f3bb3efe73aa72ed1540fce3244284e40ca62d67baabf81d2211",
+    "cargo_profile": {
+      "opt_level": "3",
+      "debuginfo": 0,
+      "debug_assertions": false,
+      "overflow_checks": false,
+      "test": true
+    },
+    "artifacts_sha256": {
+      ".local/gate-6/fifty-native/admission179-release/summary.json": "a15165a191b050f91e9f1917cfe47abb47fa0fe43ffd06afbe5e668306b36710",
+      ".local/gate-6/fifty-native/admission179-release/runtime.log": "7ec7608cfd66969b76518a810cf5e4259ea8084c10b8d60e512a388be5e2a3ec",
+      ".local/gate-6/fifty-native/admission179-release/observations.jsonl": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  },
+  "actual_optimized_production_regressions": {
+    "distinct_methods_passed": 8,
+    "same_exact_binary_as_failed_full50": true,
+    "runs": [
+      {
+        "log": ".local/gate-6/received-dtmf-runtime/admission179-production-0.log",
+        "sha256": "2bdfa55e054815433017f429e854029585f835279cb1ef1057648794a5111768",
+        "summary": "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 253 filtered out; finished in 27.23s"
+      },
+      {
+        "log": ".local/gate-6/received-dtmf-runtime/admission179-production-1.log",
+        "sha256": "0225c5b27f5084eecefb3c91091b3b8d90d2a0856193ecaeb541ff430e73e51e",
+        "summary": "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 253 filtered out; finished in 10.45s"
+      },
+      {
+        "log": ".local/gate-6/received-dtmf-runtime/admission179-production-3.log",
+        "sha256": "17bb530e341304df34afdd5befca858a6cd6f435ece9e76e7339f2875a185b47",
+        "summary": "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 253 filtered out; finished in 5.22s"
+      },
+      {
+        "log": ".local/gate-6/received-dtmf-runtime/admission179-production-5.log",
+        "sha256": "eb78366db83d0ef18efdd7b649d8a7a46620053bfdf5e7a1446afd4390431395",
+        "summary": "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 253 filtered out; finished in 16.30s"
+      },
+      {
+        "log": ".local/gate-6/received-dtmf-runtime/admission179-production-6.log",
+        "sha256": "5e2956be5c6ce3658a83471bd80e62097345aabbde644fe1867040deb38448fe",
+        "summary": "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 253 filtered out; finished in 86.77s"
+      },
+      {
+        "log": ".local/gate-6/received-dtmf-runtime/admission179-production-7.log",
+        "sha256": "d8e2cae9dd64ed9aa3b47b3dc535dada17822db8d9d7819d812c3a10c2dbac67",
+        "summary": "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 253 filtered out; finished in 16.48s"
+      },
+      {
+        "log": ".local/gate-6/received-dtmf-runtime/admission179-production-9.log",
+        "sha256": "00f0f8ea85315032c72c888522ae9cc479eefa361e80a880896ecb849199ec9f",
+        "summary": "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 253 filtered out; finished in 58.37s"
+      },
+      {
+        "log": ".local/gate-6/received-dtmf-runtime/admission179-production-10.log",
+        "sha256": "6bce380a25ee6fae7fb29a9b67354063c999d56001164c2d536525c34d4582c7",
+        "summary": "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 253 filtered out; finished in 46.06s"
+      }
+    ],
+    "coverage": "Both-algorithm native quality/current Endpoint revocation, heterogeneous wildcard refusal, signed subscription/replay, private consultation, native private handoff, native refresh after original expiry, moved-SIP privacy/return and mixed SIP/native refresh."
+  },
+  "native_service_integration": {
+    "source": "crates/connect-service/src/canonical_media.rs",
+    "sha256": "39af6c4697c2f7c4e2a98bb0151ac90758100fb96cbbb0fd65c913e6ff81f8d0",
+    "behavior": "Weak packet custody remains anchored to the original still-owned source across shorter-lived child reads. Every new source/recipient still derives current authority. Native Fresh reports the read expiry, including the original-holder cap; invalid time values fail closed. No queued owned reader or per-Connection grant is added."
+  }
 }

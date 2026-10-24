@@ -734,7 +734,10 @@ struct Fresh {
 impl Fresh {
     fn new(owner: MediaOwner, read: NativeMediaRead, source: Option<Arc<NativeMediaRead>>) -> Self {
         let read = Arc::new(read);
-        let erased: Arc<dyn Any + Send + Sync> = read.clone();
+        // Keep one weak anchor while any IO for this original packet is live.
+        // A short-lived child must not hide an older, still-owned source read.
+        let anchor = source.as_ref().unwrap_or(&read);
+        let erased: Arc<dyn Any + Send + Sync> = anchor.clone();
         Self {
             owner,
             _read: read,
@@ -746,6 +749,12 @@ impl Fresh {
 impl MediaAuthorityLease for Fresh {
     fn authority(&self) -> &MediaOwner {
         &self.owner
+    }
+    fn expires_at(&self) -> Option<chrono::DateTime<chrono::Utc>> {
+        Some(
+            chrono::DateTime::from_timestamp(self._read.expires_at(), 0)
+                .unwrap_or(chrono::DateTime::<chrono::Utc>::MIN_UTC),
+        )
     }
     fn packet_context(&self) -> Option<&(dyn Any + Send + Sync)> {
         Some(&self.weak)
