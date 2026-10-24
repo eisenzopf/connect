@@ -172,6 +172,26 @@
         }
       ],
       "result": "Three diagnostic attempts failed before reproducing the targeted optimized preflight refusal: subscription unknown, Accepted without effect, and insufficient marked private audio. Production optimized diagnosis remains required."
+    },
+    "native_view_phase_diagnostics": {
+      "scope": "Diagnostic context only; authorization and refusal codes preserved. No runtime qualification.",
+      "source_commit": "3133eb3",
+      "store_compile_passed": true,
+      "store_compile_result": "Finished dev profile in4.74s",
+      "log": ".local/gate-6/received-dtmf-runtime/private-signal118-store-check.log",
+      "log_sha256": "2e6f2d5a51bf63283d54baf68ae05d938936c977063ee4b56b30b6a7409efebc",
+      "phases": [
+        "retained/private/outside native view",
+        "owner",
+        "credential epoch",
+        "admission",
+        "peer binding",
+        "private invitation context",
+        "private floor context",
+        "resources",
+        "projection"
+      ],
+      "runtime_status": "Pending fresh optimized diagnosis on combined current source."
     }
   },
   "failed_attempts": [
