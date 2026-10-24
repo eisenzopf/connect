@@ -24,7 +24,10 @@ impl Store {
             c,
             text("route_credential_id")?,
         )?];
-        if binding["source_kind"] == "initial-sip" {
+        if matches!(
+            binding["source_kind"].as_str(),
+            Some("initial-sip" | "private-initial-sip")
+        ) {
             actors.push(crate::identity::actor_from_connection(
                 c,
                 text("endpoint_credential_id")?,

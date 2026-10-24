@@ -1,5 +1,5 @@
-//! Exact initial and committed SIP outsiders. These own only unchanged public programmes
-//! plus private exclusion; they can never stand in for a private native slot.
+//! Typed original public and private SIP incarnations. Metadata snapshots never
+//! grant IO, public readiness, or a substitute native signing identity.
 use super::*;
 use crate::{InitialTelephoneMediaOrigin, InitialTelephoneMediaRead};
 use std::collections::{BTreeMap, BTreeSet};
@@ -14,6 +14,24 @@ pub use origins::{SipAudienceOrigin, SipAudienceRead};
 #[allow(dead_code)] // Historical metadata grants no private slot.
 pub(crate) enum SipSnapshot {
     InitialSip {
+        record_id: String,
+        connection_id: String,
+        runtime_connection_id: String,
+        sip_call_id: String,
+        generation: u64,
+        participant_id: String,
+        membership_epoch: u64,
+        identity_id: String,
+        endpoint_id: String,
+        endpoint_revision: u64,
+        device_id: String,
+        route_credential_id: String,
+        route_owner_id: String,
+        physical_expires_at: i64,
+        endpoint_credential_id: String,
+    },
+    PrivateInitialSip {
+        consultation_record_id: String,
         record_id: String,
         connection_id: String,
         runtime_connection_id: String,
@@ -50,13 +68,51 @@ pub(crate) enum SipSnapshot {
 impl SipSnapshot {
     pub(crate) fn connection_id(&self) -> &str {
         match self {
-            Self::InitialSip { connection_id, .. } | Self::EstablishedSip { connection_id, .. } => {
-                connection_id
-            }
+            Self::InitialSip { connection_id, .. }
+            | Self::PrivateInitialSip { connection_id, .. }
+            | Self::EstablishedSip { connection_id, .. } => connection_id,
         }
     }
 }
 impl Store {
+    /// Historical source discrimination: a public receipt and a private receipt
+    /// cannot describe the same call, even after revocation or physical cleanup.
+    pub(crate) fn initial_sip_snapshot_kind_matches(
+        c: &Connection,
+        binding: &serde_json::Value,
+    ) -> Result<bool> {
+        let snapshot: SipSnapshot =
+            serde_json::from_value(binding.clone()).map_err(|_| Error::storage())?;
+        let text = |key: &str| binding[key].as_str().ok_or_else(Error::storage);
+        match snapshot {
+            SipSnapshot::InitialSip { .. } => c.query_row(
+                "SELECT EXISTS(SELECT 1 FROM initial_telephone_operations n JOIN initial_telephone_answers a ON a.operation_record_id=n.operation_record_id WHERE n.operation_record_id=?1 AND n.parent_kind='invitation' AND a.accepted=1 AND a.acceptance_kind='public-session')",
+                [text("record_id")?], |r|r.get(0),
+            ).map_err(|_| Error::storage()),
+            SipSnapshot::PrivateInitialSip { consultation_record_id, .. } => c.query_row(
+                "SELECT EXISTS(SELECT 1 FROM initial_telephone_operations n
+                 JOIN operations child ON child.record_id=n.operation_record_id
+                 JOIN initial_telephone_answers a ON a.operation_record_id=n.operation_record_id
+                 JOIN initial_telephone_private_acceptances own ON own.operation_record_id=n.operation_record_id
+                 JOIN sip_consultation_reservations reserved ON reserved.operation_record_id=n.parent_record_id AND reserved.connection_id=child.connection_id
+                 WHERE n.operation_record_id=?1 AND n.parent_kind='consultation' AND n.parent_record_id=?2
+                 AND child.connection_id=?3 AND n.runtime_connection_id=?4 AND n.sip_call_id=?5
+                 AND a.accepted=1 AND a.acceptance_kind='private-connection' AND a.acceptance_record_id=n.operation_record_id
+                 AND own.consultation_record_id=?2 AND own.endpoint_id=?6 AND own.endpoint_revision=?7
+                 AND own.participant_id=?8 AND own.membership_epoch=?9 AND own.endpoint_credential_id=?10
+                 AND json_extract(n.source_json,'$.target.identity_id')=?11 AND json_extract(n.source_json,'$.device_id')=?12
+                 AND json_extract(n.policy_json,'$.route_credential_id')=?13 AND json_extract(n.source_json,'$.route_owner_id')=?14
+                 AND json_extract(a.connected_json,'$.private_audio')=1
+                 AND json_extract(a.connected_json,'$.private_consultation_record_id')=?2
+                 AND json_extract(a.connected_json,'$.connection_id')=?3
+                 AND json_extract(a.connected_json,'$.runtime_connection_id')=?4
+                 AND json_extract(a.connected_json,'$.call_id')=?5)",
+                params![text("record_id")?, consultation_record_id, text("connection_id")?, text("runtime_connection_id")?, text("sip_call_id")?, text("endpoint_id")?, binding["endpoint_revision"].as_u64().ok_or_else(Error::storage)?, text("participant_id")?, binding["membership_epoch"].as_u64().ok_or_else(Error::storage)?, text("endpoint_credential_id")?, text("identity_id")?, text("device_id")?, text("route_credential_id")?, text("route_owner_id")?],
+                |r|r.get(0),
+            ).map_err(|_| Error::storage()),
+            SipSnapshot::EstablishedSip { .. } => Ok(false),
+        }
+    }
     /// Historical absence only, bound to the captured physical call and original
     /// member epoch. This supplies no current media or command authority.
     pub(crate) fn recorded_sip_departure(
@@ -76,8 +132,8 @@ impl Store {
             return Ok(false);
         }
         match snapshot {
-            SipSnapshot::InitialSip { .. } => {
-                if generation != 1 {
+            SipSnapshot::InitialSip { .. } | SipSnapshot::PrivateInitialSip { .. } => {
+                if generation != 1 || !Self::initial_sip_snapshot_kind_matches(c, binding)? {
                     return Ok(false);
                 }
                 c.query_row("SELECT EXISTS(SELECT 1 FROM initial_telephone_operations n JOIN operations o ON o.record_id=n.operation_record_id JOIN initial_telephone_answers a ON a.operation_record_id=n.operation_record_id WHERE n.operation_record_id=?1 AND o.connection_id=?2 AND n.attempt_runtime=?3 AND n.runtime_connection_id=?4 AND n.sip_call_id=?5 AND n.signaling_started=1 AND a.accepted=1 AND a.connected_at IS NOT NULL AND a.retired_at IS NOT NULL)",params![text("record_id")?,text("connection_id")?,runtime,text("runtime_connection_id")?,text("sip_call_id")?],|r|r.get(0)).map_err(|_|Error::storage())
@@ -102,21 +158,32 @@ impl Store {
     ) -> Result<(Vec<AuthorityScope>, i64)> {
         let snapshot: SipSnapshot =
             serde_json::from_value(binding.clone()).map_err(|_| Error::storage())?;
-        let cached = self
-            .session_ready_origins
-            .lock()
-            .map_err(|_| Error::storage())?
-            .get(snapshot.connection_id())
-            .cloned()
-            .ok_or_else(Error::forbidden)?;
-        let origin = match cached {
-            crate::session_lifecycle::ReadyOrigin::InitialTelephone(o) => {
-                SipAudienceOrigin::Initial(o)
+        let origin = if matches!(snapshot, SipSnapshot::PrivateInitialSip { .. }) {
+            let cached = self
+                .private_initial_telephone_origins
+                .lock()
+                .map_err(|_| Error::storage())?
+                .get(snapshot.connection_id())
+                .cloned()
+                .ok_or_else(Error::forbidden)?;
+            SipAudienceOrigin::Initial(cached)
+        } else {
+            let cached = self
+                .session_ready_origins
+                .lock()
+                .map_err(|_| Error::storage())?
+                .get(snapshot.connection_id())
+                .cloned()
+                .ok_or_else(Error::forbidden)?;
+            match cached {
+                crate::session_lifecycle::ReadyOrigin::InitialTelephone(o) => {
+                    SipAudienceOrigin::Initial(o)
+                }
+                crate::session_lifecycle::ReadyOrigin::Telephone(o) => {
+                    SipAudienceOrigin::Established(o)
+                }
+                crate::session_lifecycle::ReadyOrigin::Native(_) => return Err(Error::forbidden()),
             }
-            crate::session_lifecycle::ReadyOrigin::Telephone(o) => {
-                SipAudienceOrigin::Established(o)
-            }
-            crate::session_lifecycle::ReadyOrigin::Native(_) => return Err(Error::forbidden()),
         };
         if origin.conversation_id() != conversation || origin.session_id() != session {
             return Err(Error::forbidden());

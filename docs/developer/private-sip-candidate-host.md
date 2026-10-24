@@ -44,8 +44,10 @@ expiry or withdrawal ends only the original private call and records captured
 absence. Possible submission prevents false root failure; known cleanup can
 settle cancelled/failed initialization without claiming an audience rollback.
 
-The coordinator's scene planner still selects only native candidates. Typed
-SIP-candidate source/selection, a sealed continuing private lifetime independent
+The coordinator's scene planner still selects only native candidates. A separate
+[typed private SIP physical source](private-sip-candidate-source.md) now preserves
+the original private call binding without granting IO. Role-neutral selection,
+a sealed continuing private lifetime independent
 of the ended execution credential, actual private media/INFO/RFC4733 and return
 remain required. An admitted quarantined call is not private consultation
 completion. The [host component report](../evidence/gate-6/auxiliary-private-sip-candidate-host.json)

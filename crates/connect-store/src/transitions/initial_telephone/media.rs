@@ -2,6 +2,7 @@
 use super::*;
 mod private_admission;
 mod private_answer;
+mod private_facts;
 mod routing;
 use serde_json::{json, Value};
 macro_rules! media_redacted {
@@ -412,6 +413,9 @@ impl Store {
         c: &Connection,
         origin: &InitialTelephoneMediaOrigin,
     ) -> Result<(Vec<AuthorityScope>, Value, i64)> {
+        if origin.source().is_private_candidate() {
+            return private_facts::facts(self, c, origin);
+        }
         historical_lifetime(self, c, &origin.signal)?;
         let scopes = current_scopes(c, origin.signal.origin(), false)?;
         let p = self.initial_telephone_projection(
@@ -447,7 +451,7 @@ impl Store {
         previous: u64,
         revision: u64,
     ) -> Result<()> {
-        if binding["source_kind"] != "initial-sip"
+        if !Self::initial_sip_snapshot_kind_matches(c, binding)?
             || binding["generation"] != 1
             || previous.checked_add(1) != Some(revision)
             || revision >= 9_007_199_254_740_991
@@ -701,11 +705,15 @@ impl Store {
         if !origin.source().is_private_candidate() {
             return Err(Error::forbidden());
         }
-        self.record_initial_telephone_connected_inner(
-            origin,
+        let record = self.record_initial_telephone_connected_inner(
+            origin.clone(),
             &|| observation.observe_private(),
             true,
-        )
+        )?;
+        // Only committed private readiness can seed the separate metadata cache.
+        let c = self.connection()?;
+        private_facts::remember(self, &c, origin)?;
+        Ok(record)
     }
     fn record_initial_telephone_connected_inner(
         &self,
@@ -1060,6 +1068,13 @@ impl Store {
             &original.source.session_id,
             None,
         )?;
-        tx.commit().map_err(|_| Error::storage())
+        tx.commit().map_err(|_| Error::storage())?;
+        if original.source.is_private_candidate() {
+            self.private_initial_telephone_origins
+                .lock()
+                .map_err(|_| Error::storage())?
+                .remove(&original.connection);
+        }
+        Ok(())
     }
 }

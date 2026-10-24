@@ -38,8 +38,8 @@ impl Store {
             return Ok(false);
         }
         match snapshot {
-            SipSnapshot::InitialSip { .. } => {
-                if generation != 1 {
+            SipSnapshot::InitialSip { .. } | SipSnapshot::PrivateInitialSip { .. } => {
+                if generation != 1 || !Self::initial_sip_snapshot_kind_matches(c, binding)? {
                     return Ok(false);
                 }
                 c.query_row("SELECT EXISTS(SELECT 1 FROM initial_telephone_operations n JOIN operations o ON o.record_id=n.operation_record_id JOIN initial_telephone_answers a ON a.operation_record_id=n.operation_record_id JOIN operation_effects e ON e.id=n.effect_id AND e.operation_record_id=o.record_id AND e.state='confirmed' WHERE n.operation_record_id=?1 AND o.connection_id=?2 AND n.attempt_runtime=?3 AND n.runtime_connection_id=?4 AND n.sip_call_id=?5 AND n.signaling_started=1 AND a.accepted=1 AND a.connected_at IS NOT NULL AND a.retired_at IS NULL AND json_extract(a.observation_json,'$.runtime_connection_id')=?4 AND json_extract(a.observation_json,'$.call_id')=?5 AND json_extract(a.connected_json,'$.connection_id')=?2 AND json_extract(a.connected_json,'$.generation')=1 AND json_extract(a.connected_json,'$.participant_id')=?6 AND json_extract(a.connected_json,'$.membership_epoch')=?7 AND json_extract(a.connected_json,'$.endpoint_id')=?8)",params![text("record_id")?,text("connection_id")?,runtime,text("runtime_connection_id")?,text("sip_call_id")?,text("participant_id")?,epoch,text("endpoint_id")?],|r|r.get(0)).map_err(|_|Error::storage())
@@ -78,7 +78,10 @@ impl Store {
         let result: Result<Option<Vec<Actor>>> = (|| {
             let route = crate::identity::actor_from_connection(c, text("route_credential_id")?)?;
             let mut actors = vec![route];
-            if binding["source_kind"] == "initial-sip" {
+            if matches!(
+                binding["source_kind"].as_str(),
+                Some("initial-sip" | "private-initial-sip")
+            ) {
                 actors.push(crate::identity::actor_from_connection(
                     c,
                     text("endpoint_credential_id")?,

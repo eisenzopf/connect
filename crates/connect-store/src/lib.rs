@@ -193,6 +193,9 @@ pub struct Store {
     session_codec_coordinator: std::sync::atomic::AtomicBool,
     session_ready_origins:
         Mutex<std::collections::BTreeMap<String, session_lifecycle::ReadyOrigin>>,
+    // Original private SIP metadata only; never public readiness or an IO grant.
+    private_initial_telephone_origins:
+        Mutex<std::collections::BTreeMap<String, std::sync::Arc<InitialTelephoneMediaOrigin>>>,
     authority: std::sync::Arc<authority_fences::Manager>,
     runtime_ownership: installation_ownership::Binding,
     link_epoch: String,
@@ -540,6 +543,7 @@ impl Store {
             record_context_projector: Default::default(),
             session_codec_coordinator: Default::default(),
             session_ready_origins: Default::default(),
+            private_initial_telephone_origins: Default::default(),
             initial_telephone_gateways: Default::default(),
             connection: Mutex::new(connection),
             limits,
@@ -628,6 +632,7 @@ impl Store {
             record_context_projector: Default::default(),
             session_codec_coordinator: Default::default(),
             session_ready_origins: Default::default(),
+            private_initial_telephone_origins: Default::default(),
             initial_telephone_gateways: Default::default(),
             connection: Mutex::new(connection),
             limits,

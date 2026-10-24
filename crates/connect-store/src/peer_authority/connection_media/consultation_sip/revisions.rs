@@ -9,7 +9,10 @@ impl Store {
         previous: u64,
         revision: u64,
     ) -> Result<()> {
-        if binding["source_kind"] == "initial-sip" {
+        if matches!(
+            binding["source_kind"].as_str(),
+            Some("initial-sip" | "private-initial-sip")
+        ) {
             return self.record_initial_telephone_audience_revision(
                 c, binding, runtime, previous, revision,
             );
