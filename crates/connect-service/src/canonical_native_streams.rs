@@ -249,8 +249,19 @@ impl Runtime {
             && connect_protocol::native_gates::is_gate(&a.envelope().original()["payload"]);
         let codecs = a.envelope().kind() == "connection.update" && !quality && !gates;
         let advertising = a.envelope().kind() == "capability.advertise";
+        // Metadata retries share the accepted operation's absolute cutoff.
+        // They cannot create an attempt, park a proposal lock or restart a
+        // fresh command budget before the owned engine lease is begun.
+        let preflight_remaining = accepted
+            .expires_at
+            .unwrap_or(0)
+            .saturating_mul(1000)
+            .saturating_sub(chrono::Utc::now().timestamp_millis())
+            .max(0) as u64;
+        let preflight_deadline = Instant::now() + Duration::from_millis(preflight_remaining);
         let mut preflight_stage = "source";
-        let preflight = (|| {
+        let preflight = self.native_preflight(&a, preflight_deadline, || {
+            preflight_stage = "source";
             let p = proof(&a)?;
             let authority = a
                 .authority::<StoreInvocationAuthority>()
@@ -336,7 +347,7 @@ impl Runtime {
                 crate::peer_authority::bind_native_stream_plan(&a, media)?;
             }
             Ok((id, Some(plan)))
-        })();
+        }).await;
         let (id, plan) = match preflight {
             Ok(v) => v,
             Err(e) => {

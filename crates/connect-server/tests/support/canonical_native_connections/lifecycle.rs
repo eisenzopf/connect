@@ -76,11 +76,15 @@ async fn production_native_lifecycle_quality_reports_actual_flow_through_signed_
         {
             let mut ready = false;
             let mut opened = false;
-            let mut measured = false;
+            let mut measured_receive = false;
+            let mut measured_send = false;
             let end = tokio::time::Instant::now() + Duration::from_secs(8);
-            while !ready || !opened || !measured {
+            while !ready || !opened || !measured_receive || !measured_send {
                 assert!(tokio::time::Instant::now() < end);
-                let e = scene.clients[index].receive().await.unwrap();
+                let e = tokio::time::timeout_at(end, scene.clients[index].receive())
+                    .await
+                    .unwrap()
+                    .unwrap();
                 if session_start(&e) {
                     continue;
                 }
@@ -110,13 +114,22 @@ async fn production_native_lifecycle_quality_reports_actual_flow_through_signed_
                         assert_eq!(samples.len(), 1);
                         let sample = &samples[0];
                         assert_eq!(sample["strm_id"], stream);
-                        assert!(sample["packets_received"].as_u64().unwrap() > 0);
-                        assert!(sample["packets_sent"].as_u64().unwrap() > 0);
-                        assert!(sample["bitrate_bps"].as_u64().unwrap() > 0);
+                        let received = sample["packets_received"].as_u64().unwrap();
+                        let sent = sample["packets_sent"].as_u64().unwrap();
+                        let bitrate = sample["bitrate_bps"].as_u64().unwrap();
+                        // Counters reset per report. The sequential decoded
+                        // probes may cross a window: both actual directions
+                        // must be observed, but need not share an interval.
+                        measured_receive |= received > 0;
+                        measured_send |= sent > 0;
+                        if received > 0 || sent > 0 {
+                            assert!(bitrate > 0);
+                        } else {
+                            assert_eq!(bitrate, 0, "idle interval fabricated bitrate");
+                        }
                         for absent in ["loss_pct", "jitter_ms", "rtt_ms", "mos"] {
                             assert!(sample.get(absent).is_none(), "unmeasured {absent}");
                         }
-                        measured = true;
                     }
                     _ => panic!("unexpected lifecycle fact: {:?}", e.original()),
                 }

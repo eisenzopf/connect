@@ -1,8 +1,8 @@
 {
   "task": "G6-046",
   "title": "Distinguish native catalog read contention from real revision conflicts",
-  "recorded_at": "2026-10-24T01:20:07.883459+00:00",
-  "status": "upstream-component-verified; host-preflight-integration-followup-building",
+  "recorded_at": "2026-10-24T01:35:07.084752+00:00",
+  "status": "component-and-host-regressions-verified; full50-fanout-failed",
   "full_task_complete": false,
   "full_goal_complete": false,
   "qualified_case_ids": [],
@@ -10,12 +10,13 @@
   "store_schema": 103,
   "implementation": [
     "Read-only catalog traversal preserves source-state Mutex WouldBlock as StreamControlError::Backpressure. Poisoned state and a genuinely closed/stale target remain Conflict; missing target/source and true capacity keep their original classifications.",
-    "Only the native catalog-read boundary maps read backpressure to DispatchError::StorageUnavailable. General resource backpressure remains capacity. The pushed Connect mapping preserves authority-busy, but follow-up source review found its whole catalog preflight callback still outside native_preflight; mapping alone did not supply host retry. A separate uncommitted integration correction now wraps that complete callback in the existing helper before beginning the engine lease, bounded by the accepted operation recorded absolute millisecond expiry. That correction is awaiting its build and runtime tests.",
+    "Only the native catalog-read boundary maps read backpressure to DispatchError::StorageUnavailable. General resource backpressure remains capacity. Connect preserves authority-busy and now wraps the entire pre-lease source/catalog/compatibility/bind-plan callback in native_preflight. Retries use the accepted operation original absolute expiry, reset the diagnostic stage per attempt, and begin no engine lease or media effect.",
     "The native execution entry also retries only this catalog read before acquiring a negotiation slot, writer or effect. All proposal locks have ended before the five-millisecond wait, and the original cancellation/deadline are checked. Stale revision, missing source, poison, scope denial and capacity are not retried or repaired by changing the caller revision.",
-    "The upstream change is a tracked patch and source-lock digest prepared in a fresh tree. The existing source173 tree and all original scopes, authorization checks, logical mutation IDs, packet limits and media deadlines remain preserved."
+    "The upstream change is a tracked patch and source-lock digest prepared in a fresh tree. The existing source173 tree and all original scopes, authorization checks, logical mutation IDs, packet limits and media deadlines remain preserved.",
+    "The signed quality fixture checks both actual packet directions within its original eight-second collection deadline, allowing measured directions to span counter-reset intervals. Positive packet samples require positive bitrate; idle samples must have zero bitrate. Scope, signature, lifecycle order, absent unmeasured statistics and current endpoint revocation assertions remain enforced."
   ],
   "verification": {
-    "rust_distinct_methods_passed": 37,
+    "rust_distinct_methods_passed": 42,
     "core_subscription_methods_passed": 16,
     "native_error_classification_methods_passed": 1,
     "native_negotiation_methods_passed": 20,
@@ -56,7 +57,12 @@
       "v2::native_negotiation::tests::new_capability_declarations_invalidate_old_prepared_negotiation_metadata",
       "v2::native_negotiation::tests::new_declarations_keep_untouched_confirmed_bindings_without_reauthorizing_new_withdrawn_formats",
       "v2::native_negotiation::tests::screen_support_and_directional_catalogs_are_not_inferred_from_generic_video",
-      "v2::native_negotiation::tests::unsupported_new_stream_is_rejected_but_zero_usable_streams_refuse"
+      "v2::native_negotiation::tests::unsupported_new_stream_is_rejected_but_zero_usable_streams_refuse",
+      "canonical_native_connections::lifecycle::production_native_lifecycle_quality_reports_actual_flow_through_signed_sdk",
+      "canonical_native_connections::selector_policy::production_native_heterogeneous_wildcard_preserves_audio_and_definitive_refusals",
+      "canonical_native_connections::selector_policy::production_native_disjoint_data_formats_refuse_488_without_allocating_a_route",
+      "canonical_native_connections::production_signed_native_stream_subscription_routes_audio_and_replays_without_another_effect",
+      "canonical_native_connections::codecs::production_native_codec_refusals_and_foreign_physical_replay_preserve_audio_and_pending_original"
     ],
     "new_cases": [
       "A held real source-controller state mutex produces read backpressure while a deliberately wrong target revision still produces Conflict. Releasing the source admits the same original revision without any budget/revision effect; the original valid selection then applies once.",
@@ -67,23 +73,34 @@
     "draft_individual_file_format_passed": true,
     "workspace_format_check_passed": true,
     "diff_check_passed": true,
-    "default_server_test_build_passed": false,
-    "production_retest_completed": false,
+    "default_server_test_build_passed": true,
+    "production_retest_completed": true,
     "source_lock_sha256": "511cd061fc53949718f3cb0b8744df5f22e89cdefac5146250425bbeed049cf7",
-    "scope": "Controlled Core and native library behavior only. No Connect runtime/full50 pass is claimed."
+    "scope": "37 controlled Core/native library methods plus five actual Connect production methods. The quality method covers both EdDSA and ES256. The full50 EdDSA attempt passed admissions and all49 subscriptions but failed decoded media fanout; no full50 or whole-clause qualification.",
+    "connect_production_methods_passed": 5,
+    "full50_passed": false,
+    "local_log_sha256": {
+      "catalog174-host-preflight-build.log": "87cf9280c5888725d782bf39b14116f2af04c070eda3ffd4f9f6571150986f70",
+      "catalog174-host-quality.log": "b88b2fcf31bb5c1d677d358fb688b3b2ea7badc59b1dfef1de4f0d1ad76f5132",
+      "catalog174-host-regression-0.log": "8d4d7e1eb7e80dba75283941d44b1eac567a2a62509efb41184f252cbc543479",
+      "catalog174-host-regression-1.log": "e945338ba4b5ec1a9f6a20067840a68d9004ef31549bcb4019a83043aca68160",
+      "catalog174-host-regression-2.log": "6103c1c1f65c2b6e9b94049c7615e063baf48ce9e10db585f0227b955955ee56",
+      "catalog174-host-regression-3.log": "89fe955728e3214c3ff12549423aed426f4539807217a71f71ae8027dfa15a07",
+      "catalog174-host-fifty.log": "27dc9e68cf86d90101c49aed005d879c2a4a1825099c06ae728aecb1a6e4230e"
+    }
   },
   "failure_provenance": [
     "The prior source173 custody run passed all50 publisher lifecycle sets after original-peer recovery, all99 admissions and zero actual RTP packets before explicit selectors. Subscriptions1..32 returned completed signed results and ACKs; subscriber33 failed with Conflict despite requested/current controller revisions both1. Fanout was not reached. This exposes a false-conflict candidate path; the exact cause of that individual conflict is not inferred solely from equal revisions.",
     "Core catalog traversal was found to flatten every source-state try_lock error into Conflict. The new deterministic contention test reproduces and distinguishes that branch. Existing negotiation-slot conflicts and real model conflicts remain unchanged.",
     "The first unpublished Core test run passed poison/missing but its recovery test reached Model(Invalid) because the general direct-routing fixture intentionally duplicates logical IDs. The valid selector fixture now uses distinct IDs. No ambiguity validation was weakened. Final2 controlled tests and all16 subscription tests pass.",
     "The native library test feature profile rebuilt its SIP dependency for6minutes; it was allowed to finish. One inventory-based object cleanup aborted before deletion on a symbol-less executable; that hash was excluded. Later removal was limited to inspected obsolete dependency-test objects, preserving all their current Mach-O references, complete incremental caches, libraries, executables and active compiler hashes.",
-    "A source-level integration audit found the host catalog closure was evaluated once before the existing metadata retry helper. The37 upstream tests did not prove this host wiring; no runtime qualification had been claimed. The corrected full pre-lease callback retries only authority-busy against accepted.expires_at, resets its diagnostic stage per attempt, and never restarts the command budget. It is not yet verified by a successful Connect build.",
-    "Connect build42284 reached a service query-cache NoSpace error and its MCP child also terminated on an explicit LLVM output NoSpace error; Cargo was allowed to finish both, returning101. Failed working sessions were removed only after their compiler ended and their session locks were acquired. Archive-index-guided cleanup then removed obsolete standalone server/service object byproducts, retaining every current archive-member object, unchanged archive digests, all current libraries/metadata/executables and completed incremental sessions. Available home space recovered to18GiB. The new exact host-integration build is active; the failed build is not a pass."
+    "Follow-up source review found the host catalog callback outside native_preflight. That wiring gap is corrected and the exact host integration build6508 now passes (13m43s), followed by five actual production regression methods. The initial37 upstream passes remain separate from the later runtime proof.",
+    "Connect build42284 reached a service query-cache NoSpace error and its MCP child also terminated on an explicit LLVM output NoSpace error; Cargo was allowed to finish both, returning101. Failed working sessions were removed only after their compiler ended and their session locks were acquired. Archive-index-guided cleanup then removed obsolete standalone server/service object byproducts, retaining every current archive-member object, unchanged archive digests, all current libraries/metadata/executables and completed incremental sessions. Available home space recovered to18GiB. The new exact host-integration build is active; the failed build is not a pass. After this recovery, the exact replacement host build completed successfully; its log is separately hashed above.",
+    "The current source174 plus corrected host-preflight full50 test failed after80.21seconds. EdDSA passed all50 publisher lifecycle sets after original-peer recovery, all99 actual admissions, zero actual RTP before selectors and all49 completed signed subscription result/ACK pairs. Fanout decoded only four total marked frames (one each at peers6,7,13,41), failing the unchanged >10 frames per intended receiver requirement. Trace records287 guarded-audio queues, four IO entries and283 actual guarded egress Deadline refusals. ES256, future publication, retirement/replay and departures were not reached; the complete producer/validator has no passing capture."
   ],
   "unresolved": [
-    "Finish the active exact host-retry integration build, then run actual quality/native production regressions and the isolated full50 case. The first host source174 build failed on disk space and did not qualify runtime. The stronger producer/validator still have no successful complete capture.",
-    "Verify the separate quality fixture correction against interval counters using actual signed SDK events. Its previous first-interval timing failure remains recorded in the custody checkpoint.",
-    "Complete49-way media and later publication/retirement/replay/departure without reducing50 peers,8second command bound,200ms media age or >10 decoded frames per intended receiver.",
+    "Resolve the observed49-way audio fanout deadline failure and run the entire isolated full50 method under both signing algorithms. Preserve50 peers, eight-second command bound,200ms media age and >10 decoded frames per intended receiver.",
+    "Complete later publication/retirement/replay/departure assertions and validate a successful full capture; the current failed diagnostic is not qualification.",
     "G6-046 remains58/61 with0112/0113/0123 open;45/105 tasks complete. Later workspace/Linux/browser/remote/provider/acceptance/publication profiles are not qualified here."
   ]
 }
