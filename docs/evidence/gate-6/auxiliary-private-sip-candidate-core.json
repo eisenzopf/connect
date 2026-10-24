@@ -1,0 +1,129 @@
+{
+  "task": "G6-046",
+  "recorded_at": "2026-10-24T16:50:06.717478+00:00",
+  "status": "core-private-outbound-admission-and-original-relationship-pins-verified",
+  "full_task_complete": false,
+  "full_goal_complete": false,
+  "source_base_commit": "409fd8aaeaba4553f2e8dca6715fb2968d95c6de",
+  "prepared_patch_count": 184,
+  "store_schema": 105,
+  "newly_qualified_case_ids": [],
+  "scope": "Controlled local Core-owned SIP-transport outbound ticket, guarded staged ports, private quarantine and lifecycle/relationship checks. The adapter is an isolated fixture, not actual SIP wire or a complete Connect private-candidate call.",
+  "implementation": {
+    "patch": "patches/rvoip/gate6-private-initial-outbound-admission.patch",
+    "patch_sha256": "3e37e2cde93e1d775f30a079616ca1d0783be2b9c3d43cb5b659098ebfb34d73",
+    "source_lock_sha256": "7ab1dd8f4236717c56b8b39df788a1eaeebc36e4c32449073d7f223040ef26c0",
+    "contract": "contracts/private-consultation.md",
+    "contract_sha256": "99693f34dbc723aa05f2070bde38feae4016559e51d3d2c8aee3d0f476312963",
+    "guide": "docs/developer/private-sip-candidate-core.md"
+  },
+  "behavior_evidence": [
+    "Private initial activation retains the original actual Core provisional SIP ticket and slot, publishes no Participant/source, and seals private audio mode through the existing final commit method. Final admission uses the exact owned outbound preparation and existing fresh muted PreparePrivateAudio quarantine; no native peer/signing identity, replacement route or public fallback is fabricated.",
+    "Original actor/target identity, tenant, Participant, membership epoch, kind and role plus Endpoint identity/Device/address/transport/verification state remain pinned across activation and final admission. After-activation and final current authority are rechecked, and the outbound preparation keeps its actor pin. Only the disposable mutation revision may change; pins are metadata, not permission readers.",
+    "The positive private case admits actual fixture-negotiated guarded audio ports on the original Connection with one allocation and one idempotent signaling activation. A valid private grant on an unmuted controller reaches Core\u2019s Unsupported refusal. Missing private authority and participant withdrawal refuse admission and clean only the original ticket; no media callback runs after participant withdrawal.",
+    "Epoch and Endpoint changes during ringing reproduced successful incorrect admission before the pin fix. Both final regressions now refuse before media preparation, publish no Participant and clean the original route. Historical red evidence is preserved.",
+    "The public staged initial case admits without private authority and observes zero private-preparation calls. Existing actual engine quarantine, held participant control, Session cleanup and owned outbound lifecycle methods continue passing."
+  ],
+  "verification": {
+    "focused": {
+      "passed": true,
+      "summary": ".local/gate-6/received-dtmf-runtime/private-outbound184-focused-005/summary.json",
+      "summary_sha256": "a2e64e8a056324201baf974f3620212d65be6816d398cb541fff046f080762d4",
+      "passed_cases": 7,
+      "ignored_cases": 0,
+      "source_inputs_unchanged": true,
+      "executable_unchanged": true,
+      "executable_sha256": "d0622b9c177d6d912d68db0c0b040122a294b0a43901bc84d8449b7487f129ab",
+      "build_seconds": 311.140918625053,
+      "runtime_seconds": 0.9209474581293762
+    },
+    "regressions": {
+      "passed": true,
+      "summary": ".local/gate-6/received-dtmf-runtime/private-outbound184-regressions-pinned/summary.json",
+      "summary_sha256": "a8d4644a02e86605637a2c9638594566dddf63a3b383582ac1d2e5457e7bcf70",
+      "passed_cases": 68,
+      "ignored_cases": 0,
+      "source_inputs_unchanged": true,
+      "executable_unchanged": true,
+      "groups": [
+        {
+          "filter": "staged_streams::tests::private_consult::",
+          "exit_code": 0,
+          "passed": true,
+          "passed_cases": 56,
+          "ignored_cases": 0,
+          "elapsed_seconds": 0.8950577501673251,
+          "log": ".local/gate-6/received-dtmf-runtime/private-outbound184-regressions-pinned/group-0.log",
+          "log_sha256": "c42e7aef7eb7450e0b447d7ce787fbd98fcb32dda8167a9b318a7daca41c8b69"
+        },
+        {
+          "filter": "orchestrator::participant_control::held_control_tests::",
+          "exit_code": 0,
+          "passed": true,
+          "passed_cases": 7,
+          "ignored_cases": 0,
+          "elapsed_seconds": 0.46266833296976984,
+          "log": ".local/gate-6/received-dtmf-runtime/private-outbound184-regressions-pinned/group-1.log",
+          "log_sha256": "ef04b6dfea359bedb5cbd30c21b25054542f748ab6f1a41d6b0fc01ee38cbf5e"
+        },
+        {
+          "filter": "orchestrator::participant_control::end_session_tests::",
+          "exit_code": 0,
+          "passed": true,
+          "passed_cases": 5,
+          "ignored_cases": 0,
+          "elapsed_seconds": 0.08181887492537498,
+          "log": ".local/gate-6/received-dtmf-runtime/private-outbound184-regressions-pinned/group-2.log",
+          "log_sha256": "f99a0e1b498f6a4d6b75b0a43b807a6041ab8d248514cc979ad1cb0bda521d82"
+        }
+      ]
+    },
+    "public_owned_outbound": {
+      "passed": true,
+      "log": ".local/gate-6/received-dtmf-runtime/private-outbound184-public-dispatch-pinned.log",
+      "log_sha256": "d2a6d4b52ef8959c5700e4460054305b55a4db04f2dba1cd009f8f61035785c0",
+      "executable_sha256": "a474022d442d10e1ccf8a47cab1059c754f55217bb824810c32b454a443b33cc",
+      "passed_cases": 8,
+      "ignored_cases": 0,
+      "methods": [
+        "draining_prepared_outbound_supervisor_aborts_tickets_and_rejects_new_work",
+        "prepared_outbound_capacity_is_bounded_and_recovers_after_abort",
+        "prepared_outbound_context_and_receipt_are_typed_redacted_and_commit_scoped",
+        "prepared_outbound_explicit_abort_and_drop_fail_closed_before_bind",
+        "prepared_outbound_is_invisible_until_commit_then_activates_once",
+        "prepared_outbound_session_end_during_pause_compensates_route",
+        "prepared_outbound_timeout_aborts_supervisor_owned_activation",
+        "prepared_outbound_timeout_makes_stale_commit_fail_closed"
+      ]
+    },
+    "total_distinct_cases": 83,
+    "prepared_sources_verified": true,
+    "service_compile": {
+      "status": "running-current-pinned-source",
+      "log": ".local/gate-6/received-dtmf-runtime/private-outbound184-service-check-pinned.log"
+    }
+  },
+  "failed_attempts": [
+    {
+      "log": ".local/gate-6/received-dtmf-runtime/private-outbound184-core-tests-001.log",
+      "log_sha256": "82845c0e7c83479b713fd722c547f71e8f940933e66cffda6bb86498466b59da",
+      "reason": "Root workspace cannot test a dependency with dev-dependencies; corrected invocation to the pinned upstream manifest. No tests executed."
+    },
+    {
+      "log": ".local/gate-6/received-dtmf-runtime/private-outbound184-core-tests-002.log",
+      "log_sha256": "a6bcb71a2f129f452b88f6d1bf0c610c7f1cfb88b320af9e41a2b593117e2aae",
+      "reason": "Five E0659 fixture import ambiguities; production Core library compiled. Corrected the staged ControlResult import before qualification."
+    },
+    {
+      "log": ".local/gate-6/received-dtmf-runtime/private-outbound184-epoch-endpoint-before-pin.log",
+      "log_sha256": "35de5240fc73aa1155f1b07733ac25b236a2a7c5259a3bce080f18ee152ca4c8",
+      "reason": "Genuine red regressions: 5 pass and 2 fail because an otherwise authorized new membership epoch or stable alternate Endpoint is admitted during ringing. Fixed by original relationship pins; final seven-case proof covers both refusals before media preparation."
+    }
+  ],
+  "historical_baselines": "Earlier five-case and pre-pin regression/service checks retain their earlier prepared-source scopes; they are not used as proof of the original relationship pin extension. Current Core proof uses the final patch digest above. Existing Store/schema105 and SIP runtime reports retain their recorded dependencies and scopes.",
+  "remaining": [
+    "Install the actual Core private path in Connect\u2019s SIP candidate host with distinct own private-answer acceptance and guarded private readiness. Current public host/acceptance/media refusals remain in place.",
+    "Typed SIP-candidate source/selection/lifetime, actual private media/DTMF, return and physical cleanup through the public server/client path.",
+    "Remaining authority/IO/retirement/concurrency compositions, complete current G6-046 auxiliary matrix and other Gate6 Linux/remote/provider/independent acceptance tasks. No clause/task credit or publication."
+  ]
+}

@@ -39,7 +39,8 @@ The public host activation and public own-acceptance/media paths refuse private
 candidates. If a private answer reaches the public recording API, its captured
 fact is retained without a public `session.accept`, ready observation or media
 grant. The Connection and child outcome remain unknown until owned cleanup.
-Private Core quarantine and own-answer admission are the next runtime boundary;
+The [Core private outbound path](private-sip-candidate-core.md) now supplies the
+engine admission API. Installing it with own-answer admission is the next host boundary;
 this refusal is not a completed private-call implementation.
 
 The [component report](../evidence/gate-6/auxiliary-private-sip-candidate-initial.json)

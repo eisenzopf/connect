@@ -23,6 +23,24 @@ private Context. An ordinary unmute or subscription cannot bypass the quarantine
 Admission and audience changes preserve the retained Session and remote physical
 Connection; neither creates a replacement call.
 
+For an initial SIP call, keep the actual `PreparedOutboundConnection` and use
+`activate_private_initial_participant_with_held`. Signaling activation retains
+the original ticket and publishes no Participant or media source. The returned
+`ActivatedInitialParticipant` freezes private audio mode across ringing; its
+ordinary commit method preserves that mode rather than choosing public
+admission. The original actor and target membership epochs, identities and roles,
+and the Endpoint identity, Device, address, transport and verification state
+remain pinned across activation and final admission. These pins retain no
+permission reader; both phases still require current authorization. Only the
+disposable Session revision may change. The final callback
+must install the actual SIP controller bound to the supplied
+`OutboundParticipantPreparation`, negotiate audio, and mute its publishing
+source before returning fresh held authority. `PreparePrivateAudio` then owns
+the same quarantine checks as native private preparation. No native
+`PeerAdmission`, signing identity or replacement connection is created for SIP.
+The preparation's `is_private_audio` value is metadata, not authority. Failure,
+cancel or drop leaves cleanup with the original outbound supervisor.
+
 ## Switch the intended bridge
 
 `plan_private_consultation` names the primary, retained remote, consulting

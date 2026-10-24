@@ -1,0 +1,974 @@
+--- a/crates/foundation/rvoip-core/src/orchestrator/participant_control/outbound.rs
++++ b/crates/foundation/rvoip-core/src/orchestrator/participant_control/outbound.rs
+@@ -1,6 +1,56 @@
+ //! Owned initial SIP activation and checked admission. No native/replacement proof.
+ use super::*;
+ use crate::relationships::{ConnectionBinding, SessionAppearance};
++
++fn same_initial_member(a: &Membership, b: &Membership) -> bool {
++    a.identity() == b.identity()
++        && a.tenant() == b.tenant()
++        && a.conversation() == b.conversation()
++        && a.participant() == b.participant()
++        && a.epoch() == b.epoch()
++        && a.kind() == b.kind()
++        && a.default_role() == b.default_role()
++}
++fn same_initial_endpoint(a: &EndpointBinding, b: &EndpointBinding) -> bool {
++    a.endpoint() == b.endpoint()
++        && a.device() == b.device()
++        && a.identity() == b.identity()
++        && a.address() == b.address()
++        && a.state() == b.state()
++        && a.transport() == b.transport()
++}
++/// Original relationships approved before the first signaling activation.
++/// This is a pin, never continuing authority; final admission still reads its
++/// current participant and private-media grants.
++struct InitialParticipantPin {
++    actor: Membership,
++    target: Membership,
++    endpoint: EndpointBinding,
++}
++impl InitialParticipantPin {
++    fn capture(authority: &ParticipantAuthority) -> ControlResult<Self> {
++        Ok(Self {
++            actor: authority.actor.clone(),
++            target: authority.target.clone(),
++            endpoint: authority
++                .endpoint
++                .clone()
++                .ok_or(ParticipantControlError::Authority)?,
++        })
++    }
++    fn require(&self, authority: &ParticipantAuthority) -> ControlResult<()> {
++        if !same_initial_member(&self.actor, &authority.actor)
++            || !same_initial_member(&self.target, &authority.target)
++            || !authority
++                .endpoint
++                .as_ref()
++                .is_some_and(|e| same_initial_endpoint(&self.endpoint, e))
++        {
++            return Err(ParticipantControlError::Authority);
++        }
++        Ok(())
++    }
++}
+ 
+ /// Created only from an actual Core-owned provisional outbound ticket and its
+ /// installed participant policy. Adapters may retain its resource identity; it
+@@ -13,13 +63,20 @@
+     principal: AuthenticatedPrincipal,
+     mutation: ParticipantMutation,
+     member: Membership,
++    actor: Membership,
+     endpoint: EndpointBinding,
+     appearance: SessionAppearance,
+     binding: ConnectionBinding,
+     cancellation: CancellationToken,
+     deadline: tokio::time::Instant,
++    private_audio: bool,
+ }
+ impl OutboundParticipantPreparation {
++    /// Frozen admission mode of this exact outbound ticket. This is metadata,
++    /// never permission to publish, route or bypass private preparation.
++    pub fn is_private_audio(&self) -> bool {
++        self.private_audio
++    }
+     /// Exact adapter owner; this never conveys current write authority.
+     pub fn belongs_to_adapter(&self, adapter: &dyn ConnectionAdapter) -> bool {
+         self.adapter
+@@ -112,6 +169,7 @@
+             .as_ref()
+             .ok_or(ParticipantControlError::Authority)?;
+         if !self.is_current()
++            || !same_initial_member(&self.actor, &authority.actor)
+             || scope.session != self.appearance.session()
+             || scope.conversation != self.member.conversation()
+             || scope
+@@ -143,6 +201,8 @@
+     principal: AuthenticatedPrincipal,
+     start: ParticipantMutation,
+     activation: crate::adapter::OutboundActivation,
++    private_audio: bool,
++    initial: InitialParticipantPin,
+ }
+ impl ActivatedInitialParticipant {
+     /// Original Core Connection identity; never a caller-selected replacement.
+@@ -176,7 +236,9 @@
+             return Err(ParticipantControlError::Authority);
+         }
+         self.prepared
+-            .commit_staged_participant_with_held(
++            .commit_staged_with_mode(
++                self.private_audio,
++                Some(self.initial),
+                 self.principal,
+                 mutation,
+                 deadline,
+@@ -195,6 +257,32 @@
+     /// The owned invocation/control are released before returning the receipt.
+     pub async fn activate_initial_participant_with_held(
+         self,
++        principal: AuthenticatedPrincipal,
++        mutation: ParticipantMutation,
++        deadline: tokio::time::Instant,
++        cancellation: CancellationToken,
++        held: Box<dyn Any + Send + Sync>,
++    ) -> ControlResult<ActivatedInitialParticipant> {
++        self.activate_initial_with_mode(false, principal, mutation, deadline, cancellation, held)
++            .await
++    }
++    /// Activate the original provisional SIP route for private audio admission.
++    /// This publishes no Participant/source. The returned ticket freezes private
++    /// mode, and its final commit must pass fresh muted PreparePrivateAudio.
++    pub async fn activate_private_initial_participant_with_held(
++        self,
++        principal: AuthenticatedPrincipal,
++        mutation: ParticipantMutation,
++        deadline: tokio::time::Instant,
++        cancellation: CancellationToken,
++        held: Box<dyn Any + Send + Sync>,
++    ) -> ControlResult<ActivatedInitialParticipant> {
++        self.activate_initial_with_mode(true, principal, mutation, deadline, cancellation, held)
++            .await
++    }
++    async fn activate_initial_with_mode(
++        self,
++        private_audio: bool,
+         principal: AuthenticatedPrincipal,
+         mutation: ParticipantMutation,
+         deadline: tokio::time::Instant,
+@@ -251,6 +339,7 @@
+         if endpoint.transport() != Transport::Sip || endpoint.address() != self.target {
+             return Err(ParticipantControlError::Authority);
+         }
++        let initial = InitialParticipantPin::capture(&authority)?;
+         let mut deadline = deadline.min(control.deadline);
+         if let Some(expiry) = principal_expiry(&principal) {
+             let remaining = expiry - Utc::now();
+@@ -304,7 +393,7 @@
+             value=tokio::time::timeout_at(deadline,self.cleanup.adapter.activate_outbound_with_receipt(connection.clone()))=>value.map_err(|_|ParticipantControlError::Deadline)??,
+         };
+         invocation_current(&cancellation, Some(&control), None, deadline)?;
+-        let _ = control.current(&scope)?;
++        initial.require(&control.current(&scope)?)?;
+         owner.validate_connection_lifecycles(std::slice::from_ref(&self.cleanup.lifecycle))?;
+         drop(control);
+         drop(held);
+@@ -313,6 +402,8 @@
+             principal,
+             start: mutation,
+             activation,
++            private_audio,
++            initial,
+         })
+     }
+     /// Activate this one initial SIP route and transfer it into the installed
+@@ -325,7 +416,34 @@
+     /// answer without retaining its transport read, then return a fresh owned
+     /// media/admission invocation. The two phases never borrow each other's grant.
+     pub async fn commit_staged_participant_with_held<F, Fut>(
++        self,
++        principal: AuthenticatedPrincipal,
++        mutation: ParticipantMutation,
++        deadline: tokio::time::Instant,
++        cancellation: CancellationToken,
++        held: Box<dyn Any + Send + Sync>,
++        prepare_media: F,
++    ) -> ControlResult<(ConnectionHandle, ParticipantObservation)>
++    where
++        F: FnOnce(Arc<OutboundParticipantPreparation>) -> Fut,
++        Fut: std::future::Future<Output = ControlResult<Arc<dyn Any + Send + Sync>>>,
++    {
++        self.commit_staged_with_mode(
++            false,
++            None,
++            principal,
++            mutation,
++            deadline,
++            cancellation,
++            held,
++            prepare_media,
++        )
++        .await
++    }
++    async fn commit_staged_with_mode<F, Fut>(
+         mut self,
++        private_audio: bool,
++        initial: Option<InitialParticipantPin>,
+         principal: AuthenticatedPrincipal,
+         mutation: ParticipantMutation,
+         deadline: tokio::time::Instant,
+@@ -349,6 +467,8 @@
+             .map_err(|_| ParticipantControlError::Cancelled)?;
+         let result = self
+             .commit_staged_inner(
++                private_audio,
++                initial,
+                 principal,
+                 mutation,
+                 deadline,
+@@ -365,6 +485,8 @@
+     }
+     async fn commit_staged_inner<F, Fut>(
+         &mut self,
++        private_audio: bool,
++        initial: Option<InitialParticipantPin>,
+         principal: AuthenticatedPrincipal,
+         mutation: ParticipantMutation,
+         deadline: tokio::time::Instant,
+@@ -425,6 +547,9 @@
+         if endpoint.transport() != Transport::Sip || endpoint.address() != self.target {
+             return Err(ParticipantControlError::Authority);
+         }
++        if let Some(initial) = &initial {
++            initial.require(&authority)?;
++        }
+         let mut deadline = deadline.min(control.deadline);
+         if let Some(expiry) = principal_expiry(&principal) {
+             let remaining = expiry - Utc::now();
+@@ -481,9 +606,11 @@
+             principal: principal.clone(),
+             mutation: mutation.clone(),
+             member: authority.target.clone(),
++            actor: authority.actor.clone(),
+             endpoint: endpoint.clone(),
+             appearance: pending.appearance().clone(),
+             binding: pending.binding().clone(),
++            private_audio,
+             cancellation: cancellation.clone(),
+             deadline,
+         });
+@@ -514,7 +641,7 @@
+                 cancellation,
+                 None,
+                 Some(admission.as_ref()),
+-                false,
++                private_audio,
+                 Some(&prepared),
+             )
+             .await?;
+--- a/crates/foundation/rvoip-core/src/orchestrator/participant_control.rs
++++ b/crates/foundation/rvoip-core/src/orchestrator/participant_control.rs
+@@ -1200,7 +1200,11 @@
+         let runtime = self.participant_runtime(session_id)?;
+         if let Some(outbound) = outbound {
+             outbound.require_invocation(self, session_id, &principal, &mutation)?;
+-            if peer.is_some() || held.is_none() || private_audio || runtime.mixer.staged.is_none() {
++            if peer.is_some()
++                || held.is_none()
++                || private_audio != outbound.is_private_audio()
++                || runtime.mixer.staged.is_none()
++            {
+                 return Err(ParticipantControlError::Authority);
+             }
+         }
+--- /dev/null
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/private_outbound.rs
+@@ -0,0 +1,697 @@
++//! Controlled owned outbound ticket plus actual staged ports, not SIP wire proof.
++use super::*;
++use crate::staged_streams::ControlResult;
++use crate::{
++    adapter::*,
++    capability::{CapabilityDescriptor, NegotiatedCodecs},
++    connection::{Connection, ConnectionState, Direction, TransportHandle},
++    ids::TenantId,
++    message::Message,
++    orchestrator::participant_control::*,
++    participant_transitions::*,
++    Config, Orchestrator, RvoipError,
++};
++
++struct Route {
++    live: Mutex<HashSet<ConnectionId>>,
++    activated: Mutex<HashSet<ConnectionId>>,
++    controllers: Mutex<HashMap<ConnectionId, Arc<StreamController>>>,
++    events: mpsc::Sender<AdapterEvent>,
++    receiver: Mutex<Option<mpsc::Receiver<AdapterEvent>>>,
++    lifecycle: AdapterLifecycleSinkSlot,
++    allocations: AtomicUsize,
++    signals: AtomicUsize,
++    ends: AtomicUsize,
++}
++impl Route {
++    fn new() -> Arc<Self> {
++        let (events, receiver) = mpsc::channel(32);
++        Arc::new(Self {
++            live: Mutex::new(HashSet::new()),
++            activated: Mutex::new(HashSet::new()),
++            controllers: Mutex::new(HashMap::new()),
++            events,
++            receiver: Mutex::new(Some(receiver)),
++            lifecycle: AdapterLifecycleSinkSlot::default(),
++            allocations: AtomicUsize::new(0),
++            signals: AtomicUsize::new(0),
++            ends: AtomicUsize::new(0),
++        })
++    }
++}
++#[async_trait::async_trait]
++impl ConnectionAdapter for Route {
++    fn transport(&self) -> Transport {
++        Transport::Sip
++    }
++    fn kind(&self) -> AdapterKind {
++        AdapterKind::Interop
++    }
++    fn lifecycle_capabilities(&self) -> AdapterLifecycleCapabilities {
++        AdapterLifecycleCapabilities {
++            authoritative_liveness: true,
++            staged_outbound_activation: true,
++            ..Default::default()
++        }
++    }
++    fn install_lifecycle_sink(&self, sink: Arc<dyn AdapterLifecycleSink>) -> crate::Result<()> {
++        self.lifecycle
++            .install(sink)
++            .map_err(|_| RvoipError::InvalidState("fixture duplicate lifecycle"))
++    }
++    fn is_connection_live(&self, id: &ConnectionId) -> bool {
++        self.live.lock().unwrap().contains(id)
++    }
++    fn staged_controller(&self, id: &ConnectionId) -> Option<Arc<StreamController>> {
++        self.controllers.lock().unwrap().get(id).cloned()
++    }
++    async fn originate(&self, r: OriginateRequest) -> crate::Result<ConnectionHandle> {
++        self.allocations.fetch_add(1, Ordering::SeqCst);
++        let id = ConnectionId::new();
++        self.live.lock().unwrap().insert(id.clone());
++        Ok(ConnectionHandle::new(Connection {
++            id,
++            session_id: r.session_id,
++            participant_id: r.participant_id,
++            transport: Transport::Sip,
++            direction: Direction::Outbound,
++            state: ConnectionState::Connecting,
++            capabilities: r.capabilities,
++            negotiated_codecs: NegotiatedCodecs::default(),
++            streams: vec![],
++            messaging_enabled: false,
++            transport_handle: TransportHandle(Arc::new(())),
++            opened_at: chrono::Utc::now(),
++            closed_at: None,
++        }))
++    }
++    async fn activate_outbound(&self, id: ConnectionId) -> crate::Result<()> {
++        if !self.is_connection_live(&id) {
++            return Err(RvoipError::InvalidState("fixture ended"));
++        }
++        if self.activated.lock().unwrap().insert(id) {
++            self.signals.fetch_add(1, Ordering::SeqCst);
++        }
++        Ok(())
++    }
++    async fn accept(&self, _: ConnectionId) -> crate::Result<()> {
++        Err(RvoipError::NotImplemented("outbound fixture"))
++    }
++    async fn reject(&self, id: ConnectionId, _: RejectReason) -> crate::Result<()> {
++        self.end(id, EndReason::Normal).await
++    }
++    async fn end(&self, id: ConnectionId, _: EndReason) -> crate::Result<()> {
++        if self.live.lock().unwrap().remove(&id) {
++            self.ends.fetch_add(1, Ordering::SeqCst);
++        }
++        let controller = self.controllers.lock().unwrap().remove(&id);
++        if let Some(c) = controller {
++            c.shutdown(deadline()).await;
++        }
++        Ok(())
++    }
++    async fn hold(&self, _: ConnectionId) -> crate::Result<()> {
++        Err(RvoipError::NotImplemented("fixture"))
++    }
++    async fn resume(&self, _: ConnectionId) -> crate::Result<()> {
++        Err(RvoipError::NotImplemented("fixture"))
++    }
++    async fn transfer(&self, _: ConnectionId, _: TransferTarget) -> crate::Result<()> {
++        Err(RvoipError::NotImplemented("fixture"))
++    }
++    async fn streams(
++        &self,
++        _: ConnectionId,
++    ) -> crate::Result<Vec<Arc<dyn crate::stream::MediaStream>>> {
++        Err(RvoipError::NotImplemented("staged ports only"))
++    }
++    async fn send_message(&self, _: ConnectionId, _: Message) -> crate::Result<()> {
++        Err(RvoipError::NotImplemented("fixture"))
++    }
++    async fn send_dtmf(&self, _: ConnectionId, _: &str, _: u32) -> crate::Result<()> {
++        Err(RvoipError::NotImplemented("fixture"))
++    }
++    async fn renegotiate_media(
++        &self,
++        _: ConnectionId,
++        _: CapabilityDescriptor,
++    ) -> crate::Result<NegotiatedCodecs> {
++        Err(RvoipError::NotImplemented("fixture"))
++    }
++    fn subscribe_events(&self) -> mpsc::Receiver<AdapterEvent> {
++        self.receiver.lock().unwrap().take().unwrap()
++    }
++    fn capabilities(&self) -> CapabilityDescriptor {
++        CapabilityDescriptor::default()
++    }
++    async fn verify_request_signature(
++        &self,
++        _: ConnectionId,
++        _: SignatureHeaders,
++    ) -> crate::Result<IdentityAssurance> {
++        Err(RvoipError::NotImplemented("fixture"))
++    }
++}
++struct Domain {
++    principal: AuthenticatedPrincipal,
++    session: SessionId,
++    member: Membership,
++    endpoint: EndpointBinding,
++    alternate_endpoint: EndpointBinding,
++    owner: Mutex<Option<MediaOwner>>,
++    proof: Mutex<Option<Arc<PreparedMediaObservation>>>,
++    allowed: AtomicBool,
++    private_allowed: AtomicBool,
++    changed_epoch: AtomicBool,
++    changed_endpoint: AtomicBool,
++    private_checks: AtomicUsize,
++    preparations: AtomicUsize,
++}
++#[derive(Clone)]
++struct Grant {
++    domain: Arc<Domain>,
++    mutation: ParticipantMutation,
++    private_revision: Option<u64>,
++    private_audio: bool,
++}
++struct ParticipantLease(Grant);
++impl ParticipantControlLease for ParticipantLease {
++    fn current(
++        &self,
++        s: &ParticipantScope<'_>,
++    ) -> std::result::Result<ParticipantAuthority, ParticipantControlError> {
++        let g = &self.0;
++        let d = &g.domain;
++        if !d.allowed.load(Ordering::SeqCst)
++            || s.session != &d.session
++            || s.conversation != d.member.conversation()
++            || s.principal.ownership_key() != d.principal.ownership_key()
++            || s.principal.expires_at != d.principal.expires_at
++            || (s.mutation.operation_id != g.mutation.operation_id
++                || s.mutation.correlation_id != g.mutation.correlation_id
++                || s.mutation.expected_revision != g.mutation.expected_revision
++                || s.mutation.participant != g.mutation.participant
++                || s.mutation.change != g.mutation.change)
++            || s.connection_generation.is_some_and(|g| g != 1)
++        {
++            return Err(ParticipantControlError::Authority);
++        }
++        let identity = IdentityBinding::from_authenticated(
++            &d.principal,
++            d.member.identity().clone(),
++            chrono::Utc::now(),
++        )
++        .unwrap();
++        let member = if d.changed_epoch.load(Ordering::SeqCst) {
++            Membership::from_current(
++                identity.clone(),
++                d.member.conversation().clone(),
++                d.member.participant().clone(),
++                d.member.kind().clone(),
++                d.member.default_role().clone(),
++                2,
++                1,
++                true,
++            )
++            .unwrap()
++        } else {
++            d.member.clone()
++        };
++        let endpoint = if d.changed_endpoint.load(Ordering::SeqCst) {
++            d.alternate_endpoint.clone()
++        } else {
++            d.endpoint.clone()
++        };
++        Ok(ParticipantAuthority {
++            actor: member.clone(),
++            target: member,
++            endpoint: Some(endpoint),
++            may_send_audio: true,
++            may_receive_audio: true,
++            confirmation_required: false,
++            confirmed_generation: None,
++        })
++    }
++}
++impl ParticipantPolicy for Domain {
++    fn current(
++        &self,
++        _: &ParticipantScope<'_>,
++    ) -> std::result::Result<Box<dyn ParticipantAuthorityLease + '_>, ParticipantControlError> {
++        Err(ParticipantControlError::Unsupported)
++    }
++    fn current_control(
++        &self,
++        s: &ParticipantScope<'_>,
++        held: &(dyn Any + Send + Sync),
++    ) -> std::result::Result<ParticipantControl, ParticipantControlError> {
++        let grant = held
++            .downcast_ref::<Grant>()
++            .ok_or(ParticipantControlError::Authority)?;
++        if !std::ptr::eq(self, grant.domain.as_ref()) {
++            return Err(ParticipantControlError::Authority);
++        }
++        ParticipantLease(grant.clone()).current(s)?;
++        ParticipantControl::new(
++            Box::new(ParticipantLease(grant.clone())),
++            CancellationToken::new(),
++            deadline(),
++        )
++    }
++}
++struct MediaLease {
++    domain: Arc<Domain>,
++    owner: MediaOwner,
++}
++impl MediaAuthorityLease for MediaLease {
++    fn authority(&self) -> &MediaOwner {
++        &self.owner
++    }
++    fn control_prepared(
++        &self,
++        proof: &Arc<PreparedMediaObservation>,
++    ) -> ControlResult<Box<MediaOwner>> {
++        let owner = proof.activate_for_commit(self.owner.clone())?;
++        *self.domain.proof.lock().unwrap() = Some(proof.clone());
++        Ok(Box::new(owner))
++    }
++}
++impl Domain {
++    fn current_owner(&self) -> ControlResult<MediaOwner> {
++        if !self.allowed.load(Ordering::SeqCst) {
++            return Err(StreamControlError::Authority);
++        }
++        let owner = self
++            .owner
++            .lock()
++            .unwrap()
++            .clone()
++            .ok_or(StreamControlError::NotReady)?;
++        if let Some(p) = self
++            .proof
++            .lock()
++            .unwrap()
++            .as_ref()
++            .filter(|p| p.is_committed())
++        {
++            p.current(owner)
++        } else {
++            Ok(owner)
++        }
++    }
++    fn media(&self, s: &MediaScope<'_>) -> ControlResult<MediaOwner> {
++        let owner = self.current_owner()?;
++        if s.connection != owner.connection.connection()
++            || s.session != owner.presence.session()
++            || s.conversation != owner.member.conversation()
++            || s.principal.ownership_key() != self.principal.ownership_key()
++            || s.principal.expires_at != self.principal.expires_at
++        {
++            return Err(StreamControlError::Authority);
++        }
++        Ok(owner)
++    }
++}
++struct OrdinaryMediaLease(MediaOwner);
++impl MediaAuthorityLease for OrdinaryMediaLease {
++    fn authority(&self) -> &MediaOwner {
++        &self.0
++    }
++}
++impl MediaPolicy for Domain {
++    fn current(&self, scope: &MediaScope<'_>) -> ControlResult<Box<dyn MediaAuthorityLease>> {
++        if !matches!(scope.purpose, MediaPurpose::Control) {
++            return Err(StreamControlError::Authority);
++        }
++        Ok(Box::new(OrdinaryMediaLease(self.media(scope)?)))
++    }
++    fn current_control(
++        &self,
++        s: &MediaScope<'_>,
++        intent: &MediaControlIntent<'_>,
++        held: &(dyn Any + Send + Sync),
++    ) -> ControlResult<MediaControl> {
++        let grant = held
++            .downcast_ref::<Grant>()
++            .ok_or(StreamControlError::Authority)?;
++        if !std::ptr::eq(self, grant.domain.as_ref()) {
++            return Err(StreamControlError::Authority);
++        }
++        if let MediaControlIntent::PreparePrivateAudio {
++            operation,
++            expected,
++        } = intent
++        {
++            self.private_checks.fetch_add(1, Ordering::SeqCst);
++            if !self.private_allowed.load(Ordering::SeqCst)
++                || *operation != grant.mutation.operation_id
++                || Some(*expected) != grant.private_revision
++            {
++                return Err(StreamControlError::Authority);
++            }
++        }
++        MediaControl::new(
++            Box::new(MediaLease {
++                domain: grant.domain.clone(),
++                owner: self.media(s)?,
++            }),
++            CancellationToken::new(),
++            deadline(),
++        )
++    }
++}
++struct Setup {
++    orch: Arc<Orchestrator>,
++    route: Arc<Route>,
++    domain: Arc<Domain>,
++    session: SessionId,
++}
++impl Setup {
++    async fn new() -> Self {
++        let orch = Orchestrator::new(Config::default());
++        let route = Route::new();
++        orch.register(route.clone()).unwrap();
++        let conversation = orch
++            .open_conversation(
++                TenantId::from_string("tenant"),
++                crate::conversation::ConversationPolicy::Persistent,
++                HashMap::new(),
++            )
++            .await
++            .unwrap();
++        let session = orch
++            .start_session(
++                conversation.clone(),
++                crate::session::SessionMedium::Voice,
++                vec![],
++            )
++            .await
++            .unwrap();
++        let principal = principal("private-phone");
++        let identity = IdentityBinding::from_authenticated(
++            &principal,
++            IdentityId::from_string("private-phone"),
++            chrono::Utc::now(),
++        )
++        .unwrap();
++        let member = Membership::admit(
++            identity.clone(),
++            conversation,
++            ParticipantId::from_string("private-phone"),
++            ParticipantKind::Human,
++            ParticipantRole::Agent,
++        )
++        .unwrap();
++        let mut endpoint = EndpointBinding::provision(
++            identity.clone(),
++            EndpointId::new(),
++            DeviceId::new(),
++            Transport::Sip,
++            "sip:private@fixture.invalid".into(),
++        )
++        .unwrap();
++        endpoint
++            .verify(
++                &identity,
++                "controlled-outbound-fixture".into(),
++                chrono::Utc::now(),
++            )
++            .unwrap();
++        let mut alternate_endpoint = EndpointBinding::provision(
++            identity.clone(),
++            EndpointId::new(),
++            DeviceId::new(),
++            Transport::Sip,
++            endpoint.address().into(),
++        )
++        .unwrap();
++        alternate_endpoint
++            .verify(
++                &identity,
++                "alternate-current-endpoint".into(),
++                chrono::Utc::now(),
++            )
++            .unwrap();
++        let domain = Arc::new(Domain {
++            principal,
++            session: session.clone(),
++            member,
++            endpoint,
++            alternate_endpoint,
++            owner: Mutex::new(None),
++            proof: Mutex::new(None),
++            allowed: AtomicBool::new(true),
++            private_allowed: AtomicBool::new(true),
++            changed_epoch: AtomicBool::new(false),
++            changed_endpoint: AtomicBool::new(false),
++            private_checks: AtomicUsize::new(0),
++            preparations: AtomicUsize::new(0),
++        });
++        orch.enable_staged_participant_control(
++            &session,
++            domain.clone(),
++            domain.clone(),
++            ParticipantLimits::default(),
++        )
++        .unwrap();
++        Self {
++            orch,
++            route,
++            domain,
++            session,
++        }
++    }
++    async fn activated(
++        &self,
++        private_audio: bool,
++    ) -> (
++        crate::orchestrator::participant_control::ActivatedInitialParticipant,
++        Grant,
++    ) {
++        let p = self
++            .orch
++            .prepare_outbound_connection(OriginateRequest {
++                session_id: self.session.clone(),
++                participant_id: self.domain.member.participant().clone(),
++                target: self.domain.endpoint.address().into(),
++                direction: Direction::Outbound,
++                capabilities: CapabilityDescriptor::default(),
++                transport: Some(Transport::Sip),
++                context: Default::default(),
++            })
++            .await
++            .unwrap();
++        let grant = Grant {
++            domain: self.domain.clone(),
++            private_revision: None,
++            private_audio,
++            mutation: ParticipantMutation {
++                operation_id: "private-initial".into(),
++                correlation_id: "private-initial".into(),
++                expected_revision: self.orch.participant_revision(&self.session).unwrap(),
++                participant: self.domain.member.participant().clone(),
++                change: ParticipantChange::Admit {
++                    connection: p.connection_id().clone(),
++                    role_override: None,
++                },
++            },
++        };
++        let active = if private_audio {
++            p.activate_private_initial_participant_with_held(
++                self.domain.principal.clone(),
++                grant.mutation.clone(),
++                deadline(),
++                CancellationToken::new(),
++                Box::new(grant.clone()),
++            )
++            .await
++        } else {
++            p.activate_initial_participant_with_held(
++                self.domain.principal.clone(),
++                grant.mutation.clone(),
++                deadline(),
++                CancellationToken::new(),
++                Box::new(grant.clone()),
++            )
++            .await
++        }
++        .unwrap();
++        assert!(self.orch.session_of(active.connection_id()).is_none());
++        assert_eq!(self.route.allocations.load(Ordering::SeqCst), 1);
++        assert_eq!(self.route.signals.load(Ordering::SeqCst), 1);
++        (active, grant)
++    }
++    async fn commit(
++        &self,
++        active: crate::orchestrator::participant_control::ActivatedInitialParticipant,
++        grant: Grant,
++        muted: bool,
++    ) -> std::result::Result<(ConnectionHandle, ParticipantObservation), ParticipantControlError>
++    {
++        let domain = self.domain.clone();
++        let route = self.route.clone();
++        let held = grant.clone();
++        active
++            .commit_staged_participant_with_held(
++                grant.mutation.clone(),
++                deadline(),
++                CancellationToken::new(),
++                Box::new(grant),
++                move |p| async move {
++                    assert_eq!(p.is_private_audio(), held.private_audio);
++                    domain.preparations.fetch_add(1, Ordering::SeqCst);
++                    let mut caps = profile();
++                    caps.send.retain(|c| c.medium == Medium::Audio);
++                    caps.receive.retain(|c| c.medium == Medium::Audio);
++                    caps.max_streams = 1;
++                    *domain.owner.lock().unwrap() = Some(MediaOwner {
++                        actor: p.member().clone(),
++                        member: p.member().clone(),
++                        presence: p.appearance().clone(),
++                        endpoint: p.endpoint().clone(),
++                        connection: p.binding().clone(),
++                        may_control: true,
++                        may_route_source: false,
++                        send_media: BTreeSet::from([Medium::Audio]),
++                        receive_media: BTreeSet::from([Medium::Audio]),
++                        local: caps.clone(),
++                        remote: caps,
++                    });
++                    let backend = Adapter::new();
++                    let controller = StreamController::with_held_control(
++                        p.member().conversation().clone(),
++                        p.appearance().session().clone(),
++                        p.binding().connection().clone(),
++                        p.principal().clone(),
++                        domain.clone(),
++                        backend,
++                        Arc::new(StreamHandleAllocator::default()),
++                        4,
++                        8,
++                        p.cancellation(),
++                        &held,
++                    )?;
++                    controller
++                        .change_with_held(
++                            0,
++                            &[desired(Medium::Audio)],
++                            &BTreeSet::new(),
++                            deadline(),
++                            CancellationToken::new(),
++                            Arc::new(held.clone()),
++                        )
++                        .await?;
++                    if muted {
++                        controller
++                            .set_media_gate_with_held(
++                                1,
++                                &BTreeSet::from([desired(Medium::Audio).logical_id]),
++                                StreamGateAction::Mute,
++                                deadline(),
++                                Arc::new(held.clone()),
++                            )
++                            .await?;
++                    }
++                    let mut held = held;
++                    held.private_revision = Some(controller.revision());
++                    route
++                        .controllers
++                        .lock()
++                        .unwrap()
++                        .insert(p.binding().connection().clone(), controller);
++                    Ok(Arc::new(held) as Arc<dyn Any + Send + Sync>)
++                },
++            )
++            .await
++    }
++}
++#[tokio::test]
++async fn private_outbound_admission_keeps_original_ticket_and_requires_muted_owned_ports() {
++    let f = Setup::new().await;
++    let (active, grant) = f.activated(true).await;
++    let id = active.connection_id().clone();
++    let (_handle, observed) = f.commit(active, grant, true).await.unwrap();
++    assert!(observed.admitted.contains(&id));
++    assert_eq!(f.orch.session_of(&id), Some(f.session.clone()));
++    assert!(f.domain.private_checks.load(Ordering::SeqCst) > 0);
++    assert_eq!(f.route.allocations.load(Ordering::SeqCst), 1);
++    assert_eq!(f.route.signals.load(Ordering::SeqCst), 1);
++    f.orch.end_connection(id, EndReason::Normal).await.unwrap();
++    assert_eq!(f.route.ends.load(Ordering::SeqCst), 1);
++}
++#[tokio::test]
++async fn private_outbound_unmuted_ports_never_publish_participant_or_fall_back_to_public() {
++    let f = Setup::new().await;
++    let (active, grant) = f.activated(true).await;
++    let id = active.connection_id().clone();
++    assert!(matches!(
++        f.commit(active, grant, false).await,
++        Err(ParticipantControlError::Media(
++            StreamControlError::Unsupported
++        ))
++    ));
++    assert!(f.orch.session_of(&id).is_none());
++    assert!(!f.route.is_connection_live(&id));
++    assert_eq!(f.route.ends.load(Ordering::SeqCst), 1);
++}
++#[tokio::test]
++async fn private_outbound_missing_current_private_grant_cleans_only_original_ticket() {
++    let f = Setup::new().await;
++    let (active, grant) = f.activated(true).await;
++    let id = active.connection_id().clone();
++    f.domain.private_allowed.store(false, Ordering::SeqCst);
++    assert!(f.commit(active, grant, true).await.is_err());
++    assert!(f.orch.session_of(&id).is_none());
++    assert!(!f.route.is_connection_live(&id));
++    assert_eq!(f.route.allocations.load(Ordering::SeqCst), 1);
++}
++#[tokio::test]
++async fn private_outbound_withdrawn_participant_grant_before_commit_never_prepares_media() {
++    let f = Setup::new().await;
++    let (active, grant) = f.activated(true).await;
++    let id = active.connection_id().clone();
++    f.domain.allowed.store(false, Ordering::SeqCst);
++    assert!(f.commit(active, grant, true).await.is_err());
++    assert_eq!(f.domain.preparations.load(Ordering::SeqCst), 0);
++    assert!(f.orch.session_of(&id).is_none());
++    assert!(!f.route.is_connection_live(&id));
++}
++
++#[tokio::test]
++async fn public_outbound_staged_admission_retains_public_mode_without_private_authority() {
++    let f = Setup::new().await;
++    f.domain.private_allowed.store(false, Ordering::SeqCst);
++    let (active, grant) = f.activated(false).await;
++    let id = active.connection_id().clone();
++    let (_handle, observed) = f.commit(active, grant, false).await.unwrap();
++    assert!(observed.admitted.contains(&id));
++    assert_eq!(f.orch.session_of(&id), Some(f.session.clone()));
++    assert_eq!(f.domain.private_checks.load(Ordering::SeqCst), 0);
++    assert_eq!(f.route.allocations.load(Ordering::SeqCst), 1);
++    assert_eq!(f.route.signals.load(Ordering::SeqCst), 1);
++    f.orch.end_connection(id, EndReason::Normal).await.unwrap();
++    assert_eq!(f.route.ends.load(Ordering::SeqCst), 1);
++}
++
++#[tokio::test]
++async fn private_outbound_new_member_epoch_during_ringing_cannot_inherit_original_call() {
++    let f = Setup::new().await;
++    let (active, grant) = f.activated(true).await;
++    let id = active.connection_id().clone();
++    f.domain.changed_epoch.store(true, Ordering::SeqCst);
++    assert!(f.commit(active, grant, true).await.is_err());
++    assert_eq!(f.domain.preparations.load(Ordering::SeqCst), 0);
++    assert!(f.orch.session_of(&id).is_none());
++    assert!(!f.route.is_connection_live(&id));
++}
++#[tokio::test]
++async fn private_outbound_new_endpoint_during_ringing_cannot_inherit_original_call() {
++    let f = Setup::new().await;
++    let (active, grant) = f.activated(true).await;
++    let id = active.connection_id().clone();
++    f.domain.changed_endpoint.store(true, Ordering::SeqCst);
++    assert!(f.commit(active, grant, true).await.is_err());
++    assert_eq!(f.domain.preparations.load(Ordering::SeqCst), 0);
++    assert!(f.orch.session_of(&id).is_none());
++    assert!(!f.route.is_connection_live(&id));
++}
+--- a/crates/foundation/rvoip-core/src/staged_streams/tests.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests.rs
+@@ -2815,3 +2815,5 @@
+ mod packet_admission;
+ 
+ mod packet_expiry;
++
++mod private_outbound;

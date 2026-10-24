@@ -1017,6 +1017,11 @@
       "path": "patches/rvoip/gate6-native-ready-audio-epochs.patch",
       "sha256": "19aa9fe91ea5e75b221244dddb33173c194bc8e3aa09510443b5467da4143fe1",
       "source": "G6-046 shared native ready-audio epochs under each owning CanonicalNativeAdapter. Collect metadata for1ms, max64 per epoch/4096 pending; serialize epoch policy probes without readers. Each actual exact-original batch uses the checked Core primitive. Ports own reply and finite epoch join, including cancellation and panic; drop/closed replies cannot issue detached IO. Only admission NotReady retries unchanged metadata under original200ms; submitted IO errors remain terminal. Preserve physical RTP bindings, packetizer state, current complete authority, private readiness and non-audio paths. Controlled bounded queue/join/panic recovery and real staged QUIC failure/cleanup tests; full-fifty capacity remains separately qualified."
+    },
+    {
+      "path": "patches/rvoip/gate6-private-initial-outbound-admission.patch",
+      "sha256": "3e37e2cde93e1d775f30a079616ca1d0783be2b9c3d43cb5b659098ebfb34d73",
+      "source": "G6-046 private initial SIP activation freezes private audio mode and original actor/target membership epochs and Endpoint on the original owned outbound ticket. Final commit rechecks those pins and fresh current authority, then uses muted PreparePrivateAudio quarantine; no native PeerAdmission or public fallback. Controlled owned Core ticket/staged-port private/public positives, unmuted/missing/withdrawn grants, actual epoch/Endpoint ringing rebind regressions and exact cleanup. Real SIP wire and Connect private-candidate qualification remain separate."
     }
   ]
 }
