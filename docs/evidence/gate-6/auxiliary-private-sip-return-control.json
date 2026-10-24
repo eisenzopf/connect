@@ -1,0 +1,145 @@
+{
+  "task": "G6-046",
+  "recorded_at": "2026-10-24T21:27:14.977528+00:00",
+  "source_base_commit": "abadaa2647e226302a2cfe8a16c4fc283e5fb45e",
+  "status": "controlled-private-return-closure-passes-host-integration-open",
+  "full_task_complete": false,
+  "full_goal_complete": false,
+  "newly_qualified_case_ids": [],
+  "store_schema": 109,
+  "prepared_patch_count": 184,
+  "scope": "Exact private SIP candidate return control independent of candidate media offer/subscription/preferences on local macOS arm64. Controlled Store observations; no actual host/RTP/SIP return qualification.",
+  "implementation": [
+    "Use current Presence/closure facts for the recorded private candidate in fresh return admission, snapshot matching, complete SIP source-set scope derivation and final protected return projection.",
+    "All other SIP sources retain media validation; public/established SIP cannot substitute for the private candidate.",
+    "Keep current route dialing, credentials, Endpoint/Device/epoch and original root/child/call binding, complete fresh return authority and captured original absence.",
+    "Candidate reader remains may_receive=false with no send/receive media edges; current packets remain closed after withdrawal/return.",
+    "Tests use separate SIP and same-Participant public-native credentials to isolate candidate withdrawal. Static return phase diagnostics preserve refusal codes."
+  ],
+  "verification": {
+    "store": {
+      "passed": true,
+      "distinct_successful_cases": 117,
+      "successful_executions": 118,
+      "ignored_cases": 0,
+      "new_cases": [
+        "connection_control::tests::sip_consultation::planning::returning::private_sip_return_closure_survives_candidate_media_withdrawal_without_packet_grant"
+      ],
+      "summary": ".local/gate-6/received-dtmf-runtime/private-return117-worktree-store-004/summary.json",
+      "summary_sha256": "cf4027a41896e1cd163bbfcc622696be51525992b560e5a4659714131f6b93b2",
+      "execution_workspace": "/Users/jonathaneisenzopf/.codex/worktrees/private-sip-lifetime/Connect",
+      "executable_sha256": "c3b78731c487722d9e1c18f5262c708f275deade8eb689d43501e38e5366f220",
+      "source_inputs_unchanged": true,
+      "executable_unchanged": true,
+      "groups": [
+        {
+          "filter": "connection_control::tests::sip_consultation::planning::returning::private_sip_return_closure_survives_candidate_media_withdrawal_without_packet_grant",
+          "exit_code": 0,
+          "passed": true,
+          "passed_cases": 1,
+          "ignored_cases": 0,
+          "elapsed_seconds": 3.6497867919970304,
+          "log": ".local/gate-6/private-return117-store-004/group-0.log",
+          "log_sha256": "f3a2e0d0df3bb92eedb62a6f64b0c9f3a7311b70cefb30207efdaec897984e96"
+        },
+        {
+          "filter": "connection_control::tests::sip_consultation::",
+          "exit_code": 0,
+          "passed": true,
+          "passed_cases": 86,
+          "ignored_cases": 0,
+          "elapsed_seconds": 163.10253629204817,
+          "log": ".local/gate-6/private-return117-store-004/group-1.log",
+          "log_sha256": "e360d6b683a5133ad08993155ba9432a87abd3a55b1ead025ab7738e005d2cd7"
+        },
+        {
+          "filter": "connection_control::tests::consultation_returns::",
+          "exit_code": 0,
+          "passed": true,
+          "passed_cases": 11,
+          "ignored_cases": 0,
+          "elapsed_seconds": 16.498994667083025,
+          "log": ".local/gate-6/private-return117-store-004/group-2.log",
+          "log_sha256": "6227d4cea4088ee1369299b0b458453e79758ce22fe752220782c6a3c55dba26"
+        },
+        {
+          "filter": "connection_control::tests::consultation_groups::",
+          "exit_code": 0,
+          "passed": true,
+          "passed_cases": 3,
+          "ignored_cases": 0,
+          "elapsed_seconds": 6.1818171250633895,
+          "log": ".local/gate-6/private-return117-store-004/group-3.log",
+          "log_sha256": "48b0d42d550079e2bc28441d071c7308a67bc763b3973e56319945ffe4a97f96"
+        },
+        {
+          "filter": "connection_control::tests::handoff_sources::",
+          "exit_code": 0,
+          "passed": true,
+          "passed_cases": 8,
+          "ignored_cases": 0,
+          "elapsed_seconds": 6.971114875050262,
+          "log": ".local/gate-6/private-return117-store-004/group-4.log",
+          "log_sha256": "d4410bb2b799f094610cb790dbcab0b4027d8b4592bd914ad48872146447f563"
+        },
+        {
+          "filter": "connection_control::tests::consultation_audiences::",
+          "exit_code": 0,
+          "passed": true,
+          "passed_cases": 9,
+          "ignored_cases": 0,
+          "elapsed_seconds": 10.079620041884482,
+          "log": ".local/gate-6/private-return117-store-004/group-5.log",
+          "log_sha256": "246fcd1cfc22a73158a8fdf7271ac5f58df6c13724377bc1e2e9441e9c07a199"
+        }
+      ]
+    },
+    "format_check": {
+      "passed": true,
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "service_compile": {
+      "status": "not-rerun",
+      "reason": "Store-only closure increment. Prior packet component service check is recorded separately on main."
+    },
+    "runtime": {
+      "status": "not-qualified",
+      "reason": "Host lifetime/control and private SIP-candidate runtime selection remain disabled; existing optimized SIP-primary native-view refusal remains unresolved."
+    },
+    "schema": {
+      "status": "not-rerun",
+      "reason": "No schema change; prior schema109 evidence is not re-counted."
+    }
+  },
+  "failed_attempts": [
+    {
+      "summary": ".local/gate-6/private-return117-store-001/summary.json",
+      "summary_sha256": "623ffbf361eebe3f693e650ded6a7d08eee133e80a85acef5afa27216441d63d",
+      "passed": false,
+      "source_inputs_unchanged": true,
+      "executable_unchanged": true,
+      "reason": "Candidate offer withdrawal still refused in fresh return origin admission. Initial fixture also shared the SIP credential with its public native sibling; subsequent fixtures isolate the original SIP credential. Phase trace locates admission snapshot Media validation; fixed to Presence only for the exact captured private candidate, preserving all other SIP media checks."
+    },
+    {
+      "summary": ".local/gate-6/private-return117-store-002/summary.json",
+      "summary_sha256": "f83236b6b59ae8b93bd6fdf6ab2f6ac80c9fdef6083a4c098d9192ad88afb6a4",
+      "passed": false,
+      "source_inputs_unchanged": true,
+      "executable_unchanged": true,
+      "reason": "Candidate offer withdrawal still refused in fresh return origin admission. Initial fixture also shared the SIP credential with its public native sibling; subsequent fixtures isolate the original SIP credential. Phase trace locates admission snapshot Media validation; fixed to Presence only for the exact captured private candidate, preserving all other SIP media checks."
+    },
+    {
+      "summary": ".local/gate-6/private-return117-store-003/summary.json",
+      "summary_sha256": "a63a6b8753edaf8ba1b180ebf03423545c4f831cf7a1b837903a24e2abb3fe9f",
+      "passed": false,
+      "source_inputs_unchanged": true,
+      "executable_unchanged": true,
+      "reason": "Candidate offer withdrawal still refused in fresh return origin admission. Initial fixture also shared the SIP credential with its public native sibling; subsequent fixtures isolate the original SIP credential. Phase trace locates admission snapshot Media validation; fixed to Presence only for the exact captured private candidate, preserving all other SIP media checks."
+    }
+  ],
+  "remaining": [
+    "Resolve optimized SIP-primary native-view refusal before Core submission.",
+    "Install original private SIP host lifetime/control and received-signal handoff; preserve unrelated sealed private SIP groups.",
+    "Enable runtime candidate selection using the original reservation/child/call and qualify actual private RTP/INFO/RFC4733, rights withdrawal/recovery/replay and exact return/cleanup for both algorithms plus full G6-046 matrix."
+  ]
+}

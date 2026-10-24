@@ -27,7 +27,18 @@ impl Scene {
         Self::with_controller(None)
     }
     fn with_controller(operation: Option<&str>) -> Self {
-        let (f, native, mut root, policy) = fixture_with_sources();
+        Self::with_endpoint_credential(operation, false)
+    }
+    fn with_endpoint_credential(operation: Option<&str>, separate_endpoint: bool) -> Self {
+        let (f, native, mut root, mut policy) = fixture_with_sources();
+        if separate_endpoint {
+            let actor = f.store.revalidate(&policy.endpoint_credential_id).unwrap();
+            policy.endpoint_credential_id = f
+                .store
+                .issue(&actor.identity_id, actor.scope, actor.expires_at)
+                .unwrap()
+                .id;
+        }
         if let Some(_operation) = operation {
             let identity = f.store.revalidate(&f.keys[0]).unwrap().identity_id;
             let controller = f

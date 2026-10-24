@@ -566,10 +566,10 @@ impl Store {
         if matches!(purpose, ProjectionPurpose::PrivateCurrent) {
             return private_facts::current_projection(self, c, origin, until);
         }
-        if matches!(
-            purpose,
-            ProjectionPurpose::PrivateSelection | ProjectionPurpose::PrivateReturn
-        ) {
+        if matches!(purpose, ProjectionPurpose::PrivateReturn) {
+            return private_facts::return_projection(self, c, origin, until);
+        }
+        if matches!(purpose, ProjectionPurpose::PrivateSelection) {
             return private_facts::selection_projection(self, c, origin, until);
         }
         if s.is_private_candidate() {

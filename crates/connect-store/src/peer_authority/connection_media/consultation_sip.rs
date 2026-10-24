@@ -218,6 +218,17 @@ impl Store {
         sources: &[SipAudienceOrigin],
         native_ids: impl IntoIterator<Item = String>,
     ) -> Result<(Vec<AuthorityScope>, i64)> {
+        self.sip_audience_facts_with_closure(c, conversation, session, sources, native_ids, None)
+    }
+    pub(crate) fn sip_audience_facts_with_closure(
+        &self,
+        c: &Connection,
+        conversation: &str,
+        session: &str,
+        sources: &[SipAudienceOrigin],
+        native_ids: impl IntoIterator<Item = String>,
+        candidate: Option<&str>,
+    ) -> Result<(Vec<AuthorityScope>, i64)> {
         let store = self;
         let mut ids = native_ids.into_iter().collect::<BTreeSet<_>>();
         let mut actual = BTreeSet::new();
@@ -234,7 +245,10 @@ impl Store {
             {
                 return Err(Error::forbidden());
             }
-            let (needed, _, until) = source.facts(store, c)?;
+            let (needed, _, until) = match candidate {
+                Some(candidate) => source.return_facts(store, c, candidate)?,
+                None => source.facts(store, c)?,
+            };
             scopes.extend(needed);
             expiry = expiry.min(until);
         }
@@ -394,6 +408,19 @@ pub(super) fn snapshot(
     sorted
         .into_iter()
         .map(|s| s.facts(store, c).map(|(_, v, _)| v))
+        .collect()
+}
+pub(super) fn return_snapshot(
+    store: &Store,
+    c: &Connection,
+    sources: &[SipAudienceOrigin],
+    candidate: &str,
+) -> Result<Vec<serde_json::Value>> {
+    let mut sorted = sources.iter().collect::<Vec<_>>();
+    sorted.sort_by_key(|s| s.connection_id());
+    sorted
+        .into_iter()
+        .map(|s| s.return_facts(store, c, candidate).map(|(_, v, _)| v))
         .collect()
 }
 pub(super) fn validate_revisions(

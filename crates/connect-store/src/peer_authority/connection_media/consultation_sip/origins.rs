@@ -113,6 +113,26 @@ impl SipAudienceOrigin {
             Self::Established(o) => store.telephone_audience_facts_for(c, o, purpose),
         }
     }
+    /// A return may close only its exact private candidate without that
+    /// candidate's media rights. Other SIP programmes keep their media checks.
+    pub(in crate::peer_authority::connection_media) fn return_facts(
+        &self,
+        store: &Store,
+        c: &Connection,
+        candidate: &str,
+    ) -> Result<(Vec<AuthorityScope>, serde_json::Value, i64)> {
+        if self.connection_id() != candidate {
+            return self.facts(store, c);
+        }
+        match self {
+            Self::Initial(o) if o.source().is_private_candidate() => self.facts_for(
+                store,
+                c,
+                crate::connection_control::private_consultation::Purpose::Presence,
+            ),
+            _ => Err(Error::forbidden()),
+        }
+    }
     pub(super) fn read(
         &self,
         store: &Store,

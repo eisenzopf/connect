@@ -20,7 +20,11 @@ struct Returning {
 }
 impl Returning {
     fn new(departed: bool) -> Self {
-        let scene = Scene::with_controller(Some("sip-return-controller"));
+        Self::with_endpoint(departed, false)
+    }
+    fn with_endpoint(departed: bool, separate_endpoint: bool) -> Self {
+        let scene =
+            Scene::with_endpoint_credential(Some("sip-return-controller"), separate_endpoint);
         let receipt = scene.captured();
         scene
             .f
@@ -312,6 +316,66 @@ fn private_sip_return_waits_for_original_captured_absence_and_preserves_public_n
         .unwrap(),
         0
     );
+}
+
+#[test]
+fn private_sip_return_closure_survives_candidate_media_withdrawal_without_packet_grant() {
+    for removed in [
+        vec!["connection.offer"],
+        vec!["stream.subscribe"],
+        vec!["connection.offer", "stream.subscribe"],
+    ] {
+        // SIP and the same Participant's public native sibling deliberately
+        // have separate credentials: only the original SIP grant is withdrawn.
+        let r = Returning::with_endpoint(false, true);
+        let s = &r.scene;
+        let mut scope =
+            s.f.store
+                .revalidate(&s.policy.endpoint_credential_id)
+                .unwrap()
+                .scope;
+        scope.operations.retain(|p| !removed.contains(&p.as_str()));
+        s.f.store
+            .connection()
+            .unwrap()
+            .execute(
+                "UPDATE credentials SET operations=?2 WHERE id=?1",
+                params![
+                    s.policy.endpoint_credential_id,
+                    serde_json::to_string(&scope.operations).unwrap()
+                ],
+            )
+            .unwrap();
+        assert!(s.packets().is_err());
+        let read = r.read(true).unwrap();
+        let phone = read.sip(s.phone.connection_id()).unwrap();
+        assert!(phone.current() && !phone.may_receive());
+        for native in &s.native {
+            assert!(read
+                .sip_receive(native.connection_id(), s.phone.connection_id())
+                .is_none());
+            assert!(read
+                .sip_send(s.phone.connection_id(), native.connection_id())
+                .is_none());
+        }
+        drop(phone);
+        drop(read);
+        // Withdrawal of codec preferences cannot obstruct closure either.
+        s.f.store.connection().unwrap().execute("UPDATE session_presence_capabilities SET capabilities_json=?2 WHERE participant_id=?1", params![s.f.pids[2], json!({"audio":["g.711-a"]}).to_string()]).unwrap();
+        assert!(r.read(true).unwrap().current());
+        let receipt = r.applied(true);
+        s.f.store
+            .record_native_consultation_return_applied(&receipt)
+            .unwrap();
+        assert!(s.packets().is_err());
+        assert!(s
+            .f
+            .store
+            .complete_native_consultation_return(&receipt)
+            .unwrap()
+            .is_none());
+        assert!(s.f.store.connection().unwrap().query_row("SELECT connected_at IS NOT NULL AND retired_at IS NULL FROM initial_telephone_answers WHERE operation_record_id=?1", [s.phone.record_id()], |r|r.get::<_,bool>(0)).unwrap());
+    }
 }
 
 #[test]
