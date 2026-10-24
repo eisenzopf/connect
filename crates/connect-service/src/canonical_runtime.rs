@@ -64,6 +64,7 @@ pub(crate) struct Runtime {
     pub(crate) dtmf_listeners:
         Mutex<std::collections::BTreeMap<String, Weak<crate::canonical_native_dtmf::Listener>>>,
     pub(crate) telephone: Mutex<Option<Arc<crate::telephone_replacement::TelephoneRuntime>>>,
+    pub(crate) initial_telephone_host: std::sync::OnceLock<Weak<crate::initial_telephone::Host>>,
     pub(crate) media: Arc<crate::canonical_media::Policy>,
     pub(crate) role_projection: tokio::sync::Mutex<()>,
     pub(crate) role_projections: std::sync::atomic::AtomicUsize,
@@ -149,6 +150,7 @@ impl Runtime {
             capability_listeners: Mutex::new(Default::default()),
             dtmf_listeners: Mutex::new(Default::default()),
             telephone: Mutex::new(None),
+            initial_telephone_host: std::sync::OnceLock::new(),
             media: crate::canonical_media::Policy::new(store.clone(), limits.connections),
             physical: Mutex::new(vec![]),
             capacity: limits.connections,

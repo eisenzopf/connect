@@ -1,0 +1,265 @@
+//! Actual fresh private SIP call beside the same Participant's public call.
+//! This qualifies quarantined admission/cleanup, not the later private switch.
+use super::*;
+use rvoip_uctp::v2::payloads::OperationState;
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn production_private_sip_candidate_owns_fresh_muted_call_and_original_cleanup_eddsa() {
+    exercise("EdDSA").await;
+}
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn production_private_sip_candidate_owns_fresh_muted_call_and_original_cleanup_es256() {
+    exercise("ES256").await;
+}
+
+async fn marked(peer: &PeerSip, clients: &mut [Peer]) -> Vec<usize> {
+    let receive = async {
+        let until = tokio::time::Instant::now() + Duration::from_millis(1000);
+        let mut counts = vec![0; clients.len()];
+        loop {
+            let reads = clients
+                .iter_mut()
+                .enumerate()
+                .map(|(i, p)| {
+                    Box::pin(async move { (i, p.client.receive_native_rtp_datagram().await) })
+                })
+                .collect::<Vec<_>>();
+            let Ok(((i, bytes), _, _)) = tokio::time::timeout_at(until, select_all(reads)).await
+            else {
+                break;
+            };
+            let packet = rvoip_uctp::substrate::unpack_rtp_datagram(&bytes.unwrap()).unwrap();
+            assert_eq!(packet.stream_local_id, clients[i].handle);
+            if packet
+                .rtp
+                .payload
+                .iter()
+                .any(|b| !matches!(*b, 0xff | 0x7f))
+            {
+                counts[i] += 1;
+            }
+        }
+        counts
+    };
+    let (_, counts) = tokio::join!(peer.rtp(0), receive);
+    counts
+}
+
+async fn exercise(algorithm: &str) {
+    let ConfiguredInitial { f, peer, .. } = configured_initial_for(algorithm, Some(0), 30).await;
+    let mut primary = CanonicalClient::open(f.client.clone()).await.unwrap();
+    let mut input =
+        connect_client::conversations::CreateRequest::persistent(vec![f.peer.identity_id.clone()]);
+    input.tenant_id = Some("tnt_default".into());
+    let room = primary
+        .create_conversation("private-sip-room", input)
+        .await
+        .unwrap();
+    let own = room
+        .participants
+        .iter()
+        .find(|p| p.identity_id == f.client.identity_id)
+        .unwrap()
+        .participant_id
+        .clone();
+    let phone = room
+        .participants
+        .iter()
+        .find(|p| p.identity_id == f.peer.identity_id)
+        .unwrap()
+        .participant_id
+        .clone();
+    primary
+        .session_command(Request {
+            operation_id: "public-phone-invite".into(),
+            conversation_id: room.id.clone(),
+            session_id: "native-session".into(),
+            by_participant: Some(own.clone()),
+            expected_revision: None,
+            action: Action::Invite {
+                participants: vec![phone.clone()],
+                medium: "voice".into(),
+                intent: "call".into(),
+                capabilities: json!({"audio":["g.711-mu"]}),
+            },
+        })
+        .await
+        .unwrap();
+    let db = rusqlite::Connection::open_with_flags(
+        &f.config.database,
+        rusqlite::OpenFlags::SQLITE_OPEN_READ_ONLY,
+    )
+    .unwrap();
+    let until = tokio::time::Instant::now() + Duration::from_secs(8);
+    let public = loop {
+        let row:Option<(String,String,String)>=db.query_row("SELECT o.connection_id,n.runtime_connection_id,n.sip_call_id FROM initial_telephone_operations n JOIN operations o ON o.record_id=n.operation_record_id JOIN initial_telephone_answers a ON a.operation_record_id=n.operation_record_id WHERE n.parent_kind='invitation' AND a.connected_at IS NOT NULL AND a.retired_at IS NULL",[],|r|Ok((r.get(0)?,r.get(1)?,r.get(2)?))).optional().unwrap();
+        if let Some(row) = row {
+            break row;
+        }
+        assert!(
+            tokio::time::Instant::now() < until,
+            "public baseline call did not become ready"
+        );
+        tokio::time::sleep(Duration::from_millis(20)).await;
+    };
+    assert_eq!(peer.unique(), 1);
+    let public_media = *peer.media_target.lock().unwrap();
+    ready_endpoint(&f).await;
+    let answer = negotiate_named(
+        &mut primary,
+        &room.id,
+        "private-primary-offer",
+        "private-primary",
+        "private-primary-audio",
+    )
+    .await;
+    wait_native_operation(&f, &f.client.credential, &room.id, "private-primary-offer").await;
+    stream_control(
+        &mut primary,
+        &room.id,
+        "private-primary",
+        "private-primary-public-phone",
+        1,
+        "stream.subscribe",
+        json!({"subscriptions":[{"strm_id":"telephone-audio"}]}),
+    )
+    .await;
+    let held = enroll_kind(
+        &f,
+        &mut primary,
+        &room.id,
+        "private-held",
+        201,
+        true,
+        false,
+        IdentityKind::Human,
+    )
+    .await;
+    let mut clients = vec![
+        Peer {
+            client: primary,
+            config: Some(f.client.clone()),
+            identity: f.client.identity_id.clone(),
+            participant: own.clone(),
+            id: "private-primary".into(),
+            handle: handle(&answer),
+            clock: tokio::time::Instant::now(),
+            sequence: 1,
+            live: true,
+        },
+        held,
+    ];
+    let baseline = marked(&peer, &mut clients).await;
+    assert!(
+        baseline[0] > 10,
+        "public phone baseline missing: {baseline:?}"
+    );
+    let key = f
+        .server
+        .store
+        .issue(
+            &f.client.identity_id,
+            Scope::operator(),
+            chrono::Utc::now().timestamp() + 600,
+        )
+        .unwrap();
+    let mut cfg = canonical_http_config(&f);
+    cfg.credential = key.token;
+    let mut controller = CanonicalHttpClient::open(cfg).await.unwrap();
+    let command = TransitionCommand {
+        payload_extensions: Default::default(),
+        operation_id: "private-sip-consult".into(),
+        conversation_id: room.id.clone(),
+        session_id: "native-session".into(),
+        connection_id: Some("private-primary".into()),
+        expected_revision: revision(&f),
+        intent: TransitionIntent::Consult {
+            retained_connid: clients[1].id.clone(),
+            private_participants: vec![own, phone],
+            hold_treatment: HoldTreatment::Silence,
+        },
+    };
+    let accepted = controller.transition(command.clone()).await.unwrap();
+    assert_eq!(accepted.state, OperationState::Accepted);
+    let record = accepted.record_id.clone().unwrap();
+    let until = tokio::time::Instant::now() + Duration::from_secs(8);
+    let (child, connection, core, call, details) = loop {
+        let row:Option<(String,String,String,String,String)>=db.query_row("SELECT n.operation_record_id,o.connection_id,n.runtime_connection_id,n.sip_call_id,a.connected_json FROM initial_telephone_operations n JOIN operations o ON o.record_id=n.operation_record_id JOIN initial_telephone_answers a ON a.operation_record_id=n.operation_record_id WHERE n.parent_kind='consultation' AND n.parent_record_id=?1 AND a.connected_at IS NOT NULL AND a.retired_at IS NULL",[&record],|r|Ok((r.get(0)?,r.get(1)?,r.get(2)?,r.get(3)?,r.get(4)?))).optional().unwrap();
+        if let Some(row) = row {
+            break row;
+        }
+        assert!(
+            tokio::time::Instant::now() < until,
+            "private call did not attest muted original Core admission"
+        );
+        tokio::time::sleep(Duration::from_millis(20)).await;
+    };
+    assert_ne!(connection, public.0);
+    assert_ne!(core, public.1);
+    assert_ne!(call, public.2);
+    assert_eq!(peer.unique(), 2);
+    assert_eq!(peer.dialog.lock().unwrap().as_ref().unwrap().call_id, call);
+    let details: Value = serde_json::from_str(&details).unwrap();
+    assert_eq!(details["private_audio"], true);
+    assert_eq!(details["stream_revision"], 2);
+    assert_eq!(details["private_consultation_record_id"], record);
+    let reserved: String = db
+        .query_row(
+            "SELECT connection_id FROM sip_consultation_reservations WHERE operation_record_id=?1",
+            [&record],
+            |r| r.get(0),
+        )
+        .unwrap();
+    assert_eq!(reserved, connection);
+    assert_eq!(db.query_row("SELECT count(*) FROM native_offer_operations n JOIN operations o ON o.record_id=n.operation_record_id WHERE o.connection_id=?1",[&connection],|r|r.get::<_,u64>(0)).unwrap(),0,"SIP candidate borrowed a native signing/admission source");
+    assert_eq!(
+        db.query_row(
+            "SELECT count(*) FROM operation_effects WHERE operation_record_id=?1",
+            [&record],
+            |r| r.get::<_, u64>(0)
+        )
+        .unwrap(),
+        0,
+        "quarantine is not a private audience switch"
+    );
+    let replay = controller.transition(command.clone()).await.unwrap();
+    assert_eq!(replay.record_id, accepted.record_id);
+    let counts = marked(&peer, &mut clients).await;
+    assert_eq!(
+        counts,
+        vec![0, 0],
+        "fresh private input escaped quarantine through the public sibling or held receiver"
+    );
+    assert_eq!(peer.unique(), 2, "replay allocated another SIP call");
+    let cancel=controller.request(payload("operation.cancel",json!({"operation_id":command.operation_id,"reason":"verified quarantined admission"})),CommandScope {conversation_id:Some(room.id.clone()),session_id:Some("native-session".into()),connection_id:Some("private-primary".into()),operation_id:Some("cancel-private-sip".into()),..Default::default()}).await.unwrap();
+    cancel.ack().unwrap();
+    let until = tokio::time::Instant::now() + Duration::from_secs(6);
+    loop {
+        let absent:bool=db.query_row("SELECT c.state='retired' AND a.retired_at IS NOT NULL FROM connections c JOIN operations o ON o.connection_id=c.id JOIN initial_telephone_answers a ON a.operation_record_id=o.record_id WHERE o.record_id=?1",[&child],|r|r.get(0)).unwrap();
+        if absent {
+            break;
+        }
+        assert!(
+            tokio::time::Instant::now() < until,
+            "original private call cleanup was not captured"
+        );
+        tokio::time::sleep(Duration::from_millis(20)).await;
+    }
+    assert!(peer.methods.lock().unwrap().contains(&Method::Bye));
+    let original_live:bool=db.query_row("SELECT a.retired_at IS NULL AND c.state IN ('ready','active') FROM initial_telephone_operations n JOIN initial_telephone_answers a ON a.operation_record_id=n.operation_record_id JOIN operations o ON o.record_id=n.operation_record_id JOIN connections c ON c.id=o.connection_id WHERE o.connection_id=?1",[&public.0],|r|r.get(0)).unwrap();
+    assert!(original_live);
+    *peer.media_target.lock().unwrap() = public_media;
+    let recovered = marked(&peer, &mut clients).await;
+    assert!(
+        recovered[0] > 10,
+        "original public sibling did not survive private cleanup: {recovered:?}"
+    );
+    if let Ok(path) = std::env::var("CONNECT_PRIVATE_SIP_CANDIDATE_CAPTURE") {
+        std::fs::write(format!("{path}.{algorithm}.json"),serde_json::to_vec_pretty(&json!({"algorithm":algorithm,"scope":"actual fresh SIP/Core quarantined admission and original cleanup; no private switch/DTMF/return qualification","parent":record,"child":child,"candidate_connection":connection,"core_connection":core,"sip_call_id":call,"original_public":public,"private_ready":details,"marked_public_baseline":baseline,"marked_quarantine":counts,"marked_public_after_cleanup":recovered,"distinct_sip_calls":peer.unique(),"original_public_live":original_live})).unwrap()).unwrap();
+    }
+    drop(db);
+    for p in &mut clients {
+        p.client.close();
+    }
+    f.server.shutdown().await.unwrap();
+}

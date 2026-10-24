@@ -489,3 +489,21 @@ fn sip_reservation_refuses_unknown_physical_custody_before_creating_a_slot() {
     assert_eq!(f.count("sip_consultation_reservations"), 0);
     assert_eq!(counts(&f), before);
 }
+
+#[test]
+fn protected_target_reports_its_original_sip_candidate_without_native_registration_or_io() {
+    let (f, origin, policy) = fixture();
+    let before = f.store.native_consultation_target(&origin).unwrap();
+    assert!(!before.registered && before.candidate_kind.is_none());
+    let reserved = f
+        .store
+        .reserve_sip_consultation_leg(&origin, policy)
+        .unwrap();
+    let target = f.store.native_consultation_target(&origin).unwrap();
+    assert!(target.registered);
+    assert_eq!(target.candidate_kind.as_deref(), Some("sip"));
+    assert_eq!(target.participant_id, reserved.participant_id());
+    assert_eq!(target.identity_id, before.identity_id);
+    assert_eq!(f.count("native_consultation_legs"), 0);
+    assert_eq!(f.count("initial_telephone_operations"), 0);
+}

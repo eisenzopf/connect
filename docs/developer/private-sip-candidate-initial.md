@@ -40,18 +40,21 @@ same-runtime absence settles the original child; permission revocation cannot
 prevent that recording. Cleanup does not invent a known remote submission
 outcome or authorize redial.
 
-The public host activation and public own-acceptance/media paths refuse private
-candidates. If a private answer reaches the public recording API, its captured
+Public own-acceptance/media paths refuse private candidates. The host's
+[dedicated original private path](private-sip-candidate-host.md) now selects
+private Core activation and guarded admission rather than public activation.
+If a private answer reaches the public recording API, its captured
 fact is retained without a public `session.accept`, ready observation or media
 grant. The Connection and child outcome remain unknown until owned cleanup.
 The [Core private outbound path](private-sip-candidate-core.md) now supplies the
-engine admission API. Installing it with guarded private readiness is the next host boundary;
-this refusal is not a completed private-call implementation.
+engine admission API. Host socket verification and typed continuing private
+selection/lifetime remain separate from that controlled Core qualification.
 
 The separate [Store admission/readiness boundary](private-sip-candidate-readiness.md)
 now checks that original consent and captures only a quarantined private
 connected fact. It does not enter public Session readiness or reconnect
-coverage. The coordinator/host must still install its actual Core call path.
+coverage. Actual host socket verification and continuing private scene wiring
+remain required before qualifying the complete call path.
 
 The [component report](../evidence/gate-6/auxiliary-private-sip-candidate-initial.json)
 records controlled Store behavior and current compilation/integration checks.

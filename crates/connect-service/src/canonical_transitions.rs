@@ -95,10 +95,13 @@ impl Service {
         authority: Option<StoreInvocationAuthority>,
     ) -> Result<OperationRecord> {
         let store = self.store.clone();
-        let initialize_accepted = self
-            .canonical_runtime
-            .get()
-            .is_some_and(|r| r.consultation_initializer.get().is_some());
+        let initialize_accepted = self.canonical_runtime.get().is_some_and(|r| {
+            r.consultation_initializer.get().is_some()
+                || r.initial_telephone_host
+                    .get()
+                    .and_then(std::sync::Weak::upgrade)
+                    .is_some()
+        });
         let queued_command = matches!(
             command.intent,
             TransitionIntent::Consult { .. }

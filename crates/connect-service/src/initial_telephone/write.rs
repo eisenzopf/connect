@@ -45,11 +45,15 @@ impl ClientRequestWriteAuthority for InviteAuthority {
             return Err(denied());
         }
         if let Some(origin) = self.media.get().cloned() {
-            let read = runtime
-                .media
-                .store
-                .try_initial_telephone_media_read(origin)
-                .map_err(|_| denied())?;
+            let read = (if origin.source().is_private_candidate() {
+                runtime
+                    .media
+                    .store
+                    .try_private_initial_telephone_admission_read(origin)
+            } else {
+                runtime.media.store.try_initial_telephone_media_read(origin)
+            })
+            .map_err(|_| denied())?;
             if !read.is_connected() {
                 return Err(denied());
             }

@@ -6,6 +6,8 @@ mod activation;
 mod dtmf;
 #[path = "initial/gateways.rs"]
 mod gateways;
+#[path = "initial/private_candidate.rs"]
+mod private_candidate;
 #[path = "initial/received.rs"]
 mod received;
 #[cfg(feature = "test-support")]

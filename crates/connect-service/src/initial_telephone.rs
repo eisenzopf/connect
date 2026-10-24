@@ -1,5 +1,6 @@
 //! Own configured telephone agent, using the original canonical Session invite.
 pub(crate) mod policy;
+mod private_candidate;
 mod write;
 use crate::{canonical_runtime::Runtime, Service, SessionInitialization, SessionInitializer};
 use connect_protocol::{session_control::Action, Error, Result};
@@ -33,8 +34,9 @@ struct State {
     unconfirmed: bool,
     jobs: tokio::task::JoinSet<Result<()>>,
     active: BTreeMap<String, (String, CancellationToken)>,
+    private: BTreeMap<String, tokio::sync::watch::Receiver<private_candidate::Outcome>>,
 }
-struct Host {
+pub(crate) struct Host {
     runtime: Weak<Runtime>,
     adapter: Arc<SipAdapter>,
     profiles: Vec<Profile>,
@@ -135,10 +137,15 @@ impl Service {
                 unconfirmed: false,
                 jobs: tokio::task::JoinSet::new(),
                 active: BTreeMap::new(),
+                private: BTreeMap::new(),
             }),
             capacity: self.store.limits().connections,
         });
-        self.install_session_initializer("initial-telephone", Arc::new(Initializer(host)))
+        self.install_session_initializer("initial-telephone", Arc::new(Initializer(host.clone())))?;
+        runtime
+            .initial_telephone_host
+            .set(Arc::downgrade(&host))
+            .map_err(|_| Error::new("conflict", "Initial telephone host already installed"))
     }
 }
 struct Initializer(Arc<Host>);
@@ -275,7 +282,7 @@ impl Runner {
             }
         };
         let result = self
-            .run_allocated(&runtime, origin.clone(), route, cancel)
+            .run_allocated(&runtime, origin.clone(), route, cancel, None)
             .await;
         if result.is_err() {
             let store = runtime.media.store.clone();
@@ -293,14 +300,15 @@ impl Runner {
         origin: connect_store::InitialTelephoneOrigin,
         route: InitialTelephoneRoute,
         cancel: CancellationToken,
+        ready: Option<tokio::sync::watch::Sender<private_candidate::Outcome>>,
     ) -> Result<()> {
         // Keep every fallible authority check before Core allocation in one
         // phase. A terminal replay or withdrawn grant owns no new call and
         // must not poison the host's physical-resource drain.
-        if origin.source().is_private_candidate() {
+        if origin.source().is_private_candidate() != ready.is_some() {
             return Err(Error::new(
                 "private-context-required",
-                "Private SIP candidate requires its own quarantined admission",
+                "Initial SIP admission purpose does not match its owned job",
             ));
         }
         let allocation: Result<_> = async {
@@ -422,6 +430,7 @@ impl Runner {
                 writer,
                 deadline,
                 cancel.clone(),
+                ready,
             )
             .await;
         let cleanup = self.adapter.end(leg.connection(), EndReason::Normal).await;
@@ -460,6 +469,7 @@ impl Runner {
         writer: Arc<write::InviteAuthority>,
         deadline: tokio::time::Instant,
         cancel: CancellationToken,
+        ready: Option<tokio::sync::watch::Sender<private_candidate::Outcome>>,
     ) -> Result<()> {
         let sid = SessionId::from_string(leg.signal.origin().source().session_id.clone());
         let mutation = |revision| ParticipantMutation {
@@ -476,19 +486,25 @@ impl Runner {
             .core
             .participant_revision(&sid)
             .map_err(|_| Error::forbidden())?;
-        let active = prepared
-            .activate_initial_participant_with_held(
+        let private = leg.signal.origin().source().is_private_candidate();
+        let held = Box::new(policy::DialInvocation {
+            leg: leg.clone(),
+            revision,
+            media: None,
+        });
+        let active = if private {
+            prepared.activate_private_initial_participant_with_held(
+                leg.target.principal.clone(),mutation(revision),deadline,cancel.clone(),held,
+            ).await
+        } else {
+            prepared.activate_initial_participant_with_held(
                 leg.target.principal.clone(),
                 mutation(revision),
                 deadline,
                 cancel.clone(),
-                Box::new(policy::DialInvocation {
-                    leg: leg.clone(),
-                    revision,
-                    media: None,
-                }),
-            )
-            .await
+                held,
+            ).await
+        }
             .map_err(|error| { tracing::debug!(target:"connect_service::initial_telephone",?error,"Owned initial activation refused"); Error::forbidden() })?;
         let answer = observer
             .wait_answered(deadline, cancel.clone())
@@ -507,7 +523,11 @@ impl Runner {
             .capture_answer(answer.external_reference().expose_secret(), &codec.name)?;
         let store = runtime.media.store.clone();
         let recorded = crate::canonical_consultation::store_call(move || {
-            store.record_initial_telephone_answer(&capture)
+            if private {
+                store.record_private_initial_telephone_answer(&capture)
+            } else {
+                store.record_initial_telephone_answer(&capture)
+            }
         })
         .await?;
         let origin = recorded.media.ok_or_else(|| {
@@ -523,11 +543,7 @@ impl Runner {
             .map_err(|_| Error::forbidden())?;
         leg.codec.set(codec).map_err(|_| Error::forbidden())?;
         let admission_read = loop {
-            match runtime
-                .media
-                .store
-                .try_initial_telephone_media_read(origin.clone())
-            {
+            match leg.current_media_read() {
                 Ok(read) => break Arc::new(read),
                 Err(error)
                     if matches!(
@@ -600,6 +616,12 @@ impl Runner {
                             Arc::new(invocation.clone()),
                         )
                         .await.map_err(|error| {tracing::debug!(target:"connect_service::initial_telephone",?error,"Initial guarded streams refused");error})?;
+                    if private {
+                        controller.set_media_gate_with_held(
+                            1,&std::collections::BTreeSet::from([policy::Leg::desired().logical_id]),
+                            rvoip_core::stream_lifecycle::StreamGateAction::Mute,deadline,Arc::new(invocation.clone()),
+                        ).await?;
+                    }
                     let bindings = controller.active_bindings();
                     if bindings.len() != 1 {
                         return Err(ParticipantControlError::Authority);
@@ -624,7 +646,11 @@ impl Runner {
             let saved = origin.clone();
             let ready = policy::Ready { leg: leg.clone() };
             match crate::canonical_consultation::store_call(move || {
-                store.record_initial_telephone_connected(saved, &ready)
+                if private {
+                    store.record_private_initial_telephone_connected(saved, &ready)
+                } else {
+                    store.record_initial_telephone_connected(saved, &ready)
+                }
             })
             .await
             {
@@ -649,6 +675,11 @@ impl Runner {
             .media
             .set(origin.clone())
             .map_err(|_| Error::forbidden())?;
+        if let Some(ready) = ready {
+            ready.send_replace(Some(Ok(leg.clone())));
+            return private_candidate::wait_quarantined(runtime, &self.adapter, &leg, deadline)
+                .await;
+        }
         leg.dtmf_registration
             .set(format!("dtmfsip_{}", uuid::Uuid::new_v4().simple()))
             .map_err(|_| Error::forbidden())?;

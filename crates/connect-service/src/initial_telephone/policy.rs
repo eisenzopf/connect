@@ -178,14 +178,29 @@ impl Leg {
             .cloned()
             .ok_or(StreamControlError::NotReady)
     }
+    pub(crate) fn current_media_read(&self) -> connect_protocol::Result<InitialTelephoneMediaRead> {
+        let runtime = self.runtime().map_err(|_| Error::forbidden())?;
+        let origin = self.origin().map_err(|_| Error::forbidden())?;
+        if self.signal.origin().source().is_private_candidate() {
+            runtime
+                .media
+                .store
+                .try_private_initial_telephone_admission_read(origin)
+        } else {
+            runtime.media.store.try_initial_telephone_media_read(origin)
+        }
+    }
     pub fn participant(
         &self,
         scope: &ParticipantScope<'_>,
         revision: u64,
     ) -> std::result::Result<ParticipantAuthority, ParticipantControlError> {
         let source = self.signal.origin().source();
-        if source.is_private_candidate()
-            || self.cancel.is_cancelled()
+        if self.cancel.is_cancelled()
+            || self
+                .prepared
+                .get()
+                .is_some_and(|p| p.is_private_audio() != source.is_private_candidate())
             || tokio::time::Instant::now() >= self.deadline
             || scope.session.as_str() != source.session_id
             || scope.conversation.as_str() != source.conversation_id
@@ -221,6 +236,8 @@ impl Leg {
         let codec = self.codec.get().ok_or(StreamControlError::NotReady)?;
         if !read.current()
             || !p.is_current()
+            || p.is_private_audio() != self.signal.origin().source().is_private_candidate()
+            || read.is_private_admission() != p.is_private_audio()
             || read.source().target.membership_epoch != p.member().epoch()
             || read.source().endpoint_id != p.endpoint().endpoint().as_str()
             || read.endpoint_actor().identity_id != self.target.principal.subject
@@ -446,10 +463,7 @@ impl MediaPolicy for Leg {
         self.scope(scope)?;
         let runtime = self.runtime()?;
         let started = std::time::Instant::now();
-        let result = runtime
-            .media
-            .store
-            .try_initial_telephone_media_read(self.origin()?);
+        let result = self.current_media_read();
         tracing::trace!(target: "connect_service::canonical_packet",
             elapsed_us = started.elapsed().as_micros() as u64,
             publishing = matches!(scope.purpose, MediaPurpose::Publish),
@@ -513,6 +527,24 @@ impl MediaPolicy for Leg {
                 desired,
                 replace,
             } => *expected == 0 && **desired == [Self::desired()] && replace.is_empty(),
+            MediaControlIntent::Gate {
+                expected,
+                streams,
+                action,
+            } => {
+                i.read.is_private_admission()
+                    && *expected == 1
+                    && **streams == BTreeSet::from([Self::desired().logical_id])
+                    && *action == StreamGateAction::Mute
+            }
+            MediaControlIntent::PreparePrivateAudio {
+                operation,
+                expected,
+            } => {
+                i.read.is_private_admission()
+                    && *expected == 2
+                    && *operation == self.signal.origin().operation_id()
+            }
             _ => false,
         };
         if !allowed || !i.read.current() {

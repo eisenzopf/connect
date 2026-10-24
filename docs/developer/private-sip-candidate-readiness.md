@@ -46,9 +46,9 @@ capture survives backup, while old runtime handles grant no restored readiness.
 
 The [component report](../evidence/gate-6/auxiliary-private-sip-candidate-readiness.json)
 records controlled trusted-observer Store checks and compilation separately
-from physical transport evidence. The public SIP host still refuses private
-candidates. Its coordinator must install original private activation, the
-guarded callback, muted ports and Core `PreparePrivateAudio`, then typed
+from physical transport evidence. The [original private SIP host path](private-sip-candidate-host.md)
+now installs private activation, the guarded callback, muted ports and Core
+`PreparePrivateAudio`; its new socket checks are pending. It still requires typed
 candidate selection/lifetime, actual private media/DTMF, return and physical
 cleanup. These Store cases do not qualify that complete host or SIP wire path.
 

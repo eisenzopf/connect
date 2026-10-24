@@ -254,7 +254,20 @@ impl Runtime {
                 "Configured consultation hold source is not installed",
             ));
         }
-        if let Some(initializer) = self.consultation_initializer.get() {
+        let sip_candidate = if let Some(host) = self
+            .initial_telephone_host
+            .get()
+            .and_then(std::sync::Weak::upgrade)
+        {
+            host.prepare_private(origin.clone()).await?.is_some()
+        } else {
+            false
+        };
+        if let Some(initializer) = self
+            .consultation_initializer
+            .get()
+            .filter(|_| !sip_candidate)
+        {
             let result = initializer
                 .initialize(crate::ConsultationInitialization {
                     credential_id: credential.clone(),

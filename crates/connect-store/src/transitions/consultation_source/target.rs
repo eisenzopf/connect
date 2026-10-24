@@ -7,6 +7,8 @@ pub struct NativeConsultationTarget {
     pub kind: String,
     pub present: bool,
     pub registered: bool,
+    /// Original protected reservation, never inferred from public presence.
+    pub candidate_kind: Option<String>,
 }
 impl Store {
     pub fn native_consultation_target(
@@ -58,14 +60,15 @@ impl Store {
         if kind != identity_kind {
             return Err(Error::forbidden());
         }
-        let registered=c.query_row("SELECT EXISTS(SELECT 1 FROM native_consultation_legs WHERE operation_record_id=?1)",[&origin.record],|r|r.get(0)).map_err(|_|Error::storage())?;
+        let candidate_kind:Option<String>=c.query_row("SELECT candidate_kind FROM consultation_candidate_bindings WHERE operation_record_id=?1",[&origin.record],|r|r.get(0)).optional().map_err(|_|Error::storage())?;
         Ok(NativeConsultationTarget {
             identity_id: identity,
             participant_id: target.clone(),
             membership_epoch: epoch,
             kind,
             present,
-            registered,
+            registered: candidate_kind.is_some(),
+            candidate_kind,
         })
     }
 }
