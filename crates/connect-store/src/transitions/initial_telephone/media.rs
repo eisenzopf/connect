@@ -64,6 +64,7 @@ enum ProjectionPurpose {
     Signal,
     PrivateAdmission,
     PrivateSelection,
+    PrivateCurrent,
     PrivateReturn,
 }
 media_redacted!(
@@ -515,7 +516,9 @@ impl Store {
         until: i64,
         purpose: ProjectionPurpose,
     ) -> Result<InitialTelephoneMediaRead> {
-        let scopes = if matches!(purpose, ProjectionPurpose::PrivateAdmission) {
+        let scopes = if matches!(purpose, ProjectionPurpose::PrivateCurrent) {
+            private_facts::current_authority(self, c, &origin)?.0
+        } else if matches!(purpose, ProjectionPurpose::PrivateAdmission) {
             private_admission::scopes(self, c, &origin)?
         } else {
             current_scopes(c, origin.signal.origin(), false)?
@@ -559,6 +562,9 @@ impl Store {
         let s = &original.source;
         if matches!(purpose, ProjectionPurpose::PrivateAdmission) {
             return private_admission::projection(self, c, origin, until);
+        }
+        if matches!(purpose, ProjectionPurpose::PrivateCurrent) {
+            return private_facts::current_projection(self, c, origin, until);
         }
         if matches!(
             purpose,
@@ -927,7 +933,11 @@ impl Store {
             native.conversation_id(),
             native.session_id(),
         )?;
-        required.extend(current_scopes(&c, phone.signal.origin(), false)?);
+        required.extend(if phone.source().is_private_candidate() {
+            private_facts::current_authority(self, &c, &phone)?.0
+        } else {
+            current_scopes(&c, phone.signal.origin(), false)?
+        });
         let held = self.try_acquire_authority(&AuthorityScope::merged(&required)?)?;
         let (facts, _, expiry) = self.native_scene_facts(
             &c,
@@ -958,12 +968,21 @@ impl Store {
         if !actor.permits_recipient(&phone.source().target.identity_id) {
             return Err(Error::forbidden());
         }
-        let initial = self.initial_telephone_media_in(
-            c,
-            phone,
-            native.interval().clone(),
-            native.expires_at(),
-        )?;
+        let initial = if phone.source().is_private_candidate() {
+            self.private_initial_telephone_media_in(
+                c,
+                phone,
+                native.interval().clone(),
+                native.expires_at(),
+            )?
+        } else {
+            self.initial_telephone_media_in(
+                c,
+                phone,
+                native.interval().clone(),
+                native.expires_at(),
+            )?
+        };
         if !initial.current()
             || !native.current()
             || initial.source().session_id != native.target().session.session.id

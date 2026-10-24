@@ -14,7 +14,7 @@ impl Scene {
             "receivers":{p:[candidate],candidate:[p],r:[]},
             "expected_receiver_revisions":{p:1,r:1,outside:1,candidate:2}})
     }
-    fn applied(&self) -> crate::NativeConsultationApplied {
+    pub(super) fn applied(&self) -> crate::NativeConsultationApplied {
         let plan = self.plan();
         let lease = self
             .f
