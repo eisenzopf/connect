@@ -105,7 +105,7 @@
     }
   },
   "verification": {
-    "status": "226 Core staged-stream methods and optimized host build pass. Exact full-fifty still fails;11 affected production methods are running.",
+    "status": "226 Core staged-stream cases and optimized host build pass. Production10pass/1quality-timeout; exact full-fifty still fails.",
     "command": "CARGO_INCREMENTAL=1 cargo test --manifest-path .deps/rvoip/Cargo.toml -p rvoip-core --lib --target-dir target --locked --offline -j4 staged_streams:: -- --test-threads=1",
     "passed": 226,
     "failed": 0,
@@ -123,8 +123,8 @@
     "feature_scope": "Default Core features identity/media/rtp/sip/uctp/vcon. Does not qualify the native host Opus profile.",
     "prior_case_comparison": "All223 preceding cases pass on the new source, including private preparation/handoff/replacement readiness. New cases were not executed against the preceding source; no measured before-fix test failure is claimed.",
     "pending": [
-      "11 affected actual production regressions on the exact rebuilt executable.",
-      "Bounded current-source diagnostic of queued/IO ages and admission refusals after the production run.",
+      "Bounded current-source delivery diagnostic is running; no capacity credit.",
+      "Correct lifecycle quality collection to maintain actual bidirectional traffic during the existing measurement window, using cancellation-safe verified signaling. Keep failure evidence and original timing/assertions.",
       "Resolve delivery throughput and complete both full-fifty algorithm captures and validator."
     ]
   },
@@ -284,5 +284,92 @@
     ],
     "complete_capture_rows": 0,
     "conclusion": "Fresh decoded playback passes its controlled behavior cases but does not solve full-fifty delivery throughput. No runtime performance improvement or whole-clause qualification is claimed. Preserve all prior scoped failures."
+  },
+  "production_regressions": {
+    "passed": 10,
+    "failed": 1,
+    "same_exact_optimized_binary": true,
+    "binary_sha256": "67adb73434413d5d437e60e29668ef0372217018d8699d27c6c60e825ae00ae1",
+    "source_inputs_unchanged_after_run": true,
+    "methods": [
+      {
+        "method": "canonical_native_connections::lifecycle::production_native_lifecycle_quality_reports_actual_flow_through_signed_sdk",
+        "passed": false,
+        "log": ".local/gate-6/received-dtmf-runtime/fresh-decoded181-production-0.log",
+        "log_sha256": "d01d94ff9cf77804f348ef0890724a984b516c569aec05a7af6f48ba26cbe30a",
+        "duration_seconds": 25.08,
+        "failure": "Lifecycle quality collection exceeded the original8second window at lifecycle.rs:86. Earlier source179/180 passed this unchanged case, and earlier timeout observations remain preserved. Cause not declared resolved."
+      },
+      {
+        "method": "canonical_native_connections::selector_policy::production_native_heterogeneous_wildcard_preserves_audio_and_definitive_refusals",
+        "passed": true,
+        "log": ".local/gate-6/received-dtmf-runtime/fresh-decoded181-production-1.log",
+        "log_sha256": "726b88e27719e275e0ca79bebfb98df91cd5c3bbf6792955e15f0ce8fcee5d49",
+        "duration_seconds": 10.48
+      },
+      {
+        "method": "canonical_native_connections::production_signed_native_stream_subscription_routes_audio_and_replays_without_another_effect",
+        "passed": true,
+        "log": ".local/gate-6/received-dtmf-runtime/fresh-decoded181-production-3.log",
+        "log_sha256": "3f4d28a6e70c3ff03d762d376026a72480bc5c709cb980dda1fafc44fa582ce2",
+        "duration_seconds": 5.32
+      },
+      {
+        "method": "canonical_native_connections::codecs::production_native_codec_refusals_and_foreign_physical_replay_preserve_audio_and_pending_original",
+        "passed": true,
+        "log": ".local/gate-6/received-dtmf-runtime/fresh-decoded181-production-4.log",
+        "log_sha256": "a8719582b2465d5e72b01e03c6789bb6c033087999a55fbd9ce172f1f041feee",
+        "duration_seconds": 3.1
+      },
+      {
+        "method": "canonical_native_connections::consultation::production_private_consultation_switches_actual_audio_without_leaking_to_remote_or_public_context",
+        "passed": true,
+        "log": ".local/gate-6/received-dtmf-runtime/fresh-decoded181-production-5.log",
+        "log_sha256": "f788aea13762176b0f418f592a60f58fc63e2ba701f38101031f9d1f2803b574",
+        "duration_seconds": 16.41
+      },
+      {
+        "method": "canonical_native_connections::consultation::groups::handoff::production_native_private_handoff_commits_roles_and_retains_remote_audio",
+        "passed": true,
+        "log": ".local/gate-6/received-dtmf-runtime/fresh-decoded181-production-6.log",
+        "log_sha256": "f6138f29c22bace0570ef43d70d0c66b31a154fbcee6aa8adc0cb20d8b64b207",
+        "duration_seconds": 86.76
+      },
+      {
+        "method": "canonical_native_connections::dtmf::production_native_refresh_retains_actual_decoded_rtp_after_original_expiry",
+        "passed": true,
+        "log": ".local/gate-6/received-dtmf-runtime/fresh-decoded181-production-7.log",
+        "log_sha256": "2cb5cf47df6378a6bb216dcefee67979b5749e64fd696a3c7af2c8c1b62b2a01",
+        "duration_seconds": 16.32
+      },
+      {
+        "method": "canonical_native_connections::consultation::groups::replacement::telephone::initial::received::privacy::production_initial_sip_received_respects_private_physical_audience_and_return_does_not_replay",
+        "passed": true,
+        "log": ".local/gate-6/received-dtmf-runtime/fresh-decoded181-production-8.log",
+        "log_sha256": "584e0a637462ea66453af66c1d06a829b7b44c277f8ca83f95d9de0031fc72bc",
+        "duration_seconds": 31.13
+      },
+      {
+        "method": "canonical_native_connections::consultation::groups::replacement::telephone::received::privacy::production_moved_sip_received_private_audience_and_return_keep_actual_lifetime",
+        "passed": true,
+        "log": ".local/gate-6/received-dtmf-runtime/fresh-decoded181-production-9.log",
+        "log_sha256": "905c29ecd3f6a1e021887a909021186a59d1c071869dbb65033a0fc451b59f58",
+        "duration_seconds": 59.36
+      },
+      {
+        "method": "canonical_native_connections::consultation::groups::replacement::telephone::received::refresh::production_moved_sip_dtmf_refresh_preserves_queued_epoch_and_fresh_bidirectional_delivery",
+        "passed": true,
+        "log": ".local/gate-6/received-dtmf-runtime/fresh-decoded181-production-10.log",
+        "log_sha256": "ccf2cad3505fe4542003f6c9023455697a89f2ef7828f725e5c6ead4c88ec400",
+        "duration_seconds": 45.94
+      },
+      {
+        "method": "canonical_native_connections::codecs::production_native_codec_change_confirms_decoded_pcma_preserves_old_audio_and_replays_without_reapplying",
+        "passed": true,
+        "log": ".local/gate-6/received-dtmf-runtime/fresh-decoded181-production-11.log",
+        "log_sha256": "df11b90b11772a7562c88bb8d98bb8f95a5481ed6ecfb4efee639e86357c8f69",
+        "duration_seconds": 6.9
+      }
+    ]
   }
 }
