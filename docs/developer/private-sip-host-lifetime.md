@@ -39,7 +39,8 @@ loop and cleans only its original call; actual absence must still be observed
 and recorded before retirement or return completion.
 
 Controlled Store tests and default service compilation are recorded separately
-from runtime behavior. This increment does not enable SIP-candidate selection or
-qualify actual private media, INFO/RFC4733, return, unrelated private groups or
-the complete G6-046 matrix. Those checks remain open. Public commands use the
-existing [server HTTP reference](canonical-http.md).
+from runtime behavior. Typed SIP-candidate selection and independent sealed
+private groups are described in [private SIP scenes](private-sip-scene-selection.md).
+Actual reverse candidate media, INFO/RFC4733, return and the remaining role/provider
+matrix require their own socket evidence. Passing host quarantine checks does not
+close G6-046. Public commands use the existing [server HTTP reference](canonical-http.md).

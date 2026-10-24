@@ -1,8 +1,8 @@
 {
   "task": "G6-046",
-  "recorded_at": "2026-10-24T22:31:23.568574+00:00",
+  "recorded_at": "2026-10-24T22:49:40.411565+00:00",
   "source_base_commit": "4755f1f6",
-  "status": "quarantine-bootstrap-regression-fixed-focused-current-checks-pass-runtime-revalidation-running",
+  "status": "current-sip-primary-profiles-pass-quarantine-marked-packet-provenance-open",
   "full_task_complete": false,
   "full_goal_complete": false,
   "newly_qualified_case_ids": [],
@@ -170,7 +170,7 @@
       "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
     },
     "runtime": {
-      "status": "revalidation-running-not-qualified",
+      "status": "terminal-partial-pass-quarantine-marked-packet-provenance-open",
       "summary": ".local/gate-6/private-sip-primary/quarantine122-runtime-014/summary.json",
       "prior_result": "runtime012 passes both complete SIP-primary profiles but fails both private-candidate quarantine admissions. No whole-run pass.",
       "scope": "Current combined typed SIP selection, separate private groups and corrected quarantine host source; initial/established SIP-primary full profiles plus both algorithm private-candidate quarantine cases. Reverse private SIP-candidate audience switch remains separate."
@@ -244,6 +244,80 @@
           "log_sha256": "a21d315fa106b285166085eb7e3f41506b8dab0cf8985a286eb08e8f84f35256"
         }
       ]
+    },
+    "runtime014": {
+      "passed": false,
+      "status": "both-full-sip-primary-profiles-pass-both-quarantine-privacy-probes-fail",
+      "summary": ".local/gate-6/private-sip-primary/quarantine122-runtime-014/summary.json",
+      "summary_sha256": "b4f73872bd15d6f47053e2f8062dd837a6ee9a33b26f1a30f7c9ae171954fec7",
+      "source_inputs_unchanged": true,
+      "executable_unchanged": true,
+      "profiles": [
+        {
+          "source_kind": "initial-sip",
+          "case": "canonical_native_connections::consultation::groups::replacement::telephone::initial::received::private_primary::production_initial_sip_primary_private_consultation_routes_only_its_registered_pair",
+          "runtime_exit_code": 0,
+          "passed": true,
+          "observations": ".local/gate-6/private-sip-primary/quarantine122-runtime-014/initial-sip-observations.jsonl",
+          "validation_exit_code": 0,
+          "validation": {
+            "passed": true,
+            "scenes": 2,
+            "actual_frames": 12,
+            "source_kind": "initial-sip",
+            "observations_sha256": "4b7dabbbbb34f75aca69ad5141d88ec3826cfd121b34f9b7415972b6a752c258",
+            "schema_sha256": "8d3d5a1098c8eebafe30960b8b35d83e11f9c8ac09453ab7e528251368d11c32",
+            "scope": "Actual isolated local selected SIP-primary state, shape and correlations; SDK verifies signatures and runtime asserts decoded media/privacy, actual DTMF and independent signal-rights withdrawal/recovery/replay, original return/replay and cleanup. Other roles/profiles remain separate."
+          }
+        },
+        {
+          "source_kind": "established-sip",
+          "case": "canonical_native_connections::consultation::groups::replacement::telephone::received::private_primary::production_moved_sip_primary_private_consultation_routes_only_its_registered_pair",
+          "runtime_exit_code": 0,
+          "passed": true,
+          "observations": ".local/gate-6/private-sip-primary/quarantine122-runtime-014/established-sip-observations.jsonl",
+          "validation_exit_code": 0,
+          "validation": {
+            "passed": true,
+            "scenes": 2,
+            "actual_frames": 12,
+            "source_kind": "established-sip",
+            "observations_sha256": "1ed5993b849319478c36a11547c3e6a548304607273109c56aef07f5a5f422cb",
+            "schema_sha256": "8d3d5a1098c8eebafe30960b8b35d83e11f9c8ac09453ab7e528251368d11c32",
+            "scope": "Actual isolated local selected SIP-primary state, shape and correlations; SDK verifies signatures and runtime asserts decoded media/privacy, actual DTMF and independent signal-rights withdrawal/recovery/replay, original return/replay and cleanup. Other roles/profiles remain separate."
+          }
+        },
+        {
+          "source_kind": "private-candidate-quarantine",
+          "algorithm": "EdDSA",
+          "runtime_exit_code": 101,
+          "passed": false
+        },
+        {
+          "source_kind": "private-candidate-quarantine",
+          "algorithm": "ES256",
+          "runtime_exit_code": 101,
+          "passed": false
+        }
+      ],
+      "quarantine_failure": {
+        "at": "private_candidate.rs:278",
+        "eddsa_counts": [
+          11,
+          0
+        ],
+        "es256_counts": [
+          12,
+          0
+        ],
+        "required_counts": [
+          0,
+          0
+        ],
+        "interpretation": "Unresolved provenance of marked packets. Admission reaches connected readiness; do not call the privacy profile a pass or change assertions without diagnosis."
+      },
+      "retained_executable": ".local/gate-6/received-dtmf-runtime/quarantine122-runtime-014-executable",
+      "retained_executable_sha256": "cf887c8b43c75432c79ee4d178ef95d3543d5b310dbee01c621a9575f96e46a4"
     }
   },
   "failed_attempts": [
