@@ -86,3 +86,14 @@ recipient reads cannot extend the original holder's expiry. Other policies can
 retain independent admission by omitting the weak-reference opt-in. The
 [same-packet custody report](../evidence/gate-6/auxiliary-same-packet-source-custody.json)
 separates controlled verification from actual host and capacity evidence.
+
+
+An owned media interval may expire before the current credential.
+`MediaAuthorityLease::expires_at` exposes that additional immutable bound without
+reacquiring policy or file custody. Core caps packet IO, local neutral output
+and discard-only preparation input at the earliest of this expiry, credential
+expiry and the original media deadline. An expired interval refuses before IO;
+a longer-lived refreshed credential cannot extend an older retained interval.
+The [owned expiry report](../evidence/gate-6/auxiliary-packet-owned-expiry.json)
+records controlled pending-IO, no-poll, release and decoded-recovery evidence
+separately from the current host and capacity checks.

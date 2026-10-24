@@ -1,0 +1,248 @@
+--- a/crates/foundation/rvoip-core/src/staged_streams/endpoint_preparation.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/endpoint_preparation.rs
+@@ -157,10 +157,11 @@
+         let _consumer = self.consumer.begin(&stamp, true)?;
+         let (scene, _scene) = controller.scene_admission(scene_consumer::SceneCheck::publish())?;
+         let admitted_at = Instant::now();
+-        let deadline = StreamController::command_deadline(
++        let deadline = StreamController::media_deadline(
+             &credential.principal,
++            lease.as_ref(),
+             tokio::time::Instant::now() + Duration::from_millis(200),
+-        );
++        )?;
+         let samples = self
+             .decoder
+             .try_lock()
+--- a/crates/foundation/rvoip-core/src/staged_streams/local_audio.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/local_audio.rs
+@@ -88,15 +88,12 @@
+         let mut admission = self.consumer_admission(port, true, consumer, guard)?;
+         admission.scene = scene_stamp;
+         admission._scene = scene_guard;
+-        Ok((
+-            lease,
+-            admission,
+-            Self::command_deadline(
+-                &credential.principal,
+-                tokio::time::Instant::now() + Duration::from_millis(200),
+-            ),
+-            preparation,
+-        ))
++        let deadline = Self::media_deadline(
++            &credential.principal,
++            lease.as_ref(),
++            tokio::time::Instant::now() + Duration::from_millis(200),
++        )?;
++        Ok((lease, admission, deadline, preparation))
+     }
+     /// Generate neutral silence using this exact negotiated codec. Enqueue is
+     /// still not delivery; current purpose authorization is checked again by
+--- /dev/null
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/packet_expiry.rs
+@@ -0,0 +1,134 @@
++//! Current credentials cannot extend the shorter owned packet interval.
++use super::*;
++type Expiry = Arc<Mutex<Option<(String, chrono::DateTime<chrono::Utc>)>>>;
++struct TimedPolicy {
++    inner: Arc<Policy>,
++    expiry: Expiry,
++}
++struct TimedLease {
++    inner: Box<dyn MediaAuthorityLease>,
++    expiry: Option<chrono::DateTime<chrono::Utc>>,
++}
++impl MediaAuthorityLease for TimedLease {
++    fn authority(&self) -> &MediaOwner {
++        self.inner.authority()
++    }
++    fn expires_at(&self) -> Option<chrono::DateTime<chrono::Utc>> {
++        self.expiry
++    }
++}
++impl MediaPolicy for TimedPolicy {
++    fn current(&self, scope: &MediaScope<'_>) -> ControlResult<Box<dyn MediaAuthorityLease>> {
++        let expiry = self
++            .expiry
++            .lock()
++            .unwrap()
++            .as_ref()
++            .filter(|(connection, _)| connection == scope.connection.as_str())
++            .map(|(_, until)| *until);
++        Ok(Box::new(TimedLease {
++            inner: self.inner.current(scope)?,
++            expiry,
++        }))
++    }
++}
++fn fixture() -> (Fixture, Expiry) {
++    let expiry = Arc::new(Mutex::new(None));
++    let f = Fixture::with_policy(
++        8,
++        Some(Box::new({
++            let expiry = expiry.clone();
++            move |inner| Arc::new(TimedPolicy { inner, expiry })
++        })),
++    );
++    (f, expiry)
++}
++struct Ports {
++    source: AdapterMediaPort,
++    input: mpsc::Receiver<MediaPacket>,
++    output: mpsc::Receiver<QueuedMedia>,
++}
++fn ports(f: &Fixture) -> Ports {
++    Ports {
++        source: f.aa.port(Medium::Audio),
++        input: f
++            .a
++            .take_ingress(&desired(Medium::Audio).logical_id)
++            .unwrap(),
++        output: f.ba.port(Medium::Audio).take_egress().unwrap(),
++    }
++}
++async fn queued(f: &Fixture, ports: &mut Ports, sequence: u32) -> QueuedMedia {
++    ports
++        .source
++        .try_publish(&frame(&ports.source, sequence))
++        .unwrap();
++    receive(&mut ports.input)
++        .await
++        .try_forward_to(&f.b, &desired(Medium::Audio).logical_id)
++        .unwrap();
++    outgoing(&mut ports.output).await
++}
++#[tokio::test]
++async fn owned_source_and_recipient_expiry_bound_pending_io_before_longer_credentials_and_packet_age(
++) {
++    for connection in ["alice", "bob"] {
++        let (f, expiry) = fixture();
++        f.start(&[Medium::Audio]).await;
++        let mut ports = ports(&f);
++        let packet = queued(&f, &mut ports, 160).await;
++        *expiry.lock().unwrap() = Some((
++            connection.into(),
++            chrono::Utc::now() + chrono::Duration::milliseconds(80),
++        ));
++        let polled = AtomicBool::new(false);
++        let result = tokio::time::timeout(
++            Duration::from_millis(150),
++            packet.deliver(|_| async {
++                polled.store(true, Ordering::Release);
++                std::future::pending::<ControlResult<()>>().await
++            }),
++        )
++        .await;
++        assert!(
++            matches!(result, Ok(Err(StreamControlError::Deadline))),
++            "{connection} grant did not bound IO: {result:?}"
++        );
++        assert!(polled.load(Ordering::Acquire));
++        assert!(
++            f.policy.0.try_write().is_ok(),
++            "expired IO kept a policy reader"
++        );
++    }
++}
++#[tokio::test]
++async fn expired_owned_packet_interval_never_polls_io_and_releases_all_source_and_target_readers() {
++    for connection in ["alice", "bob"] {
++        let (f, expiry) = fixture();
++        f.start(&[Medium::Audio]).await;
++        let mut ports = ports(&f);
++        let packet = queued(&f, &mut ports, 160).await;
++        *expiry.lock().unwrap() = Some((
++            connection.into(),
++            chrono::Utc::now() - chrono::Duration::seconds(1),
++        ));
++        let polled = AtomicBool::new(false);
++        assert!(matches!(
++            packet
++                .deliver(|_| async {
++                    polled.store(true, Ordering::Release);
++                    Ok(())
++                })
++                .await,
++            Err(StreamControlError::Deadline)
++        ));
++        assert!(!polled.load(Ordering::Acquire));
++        assert!(
++            f.policy.0.try_write().is_ok(),
++            "refusal kept a policy reader"
++        );
++        *expiry.lock().unwrap() = None;
++        assert_audio(queued(&f, &mut ports, 161).await).await;
++        assert!(f.policy.0.try_write().is_ok());
++    }
++}
+--- a/crates/foundation/rvoip-core/src/staged_streams/tests.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests.rs
+@@ -2813,3 +2813,5 @@
+ mod queued_contention_tests;
+ 
+ mod packet_admission;
++
++mod packet_expiry;
+--- a/crates/foundation/rvoip-core/src/staged_streams.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams.rs
+@@ -187,6 +187,13 @@
+ /// fence through a bounded local send. Queued permission snapshots are invalid.
+ pub trait MediaAuthorityLease: Send {
+     fn authority(&self) -> &MediaOwner;
++    /// Additional immutable expiry of this owned media interval, if narrower
++    /// than the current credential. Never block or reacquire policy here.
++    /// Every packet IO deadline must respect this bound as well as packet age.
++    fn expires_at(&self) -> Option<chrono::DateTime<chrono::Utc>> {
++        None
++    }
++
+     /// Opaque file custody for synchronous packet admission. An opt-in policy
+     /// can expose Weak<dyn Any + Send + Sync> for clones of one original audio
+     /// packet; queues retain only that weak metadata, never an owned reader.
+@@ -1532,6 +1539,25 @@
+             None => deadline,
+         }
+     }
++    fn media_deadline(
++        principal: &AuthenticatedPrincipal,
++        lease: &dyn MediaAuthorityLease,
++        requested: tokio::time::Instant,
++    ) -> ControlResult<tokio::time::Instant> {
++        let now = tokio::time::Instant::now();
++        let mut deadline = Self::command_deadline(principal, requested);
++        if let Some(expiry) = lease.expires_at() {
++            let remaining = (expiry - chrono::Utc::now())
++                .to_std()
++                .map_err(|_| StreamControlError::Deadline)?
++                .min(Duration::from_secs(30));
++            deadline = deadline.min(now + remaining);
++        }
++        if deadline <= tokio::time::Instant::now() {
++            return Err(StreamControlError::Deadline);
++        }
++        Ok(deadline)
++    }
+     fn check(scope: &MediaScope<'_>, authority: &MediaOwner) -> ControlResult<()> {
+         let now = chrono::Utc::now();
+         if Self::principal_expiry(scope.principal).is_some_and(|expiry| expiry <= now) {
+@@ -1880,14 +1906,12 @@
+         admission.scene = scene_stamp;
+         admission._scene = scene_guard;
+         admission._direct = direct_guard;
+-        Ok((
+-            lease,
+-            admission,
+-            Self::command_deadline(
+-                &credential.principal,
+-                tokio::time::Instant::now() + Duration::from_millis(200),
+-            ),
+-        ))
++        let deadline = Self::media_deadline(
++            &credential.principal,
++            lease.as_ref(),
++            tokio::time::Instant::now() + Duration::from_millis(200),
++        )?;
++        Ok((lease, admission, deadline))
+     }
+     pub async fn change(
+         self: &Arc<Self>,

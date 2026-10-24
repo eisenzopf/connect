@@ -1,0 +1,64 @@
+{
+  "scope": "Local macOS arm64 controlled Core component. Full222 staged-media methods pass; current optimized Service/host build is active. No current-source capacity or production pass inferred. G6-04658/61 and45/105 unchanged.",
+  "source_patch_count": 179,
+  "store_schema": 103,
+  "source_lock_sha256": "19ac5dbf1e8c885c02634c87dc13e1cc0002db3fb96357bb34f0ffe470aca747",
+  "patch": "patches/rvoip/gate6-packet-owned-expiry.patch",
+  "changes": [
+    "Owned media leases can declare an additional immutable expiry; packet IO, local neutral output and discard-only preparation input must honor it alongside credential and original packet bounds.",
+    "Convert the wall-clock lease bound conservatively using a monotonic time captured first; invalid or expired intervals refuse before IO. No policy/file reentry from expiry getter.",
+    "Two new controlled methods cover pending IO for both shorter source and recipient intervals, expired-before-IO no-poll, full reader release and fresh actual decoded recovery."
+  ],
+  "verification": {
+    "build_seconds": 308,
+    "test_seconds": 6.75,
+    "distinct_staged_methods_passed": 222,
+    "new_methods": [
+      "staged_streams::tests::packet_expiry::expired_owned_packet_interval_never_polls_io_and_releases_all_source_and_target_readers",
+      "staged_streams::tests::packet_expiry::owned_source_and_recipient_expiry_bound_pending_io_before_longer_credentials_and_packet_age"
+    ],
+    "log": ".local/gate-6/received-dtmf-runtime/admission179-core.log",
+    "log_sha256": "1dd1cada03702c5cf9721a03041fb4d3f6a9f62ad0b1b55eb3b6b2b1d400c50a",
+    "preparation": {
+      "previous": "/Users/jonathaneisenzopf/.local/share/connect/deps-g6-same-packet-source-custody-20261023",
+      "current": "/Users/jonathaneisenzopf/.local/share/connect/deps-g6-packet-owned-expiry-20261024",
+      "preserved_unchanged_mtimes": 4040,
+      "changed": [
+        "rvoip/crates/foundation/rvoip-core/src/staged_streams.rs",
+        "rvoip/crates/foundation/rvoip-core/src/staged_streams/endpoint_preparation.rs",
+        "rvoip/crates/foundation/rvoip-core/src/staged_streams/tests.rs",
+        "rvoip/crates/foundation/rvoip-core/src/staged_streams/local_audio.rs",
+        "rvoip/crates/foundation/rvoip-core/src/staged_streams/tests/packet_expiry.rs"
+      ],
+      "source_lock_sha256": "19ac5dbf1e8c885c02634c87dc13e1cc0002db3fb96357bb34f0ffe470aca747"
+    }
+  },
+  "preceding_optimized_diagnostic": {
+    "scope": "Separate source178 diagnostic trace plus4second2ms sampling. Instrumentation changes timing; not capacity credit. Post-subscription48/49 window only.",
+    "publisher0": {
+      "fresh_ok": 836,
+      "fresh_busy": 17363,
+      "owned_ok": 212,
+      "owned_busy": 1048
+    },
+    "median_us": {
+      "fresh_publish_ok": 1670,
+      "owned_publish_ok": 42
+    },
+    "failure_details": {
+      "Current state is busy": 11583,
+      "Current authority is busy": 7914
+    },
+    "interpretation": "Most successful late source checks still acquired fresh file readers. Service should retain one weak anchor to the original still-owned source instead of replacing it with a short-lived child. Every source/recipient continues to derive current policy; this is not permission reuse.",
+    "artifacts_sha256": {
+      ".local/gate-6/received-dtmf-runtime/admission178-release-profile-inputs.json": "a0d3a1ad4a634c95997bbc0ea909ed6f2b83294baeecf7b64476170d5b9cf439",
+      ".local/gate-6/received-dtmf-runtime/admission178-release-profile-analysis.json": "d58739866e4b2e05f9b63db7c7d211ac4ff68b1d366a8d5107cd7b9b956d818a",
+      ".local/gate-6/received-dtmf-runtime/admission178-release-profile-sample.txt": "8c9a6bb3384a85f9f469b6a01bc0e1508d01d5576601883425aa2d87040a7d61"
+    }
+  },
+  "remaining": [
+    "Finish exact optimized source179 host build, wire native read expiry and stable active source anchor, then execute the unchanged complete fifty-peer two-algorithm lane and affected actual production regressions.",
+    "Current source179 default-host production was not run. Source178 default host8 regressions and optimized2..10 failure remain historical distinct results.",
+    "No clause/task credit until actual required behavior passes;0112/0113/0123, hosting/browser/remote/provider/acceptance/publication remain open."
+  ]
+}
