@@ -1,8 +1,8 @@
 {
   "task": "G6-046",
   "title": "Memoize bounded authority filename metadata while preserving fresh admission",
-  "recorded_at": "2026-10-24T01:40:33.868207+00:00",
-  "status": "store-component-verified; production-build-active",
+  "recorded_at": "2026-10-24T01:57:22.348299+00:00",
+  "status": "store-and-production-regressions-verified; full50-media-failed",
   "full_task_complete": false,
   "full_goal_complete": false,
   "qualified_case_ids": [],
@@ -15,7 +15,7 @@
     "Native SQL version stamps, current credential/Device/Endpoint/membership/audience/expiry checks and fresh complete51-scope admission remain unchanged. No200ms media age, peer count, command bound or decoded-frame threshold was relaxed."
   ],
   "verification": {
-    "rust_distinct_methods_passed": 226,
+    "rust_distinct_methods_passed": 231,
     "authority_fence_methods_passed": 33,
     "packet_related_filter_methods_passed": 12,
     "media_authority_methods_passed": 11,
@@ -247,7 +247,12 @@
       "peer_authority::connection_media::snapshot::tests::packet_snapshot_refuses_queued_writer_without_waiting_under_sql_and_recovers",
       "peer_authority::connection_media::snapshot::tests::packet_snapshot_releases_sql_during_actual_admission_and_refuses_reacquire_contention",
       "peer_authority::connection_media::snapshot::tests::packet_snapshot_releases_sql_for_current_mutation_and_rejects_mixed_capture",
-      "transitions::initial_telephone::tests::initial_withdrawal_after_the_submission_marker_issues_no_fresh_packet_interval"
+      "transitions::initial_telephone::tests::initial_withdrawal_after_the_submission_marker_issues_no_fresh_packet_interval",
+      "canonical_native_connections::lifecycle::production_native_lifecycle_quality_reports_actual_flow_through_signed_sdk",
+      "canonical_native_connections::selector_policy::production_native_heterogeneous_wildcard_preserves_audio_and_definitive_refusals",
+      "canonical_native_connections::selector_policy::production_native_disjoint_data_formats_refuse_488_without_allocating_a_route",
+      "canonical_native_connections::production_signed_native_stream_subscription_routes_audio_and_replays_without_another_effect",
+      "canonical_native_connections::codecs::production_native_codec_refusals_and_foreign_physical_replay_preserve_audio_and_pending_original"
     ],
     "new_cases": [
       "A51-scope actual file admission fences all50 Identity scopes and the Conversation, fresh concurrent readers cover every scope, every exclusive writer is refused while held, and all writers recover after the last guard drops.",
@@ -265,23 +270,38 @@
     "workspace_format_check_passed": true,
     "openapi_generation_check_passed": true,
     "diff_check_passed": true,
-    "default_server_test_build_passed": false,
-    "production_retest_completed": false,
+    "default_server_test_build_passed": true,
+    "production_retest_completed": true,
     "source_lock_sha256": "511cd061fc53949718f3cb0b8744df5f22e89cdefac5146250425bbeed049cf7",
     "local_log_sha256": {
       "names174-baseline.log": "1c42ba3f658cfc57d15017796aa9013813c80152a107c54f040cdbef84e61c0e",
       "names174-authority.log": "36a83d5e43cb6ea0b0c4e0b620258b52418a390347efc2b76170b4f2021a2d5e",
       "names174-snapshot.log": "eac217ea423c91a36f7e3995f76d07cbb49ad605ccbb5d4350b1ad63c82a2c76",
       "names174-media-authority.log": "3a53dc87784fff64405a180490b56073a7e96d29ab42cc8a75dbca8f9ef6ad85",
-      "names174-native-authority.log": "0c70823ba7dc8dfdc1a41709e65f862ab9ea1c46a4bc283977aadc7ffca2293c"
+      "names174-native-authority.log": "0c70823ba7dc8dfdc1a41709e65f862ab9ea1c46a4bc283977aadc7ffca2293c",
+      "names174-production-0.log": "6551f118f985aa51c1195eb89b3864cbd2508be4caabe3bad5addcb0d3ed21d8",
+      "names174-production-1.log": "f3da91562b792bb36a74815c145ec41e273f0c40a9ccd5fedcbb06edcb638a36",
+      "names174-production-2.log": "2b9d3faf265bb1747e2fd6ca616f81207b7aea9c34a30104875a9b1b83f7a018",
+      "names174-production-3.log": "876977bc995aa108fdaf496aaeb29e8ed79160298fcb20bd2b2aed7e95d1f4a1",
+      "names174-production-4.log": "cda61dfedab4f5f564baf714cae24c05ca280214bc1e654400fd90b5391d265a",
+      "names174-server-build.log": "f0c4028ab9ad1bbd9b821a0e79bee15d53983e53e3b0903dc3d6dd963614d153",
+      "names174-fifty.log": "82ccaf2c1603145d1e9bc201f6255b8ede89205adab739e35461589a24303d93",
+      "names174-fifty-diagnostic.log": "e780d9691d24e5bf3c33cd4a60864fcf11f88dad3ab53dbe32aada13ecb71b04",
+      "names174-quality-observations.jsonl": "7f8b3178db1760d5c51c657ddcdbd81ade88f8c7510d5cd1ba60b962f26ebe4f"
     },
-    "scope": "Controlled Store authority behavior only at this checkpoint. Exact production build93352 is active; no fanout or whole-clause qualification."
+    "scope": "226 controlled Store methods and five actual Connect production methods, including both signing algorithms for signed quality/current Endpoint revocation. The exact default build passed. Neither full50 attempt passed, and neither capture contains a complete row; no full50/whole-clause credit.",
+    "connect_production_methods_passed": 5,
+    "default_server_test_build_duration_seconds": 849,
+    "full50_passed": false
   },
   "failure_provenance": [
-    "The preceding source174 host run passed all50 publisher lifecycle sets,99 actual admissions, zero any-RTP before selectors and all49 completed subscription result/ACK pairs, then failed decoded media after80.21seconds:287queued frames, four IO entries and283 guarded egress Deadline refusals. That failure remains open; a controlled name-derivation improvement alone does not prove its resolution."
+    "The preceding source174 host run passed all50 publisher lifecycle sets,99 actual admissions, zero any-RTP before selectors and all49 completed subscription result/ACK pairs, then failed decoded media after80.21seconds:287queued frames, four IO entries and283 guarded egress Deadline refusals. That failure remains open; a controlled name-derivation improvement alone does not prove its resolution.",
+    "The exact source174 plus name-memo default server/test build passed in14m09s. Five actual production regressions then passed against that exact binary: signed quality/current Endpoint revocation, heterogeneous wildcard audio/definitive refusal, disjoint data488/no route, signed subscription/replay and codec/foreign physical/pending-original custody.",
+    "The ordinary warning-log full50 retest failed after79.86seconds. EdDSA passed all50 publisher lifecycle sets, all99 admissions, zero any-RTP before selectors and all49 completed signed subscription/ACK pairs, then intended recipients received only0..2 decoded marked frames. ES256 and later future/end/replay/departure assertions were not reached.",
+    "A focused diagnostic retest failed at the same fanout threshold after82.13seconds:392 guarded queues,13 IO entries and379 actual egress Deadline refusals. Receiver authority-call median was1181us over531 observations, but complete49-way delivery still failed. Those samples are not a claim of whole-scene throughput improvement. Both complete capture files are empty."
   ],
   "unresolved": [
-    "Finish the live exact production build and run actual native production regressions and the entire isolated full50 case under both signing algorithms. Preserve all original bounds.",
+    "Resolve repeated complete-scope source/recipient acquisition while preserving current recipient policy, exact complete scopes, current source/target bindings and original200ms packet age. An active-reader Store composition follow-up is uncommitted and component tests are in progress; it is not wired into Core/Service and has no runtime qualification.",
     "Complete future publication/retirement/replay/departure and validate an actual successful full capture. The WIP producer and validator have no complete passing capture.",
     "G6-046 remains58/61 with0112/0113/0123 open and45/105 tasks done. Other workspace/Linux/browser/remote/provider/independent/acceptance/publication scopes remain separate."
   ]
