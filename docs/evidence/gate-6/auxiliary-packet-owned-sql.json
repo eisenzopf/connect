@@ -1,5 +1,5 @@
 {
-  "scope": "Local macOS arm64 Store component only.71distinct methods pass;2top-level subprocess helpers remain explicit skips and are not counted. Exact optimized host build is active; no current-runtime capacity pass follows. Source179/schema103 unchanged;45/105 andG6-04658/61 unchanged.",
+  "scope": "Local macOS arm64 Store71 controlled methods, exact optimized host build and8actual production regressions pass. Full50 still fails steady1..14 after49 receiver startups3901ms. No current capacity or clause/task promotion;45/105 and58/61 unchanged.",
   "changes": [
     "When the exact complete file interval is already owned, capture and seal current SQL facts under one short SQL mutex interval. Pure namespace/scope checks perform no file admission or IO.",
     "Fresh file admission still releases SQL before all file opens/hashing/try-locks and reacquires SQL afterward. Both paths share the same exact connection/data/schema/change/clock version seal.",
@@ -71,7 +71,144 @@
     }
   },
   "remaining": [
-    "Finish the exact optimized host build with this Store implementation and execute the unchanged two-algorithm fifty-peer full lifecycle plus current-authority production regressions.",
+    "Measure exact updated optimized fresh file-admission/SQL contention after the1..14 failure. Do not infer capacity from compilation or component/regression passes; all later full50 phases/ES256 remain unqualified.",
     "Keep every earlier failed default/optimized attempt and original50/49/8s/200ms/>10 bounds.0112/0113/0123 and later profiles/acceptance/publication stay open."
-  ]
+  ],
+  "host_build": {
+    "passed": true,
+    "duration_seconds": 753,
+    "profile": "Cargo --release, CARGO_INCREMENTAL=0, opt-level3",
+    "log": ".local/gate-6/received-dtmf-runtime/owned-sql179-release-build.log",
+    "log_sha256": "e594dd1da35d19a5c0efe7be3de29f41dea8f7c58939851f8c76198e2583a5f8",
+    "limitation": "Compilation only; actual fifty-peer rehearsal active."
+  },
+  "optimized_full50": {
+    "passed": false,
+    "duration_seconds": 31.76,
+    "actual_connections": 99,
+    "completed_subscriptions": 49,
+    "receiver_startup_ms": 3901,
+    "receiver_flow_facts": 49,
+    "steady_decoded_by_peer": [
+      0,
+      4,
+      14,
+      7,
+      4,
+      5,
+      4,
+      5,
+      7,
+      8,
+      5,
+      3,
+      3,
+      4,
+      6,
+      1,
+      5,
+      6,
+      7,
+      8,
+      5,
+      8,
+      6,
+      7,
+      6,
+      8,
+      7,
+      7,
+      5,
+      6,
+      4,
+      4,
+      6,
+      6,
+      4,
+      9,
+      6,
+      4,
+      7,
+      4,
+      8,
+      6,
+      7,
+      7,
+      3,
+      6,
+      5,
+      6,
+      6,
+      7
+    ],
+    "steady_range": [
+      1,
+      14
+    ],
+    "required_each": ">10",
+    "future_phases_reached": false,
+    "second_algorithm_reached": false,
+    "complete_capture_rows": 0,
+    "validator": "Not run: no complete algorithm capture.",
+    "executable_sha256": "f58771c26b496c730d312292aab8d59bbb9241b835c7027c22602e7a3eb6cf14",
+    "source_inputs_unchanged": true,
+    "cargo_profile": {
+      "opt_level": "3",
+      "debuginfo": 0,
+      "debug_assertions": false,
+      "overflow_checks": false,
+      "test": true
+    },
+    "artifacts_sha256": {
+      ".local/gate-6/fifty-native/owned-sql179-release/summary.json": "fc152ce5c3985dd65f6cedd1c1a8a5e19c3fc6c16e348038e2442b79c91ecf67",
+      ".local/gate-6/fifty-native/owned-sql179-release/runtime.log": "10a161bbaaef69fa2c656c5a01d6ab56c78550d27a6fdc1103c24bef52ce4045",
+      ".local/gate-6/fifty-native/owned-sql179-release/observations.jsonl": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  },
+  "actual_production_regressions": {
+    "distinct_methods_passed": 8,
+    "same_exact_optimized_binary": true,
+    "runs": [
+      {
+        "log": ".local/gate-6/received-dtmf-runtime/owned-sql179-production-0.log",
+        "sha256": "06752d9219ea25bda4d6fe83d8437f1c59d403f94032c96cc563d8f3ebd4cc70",
+        "summary": "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 253 filtered out; finished in 23.65s"
+      },
+      {
+        "log": ".local/gate-6/received-dtmf-runtime/owned-sql179-production-1.log",
+        "sha256": "711c7846a43b1dc915769165b353e499ac8bb9f645e1bc5eb76acc7e1f61d50e",
+        "summary": "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 253 filtered out; finished in 10.41s"
+      },
+      {
+        "log": ".local/gate-6/received-dtmf-runtime/owned-sql179-production-3.log",
+        "sha256": "6b63918fd05faca54dcca4f3d8bc276007e4e08ec770ada6dee51ac6db5c763f",
+        "summary": "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 253 filtered out; finished in 5.19s"
+      },
+      {
+        "log": ".local/gate-6/received-dtmf-runtime/owned-sql179-production-5.log",
+        "sha256": "3447df18fddee1668d2250159adb158ee94f209f21b1f7408d4357cd43211797",
+        "summary": "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 253 filtered out; finished in 16.29s"
+      },
+      {
+        "log": ".local/gate-6/received-dtmf-runtime/owned-sql179-production-6.log",
+        "sha256": "79f37ff0cbd177ea081050f6d7c02b441e2b8455f770bfbd2099f76d53c12bda",
+        "summary": "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 253 filtered out; finished in 86.61s"
+      },
+      {
+        "log": ".local/gate-6/received-dtmf-runtime/owned-sql179-production-7.log",
+        "sha256": "8b1349ea490f78c9777c6eef068cb3f4e75a9a93c8d96f9e855ba05e8a0c6a23",
+        "summary": "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 253 filtered out; finished in 16.59s"
+      },
+      {
+        "log": ".local/gate-6/received-dtmf-runtime/owned-sql179-production-9.log",
+        "sha256": "0dcaf4da3167ca463f376a357738db2432e68b6a35aa6496cfc954236ca66bec",
+        "summary": "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 253 filtered out; finished in 59.87s"
+      },
+      {
+        "log": ".local/gate-6/received-dtmf-runtime/owned-sql179-production-10.log",
+        "sha256": "c86bd6f418266cf55e489ca73a547b4c9a445e1e045247e2ef62dac852ea06ad",
+        "summary": "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 253 filtered out; finished in 46.65s"
+      }
+    ]
+  }
 }
