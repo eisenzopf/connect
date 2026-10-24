@@ -1,5 +1,5 @@
 {
-  "scope": "Local macOS arm64 Store1065 methods pass and exact optimized host build passes. Full50 still fails steady6..19 after all49 receiver startups1034ms. Current production regressions remain active. No capacity/clause/task promotion:45/105 and58/61 unchanged.",
+  "scope": "Local macOS arm64 Store1065 methods and8actual production regressions pass on the exact optimized executable. Full50 still fails steady6..19 after all49 receiver startups1034ms; five receivers miss the unchanged>10 requirement. No capacity/clause/task promotion:45/105 and58/61 unchanged.",
   "changes": [
     "Pool at most 128 idle, explicitly unlocked admission descriptions, at most two per name. Exclusive checkout never shares an open description between concurrent requests; busy/full pool falls back to fresh open/close without waiting on the pool mutex.",
     "Every acquisition still validates the current database and private directory and obtains the actual exclusive OS admission lock. Reused descriptions freshly validate regular path/file, private owner/mode, single link, matching device/inode, owner read/write mode and current effective read/write access including ACLs through safe rustix accessat. Unsafe reuse fails closed and closes the descriptor.",
@@ -81,9 +81,8 @@
     ]
   },
   "pending": [
-    "Finish eight current-authority production regressions on this exact optimized executable.",
-    "Measure remaining exact optimized packet contention; preserve all earlier failures and original50/49/8s/200ms/>10 bounds. No later full50 phase or ES256 capacity qualified.",
-    "Linux and all other assigned profiles remain unqualified by this macOS proof."
+    "Check bounded idle-descriptor replacement after cold namespace activity, preserving current private access validation and fresh exclusive locks.",
+    "All later full50 phases/ES256 capacity and other assigned profiles remain unqualified. Preserve all earlier failures and original50/49/8s/200ms/>10 bounds."
   ],
   "host_build": {
     "passed": true,
@@ -174,6 +173,118 @@
       ".local/gate-6/fifty-native/admission-fds179-release/summary.json": "3a6f5161d96cef8ad75b3d42228dc4499df429647a1ea06dd96be472f0195c4f",
       ".local/gate-6/fifty-native/admission-fds179-release/runtime.log": "ca91d9b20cd31d18ae15a2262e7308c0a6d45ffdc18460f450b5ef5ff354eeb5",
       ".local/gate-6/fifty-native/admission-fds179-release/observations.jsonl": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  },
+  "actual_production_regressions": {
+    "distinct_methods_passed": 8,
+    "same_exact_optimized_binary": true,
+    "source_inputs_unchanged_after_regressions": true,
+    "runs": [
+      {
+        "log": ".local/gate-6/received-dtmf-runtime/admission-fds179-production-0.log",
+        "sha256": "02655400266794b6a1ca1813dc430387a347d5057c9f9c8db13f58399e281f80",
+        "summary": "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 253 filtered out; finished in 23.56s"
+      },
+      {
+        "log": ".local/gate-6/received-dtmf-runtime/admission-fds179-production-1.log",
+        "sha256": "59e8337b6b7018473d0a5a5aae963f62e69461e1cfa90f1a611b7908ad04d246",
+        "summary": "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 253 filtered out; finished in 10.44s"
+      },
+      {
+        "log": ".local/gate-6/received-dtmf-runtime/admission-fds179-production-3.log",
+        "sha256": "a21f2a84620a694b8ccc43bc3ace3a0ad98e9f66f5d2b84e8117c1b92d57c9b7",
+        "summary": "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 253 filtered out; finished in 5.22s"
+      },
+      {
+        "log": ".local/gate-6/received-dtmf-runtime/admission-fds179-production-5.log",
+        "sha256": "47bfa3fd4166c3d218737ba743f5ce9bb01620b6697b896506acc9867bb2f40b",
+        "summary": "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 253 filtered out; finished in 16.32s"
+      },
+      {
+        "log": ".local/gate-6/received-dtmf-runtime/admission-fds179-production-6.log",
+        "sha256": "8a5388a4ce3f3bff3e1a42bf8b70bbe15bed7b6de06c490e89b733e14f2d0501",
+        "summary": "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 253 filtered out; finished in 86.61s"
+      },
+      {
+        "log": ".local/gate-6/received-dtmf-runtime/admission-fds179-production-7.log",
+        "sha256": "f4a8574060ba7493385545951d7a1d6a694541acdc52e0423ad9d176000b0137",
+        "summary": "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 253 filtered out; finished in 16.40s"
+      },
+      {
+        "log": ".local/gate-6/received-dtmf-runtime/admission-fds179-production-9.log",
+        "sha256": "aa8bd03c15a5883feaa117560ee0d01278144861993d22dd87f22d20267f5fb7",
+        "summary": "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 253 filtered out; finished in 59.32s"
+      },
+      {
+        "log": ".local/gate-6/received-dtmf-runtime/admission-fds179-production-10.log",
+        "sha256": "740682fe3add26786b2d0453cfdf40475711a684e4b35b8eaeb8ee43fbf03f27",
+        "summary": "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 253 filtered out; finished in 46.24s"
+      }
+    ]
+  },
+  "remaining_diagnostic": {
+    "scope": "Diagnostic trace plus4second2ms sampling of exact optimized source179 after subscription48/49. Instrumentation changes timing; no capacity credit.",
+    "runtime_exit_code": 101,
+    "sample_exit_code": 0,
+    "late_window": {
+      "outcomes": {
+        "authority-busy": 14906,
+        "ok": 3505
+      },
+      "details": {
+        "Current state is busy": 8345,
+        "Current authority is busy": 6561
+      },
+      "publisher0": {
+        "owned=false,authority-busy": 11553,
+        "owned=false,ok": 795,
+        "owned=true,authority-busy": 2528,
+        "owned=true,ok": 687
+      },
+      "timings": {
+        "publish=true,owned=false,authority-busy": {
+          "n": 11553,
+          "median_us": 40,
+          "p90_us": 66
+        },
+        "publish=true,owned=false,ok": {
+          "n": 795,
+          "median_us": 1631,
+          "p90_us": 1859
+        },
+        "publish=false,owned=true,ok": {
+          "n": 2023,
+          "median_us": 43,
+          "p90_us": 576
+        },
+        "publish=false,owned=true,authority-busy": {
+          "n": 825,
+          "median_us": 21,
+          "p90_us": 25
+        },
+        "publish=true,owned=true,authority-busy": {
+          "n": 2528,
+          "median_us": 14.0,
+          "p90_us": 18
+        },
+        "publish=true,owned=true,ok": {
+          "n": 687,
+          "median_us": 33,
+          "p90_us": 40
+        }
+      },
+      "audio_stages": {
+        "mixer-target:NotReady": 454,
+        "source-egress:NotReady": 14248,
+        "target-egress:NotReady": 375
+      }
+    },
+    "observed_stack": "Repeated OpenOptions::__open/__open still appears alongside cached-path effective access checks. Inclusive sample counts are not whole-process CPU percentages.",
+    "next_investigation": "The full idle pool currently retains its first128 entries indefinitely. Check a cold bootstrap namespace followed by51 active media scopes; add bounded replacement if the working set cannot enter. Do not change current authorization or capacity bounds.",
+    "artifacts_sha256": {
+      ".local/gate-6/received-dtmf-runtime/admission-fds179-release-profile-inputs.json": "39c4e19596e9d146687b6e004d5b009a77f5a22fd704f059450d2b6b53c4af38",
+      ".local/gate-6/received-dtmf-runtime/admission-fds179-release-profile-analysis.json": "ea2c543aba396a2d1234a5554f6ae9f24150e92909ddbccc21b87dba8db1c54f",
+      ".local/gate-6/received-dtmf-runtime/admission-fds179-release-profile-sample.txt": "86c24b3fbadfe4b1089d9d1a9eb8eee016cbf0b8bfb4a676f9218aaa2c1ccf40"
     }
   }
 }
