@@ -27,8 +27,8 @@ that same interval without entering a new reader behind a waiting writer.
 
 The mixer now associates each consumed segment with its own still-owned source
 lease. Its synchronous recipient check can reuse that lease's opaque file
-context. The outgoing queue stores no context or permission reader. After dequeue,
-guarded egress acquires a new current source lease, then checks the exact recipient
+context. The outgoing queue retains no owned file reader or permission grant. After dequeue,
+guarded egress obtains current source authority, then checks the exact recipient
 under its file custody. Store namespace, scope coverage and both current physical
 bindings remain checked. Other policy implementations retain independent fresh
 admission; data-command custody is separate.
@@ -68,3 +68,21 @@ Initial/current-gate capture, data and held control paths keep their existing
 locking; this optimization cannot recapture a newer audience for an old packet.
 The [packet admission report](../evidence/gate-6/auxiliary-native-packet-admission.json)
 records verification and pending runtime scope separately.
+
+
+Concurrent copies of the same original audio packet can share an already-active
+source file interval. The source policy exposes an opaque weak reference, and
+Core clones one weak-metadata slot with that packet's mixer contributions. Every
+new input packet gets a separate slot. A queued copy cannot keep a reader alive,
+resurrect expired custody, or borrow another packet's interval. When no same-packet
+reader remains active, admission must obtain a fresh source read.
+
+`Store::try_native_media_source_read_under` checks the exact original runtime
+Connection, generation, participant and membership epoch before deriving current
+SQL-versioned facts and complete scope coverage. Recipient authority is still
+checked separately. Current revocation, readiness, stream/route/consumer/scene
+fences, cancellation and the original 200 ms bound continue to apply. Source and
+recipient reads cannot extend the original holder's expiry. Other policies can
+retain independent admission by omitting the weak-reference opt-in. The
+[same-packet custody report](../evidence/gate-6/auxiliary-same-packet-source-custody.json)
+separates controlled verification from actual host and capacity evidence.

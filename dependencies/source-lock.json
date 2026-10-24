@@ -987,6 +987,11 @@
     {
       "path": "patches/rvoip/gate6-retained-audio-policy-state.patch",
       "sha256": "156cd7e8272d1e1016ad6594a4511ef58a1811a7c615cdba1e719831b189f9c7"
+    },
+    {
+      "path": "patches/rvoip/gate6-same-packet-source-custody.patch",
+      "sha256": "17a927690c8576b1be0e22f6e1c6767e96d0bef64c9a8906cd95676109039fcd",
+      "source": "G6-046 share only live original-audio-packet source file custody among concurrent fanout copies using weak queued metadata. Every source and recipient still derives current authority and complete scopes under the original deadline; no per-Connection memo, queued owned reader or cross-packet grant. Controlled decoded fanout, queued-writer, different-packet, final-release, recipient-revocation and age cases required; actual fifty-peer capacity remains separately qualified."
     }
   ]
 }

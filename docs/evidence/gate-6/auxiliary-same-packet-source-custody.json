@@ -1,5 +1,5 @@
 {
-  "scope": "Local macOS arm64 Store component only. Same-original-packet source custody in Core/Service and actual host capacity remain unverified. No Gate6 clause/task promotion.",
+  "scope": "Local macOS arm64 Store5 and full Core220 controlled component methods pass. Exact host build and actual runtime capacity remain pending; no Gate6 clause/task promotion.",
   "behavior": "Recheck the exact live source runtime binding, participant, membership epoch and generation under a same-namespace/runtime current reader; derive current complete scopes and SQL-versioned facts, cap expiry to the original reader. No foreign or different-source fallback.",
   "verification": {
     "command": "CARGO_INCREMENTAL=1 cargo test -p connect-store --target-dir /Users/jonathaneisenzopf/.local/share/connect/store-received-snapshot-target --lib --locked --offline -j4 connection_control::tests::media_authority::packet_reads -- --test-threads=1",
@@ -27,5 +27,40 @@
   "remaining": [
     "Complete tracked upstream and Service integration, Core controlled fanout/current-policy/deadline checks, exact host build and actual production regressions.",
     "Full50 both-algorithm complete lifecycle capture remains required with unchanged thresholds. G6-04658/61,45/105;0112/0113/0123 open."
-  ]
+  ],
+  "core_integration": {
+    "source_patch_count": 178,
+    "source_lock_sha256": "9fcf7c3a9e5032f8e1de2beb72477b81d92a70650ad4598e84ff54fe11f3076c",
+    "patch": "patches/rvoip/gate6-same-packet-source-custody.patch",
+    "build_seconds": 352,
+    "test_seconds": 6.28,
+    "distinct_methods_passed": 220,
+    "new_methods": [
+      "staged_streams::tests::guarded_mixer::packet_context::same_original_packet_shares_only_active_custody_and_never_a_different_packet",
+      "staged_streams::tests::guarded_mixer::packet_context::same_packet_live_custody_preserves_current_recipient_and_original_age",
+      "staged_streams::tests::guarded_mixer::subscriptions::wildcard_intent_tracks_future_same_owner_devices_but_unsubscribe_exception_stays_removed",
+      "staged_streams::tests::media_scene::subscriptions::participant_future_selection_uses_same_held_reader_with_queued_writer",
+      "staged_streams::tests::private_consult::handoff_human_to_ai_and_ai_to_human_use_the_same_authorized_ready_bridge_primitive",
+      "staged_streams::tests::private_consult::handoff_same_participant_endpoint_change_is_not_a_participant_handoff",
+      "staged_streams::tests::private_consult::private_audience_quarantines_same_participant_context_and_restores_decoded_main_audio",
+      "staged_streams::tests::queued_contention_tests::queued_audio_busy_retries_same_frame_and_releases_all_readers",
+      "staged_streams::tests::reliable_data::temporary_port_quiescence_drains_the_same_one_use_writer_guard",
+      "staged_streams::tests::replacement_activation::replacement_resource_observation_prepares_same_participant_io_without_model_route_or_endpoint_confirmation"
+    ],
+    "log": ".local/gate-6/received-dtmf-runtime/admission178-core.log",
+    "log_sha256": "7e70d648277db30b693a7a494a30cd439e4f41491e5f8aa8f7dd969cd5e7ab40",
+    "preparation": {
+      "previous": "/Users/jonathaneisenzopf/.local/share/connect/deps-g6-retained-audio-policy-20261023",
+      "current": "/Users/jonathaneisenzopf/.local/share/connect/deps-g6-same-packet-source-custody-20261023",
+      "preserved_unchanged_mtimes": 4040,
+      "changed": [
+        "rvoip/crates/foundation/rvoip-core/src/staged_streams.rs",
+        "rvoip/crates/foundation/rvoip-core/src/staged_streams/endpoint_preparation.rs",
+        "rvoip/crates/foundation/rvoip-core/src/staged_streams/guarded_audio.rs",
+        "rvoip/crates/foundation/rvoip-core/src/staged_streams/tests/guarded_mixer/packet_context.rs"
+      ],
+      "source_lock_sha256": "9fcf7c3a9e5032f8e1de2beb72477b81d92a70650ad4598e84ff54fe11f3076c"
+    },
+    "behavior": "Only one original audio packet shares its own Arc weak-metadata slot among copied contributions. Reuse requires an upgradeable opt-in current source lease; current source and recipient policy, original route/consumer/scene/model/credential checks and original200ms remain. Non-audio/data and non-opt-in policies retain independent admission. All active readers drop with bounded IO; queued metadata cannot resurrect them."
+  }
 }
