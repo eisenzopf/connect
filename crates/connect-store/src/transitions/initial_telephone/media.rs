@@ -1,5 +1,6 @@
 //! Real answer facts, own-identity acceptance and fresh guarded media facts.
 use super::*;
+mod private_answer;
 mod routing;
 use serde_json::{json, Value};
 macro_rules! media_redacted {
@@ -214,6 +215,25 @@ impl Store {
         &self,
         capture: &InitialTelephoneAnswerCapture,
     ) -> Result<InitialTelephoneAnswerRecorded> {
+        self.record_initial_telephone_answer_with_mode(capture, false)
+    }
+    /// Persist an actual answer and its own current consent for the original
+    /// private SIP reservation. This does not accept public Session presence,
+    /// change its codecs, publish media, or assert private readiness.
+    pub fn record_private_initial_telephone_answer(
+        &self,
+        capture: &InitialTelephoneAnswerCapture,
+    ) -> Result<InitialTelephoneAnswerRecorded> {
+        if !capture.signal.origin().source.is_private_candidate() {
+            return Err(Error::forbidden());
+        }
+        self.record_initial_telephone_answer_with_mode(capture, true)
+    }
+    fn record_initial_telephone_answer_with_mode(
+        &self,
+        capture: &InitialTelephoneAnswerCapture,
+        private: bool,
+    ) -> Result<InitialTelephoneAnswerRecorded> {
         let signal = &capture.signal;
         let origin = signal.origin();
         let held = self.stable_authority(
@@ -242,6 +262,15 @@ impl Store {
             if saved != capture.observation {
                 return Err(conflict());
             }
+            if origin.source.is_private_candidate() && !private {
+                return Ok(InitialTelephoneAnswerRecorded {
+                    media: None,
+                    problem: Some("private-context-required".into()),
+                });
+            }
+            if private && accepted {
+                private_answer::require(self, &tx, capture, &held)?;
+            }
             tx.commit().map_err(|_| Error::storage())?;
             return Ok(InitialTelephoneAnswerRecorded {
                 media: accepted.then_some(media),
@@ -256,7 +285,7 @@ impl Store {
         }
         tx.execute("INSERT INTO initial_telephone_answers(operation_record_id,observation_json,codec,observed_at) VALUES(?1,?2,?3,?4)",params![origin.record,capture.observation,capture.codec,crate::now()]).map_err(|_|Error::storage())?;
         tx.execute("UPDATE operation_effects SET state='confirmed',observation_json=?2 WHERE id=(SELECT effect_id FROM initial_telephone_operations WHERE operation_record_id=?1) AND state IN ('submitting','unknown')",params![origin.record,capture.observation]).map_err(|_|Error::storage())?;
-        if origin.source.is_private_candidate() {
+        if origin.source.is_private_candidate() && !private {
             // Preserve the actual answer, but this public own-acceptance path
             // cannot publish private presence or manufacture a media grant.
             if !row.record.state.terminal() && row.record.state != OperationState::Unknown {
@@ -275,6 +304,9 @@ impl Store {
         tx.execute_batch("SAVEPOINT initial_answer_accept")
             .map_err(|_| Error::storage())?;
         let accepted = (|| {
+            if private {
+                return private_answer::accept(self, &tx, capture, &held);
+            }
             let (endpoint, _, _) = origin.current(self, &tx)?;
             endpoint.require("session.accept")?;
             let session = crate::session_control::view(
@@ -314,10 +346,15 @@ impl Store {
         } else {
             tx.execute_batch("RELEASE initial_answer_accept")
                 .map_err(|_| Error::storage())?;
-            let acceptance:String=tx.query_row("SELECT record_id FROM operations WHERE owner_id=?1 AND operation_id=?2 AND state='completed'",params![origin.source.target.identity_id,format!("answer_{}",origin.record)],|r|r.get(0)).map_err(|_|Error::storage())?;
+            let (acceptance, kind) = if private {
+                (origin.record.clone(), "private-connection")
+            } else {
+                let acceptance:String=tx.query_row("SELECT record_id FROM operations WHERE owner_id=?1 AND operation_id=?2 AND state='completed'",params![origin.source.target.identity_id,format!("answer_{}",origin.record)],|r|r.get(0)).map_err(|_|Error::storage())?;
+                (acceptance, "public-session")
+            };
             tx.execute(
-                "UPDATE initial_telephone_answers SET accepted=1,acceptance_record_id=?2 WHERE operation_record_id=?1",
-                params![origin.record, acceptance],
+                "UPDATE initial_telephone_answers SET accepted=1,acceptance_record_id=?2,acceptance_kind=?3 WHERE operation_record_id=?1",
+                params![origin.record, acceptance, kind],
             )
             .map_err(|_| Error::storage())?;
             super::super::effects::touch(&tx, &origin.record, self)?;

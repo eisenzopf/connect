@@ -21,10 +21,15 @@ Private allocation and packet intervals fence the complete original execution
 audience, endpoint owner and independent route owner; they recheck current
 authority each time and retain no idle readers.
 
-Schema 105 binds the immutable parent kind, original private audience/epochs,
+Schema 105 introduced the immutable parent kind, original private audience/epochs,
 Endpoint/Device, controller and policy in the child row. This is a fresh
 pre-alpha schema, not an in-place upgrade. Older stores are refused without
 modification and require a new state path.
+
+[Schema 106 private answer consent](private-sip-candidate-answer.md) now records
+an actual candidate answer under its own current Endpoint authority without
+public Session acceptance or codec changes. Its immutable typed receipt grants
+no media readiness; the ordinary media projection continues to refuse it.
 
 A pending child allocation contributes to the parent's unsettled custody.
 Preflight/initialization failure cannot silently release it. Cancellation and
@@ -40,7 +45,7 @@ candidates. If a private answer reaches the public recording API, its captured
 fact is retained without a public `session.accept`, ready observation or media
 grant. The Connection and child outcome remain unknown until owned cleanup.
 The [Core private outbound path](private-sip-candidate-core.md) now supplies the
-engine admission API. Installing it with own-answer admission is the next host boundary;
+engine admission API. Installing it with guarded private readiness is the next host boundary;
 this refusal is not a completed private-call implementation.
 
 The [component report](../evidence/gate-6/auxiliary-private-sip-candidate-initial.json)

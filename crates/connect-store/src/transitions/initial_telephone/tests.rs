@@ -1333,3 +1333,30 @@ fn unready_session_scan_does_not_queue_a_writer_behind_an_existing_media_interva
     assert!(read.current());
     assert_eq!(activation_phase(&f), "accepted");
 }
+
+#[test]
+fn public_answer_cannot_use_private_connection_acceptance() {
+    let f = Fixture::new();
+    let signal = Arc::new(f.signal());
+    let capture = signal.capture_answer(signal.sip_call_id(), "pcmu").unwrap();
+    assert!(f
+        .store
+        .record_private_initial_telephone_answer(&capture)
+        .is_err());
+    assert_eq!(
+        f.store
+            .connection()
+            .unwrap()
+            .query_row("SELECT count(*) FROM initial_telephone_answers", [], |r| {
+                r.get::<_, u64>(0)
+            })
+            .unwrap(),
+        0
+    );
+    assert!(f
+        .store
+        .record_initial_telephone_answer(&capture)
+        .unwrap()
+        .media
+        .is_some());
+}

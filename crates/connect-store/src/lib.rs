@@ -182,7 +182,7 @@ pub use tasks::{
     IssuedTaskGrant, NativeTaskAuthority, TaskCreateDefaults, TaskInvocation,
     TaskObservationBinding, VapiSessionContext,
 };
-pub const SCHEMA_VERSION: u32 = 105;
+pub const SCHEMA_VERSION: u32 = 106;
 const STARTUP_BLOB_CLEANUP_LIMIT: usize = 100;
 
 mod session_gateways;
@@ -513,6 +513,10 @@ impl Store {
         .map_err(|_| Error::storage())?;
         tx.execute_batch(include_str!(
             "../migrations/105_initial_telephone_parents.sql"
+        ))
+        .map_err(|_| Error::storage())?;
+        tx.execute_batch(include_str!(
+            "../migrations/106_private_telephone_acceptance.sql"
         ))
         .map_err(|_| Error::storage())?;
         tx.commit().map_err(|_| Error::storage())?;
