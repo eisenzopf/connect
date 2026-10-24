@@ -265,13 +265,14 @@ pub(super) fn return_pair(
     {
         return Ok(true);
     }
-    let Some(record) = record else {
-        return Ok(false);
-    };
     if native_partner.as_deref() != Some(phone)
         || phone_partner.as_deref() != Some(native.connection_id())
     {
         return Ok(false);
     }
-    c.query_row("SELECT EXISTS(SELECT 1 FROM native_consultation_legs WHERE operation_record_id=?1 AND connection_id=?2 AND primary_connection_id=?3 AND runtime_epoch=?4)",params![record,native.connection_id(),phone,store.runtime_epoch()],|r|r.get(0)).map_err(|_|Error::storage())
+    match store.require_sip_native_pair_context(c, phone, native, record) {
+        Ok(()) => Ok(true),
+        Err(error) if error.code == "forbidden" => Ok(false),
+        Err(error) => Err(error),
+    }
 }

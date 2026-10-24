@@ -113,6 +113,20 @@ impl SipAudienceOrigin {
             Self::Established(o) => store.telephone_audience_facts_for(c, o, purpose),
         }
     }
+    /// Existing private programmes carry their own current context, independent
+    /// of the caller preparing another consultation or return.
+    pub(in crate::peer_authority::connection_media) fn current_facts(
+        &self,
+        store: &Store,
+        c: &Connection,
+    ) -> Result<(Vec<AuthorityScope>, serde_json::Value, i64)> {
+        match self {
+            Self::Initial(o) if o.source().is_private_candidate() => {
+                store.initial_telephone_private_current_facts(c, o)
+            }
+            _ => self.facts(store, c),
+        }
+    }
     /// A return may close only its exact private candidate without that
     /// candidate's media rights. Other SIP programmes keep their media checks.
     pub(in crate::peer_authority::connection_media) fn return_facts(
@@ -122,7 +136,7 @@ impl SipAudienceOrigin {
         candidate: &str,
     ) -> Result<(Vec<AuthorityScope>, serde_json::Value, i64)> {
         if self.connection_id() != candidate {
-            return self.facts(store, c);
+            return self.current_facts(store, c);
         }
         match self {
             Self::Initial(o) if o.source().is_private_candidate() => self.facts_for(
@@ -141,6 +155,9 @@ impl SipAudienceOrigin {
         until: i64,
     ) -> Result<SipAudienceRead> {
         match self {
+            Self::Initial(o) if o.source().is_private_candidate() => store
+                .private_initial_telephone_media_in(c, o.clone(), held, until)
+                .map(|r| SipAudienceRead::Initial(Arc::new(r))),
             Self::Initial(o) => store
                 .initial_telephone_media_in(c, o.clone(), held, until)
                 .map(|r| SipAudienceRead::Initial(Arc::new(r))),

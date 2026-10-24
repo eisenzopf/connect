@@ -290,7 +290,10 @@ pub(super) fn return_reads(
         .iter()
         .map(|s| {
             let read = match s {
-                SipAudienceOrigin::Initial(o) if o.source().is_private_candidate() => {
+                SipAudienceOrigin::Initial(o)
+                    if o.source().is_private_candidate()
+                        && o.source().parent.record_id() == origin.consultation_record_id() =>
+                {
                     SipAudienceRead::Initial(Arc::new(store.initial_telephone_return_in(
                         c,
                         o.clone(),
@@ -320,13 +323,12 @@ pub(super) fn consultation_reads(
         .iter()
         .map(|s| {
             let read = match s {
-                SipAudienceOrigin::Initial(o) if o.source().is_private_candidate() => {
-                    if !private
-                        .iter()
-                        .any(|p| p.connection_id() == o.connection_id())
-                    {
-                        return Err(Error::forbidden());
-                    }
+                SipAudienceOrigin::Initial(o)
+                    if o.source().is_private_candidate()
+                        && private
+                            .iter()
+                            .any(|p| p.connection_id() == o.connection_id()) =>
+                {
                     SipAudienceRead::Initial(Arc::new(store.initial_telephone_consultation_in(
                         c,
                         o.clone(),

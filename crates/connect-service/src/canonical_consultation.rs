@@ -123,6 +123,10 @@ impl Runtime {
             )
         })?;
         let retained = origin.request().intent.retained();
+        let sips = self
+            .media
+            .scene_sip_origins(&origin.request().session_id)
+            .map_err(denied)?;
         let mut candidate = None;
         for entry in &all {
             if self
@@ -130,16 +134,31 @@ impl Runtime {
                 .store
                 .native_consultation_candidate_matches(origin, entry)?
             {
-                candidate = Some(entry.clone());
+                if candidate
+                    .replace(ConsultationMediaOrigin::Native(entry.clone()))
+                    .is_some()
+                {
+                    return Err(Error::forbidden());
+                }
+            }
+        }
+        for entry in &sips {
+            if self
+                .media
+                .store
+                .sip_consultation_candidate_matches(origin, entry)?
+            {
+                if candidate
+                    .replace(ConsultationMediaOrigin::Sip(entry.clone()))
+                    .is_some()
+                {
+                    return Err(Error::forbidden());
+                }
             }
         }
         let Some(candidate) = candidate else {
             return Ok(None);
         };
-        let sips = self
-            .media
-            .scene_sip_origins(&origin.request().session_id)
-            .map_err(denied)?;
         let mut sources = all
             .into_iter()
             .map(ConsultationMediaOrigin::Native)

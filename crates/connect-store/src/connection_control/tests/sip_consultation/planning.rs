@@ -2,6 +2,7 @@
 use super::*;
 use crate::{ConsultationMediaOrigin, NativeMediaOrigin, SipAudienceOrigin};
 use std::sync::Arc;
+mod groups;
 mod lifetime;
 mod packets;
 mod phase;
