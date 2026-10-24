@@ -419,8 +419,18 @@ fn selected_views(
         if !runtime_ids.insert(target.runtime_connection_id().to_owned()) {
             return Err(Error::forbidden());
         }
+        let role = if remote.connection_id() == target.connection_id() {
+            "native retained view"
+        } else if private
+            .iter()
+            .any(|p| p.connection_id() == target.connection_id())
+        {
+            "native private view"
+        } else {
+            "native outside view"
+        };
         let (target_view, source_view, needed, until) =
-            views(store, c, target, None).map_err(|e| phase_error("native view", e))?;
+            views(store, c, target, None).map_err(|e| phase_error(role, e))?;
         if !crate::transitions::consultation_source::ready(
             store,
             c,
