@@ -173,6 +173,7 @@ use std::{
     time::Duration,
 };
 
+pub use connection_control::sip_consultation::SipConsultationReservation;
 pub use identity::{Actor, IssuedCredential, Scope};
 pub use recovery::Snapshot;
 pub use sessions::{RoutedInboundSession, VapiSessionRoute};
@@ -181,7 +182,7 @@ pub use tasks::{
     IssuedTaskGrant, NativeTaskAuthority, TaskCreateDefaults, TaskInvocation,
     TaskObservationBinding, VapiSessionContext,
 };
-pub const SCHEMA_VERSION: u32 = 103;
+pub const SCHEMA_VERSION: u32 = 104;
 const STARTUP_BLOB_CLEANUP_LIMIT: usize = 100;
 
 mod session_gateways;
@@ -506,6 +507,10 @@ impl Store {
         .map_err(|_| Error::storage())?;
         tx.execute_batch(include_str!("../migrations/103_received_sip_origins.sql"))
             .map_err(|_| Error::storage())?;
+        tx.execute_batch(include_str!(
+            "../migrations/104_sip_consultation_reservations.sql"
+        ))
+        .map_err(|_| Error::storage())?;
         tx.commit().map_err(|_| Error::storage())?;
         let blob_directory = Self::create_blob_directory(path)?;
         let authority = Self::authority_manager(path, &connection)?;

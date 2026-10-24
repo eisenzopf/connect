@@ -22,7 +22,7 @@ pub(super) fn admission_readers(
     readers.extend(sources.additional_readers);
     crate::AuthorityScope::merged(&readers)
 }
-pub(super) fn tenant(c: &Connection, actor: &Actor) -> Result<String> {
+pub(crate) fn tenant(c: &Connection, actor: &Actor) -> Result<String> {
     c.query_row(
         "SELECT tenant_id FROM identities WHERE id=?1 AND revoked=0",
         [&actor.identity_id],

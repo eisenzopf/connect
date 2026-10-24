@@ -6,6 +6,7 @@ use rusqlite::{params, Connection, OptionalExtension};
 use serde_json::{json, Value};
 pub(crate) mod handoff_preparation;
 pub(crate) mod private_consultation;
+pub(crate) mod sip_consultation;
 
 fn conflict() -> Error {
     Error::new("conflict", "Connection intent or revision conflicts")

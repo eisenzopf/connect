@@ -1,0 +1,160 @@
+{
+  "task": "G6-046",
+  "recorded_at": "2026-10-24T15:39:50.563471+00:00",
+  "status": "protected-sip-candidate-reservation-controlled-store-verified",
+  "full_task_complete": false,
+  "full_goal_complete": false,
+  "source_base_commit": "f1935db27ee6a0656e919e10b8f05111cfa6d04e",
+  "prepared_patch_count": 183,
+  "store_schema": 104,
+  "newly_qualified_case_ids": [],
+  "scope": "Isolated local macOS arm64 controlled Store metadata, current authority, private visibility/floors and unused-reservation cleanup. No SIP call allocation, network signaling, Core quarantine, media delivery or independent-client qualification.",
+  "behavior_evidence": [
+    "Fresh reservation retains original consultation/controller/digest/runtime, primary Connection, exact verified Endpoint/Device, target member epoch, actual two-private-member audience and independent route policy. It creates one bounded preparing Connection without a call, offer, operation, effect, journal event or ready/native-source assertion.",
+    "Exact replay retains the same Connection ID; changed policy and cross-family native/SIP candidates are refused. Public and private native offers cannot borrow the reservation ID. Failed public commands retain their refusal receipt without creating physical offers or effects.",
+    "Only original private members at their original epochs can see the candidate metadata. Current source observation is always false for the unused reservation; private observation floors exclude held, unrelated and replacement-epoch recipients.",
+    "Current controller/endpoint/route permissions, reciprocal recipient ceilings, verified Endpoint revision, Device, route owner, active member/Session presence, canonical generation/runtime and cancellation are rechecked. Original self-recipient semantics are retained. Leave/rejoin does not rebind an old reservation.",
+    "Capacity and unknown physical-custody refusals leave no partial slot/reservation. Immutable canonical and route ownership cannot be rewritten. Exact unused retirement remains possible after controller revocation, refuses observed physical custody and foreign installation, advances once, releases capacity and cannot resurrect a retired Connection."
+  ],
+  "source_inputs_sha256": {
+    "crates/connect-store/src/connection_control.rs": "ba7c616a56d53d308e5b06e87abc0d363d397071a83505cc22223bbe4593928e",
+    "crates/connect-store/src/connection_control/private_consultation.rs": "b754c9badcb270061d0d5da11499c5eb1607cbf38be17c056962aebdad4a9b69",
+    "crates/connect-store/src/connection_control/tests.rs": "7be3de8aef9b1d902580d61108174254acbd181ed068e98011d6e96e204a798a",
+    "crates/connect-store/src/lib.rs": "42ec1ba86136737a44372b5329d64d7726f544d6fb4cdf3c00c524a24a20804c",
+    "crates/connect-store/src/transitions/authority.rs": "87f359f2b26dd69f21c86c0c6fff82ab5a584805cba881a74741bb7424f29625",
+    "crates/connect-store/src/transitions/mod.rs": "d5d88e38bb3ea412dfc1d1e458a5e0074a7a6cd6684d924b9b9169014ea427a7",
+    "crates/connect-store/migrations/104_sip_consultation_reservations.sql": "e3e405960dc0217409a5fba198429d12eed91e57f7aadee5576a354872997bad",
+    "crates/connect-store/src/connection_control/sip_consultation.rs": "a09732fcac41003616e6a02521bf38860a83905e4f2de2063e0f78d4d9c40509",
+    "crates/connect-store/src/connection_control/tests/sip_consultation.rs": "c57d08412351647b63e07c9c9ca524354c3ffcbd7beee8458f97a48e9fd7930f"
+  },
+  "verification": {
+    "store": {
+      "passed": true,
+      "summary": ".local/gate-6/received-dtmf-runtime/sip-candidate-reservation-store-001/summary.json",
+      "summary_sha256": "c47cf0618257714ca58572fa9b15dd1897330ea0ce19af01053b3e0d4afa18ac",
+      "source_inputs_unchanged": true,
+      "executable_unchanged": true,
+      "executable_sha256": "177e16b47a282f8f1365729032de5475451215927c65d7d55303df6ac3e073a1",
+      "new_methods": 12,
+      "distinct_methods": 405,
+      "executions": 425,
+      "ignored_cases": 0,
+      "build_seconds": 5.110459625022486,
+      "runtime_seconds": 370.8820752915926,
+      "groups": [
+        {
+          "filter": "connection_control::tests::sip_consultation::",
+          "exit_code": 0,
+          "passed": true,
+          "passed_cases": 12,
+          "ignored_cases": 0,
+          "elapsed_seconds": 14.011389374965802,
+          "log": ".local/gate-6/received-dtmf-runtime/sip-candidate-reservation-store-001/group-0.log",
+          "log_sha256": "f75b5faef6161bee99845a601dc776069d12d379d5f586f65dd87c626ac89443"
+        },
+        {
+          "filter": "transitions::initial_telephone::tests::",
+          "exit_code": 0,
+          "passed": true,
+          "passed_cases": 45,
+          "ignored_cases": 0,
+          "elapsed_seconds": 22.51960983290337,
+          "log": ".local/gate-6/received-dtmf-runtime/sip-candidate-reservation-store-001/group-1.log",
+          "log_sha256": "2f0839d9399d2d05545edba3be85403340e9dbb8734ea53bae6fa1bcc5cd14ba"
+        },
+        {
+          "filter": "continuation::commit::signal::audience::",
+          "exit_code": 0,
+          "passed": true,
+          "passed_cases": 20,
+          "ignored_cases": 0,
+          "elapsed_seconds": 23.73332670889795,
+          "log": ".local/gate-6/received-dtmf-runtime/sip-candidate-reservation-store-001/group-2.log",
+          "log_sha256": "97fbeb8c7890b39bb84f5e758d76668e1124a6f46901407ec14d030d44a2c66e"
+        },
+        {
+          "filter": "connection_control::tests::consultation",
+          "exit_code": 0,
+          "passed": true,
+          "passed_cases": 50,
+          "ignored_cases": 0,
+          "elapsed_seconds": 56.79916466679424,
+          "log": ".local/gate-6/received-dtmf-runtime/sip-candidate-reservation-store-001/group-3.log",
+          "log_sha256": "ec347cc06ac3e019bd948d22275309c88703c04df870f2d6c8c8f8a158866943"
+        },
+        {
+          "filter": "connection_control::tests::private",
+          "exit_code": 0,
+          "passed": true,
+          "passed_cases": 42,
+          "ignored_cases": 0,
+          "elapsed_seconds": 83.07158112502657,
+          "log": ".local/gate-6/received-dtmf-runtime/sip-candidate-reservation-store-001/group-4.log",
+          "log_sha256": "10138e906b4c43404ce55c337bacd52ff09a7053f68a57fed2048cb2d04d7b16"
+        },
+        {
+          "filter": "connection_control::tests::replacement_sources::telephone",
+          "exit_code": 0,
+          "passed": true,
+          "passed_cases": 85,
+          "ignored_cases": 0,
+          "elapsed_seconds": 81.74932633317076,
+          "log": ".local/gate-6/received-dtmf-runtime/sip-candidate-reservation-store-001/group-5.log",
+          "log_sha256": "ce36d34e1e7c830ae9ab27faa2c817df59f70658f8ee3ede614bd5a8c9323953"
+        },
+        {
+          "filter": "connection_control::tests::native_stream_authority::",
+          "exit_code": 0,
+          "passed": true,
+          "passed_cases": 171,
+          "ignored_cases": 0,
+          "elapsed_seconds": 88.99767724983394,
+          "log": ".local/gate-6/received-dtmf-runtime/sip-candidate-reservation-store-001/group-6.log",
+          "log_sha256": "f60270932b611f8e80d45eaf3542e036e58a664e32fd10eaa1855c6ae5e3e501"
+        }
+      ]
+    },
+    "service_compile": {
+      "status": "running",
+      "log": ".local/gate-6/received-dtmf-runtime/sip-candidate-reservation-service-check.log"
+    },
+    "schema_backup_recovery": {
+      "status": "waiting-for-build-lock",
+      "log": ".local/gate-6/received-dtmf-runtime/sip-candidate-reservation-schema.log"
+    }
+  },
+  "failed_attempts": [
+    {
+      "log": ".local/gate-6/received-dtmf-runtime/sip-candidate-reservation-check.log",
+      "sha256": "2aea279971ea183b2ac63bf10237188ae1d6aefe454176a5ffaa65ac883fe500",
+      "status": "failed",
+      "reason": "Initial compile refused a cross-module call to the existing private tenant helper. The shared helper is now crate-visible."
+    },
+    {
+      "log": ".local/gate-6/received-dtmf-runtime/sip-candidate-reservation-tests-001.log",
+      "sha256": "07e6ce2e388617bc290054e30d51c7971a941ac7302ef8e891a8d0c2a5593ca2",
+      "status": "failed-and-intentionally-terminated",
+      "reason": "A refusal receipt changed the operations count. The next fixture held the Store connection mutex while calling retirement; a process sample confirmed the fixture self-deadlock. Only that exact test process was terminated."
+    },
+    {
+      "log": ".local/gate-6/received-dtmf-runtime/sip-candidate-reservation-tests-002.log",
+      "sha256": "f12c5f88f72689aed8ffa3a9fa4fcc761d7071749689fdfbf7859f29e8dd2655",
+      "status": "failed",
+      "reason": "7 of 10 passed. Three fixture expectations incorrectly reversed monotonic revocation, used an invalid Endpoint state, or ignored implicit self-recipient authorization."
+    },
+    {
+      "log": ".local/gate-6/received-dtmf-runtime/sip-candidate-reservation-tests-003.log",
+      "sha256": "10da6f88fe4bfc88f5afac165fdab1fc377b177b6c3e657b454c94d5bec98de0",
+      "status": "failed",
+      "reason": "9 of 10 passed. The last fixture tried to rewrite immutable Endpoint ownership; the backend correctly refused. Current tests exercise supported revocation and leave/rejoin edges and separately assert immutable ownership."
+    }
+  ],
+  "remaining": [
+    "Actual private SIP candidate initial-call admission derived from the original consultation rather than a public Session Invite.",
+    "Muted before activation and exact one-Connection Core quarantine with real observed input/output barriers.",
+    "Typed SIP-candidate physical selection, private media/DTMF, return and actual cleanup.",
+    "Remaining authority/retirement/concurrency/IO compositions and complete current G6-046 auxiliary matrix; no whole clause or task promotion.",
+    "Named remote/provider profiles, Linux and independent conformance retain their separate approved qualification lanes."
+  ],
+  "historical_runtime_scope": "The previous six-profile 48-frame and four-direction 24-frame SIP-primary evidence remains bound to its recorded schema103 sources and binary. It is not presented as a rerun of the current schema104 production Store."
+}

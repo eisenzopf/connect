@@ -16,6 +16,7 @@ mod handoff_sources;
 mod private_consultation;
 mod private_provider;
 mod replacement_sources;
+mod sip_consultation;
 use crate::Scope;
 use connect_protocol::{
     provisioning::*,

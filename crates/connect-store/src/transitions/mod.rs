@@ -78,7 +78,7 @@ mod admission;
 pub(crate) use admission::transition_admission_scopes;
 mod cleanup;
 pub use cleanup::CleanupSettlement;
-mod authority;
+pub(crate) mod authority;
 mod effects;
 pub(crate) mod rows;
 #[cfg(test)]

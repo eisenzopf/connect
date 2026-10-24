@@ -94,3 +94,7 @@ replay exclusion and fresh recovery for both SIP-primary profiles and signing
 algorithms. It records24 SDK-verified frames in4 scenes. The credential edits are
 isolated fault setup under identity write fences; no new public scope-update API
 is implied. Physical-IO races and other remaining compositions are not claimed.
+
+The [SIP-candidate reservation](private-sip-candidate-reservation.md) adds a
+separate protected metadata boundary in schema 104. It creates no call or media
+grant; actual SIP-candidate admission and runtime qualification remain pending.

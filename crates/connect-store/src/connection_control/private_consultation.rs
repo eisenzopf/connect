@@ -156,7 +156,7 @@ impl Store {
             }
             let exists: bool = tx
                 .query_row(
-                    "SELECT EXISTS(SELECT 1 FROM connections WHERE id=?1) OR EXISTS(SELECT 1 FROM native_consultation_legs WHERE operation_record_id=?2)",
+                    "SELECT EXISTS(SELECT 1 FROM connections WHERE id=?1) OR EXISTS(SELECT 1 FROM consultation_candidate_bindings WHERE operation_record_id=?2)",
                     params![intent.connection_id,origin.record_id()],
                     |r| r.get(0),
                 )
@@ -271,7 +271,7 @@ pub(crate) fn visible(c: &Connection, actor: &Actor, connection: &str) -> Result
     }
     let audience: Option<String> = c
         .query_row(
-            "SELECT audience_json FROM native_consultation_legs WHERE connection_id=?1",
+            "SELECT audience_json FROM consultation_candidate_bindings WHERE connection_id=?1",
             [connection],
             |r| r.get(0),
         )
@@ -331,7 +331,16 @@ pub(crate) fn observation_source_current(
         )
         .optional()
         .map_err(|_| Error::storage())?;
-    let Some(saved) = saved else { return Ok(true) };
+    let Some(saved) = saved else {
+        let pending_sip: bool = c
+            .query_row(
+                "SELECT EXISTS(SELECT 1 FROM sip_consultation_reservations WHERE connection_id=?1)",
+                [connection],
+                |r| r.get(0),
+            )
+            .map_err(|_| Error::storage())?;
+        return Ok(!pending_sip);
+    };
     let intent: OfferIntent = serde_json::from_str(&saved).map_err(|_| Error::storage())?;
     match current(store, c, &intent, None) {
         Ok(Some(_)) => Ok(true),
@@ -359,7 +368,7 @@ pub(crate) fn private_partner(c: &Connection, connection: &str) -> Result<Option
 }
 
 pub(crate) fn require_connection_context(c: &Connection, session: &str) -> Result<()> {
-    let private:bool=c.query_row("SELECT EXISTS(SELECT 1 FROM native_consultation_legs l JOIN connections v ON v.id=l.connection_id WHERE v.session_id=?1)",[session],|r|r.get(0)).map_err(|_|Error::storage())?;
+    let private:bool=c.query_row("SELECT EXISTS(SELECT 1 FROM consultation_candidate_bindings l JOIN connections v ON v.id=l.connection_id WHERE v.session_id=?1)",[session],|r|r.get(0)).map_err(|_|Error::storage())?;
     if private {
         return Err(Error::new(
             "private-context-required",
