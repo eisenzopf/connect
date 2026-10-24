@@ -2,7 +2,7 @@
   "task": "G6-046",
   "recorded_at": "2026-10-24T19:51:18.495149+00:00",
   "source_base_commit": "43e8582b",
-  "status": "native-provider-regression-corrected-targeted-checks-pass-broader-running",
+  "status": "purpose-context-phase-regressions-corrected-targeted-and-socket-checks-pass",
   "full_task_complete": false,
   "full_goal_complete": false,
   "prepared_patch_count": 184,
@@ -14,23 +14,178 @@
     "Signal context is independent of media offer/subscription/codec preferences; directional readers retain named signal permissions. Pending signals require captured application and current original execution. Sealed current physical lifetimes outlive an ended controller.",
     "Native public primaries carrying private SIP floors acquire the independent route-owner interval. Original registered native Endpoint/Device binding remains checked before allocation. Presence is separate from media permission withdrawal.",
     "Fresh return resolution uses the captured original primary and current return authority without reopening old private media, including previously observed SIP departure after route revocation.",
-    "Limit the new public-native-primary context lookup to SIP consultations. Existing native/native primary physical metadata remains usable after private-provider closure; the private candidate and actual pair retain protected context validation."
+    "Limit the new public-native-primary context lookup to SIP consultations. Existing native/native primary physical metadata remains usable after private-provider closure; the private candidate and actual pair retain protected context validation.",
+    "Unsealed native media retains its per-reader subscription result. Sealing still requires the complete private media permissions; Signal/Presence and SIP candidate pending contexts continue to validate captured physical pairs."
   ],
   "verification": {
     "broader_store": {
       "status": "in-progress",
-      "driver": ".local/gate-6/received-dtmf-runtime/check-private-purpose114-regression-007.py",
+      "driver": ".local/gate-6/received-dtmf-runtime/check-private-purpose114-regression-008.py",
       "qualification": false
     },
     "service_compile": {
-      "status": "queued-or-in-progress",
-      "log": ".local/gate-6/received-dtmf-runtime/private-purpose114-service-check-current2.log",
-      "qualification": false
+      "passed": true,
+      "exit_code": 0,
+      "command": "cargo check -p connect-service --locked --offline -j4",
+      "log": ".local/gate-6/received-dtmf-runtime/private-purpose114-service-check-current3.log",
+      "log_sha256": "78a41204f7a1d02b642feacab050dbb7753e653d7f98675d9d603cd5d6594532",
+      "result": "Finished `dev` profile [unoptimized + debuginfo] target(s) in 2.82s",
+      "compiled_current_frozen_inputs": true,
+      "runtime_qualification": false
     },
     "runtime_socket_fixtures": {
-      "status": "queued-after-service-check",
-      "driver": ".local/gate-6/received-dtmf-runtime/check-private-purpose114-runtime-004.py",
-      "qualification": false
+      "passed": true,
+      "distinct_cases": 2,
+      "ignored_cases": 0,
+      "summary": ".local/gate-6/received-dtmf-runtime/private-purpose114-runtime-005/summary.json",
+      "summary_sha256": "f05d23338e499f497dac115d1c83121ae5e752edc07cad3cfdae6e793d295934",
+      "executable_sha256": "513300ba9916a816c562213097050ea6dad9d1e3161394370807621056d61d0e",
+      "source_inputs_unchanged": true,
+      "executable_unchanged": true,
+      "build": {
+        "name": "current-frozen-runtime-build-revalidation",
+        "command": [
+          "cargo",
+          "test",
+          "-p",
+          "connect-server",
+          "--features",
+          "test-support",
+          "--test",
+          "gate6_canonical_runtime",
+          "--no-run",
+          "--locked",
+          "--offline",
+          "-j4",
+          "--target-dir",
+          "target",
+          "--message-format=json"
+        ],
+        "exit_code": 0,
+        "elapsed_seconds": 11.236897791037336
+      },
+      "cases": [
+        {
+          "method": "canonical_native_connections::consultation::groups::replacement::telephone::initial::private_candidate::production_private_sip_candidate_owns_fresh_muted_call_and_original_cleanup_eddsa",
+          "algorithm": "EdDSA",
+          "exit_code": 0,
+          "passed": true,
+          "elapsed_seconds": 6.966124875005335,
+          "log": ".local/gate-6/received-dtmf-runtime/private-purpose114-runtime-005/eddsa.log",
+          "log_sha256": "82f35f1e4ab26a58ecc7160f4cf09d95224f65b08842950da0953401101c428b",
+          "capture": ".local/gate-6/private-sip-candidate-purpose-wire114-005.EdDSA.json",
+          "capture_sha256": "9c2f952322ac0827fe41b1fa9db848dd844eeffadeeed144fbfaa8ac4f83835e",
+          "observed": {
+            "algorithm": "EdDSA",
+            "authority_writer_hold_ms": 250,
+            "candidate_connection": "conn_c100132d-b3b9-4ede-b8fc-5849e32f0015",
+            "child": "opr_f0144ca5-dc1b-4890-bd98-3e288ea1876c",
+            "core_connection": "conn_110d7dc4f1c04f5b990b604fcc926d08",
+            "distinct_sip_calls": 2,
+            "marked_public_after_cleanup": [
+              15,
+              16
+            ],
+            "marked_public_baseline": [
+              17,
+              16
+            ],
+            "marked_quarantine": [
+              0,
+              0
+            ],
+            "metadata_busy_preserved": true,
+            "original_public": [
+              "conn_22631af2-d26b-4c38-a6fc-5ab7a51fc252",
+              "conn_768b70deeb244b8f8bae3e458d6d968d",
+              "session-8343e759-c8be-43b0-9479-5d6a6a0e5bdd@rvoip-sip"
+            ],
+            "original_public_live": true,
+            "parent": "opr_786c72b4-39fd-459a-a56a-4f191fd935cc",
+            "private_ready": {
+              "call_id": "session-50a52066-86bc-47c3-bb33-02b10a0de2a0@rvoip-sip",
+              "codec": "g.711-mu",
+              "connection_id": "conn_c100132d-b3b9-4ede-b8fc-5849e32f0015",
+              "device_id": "initial-phone-device",
+              "endpoint_id": "ep_2be22bf7-89dc-4512-bc44-c8a6cbf83e54",
+              "generation": 1,
+              "membership_epoch": 1,
+              "participant_id": "part_f03ccb420820f964abd38f2e3c7c186b",
+              "participant_revision": 5,
+              "private_audio": true,
+              "private_consultation_record_id": "opr_786c72b4-39fd-459a-a56a-4f191fd935cc",
+              "runtime_connection_id": "conn_110d7dc4f1c04f5b990b604fcc926d08",
+              "stream_revision": 2,
+              "streams": [
+                "telephone-audio"
+              ]
+            },
+            "scope": "actual fresh SIP/Core quarantined admission and original cleanup; no private switch/DTMF/return qualification",
+            "sip_call_id": "session-50a52066-86bc-47c3-bb33-02b10a0de2a0@rvoip-sip"
+          }
+        },
+        {
+          "method": "canonical_native_connections::consultation::groups::replacement::telephone::initial::private_candidate::production_private_sip_candidate_owns_fresh_muted_call_and_original_cleanup_es256",
+          "algorithm": "ES256",
+          "exit_code": 0,
+          "passed": true,
+          "elapsed_seconds": 6.793099167058244,
+          "log": ".local/gate-6/received-dtmf-runtime/private-purpose114-runtime-005/es256.log",
+          "log_sha256": "7fafc4b3903efb4fef45a346855c9ea329920ec1f79bfd77e36239b5de86fee5",
+          "capture": ".local/gate-6/private-sip-candidate-purpose-wire114-005.ES256.json",
+          "capture_sha256": "631644e88e4f5146de233b4a59fb96bda67531fdb5207c7d2355baac9bea06a8",
+          "observed": {
+            "algorithm": "ES256",
+            "authority_writer_hold_ms": 250,
+            "candidate_connection": "conn_056afa97-d1e5-4879-9ef5-0bc991fc2d98",
+            "child": "opr_0049db1a-b9f0-4d6c-af82-da1df170811d",
+            "core_connection": "conn_02700fb9ae754847ae1336c8fae86e52",
+            "distinct_sip_calls": 2,
+            "marked_public_after_cleanup": [
+              14,
+              17
+            ],
+            "marked_public_baseline": [
+              16,
+              14
+            ],
+            "marked_quarantine": [
+              0,
+              0
+            ],
+            "metadata_busy_preserved": true,
+            "original_public": [
+              "conn_5f6a109f-9e26-4763-bbfd-7598a01993b7",
+              "conn_a9ffe984c84d4e808c74f464bc02c2a0",
+              "session-51a0d93b-b36e-4620-9545-41f5490a430d@rvoip-sip"
+            ],
+            "original_public_live": true,
+            "parent": "opr_e05f282c-fe4c-4241-ae99-7e150d7288b2",
+            "private_ready": {
+              "call_id": "session-e53acc79-108d-4e9b-ac7f-9c5d938ee693@rvoip-sip",
+              "codec": "g.711-mu",
+              "connection_id": "conn_056afa97-d1e5-4879-9ef5-0bc991fc2d98",
+              "device_id": "initial-phone-device",
+              "endpoint_id": "ep_c7518781-84b0-4f7f-a17f-12a15955e9a0",
+              "generation": 1,
+              "membership_epoch": 1,
+              "participant_id": "part_de81d448232d27a8945f0cd8f851f7b7",
+              "participant_revision": 5,
+              "private_audio": true,
+              "private_consultation_record_id": "opr_e05f282c-fe4c-4241-ae99-7e150d7288b2",
+              "runtime_connection_id": "conn_02700fb9ae754847ae1336c8fae86e52",
+              "stream_revision": 2,
+              "streams": [
+                "telephone-audio"
+              ]
+            },
+            "scope": "actual fresh SIP/Core quarantined admission and original cleanup; no private switch/DTMF/return qualification",
+            "sip_call_id": "session-e53acc79-108d-4e9b-ac7f-9c5d938ee693@rvoip-sip"
+          }
+        }
+      ],
+      "scope": "Actual production local macOS SIP/Core fresh private quarantined admission alongside an existing public call of the same Participant/Endpoint, exact cancellation/cleanup and public media recovery. No private audience switch, DTMF/return or whole-clause/task qualification.",
+      "qualification_limit": "Actual original quarantine/admission/contention/replay/cancel/cleanup only; not private audience, INFO/RFC4733 or return qualification."
     },
     "dependency_preparation": {
       "passed": true,
@@ -146,6 +301,33 @@
           "log_sha256": "e77024c0337885bd295fc263a9d859444a5bf9f57e956f496ab87e14a0ee0132"
         }
       ]
+    },
+    "native_phase_fix": {
+      "passed": true,
+      "distinct_cases": 1,
+      "summary": ".local/gate-6/received-dtmf-runtime/private-purpose114-native-phase-fix-001/summary.json",
+      "summary_sha256": "2e7810bf7978ff68a2a14ced5ca765b366e64d4c57b07b18edc75c260d86f732",
+      "executable_sha256": "6c6eb0a767bd2026956e0d25134879fba91c414745966995bedc52d8650d7d4a",
+      "source_inputs_unchanged": true,
+      "executable_unchanged": true,
+      "cases": [
+        {
+          "method": "connection_control::tests::consultation_audiences::native_private_lifetime_obeys_current_subscription_and_recipient_ceilings_before_and_after_completion",
+          "exit_code": 0,
+          "passed": true,
+          "elapsed_seconds": 3.2803814171347767,
+          "log": ".local/gate-6/received-dtmf-runtime/private-purpose114-native-phase-fix-001/native_private_lifetime_obeys_current_subscription_and_recipient_ceilings_before_and_after_completion.log",
+          "log_sha256": "b48d5f9ca1db3c29b1c2bb004760b1d00aef8210dd92a2c989d3b5b8773a89c0"
+        }
+      ]
+    },
+    "historical_runtime004": {
+      "passed": true,
+      "summary": ".local/gate-6/received-dtmf-runtime/private-purpose114-runtime-004/summary.json",
+      "summary_sha256": "3466d747a8492681765e4b0870734bf0be6a40bdfb32892a2ec9f2b3256ee62c",
+      "source_inputs_unchanged": true,
+      "executable_unchanged": true,
+      "scope_note": "Prior source7 quarantine regression. The unsealed-native phase correction followed this completed run; current runtime005 is recorded separately."
     }
   },
   "failed_attempts": [
@@ -190,6 +372,22 @@
       "passed": false,
       "source_inputs_unchanged": true,
       "reason": "Targeted 93 cases passed, but broader private-provider subset passed32/failed3: the public primary of an existing native/native consultation incorrectly inherited provider context closure. Limited new public-primary fallback to SIP candidates; all three exact failed cases now pass on the corrected frozen source. Remaining broader checks retain the ongoing007 run."
+    },
+    {
+      "summary": ".local/gate-6/received-dtmf-runtime/private-purpose114-regression-007/summary.json",
+      "summary_sha256": "f5f70326368bd3f0e85d357c715bc3fc7aaf98230cebc6bb4d4aa8eb9b851fc2",
+      "passed": false,
+      "source_inputs_unchanged": true,
+      "reason": "Native audience subset passed8/failed1: unsealed native media was prematurely subject to whole sealed-context subscription requirements. Restored per-reader subscription behavior; sealed media remains strict. Exact original before/after completion regression passes on corrected sources in native-phase-fix-001."
+    },
+    {
+      "summary": ".local/gate-6/received-dtmf-runtime/private-purpose114-runtime-003/summary.json",
+      "summary_sha256": "c99f3fbecb9d411a0dc9eb04f77aaa72512e6a9f5479ff020a7dfd2e87ae16e4",
+      "passed": false,
+      "source_inputs_unchanged": false,
+      "executable_unchanged": true,
+      "body_cases_passed": 2,
+      "reason": "Superseded sources changed during compilation; both body cases passed but full source guard failed. Not current qualification."
     }
   ],
   "remaining": [

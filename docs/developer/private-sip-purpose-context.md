@@ -10,7 +10,9 @@ private consent. Metadata validation does not create a reader or grant IO.
 Media additionally requires the existing audio, offer and receive subscription
 permissions. Signal context does not inherit those requirements. Named
 `dtmf.send` and `dtmf.receive` checks still belong to each directional signal
-reader. Signal cannot run from preparation: a pending context needs captured
+reader. Unsealed native media preparation retains its per-reader subscription
+result; sealing requires the complete private media permissions. Signal cannot
+run from preparation: a pending context needs captured
 applied audience state and current original execution authority. Once sealed,
 the recorded physical lifetime validates its current authorities independently
 of the old execution credential. Restored, handed-off, unavailable provider and

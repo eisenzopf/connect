@@ -338,7 +338,10 @@ pub(crate) fn registered_current(
     if purpose == Purpose::Signal && selected.is_none() {
         return Err(Error::forbidden());
     }
-    if let Some(selected) = selected {
+    // Unsealed native media preparation keeps its per-reader subscription
+    // result. Sealing still validates full media rights; signals, presence and
+    // SIP candidate contexts validate the captured physical pair here.
+    if let Some(selected) = selected.filter(|_| kind == "sip" || !purpose.media()) {
         let physical = active::validate_for(
             store,
             c,
