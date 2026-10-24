@@ -220,7 +220,10 @@ impl Store {
                             || rows::unsettled(&tx, &row.record.record_id)?
                             || row.record.state == OperationState::Committing
                         {
-                            if row.record.state == OperationState::Ready {
+                            if matches!(
+                                row.record.state,
+                                OperationState::Accepted | OperationState::Ready
+                            ) {
                                 rows::change(&tx, &row, OperationState::Interrupted, None, self)?;
                                 row = rows::by_record(&tx, &row.record.record_id)?;
                             }

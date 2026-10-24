@@ -38,6 +38,39 @@ impl SipConsultationReservation {
     pub fn participant_id(&self) -> &str {
         &self.binding.participant_id
     }
+    pub(crate) fn current_parts<'a>(
+        &'a self,
+        store: &Store,
+        c: &Connection,
+    ) -> Result<(
+        &'a NativeConsultationOrigin,
+        &'a InitialTelephonePolicy,
+        Vec<AuthorityScope>,
+    )> {
+        self.owner(store)?;
+        self.matched(c)?;
+        let (binding, scopes, _) = facts(store, c, &self.origin, &self.binding.policy)?;
+        let unused:bool=c.query_row("SELECT EXISTS(SELECT 1 FROM connections WHERE id=?1 AND generation=1 AND state='preparing' AND observed_runtime_id IS NULL AND readiness_json IS NULL)",[self.connection_id()],|r|r.get(0)).map_err(|_|Error::storage())?;
+        if binding != self.binding || !unused {
+            return Err(Error::forbidden());
+        }
+        Ok((&self.origin, &self.binding.policy, scopes))
+    }
+    pub(crate) fn from_connection(store: &Store, c: &Connection, connection: &str) -> Result<Self> {
+        let (record,credential,digest,runtime,policy):(String,String,String,String,String)=c.query_row("SELECT operation_record_id,credential_id,original_digest,runtime_epoch,policy_json FROM sip_consultation_reservations WHERE connection_id=?1",[connection],|r|Ok((r.get(0)?,r.get(1)?,r.get(2)?,r.get(3)?,r.get(4)?))).optional().map_err(|_|Error::storage())?.ok_or_else(Error::forbidden)?;
+        let origin = NativeConsultationOrigin::from_private_leg(
+            store, c, record, credential, digest, runtime,
+        )?;
+        let policy = serde_json::from_str(&policy).map_err(|_| Error::storage())?;
+        let binding = facts(store, c, &origin, &policy)?.0;
+        let reservation = Self {
+            origin,
+            connection: connection.into(),
+            binding,
+        };
+        reservation.current_parts(store, c)?;
+        Ok(reservation)
+    }
     fn owner(&self, store: &Store) -> Result<()> {
         let owner = store.require_runtime_owner()?;
         if self.origin.runtime != store.runtime_epoch()

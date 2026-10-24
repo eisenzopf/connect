@@ -43,12 +43,12 @@ impl Policy {
             || route.recipient.connection().as_str() != phone.runtime_connection_id()
             || route.recipient.session().as_str()
                 != match phone {
-                    SipSignalOrigin::Initial(o) => &o.source().request.session_id,
+                    SipSignalOrigin::Initial(o) => &o.source().session_id,
                     SipSignalOrigin::Established(o) => &o.snapshot().session_id,
                 }
             || route.recipient.conversation().as_str()
                 != match phone {
-                    SipSignalOrigin::Initial(o) => &o.source().request.conversation_id,
+                    SipSignalOrigin::Initial(o) => &o.source().conversation_id,
                     SipSignalOrigin::Established(o) => &o.snapshot().conversation_id,
                 }
             || route.recipient.participant().as_str()

@@ -8,6 +8,7 @@ use serde::{Deserialize, Serialize};
 use std::sync::Weak;
 mod lifecycle;
 mod media;
+mod private;
 pub use lifecycle::InitialTelephoneSignaling;
 pub(super) use lifecycle::{cancel, recover_one};
 pub use media::{
@@ -70,9 +71,30 @@ impl InitialTelephonePolicy {
 }
 #[derive(Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
+#[serde(tag = "kind", rename_all = "kebab-case")]
+pub enum InitialTelephoneParent {
+    Invitation {
+        record_id: String,
+        request: session_control::Request,
+    },
+    Consultation {
+        record_id: String,
+        connection_id: String,
+    },
+}
+impl InitialTelephoneParent {
+    pub fn record_id(&self) -> &str {
+        match self {
+            Self::Invitation { record_id, .. } | Self::Consultation { record_id, .. } => record_id,
+        }
+    }
+}
+#[derive(Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct InitialTelephoneSource {
-    pub invitation_record_id: String,
-    pub request: session_control::Request,
+    pub parent: InitialTelephoneParent,
+    pub conversation_id: String,
+    pub session_id: String,
     pub caller: MemberView,
     pub target: MemberView,
     pub audience: Vec<MemberView>,
@@ -84,6 +106,11 @@ pub struct InitialTelephoneSource {
     pub address: String,
     pub destination: String,
     pub route_owner_id: String,
+}
+impl InitialTelephoneSource {
+    pub fn is_private_candidate(&self) -> bool {
+        matches!(self.parent, InitialTelephoneParent::Consultation { .. })
+    }
 }
 #[derive(Clone)]
 pub struct InitialTelephoneOrigin {
@@ -115,6 +142,7 @@ pub struct InitialTelephoneRead {
 macro_rules! redacted {($($t:ty),*)=>{$(impl std::fmt::Debug for $t {fn fmt(&self,f:&mut std::fmt::Formatter<'_>)->std::fmt::Result{ f.write_str(concat!(stringify!($t),"(redacted)")) }})*};}
 redacted!(
     InitialTelephonePolicy,
+    InitialTelephoneParent,
     InitialTelephoneSource,
     InitialTelephoneOrigin,
     InitialTelephoneAttempt,
@@ -152,14 +180,19 @@ impl InitialTelephoneOrigin {
     fn current(&self, store: &Store, c: &Connection) -> Result<(Actor, Actor, i64)> {
         self.lifetime(store)?;
         let caller = actor_from_connection(c, &self.credential)?;
-        let (source, ep, route, expires) = source(
-            store,
-            c,
-            &caller,
-            &self.source.request,
-            &self.source.target.participant_id,
-            &self.policy,
-        )?;
+        let (source, ep, route, expires) = match &self.source.parent {
+            InitialTelephoneParent::Invitation { request, .. } => source(
+                store,
+                c,
+                &caller,
+                request,
+                &self.source.target.participant_id,
+                &self.policy,
+            )?,
+            InitialTelephoneParent::Consultation { connection_id, .. } => {
+                private::source(store, c, &caller, connection_id, &self.policy)?.0
+            }
+        };
         if source != self.source || crate::now() >= self.expires_at {
             return Err(Error::forbidden());
         }
@@ -308,8 +341,12 @@ fn source(
     let expires = caller.expires_at.min(ep.expires_at).min(route.expires_at);
     Ok((
         InitialTelephoneSource {
-            invitation_record_id: parent,
-            request: request.clone(),
+            parent: InitialTelephoneParent::Invitation {
+                record_id: parent,
+                request: request.clone(),
+            },
+            conversation_id: request.conversation_id.clone(),
+            session_id: request.session_id.clone(),
             caller: own,
             target,
             audience,
@@ -335,7 +372,7 @@ fn scopes(source: &InitialTelephoneSource, write: bool) -> Result<Vec<AuthorityS
     };
     let mut result = vec![
         AuthorityScope::identity(&source.caller.identity_id, mode)?,
-        AuthorityScope::conversation(&source.request.conversation_id, mode)?,
+        AuthorityScope::conversation(&source.conversation_id, mode)?,
         AuthorityScope::identity(&source.route_owner_id, AuthorityMode::Read)?,
     ];
     for m in &source.audience {
@@ -347,7 +384,10 @@ fn scopes(source: &InitialTelephoneSource, write: bool) -> Result<Vec<AuthorityS
     Ok(result)
 }
 pub(super) fn read(c: &Connection, actor: &Actor, row: &rows::Saved) -> Result<()> {
-    let parent:String=c.query_row("SELECT invitation_record_id FROM initial_telephone_operations WHERE operation_record_id=?1",[&row.record.record_id],|r|r.get(0)).map_err(|_|Error::storage())?;
+    let (parent, kind):(String,String)=c.query_row("SELECT parent_record_id,parent_kind FROM initial_telephone_operations WHERE operation_record_id=?1",[&row.record.record_id],|r|Ok((r.get(0)?,r.get(1)?))).map_err(|_|Error::storage())?;
+    if kind == "consultation" {
+        return authority::read(c, actor, &rows::by_record(c, &parent)?);
+    }
     let saved = crate::operations::receipts::by_record(c, &parent)?;
     crate::operations::receipts::check_receipt_authority(c, actor, &saved, None)
 }
@@ -382,14 +422,14 @@ impl Store {
         if !self.authority_covers(&guard, &scopes(&source, true)?) {
             return Err(Error::forbidden());
         }
-        let (hash, json) = digest(
-            &serde_json::json!({"invitation":source.invitation_record_id,"target":target,"policy":policy}),
-        )?;
+        let (hash, json) =
+            digest(&serde_json::json!({"parent":source.parent,"target":target,"policy":policy}))?;
         let operation = format!(
             "tinit_{}",
             hex::encode(Sha256::digest(format!(
                 "{}\0{}",
-                source.invitation_record_id, target
+                source.parent.record_id(),
+                target
             )))
         );
         let tenant = authority::tenant(&tx, &actor)?;
@@ -428,7 +468,7 @@ impl Store {
             tx.execute("INSERT INTO operations(record_id,tenant_id,owner_id,operation_id,digest,command_type,conversation_id,session_id,connection_id,intent_json,state,created_at,updated_at,expires_at,ledger_version) VALUES(?1,?2,?3,?4,?5,'connection.offer',?6,?7,?8,?9,'accepted',?10,?10,?11,1)",params![record,tenant,actor.identity_id,operation,hash,request.conversation_id,request.session_id,connection,json,crate::now(),expires]).map_err(|_|Error::storage())?;
             let source_json = serde_json::to_string(&source).map_err(|_| Error::storage())?;
             let policy_json = serde_json::to_string(&policy).map_err(|_| Error::storage())?;
-            tx.execute("INSERT INTO initial_telephone_operations(operation_record_id,invitation_record_id,caller_credential_id,target_participant_id,endpoint_id,source_json,policy_json) VALUES(?1,?2,?3,?4,?5,?6,?7)",params![record,source.invitation_record_id,credential,target,policy.endpoint_id,source_json,policy_json]).map_err(|_|Error::storage())?;
+            tx.execute("INSERT INTO initial_telephone_operations(operation_record_id,parent_record_id,parent_kind,caller_credential_id,target_participant_id,endpoint_id,source_json,policy_json) VALUES(?1,?2,'invitation',?3,?4,?5,?6,?7)",params![record,source.parent.record_id(),credential,target,policy.endpoint_id,source_json,policy_json]).map_err(|_|Error::storage())?;
             for m in &source.audience {
                 tx.execute(
                     "INSERT INTO operation_members VALUES(?1,?2,?3,?4)",

@@ -19,14 +19,15 @@ retry returns the original Connection ID. A changed policy cannot replace it.
 Another native or SIP candidate cannot claim the same consultation. Public or
 private native offers cannot borrow the SIP Connection ID.
 
-Schema 104 retains immutable `sip_consultation_reservations` and a shared
+Schema 104 introduced immutable `sip_consultation_reservations` and a shared
 `consultation_candidate_bindings` metadata view. Snapshot visibility and the
 private observation floor include SIP reservations. Only the original private
 members at their original epochs can see candidate metadata; a later membership
 does not inherit it. An unused reservation is never a current physical source.
 The existing primary floor timing remains tied to the actual prepared attempt.
-Existing stores with an older schema are refused without modification; use a
-fresh state path for this pre-alpha schema.
+The current [typed call-parent boundary](private-sip-candidate-initial.md) uses
+schema 105. Older stores are refused without modification; use a fresh state
+path for this pre-alpha schema.
 
 `validate_sip_consultation_reservation` rechecks current execution, endpoint,
 route, member and Session authority and the exact unused canonical binding. It
@@ -38,7 +39,8 @@ the Connection.
 
 The [component report](../evidence/gate-6/auxiliary-private-sip-candidate-reservation.json)
 records controlled Store verification and its failed intermediate attempts.
-Actual private SIP call admission, muted Core quarantine, typed SIP-candidate
+The typed initial-call child now preserves this reservation through controlled
+allocation/signaling custody. Actual private SIP call admission, muted Core quarantine, typed SIP-candidate
 selection, media/DTMF, return and cleanup remain to be implemented and verified.
 The [SIP-primary runtime](private-sip-primary-store.md) has a separately recorded
 scope. This protected Rust API adds no public HTTP method; the

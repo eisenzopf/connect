@@ -178,7 +178,7 @@ impl BatchKind {
             Self::Fence => "o.ledger_version=1 AND o.state NOT IN ('completed','cancelled','failed') AND o.lease_owner IS NOT NULL AND o.worker_runtime IS NOT 'fenced'",
             // Keep this unsettled predicate equivalent to rows::unsettled: a
             // retained unresolved row must not starve later purgeable results.
-            Self::Purge => "o.ledger_version=1 AND o.tombstoned=0 AND o.state IN ('completed','cancelled','failed') AND o.updated_at<=?2-30*86400 AND EXISTS(SELECT 1 FROM conversations v WHERE v.id=o.conversation_id AND v.closed=1 AND v.closed_at<=?2-30*86400) AND NOT EXISTS(SELECT 1 FROM operation_effects e WHERE e.operation_record_id=o.record_id AND (e.state IN ('submitting','unknown') OR (e.state='confirmed' AND e.compensates_effect_id IS NULL AND NOT EXISTS(SELECT 1 FROM operation_effects cleanup WHERE cleanup.compensates_effect_id=e.id AND cleanup.state='confirmed'))))",
+            Self::Purge => "o.ledger_version=1 AND o.tombstoned=0 AND o.state IN ('completed','cancelled','failed') AND o.updated_at<=?2-30*86400 AND EXISTS(SELECT 1 FROM conversations v WHERE v.id=o.conversation_id AND v.closed=1 AND v.closed_at<=?2-30*86400) AND NOT EXISTS(SELECT 1 FROM unsettled_transition_operations pending WHERE pending.operation_record_id=o.record_id)",
         }
     }
 }

@@ -21,7 +21,7 @@ impl ReadyOrigin {
     fn session(&self) -> &str {
         match self {
             Self::Native(o) => o.session_id(),
-            Self::InitialTelephone(o) => &o.source().request.session_id,
+            Self::InitialTelephone(o) => &o.source().session_id,
             Self::Telephone(o) => &o.snapshot().session_id,
         }
     }

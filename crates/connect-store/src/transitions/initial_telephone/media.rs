@@ -163,7 +163,7 @@ fn current_scopes(
 ) -> Result<Vec<AuthorityScope>> {
     let mut result = crate::authority_admission::conversation_scopes(
         c,
-        &origin.source.request.conversation_id,
+        &origin.source.conversation_id,
         if write {
             AuthorityMode::Write
         } else {
@@ -245,11 +245,30 @@ impl Store {
             tx.commit().map_err(|_| Error::storage())?;
             return Ok(InitialTelephoneAnswerRecorded {
                 media: accepted.then_some(media),
-                problem: (!accepted).then(|| "authority-unavailable".into()),
+                problem: (!accepted).then(|| {
+                    if origin.source.is_private_candidate() {
+                        "private-context-required".into()
+                    } else {
+                        "authority-unavailable".into()
+                    }
+                }),
             });
         }
         tx.execute("INSERT INTO initial_telephone_answers(operation_record_id,observation_json,codec,observed_at) VALUES(?1,?2,?3,?4)",params![origin.record,capture.observation,capture.codec,crate::now()]).map_err(|_|Error::storage())?;
         tx.execute("UPDATE operation_effects SET state='confirmed',observation_json=?2 WHERE id=(SELECT effect_id FROM initial_telephone_operations WHERE operation_record_id=?1) AND state IN ('submitting','unknown')",params![origin.record,capture.observation]).map_err(|_|Error::storage())?;
+        if origin.source.is_private_candidate() {
+            // Preserve the actual answer, but this public own-acceptance path
+            // cannot publish private presence or manufacture a media grant.
+            if !row.record.state.terminal() && row.record.state != OperationState::Unknown {
+                rows::change(&tx, &row, OperationState::Unknown, None, self)?;
+            }
+            tx.execute("UPDATE connections SET state='unknown',revision=revision+1 WHERE id=?1 AND state='preparing'",[&origin.connection]).map_err(|_|Error::storage())?;
+            tx.commit().map_err(|_| Error::storage())?;
+            return Ok(InitialTelephoneAnswerRecorded {
+                media: None,
+                problem: Some("private-context-required".into()),
+            });
+        }
         // The remote credential acts only for its OWN invited Participant.
         // The protected observed answer supplies consent; no operator accept or
         // metadata-only readiness is substituted for the real media commit.
@@ -260,13 +279,13 @@ impl Store {
             endpoint.require("session.accept")?;
             let session = crate::session_control::view(
                 &tx,
-                &origin.source.request.conversation_id,
-                &origin.source.request.session_id,
+                &origin.source.conversation_id,
+                &origin.source.session_id,
             )?;
             let request = session_control::Request {
                 operation_id: format!("answer_{}", origin.record),
-                conversation_id: origin.source.request.conversation_id.clone(),
-                session_id: origin.source.request.session_id.clone(),
+                conversation_id: origin.source.conversation_id.clone(),
+                session_id: origin.source.session_id.clone(),
                 by_participant: Some(origin.source.target.participant_id.clone()),
                 expected_revision: Some(session.topology_revision),
                 action: session_control::Action::Accept {
@@ -429,6 +448,9 @@ impl Store {
         historical_lifetime(self, c, &origin.signal)?;
         let original = origin.signal.origin();
         let s = &original.source;
+        if s.is_private_candidate() {
+            return Err(Error::forbidden());
+        }
         let (state, cancel_requested): (String, bool) = c
             .query_row(
                 "SELECT state,cancel_requested FROM operations WHERE record_id=?1",
@@ -461,8 +483,7 @@ impl Store {
         if !valid {
             return Err(Error::forbidden());
         }
-        let member =
-            crate::audience::member(c, &endpoint.identity_id, &s.request.conversation_id, true)?;
+        let member = crate::audience::member(c, &endpoint.identity_id, &s.conversation_id, true)?;
         if member.participant_id != s.target.participant_id
             || member.membership_epoch != s.target.membership_epoch
         {
@@ -471,16 +492,15 @@ impl Store {
         crate::audience::require_original(
             c,
             &endpoint,
-            &s.request.conversation_id,
+            &s.conversation_id,
             connect_protocol::membership::ContentKind::Session,
-            &s.request.session_id,
+            &s.session_id,
         )?;
-        let session =
-            crate::session_control::view(c, &s.request.conversation_id, &s.request.session_id)?;
+        let session = crate::session_control::view(c, &s.conversation_id, &s.session_id)?;
         if !matches!(session.state.as_str(), "accepted" | "ready" | "active") {
             return Err(Error::forbidden());
         }
-        let (role,raw,conversation_revision):(String,String,u64)=c.query_row("SELECT p.role,cap.capabilities_json,v.revision FROM session_participants p JOIN session_presence_capabilities cap ON cap.session_id=p.session_id AND cap.participant_id=p.participant_id AND cap.membership_epoch=p.membership_epoch JOIN conversations v ON v.id=p.conversation_id WHERE p.session_id=?1 AND p.participant_id=?2 AND p.membership_epoch=?3 AND p.state='present' AND v.closed=0",params![s.request.session_id,s.target.participant_id,s.target.membership_epoch],|r|Ok((r.get(0)?,r.get(1)?,r.get(2)?))).map_err(|_|Error::forbidden())?;
+        let (role,raw,conversation_revision):(String,String,u64)=c.query_row("SELECT p.role,cap.capabilities_json,v.revision FROM session_participants p JOIN session_presence_capabilities cap ON cap.session_id=p.session_id AND cap.participant_id=p.participant_id AND cap.membership_epoch=p.membership_epoch JOIN conversations v ON v.id=p.conversation_id WHERE p.session_id=?1 AND p.participant_id=?2 AND p.membership_epoch=?3 AND p.state='present' AND v.closed=0",params![s.session_id,s.target.participant_id,s.target.membership_epoch],|r|Ok((r.get(0)?,r.get(1)?,r.get(2)?))).map_err(|_|Error::forbidden())?;
         let accepted: Value = serde_json::from_str(&raw).map_err(|_| Error::storage())?;
         let allows = |v: &Value| {
             v["audio"].as_array().is_some_and(|v| {
@@ -496,9 +516,9 @@ impl Store {
         for identity in &if matches!(purpose, ProjectionPurpose::Media) {
             crate::audience::source_members(
                 c,
-                &s.request.conversation_id,
+                &s.conversation_id,
                 connect_protocol::membership::ContentKind::Session,
-                &s.request.session_id,
+                &s.session_id,
             )?
         } else {
             Vec::new()
@@ -650,24 +670,19 @@ impl Store {
             &tx,
             crate::session_lifecycle::ReadyOrigin::InitialTelephone(origin.clone()),
         )?;
-        crate::session_lifecycle::activate(
-            &tx,
-            self,
-            &s.request.conversation_id,
-            &s.request.session_id,
-        )?;
+        crate::session_lifecycle::activate(&tx, self, &s.conversation_id, &s.session_id)?;
         let ready = self.initial_telephone_session_readiness(&tx, &origin)?;
         crate::session_participant_lifecycle::observed_join(
             &tx,
             self,
-            &s.request.conversation_id,
-            &s.request.session_id,
+            &s.conversation_id,
+            &s.session_id,
             &s.target.participant_id,
             s.target.membership_epoch,
             origin.connection_id(),
             ready.observed_at_millis,
         )?;
-        crate::session_reconnect::connected(&tx, &s.request.session_id)?;
+        crate::session_reconnect::connected(&tx, &s.session_id)?;
         super::super::workers::invalidate(&tx, origin.record_id())?;
         let result = rows::by_record(&tx, origin.record_id())?.record;
         tx.commit().map_err(|_| Error::storage())?;
@@ -685,9 +700,9 @@ fn emit_connection(
     let value=c.query_row("SELECT n.id,n.session_id,n.participant_id,n.membership_epoch,n.endpoint_id,e.device_id,n.generation,n.revision,n.state,n.replaces FROM connections n JOIN endpoints e ON e.id=n.endpoint_id WHERE n.id=?1",[&original.connection],|r|Ok(connect_protocol::events::ConnectionState{connection_id:r.get(0)?,session_id:r.get(1)?,participant_id:r.get(2)?,membership_epoch:r.get(3)?,endpoint_id:r.get(4)?,device_id:r.get(5)?,generation:r.get(6)?,revision:r.get(7)?,state:r.get(8)?,replaces:r.get(9)?})).map_err(|_|Error::storage())?;
     let recipients = crate::audience::source_members(
         c,
-        &s.request.conversation_id,
+        &s.conversation_id,
         connect_protocol::membership::ContentKind::Session,
-        &s.request.session_id,
+        &s.session_id,
     )?;
     if !crate::conversations::capacity(c, recipients.len() as u64, 0, store)? {
         return Err(Error::new(
@@ -696,11 +711,11 @@ fn emit_connection(
         ));
     }
     for recipient in recipients {
-        let mut data = json!({"source_kind":"session","source_id":s.request.session_id,"session_id":s.request.session_id,"connection_id":original.connection,"participant_id":s.target.participant_id,"identity_id":s.target.identity_id,"connection":value});
+        let mut data = json!({"source_kind":"session","source_id":s.session_id,"session_id":s.session_id,"connection_id":original.connection,"participant_id":s.target.participant_id,"identity_id":s.target.identity_id,"connection":value});
         if recipient == s.caller.identity_id {
             data["operation_id"] = json!(original.operation);
         }
-        c.execute("INSERT INTO journal(id,recipient,conversation_id,kind,operation_record_id,resource_revision,data_json,source_json) VALUES(?1,?2,?3,?4,?5,?6,?7,?8)",params![format!("evt_{}",uuid::Uuid::new_v4().simple()),recipient,s.request.conversation_id,kind,original.record,value.revision,data.to_string(),json!({"kind":"connect-sip-runtime","correlation_id":original.connection}).to_string()]).map_err(|_|Error::storage())?;
+        c.execute("INSERT INTO journal(id,recipient,conversation_id,kind,operation_record_id,resource_revision,data_json,source_json) VALUES(?1,?2,?3,?4,?5,?6,?7,?8)",params![format!("evt_{}",uuid::Uuid::new_v4().simple()),recipient,s.conversation_id,kind,original.record,value.revision,data.to_string(),json!({"kind":"connect-sip-runtime","correlation_id":original.connection}).to_string()]).map_err(|_|Error::storage())?;
     }
     Ok(())
 }
@@ -727,9 +742,7 @@ impl Store {
         native: Arc<crate::NativeMediaOrigin>,
     ) -> Result<InitialTelephoneNativeRead> {
         let s = phone.source();
-        if native.conversation_id() != s.request.conversation_id
-            || native.session_id() != s.request.session_id
-        {
+        if native.conversation_id() != s.conversation_id || native.session_id() != s.session_id {
             return Err(Error::forbidden());
         }
         let c = self.try_connection()?;
@@ -778,7 +791,7 @@ impl Store {
         )?;
         if !initial.current()
             || !native.current()
-            || initial.source().request.session_id != native.target().session.session.id
+            || initial.source().session_id != native.target().session.session.id
             || !initial
                 .endpoint_actor()
                 .permits_recipient(&native.target().session.actor.identity_id)
@@ -905,8 +918,8 @@ impl Store {
         crate::session_participant_lifecycle::reconcile(
             &tx,
             self,
-            &original.source.request.conversation_id,
-            &original.source.request.session_id,
+            &original.source.conversation_id,
+            &original.source.session_id,
             None,
         )?;
         tx.commit().map_err(|_| Error::storage())

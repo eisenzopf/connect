@@ -297,6 +297,12 @@ impl Runner {
         // Keep every fallible authority check before Core allocation in one
         // phase. A terminal replay or withdrawn grant owns no new call and
         // must not poison the host's physical-resource drain.
+        if origin.source().is_private_candidate() {
+            return Err(Error::new(
+                "private-context-required",
+                "Private SIP candidate requires its own quarantined admission",
+            ));
+        }
         let allocation: Result<_> = async {
             let store = runtime.media.store.clone();
             let start = origin.clone();
@@ -332,7 +338,7 @@ impl Runner {
                 return Ok(());
             }
         };
-        let sid = SessionId::from_string(origin.source().request.session_id.clone());
+        let sid = SessionId::from_string(origin.source().session_id.clone());
         let deadline = tokio::time::Instant::now()
             + Duration::from_secs(
                 (origin.expires_at() - chrono::Utc::now().timestamp()).max(0) as u64,
@@ -455,7 +461,7 @@ impl Runner {
         deadline: tokio::time::Instant,
         cancel: CancellationToken,
     ) -> Result<()> {
-        let sid = SessionId::from_string(leg.signal.origin().source().request.session_id.clone());
+        let sid = SessionId::from_string(leg.signal.origin().source().session_id.clone());
         let mutation = |revision| ParticipantMutation {
             operation_id: leg.signal.origin().operation_id().into(),
             correlation_id: leg.signal.origin().operation_id().into(),

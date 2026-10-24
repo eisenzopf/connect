@@ -59,8 +59,7 @@ impl Store {
             }
             return Ok(());
         }
-        let member =
-            crate::audience::member(&tx, &source.identity_id, &s.request.conversation_id, true)?;
+        let member = crate::audience::member(&tx, &source.identity_id, &s.conversation_id, true)?;
         if member.participant_id != source.participant_id
             || member.membership_epoch != source.membership_epoch
         {

@@ -460,8 +460,8 @@ impl Policy {
                 let s = leg.signal.origin().source();
                 leg.dtmf_registration.get().is_some()
                     && !leg.cancel.is_cancelled()
-                    && s.request.conversation_id == source.conversation_id()
-                    && s.request.session_id == source.session_id()
+                    && s.conversation_id == source.conversation_id()
+                    && s.session_id == source.session_id()
                     && s.target.participant_id != source.participant_id()
             })
             .collect())

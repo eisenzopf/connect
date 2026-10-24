@@ -195,7 +195,10 @@ impl Store {
         origin.require(self, &tx)?;
         let row = rows::by_record(&tx, origin.record_id())?;
         admission::require_row(self, &held, &row)?;
-        if row.record.state != OperationState::Accepted || !row.record.effects.is_empty() {
+        if row.record.state != OperationState::Accepted
+            || !row.record.effects.is_empty()
+            || rows::unsettled(&tx, origin.record_id())?
+        {
             return Ok(false);
         }
         rows::change(&tx, &row, OperationState::Failed, None, self)?;

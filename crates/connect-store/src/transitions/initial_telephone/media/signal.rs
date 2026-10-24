@@ -168,8 +168,8 @@ impl Store {
         native: &crate::NativeMediaOrigin,
     ) -> Result<Vec<AuthorityScope>> {
         let source = phone.source();
-        if native.conversation_id() != source.request.conversation_id
-            || native.session_id() != source.request.session_id
+        if native.conversation_id() != source.conversation_id
+            || native.session_id() != source.session_id
             || native.participant_id() == source.target.participant_id
         {
             return Err(Error::forbidden());

@@ -169,8 +169,8 @@ impl Policy {
             .filter_map(Weak::upgrade)
             .filter(|leg| {
                 leg.origin().is_ok_and(|o| {
-                    o.source().request.conversation_id == target.origin.conversation_id()
-                        && o.source().request.session_id == target.origin.session_id()
+                    o.source().conversation_id == target.origin.conversation_id()
+                        && o.source().session_id == target.origin.session_id()
                 })
             })
             .collect())

@@ -355,7 +355,10 @@ pub(super) fn recover_one(
     }
     let unsettled = rows::unsettled(c, &row.record.record_id)?;
     let next = if row.record.state == OperationState::Committing
-        || (row.record.state == OperationState::Preparing && unsettled)
+        || (matches!(
+            row.record.state,
+            OperationState::Accepted | OperationState::Preparing
+        ) && unsettled)
         || (row.record.state == OperationState::Interrupted && unsettled)
     {
         OperationState::Unknown
@@ -363,6 +366,14 @@ pub(super) fn recover_one(
         OperationState::Failed
     } else {
         OperationState::Interrupted
+    };
+    let interrupted;
+    let row = if row.record.state == OperationState::Accepted && next == OperationState::Unknown {
+        rows::change(c, row, OperationState::Interrupted, None, store)?;
+        interrupted = rows::by_record(c, &row.record.record_id)?;
+        &interrupted
+    } else {
+        row
     };
     c.execute("UPDATE operation_effects SET state='unknown' WHERE operation_record_id=?1 AND state='submitting'",[&row.record.record_id]).map_err(|_|Error::storage())?;
     rows::change(c, row, next, None, store)?;

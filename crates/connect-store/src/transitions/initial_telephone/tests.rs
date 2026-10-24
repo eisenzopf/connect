@@ -700,7 +700,7 @@ fn unsupported_answer_codec_keeps_fact_and_rolls_back_own_acceptance() {
     assert!(c
         .execute("UPDATE initial_telephone_answers SET accepted=1", [])
         .is_err());
-    assert!(c.execute("UPDATE initial_telephone_answers SET accepted=1,acceptance_record_id=(SELECT invitation_record_id FROM initial_telephone_operations)",[]).is_err());
+    assert!(c.execute("UPDATE initial_telephone_answers SET accepted=1,acceptance_record_id=(SELECT parent_record_id FROM initial_telephone_operations)",[]).is_err());
     assert_eq!(
         c.query_row(
             "SELECT state FROM session_participants WHERE session_id=?1 AND participant_id=?2",

@@ -1,0 +1,205 @@
+{
+  "task": "G6-046",
+  "recorded_at": "2026-10-24T16:05:17.323081+00:00",
+  "status": "private-sip-candidate-call-intent-and-allocation-custody-verified",
+  "full_task_complete": false,
+  "full_goal_complete": false,
+  "source_base_commit": "ae3ff3394a98671ad2bc4fcd840c4b0f14cc7c56",
+  "store_schema": 105,
+  "prepared_patch_count": 183,
+  "newly_qualified_case_ids": [],
+  "scope": "Controlled local macOS arm64 Store call intent, current authority, allocation/signaling IDs, uncertainty/recovery and public-media refusal, plus current service compilation and schema integration. Controlled Core/Call-ID/answer/absence observations are fixtures; no private SIP network call, Core quarantine, physical media or independent conformance is claimed.",
+  "behavior_evidence": [
+    "The private child derives from the exact original consultation and opaque reservation on the same canonical Connection ID, including in an active Session at the Connection capacity bound. It freezes only the two original private members, creates no public invitation receipt and cannot allocate a second Connection or native offer. Public initial calls retain their exact successful invitation requirement through an explicit typed Invitation parent.",
+    "Exact logical retries preserve child operation/record, canonical Connection, actual-runtime binding and planned SIP Call-ID. Allocation and submission are once-only; retargeted physical IDs are refused. Metadata origins retain no idle readers. Complete original execution-member, own Endpoint and independent route identities are fenced throughout allocation/signaling intervals.",
+    "Revoked controller/Endpoint/route authority, changed Endpoint revision, removed retained member and parent cancellation refuse subsequent signaling and retry. SQL bindings reject wrong parent kind, broadened/duplicated audience, wrong epoch, Endpoint revision, Session or Device. Original immutable parent/policy fields cannot be rewritten.",
+    "Child allocation custody contributes to the original parent\u2019s unsettled predicate. Initialization/preflight cannot falsely fail while the child is pending. Cancel and stale-worker recovery bridge accepted through interrupted to unknown, deny further IO and preserve exact cleanup custody. Recovery and terminal-result purge use the same view; an inconsistent old terminal parent with a pending child is retained.",
+    "Unused reservation cleanup cannot retire an initialized child. Exact unsubmitted abandonment survives controller revocation and cannot redial or resurrect the original ID. Captured same-runtime absence settles only the original child, is idempotent, and preserves unknown historical remote submission instead of inventing success.",
+    "The public host activation and own-answer acceptance/media paths refuse a private candidate. A captured private answer sent to the public recording API is retained as a fact, without a public acceptance receipt, ready observation or media grant; replay remains private-context-required until owned cleanup."
+  ],
+  "source_inputs_sha256": {
+    "crates/connect-service/src/canonical_media.rs": "61031ecbefd2a813184cb3669b6de80b6b113978ab87c68544c7e800df9da4f4",
+    "crates/connect-service/src/canonical_media/consultation.rs": "4a0df4ee928b480f116e3d5fabdd44bf691efa23b9665750390d4908498c1675",
+    "crates/connect-service/src/canonical_media/sources.rs": "05a7da9bbf09650ae405ef6d18dfba77bd9b046594394b6c366671c96d7e98d7",
+    "crates/connect-service/src/canonical_native_dtmf/gateways.rs": "5715b10fd2948ff3d1fc2aeaf5f7b01a2309fc4e3c4f74644d026cabe983595f",
+    "crates/connect-service/src/initial_telephone.rs": "ff744354e0060c24c45f91c463e7ed698987508d412ee294a28eaad2c37d8e7d",
+    "crates/connect-service/src/initial_telephone/policy.rs": "50a7401a1a87e8f0a614fedcece68aa1242e7e24265834ef92d06ea0ab43b3d5",
+    "crates/connect-store/migrations/105_initial_telephone_parents.sql": "50eead85af8b8f8396f7c0616bc7149681b5a5a455d7ea31f43bc398eae29228",
+    "crates/connect-store/src/connection_control/sip_consultation.rs": "7d6ebc87624da215e3127ccbe6ca48b0f6b1e0b754f225c5a15d4010cae29d7e",
+    "crates/connect-store/src/connection_control/tests/sip_consultation.rs": "9319b485b58a2fdd913ddc8b9214f591bba093b99ae522f46c31973a05ec768c",
+    "crates/connect-store/src/connection_control/tests/sip_consultation/initial.rs": "f34a1ab421a99ed94951ad8ee5c78514a32541ca03fefe06543556467857ecd0",
+    "crates/connect-store/src/lib.rs": "de7eb18515317cfe8f94ef6fe4219a276da617f5d816b77490472128fcd8cc08",
+    "crates/connect-store/src/peer_authority/connection_media/consultation_sip/origins.rs": "31f1c20e24ab4f6ed89dadec4f83210fa1f5afea1effdd915dfc9e129f9077eb",
+    "crates/connect-store/src/session_lifecycle/readiness.rs": "1d380309733150713c0189e0c4e8d31a2c0da159c6c04bf402cf61209336b30c",
+    "crates/connect-store/src/transitions/actions.rs": "cf2d4ec6329dd8a1f9e3b5a6e0e35d58eb82ab5926cfd948e546ec301d42b39f",
+    "crates/connect-store/src/transitions/admission.rs": "53500ac5f35f637b1f06d6b49ce0962f42b0201b4df96b762d047052a9b232e4",
+    "crates/connect-store/src/transitions/consultation_source.rs": "5e579af90086fd9c50a2c0f0bb5ce010ed817ae590d6a48bb02f071c4d124343",
+    "crates/connect-store/src/transitions/initial_telephone.rs": "ca2f5643498d24d770072978cde59b952079a14aa871d446ef02b496a6edfcad",
+    "crates/connect-store/src/transitions/initial_telephone/lifecycle.rs": "b7f96263bca8c36834de233525927f41e290a6e2e89bd0b90a334987e9312dbd",
+    "crates/connect-store/src/transitions/initial_telephone/media.rs": "1393858346e9ac9894c0ba1c7e237d908efe86e55f6e572f89c73bce5347dee9",
+    "crates/connect-store/src/transitions/initial_telephone/media/routing.rs": "9713d37f812894d08f69f8fc24e4496e6d258197cce1f5c0e399dd765abde782",
+    "crates/connect-store/src/transitions/initial_telephone/media/signal.rs": "9b5554399add2455d566f43b6f4c7f0eb493c70027ab7559c4351a811a39b913",
+    "crates/connect-store/src/transitions/initial_telephone/private.rs": "bade0c2ab823eb29f81ca6dcedf4dc52460a5b13e2bf6bbf712dfaa352d8742e",
+    "crates/connect-store/src/transitions/initial_telephone/tests.rs": "579c9a379a8213fbf3c0b7cddd7d22325e67a5431fd6447fd8d9ff48e74e4849",
+    "crates/connect-store/src/transitions/initial_telephone/tests/gateways.rs": "47b8b5db5f8ad96cb12b4ac1c7ad83f2258aeb9e5b76f6d623c3b20ee6b89719",
+    "crates/connect-store/src/transitions/mod.rs": "88794d0684f13a1c7e8a2dd83378d940869d5e6a7009cedc01a16baed6e4f570",
+    "crates/connect-store/src/transitions/rows.rs": "9001f53150a16e9c0fab6b9126145f621f6231f3eb6b2efc7b01455b6378db53",
+    "crates/connect-store/src/transitions/telephone_signals.rs": "ad8699f5b119f9058dc41d8c542b52fba123f82de40723002f8608a98f89e525",
+    "crates/connect-store/src/transitions/workers.rs": "4f9aec400c50469b71faa27831aaff67bc36040c66ec71c61a5ea2d9f0074b6d"
+  },
+  "verification": {
+    "store": {
+      "qualified_dependency_scope_passed": true,
+      "raw_global_summary": ".local/gate-6/received-dtmf-runtime/sip-candidate-parent-store-001/summary.json",
+      "raw_global_summary_sha256": "17362a11dc69c8ff5978191f32a51c24923fc3730c0b04fe64141e903cb93f4b",
+      "raw_global_report_passed": false,
+      "whole_repository_inputs_unchanged": false,
+      "dependency_audit": ".local/gate-6/received-dtmf-runtime/sip-candidate-parent-store-001/store-dependency-audit.json",
+      "dependency_audit_sha256": "4ea58c0131baf4108f96330ac625363e48ccdf28e4410cfdcdeb22723d175bb7",
+      "exact_changed_paths_during_run": {
+        "crates/connect-service/src/canonical_media.rs": {
+          "before": "39af6c4697c2f7c4e2a98bb0151ac90758100fb96cbbb0fd65c913e6ff81f8d0",
+          "after": "61031ecbefd2a813184cb3669b6de80b6b113978ab87c68544c7e800df9da4f4"
+        }
+      },
+      "store_workspace_dependency_packages": [
+        "connect-connector-api",
+        "connect-protocol",
+        "connect-store"
+      ],
+      "store_dependency_inputs_unchanged": true,
+      "executable_unchanged": true,
+      "executable_sha256": "0b7c9da07ea565cbf5b423297065cb574bffa562bbca395437a1f7383d61cd33",
+      "new_methods": 13,
+      "distinct_methods": 467,
+      "executions": 487,
+      "ignored_cases": 1,
+      "ignored_case": "transitions::tests::crash_worker",
+      "ignored_reason": "transitions::tests::crash_worker is a subprocess fixture, invoked explicitly with --ignored by crash and administration parent tests; it is not counted as a standalone pass.",
+      "runtime_seconds": 433.99061429174617,
+      "build_seconds": 5.926766165997833,
+      "groups": [
+        {
+          "filter": "connection_control::tests::sip_consultation::",
+          "exit_code": 0,
+          "passed": true,
+          "passed_cases": 25,
+          "ignored_cases": 0,
+          "elapsed_seconds": 24.03775483299978,
+          "log": ".local/gate-6/received-dtmf-runtime/sip-candidate-parent-store-001/group-0.log",
+          "log_sha256": "7bf035de7e8df841678164ddf11cb424ba6109de87d122e16fc4b8627ca19f78"
+        },
+        {
+          "filter": "transitions::tests::",
+          "exit_code": 0,
+          "passed": true,
+          "passed_cases": 49,
+          "ignored_cases": 1,
+          "elapsed_seconds": 55.412935375003144,
+          "log": ".local/gate-6/received-dtmf-runtime/sip-candidate-parent-store-001/group-1.log",
+          "log_sha256": "048a2c8077ced62c5da40858040a91981d4d2aa5b3589a8e8ea5136915e2177b"
+        },
+        {
+          "filter": "transitions::initial_telephone::tests::",
+          "exit_code": 0,
+          "passed": true,
+          "passed_cases": 45,
+          "ignored_cases": 0,
+          "elapsed_seconds": 20.68858979200013,
+          "log": ".local/gate-6/received-dtmf-runtime/sip-candidate-parent-store-001/group-2.log",
+          "log_sha256": "58ec458d8e7dde5c0d646ed9963c5708defb72d9a06515cf84b1a8244b2331e2"
+        },
+        {
+          "filter": "continuation::commit::signal::audience::",
+          "exit_code": 0,
+          "passed": true,
+          "passed_cases": 20,
+          "ignored_cases": 0,
+          "elapsed_seconds": 22.250496083172038,
+          "log": ".local/gate-6/received-dtmf-runtime/sip-candidate-parent-store-001/group-3.log",
+          "log_sha256": "aad1805b6bf9b1d77e68c1ca38e2f14e7739d4b7716981dbcaf8bb33c02158a9"
+        },
+        {
+          "filter": "connection_control::tests::consultation",
+          "exit_code": 0,
+          "passed": true,
+          "passed_cases": 50,
+          "ignored_cases": 0,
+          "elapsed_seconds": 56.00648816721514,
+          "log": ".local/gate-6/received-dtmf-runtime/sip-candidate-parent-store-001/group-4.log",
+          "log_sha256": "28feaad8353dc8eadeb46e27234e1279504aa269d4ced34e0f54fcf8f79ea969"
+        },
+        {
+          "filter": "connection_control::tests::private",
+          "exit_code": 0,
+          "passed": true,
+          "passed_cases": 42,
+          "ignored_cases": 0,
+          "elapsed_seconds": 83.94115145807154,
+          "log": ".local/gate-6/received-dtmf-runtime/sip-candidate-parent-store-001/group-5.log",
+          "log_sha256": "e47a33cf2fdcb7e219c4641c5a141d2cad7f4afa7f009adba29ce2fbbed95ac0"
+        },
+        {
+          "filter": "connection_control::tests::replacement_sources::telephone",
+          "exit_code": 0,
+          "passed": true,
+          "passed_cases": 85,
+          "ignored_cases": 0,
+          "elapsed_seconds": 81.4510661251843,
+          "log": ".local/gate-6/received-dtmf-runtime/sip-candidate-parent-store-001/group-6.log",
+          "log_sha256": "282aa327a699a49abef5f92adc9a97090d4ee5100d426d8891e8a589ab730b22"
+        },
+        {
+          "filter": "connection_control::tests::native_stream_authority::",
+          "exit_code": 0,
+          "passed": true,
+          "passed_cases": 171,
+          "ignored_cases": 0,
+          "elapsed_seconds": 90.2021324581001,
+          "log": ".local/gate-6/received-dtmf-runtime/sip-candidate-parent-store-001/group-7.log",
+          "log_sha256": "7033480bdb829b7230301efddb5deb9679b578c2ad0633b96284696000aa7eff"
+        }
+      ],
+      "scope_explanation": "All eight method groups and the build passed. The original whole-repository guard correctly failed after the mechanical two-field service-only fix. Exact comparison finds only that service file changed; it is outside the Store workspace dependency closure and Store sources do not load it. Store/dependency source bytes and the tested executable remain unchanged. The raw global failure is preserved."
+    },
+    "service_compile": {
+      "passed": true,
+      "exit_code": 0,
+      "log": ".local/gate-6/received-dtmf-runtime/sip-candidate-parent-service-check-002.log",
+      "log_sha256": "70597d6ccafaf95144e5c5e5489c343c0942eeb6850c8915711fa76296f8c238",
+      "cargo_reported_elapsed": "5m 20s",
+      "source_note": "Corrected canonical_media.rs field projections were in place before this invocation; no further code changed."
+    },
+    "schema_backup_recovery": {
+      "passed": true,
+      "exit_code": 0,
+      "log": ".local/gate-6/received-dtmf-runtime/sip-candidate-parent-schema-001.log",
+      "log_sha256": "f99399823decc36bfbcf655333c709f43feb0399631a4487496db790d86c602f",
+      "passed_cases": 4,
+      "ignored_cases": 0,
+      "runtime_seconds": 47.71,
+      "cargo_reported_elapsed_including_shared_build_lock_wait": "5m 06s"
+    }
+  },
+  "failed_attempts": [
+    {
+      "log": ".local/gate-6/received-dtmf-runtime/sip-candidate-parent-build-001.log",
+      "log_sha256": "0b89a5027c0de6ceac2ec8e31473571120313a1ffa687e3923de90d1a501d2ac",
+      "status": "failed",
+      "reason": "Store compile found one remaining InitialTelephoneSource request-field reference in routing.rs; corrected before the focused and bound Store test builds."
+    },
+    {
+      "log": ".local/gate-6/received-dtmf-runtime/sip-candidate-parent-service-check-001.log",
+      "log_sha256": "a2a1a135af78af90d3846f86972f8af1986a7b77c48f79be994ddcdd78ee9c7c",
+      "status": "failed-and-intentionally-terminated",
+      "reason": "Service compilation emitted two E0609 diagnostics for remaining source-field references in canonical_media.rs. The exact known-invalid rustc child83459 was terminated after these diagnostics; this was not an observation timeout. The two references were corrected before service check002. The Store sources were unchanged."
+    }
+  ],
+  "remaining": [
+    "Actual SIP private outbound activation and muted-before-admission Core quarantine using its own PreparedOutbound ticket and fresh PreparePrivateAudio authority. No PeerAdmission/native signing proof may be fabricated for SIP.",
+    "Distinct own private-answer acceptance and guarded readiness, typed SIP-candidate selection/lifetime, actual private media/DTMF, original-call return and physical cleanup.",
+    "Remaining IO-boundary, retirement and concurrency compositions plus the complete current G6-046 auxiliary matrix. The earlier schema103 SIP-primary runtime matrices remain historical scopes, not current schema105 reruns.",
+    "Remaining Gate6 tasks, approved Linux/remote/provider profiles and independent conformance; publication remains separate."
+  ],
+  "schema_boundary": "Fresh pre-alpha schema105 initialization only. Existing incompatible stores are refused without modification; no legacy API/schema compatibility or downgrade path is added."
+}

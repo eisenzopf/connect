@@ -38,7 +38,7 @@ impl Store {
             || {
                 let c = self.connection()?;
                 origin.current(self, &c)?;
-                scopes(&origin.source, true)
+                private::allocation_scopes(self, &c, origin, true)
             },
         )?;
         let mut c = self.connection()?;
@@ -82,7 +82,7 @@ impl Store {
             || {
                 let c = self.connection()?;
                 attempt.require(self, &c)?;
-                scopes(&attempt.origin.source, true)
+                private::allocation_scopes(self, &c, &attempt.origin, true)
             },
         )?;
         let mut c = self.connection()?;
@@ -110,7 +110,7 @@ impl Store {
             || {
                 let c = self.connection()?;
                 attempt.require(self, &c)?;
-                scopes(&attempt.origin.source, true)
+                private::allocation_scopes(self, &c, &attempt.origin, true)
             },
         )?;
         let mut c = self.connection()?;
@@ -160,7 +160,7 @@ impl Store {
             || {
                 let c = self.connection()?;
                 attempt.require(self, &c)?;
-                scopes(&attempt.origin.source, false)
+                private::allocation_scopes(self, &c, &attempt.origin, false)
             },
         )?;
         let c = self.connection()?;
@@ -179,7 +179,7 @@ impl Store {
         let conversation_revision: u64 = c
             .query_row(
                 "SELECT revision FROM conversations WHERE id=?1",
-                [&attempt.origin.source.request.conversation_id],
+                [&attempt.origin.source.conversation_id],
                 |r| r.get(0),
             )
             .map_err(|_| Error::storage())?;

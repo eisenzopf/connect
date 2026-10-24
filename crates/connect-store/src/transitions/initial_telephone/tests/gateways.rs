@@ -53,7 +53,9 @@ fn configured_gateway_tel_and_identity_selectors_keep_original_member_and_once_o
             .store
             .prepare_initial_telephone(&f.keys[0], r.clone(), &f.parts[1], f.policy.clone())
             .unwrap();
-        assert_eq!(origin.source().request, r);
+        assert!(
+            matches!(&origin.source().parent, InitialTelephoneParent::Invitation { request, .. } if request == &r)
+        );
         assert_eq!(
             origin.source().destination,
             "sip:+15555550111@127.0.0.1:5099"

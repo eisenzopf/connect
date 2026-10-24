@@ -255,5 +255,10 @@ pub(super) fn event(c: &Connection, record: &str, kind: &str, store: &Store) -> 
     Ok(())
 }
 pub(super) fn unsettled(c: &Connection, record: &str) -> Result<bool> {
-    c.query_row("SELECT EXISTS(SELECT 1 FROM private_provider_contexts p WHERE p.operation_record_id=?1 AND p.started=1 AND p.closed_at IS NULL) OR EXISTS(SELECT 1 FROM operation_effects e WHERE e.operation_record_id=?1 AND (e.state IN ('submitting','unknown') OR (e.state='confirmed' AND e.compensates_effect_id IS NULL AND NOT EXISTS(SELECT 1 FROM operation_effects cleanup WHERE cleanup.compensates_effect_id=e.id AND cleanup.state='confirmed'))))",[record],|r|r.get(0)).map_err(|_|Error::storage())
+    c.query_row(
+        "SELECT EXISTS(SELECT 1 FROM unsettled_transition_operations WHERE operation_record_id=?1)",
+        [record],
+        |r| r.get(0),
+    )
+    .map_err(|_| Error::storage())
 }

@@ -184,10 +184,11 @@ impl Leg {
         revision: u64,
     ) -> std::result::Result<ParticipantAuthority, ParticipantControlError> {
         let source = self.signal.origin().source();
-        if self.cancel.is_cancelled()
+        if source.is_private_candidate()
+            || self.cancel.is_cancelled()
             || tokio::time::Instant::now() >= self.deadline
-            || scope.session.as_str() != source.request.session_id
-            || scope.conversation.as_str() != source.request.conversation_id
+            || scope.session.as_str() != source.session_id
+            || scope.conversation.as_str() != source.conversation_id
             || scope.mutation.operation_id != self.signal.origin().operation_id()
             || scope.mutation.correlation_id != self.signal.origin().operation_id()
             || scope.mutation.expected_revision != revision
@@ -299,8 +300,8 @@ impl Leg {
     fn scope(&self, scope: &MediaScope<'_>) -> std::result::Result<(), StreamControlError> {
         let s = self.signal.origin().source();
         if scope.connection != &self.connection()
-            || scope.conversation.as_str() != s.request.conversation_id
-            || scope.session.as_str() != s.request.session_id
+            || scope.conversation.as_str() != s.conversation_id
+            || scope.session.as_str() != s.session_id
             || !reliable_data::same_credential(scope.principal, &self.target.principal)
         {
             return Err(StreamControlError::Authority);

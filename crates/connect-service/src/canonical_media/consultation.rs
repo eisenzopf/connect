@@ -320,7 +320,7 @@ impl Policy {
             .filter_map(std::sync::Weak::upgrade)
             .filter(|leg| !leg.cancel.is_cancelled())
             .filter_map(|leg| leg.media.get().cloned())
-            .filter(|source| source.source().request.session_id == session)
+            .filter(|source| source.source().session_id == session)
             .map(connect_store::SipAudienceOrigin::Initial)
             .collect::<Vec<_>>();
         origins.extend(

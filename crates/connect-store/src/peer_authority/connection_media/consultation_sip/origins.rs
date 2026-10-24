@@ -73,13 +73,13 @@ impl SipAudienceOrigin {
     }
     pub fn session_id(&self) -> &str {
         match self {
-            Self::Initial(o) => &o.source().request.session_id,
+            Self::Initial(o) => &o.source().session_id,
             Self::Established(o) => &o.snapshot().session_id,
         }
     }
     pub(super) fn conversation_id(&self) -> &str {
         match self {
-            Self::Initial(o) => &o.source().request.conversation_id,
+            Self::Initial(o) => &o.source().conversation_id,
             Self::Established(o) => &o.snapshot().conversation_id,
         }
     }
