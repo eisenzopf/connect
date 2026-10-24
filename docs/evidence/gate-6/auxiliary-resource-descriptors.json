@@ -1,5 +1,5 @@
 {
-  "scope": "Local macOS arm6442 authority-fence methods pass for pooled resource descriptions. Full current Store suite and optimized host build are active, not passes. No current capacity/production or clause/task promotion:45/105 tasks andG6-04658/61 clauses unchanged.",
+  "scope": "Local macOS arm64 complete Store library1069 methods and exact optimized host build pass. No current capacity/production or clause/task promotion:45/105 tasks andG6-04658/61 clauses unchanged.",
   "changes": [
     "Use the bounded unlocked-description pool for resource files after the last owned shared reader releases, as well as admission files. Weak coalescing references active LockFile readers only; the pool stores plain explicitly unlocked files.",
     "Every new read interval still obtains the actual exclusive admission and actual shared resource lock. Reused files freshly validate path/descriptor identity, private owner/read-write mode, single links and effective access including ACLs. No permission, reader, SQL snapshot or queued media grant is retained by the idle pool.",
@@ -22,6 +22,20 @@
     "source_sha256": {
       "crates/connect-store/src/authority_fences.rs": "e53c2169bb8175d136e562818efee8e6af76f3db415763d509e8821d92b80d70",
       "crates/connect-store/src/authority_fences/tests/admissions.rs": "fc22f918131525d03696c5f1ee16562cf42e52b35da66ace5766fc024c8b93b4"
+    },
+    "full_store_suite": {
+      "passed": true,
+      "summary": "test result: ok. 1069 passed; 0 failed; 3 ignored; 0 measured; 0 filtered out; finished in 775.48s",
+      "methods_passed": 1069,
+      "ignored": [
+        "authority_fences::tests::process_worker",
+        "installation_ownership::tests::process_worker",
+        "transitions::tests::crash_worker"
+      ],
+      "log": ".local/gate-6/received-dtmf-runtime/resource-fds179-store.log",
+      "log_sha256": "08c2f49cc7d66a4a06d0e6a99b99069b4113fa28e1e65af0c0401821b66c0336",
+      "binary_sha256": "0bd8deb25eb8c2049d2769e8f768b6da820fa0460804ede1398871abf3feaef9",
+      "source_inputs_unchanged": true
     }
   },
   "readiness_diagnostic": {
@@ -48,8 +62,18 @@
     "limitation": "These bounded observer runs did not reproduce the earlier two plain SIP readiness failures. They do not establish a resolved cause or erase those failures."
   },
   "pending": [
-    "Complete current full Store suite and exact optimized host build.",
-    "Compile and exercise timeout-only SIP readiness diagnostics, keeping its original15s bound and event/media sequence.",
-    "Run unchanged actual fifty-peer rehearsal and production regressions on the exact updated executable. Full50 still needs both completed algorithm captures and validator; later profiles and whole-gate acceptance remain open."
-  ]
+    "Run unchanged actual fifty-peer rehearsal and production regressions on the exact updated executable.",
+    "SIP diagnostic changes execute only after the same15s readiness bound fails; they do not resolve historical two plain readiness failures. Quality active-traffic fixture follow-up remains unimplemented.",
+    "Full50 needs both completed algorithm captures and validator; later profiles and whole-gate acceptance remain open."
+  ],
+  "host_build": {
+    "passed": true,
+    "profile": "release opt-level3",
+    "duration_seconds": 782,
+    "log": ".local/gate-6/received-dtmf-runtime/resource-fds179-release-build.log",
+    "log_sha256": "f5e10bbc1d7c7b9eb29e96077b957f77b2775711a003af20af6ab094ea664a47",
+    "timeout_diagnostic_source": "crates/connect-server/tests/support/canonical_native_connections/consultation/groups/replacement/telephone.rs",
+    "timeout_diagnostic_source_sha256": "b51da0497047e26cb702668bd2391e563db6f16030d3802b96c4f129aeb35b88",
+    "limitation": "Compilation only; current actual capacity/production verification remains pending."
+  }
 }

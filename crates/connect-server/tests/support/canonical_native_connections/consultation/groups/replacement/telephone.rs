@@ -1059,7 +1059,41 @@ async fn telephone_case_profile(stop: Stop, configured: bool, algorithm: &str) {
                 peer.digit(digit).await;
                 tokio::time::sleep(Duration::from_millis(80)).await;
             }
-            until(|| readiness() == 1).await;
+            let ready = tokio::time::timeout(Duration::from_secs(15), async {
+                while readiness() != 1 {
+                    tokio::time::sleep(Duration::from_millis(20)).await;
+                }
+            })
+            .await;
+            if ready.is_err() {
+                // Read diagnostics only after the original bound fails. This
+                // must not delay positive digits or change their eligibility.
+                let failed = status(&f, &controller_key.id, &command.operation_id).await;
+                let phases = db
+                    .prepare("SELECT phase FROM telephone_replacement_phases ORDER BY phase")
+                    .unwrap()
+                    .query_map([], |r| r.get::<_, String>(0))
+                    .unwrap()
+                    .collect::<rusqlite::Result<Vec<_>>>()
+                    .unwrap();
+                let effects = failed
+                    .effects
+                    .iter()
+                    .map(|e| {
+                        json!({
+                            "provider":e.provider,"state":e.state,"attempt":e.attempt
+                        })
+                    })
+                    .collect::<Vec<_>>();
+                panic!(
+                    "private SIP confirmation readiness timed out: {}",
+                    json!({
+                        "algorithm":algorithm,"state":failed.state,
+                        "problem_code":failed.problem.as_ref().and_then(|p|p.get("code")),
+                        "phases":phases,"ready_count":readiness(),"effects":effects
+                    })
+                );
+            }
         });
         let completed_until = tokio::time::Instant::now() + Duration::from_secs(10);
         let done = loop {
