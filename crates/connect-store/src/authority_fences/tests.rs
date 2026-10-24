@@ -636,7 +636,48 @@ fn process_worker() {
 
 mod mutations;
 
+mod names;
 mod runtime;
+
+#[test]
+fn immediate_large_scene_admission_preserves_every_scope() {
+    let f = Fixture::new();
+    let mut scopes = (0..50)
+        .map(|index| {
+            AuthorityScope::identity(&format!("large_scene_{index:02}"), AuthorityMode::Read)
+                .unwrap()
+        })
+        .collect::<Vec<_>>();
+    scopes.push(AuthorityScope::conversation("large_scene", AuthorityMode::Read).unwrap());
+    let retained = f.store.try_acquire_authority(&scopes).unwrap();
+    assert!(f.store.authority_covers(&retained, &scopes));
+    let start = Instant::now();
+    for _ in 0..100 {
+        let fresh = f.store.try_acquire_authority(&scopes).unwrap();
+        assert!(f.store.authority_covers(&fresh, &scopes));
+    }
+    eprintln!(
+        "51-scope fresh admission mean_us={}",
+        start.elapsed().as_micros() / 100
+    );
+    for scope in &scopes {
+        let mut write = scope.clone();
+        write.mode = AuthorityMode::Write;
+        assert_eq!(
+            f.store.try_acquire_authority(&[write]).unwrap_err().code,
+            "authority-busy"
+        );
+    }
+    drop(retained);
+    let writes = scopes
+        .into_iter()
+        .map(|mut scope| {
+            scope.mode = AuthorityMode::Write;
+            scope
+        })
+        .collect::<Vec<_>>();
+    assert!(f.store.try_acquire_authority(&writes).is_ok());
+}
 
 #[test]
 fn immediate_admission_refuses_queued_writer_and_releases_partial_scopes() {

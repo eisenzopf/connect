@@ -43,6 +43,11 @@ path against that identity before admission. Opaque HMAC names contain no raw re
 namespace directories are mode 0700 and files are mode 0600, checked for owner,
 privacy, regular-file shape and single-link ownership. Symlink aliases resolve
 to one canonical database, blob directory and lock namespace; hard-linked database aliases are refused before opening SQLite.
+Each manager memoizes at most 1024 derived HMAC filenames, keyed by resource kind
+and ID within that manager's namespace. This metadata owns no files, readers or
+permissions. A full or occupied memo falls back to computing the name without
+waiting. Every acquisition still checks database identity, directory/file privacy
+and the fresh admission turnstile, including when a local resource reader exists.
 Live database moves, replacement, manual lock-file removal and direct SQL writes
 are unsupported during service operation. These locks coordinate matching Store
 writers; they do not constrain a privileged filesystem owner or arbitrary SQL.

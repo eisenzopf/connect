@@ -175,6 +175,8 @@ pub(crate) struct Manager {
     secret: Vec<u8>,
     fingerprint: (u64, u64, u32),
     state_identity: String,
+    // Bounded namespace metadata only: never a file, lock, reader or grant.
+    names: Mutex<BTreeMap<(Kind, String), String>>,
     readers: Mutex<BTreeMap<String, Weak<File>>>,
 }
 impl Manager {
@@ -223,6 +225,7 @@ impl Manager {
             directory: directory.clone(),
             secret: secret.as_bytes().to_vec(),
             fingerprint,
+            names: Mutex::new(BTreeMap::new()),
             readers: Mutex::new(BTreeMap::new()),
         });
         managers.insert(name, Arc::downgrade(&manager));
@@ -276,16 +279,11 @@ impl Manager {
                 .or_insert(scope.mode);
         }
         let mut held = Vec::with_capacity(ordered.len());
-        for ((kind, id), mode) in &ordered {
+        for (key, mode) in &ordered {
             if let Some(wait) = wait {
                 wait.check()?;
             }
-            let domain = match kind {
-                Kind::Identity => b"identity".as_slice(),
-                Kind::Conversation => b"conversation".as_slice(),
-                Kind::Record => b"record".as_slice(),
-            };
-            let name = opaque(&self.secret, domain, id.as_bytes())?;
+            let name = self.name(key)?;
             let admission = self.file(&format!("{name}.admission"))?;
             lock_with(&admission, wait)?;
             if *mode == AuthorityMode::Write {
@@ -335,6 +333,27 @@ impl Manager {
             scopes: ordered,
             _held: held,
         }))
+    }
+    fn name(&self, key: &(Kind, String)) -> Result<String> {
+        if let Ok(names) = self.names.try_lock() {
+            if let Some(name) = names.get(key) {
+                return Ok(name.clone());
+            }
+        }
+        let domain = match key.0 {
+            Kind::Identity => b"identity".as_slice(),
+            Kind::Conversation => b"conversation".as_slice(),
+            Kind::Record => b"record".as_slice(),
+        };
+        let name = opaque(&self.secret, domain, key.1.as_bytes())?;
+        // A busy/full metadata map falls back to deriving the same name. It
+        // cannot delay immediate admission or change any fresh file checks.
+        if let Ok(mut names) = self.names.try_lock() {
+            if names.len() < MAX_SCOPES {
+                names.insert(key.clone(), name.clone());
+            }
+        }
+        Ok(name)
     }
     fn file(&self, name: &str) -> Result<File> {
         let path = self.directory.join(name);
