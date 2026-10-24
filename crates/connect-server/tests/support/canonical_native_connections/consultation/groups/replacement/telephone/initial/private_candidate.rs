@@ -1,15 +1,28 @@
 //! Actual fresh private SIP call beside the same Participant's public call.
-//! This qualifies quarantined admission/cleanup, not the later private switch.
+//! Quarantine and full switch profiles keep their behavior assertions separate.
 use super::*;
 use rvoip_uctp::v2::payloads::OperationState;
+#[path = "private_candidate/switched.rs"]
+mod switched;
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
 async fn production_private_sip_candidate_owns_fresh_muted_call_and_original_cleanup_eddsa() {
-    exercise("EdDSA").await;
+    exercise("EdDSA", false).await;
 }
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
 async fn production_private_sip_candidate_owns_fresh_muted_call_and_original_cleanup_es256() {
-    exercise("ES256").await;
+    exercise("ES256", false).await;
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn production_private_sip_candidate_switch_preserves_original_call_and_public_sibling_eddsa()
+{
+    exercise("EdDSA", true).await;
+}
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn production_private_sip_candidate_switch_preserves_original_call_and_public_sibling_es256()
+{
+    exercise("ES256", true).await;
 }
 
 async fn marked(peer: &PeerSip, clients: &mut [Peer]) -> Vec<usize> {
@@ -45,8 +58,12 @@ async fn marked(peer: &PeerSip, clients: &mut [Peer]) -> Vec<usize> {
     counts
 }
 
-async fn exercise(algorithm: &str) {
-    let ConfiguredInitial { f, peer, .. } = configured_initial_for(algorithm, Some(0), 30).await;
+async fn exercise(algorithm: &str, complete: bool) {
+    let ConfiguredInitial { f, peer, .. } = if complete {
+        configured_initial_human(algorithm).await
+    } else {
+        configured_initial_for(algorithm, Some(0), 30).await
+    };
     let mut primary = CanonicalClient::open(f.client.clone()).await.unwrap();
     let mut input =
         connect_client::conversations::CreateRequest::persistent(vec![f.peer.identity_id.clone()]);
@@ -104,6 +121,7 @@ async fn exercise(algorithm: &str) {
     };
     assert_eq!(peer.unique(), 1);
     let public_media = *peer.media_target.lock().unwrap();
+    let public_dialog = peer.dialog.lock().unwrap().clone();
     ready_endpoint(&f).await;
     let answer = negotiate_named(
         &mut primary,
@@ -126,7 +144,7 @@ async fn exercise(algorithm: &str) {
         json!({"subscriptions":[{"from_participant":phone.clone(),"kinds":["audio"]}]}),
     )
     .await;
-    let mut held = enroll_kind(
+    let mut held = enroll_kind_with_scope(
         &f,
         &mut primary,
         &room.id,
@@ -135,6 +153,11 @@ async fn exercise(algorithm: &str) {
         true,
         false,
         IdentityKind::Human,
+        if complete {
+            Some(super::super::received::privacy::signal_scope())
+        } else {
+            None
+        },
     )
     .await;
     let held_revision = stream_revision(&f, &held.id);
@@ -225,6 +248,27 @@ async fn exercise(algorithm: &str) {
         .unwrap();
     assert_eq!(reserved, connection);
     assert_eq!(db.query_row("SELECT count(*) FROM native_offer_operations n JOIN operations o ON o.record_id=n.operation_record_id WHERE o.connection_id=?1",[&connection],|r|r.get::<_,u64>(0)).unwrap(),0,"SIP candidate borrowed a native signing/admission source");
+    if complete {
+        let observed = json!({"algorithm":algorithm,"conversation_id":room.id,"record":record,"child":child,"connection":connection,"core":core,"call":call,"public":public,"details":details,"baseline":baseline});
+        switched::exercise(
+            &f,
+            &peer,
+            &mut clients,
+            &mut controller,
+            &command,
+            &key.id,
+            observed,
+            public_media,
+            public_dialog,
+        )
+        .await;
+        drop(db);
+        for p in &mut clients {
+            p.client.close();
+        }
+        f.server.shutdown().await.unwrap();
+        return;
+    }
     assert_eq!(
         db.query_row(
             "SELECT count(*) FROM operation_effects WHERE operation_record_id=?1",

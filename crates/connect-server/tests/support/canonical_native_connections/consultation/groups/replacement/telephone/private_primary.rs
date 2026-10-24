@@ -5,7 +5,7 @@ use super::retained::RetainedCall;
 use super::*;
 use rvoip_uctp::v2::Scope as WireScope;
 #[path = "private_primary/authority.rs"]
-mod authority;
+pub(super) mod authority;
 
 pub(super) async fn exercise(
     f: &Fixture,

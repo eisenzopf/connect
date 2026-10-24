@@ -1,0 +1,59 @@
+{
+  "task": "G6-046",
+  "recorded_at": "2026-10-24T22:41:16.715220+00:00",
+  "status": "reverse-human-sip-candidate-fixtures-compile-runtime-pending",
+  "full_task_complete": false,
+  "full_goal_complete": false,
+  "newly_qualified_case_ids": [],
+  "prepared_patch_count": 184,
+  "store_schema": 109,
+  "scope": [
+    "Two algorithm-specific actual production-listener fixtures provision a separate Human SIP target. Existing AI target/provider fixtures retain their original kind and readiness requirements.",
+    "Use one original fresh reserved private child beside its same Participant/Endpoint public SIP sibling, with distinct canonical/Core/Call-ID and actual RTP source addresses.",
+    "Assert private duplex media and physical sibling/held exclusion, actual INFO/RFC4733, independent four signal rights/recovery/replay, post-admission-expiry and revoked-controller continuity, fresh original-call return/absence, and restored public sibling media/signals.",
+    "Validate captured signed SDK frames against the server envelope schema and exact operation/connection/original-call correlations. Runtime assertions and actual captures are required; compilation alone qualifies no behavior."
+  ],
+  "verification": {
+    "compile": {
+      "passed": true,
+      "exit_code": 0,
+      "elapsed_seconds": 0.7794699589721859,
+      "command": [
+        "cargo",
+        "check",
+        "-p",
+        "connect-server",
+        "--test",
+        "gate6_canonical_runtime",
+        "--locked",
+        "--offline",
+        "-j2",
+        "--target-dir",
+        "/Volumes/D2-2019/Developer/Connect/target"
+      ],
+      "source_inputs_unchanged": true,
+      "log_sha256": "5d3a31d947042902be1bb8b6c58a3e74655be42fbf3d0072650a8ec7d4a62ee0",
+      "scope": "Compilation of actual reverse private SIP candidate fixtures only. No new socket or clause qualification.",
+      "summary": ".local/gate-6/private-switch123-check-002/summary.json",
+      "summary_sha256": "b527021329714f2f1c74d4ecc0efb21ab363fedf73c052304b132b7542c7bc14"
+    },
+    "validator_cli": {
+      "passed": true,
+      "scope": "Argument parsing/imports only; no actual captures yet."
+    },
+    "runtime": {
+      "status": "not-run",
+      "reason": "Main combined runtime014 has a live immutable-source/executable guard. Complete it before changing main sources or rebuilding its shared optimized executable."
+    }
+  },
+  "new_cases": [
+    "canonical_native_connections::consultation::groups::replacement::telephone::initial::private_candidate::production_private_sip_candidate_switch_preserves_original_call_and_public_sibling_eddsa",
+    "canonical_native_connections::consultation::groups::replacement::telephone::initial::private_candidate::production_private_sip_candidate_switch_preserves_original_call_and_public_sibling_es256"
+  ],
+  "remaining": [
+    "Execute both actual reverse candidate profiles and validate fresh actual captures with stable source/executable guards.",
+    "Repeat affected original quarantine fixtures after helper refactor.",
+    "Resolve real failures without reducing privacy, current authorization, original ID or cleanup assertions.",
+    "Complete approved remaining G6-046 role/provider/phase matrix and independent conformance separately."
+  ]
+}
