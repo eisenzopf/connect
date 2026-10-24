@@ -9,6 +9,8 @@ mod initial;
 mod received;
 #[path = "telephone/restart.rs"]
 mod restart;
+#[path = "telephone/retained.rs"]
+mod retained;
 #[path = "telephone/return_native.rs"]
 mod return_native;
 #[path = "telephone/roles.rs"]
@@ -474,6 +476,7 @@ enum Stop {
     DtmfReceive,
     DtmfRefresh,
     DtmfPrivacy,
+    DtmfRetained,
     ReturnNative,
     ReturnObserver,
     Refresh,
@@ -518,6 +521,7 @@ async fn telephone_case_profile(stop: Stop, configured: bool, algorithm: &str) {
         | Stop::DtmfReceive
         | Stop::DtmfRefresh
         | Stop::DtmfPrivacy
+        | Stop::DtmfRetained
         | Stop::ReturnNative
         | Stop::ReturnObserver
         | Stop::Refresh => Some(0),
@@ -628,6 +632,7 @@ async fn telephone_case_profile(stop: Stop, configured: bool, algorithm: &str) {
                         | Stop::DtmfReceive
                         | Stop::DtmfRefresh
                         | Stop::DtmfPrivacy
+                        | Stop::DtmfRetained
                         | Stop::ReturnNative
                         | Stop::ReturnObserver
                         | Stop::Refresh
@@ -675,7 +680,11 @@ async fn telephone_case_profile(stop: Stop, configured: bool, algorithm: &str) {
     ) = if configured {
         if matches!(
             stop,
-            Stop::Dtmf | Stop::DtmfReceive | Stop::DtmfRefresh | Stop::DtmfPrivacy
+            Stop::Dtmf
+                | Stop::DtmfReceive
+                | Stop::DtmfRefresh
+                | Stop::DtmfPrivacy
+                | Stop::DtmfRetained
         ) {
             codecs::setup_with_telephone_dtmf(algorithm, configure).await
         } else {
@@ -1250,6 +1259,16 @@ async fn telephone_case_profile(stop: Stop, configured: bool, algorithm: &str) {
             received::refresh::exercise(&f, &cid, &mut peers, &peer, payload, &done, algorithm)
                 .await;
         }
+        if matches!(stop, Stop::DtmfRetained) {
+            received::retained::exercise(&f, &peer, &mut peers, &cid, algorithm, &done).await;
+            drop(peers);
+            f.server.shutdown().await.unwrap();
+            assert!(peer.methods.lock().unwrap().contains(&Method::Bye));
+            assert_eq!(peer.unique(), 1);
+            assert_eq!(db.query_row("SELECT retired FROM telephone_connection_lifetimes WHERE operation_record_id=?1 AND generation=2",[&done.record_id],|r|r.get::<_,bool>(0)).unwrap(),true);
+            assert_sip_listener_released(sip_bind);
+            return;
+        }
         if matches!(stop, Stop::DtmfPrivacy) {
             received::privacy::exercise(&f, &peer, &mut peers, &cid, algorithm, &done).await;
             drop(peers);
@@ -1531,6 +1550,7 @@ async fn telephone_case_profile(stop: Stop, configured: bool, algorithm: &str) {
         | Stop::DtmfReceive
         | Stop::DtmfRefresh
         | Stop::DtmfPrivacy
+        | Stop::DtmfRetained
         | Stop::ReturnNative
         | Stop::ReturnObserver
         | Stop::Refresh => {

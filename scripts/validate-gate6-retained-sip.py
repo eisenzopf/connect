@@ -12,6 +12,7 @@ ROOT = Path(__file__).resolve().parents[1]
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('observations', type=Path)
+    parser.add_argument('--source-kind', choices=['initial-sip', 'established-sip'], default='initial-sip')
     args = parser.parse_args()
     path = args.observations.resolve()
     assert path.is_relative_to((ROOT / '.local').resolve()), 'Use ignored fixture observations'
@@ -26,9 +27,14 @@ def main():
     frame_ids = set()
     for row in rows:
         algorithm = row['algorithm']
-        assert row['source_kind'] == 'sip-initial'
+        assert row['source_kind'] == ('sip-initial' if args.source_kind == 'initial-sip' else 'sip-established')
         remote = row['selection']['remote']
-        assert remote['source_kind'] == 'initial-sip' and remote['generation'] == 1
+        assert remote['source_kind'] == args.source_kind
+        assert remote['generation'] == (1 if args.source_kind == 'initial-sip' else 2)
+        if args.source_kind == 'established-sip':
+            assert remote['record_id'] == row['moved_record'] and row['moved_record']
+            assert 'endpoint_credential_id' not in remote
+            assert row['prior_move'] == {'controller_revoked': True, 'source_credential_refused': True, 'preparation_expired': True}
         assert remote['connection_id'] == row['remote'] and 'key_id' not in remote
         assert row['calls'] == 1
         assert row['held_submitted'] == 0 and row['source_operation_count'] == 3
@@ -59,10 +65,10 @@ def main():
         assert returned['state'] == 'completed' and returned['result']['remote_continuing'] is True
         assert len(returned['result']['retired_connection_ids']) == 1
         assert len(returned['effects']) == 1 and returned['effects'][0]['attempt'] == 1
-    print(json.dumps({'passed': True, 'scenes': len(rows), 'actual_frames': 6,
+    print(json.dumps({'passed': True, 'scenes': len(rows), 'actual_frames': 6, 'source_kind': args.source_kind,
                       'observations_sha256': hashlib.sha256(path.read_bytes()).hexdigest(),
                       'schema_sha256': hashlib.sha256(schema_path.read_bytes()).hexdigest(),
-                      'scope': 'Actual local retained initial-SIP state, shape and correlations. SDK verifies signatures; runtime checks decoded media, private exclusion, source settlement, return/replay and cleanup. Not independent cryptography or other profiles.'}))
+                      'scope': 'Actual local retained ' + args.source_kind + ' state, shape and correlations. SDK verifies signatures; runtime checks decoded media, private exclusion, source settlement, return/replay and cleanup. Not independent cryptography or other profiles.'}))
 
 
 if __name__ == '__main__':

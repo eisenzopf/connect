@@ -7,7 +7,7 @@ async fn production_moved_sip_received_private_audience_and_return_keep_actual_l
         telephone_case_profile(Stop::DtmfPrivacy, true, algorithm).await;
     }
 }
-fn signal_scope() -> Scope {
+pub(in super::super) fn signal_scope() -> Scope {
     let mut scope = Scope::collaboration(vec!["*".into()]);
     scope.operations.extend([
         "stream.subscribe".into(),
@@ -18,7 +18,7 @@ fn signal_scope() -> Scope {
     ]);
     scope
 }
-async fn signal(client: &mut CanonicalClient) -> Option<Envelope> {
+pub(in super::super) async fn signal(client: &mut CanonicalClient) -> Option<Envelope> {
     for _ in 0..256 {
         let Ok(frame) = client.receive().await else {
             return None;
@@ -29,7 +29,11 @@ async fn signal(client: &mut CanonicalClient) -> Option<Envelope> {
     }
     panic!("private received signal missing behind lifecycle frames")
 }
-async fn settled(http: &mut CanonicalHttpClient, operation: &str, cid: &str) -> Value {
+pub(in super::super) async fn settled(
+    http: &mut CanonicalHttpClient,
+    operation: &str,
+    cid: &str,
+) -> Value {
     let deadline = tokio::time::Instant::now() + Duration::from_secs(4);
     loop {
         let row = http

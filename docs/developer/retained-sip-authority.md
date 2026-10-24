@@ -51,3 +51,10 @@ and cleanup. External carriers and other hosting profiles require separate proof
 
 The transition wire contract and
 [canonical HTTP reference](../../contracts/openapi-canonical-http.json) are unchanged.
+
+The initial and committed retained-call entry points now use one shared exercise
+in `telephone/retained.rs`. Both entry points compile, and the committed setup
+asserts the original controller/source revocation and expired preparation.
+The [pair report](../evidence/gate-6/auxiliary-retained-sip-pair.json) tracks the
+new source; its actual runtime is pending. For committed captures, pass
+`--source-kind established-sip` to `validate-gate6-retained-sip.py`.

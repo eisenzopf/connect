@@ -4,6 +4,8 @@ use super::*;
 pub(super) mod privacy;
 #[path = "received/refresh.rs"]
 pub(super) mod refresh;
+#[path = "received/retained.rs"]
+pub(super) mod retained;
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
 async fn production_moved_sip_received_info_and_rfc4733_preserve_actual_source_and_current_authority(
 ) {
@@ -315,7 +317,7 @@ pub(super) async fn exercise(
     )
     .await;
 }
-async fn send_info(peer: &PeerSip) -> (String, std::net::SocketAddr) {
+pub(super) async fn send_info(peer: &PeerSip) -> (String, std::net::SocketAddr) {
     let dialog = peer.dialog.lock().unwrap().clone().unwrap();
     let index = peer
         .info_sequence
@@ -328,7 +330,7 @@ async fn send_info(peer: &PeerSip) -> (String, std::net::SocketAddr) {
         .unwrap();
     (request, dialog.remote)
 }
-async fn send_rfc(peer: &PeerSip) {
+pub(super) async fn send_rfc(peer: &PeerSip) {
     send_rfc_timing(peer, true, 1896, 0x87654321).await;
 }
 async fn send_rfc_timing(peer: &PeerSip, start: bool, samples: u16, ssrc: u32) {
