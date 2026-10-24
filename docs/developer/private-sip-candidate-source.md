@@ -47,9 +47,11 @@ the candidate Participant's public native sibling receive neither edge. A cloned
 SIP reader keeps the complete interval alive until it is dropped. Planning creates
 no root effect, native admission, call or audience change.
 
-This is Store planning for G6-046. The runtime coordinator still selects native
-candidates. Role-neutral attempt/completion and return, continuing private
-lifetime, actual private audio and INFO/RFC4733 remain implementation and
+The [recorded private SIP lifetime](private-sip-candidate-lifetime.md) now extends
+Store attempt/completion and sealed physical metadata validation to the original
+SIP candidate at schema 108. This is Store planning/recording for G6-046. The
+runtime coordinator still selects native candidates. Exact return, pending and
+established packet intervals, actual private audio and INFO/RFC4733 remain implementation and
 qualification work. The controlled
 Store cases verify the source boundary; the existing actual local SIP/Core
 rehearsal checks admission/quarantine/cleanup regressions. Neither qualifies a

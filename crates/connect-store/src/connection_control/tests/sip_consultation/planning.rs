@@ -2,6 +2,7 @@
 use super::*;
 use crate::{ConsultationMediaOrigin, NativeMediaOrigin, SipAudienceOrigin};
 use std::sync::Arc;
+mod lifetime;
 
 struct Observed(crate::InitialTelephoneReadyObservation);
 impl crate::PrivateInitialTelephoneRuntimeObservation for Observed {
@@ -18,7 +19,38 @@ struct Scene {
 }
 impl Scene {
     fn new() -> Self {
-        let (f, native, root, policy) = fixture_with_sources();
+        Self::with_controller(None)
+    }
+    fn with_controller(operation: Option<&str>) -> Self {
+        let (f, native, mut root, policy) = fixture_with_sources();
+        if let Some(_operation) = operation {
+            let identity = f.store.revalidate(&f.keys[0]).unwrap().identity_id;
+            let controller = f
+                .store
+                .issue(&identity, Scope::operator(), crate::now() + 600)
+                .unwrap();
+            let original = root.request();
+            let command = connect_protocol::transitions::TransitionCommand {
+                operation_id: original.operation_id.clone(),
+                conversation_id: original.conversation_id.clone(),
+                session_id: original.session_id.clone(),
+                connection_id: original.connection_id.clone(),
+                expected_revision: original.expected_revision,
+                intent: original.intent.clone(),
+                payload_extensions: Default::default(),
+            };
+            root = f
+                .store
+                .native_consultation_origin(&controller.id, command)
+                .unwrap();
+            let c = f.store.connection().unwrap();
+            c.execute("UPDATE identities SET kind='human' WHERE id=(SELECT identity_id FROM participants WHERE participant_id=?1)", [&f.pids[2]]).unwrap();
+            c.execute(
+                "UPDATE participants SET kind='human' WHERE participant_id=?1",
+                [&f.pids[2]],
+            )
+            .unwrap();
+        }
         let reservation = f
             .store
             .reserve_sip_consultation_leg(&root, policy.clone())

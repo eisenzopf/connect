@@ -317,7 +317,7 @@ pub(crate) fn require_for_native(
     root: &str,
     selected: &str,
 ) -> Result<()> {
-    let (candidate,audience):(String,String)=c.query_row("SELECT connection_id,audience_json FROM native_consultation_legs WHERE operation_record_id=?1",[root],|r|Ok((r.get(0)?,r.get(1)?))).optional().map_err(|_|Error::storage())?.ok_or_else(||Error::new("not-ready","A fresh private native candidate must be registered"))?;
+    let (candidate,audience):(String,String)=c.query_row("SELECT connection_id,audience_json FROM consultation_candidate_bindings WHERE operation_record_id=?1",[root],|r|Ok((r.get(0)?,r.get(1)?))).optional().map_err(|_|Error::storage())?.ok_or_else(||Error::new("not-ready","A fresh private candidate must be registered"))?;
     let ai:bool=c.query_row("SELECT p.kind='ai' OR i.kind='ai' FROM connections v JOIN participants p ON p.participant_id=v.participant_id JOIN identities i ON i.id=v.identity_id WHERE v.id=?1",[candidate],|r|r.get(0)).map_err(|_|Error::storage())?;
     if ai && !ready(c, store, root, selected, &audience)? {
         return Err(Error::new(

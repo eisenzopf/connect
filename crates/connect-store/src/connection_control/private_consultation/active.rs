@@ -78,9 +78,9 @@ pub(crate) fn validate(
     let selection: Selection = serde_json::from_str(selected).map_err(|_| Error::storage())?;
     let audience: Vec<(String, String, u64)> =
         serde_json::from_str(audience).map_err(|_| Error::storage())?;
-    let (candidate, primary, session, conversation): (String,String,String,String) = c.query_row(
-        "SELECT l.connection_id,l.primary_connection_id,v.session_id,s.conversation_id FROM native_consultation_legs l JOIN connections v ON v.id=l.primary_connection_id JOIN sessions s ON s.id=v.session_id WHERE l.operation_record_id=?1",
-        [record],|r|Ok((r.get(0)?,r.get(1)?,r.get(2)?,r.get(3)?)),
+    let (candidate, primary, session, conversation, kind): (String,String,String,String,String) = c.query_row(
+        "SELECT l.connection_id,l.primary_connection_id,v.session_id,s.conversation_id,l.candidate_kind FROM consultation_candidate_bindings l JOIN connections v ON v.id=l.primary_connection_id JOIN sessions s ON s.id=v.session_id WHERE l.operation_record_id=?1",
+        [record],|r|Ok((r.get(0)?,r.get(1)?,r.get(2)?,r.get(3)?,r.get(4)?)),
     ).map_err(|_|Error::storage())?;
     if selection.private.len() != 2
         || selection
@@ -176,8 +176,22 @@ pub(crate) fn validate(
         let binding = serde_json::to_value(original).map_err(|_| Error::storage())?;
         let private = original.connection_id() != selection.remote.connection_id();
         let (required, expiry) = if private {
-            if original.connection_id() != primary {
-                return Err(Error::forbidden());
+            match (kind.as_str(), original) {
+                (
+                    "sip",
+                    crate::peer_authority::SipSnapshot::PrivateInitialSip {
+                        consultation_record_id,
+                        ..
+                    },
+                ) if original.connection_id() == candidate && consultation_record_id == record => {
+                    ()
+                }
+                (
+                    "native",
+                    crate::peer_authority::SipSnapshot::InitialSip { .. }
+                    | crate::peer_authority::SipSnapshot::EstablishedSip { .. },
+                ) if original.connection_id() == primary => (),
+                _ => return Err(Error::forbidden()),
             }
             let (needed, actors, expiry) =
                 store.sip_private_snapshot_facts(c, &binding, &conversation, &session)?;
@@ -197,6 +211,12 @@ pub(crate) fn validate(
             private_actors.push((identity.to_owned(), actors));
             (needed, expiry)
         } else {
+            if matches!(
+                original,
+                crate::peer_authority::SipSnapshot::PrivateInitialSip { .. }
+            ) {
+                return Err(Error::forbidden());
+            }
             store.sip_audience_snapshot_facts(c, &binding, &conversation, &session)?
         };
         scopes.extend(required);

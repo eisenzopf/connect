@@ -214,7 +214,7 @@ impl Store {
         admission::require_row(self, &held, &row)?;
         let data:Option<(String,String)>=tx.query_row(
             "SELECT n.selection_json,l.audience_json FROM native_consultation_attempts n
-             JOIN native_consultation_legs l ON l.operation_record_id=n.operation_record_id
+             JOIN consultation_candidate_bindings l ON l.operation_record_id=n.operation_record_id
              JOIN operation_effects e ON e.id=n.effect_id AND e.state='confirmed'
              WHERE n.operation_record_id=?1 AND n.attempt_id=?2 AND n.effect_id=?3 AND n.plan_digest=?4
              AND n.runtime_epoch=?5 AND n.started=1 AND n.applied_json=?6 AND n.decoded_audio_observed=1 AND n.media_failure IS NULL",
@@ -260,7 +260,25 @@ impl Store {
              AND json_extract(o.result_json,'$.private_consultation.prepared_muted')=1)",
             params![context.candidate,receipt.record],|r|r.get(0),
         ).map_err(|_|Error::storage())?;
-        if !prepared {
+        let prepared_sip: bool = tx.query_row(
+            "SELECT EXISTS(SELECT 1 FROM sip_consultation_reservations reserved
+             JOIN initial_telephone_operations child ON child.parent_record_id=reserved.operation_record_id AND child.parent_kind='consultation'
+             JOIN operations call ON call.record_id=child.operation_record_id AND call.connection_id=reserved.connection_id AND call.state='completed'
+             JOIN initial_telephone_answers a ON a.operation_record_id=child.operation_record_id
+             JOIN initial_telephone_private_acceptances own ON own.operation_record_id=child.operation_record_id
+             JOIN operation_effects effect ON effect.id=child.effect_id AND effect.state='confirmed'
+             WHERE reserved.connection_id=?1 AND reserved.operation_record_id=?2 AND reserved.runtime_epoch=?3
+             AND child.attempt_runtime=?3 AND child.signaling_started=1
+             AND a.accepted=1 AND a.acceptance_kind='private-connection' AND a.acceptance_record_id=child.operation_record_id
+             AND own.consultation_record_id=?2 AND a.connected_at IS NOT NULL AND a.retired_at IS NULL
+             AND json_extract(a.connected_json,'$.private_audio')=1
+             AND json_extract(a.connected_json,'$.private_consultation_record_id')=?2
+             AND json_extract(a.connected_json,'$.runtime_connection_id')=child.runtime_connection_id
+             AND json_extract(a.connected_json,'$.call_id')=child.sip_call_id
+             AND json_extract(a.connected_json,'$.stream_revision')=2)",
+            params![context.candidate,receipt.record,receipt.runtime], |r|r.get(0),
+        ).map_err(|_|Error::storage())?;
+        if !prepared && !prepared_sip {
             return Err(Error::forbidden());
         }
         let request = rows::request(&row)?;

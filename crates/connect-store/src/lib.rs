@@ -182,7 +182,7 @@ pub use tasks::{
     IssuedTaskGrant, NativeTaskAuthority, TaskCreateDefaults, TaskInvocation,
     TaskObservationBinding, VapiSessionContext,
 };
-pub const SCHEMA_VERSION: u32 = 107;
+pub const SCHEMA_VERSION: u32 = 108;
 const STARTUP_BLOB_CLEANUP_LIMIT: usize = 100;
 
 mod session_gateways;
@@ -526,6 +526,8 @@ impl Store {
             "../migrations/107_private_telephone_readiness.sql"
         ))
         .map_err(|_| Error::storage())?;
+        tx.execute_batch(include_str!("../migrations/108_private_sip_lifetime.sql"))
+            .map_err(|_| Error::storage())?;
         tx.commit().map_err(|_| Error::storage())?;
         let blob_directory = Self::create_blob_directory(path)?;
         let authority = Self::authority_manager(path, &connection)?;
