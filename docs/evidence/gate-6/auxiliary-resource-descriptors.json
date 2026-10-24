@@ -75,7 +75,7 @@
     "log_sha256": "f5e10bbc1d7c7b9eb29e96077b957f77b2775711a003af20af6ab094ea664a47",
     "timeout_diagnostic_source": "crates/connect-server/tests/support/canonical_native_connections/consultation/groups/replacement/telephone.rs",
     "timeout_diagnostic_source_sha256": "b51da0497047e26cb702668bd2391e563db6f16030d3802b96c4f129aeb35b88",
-    "limitation": "Compilation only; current actual capacity/production verification remains pending."
+    "limitation": "Compilation evidence only; the separate runtime results below still do not qualify capacity."
   },
   "optimized_full50": {
     "passed": false,
