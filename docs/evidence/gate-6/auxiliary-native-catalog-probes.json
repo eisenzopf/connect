@@ -2,7 +2,7 @@
   "task": "G6-046",
   "title": "Yield busy native catalog probes instead of blocking media workers",
   "recorded_at": "2026-10-24T03:12:08.836472+00:00",
-  "status": "core-component-and-exact-host-build-verified; full50-runtime-active",
+  "status": "core-and-host-build-verified; full50-steady-media-failed; production-regressions-active",
   "full_task_complete": false,
   "full_goal_complete": false,
   "qualified_case_ids": [],
@@ -38,9 +38,10 @@
       "catalog176-preparation.json": "29e6a3f929f49fbfe35f5f26581a04e4094dd839f311a85e254279a28f949a45",
       "catalog176-core.log": "7d90d864c1e45c29398139858fe7f4df929613d9b18cc72322258559651d3ac2",
       "catalog176-server-build.log": "b72dabfce7f8460e6aac69c9b8f7ef2f327f0d3fb9673418fae41f3c340e3e6a",
-      "catalog176-runtime-inputs.json": "91ce8f6332dbd24448923b7bd78b541a22cc6a955e7122ec300fc69b7fb347c1"
+      "catalog176-runtime-inputs.json": "91ce8f6332dbd24448923b7bd78b541a22cc6a955e7122ec300fc69b7fb347c1",
+      "catalog176-fifty.log": "6da2d1a3d0525cd93ff2fef9d02e37e9036834c6cc539d96a39ec8ba0b924bf9"
     },
-    "scope": "Controlled local macOS arm64 Core behavior:214 staged-media methods pass including2new held-mutex recovery cases. Exact default host build passed in18.70s. Actual full50 runtime is active; compilation does not qualify capacity.",
+    "scope": "Controlled local macOS arm64 Core214 checks and actual host build pass. Full50 EdDSA steady media still fails despite all49 decoded receiver startups. The nonblocking probe change does not establish capacity; actual production regressions are active.",
     "core_component_build_duration_seconds": 355,
     "rust_distinct_methods_passed": 214,
     "passed_methods": [
@@ -268,10 +269,25 @@
     "workspace_format_check_passed": true,
     "openapi_generation_check_passed": true,
     "plan_integrity_check_passed": true,
-    "diff_check_passed": true
+    "diff_check_passed": true,
+    "full50_attempt": {
+      "passed": false,
+      "participants": 50,
+      "connections": 99,
+      "completed_subscriptions": 49,
+      "actual_receiver_startup_ms": 4880,
+      "steady_decoded_range": [
+        1,
+        12
+      ],
+      "required_each": ">10",
+      "second_algorithm_reached": false,
+      "future_phases_reached": false,
+      "complete_capture_rows": 0
+    }
   },
   "unresolved": [
-    "Allow the active exact176 full50 runtime to complete, then run affected native/SIP production regressions and validate a complete both-algorithm capture if all phases pass.",
+    "Complete the active exact176 affected production regression sequence. Then profile remaining current Store/media admission costs; current fixes have not qualified full50 throughput. Preserve all failed runs and original bounds.",
     "Preserve50 actual peers,49 explicit receivers,8s command/startup bounds,200ms original frame age and>10 decoded frames per intended recipient. Complete future publication/end/replay/departure and both signing algorithms before0123 credit.",
     "Original source175 ES256 telephone compound movement Unknown failure remains unexplained despite passing diagnostic retry; retain this provenance.",
     "G6-046 remains58/61,45/105 tasks complete. Later Linux/browser/remote/provider/independent/acceptance/publication checks remain separate."
