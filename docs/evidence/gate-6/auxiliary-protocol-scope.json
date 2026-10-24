@@ -2909,7 +2909,7 @@
           "crates/connect-store/migrations/100_native_dtmf_gateways.sql",
           "crates/connect-store/src/transitions/native_streams/dtmf/gateways.rs"
         ],
-        "remaining": "Actual initial retained SIP with native private endpoints now passes both signing algorithms, including private audio/DTMF exclusion, original-call return/replay and fresh-input recovery. Complete committed retained SIP, selected/private SIP roles and remaining receiver-rights/current-authority/retirement compositions before whole-clause credit. Other substrate/hosting/remote and independent profiles retain their assigned scope.",
+        "remaining": "Actual initial and committed retained SIP with native private endpoints pass both signing algorithms, including current original-call lineage after old source/controller revocation and preparation expiry, media/DTMF exclusion, return/replay, fresh-input recovery and cleanup. Complete selected/private SIP roles and remaining receiver-rights/current-authority/retirement compositions before whole-clause credit. Other substrate/hosting/remote and independent profiles retain their assigned scope.",
         "current_sip_signal_authority_evidence": "docs/evidence/gate-6/auxiliary-sip-signal-authority.json",
         "current_gateway_custody_evidence": "docs/evidence/gate-6/auxiliary-native-dtmf-gateway-custody.json",
         "current_moved_sip_outgoing_evidence": "docs/evidence/gate-6/auxiliary-moved-sip-dtmf.json",
@@ -2917,7 +2917,8 @@
         "current_credential_epoch_evidence": "docs/evidence/gate-6/auxiliary-dtmf-credential-refresh.json",
         "current_established_private_audience_evidence": "docs/evidence/gate-6/auxiliary-established-sip-private-audience.json",
         "current_retained_initial_sip_evidence": "docs/evidence/gate-6/auxiliary-retained-sip-wire.json",
-        "current_retained_return_completion_evidence": "docs/evidence/gate-6/auxiliary-retained-sip-completion.json"
+        "current_retained_return_completion_evidence": "docs/evidence/gate-6/auxiliary-retained-sip-completion.json",
+        "current_retained_sip_pair_evidence": "docs/evidence/gate-6/auxiliary-retained-sip-pair.json"
       }
     },
     {
@@ -2960,7 +2961,7 @@
           "crates/connect-store/migrations/100_native_dtmf_gateways.sql",
           "crates/connect-store/src/transitions/native_streams/dtmf/gateways.rs"
         ],
-        "remaining": "Actual initial retained SIP with native private endpoints now passes both signing algorithms, including private audio/DTMF exclusion, original-call return/replay and fresh-input recovery. Complete committed retained SIP, selected/private SIP roles and remaining receiver-rights/current-authority/retirement compositions before whole-clause credit. Other substrate/hosting/remote and independent profiles retain their assigned scope.",
+        "remaining": "Actual initial and committed retained SIP with native private endpoints pass both signing algorithms, including current original-call lineage after old source/controller revocation and preparation expiry, media/DTMF exclusion, return/replay, fresh-input recovery and cleanup. Complete selected/private SIP roles and remaining receiver-rights/current-authority/retirement compositions before whole-clause credit. Other substrate/hosting/remote and independent profiles retain their assigned scope.",
         "current_sip_signal_authority_evidence": "docs/evidence/gate-6/auxiliary-sip-signal-authority.json",
         "current_gateway_custody_evidence": "docs/evidence/gate-6/auxiliary-native-dtmf-gateway-custody.json",
         "current_moved_sip_outgoing_evidence": "docs/evidence/gate-6/auxiliary-moved-sip-dtmf.json",
@@ -2968,7 +2969,8 @@
         "current_credential_epoch_evidence": "docs/evidence/gate-6/auxiliary-dtmf-credential-refresh.json",
         "current_established_private_audience_evidence": "docs/evidence/gate-6/auxiliary-established-sip-private-audience.json",
         "current_retained_initial_sip_evidence": "docs/evidence/gate-6/auxiliary-retained-sip-wire.json",
-        "current_retained_return_completion_evidence": "docs/evidence/gate-6/auxiliary-retained-sip-completion.json"
+        "current_retained_return_completion_evidence": "docs/evidence/gate-6/auxiliary-retained-sip-completion.json",
+        "current_retained_sip_pair_evidence": "docs/evidence/gate-6/auxiliary-retained-sip-pair.json"
       }
     },
     {

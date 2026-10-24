@@ -1,10 +1,10 @@
 # Retained SIP consultation authority
 
-Consultation planning can retain an initial or committed SIP call while the
-private pair uses native Connections. The actual local initial-call profile now
-passes for both EdDSA and ES256, including private audio/DTMF exclusion,
-original-call return/replay, fresh RFC4733 delivery and owned cleanup. Committed
-retained calls and selected/private SIP endpoints remain pending.
+Consultation can retain an initial or committed SIP call while the private pair
+uses native Connections. Both local profiles pass for EdDSA and ES256, including
+private audio/DTMF exclusion, original-call return/replay, fresh RFC4733 delivery
+and owned cleanup. Selected/private SIP endpoints and the remaining authority
+and retirement compositions remain pending.
 
 `ConsultationMediaOrigin` carries native metadata or the actual initial or
 committed SIP origin. A saved SIP snapshot is matched to a previously observed
@@ -15,54 +15,53 @@ invented native signing fields.
 
 Planning and execution acquire the full current native and SIP footprint. A
 captured outcome updates only the original SIP call generation and receiver
-revision. Return uses separately checked SIP-target/native-source permission;
+revision. Return checks SIP-target/native-source permission separately;
 native receive permission cannot stand in for the phone's receive permission.
-The held control also checks the parent interval, cancellation, source identity
-and activation. Historical departure proves only exact recorded absence, and
-cannot authorize a new call or restore a different generation.
+The held control also checks parent expiry, cancellation, source identity and
+activation. Historical departure proves exact recorded absence and cannot
+restore another generation or authorize a new call.
 
 Completion distinguishes physical presence from current receive authority. A
 live call stays in retained IDs after receive rights are withdrawn;
 `remote_continuing` also requires current named receive permission and reciprocal
 recipient ceilings. Route-owner credentials apply to the phone Participant's
-identity. Completion grants no media reader or IO, and still waits for actual
-candidate retirement before recording its result once.
-
-The [initial wire report](../evidence/gate-6/auxiliary-retained-sip-wire.json)
-records the unchanged-source 28.34-second runtime and six validated actual
-SDK-observed frames. The
-[completion report](../evidence/gate-6/auxiliary-retained-sip-completion.json)
-records 171 distinct affected Store cases and service compilation. The
-[earlier authority report](../evidence/gate-6/auxiliary-retained-sip-authority.json)
-retains its original component scope. Failed, interrupted and diagnostic runs
-remain recorded; these reports do not close either complete DTMF clause.
-
-The test is
-`production_initial_sip_retained_consultation_fences_dtmf_and_restores_original_call`
-in the `gate6_canonical_runtime` server target. It uses actual loopback SIP/RTP
-and signed native public clients. Set `CONNECT_RETAINED_SIP_OBSERVATIONS` to a
-fresh absolute JSONL path physically under this checkout's ignored
-`.local/gate-6/` directory to capture the actual frames and operation summaries.
-Validate a completed capture with
-`python3 scripts/validate-gate6-retained-sip.py <observations.jsonl>` in an
-environment containing `jsonschema`. The SDK verifies signatures; the validator
-checks schemas and correlations; the runtime checks media, exclusion, replay
-and cleanup. External carriers and other hosting profiles require separate proof.
-
-The transition wire contract and
-[canonical HTTP reference](../../contracts/openapi-canonical-http.json) are unchanged.
-
-The initial and committed retained-call entry points now use one shared exercise
-in `telephone/retained.rs`. Both entry points compile, and the committed setup
-asserts the original controller/source revocation and expired preparation.
-The [pair report](../evidence/gate-6/auxiliary-retained-sip-pair.json) tracks the
-new source; its actual runtime is pending. For committed captures, pass
-`--source-kind established-sip` to `validate-gate6-retained-sip.py`.
+identity. Completion grants no media reader or IO, and waits for actual candidate
+retirement before recording its result once.
 
 A completed telephone move reports the new SIP Connection in
 `operation.result["connection_id"]`. `operation.connection_id` continues to name
 the replaced native request source, which is retired after the real commit.
-Use the result ID for a later retained-call command; preserve both IDs when
-showing the move. The committed fixture asserts their separation and the actual
-generation2 lifetime. Its first attempt correctly refused the old source and is
-preserved in the pair report; corrected-pair runtime verification is pending.
+Use the result ID for a later retained-call command and preserve both IDs when
+showing the move. The committed fixture asserts their separation, the current
+generation2 SIP lifetime, original source/controller revocation and expired
+preparation before entering consultation.
+
+The [pair report](../evidence/gate-6/auxiliary-retained-sip-pair.json) records one
+unchanged optimized executable: initial SIP31.53s, committed SIP54.74s, four
+signing scenes and twelve validated actual SDK-observed frames. It preserves
+the first committed fixture's correctly refused retired-source attempt. The
+[completion report](../evidence/gate-6/auxiliary-retained-sip-completion.json)
+records 171 distinct affected Store cases and service compilation. The
+[earlier initial report](../evidence/gate-6/auxiliary-retained-sip-wire.json) and
+[authority report](../evidence/gate-6/auxiliary-retained-sip-authority.json) retain
+their historical source scopes. These results do not close either complete DTMF
+clause or the whole task.
+
+Both entry points in the `gate6_canonical_runtime` server target use the same
+exercise in `telephone/retained.rs`:
+
+- `production_initial_sip_retained_consultation_fences_dtmf_and_restores_original_call`
+- `production_moved_sip_retained_consultation_fences_dtmf_and_restores_original_call`
+
+They use actual loopback SIP/RTP and signed native public clients. Set
+`CONNECT_RETAINED_SIP_OBSERVATIONS` to a fresh absolute JSONL path physically
+under this checkout's ignored `.local/gate-6/` directory for each profile.
+Validate the initial capture with
+`python3 scripts/validate-gate6-retained-sip.py <observations.jsonl>`; add
+`--source-kind established-sip` for the committed capture. The environment needs
+`jsonschema`. The SDK verifies signatures, the validator checks schemas and
+correlations, and the runtime checks media, exclusion, replay and cleanup.
+External carriers and other hosting profiles require separate proof.
+
+The transition wire contract and
+[canonical HTTP reference](../../contracts/openapi-canonical-http.json) are unchanged.
