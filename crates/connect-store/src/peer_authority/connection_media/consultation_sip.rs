@@ -248,20 +248,30 @@ impl Store {
         Ok((scopes, expiry))
     }
 }
-pub(super) fn reads(
+pub(super) fn return_reads(
     store: &Store,
     c: &Connection,
     sources: &[SipAudienceOrigin],
+    origin: &crate::NativeConsultationReturnOrigin,
     held: Arc<AuthorityGuardSet>,
     until: i64,
 ) -> Result<BTreeMap<String, Arc<SipAudienceRead>>> {
     sources
         .iter()
         .map(|s| {
-            Ok((
-                s.connection_id().into(),
-                Arc::new(s.read(store, c, held.clone(), until)?),
-            ))
+            let read = match s {
+                SipAudienceOrigin::Initial(o) if o.source().is_private_candidate() => {
+                    SipAudienceRead::Initial(Arc::new(store.initial_telephone_return_in(
+                        c,
+                        o.clone(),
+                        origin,
+                        held.clone(),
+                        until,
+                    )?))
+                }
+                _ => s.read(store, c, held.clone(), until)?,
+            };
+            Ok((s.connection_id().into(), Arc::new(read)))
         })
         .collect()
 }
@@ -327,6 +337,9 @@ pub(super) fn return_edges(
         }
         let actor = store.native_media_route_actor(c, native)?;
         for (id, phone) in phones {
+            if id == candidate {
+                continue;
+            }
             if !phone.current()
                 || !target.current()
                 || !private::return_pair(

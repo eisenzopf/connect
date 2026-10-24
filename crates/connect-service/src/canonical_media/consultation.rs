@@ -95,7 +95,9 @@ impl AudienceInvocation {
             AudienceRead::Consult(r) if r.is_retained_sip(source) => {
                 !private && changed.is_some_and(|s| s.is_empty())
             }
-            AudienceRead::Return(r) if r.is_primary_sip(source) => private && changed.is_none(),
+            AudienceRead::Return(r) if r.is_primary_sip(source) || r.is_candidate_sip(source) => {
+                private && changed.is_none()
+            }
             AudienceRead::Consult(_) | AudienceRead::Return(_) => !private && changed.is_none(),
             AudienceRead::Handoff(_) => false,
         };

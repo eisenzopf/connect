@@ -37,7 +37,11 @@ This is the Store recording and metadata validation component of G6-046. Its
 controlled observers are not actual SIP/Core private audience evidence. The
 runtime coordinator still selects native candidates, and private SIP media and
 signal readers still refuse ordinary/public access. Pending/established packet
-intervals, exact return and outside-pair handling, host lifetime handoff and actual
+intervals, outside-pair handling, host lifetime handoff and actual
 private audio/INFO/RFC4733/return/cleanup remain required. No clause or task closes
 from these component checks. The existing consultation and operation methods in
 the [server HTTP reference](canonical-http.md) remain the client interface.
+
+The [recorded SIP candidate return](private-sip-candidate-return.md) now extends
+Store return admission, closure control and exact captured retirement at schema
+109; actual audience restoration remains unqualified.

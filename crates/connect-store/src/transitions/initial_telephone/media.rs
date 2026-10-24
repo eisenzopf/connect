@@ -45,7 +45,7 @@ pub struct InitialTelephoneMediaRead {
     conversation_revision: u64,
     expires: i64,
     connected: bool,
-    private_admission: bool,
+    purpose: ProjectionPurpose,
 }
 struct InitialTelephoneProjection {
     endpoint_actor: Actor,
@@ -64,6 +64,7 @@ enum ProjectionPurpose {
     Signal,
     PrivateAdmission,
     PrivateSelection,
+    PrivateReturn,
 }
 media_redacted!(
     InitialTelephoneAnswerCapture,
@@ -159,13 +160,14 @@ impl InitialTelephoneMediaRead {
         self.connected
     }
     pub fn is_private_admission(&self) -> bool {
-        self.private_admission
+        matches!(self.purpose, ProjectionPurpose::PrivateAdmission)
     }
     pub fn is_private_audio(&self) -> bool {
         self.origin.source().is_private_candidate()
     }
     pub fn may_receive(&self) -> bool {
-        self.endpoint_actor.permits("stream.subscribe")
+        !matches!(self.purpose, ProjectionPurpose::PrivateReturn)
+            && self.endpoint_actor.permits("stream.subscribe")
     }
 }
 fn current_scopes(
@@ -525,7 +527,7 @@ impl Store {
             conversation_revision: p.conversation_revision,
             expires: p.expires,
             connected: p.connected,
-            private_admission: matches!(purpose, ProjectionPurpose::PrivateAdmission),
+            purpose,
         })
     }
     fn initial_telephone_projection(
@@ -541,7 +543,10 @@ impl Store {
         if matches!(purpose, ProjectionPurpose::PrivateAdmission) {
             return private_admission::projection(self, c, origin, until);
         }
-        if matches!(purpose, ProjectionPurpose::PrivateSelection) {
+        if matches!(
+            purpose,
+            ProjectionPurpose::PrivateSelection | ProjectionPurpose::PrivateReturn
+        ) {
             return private_facts::selection_projection(self, c, origin, until);
         }
         if s.is_private_candidate() {

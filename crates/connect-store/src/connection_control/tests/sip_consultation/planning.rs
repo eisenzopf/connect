@@ -3,6 +3,7 @@ use super::*;
 use crate::{ConsultationMediaOrigin, NativeMediaOrigin, SipAudienceOrigin};
 use std::sync::Arc;
 mod lifetime;
+mod returning;
 
 struct Observed(crate::InitialTelephoneReadyObservation);
 impl crate::PrivateInitialTelephoneRuntimeObservation for Observed {
@@ -16,6 +17,7 @@ struct Scene {
     root: NativeConsultationOrigin,
     policy: InitialTelephonePolicy,
     phone: Arc<crate::InitialTelephoneMediaOrigin>,
+    signal: Arc<crate::InitialTelephoneSignaling>,
 }
 impl Scene {
     fn new() -> Self {
@@ -107,6 +109,7 @@ impl Scene {
             root,
             policy,
             phone,
+            signal,
         }
     }
     fn private(&self) -> Vec<ConsultationMediaOrigin> {

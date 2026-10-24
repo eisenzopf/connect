@@ -19,6 +19,7 @@ pub struct NativeReturnRead {
     expires_at: i64,
     sip_reads: BTreeMap<String, Arc<SipAudienceRead>>,
     sip_send: BTreeSet<(String, String)>,
+    candidate: String,
 }
 impl NativeReturnRead {
     pub(crate) fn limit(&mut self, deadline: i64) -> Result<()> {
@@ -39,6 +40,9 @@ impl NativeReturnRead {
         self.selection.origin.request.connection_id.as_deref() == Some(id)
             && self.sip_reads.contains_key(id)
     }
+    pub fn is_candidate_sip(&self, id: &str) -> bool {
+        self.candidate == id && self.sip_reads.contains_key(id)
+    }
     pub fn current(&self) -> bool {
         crate::now() < self.expires_at
             && self.reads.values().all(|r| r.current())
@@ -52,6 +56,9 @@ impl NativeReturnRead {
         native: &str,
         sip: &str,
     ) -> Option<(&SipAudienceRead, &NativeMediaRead)> {
+        if !self.current() || self.candidate == sip {
+            return None;
+        }
         let phone = self.sip_reads.get(sip)?;
         let target = self.reads.get(&(native.into(), Some(sip.into())))?;
         Some((phone.as_ref(), target.as_ref()))
@@ -257,7 +264,7 @@ fn resolve(
     let mut expires_at = (crate::now() + 5)
         .min(actor.expires_at)
         .min(selection.origin.request.expires_at);
-    let (primary,candidate,context):(String,String,String)=c.query_row("SELECT l.primary_connection_id,l.connection_id,n.context_selection_json FROM native_consultation_returns n JOIN native_consultation_legs l ON l.operation_record_id=n.consultation_record_id WHERE n.operation_record_id=?1",[&selection.origin.record],|r|Ok((r.get(0)?,r.get(1)?,r.get(2)?))).map_err(|_|Error::storage())?;
+    let (primary,candidate,context):(String,String,String)=c.query_row("SELECT l.primary_connection_id,l.connection_id,n.context_selection_json FROM native_consultation_returns n JOIN consultation_candidate_bindings l ON l.operation_record_id=n.consultation_record_id WHERE n.operation_record_id=?1",[&selection.origin.record],|r|Ok((r.get(0)?,r.get(1)?,r.get(2)?))).map_err(|_|Error::storage())?;
     let context: serde_json::Value =
         serde_json::from_str(&context).map_err(|_| Error::storage())?;
     let actual = selection
@@ -474,15 +481,17 @@ impl Store {
                 )
             })
             .collect();
-        let sip_reads = consultation_sip::reads(self, &c, sips, held.clone(), expires_at)?;
+        let sip_reads =
+            consultation_sip::return_reads(self, &c, sips, origin, held.clone(), expires_at)?;
         let (primary, candidate): (String, String) = c.query_row(
-            "SELECT primary_connection_id,connection_id FROM native_consultation_legs WHERE operation_record_id=?1",
+            "SELECT primary_connection_id,connection_id FROM consultation_candidate_bindings WHERE operation_record_id=?1",
             [origin.consultation_record_id()], |r| Ok((r.get(0)?,r.get(1)?)),
         ).map_err(|_|Error::storage())?;
         let sip_send = consultation_sip::return_edges(
             self, &c, sources, &sip_reads, &mut reads, &primary, &candidate,
         )?;
         Ok(NativeReturnRead {
+            candidate,
             sip_send,
             selection,
             reads,

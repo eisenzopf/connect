@@ -4,6 +4,52 @@
 use super::*;
 
 impl Store {
+    /// Only a fresh return over this exact captured private candidate can grant
+    /// its closure control view. It grants no public/private media receive edge.
+    pub(crate) fn initial_telephone_return_in(
+        &self,
+        c: &Connection,
+        origin: Arc<InitialTelephoneMediaOrigin>,
+        returning: &crate::NativeConsultationReturnOrigin,
+        interval: Arc<AuthorityGuardSet>,
+        until: i64,
+    ) -> Result<InitialTelephoneMediaRead> {
+        let actor = returning.require(self, c)?;
+        let (mut required, binding, expiry) = facts(self, c, &origin)?;
+        let context: String = c.query_row(
+            "SELECT r.context_selection_json FROM native_consultation_returns r
+             JOIN consultation_candidate_bindings b ON b.operation_record_id=r.consultation_record_id
+             WHERE r.operation_record_id=?1 AND b.candidate_kind='sip' AND b.connection_id=?2",
+            params![returning.record_id(),origin.connection_id()], |r|r.get(0),
+        ).optional().map_err(|_| Error::storage())?.ok_or_else(Error::forbidden)?;
+        let context: Value = serde_json::from_str(&context).map_err(|_| Error::storage())?;
+        if origin.source().parent.record_id() != returning.consultation_record_id()
+            || origin.source().conversation_id != returning.request().conversation_id
+            || origin.source().session_id != returning.request().session_id
+            || !context["private"]
+                .as_array()
+                .is_some_and(|p| p.contains(&binding))
+        {
+            return Err(Error::forbidden());
+        }
+        required.push(AuthorityScope::identity(
+            &actor.identity_id,
+            AuthorityMode::Read,
+        )?);
+        if !self.authority_covers(&interval, &required) {
+            return Err(Error::forbidden());
+        }
+        self.initial_telephone_read_with_purpose(
+            c,
+            origin,
+            interval,
+            until
+                .min(expiry)
+                .min(actor.expires_at)
+                .min(returning.request().expires_at),
+            ProjectionPurpose::PrivateReturn,
+        )
+    }
     /// Only the complete consultation planner can supply this owned interval.
     /// The root is revalidated here; physical metadata alone cannot issue it.
     pub(crate) fn initial_telephone_consultation_in(

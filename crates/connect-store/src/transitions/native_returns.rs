@@ -123,7 +123,7 @@ pub(super) struct Target {
 pub(super) fn target(c: &Connection, store: &Store, record: &str) -> Result<Target> {
     let saved:Option<(String,String,String,String,String,String,String,String,Option<i64>)>=c.query_row(
         "SELECT o.owner_id,o.conversation_id,o.session_id,l.primary_connection_id,l.connection_id,n.selection_json,l.audience_json,n.runtime_epoch,v.restored_at
-         FROM native_consultation_attempts n JOIN native_consultation_legs l ON l.operation_record_id=n.operation_record_id
+         FROM native_consultation_attempts n JOIN consultation_candidate_bindings l ON l.operation_record_id=n.operation_record_id
          JOIN operations o ON o.record_id=n.operation_record_id AND o.command_type='session.consult'
          JOIN operation_effects e ON e.id=n.effect_id AND e.state='confirmed'
          LEFT JOIN native_private_lifetimes v ON v.operation_record_id=n.operation_record_id

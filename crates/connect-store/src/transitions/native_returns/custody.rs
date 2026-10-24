@@ -388,7 +388,7 @@ impl Store {
                 };
                 if matches!(
                     binding["source_kind"].as_str(),
-                    Some("initial-sip" | "established-sip")
+                    Some("initial-sip" | "private-initial-sip" | "established-sip")
                 ) {
                     self.record_sip_audience_revision(
                         &tx,
@@ -419,7 +419,7 @@ impl Store {
 }
 
 impl Store {
-    /// Completion waits for actual native candidate retirement. It does not
+    /// Completion waits for captured retirement of the original typed candidate. It does not
     /// infer a continuing remote call from successful audience restoration.
     pub fn complete_native_consultation_return(
         &self,
@@ -470,7 +470,7 @@ impl Store {
         if row.tombstoned {
             return Err(Error::new("gone", "Operation progress has expired"));
         }
-        let original:Option<(String,String,String)>=tx.query_row("SELECT r.consultation_record_id,r.context_selection_json,l.connection_id FROM native_consultation_returns r JOIN native_consultation_legs l ON l.operation_record_id=r.consultation_record_id JOIN operation_effects e ON e.id=r.effect_id AND e.state='confirmed' WHERE r.operation_record_id=?1 AND r.attempt_id=?2 AND r.effect_id=?3 AND r.plan_digest=?4 AND r.runtime_epoch=?5 AND r.started=1 AND r.applied_json=?6",params![receipt.record,receipt.attempt,receipt.effect,receipt.hash,receipt.runtime,receipt.observation],|r|Ok((r.get(0)?,r.get(1)?,r.get(2)?))).optional().map_err(|_|Error::storage())?;
+        let original:Option<(String,String,String)>=tx.query_row("SELECT r.consultation_record_id,r.context_selection_json,l.connection_id FROM native_consultation_returns r JOIN consultation_candidate_bindings l ON l.operation_record_id=r.consultation_record_id JOIN operation_effects e ON e.id=r.effect_id AND e.state='confirmed' WHERE r.operation_record_id=?1 AND r.attempt_id=?2 AND r.effect_id=?3 AND r.plan_digest=?4 AND r.runtime_epoch=?5 AND r.started=1 AND r.applied_json=?6",params![receipt.record,receipt.attempt,receipt.effect,receipt.hash,receipt.runtime,receipt.observation],|r|Ok((r.get(0)?,r.get(1)?,r.get(2)?))).optional().map_err(|_|Error::storage())?;
         let (parent, context, candidate) = original.ok_or_else(Error::forbidden)?;
         if row.record.state == OperationState::Completed {
             return Ok(Some(row.record));
@@ -492,7 +492,11 @@ impl Store {
         let generation = original_candidate["generation"]
             .as_u64()
             .ok_or_else(Error::storage)?;
-        let retired:bool=tx.query_row("SELECT EXISTS(SELECT 1 FROM native_connection_lifetimes l JOIN connections v ON v.id=l.connection_id WHERE l.connection_id=?1 AND l.generation=?2 AND l.runtime_epoch=?3 AND l.retired=1 AND v.state IN ('retired','failed'))",params![candidate,generation,receipt.runtime],|r|r.get(0)).map_err(|_|Error::storage())?;
+        let retired = if original_candidate.get("source_kind").is_some() {
+            Store::recorded_sip_departure(&tx, original_candidate, &receipt.runtime)?
+        } else {
+            tx.query_row("SELECT EXISTS(SELECT 1 FROM native_connection_lifetimes l JOIN connections v ON v.id=l.connection_id WHERE l.connection_id=?1 AND l.generation=?2 AND l.runtime_epoch=?3 AND l.retired=1 AND v.state IN ('retired','failed'))",params![candidate,generation,receipt.runtime],|r|r.get(0)).map_err(|_|Error::storage())?
+        };
         if !retired {
             return Ok(None);
         }

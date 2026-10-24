@@ -50,7 +50,9 @@ no root effect, native admission, call or audience change.
 The [recorded private SIP lifetime](private-sip-candidate-lifetime.md) now extends
 Store attempt/completion and sealed physical metadata validation to the original
 SIP candidate at schema 108. This is Store planning/recording for G6-046. The
-runtime coordinator still selects native candidates. Exact return, pending and
+runtime coordinator still selects native candidates. The
+[recorded return component](private-sip-candidate-return.md) now handles the
+original SIP candidate at schema 109. Pending and
 established packet intervals, actual private audio and INFO/RFC4733 remain implementation and
 qualification work. The controlled
 Store cases verify the source boundary; the existing actual local SIP/Core

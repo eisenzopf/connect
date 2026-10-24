@@ -43,7 +43,7 @@ impl Scene {
             )
             .unwrap()
     }
-    fn captured(&self) -> crate::NativeConsultationApplied {
+    pub(super) fn captured(&self) -> crate::NativeConsultationApplied {
         let receipt = self.applied();
         self.f
             .store
@@ -320,7 +320,7 @@ fn private_sip_lifetime_backup_preserves_capture_and_refuses_new_runtime_authori
         .unwrap();
     let backup = s.f._dir.path().join("private-sip-lifetime.sqlite3");
     let recorded = s.f.store.backup(&backup).unwrap();
-    assert_eq!(recorded.schema, 108);
+    assert_eq!(recorded.schema, crate::SCHEMA_VERSION);
     assert_eq!(Store::inspect_snapshot(&backup).unwrap(), recorded);
     let restored = Store::open(&backup, Limits::default()).unwrap();
     assert!(active::current(
