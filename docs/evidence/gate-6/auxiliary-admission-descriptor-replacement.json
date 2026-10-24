@@ -53,9 +53,9 @@
     }
   },
   "pending": [
-    "Diagnose repeated mixed SIP/native refresh private-readiness timeout and original lifecycle/quality timeout; do not describe production checks as all passing.",
-    "Measure exact remaining resource-file reopen branch using the current executable and preserve all failed fixed-workload attempts.",
-    "New full current Store suite not rerun after replacement-only change. All later full50 phases, ES256 capacity, other assigned profiles and whole-gate acceptance remain open."
+    "Diagnose repeated plain mixed SIP/native refresh private-readiness timeout and original lifecycle/quality timeout. Two subsequent instrumented/state-capture runs pass, so timing differs; no resolved cause or all-production-pass claim.",
+    "After regression diagnosis, investigate bounded reuse of explicitly unlocked resource descriptions after the last active reader releases. Preserve current effective access and fresh actual shared/exclusive locks, writer order, complete scopes, weak active-only reader coalescing and no queued grants. This resource-description change is not implemented.",
+    "New full current Store suite not rerun after replacement-only change. Later full50 phases, ES256 capacity, other assigned profiles and whole-gate acceptance remain open."
   ],
   "host_build": {
     "passed": true,
@@ -217,5 +217,102 @@
         "summary": "test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 253 filtered out; finished in 19.80s"
       }
     ]
-  }
+  },
+  "remaining_diagnostic": {
+    "scope": "Diagnostic trace plus4second2ms sampling of exact optimized source179 after subscription48/49. Instrumentation changes timing; no capacity credit.",
+    "runtime_exit_code": 101,
+    "sample_exit_code": 0,
+    "late_window": {
+      "outcomes": {
+        "ok": 3191,
+        "authority-busy": 15723
+      },
+      "details": {
+        "Current state is busy": 10574,
+        "Current authority is busy": 5147,
+        "Current packet state changed during admission": 2
+      },
+      "publisher0": {
+        "owned=false,ok": 685,
+        "owned=false,authority-busy": 12128,
+        "owned=true,authority-busy": 2646,
+        "owned=true,ok": 681
+      },
+      "timings": {
+        "publish=true,owned=false,ok": {
+          "n": 685,
+          "median_us": 1642,
+          "p90_us": 1941
+        },
+        "publish=true,owned=false,authority-busy": {
+          "n": 12128,
+          "median_us": 13.0,
+          "p90_us": 67
+        },
+        "publish=false,owned=true,ok": {
+          "n": 1825,
+          "median_us": 42,
+          "p90_us": 615
+        },
+        "publish=true,owned=true,authority-busy": {
+          "n": 2646,
+          "median_us": 14.0,
+          "p90_us": 18
+        },
+        "publish=false,owned=true,authority-busy": {
+          "n": 949,
+          "median_us": 21,
+          "p90_us": 26
+        },
+        "publish=true,owned=true,ok": {
+          "n": 681,
+          "median_us": 34,
+          "p90_us": 43
+        }
+      },
+      "audio_stages": {
+        "source-egress:NotReady": 14909,
+        "mixer-target:NotReady": 564,
+        "target-egress:NotReady": 388
+      }
+    },
+    "sampled_branch": {
+      "binary_sha256": "101c7fc417bc1dd33e351b37a205de6008cabfeceab209835e719504baee4345",
+      "function_link_address": "0x10448fce4",
+      "observed_return_offset": 3252,
+      "resolved_call": {
+        "literal": " \"\\300\\t.resource\"",
+        "call_link_address": "0x104490994",
+        "return_offset": 3252
+      },
+      "meaning": "Actual .resource open in the shared-reader cache-miss branch, immediately before try_lock_shared; not the admission-description cache-miss call. Active readers are weakly coalesced, but their last release still closes the resource description.",
+      "limitation": "Exact executable branch mapping; sampled inclusive stacks are not whole-process CPU percentages."
+    },
+    "artifacts_sha256": {
+      ".local/gate-6/received-dtmf-runtime/admission-replacement179-acquire-disassembly.txt": "24c9cafe7c7a2e373ea86a6743e30e19fcced8e8a1f6683930fc02ebf1ed498e",
+      ".local/gate-6/received-dtmf-runtime/admission-replacement179-release-profile-sample.txt": "152efe3631c0e627500573d4ab97ba9cc6d9d5933cdc1a1c4e0676c5cc594056",
+      ".local/gate-6/received-dtmf-runtime/admission-replacement179-release-profile-inputs.json": "81785425e206f1456dc16ddab305d1ac92cf46e1df5b20f6833e280b17ba8a30",
+      ".local/gate-6/received-dtmf-runtime/admission-replacement179-release-profile-analysis.json": "6d178776c90aa108aa0d324a92f3035f835a3eb66bbc182540f71ef5868355fb"
+    }
+  },
+  "refresh_diagnostics": [
+    {
+      "scope": "Instrumented isolated mixed refresh failure diagnostic; timing differs, no production/capacity credit.",
+      "runtime_exit_code": 0,
+      "summary": "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 253 filtered out; finished in 45.94s",
+      "private_snapshots": 2,
+      "log": ".local/gate-6/received-dtmf-runtime/admission-replacement179-refresh-diagnostic/runtime.log",
+      "sha256": "437b6f2513413133ea610aa47f63791376506875bf5332fb2d8d0988f4bab900",
+      "limitation": "Diagnostic pass does not erase two failed plain attempts or prove their cause resolved."
+    },
+    {
+      "scope": "Same logging as original, one private read-only SQLite snapshot after11s. Diagnostic timing, no production/capacity credit.",
+      "runtime_exit_code": 0,
+      "summary": "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 253 filtered out; finished in 46.05s",
+      "private_snapshots": 2,
+      "log": ".local/gate-6/received-dtmf-runtime/admission-replacement179-refresh-state-diagnostic/runtime.log",
+      "sha256": "484d3963d0c447998c4b54871ed7fbc6e24caf1916c211d7b08010e45376fb4f",
+      "limitation": "Diagnostic pass does not erase two failed plain attempts or prove their cause resolved."
+    }
+  ]
 }
