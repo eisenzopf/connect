@@ -1,8 +1,8 @@
 {
   "task": "G6-046",
   "title": "Probe exact current audience rows without building union tables",
-  "recorded_at": "2026-10-24T03:39:56.468308+00:00",
-  "status": "complete-store-library-and-host-build-verified; membership-history-integration-active",
+  "recorded_at": "2026-10-24T03:40:59.910851+00:00",
+  "status": "complete-store-library-history-integration-and-host-build-verified; actual-full50-active",
   "full_task_complete": false,
   "full_goal_complete": false,
   "qualified_case_ids": [],
@@ -26,7 +26,7 @@
     "default_server_test_build_passed": true,
     "default_server_test_build_duration_seconds": 12.17,
     "full_store_unit_run_active": false,
-    "membership_history_integration_run_pending": true,
+    "membership_history_integration_run_pending": false,
     "full50_retest_passed": false,
     "inputs": {
       "crates/connect-store/src/audience.rs": "dde2dfe024a47de60e3e77f889ba87b01efafd1f3c36db211f3971aadf1b4f56",
@@ -45,7 +45,9 @@
       "audience176-current.sql": "383d9f7596a7e6c3a4c214aa602c0406a4ab1f7d6d36122e214def66a5c57205",
       "audience176-sql-benchmark.log": "f4f2548cb09b9dcc489114f957961da74e9de2ac0ed6575981b33395df2d63c9",
       "audience176-current-plan.log": "8f67c408cb88f7bc3c9a0c7aa5211024529a34ba19d4df6fe534fb745cd34a23",
-      "audience176-all-units.log": "21c80e27cf69d7a45e73df97408650f43685bc3b1fb96c71c51aa5f6add3fb10"
+      "audience176-all-units.log": "21c80e27cf69d7a45e73df97408650f43685bc3b1fb96c71c51aa5f6add3fb10",
+      "audience176-history-integration.log": "2c403960059e906788dd6fbdbd033522c8b4a839d9abdee869dc86540f1421d4",
+      "audience176-fifty-inputs.json": "e38866c7a6888f55dd34b0ffb4961341816d22849fe3263bb50945873b397a13"
     },
     "sql_diagnostic": {
       "scope": "Separate controlled50-member relational fixture, not a full Store or native host runtime. Both statements prepared once against the target bundled SQLite3.46.0 and executed2000 times with the same original Session recipient. Read-only connections; all4000 results true. No native media/throughput qualification.",
@@ -74,10 +76,20 @@
         "reason": "subprocess fixture, explicitly invoked by crash and administration parent tests"
       }
     ],
-    "ignored_fixture_scope": "The three ignored root entries are subprocess helpers. Their parent tests explicitly invoke --ignored with bounded fixture configuration for authority fences, installation ownership and crash recovery. Parent tests pass; helpers are not counted as three independent default root passes."
+    "ignored_fixture_scope": "The three ignored root entries are subprocess helpers. Their parent tests explicitly invoke --ignored with bounded fixture configuration for authority fences, installation ownership and crash recovery. Parent tests pass; helpers are not counted as three independent default root passes.",
+    "membership_history_integration_passed": true,
+    "membership_history_integration_methods_passed": 57,
+    "membership_history_integration_targets": {
+      "gate6_attachments": 8,
+      "gate6_membership": 18,
+      "gate6_membership_control": 7,
+      "gate6_messages": 17,
+      "gate6_receipts": 7
+    },
+    "distinct_store_methods_passed": 1113
   },
   "unresolved": [
-    "Allow exact active sequence41358 to complete the five membership/history integration targets; the entire library stage passed. Then run the exact rebuilt fifty-peer host without concurrent tests/builds.",
+    "Exact Store sequence41358 completed successfully:1056 root library passes/3 ignored subprocess helper entries plus57 actual public Store integration methods. Allow the active isolated exact new fifty-peer host run to complete, then inspect and validate its capture before capacity credit.",
     "Then run actual rebuilt fifty-peer and affected production profiles without concurrent builds/tests, preserving50 peers/49 explicit receivers, original8s command/startup bounds,200ms frame age and>10 decoded frames for each intended recipient. Validate a complete both-algorithm capture only if all phases pass.",
     "Source176 before this Store change failed full50 steady1..12 after all49 actual receiver startups; original source175 ES256 telephone compound movement Unknown remains unexplained despite passing targeted repeats. Neither history is erased.",
     "G6-046 remains58/61 and45/105 tasks complete. Later Linux/browser/remote/provider/independent/acceptance/publication checks remain separate."
