@@ -34,14 +34,114 @@
     "existing_methods_switched_to_public_api": 2
   },
   "pending": [
-    "Exact optimized host build compiles the revised fixture.",
-    "Actual both-algorithm lifecycle quality/Endpoint revocation and codec-binding lifecycle cases.",
-    "Actual private handoff and mixed SIP/native refresh regressions on the same binary.",
-    "Validate actual captured lifecycle envelopes; no runtime fix is claimed before these pass."
+    "Resolve full-fifty throughput and complete both algorithm captures and validator.",
+    "Complete remaining DTMF compositions and subsequent Gate6 dependency graph."
   ],
   "preserved_failures": [
     "docs/evidence/gate-6/auxiliary-decoded-audio-freshness.json: source181 full-fifty fails, and production quality times out;10 other production cases pass.",
     "Earlier readiness/quality timeouts remain preserved in their scoped reports."
   ],
-  "limits": "Client unit tests do not prove the revised server fixture or production quality behavior. Full-fifty, remaining DTMF compositions and later Linux/browser/remote/provider/independent qualification remain open; publication is separate."
+  "limits": "Current revised workload passes actual positive directional quality, codec lifecycle, current Endpoint revocation, private handoff and mixed SIP/native refresh checks on one exact optimized executable. This does not prove every historical timeout had the same cause. Prior full-fifty failures remain open. Linux/browser/remote/provider/independent qualification and publication remain separate.",
+  "optimized_runtime": {
+    "composed_verification_passed": true,
+    "source_revision": "24fc22728ae2d5e4deb565e5690f69ae14c1ade1",
+    "source_inputs_unchanged": true,
+    "binary_unchanged_after_run": true,
+    "binary_sha256": "aa73d87b0481454cdea33ad1681d8211bca61c69718912645fa4b727340c20ca",
+    "build_duration": "4m30s",
+    "build_log": ".local/gate-6/received-dtmf-runtime/quality-reader181-release/build.log",
+    "build_log_sha256": "0883db1af172e031eb35b8045a03a050ab761cd4678c2dcd38c95fca625fda69",
+    "passed_methods": 4,
+    "failed_methods": 0,
+    "methods": [
+      {
+        "method": "canonical_native_connections::lifecycle::production_native_lifecycle_quality_reports_actual_flow_through_signed_sdk",
+        "passed": true,
+        "exit_code": 0,
+        "log": ".local/gate-6/received-dtmf-runtime/quality-reader181-release/production-0.log",
+        "log_sha256": "99921066618da0c7e4dcd6af582509557ad2c5383c4cc218f52127069f3e8579",
+        "duration_seconds": 23.58
+      },
+      {
+        "method": "canonical_native_connections::lifecycle::production_native_lifecycle_closes_original_codec_binding_and_opens_only_observed_replacement",
+        "passed": true,
+        "exit_code": 0,
+        "log": ".local/gate-6/received-dtmf-runtime/quality-reader181-release/production-1.log",
+        "log_sha256": "4a739ed830fe34d35c1c72b09f2bd1f6ba75fa8104929107da5dcc2eb5e3b374",
+        "duration_seconds": 11.95
+      },
+      {
+        "method": "canonical_native_connections::consultation::groups::handoff::production_native_private_handoff_commits_roles_and_retains_remote_audio",
+        "passed": true,
+        "exit_code": 0,
+        "log": ".local/gate-6/received-dtmf-runtime/quality-reader181-release/production-2.log",
+        "log_sha256": "e6b7df837627926a485019fd04c1ca5db2d8b9a995557df6b364c3bf8774e2cb",
+        "duration_seconds": 86.63
+      },
+      {
+        "method": "canonical_native_connections::consultation::groups::replacement::telephone::received::refresh::production_moved_sip_dtmf_refresh_preserves_queued_epoch_and_fresh_bidirectional_delivery",
+        "passed": true,
+        "exit_code": 0,
+        "log": ".local/gate-6/received-dtmf-runtime/quality-reader181-release/production-3.log",
+        "log_sha256": "aff8c094eb24b1b20408af04ce74a3639c53d7ab0d2e585709724406a39c30eb",
+        "duration_seconds": 46.62
+      }
+    ],
+    "original_driver_summary": ".local/gate-6/received-dtmf-runtime/quality-reader181-release/summary.json",
+    "original_driver_summary_sha256": "14932aa976efbe4dbaec7efc205b80a065f59281d41287c1451999f5bbed15ce",
+    "original_driver_passed": false,
+    "original_driver_failure": "All four actual methods passed. The validator initially rejected the capture realpath because received-dtmf-runtime is a symlink outside the permitted .local root. The original exit1 and summary are preserved. No runtime was rerun for validation recovery."
+  },
+  "validation_recovery": {
+    "passed": true,
+    "copy_proof": ".local/gate-6/quality-reader181-validation/copy-proof.json",
+    "copy_proof_sha256": "4a72ac4e38a6dbb66a008bb7357dccd567eb4e6149831dd5d8534b70a8bb7c62",
+    "original_and_copy_sha256": "14b60495a711ec4b7652c3c659df64d2fa12a4ac2b87137824bfc09a39b6aa51",
+    "validation_log": ".local/gate-6/quality-reader181-validation/validation.log",
+    "validation_log_sha256": "73109737c9a6e273cdfe660c865dd75c4e2e23299109b739e64d8c5abf0126b0",
+    "actual_frames": 22,
+    "samples": [
+      {
+        "algorithm": "ES256",
+        "type": "connection.quality",
+        "count": 3
+      },
+      {
+        "algorithm": "ES256",
+        "type": "connection.ready",
+        "count": 3
+      },
+      {
+        "algorithm": "ES256",
+        "type": "stream.closed",
+        "count": 1
+      },
+      {
+        "algorithm": "ES256",
+        "type": "stream.opened",
+        "count": 4
+      },
+      {
+        "algorithm": "EdDSA",
+        "type": "connection.quality",
+        "count": 3
+      },
+      {
+        "algorithm": "EdDSA",
+        "type": "connection.ready",
+        "count": 3
+      },
+      {
+        "algorithm": "EdDSA",
+        "type": "stream.closed",
+        "count": 1
+      },
+      {
+        "algorithm": "EdDSA",
+        "type": "stream.opened",
+        "count": 4
+      }
+    ],
+    "scope": "The unchanged validator accepts22 byte-identical actual SDK observations under its allowed ignored-state root. SDK runtime verifies signatures; Python validates schema and sample coverage. No validator boundary or assertions were weakened."
+  }
 }
