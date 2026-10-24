@@ -969,6 +969,11 @@
       "path": "patches/rvoip/gate6-native-egress-diagnostics.patch",
       "sha256": "8e4c27fde5678b45448ade58be3e4a2713a9b34a6417607d4c41b8f827e212d4",
       "source": "Trace native guarded egress refusal with actual negotiated Stream ID, directional resource flags and typed error; no payload, credential or authority grant. Used to locate full50 native mixer queued-but-unsent frames; diagnostic only, no media or permission behavior change."
+    },
+    {
+      "path": "patches/rvoip/gate6-native-catalog-contention.patch",
+      "sha256": "15d5600334bde708a1e2e8cf315753de4e2d21b5d7f9d589d4856ebe2bfa4f35",
+      "source": "G6-046 read-only native catalog WouldBlock remains transient backpressure rather than revision conflict. Preserve poisoned/stale/missing/capacity errors; classify only catalog read pressure as unavailable metadata. Retry only before negotiation slot/writer/effect under the unchanged original cancellation/deadline, with all proposal locks released. Controlled Core busy/recovery/no-effect and poison/missing/stale tests plus native error-classification unit."
     }
   ]
 }

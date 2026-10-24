@@ -1,0 +1,197 @@
+--- a/crates/foundation/rvoip-core/src/staged_streams/subscription_plan.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/subscription_plan.rs
+@@ -147,7 +147,13 @@
+                     .controller
+                     .state
+                     .try_lock()
+-                    .map_err(|_| MediaTransitionError::Conflict)?;
++                    .map_err(|error| match error {
++                        std::sync::TryLockError::WouldBlock => {
++                            tracing::debug!(target: "rvoip_core::native_catalog", source=%member.controller.connection, target=%target.controller.connection, "Native subscription catalog read is busy");
++                            StreamControlError::Backpressure
++                        }
++                        std::sync::TryLockError::Poisoned(_) => MediaTransitionError::Conflict.into(),
++                    })?;
+                 if source.closed || member.controller.shutdown.is_cancelled() {
+                     continue;
+                 }
+--- a/crates/foundation/rvoip-core/src/staged_streams/tests/media_scene/subscriptions.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/media_scene/subscriptions.rs
+@@ -1239,3 +1239,69 @@
+         assert_eq!(s.f.b.revision(), 1);
+     }
+ }
++
++#[tokio::test]
++async fn subscription_catalog_contention_preserves_original_revision_and_has_no_effect() {
++    use crate::staged_streams::subscription_plan::*;
++    let s = wildcard_scene().await;
++    let expected = s.f.b.revision();
++    let budget = s.f.b.stream_open_budget();
++    let input = MediaSelectionChange::Subscribe(vec![MediaSelection::Participant {
++        participant: s.f.a.origin_member.participant().clone(),
++        media: BTreeSet::from([Medium::Audio]),
++    }]);
++    let held = s.f.a.state.lock().unwrap();
++    assert!(matches!(
++        s.scene.plan_selection(&s.f.b.connection, expected, &input),
++        Err(StreamControlError::Backpressure)
++    ));
++    assert!(matches!(
++        s.scene
++            .plan_selection(&s.f.b.connection, expected + 1, &input),
++        Err(StreamControlError::Model(MediaTransitionError::Conflict))
++    ));
++    assert_eq!(s.f.b.revision(), expected);
++    assert_eq!(s.f.b.stream_open_budget(), budget);
++    drop(held);
++    let plan = s
++        .scene
++        .plan_selection(&s.f.b.connection, expected, &input)
++        .unwrap();
++    assert_eq!(
++        s.f.b.revision(),
++        expected,
++        "a recovered read is still not a mutation"
++    );
++    assert_eq!(
++        apply(&s, plan.routing().clone()).await.unwrap(),
++        expected + 1
++    );
++    assert_eq!(s.f.b.stream_open_budget(), budget);
++}
++
++#[tokio::test]
++async fn subscription_catalog_poison_and_missing_target_are_not_retryable_contention() {
++    use crate::staged_streams::subscription_plan::*;
++    let s = wildcard_scene().await;
++    let source = s.f.a.clone();
++    assert!(std::thread::spawn(move || {
++        let _held = source.state.lock().unwrap();
++        panic!("controlled source-state poison");
++    })
++    .join()
++    .is_err());
++    let input = MediaSelectionChange::Subscribe(vec![MediaSelection::Participant {
++        participant: s.f.a.origin_member.participant().clone(),
++        media: BTreeSet::from([Medium::Audio]),
++    }]);
++    assert!(matches!(
++        s.scene
++            .plan_selection(&s.f.b.connection, s.f.b.revision(), &input),
++        Err(StreamControlError::Model(MediaTransitionError::Conflict))
++    ));
++    assert!(matches!(
++        s.scene
++            .plan_selection(&ConnectionId::from_string("missing"), 1, &input),
++        Err(StreamControlError::NotReady)
++    ));
++}
+--- a/crates/uctp/rvoip-uctp/src/v2/native.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/native.rs
+@@ -1082,7 +1082,7 @@
+         let input = parse(a.envelope(), route.member.participant(), &defaults)?;
+         let selection = core
+             .plan_staged_media_selection(&route.session, id, expected, &input)
+-            .map_err(core_error)?;
++            .map_err(catalog_error)?;
+         if selection.requires_reconciliation()
+             && route
+                 .subscriptions
+@@ -1118,7 +1118,30 @@
+         super::native_negotiation::NativeOfferError,
+     > {
+         use super::{native_negotiation::NativeOfferError, native_subscriptions::*};
+-        let plan = self.plan_native_subscriptions(core, id, &a)?;
++        let cancel = a.invocation_cancellation();
++        let plan = loop {
++            if cancel.is_cancelled() {
++                return Err(NativeOfferError::Cancelled);
++            }
++            if tokio::time::Instant::now() >= deadline {
++                return Err(NativeOfferError::Deadline);
++            }
++            match self.plan_native_subscriptions(core, id, &a) {
++                Err(NativeOfferError::Dispatch(
++                    super::auth_dispatch::DispatchError::StorageUnavailable,
++                )) => {
++                    // No writer/negotiation slot or proposal lock has been
++                    // acquired. Retry only this read under the original bound.
++                    tokio::select! {
++                        biased;
++                        _ = cancel.cancelled() => return Err(NativeOfferError::Cancelled),
++                        _ = tokio::time::sleep_until(deadline) => return Err(NativeOfferError::Deadline),
++                        _ = tokio::time::sleep(std::time::Duration::from_millis(5)) => {},
++                    }
++                }
++                result => break result?,
++            }
++        };
+         let route = self.data_route(id, &a)?;
+         let (controller, broker, flow) = {
+             let installed = route.installation.lock().unwrap_or_else(|p| p.into_inner());
+--- a/crates/uctp/rvoip-uctp/src/v2/native_subscriptions.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/native_subscriptions.rs
+@@ -127,6 +127,24 @@
+         _ => Err(NativeOfferError::Unsupported),
+     }
+ }
++/// A read-only catalog can be temporarily occupied without a stale revision,
++/// missing source or exhausted resource budget. Only this pre-effect boundary
++/// maps that pressure to current metadata unavailability.
++pub(crate) fn catalog_error(
++    e: rvoip_core::orchestrator::participant_control::ParticipantControlError,
++) -> NativeOfferError {
++    use rvoip_core::{
++        orchestrator::participant_control::ParticipantControlError as E,
++        staged_streams::StreamControlError,
++    };
++    match e {
++        E::Media(StreamControlError::Backpressure) => {
++            NativeOfferError::Dispatch(super::auth_dispatch::DispatchError::StorageUnavailable)
++        }
++        e => core_error(e),
++    }
++}
++
+ pub(crate) fn core_error(
+     e: rvoip_core::orchestrator::participant_control::ParticipantControlError,
+ ) -> NativeOfferError {
+@@ -303,3 +321,37 @@
+ #[path = "native_subscriptions/runtime.rs"]
+ mod runtime;
+ pub(crate) use runtime::NativeSubscriptionRuntime;
++
++#[cfg(test)]
++mod catalog_tests {
++    use super::*;
++    use rvoip_core::{
++        orchestrator::participant_control::ParticipantControlError as E,
++        staged_streams::StreamControlError as S, stream_lifecycle::MediaTransitionError as M,
++    };
++    #[test]
++    fn catalog_contention_does_not_reclassify_missing_stale_or_resource_capacity() {
++        assert_eq!(
++            catalog_error(E::Media(S::Backpressure)),
++            NativeOfferError::Dispatch(
++                super::super::auth_dispatch::DispatchError::StorageUnavailable
++            )
++        );
++        assert_eq!(
++            catalog_error(E::Media(S::NotReady)),
++            NativeOfferError::NotReady
++        );
++        assert_eq!(
++            catalog_error(E::Media(S::Model(M::Conflict))),
++            NativeOfferError::Conflict
++        );
++        assert_eq!(
++            catalog_error(E::Media(S::Model(M::Capacity))),
++            NativeOfferError::Capacity
++        );
++        assert_eq!(
++            core_error(E::Media(S::Backpressure)),
++            NativeOfferError::Capacity
++        );
++    }
++}

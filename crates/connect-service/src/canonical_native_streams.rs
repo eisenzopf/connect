@@ -289,6 +289,9 @@ impl Runtime {
                     rvoip_uctp::v2::native_negotiation::NativeOfferError::Conflict => {
                         Error::new("conflict", "Native stream revision or catalog conflicts")
                     }
+                    rvoip_uctp::v2::native_negotiation::NativeOfferError::Dispatch(
+                        rvoip_uctp::v2::auth_dispatch::DispatchError::StorageUnavailable,
+                    ) => Error::new("authority-busy", "Native subscription catalog is busy"),
                     rvoip_uctp::v2::native_negotiation::NativeOfferError::Unsupported => {
                         if a.envelope().kind() == "stream.subscribe" {
                             return Error::new(
