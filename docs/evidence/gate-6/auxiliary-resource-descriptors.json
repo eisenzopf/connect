@@ -1,5 +1,5 @@
 {
-  "scope": "Local macOS arm64 complete Store library1069 methods and exact optimized host build pass. No current capacity/production or clause/task promotion:45/105 tasks andG6-04658/61 clauses unchanged.",
+  "scope": "Local macOS arm64 full Store1069 methods and8actual production regressions pass on the exact optimized executable. Full50 still fails steady0..15 after49 actual startups1460ms. No capacity/clause/task promotion:45/105 tasks andG6-04658/61 clauses unchanged.",
   "changes": [
     "Use the bounded unlocked-description pool for resource files after the last owned shared reader releases, as well as admission files. Weak coalescing references active LockFile readers only; the pool stores plain explicitly unlocked files.",
     "Every new read interval still obtains the actual exclusive admission and actual shared resource lock. Reused files freshly validate path/descriptor identity, private owner/read-write mode, single links and effective access including ACLs. No permission, reader, SQL snapshot or queued media grant is retained by the idle pool.",
@@ -62,9 +62,10 @@
     "limitation": "These bounded observer runs did not reproduce the earlier two plain SIP readiness failures. They do not establish a resolved cause or erase those failures."
   },
   "pending": [
-    "Run unchanged actual fifty-peer rehearsal and production regressions on the exact updated executable.",
-    "SIP diagnostic changes execute only after the same15s readiness bound fails; they do not resolve historical two plain readiness failures. Quality active-traffic fixture follow-up remains unimplemented.",
-    "Full50 needs both completed algorithm captures and validator; later profiles and whole-gate acceptance remain open."
+    "Implement and verify a negative-only unsubscribed-input discard before decoder/retained-source work, if controlled Core tests confirm no readiness or closed-preparation regression. Record upstream edits as a patch/source-lock update with fresh dependency preparation.",
+    "Retain every earlier failed profile and all50/49/original8s startup/original200ms age/>10 bounds. Future/departure/ES256 and complete captures remain unqualified.",
+    "Quality fixture should measure while real RTP continues within its original8s bound; ordinary control receive cancellation retires partial physical frames, so do not add unsafe timer cancellation. This follow-up is not implemented.",
+    "Other assigned transport/hosting/remote profiles and whole-gate acceptance remain open."
   ],
   "host_build": {
     "passed": true,
@@ -75,5 +76,204 @@
     "timeout_diagnostic_source": "crates/connect-server/tests/support/canonical_native_connections/consultation/groups/replacement/telephone.rs",
     "timeout_diagnostic_source_sha256": "b51da0497047e26cb702668bd2391e563db6f16030d3802b96c4f129aeb35b88",
     "limitation": "Compilation only; current actual capacity/production verification remains pending."
+  },
+  "optimized_full50": {
+    "passed": false,
+    "runtime_seconds": 29.89,
+    "actual_connections": 99,
+    "completed_subscriptions": 49,
+    "receiver_startup_ms": 1460,
+    "receiver_flow_facts": 49,
+    "steady_decoded_by_peer": [
+      0,
+      15,
+      10,
+      11,
+      6,
+      8,
+      14,
+      11,
+      8,
+      0,
+      7,
+      10,
+      13,
+      11,
+      11,
+      10,
+      13,
+      6,
+      13,
+      12,
+      12,
+      12,
+      15,
+      12,
+      14,
+      12,
+      15,
+      12,
+      13,
+      4,
+      12,
+      14,
+      14,
+      13,
+      14,
+      14,
+      11,
+      10,
+      14,
+      10,
+      12,
+      15,
+      4,
+      12,
+      11,
+      11,
+      11,
+      8,
+      6,
+      13
+    ],
+    "steady_range": [
+      0,
+      15
+    ],
+    "receivers_below_requirement": 15,
+    "required_each": ">10",
+    "future_phases_reached": false,
+    "second_algorithm_reached": false,
+    "complete_capture_rows": 0,
+    "validator": "Not run: no complete algorithm capture.",
+    "source_inputs_unchanged": true,
+    "executable_sha256": "32a54950f3632112b3f41a5c872e2968f8019ba1de60e39041e6a9668ac5abbd",
+    "cargo_profile": {
+      "opt_level": "3",
+      "debuginfo": 0,
+      "debug_assertions": false,
+      "overflow_checks": false,
+      "test": true
+    },
+    "artifacts_sha256": {
+      ".local/gate-6/fifty-native/resource-fds179-release/summary.json": "df649414ace09cd4496183f34cf53696a25e690161b22ae84206b067b20f97ae",
+      ".local/gate-6/fifty-native/resource-fds179-release/runtime.log": "b4d0b4b011a0d8a8587119376c6b46507d75c0c0256056f21e801fb3181a2187",
+      ".local/gate-6/fifty-native/resource-fds179-release/observations.jsonl": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  },
+  "actual_production_regressions": {
+    "distinct_methods_passed": 8,
+    "same_exact_optimized_binary": true,
+    "source_inputs_unchanged_after_runs": true,
+    "runs": [
+      {
+        "log": ".local/gate-6/received-dtmf-runtime/resource-fds179-production-0.log",
+        "sha256": "7dad5920ecad58a21eedd541b84fd6d7d844ee9613891d74d5605c233335817b",
+        "summary": "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 253 filtered out; finished in 23.71s"
+      },
+      {
+        "log": ".local/gate-6/received-dtmf-runtime/resource-fds179-production-1.log",
+        "sha256": "8a3b982814ff30ce9e364a458b0ac660b3ce8b4ef37c51a1134b5154316b1da9",
+        "summary": "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 253 filtered out; finished in 10.46s"
+      },
+      {
+        "log": ".local/gate-6/received-dtmf-runtime/resource-fds179-production-3.log",
+        "sha256": "59ff3cff7bfe63c5d308846cabbec15b5c04fbf8b70e7e1d8f762677ace86bd1",
+        "summary": "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 253 filtered out; finished in 5.20s"
+      },
+      {
+        "log": ".local/gate-6/received-dtmf-runtime/resource-fds179-production-5.log",
+        "sha256": "9082ec7be88d9e3c63fc33f65cfc5d3e5bd200f6f851ea7390695e4c020c974f",
+        "summary": "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 253 filtered out; finished in 16.31s"
+      },
+      {
+        "log": ".local/gate-6/received-dtmf-runtime/resource-fds179-production-6.log",
+        "sha256": "d9f103758479f80c35879c6193a3c4403c9177829a3c900712cecab6784a8400",
+        "summary": "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 253 filtered out; finished in 86.61s"
+      },
+      {
+        "log": ".local/gate-6/received-dtmf-runtime/resource-fds179-production-7.log",
+        "sha256": "a212179131d68caf45cd5bebef8dc77b05b5cbe83bc3d2b38404263adf38f0cd",
+        "summary": "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 253 filtered out; finished in 16.15s"
+      },
+      {
+        "log": ".local/gate-6/received-dtmf-runtime/resource-fds179-production-9.log",
+        "sha256": "3ff5f7cb93ae70897d44bf947f4ba236fb39574d2b1e1e8d62a33d2451a15f6b",
+        "summary": "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 253 filtered out; finished in 58.49s"
+      },
+      {
+        "log": ".local/gate-6/received-dtmf-runtime/resource-fds179-production-10.log",
+        "sha256": "d2543dcee455f5ef6f5398e20b6bc47d3ce6b5fe4c7ffe8887d0bd577a90ff03",
+        "summary": "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 253 filtered out; finished in 45.93s"
+      }
+    ],
+    "limitation": "Current scoped passes include quality/revocation and mixed native/SIP refresh. Historical readiness/quality timeouts remain preserved; their cause is not called resolved."
+  },
+  "remaining_diagnostic": {
+    "scope": "Diagnostic trace plus4second2ms sampling of exact optimized source179 after subscription48/49. Instrumentation changes timing; no capacity credit.",
+    "runtime_exit_code": 101,
+    "sample_exit_code": 0,
+    "late_window": {
+      "outcomes": {
+        "ok": 4157,
+        "authority-busy": 16003
+      },
+      "details": {
+        "Current state is busy": 9586,
+        "Current authority is busy": 6417
+      },
+      "publisher0": {
+        "owned=false,ok": 850,
+        "owned=true,authority-busy": 2930,
+        "owned=true,ok": 901,
+        "owned=false,authority-busy": 12009
+      },
+      "timings": {
+        "publish=true,owned=false,ok": {
+          "n": 850,
+          "median_us": 1542.5,
+          "p90_us": 1821
+        },
+        "publish=false,owned=true,ok": {
+          "n": 2406,
+          "median_us": 43.0,
+          "p90_us": 560
+        },
+        "publish=false,owned=true,authority-busy": {
+          "n": 1064,
+          "median_us": 21.0,
+          "p90_us": 26
+        },
+        "publish=true,owned=true,authority-busy": {
+          "n": 2930,
+          "median_us": 14.0,
+          "p90_us": 18
+        },
+        "publish=true,owned=true,ok": {
+          "n": 901,
+          "median_us": 34,
+          "p90_us": 41
+        },
+        "publish=true,owned=false,authority-busy": {
+          "n": 12009,
+          "median_us": 40,
+          "p90_us": 70
+        }
+      },
+      "audio_stages": {
+        "mixer-target:NotReady": 601,
+        "source-egress:NotReady": 15040,
+        "target-egress:NotReady": 471
+      }
+    },
+    "observed_work": "The current guarded mixer refreshes, collects/decodes and takes input from every registered member before consulting target subscription gates. In this fixed fifty-peer steady phase49 publishers have no selected recipient. A negative selector check could discard those queued samples before this retained-source work.",
+    "readiness_evidence": "Native PortIngress records accepted incoming flow after the existing guarded port.try_publish; NativeFlow.observe_ready checks those admitted directional flow flags and current bindings. It does not require the ordinary mixer to decode an unsubscribed source. Closed endpoint-preparation decoding is intercepted separately before ordinary mixer enqueue.",
+    "candidate_not_implemented": "Investigate negative-only source selection before ordinary mixer collection. Positive candidates must still perform every existing fresh source/target/egress authority check, original packet age, subscription generation and membership exclusion. Draining must remain bounded and must not replay pre-subscription input or retain queued grants.",
+    "limitation": "Source inspection plus instrumented sample; no capacity credit or implementation claim. Inclusive sample counts are not whole-process CPU percentages.",
+    "artifacts_sha256": {
+      ".local/gate-6/received-dtmf-runtime/resource-fds179-release-profile-inputs.json": "f1d814c4d7ca531f71ab5a4818ba8b1585f131a2be2731d8b147640193dd98d1",
+      ".local/gate-6/received-dtmf-runtime/resource-fds179-release-profile-analysis.json": "a59539cf8bdc9d57d565183354a9ff71174e6605cf9a781b520eb93636f7170d",
+      ".local/gate-6/received-dtmf-runtime/resource-fds179-release-profile-sample.txt": "aed9240c4f7e5b29bf992999b01b7da4ef38515a1068b65d87c7bc481dd02f45"
+    }
   }
 }
