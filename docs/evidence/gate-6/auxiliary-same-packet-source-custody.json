@@ -1,5 +1,5 @@
 {
-  "scope": "Local macOS arm64 Store5 and full Core220 controlled component methods pass. Exact host build and actual runtime capacity remain pending; no Gate6 clause/task promotion.",
+  "scope": "Local macOS arm64 Store5/Core220 controlled methods, corrected exact default host build and8actual production regressions pass. Default full50 fails original8s receiver startup with36/49 flow facts. No capacity or Gate6 clause/task promotion.",
   "behavior": "Recheck the exact live source runtime binding, participant, membership epoch and generation under a same-namespace/runtime current reader; derive current complete scopes and SQL-versioned facts, cap expiry to the original reader. No foreign or different-source fallback.",
   "verification": {
     "command": "CARGO_INCREMENTAL=1 cargo test -p connect-store --target-dir /Users/jonathaneisenzopf/.local/share/connect/store-received-snapshot-target --lib --locked --offline -j4 connection_control::tests::media_authority::packet_reads -- --test-threads=1",
@@ -25,8 +25,8 @@
     "Original source expiry bounds both paired and unary reads and later admission refuses."
   ],
   "remaining": [
-    "Complete tracked upstream and Service integration, Core controlled fanout/current-policy/deadline checks, exact host build and actual production regressions.",
-    "Full50 both-algorithm complete lifecycle capture remains required with unchanged thresholds. G6-04658/61,45/105;0112/0113/0123 open."
+    "Run the same original50/49/8s/200ms/>10 full50 workload in an optimized production build before further algorithm changes. Keep the default-profile failure explicit; no optimized qualification until the complete actual two-algorithm capture and validator pass.",
+    "Retained/private SIP roles and remaining receiver-rights/current-authority/retirement compositions for0112/0113 remain required. G6-04658/61 and45/105 unchanged; later hosting/browser/remote/provider/acceptance/publication separate."
   ],
   "core_integration": {
     "source_patch_count": 178,
@@ -70,5 +70,99 @@
     "log": ".local/gate-6/received-dtmf-runtime/admission178-server-build.log",
     "log_sha256": "e922e9f3543a18b01a7ecfa805640c023342b16072fa171aef8619739e772ad9",
     "repair": "Both canonical packet and preparation constructors now use Fresh::new; corrected host retry is active. No host pass inferred."
+  },
+  "host_retry": {
+    "passed": true,
+    "exit_code": 0,
+    "duration_seconds": 852,
+    "profile": "default test/unoptimized + debuginfo",
+    "log": ".local/gate-6/received-dtmf-runtime/admission178-server-retry.log",
+    "log_sha256": "09dc27c82beb9ee8b2b0d2c8036cb5221f8a177749e8d1292c1d511f2fc844ed",
+    "source_files": {
+      "crates/connect-service/src/canonical_media.rs": "c809cd0b16b7d01c0e5f0871d8d5c2d6617d8b212879692aa16b48e3306128b0",
+      "crates/connect-service/src/canonical_media/packets.rs": "48a98c3c55d8cdf2a74c19563b3f9ba4be6063be8d4b59914e652ab8226bf89e",
+      "crates/connect-service/src/canonical_media/preparation.rs": "6d296d82e87f61ef88bea2d39405226d985b7f8b23bb1357260f094ac720faf2"
+    },
+    "limitation": "Compilation only. Actual full50 and production regressions pending."
+  },
+  "default_full50": {
+    "passed": false,
+    "exit_code": 101,
+    "duration_seconds": 76.01,
+    "profile": "default test/unoptimized + debuginfo",
+    "actual_participants": 50,
+    "actual_connections": 99,
+    "completed_subscriptions": 49,
+    "any_rtp_before_explicit_subscriptions": 0,
+    "failure": "All49 receiver startup missed its unchanged original8s bound:36 of49 actual durable flow facts. The steady decoded window was not reached.",
+    "flow_facts": 36,
+    "required_flow_facts": 49,
+    "original_startup_ms": 8000,
+    "steady_phase_reached": false,
+    "future_phases_reached": false,
+    "second_algorithm_reached": false,
+    "capture_rows": 0,
+    "validator": "Not run: no complete algorithm capture exists; no capacity credit.",
+    "artifacts": {
+      ".local/gate-6/received-dtmf-runtime/admission178-fifty.log": "ac33e46a38241cc20d616b5a43c7a8626fa78636480501062e620049ce0ab450",
+      ".local/gate-6/received-dtmf-runtime/admission178-fifty.jsonl": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      ".local/gate-6/received-dtmf-runtime/admission178-runtime-inputs.json": "cd01505e8f63c883cae2121fe49c4abb2768dd084b01962376a73540af9edffa"
+    }
+  },
+  "actual_production_regressions": {
+    "distinct_methods_passed": 8,
+    "same_exact_default_host_as_failed_full50": true,
+    "runs": [
+      {
+        "log": ".local/gate-6/received-dtmf-runtime/admission178-production-0.log",
+        "sha256": "275befe98c1d134b924709176953454279145f10e0aa22e32dc7192b078b6866",
+        "summary": "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 253 filtered out; finished in 24.54s"
+      },
+      {
+        "log": ".local/gate-6/received-dtmf-runtime/admission178-production-1.log",
+        "sha256": "e9752738c144b02ce250cc784c557f05b7e72fb8a90b424bbf5994f503ec9e63",
+        "summary": "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 253 filtered out; finished in 11.57s"
+      },
+      {
+        "log": ".local/gate-6/received-dtmf-runtime/admission178-production-3.log",
+        "sha256": "cf99d6a2181ccabfe23088877ab5473f79b19de7cbfca6c9648922a7b3350ca1",
+        "summary": "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 253 filtered out; finished in 5.76s"
+      },
+      {
+        "log": ".local/gate-6/received-dtmf-runtime/admission178-production-5.log",
+        "sha256": "2227bf4a611503f7e38f5db9f13e7bc4c8eb987f285b707d545a046bc11c5277",
+        "summary": "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 253 filtered out; finished in 17.94s"
+      },
+      {
+        "log": ".local/gate-6/received-dtmf-runtime/admission178-production-6.log",
+        "sha256": "3a300808e104b2e99c4e0761c51e27cbc5f38d0d072745d36b45e16b78307f02",
+        "summary": "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 253 filtered out; finished in 92.36s"
+      },
+      {
+        "log": ".local/gate-6/received-dtmf-runtime/admission178-production-7.log",
+        "sha256": "ad93607b9627ddd0bb0edc4d9946915bf4600582b780f3e77b6c6ba3deda82f3",
+        "summary": "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 253 filtered out; finished in 16.54s"
+      },
+      {
+        "log": ".local/gate-6/received-dtmf-runtime/admission178-production-9.log",
+        "sha256": "48a811081c7bfb83cbe5833aa395beb22c2e15c6b993048c7f3b7a237f30af26",
+        "summary": "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 253 filtered out; finished in 63.52s"
+      },
+      {
+        "log": ".local/gate-6/received-dtmf-runtime/admission178-production-10.log",
+        "sha256": "8d8b0ee73dfa59ea0bb825cd34414f0cd87cf629f73ca0977aed19d81055f013",
+        "summary": "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 253 filtered out; finished in 48.38s"
+      }
+    ],
+    "coverage": [
+      "Signed both-algorithm native quality and current Endpoint revocation",
+      "Heterogeneous wildcard/current definitive refusal",
+      "Signed subscription and replay",
+      "Private consultation actual audio isolation",
+      "Native private handoff and retained remote audio",
+      "Native credential refresh and actual RTP after original expiry",
+      "Moved SIP privacy and return",
+      "Mixed moved SIP/native credential refresh"
+    ]
   }
 }

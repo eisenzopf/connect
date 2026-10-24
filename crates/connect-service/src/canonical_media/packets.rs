@@ -4,7 +4,7 @@ impl Policy {
     pub(super) fn packet_current(
         &self,
         scope: &MediaScope<'_>,
-        held: Option<&NativeMediaRead>,
+        held: Option<Arc<NativeMediaRead>>,
     ) -> ControlResult<Box<dyn MediaAuthorityLease>> {
         if let Some(target) = self.initial_target(scope.connection)? {
             return target.current(scope);
@@ -30,7 +30,7 @@ impl Policy {
             _ => None,
         };
         let started = std::time::Instant::now();
-        let result = match (held, source.as_ref()) {
+        let result = match (held.as_deref(), source.as_ref()) {
             (Some(held), Some((descriptor, source))) => {
                 // The opaque context must be this actual source binding, not
                 // another grant that happens to cover the same Conversation.
@@ -38,6 +38,9 @@ impl Policy {
                 self.store
                     .try_native_media_read_under(&entry.origin, &source.origin, held)
             }
+            (Some(held), None) if matches!(scope.purpose, MediaPurpose::Publish) => self
+                .store
+                .try_native_media_source_read_under(&entry.origin, held),
             (Some(_), None) => return Err(StreamControlError::Authority),
             (None, _) => self.store.try_native_media_read(
                 &entry.origin,
@@ -84,6 +87,6 @@ impl Policy {
             .activation()?
             .ok_or(StreamControlError::NotReady)?
             .current(owner).map_err(|error|{tracing::trace!(target:"connect_service::canonical_packet",connection=entry.origin.connection_id(),?error,"Native packet activation refused");error})?;
-        Ok(Box::new(Fresh { owner, _read: read }))
+        Ok(Box::new(Fresh::new(owner, read, held)))
     }
 }

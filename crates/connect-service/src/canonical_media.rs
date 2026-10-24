@@ -726,14 +726,29 @@ impl Policy {
 }
 struct Fresh {
     owner: MediaOwner,
-    _read: NativeMediaRead,
+    _read: Arc<NativeMediaRead>,
+    weak: std::sync::Weak<dyn Any + Send + Sync>,
+    // Active IO only. Queued packets can retain only the weak reference above.
+    _source: Option<Arc<NativeMediaRead>>,
+}
+impl Fresh {
+    fn new(owner: MediaOwner, read: NativeMediaRead, source: Option<Arc<NativeMediaRead>>) -> Self {
+        let read = Arc::new(read);
+        let erased: Arc<dyn Any + Send + Sync> = read.clone();
+        Self {
+            owner,
+            _read: read,
+            weak: Arc::downgrade(&erased),
+            _source: source,
+        }
+    }
 }
 impl MediaAuthorityLease for Fresh {
     fn authority(&self) -> &MediaOwner {
         &self.owner
     }
     fn packet_context(&self) -> Option<&(dyn Any + Send + Sync)> {
-        Some(&self._read)
+        Some(&self.weak)
     }
 }
 struct Held {
@@ -847,11 +862,16 @@ impl MediaPolicy for Policy {
         scope: &MediaScope<'_>,
         context: &(dyn Any + Send + Sync),
     ) -> ControlResult<Box<dyn MediaAuthorityLease>> {
-        if !matches!(scope.purpose, MediaPurpose::Receive { .. }) {
+        if !matches!(
+            scope.purpose,
+            MediaPurpose::Publish | MediaPurpose::Receive { .. }
+        ) {
             return Err(StreamControlError::Authority);
         }
         let read = context
-            .downcast_ref::<NativeMediaRead>()
+            .downcast_ref::<std::sync::Weak<dyn Any + Send + Sync>>()
+            .and_then(std::sync::Weak::upgrade)
+            .and_then(|read| read.downcast::<NativeMediaRead>().ok())
             .ok_or(StreamControlError::Authority)?;
         self.packet_current(scope, Some(read))
     }

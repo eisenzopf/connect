@@ -39,7 +39,7 @@ impl Policy {
             .activation()?
             .ok_or(StreamControlError::NotReady)?
             .current(owner)?;
-        Ok(Box::new(Fresh { owner, _read: read }))
+        Ok(Box::new(Fresh::new(owner, read, None)))
     }
 }
 impl Connection {
