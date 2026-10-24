@@ -1,5 +1,5 @@
 {
-  "scope": "G6-046 native ready-audio scheduler component. No optimized host or fifty-participant capacity credit.",
+  "scope": "G6-046 bounded native ready-audio scheduler, verified optimized fixed both-algorithm fifty-participant local native rehearsal. Affected production methods remain pending.",
   "source_patch_count": 183,
   "store_schema": 103,
   "patch": "patches/rvoip/gate6-native-ready-audio-epochs.patch",
@@ -122,7 +122,219 @@
     }
   ],
   "pending": [
-    "Optimized integrated host build, fixed both-algorithm fifty-participant rehearsal and affected production methods."
+    "Run affected actual production methods on the exact optimized executable.",
+    "Reconcile source-bound clause evidence against its full original requirement; no task/acceptance promotion is automatic."
   ],
-  "limits": "231 Core primitive cases are separately recorded in auxiliary-ready-audio-batch.json. Prior full-fifty failures remain preserved. No throughput improvement, clause/task promotion, remote/provider/hosting/browser or whole-gate acceptance is claimed. Publication remains separate."
+  "limits": "231 Core primitive cases are separately recorded in auxiliary-ready-audio-batch.json. Prior full-fifty failures remain preserved. The current fixed local optimized both-algorithm rehearsal passes; no general performance/repeatability, whole-clause/task promotion, remote/provider/hosting/browser or whole-gate acceptance is claimed. Publication remains separate.",
+  "capacity": {
+    "passed": true,
+    "profile": "release",
+    "prepared_patch_count": 183,
+    "source_revision": "5af869ff137cdbab8ec242da1a4f17abe3a5ec8d",
+    "source_inputs_unchanged": true,
+    "source_input_count": 1900,
+    "executable_sha256": "18ff7d1ca439bd604c22dd92f93e6222bace6f1e3e478f2fb1a4ca3295b960b9",
+    "cargo_profile": {
+      "opt_level": "3",
+      "debuginfo": 0,
+      "debug_assertions": false,
+      "overflow_checks": false,
+      "test": true
+    },
+    "steps": [
+      {
+        "name": "dependencies",
+        "command": [
+          "bash",
+          "scripts/prepare-dependencies.sh"
+        ],
+        "exit_code": 0,
+        "elapsed_seconds": 0.1346510408911854
+      },
+      {
+        "name": "compiler",
+        "command": [
+          "rustc",
+          "--version",
+          "--verbose"
+        ],
+        "exit_code": 0,
+        "elapsed_seconds": 0.022660333896055818
+      },
+      {
+        "name": "validation-environment",
+        "command": [
+          "/Volumes/D2-2019/Developer/Connect/.local/gate-6/received-dtmf-runtime/validation-venv/bin/python",
+          "-c",
+          "import importlib.metadata,json,jsonschema,sys; print(json.dumps({'python':sys.version,'jsonschema':importlib.metadata.version('jsonschema')}))"
+        ],
+        "exit_code": 0,
+        "elapsed_seconds": 0.08612416707910597
+      },
+      {
+        "name": "build",
+        "command": [
+          "cargo",
+          "test",
+          "-p",
+          "connect-server",
+          "--test",
+          "gate6_canonical_runtime",
+          "--no-run",
+          "--locked",
+          "--offline",
+          "-j4",
+          "--message-format=json",
+          "--release",
+          "--target-dir",
+          "/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024"
+        ],
+        "exit_code": 0,
+        "elapsed_seconds": 986.5399909580592
+      },
+      {
+        "name": "runtime",
+        "command": [
+          "/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps/gate6_canonical_runtime-43321488c949ae5c",
+          "canonical_native_connections::multiparty::production_fifty_native_participants_preserve_explicit_fanout_handles_and_lifecycle",
+          "--exact",
+          "--include-ignored",
+          "--test-threads=1",
+          "--nocapture"
+        ],
+        "exit_code": 0,
+        "elapsed_seconds": 93.08634925005026
+      },
+      {
+        "name": "validation",
+        "command": [
+          "/Volumes/D2-2019/Developer/Connect/.local/gate-6/received-dtmf-runtime/validation-venv/bin/python",
+          "scripts/validate-gate6-fifty-participants.py",
+          "/Volumes/D2-2019/Developer/Connect/.local/gate-6/fifty-native/native-ready183-release/observations.jsonl"
+        ],
+        "exit_code": 0,
+        "elapsed_seconds": 3.159915750147775
+      }
+    ],
+    "summary": ".local/gate-6/fifty-native/native-ready183-release/summary.json",
+    "summary_sha256": "92318539dbe98ef4137e8a0e3b93df5c718c3467d1f51703531418bf4149f24c",
+    "runtime_log": ".local/gate-6/fifty-native/native-ready183-release/runtime.log",
+    "runtime_log_sha256": "7f03be38a472a5505ec8c1ca992bbc745c235cebd17403cf5b0b535012f78d38",
+    "capture_records": 2,
+    "capture_sha256": "6564de85cda83bd48ad08a60092087241e2b1b9066e339c6bf46cbe426ad49b1",
+    "validation": {
+      "passed": true,
+      "signing_scenes": 2,
+      "participants_per_scene": 50,
+      "signed_publisher_answers": 100,
+      "signed_receiver_answers": 98,
+      "signed_join_multicasts": 4900,
+      "signed_started_frames": 100,
+      "signed_left_multicasts": 194,
+      "actual_subscribers_per_scene": 49,
+      "scope": "Configured local native QUIC50-peer profile with explicit decoded fanout, per-peer handles, unsubscribe/replay and membership lifecycle. Includes later actual publication to33 retained Participant selectors while16 exact selectors remain excluded, and original49-way audio after source end/replay. Does not by itself qualify other substrates, remote/hosting profiles, whole clause or Gate6."
+    },
+    "startup_observations": [
+      "fifty-participant startup all49-receivers: 741ms, flow_facts=49, decoded=[0, 3, 2, 2, 3, 2, 2, 1, 3, 3, 2, 3, 1, 1, 2, 1, 3, 1, 1, 3, 1, 3, 2, 2, 3, 1, 2, 1, 3, 2, 3, 3, 2, 2, 2, 1, 2, 2, 2, 1, 2, 2, 2, 2, 2, 1, 1, 2, 2, 3]",
+      "fifty-participant startup later-publication-retained33: 341ms, flow_facts=1, decoded=[0, 1, 1, 0, 1, 1, 0, 1, 1, 0, 1, 1, 0, 1, 1, 0, 1, 1, 0, 1, 1, 0, 1, 1, 0, 1, 1, 0, 1, 1, 0, 1, 1, 0, 1, 1, 0, 1, 1, 0, 1, 1, 0, 1, 1, 0, 1, 1, 0, 1]",
+      "fifty-participant startup all49-receivers: 642ms, flow_facts=49, decoded=[0, 2, 1, 2, 1, 1, 2, 2, 2, 2, 2, 3, 2, 1, 1, 1, 2, 2, 3, 1, 2, 2, 1, 2, 3, 1, 1, 1, 2, 2, 1, 2, 3, 2, 2, 3, 2, 1, 2, 1, 1, 1, 3, 1, 3, 2, 1, 1, 1, 1]",
+      "fifty-participant startup later-publication-retained33: 421ms, flow_facts=1, decoded=[0, 1, 1, 0, 1, 1, 0, 1, 1, 0, 1, 1, 0, 1, 1, 0, 1, 1, 0, 1, 1, 0, 1, 1, 0, 1, 1, 0, 1, 1, 0, 1, 1, 0, 1, 1, 0, 1, 1, 0, 1, 1, 0, 1, 1, 0, 1, 1, 0, 1]"
+    ],
+    "media_observations": [
+      "fifty-participant media no-implicit-subscriptions: decoded marked counts=[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]",
+      "fifty-participant media all49-subscribers: decoded marked counts=[0, 39, 34, 34, 39, 39, 37, 36, 36, 38, 36, 37, 36, 37, 39, 36, 38, 34, 32, 34, 37, 39, 38, 35, 38, 36, 39, 33, 36, 34, 38, 39, 37, 37, 39, 35, 36, 36, 33, 34, 35, 32, 35, 38, 33, 33, 38, 37, 36, 37]",
+      "fifty-participant media later-publication-retained33: decoded marked counts=[0, 34, 31, 0, 35, 35, 0, 34, 31, 0, 32, 32, 0, 34, 32, 0, 32, 33, 0, 32, 33, 0, 33, 33, 0, 32, 33, 0, 32, 32, 0, 32, 33, 0, 33, 34, 0, 33, 33, 0, 32, 31, 0, 32, 31, 0, 32, 32, 0, 32]",
+      "fifty-participant media later-end-preserves-original49: decoded marked counts=[0, 28, 26, 26, 29, 29, 27, 26, 28, 28, 27, 27, 27, 27, 27, 27, 27, 27, 28, 26, 27, 26, 27, 29, 27, 27, 26, 28, 27, 27, 27, 28, 27, 27, 26, 28, 26, 28, 27, 27, 28, 26, 29, 28, 26, 28, 27, 27, 26, 27]",
+      "fifty-participant media unsubscribe-replay-keeps-other48: decoded marked counts=[0, 25, 22, 23, 26, 26, 24, 22, 24, 23, 21, 22, 22, 24, 22, 23, 22, 24, 25, 24, 24, 21, 20, 22, 22, 22, 22, 24, 23, 22, 22, 22, 23, 24, 21, 23, 23, 22, 23, 23, 22, 22, 25, 22, 23, 22, 21, 24, 25, 0]",
+      "fifty-participant media one-leaves-other48-remain: decoded marked counts=[0, 24, 21, 20, 25, 25, 23, 21, 22, 25, 22, 24, 21, 21, 24, 23, 22, 25, 24, 23, 21, 26, 25, 24, 25, 25, 25, 23, 22, 24, 25, 24, 22, 21, 24, 21, 23, 21, 22, 21, 24, 22, 19, 24, 24, 21, 25, 25, 21, 0]",
+      "fifty-participant media membership-removal-preserves-other47: decoded marked counts=[0, 24, 23, 23, 26, 25, 18, 19, 21, 21, 22, 20, 18, 20, 21, 19, 21, 20, 21, 19, 17, 21, 21, 18, 20, 21, 21, 21, 23, 22, 21, 21, 18, 18, 21, 17, 19, 19, 18, 20, 22, 20, 19, 21, 20, 20, 21, 22, 0, 0]",
+      "fifty-participant media no-implicit-subscriptions: decoded marked counts=[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]",
+      "fifty-participant media all49-subscribers: decoded marked counts=[0, 24, 22, 25, 24, 23, 24, 24, 24, 24, 24, 24, 26, 24, 23, 23, 21, 23, 24, 23, 23, 24, 23, 24, 24, 23, 24, 24, 24, 24, 23, 24, 21, 23, 23, 26, 24, 23, 25, 22, 24, 24, 24, 24, 26, 24, 24, 23, 24, 24]",
+      "fifty-participant media later-publication-retained33: decoded marked counts=[0, 27, 26, 0, 28, 27, 0, 28, 26, 0, 29, 26, 0, 27, 26, 0, 28, 28, 0, 26, 26, 0, 26, 27, 0, 27, 28, 0, 26, 27, 0, 28, 26, 0, 28, 29, 0, 26, 29, 0, 27, 27, 0, 26, 29, 0, 27, 27, 0, 27]",
+      "fifty-participant media later-end-preserves-original49: decoded marked counts=[0, 26, 26, 27, 24, 25, 27, 25, 26, 26, 26, 26, 27, 26, 26, 26, 26, 25, 27, 25, 26, 26, 26, 25, 26, 25, 24, 24, 26, 25, 25, 27, 26, 26, 25, 27, 27, 26, 26, 25, 24, 26, 27, 27, 26, 26, 24, 26, 25, 25]",
+      "fifty-participant media unsubscribe-replay-keeps-other48: decoded marked counts=[0, 22, 22, 22, 21, 20, 22, 20, 21, 23, 22, 23, 23, 22, 22, 22, 22, 21, 22, 22, 21, 22, 22, 20, 22, 20, 21, 20, 22, 20, 19, 22, 23, 23, 20, 24, 22, 22, 21, 22, 20, 20, 22, 22, 24, 22, 20, 21, 20, 0]",
+      "fifty-participant media one-leaves-other48-remain: decoded marked counts=[0, 19, 14, 19, 19, 18, 19, 18, 16, 18, 12, 18, 20, 17, 18, 17, 14, 20, 18, 17, 16, 19, 19, 15, 18, 19, 19, 19, 19, 19, 18, 19, 19, 15, 13, 20, 19, 20, 19, 19, 19, 18, 18, 18, 20, 18, 18, 17, 19, 0]",
+      "fifty-participant media membership-removal-preserves-other47: decoded marked counts=[0, 18, 17, 17, 19, 16, 17, 17, 16, 19, 14, 18, 20, 16, 18, 14, 17, 21, 18, 18, 17, 20, 20, 17, 17, 20, 18, 18, 20, 20, 17, 17, 19, 16, 15, 21, 18, 21, 20, 20, 20, 15, 18, 18, 21, 18, 20, 15, 0, 0]"
+    ],
+    "assertion_lines": [],
+    "scope": "Original fixed50 participants/49 initial subscribers/99 connections; exact/PID/PID+audio selectors, original8s shared startup,2s send+300ms tail,>10 decoded frames per allowed recipient, original200ms packet age; future publisher, replay/end/unsubscribe/leave/removal, both EdDSA/ES256 required. No compilation/component proxy credit.",
+    "scenes": [
+      {
+        "algorithm": "EdDSA",
+        "receiver_startup_ms": 741,
+        "receiver_flow_facts": 49,
+        "phases": [
+          {
+            "name": "after_leave",
+            "allowed_receivers": 48,
+            "minimum_decoded_marked": 19,
+            "maximum_decoded_marked": 26
+          },
+          {
+            "name": "after_remove",
+            "allowed_receivers": 47,
+            "minimum_decoded_marked": 17,
+            "maximum_decoded_marked": 26
+          },
+          {
+            "name": "after_unsubscribe",
+            "allowed_receivers": 48,
+            "minimum_decoded_marked": 20,
+            "maximum_decoded_marked": 26
+          },
+          {
+            "name": "fanout",
+            "allowed_receivers": 49,
+            "minimum_decoded_marked": 32,
+            "maximum_decoded_marked": 39
+          },
+          {
+            "name": "unsubscribed",
+            "allowed_receivers": 0,
+            "minimum_decoded_marked": 0,
+            "maximum_decoded_marked": 0
+          }
+        ],
+        "remaining_connections": 95
+      },
+      {
+        "algorithm": "ES256",
+        "receiver_startup_ms": 642,
+        "receiver_flow_facts": 49,
+        "phases": [
+          {
+            "name": "after_leave",
+            "allowed_receivers": 48,
+            "minimum_decoded_marked": 12,
+            "maximum_decoded_marked": 20
+          },
+          {
+            "name": "after_remove",
+            "allowed_receivers": 47,
+            "minimum_decoded_marked": 14,
+            "maximum_decoded_marked": 21
+          },
+          {
+            "name": "after_unsubscribe",
+            "allowed_receivers": 48,
+            "minimum_decoded_marked": 19,
+            "maximum_decoded_marked": 24
+          },
+          {
+            "name": "fanout",
+            "allowed_receivers": 49,
+            "minimum_decoded_marked": 21,
+            "maximum_decoded_marked": 26
+          },
+          {
+            "name": "unsubscribed",
+            "allowed_receivers": 0,
+            "minimum_decoded_marked": 0,
+            "maximum_decoded_marked": 0
+          }
+        ],
+        "remaining_connections": 95
+      }
+    ]
+  }
 }

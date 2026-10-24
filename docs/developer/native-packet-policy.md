@@ -119,7 +119,8 @@ execution wait hold metadata alone. The port owns its receipt and the epoch join
 so cancellation or a failed dispatch cannot report cleanup before the actual
 sender finishes. Admission refusals may retry unchanged metadata; a submitted
 transport error is terminal. The [native scheduler component report](../evidence/gate-6/auxiliary-native-ready-audio.json)
-records bounded queue and actual QUIC cleanup/recovery evidence. Optimized host
-throughput and full-fifty qualification remain pending. This internal scheduling
+records bounded queue and actual QUIC cleanup/recovery evidence. The fixed optimized
+full-fifty rehearsal now passes both signing algorithms with complete validated
+captures; affected production regressions remain pending. This internal scheduling
 change leaves the [canonical HTTP reference](../../contracts/openapi-canonical-http.json)
 unchanged.

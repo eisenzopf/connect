@@ -78,3 +78,11 @@ recorded in the
 That report distinguishes Store/Core component proofs, actual production
 regressions and capacity evidence. Gate and clause progress must follow the
 actual recorded results, not compilation or this procedure alone.
+
+
+Source183 passes the fixed optimized rehearsal for both EdDSA and ES256, including
+two complete validated captures and every original delivery/lifecycle threshold.
+The [native ready-audio report](../evidence/gate-6/auxiliary-native-ready-audio.json)
+records exact source/executable bindings, startup and decoded counts, and earlier
+failed attempts. Affected production regressions and full-clause reconciliation
+remain separate checks; this local result does not qualify other profiles.
