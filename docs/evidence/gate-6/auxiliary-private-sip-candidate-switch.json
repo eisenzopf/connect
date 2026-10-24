@@ -276,7 +276,55 @@
         }
       }
     },
-    "historical_quarantine_interpretation_correction": "Diagnostic021 shows the Human parent applies before the old quarantine observation. Historical assertion failures remain recorded; no Q privacy bug or Q pass is inferred. See auxiliary-private-sip-quarantine-precondition.json."
+    "historical_quarantine_interpretation_correction": "Diagnostic021 shows the Human parent applies before the old quarantine observation. Historical assertion failures remain recorded; no Q privacy bug or Q pass is inferred. See auxiliary-private-sip-quarantine-precondition.json.",
+    "runtime024": {
+      "scope": "Actual initial/committed private SIP pair with independent source/receiver send/receive permission withdrawal, continued media, historical failed-operation/input replay exclusion, current recovery and original-call return/cleanup. Other roles/profiles remain separate.",
+      "source_revision": "d203728d66cf7ba72f7d8fd1ab381e0faa497652",
+      "source_lock_sha256": "2d4f2eff9286f03ae7bc09b8ad9e6ae73b54e04dfcfed17eeff3eb4e086188be",
+      "prepared_patch_count": 185,
+      "executable_sha256": "3d40742e30f9a38cd6264af466b49d96c408d6575a763c1b89154cfd07b8e493",
+      "profiles": [
+        {
+          "source_kind": "initial-sip",
+          "case": "canonical_native_connections::consultation::groups::replacement::telephone::initial::received::private_primary::production_initial_sip_primary_private_consultation_routes_only_its_registered_pair",
+          "runtime_exit_code": 0,
+          "passed": true,
+          "observations": ".local/gate-6/private-sip-primary/owned-mute185-sip-primary-024/initial-sip-observations.jsonl",
+          "validation_exit_code": 0,
+          "validation": {
+            "passed": true,
+            "scenes": 2,
+            "actual_frames": 12,
+            "source_kind": "initial-sip",
+            "observations_sha256": "923fcb9d30a4d7ad08e5c988e1fa0dc113ab4b5a1741582b4338d4b80a3ae6f8",
+            "schema_sha256": "8d3d5a1098c8eebafe30960b8b35d83e11f9c8ac09453ab7e528251368d11c32",
+            "scope": "Actual isolated local selected SIP-primary state, shape and correlations; SDK verifies signatures and runtime asserts decoded media/privacy, actual DTMF and independent signal-rights withdrawal/recovery/replay, original return/replay and cleanup. Other roles/profiles remain separate."
+          }
+        },
+        {
+          "source_kind": "established-sip",
+          "case": "canonical_native_connections::consultation::groups::replacement::telephone::received::private_primary::production_moved_sip_primary_private_consultation_routes_only_its_registered_pair",
+          "runtime_exit_code": 0,
+          "passed": true,
+          "observations": ".local/gate-6/private-sip-primary/owned-mute185-sip-primary-024/established-sip-observations.jsonl",
+          "validation_exit_code": 0,
+          "validation": {
+            "passed": true,
+            "scenes": 2,
+            "actual_frames": 12,
+            "source_kind": "established-sip",
+            "observations_sha256": "b96bc2a6abf7237604537bd4471ea46c87d15bd0c0e68d6e8bd491f84b50048b",
+            "schema_sha256": "8d3d5a1098c8eebafe30960b8b35d83e11f9c8ac09453ab7e528251368d11c32",
+            "scope": "Actual isolated local selected SIP-primary state, shape and correlations; SDK verifies signatures and runtime asserts decoded media/privacy, actual DTMF and independent signal-rights withdrawal/recovery/replay, original return/replay and cleanup. Other roles/profiles remain separate."
+          }
+        }
+      ],
+      "source_inputs_unchanged": true,
+      "executable_unchanged": true,
+      "passed": true,
+      "summary": ".local/gate-6/private-sip-primary/owned-mute185-sip-primary-024/summary.json",
+      "summary_sha256": "a0e1435b7d07b1d3944db3663397cf5582859f8d25f1b025e76e6c2a0e827161"
+    }
   },
   "new_cases": [
     "canonical_native_connections::consultation::groups::replacement::telephone::initial::private_candidate::production_private_sip_candidate_switch_preserves_original_call_and_public_sibling_eddsa",
@@ -284,7 +332,6 @@
   ],
   "remaining": [
     "Complete the remaining approved role/provider/phase matrix and independent conformance; these scoped local profiles do not close U6-REQ-0112/0113 or G6-046.",
-    "Current original initial/established SIP-primary regressions are running separately as runtime024.",
     "Retain historical failed attempts. Prior ES256 media-continuity failure did not recur in runtime023; do not attribute that earlier intermittent failure to the closure-only mute change without evidence."
   ]
 }

@@ -260,6 +260,14 @@
       },
       "retained_executable": ".local/gate-6/received-dtmf-runtime/quarantine122-runtime-014-executable",
       "retained_executable_sha256": "cf887c8b43c75432c79ee4d178ef95d3543d5b310dbee01c621a9575f96e46a4"
+    },
+    "current_runtime185": {
+      "status": "scoped-local-profiles-pass-full-matrix-remains-open",
+      "evidence": "docs/evidence/gate-6/auxiliary-private-sip-quarantine-precondition.json",
+      "runtime023": "Full original Human private SIP candidate switch/return both algorithms and explicit unready-AI quarantine both algorithms pass;12 validated frames.",
+      "runtime024": "Original initial/established SIP-primary both algorithms pass;24 validated frames.",
+      "source_inputs_unchanged": true,
+      "executable_unchanged": true
     }
   },
   "remaining": [
