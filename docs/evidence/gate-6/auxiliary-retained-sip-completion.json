@@ -1,7 +1,7 @@
 {
   "task": "G6-046",
   "recorded_at": "2026-10-24T13:08:30.276124+00:00",
-  "status": "controlled-store-return-completion-verified-actual-rerun-pending",
+  "status": "controlled-store-and-actual-initial-sip-return-completion-verified",
   "full_task_complete": false,
   "full_goal_complete": false,
   "source_base_commit": "fa47aaa32bed0f6771b8650c97492afa3774f2e3",
@@ -125,10 +125,10 @@
   ],
   "fixture_grant_correction": "The initial negative fixture retained operator * permission after deleting stream.subscribe. Removed both grants. Production code unchanged. Diagnostic optimized run002 overlaps this cfg(test)-only fixture correction and cannot gain a source-unchanged pass; a fresh source-bound run follows.",
   "pending": [
-    "Complete optimized actual initial retained-SIP rehearsal and validate both signing scenes, including return/replay, fresh RFC4733 and cleanup.",
     "Qualify actual committed/established retained SIP, selected/private SIP roles and remaining current rights, withdrawal and retirement compositions.",
     "Run the complete current-source G6-046 auxiliary matrix before task closure."
   ],
   "http_reference": "contracts/openapi-canonical-http.json; no route, schema or wire change.",
-  "limits": "No complete actual retained SIP, full Store/workspace, whole-clause/task/acceptance, Linux/browser/remote/provider or independent-conformance pass is inferred. Publication remains separate."
+  "limits": "171 distinct affected controlled Store cases and the named local actual initial-retained-SIP profile pass on recorded inputs. No complete committed/private SIP, full Store/workspace, whole-clause/task/acceptance, Linux/browser/remote/provider or independent-conformance pass. Publication remains separate.",
+  "actual_initial_wire_report": "docs/evidence/gate-6/auxiliary-retained-sip-wire.json"
 }

@@ -1,16 +1,16 @@
 {
   "task": "G6-046",
-  "recorded_at": "2026-10-24T12:37:44.779354+00:00",
-  "status": "first-runtime-failed-return-completion-component-fixed-rerun-pending",
+  "recorded_at": "2026-10-24T13:13:52.552213+00:00",
+  "status": "actual-initial-retained-sip-profile-verified",
   "full_task_complete": false,
   "full_goal_complete": false,
-  "source_base_commit": "627c4245e85cb226aace6b5db6f4c5cc36ef21c7",
+  "source_base_commit": "5341f4a9033af77b8fe184174bb5edee17ffc25a",
   "prepared_patch_count": 183,
   "store_schema": 103,
   "qualified_clause_count": 59,
   "assigned_clause_count": 61,
   "newly_qualified_case_ids": [],
-  "scope": "Actual retained initial SIP consultation fixture with native private endpoints, both EdDSA and ES256. Only compile verification is recorded at this checkpoint.",
+  "scope": "Actual isolated local initial retained SIP call with native private endpoints, both EdDSA and ES256, through signed public clients and controlled loopback SIP/RTP. The committed/established and private SIP roles remain separate.",
   "fixture": "crates/connect-server/tests/support/canonical_native_connections/consultation/groups/replacement/telephone/initial/received/retained.rs",
   "fixture_sha256": "91cf523ea2de4b7d18d3be681b85348c1626cb36f44aa06dcfdb9c8d8ea2588a",
   "validator": "scripts/validate-gate6-retained-sip.py",
@@ -31,23 +31,14 @@
       "result": "Initial compile failed on a temporary target array borrowed by tokio::join!. Bound the array for the full concurrent probe; final compile passes."
     }
   ],
-  "runtime_status": "failed; current corrected-source rerun pending",
-  "assertions_planned": [
-    "Actual original SIP/native duplex before consultation and after return.",
-    "Actual private native pair with zero private decoded audio at the held SIP call.",
-    "Durable held SIP INFO input without private native delivery or recipient submission.",
-    "Private native digit reaches only its intended native peer; held SIP call receives no outgoing INFO.",
-    "Return and consultation replay retain the original call with one return effect/attempt and retire only the intended candidate.",
-    "Exact held-packet replay after return does not create another native delivery; fresh RFC4733 input does.",
-    "Actual BYE and recorded original call cleanup."
-  ],
+  "runtime_status": "passed; unchanged source and executable",
   "pending": [
-    "Execute this optimized fixture and validate actual observations.",
-    "Qualify committed/established retained SIP and selected/private SIP roles plus remaining receive-rights, authority-withdrawal and retirement compositions.",
+    "Qualify actual committed/established retained SIP consultation, private media/DTMF exclusion, original-call return/replay and cleanup for both signing algorithms.",
+    "Implement and qualify selected/private SIP roles plus remaining receive rights, authority withdrawal and retirement compositions under u6-req-0112/0113.",
     "Run the complete current-source G6-046 auxiliary matrix before task closure."
   ],
   "http_reference": "contracts/openapi-canonical-http.json; no HTTP or wire contract change.",
-  "limits": "No runtime, clause, task, acceptance, external-carrier, browser, Linux, remote or independent-conformance pass is inferred from compilation. Publication remains separate.",
+  "limits": "This qualifies only the named local initial-retained-SIP/native-private-pair profile. No new whole-clause/task/acceptance, committed/private SIP, full Store/workspace, Linux/browser/remote/provider or independent-conformance claim. Publication remains separate.",
   "runtime_attempts": [
     {
       "summary": ".local/gate-6/retained-sip-wire/initial-release-001/summary.json",
@@ -112,7 +103,202 @@
         }
       ],
       "failure": "Native-only completion reported the still-live initial SIP call retired; private media and DTMF assertions before return passed, but no full profile or second-algorithm pass."
+    },
+    {
+      "summary": ".local/gate-6/retained-sip-wire/initial-release-002/summary.json",
+      "summary_sha256": "7170a69481710d30395d96e3ff834daa4dc67c794fc9c298d4cb8f9b8822672d",
+      "passed": false,
+      "runtime_exit_code": 0,
+      "validation_passed": true,
+      "source_inputs_unchanged": false,
+      "executable_unchanged": true,
+      "executable_sha256": "0d37f7f7a8be40317dd309cd1b2b8924474ce3bb2d7ff5e49b174c3ab7c95399",
+      "source_changes": [
+        "crates/connect-store/src/transitions/initial_telephone/tests/signal/audience_origin.rs"
+      ],
+      "limit": "Diagnostic run passed both actual scenes/capture validation while the cfg(test)-only initial Store fixture was corrected. It receives no unchanged-source qualification. Fresh003 used the exact same Cargo-confirmed cached binary with all current inputs unchanged."
+    },
+    {
+      "summary": ".local/gate-6/retained-sip-wire/initial-release-003/summary.json",
+      "summary_sha256": "1a95858c0df94efabba29c4304ca8a9fa8a078f6866530adbe5a6dbae01af88c",
+      "passed": true,
+      "source_revision": "5341f4a9033af77b8fe184174bb5edee17ffc25a",
+      "source_inputs_unchanged": true,
+      "executable_unchanged": true,
+      "executable_sha256": "0d37f7f7a8be40317dd309cd1b2b8924474ce3bb2d7ff5e49b174c3ab7c95399"
     }
   ],
-  "completion_fix_report": "docs/evidence/gate-6/auxiliary-retained-sip-completion.json"
+  "completion_fix_report": "docs/evidence/gate-6/auxiliary-retained-sip-completion.json",
+  "platform": "macOS-26.6.2-arm64-arm-64bit-Mach-O",
+  "runtime_assertions_passed": [
+    "Actual original SIP/native duplex before consultation and after return.",
+    "Actual private native pair with zero private decoded audio at the held SIP call.",
+    "Durable held SIP INFO input without private native delivery or recipient submission.",
+    "Private native digit reaches only its intended native peer; held SIP call receives no outgoing INFO.",
+    "Return and consultation replay retain the original call with one return effect/attempt and retire only the intended candidate.",
+    "Exact held-packet replay after return does not create another native delivery; fresh RFC4733 input does.",
+    "Actual BYE and recorded original call cleanup."
+  ],
+  "runtime_verification": {
+    "passed": true,
+    "summary": ".local/gate-6/retained-sip-wire/initial-release-003/summary.json",
+    "summary_sha256": "1a95858c0df94efabba29c4304ca8a9fa8a078f6866530adbe5a6dbae01af88c",
+    "source_inputs_unchanged": true,
+    "executable_unchanged": true,
+    "executable_sha256": "0d37f7f7a8be40317dd309cd1b2b8924474ce3bb2d7ff5e49b174c3ab7c95399",
+    "profile": {
+      "opt_level": "3",
+      "debuginfo": 0,
+      "debug_assertions": false,
+      "overflow_checks": false,
+      "test": true
+    },
+    "steps": [
+      {
+        "name": "dependencies",
+        "command": [
+          "bash",
+          "scripts/prepare-dependencies.sh"
+        ],
+        "exit_code": 0,
+        "elapsed_seconds": 0.21396329090930521
+      },
+      {
+        "name": "compiler",
+        "command": [
+          "rustc",
+          "--version",
+          "--verbose"
+        ],
+        "exit_code": 0,
+        "elapsed_seconds": 0.03554508415982127
+      },
+      {
+        "name": "build",
+        "command": [
+          "cargo",
+          "test",
+          "-p",
+          "connect-server",
+          "--test",
+          "gate6_canonical_runtime",
+          "--no-run",
+          "--release",
+          "--target-dir",
+          "/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024",
+          "--locked",
+          "--offline",
+          "-j4",
+          "--message-format=json"
+        ],
+        "exit_code": 0,
+        "elapsed_seconds": 0.5419067910406739
+      },
+      {
+        "name": "runtime",
+        "command": [
+          "/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps/gate6_canonical_runtime-43321488c949ae5c",
+          "canonical_native_connections::consultation::groups::replacement::telephone::initial::received::retained::production_initial_sip_retained_consultation_fences_dtmf_and_restores_original_call",
+          "--exact",
+          "--test-threads=1",
+          "--nocapture"
+        ],
+        "exit_code": 0,
+        "elapsed_seconds": 28.33676554216072
+      },
+      {
+        "name": "validation",
+        "command": [
+          "/Volumes/D2-2019/Developer/Connect/.local/gate-6/received-dtmf-runtime/validation-venv/bin/python",
+          "scripts/validate-gate6-retained-sip.py",
+          "/Volumes/D2-2019/Developer/Connect/.local/gate-6/retained-sip-wire/initial-release-003/observations.jsonl"
+        ],
+        "exit_code": 0,
+        "elapsed_seconds": 0.07667904114350677
+      }
+    ],
+    "observations": ".local/gate-6/retained-sip-wire/initial-release-003/observations.jsonl",
+    "observations_sha256": "ab2ce07e8c2e2e36f85378db135817330640f43ba0a614f5c31d9c1d79d68ef6",
+    "runtime_log": ".local/gate-6/retained-sip-wire/initial-release-003/runtime.log",
+    "runtime_log_sha256": "e2b5c6f5d757ec88ef907c185cc03c1cdb15a7989dc41315973f7fb0929ffa65",
+    "validation": {
+      "passed": true,
+      "scenes": 2,
+      "actual_frames": 6,
+      "observations_sha256": "ab2ce07e8c2e2e36f85378db135817330640f43ba0a614f5c31d9c1d79d68ef6",
+      "schema_sha256": "8d3d5a1098c8eebafe30960b8b35d83e11f9c8ac09453ab7e528251368d11c32",
+      "scope": "Actual local retained initial-SIP state, shape and correlations. SDK verifies signatures; runtime checks decoded media, private exclusion, source settlement, return/replay and cleanup. Not independent cryptography or other profiles."
+    },
+    "scenes": [
+      {
+        "algorithm": "EdDSA",
+        "sip_calls": 1,
+        "received_source_operations": 3,
+        "held_source_submissions": 0,
+        "baseline_state": "completed",
+        "held_state": "failed",
+        "fresh_rfc4733_state": "completed",
+        "private_native_digit": "9",
+        "outgoing_sip_info_during_private": [
+          0,
+          0
+        ],
+        "native_private_audio_frames": [
+          {
+            "source": 0,
+            "receiver_counts": [
+              0,
+              59
+            ]
+          },
+          {
+            "source": 1,
+            "receiver_counts": [
+              75,
+              0
+            ]
+          }
+        ],
+        "remote_continuing": true,
+        "retired_candidate_count": 1,
+        "return_effect_count": 1,
+        "return_attempt": 1
+      },
+      {
+        "algorithm": "ES256",
+        "sip_calls": 1,
+        "received_source_operations": 3,
+        "held_source_submissions": 0,
+        "baseline_state": "completed",
+        "held_state": "failed",
+        "fresh_rfc4733_state": "completed",
+        "private_native_digit": "9",
+        "outgoing_sip_info_during_private": [
+          0,
+          0
+        ],
+        "native_private_audio_frames": [
+          {
+            "source": 0,
+            "receiver_counts": [
+              0,
+              85
+            ]
+          },
+          {
+            "source": 1,
+            "receiver_counts": [
+              83,
+              0
+            ]
+          }
+        ],
+        "remote_continuing": true,
+        "retired_candidate_count": 1,
+        "return_effect_count": 1,
+        "return_attempt": 1
+      }
+    ],
+    "media_assertion_scope": "The unchanged production fixture asserts >10 marked frames for each allowed private native receiver, zero marked private audio at held SIP in each direction, restored actual SIP/native duplex, original-call BYE and recorded cleanup. Log-derived receiver counts are shown; SDK signature verification and runtime media assertions are distinct from capture-schema validation."
+  }
 }
