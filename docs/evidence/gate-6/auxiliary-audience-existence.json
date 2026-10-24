@@ -1,0 +1,51 @@
+{
+  "task": "G6-046",
+  "title": "Probe exact current audience rows without building union tables",
+  "recorded_at": "2026-10-24T03:25:07.327701+00:00",
+  "status": "controlled-equivalence-and-host-build-verified; broader-store-checks-active",
+  "full_task_complete": false,
+  "full_goal_complete": false,
+  "qualified_case_ids": [],
+  "source_lock_patch_count": 176,
+  "store_schema": 103,
+  "motivation": "The prior actual host sample reached sqlite3BtreeInsert during current visibility lookup. A read-only helper linked the target bundled SQLite3.46.0 archive; EXPLAIN confirms UNION temporary B-trees in current audience views. This identifies concrete work, not a proven sole capacity cause.",
+  "implementation": [
+    "Boolean visibility now starts from the exact current identity/Participant/Conversation tenant and tests indexed source rows with EXISTS. Original resource, message and artifact audience branches are preserved, and history visibility additionally requires a matching current epoch and active history share. Duplicate UNION rows cannot affect a Boolean result.",
+    "Only the prepared SQL statement is cached; every execution queries current rows. No audience decision, permission, authority reader, source expiry or file fence is cached by this change. Native admission keeps its existing SQL version seal and current IO authorization.",
+    "original_to_identity retains the original current-member refusal before querying original sources only. A history share still grants reading but cannot authorize original mutation. Source owner/recipient ceilings and their current tenant checks remain in the existing outer authority path.",
+    "No Store schema, upstream source, public wire format or HTTP/OpenAPI contract changed."
+  ],
+  "verification": {
+    "new_unit_methods_passed": 2,
+    "new_methods": [
+      "audience::tests::indexed_audience_matches_schema_views_for_all_kinds_epochs_and_tenants",
+      "audience::tests::indexed_audience_rechecks_history_revocation_membership_and_identity_after_statement_reuse"
+    ],
+    "old_schema_view_decisions_compared": 4860,
+    "equivalence_scope": "Controlled minimal relational inputs, with the authoritative original/content view SQL loaded from migration021. All9 content kinds, current/old membership epochs, original and history-only/branch-only/duplicate/missing sources, current/revoked/inactive/missing identities, cross-tenant rows and missing/foreign Conversations. Reused statements separately recheck share revocation, membership epoch, identity revocation and active membership. Actual Store/schema integration remains pending.",
+    "default_server_test_build_passed": true,
+    "default_server_test_build_duration_seconds": 12.17,
+    "full_store_unit_run_active": true,
+    "membership_history_integration_run_pending": true,
+    "full50_retest_passed": false,
+    "inputs": {
+      "crates/connect-store/src/audience.rs": "dde2dfe024a47de60e3e77f889ba87b01efafd1f3c36db211f3971aadf1b4f56",
+      "crates/connect-store/src/audience/tests.rs": "c0d89d05bf49ff18d7ca435536b7fe45bcd26a609ca4782a898653c3b4793668",
+      "dependencies/source-lock.json": "785a6cbd2ec476e7056c9375d6c8696b1feb9f8571d95d207fc9c746ff89f9cf",
+      "target/debug/deps/gate6_canonical_runtime-3bf705553dffa934": "6a13532594ea21645f5172cea06e346388997544fde3e553101624ca06c4a6d1"
+    },
+    "local_log_sha256": {
+      "audience176-prepare.log": "fd9d7b181e3ccba9b643af55a186cf132c60aac99c734b2ee4e4e549afe5ffc2",
+      "audience176-units.log": "c02bc4c3546f35cb84ab2bfef070e9a38ab88f6cce9df668a03102b4c498e716",
+      "audience176-server-build.log": "2b9fe035409b44d40d46e778d922e768b1056af877ae62c760f4ca212a60bb0b",
+      "catalog176-bundled-audience-plan.txt": "fd7c83dd3daeb4d28edea82044db1838066bfc412b20570d8a16d5cee91e71b3",
+      "audience176-runtime-inputs.json": "311f6af90d115ab6aebba2917918f5860506696861833ff54b34785940b959ac"
+    }
+  },
+  "unresolved": [
+    "Allow exact active Store sequence41358 to finish its complete library module and five membership/history integration targets. Do not infer completion from intermediate successful methods.",
+    "Then run actual rebuilt fifty-peer and affected production profiles without concurrent builds/tests, preserving50 peers/49 explicit receivers, original8s command/startup bounds,200ms frame age and>10 decoded frames for each intended recipient. Validate a complete both-algorithm capture only if all phases pass.",
+    "Source176 before this Store change failed full50 steady1..12 after all49 actual receiver startups; original source175 ES256 telephone compound movement Unknown remains unexplained despite passing targeted repeats. Neither history is erased.",
+    "G6-046 remains58/61 and45/105 tasks complete. Later Linux/browser/remote/provider/independent/acceptance/publication checks remain separate."
+  ]
+}

@@ -68,8 +68,37 @@ pub(crate) fn visible_to_identity(
     kind: ContentKind,
     id: &str,
 ) -> Result<bool> {
-    c.query_row("SELECT EXISTS(SELECT 1 FROM content_audiences a JOIN participants p ON p.participant_id=a.participant_id AND p.conversation_id=a.conversation_id AND p.membership_epoch=a.membership_epoch AND p.active=1 JOIN identities i ON i.id=p.identity_id AND i.tenant_id=p.tenant_id AND i.revoked=0 JOIN conversations v ON v.id=p.conversation_id AND v.tenant_id=p.tenant_id WHERE a.kind=?1 AND a.id=?2 AND a.conversation_id=?3 AND p.identity_id=?4)",params![kind.as_str(),id,conversation,identity],|r|r.get(0)).map_err(|_|Error::storage())
+    identity_audience(c, identity, conversation, kind, id, true)
 }
+// Boolean membership distributes over the audience UNIONs. Probe the exact
+// current member's indexed rows instead of building deduplicated temporary
+// tables. This is a fresh query, not a cached audience or authority grant.
+fn identity_audience(
+    c: &Connection,
+    identity: &str,
+    conversation: &str,
+    kind: ContentKind,
+    id: &str,
+    history: bool,
+) -> Result<bool> {
+    c.prepare_cached(
+        "SELECT EXISTS(
+         SELECT 1 FROM participants p
+         JOIN identities i ON i.id=p.identity_id AND i.tenant_id=p.tenant_id AND i.revoked=0
+         JOIN conversations v ON v.id=p.conversation_id AND v.tenant_id=p.tenant_id
+         WHERE p.conversation_id=?3 AND p.identity_id=?4 AND p.active=1 AND (
+          EXISTS(SELECT 1 FROM resource_audiences a WHERE a.kind=?1 AND a.id=?2 AND a.conversation_id=?3 AND a.participant_id=p.participant_id AND a.membership_epoch=p.membership_epoch)
+          OR (?1='message' AND EXISTS(SELECT 1 FROM message_audiences a WHERE a.message_id=?2 AND a.conversation_id=?3 AND a.participant_id=p.participant_id AND a.membership_epoch=p.membership_epoch))
+          OR (?1='artifact' AND EXISTS(SELECT 1 FROM artifact_audiences a WHERE a.artifact_id=?2 AND a.conversation_id=?3 AND a.participant_id=p.participant_id AND a.membership_epoch=p.membership_epoch))
+          OR (?5 AND EXISTS(SELECT 1 FROM history_share_items x JOIN history_shares s ON s.id=x.sharing_id AND s.active=1 WHERE x.kind=?1 AND x.source_id=?2 AND x.conversation_id=?3 AND x.participant_id=p.participant_id AND x.membership_epoch=p.membership_epoch))
+         ))",
+    )
+    .and_then(|mut query| {
+        query.query_row(params![kind.as_str(), id, conversation, identity, history], |r| r.get(0))
+    })
+    .map_err(|_| Error::storage())
+}
+
 pub(crate) fn visible(
     c: &Connection,
     actor: &Actor,
@@ -130,7 +159,7 @@ pub(crate) fn original_to_identity(
     id: &str,
 ) -> Result<bool> {
     member(c, identity, conversation, true)?;
-    c.query_row("SELECT EXISTS(SELECT 1 FROM original_content_audiences a JOIN participants p ON p.participant_id=a.participant_id AND p.conversation_id=a.conversation_id AND p.membership_epoch=a.membership_epoch AND p.active=1 WHERE a.kind=?1 AND a.id=?2 AND a.conversation_id=?3 AND p.identity_id=?4)",params![kind.as_str(),id,conversation,identity],|r|r.get(0)).map_err(|_|Error::storage())
+    identity_audience(c, identity, conversation, kind, id, false)
 }
 pub(crate) fn source_members(
     c: &Connection,
@@ -316,3 +345,6 @@ pub(crate) fn select_members(
     }
     Ok(members)
 }
+
+#[cfg(test)]
+mod tests;
