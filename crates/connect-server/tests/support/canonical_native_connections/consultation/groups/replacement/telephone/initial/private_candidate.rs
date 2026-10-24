@@ -25,36 +25,60 @@ async fn production_private_sip_candidate_switch_preserves_original_call_and_pub
     exercise("ES256", true).await;
 }
 
-async fn marked(peer: &PeerSip, clients: &mut [Peer]) -> Vec<usize> {
-    let receive = async {
-        let until = tokio::time::Instant::now() + Duration::from_millis(1000);
-        let mut counts = vec![0; clients.len()];
-        loop {
-            let reads = clients
-                .iter_mut()
-                .enumerate()
-                .map(|(i, p)| {
-                    Box::pin(async move { (i, p.client.receive_native_rtp_datagram().await) })
-                })
-                .collect::<Vec<_>>();
-            let Ok(((i, bytes), _, _)) = tokio::time::timeout_at(until, select_all(reads)).await
-            else {
-                break;
-            };
-            let packet = rvoip_uctp::substrate::unpack_rtp_datagram(&bytes.unwrap()).unwrap();
-            assert_eq!(packet.stream_local_id, clients[i].handle);
-            if packet
-                .rtp
-                .payload
-                .iter()
-                .any(|b| !matches!(*b, 0xff | 0x7f))
-            {
-                counts[i] += 1;
-            }
+async fn observe_marked(clients: &mut [Peer], duration: Duration) -> Vec<usize> {
+    let until = tokio::time::Instant::now() + duration;
+    let mut counts = vec![0; clients.len()];
+    loop {
+        let reads = clients
+            .iter_mut()
+            .enumerate()
+            .map(|(i, p)| {
+                Box::pin(async move { (i, p.client.receive_native_rtp_datagram().await) })
+            })
+            .collect::<Vec<_>>();
+        let Ok(((i, bytes), _, _)) = tokio::time::timeout_at(until, select_all(reads)).await else {
+            break;
+        };
+        let packet = rvoip_uctp::substrate::unpack_rtp_datagram(&bytes.unwrap()).unwrap();
+        assert_eq!(packet.stream_local_id, clients[i].handle);
+        if let Some(path) = std::env::var_os("CONNECT_PRIVATE_SIP_AUDIO_DIAGNOSTIC") {
+            use std::io::Write;
+            let path = std::path::PathBuf::from(path);
+            let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+                .parent()
+                .unwrap()
+                .parent()
+                .unwrap()
+                .join(".local/gate-6");
+            assert!(path.is_absolute() && path.starts_with(root));
+            let row = json!({"receiver":i,"payload":&packet.rtp.payload,"observed_unix_micros":std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_micros()});
+            writeln!(
+                std::fs::OpenOptions::new()
+                    .create(true)
+                    .append(true)
+                    .open(path)
+                    .unwrap(),
+                "{row}"
+            )
+            .unwrap();
         }
-        counts
-    };
-    let (_, counts) = tokio::join!(peer.rtp(0), receive);
+        if packet
+            .rtp
+            .payload
+            .iter()
+            .any(|b| !matches!(*b, 0xff | 0x7f))
+        {
+            counts[i] += 1;
+        }
+    }
+    counts
+}
+
+async fn marked(peer: &PeerSip, clients: &mut [Peer]) -> Vec<usize> {
+    let (_, counts) = tokio::join!(
+        peer.rtp(0),
+        observe_marked(clients, Duration::from_millis(1000))
+    );
     counts
 }
 
@@ -190,6 +214,10 @@ async fn exercise(algorithm: &str, complete: bool) {
         baseline.iter().all(|count| *count > 10),
         "public phone baseline missing: {baseline:?}"
     );
+    // No private allocation or RTP input exists yet. Count already admitted
+    // public media separately before observing the fresh private input below.
+    let baseline_backlog = observe_marked(&mut clients, Duration::from_millis(250)).await;
+    eprintln!("PRIVATE_SIP_PRE_ALLOCATION_PUBLIC_BACKLOG {baseline_backlog:?}");
     let key = f
         .server
         .store
@@ -249,7 +277,7 @@ async fn exercise(algorithm: &str, complete: bool) {
     assert_eq!(reserved, connection);
     assert_eq!(db.query_row("SELECT count(*) FROM native_offer_operations n JOIN operations o ON o.record_id=n.operation_record_id WHERE o.connection_id=?1",[&connection],|r|r.get::<_,u64>(0)).unwrap(),0,"SIP candidate borrowed a native signing/admission source");
     if complete {
-        let observed = json!({"algorithm":algorithm,"conversation_id":room.id,"record":record,"child":child,"connection":connection,"core":core,"call":call,"public":public,"details":details,"baseline":baseline});
+        let observed = json!({"algorithm":algorithm,"conversation_id":room.id,"record":record,"child":child,"connection":connection,"core":core,"call":call,"public":public,"details":details,"baseline":baseline,"pre_allocation_public_backlog":baseline_backlog});
         switched::exercise(
             &f,
             &peer,
@@ -318,7 +346,16 @@ async fn exercise(algorithm: &str, complete: bool) {
         "temporary metadata contention retired the original quarantined call"
     );
     drop(writer);
-    let counts = marked(&peer, &mut clients).await;
+    let no_input = std::env::var_os("CONNECT_PRIVATE_SIP_QUARANTINE_NO_INPUT_DIAGNOSTIC").is_some();
+    eprintln!(
+        "PRIVATE_SIP_QUARANTINE_DIAGNOSTIC {}",
+        json!({"private_rtp_sent":!no_input,"observed_unix_micros":std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_micros()})
+    );
+    let counts = if no_input {
+        observe_marked(&mut clients, Duration::from_millis(1000)).await
+    } else {
+        marked(&peer, &mut clients).await
+    };
     assert_eq!(
         counts,
         vec![0, 0],
@@ -348,8 +385,11 @@ async fn exercise(algorithm: &str, complete: bool) {
         recovered[0] > 10,
         "original public sibling did not survive private cleanup: {recovered:?}"
     );
-    if let Ok(path) = std::env::var("CONNECT_PRIVATE_SIP_CANDIDATE_CAPTURE") {
-        std::fs::write(format!("{path}.{algorithm}.json"),serde_json::to_vec_pretty(&json!({"algorithm":algorithm,"scope":"actual fresh SIP/Core quarantined admission and original cleanup; no private switch/DTMF/return qualification","parent":record,"child":child,"candidate_connection":connection,"core_connection":core,"sip_call_id":call,"original_public":public,"private_ready":details,"marked_public_baseline":baseline,"marked_quarantine":counts,"marked_public_after_cleanup":recovered,"distinct_sip_calls":peer.unique(),"original_public_live":original_live,"metadata_busy_preserved":true,"authority_writer_hold_ms":250})).unwrap()).unwrap();
+    if let (false, Ok(path)) = (
+        no_input,
+        std::env::var("CONNECT_PRIVATE_SIP_CANDIDATE_CAPTURE"),
+    ) {
+        std::fs::write(format!("{path}.{algorithm}.json"),serde_json::to_vec_pretty(&json!({"algorithm":algorithm,"scope":"actual fresh SIP/Core quarantined admission and original cleanup; no private switch/DTMF/return qualification","parent":record,"child":child,"candidate_connection":connection,"core_connection":core,"sip_call_id":call,"original_public":public,"private_ready":details,"marked_public_baseline":baseline,"pre_allocation_public_backlog":baseline_backlog,"marked_quarantine":counts,"marked_public_after_cleanup":recovered,"distinct_sip_calls":peer.unique(),"original_public_live":original_live,"metadata_busy_preserved":true,"authority_writer_hold_ms":250})).unwrap()).unwrap();
     }
     drop(db);
     for p in &mut clients {
