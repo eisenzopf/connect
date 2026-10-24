@@ -1,9 +1,9 @@
 {
   "task": "G6-046",
-  "recorded_at": "2026-10-24T22:01:15.521925+00:00",
+  "recorded_at": "2026-10-24T22:19:20.266927+00:00",
   "source_base_commit": "45fdb22cd16fb663a4722681b99859271b7e79aa",
   "implementation_commit": "d0c22086",
-  "status": "native-custody-presence-regression-passes-socket-revalidation-pending",
+  "status": "native-custody-store-and-sip-primary-runtime-pass-quarantine-regression-open",
   "full_task_complete": false,
   "full_goal_complete": false,
   "newly_qualified_case_ids": [],
@@ -126,9 +126,61 @@
       ]
     },
     "runtime": {
-      "status": "running-not-qualified",
+      "status": "terminal-two-profiles-pass-two-quarantine-cases-fail",
       "summary": ".local/gate-6/private-sip-primary/native-presence121-runtime-012/summary.json",
-      "scope": "Current optimized initial/established SIP-primary complete private media/signals/rights/recovery/replay/return + both algorithms private SIP-candidate quarantine/admission/contention/replay/cancel/original cleanup/public sibling. No reverse private SIP-candidate audience switch qualification."
+      "scope": "Current optimized initial/established SIP-primary complete private media/signals/rights/recovery/replay/return + both algorithms private SIP-candidate quarantine/admission/contention/replay/cancel/original cleanup/public sibling. No reverse private SIP-candidate audience switch qualification.",
+      "passed": false,
+      "summary_sha256": "5a2a6a6304b812359c4c852c634fe967ec3bcf23693bfb4c89535aafe0934b08",
+      "source_inputs_unchanged": true,
+      "executable_unchanged": true,
+      "profiles": [
+        {
+          "source_kind": "initial-sip",
+          "case": "canonical_native_connections::consultation::groups::replacement::telephone::initial::received::private_primary::production_initial_sip_primary_private_consultation_routes_only_its_registered_pair",
+          "runtime_exit_code": 0,
+          "passed": true,
+          "observations": ".local/gate-6/private-sip-primary/native-presence121-runtime-012/initial-sip-observations.jsonl",
+          "validation_exit_code": 0,
+          "validation": {
+            "passed": true,
+            "scenes": 2,
+            "actual_frames": 12,
+            "source_kind": "initial-sip",
+            "observations_sha256": "fbeee121fca8cc66ffb3ca5a93f0ff893725384e9e5dcf1b5cd3e67df51bc62d",
+            "schema_sha256": "8d3d5a1098c8eebafe30960b8b35d83e11f9c8ac09453ab7e528251368d11c32",
+            "scope": "Actual isolated local selected SIP-primary state, shape and correlations; SDK verifies signatures and runtime asserts decoded media/privacy, actual DTMF and independent signal-rights withdrawal/recovery/replay, original return/replay and cleanup. Other roles/profiles remain separate."
+          }
+        },
+        {
+          "source_kind": "established-sip",
+          "case": "canonical_native_connections::consultation::groups::replacement::telephone::received::private_primary::production_moved_sip_primary_private_consultation_routes_only_its_registered_pair",
+          "runtime_exit_code": 0,
+          "passed": true,
+          "observations": ".local/gate-6/private-sip-primary/native-presence121-runtime-012/established-sip-observations.jsonl",
+          "validation_exit_code": 0,
+          "validation": {
+            "passed": true,
+            "scenes": 2,
+            "actual_frames": 12,
+            "source_kind": "established-sip",
+            "observations_sha256": "d4ed405a62e1ed924997d5d10082a8b4ebdcd71315850e9e39cf52f98545e5ec",
+            "schema_sha256": "8d3d5a1098c8eebafe30960b8b35d83e11f9c8ac09453ab7e528251368d11c32",
+            "scope": "Actual isolated local selected SIP-primary state, shape and correlations; SDK verifies signatures and runtime asserts decoded media/privacy, actual DTMF and independent signal-rights withdrawal/recovery/replay, original return/replay and cleanup. Other roles/profiles remain separate."
+          }
+        },
+        {
+          "source_kind": "private-candidate-quarantine",
+          "algorithm": "EdDSA",
+          "runtime_exit_code": 101,
+          "passed": false
+        },
+        {
+          "source_kind": "private-candidate-quarantine",
+          "algorithm": "ES256",
+          "runtime_exit_code": 101,
+          "passed": false
+        }
+      ]
     },
     "schema": {
       "status": "not-rerun",
@@ -136,7 +188,7 @@
     }
   },
   "remaining": [
-    "Complete current optimized socket revalidation and repeat existing intermittent lane if needed; pending runs are not passes.",
+    "Repeat current optimized SIP-primary profiles and fix private-candidate quarantine admission regression; runtime012 is a partial result, not an overall pass.",
     "Preserve unrelated private SIP programmes under their own current context and enable typed SIP candidate runtime selection using original reservation/child/call.",
     "Qualify actual reverse private SIP candidate duplex media/INFO/RFC4733, four rights and recovery/replay/privacy/siblings/return/absence for both algorithms and full G6-046 matrix."
   ]
