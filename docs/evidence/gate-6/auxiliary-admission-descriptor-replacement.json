@@ -1,5 +1,5 @@
 {
-  "scope": "Local macOS arm64 bounded idle-descriptor replacement:77 Store methods pass. Optimized host build and current capacity/production behavior remain pending. Initial-pool1065/8 proof is historical to its exact source; it is not called a current full-suite or capacity pass.45/105 tasks andG6-04658/61 clauses unchanged.",
+  "scope": "Local macOS arm64 replacement77 Store methods and optimized host build pass. Full50 fails steady4..14 after49 startups1269ms. Of8 production methods,6 pass initially; quality times out then passes unchanged in isolation; mixed SIP/native refresh times out twice. Current regression qualification is incomplete.45/105 and58/61 unchanged.",
   "changes": [
     "The previous full pool permanently rejected every later admission name, even after a cold bootstrap stopped using its initial128 descriptions. One new actual file/lock case reproduces that working-set exclusion before the change.",
     "At capacity, replace a description belonging to the least recently returned idle name. Keep at most128 idle descriptions and2 per name. Only explicitly unlocked idle files are candidates; close evicted files after releasing the nonblocking pool mutex.",
@@ -53,7 +53,169 @@
     }
   },
   "pending": [
-    "Exact optimized build, actual unchanged full50 and current-authority production regressions.",
-    "Full current Store suite not rerun after this cache-replacement-only change; previous initial-pool1065 pass remains in its source-bound report. Other assigned transport/hosting/remote profiles and whole-gate acceptance remain open."
-  ]
+    "Diagnose repeated mixed SIP/native refresh private-readiness timeout and original lifecycle/quality timeout; do not describe production checks as all passing.",
+    "Measure exact remaining resource-file reopen branch using the current executable and preserve all failed fixed-workload attempts.",
+    "New full current Store suite not rerun after replacement-only change. All later full50 phases, ES256 capacity, other assigned profiles and whole-gate acceptance remain open."
+  ],
+  "host_build": {
+    "passed": true,
+    "duration_seconds": 757,
+    "profile": "release opt-level3",
+    "log": ".local/gate-6/received-dtmf-runtime/admission-replacement179-release-build.log",
+    "log_sha256": "12d9b0ddd1b08ced711fa6b68f180c4cc967b8c24cd0c075866fae7d66d14587"
+  },
+  "optimized_full50": {
+    "passed": false,
+    "runtime_seconds": 29.2,
+    "actual_connections": 99,
+    "completed_subscriptions": 49,
+    "receiver_startup_ms": 1269,
+    "receiver_flow_facts": 49,
+    "steady_decoded_by_peer": [
+      0,
+      7,
+      12,
+      12,
+      9,
+      12,
+      11,
+      7,
+      10,
+      7,
+      11,
+      10,
+      12,
+      11,
+      7,
+      12,
+      11,
+      9,
+      11,
+      9,
+      13,
+      4,
+      11,
+      13,
+      8,
+      9,
+      13,
+      13,
+      11,
+      7,
+      8,
+      9,
+      8,
+      9,
+      13,
+      10,
+      13,
+      10,
+      10,
+      10,
+      11,
+      11,
+      9,
+      12,
+      12,
+      10,
+      12,
+      14,
+      12,
+      12
+    ],
+    "steady_range": [
+      4,
+      14
+    ],
+    "receivers_below_requirement": 23,
+    "required_each": ">10",
+    "future_phases_reached": false,
+    "second_algorithm_reached": false,
+    "complete_capture_rows": 0,
+    "validator": "Not run: no complete algorithm capture.",
+    "source_inputs_unchanged": true,
+    "executable_sha256": "101c7fc417bc1dd33e351b37a205de6008cabfeceab209835e719504baee4345",
+    "cargo_profile": {
+      "opt_level": "3",
+      "debuginfo": 0,
+      "debug_assertions": false,
+      "overflow_checks": false,
+      "test": true
+    },
+    "artifacts_sha256": {
+      ".local/gate-6/fifty-native/admission-replacement179-release/summary.json": "3047a7ec8221aa089e0551c1810cb39ea1b35f60bda00770acb1466fbd1e2df0",
+      ".local/gate-6/fifty-native/admission-replacement179-release/runtime.log": "3c20f030509a6d92ae18d57d40689c4a371179909bdab77a86ea6e2e1f5a169f",
+      ".local/gate-6/fifty-native/admission-replacement179-release/observations.jsonl": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  },
+  "actual_production_regressions": {
+    "all_passed": false,
+    "methods_executed": 8,
+    "initial_passes": 6,
+    "initial_failures": 2,
+    "isolated_retries": "Same source and executable, no changes to bounds. Lifecycle/quality passes retry after initial8s event timeout; mixed SIP/native refresh repeats private-readiness timeout. Earlier failures remain unresolved evidence.",
+    "source_inputs_unchanged_after_attempts": true,
+    "runs": [
+      {
+        "attempt": "0",
+        "log": ".local/gate-6/received-dtmf-runtime/admission-replacement179-production-0.log",
+        "sha256": "f7eecd733cc3bad8f33a45c2d964d067dc7f5d08f9e194bd10efed0b3d2b659e",
+        "summary": "test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 253 filtered out; finished in 10.89s"
+      },
+      {
+        "attempt": "1",
+        "log": ".local/gate-6/received-dtmf-runtime/admission-replacement179-production-1.log",
+        "sha256": "7fe4058a3b70d1a9a578f305a72a8ba6c7279aaa75de1b1c829c12801fbc89f2",
+        "summary": "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 253 filtered out; finished in 10.45s"
+      },
+      {
+        "attempt": "3",
+        "log": ".local/gate-6/received-dtmf-runtime/admission-replacement179-production-3.log",
+        "sha256": "8fa70d80203a1645791784e1ebe73f980a50d71848980637150dafe3384a5cdc",
+        "summary": "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 253 filtered out; finished in 5.19s"
+      },
+      {
+        "attempt": "5",
+        "log": ".local/gate-6/received-dtmf-runtime/admission-replacement179-production-5.log",
+        "sha256": "3c4214dc6701901cb561b115372442bf8ba153351865317708838b9a3b297152",
+        "summary": "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 253 filtered out; finished in 16.27s"
+      },
+      {
+        "attempt": "6",
+        "log": ".local/gate-6/received-dtmf-runtime/admission-replacement179-production-6.log",
+        "sha256": "daf552b6e046c3598de82e98885c7aa0bff0437028217cf5385d7d898fba477c",
+        "summary": "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 253 filtered out; finished in 86.62s"
+      },
+      {
+        "attempt": "7",
+        "log": ".local/gate-6/received-dtmf-runtime/admission-replacement179-production-7.log",
+        "sha256": "47ce55735bf70c1810f8429aeeeda95402847cb1272a8e277a9fa664843bc610",
+        "summary": "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 253 filtered out; finished in 15.88s"
+      },
+      {
+        "attempt": "9",
+        "log": ".local/gate-6/received-dtmf-runtime/admission-replacement179-production-9.log",
+        "sha256": "acc8e2e74c98687fb4413fddb10e42a99c7f6f2e31452875c1b31597091fe33d",
+        "summary": "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 253 filtered out; finished in 58.37s"
+      },
+      {
+        "attempt": "10",
+        "log": ".local/gate-6/received-dtmf-runtime/admission-replacement179-production-10.log",
+        "sha256": "97c235c81f57b717bd498628b718fe3f1fca91001c060769b5bf87e297508611",
+        "summary": "test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 253 filtered out; finished in 19.86s"
+      },
+      {
+        "attempt": "0-retry1",
+        "log": ".local/gate-6/received-dtmf-runtime/admission-replacement179-production-0-retry1.log",
+        "sha256": "bde206d82899105b7c52a1ebb0b924eb7abb85a77e54fab273197f67999e9a7e",
+        "summary": "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 253 filtered out; finished in 23.58s"
+      },
+      {
+        "attempt": "10-retry1",
+        "log": ".local/gate-6/received-dtmf-runtime/admission-replacement179-production-10-retry1.log",
+        "sha256": "efe37e1086ca39b9ccbfedfcb18564e815532a5b00765154e381b62603518af6",
+        "summary": "test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 253 filtered out; finished in 19.80s"
+      }
+    ]
+  }
 }
