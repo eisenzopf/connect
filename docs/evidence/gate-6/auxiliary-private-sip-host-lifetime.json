@@ -1,0 +1,202 @@
+{
+  "task": "G6-046",
+  "recorded_at": "2026-10-24T21:48:12.764299+00:00",
+  "source_base_commit": "4755f1f6",
+  "status": "host-handoff-implemented-controlled-checks-pass-runtime-open",
+  "full_task_complete": false,
+  "full_goal_complete": false,
+  "newly_qualified_case_ids": [],
+  "prepared_patch_count": 184,
+  "store_schema": 109,
+  "implementation": [
+    "Expose typed original private SIP phase metadata without a reader/IO grant; preserve bounded quarantine/claim and current application/sealed physical/provider authority.",
+    "Choose admission for quarantine control only and protected CurrentMedia after captured application; no admission fallback after current read refusal.",
+    "Match exact original child/canonical/Core/SIP Call-ID and frozen prepared/controller/physical ports when resolving private Selection/Current/Return owners. Admission-only mute/private preparation intents stay restricted.",
+    "Retain original call through claim and revision2->3; sealed lifetime ignores old controller/child admission deadline. Busy Store/proof metadata preserves the existing resource, without an IO grant.",
+    "Install real managed DTMF observation/registration only after captured application, using existing INFO/RFC4733 receive custody/current directional guards. Captured closure cleans only the original call and still requires actual absence."
+  ],
+  "verification": {
+    "broad_store_before_service_fixes": {
+      "passed": true,
+      "distinct_successful_cases": 153,
+      "successful_executions": 159,
+      "ignored_cases": 0,
+      "summary": ".local/gate-6/received-dtmf-runtime/private-host119-worktree-store-001/summary.json",
+      "summary_sha256": "d55ddb00382de9e7a47784bfd078f7ed1edc73b5e70a6c2b01aab811e568d048",
+      "execution_workspace": "/Users/jonathaneisenzopf/.codex/worktrees/private-sip-lifetime/Connect",
+      "source_inputs_unchanged": true,
+      "executable_unchanged": true,
+      "executable_sha256": "13934254ec796f9e4078f1deea6b02e06ca7f95b5080a1510e4faeed714cdbe6",
+      "groups": [
+        {
+          "filter": "connection_control::tests::sip_consultation::planning::phase::",
+          "exit_code": 0,
+          "passed": true,
+          "passed_cases": 4,
+          "ignored_cases": 0,
+          "elapsed_seconds": 13.117490290896967,
+          "log": ".local/gate-6/private-host119-store-001/group-0.log",
+          "log_sha256": "5449787b9fe7df400fbd336b23132ba6747456f88ed331278652e54caed6dd4e"
+        },
+        {
+          "filter": "connection_control::tests::sip_consultation::planning::packets::captured_private_sip_io_requires_live_ai_provider_before_and_after_sealing",
+          "exit_code": 0,
+          "passed": true,
+          "passed_cases": 1,
+          "ignored_cases": 0,
+          "elapsed_seconds": 1.020673583028838,
+          "log": ".local/gate-6/private-host119-store-001/group-1.log",
+          "log_sha256": "7f0e1dd949cf9c25f8edb2d525499f0bc0e1137f466a37905aa2f68b1806a00f"
+        },
+        {
+          "filter": "connection_control::tests::sip_consultation::planning::returning::restored_private_sip_candidate_loses_signal_context_before_physical_cleanup",
+          "exit_code": 0,
+          "passed": true,
+          "passed_cases": 1,
+          "ignored_cases": 0,
+          "elapsed_seconds": 1.1008880420122296,
+          "log": ".local/gate-6/private-host119-store-001/group-2.log",
+          "log_sha256": "d933101a5c45ea2ea05a900762e39a16a8fe395c0fdeae1325dddfe4525d8048"
+        },
+        {
+          "filter": "connection_control::tests::sip_consultation::",
+          "exit_code": 0,
+          "passed": true,
+          "passed_cases": 90,
+          "ignored_cases": 0,
+          "elapsed_seconds": 188.81919312500395,
+          "log": ".local/gate-6/private-host119-store-001/group-3.log",
+          "log_sha256": "52ce4e6dcbe30619862a8073fdc07567431efefb2abb566aca2baefea960e727"
+        },
+        {
+          "filter": "connection_control::tests::private_provider::",
+          "exit_code": 0,
+          "passed": true,
+          "passed_cases": 35,
+          "ignored_cases": 0,
+          "elapsed_seconds": 92.57951929210685,
+          "log": ".local/gate-6/private-host119-store-001/group-4.log",
+          "log_sha256": "391a2864ede16d31f2c07da91dcb1db7127b53a8e044b1cf2a008564702637f4"
+        },
+        {
+          "filter": "connection_control::tests::consultation_returns::",
+          "exit_code": 0,
+          "passed": true,
+          "passed_cases": 11,
+          "ignored_cases": 0,
+          "elapsed_seconds": 18.848447332857177,
+          "log": ".local/gate-6/private-host119-store-001/group-5.log",
+          "log_sha256": "d8597fbbc7c9b2b513add12ccfb9bd7d583e682334481f5b7bf1ee9bc2203879"
+        },
+        {
+          "filter": "connection_control::tests::handoff_sources::",
+          "exit_code": 0,
+          "passed": true,
+          "passed_cases": 8,
+          "ignored_cases": 0,
+          "elapsed_seconds": 8.087239166954532,
+          "log": ".local/gate-6/private-host119-store-001/group-6.log",
+          "log_sha256": "e4cfc680d34be32bb9c8a57b8f336c0df71aeb8b912f53ad51895ed1001a5371"
+        },
+        {
+          "filter": "connection_control::tests::consultation_audiences::",
+          "exit_code": 0,
+          "passed": true,
+          "passed_cases": 9,
+          "ignored_cases": 0,
+          "elapsed_seconds": 12.012865874916315,
+          "log": ".local/gate-6/private-host119-store-001/group-7.log",
+          "log_sha256": "a5519b5329222fb93ef3aaa78c29af0f298c471ae9be2c217fbc273c8a63d41a"
+        }
+      ],
+      "scope_note": "Controlled Store metadata only. Broad check precedes Service typing/transient-lock fixes; Store implementation is unchanged, with one later Closed-after-route-withdrawal assertion. Current focused rerun covers phase/AI/closure under final frozen product inputs."
+    },
+    "focused_current_store": {
+      "passed": true,
+      "distinct_successful_cases": 6,
+      "successful_executions": 6,
+      "ignored_cases": 0,
+      "summary": ".local/gate-6/received-dtmf-runtime/private-host119-worktree-store-003/summary.json",
+      "summary_sha256": "4b31b0f195cbaa1b62e6509ff7d7ec6b215d9746df1920d470b9386377b86ff3",
+      "execution_workspace": "/Users/jonathaneisenzopf/.codex/worktrees/private-sip-lifetime/Connect",
+      "source_inputs_unchanged": true,
+      "executable_unchanged": true,
+      "executable_sha256": "0d45eefb92ad19c87dde2470a99863cce3693e4cdd84341d79879f8558c09539",
+      "groups": [
+        {
+          "filter": "connection_control::tests::sip_consultation::planning::phase::",
+          "exit_code": 0,
+          "passed": true,
+          "passed_cases": 4,
+          "ignored_cases": 0,
+          "elapsed_seconds": 12.789984416915104,
+          "log": ".local/gate-6/private-host119-store-003/group-0.log",
+          "log_sha256": "410e88527f38bf6aa57b152883e614cae2fc585b3f5afcb0c0d737f896405810"
+        },
+        {
+          "filter": "connection_control::tests::sip_consultation::planning::packets::captured_private_sip_io_requires_live_ai_provider_before_and_after_sealing",
+          "exit_code": 0,
+          "passed": true,
+          "passed_cases": 1,
+          "ignored_cases": 0,
+          "elapsed_seconds": 0.949703625170514,
+          "log": ".local/gate-6/private-host119-store-003/group-1.log",
+          "log_sha256": "117c67bd0295f3a7136c9ee1152d6afa04a5e9083d9346f80e879d7ee2efe57d"
+        },
+        {
+          "filter": "connection_control::tests::sip_consultation::planning::returning::restored_private_sip_candidate_loses_signal_context_before_physical_cleanup",
+          "exit_code": 0,
+          "passed": true,
+          "passed_cases": 1,
+          "ignored_cases": 0,
+          "elapsed_seconds": 1.0596207501366735,
+          "log": ".local/gate-6/private-host119-store-003/group-2.log",
+          "log_sha256": "0502d90925a2da2582fddb1cade79dff5e7077391a867ffb96d2c8f461f8731b"
+        }
+      ],
+      "scope_note": "Controlled Store metadata only. Broad check precedes Service typing/transient-lock fixes; Store implementation is unchanged, with one later Closed-after-route-withdrawal assertion. Current focused rerun covers phase/AI/closure under final frozen product inputs."
+    },
+    "service_compile": {
+      "passed": true,
+      "command": "CARGO_INCREMENTAL=0 cargo check -p connect-service --locked --offline -j2 --target-dir /Volumes/D2-2019/Developer/Connect/target",
+      "result": "Finished dev profile in4m40s",
+      "log_sha256": "6565268bd18f6288d205ba00ad5ccfa6465299996417941e2bb837a0c6059495",
+      "execution_workspace": "/Users/jonathaneisenzopf/.codex/worktrees/private-sip-lifetime/Connect",
+      "runtime_qualification": false
+    },
+    "format": {
+      "passed": true,
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "runtime": {
+      "status": "not-qualified",
+      "reason": "This worktree has no new actual host handoff/quarantine/private audience qualification. Main optimized diagnostic inputs remain separate frozen9cf44874."
+    },
+    "schema": {
+      "status": "not-rerun",
+      "reason": "No schema change. Prior schema109 evidence is not re-counted."
+    }
+  },
+  "failed_attempts": [
+    {
+      "name": "Service check001",
+      "passed": false,
+      "log_sha256": "7e052c30872657cfe502114313db0f601eea5b9fbfd5cd5bac7d539929eb7086",
+      "reason": "Stopped after reported E0599 adapter receiver needed Arc and E0308 temporary Arc reference typing errors. Fixed before current successful check002."
+    },
+    {
+      "name": "Store focused002",
+      "passed": false,
+      "summary_sha256": "ddc366134340cc741cf37799bcfe3df233a5c403441e990b81bbe5e31e787aa6",
+      "source_inputs_unchanged": false,
+      "executable_unchanged": true,
+      "reason": "Six test bodies pass but formatting overlapped the source guard. Not counted as qualification; repeated frozen003 passes both guards."
+    }
+  ],
+  "remaining": [
+    "Resolve existing optimized SIP-primary private-native projection refusal and Accepted/noeffect scheduling behavior.",
+    "Qualify current actual quarantine/admission/replay/contention/cancel/cleanup after host changes.",
+    "Preserve unrelated private SIP programmes under their own current context and enable SIP candidate runtime selection using original reservation/child/call.",
+    "Qualify actual private duplex RTP, INFO/RFC4733, four named rights/recovery/replay, sibling/privacy exclusion and original return/absence for both algorithms and full G6-046 matrix."
+  ]
+}

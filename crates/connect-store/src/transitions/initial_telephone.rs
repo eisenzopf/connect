@@ -15,7 +15,7 @@ pub use media::{
     InitialTelephoneAnswerCapture, InitialTelephoneAnswerRecorded, InitialTelephoneMediaOrigin,
     InitialTelephoneMediaRead, InitialTelephoneNativeRead, InitialTelephoneNativeSignalRead,
     InitialTelephoneReadyObservation, InitialTelephoneRuntimeObservation,
-    InitialTelephoneSignalDirection, InitialTelephoneSignalRead,
+    InitialTelephoneSignalDirection, InitialTelephoneSignalRead, PrivateInitialTelephonePhase,
     PrivateInitialTelephoneRuntimeObservation,
 };
 #[cfg(test)]

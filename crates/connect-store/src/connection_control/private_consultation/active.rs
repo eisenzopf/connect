@@ -286,7 +286,7 @@ pub(crate) fn current_for(
 
 /// Captured pending IO needs the same live provider as a sealed lifetime.
 /// Preparation still validates physical facts without requiring provider IO.
-pub(super) fn require_provider(
+pub(crate) fn require_provider(
     store: &Store,
     c: &Connection,
     record: &str,

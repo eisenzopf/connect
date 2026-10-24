@@ -182,10 +182,26 @@ impl Leg {
         let runtime = self.runtime().map_err(|_| Error::forbidden())?;
         let origin = self.origin().map_err(|_| Error::forbidden())?;
         if self.signal.origin().source().is_private_candidate() {
-            runtime
+            use connect_store::PrivateInitialTelephonePhase::*;
+            match runtime
                 .media
                 .store
-                .try_private_initial_telephone_admission_read(origin)
+                .private_initial_telephone_phase(&origin)?
+            {
+                Quarantined => runtime
+                    .media
+                    .store
+                    .try_private_initial_telephone_admission_read(origin),
+                Applied | Established => runtime
+                    .media
+                    .store
+                    .try_private_initial_telephone_media_read(origin),
+                Prepared => Err(Error::new(
+                    "not-ready",
+                    "Private audience application is not recorded",
+                )),
+                Closed => Err(Error::forbidden()),
+            }
         } else {
             runtime.media.store.try_initial_telephone_media_read(origin)
         }
@@ -237,7 +253,14 @@ impl Leg {
         if !read.current()
             || !p.is_current()
             || p.is_private_audio() != self.signal.origin().source().is_private_candidate()
-            || read.is_private_admission() != p.is_private_audio()
+            || read.is_private_audio() != p.is_private_audio()
+            || read.source() != self.signal.origin().source()
+            || read.origin().record_id() != self.signal.origin().record_id()
+            || read.origin().connection_id() != self.signal.origin().connection_id()
+            || read.origin().runtime_connection_id() != self.signal.runtime_connection_id()
+            || read.origin().sip_call_id() != self.signal.sip_call_id()
+            || p.binding().connection() != &self.connection()
+            || p.binding().generation() != 1
             || read.source().target.membership_epoch != p.member().epoch()
             || read.source().endpoint_id != p.endpoint().endpoint().as_str()
             || read.endpoint_actor().identity_id != self.target.principal.subject
@@ -470,6 +493,9 @@ impl MediaPolicy for Leg {
             problem = result.as_ref().err().map(|e| e.code.as_str()),
             "Current initial SIP packet authority");
         let read = Arc::new(result.map_err(crate::canonical_media::packet_authority_error)?);
+        if read.is_private_admission() && !matches!(scope.purpose, MediaPurpose::Control) {
+            return Err(StreamControlError::Authority);
+        }
         if !matches!(scope.purpose, MediaPurpose::Control) && !read.is_connected() {
             return Err(StreamControlError::NotReady);
         }
@@ -567,20 +593,26 @@ pub(crate) struct Ready {
 }
 impl connect_store::InitialTelephoneRuntimeObservation for Ready {
     fn observe(&self) -> connect_protocol::Result<connect_store::InitialTelephoneReadyObservation> {
-        self.observe_mode(false)
+        self.observe_mode(false, false)
     }
 }
 impl connect_store::PrivateInitialTelephoneRuntimeObservation for Ready {
     fn observe_private(
         &self,
     ) -> connect_protocol::Result<connect_store::InitialTelephoneReadyObservation> {
-        self.observe_mode(true)
+        self.observe_mode(true, true)
     }
 }
 impl Ready {
+    /// Owned resource metadata after admission. Receiver revisions may advance
+    /// through application/return; this never grants packet or signal access.
+    pub(crate) fn observe_private_lifetime(&self) -> connect_protocol::Result<()> {
+        self.observe_mode(true, false).map(|_| ())
+    }
     fn observe_mode(
         &self,
         private: bool,
+        admission_only: bool,
     ) -> connect_protocol::Result<connect_store::InitialTelephoneReadyObservation> {
         let p = self.leg.prepared.get().ok_or_else(Error::forbidden)?;
         let admission = self.leg.admitted.get().ok_or_else(Error::forbidden)?;
@@ -615,6 +647,17 @@ impl Ready {
             .and_then(Weak::upgrade)
             .ok_or_else(Error::forbidden)?;
         if private {
+            let origin = self.leg.origin().map_err(|_| Error::forbidden())?;
+            if origin.record_id() != self.leg.signal.origin().record_id()
+                || origin.connection_id() != self.leg.signal.origin().connection_id()
+                || origin.runtime_connection_id() != self.leg.signal.runtime_connection_id()
+                || origin.sip_call_id() != self.leg.signal.sip_call_id()
+                || origin.source() != self.leg.signal.origin().source()
+                || p.binding().connection() != &self.leg.connection()
+                || p.binding().generation() != 1
+            {
+                return Err(Error::forbidden());
+            }
             let ports = controller.active_bindings();
             let exact = self.leg.binding.get().is_some_and(|original| {
                 ports.len() == 1
@@ -628,7 +671,11 @@ impl Ready {
                             && current.sink_ready == original.sink_ready
                     })
             });
-            if controller.revision() != 2 || !controller.is_bound_to_outbound(p) || !exact {
+            if controller.revision() < 2
+                || (admission_only && controller.revision() != 2)
+                || !controller.is_bound_to_outbound(p)
+                || !exact
+            {
                 return Err(Error::forbidden());
             }
         }

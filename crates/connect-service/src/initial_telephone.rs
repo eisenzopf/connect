@@ -677,8 +677,7 @@ impl Runner {
             .map_err(|_| Error::forbidden())?;
         if let Some(ready) = ready {
             ready.send_replace(Some(Ok(leg.clone())));
-            return private_candidate::wait_quarantined(runtime, &self.adapter, &leg, deadline)
-                .await;
+            return private_candidate::wait_private(runtime, &self.adapter, &leg).await;
         }
         leg.dtmf_registration
             .set(format!("dtmfsip_{}", uuid::Uuid::new_v4().simple()))

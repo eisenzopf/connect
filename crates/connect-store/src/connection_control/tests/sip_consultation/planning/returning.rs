@@ -572,6 +572,10 @@ fn restored_private_sip_candidate_loses_signal_context_before_physical_cleanup()
     let s = &r.scene;
     s.grant_signal_permissions();
     assert!(s.packets().unwrap().current());
+    assert_eq!(
+        s.phase().unwrap(),
+        crate::PrivateInitialTelephonePhase::Established
+    );
     for direction in [FromTelephone, ToTelephone] {
         assert!(s.signal(0, direction).unwrap().current());
     }
@@ -581,6 +585,23 @@ fn restored_private_sip_candidate_loses_signal_context_before_physical_cleanup()
         .unwrap();
     assert!(s.packets().is_err());
     assert!(s.packet_pair(0).is_err());
+    assert_eq!(
+        s.phase().unwrap(),
+        crate::PrivateInitialTelephonePhase::Closed
+    );
+    // Cleanup attribution survives route withdrawal; it grants no new IO.
+    s.f.store
+        .connection()
+        .unwrap()
+        .execute(
+            "UPDATE credentials SET revoked=1 WHERE id=?1",
+            [&s.policy.route_credential_id],
+        )
+        .unwrap();
+    assert_eq!(
+        s.phase().unwrap(),
+        crate::PrivateInitialTelephonePhase::Closed
+    );
     assert!(s.f.store.connection().unwrap().query_row(
         "SELECT connected_at IS NOT NULL AND retired_at IS NULL FROM initial_telephone_answers WHERE operation_record_id=?1",
         [s.phone.record_id()],|r|r.get::<_,bool>(0)).unwrap());
