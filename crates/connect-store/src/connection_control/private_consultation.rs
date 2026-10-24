@@ -261,6 +261,8 @@ pub(crate) fn current_for(
 }
 /// A public native primary can carry a private floor without claiming its
 /// partner's native invitation. Resolve its own registered root and full scopes.
+/// A primary in an existing native/native consultation keeps its ordinary
+/// physical metadata view; its private candidate supplies the pair context.
 pub(crate) fn for_connection(
     store: &Store,
     c: &Connection,
@@ -269,7 +271,7 @@ pub(crate) fn for_connection(
 ) -> Result<Option<Context>> {
     let record: Option<String> = c
         .query_row(
-            "SELECT operation_record_id FROM native_private_content_floors WHERE connection_id=?1 UNION ALL SELECT operation_record_id FROM consultation_candidate_bindings WHERE connection_id=?1 AND NOT EXISTS(SELECT 1 FROM native_private_content_floors WHERE connection_id=?1)",
+            "SELECT f.operation_record_id FROM native_private_content_floors f JOIN consultation_candidate_bindings b ON b.operation_record_id=f.operation_record_id WHERE f.connection_id=?1 AND (b.candidate_kind='sip' OR b.connection_id=f.connection_id)",
             [connection],
             |r| r.get(0),
         )

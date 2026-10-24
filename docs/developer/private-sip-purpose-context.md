@@ -24,7 +24,10 @@ apply separately.
 A public native primary acquires the complete context when it carries a private
 SIP floor. Its owned signal reader therefore fences the independent SIP route
 owner as well as the native and private principals. A cloned interval remains
-owned until its final reader drops. A held public remote keeps its own scopes.
+owned until its final reader drops. A held public remote keeps its own scopes. Existing native/native consultation
+primaries retain their ordinary physical metadata view; their private candidate
+supplies the protected pair context. Closing a private provider does not retire
+the independent public primary.
 Candidate registration is also checked before a physical content floor exists,
 so cancellation cannot expose an unprepared native candidate as an ordinary
 observation source.
