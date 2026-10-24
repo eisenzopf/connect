@@ -1,8 +1,8 @@
 {
   "task": "G6-046",
   "title": "Use exact active source file custody for current packet recipient checks",
-  "recorded_at": "2026-10-24T02:11:23.790751+00:00",
-  "status": "upstream-component-verified; exact-host-build-active",
+  "recorded_at": "2026-10-24T02:57:47.601777+00:00",
+  "status": "component-and-host-build-verified; nine-production-methods-pass; moved-SIP-and-full50-unresolved",
   "full_task_complete": false,
   "full_goal_complete": false,
   "qualified_case_ids": [],
@@ -250,22 +250,59 @@
     "workspace_format_check_passed": true,
     "openapi_generation_check_passed": true,
     "diff_check_passed": true,
-    "default_server_test_build_passed": false,
+    "default_server_test_build_passed": true,
     "production_retest_completed": false,
     "source_lock_sha256": "61140a13638347a27cebe28d64588767d9d0010a46aae073ad2629910214f03c",
     "local_log_sha256": {
       "packet-reader175-core-new.log": "21a7aa373c7b812ac09be4d052465c2b72dee29a9c2f6bb5a0f7d1efb440f45f",
       "packet-reader175-core-regressions.log": "03956655167ba248ebf4e2c5e110afb472933136e820bc1cfd73bbf5c95a9f1d",
-      "packet-reader175-preparation.json": "fafbdb08c5d042a8b4dc789ad56f2498fc48346ea19350327aa96f7a83d6b27a"
+      "packet-reader175-preparation.json": "fafbdb08c5d042a8b4dc789ad56f2498fc48346ea19350327aa96f7a83d6b27a",
+      "packet-reader175-server-build.log": "e8fda0f9b07e7de27b8454e48f78b553db94b939b7dff49d63b22abb0b23e44b",
+      "packet-reader175-production-0.log": "04ad1e3a482d61368940f38b356f23a1f299807efed79320915c80826cebf25b",
+      "packet-reader175-production-1.log": "75b790914d956031e89436413dd2fedfe8e963b0390dc609cffc0d27b3e6a4d7",
+      "packet-reader175-production-2.log": "dcb264ba56a08b17ef52a0c471d3809a0d5c871107a6acc98a70b836a6c670f5",
+      "packet-reader175-production-3.log": "7e093436d099eb74486f5afaf961bc624e3a10d66496da082125b695d0067e51",
+      "packet-reader175-production-4.log": "4a53e53a52cffcbe6f75855bf5135272a440bf5626d20e77f0b406aabc4de0d0",
+      "packet-reader175-production-5.log": "dacb81222948c4839d1cc609da10ecafcbe3db2dc895d599837be1450e9b1176",
+      "packet-reader175-production-6.log": "6c63e12a3deaff48694da63b2f98e293b78d13a37ba0209eecd5ed34f25b171b",
+      "packet-reader175-production-7.log": "5566eaba722412bb57aba427b4f0199767c33f092a93fdde6621ccfae706b2f4",
+      "packet-reader175-production-8.log": "17737461280a3fb4fb9e454d27bfeee744308a9a019f9a659613ebdb2a390941",
+      "packet-reader175-production-9.log": "94d9c1433b2d52481f3dbf16a0c9a076b1963dbec10e88c595ac2629ad6d0fbd",
+      "packet-reader175-fifty.log": "95b2570454946a4a52146f80e35091a66ed926b0ed9305ce5e62294004e753fc",
+      "packet-reader175-fifty-diagnostic.log": "dc566f9d008a5e76a73385fc6d65243450f74e299a9ff07d829095cf13909129",
+      "packet-reader175-startup-fifty.log": "c939f2d74686ff861fb46327825cf650c53b650c1af70c875f4364dee6f282b4",
+      "packet-reader175-initialized-fifty.log": "fde2422eae9a6cbdb4e87f8163c6f942cdbb4ee77e0bbae0e310d8773edaba4f",
+      "packet-reader175-initialized-inputs.json": "6395f038bf4ff84a62e46722c733fdd47b27e1376fd80e4c87516a6c6bc7a583"
     },
-    "scope": "Local macOS arm64 controlled Core integration. Exact default host build40110 is active; no Connect runtime/full50 pass is claimed."
+    "scope": "Local macOS arm64 controlled Core and actual default Connect host integration. Nine production methods passed; moved SIP method and complete fifty-peer qualification remain unresolved. No Linux/browser/remote/provider qualification is claimed.",
+    "default_server_test_build_duration_seconds": 1098,
+    "production_methods_passed": [
+      "canonical_native_connections::lifecycle::production_native_lifecycle_quality_reports_actual_flow_through_signed_sdk",
+      "canonical_native_connections::selector_policy::production_native_heterogeneous_wildcard_preserves_audio_and_definitive_refusals",
+      "canonical_native_connections::selector_policy::production_native_disjoint_data_formats_refuse_488_without_allocating_a_route",
+      "canonical_native_connections::production_signed_native_stream_subscription_routes_audio_and_replays_without_another_effect",
+      "canonical_native_connections::codecs::production_native_codec_refusals_and_foreign_physical_replay_preserve_audio_and_pending_original",
+      "canonical_native_connections::consultation::production_private_consultation_switches_actual_audio_without_leaking_to_remote_or_public_context",
+      "canonical_native_connections::consultation::groups::handoff::production_native_private_handoff_commits_roles_and_retains_remote_audio",
+      "canonical_native_connections::dtmf::production_native_refresh_retains_actual_decoded_rtp_after_original_expiry",
+      "canonical_native_connections::consultation::groups::replacement::telephone::initial::received::privacy::production_initial_sip_received_respects_private_physical_audience_and_return_does_not_replay"
+    ],
+    "production_method_failed": "canonical_native_connections::consultation::groups::replacement::telephone::received::privacy::production_moved_sip_received_private_audience_and_return_keep_actual_lifetime",
+    "production_method_not_run": "canonical_native_connections::consultation::groups::replacement::telephone::received::refresh::production_moved_sip_dtmf_refresh_preserves_queued_epoch_and_fresh_bidirectional_delivery",
+    "production_failure": "EdDSA completed the actual private SIP audience/return checks. The ES256 iteration then recorded telephone replacement as Unknown during compound movement before private received checks; further diagnostics are required. This is a failure, not a pass.",
+    "source_custody_runtime_observed": true,
+    "source_custody_trace_observations": 222
   },
   "failure_provenance": [
     "The preceding name-memo full50 attempts failed at decoded media despite50 publisher lifecycle sets,99 actual admissions, zero any-RTP before explicit selectors and49 completed signed subscription/ACK pairs. The focused run recorded392queues/13IO entries/379Deadline refusals. Source175 has not yet been retested as an actual Connect50-peer scene.",
-    "The source175 Core unit profile rebuilt its SIP dependency and completed in5m55s without cancellation/restart. The initial narrow filter matched only the second new method; the following complete212-method staged-media module includes and passes both new methods. Nonfatal existing upstream visibility and unused-import warnings remain in the local logs."
+    "The source175 Core unit profile rebuilt its SIP dependency and completed in5m55s without cancellation/restart. The initial narrow filter matched only the second new method; the following complete212-method staged-media module includes and passes both new methods. Nonfatal existing upstream visibility and unused-import warnings remain in the local logs.",
+    "Exact source175 default host build completed successfully in18m18s without cancellation or restart. Nine production methods passed; the tenth failed in its ES256 telephone compound movement with Unknown state. The pending eleventh method was not run by that fail-fast sequence.",
+    "Source175 full50 cold and diagnostic runs failed at actual decoded media in81.72s and80.50s. Diagnostic captured524 queued frames/105 IO entries/419 original Deadline refusals. Paired recipient checks used actual owned source custody, but this did not establish full throughput.",
+    "The uncommitted full50 fixture now establishes all49 actual receive bindings within one shared original8s deadline using decoded RTP, durable flow facts and signed readiness before the unchanged2s steady probe. First startup run reached49 receivers in4928ms then failed on a late own-join notification. The collector now preserves that signed optional own-join separately; the corrected run reached49 receivers in4279ms and failed steady counts5..12 against required>10. Neither run reached future publication/end/replay/departure or the ES256 fifty-peer scene. Complete captures remain empty; no0123 credit."
   ],
   "unresolved": [
-    "Allow the active exact server/test build to finish, then run actual native production regressions and the complete both-algorithm50-peer case with a fresh capture. Preserve50 peers/eight-second commands/200ms age/>10 decoded frames per intended receiver.",
+    "Diagnose the actual ES256 telephone compound movement failure, run the pending mixed DTMF refresh regression and retain all failed-attempt provenance. A passing retry alone does not explain the failure.",
+    "Complete actual both-algorithm fifty-peer qualification. The next observation-only metadata optimization has component tests but is not in this recorded host binary. Keep50 peers,8s command bounds,200ms original frame age and>10 decoded frames per intended recipient unchanged.",
     "Qualify later publication/end/replay/departure and validate a complete capture before whole0123 credit. Core mocks and the prior217 Store methods do not replace actual host integration evidence.",
     "G6-046 remains58/61 with0112/0113/0123 open and45/105 tasks done. Later workspace/Linux/browser/remote/provider/independent/acceptance/publication requirements remain separate."
   ]
