@@ -122,7 +122,8 @@
       "qualification": false,
       "summaries": [
         ".local/gate-6/private-sip-primary/signal115-optimized-002/summary.json",
-        ".local/gate-6/private-sip-primary/signal115-optimized-004/summary.json"
+        ".local/gate-6/private-sip-primary/signal115-optimized-004/summary.json",
+        ".local/gate-6/private-sip-primary/signal115-optimized-diagnostic-008/summary.json"
       ]
     },
     "schema": {
@@ -207,6 +208,14 @@
       "source_inputs_unchanged": true,
       "executable_unchanged": true,
       "reason": "Original optimized thresholds preserved. Consultations intermittently remain Accepted or stop at unsubmitted preflight; trace identifies native_consultation_attempt_read forbidden before Core IO. This is unresolved, not a passing socket profile."
+    },
+    {
+      "summary": ".local/gate-6/private-sip-primary/signal115-optimized-diagnostic-008/summary.json",
+      "summary_sha256": "db57ed61c68a01cce2e0e1960e84a38a41e4d3dff996623188ea2f4c797491fc",
+      "passed": false,
+      "source_inputs_unchanged": true,
+      "executable_unchanged": true,
+      "reason": "Optimized build completed14m05s; both initial and established SIP-primary cases refuse at Consultation selection / scope derivation / native view before Core submission. Exact deeper native validation remains unresolved; no socket qualification."
     }
   ],
   "remaining": [
