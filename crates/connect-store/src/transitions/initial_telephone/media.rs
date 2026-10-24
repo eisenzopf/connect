@@ -3,6 +3,8 @@ use super::*;
 mod private_admission;
 mod private_answer;
 mod private_facts;
+mod private_phase;
+pub use private_phase::PrivateInitialTelephonePhase;
 mod routing;
 use serde_json::{json, Value};
 macro_rules! media_redacted {
@@ -127,6 +129,9 @@ impl InitialTelephoneMediaOrigin {
     }
 }
 impl InitialTelephoneMediaRead {
+    pub fn origin(&self) -> &InitialTelephoneMediaOrigin {
+        &self.origin
+    }
     pub fn current(&self) -> bool {
         self.owner.current() && crate::now() < self.expires
     }

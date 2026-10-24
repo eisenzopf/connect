@@ -199,6 +199,7 @@ fn captured_private_sip_io_requires_live_ai_provider_before_and_after_sealing() 
     assert!(s
         .signal(0, crate::TelephoneSignalDirection::FromTelephone)
         .is_err());
+    assert!(s.phase().is_err());
     // Sealing cannot substitute for missing provider readiness either.
     assert!(s
         .f
