@@ -1,6 +1,7 @@
 //! Current committed SIP outsiders and historical audience outcomes, without IO.
 use super::*;
 use crate::SipAudienceOrigin;
+mod private_primary;
 mod retained;
 
 #[test]

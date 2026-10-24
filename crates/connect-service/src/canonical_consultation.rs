@@ -172,7 +172,11 @@ impl Runtime {
         let read = self.media.store.try_native_consultation_scene_read(
             origin,
             &remote,
-            &selected,
+            &selected
+                .iter()
+                .cloned()
+                .map(connect_store::ConsultationMediaOrigin::Native)
+                .collect::<Vec<_>>(),
             &outside,
             &outside_sip,
         )?;

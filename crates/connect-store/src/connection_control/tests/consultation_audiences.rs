@@ -87,7 +87,10 @@ fn prepare(
         .try_native_consultation_scene_read(
             origin,
             &crate::ConsultationMediaOrigin::Native(sources[1].clone()),
-            &[sources[0].clone(), candidate.clone()],
+            &[sources[0].clone(), candidate.clone()]
+                .into_iter()
+                .map(crate::ConsultationMediaOrigin::Native)
+                .collect::<Vec<_>>(),
             &[sources[2].clone()],
             &[],
         )

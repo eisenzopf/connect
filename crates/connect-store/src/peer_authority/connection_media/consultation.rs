@@ -2,7 +2,6 @@
 use super::consultation_sip;
 use super::*;
 use crate::{NativeConsultationOrigin, SipAudienceOrigin, SipAudienceRead};
-use sha2::{Digest, Sha256};
 use std::collections::{BTreeMap, BTreeSet};
 
 type ReadKey = (String, Option<String>);
@@ -20,6 +19,8 @@ pub struct NativeConsultationRead {
     origin: NativeConsultationOrigin,
     reads: BTreeMap<ReadKey, Arc<NativeMediaRead>>,
     sip_reads: BTreeMap<String, Arc<SipAudienceRead>>,
+    sip_receive: BTreeSet<(String, String)>,
+    sip_send: BTreeSet<(String, String)>,
     expires_at: i64,
     selection: NativeConsultationSelection,
 }
@@ -29,7 +30,8 @@ pub struct NativeConsultationSelection {
     pub(crate) origin: NativeConsultationOrigin,
     remote: ConsultationMediaOrigin,
     remote_snapshot: serde_json::Value,
-    private: Vec<Arc<NativeMediaOrigin>>,
+    private: Vec<ConsultationMediaOrigin>,
+    private_snapshots: Vec<serde_json::Value>,
     outside: Vec<Arc<NativeMediaOrigin>>,
     outside_sip: Vec<SipAudienceOrigin>,
     outside_sip_snapshots: Vec<serde_json::Value>,
@@ -64,13 +66,11 @@ impl NativeConsultationSelection {
         AuthorityScope::merged(&scopes)
     }
     pub(crate) fn snapshot(&self) -> serde_json::Value {
-        let describe = |s: &NativeMediaOrigin| serde_json::json!({"connection_id":s.connection_id(),"runtime_connection_id":s.runtime_connection_id(),"participant_id":s.participant_id(),"membership_epoch":s.membership_epoch(),"generation":s.generation(),"credential_id":s.binding.credentials.last(),"key_id":s.binding.key_id,"key_algorithm":s.binding.algorithm,"public_key_sha256":hex::encode(Sha256::digest(&s.public_key)),"device_id":s.binding.device.id,"device_kind":s.binding.device.kind,"device_platform":s.binding.device.platform,"endpoint_id":s.endpoint_id,"physical_expires_at":s.expires_at});
-        let mut private = self.private.iter().collect::<Vec<_>>();
-        private.sort_by_key(|s| s.connection_id());
+        let describe = |s: &NativeMediaOrigin| super::returns::describe(s);
         {
             let mut outside = self.outside.iter().collect::<Vec<_>>();
             outside.sort_by_key(|s| s.connection_id());
-            let mut value = serde_json::json!({"remote":self.remote_snapshot,"private":private.into_iter().map(|s|describe(s)).collect::<Vec<_>>(),"outside":outside.into_iter().map(|s|describe(s)).collect::<Vec<_>>()});
+            let mut value = serde_json::json!({"remote":self.remote_snapshot,"private":self.private_snapshots,"outside":outside.into_iter().map(|s|describe(s)).collect::<Vec<_>>()});
             if !self.outside_sip_snapshots.is_empty() {
                 value["outside_sip"] = serde_json::json!(self.outside_sip_snapshots);
             }
@@ -178,7 +178,11 @@ impl NativeConsultationSelection {
             .remote
             .native()
             .into_iter()
-            .chain(self.private.iter().map(Arc::as_ref))
+            .chain(
+                self.private
+                    .iter()
+                    .filter_map(ConsultationMediaOrigin::native),
+            )
             .chain(self.outside.iter().map(Arc::as_ref))
         {
             let revision:u64=c.query_row("SELECT json_extract(readiness_json,'$.stream_revision') FROM connections WHERE id=?1",[source.connection_id()],|r|r.get(0)).map_err(|_|Error::storage())?;
@@ -196,6 +200,12 @@ impl NativeConsultationSelection {
             .sip()
             .cloned()
             .into_iter()
+            .chain(
+                self.private
+                    .iter()
+                    .filter_map(ConsultationMediaOrigin::sip)
+                    .cloned(),
+            )
             .chain(self.outside_sip.iter().cloned())
             .collect::<Vec<_>>();
         consultation_sip::validate_revisions(c, &sips, plan)?;
@@ -212,6 +222,39 @@ impl NativeConsultationSelection {
     }
 }
 impl NativeConsultationRead {
+    pub fn is_private_sip(&self, id: &str) -> bool {
+        self.selection
+            .private
+            .iter()
+            .filter_map(ConsultationMediaOrigin::sip)
+            .any(|s| s.connection_id() == id)
+    }
+    pub fn sip_receive(
+        &self,
+        native: &str,
+        sip: &str,
+    ) -> Option<(&SipAudienceRead, &NativeMediaRead)> {
+        if !self.current() || !self.sip_receive.contains(&(native.into(), sip.into())) {
+            return None;
+        }
+        Some((
+            self.sip_reads.get(sip)?.as_ref(),
+            self.reads.get(&(native.into(), None))?.as_ref(),
+        ))
+    }
+    pub fn sip_send(
+        &self,
+        sip: &str,
+        native: &str,
+    ) -> Option<(&SipAudienceRead, &NativeMediaRead)> {
+        if !self.current() || !self.sip_send.contains(&(sip.into(), native.into())) {
+            return None;
+        }
+        Some((
+            self.sip_reads.get(sip)?.as_ref(),
+            self.reads.get(&(native.into(), None))?.as_ref(),
+        ))
+    }
     pub fn is_retained_sip(&self, id: &str) -> bool {
         self.selection
             .remote
@@ -251,6 +294,9 @@ impl NativeConsultationRead {
         &self.origin
     }
     pub fn media(&self, target: &str, source: Option<&str>) -> Option<&NativeMediaRead> {
+        if source.is_some_and(|id| self.sip_reads.contains_key(id)) {
+            return None;
+        }
         self.reads
             .get(&(target.into(), source.map(str::to_owned)))
             .map(Arc::as_ref)
@@ -261,7 +307,7 @@ fn selected_views(
     c: &Connection,
     origin: &NativeConsultationOrigin,
     remote: &ConsultationMediaOrigin,
-    private: &[Arc<NativeMediaOrigin>],
+    private: &[ConsultationMediaOrigin],
     outside: &[Arc<NativeMediaOrigin>],
     outside_sip: &[SipAudienceOrigin],
 ) -> Result<(Views, Vec<AuthorityScope>, i64)> {
@@ -310,6 +356,12 @@ fn selected_views(
         .sip()
         .cloned()
         .into_iter()
+        .chain(
+            private
+                .iter()
+                .filter_map(ConsultationMediaOrigin::sip)
+                .cloned(),
+        )
         .chain(outside_sip.iter().cloned())
         .collect::<Vec<_>>();
     let (sip_scopes, sip_expiry) = store.sip_audience_facts(
@@ -324,7 +376,8 @@ fn selected_views(
             .chain(
                 private
                     .iter()
-                    .chain(outside)
+                    .filter_map(ConsultationMediaOrigin::native)
+                    .chain(outside.iter().map(Arc::as_ref))
                     .map(|s| s.connection_id().to_owned()),
             ),
     )?;
@@ -340,7 +393,7 @@ fn selected_views(
     for target in remote
         .native()
         .into_iter()
-        .chain(private.iter().map(Arc::as_ref))
+        .chain(private.iter().filter_map(ConsultationMediaOrigin::native))
         .chain(outside.iter().map(Arc::as_ref))
     {
         if target.conversation_id() != request.conversation_id
@@ -357,7 +410,9 @@ fn selected_views(
         {
             return Err(Error::forbidden());
         }
-        runtime_ids.insert(target.runtime_connection_id().to_owned());
+        if !runtime_ids.insert(target.runtime_connection_id().to_owned()) {
+            return Err(Error::forbidden());
+        }
         let (target_view, source_view, needed, until) = views(store, c, target, None)?;
         if !crate::transitions::consultation_source::ready(
             store,
@@ -395,9 +450,10 @@ fn selected_views(
             "Native consultation scene selection changed",
         ));
     }
-    for target in private {
+    for target in private.iter().filter_map(ConsultationMediaOrigin::native) {
         for source in private
             .iter()
+            .filter_map(ConsultationMediaOrigin::native)
             .filter(|source| source.connection_id() != target.connection_id())
         {
             let (target_view, source_view, needed, until) = views(store, c, target, Some(source))?;
@@ -442,6 +498,10 @@ fn selected_views(
             );
         }
     }
+    let (private_scopes, private_expiry) =
+        consultation_sip::private::private_facts(store, c, origin, private)?;
+    scopes.extend(private_scopes);
+    expiry = expiry.min(private_expiry);
     if crate::now() >= expiry {
         return Err(Error::forbidden());
     }
@@ -460,7 +520,11 @@ impl Store {
         self.try_native_consultation_scene_read(
             origin,
             &ConsultationMediaOrigin::Native(Arc::new(remote.clone())),
-            private,
+            &private
+                .iter()
+                .cloned()
+                .map(ConsultationMediaOrigin::Native)
+                .collect::<Vec<_>>(),
             &[],
             &[],
         )
@@ -471,7 +535,7 @@ impl Store {
         &self,
         origin: &NativeConsultationOrigin,
         remote: &ConsultationMediaOrigin,
-        private: &[Arc<NativeMediaOrigin>],
+        private: &[ConsultationMediaOrigin],
         outside: &[Arc<NativeMediaOrigin>],
         outside_sip: &[SipAudienceOrigin],
     ) -> Result<NativeConsultationRead> {
@@ -510,18 +574,46 @@ impl Store {
             .sip()
             .cloned()
             .into_iter()
+            .chain(
+                private
+                    .iter()
+                    .filter_map(ConsultationMediaOrigin::sip)
+                    .cloned(),
+            )
             .chain(outside_sip.iter().cloned())
             .collect::<Vec<_>>();
+        let sip_reads = consultation_sip::reads(self, &c, &sips, held.clone(), expiry)?;
+        let (sip_receive, sip_send) = consultation_sip::private::edges(
+            self,
+            &c,
+            private,
+            outside,
+            outside_sip,
+            &sip_reads,
+            &reads,
+        )?;
+        let mut private_snapshots = private
+            .iter()
+            .map(|s| s.snapshot(self, &c))
+            .collect::<Result<Vec<_>>>()?;
+        private_snapshots.sort_by(|a, b| {
+            a["connection_id"]
+                .as_str()
+                .cmp(&b["connection_id"].as_str())
+        });
         let result = NativeConsultationRead {
             origin: origin.clone(),
             reads,
-            sip_reads: consultation_sip::reads(self, &c, &sips, held.clone(), expiry)?,
+            sip_reads,
+            sip_receive,
+            sip_send,
             expires_at: expiry,
             selection: NativeConsultationSelection {
                 origin: origin.clone(),
                 remote: remote.clone(),
                 remote_snapshot: remote.snapshot(self, &c)?,
                 private: private.to_vec(),
+                private_snapshots,
                 outside: outside.to_vec(),
                 outside_sip: outside_sip.to_vec(),
                 outside_sip_snapshots: consultation_sip::snapshot(self, &c, outside_sip)?,

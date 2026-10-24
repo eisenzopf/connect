@@ -65,3 +65,7 @@ External carriers and other hosting profiles require separate proof.
 
 The transition wire contract and
 [canonical HTTP reference](../../contracts/openapi-canonical-http.json) are unchanged.
+
+The separate [private SIP-primary Store component](private-sip-primary-store.md)
+now has typed protected planning and current-context checks. It does not yet
+qualify a SIP endpoint as an actual private runtime participant.

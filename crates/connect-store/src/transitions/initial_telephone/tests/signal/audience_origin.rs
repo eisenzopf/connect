@@ -384,3 +384,87 @@ fn initial_sip_return_completion_requires_full_current_interval_and_named_receiv
         .unwrap()
         .is_none());
 }
+
+#[test]
+fn initial_sip_private_slot_facts_keep_endpoint_receive_and_route_identity_separate() {
+    let f = Fixture::new();
+    let origin = connected(&f);
+    drop(
+        f.store
+            .try_initial_telephone_media_read(origin.clone())
+            .unwrap(),
+    );
+    let binding = {
+        let c = f.store.connection().unwrap();
+        let (_, binding, _) = f
+            .store
+            .initial_telephone_audience_facts(&c, &origin)
+            .unwrap();
+        let (scopes, actors, expiry) = f
+            .store
+            .sip_private_snapshot_facts(
+                &c,
+                &binding,
+                &f.request.conversation_id,
+                &f.request.session_id,
+            )
+            .unwrap();
+        assert!(!scopes.is_empty() && expiry <= crate::now() + 5);
+        assert_eq!(actors.len(), 2);
+        assert_eq!(
+            actors[0].identity_id,
+            binding["route_owner_id"].as_str().unwrap()
+        );
+        assert_eq!(
+            actors[1].identity_id,
+            binding["identity_id"].as_str().unwrap()
+        );
+        assert_ne!(actors[0].identity_id, actors[1].identity_id);
+        for (key, value) in [
+            ("sip_call_id", json!("other-call")),
+            ("membership_epoch", json!(999)),
+            ("key_id", json!("fabricated-native-key")),
+        ] {
+            let mut forged = binding.clone();
+            forged[key] = value;
+            assert!(f
+                .store
+                .sip_private_snapshot_facts(
+                    &c,
+                    &forged,
+                    &f.request.conversation_id,
+                    &f.request.session_id
+                )
+                .is_err());
+        }
+        binding
+    };
+    // Returned actors are metadata; no authority reader survives the call.
+    drop(
+        f.store
+            .try_acquire_authority(&[AuthorityScope::identity(
+                binding["route_owner_id"].as_str().unwrap(),
+                AuthorityMode::Write,
+            )
+            .unwrap()])
+            .unwrap(),
+    );
+    let c = f.store.connection().unwrap();
+    c.execute("UPDATE credentials SET operations='[\"connection.offer\",\"dtmf.send\",\"dtmf.receive\"]' WHERE id=?1",[binding["endpoint_credential_id"].as_str().unwrap()]).unwrap();
+    assert!(f
+        .store
+        .initial_telephone_audience_facts(&c, &origin)
+        .is_ok());
+    assert_eq!(
+        f.store
+            .sip_private_snapshot_facts(
+                &c,
+                &binding,
+                &f.request.conversation_id,
+                &f.request.session_id
+            )
+            .unwrap_err()
+            .code,
+        "forbidden"
+    );
+}

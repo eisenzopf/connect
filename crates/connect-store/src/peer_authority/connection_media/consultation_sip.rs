@@ -6,6 +6,7 @@ use std::collections::{BTreeMap, BTreeSet};
 
 mod completion;
 mod origins;
+pub(super) mod private;
 mod revisions;
 pub use origins::{SipAudienceOrigin, SipAudienceRead};
 #[derive(serde::Deserialize, serde::Serialize)]

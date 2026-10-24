@@ -2918,7 +2918,8 @@
         "current_established_private_audience_evidence": "docs/evidence/gate-6/auxiliary-established-sip-private-audience.json",
         "current_retained_initial_sip_evidence": "docs/evidence/gate-6/auxiliary-retained-sip-wire.json",
         "current_retained_return_completion_evidence": "docs/evidence/gate-6/auxiliary-retained-sip-completion.json",
-        "current_retained_sip_pair_evidence": "docs/evidence/gate-6/auxiliary-retained-sip-pair.json"
+        "current_retained_sip_pair_evidence": "docs/evidence/gate-6/auxiliary-retained-sip-pair.json",
+        "current_private_sip_primary_store_evidence": "docs/evidence/gate-6/auxiliary-private-sip-primary-store.json"
       }
     },
     {
@@ -2970,7 +2971,8 @@
         "current_established_private_audience_evidence": "docs/evidence/gate-6/auxiliary-established-sip-private-audience.json",
         "current_retained_initial_sip_evidence": "docs/evidence/gate-6/auxiliary-retained-sip-wire.json",
         "current_retained_return_completion_evidence": "docs/evidence/gate-6/auxiliary-retained-sip-completion.json",
-        "current_retained_sip_pair_evidence": "docs/evidence/gate-6/auxiliary-retained-sip-pair.json"
+        "current_retained_sip_pair_evidence": "docs/evidence/gate-6/auxiliary-retained-sip-pair.json",
+        "current_private_sip_primary_store_evidence": "docs/evidence/gate-6/auxiliary-private-sip-primary-store.json"
       }
     },
     {

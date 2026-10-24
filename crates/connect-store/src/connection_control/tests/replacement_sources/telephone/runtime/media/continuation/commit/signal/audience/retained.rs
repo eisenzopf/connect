@@ -98,7 +98,10 @@ fn retained_scene(complete: Option<&str>) {
         .try_native_consultation_scene_read(
             &origin,
             &remote,
-            &[sources[1].clone(), candidate.clone()],
+            &[sources[1].clone(), candidate.clone()]
+                .into_iter()
+                .map(crate::ConsultationMediaOrigin::Native)
+                .collect::<Vec<_>>(),
             &[],
             &[],
         )
