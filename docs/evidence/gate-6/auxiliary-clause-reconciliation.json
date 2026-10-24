@@ -1,0 +1,279 @@
+{
+  "task": "G6-046",
+  "title": "Reconcile historical auxiliary clause outcomes with their successful reports",
+  "recorded_at": "2026-10-24T02:21:34.043079+00:00",
+  "status": "recorded-outcomes-reconciled; no-new-execution",
+  "full_task_complete": false,
+  "full_goal_complete": false,
+  "qualification_count_changed": false,
+  "qualified_clause_count": 58,
+  "remaining_case_ids": [
+    "u6-req-0112",
+    "u6-req-0113",
+    "u6-req-0123"
+  ],
+  "reconciled_clause_count": 29,
+  "clauses": [
+    {
+      "case_id": "u6-req-0081",
+      "previous_runtime_status": "not-run",
+      "previous_audit_status": "native-owned-invitation-and-caller-relay-components-qualified; full-sequence-open",
+      "qualification_report": "docs/evidence/gate-6/auxiliary-session-record-journey.json"
+    },
+    {
+      "case_id": "u6-req-0082",
+      "previous_runtime_status": "not-run",
+      "previous_audit_status": "qualified-local-native-http-sip",
+      "qualification_report": "docs/evidence/gate-6/auxiliary-session-gateways.json"
+    },
+    {
+      "case_id": "u6-req-0083",
+      "previous_runtime_status": "partial-local-native-and-http",
+      "previous_audit_status": "qualified-local-native-http-sip",
+      "qualification_report": "docs/evidence/gate-6/auxiliary-session-gateways.json"
+    },
+    {
+      "case_id": "u6-req-0085",
+      "previous_runtime_status": "not-run",
+      "previous_audit_status": "qualified-local-native-sip",
+      "qualification_report": "docs/evidence/gate-6/auxiliary-session-activation-mixed.json"
+    },
+    {
+      "case_id": "u6-req-0088",
+      "previous_runtime_status": "not-run",
+      "previous_audit_status": "qualified-local-native",
+      "qualification_report": "docs/evidence/gate-6/auxiliary-session-codec-worker.json"
+    },
+    {
+      "case_id": "u6-req-0089",
+      "previous_runtime_status": "not-run",
+      "previous_audit_status": "qualified-local-native",
+      "qualification_report": "docs/evidence/gate-6/auxiliary-session-codec-worker.json"
+    },
+    {
+      "case_id": "u6-req-0092",
+      "previous_runtime_status": "not-run",
+      "previous_audit_status": "evidence-to-reconcile",
+      "qualification_report": "docs/evidence/gate-6/auxiliary-session-started.json"
+    },
+    {
+      "case_id": "u6-req-0093",
+      "previous_runtime_status": "not-run",
+      "previous_audit_status": "evidence-to-reconcile",
+      "qualification_report": "docs/evidence/gate-6/auxiliary-session-started.json"
+    },
+    {
+      "case_id": "u6-req-0094",
+      "previous_runtime_status": "not-run",
+      "previous_audit_status": "evidence-to-reconcile",
+      "qualification_report": "docs/evidence/gate-6/auxiliary-session-reconnect.json"
+    },
+    {
+      "case_id": "u6-req-0096",
+      "previous_runtime_status": "not-run",
+      "previous_audit_status": "evidence-to-reconcile",
+      "qualification_report": "docs/evidence/gate-6/auxiliary-session-participants.json"
+    },
+    {
+      "case_id": "u6-req-0097",
+      "previous_runtime_status": "not-run",
+      "previous_audit_status": "evidence-to-reconcile",
+      "qualification_report": "docs/evidence/gate-6/auxiliary-session-participants.json"
+    },
+    {
+      "case_id": "u6-req-0098",
+      "previous_runtime_status": "not-run",
+      "previous_audit_status": "evidence-to-reconcile",
+      "qualification_report": "docs/evidence/gate-6/auxiliary-session-reconnect.json"
+    },
+    {
+      "case_id": "u6-req-0099",
+      "previous_runtime_status": "not-run",
+      "previous_audit_status": "evidence-to-reconcile",
+      "qualification_report": "docs/evidence/gate-6/auxiliary-session-reconnect.json"
+    },
+    {
+      "case_id": "u6-req-0100",
+      "previous_runtime_status": "not-run",
+      "previous_audit_status": "qualified-local-boundary-context",
+      "qualification_report": "docs/evidence/gate-6/auxiliary-session-activation-mixed.json"
+    },
+    {
+      "case_id": "u6-req-0102",
+      "previous_runtime_status": "not-run",
+      "previous_audit_status": "evidence-to-reconcile",
+      "qualification_report": "docs/evidence/gate-6/auxiliary-native-connection-controls.json"
+    },
+    {
+      "case_id": "u6-req-0104",
+      "previous_runtime_status": "not-run",
+      "previous_audit_status": "evidence-to-reconcile",
+      "qualification_report": "docs/evidence/gate-6/auxiliary-native-connection-controls.json"
+    },
+    {
+      "case_id": "u6-req-0105",
+      "previous_runtime_status": "not-run",
+      "previous_audit_status": "evidence-to-reconcile",
+      "qualification_report": "docs/evidence/gate-6/auxiliary-native-connection-controls.json"
+    },
+    {
+      "case_id": "u6-req-0116",
+      "previous_runtime_status": "not-run",
+      "previous_audit_status": "evidence-to-reconcile",
+      "qualification_report": "docs/evidence/gate-6/auxiliary-session-record-journey.json"
+    },
+    {
+      "case_id": "u6-req-0117",
+      "previous_runtime_status": "not-run",
+      "previous_audit_status": "evidence-to-reconcile",
+      "qualification_report": "docs/evidence/gate-6/auxiliary-session-record-journey.json"
+    },
+    {
+      "case_id": "u6-req-0118",
+      "previous_runtime_status": "not-run",
+      "previous_audit_status": "evidence-to-reconcile",
+      "qualification_report": "docs/evidence/gate-6/auxiliary-session-record-journey.json"
+    },
+    {
+      "case_id": "u6-req-0119",
+      "previous_runtime_status": "not-run",
+      "previous_audit_status": "evidence-to-reconcile",
+      "qualification_report": "docs/evidence/gate-6/auxiliary-session-record-journey.json"
+    },
+    {
+      "case_id": "u6-req-0120",
+      "previous_runtime_status": "not-run",
+      "previous_audit_status": "evidence-to-reconcile",
+      "qualification_report": "docs/evidence/gate-6/auxiliary-session-record-journey.json"
+    },
+    {
+      "case_id": "u6-req-0121",
+      "previous_runtime_status": "not-run",
+      "previous_audit_status": "evidence-to-reconcile",
+      "qualification_report": "docs/evidence/gate-6/auxiliary-session-record-journey.json"
+    },
+    {
+      "case_id": "u6-req-0124",
+      "previous_runtime_status": "not-run",
+      "previous_audit_status": "evidence-to-reconcile",
+      "qualification_report": "docs/evidence/gate-6/auxiliary-native-subscription-journey.json"
+    },
+    {
+      "case_id": "u6-req-0125",
+      "previous_runtime_status": "not-run",
+      "previous_audit_status": "evidence-to-reconcile",
+      "qualification_report": "docs/evidence/gate-6/auxiliary-native-selector-policy.json"
+    },
+    {
+      "case_id": "u6-req-0126",
+      "previous_runtime_status": "not-run",
+      "previous_audit_status": "evidence-to-reconcile",
+      "qualification_report": "docs/evidence/gate-6/auxiliary-native-subscription-journey.json"
+    },
+    {
+      "case_id": "u6-req-0127",
+      "previous_runtime_status": "not-run",
+      "previous_audit_status": "evidence-to-reconcile",
+      "qualification_report": "docs/evidence/gate-6/auxiliary-native-subscription-journey.json"
+    },
+    {
+      "case_id": "u6-req-0128",
+      "previous_runtime_status": "not-run",
+      "previous_audit_status": "evidence-to-reconcile",
+      "qualification_report": "docs/evidence/gate-6/auxiliary-native-selector-policy.json"
+    },
+    {
+      "case_id": "u6-req-0129",
+      "previous_runtime_status": "not-run",
+      "previous_audit_status": "evidence-to-reconcile",
+      "qualification_report": "docs/evidence/gate-6/auxiliary-native-selector-policy.json"
+    }
+  ],
+  "source_reports": {
+    "docs/evidence/gate-6/auxiliary-session-record-journey.json": {
+      "sha256": "486ce0e52986689121a50074e2b9fc39f5c73058d4d22ade4c16042cd3a8bd03",
+      "recorded_at": "2026-10-23T03:24:25.578371+00:00",
+      "status": "in-progress",
+      "scope": "Native owned invitation-to-record journey; independent freshly authorized Record readiness multicast; original outcome, private projection, explicit retrieval, retention and recovery through current Connect production paths.",
+      "log_references_verified": 18
+    },
+    "docs/evidence/gate-6/auxiliary-session-gateways.json": {
+      "sha256": "c39c588ac1bffc1f22093bc09fa9c2d2088f5e71d3cc7bb7282996aa1ac6c698",
+      "recorded_at": "2026-10-23T11:48:14.456661+00:00",
+      "status": "in-progress",
+      "scope": "Dedicated Session URI selectors, current verified configured gateways and frozen original resolution through actual signed native/HTTP invocation, UDP SIP and guarded duplex.",
+      "log_references_verified": 15
+    },
+    "docs/evidence/gate-6/auxiliary-session-activation-mixed.json": {
+      "sha256": "fa8eb6333658ba1caeb6e7219763eceaa929eb7e2798d4714c3e220a09a5c079",
+      "recorded_at": "2026-10-23T10:53:35.952717+00:00",
+      "status": "in-progress",
+      "scope": "Current actual native/SIP readiness, accepted-set reconciliation without unnecessary write fences, attributed public handoff promotion, exact current codec snapshot and bounded initial SIP recording recovery.",
+      "log_references_verified": 18
+    },
+    "docs/evidence/gate-6/auxiliary-session-codec-worker.json": {
+      "sha256": "21ea3ee8dab5c9e7df35b23eb9dd348d243634c07dd3622fe57a4f96d3d94b16",
+      "recorded_at": "2026-10-23T07:41:24.678857+00:00",
+      "status": "in-progress",
+      "scope": "Installed bounded Session codec worker, current independent manager/native-peer authority, distinct typed codec grant, observed credential refresh, exact signed physical execution and metadata-only outcome recording retries; local native Connect clause qualification.",
+      "log_references_verified": 14
+    },
+    "docs/evidence/gate-6/auxiliary-session-started.json": {
+      "sha256": "8256095ddba64e794d8d82731bf9c91b3c5bee9093f35904a884e45ee3135504",
+      "recorded_at": "2026-10-23T00:55:09.802745+00:00",
+      "status": "native-first-session-start-and-original-multicast-qualified-local",
+      "scope": "See original per-case profiles and qualification limits.",
+      "log_references_verified": 30
+    },
+    "docs/evidence/gate-6/auxiliary-session-reconnect.json": {
+      "sha256": "86493a3c97fae6b552433fed5bc950affeeb35508cee2e61b23752ee6b17f37b",
+      "recorded_at": "2026-10-23T02:43:59.616930+00:00",
+      "status": "in-progress",
+      "scope": "Local production native Session boundary, durable reconnect policy/deadline, current pending negotiation, ordered terminal multicast and immutable replay.",
+      "log_references_verified": 16
+    },
+    "docs/evidence/gate-6/auxiliary-session-participants.json": {
+      "sha256": "b4ceb2b85d264c750d54aaa010d5d323ebc9386f09161285c1537fbc01e69fa3",
+      "recorded_at": "2026-10-23T01:52:52.288460+00:00",
+      "status": "native-participant-joined-left-observations-qualified-local",
+      "scope": "See original per-case profiles and qualification limits.",
+      "log_references_verified": 28
+    },
+    "docs/evidence/gate-6/auxiliary-native-connection-controls.json": {
+      "sha256": "e7d7670b95bd220c5f2ec2c5ab67a591657dc6f9a57300b332eec46560bdd008",
+      "recorded_at": "2026-10-23T04:29:54.684436+00:00",
+      "status": "in-progress",
+      "scope": "Production native Connection lifecycle/update composition: exact hold/resume/mute/unmute, captured actual engine outcomes, independent mute across codec replacement, and initial codec fallback under current accepted capability.",
+      "log_references_verified": 14
+    },
+    "docs/evidence/gate-6/auxiliary-native-subscription-journey.json": {
+      "sha256": "a8326aca5df45badc17166e3e13edf3857bb8abf7e9666f86d6044cf89edc9e8",
+      "recorded_at": "2026-10-23T03:52:58.573297+00:00",
+      "status": "in-progress",
+      "scope": "Unfiltered current/future native Participant selection and exact Stream removal/reselection through production signed public clients.",
+      "log_references_verified": 12
+    },
+    "docs/evidence/gate-6/auxiliary-native-selector-policy.json": {
+      "sha256": "cb9c818dd2f5daa7ab149090931609e3fcdf9cb42fa220bbe5462f753035f3c8",
+      "recorded_at": "2026-10-23T05:35:11.085185+00:00",
+      "status": "in-progress",
+      "scope": "Definitive native subscription errors, heterogeneous wildcard policy, optional active-speaker shape and explicit no-emission policy.",
+      "log_references_verified": 20
+    }
+  },
+  "verification": {
+    "report_count": 10,
+    "log_reference_entries_verified": 185,
+    "unique_log_paths_verified": 185,
+    "all_referenced_log_digests_match": true,
+    "evidence_kind": "Historical immutable log/report reconciliation only. No test was run by this check and no claim of current-source requalification is added.",
+    "prior_stale_state": "28 rollup-qualified rows still said not-run and one still said partial-local-native-and-http. Their direct successful local qualification reports already existed; stable IDs and the58/61 rollup were preserved.",
+    "private_audit": ".local/gate-6/received-dtmf-runtime/clause-proof-log-audit.json",
+    "private_audit_sha256": "6b37734fd619d7a920d6299ec76aabdca84e504624fd41a71a9cfba40d566a27"
+  },
+  "limits": [
+    "This does not promote any clause, task or acceptance criterion. G6-046 is stillinprogress and45/105 tasks are done.",
+    "The active exact source175 host build, actual both-algorithm full50 scene, remaining DTMF scope reconciliation and complete current-source auxiliary qualification remain open.",
+    "Recorded local profiles retain their original schema/source/platform/transport limits. Linux/browser/remote/provider/independent qualification and publication remain separate."
+  ]
+}

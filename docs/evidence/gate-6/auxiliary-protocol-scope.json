@@ -1126,7 +1126,7 @@
       "classification": "wire-example",
       "applicability": "mandatory-behavior",
       "case_id": "u6-req-0081",
-      "runtime_status": "not-run",
+      "runtime_status": "passed-recorded-local-profile",
       "shared_implementation_items": [
         "G6-004",
         "G6-006",
@@ -1145,7 +1145,7 @@
         "G6-094"
       ],
       "connect_integration_audit": {
-        "status": "native-owned-invitation-and-caller-relay-components-qualified; full-sequence-open",
+        "status": "qualified-in-recorded-local-profile",
         "historical_component_reports": [
           "docs/evidence/gate-6/session-control.json",
           "docs/evidence/gate-6/general-session-runtime.json"
@@ -1154,8 +1154,14 @@
           "crates/connect-server/tests/support/canonical_session_control.rs",
           "crates/connect-service/src/canonical_sessions.rs"
         ],
-        "remaining": "Full Connection offer/answer, started/ended sequence and broader profiles remain unqualified.",
-        "current_evidence": "docs/evidence/gate-6/auxiliary-session-caller-relays.json"
+        "remaining": "The referenced local profile has a recorded pass. Current integrated-source requalification and later transport/hosting/independent/acceptance profiles remain separate; this metadata reconciliation adds no execution.",
+        "current_evidence": "docs/evidence/gate-6/auxiliary-session-record-journey.json",
+        "qualification_reconciliation": {
+          "previous_status": "native-owned-invitation-and-caller-relay-components-qualified; full-sequence-open",
+          "previous_remaining": "Full Connection offer/answer, started/ended sequence and broader profiles remain unqualified.",
+          "report": "docs/evidence/gate-6/auxiliary-session-record-journey.json",
+          "scope": "Historical local profile only; no new execution or qualification count change."
+        }
       },
       "local_component_evidence": {
         "report": "docs/evidence/gate-6/auxiliary-session-caller-relays.json",
@@ -1173,6 +1179,14 @@
           "A decision may commit after caller disconnect; a newly authenticated caller can recover it by logical invitation replay.",
           "The original command mutation fence spans actual ACK output, so later relay read custody cannot enter its reply batch."
         ]
+      },
+      "runtime_evidence": {
+        "report": "docs/evidence/gate-6/auxiliary-session-record-journey.json",
+        "report_sha256": "486ce0e52986689121a50074e2b9fc39f5c73058d4d22ade4c16042cd3a8bd03",
+        "case_id": "u6-req-0081",
+        "qualification_kind": "Recorded local pass; no new execution in this reconciliation.",
+        "recorded_at": "2026-10-23T03:24:25.578371+00:00",
+        "scope": "Native owned invitation-to-record journey; independent freshly authorized Record readiness multicast; original outcome, private projection, explicit retrieval, retention and recovery through current Connect production paths."
       }
     },
     {
@@ -1182,7 +1196,7 @@
       "classification": "wire-example",
       "applicability": "mandatory-behavior",
       "case_id": "u6-req-0082",
-      "runtime_status": "not-run",
+      "runtime_status": "passed-recorded-local-profile",
       "shared_implementation_items": [
         "G6-004",
         "G6-006",
@@ -1201,7 +1215,7 @@
         "G6-094"
       ],
       "connect_integration_audit": {
-        "status": "qualified-local-native-http-sip",
+        "status": "qualified-in-recorded-local-profile",
         "historical_component_reports": [
           "docs/evidence/gate-6/session-control.json",
           "docs/evidence/gate-6/general-session-runtime.json"
@@ -1210,9 +1224,15 @@
           "crates/connect-server/tests/support/canonical_session_control.rs",
           "crates/connect-service/src/canonical_sessions.rs"
         ],
-        "remaining": "Wider transport/operating profiles and independent G6-094 conformance retain their assigned tasks.",
-        "current_evidence": "docs/evidence/gate-6/auxiliary-owned-session-invitations.json",
-        "current_gateway_evidence": "docs/evidence/gate-6/auxiliary-session-gateways.json"
+        "remaining": "The referenced local profile has a recorded pass. Current integrated-source requalification and later transport/hosting/independent/acceptance profiles remain separate; this metadata reconciliation adds no execution.",
+        "current_evidence": "docs/evidence/gate-6/auxiliary-session-gateways.json",
+        "current_gateway_evidence": "docs/evidence/gate-6/auxiliary-session-gateways.json",
+        "qualification_reconciliation": {
+          "previous_status": "qualified-local-native-http-sip",
+          "previous_remaining": "Wider transport/operating profiles and independent G6-094 conformance retain their assigned tasks.",
+          "report": "docs/evidence/gate-6/auxiliary-session-gateways.json",
+          "scope": "Historical local profile only; no new execution or qualification count change."
+        }
       },
       "local_component_evidence": {
         "report": "docs/evidence/gate-6/auxiliary-owned-session-invitations.json",
@@ -1224,6 +1244,14 @@
         ],
         "remaining": "The previously open configured tel/sip URI alternative now has local Connect execution evidence; wider profiles remain assigned downstream.",
         "gateway_completion_evidence": "docs/evidence/gate-6/auxiliary-session-gateways.json"
+      },
+      "runtime_evidence": {
+        "report": "docs/evidence/gate-6/auxiliary-session-gateways.json",
+        "report_sha256": "c39c588ac1bffc1f22093bc09fa9c2d2088f5e71d3cc7bb7282996aa1ac6c698",
+        "case_id": "u6-req-0082",
+        "qualification_kind": "Recorded local pass; no new execution in this reconciliation.",
+        "recorded_at": "2026-10-23T11:48:14.456661+00:00",
+        "scope": "Dedicated Session URI selectors, current verified configured gateways and frozen original resolution through actual signed native/HTTP invocation, UDP SIP and guarded duplex."
       }
     },
     {
@@ -1233,7 +1261,7 @@
       "classification": "behavior-or-context",
       "applicability": "mandatory-behavior",
       "case_id": "u6-req-0083",
-      "runtime_status": "partial-local-native-and-http",
+      "runtime_status": "passed-recorded-local-profile",
       "shared_implementation_items": [
         "G6-004",
         "G6-006",
@@ -1252,7 +1280,7 @@
         "G6-094"
       ],
       "connect_integration_audit": {
-        "status": "qualified-local-native-http-sip",
+        "status": "qualified-in-recorded-local-profile",
         "historical_component_reports": [
           "docs/evidence/gate-6/session-control.json",
           "docs/evidence/gate-6/general-session-runtime.json"
@@ -1261,9 +1289,15 @@
           "crates/connect-server/tests/support/canonical_session_control.rs",
           "crates/connect-service/src/canonical_sessions.rs"
         ],
-        "remaining": "Wider transport/operating profiles and independent G6-094 conformance retain their assigned tasks.",
-        "current_evidence": "docs/evidence/gate-6/auxiliary-session-identity-targets.json",
-        "current_gateway_evidence": "docs/evidence/gate-6/auxiliary-session-gateways.json"
+        "remaining": "The referenced local profile has a recorded pass. Current integrated-source requalification and later transport/hosting/independent/acceptance profiles remain separate; this metadata reconciliation adds no execution.",
+        "current_evidence": "docs/evidence/gate-6/auxiliary-session-gateways.json",
+        "current_gateway_evidence": "docs/evidence/gate-6/auxiliary-session-gateways.json",
+        "qualification_reconciliation": {
+          "previous_status": "qualified-local-native-http-sip",
+          "previous_remaining": "Wider transport/operating profiles and independent G6-094 conformance retain their assigned tasks.",
+          "report": "docs/evidence/gate-6/auxiliary-session-gateways.json",
+          "scope": "Historical local profile only; no new execution or qualification count change."
+        }
       },
       "runtime_component_evidence": {
         "report": "docs/evidence/gate-6/auxiliary-session-identity-targets.json",
@@ -1271,6 +1305,14 @@
         "remaining": "The previously open configured tel/sip URI alternative now has local Connect execution evidence; wider profiles remain assigned downstream.",
         "gateway_completion_evidence": "docs/evidence/gate-6/auxiliary-session-gateways.json",
         "status": "historical-native-component; configured-URI-completion-linked"
+      },
+      "runtime_evidence": {
+        "report": "docs/evidence/gate-6/auxiliary-session-gateways.json",
+        "report_sha256": "c39c588ac1bffc1f22093bc09fa9c2d2088f5e71d3cc7bb7282996aa1ac6c698",
+        "case_id": "u6-req-0083",
+        "qualification_kind": "Recorded local pass; no new execution in this reconciliation.",
+        "recorded_at": "2026-10-23T11:48:14.456661+00:00",
+        "scope": "Dedicated Session URI selectors, current verified configured gateways and frozen original resolution through actual signed native/HTTP invocation, UDP SIP and guarded duplex."
       }
     },
     {
@@ -1337,7 +1379,7 @@
       "classification": "behavior-or-context",
       "applicability": "mandatory-behavior",
       "case_id": "u6-req-0085",
-      "runtime_status": "not-run",
+      "runtime_status": "passed-recorded-local-profile",
       "shared_implementation_items": [
         "G6-004",
         "G6-006",
@@ -1356,7 +1398,7 @@
         "G6-094"
       ],
       "connect_integration_audit": {
-        "status": "qualified-local-native-sip",
+        "status": "qualified-in-recorded-local-profile",
         "historical_component_reports": [
           "docs/evidence/gate-6/session-control.json",
           "docs/evidence/gate-6/general-session-runtime.json"
@@ -1365,8 +1407,23 @@
           "crates/connect-server/tests/support/canonical_session_control.rs",
           "crates/connect-service/src/canonical_sessions.rs"
         ],
-        "remaining": "Wider transport/operating profiles and independent G6-094 conformance retain their assigned tasks.",
-        "current_activation_evidence": "docs/evidence/gate-6/auxiliary-session-activation-mixed.json"
+        "remaining": "The referenced local profile has a recorded pass. Current integrated-source requalification and later transport/hosting/independent/acceptance profiles remain separate; this metadata reconciliation adds no execution.",
+        "current_activation_evidence": "docs/evidence/gate-6/auxiliary-session-activation-mixed.json",
+        "qualification_reconciliation": {
+          "previous_status": "qualified-local-native-sip",
+          "previous_remaining": "Wider transport/operating profiles and independent G6-094 conformance retain their assigned tasks.",
+          "report": "docs/evidence/gate-6/auxiliary-session-activation-mixed.json",
+          "scope": "Historical local profile only; no new execution or qualification count change."
+        },
+        "current_evidence": "docs/evidence/gate-6/auxiliary-session-activation-mixed.json"
+      },
+      "runtime_evidence": {
+        "report": "docs/evidence/gate-6/auxiliary-session-activation-mixed.json",
+        "report_sha256": "fa8eb6333658ba1caeb6e7219763eceaa929eb7e2798d4714c3e220a09a5c079",
+        "case_id": "u6-req-0085",
+        "qualification_kind": "Recorded local pass; no new execution in this reconciliation.",
+        "recorded_at": "2026-10-23T10:53:35.952717+00:00",
+        "scope": "Current actual native/SIP readiness, accepted-set reconciliation without unnecessary write fences, attributed public handoff promotion, exact current codec snapshot and bounded initial SIP recording recovery."
       }
     },
     {
@@ -1481,7 +1538,7 @@
       "classification": "behavior-or-context",
       "applicability": "mandatory-behavior",
       "case_id": "u6-req-0088",
-      "runtime_status": "not-run",
+      "runtime_status": "passed-recorded-local-profile",
       "shared_implementation_items": [
         "G6-004",
         "G6-006",
@@ -1500,7 +1557,7 @@
         "G6-094"
       ],
       "connect_integration_audit": {
-        "status": "qualified-local-native",
+        "status": "qualified-in-recorded-local-profile",
         "historical_component_reports": [
           "docs/evidence/gate-6/session-control.json",
           "docs/evidence/gate-6/general-session-runtime.json"
@@ -1509,10 +1566,25 @@
           "crates/connect-server/tests/support/canonical_session_control.rs",
           "crates/connect-service/src/canonical_sessions.rs"
         ],
-        "remaining": "Wider transport/operating profiles and independent G6-094 conformance retain their assigned tasks.",
+        "remaining": "The referenced local profile has a recorded pass. Current integrated-source requalification and later transport/hosting/independent/acceptance profiles remain separate; this metadata reconciliation adds no execution.",
         "live_codec_component": "docs/evidence/gate-6/auxiliary-live-session-codecs.json",
         "durable_codec_jobs": "docs/evidence/gate-6/auxiliary-session-codec-jobs.json",
-        "production_codec_worker": "docs/evidence/gate-6/auxiliary-session-codec-worker.json"
+        "production_codec_worker": "docs/evidence/gate-6/auxiliary-session-codec-worker.json",
+        "qualification_reconciliation": {
+          "previous_status": "qualified-local-native",
+          "previous_remaining": "Wider transport/operating profiles and independent G6-094 conformance retain their assigned tasks.",
+          "report": "docs/evidence/gate-6/auxiliary-session-codec-worker.json",
+          "scope": "Historical local profile only; no new execution or qualification count change."
+        },
+        "current_evidence": "docs/evidence/gate-6/auxiliary-session-codec-worker.json"
+      },
+      "runtime_evidence": {
+        "report": "docs/evidence/gate-6/auxiliary-session-codec-worker.json",
+        "report_sha256": "21ea3ee8dab5c9e7df35b23eb9dd348d243634c07dd3622fe57a4f96d3d94b16",
+        "case_id": "u6-req-0088",
+        "qualification_kind": "Recorded local pass; no new execution in this reconciliation.",
+        "recorded_at": "2026-10-23T07:41:24.678857+00:00",
+        "scope": "Installed bounded Session codec worker, current independent manager/native-peer authority, distinct typed codec grant, observed credential refresh, exact signed physical execution and metadata-only outcome recording retries; local native Connect clause qualification."
       }
     },
     {
@@ -1522,7 +1594,7 @@
       "classification": "wire-example",
       "applicability": "mandatory-behavior",
       "case_id": "u6-req-0089",
-      "runtime_status": "not-run",
+      "runtime_status": "passed-recorded-local-profile",
       "shared_implementation_items": [
         "G6-004",
         "G6-006",
@@ -1541,7 +1613,7 @@
         "G6-094"
       ],
       "connect_integration_audit": {
-        "status": "qualified-local-native",
+        "status": "qualified-in-recorded-local-profile",
         "historical_component_reports": [
           "docs/evidence/gate-6/session-control.json",
           "docs/evidence/gate-6/general-session-runtime.json"
@@ -1550,10 +1622,25 @@
           "crates/connect-server/tests/support/canonical_session_control.rs",
           "crates/connect-service/src/canonical_sessions.rs"
         ],
-        "remaining": "Wider transport/operating profiles and independent G6-094 conformance retain their assigned tasks.",
+        "remaining": "The referenced local profile has a recorded pass. Current integrated-source requalification and later transport/hosting/independent/acceptance profiles remain separate; this metadata reconciliation adds no execution.",
         "live_codec_component": "docs/evidence/gate-6/auxiliary-live-session-codecs.json",
         "durable_codec_jobs": "docs/evidence/gate-6/auxiliary-session-codec-jobs.json",
-        "production_codec_worker": "docs/evidence/gate-6/auxiliary-session-codec-worker.json"
+        "production_codec_worker": "docs/evidence/gate-6/auxiliary-session-codec-worker.json",
+        "qualification_reconciliation": {
+          "previous_status": "qualified-local-native",
+          "previous_remaining": "Wider transport/operating profiles and independent G6-094 conformance retain their assigned tasks.",
+          "report": "docs/evidence/gate-6/auxiliary-session-codec-worker.json",
+          "scope": "Historical local profile only; no new execution or qualification count change."
+        },
+        "current_evidence": "docs/evidence/gate-6/auxiliary-session-codec-worker.json"
+      },
+      "runtime_evidence": {
+        "report": "docs/evidence/gate-6/auxiliary-session-codec-worker.json",
+        "report_sha256": "21ea3ee8dab5c9e7df35b23eb9dd348d243634c07dd3622fe57a4f96d3d94b16",
+        "case_id": "u6-req-0089",
+        "qualification_kind": "Recorded local pass; no new execution in this reconciliation.",
+        "recorded_at": "2026-10-23T07:41:24.678857+00:00",
+        "scope": "Installed bounded Session codec worker, current independent manager/native-peer authority, distinct typed codec grant, observed credential refresh, exact signed physical execution and metadata-only outcome recording retries; local native Connect clause qualification."
       }
     },
     {
@@ -1695,7 +1782,7 @@
       "classification": "behavior-or-context",
       "applicability": "mandatory-behavior",
       "case_id": "u6-req-0092",
-      "runtime_status": "not-run",
+      "runtime_status": "passed-recorded-local-profile",
       "shared_implementation_items": [
         "G6-004",
         "G6-006",
@@ -1714,7 +1801,7 @@
         "G6-094"
       ],
       "connect_integration_audit": {
-        "status": "evidence-to-reconcile",
+        "status": "qualified-in-recorded-local-profile",
         "historical_component_reports": [
           "docs/evidence/gate-6/session-control.json",
           "docs/evidence/gate-6/general-session-runtime.json"
@@ -1723,7 +1810,22 @@
           "crates/connect-server/tests/support/canonical_session_control.rs",
           "crates/connect-service/src/canonical_sessions.rs"
         ],
-        "remaining": "Reconcile existing actual invite/accept/reject/cancel/update/end, presence and boundary evidence; do not substitute Core-only peer cases for Connect runtime cases."
+        "remaining": "The referenced local profile has a recorded pass. Current integrated-source requalification and later transport/hosting/independent/acceptance profiles remain separate; this metadata reconciliation adds no execution.",
+        "qualification_reconciliation": {
+          "previous_status": "evidence-to-reconcile",
+          "previous_remaining": "Reconcile existing actual invite/accept/reject/cancel/update/end, presence and boundary evidence; do not substitute Core-only peer cases for Connect runtime cases.",
+          "report": "docs/evidence/gate-6/auxiliary-session-started.json",
+          "scope": "Historical local profile only; no new execution or qualification count change."
+        },
+        "current_evidence": "docs/evidence/gate-6/auxiliary-session-started.json"
+      },
+      "runtime_evidence": {
+        "report": "docs/evidence/gate-6/auxiliary-session-started.json",
+        "report_sha256": "8256095ddba64e794d8d82731bf9c91b3c5bee9093f35904a884e45ee3135504",
+        "case_id": "u6-req-0092",
+        "qualification_kind": "Recorded local pass; no new execution in this reconciliation.",
+        "recorded_at": "2026-10-23T00:55:09.802745+00:00",
+        "scope": "See original per-case profiles and qualification limits."
       }
     },
     {
@@ -1733,7 +1835,7 @@
       "classification": "wire-example",
       "applicability": "mandatory-behavior",
       "case_id": "u6-req-0093",
-      "runtime_status": "not-run",
+      "runtime_status": "passed-recorded-local-profile",
       "shared_implementation_items": [
         "G6-004",
         "G6-006",
@@ -1752,7 +1854,7 @@
         "G6-094"
       ],
       "connect_integration_audit": {
-        "status": "evidence-to-reconcile",
+        "status": "qualified-in-recorded-local-profile",
         "historical_component_reports": [
           "docs/evidence/gate-6/session-control.json",
           "docs/evidence/gate-6/general-session-runtime.json"
@@ -1761,7 +1863,22 @@
           "crates/connect-server/tests/support/canonical_session_control.rs",
           "crates/connect-service/src/canonical_sessions.rs"
         ],
-        "remaining": "Reconcile existing actual invite/accept/reject/cancel/update/end, presence and boundary evidence; do not substitute Core-only peer cases for Connect runtime cases."
+        "remaining": "The referenced local profile has a recorded pass. Current integrated-source requalification and later transport/hosting/independent/acceptance profiles remain separate; this metadata reconciliation adds no execution.",
+        "qualification_reconciliation": {
+          "previous_status": "evidence-to-reconcile",
+          "previous_remaining": "Reconcile existing actual invite/accept/reject/cancel/update/end, presence and boundary evidence; do not substitute Core-only peer cases for Connect runtime cases.",
+          "report": "docs/evidence/gate-6/auxiliary-session-started.json",
+          "scope": "Historical local profile only; no new execution or qualification count change."
+        },
+        "current_evidence": "docs/evidence/gate-6/auxiliary-session-started.json"
+      },
+      "runtime_evidence": {
+        "report": "docs/evidence/gate-6/auxiliary-session-started.json",
+        "report_sha256": "8256095ddba64e794d8d82731bf9c91b3c5bee9093f35904a884e45ee3135504",
+        "case_id": "u6-req-0093",
+        "qualification_kind": "Recorded local pass; no new execution in this reconciliation.",
+        "recorded_at": "2026-10-23T00:55:09.802745+00:00",
+        "scope": "See original per-case profiles and qualification limits."
       }
     },
     {
@@ -1771,7 +1888,7 @@
       "classification": "behavior-or-context",
       "applicability": "mandatory-behavior",
       "case_id": "u6-req-0094",
-      "runtime_status": "not-run",
+      "runtime_status": "passed-recorded-local-profile",
       "shared_implementation_items": [
         "G6-004",
         "G6-006",
@@ -1790,7 +1907,7 @@
         "G6-094"
       ],
       "connect_integration_audit": {
-        "status": "evidence-to-reconcile",
+        "status": "qualified-in-recorded-local-profile",
         "historical_component_reports": [
           "docs/evidence/gate-6/session-control.json",
           "docs/evidence/gate-6/general-session-runtime.json"
@@ -1799,7 +1916,22 @@
           "crates/connect-server/tests/support/canonical_session_control.rs",
           "crates/connect-service/src/canonical_sessions.rs"
         ],
-        "remaining": "Reconcile existing actual invite/accept/reject/cancel/update/end, presence and boundary evidence; do not substitute Core-only peer cases for Connect runtime cases."
+        "remaining": "The referenced local profile has a recorded pass. Current integrated-source requalification and later transport/hosting/independent/acceptance profiles remain separate; this metadata reconciliation adds no execution.",
+        "qualification_reconciliation": {
+          "previous_status": "evidence-to-reconcile",
+          "previous_remaining": "Reconcile existing actual invite/accept/reject/cancel/update/end, presence and boundary evidence; do not substitute Core-only peer cases for Connect runtime cases.",
+          "report": "docs/evidence/gate-6/auxiliary-session-reconnect.json",
+          "scope": "Historical local profile only; no new execution or qualification count change."
+        },
+        "current_evidence": "docs/evidence/gate-6/auxiliary-session-reconnect.json"
+      },
+      "runtime_evidence": {
+        "report": "docs/evidence/gate-6/auxiliary-session-reconnect.json",
+        "report_sha256": "86493a3c97fae6b552433fed5bc950affeeb35508cee2e61b23752ee6b17f37b",
+        "case_id": "u6-req-0094",
+        "qualification_kind": "Recorded local pass; no new execution in this reconciliation.",
+        "recorded_at": "2026-10-23T02:43:59.616930+00:00",
+        "scope": "Local production native Session boundary, durable reconnect policy/deadline, current pending negotiation, ordered terminal multicast and immutable replay."
       }
     },
     {
@@ -1857,7 +1989,7 @@
       "classification": "wire-example",
       "applicability": "mandatory-behavior",
       "case_id": "u6-req-0096",
-      "runtime_status": "not-run",
+      "runtime_status": "passed-recorded-local-profile",
       "shared_implementation_items": [
         "G6-004",
         "G6-006",
@@ -1876,7 +2008,7 @@
         "G6-094"
       ],
       "connect_integration_audit": {
-        "status": "evidence-to-reconcile",
+        "status": "qualified-in-recorded-local-profile",
         "historical_component_reports": [
           "docs/evidence/gate-6/session-control.json",
           "docs/evidence/gate-6/general-session-runtime.json"
@@ -1885,7 +2017,22 @@
           "crates/connect-server/tests/support/canonical_session_control.rs",
           "crates/connect-service/src/canonical_sessions.rs"
         ],
-        "remaining": "Reconcile existing actual invite/accept/reject/cancel/update/end, presence and boundary evidence; do not substitute Core-only peer cases for Connect runtime cases."
+        "remaining": "The referenced local profile has a recorded pass. Current integrated-source requalification and later transport/hosting/independent/acceptance profiles remain separate; this metadata reconciliation adds no execution.",
+        "qualification_reconciliation": {
+          "previous_status": "evidence-to-reconcile",
+          "previous_remaining": "Reconcile existing actual invite/accept/reject/cancel/update/end, presence and boundary evidence; do not substitute Core-only peer cases for Connect runtime cases.",
+          "report": "docs/evidence/gate-6/auxiliary-session-participants.json",
+          "scope": "Historical local profile only; no new execution or qualification count change."
+        },
+        "current_evidence": "docs/evidence/gate-6/auxiliary-session-participants.json"
+      },
+      "runtime_evidence": {
+        "report": "docs/evidence/gate-6/auxiliary-session-participants.json",
+        "report_sha256": "b4ceb2b85d264c750d54aaa010d5d323ebc9386f09161285c1537fbc01e69fa3",
+        "case_id": "u6-req-0096",
+        "qualification_kind": "Recorded local pass; no new execution in this reconciliation.",
+        "recorded_at": "2026-10-23T01:52:52.288460+00:00",
+        "scope": "See original per-case profiles and qualification limits."
       }
     },
     {
@@ -1895,7 +2042,7 @@
       "classification": "wire-example",
       "applicability": "mandatory-behavior",
       "case_id": "u6-req-0097",
-      "runtime_status": "not-run",
+      "runtime_status": "passed-recorded-local-profile",
       "shared_implementation_items": [
         "G6-004",
         "G6-006",
@@ -1914,7 +2061,7 @@
         "G6-094"
       ],
       "connect_integration_audit": {
-        "status": "evidence-to-reconcile",
+        "status": "qualified-in-recorded-local-profile",
         "historical_component_reports": [
           "docs/evidence/gate-6/session-control.json",
           "docs/evidence/gate-6/general-session-runtime.json"
@@ -1923,7 +2070,22 @@
           "crates/connect-server/tests/support/canonical_session_control.rs",
           "crates/connect-service/src/canonical_sessions.rs"
         ],
-        "remaining": "Reconcile existing actual invite/accept/reject/cancel/update/end, presence and boundary evidence; do not substitute Core-only peer cases for Connect runtime cases."
+        "remaining": "The referenced local profile has a recorded pass. Current integrated-source requalification and later transport/hosting/independent/acceptance profiles remain separate; this metadata reconciliation adds no execution.",
+        "qualification_reconciliation": {
+          "previous_status": "evidence-to-reconcile",
+          "previous_remaining": "Reconcile existing actual invite/accept/reject/cancel/update/end, presence and boundary evidence; do not substitute Core-only peer cases for Connect runtime cases.",
+          "report": "docs/evidence/gate-6/auxiliary-session-participants.json",
+          "scope": "Historical local profile only; no new execution or qualification count change."
+        },
+        "current_evidence": "docs/evidence/gate-6/auxiliary-session-participants.json"
+      },
+      "runtime_evidence": {
+        "report": "docs/evidence/gate-6/auxiliary-session-participants.json",
+        "report_sha256": "b4ceb2b85d264c750d54aaa010d5d323ebc9386f09161285c1537fbc01e69fa3",
+        "case_id": "u6-req-0097",
+        "qualification_kind": "Recorded local pass; no new execution in this reconciliation.",
+        "recorded_at": "2026-10-23T01:52:52.288460+00:00",
+        "scope": "See original per-case profiles and qualification limits."
       }
     },
     {
@@ -1933,7 +2095,7 @@
       "classification": "behavior-or-context",
       "applicability": "mandatory-behavior",
       "case_id": "u6-req-0098",
-      "runtime_status": "not-run",
+      "runtime_status": "passed-recorded-local-profile",
       "shared_implementation_items": [
         "G6-004",
         "G6-006",
@@ -1952,7 +2114,7 @@
         "G6-094"
       ],
       "connect_integration_audit": {
-        "status": "evidence-to-reconcile",
+        "status": "qualified-in-recorded-local-profile",
         "historical_component_reports": [
           "docs/evidence/gate-6/session-control.json",
           "docs/evidence/gate-6/general-session-runtime.json"
@@ -1961,7 +2123,22 @@
           "crates/connect-server/tests/support/canonical_session_control.rs",
           "crates/connect-service/src/canonical_sessions.rs"
         ],
-        "remaining": "Reconcile existing actual invite/accept/reject/cancel/update/end, presence and boundary evidence; do not substitute Core-only peer cases for Connect runtime cases."
+        "remaining": "The referenced local profile has a recorded pass. Current integrated-source requalification and later transport/hosting/independent/acceptance profiles remain separate; this metadata reconciliation adds no execution.",
+        "qualification_reconciliation": {
+          "previous_status": "evidence-to-reconcile",
+          "previous_remaining": "Reconcile existing actual invite/accept/reject/cancel/update/end, presence and boundary evidence; do not substitute Core-only peer cases for Connect runtime cases.",
+          "report": "docs/evidence/gate-6/auxiliary-session-reconnect.json",
+          "scope": "Historical local profile only; no new execution or qualification count change."
+        },
+        "current_evidence": "docs/evidence/gate-6/auxiliary-session-reconnect.json"
+      },
+      "runtime_evidence": {
+        "report": "docs/evidence/gate-6/auxiliary-session-reconnect.json",
+        "report_sha256": "86493a3c97fae6b552433fed5bc950affeeb35508cee2e61b23752ee6b17f37b",
+        "case_id": "u6-req-0098",
+        "qualification_kind": "Recorded local pass; no new execution in this reconciliation.",
+        "recorded_at": "2026-10-23T02:43:59.616930+00:00",
+        "scope": "Local production native Session boundary, durable reconnect policy/deadline, current pending negotiation, ordered terminal multicast and immutable replay."
       }
     },
     {
@@ -1971,7 +2148,7 @@
       "classification": "behavior-or-context",
       "applicability": "mandatory-behavior",
       "case_id": "u6-req-0099",
-      "runtime_status": "not-run",
+      "runtime_status": "passed-recorded-local-profile",
       "shared_implementation_items": [
         "G6-004",
         "G6-006",
@@ -1990,7 +2167,7 @@
         "G6-094"
       ],
       "connect_integration_audit": {
-        "status": "evidence-to-reconcile",
+        "status": "qualified-in-recorded-local-profile",
         "historical_component_reports": [
           "docs/evidence/gate-6/session-control.json",
           "docs/evidence/gate-6/general-session-runtime.json"
@@ -1999,7 +2176,22 @@
           "crates/connect-server/tests/support/canonical_session_control.rs",
           "crates/connect-service/src/canonical_sessions.rs"
         ],
-        "remaining": "Reconcile existing actual invite/accept/reject/cancel/update/end, presence and boundary evidence; do not substitute Core-only peer cases for Connect runtime cases."
+        "remaining": "The referenced local profile has a recorded pass. Current integrated-source requalification and later transport/hosting/independent/acceptance profiles remain separate; this metadata reconciliation adds no execution.",
+        "qualification_reconciliation": {
+          "previous_status": "evidence-to-reconcile",
+          "previous_remaining": "Reconcile existing actual invite/accept/reject/cancel/update/end, presence and boundary evidence; do not substitute Core-only peer cases for Connect runtime cases.",
+          "report": "docs/evidence/gate-6/auxiliary-session-reconnect.json",
+          "scope": "Historical local profile only; no new execution or qualification count change."
+        },
+        "current_evidence": "docs/evidence/gate-6/auxiliary-session-reconnect.json"
+      },
+      "runtime_evidence": {
+        "report": "docs/evidence/gate-6/auxiliary-session-reconnect.json",
+        "report_sha256": "86493a3c97fae6b552433fed5bc950affeeb35508cee2e61b23752ee6b17f37b",
+        "case_id": "u6-req-0099",
+        "qualification_kind": "Recorded local pass; no new execution in this reconciliation.",
+        "recorded_at": "2026-10-23T02:43:59.616930+00:00",
+        "scope": "Local production native Session boundary, durable reconnect policy/deadline, current pending negotiation, ordered terminal multicast and immutable replay."
       }
     },
     {
@@ -2009,7 +2201,7 @@
       "classification": "behavior-or-context",
       "applicability": "mandatory-behavior",
       "case_id": "u6-req-0100",
-      "runtime_status": "not-run",
+      "runtime_status": "passed-recorded-local-profile",
       "shared_implementation_items": [
         "G6-004",
         "G6-006",
@@ -2028,7 +2220,7 @@
         "G6-094"
       ],
       "connect_integration_audit": {
-        "status": "qualified-local-boundary-context",
+        "status": "qualified-in-recorded-local-profile",
         "historical_component_reports": [
           "docs/evidence/gate-6/session-control.json",
           "docs/evidence/gate-6/general-session-runtime.json"
@@ -2037,8 +2229,23 @@
           "crates/connect-server/tests/support/canonical_session_control.rs",
           "crates/connect-service/src/canonical_sessions.rs"
         ],
-        "remaining": "Wider transport/operating profiles and independent G6-094 conformance retain their assigned tasks.",
-        "current_activation_evidence": "docs/evidence/gate-6/auxiliary-session-activation-mixed.json"
+        "remaining": "The referenced local profile has a recorded pass. Current integrated-source requalification and later transport/hosting/independent/acceptance profiles remain separate; this metadata reconciliation adds no execution.",
+        "current_activation_evidence": "docs/evidence/gate-6/auxiliary-session-activation-mixed.json",
+        "qualification_reconciliation": {
+          "previous_status": "qualified-local-boundary-context",
+          "previous_remaining": "Wider transport/operating profiles and independent G6-094 conformance retain their assigned tasks.",
+          "report": "docs/evidence/gate-6/auxiliary-session-activation-mixed.json",
+          "scope": "Historical local profile only; no new execution or qualification count change."
+        },
+        "current_evidence": "docs/evidence/gate-6/auxiliary-session-activation-mixed.json"
+      },
+      "runtime_evidence": {
+        "report": "docs/evidence/gate-6/auxiliary-session-activation-mixed.json",
+        "report_sha256": "fa8eb6333658ba1caeb6e7219763eceaa929eb7e2798d4714c3e220a09a5c079",
+        "case_id": "u6-req-0100",
+        "qualification_kind": "Recorded local pass; no new execution in this reconciliation.",
+        "recorded_at": "2026-10-23T10:53:35.952717+00:00",
+        "scope": "Current actual native/SIP readiness, accepted-set reconciliation without unnecessary write fences, attributed public handoff promotion, exact current codec snapshot and bounded initial SIP recording recovery."
       }
     },
     {
@@ -2101,7 +2308,7 @@
       "classification": "wire-example",
       "applicability": "mandatory-behavior",
       "case_id": "u6-req-0102",
-      "runtime_status": "not-run",
+      "runtime_status": "passed-recorded-local-profile",
       "shared_implementation_items": [
         "G6-004",
         "G6-006",
@@ -2120,7 +2327,7 @@
         "G6-094"
       ],
       "connect_integration_audit": {
-        "status": "evidence-to-reconcile",
+        "status": "qualified-in-recorded-local-profile",
         "historical_component_reports": [
           "docs/evidence/gate-6/general-session-runtime.json",
           "docs/evidence/gate-6/auxiliary-native-lifecycle.json"
@@ -2129,7 +2336,22 @@
           "crates/connect-server/tests/support/canonical_native_connections.rs",
           "crates/connect-server/tests/support/canonical_native_connections/codecs.rs"
         ],
-        "remaining": "Actual native Connection/stream lifecycle composition is now locally verified with current Store authority, per-physical delivery and signed SDK observations; PCMU-to-PCMA closure/reopening is observed. Reconcile exact assigned clause evidence and remaining Connection control profiles; this scoped component does not by itself close the entire clause group."
+        "remaining": "The referenced local profile has a recorded pass. Current integrated-source requalification and later transport/hosting/independent/acceptance profiles remain separate; this metadata reconciliation adds no execution.",
+        "qualification_reconciliation": {
+          "previous_status": "evidence-to-reconcile",
+          "previous_remaining": "Actual native Connection/stream lifecycle composition is now locally verified with current Store authority, per-physical delivery and signed SDK observations; PCMU-to-PCMA closure/reopening is observed. Reconcile exact assigned clause evidence and remaining Connection control profiles; this scoped component does not by itself close the entire clause group.",
+          "report": "docs/evidence/gate-6/auxiliary-native-connection-controls.json",
+          "scope": "Historical local profile only; no new execution or qualification count change."
+        },
+        "current_evidence": "docs/evidence/gate-6/auxiliary-native-connection-controls.json"
+      },
+      "runtime_evidence": {
+        "report": "docs/evidence/gate-6/auxiliary-native-connection-controls.json",
+        "report_sha256": "e7d7670b95bd220c5f2ec2c5ab67a591657dc6f9a57300b332eec46560bdd008",
+        "case_id": "u6-req-0102",
+        "qualification_kind": "Recorded local pass; no new execution in this reconciliation.",
+        "recorded_at": "2026-10-23T04:29:54.684436+00:00",
+        "scope": "Production native Connection lifecycle/update composition: exact hold/resume/mute/unmute, captured actual engine outcomes, independent mute across codec replacement, and initial codec fallback under current accepted capability."
       }
     },
     {
@@ -2197,7 +2419,7 @@
       "classification": "behavior-or-context",
       "applicability": "mandatory-behavior",
       "case_id": "u6-req-0104",
-      "runtime_status": "not-run",
+      "runtime_status": "passed-recorded-local-profile",
       "shared_implementation_items": [
         "G6-004",
         "G6-006",
@@ -2216,7 +2438,7 @@
         "G6-094"
       ],
       "connect_integration_audit": {
-        "status": "evidence-to-reconcile",
+        "status": "qualified-in-recorded-local-profile",
         "historical_component_reports": [
           "docs/evidence/gate-6/general-session-runtime.json",
           "docs/evidence/gate-6/auxiliary-native-lifecycle.json"
@@ -2225,7 +2447,22 @@
           "crates/connect-server/tests/support/canonical_native_connections.rs",
           "crates/connect-server/tests/support/canonical_native_connections/codecs.rs"
         ],
-        "remaining": "Actual native Connection/stream lifecycle composition is now locally verified with current Store authority, per-physical delivery and signed SDK observations; PCMU-to-PCMA closure/reopening is observed. Reconcile exact assigned clause evidence and remaining Connection control profiles; this scoped component does not by itself close the entire clause group."
+        "remaining": "The referenced local profile has a recorded pass. Current integrated-source requalification and later transport/hosting/independent/acceptance profiles remain separate; this metadata reconciliation adds no execution.",
+        "qualification_reconciliation": {
+          "previous_status": "evidence-to-reconcile",
+          "previous_remaining": "Actual native Connection/stream lifecycle composition is now locally verified with current Store authority, per-physical delivery and signed SDK observations; PCMU-to-PCMA closure/reopening is observed. Reconcile exact assigned clause evidence and remaining Connection control profiles; this scoped component does not by itself close the entire clause group.",
+          "report": "docs/evidence/gate-6/auxiliary-native-connection-controls.json",
+          "scope": "Historical local profile only; no new execution or qualification count change."
+        },
+        "current_evidence": "docs/evidence/gate-6/auxiliary-native-connection-controls.json"
+      },
+      "runtime_evidence": {
+        "report": "docs/evidence/gate-6/auxiliary-native-connection-controls.json",
+        "report_sha256": "e7d7670b95bd220c5f2ec2c5ab67a591657dc6f9a57300b332eec46560bdd008",
+        "case_id": "u6-req-0104",
+        "qualification_kind": "Recorded local pass; no new execution in this reconciliation.",
+        "recorded_at": "2026-10-23T04:29:54.684436+00:00",
+        "scope": "Production native Connection lifecycle/update composition: exact hold/resume/mute/unmute, captured actual engine outcomes, independent mute across codec replacement, and initial codec fallback under current accepted capability."
       }
     },
     {
@@ -2235,7 +2472,7 @@
       "classification": "behavior-or-context",
       "applicability": "mandatory-behavior",
       "case_id": "u6-req-0105",
-      "runtime_status": "not-run",
+      "runtime_status": "passed-recorded-local-profile",
       "shared_implementation_items": [
         "G6-004",
         "G6-006",
@@ -2254,7 +2491,7 @@
         "G6-094"
       ],
       "connect_integration_audit": {
-        "status": "evidence-to-reconcile",
+        "status": "qualified-in-recorded-local-profile",
         "historical_component_reports": [
           "docs/evidence/gate-6/general-session-runtime.json",
           "docs/evidence/gate-6/auxiliary-native-lifecycle.json"
@@ -2263,7 +2500,22 @@
           "crates/connect-server/tests/support/canonical_native_connections.rs",
           "crates/connect-server/tests/support/canonical_native_connections/codecs.rs"
         ],
-        "remaining": "Actual native Connection/stream lifecycle composition is now locally verified with current Store authority, per-physical delivery and signed SDK observations; PCMU-to-PCMA closure/reopening is observed. Reconcile exact assigned clause evidence and remaining Connection control profiles; this scoped component does not by itself close the entire clause group."
+        "remaining": "The referenced local profile has a recorded pass. Current integrated-source requalification and later transport/hosting/independent/acceptance profiles remain separate; this metadata reconciliation adds no execution.",
+        "qualification_reconciliation": {
+          "previous_status": "evidence-to-reconcile",
+          "previous_remaining": "Actual native Connection/stream lifecycle composition is now locally verified with current Store authority, per-physical delivery and signed SDK observations; PCMU-to-PCMA closure/reopening is observed. Reconcile exact assigned clause evidence and remaining Connection control profiles; this scoped component does not by itself close the entire clause group.",
+          "report": "docs/evidence/gate-6/auxiliary-native-connection-controls.json",
+          "scope": "Historical local profile only; no new execution or qualification count change."
+        },
+        "current_evidence": "docs/evidence/gate-6/auxiliary-native-connection-controls.json"
+      },
+      "runtime_evidence": {
+        "report": "docs/evidence/gate-6/auxiliary-native-connection-controls.json",
+        "report_sha256": "e7d7670b95bd220c5f2ec2c5ab67a591657dc6f9a57300b332eec46560bdd008",
+        "case_id": "u6-req-0105",
+        "qualification_kind": "Recorded local pass; no new execution in this reconciliation.",
+        "recorded_at": "2026-10-23T04:29:54.684436+00:00",
+        "scope": "Production native Connection lifecycle/update composition: exact hold/resume/mute/unmute, captured actual engine outcomes, independent mute across codec replacement, and initial codec fallback under current accepted capability."
       }
     },
     {
@@ -2845,7 +3097,7 @@
       "classification": "behavior-or-context",
       "applicability": "mandatory-behavior",
       "case_id": "u6-req-0116",
-      "runtime_status": "not-run",
+      "runtime_status": "passed-recorded-local-profile",
       "shared_implementation_items": [
         "G6-004",
         "G6-006",
@@ -2864,7 +3116,7 @@
         "G6-094"
       ],
       "connect_integration_audit": {
-        "status": "evidence-to-reconcile",
+        "status": "qualified-in-recorded-local-profile",
         "historical_component_reports": [
           "docs/evidence/gate-6/auxiliary-session-outcomes.json",
           "docs/evidence/gate-6/auxiliary-record-discovery.json",
@@ -2880,7 +3132,22 @@
           "crates/connect-server/tests/support/canonical_record_http.rs",
           "crates/connect-service/src/canonical_records.rs"
         ],
-        "remaining": "Bind actual ready/discovery/fetch inline/URL/current session and tenant read evidence to exact six clause IDs. The installation profile produces metadata-only outcomes with explicit absent capture; determine approved applicability before adding optional captured-media scope."
+        "remaining": "The referenced local profile has a recorded pass. Current integrated-source requalification and later transport/hosting/independent/acceptance profiles remain separate; this metadata reconciliation adds no execution.",
+        "qualification_reconciliation": {
+          "previous_status": "evidence-to-reconcile",
+          "previous_remaining": "Bind actual ready/discovery/fetch inline/URL/current session and tenant read evidence to exact six clause IDs. The installation profile produces metadata-only outcomes with explicit absent capture; determine approved applicability before adding optional captured-media scope.",
+          "report": "docs/evidence/gate-6/auxiliary-session-record-journey.json",
+          "scope": "Historical local profile only; no new execution or qualification count change."
+        },
+        "current_evidence": "docs/evidence/gate-6/auxiliary-session-record-journey.json"
+      },
+      "runtime_evidence": {
+        "report": "docs/evidence/gate-6/auxiliary-session-record-journey.json",
+        "report_sha256": "486ce0e52986689121a50074e2b9fc39f5c73058d4d22ade4c16042cd3a8bd03",
+        "case_id": "u6-req-0116",
+        "qualification_kind": "Recorded local pass; no new execution in this reconciliation.",
+        "recorded_at": "2026-10-23T03:24:25.578371+00:00",
+        "scope": "Native owned invitation-to-record journey; independent freshly authorized Record readiness multicast; original outcome, private projection, explicit retrieval, retention and recovery through current Connect production paths."
       }
     },
     {
@@ -2890,7 +3157,7 @@
       "classification": "wire-example",
       "applicability": "mandatory-behavior",
       "case_id": "u6-req-0117",
-      "runtime_status": "not-run",
+      "runtime_status": "passed-recorded-local-profile",
       "shared_implementation_items": [
         "G6-004",
         "G6-006",
@@ -2909,7 +3176,7 @@
         "G6-094"
       ],
       "connect_integration_audit": {
-        "status": "evidence-to-reconcile",
+        "status": "qualified-in-recorded-local-profile",
         "historical_component_reports": [
           "docs/evidence/gate-6/auxiliary-session-outcomes.json",
           "docs/evidence/gate-6/auxiliary-record-discovery.json",
@@ -2925,7 +3192,22 @@
           "crates/connect-server/tests/support/canonical_record_http.rs",
           "crates/connect-service/src/canonical_records.rs"
         ],
-        "remaining": "Bind actual ready/discovery/fetch inline/URL/current session and tenant read evidence to exact six clause IDs. The installation profile produces metadata-only outcomes with explicit absent capture; determine approved applicability before adding optional captured-media scope."
+        "remaining": "The referenced local profile has a recorded pass. Current integrated-source requalification and later transport/hosting/independent/acceptance profiles remain separate; this metadata reconciliation adds no execution.",
+        "qualification_reconciliation": {
+          "previous_status": "evidence-to-reconcile",
+          "previous_remaining": "Bind actual ready/discovery/fetch inline/URL/current session and tenant read evidence to exact six clause IDs. The installation profile produces metadata-only outcomes with explicit absent capture; determine approved applicability before adding optional captured-media scope.",
+          "report": "docs/evidence/gate-6/auxiliary-session-record-journey.json",
+          "scope": "Historical local profile only; no new execution or qualification count change."
+        },
+        "current_evidence": "docs/evidence/gate-6/auxiliary-session-record-journey.json"
+      },
+      "runtime_evidence": {
+        "report": "docs/evidence/gate-6/auxiliary-session-record-journey.json",
+        "report_sha256": "486ce0e52986689121a50074e2b9fc39f5c73058d4d22ade4c16042cd3a8bd03",
+        "case_id": "u6-req-0117",
+        "qualification_kind": "Recorded local pass; no new execution in this reconciliation.",
+        "recorded_at": "2026-10-23T03:24:25.578371+00:00",
+        "scope": "Native owned invitation-to-record journey; independent freshly authorized Record readiness multicast; original outcome, private projection, explicit retrieval, retention and recovery through current Connect production paths."
       }
     },
     {
@@ -2935,7 +3217,7 @@
       "classification": "behavior-or-context",
       "applicability": "mandatory-behavior",
       "case_id": "u6-req-0118",
-      "runtime_status": "not-run",
+      "runtime_status": "passed-recorded-local-profile",
       "shared_implementation_items": [
         "G6-004",
         "G6-006",
@@ -2954,7 +3236,7 @@
         "G6-094"
       ],
       "connect_integration_audit": {
-        "status": "evidence-to-reconcile",
+        "status": "qualified-in-recorded-local-profile",
         "historical_component_reports": [
           "docs/evidence/gate-6/auxiliary-session-outcomes.json",
           "docs/evidence/gate-6/auxiliary-record-discovery.json",
@@ -2970,7 +3252,22 @@
           "crates/connect-server/tests/support/canonical_record_http.rs",
           "crates/connect-service/src/canonical_records.rs"
         ],
-        "remaining": "Bind actual ready/discovery/fetch inline/URL/current session and tenant read evidence to exact six clause IDs. The installation profile produces metadata-only outcomes with explicit absent capture; determine approved applicability before adding optional captured-media scope."
+        "remaining": "The referenced local profile has a recorded pass. Current integrated-source requalification and later transport/hosting/independent/acceptance profiles remain separate; this metadata reconciliation adds no execution.",
+        "qualification_reconciliation": {
+          "previous_status": "evidence-to-reconcile",
+          "previous_remaining": "Bind actual ready/discovery/fetch inline/URL/current session and tenant read evidence to exact six clause IDs. The installation profile produces metadata-only outcomes with explicit absent capture; determine approved applicability before adding optional captured-media scope.",
+          "report": "docs/evidence/gate-6/auxiliary-session-record-journey.json",
+          "scope": "Historical local profile only; no new execution or qualification count change."
+        },
+        "current_evidence": "docs/evidence/gate-6/auxiliary-session-record-journey.json"
+      },
+      "runtime_evidence": {
+        "report": "docs/evidence/gate-6/auxiliary-session-record-journey.json",
+        "report_sha256": "486ce0e52986689121a50074e2b9fc39f5c73058d4d22ade4c16042cd3a8bd03",
+        "case_id": "u6-req-0118",
+        "qualification_kind": "Recorded local pass; no new execution in this reconciliation.",
+        "recorded_at": "2026-10-23T03:24:25.578371+00:00",
+        "scope": "Native owned invitation-to-record journey; independent freshly authorized Record readiness multicast; original outcome, private projection, explicit retrieval, retention and recovery through current Connect production paths."
       }
     },
     {
@@ -2980,7 +3277,7 @@
       "classification": "wire-example",
       "applicability": "mandatory-behavior",
       "case_id": "u6-req-0119",
-      "runtime_status": "not-run",
+      "runtime_status": "passed-recorded-local-profile",
       "shared_implementation_items": [
         "G6-004",
         "G6-006",
@@ -2999,7 +3296,7 @@
         "G6-094"
       ],
       "connect_integration_audit": {
-        "status": "evidence-to-reconcile",
+        "status": "qualified-in-recorded-local-profile",
         "historical_component_reports": [
           "docs/evidence/gate-6/auxiliary-session-outcomes.json",
           "docs/evidence/gate-6/auxiliary-record-discovery.json",
@@ -3015,7 +3312,22 @@
           "crates/connect-server/tests/support/canonical_record_http.rs",
           "crates/connect-service/src/canonical_records.rs"
         ],
-        "remaining": "Bind actual ready/discovery/fetch inline/URL/current session and tenant read evidence to exact six clause IDs. The installation profile produces metadata-only outcomes with explicit absent capture; determine approved applicability before adding optional captured-media scope."
+        "remaining": "The referenced local profile has a recorded pass. Current integrated-source requalification and later transport/hosting/independent/acceptance profiles remain separate; this metadata reconciliation adds no execution.",
+        "qualification_reconciliation": {
+          "previous_status": "evidence-to-reconcile",
+          "previous_remaining": "Bind actual ready/discovery/fetch inline/URL/current session and tenant read evidence to exact six clause IDs. The installation profile produces metadata-only outcomes with explicit absent capture; determine approved applicability before adding optional captured-media scope.",
+          "report": "docs/evidence/gate-6/auxiliary-session-record-journey.json",
+          "scope": "Historical local profile only; no new execution or qualification count change."
+        },
+        "current_evidence": "docs/evidence/gate-6/auxiliary-session-record-journey.json"
+      },
+      "runtime_evidence": {
+        "report": "docs/evidence/gate-6/auxiliary-session-record-journey.json",
+        "report_sha256": "486ce0e52986689121a50074e2b9fc39f5c73058d4d22ade4c16042cd3a8bd03",
+        "case_id": "u6-req-0119",
+        "qualification_kind": "Recorded local pass; no new execution in this reconciliation.",
+        "recorded_at": "2026-10-23T03:24:25.578371+00:00",
+        "scope": "Native owned invitation-to-record journey; independent freshly authorized Record readiness multicast; original outcome, private projection, explicit retrieval, retention and recovery through current Connect production paths."
       }
     },
     {
@@ -3025,7 +3337,7 @@
       "classification": "wire-example",
       "applicability": "mandatory-behavior",
       "case_id": "u6-req-0120",
-      "runtime_status": "not-run",
+      "runtime_status": "passed-recorded-local-profile",
       "shared_implementation_items": [
         "G6-004",
         "G6-006",
@@ -3044,7 +3356,7 @@
         "G6-094"
       ],
       "connect_integration_audit": {
-        "status": "evidence-to-reconcile",
+        "status": "qualified-in-recorded-local-profile",
         "historical_component_reports": [
           "docs/evidence/gate-6/auxiliary-session-outcomes.json",
           "docs/evidence/gate-6/auxiliary-record-discovery.json",
@@ -3060,7 +3372,22 @@
           "crates/connect-server/tests/support/canonical_record_http.rs",
           "crates/connect-service/src/canonical_records.rs"
         ],
-        "remaining": "Bind actual ready/discovery/fetch inline/URL/current session and tenant read evidence to exact six clause IDs. The installation profile produces metadata-only outcomes with explicit absent capture; determine approved applicability before adding optional captured-media scope."
+        "remaining": "The referenced local profile has a recorded pass. Current integrated-source requalification and later transport/hosting/independent/acceptance profiles remain separate; this metadata reconciliation adds no execution.",
+        "qualification_reconciliation": {
+          "previous_status": "evidence-to-reconcile",
+          "previous_remaining": "Bind actual ready/discovery/fetch inline/URL/current session and tenant read evidence to exact six clause IDs. The installation profile produces metadata-only outcomes with explicit absent capture; determine approved applicability before adding optional captured-media scope.",
+          "report": "docs/evidence/gate-6/auxiliary-session-record-journey.json",
+          "scope": "Historical local profile only; no new execution or qualification count change."
+        },
+        "current_evidence": "docs/evidence/gate-6/auxiliary-session-record-journey.json"
+      },
+      "runtime_evidence": {
+        "report": "docs/evidence/gate-6/auxiliary-session-record-journey.json",
+        "report_sha256": "486ce0e52986689121a50074e2b9fc39f5c73058d4d22ade4c16042cd3a8bd03",
+        "case_id": "u6-req-0120",
+        "qualification_kind": "Recorded local pass; no new execution in this reconciliation.",
+        "recorded_at": "2026-10-23T03:24:25.578371+00:00",
+        "scope": "Native owned invitation-to-record journey; independent freshly authorized Record readiness multicast; original outcome, private projection, explicit retrieval, retention and recovery through current Connect production paths."
       }
     },
     {
@@ -3070,7 +3397,7 @@
       "classification": "behavior-or-context",
       "applicability": "mandatory-behavior",
       "case_id": "u6-req-0121",
-      "runtime_status": "not-run",
+      "runtime_status": "passed-recorded-local-profile",
       "shared_implementation_items": [
         "G6-004",
         "G6-006",
@@ -3089,7 +3416,7 @@
         "G6-094"
       ],
       "connect_integration_audit": {
-        "status": "evidence-to-reconcile",
+        "status": "qualified-in-recorded-local-profile",
         "historical_component_reports": [
           "docs/evidence/gate-6/auxiliary-session-outcomes.json",
           "docs/evidence/gate-6/auxiliary-record-discovery.json",
@@ -3105,7 +3432,22 @@
           "crates/connect-server/tests/support/canonical_record_http.rs",
           "crates/connect-service/src/canonical_records.rs"
         ],
-        "remaining": "Bind actual ready/discovery/fetch inline/URL/current session and tenant read evidence to exact six clause IDs. The installation profile produces metadata-only outcomes with explicit absent capture; determine approved applicability before adding optional captured-media scope."
+        "remaining": "The referenced local profile has a recorded pass. Current integrated-source requalification and later transport/hosting/independent/acceptance profiles remain separate; this metadata reconciliation adds no execution.",
+        "qualification_reconciliation": {
+          "previous_status": "evidence-to-reconcile",
+          "previous_remaining": "Bind actual ready/discovery/fetch inline/URL/current session and tenant read evidence to exact six clause IDs. The installation profile produces metadata-only outcomes with explicit absent capture; determine approved applicability before adding optional captured-media scope.",
+          "report": "docs/evidence/gate-6/auxiliary-session-record-journey.json",
+          "scope": "Historical local profile only; no new execution or qualification count change."
+        },
+        "current_evidence": "docs/evidence/gate-6/auxiliary-session-record-journey.json"
+      },
+      "runtime_evidence": {
+        "report": "docs/evidence/gate-6/auxiliary-session-record-journey.json",
+        "report_sha256": "486ce0e52986689121a50074e2b9fc39f5c73058d4d22ade4c16042cd3a8bd03",
+        "case_id": "u6-req-0121",
+        "qualification_kind": "Recorded local pass; no new execution in this reconciliation.",
+        "recorded_at": "2026-10-23T03:24:25.578371+00:00",
+        "scope": "Native owned invitation-to-record journey; independent freshly authorized Record readiness multicast; original outcome, private projection, explicit retrieval, retention and recovery through current Connect production paths."
       }
     },
     {
@@ -3219,7 +3561,7 @@
       "classification": "wire-example",
       "applicability": "mandatory-behavior",
       "case_id": "u6-req-0124",
-      "runtime_status": "not-run",
+      "runtime_status": "passed-recorded-local-profile",
       "shared_implementation_items": [
         "G6-004",
         "G6-006",
@@ -3238,7 +3580,7 @@
         "G6-094"
       ],
       "connect_integration_audit": {
-        "status": "evidence-to-reconcile",
+        "status": "qualified-in-recorded-local-profile",
         "historical_component_reports": [
           "docs/evidence/gate-6/general-session-runtime.json",
           "docs/evidence/gate-6/private-consultation-complete.json"
@@ -3247,7 +3589,22 @@
           "crates/connect-server/tests/support/canonical_native_connections.rs",
           "crates/connect-server/tests/support/canonical_native_connections/future.rs"
         ],
-        "remaining": "Reconcile actual multiparty routing/current+future selectors, unsubscribe idempotence and membership changes. Active speaker is optional per original clause; do not invent an acceptance prerequisite."
+        "remaining": "The referenced local profile has a recorded pass. Current integrated-source requalification and later transport/hosting/independent/acceptance profiles remain separate; this metadata reconciliation adds no execution.",
+        "qualification_reconciliation": {
+          "previous_status": "evidence-to-reconcile",
+          "previous_remaining": "Reconcile actual multiparty routing/current+future selectors, unsubscribe idempotence and membership changes. Active speaker is optional per original clause; do not invent an acceptance prerequisite.",
+          "report": "docs/evidence/gate-6/auxiliary-native-subscription-journey.json",
+          "scope": "Historical local profile only; no new execution or qualification count change."
+        },
+        "current_evidence": "docs/evidence/gate-6/auxiliary-native-subscription-journey.json"
+      },
+      "runtime_evidence": {
+        "report": "docs/evidence/gate-6/auxiliary-native-subscription-journey.json",
+        "report_sha256": "a8326aca5df45badc17166e3e13edf3857bb8abf7e9666f86d6044cf89edc9e8",
+        "case_id": "u6-req-0124",
+        "qualification_kind": "Recorded local pass; no new execution in this reconciliation.",
+        "recorded_at": "2026-10-23T03:52:58.573297+00:00",
+        "scope": "Unfiltered current/future native Participant selection and exact Stream removal/reselection through production signed public clients."
       }
     },
     {
@@ -3257,7 +3614,7 @@
       "classification": "behavior-or-context",
       "applicability": "mandatory-behavior",
       "case_id": "u6-req-0125",
-      "runtime_status": "not-run",
+      "runtime_status": "passed-recorded-local-profile",
       "shared_implementation_items": [
         "G6-004",
         "G6-006",
@@ -3276,7 +3633,7 @@
         "G6-094"
       ],
       "connect_integration_audit": {
-        "status": "evidence-to-reconcile",
+        "status": "qualified-in-recorded-local-profile",
         "historical_component_reports": [
           "docs/evidence/gate-6/general-session-runtime.json",
           "docs/evidence/gate-6/private-consultation-complete.json"
@@ -3285,7 +3642,22 @@
           "crates/connect-server/tests/support/canonical_native_connections.rs",
           "crates/connect-server/tests/support/canonical_native_connections/future.rs"
         ],
-        "remaining": "Reconcile actual multiparty routing/current+future selectors, unsubscribe idempotence and membership changes. Active speaker is optional per original clause; do not invent an acceptance prerequisite."
+        "remaining": "The referenced local profile has a recorded pass. Current integrated-source requalification and later transport/hosting/independent/acceptance profiles remain separate; this metadata reconciliation adds no execution.",
+        "qualification_reconciliation": {
+          "previous_status": "evidence-to-reconcile",
+          "previous_remaining": "Reconcile actual multiparty routing/current+future selectors, unsubscribe idempotence and membership changes. Active speaker is optional per original clause; do not invent an acceptance prerequisite.",
+          "report": "docs/evidence/gate-6/auxiliary-native-selector-policy.json",
+          "scope": "Historical local profile only; no new execution or qualification count change."
+        },
+        "current_evidence": "docs/evidence/gate-6/auxiliary-native-selector-policy.json"
+      },
+      "runtime_evidence": {
+        "report": "docs/evidence/gate-6/auxiliary-native-selector-policy.json",
+        "report_sha256": "cb9c818dd2f5daa7ab149090931609e3fcdf9cb42fa220bbe5462f753035f3c8",
+        "case_id": "u6-req-0125",
+        "qualification_kind": "Recorded local pass; no new execution in this reconciliation.",
+        "recorded_at": "2026-10-23T05:35:11.085185+00:00",
+        "scope": "Definitive native subscription errors, heterogeneous wildcard policy, optional active-speaker shape and explicit no-emission policy."
       }
     },
     {
@@ -3295,7 +3667,7 @@
       "classification": "wire-example",
       "applicability": "mandatory-behavior",
       "case_id": "u6-req-0126",
-      "runtime_status": "not-run",
+      "runtime_status": "passed-recorded-local-profile",
       "shared_implementation_items": [
         "G6-004",
         "G6-006",
@@ -3314,7 +3686,7 @@
         "G6-094"
       ],
       "connect_integration_audit": {
-        "status": "evidence-to-reconcile",
+        "status": "qualified-in-recorded-local-profile",
         "historical_component_reports": [
           "docs/evidence/gate-6/general-session-runtime.json",
           "docs/evidence/gate-6/private-consultation-complete.json"
@@ -3323,7 +3695,22 @@
           "crates/connect-server/tests/support/canonical_native_connections.rs",
           "crates/connect-server/tests/support/canonical_native_connections/future.rs"
         ],
-        "remaining": "Reconcile actual multiparty routing/current+future selectors, unsubscribe idempotence and membership changes. Active speaker is optional per original clause; do not invent an acceptance prerequisite."
+        "remaining": "The referenced local profile has a recorded pass. Current integrated-source requalification and later transport/hosting/independent/acceptance profiles remain separate; this metadata reconciliation adds no execution.",
+        "qualification_reconciliation": {
+          "previous_status": "evidence-to-reconcile",
+          "previous_remaining": "Reconcile actual multiparty routing/current+future selectors, unsubscribe idempotence and membership changes. Active speaker is optional per original clause; do not invent an acceptance prerequisite.",
+          "report": "docs/evidence/gate-6/auxiliary-native-subscription-journey.json",
+          "scope": "Historical local profile only; no new execution or qualification count change."
+        },
+        "current_evidence": "docs/evidence/gate-6/auxiliary-native-subscription-journey.json"
+      },
+      "runtime_evidence": {
+        "report": "docs/evidence/gate-6/auxiliary-native-subscription-journey.json",
+        "report_sha256": "a8326aca5df45badc17166e3e13edf3857bb8abf7e9666f86d6044cf89edc9e8",
+        "case_id": "u6-req-0126",
+        "qualification_kind": "Recorded local pass; no new execution in this reconciliation.",
+        "recorded_at": "2026-10-23T03:52:58.573297+00:00",
+        "scope": "Unfiltered current/future native Participant selection and exact Stream removal/reselection through production signed public clients."
       }
     },
     {
@@ -3333,7 +3720,7 @@
       "classification": "behavior-or-context",
       "applicability": "mandatory-behavior",
       "case_id": "u6-req-0127",
-      "runtime_status": "not-run",
+      "runtime_status": "passed-recorded-local-profile",
       "shared_implementation_items": [
         "G6-004",
         "G6-006",
@@ -3352,7 +3739,7 @@
         "G6-094"
       ],
       "connect_integration_audit": {
-        "status": "evidence-to-reconcile",
+        "status": "qualified-in-recorded-local-profile",
         "historical_component_reports": [
           "docs/evidence/gate-6/general-session-runtime.json",
           "docs/evidence/gate-6/private-consultation-complete.json"
@@ -3361,7 +3748,22 @@
           "crates/connect-server/tests/support/canonical_native_connections.rs",
           "crates/connect-server/tests/support/canonical_native_connections/future.rs"
         ],
-        "remaining": "Reconcile actual multiparty routing/current+future selectors, unsubscribe idempotence and membership changes. Active speaker is optional per original clause; do not invent an acceptance prerequisite."
+        "remaining": "The referenced local profile has a recorded pass. Current integrated-source requalification and later transport/hosting/independent/acceptance profiles remain separate; this metadata reconciliation adds no execution.",
+        "qualification_reconciliation": {
+          "previous_status": "evidence-to-reconcile",
+          "previous_remaining": "Reconcile actual multiparty routing/current+future selectors, unsubscribe idempotence and membership changes. Active speaker is optional per original clause; do not invent an acceptance prerequisite.",
+          "report": "docs/evidence/gate-6/auxiliary-native-subscription-journey.json",
+          "scope": "Historical local profile only; no new execution or qualification count change."
+        },
+        "current_evidence": "docs/evidence/gate-6/auxiliary-native-subscription-journey.json"
+      },
+      "runtime_evidence": {
+        "report": "docs/evidence/gate-6/auxiliary-native-subscription-journey.json",
+        "report_sha256": "a8326aca5df45badc17166e3e13edf3857bb8abf7e9666f86d6044cf89edc9e8",
+        "case_id": "u6-req-0127",
+        "qualification_kind": "Recorded local pass; no new execution in this reconciliation.",
+        "recorded_at": "2026-10-23T03:52:58.573297+00:00",
+        "scope": "Unfiltered current/future native Participant selection and exact Stream removal/reselection through production signed public clients."
       }
     },
     {
@@ -3371,7 +3773,7 @@
       "classification": "wire-example",
       "applicability": "mandatory-behavior",
       "case_id": "u6-req-0128",
-      "runtime_status": "not-run",
+      "runtime_status": "passed-recorded-local-profile",
       "shared_implementation_items": [
         "G6-004",
         "G6-006",
@@ -3390,7 +3792,7 @@
         "G6-094"
       ],
       "connect_integration_audit": {
-        "status": "evidence-to-reconcile",
+        "status": "qualified-in-recorded-local-profile",
         "historical_component_reports": [
           "docs/evidence/gate-6/general-session-runtime.json",
           "docs/evidence/gate-6/private-consultation-complete.json"
@@ -3399,7 +3801,22 @@
           "crates/connect-server/tests/support/canonical_native_connections.rs",
           "crates/connect-server/tests/support/canonical_native_connections/future.rs"
         ],
-        "remaining": "Reconcile actual multiparty routing/current+future selectors, unsubscribe idempotence and membership changes. Active speaker is optional per original clause; do not invent an acceptance prerequisite."
+        "remaining": "The referenced local profile has a recorded pass. Current integrated-source requalification and later transport/hosting/independent/acceptance profiles remain separate; this metadata reconciliation adds no execution.",
+        "qualification_reconciliation": {
+          "previous_status": "evidence-to-reconcile",
+          "previous_remaining": "Reconcile actual multiparty routing/current+future selectors, unsubscribe idempotence and membership changes. Active speaker is optional per original clause; do not invent an acceptance prerequisite.",
+          "report": "docs/evidence/gate-6/auxiliary-native-selector-policy.json",
+          "scope": "Historical local profile only; no new execution or qualification count change."
+        },
+        "current_evidence": "docs/evidence/gate-6/auxiliary-native-selector-policy.json"
+      },
+      "runtime_evidence": {
+        "report": "docs/evidence/gate-6/auxiliary-native-selector-policy.json",
+        "report_sha256": "cb9c818dd2f5daa7ab149090931609e3fcdf9cb42fa220bbe5462f753035f3c8",
+        "case_id": "u6-req-0128",
+        "qualification_kind": "Recorded local pass; no new execution in this reconciliation.",
+        "recorded_at": "2026-10-23T05:35:11.085185+00:00",
+        "scope": "Definitive native subscription errors, heterogeneous wildcard policy, optional active-speaker shape and explicit no-emission policy."
       }
     },
     {
@@ -3409,7 +3826,7 @@
       "classification": "behavior-or-context",
       "applicability": "mandatory-behavior",
       "case_id": "u6-req-0129",
-      "runtime_status": "not-run",
+      "runtime_status": "passed-recorded-local-profile",
       "shared_implementation_items": [
         "G6-004",
         "G6-006",
@@ -3428,7 +3845,7 @@
         "G6-094"
       ],
       "connect_integration_audit": {
-        "status": "evidence-to-reconcile",
+        "status": "qualified-in-recorded-local-profile",
         "historical_component_reports": [
           "docs/evidence/gate-6/general-session-runtime.json",
           "docs/evidence/gate-6/private-consultation-complete.json"
@@ -3437,7 +3854,22 @@
           "crates/connect-server/tests/support/canonical_native_connections.rs",
           "crates/connect-server/tests/support/canonical_native_connections/future.rs"
         ],
-        "remaining": "Reconcile actual multiparty routing/current+future selectors, unsubscribe idempotence and membership changes. Active speaker is optional per original clause; do not invent an acceptance prerequisite."
+        "remaining": "The referenced local profile has a recorded pass. Current integrated-source requalification and later transport/hosting/independent/acceptance profiles remain separate; this metadata reconciliation adds no execution.",
+        "qualification_reconciliation": {
+          "previous_status": "evidence-to-reconcile",
+          "previous_remaining": "Reconcile actual multiparty routing/current+future selectors, unsubscribe idempotence and membership changes. Active speaker is optional per original clause; do not invent an acceptance prerequisite.",
+          "report": "docs/evidence/gate-6/auxiliary-native-selector-policy.json",
+          "scope": "Historical local profile only; no new execution or qualification count change."
+        },
+        "current_evidence": "docs/evidence/gate-6/auxiliary-native-selector-policy.json"
+      },
+      "runtime_evidence": {
+        "report": "docs/evidence/gate-6/auxiliary-native-selector-policy.json",
+        "report_sha256": "cb9c818dd2f5daa7ab149090931609e3fcdf9cb42fa220bbe5462f753035f3c8",
+        "case_id": "u6-req-0129",
+        "qualification_kind": "Recorded local pass; no new execution in this reconciliation.",
+        "recorded_at": "2026-10-23T05:35:11.085185+00:00",
+        "scope": "Definitive native subscription errors, heterogeneous wildcard policy, optional active-speaker shape and explicit no-emission policy."
       }
     }
   ],
@@ -3910,6 +4342,7 @@
     "full_task_complete": false,
     "continuation_evidence": "docs/evidence/gate-6/auxiliary-session-identity-targets.json",
     "latest_evidence": "docs/evidence/gate-6/auxiliary-native-offer-fields.json",
-    "latest_component_evidence": "docs/evidence/gate-6/auxiliary-native-packet-custody.json"
+    "latest_component_evidence": "docs/evidence/gate-6/auxiliary-native-packet-custody.json",
+    "status_reconciliation_evidence": "docs/evidence/gate-6/auxiliary-clause-reconciliation.json"
   }
 }
