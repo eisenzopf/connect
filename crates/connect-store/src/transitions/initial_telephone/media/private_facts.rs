@@ -4,6 +4,26 @@
 use super::*;
 
 impl Store {
+    pub(crate) fn initial_telephone_private_current_facts(
+        &self,
+        c: &Connection,
+        origin: &InitialTelephoneMediaOrigin,
+    ) -> Result<(Vec<AuthorityScope>, Value, i64)> {
+        use crate::connection_control::private_consultation::{registered_current, Purpose};
+        let (mut scopes, binding, expires) = facts_for(self, c, origin, Purpose::CurrentMedia)?;
+        let context = registered_current(
+            self,
+            c,
+            origin.source().parent.record_id(),
+            Purpose::CurrentMedia,
+        )?;
+        scopes.extend(context.scopes);
+        Ok((
+            AuthorityScope::merged(&scopes)?,
+            binding,
+            expires.min(context.expires_at),
+        ))
+    }
     /// Current packets require captured audience application or a sealed
     /// private lifetime. Quarantined admission and planning grant no packets.
     pub fn try_private_initial_telephone_media_read(
@@ -148,19 +168,8 @@ pub(super) fn current_authority(
     c: &Connection,
     origin: &InitialTelephoneMediaOrigin,
 ) -> Result<(Vec<AuthorityScope>, i64)> {
-    use crate::connection_control::private_consultation::{registered_current, Purpose};
-    let (mut scopes, _, expires) = facts_for(store, c, origin, Purpose::CurrentMedia)?;
-    let context = registered_current(
-        store,
-        c,
-        origin.source().parent.record_id(),
-        Purpose::CurrentMedia,
-    )?;
-    scopes.extend(context.scopes);
-    Ok((
-        AuthorityScope::merged(&scopes)?,
-        expires.min(context.expires_at),
-    ))
+    let (scopes, _, expires) = store.initial_telephone_private_current_facts(c, origin)?;
+    Ok((scopes, expires))
 }
 
 pub(super) fn current_projection(

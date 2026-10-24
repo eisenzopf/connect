@@ -56,9 +56,33 @@ fn audio_only(intent: &OfferIntent) -> Result<()> {
     Ok(())
 }
 
-/// This performs no allocation and grants no work. The full invitation must
-/// later arrive from its own currently authorized signed physical peer.
 impl Store {
+    /// Metadata match for the original reserved SIP child. An unrelated root,
+    /// public sibling or established call cannot replace the private candidate.
+    pub fn sip_consultation_candidate_matches(
+        &self,
+        parent: &NativeConsultationOrigin,
+        candidate: &crate::SipAudienceOrigin,
+    ) -> Result<bool> {
+        let c = self.try_connection()?;
+        parent.require(self, &c)?;
+        let crate::SipAudienceOrigin::Initial(phone) = candidate else {
+            return Ok(false);
+        };
+        if !phone.source().is_private_candidate()
+            || phone.source().parent.record_id() != parent.record_id()
+        {
+            return Ok(false);
+        }
+        let registered: bool = c.query_row("SELECT EXISTS(SELECT 1 FROM consultation_candidate_bindings WHERE operation_record_id=?1 AND candidate_kind='sip' AND connection_id=?2 AND primary_connection_id=?3 AND credential_id=?4 AND original_digest=?5 AND runtime_epoch=?6)", params![parent.record_id(),phone.connection_id(),parent.request().connection_id,parent.credential,parent.digest,self.runtime_epoch()], |r|r.get(0)).map_err(|_|Error::storage())?;
+        if !registered {
+            return Ok(false);
+        }
+        self.initial_telephone_audience_facts(&c, phone)?;
+        Ok(true)
+    }
+    /// This performs no allocation and grants no work. The full invitation must
+    /// later arrive from its own currently authorized signed physical peer.
     pub fn register_native_consultation_leg(
         &self,
         origin: &NativeConsultationOrigin,

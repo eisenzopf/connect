@@ -1,0 +1,123 @@
+{
+  "task": "G6-046",
+  "recorded_at": "2026-10-24T22:26:25.026324+00:00",
+  "source_base_commit": "875c236",
+  "status": "typed-sip-selection-and-independent-sealed-groups-controlled-checks-pass-runtime-open",
+  "full_task_complete": false,
+  "full_goal_complete": false,
+  "newly_qualified_case_ids": [],
+  "prepared_patch_count": 184,
+  "store_schema": 109,
+  "implementation": [
+    "Select the one original registered native or SIP candidate by its real canonical and Core IDs; reject unrelated roots, public siblings and multiple matches. Positive SIP match rechecks current original physical facts.",
+    "Preserve unrelated private initial SIP groups through their own complete CurrentMedia context and scopes, independently of the new controller. Selected fresh SIP retains its own Selection context.",
+    "Return closure applies only to the exact returning candidate; unrelated sealed SIP groups keep their own current interval and reciprocal physical native/SIP pair.",
+    "Do not bypass independent provider readiness or fabricate a native candidate for a SIP child."
+  ],
+  "verification": {
+    "store": {
+      "passed": true,
+      "distinct_successful_cases": 157,
+      "successful_executions": 157,
+      "ignored_cases": 0,
+      "source_inputs_unchanged": true,
+      "executable_unchanged": true,
+      "summary": ".local/gate-6/private-scene120-store-004/summary.json",
+      "summary_sha256": "b56dfded767ee85b64eeeafb3502b7d0401f8d216dfcda1cf78ea4d86957873c",
+      "execution_workspace": "/Users/jonathaneisenzopf/.codex/worktrees/private-sip-lifetime/Connect",
+      "groups": [
+        {
+          "filter": "connection_control::tests::sip_consultation::",
+          "exit_code": 0,
+          "passed": true,
+          "passed_cases": 94,
+          "ignored_cases": 0,
+          "elapsed_seconds": 185.13526004203595,
+          "log": ".local/gate-6/private-scene120-store-004/group-0.log",
+          "log_sha256": "5d1e61b0d01c6a8fe5db38cc3692d3e9bb59de4edaa9827be8cfacb31a21fc03"
+        },
+        {
+          "filter": "connection_control::tests::private_provider::",
+          "exit_code": 0,
+          "passed": true,
+          "passed_cases": 35,
+          "ignored_cases": 0,
+          "elapsed_seconds": 86.0890361671336,
+          "log": ".local/gate-6/private-scene120-store-004/group-1.log",
+          "log_sha256": "71cf3d6ac576e498a130818e919954266f200f398bbff31cdf75fe12bd90931c"
+        },
+        {
+          "filter": "connection_control::tests::consultation_returns::",
+          "exit_code": 0,
+          "passed": true,
+          "passed_cases": 11,
+          "ignored_cases": 0,
+          "elapsed_seconds": 16.179702624911442,
+          "log": ".local/gate-6/private-scene120-store-004/group-2.log",
+          "log_sha256": "e19766b92edfeac793ad98a1ba30ebafddea6b0326a0b6735378f8f42f385dcf"
+        },
+        {
+          "filter": "connection_control::tests::consultation_audiences::",
+          "exit_code": 0,
+          "passed": true,
+          "passed_cases": 9,
+          "ignored_cases": 0,
+          "elapsed_seconds": 10.0609570001252,
+          "log": ".local/gate-6/private-scene120-store-004/group-3.log",
+          "log_sha256": "13b949bde4a1745b1c2309016b2b92c3d606e88f22e4354af5172cab74254f54"
+        },
+        {
+          "filter": "connection_control::tests::private_consultation::",
+          "exit_code": 0,
+          "passed": true,
+          "passed_cases": 8,
+          "ignored_cases": 0,
+          "elapsed_seconds": 4.511481540976092,
+          "log": ".local/gate-6/private-scene120-store-004/group-4.log",
+          "log_sha256": "c29d2e5af399a3349807f03e592a44f0d6779bd40881e722e39ee096baa545f3"
+        }
+      ]
+    },
+    "service_compile": {
+      "passed": true,
+      "exit_code": 0,
+      "elapsed_seconds": 278.5269210829865,
+      "command": [
+        "cargo",
+        "check",
+        "-p",
+        "connect-service",
+        "--locked",
+        "--offline",
+        "-j2",
+        "--target-dir",
+        "/Volumes/D2-2019/Developer/Connect/target"
+      ],
+      "source_inputs_unchanged": true,
+      "log_sha256": "388385c1f8a7eb7d0f28533111862cdf2bd7196334f287cbc8c682e8d486f2aa",
+      "summary": ".local/gate-6/private-scene120-service-001/summary.json",
+      "summary_sha256": "9ba361dc22d9c7ba4b53fc7c53ad0dc10cde6f910ecd1fb1000786118ed00bec"
+    },
+    "runtime": {
+      "status": "not-qualified",
+      "reason": "No actual reverse SIP candidate audience switch or independent-group socket qualification in this increment. Main private-candidate admission regression is being repaired separately."
+    }
+  },
+  "failed_attempts": [
+    {
+      "name": "groups001",
+      "reason": "Fixture queried sessions.revision rather than topology_revision; all three cases failed before scene admission.",
+      "summary_sha256": "f483f38fc1220f8831bb9cbb0ad5d6ac6764de2d51b8a5b8a84944e5868209c7"
+    },
+    {
+      "name": "groups002",
+      "reason": "Three disjoint-group cases pass; added metadata test incorrectly tried to mutate an immutable view. Replaced with real immutable reservation refusal and original incarnation/credential/device/route withdrawals. Current four cases and broad run pass.",
+      "summary_sha256": "2de7e3e7ae143e2f4169df1a68ad96c68bccfd0aaa88b7e5a574f6a2cf62b7d1"
+    }
+  ],
+  "remaining": [
+    "Verify current combined host admission and typed selection through actual socket regressions.",
+    "Qualify actual reverse private SIP candidate duplex RTP, INFO/RFC4733, four signal rights/recovery/replay, same Participant/Endpoint public sibling privacy and original return/captured absence for both algorithms.",
+    "Complete approved provider/role/phase matrix; no AI readiness or whole-clause/task credit from controlled Human scene fixtures."
+  ]
+}

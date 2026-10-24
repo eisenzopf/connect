@@ -394,6 +394,11 @@ fn selected_views(
         .min(actor.expires_at)
         .min(crate::now() + 5)
         .min(sip_expiry);
+    for source in outside_sip {
+        let (needed, _, until) = source.current_facts(store, c)?;
+        scopes.extend(needed);
+        expiry = expiry.min(until);
+    }
     let mut connections = BTreeSet::new();
     let mut runtime_ids = BTreeSet::new();
     for target in remote
