@@ -4,6 +4,7 @@ use super::*;
 use crate::{InitialTelephoneMediaOrigin, InitialTelephoneMediaRead};
 use std::collections::{BTreeMap, BTreeSet};
 
+mod completion;
 mod origins;
 mod revisions;
 pub use origins::{SipAudienceOrigin, SipAudienceRead};

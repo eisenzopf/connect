@@ -450,6 +450,13 @@ impl Store {
                             .ok_or_else(Error::storage)?,
                         crate::AuthorityMode::Write,
                     )?);
+                    let context: String = c.query_row("SELECT context_selection_json FROM native_consultation_returns WHERE operation_record_id=?1",[&receipt.record],|r|r.get(0)).map_err(|_|Error::storage())?;
+                    let context: serde_json::Value = serde_json::from_str(&context).map_err(|_|Error::storage())?;
+                    for port in context["private"].as_array().ok_or_else(Error::storage)?.iter().chain(std::iter::once(&context["remote"])) {
+                        if port.get("source_kind").is_some() {
+                            scopes.extend(Store::sip_completion_scopes(port)?);
+                        }
+                    }
                 }
                 crate::AuthorityScope::merged(&scopes)
             },
@@ -504,6 +511,30 @@ impl Store {
             if id == candidate {
                 continue;
             }
+            if port.get("source_kind").is_some() {
+                if Store::recorded_sip_live(&tx, port, &receipt.runtime)? {
+                    retained.push(id.into());
+                    match self.sip_completion_actors(
+                        &tx,
+                        port,
+                        &request.conversation_id,
+                        &request.session_id,
+                        &held,
+                    )? {
+                        Some(actors) => current_actors.push((
+                            port["identity_id"]
+                                .as_str()
+                                .ok_or_else(Error::storage)?
+                                .to_owned(),
+                            actors,
+                        )),
+                        None => currently_authorized = false,
+                    }
+                } else {
+                    retired.push(id.into());
+                }
+                continue;
+            }
             let live:bool=tx.query_row("SELECT EXISTS(SELECT 1 FROM connections v JOIN connection_offers m ON m.connection_id=v.id JOIN native_connection_lifetimes l ON l.connection_id=v.id AND l.generation=v.generation AND l.runtime_epoch=v.observed_runtime_id AND l.retired=0 WHERE v.id=?1 AND v.generation=?2 AND v.participant_id=?3 AND v.membership_epoch=?4 AND v.observed_runtime_id=?5 AND m.runtime_connection_id=?6 AND v.state IN ('ready','active'))",params![id,port["generation"].as_u64().ok_or_else(Error::storage)?,port["participant_id"].as_str().ok_or_else(Error::storage)?,port["membership_epoch"].as_u64().ok_or_else(Error::storage)?,receipt.runtime,port["runtime_connection_id"].as_str().ok_or_else(Error::storage)?],|r|r.get(0)).map_err(|_|Error::storage())?;
             if live {
                 let credential = port["credential_id"].as_str().ok_or_else(Error::storage)?;
@@ -515,7 +546,7 @@ impl Store {
                             && actor.permits("connection.offer")
                             && actor.permits("stream.subscribe") =>
                     {
-                        current_actors.push(actor)
+                        current_actors.push((actor.identity_id.clone(), vec![actor]))
                     }
                     _ => currently_authorized = false,
                 }
@@ -528,10 +559,11 @@ impl Store {
         retired.sort();
         let continuing = retained.len() == 2
             && currently_authorized
-            && current_actors.iter().all(|actor| {
-                current_actors
-                    .iter()
-                    .all(|other| actor.permits_recipient(&other.identity_id))
+            && current_actors.len() == 2
+            && current_actors.iter().all(|(_, actors)| {
+                current_actors.iter().all(|(identity, _)| {
+                    actors.iter().all(|actor| actor.permits_recipient(identity))
+                })
             });
         let revision = request
             .expected_revision

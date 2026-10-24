@@ -57,6 +57,19 @@ fn initial_sip_retained_readiness_and_departure_require_exact_captured_observati
             .initial_telephone_audience_facts(&c, &media)
             .unwrap();
         assert!(!Store::recorded_sip_departure(&c, &binding, f.store.runtime_epoch()).unwrap());
+        assert!(Store::recorded_sip_live(&c, &binding, f.store.runtime_epoch()).unwrap());
+        for (key, value) in [
+            ("sip_call_id", json!("foreign-call")),
+            ("runtime_connection_id", json!("foreign-runtime-call")),
+            ("membership_epoch", json!(999)),
+            ("generation", json!(2)),
+            ("endpoint_id", json!("foreign-endpoint")),
+        ] {
+            let mut forged = binding.clone();
+            forged[key] = value;
+            assert!(!Store::recorded_sip_live(&c, &forged, f.store.runtime_epoch()).unwrap());
+        }
+        assert!(!Store::recorded_sip_live(&c, &binding, "foreign-runtime").unwrap());
         binding
     };
     assert!(f
@@ -68,6 +81,7 @@ fn initial_sip_retained_readiness_and_departure_require_exact_captured_observati
         .unwrap();
     let c = f.store.connection().unwrap();
     assert!(Store::recorded_sip_departure(&c, &binding, f.store.runtime_epoch()).unwrap());
+    assert!(!Store::recorded_sip_live(&c, &binding, f.store.runtime_epoch()).unwrap());
     assert!(!Store::recorded_sip_departure(&c, &binding, "foreign-runtime").unwrap());
     let mut foreign = binding.clone();
     foreign["sip_call_id"] = json!("other-call");
@@ -271,4 +285,102 @@ fn initial_sip_cached_metadata_cannot_resurrect_withdrawn_physical_authority() {
             "{fault}"
         );
     }
+}
+
+#[test]
+fn initial_sip_return_completion_requires_full_current_interval_and_named_receive_permission() {
+    let f = Fixture::new();
+    let origin = connected(&f);
+    drop(
+        f.store
+            .try_initial_telephone_media_read(origin.clone())
+            .unwrap(),
+    );
+    let (scopes, binding, _) = f
+        .store
+        .initial_telephone_audience_facts(&f.store.connection().unwrap(), &origin)
+        .unwrap();
+    let c = f.store.connection().unwrap();
+    let narrow = f
+        .store
+        .try_acquire_authority(&[AuthorityScope::conversation(
+            &f.request.conversation_id,
+            AuthorityMode::Read,
+        )
+        .unwrap()])
+        .unwrap();
+    assert!(f
+        .store
+        .sip_completion_actors(
+            &c,
+            &binding,
+            &f.request.conversation_id,
+            &f.request.session_id,
+            &narrow
+        )
+        .unwrap()
+        .is_none());
+    drop(narrow);
+    let held = f.store.try_acquire_authority(&scopes).unwrap();
+    assert_eq!(
+        f.store
+            .sip_completion_actors(
+                &c,
+                &binding,
+                &f.request.conversation_id,
+                &f.request.session_id,
+                &held
+            )
+            .unwrap()
+            .unwrap()
+            .len(),
+        2
+    );
+    assert!(f
+        .store
+        .try_acquire_authority(&[AuthorityScope::identity(
+            binding["route_owner_id"].as_str().unwrap(),
+            AuthorityMode::Write
+        )
+        .unwrap()])
+        .is_err());
+    drop(held);
+    let credential = binding["endpoint_credential_id"].as_str().unwrap();
+    let mut actor = crate::identity::actor_from_connection(&c, credential).unwrap();
+    // Preserve current media authority while removing only receive permission.
+    actor.scope.operations = vec![
+        "connection.offer".into(),
+        "dtmf.send".into(),
+        "dtmf.receive".into(),
+    ];
+    c.execute(
+        "UPDATE credentials SET operations=?2 WHERE id=?1",
+        params![
+            credential,
+            serde_json::to_string(&actor.scope.operations).unwrap()
+        ],
+    )
+    .unwrap();
+    let held = f.store.try_acquire_authority(&scopes).unwrap();
+    assert!(Store::recorded_sip_live(&c, &binding, f.store.runtime_epoch()).unwrap());
+    assert!(f
+        .store
+        .sip_audience_snapshot_facts(
+            &c,
+            &binding,
+            &f.request.conversation_id,
+            &f.request.session_id
+        )
+        .is_ok());
+    assert!(f
+        .store
+        .sip_completion_actors(
+            &c,
+            &binding,
+            &f.request.conversation_id,
+            &f.request.session_id,
+            &held
+        )
+        .unwrap()
+        .is_none());
 }

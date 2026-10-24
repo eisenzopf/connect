@@ -1,7 +1,7 @@
 {
   "task": "G6-046",
   "recorded_at": "2026-10-24T12:37:44.779354+00:00",
-  "status": "fixture-compile-verified-runtime-pending",
+  "status": "first-runtime-failed-return-completion-component-fixed-rerun-pending",
   "full_task_complete": false,
   "full_goal_complete": false,
   "source_base_commit": "627c4245e85cb226aace6b5db6f4c5cc36ef21c7",
@@ -31,7 +31,7 @@
       "result": "Initial compile failed on a temporary target array borrowed by tokio::join!. Bound the array for the full concurrent probe; final compile passes."
     }
   ],
-  "runtime_status": "not-run",
+  "runtime_status": "failed; current corrected-source rerun pending",
   "assertions_planned": [
     "Actual original SIP/native duplex before consultation and after return.",
     "Actual private native pair with zero private decoded audio at the held SIP call.",
@@ -47,5 +47,72 @@
     "Run the complete current-source G6-046 auxiliary matrix before task closure."
   ],
   "http_reference": "contracts/openapi-canonical-http.json; no HTTP or wire contract change.",
-  "limits": "No runtime, clause, task, acceptance, external-carrier, browser, Linux, remote or independent-conformance pass is inferred from compilation. Publication remains separate."
+  "limits": "No runtime, clause, task, acceptance, external-carrier, browser, Linux, remote or independent-conformance pass is inferred from compilation. Publication remains separate.",
+  "runtime_attempts": [
+    {
+      "summary": ".local/gate-6/retained-sip-wire/initial-release-001/summary.json",
+      "summary_sha256": "457b2ece6564c604f87512aaa2904c0b4ca1b96f7c68bd89b8d5b40fbcb98a6a",
+      "passed": false,
+      "source_revision": "fa47aaa32bed0f6771b8650c97492afa3774f2e3",
+      "source_inputs_unchanged": true,
+      "executable_unchanged": true,
+      "executable_sha256": "3da383dc408dead8455b95f3184d8bfd82bba51fddc7de6f05189e2674886233",
+      "steps": [
+        {
+          "name": "dependencies",
+          "command": [
+            "bash",
+            "scripts/prepare-dependencies.sh"
+          ],
+          "exit_code": 0,
+          "elapsed_seconds": 0.13280770787969232
+        },
+        {
+          "name": "compiler",
+          "command": [
+            "rustc",
+            "--version",
+            "--verbose"
+          ],
+          "exit_code": 0,
+          "elapsed_seconds": 0.02246058313176036
+        },
+        {
+          "name": "build",
+          "command": [
+            "cargo",
+            "test",
+            "-p",
+            "connect-server",
+            "--test",
+            "gate6_canonical_runtime",
+            "--no-run",
+            "--release",
+            "--target-dir",
+            "/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024",
+            "--locked",
+            "--offline",
+            "-j4",
+            "--message-format=json"
+          ],
+          "exit_code": 0,
+          "elapsed_seconds": 765.0530859159771
+        },
+        {
+          "name": "runtime",
+          "command": [
+            "/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps/gate6_canonical_runtime-43321488c949ae5c",
+            "canonical_native_connections::consultation::groups::replacement::telephone::initial::received::retained::production_initial_sip_retained_consultation_fences_dtmf_and_restores_original_call",
+            "--exact",
+            "--test-threads=1",
+            "--nocapture"
+          ],
+          "exit_code": 101,
+          "elapsed_seconds": 11.804454417200759
+        }
+      ],
+      "failure": "Native-only completion reported the still-live initial SIP call retired; private media and DTMF assertions before return passed, but no full profile or second-algorithm pass."
+    }
+  ],
+  "completion_fix_report": "docs/evidence/gate-6/auxiliary-retained-sip-completion.json"
 }

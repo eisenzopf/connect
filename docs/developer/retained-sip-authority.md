@@ -43,3 +43,12 @@ environment containing `jsonschema`. The validator checks wire/status schemas an
 correlations; the SDK verifies signatures and the runtime fixture checks decoded
 media, exclusion, replay and cleanup. This profile does not cover committed SIP
 retained calls, private SIP endpoints, external carriers or other hosting profiles.
+
+Return completion now distinguishes the original SIP call's physical presence
+from its current receive authority. A live call stays in retained IDs even after
+receive rights are withdrawn; `remote_continuing` also requires current named
+receive rights and reciprocal recipient ceilings. Route-owner credentials apply
+to the phone Participant's identity. The
+[completion report](../evidence/gate-6/auxiliary-retained-sip-completion.json)
+preserves the actual return failure, controlled reproductions, fix and current
+component checks. The corrected actual-wire rerun remains separate.

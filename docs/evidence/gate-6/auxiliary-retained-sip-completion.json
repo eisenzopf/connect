@@ -1,0 +1,134 @@
+{
+  "task": "G6-046",
+  "recorded_at": "2026-10-24T13:08:30.276124+00:00",
+  "status": "controlled-store-return-completion-verified-actual-rerun-pending",
+  "full_task_complete": false,
+  "full_goal_complete": false,
+  "source_base_commit": "fa47aaa32bed0f6771b8650c97492afa3774f2e3",
+  "prepared_patch_count": 183,
+  "store_schema": 103,
+  "qualified_clause_count": 59,
+  "assigned_clause_count": 61,
+  "newly_qualified_case_ids": [],
+  "scope": "Current typed initial/established SIP return completion and physical liveness, named receive permission and reciprocal recipient ceilings. Controlled Store verification and service compilation; the actual retained-call rerun is separate.",
+  "problem": "The first actual initial-SIP retained consultation passed its private audio/DTMF assertions, then returned remote_continuing=false and included the live SIP call among retired IDs. Completion still queried native lifetimes only.",
+  "implementation": [
+    "Return completion checks the original typed SIP call, runtime, canonical Connection, generation, member epoch, Endpoint and recorded accepted/committed lifetime. Initial and established SIP retain distinct immutable observations; no native signing key or native lifetime is fabricated.",
+    "Physical presence and current receive authority remain separate. Missing/withdrawn permission prevents remote_continuing but does not fabricate departure. Current snapshot facts, expiry, complete conversation/member/route-owner interval, named endpoint or route subscribe permission and reciprocal recipient ceilings are checked. Carrier route credentials are evaluated for the phone Participant identity, not treated as that Participant.",
+    "Completion remains a receipt/status mutation: it grants no IO, owns no media reader, does not redial and cannot substitute a newer generation. Candidate retirement is still observed before completion; the original result replays once."
+  ],
+  "source_inputs_sha256": {
+    "crates/connect-store/src/peer_authority/connection_media/consultation_sip.rs": "4bac3993d687efa3b7c769f5bc18ebb304380865b8492e942c01b6c43118d12a",
+    "crates/connect-store/src/peer_authority/connection_media/consultation_sip/completion.rs": "bfdd5a9e03a7a8175a35f3e51caf90608ad90c58bea8923ae8de38dcef7c1cc2",
+    "crates/connect-store/src/transitions/native_returns/custody.rs": "f31ff49111becc635a946ddcb284a1fa677787fb1a721687513b756dffce652e",
+    "crates/connect-store/src/transitions/initial_telephone/tests/signal/audience_origin.rs": "4d244bcee401d0a52a6c755b81c6c0fca97cf5f3c622b625277a9a352a0885ad",
+    "crates/connect-store/src/connection_control/tests/replacement_sources/telephone/runtime/media/continuation/commit/signal/audience/retained.rs": "637898072cbb086a425082962c796aebcbef246f0c4d37fbf6850d3836f1d2d9"
+  },
+  "verification": {
+    "store_summary": ".local/gate-6/received-dtmf-runtime/retained-sip-completion-store-final3/summary.json",
+    "store_summary_sha256": "4622b883097364a5cffe666c952ebb80ef0a6a4b6e5563c1d16d63d8d8f4d37e",
+    "distinct_passed_methods": 171,
+    "executions": 180,
+    "executable_sha256": "b72d7a99a53a83f4f79e910c3a033dee6936e9948d654342c7b732c8b6716fab",
+    "source_inputs_unchanged": true,
+    "executable_unchanged": true,
+    "new_cases": [
+      "connection_control::tests::replacement_sources::telephone::runtime::media::continuation::commit::signal::audience::retained::retained_established_sip_return_completion_does_not_confuse_withdrawn_receive_right_with_departure",
+      "connection_control::tests::replacement_sources::telephone::runtime::media::continuation::commit::signal::audience::retained::retained_established_sip_return_completion_keeps_original_call_and_replays_once",
+      "connection_control::tests::replacement_sources::telephone::runtime::media::continuation::commit::signal::audience::retained::retained_established_sip_return_completion_uses_phone_identity_and_current_route_recipient_ceiling",
+      "transitions::initial_telephone::tests::signal::audience_origin::initial_sip_return_completion_requires_full_current_interval_and_named_receive_permission"
+    ],
+    "groups": [
+      {
+        "filter": "transitions::initial_telephone::tests::signal::audience_origin::",
+        "exit_code": 0,
+        "passed": true,
+        "passed_cases": 5,
+        "ignored_cases": 0,
+        "elapsed_seconds": 3.026084915967658,
+        "log": ".local/gate-6/received-dtmf-runtime/retained-sip-completion-store-final3/group-0.log",
+        "log_sha256": "f7ad9b4d446ca7fffea0256f661d8a12110422eb4ef77fd46aa809cc1211f685"
+      },
+      {
+        "filter": "continuation::commit::signal::audience::",
+        "exit_code": 0,
+        "passed": true,
+        "passed_cases": 9,
+        "ignored_cases": 0,
+        "elapsed_seconds": 9.682276582811028,
+        "log": ".local/gate-6/received-dtmf-runtime/retained-sip-completion-store-final3/group-1.log",
+        "log_sha256": "629faf4c2c2446eb9be2702e0ef0218912ef9315cb209c9d60417ed059954ca3"
+      },
+      {
+        "filter": "connection_control::tests::consultation",
+        "exit_code": 0,
+        "passed": true,
+        "passed_cases": 50,
+        "ignored_cases": 0,
+        "elapsed_seconds": 58.720347832888365,
+        "log": ".local/gate-6/received-dtmf-runtime/retained-sip-completion-store-final3/group-2.log",
+        "log_sha256": "4110ec9c83d9f6df89aff035ea418c926b23da578567e35e535a0f62f459f752"
+      },
+      {
+        "filter": "connection_control::tests::private",
+        "exit_code": 0,
+        "passed": true,
+        "passed_cases": 42,
+        "ignored_cases": 0,
+        "elapsed_seconds": 82.53504283400252,
+        "log": ".local/gate-6/received-dtmf-runtime/retained-sip-completion-store-final3/group-3.log",
+        "log_sha256": "73d3c17e9a66bc6433903f6c507a945ddb5acf5c78584fd5e3156e66fca75a58"
+      },
+      {
+        "filter": "connection_control::tests::replacement_sources::telephone",
+        "exit_code": 0,
+        "passed": true,
+        "passed_cases": 74,
+        "ignored_cases": 0,
+        "elapsed_seconds": 73.69632487511262,
+        "log": ".local/gate-6/received-dtmf-runtime/retained-sip-completion-store-final3/group-4.log",
+        "log_sha256": "dd9d24d14481dc5f1ff353607240efa2b07baf9be5b1d0e3ac797b026ace361f"
+      }
+    ],
+    "service_check": {
+      "exit_code": 0,
+      "command": "CARGO_INCREMENTAL=1 cargo check -p connect-service --target-dir target --locked --offline -j4",
+      "log": ".local/gate-6/received-dtmf-runtime/retained-sip-completion-service-check.log",
+      "log_sha256": "6a99b87777fdf19cb7514d3a2aab36e218ede8f6fa4129a5a77342c6cc263084",
+      "scope": "Current production sources; subsequent test-only mutex repair does not change the service or Store implementation."
+    }
+  },
+  "preserved_attempts": [
+    {
+      "path": ".local/gate-6/retained-sip-wire/initial-release-001/summary.json",
+      "sha256": "457b2ece6564c604f87512aaa2904c0b4ca1b96f7c68bd89b8d5b40fbcb98a6a",
+      "build_seconds": 765.0530859159771,
+      "runtime_seconds": 11.804454417200759,
+      "result": "Failed at the original-call return assertion in the first signing scene; no complete capture/algorithm/profile pass. Sources and executable unchanged."
+    },
+    {
+      "path": ".local/gate-6/received-dtmf-runtime/retained-sip-completion-before-fix.log",
+      "result": "Both new positive/withdrawn-receive controlled completion regressions reproduced the native-only result bug."
+    },
+    {
+      "path": ".local/gate-6/received-dtmf-runtime/retained-sip-completion-after-fix.log",
+      "result": "Compile failure from missing explicit closure error type; fixed without changing behavior."
+    },
+    {
+      "path": ".local/gate-6/received-dtmf-runtime/retained-sip-completion-store-verified/summary.json",
+      "result": "New initial helper test deadlocked by calling Store.revalidate while retaining the Store connection mutex. Terminated that exact test process after diagnosis; use actor_from_connection on the already owned connection. All failed/interrupted evidence retained."
+    }
+  ],
+  "preserved_fixture_refinements": [
+    "retained-sip-completion-store-final failed because wildcard operator authority was still present.",
+    "retained-sip-completion-store-final2 runs the broader affected matrix; the final3 fixture additionally preserves connection.offer while withdrawing only stream.subscribe, proving that current physical media authority alone cannot substitute for named receive permission."
+  ],
+  "fixture_grant_correction": "The initial negative fixture retained operator * permission after deleting stream.subscribe. Removed both grants. Production code unchanged. Diagnostic optimized run002 overlaps this cfg(test)-only fixture correction and cannot gain a source-unchanged pass; a fresh source-bound run follows.",
+  "pending": [
+    "Complete optimized actual initial retained-SIP rehearsal and validate both signing scenes, including return/replay, fresh RFC4733 and cleanup.",
+    "Qualify actual committed/established retained SIP, selected/private SIP roles and remaining current rights, withdrawal and retirement compositions.",
+    "Run the complete current-source G6-046 auxiliary matrix before task closure."
+  ],
+  "http_reference": "contracts/openapi-canonical-http.json; no route, schema or wire change.",
+  "limits": "No complete actual retained SIP, full Store/workspace, whole-clause/task/acceptance, Linux/browser/remote/provider or independent-conformance pass is inferred. Publication remains separate."
+}

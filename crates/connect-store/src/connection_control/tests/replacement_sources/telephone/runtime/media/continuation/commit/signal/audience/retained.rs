@@ -4,6 +4,27 @@ use connect_protocol::transitions::{HoldTreatment, TransitionCommand, Transition
 
 #[test]
 fn retained_established_sip_scene_records_its_own_revision_and_current_private_lifetime() {
+    retained_scene(None);
+}
+
+#[test]
+fn retained_established_sip_return_completion_keeps_original_call_and_replays_once() {
+    retained_scene(Some("allowed"));
+}
+
+#[test]
+fn retained_established_sip_return_completion_does_not_confuse_withdrawn_receive_right_with_departure(
+) {
+    retained_scene(Some("receive-withdrawn"));
+}
+
+#[test]
+fn retained_established_sip_return_completion_uses_phone_identity_and_current_route_recipient_ceiling(
+) {
+    retained_scene(Some("recipient-withdrawn"));
+}
+
+fn retained_scene(complete: Option<&str>) {
     let (f, phone, sources, route) = established();
     drop(f.store.try_telephone_media_read(phone.clone()).unwrap());
     for key in [&f.keys[1], &f.keys[2]] {
@@ -224,5 +245,112 @@ fn retained_established_sip_scene_records_its_own_revision_and_current_private_l
             origin.record_id()
         )
         .is_err()
+    );
+    drop(c);
+    let Some(mode) = complete else {
+        return;
+    };
+    permissions(
+        &f,
+        &route,
+        &["sip_dial", "dtmf.send", "dtmf.receive", "stream.subscribe"],
+    );
+    let read = return_read();
+    let plan = json!({"operation_id":return_origin.record_id(),"consultation_record_id":origin.record_id(),"audience_revision":1,"private_connections":[p,candidate.runtime_connection_id()],"receivers":{},"activate_muted":null,"restore":true,"known_departed_connections":[],"expected_receiver_revisions":{p:revision(sources[1].connection_id()),candidate.runtime_connection_id():revision(candidate.connection_id()),r:revision(&phone.snapshot().connection_id)}});
+    let lease = f
+        .store
+        .prepare_native_consultation_return(read, plan.clone())
+        .unwrap()
+        .unwrap();
+    let read = f
+        .store
+        .native_consultation_return_attempt_read(&lease)
+        .unwrap();
+    let (attempt, read) = f
+        .store
+        .begin_native_consultation_return(lease, read)
+        .unwrap();
+    drop(read);
+    let revisions = plan["expected_receiver_revisions"]
+        .as_object()
+        .unwrap()
+        .iter()
+        .map(|(id, n)| (id.clone(), json!(n.as_u64().unwrap() + 1)))
+        .collect::<serde_json::Map<_, _>>();
+    let receipt = attempt.applied(json!({"operation_id":return_origin.record_id(),"audience_revision":2,"receiver_revisions":revisions,"restored":true,"departed_connections":[],"participant_handoff":null,"participant_replacement":null})).unwrap();
+    f.store
+        .record_native_consultation_return_applied(&receipt)
+        .unwrap();
+    assert!(f
+        .store
+        .complete_native_consultation_return(&receipt)
+        .unwrap()
+        .is_none());
+    if mode == "receive-withdrawn" {
+        permissions(&f, &route, &["sip_dial", "dtmf.send", "dtmf.receive"]);
+    }
+    {
+        let c = f.store.connection().unwrap();
+        // Native receive ceilings name the phone Participant's Identity, not
+        // the independent system Identity that owns its carrier route.
+        c.execute(
+            "UPDATE credentials SET recipients=?2 WHERE id=?1",
+            params![
+                f.keys[1],
+                serde_json::to_string(&vec![
+                    identity.clone(),
+                    phone.snapshot().identity_id.clone()
+                ])
+                .unwrap()
+            ],
+        )
+        .unwrap();
+        if mode == "recipient-withdrawn" {
+            c.execute(
+                "UPDATE credentials SET recipients=?2 WHERE id=?1",
+                params![
+                    route,
+                    serde_json::to_string(&vec![phone.snapshot().identity_id.clone()]).unwrap()
+                ],
+            )
+            .unwrap();
+        }
+    }
+    {
+        let c = f.store.connection().unwrap();
+        c.execute(
+            "UPDATE native_connection_lifetimes SET retired=1 WHERE connection_id=?1",
+            [candidate.connection_id()],
+        )
+        .unwrap();
+        c.execute(
+            "UPDATE connections SET state='retired',generation=generation+1 WHERE id=?1",
+            [candidate.connection_id()],
+        )
+        .unwrap();
+    }
+    let completed = f
+        .store
+        .complete_native_consultation_return(&receipt)
+        .unwrap()
+        .unwrap();
+    let result = completed.result.as_ref().unwrap();
+    assert_eq!(result["remote_continuing"], mode == "allowed");
+    assert_eq!(
+        result["retired_connection_ids"],
+        json!([candidate.connection_id()])
+    );
+    let mut retained = vec![
+        sources[1].connection_id(),
+        phone.snapshot().connection_id.as_str(),
+    ];
+    retained.sort();
+    assert_eq!(result["retained_connection_ids"], json!(retained));
+    assert_eq!(
+        f.store
+            .complete_native_consultation_return(&receipt)
+            .unwrap()
+            .unwrap(),
+        completed
     );
 }
