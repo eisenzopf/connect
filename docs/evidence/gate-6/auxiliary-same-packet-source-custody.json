@@ -25,7 +25,7 @@
     "Original source expiry bounds both paired and unary reads and later admission refuses."
   ],
   "remaining": [
-    "Run the same original50/49/8s/200ms/>10 full50 workload in an optimized production build before further algorithm changes. Keep the default-profile failure explicit; no optimized qualification until the complete actual two-algorithm capture and validator pass.",
+    "Profile this exact optimized source178 binary after its steady2..10 failure; investigate active-root weak custody and repeated SQL/file admission from actual trace/sample evidence before further packet-path edits. Keep both optimized and default failures, original50/49/8s/200ms/>10 bounds, and complete future/replay/departure/ES256 proof requirements.",
     "Retained/private SIP roles and remaining receiver-rights/current-authority/retirement compositions for0112/0113 remain required. G6-04658/61 and45/105 unchanged; later hosting/browser/remote/provider/acceptance/publication separate."
   ],
   "core_integration": {
@@ -181,6 +181,91 @@
       ".local/gate-6/received-dtmf-runtime/admission178-release-lane-list.log": "f950a46e05511b09000e63114884156f26fd098b43edaf6e6219ee8b7399c606",
       ".local/gate-6/received-dtmf-runtime/admission178-harness-separation.json": "ebd3cd15bf954180fb203ef31a6e2c81474c9c47d3a6b385d2947b43443a3169"
     },
-    "runtime_status": "Pending explicit optimized rehearsal; compilation/listing do not qualify capacity."
+    "runtime_status": "Explicit optimized rehearsal executed exactly1 method and failed steady counts2..10 after49 actual receiver startups4921ms; complete capture empty. No capacity pass."
+  },
+  "optimized_full50": {
+    "passed": false,
+    "profile": {
+      "opt_level": "3",
+      "debuginfo": 0,
+      "debug_assertions": false,
+      "overflow_checks": false,
+      "test": true
+    },
+    "source_revision": "e6ec0fae1ae25a5fec8016a7a85aec85bdafaab8",
+    "working_tree_clean": true,
+    "source_inputs_unchanged": true,
+    "executable_sha256": "ed2b04a7191d214e555b22233304c7f4efced9d329d1333e45c6e6347600b338",
+    "runtime_duration_seconds": 34.67,
+    "actual_connections": 99,
+    "completed_subscriptions": 49,
+    "actual_receiver_startup_ms": 4921,
+    "durable_receiver_flow_facts": 49,
+    "steady_decoded_range": [
+      2,
+      10
+    ],
+    "steady_decoded_by_peer": [
+      0,
+      5,
+      3,
+      5,
+      4,
+      5,
+      6,
+      6,
+      3,
+      3,
+      3,
+      6,
+      5,
+      5,
+      3,
+      5,
+      5,
+      5,
+      4,
+      3,
+      6,
+      7,
+      4,
+      5,
+      6,
+      7,
+      4,
+      8,
+      4,
+      3,
+      4,
+      4,
+      4,
+      4,
+      7,
+      4,
+      5,
+      10,
+      4,
+      4,
+      5,
+      4,
+      5,
+      5,
+      6,
+      5,
+      2,
+      5,
+      4,
+      5
+    ],
+    "required_each": ">10",
+    "future_phases_reached": false,
+    "second_algorithm_reached": false,
+    "complete_capture_rows": 0,
+    "validator": "Not run: runtime failed before complete capture. No capacity credit.",
+    "artifacts_sha256": {
+      ".local/gate-6/fifty-native/admission178-release/summary.json": "a0c79c1e17a391f15f6c8aa015d0882a7940b27b0594f466c4b2c8b5321a1ca6",
+      ".local/gate-6/fifty-native/admission178-release/runtime.log": "e0080deb684ad2ba1f0e66f8a1d5509c7164a1d84a11fc1f41ce21b5c5174632",
+      ".local/gate-6/fifty-native/admission178-release/observations.jsonl": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
   }
 }
