@@ -71,7 +71,7 @@ exclusion, idle-reader release, captured private lifetime and the public-sibling
 regression. Captured Store observations are controlled fixture evidence, not
 network audio or SDK delivery. Failed intermediate attempts remain recorded.
 
-Actual private SIP runtime/DTMF qualification, SIP-candidate admission, remaining authority and
+SIP-candidate admission, remaining authority and
 retirement compositions, and the complete current-source G6-046 matrix are still
 required. The [retained-call profiles](retained-sip-authority.md) keep their
 separately recorded scope. The
@@ -82,5 +82,8 @@ The [signal component report](../evidence/gate-6/auxiliary-private-sip-primary-s
 records the later source-bound signal regression scope and its limits.
 
 The [runtime component report](../evidence/gate-6/auxiliary-private-sip-primary-runtime.json)
-records actual initial SIP-primary private media/DTMF, return/replay and cleanup
-qualification separately from remaining live profiles.
+records actual initial and committed SIP-primary private media/DTMF, return/replay
+and cleanup. Its six-profile matrix also verifies initial/committed retained and
+outside-SIP regressions with both signing algorithms:12 scenes and48 SDK-verified
+frames, with source and executable unchanged. SIP-candidate and broader remaining
+compositions are separate requirements.

@@ -1,7 +1,7 @@
 {
   "task": "G6-046",
-  "recorded_at": "2026-10-24T14:49:21.522937+00:00",
-  "status": "actual-initial-private-sip-primary-verified; remaining-runtime-matrix-running",
+  "recorded_at": "2026-10-24T14:53:57.227432+00:00",
+  "status": "actual-initial-and-committed-private-sip-primary-and-retained-outside-regressions-verified",
   "full_task_complete": false,
   "full_goal_complete": false,
   "source_base_commit": "1ec1afb5f98e19bd3be53f76e4463883c3981a13",
@@ -10,7 +10,7 @@
   "qualified_clause_count": 59,
   "assigned_clause_count": 61,
   "newly_qualified_case_ids": [],
-  "scope": "Actual isolated initial SIP primary with an independently admitted native consultant and held native remote, both signing algorithms. Current committed-primary, retained-call and outside-private profiles are still running; no pass for unfinished profiles.",
+  "scope": "Actual isolated initial and committed SIP private primary with independently admitted native consultant/held native remote, retained SIP with native private pair, and outside SIP/private physical-sibling exclusions. Six production methods each cover both EdDSA and ES256;48 actual SDK-verified frames validate. No whole-clause/task or other-role/profile qualification.",
   "implementation": [
     "Service selection preserves actual SIP/native origins and checks each selected endpoint\u2019s real audio-only Session. Same-intent private Core controls consume exact typed directional grants; SIP has no native signing surrogate.",
     "Fresh initial and committed SIP/native media and signal pairs share a physical-context seal, while named receive/send permissions remain separate. Registered candidate/primary/original-root/runtime and reciprocal private floors are required. Held remotes and same-Participant public physical siblings cannot inherit private authority.",
@@ -82,7 +82,152 @@
     "source_inputs_unchanged_through_initial_profile": true,
     "executable_sha256": "97958bc2436ead1ab7254f901abb5f9d4293b0f8010b87a157c3e990aef7e895",
     "executable_unchanged_through_initial_profile": true,
-    "matrix_summary_pending": ".local/gate-6/private-sip-primary/matrix-release-004/summary.json"
+    "matrix_summary": ".local/gate-6/private-sip-primary/matrix-release-004/summary.json",
+    "matrix_summary_sha256": "334d55de019368465742f4933f6cc8cf3680f66900c9014f6bbf0065a8e19feb",
+    "matrix_passed": true,
+    "source_inputs_unchanged": true,
+    "executable_unchanged": true,
+    "production_methods": 6,
+    "signing_scenes": 12,
+    "actual_frames": 48,
+    "runtime_seconds": 253.48102687462233,
+    "runtime_by_method_seconds": {
+      "primary-initial-runtime": 27.128209749935195,
+      "primary-established-runtime": 52.05148933385499,
+      "retained-initial-runtime": 28.623423124896362,
+      "retained-established-runtime": 54.750496125081554,
+      "outside-initial-runtime": 31.407385624945164,
+      "outside-established-runtime": 59.52002291590907
+    },
+    "build_seconds": 120.27622016705573,
+    "profiles": [
+      {
+        "label": "primary-initial",
+        "source_kind": "initial-sip",
+        "case": "canonical_native_connections::consultation::groups::replacement::telephone::initial::received::private_primary::production_initial_sip_primary_private_consultation_routes_only_its_registered_pair",
+        "runtime_exit_code": 0,
+        "passed": true,
+        "observations": ".local/gate-6/private-sip-primary/matrix-release-004/primary-initial-observations.jsonl",
+        "validation_exit_code": 0,
+        "validation": {
+          "passed": true,
+          "scenes": 2,
+          "actual_frames": 8,
+          "source_kind": "initial-sip",
+          "observations_sha256": "5d70319e90d13eb95cc59c190db45f7c56cdffaa0ac79da9e8b784d87e110d3c",
+          "schema_sha256": "8d3d5a1098c8eebafe30960b8b35d83e11f9c8ac09453ab7e528251368d11c32",
+          "scope": "Actual isolated local selected SIP-primary state, shape and correlations; SDK verifies signatures and runtime asserts decoded media/privacy, actual DTMF, original return/replay and cleanup. Other roles/profiles remain separate."
+        }
+      },
+      {
+        "label": "primary-established",
+        "source_kind": "established-sip",
+        "case": "canonical_native_connections::consultation::groups::replacement::telephone::received::private_primary::production_moved_sip_primary_private_consultation_routes_only_its_registered_pair",
+        "runtime_exit_code": 0,
+        "passed": true,
+        "observations": ".local/gate-6/private-sip-primary/matrix-release-004/primary-established-observations.jsonl",
+        "validation_exit_code": 0,
+        "validation": {
+          "passed": true,
+          "scenes": 2,
+          "actual_frames": 8,
+          "source_kind": "established-sip",
+          "observations_sha256": "1fc99ffe2f4daa022a2d79e87fa5dac757e56c8623e03a593e9670cf5995a35b",
+          "schema_sha256": "8d3d5a1098c8eebafe30960b8b35d83e11f9c8ac09453ab7e528251368d11c32",
+          "scope": "Actual isolated local selected SIP-primary state, shape and correlations; SDK verifies signatures and runtime asserts decoded media/privacy, actual DTMF, original return/replay and cleanup. Other roles/profiles remain separate."
+        }
+      },
+      {
+        "label": "retained-initial",
+        "source_kind": "initial-sip",
+        "case": "canonical_native_connections::consultation::groups::replacement::telephone::initial::received::retained::production_initial_sip_retained_consultation_fences_dtmf_and_restores_original_call",
+        "runtime_exit_code": 0,
+        "passed": true,
+        "observations": ".local/gate-6/private-sip-primary/matrix-release-004/retained-initial-observations.jsonl",
+        "validation_exit_code": 0,
+        "validation": {
+          "passed": true,
+          "scenes": 2,
+          "actual_frames": 6,
+          "source_kind": "initial-sip",
+          "observations_sha256": "ccfa822c1fc9a160a25aaf963a1b91b921ab9aa01cb9521e44c0455411d233e3",
+          "schema_sha256": "8d3d5a1098c8eebafe30960b8b35d83e11f9c8ac09453ab7e528251368d11c32",
+          "scope": "Actual local retained initial-sip state, shape and correlations. SDK verifies signatures; runtime checks decoded media, private exclusion, source settlement, return/replay and cleanup. Not independent cryptography or other profiles."
+        }
+      },
+      {
+        "label": "retained-established",
+        "source_kind": "established-sip",
+        "case": "canonical_native_connections::consultation::groups::replacement::telephone::received::retained::production_moved_sip_retained_consultation_fences_dtmf_and_restores_original_call",
+        "runtime_exit_code": 0,
+        "passed": true,
+        "observations": ".local/gate-6/private-sip-primary/matrix-release-004/retained-established-observations.jsonl",
+        "validation_exit_code": 0,
+        "validation": {
+          "passed": true,
+          "scenes": 2,
+          "actual_frames": 6,
+          "source_kind": "established-sip",
+          "observations_sha256": "94fbb1e22e650af0c515672a4bff2636304730ebb53af8f5b95eaa83d32565bc",
+          "schema_sha256": "8d3d5a1098c8eebafe30960b8b35d83e11f9c8ac09453ab7e528251368d11c32",
+          "scope": "Actual local retained established-sip state, shape and correlations. SDK verifies signatures; runtime checks decoded media, private exclusion, source settlement, return/replay and cleanup. Not independent cryptography or other profiles."
+        }
+      },
+      {
+        "label": "outside-initial",
+        "source_kind": "initial-sip",
+        "case": "canonical_native_connections::consultation::groups::replacement::telephone::initial::received::privacy::production_initial_sip_received_respects_private_physical_audience_and_return_does_not_replay",
+        "runtime_exit_code": 0,
+        "passed": true,
+        "observations": ".local/gate-6/private-sip-primary/matrix-release-004/outside-initial-observations.jsonl",
+        "validation_exit_code": 0,
+        "validation": {
+          "passed": true,
+          "installed_scenes": 2,
+          "received_operations": 6,
+          "signed_native_frames": 10,
+          "source_kind": "initial-sip",
+          "scope": "Local selected SIP source outside an actual native private pair. Store excludes both active private physical slots before recipient freeze; current Core audience remains independently authoritative. A public Device of the same consultant Participant receives. Return/replay/fresh-input recovery and owned cleanup are tested by the production fixture. No private SIP slots, WebRTC, crash, capacity or complete Gate6 claim."
+        }
+      },
+      {
+        "label": "outside-established",
+        "source_kind": "established-sip",
+        "case": "canonical_native_connections::consultation::groups::replacement::telephone::received::privacy::production_moved_sip_received_private_audience_and_return_keep_actual_lifetime",
+        "runtime_exit_code": 0,
+        "passed": true,
+        "observations": ".local/gate-6/private-sip-primary/matrix-release-004/outside-established-observations.jsonl",
+        "validation_exit_code": 0,
+        "validation": {
+          "passed": true,
+          "installed_scenes": 2,
+          "received_operations": 6,
+          "signed_native_frames": 10,
+          "source_kind": "established-sip",
+          "scope": "Local selected SIP source outside an actual native private pair. Store excludes both active private physical slots before recipient freeze; current Core audience remains independently authoritative. A public Device of the same consultant Participant receives. Return/replay/fresh-input recovery and owned cleanup are tested by the production fixture. No private SIP slots, WebRTC, crash, capacity or complete Gate6 claim."
+        }
+      }
+    ],
+    "profile_artifacts_sha256": {
+      "outside-established-validation.log": "27761849a448fd7f2bf80fce8bc51a485294281579775d1799e1880ba04020b8",
+      "primary-initial-runtime.log": "e3abfa7663e940722ea3be4d360102dcca0d9cde20da8647b5587194fdd30395",
+      "primary-established-observations.jsonl": "1fc99ffe2f4daa022a2d79e87fa5dac757e56c8623e03a593e9670cf5995a35b",
+      "outside-initial-runtime.log": "0606d9e25708f5cd1cd26f611629e8929cd736c8c68680a60d89b057dfd80b3a",
+      "primary-established-validation.log": "04395ba60485c08eaa356a83258edeeac942bfff36c26a04674c27513c3c8640",
+      "outside-established-runtime.log": "aabc6c6e2293212577db342742374bafc6d8ca64cd43e8ea0ed6aab3c6ef104d",
+      "outside-initial-validation.log": "b84f88a42cc9508f88d7513e723cba43ab23c4be9f2f662ac9be7726fe79d8e9",
+      "primary-initial-validation.log": "74e98c925af3fc92d006d33489394904fe0f87962a8ad10d40535924fc6c0260",
+      "retained-established-validation.log": "e4ee41d03cc19e0186d0b7f08c84de261a02b1bfd41265db49d10c80daa80111",
+      "retained-initial-runtime.log": "659ba723f3f229c098bfa6fe61151e588591efd7858a00c494cdf14253d551a6",
+      "outside-established-observations.jsonl": "f6ac44cdfc3ee73c72479588129da1b2e7a033a14c7ba6e70e1a64fc35ccd82c",
+      "retained-established-observations.jsonl": "94fbb1e22e650af0c515672a4bff2636304730ebb53af8f5b95eaa83d32565bc",
+      "outside-initial-observations.jsonl": "851fa0ff5300c8973144f177e2077a38062b04b39f14ff7a40019b81302347ca",
+      "retained-established-runtime.log": "44064705a0853c5817264cf561cd76aad5139157ed0f1c4f097d1b17194b8731",
+      "primary-initial-observations.jsonl": "5d70319e90d13eb95cc59c190db45f7c56cdffaa0ac79da9e8b784d87e110d3c",
+      "primary-established-runtime.log": "28c6280da4083aacbe8a214d28e59705f69ae3a5a5b82cdc86e9246d0326ba8a",
+      "retained-initial-observations.jsonl": "ccfa822c1fc9a160a25aaf963a1b91b921ab9aa01cb9521e44c0455411d233e3",
+      "retained-initial-validation.log": "54309deebe7bfe0742598390c81d95b7478e1cafa234a666198172deb28168e1"
+    }
   },
   "preserved_attempts": [
     {
@@ -103,10 +248,10 @@
     }
   ],
   "pending": [
-    "Complete and record current-source committed-primary, initial/committed retained-call and initial/committed outside-private matrix profiles; do not count live jobs as passes.",
     "Implement and qualify the separately admitted SIP candidate and remaining current-authority/withdrawal/concurrency/retirement compositions.",
-    "Complete the full current G6-046 auxiliary matrix and all remaining approved tasks."
+    "Complete the full current G6-046 auxiliary matrix and all remaining approved tasks; this six-profile matrix does not close the entire auxiliary task."
   ],
   "http_reference": "contracts/openapi-canonical-http.json; existing session.consult/session.consult.return and dtmf contracts remain unchanged. Protected runtime/Store origin dispatch now supports an actual SIP primary with separately admitted native consultant.",
-  "limits": "No whole-clause/task, separately admitted SIP candidate, Linux/browser/remote/provider, independent conformance or publication pass. Initial private SIP audio/DTMF, original return/replays, fresh distinct input, actual BYE and recorded cleanup are asserted by the completed real-client fixture."
+  "limits": "No whole-clause/task, separately admitted SIP candidate, Linux/browser/remote/provider, independent conformance or publication pass. Actual private-primary and retained/outside profiles prove only their recorded current-source local roles. Both private-primary profiles assert private duplex/DTMF, original-call return/replays, distinct fresh RFC4733 input, actual BYE/recorded cleanup; committed profiles also preserve original source/controller revocation, preparation expiry and generation2 lifetime.",
+  "implementation_commit": "96023359871cd7c11c059628ef180eb4bb341479"
 }

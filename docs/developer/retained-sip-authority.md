@@ -3,8 +3,9 @@
 Consultation can retain an initial or committed SIP call while the private pair
 uses native Connections. Both local profiles pass for EdDSA and ES256, including
 private audio/DTMF exclusion, original-call return/replay, fresh RFC4733 delivery
-and owned cleanup. Selected/private SIP endpoints and the remaining authority
-and retirement compositions remain pending.
+and owned cleanup. The [private SIP-primary profile](private-sip-primary-store.md)
+also has actual initial/committed-call evidence. SIP-candidate admission and the
+remaining authority and retirement compositions remain pending.
 
 `ConsultationMediaOrigin` carries native metadata or the actual initial or
 committed SIP origin. A saved SIP snapshot is matched to a previously observed
