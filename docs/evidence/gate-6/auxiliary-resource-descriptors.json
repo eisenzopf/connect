@@ -62,7 +62,7 @@
     "limitation": "These bounded observer runs did not reproduce the earlier two plain SIP readiness failures. They do not establish a resolved cause or erase those failures."
   },
   "pending": [
-    "Implement and verify a negative-only unsubscribed-input discard before decoder/retained-source work, if controlled Core tests confirm no readiness or closed-preparation regression. Record upstream edits as a patch/source-lock update with fresh dependency preparation.",
+    "Investigate retained-source custody/repeated packet admission without suppressing required decoded readiness. The ordinary input-discard prototype is rejected; current source179 is restored.",
     "Retain every earlier failed profile and all50/49/original8s startup/original200ms age/>10 bounds. Future/departure/ES256 and complete captures remain unqualified.",
     "Quality fixture should measure while real RTP continues within its original8s bound; ordinary control receive cancellation retires partial physical frames, so do not add unsafe timer cancellation. This follow-up is not implemented.",
     "Other assigned transport/hosting/remote profiles and whole-gate acceptance remain open."
@@ -266,9 +266,9 @@
         "target-egress:NotReady": 471
       }
     },
-    "observed_work": "The current guarded mixer refreshes, collects/decodes and takes input from every registered member before consulting target subscription gates. In this fixed fifty-peer steady phase49 publishers have no selected recipient. A negative selector check could discard those queued samples before this retained-source work.",
+    "observed_work": "Mixer collects all members before subscription filtering. That source inspection alone was insufficient: empty sources make no retained-source checks, and private readiness consumes decoded history even without ordinary selected output.",
     "readiness_evidence": "Native PortIngress records accepted incoming flow after the existing guarded port.try_publish; NativeFlow.observe_ready checks those admitted directional flow flags and current bindings. It does not require the ordinary mixer to decode an unsubscribed source. Closed endpoint-preparation decoding is intercepted separately before ordinary mixer enqueue.",
-    "candidate_not_implemented": "Investigate negative-only source selection before ordinary mixer collection. Positive candidates must still perform every existing fresh source/target/egress authority check, original packet age, subscription generation and membership exclusion. Draining must remain bounded and must not replay pre-subscription input or retain queued grants.",
+    "candidate_not_implemented": "The ordinary-input discard candidate was subsequently rejected: ten private handoff/replacement tests require this decoded history. It is not applied. The steady phase also has no other-publisher traffic, so unselected-input work does not explain that failure. See auxiliary-rejected-input-discard.json.",
     "limitation": "Source inspection plus instrumented sample; no capacity credit or implementation claim. Inclusive sample counts are not whole-process CPU percentages.",
     "artifacts_sha256": {
       ".local/gate-6/received-dtmf-runtime/resource-fds179-release-profile-inputs.json": "f1d814c4d7ca531f71ab5a4818ba8b1585f131a2be2731d8b147640193dd98d1",

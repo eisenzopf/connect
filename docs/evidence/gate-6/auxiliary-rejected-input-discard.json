@@ -1,0 +1,31 @@
+{
+  "scope": "Rejected ordinary-input discard prototype. No shipped upstream dependency or qualification change; current verified source179 restored.",
+  "result": {
+    "scope": "Rejected source180 unselected ordinary-input discard prototype; current dependency source restored to verified179.",
+    "summary": "test result: FAILED. 214 passed; 10 failed; 0 ignored; 0 measured; 249 filtered out; finished in 6.75s",
+    "failed_methods": [
+      "staged_streams::tests::private_consult::prepared_handoff::prepared_handoff_consumes_isolation_and_old_private_context_without_model_audio_leakage",
+      "staged_streams::tests::private_consult::prepared_handoff::prepared_handoff_current_revocation_and_cancellation_preserve_the_original_private_route",
+      "staged_streams::tests::private_consult::prepared_handoff::prepared_handoff_rejects_wrong_context_or_missing_private_replacement",
+      "staged_streams::tests::private_consult::prepared_handoff::prepared_handoff_requires_actual_decoding_and_completed_local_delivery",
+      "staged_streams::tests::private_consult::replacement::replacement_distinct_route_account_follows_sealed_binding_and_logical_participant_intent_with_current_io",
+      "staged_streams::tests::private_consult::replacement::replacement_scene_current_role_change_invalidates_old_plan_and_receive_only_state_survives_move",
+      "staged_streams::tests::private_consult::replacement::replacement_scene_failed_local_send_missing_policy_and_changed_generations_cannot_lend_readiness",
+      "staged_streams::tests::private_consult::replacement::replacement_scene_keeps_old_audio_until_confirmed_then_maps_only_intended_device_and_preserves_other_senders",
+      "staged_streams::tests::private_consult::replacement::replacement_scene_preserves_original_closed_audience_and_combined_mute_hold_pause_gates",
+      "staged_streams::tests::private_consult::replacement::retained_media_participant_reconciles_after_distinct_route_replacement_without_lending_old_principal"
+    ],
+    "patch_sha256": "4cb90a68463e1bb112a21bd5c30f8d19b6c21549523d1351c994975ae49eb13e",
+    "lock_sha256": "c7a86cd1b414364c366613bedf61cc5bb48bd77b8a30c2a0ed41eb773a2380d5",
+    "log_sha256": "22ef1d53a23e546a7b51656391d40da239a58d7cd31d67a54eb9e13edaa60d29",
+    "reason": "Ordinary decoded input supplies private handoff/replacement readiness even without an ordinary selected recipient. Ten existing cases fail; two new narrow tests passing does not satisfy the full contract. Steady runtime also has onlypublisher0 active, so this prototype does not explain the measured steady failure."
+  },
+  "preserved_artifacts": {
+    ".local/gate-6/received-dtmf-runtime/unselected180-rejected.patch": "4cb90a68463e1bb112a21bd5c30f8d19b6c21549523d1351c994975ae49eb13e",
+    ".local/gate-6/received-dtmf-runtime/unselected180-rejected-source-lock.json": "c7a86cd1b414364c366613bedf61cc5bb48bd77b8a30c2a0ed41eb773a2380d5",
+    ".local/gate-6/received-dtmf-runtime/unselected180-core.log": "22ef1d53a23e546a7b51656391d40da239a58d7cd31d67a54eb9e13edaa60d29"
+  },
+  "conclusion": "Ten private handoff/replacement cases need ordinary decoded-input history, including cases without an ordinary selected output. Narrow no-subscriber tests passing is insufficient. The candidate is not applied and no assertions/bounds were relaxed.",
+  "runtime_correction": "The fixed workload sends only publisher0 during steady media. Current trace after subscription48/49 contains16690 publishing-policy checks for publisher0 and0 for other publishers. Empty unselected inputs do not account for the measured steady failure.",
+  "next": "Investigate retained-source custody and decoder/take/egress repetitions, preserving all current readiness and authorization requirements."
+}
