@@ -25,6 +25,8 @@ mod handles;
 mod journey;
 #[path = "canonical_native_connections/lifecycle.rs"]
 mod lifecycle;
+#[path = "canonical_native_connections/multiparty.rs"]
+mod multiparty;
 #[path = "canonical_native_connections/negotiation.rs"]
 mod negotiation;
 #[path = "canonical_native_connections/participants.rs"]

@@ -164,5 +164,23 @@
       "Moved SIP privacy and return",
       "Mixed moved SIP/native credential refresh"
     ]
+  },
+  "capacity_rehearsal": {
+    "runner": "scripts/rehearse-gate6-fifty-participants.py",
+    "validator": "scripts/validate-gate6-fifty-participants.py",
+    "guide": "docs/developer/native-fifty-participants.md",
+    "fixture": "crates/connect-server/tests/support/canonical_native_connections/multiparty.rs",
+    "release_build_passed": true,
+    "release_build_duration_seconds": 1232,
+    "release_target": "Private home build cache; default Cargo --release with CARGO_INCREMENTAL=0. Pinned source178/schema103 unchanged.",
+    "release_executable_sha256": "ed2b04a7191d214e555b22233304c7f4efced9d329d1333e45c6e6347600b338",
+    "harness": "Resource-intensive case is an explicitly included rehearsal lane; ordinary-unit-suite skips are never capacity passes. Runner rejects zero/ignored runtime results and requires complete two-algorithm capture validation.",
+    "fixture_equivalence": "All prior runtime inputs were revalidated against the failed default attempt, normalizing only the new ignore attribute. Case body, helper bytes, endpoints and50/49/8s/200ms/>10 bounds unchanged.",
+    "artifacts_sha256": {
+      ".local/gate-6/received-dtmf-runtime/admission178-release-build.log": "86aa08a91ac6b8f6e936dad6da09fe5fc132dadcc272d603df9dd342537d7e52",
+      ".local/gate-6/received-dtmf-runtime/admission178-release-lane-list.log": "f950a46e05511b09000e63114884156f26fd098b43edaf6e6219ee8b7399c606",
+      ".local/gate-6/received-dtmf-runtime/admission178-harness-separation.json": "ebd3cd15bf954180fb203ef31a6e2c81474c9c47d3a6b385d2947b43443a3169"
+    },
+    "runtime_status": "Pending explicit optimized rehearsal; compilation/listing do not qualify capacity."
   }
 }
