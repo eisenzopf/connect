@@ -2,7 +2,7 @@
   "task": "G6-046",
   "title": "Skip disposable unchanged observations without retaining authority readers",
   "recorded_at": "2026-10-24T02:58:28.862940+00:00",
-  "status": "store-component-and-default-host-build-verified; full50-runtime-active",
+  "status": "store-component-and-default-host-build-verified; full50-steady-media-failed; profiling-active",
   "full_task_complete": false,
   "full_goal_complete": false,
   "qualified_case_ids": [],
@@ -234,16 +234,34 @@
       "observation175-native-authority.log": "7a0c4b415d4a78dc7075896e88fb3d8180e2f9fea4c1111d7e58506662a2f14d",
       "observation175-prepare.log": "fd9d7b181e3ccba9b643af55a186cf132c60aac99c734b2ee4e4e549afe5ffc2",
       "observation175-server-build.log": "7d877e2733bc5aa60de82dd2b5cf513e14daf1ecc435871024e3e77fdd7ebae8",
-      "observation175-runtime-inputs.json": "355250f818d24071a1a6b3a26b3d6d8aa0101c124e6b86a045db0a0883044a22"
+      "observation175-runtime-inputs.json": "355250f818d24071a1a6b3a26b3d6d8aa0101c124e6b86a045db0a0883044a22",
+      "observation175-fifty.log": "027f51b4d32ee64e325bfd0550b49e6269fef50e172ed76e9833f2e0339e7ec5"
     },
     "scope": "Controlled local macOS arm64 Store behavior only. No exact host or fifty-peer throughput result is claimed for this optimization.",
     "default_server_test_build_passed": true,
     "default_server_test_build_duration_seconds": 72,
     "workspace_format_check_passed": true,
-    "openapi_generation_check_passed": true
+    "openapi_generation_check_passed": true,
+    "full50_attempt": {
+      "passed": false,
+      "duration_seconds": 85.69,
+      "algorithm_reached": "EdDSA",
+      "participants": 50,
+      "actual_connections": 99,
+      "completed_subscriptions": 49,
+      "all_receiver_decoded_startup_ms": 4083,
+      "steady_decoded_range": [
+        4,
+        12
+      ],
+      "required_each": ">10",
+      "future_publication_reached": false,
+      "second_algorithm_reached": false,
+      "complete_capture_rows": 0
+    }
   },
   "unresolved": [
-    "Complete the exact rebuilt fifty-peer scene and actual affected production regressions. The runtime is active; host compilation alone is not a throughput pass.",
+    "Profile the actual fifty-peer steady-media path before another performance change. The unchanged-role/lifetime hint optimization has not resolved full50 throughput. Run actual affected production regressions and preserve all failed attempts.",
     "Diagnose the prior source175 moved-SIP failure. Complete both-algorithm fifty-peer runtime capture with all existing bounds and thresholds intact.",
     "G6-046 remains58/61; tasks remain45/105. Linux/browser/designated remote/provider/independent/acceptance/publication checks remain separate."
   ]
