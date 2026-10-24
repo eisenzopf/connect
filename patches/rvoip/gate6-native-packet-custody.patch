@@ -1,0 +1,351 @@
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/guarded_audio.rs b/crates/foundation/rvoip-core/src/staged_streams/guarded_audio.rs
+--- a/crates/foundation/rvoip-core/src/staged_streams/guarded_audio.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/guarded_audio.rs
+@@ -155,6 +155,7 @@
+     samples: VecDeque<i16>,
+ }
+ struct Segment {
++    lease_index: usize,
+     offset: usize,
+     samples: Vec<i16>,
+     origin: Contribution,
+@@ -372,6 +373,7 @@
+             let amount = (size - offset).min(chunk.samples.len());
+             let samples = chunk.samples.drain(..amount).collect();
+             segments.push(Segment {
++                lease_index: leases.len(),
+                 offset,
+                 samples,
+                 origin: Contribution {
+@@ -520,7 +522,7 @@
+                     else {
+                         continue;
+                     };
+-                    let Ok((lease, admission, deadline)) = member.controller.admit(
++                    let Ok((lease, admission, deadline)) = member.controller.admit_packet(
+                         &member.port,
+                         &target_ticket,
+                         true,
+@@ -531,6 +533,7 @@
+                             segment.origin.scene.as_ref(),
+                             segment.admitted_at,
+                         ),
++                        leases[segment.lease_index].packet_context(),
+                     ).map_err(|problem| {
+                         tracing::trace!(target: "rvoip_core::audio_path", source = %source.connection,
+                             target = %member.controller.connection, stage = "mixer-target", ?problem,
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/reliable_data.rs b/crates/foundation/rvoip-core/src/staged_streams/reliable_data.rs
+--- a/crates/foundation/rvoip-core/src/staged_streams/reliable_data.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/reliable_data.rs
+@@ -372,6 +372,7 @@
+             scene_consumer::SceneCheck::retained_publish(provenance.scene.as_ref()),
+             Some(data),
+             None,
++            None,
+         )?;
+         let (target_lease, target_admission, target_end) = target.admit_with_data(
+             &self.target,
+@@ -386,6 +387,7 @@
+                 self.admitted_at,
+             ),
+             Some(data),
++            None,
+             None,
+         )?;
+         let owner = target_lease.authority();
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/tests/guarded_mixer/packet_context.rs b/crates/foundation/rvoip-core/src/staged_streams/tests/guarded_mixer/packet_context.rs
+new file mode 100644
+--- /dev/null
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/guarded_mixer/packet_context.rs
+@@ -0,0 +1,142 @@
++//! The active source context supplies custody, never recipient permission.
++use super::*;
++
++struct PacketContext {
++    domain: Arc<()>,
++    source: ConnectionId,
++}
++struct PacketLease {
++    inner: Box<dyn MediaAuthorityLease>,
++    context: PacketContext,
++}
++impl MediaAuthorityLease for PacketLease {
++    fn authority(&self) -> &MediaOwner {
++        self.inner.authority()
++    }
++    fn packet_context(&self) -> Option<&(dyn Any + Send + Sync)> {
++        Some(&self.context)
++    }
++}
++struct PacketPolicy {
++    inner: Arc<Policy>,
++    domain: Arc<()>,
++    active: Arc<std::sync::atomic::AtomicBool>,
++    paired: Arc<AtomicUsize>,
++}
++impl MediaPolicy for PacketPolicy {
++    fn current_participant_receive(
++        &self,
++        scope: &MediaScope<'_>,
++        source: &MediaParticipantSource,
++    ) -> ControlResult<Box<dyn MediaAuthorityLease>> {
++        self.inner.current_participant_receive(scope, source)
++    }
++    fn current(&self, scope: &MediaScope<'_>) -> ControlResult<Box<dyn MediaAuthorityLease>> {
++        if self.active.load(Ordering::Acquire)
++            && matches!(scope.purpose, MediaPurpose::Receive { .. })
++        {
++            return Err(StreamControlError::Authority);
++        }
++        Ok(Box::new(PacketLease {
++            inner: self.inner.current(scope)?,
++            context: PacketContext {
++                domain: self.domain.clone(),
++                source: scope.connection.clone(),
++            },
++        }))
++    }
++    fn current_packet(
++        &self,
++        scope: &MediaScope<'_>,
++        context: &(dyn Any + Send + Sync),
++    ) -> ControlResult<Box<dyn MediaAuthorityLease>> {
++        let context = context
++            .downcast_ref::<PacketContext>()
++            .ok_or(StreamControlError::Authority)?;
++        let MediaPurpose::Receive { source } = scope.purpose else {
++            return Err(StreamControlError::Authority);
++        };
++        if !Arc::ptr_eq(&self.domain, &context.domain) || context.source != source.connection {
++            return Err(StreamControlError::Authority);
++        }
++        self.paired.fetch_add(1, Ordering::AcqRel);
++        self.inner.current(scope)
++    }
++}
++async fn scene() -> (Scene, Arc<AtomicUsize>) {
++    let active = Arc::new(std::sync::atomic::AtomicBool::new(false));
++    let paired = Arc::new(AtomicUsize::new(0));
++    let s = Scene::new_inner(
++        &[
++            ("a", "alice", audio(), 0),
++            ("b", "bob", audio(), 0),
++            ("c", "carol", audio(), 0),
++        ],
++        8000,
++        Some(Box::new({
++            let active = active.clone();
++            let paired = paired.clone();
++            move |inner| {
++                Arc::new(PacketPolicy {
++                    inner,
++                    domain: Arc::new(()),
++                    active,
++                    paired,
++                })
++            }
++        })),
++    )
++    .await;
++    for i in 0..3 {
++        s.bind(i, true).await;
++    }
++    active.store(true, Ordering::Release);
++    paired.store(0, Ordering::Release);
++    (s, paired)
++}
++
++#[tokio::test]
++async fn guarded_mixer_and_egress_use_only_their_active_source_packet_context() {
++    let (s, paired) = scene().await;
++    let mut bob = s.port(1).take_egress().unwrap();
++    let mut carol = s.port(2).take_egress().unwrap();
++    s.publish(0, 1800);
++    s.mixer.tick();
++    assert_eq!(paired.load(Ordering::Acquire), 2);
++    heard(bob.try_recv().unwrap(), 1800).await;
++    heard(carol.try_recv().unwrap(), 1800).await;
++    assert_eq!(
++        paired.load(Ordering::Acquire),
++        4,
++        "each dequeue rechecks its own current recipient"
++    );
++}
++
++#[tokio::test]
++async fn guarded_packet_context_keeps_no_queued_reader_and_cannot_borrow_recipient_permission() {
++    let (s, paired) = scene().await;
++    let mut bob = s.port(1).take_egress().unwrap();
++    let mut carol = s.port(2).take_egress().unwrap();
++    s.publish(0, 1800);
++    s.mixer.tick();
++    let queued = bob.try_recv().unwrap();
++    s.policy
++        .0
++        .try_write()
++        .expect("queued frame retained a policy reader")
++        .revoked
++        .insert("bob".into());
++    let sent = std::sync::atomic::AtomicBool::new(false);
++    assert!(matches!(
++        queued
++            .deliver(|_| async {
++                sent.store(true, Ordering::Release);
++                Ok(())
++            })
++            .await,
++        Err(StreamControlError::Authority)
++    ));
++    assert!(!sent.load(Ordering::Acquire));
++    heard(carol.try_recv().unwrap(), 1800).await;
++    assert_eq!(paired.load(Ordering::Acquire), 4);
++}
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/tests/guarded_mixer.rs b/crates/foundation/rvoip-core/src/staged_streams/tests/guarded_mixer.rs
+--- a/crates/foundation/rvoip-core/src/staged_streams/tests/guarded_mixer.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/guarded_mixer.rs
+@@ -777,3 +777,5 @@
+ mod subscriptions;
+ 
+ mod source_contention;
++
++mod packet_context;
+diff --git a/crates/foundation/rvoip-core/src/staged_streams.rs b/crates/foundation/rvoip-core/src/staged_streams.rs
+--- a/crates/foundation/rvoip-core/src/staged_streams.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams.rs
+@@ -187,6 +187,11 @@
+ /// fence through a bounded local send. Queued permission snapshots are invalid.
+ pub trait MediaAuthorityLease: Send {
+     fn authority(&self) -> &MediaOwner;
++    /// Opaque file custody for synchronous paired packet admission only. Never
++    /// queue this context or treat it as another recipient's permission.
++    fn packet_context(&self) -> Option<&(dyn Any + Send + Sync)> {
++        None
++    }
+     /// Recheck mutable readiness/relationship facts under this same owned
+     /// control grant. Never reacquire its grant lock or substitute credentials.
+     /// The default retains the original snapshot and cannot invent readiness.
+@@ -316,6 +321,18 @@
+     /// lease from this domain. Never block or reenter engine state; use bounded
+     /// nonblocking authority acquisition and refuse a contended read.
+     fn current(&self, scope: &MediaScope<'_>) -> ControlResult<Box<dyn MediaAuthorityLease>>;
++    /// Recheck this exact packet recipient's current policy while an actual
++    /// source lease remains owned. Opt-in implementations may reuse only its
++    /// complete file fence; never borrow permissions or extend packet age.
++    /// Other policies retain independent fresh admission.
++    fn current_packet(
++        &self,
++        scope: &MediaScope<'_>,
++        _context: &(dyn Any + Send + Sync),
++    ) -> ControlResult<Box<dyn MediaAuthorityLease>> {
++        self.current(scope)
++    }
++
+     /// Current recipient/audience permission for retained participant intent
+     /// before that owner has a selected stream. Must verify the source's current
+     /// membership/owner and exact domain. It grants no future media publication.
+@@ -690,6 +707,7 @@
+             scene_consumer::SceneCheck::publish(),
+             data,
+             held,
++            None,
+         )?;
+         if tokio::time::Instant::now() >= deadline {
+             return Err(StreamControlError::Deadline);
+@@ -838,6 +856,7 @@
+             None,
+             scene_consumer::SceneCheck::retained_publish(self.scene.as_ref()),
+             self.data.as_ref(),
++            None,
+             None,
+         )?;
+         let authority = _source_lease.authority();
+@@ -862,6 +881,7 @@
+             direct.as_ref(),
+             scene_consumer::SceneCheck::receive(self.scene.as_ref(), self.admitted_at),
+             self.data.as_ref(),
++            None,
+             None,
+         )?;
+         if source.shutdown.is_cancelled() || destination.shutdown.is_cancelled() {
+@@ -1131,7 +1151,7 @@
+                 return Err(StreamControlError::Deadline);
+             }
+             let (lease, admission, bound) = target
+-                .admit(
++                .admit_packet(
+                     &self.target,
+                     &self.target_ticket,
+                     true,
+@@ -1143,6 +1163,7 @@
+                         provenance.scene.as_ref(),
+                         self.admitted_at,
+                     ),
++                    leases.last().and_then(|lease| lease.packet_context()),
+                 )
+                 .map_err(|problem| {
+                     tracing::trace!(target: "rvoip_core::audio_path", source = %source.connection,
+@@ -1614,7 +1635,35 @@
+         tokio::time::Instant,
+     )> {
+         self.admit_with_data(
+-            port, ticket, sending, source, consumer, direct, scene, None, None,
++            port, ticket, sending, source, consumer, direct, scene, None, None, None,
++        )
++    }
++    fn admit_packet(
++        &self,
++        port: &Arc<Port>,
++        ticket: &PeerRouteTicket,
++        sending: bool,
++        source: Option<&MediaSource>,
++        consumer: audio_consumer::ConsumerCheck<'_>,
++        direct: Option<&direct_subscriptions::DirectStamp>,
++        scene: scene_consumer::SceneCheck<'_>,
++        packet_context: Option<&(dyn Any + Send + Sync)>,
++    ) -> ControlResult<(
++        Box<dyn MediaAuthorityLease>,
++        audio_consumer::MediaAdmission,
++        tokio::time::Instant,
++    )> {
++        self.admit_with_data(
++            port,
++            ticket,
++            sending,
++            source,
++            consumer,
++            direct,
++            scene,
++            None,
++            None,
++            packet_context,
+         )
+     }
+     fn admit_with_data(
+@@ -1628,6 +1677,7 @@
+         scene: scene_consumer::SceneCheck<'_>,
+         data: Option<&reliable_data::StagedData>,
+         held: Option<&(dyn Any + Send + Sync)>,
++        packet_context: Option<&(dyn Any + Send + Sync)>,
+     ) -> ControlResult<(
+         Box<dyn MediaAuthorityLease>,
+         audio_consumer::MediaAdmission,
+@@ -1659,9 +1709,16 @@
+                 None => MediaPurpose::Publish,
+             },
+         );
+-        let lease = match data {
+-            Some(data) => self.policy.current_data(&scope, data, held)?,
+-            None => self.policy.current(&scope)?,
++        if packet_context.is_some()
++            && (data.is_some() || held.is_some() || !sending || source.is_none())
++        {
++            return Err(StreamControlError::Authority);
++        }
++        let lease = match (data, packet_context) {
++            (Some(data), None) => self.policy.current_data(&scope, data, held)?,
++            (None, Some(context)) => self.policy.current_packet(&scope, context)?,
++            (None, None) => self.policy.current(&scope)?,
++            _ => return Err(StreamControlError::Authority),
+         };
+         let auth = lease.authority();
+         Self::check(&scope, auth)?;

@@ -974,6 +974,11 @@
       "path": "patches/rvoip/gate6-native-catalog-contention.patch",
       "sha256": "15d5600334bde708a1e2e8cf315753de4e2d21b5d7f9d589d4856ebe2bfa4f35",
       "source": "G6-046 read-only native catalog WouldBlock remains transient backpressure rather than revision conflict. Preserve poisoned/stale/missing/capacity errors; classify only catalog read pressure as unavailable metadata. Retry only before negotiation slot/writer/effect under the unchanged original cancellation/deadline, with all proposal locks released. Controlled Core busy/recovery/no-effect and poison/missing/stale tests plus native error-classification unit."
+    },
+    {
+      "path": "patches/rvoip/gate6-native-packet-custody.patch",
+      "sha256": "9c1c46ff745b0b2f49565f9d5c11c4e8839b3bde6a799a98f7544adb3760ba76",
+      "source": "G6-046 synchronous paired packet current-policy admission can opt into exact active source-lease file custody. Mixer segments bind their own source lease index; dequeue obtains a new current source lease before target admission. No context is queued. Preserve recipient policy, scope/owner/generation/consumer/subscription checks, original media age and cancellation; data/ordinary ingress contexts stay separate. Controlled mixer+egress context and fresh recipient-revocation/no queued reader cases."
     }
   ]
 }

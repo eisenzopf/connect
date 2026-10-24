@@ -25,7 +25,17 @@ permission for queued work to reuse an earlier authorization. Supported writers
 remain fenced until the last owned reader drops; composition can finish under
 that same interval without entering a new reader behind a waiting writer.
 
-The [component report](../evidence/gate-6/auxiliary-native-packet-reader.json)
-records Store-level behavior. Core/Service packet integration and actual 50-peer
-qualification are pending at that checkpoint. The canonical HTTP wire contract
-is unchanged; see its [OpenAPI reference](../../contracts/openapi-canonical-http.json).
+The mixer now associates each consumed segment with its own still-owned source
+lease. Its synchronous recipient check can reuse that lease's opaque file
+context. The outgoing queue stores no context or permission reader. After dequeue,
+guarded egress acquires a new current source lease, then checks the exact recipient
+under its file custody. Store namespace, scope coverage and both current physical
+bindings remain checked. Other policy implementations retain independent fresh
+admission; data-command custody is separate.
+
+The [Store component report](../evidence/gate-6/auxiliary-native-packet-reader.json)
+records current-policy and owned-fence behavior. The
+[integration checkpoint](../evidence/gate-6/auxiliary-native-packet-custody.json)
+records controlled Core tests and the pending exact host build and real 50-peer
+retest. The canonical HTTP wire contract is unchanged; see its
+[OpenAPI reference](../../contracts/openapi-canonical-http.json).
