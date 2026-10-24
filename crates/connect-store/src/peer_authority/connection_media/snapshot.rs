@@ -74,30 +74,34 @@ impl<T> Entry<T> {
 
 pub(super) fn cached<T: Clone>(
     store: &Store,
-    c: &Connection,
     memo: &Memo<T>,
     source: Option<&MetadataToken>,
     mut derive: impl FnMut(&Connection) -> Result<(T, Vec<AuthorityScope>)>,
+    finish: impl FnOnce(&Connection) -> Result<()>,
 ) -> Result<(T, Arc<AuthorityGuardSet>)> {
     let mut captured = None;
-    let result = acquire_at(store, c, |c, version| {
-        if let Ok(entry) = memo.0.try_lock() {
-            if let Some(entry) = entry
-                .as_ref()
-                .filter(|entry| entry.matches(version, source))
-            {
-                return Ok((entry.facts.clone(), entry.scopes.clone()));
+    let result = acquire_at(
+        store,
+        |c, version| {
+            if let Ok(entry) = memo.0.try_lock() {
+                if let Some(entry) = entry
+                    .as_ref()
+                    .filter(|entry| entry.matches(version, source))
+                {
+                    return Ok((entry.facts.clone(), entry.scopes.clone()));
+                }
             }
-        }
-        let (facts, scopes) = derive(c)?;
-        captured = Some(Entry {
-            version,
-            source: source.map(Arc::downgrade),
-            facts: facts.clone(),
-            scopes: scopes.clone(),
-        });
-        Ok((facts, scopes))
-    })?;
+            let (facts, scopes) = derive(c)?;
+            captured = Some(Entry {
+                version,
+                source: source.map(Arc::downgrade),
+                facts: facts.clone(),
+                scopes: scopes.clone(),
+            });
+            Ok((facts, scopes))
+        },
+        finish,
+    )?;
     // Publish only a fully admitted unchanged capture. Neither cache lock nor
     // SQL is retained by the caller's owned fresh authority guard.
     if let Some(entry) = captured {
@@ -108,30 +112,44 @@ pub(super) fn cached<T: Clone>(
     Ok(result)
 }
 
-/// The caller retains its immediate Store connection mutex until return. No
-/// authority wait is allowed here: a queued writer must release SQL immediately.
-/// Other Store instances/processes have independent SQL mutexes, so an external
-/// commit during derivation/admission invalidates the entire capture. A failed
-/// capture drops every partial reader before the caller can retry. After success,
-/// the complete owned scope set prevents relevant mutations during actual IO.
+/// Capture under short immediate SQL custody, release SQL for all file admission,
+/// then reacquire SQL and seal the exact unchanged version under the new reader.
+/// No caller waits with SQL or retains a partial reader while retrying.
 #[cfg(test)]
 pub(super) fn acquire<T>(
     store: &Store,
-    c: &Connection,
     mut derive: impl FnMut(&Connection) -> Result<(T, Vec<AuthorityScope>)>,
 ) -> Result<(T, Arc<AuthorityGuardSet>)> {
-    acquire_at(store, c, |c, _| derive(c))
+    acquire_at(store, |c, _| derive(c), |_| Ok(()))
 }
 
 fn acquire_at<T>(
     store: &Store,
-    c: &Connection,
-    mut derive: impl FnMut(&Connection, Version) -> Result<(T, Vec<AuthorityScope>)>,
+    derive: impl FnMut(&Connection, Version) -> Result<(T, Vec<AuthorityScope>)>,
+    finish: impl FnOnce(&Connection) -> Result<()>,
 ) -> Result<(T, Arc<AuthorityGuardSet>)> {
-    let before = version(c)?;
-    let (mut facts, mut scopes) = derive(c, before)?;
-    let held = store.try_acquire_authority(&scopes)?;
-    let after = version(c)?;
+    acquire_with(store, derive, finish, |scopes| {
+        store.try_acquire_authority(scopes)
+    })
+}
+
+fn acquire_with<T>(
+    store: &Store,
+    mut derive: impl FnMut(&Connection, Version) -> Result<(T, Vec<AuthorityScope>)>,
+    finish: impl FnOnce(&Connection) -> Result<()>,
+    admit: impl FnOnce(&[AuthorityScope]) -> Result<Arc<AuthorityGuardSet>>,
+) -> Result<(T, Arc<AuthorityGuardSet>)> {
+    let (before, mut facts, mut scopes) = {
+        let c = store.try_connection()?;
+        let before = version(&c)?;
+        let (facts, scopes) = derive(&c, before)?;
+        (before, facts, scopes)
+    };
+    // File opens, hashing and try-locks over a large scene must not monopolize
+    // SQL. This remains immediate fresh admission, with every original scope.
+    let held = admit(&scopes)?;
+    let c = store.try_connection()?;
+    let after = version(&c)?;
     if (Version {
         second: before.second,
         ..after
@@ -143,11 +161,10 @@ fn acquire_at<T>(
         ));
     }
     if after.second != before.second {
-        // A second boundary invalidates a memo, not this already-owned reader.
-        // Resolve once more under that reader; never enter another admission
-        // behind a queued writer or extend the original origin/packet expiry.
-        (facts, scopes) = derive(c, after)?;
-        if version(c)? != after {
+        // Revalidate a clock edge under this already-owned reader. No second
+        // file admission behind a queued writer and no original expiry extension.
+        (facts, scopes) = derive(&c, after)?;
+        if version(&c)? != after {
             return Err(Error::new(
                 "authority-busy",
                 "Current packet state changed during clock revalidation",
@@ -157,6 +174,7 @@ fn acquire_at<T>(
     if !store.authority_covers(&held, &scopes) {
         return Err(Error::forbidden());
     }
+    finish(&c)?;
     Ok((facts, held))
 }
 

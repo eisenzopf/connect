@@ -557,13 +557,17 @@ impl Store {
     /// grant. Current ownership/access can survive loss of an independent named
     /// operation permission. All readers are released before the caller idles.
     pub fn try_native_connection_current(&self, origin: &NativeMediaOrigin) -> Result<bool> {
-        let c = self.try_connection()?;
         current_owner(self, origin)?;
-        let (expiry, _held) =
-            snapshot::cached(self, &c, &snapshot::metadata(origin)?.lifetime, None, |c| {
+        let (expiry, _held) = snapshot::cached(
+            self,
+            &snapshot::metadata(origin)?.lifetime,
+            None,
+            |c| {
                 let (_, scopes, expiry) = facts_for(self, c, origin, ReadPurpose::Signal)?;
                 Ok((expiry, scopes))
-            })?;
+            },
+            |_| Ok(()),
+        )?;
         Ok(current_owner(self, origin)?.current() && crate::now() < expiry)
     }
     /// Resolve metadata with the same current origin checks as native IO.
@@ -592,7 +596,6 @@ impl Store {
         target: &NativeMediaOrigin,
         source: Option<&NativeMediaOrigin>,
     ) -> Result<NativeMediaRead> {
-        let c = self.try_connection()?;
         current_owner(self, target)?;
         if let Some(source) = source {
             current_owner(self, source)?;
@@ -603,8 +606,11 @@ impl Store {
         } else {
             &metadata.unary
         };
-        let ((target_view, source_view, expires_at, may_subscribe), held) =
-            snapshot::cached(self, &c, memo, source.map(|source| &source.metadata), |c| {
+        let ((target_view, source_view, expires_at, may_subscribe), held) = snapshot::cached(
+            self,
+            memo,
+            source.map(|source| &source.metadata),
+            |c| {
                 let (target_view, source_view, scopes, expires_at) =
                     views(self, c, target, source)?;
                 Ok((
@@ -616,17 +622,21 @@ impl Store {
                     ),
                     scopes,
                 ))
-            })?;
+            },
+            |c| {
+                self.remember_session_ready_origin(c, target)?;
+                if let Some(source) = source {
+                    self.remember_session_ready_origin(c, source)?;
+                }
+                Ok(())
+            },
+        )?;
         if let Some(source) = source {
             current_owner(self, source)?;
         }
         let owner = current_owner(self, target)?;
         if crate::now() >= expires_at {
             return Err(Error::forbidden());
-        }
-        self.remember_session_ready_origin(&c, target)?;
-        if let Some(source) = source {
-            self.remember_session_ready_origin(&c, source)?;
         }
         Ok(NativeMediaRead {
             target: target_view,
