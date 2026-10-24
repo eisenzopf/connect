@@ -1,0 +1,140 @@
+--- a/crates/foundation/rvoip-core/src/staged_streams.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams.rs
+@@ -801,7 +801,17 @@
+             .packet_context()
+             .and_then(|context| context.downcast_ref::<Weak<dyn Any + Send + Sync>>());
+         if let (Some(weak), Ok(mut slot)) = (weak, self.0.try_lock()) {
+-            *slot = Some(weak.clone());
++            // A fresh child can race another active source interval when the
++            // metadata slot was briefly busy. Its shorter lifetime must not
++            // hide the older still-owned interval from sibling fanout copies.
++            // Keep only a weak reference: the final actual owner still releases
++            // every reader, and a dead interval may be replaced normally.
++            if slot
++                .as_ref()
++                .is_none_or(|current| current.strong_count() == 0)
++            {
++                *slot = Some(weak.clone());
++            }
+         }
+     }
+     fn active(&self) -> Option<Arc<dyn Any + Send + Sync>> {
+--- a/crates/foundation/rvoip-core/src/staged_streams/tests/guarded_mixer/packet_context.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/guarded_mixer/packet_context.rs
+@@ -165,6 +165,7 @@
+     domain: Arc<()>,
+     fence: Arc<RwLock<()>>,
+     revoked: Arc<AtomicBool>,
++    fresh_hook: Option<Arc<dyn Fn() + Send + Sync>>,
+ }
+ impl WeakPacketPolicy {
+     fn lease(
+@@ -197,6 +198,11 @@
+             .clone()
+             .try_read_owned()
+             .map_err(|_| StreamControlError::NotReady)?;
++        if matches!(scope.purpose, MediaPurpose::Publish) {
++            if let Some(hook) = &self.fresh_hook {
++                hook();
++            }
++        }
+         self.lease(
+             scope,
+             Arc::new(WeakPacketRead {
+@@ -228,6 +234,11 @@
+     }
+ }
+ async fn weak_scene() -> (Scene, Arc<RwLock<()>>, Arc<AtomicBool>) {
++    weak_scene_with_hook(None).await
++}
++async fn weak_scene_with_hook(
++    fresh_hook: Option<Arc<dyn Fn() + Send + Sync>>,
++) -> (Scene, Arc<RwLock<()>>, Arc<AtomicBool>) {
+     let fence = Arc::new(RwLock::new(()));
+     let revoked = Arc::new(AtomicBool::new(false));
+     let s = Scene::new_inner(
+@@ -247,6 +258,7 @@
+                     domain: Arc::new(()),
+                     fence,
+                     revoked,
++                    fresh_hook,
+                 })
+             }
+         })),
+@@ -354,3 +366,76 @@
+     drop(writer.await);
+     assert!(fence.clone().try_write_owned().is_ok());
+ }
++
++#[tokio::test]
++async fn concurrent_fresh_child_cannot_hide_older_live_packet_custody_behind_a_queued_writer() {
++    let armed = Arc::new(AtomicBool::new(false));
++    let (release_tx, release_rx) = std::sync::mpsc::channel();
++    let (released_tx, released_rx) = std::sync::mpsc::channel();
++    let released = std::sync::Mutex::new(released_rx);
++    let hook: Arc<dyn Fn() + Send + Sync> = Arc::new({
++        let armed = armed.clone();
++        move || {
++            if armed.swap(false, Ordering::AcqRel) {
++                release_tx.send(()).unwrap();
++                released
++                    .lock()
++                    .unwrap()
++                    .recv_timeout(Duration::from_secs(1))
++                    .unwrap();
++            }
++        }
++    });
++    let (s, fence, _) = weak_scene_with_hook(Some(hook)).await;
++    let mut bob = s.port(1).take_egress().unwrap();
++    let mut carol = s.port(2).take_egress().unwrap();
++    let mut dave = s.port(3).take_egress().unwrap();
++    s.publish(0, 1800);
++    s.mixer.tick();
++    let first = bob.try_recv().unwrap();
++    let same = carol.try_recv().unwrap();
++    let remaining = dave.try_recv().unwrap();
++    let custody = remaining.sources[0].custody.clone();
++    let mut sending = Box::pin(first.deliver(|_| std::future::pending::<ControlResult<()>>()));
++    assert!(sending
++        .as_mut()
++        .poll(&mut std::task::Context::from_waker(std::task::Waker::noop()))
++        .is_pending());
++    // Force just the source lookup to miss its busy metadata slot. Fresh source
++    // admission releases this lock before publishing the child's weak context.
++    let slot = custody.0.clone();
++    let (ready_tx, ready_rx) = std::sync::mpsc::channel();
++    let worker = std::thread::spawn(move || {
++        let locked = slot.lock().unwrap();
++        ready_tx.send(()).unwrap();
++        release_rx.recv_timeout(Duration::from_secs(1)).unwrap();
++        drop(locked);
++        released_tx.send(()).unwrap();
++    });
++    ready_rx.recv_timeout(Duration::from_secs(1)).unwrap();
++    armed.store(true, Ordering::Release);
++    let child = same.admit_queued_media().unwrap();
++    worker.join().unwrap();
++    assert!(
++        !armed.load(Ordering::Acquire),
++        "fresh-admission race was not exercised"
++    );
++    drop(child);
++    assert!(
++        custody.active().is_some(),
++        "short-lived child hid an older still-owned source interval"
++    );
++    let mut writer = Box::pin(fence.clone().write_owned());
++    assert!(writer
++        .as_mut()
++        .poll(&mut std::task::Context::from_waker(std::task::Waker::noop()))
++        .is_pending());
++    heard(remaining, 1800).await;
++    drop(sending);
++    assert!(
++        custody.active().is_none(),
++        "queued weak metadata retained custody after final IO"
++    );
++    drop(writer.await);
++    assert!(fence.clone().try_write_owned().is_ok());
++}

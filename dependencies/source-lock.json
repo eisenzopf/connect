@@ -997,6 +997,11 @@
       "path": "patches/rvoip/gate6-packet-owned-expiry.patch",
       "sha256": "a0d69e04bff0a7b8ade67669de5858d081d64aed3e88a427c1e685c1a7f89739",
       "source": "G6-046 immutable owned-media-interval expiry additionally bounds packet IO, local neutral output and discard-only preparation input. Never extend an older active source interval with a refreshed longer-lived principal. Retain original credential/packet deadlines, source/target/current-generation checks and full reader release before retry. Controlled pending-IO expiry, expired-before-IO/no-poll and fresh decoded recovery tests; actual native capacity remains separately qualified."
+    },
+    {
+      "path": "patches/rvoip/gate6-packet-custody-anchor.patch",
+      "sha256": "75ea580406461f397934fa72807ae6361c9dc3f1c9d9837a64a191848fd42fc9",
+      "source": "G6-046 keep the older still-live weak source interval when a concurrent fresh child finishes packet admission after a busy metadata lookup. A shorter-lived child must not hide active custody from same-packet siblings behind a queued writer. No strong queued readers, cross-packet reuse, permission borrowing or deadline extension. Controlled actual decoded fanout, forced metadata race, queued writer and final release regression; full staged-media and native capacity remain separately verified."
     }
   ]
 }

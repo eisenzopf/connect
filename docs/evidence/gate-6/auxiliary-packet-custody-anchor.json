@@ -1,0 +1,38 @@
+{
+  "scope": "Source180 packet-custody anchor component proof; no fifty-participant or whole-clause qualification.",
+  "change": "Retain the weak anchor to an older still-owned original packet read when a concurrent fresh child interval is observed. Replace only absent or dead anchors; queue metadata remains weak.",
+  "regression": "A controlled metadata-slot contention forces a fresh child admission while an older real delivery remains pending. Dropping the child must preserve sibling reuse behind a queued writer; dropping final IO must release the reader and permit the writer.",
+  "source": {
+    "patch": "patches/rvoip/gate6-packet-custody-anchor.patch",
+    "patch_sha256": "75ea580406461f397934fa72807ae6361c9dc3f1c9d9837a64a191848fd42fc9",
+    "source_lock_sha256": "e81bb7776ba2d620f94a31cbe6c0b8343b96f1bc3b14862522420c3349244a75",
+    "patch_count": 180,
+    "store_schema": 103,
+    "preparation": {
+      "old": "/Users/jonathaneisenzopf/.local/share/connect/deps-g6-packet-owned-expiry-20261024",
+      "new": "/Users/jonathaneisenzopf/.local/share/connect/deps-g6-packet-anchor180-20261024",
+      "unchanged_files": 4043,
+      "unchanged_directory_entries_mtime": 749,
+      "changed": [
+        "rvoip/crates/foundation/rvoip-core/src/staged_streams.rs",
+        "rvoip/crates/foundation/rvoip-core/src/staged_streams/tests/guarded_mixer/packet_context.rs"
+      ],
+      "active_compilers_before_switch": [],
+      "rejected_unselected_candidate": "Preserved privately; not included in this lock or dependency tree."
+    }
+  },
+  "verification": {
+    "command": "CARGO_INCREMENTAL=1 cargo test --manifest-path .deps/rvoip/Cargo.toml -p rvoip-core --lib --target-dir target --locked --offline -j4 staged_streams:: -- --test-threads=1",
+    "result": "223 passed; 0 failed; 0 ignored; 249 filtered; 6.79s",
+    "log": ".local/gate-6/received-dtmf-runtime/packet-anchor180-core.log",
+    "log_sha256": "acd24f6d4e4fdaa948c7485ce851804ae111d802697f6c4a78f048c8e5543e5a",
+    "feature_scope": "Default Core features identity/media/rtp/sip/uctp/vcon; does not include the optimized host Opus profile.",
+    "prior_behavior": "New race case was not executed against the old implementation; no measured before-fix test failure is claimed."
+  },
+  "pending": [
+    "Exact optimized host build is running.",
+    "Actual production regressions on the rebuilt binary.",
+    "Fixed fifty-participant runtime with both complete EdDSA and ES256 captures and validator."
+  ],
+  "limitations": "No new capacity credit. Preserved source179 full-fifty failure and earlier readiness timeouts remain unresolved. The rejected input-discard candidate is not included in this patch or source lock."
+}
