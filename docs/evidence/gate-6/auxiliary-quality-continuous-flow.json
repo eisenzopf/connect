@@ -1,0 +1,47 @@
+{
+  "scope": "G6-046 public manual-media signaling reader and continuous-flow quality fixture. No fifty-participant capacity or whole-clause qualification.",
+  "source_patch_count": 181,
+  "store_schema": 103,
+  "source_lock_sha256": "f39347814df8def3726d8506acf0ca5539f5c01ac97792a1f9fad279eaf0a5f4",
+  "inputs_sha256": {
+    "crates/connect-client/src/canonical/owned_signaling.rs": "a8d0fa529d05b07ea3c6a957dda3724c07c4094bbc3433bfafd6512b980be5be",
+    "crates/connect-client/src/canonical/tests/owned_signaling.rs": "8dd59dd5315a8b4fbfe0961304c8bc98ebc589cbffde254b37ac604617d7024e",
+    "crates/connect-server/tests/support/canonical_native_connections/lifecycle.rs": "495696b59d810495de0b209c93a365b172573373cd266c18f26b0e3c5ae6d7bd",
+    "docs/developer/native-owned-signaling.md": "592acdfa1c777d3237150c8db3443bee76e7bd208f1ce51b09efd30b87396bf1"
+  },
+  "problem": "The prior lifecycle quality run timed out during its original8s event collection after two finite decoded RTP probes had stopped. Quality is advisory and a refused measurement interval is reset before the next cadence. A later idle window need not contain both positive directions. This is a fixture traffic gap, not proof of the historical timeout cause.",
+  "implementation": [
+    "Expose the existing bounded signature-verified background reader through CanonicalClient.start_signaling_reader. Manual RTP loops can cancel inbox waits to service media timers without abandoning reliable frames.",
+    "Repeated starts reuse the same reader only while authentication is current. Closed/expired peers cannot restart. Existing audio helper, replay verification, refresh/step-up, terminal handling and bounded advisory coalescing remain shared.",
+    "The lifecycle fixture maintains actual bidirectional marked G711 RTP every20ms throughout each unchanged8s collection window. Original5s quality cadence, actual directional positive counters, signatures, absent unmeasured metrics, Endpoint revocation and independent source checks remain. Timeout diagnostics now identify algorithm, resource and observed states."
+  ],
+  "unit_verification": {
+    "command": "CARGO_INCREMENTAL=0 cargo test -p connect-client --lib --release --target-dir /Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024 --locked --offline -j4 -- --test-threads=1",
+    "passed": 83,
+    "failed": 0,
+    "ignored": 0,
+    "filtered": 0,
+    "duration_seconds": 7.47,
+    "build_duration": "1m48s",
+    "log": ".local/gate-6/received-dtmf-runtime/quality-reader181-client.log",
+    "log_sha256": "dfb20dfb16217922163918d5fd582160cbdaff0d15db524dc2a86d9b6a0cb331",
+    "public_reader_cases": [
+      "canonical::tests::owned_signaling::owned_reader_idle_exceeds_rpc_timeout_without_retiring_audio_peer",
+      "canonical::tests::owned_signaling::owned_reader_completes_a_real_fragmented_signed_frame_while_foreground_inbox_waits_are_cancelled",
+      "canonical::tests::owned_signaling::public_signaling_reader_cannot_restart_a_closed_physical_peer"
+    ],
+    "new_test_methods": 1,
+    "existing_methods_switched_to_public_api": 2
+  },
+  "pending": [
+    "Exact optimized host build compiles the revised fixture.",
+    "Actual both-algorithm lifecycle quality/Endpoint revocation and codec-binding lifecycle cases.",
+    "Actual private handoff and mixed SIP/native refresh regressions on the same binary.",
+    "Validate actual captured lifecycle envelopes; no runtime fix is claimed before these pass."
+  ],
+  "preserved_failures": [
+    "docs/evidence/gate-6/auxiliary-decoded-audio-freshness.json: source181 full-fifty fails, and production quality times out;10 other production cases pass.",
+    "Earlier readiness/quality timeouts remain preserved in their scoped reports."
+  ],
+  "limits": "Client unit tests do not prove the revised server fixture or production quality behavior. Full-fifty, remaining DTMF compositions and later Linux/browser/remote/provider/independent qualification remain open; publication is separate."
+}

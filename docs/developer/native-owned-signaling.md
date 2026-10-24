@@ -8,6 +8,14 @@ Audio datagram waits and event-inbox waits can be cancelled without abandoning a
 partial reliable frame. Cancelling an uncertain selector command still retires
 its physical peer; keep its original logical operation ID for reconciliation.
 
+Applications using `CanonicalClient` with manually framed native RTP can call
+`start_signaling_reader()` before servicing media timers and `receive()` in the
+same loop. Event waits then use the verified inbox and can be cancelled on each
+media tick. Repeating this call reuses the existing reader while authentication
+is current; it cannot revive a closed peer. The audio helpers enable this reader
+automatically. Before opting in, cancelling a raw reliable-frame read still
+retires the peer because its partial frame cannot be resumed safely.
+
 Use `receive_signaling()` to read retained verified envelopes. Passive
 `connection.ready`, `connection.quality`, `stream.opened`, `stream.closed` and
 `capability.advertise` facts coalesce by kind and exact resource. Replies, data,

@@ -338,11 +338,22 @@ impl OwnedSignaling {
 }
 
 impl CanonicalClient {
+    /// Start a bounded, signature-verified signaling inbox for manual native
+    /// media loops. Cancelling a subsequent `receive()` wait leaves this single
+    /// reader active, so an application can service media on a timer. Replies,
+    /// data and DTMF stay ordered; advisory facts for the same resource may
+    /// coalesce. Audio helpers already enable this reader. Repeated calls reuse
+    /// it while the peer's current authentication remains valid.
+    pub fn start_signaling_reader(&mut self) -> Result<()> {
+        self.own_signaling()
+    }
+
     pub(super) fn own_signaling(&mut self) -> Result<()> {
-        if self.owned_signaling.is_some() {
-            return Err(ClientError::Protocol);
-        }
         let mut current = self.pending()?;
+        if self.owned_signaling.is_some() {
+            current.complete = true;
+            return Ok(());
+        }
         let reader = self.reader.take().ok_or(ClientError::Protocol)?;
         self.owned_signaling = Some(OwnedSignaling::start(
             reader,

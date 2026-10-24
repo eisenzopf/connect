@@ -371,5 +371,80 @@
         "duration_seconds": 6.9
       }
     ]
+  },
+  "diagnostic_after_change": {
+    "scope": "Instrumented source181 diagnostic, not capacity qualification or a controlled causal performance comparison. Source180 baseline remains in this report.",
+    "metadata": {
+      "scope": "Diagnostic trace plus2second1ms sampling of exact optimized source181 after actual49-receiver startup. Instrumentation changes timing; no capacity credit.",
+      "binary": "/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps/gate6_canonical_runtime-43321488c949ae5c",
+      "binary_sha256": "67adb73434413d5d437e60e29668ef0372217018d8699d27c6c60e825ae00ae1",
+      "logging": "warn,connect_service::canonical_packet=trace,rvoip_core::audio_path=trace,rvoip_uctp::native_egress=trace",
+      "sample_command": [
+        "sample",
+        "34704",
+        "2",
+        "1",
+        "-file",
+        "/Volumes/D2-2019/Developer/Connect/.local/gate-6/received-dtmf-runtime/fresh-decoded181-release-profile-sample.txt"
+      ],
+      "sample_exit_code": 0,
+      "runtime_exit_code": 101,
+      "source_inputs_unchanged": true,
+      "recorded_at": "2026-10-24T09:58:00.513732+00:00",
+      "artifacts_sha256": {
+        ".local/gate-6/received-dtmf-runtime/fresh-decoded181-release-profile.log": "e25fa7faa28831977357dce88f9a210e20161a41fc758b600b94ace2f6f9eb5f",
+        ".local/gate-6/received-dtmf-runtime/fresh-decoded181-release-profile.jsonl": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        ".local/gate-6/received-dtmf-runtime/fresh-decoded181-release-profile-sample.txt": "818fd1324e01fd5d3f7044415bf68775b9a8a6bf6610329bcc1600f4fd0e5c28"
+      }
+    },
+    "analysis_path": ".local/gate-6/received-dtmf-runtime/fresh-decoded181-release-profile-analysis.json",
+    "analysis_sha256": "92ccfa90c99c02fe5f66fc5f8b1f8c30d19d4c2fc8bbee2e499a24b0d65860c9",
+    "ages": {
+      "Guarded audio entering IO": {
+        "n": 630,
+        "median_us": 70628.5,
+        "p90_us": 122628,
+        "max_us": 195352
+      },
+      "Guarded audio queued": {
+        "n": 625,
+        "median_us": 39204,
+        "p90_us": 96716,
+        "max_us": 102611
+      }
+    },
+    "queued_total": 625,
+    "entered_io_total": 630,
+    "source_admission": {
+      "publish=true,owned=false,authority-busy": {
+        "n": 5184,
+        "median_us": 45.0,
+        "p90_us": 75
+      },
+      "publish=true,owned=false,ok": {
+        "n": 439,
+        "median_us": 1617,
+        "p90_us": 1935
+      },
+      "publish=true,owned=true,authority-busy": {
+        "n": 876,
+        "median_us": 15.0,
+        "p90_us": 19
+      },
+      "publish=true,owned=true,ok": {
+        "n": 489,
+        "median_us": 34,
+        "p90_us": 40
+      }
+    },
+    "audio_refusals": {
+      "source-egress:NotReady": 6191,
+      "target-egress:NotReady": 235,
+      "mixer-target:NotReady": 257
+    },
+    "native_egress_refusals": {
+      "Deadline": 7
+    },
+    "interpretation": "Queued median39204us and IO median70628.5us are lower than the instrumented baseline, while6191 source-egress NotReady refusals remain. Different instrumented runs do not prove a causal capacity improvement. Full-fifty qualification still fails; further queue compaction alone is not supported as a solution."
   }
 }

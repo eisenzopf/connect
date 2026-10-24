@@ -146,7 +146,8 @@ async fn close(client: CanonicalClient, server: tokio::task::JoinHandle<()>) {
 async fn owned_reader_idle_exceeds_rpc_timeout_without_retiring_audio_peer() {
     let (mut client, server, ready) = controlled(Fault::Owned(Traffic::Idle)).await;
     client.deadline = Duration::from_millis(40);
-    client.own_signaling().unwrap();
+    client.start_signaling_reader().unwrap();
+    client.start_signaling_reader().unwrap();
     client.keepalive().await.unwrap();
     ready.notified().await;
     tokio::time::sleep(Duration::from_millis(130)).await;
@@ -155,11 +156,21 @@ async fn owned_reader_idle_exceeds_rpc_timeout_without_retiring_audio_peer() {
 }
 
 #[tokio::test]
+async fn public_signaling_reader_cannot_restart_a_closed_physical_peer() {
+    let (mut client, server, _) = controlled(Fault::Owned(Traffic::Idle)).await;
+    client.start_signaling_reader().unwrap();
+    client.close();
+    assert!(client.start_signaling_reader().is_err());
+    assert!(client.keepalive().await.is_err());
+    close(client, server).await;
+}
+
+#[tokio::test]
 async fn owned_reader_completes_a_real_fragmented_signed_frame_while_foreground_inbox_waits_are_cancelled(
 ) {
     let (mut client, server, ready) = controlled(Fault::Owned(Traffic::Fragment)).await;
     client.deadline = Duration::from_millis(200);
-    client.own_signaling().unwrap();
+    client.start_signaling_reader().unwrap();
     client.keepalive().await.unwrap();
     ready.notified().await;
     for _ in 0..10 {

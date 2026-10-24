@@ -1,6 +1,31 @@
 //! Actual Connect Store authority, production native flow and signed SDK events.
 use super::*;
 
+fn publish_quality_media(clients: &[CanonicalClient], handles: [u16; 2], sequence: &mut u32) {
+    use rvoip_uctp::substrate::{pack_rtp_datagram, RtpDatagram, RtpMediaPayload};
+    for (client, handle) in clients.iter().zip(handles) {
+        let packet = RtpDatagram {
+            flags: 0,
+            stream_local_id: handle,
+            seq: *sequence,
+            rtp: RtpMediaPayload {
+                payload: (0..160)
+                    .map(|n| if n % 16 < 8 { 0x80 } else { 0x00 })
+                    .collect::<Vec<u8>>()
+                    .into(),
+                payload_type: 0,
+                sequence_number: *sequence as u16,
+                timestamp: sequence.wrapping_mul(160),
+                ssrc: 0x4736_0001,
+            },
+        };
+        client
+            .send_native_rtp_datagram(&pack_rtp_datagram(&packet).unwrap())
+            .unwrap();
+    }
+    *sequence = sequence.wrapping_add(1);
+}
+
 pub(super) fn observe(algorithm: &str, event: &Envelope) {
     if let Some(path) = std::env::var_os("CONNECT_NATIVE_LIFECYCLE_OBSERVATIONS") {
         use std::io::Write;
@@ -67,6 +92,17 @@ async fn production_native_lifecycle_quality_reports_actual_flow_through_signed_
                 rvoip_uctp::v2::payloads::OperationState::Completed
             );
         }
+        // Keep actual bidirectional RTP flowing throughout quality collection.
+        // Quality is advisory: if an early report is refused, the next actual
+        // interval must still contain traffic. The existing reader verifies
+        // frames independently, so cancelling an inbox wait on a media tick
+        // cannot abandon a partial reliable frame or retire this peer.
+        for client in &mut scene.clients {
+            client.start_signaling_reader().unwrap();
+        }
+        let mut media_sequence = 72_000;
+        let mut media_tick = tokio::time::interval(Duration::from_millis(20));
+        media_tick.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Skip);
         for (index, (connection, stream, handle)) in [
             ("codec-source", "codec-voice", scene.sh),
             ("codec-target", "codec-monitor", scene.th),
@@ -81,10 +117,24 @@ async fn production_native_lifecycle_quality_reports_actual_flow_through_signed_
             let end = tokio::time::Instant::now() + Duration::from_secs(8);
             while !ready || !opened || !measured_receive || !measured_send {
                 assert!(tokio::time::Instant::now() < end);
-                let e = tokio::time::timeout_at(end, scene.clients[index].receive())
-                    .await
-                    .unwrap()
-                    .unwrap();
+                let next = {
+                    tokio::select! {
+                        e = tokio::time::timeout_at(end, scene.clients[index].receive()) => {
+                            Some(e.unwrap_or_else(|_| panic!(
+                                "{algorithm} {connection}: quality collection expired; ready={ready}, opened={opened}, received={measured_receive}, sent={measured_send}"
+                            )).unwrap())
+                        }
+                        _ = media_tick.tick() => None,
+                    }
+                };
+                let Some(e) = next else {
+                    publish_quality_media(
+                        &scene.clients,
+                        [scene.sh, scene.th],
+                        &mut media_sequence,
+                    );
+                    continue;
+                };
                 if session_start(&e) {
                     continue;
                 }
