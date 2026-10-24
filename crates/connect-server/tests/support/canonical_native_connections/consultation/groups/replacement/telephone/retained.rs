@@ -2,6 +2,7 @@
 use super::received::privacy::{settled, signal, signal_scope};
 use super::received::{send_info, send_rfc};
 use super::*;
+use rusqlite::params;
 use rvoip_uctp::v2::Scope as WireScope;
 
 #[derive(Clone, Copy)]
@@ -29,16 +30,31 @@ pub(super) async fn exercise(
             "sip-initial", "initial-sip", 1, "consult-retained-initial-sip", "return-retained-initial-sip", None,
         ),
         RetainedCall::Established(moved) => (
-            moved.connection_id.as_ref().unwrap().clone(), "sip-established", "established-sip", 2,
+            moved.result.as_ref().unwrap()["connection_id"].as_str().unwrap().to_owned(), "sip-established", "established-sip", 2,
             "consult-retained-established-sip", "return-retained-established-sip", Some(moved.record_id.as_str()),
         ),
+    };
+    let replaced_native = match call {
+        RetainedCall::Initial => None,
+        RetainedCall::Established(moved) => {
+            let source = moved.connection_id.as_ref().unwrap();
+            assert_eq!(moved.result.as_ref().unwrap()["replaces"], source.as_str());
+            assert_ne!(&phone, source);
+            Some(source.as_str())
+        }
     };
     let prior_move = if let Some(record) = moved_record {
         let (controller_revoked,expires): (bool,i64) = db.query_row("SELECT k.revoked,n.expires_at FROM native_replacements n JOIN credentials k ON k.id=n.credential_id WHERE n.operation_record_id=?1",[record],|r|Ok((r.get(0)?,r.get(1)?))).unwrap();
         let source_credential_refused = matches!(f.server.store.authenticate(&f.client.credential),Err(error) if error.code == "unauthorized");
         let preparation_expired = chrono::Utc::now().timestamp() > expires;
-        assert!(controller_revoked && source_credential_refused && preparation_expired);
-        json!({"controller_revoked":controller_revoked,"source_credential_refused":source_credential_refused,"preparation_expired":preparation_expired})
+        let lifetime_current: bool = db.query_row("SELECT EXISTS(SELECT 1 FROM telephone_connection_lifetimes l JOIN connections c ON c.id=l.connection_id AND c.generation=l.generation AND c.observed_runtime_id=l.runtime_epoch WHERE l.operation_record_id=?1 AND l.connection_id=?2 AND l.generation=2 AND l.retired=0 AND c.state IN ('ready','active'))",params![record,phone],|r|r.get(0)).unwrap();
+        assert!(
+            controller_revoked
+                && source_credential_refused
+                && preparation_expired
+                && lifetime_current
+        );
+        json!({"controller_revoked":controller_revoked,"source_credential_refused":source_credential_refused,"preparation_expired":preparation_expired,"lifetime_current":lifetime_current})
     } else {
         Value::Null
     };
@@ -299,7 +315,7 @@ pub(super) async fn exercise(
             .unwrap()
             .join(".local/gate-6");
         assert!(path.is_absolute() && path.starts_with(root));
-        let row = json!({"algorithm":algorithm,"source_kind":source_kind,"moved_record":moved_record,"prior_move":prior_move,"remote":phone,"selection":selected,"baseline":baseline_status,"baseline_frame":baseline.original(),"held":held_status,"held_operation":held_operation,"private_frame":private_frame.original(),"returned":returned,"recovered":recovered_status,"recovered_frame":recovered.original(),"calls":peer.unique(),"held_submitted":submitted,"source_operation_count":source_count,"info_count_private_before":info_before,"info_count_private_after":peer.info.lock().unwrap().len()});
+        let row = json!({"algorithm":algorithm,"source_kind":source_kind,"moved_record":moved_record,"replaced_native":replaced_native,"prior_move":prior_move,"remote":phone,"selection":selected,"baseline":baseline_status,"baseline_frame":baseline.original(),"held":held_status,"held_operation":held_operation,"private_frame":private_frame.original(),"returned":returned,"recovered":recovered_status,"recovered_frame":recovered.original(),"calls":peer.unique(),"held_submitted":submitted,"source_operation_count":source_count,"info_count_private_before":info_before,"info_count_private_after":peer.info.lock().unwrap().len()});
         writeln!(
             std::fs::OpenOptions::new()
                 .create(true)

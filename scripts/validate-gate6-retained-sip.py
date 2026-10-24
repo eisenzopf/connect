@@ -34,7 +34,8 @@ def main():
         if args.source_kind == 'established-sip':
             assert remote['record_id'] == row['moved_record'] and row['moved_record']
             assert 'endpoint_credential_id' not in remote
-            assert row['prior_move'] == {'controller_revoked': True, 'source_credential_refused': True, 'preparation_expired': True}
+            assert row['prior_move'] == {'controller_revoked': True, 'source_credential_refused': True, 'preparation_expired': True, 'lifetime_current': True}
+            assert row['replaced_native'] and row['replaced_native'] != row['remote']
         assert remote['connection_id'] == row['remote'] and 'key_id' not in remote
         assert row['calls'] == 1
         assert row['held_submitted'] == 0 and row['source_operation_count'] == 3
@@ -63,6 +64,7 @@ def main():
         assert row['recovered_frame']['payload']['source'] == 'rfc4733'
         returned = row['returned']
         assert returned['state'] == 'completed' and returned['result']['remote_continuing'] is True
+        assert set(returned['result']['retained_connection_ids']) == {row['remote'], row['baseline_frame']['connid']}
         assert len(returned['result']['retired_connection_ids']) == 1
         assert len(returned['effects']) == 1 and returned['effects'][0]['attempt'] == 1
     print(json.dumps({'passed': True, 'scenes': len(rows), 'actual_frames': 6, 'source_kind': args.source_kind,

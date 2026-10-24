@@ -58,3 +58,11 @@ asserts the original controller/source revocation and expired preparation.
 The [pair report](../evidence/gate-6/auxiliary-retained-sip-pair.json) tracks the
 new source; its actual runtime is pending. For committed captures, pass
 `--source-kind established-sip` to `validate-gate6-retained-sip.py`.
+
+A completed telephone move reports the new SIP Connection in
+`operation.result["connection_id"]`. `operation.connection_id` continues to name
+the replaced native request source, which is retired after the real commit.
+Use the result ID for a later retained-call command; preserve both IDs when
+showing the move. The committed fixture asserts their separation and the actual
+generation2 lifetime. Its first attempt correctly refused the old source and is
+preserved in the pair report; corrected-pair runtime verification is pending.

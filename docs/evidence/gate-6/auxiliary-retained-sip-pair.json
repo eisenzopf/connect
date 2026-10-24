@@ -1,10 +1,10 @@
 {
   "task": "G6-046",
-  "recorded_at": "2026-10-24T13:20:06.230455+00:00",
-  "status": "shared-fixtures-compile-verified-actual-pair-runtime-pending",
+  "recorded_at": "2026-10-24T13:25:33.884309+00:00",
+  "status": "committed-result-id-corrected-compile-verified-actual-pair-rerun-pending",
   "full_task_complete": false,
   "full_goal_complete": false,
-  "source_base_commit": "54e38f0a31b7c070f4c75cff0d8374258126ce96",
+  "source_base_commit": "0942c807e43de47f2b46359fe798b3108a455ab8",
   "prepared_patch_count": 183,
   "store_schema": 103,
   "qualified_clause_count": 59,
@@ -13,12 +13,12 @@
   "scope": "Shared actual retained initial/committed SIP exercise with native private endpoints. Both profile entry points compile; actual rerun on this changed test source is pending. Production service/Store/upstream sources are unchanged by this fixture increment.",
   "source_inputs_sha256": {
     "crates/connect-server/tests/support/canonical_native_connections/consultation/groups/replacement/telephone.rs": "df5024a02a9fc008acf5669bf787bd290d44edd6c9e4d1706a0474fbd475254b",
-    "crates/connect-server/tests/support/canonical_native_connections/consultation/groups/replacement/telephone/retained.rs": "81dff7650338925381b9d6df2ac8937aeecb6304a5da45b25e48e1d35b1526c2",
+    "crates/connect-server/tests/support/canonical_native_connections/consultation/groups/replacement/telephone/retained.rs": "df7a582458c097bdc5c24a06db99882592c6c7caebc29a7bd255478d40c2ddee",
     "crates/connect-server/tests/support/canonical_native_connections/consultation/groups/replacement/telephone/initial/received/retained.rs": "9abed7feb251e6f2ca7195fa34f111422322be9e0c9d612dc22a92880a968161",
     "crates/connect-server/tests/support/canonical_native_connections/consultation/groups/replacement/telephone/received.rs": "532c39cc4bb0f1849b347c266117e47f5fcfe268a4763784fb6799f4974db7ec",
     "crates/connect-server/tests/support/canonical_native_connections/consultation/groups/replacement/telephone/received/privacy.rs": "80b41ade27c34fb880a02563643190fed10a1ba20f0afbff31e475823a4cf893",
     "crates/connect-server/tests/support/canonical_native_connections/consultation/groups/replacement/telephone/received/retained.rs": "4ed1ff50d9713c7522ffe28e681e4be491443ef2acac39209f961d05c3a86ecc",
-    "scripts/validate-gate6-retained-sip.py": "1a17ffbb8d69fbe3803a9863292ffaab68a1461f0454c109a7df01142cd44a37"
+    "scripts/validate-gate6-retained-sip.py": "5196c10e7147719930c6aa3820e614c9b4f20add5de9bae2769568b624ca49e1"
   },
   "shared_exercise": "crates/connect-server/tests/support/canonical_native_connections/consultation/groups/replacement/telephone/retained.rs",
   "profiles": [
@@ -40,21 +40,21 @@
     "One shared exercise preserves the original initial profile operation IDs, >10 marked-frame thresholds, 2s private probes plus 300ms tails, zero held-SIP leak assertions, bounded DTMF settlement, return/replay, old-packet deduplication, fresh RFC4733 input and cleanup.",
     "The committed setup performs the real protected compound move through public clients and configured loopback SIP. It revokes the original native source/controller, waits for the original preparation to expire, then selects the actual canonical SIP Connection and committed generation2 record. A fresh current manager invites the native consultant; the independent primary signs its own DTMF and consultation control.",
     "Captured committed facts assert old-controller revocation, old-source credential refusal and expired preparation. The status reader belongs to the actual phone Identity. The private pair remains native; no SIP signing key, native projection, fake readiness or surrogate call is introduced.",
-    "The validator accepts the named initial or established source kind, checks its exact generation/committed parent and forbids native signing fields. Committed snapshots also omit a native endpoint credential. Original initial capture/schema regression validation passes; new actual captures remain pending."
+    "The validator accepts the named initial or established source kind, checks its exact generation/committed parent and forbids native signing fields. Committed snapshots also omit a native endpoint credential. Original initial capture/schema regression validation passes; new actual captures remain pending.",
+    "The committed fixture now chooses the public completed result Connection ID, asserts its replaces field matches the old native request source and that the two IDs differ, and matches the new ID to the actual recorded current generation2 SIP lifetime. The validator checks both retained return IDs. No authority check or original request/result field meaning is changed."
   ],
   "verification": {
     "prepare_dependencies_exit_code": 0,
     "format_exit_code": 0,
     "command": "CARGO_INCREMENTAL=1 cargo check -p connect-server --test gate6_canonical_runtime --target-dir target --locked --offline -j4",
     "exit_code": 0,
-    "elapsed_seconds": 41.34,
-    "log": ".local/gate-6/received-dtmf-runtime/retained-sip-established-check.log",
-    "log_sha256": "738fee59ce00150dbfbd6dadea00633d754dbd658d78cd87ee27f1ba361b6dc6",
+    "elapsed_seconds": 1.46,
+    "log": ".local/gate-6/received-dtmf-runtime/retained-sip-established-result-id-check.log",
+    "log_sha256": "7f6a7a942717c575fcc0d50630d0f3e4b13076f77a622db34009b264222bcc4f",
     "validator_initial_capture_regression": {
       "passed": true,
-      "log": ".local/gate-6/received-dtmf-runtime/retained-sip-pair-validator-initial-regression.log",
-      "log_sha256": "be67318b5096e91d29e89d95f5fae727eef8cd6a34b3d5ca781ee71b8026c218",
-      "scope": "Existing real initial capture remains valid under the extended parser; not a rerun of the refactored runtime."
+      "log": ".local/gate-6/received-dtmf-runtime/retained-sip-result-id-validator-initial-regression.log",
+      "scope": "Actual shared initial capture validates under the stronger current stable-ID checks; not the corrected-pair runtime."
     }
   },
   "pending": [
@@ -63,5 +63,28 @@
     "Run the complete current-source G6-046 auxiliary matrix before task closure."
   ],
   "http_reference": "contracts/openapi-canonical-http.json; no HTTP, wire, Store schema or production behavior change in this fixture increment.",
-  "limits": "Compile verification does not qualify the new committed profile or refactored initial runtime. Existing historical initial/Store evidence keeps its recorded scope. No new whole-clause/task/acceptance, external-carrier, Linux/browser/remote/provider or independent-conformance pass. Publication remains separate."
+  "limits": "Compile verification does not qualify the new committed profile or refactored initial runtime. Existing historical initial/Store evidence keeps its recorded scope. No new whole-clause/task/acceptance, external-carrier, Linux/browser/remote/provider or independent-conformance pass. Publication remains separate.",
+  "preserved_attempts": [
+    {
+      "summary": ".local/gate-6/retained-sip-wire/shared-pair-release-001/summary.json",
+      "summary_sha256": "9e60714ff26756035f1375bc0841868e419dd78cc60bbced91f1bf590f929ea9",
+      "passed": false,
+      "source_inputs_unchanged": true,
+      "executable_unchanged": true,
+      "executable_sha256": "291d3e7517c4d38032bba690f5e210316761c8fce883ca546c05e61fc6f0a647",
+      "profiles": [
+        {
+          "source_kind": "initial-sip",
+          "passed": true,
+          "runtime_exit_code": 0
+        },
+        {
+          "source_kind": "established-sip",
+          "passed": false,
+          "runtime_exit_code": 101
+        }
+      ],
+      "finding": "Shared initial profile passes both signing algorithms and capture validation. The committed fixture passed actual media after old-controller/source revocation and preparation expiry, then correctly received forbidden because it selected moved.connection_id, the retired request source. The committed SIP ID is moved.result.connection_id. Corrected only fixture selection; production authority remains unchanged."
+    }
+  ]
 }
