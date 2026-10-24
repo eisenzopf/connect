@@ -1,8 +1,8 @@
 {
   "task": "G6-046",
   "title": "Yield busy native catalog probes instead of blocking media workers",
-  "recorded_at": "2026-10-24T03:12:08.836472+00:00",
-  "status": "core-and-host-build-verified; full50-steady-media-failed; production-regressions-active",
+  "recorded_at": "2026-10-24T03:19:30.591032+00:00",
+  "status": "core-and-host-and-eight-production-methods-verified; full50-steady-media-unresolved",
   "full_task_complete": false,
   "full_goal_complete": false,
   "qualified_case_ids": [],
@@ -39,9 +39,17 @@
       "catalog176-core.log": "7d90d864c1e45c29398139858fe7f4df929613d9b18cc72322258559651d3ac2",
       "catalog176-server-build.log": "b72dabfce7f8460e6aac69c9b8f7ef2f327f0d3fb9673418fae41f3c340e3e6a",
       "catalog176-runtime-inputs.json": "91ce8f6332dbd24448923b7bd78b541a22cc6a955e7122ec300fc69b7fb347c1",
-      "catalog176-fifty.log": "6da2d1a3d0525cd93ff2fef9d02e37e9036834c6cc539d96a39ec8ba0b924bf9"
+      "catalog176-fifty.log": "6da2d1a3d0525cd93ff2fef9d02e37e9036834c6cc539d96a39ec8ba0b924bf9",
+      "catalog176-production-0.log": "21311bc95f1eceab958e5b02e40983519a1bab8566029a951c628349265e4c71",
+      "catalog176-production-1.log": "7e00137692fc2d1579d0f0f01c7cdb092e911fec384d353352e815910fcc8257",
+      "catalog176-production-3.log": "e322285f372e4955d73814c83b3658345777b8ff0dee88834ec4569dd0011120",
+      "catalog176-production-5.log": "aba63f46c7f8bd34a9249ca18d6a2a7079f5609c877824207998081d85c6f673",
+      "catalog176-production-6.log": "29c13faf06edf5eec37a486fdcb71039f9b3ba12a0b7f6772dfbd9a806b87896",
+      "catalog176-production-7.log": "fa853d4bb74b68eac4a012fdb0250b491d6455b05ba25f45d8177843283cec51",
+      "catalog176-production-9.log": "26383a616c6d979ba93be6518af7db98d594f18bf04c313118254a613acedecc",
+      "catalog176-production-10.log": "d3a261b309711540b78cbce167c4a55d36a1c8b2e4d14558c2d8e27ab4aad333"
     },
-    "scope": "Controlled local macOS arm64 Core214 checks and actual host build pass. Full50 EdDSA steady media still fails despite all49 decoded receiver startups. The nonblocking probe change does not establish capacity; actual production regressions are active.",
+    "scope": "Local macOS arm64:214 controlled Core staged-media methods and8 actual default-host production methods pass. Full50 EdDSA steady media still fails after all49 decoded startup witnesses. No full50/Linux/browser/designated remote/provider qualification is claimed.",
     "core_component_build_duration_seconds": 355,
     "rust_distinct_methods_passed": 214,
     "passed_methods": [
@@ -283,11 +291,31 @@
       "required_each": ">10",
       "second_algorithm_reached": false,
       "future_phases_reached": false,
-      "complete_capture_rows": 0
+      "complete_capture_rows": 0,
+      "duration_seconds": 85.32
+    },
+    "production_methods_passed": [
+      "canonical_native_connections::lifecycle::production_native_lifecycle_quality_reports_actual_flow_through_signed_sdk",
+      "canonical_native_connections::selector_policy::production_native_heterogeneous_wildcard_preserves_audio_and_definitive_refusals",
+      "canonical_native_connections::production_signed_native_stream_subscription_routes_audio_and_replays_without_another_effect",
+      "canonical_native_connections::consultation::production_private_consultation_switches_actual_audio_without_leaking_to_remote_or_public_context",
+      "canonical_native_connections::consultation::groups::handoff::production_native_private_handoff_commits_roles_and_retains_remote_audio",
+      "canonical_native_connections::dtmf::production_native_refresh_retains_actual_decoded_rtp_after_original_expiry",
+      "canonical_native_connections::consultation::groups::replacement::telephone::received::privacy::production_moved_sip_received_private_audience_and_return_keep_actual_lifetime",
+      "canonical_native_connections::consultation::groups::replacement::telephone::received::refresh::production_moved_sip_dtmf_refresh_preserves_queued_epoch_and_fresh_bidirectional_delivery"
+    ],
+    "production_method_count": 8,
+    "production_retests_completed": true,
+    "next_diagnostic": {
+      "implementation_changed": false,
+      "planner_only": true,
+      "bundled_sqlite_version": "3.46.0",
+      "planner_log_sha256": "fd7c83dd3daeb4d28edea82044db1838066bfc412b20570d8a16d5cee91e71b3",
+      "limitation": "Read-only EXPLAIN on a currently live isolated production-regression fixture; no SELECT benchmark or fifty-peer performance claim. Private prototype has not been run or implemented."
     }
   },
   "unresolved": [
-    "Complete the active exact176 affected production regression sequence. Then profile remaining current Store/media admission costs; current fixes have not qualified full50 throughput. Preserve all failed runs and original bounds.",
+    "Investigate remaining actual Store/media-admission costs. The prior host profile included temporary B-tree construction while checking current audience visibility; a separate read-only helper linked the current target bundled SQLite3.46.0 archive and confirms UNION temporary B-trees. A direct existential query is only an ignored SQL prototype, not a runtime implementation or performance proof. Preserve current/original audience and epoch semantics in any optimization.",
     "Preserve50 actual peers,49 explicit receivers,8s command/startup bounds,200ms original frame age and>10 decoded frames per intended recipient. Complete future publication/end/replay/departure and both signing algorithms before0123 credit.",
     "Original source175 ES256 telephone compound movement Unknown failure remains unexplained despite passing diagnostic retry; retain this provenance.",
     "G6-046 remains58/61,45/105 tasks complete. Later Linux/browser/remote/provider/independent/acceptance/publication checks remain separate."
