@@ -1,0 +1,55 @@
+{
+  "scope": "Local macOS arm6442 authority-fence methods pass for pooled resource descriptions. Full current Store suite and optimized host build are active, not passes. No current capacity/production or clause/task promotion:45/105 tasks andG6-04658/61 clauses unchanged.",
+  "changes": [
+    "Use the bounded unlocked-description pool for resource files after the last owned shared reader releases, as well as admission files. Weak coalescing references active LockFile readers only; the pool stores plain explicitly unlocked files.",
+    "Every new read interval still obtains the actual exclusive admission and actual shared resource lock. Reused files freshly validate path/descriptor identity, private owner/read-write mode, single links and effective access including ACLs. No permission, reader, SQL snapshot or queued media grant is retained by the idle pool.",
+    "The combined admission/resource pool remains at most128 idle descriptions and2 per name. Evictions close outside its nonblocking mutex. Writers still use their current actual exclusive resource locks and release resource before admission. Source179/schema103 and original50/49/8s/200ms/>10 workload bounds are unchanged."
+  ],
+  "before": {
+    "base_revision": "cf402b77",
+    "new_method": "authority_fences::tests::admissions::resource_description_returns_unlocked_only_after_the_final_owned_reader",
+    "actual_failure": "resource description was closed instead of returned unlocked",
+    "log": ".local/gate-6/received-dtmf-runtime/resource-fds179-before.log",
+    "sha256": "ebfdf2d1a6fbfa022592b879964ced94c142843bc24fef405a59aecce70caf94"
+  },
+  "verification": {
+    "fence_methods_passed": 42,
+    "new_methods": 3,
+    "summary": "test result: ok. 42 passed; 0 failed; 1 ignored; 0 measured; 1029 filtered out; finished in 27.06s",
+    "log": ".local/gate-6/received-dtmf-runtime/resource-fds179-fences.log",
+    "log_sha256": "22e69b27013952a85487b889c0783455cdf6bf60c51eea6c43646f05fd42b5a2",
+    "ignored": "One top-level subprocess helper; parent tests execute actual children.",
+    "source_sha256": {
+      "crates/connect-store/src/authority_fences.rs": "e53c2169bb8175d136e562818efee8e6af76f3db415763d509e8821d92b80d70",
+      "crates/connect-store/src/authority_fences/tests/admissions.rs": "fc22f918131525d03696c5f1ee16562cf42e52b35da66ace5766fc024c8b93b4"
+    }
+  },
+  "readiness_diagnostic": {
+    "scope": "Plain original logging and exact binary. Idle read-only SQLite connections; process paused only after actual panic to preserve failure state. Diagnostic only.",
+    "actual_attempts": 3,
+    "actual_passes": 3,
+    "runtime_logs": [
+      {
+        "log": ".local/gate-6/received-dtmf-runtime/plain-readiness179-failure-capture/0/runtime.log",
+        "sha256": "408dc3fc32e2a090bd3a0a688b88a7f1812cc98d2d37cbe9c6183918f5d77485",
+        "summary": "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 253 filtered out; finished in 45.94s"
+      },
+      {
+        "log": ".local/gate-6/received-dtmf-runtime/plain-readiness179-failure-capture/1/runtime.log",
+        "sha256": "5ae92c79eb3803366266ebf67856e8afb8012e8e17a1cdef3c50fe23d84ba9b5",
+        "summary": "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 253 filtered out; finished in 46.02s"
+      },
+      {
+        "log": ".local/gate-6/received-dtmf-runtime/plain-readiness179-failure-capture/2/runtime.log",
+        "sha256": "61935943d2b39d8b3727c4b22743d7004d96e731014132e21e4cf717f9c12033",
+        "summary": "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 253 filtered out; finished in 46.10s"
+      }
+    ],
+    "limitation": "These bounded observer runs did not reproduce the earlier two plain SIP readiness failures. They do not establish a resolved cause or erase those failures."
+  },
+  "pending": [
+    "Complete current full Store suite and exact optimized host build.",
+    "Compile and exercise timeout-only SIP readiness diagnostics, keeping its original15s bound and event/media sequence.",
+    "Run unchanged actual fifty-peer rehearsal and production regressions on the exact updated executable. Full50 still needs both completed algorithm captures and validator; later profiles and whole-gate acceptance remain open."
+  ]
+}

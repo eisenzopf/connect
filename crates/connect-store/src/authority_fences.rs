@@ -17,7 +17,7 @@ use std::{
 };
 
 const MAX_SCOPES: usize = 1024;
-const MAX_IDLE_ADMISSIONS: usize = 128;
+const MAX_IDLE_LOCK_FILES: usize = 128;
 const MAX_IDLE_PER_NAME: usize = 2;
 const MAX_WAIT: Duration = Duration::from_secs(30);
 pub(crate) const DEFAULT_WAIT: Duration = Duration::from_secs(2);
@@ -144,38 +144,38 @@ impl Drop for CancelAuthorityWait {
 
 enum Held {
     Read {
-        _resource: Arc<File>,
+        _resource: Arc<LockFile>,
     },
     // Release resource before admission, so a new reader cannot pass a writer
     // whose exclusive resource lock has not yet been released.
     Write {
         _resource: File,
-        _admission: Admission,
+        _admission: LockFile,
     },
 }
 #[derive(Default)]
-struct IdleAdmissions {
-    files: BTreeMap<String, IdleAdmissionFiles>,
+struct IdleLockFiles {
+    files: BTreeMap<String, IdleLockFilesForName>,
     count: usize,
 }
-struct IdleAdmissionFiles {
+struct IdleLockFilesForName {
     files: Vec<File>,
     // Replacement order only; this timestamp never grants or extends access.
     last_returned: Instant,
 }
 // Exclusive checkout of an open description. Only an explicitly unlocked file
 // may return to the bounded pool; no authority or permission is cached there.
-struct Admission {
+struct LockFile {
     file: Option<File>,
     name: String,
     manager: Weak<Manager>,
 }
-impl Admission {
+impl LockFile {
     fn file(&self) -> &File {
-        self.file.as_ref().expect("live admission checkout")
+        self.file.as_ref().expect("live lock-file checkout")
     }
 }
-impl Drop for Admission {
+impl Drop for LockFile {
     fn drop(&mut self) {
         let Some(file) = self.file.take() else { return };
         if FileExt::unlock(&file).is_err() {
@@ -184,7 +184,7 @@ impl Drop for Admission {
         let Some(manager) = self.manager.upgrade() else {
             return;
         };
-        let Ok(mut idle) = manager.admissions.try_lock() else {
+        let Ok(mut idle) = manager.idle_files.try_lock() else {
             return;
         };
         if idle
@@ -196,7 +196,7 @@ impl Drop for Admission {
         }
         // A cold bootstrap must not pin the initial namespace forever. Evict
         // only an idle, unlocked description, and close it outside the map lock.
-        let evicted = if idle.count >= MAX_IDLE_ADMISSIONS {
+        let evicted = if idle.count >= MAX_IDLE_LOCK_FILES {
             let Some(oldest) = idle
                 .files
                 .iter()
@@ -227,7 +227,7 @@ impl Drop for Admission {
         let entry = idle
             .files
             .entry(self.name.clone())
-            .or_insert_with(|| IdleAdmissionFiles {
+            .or_insert_with(|| IdleLockFilesForName {
                 files: Vec::new(),
                 last_returned: now,
             });
@@ -269,8 +269,8 @@ pub(crate) struct Manager {
     state_identity: String,
     // Bounded namespace metadata only: never a file, lock, reader or grant.
     names: Mutex<BTreeMap<(Kind, String), String>>,
-    readers: Mutex<BTreeMap<String, Weak<File>>>,
-    admissions: Mutex<IdleAdmissions>,
+    readers: Mutex<BTreeMap<String, Weak<LockFile>>>,
+    idle_files: Mutex<IdleLockFiles>,
 }
 impl Manager {
     pub(crate) fn open(path: &Path, secret: &str) -> Result<Arc<Self>> {
@@ -320,7 +320,7 @@ impl Manager {
             fingerprint,
             names: Mutex::new(BTreeMap::new()),
             readers: Mutex::new(BTreeMap::new()),
-            admissions: Mutex::new(IdleAdmissions::default()),
+            idle_files: Mutex::new(IdleLockFiles::default()),
         });
         managers.insert(name, Arc::downgrade(&manager));
         Ok(manager)
@@ -378,7 +378,7 @@ impl Manager {
                 wait.check()?;
             }
             let name = self.name(key)?;
-            let admission = self.admission(&format!("{name}.admission"))?;
+            let admission = self.lock_file(&format!("{name}.admission"))?;
             lock_with(admission.file(), wait)?;
             if *mode == AuthorityMode::Write {
                 let resource = self.file(&format!("{name}.resource"))?;
@@ -399,10 +399,10 @@ impl Manager {
                 let resource = if let Some(resource) = readers.get(&name).and_then(Weak::upgrade) {
                     resource
                 } else {
-                    let file = self.file(&format!("{name}.resource"))?;
+                    let file = self.lock_file(&format!("{name}.resource"))?;
                     // A cooperative exclusive owner retains admission. A shared
                     // lock cannot contend here; do not wait under the map mutex.
-                    FileExt::try_lock_shared(&file).map_err(|_| {
+                    FileExt::try_lock_shared(file.file()).map_err(|_| {
                         Error::new(
                             "authority-unavailable",
                             "Authority resource ownership is inconsistent",
@@ -470,8 +470,8 @@ impl Manager {
         )?;
         Ok(file)
     }
-    fn admission(self: &Arc<Self>, name: &str) -> Result<Admission> {
-        let cached = self.admissions.try_lock().ok().and_then(|mut idle| {
+    fn lock_file(self: &Arc<Self>, name: &str) -> Result<LockFile> {
+        let cached = self.idle_files.try_lock().ok().and_then(|mut idle| {
             let file = idle.files.get_mut(name)?.files.pop()?;
             idle.count -= 1;
             if idle
@@ -485,18 +485,18 @@ impl Manager {
         });
         let file = match cached {
             Some(file) => {
-                self.validate_cached_admission(name, &file)?;
+                self.validate_cached_lock_file(name, &file)?;
                 file
             }
             None => self.file(name)?,
         };
-        Ok(Admission {
+        Ok(LockFile {
             file: Some(file),
             name: name.into(),
             manager: Arc::downgrade(self),
         })
     }
-    fn validate_cached_admission(&self, name: &str, file: &File) -> Result<()> {
+    fn validate_cached_lock_file(&self, name: &str, file: &File) -> Result<()> {
         let location = self.directory.join(name);
         let path = fs::symlink_metadata(&location)
             .map_err(|_| Error::new("authority-unavailable", "Authority file changed"))?;
