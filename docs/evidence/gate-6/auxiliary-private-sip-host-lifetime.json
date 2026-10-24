@@ -1,6 +1,6 @@
 {
   "task": "G6-046",
-  "recorded_at": "2026-10-24T22:28:01.691271+00:00",
+  "recorded_at": "2026-10-24T22:31:23.568574+00:00",
   "source_base_commit": "4755f1f6",
   "status": "quarantine-bootstrap-regression-fixed-focused-current-checks-pass-runtime-revalidation-running",
   "full_task_complete": false,
@@ -209,6 +209,39 @@
           "elapsed_seconds": 0.9293203328270465,
           "log": ".local/gate-6/received-dtmf-runtime/quarantine122-focused-002/group-1.log",
           "log_sha256": "03309e4024523dec800e9047925c7d850ed17bc5599c15bd7f1905136b5e9c7e"
+        }
+      ]
+    },
+    "quarantine_bootstrap_combined_store": {
+      "passed": true,
+      "distinct_successful_cases": 97,
+      "successful_executions": 97,
+      "ignored_cases": 0,
+      "summary": ".local/gate-6/received-dtmf-runtime/quarantine122-store-003/summary.json",
+      "summary_sha256": "fb354a6fa4f47a2e6c04173b489bf5466457f31d4368198754c773fdf8483cac",
+      "source_inputs_unchanged": true,
+      "executable_unchanged": true,
+      "executable_sha256": "d6e8e591346606482daf9e5e2aeae673f1b8b65d30e2206ff797876eb4d5ea7b",
+      "groups": [
+        {
+          "filter": "connection_control::tests::sip_consultation::",
+          "exit_code": 0,
+          "passed": true,
+          "passed_cases": 95,
+          "ignored_cases": 0,
+          "elapsed_seconds": 192.7600897080265,
+          "log": ".local/gate-6/received-dtmf-runtime/quarantine122-store-003/group-0.log",
+          "log_sha256": "7b4dd2ef038e92cb55380e81447b221cedac27e8ea403fc1ab511b92b42befcb"
+        },
+        {
+          "filter": "connection_control::tests::consultation_presence::",
+          "exit_code": 0,
+          "passed": true,
+          "passed_cases": 2,
+          "ignored_cases": 0,
+          "elapsed_seconds": 7.037228834116831,
+          "log": ".local/gate-6/received-dtmf-runtime/quarantine122-store-003/group-1.log",
+          "log_sha256": "a21d315fa106b285166085eb7e3f41506b8dab0cf8985a286eb08e8f84f35256"
         }
       ]
     }
