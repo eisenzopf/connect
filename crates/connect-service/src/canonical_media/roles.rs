@@ -182,6 +182,25 @@ impl ParticipantControlLease for Projection {
     }
 }
 impl Policy {
+    fn unchanged_native_role_hint(
+        &self,
+        id: &ConnectionId,
+        core: &rvoip_core::Orchestrator,
+    ) -> bool {
+        let Ok(entry) = self.entry(id) else {
+            return false;
+        };
+        let Ok(Some(role)) = self.store.try_native_session_role_hint(&entry.origin) else {
+            return false;
+        };
+        core.participant_session_role(
+            &SessionId::from_string(entry.origin.session_id()),
+            &ParticipantId::from_string(entry.origin.participant_id()),
+        )
+        .ok()
+        .flatten()
+            == Some(crate::canonical_runtime::participant_role(&role))
+    }
     fn role_sources(
         &self,
         facts: &Facts,
@@ -234,6 +253,9 @@ impl Runtime {
         let Ok(_serial) = self.role_projection.try_lock() else {
             return;
         };
+        if self.media.unchanged_native_role_hint(id, &self.core) {
+            return;
+        }
         // The unchanged-role poll needs only the actual current source's read.
         let probe = if let Ok(entry) = self.media.entry(id) {
             let Ok(read) = self.media.store.try_native_media_read(&entry.origin, None) else {

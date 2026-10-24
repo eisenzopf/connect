@@ -36,6 +36,22 @@ admission; data-command custody is separate.
 The [Store component report](../evidence/gate-6/auxiliary-native-packet-reader.json)
 records current-policy and owned-fence behavior. The
 [integration checkpoint](../evidence/gate-6/auxiliary-native-packet-custody.json)
-records controlled Core tests and the pending exact host build and real 50-peer
-retest. The canonical HTTP wire contract is unchanged; see its
+records controlled Core tests, the completed exact host build and actual runtime
+results, including unresolved telephone movement and 50-peer failures. The canonical HTTP wire contract is unchanged; see its
 [OpenAPI reference](../../contracts/openapi-canonical-http.json).
+
+
+The native custodian lifetime poll can use a positive unchanged SQL-versioned
+expiry observation without acquiring file readers. A missing hint, mutation,
+clock edge or expired source returns to complete current admission before any
+retirement decision. This observation only keeps the original custodian alive;
+it cannot authorize media or a control operation.
+
+`Store::try_native_session_role_hint` similarly exposes only an unchanged role
+string. A consumer may skip a disposable projection when Core already has that
+role. Applying a different role still requires the complete current role read,
+source set and original mutation fences. Neither hint retains a reader across
+idle time or changes the original credential expiry. The
+[observation report](../evidence/gate-6/auxiliary-native-observation-hints.json)
+records controlled current-authority, SQL mutation and expiry checks and labels
+its pending host integration separately.
