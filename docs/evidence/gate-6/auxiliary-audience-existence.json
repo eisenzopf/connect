@@ -1,8 +1,8 @@
 {
   "task": "G6-046",
   "title": "Probe exact current audience rows without building union tables",
-  "recorded_at": "2026-10-24T03:47:08.743094+00:00",
-  "status": "1113-store-methods-and-host-build-verified; actual-full50-steady-media-failed; production-regressions-active",
+  "recorded_at": "2026-10-24T03:55:53.653158+00:00",
+  "status": "1113-store-and-eight-production-methods-verified; full50-steady-media-unresolved",
   "full_task_complete": false,
   "full_goal_complete": false,
   "qualified_case_ids": [],
@@ -51,7 +51,15 @@
       "audience176-fifty.log": "d787a25091e655277207a464f145d5b9e71ec6acd62a7ee28fe09b50fffca642",
       "audience176-profile-fifty.log": "eb29d15174c67c106d6d93892ce210a4900fb1a36fc9c3be24d77995331910eb",
       "audience176-sample-command.log": "0770c71108bee1d4066af9640327dd993e54ebcb468e8b7690d2f31cd81fcf13",
-      "audience176-profile-analysis.json": "3e941d1cc9b840947ac06bb10ca9cd26c42b88cb62768833ae221c997e25592a"
+      "audience176-profile-analysis.json": "3e941d1cc9b840947ac06bb10ca9cd26c42b88cb62768833ae221c997e25592a",
+      "audience176-production-0.log": "cbc28c0a81a1192e6548848b2959334591705324f66f3028bb15b725d89b26e1",
+      "audience176-production-1.log": "9a63fbed29941c0d3436e02d0d71638794c135988c4b6d4682ea87e6dcf7c323",
+      "audience176-production-3.log": "f91427831b396f8c48013f50192ffb0f9c7a8a0bc52548862d4893400cc54115",
+      "audience176-production-5.log": "405bb2458f4cc5c70174320344c1eceb0fbbc1b6f16ff3cd1c330d421d20ba06",
+      "audience176-production-6.log": "25b00bab6ed5b7ad8e8efaf07f27c9baafc3a78095682dde1dfa7b9d55a8af95",
+      "audience176-production-7.log": "808ff3a8a6e5ef26bf88e1e965029ad9e18bec30d63654e6cd7d5089b907305c",
+      "audience176-production-9.log": "178508cc857f1a13a867d5f9f6c8d13bcde409a634341325d07cbf04e0bf6400",
+      "audience176-production-10.log": "48c34416d2c2c727f841cee72fd53c1299d9138bc6ec82801c60d55291d33a15"
     },
     "sql_diagnostic": {
       "scope": "Separate controlled50-member relational fixture, not a full Store or native host runtime. Both statements prepared once against the target bundled SQLite3.46.0 and executed2000 times with the same original Session recipient. Read-only connections; all4000 results true. No native media/throughput qualification.",
@@ -119,10 +127,22 @@
       "total_mutex_wait_thread_samples": 1278,
       "observation": "Core admit_with_data owns controller State while calling fresh current policy, which can acquire many file fences. Consider audio-only capture/release/revalidate rather than retaining or reusing an old authorization across packets.",
       "sample_sha256": "27ec5a994688a5d915fc6ef4683a7332b6cf1cc55a788abca93067e79c5bef64"
-    }
+    },
+    "production_methods_passed": [
+      "canonical_native_connections::lifecycle::production_native_lifecycle_quality_reports_actual_flow_through_signed_sdk",
+      "canonical_native_connections::selector_policy::production_native_heterogeneous_wildcard_preserves_audio_and_definitive_refusals",
+      "canonical_native_connections::production_signed_native_stream_subscription_routes_audio_and_replays_without_another_effect",
+      "canonical_native_connections::consultation::production_private_consultation_switches_actual_audio_without_leaking_to_remote_or_public_context",
+      "canonical_native_connections::consultation::groups::handoff::production_native_private_handoff_commits_roles_and_retains_remote_audio",
+      "canonical_native_connections::dtmf::production_native_refresh_retains_actual_decoded_rtp_after_original_expiry",
+      "canonical_native_connections::consultation::groups::replacement::telephone::received::privacy::production_moved_sip_received_private_audience_and_return_keep_actual_lifetime",
+      "canonical_native_connections::consultation::groups::replacement::telephone::received::refresh::production_moved_sip_dtmf_refresh_preserves_queued_epoch_and_fresh_bidirectional_delivery"
+    ],
+    "production_method_count": 8,
+    "production_retest_completed": true
   },
   "unresolved": [
-    "Complete active exact audience176 affected production regressions. Resolve actual steady audio: direct Boolean SQL probes did not establish49-way throughput. Fresh Core packet admission still holds State during policy/file acquisition; verify an audio-only capture/release/revalidation design without weakening fresh authority, credential, current port/model, route, cancellation or original200ms frame age.",
+    "Source176 exact new audience-query host passed8 affected production methods after1113 Store checks, but full50 steady media still failed. Verify the next retained-audio Core change with fresh policy/file admission outside State and exact revision/credential/port/retained-gate revalidation; its source177 patch is separate and not qualified by these source176 results.",
     "Then run actual rebuilt fifty-peer and affected production profiles without concurrent builds/tests, preserving50 peers/49 explicit receivers, original8s command/startup bounds,200ms frame age and>10 decoded frames for each intended recipient. Validate a complete both-algorithm capture only if all phases pass.",
     "Source176 before this Store change failed full50 steady1..12 after all49 actual receiver startups; original source175 ES256 telephone compound movement Unknown remains unexplained despite passing targeted repeats. Neither history is erased.",
     "G6-046 remains58/61 and45/105 tasks complete. Later Linux/browser/remote/provider/independent/acceptance/publication checks remain separate."
