@@ -1,8 +1,8 @@
 {
   "task": "G6-046",
   "title": "Probe exact current audience rows without building union tables",
-  "recorded_at": "2026-10-24T03:40:59.910851+00:00",
-  "status": "complete-store-library-history-integration-and-host-build-verified; actual-full50-active",
+  "recorded_at": "2026-10-24T03:47:08.743094+00:00",
+  "status": "1113-store-methods-and-host-build-verified; actual-full50-steady-media-failed; production-regressions-active",
   "full_task_complete": false,
   "full_goal_complete": false,
   "qualified_case_ids": [],
@@ -47,7 +47,11 @@
       "audience176-current-plan.log": "8f67c408cb88f7bc3c9a0c7aa5211024529a34ba19d4df6fe534fb745cd34a23",
       "audience176-all-units.log": "21c80e27cf69d7a45e73df97408650f43685bc3b1fb96c71c51aa5f6add3fb10",
       "audience176-history-integration.log": "2c403960059e906788dd6fbdbd033522c8b4a839d9abdee869dc86540f1421d4",
-      "audience176-fifty-inputs.json": "e38866c7a6888f55dd34b0ffb4961341816d22849fe3263bb50945873b397a13"
+      "audience176-fifty-inputs.json": "e38866c7a6888f55dd34b0ffb4961341816d22849fe3263bb50945873b397a13",
+      "audience176-fifty.log": "d787a25091e655277207a464f145d5b9e71ec6acd62a7ee28fe09b50fffca642",
+      "audience176-profile-fifty.log": "eb29d15174c67c106d6d93892ce210a4900fb1a36fc9c3be24d77995331910eb",
+      "audience176-sample-command.log": "0770c71108bee1d4066af9640327dd993e54ebcb468e8b7690d2f31cd81fcf13",
+      "audience176-profile-analysis.json": "3e941d1cc9b840947ac06bb10ca9cd26c42b88cb62768833ae221c997e25592a"
     },
     "sql_diagnostic": {
       "scope": "Separate controlled50-member relational fixture, not a full Store or native host runtime. Both statements prepared once against the target bundled SQLite3.46.0 and executed2000 times with the same original Session recipient. Read-only connections; all4000 results true. No native media/throughput qualification.",
@@ -86,10 +90,39 @@
       "gate6_messages": 17,
       "gate6_receipts": 7
     },
-    "distinct_store_methods_passed": 1113
+    "distinct_store_methods_passed": 1113,
+    "full50_retest_completed": true,
+    "full50_attempt": {
+      "passed": false,
+      "duration_seconds": 73.48,
+      "participants": 50,
+      "actual_connections": 99,
+      "completed_subscriptions": 49,
+      "actual_receiver_startup_ms": 3781,
+      "steady_decoded_range": [
+        5,
+        14
+      ],
+      "required_each": ">10",
+      "future_phases_reached": false,
+      "second_algorithm_reached": false,
+      "complete_capture_rows": 0
+    },
+    "current_host_profile": {
+      "scope": "Separate five-second sampling request near final subscription and actual receiver startup/steady media;2ms requested frequency. Diagnostic only, may perturb timing; thread-sample counts are not whole-process CPU percentages.",
+      "mutex_wait_thread_sample_counts": {
+        "other": 77,
+        "sqlite-internal": 309,
+        "packet-controller-state": 349,
+        "store-connection": 543
+      },
+      "total_mutex_wait_thread_samples": 1278,
+      "observation": "Core admit_with_data owns controller State while calling fresh current policy, which can acquire many file fences. Consider audio-only capture/release/revalidate rather than retaining or reusing an old authorization across packets.",
+      "sample_sha256": "27ec5a994688a5d915fc6ef4683a7332b6cf1cc55a788abca93067e79c5bef64"
+    }
   },
   "unresolved": [
-    "Exact Store sequence41358 completed successfully:1056 root library passes/3 ignored subprocess helper entries plus57 actual public Store integration methods. Allow the active isolated exact new fifty-peer host run to complete, then inspect and validate its capture before capacity credit.",
+    "Complete active exact audience176 affected production regressions. Resolve actual steady audio: direct Boolean SQL probes did not establish49-way throughput. Fresh Core packet admission still holds State during policy/file acquisition; verify an audio-only capture/release/revalidation design without weakening fresh authority, credential, current port/model, route, cancellation or original200ms frame age.",
     "Then run actual rebuilt fifty-peer and affected production profiles without concurrent builds/tests, preserving50 peers/49 explicit receivers, original8s command/startup bounds,200ms frame age and>10 decoded frames for each intended recipient. Validate a complete both-algorithm capture only if all phases pass.",
     "Source176 before this Store change failed full50 steady1..12 after all49 actual receiver startups; original source175 ES256 telephone compound movement Unknown remains unexplained despite passing targeted repeats. Neither history is erased.",
     "G6-046 remains58/61 and45/105 tasks complete. Later Linux/browser/remote/provider/independent/acceptance/publication checks remain separate."
