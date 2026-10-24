@@ -1,8 +1,8 @@
 {
   "task": "G6-046",
   "title": "Release controller State during fresh retained-audio policy admission",
-  "recorded_at": "2026-10-24T04:11:29.037104+00:00",
-  "status": "218-Core-methods-verified; host-link-NoSpace-failure-recorded; exact-retry-active",
+  "recorded_at": "2026-10-24T04:13:03.702393+00:00",
+  "status": "218-Core-methods-and-exact-host-build-verified; full50-runtime-active",
   "full_task_complete": false,
   "full_goal_complete": false,
   "qualified_case_ids": [],
@@ -20,7 +20,7 @@
     "core_test_build_active": false,
     "core_test_build_passed": true,
     "new_test_method_count": 4,
-    "default_host_build_passed": false,
+    "default_host_build_passed": true,
     "source_lock_sha256": "9a81792723468ecd30ec5339e4307304c4a8ebbdb97b7df6382ba1bed9a043d9",
     "prior_store_and_host_scope": "Unchanged Store audience query has1113 Store methods and8 actual source176 production methods passed; these are prior component/host evidence, not source177 runtime proof.",
     "local_log_sha256": {
@@ -30,9 +30,11 @@
       "admission177-core.log": "03f7bd6b2c3e3e918acee9fad4e37f8b385d904cd0ba680c3c90262825c4d920",
       "admission177-server-build.log": "8844cda0ecf603624dfdac894b87fe3d0f16c6561234a39e2a8143288d84aed9",
       "admission177-unit-object-recovery.json": "9098339c3f08d752c39206c4f6277e25dc6adbe57e097dbbdb8748fa39fed457",
-      "admission177-service-object-recovery.json": "1429e0bfea9651e30d94914fba20272a6b94c810d116e30631920330d13a90a7"
+      "admission177-service-object-recovery.json": "1429e0bfea9651e30d94914fba20272a6b94c810d116e30631920330d13a90a7",
+      "admission177-server-retry.log": "5a7c862602bb9b1a4a74400787309b8f91e423f2e38ec47172c1bab9fc6ed3aa",
+      "admission177-runtime-inputs.json": "786f2fa00cb451e23be835e881170478972a9d79e61078dded6572b8ae1c9797"
     },
-    "scope": "All218 controlled local macOS arm64 Core staged-media methods pass, including4new callback-race/decoded/recovery/refusal cases. Exact default host build53237 is active; no source177 host/capacity result is inferred.",
+    "scope": "Local macOS arm64 controlled Core218 methods pass. First host link failed with real NoSpace; after verified obsolete-object recovery the exact same-source/profile host retry passes in4.38s. Full50 runtime is active; no source177 capacity pass yet.",
     "core_test_build_duration_seconds": 353,
     "rust_distinct_methods_passed": 218,
     "new_methods": [
@@ -42,7 +44,7 @@
       "staged_streams::tests::packet_admission::retained_audio_policy_releases_state_and_fresh_decoded_delivery_keeps_no_idle_reader"
     ],
     "core_test_duration_seconds": 6.46,
-    "default_host_build_active": true,
+    "default_host_build_active": false,
     "workspace_format_check_passed": true,
     "openapi_generation_check_passed": true,
     "diff_check_passed": true,
@@ -55,10 +57,12 @@
       "current_objects_retained": 768,
       "actual_home_free_after": "18GiB",
       "logical_bytes_not_physical_space": "Recorded removed logical byte totals are not claimed as actual recovered filesystem blocks."
-    }
+    },
+    "default_host_retry_duration_seconds": 4.38,
+    "default_host_retry_source_profile_unchanged": true
   },
   "unresolved": [
-    "Allow the exact same-source/profile host retry to finish after verified disk recovery. Original failed host link remains recorded; only a successful retry followed by actual runtime checks can qualify integration.",
+    "Allow the exact active source177 fifty-peer runtime to finish. If it passes every phase for both algorithms, validate the complete capture; otherwise preserve its first failed assertion and investigate. Then run affected actual production regressions on this exact source177 host.",
     "Then build the exact default host once, run complete fifty-peer EdDSA/ES256 phases and affected production regressions. Keep50 peers/49 explicit receivers, original8s commands/startup,200ms age and>10 decoded frames per intended recipient. Validate a complete capture only if every phase passes.",
     "Source176 audience rewrite did not resolve capacity: failed full50 steady5..14 after49 actual receiver startups3781ms. Source175 ES256 moved-SIP Unknown remains unproven despite passing repeats. Preserve both histories.",
     "G6-046 remains58/61 with0112/0113/0123 open;45/105 tasks complete. Later Linux/browser/remote/provider/independent/acceptance/publication scopes remain separate."
