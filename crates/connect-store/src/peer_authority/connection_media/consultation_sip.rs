@@ -198,43 +198,59 @@ pub(super) fn reads(
         })
         .collect()
 }
-/// A source edge shares the real native target view and the separately typed
-/// SIP source read. No SIP PeerConnectionProjection or signing fields exist.
-pub(super) fn receive_edges(
+/// Return grants restore only the original primary's public programmes. Other
+/// private pairs keep their own physical floors and current registered context.
+pub(super) fn return_edges(
     store: &Store,
     c: &Connection,
     natives: &[Arc<NativeMediaOrigin>],
     phones: &BTreeMap<String, Arc<SipAudienceRead>>,
     targets: &mut BTreeMap<(String, Option<String>), Arc<NativeMediaRead>>,
-) -> Result<()> {
+    primary: &str,
+    candidate: &str,
+) -> Result<BTreeSet<(String, String)>> {
+    let mut send = BTreeSet::new();
     for native in natives {
         let target = targets
             .get(&(native.connection_id().into(), None))
             .cloned()
             .ok_or_else(Error::forbidden)?;
         let view = target.target();
-        if view.private_consultation.is_some()
+        if native.connection_id() == candidate
             || view.handoff_preparation
             || view.publication_suspended
-            || !target.permits_subscriptions()
         {
             continue;
         }
         let actor = store.native_media_route_actor(c, native)?;
         for (id, phone) in phones {
-            if phone.current()
-                && target.current()
-                && actor.permits_recipient(&phone.member().identity_id)
-                && phone.permits_recipient(&view.session.actor.identity_id)
+            if !phone.current()
+                || !target.current()
+                || !private::return_pair(
+                    store,
+                    c,
+                    native,
+                    view.private_consultation.as_deref(),
+                    id,
+                    primary,
+                )?
+                || !actor.permits_recipient(&phone.member().identity_id)
+                || !phone.permits_recipient(&view.session.actor.identity_id)
             {
+                continue;
+            }
+            if target.permits_subscriptions() {
                 targets.insert(
                     (native.connection_id().into(), Some(id.clone())),
                     target.clone(),
                 );
             }
+            if phone.may_receive() {
+                send.insert((id.clone(), native.connection_id().into()));
+            }
         }
     }
-    Ok(())
+    Ok(send)
 }
 pub(super) fn snapshot(
     store: &Store,

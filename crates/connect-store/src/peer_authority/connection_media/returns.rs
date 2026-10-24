@@ -35,6 +35,10 @@ impl NativeReturnRead {
         &self.selection.origin
     }
 
+    pub fn is_primary_sip(&self, id: &str) -> bool {
+        self.selection.origin.request.connection_id.as_deref() == Some(id)
+            && self.sip_reads.contains_key(id)
+    }
     pub fn current(&self) -> bool {
         crate::now() < self.expires_at
             && self.reads.values().all(|r| r.current())
@@ -471,47 +475,13 @@ impl Store {
             })
             .collect();
         let sip_reads = consultation_sip::reads(self, &c, sips, held.clone(), expires_at)?;
-        consultation_sip::receive_edges(self, &c, sources, &sip_reads, &mut reads)?;
-        let context: String = c.query_row("SELECT context_selection_json FROM native_consultation_returns WHERE operation_record_id=?1",[&origin.record],|r|r.get(0)).map_err(|_|Error::storage())?;
-        let context: serde_json::Value =
-            serde_json::from_str(&context).map_err(|_| Error::storage())?;
-        let primary: String = c.query_row("SELECT primary_connection_id FROM native_consultation_legs WHERE operation_record_id=?1",[origin.consultation_record_id()],|r|r.get(0)).map_err(|_|Error::storage())?;
-        let private = context["private"].as_array().ok_or_else(Error::storage)?;
-        let mut sip_send = BTreeSet::new();
-        for native in sources {
-            let read = reads
-                .get(&(native.connection_id().into(), None))
-                .ok_or_else(Error::forbidden)?;
-            let view = read.target();
-            if native.connection_id() != primary
-                && crate::connection_control::private_consultation::private_partner(
-                    &c,
-                    native.connection_id(),
-                )?
-                .is_some()
-            {
-                continue;
-            }
-            if view.private_consultation.is_some()
-                || view.handoff_preparation
-                || view.publication_suspended
-                || (native.connection_id() != primary
-                    && private
-                        .iter()
-                        .any(|p| p["connection_id"] == native.connection_id()))
-            {
-                continue;
-            }
-            let actor = self.native_media_route_actor(&c, native)?;
-            for (id, phone) in &sip_reads {
-                if phone.may_receive()
-                    && actor.permits_recipient(&phone.member().identity_id)
-                    && phone.permits_recipient(&view.session.actor.identity_id)
-                {
-                    sip_send.insert((id.clone(), native.connection_id().into()));
-                }
-            }
-        }
+        let (primary, candidate): (String, String) = c.query_row(
+            "SELECT primary_connection_id,connection_id FROM native_consultation_legs WHERE operation_record_id=?1",
+            [origin.consultation_record_id()], |r| Ok((r.get(0)?,r.get(1)?)),
+        ).map_err(|_|Error::storage())?;
+        let sip_send = consultation_sip::return_edges(
+            self, &c, sources, &sip_reads, &mut reads, &primary, &candidate,
+        )?;
         Ok(NativeReturnRead {
             sip_send,
             selection,

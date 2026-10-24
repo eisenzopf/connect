@@ -273,7 +273,7 @@ impl SipNativeSignalRead {
 impl Store {
     /// The signal pair must keep both physical private floors. A Participant
     /// match never lends the registered consultant's authority to a sibling.
-    pub(crate) fn require_sip_native_signal_context(
+    pub(crate) fn require_sip_native_pair_context(
         &self,
         c: &Connection,
         phone: &str,

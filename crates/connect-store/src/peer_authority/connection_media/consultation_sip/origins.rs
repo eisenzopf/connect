@@ -11,6 +11,13 @@ pub enum SipAudienceRead {
     Established(Arc<TelephoneMediaRead>),
 }
 impl SipAudienceRead {
+    pub fn session(&self) -> &connect_protocol::session_control::SessionView {
+        match self {
+            Self::Initial(r) => r.session(),
+            Self::Established(r) => r.session(),
+        }
+    }
+
     pub fn may_receive(&self) -> bool {
         self.current()
             && match self {

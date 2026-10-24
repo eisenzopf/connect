@@ -52,7 +52,6 @@ impl StreamSource {
             Self::Initial(leg, read) => {
                 if !read.current()
                     || !read.native().permits_subscriptions()
-                    || read.native().target().private_consultation.is_some()
                     || read.native().target().handoff_preparation
                     || read.native().target().publication_suspended
                 {
@@ -101,7 +100,6 @@ impl StreamSource {
             Self::Initial(leg, read) => {
                 if !read.current()
                     || !read.native().permits_subscriptions()
-                    || read.native().target().private_consultation.is_some()
                     || read.native().target().handoff_preparation
                     || read.native().target().publication_suspended
                 {

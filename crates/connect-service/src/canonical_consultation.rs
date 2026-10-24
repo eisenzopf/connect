@@ -5,7 +5,7 @@ use crate::{
     canonical_runtime::Runtime,
 };
 use connect_protocol::{transitions::TransitionCommand, Error, Result};
-use connect_store::NativeMediaOrigin;
+use connect_store::ConsultationMediaOrigin;
 use rvoip_core::{
     ids::SessionId,
     staged_streams::{
@@ -116,9 +116,6 @@ impl Runtime {
             .media
             .scene_origins(&origin.request().session_id)
             .map_err(denied)?;
-        let mut selected: Vec<Arc<NativeMediaOrigin>> = vec![];
-        let mut remote = None;
-        let mut outside = vec![];
         let primary_id = origin.request().connection_id.as_deref().ok_or_else(|| {
             Error::new(
                 "unsupported-media-profile",
@@ -139,56 +136,64 @@ impl Runtime {
         let Some(candidate) = candidate else {
             return Ok(None);
         };
-        let primary = all
-            .iter()
-            .find(|v| v.connection_id() == primary_id)
-            .cloned()
-            .ok_or_else(Error::forbidden)?;
-        for entry in &all {
-            if entry.connection_id() == retained {
-                remote = Some(entry.clone());
-            } else if entry.connection_id() == primary_id
-                || entry.connection_id() == candidate.connection_id()
-            {
-                selected.push(entry.clone());
-            } else {
-                outside.push(entry.clone());
-            }
-        }
-        let mut outside_sip = self
+        let sips = self
             .media
             .scene_sip_origins(&origin.request().session_id)
             .map_err(denied)?;
-        let remote = match remote {
-            Some(remote) => connect_store::ConsultationMediaOrigin::Native(remote),
-            None => {
-                let index = outside_sip
-                    .iter()
-                    .position(|o| o.connection_id() == retained)
-                    .ok_or_else(Error::forbidden)?;
-                connect_store::ConsultationMediaOrigin::Sip(outside_sip.remove(index))
-            }
+        let mut sources = all
+            .into_iter()
+            .map(ConsultationMediaOrigin::Native)
+            .chain(sips.into_iter().map(ConsultationMediaOrigin::Sip))
+            .collect::<Vec<_>>();
+        let mut take = |id: &str| -> Result<ConsultationMediaOrigin> {
+            let index = sources
+                .iter()
+                .position(|s| s.connection_id() == id)
+                .ok_or_else(Error::forbidden)?;
+            Ok(sources.remove(index))
         };
+        let primary = take(primary_id)?;
+        let remote = take(retained)?;
+        let consultant = take(candidate.connection_id())?;
+        let selected = vec![primary.clone(), consultant];
+        let mut outside = vec![];
+        let mut outside_sip = vec![];
+        for source in sources {
+            match source {
+                ConsultationMediaOrigin::Native(native) => outside.push(native),
+                ConsultationMediaOrigin::Sip(sip) => outside_sip.push(sip),
+            }
+        }
         let read = self.media.store.try_native_consultation_scene_read(
             origin,
             &remote,
-            &selected
-                .iter()
-                .cloned()
-                .map(connect_store::ConsultationMediaOrigin::Native)
-                .collect::<Vec<_>>(),
+            &selected,
             &outside,
             &outside_sip,
         )?;
-        for entry in [&primary, &candidate] {
-            let view = read
-                .media(entry.connection_id(), None)
-                .ok_or_else(Error::forbidden)?
-                .target();
-            if view.session.session.media != ["audio"] {
+        for entry in &selected {
+            let audio_only = match entry {
+                ConsultationMediaOrigin::Native(_) => {
+                    read.media(entry.connection_id(), None)
+                        .ok_or_else(Error::forbidden)?
+                        .target()
+                        .session
+                        .session
+                        .media
+                        == ["audio"]
+                }
+                ConsultationMediaOrigin::Sip(_) => {
+                    read.sip(entry.connection_id())
+                        .ok_or_else(Error::forbidden)?
+                        .session()
+                        .media
+                        == ["audio"]
+                }
+            };
+            if !audio_only {
                 return Err(Error::new(
                     "unsupported-media-profile",
-                    "Private native audience currently requires an audio-only Session",
+                    "Private audience requires an audio-only Session",
                 ));
             }
         }

@@ -498,12 +498,6 @@ fn sip_primary_private_grants_cannot_be_borrowed_by_a_public_sibling_of_the_cons
 fn sip_primary_private_dtmf_pairs_use_only_the_exact_registered_consultant() {
     use crate::TelephoneSignalDirection::{FromTelephone, ToTelephone};
     let s = Scene::new();
-    for direction in [FromTelephone, ToTelephone] {
-        assert!(
-            s.signal(s.candidate.clone(), direction).is_err(),
-            "unprepared candidate must not receive SIP private signals"
-        );
-    }
     permissions(
         &s.f,
         &s.f.keys[2],
@@ -514,6 +508,12 @@ fn sip_primary_private_dtmf_pairs_use_only_the_exact_registered_consultant() {
             "dtmf.receive",
         ],
     );
+    for direction in [FromTelephone, ToTelephone] {
+        assert!(
+            s.signal(s.candidate.clone(), direction).is_err(),
+            "unprepared candidate must not receive SIP private signals"
+        );
+    }
     s.establish();
     for direction in [FromTelephone, ToTelephone] {
         assert!(s.signal(s.candidate.clone(), direction).unwrap().current());
@@ -683,4 +683,98 @@ fn sip_primary_received_private_dtmf_freezes_only_its_physical_partner_and_reche
         !attempted,
         "refused current receive authority must not record a physical attempt"
     );
+}
+
+#[test]
+fn sip_primary_return_grants_restore_only_the_original_call_and_exclude_the_consultant() {
+    let s = Scene::new();
+    s.establish();
+    let revision =
+        s.f.store
+            .connection()
+            .unwrap()
+            .query_row(
+                "SELECT topology_revision FROM sessions WHERE id='session'",
+                [],
+                |r| r.get(0),
+            )
+            .unwrap();
+    let command = TransitionCommand {
+        operation_id: "return-original-sip-primary".into(),
+        conversation_id: s.f.cid.clone(),
+        session_id: "session".into(),
+        connection_id: Some(s.phone.snapshot().connection_id.clone()),
+        expected_revision: revision,
+        intent: TransitionIntent::ConsultReturn {
+            consultation_record_id: s.origin.record_id().into(),
+            retained_connid: s.remote.connection_id().into(),
+        },
+        payload_extensions: Default::default(),
+    };
+    s.f.store
+        .admit_transition_command(&s.controller.id, command.clone())
+        .unwrap();
+    let origin =
+        s.f.store
+            .native_consultation_return_origin(&s.controller.id, command)
+            .unwrap();
+    let read =
+        s.f.store
+            .try_native_return_read(
+                &origin,
+                &[s.remote.clone(), s.candidate.clone()],
+                &[SipAudienceOrigin::Established(s.phone.clone())],
+            )
+            .unwrap();
+    let phone = &s.phone.snapshot().connection_id;
+    assert!(read.current() && read.is_primary_sip(phone));
+    assert!(!read.is_primary_sip(s.remote.connection_id()));
+    assert!(read.sip_receive(s.remote.connection_id(), phone).is_some());
+    assert!(read.sip_send(phone, s.remote.connection_id()).is_some());
+    assert!(read
+        .sip_receive(s.candidate.connection_id(), phone)
+        .is_none());
+    assert!(read.sip_send(phone, s.candidate.connection_id()).is_none());
+    assert!(read.media(s.remote.connection_id(), Some(phone)).is_none());
+}
+
+#[test]
+fn sip_primary_fresh_packet_pair_grants_only_its_current_registered_native_connection() {
+    let s = Scene::new();
+    assert!(s
+        .f
+        .store
+        .try_telephone_native_media_read(s.phone.clone(), s.candidate.clone())
+        .is_err());
+    s.establish();
+    let read =
+        s.f.store
+            .try_telephone_native_media_read(s.phone.clone(), s.candidate.clone())
+            .unwrap();
+    assert!(read.current() && read.permits_native_receive() && read.permits_telephone_receive());
+    assert_eq!(
+        read.native().target().private_consultation.as_deref(),
+        Some(s.origin.record_id())
+    );
+    drop(read);
+    assert!(s
+        .f
+        .store
+        .try_telephone_native_media_read(s.phone.clone(), s.remote.clone())
+        .is_err());
+    let sibling = s.sibling();
+    assert_eq!(sibling.participant_id(), s.candidate.participant_id());
+    assert!(s
+        .f
+        .store
+        .try_telephone_native_media_read(s.phone.clone(), sibling)
+        .is_err());
+    let admin = s.f.store.revalidate(&s.f.admin).unwrap();
+    s.f.store.revoke(&admin, &s.controller.id).unwrap();
+    assert!(s
+        .f
+        .store
+        .try_telephone_native_media_read(s.phone.clone(), s.candidate.clone())
+        .unwrap()
+        .current());
 }

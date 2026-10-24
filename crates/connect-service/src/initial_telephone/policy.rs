@@ -468,7 +468,6 @@ impl MediaPolicy for Leg {
             if !pair.current()
                 || !pair.phone().is_connected()
                 || !pair.phone().may_receive()
-                || pair.native().target().private_consultation.is_some()
                 || pair.native().target().handoff_preparation
                 || pair.native().target().publication_suspended
             {
@@ -624,7 +623,6 @@ impl Leg {
         self.validate_participant_source(source, read.phone())?;
         if !read.current()
             || !read.native().permits_subscriptions()
-            || read.native().target().private_consultation.is_some()
             || read.native().target().handoff_preparation
             || read.native().target().publication_suspended
         {
@@ -691,7 +689,6 @@ impl Leg {
             if !read.current()
                 || !read.phone().is_connected()
                 || !read.native().permits_subscriptions()
-                || read.native().target().private_consultation.is_some()
                 || read.native().target().handoff_preparation
                 || read.native().target().publication_suspended
             {
@@ -734,7 +731,6 @@ impl Leg {
         if !read.current()
             || !read.phone().is_connected()
             || !read.phone().may_receive()
-            || read.native().target().private_consultation.is_some()
             || read.native().target().handoff_preparation
             || read.native().target().publication_suspended
         {

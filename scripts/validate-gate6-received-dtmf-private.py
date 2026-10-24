@@ -46,26 +46,19 @@ def main():
             status.validate(record)
             assert record['operation_id'] not in operations
             operations.add(record['operation_id'])
-            if phase == 'private':
-                assert record['state'] == 'failed'
-                assert record['problem']['code'] == 'partial-submission'
-                result = record['problem']['signal']
-            else:
-                assert record['state'] == 'completed'
-                result = record['result']
+            assert record['state'] == 'completed'
+            result = record['result']
             signal.validate(result)
             assert result['signal_source'] == result['source_observation']['kind'] == kind
             assert result['source_observation_id'] == result['source_observation']['observation_id']
             assert result['received_at'] == result['source_observation']['received_at']
             recipients = result['recipients']
-            assert len(recipients) == 2
-            assert {r['connection_id'] for r in recipients} == {primary, public}
+            expected = {public} if phase == 'private' else {primary, public}
+            assert len(recipients) == len(expected)
+            assert {r['connection_id'] for r in recipients} == expected
             assert not any(r['connection_id'] == private for r in recipients)
             assert next(r for r in recipients if r['connection_id'] == public)['participant_id'] == row['same_participant']
             if phase == 'private':
-                blocked = next(r for r in recipients if r['connection_id'] == primary)
-                assert blocked['disposition'] == 'not_started'
-                assert blocked['frame_id'] != row['private_frame']['id']
                 assert {f['connid'] for f in frames} == {public}
             else:
                 assert {f['connid'] for f in frames} == {primary, public}
@@ -87,7 +80,7 @@ def main():
                 assert key not in result['source_observation']
         assert len(conversations) == 1 and len(operations) == 3
     assert len(frame_ids) == 10
-    print(json.dumps({'passed': True, 'installed_scenes': 2, 'received_operations': 6, 'signed_native_frames': 10, 'source_kind': args.source_kind, 'scope': 'Local selected SIP source outside an actual native private pair. Store excludes privately admitted recipient; current Core audience excludes the public primary while its private slot is active. A public Device of the same consultant Participant receives. Return/replay/fresh-input recovery and owned cleanup are tested by the production fixture. No private SIP slots, WebRTC, crash, capacity or complete Gate6 claim.'}))
+    print(json.dumps({'passed': True, 'installed_scenes': 2, 'received_operations': 6, 'signed_native_frames': 10, 'source_kind': args.source_kind, 'scope': 'Local selected SIP source outside an actual native private pair. Store excludes both active private physical slots before recipient freeze; current Core audience remains independently authoritative. A public Device of the same consultant Participant receives. Return/replay/fresh-input recovery and owned cleanup are tested by the production fixture. No private SIP slots, WebRTC, crash, capacity or complete Gate6 claim.'}))
 
 
 if __name__ == '__main__':

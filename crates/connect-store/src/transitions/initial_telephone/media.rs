@@ -760,6 +760,12 @@ impl Store {
         native_origin: &crate::NativeMediaOrigin,
         native: crate::NativeMediaRead,
     ) -> Result<InitialTelephoneNativeRead> {
+        self.require_sip_native_pair_context(
+            c,
+            phone.connection_id(),
+            native_origin,
+            native.target().private_consultation.as_deref(),
+        )?;
         let actor = self.native_media_route_actor(c, native_origin)?;
         if !actor.permits_recipient(&phone.source().target.identity_id) {
             return Err(Error::forbidden());
@@ -775,6 +781,9 @@ impl Store {
             || initial.source().request.session_id != native.target().session.session.id
             || !initial
                 .endpoint_actor()
+                .permits_recipient(&native.target().session.actor.identity_id)
+            || !initial
+                .route_actor()
                 .permits_recipient(&native.target().session.actor.identity_id)
         {
             return Err(Error::forbidden());

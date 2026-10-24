@@ -172,7 +172,7 @@ impl Store {
         let actor = self.native_media_route_actor(c, &native)?;
         actor.require(direction.native_permission())?;
         let view = native_read.target();
-        self.require_sip_native_signal_context(
+        self.require_sip_native_pair_context(
             c,
             &phone.snapshot().connection_id,
             &native,

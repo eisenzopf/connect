@@ -88,6 +88,12 @@ impl Store {
             read.interval().clone(),
             read.expires_at(),
         )?;
+        self.require_sip_native_pair_context(
+            c,
+            &phone.snapshot().connection_id,
+            native,
+            read.target().private_consultation.as_deref(),
+        )?;
         let actor = self.native_media_route_actor(c, native)?;
         if !phone
             .route_actor()

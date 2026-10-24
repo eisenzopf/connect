@@ -2,6 +2,8 @@
 use super::*;
 #[path = "received/privacy.rs"]
 pub(super) mod privacy;
+#[path = "received/private_primary.rs"]
+pub(super) mod private_primary;
 #[path = "received/refresh.rs"]
 pub(super) mod refresh;
 #[path = "received/retained.rs"]
@@ -333,12 +335,25 @@ pub(super) async fn send_info(peer: &PeerSip) -> (String, std::net::SocketAddr) 
 pub(super) async fn send_rfc(peer: &PeerSip) {
     send_rfc_timing(peer, true, 1896, 0x87654321).await;
 }
+pub(super) async fn send_next_rfc(peer: &PeerSip) {
+    send_rfc_event(peer, true, 1896, 0x87654321, 36000, 30004).await;
+}
 async fn send_rfc_timing(peer: &PeerSip, start: bool, samples: u16, ssrc: u32) {
+    send_rfc_event(peer, start, samples, ssrc, 18000, 30000).await;
+}
+async fn send_rfc_event(
+    peer: &PeerSip,
+    start: bool,
+    samples: u16,
+    ssrc: u32,
+    timestamp: u32,
+    sequence: u16,
+) {
     let target = peer.media_target.lock().unwrap().unwrap();
     for (index, end) in [!start, true, true, true].into_iter().enumerate() {
         let mut packet = vec![0x80, if end { 101 } else { 0x80 | 101 }];
-        packet.extend_from_slice(&(30000 + index as u16).to_be_bytes());
-        packet.extend_from_slice(&18000u32.to_be_bytes());
+        packet.extend_from_slice(&(sequence + index as u16).to_be_bytes());
+        packet.extend_from_slice(&timestamp.to_be_bytes());
         packet.extend_from_slice(&ssrc.to_be_bytes());
         packet.extend_from_slice(&[5, if end { 0x8a } else { 10 }]);
         packet.extend_from_slice(&samples.to_be_bytes());

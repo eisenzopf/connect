@@ -2920,7 +2920,8 @@
         "current_retained_return_completion_evidence": "docs/evidence/gate-6/auxiliary-retained-sip-completion.json",
         "current_retained_sip_pair_evidence": "docs/evidence/gate-6/auxiliary-retained-sip-pair.json",
         "current_private_sip_primary_store_evidence": "docs/evidence/gate-6/auxiliary-private-sip-primary-store.json",
-        "current_private_sip_primary_signal_evidence": "docs/evidence/gate-6/auxiliary-private-sip-primary-signal.json"
+        "current_private_sip_primary_signal_evidence": "docs/evidence/gate-6/auxiliary-private-sip-primary-signal.json",
+        "current_private_sip_primary_runtime_evidence": "docs/evidence/gate-6/auxiliary-private-sip-primary-runtime.json"
       }
     },
     {
@@ -2974,7 +2975,8 @@
         "current_retained_return_completion_evidence": "docs/evidence/gate-6/auxiliary-retained-sip-completion.json",
         "current_retained_sip_pair_evidence": "docs/evidence/gate-6/auxiliary-retained-sip-pair.json",
         "current_private_sip_primary_store_evidence": "docs/evidence/gate-6/auxiliary-private-sip-primary-store.json",
-        "current_private_sip_primary_signal_evidence": "docs/evidence/gate-6/auxiliary-private-sip-primary-signal.json"
+        "current_private_sip_primary_signal_evidence": "docs/evidence/gate-6/auxiliary-private-sip-primary-signal.json",
+        "current_private_sip_primary_runtime_evidence": "docs/evidence/gate-6/auxiliary-private-sip-primary-runtime.json"
       }
     },
     {

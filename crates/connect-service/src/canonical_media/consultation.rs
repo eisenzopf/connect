@@ -36,6 +36,7 @@ impl AudienceRead {
         sip: &str,
     ) -> Option<(&connect_store::SipAudienceRead, &NativeMediaRead)> {
         match self {
+            Self::Consult(r) => r.sip_receive(native, sip),
             Self::Return(r) => r.sip_receive(native, sip),
             _ => None,
         }
@@ -46,6 +47,7 @@ impl AudienceRead {
         native: &str,
     ) -> Option<(&connect_store::SipAudienceRead, &NativeMediaRead)> {
         match self {
+            Self::Consult(r) => r.sip_send(sip, native),
             Self::Return(r) => r.sip_send(sip, native),
             _ => None,
         }
@@ -83,18 +85,21 @@ impl AudienceInvocation {
                 self.read,
                 AudienceRead::Consult(_) | AudienceRead::Return(_)
             )
-            || plan.request().private_connections.contains(connection)
-            || plan
-                .request()
-                .receivers
-                .get(connection)
-                .is_some_and(|sources| !sources.is_empty())
         {
             return Err(StreamControlError::Authority);
         }
-        if plan.request().receivers.contains_key(connection)
-            && !matches!(&self.read, AudienceRead::Consult(r) if r.is_retained_sip(source))
-        {
+        let private = plan.request().private_connections.contains(connection);
+        let changed = plan.request().receivers.get(connection);
+        let allowed = match &self.read {
+            AudienceRead::Consult(r) if r.is_private_sip(source) => private && changed.is_some(),
+            AudienceRead::Consult(r) if r.is_retained_sip(source) => {
+                !private && changed.is_some_and(|s| s.is_empty())
+            }
+            AudienceRead::Return(r) if r.is_primary_sip(source) => private && changed.is_none(),
+            AudienceRead::Consult(_) | AudienceRead::Return(_) => !private && changed.is_none(),
+            AudienceRead::Handoff(_) => false,
+        };
+        if !allowed {
             return Err(StreamControlError::Authority);
         }
         self.read.sip(source).ok_or(StreamControlError::Authority)

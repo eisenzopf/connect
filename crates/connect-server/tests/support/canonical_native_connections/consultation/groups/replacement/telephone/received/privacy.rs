@@ -238,28 +238,18 @@ pub(crate) async fn exercise(
         .unwrap();
     let private_operation = public_frame.scope(WireScope::Operation).unwrap().to_owned();
     let private_status = settled(&mut http, &private_operation, cid).await;
-    assert_eq!(private_status["state"], "failed");
-    assert_eq!(private_status["problem"]["code"], "partial-submission");
+    assert_eq!(private_status["state"], "completed");
     let recipients = summary(&private_status)["recipients"].as_array().unwrap();
     assert_eq!(
         recipients.len(),
-        2,
-        "unexpected authorized public recipients: {private_status}"
+        1,
+        "unexpected physical recipients: {private_status}"
     );
-    // Store refuses the privately admitted candidate before recipient freeze.
-    // The public primary's original admission remains eligible metadata, but
-    // the current Core audience must still exclude its private physical slot.
+    // Both private physical slots are refused before recipient freeze. A
+    // public sibling of the candidate keeps only its own public authority.
     assert!(!recipients
         .iter()
-        .any(|r| r["connection_id"] == candidate_id));
-    let recipient = recipients
-        .iter()
-        .find(|r| r["connection_id"] == primary_id)
-        .unwrap();
-    assert_eq!(recipient["disposition"], "not_started");
-    // An actual frame may already be reserved before its final physical
-    // audience fence refuses IO. It must never be the public peer's frame.
-    assert_ne!(recipient["frame_id"], public_frame.id());
+        .any(|r| r["connection_id"] == candidate_id || r["connection_id"] == primary_id));
     let recipient = recipients
         .iter()
         .find(|r| r["connection_id"] == public_id)

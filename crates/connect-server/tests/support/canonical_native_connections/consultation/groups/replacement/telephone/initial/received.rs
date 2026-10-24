@@ -8,6 +8,8 @@ pub(super) mod fanout;
 pub(super) mod outcomes;
 #[path = "received/privacy.rs"]
 pub(super) mod privacy;
+#[path = "received/private_primary.rs"]
+pub(super) mod private_primary;
 #[path = "received/restart.rs"]
 pub(super) mod restart;
 #[path = "received/retained.rs"]

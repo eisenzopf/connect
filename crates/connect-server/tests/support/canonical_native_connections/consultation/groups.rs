@@ -339,6 +339,33 @@ async fn begin_request(
     retained: &str,
     candidate: usize,
 ) -> (TransitionCommand, connect_store::IssuedCredential, String) {
+    let identity = peers[primary].identity.clone();
+    let participant = peers[primary].participant.clone();
+    let connection = peers[primary].id.clone();
+    begin_connection_request(
+        f,
+        peers,
+        cid,
+        name,
+        &identity,
+        &participant,
+        &connection,
+        retained,
+        candidate,
+    )
+    .await
+}
+async fn begin_connection_request(
+    f: &Fixture,
+    peers: &mut [Peer],
+    cid: &str,
+    name: &str,
+    primary_identity: &str,
+    primary_participant: &str,
+    primary_connection: &str,
+    retained: &str,
+    candidate: usize,
+) -> (TransitionCommand, connect_store::IssuedCredential, String) {
     let mut grant = Scope::collaboration(vec!["*".into()]);
     grant.operations.extend([
         "session.consult".into(),
@@ -349,7 +376,7 @@ async fn begin_request(
         .server
         .store
         .issue(
-            &peers[primary].identity,
+            primary_identity,
             grant,
             chrono::Utc::now().timestamp() + 600,
         )
@@ -361,12 +388,12 @@ async fn begin_request(
         operation_id: name.into(),
         conversation_id: cid.into(),
         session_id: "native-session".into(),
-        connection_id: Some(peers[primary].id.clone()),
+        connection_id: Some(primary_connection.into()),
         expected_revision: revision(f),
         intent: TransitionIntent::Consult {
             retained_connid: retained.into(),
             private_participants: vec![
-                peers[primary].participant.clone(),
+                primary_participant.into(),
                 peers[candidate].participant.clone(),
             ],
             hold_treatment: HoldTreatment::Silence,

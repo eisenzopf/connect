@@ -201,7 +201,7 @@ impl Store {
         )?;
         let native_read = self.native_signal_read_in(c, &native, interval, phone.expires_at())?;
         let view = native_read.target();
-        self.require_sip_native_signal_context(
+        self.require_sip_native_pair_context(
             c,
             phone.origin().connection_id(),
             &native,
