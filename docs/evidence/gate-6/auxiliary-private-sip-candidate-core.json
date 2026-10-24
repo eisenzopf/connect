@@ -1,6 +1,6 @@
 {
   "task": "G6-046",
-  "recorded_at": "2026-10-24T16:50:06.717478+00:00",
+  "recorded_at": "2026-10-24T16:55:17.182439+00:00",
   "status": "core-private-outbound-admission-and-original-relationship-pins-verified",
   "full_task_complete": false,
   "full_goal_complete": false,
@@ -99,8 +99,22 @@
     "total_distinct_cases": 83,
     "prepared_sources_verified": true,
     "service_compile": {
-      "status": "running-current-pinned-source",
-      "log": ".local/gate-6/received-dtmf-runtime/private-outbound184-service-check-pinned.log"
+      "status": "passed-current-pinned-source",
+      "exit_code": 0,
+      "command": "cargo check -p connect-service --locked --offline -j4 --target-dir target",
+      "source_commit": "3ba15e104fbebed4d870b7a527849866a03eb261",
+      "prepared_patch_count": 184,
+      "log": ".local/gate-6/received-dtmf-runtime/private-outbound184-service-check-pinned.log",
+      "log_sha256": "68e16a85f2f2ef2f3a0c49df64dbbba051998baadddc2e2f8128c5db86ef619c",
+      "result": "Finished `dev` profile [unoptimized + debuginfo] target(s) in 8m 00s",
+      "tracked_tree_clean_at_completion": true,
+      "warnings": "One existing rvoip-uctp private_interfaces warning; no compilation errors."
+    },
+    "post_push_prepared_source_audit": {
+      "passed": true,
+      "command": "bash scripts/prepare-dependencies.sh",
+      "log": ".local/gate-6/received-dtmf-runtime/private-outbound184-post-push-prepare.log",
+      "log_sha256": "fd9d7b181e3ccba9b643af55a186cf132c60aac99c734b2ee4e4e549afe5ffc2"
     }
   },
   "failed_attempts": [
