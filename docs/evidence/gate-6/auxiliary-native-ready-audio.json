@@ -32,6 +32,47 @@
       "log": ".local/gate-6/received-dtmf-runtime/native-ready183-coordinated-staged.log",
       "log_sha256": "0841df459ef35449cf4592c5b2517f933690e3664332467b3f039e80f5487ef4",
       "scope": "Real loopback QUIC and decoded G711, including four new cancellation, joined send/shutdown, panic/unconfirmed cleanup/reconciliation and terminal transport refusal/recovery cases."
+    },
+    {
+      "command": "CARGO_INCREMENTAL=1 cargo test --manifest-path .deps/rvoip/Cargo.toml -p rvoip-uctp --test v2_peer_admission --target-dir target --locked --offline -j4 canonical_media::guarded_mixer:: -- --test-threads=1",
+      "passed": 27,
+      "failed": 0,
+      "ignored": 0,
+      "filtered": 151,
+      "duration_seconds": 27.45,
+      "build_seconds": 99,
+      "log": ".local/gate-6/received-dtmf-runtime/native-ready183-peer-mixer.log",
+      "log_sha256": "aab5697c1bce678d124302f7eacf3cc19846e0625f1066945ef390e093008131",
+      "methods": [
+        "peer_native::canonical_media::guarded_mixer::actual_tls_audio_subscriptions_remove_one_listener_without_disturbing_other_media_or_handles",
+        "peer_native::canonical_media::guarded_mixer::actual_tls_future_audio_selection_precedes_ports_and_survives_late_upgrade_and_reselection",
+        "peer_native::canonical_media::guarded_mixer::actual_tls_guarded_mixer_admits_four_distinct_people_reoffers_and_preserves_other_audio",
+        "peer_native::canonical_media::guarded_mixer::actual_tls_guarded_mixer_role_permission_revocation_and_eof_preserve_remaining_routes",
+        "peer_native::canonical_media::guarded_mixer::actual_tls_owned_scene_reselects_audio_logical_streams_and_retains_participant_intent",
+        "peer_native::canonical_media::guarded_mixer::actual_tls_owned_scene_routes_video_and_screen_without_audio_and_adopts_reoffers",
+        "peer_native::canonical_media::guarded_mixer::handoff::actual_tls_managed_handoff_cancel_or_remote_end_never_publishes_roles_or_retires_healthy_old_route",
+        "peer_native::canonical_media::guarded_mixer::handoff::actual_tls_managed_handoff_commits_role_and_media_together_with_retained_remote_connection",
+        "peer_native::canonical_media::guarded_mixer::handoff::actual_tls_managed_handoff_current_role_denial_and_queued_writer_keep_one_authoritative_commit",
+        "peer_native::canonical_media::guarded_mixer::handoff::actual_tls_managed_handoff_without_explicit_role_policy_preserves_ready_private_bridge",
+        "peer_native::canonical_media::guarded_mixer::replacement::actual_tls_configured_confirmation_accepts_sixteen_keys_and_rejects_malformed_batches",
+        "peer_native::canonical_media::guarded_mixer::replacement::actual_tls_confirmation_replay_gaps_and_media_epochs_cannot_assemble_old_digits",
+        "peer_native::canonical_media::guarded_mixer::replacement::actual_tls_managed_replacement_no_answer_voicemail_and_cancel_keep_original_device",
+        "peer_native::canonical_media::guarded_mixer::replacement::actual_tls_managed_replacement_requires_real_media_and_confirmation_then_commits_once",
+        "peer_native::canonical_media::guarded_mixer::replacement::actual_tls_managed_replacement_separate_signal_permission_and_held_callback_behind_writer",
+        "peer_native::canonical_media::guarded_mixer::replacement::adapter::controlled_browser_and_telephone_no_answer_voicemail_and_silent_resource_loss_preserve_old",
+        "peer_native::canonical_media::guarded_mixer::replacement::adapter::controlled_browser_and_telephone_replacement_use_reserved_route_and_confirmed_duplex_once",
+        "peer_native::canonical_media::guarded_mixer::replacement::adapter::controlled_telephone_deadline_and_remote_loss_release_preparation_without_a_second_origination",
+        "peer_native::canonical_media::guarded_mixer::replacement::adapter::delayed_pre_answer_or_media_dtmf_cannot_become_confirmation_after_readiness",
+        "peer_native::canonical_media::guarded_mixer::replacement::adapter::sip::actual_sip_expired_target_principal_refuses_start_without_faking_route_absence_or_dialing",
+        "peer_native::canonical_media::guarded_mixer::replacement::adapter::sip::actual_sip_guarded_duplex_and_confirmation_move_audio_once_without_exposing_preparation",
+        "peer_native::canonical_media::guarded_mixer::replacement::adapter::sip::actual_sip_guarded_preparation_cancel_and_remote_eof_keep_original_audio_and_release_ports",
+        "peer_native::canonical_media::guarded_mixer::replacement::adapter::sip::actual_sip_ordinary_stream_duplex_survives_guarded_driver_integration",
+        "peer_native::canonical_media::guarded_mixer::replacement::adapter::sip::actual_sip_replacement_cancel_before_start_is_zero_wire",
+        "peer_native::canonical_media::guarded_mixer::replacement::adapter::sip::actual_sip_replacement_lost_wait_no_answer_and_cancel_do_not_create_another_call",
+        "peer_native::canonical_media::guarded_mixer::replacement::adapter::sip::actual_sip_replacement_refused_invite_authority_keeps_original_audio_and_zero_wire",
+        "peer_native::canonical_media::guarded_mixer::replacement::adapter::sip::actual_sip_replacement_reserved_route_answers_and_captures_only_real_dialog_dtmf"
+      ],
+      "scope": "Actual local signed QUIC/WebTransport shared native-adapter mixer, private subscriptions/roles/EOF, handoff/replacement and controlled/actual SIP compositions. Controlled browser adapter cases are not browser runtime qualification."
     }
   ],
   "preserved_attempts": [
@@ -81,7 +122,6 @@
     }
   ],
   "pending": [
-    "Canonical signed QUIC/WebTransport shared-adapter mixer, privacy, handoff and replacement checks.",
     "Optimized integrated host build, fixed both-algorithm fifty-participant rehearsal and affected production methods."
   ],
   "limits": "231 Core primitive cases are separately recorded in auxiliary-ready-audio-batch.json. Prior full-fifty failures remain preserved. No throughput improvement, clause/task promotion, remote/provider/hosting/browser or whole-gate acceptance is claimed. Publication remains separate."
