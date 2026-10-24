@@ -155,8 +155,13 @@ enum Held {
 }
 #[derive(Default)]
 struct IdleAdmissions {
-    files: BTreeMap<String, Vec<File>>,
+    files: BTreeMap<String, IdleAdmissionFiles>,
     count: usize,
+}
+struct IdleAdmissionFiles {
+    files: Vec<File>,
+    // Replacement order only; this timestamp never grants or extends access.
+    last_returned: Instant,
 }
 // Exclusive checkout of an open description. Only an explicitly unlocked file
 // may return to the bounded pool; no authority or permission is cached there.
@@ -182,16 +187,55 @@ impl Drop for Admission {
         let Ok(mut idle) = manager.admissions.try_lock() else {
             return;
         };
-        if idle.count >= MAX_IDLE_ADMISSIONS
-            || idle
-                .files
-                .get(&self.name)
-                .is_some_and(|files| files.len() >= MAX_IDLE_PER_NAME)
+        if idle
+            .files
+            .get(&self.name)
+            .is_some_and(|entry| entry.files.len() >= MAX_IDLE_PER_NAME)
         {
             return;
         }
-        idle.files.entry(self.name.clone()).or_default().push(file);
+        // A cold bootstrap must not pin the initial namespace forever. Evict
+        // only an idle, unlocked description, and close it outside the map lock.
+        let evicted = if idle.count >= MAX_IDLE_ADMISSIONS {
+            let Some(oldest) = idle
+                .files
+                .iter()
+                .min_by_key(|(_, entry)| entry.last_returned)
+                .map(|(name, _)| name.clone())
+            else {
+                return;
+            };
+            let Some(entry) = idle.files.get_mut(&oldest) else {
+                return;
+            };
+            let Some(file) = entry.files.pop() else {
+                return;
+            };
+            idle.count -= 1;
+            if idle
+                .files
+                .get(&oldest)
+                .is_some_and(|entry| entry.files.is_empty())
+            {
+                idle.files.remove(&oldest);
+            }
+            Some(file)
+        } else {
+            None
+        };
+        let now = Instant::now();
+        let entry = idle
+            .files
+            .entry(self.name.clone())
+            .or_insert_with(|| IdleAdmissionFiles {
+                files: Vec::new(),
+                last_returned: now,
+            });
+        entry.files.push(file);
+        entry.last_returned = now;
         idle.count += 1;
+        drop(idle);
+        drop(evicted);
     }
 }
 pub struct AuthorityGuardSet {
@@ -428,9 +472,13 @@ impl Manager {
     }
     fn admission(self: &Arc<Self>, name: &str) -> Result<Admission> {
         let cached = self.admissions.try_lock().ok().and_then(|mut idle| {
-            let file = idle.files.get_mut(name)?.pop()?;
+            let file = idle.files.get_mut(name)?.files.pop()?;
             idle.count -= 1;
-            if idle.files.get(name).is_some_and(Vec::is_empty) {
+            if idle
+                .files
+                .get(name)
+                .is_some_and(|entry| entry.files.is_empty())
+            {
                 idle.files.remove(name);
             }
             Some(file)

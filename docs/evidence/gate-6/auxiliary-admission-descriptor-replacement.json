@@ -1,0 +1,59 @@
+{
+  "scope": "Local macOS arm64 bounded idle-descriptor replacement:77 Store methods pass. Optimized host build and current capacity/production behavior remain pending. Initial-pool1065/8 proof is historical to its exact source; it is not called a current full-suite or capacity pass.45/105 tasks andG6-04658/61 clauses unchanged.",
+  "changes": [
+    "The previous full pool permanently rejected every later admission name, even after a cold bootstrap stopped using its initial128 descriptions. One new actual file/lock case reproduces that working-set exclusion before the change.",
+    "At capacity, replace a description belonging to the least recently returned idle name. Keep at most128 idle descriptions and2 per name. Only explicitly unlocked idle files are candidates; close evicted files after releasing the nonblocking pool mutex.",
+    "Replacement timestamps order disposal only and grant no access or expiry extension. Fresh path/descriptor/current effective ACL checks and actual exclusive OS admission still run. Resource-before-admission writer release and complete authorization/SQL semantics are unchanged. Source179/schema103 and original50/49/8s/200ms/>10 bounds remain fixed."
+  ],
+  "before": {
+    "base_revision": "423b0f46",
+    "new_method": "authority_fences::tests::admissions::active_media_working_set_can_replace_idle_cold_namespace_descriptions",
+    "actual_failure": "cold namespace pinned out media_0.admission",
+    "log": ".local/gate-6/received-dtmf-runtime/admission-replacement179-before.log",
+    "sha256": "48dd4751337db93a6afedaf88688769702852053afe6750da6bd8d0e3604b070"
+  },
+  "verification": {
+    "distinct_methods_passed": 77,
+    "new_methods": 1,
+    "runs": [
+      {
+        "log": ".local/gate-6/received-dtmf-runtime/admission-replacement179-fences.log",
+        "sha256": "45671d12ef32017704a848724e4793457fa0a9dc2d892bdf6f5ae6ddeaf60abf",
+        "summary": "test result: ok. 39 passed; 0 failed; 1 ignored; 0 measured; 1029 filtered out; finished in 24.69s",
+        "ignored_entries": [
+          "authority_fences::tests::process_worker"
+        ]
+      },
+      {
+        "log": ".local/gate-6/received-dtmf-runtime/admission-replacement179-snapshot.log",
+        "sha256": "c1e763d250dcb83ea14706d6cac3aaf6b8b61ade411773b4fe45f5a067998a5c",
+        "summary": "test result: ok. 14 passed; 0 failed; 0 ignored; 0 measured; 1055 filtered out; finished in 5.71s",
+        "ignored_entries": []
+      },
+      {
+        "log": ".local/gate-6/received-dtmf-runtime/admission-replacement179-native.log",
+        "sha256": "85990ad89f2826f1c8366b277c5e5a1714de5be54fdcf82ed6081bcfbfa30175",
+        "summary": "test result: ok. 18 passed; 0 failed; 0 ignored; 0 measured; 1051 filtered out; finished in 17.17s",
+        "ignored_entries": []
+      },
+      {
+        "log": ".local/gate-6/received-dtmf-runtime/admission-replacement179-ownership.log",
+        "sha256": "397a568790c50020c828093aba8888237b641003cc0a7e6c01d9e3d4b92123ee",
+        "summary": "test result: ok. 6 passed; 0 failed; 1 ignored; 0 measured; 1062 filtered out; finished in 3.03s",
+        "ignored_entries": [
+          "installation_ownership::tests::process_worker"
+        ]
+      }
+    ],
+    "binary": "/Users/jonathaneisenzopf/.local/share/connect/store-received-snapshot-target/debug/deps/connect_store-0dd4cbda50bff4fe",
+    "binary_sha256": "d93e2639c3bc3bcf5fd7a48f24c38e2be940287413bd00281c72895d1e513343",
+    "source_sha256": {
+      "crates/connect-store/src/authority_fences.rs": "2dab62fef22416394b6d06a4f9eba1407bd38eeb3cfc0c4d840280aa7f1c4d74",
+      "crates/connect-store/src/authority_fences/tests/admissions.rs": "2fa0cb5323c10ed990c12a5bd5c607c420e6070fec5b4e42391c04e963c2cbe9"
+    }
+  },
+  "pending": [
+    "Exact optimized build, actual unchanged full50 and current-authority production regressions.",
+    "Full current Store suite not rerun after this cache-replacement-only change; previous initial-pool1065 pass remains in its source-bound report. Other assigned transport/hosting/remote profiles and whole-gate acceptance remain open."
+  ]
+}

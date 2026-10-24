@@ -92,12 +92,64 @@ fn admission_pool_never_waits_on_cache_and_bounds_idle_descriptors() {
     assert!(cache.count <= MAX_IDLE_ADMISSIONS);
     assert_eq!(
         cache.count,
-        cache.files.values().map(Vec::len).sum::<usize>()
+        cache
+            .files
+            .values()
+            .map(|entry| entry.files.len())
+            .sum::<usize>()
     );
     assert!(cache
         .files
         .values()
-        .all(|files| !files.is_empty() && files.len() <= MAX_IDLE_PER_NAME));
+        .all(|entry| !entry.files.is_empty() && entry.files.len() <= MAX_IDLE_PER_NAME));
+}
+#[test]
+fn active_media_working_set_can_replace_idle_cold_namespace_descriptions() {
+    let f = Fixture::new();
+    clear(&f);
+    for index in 0..MAX_IDLE_ADMISSIONS {
+        drop(
+            f.store
+                .authority
+                .admission(&format!("cold_{index}.admission"))
+                .unwrap(),
+        );
+    }
+    assert_eq!(
+        f.store.authority.admissions.lock().unwrap().count,
+        MAX_IDLE_ADMISSIONS
+    );
+    let names = (0..51)
+        .map(|i| format!("media_{i}.admission"))
+        .collect::<Vec<_>>();
+    for name in &names {
+        drop(f.store.authority.admission(name).unwrap());
+    }
+    {
+        let pool = f.store.authority.admissions.lock().unwrap();
+        assert_eq!(pool.count, MAX_IDLE_ADMISSIONS);
+        for name in &names {
+            assert!(
+                pool.files.contains_key(name),
+                "cold namespace pinned out {name}"
+            );
+        }
+    }
+    for _ in 0..3 {
+        for name in &names {
+            let admission = f.store.authority.admission(name).unwrap();
+            // Replacement keeps only idle, unlocked descriptions. A separate
+            // process/open description must remain able to take this lock.
+            let independent = f.store.authority.file(name).unwrap();
+            lock_with(&independent, None).unwrap();
+            assert!(lock_with(admission.file(), None).is_err());
+            drop(independent);
+            lock_with(admission.file(), None).unwrap();
+        }
+    }
+    let pool = f.store.authority.admissions.lock().unwrap();
+    assert_eq!(pool.count, MAX_IDLE_ADMISSIONS);
+    assert!(names.iter().all(|name| pool.files.contains_key(name)));
 }
 #[test]
 fn cached_admission_revalidates_privacy_links_and_current_inode_before_locking() {
