@@ -1,5 +1,5 @@
 {
-  "scope": "Local macOS arm64 authority-fence component. 38 individual fence methods finished successfully in the still-running full Store suite; full-suite and optimized host/capacity results are pending. No clause/task promotion: 45/105 tasks, G6-046 58/61 clauses.",
+  "scope": "Local macOS arm64 complete Store library: 1065 methods pass, zero failures, three explicit subprocess-helper skips. Exact optimized host build and capacity/production regressions are pending. No clause/task promotion: 45/105 tasks, G6-046 58/61 clauses.",
   "changes": [
     "Pool at most 128 idle, explicitly unlocked admission descriptions, at most two per name. Exclusive checkout never shares an open description between concurrent requests; busy/full pool falls back to fresh open/close without waiting on the pool mutex.",
     "Every acquisition still validates the current database and private directory and obtains the actual exclusive OS admission lock. Reused descriptions freshly validate regular path/file, private owner/mode, single link, matching device/inode, owner read/write mode and current effective read/write access including ACLs through safe rustix accessat. Unsafe reuse fails closed and closes the descriptor.",
@@ -48,7 +48,22 @@
       "authority_fences::tests::runtime::voice_route_disabling_and_ingress_configuration_wait_for_delivery",
       "authority_fences::tests::writer_intent_stops_new_readers_held_proof_reuses_without_reentry_and_other_identity_proceeds"
     ],
-    "full_store_suite": "Running, not yet a pass. Two subprocess helper methods are expected explicit skips; parent methods execute their children.",
+    "full_store_suite": {
+      "passed": true,
+      "summary": "test result: ok. 1065 passed; 0 failed; 3 ignored; 0 measured; 0 filtered out; finished in 771.74s",
+      "methods_passed": 1065,
+      "ignored": [
+        "authority_fences::tests::process_worker",
+        "installation_ownership::tests::process_worker",
+        "transitions::tests::crash_worker"
+      ],
+      "log": ".local/gate-6/received-dtmf-runtime/admission-fds179-store.log",
+      "log_sha256": "a4b5038efe3a1f03a3660ae9a6d7d79470987ef7572bb79beaf4ae04acb5c404",
+      "binary": "/Users/jonathaneisenzopf/.local/share/connect/store-received-snapshot-target/debug/deps/connect_store-0dd4cbda50bff4fe",
+      "binary_sha256": "b729f281d49530760783e314bd6ab28a469ac36ecd1741ade52482b5e6ab9478",
+      "source_inputs_unchanged": true,
+      "build_summary": "Finished `test` profile [unoptimized + debuginfo] target(s) in 16.88s"
+    },
     "source_sha256": {
       "Cargo.toml": "53a9383782d38b26f68896510f66d496d6e71a1bbc6e7045c227d5570a0ad573",
       "Cargo.lock": "fa4446409095642e06682fc3b6cda79a19c63bb7746aea7c432bc892ff1a4bf7",
@@ -56,10 +71,17 @@
       "crates/connect-store/src/authority_fences.rs": "153e16346549790bd33dc6b2035027d07d52da0d73ed9ce78a1d6611b5df0022",
       "crates/connect-store/src/authority_fences/tests.rs": "c98fa5a569f8aeac7b4be267fe4438ff9407ca2ea3169e291041675bb16a22a3",
       "crates/connect-store/src/authority_fences/tests/admissions.rs": "48a54ff12414009476ed56641667e9ba0ff94d3edc53517d48eeefacbba3f704"
-    }
+    },
+    "checks": [
+      "Pinned dependency preparation",
+      "scripts/format.sh --check",
+      "scripts/check-gate6-progress.py",
+      "scripts/generate-canonical-http-openapi.py --check",
+      "git diff --check"
+    ]
   },
   "pending": [
-    "Complete current Store library suite.",
-    "Exact optimized host build, actual 50-Participant rehearsal and current-authority production regressions. No capacity credit from component methods."
+    "Exact optimized host build, actual 50-Participant rehearsal and current-authority production regressions. No capacity credit from component methods.",
+    "Linux and all other assigned profiles remain unqualified by this macOS Store proof."
   ]
 }
