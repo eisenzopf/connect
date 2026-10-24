@@ -1022,6 +1022,11 @@
       "path": "patches/rvoip/gate6-private-initial-outbound-admission.patch",
       "sha256": "3e37e2cde93e1d775f30a079616ca1d0783be2b9c3d43cb5b659098ebfb34d73",
       "source": "G6-046 private initial SIP activation freezes private audio mode and original actor/target membership epochs and Endpoint on the original owned outbound ticket. Final commit rechecks those pins and fresh current authority, then uses muted PreparePrivateAudio quarantine; no native PeerAdmission or public fallback. Controlled owned Core ticket/staged-port private/public positives, unmuted/missing/withdrawn grants, actual epoch/Endpoint ringing rebind regressions and exact cleanup. Real SIP wire and Connect private-candidate qualification remain separate."
+    },
+    {
+      "path": "patches/rvoip/gate6-owned-input-mute-without-output-grant.patch",
+      "sha256": "9c6f48b4b815beca597555c35d27d512aececbaec065e5d846ab41a1cd6f987e",
+      "source": "G6-046 owned duplex input mute does not require an outbound media grant; preserve current binding/control/input permission and all Unmute/Pause/Resume checks. Model regression preserves port IDs, rejects reopening without output permission and rejects missing control. Trace-only exact guarded SIP/Core source admission fields support unresolved private quarantine failure diagnosis; no authorization fallback."
     }
   ]
 }

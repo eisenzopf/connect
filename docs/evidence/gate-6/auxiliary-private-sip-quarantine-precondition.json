@@ -1,0 +1,122 @@
+{
+  "task": "G6-046",
+  "recorded_at": "2026-10-24",
+  "source_base_commit": "6979aa5c420560f29e514d5b89e5d7c6f24c3a39",
+  "status": "fixture-precondition-corrected-core-checks-pass-actual-runtime-pending",
+  "full_task_complete": false,
+  "full_goal_complete": false,
+  "newly_qualified_case_ids": [],
+  "prepared_patch_count": 185,
+  "diagnosis": {
+    "summary": ".local/gate-6/private-sip-primary/human-parent127-diagnostic-021/summary.json",
+    "summary_sha256": "6d503102f3b10375955b3891063913d09ca44895706097e1a325b05067558a4e",
+    "scope": "Historical prepared184 executable with unchanged production behavior; readonly isolated parent-state diagnosis only. Current sources include proposed185, so this is not a current-source qualification.",
+    "executable_sha256": "457f005b908f3fb10b0156f7e782abc9e6c7f9bad2fb6854d9e1fe4538119d8f",
+    "executable_unchanged": true,
+    "samples": [
+      {
+        "elapsed_seconds": 3.772576999850571,
+        "state": {
+          "identity_kind": "human",
+          "participant_kind": "human",
+          "parent_state": "accepted",
+          "cancel_requested": false,
+          "child_connected": false,
+          "attempt_exists": false,
+          "audience_applied_confirmed": false
+        }
+      },
+      {
+        "elapsed_seconds": 4.263082250021398,
+        "state": {
+          "identity_kind": "human",
+          "participant_kind": "human",
+          "parent_state": "accepted",
+          "cancel_requested": false,
+          "child_connected": true,
+          "attempt_exists": false,
+          "audience_applied_confirmed": false
+        }
+      },
+      {
+        "elapsed_seconds": 4.588299917057157,
+        "state": {
+          "identity_kind": "human",
+          "participant_kind": "human",
+          "parent_state": "preparing",
+          "cancel_requested": false,
+          "child_connected": true,
+          "attempt_exists": true,
+          "audience_applied_confirmed": false
+        }
+      },
+      {
+        "elapsed_seconds": 4.633571167010814,
+        "state": {
+          "identity_kind": "human",
+          "participant_kind": "human",
+          "parent_state": "preparing",
+          "cancel_requested": false,
+          "child_connected": true,
+          "attempt_exists": true,
+          "audience_applied_confirmed": true
+        }
+      },
+      {
+        "elapsed_seconds": 4.828119334066287,
+        "state": {
+          "identity_kind": "human",
+          "participant_kind": "human",
+          "parent_state": "completed",
+          "cancel_requested": false,
+          "child_connected": true,
+          "attempt_exists": true,
+          "audience_applied_confirmed": true
+        }
+      }
+    ],
+    "conclusion": "The prior fixture named its demo target agent but both identity and participant are Human. The parent progresses from accepted/unclaimed to confirmed application and completed before its supposed quarantine audio observation. The marked private input at the primary, with held receiver excluded, does not establish a quarantine isolation bug under this applied state. The failed assertions remain failed; no quarantine pass is inferred."
+  },
+  "implementation": {
+    "fixture": "Fresh explicitly provisioned AI target, with no ready provider context. Require identity and participant kind ai and accepted/unclaimed/effect-free parent both before and after RTP. Full fresh Human original-call switch profile remains separate. No identity relabeling or audio threshold change.",
+    "core_patch": "patches/rvoip/gate6-owned-input-mute-without-output-grant.patch",
+    "core_patch_sha256": "9c6f48b4b815beca597555c35d27d512aececbaec065e5d846ab41a1cd6f987e",
+    "core_change": "Mute closes the owned input without requiring an outbound send grant. Binding/control/receive authorization remain required. Unmute and other gates retain directional grants. Actual SIP return previously stops at return-core Media(Model(Authority)); runtime verification of this fix is pending."
+  },
+  "verification": {
+    "core": {
+      "summary": ".local/gate-6/received-dtmf-runtime/owned-mute185-focused-022/summary.json",
+      "summary_sha256": "67f98d810daaf059a92967ac383f67569ac052b1ceb6213c141a64ff04a4f838",
+      "passed": true,
+      "distinct_cases": 88,
+      "ignored": 0,
+      "source_inputs_unchanged": true,
+      "executable_unchanged": true,
+      "steps": [
+        {
+          "filter": "stream_lifecycle::tests::",
+          "exit_code": 0,
+          "elapsed_seconds": 0.07505620899610221
+        },
+        {
+          "filter": "staged_streams::tests::private_consult::",
+          "exit_code": 0,
+          "elapsed_seconds": 0.8803757498972118
+        },
+        {
+          "filter": "staged_streams::tests::private_outbound::",
+          "exit_code": 0,
+          "elapsed_seconds": 0.012831958010792732
+        }
+      ]
+    },
+    "actual_runtime": {
+      "status": "building-not-qualified"
+    }
+  },
+  "remaining": [
+    "Run corrected AI quarantine and full Human private SIP candidate for both algorithms with frozen inputs and signed frame validation.",
+    "Resolve any current runtime failures, including prior ES256 media-rights continuity failure.",
+    "Complete remaining G6-046 assigned vectors and full required matrix. U6-REQ-0112/0113 remain open."
+  ]
+}

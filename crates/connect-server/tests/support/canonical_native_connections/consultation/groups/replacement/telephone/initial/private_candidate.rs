@@ -86,7 +86,7 @@ async fn exercise(algorithm: &str, complete: bool) {
     let ConfiguredInitial { f, peer, .. } = if complete {
         configured_initial_human(algorithm).await
     } else {
-        configured_initial_for(algorithm, Some(0), 30).await
+        configured_initial_quarantined_ai(algorithm).await
     };
     let mut primary = CanonicalClient::open(f.client.clone()).await.unwrap();
     let mut input =
@@ -263,6 +263,11 @@ async fn exercise(algorithm: &str, complete: bool) {
     assert_ne!(call, public.2);
     assert_eq!(peer.unique(), 2);
     assert_eq!(peer.dialog.lock().unwrap().as_ref().unwrap().call_id, call);
+    let original_private_media = *peer.media_target.lock().unwrap();
+    eprintln!(
+        "PRIVATE_SIP_ORIGINAL_MEDIA_MAP {}",
+        json!({"public_media":public_media.map(|a|a.to_string()),"private_media":original_private_media.map(|a|a.to_string()),"different_media_ports":public_media!=original_private_media})
+    );
     let details: Value = serde_json::from_str(&details).unwrap();
     assert_eq!(details["private_audio"], true);
     assert_eq!(details["stream_revision"], 2);
@@ -297,6 +302,12 @@ async fn exercise(algorithm: &str, complete: bool) {
         f.server.shutdown().await.unwrap();
         return;
     }
+    let kinds: (String, String) = db.query_row(
+        "SELECT i.kind,p.kind FROM connections c JOIN identities i ON i.id=c.identity_id JOIN participants p ON p.participant_id=c.participant_id WHERE c.id=?1",
+        [&connection], |r| Ok((r.get(0)?, r.get(1)?)),
+    ).unwrap();
+    assert_eq!(kinds, ("ai".into(), "ai".into()));
+    assert_unclaimed_quarantine(&db, &record);
     assert_eq!(
         db.query_row(
             "SELECT count(*) FROM operation_effects WHERE operation_record_id=?1",
@@ -346,6 +357,10 @@ async fn exercise(algorithm: &str, complete: bool) {
         "temporary metadata contention retired the original quarantined call"
     );
     drop(writer);
+    eprintln!(
+        "PRIVATE_SIP_CURRENT_MEDIA_MAP {}",
+        json!({"current_media":peer.media_target.lock().unwrap().map(|a|a.to_string()),"original_private_media":original_private_media.map(|a|a.to_string()),"current_dialog_is_original_private":peer.dialog.lock().unwrap().as_ref().is_some_and(|d|d.call_id==call)})
+    );
     let no_input = std::env::var_os("CONNECT_PRIVATE_SIP_QUARANTINE_NO_INPUT_DIAGNOSTIC").is_some();
     eprintln!(
         "PRIVATE_SIP_QUARANTINE_DIAGNOSTIC {}",
@@ -353,9 +368,18 @@ async fn exercise(algorithm: &str, complete: bool) {
     );
     let counts = if no_input {
         observe_marked(&mut clients, Duration::from_millis(1000)).await
+    } else if let Ok(period) = std::env::var("CONNECT_PRIVATE_SIP_PRIVATE_PERIOD_DIAGNOSTIC") {
+        let period: usize = period.parse().unwrap();
+        eprintln!("PRIVATE_SIP_INPUT_PERIOD_DIAGNOSTIC {period}");
+        let (_, counts) = tokio::join!(
+            peer.rtp_pattern(0, period),
+            observe_marked(&mut clients, Duration::from_millis(1000))
+        );
+        counts
     } else {
         marked(&peer, &mut clients).await
     };
+    assert_unclaimed_quarantine(&db, &record);
     assert_eq!(
         counts,
         vec![0, 0],
@@ -389,11 +413,25 @@ async fn exercise(algorithm: &str, complete: bool) {
         no_input,
         std::env::var("CONNECT_PRIVATE_SIP_CANDIDATE_CAPTURE"),
     ) {
-        std::fs::write(format!("{path}.{algorithm}.json"),serde_json::to_vec_pretty(&json!({"algorithm":algorithm,"scope":"actual fresh SIP/Core quarantined admission and original cleanup; no private switch/DTMF/return qualification","parent":record,"child":child,"candidate_connection":connection,"core_connection":core,"sip_call_id":call,"original_public":public,"private_ready":details,"marked_public_baseline":baseline,"pre_allocation_public_backlog":baseline_backlog,"marked_quarantine":counts,"marked_public_after_cleanup":recovered,"distinct_sip_calls":peer.unique(),"original_public_live":original_live,"metadata_busy_preserved":true,"authority_writer_hold_ms":250})).unwrap()).unwrap();
+        std::fs::write(format!("{path}.{algorithm}.json"),serde_json::to_vec_pretty(&json!({"algorithm":algorithm,"scope":"actual fresh SIP/Core quarantined admission and original cleanup; no private switch/DTMF/return qualification","parent":record,"child":child,"candidate_connection":connection,"core_connection":core,"sip_call_id":call,"original_public":public,"private_ready":details,"marked_public_baseline":baseline,"pre_allocation_public_backlog":baseline_backlog,"marked_quarantine":counts,"marked_public_after_cleanup":recovered,"distinct_sip_calls":peer.unique(),"original_public_live":original_live,"metadata_busy_preserved":true,"authority_writer_hold_ms":250,"identity_kind":kinds.0,"participant_kind":kinds.1,"unclaimed_before_and_after_input":true})).unwrap()).unwrap();
     }
     drop(db);
     for p in &mut clients {
         p.client.close();
     }
     f.server.shutdown().await.unwrap();
+}
+
+// State is part of the quarantine precondition, including after the packet
+// observation. An audience that legitimately applied is a different profile.
+fn assert_unclaimed_quarantine(db: &rusqlite::Connection, record: &str) {
+    let state: (String, bool, u64, u64) = db.query_row(
+        "SELECT state,cancel_requested,(SELECT count(*) FROM native_consultation_attempts WHERE operation_record_id=?1),(SELECT count(*) FROM operation_effects WHERE operation_record_id=?1) FROM operations WHERE record_id=?1",
+        [record], |r| Ok((r.get(0)?,r.get(1)?,r.get(2)?,r.get(3)?)),
+    ).unwrap();
+    assert_eq!(
+        state,
+        ("accepted".into(), false, 0, 0),
+        "quarantine requires an accepted, unclaimed, effect-free parent"
+    );
 }

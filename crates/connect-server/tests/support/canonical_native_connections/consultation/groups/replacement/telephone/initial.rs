@@ -69,7 +69,7 @@ async fn configured_initial_profile(
         transport,
         dtmf,
         receive_dtmf,
-        false,
+        None,
     )
     .await
 }
@@ -82,7 +82,22 @@ async fn configured_initial_human(algorithm: &str) -> ConfiguredInitial {
         EndpointTransport::Telephone,
         true,
         true,
+        Some(IdentityKind::Human),
+    )
+    .await
+}
+
+// A deliberately unready provider keeps this AI consultation unclaimed. The
+// account alias in the default demo fixture does not imply an AI identity.
+async fn configured_initial_quarantined_ai(algorithm: &str) -> ConfiguredInitial {
+    configured_initial_with_target(
+        algorithm,
+        Some(0),
+        30,
+        EndpointTransport::Telephone,
+        false,
         true,
+        Some(IdentityKind::Ai),
     )
     .await
 }
@@ -94,7 +109,7 @@ async fn configured_initial_with_target(
     transport: EndpointTransport,
     dtmf: bool,
     receive_dtmf: bool,
-    human: bool,
+    target_kind: Option<IdentityKind>,
 ) -> ConfiguredInitial {
     let _ = tracing_subscriber::fmt()
         .with_env_filter(
@@ -108,9 +123,14 @@ async fn configured_initial_with_target(
     } else {
         Fixture::with_native_end_scope(algorithm, 12).await
     };
-    if human {
-        // A separately provisioned Human target. Existing AI/provider fixtures
-        // retain their original identity and independent readiness contract.
+    if let Some(kind) = target_kind {
+        // Provision the requested kind explicitly; never relabel an existing
+        // identity or infer its kind from its alias.
+        let alias = match kind {
+            IdentityKind::Human => "private-sip-human-target",
+            IdentityKind::Ai => "private-sip-unready-ai-target",
+            _ => panic!("unsupported private SIP fixture target"),
+        };
         let admin = f.server.store.authenticate(&f.admin).unwrap();
         let ProvisioningOutcome::Identity { identity_id, .. } = f
             .server
@@ -118,9 +138,9 @@ async fn configured_initial_with_target(
             .execute_provisioning(
                 &admin.credential_id,
                 ProvisioningCommand::Identity {
-                    operation_id: "private-sip-human-target".into(),
-                    alias: "private-sip-human-target".into(),
-                    kind: IdentityKind::Human,
+                    operation_id: alias.into(),
+                    alias: alias.into(),
+                    kind,
                     display_name: None,
                 },
             )

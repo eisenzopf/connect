@@ -1,0 +1,80 @@
+--- a/crates/foundation/rvoip-core/src/stream_lifecycle.rs
++++ b/crates/foundation/rvoip-core/src/stream_lifecycle.rs
+@@ -773,7 +773,12 @@
+                 .filter(|s| s.state != LogicalStreamState::Ended)
+                 .ok_or(MediaTransitionError::Conflict)?;
+             let request = &stream.negotiated.requested;
+-            if (request.direction.sends() && !authority.send_media.contains(&request.medium))
++            // Muting closes endpoint input only. It neither enables output nor
++            // needs a current output grant for this already owned duplex port.
++            // Unmute and the other gates retain their existing direction checks.
++            if (action != StreamGateAction::Mute
++                && request.direction.sends()
++                && !authority.send_media.contains(&request.medium))
+                 || (request.direction.receives()
+                     && !authority.receive_media.contains(&request.medium))
+             {
+--- a/crates/foundation/rvoip-core/src/stream_lifecycle/tests.rs
++++ b/crates/foundation/rvoip-core/src/stream_lifecycle/tests.rs
+@@ -1359,3 +1359,28 @@
+     assert!(!state.streams()[&id].source_muted);
+     assert_eq!(state.revision(), 1);
+ }
++
++#[test]
++fn owned_input_mute_needs_no_output_grant_but_cannot_reopen_output() {
++    let f = Fixture::new();
++    let mut state = initial(&f);
++    let id = StreamId::from_string("audio");
++    let ids = [id.clone()].into_iter().collect();
++    let before = state.streams()[&id].clone();
++    let mut closing = f.authority();
++    closing.send_media.clear();
++    state.set_gates(&closing, 1, &ids, StreamGateAction::Mute).unwrap();
++    let muted = &state.streams()[&id];
++    assert!(muted.source_muted && !muted.permits(false));
++    assert_eq!(muted.transport_id, before.transport_id);
++    assert_eq!(muted.stream_local_id, before.stream_local_id);
++    assert_eq!(muted.generation, before.generation);
++    assert_eq!(state.revision(), 2);
++    assert_eq!(state.set_gates(&closing, 2, &ids, StreamGateAction::Unmute), Err(MediaTransitionError::Authority));
++    assert!(state.streams()[&id].source_muted);
++    assert_eq!(state.revision(), 2);
++    closing.may_negotiate = false;
++    assert_eq!(state.set_gates(&closing, 2, &ids, StreamGateAction::Mute), Err(MediaTransitionError::Authority));
++    state.set_gates(&f.authority(), 2, &ids, StreamGateAction::Unmute).unwrap();
++    assert!(!state.streams()[&id].source_muted);
++}
+--- a/crates/sip/rvoip-sip/src/media_stream/guarded.rs
++++ b/crates/sip/rvoip-sip/src/media_stream/guarded.rs
+@@ -249,6 +249,7 @@
+         let stream = self.stream.clone();
+         let stop = runtime.clone();
+         let task_port = port.clone();
++        let expected_connection = self.ids.2.clone();
+         let complete = Completion(runtime.clone());
+         let spawned=self.tasks.spawn(async move {
+             let _complete=complete;
+@@ -268,7 +269,8 @@
+                             // This goes through Core's current ingress authority;
+                             // a closed/private preparation never publishes into
+                             // the main programme merely because RTP arrived.
+-                            let _=task_port.try_publish(&frame);
++                            let result=task_port.try_publish(&frame);
++                            tracing::trace!(target:"rvoip_sip::guarded_frame", expected_connection=%expected_connection, actual_connection=?task_port.context_ids().ok().map(|ids|ids.2), problem=?result.as_ref().err(), "Owned SIP frame admission");
+                         }
+                         None=>break,
+                     },
+--- a/crates/foundation/rvoip-core/src/staged_streams.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams.rs
+@@ -695,6 +695,10 @@
+             .upgrade()
+             .ok_or(StreamControlError::Cancelled)?;
+         if data.is_none() && held.is_none() && self.0.kind() == StreamKind::Audio {
++            if tracing::enabled!(target: "rvoip_core::guarded_frame", tracing::Level::TRACE) {
++                let muted = owner.state.try_lock().ok().and_then(|state| state.model.streams().get(&self.0.binding.negotiated.requested.logical_id).map(|stream| stream.source_muted));
++                tracing::trace!(target: "rvoip_core::guarded_frame", connection=%owner.connection, source_muted=?muted, "Owned audio ingress gate");
++            }
+             let probe = owner
+                 .audio_preparation
+                 .lock()

@@ -317,6 +317,10 @@ impl PeerSip {
         message.into_bytes()
     }
     async fn rtp(&self, payload: u8) {
+        self.rtp_pattern(payload, 16).await;
+    }
+    async fn rtp_pattern(&self, payload: u8, period: usize) {
+        assert!(period > 1 && 160 % period == 0);
         let target = self.media_target.lock().unwrap().unwrap();
         for _ in 0..30u16 {
             let sequence = self
@@ -328,7 +332,7 @@ impl PeerSip {
                 &((self.rtp_clock.elapsed().as_micros() * 8 / 1000) as u32).to_be_bytes(),
             );
             packet.extend_from_slice(&0x19374621u32.to_be_bytes());
-            packet.extend((0..160).map(|i| if i % 16 < 8 { 0x80 } else { 0x00 }));
+            packet.extend((0..160).map(|i| if i % period < period / 2 { 0x80 } else { 0x00 }));
             self.media.send_to(&packet, target).await.unwrap();
             tokio::time::sleep(Duration::from_millis(20)).await;
         }

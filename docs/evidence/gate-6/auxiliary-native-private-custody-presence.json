@@ -255,7 +255,8 @@
           0,
           0
         ],
-        "interpretation": "Unresolved provenance of marked packets. Admission reaches connected readiness; do not call the privacy profile a pass or change assertions without diagnosis."
+        "interpretation": "Unresolved provenance of marked packets. Admission reaches connected readiness; do not call the privacy profile a pass or change assertions without diagnosis.",
+        "subsequent_diagnosis": "Historical readonly diagnostic021 proves the demo target is Human and the consultation applies before observation. The old quarantine precondition was invalid; no actual quarantine leak or pass follows from these failed assertions. See auxiliary-private-sip-quarantine-precondition.json."
       },
       "retained_executable": ".local/gate-6/received-dtmf-runtime/quarantine122-runtime-014-executable",
       "retained_executable_sha256": "cf887c8b43c75432c79ee4d178ef95d3543d5b310dbee01c621a9575f96e46a4"
