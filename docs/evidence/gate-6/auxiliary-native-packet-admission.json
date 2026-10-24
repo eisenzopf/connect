@@ -1,8 +1,8 @@
 {
   "task": "G6-046",
   "title": "Release controller State during fresh retained-audio policy admission",
-  "recorded_at": "2026-10-24T04:17:51.034102+00:00",
-  "status": "218-Core-methods-and-host-build-verified; actual-full50-steady-media-failed; refusal-profile-active",
+  "recorded_at": "2026-10-24T04:39:44.123398+00:00",
+  "status": "218-Core-methods-and-host-build-verified; full50-failed; exact-production-regressions-active",
   "full_task_complete": false,
   "full_goal_complete": false,
   "qualified_case_ids": [],
@@ -33,7 +33,11 @@
       "admission177-service-object-recovery.json": "1429e0bfea9651e30d94914fba20272a6b94c810d116e30631920330d13a90a7",
       "admission177-server-retry.log": "5a7c862602bb9b1a4a74400787309b8f91e423f2e38ec47172c1bab9fc6ed3aa",
       "admission177-runtime-inputs.json": "786f2fa00cb451e23be835e881170478972a9d79e61078dded6572b8ae1c9797",
-      "admission177-fifty.log": "bc5cdf9ead95c197cd209102100dda2ee7d637ffcf8d3079afba3895c88f7f17"
+      "admission177-fifty.log": "bc5cdf9ead95c197cd209102100dda2ee7d637ffcf8d3079afba3895c88f7f17",
+      "admission177-profile-fifty.log": "3a4057e8cc2085a050518886b27d2f043e76b2344073d90767a0ecb87930aff9",
+      "admission177-sample-command.log": "90dedbbc172a22683645a3b9eb88b5b8df9ff434447b2c4138559ce3ef23c010",
+      "admission177-steady-sample.txt": "f93f0431bd38157387fb8ca3c2a0c587a031de655671768a6ddc5741f3465d41",
+      "admission177-profile-analysis.json": "49f42dcfae6a330efc0083fc51f11f010f0750d766b8a6ef5947f92c210334ba"
     },
     "scope": "Local macOS arm64 controlled Core218 methods pass. First host link failed with real NoSpace; after verified obsolete-object recovery the exact same-source/profile host retry passes in4.38s. Full50 runtime is active; no source177 capacity pass yet.",
     "core_test_build_duration_seconds": 353,
@@ -76,10 +80,54 @@
       "future_phases_reached": false,
       "second_algorithm_reached": false,
       "complete_capture_rows": 0
+    },
+    "refusal_profile": {
+      "scope": "Separate trace plus5-second2ms CPU sample request. The instrumented run failed receiver startup at its original8s bound and did not reach steady measurement. Tracing/sampling changes timing; not capacity qualification. Counts cover the entire instrumented run.",
+      "policy_outcomes": {
+        "authority-busy": 37188,
+        "ok": 1872
+      },
+      "policy_failure_details": {
+        "Current state is busy": 29969,
+        "Current authority is busy": 7219
+      },
+      "audio_refusal_stages": {
+        "mixer-target:NotReady": 1215,
+        "source-egress:NotReady": 23287,
+        "target-egress:NotReady": 70
+      },
+      "policy_timings": {
+        "fresh-authority-busy": {
+          "n": 35953,
+          "median_us": 11,
+          "p90_us": 116
+        },
+        "fresh-ok": {
+          "n": 787,
+          "median_us": 2015,
+          "p90_us": 2941
+        },
+        "owned-ok": {
+          "n": 1085,
+          "median_us": 133,
+          "p90_us": 2819
+        },
+        "owned-authority-busy": {
+          "n": 1235,
+          "median_us": 35,
+          "p90_us": 95
+        }
+      },
+      "message_sources": {
+        "Current state is busy": "Store::try_connection SQL mutex",
+        "Current authority is busy": "authority_fences immediate admission"
+      },
+      "no_model_conflict_observed": true,
+      "limitation": "Refusal classification identifies repeated fresh-source contention. It does not prove a proposed sharing implementation correct."
     }
   },
   "unresolved": [
-    "Actual source177 full50 still fails after6001ms decoded startup for all49 receivers; steady0..8 did not meet>10 each. A separate exact-source refusal-stage trace/CPU profile is active. Distinguish model/credential conflict from temporary Store/file/State contention before any further implementation. State release alone did not establish capacity.",
+    "Complete current exact source177 actual production regressions. Investigate same-original-packet source file-custody composition with only weak metadata in queued work, fresh source/recipient facts and unchanged200ms deadline. Cross-packet or per-Connection cached grants are not an acceptable substitute. No sharing implementation is present or qualified yet.",
     "Then build the exact default host once, run complete fifty-peer EdDSA/ES256 phases and affected production regressions. Keep50 peers/49 explicit receivers, original8s commands/startup,200ms age and>10 decoded frames per intended recipient. Validate a complete capture only if every phase passes.",
     "Source176 audience rewrite did not resolve capacity: failed full50 steady5..14 after49 actual receiver startups3781ms. Source175 ES256 moved-SIP Unknown remains unproven despite passing repeats. Preserve both histories.",
     "G6-046 remains58/61 with0112/0113/0123 open;45/105 tasks complete. Later Linux/browser/remote/provider/independent/acceptance/publication scopes remain separate."
