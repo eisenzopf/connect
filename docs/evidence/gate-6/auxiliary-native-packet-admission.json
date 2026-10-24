@@ -1,8 +1,8 @@
 {
   "task": "G6-046",
   "title": "Release controller State during fresh retained-audio policy admission",
-  "recorded_at": "2026-10-24T04:03:26.540606+00:00",
-  "status": "core-component-verified; exact-host-build-active",
+  "recorded_at": "2026-10-24T04:11:29.037104+00:00",
+  "status": "218-Core-methods-verified; host-link-NoSpace-failure-recorded; exact-retry-active",
   "full_task_complete": false,
   "full_goal_complete": false,
   "qualified_case_ids": [],
@@ -27,7 +27,10 @@
       "admission177-prepare.log": "b1918efcc1b209631784d414f97e310cbe2aa3460d41d82b71e6c78e25e1e447",
       "admission177-verify.log": "fd9d7b181e3ccba9b643af55a186cf132c60aac99c734b2ee4e4e549afe5ffc2",
       "admission177-preparation.json": "fd5e3976b8193d347ca98b06de23b34e97a1eb1279e40b086acf90f94653281e",
-      "admission177-core.log": "03f7bd6b2c3e3e918acee9fad4e37f8b385d904cd0ba680c3c90262825c4d920"
+      "admission177-core.log": "03f7bd6b2c3e3e918acee9fad4e37f8b385d904cd0ba680c3c90262825c4d920",
+      "admission177-server-build.log": "8844cda0ecf603624dfdac894b87fe3d0f16c6561234a39e2a8143288d84aed9",
+      "admission177-unit-object-recovery.json": "9098339c3f08d752c39206c4f6277e25dc6adbe57e097dbbdb8748fa39fed457",
+      "admission177-service-object-recovery.json": "1429e0bfea9651e30d94914fba20272a6b94c810d116e30631920330d13a90a7"
     },
     "scope": "All218 controlled local macOS arm64 Core staged-media methods pass, including4new callback-race/decoded/recovery/refusal cases. Exact default host build53237 is active; no source177 host/capacity result is inferred.",
     "core_test_build_duration_seconds": 353,
@@ -42,10 +45,20 @@
     "default_host_build_active": true,
     "workspace_format_check_passed": true,
     "openapi_generation_check_passed": true,
-    "diff_check_passed": true
+    "diff_check_passed": true,
+    "host_first_attempt_exit_code": 101,
+    "host_first_attempt_failure": "Actual host test link failed at ld write() errno28: No space left on device. This is not a compile/test pass.",
+    "space_recovery": {
+      "scope": "No compiler/linker active. Removed obsolete loose unit objects absent from each current executable OSO set, and obsolete service library byproducts absent from the current archive index. Current referenced unit objects and current archive-member loose objects retained; executable/archive SHA before and after match. No libraries/archives/metadata/executables/complete incremental sessions removed.",
+      "unit_obsolete_objects_removed": 6400,
+      "service_obsolete_objects_removed": 13824,
+      "current_objects_retained": 768,
+      "actual_home_free_after": "18GiB",
+      "logical_bytes_not_physical_space": "Recorded removed logical byte totals are not claimed as actual recovered filesystem blocks."
+    }
   },
   "unresolved": [
-    "Allow exact default host build53237 to finish, then run complete actual fifty-peer and affected production scenarios. Do not restart solely for an observation timeout.",
+    "Allow the exact same-source/profile host retry to finish after verified disk recovery. Original failed host link remains recorded; only a successful retry followed by actual runtime checks can qualify integration.",
     "Then build the exact default host once, run complete fifty-peer EdDSA/ES256 phases and affected production regressions. Keep50 peers/49 explicit receivers, original8s commands/startup,200ms age and>10 decoded frames per intended recipient. Validate a complete capture only if every phase passes.",
     "Source176 audience rewrite did not resolve capacity: failed full50 steady5..14 after49 actual receiver startups3781ms. Source175 ES256 moved-SIP Unknown remains unproven despite passing repeats. Preserve both histories.",
     "G6-046 remains58/61 with0112/0113/0123 open;45/105 tasks complete. Later Linux/browser/remote/provider/independent/acceptance/publication scopes remain separate."
