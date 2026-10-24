@@ -142,6 +142,35 @@
       },
       "log": ".local/gate-6/received-dtmf-runtime/private-signal115-optimized-debug-003.log",
       "log_sha256": "34188a8c147ac26392406fb5eb11cfe6dce480868891b41f8ee467f1c797157b"
+    },
+    "preflight_phase_diagnostics": {
+      "scope": "Diagnostic error context only; authorization and error codes preserved. No socket qualification.",
+      "default_feature_debug_build": "Finished test profile in 12m 53s",
+      "summary": ".local/gate-6/received-dtmf-runtime/private-signal115-production-diagnostic-007-summary.json",
+      "summary_sha256": "8c56e758c9de76c0d514f1f2deab11a34b6b24d6e05b3188868dd1e029bdc214",
+      "source_inputs_unchanged": true,
+      "executable_unchanged": true,
+      "attempts": [
+        {
+          "trial": 1,
+          "exit_code": 101,
+          "elapsed_seconds": 7.71918366686441,
+          "log_sha256": "04d52851309d1df78cd40e95a5899739462f9da3bfb20fc469c3fc646a4bf87d"
+        },
+        {
+          "trial": 2,
+          "exit_code": 101,
+          "elapsed_seconds": 20.15999325015582,
+          "log_sha256": "1abc367ba26770b73788fc8ac63ae9b839d663bdab3395664343377a187a22ef"
+        },
+        {
+          "trial": 3,
+          "exit_code": 101,
+          "elapsed_seconds": 6.567209332948551,
+          "log_sha256": "56072c700f3f39bcebe2969a044ea55fcf795ef31e86804e62e2f7c819d9e71c"
+        }
+      ],
+      "result": "Three diagnostic attempts failed before reproducing the targeted optimized preflight refusal: subscription unknown, Accepted without effect, and insufficient marked private audio. Production optimized diagnosis remains required."
     }
   },
   "failed_attempts": [
