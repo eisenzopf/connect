@@ -983,6 +983,10 @@
     {
       "path": "patches/rvoip/gate6-native-catalog-admission.patch",
       "sha256": "f1f3dc02a9880f6bf9d20405c8b17234fd0b79fbffa453d80e06158d780f5fe4"
+    },
+    {
+      "path": "patches/rvoip/gate6-retained-audio-policy-state.patch",
+      "sha256": "156cd7e8272d1e1016ad6594a4511ef58a1811a7c615cdba1e719831b189f9c7"
     }
   ]
 }

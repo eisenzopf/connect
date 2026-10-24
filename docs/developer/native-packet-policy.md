@@ -55,3 +55,16 @@ idle time or changes the original credential expiry. The
 [observation report](../evidence/gate-6/auxiliary-native-observation-hints.json)
 records controlled current-authority, SQL mutation and expiry checks and labels
 its pending host integration separately.
+
+
+Retained audio already carries the exact original consumer and scene stamps.
+Core captures its current port, stream revision and credential snapshot under a
+short model lock, releases that lock while obtaining fresh policy/file authority,
+then immediately reacquires and revalidates the captured state. A busy probe
+releases every acquired reader before the original bounded retry waits. Even a
+pause/resume restoring the same final permission changes the revision and refuses
+the older callback. Existing route, consumer and scene generations still gate IO.
+Initial/current-gate capture, data and held control paths keep their existing
+locking; this optimization cannot recapture a newer audience for an old packet.
+The [packet admission report](../evidence/gate-6/auxiliary-native-packet-admission.json)
+records verification and pending runtime scope separately.

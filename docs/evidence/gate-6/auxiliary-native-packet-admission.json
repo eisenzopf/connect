@@ -1,0 +1,53 @@
+{
+  "task": "G6-046",
+  "title": "Release controller State during fresh retained-audio policy admission",
+  "recorded_at": "2026-10-24T04:03:26.540606+00:00",
+  "status": "core-component-verified; exact-host-build-active",
+  "full_task_complete": false,
+  "full_goal_complete": false,
+  "qualified_case_ids": [],
+  "source_lock_patch_count": 177,
+  "store_schema": 103,
+  "motivation_evidence": "docs/evidence/gate-6/auxiliary-audience-existence.json",
+  "implementation": [
+    "Only audio with an original Retained consumer check, explicitly retained target scene stamp, no data message and no held control invocation uses the detached State interval. Initial/current-gate and non-audio/data/held paths retain their existing locking and admission semantics.",
+    "Capture current exact port/permission/model revision and original credential snapshot under immediate State custody, release State for fresh installed policy and file admission, then immediately reacquire State. Any stream revision change, including pause/resume back to the same permission, or credential snapshot drift refuses the old callback. Current port pointer, closed/shutdown/permission, model binding, route ticket and original retained consumer/scene stamps are rechecked before delivery.",
+    "Every attempt still performs fresh current authorization. No NativeMediaRead or grant is cached across packets. A busy initial/final State probe returns NotReady, dropping any newly acquired lease before the existing bounded retry waits. Original queued frame200ms age and cancellation are unchanged.",
+    "Four new controlled cases cover actual decoded delivery with State free inside policy; model pause/resume, credential revision, closure, actual port retirement and shutdown while the callback runs; immediate initial-State refusal; and final-State contention releasing fresh policy readers before the owner releases its mutex. Two reversible callback cases require fresh later decoded delivery to recover.",
+    "Source bytes were drafted under ignored.local, recorded in the tracked patch and source-lock digest, prepared in a fresh tree and switched without any active compiler. Exactly4 files differ, with4040 unchanged source mtimes preserved. No prepared source bytes were edited directly."
+  ],
+  "verification": {
+    "core_test_build_active": false,
+    "core_test_build_passed": true,
+    "new_test_method_count": 4,
+    "default_host_build_passed": false,
+    "source_lock_sha256": "9a81792723468ecd30ec5339e4307304c4a8ebbdb97b7df6382ba1bed9a043d9",
+    "prior_store_and_host_scope": "Unchanged Store audience query has1113 Store methods and8 actual source176 production methods passed; these are prior component/host evidence, not source177 runtime proof.",
+    "local_log_sha256": {
+      "admission177-prepare.log": "b1918efcc1b209631784d414f97e310cbe2aa3460d41d82b71e6c78e25e1e447",
+      "admission177-verify.log": "fd9d7b181e3ccba9b643af55a186cf132c60aac99c734b2ee4e4e549afe5ffc2",
+      "admission177-preparation.json": "fd5e3976b8193d347ca98b06de23b34e97a1eb1279e40b086acf90f94653281e",
+      "admission177-core.log": "03f7bd6b2c3e3e918acee9fad4e37f8b385d904cd0ba680c3c90262825c4d920"
+    },
+    "scope": "All218 controlled local macOS arm64 Core staged-media methods pass, including4new callback-race/decoded/recovery/refusal cases. Exact default host build53237 is active; no source177 host/capacity result is inferred.",
+    "core_test_build_duration_seconds": 353,
+    "rust_distinct_methods_passed": 218,
+    "new_methods": [
+      "staged_streams::tests::packet_admission::retained_audio_busy_initial_state_refuses_without_waiting_for_its_owner",
+      "staged_streams::tests::packet_admission::retained_audio_busy_state_after_policy_drops_fresh_authority_before_retry_wait",
+      "staged_streams::tests::packet_admission::retained_audio_policy_cannot_lend_current_model_credential_or_route_to_an_older_callback",
+      "staged_streams::tests::packet_admission::retained_audio_policy_releases_state_and_fresh_decoded_delivery_keeps_no_idle_reader"
+    ],
+    "core_test_duration_seconds": 6.46,
+    "default_host_build_active": true,
+    "workspace_format_check_passed": true,
+    "openapi_generation_check_passed": true,
+    "diff_check_passed": true
+  },
+  "unresolved": [
+    "Allow exact default host build53237 to finish, then run complete actual fifty-peer and affected production scenarios. Do not restart solely for an observation timeout.",
+    "Then build the exact default host once, run complete fifty-peer EdDSA/ES256 phases and affected production regressions. Keep50 peers/49 explicit receivers, original8s commands/startup,200ms age and>10 decoded frames per intended recipient. Validate a complete capture only if every phase passes.",
+    "Source176 audience rewrite did not resolve capacity: failed full50 steady5..14 after49 actual receiver startups3781ms. Source175 ES256 moved-SIP Unknown remains unproven despite passing repeats. Preserve both histories.",
+    "G6-046 remains58/61 with0112/0113/0123 open;45/105 tasks complete. Later Linux/browser/remote/provider/independent/acceptance/publication scopes remain separate."
+  ]
+}

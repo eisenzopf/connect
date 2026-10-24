@@ -1,0 +1,340 @@
+--- a/crates/foundation/rvoip-core/src/staged_streams/scene_consumer.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/scene_consumer.rs
+@@ -90,6 +90,10 @@
+     admitted: Option<Instant>,
+ }
+ impl<'a> SceneCheck<'a> {
++    pub(super) fn retains_target(&self) -> bool {
++        self.retained.is_some()
++    }
++
+     pub(super) fn publish() -> Self {
+         Self {
+             retained: None,
+--- /dev/null
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/packet_admission.rs
+@@ -0,0 +1,219 @@
++//! Retained packets keep exact generations while fresh policy runs outside State.
++use super::*;
++type Action = Box<dyn FnOnce(&Arc<StreamController>) + Send>;
++type Actions = Arc<Mutex<Option<Action>>>;
++struct CallbackPolicy {
++    inner: Arc<Policy>,
++    target: Arc<Mutex<Weak<StreamController>>>,
++    actions: Actions,
++}
++impl MediaPolicy for CallbackPolicy {
++    fn current(&self, scope: &MediaScope<'_>) -> ControlResult<Box<dyn MediaAuthorityLease>> {
++        if scope.connection.as_str() == "alice" && matches!(scope.purpose, MediaPurpose::Publish) {
++            let action = self.actions.lock().unwrap().take();
++            if let Some(action) = action {
++                let target = self.target.lock().unwrap().upgrade().unwrap();
++                action(&target);
++            }
++        }
++        self.inner.current(scope)
++    }
++}
++fn fixture() -> (Fixture, Actions) {
++    let actions = Arc::new(Mutex::new(None));
++    let target = Arc::new(Mutex::new(Weak::new()));
++    let f = Fixture::with_policy(
++        8,
++        Some(Box::new({
++            let actions = actions.clone();
++            let target = target.clone();
++            move |inner| {
++                Arc::new(CallbackPolicy {
++                    inner,
++                    target,
++                    actions,
++                })
++            }
++        })),
++    );
++    *target.lock().unwrap() = Arc::downgrade(&f.a);
++    (f, actions)
++}
++async fn queued(
++    f: &Fixture,
++    source: &AdapterMediaPort,
++    input: &mut mpsc::Receiver<MediaPacket>,
++    output: &mut mpsc::Receiver<QueuedMedia>,
++    sequence: u32,
++) -> QueuedMedia {
++    source.try_publish(&frame(source, sequence)).unwrap();
++    receive(input)
++        .await
++        .try_forward_to(&f.b, &desired(Medium::Audio).logical_id)
++        .unwrap();
++    outgoing(output).await
++}
++fn attempt(
++    controller: &StreamController,
++    port: &Arc<Port>,
++    ticket: &PeerRouteTicket,
++) -> ControlResult<()> {
++    controller
++        .admit(
++            port,
++            ticket,
++            false,
++            None,
++            audio_consumer::ConsumerCheck::Retained(None),
++            None,
++            scene_consumer::SceneCheck::retained_publish(None),
++        )
++        .map(|_| ())
++}
++#[tokio::test]
++async fn retained_audio_policy_releases_state_and_fresh_decoded_delivery_keeps_no_idle_reader() {
++    let (f, actions) = fixture();
++    f.start(&[Medium::Audio]).await;
++    let source = f.aa.port(Medium::Audio);
++    let mut input =
++        f.a.take_ingress(&desired(Medium::Audio).logical_id)
++            .unwrap();
++    let mut output = f.ba.port(Medium::Audio).take_egress().unwrap();
++    let packet = queued(&f, &source, &mut input, &mut output, 160).await;
++    assert!(
++        f.policy.0.try_write().is_ok(),
++        "queue retained policy authority"
++    );
++    *actions.lock().unwrap() = Some(Box::new(|controller| {
++        assert!(
++            controller.state.try_lock().is_ok(),
++            "policy owns the model mutex"
++        );
++    }));
++    assert_audio(packet).await;
++    assert!(
++        f.policy.0.try_write().is_ok(),
++        "completed IO retained policy authority"
++    );
++}
++#[tokio::test]
++async fn retained_audio_policy_cannot_lend_current_model_credential_or_route_to_an_older_callback()
++{
++    for changed in 0..5 {
++        let (f, actions) = fixture();
++        f.start(&[Medium::Audio]).await;
++        let source = f.aa.port(Medium::Audio);
++        let mut input =
++            f.a.take_ingress(&desired(Medium::Audio).logical_id)
++                .unwrap();
++        let mut output = f.ba.port(Medium::Audio).take_egress().unwrap();
++        let packet = queued(&f, &source, &mut input, &mut output, 160).await;
++        let authority = f.policy.0.try_read().unwrap().owners["alice"].clone();
++        *actions.lock().unwrap() = Some(Box::new(move |controller| {
++            assert!(controller.state.try_lock().is_ok(), "policy owns State");
++            match changed {
++                0 => {
++                    // Same final permission and actual port, different revision.
++                    // Do not rely only on permits() after a pause/resume edge.
++                    let mut state = controller.state.lock().unwrap();
++                    for paused in [true, false] {
++                        let expected = state.model.revision();
++                        state
++                            .model
++                            .set_paused(
++                                &authority.current(),
++                                expected,
++                                &desired(Medium::Audio).logical_id,
++                                paused,
++                            )
++                            .unwrap();
++                    }
++                }
++                1 => controller.credential.lock().unwrap().revision += 1,
++                2 => controller.state.lock().unwrap().closed = true,
++                3 => {
++                    let port = controller.state.lock().unwrap().active
++                        [&desired(Medium::Audio).logical_id]
++                        .clone();
++                    port.retire();
++                }
++                4 => controller.shutdown.cancel(),
++                _ => unreachable!(),
++            }
++        }));
++        let called = AtomicBool::new(false);
++        let result = packet
++            .deliver(|_| async {
++                called.store(true, Ordering::Release);
++                Ok(())
++            })
++            .await;
++        assert!(result.is_err(), "changed={changed}");
++        assert!(
++            !called.load(Ordering::Acquire),
++            "changed={changed} polled IO"
++        );
++        assert!(
++            f.policy.0.try_write().is_ok(),
++            "refused attempt retained a reader"
++        );
++        if changed <= 1 {
++            assert_audio(queued(&f, &source, &mut input, &mut output, 320).await).await;
++        }
++    }
++}
++#[tokio::test]
++async fn retained_audio_busy_initial_state_refuses_without_waiting_for_its_owner() {
++    let (f, _) = fixture();
++    f.start(&[Medium::Audio]).await;
++    let port = f.aa.port(Medium::Audio).0;
++    let ticket = port.ticket();
++    let held = f.a.state.lock().unwrap();
++    let controller = f.a.clone();
++    let (sent, received) = std::sync::mpsc::channel();
++    let worker =
++        std::thread::spawn(move || sent.send(attempt(&controller, &port, &ticket)).unwrap());
++    let result = received.recv_timeout(Duration::from_millis(500));
++    drop(held);
++    worker.join().unwrap();
++    assert!(matches!(result, Ok(Err(StreamControlError::NotReady))));
++    assert!(f.policy.0.try_write().is_ok());
++}
++#[tokio::test]
++async fn retained_audio_busy_state_after_policy_drops_fresh_authority_before_retry_wait() {
++    let (f, actions) = fixture();
++    f.start(&[Medium::Audio]).await;
++    let port = f.aa.port(Medium::Audio).0;
++    let ticket = port.ticket();
++    let (release, released) = std::sync::mpsc::channel();
++    let holder = Arc::new(Mutex::new(None));
++    *actions.lock().unwrap() = Some(Box::new({
++        let holder = holder.clone();
++        move |controller| {
++            assert!(controller.state.try_lock().is_ok());
++            let controller = controller.clone();
++            let (ready, waiting) = std::sync::mpsc::channel();
++            *holder.lock().unwrap() = Some(std::thread::spawn(move || {
++                let held = controller.state.lock().unwrap();
++                ready.send(()).unwrap();
++                // Bound regression cleanup even if final admission blocks.
++                let _ = released.recv_timeout(Duration::from_secs(2));
++                drop(held);
++            }));
++            waiting.recv_timeout(Duration::from_secs(1)).unwrap();
++        }
++    }));
++    let controller = f.a.clone();
++    let (sent, received) = std::sync::mpsc::channel();
++    let worker =
++        std::thread::spawn(move || sent.send(attempt(&controller, &port, &ticket)).unwrap());
++    let result = received.recv_timeout(Duration::from_millis(500));
++    let dropped = f.policy.0.try_write().is_ok();
++    let _ = release.send(());
++    worker.join().unwrap();
++    if let Some(holder) = holder.lock().unwrap().take() {
++        holder.join().unwrap();
++    }
++    assert!(matches!(result, Ok(Err(StreamControlError::NotReady))));
++    assert!(dropped, "fresh reader survived while waiting for State");
++}
+--- a/crates/foundation/rvoip-core/src/staged_streams/tests.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests.rs
+@@ -2811,3 +2811,5 @@
+ }
+ 
+ mod queued_contention_tests;
++
++mod packet_admission;
+--- a/crates/foundation/rvoip-core/src/staged_streams.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams.rs
+@@ -1683,24 +1683,45 @@
+         audio_consumer::MediaAdmission,
+         tokio::time::Instant,
+     )> {
+-        let state = self.state.lock().unwrap_or_else(|p| p.into_inner());
+-        if self.shutdown.is_cancelled()
+-            || state.closed
+-            || !state
+-                .active
+-                .get(&port.binding.negotiated.requested.logical_id)
+-                .is_some_and(|p| Arc::ptr_eq(p, port))
+-        {
+-            return Err(StreamControlError::NotReady);
+-        }
+-        if state
+-            .model
+-            .streams()
+-            .get(&port.binding.negotiated.requested.logical_id)
+-            .is_none_or(|s| !s.permits(sending))
+-        {
+-            return Err(StreamControlError::NotReady);
+-        }
++        // Retained packet metadata already fixes the original consumer/scene
++        // generations. Never recapture current gates after a policy callback.
++        let detached = port.binding.negotiated.requested.medium == Medium::Audio
++            && data.is_none()
++            && held.is_none()
++            && matches!(&consumer, audio_consumer::ConsumerCheck::Retained(_))
++            && scene.retains_target();
++        let lock_state = || -> ControlResult<_> {
++            if detached {
++                match self.state.try_lock() {
++                    Ok(state) => Ok(state),
++                    Err(std::sync::TryLockError::WouldBlock) => Err(StreamControlError::NotReady),
++                    Err(std::sync::TryLockError::Poisoned(error)) => Ok(error.into_inner()),
++                }
++            } else {
++                Ok(self.state.lock().unwrap_or_else(|p| p.into_inner()))
++            }
++        };
++        let validate = |state: &State| -> ControlResult<()> {
++            if self.shutdown.is_cancelled()
++                || state.closed
++                || !state
++                    .active
++                    .get(&port.binding.negotiated.requested.logical_id)
++                    .is_some_and(|current| Arc::ptr_eq(current, port))
++                || state
++                    .model
++                    .streams()
++                    .get(&port.binding.negotiated.requested.logical_id)
++                    .is_none_or(|stream| !stream.permits(sending))
++            {
++                return Err(StreamControlError::NotReady);
++            }
++            Ok(())
++        };
++        let state = lock_state()?;
++        validate(&state)?;
++        let revision = state.model.revision();
++        let mut state = Some(state);
+         let credential = self.credential_snapshot();
+         let scope = self.scope(
+             &credential.principal,
+@@ -1714,12 +1735,30 @@
+         {
+             return Err(StreamControlError::Authority);
+         }
++        // No model mutex is held across fresh policy/file admission. A refused
++        // attempt owns no reader while the caller's original bounded retry waits.
++        if detached {
++            drop(state.take());
++        }
+         let lease = match (data, packet_context) {
+             (Some(data), None) => self.policy.current_data(&scope, data, held)?,
+             (None, Some(context)) => self.policy.current_packet(&scope, context)?,
+             (None, None) => self.policy.current(&scope)?,
+             _ => return Err(StreamControlError::Authority),
+         };
++        let state = match state {
++            Some(state) => state,
++            None => lock_state()?,
++        };
++        if detached {
++            // Even a pause/resume returning to the same permission must refuse
++            // this older callback; do not silently borrow its new generation.
++            if state.model.revision() != revision {
++                return Err(MediaTransitionError::Conflict.into());
++            }
++            self.check_credential_snapshot(&credential)?;
++            validate(&state)?;
++        }
+         let auth = lease.authority();
+         Self::check(&scope, auth)?;
+         state.model.authorize_binding(&auth.current())?;
