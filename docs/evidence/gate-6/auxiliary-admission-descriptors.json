@@ -1,0 +1,65 @@
+{
+  "scope": "Local macOS arm64 authority-fence component. 38 individual fence methods finished successfully in the still-running full Store suite; full-suite and optimized host/capacity results are pending. No clause/task promotion: 45/105 tasks, G6-046 58/61 clauses.",
+  "changes": [
+    "Pool at most 128 idle, explicitly unlocked admission descriptions, at most two per name. Exclusive checkout never shares an open description between concurrent requests; busy/full pool falls back to fresh open/close without waiting on the pool mutex.",
+    "Every acquisition still validates the current database and private directory and obtains the actual exclusive OS admission lock. Reused descriptions freshly validate regular path/file, private owner/mode, single link, matching device/inode, owner read/write mode and current effective read/write access including ACLs through safe rustix accessat. Unsafe reuse fails closed and closes the descriptor.",
+    "Writer release retains resource-before-admission order. Read acquisition releases admission only after obtaining its current resource lock. No authority, permission, SQL snapshot or expired media grant is cached in the idle pool. Source179/schema103 and original capacity bounds remain unchanged."
+  ],
+  "verification": {
+    "completed_fence_methods": 38,
+    "new_methods": 5,
+    "methods": [
+      "authority_fences::tests::actual_child_death_releases_kernel_reader_without_persistent_phantom_authority",
+      "authority_fences::tests::actual_child_process_revocation_waits_for_parent_delivery_guard_and_admin_open_preserves_runtime",
+      "authority_fences::tests::actual_key_and_device_retirement_wait_for_current_identity_delivery",
+      "authority_fences::tests::admissions::admission_pool_never_waits_on_cache_and_bounds_idle_descriptors",
+      "authority_fences::tests::admissions::cached_admission_preserves_queued_writer_and_releases_partial_read_scopes",
+      "authority_fences::tests::admissions::cached_admission_respects_current_acl_even_when_owner_and_mode_are_unchanged",
+      "authority_fences::tests::admissions::cached_admission_revalidates_privacy_links_and_current_inode_before_locking",
+      "authority_fences::tests::admissions::idle_admission_descriptions_hold_no_lock_and_checkout_is_exclusive",
+      "authority_fences::tests::cancellation_deadline_and_partial_acquisition_release_every_scope",
+      "authority_fences::tests::immediate_admission_refuses_queued_writer_and_releases_partial_scopes",
+      "authority_fences::tests::immediate_admission_refuses_reader_map_contention_without_waiting",
+      "authority_fences::tests::immediate_large_scene_admission_preserves_every_scope",
+      "authority_fences::tests::immediate_sql_refuses_mutex_and_database_contention_and_restores_timeout",
+      "authority_fences::tests::membership_removal_and_other_member_revocation_wait_for_snapshot_delivery",
+      "authority_fences::tests::mutations::contact_pairing_changes_wait_for_both_current_identity_authorities",
+      "authority_fences::tests::mutations::exact_current_grant_replay_is_read_only_during_delivery_and_never_refreshes_denied_authority",
+      "authority_fences::tests::mutations::held_write_proof_reuses_exact_scope_and_refuses_read_upgrade_partial_and_foreign_proofs",
+      "authority_fences::tests::mutations::membership_and_provisioning_reuse_sufficient_write_proofs_without_reentering",
+      "authority_fences::tests::mutations::ordinary_close_privacy_and_artifact_deletion_wait_for_current_delivery",
+      "authority_fences::tests::mutations::ordinary_session_authority_changes_wait_for_delivery_and_recheck_original_state",
+      "authority_fences::tests::mutations::owner_and_narrow_invocation_artifact_deletion_share_the_ordinary_write_fence",
+      "authority_fences::tests::mutations::shared_engine_refuses_authority_mutation_without_a_current_owned_write_proof",
+      "authority_fences::tests::mutations::task_cancel_grant_retirement_and_new_issuance_wait_for_current_delivery",
+      "authority_fences::tests::mutations::trusted_bind_unbind_and_session_end_wait_for_current_delivery",
+      "authority_fences::tests::names::cached_names_still_check_fresh_file_privacy_and_reject_symlinks",
+      "authority_fences::tests::names::name_metadata_is_bounded_namespace_specific_and_never_waits_on_its_map",
+      "authority_fences::tests::namespace_privacy_symlink_alias_hardlink_refusal_and_foreign_guard_are_enforced",
+      "authority_fences::tests::runtime::a_different_time_eligible_voice_candidate_refuses_uncovered_transaction_then_retries",
+      "authority_fences::tests::runtime::copied_provider_job_cannot_switch_the_persisted_route_at_completion",
+      "authority_fences::tests::runtime::global_phone_stop_covers_other_sender_and_conversation_authority",
+      "authority_fences::tests::runtime::provider_claim_completion_receipt_recovery_and_route_disable_wait_for_delivery",
+      "authority_fences::tests::runtime::raw_voice_results_cannot_reopen_terminal_state_or_rebind_an_owned_remote_effect",
+      "authority_fences::tests::runtime::sip_claim_preparation_dispatch_result_and_recovery_wait_for_delivery",
+      "authority_fences::tests::runtime::sms_refresh_retirement_stop_and_authority_expiry_wait_for_current_delivery",
+      "authority_fences::tests::runtime::voice_claim_dispatch_completion_and_recovery_wait_for_delivery",
+      "authority_fences::tests::runtime::voice_route_admin_cannot_cross_tenant_even_with_wildcard_recipients",
+      "authority_fences::tests::runtime::voice_route_disabling_and_ingress_configuration_wait_for_delivery",
+      "authority_fences::tests::writer_intent_stops_new_readers_held_proof_reuses_without_reentry_and_other_identity_proceeds"
+    ],
+    "full_store_suite": "Running, not yet a pass. Two subprocess helper methods are expected explicit skips; parent methods execute their children.",
+    "source_sha256": {
+      "Cargo.toml": "53a9383782d38b26f68896510f66d496d6e71a1bbc6e7045c227d5570a0ad573",
+      "Cargo.lock": "fa4446409095642e06682fc3b6cda79a19c63bb7746aea7c432bc892ff1a4bf7",
+      "crates/connect-store/Cargo.toml": "48f51ef1894f628946a35b70f4ddacc7a3cd2a5f02319b3220be16f8854f2c93",
+      "crates/connect-store/src/authority_fences.rs": "153e16346549790bd33dc6b2035027d07d52da0d73ed9ce78a1d6611b5df0022",
+      "crates/connect-store/src/authority_fences/tests.rs": "c98fa5a569f8aeac7b4be267fe4438ff9407ca2ea3169e291041675bb16a22a3",
+      "crates/connect-store/src/authority_fences/tests/admissions.rs": "48a54ff12414009476ed56641667e9ba0ff94d3edc53517d48eeefacbba3f704"
+    }
+  },
+  "pending": [
+    "Complete current Store library suite.",
+    "Exact optimized host build, actual 50-Participant rehearsal and current-authority production regressions. No capacity credit from component methods."
+  ]
+}

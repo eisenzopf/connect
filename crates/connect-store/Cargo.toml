@@ -30,6 +30,9 @@ p256.workspace = true
 ed25519-dalek.workspace = true
 fs2.workspace = true
 
+[target.'cfg(unix)'.dependencies]
+rustix.workspace = true
+
 [dev-dependencies]
 tempfile.workspace = true
 

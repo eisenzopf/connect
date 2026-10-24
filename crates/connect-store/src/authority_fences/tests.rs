@@ -775,3 +775,6 @@ fn immediate_sql_refuses_mutex_and_database_contention_and_restores_timeout() {
     external.execute_batch("ROLLBACK").unwrap();
     assert!(f.store.try_connection().is_ok());
 }
+
+#[cfg(unix)]
+mod admissions;

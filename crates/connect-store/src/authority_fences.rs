@@ -17,6 +17,8 @@ use std::{
 };
 
 const MAX_SCOPES: usize = 1024;
+const MAX_IDLE_ADMISSIONS: usize = 128;
+const MAX_IDLE_PER_NAME: usize = 2;
 const MAX_WAIT: Duration = Duration::from_secs(30);
 pub(crate) const DEFAULT_WAIT: Duration = Duration::from_secs(2);
 pub(crate) fn validate_path(path: &Path) -> Result<PathBuf> {
@@ -141,10 +143,56 @@ impl Drop for CancelAuthorityWait {
 }
 
 enum Held {
-    Read { _resource: Arc<File> },
+    Read {
+        _resource: Arc<File>,
+    },
     // Release resource before admission, so a new reader cannot pass a writer
     // whose exclusive resource lock has not yet been released.
-    Write { _resource: File, _admission: File },
+    Write {
+        _resource: File,
+        _admission: Admission,
+    },
+}
+#[derive(Default)]
+struct IdleAdmissions {
+    files: BTreeMap<String, Vec<File>>,
+    count: usize,
+}
+// Exclusive checkout of an open description. Only an explicitly unlocked file
+// may return to the bounded pool; no authority or permission is cached there.
+struct Admission {
+    file: Option<File>,
+    name: String,
+    manager: Weak<Manager>,
+}
+impl Admission {
+    fn file(&self) -> &File {
+        self.file.as_ref().expect("live admission checkout")
+    }
+}
+impl Drop for Admission {
+    fn drop(&mut self) {
+        let Some(file) = self.file.take() else { return };
+        if FileExt::unlock(&file).is_err() {
+            return;
+        }
+        let Some(manager) = self.manager.upgrade() else {
+            return;
+        };
+        let Ok(mut idle) = manager.admissions.try_lock() else {
+            return;
+        };
+        if idle.count >= MAX_IDLE_ADMISSIONS
+            || idle
+                .files
+                .get(&self.name)
+                .is_some_and(|files| files.len() >= MAX_IDLE_PER_NAME)
+        {
+            return;
+        }
+        idle.files.entry(self.name.clone()).or_default().push(file);
+        idle.count += 1;
+    }
 }
 pub struct AuthorityGuardSet {
     manager: Arc<Manager>,
@@ -178,6 +226,7 @@ pub(crate) struct Manager {
     // Bounded namespace metadata only: never a file, lock, reader or grant.
     names: Mutex<BTreeMap<(Kind, String), String>>,
     readers: Mutex<BTreeMap<String, Weak<File>>>,
+    admissions: Mutex<IdleAdmissions>,
 }
 impl Manager {
     pub(crate) fn open(path: &Path, secret: &str) -> Result<Arc<Self>> {
@@ -227,6 +276,7 @@ impl Manager {
             fingerprint,
             names: Mutex::new(BTreeMap::new()),
             readers: Mutex::new(BTreeMap::new()),
+            admissions: Mutex::new(IdleAdmissions::default()),
         });
         managers.insert(name, Arc::downgrade(&manager));
         Ok(manager)
@@ -284,8 +334,8 @@ impl Manager {
                 wait.check()?;
             }
             let name = self.name(key)?;
-            let admission = self.file(&format!("{name}.admission"))?;
-            lock_with(&admission, wait)?;
+            let admission = self.admission(&format!("{name}.admission"))?;
+            lock_with(admission.file(), wait)?;
             if *mode == AuthorityMode::Write {
                 let resource = self.file(&format!("{name}.resource"))?;
                 lock_with(&resource, wait)?;
@@ -375,6 +425,64 @@ impl Manager {
             self.fingerprint.2,
         )?;
         Ok(file)
+    }
+    fn admission(self: &Arc<Self>, name: &str) -> Result<Admission> {
+        let cached = self.admissions.try_lock().ok().and_then(|mut idle| {
+            let file = idle.files.get_mut(name)?.pop()?;
+            idle.count -= 1;
+            if idle.files.get(name).is_some_and(Vec::is_empty) {
+                idle.files.remove(name);
+            }
+            Some(file)
+        });
+        let file = match cached {
+            Some(file) => {
+                self.validate_cached_admission(name, &file)?;
+                file
+            }
+            None => self.file(name)?,
+        };
+        Ok(Admission {
+            file: Some(file),
+            name: name.into(),
+            manager: Arc::downgrade(self),
+        })
+    }
+    fn validate_cached_admission(&self, name: &str, file: &File) -> Result<()> {
+        let location = self.directory.join(name);
+        let path = fs::symlink_metadata(&location)
+            .map_err(|_| Error::new("authority-unavailable", "Authority file changed"))?;
+        let descriptor = file.metadata().map_err(|_| Error::storage())?;
+        if path.file_type().is_symlink() || !path.is_file() || !descriptor.is_file() {
+            return Err(Error::new("authority-unavailable", "Unsafe authority file"));
+        }
+        private(&path, self.fingerprint.2)?;
+        private(&descriptor, self.fingerprint.2)?;
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::MetadataExt;
+            if path.dev() != descriptor.dev()
+                || path.ino() != descriptor.ino()
+                || path.mode() & 0o600 != 0o600
+                || descriptor.mode() & 0o600 != 0o600
+            {
+                return Err(Error::new(
+                    "authority-unavailable",
+                    "Authority file changed",
+                ));
+            }
+            // Reusing an open description must still respect current effective
+            // access, including ACL changes that mode/owner checks cannot see.
+            use rustix::fs::{accessat, Access, AtFlags, CWD};
+            accessat(
+                CWD,
+                &location,
+                Access::READ_OK | Access::WRITE_OK,
+                AtFlags::EACCESS,
+            )
+            .map_err(|_| Error::new("authority-unavailable", "Authority access changed"))?;
+        }
+        Ok(())
     }
 }
 fn authority_busy() -> Error {
