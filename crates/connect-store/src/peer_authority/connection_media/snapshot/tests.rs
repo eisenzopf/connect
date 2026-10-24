@@ -1,6 +1,7 @@
 //! Controlled SQL races test capture invalidation, not physical media delivery.
 use super::*;
 use std::time::{Duration, Instant};
+mod hints;
 mod owned;
 
 struct Fixture {

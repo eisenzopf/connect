@@ -72,6 +72,28 @@ impl<T> Entry<T> {
     }
 }
 
+/// Read already-validated metadata for an observation that makes no effect.
+/// This owns no authority reader and must never be used as an IO/control grant.
+/// Exact SQL/clock/source stamps still apply; a miss requires normal admission.
+pub(super) fn peek_map<T, U>(
+    store: &Store,
+    memo: &Memo<T>,
+    source: Option<&MetadataToken>,
+    project: impl FnOnce(&T) -> U,
+) -> Result<Option<U>> {
+    let c = store.try_connection()?;
+    let before = version(&c)?;
+    let observed = memo.0.try_lock().ok().and_then(|slot| {
+        slot.as_ref()
+            .filter(|entry| entry.matches(before, source))
+            .map(|entry| project(&entry.facts))
+    });
+    if version(&c)? != before {
+        return Err(Error::new("authority-busy", "Observation metadata changed"));
+    }
+    Ok(observed)
+}
+
 pub(super) fn cached<T: Clone>(
     store: &Store,
     memo: &Memo<T>,

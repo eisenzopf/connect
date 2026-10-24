@@ -558,6 +558,19 @@ impl Store {
     /// operation permission. All readers are released before the caller idles.
     pub fn try_native_connection_current(&self, origin: &NativeMediaOrigin) -> Result<bool> {
         current_owner(self, origin)?;
+        // A positive unchanged observation only keeps the original custodian
+        // alive. It grants no IO. A miss, clock edge or mutation takes the
+        // existing fully fenced path before making a retirement decision.
+        if let Some(expiry) = snapshot::peek_map(
+            self,
+            &snapshot::metadata(origin)?.lifetime,
+            None,
+            |expiry| *expiry,
+        )? {
+            if crate::now() < expiry && current_owner(self, origin)?.current() {
+                return Ok(true);
+            }
+        }
         let (expiry, _held) = snapshot::cached(
             self,
             &snapshot::metadata(origin)?.lifetime,
@@ -569,6 +582,20 @@ impl Store {
             |_| Ok(()),
         )?;
         Ok(current_owner(self, origin)?.current() && crate::now() < expiry)
+    }
+    /// Metadata hint for skipping an unchanged disposable role projection only.
+    /// This is not permission to apply a role, publish media or deliver signals.
+    /// Changed/missing hints require the caller's normal complete current read.
+    pub fn try_native_session_role_hint(
+        &self,
+        origin: &NativeMediaOrigin,
+    ) -> Result<Option<String>> {
+        current_owner(self, origin)?;
+        let hint = snapshot::peek_map(self, &snapshot::metadata(origin)?.unary, None, |facts| {
+            (facts.0.presence_role.clone(), facts.2)
+        })?;
+        current_owner(self, origin)?;
+        Ok(hint.and_then(|(role, expiry)| (crate::now() < expiry).then_some(role)))
     }
     /// Resolve metadata with the same current origin checks as native IO.
     /// No authority reader or executable media handle is returned.
