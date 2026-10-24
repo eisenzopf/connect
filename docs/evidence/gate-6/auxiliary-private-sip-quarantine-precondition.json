@@ -1,8 +1,8 @@
 {
   "task": "G6-046",
-  "recorded_at": "2026-10-24",
+  "recorded_at": "2026-10-24T23:50:49.606519+00:00",
   "source_base_commit": "6979aa5c420560f29e514d5b89e5d7c6f24c3a39",
-  "status": "fixture-precondition-corrected-core-checks-pass-actual-runtime-pending",
+  "status": "current-local-human-switch-return-and-explicit-ai-quarantine-pass",
   "full_task_complete": false,
   "full_goal_complete": false,
   "newly_qualified_case_ids": [],
@@ -111,12 +111,165 @@
       ]
     },
     "actual_runtime": {
-      "status": "building-not-qualified"
+      "status": "passed-scoped-local-profiles",
+      "summary": ".local/gate-6/private-sip-primary/owned-mute185-runtime-023/summary.json"
+    },
+    "runtime023": {
+      "scope": "Actual Human private SIP candidate/native primary original call with same Participant/Endpoint public SIP sibling; private duplex RTP, INFO/RFC4733, four rights/recovery/replay, expired admission/revoked controller continuity and original return/absence, plus explicitly provisioned AI quarantine regressions with provider readiness withheld and accepted/unclaimed/effect-free parent before and after input. No whole task/clause/provider qualification.",
+      "source_revision": "d203728d66cf7ba72f7d8fd1ab381e0faa497652",
+      "source_lock_sha256": "2d4f2eff9286f03ae7bc09b8ad9e6ae73b54e04dfcfed17eeff3eb4e086188be",
+      "prepared_patch_count": 185,
+      "executable_sha256": "3d40742e30f9a38cd6264af466b49d96c408d6575a763c1b89154cfd07b8e493",
+      "cargo_profile": {
+        "opt_level": "3",
+        "debuginfo": 0,
+        "debug_assertions": false,
+        "overflow_checks": false,
+        "test": true
+      },
+      "profiles": [
+        {
+          "source_kind": "private-initial-sip",
+          "algorithm": "EdDSA",
+          "runtime_exit_code": 0,
+          "passed": true,
+          "capture_sha256": "2568ce3c4c9453bf20a0880158ccfa32b495173e634ec11cf405bdcd6cb2a65b"
+        },
+        {
+          "source_kind": "private-initial-sip",
+          "algorithm": "ES256",
+          "runtime_exit_code": 0,
+          "passed": true,
+          "capture_sha256": "f51294a719d83e6b642fdaf51e1b6517536477b84b9c4f071145154982c2e126"
+        },
+        {
+          "source_kind": "private-candidate-quarantine",
+          "algorithm": "EdDSA",
+          "runtime_exit_code": 0,
+          "passed": true,
+          "capture_sha256": "d92c3395585785ba4566fed83ff816ead2eae991bbfa86dc556836854293928b",
+          "verified_observations": {
+            "algorithm": "EdDSA",
+            "marked_public_baseline": [
+              19,
+              19
+            ],
+            "marked_quarantine": [
+              0,
+              0
+            ],
+            "marked_public_after_cleanup": [
+              19,
+              19
+            ],
+            "distinct_sip_calls": 2,
+            "original_public_live": true,
+            "metadata_busy_preserved": true,
+            "authority_writer_hold_ms": 250
+          }
+        },
+        {
+          "source_kind": "private-candidate-quarantine",
+          "algorithm": "ES256",
+          "runtime_exit_code": 0,
+          "passed": true,
+          "capture_sha256": "04cc11d6d074a10eb86ec62794d1c700e11f32a9b4b1ae978bdfae7f5363d767",
+          "verified_observations": {
+            "algorithm": "ES256",
+            "marked_public_baseline": [
+              18,
+              18
+            ],
+            "marked_quarantine": [
+              0,
+              0
+            ],
+            "marked_public_after_cleanup": [
+              19,
+              19
+            ],
+            "distinct_sip_calls": 2,
+            "original_public_live": true,
+            "metadata_busy_preserved": true,
+            "authority_writer_hold_ms": 250
+          }
+        }
+      ],
+      "switch_validation": {
+        "passed": true,
+        "scenes": 2,
+        "actual_frames": 12,
+        "captures_sha256": {
+          "switch-capture.EdDSA.json": "2568ce3c4c9453bf20a0880158ccfa32b495173e634ec11cf405bdcd6cb2a65b",
+          "switch-capture.ES256.json": "f51294a719d83e6b642fdaf51e1b6517536477b84b9c4f071145154982c2e126"
+        },
+        "schema_sha256": "8d3d5a1098c8eebafe30960b8b35d83e11f9c8ac09453ab7e528251368d11c32",
+        "scope": "Actual isolated local Human SIP candidate and native primary; SDK verifies signatures, runtime checks decoded duplex media, physical public sibling privacy, named signal rights/recovery/replay, expired admission/revoked controller continuity and original call return/absence. Other roles and provider profiles remain separate."
+      },
+      "source_inputs_unchanged": true,
+      "executable_unchanged": true,
+      "passed": true,
+      "summary": ".local/gate-6/private-sip-primary/owned-mute185-runtime-023/summary.json",
+      "summary_sha256": "7867817f01c8e4e89af2507665cd47809fd07bc5362c6620254d2f5491d54e04",
+      "observations": {
+        "EdDSA": {
+          "private_counts": [
+            0,
+            16
+          ],
+          "public_sibling_private_counts": [
+            0,
+            0
+          ],
+          "private_native_to_sip_by_call": [
+            45,
+            0
+          ],
+          "after_expired_admission_and_revoked_controller": [
+            0,
+            17
+          ],
+          "recovered_public_counts": [
+            18,
+            19
+          ],
+          "distinct_sip_calls": 2,
+          "source_operation_count": 6,
+          "admission_expired": true,
+          "controller_revoked": true
+        },
+        "ES256": {
+          "private_counts": [
+            0,
+            13
+          ],
+          "public_sibling_private_counts": [
+            0,
+            0
+          ],
+          "private_native_to_sip_by_call": [
+            64,
+            0
+          ],
+          "after_expired_admission_and_revoked_controller": [
+            0,
+            18
+          ],
+          "recovered_public_counts": [
+            17,
+            17
+          ],
+          "distinct_sip_calls": 2,
+          "source_operation_count": 6,
+          "admission_expired": true,
+          "controller_revoked": true
+        }
+      }
     }
   },
   "remaining": [
-    "Run corrected AI quarantine and full Human private SIP candidate for both algorithms with frozen inputs and signed frame validation.",
-    "Resolve any current runtime failures, including prior ES256 media-rights continuity failure.",
-    "Complete remaining G6-046 assigned vectors and full required matrix. U6-REQ-0112/0113 remain open."
+    "Complete the remaining approved role/provider/phase matrix and independent conformance; these scoped local profiles do not close U6-REQ-0112/0113 or G6-046.",
+    "Current original initial/established SIP-primary regressions are running separately as runtime024.",
+    "Retain historical failed attempts. Prior ES256 media-continuity failure did not recur in runtime023; do not attribute that earlier intermittent failure to the closure-only mute change without evidence."
   ]
 }
