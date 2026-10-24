@@ -1,7 +1,7 @@
 {
   "task": "G6-046",
-  "recorded_at": "2026-10-24T22:41:16.715220+00:00",
-  "status": "reverse-human-sip-candidate-fixtures-compile-runtime-pending",
+  "recorded_at": "2026-10-24T23:08:29.383847+00:00",
+  "status": "runtime-failures-captured-quarantine-isolation-and-return-open",
   "full_task_complete": false,
   "full_goal_complete": false,
   "newly_qualified_case_ids": [],
@@ -42,8 +42,87 @@
       "scope": "Argument parsing/imports only; no actual captures yet."
     },
     "runtime": {
-      "status": "not-run",
-      "reason": "Main combined runtime014 has a live immutable-source/executable guard. Complete it before changing main sources or rebuilding its shared optimized executable."
+      "passed": false,
+      "summary": ".local/gate-6/private-sip-primary/private-switch123-runtime-015/summary.json",
+      "execution_workspace": "/Volumes/D2-2019/Developer/Connect",
+      "summary_sha256": "79ad5e8eae2898870c65e4af8a797702e746279d14d83af5143bebb2102b1e47",
+      "source_inputs_unchanged": true,
+      "executable_unchanged": true,
+      "profiles": [
+        {
+          "source_kind": "private-initial-sip",
+          "algorithm": "EdDSA",
+          "runtime_exit_code": 101,
+          "passed": false
+        },
+        {
+          "source_kind": "private-initial-sip",
+          "algorithm": "ES256",
+          "runtime_exit_code": 101,
+          "passed": false
+        },
+        {
+          "source_kind": "private-candidate-quarantine",
+          "algorithm": "EdDSA",
+          "runtime_exit_code": 101,
+          "passed": false
+        },
+        {
+          "source_kind": "private-candidate-quarantine",
+          "algorithm": "ES256",
+          "runtime_exit_code": 101,
+          "passed": false
+        }
+      ],
+      "failures": [
+        "EdDSA reaches original return after private duplex RTP, INFO/RFC, four signal rights/recovery/replay and media after revoked controller/expired admission. Core return refuses Media(Model(Authority)); effect Unknown/attempt1. No profile pass.",
+        "ES256 fails continued media after native dtmf.receive withdrawal. No profile pass.",
+        "Both quarantine privacy probes fail; pre-allocation public backlog zero."
+      ]
+    },
+    "packet_provenance": {
+      "scope": "Diagnostic only. Optional no-input mode leaves normal zero-privacy assertion unchanged. Raw audio remains ignored.",
+      "summary": ".local/gate-6/private-sip-primary/private-provenance124-diagnostic-016/summary.json",
+      "execution_workspace": "/Volumes/D2-2019/Developer/Connect",
+      "summary_sha256": "77ad833bae16e4639a42166d808271c59474a22423ad9de59d079fcb1c118534",
+      "source_inputs_unchanged": true,
+      "executable_unchanged": true,
+      "without_private_rtp_marked_packets": 0,
+      "with_private_rtp_primary_marked_packets": 9,
+      "with_private_rtp_dominant_hz": 500,
+      "conclusion": "Fresh private input causes marked primary output; not leftover baseline. No-input run subsequently fails original cancellation cleanup."
+    },
+    "boundary_trace": {
+      "scope": "Failure diagnosis only. Explicit RUST_LOG overrides inherited warn which hid boundary errors.",
+      "summary": ".local/gate-6/private-sip-primary/private-provenance124-trace-017/summary.json",
+      "execution_workspace": "/Volumes/D2-2019/Developer/Connect",
+      "summary_sha256": "9103c41233f82a4529a57ef742307efa61a7bbfe0642244bec216a371db0245a",
+      "source_inputs_unchanged": true,
+      "executable_unchanged": true,
+      "return_error": "return-core: Media(Model(Authority))"
+    },
+    "diagnostic_compile": {
+      "passed": true,
+      "exit_code": 0,
+      "elapsed_seconds": 5.395553125068545,
+      "command": [
+        "cargo",
+        "check",
+        "-p",
+        "connect-server",
+        "--test",
+        "gate6_canonical_runtime",
+        "--locked",
+        "--offline",
+        "-j2",
+        "--target-dir",
+        "/Volumes/D2-2019/Developer/Connect/target"
+      ],
+      "source_inputs_unchanged": true,
+      "log_sha256": "2c1dfd2a71c97733782f1dd1bb66c6ffb47a46c379b62b406763367af069d442",
+      "scope": "Compilation only; observed runtime privacy/return/media/cleanup failures remain open. Diagnostic no-input mode cannot emit a qualification capture.",
+      "summary": ".local/gate-6/private-provenance124-check-005/summary.json",
+      "summary_sha256": "9c7e417406e34e9cad1dfa37f08f8c272ffcd2ca14ec18cee17f909eeac76949"
     }
   },
   "new_cases": [
@@ -51,9 +130,10 @@
     "canonical_native_connections::consultation::groups::replacement::telephone::initial::private_candidate::production_private_sip_candidate_switch_preserves_original_call_and_public_sibling_es256"
   ],
   "remaining": [
-    "Execute both actual reverse candidate profiles and validate fresh actual captures with stable source/executable guards.",
-    "Repeat affected original quarantine fixtures after helper refactor.",
-    "Resolve real failures without reducing privacy, current authorization, original ID or cleanup assertions.",
-    "Complete approved remaining G6-046 role/provider/phase matrix and independent conformance separately."
+    "Trace exact original SIP SDP/media port and per-call route/source ownership; preserve same Participant/Endpoint sibling and zero quarantine assertions.",
+    "Fix control-only return closure without granting new media edges.",
+    "Resolve continued media on native signal-right withdrawal and original cancellation cleanup.",
+    "Execute final frozen actual profiles and capture checks; diagnostic mode provides no qualification.",
+    "Complete approved remaining role/provider/phase matrix and independent conformance."
   ]
 }
