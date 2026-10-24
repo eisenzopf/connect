@@ -345,11 +345,15 @@ fn resolve(
                 return Err(Error::forbidden());
             }
         }
-        let (view, required, expiry) = if source.connection_id() == candidate {
-            closure_facts(store, c, source)?
-        } else {
-            facts(store, c, source)?
-        };
+        let (view, required, expiry) =
+            if source.connection_id() == candidate || source.connection_id() == primary {
+                // This fresh return already validated the original captured context.
+                // Restore its primary without reopening the old private media grant;
+                // its partner may have lost receive rights or already departed.
+                closure_facts(store, c, source)?
+            } else {
+                facts(store, c, source)?
+            };
         if !actor.permits_recipient(&view.session.actor.identity_id) {
             return Err(Error::forbidden());
         }

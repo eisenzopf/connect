@@ -17,8 +17,24 @@ impl Store {
         conversation: &str,
         session: &str,
     ) -> Result<(Vec<AuthorityScope>, Vec<Actor>, i64)> {
+        self.sip_private_snapshot_facts_for(
+            c,
+            binding,
+            conversation,
+            session,
+            crate::connection_control::private_consultation::Purpose::Media,
+        )
+    }
+    pub(crate) fn sip_private_snapshot_facts_for(
+        &self,
+        c: &Connection,
+        binding: &serde_json::Value,
+        conversation: &str,
+        session: &str,
+        purpose: crate::connection_control::private_consultation::Purpose,
+    ) -> Result<(Vec<AuthorityScope>, Vec<Actor>, i64)> {
         let (scopes, expiry) =
-            self.sip_audience_snapshot_facts(c, binding, conversation, session)?;
+            self.sip_audience_snapshot_facts_for(c, binding, conversation, session, purpose)?;
         let text = |key: &str| binding[key].as_str().ok_or_else(Error::storage);
         let mut actors = vec![crate::identity::actor_from_connection(
             c,
@@ -33,10 +49,12 @@ impl Store {
                 text("endpoint_credential_id")?,
             )?);
         }
-        actors
-            .last()
-            .ok_or_else(Error::storage)?
-            .require("stream.subscribe")?;
+        if purpose.media() {
+            actors
+                .last()
+                .ok_or_else(Error::storage)?
+                .require("stream.subscribe")?;
+        }
         Ok((scopes, actors, expiry))
     }
 }

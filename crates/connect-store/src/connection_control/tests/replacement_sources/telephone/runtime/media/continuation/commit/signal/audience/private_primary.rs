@@ -778,3 +778,35 @@ fn sip_primary_fresh_packet_pair_grants_only_its_current_registered_native_conne
         .unwrap()
         .current());
 }
+
+#[test]
+fn sip_primary_private_dtmf_does_not_require_offer_subscribe_or_codec_permissions() {
+    use crate::TelephoneSignalDirection::{FromTelephone, ToTelephone};
+    let s = Scene::new();
+    permissions(
+        &s.f,
+        &s.f.keys[2],
+        &[
+            "connection.offer",
+            "stream.subscribe",
+            "dtmf.send",
+            "dtmf.receive",
+        ],
+    );
+    s.establish();
+    permissions(&s.f, &s.f.keys[2], &["dtmf.send", "dtmf.receive"]);
+    permissions(&s.f, &s.route, &["sip_dial", "dtmf.send", "dtmf.receive"]);
+    s.f.store.connection().unwrap().execute(
+        "UPDATE session_presence_capabilities SET capabilities_json=?3 WHERE session_id=?1 AND participant_id=?2",
+        params![s.phone.snapshot().session_id, s.phone.snapshot().participant_id,
+            json!({"audio":["g.711-a"]}).to_string()]).unwrap();
+    for direction in [FromTelephone, ToTelephone] {
+        assert!(s.signal(s.candidate.clone(), direction).unwrap().current());
+        assert!(s.signal(s.remote.clone(), direction).is_err());
+    }
+    assert!(s
+        .f
+        .store
+        .try_telephone_native_media_read(s.phone.clone(), s.candidate.clone())
+        .is_err());
+}

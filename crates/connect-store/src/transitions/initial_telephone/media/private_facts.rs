@@ -118,6 +118,19 @@ pub(super) fn facts(
     c: &Connection,
     origin: &InitialTelephoneMediaOrigin,
 ) -> Result<(Vec<AuthorityScope>, Value, i64)> {
+    facts_for(
+        store,
+        c,
+        origin,
+        crate::connection_control::private_consultation::Purpose::Media,
+    )
+}
+pub(super) fn facts_for(
+    store: &Store,
+    c: &Connection,
+    origin: &InitialTelephoneMediaOrigin,
+    purpose: crate::connection_control::private_consultation::Purpose,
+) -> Result<(Vec<AuthorityScope>, Value, i64)> {
     historical_lifetime(store, c, &origin.signal)?;
     let original = origin.signal.origin();
     let s = origin.source();
@@ -133,7 +146,9 @@ pub(super) fn facts(
     }
     let endpoint = actor_from_connection(c, &original.policy.endpoint_credential_id)?;
     let route = actor_from_connection(c, &original.policy.route_credential_id)?;
-    endpoint.require("connection.offer")?;
+    if purpose.media() {
+        endpoint.require("connection.offer")?;
+    }
     route.require("sip_dial")?;
     if endpoint.identity_id != s.target.identity_id || route.identity_id != s.route_owner_id {
         return Err(Error::forbidden());

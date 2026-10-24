@@ -419,8 +419,20 @@ impl Store {
         c: &Connection,
         origin: &InitialTelephoneMediaOrigin,
     ) -> Result<(Vec<AuthorityScope>, Value, i64)> {
+        self.initial_telephone_audience_facts_for(
+            c,
+            origin,
+            crate::connection_control::private_consultation::Purpose::Media,
+        )
+    }
+    pub(crate) fn initial_telephone_audience_facts_for(
+        &self,
+        c: &Connection,
+        origin: &InitialTelephoneMediaOrigin,
+        purpose: crate::connection_control::private_consultation::Purpose,
+    ) -> Result<(Vec<AuthorityScope>, Value, i64)> {
         if origin.source().is_private_candidate() {
-            return private_facts::facts(self, c, origin);
+            return private_facts::facts_for(self, c, origin, purpose);
         }
         historical_lifetime(self, c, &origin.signal)?;
         let scopes = current_scopes(c, origin.signal.origin(), false)?;
@@ -428,9 +440,14 @@ impl Store {
             c,
             origin,
             crate::now() + 5,
-            ProjectionPurpose::Media,
+            if purpose.media() {
+                ProjectionPurpose::Media
+            } else {
+                ProjectionPurpose::Signal
+            },
         )?;
-        if !p.connected {
+        let current: bool = c.query_row("SELECT EXISTS(SELECT 1 FROM connections WHERE id=?1 AND generation=1 AND observed_runtime_id=?2 AND state IN ('ready','active') AND readiness_json IS NOT NULL)",params![origin.connection_id(),self.runtime_epoch()],|r|r.get(0)).map_err(|_|Error::storage())?;
+        if !p.connected || !current {
             return Err(Error::forbidden());
         }
         let source = origin.source();

@@ -213,12 +213,27 @@ fn facts_for(
     }
     let attempt_expiry = origin.attempt.current(c, store)?;
     let (meta, key, mut scopes, mut expires_at) = checked(store, c, &origin.binding)?;
-    if let Some(context) = crate::connection_control::private_consultation::current(
+    let private_purpose = match purpose {
+        ReadPurpose::Media => crate::connection_control::private_consultation::Purpose::Media,
+        ReadPurpose::Signal => crate::connection_control::private_consultation::Purpose::Signal,
+    };
+    let context = crate::connection_control::private_consultation::current_for(
         store,
         c,
         &origin.intent,
         Some(&origin.endpoint_id),
-    )? {
+        private_purpose,
+    )?;
+    let context = match context {
+        Some(context) => Some(context),
+        None => crate::connection_control::private_consultation::for_connection(
+            store,
+            c,
+            origin.connection_id(),
+            private_purpose,
+        )?,
+    };
+    if let Some(context) = context {
         expires_at = expires_at.min(context.expires_at);
         scopes.extend(context.scopes);
     }

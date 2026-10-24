@@ -4,6 +4,18 @@ use crate::{AuthorityMode, AuthorityScope, NativeConsultationOrigin};
 use connect_protocol::transitions::TransitionIntent;
 pub(crate) mod active;
 
+#[derive(Clone, Copy, PartialEq, Eq)]
+pub(crate) enum Purpose {
+    Media,
+    Signal,
+    Presence,
+}
+impl Purpose {
+    pub(crate) fn media(self) -> bool {
+        self == Self::Media
+    }
+}
+
 pub(crate) struct Context {
     pub record: String,
     pub audience: Vec<(String, String, u64)>, // Identity, Participant, original epoch
@@ -229,39 +241,134 @@ pub(crate) fn current(
     intent: &OfferIntent,
     endpoint: Option<&str>,
 ) -> Result<Option<Context>> {
-    let Some(mut context) = context(c, intent, endpoint)? else {
+    current_for(store, c, intent, endpoint, Purpose::Media)
+}
+pub(crate) fn current_for(
+    store: &Store,
+    c: &Connection,
+    intent: &OfferIntent,
+    endpoint: Option<&str>,
+    purpose: Purpose,
+) -> Result<Option<Context>> {
+    let Some(original) = context(c, intent, endpoint)? else {
         return Ok(None);
     };
-    let handed_off:bool=c.query_row("SELECT EXISTS(SELECT 1 FROM native_handoffs n JOIN operations o ON o.record_id=n.operation_record_id JOIN operation_effects e ON e.id=n.effect_id AND e.state='confirmed' WHERE n.applied_json IS NOT NULL AND json_extract(o.intent_json,'$.payload_extensions.consultation_record_id')=?1)",[&context.record],|r|r.get(0)).map_err(|_|Error::storage())?;
-    if handed_off {
+    let current = registered_current(store, c, &original.record, purpose)?;
+    if current.audience != original.audience {
         return Err(Error::forbidden());
     }
-    let restored:bool=c.query_row("SELECT EXISTS(SELECT 1 FROM native_consultation_returns r JOIN operation_effects e ON e.id=r.effect_id AND e.state='confirmed' WHERE r.consultation_record_id=?1 AND r.applied_json IS NOT NULL)",[&context.record],|r|r.get(0)).map_err(|_|Error::storage())?;
-    if restored {
+    Ok(Some(current))
+}
+/// A public native primary can carry a private floor without claiming its
+/// partner's native invitation. Resolve its own registered root and full scopes.
+pub(crate) fn for_connection(
+    store: &Store,
+    c: &Connection,
+    connection: &str,
+    purpose: Purpose,
+) -> Result<Option<Context>> {
+    let record: Option<String> = c
+        .query_row(
+            "SELECT operation_record_id FROM native_private_content_floors WHERE connection_id=?1 UNION ALL SELECT operation_record_id FROM consultation_candidate_bindings WHERE connection_id=?1 AND NOT EXISTS(SELECT 1 FROM native_private_content_floors WHERE connection_id=?1)",
+            [connection],
+            |r| r.get(0),
+        )
+        .optional()
+        .map_err(|_| Error::storage())?;
+    record
+        .map(|record| registered_current(store, c, &record, purpose))
+        .transpose()
+}
+pub(crate) fn registered_current(
+    store: &Store,
+    c: &Connection,
+    record: &str,
+    purpose: Purpose,
+) -> Result<Context> {
+    let handed_off:bool=c.query_row("SELECT EXISTS(SELECT 1 FROM native_handoffs n JOIN operations o ON o.record_id=n.operation_record_id JOIN operation_effects e ON e.id=n.effect_id AND e.state='confirmed' WHERE n.applied_json IS NOT NULL AND json_extract(o.intent_json,'$.payload_extensions.consultation_record_id')=?1)",[record],|r|r.get(0)).map_err(|_|Error::storage())?;
+    let restored:bool=c.query_row("SELECT EXISTS(SELECT 1 FROM native_consultation_returns r JOIN operation_effects e ON e.id=r.effect_id AND e.state='confirmed' WHERE r.consultation_record_id=?1 AND r.applied_json IS NOT NULL)",[record],|r|r.get(0)).map_err(|_|Error::storage())?;
+    let unavailable:bool=c.query_row("SELECT EXISTS(SELECT 1 FROM private_provider_contexts p WHERE p.operation_record_id=?1 AND (p.closed_at IS NOT NULL OR ((p.uncertain=1 OR p.export_uncertain=1) AND p.delivered_at IS NULL)))",[record],|r|r.get(0)).map_err(|_|Error::storage())?;
+    if handed_off || restored || unavailable {
         return Err(Error::forbidden());
     }
-    let unavailable:bool=c.query_row("SELECT EXISTS(SELECT 1 FROM private_provider_contexts p WHERE p.operation_record_id=?1 AND (p.closed_at IS NOT NULL OR ((p.uncertain=1 OR p.export_uncertain=1) AND p.delivered_at IS NULL)))",[&context.record],|r|r.get(0)).map_err(|_|Error::storage())?;
-    if unavailable {
-        return Err(Error::forbidden());
+    let (candidate,kind,credential,digest,runtime,audience):(String,String,String,String,String,String)=c.query_row("SELECT connection_id,candidate_kind,credential_id,original_digest,runtime_epoch,audience_json FROM consultation_candidate_bindings WHERE operation_record_id=?1",[record],|r|Ok((r.get(0)?,r.get(1)?,r.get(2)?,r.get(3)?,r.get(4)?,r.get(5)?))).optional().map_err(|_|Error::storage())?.ok_or_else(Error::forbidden)?;
+    let audience: Vec<(String, String, u64)> =
+        serde_json::from_str(&audience).map_err(|_| Error::storage())?;
+    if kind == "native" {
+        // Generic context lookup must retain the original native invitation's
+        // Endpoint/Device binding, including before a physical floor exists.
+        let (offer, endpoint): (String, String) = c.query_row(
+            "SELECT offer_json,endpoint_id FROM native_consultation_legs WHERE connection_id=?1 AND operation_record_id=?2",
+            params![candidate,record], |r|Ok((r.get(0)?,r.get(1)?)),
+        ).optional().map_err(|_|Error::storage())?.ok_or_else(Error::forbidden)?;
+        let offer: OfferIntent = serde_json::from_str(&offer).map_err(|_| Error::storage())?;
+        let original = context(c, &offer, Some(&endpoint))?.ok_or_else(Error::forbidden)?;
+        if original.record != record || original.audience != audience {
+            return Err(Error::forbidden());
+        }
     }
-    if let Some(active) = active::current(store, c, &context.record)? {
-        context.scopes = active.scopes;
-        context.expires_at = active.expires_at;
-        return Ok(Some(context));
+    let established = if purpose.media() {
+        active::current(store, c, record)?
+    } else {
+        active::current_for(store, c, record, purpose)?
+    };
+    if let Some(active) = established {
+        return Ok(Context {
+            record: record.into(),
+            audience,
+            scopes: active.scopes,
+            expires_at: active.expires_at,
+        });
     }
-    let (credential,digest,runtime):(String,String,String)=c.query_row("SELECT credential_id,original_digest,runtime_epoch FROM native_consultation_legs WHERE connection_id=?1",[&intent.connection_id],|r|Ok((r.get(0)?,r.get(1)?,r.get(2)?))).map_err(|_|Error::storage())?;
     let origin = NativeConsultationOrigin::from_private_leg(
         store,
         c,
-        context.record.clone(),
+        record.into(),
         credential,
         digest,
         runtime,
     )?;
-    let (actor, scopes) = origin.require(store, c)?;
-    context.scopes = scopes;
-    context.expires_at = actor.expires_at.min(origin.request().expires_at);
-    Ok(Some(context))
+    let (actor, mut scopes) = origin.require(store, c)?;
+    let mut expires_at = actor.expires_at.min(origin.request().expires_at);
+    // A private signal needs actual captured application, not preparation or a
+    // future route. Before sealing it still needs current original execution.
+    let selected:Option<String>=c.query_row("SELECT n.selection_json FROM native_consultation_attempts n JOIN operation_effects e ON e.id=n.effect_id AND e.state='confirmed' WHERE n.operation_record_id=?1 AND n.runtime_epoch=?2 AND n.started=1 AND n.applied_json IS NOT NULL",params![record,store.runtime_epoch()],|r|r.get(0)).optional().map_err(|_|Error::storage())?;
+    if purpose == Purpose::Signal && selected.is_none() {
+        return Err(Error::forbidden());
+    }
+    if let Some(selected) = selected {
+        let physical = active::validate_for(
+            store,
+            c,
+            record,
+            &selected,
+            &serde_json::to_string(&audience).map_err(|_| Error::storage())?,
+            purpose,
+        )?;
+        scopes.extend(physical.scopes);
+        expires_at = expires_at.min(physical.expires_at);
+    } else if kind == "sip" {
+        let original = store
+            .private_initial_telephone_origins
+            .lock()
+            .map_err(|_| Error::storage())?
+            .get(&candidate)
+            .cloned()
+            .ok_or_else(Error::forbidden)?;
+        if original.source().parent.record_id() != record {
+            return Err(Error::forbidden());
+        }
+        let (physical, _, expiry) =
+            store.initial_telephone_audience_facts_for(c, &original, purpose)?;
+        scopes.extend(physical);
+        expires_at = expires_at.min(expiry);
+    }
+    Ok(Context {
+        record: record.into(),
+        audience,
+        scopes: AuthorityScope::merged(&scopes)?,
+        expires_at,
+    })
 }
 
 /// Historical private metadata never becomes visible through a later epoch.
@@ -323,28 +430,8 @@ pub(crate) fn observation_source_current(
     c: &Connection,
     connection: &str,
 ) -> Result<bool> {
-    let saved: Option<String> = c
-        .query_row(
-            "SELECT l.offer_json FROM native_private_content_floors f JOIN native_consultation_legs l ON l.operation_record_id=f.operation_record_id WHERE f.connection_id=?1",
-            [connection],
-            |r| r.get(0),
-        )
-        .optional()
-        .map_err(|_| Error::storage())?;
-    let Some(saved) = saved else {
-        let pending_sip: bool = c
-            .query_row(
-                "SELECT EXISTS(SELECT 1 FROM sip_consultation_reservations WHERE connection_id=?1)",
-                [connection],
-                |r| r.get(0),
-            )
-            .map_err(|_| Error::storage())?;
-        return Ok(!pending_sip);
-    };
-    let intent: OfferIntent = serde_json::from_str(&saved).map_err(|_| Error::storage())?;
-    match current(store, c, &intent, None) {
-        Ok(Some(_)) => Ok(true),
-        Ok(None) => Err(Error::storage()),
+    match for_connection(store, c, connection, Purpose::Presence) {
+        Ok(Some(_)) | Ok(None) => Ok(true),
         Err(e)
             if matches!(
                 e.code.as_str(),

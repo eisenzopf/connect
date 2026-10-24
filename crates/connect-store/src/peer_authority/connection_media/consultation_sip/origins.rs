@@ -99,6 +99,20 @@ impl SipAudienceOrigin {
             Self::Established(o) => store.telephone_audience_facts(c, o),
         }
     }
+    pub(in crate::peer_authority::connection_media) fn facts_for(
+        &self,
+        store: &Store,
+        c: &Connection,
+        purpose: crate::connection_control::private_consultation::Purpose,
+    ) -> Result<(Vec<AuthorityScope>, serde_json::Value, i64)> {
+        if purpose.media() {
+            return self.facts(store, c);
+        }
+        match self {
+            Self::Initial(o) => store.initial_telephone_audience_facts_for(c, o, purpose),
+            Self::Established(o) => store.telephone_audience_facts_for(c, o, purpose),
+        }
+    }
     pub(super) fn read(
         &self,
         store: &Store,

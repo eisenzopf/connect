@@ -308,3 +308,37 @@ fn private_native_leg_owned_intervals_cannot_outlive_the_original_consultation_s
     assert_eq!(read.expires_at(), narrowed);
     assert!(read.current());
 }
+
+#[test]
+fn registered_native_presence_preserves_original_endpoint_device_before_allocation() {
+    use super::super::private_consultation::{for_connection, observation_source_current, Purpose};
+    for fault in 0..3 {
+        let (f, _, _, origin) = consultation_reads::fixture();
+        let request = candidate(&f, &origin);
+        f.store
+            .register_native_consultation_leg(&origin, request.intent.clone(), &request.endpoint_id)
+            .unwrap();
+        let c = f.store.connection().unwrap();
+        assert!(for_connection(
+            &f.store,
+            &c,
+            &request.intent.connection_id,
+            Purpose::Presence
+        )
+        .unwrap()
+        .is_some());
+        let sql = match fault {
+            0 => "UPDATE endpoints SET revision=revision+1 WHERE id=?1",
+            1 => "UPDATE endpoints SET verification_state='revoked' WHERE id=?1",
+            _ => "UPDATE devices SET revoked=1 WHERE id=(SELECT device_id FROM endpoints WHERE id=?1)",
+        };
+        c.execute(sql, [&request.endpoint_id]).unwrap();
+        for purpose in [Purpose::Presence, Purpose::Media, Purpose::Signal] {
+            assert!(
+                for_connection(&f.store, &c, &request.intent.connection_id, purpose).is_err(),
+                "fault {fault}"
+            );
+        }
+        assert!(!observation_source_current(&f.store, &c, &request.intent.connection_id).unwrap());
+    }
+}

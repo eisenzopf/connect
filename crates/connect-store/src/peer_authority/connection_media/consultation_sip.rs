@@ -156,6 +156,22 @@ impl Store {
         conversation: &str,
         session: &str,
     ) -> Result<(Vec<AuthorityScope>, i64)> {
+        self.sip_audience_snapshot_facts_for(
+            c,
+            binding,
+            conversation,
+            session,
+            crate::connection_control::private_consultation::Purpose::Media,
+        )
+    }
+    pub(crate) fn sip_audience_snapshot_facts_for(
+        &self,
+        c: &Connection,
+        binding: &serde_json::Value,
+        conversation: &str,
+        session: &str,
+        purpose: crate::connection_control::private_consultation::Purpose,
+    ) -> Result<(Vec<AuthorityScope>, i64)> {
         let snapshot: SipSnapshot =
             serde_json::from_value(binding.clone()).map_err(|_| Error::storage())?;
         let origin = if matches!(snapshot, SipSnapshot::PrivateInitialSip { .. }) {
@@ -188,7 +204,7 @@ impl Store {
         if origin.conversation_id() != conversation || origin.session_id() != session {
             return Err(Error::forbidden());
         }
-        let (scopes, current, expiry) = origin.facts(self, c)?;
+        let (scopes, current, expiry) = origin.facts_for(self, c, purpose)?;
         if current != *binding {
             return Err(Error::forbidden());
         }

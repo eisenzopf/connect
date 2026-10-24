@@ -75,6 +75,16 @@ pub(crate) fn validate(
     selected: &str,
     audience: &str,
 ) -> Result<Established> {
+    validate_for(store, c, record, selected, audience, Purpose::Media)
+}
+pub(crate) fn validate_for(
+    store: &Store,
+    c: &Connection,
+    record: &str,
+    selected: &str,
+    audience: &str,
+    purpose: Purpose,
+) -> Result<Established> {
     let selection: Selection = serde_json::from_str(selected).map_err(|_| Error::storage())?;
     let audience: Vec<(String, String, u64)> =
         serde_json::from_str(audience).map_err(|_| Error::storage())?;
@@ -138,9 +148,9 @@ pub(crate) fn validate(
              JOIN conversations room ON room.id=s.conversation_id AND room.closed=0
              WHERE v.id=?1 AND v.generation=?2 AND v.participant_id=?3 AND v.membership_epoch=?4 AND mapping.runtime_connection_id=?5 AND v.observed_runtime_id=?6 AND v.session_id=?7 AND v.state IN ('ready','active')
              AND n.credential_id=?9 AND n.key_id=?10 AND ep.id=?11 AND ep.device_id=?12 AND d.kind=?13 AND d.platform=?14 AND key.algorithm=?15
-             AND EXISTS(SELECT 1 FROM json_each(ep.capabilities_json) WHERE value='audio')
-             AND EXISTS(SELECT 1 FROM json_each(s.media) WHERE value='audio')").map_err(|_|Error::storage())?.query_row(
-            params![original.connection_id,original.generation,original.participant_id,original.membership_epoch,original.runtime_connection_id,store.runtime_epoch(),session,crate::now(),original.credential_id,original.key_id,original.endpoint_id,original.device_id,original.device_kind,original.device_platform,original.key_algorithm],
+             AND (?16=0 OR (EXISTS(SELECT 1 FROM json_each(ep.capabilities_json) WHERE value='audio')
+             AND EXISTS(SELECT 1 FROM json_each(s.media) WHERE value='audio')))").map_err(|_|Error::storage())?.query_row(
+            params![original.connection_id,original.generation,original.participant_id,original.membership_epoch,original.runtime_connection_id,store.runtime_epoch(),session,crate::now(),original.credential_id,original.key_id,original.endpoint_id,original.device_id,original.device_kind,original.device_platform,original.key_algorithm,purpose.media()],
             |r|Ok((r.get(0)?,r.get(1)?,r.get(2)?,r.get(3)?)),
         ).optional().map_err(|_|Error::storage())?;
         let (identity, credential_expiry, key_expiry, public_key) =
@@ -149,7 +159,9 @@ pub(crate) fn validate(
             return Err(Error::forbidden());
         }
         let actor = crate::identity::actor_from_connection(c, &original.credential_id)?;
-        actor.require("connection.offer")?;
+        if purpose.media() {
+            actor.require("connection.offer")?;
+        }
         if original.connection_id != selection.remote.connection_id()
             && !audience.iter().any(|(i, p, e)| {
                 i == &identity && p == &original.participant_id && *e == original.membership_epoch
@@ -158,7 +170,9 @@ pub(crate) fn validate(
             return Err(Error::forbidden());
         }
         if original.connection_id != selection.remote.connection_id() {
-            actor.require("stream.subscribe")?;
+            if purpose.media() {
+                actor.require("stream.subscribe")?;
+            }
             private_actors.push((identity.clone(), vec![actor]));
         }
         scopes.push(AuthorityScope::identity(&identity, AuthorityMode::Read)?);
@@ -193,8 +207,13 @@ pub(crate) fn validate(
                 ) if original.connection_id() == primary => (),
                 _ => return Err(Error::forbidden()),
             }
-            let (needed, actors, expiry) =
-                store.sip_private_snapshot_facts(c, &binding, &conversation, &session)?;
+            let (needed, actors, expiry) = store.sip_private_snapshot_facts_for(
+                c,
+                &binding,
+                &conversation,
+                &session,
+                purpose,
+            )?;
             let identity = binding["identity_id"].as_str().ok_or_else(Error::storage)?;
             let participant = binding["participant_id"]
                 .as_str()
@@ -217,7 +236,7 @@ pub(crate) fn validate(
             ) {
                 return Err(Error::forbidden());
             }
-            store.sip_audience_snapshot_facts(c, &binding, &conversation, &session)?
+            store.sip_audience_snapshot_facts_for(c, &binding, &conversation, &session, purpose)?
         };
         scopes.extend(required);
         expires_at = expires_at.min(expiry);
@@ -242,6 +261,14 @@ pub(crate) fn validate(
 }
 
 pub(crate) fn current(store: &Store, c: &Connection, record: &str) -> Result<Option<Established>> {
+    current_for(store, c, record, Purpose::Media)
+}
+pub(crate) fn current_for(
+    store: &Store,
+    c: &Connection,
+    record: &str,
+    purpose: Purpose,
+) -> Result<Option<Established>> {
     let row:Option<(String,String,String,Option<i64>)>=c.query_row(
         "SELECT runtime_epoch,selection_json,audience_json,restored_at FROM native_private_lifetimes WHERE operation_record_id=?1",
         [record],|r|Ok((r.get(0)?,r.get(1)?,r.get(2)?,r.get(3)?)),
@@ -252,7 +279,7 @@ pub(crate) fn current(store: &Store, c: &Connection, record: &str) -> Result<Opt
     if runtime != store.runtime_epoch() || restored.is_some() {
         return Err(Error::forbidden());
     }
-    let mut current = validate(store, c, record, &selection, &audience)?;
+    let mut current = validate_for(store, c, record, &selection, &audience, purpose)?;
     let ai:bool=c.query_row("SELECT p.kind='ai' OR i.kind='ai' FROM connections v JOIN participants p ON p.participant_id=v.participant_id JOIN identities i ON i.id=v.identity_id WHERE v.id=?1",[&current.candidate],|r|r.get(0)).map_err(|_|Error::storage())?;
     if ai {
         let expiry = crate::private_provider::ready_until(c, store, record, &selection, &audience)?

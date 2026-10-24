@@ -1,0 +1,157 @@
+{
+  "task": "G6-046",
+  "recorded_at": "2026-10-24T19:51:18.495149+00:00",
+  "source_base_commit": "43e8582b",
+  "status": "targeted-store-tests-pass-broader-verification-running",
+  "full_task_complete": false,
+  "full_goal_complete": false,
+  "prepared_patch_count": 184,
+  "store_schema": 109,
+  "newly_qualified_case_ids": [],
+  "scope": "Local controlled Store context and owned scope checks only. No actual private SIP-candidate media, DTMF or whole-clause/task qualification.",
+  "implementation": [
+    "Separate Media, Signal and Presence validation while preserving original physical/current credential/key/Endpoint/Device/member epoch, partner and recipient-ceiling checks.",
+    "Signal context is independent of media offer/subscription/codec preferences; directional readers retain named signal permissions. Pending signals require captured application and current original execution. Sealed current physical lifetimes outlive an ended controller.",
+    "Native public primaries carrying private SIP floors acquire the independent route-owner interval. Original registered native Endpoint/Device binding remains checked before allocation. Presence is separate from media permission withdrawal.",
+    "Fresh return resolution uses the captured original primary and current return authority without reopening old private media, including previously observed SIP departure after route revocation."
+  ],
+  "verification": {
+    "targeted_store": {
+      "passed": true,
+      "distinct_successful_cases": 93,
+      "successful_executions": 103,
+      "ignored_cases": 0,
+      "new_cases": [
+        "connection_control::tests::private_consultation::registered_native_presence_preserves_original_endpoint_device_before_allocation",
+        "connection_control::tests::replacement_sources::telephone::runtime::media::continuation::commit::signal::audience::private_primary::sip_primary_private_dtmf_does_not_require_offer_subscribe_or_codec_permissions",
+        "connection_control::tests::sip_consultation::planning::purpose::native_primary_signal_read_owns_external_private_route_interval_and_releases_it",
+        "connection_control::tests::sip_consultation::planning::purpose::private_sip_context_separates_signal_presence_from_media_rights",
+        "connection_control::tests::sip_consultation::planning::purpose::private_sip_signal_context_preserves_physical_epoch_partner_and_recipient_fences",
+        "connection_control::tests::sip_consultation::planning::purpose::private_sip_signal_context_requires_captured_application_and_current_pending_execution"
+      ],
+      "checkpoint": ".local/gate-6/received-dtmf-runtime/private-purpose114-targeted-checkpoint.json",
+      "checkpoint_sha256": "c869a3eb2024b554a41adabf7aa8b101f892a662eb3c0a38d304a222fb0a9f6e",
+      "executable_sha256": "6bda60405b1ba0ed96119a64488b6b71eddb1aeafac71a1730f37ab66f8977bb",
+      "pre_run_source_guard": "Pending final broader-driver summary; this checkpoint does not claim a completed whole-run guard.",
+      "groups": [
+        {
+          "filter": "connection_control::tests::private_consultation::",
+          "exit_code": 0,
+          "passed": true,
+          "passed_cases": 8,
+          "ignored_cases": 0,
+          "elapsed_seconds": 5.342195542063564,
+          "log": ".local/gate-6/received-dtmf-runtime/private-purpose114-regression-006/group-0.log",
+          "log_sha256": "07f39ef15b3a29a56638811a73eb76e29d9b8358e6a223fccb93dd6fc9cc6b1b"
+        },
+        {
+          "filter": "connection_control::tests::replacement_sources::telephone::runtime::media::continuation::commit::signal::audience::private_primary::",
+          "exit_code": 0,
+          "passed": true,
+          "passed_cases": 12,
+          "ignored_cases": 0,
+          "elapsed_seconds": 14.756931958952919,
+          "log": ".local/gate-6/received-dtmf-runtime/private-purpose114-regression-006/group-1.log",
+          "log_sha256": "fa36c9761d67c19a373a053cdfa4118b23f081e26fbe8799a6faf218f4981a37"
+        },
+        {
+          "filter": "connection_control::tests::sip_consultation::planning::purpose::",
+          "exit_code": 0,
+          "passed": true,
+          "passed_cases": 4,
+          "ignored_cases": 0,
+          "elapsed_seconds": 15.921117583056912,
+          "log": ".local/gate-6/received-dtmf-runtime/private-purpose114-regression-006/group-2.log",
+          "log_sha256": "6ff05ff49281a8831b5bf634640c39fa45c6f555ec4c6c37ce0e30be790bd585"
+        },
+        {
+          "filter": "connection_control::tests::sip_consultation::planning::returning::",
+          "exit_code": 0,
+          "passed": true,
+          "passed_cases": 6,
+          "ignored_cases": 0,
+          "elapsed_seconds": 6.326207834063098,
+          "log": ".local/gate-6/received-dtmf-runtime/private-purpose114-regression-006/group-3.log",
+          "log_sha256": "d3205b02cba87093195b9001bf7718d1e0239640013958929bedf574375fdad1"
+        },
+        {
+          "filter": "connection_control::tests::sip_consultation::",
+          "exit_code": 0,
+          "passed": true,
+          "passed_cases": 73,
+          "ignored_cases": 0,
+          "elapsed_seconds": 123.71439950005151,
+          "log": ".local/gate-6/received-dtmf-runtime/private-purpose114-regression-006/group-4.log",
+          "log_sha256": "cc2cfa2ad77860636fe81bfc6bc48b9706182d181a9b52a3795a725847b51f2a"
+        }
+      ]
+    },
+    "broader_store": {
+      "status": "in-progress",
+      "driver": ".local/gate-6/received-dtmf-runtime/check-private-purpose114-regression-006.py",
+      "qualification": false
+    },
+    "service_compile": {
+      "status": "queued-or-in-progress",
+      "log": ".local/gate-6/received-dtmf-runtime/private-purpose114-service-check-current2.log",
+      "qualification": false
+    },
+    "runtime_socket_fixtures": {
+      "status": "queued-after-service-check",
+      "driver": ".local/gate-6/received-dtmf-runtime/check-private-purpose114-runtime-004.py",
+      "qualification": false
+    },
+    "dependency_preparation": {
+      "passed": true,
+      "log": ".local/gate-6/received-dtmf-runtime/private-purpose114-prepare.log",
+      "log_sha256": "fd9d7b181e3ccba9b643af55a186cf132c60aac99c734b2ee4e4e549afe5ffc2"
+    },
+    "schema": {
+      "status": "not-rerun",
+      "reason": "No schema/migration change; prior schema109 checks are not counted again."
+    }
+  },
+  "failed_attempts": [
+    {
+      "summary": ".local/gate-6/received-dtmf-runtime/private-purpose114-regression-001/summary.json",
+      "summary_sha256": "b979af629d92f6f3c36b5289cdc20a92161796bcb77450453b0a2e5a89cef75e",
+      "passed": false,
+      "source_inputs_unchanged": true,
+      "reason": "Test helper ConnectionGuard coercion compile error, corrected."
+    },
+    {
+      "summary": ".local/gate-6/received-dtmf-runtime/private-purpose114-regression-002/summary.json",
+      "summary_sha256": "8a3eb929a1d3a8dce3baa41c873b049c8992558dd972cd69442842eb2f8c7cbf",
+      "passed": false,
+      "source_inputs_unchanged": true,
+      "reason": "Four failures: two incorrect fixture assumptions and return primary reopening old private media; corrected without weakening policy."
+    },
+    {
+      "summary": ".local/gate-6/received-dtmf-runtime/private-purpose114-regression-003/summary.json",
+      "summary_sha256": "1f5d540184016e6dbce190b7587fd61f13143f5f0b8ead02ad68af830321348d",
+      "passed": false,
+      "source_inputs_unchanged": false,
+      "reason": "Superseded/interrupted during fixture correction; not current qualification."
+    },
+    {
+      "summary": ".local/gate-6/received-dtmf-runtime/private-purpose114-regression-004/summary.json",
+      "summary_sha256": "6bf196f93fa55ecee5cdd4f245a2a36c1eb75c65fba0e2686d1b65ba0ec8a3f7",
+      "passed": false,
+      "source_inputs_unchanged": false,
+      "reason": "Superseded/interrupted to replace ineffective readiness codec edit with actual session presence codec preference withdrawal."
+    },
+    {
+      "summary": ".local/gate-6/received-dtmf-runtime/private-purpose114-regression-005/summary.json",
+      "summary_sha256": "39a8620b18a303811e8e83d753bf4e35d7c257b45517b0b1676f32c9b6fa6d00",
+      "passed": false,
+      "source_inputs_unchanged": false,
+      "reason": "Superseded/interrupted to retain original native Endpoint/Device context before allocation and add direct negative coverage."
+    }
+  ],
+  "remaining": [
+    "Finish current broader Store, default service and frozen-source actual quarantine regression runs and publish their exact evidence separately.",
+    "Install actual private SIP-candidate packet/control/signal/lifecycle readers, runtime selection and preservation of unrelated private SIP groups.",
+    "Qualify actual private media/INFO/RFC4733/return and complete current G6-046 matrix.",
+    "G6-046 and u6-req-0112/u6-req-0113 remain open. Linux/remote/provider/independent tasks and publication remain separate."
+  ]
+}
