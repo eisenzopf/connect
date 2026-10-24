@@ -1,6 +1,6 @@
 {
   "task": "G6-046",
-  "recorded_at": "2026-10-24T18:27:05.174591+00:00",
+  "recorded_at": "2026-10-24T18:43:24.479898+00:00",
   "source_base_commit": "7a2b8b412070feb265296bed1c94c3aec27a5586",
   "status": "typed-private-sip-physical-source-controlled-store-verified",
   "full_task_complete": false,
@@ -8,7 +8,7 @@
   "prepared_patch_count": 184,
   "store_schema": 107,
   "newly_qualified_case_ids": [],
-  "scope": "Controlled Store physical metadata, separate runtime-local private origin cache, public/private receipt discrimination, captured revisions and cleanup. No media/signal reader is returned by metadata. Scene selection/private lifetime/actual private audio/DTMF/return remain required. Production Service compilation passes; the current-source SIP/Core host regression is still building at this checkpoint.",
+  "scope": "Controlled Store physical metadata, separate runtime-local private origin cache, public/private receipt discrimination, captured revisions and cleanup. No media/signal reader is returned by metadata. Scene selection/private lifetime/actual private audio/DTMF/return remain required. Production Service compilation passes; both prior-source SIP/Core host case bodies pass, but their full-source guard fails because implementation continued during compilation. This is historical behavior evidence, not current-source qualification.",
   "implementation": {
     "source": "crates/connect-store/src/transitions/initial_telephone/media/private_facts.rs",
     "snapshot": "crates/connect-store/src/peer_authority/connection_media/consultation_sip.rs",
@@ -277,9 +277,61 @@
       "scope": "Current product inputs; only two cfg(test) reader-refusal assertions changed during compilation, as recorded in the Store dependency audit. All product and dependency inputs unchanged. This is a compile check, not runtime qualification."
     },
     "runtime_socket_fixtures": {
-      "status": "building",
+      "status": "historical-case-bodies-pass-full-source-guard-fails",
+      "passed": false,
+      "runtime_qualification": false,
       "summary": ".local/gate-6/received-dtmf-runtime/private-source109-runtime-001/summary.json",
-      "runtime_qualification": false
+      "summary_sha256": "e7520d1421a13e59cf38f087d4d8ab36a33d64b08764425ef8b7ba6a6d7374af",
+      "source_inputs_unchanged": false,
+      "executable_unchanged": true,
+      "executable_sha256": "75af83f57e5cf0c56cc4e548788a2fae2c9ceb24c842156b54e10f0eab521e9b",
+      "build": {
+        "name": "current-frozen-runtime-build-revalidation",
+        "command": [
+          "cargo",
+          "test",
+          "-p",
+          "connect-server",
+          "--features",
+          "test-support",
+          "--test",
+          "gate6_canonical_runtime",
+          "--no-run",
+          "--locked",
+          "--offline",
+          "-j4",
+          "--target-dir",
+          "target",
+          "--message-format=json"
+        ],
+        "exit_code": 0,
+        "elapsed_seconds": 1120.078858041903
+      },
+      "case_executions": [
+        {
+          "method": "canonical_native_connections::consultation::groups::replacement::telephone::initial::private_candidate::production_private_sip_candidate_owns_fresh_muted_call_and_original_cleanup_eddsa",
+          "algorithm": "EdDSA",
+          "exit_code": 0,
+          "passed": true,
+          "elapsed_seconds": 6.770636582979932,
+          "log": ".local/gate-6/received-dtmf-runtime/private-source109-runtime-001/eddsa.log",
+          "log_sha256": "5d3b862d814e755cba500c52de30cd3675b820511f176dc2f04c2cde43d26940",
+          "capture": ".local/gate-6/private-sip-candidate-source-wire109-001.EdDSA.json",
+          "capture_sha256": "72b69a86f1c49b6d6466f26067ffb1082f4aeea2784af7d3e9dadf0822670a84"
+        },
+        {
+          "method": "canonical_native_connections::consultation::groups::replacement::telephone::initial::private_candidate::production_private_sip_candidate_owns_fresh_muted_call_and_original_cleanup_es256",
+          "algorithm": "ES256",
+          "exit_code": 0,
+          "passed": true,
+          "elapsed_seconds": 6.829217915888876,
+          "log": ".local/gate-6/received-dtmf-runtime/private-source109-runtime-001/es256.log",
+          "log_sha256": "eb95799883db459573e7a4bb66dcd5fa0f80b3c872cf1e7ff9b36f19c239c211",
+          "capture": ".local/gate-6/private-sip-candidate-source-wire109-001.ES256.json",
+          "capture_sha256": "a35c5b3e33a0ba01ff4cc764e1b896631574e7999ec9508eeaf8587eb44a065e"
+        }
+      ],
+      "scope": "Both real local EdDSA/ES256 quarantine/admission/cleanup case bodies pass. The overall driver correctly refuses qualification because cfg(test) assertions and subsequent Store planning/lifetime implementation changed during its18m40s build. No current private switch/DTMF/return or clause/task qualification."
     }
   },
   "failed_attempts": [
