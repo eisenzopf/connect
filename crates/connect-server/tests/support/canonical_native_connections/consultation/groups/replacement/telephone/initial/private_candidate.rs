@@ -114,6 +114,8 @@ async fn exercise(algorithm: &str) {
     )
     .await;
     wait_native_operation(&f, &f.client.credential, &room.id, "private-primary-offer").await;
+    // The first subscriber uses an actual live SIP source, not only its ready metadata.
+    peer.rtp(0).await;
     stream_control(
         &mut primary,
         &room.id,
@@ -121,10 +123,10 @@ async fn exercise(algorithm: &str) {
         "private-primary-public-phone",
         1,
         "stream.subscribe",
-        json!({"subscriptions":[{"strm_id":"telephone-audio"}]}),
+        json!({"subscriptions":[{"from_participant":phone.clone(),"kinds":["audio"]}]}),
     )
     .await;
-    let held = enroll_kind(
+    let mut held = enroll_kind(
         &f,
         &mut primary,
         &room.id,
@@ -133,6 +135,17 @@ async fn exercise(algorithm: &str) {
         true,
         false,
         IdentityKind::Human,
+    )
+    .await;
+    let held_revision = stream_revision(&f, &held.id);
+    stream_control(
+        &mut held.client,
+        &room.id,
+        &held.id,
+        "held-public-phone",
+        held_revision,
+        "stream.subscribe",
+        json!({"subscriptions":[{"from_participant":phone.clone(),"kinds":["audio"]}]}),
     )
     .await;
     let mut clients = vec![
@@ -151,7 +164,7 @@ async fn exercise(algorithm: &str) {
     ];
     let baseline = marked(&peer, &mut clients).await;
     assert!(
-        baseline[0] > 10,
+        baseline.iter().all(|count| *count > 10),
         "public phone baseline missing: {baseline:?}"
     );
     let key = f
@@ -181,7 +194,7 @@ async fn exercise(algorithm: &str) {
     };
     let accepted = controller.transition(command.clone()).await.unwrap();
     assert_eq!(accepted.state, OperationState::Accepted);
-    let record = accepted.record_id.clone().unwrap();
+    let record = accepted.record_id.as_ref().unwrap().as_str().to_owned();
     let until = tokio::time::Instant::now() + Duration::from_secs(8);
     let (child, connection, core, call, details) = loop {
         let row:Option<(String,String,String,String,String)>=db.query_row("SELECT n.operation_record_id,o.connection_id,n.runtime_connection_id,n.sip_call_id,a.connected_json FROM initial_telephone_operations n JOIN operations o ON o.record_id=n.operation_record_id JOIN initial_telephone_answers a ON a.operation_record_id=n.operation_record_id WHERE n.parent_kind='consultation' AND n.parent_record_id=?1 AND a.connected_at IS NOT NULL AND a.retired_at IS NULL",[&record],|r|Ok((r.get(0)?,r.get(1)?,r.get(2)?,r.get(3)?,r.get(4)?))).optional().unwrap();
@@ -224,6 +237,43 @@ async fn exercise(algorithm: &str) {
     );
     let replay = controller.transition(command.clone()).await.unwrap();
     assert_eq!(replay.record_id, accepted.record_id);
+    let before_busy_byes = peer
+        .methods
+        .lock()
+        .unwrap()
+        .iter()
+        .filter(|m| **m == Method::Bye)
+        .count();
+    let store = f.server.store.clone();
+    let cid = room.id.clone();
+    let writer = tokio::task::spawn_blocking(move || {
+        store
+            .acquire_authority(
+                &[connect_store::AuthorityScope::conversation(
+                    &cid,
+                    connect_store::AuthorityMode::Write,
+                )
+                .unwrap()],
+                &connect_store::AuthorityWait::new(Duration::from_secs(2)),
+            )
+            .unwrap()
+    })
+    .await
+    .unwrap();
+    // Two complete probe periods: packet/read guards must refuse, while the
+    // already closed original quarantine keeps its exact physical call alive.
+    tokio::time::sleep(Duration::from_millis(250)).await;
+    assert_eq!(
+        peer.methods
+            .lock()
+            .unwrap()
+            .iter()
+            .filter(|m| **m == Method::Bye)
+            .count(),
+        before_busy_byes,
+        "temporary metadata contention retired the original quarantined call"
+    );
+    drop(writer);
     let counts = marked(&peer, &mut clients).await;
     assert_eq!(
         counts,
@@ -255,7 +305,7 @@ async fn exercise(algorithm: &str) {
         "original public sibling did not survive private cleanup: {recovered:?}"
     );
     if let Ok(path) = std::env::var("CONNECT_PRIVATE_SIP_CANDIDATE_CAPTURE") {
-        std::fs::write(format!("{path}.{algorithm}.json"),serde_json::to_vec_pretty(&json!({"algorithm":algorithm,"scope":"actual fresh SIP/Core quarantined admission and original cleanup; no private switch/DTMF/return qualification","parent":record,"child":child,"candidate_connection":connection,"core_connection":core,"sip_call_id":call,"original_public":public,"private_ready":details,"marked_public_baseline":baseline,"marked_quarantine":counts,"marked_public_after_cleanup":recovered,"distinct_sip_calls":peer.unique(),"original_public_live":original_live})).unwrap()).unwrap();
+        std::fs::write(format!("{path}.{algorithm}.json"),serde_json::to_vec_pretty(&json!({"algorithm":algorithm,"scope":"actual fresh SIP/Core quarantined admission and original cleanup; no private switch/DTMF/return qualification","parent":record,"child":child,"candidate_connection":connection,"core_connection":core,"sip_call_id":call,"original_public":public,"private_ready":details,"marked_public_baseline":baseline,"marked_quarantine":counts,"marked_public_after_cleanup":recovered,"distinct_sip_calls":peer.unique(),"original_public_live":original_live,"metadata_busy_preserved":true,"authority_writer_hold_ms":250})).unwrap()).unwrap();
     }
     drop(db);
     for p in &mut clients {

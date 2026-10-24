@@ -1,14 +1,14 @@
 {
   "task": "G6-046",
-  "recorded_at": "2026-10-24T17:49:10.247565+00:00",
+  "recorded_at": "2026-10-24T18:12:41.909000+00:00",
   "source_base_commit": "906f5a4b471a3aba14485084dba9797daa74b8da",
-  "status": "original-private-sip-host-implemented-service-and-store-verified-socket-build-running",
+  "status": "actual-original-private-sip-quarantine-admission-contention-and-cleanup-verified",
   "full_task_complete": false,
   "full_goal_complete": false,
   "prepared_patch_count": 184,
   "store_schema": 107,
   "newly_qualified_case_ids": [],
-  "scope": "Protected original SIP candidate job/coordinator, private Core activation and guarded muted callback implemented. Current default service compilation and130 controlled affected Store cases pass. Actual production socket fixtures are still compiling and establish no runtime/wire pass yet. No private switch/DTMF/return or whole-clause/task qualification.",
+  "scope": "Actual isolated local macOS production client/server, signed native and UDP SIP/Core private quarantined admission beside the same Participant/Endpoint public call, metadata writer contention, replay and exact private cleanup/public-call media recovery. Both EdDSA and ES256 pass. Controlled Store dependency scope remains separately verified; no private audience switch, DTMF/return, whole-clause/task or independent acceptance qualification.",
   "implementation": {
     "host": "crates/connect-service/src/initial_telephone/private_candidate.rs",
     "call": "crates/connect-service/src/initial_telephone.rs",
@@ -21,7 +21,8 @@
     "The configured host resolves the already admitted original target and installed route, reserves the same protected SIP Connection/child and shares one actual owned job across replay. Generic target metadata names native/sip reservation kind without inventing a native registration.",
     "Private calls select original-ticket private Core activation, capture actual SIP answer with own private consent/read, build guarded ports from exact outbound preparation, change revision0-to1 then mute1-to2 before fresh operation-bound PreparePrivateAudio and final private admission. The ready observer checks actual private mode, committed proof and exact controller/ports.",
     "Private quarantine installs no public subscriptions/receive projection or DTMF listener. Original current authority/expiry and actual liveness remain bounded. Original cancellation/cleanup custody stays with the job; current watch receipt is metadata, never a reader or IO grant.",
-    "The coordinator initializes the configured SIP target before an unrelated provider hook. Its scene planner still selects native candidates only; quarantine admission is not completion of the consultation. Typed SIP candidate selection/established private context/media/DTMF/return remain required."
+    "The coordinator initializes the configured SIP target before an unrelated provider hook. Its scene planner still selects native candidates only; quarantine admission is not completion of the consultation. Typed SIP candidate selection/established private context/media/DTMF/return remain required.",
+    "Busy authority/storage metadata retains only the same already closed original quarantine and retries under the original deadline; packet guards refuse IO until fresh current authority. Both idle probing and coordinator watch-result validation use this bounded retry. No allocation, signaling or Core mutation is repeated."
   ],
   "verification": {
     "store": {
@@ -216,35 +217,178 @@
           "log": ".local/gate-6/received-dtmf-runtime/private-host108-store-001/group-3.log",
           "log_sha256": "d3bfb1b70467dc1ee0ce99e3d68208f345891b4ea3ca7293ad8ee8a507905ee1"
         }
-      ]
+      ],
+      "dependency_audit": {
+        "path": ".local/gate-6/received-dtmf-runtime/private-host108-store-dependency-audit.json",
+        "sha256": "c8804f3d42d13b6c298192af7a9cac7afe1408be9f95729e056d43748818a32f",
+        "actual_store_dependency_scope_unchanged": true,
+        "later_source_changes": [
+          "crates/connect-server/tests/support/canonical_native_connections/consultation/groups/replacement/telephone/initial/private_candidate.rs",
+          "crates/connect-service/src/initial_telephone/private_candidate.rs"
+        ],
+        "scope": "Passing original Store source/binary guard is retained; only the separate Service busy-lifecycle correction and Server fixture changed afterward. No Store/protocol/connector API/lock input changed."
+      }
     },
-    "service_compile": {
+    "runtime_socket_fixtures": {
+      "passed": true,
+      "distinct_cases": 2,
+      "ignored_cases": 0,
+      "summary": ".local/gate-6/received-dtmf-runtime/private-host108-runtime-003/summary.json",
+      "summary_sha256": "f9c84f2fcb1937c02d7291a52ddd31a43ae859460cba5cccb0f0ff5ef872edaa",
+      "source_inputs_unchanged": true,
+      "executable_unchanged": true,
+      "executable_sha256": "7a89ac7fbc06ac4753ca005a7dbcdf8953f9fce21a05c81a2ccf36e62d64580c",
+      "build": {
+        "name": "current-frozen-runtime-build-revalidation",
+        "command": [
+          "cargo",
+          "test",
+          "-p",
+          "connect-server",
+          "--features",
+          "test-support",
+          "--test",
+          "gate6_canonical_runtime",
+          "--no-run",
+          "--locked",
+          "--offline",
+          "-j4",
+          "--target-dir",
+          "target",
+          "--message-format=json"
+        ],
+        "exit_code": 0,
+        "elapsed_seconds": 44.60982370795682
+      },
+      "cases": [
+        {
+          "method": "canonical_native_connections::consultation::groups::replacement::telephone::initial::private_candidate::production_private_sip_candidate_owns_fresh_muted_call_and_original_cleanup_eddsa",
+          "algorithm": "EdDSA",
+          "exit_code": 0,
+          "passed": true,
+          "elapsed_seconds": 6.692149708047509,
+          "log": ".local/gate-6/received-dtmf-runtime/private-host108-runtime-003/eddsa.log",
+          "log_sha256": "52cc423d7fc245f0817af9259b036fec2f2c3901102c676d5458c21c163b014d",
+          "capture": ".local/gate-6/private-sip-candidate-host-wire108-003.EdDSA.json",
+          "capture_sha256": "8d1c656a63361337239e3b0f12ae1b2380e68b7a8ddfb336de188f3b20cc4315",
+          "observed": {
+            "marked_public_baseline": [
+              18,
+              18
+            ],
+            "marked_quarantine": [
+              0,
+              0
+            ],
+            "marked_public_after_cleanup": [
+              15,
+              15
+            ],
+            "distinct_sip_calls": 2,
+            "original_public_live": true,
+            "metadata_busy_preserved": true,
+            "authority_writer_hold_ms": 250
+          },
+          "private_ready": {
+            "private_audio": true,
+            "stream_revision": 2,
+            "generation": 1,
+            "codec": "g.711-mu"
+          }
+        },
+        {
+          "method": "canonical_native_connections::consultation::groups::replacement::telephone::initial::private_candidate::production_private_sip_candidate_owns_fresh_muted_call_and_original_cleanup_es256",
+          "algorithm": "ES256",
+          "exit_code": 0,
+          "passed": true,
+          "elapsed_seconds": 6.620513792149723,
+          "log": ".local/gate-6/received-dtmf-runtime/private-host108-runtime-003/es256.log",
+          "log_sha256": "8cadc8d5ebe8291a585b30f2bb669d0958e5deaa68c4056d551e987c8103b4b9",
+          "capture": ".local/gate-6/private-sip-candidate-host-wire108-003.ES256.json",
+          "capture_sha256": "fd5dc5140818de99824a674aec3683f98a51ec652db794c264bb0f852ae7485e",
+          "observed": {
+            "marked_public_baseline": [
+              17,
+              17
+            ],
+            "marked_quarantine": [
+              0,
+              0
+            ],
+            "marked_public_after_cleanup": [
+              18,
+              18
+            ],
+            "distinct_sip_calls": 2,
+            "original_public_live": true,
+            "metadata_busy_preserved": true,
+            "authority_writer_hold_ms": 250
+          },
+          "private_ready": {
+            "private_audio": true,
+            "stream_revision": 2,
+            "generation": 1,
+            "codec": "g.711-mu"
+          }
+        }
+      ],
+      "scope": "Actual new private call and original public call have distinct canonical/Core/SIP IDs; candidate equals original reserved ID and borrows no native offer/admission source. Both eligible native Participant subscribers baseline positive; private marked input zero at both; writer250ms across two idle probe periods produces no BYE; replay never adds a call; cancellation records private BYE/absence and original public audio still positive. Root has no audience effect, so this is admission/quarantine/cleanup only."
+    },
+    "dependency_preparation": {
+      "passed": true,
+      "log": ".local/gate-6/received-dtmf-runtime/private-host108-prepare-build.log",
+      "log_sha256": "fd9d7b181e3ccba9b643af55a186cf132c60aac99c734b2ee4e4e549afe5ffc2"
+    },
+    "baseline_service_compile": {
       "passed": true,
       "exit_code": 0,
       "command": "cargo check -p connect-service --locked --offline -j4 --target-dir target",
       "log": ".local/gate-6/received-dtmf-runtime/private-host108-service-check-001.log",
       "log_sha256": "da5e439dcb0d37e2411a888fecccc501721d72d6f464aa697c80a44c67c1b3e7",
       "result": "Finished dev profile in5m30s",
-      "runtime_qualification": false
+      "runtime_qualification": false,
+      "scope": "Earlier host implementation before the metadata-busy lifecycle correction; retained as historical baseline, not final current-source qualification."
     },
-    "runtime_socket_fixtures": {
-      "status": "build-running-not-executed",
-      "log": ".local/gate-6/received-dtmf-runtime/private-host108-runtime-build-001.log",
-      "intended_methods": [
-        "production_private_sip_candidate_owns_fresh_muted_call_and_original_cleanup_eddsa",
-        "production_private_sip_candidate_owns_fresh_muted_call_and_original_cleanup_es256"
-      ],
-      "intended_scope": "Public HTTP consultation after actual signed native/public SIP baseline; same Participant/Endpoint new canonical/Core/Call IDs, exact reserved ID, actual private Core mode/muted rev2 proof, zero marked private RTP to public/held native receivers, replay no redial, exact private BYE/absence and original public call media recovery."
-    },
-    "dependency_preparation": {
+    "service_compile": {
       "passed": true,
-      "log": ".local/gate-6/received-dtmf-runtime/private-host108-prepare-build.log",
+      "exit_code": 0,
+      "command": "cargo check -p connect-service --locked --offline -j4 --target-dir target",
+      "log": ".local/gate-6/received-dtmf-runtime/private-host108-service-check-final.log",
+      "log_sha256": "c01c5b7ecb6e3a5a2f59d1b704e9e3a063fbeb2f3f8794a4eef992d5956d76d9",
+      "result": "Finished `dev` profile [unoptimized + debuginfo] target(s) in 14.05s",
+      "current_source_inputs_unchanged": true
+    },
+    "dependency_preparation_after_runtime": {
+      "passed": true,
+      "log": ".local/gate-6/received-dtmf-runtime/private-host108-post-runtime-prepare.log",
       "log_sha256": "fd9d7b181e3ccba9b643af55a186cf132c60aac99c734b2ee4e4e549afe5ffc2"
     }
   },
   "remaining": [
-    "Complete current actual socket compilation/cases, preserve any failures and reconcile evidence.",
+    "Typed original SIP candidate source/snapshot/selection and continuing sealed private lifetime independent of the ended execution credential; actual private media/INFO/RFC4733/return/physical cleanup.",
     "Typed original SIP candidate source/snapshot/selection and continuing sealed private lifetime independent of ended execution credential; actual private media/INFO/RFC4733/return/physical cleanup.",
     "Limited-ceiling projected journal delivery, remaining IO-boundary/retirement/concurrency/authority compositions and complete current G6-046 matrix; all remaining Gate6 Linux/remote/provider/independent tasks. Publication separate."
+  ],
+  "implementation_commit": "ed18d50c",
+  "failed_attempts": [
+    {
+      "log": ".local/gate-6/received-dtmf-runtime/private-host108-runtime-build-001.jsonl",
+      "log_sha256": "de9727168fce887b7ebc74145fe8210965258fdf4710fcd35198b6a0f2411876",
+      "reason": "Four E0277 fixture SDK Identifier uses needed string conversion for SQLite/JSON comparison. Production stack compiled; no test cases ran in this build attempt."
+    },
+    {
+      "summary": ".local/gate-6/received-dtmf-runtime/private-host108-runtime-001/summary.json",
+      "summary_sha256": "31b554f70caa68099ba12d01410ce9ed50d673c46217e082141ae8e9be2ef533",
+      "reason": "Earlier EdDSA actual quarantine/cleanup passes; ES256 fails public subscription setup Unknown/NotReady before private allocation. Added real source RTP before the initial subscriber mutation; final actual cases establish positive baselines at BOTH Participant subscribers without retrying an uncertain mutation."
+    },
+    {
+      "summary": ".local/gate-6/received-dtmf-runtime/private-host108-runtime-002/summary.json",
+      "summary_sha256": "e2ecce5f5c417ea8a2606621f3c4ed173e064f1c0ed2cc7bda4f0093379fccc3",
+      "log": ".local/gate-6/received-dtmf-runtime/private-host108-runtime-002/eddsa.log",
+      "log_sha256": "7a764487b672f8dd9ef1b75b325242475a43686771e0ed463d719539387e0a32",
+      "reason": "Actual original private call closes with authority-busy while readiness is awaited. Corrected idle/watch metadata probing to retain only original closed quarantine on busy/storage contention. Final explicit250ms writer cases pass both algorithms.",
+      "stale_capture_excluded": true,
+      "capture_note": "The failed raw driver002 mistakenly referenced the prior driver001 EdDSA capture because it reused a path. That stale capture is NOT this failed execution evidence and receives no credit. Final driver003 uses a fresh unique prefix and asserts each capture is absent before execution."
+    }
   ]
 }

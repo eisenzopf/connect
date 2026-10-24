@@ -6,6 +6,23 @@ use tokio::sync::watch;
 
 pub(super) type Outcome = Option<std::result::Result<Arc<policy::Leg>, String>>;
 
+fn retryable_metadata(error: &Error) -> bool {
+    matches!(
+        error.code.as_str(),
+        "authority-busy" | "storage-unavailable"
+    )
+}
+fn current_quarantine(leg: &Arc<policy::Leg>) -> Result<()> {
+    connect_store::PrivateInitialTelephoneRuntimeObservation::observe_private(&policy::Ready {
+        leg: leg.clone(),
+    })?;
+    let read = leg.current_media_read()?;
+    if !read.is_private_admission() || !read.is_connected() {
+        return Err(Error::forbidden());
+    }
+    Ok(())
+}
+
 impl Service {
     /// Protected coordinator composition over an already admitted public
     /// consultation. None means no configured SIP target (or a native candidate).
@@ -161,14 +178,11 @@ impl Host {
                 if leg.signal.origin().source().parent.record_id() != origin.record_id() {
                     return Err(Error::forbidden());
                 }
-                connect_store::PrivateInitialTelephoneRuntimeObservation::observe_private(
-                    &policy::Ready { leg: leg.clone() },
-                )?;
-                let read = leg.current_media_read()?;
-                if !read.is_connected() || !read.is_private_admission() {
-                    return Err(Error::forbidden());
+                match current_quarantine(&leg) {
+                    Ok(()) => return Ok(Some(leg.signal.origin().connection_id().into())),
+                    Err(error) if retryable_metadata(&error) => {}
+                    Err(error) => return Err(error),
                 }
-                return Ok(Some(leg.signal.origin().connection_id().into()));
             }
             tokio::select! {biased;
                 _=self.stop.cancelled()=>return Err(Error::forbidden()),
@@ -177,6 +191,7 @@ impl Host {
                     return Err(Error::new("deadline-exceeded","Original private SIP admission expired"));
                 },
                 changed=receiver.changed()=>if changed.is_err(){return Err(Error::new("reconciliation-required","Original private SIP job ended without capture"));},
+                _=tokio::time::sleep(Duration::from_millis(10))=>{},
             }
         }
     }
@@ -192,16 +207,16 @@ pub(super) async fn wait_quarantined(
         if !adapter.is_connection_live(&leg.connection()) {
             return Ok(());
         }
-        connect_store::PrivateInitialTelephoneRuntimeObservation::observe_private(
-            &policy::Ready { leg: leg.clone() },
-        )?;
         // No public subscriptions, implicit receive programme or DTMF listener
         // is installed. This phase owns only the original closed quarantine.
-        let read = leg.current_media_read()?;
-        if !read.is_private_admission() || !read.is_connected() {
-            return Err(Error::forbidden());
+        match current_quarantine(leg) {
+            Ok(()) => {}
+            // Busy metadata is not an end/withdrawal observation. Keep only
+            // this already closed original call; every packet guard still
+            // refuses IO until a fresh interval can be obtained.
+            Err(error) if retryable_metadata(&error) => {}
+            Err(error) => return Err(error),
         }
-        drop(read);
         tokio::select! {biased;
             _=runtime.stop.cancelled()=>return Ok(()),
             _=leg.cancel.cancelled()=>return Ok(()),

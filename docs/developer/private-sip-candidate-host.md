@@ -30,6 +30,12 @@ binding. Only then does the Store record private connected custody and the job
 report ready to its coordinator. The completed child does not complete its
 consultation root or authorize a private audience switch.
 
+An authority-busy or storage-unavailable metadata probe retains only this
+already closed original quarantine and retries under the original deadline.
+It returns no cached permission or new IO grant. Packet guards continue to
+refuse until fresh authority is available. The coordinator's watch revalidation
+uses the same bounded metadata retry; it does not allocate or signal again.
+
 The current lifetime after this admission is deliberately bounded quarantine.
 It installs no ordinary public receive programme, subscription projection or
 DTMF listener. Fresh original execution/route authority, original expiry and
@@ -42,8 +48,17 @@ The coordinator's scene planner still selects only native candidates. Typed
 SIP-candidate source/selection, a sealed continuing private lifetime independent
 of the ended execution credential, actual private media/INFO/RFC4733 and return
 remain required. An admitted quarantined call is not private consultation
-completion. The new socket fixtures are pending execution; no wire or complete
-G6-046 qualification is claimed here yet.
+completion. The [host component report](../evidence/gate-6/auxiliary-private-sip-candidate-host.json)
+now records both signing algorithms through the actual public client/server,
+native and UDP SIP stack. Each fixture establishes positive public audio at
+two Participant subscribers, admits a fresh private call beside that same
+Participant/Endpoint's original public call, observes zero marked private
+audio at both public receivers, holds an authority writer for 250ms without a
+BYE, replays without redial and captures exact private cancellation/cleanup.
+Marked original public audio still flows afterward. This qualifies the local
+quarantined admission/cleanup component, not private switch/DTMF/return or a
+complete G6-046 clause. Earlier SDK Identifier, public-baseline readiness and
+premature authority-busy lifecycle failures are preserved separately.
 
 `Service::prepare_private_sip_consultation_candidate` exposes the same protected
 composition to server initializers over an already admitted origin. It adds no
