@@ -1,0 +1,143 @@
+{
+  "task": "G6-046",
+  "recorded_at": "2026-10-24T22:01:15.521925+00:00",
+  "source_base_commit": "45fdb22cd16fb663a4722681b99859271b7e79aa",
+  "implementation_commit": "d0c22086",
+  "status": "native-custody-presence-regression-passes-socket-revalidation-pending",
+  "full_task_complete": false,
+  "full_goal_complete": false,
+  "newly_qualified_case_ids": [],
+  "prepared_patch_count": 184,
+  "store_schema": 109,
+  "diagnosis": {
+    "scope": "Readonly local isolated socket fixture DB and static native worker path; raw database backups contain private fixture state and remain ignored.",
+    "symptom": "Initial/established SIP-primary native consultant refuses preflight or disappears before planning.",
+    "cause": "Native worker physical liveness probe used Signal context before captured audience application. Its intentional pre-application refusal triggered end/retirement of the ready private consultant.",
+    "observed_transition": {
+      "ready_generation": 1,
+      "retired_generation": 2,
+      "ready_to_retired_seconds_approx": 0.106,
+      "retirement_after_preparation": true,
+      "before_core_audience_submission": true
+    },
+    "summary": ".local/gate-6/received-dtmf-runtime/private-signal118-db-diagnostic-011-summary.json",
+    "summary_sha256": "54017423d1e4b48820ec657a8b5726b2913369998d95713a5a99ae52ede1aa55",
+    "source_inputs_unchanged": true,
+    "executable_unchanged": true,
+    "pre_fix_reproduction": {
+      "passed": false,
+      "command": "CARGO_INCREMENTAL=0 cargo test -p connect-store --lib --locked --offline -j1 --target-dir /Users/jonathaneisenzopf/.local/share/connect/store-received-snapshot-target connection_control::tests::consultation_presence::native_private_custody_survives_quarantine_and_preparation_without_signal_authority -- --exact --test-threads=1",
+      "log": ".local/gate-6/received-dtmf-runtime/native-presence121-before-fix.log",
+      "log_sha256": "531a01bc666cb89fe5e9d4455018ccc21d7f11e2799267ac15cbda8cc6214c51",
+      "failure": "Physical-current probe returns forbidden private invitation context before application."
+    }
+  },
+  "implementation": [
+    "Add distinct native Presence read purpose for physical custody; preserve original ownership, credential/key/epoch, Device/Endpoint, member, Session access, private context and runtime validation.",
+    "Keep Signal context requiring captured application and its independent named rights; Presence returns no IO reader or programme grant.",
+    "Keep completed handoff physical metadata using the same existing non-media facts. No protocol/schema/compatibility change."
+  ],
+  "verification": {
+    "store": {
+      "passed": true,
+      "distinct_successful_cases": 156,
+      "successful_executions": 156,
+      "ignored_cases": 0,
+      "new_cases": [
+        "connection_control::tests::consultation_presence::native_private_custody_survives_quarantine_and_preparation_without_signal_authority",
+        "connection_control::tests::consultation_presence::pending_native_private_custody_still_requires_original_current_physical_and_execution_facts"
+      ],
+      "summary": ".local/gate-6/received-dtmf-runtime/native-presence121-store-001/summary.json",
+      "summary_sha256": "6520366654b835634853adf8f48925ae3db4547202d8c4850add7c0e17581fd1",
+      "source_inputs_unchanged": true,
+      "executable_unchanged": true,
+      "executable_sha256": "5bfa030864c6c4933679aa2b127a16df69036c9c91938c96eb6beee02e6d75d3",
+      "groups": [
+        {
+          "filter": "connection_control::tests::consultation_presence::",
+          "exit_code": 0,
+          "passed": true,
+          "passed_cases": 2,
+          "ignored_cases": 0,
+          "elapsed_seconds": 7.101626459043473,
+          "log": ".local/gate-6/received-dtmf-runtime/native-presence121-store-001/group-0.log",
+          "log_sha256": "a600b15cadc708420a32c431fd0489ed5d8870b5f4667ceab2e47af4a46781c0"
+        },
+        {
+          "filter": "connection_control::tests::media_authority::hints::",
+          "exit_code": 0,
+          "passed": true,
+          "passed_cases": 2,
+          "ignored_cases": 0,
+          "elapsed_seconds": 2.74480341700837,
+          "log": ".local/gate-6/received-dtmf-runtime/native-presence121-store-001/group-1.log",
+          "log_sha256": "016e3bcddd16c54143b243256af562b34ea9af4ee12f2e7c24ad3bcb3c84b6e7"
+        },
+        {
+          "filter": "connection_control::tests::native_stream_authority::credential_refresh::",
+          "exit_code": 0,
+          "passed": true,
+          "passed_cases": 10,
+          "ignored_cases": 0,
+          "elapsed_seconds": 4.509864208986983,
+          "log": ".local/gate-6/received-dtmf-runtime/native-presence121-store-001/group-2.log",
+          "log_sha256": "94bc09f7e5bb2da32c1a6e2176581d4ee52d1aae5dc7f9591f68b1b8bbf4a166"
+        },
+        {
+          "filter": "connection_control::tests::private_consultation::",
+          "exit_code": 0,
+          "passed": true,
+          "passed_cases": 8,
+          "ignored_cases": 0,
+          "elapsed_seconds": 4.488260041922331,
+          "log": ".local/gate-6/received-dtmf-runtime/native-presence121-store-001/group-3.log",
+          "log_sha256": "5fa97bae9e47a5fe986049f641b3cd5d1bf7c7b35a2d2f01ed382eef4ce3c8e6"
+        },
+        {
+          "filter": "connection_control::tests::sip_consultation::",
+          "exit_code": 0,
+          "passed": true,
+          "passed_cases": 90,
+          "ignored_cases": 0,
+          "elapsed_seconds": 173.8293047498446,
+          "log": ".local/gate-6/received-dtmf-runtime/native-presence121-store-001/group-4.log",
+          "log_sha256": "e3897b105ca103eba08a6264c3b7302ed447cecb1b00949881e573d77ee1796b"
+        },
+        {
+          "filter": "connection_control::tests::private_provider::",
+          "exit_code": 0,
+          "passed": true,
+          "passed_cases": 35,
+          "ignored_cases": 0,
+          "elapsed_seconds": 83.86296620802023,
+          "log": ".local/gate-6/received-dtmf-runtime/native-presence121-store-001/group-5.log",
+          "log_sha256": "1f32cd590dd4e10f016c583b9b271eca0c6cc2cb2287d83800fdb0e39a70496b"
+        },
+        {
+          "filter": "connection_control::tests::consultation_audiences::",
+          "exit_code": 0,
+          "passed": true,
+          "passed_cases": 9,
+          "ignored_cases": 0,
+          "elapsed_seconds": 10.471556624863297,
+          "log": ".local/gate-6/received-dtmf-runtime/native-presence121-store-001/group-6.log",
+          "log_sha256": "f792521cf613dde292f3dce5c73d6798b90815a5b4a7ca13b4c0c4a53564fb05"
+        }
+      ]
+    },
+    "runtime": {
+      "status": "running-not-qualified",
+      "summary": ".local/gate-6/private-sip-primary/native-presence121-runtime-012/summary.json",
+      "scope": "Current optimized initial/established SIP-primary complete private media/signals/rights/recovery/replay/return + both algorithms private SIP-candidate quarantine/admission/contention/replay/cancel/original cleanup/public sibling. No reverse private SIP-candidate audience switch qualification."
+    },
+    "schema": {
+      "status": "not-rerun",
+      "reason": "No schema change; prior schema109 evidence is not re-counted."
+    }
+  },
+  "remaining": [
+    "Complete current optimized socket revalidation and repeat existing intermittent lane if needed; pending runs are not passes.",
+    "Preserve unrelated private SIP programmes under their own current context and enable typed SIP candidate runtime selection using original reservation/child/call.",
+    "Qualify actual reverse private SIP candidate duplex media/INFO/RFC4733, four rights and recovery/replay/privacy/siblings/return/absence for both algorithms and full G6-046 matrix."
+  ]
+}
