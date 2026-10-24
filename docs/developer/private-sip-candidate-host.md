@@ -62,6 +62,11 @@ quarantined admission/cleanup component, not private switch/DTMF/return or a
 complete G6-046 clause. Earlier SDK Identifier, public-baseline readiness and
 premature authority-busy lifecycle failures are preserved separately.
 
+The [scheduling and worker isolation](private-sip-candidate-scheduling.md) now
+recognizes the original SIP candidate and excludes its root from generic worker
+execution/compensation even before a call child is allocated. The ready hint is
+not an IO grant or permission to redial.
+
 `Service::prepare_private_sip_consultation_candidate` exposes the same protected
 composition to server initializers over an already admitted origin. It adds no
 wire permission or endpoint. Clients continue to use the existing consultation

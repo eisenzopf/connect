@@ -1,6 +1,7 @@
 //! Controlled reservation and authorization evidence only; no physical SIP IO.
 mod initial;
 mod planning;
+mod scheduling;
 use super::super::private_consultation as private;
 use super::*;
 use crate::{AuthorityMode, AuthorityScope, InitialTelephonePolicy, NativeConsultationOrigin};

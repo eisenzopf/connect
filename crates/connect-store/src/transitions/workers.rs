@@ -32,7 +32,7 @@ impl Store {
         row = rows::by_record(&tx, &row.record.record_id)?;
         if !row.ledger
             || (row.initial_telephone || row.native_consultation || row.native_provider) || (row.native_return || row.native_handoff || row.native_replacement)
-            || tx.query_row("SELECT EXISTS(SELECT 1 FROM native_consultation_legs WHERE operation_record_id=?1)",[&row.record.record_id],|r|r.get::<_,bool>(0)).map_err(|_|Error::storage())?
+            || tx.query_row("SELECT EXISTS(SELECT 1 FROM consultation_candidate_bindings WHERE operation_record_id=?1)",[&row.record.record_id],|r|r.get::<_,bool>(0)).map_err(|_|Error::storage())?
             || !matches!(
                 row.record.state,
                 OperationState::Accepted | OperationState::Interrupted
@@ -536,7 +536,7 @@ impl Store {
         admission::require_row(self, &authority, &row)?;
         if !row.ledger
             || (row.initial_telephone || row.native_consultation || row.native_provider) || (row.native_return || row.native_handoff || row.native_replacement)
-            || tx.query_row("SELECT EXISTS(SELECT 1 FROM native_consultation_legs WHERE operation_record_id=?1)",[&row.record.record_id],|r|r.get::<_,bool>(0)).map_err(|_|Error::storage())?
+            || tx.query_row("SELECT EXISTS(SELECT 1 FROM consultation_candidate_bindings WHERE operation_record_id=?1)",[&row.record.record_id],|r|r.get::<_,bool>(0)).map_err(|_|Error::storage())?
             || row.tombstoned
             || !matches!(
                 row.record.state,

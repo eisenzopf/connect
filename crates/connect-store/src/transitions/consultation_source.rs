@@ -217,7 +217,34 @@ impl Store {
         actor.require("session.consult")?;
         let row = rows::by_record(&c, record)?;
         authority::read(&c, &actor, &row)?;
-        c.query_row("SELECT EXISTS(SELECT 1 FROM native_consultation_legs l JOIN connections v ON v.id=l.connection_id JOIN native_connection_lifetimes n ON n.connection_id=v.id AND n.generation=v.generation AND n.runtime_epoch=v.observed_runtime_id AND n.retired=0 WHERE l.operation_record_id=?1 AND v.state IN ('ready','active') AND n.runtime_epoch=?2)",params![record,self.runtime_epoch()],|r|r.get(0)).map_err(|_|Error::storage())
+        c.query_row(
+            "SELECT EXISTS(SELECT 1 FROM consultation_candidate_bindings b
+             JOIN connections v ON v.id=b.connection_id
+             WHERE b.operation_record_id=?1 AND b.runtime_epoch=?2
+             AND v.observed_runtime_id=?2 AND v.state IN ('ready','active')
+             AND ((b.candidate_kind='native' AND EXISTS(
+               SELECT 1 FROM native_connection_lifetimes n WHERE n.connection_id=v.id
+               AND n.generation=v.generation AND n.runtime_epoch=?2 AND n.retired=0))
+             OR (b.candidate_kind='sip' AND v.generation=1 AND EXISTS(
+               SELECT 1 FROM initial_telephone_operations n
+               JOIN operations child ON child.record_id=n.operation_record_id AND child.connection_id=v.id AND child.state='completed' AND child.cancel_requested=0
+               JOIN operation_effects observed ON observed.id=n.effect_id AND observed.state='confirmed'
+               JOIN initial_telephone_answers a ON a.operation_record_id=n.operation_record_id
+               JOIN initial_telephone_private_acceptances own ON own.operation_record_id=n.operation_record_id
+               WHERE n.parent_kind='consultation' AND n.parent_record_id=b.operation_record_id
+               AND n.attempt_runtime=?2 AND n.signaling_started=1
+               AND a.accepted=1 AND a.acceptance_kind='private-connection' AND a.acceptance_record_id=n.operation_record_id
+               AND a.connected_at IS NOT NULL AND a.retired_at IS NULL
+               AND own.consultation_record_id=b.operation_record_id AND own.endpoint_id=b.endpoint_id
+               AND own.participant_id=v.participant_id AND own.membership_epoch=v.membership_epoch
+               AND json_extract(a.connected_json,'$.private_audio')=1
+               AND json_extract(a.connected_json,'$.private_consultation_record_id')=b.operation_record_id
+               AND json_extract(v.readiness_json,'$.private_audio')=1
+               AND json_extract(v.readiness_json,'$.private_consultation_record_id')=b.operation_record_id
+               AND json_extract(v.readiness_json,'$.runtime_connection_id')=n.runtime_connection_id
+               AND json_extract(v.readiness_json,'$.call_id')=n.sip_call_id))))",
+            params![record,self.runtime_epoch()], |r|r.get(0),
+        ).map_err(|_|Error::storage())
     }
     /// Trusted coordinator composition after durable admission. The complete
     /// original command and current named grant must match; an operation ID or
