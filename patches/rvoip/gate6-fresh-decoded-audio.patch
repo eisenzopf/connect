@@ -1,0 +1,94 @@
+--- a/crates/foundation/rvoip-core/src/staged_streams/guarded_audio.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/guarded_audio.rs
+@@ -289,11 +289,18 @@
+             }
+             if !samples.is_empty() {
+                 self.consumer.observed_decoded(&packet);
+-            }
+-            self.pending.push_back(Chunk {
+-                packet,
+-                samples: samples.into(),
+-            });
++                // Decode every accepted input in order, including unselected
++                // inputs used by private preparation. Playback follows the
++                // newest complete decoded packet instead of carrying an older
++                // backlog toward the original 200 ms authority deadline.
++                // A longer packet keeps its unconsumed samples until newer
++                // decoded input supersedes it. Only metadata and PCM live here.
++                self.pending.clear();
++                self.pending.push_back(Chunk {
++                    packet,
++                    samples: samples.into(),
++                });
++            }
+         }
+         let mut count = self
+             .pending
+--- a/crates/foundation/rvoip-core/src/staged_streams/tests/guarded_mixer.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/guarded_mixer.rs
+@@ -779,3 +779,65 @@
+ mod source_contention;
+ 
+ mod packet_context;
++
++#[tokio::test]
++async fn guarded_mixer_burst_plays_newest_decoded_packet_without_replaying_backlog() {
++    let s = Scene::new(&four()[..2], 8000).await;
++    s.bind(0, true).await;
++    s.bind(1, true).await;
++    let mut output = s.port(1).take_egress().unwrap();
++    for value in [1000, 3000, 7000] {
++        s.publish(0, value);
++    }
++    s.mixer.tick();
++    heard(output.try_recv().unwrap(), 7000).await;
++    s.mixer.tick();
++    assert!(output.try_recv().is_err(), "older decoded backlog replayed");
++    drop(
++        s.policy
++            .0
++            .try_write()
++            .expect("idle decoded metadata retained authority"),
++    );
++}
++#[tokio::test]
++async fn guarded_mixer_long_original_packet_keeps_remaining_samples_without_new_input() {
++    let s = Scene::new(&four()[..2], 8000).await;
++    s.bind(0, true).await;
++    s.bind(1, true).await;
++    let mut output = s.port(1).take_egress().unwrap();
++    let port = s.port(0);
++    let mut packet = frame(&port, 0);
++    packet.payload = packet.payload.repeat(2).into();
++    port.try_publish(&packet).unwrap();
++    for _ in 0..2 {
++        s.mixer.tick();
++        heard(output.try_recv().unwrap(), 1800).await;
++    }
++    s.mixer.tick();
++    assert!(
++        output.try_recv().is_err(),
++        "long packet replayed beyond its samples"
++    );
++}
++#[tokio::test]
++async fn guarded_mixer_new_decoded_packet_supersedes_older_partial_audio() {
++    let s = Scene::new(&four()[..2], 8000).await;
++    s.bind(0, true).await;
++    s.bind(1, true).await;
++    let mut output = s.port(1).take_egress().unwrap();
++    let port = s.port(0);
++    let mut packet = frame(&port, 0);
++    packet.payload = packet.payload.repeat(2).into();
++    port.try_publish(&packet).unwrap();
++    s.mixer.tick();
++    heard(output.try_recv().unwrap(), 1800).await;
++    s.publish(0, 7000);
++    s.mixer.tick();
++    heard(output.try_recv().unwrap(), 7000).await;
++    s.mixer.tick();
++    assert!(
++        output.try_recv().is_err(),
++        "superseded partial audio replayed"
++    );
++}

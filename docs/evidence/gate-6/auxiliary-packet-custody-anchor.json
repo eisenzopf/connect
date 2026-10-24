@@ -30,8 +30,8 @@
     "prior_behavior": "New race case was not executed against the old implementation; no measured before-fix test failure is claimed."
   },
   "pending": [
-    "Bounded delivery-throughput trace on the same source/binary is running; diagnostic instrumentation receives no capacity credit.",
-    "Fix delivery throughput, then complete both EdDSA and ES256 full-fifty captures and validation."
+    "Source180 remains a preserved scoped build/production pass and full-fifty failure.",
+    "Subsequent decoded-playback candidate181 has226 Core passes; its optimized host and capacity checks are pending. See docs/evidence/gate-6/auxiliary-decoded-audio-freshness.json."
   ],
   "limitations": "No new capacity credit. Preserved source179 full-fifty failure and earlier readiness timeouts remain unresolved. The rejected input-discard candidate is not included in this patch or source lock.",
   "failure_diagnostic": "The full-fifty failure message now includes already-collected received_packets alongside decoded marked counts. Only panic text changed; normal-path work, original deadlines, source traffic, selectors and >10 threshold are unchanged.",

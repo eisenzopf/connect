@@ -1,0 +1,131 @@
+{
+  "scope": "G6-046 decoded-audio freshness candidate181; measured baseline is diagnostic optimized source180. No capacity qualification.",
+  "baseline": {
+    "source_patch_count": 180,
+    "metadata": {
+      "scope": "Diagnostic trace plus2second1ms sampling of exact optimized source180 after actual49-receiver startup. Instrumentation changes timing; no capacity credit.",
+      "binary": "/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps/gate6_canonical_runtime-43321488c949ae5c",
+      "binary_sha256": "b53cff0d185e4e3d04384a4995424249b52a92aff40c810445c692a831a814e2",
+      "logging": "warn,connect_service::canonical_packet=trace,rvoip_core::audio_path=trace,rvoip_uctp::native_egress=trace",
+      "sample_command": [
+        "sample",
+        "30145",
+        "2",
+        "1",
+        "-file",
+        "/Volumes/D2-2019/Developer/Connect/.local/gate-6/received-dtmf-runtime/packet-anchor180-release-profile-sample.txt"
+      ],
+      "sample_exit_code": 0,
+      "runtime_exit_code": 101,
+      "source_inputs_unchanged": true,
+      "recorded_at": "2026-10-24T09:24:53.040242+00:00",
+      "artifacts_sha256": {
+        ".local/gate-6/received-dtmf-runtime/packet-anchor180-release-profile.log": "ad864add4daf0cbdcc7c8b982a04c82b90d4854d7b7c0a9f8ecc70eb565e22a3",
+        ".local/gate-6/received-dtmf-runtime/packet-anchor180-release-profile.jsonl": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        ".local/gate-6/received-dtmf-runtime/packet-anchor180-release-profile-sample.txt": "de2c69cf2d038272bed1b4f1bf2e7e2957803f02c0a5cbb29bec187cfe76f99c"
+      }
+    },
+    "analysis_path": ".local/gate-6/received-dtmf-runtime/packet-anchor180-release-profile-analysis.json",
+    "analysis_sha256": "81cc2c595b68219f9291a109558d16316c914e71d6edadf67a6a95166476c7fe",
+    "steady_window": "After actual49-receiver startup; exact same optimized binary as the uninstrumented source180 run.",
+    "queued_total": 738,
+    "entered_io_total": 606,
+    "queued_per_target_min_max": [
+      4,
+      23
+    ],
+    "entered_io_per_target_min_max": [
+      4,
+      20
+    ],
+    "ages": {
+      "Guarded audio entering IO": {
+        "n": 606,
+        "median_us": 130102.5,
+        "p90_us": 193151,
+        "max_us": 199941
+      },
+      "Guarded audio queued": {
+        "n": 738,
+        "median_us": 117031.0,
+        "p90_us": 192564,
+        "max_us": 197725
+      }
+    },
+    "source_admission": {
+      "publish=true,owned=false,ok": {
+        "n": 409,
+        "median_us": 1605,
+        "p90_us": 1900
+      },
+      "publish=true,owned=false,authority-busy": {
+        "n": 4999,
+        "median_us": 42,
+        "p90_us": 77
+      },
+      "publish=true,owned=true,authority-busy": {
+        "n": 1134,
+        "median_us": 15.0,
+        "p90_us": 19
+      },
+      "publish=true,owned=true,ok": {
+        "n": 563,
+        "median_us": 34,
+        "p90_us": 41
+      }
+    },
+    "audio_refusals": {
+      "source-egress:NotReady": 6152,
+      "target-egress:NotReady": 279,
+      "mixer-target:NotReady": 389
+    },
+    "native_egress_refusals": {
+      "Deadline": 148
+    },
+    "interpretation": "Oldest-contributing-packet age is already high when the mixer queues output, before outgoing-queue waiting. Source code timestamps admitted_at after ingress authorization. The decoded FIFO consumes one20ms quantum per tick after collecting up to16 accepted packets. This motivates testing fresh playback selection; instrumentation changes timing and does not prove one dominant cost or a capacity solution."
+  },
+  "candidate": {
+    "patch": "patches/rvoip/gate6-fresh-decoded-audio.patch",
+    "patch_sha256": "628d4fd8c0a06b668c3a1bd79c130f3e820194ff6f51f27ee5ae60b47d3a904f",
+    "source_lock_sha256": "f39347814df8def3726d8506acf0ca5539f5c01ac97792a1f9fad279eaf0a5f4",
+    "patch_count": 181,
+    "store_schema": 103,
+    "behavior": "Decode each accepted input in order, preserving decoder state and decoded readiness observations, including unselected inputs. A nonempty newer decoded packet supersedes old unplayed PCM. A longer original packet retains all remaining samples until newer decoded input arrives. Original8000sample safety cap and input/output queue capacities remain unchanged.",
+    "unchanged": "Every packet still requires exact route, source, target, current authorization, subscription, cancellation and original200ms age/expiry checks. Queue metadata holds no owned authority. Full-fifty participant counts, source traffic, startup/probe windows and >10 threshold are unchanged.",
+    "preparation": {
+      "old": "/Users/jonathaneisenzopf/.local/share/connect/deps-g6-packet-anchor180-20261024",
+      "new": "/Users/jonathaneisenzopf/.local/share/connect/deps-g6-fresh-decoded181-20261024",
+      "unchanged_files": 4043,
+      "unchanged_directory_entries_mtime": 749,
+      "changed": [
+        "rvoip/crates/foundation/rvoip-core/src/staged_streams/guarded_audio.rs",
+        "rvoip/crates/foundation/rvoip-core/src/staged_streams/tests/guarded_mixer.rs"
+      ],
+      "active_compilers_before_switch": []
+    }
+  },
+  "verification": {
+    "status": "Core staged-stream suite passed; exact optimized host build running.",
+    "command": "CARGO_INCREMENTAL=1 cargo test --manifest-path .deps/rvoip/Cargo.toml -p rvoip-core --lib --target-dir target --locked --offline -j4 staged_streams:: -- --test-threads=1",
+    "passed": 226,
+    "failed": 0,
+    "ignored": 0,
+    "filtered": 249,
+    "duration_seconds": 6.79,
+    "build_summary": "Finished `test` profile [unoptimized + debuginfo] target(s) in 5m 11s",
+    "log": ".local/gate-6/received-dtmf-runtime/fresh-decoded181-core.log",
+    "log_sha256": "6a0ee55e9b46ca26e0f4ba54e44de5adf3a225d8fc32c47e3aec5b762042fb17",
+    "new_test_methods_passed": [
+      "staged_streams::tests::guarded_mixer::guarded_mixer_burst_plays_newest_decoded_packet_without_replaying_backlog",
+      "staged_streams::tests::guarded_mixer::guarded_mixer_long_original_packet_keeps_remaining_samples_without_new_input",
+      "staged_streams::tests::guarded_mixer::guarded_mixer_new_decoded_packet_supersedes_older_partial_audio"
+    ],
+    "feature_scope": "Default Core features identity/media/rtp/sip/uctp/vcon. Does not qualify the native host Opus profile.",
+    "prior_case_comparison": "All223 preceding cases pass on the new source, including private preparation/handoff/replacement readiness. New cases were not executed against the preceding source; no measured before-fix test failure is claimed.",
+    "pending": [
+      "Exact optimized native host build.",
+      "Actual production regressions on the rebuilt binary.",
+      "Both complete full-fifty EdDSA+ES256 runtime captures and validator."
+    ]
+  }
+}
