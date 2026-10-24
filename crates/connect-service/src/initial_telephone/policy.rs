@@ -500,30 +500,7 @@ impl MediaPolicy for Leg {
             if !std::ptr::eq(runtime.media.as_ref(), i.policy.as_ref()) {
                 return Err(StreamControlError::Authority);
             }
-            let read = i.sip_read(
-                &self.connection(),
-                self.signal.origin().connection_id(),
-                intent,
-            )?;
-            let connect_store::SipAudienceRead::Initial(read) = read.as_ref() else {
-                return Err(StreamControlError::Authority);
-            };
-            let read = read.clone();
-            if read.source() != self.signal.origin().source() {
-                return Err(StreamControlError::Authority);
-            }
-            let owner = self.owner(&read)?;
-            let remaining = (i.expires_at().min(read.expires_at()) - chrono::Utc::now().timestamp())
-                .max(0) as u64;
-            return MediaControl::new(
-                Box::new(Lease {
-                    leg: self.self_ref.clone(),
-                    owner,
-                    read,
-                }),
-                i.cancel.clone(),
-                tokio::time::Instant::now() + Duration::from_secs(remaining),
-            );
+            return i.initial_control(self, scope, intent);
         }
         let i = held
             .downcast_ref::<MediaInvocation>()

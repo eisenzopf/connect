@@ -689,6 +689,16 @@ impl Store {
                 let revision = observed["receiver_revisions"][runtime]
                     .as_u64()
                     .ok_or_else(Error::storage)?;
+                if binding.get("source_kind").is_some() {
+                    self.record_sip_audience_revision(
+                        &tx,
+                        binding,
+                        &receipt.runtime,
+                        previous,
+                        revision,
+                    )?;
+                    continue;
+                }
                 // Historical metadata never revives a retired/replaced generation
                 // or rewrites a later native observation.
                 tx.execute("UPDATE connections SET readiness_json=json_set(readiness_json,'$.stream_revision',?4) WHERE id=?1 AND generation=?2 AND observed_runtime_id=?3 AND state IN ('ready','active') AND json_extract(readiness_json,'$.stream_revision')=?5 AND EXISTS(SELECT 1 FROM native_connection_lifetimes l WHERE l.connection_id=connections.id AND l.generation=connections.generation AND l.runtime_epoch=?3 AND l.retired=0)",params![id,generation,receipt.runtime,revision,previous]).map_err(|_|Error::storage())?;

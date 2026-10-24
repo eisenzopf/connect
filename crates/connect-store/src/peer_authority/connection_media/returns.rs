@@ -18,6 +18,7 @@ pub struct NativeReturnRead {
     reads: BTreeMap<(String, Option<String>), Arc<NativeMediaRead>>,
     expires_at: i64,
     sip_reads: BTreeMap<String, Arc<SipAudienceRead>>,
+    sip_send: BTreeSet<(String, String)>,
 }
 impl NativeReturnRead {
     pub(crate) fn limit(&mut self, deadline: i64) -> Result<()> {
@@ -50,6 +51,21 @@ impl NativeReturnRead {
         let phone = self.sip_reads.get(sip)?;
         let target = self.reads.get(&(native.into(), Some(sip.into())))?;
         Some((phone.as_ref(), target.as_ref()))
+    }
+    /// Separately authorized SIP-target/native-source return edge. This never
+    /// converts the phone into a native projection or reuses receive permission.
+    pub fn sip_send(
+        &self,
+        sip: &str,
+        native: &str,
+    ) -> Option<(&SipAudienceRead, &NativeMediaRead)> {
+        if !self.current() || !self.sip_send.contains(&(sip.into(), native.into())) {
+            return None;
+        }
+        Some((
+            self.sip_reads.get(sip)?.as_ref(),
+            self.reads.get(&(native.into(), None))?.as_ref(),
+        ))
     }
     pub fn expires_at(&self) -> i64 {
         self.expires_at
@@ -118,6 +134,7 @@ impl NativeReturnSelection {
             .sources
             .iter()
             .map(|s| s.connection_id())
+            .chain(self.sips.iter().map(|s| s.connection_id()))
             .collect::<BTreeSet<_>>();
         let mut departed = BTreeSet::<String>::new();
         for port in context["private"]
@@ -130,7 +147,11 @@ impl NativeReturnSelection {
             if selected_ids.contains(id) {
                 continue;
             }
-            let ended:bool=c.query_row("SELECT EXISTS(SELECT 1 FROM native_connection_lifetimes l JOIN connections v ON v.id=l.connection_id JOIN connection_offers m ON m.connection_id=v.id WHERE l.connection_id=?1 AND l.generation=?2 AND l.runtime_epoch=?3 AND l.retired=1 AND v.state IN ('retired','failed') AND v.participant_id=?4 AND v.membership_epoch=?5 AND m.runtime_connection_id=?6)",params![id,port["generation"].as_u64().ok_or_else(Error::storage)?,self.origin.runtime,port["participant_id"].as_str().ok_or_else(Error::storage)?,port["membership_epoch"].as_u64().ok_or_else(Error::storage)?,port["runtime_connection_id"].as_str().ok_or_else(Error::storage)?],|r|r.get(0)).map_err(|_|Error::storage())?;
+            let ended = if port.get("source_kind").is_some() {
+                Store::recorded_sip_departure(c, port, &self.origin.runtime)?
+            } else {
+                c.query_row("SELECT EXISTS(SELECT 1 FROM native_connection_lifetimes l JOIN connections v ON v.id=l.connection_id JOIN connection_offers m ON m.connection_id=v.id WHERE l.connection_id=?1 AND l.generation=?2 AND l.runtime_epoch=?3 AND l.retired=1 AND v.state IN ('retired','failed') AND v.participant_id=?4 AND v.membership_epoch=?5 AND m.runtime_connection_id=?6)",params![id,port["generation"].as_u64().ok_or_else(Error::storage)?,self.origin.runtime,port["participant_id"].as_str().ok_or_else(Error::storage)?,port["membership_epoch"].as_u64().ok_or_else(Error::storage)?,port["runtime_connection_id"].as_str().ok_or_else(Error::storage)?],|r|r.get(0)).map_err(|_|Error::storage())?
+            };
             if !ended {
                 return Err(Error::new(
                     "forbidden",
@@ -267,6 +288,20 @@ fn resolve(
         .map_err(|_| Error::storage())?;
     if actual != expected {
         return Err(Error::new("forbidden", "Native return source set changed"));
+    }
+    for source in &selection.sips {
+        for original in context["private"]
+            .as_array()
+            .ok_or_else(Error::storage)?
+            .iter()
+            .chain(std::iter::once(&context["remote"]))
+        {
+            if original["connection_id"] == source.connection_id()
+                && original != &source.facts(store, c)?.1
+            {
+                return Err(Error::forbidden());
+            }
+        }
     }
     let (sip_scopes, sip_expiry) = store.sip_audience_facts(
         c,
@@ -437,7 +472,48 @@ impl Store {
             .collect();
         let sip_reads = consultation_sip::reads(self, &c, sips, held.clone(), expires_at)?;
         consultation_sip::receive_edges(self, &c, sources, &sip_reads, &mut reads)?;
+        let context: String = c.query_row("SELECT context_selection_json FROM native_consultation_returns WHERE operation_record_id=?1",[&origin.record],|r|r.get(0)).map_err(|_|Error::storage())?;
+        let context: serde_json::Value =
+            serde_json::from_str(&context).map_err(|_| Error::storage())?;
+        let primary: String = c.query_row("SELECT primary_connection_id FROM native_consultation_legs WHERE operation_record_id=?1",[origin.consultation_record_id()],|r|r.get(0)).map_err(|_|Error::storage())?;
+        let private = context["private"].as_array().ok_or_else(Error::storage)?;
+        let mut sip_send = BTreeSet::new();
+        for native in sources {
+            let read = reads
+                .get(&(native.connection_id().into(), None))
+                .ok_or_else(Error::forbidden)?;
+            let view = read.target();
+            if native.connection_id() != primary
+                && crate::connection_control::private_consultation::private_partner(
+                    &c,
+                    native.connection_id(),
+                )?
+                .is_some()
+            {
+                continue;
+            }
+            if view.private_consultation.is_some()
+                || view.handoff_preparation
+                || view.publication_suspended
+                || (native.connection_id() != primary
+                    && private
+                        .iter()
+                        .any(|p| p["connection_id"] == native.connection_id()))
+            {
+                continue;
+            }
+            let actor = self.native_media_route_actor(&c, native)?;
+            for (id, phone) in &sip_reads {
+                if phone.may_receive()
+                    && actor.permits_recipient(&phone.member().identity_id)
+                    && phone.permits_recipient(&view.session.actor.identity_id)
+                {
+                    sip_send.insert((id.clone(), native.connection_id().into()));
+                }
+            }
+        }
         Ok(NativeReturnRead {
+            sip_send,
             selection,
             reads,
             expires_at,

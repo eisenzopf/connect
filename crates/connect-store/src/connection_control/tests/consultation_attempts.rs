@@ -595,7 +595,7 @@ fn native_consultation_scene_fences_outside_routes_without_issuing_private_recei
         .store
         .try_native_consultation_scene_read(
             &origin,
-            &sources[1],
+            &crate::ConsultationMediaOrigin::Native(sources[1].clone()),
             &[sources[0].clone(), sources[2].clone()],
             &[outside.clone()],
             &[],

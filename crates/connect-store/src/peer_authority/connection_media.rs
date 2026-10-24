@@ -18,6 +18,8 @@ pub use assistant::{
     AssistantProviderUpdateRejected, AssistantProviderUpdateStatus, NativeAssistantContextRead,
 };
 mod consultation;
+mod consultation_origin;
+pub use consultation_origin::ConsultationMediaOrigin;
 pub(crate) mod consultation_sip;
 use admission::NativeMediaAdmission;
 pub use consultation_sip::{SipAudienceOrigin, SipAudienceRead};

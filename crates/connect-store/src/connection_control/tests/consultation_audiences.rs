@@ -86,7 +86,7 @@ fn prepare(
         .store
         .try_native_consultation_scene_read(
             origin,
-            &sources[1],
+            &crate::ConsultationMediaOrigin::Native(sources[1].clone()),
             &[sources[0].clone(), candidate.clone()],
             &[sources[2].clone()],
             &[],

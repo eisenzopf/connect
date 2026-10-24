@@ -25,10 +25,24 @@ struct Incarnation {
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
 struct Selection {
-    remote: Incarnation,
+    remote: RemoteIncarnation,
     private: Vec<Incarnation>,
     outside: Vec<Incarnation>,
     outside_sip: Option<Vec<crate::peer_authority::SipSnapshot>>,
+}
+#[derive(Deserialize)]
+#[serde(untagged)]
+enum RemoteIncarnation {
+    Native(Incarnation),
+    Sip(crate::peer_authority::SipSnapshot),
+}
+impl RemoteIncarnation {
+    fn connection_id(&self) -> &str {
+        match self {
+            Self::Native(v) => &v.connection_id,
+            Self::Sip(v) => v.connection_id(),
+        }
+    }
 }
 pub(crate) struct Established {
     pub primary: String,
@@ -63,7 +77,7 @@ pub(crate) fn validate(
             .private
             .iter()
             .any(|v| v.connection_id == candidate)
-        || [primary.as_str(), candidate.as_str()].contains(&selection.remote.connection_id.as_str())
+        || [primary.as_str(), candidate.as_str()].contains(&selection.remote.connection_id())
     {
         return Err(Error::forbidden());
     }
@@ -75,11 +89,10 @@ pub(crate) fn validate(
     )?];
     let mut expires_at = i64::MAX;
     let mut private_actors = vec![];
-    for original in selection
-        .private
-        .iter()
-        .chain(std::iter::once(&selection.remote))
-    {
+    for original in selection.private.iter().chain(match &selection.remote {
+        RemoteIncarnation::Native(v) => Some(v),
+        RemoteIncarnation::Sip(_) => None,
+    }) {
         if crate::now() >= original.physical_expires_at {
             return Err(Error::forbidden());
         }
@@ -113,14 +126,14 @@ pub(crate) fn validate(
         }
         let actor = crate::identity::actor_from_connection(c, &original.credential_id)?;
         actor.require("connection.offer")?;
-        if original.connection_id != selection.remote.connection_id
+        if original.connection_id != selection.remote.connection_id()
             && !audience.iter().any(|(i, p, e)| {
                 i == &identity && p == &original.participant_id && *e == original.membership_epoch
             })
         {
             return Err(Error::forbidden());
         }
-        if original.connection_id != selection.remote.connection_id {
+        if original.connection_id != selection.remote.connection_id() {
             actor.require("stream.subscribe")?;
             private_actors.push(actor);
         }
@@ -129,6 +142,13 @@ pub(crate) fn validate(
             .min(credential_expiry)
             .min(key_expiry)
             .min(original.physical_expires_at);
+    }
+    if let RemoteIncarnation::Sip(binding) = &selection.remote {
+        let binding = serde_json::to_value(binding).map_err(|_| Error::storage())?;
+        let (required, expiry) =
+            store.sip_audience_snapshot_facts(c, &binding, &conversation, &session)?;
+        scopes.extend(required);
+        expires_at = expires_at.min(expiry);
     }
     for actor in &private_actors {
         if private_actors
@@ -140,7 +160,7 @@ pub(crate) fn validate(
     }
     Ok(Established {
         primary,
-        remote: selection.remote.connection_id,
+        remote: selection.remote.connection_id().to_owned(),
         candidate,
         session,
         scopes: AuthorityScope::merged(&scopes)?,

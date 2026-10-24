@@ -11,6 +11,13 @@ pub enum SipAudienceRead {
     Established(Arc<TelephoneMediaRead>),
 }
 impl SipAudienceRead {
+    pub fn may_receive(&self) -> bool {
+        self.current()
+            && match self {
+                Self::Initial(r) => r.may_receive(),
+                Self::Established(r) => r.route_actor().permits("stream.subscribe"),
+            }
+    }
     pub fn current(&self) -> bool {
         match self {
             Self::Initial(r) => r.current(),
@@ -23,7 +30,7 @@ impl SipAudienceRead {
             Self::Established(r) => r.member(),
         }
     }
-    pub(super) fn permits_recipient(&self, id: &str) -> bool {
+    pub(in crate::peer_authority::connection_media) fn permits_recipient(&self, id: &str) -> bool {
         match self {
             Self::Initial(r) => {
                 r.endpoint_actor().permits_recipient(id) && r.route_actor().permits_recipient(id)
@@ -33,6 +40,18 @@ impl SipAudienceRead {
     }
 }
 impl SipAudienceOrigin {
+    pub fn participant_id(&self) -> &str {
+        match self {
+            Self::Initial(o) => &o.source().target.participant_id,
+            Self::Established(o) => &o.snapshot().participant_id,
+        }
+    }
+    pub fn membership_epoch(&self) -> u64 {
+        match self {
+            Self::Initial(o) => o.source().target.membership_epoch,
+            Self::Established(o) => o.snapshot().membership_epoch,
+        }
+    }
     pub fn connection_id(&self) -> &str {
         match self {
             Self::Initial(o) => o.connection_id(),
@@ -63,7 +82,7 @@ impl SipAudienceOrigin {
             Self::Established(o) => o.snapshot().generation,
         }
     }
-    pub(super) fn facts(
+    pub(in crate::peer_authority::connection_media) fn facts(
         &self,
         store: &Store,
         c: &Connection,

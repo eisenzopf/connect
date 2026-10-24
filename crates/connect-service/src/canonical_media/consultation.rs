@@ -40,6 +40,16 @@ impl AudienceRead {
             _ => None,
         }
     }
+    fn sip_send(
+        &self,
+        sip: &str,
+        native: &str,
+    ) -> Option<(&connect_store::SipAudienceRead, &NativeMediaRead)> {
+        match self {
+            Self::Return(r) => r.sip_send(sip, native),
+            _ => None,
+        }
+    }
     fn media(&self, target: &str, source: Option<&str>) -> Option<&NativeMediaRead> {
         match self {
             Self::Consult(r) => r.media(target, source),
@@ -74,7 +84,16 @@ impl AudienceInvocation {
                 AudienceRead::Consult(_) | AudienceRead::Return(_)
             )
             || plan.request().private_connections.contains(connection)
-            || plan.request().receivers.contains_key(connection)
+            || plan
+                .request()
+                .receivers
+                .get(connection)
+                .is_some_and(|sources| !sources.is_empty())
+        {
+            return Err(StreamControlError::Authority);
+        }
+        if plan.request().receivers.contains_key(connection)
+            && !matches!(&self.read, AudienceRead::Consult(r) if r.is_retained_sip(source))
         {
             return Err(StreamControlError::Authority);
         }
@@ -388,6 +407,8 @@ impl SipAudienceLeg {
     }
 }
 struct HeldSipAudience {
+    policy: Arc<Policy>,
+    cancel: tokio_util::sync::CancellationToken,
     leg: SipAudienceLeg,
     read: Arc<connect_store::SipAudienceRead>,
     owner: MediaOwner,
@@ -398,10 +419,68 @@ impl MediaAuthorityLease for HeldSipAudience {
         &self.owner
     }
     fn control_owner(&self) -> ControlResult<Box<MediaOwner>> {
-        if !self.invocation.current() {
+        if !self.invocation.current() || self.cancel.is_cancelled() {
             return Err(StreamControlError::Authority);
         }
         self.leg.owner(&self.read).map(Box::new)
+    }
+    fn control_receive(&self, source: &MediaSource) -> ControlResult<Box<MediaOwner>> {
+        let (native, read, owner) = self.receiving_owner(&source.connection)?;
+        source_matches(source, &native, read.target())?;
+        let source_owner = native.owner(read.target(), &native.principal, false)?;
+        native
+            .activation()?
+            .ok_or(StreamControlError::NotReady)?
+            .current(source_owner)?;
+        Ok(Box::new(owner))
+    }
+    fn control_participant_receive(
+        &self,
+        source: &rvoip_core::staged_streams::MediaParticipantSource,
+    ) -> ControlResult<Box<MediaOwner>> {
+        let (native, read, owner) = self.receiving_owner(&source.connection)?;
+        let view = read.target();
+        if source.medium != Medium::Audio
+            || source.conversation.as_str() != native.origin.conversation_id()
+            || source.session.as_str() != native.origin.session_id()
+            || source.connection.as_str() != native.origin.runtime_connection_id()
+            || source.participant.as_str() != view.connection.participant_id
+            || source.membership_epoch != view.connection.membership_epoch
+            || source.identity.as_str() != view.session.actor.identity_id
+            || !rvoip_core::staged_streams::reliable_data::same_credential(
+                &source.principal,
+                &native.principal,
+            )
+        {
+            return Err(StreamControlError::Authority);
+        }
+        let source_owner = native.owner(view, &source.principal, false)?;
+        native
+            .activation()?
+            .ok_or(StreamControlError::NotReady)?
+            .current(source_owner)?;
+        Ok(Box::new(owner))
+    }
+}
+impl HeldSipAudience {
+    fn receiving_owner(
+        &self,
+        source: &rvoip_core::ids::ConnectionId,
+    ) -> ControlResult<(Arc<Connection>, &NativeMediaRead, MediaOwner)> {
+        if !self.invocation.current() || self.cancel.is_cancelled() {
+            return Err(StreamControlError::Authority);
+        }
+        let native = self.policy.entry(source)?;
+        let (phone, read) = self
+            .invocation
+            .sip_send(&self.leg.source_id()?, native.origin.connection_id())
+            .ok_or(StreamControlError::Authority)?;
+        if !std::ptr::eq(phone, self.read.as_ref()) || !phone.may_receive() || !read.current() {
+            return Err(StreamControlError::Authority);
+        }
+        let mut owner = self.leg.owner(phone)?;
+        owner.may_route_source = true;
+        Ok((native, read, owner))
     }
 }
 impl AudienceInvocation {
@@ -419,15 +498,44 @@ impl AudienceInvocation {
         if !std::ptr::eq(policy, Arc::as_ptr(&leg)) {
             return Err(StreamControlError::Authority);
         }
-        let source = leg
-            .established_origin()
-            .ok_or(StreamControlError::NotReady)?;
-        let read = self.sip_read(scope.connection, &source.snapshot().connection_id, intent)?;
-        let leg = SipAudienceLeg::Established(leg);
+        self.sip_control(SipAudienceLeg::Established(leg), scope, intent)
+    }
+    pub(crate) fn initial_control(
+        &self,
+        policy: &crate::initial_telephone::policy::Leg,
+        scope: &MediaScope<'_>,
+        intent: &MediaControlIntent<'_>,
+    ) -> ControlResult<MediaControl> {
+        let Some(SipAudienceLeg::Initial(leg)) =
+            self.policy.sip_audience_target(scope.connection)?
+        else {
+            return Err(StreamControlError::Authority);
+        };
+        if !std::ptr::eq(policy, Arc::as_ptr(&leg)) {
+            return Err(StreamControlError::Authority);
+        }
+        self.sip_control(SipAudienceLeg::Initial(leg), scope, intent)
+    }
+    fn sip_control(
+        &self,
+        leg: SipAudienceLeg,
+        scope: &MediaScope<'_>,
+        intent: &MediaControlIntent<'_>,
+    ) -> ControlResult<MediaControl> {
+        let read = self.sip_read(scope.connection, &leg.source_id()?, intent)?;
+        if let (SipAudienceLeg::Initial(leg), connect_store::SipAudienceRead::Initial(read)) =
+            (&leg, read.as_ref())
+        {
+            if read.source() != leg.signal.origin().source() {
+                return Err(StreamControlError::Authority);
+            }
+        }
         let owner = leg.owner(&read)?;
         let remaining = (self.expires_at() - chrono::Utc::now().timestamp()).max(0) as u64;
         MediaControl::new(
             Box::new(HeldSipAudience {
+                policy: self.policy.clone(),
+                cancel: self.cancel.clone(),
                 leg,
                 read,
                 owner,

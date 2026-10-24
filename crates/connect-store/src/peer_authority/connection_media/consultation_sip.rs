@@ -7,7 +7,7 @@ use std::collections::{BTreeMap, BTreeSet};
 mod origins;
 mod revisions;
 pub use origins::{SipAudienceOrigin, SipAudienceRead};
-#[derive(serde::Deserialize)]
+#[derive(serde::Deserialize, serde::Serialize)]
 #[serde(tag = "source_kind", rename_all = "kebab-case", deny_unknown_fields)]
 #[allow(dead_code)] // Historical metadata grants no private slot.
 pub(crate) enum SipSnapshot {
@@ -45,7 +45,86 @@ pub(crate) enum SipSnapshot {
         physical_expires_at: i64,
     },
 }
+impl SipSnapshot {
+    pub(crate) fn connection_id(&self) -> &str {
+        match self {
+            Self::InitialSip { connection_id, .. } | Self::EstablishedSip { connection_id, .. } => {
+                connection_id
+            }
+        }
+    }
+}
 impl Store {
+    /// Historical absence only, bound to the captured physical call and original
+    /// member epoch. This supplies no current media or command authority.
+    pub(crate) fn recorded_sip_departure(
+        c: &Connection,
+        binding: &serde_json::Value,
+        runtime: &str,
+    ) -> Result<bool> {
+        let snapshot: SipSnapshot =
+            serde_json::from_value(binding.clone()).map_err(|_| Error::storage())?;
+        let text = |key: &str| binding[key].as_str().ok_or_else(Error::storage);
+        let generation = binding["generation"].as_u64().ok_or_else(Error::storage)?;
+        let epoch = binding["membership_epoch"]
+            .as_u64()
+            .ok_or_else(Error::storage)?;
+        let exact: bool = c.query_row("SELECT EXISTS(SELECT 1 FROM connections WHERE id=?1 AND participant_id=?2 AND membership_epoch=?3 AND identity_id=?4 AND endpoint_id=?5 AND (observed_runtime_id=?6 OR observed_runtime_id IS NULL) AND generation>=?7 AND state IN ('retired','failed'))",params![snapshot.connection_id(),text("participant_id")?,epoch,text("identity_id")?,text("endpoint_id")?,runtime,generation],|r|r.get(0)).map_err(|_|Error::storage())?;
+        if !exact {
+            return Ok(false);
+        }
+        match snapshot {
+            SipSnapshot::InitialSip { .. } => {
+                if generation != 1 {
+                    return Ok(false);
+                }
+                c.query_row("SELECT EXISTS(SELECT 1 FROM initial_telephone_operations n JOIN operations o ON o.record_id=n.operation_record_id JOIN initial_telephone_answers a ON a.operation_record_id=n.operation_record_id WHERE n.operation_record_id=?1 AND o.connection_id=?2 AND n.attempt_runtime=?3 AND n.runtime_connection_id=?4 AND n.sip_call_id=?5 AND n.signaling_started=1 AND a.accepted=1 AND a.connected_at IS NOT NULL AND a.retired_at IS NOT NULL)",params![text("record_id")?,text("connection_id")?,runtime,text("runtime_connection_id")?,text("sip_call_id")?],|r|r.get(0)).map_err(|_|Error::storage())
+            }
+            SipSnapshot::EstablishedSip { .. } => {
+                if generation < 2 {
+                    return Ok(false);
+                }
+                c.query_row("SELECT EXISTS(SELECT 1 FROM telephone_connection_lifetimes l JOIN telephone_replacement_commits t ON t.operation_record_id=l.operation_record_id AND t.runtime_epoch=l.runtime_epoch JOIN native_replacements n ON n.operation_record_id=l.operation_record_id JOIN operations o ON o.record_id=l.operation_record_id AND o.state='completed' JOIN operation_effects e ON e.id=t.effect_id AND e.state='confirmed' WHERE l.operation_record_id=?1 AND l.connection_id=?2 AND l.runtime_epoch=?3 AND l.generation=?4 AND l.retired=1 AND n.candidate_runtime_id=?5 AND json_extract(t.descriptor_json,'$.media.call_id')=?6)",params![text("record_id")?,text("connection_id")?,runtime,generation,text("runtime_connection_id")?,text("sip_call_id")?],|r|r.get(0)).map_err(|_|Error::storage())
+            }
+        }
+    }
+    /// Resolve only a previously observed metadata origin in this runtime,
+    /// then check the complete captured shape against fresh current facts.
+    /// The bounded readiness registry owns no reader; it cannot authorize IO.
+    pub(crate) fn sip_audience_snapshot_facts(
+        &self,
+        c: &Connection,
+        binding: &serde_json::Value,
+        conversation: &str,
+        session: &str,
+    ) -> Result<(Vec<AuthorityScope>, i64)> {
+        let snapshot: SipSnapshot =
+            serde_json::from_value(binding.clone()).map_err(|_| Error::storage())?;
+        let cached = self
+            .session_ready_origins
+            .lock()
+            .map_err(|_| Error::storage())?
+            .get(snapshot.connection_id())
+            .cloned()
+            .ok_or_else(Error::forbidden)?;
+        let origin = match cached {
+            crate::session_lifecycle::ReadyOrigin::InitialTelephone(o) => {
+                SipAudienceOrigin::Initial(o)
+            }
+            crate::session_lifecycle::ReadyOrigin::Telephone(o) => {
+                SipAudienceOrigin::Established(o)
+            }
+            crate::session_lifecycle::ReadyOrigin::Native(_) => return Err(Error::forbidden()),
+        };
+        if origin.conversation_id() != conversation || origin.session_id() != session {
+            return Err(Error::forbidden());
+        }
+        let (scopes, current, expiry) = origin.facts(self, c)?;
+        if current != *binding {
+            return Err(Error::forbidden());
+        }
+        Ok((scopes, expiry))
+    }
     pub(crate) fn sip_audience_facts(
         &self,
         c: &Connection,

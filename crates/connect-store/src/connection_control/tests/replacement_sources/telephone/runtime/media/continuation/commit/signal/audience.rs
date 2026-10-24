@@ -1,6 +1,111 @@
 //! Current committed SIP outsiders and historical audience outcomes, without IO.
 use super::*;
 use crate::SipAudienceOrigin;
+mod retained;
+
+#[test]
+fn established_sip_captured_origin_keeps_route_authority_separate_and_owns_no_idle_reader() {
+    let (f, phone, _, route) = established();
+    drop(f.store.try_telephone_media_read(phone.clone()).unwrap());
+    let admin = f.store.revalidate(&f.admin).unwrap();
+    f.store.revoke(&admin, &f.keys[0]).unwrap();
+    let binding = {
+        let c = f.store.connection().unwrap();
+        let (_, binding, _) = f.store.telephone_audience_facts(&c, &phone).unwrap();
+        assert!(f
+            .store
+            .sip_audience_snapshot_facts(
+                &c,
+                &binding,
+                &phone.snapshot().conversation_id,
+                &phone.snapshot().session_id
+            )
+            .is_ok());
+        binding
+    };
+    let writer = f
+        .store
+        .try_acquire_authority(&[crate::AuthorityScope::identity(
+            &phone.snapshot().route_owner_id,
+            crate::AuthorityMode::Write,
+        )
+        .unwrap()])
+        .unwrap();
+    assert!(f.store.try_telephone_media_read(phone.clone()).is_err());
+    drop(writer);
+    drop(f.store.try_telephone_media_read(phone.clone()).unwrap());
+    permissions(&f, &route, &["dtmf.send", "dtmf.receive"]);
+    let c = f.store.connection().unwrap();
+    assert!(f
+        .store
+        .sip_audience_snapshot_facts(
+            &c,
+            &binding,
+            &phone.snapshot().conversation_id,
+            &phone.snapshot().session_id
+        )
+        .is_err());
+}
+
+#[test]
+fn established_sip_captured_origin_refuses_foreign_dialog_and_retired_generation() {
+    let (f, phone, _, _) = established();
+    drop(f.store.try_telephone_media_read(phone.clone()).unwrap());
+    let c = f.store.connection().unwrap();
+    let (_, binding, _) = f.store.telephone_audience_facts(&c, &phone).unwrap();
+    for (key, value) in [
+        ("sip_call_id", json!("foreign-call")),
+        ("generation", json!(3)),
+        (
+            "endpoint_credential_id",
+            json!("invented-initial-credential"),
+        ),
+    ] {
+        let mut forged = binding.clone();
+        forged[key] = value;
+        assert!(
+            f.store
+                .sip_audience_snapshot_facts(
+                    &c,
+                    &forged,
+                    &phone.snapshot().conversation_id,
+                    &phone.snapshot().session_id
+                )
+                .is_err(),
+            "{key}"
+        );
+    }
+    c.execute(
+        "UPDATE telephone_connection_lifetimes SET retired=1 WHERE operation_record_id=?1",
+        [phone.record_id()],
+    )
+    .unwrap();
+    assert!(!Store::recorded_sip_departure(&c, &binding, f.store.runtime_epoch()).unwrap());
+    drop(c);
+    f.store
+        .settle_telephone_connection_cleanup(
+            &phone,
+            &Absent {
+                id: phone.snapshot().runtime_connection_id.clone(),
+                generation: phone.snapshot().generation,
+            },
+        )
+        .unwrap();
+    let c = f.store.connection().unwrap();
+    assert!(Store::recorded_sip_departure(&c, &binding, f.store.runtime_epoch()).unwrap());
+    let mut foreign = binding.clone();
+    foreign["sip_call_id"] = json!("foreign-call");
+    assert!(!Store::recorded_sip_departure(&c, &foreign, f.store.runtime_epoch()).unwrap());
+    assert!(f
+        .store
+        .sip_audience_snapshot_facts(
+            &c,
+            &binding,
+            &phone.snapshot().conversation_id,
+            &phone.snapshot().session_id
+        )
+        .is_err());
+}
 #[test]
 fn established_sip_audience_uses_current_route_without_retired_native_credentials() {
     let (f, phone, _, route) = established();

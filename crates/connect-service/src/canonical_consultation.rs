@@ -155,11 +155,20 @@ impl Runtime {
                 outside.push(entry.clone());
             }
         }
-        let remote = remote.ok_or_else(Error::forbidden)?;
-        let outside_sip = self
+        let mut outside_sip = self
             .media
             .scene_sip_origins(&origin.request().session_id)
             .map_err(denied)?;
+        let remote = match remote {
+            Some(remote) => connect_store::ConsultationMediaOrigin::Native(remote),
+            None => {
+                let index = outside_sip
+                    .iter()
+                    .position(|o| o.connection_id() == retained)
+                    .ok_or_else(Error::forbidden)?;
+                connect_store::ConsultationMediaOrigin::Sip(outside_sip.remove(index))
+            }
+        };
         let read = self.media.store.try_native_consultation_scene_read(
             origin,
             &remote,

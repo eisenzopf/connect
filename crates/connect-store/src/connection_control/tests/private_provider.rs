@@ -121,7 +121,7 @@ fn read(
     f.store
         .try_native_consultation_scene_read(
             origin,
-            &sources[1],
+            &crate::ConsultationMediaOrigin::Native(sources[1].clone()),
             &[sources[0].clone(), candidate.clone()],
             &[sources[2].clone()],
             &[],
@@ -1405,7 +1405,7 @@ fn a_fresh_private_context_recalls_authorized_private_history_without_exporting_
         .store
         .try_native_consultation_scene_read(
             &next,
-            &remote,
+            &crate::ConsultationMediaOrigin::Native(remote.clone()),
             &[primary.clone(), next_candidate.clone()],
             &outside,
             &[],

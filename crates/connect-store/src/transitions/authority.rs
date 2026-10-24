@@ -5,6 +5,7 @@ pub(super) struct Sources {
     members: BTreeMap<String, (String, u64)>,
     connections: BTreeMap<String, u64>,
     endpoints: BTreeMap<String, u64>,
+    additional_readers: Vec<crate::AuthorityScope>,
 }
 pub(super) fn admission_readers(
     c: &Connection,
@@ -13,11 +14,13 @@ pub(super) fn admission_readers(
     store: &Store,
 ) -> Result<Vec<crate::AuthorityScope>> {
     let sources = admission(c, actor, request, store)?;
-    sources
+    let mut readers = sources
         .members
         .values()
         .map(|(identity, _)| crate::AuthorityScope::identity(identity, crate::AuthorityMode::Read))
-        .collect()
+        .collect::<Result<Vec<_>>>()?;
+    readers.extend(sources.additional_readers);
+    crate::AuthorityScope::merged(&readers)
 }
 pub(super) fn tenant(c: &Connection, actor: &Actor) -> Result<String> {
     c.query_row(
@@ -75,7 +78,7 @@ pub(super) fn retained_ready(c: &Connection, id: &str, state: &str, store: &Stor
     if state != "ready" {
         return Ok(false);
     }
-    c.query_row("SELECT EXISTS(SELECT 1 FROM connections v JOIN native_connection_lifetimes l ON l.connection_id=v.id AND l.generation=v.generation AND l.runtime_epoch=v.observed_runtime_id JOIN native_admission_sources o ON o.record_id=l.operation_record_id AND o.connection_id=v.id JOIN native_admission_sources n ON n.operation_record_id=o.record_id AND n.generation=v.generation AND n.attempt_runtime=l.runtime_epoch JOIN operation_effects e ON e.id=n.effect_id AND e.operation_record_id=o.record_id WHERE v.id=?1 AND v.state='ready' AND v.observed_runtime_id=?2 AND v.readiness_json IS NOT NULL AND l.retired=0 AND o.state='completed' AND n.effect_started=1 AND e.state='confirmed') OR EXISTS(SELECT 1 FROM connections v JOIN telephone_connection_lifetimes l ON l.connection_id=v.id AND l.generation=v.generation AND l.runtime_epoch=v.observed_runtime_id AND l.retired=0 JOIN telephone_replacement_commits t ON t.operation_record_id=l.operation_record_id AND t.runtime_epoch=l.runtime_epoch JOIN native_replacements n ON n.operation_record_id=t.operation_record_id AND n.candidate_connection_id=v.id AND n.generation=v.generation JOIN connection_offers o ON o.connection_id=v.id AND o.runtime_connection_id=n.candidate_runtime_id JOIN operations r ON r.record_id=t.operation_record_id AND r.state='completed' JOIN operation_effects e ON e.id=t.effect_id AND e.state='confirmed' WHERE v.id=?1 AND v.state='ready' AND v.observed_runtime_id=?2 AND v.readiness_json IS NOT NULL)", params![id,store.runtime_epoch()], |r|r.get(0)).map_err(|_|Error::storage())
+    c.query_row("SELECT EXISTS(SELECT 1 FROM connections v JOIN native_connection_lifetimes l ON l.connection_id=v.id AND l.generation=v.generation AND l.runtime_epoch=v.observed_runtime_id JOIN native_admission_sources o ON o.record_id=l.operation_record_id AND o.connection_id=v.id JOIN native_admission_sources n ON n.operation_record_id=o.record_id AND n.generation=v.generation AND n.attempt_runtime=l.runtime_epoch JOIN operation_effects e ON e.id=n.effect_id AND e.operation_record_id=o.record_id WHERE v.id=?1 AND v.state='ready' AND v.observed_runtime_id=?2 AND v.readiness_json IS NOT NULL AND l.retired=0 AND o.state='completed' AND n.effect_started=1 AND e.state='confirmed') OR EXISTS(SELECT 1 FROM connections v JOIN telephone_connection_lifetimes l ON l.connection_id=v.id AND l.generation=v.generation AND l.runtime_epoch=v.observed_runtime_id AND l.retired=0 JOIN telephone_replacement_commits t ON t.operation_record_id=l.operation_record_id AND t.runtime_epoch=l.runtime_epoch JOIN native_replacements n ON n.operation_record_id=t.operation_record_id AND n.candidate_connection_id=v.id AND n.generation=v.generation JOIN connection_offers o ON o.connection_id=v.id AND o.runtime_connection_id=n.candidate_runtime_id JOIN operations r ON r.record_id=t.operation_record_id AND r.state='completed' JOIN operation_effects e ON e.id=t.effect_id AND e.state='confirmed' WHERE v.id=?1 AND v.state='ready' AND v.observed_runtime_id=?2 AND v.readiness_json IS NOT NULL) OR EXISTS(SELECT 1 FROM connections v JOIN operations o ON o.connection_id=v.id JOIN initial_telephone_operations n ON n.operation_record_id=o.record_id JOIN initial_telephone_answers a ON a.operation_record_id=n.operation_record_id JOIN operation_effects e ON e.id=n.effect_id AND e.state='confirmed' WHERE v.id=?1 AND v.state='ready' AND v.generation=1 AND v.observed_runtime_id=?2 AND v.readiness_json IS NOT NULL AND n.attempt_runtime=?2 AND n.signaling_started=1 AND a.accepted=1 AND a.connected_at IS NOT NULL AND a.retired_at IS NULL AND n.runtime_connection_id=json_extract(a.observation_json,'$.runtime_connection_id') AND n.sip_call_id=json_extract(a.observation_json,'$.call_id') AND json_extract(a.connected_json,'$.connection_id')=v.id AND json_extract(a.connected_json,'$.generation')=1 AND json_extract(a.connected_json,'$.participant_id')=v.participant_id AND json_extract(a.connected_json,'$.membership_epoch')=v.membership_epoch AND json_extract(a.connected_json,'$.endpoint_id')=v.endpoint_id)", params![id,store.runtime_epoch()], |r|r.get(0)).map_err(|_|Error::storage())
 }
 fn add_connection(
     c: &Connection,
@@ -139,6 +142,7 @@ pub(super) fn admission(
         members: BTreeMap::new(),
         connections: BTreeMap::new(),
         endpoints: BTreeMap::new(),
+        additional_readers: vec![],
     };
     for id in [&actor.identity_id, &owner] {
         let m = crate::audience::member(c, id, &r.conversation_id, true)?;
@@ -484,6 +488,7 @@ fn return_admission(
         members: BTreeMap::new(),
         connections: BTreeMap::new(),
         endpoints: BTreeMap::new(),
+        additional_readers: vec![],
     };
     let own = crate::audience::member(c, &actor.identity_id, &r.conversation_id, true)?;
     let mut st=c.prepare("SELECT participant_id,identity_id,membership_epoch FROM operation_members WHERE operation_record_id=?1").map_err(|_|Error::storage())?;
@@ -551,9 +556,19 @@ fn return_admission(
             && current_generation == generation
             && runtime.as_deref() == Some(store.runtime_epoch());
         if live {
-            let mapping:bool=c.query_row("SELECT EXISTS(SELECT 1 FROM connection_offers o JOIN native_connection_lifetimes l ON l.connection_id=o.connection_id AND l.generation=?3 AND l.runtime_epoch=?4 AND l.retired=0 WHERE o.connection_id=?1 AND o.runtime_connection_id=?2)",params![id,slot["runtime_connection_id"].as_str().ok_or_else(Error::storage)?,generation,store.runtime_epoch()],|v|v.get(0)).map_err(|_|Error::storage())?;
-            if !mapping {
-                return Err(Error::forbidden());
+            if slot.get("source_kind").is_some() {
+                let (readers, _) = store.sip_audience_snapshot_facts(
+                    c,
+                    slot,
+                    &r.conversation_id,
+                    &r.session_id,
+                )?;
+                sources.additional_readers.extend(readers);
+            } else {
+                let mapping:bool=c.query_row("SELECT EXISTS(SELECT 1 FROM connection_offers o JOIN native_connection_lifetimes l ON l.connection_id=o.connection_id AND l.generation=?3 AND l.runtime_epoch=?4 AND l.retired=0 WHERE o.connection_id=?1 AND o.runtime_connection_id=?2)",params![id,slot["runtime_connection_id"].as_str().ok_or_else(Error::storage)?,generation,store.runtime_epoch()],|v|v.get(0)).map_err(|_|Error::storage())?;
+                if !mapping {
+                    return Err(Error::forbidden());
+                }
             }
             let member = crate::audience::member(c, &identity, &r.conversation_id, true)?;
             if member.participant_id != pid || member.membership_epoch != epoch {
@@ -561,7 +576,11 @@ fn return_admission(
             }
             add_endpoint(c, &endpoint, &identity, &mut sources)?;
         } else {
-            let ended:bool=c.query_row("SELECT EXISTS(SELECT 1 FROM native_connection_lifetimes WHERE connection_id=?1 AND generation=?2 AND runtime_epoch=?3 AND retired=1)",params![id,generation,store.runtime_epoch()],|v|v.get(0)).map_err(|_|Error::storage())?;
+            let ended = if slot.get("source_kind").is_some() {
+                Store::recorded_sip_departure(c, slot, store.runtime_epoch())?
+            } else {
+                c.query_row("SELECT EXISTS(SELECT 1 FROM native_connection_lifetimes WHERE connection_id=?1 AND generation=?2 AND runtime_epoch=?3 AND retired=1)",params![id,generation,store.runtime_epoch()],|v|v.get(0)).map_err(|_|Error::storage())?
+            };
             if !ended || !matches!(state.as_str(), "retired" | "failed") {
                 return Err(Error::new(
                     "not-ready",
