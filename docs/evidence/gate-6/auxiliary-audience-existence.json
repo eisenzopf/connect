@@ -1,8 +1,8 @@
 {
   "task": "G6-046",
   "title": "Probe exact current audience rows without building union tables",
-  "recorded_at": "2026-10-24T03:25:07.327701+00:00",
-  "status": "controlled-equivalence-and-host-build-verified; broader-store-checks-active",
+  "recorded_at": "2026-10-24T03:39:56.468308+00:00",
+  "status": "complete-store-library-and-host-build-verified; membership-history-integration-active",
   "full_task_complete": false,
   "full_goal_complete": false,
   "qualified_case_ids": [],
@@ -25,7 +25,7 @@
     "equivalence_scope": "Controlled minimal relational inputs, with the authoritative original/content view SQL loaded from migration021. All9 content kinds, current/old membership epochs, original and history-only/branch-only/duplicate/missing sources, current/revoked/inactive/missing identities, cross-tenant rows and missing/foreign Conversations. Reused statements separately recheck share revocation, membership epoch, identity revocation and active membership. Actual Store/schema integration remains pending.",
     "default_server_test_build_passed": true,
     "default_server_test_build_duration_seconds": 12.17,
-    "full_store_unit_run_active": true,
+    "full_store_unit_run_active": false,
     "membership_history_integration_run_pending": true,
     "full50_retest_passed": false,
     "inputs": {
@@ -44,7 +44,8 @@
       "audience176-before.sql": "8e64ef1a335e74189f38770f4a9951bcfa70ee09c6315bc4d54fb4699ff99024",
       "audience176-current.sql": "383d9f7596a7e6c3a4c214aa602c0406a4ab1f7d6d36122e214def66a5c57205",
       "audience176-sql-benchmark.log": "f4f2548cb09b9dcc489114f957961da74e9de2ac0ed6575981b33395df2d63c9",
-      "audience176-current-plan.log": "8f67c408cb88f7bc3c9a0c7aa5211024529a34ba19d4df6fe534fb745cd34a23"
+      "audience176-current-plan.log": "8f67c408cb88f7bc3c9a0c7aa5211024529a34ba19d4df6fe534fb745cd34a23",
+      "audience176-all-units.log": "21c80e27cf69d7a45e73df97408650f43685bc3b1fb96c71c51aa5f6add3fb10"
     },
     "sql_diagnostic": {
       "scope": "Separate controlled50-member relational fixture, not a full Store or native host runtime. Both statements prepared once against the target bundled SQLite3.46.0 and executed2000 times with the same original Session recipient. Read-only connections; all4000 results true. No native media/throughput qualification.",
@@ -55,10 +56,28 @@
     },
     "workspace_format_check_passed": true,
     "openapi_generation_check_passed": true,
-    "diff_check_passed": true
+    "diff_check_passed": true,
+    "full_store_unit_run_passed": true,
+    "full_store_unit_methods_passed": 1056,
+    "full_store_unit_duration_seconds": 1035.77,
+    "ignored_root_fixtures": [
+      {
+        "method": "authority_fences::tests::process_worker",
+        "reason": "explicitly executed by the cross-process parent tests"
+      },
+      {
+        "method": "installation_ownership::tests::process_worker",
+        "reason": "subprocess fixture explicitly invoked by ownership refusal and process-death parents"
+      },
+      {
+        "method": "transitions::tests::crash_worker",
+        "reason": "subprocess fixture, explicitly invoked by crash and administration parent tests"
+      }
+    ],
+    "ignored_fixture_scope": "The three ignored root entries are subprocess helpers. Their parent tests explicitly invoke --ignored with bounded fixture configuration for authority fences, installation ownership and crash recovery. Parent tests pass; helpers are not counted as three independent default root passes."
   },
   "unresolved": [
-    "Allow exact active Store sequence41358 to finish its complete library module and five membership/history integration targets. Do not infer completion from intermediate successful methods.",
+    "Allow exact active sequence41358 to complete the five membership/history integration targets; the entire library stage passed. Then run the exact rebuilt fifty-peer host without concurrent tests/builds.",
     "Then run actual rebuilt fifty-peer and affected production profiles without concurrent builds/tests, preserving50 peers/49 explicit receivers, original8s command/startup bounds,200ms frame age and>10 decoded frames for each intended recipient. Validate a complete both-algorithm capture only if all phases pass.",
     "Source176 before this Store change failed full50 steady1..12 after all49 actual receiver startups; original source175 ES256 telephone compound movement Unknown remains unexplained despite passing targeted repeats. Neither history is erased.",
     "G6-046 remains58/61 and45/105 tasks complete. Later Linux/browser/remote/provider/independent/acceptance/publication checks remain separate."
