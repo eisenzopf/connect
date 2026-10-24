@@ -4,6 +4,37 @@
 use super::*;
 
 impl Store {
+    /// Current packets require captured audience application or a sealed
+    /// private lifetime. Quarantined admission and planning grant no packets.
+    pub fn try_private_initial_telephone_media_read(
+        &self,
+        origin: Arc<InitialTelephoneMediaOrigin>,
+    ) -> Result<InitialTelephoneMediaRead> {
+        let required = {
+            let c = self.try_connection()?;
+            current_authority(self, &c, &origin)?.0
+        };
+        let interval = self.try_acquire_authority(&required)?;
+        let c = self.try_connection()?;
+        self.private_initial_telephone_media_in(&c, origin, interval, crate::now() + 5)
+    }
+
+    pub(crate) fn private_initial_telephone_media_in(
+        &self,
+        c: &Connection,
+        origin: Arc<InitialTelephoneMediaOrigin>,
+        interval: Arc<AuthorityGuardSet>,
+        until: i64,
+    ) -> Result<InitialTelephoneMediaRead> {
+        self.initial_telephone_read_with_purpose(
+            c,
+            origin,
+            interval,
+            until,
+            ProjectionPurpose::PrivateCurrent,
+        )
+    }
+
     /// Only a fresh return over this exact captured private candidate can grant
     /// its closure control view. It grants no public/private media receive edge.
     pub(crate) fn initial_telephone_return_in(
@@ -90,6 +121,36 @@ pub(super) fn selection_projection(
 ) -> Result<InitialTelephoneProjection> {
     let (_, _, physical_expiry) = facts(store, c, origin)?;
     projection(c, origin, until.min(physical_expiry))
+}
+
+pub(super) fn current_authority(
+    store: &Store,
+    c: &Connection,
+    origin: &InitialTelephoneMediaOrigin,
+) -> Result<(Vec<AuthorityScope>, i64)> {
+    use crate::connection_control::private_consultation::{registered_current, Purpose};
+    let (mut scopes, _, expires) = facts_for(store, c, origin, Purpose::CurrentMedia)?;
+    let context = registered_current(
+        store,
+        c,
+        origin.source().parent.record_id(),
+        Purpose::CurrentMedia,
+    )?;
+    scopes.extend(context.scopes);
+    Ok((
+        AuthorityScope::merged(&scopes)?,
+        expires.min(context.expires_at),
+    ))
+}
+
+pub(super) fn current_projection(
+    store: &Store,
+    c: &Connection,
+    origin: &InitialTelephoneMediaOrigin,
+    until: i64,
+) -> Result<InitialTelephoneProjection> {
+    let (_, expires) = current_authority(store, c, origin)?;
+    projection(c, origin, until.min(expires))
 }
 
 /// Signal context is distinct from admission and media selection. It requires

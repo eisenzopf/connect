@@ -1,0 +1,148 @@
+{
+  "task": "G6-046",
+  "recorded_at": "2026-10-24T21:16:59.141293+00:00",
+  "source_base_commit": "5847603ec67beb4d3f6134cda066d891a0e5658e",
+  "status": "controlled-packet-authority-passes-host-integration-open",
+  "full_task_complete": false,
+  "full_goal_complete": false,
+  "newly_qualified_case_ids": [],
+  "store_schema": 109,
+  "prepared_patch_count": 184,
+  "scope": "Applied-only protected private SIP candidate packet reader and native pair; controlled Store observations on local macOS arm64. No actual RTP, INFO/RFC4733 or runtime candidate qualification.",
+  "implementation": [
+    "Require recorded confirmed current-runtime audience application or sealed private lifetime; admission/planning alone never grant the packet reader.",
+    "Retain current pending original execution, exact original physical pair, full media/recipient scopes; sealed lifetime survives ended controller.",
+    "Dispatch private initial native pair through protected packet constructor; exclude held remote/public siblings and public readiness registry.",
+    "Recheck live AI provider readiness for captured pending signals/packets as for sealed lifetime; keep preparation separate.",
+    "Captured return closes packets before physical call cleanup."
+  ],
+  "verification": {
+    "store": {
+      "passed": true,
+      "distinct_successful_cases": 223,
+      "successful_executions": 229,
+      "ignored_cases": 0,
+      "new_cases": [
+        "connection_control::tests::sip_consultation::planning::packets::captured_private_sip_io_requires_live_ai_provider_before_and_after_sealing",
+        "connection_control::tests::sip_consultation::planning::packets::private_sip_packet_reader_requires_complete_interval_until_last_drop",
+        "connection_control::tests::sip_consultation::planning::packets::private_sip_packets_require_current_media_rights_and_physical_authority",
+        "connection_control::tests::sip_consultation::planning::packets::private_sip_packets_require_recorded_application_and_never_register_public_readiness",
+        "connection_control::tests::sip_consultation::planning::packets::private_sip_packets_survive_ended_controller_only_after_sealing"
+      ],
+      "summary": ".local/gate-6/received-dtmf-runtime/private-current116-worktree-store-001/summary.json",
+      "summary_sha256": "258f81ff46a6e76489772e7411a584f4a19b134214b4b78b389dc83b6ad70151",
+      "execution_workspace": "/Users/jonathaneisenzopf/.codex/worktrees/private-sip-lifetime/Connect",
+      "executable_sha256": "020968dd445d2137f42733ef640a580a5bc9464cb47659195ff201e0c8718c6a",
+      "source_inputs_unchanged": true,
+      "executable_unchanged": true,
+      "groups": [
+        {
+          "filter": "connection_control::tests::sip_consultation::planning::packets::",
+          "exit_code": 0,
+          "passed": true,
+          "passed_cases": 5,
+          "ignored_cases": 0,
+          "elapsed_seconds": 15.474462250014767,
+          "log": ".local/gate-6/private-current116-store-001/group-0.log",
+          "log_sha256": "79da4bfb38c8899d43d591a172d736d367d9e9c295a5f7ae9b2e55f092225472"
+        },
+        {
+          "filter": "connection_control::tests::private_provider::",
+          "exit_code": 0,
+          "passed": true,
+          "passed_cases": 35,
+          "ignored_cases": 0,
+          "elapsed_seconds": 86.14757237490267,
+          "log": ".local/gate-6/private-current116-store-001/group-1.log",
+          "log_sha256": "4c3c9d4288660dcd5bc5097a2ec65868ece3b319b78af020d5ae3fabd2a4914e"
+        },
+        {
+          "filter": "connection_control::tests::private_consultation::",
+          "exit_code": 0,
+          "passed": true,
+          "passed_cases": 8,
+          "ignored_cases": 0,
+          "elapsed_seconds": 4.900940416147932,
+          "log": ".local/gate-6/private-current116-store-001/group-2.log",
+          "log_sha256": "36ffcc0c886ec1f14230cf121e2ada1e7b7b4f5e075a44484e6f04a58d4cbc25"
+        },
+        {
+          "filter": "connection_control::tests::sip_consultation::planning::returning::restored_private_sip_candidate_loses_signal_context_before_physical_cleanup",
+          "exit_code": 0,
+          "passed": true,
+          "passed_cases": 1,
+          "ignored_cases": 0,
+          "elapsed_seconds": 0.9769068330060691,
+          "log": ".local/gate-6/private-current116-store-001/group-3.log",
+          "log_sha256": "e483c654c8180904da2c98c261c5ccf5c1b6627fb09ce8088a7bc66ca51dc437"
+        },
+        {
+          "filter": "connection_control::tests::sip_consultation::",
+          "exit_code": 0,
+          "passed": true,
+          "passed_cases": 85,
+          "ignored_cases": 0,
+          "elapsed_seconds": 159.52030620793812,
+          "log": ".local/gate-6/private-current116-store-001/group-4.log",
+          "log_sha256": "95d873bc1a2a64c345b7fa171af38ba58d4053d04b9b331ec970fd8fbfa7753a"
+        },
+        {
+          "filter": "connection_control::tests::replacement_sources::telephone::runtime::media::continuation::commit::signal::",
+          "exit_code": 0,
+          "passed": true,
+          "passed_cases": 40,
+          "ignored_cases": 0,
+          "elapsed_seconds": 55.31696954113431,
+          "log": ".local/gate-6/private-current116-store-001/group-5.log",
+          "log_sha256": "78465a01f99a2ad94663db3833a41a2e27b37014b29429ee7d1bf642427b7cc5"
+        },
+        {
+          "filter": "transitions::initial_telephone::tests::",
+          "exit_code": 0,
+          "passed": true,
+          "passed_cases": 46,
+          "ignored_cases": 0,
+          "elapsed_seconds": 24.5631532499101,
+          "log": ".local/gate-6/private-current116-store-001/group-6.log",
+          "log_sha256": "bf8feb2f79345247bb9fbdac92417bbb7c63114a5fb43a84bf275b91d103dd2f"
+        },
+        {
+          "filter": "connection_control::tests::consultation_audiences::",
+          "exit_code": 0,
+          "passed": true,
+          "passed_cases": 9,
+          "ignored_cases": 0,
+          "elapsed_seconds": 11.65447554201819,
+          "log": ".local/gate-6/private-current116-store-001/group-7.log",
+          "log_sha256": "99f05c31be287da4768d36dac943e3b77b2324ccc93ca2377dde22e8c01d690d"
+        }
+      ]
+    },
+    "format_check": {
+      "passed": true,
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "dependencies": {
+      "passed": true,
+      "log_sha256": "1093da5a89cb3a48536e09fcf6739ec78936602cafa1afc80cd118d2cf3338aa"
+    },
+    "service_compile": {
+      "status": "not-rerun",
+      "reason": "Store-only increment; no service wiring enabled."
+    },
+    "runtime": {
+      "status": "not-qualified",
+      "reason": "Main checkout optimized preflight diagnostics remain in progress against separate frozen inputs. This component has not enabled private SIP-candidate selection."
+    },
+    "schema": {
+      "status": "not-rerun",
+      "reason": "No schema change; prior schema109 evidence is not re-counted."
+    }
+  },
+  "remaining": [
+    "Resolve existing intermittent optimized SIP-primary preflight refusal.",
+    "Private SIP host lifetime/control handoff and candidate return closure independent of media rights.",
+    "Preserve unrelated private SIP groups under their own current context, then enable runtime candidate selection using original reservation/call.",
+    "Qualify actual duplex private media, INFO/RFC4733, independent named rights/recovery/replay and exact return/cleanup for both algorithms and full G6-046 matrix."
+  ]
+}

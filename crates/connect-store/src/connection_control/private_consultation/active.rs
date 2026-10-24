@@ -280,11 +280,25 @@ pub(crate) fn current_for(
         return Err(Error::forbidden());
     }
     let mut current = validate_for(store, c, record, &selection, &audience, purpose)?;
+    require_provider(store, c, record, &selection, &audience, &mut current)?;
+    Ok(Some(current))
+}
+
+/// Captured pending IO needs the same live provider as a sealed lifetime.
+/// Preparation still validates physical facts without requiring provider IO.
+pub(super) fn require_provider(
+    store: &Store,
+    c: &Connection,
+    record: &str,
+    selection: &str,
+    audience: &str,
+    current: &mut Established,
+) -> Result<()> {
     let ai:bool=c.query_row("SELECT p.kind='ai' OR i.kind='ai' FROM connections v JOIN participants p ON p.participant_id=v.participant_id JOIN identities i ON i.id=v.identity_id WHERE v.id=?1",[&current.candidate],|r|r.get(0)).map_err(|_|Error::storage())?;
     if ai {
-        let expiry = crate::private_provider::ready_until(c, store, record, &selection, &audience)?
+        let expiry = crate::private_provider::ready_until(c, store, record, selection, audience)?
             .ok_or_else(Error::forbidden)?;
         current.expires_at = current.expires_at.min(expiry);
     }
-    Ok(Some(current))
+    Ok(())
 }

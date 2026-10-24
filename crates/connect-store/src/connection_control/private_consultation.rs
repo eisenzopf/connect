@@ -7,12 +7,13 @@ pub(crate) mod active;
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub(crate) enum Purpose {
     Media,
+    CurrentMedia,
     Signal,
     Presence,
 }
 impl Purpose {
     pub(crate) fn media(self) -> bool {
-        self == Self::Media
+        matches!(self, Self::Media | Self::CurrentMedia)
     }
 }
 
@@ -335,14 +336,16 @@ pub(crate) fn registered_current(
     // A private signal needs actual captured application, not preparation or a
     // future route. Before sealing it still needs current original execution.
     let selected:Option<String>=c.query_row("SELECT n.selection_json FROM native_consultation_attempts n JOIN operation_effects e ON e.id=n.effect_id AND e.state='confirmed' WHERE n.operation_record_id=?1 AND n.runtime_epoch=?2 AND n.started=1 AND n.applied_json IS NOT NULL",params![record,store.runtime_epoch()],|r|r.get(0)).optional().map_err(|_|Error::storage())?;
-    if purpose == Purpose::Signal && selected.is_none() {
+    if matches!(purpose, Purpose::Signal | Purpose::CurrentMedia) && selected.is_none() {
         return Err(Error::forbidden());
     }
     // Unsealed native media preparation keeps its per-reader subscription
     // result. Sealing still validates full media rights; signals, presence and
     // SIP candidate contexts validate the captured physical pair here.
-    if let Some(selected) = selected.filter(|_| kind == "sip" || !purpose.media()) {
-        let physical = active::validate_for(
+    if let Some(selected) =
+        selected.filter(|_| kind == "sip" || !purpose.media() || purpose == Purpose::CurrentMedia)
+    {
+        let mut physical = active::validate_for(
             store,
             c,
             record,
@@ -350,6 +353,16 @@ pub(crate) fn registered_current(
             &serde_json::to_string(&audience).map_err(|_| Error::storage())?,
             purpose,
         )?;
+        if matches!(purpose, Purpose::Signal | Purpose::CurrentMedia) {
+            active::require_provider(
+                store,
+                c,
+                record,
+                &selected,
+                &serde_json::to_string(&audience).map_err(|_| Error::storage())?,
+                &mut physical,
+            )?;
+        }
         scopes.extend(physical.scopes);
         expires_at = expires_at.min(physical.expires_at);
     } else if kind == "sip" {
