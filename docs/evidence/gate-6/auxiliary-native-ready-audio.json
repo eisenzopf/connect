@@ -1,0 +1,88 @@
+{
+  "scope": "G6-046 native ready-audio scheduler component. No optimized host or fifty-participant capacity credit.",
+  "source_patch_count": 183,
+  "store_schema": 103,
+  "patch": "patches/rvoip/gate6-native-ready-audio-epochs.patch",
+  "patch_sha256": "19aa9fe91ea5e75b221244dddb33173c194bc8e3aa09510443b5467da4143fe1",
+  "source_lock_sha256": "3795c30528c83a11afff179b3649657babddac8073e0e5177aa34d14f742c3c9",
+  "implementation": [
+    "Each owning CanonicalNativeAdapter shares one bounded metadata scheduler across its native media ports. Public standalone StagedRtpMedia retains its own scheduler. Collect for 1ms, at most 64 jobs per finite epoch and 4096 pending jobs; retain no admission reader while queued or awaiting execution.",
+    "Group exact-original single-source audio metadata and call the checked synchronous Core batch. Every recipient retains current source/target policy, route/subscription/generation, cancellation, immutable expiry and original 200ms checks. Local/mixed audio, video and data keep their existing paths.",
+    "Port workers own both a completion receipt and the finite epoch join, including cancellation and panic. Closed receipts cannot issue detached IO. Preserve packetizer and physical binding state. Retry only admission NotReady with unchanged metadata; submitted transport errors are terminal.",
+    "Failed joins report incomplete cleanup; reconciliation can subsequently confirm actual route absence. No permanent sender worker or idle policy reader is installed."
+  ],
+  "verification": [
+    {
+      "command": "CARGO_INCREMENTAL=1 cargo test --manifest-path .deps/rvoip/Cargo.toml -p rvoip-uctp --lib --target-dir target --locked --offline -j4 staged_media:: -- --test-threads=1",
+      "passed": 8,
+      "failed": 0,
+      "ignored": 0,
+      "filtered": 115,
+      "duration_seconds": 0.05,
+      "log": ".local/gate-6/received-dtmf-runtime/native-ready183-unit.log",
+      "log_sha256": "96cdd8907463d70a1e26507169b8ada77e45bbf860b3fd1b73a4abb6e29f5ee9",
+      "scope": "Five bounded queue/split/join/panic/drop cases plus three packetizer/profile cases. Final coordination edit changes only integration fixture; all library source bytes unchanged."
+    },
+    {
+      "command": "CARGO_INCREMENTAL=1 cargo test --manifest-path .deps/rvoip/Cargo.toml -p rvoip-uctp --test staged_media --target-dir target --locked --offline -j4 -- --test-threads=1",
+      "passed": 13,
+      "failed": 0,
+      "ignored": 0,
+      "duration_seconds": 0.19,
+      "log": ".local/gate-6/received-dtmf-runtime/native-ready183-coordinated-staged.log",
+      "log_sha256": "0841df459ef35449cf4592c5b2517f933690e3664332467b3f039e80f5487ef4",
+      "scope": "Real loopback QUIC and decoded G711, including four new cancellation, joined send/shutdown, panic/unconfirmed cleanup/reconciliation and terminal transport refusal/recovery cases."
+    }
+  ],
+  "preserved_attempts": [
+    {
+      "log": ".local/gate-6/received-dtmf-runtime/native-ready183-staged.log",
+      "log_sha256": "4f82378ed169a5ebb9c25228c3708d0b49a1a4520fbc8b278c0272d3fac7af60",
+      "result": "Failed: controlled synchronous callback timed out before async test released it; subsequent poisoned-mutex destructor panic aborted test process. Corrected only fixture coordination: independent wall-clock observer releases callback, checks shutdown stays pending, then actual decoded wire output is checked after join. Poison recovery prevents secondary destructor abort. Original log retained; not counted as passing."
+    },
+    {
+      "log": ".local/gate-6/received-dtmf-runtime/native-ready183-canonical-mixer.log",
+      "result": "Wrong integration target selected: zero executed tests, 39 filtered. No behavioral credit. Correct target v2_peer_admission queued separately."
+    }
+  ],
+  "preparation": [
+    {
+      "old": "/Users/jonathaneisenzopf/.local/share/connect/deps-g6-ready-audio182-expiry-20261024",
+      "new": "/Users/jonathaneisenzopf/.local/share/connect/deps-g6-native-ready183-20261024",
+      "unchanged_files": 4042,
+      "directory_entries": 751,
+      "changed": [
+        "rvoip/crates/uctp/rvoip-uctp/tests/staged_media.rs",
+        "rvoip/crates/uctp/rvoip-uctp/src/staged_media.rs",
+        "rvoip/crates/uctp/rvoip-uctp/src/staged_media/ready_audio.rs",
+        "rvoip/crates/uctp/rvoip-uctp/src/v2/native.rs",
+        "rvoip/crates/uctp/rvoip-uctp/src/staged_media/ready_audio/epoch.rs"
+      ],
+      "active_compilers_before_switch": []
+    },
+    {
+      "old": "/Users/jonathaneisenzopf/.local/share/connect/deps-g6-native-ready183-20261024",
+      "new": "/Users/jonathaneisenzopf/.local/share/connect/deps-g6-native-ready183-coordinated-20261024",
+      "unchanged_files": 4097,
+      "directory_entries": 777,
+      "changed": [
+        "parley/.git/index",
+        "parley/.git/connect-prepared.json",
+        "parley/.git/logs/HEAD",
+        "rvoip/.git/connect-files.json",
+        "rvoip/.git/index",
+        "rvoip/.git/connect-prepared.json",
+        "rvoip/.git/logs/HEAD",
+        "rvoip/.git/logs/refs/heads/main",
+        "rvoip/.git/logs/refs/remotes/origin/HEAD",
+        "rvoip/crates/uctp/rvoip-uctp/tests/staged_media.rs"
+      ],
+      "active_compilers_before_switch": []
+    }
+  ],
+  "pending": [
+    "Canonical signed QUIC/WebTransport shared-adapter mixer, privacy, handoff and replacement checks.",
+    "Optimized integrated host build, fixed both-algorithm fifty-participant rehearsal and affected production methods."
+  ],
+  "limits": "231 Core primitive cases are separately recorded in auxiliary-ready-audio-batch.json. Prior full-fifty failures remain preserved. No throughput improvement, clause/task promotion, remote/provider/hosting/browser or whole-gate acceptance is claimed. Publication remains separate."
+}

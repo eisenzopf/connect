@@ -1,0 +1,1075 @@
+--- /dev/null
++++ b/crates/uctp/rvoip-uctp/src/staged_media/ready_audio/epoch.rs
+@@ -0,0 +1,330 @@
++//! Bounded finite metadata epochs with owned joins. No admission is done here.
++use futures::{
++    future::{BoxFuture, Shared},
++    FutureExt,
++};
++use rvoip_core::staged_streams::MAX_READY_AUDIO_BATCH;
++use std::sync::{Arc, Mutex};
++use tokio::{
++    sync::{Mutex as AsyncMutex, OwnedSemaphorePermit, Semaphore},
++    task::AbortHandle,
++};
++
++const MAX_PENDING: usize = 4096;
++type EpochJoin = Shared<BoxFuture<'static, Result<(), ()>>>;
++
++pub(super) struct EpochQueue<T> {
++    collecting: Mutex<Option<Arc<Epoch<T>>>>,
++    execution: AsyncMutex<()>,
++    slots: Arc<Semaphore>,
++    maximum_epoch: usize,
++    dispatch: fn(Vec<T>),
++}
++struct Epoch<T> {
++    entries: Arc<Mutex<Vec<(T, OwnedSemaphorePermit)>>>,
++    join: EpochJoin,
++    abort: AbortHandle,
++}
++impl<T> Drop for Epoch<T> {
++    fn drop(&mut self) {
++        self.abort.abort();
++    }
++}
++pub(super) struct EpochWait<T>(Arc<Epoch<T>>);
++impl<T> EpochWait<T> {
++    pub(super) async fn join(&self) -> Result<(), ()> {
++        self.0.join.clone().await
++    }
++}
++impl<T: Send + 'static> EpochQueue<T> {
++    pub(super) fn new(dispatch: fn(Vec<T>)) -> Arc<Self> {
++        Self::with_bounds(MAX_READY_AUDIO_BATCH, MAX_PENDING, dispatch)
++    }
++    fn with_bounds(
++        maximum_epoch: usize,
++        maximum_pending: usize,
++        dispatch: fn(Vec<T>),
++    ) -> Arc<Self> {
++        assert!(maximum_epoch > 0 && maximum_epoch <= MAX_READY_AUDIO_BATCH);
++        assert!(maximum_pending > 0 && maximum_pending <= MAX_PENDING);
++        Arc::new(Self {
++            collecting: Mutex::new(None),
++            execution: AsyncMutex::new(()),
++            slots: Arc::new(Semaphore::new(maximum_pending)),
++            maximum_epoch,
++            dispatch,
++        })
++    }
++    pub(super) fn enqueue(self: &Arc<Self>, item: T) -> Result<EpochWait<T>, T> {
++        let slot = match self.slots.clone().try_acquire_owned() {
++            Ok(slot) => slot,
++            Err(_) => return Err(item),
++        };
++        let mut collecting = self.collecting.lock().unwrap_or_else(|p| p.into_inner());
++        let epoch = match collecting.as_ref().filter(|epoch| {
++            epoch
++                .entries
++                .lock()
++                .unwrap_or_else(|p| p.into_inner())
++                .len()
++                < self.maximum_epoch
++        }) {
++            Some(epoch) => epoch.clone(),
++            None => {
++                let entries = Arc::new(Mutex::new(Vec::with_capacity(self.maximum_epoch)));
++                let ready = entries.clone();
++                let queue = Arc::downgrade(self);
++                let task = tokio::spawn(async move {
++                    tokio::time::sleep(std::time::Duration::from_millis(1)).await;
++                    let Some(queue) = queue.upgrade() else {
++                        // A successful join also confirms release of metadata,
++                        // including any reply senders and transport resources.
++                        ready.lock().unwrap_or_else(|p| p.into_inner()).clear();
++                        return;
++                    };
++                    {
++                        let mut collecting =
++                            queue.collecting.lock().unwrap_or_else(|p| p.into_inner());
++                        if collecting
++                            .as_ref()
++                            .is_some_and(|epoch| Arc::ptr_eq(&epoch.entries, &ready))
++                        {
++                            collecting.take();
++                        }
++                    }
++                    let pending =
++                        std::mem::take(&mut *ready.lock().unwrap_or_else(|p| p.into_inner()));
++                    let (items, _slots): (Vec<_>, Vec<_>) = pending.into_iter().unzip();
++                    // Only metadata waits here. The synchronous dispatcher must
++                    // finish and release actual IO readers before this join.
++                    let _execution = queue.execution.lock().await;
++                    (queue.dispatch)(items);
++                });
++                let abort = task.abort_handle();
++                let epoch = Arc::new(Epoch {
++                    entries,
++                    join: async move { task.await.map_err(|_| ()) }.boxed().shared(),
++                    abort,
++                });
++                *collecting = Some(epoch.clone());
++                epoch
++            }
++        };
++        epoch
++            .entries
++            .lock()
++            .unwrap_or_else(|p| p.into_inner())
++            .push((item, slot));
++        Ok(EpochWait(epoch))
++    }
++}
++
++#[cfg(test)]
++mod tests {
++    use super::*;
++    use std::sync::{
++        atomic::{AtomicUsize, Ordering},
++        Condvar,
++    };
++    use tokio::sync::Notify;
++    struct Gate {
++        entered: Notify,
++        open: Mutex<bool>,
++        changed: Condvar,
++    }
++    impl Gate {
++        fn release(&self) {
++            *self.open.lock().unwrap() = true;
++            self.changed.notify_all();
++        }
++    }
++    struct Release(Arc<Gate>);
++    impl Drop for Release {
++        fn drop(&mut self) {
++            self.0.release();
++        }
++    }
++    struct Item {
++        seen: Arc<AtomicUsize>,
++        dropped: Arc<AtomicUsize>,
++        sizes: Arc<Mutex<Vec<usize>>>,
++        panic: bool,
++        hold: Option<Arc<Gate>>,
++    }
++    impl Drop for Item {
++        fn drop(&mut self) {
++            self.dropped.fetch_add(1, Ordering::AcqRel);
++        }
++    }
++    fn dispatch(items: Vec<Item>) {
++        if let Some(first) = items.first() {
++            first.sizes.lock().unwrap().push(items.len());
++        }
++        for item in items {
++            item.seen.fetch_add(1, Ordering::AcqRel);
++            assert!(!item.panic, "controlled finite epoch panic");
++            if let Some(gate) = &item.hold {
++                gate.entered.notify_one();
++                let open = gate.open.lock().unwrap();
++                let (open, _) = gate
++                    .changed
++                    .wait_timeout_while(open, std::time::Duration::from_secs(1), |v| !*v)
++                    .unwrap();
++                assert!(*open, "controlled dispatcher was never released");
++            }
++        }
++    }
++    fn item(
++        seen: &Arc<AtomicUsize>,
++        dropped: &Arc<AtomicUsize>,
++        sizes: &Arc<Mutex<Vec<usize>>>,
++    ) -> Item {
++        Item {
++            seen: seen.clone(),
++            dropped: dropped.clone(),
++            sizes: sizes.clone(),
++            panic: false,
++            hold: None,
++        }
++    }
++    #[tokio::test]
++    async fn full_epoch_queue_returns_unchanged_metadata_without_dispatch_then_recovers() {
++        let (seen, dropped, sizes) = (
++            Arc::new(AtomicUsize::new(0)),
++            Arc::new(AtomicUsize::new(0)),
++            Arc::new(Mutex::new(Vec::new())),
++        );
++        let queue = EpochQueue::with_bounds(2, 2, dispatch);
++        let one = queue
++            .enqueue(item(&seen, &dropped, &sizes))
++            .unwrap_or_else(|_| panic!("first refused"));
++        let two = queue
++            .enqueue(item(&seen, &dropped, &sizes))
++            .unwrap_or_else(|_| panic!("second refused"));
++        let third = match queue.enqueue(item(&seen, &dropped, &sizes)) {
++            Err(item) => item,
++            Ok(_) => panic!("capacity exceeded"),
++        };
++        assert_eq!(seen.load(Ordering::Acquire), 0);
++        one.join().await.unwrap();
++        two.join().await.unwrap();
++        assert_eq!(seen.load(Ordering::Acquire), 2);
++        assert_eq!(dropped.load(Ordering::Acquire), 2);
++        queue
++            .enqueue(third)
++            .unwrap_or_else(|_| panic!("capacity never returned"))
++            .join()
++            .await
++            .unwrap();
++        assert_eq!(seen.load(Ordering::Acquire), 3);
++        assert_eq!(dropped.load(Ordering::Acquire), 3);
++    }
++    #[tokio::test]
++    async fn epoch_limit_splits_ready_metadata_into_bounded_owned_dispatches() {
++        let (seen, dropped, sizes) = (
++            Arc::new(AtomicUsize::new(0)),
++            Arc::new(AtomicUsize::new(0)),
++            Arc::new(Mutex::new(Vec::new())),
++        );
++        let queue = EpochQueue::with_bounds(2, 4, dispatch);
++        let waits = (0..3)
++            .map(|_| {
++                queue
++                    .enqueue(item(&seen, &dropped, &sizes))
++                    .unwrap_or_else(|_| panic!("bounded job refused"))
++            })
++            .collect::<Vec<_>>();
++        for wait in waits {
++            wait.join().await.unwrap();
++        }
++        let mut batches = sizes.lock().unwrap().clone();
++        batches.sort_unstable();
++        assert_eq!(batches, vec![1, 2]);
++        assert_eq!(seen.load(Ordering::Acquire), 3);
++        assert_eq!(dropped.load(Ordering::Acquire), 3);
++    }
++    #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
++    async fn owned_join_waits_for_dispatch_and_serializes_other_epochs() {
++        let (seen, dropped, sizes) = (
++            Arc::new(AtomicUsize::new(0)),
++            Arc::new(AtomicUsize::new(0)),
++            Arc::new(Mutex::new(Vec::new())),
++        );
++        let gate = Arc::new(Gate {
++            entered: Notify::new(),
++            open: Mutex::new(false),
++            changed: Condvar::new(),
++        });
++        let _release = Release(gate.clone());
++        let queue = EpochQueue::with_bounds(1, 2, dispatch);
++        let mut held = item(&seen, &dropped, &sizes);
++        held.hold = Some(gate.clone());
++        let first = queue
++            .enqueue(held)
++            .unwrap_or_else(|_| panic!("held refused"));
++        tokio::time::timeout(std::time::Duration::from_secs(1), gate.entered.notified())
++            .await
++            .unwrap();
++        let second = queue
++            .enqueue(item(&seen, &dropped, &sizes))
++            .unwrap_or_else(|_| panic!("next refused"));
++        assert!(
++            tokio::time::timeout(std::time::Duration::from_millis(10), first.join())
++                .await
++                .is_err()
++        );
++        assert!(
++            tokio::time::timeout(std::time::Duration::from_millis(10), second.join())
++                .await
++                .is_err()
++        );
++        assert_eq!(seen.load(Ordering::Acquire), 1);
++        gate.release();
++        first.join().await.unwrap();
++        second.join().await.unwrap();
++        assert_eq!(seen.load(Ordering::Acquire), 2);
++        assert_eq!(dropped.load(Ordering::Acquire), 2);
++    }
++    #[tokio::test]
++    async fn dispatcher_panic_is_join_failure_releases_capacity_and_next_epoch_can_run() {
++        let (seen, dropped, sizes) = (
++            Arc::new(AtomicUsize::new(0)),
++            Arc::new(AtomicUsize::new(0)),
++            Arc::new(Mutex::new(Vec::new())),
++        );
++        let queue = EpochQueue::with_bounds(1, 1, dispatch);
++        let mut bad = item(&seen, &dropped, &sizes);
++        bad.panic = true;
++        assert!(queue
++            .enqueue(bad)
++            .unwrap_or_else(|_| panic!("panic job refused"))
++            .join()
++            .await
++            .is_err());
++        assert_eq!(dropped.load(Ordering::Acquire), 1);
++        queue
++            .enqueue(item(&seen, &dropped, &sizes))
++            .unwrap_or_else(|_| panic!("panic retained capacity"))
++            .join()
++            .await
++            .unwrap();
++        assert_eq!(seen.load(Ordering::Acquire), 2);
++        assert_eq!(dropped.load(Ordering::Acquire), 2);
++    }
++    #[tokio::test]
++    async fn dropped_queue_discards_pending_metadata_before_join_without_dispatch() {
++        let (seen, dropped, sizes) = (
++            Arc::new(AtomicUsize::new(0)),
++            Arc::new(AtomicUsize::new(0)),
++            Arc::new(Mutex::new(Vec::new())),
++        );
++        let queue = EpochQueue::with_bounds(1, 1, dispatch);
++        let wait = queue
++            .enqueue(item(&seen, &dropped, &sizes))
++            .unwrap_or_else(|_| panic!("pending refused"));
++        drop(queue);
++        wait.join().await.unwrap();
++        assert_eq!(seen.load(Ordering::Acquire), 0);
++        assert_eq!(dropped.load(Ordering::Acquire), 1);
++    }
++}
+--- /dev/null
++++ b/crates/uctp/rvoip-uctp/src/staged_media/ready_audio.rs
+@@ -0,0 +1,168 @@
++//! Finite, owned ready-audio epochs. Queues contain metadata, never authority.
++use super::*;
++use tokio::sync::oneshot;
++mod epoch;
++pub(crate) struct ReadyAudioEgress {
++    queue: Arc<epoch::EpochQueue<Job>>,
++}
++pub(super) struct SendRoute {
++    pub binding: ReadyMediaBinding,
++    pub pt: u8,
++    pub transport: Arc<dyn StagedDatagramTransport>,
++    pub flow: Option<Arc<crate::native_flow::NativeFlow>>,
++    pub port: WeakAdapterMediaPort,
++    pub counters: Arc<StagedRtpCounters>,
++    pub cancel: CancellationToken,
++    pub lifetime: CancellationToken,
++}
++struct Job {
++    queued: QueuedMedia,
++    context: SendContext,
++}
++struct SendContext {
++    packetizer: Packetizer,
++    route: Arc<SendRoute>,
++    reply: oneshot::Sender<Completion>,
++}
++struct Completion {
++    packetizer: Packetizer,
++    delivery: ReadyAudioDelivery,
++}
++struct BatchWait {
++    epoch: epoch::EpochWait<Job>,
++    reply: oneshot::Receiver<Completion>,
++}
++impl ReadyAudioEgress {
++    pub(crate) fn new() -> Arc<Self> {
++        Arc::new(Self {
++            queue: epoch::EpochQueue::new(Self::submit_ready),
++        })
++    }
++    fn enqueue(
++        self: &Arc<Self>,
++        queued: QueuedMedia,
++        packetizer: Packetizer,
++        route: Arc<SendRoute>,
++    ) -> Result<BatchWait, (Packetizer, StreamControlError)> {
++        let (reply, response) = oneshot::channel();
++        let job = Job {
++            queued,
++            context: SendContext {
++                packetizer,
++                route,
++                reply,
++            },
++        };
++        match self.queue.enqueue(job) {
++            Ok(epoch) => Ok(BatchWait {
++                epoch,
++                reply: response,
++            }),
++            Err(job) => Err((job.context.packetizer, StreamControlError::Backpressure)),
++        }
++    }
++    fn submit_ready(ready: Vec<Job>) {
++        let mut groups: Vec<Vec<Job>> = Vec::new();
++        for job in ready {
++            if job.context.reply.is_closed() {
++                continue;
++            }
++            if let Some(group) = groups
++                .iter_mut()
++                .find(|group| group[0].queued.same_audio_packet(&job.queued))
++            {
++                group.push(job);
++            } else {
++                groups.push(vec![job]);
++            }
++        }
++        for group in groups {
++            let (frames, mut contexts): (Vec<_>, Vec<_>) = group
++                .into_iter()
++                .map(|job| (job.queued, job.context))
++                .unzip();
++            let delivered =
++                QueuedMedia::deliver_ready_audio_batch(frames, |index, frame, origin| {
++                    let context = &mut contexts[index];
++                    let route = &context.route;
++                    if context.reply.is_closed()
++                        || route.cancel.is_cancelled()
++                        || route.lifetime.is_cancelled()
++                        || route.transport.is_closed()
++                    {
++                        return Err(StreamControlError::Cancelled);
++                    }
++                    context
++                        .packetizer
++                        .send(
++                            frame,
++                            origin,
++                            &route.binding,
++                            route.pt,
++                            route.transport.as_ref(),
++                            |bytes| {
++                                route.counters.local_sends.fetch_add(1, Ordering::AcqRel);
++                                if let (Some(flow), Some(port)) =
++                                    (&route.flow, route.port.upgrade())
++                                {
++                                    flow.sent(&port);
++                                    flow.record_rtp(&port, false, bytes);
++                                }
++                            },
++                        )
++                        .map(|_| ())
++                });
++            assert_eq!(delivered.len(), contexts.len());
++            // Core returned only after every actual reader was released. A
++            // refusal receipt contains the unchanged original metadata alone.
++            for (delivery, context) in delivered.into_iter().zip(contexts) {
++                let _ = context.reply.send(Completion {
++                    packetizer: context.packetizer,
++                    delivery,
++                });
++            }
++        }
++    }
++    pub(super) async fn send(
++        self: &Arc<Self>,
++        mut queued: QueuedMedia,
++        mut packetizer: Packetizer,
++        route: Arc<SendRoute>,
++    ) -> Result<(Packetizer, ControlResult<()>), ()> {
++        loop {
++            if route.cancel.is_cancelled()
++                || route.lifetime.is_cancelled()
++                || route.transport.is_closed()
++            {
++                return Ok((packetizer, Err(StreamControlError::Cancelled)));
++            }
++            let waiting = match self.enqueue(queued, packetizer, route.clone()) {
++                Ok(waiting) => waiting,
++                Err((returned, problem)) => return Ok((returned, Err(problem))),
++            };
++            let completion = waiting.reply.await.map_err(|_| ());
++            // Even cancellation/closed replies must join the actual finite IO
++            // task before the owning port can report successful cleanup.
++            waiting.epoch.join().await?;
++            let completion = completion?;
++            packetizer = completion.packetizer;
++            match completion.delivery {
++                ReadyAudioDelivery::Refused {
++                    queued: original,
++                    problem: StreamControlError::NotReady,
++                } => {
++                    queued = original;
++                    tokio::select! { biased;
++                        _=route.cancel.cancelled()=>return Ok((packetizer,Err(StreamControlError::Cancelled))),
++                        _=route.lifetime.cancelled()=>return Ok((packetizer,Err(StreamControlError::Cancelled))),
++                        _=tokio::time::sleep(std::time::Duration::from_millis(1))=>{}
++                    }
++                }
++                ReadyAudioDelivery::Refused { problem, .. } => {
++                    return Ok((packetizer, Err(problem)))
++                }
++                ReadyAudioDelivery::Submitted(result) => return Ok((packetizer, result)),
++            }
++        }
++    }
++}
+--- a/crates/uctp/rvoip-uctp/src/staged_media.rs
++++ b/crates/uctp/rvoip-uctp/src/staged_media.rs
+@@ -33,6 +33,9 @@
+ use tokio::sync::mpsc;
+ use tokio_util::sync::CancellationToken;
+ 
++mod ready_audio;
++pub(crate) use ready_audio::ReadyAudioEgress;
++
+ #[derive(Clone)]
+ pub struct StagedRtpScope {
+     pub session: SessionId,
+@@ -380,6 +383,7 @@
+     transport: Arc<dyn StagedDatagramTransport>,
+     lifetime: CancellationToken,
+     counters: Arc<StagedRtpCounters>,
++    ready_audio: Arc<ReadyAudioEgress>,
+ }
+ impl StagedRtpMedia {
+     pub fn new(
+@@ -391,7 +395,7 @@
+         lifetime: CancellationToken,
+     ) -> Arc<Self> {
+         Self::new_with_flow(
+-            scope, router, streams, negotiator, transport, lifetime, None,
++            scope, router, streams, negotiator, transport, lifetime, None, None,
+         )
+     }
+     pub(crate) fn new_with_flow(
+@@ -402,6 +406,7 @@
+         transport: Arc<dyn StagedDatagramTransport>,
+         lifetime: CancellationToken,
+         flow: Option<Arc<crate::native_flow::NativeFlow>>,
++        ready_audio: Option<Arc<ReadyAudioEgress>>,
+     ) -> Arc<Self> {
+         let handles = StreamHandleAllocator::shared(Arc::new(RouterAllocator {
+             router: router.clone(),
+@@ -417,6 +422,7 @@
+             transport,
+             lifetime,
+             counters: Arc::new(StagedRtpCounters::default()),
++            ready_audio: ready_audio.unwrap_or_else(ReadyAudioEgress::new),
+         })
+     }
+     pub fn handle_allocator(&self) -> Arc<StreamHandleAllocator> {
+@@ -720,8 +726,19 @@
+             let flow = self.flow.clone();
+             tracing::trace!(target: "rvoip_uctp::native_egress", connection=self.scope.connection.as_str(), stream=binding.transport_id.as_str(), source_ready=binding.source_ready, sink_ready=binding.sink_ready, "Native guarded egress configured");
+             let connection = self.scope.connection.clone();
++            let ready_audio = self.ready_audio.clone();
++            let send_route = Arc::new(ready_audio::SendRoute {
++                binding: binding.clone(),
++                pt,
++                transport: transport.clone(),
++                flow: flow.clone(),
++                port: weak.clone(),
++                counters: counters.clone(),
++                cancel: cancel.clone(),
++                lifetime: lifetime.clone(),
++            });
+             let task = tokio::spawn(async move {
+-                let mut packetizer = Packetizer {
++                let mut packetizer = Some(Packetizer {
+                     outer: 0,
+                     rtp: 0,
+                     ssrc: u32::from_be_bytes(
+@@ -729,7 +746,8 @@
+                     ),
+                     video: Default::default(),
+                     previous_video: None,
+-                };
++                });
++                let mut incomplete = false;
+                 loop {
+                     let next = async {
+                         match receiver.as_mut() {
+@@ -738,25 +756,46 @@
+                         }
+                     };
+                     let queued = tokio::select! {biased;_=cancel.cancelled()=>break,_=lifetime.cancelled()=>break,next=next=>match next {Some(value)=>value,None=>break}};
+-                    let result = queued
+-                        .deliver_with_origin(|frame, origin| {
+-                            let result = packetizer.send(
+-                                frame,
+-                                origin,
+-                                &binding,
+-                                pt,
+-                                transport.as_ref(),
+-                                |bytes| {
+-                                    counters.local_sends.fetch_add(1, Ordering::AcqRel);
+-                                    if let (Some(flow), Some(port)) = (&flow, weak.upgrade()) {
+-                                        flow.sent(&port);
+-                                        flow.record_rtp(&port, false, bytes);
+-                                    }
+-                                },
+-                            );
+-                            std::future::ready(result.map(|_| ()))
+-                        })
+-                        .await;
++                    let result = if queued.can_batch_audio() {
++                        match ready_audio
++                            .send(
++                                queued,
++                                packetizer.take().expect("owned packetizer"),
++                                send_route.clone(),
++                            )
++                            .await
++                        {
++                            Ok((returned, result)) => {
++                                packetizer = Some(returned);
++                                result
++                            }
++                            Err(()) => {
++                                counters.send_errors.fetch_add(1, Ordering::AcqRel);
++                                incomplete = true;
++                                break;
++                            }
++                        }
++                    } else {
++                        queued
++                            .deliver_with_origin(|frame, origin| {
++                                let result = packetizer.as_mut().expect("owned packetizer").send(
++                                    frame,
++                                    origin,
++                                    &binding,
++                                    pt,
++                                    transport.as_ref(),
++                                    |bytes| {
++                                        counters.local_sends.fetch_add(1, Ordering::AcqRel);
++                                        if let (Some(flow), Some(port)) = (&flow, weak.upgrade()) {
++                                            flow.sent(&port);
++                                            flow.record_rtp(&port, false, bytes);
++                                        }
++                                    },
++                                );
++                                std::future::ready(result.map(|_| ()))
++                            })
++                            .await
++                    };
+                     if let Err(problem) = &result {
+                         tracing::trace!(target: "rvoip_uctp::native_egress", connection=connection.as_str(), stream=binding.transport_id.as_str(), source_ready=binding.source_ready, sink_ready=binding.sink_ready, ?problem, "Native guarded egress refused");
+                         counters.send_errors.fetch_add(1, Ordering::AcqRel);
+@@ -768,9 +807,14 @@
+                 if let Some(port) = weak.upgrade() {
+                     let _ = port.report_terminal();
+                 }
++                if incomplete {
++                    Err(())
++                } else {
++                    Ok(())
++                }
+             });
+             *resources.task.lock().unwrap_or_else(|p| p.into_inner()) =
+-                Some(async move { task.await.map_err(|_| ()) }.boxed().shared());
++                Some(async move { task.await.map_err(|_| ())? }.boxed().shared());
+             port.observe_ready(
+                 &answer.binding.negotiated.format,
+                 answer.binding.source_ready,
+--- a/crates/uctp/rvoip-uctp/src/v2/native.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/native.rs
+@@ -139,6 +139,7 @@
+     events: mpsc::Sender<OrchestratorAdapterEvent>,
+     receiver: Mutex<Option<mpsc::Receiver<OrchestratorAdapterEvent>>>,
+     allocated: AtomicUsize,
++    ready_audio: Arc<crate::staged_media::ReadyAudioEgress>,
+     lifecycle: AdapterLifecycleSinkSlot,
+ }
+ impl CanonicalNativeAdapter {
+@@ -157,6 +158,7 @@
+             lifecycle: AdapterLifecycleSinkSlot::default(),
+             receiver: Mutex::new(Some(receiver)),
+             allocated: AtomicUsize::new(0),
++            ready_audio: crate::staged_media::ReadyAudioEgress::new(),
+         }))
+     }
+     /// Mute an original, confirmed native audio batch before managed private
+@@ -448,6 +450,7 @@
+                     media.datagrams(),
+                     route.cancel.clone(),
+                     Some(flow.clone()),
++                    Some(self.ready_audio.clone()),
+                 )
+             }),
+             data: data.map(|negotiator| {
+--- a/crates/uctp/rvoip-uctp/tests/staged_media.rs
++++ b/crates/uctp/rvoip-uctp/tests/staged_media.rs
+@@ -24,8 +24,8 @@
+     collections::{BTreeMap, BTreeSet, HashMap},
+     net::SocketAddr,
+     sync::{
+-        atomic::{AtomicBool, Ordering},
+-        Arc, Mutex,
++        atomic::{AtomicBool, AtomicUsize, Ordering},
++        Arc, Condvar, Mutex,
+     },
+     time::Duration,
+ };
+@@ -270,18 +270,68 @@
+         Ok(())
+     }
+ }
+-struct Carrier(quinn::Connection);
++#[derive(Default)]
++struct CarrierFault {
++    mode: AtomicUsize,
++    calls: AtomicUsize,
++    entered: Notify,
++    released: Mutex<bool>,
++    changed: Condvar,
++}
++impl CarrierFault {
++    fn release(&self) {
++        *self.released.lock().unwrap_or_else(|p| p.into_inner()) = true;
++        self.changed.notify_all();
++    }
++    fn scheduling_delay(&self) {
++        self.entered.notify_one();
++        let guard = self.released.lock().unwrap_or_else(|p| p.into_inner());
++        let (guard, _) = self
++            .changed
++            .wait_timeout_while(guard, Duration::from_secs(1), |v| !*v)
++            .unwrap();
++        let released = *guard;
++        drop(guard);
++        assert!(released, "controlled transport delay was never released");
++    }
++}
++struct ReleaseCarrier(Arc<CarrierFault>);
++impl Drop for ReleaseCarrier {
++    fn drop(&mut self) {
++        self.0.release();
++    }
++}
++struct Carrier {
++    connection: quinn::Connection,
++    fault: Arc<CarrierFault>,
++}
+ impl StagedDatagramTransport for Carrier {
+     fn maximum_datagram_bytes(&self) -> Option<usize> {
+-        self.0.max_datagram_size()
++        self.connection.max_datagram_size()
+     }
+     fn send_datagram(&self, bytes: Bytes) -> ControlResult<()> {
+-        self.0
++        self.fault.calls.fetch_add(1, Ordering::AcqRel);
++        let mode = self.fault.mode.load(Ordering::Acquire);
++        if mode == 1 {
++            return Err(StreamControlError::NotReady);
++        }
++        if mode == 3 {
++            self.fault.scheduling_delay();
++            panic!("controlled native ready-send panic");
++        }
++        let result = self
++            .connection
+             .send_datagram(bytes)
+-            .map_err(|_| StreamControlError::Backpressure)
++            .map_err(|_| StreamControlError::Backpressure);
++        if mode == 2 && result.is_ok() {
++            // Real IO completed first. Simulate delayed continuation to verify
++            // that closing the port still joins the active owned sender.
++            self.fault.scheduling_delay();
++        }
++        result
+     }
+     fn is_closed(&self) -> bool {
+-        self.0.close_reason().is_some()
++        self.connection.close_reason().is_some()
+     }
+ }
+ struct Peer {
+@@ -364,6 +414,7 @@
+     an: Arc<Negotiator>,
+     bn: Arc<Negotiator>,
+     policy: Arc<Policy>,
++    b_fault: Arc<CarrierFault>,
+ }
+ impl Fixture {
+     async fn new() -> Self {
+@@ -380,39 +431,49 @@
+         }))));
+         let an = Negotiator::new(96);
+         let bn = Negotiator::new(97);
+-        let make = |name: &str, peer: &Peer, negotiator: Arc<Negotiator>| {
+-            let p = principal(name);
+-            let scope = StagedRtpScope {
+-                session: SessionId::from_string("session"),
+-                connection: ConnectionId::from_string(name),
+-                owner: p.ownership_key(),
+-                wire_conversation: Some("wire-conversation".into()),
+-                wire_session: "wire-session".into(),
+-                wire_connection: format!("wire-{name}"),
++        let make =
++            |name: &str, peer: &Peer, negotiator: Arc<Negotiator>, fault: Arc<CarrierFault>| {
++                let p = principal(name);
++                let scope = StagedRtpScope {
++                    session: SessionId::from_string("session"),
++                    connection: ConnectionId::from_string(name),
++                    owner: p.ownership_key(),
++                    wire_conversation: Some("wire-conversation".into()),
++                    wire_session: "wire-session".into(),
++                    wire_connection: format!("wire-{name}"),
++                };
++                let backend = StagedRtpMedia::new(
++                    scope,
++                    peer.router.clone(),
++                    Arc::new(DashMap::new()),
++                    negotiator,
++                    Arc::new(Carrier {
++                        connection: peer.host.clone(),
++                        fault,
++                    }),
++                    peer.lifetime.clone(),
++                );
++                let controller = StreamController::new(
++                    ConversationId::from_string("conversation"),
++                    SessionId::from_string("session"),
++                    ConnectionId::from_string(name),
++                    p,
++                    policy.clone(),
++                    backend.clone(),
++                    backend.handle_allocator(),
++                    16,
++                )
++                .unwrap();
++                (controller, backend)
+             };
+-            let backend = StagedRtpMedia::new(
+-                scope,
+-                peer.router.clone(),
+-                Arc::new(DashMap::new()),
+-                negotiator,
+-                Arc::new(Carrier(peer.host.clone())),
+-                peer.lifetime.clone(),
+-            );
+-            let controller = StreamController::new(
+-                ConversationId::from_string("conversation"),
+-                SessionId::from_string("session"),
+-                ConnectionId::from_string(name),
+-                p,
+-                policy.clone(),
+-                backend.clone(),
+-                backend.handle_allocator(),
+-                16,
+-            )
+-            .unwrap();
+-            (controller, backend)
+-        };
+-        let (a, aa) = make("alice", &a_peer, an.clone());
+-        let (b, ba) = make("bob", &b_peer, bn.clone());
++        let b_fault = Arc::new(CarrierFault::default());
++        let (a, aa) = make(
++            "alice",
++            &a_peer,
++            an.clone(),
++            Arc::new(CarrierFault::default()),
++        );
++        let (b, ba) = make("bob", &b_peer, bn.clone(), b_fault.clone());
+         a_peer.start();
+         b_peer.start();
+         Self {
+@@ -425,6 +486,7 @@
+             an,
+             bn,
+             policy,
++            b_fault,
+         }
+     }
+     async fn start(&self, kinds: &[Medium]) {
+@@ -881,3 +943,201 @@
+     decoded_tone(&wire(&f.b_peer).await);
+     f.stop().await;
+ }
++
++#[tokio::test]
++async fn ready_native_transport_refusal_is_terminal_and_fresh_packet_recovers() {
++    let mut f = Fixture::new().await;
++    f.start(&[Medium::Audio]).await;
++    let mut input =
++        f.a.take_ingress(&desired(Medium::Audio).logical_id)
++            .unwrap();
++    let source = f.an.binding(Medium::Audio).stream_local_id;
++    f.b_fault.mode.store(1, Ordering::Release);
++    f.a_peer
++        .remote
++        .send_datagram(audio_datagram(source, 160))
++        .unwrap();
++    incoming(&mut input)
++        .await
++        .try_forward_to(&f.b, &desired(Medium::Audio).logical_id)
++        .unwrap();
++    let end = tokio::time::Instant::now() + Duration::from_secs(1);
++    while f.ba.counters().snapshot().send_errors == 0 {
++        assert!(tokio::time::Instant::now() < end);
++        tokio::time::sleep(Duration::from_millis(1)).await;
++    }
++    tokio::time::sleep(Duration::from_millis(20)).await;
++    assert_eq!(
++        f.b_fault.calls.load(Ordering::Acquire),
++        1,
++        "submitted transport NotReady was replayed"
++    );
++    drop(
++        f.policy
++            .0
++            .clone()
++            .try_write_owned()
++            .expect("failed send parked policy authority"),
++    );
++    f.b_fault.mode.store(0, Ordering::Release);
++    f.a_peer
++        .remote
++        .send_datagram(audio_datagram(source, 320))
++        .unwrap();
++    incoming(&mut input)
++        .await
++        .try_forward_to(&f.b, &desired(Medium::Audio).logical_id)
++        .unwrap();
++    decoded_tone(&wire(&f.b_peer).await);
++    assert_eq!(f.b_fault.calls.load(Ordering::Acquire), 2);
++    f.stop().await;
++}
++#[tokio::test]
++async fn ready_native_cancel_before_epoch_io_joins_without_sending() {
++    let mut f = Fixture::new().await;
++    f.start(&[Medium::Audio]).await;
++    let mut input =
++        f.a.take_ingress(&desired(Medium::Audio).logical_id)
++            .unwrap();
++    let source = f.an.binding(Medium::Audio).stream_local_id;
++    f.a_peer
++        .remote
++        .send_datagram(audio_datagram(source, 160))
++        .unwrap();
++    let packet = incoming(&mut input).await;
++    tokio::time::pause();
++    packet
++        .try_forward_to(&f.b, &desired(Medium::Audio).logical_id)
++        .unwrap();
++    tokio::task::yield_now().await;
++    assert_eq!(f.b.shutdown(deadline()).await, 0);
++    tokio::time::advance(Duration::from_millis(10)).await;
++    assert_eq!(
++        f.b_fault.calls.load(Ordering::Acquire),
++        0,
++        "canceled queued metadata performed IO"
++    );
++    assert!(f
++        .b_peer
++        .router
++        .lookup(std::num::NonZeroU16::new(f.bn.binding(Medium::Audio).stream_local_id).unwrap())
++        .is_none());
++    tokio::time::resume();
++    f.stop().await;
++}
++#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
++async fn ready_native_close_waits_for_actual_send_continuation_and_joins_epoch() {
++    let mut f = Fixture::new().await;
++    f.start(&[Medium::Audio]).await;
++    let mut input =
++        f.a.take_ingress(&desired(Medium::Audio).logical_id)
++            .unwrap();
++    let source = f.an.binding(Medium::Audio).stream_local_id;
++    let _release = ReleaseCarrier(f.b_fault.clone());
++    f.b_fault.mode.store(2, Ordering::Release);
++    f.a_peer
++        .remote
++        .send_datagram(audio_datagram(source, 160))
++        .unwrap();
++    incoming(&mut input)
++        .await
++        .try_forward_to(&f.b, &desired(Medium::Audio).logical_id)
++        .unwrap();
++    tokio::time::timeout(Duration::from_secs(1), f.b_fault.entered.notified())
++        .await
++        .unwrap();
++    // A wall-clock observer releases the deliberately synchronous callback.
++    // Tokio timers/QUIC polling may share the worker held by that callback.
++    let (closing, started) = std::sync::mpsc::channel();
++    let finished = Arc::new(AtomicBool::new(false));
++    let observed = finished.clone();
++    let fault = f.b_fault.clone();
++    let probe = std::thread::spawn(move || {
++        let _release = ReleaseCarrier(fault);
++        started.recv_timeout(Duration::from_secs(1)).unwrap();
++        std::thread::sleep(Duration::from_millis(10));
++        !observed.load(Ordering::Acquire)
++    });
++    let target = f.b.clone();
++    let close = tokio::spawn(async move {
++        closing.send(()).unwrap();
++        let result = target.shutdown(deadline()).await;
++        finished.store(true, Ordering::Release);
++        result
++    });
++    assert_eq!(close.await.unwrap(), 0);
++    assert!(
++        probe.join().unwrap(),
++        "cleanup completed before the actual IO task joined"
++    );
++    decoded_tone(&wire(&f.b_peer).await);
++    assert_eq!(f.b_fault.calls.load(Ordering::Acquire), 1);
++    drop(
++        f.policy
++            .0
++            .clone()
++            .try_write_owned()
++            .expect("closed epoch retained policy authority"),
++    );
++    f.stop().await;
++}
++#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
++async fn ready_native_dispatch_panic_reports_unconfirmed_cleanup_then_reconciles_absence() {
++    let mut f = Fixture::new().await;
++    f.start(&[Medium::Audio]).await;
++    let mut input =
++        f.a.take_ingress(&desired(Medium::Audio).logical_id)
++            .unwrap();
++    let source = f.an.binding(Medium::Audio).stream_local_id;
++    let _release = ReleaseCarrier(f.b_fault.clone());
++    f.b_fault.mode.store(3, Ordering::Release);
++    f.a_peer
++        .remote
++        .send_datagram(audio_datagram(source, 160))
++        .unwrap();
++    incoming(&mut input)
++        .await
++        .try_forward_to(&f.b, &desired(Medium::Audio).logical_id)
++        .unwrap();
++    tokio::time::timeout(Duration::from_secs(1), f.b_fault.entered.notified())
++        .await
++        .unwrap();
++    let (closing, started) = std::sync::mpsc::channel();
++    let finished = Arc::new(AtomicBool::new(false));
++    let observed = finished.clone();
++    let fault = f.b_fault.clone();
++    let probe = std::thread::spawn(move || {
++        let _release = ReleaseCarrier(fault);
++        started.recv_timeout(Duration::from_secs(1)).unwrap();
++        std::thread::sleep(Duration::from_millis(10));
++        !observed.load(Ordering::Acquire)
++    });
++    let target = f.b.clone();
++    let close = tokio::spawn(async move {
++        closing.send(()).unwrap();
++        let result = target.shutdown(deadline()).await;
++        finished.store(true, Ordering::Release);
++        result
++    });
++    let unresolved = close.await.unwrap();
++    assert!(
++        probe.join().unwrap(),
++        "cleanup completed before the panic task joined"
++    );
++    assert!(unresolved > 0, "panic was reported as successful cleanup");
++    assert_eq!(f.b.reconcile_cleanup(deadline()).await, 0);
++    drop(
++        f.policy
++            .0
++            .clone()
++            .try_write_owned()
++            .expect("panic retained policy authority"),
++    );
++    assert_eq!(f.b_fault.calls.load(Ordering::Acquire), 1);
++    assert!(
++        tokio::time::timeout(Duration::from_millis(20), f.b_peer.remote.read_datagram())
++            .await
++            .is_err()
++    );
++    f.stop().await;
++}

@@ -109,3 +109,17 @@ continue to fail the version seal. The
 [owned SQL report](../evidence/gate-6/auxiliary-packet-owned-sql.json) records
 mutation, queued-writer, clock-change and release evidence separately from the
 remaining actual capacity checks.
+
+
+The canonical native adapter now collects ready single-source audio metadata into
+finite epochs: 1 ms collection, at most 64 jobs per epoch and 4096 pending jobs.
+Exact-original copies use the synchronous Core batch; every recipient still
+checks current authority and the original 200 ms deadline. The queue and its
+execution wait hold metadata alone. The port owns its receipt and the epoch join,
+so cancellation or a failed dispatch cannot report cleanup before the actual
+sender finishes. Admission refusals may retry unchanged metadata; a submitted
+transport error is terminal. The [native scheduler component report](../evidence/gate-6/auxiliary-native-ready-audio.json)
+records bounded queue and actual QUIC cleanup/recovery evidence. Optimized host
+throughput and full-fifty qualification remain pending. This internal scheduling
+change leaves the [canonical HTTP reference](../../contracts/openapi-canonical-http.json)
+unchanged.

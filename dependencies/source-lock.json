@@ -1012,6 +1012,11 @@
       "path": "patches/rvoip/gate6-ready-audio-batch.patch",
       "sha256": "0260e938773d32e13a563ad7ca9e2f2afb6ea5792cee50a7c1d3b520293e2e0e",
       "source": "G6-046 bounded synchronous ready fanout for exact original single-source audio. Each recipient still obtains current independent packet/route/subscription authority; only the active ready IO call retains its first original interval. Refused metadata is returned, submitted IO is terminal, and no reader escapes or crosses a retry/coalescing wait. Controlled queued-writer/one-fresh-source/actual decoded delivery, distinct-packet refusal and current recipient revocation checks. Native scheduler integration and capacity remain separate. Busy source returns the unchanged frame for retry; a NotReady returned by actual submitted IO remains terminal, with no queued reader retained. A post-IO scheduling delay preserves first actual delivery but refuses all later copies beyond original200ms and releases the interval."
+    },
+    {
+      "path": "patches/rvoip/gate6-native-ready-audio-epochs.patch",
+      "sha256": "19aa9fe91ea5e75b221244dddb33173c194bc8e3aa09510443b5467da4143fe1",
+      "source": "G6-046 shared native ready-audio epochs under each owning CanonicalNativeAdapter. Collect metadata for1ms, max64 per epoch/4096 pending; serialize epoch policy probes without readers. Each actual exact-original batch uses the checked Core primitive. Ports own reply and finite epoch join, including cancellation and panic; drop/closed replies cannot issue detached IO. Only admission NotReady retries unchanged metadata under original200ms; submitted IO errors remain terminal. Preserve physical RTP bindings, packetizer state, current complete authority, private readiness and non-audio paths. Controlled bounded queue/join/panic recovery and real staged QUIC failure/cleanup tests; full-fifty capacity remains separately qualified."
     }
   ]
 }
