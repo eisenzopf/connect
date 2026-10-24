@@ -1,5 +1,5 @@
 {
-  "scope": "Local macOS arm64 complete Store library: 1065 methods pass, zero failures, three explicit subprocess-helper skips. Exact optimized host build and capacity/production regressions are pending. No clause/task promotion: 45/105 tasks, G6-046 58/61 clauses.",
+  "scope": "Local macOS arm64 Store1065 methods pass and exact optimized host build passes. Full50 still fails steady6..19 after all49 receiver startups1034ms. Current production regressions remain active. No capacity/clause/task promotion:45/105 and58/61 unchanged.",
   "changes": [
     "Pool at most 128 idle, explicitly unlocked admission descriptions, at most two per name. Exclusive checkout never shares an open description between concurrent requests; busy/full pool falls back to fresh open/close without waiting on the pool mutex.",
     "Every acquisition still validates the current database and private directory and obtains the actual exclusive OS admission lock. Reused descriptions freshly validate regular path/file, private owner/mode, single link, matching device/inode, owner read/write mode and current effective read/write access including ACLs through safe rustix accessat. Unsafe reuse fails closed and closes the descriptor.",
@@ -81,7 +81,99 @@
     ]
   },
   "pending": [
-    "Exact optimized host build, actual 50-Participant rehearsal and current-authority production regressions. No capacity credit from component methods.",
-    "Linux and all other assigned profiles remain unqualified by this macOS Store proof."
-  ]
+    "Finish eight current-authority production regressions on this exact optimized executable.",
+    "Measure remaining exact optimized packet contention; preserve all earlier failures and original50/49/8s/200ms/>10 bounds. No later full50 phase or ES256 capacity qualified.",
+    "Linux and all other assigned profiles remain unqualified by this macOS proof."
+  ],
+  "host_build": {
+    "passed": true,
+    "profile": "release opt-level3",
+    "duration_seconds": 786,
+    "log": ".local/gate-6/received-dtmf-runtime/admission-fds179-release-build.log",
+    "log_sha256": "c42a46b02c41f3a235219220737730e1575e097c94b1f04e01661585e36646c9"
+  },
+  "optimized_full50": {
+    "passed": false,
+    "runtime_seconds": 28.01,
+    "actual_connections": 99,
+    "completed_subscriptions": 49,
+    "receiver_startup_ms": 1034,
+    "receiver_flow_facts": 49,
+    "steady_decoded_by_peer": [
+      0,
+      14,
+      16,
+      8,
+      13,
+      9,
+      17,
+      18,
+      12,
+      16,
+      15,
+      17,
+      16,
+      18,
+      16,
+      6,
+      11,
+      14,
+      11,
+      14,
+      16,
+      12,
+      14,
+      16,
+      13,
+      15,
+      13,
+      16,
+      15,
+      13,
+      15,
+      15,
+      14,
+      11,
+      17,
+      14,
+      16,
+      15,
+      13,
+      10,
+      6,
+      14,
+      12,
+      11,
+      14,
+      14,
+      12,
+      15,
+      19,
+      15
+    ],
+    "steady_range": [
+      6,
+      19
+    ],
+    "receivers_below_requirement": 5,
+    "required_each": ">10",
+    "future_phases_reached": false,
+    "second_algorithm_reached": false,
+    "complete_capture_rows": 0,
+    "validator": "Not run: no complete algorithm capture.",
+    "executable_sha256": "2d3d2fe638b67b118b2fced381115803631384caf1dfd81082b3c0246a84b530",
+    "source_inputs_unchanged": true,
+    "cargo_profile": {
+      "opt_level": "3",
+      "debuginfo": 0,
+      "debug_assertions": false,
+      "overflow_checks": false,
+      "test": true
+    },
+    "artifacts_sha256": {
+      ".local/gate-6/fifty-native/admission-fds179-release/summary.json": "3a6f5161d96cef8ad75b3d42228dc4499df429647a1ea06dd96be472f0195c4f",
+      ".local/gate-6/fifty-native/admission-fds179-release/runtime.log": "ca91d9b20cd31d18ae15a2262e7308c0a6d45ffdc18460f450b5ef5ff354eeb5",
+      ".local/gate-6/fifty-native/admission-fds179-release/observations.jsonl": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  }
 }
