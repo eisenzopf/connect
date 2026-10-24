@@ -2,7 +2,7 @@
   "task": "G6-046",
   "recorded_at": "2026-10-24T20:22:35.673691+00:00",
   "source_base_commit": "f327cd9bf5cb35313486c5358f46a4ca4c0f63db",
-  "status": "protected-signal-store-checks-pass-socket-preflight-investigation",
+  "status": "protected-signal-store-checks-pass-native-custody-fix-runtime-pending",
   "full_task_complete": false,
   "full_goal_complete": false,
   "prepared_patch_count": 184,
@@ -123,7 +123,9 @@
       "summaries": [
         ".local/gate-6/private-sip-primary/signal115-optimized-002/summary.json",
         ".local/gate-6/private-sip-primary/signal115-optimized-004/summary.json",
-        ".local/gate-6/private-sip-primary/signal115-optimized-diagnostic-008/summary.json"
+        ".local/gate-6/private-sip-primary/signal115-optimized-diagnostic-008/summary.json",
+        ".local/gate-6/private-sip-primary/signal118-optimized-diagnostic-009/summary.json",
+        ".local/gate-6/private-sip-primary/signal118-optimized-diagnostic-010/summary.json"
       ]
     },
     "schema": {
@@ -192,6 +194,15 @@
         "projection"
       ],
       "runtime_status": "Pending fresh optimized diagnosis on combined current source."
+    },
+    "native_private_retirement_diagnosis": {
+      "summary": ".local/gate-6/received-dtmf-runtime/private-signal118-db-diagnostic-011-summary.json",
+      "summary_sha256": "54017423d1e4b48820ec657a8b5726b2913369998d95713a5a99ae52ede1aa55",
+      "root_cause": "Idle native physical custody used pending Signal authority and retired the consultant before audience application.",
+      "fix_commit": "d0c22086",
+      "current_store_distinct_cases": 156,
+      "current_runtime_qualification": false,
+      "evidence": "docs/evidence/gate-6/auxiliary-native-private-custody-presence.json"
     }
   },
   "failed_attempts": [
@@ -236,6 +247,22 @@
       "source_inputs_unchanged": true,
       "executable_unchanged": true,
       "reason": "Optimized build completed14m05s; both initial and established SIP-primary cases refuse at Consultation selection / scope derivation / native view before Core submission. Exact deeper native validation remains unresolved; no socket qualification."
+    },
+    {
+      "summary": ".local/gate-6/private-sip-primary/signal118-optimized-diagnostic-009/summary.json",
+      "summary_sha256": "60c502e4e4b037c77aed4fc2504a1c3e0e7677da66a22e62214a2723ea0e93d4",
+      "passed": false,
+      "source_inputs_unchanged": true,
+      "executable_unchanged": true,
+      "reason": "Pre-fix diagnostic. 009 initial method/validation passes both algorithms but established remains Accepted/noeffect; 010 reproduces private native projection refusal in both profiles. No repeatable profile qualification."
+    },
+    {
+      "summary": ".local/gate-6/private-sip-primary/signal118-optimized-diagnostic-010/summary.json",
+      "summary_sha256": "c246ec5f39962268f30ca524b3a5fd14089cd41196145e10d9a66e4d73813379",
+      "passed": false,
+      "source_inputs_unchanged": true,
+      "executable_unchanged": true,
+      "reason": "Pre-fix diagnostic. 009 initial method/validation passes both algorithms but established remains Accepted/noeffect; 010 reproduces private native projection refusal in both profiles. No repeatable profile qualification."
     }
   ],
   "remaining": [

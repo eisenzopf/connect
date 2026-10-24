@@ -1,8 +1,8 @@
 {
   "task": "G6-046",
-  "recorded_at": "2026-10-24T21:48:12.764299+00:00",
+  "recorded_at": "2026-10-24T22:28:01.691271+00:00",
   "source_base_commit": "4755f1f6",
-  "status": "host-handoff-implemented-controlled-checks-pass-runtime-open",
+  "status": "quarantine-bootstrap-regression-fixed-focused-current-checks-pass-runtime-revalidation-running",
   "full_task_complete": false,
   "full_goal_complete": false,
   "newly_qualified_case_ids": [],
@@ -13,7 +13,8 @@
     "Choose admission for quarantine control only and protected CurrentMedia after captured application; no admission fallback after current read refusal.",
     "Match exact original child/canonical/Core/SIP Call-ID and frozen prepared/controller/physical ports when resolving private Selection/Current/Return owners. Admission-only mute/private preparation intents stay restricted.",
     "Retain original call through claim and revision2->3; sealed lifetime ignores old controller/child admission deadline. Busy Store/proof metadata preserves the existing resource, without an IO grant.",
-    "Install real managed DTMF observation/registration only after captured application, using existing INFO/RFC4733 receive custody/current directional guards. Captured closure cleans only the original call and still requires actual absence."
+    "Install real managed DTMF observation/registration only after captured application, using existing INFO/RFC4733 receive custody/current directional guards. Captured closure cleans only the original call and still requires actual absence.",
+    "Resolve answered pre-connected quarantine through exact unclaimed/effect-free admission authority before connected-only continuing facts. Sealed lifetimes do not decode the completed operation released lease. Admission remains control-only; current media/signal and physical/context validation remain required."
   ],
   "verification": {
     "broad_store_before_service_fixes": {
@@ -169,12 +170,47 @@
       "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
     },
     "runtime": {
-      "status": "not-qualified",
-      "reason": "This worktree has no new actual host handoff/quarantine/private audience qualification. Main optimized diagnostic inputs remain separate frozen9cf44874."
+      "status": "revalidation-running-not-qualified",
+      "summary": ".local/gate-6/private-sip-primary/quarantine122-runtime-014/summary.json",
+      "prior_result": "runtime012 passes both complete SIP-primary profiles but fails both private-candidate quarantine admissions. No whole-run pass.",
+      "scope": "Current combined typed SIP selection, separate private groups and corrected quarantine host source; initial/established SIP-primary full profiles plus both algorithm private-candidate quarantine cases. Reverse private SIP-candidate audience switch remains separate."
     },
     "schema": {
       "status": "not-rerun",
       "reason": "No schema change. Prior schema109 evidence is not re-counted."
+    },
+    "quarantine_bootstrap_current_store": {
+      "passed": true,
+      "distinct_successful_cases": 6,
+      "successful_executions": 6,
+      "ignored_cases": 0,
+      "summary": ".local/gate-6/received-dtmf-runtime/quarantine122-focused-002/summary.json",
+      "summary_sha256": "b46426fd15e58558e3d95ae0fc7fa7dd132924acfe4ecc039c680f5deb7ffe9e",
+      "source_inputs_unchanged": true,
+      "executable_unchanged": true,
+      "executable_sha256": "d6e8e591346606482daf9e5e2aeae673f1b8b65d30e2206ff797876eb4d5ea7b",
+      "groups": [
+        {
+          "filter": "connection_control::tests::sip_consultation::planning::phase::",
+          "exit_code": 0,
+          "passed": true,
+          "passed_cases": 5,
+          "ignored_cases": 0,
+          "elapsed_seconds": 12.07780299987644,
+          "log": ".local/gate-6/received-dtmf-runtime/quarantine122-focused-002/group-0.log",
+          "log_sha256": "d8bead75a808d9d93361929aba1d34b1dfd5e6d328cb3b4bd2fb1049701a705f"
+        },
+        {
+          "filter": "connection_control::tests::sip_consultation::planning::returning::restored_private_sip_candidate_loses_signal_context_before_physical_cleanup",
+          "exit_code": 0,
+          "passed": true,
+          "passed_cases": 1,
+          "ignored_cases": 0,
+          "elapsed_seconds": 0.9293203328270465,
+          "log": ".local/gate-6/received-dtmf-runtime/quarantine122-focused-002/group-1.log",
+          "log_sha256": "03309e4024523dec800e9047925c7d850ed17bc5599c15bd7f1905136b5e9c7e"
+        }
+      ]
     }
   },
   "failed_attempts": [
@@ -191,10 +227,31 @@
       "source_inputs_unchanged": false,
       "executable_unchanged": true,
       "reason": "Six test bodies pass but formatting overlapped the source guard. Not counted as qualification; repeated frozen003 passes both guards."
+    },
+    {
+      "name": "answered pre-connected regression before fix",
+      "passed": false,
+      "log": ".local/gate-6/received-dtmf-runtime/quarantine122-before-fix.log",
+      "log_sha256": "d4ee509ecbe3b067aae35bf9a7f08d1f4668482dc154be85b2f42e4a6c03e147",
+      "reason": "Original phase check requires connected-only physical facts before the control admission can record connected state. New test reproduces forbidden."
+    },
+    {
+      "name": "first quarantine ordering fix Store001",
+      "passed": false,
+      "summary_sha256": "e73f24242554c3369af46ae25cf0598764044da00d4f9330ea078cb734f4a6a3",
+      "source_inputs_unchanged": true,
+      "executable_unchanged": true,
+      "reason": "New pre-connected case passes, but 5 sealed/closure regressions fail because completed operations release lease_expires_at to NULL. Fixed by skipping pending attempt lease decoding for sealed lifetimes; focused002 passes all affected paths."
+    },
+    {
+      "name": "optimized runtime013 build stopped",
+      "passed": false,
+      "summary_sha256": "39f70339623b99a557a3a697a5e6c67f26149bd69ad317bbd91a575dfb457178",
+      "reason": "Stopped this build after deterministic sealed-lease regression identified known-invalid source; no runtime profiles executed. Elapsed build time was not the reason."
     }
   ],
   "remaining": [
-    "Resolve existing optimized SIP-primary private-native projection refusal and Accepted/noeffect scheduling behavior.",
+    "Complete current combined optimized socket revalidation; native custody SIP-primary profiles passed runtime012 but current quarantine admission repair and typed selection require fresh results.",
     "Qualify current actual quarantine/admission/replay/contention/cancel/cleanup after host changes.",
     "Preserve unrelated private SIP programmes under their own current context and enable SIP candidate runtime selection using original reservation/child/call.",
     "Qualify actual private duplex RTP, INFO/RFC4733, four named rights/recovery/replay, sibling/privacy exclusion and original return/absence for both algorithms and full G6-046 matrix."
