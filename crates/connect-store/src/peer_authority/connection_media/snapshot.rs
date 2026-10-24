@@ -1,4 +1,4 @@
-//! SQL-versioned metadata only; every use acquires fresh, immediate authority.
+//! SQL-versioned metadata; fresh admission or exact active file custody.
 use super::*;
 use std::sync::Mutex;
 type ErasedMetadata = dyn std::any::Any + Send + Sync;
@@ -76,11 +76,35 @@ pub(super) fn cached<T: Clone>(
     store: &Store,
     memo: &Memo<T>,
     source: Option<&MetadataToken>,
+    derive: impl FnMut(&Connection) -> Result<(T, Vec<AuthorityScope>)>,
+    finish: impl FnOnce(&Connection) -> Result<()>,
+) -> Result<(T, Arc<AuthorityGuardSet>)> {
+    cached_with(store, memo, source, None, derive, finish)
+}
+
+/// Recheck current metadata under an active caller-owned complete interval.
+/// This lends file custody only; no fact or permission comes from the holder.
+pub(super) fn cached_under<T: Clone>(
+    store: &Store,
+    memo: &Memo<T>,
+    source: Option<&MetadataToken>,
+    held: &Arc<AuthorityGuardSet>,
+    derive: impl FnMut(&Connection) -> Result<(T, Vec<AuthorityScope>)>,
+    finish: impl FnOnce(&Connection) -> Result<()>,
+) -> Result<(T, Arc<AuthorityGuardSet>)> {
+    cached_with(store, memo, source, Some(held), derive, finish)
+}
+
+fn cached_with<T: Clone>(
+    store: &Store,
+    memo: &Memo<T>,
+    source: Option<&MetadataToken>,
+    held: Option<&Arc<AuthorityGuardSet>>,
     mut derive: impl FnMut(&Connection) -> Result<(T, Vec<AuthorityScope>)>,
     finish: impl FnOnce(&Connection) -> Result<()>,
 ) -> Result<(T, Arc<AuthorityGuardSet>)> {
     let mut captured = None;
-    let result = acquire_at(
+    let result = acquire_with(
         store,
         |c, version| {
             if let Ok(entry) = memo.0.try_lock() {
@@ -101,6 +125,11 @@ pub(super) fn cached<T: Clone>(
             Ok((facts, scopes))
         },
         finish,
+        |scopes| match held {
+            Some(held) if store.authority_covers(held, scopes) => Ok(held.clone()),
+            Some(_) => Err(Error::forbidden()),
+            None => store.try_acquire_authority(scopes),
+        },
     )?;
     // Publish only a fully admitted unchanged capture. Neither cache lock nor
     // SQL is retained by the caller's owned fresh authority guard.
@@ -123,6 +152,7 @@ pub(super) fn acquire<T>(
     acquire_at(store, |c, _| derive(c), |_| Ok(()))
 }
 
+#[cfg(test)]
 fn acquire_at<T>(
     store: &Store,
     derive: impl FnMut(&Connection, Version) -> Result<(T, Vec<AuthorityScope>)>,

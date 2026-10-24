@@ -596,6 +596,38 @@ impl Store {
         target: &NativeMediaOrigin,
         source: Option<&NativeMediaOrigin>,
     ) -> Result<NativeMediaRead> {
+        self.native_media_read_at(target, source, None)
+    }
+    /// Derive this exact pair's current policy using an already-active packet
+    /// reader's file custody. The complete current scope set must be covered;
+    /// a foreign, expired or insufficient interval never falls back to admission.
+    /// The caller must keep the original frame's age/cancellation bound. The
+    /// holder contributes no target permission, credential or resource binding.
+    pub fn try_native_media_read_under(
+        &self,
+        target: &NativeMediaOrigin,
+        source: &NativeMediaOrigin,
+        held: &NativeMediaRead,
+    ) -> Result<NativeMediaRead> {
+        if !held.current()
+            || !self.authority.owns(held.interval())
+            || !Arc::ptr_eq(&self.require_runtime_owner()?, &held.owner)
+        {
+            return Err(Error::forbidden());
+        }
+        let mut read = self.native_media_read_at(target, Some(source), Some(held.interval()))?;
+        read.expires_at = read.expires_at.min(held.expires_at);
+        if !held.current() || !read.current() {
+            return Err(Error::forbidden());
+        }
+        Ok(read)
+    }
+    fn native_media_read_at(
+        &self,
+        target: &NativeMediaOrigin,
+        source: Option<&NativeMediaOrigin>,
+        held: Option<&Arc<AuthorityGuardSet>>,
+    ) -> Result<NativeMediaRead> {
         current_owner(self, target)?;
         if let Some(source) = source {
             current_owner(self, source)?;
@@ -606,31 +638,30 @@ impl Store {
         } else {
             &metadata.unary
         };
-        let ((target_view, source_view, expires_at, may_subscribe), held) = snapshot::cached(
-            self,
-            memo,
-            source.map(|source| &source.metadata),
-            |c| {
-                let (target_view, source_view, scopes, expires_at) =
-                    views(self, c, target, source)?;
-                Ok((
-                    (
-                        target_view,
-                        source_view,
-                        expires_at,
-                        subscription_permission(c, target)?,
-                    ),
-                    scopes,
-                ))
-            },
-            |c| {
-                self.remember_session_ready_origin(c, target)?;
-                if let Some(source) = source {
-                    self.remember_session_ready_origin(c, source)?;
-                }
-                Ok(())
-            },
-        )?;
+        let derive = |c: &Connection| {
+            let (target_view, source_view, scopes, expires_at) = views(self, c, target, source)?;
+            Ok((
+                (
+                    target_view,
+                    source_view,
+                    expires_at,
+                    subscription_permission(c, target)?,
+                ),
+                scopes,
+            ))
+        };
+        let finish = |c: &Connection| {
+            self.remember_session_ready_origin(c, target)?;
+            if let Some(source) = source {
+                self.remember_session_ready_origin(c, source)?;
+            }
+            Ok(())
+        };
+        let source_token = source.map(|source| &source.metadata);
+        let ((target_view, source_view, expires_at, may_subscribe), held) = match held {
+            Some(held) => snapshot::cached_under(self, memo, source_token, held, derive, finish),
+            None => snapshot::cached(self, memo, source_token, derive, finish),
+        }?;
         if let Some(source) = source {
             current_owner(self, source)?;
         }
