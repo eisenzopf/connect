@@ -127,9 +127,56 @@
     }
   },
   "unresolved": [
-    "Complete current exact source177 actual production regressions. Investigate same-original-packet source file-custody composition with only weak metadata in queued work, fresh source/recipient facts and unchanged200ms deadline. Cross-packet or per-Connection cached grants are not an acceptable substitute. No sharing implementation is present or qualified yet.",
+    "Source177 eight selected actual production regressions pass. Same-original-packet source custody work is in progress, with only weak queued metadata, fresh source/recipient facts and unchanged200ms age; no cross-packet grants. Component and exact runtime verification remain required.",
     "Then build the exact default host once, run complete fifty-peer EdDSA/ES256 phases and affected production regressions. Keep50 peers/49 explicit receivers, original8s commands/startup,200ms age and>10 decoded frames per intended recipient. Validate a complete capture only if every phase passes.",
     "Source176 audience rewrite did not resolve capacity: failed full50 steady5..14 after49 actual receiver startups3781ms. Source175 ES256 moved-SIP Unknown remains unproven despite passing repeats. Preserve both histories.",
     "G6-046 remains58/61 with0112/0113/0123 open;45/105 tasks complete. Later Linux/browser/remote/provider/independent/acceptance/publication scopes remain separate."
-  ]
+  ],
+  "source177_production_regressions": {
+    "source_lock_sha256": "9a81792723468ecd30ec5339e4307304c4a8ebbdb97b7df6382ba1bed9a043d9",
+    "distinct_actual_methods_passed": 8,
+    "runs": [
+      {
+        "log": ".local/gate-6/received-dtmf-runtime/admission177-production-0.log",
+        "sha256": "11473b3fc3cc8aee9055024d84085798f398d808d89ffdc64baa5bd2bcbc0451",
+        "summary": "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 253 filtered out; finished in 24.57s"
+      },
+      {
+        "log": ".local/gate-6/received-dtmf-runtime/admission177-production-1.log",
+        "sha256": "1d46b57a872d78d23312edd6e59eabbe0399d8c8949c22dd33c1b7381a3ddc1e",
+        "summary": "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 253 filtered out; finished in 11.58s"
+      },
+      {
+        "log": ".local/gate-6/received-dtmf-runtime/admission177-production-3.log",
+        "sha256": "f7a0d57497c93e954c0e8fa95c5561dbfd6aaebbd99b130fbfd4009ec1253f4b",
+        "summary": "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 253 filtered out; finished in 5.75s"
+      },
+      {
+        "log": ".local/gate-6/received-dtmf-runtime/admission177-production-5.log",
+        "sha256": "9364f39bcb5bbb7395d9971d2dbb69880ac0c0a093fe57b481078bfcca2c68a3",
+        "summary": "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 253 filtered out; finished in 17.93s"
+      },
+      {
+        "log": ".local/gate-6/received-dtmf-runtime/admission177-production-6.log",
+        "sha256": "d93f8758d3c4e030e067363f76f2e603b1ee9233945b9a39fdbac94054f7cdfa",
+        "summary": "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 253 filtered out; finished in 92.97s"
+      },
+      {
+        "log": ".local/gate-6/received-dtmf-runtime/admission177-production-7.log",
+        "sha256": "e9a290de864d9abe4283e7ce7aeab073257fa1f525f30793ac490a7a2b4102e9",
+        "summary": "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 253 filtered out; finished in 16.95s"
+      },
+      {
+        "log": ".local/gate-6/received-dtmf-runtime/admission177-production-9.log",
+        "sha256": "4339a664ef623dcba5bd7ccac56f24ec1264908fca338abdb1a3acd5e2768a3b",
+        "summary": "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 253 filtered out; finished in 63.37s"
+      },
+      {
+        "log": ".local/gate-6/received-dtmf-runtime/admission177-production-10.log",
+        "sha256": "ced5089f359653febd2862e9e2984517a34dfcd3b68808ed4cf9f636fef5b171",
+        "summary": "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 253 filtered out; finished in 48.54s"
+      }
+    ],
+    "limitation": "These production behavior passes do not qualify fifty-peer capacity or later Gate6 clauses."
+  }
 }
