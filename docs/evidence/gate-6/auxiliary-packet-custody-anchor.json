@@ -30,7 +30,7 @@
     "prior_behavior": "New race case was not executed against the old implementation; no measured before-fix test failure is claimed."
   },
   "pending": [
-    "Eight actual production regressions running sequentially against the exact rebuilt binary.",
+    "Bounded delivery-throughput trace on the same source/binary is running; diagnostic instrumentation receives no capacity credit.",
     "Fix delivery throughput, then complete both EdDSA and ES256 full-fifty captures and validation."
   ],
   "limitations": "No new capacity credit. Preserved source179 full-fifty failure and earlier readiness timeouts remain unresolved. The rejected input-discard candidate is not included in this patch or source lock.",
@@ -178,5 +178,71 @@
     ],
     "complete_capture_rows": 0,
     "observation": "The failing recipients have few received RTP packets as well as few marked frames. This narrows the failure to actual delivery throughput; no dominant cost or causal capacity improvement is claimed."
+  },
+  "production_regressions": {
+    "passed": 8,
+    "failed": 0,
+    "same_exact_optimized_binary": true,
+    "binary_sha256": "b53cff0d185e4e3d04384a4995424249b52a92aff40c810445c692a831a814e2",
+    "source_inputs_unchanged_after_run": true,
+    "methods": [
+      {
+        "method": "canonical_native_connections::lifecycle::production_native_lifecycle_quality_reports_actual_flow_through_signed_sdk",
+        "passed": true,
+        "log": ".local/gate-6/received-dtmf-runtime/packet-anchor180-production-0.log",
+        "log_sha256": "0d49c663b5a0787556a26b1b1cbfb8ce4d5008011b8408105357648520fc4095",
+        "duration_seconds": 23.52
+      },
+      {
+        "method": "canonical_native_connections::selector_policy::production_native_heterogeneous_wildcard_preserves_audio_and_definitive_refusals",
+        "passed": true,
+        "log": ".local/gate-6/received-dtmf-runtime/packet-anchor180-production-1.log",
+        "log_sha256": "c5efc7f858c8e210e758dd9e4bf5fdebafc854f0976897d79b37341efec9aa6b",
+        "duration_seconds": 10.46
+      },
+      {
+        "method": "canonical_native_connections::production_signed_native_stream_subscription_routes_audio_and_replays_without_another_effect",
+        "passed": true,
+        "log": ".local/gate-6/received-dtmf-runtime/packet-anchor180-production-3.log",
+        "log_sha256": "2815247a2145f1010d7c3db12391b3bd485b677f48c1248dcbf8e1918cb867d8",
+        "duration_seconds": 5.22
+      },
+      {
+        "method": "canonical_native_connections::consultation::production_private_consultation_switches_actual_audio_without_leaking_to_remote_or_public_context",
+        "passed": true,
+        "log": ".local/gate-6/received-dtmf-runtime/packet-anchor180-production-5.log",
+        "log_sha256": "830608d3424308f1e8d7d4e546e793869518ae8f3b2f77c0e298d4ae670808d4",
+        "duration_seconds": 16.36
+      },
+      {
+        "method": "canonical_native_connections::consultation::groups::handoff::production_native_private_handoff_commits_roles_and_retains_remote_audio",
+        "passed": true,
+        "log": ".local/gate-6/received-dtmf-runtime/packet-anchor180-production-6.log",
+        "log_sha256": "12e6e4e3965d02172c58340969fd58cee265467599e587bd1dcf1cb0eb75958d",
+        "duration_seconds": 86.78
+      },
+      {
+        "method": "canonical_native_connections::dtmf::production_native_refresh_retains_actual_decoded_rtp_after_original_expiry",
+        "passed": true,
+        "log": ".local/gate-6/received-dtmf-runtime/packet-anchor180-production-7.log",
+        "log_sha256": "014b25c40438522c6aed9a996df4898425490b9780ee9b1934d1187f64cdf9b8",
+        "duration_seconds": 16.37
+      },
+      {
+        "method": "canonical_native_connections::consultation::groups::replacement::telephone::received::privacy::production_moved_sip_received_private_audience_and_return_keep_actual_lifetime",
+        "passed": true,
+        "log": ".local/gate-6/received-dtmf-runtime/packet-anchor180-production-9.log",
+        "log_sha256": "edce8b11e2f37c9372c08338521c80fefbb2583e4728665782ab70b8ad1d23d4",
+        "duration_seconds": 58.72
+      },
+      {
+        "method": "canonical_native_connections::consultation::groups::replacement::telephone::received::refresh::production_moved_sip_dtmf_refresh_preserves_queued_epoch_and_fresh_bidirectional_delivery",
+        "passed": true,
+        "log": ".local/gate-6/received-dtmf-runtime/packet-anchor180-production-10.log",
+        "log_sha256": "38b5e7799077b0cdbae7042a59683a668f254daa7f8c8513102b54be3e1eee08",
+        "duration_seconds": 46.77
+      }
+    ],
+    "limitations": "These current positive passes do not prove the historical readiness/quality timeout causes resolved and do not qualify full-fifty capacity."
   }
 }
