@@ -2,7 +2,7 @@
   "task": "G6-046",
   "recorded_at": "2026-10-24T20:22:35.673691+00:00",
   "source_base_commit": "f327cd9bf5cb35313486c5358f46a4ca4c0f63db",
-  "status": "protected-signal-store-checks-pass-optimized-socket-regression-pending",
+  "status": "protected-signal-store-checks-pass-socket-preflight-investigation",
   "full_task_complete": false,
   "full_goal_complete": false,
   "prepared_patch_count": 184,
@@ -101,7 +101,8 @@
           "log": ".local/gate-6/received-dtmf-runtime/private-signal115-store-001/group-5.log",
           "log_sha256": "e469b3948b319947bbd4fe333bcb04371be63be1a42df466e3800117e262211a"
         }
-      ]
+      ],
+      "scope_note": "Verified protected-signal implementation before subsequent uncommitted diagnostic-only error context/log changes. No claim of current socket qualification."
     },
     "service_compile": {
       "passed": true,
@@ -117,14 +118,30 @@
       "log_sha256": "fd9d7b181e3ccba9b643af55a186cf132c60aac99c734b2ee4e4e549afe5ffc2"
     },
     "optimized_sip_primary_socket_regression": {
-      "status": "in-progress",
-      "summary": ".local/gate-6/private-sip-primary/signal115-optimized-002/summary.json",
-      "session": 17954,
-      "qualification": false
+      "status": "failed-investigating",
+      "qualification": false,
+      "summaries": [
+        ".local/gate-6/private-sip-primary/signal115-optimized-002/summary.json",
+        ".local/gate-6/private-sip-primary/signal115-optimized-004/summary.json"
+      ]
     },
     "schema": {
       "status": "not-rerun",
       "reason": "No schema or migration change; prior schema109 checks are not counted again."
+    },
+    "diagnostic_initial_sip_primary": {
+      "scope": "Diagnostic evidence only, not repeatable whole-profile qualification. Original optimized binary, one test method containing both algorithms. Source/binary remained the prior frozen5847603e period; no separate pre-run guard for this ad-hoc invocation is claimed.",
+      "validation": {
+        "passed": true,
+        "scenes": 2,
+        "actual_frames": 12,
+        "source_kind": "initial-sip",
+        "observations_sha256": "76303d685a85edf5df616cd68d012146c06f99538a8e6250f71223e63e0d3253",
+        "schema_sha256": "8d3d5a1098c8eebafe30960b8b35d83e11f9c8ac09453ab7e528251368d11c32",
+        "scope": "Actual isolated local selected SIP-primary state, shape and correlations; SDK verifies signatures and runtime asserts decoded media/privacy, actual DTMF and independent signal-rights withdrawal/recovery/replay, original return/replay and cleanup. Other roles/profiles remain separate."
+      },
+      "log": ".local/gate-6/received-dtmf-runtime/private-signal115-optimized-debug-003.log",
+      "log_sha256": "34188a8c147ac26392406fb5eb11cfe6dce480868891b41f8ee467f1c797157b"
     }
   },
   "failed_attempts": [
@@ -145,10 +162,26 @@
       "log": ".local/gate-6/private-sip-primary/signal115-debug-002/runtime.log",
       "log_sha256": "82eb9310ac4247d257be7a88316370b4615973f3c559da0770279b1ccb1c7f49",
       "reason": "Diagnostic debug rerun progressed to private audio but observed9 marked frames where existing fixture requires more than10. No threshold or timeout was weakened; optimized results remain pending."
+    },
+    {
+      "summary": ".local/gate-6/private-sip-primary/signal115-optimized-002/summary.json",
+      "summary_sha256": "a7cc3e578cdf5543ef29b84b22eb6fe63e638f02c5d2cf93ea9968c046cd8204",
+      "passed": false,
+      "source_inputs_unchanged": true,
+      "executable_unchanged": true,
+      "reason": "Original optimized thresholds preserved. Consultations intermittently remain Accepted or stop at unsubmitted preflight; trace identifies native_consultation_attempt_read forbidden before Core IO. This is unresolved, not a passing socket profile."
+    },
+    {
+      "summary": ".local/gate-6/private-sip-primary/signal115-optimized-004/summary.json",
+      "summary_sha256": "a0c1b4d2e6e6e73110816fe1d54650662b03b8c1ceebf5d20f6d2f6db8314933",
+      "passed": false,
+      "source_inputs_unchanged": true,
+      "executable_unchanged": true,
+      "reason": "Original optimized thresholds preserved. Consultations intermittently remain Accepted or stop at unsubmitted preflight; trace identifies native_consultation_attempt_read forbidden before Core IO. This is unresolved, not a passing socket profile."
     }
   ],
   "remaining": [
-    "Finish optimized initial/established SIP-primary socket regression and investigate any current failure.",
+    "Resolve intermittent original SIP-primary preflight read refusal and qualify current initial/established socket profiles with unchanged assertions.",
     "Install private SIP-candidate packet/control/lifecycle contexts and original host handoff, runtime selection and preservation of unrelated private SIP groups.",
     "Qualify actual private SIP-candidate media/INFO/RFC4733/return/withdrawal/recovery for both algorithms and the complete current G6-046 matrix.",
     "G6-046 and u6-req-0112/u6-req-0113 remain open. Linux/remote/provider and independent conformance remain assigned separately; publication remains separate."
