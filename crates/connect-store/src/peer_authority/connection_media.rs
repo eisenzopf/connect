@@ -159,6 +159,7 @@ impl NativeSignalRead {
 enum ReadPurpose {
     Media,
     Signal,
+    Presence,
 }
 fn subscription_permission(c: &Connection, target: &NativeMediaOrigin) -> Result<bool> {
     let credential = target
@@ -204,7 +205,7 @@ fn facts_for(
     if let Some(life) = handoff_lifetime::current(store, c, origin)? {
         let (mut view, mut scopes, expiry) = match purpose {
             ReadPurpose::Media => returns::handoff_facts(store, c, origin)?,
-            ReadPurpose::Signal => returns::signal_facts(store, c, origin)?,
+            ReadPurpose::Signal | ReadPurpose::Presence => returns::signal_facts(store, c, origin)?,
         };
         if let Some(role) = life.role {
             view.presence_role = role;
@@ -225,6 +226,7 @@ fn facts_for(
     let private_purpose = match purpose {
         ReadPurpose::Media => crate::connection_control::private_consultation::Purpose::Media,
         ReadPurpose::Signal => crate::connection_control::private_consultation::Purpose::Signal,
+        ReadPurpose::Presence => crate::connection_control::private_consultation::Purpose::Presence,
     };
     let context = crate::connection_control::private_consultation::current_for(
         store,
@@ -251,7 +253,7 @@ fn facts_for(
     if key.public_key != origin.public_key {
         return Err(Error::forbidden());
     }
-    if matches!(purpose, ReadPurpose::Signal) {
+    if matches!(purpose, ReadPurpose::Signal | ReadPurpose::Presence) {
         crate::audience::require_original(
             c,
             &meta.actor,
@@ -606,7 +608,7 @@ impl Store {
             &snapshot::metadata(origin)?.lifetime,
             None,
             |c| {
-                let (_, scopes, expiry) = facts_for(self, c, origin, ReadPurpose::Signal)?;
+                let (_, scopes, expiry) = facts_for(self, c, origin, ReadPurpose::Presence)?;
                 Ok((expiry, scopes))
             },
             |_| Ok(()),
