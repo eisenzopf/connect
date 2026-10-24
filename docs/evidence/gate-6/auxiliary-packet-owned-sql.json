@@ -1,0 +1,77 @@
+{
+  "scope": "Local macOS arm64 Store component only.71distinct methods pass;2top-level subprocess helpers remain explicit skips and are not counted. Exact optimized host build is active; no current-runtime capacity pass follows. Source179/schema103 unchanged;45/105 andG6-04658/61 unchanged.",
+  "changes": [
+    "When the exact complete file interval is already owned, capture and seal current SQL facts under one short SQL mutex interval. Pure namespace/scope checks perform no file admission or IO.",
+    "Fresh file admission still releases SQL before all file opens/hashing/try-locks and reacquires SQL afterward. Both paths share the same exact connection/data/schema/change/clock version seal.",
+    "External and own-connection commits still refuse; clock edges rederive under the same owned interval; current complete scope coverage is checked again. No foreign/partial fallback, queued reader, permission reuse or expiry extension."
+  ],
+  "verification": {
+    "distinct_methods_passed": 71,
+    "snapshot_methods": 14,
+    "new_methods": 2,
+    "native_authority_methods": 18,
+    "fence_methods_passed": 33,
+    "ownership_methods_passed": 6,
+    "runs": [
+      {
+        "log": ".local/gate-6/received-dtmf-runtime/owned-sql179-tests-final.log",
+        "sha256": "5d6a1637184be870d770f9fc74e96c929569cc1fe6550b7324168e026381a61c",
+        "summary": "test result: ok. 14 passed; 0 failed; 0 ignored; 0 measured; 1049 filtered out; finished in 4.43s",
+        "ignored_entries": []
+      },
+      {
+        "log": ".local/gate-6/received-dtmf-runtime/owned-sql179-native.log",
+        "sha256": "4525b182c08724b7027bf580ab2867168a7b820818ee3b14236b0c40d6178e2b",
+        "summary": "test result: ok. 18 passed; 0 failed; 0 ignored; 0 measured; 1045 filtered out; finished in 15.99s",
+        "ignored_entries": []
+      },
+      {
+        "log": ".local/gate-6/received-dtmf-runtime/owned-sql179-fences.log",
+        "sha256": "f1d4b77c9cd25fbd1af3de7519daf4663609202a7e269a8840949c53466efd75",
+        "summary": "test result: ok. 33 passed; 0 failed; 1 ignored; 0 measured; 1029 filtered out; finished in 22.04s",
+        "ignored_entries": [
+          "authority_fences::tests::process_worker"
+        ]
+      },
+      {
+        "log": ".local/gate-6/received-dtmf-runtime/owned-sql179-ownership.log",
+        "sha256": "a5718d54b21532260c21cbfa0f9fc9ce509f783833d9492dd503450b1b308cc1",
+        "summary": "test result: ok. 6 passed; 0 failed; 1 ignored; 0 measured; 1056 filtered out; finished in 2.70s",
+        "ignored_entries": [
+          "installation_ownership::tests::process_worker"
+        ]
+      }
+    ],
+    "source_sha256": {
+      "crates/connect-store/src/peer_authority/connection_media/snapshot.rs": "a4c09348882629adecb5e49e508c9ea55f663bcca313e33d04c90703fc3e5b74",
+      "crates/connect-store/src/peer_authority/connection_media/snapshot/tests/owned.rs": "dfb67ab6b1eb3353dc67e93b2cfba928eea8af879d9b747f0f4a7ae89113c1e5"
+    }
+  },
+  "source179_diagnostic": {
+    "scope": "Separate exact optimized trace/sample after full50steady4..13 failure. Post-subscription48/49 window; instrumentation changes timing, no capacity credit.",
+    "publisher0": {
+      "fresh_ok": 792,
+      "fresh_busy": 15096,
+      "owned_ok": 698,
+      "owned_busy": 3336
+    },
+    "failure_details": {
+      "SQL_mutex_busy": 11818,
+      "file_authority_busy": 7787,
+      "state_changed_during_admission": 2
+    },
+    "median_success_us": {
+      "fresh_publish": 1690.5,
+      "owned_publish": 41
+    },
+    "artifacts_sha256": {
+      ".local/gate-6/received-dtmf-runtime/admission179-release-profile-inputs.json": "278775d8415f1dfe8a7f8a7a92126ac1ae108e3abdb5a0263621e7f881b0c196",
+      ".local/gate-6/received-dtmf-runtime/admission179-release-profile-analysis.json": "c3d81780b2202ce5d8ecbe6e6d8b46b72d21207950d8f8e642dd8abf8ad40941",
+      ".local/gate-6/received-dtmf-runtime/admission179-release-profile-sample.txt": "65a2f11f450e36bc80e0f77b41dc6bda4c52f1d76bb4714dea15a6aab10534b8"
+    }
+  },
+  "remaining": [
+    "Finish the exact optimized host build with this Store implementation and execute the unchanged two-algorithm fifty-peer full lifecycle plus current-authority production regressions.",
+    "Keep every earlier failed default/optimized attempt and original50/49/8s/200ms/>10 bounds.0112/0113/0123 and later profiles/acceptance/publication stay open."
+  ]
+}

@@ -126,33 +126,30 @@ fn cached_with<T: Clone>(
     finish: impl FnOnce(&Connection) -> Result<()>,
 ) -> Result<(T, Arc<AuthorityGuardSet>)> {
     let mut captured = None;
-    let result = acquire_with(
-        store,
-        |c, version| {
-            if let Ok(entry) = memo.0.try_lock() {
-                if let Some(entry) = entry
-                    .as_ref()
-                    .filter(|entry| entry.matches(version, source))
-                {
-                    return Ok((entry.facts.clone(), entry.scopes.clone()));
-                }
+    let mut capture = |c: &Connection, version: Version| {
+        if let Ok(entry) = memo.0.try_lock() {
+            if let Some(entry) = entry
+                .as_ref()
+                .filter(|entry| entry.matches(version, source))
+            {
+                return Ok((entry.facts.clone(), entry.scopes.clone()));
             }
-            let (facts, scopes) = derive(c)?;
-            captured = Some(Entry {
-                version,
-                source: source.map(Arc::downgrade),
-                facts: facts.clone(),
-                scopes: scopes.clone(),
-            });
-            Ok((facts, scopes))
-        },
-        finish,
-        |scopes| match held {
-            Some(held) if store.authority_covers(held, scopes) => Ok(held.clone()),
-            Some(_) => Err(Error::forbidden()),
-            None => store.try_acquire_authority(scopes),
-        },
-    )?;
+        }
+        let (facts, scopes) = derive(c)?;
+        captured = Some(Entry {
+            version,
+            source: source.map(Arc::downgrade),
+            facts: facts.clone(),
+            scopes: scopes.clone(),
+        });
+        Ok((facts, scopes))
+    };
+    let result = match held {
+        Some(held) => acquire_under(store, &mut capture, finish, held),
+        None => acquire_with(store, &mut capture, finish, |scopes| {
+            store.try_acquire_authority(scopes)
+        }),
+    }?;
     // Publish only a fully admitted unchanged capture. Neither cache lock nor
     // SQL is retained by the caller's owned fresh authority guard.
     if let Some(entry) = captured {
@@ -191,7 +188,7 @@ fn acquire_with<T>(
     finish: impl FnOnce(&Connection) -> Result<()>,
     admit: impl FnOnce(&[AuthorityScope]) -> Result<Arc<AuthorityGuardSet>>,
 ) -> Result<(T, Arc<AuthorityGuardSet>)> {
-    let (before, mut facts, mut scopes) = {
+    let (before, facts, scopes) = {
         let c = store.try_connection()?;
         let before = version(&c)?;
         let (facts, scopes) = derive(&c, before)?;
@@ -201,7 +198,47 @@ fn acquire_with<T>(
     // SQL. This remains immediate fresh admission, with every original scope.
     let held = admit(&scopes)?;
     let c = store.try_connection()?;
-    let after = version(&c)?;
+    seal(store, &c, before, facts, scopes, held, &mut derive, finish)
+}
+
+// The complete file interval is already owned. Coverage checks perform no file
+// admission or IO, so retain one short SQL interval through capture and sealing.
+// External commits and clock edges still require the same exact version checks.
+fn acquire_under<T>(
+    store: &Store,
+    mut derive: impl FnMut(&Connection, Version) -> Result<(T, Vec<AuthorityScope>)>,
+    finish: impl FnOnce(&Connection) -> Result<()>,
+    held: &Arc<AuthorityGuardSet>,
+) -> Result<(T, Arc<AuthorityGuardSet>)> {
+    let c = store.try_connection()?;
+    let before = version(&c)?;
+    let (facts, scopes) = derive(&c, before)?;
+    if !store.authority_covers(held, &scopes) {
+        return Err(Error::forbidden());
+    }
+    seal(
+        store,
+        &c,
+        before,
+        facts,
+        scopes,
+        held.clone(),
+        &mut derive,
+        finish,
+    )
+}
+
+fn seal<T>(
+    store: &Store,
+    c: &Connection,
+    before: Version,
+    mut facts: T,
+    mut scopes: Vec<AuthorityScope>,
+    held: Arc<AuthorityGuardSet>,
+    derive: &mut impl FnMut(&Connection, Version) -> Result<(T, Vec<AuthorityScope>)>,
+    finish: impl FnOnce(&Connection) -> Result<()>,
+) -> Result<(T, Arc<AuthorityGuardSet>)> {
+    let after = version(c)?;
     if (Version {
         second: before.second,
         ..after
@@ -215,8 +252,8 @@ fn acquire_with<T>(
     if after.second != before.second {
         // Revalidate a clock edge under this already-owned reader. No second
         // file admission behind a queued writer and no original expiry extension.
-        (facts, scopes) = derive(&c, after)?;
-        if version(&c)? != after {
+        (facts, scopes) = derive(c, after)?;
+        if version(c)? != after {
             return Err(Error::new(
                 "authority-busy",
                 "Current packet state changed during clock revalidation",
@@ -226,7 +263,7 @@ fn acquire_with<T>(
     if !store.authority_covers(&held, &scopes) {
         return Err(Error::forbidden());
     }
-    finish(&c)?;
+    finish(c)?;
     Ok((facts, held))
 }
 

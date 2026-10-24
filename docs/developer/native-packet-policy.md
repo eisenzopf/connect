@@ -97,3 +97,15 @@ a longer-lived refreshed credential cannot extend an older retained interval.
 The [owned expiry report](../evidence/gate-6/auxiliary-packet-owned-expiry.json)
 records controlled pending-IO, no-poll, release and decoded-recovery evidence
 separately from the current host and capacity checks.
+
+
+An already-owned complete file interval needs no file admission between SQL
+capture and sealing. That path retains one short SQL mutex interval while it
+checks current facts, exact SQL/clock stamps and complete scope coverage. It
+releases SQL before returning to IO. Fresh file admission retains the separate
+capture/release/admit/reacquire/seal path, so file work never runs with SQL held.
+External commits can still happen despite a process-local SQL mutex; they must
+continue to fail the version seal. The
+[owned SQL report](../evidence/gate-6/auxiliary-packet-owned-sql.json) records
+mutation, queued-writer, clock-change and release evidence separately from the
+remaining actual capacity checks.
