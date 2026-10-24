@@ -443,6 +443,10 @@ async fn initial_selected_signal_case(
         live: true,
     }];
     sip_native_duplex(&peer, &mut native, 0, "initial-public-native-duplex").await;
+    if signal == Some("received-retained") {
+        received::retained::exercise(f, peer, native, &room.id, algorithm).await;
+        return;
+    }
     if signal == Some("received-private") {
         received::privacy::exercise(f, peer, native, &room.id, algorithm).await;
         return;

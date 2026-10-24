@@ -17,7 +17,7 @@ async fn production_initial_sip_received_respects_private_physical_audience_and_
         .await;
     }
 }
-fn signal_scope() -> Scope {
+pub(super) fn signal_scope() -> Scope {
     let mut scope = Scope::collaboration(vec!["*".into()]);
     scope.operations.extend([
         "stream.subscribe".into(),
@@ -28,7 +28,7 @@ fn signal_scope() -> Scope {
     ]);
     scope
 }
-async fn signal(client: &mut CanonicalClient) -> Option<Envelope> {
+pub(super) async fn signal(client: &mut CanonicalClient) -> Option<Envelope> {
     for _ in 0..256 {
         let Ok(frame) = client.receive().await else {
             return None;
@@ -39,7 +39,7 @@ async fn signal(client: &mut CanonicalClient) -> Option<Envelope> {
     }
     panic!("private received signal missing behind lifecycle frames")
 }
-async fn settled(http: &mut CanonicalHttpClient, operation: &str, cid: &str) -> Value {
+pub(super) async fn settled(http: &mut CanonicalHttpClient, operation: &str, cid: &str) -> Value {
     let deadline = tokio::time::Instant::now() + Duration::from_secs(4);
     loop {
         let row = http
@@ -69,7 +69,7 @@ async fn settled(http: &mut CanonicalHttpClient, operation: &str, cid: &str) -> 
         tokio::time::sleep(Duration::from_millis(10)).await;
     }
 }
-fn summary(row: &Value) -> &Value {
+pub(super) fn summary(row: &Value) -> &Value {
     if row["result"].is_null() {
         &row["problem"]["signal"]
     } else {

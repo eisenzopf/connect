@@ -318,6 +318,27 @@ async fn begin(
     remote: usize,
     candidate: usize,
 ) -> Group {
+    let retained = peers[remote].id.clone();
+    let (command, key, record) =
+        begin_request(f, peers, cid, name, primary, &retained, candidate).await;
+    Group {
+        command,
+        key,
+        record,
+        primary,
+        remote,
+        candidate,
+    }
+}
+async fn begin_request(
+    f: &Fixture,
+    peers: &mut [Peer],
+    cid: &str,
+    name: &str,
+    primary: usize,
+    retained: &str,
+    candidate: usize,
+) -> (TransitionCommand, connect_store::IssuedCredential, String) {
     let mut grant = Scope::collaboration(vec!["*".into()]);
     grant.operations.extend([
         "session.consult".into(),
@@ -343,7 +364,7 @@ async fn begin(
         connection_id: Some(peers[primary].id.clone()),
         expected_revision: revision(f),
         intent: TransitionIntent::Consult {
-            retained_connid: peers[remote].id.clone(),
+            retained_connid: retained.into(),
             private_participants: vec![
                 peers[primary].participant.clone(),
                 peers[candidate].participant.clone(),
@@ -395,14 +416,7 @@ async fn begin(
     peers[candidate].handle = handle(&answer);
     controller.transition(command.clone()).await.unwrap();
     wait_state(f, &key.id, &command.operation_id, false).await;
-    Group {
-        command,
-        key,
-        record: origin.record_id().into(),
-        primary,
-        remote,
-        candidate,
-    }
+    (command, key, origin.record_id().into())
 }
 async fn restore(f: &Fixture, peers: &mut [Peer], cid: &str, group: &Group) {
     let mut cfg = canonical_http_config(f);

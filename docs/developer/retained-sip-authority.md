@@ -20,7 +20,26 @@ and activation. Historical departure proves only exact recorded absence, and
 cannot authorize a new call or restore a different generation.
 
 The [component report](../evidence/gate-6/auxiliary-retained-sip-authority.json)
-records167 distinct controlled Store cases and the service compile check, plus
+records 167 distinct controlled Store cases and the service compile check, plus
 failed intermediate attempts and remaining actual-wire work. These checks do not
 close either DTMF clause. The existing transition wire contract and
 [canonical HTTP reference](../../contracts/openapi-canonical-http.json) are unchanged.
+
+The initial retained-call fixture is
+`production_initial_sip_retained_consultation_fences_dtmf_and_restores_original_call`
+in the `gate6_canonical_runtime` server test target. It uses actual local SIP
+signaling/RTP and signed native clients for both EdDSA and ES256. Its assertions
+cover private audio exclusion, held SIP input settlement, private native DTMF,
+return/replay, fresh RFC4733 delivery and shutdown of the original call. Adding or
+compiling the fixture does not qualify these behaviors. The
+[fixture checkpoint](../evidence/gate-6/auxiliary-retained-sip-wire.json) records
+its current verification state.
+
+Set `CONNECT_RETAINED_SIP_OBSERVATIONS` to a fresh absolute JSONL path physically
+under this checkout's ignored `.local/gate-6/` directory to capture the actual
+SDK-observed frames and operation summaries. Validate a completed capture with
+`python3 scripts/validate-gate6-retained-sip.py <observations.jsonl>` in an
+environment containing `jsonschema`. The validator checks wire/status schemas and
+correlations; the SDK verifies signatures and the runtime fixture checks decoded
+media, exclusion, replay and cleanup. This profile does not cover committed SIP
+retained calls, private SIP endpoints, external carriers or other hosting profiles.
