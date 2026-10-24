@@ -66,11 +66,11 @@ pub use transitions::{
     NativeReplacementPreparationLease, NativeReplacementPrepared, NativeReplacementSceneRead,
     NativeReplacementStartAttempt, NativeReplacementStartRead, NativeReplacementStartUncertain,
     NativeReplacementStarted, NativeStreamCommitted, NativeStreamLease, NativeStreamNoEffect,
-    ReceivedDtmfBatch, ReceivedDtmfPreparation, ReceivedDtmfRead, ReceivedDtmfTarget,
-    ReplacementConfirmation, ReplacementPreparationRequest, SessionCodecTarget,
-    SipNativeSignalRead, SipSignalOrigin, SipSignalRead, TelephoneAudioResources,
-    TelephoneConnectionRuntimeObservation, TelephoneConnectionSnapshot, TelephoneMediaOrigin,
-    TelephoneMediaRead, TelephoneNativeMediaRead, TelephoneNativeSignalRead,
+    PrivateInitialTelephoneRuntimeObservation, ReceivedDtmfBatch, ReceivedDtmfPreparation,
+    ReceivedDtmfRead, ReceivedDtmfTarget, ReplacementConfirmation, ReplacementPreparationRequest,
+    SessionCodecTarget, SipNativeSignalRead, SipSignalOrigin, SipSignalRead,
+    TelephoneAudioResources, TelephoneConnectionRuntimeObservation, TelephoneConnectionSnapshot,
+    TelephoneMediaOrigin, TelephoneMediaRead, TelephoneNativeMediaRead, TelephoneNativeSignalRead,
     TelephoneReplacementAllocated, TelephoneReplacementAttempt,
     TelephoneReplacementAudienceCapture, TelephoneReplacementCommitAttempt,
     TelephoneReplacementCommitUncertain, TelephoneReplacementCommitted,
@@ -182,7 +182,7 @@ pub use tasks::{
     IssuedTaskGrant, NativeTaskAuthority, TaskCreateDefaults, TaskInvocation,
     TaskObservationBinding, VapiSessionContext,
 };
-pub const SCHEMA_VERSION: u32 = 106;
+pub const SCHEMA_VERSION: u32 = 107;
 const STARTUP_BLOB_CLEANUP_LIMIT: usize = 100;
 
 mod session_gateways;
@@ -517,6 +517,10 @@ impl Store {
         .map_err(|_| Error::storage())?;
         tx.execute_batch(include_str!(
             "../migrations/106_private_telephone_acceptance.sql"
+        ))
+        .map_err(|_| Error::storage())?;
+        tx.execute_batch(include_str!(
+            "../migrations/107_private_telephone_readiness.sql"
         ))
         .map_err(|_| Error::storage())?;
         tx.commit().map_err(|_| Error::storage())?;

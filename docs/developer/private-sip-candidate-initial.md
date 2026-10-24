@@ -48,6 +48,11 @@ The [Core private outbound path](private-sip-candidate-core.md) now supplies the
 engine admission API. Installing it with guarded private readiness is the next host boundary;
 this refusal is not a completed private-call implementation.
 
+The separate [Store admission/readiness boundary](private-sip-candidate-readiness.md)
+now checks that original consent and captures only a quarantined private
+connected fact. It does not enter public Session readiness or reconnect
+coverage. The coordinator/host must still install its actual Core call path.
+
 The [component report](../evidence/gate-6/auxiliary-private-sip-candidate-initial.json)
 records controlled Store behavior and current compilation/integration checks.
 Actual muted Core admission, typed SIP-candidate media/DTMF selection, return and

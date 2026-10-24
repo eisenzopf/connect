@@ -1,5 +1,6 @@
 //! Real answer facts, own-identity acceptance and fresh guarded media facts.
 use super::*;
+mod private_admission;
 mod private_answer;
 mod routing;
 use serde_json::{json, Value};
@@ -43,6 +44,7 @@ pub struct InitialTelephoneMediaRead {
     conversation_revision: u64,
     expires: i64,
     connected: bool,
+    private_admission: bool,
 }
 struct InitialTelephoneProjection {
     endpoint_actor: Actor,
@@ -59,6 +61,7 @@ struct InitialTelephoneProjection {
 enum ProjectionPurpose {
     Media,
     Signal,
+    PrivateAdmission,
 }
 media_redacted!(
     InitialTelephoneAnswerCapture,
@@ -152,6 +155,9 @@ impl InitialTelephoneMediaRead {
     }
     pub fn is_connected(&self) -> bool {
         self.connected
+    }
+    pub fn is_private_admission(&self) -> bool {
+        self.private_admission
     }
     pub fn may_receive(&self) -> bool {
         self.endpoint_actor.permits("stream.subscribe")
@@ -379,6 +385,26 @@ impl Store {
         let c = self.try_connection()?;
         self.initial_telephone_media_in(&c, origin, held, crate::now() + 30)
     }
+    /// Only the original candidate's bounded, quarantined admission phase.
+    /// Established private routing uses its separately sealed scene authority.
+    pub fn try_private_initial_telephone_admission_read(
+        &self,
+        origin: Arc<InitialTelephoneMediaOrigin>,
+    ) -> Result<InitialTelephoneMediaRead> {
+        let required = {
+            let c = self.try_connection()?;
+            private_admission::scopes(self, &c, &origin)?
+        };
+        let held = self.try_acquire_authority(&required)?;
+        let c = self.try_connection()?;
+        self.initial_telephone_read_with_purpose(
+            &c,
+            origin,
+            held,
+            crate::now() + 30,
+            ProjectionPurpose::PrivateAdmission,
+        )
+    }
     /// Current metadata for an unchanged initial SIP outsider in a native
     /// audience transaction. It grants no private receipt or native identity.
     pub(crate) fn initial_telephone_audience_facts(
@@ -446,15 +472,33 @@ impl Store {
         interval: Arc<AuthorityGuardSet>,
         until: i64,
     ) -> Result<InitialTelephoneMediaRead> {
-        if !self.authority_covers(
-            &interval,
-            &current_scopes(c, origin.signal.origin(), false)?,
-        ) {
+        self.initial_telephone_read_with_purpose(
+            c,
+            origin,
+            interval,
+            until,
+            ProjectionPurpose::Media,
+        )
+    }
+    fn initial_telephone_read_with_purpose(
+        &self,
+        c: &Connection,
+        origin: Arc<InitialTelephoneMediaOrigin>,
+        interval: Arc<AuthorityGuardSet>,
+        until: i64,
+        purpose: ProjectionPurpose,
+    ) -> Result<InitialTelephoneMediaRead> {
+        let scopes = if matches!(purpose, ProjectionPurpose::PrivateAdmission) {
+            private_admission::scopes(self, c, &origin)?
+        } else {
+            current_scopes(c, origin.signal.origin(), false)?
+        };
+        if !self.authority_covers(&interval, &scopes) {
             return Err(Error::forbidden());
         }
-        let p = self.initial_telephone_projection(c, &origin, until, ProjectionPurpose::Media)?;
+        let p = self.initial_telephone_projection(c, &origin, until, purpose)?;
         let owner = self.require_runtime_owner()?;
-        if p.connected {
+        if p.connected && !matches!(purpose, ProjectionPurpose::PrivateAdmission) {
             self.remember_session_ready(
                 c,
                 crate::session_lifecycle::ReadyOrigin::InitialTelephone(origin.clone()),
@@ -473,6 +517,7 @@ impl Store {
             conversation_revision: p.conversation_revision,
             expires: p.expires,
             connected: p.connected,
+            private_admission: matches!(purpose, ProjectionPurpose::PrivateAdmission),
         })
     }
     fn initial_telephone_projection(
@@ -485,6 +530,9 @@ impl Store {
         historical_lifetime(self, c, &origin.signal)?;
         let original = origin.signal.origin();
         let s = &original.source;
+        if matches!(purpose, ProjectionPurpose::PrivateAdmission) {
+            return private_admission::projection(self, c, origin, until);
+        }
         if s.is_private_candidate() {
             return Err(Error::forbidden());
         }
@@ -627,6 +675,12 @@ pub struct InitialTelephoneReadyObservation {
 pub trait InitialTelephoneRuntimeObservation: Send + Sync {
     fn observe(&self) -> Result<InitialTelephoneReadyObservation>;
 }
+/// Installed service composition only: attest actual private Core admission,
+/// committed guarded ports and the original muted controller at revision two.
+/// This observation supplies no continuing private-scene authority.
+pub trait PrivateInitialTelephoneRuntimeObservation: Send + Sync {
+    fn observe_private(&self) -> Result<InitialTelephoneReadyObservation>;
+}
 media_redacted!(InitialTelephoneReadyObservation);
 impl Store {
     pub fn record_initial_telephone_connected(
@@ -634,7 +688,32 @@ impl Store {
         origin: Arc<InitialTelephoneMediaOrigin>,
         observation: &dyn InitialTelephoneRuntimeObservation,
     ) -> Result<OperationRecord> {
-        let value = observation.observe()?;
+        if origin.source().is_private_candidate() {
+            return Err(Error::forbidden());
+        }
+        self.record_initial_telephone_connected_inner(origin, &|| observation.observe(), false)
+    }
+    pub fn record_private_initial_telephone_connected(
+        &self,
+        origin: Arc<InitialTelephoneMediaOrigin>,
+        observation: &dyn PrivateInitialTelephoneRuntimeObservation,
+    ) -> Result<OperationRecord> {
+        if !origin.source().is_private_candidate() {
+            return Err(Error::forbidden());
+        }
+        self.record_initial_telephone_connected_inner(
+            origin,
+            &|| observation.observe_private(),
+            true,
+        )
+    }
+    fn record_initial_telephone_connected_inner(
+        &self,
+        origin: Arc<InitialTelephoneMediaOrigin>,
+        observe: &dyn Fn() -> Result<InitialTelephoneReadyObservation>,
+        private: bool,
+    ) -> Result<OperationRecord> {
+        let value = observe()?;
         let original = origin.signal.origin();
         let s = origin.source();
         if value.runtime_connection_id != origin.runtime_connection_id()
@@ -645,6 +724,7 @@ impl Store {
             || value.stream_revision == 0
             || value.participant_revision == 0
             || value.streams.len() != 1
+            || (private && (value.stream_revision != 2 || value.streams != ["telephone-audio"]))
         {
             return Err(Error::forbidden());
         }
@@ -664,9 +744,24 @@ impl Store {
             .transaction_with_behavior(TransactionBehavior::Immediate)
             .map_err(|_| Error::storage())?;
         let row = historical(self, &tx, &origin.signal)?;
-        let read =
-            self.initial_telephone_media_in(&tx, origin.clone(), held.clone(), crate::now() + 30)?;
-        let details = json!({"connection_id":original.connection,"participant_id":value.participant_id,"membership_epoch":value.membership_epoch,"generation":value.generation,"endpoint_id":s.endpoint_id,"device_id":s.device_id,"stream_revision":value.stream_revision,"participant_revision":value.participant_revision,"streams":value.streams,"codec":origin.codec});
+        let read = self.initial_telephone_read_with_purpose(
+            &tx,
+            origin.clone(),
+            held.clone(),
+            crate::now() + 30,
+            if private {
+                ProjectionPurpose::PrivateAdmission
+            } else {
+                ProjectionPurpose::Media
+            },
+        )?;
+        let mut details = json!({"connection_id":original.connection,"participant_id":value.participant_id,"membership_epoch":value.membership_epoch,"generation":value.generation,"endpoint_id":s.endpoint_id,"device_id":s.device_id,"stream_revision":value.stream_revision,"participant_revision":value.participant_revision,"streams":value.streams,"codec":origin.codec});
+        if private {
+            details["private_audio"] = json!(true);
+            details["private_consultation_record_id"] = json!(s.parent.record_id());
+            details["runtime_connection_id"] = json!(value.runtime_connection_id);
+            details["call_id"] = json!(value.call_id);
+        }
         let encoded = crate::provisioning::canonical_json(&details)?;
         if row.record.state == OperationState::Completed {
             let old:String=tx.query_row("SELECT connected_json FROM initial_telephone_answers WHERE operation_record_id=?1",[origin.record_id()],|r|r.get(0)).map_err(|_|Error::storage())?;
@@ -700,26 +795,28 @@ impl Store {
             current = rows::by_record(&tx, origin.record_id())?;
         }
         emit_connection(&tx, self, &origin, "connection_ready")?;
-        if observation.observe()? != value {
+        if observe()? != value {
             return Err(Error::forbidden());
         }
-        self.remember_session_ready(
-            &tx,
-            crate::session_lifecycle::ReadyOrigin::InitialTelephone(origin.clone()),
-        )?;
-        crate::session_lifecycle::activate(&tx, self, &s.conversation_id, &s.session_id)?;
-        let ready = self.initial_telephone_session_readiness(&tx, &origin)?;
-        crate::session_participant_lifecycle::observed_join(
-            &tx,
-            self,
-            &s.conversation_id,
-            &s.session_id,
-            &s.target.participant_id,
-            s.target.membership_epoch,
-            origin.connection_id(),
-            ready.observed_at_millis,
-        )?;
-        crate::session_reconnect::connected(&tx, &s.session_id)?;
+        if !private {
+            self.remember_session_ready(
+                &tx,
+                crate::session_lifecycle::ReadyOrigin::InitialTelephone(origin.clone()),
+            )?;
+            crate::session_lifecycle::activate(&tx, self, &s.conversation_id, &s.session_id)?;
+            let ready = self.initial_telephone_session_readiness(&tx, &origin)?;
+            crate::session_participant_lifecycle::observed_join(
+                &tx,
+                self,
+                &s.conversation_id,
+                &s.session_id,
+                &s.target.participant_id,
+                s.target.membership_epoch,
+                origin.connection_id(),
+                ready.observed_at_millis,
+            )?;
+            crate::session_reconnect::connected(&tx, &s.session_id)?;
+        }
         super::super::workers::invalidate(&tx, origin.record_id())?;
         let result = rows::by_record(&tx, origin.record_id())?.record;
         tx.commit().map_err(|_| Error::storage())?;
@@ -735,12 +832,16 @@ fn emit_connection(
     let original = origin.signal.origin();
     let s = origin.source();
     let value=c.query_row("SELECT n.id,n.session_id,n.participant_id,n.membership_epoch,n.endpoint_id,e.device_id,n.generation,n.revision,n.state,n.replaces FROM connections n JOIN endpoints e ON e.id=n.endpoint_id WHERE n.id=?1",[&original.connection],|r|Ok(connect_protocol::events::ConnectionState{connection_id:r.get(0)?,session_id:r.get(1)?,participant_id:r.get(2)?,membership_epoch:r.get(3)?,endpoint_id:r.get(4)?,device_id:r.get(5)?,generation:r.get(6)?,revision:r.get(7)?,state:r.get(8)?,replaces:r.get(9)?})).map_err(|_|Error::storage())?;
-    let recipients = crate::audience::source_members(
-        c,
-        &s.conversation_id,
-        connect_protocol::membership::ContentKind::Session,
-        &s.session_id,
-    )?;
+    let recipients = if s.is_private_candidate() {
+        s.audience.iter().map(|m| m.identity_id.clone()).collect()
+    } else {
+        crate::audience::source_members(
+            c,
+            &s.conversation_id,
+            connect_protocol::membership::ContentKind::Session,
+            &s.session_id,
+        )?
+    };
     if !crate::conversations::capacity(c, recipients.len() as u64, 0, store)? {
         return Err(Error::new(
             "capacity-exceeded",

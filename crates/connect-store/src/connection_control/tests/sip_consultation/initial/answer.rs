@@ -319,7 +319,7 @@ fn private_answer_backup_preserves_consent_detects_its_tampering_and_fences_old_
         .is_some());
     let backup = f._dir.path().join("private-consent-backup.sqlite3");
     let expected = f.store.backup(&backup).unwrap();
-    assert_eq!(expected.schema, 106);
+    assert_eq!(expected.schema, crate::SCHEMA_VERSION);
     assert_eq!(Store::inspect_snapshot(&backup).unwrap(), expected);
     let tampered = f._dir.path().join("private-consent-tampered.sqlite3");
     std::fs::copy(&backup, &tampered).unwrap();

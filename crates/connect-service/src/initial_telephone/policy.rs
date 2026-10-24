@@ -535,9 +535,26 @@ pub(crate) struct Ready {
 }
 impl connect_store::InitialTelephoneRuntimeObservation for Ready {
     fn observe(&self) -> connect_protocol::Result<connect_store::InitialTelephoneReadyObservation> {
+        self.observe_mode(false)
+    }
+}
+impl connect_store::PrivateInitialTelephoneRuntimeObservation for Ready {
+    fn observe_private(
+        &self,
+    ) -> connect_protocol::Result<connect_store::InitialTelephoneReadyObservation> {
+        self.observe_mode(true)
+    }
+}
+impl Ready {
+    fn observe_mode(
+        &self,
+        private: bool,
+    ) -> connect_protocol::Result<connect_store::InitialTelephoneReadyObservation> {
         let p = self.leg.prepared.get().ok_or_else(Error::forbidden)?;
         let admission = self.leg.admitted.get().ok_or_else(Error::forbidden)?;
-        if admission.session != *p.appearance().session()
+        if p.is_private_audio() != private
+            || self.leg.signal.origin().source().is_private_candidate() != private
+            || admission.session != *p.appearance().session()
             || admission.participant != *p.member().participant()
             || admission.membership_epoch != p.member().epoch()
             || admission.operation_id != self.leg.signal.origin().operation_id()
@@ -565,6 +582,24 @@ impl connect_store::InitialTelephoneRuntimeObservation for Ready {
             .get()
             .and_then(Weak::upgrade)
             .ok_or_else(Error::forbidden)?;
+        if private {
+            let ports = controller.active_bindings();
+            let exact = self.leg.binding.get().is_some_and(|original| {
+                ports.len() == 1
+                    && ports.first().is_some_and(|current| {
+                        current.negotiated == original.negotiated
+                            && current.transport_id == original.transport_id
+                            && current.stream_local_id == original.stream_local_id
+                            && current.generation == original.generation
+                            && current.connection_generation == original.connection_generation
+                            && current.source_ready == original.source_ready
+                            && current.sink_ready == original.sink_ready
+                    })
+            });
+            if controller.revision() != 2 || !controller.is_bound_to_outbound(p) || !exact {
+                return Err(Error::forbidden());
+            }
+        }
         Ok(connect_store::InitialTelephoneReadyObservation {
             runtime_connection_id: self.leg.signal.runtime_connection_id().into(),
             call_id: self.leg.signal.sip_call_id().into(),

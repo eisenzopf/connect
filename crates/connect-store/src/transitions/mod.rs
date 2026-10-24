@@ -13,6 +13,7 @@ pub use initial_telephone::{
     InitialTelephonePolicy, InitialTelephoneRead, InitialTelephoneReadyObservation,
     InitialTelephoneRuntimeObservation, InitialTelephoneSignalDirection,
     InitialTelephoneSignalRead, InitialTelephoneSignaling, InitialTelephoneSource,
+    PrivateInitialTelephoneRuntimeObservation,
 };
 pub(crate) mod consultation_source;
 pub use consultation_source::{NativeConsultationOrigin, NativeConsultationTarget};

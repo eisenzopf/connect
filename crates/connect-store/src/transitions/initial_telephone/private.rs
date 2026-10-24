@@ -12,8 +12,41 @@ pub(super) fn source(
     (InitialTelephoneSource, Actor, Actor, i64),
     Vec<AuthorityScope>,
 )> {
-    let reservation = SipConsultationReservation::from_connection(store, c, connection)?;
-    let (origin, original_policy, required) = reservation.current_parts(store, c)?;
+    source_inner(store, c, caller, connection, policy, false)
+}
+pub(super) fn admission_source(
+    store: &Store,
+    c: &Connection,
+    caller: &Actor,
+    connection: &str,
+    policy: &InitialTelephonePolicy,
+) -> Result<(
+    (InitialTelephoneSource, Actor, Actor, i64),
+    Vec<AuthorityScope>,
+)> {
+    source_inner(store, c, caller, connection, policy, true)
+}
+fn source_inner(
+    store: &Store,
+    c: &Connection,
+    caller: &Actor,
+    connection: &str,
+    policy: &InitialTelephonePolicy,
+    admitted: bool,
+) -> Result<(
+    (InitialTelephoneSource, Actor, Actor, i64),
+    Vec<AuthorityScope>,
+)> {
+    let reservation = if admitted {
+        SipConsultationReservation::from_initial_connection(store, c, connection)?
+    } else {
+        SipConsultationReservation::from_connection(store, c, connection)?
+    };
+    let (origin, original_policy, required) = if admitted {
+        reservation.current_initial_parts(store, c)?
+    } else {
+        reservation.current_parts(store, c)?
+    };
     if caller.credential_id != origin.credential || policy != original_policy {
         return Err(Error::forbidden());
     }

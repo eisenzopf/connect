@@ -47,16 +47,54 @@ impl SipConsultationReservation {
         &'a InitialTelephonePolicy,
         Vec<AuthorityScope>,
     )> {
+        self.current_parts_inner(store, c, false)
+    }
+    pub(crate) fn current_initial_parts<'a>(
+        &'a self,
+        store: &Store,
+        c: &Connection,
+    ) -> Result<(
+        &'a NativeConsultationOrigin,
+        &'a InitialTelephonePolicy,
+        Vec<AuthorityScope>,
+    )> {
+        self.current_parts_inner(store, c, true)
+    }
+    fn current_parts_inner<'a>(
+        &'a self,
+        store: &Store,
+        c: &Connection,
+        admitted: bool,
+    ) -> Result<(
+        &'a NativeConsultationOrigin,
+        &'a InitialTelephonePolicy,
+        Vec<AuthorityScope>,
+    )> {
         self.owner(store)?;
         self.matched(c)?;
         let (binding, scopes, _) = facts(store, c, &self.origin, &self.binding.policy)?;
-        let unused:bool=c.query_row("SELECT EXISTS(SELECT 1 FROM connections WHERE id=?1 AND generation=1 AND state='preparing' AND observed_runtime_id IS NULL AND readiness_json IS NULL)",[self.connection_id()],|r|r.get(0)).map_err(|_|Error::storage())?;
+        let unused:bool=c.query_row("SELECT EXISTS(SELECT 1 FROM connections WHERE id=?1 AND generation=1 AND ((state='preparing' AND observed_runtime_id IS NULL AND readiness_json IS NULL) OR (?2 AND state IN ('ready','active') AND observed_runtime_id=?3 AND readiness_json IS NOT NULL)))",params![self.connection_id(),admitted,store.runtime_epoch()],|r|r.get(0)).map_err(|_|Error::storage())?;
         if binding != self.binding || !unused {
             return Err(Error::forbidden());
         }
         Ok((&self.origin, &self.binding.policy, scopes))
     }
     pub(crate) fn from_connection(store: &Store, c: &Connection, connection: &str) -> Result<Self> {
+        Self::from_connection_inner(store, c, connection, false)
+    }
+    pub(crate) fn from_initial_connection(
+        store: &Store,
+        c: &Connection,
+        connection: &str,
+    ) -> Result<Self> {
+        Self::from_connection_inner(store, c, connection, true)
+    }
+    fn from_connection_inner(
+        store: &Store,
+        c: &Connection,
+        connection: &str,
+        admitted: bool,
+    ) -> Result<Self> {
         let (record,credential,digest,runtime,policy):(String,String,String,String,String)=c.query_row("SELECT operation_record_id,credential_id,original_digest,runtime_epoch,policy_json FROM sip_consultation_reservations WHERE connection_id=?1",[connection],|r|Ok((r.get(0)?,r.get(1)?,r.get(2)?,r.get(3)?,r.get(4)?))).optional().map_err(|_|Error::storage())?.ok_or_else(Error::forbidden)?;
         let origin = NativeConsultationOrigin::from_private_leg(
             store, c, record, credential, digest, runtime,
@@ -68,7 +106,7 @@ impl SipConsultationReservation {
             connection: connection.into(),
             binding,
         };
-        reservation.current_parts(store, c)?;
+        reservation.current_parts_inner(store, c, admitted)?;
         Ok(reservation)
     }
     fn owner(&self, store: &Store) -> Result<()> {

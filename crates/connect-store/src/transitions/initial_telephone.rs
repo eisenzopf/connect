@@ -16,6 +16,7 @@ pub use media::{
     InitialTelephoneMediaRead, InitialTelephoneNativeRead, InitialTelephoneNativeSignalRead,
     InitialTelephoneReadyObservation, InitialTelephoneRuntimeObservation,
     InitialTelephoneSignalDirection, InitialTelephoneSignalRead,
+    PrivateInitialTelephoneRuntimeObservation,
 };
 #[cfg(test)]
 mod tests;

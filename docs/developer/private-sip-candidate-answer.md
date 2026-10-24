@@ -33,8 +33,9 @@ always refuses to expose private consent as public media, including after a
 successful private acceptance.
 
 An accepted private answer is not media readiness. The current ordinary media
-projection continues to refuse it. The host still requires its separate
-guarded private readiness path and actual muted
+projection continues to refuse it. The Store now supplies a separate
+[guarded private admission/readiness boundary](private-sip-candidate-readiness.md).
+The host must install that path and actual muted
 [Core private admission](private-sip-candidate-core.md), followed by typed
 candidate lifetime/media/DTMF, return and physical cleanup. Controlled Store
 tests qualify consent and authority behavior only; they establish no SIP wire
