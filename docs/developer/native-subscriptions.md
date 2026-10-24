@@ -53,6 +53,15 @@ Temporary contention looking up that invocation's native source remains
 `authority-busy` and retries inside the original command deadline before the
 engine call. A missing or poisoned source still refuses; this metadata retry
 cannot repeat a routing effect or extend the command's lifetime.
+Core catalog planning uses immediate probes of the scene member set and target
+controller state, as well as each source state. Busy metadata returns temporary
+backpressure rather than blocking a runtime worker behind a mixer tick. The
+native reconciliation worker yields and retries; accepted host commands keep
+their original deadline. Poisoned state and actual revision conflicts remain
+refusals. No busy probe changes the route, selected intent or stream revision.
+The [catalog probe evidence](../evidence/gate-6/auxiliary-native-catalog-probes.json)
+separates controlled Core recovery from pending exact host/runtime verification.
+
 Native target and source reads are captured together under one bounded Store
 connection interval. The original attempt is validated before and after capture;
 each source retains the same audience, scope and expiry checks as an individual

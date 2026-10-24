@@ -1,0 +1,93 @@
+--- a/crates/foundation/rvoip-core/src/staged_streams/subscription_plan.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/subscription_plan.rs
+@@ -95,13 +95,19 @@
+         expected: u64,
+         input: &MediaSelectionChange,
+     ) -> ControlResult<MediaSubscriptionPlan> {
+-        let members = self.members.lock().unwrap_or_else(|p| p.into_inner());
++        let members = self.members.try_lock().map_err(|error| match error {
++            std::sync::TryLockError::WouldBlock => StreamControlError::Backpressure,
++            std::sync::TryLockError::Poisoned(_) => MediaTransitionError::Conflict.into(),
++        })?;
+         let target = members.get(target_id).ok_or(StreamControlError::NotReady)?;
+         let state = target
+             .controller
+             .state
+-            .lock()
+-            .unwrap_or_else(|p| p.into_inner());
++            .try_lock()
++            .map_err(|error| match error {
++                std::sync::TryLockError::WouldBlock => StreamControlError::Backpressure,
++                std::sync::TryLockError::Poisoned(_) => MediaTransitionError::Conflict.into(),
++            })?;
+         if state.closed || state.model.revision() != expected {
+             return Err(MediaTransitionError::Conflict.into());
+         }
+--- a/crates/foundation/rvoip-core/src/staged_streams/tests/media_scene/subscriptions.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/media_scene/subscriptions.rs
+@@ -1305,3 +1305,65 @@
+         Err(StreamControlError::NotReady)
+     ));
+ }
++
++fn probe_catalog_without_waiting(s: &Scene, expected: u64, release: impl FnOnce()) {
++    use crate::staged_streams::subscription_plan::MediaSelectionChange;
++    let scene = s.scene.clone();
++    let target = s.f.b.connection.clone();
++    let (sent, received) = std::sync::mpsc::channel();
++    let worker = std::thread::spawn(move || {
++        sent.send(
++            scene
++                .plan_selection(&target, expected, &MediaSelectionChange::Reconcile)
++                .map(|_| ()),
++        )
++        .unwrap();
++    });
++    // Release the lock even on a regression, so a blocking implementation
++    // fails the assertion rather than hanging the entire test process.
++    let result = received.recv_timeout(Duration::from_millis(500));
++    release();
++    worker.join().unwrap();
++    assert!(
++        matches!(result, Ok(Err(StreamControlError::Backpressure))),
++        "busy catalog must yield before the owner releases it: {result:?}"
++    );
++}
++
++#[tokio::test]
++async fn catalog_probe_yields_while_the_actual_mixer_owns_scene_members() {
++    use crate::staged_streams::subscription_plan::{MediaSelection, MediaSelectionChange};
++    let s = wildcard_scene().await;
++    let expected = s.f.b.revision();
++    let held = s.scene.members.lock().unwrap();
++    probe_catalog_without_waiting(&s, expected, || drop(held));
++    let change = MediaSelectionChange::Subscribe(vec![MediaSelection::Participant {
++        participant: s.f.a.origin_member.participant().clone(),
++        media: BTreeSet::from([Medium::Audio]),
++    }]);
++    assert_eq!(
++        apply(&s, planned(&s, &change).routing().clone())
++            .await
++            .unwrap(),
++        2
++    );
++}
++
++#[tokio::test]
++async fn catalog_probe_yields_while_the_actual_target_owns_its_state() {
++    use crate::staged_streams::subscription_plan::{MediaSelection, MediaSelectionChange};
++    let s = wildcard_scene().await;
++    let expected = s.f.b.revision();
++    let held = s.f.b.state.lock().unwrap();
++    probe_catalog_without_waiting(&s, expected, || drop(held));
++    let change = MediaSelectionChange::Subscribe(vec![MediaSelection::Participant {
++        participant: s.f.a.origin_member.participant().clone(),
++        media: BTreeSet::from([Medium::Audio]),
++    }]);
++    assert_eq!(
++        apply(&s, planned(&s, &change).routing().clone())
++            .await
++            .unwrap(),
++        2
++    );
++}

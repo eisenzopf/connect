@@ -979,6 +979,10 @@
       "path": "patches/rvoip/gate6-native-packet-custody.patch",
       "sha256": "9c1c46ff745b0b2f49565f9d5c11c4e8839b3bde6a799a98f7544adb3760ba76",
       "source": "G6-046 synchronous paired packet current-policy admission can opt into exact active source-lease file custody. Mixer segments bind their own source lease index; dequeue obtains a new current source lease before target admission. No context is queued. Preserve recipient policy, scope/owner/generation/consumer/subscription checks, original media age and cancellation; data/ordinary ingress contexts stay separate. Controlled mixer+egress context and fresh recipient-revocation/no queued reader cases."
+    },
+    {
+      "path": "patches/rvoip/gate6-native-catalog-admission.patch",
+      "sha256": "f1f3dc02a9880f6bf9d20405c8b17234fd0b79fbffa453d80e06158d780f5fe4"
     }
   ]
 }
