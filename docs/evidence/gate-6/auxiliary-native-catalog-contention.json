@@ -1,8 +1,8 @@
 {
   "task": "G6-046",
   "title": "Distinguish native catalog read contention from real revision conflicts",
-  "recorded_at": "2026-10-24T01:03:44.889615+00:00",
-  "status": "upstream-component-verified; connect-build-and-full-fifty-retest-pending",
+  "recorded_at": "2026-10-24T01:20:07.883459+00:00",
+  "status": "upstream-component-verified; host-preflight-integration-followup-building",
   "full_task_complete": false,
   "full_goal_complete": false,
   "qualified_case_ids": [],
@@ -10,7 +10,7 @@
   "store_schema": 103,
   "implementation": [
     "Read-only catalog traversal preserves source-state Mutex WouldBlock as StreamControlError::Backpressure. Poisoned state and a genuinely closed/stale target remain Conflict; missing target/source and true capacity keep their original classifications.",
-    "Only the native catalog-read boundary maps that read backpressure to DispatchError::StorageUnavailable. General resource backpressure remains capacity. The Connect pre-effect preflight maps metadata unavailability to authority-busy and retries the exact original command inside its original deadline.",
+    "Only the native catalog-read boundary maps read backpressure to DispatchError::StorageUnavailable. General resource backpressure remains capacity. The pushed Connect mapping preserves authority-busy, but follow-up source review found its whole catalog preflight callback still outside native_preflight; mapping alone did not supply host retry. A separate uncommitted integration correction now wraps that complete callback in the existing helper before beginning the engine lease, bounded by the accepted operation recorded absolute millisecond expiry. That correction is awaiting its build and runtime tests.",
     "The native execution entry also retries only this catalog read before acquiring a negotiation slot, writer or effect. All proposal locks have ended before the five-millisecond wait, and the original cancellation/deadline are checked. Stale revision, missing source, poison, scope denial and capacity are not retried or repaired by changing the caller revision.",
     "The upstream change is a tracked patch and source-lock digest prepared in a fresh tree. The existing source173 tree and all original scopes, authorization checks, logical mutation IDs, packet limits and media deadlines remain preserved."
   ],
@@ -76,10 +76,12 @@
     "The prior source173 custody run passed all50 publisher lifecycle sets after original-peer recovery, all99 admissions and zero actual RTP packets before explicit selectors. Subscriptions1..32 returned completed signed results and ACKs; subscriber33 failed with Conflict despite requested/current controller revisions both1. Fanout was not reached. This exposes a false-conflict candidate path; the exact cause of that individual conflict is not inferred solely from equal revisions.",
     "Core catalog traversal was found to flatten every source-state try_lock error into Conflict. The new deterministic contention test reproduces and distinguishes that branch. Existing negotiation-slot conflicts and real model conflicts remain unchanged.",
     "The first unpublished Core test run passed poison/missing but its recovery test reached Model(Invalid) because the general direct-routing fixture intentionally duplicates logical IDs. The valid selector fixture now uses distinct IDs. No ambiguity validation was weakened. Final2 controlled tests and all16 subscription tests pass.",
-    "The native library test feature profile rebuilt its SIP dependency for6minutes; it was allowed to finish. One inventory-based object cleanup aborted before deletion on a symbol-less executable; that hash was excluded. Later removal was limited to inspected obsolete dependency-test objects, preserving all their current Mach-O references, complete incremental caches, libraries, executables and active compiler hashes."
+    "The native library test feature profile rebuilt its SIP dependency for6minutes; it was allowed to finish. One inventory-based object cleanup aborted before deletion on a symbol-less executable; that hash was excluded. Later removal was limited to inspected obsolete dependency-test objects, preserving all their current Mach-O references, complete incremental caches, libraries, executables and active compiler hashes.",
+    "A source-level integration audit found the host catalog closure was evaluated once before the existing metadata retry helper. The37 upstream tests did not prove this host wiring; no runtime qualification had been claimed. The corrected full pre-lease callback retries only authority-busy against accepted.expires_at, resets its diagnostic stage per attempt, and never restarts the command budget. It is not yet verified by a successful Connect build.",
+    "Connect build42284 reached a service query-cache NoSpace error and its MCP child also terminated on an explicit LLVM output NoSpace error; Cargo was allowed to finish both, returning101. Failed working sessions were removed only after their compiler ended and their session locks were acquired. Archive-index-guided cleanup then removed obsolete standalone server/service object byproducts, retaining every current archive-member object, unchanged archive digests, all current libraries/metadata/executables and completed incremental sessions. Available home space recovered to18GiB. The new exact host-integration build is active; the failed build is not a pass."
   ],
   "unresolved": [
-    "Finish the active default Connect build, run relevant actual native production regressions and the isolated full50 case under both signing algorithms. The stronger full50 producer/validator remain uncommitted and have no successful capture yet.",
+    "Finish the active exact host-retry integration build, then run actual quality/native production regressions and the isolated full50 case. The first host source174 build failed on disk space and did not qualify runtime. The stronger producer/validator still have no successful complete capture.",
     "Verify the separate quality fixture correction against interval counters using actual signed SDK events. Its previous first-interval timing failure remains recorded in the custody checkpoint.",
     "Complete49-way media and later publication/retirement/replay/departure without reducing50 peers,8second command bound,200ms media age or >10 decoded frames per intended receiver.",
     "G6-046 remains58/61 with0112/0113/0123 open;45/105 tasks complete. Later workspace/Linux/browser/remote/provider/acceptance/publication profiles are not qualified here."
