@@ -4,6 +4,8 @@ use super::received::{send_info, send_rfc};
 use super::retained::RetainedCall;
 use super::*;
 use rvoip_uctp::v2::Scope as WireScope;
+#[path = "private_primary/authority.rs"]
+mod authority;
 
 pub(super) async fn exercise(
     f: &Fixture,
@@ -138,35 +140,7 @@ pub(super) async fn exercise(
     assert_eq!(selected["remote"]["connection_id"], remote);
     // Sample every native physical receiver. The held original peer must stay
     // silent while the actual SIP primary publishes to its own consultant.
-    let receive = async {
-        let until = tokio::time::Instant::now() + Duration::from_millis(900);
-        let mut counts = vec![0usize; peers.len()];
-        loop {
-            let reads = peers
-                .iter_mut()
-                .enumerate()
-                .map(|(i, p)| {
-                    Box::pin(async move { (i, p.client.receive_native_rtp_datagram().await) })
-                })
-                .collect::<Vec<_>>();
-            let Ok(((i, bytes), _, _)) = tokio::time::timeout_at(until, select_all(reads)).await
-            else {
-                break;
-            };
-            let packet = rvoip_uctp::substrate::unpack_rtp_datagram(&bytes.unwrap()).unwrap();
-            assert_eq!(packet.stream_local_id, peers[i].handle);
-            if packet
-                .rtp
-                .payload
-                .iter()
-                .any(|b| !matches!(*b, 0xff | 0x7f))
-            {
-                counts[i] += 1;
-            }
-        }
-        counts
-    };
-    let (_, counts) = tokio::join!(peer.rtp(0), receive);
+    let counts = sip_to_native(peer, &mut peers).await;
     assert_eq!(
         counts[0], 0,
         "private SIP source leaked to held native remote"
@@ -224,6 +198,8 @@ pub(super) async fn exercise(
         private_frames.push(frame.original().clone());
         private_statuses.push(status);
     }
+    let authority =
+        authority::exercise(f, peer, &mut peers, cid, selected_phone, &mut source_status).await;
     let info_before = peer.info.lock().unwrap().len();
     let candidate_id = peers[1].id.clone();
     peers[1]
@@ -361,7 +337,7 @@ pub(super) async fn exercise(
         })
         .unwrap();
     assert_eq!(
-        source_operation_count, 4,
+        source_operation_count, 7,
         "replayed private SIP input created a new logical operation"
     );
     assert_eq!(peer.unique(), 1);
@@ -375,7 +351,7 @@ pub(super) async fn exercise(
             .unwrap()
             .join(".local/gate-6");
         assert!(path.is_absolute() && path.starts_with(root));
-        let row = json!({"algorithm":algorithm,"source_kind":kind,"prior_move":prior_move,"source_operation_count":source_operation_count,"private_native_status":private_native_status,"phone":phone,"retained":remote,"selection":selected,"baseline":baseline_status,"baseline_frame":baseline.original(),"private_frames":private_frames,"private_statuses":private_statuses,"returned":returned,"restored":restored_status,"restored_frame":restored.original(),"private_sip_to_native_marked":counts,"private_native_to_sip_marked":marked,"native_private_info_count":peer.info.lock().unwrap().len()-info_before,"calls":peer.unique()});
+        let row = json!({"algorithm":algorithm,"source_kind":kind,"authority":authority,"prior_move":prior_move,"source_operation_count":source_operation_count,"private_native_status":private_native_status,"phone":phone,"retained":remote,"selection":selected,"baseline":baseline_status,"baseline_frame":baseline.original(),"private_frames":private_frames,"private_statuses":private_statuses,"returned":returned,"restored":restored_status,"restored_frame":restored.original(),"private_sip_to_native_marked":counts,"private_native_to_sip_marked":marked,"native_private_info_count":peer.info.lock().unwrap().len()-info_before,"calls":peer.unique()});
         writeln!(
             std::fs::OpenOptions::new()
                 .create(true)
@@ -392,4 +368,37 @@ pub(super) async fn exercise(
     if let Some(manager) = &mut manager {
         manager.close();
     }
+}
+
+async fn sip_to_native(peer: &PeerSip, peers: &mut [Peer]) -> Vec<usize> {
+    let receive = async {
+        let until = tokio::time::Instant::now() + Duration::from_millis(900);
+        let mut counts = vec![0usize; peers.len()];
+        loop {
+            let reads = peers
+                .iter_mut()
+                .enumerate()
+                .map(|(i, p)| {
+                    Box::pin(async move { (i, p.client.receive_native_rtp_datagram().await) })
+                })
+                .collect::<Vec<_>>();
+            let Ok(((i, bytes), _, _)) = tokio::time::timeout_at(until, select_all(reads)).await
+            else {
+                break;
+            };
+            let packet = rvoip_uctp::substrate::unpack_rtp_datagram(&bytes.unwrap()).unwrap();
+            assert_eq!(packet.stream_local_id, peers[i].handle);
+            if packet
+                .rtp
+                .payload
+                .iter()
+                .any(|b| !matches!(*b, 0xff | 0x7f))
+            {
+                counts[i] += 1;
+            }
+        }
+        counts
+    };
+    let (_, counts) = tokio::join!(peer.rtp(0), receive);
+    counts
 }

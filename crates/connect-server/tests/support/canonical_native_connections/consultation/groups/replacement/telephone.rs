@@ -51,6 +51,7 @@ struct PeerSip {
     calls: Arc<Mutex<Vec<String>>>,
     methods: Arc<Mutex<Vec<Method>>>,
     info: Arc<Mutex<Vec<Vec<u8>>>>,
+    info_responses: Arc<Mutex<Vec<(u32, String)>>>,
     reject_info: Arc<std::sync::atomic::AtomicBool>,
     reject_refresh: Arc<std::sync::atomic::AtomicBool>,
     ledger: Arc<Mutex<Option<std::path::PathBuf>>>,
@@ -80,6 +81,8 @@ impl PeerSip {
         let methods = Arc::new(Mutex::new(Vec::new()));
         let info = Arc::new(Mutex::new(Vec::new()));
         let info_seen = info.clone();
+        let info_responses = Arc::new(Mutex::new(Vec::new()));
+        let responses_seen = info_responses.clone();
         let reject_info = Arc::new(std::sync::atomic::AtomicBool::new(false));
         let info_rejected = reject_info.clone();
         let ledger = Arc::new(Mutex::new(None::<std::path::PathBuf>));
@@ -93,8 +96,25 @@ impl PeerSip {
             let mut original = None;
             loop {
                 let (n, from) = wire.recv_from(&mut data).await.unwrap();
-                let Ok(Message::Request(request)) = parse_message(&data[..n]) else {
+                let Ok(message) = parse_message(&data[..n]) else {
                     continue;
+                };
+                let request = match message {
+                    Message::Request(request) => request,
+                    Message::Response(response) => {
+                        if let Some(value) = response.raw_header_value(&HeaderName::CSeq) {
+                            let mut fields = value.split_whitespace();
+                            if let (Some(sequence), Some("INFO")) = (fields.next(), fields.next()) {
+                                let mut responses = responses_seen.lock().unwrap();
+                                assert!(responses.len() < 256);
+                                responses.push((
+                                    sequence.parse::<u32>().unwrap(),
+                                    format!("{:?}", response.status),
+                                ));
+                            }
+                        }
+                        continue;
+                    }
                 };
                 seen.lock().unwrap().push(request.method());
                 let mut response = match request.method() {
@@ -270,6 +290,7 @@ impl PeerSip {
             calls,
             methods,
             info,
+            info_responses,
             reject_info,
             reject_refresh,
             ledger,

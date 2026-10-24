@@ -87,3 +87,10 @@ and cleanup. Its six-profile matrix also verifies initial/committed retained and
 outside-SIP regressions with both signing algorithms:12 scenes and48 SDK-verified
 frames, with source and executable unchanged. SIP-candidate and broader remaining
 compositions are separate requirements.
+
+The [live signal-rights report](../evidence/gate-6/auxiliary-private-sip-primary-authority.json)
+adds actual four-direction permission withdrawal, media preservation, failed-input
+replay exclusion and fresh recovery for both SIP-primary profiles and signing
+algorithms. It records24 SDK-verified frames in4 scenes. The credential edits are
+isolated fault setup under identity write fences; no new public scope-update API
+is implied. Physical-IO races and other remaining compositions are not claimed.

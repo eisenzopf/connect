@@ -1,0 +1,171 @@
+{
+  "task": "G6-046",
+  "recorded_at": "2026-10-24T15:12:18.060002+00:00",
+  "status": "actual-private-sip-primary-four-named-direction-permissions-verified",
+  "full_task_complete": false,
+  "full_goal_complete": false,
+  "source_base_commit": "dcee648832b626309129def74702821a2c6d1c27",
+  "prepared_patch_count": 183,
+  "store_schema": 103,
+  "qualified_clause_count": 59,
+  "assigned_clause_count": 61,
+  "newly_qualified_case_ids": [],
+  "scope": "Actual isolated initial/committed SIP private primary and exact native consultant, both EdDSA and ES256, with between-command credential permission withdrawal/recovery through the live Core/Store/server/client path. Credential edits are privileged fault setup under identity write fences; SIP INFO ingress is confirmed by its correlated actual response. This is not a paused physical-IO race or independent-client qualification.",
+  "behavior_evidence": [
+    "Withdrawing native dtmf.receive captures one original received input but freezes zero eligible recipients, records signal-no-recipients, and sends no native frame. Both private media directions retain >10 decoded markers and the held native remote stays silent. After restoring permission, the original INFO retransmission cannot gain recipients; a fresh INFO reaches only the consultant.",
+    "Withdrawing the actual SIP source dtmf.send yields a correlated SIP response but no received-source row or native delivery. Restoring the original credential scope and replaying that refused packet cannot create a source row; a fresh input recovers on the same call. Initial Endpoint and committed independent route-owner credential bindings stay distinct.",
+    "Withdrawing the SIP dtmf.receive makes the consultant\u2019s native logical operation fail not-recipient without a physical gateway delivery row or INFO packet. Restoring permission and replaying the same logical operation preserves its original failed result and sends no packet. The later fresh operation reaches the actual phone.",
+    "Withdrawing native dtmf.send returns typed forbidden and sends no SIP INFO. The original scope is restored before a fresh successful native-to-phone operation. Historical received outcomes, distinct fresh RFC4733 recovery, original-call return/replays, actual BYE/recorded cleanup and committed generation2/old-source revocation checks continue to pass."
+  ],
+  "source_inputs_sha256": {
+    "crates/connect-server/tests/support/canonical_native_connections/consultation/groups/replacement/telephone.rs": "9908d8431949d4bf634640b47b62263786c3822d33b4ee3caaa499c5a7b5ce60",
+    "crates/connect-server/tests/support/canonical_native_connections/consultation/groups/replacement/telephone/private_primary.rs": "dc1109666e1359f239f7e666c35e6cb28669a76e58e9b1aae6bbd176c1ddfcb7",
+    "scripts/validate-gate6-private-sip-primary.py": "19595a309e3ba67608e5a46573df4e524ac4ddf4365a6db1641cae13460db50b",
+    "crates/connect-server/tests/support/canonical_native_connections/consultation/groups/replacement/telephone/private_primary/authority.rs": "ee6e072de36ab423f2827e98bf111ee1bc9657c1a3c7913733b04c1b34bbfe7d"
+  },
+  "verification": {
+    "summary": ".local/gate-6/private-sip-primary/authority-pair-release-001/summary.json",
+    "summary_sha256": "6b156ed5ad6f786210d57e6ad98e6e6f8b0bfc3eefbbedac24541d2e38b9b10c",
+    "source_inputs_unchanged": true,
+    "executable_unchanged": true,
+    "executable_sha256": "1dd5859dd510e6d175198889b86aec3fc47afd89af73905ffc8094aa72b1f20d",
+    "production_methods": 2,
+    "signing_scenes": 4,
+    "actual_frames": 24,
+    "runtime_seconds": 100.71405766694807,
+    "runtime_by_method_seconds": {
+      "initial-sip-runtime": 38.808915624860674,
+      "established-sip-runtime": 61.90514204208739
+    },
+    "build_seconds": 119.19988662493415,
+    "profiles": [
+      {
+        "source_kind": "initial-sip",
+        "case": "canonical_native_connections::consultation::groups::replacement::telephone::initial::received::private_primary::production_initial_sip_primary_private_consultation_routes_only_its_registered_pair",
+        "runtime_exit_code": 0,
+        "passed": true,
+        "observations": ".local/gate-6/private-sip-primary/authority-pair-release-001/initial-sip-observations.jsonl",
+        "validation_exit_code": 0,
+        "validation": {
+          "passed": true,
+          "scenes": 2,
+          "actual_frames": 12,
+          "source_kind": "initial-sip",
+          "observations_sha256": "dd8c7e6093e9c54bfad6d6fd507819816a7a838213e0ad732a414caf10f6a416",
+          "schema_sha256": "8d3d5a1098c8eebafe30960b8b35d83e11f9c8ac09453ab7e528251368d11c32",
+          "scope": "Actual isolated local selected SIP-primary state, shape and correlations; SDK verifies signatures and runtime asserts decoded media/privacy, actual DTMF and independent signal-rights withdrawal/recovery/replay, original return/replay and cleanup. Other roles/profiles remain separate."
+        }
+      },
+      {
+        "source_kind": "established-sip",
+        "case": "canonical_native_connections::consultation::groups::replacement::telephone::received::private_primary::production_moved_sip_primary_private_consultation_routes_only_its_registered_pair",
+        "runtime_exit_code": 0,
+        "passed": true,
+        "observations": ".local/gate-6/private-sip-primary/authority-pair-release-001/established-sip-observations.jsonl",
+        "validation_exit_code": 0,
+        "validation": {
+          "passed": true,
+          "scenes": 2,
+          "actual_frames": 12,
+          "source_kind": "established-sip",
+          "observations_sha256": "826887cabe18729426e4ecfdd25507b1b683b7d8902ff57cb6352ff9d87cc94f",
+          "schema_sha256": "8d3d5a1098c8eebafe30960b8b35d83e11f9c8ac09453ab7e528251368d11c32",
+          "scope": "Actual isolated local selected SIP-primary state, shape and correlations; SDK verifies signatures and runtime asserts decoded media/privacy, actual DTMF and independent signal-rights withdrawal/recovery/replay, original return/replay and cleanup. Other roles/profiles remain separate."
+        }
+      }
+    ],
+    "scenario_observations": [
+      {
+        "source_kind": "initial-sip",
+        "algorithm": "EdDSA",
+        "sip_info_receive_denial_response": "Ok",
+        "sip_info_source_denial_response": "Ok",
+        "source_denial_rows_added": 0,
+        "native_send_refusal": "forbidden",
+        "native_send_denial_info_added": 0,
+        "phone_receive_denial_info_added": 0,
+        "media_native_marked_during_receive_denial": [
+          0,
+          20
+        ],
+        "media_sip_marked_during_receive_denial": 75,
+        "calls": 1
+      },
+      {
+        "source_kind": "initial-sip",
+        "algorithm": "ES256",
+        "sip_info_receive_denial_response": "Ok",
+        "sip_info_source_denial_response": "Ok",
+        "source_denial_rows_added": 0,
+        "native_send_refusal": "forbidden",
+        "native_send_denial_info_added": 0,
+        "phone_receive_denial_info_added": 0,
+        "media_native_marked_during_receive_denial": [
+          0,
+          25
+        ],
+        "media_sip_marked_during_receive_denial": 80,
+        "calls": 1
+      },
+      {
+        "source_kind": "established-sip",
+        "algorithm": "EdDSA",
+        "sip_info_receive_denial_response": "Ok",
+        "sip_info_source_denial_response": "Ok",
+        "source_denial_rows_added": 0,
+        "native_send_refusal": "forbidden",
+        "native_send_denial_info_added": 0,
+        "phone_receive_denial_info_added": 0,
+        "media_native_marked_during_receive_denial": [
+          0,
+          22
+        ],
+        "media_sip_marked_during_receive_denial": 88,
+        "calls": 1
+      },
+      {
+        "source_kind": "established-sip",
+        "algorithm": "ES256",
+        "sip_info_receive_denial_response": "Ok",
+        "sip_info_source_denial_response": "Ok",
+        "source_denial_rows_added": 0,
+        "native_send_refusal": "forbidden",
+        "native_send_denial_info_added": 0,
+        "phone_receive_denial_info_added": 0,
+        "media_native_marked_during_receive_denial": [
+          0,
+          20
+        ],
+        "media_sip_marked_during_receive_denial": 95,
+        "calls": 1
+      }
+    ],
+    "artifacts_sha256": {
+      "initial-sip-runtime.log": "23352f38bc4e20e3246f574036bcadb1d0b8f70e2eddf88501a83e3b0d834acc",
+      "established-sip-validation.log": "37fea97166bcfed78fda5166560f84732c7995b3fe4e0b5b6c9caf49c3837704",
+      "established-sip-observations.jsonl": "826887cabe18729426e4ecfdd25507b1b683b7d8902ff57cb6352ff9d87cc94f",
+      "initial-sip-observations.jsonl": "dd8c7e6093e9c54bfad6d6fd507819816a7a838213e0ad732a414caf10f6a416",
+      "established-sip-runtime.log": "d991f653f5f9317d808cf5b717ae318a549ca336a9295723912a647b880b5fc4",
+      "initial-sip-validation.log": "cb07ae093cee49c692b3791b5f418940abd53a5796f10b022e50daa20edaa153"
+    },
+    "server_check": {
+      "exit_code": 0,
+      "elapsed_seconds": 1.19,
+      "log": ".local/gate-6/received-dtmf-runtime/private-sip-primary-authority-server-check-final.log",
+      "log_sha256": "5a3bdbf5fa152e6238666babee41a37de77d2f9685a4d5564603003051223505"
+    }
+  },
+  "preserved_attempts": [
+    {
+      "path": ".local/gate-6/received-dtmf-runtime/private-sip-primary-authority-server-check-001.log",
+      "result": "New test module path failed E0583 and format resolution before runtime execution. Added its explicit private_primary/authority.rs path; final format/typecheck and actual source-bound pair run pass."
+    }
+  ],
+  "pending": [
+    "Separately admitted SIP candidate support and its actual qualification.",
+    "Remaining IO-boundary authorization/uncertainty, retirement and concurrent-private compositions, and the complete current G6-046 auxiliary matrix.",
+    "All other approved implementation tasks; Linux/browser/remote/provider and independent conformance keep their assigned scope."
+  ],
+  "http_reference": "contracts/openapi-canonical-http.json; no production API, server HTTP/wire schema, Store schema or upstream patch changes in this increment.",
+  "limits": "Test/validator evidence extension only; production code is unchanged from96023359. The393-case Store proof and prior48-frame six-profile matrix retain their recorded source scope. No whole-clause/task/Gate6, SIP candidate, paused-IO race, Linux/browser/remote/provider, independent cryptography/conformance or publication pass."
+}
