@@ -69,7 +69,7 @@ pub(super) fn candidate_named(
     tx.commit().unwrap();
     origin
 }
-fn prepare(
+pub(super) fn prepare(
     f: &Fixture,
     sources: &[Arc<NativeMediaOrigin>],
     candidate: &Arc<NativeMediaOrigin>,

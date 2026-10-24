@@ -5,6 +5,7 @@ mod consultation_attempts;
 mod consultation_audiences;
 mod consultation_groups;
 mod consultation_joins;
+mod consultation_presence;
 mod consultation_reads;
 mod consultation_returns;
 mod handoff_custody;

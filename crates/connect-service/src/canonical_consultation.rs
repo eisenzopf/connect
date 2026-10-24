@@ -99,7 +99,7 @@ impl Runtime {
                     }).await;
                     if let Err(refusal)=recorded {tracing::debug!(target:"connect_service::canonical_consultation",code=%refusal.code,"Native consultation refusal recording stopped");}
                 }
-                tracing::debug!(target:"connect_service::canonical_consultation",code=%error.code,"Native consultation did not apply");
+                tracing::debug!(target:"connect_service::canonical_consultation",code=%error.code,detail=%error.message,"Native consultation did not apply");
             }
         });
     }
@@ -329,7 +329,7 @@ impl Runtime {
                     }
                 }
                 Err(error) => {
-                    tracing::debug!(target:"connect_service::canonical_consultation",code=%error.code,"Native consultation attempt read refused");
+                    tracing::debug!(target:"connect_service::canonical_consultation",code=%error.code,detail=%error.message,"Native consultation attempt read refused");
                     return Err(error);
                 }
             }

@@ -127,8 +127,13 @@
       "log_sha256": "1093da5a89cb3a48536e09fcf6739ec78936602cafa1afc80cd118d2cf3338aa"
     },
     "service_compile": {
-      "status": "not-rerun",
-      "reason": "Store-only increment; no service wiring enabled."
+      "passed": true,
+      "source_commit": "707befc9",
+      "command": "cargo check -p connect-service --locked --offline -j2",
+      "result": "Finished dev profile in2m06s",
+      "log": ".local/gate-6/received-dtmf-runtime/private-current116-main-service-check.log",
+      "log_sha256": "f2da0ddb4c6d47d0d83cbbb4b2b26cdfb26d60b2a05ade3377e53fd7cf84c492",
+      "runtime_qualification": false
     },
     "runtime": {
       "status": "not-qualified",

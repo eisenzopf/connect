@@ -159,6 +159,7 @@ impl NativeSignalRead {
 enum ReadPurpose {
     Media,
     Signal,
+    Presence,
 }
 fn subscription_permission(c: &Connection, target: &NativeMediaOrigin) -> Result<bool> {
     let credential = target
@@ -188,18 +189,23 @@ fn facts(
 ) -> Result<(PeerConnectionProjection, Vec<AuthorityScope>, i64)> {
     facts_for(store, c, origin, ReadPurpose::Media)
 }
+fn native_view_error(name: &str, mut error: Error) -> Error {
+    error.message = format!("Native media {name}: {}", error.message);
+    error
+}
 fn facts_for(
     store: &Store,
     c: &Connection,
     origin: &NativeMediaOrigin,
     purpose: ReadPurpose,
 ) -> Result<(PeerConnectionProjection, Vec<AuthorityScope>, i64)> {
-    current_owner(store, origin)?;
-    credential_refresh::require_epoch(store, c, origin)?;
+    current_owner(store, origin).map_err(|e| native_view_error("owner", e))?;
+    credential_refresh::require_epoch(store, c, origin)
+        .map_err(|e| native_view_error("credential epoch", e))?;
     if let Some(life) = handoff_lifetime::current(store, c, origin)? {
         let (mut view, mut scopes, expiry) = match purpose {
             ReadPurpose::Media => returns::handoff_facts(store, c, origin)?,
-            ReadPurpose::Signal => returns::signal_facts(store, c, origin)?,
+            ReadPurpose::Signal | ReadPurpose::Presence => returns::signal_facts(store, c, origin)?,
         };
         if let Some(role) = life.role {
             view.presence_role = role;
@@ -211,11 +217,16 @@ fn facts_for(
             expiry.min(life.expires_at),
         ));
     }
-    let attempt_expiry = origin.attempt.current(c, store)?;
-    let (meta, key, mut scopes, mut expires_at) = checked(store, c, &origin.binding)?;
+    let attempt_expiry = origin
+        .attempt
+        .current(c, store)
+        .map_err(|e| native_view_error("admission", e))?;
+    let (meta, key, mut scopes, mut expires_at) =
+        checked(store, c, &origin.binding).map_err(|e| native_view_error("peer binding", e))?;
     let private_purpose = match purpose {
         ReadPurpose::Media => crate::connection_control::private_consultation::Purpose::Media,
         ReadPurpose::Signal => crate::connection_control::private_consultation::Purpose::Signal,
+        ReadPurpose::Presence => crate::connection_control::private_consultation::Purpose::Presence,
     };
     let context = crate::connection_control::private_consultation::current_for(
         store,
@@ -223,7 +234,8 @@ fn facts_for(
         &origin.intent,
         Some(&origin.endpoint_id),
         private_purpose,
-    )?;
+    )
+    .map_err(|e| native_view_error("private invitation context", e))?;
     let context = match context {
         Some(context) => Some(context),
         None => crate::connection_control::private_consultation::for_connection(
@@ -231,7 +243,8 @@ fn facts_for(
             c,
             origin.connection_id(),
             private_purpose,
-        )?,
+        )
+        .map_err(|e| native_view_error("private floor context", e))?,
     };
     if let Some(context) = context {
         expires_at = expires_at.min(context.expires_at);
@@ -240,7 +253,7 @@ fn facts_for(
     if key.public_key != origin.public_key {
         return Err(Error::forbidden());
     }
-    if matches!(purpose, ReadPurpose::Signal) {
+    if matches!(purpose, ReadPurpose::Signal | ReadPurpose::Presence) {
         crate::audience::require_original(
             c,
             &meta.actor,
@@ -252,7 +265,8 @@ fn facts_for(
     if matches!(purpose, ReadPurpose::Media) {
         meta.actor.require("connection.offer")?;
         let recipients =
-            crate::connection_control::intent_resources(c, &meta.actor, &origin.intent)?;
+            crate::connection_control::intent_resources(c, &meta.actor, &origin.intent)
+                .map_err(|e| native_view_error("resources", e))?;
         if recipients
             .iter()
             .any(|id| !meta.actor.permits_recipient(id))
@@ -273,7 +287,8 @@ fn facts_for(
         &origin.binding.device.id,
         store.runtime_epoch(),
         false,
-    )?;
+    )
+    .map_err(|e| native_view_error("projection", e))?;
     if projection.runtime_connection_id != origin.runtime_connection_id
         || projection.connection.participant_id != origin.participant_id
         || projection.connection.membership_epoch != origin.membership_epoch
@@ -593,7 +608,7 @@ impl Store {
             &snapshot::metadata(origin)?.lifetime,
             None,
             |c| {
-                let (_, scopes, expiry) = facts_for(self, c, origin, ReadPurpose::Signal)?;
+                let (_, scopes, expiry) = facts_for(self, c, origin, ReadPurpose::Presence)?;
                 Ok((expiry, scopes))
             },
             |_| Ok(()),

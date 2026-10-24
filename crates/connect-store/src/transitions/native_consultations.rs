@@ -517,12 +517,20 @@ impl Store {
         &self,
         lease: &NativeConsultationLease,
     ) -> Result<NativeConsultationRead> {
+        let phase = |name: &str, mut error: Error| {
+            error.message = format!("Consultation {name}: {}", error.message);
+            error
+        };
         {
             let c = self.try_connection()?;
-            bound(&c, self, lease)?;
+            bound(&c, self, lease).map_err(|e| phase("bound source", e))?;
         }
-        let mut read = lease.selection.read(self)?;
-        read.limit(lease.expires_at)?;
+        let mut read = lease
+            .selection
+            .read(self)
+            .map_err(|e| phase("selection", e))?;
+        read.limit(lease.expires_at)
+            .map_err(|e| phase("read limit", e))?;
         Ok(read)
     }
     /// A fresh complete selection remains held through the bounded Core call.

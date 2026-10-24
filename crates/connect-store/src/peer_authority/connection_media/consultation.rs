@@ -36,6 +36,10 @@ pub struct NativeConsultationSelection {
     outside_sip: Vec<SipAudienceOrigin>,
     outside_sip_snapshots: Vec<serde_json::Value>,
 }
+fn phase_error(name: &str, mut error: Error) -> Error {
+    error.message = format!("Consultation {name}: {}", error.message);
+    error
+}
 impl NativeConsultationSelection {
     pub(crate) fn scopes(
         &self,
@@ -311,7 +315,9 @@ fn selected_views(
     outside: &[Arc<NativeMediaOrigin>],
     outside_sip: &[SipAudienceOrigin],
 ) -> Result<(Views, Vec<AuthorityScope>, i64)> {
-    let (actor, mut scopes) = origin.require(store, c)?;
+    let (actor, mut scopes) = origin
+        .require(store, c)
+        .map_err(|e| phase_error("origin", e))?;
     let request = &origin.request;
     let connect_protocol::transitions::TransitionIntent::Consult {
         private_participants,
@@ -413,7 +419,18 @@ fn selected_views(
         if !runtime_ids.insert(target.runtime_connection_id().to_owned()) {
             return Err(Error::forbidden());
         }
-        let (target_view, source_view, needed, until) = views(store, c, target, None)?;
+        let role = if remote.connection_id() == target.connection_id() {
+            "native retained view"
+        } else if private
+            .iter()
+            .any(|p| p.connection_id() == target.connection_id())
+        {
+            "native private view"
+        } else {
+            "native outside view"
+        };
+        let (target_view, source_view, needed, until) =
+            views(store, c, target, None).map_err(|e| phase_error(role, e))?;
         if !crate::transitions::consultation_source::ready(
             store,
             c,
@@ -544,12 +561,15 @@ impl Store {
         }
         let scopes = {
             let c = self.try_connection()?;
-            selected_views(self, &c, origin, remote, private, outside, outside_sip)?.1
+            selected_views(self, &c, origin, remote, private, outside, outside_sip)
+                .map_err(|e| phase_error("scope derivation", e))?
+                .1
         };
         let held = self.try_acquire_authority(&scopes)?;
         let c = self.try_connection()?;
         let (current, needed, expiry) =
-            selected_views(self, &c, origin, remote, private, outside, outside_sip)?;
+            selected_views(self, &c, origin, remote, private, outside, outside_sip)
+                .map_err(|e| phase_error("current views", e))?;
         if !self.authority_covers(&held, &needed) {
             return Err(Error::forbidden());
         }
@@ -590,7 +610,8 @@ impl Store {
             private,
             held.clone(),
             expiry,
-        )?;
+        )
+        .map_err(|e| phase_error("SIP reads", e))?;
         let (sip_receive, sip_send) = consultation_sip::private::edges(
             self,
             &c,
@@ -600,7 +621,8 @@ impl Store {
             outside_sip,
             &sip_reads,
             &reads,
-        )?;
+        )
+        .map_err(|e| phase_error("SIP pair edges", e))?;
         let mut private_snapshots = private
             .iter()
             .map(|s| s.snapshot(self, &c))
