@@ -6,6 +6,11 @@ use crate::{NativeConsultationReturnOrigin, SipAudienceOrigin, SipAudienceRead};
 use sha2::{Digest, Sha256};
 use std::collections::{BTreeMap, BTreeSet};
 
+fn phase_error(name: &str, mut error: Error) -> Error {
+    error.message = format!("Return {name}: {}", error.message);
+    error
+}
+
 #[derive(Clone)]
 pub struct NativeReturnSelection {
     pub(crate) origin: NativeConsultationReturnOrigin,
@@ -253,7 +258,10 @@ fn resolve(
     c: &Connection,
     selection: &NativeReturnSelection,
 ) -> Result<(Views, Vec<AuthorityScope>, i64)> {
-    let actor = selection.origin.require(store, c)?;
+    let actor = selection
+        .origin
+        .require(store, c)
+        .map_err(|e| phase_error("origin", e))?;
     let mut scopes = vec![
         AuthorityScope::identity(&actor.identity_id, AuthorityMode::Read)?,
         AuthorityScope::conversation(
@@ -308,13 +316,13 @@ fn resolve(
             .chain(std::iter::once(&context["remote"]))
         {
             if original["connection_id"] == source.connection_id()
-                && original != &source.facts(store, c)?.1
+                && original != &source.return_facts(store, c, &candidate)?.1
             {
                 return Err(Error::forbidden());
             }
         }
     }
-    let (sip_scopes, sip_expiry) = store.sip_audience_facts(
+    let (sip_scopes, sip_expiry) = store.sip_audience_facts_with_closure(
         c,
         &selection.origin.request.conversation_id,
         &selection.origin.request.session_id,
@@ -323,6 +331,7 @@ fn resolve(
             .sources
             .iter()
             .map(|s| s.connection_id().to_owned()),
+        Some(&candidate),
     )?;
     scopes.extend(sip_scopes);
     expires_at = expires_at.min(sip_expiry);
@@ -350,9 +359,9 @@ fn resolve(
                 // This fresh return already validated the original captured context.
                 // Restore its primary without reopening the old private media grant;
                 // its partner may have lost receive rights or already departed.
-                closure_facts(store, c, source)?
+                closure_facts(store, c, source).map_err(|e| phase_error("native closure", e))?
             } else {
-                facts(store, c, source)?
+                facts(store, c, source).map_err(|e| phase_error("native programme", e))?
             };
         if !actor.permits_recipient(&view.session.actor.identity_id) {
             return Err(Error::forbidden());
@@ -455,16 +464,21 @@ impl Store {
             sips: sips.to_vec(),
             sip_snapshots: {
                 let c = self.try_connection()?;
-                consultation_sip::snapshot(self, &c, sips)?
+                let candidate: String = c.query_row("SELECT connection_id FROM consultation_candidate_bindings WHERE operation_record_id=?1", [origin.consultation_record_id()], |r|r.get(0)).map_err(|_|Error::storage())?;
+                consultation_sip::return_snapshot(self, &c, sips, &candidate)
+                    .map_err(|e| phase_error("SIP snapshot", e))?
             },
         };
         let scopes = {
             let c = self.try_connection()?;
-            resolve(self, &c, &selection)?.1
+            resolve(self, &c, &selection)
+                .map_err(|e| phase_error("scope derivation", e))?
+                .1
         };
         let held = self.try_acquire_authority(&scopes)?;
         let c = self.try_connection()?;
-        let (views, current, expires_at) = resolve(self, &c, &selection)?;
+        let (views, current, expires_at) =
+            resolve(self, &c, &selection).map_err(|e| phase_error("current views", e))?;
         if !self.authority_covers(&held, &current) || crate::now() >= expires_at {
             return Err(Error::forbidden());
         }
@@ -486,14 +500,16 @@ impl Store {
             })
             .collect();
         let sip_reads =
-            consultation_sip::return_reads(self, &c, sips, origin, held.clone(), expires_at)?;
+            consultation_sip::return_reads(self, &c, sips, origin, held.clone(), expires_at)
+                .map_err(|e| phase_error("SIP control", e))?;
         let (primary, candidate): (String, String) = c.query_row(
             "SELECT primary_connection_id,connection_id FROM consultation_candidate_bindings WHERE operation_record_id=?1",
             [origin.consultation_record_id()], |r| Ok((r.get(0)?,r.get(1)?)),
         ).map_err(|_|Error::storage())?;
         let sip_send = consultation_sip::return_edges(
             self, &c, sources, &sip_reads, &mut reads, &primary, &candidate,
-        )?;
+        )
+        .map_err(|e| phase_error("return edges", e))?;
         Ok(NativeReturnRead {
             candidate,
             sip_send,

@@ -557,11 +557,20 @@ fn return_admission(
             && runtime.as_deref() == Some(store.runtime_epoch());
         if live {
             if slot.get("source_kind").is_some() {
-                let (readers, _) = store.sip_audience_snapshot_facts(
+                // Returning this captured private candidate closes its own
+                // call; it does not restore any of its media programmes.
+                let purpose =
+                    if id == target.candidate && slot["source_kind"] == "private-initial-sip" {
+                        crate::connection_control::private_consultation::Purpose::Presence
+                    } else {
+                        crate::connection_control::private_consultation::Purpose::Media
+                    };
+                let (readers, _) = store.sip_audience_snapshot_facts_for(
                     c,
                     slot,
                     &r.conversation_id,
                     &r.session_id,
+                    purpose,
                 )?;
                 sources.additional_readers.extend(readers);
             } else {

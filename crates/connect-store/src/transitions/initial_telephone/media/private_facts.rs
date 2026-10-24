@@ -46,7 +46,12 @@ impl Store {
         until: i64,
     ) -> Result<InitialTelephoneMediaRead> {
         let actor = returning.require(self, c)?;
-        let (mut required, binding, expiry) = facts(self, c, &origin)?;
+        let (mut required, binding, expiry) = facts_for(
+            self,
+            c,
+            &origin,
+            crate::connection_control::private_consultation::Purpose::Presence,
+        )?;
         let context: String = c.query_row(
             "SELECT r.context_selection_json FROM native_consultation_returns r
              JOIN consultation_candidate_bindings b ON b.operation_record_id=r.consultation_record_id
@@ -121,6 +126,21 @@ pub(super) fn selection_projection(
 ) -> Result<InitialTelephoneProjection> {
     let (_, _, physical_expiry) = facts(store, c, origin)?;
     projection(c, origin, until.min(physical_expiry))
+}
+
+pub(super) fn return_projection(
+    store: &Store,
+    c: &Connection,
+    origin: &InitialTelephoneMediaOrigin,
+    until: i64,
+) -> Result<InitialTelephoneProjection> {
+    let (_, _, expires) = facts_for(
+        store,
+        c,
+        origin,
+        crate::connection_control::private_consultation::Purpose::Presence,
+    )?;
+    projection(c, origin, until.min(expires))
 }
 
 pub(super) fn current_authority(
