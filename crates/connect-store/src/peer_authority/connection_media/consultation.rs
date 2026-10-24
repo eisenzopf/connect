@@ -582,10 +582,19 @@ impl Store {
             )
             .chain(outside_sip.iter().cloned())
             .collect::<Vec<_>>();
-        let sip_reads = consultation_sip::reads(self, &c, &sips, held.clone(), expiry)?;
+        let sip_reads = consultation_sip::consultation_reads(
+            self,
+            &c,
+            &sips,
+            origin,
+            private,
+            held.clone(),
+            expiry,
+        )?;
         let (sip_receive, sip_send) = consultation_sip::private::edges(
             self,
             &c,
+            origin,
             private,
             outside,
             outside_sip,

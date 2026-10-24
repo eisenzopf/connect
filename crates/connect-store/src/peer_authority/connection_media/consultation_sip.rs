@@ -265,6 +265,42 @@ pub(super) fn reads(
         })
         .collect()
 }
+/// Freshly selected private candidates use their original consultation's
+/// complete interval. Unselected private origins get no public-reader fallback.
+pub(super) fn consultation_reads(
+    store: &Store,
+    c: &Connection,
+    sources: &[SipAudienceOrigin],
+    origin: &crate::NativeConsultationOrigin,
+    private: &[ConsultationMediaOrigin],
+    held: Arc<AuthorityGuardSet>,
+    until: i64,
+) -> Result<BTreeMap<String, Arc<SipAudienceRead>>> {
+    sources
+        .iter()
+        .map(|s| {
+            let read = match s {
+                SipAudienceOrigin::Initial(o) if o.source().is_private_candidate() => {
+                    if !private
+                        .iter()
+                        .any(|p| p.connection_id() == o.connection_id())
+                    {
+                        return Err(Error::forbidden());
+                    }
+                    SipAudienceRead::Initial(Arc::new(store.initial_telephone_consultation_in(
+                        c,
+                        o.clone(),
+                        origin,
+                        held.clone(),
+                        until,
+                    )?))
+                }
+                _ => s.read(store, c, held.clone(), until)?,
+            };
+            Ok((s.connection_id().into(), Arc::new(read)))
+        })
+        .collect()
+}
 /// Return grants restore only the original primary's public programmes. Other
 /// private pairs keep their own physical floors and current registered context.
 pub(super) fn return_edges(

@@ -3,6 +3,70 @@
 //! pending selection and established private lifetimes validate their own rights.
 use super::*;
 
+impl Store {
+    /// Only the complete consultation planner can supply this owned interval.
+    /// The root is revalidated here; physical metadata alone cannot issue it.
+    pub(crate) fn initial_telephone_consultation_in(
+        &self,
+        c: &Connection,
+        origin: Arc<InitialTelephoneMediaOrigin>,
+        root: &crate::NativeConsultationOrigin,
+        interval: Arc<AuthorityGuardSet>,
+        until: i64,
+    ) -> Result<InitialTelephoneMediaRead> {
+        if !origin.source().is_private_candidate()
+            || origin.source().parent.record_id() != root.record_id()
+            || origin.source().conversation_id != root.request().conversation_id
+            || origin.source().session_id != root.request().session_id
+        {
+            return Err(Error::forbidden());
+        }
+        let (actor, mut required) = root.require(self, c)?;
+        required.extend(facts(self, c, &origin)?.0);
+        if !self.authority_covers(&interval, &required) {
+            return Err(Error::forbidden());
+        }
+        self.initial_telephone_read_with_purpose(
+            c,
+            origin,
+            interval,
+            until.min(actor.expires_at).min(root.request().expires_at),
+            ProjectionPurpose::PrivateSelection,
+        )
+    }
+}
+
+pub(super) fn selection_projection(
+    store: &Store,
+    c: &Connection,
+    origin: &InitialTelephoneMediaOrigin,
+    until: i64,
+) -> Result<InitialTelephoneProjection> {
+    let (_, _, physical_expiry) = facts(store, c, origin)?;
+    let original = origin.signal.origin();
+    let s = origin.source();
+    let (role, revision): (String, u64) = c.query_row(
+        "SELECT p.role,v.revision FROM session_participants p JOIN conversations v ON v.id=p.conversation_id WHERE p.session_id=?1 AND p.participant_id=?2 AND p.membership_epoch=?3 AND p.state='present' AND v.closed=0",
+        params![s.session_id,s.target.participant_id,s.target.membership_epoch],
+        |r| Ok((r.get(0)?,r.get(1)?)),
+    ).map_err(|_| Error::forbidden())?;
+    let expires = until.min(physical_expiry);
+    if expires <= crate::now() {
+        return Err(Error::forbidden());
+    }
+    Ok(InitialTelephoneProjection {
+        endpoint_actor: actor_from_connection(c, &original.policy.endpoint_credential_id)?,
+        route_actor: actor_from_connection(c, &original.policy.route_credential_id)?,
+        member: s.target.clone(),
+        session: crate::session_control::view(c, &s.conversation_id, &s.session_id)?,
+        role,
+        accepted: json!({"audio":[origin.codec]}),
+        conversation_revision: revision,
+        expires,
+        connected: true,
+    })
+}
+
 pub(super) fn facts(
     store: &Store,
     c: &Connection,

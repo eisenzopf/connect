@@ -1,11 +1,21 @@
 //! Controlled reservation and authorization evidence only; no physical SIP IO.
 mod initial;
+mod planning;
 use super::super::private_consultation as private;
 use super::*;
 use crate::{AuthorityMode, AuthorityScope, InitialTelephonePolicy, NativeConsultationOrigin};
 
 fn fixture() -> (Fixture, NativeConsultationOrigin, InitialTelephonePolicy) {
-    let (f, _native, _, origin) = consultation_reads::fixture();
+    let (f, _sources, origin, policy) = fixture_with_sources();
+    (f, origin, policy)
+}
+fn fixture_with_sources() -> (
+    Fixture,
+    Vec<std::sync::Arc<crate::NativeMediaOrigin>>,
+    NativeConsultationOrigin,
+    InitialTelephonePolicy,
+) {
+    let (f, sources, _, origin) = consultation_reads::fixture();
     let target = f.store.revalidate(&f.keys[2]).unwrap().identity_id;
     let route = f.store.revalidate(&f.keys[3]).unwrap().identity_id;
     let route_admin = f
@@ -57,7 +67,7 @@ fn fixture() -> (Fixture, NativeConsultationOrigin, InitialTelephonePolicy) {
         sip_authority: "127.0.0.1:5099".into(),
         timeout_seconds: 30,
     };
-    (f, origin, policy)
+    (f, sources, origin, policy)
 }
 
 fn counts(f: &Fixture) -> Vec<u64> {

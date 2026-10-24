@@ -31,9 +31,26 @@ authority; continuing private IO still needs its own exact sealed private
 lifetime. Existing public media/signal APIs refuse this private source, and the
 bounded admission reader refuses ended execution authority.
 
-This is the typed physical-source component for G6-046. The scene planner,
-role-neutral selection and return, continuing private lifetime, actual private
-audio and INFO/RFC4733 remain implementation/qualification work. The controlled
+The Store consultation planner additionally supports an exact native-primary/SIP
+candidate pair. Its selected private IDs must equal the original registered
+primary and candidate. A SIP candidate must carry this consultation's distinct
+private snapshot; a native candidate still requires its native registration and
+an ordinary SIP primary. The candidate's private floor must name the original
+primary, and an existing primary floor cannot belong to another pair. Both sides
+need current subscription permission and reciprocal recipient ceilings.
+
+The private SIP selection reader is constructed only inside that complete
+planning interval, with fresh original consultation authority and physical facts.
+It is distinct from the bounded admission reader and cannot seed public readiness.
+Both directional edges name only the exact private pair; the retained remote and
+the candidate Participant's public native sibling receive neither edge. A cloned
+SIP reader keeps the complete interval alive until it is dropped. Planning creates
+no root effect, native admission, call or audience change.
+
+This is Store planning for G6-046. The runtime coordinator still selects native
+candidates. Role-neutral attempt/completion and return, continuing private
+lifetime, actual private audio and INFO/RFC4733 remain implementation and
+qualification work. The controlled
 Store cases verify the source boundary; the existing actual local SIP/Core
 rehearsal checks admission/quarantine/cleanup regressions. Neither qualifies a
 private audience switch or completes a Gate 6 clause/task. There is no new HTTP

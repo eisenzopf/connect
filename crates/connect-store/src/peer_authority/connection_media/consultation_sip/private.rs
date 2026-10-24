@@ -54,13 +54,57 @@ pub(in super::super) fn private_facts(
     if phones.is_empty() {
         return Ok((vec![], i64::MAX));
     }
-    // A SIP candidate needs its own protected admission. This increment never
-    // substitutes an already public call for the registered native consultant.
-    if phones.len() != 1
-        || private.len() != 2
-        || origin.request().connection_id.as_deref() != Some(phones[0].connection_id())
+    if phones.len() != 1 || private.len() != 2 {
+        return Err(Error::new(
+            "unsupported-media-profile",
+            "Private SIP selection requires one native/SIP pair",
+        ));
+    }
+    let primary = origin
+        .request()
+        .connection_id
+        .as_deref()
+        .ok_or_else(Error::forbidden)?;
+    let (candidate, kind): (String, String) = c.query_row(
+        "SELECT connection_id,candidate_kind FROM consultation_candidate_bindings WHERE operation_record_id=?1 AND primary_connection_id=?2 AND credential_id=?3 AND original_digest=?4 AND runtime_epoch=?5",
+        params![origin.record_id(),primary,origin.credential,origin.digest,store.runtime_epoch()],
+        |r| Ok((r.get(0)?,r.get(1)?)),
+    ).optional().map_err(|_|Error::storage())?.ok_or_else(Error::forbidden)?;
+    let expected = [primary, candidate.as_str()]
+        .into_iter()
+        .collect::<BTreeSet<_>>();
+    if expected.len() != 2
+        || private
+            .iter()
+            .map(ConsultationMediaOrigin::connection_id)
+            .collect::<BTreeSet<_>>()
+            != expected
     {
-        return Err(Error::new("unsupported-media-profile", "Private SIP selection requires a SIP primary and its separately admitted native consultant"));
+        return Err(Error::forbidden());
+    }
+    let phone = phones[0];
+    let binding = phone.facts(store, c)?.1;
+    match kind.as_str() {
+        "native"
+            if phone.connection_id() == primary
+                && binding["source_kind"] != "private-initial-sip" =>
+        {
+            ()
+        }
+        "sip"
+            if phone.connection_id() == candidate
+                && binding["source_kind"] == "private-initial-sip"
+                && binding["consultation_record_id"] == origin.record_id() =>
+        {
+            ()
+        }
+        _ => return Err(Error::forbidden()),
+    }
+    use crate::connection_control::private_consultation::private_partner;
+    if private_partner(c, &candidate)?.as_deref() != Some(primary)
+        || private_partner(c, primary)?.is_some_and(|partner| partner != candidate)
+    {
+        return Err(Error::forbidden());
     }
     let mut scopes = vec![];
     let mut expiry = i64::MAX;
@@ -72,17 +116,6 @@ pub(in super::super) fn private_facts(
         }
         match source {
             ConsultationMediaOrigin::Native(native) => {
-                let registered: bool = c.query_row("SELECT EXISTS(SELECT 1 FROM native_consultation_legs WHERE operation_record_id=?1 AND connection_id=?2 AND primary_connection_id=?3 AND credential_id=?4 AND original_digest=?5 AND runtime_epoch=?6)",params![origin.record_id(),native.connection_id(),phones[0].connection_id(),origin.credential,origin.digest,store.runtime_epoch()],|r|r.get(0)).map_err(|_|Error::storage())?;
-                if !registered
-                    || crate::connection_control::private_consultation::private_partner(
-                        c,
-                        native.connection_id(),
-                    )?
-                    .as_deref()
-                        != Some(phones[0].connection_id())
-                {
-                    return Err(Error::forbidden());
-                }
                 if !subscription_permission(c, native)? {
                     return Err(Error::forbidden());
                 }
@@ -122,6 +155,7 @@ pub(in super::super) fn private_facts(
 pub(in super::super) fn edges(
     store: &Store,
     c: &Connection,
+    origin: &NativeConsultationOrigin,
     private: &[ConsultationMediaOrigin],
     outside: &[Arc<NativeMediaOrigin>],
     outside_sip: &[SipAudienceOrigin],
@@ -168,11 +202,12 @@ pub(in super::super) fn edges(
                 .get(&(native.connection_id().into(), None))
                 .ok_or_else(Error::forbidden)?;
             let view = native_read.target();
-            let record = view
-                .private_consultation
-                .as_deref()
-                .ok_or_else(Error::forbidden)?;
-            let registered: bool = c.query_row("SELECT EXISTS(SELECT 1 FROM native_consultation_legs WHERE operation_record_id=?1 AND connection_id=?2 AND primary_connection_id=?3 AND runtime_epoch=?4)",params![record,native.connection_id(),id,store.runtime_epoch()],|r|r.get(0)).map_err(|_|Error::storage())?;
+            let record = if new_pair {
+                origin.record_id().to_owned()
+            } else {
+                c.query_row("SELECT operation_record_id FROM native_private_content_floors WHERE connection_id=?1 AND partner_connection_id=?2", params![native.connection_id(),id], |r|r.get::<_,String>(0)).map_err(|_|Error::storage())?
+            };
+            let registered: bool = c.query_row("SELECT EXISTS(SELECT 1 FROM consultation_candidate_bindings WHERE operation_record_id=?1 AND runtime_epoch=?4 AND ((connection_id=?2 AND primary_connection_id=?3) OR (connection_id=?3 AND primary_connection_id=?2)))",params![record,native.connection_id(),id,store.runtime_epoch()],|r|r.get(0)).map_err(|_|Error::storage())?;
             if !registered {
                 return Err(Error::forbidden());
             }

@@ -63,6 +63,7 @@ enum ProjectionPurpose {
     Media,
     Signal,
     PrivateAdmission,
+    PrivateSelection,
 }
 media_redacted!(
     InitialTelephoneAnswerCapture,
@@ -159,6 +160,9 @@ impl InitialTelephoneMediaRead {
     }
     pub fn is_private_admission(&self) -> bool {
         self.private_admission
+    }
+    pub fn is_private_audio(&self) -> bool {
+        self.origin.source().is_private_candidate()
     }
     pub fn may_receive(&self) -> bool {
         self.endpoint_actor.permits("stream.subscribe")
@@ -502,7 +506,7 @@ impl Store {
         }
         let p = self.initial_telephone_projection(c, &origin, until, purpose)?;
         let owner = self.require_runtime_owner()?;
-        if p.connected && !matches!(purpose, ProjectionPurpose::PrivateAdmission) {
+        if p.connected && matches!(purpose, ProjectionPurpose::Media) {
             self.remember_session_ready(
                 c,
                 crate::session_lifecycle::ReadyOrigin::InitialTelephone(origin.clone()),
@@ -536,6 +540,9 @@ impl Store {
         let s = &original.source;
         if matches!(purpose, ProjectionPurpose::PrivateAdmission) {
             return private_admission::projection(self, c, origin, until);
+        }
+        if matches!(purpose, ProjectionPurpose::PrivateSelection) {
+            return private_facts::selection_projection(self, c, origin, until);
         }
         if s.is_private_candidate() {
             return Err(Error::forbidden());
