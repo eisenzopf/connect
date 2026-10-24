@@ -305,3 +305,74 @@ fn private_answer_sql_requires_exact_original_consent_and_keeps_it_immutable() {
         )
         .is_err());
 }
+
+#[test]
+fn private_answer_backup_preserves_consent_detects_its_tampering_and_fences_old_runtime() {
+    let (f, parent, policy, reservation, initial) = prepared();
+    let signal = signaling(&f, &initial);
+    let capture = signal.capture_answer(signal.sip_call_id(), "PCMU").unwrap();
+    assert!(f
+        .store
+        .record_private_initial_telephone_answer(&capture)
+        .unwrap()
+        .media
+        .is_some());
+    let backup = f._dir.path().join("private-consent-backup.sqlite3");
+    let expected = f.store.backup(&backup).unwrap();
+    assert_eq!(expected.schema, 106);
+    assert_eq!(Store::inspect_snapshot(&backup).unwrap(), expected);
+    let tampered = f._dir.path().join("private-consent-tampered.sqlite3");
+    std::fs::copy(&backup, &tampered).unwrap();
+    let c = rusqlite::Connection::open(&tampered).unwrap();
+    c.execute_batch("DROP TRIGGER private_telephone_acceptance_immutable; UPDATE initial_telephone_private_acceptances SET accepted_at=accepted_at+1;").unwrap();
+    drop(c);
+    assert_ne!(
+        Store::inspect_snapshot(&tampered).unwrap().digest,
+        expected.digest,
+        "snapshot digest must include the populated own-consent row"
+    );
+    let restored = Store::open(&backup, Limits::default()).unwrap();
+    assert_ne!(restored.runtime_epoch(), f.store.runtime_epoch());
+    let c = restored.connection().unwrap();
+    let row:(String,String,String,u64,String,String)=c.query_row("SELECT consultation_record_id,endpoint_credential_id,endpoint_id,membership_epoch,codec,audience_json FROM initial_telephone_private_acceptances WHERE operation_record_id=?1",[initial.record_id()],|r|Ok((r.get(0)?,r.get(1)?,r.get(2)?,r.get(3)?,r.get(4)?,r.get(5)?))).unwrap();
+    assert_eq!(
+        row,
+        (
+            parent.record_id().into(),
+            policy.endpoint_credential_id,
+            policy.endpoint_id,
+            initial.source().target.membership_epoch,
+            "g.711-mu".into(),
+            serde_json::to_string(&initial.source().audience).unwrap()
+        )
+    );
+    let accepted:(String,String,bool,bool)=c.query_row("SELECT acceptance_kind,acceptance_record_id,accepted,connected_at IS NOT NULL FROM initial_telephone_answers WHERE operation_record_id=?1",[initial.record_id()],|r|Ok((r.get(0)?,r.get(1)?,r.get(2)?,r.get(3)?))).unwrap();
+    assert_eq!(
+        accepted,
+        (
+            "private-connection".into(),
+            initial.record_id().into(),
+            true,
+            false
+        )
+    );
+    drop(c);
+    assert!(restored
+        .record_private_initial_telephone_answer(&capture)
+        .is_err());
+    assert!(restored
+        .validate_sip_consultation_reservation(&reservation)
+        .is_err());
+    assert_eq!(
+        restored
+            .connection()
+            .unwrap()
+            .query_row(
+                "SELECT count(*) FROM initial_telephone_private_acceptances",
+                [],
+                |r| r.get::<_, u64>(0)
+            )
+            .unwrap(),
+        1
+    );
+}

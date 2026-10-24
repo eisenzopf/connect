@@ -34,8 +34,9 @@ records controlled Core ticket and guarded-port evidence and the reproduced
 ringing rebind failures. These fixtures do not establish SIP wire delivery or a
 completed Connect private candidate. The
 [Connect call-custody boundary](private-sip-candidate-initial.md) remains
-separate: its host still needs private answer acceptance/readiness, this Core
-path, typed candidate media/DTMF, return and physical cleanup. The
+separate: [own private answer consent](private-sip-candidate-answer.md) now
+exists in Store, while its host still needs guarded private readiness and this
+Core path, typed candidate media/DTMF, return and physical cleanup. The
 [private consultation contract](../../contracts/private-consultation.md) defines
 the shared engine behavior. No new public HTTP method is introduced; the
 [server HTTP reference](canonical-http.md) retains the existing methods.
