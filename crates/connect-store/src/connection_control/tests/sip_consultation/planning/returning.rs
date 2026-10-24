@@ -500,3 +500,29 @@ fn private_sip_return_recording_survives_ended_return_grant_and_foreign_runtime_
         .complete_native_consultation_return(&receipt)
         .is_err());
 }
+
+#[test]
+fn restored_private_sip_candidate_loses_signal_context_before_physical_cleanup() {
+    use crate::TelephoneSignalDirection::{FromTelephone, ToTelephone};
+    let r = Returning::new(false);
+    let s = &r.scene;
+    s.grant_signal_permissions();
+    for direction in [FromTelephone, ToTelephone] {
+        assert!(s.signal(0, direction).unwrap().current());
+    }
+    let receipt = r.applied(true);
+    s.f.store
+        .record_native_consultation_return_applied(&receipt)
+        .unwrap();
+    assert!(s.f.store.connection().unwrap().query_row(
+        "SELECT connected_at IS NOT NULL AND retired_at IS NULL FROM initial_telephone_answers WHERE operation_record_id=?1",
+        [s.phone.record_id()],|r|r.get::<_,bool>(0)).unwrap());
+    for direction in [FromTelephone, ToTelephone] {
+        assert!(s.signal(0, direction).is_err());
+        assert!(s
+            .f
+            .store
+            .try_sip_signal_read(&crate::SipSignalOrigin::Initial(s.phone.clone()), direction)
+            .is_err());
+    }
+}

@@ -5,6 +5,7 @@ use std::sync::Arc;
 mod lifetime;
 mod purpose;
 mod returning;
+mod signal;
 
 struct Observed(crate::InitialTelephoneReadyObservation);
 impl crate::PrivateInitialTelephoneRuntimeObservation for Observed {

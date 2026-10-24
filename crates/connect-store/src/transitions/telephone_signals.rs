@@ -129,6 +129,15 @@ impl SipSignalOrigin {
         until: i64,
     ) -> Result<SipSignalRead> {
         match self {
+            Self::Initial(o) if o.source().is_private_candidate() => store
+                .private_initial_telephone_signal_in(
+                    c,
+                    o.clone(),
+                    initial_direction(direction),
+                    interval,
+                    until,
+                )
+                .map(SipSignalRead::Initial),
             Self::Initial(o) => store
                 .initial_telephone_signal_in(
                     c,
@@ -283,24 +292,48 @@ impl Store {
         use crate::connection_control::private_consultation::private_partner;
         let phone_partner = private_partner(c, phone)?;
         let native_partner = private_partner(c, native.connection_id())?;
-        match private_record {
-            None if phone_partner.is_none() && native_partner.is_none() => Ok(()),
-            Some(record)
-                if phone_partner.as_deref() == Some(native.connection_id())
-                    && native_partner.as_deref() == Some(phone) =>
-            {
-                let exact: bool = c.query_row(
-                    "SELECT EXISTS(SELECT 1 FROM native_consultation_legs l JOIN native_private_content_floors f ON f.operation_record_id=l.operation_record_id AND f.connection_id=l.primary_connection_id AND f.is_candidate=0 WHERE l.operation_record_id=?1 AND l.connection_id=?2 AND l.primary_connection_id=?3 AND l.runtime_epoch=?4)",
-                    params![record, native.connection_id(), phone, self.runtime_epoch()],
-                    |r| r.get(0),
-                ).map_err(|_| Error::storage())?;
-                if exact {
-                    Ok(())
-                } else {
-                    Err(Error::forbidden())
-                }
+        if phone_partner.is_none() && native_partner.is_none() {
+            return if private_record.is_none() {
+                Ok(())
+            } else {
+                Err(Error::forbidden())
+            };
+        }
+        if phone_partner.as_deref() != Some(native.connection_id())
+            || native_partner.as_deref() != Some(phone)
+        {
+            return Err(Error::forbidden());
+        }
+        // Match both original roles under the same reciprocal floor. Readers
+        // separately validate the complete current purpose context and interval;
+        // this metadata match cannot authorize signal or media IO on its own.
+        let binding: Option<(String, String, String, String)> = c.query_row(
+            "SELECT b.operation_record_id,b.candidate_kind,b.connection_id,b.primary_connection_id
+             FROM consultation_candidate_bindings b
+             JOIN native_private_content_floors p ON p.operation_record_id=b.operation_record_id AND p.connection_id=?1 AND p.partner_connection_id=?2
+             JOIN native_private_content_floors n ON n.operation_record_id=b.operation_record_id AND n.connection_id=?2 AND n.partner_connection_id=?1
+             WHERE b.runtime_epoch=?3",
+            params![phone,native.connection_id(),self.runtime_epoch()],
+            |r|Ok((r.get(0)?,r.get(1)?,r.get(2)?,r.get(3)?)),
+        ).optional().map_err(|_|Error::storage())?;
+        let Some((record, kind, candidate, primary)) = binding else {
+            return Err(Error::forbidden());
+        };
+        let exact = match kind.as_str() {
+            "native" => {
+                candidate == native.connection_id()
+                    && primary == phone
+                    && private_record == Some(record.as_str())
             }
-            _ => Err(Error::forbidden()),
+            "sip" => {
+                candidate == phone && primary == native.connection_id() && private_record.is_none()
+            }
+            _ => false,
+        };
+        if exact {
+            Ok(())
+        } else {
+            Err(Error::forbidden())
         }
     }
     pub fn try_sip_signal_read(

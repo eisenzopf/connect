@@ -89,6 +89,46 @@ pub(super) fn selection_projection(
     until: i64,
 ) -> Result<InitialTelephoneProjection> {
     let (_, _, physical_expiry) = facts(store, c, origin)?;
+    projection(c, origin, until.min(physical_expiry))
+}
+
+/// Signal context is distinct from admission and media selection. It requires
+/// captured application or a sealed lifetime, never mere private readiness.
+pub(super) fn signal_authority(
+    store: &Store,
+    c: &Connection,
+    origin: &InitialTelephoneMediaOrigin,
+) -> Result<(Vec<AuthorityScope>, i64)> {
+    use crate::connection_control::private_consultation::{registered_current, Purpose};
+    let (mut scopes, _, expires) = facts_for(store, c, origin, Purpose::Signal)?;
+    let context = registered_current(
+        store,
+        c,
+        origin.source().parent.record_id(),
+        Purpose::Signal,
+    )?;
+    scopes.extend(context.scopes);
+    Ok((
+        AuthorityScope::merged(&scopes)?,
+        expires.min(context.expires_at),
+    ))
+}
+
+pub(super) fn signal_projection(
+    store: &Store,
+    c: &Connection,
+    origin: &InitialTelephoneMediaOrigin,
+    until: i64,
+) -> Result<InitialTelephoneProjection> {
+    let (_, expires) = signal_authority(store, c, origin)?;
+    projection(c, origin, until.min(expires))
+}
+
+fn projection(
+    c: &Connection,
+    origin: &InitialTelephoneMediaOrigin,
+    expires: i64,
+) -> Result<InitialTelephoneProjection> {
     let original = origin.signal.origin();
     let s = origin.source();
     let (role, revision): (String, u64) = c.query_row(
@@ -96,7 +136,6 @@ pub(super) fn selection_projection(
         params![s.session_id,s.target.participant_id,s.target.membership_epoch],
         |r| Ok((r.get(0)?,r.get(1)?)),
     ).map_err(|_| Error::forbidden())?;
-    let expires = until.min(physical_expiry);
     if expires <= crate::now() {
         return Err(Error::forbidden());
     }

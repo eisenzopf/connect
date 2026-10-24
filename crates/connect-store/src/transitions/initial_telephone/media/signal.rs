@@ -62,6 +62,9 @@ impl Store {
         c: &Connection,
         origin: &InitialTelephoneMediaOrigin,
     ) -> Result<Vec<AuthorityScope>> {
+        if origin.source().is_private_candidate() {
+            return Ok(private_facts::signal_authority(self, c, origin)?.0);
+        }
         current_scopes(c, origin.signal.origin(), false)
     }
     pub fn try_initial_telephone_signal_read(
@@ -69,6 +72,9 @@ impl Store {
         origin: Arc<InitialTelephoneMediaOrigin>,
         direction: InitialTelephoneSignalDirection,
     ) -> Result<InitialTelephoneSignalRead> {
+        if origin.source().is_private_candidate() {
+            return Err(Error::forbidden());
+        }
         let required = {
             let c = self.try_connection()?;
             historical_lifetime(self, &c, &origin.signal)?;
@@ -88,11 +94,42 @@ impl Store {
     ) -> Result<InitialTelephoneSignalRead> {
         if !self.authority_covers(
             &interval,
-            &current_scopes(c, origin.signal.origin(), false)?,
+            &self.initial_telephone_signal_scopes(c, &origin)?,
         ) {
             return Err(Error::forbidden());
         }
         let p = self.initial_telephone_projection(c, &origin, until, ProjectionPurpose::Signal)?;
+        self.initial_telephone_signal_from_projection(c, origin, direction, interval, p)
+    }
+    /// Only typed private signal dispatch may use this constructor. The complete
+    /// current context is rechecked under the caller's owned interval.
+    pub(crate) fn private_initial_telephone_signal_in(
+        &self,
+        c: &Connection,
+        origin: Arc<InitialTelephoneMediaOrigin>,
+        direction: InitialTelephoneSignalDirection,
+        interval: Arc<AuthorityGuardSet>,
+        until: i64,
+    ) -> Result<InitialTelephoneSignalRead> {
+        if !origin.source().is_private_candidate()
+            || !self.authority_covers(
+                &interval,
+                &self.initial_telephone_signal_scopes(c, &origin)?,
+            )
+        {
+            return Err(Error::forbidden());
+        }
+        let p = private_facts::signal_projection(self, c, &origin, until)?;
+        self.initial_telephone_signal_from_projection(c, origin, direction, interval, p)
+    }
+    fn initial_telephone_signal_from_projection(
+        &self,
+        c: &Connection,
+        origin: Arc<InitialTelephoneMediaOrigin>,
+        direction: InitialTelephoneSignalDirection,
+        interval: Arc<AuthorityGuardSet>,
+        p: InitialTelephoneProjection,
+    ) -> Result<InitialTelephoneSignalRead> {
         p.endpoint_actor.require(direction.permission())?;
         let connected: bool = c.query_row(
             "SELECT EXISTS(SELECT 1 FROM connections WHERE id=?1 AND generation=1 AND state IN ('ready','active') AND observed_runtime_id=?2 AND readiness_json IS NOT NULL)",
@@ -115,7 +152,7 @@ impl Store {
     }
 }
 
-/// One complete authority interval for this exact public native/SIP pair.
+/// One complete authority interval for this exact native/SIP signal pair.
 /// Queue metadata, never this reader. It supplies neither a durable attempt nor
 /// an actual transport observation, and cannot be converted into a media read.
 pub struct InitialTelephoneNativeSignalRead {
@@ -175,7 +212,7 @@ impl Store {
             return Err(Error::forbidden());
         }
         let (_, mut required, _) = self.native_signal_facts_at(c, native)?;
-        required.extend(current_scopes(c, phone.signal.origin(), false)?);
+        required.extend(self.initial_telephone_signal_scopes(c, phone)?);
         AuthorityScope::merged(&required)
     }
     pub(crate) fn initial_telephone_native_signal_in(
@@ -192,13 +229,23 @@ impl Store {
             return Err(Error::forbidden());
         }
         let (_, _, expiry) = self.native_signal_facts_at(c, &native)?;
-        let phone = self.initial_telephone_signal_in(
-            c,
-            phone,
-            direction,
-            interval.clone(),
-            until.min(expiry),
-        )?;
+        let phone = if phone.source().is_private_candidate() {
+            self.private_initial_telephone_signal_in(
+                c,
+                phone,
+                direction,
+                interval.clone(),
+                until.min(expiry),
+            )?
+        } else {
+            self.initial_telephone_signal_in(
+                c,
+                phone,
+                direction,
+                interval.clone(),
+                until.min(expiry),
+            )?
+        };
         let native_read = self.native_signal_read_in(c, &native, interval, phone.expires_at())?;
         let view = native_read.target();
         self.require_sip_native_pair_context(
