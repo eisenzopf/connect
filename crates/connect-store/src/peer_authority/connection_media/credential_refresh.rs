@@ -256,6 +256,7 @@ impl Store {
             next.credential_epoch += 1;
             next.binding = next_binding.clone();
             next.expires_at = next_expiry;
+            next.metadata = snapshot::new_metadata();
             let revision:u64=c.query_row("SELECT json_extract(readiness_json,'$.stream_revision') FROM connections WHERE id=?1 AND generation=?2",params![origin.connection_id(),origin.generation()],|r|r.get(0)).map_err(|_|Error::storage())?;
             targets.push(NativeCredentialRefreshTarget {
                 original: origin,

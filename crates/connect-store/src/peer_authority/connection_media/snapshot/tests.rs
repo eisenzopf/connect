@@ -128,3 +128,182 @@ fn packet_snapshot_refuses_queued_writer_without_waiting_under_sql_and_recovers(
     drop(exclusive);
     assert_eq!(acquire(&f.store, &c, |c| f.derive(c)).unwrap().0, 1);
 }
+
+#[test]
+fn packet_metadata_memo_reuses_only_unchanged_facts_with_independent_fresh_readers() {
+    let f = Fixture::new();
+    let memo = Memo::default();
+    let count = std::cell::Cell::new(0);
+    let c = f.store.try_connection().unwrap();
+    let derive = |c: &Connection| {
+        count.set(count.get() + 1);
+        f.derive(c)
+    };
+    let (one, first) = cached(&f.store, &c, &memo, None, derive).unwrap();
+    let (two, second) = cached(&f.store, &c, &memo, None, derive).unwrap();
+    assert_eq!((one, two, count.get()), (1, 1, 1));
+    assert!(!Arc::ptr_eq(&first, &second), "a memo never lends a guard");
+    drop(first);
+    drop(second);
+    let writer = f.store.try_acquire_authority(&[f.write.clone()]).unwrap();
+    assert_eq!(
+        cached(&f.store, &c, &memo, None, derive).unwrap_err().code,
+        "authority-busy",
+        "even a cache hit must enter fresh authority"
+    );
+    drop(writer);
+    assert_eq!(cached(&f.store, &c, &memo, None, derive).unwrap().0, 1);
+    assert_eq!(count.get(), 1);
+}
+
+#[test]
+fn packet_metadata_memo_invalidates_external_own_clock_connection_and_source_changes() {
+    let f = Fixture::new();
+    let memo = Memo::default();
+    let source = new_metadata();
+    let other_source = new_metadata();
+    let count = std::cell::Cell::new(0);
+    let derive = |c: &Connection| {
+        count.set(count.get() + 1);
+        f.derive(c)
+    };
+    let c = f.store.try_connection().unwrap();
+    assert_eq!(
+        cached(&f.store, &c, &memo, Some(&source), derive)
+            .unwrap()
+            .0,
+        1
+    );
+    let external = Connection::open(f.store.path()).unwrap();
+    external
+        .execute("UPDATE packet_snapshot_test SET value=2", [])
+        .unwrap();
+    assert_eq!(
+        cached(&f.store, &c, &memo, Some(&source), derive)
+            .unwrap()
+            .0,
+        2
+    );
+    assert_eq!(count.get(), 2);
+    c.execute("UPDATE packet_snapshot_test SET value=3", [])
+        .unwrap();
+    assert_eq!(
+        cached(&f.store, &c, &memo, Some(&source), derive)
+            .unwrap()
+            .0,
+        3
+    );
+    assert_eq!(count.get(), 3);
+    // Controlled memo timestamp models crossing an integer policy-clock edge.
+    memo.0.lock().unwrap().as_mut().unwrap().version.second -= 1;
+    assert_eq!(
+        cached(&f.store, &c, &memo, Some(&source), derive)
+            .unwrap()
+            .0,
+        3
+    );
+    assert_eq!(count.get(), 4);
+    assert_eq!(
+        cached(&f.store, &c, &memo, Some(&other_source), derive)
+            .unwrap()
+            .0,
+        3
+    );
+    assert_eq!(count.get(), 5);
+    assert_eq!(cached(&f.store, &c, &memo, None, derive).unwrap().0, 3);
+    assert_eq!(count.get(), 6);
+    c.execute_batch("ALTER TABLE packet_snapshot_test ADD COLUMN marker INTEGER")
+        .unwrap();
+    assert_eq!(cached(&f.store, &c, &memo, None, derive).unwrap().0, 3);
+    assert_eq!(
+        count.get(),
+        7,
+        "own DDL changes schema_version, not total_changes"
+    );
+    // SQLite data_version/total_changes counters are connection-local; equal
+    // counters from a different Connection can never validate this entry.
+    assert_eq!(
+        cached(&f.store, &external, &memo, None, derive).unwrap().0,
+        3
+    );
+    assert_eq!(count.get(), 8);
+}
+
+#[test]
+fn packet_metadata_memo_contention_and_failed_capture_keep_no_cached_grant() {
+    let f = Fixture::new();
+    let memo = Memo::default();
+    let c = f.store.try_connection().unwrap();
+    let locked = memo.0.lock().unwrap();
+    let start = Instant::now();
+    drop(cached(&f.store, &c, &memo, None, |c| f.derive(c)).unwrap());
+    assert!(start.elapsed() < Duration::from_millis(500));
+    drop(locked);
+    assert!(
+        memo.0.lock().unwrap().is_none(),
+        "contended memo is optional metadata"
+    );
+    let external = Connection::open(f.store.path()).unwrap();
+    assert_eq!(
+        cached(&f.store, &c, &memo, None, |c| {
+            let facts = f.derive(c)?;
+            external
+                .execute("UPDATE packet_snapshot_test SET value=9", [])
+                .unwrap();
+            Ok(facts)
+        })
+        .unwrap_err()
+        .code,
+        "authority-busy"
+    );
+    assert!(
+        memo.0.lock().unwrap().is_none(),
+        "failed admission cannot populate memo"
+    );
+    drop(f.store.try_acquire_authority(&[f.write.clone()]).unwrap());
+    assert_eq!(
+        cached(&f.store, &c, &memo, None, |c| f.derive(c))
+            .unwrap()
+            .0,
+        9
+    );
+}
+
+#[test]
+fn packet_snapshot_clock_boundary_rechecks_with_owned_reader_behind_queued_writer() {
+    let f = Fixture::new();
+    let c = f.store.try_connection().unwrap();
+    let mut calls = 0;
+    let mut writer = None;
+    let (value, held) = acquire_at(&f.store, &c, |c, stamp| {
+        calls += 1;
+        if calls == 1 {
+            // Actual policy-clock crossing, without changing the system clock.
+            while crate::now() == stamp.second {
+                std::thread::sleep(Duration::from_millis(2));
+            }
+        } else {
+            let store = f.store.clone();
+            let scope = f.write.clone();
+            writer = Some(std::thread::spawn(move || {
+                store
+                    .acquire_authority(&[scope], &crate::AuthorityWait::new(Duration::from_secs(2)))
+            }));
+            let deadline = Instant::now() + Duration::from_millis(500);
+            loop {
+                if f.store.try_acquire_authority(&[f.read.clone()]).is_err() {
+                    break;
+                }
+                assert!(Instant::now() < deadline, "writer never queued");
+                std::thread::yield_now();
+            }
+        }
+        f.derive(c)
+    })
+    .unwrap();
+    assert_eq!((value, calls), (1, 2));
+    assert!(!writer.as_ref().unwrap().is_finished());
+    drop(c);
+    drop(held);
+    drop(writer.unwrap().join().unwrap().unwrap());
+}

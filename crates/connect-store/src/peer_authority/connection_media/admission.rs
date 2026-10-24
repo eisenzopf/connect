@@ -113,6 +113,7 @@ impl Store {
             public_key,
             expires_at: expires,
             credential_epoch: 0,
+            metadata: snapshot::new_metadata(),
         }))
     }
 }
