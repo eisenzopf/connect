@@ -142,3 +142,26 @@ fn private_sip_phase_cannot_bootstrap_original_call_in_another_runtime() {
     assert!(restored.private_initial_telephone_phase(&s.phone).is_err());
     assert_eq!(s.phase().unwrap(), Established);
 }
+
+#[test]
+fn answered_private_sip_can_finish_quarantined_admission_before_connected_record() {
+    let s = Scene::with_connection_state(Some("phase-before-connected"), false, false);
+    assert_eq!(s.phase().unwrap(), Quarantined);
+    let admission =
+        s.f.store
+            .try_private_initial_telephone_admission_read(s.phone.clone())
+            .unwrap();
+    assert!(admission.current() && admission.is_private_admission() && !admission.is_connected());
+    drop(admission);
+    assert!(s.packets().is_err());
+    assert!(s.read().is_err());
+    s.f.store
+        .connection()
+        .unwrap()
+        .execute(
+            "UPDATE credentials SET revoked=1 WHERE id=?1",
+            [&s.policy.route_credential_id],
+        )
+        .unwrap();
+    assert!(s.phase().is_err());
+}

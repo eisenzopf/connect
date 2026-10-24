@@ -32,6 +32,13 @@ impl Scene {
         Self::with_endpoint_credential(operation, false)
     }
     fn with_endpoint_credential(operation: Option<&str>, separate_endpoint: bool) -> Self {
+        Self::with_connection_state(operation, separate_endpoint, true)
+    }
+    fn with_connection_state(
+        operation: Option<&str>,
+        separate_endpoint: bool,
+        connected: bool,
+    ) -> Self {
         let (f, native, mut root, mut policy) = fixture_with_sources();
         if separate_endpoint {
             let actor = f.store.revalidate(&policy.endpoint_credential_id).unwrap();
@@ -104,21 +111,23 @@ impl Scene {
             .unwrap()
             .media
             .unwrap();
-        f.store
-            .record_private_initial_telephone_connected(
-                phone.clone(),
-                &Observed(crate::InitialTelephoneReadyObservation {
-                    runtime_connection_id: phone.runtime_connection_id().into(),
-                    call_id: phone.sip_call_id().into(),
-                    participant_id: phone.source().target.participant_id.clone(),
-                    membership_epoch: phone.source().target.membership_epoch,
-                    generation: 1,
-                    stream_revision: 2,
-                    participant_revision: 2,
-                    streams: vec!["telephone-audio".into()],
-                }),
-            )
-            .unwrap();
+        if connected {
+            f.store
+                .record_private_initial_telephone_connected(
+                    phone.clone(),
+                    &Observed(crate::InitialTelephoneReadyObservation {
+                        runtime_connection_id: phone.runtime_connection_id().into(),
+                        call_id: phone.sip_call_id().into(),
+                        participant_id: phone.source().target.participant_id.clone(),
+                        membership_epoch: phone.source().target.membership_epoch,
+                        generation: 1,
+                        stream_revision: 2,
+                        participant_revision: 2,
+                        streams: vec!["telephone-audio".into()],
+                    }),
+                )
+                .unwrap();
+        }
         Self {
             f,
             native,

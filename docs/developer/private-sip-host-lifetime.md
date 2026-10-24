@@ -9,6 +9,13 @@ Captured application requires current execution and live AI provider readiness.
 The sealed lifetime follows current physical and provider authority independently
 of the ended controller and the child's old preparation deadline.
 
+Quarantine starts after the SIP answer and before the Core admission commit and
+connected record. Its phase probe uses the original, unclaimed, effect-free
+admission authority at that stage. Connected-only continuing facts become
+required after the root claims the candidate. A sealed lifetime is checked
+without decoding the completed operation's released lease. Admission remains a
+control-only reader and cannot bootstrap media or signals.
+
 The host keeps that same owned call through preparation and receiver-revision
 changes. It validates the original admission, committed Core resource, exact
 ports, preparation/controller binding and original child, canonical Connection,
