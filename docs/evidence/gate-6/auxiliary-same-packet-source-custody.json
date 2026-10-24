@@ -62,5 +62,13 @@
       "source_lock_sha256": "9fcf7c3a9e5032f8e1de2beb72477b81d92a70650ad4598e84ff54fe11f3076c"
     },
     "behavior": "Only one original audio packet shares its own Arc weak-metadata slot among copied contributions. Reuse requires an upgradeable opt-in current source lease; current source and recipient policy, original route/consumer/scene/model/credential checks and original200ms remain. Non-audio/data and non-opt-in policies retain independent admission. All active readers drop with bounded IO; queued metadata cannot resurrect them."
+  },
+  "host_first_attempt": {
+    "passed": false,
+    "exit_code": 101,
+    "failure": "Rust E0063: preparation.rs still used the older Fresh lease literal without new weak/source fields. Remaining connect_service compiler was explicitly terminated after confirmed error and transport dependencies had completed; this was not an observation timeout.",
+    "log": ".local/gate-6/received-dtmf-runtime/admission178-server-build.log",
+    "log_sha256": "e922e9f3543a18b01a7ecfa805640c023342b16072fa171aef8619739e772ad9",
+    "repair": "Both canonical packet and preparation constructors now use Fresh::new; corrected host retry is active. No host pass inferred."
   }
 }
