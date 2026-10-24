@@ -115,6 +115,72 @@ impl Scene {
             )
             .unwrap()
     }
+    fn sibling(&self) -> Arc<NativeMediaOrigin> {
+        let request = crate::PeerAuthorityRequest {
+            credentials: vec![self.f.keys[2].clone()],
+            device: crate::PeerDeviceClaim {
+                id: "device-2".into(),
+                kind: "desktop".into(),
+                platform: "isolated-store-fixture".into(),
+            },
+            key_id: "native-key-2".into(),
+            algorithm: "EdDSA".into(),
+            command: crate::PeerCommand::NativeConnectionOffer(
+                self.f.request(2, "sip-primary-public-sibling").intent,
+            ),
+        };
+        let sibling = crate::connection_control::tests::consultation_reads::ready_request(
+            &self.f, 2, request,
+        );
+        sibling
+    }
+    fn establish(&self) {
+        let plan = self.plan();
+        let lease = self
+            .f
+            .store
+            .prepare_native_consultation(self.read(), plan.clone())
+            .unwrap()
+            .unwrap();
+        let read = self
+            .f
+            .store
+            .native_consultation_attempt_read(&lease)
+            .unwrap();
+        let (attempt, read) = self.f.store.begin_native_consultation(lease, read).unwrap();
+        drop(read);
+        let revisions = plan["expected_receiver_revisions"]
+            .as_object()
+            .unwrap()
+            .iter()
+            .map(|(id, n)| (id.clone(), json!(n.as_u64().unwrap() + 1)))
+            .collect::<serde_json::Map<_, _>>();
+        let receipt = attempt.applied(json!({"operation_id":self.origin.record_id(),"audience_revision":1,"receiver_revisions":revisions,"restored":false,"departed_connections":[],"participant_handoff":null,"participant_replacement":null})).unwrap();
+        self.f
+            .store
+            .record_native_consultation_applied(&receipt)
+            .unwrap();
+        self.f
+            .store
+            .record_native_consultation_decoded(&receipt)
+            .unwrap();
+        self.f
+            .store
+            .complete_native_consultation(&receipt)
+            .unwrap()
+            .unwrap();
+    }
+    fn signal(
+        &self,
+        native: Arc<NativeMediaOrigin>,
+        direction: crate::TelephoneSignalDirection,
+    ) -> crate::Result<crate::SipNativeSignalRead> {
+        self.f.store.try_sip_native_signal_read(
+            &crate::SipSignalOrigin::Established(self.phone.clone()),
+            native,
+            direction,
+        )
+    }
     fn revision(&self, id: &str) -> u64 {
         self.f.store.connection().unwrap().query_row("SELECT json_extract(readiness_json,'$.stream_revision') FROM connections WHERE id=?1",[id],|r|r.get(0)).unwrap()
     }
@@ -399,21 +465,7 @@ fn sip_primary_captured_audience_records_its_generation_and_establishes_current_
 #[test]
 fn sip_primary_private_grants_cannot_be_borrowed_by_a_public_sibling_of_the_consultant() {
     let s = Scene::new();
-    let request = crate::PeerAuthorityRequest {
-        credentials: vec![s.f.keys[2].clone()],
-        device: crate::PeerDeviceClaim {
-            id: "device-2".into(),
-            kind: "desktop".into(),
-            platform: "isolated-store-fixture".into(),
-        },
-        key_id: "native-key-2".into(),
-        algorithm: "EdDSA".into(),
-        command: crate::PeerCommand::NativeConnectionOffer(
-            s.f.request(2, "sip-primary-public-sibling").intent,
-        ),
-    };
-    let sibling =
-        crate::connection_control::tests::consultation_reads::ready_request(&s.f, 2, request);
+    let sibling = s.sibling();
     assert_eq!(sibling.participant_id(), s.candidate.participant_id());
     assert_ne!(sibling.connection_id(), s.candidate.connection_id());
     assert!(s
@@ -439,5 +491,196 @@ fn sip_primary_private_grants_cannot_be_borrowed_by_a_public_sibling_of_the_cons
             )
             .is_err(),
         "a public physical sibling must not inherit the registered private consultant's SIP edge"
+    );
+}
+
+#[test]
+fn sip_primary_private_dtmf_pairs_use_only_the_exact_registered_consultant() {
+    use crate::TelephoneSignalDirection::{FromTelephone, ToTelephone};
+    let s = Scene::new();
+    for direction in [FromTelephone, ToTelephone] {
+        assert!(
+            s.signal(s.candidate.clone(), direction).is_err(),
+            "unprepared candidate must not receive SIP private signals"
+        );
+    }
+    permissions(
+        &s.f,
+        &s.f.keys[2],
+        &[
+            "connection.offer",
+            "stream.subscribe",
+            "dtmf.send",
+            "dtmf.receive",
+        ],
+    );
+    s.establish();
+    for direction in [FromTelephone, ToTelephone] {
+        assert!(s.signal(s.candidate.clone(), direction).unwrap().current());
+        assert!(
+            s.signal(s.remote.clone(), direction).is_err(),
+            "held native remote cannot exchange private SIP signals"
+        );
+    }
+    let admin = s.f.store.revalidate(&s.f.admin).unwrap();
+    s.f.store.revoke(&admin, &s.controller.id).unwrap();
+    for direction in [FromTelephone, ToTelephone] {
+        assert!(s.signal(s.candidate.clone(), direction).unwrap().current());
+    }
+}
+
+#[test]
+fn sip_primary_private_dtmf_rechecks_independent_current_named_signal_permissions() {
+    use crate::TelephoneSignalDirection::{FromTelephone, ToTelephone};
+    let s = Scene::new();
+    permissions(
+        &s.f,
+        &s.f.keys[2],
+        &[
+            "connection.offer",
+            "stream.subscribe",
+            "dtmf.send",
+            "dtmf.receive",
+        ],
+    );
+    s.establish();
+    permissions(
+        &s.f,
+        &s.f.keys[2],
+        &["connection.offer", "stream.subscribe", "dtmf.send"],
+    );
+    assert!(s.signal(s.candidate.clone(), FromTelephone).is_err());
+    assert!(s
+        .signal(s.candidate.clone(), ToTelephone)
+        .unwrap()
+        .current());
+    permissions(
+        &s.f,
+        &s.f.keys[2],
+        &["connection.offer", "stream.subscribe", "dtmf.receive"],
+    );
+    assert!(s
+        .signal(s.candidate.clone(), FromTelephone)
+        .unwrap()
+        .current());
+    assert!(s.signal(s.candidate.clone(), ToTelephone).is_err());
+    permissions(
+        &s.f,
+        &s.f.keys[2],
+        &[
+            "connection.offer",
+            "stream.subscribe",
+            "dtmf.send",
+            "dtmf.receive",
+        ],
+    );
+    permissions(
+        &s.f,
+        &s.route,
+        &["sip_dial", "stream.subscribe", "dtmf.send"],
+    );
+    assert!(s
+        .signal(s.candidate.clone(), FromTelephone)
+        .unwrap()
+        .current());
+    assert!(s.signal(s.candidate.clone(), ToTelephone).is_err());
+    permissions(
+        &s.f,
+        &s.route,
+        &["sip_dial", "stream.subscribe", "dtmf.receive"],
+    );
+    assert!(s.signal(s.candidate.clone(), FromTelephone).is_err());
+    assert!(s
+        .signal(s.candidate.clone(), ToTelephone)
+        .unwrap()
+        .current());
+}
+
+#[test]
+fn sip_primary_received_private_dtmf_freezes_only_its_physical_partner_and_rechecks_on_write() {
+    use connect_protocol::received_dtmf::{SourceKind, SourceObservation};
+    let s = Scene::new();
+    permissions(
+        &s.f,
+        &s.f.keys[2],
+        &[
+            "connection.offer",
+            "stream.subscribe",
+            "dtmf.send",
+            "dtmf.receive",
+        ],
+    );
+    s.establish();
+    let sibling = s.sibling();
+    for direction in [
+        crate::TelephoneSignalDirection::FromTelephone,
+        crate::TelephoneSignalDirection::ToTelephone,
+    ] {
+        assert!(
+            s.signal(sibling.clone(), direction).is_err(),
+            "a same-Participant public Connection cannot borrow private DTMF authority"
+        );
+    }
+    let observed = SourceObservation {
+        kind: SourceKind::SipInfo,
+        observation_id: "private-primary-received-digit".into(),
+        received_at: chrono::Utc::now(),
+        digits: "5".into(),
+        duration_ms: 100,
+        rtp: None,
+    };
+    let candidates = [s.candidate.clone(), s.remote.clone(), sibling]
+        .into_iter()
+        .enumerate()
+        .map(|(i, origin)| crate::NativeDtmfRecipient {
+            origin,
+            registration_id: format!("private-primary-registration-{i}"),
+        })
+        .collect();
+    let batch = match s
+        .f
+        .store
+        .prepare_received_dtmf(
+            crate::SipSignalOrigin::Established(s.phone.clone()),
+            observed.clone(),
+            candidates,
+        )
+        .unwrap()
+    {
+        crate::ReceivedDtmfPreparation::New(batch) => batch,
+        _ => panic!("expected fresh private signal"),
+    };
+    assert_eq!(batch.targets().len(), 1);
+    assert_eq!(
+        batch.targets()[0].origin().connection_id(),
+        s.candidate.connection_id()
+    );
+    assert_eq!(batch.observation(), &observed);
+    drop(
+        s.f.store
+            .try_received_dtmf_read(&batch.targets()[0])
+            .unwrap(),
+    );
+    permissions(
+        &s.f,
+        &s.f.keys[2],
+        &["connection.offer", "stream.subscribe", "dtmf.send"],
+    );
+    assert!(s
+        .f
+        .store
+        .try_received_dtmf_read(&batch.targets()[0])
+        .is_err());
+    let c = s.f.store.connection().unwrap();
+    let attempted: bool = c
+        .query_row(
+            "SELECT attempted FROM received_dtmf_recipients WHERE operation_record_id=?1",
+            [batch.record_id()],
+            |r| r.get(0),
+        )
+        .unwrap();
+    assert!(
+        !attempted,
+        "refused current receive authority must not record a physical attempt"
     );
 }

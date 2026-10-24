@@ -172,9 +172,14 @@ impl Store {
         let actor = self.native_media_route_actor(c, &native)?;
         actor.require(direction.native_permission())?;
         let view = native_read.target();
+        self.require_sip_native_signal_context(
+            c,
+            &phone.snapshot().connection_id,
+            &native,
+            view.private_consultation.as_deref(),
+        )?;
         if !phone.current()
             || !native_read.current()
-            || view.private_consultation.is_some()
             || view.handoff_preparation
             || view.publication_suspended
             || !view.session.session.media.iter().any(|m| m == "audio")

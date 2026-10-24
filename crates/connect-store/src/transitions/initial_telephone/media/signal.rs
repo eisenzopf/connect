@@ -201,6 +201,12 @@ impl Store {
         )?;
         let native_read = self.native_signal_read_in(c, &native, interval, phone.expires_at())?;
         let view = native_read.target();
+        self.require_sip_native_signal_context(
+            c,
+            phone.origin().connection_id(),
+            &native,
+            view.private_consultation.as_deref(),
+        )?;
         let actor = self.native_media_route_actor(c, &native)?;
         actor.require(match direction {
             InitialTelephoneSignalDirection::FromTelephone => "dtmf.receive",
@@ -208,7 +214,6 @@ impl Store {
         })?;
         if !phone.current()
             || !native_read.current()
-            || view.private_consultation.is_some()
             || view.handoff_preparation
             || view.publication_suspended
             || !view.session.session.media.iter().any(|m| m == "audio")

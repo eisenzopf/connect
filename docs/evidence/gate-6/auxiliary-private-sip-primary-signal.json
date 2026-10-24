@@ -1,0 +1,147 @@
+{
+  "task": "G6-046",
+  "recorded_at": "2026-10-24T14:15:35.108584+00:00",
+  "status": "controlled-private-sip-primary-signal-authority-verified",
+  "full_task_complete": false,
+  "full_goal_complete": false,
+  "source_base_commit": "c000d81af63bc624fbd8c1c6fa41bac26721c80a",
+  "prepared_patch_count": 183,
+  "store_schema": 103,
+  "qualified_clause_count": 59,
+  "assigned_clause_count": 61,
+  "newly_qualified_case_ids": [],
+  "scope": "Protected directional SIP/native signal authority. Both initial and committed adapters use the exact pair seal. New positive private-primary captures use the committed SIP fixture; initial signal/public-pair regressions are included, but initial private-primary and all actual private-SIP Core/network profiles remain pending.",
+  "implementation": [
+    "Initial and committed SIP/native signal pairs permit either two current public physical Connections or the exact registered native consultant paired with its SIP primary. Private pairs require reciprocal physical floors and matching original operation, primary/candidate and runtime. The validated native private context and current actual SIP lifetime remain required; metadata is not IO authority.",
+    "Held native remotes, public physical siblings sharing the consultant Participant, incomplete preparations and unrelated private Connections cannot borrow a private pair. Current named dtmf.send and dtmf.receive permissions remain separately required at opposite endpoints; original Participant identities and independent route-recipient ceilings remain checked.",
+    "Received SIP capture freezes only the original eligible consultant from a roster containing the held native remote and same-Participant public sibling. A current signal read checks permission again before write; withdrawn receive permission refuses without recording a physical attempt. Continuing private context survives ended execution-credential revocation.",
+    "No service SIP-primary selection/Core programme or return path is enabled by this increment. Public HTTP/wire schema and Store schema remain unchanged."
+  ],
+  "source_inputs_sha256": {
+    "crates/connect-store/src/connection_control/tests/replacement_sources/telephone/runtime/media/continuation/commit/signal/audience/private_primary.rs": "38f3a5e16f7f46774f5ba8917ded661cc4ca31c6a36992c40dbcfb897a949644",
+    "crates/connect-store/src/transitions/initial_telephone/media/signal.rs": "8e6c604d2dbf7a4e8e3c0e331a2266abb31950b092d3f70134cb53c53e4f5cfc",
+    "crates/connect-store/src/transitions/native_replacements/telephone/runtime/media/signal.rs": "fa8ff36ebc89263736aba32ddfe66149b996da253e3e4db17b6dd26e5be09556",
+    "crates/connect-store/src/transitions/telephone_signals.rs": "db8256994c2f68b0b218c69eb31e2e7bfc81671d508701538c3232068066fd08"
+  },
+  "verification": {
+    "store_summary": ".local/gate-6/received-dtmf-runtime/private-sip-primary-signal-final/summary.json",
+    "store_summary_sha256": "32848d65c955a10fa55c65cdf0a84750b8c1efa3f5198786b7a03144d17675cb",
+    "distinct_passed_methods": 241,
+    "executions": 259,
+    "new_methods": [
+      "connection_control::tests::replacement_sources::telephone::runtime::media::continuation::commit::signal::audience::private_primary::sip_primary_private_dtmf_pairs_use_only_the_exact_registered_consultant",
+      "connection_control::tests::replacement_sources::telephone::runtime::media::continuation::commit::signal::audience::private_primary::sip_primary_private_dtmf_rechecks_independent_current_named_signal_permissions",
+      "connection_control::tests::replacement_sources::telephone::runtime::media::continuation::commit::signal::audience::private_primary::sip_primary_received_private_dtmf_freezes_only_its_physical_partner_and_rechecks_on_write"
+    ],
+    "executable_sha256": "c4227252bc88f62cc7b326d7f3b5a2fba2ca3a13d1beb269bedd5006da2fa008",
+    "source_inputs_unchanged": true,
+    "executable_unchanged": true,
+    "groups": [
+      {
+        "name": "build",
+        "exit_code": 0,
+        "elapsed_seconds": 6.184415959054604
+      },
+      {
+        "filter": "transitions::initial_telephone::tests::signal::",
+        "exit_code": 0,
+        "passed": true,
+        "passed_cases": 14,
+        "ignored_cases": 0,
+        "elapsed_seconds": 9.263712709071115,
+        "log": ".local/gate-6/received-dtmf-runtime/private-sip-primary-signal-final/group-0.log",
+        "log_sha256": "225b1f77f4a23cd3a2fad1da0965f17618acb86dc4d40ca435cec3999d239e4d"
+      },
+      {
+        "filter": "continuation::commit::signal::audience::",
+        "exit_code": 0,
+        "passed": true,
+        "passed_cases": 18,
+        "ignored_cases": 0,
+        "elapsed_seconds": 20.012789000058547,
+        "log": ".local/gate-6/received-dtmf-runtime/private-sip-primary-signal-final/group-1.log",
+        "log_sha256": "ab50b77eb16d180fab5e5ddee13935a38bead53cf11a1a9b49386a64c592ef74"
+      },
+      {
+        "filter": "connection_control::tests::consultation",
+        "exit_code": 0,
+        "passed": true,
+        "passed_cases": 50,
+        "ignored_cases": 0,
+        "elapsed_seconds": 52.34640562487766,
+        "log": ".local/gate-6/received-dtmf-runtime/private-sip-primary-signal-final/group-2.log",
+        "log_sha256": "322eb01f745e1e351be67261102673dda676c5dc6ec350c738bbdfed3432e3e7"
+      },
+      {
+        "filter": "connection_control::tests::private",
+        "exit_code": 0,
+        "passed": true,
+        "passed_cases": 42,
+        "ignored_cases": 0,
+        "elapsed_seconds": 78.22121612494811,
+        "log": ".local/gate-6/received-dtmf-runtime/private-sip-primary-signal-final/group-3.log",
+        "log_sha256": "b3d3c518792e82096e35609bd68f2be535bbc6907f9e0baf54ec2d6392bc4009"
+      },
+      {
+        "filter": "connection_control::tests::replacement_sources::telephone",
+        "exit_code": 0,
+        "passed": true,
+        "passed_cases": 83,
+        "ignored_cases": 0,
+        "elapsed_seconds": 74.83677254198119,
+        "log": ".local/gate-6/received-dtmf-runtime/private-sip-primary-signal-final/group-4.log",
+        "log_sha256": "5ed0d0ff3a7682f0e96a3a06acf7d3970084a3c26a677b4ab556d78ce496b597"
+      },
+      {
+        "filter": "connection_control::tests::native_stream_authority::sip_signal::",
+        "exit_code": 0,
+        "passed": true,
+        "passed_cases": 3,
+        "ignored_cases": 0,
+        "elapsed_seconds": 3.3033980829641223,
+        "log": ".local/gate-6/received-dtmf-runtime/private-sip-primary-signal-final/group-5.log",
+        "log_sha256": "e01aa310ed296075466b0171dc960561b399bc0367de5cacff636baecd4bf76f"
+      },
+      {
+        "filter": "connection_control::tests::native_stream_authority::dtmf",
+        "exit_code": 0,
+        "passed": true,
+        "passed_cases": 38,
+        "ignored_cases": 0,
+        "elapsed_seconds": 24.00874499999918,
+        "log": ".local/gate-6/received-dtmf-runtime/private-sip-primary-signal-final/group-6.log",
+        "log_sha256": "a3a9699d62e8dd058ba5095b39ffb7588cd66d84ceeb8dba21bba79a10cd5b18"
+      },
+      {
+        "filter": "connection_control::tests::native_stream_authority::received_dtmf::",
+        "exit_code": 0,
+        "passed": true,
+        "passed_cases": 11,
+        "ignored_cases": 0,
+        "elapsed_seconds": 5.281655750004575,
+        "log": ".local/gate-6/received-dtmf-runtime/private-sip-primary-signal-final/group-7.log",
+        "log_sha256": "075552b6c017a090067e1c130a8e39cc6c48818507ae6db0389d94aff9b7ecfb"
+      }
+    ],
+    "service_check": {
+      "command": "CARGO_INCREMENTAL=1 cargo check -p connect-service --target-dir target --locked --offline -j4",
+      "exit_code": 0,
+      "elapsed_seconds": 33.28,
+      "log": ".local/gate-6/received-dtmf-runtime/private-sip-primary-signal-service-check.log",
+      "log_sha256": "f2cae473b10a3b454490d4c96585ddd8d26e262f86af973b9088863bbba15172"
+    }
+  },
+  "preserved_attempts": [
+    {
+      "path": ".local/gate-6/received-dtmf-runtime/private-sip-primary-signal-before.log",
+      "result": "Both new private directional cases failed with forbidden because the old adapters unconditionally rejected private native contexts. Exact registered reciprocal private pair support replaces that blanket rejection; public/held/sibling exclusion remains enforced."
+    }
+  ],
+  "pending": [
+    "Enable purpose-bound SIP-primary runtime selection/private controls and original return, preserving other private groups and their SIP/native pairs.",
+    "Qualify initial and committed private-SIP primary and separately admitted SIP candidate roles with actual media/DTMF, replay/recovery/withdrawal/concurrency/retirement and cleanup for both signing algorithms.",
+    "Complete the current-source G6-046 auxiliary matrix and remaining approved tasks."
+  ],
+  "http_reference": "contracts/openapi-canonical-http.json; no new HTTP route, wire fields or SQLite migration.",
+  "limits": "Controlled Store captures and service compilation only. No actual private SIP media, Core DTMF delivery, initial-private-primary positive, full workspace/Store suite, Linux/browser/remote/provider, independent conformance, whole clause/task or publication pass."
+}

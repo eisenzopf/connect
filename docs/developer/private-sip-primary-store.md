@@ -30,6 +30,17 @@ its independent route-owner policy. Held remotes and unrelated physical slots
 receive no private pair. Existing private pairs must retain their own current
 context and original registration.
 
+Signal readers keep separate named `dtmf.send` and `dtmf.receive` checks. The
+initial and committed SIP pair paths now require either two public Connections
+or the exact registered SIP-primary/native-consultant pair under reciprocal
+private floors. A held remote, another private group, or a public physical
+sibling cannot borrow this pair. Private signal readers use the native side's
+current validated context and the original operation/runtime; an ended
+execution credential does not own the continuing private lifetime. A received
+input freezes only eligible physical recipients and checks current signal
+permission again before a write. This Store authority is not proof of Core
+routing or actual transport delivery.
+
 Preparation still records one exact plan before an attempt can begin. A captured
 outcome updates only the original SIP generation and receiver revision once.
 Established private-context validation checks current typed bindings, original
@@ -51,3 +62,6 @@ required. The [retained-call profiles](retained-sip-authority.md) keep their
 separately recorded scope. The
 [canonical HTTP reference](../../contracts/openapi-canonical-http.json) and wire
 contract are unchanged by this protected Rust API increment.
+
+The [signal component report](../evidence/gate-6/auxiliary-private-sip-primary-signal.json)
+records the later source-bound signal regression scope and its limits.

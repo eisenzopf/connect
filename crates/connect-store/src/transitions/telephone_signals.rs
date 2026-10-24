@@ -271,6 +271,38 @@ impl SipNativeSignalRead {
     }
 }
 impl Store {
+    /// The signal pair must keep both physical private floors. A Participant
+    /// match never lends the registered consultant's authority to a sibling.
+    pub(crate) fn require_sip_native_signal_context(
+        &self,
+        c: &Connection,
+        phone: &str,
+        native: &NativeMediaOrigin,
+        private_record: Option<&str>,
+    ) -> Result<()> {
+        use crate::connection_control::private_consultation::private_partner;
+        let phone_partner = private_partner(c, phone)?;
+        let native_partner = private_partner(c, native.connection_id())?;
+        match private_record {
+            None if phone_partner.is_none() && native_partner.is_none() => Ok(()),
+            Some(record)
+                if phone_partner.as_deref() == Some(native.connection_id())
+                    && native_partner.as_deref() == Some(phone) =>
+            {
+                let exact: bool = c.query_row(
+                    "SELECT EXISTS(SELECT 1 FROM native_consultation_legs l JOIN native_private_content_floors f ON f.operation_record_id=l.operation_record_id AND f.connection_id=l.primary_connection_id AND f.is_candidate=0 WHERE l.operation_record_id=?1 AND l.connection_id=?2 AND l.primary_connection_id=?3 AND l.runtime_epoch=?4)",
+                    params![record, native.connection_id(), phone, self.runtime_epoch()],
+                    |r| r.get(0),
+                ).map_err(|_| Error::storage())?;
+                if exact {
+                    Ok(())
+                } else {
+                    Err(Error::forbidden())
+                }
+            }
+            _ => Err(Error::forbidden()),
+        }
+    }
     pub fn try_sip_signal_read(
         &self,
         origin: &SipSignalOrigin,
