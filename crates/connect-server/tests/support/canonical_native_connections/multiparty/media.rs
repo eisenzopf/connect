@@ -132,7 +132,7 @@ pub(super) async fn probe(
     for i in allowed {
         assert!(
             counts[*i] > 10,
-            "{name}: subscribed peer{i} received too few decoded frames: {counts:?}"
+            "{name}: subscribed peer{i} received too few decoded frames: {counts:?}; received_packets={received:?}"
         );
     }
     eprintln!("fifty-participant media {name}: decoded marked counts={counts:?}");

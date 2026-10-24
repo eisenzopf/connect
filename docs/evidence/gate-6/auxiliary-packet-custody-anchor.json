@@ -34,5 +34,6 @@
     "Actual production regressions on the rebuilt binary.",
     "Fixed fifty-participant runtime with both complete EdDSA and ES256 captures and validator."
   ],
-  "limitations": "No new capacity credit. Preserved source179 full-fifty failure and earlier readiness timeouts remain unresolved. The rejected input-discard candidate is not included in this patch or source lock."
+  "limitations": "No new capacity credit. Preserved source179 full-fifty failure and earlier readiness timeouts remain unresolved. The rejected input-discard candidate is not included in this patch or source lock.",
+  "failure_diagnostic": "The full-fifty failure message now includes already-collected received_packets alongside decoded marked counts. Only panic text changed; normal-path work, original deadlines, source traffic, selectors and >10 threshold are unchanged."
 }
