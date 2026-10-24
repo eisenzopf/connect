@@ -1,0 +1,70 @@
+{
+  "scope": "G6-046 exact-original ready-audio Core primitive182. Component-only; no native scheduler integration or capacity qualification.",
+  "source_patch_count": 182,
+  "store_schema": 103,
+  "patch": "patches/rvoip/gate6-ready-audio-batch.patch",
+  "patch_sha256": "0260e938773d32e13a563ad7ca9e2f2afb6ea5792cee50a7c1d3b520293e2e0e",
+  "source_lock_sha256": "0ed10ba874a0df63ec8459b6582d390e420edcec9e960db25db5fa4aa47b7e0f",
+  "implementation": [
+    "QueuedMedia consumes at most64 ready copies of one original single-source non-local audio packet, matching source Port and PacketCustody metadata by exact Arc identity before any IO. Cross-packet batches cannot share an interval.",
+    "Every recipient still calls the existing current source/target, route, subscription, cancellation and immutable deadline admission. The first admitted interval lives only on the synchronous ready-send stack, enabling existing weak original-source reuse; all readers release before outcomes return.",
+    "Refused metadata is returned unchanged. Refused(NotReady) may be retried under the original deadline; Submitted is terminal even when the transport callback returns NotReady. No reader or grant is returned, queued or held across an explicit scheduling await.",
+    "Ordinary asynchronous origin and completed-delivery observation share private helpers with the new path. Data/local branches retain their existing paths. Actual caller IO must be nonblocking and local submission does not imply remote delivery."
+  ],
+  "preparation": [
+    {
+      "old": "/Users/jonathaneisenzopf/.local/share/connect/deps-g6-fresh-decoded181-20261024",
+      "new": "/Users/jonathaneisenzopf/.local/share/connect/deps-g6-ready-audio182-final-20261024",
+      "unchanged_files": 4043,
+      "unchanged_directory_entries_mtime": 749,
+      "changed": [
+        "rvoip/crates/foundation/rvoip-core/src/staged_streams.rs",
+        "rvoip/crates/foundation/rvoip-core/src/staged_streams/tests/guarded_mixer/packet_context.rs"
+      ],
+      "active_compilers_before_switch": []
+    },
+    {
+      "old": "/Users/jonathaneisenzopf/.local/share/connect/deps-g6-ready-audio182-final-20261024",
+      "new": "/Users/jonathaneisenzopf/.local/share/connect/deps-g6-ready-audio182-expiry-20261024",
+      "unchanged_files": 4044,
+      "unchanged_directory_entries_mtime": 749,
+      "changed": [
+        "rvoip/crates/foundation/rvoip-core/src/staged_streams/tests/guarded_mixer/packet_context.rs"
+      ],
+      "active_compilers_before_switch": []
+    }
+  ],
+  "verification": {
+    "command": "CARGO_INCREMENTAL=1 cargo test --manifest-path .deps/rvoip/Cargo.toml -p rvoip-core --lib --target-dir target --locked --offline -j4 staged_streams:: -- --test-threads=1",
+    "passed": 231,
+    "failed": 0,
+    "ignored": 0,
+    "filtered": 249,
+    "duration_seconds": 7.01,
+    "build_summary": "Finished `test` profile [unoptimized + debuginfo] target(s) in 23.23s",
+    "log": ".local/gate-6/received-dtmf-runtime/ready-audio182-core-age.log",
+    "log_sha256": "1b5496925bda388d9284cde4cbd0628e4473ffeb540ed6ab4b01e1237ee4a421",
+    "new_methods": [
+      "staged_streams::tests::guarded_mixer::packet_context::ready_audio_batch_checks_each_recipient_and_preserves_other_authorized_sends",
+      "staged_streams::tests::guarded_mixer::packet_context::ready_audio_batch_never_extends_original_age_for_later_recipients",
+      "staged_streams::tests::guarded_mixer::packet_context::ready_audio_batch_rejects_other_original_packets_before_any_io",
+      "staged_streams::tests::guarded_mixer::packet_context::ready_audio_batch_returns_busy_metadata_but_consumes_a_submitted_transport_error",
+      "staged_streams::tests::guarded_mixer::packet_context::ready_audio_batch_reuses_only_live_original_source_and_releases_before_waiting_writer"
+    ],
+    "cases": [
+      "Three real decoded G711 copies share one fresh source interval while a writer queued after first actual IO remains pending; the final reader releases and the writer acquires.",
+      "Different original packets refuse before all IO and returned metadata retains no reader.",
+      "Current middle-recipient revocation refuses only that recipient while other authorized copies are actually decoded.",
+      "Busy source returns original metadata; after writer release it can submit once. A NotReady from the actual transport callback is terminal rather than a retryable admission refusal.",
+      "First IO completes while current, followed by a forced210ms scheduling delay. Later copies cannot send beyond the original200ms age even while first custody was live; final readers release."
+    ],
+    "feature_scope": "Default Core features identity/media/rtp/sip/uctp/vcon; no host Opus/capacity inference.",
+    "prior_cases": "All226 preceding cases pass. Preliminary four-case candidate230pass log is retained privately; only the final231-case source-bound run is qualification evidence here."
+  },
+  "pending": [
+    "Implement the bounded native ready-epoch sender under the owning CanonicalNativeAdapter; the private183 draft is not yet applied or verified.",
+    "Verify native queue bounds, cancellation-before-IO, joined port cleanup and panic/error handling.",
+    "Build optimized integrated host and run fixed both-algorithm full-fifty rehearsal, lifecycle and affected production cases."
+  ],
+  "limits": "The canonical native sender does not yet call this primitive. No runtime throughput improvement, clause promotion or whole-task credit is claimed. Source181 full-fifty and historical timeout failures remain preserved. Public quality reader verification remains in auxiliary-quality-continuous-flow.json; publication is separate."
+}

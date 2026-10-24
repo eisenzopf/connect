@@ -1007,6 +1007,11 @@
       "path": "patches/rvoip/gate6-fresh-decoded-audio.patch",
       "sha256": "628d4fd8c0a06b668c3a1bd79c130f3e820194ff6f51f27ee5ae60b47d3a904f",
       "source": "G6-046 decode all accepted ordered audio, preserving private preparation observations and codec history, but play the newest complete decoded packet instead of old PCM backlog. Longer packets retain remaining samples until superseded. Preserve original packet age, route/source/target/subscription authorization and weak custody. Controlled burst freshness, complete long-packet and newer-over-partial decoded delivery tests; capacity remains separately verified."
+    },
+    {
+      "path": "patches/rvoip/gate6-ready-audio-batch.patch",
+      "sha256": "0260e938773d32e13a563ad7ca9e2f2afb6ea5792cee50a7c1d3b520293e2e0e",
+      "source": "G6-046 bounded synchronous ready fanout for exact original single-source audio. Each recipient still obtains current independent packet/route/subscription authority; only the active ready IO call retains its first original interval. Refused metadata is returned, submitted IO is terminal, and no reader escapes or crosses a retry/coalescing wait. Controlled queued-writer/one-fresh-source/actual decoded delivery, distinct-packet refusal and current recipient revocation checks. Native scheduler integration and capacity remain separate. Busy source returns the unchanged frame for retry; a NotReady returned by actual submitted IO remains terminal, with no queued reader retained. A post-IO scheduling delay preserves first actual delivery but refuses all later copies beyond original200ms and releases the interval."
     }
   ]
 }

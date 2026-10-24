@@ -1,0 +1,465 @@
+--- a/crates/foundation/rvoip-core/src/staged_streams.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams.rs
+@@ -1018,66 +1018,20 @@
+     _admissions: Vec<audio_consumer::MediaAdmission>,
+ }
+ 
++/// Maximum ready audio copies admitted in one synchronous local IO call.
++pub const MAX_READY_AUDIO_BATCH: usize = 64;
++/// Only refused metadata can be retried; submitted IO consumes the queued copy.
++pub enum ReadyAudioDelivery {
++    Refused {
++        queued: QueuedMedia,
++        problem: StreamControlError,
++    },
++    Submitted(ControlResult<()>),
++}
++
+ impl QueuedMedia {
+-    pub async fn deliver<F, Fut>(self, send: F) -> ControlResult<()>
+-    where
+-        F: FnOnce(MediaFrame) -> Fut,
+-        Fut: Future<Output = ControlResult<()>>,
+-    {
+-        self.deliver_with_origin(move |frame, _| send(frame)).await
+-    }
+-    /// Observe exact original source binding only inside the guarded send.
+-    /// Mixed audio has no single source; unmixed direct media always does.
+-    pub async fn deliver_with_origin<F, Fut>(self, send: F) -> ControlResult<()>
+-    where
+-        F: FnOnce(MediaFrame, Option<MediaDeliveryOrigin>) -> Fut,
+-        Fut: Future<Output = ControlResult<()>>,
+-    {
+-        if self.local.is_some() {
+-            return self.deliver_local_audio(send).await;
+-        }
+-        if self.data.is_some() {
+-            let admission = self.admit_data()?;
+-            let writing = admission.begin_write()?;
+-            let origin = Some(MediaDeliveryOrigin {
+-                connection: writing.source().connection.clone(),
+-                logical: writing.source().logical_id.clone(),
+-                transport: writing.source().transport_id.clone(),
+-                generation: writing.source().stream_generation,
+-            });
+-            let frame = writing.frame().clone();
+-            let result = tokio::select! { biased;
+-                _ = admission.cancelled() => Err(StreamControlError::Cancelled),
+-                result = tokio::time::timeout_at(admission.deadline(), send(frame, origin)) => result.map_err(|_| StreamControlError::Deadline)?,
+-            };
+-            drop(writing);
+-            return result;
+-        }
+-        let admitted = loop {
+-            match self.admit_queued_media() {
+-                Ok(admitted) => break admitted,
+-                Err(StreamControlError::NotReady) if self.frame.kind == StreamKind::Audio => {
+-                    // Only metadata remains here: a failed attempt dropped every
+-                    // source/target authority and generation reader. Never extend
+-                    // the original frame's age or recapture a newer audience.
+-                    let until = tokio::time::Instant::from_std(
+-                        self.admitted_at + Duration::from_millis(200),
+-                    );
+-                    if tokio::time::Instant::now() >= until {
+-                        return Err(StreamControlError::Deadline);
+-                    }
+-                    tokio::time::sleep_until(
+-                        until.min(tokio::time::Instant::now() + Duration::from_millis(1)),
+-                    )
+-                    .await;
+-                }
+-                Err(problem) => return Err(problem),
+-            }
+-        };
+-        let target = &admitted.target;
+-        let tokens = &admitted.tokens;
+-        let deadline = admitted.deadline;
+-        let origin = if self.sources.len() == 1 {
++    fn delivery_origin(&self) -> Option<MediaDeliveryOrigin> {
++        if self.sources.len() == 1 {
+             let source = &self.sources[0].descriptor;
+             Some(MediaDeliveryOrigin {
+                 connection: source.connection.clone(),
+@@ -1087,14 +1041,12 @@
+             })
+         } else {
+             None
+-        };
+-        tracing::trace!(target: "rvoip_core::audio_path", target = %target.connection,
+-            age_us = self.admitted_at.elapsed().as_micros() as u64, "Guarded audio entering IO");
+-        let result = tokio::select! {
+-            biased;
+-            _=audio_consumer::any_cancelled(tokens.to_vec())=>Err(StreamControlError::Cancelled),
+-            result=tokio::time::timeout_at(deadline,send(self.frame,origin))=>result.map_err(|_|StreamControlError::Deadline)?,
+-        };
++        }
++    }
++    fn observe_delivery(&self, admitted: &QueuedMediaAdmission, result: &ControlResult<()>) {
++        let target = &admitted.target;
++        let tokens = &admitted.tokens;
++        let deadline = admitted.deadline;
+         if result.is_ok()
+             && !tokens.iter().any(CancellationToken::is_cancelled)
+             && tokio::time::Instant::now() < deadline
+@@ -1117,6 +1069,165 @@
+                 }
+             }
+         }
++    }
++    /// Whether this is one original non-local audio contribution. This exposes
++    /// metadata only and does not perform admission or retain a reader.
++    pub fn can_batch_audio(&self) -> bool {
++        self.frame.kind == StreamKind::Audio
++            && self.local.is_none()
++            && self.data.is_none()
++            && self.sources.len() == 1
++    }
++    /// Match exact original packet metadata, never a shared source permission.
++    pub fn same_audio_packet(&self, other: &Self) -> bool {
++        self.can_batch_audio()
++            && other.can_batch_audio()
++            && Arc::ptr_eq(&self.sources[0].source, &other.sources[0].source)
++            && Arc::ptr_eq(&self.sources[0].custody.0, &other.sources[0].custody.0)
++    }
++    /// Deliver already-dequeued copies of one original audio packet through
++    /// nonblocking synchronous local IO. Each recipient obtains its own current
++    /// admission. Only this active call retains the first interval; no reader
++    /// escapes in an outcome or survives a caller's retry/coalescing wait.
++    ///
++    /// A refused frame is returned unchanged. Retry only Refused(NotReady)
++    /// within its original age; Submitted is terminal even when IO returns an
++    /// error. This does not establish remote delivery or new audience rights.
++    pub fn deliver_ready_audio_batch<F>(frames: Vec<Self>, mut send: F) -> Vec<ReadyAudioDelivery>
++    where
++        F: FnMut(usize, MediaFrame, Option<MediaDeliveryOrigin>) -> ControlResult<()>,
++    {
++        if frames.len() > MAX_READY_AUDIO_BATCH {
++            return frames
++                .into_iter()
++                .map(|queued| ReadyAudioDelivery::Refused {
++                    queued,
++                    problem: StreamControlError::Backpressure,
++                })
++                .collect();
++        }
++        if frames.iter().any(|frame| !frame.can_batch_audio()) {
++            return frames
++                .into_iter()
++                .map(|queued| ReadyAudioDelivery::Refused {
++                    queued,
++                    problem: StreamControlError::Unsupported,
++                })
++                .collect();
++        }
++        if frames
++            .first()
++            .is_some_and(|first| frames.iter().any(|frame| !first.same_audio_packet(frame)))
++        {
++            return frames
++                .into_iter()
++                .map(|queued| ReadyAudioDelivery::Refused {
++                    queued,
++                    problem: StreamControlError::Authority,
++                })
++                .collect();
++        }
++        let mut outcomes = Vec::with_capacity(frames.len());
++        let mut interval = None;
++        for (index, queued) in frames.into_iter().enumerate() {
++            let admitted = match queued.admit_queued_media() {
++                Ok(admitted) => admitted,
++                Err(problem) => {
++                    outcomes.push(ReadyAudioDelivery::Refused { queued, problem });
++                    continue;
++                }
++            };
++            let refusal = if admitted.tokens.iter().any(CancellationToken::is_cancelled) {
++                Some(StreamControlError::Cancelled)
++            } else if tokio::time::Instant::now() >= admitted.deadline {
++                Some(StreamControlError::Deadline)
++            } else {
++                None
++            };
++            if let Some(problem) = refusal {
++                outcomes.push(ReadyAudioDelivery::Refused { queued, problem });
++                continue;
++            }
++            tracing::trace!(target: "rvoip_core::audio_path", target = %admitted.target.connection,
++                age_us = queued.admitted_at.elapsed().as_micros() as u64, batched = true,
++                "Guarded audio entering IO");
++            let result = send(index, queued.frame.clone(), queued.delivery_origin());
++            queued.observe_delivery(&admitted, &result);
++            if interval.is_none() {
++                interval = Some(admitted);
++            }
++            outcomes.push(ReadyAudioDelivery::Submitted(result));
++        }
++        drop(interval);
++        outcomes
++    }
++    pub async fn deliver<F, Fut>(self, send: F) -> ControlResult<()>
++    where
++        F: FnOnce(MediaFrame) -> Fut,
++        Fut: Future<Output = ControlResult<()>>,
++    {
++        self.deliver_with_origin(move |frame, _| send(frame)).await
++    }
++    /// Observe exact original source binding only inside the guarded send.
++    /// Mixed audio has no single source; unmixed direct media always does.
++    pub async fn deliver_with_origin<F, Fut>(self, send: F) -> ControlResult<()>
++    where
++        F: FnOnce(MediaFrame, Option<MediaDeliveryOrigin>) -> Fut,
++        Fut: Future<Output = ControlResult<()>>,
++    {
++        if self.local.is_some() {
++            return self.deliver_local_audio(send).await;
++        }
++        if self.data.is_some() {
++            let admission = self.admit_data()?;
++            let writing = admission.begin_write()?;
++            let origin = Some(MediaDeliveryOrigin {
++                connection: writing.source().connection.clone(),
++                logical: writing.source().logical_id.clone(),
++                transport: writing.source().transport_id.clone(),
++                generation: writing.source().stream_generation,
++            });
++            let frame = writing.frame().clone();
++            let result = tokio::select! { biased;
++                _ = admission.cancelled() => Err(StreamControlError::Cancelled),
++                result = tokio::time::timeout_at(admission.deadline(), send(frame, origin)) => result.map_err(|_| StreamControlError::Deadline)?,
++            };
++            drop(writing);
++            return result;
++        }
++        let admitted = loop {
++            match self.admit_queued_media() {
++                Ok(admitted) => break admitted,
++                Err(StreamControlError::NotReady) if self.frame.kind == StreamKind::Audio => {
++                    // Only metadata remains here: a failed attempt dropped every
++                    // source/target authority and generation reader. Never extend
++                    // the original frame's age or recapture a newer audience.
++                    let until = tokio::time::Instant::from_std(
++                        self.admitted_at + Duration::from_millis(200),
++                    );
++                    if tokio::time::Instant::now() >= until {
++                        return Err(StreamControlError::Deadline);
++                    }
++                    tokio::time::sleep_until(
++                        until.min(tokio::time::Instant::now() + Duration::from_millis(1)),
++                    )
++                    .await;
++                }
++                Err(problem) => return Err(problem),
++            }
++        };
++        let target = &admitted.target;
++        let tokens = &admitted.tokens;
++        let deadline = admitted.deadline;
++        let origin = self.delivery_origin();
++        tracing::trace!(target: "rvoip_core::audio_path", target = %target.connection,
++            age_us = self.admitted_at.elapsed().as_micros() as u64, "Guarded audio entering IO");
++        let result = tokio::select! {
++            biased;
++            _=audio_consumer::any_cancelled(tokens.to_vec())=>Err(StreamControlError::Cancelled),
++            result=tokio::time::timeout_at(deadline,send(self.frame.clone(),origin))=>result.map_err(|_|StreamControlError::Deadline)?,
++        };
++        self.observe_delivery(&admitted, &result);
+         result
+     }
+     // Synchronous acquisition ensures a refused attempt releases all readers
+--- a/crates/foundation/rvoip-core/src/staged_streams/tests/guarded_mixer/packet_context.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/guarded_mixer/packet_context.rs
+@@ -439,3 +439,193 @@
+     drop(writer.await);
+     assert!(fence.clone().try_write_owned().is_ok());
+ }
++
++fn hear_ready_audio(frame: MediaFrame, expected: i16) -> ControlResult<()> {
++    let mut decoder =
++        rvoip_media_core::codec::factory::CodecFactory::create_codec(0, Some(8000), Some(1))
++            .unwrap();
++    let samples = decoder.decode(&frame.payload).unwrap().samples;
++    assert_eq!(samples.len(), 160);
++    assert!((i32::from(samples[80]) - i32::from(expected)).abs() < 350);
++    Ok(())
++}
++#[tokio::test]
++async fn ready_audio_batch_reuses_only_live_original_source_and_releases_before_waiting_writer() {
++    let fresh = Arc::new(std::sync::atomic::AtomicUsize::new(0));
++    let hook: Arc<dyn Fn() + Send + Sync> = Arc::new({
++        let fresh = fresh.clone();
++        move || {
++            fresh.fetch_add(1, Ordering::AcqRel);
++        }
++    });
++    let (s, fence, _) = weak_scene_with_hook(Some(hook)).await;
++    let mut outputs = (1..4)
++        .map(|i| s.port(i).take_egress().unwrap())
++        .collect::<Vec<_>>();
++    s.publish(0, 1800);
++    s.mixer.tick();
++    let frames = outputs
++        .iter_mut()
++        .map(|out| out.try_recv().unwrap())
++        .collect::<Vec<_>>();
++    let custody = frames[0].sources[0].custody.clone();
++    fresh.store(0, Ordering::Release);
++    let mut writer = Box::pin(fence.clone().write_owned());
++    let mut sent = 0;
++    let results = QueuedMedia::deliver_ready_audio_batch(frames, |index, frame, origin| {
++        assert_eq!(origin.unwrap().connection.as_str(), "a");
++        hear_ready_audio(frame, 1800)?;
++        sent += 1;
++        if index == 0 {
++            assert!(writer
++                .as_mut()
++                .poll(&mut std::task::Context::from_waker(std::task::Waker::noop()))
++                .is_pending());
++        }
++        Ok(())
++    });
++    assert_eq!(sent, 3);
++    assert!(results
++        .iter()
++        .all(|r| matches!(r, ReadyAudioDelivery::Submitted(Ok(())))));
++    assert_eq!(
++        fresh.load(Ordering::Acquire),
++        1,
++        "same original source reopened behind writer"
++    );
++    assert!(
++        custody.active().is_none(),
++        "batch retained a reader after actual IO"
++    );
++    drop(writer.await);
++    assert!(fence.clone().try_write_owned().is_ok());
++}
++#[tokio::test]
++async fn ready_audio_batch_rejects_other_original_packets_before_any_io() {
++    let (s, fence, _) = weak_scene().await;
++    let mut bob = s.port(1).take_egress().unwrap();
++    s.publish(0, 1800);
++    s.mixer.tick();
++    let first = bob.try_recv().unwrap();
++    s.publish(0, 4800);
++    s.mixer.tick();
++    let other = bob.try_recv().unwrap();
++    assert!(!first.same_audio_packet(&other));
++    let results = QueuedMedia::deliver_ready_audio_batch(vec![first, other], |_, _, _| {
++        panic!("cross-packet permission borrowed")
++    });
++    assert_eq!(results.len(), 2);
++    assert!(results.iter().all(|r| matches!(
++        r,
++        ReadyAudioDelivery::Refused {
++            problem: StreamControlError::Authority,
++            ..
++        }
++    )));
++    assert!(
++        fence.clone().try_write_owned().is_ok(),
++        "returned metadata retained a reader"
++    );
++}
++#[tokio::test]
++async fn ready_audio_batch_checks_each_recipient_and_preserves_other_authorized_sends() {
++    let (s, fence, revoked) = weak_scene().await;
++    let mut outputs = (1..4)
++        .map(|i| s.port(i).take_egress().unwrap())
++        .collect::<Vec<_>>();
++    s.publish(0, 1800);
++    s.mixer.tick();
++    let frames = outputs
++        .iter_mut()
++        .map(|out| out.try_recv().unwrap())
++        .collect::<Vec<_>>();
++    revoked.store(true, Ordering::Release);
++    let mut sent = Vec::new();
++    let results = QueuedMedia::deliver_ready_audio_batch(frames, |index, frame, _| {
++        hear_ready_audio(frame, 1800)?;
++        sent.push(index);
++        Ok(())
++    });
++    assert_eq!(sent, vec![0, 2]);
++    assert!(matches!(&results[0], ReadyAudioDelivery::Submitted(Ok(()))));
++    assert!(matches!(
++        &results[1],
++        ReadyAudioDelivery::Refused {
++            problem: StreamControlError::Authority,
++            ..
++        }
++    ));
++    assert!(matches!(&results[2], ReadyAudioDelivery::Submitted(Ok(()))));
++    assert!(fence.clone().try_write_owned().is_ok());
++}
++
++#[tokio::test]
++async fn ready_audio_batch_returns_busy_metadata_but_consumes_a_submitted_transport_error() {
++    let (s, fence, _) = weak_scene().await;
++    let mut bob = s.port(1).take_egress().unwrap();
++    s.publish(0, 1800);
++    s.mixer.tick();
++    let queued = bob.try_recv().unwrap();
++    let writer = fence.clone().write_owned().await;
++    let mut outcomes = QueuedMedia::deliver_ready_audio_batch(vec![queued], |_, _, _| {
++        panic!("busy source performed IO")
++    });
++    let ReadyAudioDelivery::Refused {
++        queued,
++        problem: StreamControlError::NotReady,
++    } = outcomes.pop().unwrap()
++    else {
++        panic!("busy source did not return original metadata")
++    };
++    drop(writer);
++    let mut calls = 0;
++    let result = QueuedMedia::deliver_ready_audio_batch(vec![queued], |_, frame, _| {
++        hear_ready_audio(frame, 1800)?;
++        calls += 1;
++        Err(StreamControlError::NotReady)
++    });
++    assert_eq!(calls, 1);
++    assert!(matches!(
++        &result[0],
++        ReadyAudioDelivery::Submitted(Err(StreamControlError::NotReady))
++    ));
++    assert!(fence.clone().try_write_owned().is_ok());
++}
++
++#[tokio::test]
++async fn ready_audio_batch_never_extends_original_age_for_later_recipients() {
++    let (s, fence, _) = weak_scene().await;
++    let mut outputs = (1..4)
++        .map(|i| s.port(i).take_egress().unwrap())
++        .collect::<Vec<_>>();
++    s.publish(0, 1800);
++    s.mixer.tick();
++    let frames = outputs
++        .iter_mut()
++        .map(|out| out.try_recv().unwrap())
++        .collect::<Vec<_>>();
++    let mut sent = 0;
++    let results = QueuedMedia::deliver_ready_audio_batch(frames, |index, frame, _| {
++        assert_eq!(index, 0, "expired original reached a later recipient");
++        hear_ready_audio(frame, 1800)?;
++        sent += 1;
++        // IO completed while current. Force a subsequent scheduling delay
++        // while its first interval is still owned: no later copy may use it
++        // beyond the original age, even though source custody remains live.
++        std::thread::sleep(Duration::from_millis(210));
++        Ok(())
++    });
++    assert_eq!(sent, 1);
++    assert!(matches!(&results[0], ReadyAudioDelivery::Submitted(Ok(()))));
++    assert!(results[1..].iter().all(|r| matches!(
++        r,
++        ReadyAudioDelivery::Refused {
++            problem: StreamControlError::Deadline,
++            ..
++        }
++    )));
++    assert!(
++        fence.clone().try_write_owned().is_ok(),
++        "expired batch retained a reader"
++    );
++}
