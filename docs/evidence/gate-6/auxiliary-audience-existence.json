@@ -39,8 +39,23 @@
       "audience176-units.log": "c02bc4c3546f35cb84ab2bfef070e9a38ab88f6cce9df668a03102b4c498e716",
       "audience176-server-build.log": "2b9fe035409b44d40d46e778d922e768b1056af877ae62c760f4ca212a60bb0b",
       "catalog176-bundled-audience-plan.txt": "fd7c83dd3daeb4d28edea82044db1838066bfc412b20570d8a16d5cee91e71b3",
-      "audience176-runtime-inputs.json": "311f6af90d115ab6aebba2917918f5860506696861833ff54b34785940b959ac"
-    }
+      "audience176-runtime-inputs.json": "311f6af90d115ab6aebba2917918f5860506696861833ff54b34785940b959ac",
+      "sqlite-audience-benchmark.c": "eda8e14022bfff12bd3fc67738399b89584fa45621b25859449fb5e41be33f91",
+      "audience176-before.sql": "8e64ef1a335e74189f38770f4a9951bcfa70ee09c6315bc4d54fb4699ff99024",
+      "audience176-current.sql": "383d9f7596a7e6c3a4c214aa602c0406a4ab1f7d6d36122e214def66a5c57205",
+      "audience176-sql-benchmark.log": "f4f2548cb09b9dcc489114f957961da74e9de2ac0ed6575981b33395df2d63c9",
+      "audience176-current-plan.log": "8f67c408cb88f7bc3c9a0c7aa5211024529a34ba19d4df6fe534fb745cd34a23"
+    },
+    "sql_diagnostic": {
+      "scope": "Separate controlled50-member relational fixture, not a full Store or native host runtime. Both statements prepared once against the target bundled SQLite3.46.0 and executed2000 times with the same original Session recipient. Read-only connections; all4000 results true. No native media/throughput qualification.",
+      "before_mean_us": 61.432,
+      "after_mean_us": 5.782,
+      "current_plan_union_or_temp_btree": false,
+      "limitation": "Fixture isolates Boolean query cost only. The actual fifty-peer test remains pending; no overall speedup or capacity conclusion."
+    },
+    "workspace_format_check_passed": true,
+    "openapi_generation_check_passed": true,
+    "diff_check_passed": true
   },
   "unresolved": [
     "Allow exact active Store sequence41358 to finish its complete library module and five membership/history integration targets. Do not infer completion from intermediate successful methods.",
