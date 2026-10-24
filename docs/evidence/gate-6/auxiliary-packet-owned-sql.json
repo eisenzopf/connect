@@ -210,5 +210,68 @@
         "summary": "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 253 filtered out; finished in 46.65s"
       }
     ]
+  },
+  "remaining_diagnostic": {
+    "scope": "Instrumented exact-current optimized run,4second2ms sample near subscription48/49; diagnostic timing only, not capacity credit.",
+    "late_window": {
+      "outcomes": {
+        "authority-busy": 14375,
+        "ok": 3092
+      },
+      "details": {
+        "Current state is busy": 8396,
+        "Current authority is busy": 5979
+      },
+      "publisher0": {
+        "owned=false,authority-busy": 10785,
+        "owned=false,ok": 643,
+        "owned=true,authority-busy": 2573,
+        "owned=true,ok": 684
+      },
+      "timings": {
+        "publish=true,owned=false,authority-busy": {
+          "n": 10785,
+          "median_us": 42,
+          "p90_us": 74
+        },
+        "publish=true,owned=false,ok": {
+          "n": 643,
+          "median_us": 1800,
+          "p90_us": 2110
+        },
+        "publish=false,owned=true,ok": {
+          "n": 1765,
+          "median_us": 44,
+          "p90_us": 770
+        },
+        "publish=true,owned=true,authority-busy": {
+          "n": 2573,
+          "median_us": 14,
+          "p90_us": 19
+        },
+        "publish=true,owned=true,ok": {
+          "n": 684,
+          "median_us": 34.0,
+          "p90_us": 41
+        },
+        "publish=false,owned=true,authority-busy": {
+          "n": 1017,
+          "median_us": 21,
+          "p90_us": 26
+        }
+      },
+      "audio_stages": {
+        "source-egress:NotReady": 13355,
+        "mixer-target:NotReady": 617,
+        "target-egress:NotReady": 407
+      }
+    },
+    "observed_stack": "Repeated Manager::acquire_with -> OpenOptions::__open -> open/__open in the retained-source admission path. Sample counts are not whole-process CPU percentages.",
+    "next_investigation": "Bounded reuse of unlocked admission file descriptions may remove repeated open cost while preserving actual fresh exclusive admission locks, pending-writer refusal, current database/directory/file identity and private owner/mode validation. No descriptor reuse is implemented or qualified yet.",
+    "artifacts_sha256": {
+      ".local/gate-6/received-dtmf-runtime/owned-sql179-release-profile-inputs.json": "5432b86206c821fe9b38a094b4d3c3136949522a9d0c9cb000a6c521300bec49",
+      ".local/gate-6/received-dtmf-runtime/owned-sql179-release-profile-analysis.json": "6fb393109d05c3c2b00f0fd8d5455774c6fe58101bd0a3514f86a21132fcd407",
+      ".local/gate-6/received-dtmf-runtime/owned-sql179-release-profile-sample.txt": "af24ad1aef16f26d33ffc07565486024cc05d8cb84a89f1822fcb090fc1c2d24"
+    }
   }
 }
