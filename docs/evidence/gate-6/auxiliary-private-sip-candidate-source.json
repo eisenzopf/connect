@@ -1,6 +1,6 @@
 {
   "task": "G6-046",
-  "recorded_at": "2026-10-24T18:24:33.044315+00:00",
+  "recorded_at": "2026-10-24T18:27:05.174591+00:00",
   "source_base_commit": "7a2b8b412070feb265296bed1c94c3aec27a5586",
   "status": "typed-private-sip-physical-source-controlled-store-verified",
   "full_task_complete": false,
@@ -8,7 +8,7 @@
   "prepared_patch_count": 184,
   "store_schema": 107,
   "newly_qualified_case_ids": [],
-  "scope": "Controlled Store physical metadata, separate runtime-local private origin cache, public/private receipt discrimination, captured revisions and cleanup. No media/signal reader is returned by metadata. Scene selection/private lifetime/actual private audio/DTMF/return remain required. Production Service compilation and current-source SIP/Core host regression are still running at this checkpoint.",
+  "scope": "Controlled Store physical metadata, separate runtime-local private origin cache, public/private receipt discrimination, captured revisions and cleanup. No media/signal reader is returned by metadata. Scene selection/private lifetime/actual private audio/DTMF/return remain required. Production Service compilation passes; the current-source SIP/Core host regression is still building at this checkpoint.",
   "implementation": {
     "source": "crates/connect-store/src/transitions/initial_telephone/media/private_facts.rs",
     "snapshot": "crates/connect-store/src/peer_authority/connection_media/consultation_sip.rs",
@@ -268,9 +268,13 @@
       "log_sha256": "fd9d7b181e3ccba9b643af55a186cf132c60aac99c734b2ee4e4e549afe5ffc2"
     },
     "service_compile": {
-      "status": "running",
+      "passed": true,
+      "exit_code": 0,
+      "command": "cargo check -p connect-service --locked --offline -j4",
       "log": ".local/gate-6/received-dtmf-runtime/private-source109-service-check.log",
-      "runtime_qualification": false
+      "log_sha256": "1ab52cc2bcc723799df1df0f844a4e934dff7688311de1124ac4c076422c669f",
+      "result": "Finished `dev` profile [unoptimized + debuginfo] target(s) in 5m 43s",
+      "scope": "Current product inputs; only two cfg(test) reader-refusal assertions changed during compilation, as recorded in the Store dependency audit. All product and dependency inputs unchanged. This is a compile check, not runtime qualification."
     },
     "runtime_socket_fixtures": {
       "status": "building",
