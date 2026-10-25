@@ -67,5 +67,21 @@
     "status": "optimized build active; no pass claimed"
   },
   "acceptance_qualified": false,
-  "remaining": "Complete connected8-case matrix and28 transport regressions; frozen60second, browser/native, failure/impairment and wider operating profiles remain unqualified."
+  "remaining": "Complete connected8-case matrix and28 transport regressions; frozen60second, browser/native, failure/impairment and wider operating profiles remain unqualified.",
+  "broader_native_authority": {
+    "report": ".local/gate-6/browser-sdk-data-seal-store/broader.json",
+    "sha256": "7745f303b99e3f8ae8f51f3dcb866038982ccee21f5f72a5f19983f50f54c75f",
+    "passed": true,
+    "exit_code": 0,
+    "log": ".local/gate-6/browser-sdk-data-seal-store/native-authority-broader.log",
+    "log_sha256": "b136de2bbec518b494acb4250a7f7b7e809eaf3ab7bedc034e42ae0bac2260df",
+    "passed_methods": 175,
+    "failed_methods": 0,
+    "elapsed_seconds": 92.29048266704194,
+    "source_inputs_unchanged": true,
+    "executable_unchanged": true,
+    "executable_sha256": "bc7a974915e659df13e51ea64ab1bf7b47bc0ccda9ff590efdd9a7106408f1e0",
+    "scope": "Broader controlled native stream authority/admission/ledger tests; no physical media or performance qualification.",
+    "counting": "This broader175-case selection overlaps the6 message-authority and8 reconciliation cases above; do not add those counts together."
+  }
 }
