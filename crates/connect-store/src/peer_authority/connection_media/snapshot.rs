@@ -83,7 +83,7 @@ pub(super) fn peek_map<T, U>(
     source: Option<&MetadataToken>,
     project: impl FnOnce(&T) -> U,
 ) -> Result<Option<U>> {
-    let c = store.try_connection()?;
+    let c = store.try_packet_connection()?;
     let before = version(&c)?;
     let observed = memo.0.try_lock().ok().and_then(|slot| {
         slot.as_ref()
@@ -160,7 +160,7 @@ fn cached_with<T: Clone>(
         });
         if let Some(previous) = previous {
             if let Ok(reader) = store.try_acquire_authority(&previous.scopes) {
-                let c = store.try_connection()?;
+                let c = store.try_packet_connection()?;
                 let before = version(&c)?;
                 if previous.matches(before, source) {
                     optimistic = Some(seal(
@@ -231,7 +231,7 @@ fn acquire_with<T>(
     admit: impl FnOnce(&[AuthorityScope]) -> Result<Arc<AuthorityGuardSet>>,
 ) -> Result<(T, Arc<AuthorityGuardSet>)> {
     let (before, facts, scopes) = {
-        let c = store.try_connection()?;
+        let c = store.try_packet_connection()?;
         let before = version(&c)?;
         let (facts, scopes) = derive(&c, before)?;
         (before, facts, scopes)
@@ -239,7 +239,7 @@ fn acquire_with<T>(
     // File opens, hashing and try-locks over a large scene must not monopolize
     // SQL. This remains immediate fresh admission, with every original scope.
     let held = admit(&scopes)?;
-    let c = store.try_connection()?;
+    let c = store.try_packet_connection()?;
     seal(store, &c, before, facts, scopes, held, &mut derive, finish)
 }
 
@@ -252,7 +252,7 @@ fn acquire_under<T>(
     finish: impl FnOnce(&Connection) -> Result<()>,
     held: &Arc<AuthorityGuardSet>,
 ) -> Result<(T, Arc<AuthorityGuardSet>)> {
-    let c = store.try_connection()?;
+    let c = store.try_packet_connection()?;
     let before = version(&c)?;
     let (facts, scopes) = derive(&c, before)?;
     if !store.authority_covers(held, &scopes) {

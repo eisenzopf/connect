@@ -48,7 +48,7 @@ fn packet_metadata_hint_peek_checks_clock_and_refuses_sql_without_waiting_on_met
     let locked = memo.0.lock().unwrap();
     assert_eq!(peek_map(&f.store, &memo, None, |v| *v).unwrap(), None);
     drop(locked);
-    let sql = f.store.connection().unwrap();
+    let sql = occupy_packet_sql(&f.store);
     assert_eq!(
         peek_map(&f.store, &memo, None, |v| *v).unwrap_err().code,
         "authority-busy"

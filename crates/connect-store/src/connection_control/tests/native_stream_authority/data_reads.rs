@@ -238,7 +238,22 @@ fn native_data_read_held_current_check_uses_no_store_lock_and_fresh_contention_r
             .unwrap();
     let held = d.f.store.connection().unwrap();
     assert!(read.current());
+    assert!(
+        d.fresh().is_ok(),
+        "unrelated command SQL is not packet authority"
+    );
+    let observers =
+        d.f.store
+            .packet_connections
+            .iter()
+            .map(|c| c.lock().unwrap())
+            .collect::<Vec<_>>();
     assert_eq!(d.fresh().unwrap_err().code, "authority-busy");
+    assert!(
+        read.current(),
+        "an already owned interval needs no SQL read"
+    );
+    drop(observers);
     drop(held);
     drop(read);
     drop(proof);

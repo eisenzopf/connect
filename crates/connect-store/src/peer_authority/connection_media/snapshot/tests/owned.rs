@@ -48,7 +48,7 @@ fn packet_snapshot_owned_reader_rechecks_facts_without_reentry_and_refuses_parti
     let (value, latest) =
         cached_under(&f.store, &memo, None, &held, |c| f.derive(c), |_| Ok(())).unwrap();
     assert_eq!(value, 2, "owned custody cannot lend stale facts");
-    let sql = f.store.connection().unwrap();
+    let sql = occupy_packet_sql(&f.store);
     assert_eq!(
         cached_under(&f.store, &memo, None, &held, |c| f.derive(c), |_| Ok(()))
             .unwrap_err()
@@ -88,7 +88,10 @@ fn packet_owned_sql_interval_refuses_external_and_own_commits_before_finish_with
                         .execute("UPDATE packet_snapshot_test SET value=2", [])
                         .unwrap();
                 } else {
-                    c.execute("UPDATE packet_snapshot_test SET value=2", [])
+                    f.store
+                        .connection()
+                        .unwrap()
+                        .execute("UPDATE packet_snapshot_test SET value=2", [])
                         .unwrap();
                 }
                 Ok(facts)

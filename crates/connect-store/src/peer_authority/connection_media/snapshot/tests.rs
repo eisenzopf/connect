@@ -90,7 +90,7 @@ fn unchanged_packet_projection_copy_does_not_hold_sql_against_other_current_read
             self.copies
                 .lock()
                 .unwrap()
-                .push(self.store.try_connection().is_ok());
+                .push(self.store.packet_connections[0].try_lock().is_ok());
             Self {
                 store: self.store.clone(),
                 copies: self.copies.clone(),
@@ -250,11 +250,14 @@ fn packet_snapshot_external_commit_refuses_stale_facts_releases_reader_and_recov
 }
 
 #[test]
-fn packet_snapshot_own_connection_write_also_invalidates_capture() {
+fn packet_snapshot_primary_connection_write_also_invalidates_capture() {
     let f = Fixture::new();
     let result = acquire(&f.store, |c| {
         let facts = f.derive(c)?;
-        c.execute("UPDATE packet_snapshot_test SET value=3", [])
+        f.store
+            .connection()
+            .unwrap()
+            .execute("UPDATE packet_snapshot_test SET value=3", [])
             .unwrap();
         Ok(facts)
     });
@@ -489,7 +492,7 @@ fn packet_snapshot_releases_sql_during_actual_admission_and_refuses_reacquire_co
             // This is the actual admission boundary after capture, not a sleep.
             // A competing Store read can own SQL while every original file scope is
             // freshly admitted. Failure to reacquire SQL must drop that whole guard.
-            occupied = Some(f.store.try_connection().unwrap());
+            occupied = Some(occupy_packet_sql(&f.store));
             f.store.try_acquire_authority(scopes)
         },
     );
@@ -517,4 +520,34 @@ fn packet_snapshot_releases_sql_for_current_mutation_and_rejects_mixed_capture()
     assert_eq!(result.unwrap_err().code, "authority-busy");
     drop(f.store.try_acquire_authority(&[f.write.clone()]).unwrap());
     assert_eq!(acquire(&f.store, |c| f.derive(c)).unwrap().0, 7);
+}
+
+fn occupy_packet_sql(store: &Store) -> Vec<crate::installation_ownership::ConnectionGuard<'_>> {
+    let mut held = Vec::new();
+    while let Ok(reader) = store.try_packet_connection() {
+        held.push(reader);
+        assert!(held.len() <= 4, "packet SQL observer capacity exceeded");
+    }
+    assert_eq!(
+        held.len(),
+        4,
+        "all bounded observers must be available before saturation"
+    );
+    held
+}
+
+#[test]
+fn packet_sql_observers_are_read_only_and_release_after_saturation() {
+    let f = Fixture::new();
+    let held = occupy_packet_sql(&f.store);
+    assert_eq!(
+        acquire(&f.store, |c| f.derive(c)).unwrap_err().code,
+        "authority-busy"
+    );
+    assert!(held[0]
+        .execute("UPDATE packet_snapshot_test SET value=9", [])
+        .is_err());
+    assert!(f.store.try_acquire_authority(&[f.write.clone()]).is_ok());
+    drop(held);
+    assert_eq!(acquire(&f.store, |c| f.derive(c)).unwrap().0, 1);
 }

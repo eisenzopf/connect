@@ -71,3 +71,5 @@ retire other peers or allocate a media route. An authenticated Device Endpoint
 whose capability profile permits only control/data can still use commands, but
 an audio offer is refused before a Connection slot is allocated. See the
 [selected HTTP/3 protocol requirement](https://www.ietf.org/archive/id/draft-ietf-webtrans-http3-14.html#section-3.1).
+
+Current packet metadata uses four persistent read-only connections to the authoritative WAL database, so unrelated command SQL custody does not itself mute authorized media. These observers use immediate admission and a permanent zero SQLite busy timeout. They lend no permission: the existing complete file-authority interval and exact SQL, connection, source, schema and clock seals still apply. The negative-before regression and237 controlled current-authority/snapshot/process-fence methods are recorded in `docs/evidence/gate-6/browser-client-packet-observations.json`; current browser throughput and full Gate6 qualification remain separate.

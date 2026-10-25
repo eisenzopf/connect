@@ -294,6 +294,35 @@ impl DerefMut for ConnectionGuard<'_> {
     }
 }
 impl Store {
+    /// Immediate current SQL observation without queuing behind command SQL or
+    /// another packet observer. WAL exposes committed authoritative state; each
+    /// connection's data_version invalidates metadata on primary/external writes.
+    /// The caller must still acquire and seal its complete authority interval.
+    #[track_caller]
+    pub(crate) fn try_packet_connection(&self) -> Result<ConnectionGuard<'_>> {
+        let owner = self.runtime_ownership.permit(&self.path)?;
+        for observer in &self.packet_connections {
+            let connection = match observer.try_lock() {
+                Ok(connection) => connection,
+                Err(std::sync::TryLockError::WouldBlock) => continue,
+                Err(std::sync::TryLockError::Poisoned(_)) => return Err(Error::storage()),
+            };
+            if let Some(owner) = &owner {
+                owner.check(&self.path)?;
+            }
+            return Ok(ConnectionGuard {
+                connection,
+                _owner: owner,
+                // Observers permanently use a zero SQLite busy timeout.
+                immediate: false,
+                _timing: SqlCustodyTiming::capture(),
+            });
+        }
+        Err(Error::new(
+            "authority-busy",
+            "Current packet observers are busy",
+        ))
+    }
     /// Register one bounded component hint, never an authorization grant.
     pub fn register_runtime_retirement(
         &self,

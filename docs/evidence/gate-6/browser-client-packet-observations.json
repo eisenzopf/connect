@@ -1,7 +1,7 @@
 {
   "schema": "connect-gate6-packet-observations/1",
   "task": "G6-050",
-  "status": "negative-before verified; production change pending",
+  "status": "237 controlled methods pass; full host runtime pending",
   "scope": "Controlled current packet metadata under unrelated primary SQL custody. No host throughput, native interoperability or task completion claim.",
   "negative_before": {
     "report": ".local/gate-6/packet-observation/negative002/summary.json",
@@ -35,5 +35,85 @@
       }
     ]
   },
-  "next": "Bounded persistent read-only WAL observers for snapshot metadata, fresh original file admission and exact SQL/source/schema/clock version sealing. Preserve current installation ownership and fail closed under actual observer or authority contention; observe current same-Store and external commits."
+  "next": "Bounded persistent read-only WAL observers for snapshot metadata, fresh original file admission and exact SQL/source/schema/clock version sealing. Preserve current installation ownership and fail closed under actual observer or authority contention; observe current same-Store and external commits.",
+  "implementation": {
+    "observers": 4,
+    "access": "persistent read-only authoritative WAL connections, permanent zero SQLite busy timeout, immediate pool admission",
+    "authority": "Every IO read retains current installation ownership and independently acquires/seals the original complete file scopes; metadata contains no reader or permission. Current SQL connection/data/schema/source/clock stamps remain mandatory. Actual observer saturation, queued/exclusive writers, mixed captures and expiry still refuse.",
+    "commits": "Primary and external commits invalidate read-only metadata through connection-local PRAGMA data_version; schema and clock invalidation remain independent."
+  },
+  "positive_after": {
+    "report": ".local/gate-6/packet-observation/positive002/summary.json",
+    "sha256": "426538834f52c6687304e231599518d5faab8091cb85c8cc175da8df0fc27199",
+    "passed": true,
+    "source_inputs_unchanged": true,
+    "executable_unchanged": true,
+    "executable": {
+      "path": "/Users/jonathaneisenzopf/.local/share/connect/store-received-snapshot-target/debug/deps/connect_store-2446f4223b9f6bff",
+      "sha256": "300c1ad63c28793d242b165158458a9b7f8210a94292a7e6c4a54a32bc8d0044"
+    },
+    "groups": [
+      {
+        "name": "native-authority",
+        "selection": "connection_control::tests::native_stream_authority::",
+        "command": [
+          "/Users/jonathaneisenzopf/.local/share/connect/store-received-snapshot-target/debug/deps/connect_store-2446f4223b9f6bff",
+          "connection_control::tests::native_stream_authority::",
+          "--test-threads=1",
+          "--nocapture"
+        ],
+        "exit_code": 0,
+        "passed_methods": 176,
+        "failed_methods": 0,
+        "ignored_helpers": 0,
+        "log": ".local/gate-6/packet-observation/positive002/native-authority.log",
+        "log_sha256": "30007b35fcf5ff895fe4cb688f142d227e236e6fa762ec170b3cba3abac31a33",
+        "elapsed_seconds": 91.7140260420274
+      },
+      {
+        "name": "snapshot",
+        "selection": "peer_authority::connection_media::snapshot::tests::",
+        "command": [
+          "/Users/jonathaneisenzopf/.local/share/connect/store-received-snapshot-target/debug/deps/connect_store-2446f4223b9f6bff",
+          "peer_authority::connection_media::snapshot::tests::",
+          "--test-threads=1",
+          "--nocapture"
+        ],
+        "exit_code": 0,
+        "passed_methods": 19,
+        "failed_methods": 0,
+        "ignored_helpers": 0,
+        "log": ".local/gate-6/packet-observation/positive002/snapshot.log",
+        "log_sha256": "182bcd093725169801e38ba5f0d90d6ffecd7bdea32bf132a1287abd66810635",
+        "elapsed_seconds": 7.5684299590066075
+      },
+      {
+        "name": "file-fences",
+        "selection": "authority_fences::tests::",
+        "command": [
+          "/Users/jonathaneisenzopf/.local/share/connect/store-received-snapshot-target/debug/deps/connect_store-2446f4223b9f6bff",
+          "authority_fences::tests::",
+          "--test-threads=1",
+          "--nocapture"
+        ],
+        "exit_code": 0,
+        "passed_methods": 42,
+        "failed_methods": 0,
+        "ignored_helpers": 1,
+        "log": ".local/gate-6/packet-observation/positive002/file-fences.log",
+        "log_sha256": "267728b78608f8e9a3baf55a7e6ff2f820f7102311228c5963e53aa176ad48cb",
+        "elapsed_seconds": 31.67638854100369
+      }
+    ],
+    "passed_methods": 237,
+    "ignored_helpers": 1
+  },
+  "first_attempt": {
+    "report": ".local/gate-6/packet-observation/positive001/summary.json",
+    "passed": false,
+    "observation": "175/176 native authority methods passed; one test still required unrelated primary SQL custody to block current data reads. Updated it to prove independent fresh reads succeed, actual observer saturation refuses, and an already-owned current interval needs no SQL. No production change was needed after this test correction."
+  },
+  "host_runtime": {
+    "status": "pending current guarded browser8/native4/transport28; no throughput resolution claim"
+  }
 }
