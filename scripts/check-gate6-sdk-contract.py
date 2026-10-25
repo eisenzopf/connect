@@ -32,7 +32,7 @@ def main():
              'crates/connect-protocol/src/events.rs', 'crates/connect-service/src/canonical_membership.rs',
              'crates/connect-service/src/canonical.rs', 'crates/connect-protocol/src/conversations.rs',
              'crates/connect-store/src/transitions/native_consultations.rs',
-             'crates/connect-store/src/session_control.rs', 'crates/connect-store/src/session_decisions.rs']
+             'crates/connect-store/src/session_control.rs', 'crates/connect-store/src/session_decisions.rs', 'crates/connect-store/src/transitions/actions.rs']
     names += sorted(str(p.relative_to(ROOT)) for p in (ROOT/'contracts/sdk-api').rglob('*') if p.is_file())
     digest = lambda p: hashlib.sha256(p.read_bytes()).hexdigest()
     before = {n: digest(ROOT / n) for n in names}
@@ -64,6 +64,7 @@ const sessionSignatures={};
 function visit(members,prefix){ for(const member of members){
  const name=member.key?.name;if(!name)continue;
  const path=prefix+'.'+name;
+ if(prefix==='DecisionReceipt'&&name==='target')paths.__decision_target=source.slice(...member.typeAnnotation.typeAnnotation.range).replace(/\s+/g,'');
  if(member.type==='TSMethodSignature'){paths[path]=source.slice(...member.returnType.typeAnnotation.range).replace(/\s+/g,'');if(prefix==='Session')sessionSignatures[name]=source.slice(...member.range).replace(/\s+/g,'');}
  else if(member.typeAnnotation?.typeAnnotation.type==='TSTypeLiteral')visit(member.typeAnnotation.typeAnnotation.members,path);
 }}
@@ -158,6 +159,14 @@ process.stdout.write(JSON.stringify(paths));
     assert 'SELECT state,topology_revision FROM sessions' in source_decision
     assert 'r.expected_revision.is_some_and(|v| v != revision)' in source_decision
     assert contract['revision'] >= 2 and 'Session accept/reject/cancel/update/end' in contract['revision_families']['topology']
+    target_annotation = next(n.annotation for n in classes['DecisionReceipt'].body if isinstance(n,ast.AnnAssign) and n.target.id == 'target')
+    assert isinstance(target_annotation,ast.Name) and target_annotation.id == 'OperationId'
+    assert paths['__decision_target'] == 'OperationId'
+    assert 'pub target: OperationId,' in re.search(r'pub struct DecisionReceipt \{(.*?)\n\}',target_rust,re.S)[1]
+    actions = (ROOT/'crates/connect-store/src/transitions/actions.rs').read_text()
+    result = re.search(r'let result = serde_json::json!\((.*?)\);',actions,re.S)[1]
+    assert all('"'+key+'"' in result for key in ['target_operation_id','state_at_decision','disposition','evidence_id'])
+    assert 'target_command' not in result and 'target_scope' not in result
     report = {'schema':'connect-gate6-sdk-contract/1','task':'G6-059',
               'scope':'Frozen shared public contract, current canonical schema/refusal vectors, per-language target Session fields and 22 operation-kind witnesses, current source review. Declaration compilation is recorded separately. No SDK runtime/parity/package ownership or Gate6 acceptance qualification.',
               'passed':True,'candidate_finalized':True,'handles':len(contract['handles']),'mapped_methods':len(methods),

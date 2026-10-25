@@ -97,7 +97,7 @@ export interface Completion<T> {
 }
 export interface DecisionReceipt {
     readonly decision: OperationKey;
-    readonly target: OperationKey;
+    readonly target: OperationId;
     readonly observedState: OperationState;
     readonly disposition: string;
     readonly evidenceId?: string;

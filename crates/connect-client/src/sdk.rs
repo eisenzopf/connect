@@ -26,6 +26,7 @@
 //! ```
 mod control;
 mod conversations;
+mod decisions;
 mod error;
 mod ids;
 mod operation;
@@ -39,6 +40,7 @@ pub use connect_protocol::transitions::OperationState;
 pub use conversations::{
     Conversation, ConversationSnapshot, MessageAcceptance, ParticipantSnapshot,
 };
+pub use decisions::{DecisionReceipt, ReconcileOutcome};
 pub use error::{CanonicalProblem, Certainty, Error, ErrorKind, Result};
 pub use ids::*;
 pub use operation::{
@@ -146,10 +148,14 @@ fn check_batch(batch: &crate::canonical::ReplyBatch, key: Option<&OperationKey>)
                 409 => ErrorKind::Conflict,
                 404 | 410 => ErrorKind::ReceiptUnavailable,
                 400 => ErrorKind::Validation,
-                501 | 503 => ErrorKind::Unsupported,
+                501 => ErrorKind::Unsupported,
                 _ => ErrorKind::Application,
             },
-            certainty: Certainty::Refused,
+            certainty: if key.is_some() && p.code >= 500 && p.code != 501 {
+                Certainty::Uncertain
+            } else {
+                Certainty::Refused
+            },
             operation: key.cloned(),
             problem: Some(CanonicalProblem {
                 code: p.code,

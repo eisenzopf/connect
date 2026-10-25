@@ -88,7 +88,7 @@ class Completion(Generic[T]):
 @dataclass(frozen=True)
 class DecisionReceipt:
     decision: OperationKey
-    target: OperationKey
+    target: OperationId
     observed_state: OperationState
     disposition: str
     evidence_id: str | None

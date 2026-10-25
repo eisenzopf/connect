@@ -687,3 +687,206 @@ async fn public_sdk_session_controls_use_topology_revision_and_current_scoped_re
         f.server.shutdown().await.unwrap();
     }
 }
+
+#[tokio::test]
+async fn public_sdk_durable_decisions_keep_target_identity_and_require_real_evidence() {
+    for algorithm in ["EdDSA", "ES256"] {
+        let f = Fixture::with_extra_scopes(
+            algorithm,
+            8,
+            true,
+            false,
+            false,
+            &["operation.cancel", "operation.reconcile"],
+        )
+        .await;
+        let client = Client::connect(f.client.clone(), "tnt_default".parse().unwrap())
+            .await
+            .unwrap();
+        let creation = client
+            .create_conversation(
+                vec![],
+                ConversationPolicy::Persistent,
+                mutation("decisions-create"),
+            )
+            .await
+            .unwrap();
+        let room = creation.wait(options()).await.unwrap().value;
+        let unscoped = creation
+            .cancel(mutation("decision-create-cancel"))
+            .await
+            .unwrap();
+        let unscoped_saved = unscoped.reference_json();
+        assert!(unscoped_saved["scope"].as_object().unwrap().is_empty());
+        assert_eq!(
+            unscoped
+                .wait(options())
+                .await
+                .unwrap()
+                .value
+                .target
+                .as_str(),
+            "decisions-create"
+        );
+        let solo = room
+            .invite(
+                "decision-session".parse().unwrap(),
+                vec![],
+                sdk::SessionMedium::Voice,
+                "decision-session".into(),
+                json!({"audio":["g.711-mu"]}),
+                mutation("decision-session-create"),
+            )
+            .await
+            .unwrap()
+            .wait(options())
+            .await
+            .unwrap()
+            .value;
+        let current = solo.refresh(options()).await.unwrap();
+        let ending = solo
+            .end(
+                1000,
+                "complete".into(),
+                current.topology_revision,
+                mutation("decision-session-end"),
+            )
+            .await
+            .unwrap();
+        ending.wait(options()).await.unwrap();
+        let scoped = ending
+            .cancel(mutation("decision-session-cancel"))
+            .await
+            .unwrap();
+        let scoped_saved = scoped.reference_json();
+        assert_eq!(scoped_saved["scope"]["session_id"], "decision-session");
+        assert!(scoped_saved["scope"].get("connection_id").is_none());
+        assert_eq!(
+            scoped.wait(options()).await.unwrap().value.disposition,
+            "already_terminal"
+        );
+
+        let own = room.refresh(options()).await.unwrap().participants[0]
+            .id
+            .clone();
+        let sending = room
+            .send(
+                "decision-message".parse().unwrap(),
+                NonEmpty {
+                    first: own.clone(),
+                    rest: vec![],
+                },
+                "Original completed mutation".into(),
+                mutation("decision-send"),
+            )
+            .await
+            .unwrap();
+        sending.wait(options()).await.unwrap();
+        let cancelled = RequestOptions {
+            signal: sdk::CancellationToken::new(),
+            ..options()
+        };
+        cancelled.signal.cancel();
+        assert!(
+            matches!(sending.wait(cancelled).await,Err(e) if e.certainty==sdk::Certainty::ReadOnly)
+        );
+        let same = sending.cancel(mutation("decision-send")).await;
+        assert!(
+            matches!(same,Err(e) if e.kind==sdk::ErrorKind::Validation && e.certainty==sdk::Certainty::NotSubmitted)
+        );
+        let mut extended = mutation("decision-extension");
+        extended.extensions = Some(std::collections::BTreeMap::from([(
+            "future".into(),
+            json!(true),
+        )]));
+        assert!(
+            matches!(sending.cancel(extended).await,Err(e) if e.kind==sdk::ErrorKind::Unsupported && e.certainty==sdk::Certainty::NotSubmitted)
+        );
+        let decision = sending.cancel(mutation("decision-cancel")).await.unwrap();
+        let saved = decision.reference_json();
+        assert_eq!(saved["operation_id"], "decision-cancel");
+        assert!(saved["scope"].get("connection_id").is_none());
+        let receipt = decision.wait(options()).await.unwrap();
+        assert_eq!(receipt.value.target.as_str(), "decision-send");
+        assert_eq!(receipt.value.observed_state, sdk::OperationState::Completed);
+        assert_eq!(receipt.value.disposition, "already_terminal");
+        assert_eq!(
+            sending.status(options()).await.unwrap().state,
+            sdk::OperationState::Completed
+        );
+        let replay = sending
+            .cancel(mutation("decision-cancel"))
+            .await
+            .unwrap()
+            .wait(options())
+            .await
+            .unwrap();
+        assert_eq!(
+            replay.value.decision.operation_id,
+            receipt.value.decision.operation_id
+        );
+        let other = room
+            .send(
+                "other-decision-message".parse().unwrap(),
+                NonEmpty {
+                    first: own,
+                    rest: vec![],
+                },
+                "Second distinct original intent".into(),
+                mutation("other-decision-send"),
+            )
+            .await
+            .unwrap();
+        other.wait(options()).await.unwrap();
+        assert!(
+            matches!(other.cancel(mutation("decision-cancel")).await,Err(e) if e.certainty==sdk::Certainty::Refused)
+        );
+        assert!(
+            matches!(decision.cancel(mutation("decision-of-decision")).await,Err(e) if e.certainty==sdk::Certainty::Refused)
+        );
+        assert!(
+            matches!(sending.reconcile(sdk::ReconcileOutcome::Completed,"forged-evidence".into(),mutation("decision-forged")).await,Err(e) if e.certainty==sdk::Certainty::Refused)
+        );
+        assert!(
+            matches!(sending.reconcile(sdk::ReconcileOutcome::Failed,"forged-evidence".into(),mutation("decision-false-failure")).await,Err(e) if e.certainty==sdk::Certainty::Refused)
+        );
+        client.close(options()).await.unwrap();
+        let fresh = Client::connect(f.client.clone(), "tnt_default".parse().unwrap())
+            .await
+            .unwrap();
+        assert_eq!(
+            fresh
+                .restore(unscoped_saved, fresh.operation_kinds().operation_cancel)
+                .unwrap()
+                .wait(options())
+                .await
+                .unwrap()
+                .value
+                .target
+                .as_str(),
+            "decisions-create"
+        );
+        assert_eq!(
+            fresh
+                .restore(scoped_saved, fresh.operation_kinds().operation_cancel)
+                .unwrap()
+                .wait(options())
+                .await
+                .unwrap()
+                .value
+                .target
+                .as_str(),
+            "decision-session-end"
+        );
+        let original = fresh
+            .restore(saved, fresh.operation_kinds().operation_cancel)
+            .unwrap();
+        let observed = original.status(options()).await.unwrap();
+        assert_eq!(observed.state, sdk::OperationState::Completed);
+        let recovered = original.wait(options()).await.unwrap();
+        assert_eq!(recovered.value.target.as_str(), "decision-send");
+        assert_eq!(recovered.value.disposition, "already_terminal");
+        fresh.close(options()).await.unwrap();
+        f.server.shutdown().await.unwrap();
+    }
+}

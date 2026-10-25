@@ -74,6 +74,8 @@ impl<T> OperationKind<T> {
 pub struct OperationKinds {
     pub conversation_create: OperationKind<Conversation>,
     pub message_send: OperationKind<MessageAcceptance>,
+    pub operation_cancel: OperationKind<DecisionReceipt>,
+    pub operation_reconcile: OperationKind<DecisionReceipt>,
     pub conversation_participant_add: OperationKind<Participant>,
     pub conversation_participant_update: OperationKind<Participant>,
     pub conversation_participant_remove: OperationKind<Participant>,
@@ -115,6 +117,16 @@ impl OperationKinds {
                 "session.cancel",
                 sessions::decode_decision,
                 session_scope,
+            ),
+            operation_cancel: OperationKind::new(
+                "operation.cancel",
+                decisions::decode,
+                decisions::valid_scope,
+            ),
+            operation_reconcile: OperationKind::new(
+                "operation.reconcile",
+                decisions::decode,
+                decisions::valid_scope,
             ),
             conversation_create: OperationKind::new(
                 "conversation.create",
@@ -183,6 +195,9 @@ struct Observation {
     result: Option<Value>,
 }
 impl<T> Operation<T> {
+    pub(super) fn client(&self) -> &Client {
+        &self.client
+    }
     pub(super) fn new(client: Client, reference: OperationReference<T>) -> Self {
         Self { client, reference }
     }

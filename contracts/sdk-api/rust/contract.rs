@@ -137,7 +137,7 @@ pub struct Completion<T> {
 }
 pub struct DecisionReceipt {
     pub decision: OperationKey,
-    pub target: OperationKey,
+    pub target: OperationId,
     pub observed_state: OperationState,
     pub disposition: String,
     pub evidence_id: Option<String>,

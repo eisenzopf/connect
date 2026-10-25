@@ -55,3 +55,17 @@ functions, each covering EdDSA and ES256, plus the client library suite and
 Rustdoc checks. These are functional control checks. Complete SDK parity, decoded
 media, a fresh external crate, restart/incompatible-server qualification, remote
 and Linux profiles, packaging and Gate 6 acceptance remain open.
+
+`Operation::cancel` requests a separate durable decision with its own saved ID;
+`reconcile` additionally supplies an outcome and evidence reference. A decision's
+completion describes that decision, while its receipt separately preserves the
+observed target state and disposition. `already_terminal` cannot undo a completed
+message or Session action. The target field is an Operation ID, without an
+invented command/scope. Saved decision references omit target Connection assertions
+and preserve known Conversation/Session assertions for status recovery.
+
+The host validates reconciliation evidence; a caller-provided ID cannot manufacture
+an outcome. Nonempty decision extensions currently refuse before I/O. Server
+failures keep uncertain acceptance under the original decision ID. Additional
+control verification is in `docs/evidence/gate-6/rust-sdk-decisions.json`; positive
+backend reconciliation and cancellation of actual pending native work remain open.

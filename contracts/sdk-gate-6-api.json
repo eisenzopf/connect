@@ -401,7 +401,9 @@
     "restoration": "SDK-owned OperationKinds cover all 22 mapped mutation commands; a foreign kind or mismatched saved command refuses. recover accepts an existing typed reference. Neither restore nor recover submits a mutation or performs network I/O.",
     "status_fields": "Current canonical operation.updated sends operation_id, optional record_id, state, revision, optional result/problem. Cancellation/expiry observations stay absent unless authoritative data actually supplies them.",
     "scope": "Creating conversations and trusted provisioning may be unscoped. Retain only original asserted scopes; do not invent a Conversation parent.",
-    "decision_receipts": "Preserve target_operation_id, state_at_decision, disposition and optional evidence_id. Target submission assertions and the separate decision receipt scope differ: the current decision record carries original cid/sid but no connid. Its status reference must use the decision receipt scope, not copy the target Connection assertion."
+    "decision_receipts": "Preserve target_operation_id, state_at_decision, disposition and optional evidence_id. Target submission assertions and the separate decision receipt scope differ: the current decision record carries original cid/sid but no connid. Its status reference must use the decision receipt scope, not copy the target Connection assertion.",
+    "decision_target": "DecisionReceipt.target is the authoritative target OperationId, not a fabricated original OperationKey. The current receipt does not echo target command/scope, so a freshly restored decision cannot claim those fields.",
+    "decision_extensions": "Typed cancel/reconcile refuse nonempty extensions until the installed durable action model includes them in intent identity; no silent discard."
   },
   "revision_families": {
     "session": "SessionSnapshot.revision is the observed state_revision, not a command precondition.",
@@ -442,7 +444,7 @@
     "command_kind_must_match": true,
     "restore_performs_io": false
   },
-  "revision": 3,
+  "revision": 4,
   "review_corrections": [
     "Revision2: G6-060 Store-source audit corrects the revision1 assignment of Session command preconditions. Both general Session control and pending invitation decisions compare/increment sessions.topology_revision, independently of state_revision. No server compatibility/downgrade or alternate revision acceptance is added."
   ],

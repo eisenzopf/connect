@@ -247,3 +247,11 @@ outline skips only terminal Session states and submits under current server
 appearance/authorization checks; global Session state is not an invitation grant.
 Membership receipts project currently authorized metadata. A same-ID replay can
 observe a later role/revision; crossing a membership epoch refuses the old receipt.
+
+Decision receipt `target` is the observed target Operation ID. It carries no
+invented command or scope for that target; a decision restored from saved JSON
+can only report fields its authoritative receipt provides. Typed cancellation
+and reconciliation refuse nonempty payload extensions until those fields are
+part of the durable decision identity. Mutation server failures keep the original
+ID and uncertain acceptance instead of implying that repeating under a new ID
+is safe. Actual effect reconciliation still requires attributed host evidence.
