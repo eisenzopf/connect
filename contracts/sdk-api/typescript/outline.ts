@@ -145,7 +145,12 @@ export async function invitations(
     try {
         for await (const invitation of stream) {
             const current = await invitation.session.refresh(wait);
-            if (current.state !== "invited") continue;
+            if (
+                ["ended", "rejected", "cancelled", "failed"].includes(
+                    current.state,
+                )
+            )
+                continue;
             const options = {
                 ...wait,
                 operationId: accept ? saved.accept : saved.reject,

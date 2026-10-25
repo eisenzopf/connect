@@ -77,7 +77,7 @@ async def invitations(client: ParticipantClient, saved: SavedJourney, wait: Requ
     try:
         async for invitation in stream:
             current = await invitation.session.refresh(wait)
-            if current.state != 'invited':
+            if current.state in ('ended', 'rejected', 'cancelled', 'failed'):
                 continue
             if accept:
                 await (await invitation.session.accept({'audio': ['opus']}, current.topology_revision, MutationOptions(saved.accept, wait))).wait(wait)

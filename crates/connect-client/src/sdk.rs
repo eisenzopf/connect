@@ -24,12 +24,17 @@
 //! client.close(wait).await?;
 //! # Ok(()) }
 //! ```
+mod control;
 mod conversations;
 mod error;
 mod ids;
 mod operation;
+mod participants;
+mod sessions;
+mod snapshot;
 mod worker;
 pub use connect_protocol::conversations::ConversationPolicy;
+pub use connect_protocol::provisioning::IdentityKind;
 pub use connect_protocol::transitions::OperationState;
 pub use conversations::{
     Conversation, ConversationSnapshot, MessageAcceptance, ParticipantSnapshot,
@@ -40,7 +45,11 @@ pub use operation::{
     Completion, Operation, OperationKey, OperationKind, OperationKinds, OperationReference,
     OperationScope, OperationSnapshot,
 };
+pub use participants::Participant;
 use serde_json::Value;
+pub use sessions::{
+    Medium, Session, SessionDecision, SessionMedium, SessionSnapshot, SessionUpdate,
+};
 use std::{sync::Arc, time::Duration};
 pub use tokio_util::sync::CancellationToken;
 #[derive(Clone)]

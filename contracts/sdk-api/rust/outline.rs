@@ -164,7 +164,10 @@ pub async fn invitations<A: Api>(
     let processing = async {
         while let Some(invitation) = stream.next().await? {
             let current = invitation.session.refresh(wait.clone()).await?;
-            if current.state != "invited" {
+            if matches!(
+                current.state.as_str(),
+                "ended" | "rejected" | "cancelled" | "failed"
+            ) {
                 continue;
             }
             if accept {

@@ -442,8 +442,17 @@
     "command_kind_must_match": true,
     "restore_performs_io": false
   },
-  "revision": 2,
+  "revision": 3,
   "review_corrections": [
     "Revision2: G6-060 Store-source audit corrects the revision1 assignment of Session command preconditions. Both general Session control and pending invitation decisions compare/increment sessions.topology_revision, independently of state_revision. No server compatibility/downgrade or alternate revision acceptance is added."
-  ]
+  ],
+  "existing_session_invitation": {
+    "typescript": "Session.inviteParticipants",
+    "python": "Session.invite_participants",
+    "rust": "Session.invite_participants",
+    "canonical_type": "session.invite",
+    "result": "Operation<Session>",
+    "inputs": "Nonempty current Conversation Participants, current media, unchanged original intent/capability offer and explicit topology revision.",
+    "incoming_outline": "An accepted Session can have a newly invited Participant; only terminal Session states are skipped locally. Current actor appearance and authorization are checked by the server."
+  }
 }

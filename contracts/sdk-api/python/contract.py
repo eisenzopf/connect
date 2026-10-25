@@ -356,6 +356,7 @@ class OfferedStream:
     codecs: NonEmpty[str]
 
 class Session(Protocol):
+    async def invite_participants(self, to: NonEmpty[ParticipantId], medium: Literal['voice', 'video', 'voice+video', 'screen-share', 'text-chat', 'mixed'], intent: str, capabilities: Json, expected_topology_revision: TopologyRevision, options: MutationOptions) -> Operation[Session]: ...
     @property
     def id(self) -> SessionId: ...
     @property

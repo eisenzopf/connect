@@ -78,6 +78,7 @@ process.stdout.write(JSON.stringify(paths));
         if method['id'] == 'session.consult': expected = 'ConsultationOperation'
         expected = expected if method['id'] == 'events' else 'Promise<' + expected + '>'
         assert paths.get(path) == expected, (method['id'], path, paths.get(path), expected)
+    assert paths['Session.inviteParticipants'] == 'Promise<Operation<Session>>'
     schema = json.loads((ROOT / names[2]).read_text())
     validator = jsonschema.Draft202012Validator(schema, format_checker=jsonschema.FormatChecker())
     vectors = json.loads((ROOT / names[1]).read_text())['vectors']
@@ -139,16 +140,16 @@ process.stdout.write(JSON.stringify(paths));
     assert completion == ['retained_connection_ids','admitted_connection_ids','retired_connection_ids','session_revision','conversation_revision']
     native_consult = (ROOT/'crates/connect-store/src/transitions/native_consultations.rs').read_text()
     assert 'SET topology_revision=?2' in native_consult and 'session_revision,' in native_consult
-    controls = ['accept','reject','cancel_invitation','update','end']
+    controls = ['accept','reject','cancel_invitation','update','end','invite_participants']
     for name in controls:
         method = next(n for n in classes['Session'].body if isinstance(n,ast.AsyncFunctionDef) and n.name == name)
         parameter = next(n for n in method.args.args if n.arg == 'expected_topology_revision')
         assert isinstance(parameter.annotation,ast.Name) and parameter.annotation.id == 'TopologyRevision'
-        ts_name = 'cancelInvitation' if name == 'cancel_invitation' else name
+        ts_name = {'cancel_invitation':'cancelInvitation','invite_participants':'inviteParticipants'}.get(name,name)
         signature = paths['__session_signatures'][ts_name]
         assert 'expectedTopologyRevision:Revision<"topology">' in signature and 'Revision<"session">' not in signature
     rust_session = re.search(r'pub trait Session<A: Api>.*?\n\}',target_rust,re.S)[0]
-    assert rust_session.count('expected_topology_revision: TopologyRevision') == 5
+    assert rust_session.count('expected_topology_revision: TopologyRevision') == 6
     assert 'expected_revision: SessionRevision' not in rust_session
     source_control = (ROOT/'crates/connect-store/src/session_control.rs').read_text()
     source_decision = (ROOT/'crates/connect-store/src/session_decisions.rs').read_text()

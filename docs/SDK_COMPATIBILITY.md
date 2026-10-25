@@ -238,3 +238,12 @@ and `session_decisions.rs` compare and increment `topology_revision`. Declaratio
 proofs retain distinct state/topology types and use the latter for these calls.
 The original freeze evidence remains historical; the correction and new evidence
 are recorded in `docs/evidence/gate-6/sdk-session-revision-contract.json`.
+
+The existing-Session `inviteParticipants`/`invite_participants` helper uses the
+same `session.invite` command with an explicit topology revision and nonempty
+targets. It preserves original intent/capabilities and uses current media.
+A newly invited Participant can join an already accepted Session. The application
+outline skips only terminal Session states and submits under current server
+appearance/authorization checks; global Session state is not an invitation grant.
+Membership receipts project currently authorized metadata. A same-ID replay can
+observe a later role/revision; crossing a membership epoch refuses the old receipt.

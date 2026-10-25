@@ -473,6 +473,15 @@ pub enum HoldDirection {
     Inactive,
 }
 pub trait Session<A: Api>: Clone + Send + Sync {
+    fn invite_participants(
+        &self,
+        to: NonEmpty<ParticipantId>,
+        medium: SessionMedium,
+        intent: String,
+        capabilities: Json,
+        expected_topology_revision: TopologyRevision,
+        options: MutationOptions,
+    ) -> impl Future<Output = Result<impl Operation<A::Session>>> + Send;
     fn id(&self) -> &SessionId;
     fn conversation_id(&self) -> &ConversationId;
     fn refresh(

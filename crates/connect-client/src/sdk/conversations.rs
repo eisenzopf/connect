@@ -1,7 +1,6 @@
 //! Conversation handles retain IDs; every refresh/mutation uses current authority.
 use super::*;
-use crate::canonical::{CommandScope, Payload};
-use connect_protocol::{events::SnapshotItem, Outcome};
+use connect_protocol::Outcome;
 #[derive(Clone)]
 pub struct Conversation {
     client: Client,
@@ -76,113 +75,12 @@ impl Conversation {
         ))
     }
     pub async fn refresh(&self, options: RequestOptions) -> Result<ConversationSnapshot> {
-        options.validate()?;
-        let deadline = tokio::time::Instant::now() + options.timeout;
-        let mut page = None;
-        let mut revision = None;
-        let mut cursor = None;
-        let mut state = None;
-        let mut participants = std::collections::BTreeMap::new();
-        let mut bytes = 0usize;
-        for _ in 0..256 {
-            let remaining = deadline.saturating_duration_since(tokio::time::Instant::now());
-            if remaining.is_zero() {
-                return Err(Error::request(ErrorKind::Deadline, None, false));
-            }
-            let mut query = serde_json::json!({"limit":100});
-            if let Some(page) = &page {
-                query["page"] = serde_json::json!(page);
-            }
-            let batch = self
-                .client
-                .request(
-                    "conversation.get",
-                    query,
-                    CommandScope {
-                        conversation_id: Some(self.id.as_str().into()),
-                        ..Default::default()
-                    },
-                    None,
-                    RequestOptions {
-                        timeout: remaining,
-                        signal: options.signal.clone(),
-                    },
-                )
-                .await?;
-            let frames: Vec<_> = batch
-                .frames
-                .iter()
-                .filter_map(|f| {
-                    if let Payload::ConversationSnapshot(p) = f.payload() {
-                        Some(p)
-                    } else {
-                        None
-                    }
-                })
-                .collect();
-            if frames.len() != 1 || batch.frames.len() != 2 {
-                return Err(Error::request(ErrorKind::Protocol, None, false));
-            }
-            let current = frames[0];
-            if revision.is_some_and(|r| r != current.revision)
-                || cursor.as_ref().is_some_and(|c| c != &current.cursor)
-            {
-                return Err(Error::request(ErrorKind::ResyncRequired, None, false));
-            }
-            revision = Some(current.revision);
-            cursor = Some(current.cursor.clone());
-            for item in &current.items {
-                bytes += serde_json::to_vec(item)
-                    .map_err(|_| Error::request(ErrorKind::Protocol, None, false))?
-                    .len();
-                if bytes > 2 * 1024 * 1024 {
-                    return Err(Error::request(ErrorKind::ResyncRequired, None, false));
-                }
-                let item: SnapshotItem = serde_json::from_value(item.clone())
-                    .map_err(|_| Error::request(ErrorKind::Protocol, None, false))?;
-                match item {
-                    SnapshotItem::Conversation(v) => {
-                        if v.conversation_id != self.id.as_str() || state.is_some() {
-                            return Err(Error::request(ErrorKind::Protocol, None, false));
-                        }
-                        state = Some(v);
-                    }
-                    SnapshotItem::Participant(v) => {
-                        if v.conversation_id != self.id.as_str()
-                            || participants.contains_key(&v.participant_id)
-                        {
-                            return Err(Error::request(ErrorKind::Protocol, None, false));
-                        }
-                        participants.insert(v.participant_id.clone(), v);
-                    }
-                    _ => {}
-                }
-            }
-            if !current.has_more {
-                if current.next_page.is_some() {
-                    return Err(Error::request(ErrorKind::Protocol, None, false));
-                }
-                let state =
-                    state.ok_or_else(|| Error::request(ErrorKind::Protocol, None, false))?;
-                return Ok(ConversationSnapshot {
-                    id: self.id.clone(),
-                    revision: ConversationRevision::try_from(current.revision)?,
-                    participants: participants
-                        .into_values()
-                        .map(ParticipantSnapshot::try_from)
-                        .collect::<Result<_>>()?,
-                    closed: state.closed,
-                    cursor: current.cursor.clone(),
-                });
-            }
-            let next = current
-                .next_page
-                .clone()
-                .filter(|p| Some(p) != page.as_ref())
-                .ok_or_else(|| Error::request(ErrorKind::Protocol, None, false))?;
-            page = Some(next);
-        }
-        Err(Error::request(ErrorKind::ResyncRequired, None, false))
+        Ok(snapshot::read(&self.client, &self.id, options)
+            .await?
+            .conversation)
+    }
+    pub(super) fn client(&self) -> &Client {
+        &self.client
     }
 }
 impl Client {
@@ -333,7 +231,7 @@ fn validate_conversation(
     }
     Ok(())
 }
-fn extend(
+pub(super) fn extend(
     mut body: Value,
     extensions: Option<std::collections::BTreeMap<String, Value>>,
 ) -> Result<Value> {

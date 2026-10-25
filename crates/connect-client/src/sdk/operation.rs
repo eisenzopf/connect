@@ -74,10 +74,48 @@ impl<T> OperationKind<T> {
 pub struct OperationKinds {
     pub conversation_create: OperationKind<Conversation>,
     pub message_send: OperationKind<MessageAcceptance>,
+    pub conversation_participant_add: OperationKind<Participant>,
+    pub conversation_participant_update: OperationKind<Participant>,
+    pub conversation_participant_remove: OperationKind<Participant>,
+    pub session_invite: OperationKind<Session>,
+    pub session_accept: OperationKind<Session>,
+    pub session_update: OperationKind<Session>,
+    pub session_end: OperationKind<Session>,
+    pub session_reject: OperationKind<SessionDecision>,
+    pub session_cancel: OperationKind<SessionDecision>,
 }
 impl OperationKinds {
     pub(super) fn new() -> Self {
         Self {
+            conversation_participant_add: OperationKind::new(
+                "conversation.participant.add",
+                participants::decode,
+                conversation_scope,
+            ),
+            conversation_participant_update: OperationKind::new(
+                "conversation.participant.update",
+                participants::decode,
+                conversation_scope,
+            ),
+            conversation_participant_remove: OperationKind::new(
+                "conversation.participant.remove",
+                participants::decode,
+                conversation_scope,
+            ),
+            session_invite: OperationKind::new("session.invite", sessions::decode, session_scope),
+            session_accept: OperationKind::new("session.accept", sessions::decode, session_scope),
+            session_update: OperationKind::new("session.update", sessions::decode, session_scope),
+            session_end: OperationKind::new("session.end", sessions::decode, session_scope),
+            session_reject: OperationKind::new(
+                "session.reject",
+                sessions::decode_decision,
+                session_scope,
+            ),
+            session_cancel: OperationKind::new(
+                "session.cancel",
+                sessions::decode_decision,
+                session_scope,
+            ),
             conversation_create: OperationKind::new(
                 "conversation.create",
                 conversations::decode_conversation,
@@ -302,4 +340,11 @@ impl<T> std::fmt::Debug for Operation<T> {
             .field("key", &self.reference.key)
             .finish_non_exhaustive()
     }
+}
+
+fn conversation_scope(scope: &OperationScope) -> bool {
+    scope.conversation_id.is_some() && scope.session_id.is_none() && scope.connection_id.is_none()
+}
+fn session_scope(scope: &OperationScope) -> bool {
+    scope.conversation_id.is_some() && scope.session_id.is_some() && scope.connection_id.is_none()
 }

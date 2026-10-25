@@ -174,3 +174,516 @@ async fn public_sdk_conversation_private_send_recovery_and_owned_shutdown() {
         f.server.shutdown().await.unwrap();
     }
 }
+
+#[tokio::test]
+async fn public_sdk_participant_mutations_preserve_revision_epoch_and_receipt_scope() {
+    for algorithm in ["EdDSA", "ES256"] {
+        let f = Fixture::with_membership_scope(algorithm, 8, true).await;
+        let client = Client::connect(f.client.clone(), "tnt_default".parse().unwrap())
+            .await
+            .unwrap();
+        let room = client
+            .create_conversation(
+                vec![f.peer.identity_id.parse().unwrap()],
+                ConversationPolicy::Persistent,
+                mutation("members-create"),
+            )
+            .await
+            .unwrap()
+            .wait(options())
+            .await
+            .unwrap()
+            .value;
+        let seeded = room.refresh(options()).await.unwrap();
+        let target = seeded
+            .participants
+            .iter()
+            .find(|p| p.identity_id.as_str() == f.peer.identity_id)
+            .unwrap();
+        let kind = target.kind.clone();
+        let wrong_kind_value = if kind == sdk::IdentityKind::Human {
+            sdk::IdentityKind::Ai
+        } else {
+            sdk::IdentityKind::Human
+        };
+        room.participant_by_id(target.id.clone())
+            .remove(seeded.revision, mutation("members-reset"))
+            .await
+            .unwrap()
+            .wait(options())
+            .await
+            .unwrap();
+        let original = room.refresh(options()).await.unwrap();
+        assert_eq!(original.participants.len(), 1);
+        let wrong_kind = room
+            .add_participant(
+                f.peer.identity_id.parse().unwrap(),
+                wrong_kind_value,
+                "participant".into(),
+                original.revision,
+                mutation("members-wrong-kind"),
+            )
+            .await;
+        assert!(matches!(wrong_kind,Err(e) if e.certainty==sdk::Certainty::Refused));
+        assert_eq!(room.refresh(options()).await.unwrap().participants.len(), 1);
+        let added = room
+            .add_participant(
+                f.peer.identity_id.parse().unwrap(),
+                kind.clone(),
+                "participant".into(),
+                original.revision,
+                mutation("members-add"),
+            )
+            .await
+            .unwrap();
+        let saved = added.reference_json();
+        let member = added.wait(options()).await.unwrap().value;
+        assert_eq!(member.receipt_snapshot().unwrap().kind, kind);
+        assert!(member.receipt_snapshot().unwrap().active);
+        assert_eq!(
+            member.receipt_conversation_revision().unwrap().get(),
+            original.revision.get() + 1
+        );
+        let epoch = member.refresh(options()).await.unwrap().membership_epoch;
+        let before = room.refresh(options()).await.unwrap();
+        let changed = member
+            .update("observer".into(), before.revision, mutation("members-role"))
+            .await
+            .unwrap()
+            .wait(options())
+            .await
+            .unwrap()
+            .value;
+        assert_eq!(changed.receipt_snapshot().unwrap().role, "observer");
+        assert_eq!(member.refresh(options()).await.unwrap().role, "observer");
+        let replay = room
+            .add_participant(
+                f.peer.identity_id.parse().unwrap(),
+                kind.clone(),
+                "participant".into(),
+                original.revision,
+                mutation("members-add"),
+            )
+            .await
+            .unwrap()
+            .wait(options())
+            .await
+            .unwrap()
+            .value;
+        assert_eq!(replay.receipt_snapshot().unwrap().role, "observer");
+        assert_eq!(replay.receipt_snapshot().unwrap().membership_epoch, epoch);
+        assert_eq!(room.refresh(options()).await.unwrap().participants.len(), 2);
+        let stale = member
+            .update(
+                "participant".into(),
+                original.revision,
+                mutation("members-stale"),
+            )
+            .await;
+        assert!(matches!(stale,Err(e) if e.certainty==sdk::Certainty::Refused));
+        let before = room.refresh(options()).await.unwrap();
+        let removed = member
+            .remove(before.revision, mutation("members-remove"))
+            .await
+            .unwrap()
+            .wait(options())
+            .await
+            .unwrap()
+            .value;
+        assert!(!removed.receipt_snapshot().unwrap().active);
+        assert!(
+            matches!(member.refresh(options()).await,Err(e) if e.kind==sdk::ErrorKind::ReceiptUnavailable)
+        );
+        let before = room.refresh(options()).await.unwrap();
+        let returned = room
+            .add_participant(
+                f.peer.identity_id.parse().unwrap(),
+                kind.clone(),
+                "participant".into(),
+                before.revision,
+                mutation("members-readd"),
+            )
+            .await
+            .unwrap()
+            .wait(options())
+            .await
+            .unwrap()
+            .value;
+        assert_eq!(returned.id(), member.id());
+        assert!(returned.receipt_snapshot().unwrap().membership_epoch > epoch);
+        let mut wrong = saved.clone();
+        wrong["scope"]["connection_id"] = json!("foreign");
+        assert!(client
+            .restore(wrong, client.operation_kinds().conversation_participant_add)
+            .is_err());
+        client.close(options()).await.unwrap();
+        let fresh = Client::connect(f.client.clone(), "tnt_default".parse().unwrap())
+            .await
+            .unwrap();
+        let restored = fresh
+            .restore(saved, fresh.operation_kinds().conversation_participant_add)
+            .unwrap();
+        // Current authority is checked by the read. A preserved historical receipt
+        // cannot silently become a fresh admission into the new membership epoch.
+        let observed = restored.status(options()).await;
+        assert!(matches!(observed,Err(e) if e.certainty==sdk::Certainty::Refused));
+        let current = fresh
+            .conversation_by_id(room.id().clone())
+            .participant_by_id(member.id().clone())
+            .refresh(options())
+            .await
+            .unwrap();
+        assert!(current.membership_epoch > epoch);
+        fresh.close(options()).await.unwrap();
+        f.server.shutdown().await.unwrap();
+    }
+}
+
+#[tokio::test]
+async fn public_sdk_session_controls_use_topology_revision_and_current_scoped_results() {
+    for algorithm in ["EdDSA", "ES256"] {
+        let f = Fixture::with_membership_scope(algorithm, 12, true).await;
+        let owner = Client::connect(f.client.clone(), "tnt_default".parse().unwrap())
+            .await
+            .unwrap();
+        let peer_config = super::canonical_native_connections::party_with_scope(
+            &f,
+            &f.peer.identity_id,
+            71,
+            vec!["audio".into()],
+            Scope::collaboration(vec!["*".into()]),
+        );
+        let peer = Client::connect(peer_config, "tnt_default".parse().unwrap())
+            .await
+            .unwrap();
+        let room = owner
+            .create_conversation(
+                vec![f.peer.identity_id.parse().unwrap()],
+                ConversationPolicy::Persistent,
+                mutation("sessions-create"),
+            )
+            .await
+            .unwrap()
+            .wait(options())
+            .await
+            .unwrap()
+            .value;
+        let view = room.refresh(options()).await.unwrap();
+        let own = view
+            .participants
+            .iter()
+            .find(|p| p.identity_id.as_str() == f.client.identity_id)
+            .unwrap()
+            .id
+            .clone();
+        let target = view
+            .participants
+            .iter()
+            .find(|p| p.identity_id.as_str() == f.peer.identity_id)
+            .unwrap()
+            .id
+            .clone();
+        let caps = json!({"audio":["g.711-mu"],"video":["vp8"],"screen":["vp8"],"data":["reliable-ordered"]});
+        let solo = room
+            .invite(
+                "sdk-solo".parse().unwrap(),
+                vec![],
+                sdk::SessionMedium::Voice,
+                "sdk-solo".into(),
+                caps.clone(),
+                mutation("sessions-solo"),
+            )
+            .await
+            .unwrap()
+            .wait(options())
+            .await
+            .unwrap()
+            .value;
+        assert_eq!(solo.refresh(options()).await.unwrap().state, "accepted");
+        let initial = solo.refresh(options()).await.unwrap();
+        let changed = solo
+            .update(
+                sdk::SessionUpdate::RoleChange {
+                    participant_id: own.clone(),
+                    role: "observer".into(),
+                },
+                initial.topology_revision,
+                mutation("sessions-role"),
+            )
+            .await
+            .unwrap()
+            .wait(options())
+            .await
+            .unwrap()
+            .value;
+        let current = changed.refresh(options()).await.unwrap();
+        let changed = solo
+            .update(
+                sdk::SessionUpdate::RoleChange {
+                    participant_id: own,
+                    role: "participant".into(),
+                },
+                current.topology_revision,
+                mutation("sessions-role-again"),
+            )
+            .await
+            .unwrap()
+            .wait(options())
+            .await
+            .unwrap()
+            .value;
+        let current = changed.refresh(options()).await.unwrap();
+        let upgraded = solo
+            .update(
+                sdk::SessionUpdate::MediumUpgrade(NonEmpty {
+                    first: sdk::Medium::Audio,
+                    rest: vec![sdk::Medium::Video],
+                }),
+                current.topology_revision,
+                mutation("sessions-upgrade"),
+            )
+            .await
+            .unwrap()
+            .wait(options())
+            .await
+            .unwrap()
+            .value;
+        let current = upgraded.refresh(options()).await.unwrap();
+        assert!(current.media.contains(&sdk::Medium::Video));
+        assert_ne!(current.revision.get(), current.topology_revision.get());
+        // Deliberately encode the wrong family's numeric value to prove the
+        // server refuses it; ordinary callers cannot pass SessionRevision here.
+        let wrong = sdk::TopologyRevision::try_from(current.revision.get()).unwrap();
+        assert!(
+            matches!(solo.end(1000,"stale".into(),wrong,mutation("sessions-wrong-revision")).await,Err(e) if e.certainty==sdk::Certainty::Refused)
+        );
+        let current = solo.refresh(options()).await.unwrap();
+        assert_eq!(current.state, "accepted");
+
+        let codecs = solo
+            .update(
+                sdk::SessionUpdate::CodecRenegotiate(NonEmpty {
+                    first: "g.711-mu".into(),
+                    rest: vec!["vp8".into()],
+                }),
+                current.topology_revision,
+                mutation("sessions-codecs"),
+            )
+            .await
+            .unwrap()
+            .wait(options())
+            .await
+            .unwrap()
+            .value;
+        assert_eq!(
+            codecs.receipt_snapshot().unwrap().codec_preferences,
+            vec!["g.711-mu", "vp8"]
+        );
+        let current = solo.refresh(options()).await.unwrap();
+        solo.invite_participants(
+            NonEmpty {
+                first: target.clone(),
+                rest: vec![],
+            },
+            sdk::SessionMedium::VoiceVideo,
+            "sdk-solo".into(),
+            caps.clone(),
+            current.topology_revision,
+            mutation("sessions-existing-invite"),
+        )
+        .await
+        .unwrap()
+        .wait(options())
+        .await
+        .unwrap();
+        let peer_room = peer.conversation_by_id(room.id().clone());
+        let existing = peer_room.session_by_id(solo.id().clone());
+        let pending = existing.refresh(options()).await.unwrap();
+        assert_eq!(pending.state, "accepted"); // A new invitee can join an existing Session.
+        existing
+            .accept(
+                caps.clone(),
+                pending.topology_revision,
+                mutation("sessions-existing-accept"),
+            )
+            .await
+            .unwrap()
+            .wait(options())
+            .await
+            .unwrap();
+        let current = solo.refresh(options()).await.unwrap();
+        let ended = solo
+            .end(
+                1000,
+                "complete".into(),
+                current.topology_revision,
+                mutation("sessions-end"),
+            )
+            .await
+            .unwrap();
+        let saved = ended.reference_json();
+        assert_eq!(
+            ended
+                .wait(options())
+                .await
+                .unwrap()
+                .value
+                .receipt_snapshot()
+                .unwrap()
+                .state,
+            "ended"
+        );
+        assert!(saved["scope"].get("connection_id").is_none());
+        let invite = room
+            .invite(
+                "sdk-invited".parse().unwrap(),
+                vec![target.clone()],
+                sdk::SessionMedium::Voice,
+                "sdk-invited".into(),
+                caps.clone(),
+                mutation("sessions-invite"),
+            )
+            .await
+            .unwrap()
+            .wait(options())
+            .await
+            .unwrap()
+            .value;
+        let peer_room = peer.conversation_by_id(room.id().clone());
+        let incoming = peer_room.session_by_id(invite.id().clone());
+        let current = incoming.refresh(options()).await.unwrap();
+        let accepting = incoming
+            .accept(
+                caps.clone(),
+                current.topology_revision,
+                mutation("sessions-accept"),
+            )
+            .await
+            .unwrap();
+        assert_eq!(
+            accepting
+                .wait(options())
+                .await
+                .unwrap()
+                .value
+                .receipt_snapshot()
+                .unwrap()
+                .state,
+            "accepted"
+        );
+        let current = invite.refresh(options()).await.unwrap();
+        invite
+            .update(
+                sdk::SessionUpdate::ParticipantLeave(target.clone()),
+                current.topology_revision,
+                mutation("sessions-leave"),
+            )
+            .await
+            .unwrap()
+            .wait(options())
+            .await
+            .unwrap();
+        let mut inspection = CanonicalClient::open(f.client.clone()).await.unwrap();
+        let topology = inspection
+            .conversation_snapshot(
+                room.id().as_str(),
+                serde_json::from_value(json!({"limit":100})).unwrap(),
+            )
+            .await
+            .unwrap();
+        assert!(topology.items.iter().any(|v|matches!(serde_json::from_value::<connect_protocol::events::SnapshotItem>(v.clone()),Ok(connect_protocol::events::SnapshotItem::SessionParticipant(p)) if p.session_id==invite.id().as_str() && p.participant_id==target.as_str() && p.state=="left")));
+        inspection.shutdown().await.unwrap();
+        let current = invite.refresh(options()).await.unwrap();
+
+        invite
+            .end(
+                1000,
+                "done".into(),
+                current.topology_revision,
+                mutation("sessions-group-end"),
+            )
+            .await
+            .unwrap()
+            .wait(options())
+            .await
+            .unwrap();
+        let reject = room
+            .invite(
+                "sdk-reject".parse().unwrap(),
+                vec![target.clone()],
+                sdk::SessionMedium::Voice,
+                "sdk-reject".into(),
+                caps.clone(),
+                mutation("sessions-reject-invite"),
+            )
+            .await
+            .unwrap()
+            .wait(options())
+            .await
+            .unwrap()
+            .value;
+        let incoming = peer_room.session_by_id(reject.id().clone());
+        let current = incoming.refresh(options()).await.unwrap();
+        let rejected = incoming
+            .reject(
+                486,
+                "Unavailable".into(),
+                current.topology_revision,
+                mutation("sessions-reject"),
+            )
+            .await
+            .unwrap()
+            .wait(options())
+            .await
+            .unwrap();
+        assert_eq!(rejected.value.state, "rejected");
+        assert_eq!(rejected.value.reason_code, 486);
+        let cancel = room
+            .invite(
+                "sdk-cancel".parse().unwrap(),
+                vec![target],
+                sdk::SessionMedium::Voice,
+                "sdk-cancel".into(),
+                caps,
+                mutation("sessions-cancel-invite"),
+            )
+            .await
+            .unwrap()
+            .wait(options())
+            .await
+            .unwrap()
+            .value;
+        let current = cancel.refresh(options()).await.unwrap();
+        let cancelled = cancel
+            .cancel_invitation(
+                487,
+                "Cancelled".into(),
+                current.topology_revision,
+                mutation("sessions-cancel"),
+            )
+            .await
+            .unwrap()
+            .wait(options())
+            .await
+            .unwrap();
+        assert_eq!(cancelled.value.state, "cancelled");
+        peer.close(options()).await.unwrap();
+        owner.close(options()).await.unwrap();
+        let fresh = Client::connect(f.client.clone(), "tnt_default".parse().unwrap())
+            .await
+            .unwrap();
+        let original = fresh
+            .restore(saved, fresh.operation_kinds().session_end)
+            .unwrap();
+        assert_eq!(
+            original.status(options()).await.unwrap().state,
+            sdk::OperationState::Completed
+        );
+        assert_eq!(
+            original.wait(options()).await.unwrap().value.id(),
+            solo.id()
+        );
+        fresh.close(options()).await.unwrap();
+        f.server.shutdown().await.unwrap();
+    }
+}

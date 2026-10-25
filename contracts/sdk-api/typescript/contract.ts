@@ -339,6 +339,22 @@ export type ConnectionUpdate =
           readonly codecPreferences: NonEmpty<string>;
       };
 export interface Session {
+    inviteParticipants(
+        input: {
+            to: NonEmpty<ParticipantId>;
+            medium:
+                | "voice"
+                | "video"
+                | "voice+video"
+                | "screen-share"
+                | "text-chat"
+                | "mixed";
+            intent: string;
+            capabilities: Json;
+            expectedTopologyRevision: Revision<"topology">;
+        },
+        options: MutationOptions,
+    ): Promise<Operation<Session>>;
     readonly id: SessionId;
     readonly conversationId: ConversationId;
     refresh(options: RequestOptions): Promise<SessionSnapshot>;
