@@ -145,6 +145,7 @@ export class RtpSender {
         const checked = new MediaBindings();
         checked.register(binding);
         checked.require(binding.handle, "send");
+        this.binding = Object.freeze({ ...binding });
         const random = crypto.getRandomValues(new Uint32Array(2));
         this.sequence = random[0] & 65535;
         this.ssrc = random[1];
@@ -198,12 +199,16 @@ export class Vp8Assembler {
         this.pending.delete(key);
     }
     expire(now = performance.now()) {
+        let expired = 0;
         for (const [key, frame] of this.pending)
-            if (now - frame.created >= MEDIA_LIMITS.assemblyMs)
+            if (now - frame.created >= MEDIA_LIMITS.assemblyMs) {
                 this.remove(key);
+                expired++;
+            }
         for (const [key, time] of this.completed)
             if (now - time >= MEDIA_LIMITS.assemblyMs)
                 this.completed.delete(key);
+        return expired;
     }
     get queuedFrames() {
         return this.pending.size;
@@ -313,6 +318,7 @@ export class Vp8Assembler {
 export class MediaSendQueue {
     packets = [];
     size = 0;
+    droppedPackets = 0;
     get queuedBytes() {
         return this.size;
     }
@@ -343,8 +349,10 @@ export class MediaSendQueue {
         while (this.size + bytes > MEDIA_LIMITS.sendBytes ||
             this.packets.filter((p) => p.audio === audio).length +
                 packets.length >
-                limit)
+                limit) {
             this.shift();
+            this.droppedPackets++;
+        }
         for (const packet of packets)
             this.packets.push({ bytes: packet.slice(), audio, created: now });
         this.size += bytes;
@@ -352,8 +360,10 @@ export class MediaSendQueue {
     }
     expire(now) {
         while (this.packets[0] &&
-            now - this.packets[0].created >= MEDIA_LIMITS.assemblyMs)
+            now - this.packets[0].created >= MEDIA_LIMITS.assemblyMs) {
             this.shift();
+            this.droppedPackets++;
+        }
     }
     pop(now = performance.now()) {
         this.expire(now);

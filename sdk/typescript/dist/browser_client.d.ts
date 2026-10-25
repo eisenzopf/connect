@@ -37,8 +37,10 @@ export declare class BrowserClient {
     private events;
     private eventBytes;
     private readonly listeners;
+    private readonly closeListeners;
     private failure?;
     private writes;
+    private queuedWrites;
     private auth?;
     private constructor();
     static open(options: BrowserClientOptions): Promise<BrowserClient>;
@@ -53,8 +55,22 @@ export declare class BrowserClient {
     private pump;
     /** Notifications are hints. Use operation.get/snapshots for authoritative state. */
     onEvent(callback: (event: Envelope) => void): () => void;
+    /** Owned capture, codecs and media routes retire with the physical control peer. */
+    onClose(callback: (error: Error) => void): () => void;
     /** Advanced protocol escape hatch; caller supplies a stable operation_id for mutations. */
-    request(type: string, payload: JsonObject, scope?: Scope, options?: RequestOptions): Promise<Envelope[]>;
+    request(type: string, payload: JsonObject, scope?: Scope, options?: RequestOptions & {
+        terminalType?: string;
+    }): Promise<Envelope[]>;
+    /** Fresh request ID binds the server's native media parameter exchange. */
+    begin(type: string, payload: JsonObject, scope?: Scope, options?: RequestOptions & {
+        terminalType?: string;
+    }): {
+        id: string;
+        response: Promise<Envelope[]>;
+    };
+    /** Signed one-way protocol response, such as confirming server media parameters. */
+    send(type: string, payload: JsonObject, scope: Scope, options?: RequestOptions): Promise<string>;
+    private write;
     private exchange;
     createConversation(operationId: string, options?: {
         tenantId?: string;

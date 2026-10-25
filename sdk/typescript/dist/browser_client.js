@@ -20,8 +20,10 @@ export class BrowserClient {
     events = [];
     eventBytes = 0;
     listeners = new Set();
+    closeListeners = new Set();
     failure;
     writes = Promise.resolve();
+    queuedWrites = 0;
     auth;
     constructor(options) {
         this.options = options;
@@ -230,9 +232,60 @@ export class BrowserClient {
             this.listeners.delete(callback);
         };
     }
+    /** Owned capture, codecs and media routes retire with the physical control peer. */
+    onClose(callback) {
+        if (this.failure) {
+            callback(this.failure);
+            return () => { };
+        }
+        if (this.closeListeners.size >= 16)
+            throw new ConnectError("backpressure", "Too many lifetime observers");
+        this.closeListeners.add(callback);
+        return () => {
+            this.closeListeners.delete(callback);
+        };
+    }
     /** Advanced protocol escape hatch; caller supplies a stable operation_id for mutations. */
     request(type, payload, scope = {}, options = {}) {
-        return this.exchange(envelope(type, payload, scope), true, (f) => f.type === "ack" || f.type === "error", options);
+        return this.begin(type, payload, scope, options).response;
+    }
+    /** Fresh request ID binds the server's native media parameter exchange. */
+    begin(type, payload, scope = {}, options = {}) {
+        const frame = envelope(type, payload, scope);
+        const response = this.exchange(frame, true, (f) => f.type === "ack" ||
+            f.type === "error" ||
+            f.type === options.terminalType, options);
+        return { id: frame.id, response };
+    }
+    /** Signed one-way protocol response, such as confirming server media parameters. */
+    async send(type, payload, scope, options = {}) {
+        this.check();
+        const until = performance.now() + this.timeout(options.timeoutMs);
+        if (options.signal?.aborted)
+            throw new ConnectError("cancelled", "Browser response cancelled before submission");
+        const frame = envelope(type, payload, scope);
+        await this.bound(this.write(frame, true), until, options.signal);
+        return frame.id;
+    }
+    write(frame, signed) {
+        this.check();
+        if (this.queuedWrites >= 16)
+            throw new ConnectError("backpressure", "Control write queue exhausted");
+        this.queuedWrites++;
+        const write = this.writes
+            .then(async () => {
+            this.check();
+            const signedFrame = signed
+                ? await signEnvelope(frame, this.options.signing)
+                : frame;
+            this.check();
+            await this.writer.write(encodeEnvelope(signedFrame));
+        })
+            .finally(() => {
+            this.queuedWrites--;
+        });
+        this.writes = write.catch((error) => this.close(error));
+        return write;
     }
     async exchange(frame, signed, terminal, options) {
         this.check();
@@ -256,24 +309,24 @@ export class BrowserClient {
             fail: reject,
             terminal,
         });
-        const write = this.writes.then(async () => {
-            this.check();
-            const signedFrame = signed
-                ? await signEnvelope(frame, this.options.signing)
-                : frame;
-            this.check();
-            await this.writer.write(encodeEnvelope(signedFrame));
-        });
-        this.writes = write.catch((error) => this.close(error));
         try {
+            const write = this.write(frame, signed);
             await this.bound(write, until, options.signal);
             const frames = await result;
             const error = frames.find((f) => f.type === "error");
             if (error)
-                throw new ConnectError("refused", typeof error.payload.message === "string"
-                    ? error.payload.message
-                    : "Canonical request refused");
+                throw new ConnectError("refused", frame.type +
+                    ": " +
+                    (typeof error.payload.reason === "string"
+                        ? error.payload.reason
+                        : typeof error.payload.message === "string"
+                            ? error.payload.message
+                            : "Canonical request refused"));
             return frames;
+        }
+        catch (error) {
+            reject(error);
+            throw error;
         }
         finally {
             this.pending.delete(frame.id);
@@ -338,5 +391,14 @@ export class BrowserClient {
         void this.reader?.cancel().catch(() => { });
         void this.writer?.abort().catch(() => { });
         this.transport.close({ closeCode: 0, reason: "Connect client closed" });
+        for (const callback of this.closeListeners) {
+            try {
+                callback(this.failure);
+            }
+            catch {
+                /* Continue retiring every owner. */
+            }
+        }
+        this.closeListeners.clear();
     }
 }

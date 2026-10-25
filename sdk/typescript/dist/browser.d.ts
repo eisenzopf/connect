@@ -1,4 +1,5 @@
 /** Browser-only Connect surface. This entry point imports no Node modules. */
+export { BrowserMediaPeer, BrowserMediaConnection, type BrowserMediaCallbacks, type BrowserConnectionOptions, type BrowserDataBody, type BrowserDataProtocol, } from "./browser_media.js";
 export { BrowserClient, browserTransportSupport, type BrowserClientOptions, type RequestOptions, } from "./browser_client.js";
 export type { SigningAlgorithm, SigningIdentity, ServerTrust, } from "./uctp_signing.js";
 export type { Envelope, Scope } from "./uctp_wire.js";

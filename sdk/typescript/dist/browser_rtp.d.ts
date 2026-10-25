@@ -67,7 +67,7 @@ export declare class Vp8Assembler {
     private readonly completed;
     private fragments;
     private remove;
-    expire(now?: number): void;
+    expire(now?: number): number;
     get queuedFrames(): number;
     get queuedFragments(): number;
     clear(): void;
@@ -77,6 +77,7 @@ export declare class Vp8Assembler {
 export declare class MediaSendQueue {
     private packets;
     private size;
+    droppedPackets: number;
     get queuedBytes(): number;
     get queuedPackets(): number;
     clear(): void;

@@ -2,8 +2,8 @@
 
 `@rudeless/connect/browser` exports `BrowserClient` for the canonical
 `connect/2` WebTransport control path. It requires a secure context, WebTransport
-and WebCrypto. The current checkpoint implements signed control, RTP and
-WebCodecs primitives; capture, connected media/rendering and the complete media
+and WebCrypto. The current checkpoint implements signed control, RTP,
+WebCodecs and negotiated media/data integration; capture/playback and the complete media
 qualification are still in progress. The existing WebRTC voice surface uses an
 earlier signaling dialect; canonical fallback is the separate G6-051 task.
 
@@ -81,6 +81,41 @@ recovery after dropping output. Decoded callbacks borrow the frame synchronously
 the codec always closes it, including on callback failure. `RtpClock` unwraps
 RTP timestamps; it alone does not establish cross-stream A/V synchronization.
 
+`BrowserMediaPeer` owns one authenticated client's datagram reader/writer,
+bounded send queue, codec routes and expiry timer. `offerConnection` takes
+stable Conversation, Session, Connection and operation IDs, named Opus/VP8
+Streams, and optional named `text`/`json`/`binary` data Streams. It binds the
+server's signed native parameter offer to the original wire ID, exact resource
+scope and current stream revision, confirms those parameters once, then checks
+the authoritative operation status. There is no additional root ACK after a
+native `connection.answer`. A historical completed offer on a fresh physical
+peer cannot establish new media; inspect its original operation status rather
+than automatically redialing with another logical ID.
+
+`connection.subscribe(operationId, participantId, kinds)` explicitly authorizes
+the requested source selection on the server. Non-audio subscriptions create
+separate receiver ports named after the original source Streams. The SDK permits
+these signed receiver additions within declared codecs and selected kinds; they
+cannot introduce a local publisher. Local publishers remain distinct. A
+Connection advertises a bounded 32-port capacity so a five-Stream publisher can
+also receive its peer's four video/data Streams. This is an implementation bound,
+not a qualified scale claim. Up to eight Connections/256 active datagram bindings
+are tracked per media peer.
+
+`connection.encodeAudio` takes a named local Stream, 960 float samples and a
+microsecond capture timestamp. `encodeVideo` consumes/closes a `VideoFrame` for
+the named local video/screen Stream. Decoded media callbacks carry the negotiated
+binding. Capture and audio playback helpers are still pending; callback delivery
+does not itself establish that the user sees or hears the media.
+
+`connection.sendData(operationId, messageId, streamId, body)` uses signed,
+reliable ordered canonical publication with original logical IDs and at most
+64 KiB decoded bytes. Completion proves queue admission, rather than recipient
+consumption; the recipient observes its actual data callback with original
+sender/message/operation attribution. `connection.end` reconciles terminal
+operation status and retires local routes. Physical client closure retires all
+owned media codecs, readers, writers, timers and queued datagrams.
+
 The explicit short codec lane synthesizes two distinct tones and moving color
 markers, encodes them with the production modules, packetizes/reassembles RTP,
 and independently inspects decoded PCM and rendered canvas pixels in Chrome.
@@ -110,6 +145,13 @@ python3 scripts/rehearse-gate6-browser-sdk.py --installed-browser \
   --target-dir /absolute/path/to/private-build-target \
   --output .local/gate-6/browser-sdk/unique-run
 ```
+
+Add `--media` to select the short synthetic Opus/VP8/data integration cases
+alongside the control/regression cases. The fixture observes independently
+identified decoded readiness before its short measurement window; a successful
+offer or subscription ACK cannot begin a media-ready measurement. Raw results
+retain failed and unresolved checks explicitly. This lane does not substitute
+for capture/playback, browser/native or the full frozen operating measurements.
 
 The full G6-050 completion still requires identified duplex Opus/VP8/data
 between browser/browser and browser/native, capture/permission and unsupported

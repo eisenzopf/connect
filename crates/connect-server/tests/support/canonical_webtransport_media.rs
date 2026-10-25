@@ -58,6 +58,9 @@ pub(super) fn endpoint_caps(
         .unwrap();
 }
 pub(super) fn other(f: &Fixture) -> CanonicalClientConfig {
+    other_caps(f, vec!["audio".into()])
+}
+pub(super) fn other_caps(f: &Fixture, capabilities: Vec<String>) -> CanonicalClientConfig {
     let admin = f.server.store.authenticate(&f.admin).unwrap().credential_id;
     let mut scope = Scope::collaboration(vec!["*".into()]);
     scope
@@ -79,7 +82,7 @@ pub(super) fn other(f: &Fixture) -> CanonicalClientConfig {
     config.signing_key_id = "http3-other-key".into();
     config.signing_private_key = f.temp.path().join("http3-other-key.der");
     let public = signing(&config.signing_private_key, &config.signing_algorithm);
-    endpoint(f, &config, 1);
+    endpoint_caps(f, &config, 1, capabilities);
     f.server
         .store
         .execute_provisioning(
@@ -108,6 +111,14 @@ pub(super) async fn accepted(
     f: &Fixture,
     peer: &CanonicalClientConfig,
 ) -> (String, String, String) {
+    accepted_caps(f, peer, "voice", json!({"audio":["g.711-mu"]})).await
+}
+pub(super) async fn accepted_caps(
+    f: &Fixture,
+    peer: &CanonicalClientConfig,
+    medium: &str,
+    capabilities: Value,
+) -> (String, String, String) {
     let mut client = CanonicalClient::open(f.client.clone()).await.unwrap();
     let mut input =
         connect_client::conversations::CreateRequest::persistent(vec![peer.identity_id.clone()]);
@@ -132,9 +143,9 @@ pub(super) async fn accepted(
             expected_revision: None,
             action: Action::Invite {
                 participants: vec![party],
-                medium: "voice".into(),
+                medium: medium.into(),
                 intent: "conference".into(),
-                capabilities: json!({"audio":["g.711-mu"]}),
+                capabilities: capabilities.clone(),
             },
         })
         .await
@@ -150,9 +161,7 @@ pub(super) async fn accepted(
             session_id: "http3-media-session".into(),
             by_participant: None,
             expected_revision: Some(0),
-            action: Action::Accept {
-                capabilities: json!({"audio":["g.711-mu"]}),
-            },
+            action: Action::Accept { capabilities },
         })
         .await
         .unwrap();

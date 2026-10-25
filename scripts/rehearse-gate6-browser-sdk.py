@@ -17,6 +17,7 @@ ROOT = Path(__file__).resolve().parents[1]
 BASE = runpy.run_path(str(ROOT / 'scripts/rehearse-gate6-webtransport.py'))
 digest = BASE['digest']
 CASES = ['canonical_webtransport_browser::installed_chrome_production_sdk_signed_control_receipts_and_refusals_' + alg for alg in ('eddsa', 'es256')] + BASE['BROWSER']
+MEDIA = ['canonical_webtransport_browser::installed_chrome_production_sdk_negotiated_duplex_opus_vp8_and_reliable_data_' + alg for alg in ('eddsa', 'es256')]
 
 
 def sources():
@@ -35,7 +36,9 @@ def main():
     parser.add_argument('--target-dir', required=True, type=Path)
     parser.add_argument('--output', required=True, type=Path)
     parser.add_argument('--installed-browser', action='store_true', required=True)
+    parser.add_argument('--media', action='store_true', help='Also run short synthetic Opus/VP8/reliable-data over actual SDK and server; capture/native/full operating qualification remains separate.')
     args = parser.parse_args()
+    selected = CASES + (MEDIA if args.media else [])
     directory = args.output.resolve()
     if not directory.is_relative_to((ROOT / '.local').resolve()):
         parser.error('Keep private evidence under ignored .local/')
@@ -44,7 +47,7 @@ def main():
     env = dict(os.environ, CARGO_INCREMENTAL='0', TMPDIR=str(directory / 'tmp'), CONNECT_GATE6_BROWSER_ARTIFACTS=str(directory / 'browser-artifacts'))
     report = dict(passed=False, started_at=datetime.datetime.now(datetime.timezone.utc).isoformat(), host=platform.platform(),
                   source_revision=subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=ROOT, text=True).strip(),
-                  scope='Actual production TypeScript canonical control in owned installed Chrome: both signing algorithms, separately enrolled trust, bad credential refusal, same-owner replay and native durable receipt parity. Two independent preexisting decoded-PCMU browser methods are regression checks only. No production SDK capture/Opus/VP8/data/media qualification, remote/provider, complete G6-050, acceptance or publication claim.', steps=[], cases=[])
+                  scope='Actual production TypeScript canonical control in owned Chrome: both algorithms, separately enrolled trust, bad credential refusal, same-owner replay and native durable receipt parity. Optional media selects short synthetic source over actual SDK/WT/Store/Core with identified Opus/VP8/data, signed subscriptions and durable teardown. Two independent PCMU regressions remain distinct. No capture/playback/native-media/full60s/remote/provider/complete G6-050/acceptance/publication claim.', media_selected=args.media, steps=[], cases=[])
 
     def step(name, command, json_output=False):
         start = time.monotonic()
@@ -77,8 +80,8 @@ def main():
         report['executable'] = dict(path=str(binary), sealed_path=str(sealed.relative_to(ROOT)), sha256=sha)
         env['CARGO_MANIFEST_DIR'] = artifacts[0]['manifest_path'].rsplit('/', 1)[0]
         available = subprocess.check_output([str(sealed), '--list'], env=env, text=True)
-        assert all(case + ': test' in available for case in CASES)
-        for index, case in enumerate(CASES):
+        assert all(case + ': test' in available for case in selected)
+        for index, case in enumerate(selected):
             env['CONNECT_GATE6_BROWSER_ARTIFACTS'] = str(directory / 'browser-artifacts' / str(index))
             logpath = directory / f'case-{index}.log'
             start = time.monotonic()
@@ -99,7 +102,7 @@ def main():
         report['failure'] = str(error)
     finally:
         report['source_inputs_unchanged'] = sources() == before
-        report['passed'] = len(report['cases']) == len(CASES) and all(row['passed'] for row in report['cases']) and report['source_inputs_unchanged'] and report.get('executable_unchanged') is True and 'failure' not in report
+        report['passed'] = len(report['cases']) == len(selected) and all(row['passed'] for row in report['cases']) and report['source_inputs_unchanged'] and report.get('executable_unchanged') is True and 'failure' not in report
         report['finished_at'] = datetime.datetime.now(datetime.timezone.utc).isoformat()
         (directory / 'summary.json').write_text(json.dumps(report, indent=2) + '\n')
         print(json.dumps(dict(passed=report['passed'], summary=str(directory / 'summary.json'))), flush=True)

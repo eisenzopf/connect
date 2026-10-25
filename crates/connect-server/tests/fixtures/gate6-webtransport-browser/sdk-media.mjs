@@ -1,0 +1,88 @@
+// Production SDK on the actual signed listener. Witnesses inspect decoded PCM/pixels.
+import {BrowserClient} from '/sdk/browser_client.js';
+import {BrowserMediaPeer} from '/sdk/browser_media.js';
+import {unbase64url} from '/sdk/uctp_signing.js';
+const check=(ok,message)=>{if(!ok)throw Error(message);};
+const wait=ms=>new Promise(r=>setTimeout(r,ms));
+async function options(actor){
+  const a=actor.algorithm==='ES256'?{name:'ECDSA',namedCurve:'P-256'}:{name:'Ed25519'};
+  const s=actor.server_algorithm==='ES256'?{name:'ECDSA',namedCurve:'P-256'}:{name:'Ed25519'};
+  return {url:actor.url,credential:actor.credential,identityId:actor.identity_id,device:actor.device,
+    signing:{key:await crypto.subtle.importKey('jwk',actor.private_jwk,a,false,['sign']),keyId:actor.keyid,algorithm:actor.algorithm},
+    server:{key:await crypto.subtle.importKey('raw',unbase64url(actor.server_public_raw),s,false,['verify']),keyId:actor.server_keyid,algorithm:actor.server_algorithm,notBefore:actor.server_not_before,expiresAt:actor.server_expires_at},
+    serverCertificateHashes:[{algorithm:'sha-256',value:unbase64url(actor.certificate_sha256)}]};
+}
+function tone(frame,hz){
+  const pcm=new Float32Array(frame.numberOfFrames);frame.copyTo(pcm,{planeIndex:0,format:'f32-planar'});
+  const power=f=>{let re=0,im=0;for(let n=0;n<pcm.length;n++){const angle=2*Math.PI*f*n/48000;re+=pcm[n]*Math.cos(angle);im+=pcm[n]*Math.sin(angle);}return re*re+im*im;};
+  return frame.sampleRate===48000&&frame.numberOfChannels===1&&power(hz)>power(hz===500?250:500)*4&&pcm.some(v=>Math.abs(v)>0.04);
+}
+export async function run(config){
+  const clients=[],peers=[],connections=[],errors=[],audio=[{decoded:0,identified:0},{decoded:0,identified:0}],video=[{decoded:0,identified:0,motion:new Set()},{decoded:0,identified:0,motion:new Set()}],data=[[],[]];
+  const source=[document.createElement('canvas'),document.createElement('canvas')],render=[document.createElement('canvas'),document.createElement('canvas')];
+  for(const c of [...source,...render]){c.width=640;c.height=360;}
+  let created;
+  try{
+    for(let i=0;i<2;i++){
+      const client=await BrowserClient.open(await options(config.actors[i]));clients.push(client);
+      if(i===0)created=await client.createConversation('browser-create',{participants:[config.actors[1].identity_id]});
+      const peer=new BrowserMediaPeer(client,{
+        audio:(_binding,frame)=>{audio[i].decoded++;if(tone(frame,i===0?250:500))audio[i].identified++;},
+        video:(_binding,frame)=>{
+          const out=render[i].getContext('2d',{willReadFrequently:true});out.drawImage(frame,0,0,640,360);const pixel=out.getImageData(0,0,1,1).data;
+          video[i].decoded++;if(i===0?pixel[2]>150&&pixel[0]<80:pixel[0]>150&&pixel[2]<80)video[i].identified++;
+          const row=out.getImageData(0,180,640,1).data;let sum=0,count=0;
+          for(let x=0;x<640;x++)if(row[x*4+1]>120&&row[x*4+1]>row[x*4]*1.5&&row[x*4+1]>row[x*4+2]*1.5){sum+=x;count++;}
+          if(count>8)video[i].motion.add(Math.round(sum/count));
+        },data:message=>data[i].push(message),error:e=>errors.push(String(e)),
+      });peers.push(peer);
+      connections.push(await peer.offerConnection({conversationId:config.media_cid,sessionId:'http3-media-session',connectionId:'browser-connection-'+i,operationId:'browser-offer-'+i,audio:'browser-audio-'+i,video:'browser-video-'+i,
+        data:['text','json','binary'].map(protocol=>({id:'browser-'+protocol+'-'+i,protocol}))}));
+    }
+    for(let i=0;i<2;i++)await connections[i].subscribe('browser-subscribe-'+i,config.participants[1-i],['audio','video','data']);
+    const start=performance.now(),duration=4000;let stop=false;
+    const accepted={audio:[0,0],video:[0,0]};
+    const pumping=Promise.all([
+      (async()=>{for(let n=0;!stop;n++){
+        for(let i=0;i<2;i++)if(connections[i].encodeAudio('browser-audio-'+i,Float32Array.from({length:960},(_,j)=>0.25*Math.sin(2*Math.PI*(i===0?500:250)*(n*960+j)/48000)),n*20000))accepted.audio[i]++;
+        await wait(Math.max(0,start+(n+1)*20-performance.now()));
+      }})(),
+      (async()=>{for(let n=0;!stop;n++){
+        for(let i=0;i<2;i++){const c=source[i].getContext('2d');c.fillStyle=i===0?'rgb(220,20,20)':'rgb(20,20,220)';c.fillRect(0,0,640,360);c.fillStyle='rgb(10,230,10)';c.fillRect((n*(i===0?7:11))%608,80,32,200);if(connections[i].encodeVideo('browser-video-'+i,new VideoFrame(source[i],{timestamp:Math.round(n*1000000/30)})))accepted.video[i]++;}
+        await wait(Math.max(0,start+(n+1)*1000/30-performance.now()));
+      }})(),
+    ]);void pumping.catch(()=>{});
+    let readiness_ms;
+    try{
+      const readyUntil=performance.now()+5000;
+      while(!audio.every(a=>a.identified>=5)||!video.every(v=>v.identified>=3)){
+        check(performance.now()<readyUntil,'decoded readiness deadline '+JSON.stringify({audio,video:video.map(v=>({...v,motion:v.motion.size})),metrics:peers.map(p=>({aggregate:p.diagnostics,routes:p.routeDiagnostics})),accepted}));await wait(20);
+      }
+      readiness_ms=performance.now()-start;
+    for(let i=0;i<2;i++){
+      const bodies=[{type:'text',value:'identified sender '+i+' 😀'},{type:'json',value:{source:i,marker:'ordered-json'}},{type:'binary',value:new Uint8Array([0,255,17,i])}];
+      for(const body of bodies)await connections[i].sendData('browser-data-'+i+'-'+body.type,'browser-message-'+i+'-'+body.type,'browser-'+body.type+'-'+i,body);
+    }
+
+      for(const a of audio){a.decoded=0;a.identified=0;}for(const v of video){v.decoded=0;v.identified=0;v.motion.clear();}
+      const measured=performance.now();while(performance.now()-measured<duration)await wait(20);
+    }finally{stop=true;await pumping;}
+    check(errors.length===0,'actual SDK media failure: '+errors.join('; '));
+    for(let i=0;i<2;i++){
+      check(audio[i].identified>=150,'actual decoded Opus insufficient '+JSON.stringify({audio,video:video.map(v=>({...v,motion:v.motion.size})),metrics:peers.map(p=>({aggregate:p.diagnostics,routes:p.routeDiagnostics})),accepted,readiness_ms}));
+      check(video[i].identified>=90&&video[i].motion.size>=40,'actual rendered VP8 motion insufficient '+JSON.stringify(video.map(v=>({...v,motion:v.motion.size}))));
+      check(data[i].length===3,'actual reliable data count');
+      const other=1-i;for(const message of data[i]){
+        const kind=message.body.type;check(message.from===config.participants[other]&&message.messageId==='browser-message-'+other+'-'+kind&&message.operationId==='browser-data-'+other+'-'+kind,'reliable original attribution/IDs');
+        if(kind==='text')check(message.body.value==='identified sender '+other+' 😀','reliable UTF-8 text');
+        if(kind==='json')check(message.body.value.source===other&&message.body.value.marker==='ordered-json','reliable JSON');
+        if(kind==='binary')check(message.body.value.join(',')==='0,255,17,'+other,'reliable binary');
+      }
+    }
+    const metrics=peers.map(p=>p.diagnostics);
+    for(let i=0;i<2;i++)await connections[i].end('browser-end-'+i);
+    for(const peer of peers)peer.close();
+    check(clients.every(c=>c.closed)&&peers.every(p=>p.diagnostics.activeBindings===0&&p.diagnostics.queuedBytes===0),'owned media cleanup');
+    return{passed:true,production_sdk_media:true,algorithm:config.actors[0].algorithm,created_cid:created.id,decoded_forward:true,decoded_reverse:true,reliable_data_duplex:true,owned_cleanup:true,opus:audio,vp8:video.map(v=>({...v,motion:v.motion.size})),metrics,accepted,readiness_ms,duration_ms:duration,scope:'short synthetic source over actual SDK/control/WebTransport/Store/Core media and data; capture/playback/native/full60s/impairment remain open'};
+  }finally{for(const peer of peers)peer.close();for(const client of clients)client.close();}
+}

@@ -35,7 +35,10 @@ export function envelope(
         type,
         id: "env_" + crypto.randomUUID().replaceAll("-", ""),
         ts: new Date().toISOString(),
-        payload,
+        // Capture the intention before signing or a queued write can await.
+        payload: parseCanonicalJson(
+            new TextEncoder().encode(canonicalJson(payload)),
+        ),
     } as Envelope;
     for (const key of [
         "cid",

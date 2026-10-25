@@ -1,0 +1,320 @@
+{
+  "task": "G6-050",
+  "status": "in-progress; runtime qualification failing",
+  "qualified": false,
+  "scope": "Negotiated production browser media/control/data implementation checkpoint. Four existing browser control/PCMU regressions pass; both new actual Opus/VP8/data integration methods still fail. No complete G6-050 or acceptance claim.",
+  "tested_base_revision": "cc8e8345385b66d12d8f01be36dbb6a9ce7aadbd",
+  "runtime_summary": ".local/gate-6/browser-sdk/media012/summary.json",
+  "runtime_summary_sha256": "b7484bea8ab5539ca2ed098596e0413e06c39f4b805df69880ce930805a685e2",
+  "source_inputs_unchanged": true,
+  "executable_unchanged": true,
+  "executable": {
+    "path": "/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps/gate6_canonical_webtransport-b45ce6ae941b8147",
+    "sealed_path": ".local/gate-6/browser-sdk/media012/qualified-browser-sdk",
+    "sha256": "d6866da9064f660b564978ce04ab56c34c0c8b8c175b3ba505019499c5341c9f"
+  },
+  "cases": [
+    {
+      "case": "canonical_webtransport_browser::installed_chrome_production_sdk_signed_control_receipts_and_refusals_eddsa",
+      "passed": true,
+      "exit_code": 0,
+      "elapsed_seconds": 0.9671685420908034,
+      "log": ".local/gate-6/browser-sdk/media012/case-0.log",
+      "log_sha256": "c7c57b7edcada11e1510edb70fe9cacc269534fc5f793e299f9d3d74acb64bf9"
+    },
+    {
+      "case": "canonical_webtransport_browser::installed_chrome_production_sdk_signed_control_receipts_and_refusals_es256",
+      "passed": true,
+      "exit_code": 0,
+      "elapsed_seconds": 0.832104415865615,
+      "log": ".local/gate-6/browser-sdk/media012/case-1.log",
+      "log_sha256": "3eab8bab6e862d6ebfc43dc10414f0a985fbac21d60bebf6852ae54b1d5cebdf"
+    },
+    {
+      "case": "canonical_webtransport_browser::installed_chrome_signed_control_reconnect_and_independently_decoded_duplex_eddsa",
+      "passed": true,
+      "exit_code": 0,
+      "elapsed_seconds": 4.430517792003229,
+      "log": ".local/gate-6/browser-sdk/media012/case-2.log",
+      "log_sha256": "465a5ade03dd8ee481fbac5a8603f903de19f0d9c0abd8da526ec4f079394a20"
+    },
+    {
+      "case": "canonical_webtransport_browser::installed_chrome_signed_control_reconnect_and_independently_decoded_duplex_es256",
+      "passed": true,
+      "exit_code": 0,
+      "elapsed_seconds": 4.424369167070836,
+      "log": ".local/gate-6/browser-sdk/media012/case-3.log",
+      "log_sha256": "2146652b3a4002287678d00c907bfcb00714b8df1f7caa8428d90491cf229d66"
+    },
+    {
+      "case": "canonical_webtransport_browser::installed_chrome_production_sdk_negotiated_duplex_opus_vp8_and_reliable_data_eddsa",
+      "passed": false,
+      "exit_code": 101,
+      "elapsed_seconds": 5.13648520805873,
+      "log": ".local/gate-6/browser-sdk/media012/case-4.log",
+      "log_sha256": "257ba2da0c0f55a0d32b8406adbcbfdeccb0655c82e81b2ecb44427cb8ba2b79"
+    },
+    {
+      "case": "canonical_webtransport_browser::installed_chrome_production_sdk_negotiated_duplex_opus_vp8_and_reliable_data_es256",
+      "passed": false,
+      "exit_code": 101,
+      "elapsed_seconds": 9.260893792146817,
+      "log": ".local/gate-6/browser-sdk/media012/case-5.log",
+      "log_sha256": "ce009f3de5525de45e79783e7fc32d409679a46629ed0bf1cc7c482a1798351e"
+    }
+  ],
+  "failures": [
+    {
+      "case": "canonical_webtransport_browser::installed_chrome_production_sdk_negotiated_duplex_opus_vp8_and_reliable_data_eddsa",
+      "passed": false,
+      "server_ingress": {
+        "accepted": 402,
+        "rejected": 271
+      },
+      "failure": "ConnectError: Media operation browser-data-0-text did not complete: authority-busy: Current state is busy"
+    },
+    {
+      "case": "canonical_webtransport_browser::installed_chrome_production_sdk_negotiated_duplex_opus_vp8_and_reliable_data_es256",
+      "passed": false,
+      "server_ingress": {
+        "accepted": 768,
+        "rejected": 571
+      },
+      "failure": "Error: actual decoded Opus insufficient {\"audio\":[{\"decoded\":133,\"identified\":133},{\"decoded\":127,\"identified\":127}],\"video\":[{\"decoded\":66,\"identified\":66,\"motion\":23},{\"decoded\":35,\"identified\":35,\"motion\":8}],\"metrics\":[{\"aggregate\":{\"sent\":670,\"received\":389,\"rejected\":0,\"decodedAudio\":261,\"decodedVideo\":81,\"queuedPackets\":0,\"queuedBytes\":0,\"droppedPackets\":0,\"activeBindings\":3},\"routes\":[{\"streamId\":\"browser-audio-0\",\"direction\":\"sendrecv\",\"kind\":\"audio\",\"counters\":{\"encoded\":417,\"keys\":417,\"received\":261,\"complete\":0,\"submitted\":0,\"skipped\":0,\"decoded\":261,\"expired\":0},\"incompleteFrames\":0,\"fragments\":0},{\"streamId\":\"browser-video-0\",\"direction\":\"sendrecv\",\"kind\":\"video\",\"counters\":{\"encoded\":250,\"keys\":9,\"received\":0,\"complete\":0,\"submitted\":0,\"skipped\":0,\"decoded\":0,\"expired\":0},\"incompleteFrames\":0,\"fragments\":0},{\"streamId\":\"browser-video-1\",\"direction\":\"recvonly\",\"kind\":\"video\",\"counters\":{\"encoded\":0,\"keys\":0,\"received\":128,\"complete\":127,\"submitted\":81,\"skipped\":46,\"decoded\":81,\"expired\":0},\"incompleteFrames\":0,\"fragments\":0}]},{\"aggregate\":{\"sent\":669,\"received\":323,\"rejected\":0,\"decodedAudio\":251,\"decodedVideo\":71,\"queuedPackets\":0,\"queuedBytes\":0,\"droppedPackets\":0,\"activeBindings\":3},\"routes\":[{\"streamId\":\"browser-audio-1\",\"direction\":\"sendrecv\",\"kind\":\"audio\",\"counters\":{\"encoded\":417,\"keys\":417,\"received\":251,\"complete\":0,\"submitted\":0,\"skipped\":0,\"decoded\":251,\"expired\":0},\"incompleteFrames\":0,\"fragments\":0},{\"streamId\":\"browser-video-1\",\"direction\":\"sendrecv\",\"kind\":\"video\",\"counters\":{\"encoded\":250,\"keys\":9,\"received\":0,\"complete\":0,\"submitted\":0,\"skipped\":0,\"decoded\":0,\"expired\":0},\"incompleteFrames\":0,\"fragments\":0},{\"streamId\":\"browser-video-0\",\"direction\":\"recvonly\",\"kind\":\"video\",\"counters\":{\"encoded\":0,\"keys\":0,\"received\":72,\"complete\":71,\"submitted\":71,\"skipped\":0,\"decoded\":71,\"expired\":0},\"incompleteFrames\":0,\"fragments\":0}]}],\"accepted\":{\"audio\":[417,417],\"video\":[250,250]},\"readiness_ms\":4077.9000000953674}"
+    }
+  ],
+  "sdk_suite": {
+    "passed": 177,
+    "failed": 0,
+    "skipped": 0,
+    "log": ".local/gate-6/browser-sdk-media-tests-final.log",
+    "log_sha256": "af1964eeed4a544afe1037544ca04fdc2a3c5cf7634342e580129553368a68e2",
+    "media_test_source_sha256": "a1ea872d52f04f0821b72d395bb9c6d7071bfebc3c2827f099b885e3dc4aef10"
+  },
+  "standalone_codec_checkpoint": {
+    "passed": true,
+    "summary": ".local/gate-6/browser-sdk/codecs013/summary.json",
+    "sha256": "4e0f524e4e8fe9ef949971aaa54dd7ed39e0aef226cc403c3c4b0820ee13d4df",
+    "result": {
+      "passed": true,
+      "scope": "short synthetic SDK codec/RTP/canvas primitive checkpoint only; no capture, network, native, full 60s operating profile or G6-050 completion claim",
+      "elapsed_ms": 4000.5,
+      "opus": [
+        {
+          "decoded": 200,
+          "identified": 200
+        },
+        {
+          "decoded": 200,
+          "identified": 200
+        }
+      ],
+      "vp8": [
+        {
+          "decoded": 120,
+          "identified": 120,
+          "motion": 120
+        },
+        {
+          "decoded": 120,
+          "identified": 120,
+          "motion": 117
+        }
+      ],
+      "packets": 644,
+      "max_packet_bytes": 1188,
+      "errors": []
+    }
+  },
+  "implementation": [
+    "Bounded correlated request IDs, one-way signed native parameter confirmation, closure observers, snapshots of mutable command JSON/RTP bindings",
+    "Eight owned Connections, 32 negotiated ports per Connection, 256 active physical media routes, fixed packet/byte/age/assembly/codec bounds",
+    "Preserved local publisher Streams plus separately named explicitly selected receiver Streams; correct VP8 zero-channel declaration",
+    "Scoped native parameter confirmation, current operation completion, and managed server reconciliation for retained selectors",
+    "Signed reliable text/JSON/binary with original logical operation/message IDs and actual receive attribution",
+    "Owned route/codec/timer/reader/writer teardown, packet and assembly diagnostic counters"
+  ],
+  "observations": [
+    "Full browser/browser media is not qualified: both algorithms still fail actual decoded readiness or frame thresholds. No pass was inferred from offers, ACKs or positive decoder counts.",
+    "media012 server ingress observed accepted402/rejected271 for EdDSA and accepted768/rejected571 for ES256; ES256 SDK send totals1339 match those server totals and its client queue reported zero drops. Exact transient ingress refusal classification is the next investigation, not yet proven by those aggregate counters.",
+    "Data publication can fail terminally with authority-busy. The SDK exposes the original failed operation without generating a new mutation ID or claiming delivery.",
+    "Source Opus/VP8/RTP/canvas primitives still pass independently in codecs013; this is narrower than connected media qualification."
+  ],
+  "earlier_runs": [
+    {
+      "run": ".local/gate-6/browser-sdk/media004/summary.json",
+      "passed": false
+    },
+    {
+      "run": ".local/gate-6/browser-sdk/media005/summary.json",
+      "passed": false
+    },
+    {
+      "run": ".local/gate-6/browser-sdk/media006/summary.json",
+      "passed": false
+    },
+    {
+      "run": ".local/gate-6/browser-sdk/media007/summary.json",
+      "passed": false
+    },
+    {
+      "run": ".local/gate-6/browser-sdk/media008/summary.json",
+      "passed": false
+    },
+    {
+      "run": ".local/gate-6/browser-sdk/media009/summary.json",
+      "passed": false
+    },
+    {
+      "run": ".local/gate-6/browser-sdk/media010/summary.json",
+      "passed": false
+    },
+    {
+      "run": ".local/gate-6/browser-sdk/media011/summary.json",
+      "passed": false
+    }
+  ],
+  "remaining": [
+    "Classify and fix bounded server ingress refusal/decoder scheduling during real duplex media; retain fresh authorization and per-packet age on any deferred work",
+    "Make healthy reliable data publication deterministic across metadata contention without replaying external effects",
+    "Production capture/permission/late-capture cleanup and audio playback",
+    "Browser/native identified duplex Opus/VP8/data",
+    "Background/resume, loss/impairment recovery, owned teardown and full frozen operating measurements"
+  ],
+  "source_sha256": {
+    "crates/connect-server/tests/fixtures/gate6-webtransport-browser/sdk-media.mjs": "36b4f0ca9fe9c1c75d0752f7fb77189f2374f5a9a0c8c300262cc9855d3765ee",
+    "crates/connect-server/tests/support/canonical_webtransport_browser.rs": "64e1f8d12c8de89bc94996f8bbb932b175c7c7ebc5181b31cedaaa56c66c6398",
+    "crates/connect-server/tests/support/canonical_webtransport_media.rs": "faee3ece9ea0864b929ba3a708266320ab3aeb2125c8d74f489e5ad87ecff83e",
+    "scripts/rehearse-gate6-browser-sdk.py": "f307616bd18890b72780c47c3ef95cf4b0c9908b07c4ad1ca18cd6d39899bbf8",
+    "sdk/typescript/dist/agent_observations.d.ts": "c230d270fd4a33948e6a66aee27f216f97260ba6fdb1b58f8d4b4eea049c997c",
+    "sdk/typescript/dist/agent_observations.js": "e83264b75f53f69e7d4752144cdbb56759e7be3236f2c42b645c674101c2301c",
+    "sdk/typescript/dist/browser.d.ts": "1a032088c877b37c1bd03c797cf97616d9095ab9d3a86c214982a1f4ee5c99f9",
+    "sdk/typescript/dist/browser.js": "c1907a808e1ebd79e61d271d9cbae398114ca5d7ff7b63f4453faca0b4366196",
+    "sdk/typescript/dist/browser_binding.d.ts": "51c6df8829946005f05a144ee99a8c6a3008dd7c262e9f1694fe8c931d346236",
+    "sdk/typescript/dist/browser_binding.js": "2c124ff6443e8b3c63957a5097f3562eb2aed5bdc797aa1b1bfc4763544cf701",
+    "sdk/typescript/dist/browser_capture.d.ts": "a54d2163ec6d563c881fb18f87862a68027224734d0169dfaf271d7b6a721df7",
+    "sdk/typescript/dist/browser_capture.js": "2d86df159b3f6f71e75671c93ce85fed1c2829ae4410e83c100c22ef44b0ab93",
+    "sdk/typescript/dist/browser_client.d.ts": "df12f07561f9db07743af271dad8db7969f5e69b4449e159d678dba92c502911",
+    "sdk/typescript/dist/browser_client.js": "fad6544330899284f5259e5e263cf347e7becacd4e9175b3bd456441642fbe5e",
+    "sdk/typescript/dist/browser_codecs.d.ts": "2011ea5e2b4dd0f7b585842c9a16c79048d7a872808dad3612c5fb70907d6b88",
+    "sdk/typescript/dist/browser_codecs.js": "b8d1eb6d4510a52d6893bd05a3fb6302bcccbd550bf331f3076a566e53f09afd",
+    "sdk/typescript/dist/browser_deadline.d.ts": "a180f9a3bc404d692a25caefd6ca150bfa5cfa6b934d58a0548b4fc02a169e54",
+    "sdk/typescript/dist/browser_deadline.js": "862738ad2e9f7b7085bb0427de3afbc818700a63d9a80fb715c50cb2914b0fc9",
+    "sdk/typescript/dist/browser_http.d.ts": "7030f7f0d808a4a877c1121c6c526c4c801b37d3ddbd7c339b53b78561640f9b",
+    "sdk/typescript/dist/browser_http.js": "ad7a77e48c405e73086cd726a646608e32958435086a36e4950d1f1814da7e17",
+    "sdk/typescript/dist/browser_media.d.ts": "72d436f6fbee60b64f7454227ff78bef765fef9d221a4c6b29c7428d7250912d",
+    "sdk/typescript/dist/browser_media.js": "988619ad8807fc91c25da934740f83e2527b05a6643212c1639ee57b92ffede2",
+    "sdk/typescript/dist/browser_negotiation.d.ts": "aec4f1dc436023059c147218508edaa63be9d0bd7059b0da2c43ba595736a2d3",
+    "sdk/typescript/dist/browser_negotiation.js": "d1b8af8e5a454bab25af47318eda6a9d992ee51871213f811b6fa980d0d0d48d",
+    "sdk/typescript/dist/browser_rtp.d.ts": "379a78d63dd367e0e81827e744b79c9f6fe0fe2ab52586e5be4adb313cf50ac3",
+    "sdk/typescript/dist/browser_rtp.js": "997fb9090aba43462c2af58e95344d53f0176fd83c01b028438e9922abd73f91",
+    "sdk/typescript/dist/browser_video.d.ts": "914eb1b69c2523e87156cf62bd9fdc0ec589226c1efab607d6f7267fabfe9881",
+    "sdk/typescript/dist/browser_video.js": "91d60c1f824bda840a45739bd0d7d73691766c1dafc3a28815865ed4f324fa8e",
+    "sdk/typescript/dist/browser_video_keyframes.d.ts": "ad5bb07585033efe14ac77fca766f3292ebf743cd6cd2950fc30e1b0b0e11a3c",
+    "sdk/typescript/dist/browser_video_keyframes.js": "2391985351d208a18738b34139f0d1f4ca4b8ea0696b1a8459c7f8049fc4e272",
+    "sdk/typescript/dist/browser_video_setup.d.ts": "f6584a4f1830fc20464fff6f4773f4936fd43d82b4134d7eed6a07def73ea81c",
+    "sdk/typescript/dist/browser_video_setup.js": "80772096315ecc44037559fc813bca71c0e7bba0e4736a241bba82d8eaee2d7b",
+    "sdk/typescript/dist/browser_video_stats.d.ts": "f4293c347d33461a83ab2505bab0a843bba7812e700dc56b853754f9d89ceffc",
+    "sdk/typescript/dist/browser_video_stats.js": "cd452106181c8b12c9affe711711da9fab9306e1756c0ad4a731a577ed3f219e",
+    "sdk/typescript/dist/browser_video_transform.d.ts": "91e45252a2c03501d86a9d260fe14ce9543daeb59886e3b4318d4f0fcea618da",
+    "sdk/typescript/dist/browser_video_transform.js": "ff0415be3c9fa856007554888c25dcb9ebaa6e46595f1e32616643d98daf5dfc",
+    "sdk/typescript/dist/browser_voice.d.ts": "8e058d8571b2ffdfb29386843fedc803d424ab693dde5d023711ccd26c0c831a",
+    "sdk/typescript/dist/browser_voice.js": "57b152f0d6c5dc700598bf42a49893a11d4ff6b99f92b1be90360b9364fbe9f3",
+    "sdk/typescript/dist/browser_voice_stats.d.ts": "77200e7531b021bfcee95c809e4ff94162318ef89a858035ab368ed9c2a2cc79",
+    "sdk/typescript/dist/browser_voice_stats.js": "bd93aa728c0131e20a6fa016f27b2508d2d7d5e772434d474c6bbbd8117c25ec",
+    "sdk/typescript/dist/contact_validation.d.ts": "e530fb7a25930e174fabf509211a3af5d064ddfd9b22cb221ce34994e905e387",
+    "sdk/typescript/dist/contact_validation.js": "4c81b0dcfa5590137b70db87884c3a957bbbd6151a81bee43951070a1079eaa1",
+    "sdk/typescript/dist/contacts.d.ts": "ccdca6934872b9150b761aeca1bab1eb0943c7ee710d523b14b888af75a5dc62",
+    "sdk/typescript/dist/contacts.js": "8e609bb71c20b858c77f0e9f90bb1319db8477b13f9f965f1a1e18524bf50881",
+    "sdk/typescript/dist/conversations.d.ts": "de03da148033a1b8232277f1938931d21486c165626240d857d7331a30a3a97d",
+    "sdk/typescript/dist/conversations.js": "d5ab14d5a0dc4b75195c747184df5bc7945be644db654f39de7170975c50143d",
+    "sdk/typescript/dist/errors.d.ts": "643707b2bf259af2ce7b9e2e6701516eddc7a1a091956e8d7e0a476cfee51522",
+    "sdk/typescript/dist/errors.js": "50ede2771aad4bf05d643b81c667b73fef2dbf93e6102273c4a7a5cd5cea7303",
+    "sdk/typescript/dist/event_validation.d.ts": "bbcd9d7bc17e7b0892ac59b4d49428fada621f3825edf1ea60d349e0895850a4",
+    "sdk/typescript/dist/event_validation.js": "e2a11ad9974aa44cbbec8848d72d6400a6cc713256919b302e765d8ccb7bc5d2",
+    "sdk/typescript/dist/events.d.ts": "6c66e646b713b0563610090ee3c2774df3e25cd9c11c6ea0506cbe2c1dc92af4",
+    "sdk/typescript/dist/events.js": "8e609bb71c20b858c77f0e9f90bb1319db8477b13f9f965f1a1e18524bf50881",
+    "sdk/typescript/dist/http.d.ts": "c40b6ce1ecf9e1baf77cffb29c12a56dacae2885cfc831625c17e29fa09ac03d",
+    "sdk/typescript/dist/http.js": "7516bff6000f72b9d53bfd7aca1271aae1c6b617aaa26e1b4d12c43b11c72de6",
+    "sdk/typescript/dist/index.d.ts": "7a7cbb331266243b954e04d0afb79169fbfc6df7bfd46f2be478c8beb3ec6130",
+    "sdk/typescript/dist/index.js": "5ad979515b09441bfc6ef504b4c6108812ad9f79b8091658f4d87cbff2d7adb6",
+    "sdk/typescript/dist/media_diagnostics.d.ts": "cb4c2a664168556722173247f25518c7638bbc1144b01db1e7d6c2d220c6fc75",
+    "sdk/typescript/dist/media_diagnostics.js": "b7c99561b44fc369d0cdb7110cd8aaa96bd94f63d1d858f75e1d1c046aac70e5",
+    "sdk/typescript/dist/membership.d.ts": "358f61a480fe2dce43920037fb6def413a025952bdf20fbf55f84b6c444ecec0",
+    "sdk/typescript/dist/membership.js": "8e609bb71c20b858c77f0e9f90bb1319db8477b13f9f965f1a1e18524bf50881",
+    "sdk/typescript/dist/membership_validation.d.ts": "023a218f6498609205dd150f474e296351aa7f5252e9ace505fdb0384de8b58b",
+    "sdk/typescript/dist/membership_validation.js": "39bb089658843ea83eea415d25bac98abfc8f14fde9b807f1fd61a4e1ee08a2f",
+    "sdk/typescript/dist/native.d.ts": "5c206744ff32914e5cab9db5eaf7614a70217cab66e02f22daa616af4c34f95e",
+    "sdk/typescript/dist/native.js": "5364ae8bb52c8acb9ae46821c7cc9cf86aea8407e8b8696a3f0c0d138d79e683",
+    "sdk/typescript/dist/native_audio.d.ts": "9aa25311b2ad2a56a22521f3ee3b50de23300fe8c567d4d7a369684cd63ca182",
+    "sdk/typescript/dist/native_audio.js": "fd91c8d3b68bf7963269c184cea4f9a1d1053d45f0517d5e9d74f763c7faca18",
+    "sdk/typescript/dist/operations.d.ts": "edc84a4011314e532e6a1d47351b0b03fada374e37edfb7013e0c585453de634",
+    "sdk/typescript/dist/operations.js": "b9ca188abb2664d3ab8c0134235a66f69401ec7ded9bc3e35b14a53bf751b3d7",
+    "sdk/typescript/dist/protocol.d.ts": "2b8461bdbc961db44f615e892287f5443845ff80e09c62d8c5ec94f65ca2700e",
+    "sdk/typescript/dist/protocol.js": "5f35a3891e8ffe799fba11090fb9293e3392415fdc02bc7e62824d9b385e3904",
+    "sdk/typescript/dist/record_context.d.ts": "c59e4e50594280766b2b0b8e7f91e2482def57239e0d6406d71dbc47ebe71fed",
+    "sdk/typescript/dist/record_context.js": "a30a0d3f3df8db1ca583173fb3fb8c78cd68fa78bc7209b54f522fbd7d0d690d",
+    "sdk/typescript/dist/task_operations.d.ts": "87b1e0a7c3f83c4242980661f3c5613b0415044a405838618022659c340a50f6",
+    "sdk/typescript/dist/task_operations.js": "8b844e26bb3a4eb49d54857e1b07bb64b846690705cb900a624a5a8e807d7d9c",
+    "sdk/typescript/dist/task_protocol.d.ts": "ea1ff55d2f9b316040a18a6c90e0774813e86be36e55d6ae2eda608ac73e18b4",
+    "sdk/typescript/dist/task_protocol.js": "929c06b33987c967062c50afdde34b5e3422095e1d02bc9c31cfd07a8e7d55fc",
+    "sdk/typescript/dist/tasks.d.ts": "d41e991981dd5f9f538d6988e4b0b6734307d90a3209e3b8cb96cf96e157b1bf",
+    "sdk/typescript/dist/tasks.js": "5bba952d286fe6910adbda28be5eabdf63cec46e90e557598cdff7e7a14a56a8",
+    "sdk/typescript/dist/transitions.d.ts": "5971b6f933cb715ceb8dab155ff5ad6a9f856b41a05877922e173d9627dd1dcc",
+    "sdk/typescript/dist/transitions.js": "8e609bb71c20b858c77f0e9f90bb1319db8477b13f9f965f1a1e18524bf50881",
+    "sdk/typescript/dist/types.d.ts": "6ffc913330d917d8daa9b19f7d7712332d2ee90459149bff84da0a088af9ad4e",
+    "sdk/typescript/dist/types.js": "8e609bb71c20b858c77f0e9f90bb1319db8477b13f9f965f1a1e18524bf50881",
+    "sdk/typescript/dist/uctp_json.d.ts": "c1074435e7ff8ef3eb8b591e2507e10bfbeda1ed81d5734518eb0d9edf365a11",
+    "sdk/typescript/dist/uctp_json.js": "8d03fba438d2fb308c17830fc238ffa555f138437ffe980b3d57041c17939cc0",
+    "sdk/typescript/dist/uctp_signing.d.ts": "5c5abfebcb52b09ac2606bc719188df5fb12f148b4e434aefcc1c4389ef10bfa",
+    "sdk/typescript/dist/uctp_signing.js": "90fb86fa778f95553378b0082511d0652f0ef92d4bd2cf76c5b474e37004d573",
+    "sdk/typescript/dist/uctp_wire.d.ts": "f79f790f26b64102d955889cb563d9841dbf28fadd12033850bfc41c0fa46ba0",
+    "sdk/typescript/dist/uctp_wire.js": "90b0bdcd629900c019f762a449f843813136f53948c19839239ec23d0fffd576",
+    "sdk/typescript/dist/validation.d.ts": "6c18a6a8246a0ba6393c22045eb39a0824021c648a40c49b097e17eae548096c",
+    "sdk/typescript/dist/validation.js": "29d8b2dfd38ced5f481beb91daf70c078a948032cd21b9fc2db82b00738733d9",
+    "sdk/typescript/src/agent_observations.ts": "32a8a0255ee6b20d10794a7bc5cf9e7be5424ada63261c95b828494a097063c7",
+    "sdk/typescript/src/browser.ts": "68cd5f5b130bbddb17620f0b308e283f2c520f77744a678cc7cc60a429ef0ac6",
+    "sdk/typescript/src/browser_binding.ts": "228757db647ba90edbae224d979fdbe8c24f85569722380eac7bc9ebf1f36c4d",
+    "sdk/typescript/src/browser_capture.ts": "3f833d24c7cead3ae805cc475bf4c7a776a585bde145f96d04ff58cdbb621fd1",
+    "sdk/typescript/src/browser_client.ts": "ccbac4b403165d83c909c79255f9fbfc7bbd6addce6f0d4909de2a996494a3df",
+    "sdk/typescript/src/browser_codecs.ts": "e1202265e25323e4bfd5c86890e8ad4c3e32e9d824a41e7cb6460d16dcc69e2f",
+    "sdk/typescript/src/browser_deadline.ts": "05aa68e4d3cb23beb6950f68f84d92abe30c024c97d82d0a363d72ad5930b3d3",
+    "sdk/typescript/src/browser_http.ts": "6ac654d1c84ced1eccb0f915179febcb283f71f92cfa3ec74ff3d5dfb750420c",
+    "sdk/typescript/src/browser_media.ts": "67ddaf265c9517bfa9d27e3ee732a455b643445b54919292c27d636c670c0f88",
+    "sdk/typescript/src/browser_negotiation.ts": "2563abd799231ffb9a1d9c1380a5ca068af5ff8bc8aae75e99d0b66d68aac3c1",
+    "sdk/typescript/src/browser_rtp.ts": "052e340a2de09fe6193ee4ffffb7852d231b6870ab59af32704b04b8621334fb",
+    "sdk/typescript/src/browser_video.ts": "d4caef956b071fccf342fa01f74bd8705142238b107421c6d52094a985abafca",
+    "sdk/typescript/src/browser_video_keyframes.ts": "1cb2852576bcfa01a9b8074daeb50258adf6aee073437405ec4ca4e2d08716d4",
+    "sdk/typescript/src/browser_video_setup.ts": "b6222aa1f4ec1f9b324a11c774cbe0eda1aa05e52ac6d88c8e78309ffa17d413",
+    "sdk/typescript/src/browser_video_stats.ts": "c5f7d177589f3415c92c8aec1a6855a0d8349df053a8d0f945919a83e5f01386",
+    "sdk/typescript/src/browser_video_transform.ts": "42518e016ab644568b00b8e99f79d15305a5fb229394c43a61328738bc37df7e",
+    "sdk/typescript/src/browser_voice.ts": "8699c6f439578fb2383798eeaa8794f9fe60d6372c485dc8719a5bf1dd0921b2",
+    "sdk/typescript/src/browser_voice_stats.ts": "410a8a6de1f73cfa83a804652c2369769e9337caa4abe9f1a78be12bbeef165c",
+    "sdk/typescript/src/contact_validation.ts": "91f808eceb4fffa6819cddfea936f69cb1046b9f07d069035cba58faf74b1907",
+    "sdk/typescript/src/contacts.ts": "a1f61a7af12a99536b0963d9e23da2009fa3e58c12813a06a491f32c9400326e",
+    "sdk/typescript/src/conversations.ts": "83b64a9de0f1269794f6ed4c876eb35a7c86ae996b8e962c7b7caf0bd97b528c",
+    "sdk/typescript/src/errors.ts": "7f6121c802ee45623b3713b1d06ba66ac89a6af8305c6d0a7c1e69c88fed3319",
+    "sdk/typescript/src/event_validation.ts": "a719824a4ec87336b9c1028a8798cb520f14616929993213d85b257766830f95",
+    "sdk/typescript/src/events.ts": "3f319291db6b733eaf8f8abcf74b33eec1f795f790d5bf3bbc2b7a1ee05d3545",
+    "sdk/typescript/src/http.ts": "7e1c842e9837fe39c04895d8766de672cbf33deb8a4de092b87d0b1054b91b45",
+    "sdk/typescript/src/index.ts": "87a79bacb3377fe96ca1029574f763297f12bc419be154362f2c5f6601b0be9e",
+    "sdk/typescript/src/media_diagnostics.ts": "b8d556562720ac0148c8114fe795ada00b6ae284fd79647e80d079a967939180",
+    "sdk/typescript/src/membership.ts": "15efdecdfef6cf0af750a9aa50aaf88545a5ec918db971af11a31bfc74c25b8b",
+    "sdk/typescript/src/membership_validation.ts": "13a39521a88edd3991b568c377f923f0f368e46b05fb9b1bb5ed03cc5707882a",
+    "sdk/typescript/src/native.ts": "3d9239704548df688d67f62c41c8152a9c1522d52fcfe654fc5f56443e0577ce",
+    "sdk/typescript/src/native_audio.ts": "da90eaeccffd5c9e322566ec0681bdf2a97b36f7c85b626afa6cf2b3917eb984",
+    "sdk/typescript/src/operations.ts": "a55f8c7512ead8d3d006b80e26fbff7c2664ff37edf4c9dcdfb66b880bd1f27b",
+    "sdk/typescript/src/protocol.ts": "2d48dde2af7c6046dc4518707e5961b99e807d712e818a46ac65eb25a72dcf54",
+    "sdk/typescript/src/record_context.ts": "ec7d64ba355a4303d5011f8db9cc137935b2bf1817511e4f7fadd1224a62075d",
+    "sdk/typescript/src/task_operations.ts": "ee4ca5c5370cf818bb65faa424499f9764f677886b12770c8335669a9c310ca6",
+    "sdk/typescript/src/task_protocol.ts": "a762ac4cdabcaae0a2e245f0c9b8a29a5a67adb311b604ca06565ea70641de55",
+    "sdk/typescript/src/tasks.ts": "4e07fcb9c08509a54b550856f98edc9580be11c6789944293447bc963148eb2d",
+    "sdk/typescript/src/transitions.ts": "de80e92abc65ae0b38d14c559482a9c6f13c98dc3ee3a70232aa2535308ed737",
+    "sdk/typescript/src/types.ts": "befc92d11c0f86b7d583339e29f8ea2996f88e3f4725a6c1ea48594084b8fbcd",
+    "sdk/typescript/src/uctp_json.ts": "b12d48789c34b2b321e2a141a8064c125d92a8998a3b42970a155127defa2844",
+    "sdk/typescript/src/uctp_signing.ts": "7c87ef0e3e5f0c3f29101f9049a0741abae5a2ac13c2b919a850e07059178f5e",
+    "sdk/typescript/src/uctp_wire.ts": "af3e92e0102853dcb885b1171e2549957907ac31636b35b2e5713c496ed9642c",
+    "sdk/typescript/src/validation.ts": "ab9301e407e27996a697a341f3a1a246255285fd21c11cdfbbc46cfd6f9a5ced"
+  },
+  "acceptance_qualified": false
+}
