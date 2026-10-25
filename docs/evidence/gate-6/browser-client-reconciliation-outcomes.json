@@ -1,7 +1,7 @@
 {
   "schema": "connect-gate6-reconciliation-outcome/1",
   "task": "G6-050",
-  "status": "six focused upstream methods and239 Store methods pass; host/runtime pending",
+  "status": "Current host:8/8browser baseline,3/4native,28/28transport; native captured ES256 video remains failed",
   "negative_before": {
     "report": ".local/gate-6/reconciliation-outcome/negative002/summary.json",
     "sha256": "bf6813bc839903f7481d5bf29c68bd32345777611034ac7a861f49117806db61",
@@ -34,7 +34,7 @@
     "verified_expected_failure": false,
     "observation": "Timed out because notify_one could wake the publisher instead of the retained selector runtime. Revised to notify_waiters and publish the observation counter after validation; first cache/patch/lock are retained privately."
   },
-  "next": "Record production patch preserving exact success/error plus its original plan across observer retries. Provide an opaque exact-scope/error proof only for definite unchanged-resource atomic routing failure, record the original failed attempt before releasing it, and obtain fresh current authority for further work. Preserve uncertainty for possible resource IO and never run an effect with metadata-only observation custody. Then six actual upstream methods and full current host/browser/native/transport checks.",
+  "next": "Diagnose actual native captured ES256 video packet gaps using bounded arrival metadata and packet-policy traces. Preserve original failure and thresholds. Then full current matrix, frozen60second browser profile and required impairment/failure profiles.",
   "scope": "Actual Core/UCTP functional negative only; no passing test, Connect host performance, native interoperability, full task/acceptance or publication claim.",
   "implementation": {
     "patch": "patches/rvoip/gate6-reconcile-exact-error-and-no-effect.patch",
@@ -175,6 +175,11 @@
     "behavior": "New controlled test covers both preparing and unknown original attempts, rollback during failed-outcome journal insertion, blocked terminal admission with no new effect until commit, idempotent recording of the same failed receipt, then one accepted original terminal intent. This is Store metadata evidence, not manufactured native IO evidence."
   },
   "host_runtime": {
-    "status": "current source190/publication fix host build active; current browser8/native4/transport28 and operating profiles remain unverified"
+    "evidence": "docs/evidence/gate-6/browser-client-outcome-host.json",
+    "sha256": "3a77e58f5fd5dad0af18efdc8dbea2993cfce72510813fc0652cc17e3c45a5ba",
+    "browser_baseline_passed": "8/8",
+    "native_passed": "3/4",
+    "transport_passed": "28/28",
+    "scope": "Captured ES256 native video failed65<90; task remains in progress."
   }
 }

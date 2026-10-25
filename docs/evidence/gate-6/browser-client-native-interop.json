@@ -1,7 +1,7 @@
 {
   "schema": "connect-gate6-browser-native/1",
   "task": "G6-050",
-  "status": "compiled; actual four-case runtime fails; interoperability remains unqualified",
+  "status": "Threeof4native runtime cases pass with independent received Opus/VP8/data decoding; capturedES256 nativevideo65<90fails",
   "public_interface": "connect_client::canonical::CanonicalClient over real signed QUIC, production BrowserClient/BrowserMediaPeer over real WT; shared production Store/Core",
   "source": "Short software Opus250Hz32k and VP8blue640x36030fps fixtures; browser500Hz/red, optional actual supplied-stream capture/render. Native RTP preserves VP8 marker and sequence gaps across skipped source frames. Current independent FFmpeg observers map actual received packets to original arrival windows with decoder pre-roll; cannot count ACKs or source packets as received decoded media.",
   "primitive_report": {
@@ -174,5 +174,13 @@
       "passed": false,
       "observation": "Single-query event loop compiles and reaches actual browser-data-0-json failure: authority-busy Native data metadata deadline elapsed. No query-bound panic or initial native-offer stall. Native interoperability remains unqualified."
     }
+  },
+  "current_runtime": {
+    "evidence": "docs/evidence/gate-6/browser-client-outcome-host.json",
+    "sha256": "3a77e58f5fd5dad0af18efdc8dbea2993cfce72510813fc0652cc17e3c45a5ba",
+    "browser_baseline_passed": "8/8",
+    "native_passed": "3/4",
+    "transport_passed": "28/28",
+    "scope": "Captured ES256 native video failed65<90; task remains in progress."
   }
 }

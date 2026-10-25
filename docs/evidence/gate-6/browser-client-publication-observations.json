@@ -1,7 +1,7 @@
 {
   "schema": "connect-gate6-publication-observations/1",
   "task": "G6-050",
-  "status": "238 controlled Store methods pass; service/runtime pending",
+  "status": "Current host:8/8browser baseline,3/4native,28/28transport; native captured ES256 video remains failed",
   "scope": "Controlled original signed publication metadata under unrelated primary SQL custody; no runtime or task completion claim.",
   "negative_before": {
     "report": ".local/gate-6/publication-observation/negative002/summary.json",
@@ -32,7 +32,7 @@
     ]
   },
   "observation": "The original publication proof and begun logical attempt are current, but metadata cannot finish while the primary SQL mutex is held. A500ms bounded wait fails; SQL is always released and the worker joined. No native-data IO write occurs. This exceeds the service metadata retry window without any authority change.",
-  "next": "One complete exact attempt/media/frozen-message read on a read-only observer, under the original already-owned authority interval, with SQL/source/schema/clock sealing; remove duplicate final primary-SQL preflight reads. Keep initial physical/format admission and the single actual adapter revalidation/publication call.",
+  "next": "Diagnose actual native captured ES256 video packet gaps using bounded arrival metadata and packet-policy traces. Preserve original failure and thresholds. Then full current matrix, frozen60second browser profile and required impairment/failure profiles.",
   "implementation": [
     "Capture exact original attempt, source media and frozen-message facts through one read-only observer under the original signed command interval. No new reader is acquired behind queued authority writers.",
     "Retain SQL-connection/data/schema/source/clock seals and original credential/device/generation/intent/audience/expiry checks; a clock edge rederives under the same held interval. No facts or positive permission are cached between publications.",
@@ -101,7 +101,12 @@
     "ignored_helpers": 1
   },
   "host_runtime": {
-    "status": "not yet verified; current browser/native/transport after service build required"
+    "evidence": "docs/evidence/gate-6/browser-client-outcome-host.json",
+    "sha256": "3a77e58f5fd5dad0af18efdc8dbea2993cfce72510813fc0652cc17e3c45a5ba",
+    "browser_baseline_passed": "8/8",
+    "native_passed": "3/4",
+    "transport_passed": "28/28",
+    "scope": "Captured ES256 native video failed65<90; task remains in progress."
   },
   "remaining": "Unchanged-resource reconciliation error/outcome recording remains under investigation. A separate unpromoted draft preserves exact errors and uses opaque invocation-bound proof for definite atomic routing failure; no current runtime resolution claim."
 }
