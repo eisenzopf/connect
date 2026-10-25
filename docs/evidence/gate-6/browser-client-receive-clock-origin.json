@@ -1,6 +1,6 @@
 {
   "task": "G6-050",
-  "status": "Receive-clock startup correction passes246SDKmethods; current installed-browser runtime pending",
+  "status": "246SDKmethods and isolated current captured native EdDSA076 pass; full cohort074 remains9/12, G6-050 in progress",
   "recorded_at": "2026-10-25T20:01:01.936992+00:00",
   "behavior": "Decoded AudioData/VideoFrame timestamps use the local performance.now receive timeline. The renderer maps that timeline to its playback graph once, with the existing shared80mslead. A delayed first decoder callback no longer defines the clock origin, so stale backlog cannot push fresh media beyond the existing200msqueue bound. No per-track offset, source/observer/threshold change or late-packet deadline extension.",
   "source": {
@@ -74,5 +74,244 @@
   "attempts": [
     "Initial positive001 passes245/246; an old basic renderer mock had no monotonic performance clock, unlike production decoded timestamps. Its mock now shares graph time with performance.now. All original ownership/refusal assertions remain."
   ],
-  "remaining": "Original073 short capture127/150audio and native subscriptionunknown failures remain recorded. No native control-race fix or fullG6-050/acceptance claim. Current installed-browser/native cohorts must run; other live native, independent-source, impairment and assigned profiles stay required."
+  "remaining": "Full current074cohort remains9/12. Short EdDSA142/150audio and both captured-native browser subscriptionunknown failures require implementation/recovery work. One original current captured native EdDSA076pass proves its own narrow scope only. Source203/SDK246 clean60 not run; native live encoder/presenter, independent sources, impairment, permissions/API/codec/background and all other assigned105tasks/acceptance remain required.",
+  "runtime_checks": [
+    {
+      "report": ".local/gate-6/browser-sdk/receive-origin074/summary.json",
+      "report_sha256": "0a211f2aa07f5d8d462dec7a53cbb3b3425a839f4c6bbdc17786a4a6fece6a6a",
+      "source_revision": "30160e3b7535f4d5d5c93aa3880b3512c9f4a439",
+      "passed": false,
+      "passed_cases": 9,
+      "total_cases": 12,
+      "source_inputs_unchanged": true,
+      "executable_unchanged": true,
+      "executable_sha256": "62e5d83be6ce16561faf42af3b9d461f6fab86d588e1636e46d4ee712930ce47",
+      "scope": "Actual production TypeScript canonical control in owned Chrome. Exact selected methods are recorded; a single diagnostic method does not qualify the omitted matrix. Optional media selects short synthetic source over SDK/WT/Store/Core with identified Opus/VP8/data and durable teardown. Optional capture selects supplied-stream capture/worklet and decoded audio/canvas rendering. Explicit clean60 applies frozen fps/paired graph-canvas marker limits and resource observations only to capture methods. Packet tracing and diagnostic60 are diagnostic only and never qualify the frozen clean profile. Optional native cases use public CanonicalClient QUIC and independently decode actual native received packets. No native live encoder/realtime presenter/full60second-native/impairment/remote/provider/complete G6-050/acceptance/publication claim.",
+      "packet_trace": null,
+      "cases": [
+        {
+          "case": "canonical_webtransport_browser::installed_chrome_production_sdk_signed_control_receipts_and_refusals_eddsa",
+          "passed": true,
+          "exit_code": 0,
+          "elapsed_seconds": 0.9596590420696884,
+          "log": ".local/gate-6/browser-sdk/receive-origin074/case-0.log",
+          "log_sha256": "1371011417751ba9d243749a0ca27e523632d2bcd8bc1684816d6d83f3324e4d"
+        },
+        {
+          "case": "canonical_webtransport_browser::installed_chrome_production_sdk_signed_control_receipts_and_refusals_es256",
+          "passed": true,
+          "exit_code": 0,
+          "elapsed_seconds": 0.8260206251870841,
+          "log": ".local/gate-6/browser-sdk/receive-origin074/case-1.log",
+          "log_sha256": "4a3d53fcf0be0f48fb92bfc748c346079fe7f6a995221ee61ed9ef1b8c9a0432"
+        },
+        {
+          "case": "canonical_webtransport_browser::installed_chrome_signed_control_reconnect_and_independently_decoded_duplex_eddsa",
+          "passed": true,
+          "exit_code": 0,
+          "elapsed_seconds": 4.4457460411358625,
+          "log": ".local/gate-6/browser-sdk/receive-origin074/case-2.log",
+          "log_sha256": "43d202a51d1afe24823f1386d69acdb2032d50c770b7316ef7fe2325919dc363"
+        },
+        {
+          "case": "canonical_webtransport_browser::installed_chrome_signed_control_reconnect_and_independently_decoded_duplex_es256",
+          "passed": true,
+          "exit_code": 0,
+          "elapsed_seconds": 4.435996915912256,
+          "log": ".local/gate-6/browser-sdk/receive-origin074/case-3.log",
+          "log_sha256": "3e6d968dd3ed26e80a7d92140eefb23e9c23e7be1f846334e6290f8e91275baf"
+        },
+        {
+          "case": "canonical_webtransport_browser::installed_chrome_production_sdk_negotiated_duplex_opus_vp8_and_reliable_data_eddsa",
+          "passed": true,
+          "exit_code": 0,
+          "elapsed_seconds": 7.167927582981065,
+          "log": ".local/gate-6/browser-sdk/receive-origin074/case-4.log",
+          "log_sha256": "c1b99dc0adaf6236b654753bef87b855587d45c9f36c2cd2b136e8dec4cacf96"
+        },
+        {
+          "case": "canonical_webtransport_browser::installed_chrome_production_sdk_negotiated_duplex_opus_vp8_and_reliable_data_es256",
+          "passed": true,
+          "exit_code": 0,
+          "elapsed_seconds": 7.0586435832083225,
+          "log": ".local/gate-6/browser-sdk/receive-origin074/case-5.log",
+          "log_sha256": "ecff3117a021405fe60d364dec59cb3d1816f94bd584be37678db338d29ef64d"
+        },
+        {
+          "case": "canonical_webtransport_browser::installed_chrome_production_sdk_captured_duplex_opus_vp8_and_reliable_data_eddsa",
+          "passed": false,
+          "exit_code": 101,
+          "elapsed_seconds": 6.076277291867882,
+          "log": ".local/gate-6/browser-sdk/receive-origin074/case-6.log",
+          "log_sha256": "8a23422657040da6c5b10e83a32b76c751a5f176f47bbc1786d57781d8734ce3"
+        },
+        {
+          "case": "canonical_webtransport_browser::installed_chrome_production_sdk_captured_duplex_opus_vp8_and_reliable_data_es256",
+          "passed": true,
+          "exit_code": 0,
+          "elapsed_seconds": 7.236901625059545,
+          "log": ".local/gate-6/browser-sdk/receive-origin074/case-7.log",
+          "log_sha256": "f12ddeed388f0afbe9134269407e514ad4ae7ae8025841e35ab191f10a438268"
+        },
+        {
+          "case": "canonical_webtransport_browser::installed_chrome_production_sdk_browser_native_opus_vp8_and_reliable_data_eddsa",
+          "passed": true,
+          "exit_code": 0,
+          "elapsed_seconds": 6.979532874887809,
+          "log": ".local/gate-6/browser-sdk/receive-origin074/case-8.log",
+          "log_sha256": "301890035dbc3bc7e8c0dff1d88c79317926d9c96fce9a68b84059b8af14c158"
+        },
+        {
+          "case": "canonical_webtransport_browser::installed_chrome_production_sdk_browser_native_opus_vp8_and_reliable_data_es256",
+          "passed": true,
+          "exit_code": 0,
+          "elapsed_seconds": 6.879464500118047,
+          "log": ".local/gate-6/browser-sdk/receive-origin074/case-9.log",
+          "log_sha256": "7d1ed0e58614e0f36ea6f196c9d6c45e74eb48ec0f178dba7e79997ec4130122"
+        },
+        {
+          "case": "canonical_webtransport_browser::installed_chrome_production_sdk_captured_browser_native_opus_vp8_and_reliable_data_eddsa",
+          "passed": false,
+          "exit_code": 101,
+          "elapsed_seconds": 10.837819375097752,
+          "log": ".local/gate-6/browser-sdk/receive-origin074/case-10.log",
+          "log_sha256": "aad057d293f8ed56da8199d6365d0560ffa2c0ba4fb6911257cc39a883970559"
+        },
+        {
+          "case": "canonical_webtransport_browser::installed_chrome_production_sdk_captured_browser_native_opus_vp8_and_reliable_data_es256",
+          "passed": false,
+          "exit_code": 101,
+          "elapsed_seconds": 10.896221667062491,
+          "log": ".local/gate-6/browser-sdk/receive-origin074/case-11.log",
+          "log_sha256": "895b39c1003c62202c25eab582ce07620528457e77c820b32d7c1c141834021e"
+        }
+      ],
+      "failures": [
+        {
+          "case_index": 6,
+          "observation": "Original short captured browser/browser playback fails142/150audio in the second direction; first193. Video115/116. No full cohort pass."
+        },
+        {
+          "case_index": 10,
+          "observation": "Browser subscription request times out. Durable original browser-subscribe-0 is unknown, native browser-subscribe-1 completed. Early native packets can enter while browser subscription is still unsettled; ingress does not establish successful negotiation/playback. No control-race fix is claimed.",
+          "operation_states": {
+            "browser-subscribe-0": "unknown",
+            "browser-subscribe-1": "completed"
+          },
+          "snapshot_sha256": "85e16daae40e8404048b2193b1213cbea2daf0292c7da62fac8df1aad8d18039"
+        },
+        {
+          "case_index": 11,
+          "observation": "Browser subscription request times out. Durable original browser-subscribe-0 is unknown, native browser-subscribe-1 completed. Early native packets can enter while browser subscription is still unsettled; ingress does not establish successful negotiation/playback. No control-race fix is claimed.",
+          "operation_states": {
+            "browser-subscribe-0": "unknown",
+            "browser-subscribe-1": "completed"
+          },
+          "snapshot_sha256": "a4bec3407cea6f2596fa809d45b5627ca12c27018fd57af44cc867685b607065"
+        }
+      ]
+    },
+    {
+      "report": ".local/gate-6/browser-sdk/native-control075/summary.json",
+      "report_sha256": "f871e40c4216bae6396a1480b7d64236a040c5b6f849d316e913dbb52a70ae4f",
+      "source_revision": "30160e3b7535f4d5d5c93aa3880b3512c9f4a439",
+      "passed": false,
+      "passed_cases": 0,
+      "total_cases": 1,
+      "source_inputs_unchanged": true,
+      "executable_unchanged": true,
+      "executable_sha256": "62e5d83be6ce16561faf42af3b9d461f6fab86d588e1636e46d4ee712930ce47",
+      "scope": "Actual production TypeScript canonical control in owned Chrome. Exact selected methods are recorded; a single diagnostic method does not qualify the omitted matrix. Optional media selects short synthetic source over SDK/WT/Store/Core with identified Opus/VP8/data and durable teardown. Optional capture selects supplied-stream capture/worklet and decoded audio/canvas rendering. Explicit clean60 applies frozen fps/paired graph-canvas marker limits and resource observations only to capture methods. Packet tracing and diagnostic60 are diagnostic only and never qualify the frozen clean profile. Optional native cases use public CanonicalClient QUIC and independently decode actual native received packets. No native live encoder/realtime presenter/full60second-native/impairment/remote/provider/complete G6-050/acceptance/publication claim.",
+      "packet_trace": "audio",
+      "cases": [
+        {
+          "case": "canonical_webtransport_browser::installed_chrome_production_sdk_captured_browser_native_opus_vp8_and_reliable_data_eddsa",
+          "passed": false,
+          "exit_code": 101,
+          "elapsed_seconds": 7.011712541105226,
+          "log": ".local/gate-6/browser-sdk/native-control075/case-0.log",
+          "log_sha256": "22764a585f434220715b4d58a6b8f967b09d63f26b573b0596ee7b6947b91d7c"
+        }
+      ],
+      "browser_component": {
+        "passed": true,
+        "playback": {
+          "audio": 196,
+          "video": 120,
+          "peakRms": 0.19988146318180128,
+          "maxPending": 4,
+          "maxQueuedSeconds": 0.0670286666666664
+        },
+        "owned_cleanup": true,
+        "teardown_ms": 184.09999990463257
+      },
+      "failure": "Diagnostic trace run passes browser playback196audio/120video and original cleanup184.1ms but fails independent native video69/90decoded/identified (65motion), audio200identified. Trace is diagnostic only, not performance or complete native qualification; its failure is retained."
+    },
+    {
+      "report": ".local/gate-6/browser-sdk/native-startup076/summary.json",
+      "report_sha256": "d30e8f6d99b507c88d28a365dfa02e31b6278c42d43deb56d256d6c698004069",
+      "source_revision": "30160e3b7535f4d5d5c93aa3880b3512c9f4a439",
+      "passed": true,
+      "passed_cases": 1,
+      "total_cases": 1,
+      "source_inputs_unchanged": true,
+      "executable_unchanged": true,
+      "executable_sha256": "62e5d83be6ce16561faf42af3b9d461f6fab86d588e1636e46d4ee712930ce47",
+      "scope": "Actual production TypeScript canonical control in owned Chrome. Exact selected methods are recorded; a single diagnostic method does not qualify the omitted matrix. Optional media selects short synthetic source over SDK/WT/Store/Core with identified Opus/VP8/data and durable teardown. Optional capture selects supplied-stream capture/worklet and decoded audio/canvas rendering. Explicit clean60 applies frozen fps/paired graph-canvas marker limits and resource observations only to capture methods. Packet tracing and diagnostic60 are diagnostic only and never qualify the frozen clean profile. Optional native cases use public CanonicalClient QUIC and independently decode actual native received packets. No native live encoder/realtime presenter/full60second-native/impairment/remote/provider/complete G6-050/acceptance/publication claim.",
+      "packet_trace": null,
+      "cases": [
+        {
+          "case": "canonical_webtransport_browser::installed_chrome_production_sdk_captured_browser_native_opus_vp8_and_reliable_data_eddsa",
+          "passed": true,
+          "exit_code": 0,
+          "elapsed_seconds": 7.282798582920805,
+          "log": ".local/gate-6/browser-sdk/native-startup076/case-0.log",
+          "log_sha256": "212d2f6f2b6d67914bb60beb2f846e07e4b00a1a06049ee8479cc0ce914e3435"
+        }
+      ],
+      "actual": {
+        "playback": {
+          "audio": 201,
+          "maxPending": 4,
+          "maxQueuedSeconds": 0.06738433333332772,
+          "peakRms": 0.17942047603041159,
+          "video": 96
+        },
+        "native_received": {
+          "audio": {
+            "decoded": 160,
+            "decoded_sha256": "f8b6e0a260d0fb7fd5c3754457d679bd67230b6cb1689e3ceb7812efb21c956d",
+            "identified": 160,
+            "input_sha256": "f97ca3f691636aeeb8bf2591cb84f5719abb9b2ee6fa45b2af4f1ecc88c6e98c"
+          },
+          "ffmpeg_version": "ffmpeg version 9.0.2 Copyright (c) 2000-2026 the FFmpeg developers",
+          "measured_ms": 4005.729916999999,
+          "passed": true,
+          "reliable_data_messages": 3,
+          "scope": "Independent decoding of actual public native QUIC received packets with original arrival-window mapping and decoder pre-roll; software source fixtures. No live native encoder, realtime native presenter, sync or operating-profile qualification.",
+          "video": {
+            "decoded": 113,
+            "decoded_sha256": "b591c1ffffe960246705c02dbca6e34f0b4506c5cda1d9525dc65f63422bf5a0",
+            "distinct_motion": 97,
+            "identified": 113,
+            "input_sha256": "aabe81dc1c2825590ed32afada689a3dc9ec9bdaf9b1c513ec57d49e5c7edef3"
+          },
+          "video_sequence_gaps": 1
+        },
+        "owned_cleanup": true,
+        "teardown_ms": 184.80000019073486
+      },
+      "clocks": {
+        "sent_audio_reports": 7,
+        "sent_video_reports": 7,
+        "received_reports": 12,
+        "received_kinds": [
+          "audio",
+          "video"
+        ],
+        "received_report_sha256": "a1ed5cd9314206297801420b797e15050b55b73822ddcec753fc193501a50d05"
+      },
+      "limitation": "One selected current original4second captured native EdDSA method without diagnostic tracing; does not erase074failures or qualify omitted signatures/full60/native live encoding/presentation/impairment/other profiles."
+    }
+  ]
 }
