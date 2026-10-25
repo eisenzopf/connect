@@ -12,6 +12,16 @@ export type {
 } from "./uctp_signing.js";
 export type { Envelope, Scope } from "./uctp_wire.js";
 export type { Json, JsonObject } from "./uctp_json.js";
+export {
+    MediaBindings,
+    RtpSender,
+    Vp8Assembler,
+    MediaSendQueue,
+    decodeRtpDatagram,
+    MEDIA_LIMITS,
+    type MediaBinding,
+    type RtpDatagram,
+} from "./browser_rtp.js";
 export { BrowserHttpClient } from "./browser_http.js";
 export {
     BrowserVoiceSession,

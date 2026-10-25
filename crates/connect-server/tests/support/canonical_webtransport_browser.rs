@@ -19,7 +19,28 @@ impl Drop for Page {
         self.task.abort();
     }
 }
-async fn page() -> Page {
+async fn page(sdk: bool) -> Page {
+    let sdk_files = if sdk {
+        let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../sdk/typescript/dist");
+        [
+            "browser_client.js",
+            "uctp_json.js",
+            "uctp_signing.js",
+            "uctp_wire.js",
+            "errors.js",
+        ]
+        .into_iter()
+        .map(|name| {
+            let body = std::fs::read_to_string(root.join(name))
+                .expect("Build the production TypeScript SDK before its explicit browser lane");
+            assert!(body.len() <= 1048576);
+            (format!("/sdk/{name}"), body)
+        })
+        .collect::<std::collections::HashMap<_, _>>()
+    } else {
+        std::collections::HashMap::new()
+    };
+    let sdk_files = Arc::new(sdk_files);
     let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
     let address = listener.local_addr().unwrap();
     let stop = CancellationToken::new();
@@ -34,12 +55,16 @@ async fn page() -> Page {
             if children.len() >= 8 {
                 continue;
             }
+            let sdk_files = sdk_files.clone();
             children.spawn(async move {
                 let mut bytes=[0u8;8192];let Ok(Ok(size))=tokio::time::timeout(Duration::from_secs(2),socket.read(&mut bytes)).await else {return};
                 let request=String::from_utf8_lossy(&bytes[..size]);let path=request.split_whitespace().nth(1).unwrap_or("");
                 let (status,mime,body)=match path {
+                    "/" if sdk =>("200 OK","text/html","<!doctype html><meta charset=utf-8><script type=module>import {run} from '/sdk-peer.mjs';globalThis.runBrowserFixture=run;</script>"),
                     "/"=>("200 OK","text/html","<!doctype html><meta charset=utf-8><script type=module>import {run} from '/peer.mjs';globalThis.runBrowserFixture=run;</script>"),
                     "/peer.mjs"=>("200 OK","text/javascript",include_str!("../fixtures/gate6-webtransport-browser/peer.mjs")),
+                    "/sdk-peer.mjs" if sdk =>("200 OK","text/javascript",include_str!("../fixtures/gate6-webtransport-browser/sdk-peer.mjs")),
+                    path if sdk_files.contains_key(path)=>("200 OK","text/javascript",sdk_files[path].as_str()),
                     _=>("404 Not Found","text/plain","fixture route unavailable"),
                 };
                 let header=format!("HTTP/1.1 {status}\r\nContent-Type: {mime}\r\nContent-Length: {}\r\nConnection: close\r\nCache-Control: no-store\r\n\r\n",body.len());
@@ -148,8 +173,8 @@ fn capture(f: &Fixture, algorithm: &str) {
         }
     }
 }
-async fn browser(algorithm: &str) {
-    let page = page().await;
+async fn browser(algorithm: &str, sdk: bool) {
+    let page = page(sdk).await;
     let Fixture {
         temp,
         mut config,
@@ -247,10 +272,17 @@ async fn browser(algorithm: &str) {
     }
     let result: Value = serde_json::from_slice(&output.stdout).unwrap();
     assert_eq!(result["result"]["passed"], true);
-    assert_eq!(result["result"]["decoded_forward"], true);
-    assert_eq!(result["result"]["decoded_reverse"], true);
+    if sdk {
+        assert_eq!(result["result"]["production_sdk"], true);
+        assert_eq!(result["result"]["operation_state"], "completed");
+        assert_eq!(result["result"]["credential_refused"], true);
+        assert_eq!(result["result"]["trust_refused"], true);
+    } else {
+        assert_eq!(result["result"]["decoded_forward"], true);
+        assert_eq!(result["result"]["decoded_reverse"], true);
+        assert!(result["result"]["verified_server_frames"].as_u64().unwrap() >= 8);
+    }
     assert_eq!(result["result"]["algorithm"], algorithm);
-    assert!(result["result"]["verified_server_frames"].as_u64().unwrap() >= 8);
     let created = result["result"]["created_cid"].as_str().unwrap();
     let mut native = CanonicalClient::open(f.client.clone()).await.unwrap();
     let mut input =
@@ -265,21 +297,31 @@ async fn browser(algorithm: &str) {
         created
     );
     native.shutdown().await.unwrap();
-    let (started, _) = f
-        .server
-        .store
-        .session_started_template(&cid, "http3-media-session")
-        .unwrap();
-    assert_eq!(started.active_connections.len(), 2);
-    assert!(started
-        .active_connections
-        .iter()
-        .all(|c| c.transport == "webtransport"));
+    if !sdk {
+        let (started, _) = f
+            .server
+            .store
+            .session_started_template(&cid, "http3-media-session")
+            .unwrap();
+        assert_eq!(started.active_connections.len(), 2);
+        assert!(started
+            .active_connections
+            .iter()
+            .all(|c| c.transport == "webtransport"));
+    }
     let db = rusqlite::Connection::open_with_flags(
         &f.config.database,
         rusqlite::OpenFlags::SQLITE_OPEN_READ_ONLY,
     )
     .unwrap();
+    if sdk {
+        assert_eq!(
+            db.query_row("SELECT count(*) FROM connections", [], |r| r
+                .get::<_, u64>(0))
+                .unwrap(),
+            0
+        );
+    }
     assert_eq!(
         db.query_row(
             "SELECT count(*) FROM operations WHERE owner_id=?1 AND operation_id='browser-create'",
@@ -289,7 +331,7 @@ async fn browser(algorithm: &str) {
         .unwrap(),
         1
     );
-    assert_eq!(db.query_row("SELECT count(*) FROM operations o JOIN connections c ON c.id=o.connection_id JOIN endpoints e ON e.id=c.endpoint_id WHERE o.command_type='connection.offer' AND o.operation_id IN ('browser-offer-0','browser-offer-1') AND o.state='completed' AND e.transport='webtransport'",[],|r|r.get::<_,u64>(0)).unwrap(),2);
+    assert_eq!(db.query_row("SELECT count(*) FROM operations o JOIN connections c ON c.id=o.connection_id JOIN endpoints e ON e.id=c.endpoint_id WHERE o.command_type='connection.offer' AND o.operation_id IN ('browser-offer-0','browser-offer-1') AND o.state='completed' AND e.transport='webtransport'",[],|r|r.get::<_,u64>(0)).unwrap(),if sdk { 0 } else { 2 });
     drop(db);
     tokio::time::timeout(Duration::from_secs(5), async {
         loop {
@@ -311,10 +353,22 @@ async fn browser(algorithm: &str) {
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
 #[ignore = "Explicit isolated installed-Chrome profile; run the bounded WebTransport browser rehearsal"]
 async fn installed_chrome_signed_control_reconnect_and_independently_decoded_duplex_eddsa() {
-    browser("EdDSA").await;
+    browser("EdDSA", false).await;
 }
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
 #[ignore = "Explicit isolated installed-Chrome profile; run the bounded WebTransport browser rehearsal"]
 async fn installed_chrome_signed_control_reconnect_and_independently_decoded_duplex_es256() {
-    browser("ES256").await;
+    browser("ES256", false).await;
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+#[ignore = "Explicit production TypeScript SDK against isolated installed Chrome"]
+async fn installed_chrome_production_sdk_signed_control_receipts_and_refusals_eddsa() {
+    browser("EdDSA", true).await;
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+#[ignore = "Explicit production TypeScript SDK against isolated installed Chrome"]
+async fn installed_chrome_production_sdk_signed_control_receipts_and_refusals_es256() {
+    browser("ES256", true).await;
 }
