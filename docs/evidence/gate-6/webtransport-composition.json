@@ -1,9 +1,9 @@
 {
   "task": "G6-049",
-  "status": "discovery-and-transport-start-facts-runtime-in-progress",
+  "status": "http3-browser-and-discovery-qualified-lifecycle-in-progress",
   "full_task_complete": false,
   "full_goal_complete": false,
-  "recorded_at": "2026-10-25T04:43:02.041938+00:00",
+  "recorded_at": "2026-10-25T04:46:22.128099+00:00",
   "approved_work": "Integrate HTTP3/WebTransport control and datagrams with the same identity, canonical handlers, operation store and media bindings. Validate browser origins, token lifetime, session limits and transport capabilities; expose discovery suitable for the SDK.",
   "approved_verification": "Browser and independent HTTP3 clients authenticate, exchange canonical commands and negotiated media, and recover retained state. Cross-origin, malformed and unauthorized datagrams fail without allocating leaked resources.",
   "reuse": "Pinned rvoip-webtransport canonical supervisor already accepts canonical profiles, exact Origin sets, bounded authentication, native datagram transport and owned ProfileServer lifetime; no stock legacy adapter/fallback is selected.",
@@ -18,9 +18,9 @@
     "Independent HTTP3 negotiated duplex passes for distinct enrolled identities with EdDSA and ES256, explicit signed stream subscriptions, actual media datagrams, independent G.711 decoding with distinct forward/reverse tones, persisted WebTransport binding checks and owned EOF drains."
   ],
   "known_remaining": [
-    "Historical independent HTTP3 runtime013 and explicit Chrome browser017 pass their committed-source scopes. Current discovery/Session start projection changes are under actual source-frozen rehearsal018; no successor runtime pass claimed yet.",
-    "Serve explicit protocol-owned SDK discovery; qualify negotiated control-only capability, current token/key expiry/revocation and aggregate admission limits.",
-    "Qualify malformed/unauthorized datagram isolation, retained recovery and owned shutdown cases plus mixed WT/QUIC native regressions. Fresh-schema safety has its separate recorded scoped passes."
+    "Correct and qualify the default Local browser discovery contact: current localhost fallback can resolve IPv6 while the listener binds IPv4. Successful actual Chrome qualification uses an explicit configured IPv4 contact; default browser setup is not credited.",
+    "Qualify control-only negotiation, current token/client-key/server-key expiry and revocation, aggregate shared physical/session limits, malformed/unauthorized datagram observed rejection and isolation. The discovery HTTP revocation check alone is not media lifetime coverage.",
+    "Qualify owned shutdown/drop/restart retained-state recovery and mixed WT/QUIC independently decoded regressions. Preserve current scoped schema/Store proofs; no whole-gate, production browser SDK, remote/provider, acceptance or publication claim."
   ],
   "lock_update": {
     "existing_package_versions_unchanged": true,
@@ -67,13 +67,13 @@
   "source_lock_sha256": "808e1fc326f1fab0680276c9daf0c4ea3ee6ff829c376a08c2e3dc3106f8baee",
   "runtime_qualification": {
     "passed": true,
-    "run": "independent_http3_runtime013",
-    "scope": "Five independent actual HTTP3/canonical production listener methods: signed authentication/control/reconnect/native receipt parity both algorithms, exact Origin/mount refusal/cleanup, and actual negotiated independently decoded WT duplex with persisted transport bindings/EOF drain both algorithms. No browser or complete G6-049 claim.",
-    "full_task_complete": false,
+    "run": "discovery018",
+    "scope": "Local isolated actual canonical HTTP3/control/receipt parity, subscribed independently decoded duplex, transport start facts, exact Origin/mount refusal, authenticated bounded SDK discovery and configuration validation. Installed Chrome is explicit. No complete G6-049, browser SDK G6-050, remote/provider, acceptance or publication claim.",
+    "methods": 12,
     "source_inputs_unchanged": true,
-    "executable_unchanged": true,
-    "additional_browser_run": "installed_chrome_browser017",
-    "browser_scope": "Both explicit isolated installed-Chrome control/reconnect/native receipt parity and actual decoded duplex methods pass; this does not qualify the production browser SDK task G6-050."
+    "executables_unchanged": true,
+    "full_task_complete": false,
+    "browser_sdk_g6_050_complete": false
   },
   "publication": "Separate; not performed.",
   "library_typecheck001": {
@@ -94,7 +94,7 @@
   "artifact_workspace": "/Users/jonathaneisenzopf/.codex/worktrees/private-sip-lifetime/Connect",
   "implementation_branch": "codex/gate6-webtransport",
   "implementation_on_main": false,
-  "implementation_revision": null,
+  "implementation_revision": "033d7b921e479c898b01550b6326adf75dd349a4",
   "independent_http3_control002": {
     "passed": false,
     "source_revision": "d6034cb7a55c4259cf4e4eeacce01619c7ba6dc4",
@@ -141,7 +141,7 @@
     "repair": "Preserve every repeated regular header through QPACK/HTTP header encoding and decoding. Canonical allowlist then requires exactly one Origin. Reject repeated pseudo-headers. Existing prepared185 tree preserved; new186 tree reproduced and verified."
   },
   "implementation_base_revision": "9146026a",
-  "implementation_commit_note": "Current source changes accompany this report. The source file/lock digests identify the implementation; runtime qualification remains incomplete.",
+  "implementation_commit_note": "Implementation source map matches pushed033d7b92. This report records actual scoped rehearsal018 results; full G6-049 remains incomplete.",
   "initial_independent_http3_fixture": {
     "source_revision": "d6034cb7",
     "path": "crates/connect-server/tests/gate6_canonical_webtransport.rs",
@@ -615,11 +615,6 @@
     "source_inputs_map_sha256": "08de70b3e58337fe6c5ac754daa9c984caccd3d353a319bc942553893af9e14a",
     "finding": "Both actual installed Chrome155.0.8059.85 methods pass with isolated profiles. Explicit IPv4 configured contact and matching SAN remove the fixture address-family mismatch. Browser WebCrypto signs and verifies enrolled pins, commands/reconnect and native SDK receipt parity preserve one logical create, explicit signed subscriptions enable negotiated datagrams, distinct500Hz/250Hz G.711 decoded witnesses prove both directions, persisted WT bindings and EOF drain precede Chrome teardown. The unchanged source map includes both JS assets. No full-task claim."
   },
-  "pending_qualification": {
-    "run": "discovery018",
-    "runner": "scripts/rehearse-gate6-webtransport.py",
-    "scope": "Source-frozen actual optimized build; eight independent/discovery cases plus two explicit Chrome and two configuration unit cases. No pass claimed before terminal guarded result."
-  },
   "store019": {
     "passed": false,
     "scope": "Current controlled Store metadata/authority/schema111 native wire and rejection regression methods plus all five configured consultant join methods including actual verified WT provisioning, once-only paired receipts, unsupported WebRTC and revoked delegate. No physical media qualification.",
@@ -688,12 +683,12 @@
     "finding": "All26 distinct methods pass:14 native wire,7 native rejection and5 configured consultant join. The new WT method uses actual typed provisioning/verification, refuses unverified WT and verified unsupported WebRTC without paired-receipt writes, commits two normal invitation/consent receipts once and enforces current revoked delegate refusal. This is Store metadata/authority evidence; actual WT consultation media remains separate."
   },
   "discovery_implementation": {
-    "state": "implemented-runtime-verification-in-progress",
+    "state": "explicit-configured-local-runtime-qualified",
     "route": "GET /v2/discovery",
     "sdk": "CanonicalHttpClient::transport_discovery / transport_discovery_with_cancel",
     "boundaries": "Current bearer and shared HTTP capacity before bounded empty body; no-store; actual canonical composition only; no automatic trust/grant. Closed SDK descriptor validation and8192-byte collection bound, absolute deadline/cancellation.",
-    "pending_runtime": "discovery018 uses exact current frozen source and executable guards; no terminal pass claimed.",
-    "known_contact_gap": "The default Local localhost contact has not been qualified for IPv4-bound browser use. Successful Chrome fixture uses explicit IPv4 contact. Correct/qualify the Local default or require explicit contact before full G6-049 credit."
+    "known_contact_gap": "The default Local localhost contact has not been qualified for IPv4-bound browser use. Successful Chrome fixture uses explicit IPv4 contact. Correct/qualify the Local default or require explicit contact before full G6-049 credit.",
+    "runtime": "Actual rehearsal018 passes all three SDK/HTTP discovery methods plus independent/browser regressions and configuration validation; exact code matches pushed033d7b92."
   },
   "discovery_openapi_schema_vectors": {
     "passed": true,
@@ -704,5 +699,177 @@
     "jsonschema": "4.26.0",
     "openapi_sha256": "dde1df29d234376c21959a3acf210789992d2fe419f91f3303eb17ce53b0645e",
     "raw_summary_sha256": "6d6dd4645ecc035582a7ef2ccb983ba175ab523851f4e8f5c7b459cda20a5150"
+  },
+  "discovery018": {
+    "passed": true,
+    "scope": "Local isolated actual canonical HTTP3/control/receipt parity, subscribed independently decoded duplex, transport start facts, exact Origin/mount refusal, authenticated bounded SDK discovery and configuration validation. Installed Chrome is explicit. No complete G6-049, browser SDK G6-050, remote/provider, acceptance or publication claim.",
+    "source_revision": "b890981cee772823016bcb765a2d783a71bbb114",
+    "source_lock_sha256": "808e1fc326f1fab0680276c9daf0c4ea3ee6ff829c376a08c2e3dc3106f8baee",
+    "host": "macOS-26.6.2-arm64-arm-64bit-Mach-O",
+    "installed_browser": true,
+    "skipped": [],
+    "steps": [
+      {
+        "name": "dependencies",
+        "command": [
+          "bash",
+          "scripts/prepare-dependencies.sh"
+        ],
+        "exit_code": 0,
+        "elapsed_seconds": 0.12271241610869765,
+        "log_sha256": "1093da5a89cb3a48536e09fcf6739ec78936602cafa1afc80cd118d2cf3338aa"
+      },
+      {
+        "name": "compiler",
+        "command": [
+          "rustc",
+          "--version",
+          "--verbose"
+        ],
+        "exit_code": 0,
+        "elapsed_seconds": 0.01983854197897017,
+        "log_sha256": "e794146d99fad54562fdcbd4a7c8b22b0240d2b0312ff6d879d67939b3131850"
+      },
+      {
+        "name": "openapi",
+        "command": [
+          "python3",
+          "scripts/generate-canonical-http-openapi.py",
+          "--check"
+        ],
+        "exit_code": 0,
+        "elapsed_seconds": 0.029571000020951033,
+        "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "name": "build",
+        "command": [
+          "cargo",
+          "test",
+          "-p",
+          "connect-server",
+          "--lib",
+          "--test",
+          "gate6_canonical_webtransport",
+          "--no-run",
+          "--release",
+          "--locked",
+          "--offline",
+          "-j4",
+          "--target-dir",
+          "/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024",
+          "--message-format=json"
+        ],
+        "exit_code": 0,
+        "elapsed_seconds": 810.4696661669295,
+        "log_sha256": "f87c81ee41edf3478de02712df7df1ddc417777a884ed4e9bdf9c84799c3967d"
+      }
+    ],
+    "source_inputs_unchanged": true,
+    "executables_unchanged": true,
+    "started_at": "2026-10-25T04:31:46.615653+00:00",
+    "finished_at": "2026-10-25T04:45:39.539486+00:00",
+    "source_revision_is_base": true,
+    "verified_implementation_revision": "033d7b921e479c898b01550b6326adf75dd349a4",
+    "source_input_note": "Build began on committed base b890981c with discovery changes in the guarded source map. The exact source map, including both JS assets and API/SDK docs, matches pushed033d7b92. The final report/plan edit is outside runtime inputs.",
+    "source_inputs_map_sha256": "f5da6ed42e1b091cb1271e42aa5ca23957f51a8f3349e636ca50ea18d8be78e8",
+    "raw_summary_sha256": "8ec7779bad04904ff0ca51fdbbf66b3862bb6e0db87853af338f0bd42e83242e",
+    "executables": [
+      {
+        "target": "connect_server",
+        "sha256": "3f1cf984ca0851423b2b2f0237f2c27fbc4b551db603f216b1cf80d5f89fc4c4"
+      },
+      {
+        "target": "gate6_canonical_webtransport",
+        "sha256": "161a54922423af979c3cebd71500be61b34887d6f3e3272864513929a1b321c6"
+      }
+    ],
+    "methods": [
+      {
+        "case": "canonical_webtransport::tests::exact_origins_mount_and_remote_contact_are_required_before_startup",
+        "passed": true,
+        "exit_code": 0,
+        "elapsed_seconds": 0.01274245884269476,
+        "log_sha256": "539938f1cdf91fe5dee68a18ffaa699af739ed8120ed20cf92fc34ebf00c5276"
+      },
+      {
+        "case": "canonical_webtransport::tests::advertised_contact_refuses_parser_normalization_of_whitespace_and_controls",
+        "passed": true,
+        "exit_code": 0,
+        "elapsed_seconds": 0.012637665960937738,
+        "log_sha256": "7d68331ae9d9f31092a5e7abacddf2516f94473670aec861ca73e4e7fabdac68"
+      },
+      {
+        "case": "independent_http3_signed_control_and_reconnect_share_native_receipt_eddsa",
+        "passed": true,
+        "exit_code": 0,
+        "elapsed_seconds": 0.5548908747732639,
+        "log_sha256": "39215a25ca822d6608a206bf1fc505d8610a4f16ac9a1affafa508e1de850373"
+      },
+      {
+        "case": "independent_http3_signed_control_and_reconnect_share_native_receipt_es256",
+        "passed": true,
+        "exit_code": 0,
+        "elapsed_seconds": 0.5530621248763055,
+        "log_sha256": "790c0ab11960f6ab689210b96c54dec3367b8650b144af8666735f201ea13e40"
+      },
+      {
+        "case": "wrong_missing_duplicate_origin_and_wrong_mount_refuse_before_authority",
+        "passed": true,
+        "exit_code": 0,
+        "elapsed_seconds": 0.5680697499774396,
+        "log_sha256": "25af8f8f269ec4c53d061991a81f7d89a6c6baabae2be7fc6d44df4a3065a0bb"
+      },
+      {
+        "case": "canonical_webtransport_media::independent_http3_actual_decoded_duplex_uses_webtransport_bindings_eddsa",
+        "passed": true,
+        "exit_code": 0,
+        "elapsed_seconds": 4.069831124972552,
+        "log_sha256": "d2dc576ca9d9d2f00ec804573ef3af8d57b0c0ebe112d7763187fe7d44cbf344"
+      },
+      {
+        "case": "canonical_webtransport_media::independent_http3_actual_decoded_duplex_uses_webtransport_bindings_es256",
+        "passed": true,
+        "exit_code": 0,
+        "elapsed_seconds": 4.0979620409198105,
+        "log_sha256": "93f3791fc7c2d3f71157e496c57d3d1c2542a038fd147a074a0f3a9f8d87c453"
+      },
+      {
+        "case": "canonical_webtransport_discovery::configured_webtransport_discovery_is_bounded_authenticated_current_and_read_only",
+        "passed": true,
+        "exit_code": 0,
+        "elapsed_seconds": 0.26815320807509124,
+        "log_sha256": "7408b9be26399aa89760b6d7bd5447dfc4de877c444f5382f1f4e67561d4701e"
+      },
+      {
+        "case": "canonical_webtransport_discovery::disabled_webtransport_and_unrelated_http_listener_do_not_invent_transport_discovery",
+        "passed": true,
+        "exit_code": 0,
+        "elapsed_seconds": 0.20677583292126656,
+        "log_sha256": "d528d141c74de377dcf786eaad052e3111d2cdb480669daad037e041f90c4298"
+      },
+      {
+        "case": "canonical_webtransport_discovery::discovery_sdk_refuses_incompatible_and_oversized_responses_during_collection",
+        "passed": true,
+        "exit_code": 0,
+        "elapsed_seconds": 0.19604374980553985,
+        "log_sha256": "96307eba9e6463e6b297d65f645cd86f7fabb1dc7e257fa9e8dc50862331a1b7"
+      },
+      {
+        "case": "canonical_webtransport_browser::installed_chrome_signed_control_reconnect_and_independently_decoded_duplex_eddsa",
+        "passed": true,
+        "exit_code": 0,
+        "elapsed_seconds": 5.178992250002921,
+        "log_sha256": "eeef82632f8c3df3aba2a69e1416b2cc597604638f5a14730fcb8a812c492615"
+      },
+      {
+        "case": "canonical_webtransport_browser::installed_chrome_signed_control_reconnect_and_independently_decoded_duplex_es256",
+        "passed": true,
+        "exit_code": 0,
+        "elapsed_seconds": 4.504223832860589,
+        "log_sha256": "d2108338d095b7bf6a39d551b8ce2cbc41aae01a26ca0dcc198dc2cff93f2800"
+      }
+    ],
+    "finding": "All12 exact optimized methods pass:2 server configuration unit methods,2 signed independent control/reconnect/native receipt parity,1 Origin/mount refusal,2 independently decoded subscribed WT duplex,3 actual public SDK/HTTP discovery cases and2 explicit installed Chrome control/reconnect/decoded duplex. Independent and browser media also assert original session.started facts contain exactly two webtransport Connections. Source map, original executables and sealed executables remain unchanged. No complete-task or default Local browser contact claim."
   }
 }
