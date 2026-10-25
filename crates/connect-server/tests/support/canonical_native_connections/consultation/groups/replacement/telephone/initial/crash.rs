@@ -275,7 +275,8 @@ async fn submitted(algorithm: &str) {
             conversation_id:Some(prepared.invitation.conversation_id.clone()),
             session_id:Some(prepared.invitation.session_id.clone()), connection_id:Some(original.2.clone()),
             ..Default::default()},
-    ).await;
+    ).await.unwrap();
+    let refusal = refusal.ack();
     assert!(
         matches!(refusal,Err(ClientError::Application(error)) if error.code=="conflict"),
         "authorized public reconciliation must report unresolved physical custody"

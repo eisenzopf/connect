@@ -3,7 +3,7 @@
   "status": "implementation-and-isolated-runtime-fixtures-under-qualification",
   "full_task_complete": false,
   "full_goal_complete": false,
-  "recorded_at": "2026-10-25T02:03:48.378932+00:00",
+  "recorded_at": "2026-10-25T02:20:02.629669+00:00",
   "source_revision": "a068a96bf39fb0141f14438609443698fc41685a",
   "draft_implementation": [
     "Shared explicit native Local/Remote configuration policy; local remains the default, while concrete remote endpoints and routable client UDP binding require Remote.",
@@ -14,7 +14,9 @@
     "Native pinned record-origin configuration accepts only the selected network profile, configured trust and exact server identity.",
     "Normalize IPv4-mapped IPv6 before endpoint and socket policy; refuse unassigned destination port at actual open while preserving ephemeral bootstrap templates.",
     "Draft isolated CA chain/hostname/trust fixtures and actual UDP NAT rebinding with independent decoded duplex; not yet executed.",
-    "Draft public HTTP operator uncertainty check after SIP submission SIGKILL; not yet executed."
+    "Draft public HTTP operator uncertainty check after SIP submission SIGKILL; not yet executed.",
+    "Four more isolated runtime fixtures cover invalid/missing/oversized configured trust, correctly enrolled credentials accepted before expiry/revocation and refused afterward, actual expired TLS, and one total open deadline across delayed signed challenge/stalled auth with actual peer retirement. Pending execution.",
+    "Public SDK example and explicit child-only isolated guest server fixture are drafted for distinct-host Ubuntu24.04 x86_64 native control/reconnect. Not yet executed; no distinct-host media claim."
   ],
   "verification": {
     "scope": "Initial address-policy unit only; superseded by mapped-address policy below. No TLS/media/network claim.",
@@ -280,5 +282,73 @@
     "executable_sha256": "7f48d388d124e466e50d1ceb5e9219b3506ca7c2552132ed9999b1f9e12a9515",
     "log": ".local/gate-6/native-remote/address-policy002/runtime.log",
     "log_sha256": "cbd798a6137930eba2753e9eb5b508365edb90daa6165f49065f5f0fc2775c78"
+  },
+  "isolated_runtime003": {
+    "summary": ".local/gate-6/native-remote/runtime003/summary.json",
+    "summary_sha256": "2bc4e1f98b7d2d61833f652924298303d42323ca2fab3f376e4b09e22a1bd3cd",
+    "source_revision": "1c76cceb75ada92033846b44efbe43bf9d67382a",
+    "executable_sha256": "baeb2f98717418d3874a555a60ce1d131f8419222b326cb75eb5904d2594134d",
+    "source_inputs_unchanged": true,
+    "executable_unchanged": true,
+    "whole_driver_passed": false,
+    "qualified_cases": [
+      {
+        "name": "migration-eddsa",
+        "case": "canonical_native_connections::remote::production_remote_profile_ca_chain_and_native_duplex_survive_real_nat_rebinding_eddsa",
+        "runtime_exit_code": 0,
+        "log_sha256": "ae42666a9fa5ed1d9c1a92a25ec0c3502ca6592b31c210c59a59535caed92694",
+        "passed": true,
+        "witness": {
+          "algorithm": "EdDSA",
+          "decoded_directions_before_and_after": 4,
+          "logical_bindings_preserved": true,
+          "nat_paths": 4
+        }
+      },
+      {
+        "name": "migration-es256",
+        "case": "canonical_native_connections::remote::production_remote_profile_ca_chain_and_native_duplex_survive_real_nat_rebinding_es256",
+        "runtime_exit_code": 0,
+        "log_sha256": "4ba933c349b6b5881a716bc6e6e4cbb4f0720442f5687430e5b190b7199a1755",
+        "passed": true,
+        "witness": {
+          "algorithm": "ES256",
+          "decoded_directions_before_and_after": 4,
+          "logical_bindings_preserved": true,
+          "nat_paths": 4
+        }
+      },
+      {
+        "name": "identity-and-root",
+        "case": "canonical_native_connections::remote::production_remote_profile_refuses_wrong_host_and_unconfigured_roots_before_commands",
+        "runtime_exit_code": 0,
+        "log_sha256": "e3fed06a9d4d6f7698fb3b9ef5778887d81e5f756087bf323d1297b7e62808f7",
+        "passed": true
+      },
+      {
+        "name": "missing-chain",
+        "case": "canonical_native_connections::remote::production_remote_profile_requires_its_complete_intermediate_chain",
+        "runtime_exit_code": 0,
+        "log_sha256": "2730911fbbb0ab5f191a52be6da83eafe56ece0da58ff137ff27ebfc5d5a7485",
+        "passed": true
+      }
+    ],
+    "failed_cases": [
+      {
+        "name": "sip-operator-eddsa",
+        "case": "canonical_native_connections::consultation::groups::replacement::telephone::initial::crash::production_sigkill_sip_submission_keeps_external_uncertainty_without_redial_eddsa",
+        "runtime_exit_code": 101,
+        "log_sha256": "ad06912a59452ed1d0d0d097158f5364346419f45102a3c80fadd4a6da92887e",
+        "passed": false
+      },
+      {
+        "name": "sip-operator-es256",
+        "case": "canonical_native_connections::consultation::groups::replacement::telephone::initial::crash::production_sigkill_sip_submission_keeps_external_uncertainty_without_redial_es256",
+        "runtime_exit_code": 101,
+        "log_sha256": "a9b5b9979aa55a1fdd6999c45a7c0321ff4708d8a7d7683734135526e2932a13",
+        "passed": false
+      }
+    ],
+    "failure_analysis": "Two new SIP operator fixtures asserted request() itself would return an error. The public SDK correctly returns a correlated ReplyBatch for parsed command refusals; ack() classifies its terminal error and verifies matching HTTP status. Corrected fixture now inspects ack(); no product authorization or uncertainty behavior changed. Rerun pending."
   }
 }

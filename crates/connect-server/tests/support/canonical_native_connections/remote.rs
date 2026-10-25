@@ -10,6 +10,13 @@ use tokio_util::sync::CancellationToken;
 const NAME: &str = "native.fixture.invalid";
 
 async fn configured(algorithm: &str, complete_chain: bool) -> Fixture {
+    configured_at(algorithm, complete_chain, "127.0.0.1:0".parse().unwrap()).await
+}
+async fn configured_at(
+    algorithm: &str,
+    complete_chain: bool,
+    bind: std::net::SocketAddr,
+) -> Fixture {
     let f = Fixture::with_native_dtmf_scope(algorithm, 12).await;
     let mut root_params = rcgen::CertificateParams::new(Vec::<String>::new()).unwrap();
     root_params
@@ -68,7 +75,7 @@ async fn configured(algorithm: &str, complete_chain: bool) -> Fixture {
     server.shutdown().await.unwrap();
     config.network_profile = connect_client::NativeNetworkProfile::Remote;
     // Keep default tests isolated; named remote/hosting profiles are separate.
-    config.bind = "127.0.0.1:0".parse().unwrap();
+    config.bind = bind;
     config.certificate = certificate;
     config.private_key = private_key;
     let server = RunningCanonicalServer::start(config.clone()).await.unwrap();
@@ -296,6 +303,343 @@ async fn production_remote_profile_requires_its_complete_intermediate_chain() {
             .unwrap()
             .connections,
         0
+    );
+    f.server.shutdown().await.unwrap();
+}
+
+fn fixture_endpoint(tls: rustls::ServerConfig) -> quinn::Endpoint {
+    quinn::Endpoint::server(
+        quinn::ServerConfig::with_crypto(Arc::new(
+            quinn::crypto::rustls::QuicServerConfig::try_from(tls).unwrap(),
+        )),
+        "127.0.0.1:0".parse().unwrap(),
+    )
+    .unwrap()
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn production_remote_profile_missing_invalid_and_oversized_trust_never_opens_commands() {
+    let f = configured("EdDSA", true).await;
+    for (label, bytes) in [
+        ("missing", None),
+        ("empty", Some(Vec::new())),
+        ("invalid", Some(b"not a certificate".to_vec())),
+        ("oversized", Some(vec![0; 256 * 1024 + 1])),
+    ] {
+        let path = f.temp.path().join(format!("{label}-trust.pem"));
+        if let Some(bytes) = bytes {
+            std::fs::write(&path, bytes).unwrap();
+        }
+        let mut config = f.client.clone();
+        config.trust_certificate = path;
+        assert!(
+            matches!(
+                CanonicalClient::open(config).await,
+                Err(ClientError::Configuration)
+            ),
+            "{label}"
+        );
+    }
+    assert_eq!(
+        f.server
+            .service
+            .canonical_runtime_snapshot()
+            .unwrap()
+            .connections,
+        0
+    );
+    let mut client = CanonicalClient::open(f.client.clone()).await.unwrap();
+    let id = client.keepalive().await.unwrap();
+    reply(&mut client, &id, "ack").await;
+    client.shutdown().await.unwrap();
+    f.server.shutdown().await.unwrap();
+}
+
+fn credential_config(f: &Fixture, label: &str, expires: i64) -> CanonicalClientConfig {
+    let credential = f
+        .server
+        .store
+        .issue(
+            &f.client.identity_id,
+            Scope::collaboration(vec!["*".into()]),
+            expires,
+        )
+        .unwrap();
+    let mut config = f.client.clone();
+    config.credential = credential.token;
+    config.signing_key_id = format!("remote-{label}-key");
+    config.signing_private_key = f.temp.path().join(format!("remote-{label}-key.der"));
+    let public = signing(&config.signing_private_key, "EdDSA");
+    let admin = f.server.store.authenticate(&f.admin).unwrap().credential_id;
+    f.server
+        .store
+        .execute_provisioning(
+            &admin,
+            ProvisioningCommand::SigningKey {
+                operation_id: format!("remote-{label}-enrollment"),
+                identity_id: config.identity_id.clone(),
+                credential_id: credential.id,
+                device_id: config.device_id.clone(),
+                key_id: config.signing_key_id.clone(),
+                algorithm: SigningAlgorithm::EdDSA,
+                public_key: URL_SAFE_NO_PAD.encode(public),
+                not_before: chrono::Utc::now().timestamp() - 1,
+                expires_at: chrono::Utc::now().timestamp() + 600,
+                expected_revision: None,
+            },
+        )
+        .unwrap();
+    config
+}
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn production_remote_profile_refuses_expired_and_revoked_credentials_without_media() {
+    let f = configured("EdDSA", true).await;
+    let revoked = credential_config(&f, "revocation", chrono::Utc::now().timestamp() + 600);
+    let mut before = CanonicalClient::open(revoked.clone()).await.unwrap();
+    let id = before.keepalive().await.unwrap();
+    reply(&mut before, &id, "ack").await;
+    before.shutdown().await.unwrap();
+    let admin = f.server.store.authenticate(&f.admin).unwrap();
+    let id = f
+        .server
+        .store
+        .authenticate(&revoked.credential)
+        .unwrap()
+        .credential_id;
+    f.server.store.revoke(&admin, &id).unwrap();
+    assert!(CanonicalClient::open(revoked).await.is_err());
+    let expires = chrono::Utc::now().timestamp() + 3;
+    let expired = credential_config(&f, "expiry", expires);
+    let mut before = CanonicalClient::open(expired.clone()).await.unwrap();
+    let id = before.keepalive().await.unwrap();
+    reply(&mut before, &id, "ack").await;
+    before.shutdown().await.unwrap();
+    while chrono::Utc::now().timestamp() < expires {
+        tokio::time::sleep(Duration::from_millis(20)).await;
+    }
+    assert!(CanonicalClient::open(expired).await.is_err());
+    assert_eq!(
+        f.server
+            .service
+            .canonical_runtime_snapshot()
+            .unwrap()
+            .connections,
+        0
+    );
+    let mut client = CanonicalClient::open(f.client.clone()).await.unwrap();
+    let id = client.keepalive().await.unwrap();
+    reply(&mut client, &id, "ack").await;
+    client.shutdown().await.unwrap();
+    f.server.shutdown().await.unwrap();
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn production_remote_profile_one_open_deadline_spans_delayed_challenge_and_stalled_auth() {
+    use rvoip_auth_core::sig9421::Sig9421Signer;
+    use std::sync::atomic::{AtomicBool, Ordering};
+    let f = configured("EdDSA", true).await;
+    let tls =
+        connect_server::tls::server_config(&f.config.certificate, &f.config.private_key).unwrap();
+    let endpoint = fixture_endpoint((*tls).clone());
+    let mut config = f.client.clone();
+    config.endpoint = endpoint.local_addr().unwrap();
+    config.timeout_ms = 1500;
+    let signer = Sig9421Signer::ed25519(
+        &config.server_key_id,
+        &std::fs::read(&f.config.signing_private_key).unwrap(),
+    )
+    .unwrap();
+    let reached = Arc::new(AtomicBool::new(false));
+    let stage = reached.clone();
+    let server = tokio::spawn(async move {
+        let connection = endpoint.accept().await.unwrap().await.unwrap();
+        let (mut writer, mut reader) = connection.accept_bi().await.unwrap();
+        async fn read(reader: &mut quinn::RecvStream) -> Envelope {
+            let mut prefix = [0; 4];
+            reader.read_exact(&mut prefix).await.unwrap();
+            let size = u32::from_be_bytes(prefix) as usize;
+            assert!(size > 0 && size <= rvoip_uctp::v2::MAX_ENVELOPE_BYTES);
+            let mut raw = vec![0; size];
+            reader.read_exact(&mut raw).await.unwrap();
+            Envelope::parse(&raw).unwrap()
+        }
+        let hello = read(&mut reader).await;
+        assert_eq!(hello.kind(), "auth.hello");
+        tokio::time::sleep(Duration::from_millis(1000)).await;
+        let challenge = json!({"v":2,"type":"auth.challenge","id":"remote-delayed-challenge","ts":chrono::Utc::now(),"in_reply_to":hello.id(),"payload":{"nonce":"bounded-auth-fixture","accepted_methods":["bearer"],"server_capabilities":{"application_profiles":["connect/2"]}}});
+        let bytes = serde_json::to_vec(&signer.sign(&challenge).unwrap()).unwrap();
+        writer
+            .write_all(&(bytes.len() as u32).to_be_bytes())
+            .await
+            .unwrap();
+        writer.write_all(&bytes).await.unwrap();
+        assert_eq!(read(&mut reader).await.kind(), "auth.response");
+        stage.store(true, Ordering::Release);
+        // A per-stage deadline would wait another1500ms. The one open budget
+        // must instead retire this real TLS peer at about1500ms total.
+        tokio::time::timeout(Duration::from_secs(2), connection.closed())
+            .await
+            .expect("timed-out client kept its authentication peer alive");
+        endpoint.close(0u32.into(), b"isolated authentication fixture complete");
+    });
+    let started = tokio::time::Instant::now();
+    assert!(matches!(
+        CanonicalClient::open(config).await,
+        Err(ClientError::Timeout)
+    ));
+    assert!(
+        reached.load(Ordering::Acquire),
+        "did not reach delayed second authentication stage"
+    );
+    assert!(
+        started.elapsed() < Duration::from_millis(2100),
+        "open renewed its deadline between authentication stages"
+    );
+    tokio::time::timeout(Duration::from_secs(3), server)
+        .await
+        .unwrap()
+        .unwrap();
+    f.server.shutdown().await.unwrap();
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn production_remote_profile_expired_tls_is_refused_by_server_and_actual_client_verifier() {
+    use rustls::pki_types::{PrivateKeyDer, PrivatePkcs8KeyDer};
+    let f = configured("EdDSA", true).await;
+    let mut ca = rcgen::CertificateParams::new(Vec::<String>::new()).unwrap();
+    ca.is_ca = rcgen::IsCa::Ca(rcgen::BasicConstraints::Unconstrained);
+    ca.key_usages = vec![rcgen::KeyUsagePurpose::KeyCertSign];
+    let ca = rcgen::CertifiedIssuer::self_signed(ca, rcgen::KeyPair::generate().unwrap()).unwrap();
+    let mut params = rcgen::CertificateParams::new(vec![NAME.into()]).unwrap();
+    params.not_before = rcgen::date_time_ymd(2020, 1, 1);
+    params.not_after = rcgen::date_time_ymd(2020, 1, 2);
+    params.extended_key_usages = vec![rcgen::ExtendedKeyUsagePurpose::ServerAuth];
+    let key = rcgen::KeyPair::generate().unwrap();
+    let cert = params.signed_by(&key, &ca).unwrap();
+    let leaf = f.temp.path().join("expired-leaf.pem");
+    let private = f.temp.path().join("expired-key.pem");
+    let trust = f.temp.path().join("expiry-root.pem");
+    std::fs::write(&leaf, cert.pem()).unwrap();
+    std::fs::write(&private, key.serialize_pem()).unwrap();
+    std::fs::write(&trust, ca.pem()).unwrap();
+    let mut server = f.config.clone();
+    server.certificate = leaf;
+    server.private_key = private;
+    assert!(RunningCanonicalServer::start(server).await.is_err());
+    // The isolated raw server intentionally presents expired bytes so the real
+    // SDK's normal verifier is also exercised. No verification bypass is used.
+    let mut tls = rustls::ServerConfig::builder()
+        .with_no_client_auth()
+        .with_single_cert(
+            vec![cert.der().clone()],
+            PrivateKeyDer::Pkcs8(PrivatePkcs8KeyDer::from(key.serialize_der())),
+        )
+        .unwrap();
+    tls.alpn_protocols = vec![rvoip_uctp::v2::RAW_QUIC_ALPN.to_vec()];
+    let endpoint = fixture_endpoint(tls);
+    let mut config = f.client.clone();
+    config.endpoint = endpoint.local_addr().unwrap();
+    config.trust_certificate = trust;
+    let peer = tokio::spawn(async move {
+        let incoming = endpoint.accept().await.unwrap();
+        assert!(incoming.await.is_err());
+    });
+    assert!(CanonicalClient::open(config).await.is_err());
+    tokio::time::timeout(Duration::from_secs(3), peer)
+        .await
+        .unwrap()
+        .unwrap();
+    let mut original = CanonicalClient::open(f.client.clone()).await.unwrap();
+    let id = original.keepalive().await.unwrap();
+    reply(&mut original, &id, "ack").await;
+    original.shutdown().await.unwrap();
+    f.server.shutdown().await.unwrap();
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+#[ignore = "Child-only isolated guest fixture; invoked by the distinct-host runner"]
+async fn distinct_host_server_child() {
+    use std::os::unix::fs::PermissionsExt;
+    let dir = std::path::PathBuf::from(
+        std::env::var_os("CONNECT_G6_DISTINCT_NATIVE_DIR").expect("child fixture directory"),
+    );
+    let dir = dir.canonicalize().unwrap();
+    assert!(dir.starts_with(
+        std::env::current_dir()
+            .unwrap()
+            .join(".local/gate-6/native-remote")
+            .canonicalize()
+            .unwrap()
+    ));
+    std::fs::set_permissions(&dir, std::fs::Permissions::from_mode(0o700)).unwrap();
+    let algorithm = std::env::var("CONNECT_G6_DISTINCT_NATIVE_ALGORITHM").unwrap();
+    assert!(matches!(algorithm.as_str(), "EdDSA" | "ES256"));
+    let f = configured_at(&algorithm, true, "0.0.0.0:0".parse().unwrap()).await;
+    let mut client = f.client.clone();
+    for (source, name) in [
+        (&client.signing_private_key, "client-key.der"),
+        (&client.server_public_key, "server-key.pub"),
+        (&client.trust_certificate, "trust.pem"),
+    ] {
+        std::fs::copy(source, dir.join(name)).unwrap();
+        std::fs::set_permissions(dir.join(name), std::fs::Permissions::from_mode(0o600)).unwrap();
+    }
+    client.signing_private_key = "client-key.der".into();
+    client.server_public_key = "server-key.pub".into();
+    client.trust_certificate = "trust.pem".into();
+    // The guest resolves only its designated host before opening; TLS continues
+    // to verify native.fixture.invalid and these exact configured trust roots.
+    client.endpoint =
+        std::net::SocketAddr::new("127.0.0.1".parse().unwrap(), f.server.address.port());
+    std::fs::write(dir.join("client.toml"), toml::to_string(&client).unwrap()).unwrap();
+    std::fs::set_permissions(
+        dir.join("client.toml"),
+        std::fs::Permissions::from_mode(0o600),
+    )
+    .unwrap();
+    std::fs::write(dir.join("ready-writing.json"),serde_json::to_vec(&json!({"algorithm":algorithm,"port":f.server.address.port(),"configuration":"client.toml"})).unwrap()).unwrap();
+    std::fs::rename(dir.join("ready-writing.json"), dir.join("ready.json")).unwrap();
+    tokio::time::timeout(Duration::from_secs(180), async {
+        while !dir.join("done").exists() {
+            tokio::time::sleep(Duration::from_millis(20)).await;
+        }
+    })
+    .await
+    .unwrap();
+    let db = rusqlite::Connection::open_with_flags(
+        &f.config.database,
+        rusqlite::OpenFlags::SQLITE_OPEN_READ_ONLY,
+    )
+    .unwrap();
+    let operations:u64=db.query_row("SELECT count(*) FROM operations WHERE operation_id='distinct-host-create' AND owner_id=?1 AND command_type='conversation.create' AND state='completed'",[&f.client.identity_id],|r|r.get(0)).unwrap();
+    assert_eq!(
+        operations, 1,
+        "guest reconnect did not preserve a single durable mutation"
+    );
+    assert_eq!(
+        db.query_row("SELECT count(*) FROM native_offer_operations", [], |r| r
+            .get::<_, u64>(0))
+            .unwrap(),
+        0
+    );
+    drop(db);
+    tokio::time::timeout(Duration::from_secs(5), async {
+        while f
+            .server
+            .service
+            .canonical_runtime_snapshot()
+            .unwrap()
+            .physical_peers
+            != 0
+        {
+            tokio::time::sleep(Duration::from_millis(20)).await;
+        }
+    })
+    .await
+    .unwrap();
+    eprintln!(
+        "distinct-native-server-witness {}",
+        json!({"algorithm":algorithm,"durable_create_operations":operations,"old_physical_peers_drained":true,"distinct_host_media_qualified":false})
     );
     f.server.shutdown().await.unwrap();
 }
