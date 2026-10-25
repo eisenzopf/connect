@@ -3,6 +3,7 @@ export { BrowserClient, browserTransportSupport, type BrowserClientOptions, type
 export type { SigningAlgorithm, SigningIdentity, ServerTrust, } from "./uctp_signing.js";
 export type { Envelope, Scope } from "./uctp_wire.js";
 export type { Json, JsonObject } from "./uctp_json.js";
+export { BrowserOpusCodec, BrowserVp8Codec, browserCodecSupport, RtpClock, OPUS_CONFIG, VP8_CONFIG, type CodecSupport, type EncodedMedia, } from "./browser_codecs.js";
 export { MediaBindings, RtpSender, Vp8Assembler, MediaSendQueue, decodeRtpDatagram, MEDIA_LIMITS, type MediaBinding, type RtpDatagram, } from "./browser_rtp.js";
 export { BrowserHttpClient } from "./browser_http.js";
 export { BrowserVoiceSession, type BrowserVoiceOptions, } from "./browser_voice.js";

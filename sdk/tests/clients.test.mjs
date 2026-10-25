@@ -1,6 +1,7 @@
 import './media_diagnostics.test.mjs';
 import './browser_uctp.test.mjs';
 import './browser_rtp.test.mjs';
+import './browser_codecs.test.mjs';
 import './tasks.test.mjs';
 import './record_context.test.mjs';
 import './contacts.test.mjs';

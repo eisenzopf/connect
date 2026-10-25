@@ -13,6 +13,16 @@ export type {
 export type { Envelope, Scope } from "./uctp_wire.js";
 export type { Json, JsonObject } from "./uctp_json.js";
 export {
+    BrowserOpusCodec,
+    BrowserVp8Codec,
+    browserCodecSupport,
+    RtpClock,
+    OPUS_CONFIG,
+    VP8_CONFIG,
+    type CodecSupport,
+    type EncodedMedia,
+} from "./browser_codecs.js";
+export {
     MediaBindings,
     RtpSender,
     Vp8Assembler,

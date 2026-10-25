@@ -2,8 +2,8 @@
 
 `@rudeless/connect/browser` exports `BrowserClient` for the canonical
 `connect/2` WebTransport control path. It requires a secure context, WebTransport
-and WebCrypto. The current checkpoint implements signed control and RTP
-primitives; production capture, Opus/VP8 rendering and the complete media
+and WebCrypto. The current checkpoint implements signed control, RTP and
+WebCodecs primitives; capture, connected media/rendering and the complete media
 qualification are still in progress. The existing WebRTC voice surface uses an
 earlier signaling dialect; canonical fallback is the separate G6-051 task.
 
@@ -69,6 +69,28 @@ at most eight assemblies/64 fragments. It never emits partial frames.
 `MediaSendQueue` drops obsolete work and enforces ten audio packets, 64 video
 packets and 76032 total bytes. These classes do not themselves establish a
 negotiated Connection, a subscription, observed media readiness or playback.
+
+`browserCodecSupport()` checks the actual Opus/VP8 encoder and decoder
+configurations. `BrowserOpusCodec` consumes 960 mono float PCM samples per 20 ms
+frame at 48 kHz and targets 32 kbit/s. `BrowserVp8Codec` consumes and closes
+`VideoFrame` inputs, targets 640x360/30 fps and 500 kbit/s, caps emitted video
+at 1 Mbit per sliding second and requests a keyframe at least every second of
+submitted media. Queues drop excess work; a receiver waits for a fresh keyframe
+after declared loss. `requestKeyFrame()` lets the owning media path request
+recovery after dropping output. Decoded callbacks borrow the frame synchronously;
+the codec always closes it, including on callback failure. `RtpClock` unwraps
+RTP timestamps; it alone does not establish cross-stream A/V synchronization.
+
+The explicit short codec lane synthesizes two distinct tones and moving color
+markers, encodes them with the production modules, packetizes/reassembles RTP,
+and independently inspects decoded PCM and rendered canvas pixels in Chrome.
+It is a four-second primitive check, separate from capture, network, native
+interoperation and the full 60-second operating measurements:
+
+```sh
+npm run build --prefix sdk/typescript
+node scripts/rehearse-gate6-browser-codecs.mjs .local/gate-6/browser-sdk/unique-codec-run
+```
 
 Default SDK checks:
 
