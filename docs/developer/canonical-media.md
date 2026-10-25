@@ -23,6 +23,19 @@ Canonical ingress refuses unguarded legacy channel registrations. Cooperative
 polling keeps malformed media traffic from starving signaling. The reader does
 not use the legacy unguarded publisher fanout path or invent quality observations.
 
+The `rtcp-sr-sdes/1` source-clock profile extends the same wrapper with bounded
+SR/SDES compounds. The physical reader checks the current inbound handle before
+calling checked timing admission. Clock reports have separate accepted/refused
+counters and never call media-flow or readiness observations. Actual RTP attaches
+its current source-clock snapshot inside that original packet's admission.
+Per-Connection CNAME normalization preserves cross-track timing; each stream/SSRC
+incarnation and its report/route lifetime fence held metadata. Guarded outgoing
+RTP can emit a current report after its successful submissions, under the same
+delivery guards. Unsupported or lost mappings retire their prior output SSRC.
+There is no idle report worker or retained permission. The exact framing and
+component verification scope are in `contracts/native-media-profile.md` and
+`docs/evidence/gate-6/browser-client-source-clock.json`.
+
 `CanonicalNativeAdapter::configure_rtp` installs a `StagedRtpMedia` backend and
 one persistent `StreamController` on an existing Core-issued route. This is a
 trusted server SPI, not a wire command or a readiness grant. Configuration checks
