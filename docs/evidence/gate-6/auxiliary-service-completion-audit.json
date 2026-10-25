@@ -1,0 +1,457 @@
+{
+  "task": "G6-046",
+  "recorded_at": "2026-10-25T00:09:55.494350+00:00",
+  "status": "recorded59-local-clause-proof-provenance-verified-dtmf-integration-live",
+  "full_task_complete": false,
+  "full_goal_complete": false,
+  "qualification_count_changed": false,
+  "qualified_clause_count": 59,
+  "remaining_case_ids": [
+    "u6-req-0112",
+    "u6-req-0113"
+  ],
+  "scope": "Provenance audit of previously recorded local service evidence. This does not rerun or broaden those profiles and does not qualify either DTMF clause.",
+  "audit": {
+    "summary": ".local/gate-6/auxiliary-service-audit/recorded59-audit.json",
+    "summary_sha256": "90316373177fc9a167cc108b49cb135316287cfefca68798a7a7da218c79c466",
+    "counts": {
+      "clauses": 59,
+      "reports": 25,
+      "proof_references": 334,
+      "failed_proof_references": 0,
+      "ids_missing_in_report": []
+    },
+    "scope_manifest_sha256": "65bcb324c25889059d71a33ffb6553a88efffb0a8cdccbd929ac3336d1f42cbb",
+    "source_ledger": {
+      "path": "contracts/uctp-gate-6-requirements.json",
+      "sha256": "c21ef7e8b9068520303638047252022a93891a46ab59ee588f810c8ba69677da"
+    },
+    "clauses": [
+      {
+        "case_id": "u6-req-0069",
+        "recorded_status": "passed-local-native",
+        "report": "docs/evidence/gate-6/auxiliary-conversation-clauses.json",
+        "explicit_qualification_id": true,
+        "report_sha256": "4717f9c38cb853171e89dae0d9bbff5305d9026a834e6f9a9b7a26785881a55b"
+      },
+      {
+        "case_id": "u6-req-0070",
+        "recorded_status": "passed-local-native",
+        "report": "docs/evidence/gate-6/auxiliary-conversation-clauses.json",
+        "explicit_qualification_id": true,
+        "report_sha256": "4717f9c38cb853171e89dae0d9bbff5305d9026a834e6f9a9b7a26785881a55b"
+      },
+      {
+        "case_id": "u6-req-0071",
+        "recorded_status": "passed-local-native",
+        "report": "docs/evidence/gate-6/auxiliary-conversation-clauses.json",
+        "explicit_qualification_id": true,
+        "report_sha256": "4717f9c38cb853171e89dae0d9bbff5305d9026a834e6f9a9b7a26785881a55b"
+      },
+      {
+        "case_id": "u6-req-0072",
+        "recorded_status": "passed-local-native",
+        "report": "docs/evidence/gate-6/auxiliary-conversation-clauses.json",
+        "explicit_qualification_id": true,
+        "report_sha256": "4717f9c38cb853171e89dae0d9bbff5305d9026a834e6f9a9b7a26785881a55b"
+      },
+      {
+        "case_id": "u6-req-0073",
+        "recorded_status": "passed-local-native",
+        "report": "docs/evidence/gate-6/auxiliary-conversation-clauses.json",
+        "explicit_qualification_id": true,
+        "report_sha256": "4717f9c38cb853171e89dae0d9bbff5305d9026a834e6f9a9b7a26785881a55b"
+      },
+      {
+        "case_id": "u6-req-0074",
+        "recorded_status": "passed-local-native",
+        "report": "docs/evidence/gate-6/auxiliary-conversation-clauses.json",
+        "explicit_qualification_id": true,
+        "report_sha256": "4717f9c38cb853171e89dae0d9bbff5305d9026a834e6f9a9b7a26785881a55b"
+      },
+      {
+        "case_id": "u6-req-0075",
+        "recorded_status": "passed-local-native",
+        "report": "docs/evidence/gate-6/auxiliary-conversation-clauses.json",
+        "explicit_qualification_id": true,
+        "report_sha256": "4717f9c38cb853171e89dae0d9bbff5305d9026a834e6f9a9b7a26785881a55b"
+      },
+      {
+        "case_id": "u6-req-0076",
+        "recorded_status": "passed-local-native",
+        "report": "docs/evidence/gate-6/auxiliary-conversation-clauses.json",
+        "explicit_qualification_id": true,
+        "report_sha256": "4717f9c38cb853171e89dae0d9bbff5305d9026a834e6f9a9b7a26785881a55b"
+      },
+      {
+        "case_id": "u6-req-0077",
+        "recorded_status": "passed-local-native",
+        "report": "docs/evidence/gate-6/auxiliary-conversation-clauses.json",
+        "explicit_qualification_id": true,
+        "report_sha256": "4717f9c38cb853171e89dae0d9bbff5305d9026a834e6f9a9b7a26785881a55b"
+      },
+      {
+        "case_id": "u6-req-0078",
+        "recorded_status": "passed-local-native",
+        "report": "docs/evidence/gate-6/auxiliary-conversation-clauses.json",
+        "explicit_qualification_id": true,
+        "report_sha256": "4717f9c38cb853171e89dae0d9bbff5305d9026a834e6f9a9b7a26785881a55b"
+      },
+      {
+        "case_id": "u6-req-0079",
+        "recorded_status": "passed-local-native",
+        "report": "docs/evidence/gate-6/auxiliary-conversation-clauses.json",
+        "explicit_qualification_id": true,
+        "report_sha256": "4717f9c38cb853171e89dae0d9bbff5305d9026a834e6f9a9b7a26785881a55b"
+      },
+      {
+        "case_id": "u6-req-0080",
+        "recorded_status": "passed-local-native",
+        "report": "docs/evidence/gate-6/auxiliary-conversation-clauses.json",
+        "explicit_qualification_id": true,
+        "report_sha256": "4717f9c38cb853171e89dae0d9bbff5305d9026a834e6f9a9b7a26785881a55b"
+      },
+      {
+        "case_id": "u6-req-0081",
+        "recorded_status": "passed-recorded-local-profile",
+        "report": "docs/evidence/gate-6/auxiliary-session-record-journey.json",
+        "explicit_qualification_id": true,
+        "report_sha256": "486ce0e52986689121a50074e2b9fc39f5c73058d4d22ade4c16042cd3a8bd03"
+      },
+      {
+        "case_id": "u6-req-0082",
+        "recorded_status": "passed-recorded-local-profile",
+        "report": "docs/evidence/gate-6/auxiliary-session-gateways.json",
+        "explicit_qualification_id": true,
+        "report_sha256": "c39c588ac1bffc1f22093bc09fa9c2d2088f5e71d3cc7bb7282996aa1ac6c698"
+      },
+      {
+        "case_id": "u6-req-0083",
+        "recorded_status": "passed-recorded-local-profile",
+        "report": "docs/evidence/gate-6/auxiliary-session-gateways.json",
+        "explicit_qualification_id": true,
+        "report_sha256": "c39c588ac1bffc1f22093bc09fa9c2d2088f5e71d3cc7bb7282996aa1ac6c698"
+      },
+      {
+        "case_id": "u6-req-0084",
+        "recorded_status": "passed-local-native",
+        "report": "docs/evidence/gate-6/auxiliary-owned-session-invitations.json",
+        "explicit_qualification_id": true,
+        "report_sha256": "5c5c97ec3f3d8899d789d314ee97c8c2f5f72ebc89d161086999819ae3767e28"
+      },
+      {
+        "case_id": "u6-req-0085",
+        "recorded_status": "passed-recorded-local-profile",
+        "report": "docs/evidence/gate-6/auxiliary-session-activation-mixed.json",
+        "explicit_qualification_id": true,
+        "report_sha256": "fa8eb6333658ba1caeb6e7219763eceaa929eb7e2798d4714c3e220a09a5c079"
+      },
+      {
+        "case_id": "u6-req-0086",
+        "recorded_status": "passed-local-native",
+        "report": "docs/evidence/gate-6/auxiliary-owned-session-invitations.json",
+        "explicit_qualification_id": true,
+        "report_sha256": "5c5c97ec3f3d8899d789d314ee97c8c2f5f72ebc89d161086999819ae3767e28"
+      },
+      {
+        "case_id": "u6-req-0087",
+        "recorded_status": "passed-local-native-and-http",
+        "report": "docs/evidence/gate-6/auxiliary-session-participant-end.json",
+        "explicit_qualification_id": true,
+        "report_sha256": "426b40e7de40e1466223282fae2d193ddc862420d6439abd95de36516a312f15"
+      },
+      {
+        "case_id": "u6-req-0088",
+        "recorded_status": "passed-recorded-local-profile",
+        "report": "docs/evidence/gate-6/auxiliary-session-codec-worker.json",
+        "explicit_qualification_id": true,
+        "report_sha256": "21ea3ee8dab5c9e7df35b23eb9dd348d243634c07dd3622fe57a4f96d3d94b16"
+      },
+      {
+        "case_id": "u6-req-0089",
+        "recorded_status": "passed-recorded-local-profile",
+        "report": "docs/evidence/gate-6/auxiliary-session-codec-worker.json",
+        "explicit_qualification_id": true,
+        "report_sha256": "21ea3ee8dab5c9e7df35b23eb9dd348d243634c07dd3622fe57a4f96d3d94b16"
+      },
+      {
+        "case_id": "u6-req-0090",
+        "recorded_status": "passed-local-native-and-http",
+        "report": "docs/evidence/gate-6/auxiliary-session-cancel-boundary.json",
+        "explicit_qualification_id": true,
+        "report_sha256": "329fc7cbeb74e13f8b22e729790488e409d91ee5a5e5bd7dc906555ffc6a343e"
+      },
+      {
+        "case_id": "u6-req-0091",
+        "recorded_status": "passed-local-native-and-HTTP-logical-replay",
+        "report": "docs/evidence/gate-6/auxiliary-session-caller-cancellation.json",
+        "explicit_qualification_id": true,
+        "report_sha256": "f1fb207fa3b8f3d86c41d20297dc21fb205595dada7a34c0b443586a066d20e6"
+      },
+      {
+        "case_id": "u6-req-0092",
+        "recorded_status": "passed-recorded-local-profile",
+        "report": "docs/evidence/gate-6/auxiliary-session-started.json",
+        "explicit_qualification_id": true,
+        "report_sha256": "8256095ddba64e794d8d82731bf9c91b3c5bee9093f35904a884e45ee3135504"
+      },
+      {
+        "case_id": "u6-req-0093",
+        "recorded_status": "passed-recorded-local-profile",
+        "report": "docs/evidence/gate-6/auxiliary-session-started.json",
+        "explicit_qualification_id": true,
+        "report_sha256": "8256095ddba64e794d8d82731bf9c91b3c5bee9093f35904a884e45ee3135504"
+      },
+      {
+        "case_id": "u6-req-0094",
+        "recorded_status": "passed-recorded-local-profile",
+        "report": "docs/evidence/gate-6/auxiliary-session-reconnect.json",
+        "explicit_qualification_id": true,
+        "report_sha256": "86493a3c97fae6b552433fed5bc950affeeb35508cee2e61b23752ee6b17f37b"
+      },
+      {
+        "case_id": "u6-req-0095",
+        "recorded_status": "passed-local-native-and-http",
+        "report": "docs/evidence/gate-6/auxiliary-session-terminal-events.json",
+        "explicit_qualification_id": true,
+        "report_sha256": "858fe089752a5536f73fb6c345e01b23d8b796c344256414ae3872ae8c837275"
+      },
+      {
+        "case_id": "u6-req-0096",
+        "recorded_status": "passed-recorded-local-profile",
+        "report": "docs/evidence/gate-6/auxiliary-session-participants.json",
+        "explicit_qualification_id": true,
+        "report_sha256": "b4ceb2b85d264c750d54aaa010d5d323ebc9386f09161285c1537fbc01e69fa3"
+      },
+      {
+        "case_id": "u6-req-0097",
+        "recorded_status": "passed-recorded-local-profile",
+        "report": "docs/evidence/gate-6/auxiliary-session-participants.json",
+        "explicit_qualification_id": true,
+        "report_sha256": "b4ceb2b85d264c750d54aaa010d5d323ebc9386f09161285c1537fbc01e69fa3"
+      },
+      {
+        "case_id": "u6-req-0098",
+        "recorded_status": "passed-recorded-local-profile",
+        "report": "docs/evidence/gate-6/auxiliary-session-reconnect.json",
+        "explicit_qualification_id": true,
+        "report_sha256": "86493a3c97fae6b552433fed5bc950affeeb35508cee2e61b23752ee6b17f37b"
+      },
+      {
+        "case_id": "u6-req-0099",
+        "recorded_status": "passed-recorded-local-profile",
+        "report": "docs/evidence/gate-6/auxiliary-session-reconnect.json",
+        "explicit_qualification_id": true,
+        "report_sha256": "86493a3c97fae6b552433fed5bc950affeeb35508cee2e61b23752ee6b17f37b"
+      },
+      {
+        "case_id": "u6-req-0100",
+        "recorded_status": "passed-recorded-local-profile",
+        "report": "docs/evidence/gate-6/auxiliary-session-activation-mixed.json",
+        "explicit_qualification_id": true,
+        "report_sha256": "fa8eb6333658ba1caeb6e7219763eceaa929eb7e2798d4714c3e220a09a5c079"
+      },
+      {
+        "case_id": "u6-req-0101",
+        "recorded_status": "passed-local-native",
+        "report": "docs/evidence/gate-6/auxiliary-native-connection-clauses.json",
+        "explicit_qualification_id": true,
+        "report_sha256": "a6316ce5b7861f5612ea03fbc55497133e786b800d5cbba11469f4587cfe60ff"
+      },
+      {
+        "case_id": "u6-req-0102",
+        "recorded_status": "passed-recorded-local-profile",
+        "report": "docs/evidence/gate-6/auxiliary-native-connection-controls.json",
+        "explicit_qualification_id": true,
+        "report_sha256": "e7d7670b95bd220c5f2ec2c5ab67a591657dc6f9a57300b332eec46560bdd008"
+      },
+      {
+        "case_id": "u6-req-0103",
+        "recorded_status": "passed-local-native-offer-fields",
+        "report": "docs/evidence/gate-6/auxiliary-native-offer-fields.json",
+        "explicit_qualification_id": true,
+        "report_sha256": "77c0f25121c4a72b1b2e6a27ece3ab95e9d12b5fa270a323a5802887c84c2d37"
+      },
+      {
+        "case_id": "u6-req-0104",
+        "recorded_status": "passed-recorded-local-profile",
+        "report": "docs/evidence/gate-6/auxiliary-native-connection-controls.json",
+        "explicit_qualification_id": true,
+        "report_sha256": "e7d7670b95bd220c5f2ec2c5ab67a591657dc6f9a57300b332eec46560bdd008"
+      },
+      {
+        "case_id": "u6-req-0105",
+        "recorded_status": "passed-recorded-local-profile",
+        "report": "docs/evidence/gate-6/auxiliary-native-connection-controls.json",
+        "explicit_qualification_id": true,
+        "report_sha256": "e7d7670b95bd220c5f2ec2c5ab67a591657dc6f9a57300b332eec46560bdd008"
+      },
+      {
+        "case_id": "u6-req-0106",
+        "recorded_status": "passed-local-native",
+        "report": "docs/evidence/gate-6/auxiliary-native-connection-clauses.json",
+        "explicit_qualification_id": true,
+        "report_sha256": "a6316ce5b7861f5612ea03fbc55497133e786b800d5cbba11469f4587cfe60ff"
+      },
+      {
+        "case_id": "u6-req-0107",
+        "recorded_status": "passed-local-native-audio",
+        "report": "docs/evidence/gate-6/auxiliary-native-stream-clauses.json",
+        "explicit_qualification_id": true,
+        "report_sha256": "7b06ca65bc06b48b9fbbe9103dae98c781aab2d8cea4d6b9b141e0a4b17c5ee3"
+      },
+      {
+        "case_id": "u6-req-0108",
+        "recorded_status": "passed-local-native-audio",
+        "report": "docs/evidence/gate-6/auxiliary-native-stream-clauses.json",
+        "explicit_qualification_id": true,
+        "report_sha256": "7b06ca65bc06b48b9fbbe9103dae98c781aab2d8cea4d6b9b141e0a4b17c5ee3"
+      },
+      {
+        "case_id": "u6-req-0109",
+        "recorded_status": "passed-local-native-peer-handle-binding",
+        "report": "docs/evidence/gate-6/auxiliary-native-handle-mapping.json",
+        "explicit_qualification_id": true,
+        "report_sha256": "a335060e91c3544a3d3f5ec18bd24f53caac65374efc0f4a3b9fb4351a55ec1c"
+      },
+      {
+        "case_id": "u6-req-0110",
+        "recorded_status": "passed-local-native-audio",
+        "report": "docs/evidence/gate-6/auxiliary-native-stream-clauses.json",
+        "explicit_qualification_id": true,
+        "report_sha256": "7b06ca65bc06b48b9fbbe9103dae98c781aab2d8cea4d6b9b141e0a4b17c5ee3"
+      },
+      {
+        "case_id": "u6-req-0111",
+        "recorded_status": "passed-local-native",
+        "report": "docs/evidence/gate-6/auxiliary-codec-lifecycle-pair.json",
+        "explicit_qualification_id": true,
+        "report_sha256": "5fef68c7571d07bfc46f47821f0666e012d8af9c8fbb4157a99e8a94f70bc110"
+      },
+      {
+        "case_id": "u6-req-0114",
+        "recorded_status": "passed-local-native-wire",
+        "report": "docs/evidence/gate-6/auxiliary-dtmf-metadata-admission.json",
+        "explicit_qualification_id": true,
+        "report_sha256": "e319ed9dd54da149321a3a2a547b91ecccc26f1387b2ac74f4bed4aef43ff52c"
+      },
+      {
+        "case_id": "u6-req-0115",
+        "recorded_status": "passed-local-native-and-loopback-sip",
+        "report": "docs/evidence/gate-6/auxiliary-dtmf-source-attribution.json",
+        "explicit_qualification_id": true,
+        "report_sha256": "f83c63fef0a9015fd710eb0a56a36eb6c6703b8300f6eae8a22dccdc3e7deff1"
+      },
+      {
+        "case_id": "u6-req-0116",
+        "recorded_status": "passed-recorded-local-profile",
+        "report": "docs/evidence/gate-6/auxiliary-session-record-journey.json",
+        "explicit_qualification_id": true,
+        "report_sha256": "486ce0e52986689121a50074e2b9fc39f5c73058d4d22ade4c16042cd3a8bd03"
+      },
+      {
+        "case_id": "u6-req-0117",
+        "recorded_status": "passed-recorded-local-profile",
+        "report": "docs/evidence/gate-6/auxiliary-session-record-journey.json",
+        "explicit_qualification_id": true,
+        "report_sha256": "486ce0e52986689121a50074e2b9fc39f5c73058d4d22ade4c16042cd3a8bd03"
+      },
+      {
+        "case_id": "u6-req-0118",
+        "recorded_status": "passed-recorded-local-profile",
+        "report": "docs/evidence/gate-6/auxiliary-session-record-journey.json",
+        "explicit_qualification_id": true,
+        "report_sha256": "486ce0e52986689121a50074e2b9fc39f5c73058d4d22ade4c16042cd3a8bd03"
+      },
+      {
+        "case_id": "u6-req-0119",
+        "recorded_status": "passed-recorded-local-profile",
+        "report": "docs/evidence/gate-6/auxiliary-session-record-journey.json",
+        "explicit_qualification_id": true,
+        "report_sha256": "486ce0e52986689121a50074e2b9fc39f5c73058d4d22ade4c16042cd3a8bd03"
+      },
+      {
+        "case_id": "u6-req-0120",
+        "recorded_status": "passed-recorded-local-profile",
+        "report": "docs/evidence/gate-6/auxiliary-session-record-journey.json",
+        "explicit_qualification_id": true,
+        "report_sha256": "486ce0e52986689121a50074e2b9fc39f5c73058d4d22ade4c16042cd3a8bd03"
+      },
+      {
+        "case_id": "u6-req-0121",
+        "recorded_status": "passed-recorded-local-profile",
+        "report": "docs/evidence/gate-6/auxiliary-session-record-journey.json",
+        "explicit_qualification_id": true,
+        "report_sha256": "486ce0e52986689121a50074e2b9fc39f5c73058d4d22ade4c16042cd3a8bd03"
+      },
+      {
+        "case_id": "u6-req-0122",
+        "recorded_status": "passed-local-native",
+        "report": "docs/evidence/gate-6/auxiliary-solo-sessions.json",
+        "explicit_qualification_id": true,
+        "report_sha256": "f643ee1b097299f87281b75550ba75a140e3cf30bd0dd2fd351f8de8d22ffb87"
+      },
+      {
+        "case_id": "u6-req-0123",
+        "recorded_status": "qualified-local-native-multiparty",
+        "report": "docs/evidence/gate-6/auxiliary-multiparty-clause.json",
+        "explicit_qualification_id": true,
+        "report_sha256": "6858871feced6b3f6e98fa0847374f270121cbe3a03a1a8180d87f25bdcfae64"
+      },
+      {
+        "case_id": "u6-req-0124",
+        "recorded_status": "passed-recorded-local-profile",
+        "report": "docs/evidence/gate-6/auxiliary-native-subscription-journey.json",
+        "explicit_qualification_id": true,
+        "report_sha256": "a8326aca5df45badc17166e3e13edf3857bb8abf7e9666f86d6044cf89edc9e8"
+      },
+      {
+        "case_id": "u6-req-0125",
+        "recorded_status": "passed-recorded-local-profile",
+        "report": "docs/evidence/gate-6/auxiliary-native-selector-policy.json",
+        "explicit_qualification_id": true,
+        "report_sha256": "cb9c818dd2f5daa7ab149090931609e3fcdf9cb42fa220bbe5462f753035f3c8"
+      },
+      {
+        "case_id": "u6-req-0126",
+        "recorded_status": "passed-recorded-local-profile",
+        "report": "docs/evidence/gate-6/auxiliary-native-subscription-journey.json",
+        "explicit_qualification_id": true,
+        "report_sha256": "a8326aca5df45badc17166e3e13edf3857bb8abf7e9666f86d6044cf89edc9e8"
+      },
+      {
+        "case_id": "u6-req-0127",
+        "recorded_status": "passed-recorded-local-profile",
+        "report": "docs/evidence/gate-6/auxiliary-native-subscription-journey.json",
+        "explicit_qualification_id": true,
+        "report_sha256": "a8326aca5df45badc17166e3e13edf3857bb8abf7e9666f86d6044cf89edc9e8"
+      },
+      {
+        "case_id": "u6-req-0128",
+        "recorded_status": "passed-recorded-local-profile",
+        "report": "docs/evidence/gate-6/auxiliary-native-selector-policy.json",
+        "explicit_qualification_id": true,
+        "report_sha256": "cb9c818dd2f5daa7ab149090931609e3fcdf9cb42fa220bbe5462f753035f3c8"
+      },
+      {
+        "case_id": "u6-req-0129",
+        "recorded_status": "passed-recorded-local-profile",
+        "report": "docs/evidence/gate-6/auxiliary-native-selector-policy.json",
+        "explicit_qualification_id": true,
+        "report_sha256": "cb9c818dd2f5daa7ab149090931609e3fcdf9cb42fa220bbe5462f753035f3c8"
+      }
+    ]
+  },
+  "current_dtmf_run": {
+    "status": "live-not-qualified",
+    "summary": ".local/gate-6/dtmf-integration/current128-runtime-001/summary.json",
+    "source_commit": "b96501e7",
+    "selected_runtime_test_methods": 48,
+    "planned_capture_validators": 21
+  },
+  "dependency_scope": {
+    "current_task": "Integrate and execute assigned auxiliary service behaviors through actual Connect. Each service clause needs exact behavior evidence.",
+    "later_tasks": "G6-048\u2013058 compose/qualify the remote native, browser and fallback hosting matrix. G6-094 executes independent full-contract conformance after G6-047, which itself depends on complete G6-046. These later requirements remain part of the unchanged105-task goal.",
+    "limits": "No transport, role, authority, privacy or recovery behavior in G6-046 is waived. Later task assignment is not a new qualification or overall acceptance."
+  }
+}
