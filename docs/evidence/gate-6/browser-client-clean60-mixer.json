@@ -1,0 +1,384 @@
+{
+  "schema": "connect-gate6-browser-clean60-mixer/1",
+  "task": "G6-050",
+  "status": "First frozen60second run fails both capture algorithms; explicit48kHz host mixer correction awaits runtime verification",
+  "frozen_profile": "docs/evidence/gate-6/browser-client-clean60-profile.json",
+  "frozen_profile_sha256": "73d03408e355cd4f56be7db1d4274dca847ca84d2c64028ac541dcff5d956bc3",
+  "negative_before": {
+    "report": ".local/gate-6/browser-sdk/clean60-first054/summary.json",
+    "sha256": "c3bc1e6d11bdfb837d4cfdc339e4cd9c2baf10e7f30633983e7db2261aebeb28",
+    "passed": false,
+    "source_inputs_unchanged": true,
+    "executable_unchanged": true,
+    "passed_methods": 6,
+    "selected_methods": 8,
+    "capture_cases": [
+      {
+        "case": "canonical_webtransport_browser::installed_chrome_production_sdk_captured_duplex_opus_vp8_and_reliable_data_eddsa",
+        "passed": false,
+        "log_sha256": "83743cfd86bc57da7dc29e5a7247f9e876ed89a970e6fd106b235c6fc10d4e2f",
+        "alignment": [
+          {
+            "pairs": [
+              {
+                "id": 2,
+                "skew_ms": 54.200000047683716
+              },
+              {
+                "id": 3,
+                "skew_ms": 107.20000004768372
+              },
+              {
+                "id": 4,
+                "skew_ms": 111.89999985694885
+              },
+              {
+                "id": 5,
+                "skew_ms": 91.80000019073486
+              },
+              {
+                "id": 6,
+                "skew_ms": 93
+              },
+              {
+                "id": 7,
+                "skew_ms": 111.89999985694885
+              },
+              {
+                "id": 8,
+                "skew_ms": 102.39999985694885
+              },
+              {
+                "id": 9,
+                "skew_ms": 102.20000004768372
+              },
+              {
+                "id": 10,
+                "skew_ms": 110.40000009536743
+              },
+              {
+                "id": 11,
+                "skew_ms": 118
+              },
+              {
+                "id": 12,
+                "skew_ms": 139.79999995231628
+              },
+              {
+                "id": 13,
+                "skew_ms": 129.09999990463257
+              },
+              {
+                "id": 14,
+                "skew_ms": 98.29999995231628
+              },
+              {
+                "id": 15,
+                "skew_ms": 100.69999980926514
+              },
+              {
+                "id": 16,
+                "skew_ms": 118.70000004768372
+              },
+              {
+                "id": 17,
+                "skew_ms": 141.29999995231628
+              }
+            ],
+            "paired_markers": 16,
+            "audio_markers": 16,
+            "video_markers": 60,
+            "median_abs_skew_ms": 108.80000007152557,
+            "p95_abs_skew_ms": 141.29999995231628
+          },
+          {
+            "pairs": [
+              {
+                "id": 2,
+                "skew_ms": 62.40000009536743
+              },
+              {
+                "id": 3,
+                "skew_ms": 11.100000143051147
+              },
+              {
+                "id": 4,
+                "skew_ms": 114.70000004768372
+              },
+              {
+                "id": 5,
+                "skew_ms": 110.10000014305115
+              },
+              {
+                "id": 6,
+                "skew_ms": 126.79999995231628
+              },
+              {
+                "id": 7,
+                "skew_ms": 107.10000014305115
+              },
+              {
+                "id": 8,
+                "skew_ms": 111.5
+              },
+              {
+                "id": 9,
+                "skew_ms": 117.5
+              },
+              {
+                "id": 10,
+                "skew_ms": 111
+              },
+              {
+                "id": 11,
+                "skew_ms": 120.40000009536743
+              },
+              {
+                "id": 12,
+                "skew_ms": 117.40000009536743
+              },
+              {
+                "id": 13,
+                "skew_ms": 124.40000009536743
+              },
+              {
+                "id": 14,
+                "skew_ms": 118.39999985694885
+              },
+              {
+                "id": 15,
+                "skew_ms": 116.70000004768372
+              },
+              {
+                "id": 16,
+                "skew_ms": 125.79999995231628
+              },
+              {
+                "id": 17,
+                "skew_ms": 142.90000009536743
+              },
+              {
+                "id": 18,
+                "skew_ms": 298.2999999523163
+              }
+            ],
+            "paired_markers": 17,
+            "audio_markers": 17,
+            "video_markers": 60,
+            "median_abs_skew_ms": 117.40000009536743,
+            "p95_abs_skew_ms": 298.2999999523163
+          }
+        ],
+        "resources": {
+          "valid": true,
+          "sample_count": 61,
+          "groups": {
+            "server_test_host": {
+              "observed_cumulative_cpu_seconds": 37.82,
+              "peak_observed_rss_bytes": 71696384,
+              "observed_process_count": 1
+            },
+            "browser": {
+              "observed_cumulative_cpu_seconds": 18.68,
+              "peak_observed_rss_bytes": 2316910592,
+              "observed_process_count": 13
+            },
+            "control_driver_or_other_owned_child": {
+              "observed_cumulative_cpu_seconds": 0.08,
+              "peak_observed_rss_bytes": 91340800,
+              "observed_process_count": 3
+            }
+          },
+          "errors": [],
+          "log": ".local/gate-6/browser-sdk/clean60-first054/case-6-resources.json",
+          "log_sha256": "4dd204a2272255ec8525d48dfa9d9741ce267d2debbe283be78187d4b0ce27cc"
+        },
+        "observation": "Both decoded-media count and bounded playback checks execute before the failing alignment check. Exact successful count values were not retained on this failure; do not manufacture them. Terminal timing check was not reached."
+      },
+      {
+        "case": "canonical_webtransport_browser::installed_chrome_production_sdk_captured_duplex_opus_vp8_and_reliable_data_es256",
+        "passed": false,
+        "log_sha256": "ad7de155c3e5427e141a1739fc611f3e3d280ab2c9ea75d2b299bd1b84b9c1cc",
+        "alignment": [
+          {
+            "pairs": [
+              {
+                "id": 3,
+                "skew_ms": 90.20000004768372
+              },
+              {
+                "id": 4,
+                "skew_ms": 95.20000004768372
+              },
+              {
+                "id": 5,
+                "skew_ms": 120.79999995231628
+              },
+              {
+                "id": 6,
+                "skew_ms": 99.29999995231628
+              },
+              {
+                "id": 7,
+                "skew_ms": 105
+              },
+              {
+                "id": 8,
+                "skew_ms": 107.5
+              },
+              {
+                "id": 9,
+                "skew_ms": 105
+              },
+              {
+                "id": 10,
+                "skew_ms": 107.60000014305115
+              },
+              {
+                "id": 11,
+                "skew_ms": 110.10000014305115
+              },
+              {
+                "id": 12,
+                "skew_ms": 80
+              },
+              {
+                "id": 13,
+                "skew_ms": 95.09999990463257
+              },
+              {
+                "id": 14,
+                "skew_ms": 97.59999990463257
+              },
+              {
+                "id": 15,
+                "skew_ms": 64.20000004768372
+              },
+              {
+                "id": 16,
+                "skew_ms": 105.89999985694885
+              },
+              {
+                "id": 17,
+                "skew_ms": 126.40000009536743
+              }
+            ],
+            "paired_markers": 15,
+            "audio_markers": 15,
+            "video_markers": 59,
+            "median_abs_skew_ms": 105,
+            "p95_abs_skew_ms": 126.40000009536743
+          },
+          {
+            "pairs": [
+              {
+                "id": 3,
+                "skew_ms": 89.20000004768372
+              },
+              {
+                "id": 4,
+                "skew_ms": 94.70000004768372
+              },
+              {
+                "id": 5,
+                "skew_ms": 124.20000004768372
+              },
+              {
+                "id": 6,
+                "skew_ms": 120.40000009536743
+              },
+              {
+                "id": 7,
+                "skew_ms": 119.89999985694885
+              },
+              {
+                "id": 8,
+                "skew_ms": 117.79999995231628
+              },
+              {
+                "id": 9,
+                "skew_ms": 124.39999985694885
+              },
+              {
+                "id": 10,
+                "skew_ms": 95.29999995231628
+              },
+              {
+                "id": 11,
+                "skew_ms": 127.60000014305115
+              },
+              {
+                "id": 12,
+                "skew_ms": 78.59999990463257
+              },
+              {
+                "id": 13,
+                "skew_ms": 118.89999985694885
+              },
+              {
+                "id": 14,
+                "skew_ms": 97.20000004768372
+              },
+              {
+                "id": 15,
+                "skew_ms": 128.20000004768372
+              },
+              {
+                "id": 16,
+                "skew_ms": 122.69999980926514
+              },
+              {
+                "id": 17,
+                "skew_ms": 91
+              },
+              {
+                "id": 19,
+                "skew_ms": 791.6000001430511
+              }
+            ],
+            "paired_markers": 16,
+            "audio_markers": 16,
+            "video_markers": 59,
+            "median_abs_skew_ms": 119.39999985694885,
+            "p95_abs_skew_ms": 791.6000001430511
+          }
+        ],
+        "resources": {
+          "valid": true,
+          "sample_count": 61,
+          "groups": {
+            "server_test_host": {
+              "observed_cumulative_cpu_seconds": 37.4,
+              "peak_observed_rss_bytes": 72876032,
+              "observed_process_count": 1
+            },
+            "browser": {
+              "observed_cumulative_cpu_seconds": 18.79,
+              "peak_observed_rss_bytes": 2336194560,
+              "observed_process_count": 13
+            },
+            "control_driver_or_other_owned_child": {
+              "observed_cumulative_cpu_seconds": 0.08,
+              "peak_observed_rss_bytes": 91340800,
+              "observed_process_count": 3
+            }
+          },
+          "errors": [],
+          "log": ".local/gate-6/browser-sdk/clean60-first054/case-7-resources.json",
+          "log_sha256": "584ede64339d0a91715a4bb5479a7557c0ed0c872d6d2a32b6b759d6b47882a1"
+        },
+        "observation": "Both decoded-media count and bounded playback checks execute before the failing alignment check. Exact successful count values were not retained on this failure; do not manufacture them. Terminal timing check was not reached."
+      }
+    ]
+  },
+  "cause_under_review": {
+    "production_path": "Runtime::project_session_container inherited ParticipantLimits::default().mix_rate_hz=8000. Core GuardedAudioMixer uses Codecs::new negotiated48kHz Opus with to_mix/from_mix resamplers at that8kHz internal rate. An8kHz mixer cannot preserve the upper frozen markers, which extend beyond4kHz. This path is a concrete contract mismatch; do not claim it explains every packet loss or all measured skew before verification.",
+    "correction": "Set mix_rate_hz=48000 explicitly in Connect managed Session composition. Existing per-codec boundary resampling remains for8kHz/16kHz telephone formats. No threshold, marker, authority interval, queue size, logical ID, codec preference or legacy compatibility change."
+  },
+  "verification_pending": [
+    "Current release host rebuild",
+    "Both frozen60second browser capture algorithms with exact markers and separate owned-process resources",
+    "Full12browser/native and28transport matrix including telephone boundary resampling"
+  ],
+  "scope": "Actual frozen local Chrome/macOS browser-browser failure evidence. No clean-profile/native/impairment/fulltask/acceptance/publication pass."
+}

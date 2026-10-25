@@ -407,6 +407,10 @@ impl Runtime {
                     rvoip_core::orchestrator::participant_control::ParticipantLimits {
                         participants: self.media.store.limits().participants,
                         connections: self.capacity,
+                        // Preserve the approved 48 kHz Opus profile through
+                        // mixing. Telephone codecs resample at their boundary;
+                        // inheriting the 8 kHz default loses wideband content.
+                        mix_rate_hz: 48_000,
                         ..Default::default()
                     },
                 )
