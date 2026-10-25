@@ -853,6 +853,7 @@ dependencies = [
  "rvoip-vapi",
  "rvoip-webrtc",
  "rvoip-websocket",
+ "rvoip-webtransport",
  "security-framework",
  "serde",
  "serde_json",
@@ -1381,6 +1382,18 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7360491ce676a36bf9bb3c56c1aa791658183a54d2744120f27285738d90465a"
 
 [[package]]
+name = "fastbloom"
+version = "0.17.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ef975e30683b2d965054bb0a836f8973857c4ebf6acf274fe46617cd285060d8"
+dependencies = [
+ "foldhash",
+ "libm 0.2.16",
+ "portable-atomic",
+ "siphasher",
+]
+
+[[package]]
 name = "fastrand"
 version = "2.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1413,6 +1426,12 @@ name = "fnv"
 version = "1.0.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3f9eec918d3f24069decb9af1554cad7c880e2da24a9afd88aca000531ab82c1"
+
+[[package]]
+name = "foldhash"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "77ce24cb58228fbb8aa041425bb1050850ac19177686ea6e0f41a70416f56fdb"
 
 [[package]]
 name = "form_urlencoded"
@@ -2910,6 +2929,7 @@ name = "quinn-proto"
 version = "0.11.19"
 dependencies = [
  "bytes",
+ "fastbloom",
  "getrandom 0.4.3",
  "lru-slab",
  "rand 0.10.3",
@@ -2918,6 +2938,7 @@ dependencies = [
  "rustc-hash",
  "rustls",
  "rustls-pki-types",
+ "rustls-platform-verifier",
  "slab",
  "thiserror 2.0.21",
  "tinyvec",
@@ -4283,6 +4304,32 @@ dependencies = [
 ]
 
 [[package]]
+name = "rvoip-webtransport"
+version = "0.3.12"
+dependencies = [
+ "async-trait",
+ "bytes",
+ "chrono",
+ "dashmap",
+ "futures",
+ "http",
+ "metrics",
+ "parking_lot",
+ "quinn",
+ "rustls",
+ "rvoip-auth-core",
+ "rvoip-core",
+ "rvoip-uctp",
+ "serde_json",
+ "thiserror 1.0.69",
+ "tokio",
+ "tokio-util",
+ "tracing",
+ "url",
+ "web-transport-quinn",
+]
+
+[[package]]
 name = "ryu"
 version = "1.0.23"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4504,6 +4551,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "sfv"
+version = "0.15.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "890ef0e5532daf21fdaa3dbaf991417187f3a87ab69231fe69be942495746480"
+dependencies = [
+ "base64 0.22.1",
+ "indexmap",
+ "ref-cast",
+]
+
+[[package]]
 name = "sha1"
 version = "0.10.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4587,6 +4645,12 @@ dependencies = [
  "thiserror 2.0.21",
  "time",
 ]
+
+[[package]]
+name = "siphasher"
+version = "1.0.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8ee5873ec9cce0195efcb7a4e9507a04cd49aec9c83d0389df45b1ef7ba2e649"
 
 [[package]]
 name = "slab"
@@ -5439,6 +5503,49 @@ checksum = "5a6580f308b1fad9207618087a65c04e7a10bc77e02c8e84e9b00dd4b12fa0bb"
 dependencies = [
  "js-sys",
  "wasm-bindgen",
+]
+
+[[package]]
+name = "web-transport-proto"
+version = "0.6.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1a81bcc79bf48ad0b819bfa51ec28524ee7c356056d43c316727d6b505dcc71e"
+dependencies = [
+ "bytes",
+ "http",
+ "sfv",
+ "thiserror 2.0.21",
+ "tokio",
+ "url",
+]
+
+[[package]]
+name = "web-transport-quinn"
+version = "0.11.12"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "48ada8c56f3dc126fa3c9e6b8f31f3bff5dfd24458f6664743d936ecad741d15"
+dependencies = [
+ "bytes",
+ "futures",
+ "http",
+ "quinn",
+ "rustls",
+ "rustls-native-certs",
+ "thiserror 2.0.21",
+ "tokio",
+ "tracing",
+ "url",
+ "web-transport-proto",
+ "web-transport-trait",
+]
+
+[[package]]
+name = "web-transport-trait"
+version = "0.3.7"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6394e09415ddc1e7c88d605443a3d2f333bf278f74c17020a2b6c44e97507883"
+dependencies = [
+ "bytes",
 ]
 
 [[package]]

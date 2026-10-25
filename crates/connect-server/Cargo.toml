@@ -28,6 +28,7 @@ rvoip-quic.workspace = true
 rvoip-uctp.workspace = true
 rvoip-vapi.workspace = true
 rvoip-websocket.workspace = true
+rvoip-webtransport.workspace = true
 rvoip-sip.workspace = true
 rvoip-webrtc.workspace = true
 rvoip-auth-core.workspace = true

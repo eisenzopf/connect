@@ -33,6 +33,7 @@ rvoip-uctp = { path = ".deps/rvoip/crates/uctp/rvoip-uctp" }
 rvoip-quic = { path = ".deps/rvoip/crates/uctp/rvoip-quic" }
 rvoip-vapi = { path = ".deps/rvoip/crates/extensions/rvoip-vapi" }
 rvoip-websocket = { path = ".deps/rvoip/crates/uctp/rvoip-websocket" }
+rvoip-webtransport = { path = ".deps/rvoip/crates/uctp/rvoip-webtransport" }
 rvoip-sip = { path = ".deps/rvoip/crates/sip/rvoip-sip" }
 rvoip-sip-dialog = { path = ".deps/rvoip/crates/sip/sip-dialog" }
 rvoip-sip-core = { path = ".deps/rvoip/crates/sip/sip-core" }

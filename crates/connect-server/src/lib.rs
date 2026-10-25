@@ -5,6 +5,7 @@ pub mod canonical_assistants;
 pub mod canonical_messages;
 pub mod canonical_provider_voice;
 pub mod canonical_telephone;
+pub mod canonical_webtransport;
 pub mod cli;
 pub mod config;
 pub mod installation;

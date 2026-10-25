@@ -1,0 +1,47 @@
+{
+  "task": "G6-049",
+  "status": "implementation-started-unqualified",
+  "full_task_complete": false,
+  "full_goal_complete": false,
+  "recorded_at": "2026-10-25T03:10:57.291550+00:00",
+  "approved_work": "Integrate HTTP3/WebTransport control and datagrams with the same identity, canonical handlers, operation store and media bindings. Validate browser origins, token lifetime, session limits and transport capabilities; expose discovery suitable for the SDK.",
+  "approved_verification": "Browser and independent HTTP3 clients authenticate, exchange canonical commands and negotiated media, and recover retained state. Cross-origin, malformed and unauthorized datagrams fail without allocating leaked resources.",
+  "reuse": "Pinned rvoip-webtransport canonical supervisor already accepts canonical profiles, exact Origin sets, bounded authentication, native datagram transport and owned ProfileServer lifetime; no stock legacy adapter/fallback is selected.",
+  "draft_implementation": [
+    "Optional protected WebTransport config: bounded exact serialized Origin allowlist, secure origins, exact HTTPS mount/contact and explicit remote advertised URL. Defaults remain disabled.",
+    "Shared configured TLS endpoint negotiates RAW_QUIC_ALPN orh3 and dispatches to distinct canonical supervisors using the same PeerConfig, handler factory, Store and global physical handshake slot budget.",
+    "Configured HTTP3 adds bounded8 bidi/uni streams and64KiB per-stream/512KiB connection receive credit; unconfigured native-only behavior retains1 bidi/0 uni.",
+    "Both profiles participate in intake/key-expiry cancellation and owned shutdown/drop."
+  ],
+  "known_remaining": [
+    "Compile and exercise actual independent HTTP3/control handshake and Origin refusal; no typecheck or runtime claim yet.",
+    "Current service Physical.validate, Core adapter registry, PeerNativeIntent and media EndpointBinding still explicitly assume QUIC. Bind actual WebTransport media/Endpoint transport under current authority before task credit.",
+    "Serve explicit SDK discovery, validate negotiated datagram/control-only capability and aggregate limits, and qualify current token/key expiry/revocation and durable reconnect.",
+    "Actual browser and independent HTTP3 commands/negotiated media, malformed/unauthorized datagram isolation and all owned cleanup/recovery cases remain required."
+  ],
+  "lock_update": {
+    "existing_package_versions_unchanged": true,
+    "added_packages": [
+      "fastbloom",
+      "foldhash",
+      "rvoip-webtransport",
+      "sfv",
+      "siphasher",
+      "web-transport-proto",
+      "web-transport-quinn",
+      "web-transport-trait"
+    ],
+    "cargo_lock_sha256": "4331c5e1687f0b00d71192ae2878233b27d5e696748ff51d96a0458b214fb987"
+  },
+  "source_sha256": {
+    "crates/connect-server/src/canonical_webtransport.rs": "aec39f08a5f561f9e24ccceb056e007502f14fdee413e0e0648fead607a3e9ed",
+    "crates/connect-server/src/canonical.rs": "8c2b02beb6baeda79380ce34619fb54026fa0c8e05bd88d970f28502da416166",
+    "crates/connect-service/src/canonical_runtime.rs": "f9eacdb899a259bd1630510fe9ae21e0f5cd096248920ee8d356c49d6e51322e",
+    "crates/connect-service/src/canonical_media.rs": "61031ecbefd2a813184cb3669b6de80b6b113978ab87c68544c7e800df9da4f4",
+    "crates/connect-service/src/canonical_native.rs": "c6f176f619b02a82d490337979c6597fb2379acb5a75a6db2f1ba911386612f0",
+    ".deps/rvoip/crates/uctp/rvoip-webtransport/src/canonical.rs": "b96cd46c04e8e7e74bd32329b83ea86f8f49c3b547290b09c8a7a52494ec8014"
+  },
+  "source_lock_sha256": "2d4f2eff9286f03ae7bc09b8ad9e6ae73b54e04dfcfed17eeff3eb4e086188be",
+  "runtime_qualification": null,
+  "publication": "Separate; not performed."
+}

@@ -28,6 +28,8 @@ use tokio_util::sync::CancellationToken;
 pub struct CanonicalServerConfig {
     #[serde(default)]
     pub network_profile: connect_protocol::native_network::NativeNetworkProfile,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub webtransport: Option<crate::canonical_webtransport::CanonicalWebTransportConfig>,
     pub bind: SocketAddr,
     pub database: PathBuf,
     pub certificate: PathBuf,
@@ -90,6 +92,9 @@ impl CanonicalServerConfig {
             rule.validate()?;
         }
         self.record_retention.validate()?;
+        if let Some(webtransport) = &self.webtransport {
+            webtransport.validate(self.network_profile)?;
+        }
         anyhow::ensure!(
             self.session_reconnect_grace_seconds <= 300,
             "Invalid Session reconnect grace"
@@ -141,6 +146,7 @@ pub struct RunningCanonicalServer {
     installation: crate::installation::InstallationLock,
     endpoint: Arc<quinn::Endpoint>,
     profile: ProfileServer,
+    webtransport: Option<ProfileServer>,
     maximum_rtt_ms: Arc<AtomicU64>,
     stop: CancellationToken,
     intake: Option<JoinHandle<Result<()>>>,
@@ -155,6 +161,7 @@ pub struct RunningCanonicalServer {
     pub telnyx_callback_address: Option<SocketAddr>,
     pub address: SocketAddr,
     pub http_address: Option<SocketAddr>,
+    pub webtransport_url: Option<String>,
     pub record_https_address: Option<SocketAddr>,
     pub store: Arc<Store>,
     pub service: Arc<Service>,
@@ -179,6 +186,9 @@ impl RunningCanonicalServer {
         let mut tls =
             (*crate::tls::server_config(&config.certificate, &config.private_key)?).clone();
         tls.alpn_protocols = vec![RAW_QUIC_ALPN.to_vec()];
+        if config.webtransport.is_some() {
+            tls.alpn_protocols.push(b"h3".to_vec());
+        }
         let secret = read_key(&config.signing_private_key)?;
         let signer = Arc::new(
             match config.signing_algorithm.as_str() {
@@ -313,8 +323,17 @@ impl RunningCanonicalServer {
             None => None,
         };
         let mut transport = quinn::TransportConfig::default();
-        transport.max_concurrent_bidi_streams(1u32.into());
-        transport.max_concurrent_uni_streams(0u32.into());
+        if config.webtransport.is_some() {
+            // HTTP/3 owns control/QPACK streams plus the CONNECT and canonical
+            // signaling streams. Bound unread stream credit across both ALPNs.
+            transport.max_concurrent_bidi_streams(8u32.into());
+            transport.max_concurrent_uni_streams(8u32.into());
+            transport.stream_receive_window((64 * 1024u32).into());
+            transport.receive_window((512 * 1024u32).into());
+        } else {
+            transport.max_concurrent_bidi_streams(1u32.into());
+            transport.max_concurrent_uni_streams(0u32.into());
+        }
         transport.datagram_receive_buffer_size(Some(64 * 1024));
         transport.datagram_send_buffer_size(64 * 1024);
         transport.max_idle_timeout(Some(Duration::from_secs(30).try_into()?));
@@ -337,6 +356,24 @@ impl RunningCanonicalServer {
         };
         let http_address = http.as_ref().map(|h| h.address);
         let (sender, receiver) = tokio::sync::mpsc::channel(config.limits.connections);
+        let (wt_sender, wt_receiver) = tokio::sync::mpsc::channel(config.limits.connections);
+        let webtransport_url = config.webtransport.as_ref().map(|c| c.contact(address));
+        let webtransport = match &config.webtransport {
+            Some(wt) => Some(
+                rvoip_webtransport::canonical::start(
+                    wt_receiver,
+                    profile.clone(),
+                    wt.contact(address),
+                    wt.mount_path.clone(),
+                    Some(wt.allowed_origins.iter().cloned().collect()),
+                )
+                .map_err(|_| anyhow::anyhow!("Cannot start canonical WebTransport supervisor"))?,
+            ),
+            None => {
+                drop(wt_receiver);
+                None
+            }
+        };
         let profile = rvoip_quic::canonical::start(
             receiver,
             profile,
@@ -347,6 +384,7 @@ impl RunningCanonicalServer {
         let cancelled = stop.clone();
         let accepted = endpoint.clone();
         let peers = profile.clone();
+        let wt_peers = webtransport.clone();
         let key_deadline = tokio::time::Instant::now()
             + (config.signing_key_expires_at - chrono::Utc::now())
                 .to_std()
@@ -359,30 +397,35 @@ impl RunningCanonicalServer {
             "canonical-intake",
             stop.clone(),
             async move {
-                struct Intake(Arc<quinn::Endpoint>, ProfileServer);
+                struct Intake(Arc<quinn::Endpoint>, ProfileServer, Option<ProfileServer>);
                 impl Drop for Intake {
                     fn drop(&mut self) {
                         self.1.begin_drain();
+                        if let Some(wt) = &self.2 {
+                            wt.begin_drain();
+                        }
                         self.0.close(0u32.into(), b"canonical intake stopped");
                     }
                 }
-                let _owned = Intake(accepted.clone(), peers.clone());
+                let _owned = Intake(accepted.clone(), peers.clone(), wt_peers.clone());
                 let mut handshakes = JoinSet::new();
                 loop {
                     tokio::select! {biased;
                         _=cancelled.cancelled()=>break,
-                        _=tokio::time::sleep_until(key_deadline)=>{accepted.close(0u32.into(),b"canonical signing key expired");let _=peers.shutdown().await;anyhow::bail!("Canonical signing key expired");},
+                        _=tokio::time::sleep_until(key_deadline)=>{accepted.close(0u32.into(),b"canonical signing key expired");let _=peers.shutdown().await;if let Some(wt)=&wt_peers {let _=wt.shutdown().await;}anyhow::bail!("Canonical signing key expired");},
                         done=handshakes.join_next(),if !handshakes.is_empty()=>{if done.is_some_and(|r|r.is_err()){anyhow::bail!("Canonical TLS admission task failed");}},
                         incoming=accepted.accept()=>{
                             let Some(incoming)=incoming else{break;};
                             if handshakes.len()>=config.limits.connections{incoming.refuse();continue;}
-                            let sender=sender.clone();let cancelled=cancelled.clone();let observed_rtt=observed_rtt.clone();
+                            let sender=sender.clone();let wt_sender=wt_sender.clone();let cancelled=cancelled.clone();let observed_rtt=observed_rtt.clone();
                             handshakes.spawn(async move{
                                 let connection=tokio::select!{biased;_=cancelled.cancelled()=>return,result=tokio::time::timeout(Duration::from_secs(5),incoming)=>match result{Ok(Ok(c))=>c,_=>return}};
                                 struct ObservedPath(quinn::Connection,Arc<AtomicU64>);
                                 impl Drop for ObservedPath{fn drop(&mut self){self.1.fetch_max(self.0.stats().path.rtt.as_millis().min(u64::MAX as u128) as u64,Ordering::AcqRel);}}
                                 let _path=ObservedPath(connection.clone(),observed_rtt);
-                                if let Err(error)=sender.try_send(connection.clone()){error.into_inner().close(0u32.into(),b"canonical admission full");return;}
+                                let alpn = connection.handshake_data().and_then(|value| value.downcast::<quinn::crypto::rustls::HandshakeData>().ok()).and_then(|value| value.protocol.clone());
+                                let target = if alpn.as_deref()==Some(RAW_QUIC_ALPN) { &sender } else if alpn.as_deref()==Some(b"h3".as_slice()) { &wt_sender } else { connection.close(0u32.into(),b"unsupported canonical transport"); return; };
+                                if let Err(error)=target.try_send(connection.clone()){error.into_inner().close(0u32.into(),b"canonical admission full");return;}
                                 // Retain this physical slot through the entire peer lifetime.
                                 tokio::select!{biased;_=cancelled.cancelled()=>{connection.close(0u32.into(),b"canonical admission stopped");},_=connection.closed()=>{}}
                             });
@@ -400,6 +443,8 @@ impl RunningCanonicalServer {
             installation,
             endpoint,
             profile,
+            webtransport,
+            webtransport_url,
             maximum_rtt_ms,
             stop,
             intake: Some(intake),
@@ -436,6 +481,9 @@ impl RunningCanonicalServer {
             records.begin_shutdown()
         }
         self.profile.begin_drain();
+        if let Some(wt) = &self.webtransport {
+            wt.begin_drain();
+        }
         let mut failures = Vec::new();
         if let Some(messages) = self.provider_messages.take() {
             if messages.shutdown().await.is_err() {
@@ -459,6 +507,11 @@ impl RunningCanonicalServer {
             .close(0u32.into(), b"canonical server shutdown");
         if self.profile.shutdown().await.is_err() {
             failures.push("canonical peers");
+        }
+        if let Some(wt) = &self.webtransport {
+            if wt.shutdown().await.is_err() {
+                failures.push("WebTransport peers");
+            }
         }
         if let Some(voice) = self.provider_voice.take() {
             if voice.shutdown().await.is_err() {
@@ -541,6 +594,9 @@ impl Drop for RunningCanonicalServer {
         self.installation.retire();
         self.stop.cancel();
         self.profile.begin_drain();
+        if let Some(wt) = &self.webtransport {
+            wt.begin_drain();
+        }
         self.endpoint
             .close(0u32.into(), b"canonical server dropped");
         if let Some(task) = &self.intake {
