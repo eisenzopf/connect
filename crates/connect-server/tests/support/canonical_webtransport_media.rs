@@ -175,7 +175,7 @@ fn caps() -> Value {
     json!({"audio_codecs":[{"name":"pcmu","params":{"sample_rate":8000,"channels":1}}],"max_streams_per_connection":8,"identity_assurance_offered":"identified"})
 }
 impl Http3Peer {
-    async fn completed(&mut self, cid: &str, operation: &str) {
+    pub(super) async fn completed(&mut self, cid: &str, operation: &str) {
         let until = tokio::time::Instant::now() + Duration::from_secs(5);
         loop {
             let mut request = envelope("operation.get", json!({"operation_id": operation}));
@@ -211,7 +211,13 @@ impl Http3Peer {
             tokio::time::sleep(Duration::from_millis(20)).await;
         }
     }
-    async fn subscribe(&mut self, cid: &str, index: usize, source: &str, mut handle: u16) -> u16 {
+    pub(super) async fn subscribe(
+        &mut self,
+        cid: &str,
+        index: usize,
+        source: &str,
+        mut handle: u16,
+    ) -> u16 {
         let operation = format!("http3-subscribe-{index}");
         let connection = format!("http3-media-connection-{index}");
         let mut request = envelope(
@@ -259,7 +265,7 @@ impl Http3Peer {
         }
         panic!("bounded signed subscription reply did not complete");
     }
-    async fn offer(&mut self, cid: &str, index: usize) -> u16 {
+    pub(super) async fn offer(&mut self, cid: &str, index: usize) -> u16 {
         let operation = format!("http3-media-offer-{index}");
         let connection = format!("http3-media-connection-{index}");
         let mut offer = envelope(
@@ -326,6 +332,52 @@ fn decode_ulaw(byte: u8) -> i32 {
         magnitude
     }
 }
+pub(super) fn tone_packet(source: u16, seq: u32, period: usize) -> bytes::Bytes {
+    let payload = (0..160)
+        .map(|n| if n % period < period / 2 { 0x80 } else { 0x00 })
+        .collect::<Vec<_>>();
+    pack_rtp_datagram(&RtpDatagram {
+        flags: 0,
+        stream_local_id: source,
+        seq,
+        rtp: RtpMediaPayload {
+            payload: payload.into(),
+            payload_type: 0,
+            sequence_number: seq as u16,
+            timestamp: seq * 160,
+            ssrc: 0x4736_0049,
+        },
+    })
+    .unwrap()
+    .into()
+}
+pub(super) fn tone_decoded(bytes: &[u8], target: u16, period: usize) -> bool {
+    let frame = unpack_rtp_datagram(bytes).unwrap();
+    assert_eq!(frame.stream_local_id, target);
+    assert_eq!(frame.rtp.payload_type, 0);
+    let pcm = frame
+        .rtp
+        .payload
+        .iter()
+        .map(|b| decode_ulaw(*b))
+        .collect::<Vec<_>>();
+    let energetic = pcm
+        .iter()
+        .filter(|sample| sample.abs() > 500)
+        .copied()
+        .collect::<Vec<_>>();
+    let changes = energetic
+        .windows(2)
+        .filter(|p| p[0].is_positive() != p[1].is_positive())
+        .count();
+    let rate = changes as f64 / energetic.len().max(1) as f64;
+    let expected = 2.0 / period as f64;
+    pcm.iter().any(|s| *s > 1000)
+        && pcm.iter().any(|s| *s < -1000)
+        && energetic.len() as f64 >= pcm.len() as f64 * 0.85
+        && rate >= expected * 0.8
+        && rate <= expected * 1.2
+}
 async fn decoded(
     from: &Http3Peer,
     to: &Http3Peer,
@@ -336,64 +388,28 @@ async fn decoded(
 ) {
     let send = async {
         for seq in start..start + 80 {
-            let payload = (0..160)
-                .map(|n| if n % period < period / 2 { 0x80 } else { 0x00 })
-                .collect::<Vec<_>>();
-            let frame = pack_rtp_datagram(&RtpDatagram {
-                flags: 0,
-                stream_local_id: source,
-                seq,
-                rtp: RtpMediaPayload {
-                    payload: payload.into(),
-                    payload_type: 0,
-                    sequence_number: seq as u16,
-                    timestamp: seq * 160,
-                    ssrc: 0x4736_0049,
-                },
-            })
-            .unwrap();
-            from._session.send_datagram(frame.into()).unwrap();
+            from._session
+                .send_datagram(tone_packet(source, seq, period))
+                .unwrap();
             tokio::time::sleep(Duration::from_millis(20)).await;
         }
     };
     let receive = tokio::time::timeout(Duration::from_secs(4), async {
         for _ in 0..256 {
             let bytes = to._session.read_datagram().await.unwrap();
-            let frame = unpack_rtp_datagram(&bytes).unwrap();
-            assert_eq!(frame.stream_local_id, target);
-            assert_eq!(frame.rtp.payload_type, 0);
-            let pcm = frame
-                .rtp
-                .payload
-                .iter()
-                .map(|b| decode_ulaw(*b))
-                .collect::<Vec<_>>();
-            let energetic = pcm
-                .iter()
-                .filter(|sample| sample.abs() > 500)
-                .copied()
-                .collect::<Vec<_>>();
-            let changes = energetic
-                .windows(2)
-                .filter(|pair| pair[0].is_positive() != pair[1].is_positive())
-                .count();
-            let rate = changes as f64 / energetic.len().max(1) as f64;
-            let expected = 2.0 / period as f64;
-            if pcm.iter().any(|s| *s > 1000)
-                && pcm.iter().any(|s| *s < -1000)
-                && energetic.len() as f64 >= pcm.len() as f64 * 0.85
-                && rate >= expected * 0.8
-                && rate <= expected * 1.2
-            {
+            if tone_decoded(&bytes, target, period) {
                 return;
             }
         }
-        panic!("no independently decoded bipolar audio in bounded received frames")
+        panic!("no independently decoded bipolar audio in bounded received frames");
     });
     let (_, result) = tokio::join!(send, receive);
     result.expect("actual authorized decoded WT duplex must reach the other Participant");
 }
 async fn duplex(algorithm: &str) {
+    duplex_mode(algorithm, None).await;
+}
+async fn duplex_mode(algorithm: &str, server_end: Option<bool>) {
     static LOGS: std::sync::Once = std::sync::Once::new();
     LOGS.call_once(|| {
         let _ = tracing_subscriber::fmt()
@@ -454,6 +470,34 @@ async fn duplex(algorithm: &str) {
         .all(|r| r.0 == "webtransport" && r.1 == "completed"));
     drop(statement);
     drop(db);
+    if let Some(graceful) = server_end {
+        let service = f.server.service.clone();
+        if graceful {
+            f.server.shutdown().await.unwrap();
+        } else {
+            drop(f.server);
+        }
+        tokio::time::timeout(Duration::from_secs(5), first.connection.closed())
+            .await
+            .unwrap();
+        tokio::time::timeout(Duration::from_secs(5), second.connection.closed())
+            .await
+            .unwrap();
+        drop(first);
+        drop(second);
+        tokio::time::timeout(Duration::from_secs(5), async {
+            loop {
+                let s = service.canonical_runtime_snapshot().unwrap();
+                if s.physical_peers == 0 && s.connections == 0 && s.media_readers == 0 {
+                    return;
+                }
+                tokio::time::sleep(Duration::from_millis(20)).await;
+            }
+        })
+        .await
+        .expect("owned server end must retire live decoded WebTransport routes");
+        return;
+    }
     first.close().await;
     second.close().await;
     drop(first);
@@ -478,4 +522,13 @@ async fn independent_http3_actual_decoded_duplex_uses_webtransport_bindings_edds
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
 async fn independent_http3_actual_decoded_duplex_uses_webtransport_bindings_es256() {
     duplex("ES256").await;
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn server_shutdown_with_live_decoded_webtransport_media_retires_all_physical_bindings() {
+    duplex_mode("EdDSA", Some(true)).await;
+}
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn server_drop_with_live_decoded_webtransport_media_retires_all_physical_bindings() {
+    duplex_mode("ES256", Some(false)).await;
 }

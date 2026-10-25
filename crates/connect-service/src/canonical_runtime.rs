@@ -26,6 +26,8 @@ pub struct CanonicalRuntimeSnapshot {
     pub live_sessions: usize,
     pub connections: usize,
     pub media_readers: usize,
+    pub media_datagrams_accepted: u64,
+    pub media_datagrams_rejected: u64,
     pub role_projections: usize,
     pub replacement_preparations: usize,
 }
@@ -320,15 +322,15 @@ impl Runtime {
         Ok(matches.pop())
     }
     pub(crate) fn snapshot(&self) -> CanonicalRuntimeSnapshot {
-        let media_readers = self
+        let media = self
             .physical
             .lock()
             .unwrap_or_else(|p| p.into_inner())
             .iter()
             .filter_map(Weak::upgrade)
             .filter_map(|p| p.binding.media())
-            .filter(|m| m.snapshot().reader_running)
-            .count();
+            .map(|m| m.snapshot())
+            .collect::<Vec<_>>();
         let peers = self
             .physical
             .lock()
@@ -353,7 +355,13 @@ impl Runtime {
             role_projections: self
                 .role_projections
                 .load(std::sync::atomic::Ordering::Relaxed),
-            media_readers,
+            media_readers: media.iter().filter(|m| m.reader_running).count(),
+            media_datagrams_accepted: media
+                .iter()
+                .fold(0u64, |n, m| n.saturating_add(m.ingress_accepted)),
+            media_datagrams_rejected: media
+                .iter()
+                .fold(0u64, |n, m| n.saturating_add(m.ingress_rejected)),
             physical_peers: peers.len(),
             peer_session_views: peers.iter().map(|p| p.sessions).sum(),
             connections: peers.iter().map(|p| p.connections).sum(),

@@ -5678,10 +5678,10 @@
     "configuration": {
       "mount_path": "Exact absolute mount path, at most256 ASCII bytes without dot segments or double slashes.",
       "allowed_origins": "Between1 and32 unique exact serialized HTTPS origins. Explicit localhost/loopback HTTP origins are permitted only for Local development. Missing, repeated or nonmatching Origin is refused.",
-      "advertised_url": "Exact HTTPS mount contact; required for Remote. No credentials, query, fragment, whitespace/control characters or zero port."
+      "advertised_url": "Exact HTTPS mount contact; required for Remote. Local omission derives the actual bound IPv4 or bracketed IPv6 contact, preserving address family. Fresh Local TLS certificates cover localhost/loopback IP identities; client trust remains explicit. No credentials, query, fragment, whitespace/control characters or zero port."
     },
     "media": "The actual authenticated physical transport and current verified Device Endpoint select the registered WebTransport adapter. Offer/reply/reoffer substrate stays bound to that transport. Media resources require actual negotiation; control-only peers cannot allocate new media.",
     "replay": "Same owner-scoped logical mutation IDs and current authorization. A new transport cannot relabel a retained Endpoint or repeat an uncertain media effect.",
-    "qualification": "G6-049 is in progress. See docs/evidence/gate-6/webtransport-composition.json for scoped results and pending browser/lifecycle qualification."
+    "qualification": "G6-049 is in progress. See docs/evidence/gate-6/webtransport-composition.json for scoped results and scoped runtime results and remaining qualification."
   }
 }

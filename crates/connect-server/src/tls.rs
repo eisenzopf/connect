@@ -63,17 +63,56 @@ pub fn server_config(cert: &Path, key: &Path) -> Result<Arc<rustls::ServerConfig
     Ok(Arc::new(config))
 }
 
-/// Local certificate with an explicit one-year lifetime and localhost identity.
+/// Local certificate with an explicit one-year lifetime and explicit localhost/loopback identities.
 pub fn generate_local_certificate() -> Result<rcgen::CertifiedKey<rcgen::KeyPair>> {
     use chrono::Datelike;
     let today = chrono::Utc::now().date_naive();
     let before = today - chrono::Duration::days(1);
     let after = today + chrono::Duration::days(365);
-    let mut params = rcgen::CertificateParams::new(vec!["localhost".into()])?;
+    let mut params =
+        rcgen::CertificateParams::new(vec!["localhost".into(), "127.0.0.1".into(), "::1".into()])?;
     params.not_before =
         rcgen::date_time_ymd(before.year(), before.month() as u8, before.day() as u8);
     params.not_after = rcgen::date_time_ymd(after.year(), after.month() as u8, after.day() as u8);
     let signing_key = rcgen::KeyPair::generate()?;
     let cert = params.self_signed(&signing_key)?;
     Ok(rcgen::CertifiedKey { cert, signing_key })
+}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn generated_local_certificate_verifies_loopback_names_and_refuses_other_hosts() {
+        use rustls::client::danger::ServerCertVerifier;
+        use std::sync::Arc;
+        let _ = rustls::crypto::ring::default_provider().install_default();
+        let generated = super::generate_local_certificate().unwrap();
+        let mut roots = rustls::RootCertStore::empty();
+        roots.add(generated.cert.der().clone()).unwrap();
+        let verifier = rustls::client::WebPkiServerVerifier::builder(Arc::new(roots))
+            .build()
+            .unwrap();
+        for name in ["localhost", "127.0.0.1", "::1"] {
+            verifier
+                .verify_server_cert(
+                    generated.cert.der(),
+                    &[],
+                    &rustls::pki_types::ServerName::try_from(name).unwrap(),
+                    &[],
+                    rustls::pki_types::UnixTime::now(),
+                )
+                .unwrap();
+        }
+        for name in ["foreign.fixture.invalid", "127.0.0.2", "::2"] {
+            assert!(verifier
+                .verify_server_cert(
+                    generated.cert.der(),
+                    &[],
+                    &rustls::pki_types::ServerName::try_from(name).unwrap(),
+                    &[],
+                    rustls::pki_types::UnixTime::now()
+                )
+                .is_err());
+        }
+    }
 }

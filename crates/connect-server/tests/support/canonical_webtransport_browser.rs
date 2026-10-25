@@ -159,13 +159,13 @@ async fn browser(algorithm: &str) {
         admin,
         key_revision,
     } = fixture(algorithm).await;
-    // Use an explicit IPv4 contact for this IPv4-bound test listener. Chrome
-    // resolves localhost to IPv6 without retrying this UDP session on IPv4.
-    config.bind = server.address;
-    config.webtransport.as_mut().unwrap().advertised_url = Some(format!(
-        "https://127.0.0.1:{}{MOUNT}",
-        server.address.port()
-    ));
+    // Exercise the derived contact for the actual bound address family.
+    assert!(config
+        .webtransport
+        .as_ref()
+        .unwrap()
+        .advertised_url
+        .is_none());
     server.shutdown().await.unwrap();
     // WebTransport's explicit hash trust requires a short-lived ECDSA leaf.
     // The separate enrolled server signing key/pin is unchanged.
@@ -196,6 +196,22 @@ async fn browser(algorithm: &str) {
         admin,
         key_revision,
     };
+    let discovery = connect_client::canonical::CanonicalHttpClient::open(canonical_http_config(&f))
+        .await
+        .unwrap()
+        .transport_discovery()
+        .await
+        .unwrap();
+    assert_eq!(
+        Some(discovery.webtransport.unwrap().url),
+        f.server.webtransport_url
+    );
+    assert!(f
+        .server
+        .webtransport_url
+        .as_ref()
+        .unwrap()
+        .starts_with("https://127.0.0.1:"));
     super::canonical_webtransport_media::endpoint(&f, &f.client, 0);
     let other = super::canonical_webtransport_media::other(&f);
     let (cid, initiator, recipient) =

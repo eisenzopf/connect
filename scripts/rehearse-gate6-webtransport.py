@@ -26,10 +26,27 @@ INDEPENDENT = [
         'disabled_webtransport_and_unrelated_http_listener_do_not_invent_transport_discovery',
         'discovery_sdk_refuses_incompatible_and_oversized_responses_during_collection')],
 ]
+INDEPENDENT += [
+    'canonical_webtransport_media::server_shutdown_with_live_decoded_webtransport_media_retires_all_physical_bindings',
+    'canonical_webtransport_media::server_drop_with_live_decoded_webtransport_media_retires_all_physical_bindings',
+    'canonical_webtransport_lifecycle::shared_native_and_http3_physical_budget_refuses_excess_and_reuses_only_retired_slots',
+    'canonical_webtransport_lifecycle::current_credential_and_key_revocation_retire_http3_without_replaying_durable_mutation',
+    'canonical_webtransport_lifecycle::server_signing_expiry_closes_http3_and_native_intake_and_releases_owned_runtime',
+    'canonical_webtransport_lifecycle::owned_http3_shutdown_and_drop_restart_preserve_original_receipt_and_fence_old_peers',
+    'canonical_webtransport_lifecycle::malformed_and_unallocated_datagrams_are_observed_rejected_before_and_after_auth_without_allocation',
+    'canonical_webtransport_lifecycle::negotiated_control_only_http3_keeps_commands_but_refuses_new_media_without_slots',
+    'canonical_webtransport_lifecycle::http3_session_budget_is_shared_with_native_commands_and_refusal_leaves_no_connection',
+    'canonical_webtransport_lifecycle::client_credential_and_signing_key_expiry_retire_http3_without_extending_each_other',
+    'canonical_webtransport_lifecycle::disabled_webtransport_retains_native_tls_commands_and_refuses_h3_without_authority',
+    *['canonical_webtransport_mixed::actual_mixed_webtransport_and_native_duplex_survives_foreign_physical_handle_rejection_' + algorithm for algorithm in ('eddsa', 'es256')],
+]
+
 BROWSER = ['canonical_webtransport_browser::installed_chrome_signed_control_reconnect_and_independently_decoded_duplex_' + algorithm for algorithm in ('eddsa', 'es256')]
 CONFIG = ['canonical_webtransport::tests::' + name for name in (
     'exact_origins_mount_and_remote_contact_are_required_before_startup',
     'advertised_contact_refuses_parser_normalization_of_whitespace_and_controls')]
+
+CONFIG += ['canonical_webtransport::tests::derived_local_contact_preserves_bound_ipv4_and_ipv6_address_family', 'tls::tests::generated_local_certificate_verifies_loopback_names_and_refuses_other_hosts']
 
 
 def digest(path):
@@ -67,7 +84,7 @@ def main():
     before = sources()
     report = dict(passed=False, source_revision=subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=ROOT, text=True).strip(),
                   source_inputs_sha256=before, source_lock_sha256=digest(ROOT / 'dependencies/source-lock.json'),
-                  scope='Local isolated actual canonical HTTP3/control/receipt parity, subscribed independently decoded duplex, transport start facts, exact Origin/mount refusal, authenticated bounded SDK discovery and configuration validation. Installed Chrome is explicit. No complete G6-049, browser SDK G6-050, remote/provider, acceptance or publication claim.',
+                  scope='Local isolated actual canonical HTTP3/control/receipt parity, subscribed independently decoded duplex, transport start facts, exact Origin/mount refusal, authenticated bounded SDK discovery, derived Local address-family/TLS identity, shared physical/Session limits, current credential/key lifetimes, actual rejected datagrams, owned shutdown/drop/restart and mixed WT/native isolation. Installed Chrome is explicit. No complete G6-049, browser SDK G6-050, remote/provider, acceptance or publication claim.',
                   host=platform.platform(), installed_browser=args.installed_browser,
                   skipped=[] if args.installed_browser else [dict(case=name, reason='Explicit installed-browser lane not selected; not a pass.') for name in BROWSER],
                   steps=[], cases=[], executables=[], started_at=datetime.datetime.now(datetime.timezone.utc).isoformat())

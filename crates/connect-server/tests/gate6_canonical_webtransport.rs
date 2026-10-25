@@ -49,7 +49,7 @@ async fn fixture(algorithm: &str) -> Fixture {
     client.endpoint = server.address;
     assert_eq!(
         server.webtransport_url.as_deref(),
-        Some(format!("https://localhost:{}{MOUNT}", server.address.port()).as_str())
+        Some(format!("https://{}{MOUNT}", server.address).as_str())
     );
     Fixture {
         temp,
@@ -91,6 +91,21 @@ async fn transport(
     ),
     String,
 > {
+    transport_mode(f, path, origins, true).await
+}
+async fn transport_mode(
+    f: &Fixture,
+    path: &str,
+    origins: &[&str],
+    datagrams: bool,
+) -> Result<
+    (
+        quinn::Endpoint,
+        quinn::Connection,
+        web_transport_quinn::Session,
+    ),
+    String,
+> {
     let _ = rustls::crypto::ring::default_provider().install_default();
     let mut roots = rustls::RootCertStore::empty();
     roots
@@ -108,7 +123,7 @@ async fn transport(
     let mut limits = quinn::TransportConfig::default();
     limits.max_concurrent_bidi_streams(8u32.into());
     limits.max_concurrent_uni_streams(8u32.into());
-    limits.datagram_receive_buffer_size(Some(64 * 1024));
+    limits.datagram_receive_buffer_size(datagrams.then_some(64 * 1024));
     limits.datagram_send_buffer_size(64 * 1024);
     config.transport_config(Arc::new(limits));
     let mut endpoint = quinn::Endpoint::client("127.0.0.1:0".parse().unwrap()).unwrap();
@@ -151,8 +166,10 @@ impl Http3Peer {
     async fn open(f: &Fixture) -> Self {
         Self::open_config(f, &f.client).await
     }
-    async fn open_config(f: &Fixture, config: &CanonicalClientConfig) -> Self {
-        let (endpoint, connection, session) = transport(f, MOUNT, &[ORIGIN]).await.unwrap();
+    async fn wire(f: &Fixture, config: &CanonicalClientConfig, datagrams: bool) -> Self {
+        let (endpoint, connection, session) = transport_mode(f, MOUNT, &[ORIGIN], datagrams)
+            .await
+            .unwrap();
         let (writer, reader) = session.open_bi().await.unwrap();
         let secret = std::fs::read(&config.signing_private_key).unwrap();
         let signer = if config.signing_algorithm == "ES256" {
@@ -176,7 +193,7 @@ impl Http3Peer {
                 revoked: false,
             },
         );
-        let mut peer = Self {
+        Self {
             endpoint,
             connection,
             _session: session,
@@ -186,7 +203,13 @@ impl Http3Peer {
             signer,
             verifier: Sig9421Verifier::new(Arc::new(resolver)),
             context,
-        };
+        }
+    }
+    async fn open_config(f: &Fixture, config: &CanonicalClientConfig) -> Self {
+        Self::open_mode(f, config, true).await
+    }
+    async fn open_mode(f: &Fixture, config: &CanonicalClientConfig, datagrams: bool) -> Self {
+        let mut peer = Self::wire(f, config, datagrams).await;
         let hello = envelope(
             "auth.hello",
             json!({"device":{"id":config.device_id,"kind":config.device_kind,"platform":config.device_platform,"sdk_version":"independent-http3-fixture"},"auth_methods":["bearer"],"application_profiles":["connect/2"]}),
@@ -408,3 +431,9 @@ mod canonical_webtransport_browser;
 
 #[path = "support/canonical_webtransport_discovery.rs"]
 mod canonical_webtransport_discovery;
+
+#[path = "support/canonical_webtransport_lifecycle.rs"]
+mod canonical_webtransport_lifecycle;
+
+#[path = "support/canonical_webtransport_mixed.rs"]
+mod canonical_webtransport_mixed;

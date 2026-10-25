@@ -111,7 +111,7 @@ impl CanonicalWebTransportConfig {
     pub fn contact(&self, address: SocketAddr) -> String {
         self.advertised_url
             .clone()
-            .unwrap_or_else(|| format!("https://localhost:{}{}", address.port(), self.mount_path))
+            .unwrap_or_else(|| format!("https://{address}{}", self.mount_path))
     }
 }
 
@@ -124,6 +124,19 @@ mod tests {
             allowed_origins: vec!["https://browser.fixture.invalid".into()],
             advertised_url: Some("https://server.fixture.invalid/connect".into()),
         }
+    }
+    #[test]
+    fn derived_local_contact_preserves_bound_ipv4_and_ipv6_address_family() {
+        let mut value = config();
+        value.advertised_url = None;
+        assert_eq!(
+            value.contact("127.0.0.1:1234".parse().unwrap()),
+            "https://127.0.0.1:1234/connect"
+        );
+        assert_eq!(
+            value.contact("[::1]:1234".parse().unwrap()),
+            "https://[::1]:1234/connect"
+        );
     }
     #[test]
     fn exact_origins_mount_and_remote_contact_are_required_before_startup() {

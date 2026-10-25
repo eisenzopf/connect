@@ -169,3 +169,8 @@ and performs no automatic retry. Discovery creates no Session, Endpoint
 verification, trust enrollment or media grant. An unrelated application listener
 returns unavailable; callback-only listeners expose no discovery route.
 See the [HTTP/OpenAPI reference](../../contracts/openapi-canonical-http.json).
+
+In Local mode, an omitted advertised WebTransport URL preserves the actual bound
+IPv4 or bracketed IPv6 address. Fresh Local certificates cover localhost and both
+loopback IP identities. Remote mode still requires an explicit HTTPS contact.
+See [WebTransport composition and rehearsal](canonical-webtransport.md).
