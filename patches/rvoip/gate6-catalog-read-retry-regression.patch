@@ -1,0 +1,224 @@
+diff --git a/crates/uctp/rvoip-uctp/tests/support/canonical_media/native_offers/future_subscriptions.rs b/crates/uctp/rvoip-uctp/tests/support/canonical_media/native_offers/future_subscriptions.rs
+--- a/crates/uctp/rvoip-uctp/tests/support/canonical_media/native_offers/future_subscriptions.rs
++++ b/crates/uctp/rvoip-uctp/tests/support/canonical_media/native_offers/future_subscriptions.rs
+@@ -693,3 +693,160 @@
+         other.server.shutdown().await.unwrap();
+     }
+ }
++
++#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
++async fn actual_catalog_contention_rereads_unchanged_sources_without_a_new_reconciliation() {
++    use rvoip_core::orchestrator::participant_control::ParticipantControlError;
++    use rvoip_core::staged_streams::subscription_plan::MediaSelectionChange;
++    for kind in ["quic", "wt"] {
++        let (mut s, mut other, policy) = setup(kind).await;
++        let receiver = s.native.adapters[&s.kind]
++            .media_controller(&s.second_id)
++            .unwrap();
++        other.send(s.f.sign(select(receiver.revision()))).await;
++        assert_eq!(other.read().await.kind(), "ack");
++        let (_, source_callback) = s.prepared(add_video(&s, 1, false)).await;
++        let source_video = subscriptions::stream_handle(&source_callback, "future_camera");
++        s.confirm(&source_callback).await;
++        s.wait(3).await;
++        let callback = other.read().await;
++        assert_eq!(callback.kind(), "connection.offer");
++        let target_video = subscriptions::stream_handle(&callback, "future_camera");
++        other.send(s.f.sign(s.confirmation(&callback))).await;
++        core_fixture::until(|| receiver.revision() == 3).await;
++        core_fixture::until(|| {
++            policy
++                .operations
++                .lock()
++                .unwrap()
++                .iter()
++                .any(|(_, v)| matches!(v, Ok(3)))
++        })
++        .await;
++        // Establish real flow before capturing the unchanged catalog baseline.
++        send(
++            &s.wire,
++            subscriptions::video_sequence(source_video, 1, 9001),
++        );
++        assert_eq!(received(&other).await.rtp.packet().header.timestamp, 9001);
++        tokio::time::sleep(Duration::from_millis(650)).await;
++        let before = s
++            .native
++            .core
++            .orch
++            .plan_staged_media_selection(
++                &s.native.core.session,
++                &s.second_id,
++                3,
++                &MediaSelectionChange::Reconcile,
++            )
++            .unwrap();
++        let attempts = policy.attempts.load(Ordering::Acquire);
++        let observations = policy.operations.lock().unwrap().len();
++        let (entered_tx, entered_rx) = std::sync::mpsc::sync_channel(1);
++        let (release_tx, release_rx) = std::sync::mpsc::sync_channel(1);
++        s.grants.0.write().await.catalog_read_pause = Some(Arc::new(CatalogReadPause {
++            connection: s.id.clone(),
++            armed: AtomicBool::new(true),
++            entered: entered_tx,
++            release: Mutex::new(release_rx),
++        }));
++        // The actual source packet callback holds its controller model mutex.
++        // No synthetic plan/error or grant is substituted for the catalog read.
++        send(
++            &s.wire,
++            subscriptions::video_sequence(source_video, 2, 9002),
++        );
++        tokio::task::spawn_blocking(move || entered_rx.recv_timeout(Duration::from_secs(3)))
++            .await
++            .unwrap()
++            .unwrap();
++        assert!(matches!(
++            s.native.core.orch.plan_staged_media_selection(
++                &s.native.core.session,
++                &s.second_id,
++                3,
++                &MediaSelectionChange::Reconcile,
++            ),
++            Err(ParticipantControlError::Media(
++                StreamControlError::Backpressure
++            ))
++        ));
++        // Cover at least two ordinary runtime catalog-poll deadlines.
++        tokio::time::sleep(Duration::from_millis(1100)).await;
++        release_tx.send(()).unwrap();
++        tokio::time::sleep(Duration::from_millis(650)).await;
++        let after = s
++            .native
++            .core
++            .orch
++            .plan_staged_media_selection(
++                &s.native.core.session,
++                &s.second_id,
++                3,
++                &MediaSelectionChange::Reconcile,
++            )
++            .unwrap();
++        assert!(
++            before.same_catalog(&after),
++            "The full authoritative catalog really is unchanged"
++        );
++        assert_eq!(policy.attempts.load(Ordering::Acquire), attempts,
++            "A busy read followed by the identical current catalog must not start another reconciliation");
++        assert_eq!(policy.operations.lock().unwrap().len(), observations);
++        assert_eq!(receiver.revision(), 3);
++        // Metadata snapshots retain no permission reader; current policy can
++        // change before the next packet or genuine selector update.
++        let mut current = tokio::time::timeout(Duration::from_secs(1), s.grants.0.write())
++            .await
++            .unwrap();
++        current.catalog_read_pause = None;
++        drop(current);
++        send(
++            &s.wire,
++            subscriptions::video_sequence(source_video, 3, 9003),
++        );
++        let mut fresh = false;
++        for _ in 0..3 {
++            let frame = received(&other).await;
++            if frame.rtp.packet().header.timestamp == 9003 {
++                assert_eq!(frame.stream_local_id, target_video);
++                fresh = true;
++                break;
++            }
++        }
++        assert!(
++            fresh,
++            "Fresh authorized media still uses the same receiver port"
++        );
++        // A real source update must still acquire a fresh grant, negotiate and
++        // deliver both the retained camera and the newly available screen.
++        let (_, source_callback) = s.prepared(add_video(&s, 2, true)).await;
++        let source_screen = subscriptions::stream_handle(&source_callback, "future_display");
++        s.confirm(&source_callback).await;
++        s.wait(4).await;
++        let callback = other.read().await;
++        assert_eq!(callback.kind(), "connection.offer");
++        let target_screen = subscriptions::stream_handle(&callback, "future_display");
++        other.send(s.f.sign(s.confirmation(&callback))).await;
++        core_fixture::until(|| receiver.revision() == 4).await;
++        assert!(policy.attempts.load(Ordering::Acquire) > attempts);
++        send(
++            &s.wire,
++            subscriptions::video_sequence(source_video, 4, 9004),
++        );
++        send(
++            &s.wire,
++            subscriptions::video_sequence(source_screen, 1, 10001),
++        );
++        let mut delivered = Vec::new();
++        for _ in 0..2 {
++            let frame = received(&other).await;
++            delivered.push((frame.stream_local_id, frame.rtp.packet().header.timestamp));
++        }
++        assert!(delivered.contains(&(target_video, 9004)));
++        assert!(delivered.contains(&(target_screen, 10001)));
++        s.wire.server.shutdown().await.unwrap();
++        other.server.shutdown().await.unwrap();
++    }
++}
+diff --git a/crates/uctp/rvoip-uctp/tests/support/canonical_media/native_offers.rs b/crates/uctp/rvoip-uctp/tests/support/canonical_media/native_offers.rs
+--- a/crates/uctp/rvoip-uctp/tests/support/canonical_media/native_offers.rs
++++ b/crates/uctp/rvoip-uctp/tests/support/canonical_media/native_offers.rs
+@@ -13,6 +13,30 @@
+ };
+ use std::{any::Any, sync::Mutex};
+ 
++struct CatalogReadPause {
++    connection: ConnectionId,
++    armed: AtomicBool,
++    entered: std::sync::mpsc::SyncSender<()>,
++    release: Mutex<std::sync::mpsc::Receiver<()>>,
++}
++impl CatalogReadPause {
++    fn wait(&self, scope: &MediaScope<'_>) -> ControlResult<()> {
++        if scope.connection == &self.connection
++            && matches!(scope.purpose, MediaPurpose::Publish)
++            && self.armed.swap(false, Ordering::AcqRel)
++        {
++            self.entered
++                .send(())
++                .map_err(|_| StreamControlError::Cancelled)?;
++            self.release
++                .lock()
++                .unwrap()
++                .recv_timeout(Duration::from_secs(5))
++                .map_err(|_| StreamControlError::Deadline)?;
++        }
++        Ok(())
++    }
++}
+ struct State {
+     owners: HashMap<ConnectionId, MediaOwner>,
+     denied: bool,
+@@ -23,6 +47,7 @@
+     key: ResolvedVerificationKey,
+     activations: Mutex<HashMap<ConnectionId, Arc<NativeMediaActivation>>>,
+     source_lease_ms: u64,
++    catalog_read_pause: Option<Arc<CatalogReadPause>>,
+ }
+ struct Grants(Arc<RwLock<State>>);
+ struct Proof {
+@@ -109,6 +134,9 @@
+             .map_err(|_| StreamControlError::Authority)?;
+         if guard.denied {
+             return Err(StreamControlError::Authority);
++        }
++        if let Some(pause) = &guard.catalog_read_pause {
++            pause.wait(s)?;
+         }
+         let owner = credential_owner(
+             guard
+@@ -944,6 +972,7 @@
+             wires: wire_ids,
+             activations: Mutex::new(HashMap::new()),
+             source_lease_ms: 0,
++            catalog_read_pause: None,
+             key: ResolvedVerificationKey {
+                 public_key: f.client_public.clone(),
+                 algorithm: "EdDSA".into(),

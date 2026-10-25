@@ -1043,6 +1043,11 @@
       "sha256": "2ac5629488c239cbf7e507e8924768cd784103e29d43979bb5ada953b0eb3ca1",
       "target": "web-transport-proto",
       "source": "Preserve repeated HTTP3 regular headers through QPACK encoding and decoding so canonical exact Origin validation can reject multiple Origins. Refuse duplicate pseudo-headers instead of last-wins normalization. Round-trip and malformed pseudo-header regressions."
+    },
+    {
+      "path": "patches/rvoip/gate6-catalog-read-retry-regression.patch",
+      "sha256": "e91e7c4a7af4c6c1e93cecc99d79890dc9a76f77ecdfae84c5cc8a0e9fc7b311",
+      "source": "G6-050 controlled real source-controller catalog contention regression: identical authoritative catalog recovery must not create another reconciliation; genuine later screen publication still acquires fresh authority, negotiates and delivers camera/screen on QUIC and WT. Test-only bounded packet callback pause; no runtime effect fix in this patch."
     }
   ]
 }

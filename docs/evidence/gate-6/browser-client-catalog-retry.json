@@ -1,0 +1,32 @@
+{
+  "task": "G6-050",
+  "status": "in-progress; controlled negative-before regression reproduced",
+  "scope": "Actual locked upstream QUIC source/catalog/runtime scheduling regression. The test loops QUIC/WT, but the negative case stops on the initial QUIC assertion; WT recovery remains for positive verification. No Connect host/browser throughput or full task qualification.",
+  "source_lock": {
+    "patches": 187,
+    "sha256": "493d642cb7619d09f70f09a5d0013832bd72e5bb2d3a993ac686fc43df9f2537",
+    "phase": "test-only addition; production upstream source contents remain those of186",
+    "new_patch": "patches/rvoip/gate6-catalog-read-retry-regression.patch"
+  },
+  "negative_before": {
+    "report": ".local/gate-6/catalog-retry/negative001/summary.json",
+    "sha256": "b887e59cbfe5fc387722a57abf9001772303b38d6b73a5a80640e995c3e030e7",
+    "expected_failure_observed": true,
+    "test_passed": false,
+    "reconciliation_attempts_before": 2,
+    "reconciliation_attempts_after": 3,
+    "source_inputs_unchanged": true,
+    "executables_unchanged": true,
+    "method": "peer_native::canonical_media::native_offers::future_subscriptions::actual_catalog_contention_rereads_unchanged_sources_without_a_new_reconciliation",
+    "log": ".local/gate-6/catalog-retry/negative001/case-0.log",
+    "log_sha256": "5e1278c5aea140f14e4c32ceec5a9c89fd906ddbc8cd006413119b5b7d426e08",
+    "proof": "The real source packet callback holds its controller mutex. A public Core catalog read returns Backpressure; after release the full before/after catalog compares equal. The old runtime nevertheless calls reconciliation policy again. The later no-observation and real-screen-update assertions are not reached in this negative run."
+  },
+  "runner": {
+    "path": "scripts/rehearse-gate6-catalog-retry.py",
+    "sha256": "fdf28a1e6f77e87539e94dcd0d7041bb7e88b425dbc358b4d8536f5a7182cafc",
+    "profiles": "Explicit locked upstream workspace release with LTO=false,codegen16,debug0,panicunwind. Raw logs/private fixture state under ignored output. No performance claim."
+  },
+  "next": "Record and prepare a separate production fix patch: classify catalog Backpressure as transient read unavailability and schedule fresh reads without setting the pending-effect retry flag. Retain authorization retries and exact captured pending outcomes. Then verify all5 selected methods, including QUIC/WT recovery and genuine current source changes, and repeat actual8/28 host checks.",
+  "acceptance_qualified": false
+}
