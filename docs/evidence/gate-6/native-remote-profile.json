@@ -1,9 +1,9 @@
 {
   "task": "G6-048",
-  "status": "local-runtime-qualified-distinct-host-fixture-correction-pending",
+  "status": "versioned-rehearsal-and-local-bootstrap-qualified-final-merge-audit-pending",
   "full_task_complete": false,
   "full_goal_complete": false,
-  "recorded_at": "2026-10-25T02:50:05.169024+00:00",
+  "recorded_at": "2026-10-25T02:56:34.621838+00:00",
   "source_revision": "a068a96bf39fb0141f14438609443698fc41685a",
   "draft_implementation": [
     "Shared explicit native Local/Remote configuration policy; local remains the default, while concrete remote endpoints and routable client UDP binding require Remote.",
@@ -35,10 +35,8 @@
     "log_sha256": "f2753db4acc065cf01b759db8538685e59e8358a9c51fe3df6058fee019c8e1a"
   },
   "remaining": [
-    "Finish owned isolated Ubuntu24.04 x86_64 guest SDK compilation and actual distinct-host control/reconnection verification. Linux/amd64 is emulated on the local aarch64 Lima VM; this is not a native x86_64 performance qualification.",
-    "Publish a reusable versioned fixture runner/container definition and complete requirement audit using actual results.",
-    "Current record HTTP/HTTPS shutdown methods are compiling separately for G6-047.",
-    "Named host/provider rehearsal, Linux hosted-server/container/systemd/performance and browser profiles retain separate approved tasks; no publication."
+    "Merge verified feature with current main progress/reference changes, bind the final source graph and repeat the versioned rehearsal including five actual local bootstrap methods.",
+    "Complete the assigned G6-048 requirement audit and progress credit after the final graph passes."
   ],
   "publication": "Separate; not performed.",
   "initial_library_typecheck": {
@@ -697,6 +695,224 @@
   "reproduction": {
     "runner": "scripts/rehearse-gate6-native-remote.py",
     "container_recipes": "scripts/fixtures/native-remote/README.md",
-    "status": "Implemented and syntax-checked; full versioned rehearsal pending."
+    "status": "Versioned twelve-method/two-guest-profile rehearsal passed; five existing local bootstrap methods separately pass. Producer now includes all five and will run on the merged graph."
+  },
+  "versioned_rehearsal011": {
+    "passed": true,
+    "scope": "Eight isolated native Remote profile methods, two actual SIP SIGKILL public operator methods, two record drain methods and two macOS-server/Ubuntu-guest native control/reconnect profiles. Linux/amd64 guest is emulated on local aarch64 Lima; no distinct-host decoded media or native x86_64 performance claim.",
+    "source_revision": "35143927d978b4393f25ce934100900fc5b1d9ce",
+    "source_lock_sha256": "2d4f2eff9286f03ae7bc09b8ad9e6ae73b54e04dfcfed17eeff3eb4e086188be",
+    "started_at": "2026-10-25T02:50:06.906731+00:00",
+    "cases": [
+      {
+        "name": "migration-eddsa",
+        "case": "canonical_native_connections::remote::production_remote_profile_ca_chain_and_native_duplex_survive_real_nat_rebinding_eddsa",
+        "exit_code": 0,
+        "passed": true,
+        "log_sha256": "3e44c3475b36830d2cfbaba6a71640327b4d47e587ecc6dfa08fb5c658bf4be6",
+        "witness": {
+          "algorithm": "EdDSA",
+          "decoded_directions_before_and_after": 4,
+          "logical_bindings_preserved": true,
+          "nat_paths": 4
+        }
+      },
+      {
+        "name": "migration-es256",
+        "case": "canonical_native_connections::remote::production_remote_profile_ca_chain_and_native_duplex_survive_real_nat_rebinding_es256",
+        "exit_code": 0,
+        "passed": true,
+        "log_sha256": "12e6b6186a02b046a2497cfe4ab849fb59b0c5bfbde20429c9779c1a213cdb0b",
+        "witness": {
+          "algorithm": "ES256",
+          "decoded_directions_before_and_after": 4,
+          "logical_bindings_preserved": true,
+          "nat_paths": 4
+        }
+      },
+      {
+        "name": "identity-root",
+        "case": "canonical_native_connections::remote::production_remote_profile_refuses_wrong_host_and_unconfigured_roots_before_commands",
+        "exit_code": 0,
+        "passed": true,
+        "log_sha256": "cefe1600bb9afbc8b01afc6ab9ba7ef57c59024eecf24eec1cb9842458dbb464"
+      },
+      {
+        "name": "intermediate",
+        "case": "canonical_native_connections::remote::production_remote_profile_requires_its_complete_intermediate_chain",
+        "exit_code": 0,
+        "passed": true,
+        "log_sha256": "82b28e1822d85d10c97fed6856697ab8be966bb7083b16c6540ff02698e06a85"
+      },
+      {
+        "name": "trust-assets",
+        "case": "canonical_native_connections::remote::production_remote_profile_missing_invalid_and_oversized_trust_never_opens_commands",
+        "exit_code": 0,
+        "passed": true,
+        "log_sha256": "d1b2311b91544a856e0c91be326caadb49e77ac929ddbad981133238c3f66943"
+      },
+      {
+        "name": "credentials",
+        "case": "canonical_native_connections::remote::production_remote_profile_refuses_expired_and_revoked_credentials_without_media",
+        "exit_code": 0,
+        "passed": true,
+        "log_sha256": "57cf12290f6e4bd2e980df0f71641a4276a4704b31c8e3e082658c27fc650dc2"
+      },
+      {
+        "name": "open-deadline",
+        "case": "canonical_native_connections::remote::production_remote_profile_one_open_deadline_spans_delayed_challenge_and_stalled_auth",
+        "exit_code": 0,
+        "passed": true,
+        "log_sha256": "d02061028eafd15638bd6eaf4edef56e4bdc5843f600887596ab2a30205c6834"
+      },
+      {
+        "name": "expired-tls",
+        "case": "canonical_native_connections::remote::production_remote_profile_expired_tls_is_refused_by_server_and_actual_client_verifier",
+        "exit_code": 0,
+        "passed": true,
+        "log_sha256": "0c3fa95cfd1809ee94238cd8930445c136f4e78eb5172a3b36716b1aa4205f06"
+      },
+      {
+        "name": "sip-operator-eddsa",
+        "case": "canonical_native_connections::consultation::groups::replacement::telephone::initial::crash::production_sigkill_sip_submission_keeps_external_uncertainty_without_redial_eddsa",
+        "exit_code": 0,
+        "passed": true,
+        "log_sha256": "260414e004f39141702c35aacf139c1ebefcbbb79fb24508e437047f4b8ed271"
+      },
+      {
+        "name": "sip-operator-es256",
+        "case": "canonical_native_connections::consultation::groups::replacement::telephone::initial::crash::production_sigkill_sip_submission_keeps_external_uncertainty_without_redial_es256",
+        "exit_code": 0,
+        "passed": true,
+        "log_sha256": "38d0088e6b4d1e9b50cdbb5336975bcafdad10da7228beaf10f7fe0d7a46e030"
+      },
+      {
+        "name": "http-drain",
+        "case": "canonical_record_http::actual_http_shutdown_cancels_stalled_record_io_before_runtime_retirement",
+        "exit_code": 0,
+        "passed": true,
+        "log_sha256": "fded42cdbd3af18151b59e3ac6bb1dcdab0746e802dee10a846271ca64510f24"
+      },
+      {
+        "name": "https-drain",
+        "case": "canonical_record_http::actual_https_reference_expiry_and_shutdown_abort_stalled_tls_and_release_guards",
+        "exit_code": 0,
+        "passed": true,
+        "log_sha256": "5988cc46a82d9e70d8dd1a3b9c0dd472842b6f0bf52c9f610bc02c1f475f5c84"
+      }
+    ],
+    "distinct_profiles": [
+      {
+        "algorithm": "EdDSA",
+        "passed": true,
+        "guest_exit_code": 0,
+        "server_exit_code": 0,
+        "guest_witness": [
+          {
+            "algorithm": "EdDSA",
+            "architecture": "x86_64",
+            "logical_operation": "distinct-host-create",
+            "os": "linux",
+            "profile": "remote",
+            "reconnected_receipt_preserved": true,
+            "verified_native_heartbeat": true
+          }
+        ],
+        "server_witness": [
+          {
+            "algorithm": "EdDSA",
+            "distinct_host_media_qualified": false,
+            "durable_create_operations": 1,
+            "old_physical_peers_drained": true
+          }
+        ],
+        "guest_log_sha256": "52f0b4e4b0137cc97065dc562f66c72f11d747751e516692b801cd98efe853a4",
+        "server_log_sha256": "51e0ceefece03a48cb22e2a5029c3d6dd6e583aba5a1c95e870398b5fe2668e7"
+      },
+      {
+        "algorithm": "ES256",
+        "passed": true,
+        "guest_exit_code": 0,
+        "server_exit_code": 0,
+        "guest_witness": [
+          {
+            "algorithm": "ES256",
+            "architecture": "x86_64",
+            "logical_operation": "distinct-host-create",
+            "os": "linux",
+            "profile": "remote",
+            "reconnected_receipt_preserved": true,
+            "verified_native_heartbeat": true
+          }
+        ],
+        "server_witness": [
+          {
+            "algorithm": "ES256",
+            "distinct_host_media_qualified": false,
+            "durable_create_operations": 1,
+            "old_physical_peers_drained": true
+          }
+        ],
+        "guest_log_sha256": "a3b33d5738a4c60523c1eba3ab0051f8001779aea8a3de5973f187191f30159f",
+        "server_log_sha256": "b219b95233c65d8550179d23877da5a388b8a4626205d21a0f530009838d8454"
+      }
+    ],
+    "guest_platform": {
+      "image_id": "sha256:a81873456efa5d13f9b67cfbecc4e11bf6946e924684f6ffc9a1161ca20fe2b5",
+      "image_os": "linux",
+      "image_architecture": "amd64",
+      "packages_sha256": "c10257aa2c7b90e249798d55f28e843b30216fc97ed43d8ace0c9bcf00207982",
+      "log_sha256": "7e157d6fc1e54d25d762a019bf847feff436fa9dbbf682343313dc53a1e12e3e"
+    },
+    "executables_sha256": {
+      "/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps/gate6_canonical_runtime-43321488c949ae5c": "2cbf101e5f5005b79366cdd6c6c12f0e6849b63e039f1e3fc5a320c6470db429",
+      "/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps/gate6_auxiliary-865e934616c76b1c": "b8a909bd7361be9263a3d200650d13a966830d396e43a5118bee882a0819e9a6",
+      "/Users/jonathaneisenzopf/.codex/worktrees/private-sip-lifetime/Connect/.local/gate-6/native-remote/linux-build002/target/debug/examples/native_remote_probe": "f7149e73d187ff8b47678f9f037fb8eb5c732e9fe2dbc7409d2f5729403a6ff5"
+    },
+    "source_inputs_unchanged": true,
+    "executables_unchanged": true,
+    "finished_at": "2026-10-25T02:52:43.882874+00:00",
+    "summary": ".local/gate-6/native-remote/qualification011/summary.json",
+    "summary_sha256": "fe5d1584e7f20ce91018300a30cfbf1ee199fc0d93ed2932723f90c00128b0a4"
+  },
+  "local_bootstrap013": {
+    "passed": true,
+    "scope": "Five existing actual CLI init/serve/restart, public native SDK, explicit key/pin refusal, pre-alpha old-config refusal, nonreplacement and competing initializer tests. Preserves simple local trust/bootstrap; not a Remote or Linux hosting claim.",
+    "source_revision": "eebc933d0614f61e18cf0e658027e2160005fbe5",
+    "started_at": "2026-10-25T02:53:47.593634+00:00",
+    "build_command": [
+      "cargo",
+      "test",
+      "-p",
+      "connect-server",
+      "--test",
+      "gate6_canonical_bootstrap",
+      "--no-run",
+      "--release",
+      "--locked",
+      "--offline",
+      "-j4",
+      "--target-dir",
+      "/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024",
+      "--message-format=json"
+    ],
+    "build_exit_code": 0,
+    "executable": "/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps/gate6_canonical_bootstrap-ded211822283aa69",
+    "executable_sha256": "3306e0d7806a3281826467c5d702495e997e37a3655e0c81cb47e814b0360aa1",
+    "methods": [
+      "competing_initializers_publish_exactly_one_complete_installation",
+      "default_cli_refuses_old_configuration_old_alias_and_unmigrated_preset_before_effects",
+      "default_installed_init_serve_enrolls_signed_clients_and_preserves_receipts_after_restart",
+      "fresh_initialization_never_replaces_existing_files_directories_or_symlinks",
+      "generated_keys_devices_and_server_pin_are_enforced_without_implicit_enrollment"
+    ],
+    "runtime_exit_code": 0,
+    "runtime_passed": true,
+    "runtime_log_sha256": "739323f6884252ecd332fb3b49f765f41d26ce57d580d5c1c147a3ddb7d519a8",
+    "executable_unchanged": true,
+    "source_inputs_unchanged": true,
+    "finished_at": "2026-10-25T02:54:27.623654+00:00",
+    "summary": ".local/gate-6/native-remote/local-bootstrap013/summary.json",
+    "summary_sha256": "6883ed29854267379817f8923b0fed41babafa64a25f3ceb487faa7d95343fd2"
   }
 }

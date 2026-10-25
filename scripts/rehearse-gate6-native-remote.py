@@ -33,6 +33,14 @@ DRAINS = [
     ('https-drain', 'canonical_record_http::actual_https_reference_expiry_and_shutdown_abort_stalled_tls_and_release_guards'),
 ]
 
+BOOTSTRAP = [
+    ('bootstrap-restart', 'default_installed_init_serve_enrolls_signed_clients_and_preserves_receipts_after_restart'),
+    ('bootstrap-pins', 'generated_keys_devices_and_server_pin_are_enforced_without_implicit_enrollment'),
+    ('bootstrap-refusals', 'default_cli_refuses_old_configuration_old_alias_and_unmigrated_preset_before_effects'),
+    ('bootstrap-existing', 'fresh_initialization_never_replaces_existing_files_directories_or_symlinks'),
+    ('bootstrap-competing', 'competing_initializers_publish_exactly_one_complete_installation'),
+]
+
 
 def digest(path):
     return HELPERS['digest'](path)
@@ -196,7 +204,7 @@ def main():
     env = dict(os.environ, CARGO_INCREMENTAL='0', TMPDIR=str(tmp), RUST_LOG='connect_service=debug',
                CONNECT_G6_SIP_CRASH_CAPTURE=str(out / 'sip-submitted'))
     before = HELPERS['sources']()
-    report = dict(passed=False, scope='Eight isolated native Remote profile methods, two actual SIP SIGKILL public operator methods, two record drain methods and two macOS-server/Ubuntu-guest native control/reconnect profiles. Linux/amd64 guest is emulated on local aarch64 Lima; no distinct-host decoded media or native x86_64 performance claim.',
+    report = dict(passed=False, scope='Eight isolated native Remote profile methods, two actual SIP SIGKILL public operator methods, two record drain methods, five local CLI/bootstrap methods and two macOS-server/Ubuntu-guest native control/reconnect profiles. Linux/amd64 guest is emulated on local aarch64 Lima; no distinct-host decoded media or native x86_64 performance claim.',
                   source_revision=subprocess.check_output(['git', 'rev-parse', 'HEAD'], text=True).strip(),
                   source_inputs_sha256=before, source_lock_sha256=digest(ROOT / 'dependencies/source-lock.json'),
                   started_at=datetime.datetime.now(datetime.timezone.utc).isoformat(), cases=[], distinct_profiles=[])
@@ -205,17 +213,18 @@ def main():
         assert run(['bash', 'scripts/prepare-dependencies.sh'], out / 'dependencies.log', env) == 0
         native = build('gate6_canonical_runtime', args.target_dir.resolve(), out, env)
         auxiliary = build('gate6_auxiliary', args.target_dir.resolve(), out, env)
+        bootstrap = build('gate6_canonical_bootstrap', args.target_dir.resolve(), out, env)
         args.guest_target_dir.mkdir(parents=True, exist_ok=True)
         guest, platform = guest_build(args.guest_image, args.guest_target_dir.resolve(), out, env)
         report['guest_platform'] = platform
-        binaries = {str(path): digest(path) for path in [native, auxiliary, guest]}
+        binaries = {str(path): digest(path) for path in [native, auxiliary, bootstrap, guest]}
         report['executables_sha256'] = binaries
-        report['cases'] = cases(native, CASES, out, env) + cases(auxiliary, DRAINS, out, env)
+        report['cases'] = cases(native, CASES, out, env) + cases(auxiliary, DRAINS, out, env) + cases(bootstrap, BOOTSTRAP, out, env)
         report['distinct_profiles'] = distinct(native, guest, args.guest_image, out, env)
     finally:
         report['source_inputs_unchanged'] = HELPERS['sources']() == before
         report['executables_unchanged'] = bool(binaries) and all(digest(Path(path)) == value for path, value in binaries.items())
-        report['passed'] = (len(report['cases']) == 12 and all(row['passed'] for row in report['cases'])
+        report['passed'] = (len(report['cases']) == 17 and all(row['passed'] for row in report['cases'])
                             and len(report['distinct_profiles']) == 2 and all(row['passed'] for row in report['distinct_profiles'])
                             and report['source_inputs_unchanged'] and report['executables_unchanged'])
         report['finished_at'] = datetime.datetime.now(datetime.timezone.utc).isoformat()
