@@ -1,4 +1,5 @@
 //! Actual runtime intent persistence/replay with a scripted local Responses peer.
+#![recursion_limit = "256"]
 #![allow(clippy::unwrap_used)]
 #[path = "support/codex_call_barrier.rs"]
 mod barrier;

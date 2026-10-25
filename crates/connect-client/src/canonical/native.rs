@@ -1,6 +1,6 @@
 //! Same-root signed native confirmation and bounded atomic media datagrams.
 use super::*;
-const MAX_NATIVE_RTP_DATAGRAM: usize = 16 * 1024 + 20;
+const MAX_NATIVE_MEDIA_DATAGRAM: usize = 16 * 1024 + 20;
 fn answer_frame(
     request: &Envelope,
     payload: payloads::ConnectionAnswer,
@@ -36,10 +36,11 @@ fn answer_frame(
     Ok(value)
 }
 fn datagram(bytes: &[u8]) -> Result<()> {
-    if bytes.len() > MAX_NATIVE_RTP_DATAGRAM {
+    if bytes.len() > MAX_NATIVE_MEDIA_DATAGRAM {
         return Err(ClientError::Protocol);
     }
-    rvoip_uctp::substrate::observe_rtp_datagram(bytes).map_err(|_| ClientError::Protocol)?;
+    rvoip_uctp::substrate::observe_native_media_datagram(bytes)
+        .map_err(|_| ClientError::Protocol)?;
     Ok(())
 }
 fn replacement_offer(
@@ -136,9 +137,10 @@ impl CanonicalClient {
         self.write(value, true).await?;
         Ok(id)
     }
-    /// Submit one already framed native RTP datagram. Its negotiated hop-local
-    /// handle and current permission are enforced by the server, not this send.
-    pub fn send_native_rtp_datagram(&self, bytes: &[u8]) -> Result<()> {
+    /// Submit one framed RTP or clock-only SR/SDES datagram. Clock metadata does
+    /// not grant media readiness. Negotiated clock support, hop-local handle and
+    /// current permission are enforced by the server, not this send.
+    pub fn send_native_media_datagram(&self, bytes: &[u8]) -> Result<()> {
         datagram(bytes)?;
         let mut current = self.pending()?;
         current.complete = true;
@@ -153,9 +155,11 @@ impl CanonicalClient {
             .send_datagram(bytes.to_vec().into())
             .map_err(|_| ClientError::Transport)
     }
-    /// Own the client's single datagram read while borrowed. Atomic datagram
-    /// timeout/cancellation leaves signaling and other streams usable.
-    pub async fn receive_native_rtp_datagram(&mut self) -> Result<Vec<u8>> {
+    /// Own the client's single RTP/clock datagram read while borrowed. Inspect
+    /// the returned original bytes with observe_native_media_datagram; clock-only
+    /// reports never count as decoded media or readiness. Atomic timeout or
+    /// cancellation leaves signaling and other streams usable.
+    pub async fn receive_native_media_datagram(&mut self) -> Result<Vec<u8>> {
         let mut current = self.pending()?;
         current.complete = true;
         let remaining = (self.authenticated_until.min(self.server_key_expires_at)
@@ -178,6 +182,70 @@ impl CanonicalClient {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn native_wire_validator_accepts_clock_metadata_and_rtp_without_rewriting_either() {
+        let report = SenderClockDatagram {
+            stream_local_id: 7,
+            seq: u32::MAX,
+            report: SenderClockReport {
+                ssrc: 41,
+                ntp: 0x80000000ffffffff,
+                rtp: u32::MAX - 10,
+                packets: 9,
+                octets: 321,
+                cname: "common-π".into(),
+            },
+        };
+        let clock = pack_sender_clock_datagram(&report).unwrap();
+        datagram(&clock).unwrap();
+        assert_eq!(
+            observe_native_media_datagram(&clock).unwrap(),
+            ObservedNativeMediaDatagram::Clock(report)
+        );
+        let media = vec![
+            1, 0, 0, 7, 0, 0, 0, 9, 0x80, 0xe0, 0x12, 0x34, 0, 0, 0, 9, 0, 0, 0, 41, 0x10, 0xab,
+        ];
+        datagram(&media).unwrap();
+        let ObservedNativeMediaDatagram::Rtp(parsed) =
+            observe_native_media_datagram(&media).unwrap()
+        else {
+            panic!("RTP became clock")
+        };
+        assert!(parsed.rtp.packet().header.marker);
+        assert_eq!(parsed.rtp.packet().header.sequence_number, 0x1234);
+    }
+    #[test]
+    fn native_wire_validator_refuses_malformed_clocks_without_rtp_fallback() {
+        let clock = pack_sender_clock_datagram(&SenderClockDatagram {
+            stream_local_id: 7,
+            seq: 9,
+            report: SenderClockReport {
+                ssrc: 41,
+                ntp: 1,
+                rtp: 0,
+                packets: 1,
+                octets: 3,
+                cname: "clock".into(),
+            },
+        })
+        .unwrap();
+        for n in 0..clock.len() {
+            assert!(
+                matches!(datagram(&clock[..n]), Err(ClientError::Protocol)),
+                "truncation {n}"
+            );
+        }
+        let mut invalid = clock.to_vec();
+        invalid[1] = 1;
+        assert!(matches!(datagram(&invalid), Err(ClientError::Protocol)));
+        invalid = clock.to_vec();
+        invalid[40..44].copy_from_slice(&42u32.to_be_bytes());
+        assert!(matches!(datagram(&invalid), Err(ClientError::Protocol)));
+        invalid = clock.to_vec();
+        invalid.resize(MAX_NATIVE_MEDIA_DATAGRAM + 1, 0);
+        assert!(matches!(datagram(&invalid), Err(ClientError::Protocol)));
+    }
+
     #[test]
     fn native_confirmation_is_fresh_and_binds_every_original_resource() {
         let mut value = envelope(

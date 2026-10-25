@@ -134,7 +134,7 @@ async fn wt_to_native(
     };
     let receive = tokio::time::timeout(Duration::from_secs(4), async {
         for _ in 0..256 {
-            let packet = native.receive_native_rtp_datagram().await.unwrap();
+            let packet = native.receive_native_media_datagram().await.unwrap();
             if tone_decoded(&packet, target, 16) {
                 return;
             }
@@ -154,7 +154,7 @@ async fn native_to_wt(
     let send = async {
         for seq in start..start + 80 {
             native
-                .send_native_rtp_datagram(&tone_packet(source, seq, 32))
+                .send_native_media_datagram(&tone_packet(source, seq, 32))
                 .unwrap();
             tokio::time::sleep(Duration::from_millis(20)).await;
         }

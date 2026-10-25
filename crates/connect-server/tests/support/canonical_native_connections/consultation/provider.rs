@@ -288,7 +288,7 @@ async fn clocked_audio_reaches(
                 .map(|n| if n % 16 < 8 { 0x80 } else { 0x00 })
                 .collect::<Vec<_>>();
             source[0]
-                .send_native_rtp_datagram(
+                .send_native_media_datagram(
                     &pack_rtp_datagram(&RtpDatagram {
                         flags: 0,
                         stream_local_id: source_handle,
@@ -308,7 +308,7 @@ async fn clocked_audio_reaches(
     };
     let receiver = tokio::time::timeout(Duration::from_secs(3), async {
         loop {
-            let bytes = targets[0].receive_native_rtp_datagram().await.unwrap();
+            let bytes = targets[0].receive_native_media_datagram().await.unwrap();
             let p = unpack_rtp_datagram(&bytes).unwrap();
             assert_eq!(p.stream_local_id, target_handle);
             if p.rtp.payload.iter().any(|b| !matches!(*b, 0xff | 0x7f)) {
@@ -332,7 +332,7 @@ async fn discard_queued_audio(client: &mut CanonicalClient) {
         }
         let end = until.min(now + Duration::from_millis(20));
         if !matches!(
-            tokio::time::timeout_at(end, client.receive_native_rtp_datagram()).await,
+            tokio::time::timeout_at(end, client.receive_native_media_datagram()).await,
             Ok(Ok(_))
         ) {
             break;
@@ -1271,7 +1271,7 @@ pub(super) async fn case(
         loop {
             tokio::select! {
                 _=settle_tick.tick()=>{let now=tokio::time::Instant::now();if now.duration_since(quiet_since)>=Duration::from_millis(250){break;}assert!(now<settle_until,"queued provider audio did not drain before the remote isolation probe");},
-                packet=clients[1].receive_native_rtp_datagram()=>{let bytes=packet.unwrap();let p=rvoip_uctp::substrate::unpack_rtp_datagram(&bytes).unwrap();if p.rtp.payload.iter().any(|b|!matches!(*b,0xff|0x7f)){quiet_since=tokio::time::Instant::now();}}
+                packet=clients[1].receive_native_media_datagram()=>{let bytes=packet.unwrap();let p=rvoip_uctp::substrate::unpack_rtp_datagram(&bytes).unwrap();if p.rtp.payload.iter().any(|b|!matches!(*b,0xff|0x7f)){quiet_since=tokio::time::Instant::now();}}
             }
         }
         if let Some((connection, write)) = metadata_stall {
@@ -1293,9 +1293,9 @@ pub(super) async fn case(
                     _=tick.tick()=>{
                         use rvoip_uctp::substrate::{pack_rtp_datagram,RtpDatagram,RtpMediaPayload};
                         let audio=(0..160).map(|n|if n%16<8{0x80}else{0x00}).collect::<Vec<_>>();
-                        remote.send_native_rtp_datagram(&pack_rtp_datagram(&RtpDatagram{flags:0,stream_local_id:sh,seq,rtp:RtpMediaPayload{payload:audio.into(),payload_type:0,sequence_number:seq as u16,timestamp:(remote_clock.elapsed().as_micros()*8/1000)as u32,ssrc:0x4736_0001}}).unwrap()).unwrap();seq+=1;
+                        remote.send_native_media_datagram(&pack_rtp_datagram(&RtpDatagram{flags:0,stream_local_id:sh,seq,rtp:RtpMediaPayload{payload:audio.into(),payload_type:0,sequence_number:seq as u16,timestamp:(remote_clock.elapsed().as_micros()*8/1000)as u32,ssrc:0x4736_0001}}).unwrap()).unwrap();seq+=1;
                     },
-                    packet=primary.receive_native_rtp_datagram()=>{
+                    packet=primary.receive_native_media_datagram()=>{
                         let bytes=packet.unwrap();let p=rvoip_uctp::substrate::unpack_rtp_datagram(&bytes).unwrap();
                         let pcm=p.rtp.payload.iter().map(|b|{let v=!*b;let magnitude=(((v&15)as i32*8)+132)<<((v>>4)&7);if v&128!=0{132-magnitude}else{magnitude-132}}).collect::<Vec<_>>();
                         let peak=pcm.iter().map(|p|p.abs()).max().unwrap_or(0);let rms=(pcm.iter().map(|p|(*p as f64).powi(2)).sum::<f64>()/pcm.len()as f64).sqrt();
@@ -1336,14 +1336,14 @@ pub(super) async fn case(
                 _=&mut deadline=>break,
                 _=tick.tick()=>{
                     use rvoip_uctp::substrate::{pack_rtp_datagram,RtpDatagram,RtpMediaPayload};
-                    let audio=(0..160).map(|n|if n%16<8{0x80}else{0x00}).collect::<Vec<_>>();primary.send_native_rtp_datagram(&pack_rtp_datagram(&RtpDatagram{flags:0,stream_local_id:th,seq,rtp:RtpMediaPayload{payload:audio.into(),payload_type:0,sequence_number:seq as u16,timestamp:(primary_clock.elapsed().as_micros()*8/1000)as u32,ssrc:0x4736_0001}}).unwrap()).unwrap();seq+=1;source_packets+=1;
+                    let audio=(0..160).map(|n|if n%16<8{0x80}else{0x00}).collect::<Vec<_>>();primary.send_native_media_datagram(&pack_rtp_datagram(&RtpDatagram{flags:0,stream_local_id:th,seq,rtp:RtpMediaPayload{payload:audio.into(),payload_type:0,sequence_number:seq as u16,timestamp:(primary_clock.elapsed().as_micros()*8/1000)as u32,ssrc:0x4736_0001}}).unwrap()).unwrap();seq+=1;source_packets+=1;
                 },
-                packet=primary.receive_native_rtp_datagram()=>{primary_packets+=1;let p=rvoip_uctp::substrate::unpack_rtp_datagram(&packet.unwrap()).unwrap();if p.rtp.payload.iter().any(|b|!matches!(*b,0xff|0x7f)){received+=1;}},
-                packet=remote.receive_native_rtp_datagram()=>{if let Ok(bytes)=packet{let p=rvoip_uctp::substrate::unpack_rtp_datagram(&bytes).unwrap();assert!(p.rtp.payload.iter().all(|b|matches!(*b,0xff|0x7f)),"private provider/primary audio reached remote");}},
+                packet=primary.receive_native_media_datagram()=>{primary_packets+=1;let p=rvoip_uctp::substrate::unpack_rtp_datagram(&packet.unwrap()).unwrap();if p.rtp.payload.iter().any(|b|!matches!(*b,0xff|0x7f)){received+=1;}},
+                packet=remote.receive_native_media_datagram()=>{if let Ok(bytes)=packet{let p=rvoip_uctp::substrate::unpack_rtp_datagram(&bytes).unwrap();assert!(p.rtp.payload.iter().all(|b|matches!(*b,0xff|0x7f)),"private provider/primary audio reached remote");}},
                 // The join case explicitly left/retired its old public slot.
                 // Polling a closed datagram receiver repeatedly can spin the
                 // single-thread test executor. Other cases keep it live.
-                packet=public.receive_native_rtp_datagram(),if mode!=Case::AutomaticJoin=>{let bytes=packet.expect("retained old public AI peer unexpectedly ended");let p=rvoip_uctp::substrate::unpack_rtp_datagram(&bytes).unwrap();assert!(p.rtp.payload.iter().all(|b|matches!(*b,0xff|0x7f)),"private provider/primary audio reached old public AI context");},
+                packet=public.receive_native_media_datagram(),if mode!=Case::AutomaticJoin=>{let bytes=packet.expect("retained old public AI peer unexpectedly ended");let p=rvoip_uctp::substrate::unpack_rtp_datagram(&bytes).unwrap();assert!(p.rtp.payload.iter().all(|b|matches!(*b,0xff|0x7f)),"private provider/primary audio reached old public AI context");},
             }
         }
         println!("private-provider packet probe: sent={source_packets} received={primary_packets} marked={received}");

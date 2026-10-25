@@ -10,7 +10,7 @@ async fn media(client: &mut CanonicalClient, cid: &str, name: &str) -> u16 {
 pub(super) async fn flow(client: &CanonicalClient, handle: u16, start: u32) {
     for seq in start..start + 30 {
         client
-            .send_native_rtp_datagram(
+            .send_native_media_datagram(
                 &pack_rtp_datagram(&RtpDatagram {
                     flags: 0,
                     stream_local_id: handle,

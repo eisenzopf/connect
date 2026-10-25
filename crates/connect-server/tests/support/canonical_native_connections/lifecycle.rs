@@ -20,7 +20,7 @@ fn publish_quality_media(clients: &[CanonicalClient], handles: [u16; 2], sequenc
             },
         };
         client
-            .send_native_rtp_datagram(&pack_rtp_datagram(&packet).unwrap())
+            .send_native_media_datagram(&pack_rtp_datagram(&packet).unwrap())
             .unwrap();
     }
     *sequence = sequence.wrapping_add(1);
@@ -512,7 +512,7 @@ async fn owned_audio_signaling_case(algorithm: &str, burst: bool) {
             cadence.tick().await;
             owned.send_pcmu(&wave).unwrap();
             source
-                .send_native_rtp_datagram(
+                .send_native_media_datagram(
                     &pack_rtp_datagram(&RtpDatagram {
                         flags: 0,
                         stream_local_id: source_handle,
@@ -537,7 +537,7 @@ async fn owned_audio_signaling_case(algorithm: &str, burst: bool) {
             }
             if let Ok(bytes) = tokio::time::timeout(
                 Duration::from_millis(5),
-                source.receive_native_rtp_datagram(),
+                source.receive_native_media_datagram(),
             )
             .await
             {

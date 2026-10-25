@@ -109,7 +109,7 @@ pub(super) async fn exercise(
     };
     let native_drain = async {
         while let Ok(Ok(_)) =
-            tokio::time::timeout_at(drain_until, peers[0].client.receive_native_rtp_datagram())
+            tokio::time::timeout_at(drain_until, peers[0].client.receive_native_media_datagram())
                 .await
         {}
     };

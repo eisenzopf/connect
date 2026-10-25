@@ -1,4 +1,5 @@
 //! Whole-request deadlines include admission and body decoding, not only wait_ms.
+#![recursion_limit = "256"]
 #![allow(clippy::unwrap_used)]
 #[path = "support/mcp_fixture.rs"]
 mod fixture;

@@ -829,7 +829,7 @@ async fn exercise_replacement_mode(
             while tokio::time::Instant::now() < until {
                 let Ok(packet) = tokio::time::timeout(
                     Duration::from_millis(100),
-                    client.receive_native_rtp_datagram(),
+                    client.receive_native_media_datagram(),
                 )
                 .await
                 else {
@@ -1026,7 +1026,7 @@ async fn send_readiness(peer: &mut Peer) {
             },
         })
         .unwrap();
-        peer.client.send_native_rtp_datagram(&packet).unwrap();
+        peer.client.send_native_media_datagram(&packet).unwrap();
         tokio::time::sleep(Duration::from_millis(20)).await;
     }
 }

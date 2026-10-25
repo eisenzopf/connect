@@ -4,6 +4,7 @@
 use super::*;
 use tokio::sync::Notify;
 mod auth_refresh;
+pub(super) mod native_media;
 mod owned_signaling;
 mod step_up;
 use auth_refresh::RefreshReply;
@@ -57,7 +58,7 @@ fn canonical_cursor_facts_bind_outer_resources_to_the_authoritative_journal_even
 }
 
 #[derive(Clone, Copy)]
-enum Fault {
+pub(super) enum Fault {
     ForeignScope,
     ReplyCount,
     ReplyBytes,
@@ -69,8 +70,11 @@ enum Fault {
     Refresh(RefreshReply),
     Owned(owned_signaling::Traffic),
     StepUp(step_up::Reply),
+    NativeDatagrams(native_media::Traffic),
 }
-async fn controlled(fault: Fault) -> (CanonicalClient, tokio::task::JoinHandle<()>, Arc<Notify>) {
+pub(super) async fn controlled(
+    fault: Fault,
+) -> (CanonicalClient, tokio::task::JoinHandle<()>, Arc<Notify>) {
     let _ = rustls::crypto::ring::default_provider().install_default();
     let (cert, key) = rvoip_uctp::substrate::self_signed_for_dev(&["localhost".into()]).unwrap();
     let mut tls = rustls::ServerConfig::builder()
@@ -181,7 +185,7 @@ async fn controlled(fault: Fault) -> (CanonicalClient, tokio::task::JoinHandle<(
                 tokio::time::sleep(Duration::from_millis(20)).await;
             }
         }
-        if matches!(fault, Fault::UnknownComplete) {
+        if matches!(fault, Fault::UnknownComplete | Fault::NativeDatagrams(_)) {
             let mut ack = envelope("ack", json!({"details":{"reply_complete":true}}));
             ack["cid"] = json!("conv_one");
             ack["in_reply_to"] = json!(request.id());
@@ -192,7 +196,11 @@ async fn controlled(fault: Fault) -> (CanonicalClient, tokio::task::JoinHandle<(
                 .unwrap();
             writer.write_all(&raw).await.unwrap();
         }
-        signal.notify_one();
+        if let Fault::NativeDatagrams(traffic) = fault {
+            native_media::emit(traffic, &connection, &signal).await;
+        } else {
+            signal.notify_one();
+        }
         connection.closed().await;
         server.close(0u32.into(), b"test complete");
     });
@@ -375,7 +383,7 @@ async fn atomic_native_datagram_wait_does_not_retire_signed_control_peer() {
     let (mut client, server, _) = controlled(Fault::UnknownComplete).await;
     client.deadline = Duration::from_millis(50);
     assert!(matches!(
-        client.receive_native_rtp_datagram().await,
+        client.receive_native_media_datagram().await,
         Err(ClientError::Timeout)
     ));
     assert!(!client.closed.load(Ordering::Acquire));
@@ -384,7 +392,7 @@ async fn atomic_native_datagram_wait_does_not_retire_signed_control_peer() {
     client.deadline = Duration::from_secs(2);
     assert!(tokio::time::timeout(
         Duration::from_millis(20),
-        client.receive_native_rtp_datagram()
+        client.receive_native_media_datagram()
     )
     .await
     .is_err());

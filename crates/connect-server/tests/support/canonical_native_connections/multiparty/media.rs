@@ -34,7 +34,7 @@ fn packet(peer: &mut Peer, mark: bool) -> Vec<u8> {
 pub(super) async fn ready(peer: &mut Peer) {
     for index in 0..240 {
         let bytes = packet(peer, false);
-        peer.client.send_native_rtp_datagram(&bytes).unwrap();
+        peer.client.send_native_media_datagram(&bytes).unwrap();
         if index % 20 == 19 {
             // A real application services the reliable stream while publishing.
             // Preserve every verified hint; do not leave its actual writer
@@ -90,7 +90,7 @@ pub(super) async fn probe(
                 .enumerate()
                 .filter(|(_, p)| p.readable)
                 .map(|(i, p)| {
-                    Box::pin(async move { (i, p.client.receive_native_rtp_datagram().await) })
+                    Box::pin(async move { (i, p.client.receive_native_media_datagram().await) })
                 })
                 .collect::<Vec<_>>();
             tokio::select! {_=tick.tick()=>Event::Tick,((i,packet),_,_)=select_all(receives)=>Event::Packet(i,packet)}
@@ -100,7 +100,7 @@ pub(super) async fn probe(
                 let bytes = packet(&mut peers[source], true);
                 peers[source]
                     .client
-                    .send_native_rtp_datagram(&bytes)
+                    .send_native_media_datagram(&bytes)
                     .unwrap();
             }
             Event::Packet(i, Ok(bytes)) => {
@@ -178,7 +178,7 @@ pub(super) async fn startup(
                 .enumerate()
                 .filter(|(_, p)| p.readable)
                 .map(|(i, p)| {
-                    Box::pin(async move { (i, p.client.receive_native_rtp_datagram().await) })
+                    Box::pin(async move { (i, p.client.receive_native_media_datagram().await) })
                 })
                 .collect::<Vec<_>>();
             tokio::select! { _=tick.tick()=>Event::Tick,((i,packet),_,_)=select_all(receives)=>Event::Packet(i,packet) }
@@ -188,7 +188,7 @@ pub(super) async fn startup(
                 let bytes = packet(&mut peers[source], true);
                 peers[source]
                     .client
-                    .send_native_rtp_datagram(&bytes)
+                    .send_native_media_datagram(&bytes)
                     .unwrap();
             }
             Event::Packet(i, Ok(bytes)) => {
@@ -255,7 +255,7 @@ pub(super) async fn recover_ready(peer: &mut Peer, db: &rusqlite::Connection, f:
             );
         }
         let bytes = packet(peer, false);
-        peer.client.send_native_rtp_datagram(&bytes).unwrap();
+        peer.client.send_native_media_datagram(&bytes).unwrap();
         tokio::time::sleep(Duration::from_millis(20)).await;
     }
 }

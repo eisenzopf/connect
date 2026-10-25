@@ -1,6 +1,6 @@
 //! Signed audio negotiation and its owned physical QUIC peer.
 use super::*;
-use rvoip_uctp::substrate::{pack_rtp_datagram, unpack_rtp_datagram, RtpDatagram, RtpMediaPayload};
+use rvoip_uctp::substrate::{pack_rtp_datagram, RtpDatagram, RtpMediaPayload};
 
 /// Owns the exact client that negotiated the server-confirmed audio purpose.
 /// It cannot be constructed from a Connection ID, answer, or another peer's
@@ -51,22 +51,42 @@ impl NativeAudioPeer {
             },
         })
         .map_err(|_| ClientError::Protocol)?;
-        self.client.send_native_rtp_datagram(&packet)?;
+        self.client.send_native_media_datagram(&packet)?;
         self.sequence = self.sequence.wrapping_add(1);
         Ok(())
     }
     /// Atomic datagram reception remains cancellation-safe. The bridge never
     /// cancels a partially read signed signaling frame to service audio.
     pub async fn receive_pcmu(&mut self) -> Result<Vec<u8>> {
-        let bytes = self.client.receive_native_rtp_datagram().await?;
-        let packet = unpack_rtp_datagram(&bytes).map_err(|_| ClientError::Protocol)?;
-        if packet.stream_local_id != self.handle
-            || packet.rtp.payload_type != 0
-            || packet.rtp.payload.len() != 160
-        {
-            return Err(ClientError::Protocol);
+        // Clock-only metadata cannot restart the caller's original read deadline.
+        let until = tokio::time::Instant::now() + self.client.deadline;
+        loop {
+            if tokio::time::Instant::now() >= until {
+                return Err(ClientError::Timeout);
+            }
+            let bytes = tokio::time::timeout_at(until, self.client.receive_native_media_datagram())
+                .await
+                .map_err(|_| ClientError::Timeout)??;
+            match observe_native_media_datagram(&bytes).map_err(|_| ClientError::Protocol)? {
+                ObservedNativeMediaDatagram::Clock(clock) => {
+                    if clock.stream_local_id != self.handle {
+                        return Err(ClientError::Protocol);
+                    }
+                    // This audio-only profile does not use AV presentation clocks.
+                    // A report is metadata, never a PCM frame or readiness signal.
+                }
+                ObservedNativeMediaDatagram::Rtp(packet) => {
+                    let rtp = packet.rtp.packet();
+                    if packet.stream_local_id != self.handle
+                        || rtp.header.payload_type != 0
+                        || rtp.payload.len() != 160
+                    {
+                        return Err(ClientError::Protocol);
+                    }
+                    return Ok(rtp.payload.to_vec());
+                }
+            }
         }
-        Ok(packet.rtp.payload.to_vec())
     }
     pub fn close(&self) {
         self.client.close();
@@ -363,5 +383,76 @@ impl CanonicalClient {
             }
             tokio::time::sleep(Duration::from_millis(20)).await;
         }
+    }
+}
+
+#[cfg(test)]
+mod clock_read_tests {
+    use super::*;
+    use crate::canonical::tests::{controlled, native_media::Traffic, Fault};
+    async fn peer(traffic: Traffic) -> (NativeAudioPeer, tokio::task::JoinHandle<()>) {
+        let (mut client, server, ready) = controlled(Fault::NativeDatagrams(traffic)).await;
+        client
+            .operation_get(
+                "op_probe",
+                CommandScope {
+                    conversation_id: Some("conv_one".into()),
+                    ..Default::default()
+                },
+            )
+            .await
+            .unwrap();
+        tokio::time::timeout(Duration::from_secs(1), ready.notified())
+            .await
+            .unwrap();
+        client.deadline = Duration::from_millis(80);
+        (
+            NativeAudioPeer {
+                client,
+                handle: 7,
+                stream_revision: 1,
+                sequence: 0,
+                clock: tokio::time::Instant::now(),
+                scope: CommandScope::default(),
+            },
+            server,
+        )
+    }
+    #[tokio::test]
+    async fn native_pcmu_clock_metadata_is_separate_and_foreign_handles_still_refuse() {
+        for traffic in [Traffic::ClockThenPcm, Traffic::ForeignClock] {
+            let (mut peer, server) = peer(traffic).await;
+            let result = peer.receive_pcmu().await;
+            let still_open = !peer.client.closed.load(Ordering::Acquire)
+                && peer.client.connection.close_reason().is_none();
+            peer.close();
+            tokio::time::timeout(Duration::from_secs(3), server)
+                .await
+                .unwrap()
+                .unwrap();
+            assert!(still_open);
+            if matches!(traffic, Traffic::ClockThenPcm) {
+                assert_eq!(result.unwrap(), vec![0x7f; 160]);
+            } else {
+                assert!(matches!(result, Err(ClientError::Protocol)));
+            }
+        }
+    }
+    #[tokio::test]
+    async fn continuing_clock_only_traffic_cannot_extend_the_original_pcmu_read_deadline() {
+        let (mut peer, server) = peer(Traffic::ClockOnly).await;
+        let started = tokio::time::Instant::now();
+        let result = tokio::time::timeout(Duration::from_millis(300), peer.receive_pcmu()).await;
+        let elapsed = started.elapsed();
+        let still_open = !peer.client.closed.load(Ordering::Acquire)
+            && peer.client.connection.close_reason().is_none();
+        peer.close();
+        tokio::time::timeout(Duration::from_secs(3), server)
+            .await
+            .unwrap()
+            .unwrap();
+        assert!(matches!(result, Ok(Err(ClientError::Timeout))));
+        assert!(elapsed < Duration::from_millis(250));
+        assert!(still_open);
     }
 }

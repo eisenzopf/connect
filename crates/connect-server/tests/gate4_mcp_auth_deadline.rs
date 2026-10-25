@@ -1,4 +1,5 @@
 //! A stalled authenticator cannot retain admission or decode tool arguments.
+#![recursion_limit = "256"]
 #![allow(clippy::unwrap_used)]
 #[path = "support/mcp_fixture.rs"]
 mod fixture;

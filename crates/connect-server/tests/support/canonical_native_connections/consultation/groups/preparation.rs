@@ -87,7 +87,7 @@ async fn route_probe_many(
                 .filter(|(i, _)| live[*i])
                 .map(|(i, p)| {
                     async move {
-                        let packet = p.receive_native_rtp_datagram().await.unwrap();
+                        let packet = p.receive_native_media_datagram().await.unwrap();
                         (
                             i,
                             unpack_rtp_datagram(&packet).unwrap().rtp.payload.to_vec(),
@@ -130,7 +130,7 @@ async fn route_probe_many(
                         },
                     })
                     .unwrap();
-                    clients[source].send_native_rtp_datagram(&packet).unwrap();
+                    clients[source].send_native_media_datagram(&packet).unwrap();
                 }
             }
             Event::Packet(receiver, bytes) if bytes.iter().any(|b| !matches!(*b, 0xff | 0x7f)) => {

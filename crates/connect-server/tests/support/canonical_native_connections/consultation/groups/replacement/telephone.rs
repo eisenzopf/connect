@@ -391,7 +391,7 @@ async fn sip_native_duplex(peer: &PeerSip, peers: &mut [Peer], payload: u8, name
         let until = tokio::time::Instant::now() + Duration::from_millis(900);
         let mut marked = 0;
         while let Ok(Ok(bytes)) =
-            tokio::time::timeout_at(until, peers[0].client.receive_native_rtp_datagram()).await
+            tokio::time::timeout_at(until, peers[0].client.receive_native_media_datagram()).await
         {
             let packet = rvoip_uctp::substrate::unpack_rtp_datagram(&bytes).unwrap();
             assert_eq!(packet.stream_local_id, peers[0].handle);
@@ -430,7 +430,7 @@ async fn private_input_isolation(peers: &mut [Peer]) {
             .enumerate()
             .filter(|(_, p)| p.live && p.handle != 0)
             .map(|(i, p)| {
-                Box::pin(async move { (i, p.client.receive_native_rtp_datagram().await) })
+                Box::pin(async move { (i, p.client.receive_native_media_datagram().await) })
             })
             .collect::<Vec<_>>();
         tokio::select! {

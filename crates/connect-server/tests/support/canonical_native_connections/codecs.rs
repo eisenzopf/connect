@@ -313,7 +313,7 @@ pub(super) async fn decoded_audio(
     let send = async {
         for seq in sequence..sequence + 60 {
             source
-                .send_native_rtp_datagram(
+                .send_native_media_datagram(
                     &pack_rtp_datagram(&RtpDatagram {
                         flags: 0,
                         stream_local_id: sh,
@@ -349,7 +349,7 @@ pub(super) async fn decoded_audio(
     };
     let receive = tokio::time::timeout(Duration::from_secs(4), async {
         loop {
-            let bytes = target.receive_native_rtp_datagram().await.unwrap();
+            let bytes = target.receive_native_media_datagram().await.unwrap();
             let packet = unpack_rtp_datagram(&bytes).unwrap();
             if packet.rtp.payload_type != target_pt {
                 continue;

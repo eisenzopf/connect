@@ -278,7 +278,7 @@ async fn verify_one(
     loop {
         tokio::select! {
             _=&mut deadline=>break,
-        packet=public.receive_native_rtp_datagram()=>{let packet=rvoip_uctp::substrate::unpack_rtp_datagram(&packet.unwrap()).unwrap();pre_ack_packets+=1;assert!(packet.rtp.payload.iter().all(|b|matches!(*b,0xff|0x7f)),"provider speech reached public audience before context ACK");}
+        packet=public.receive_native_media_datagram()=>{let packet=rvoip_uctp::substrate::unpack_rtp_datagram(&packet.unwrap()).unwrap();pre_ack_packets+=1;assert!(packet.rtp.payload.iter().all(|b|matches!(*b,0xff|0x7f)),"provider speech reached public audience before context ACK");}
         }
     }
     assert_eq!(provider.received.load(Ordering::SeqCst), 0);
@@ -341,7 +341,7 @@ async fn verify_one(
             tokio::select! {
                 _=&mut window=>break,
                 result=&mut update=>panic!("update completed before exact ACK: {result:?}"),
-                packet=public.receive_native_rtp_datagram()=>{let p=rvoip_uctp::substrate::unpack_rtp_datagram(&packet.unwrap()).unwrap();assert!(p.rtp.payload.iter().all(|b|matches!(*b,0xff|0x7f)),"provider speech escaped during an unacknowledged context update");}
+                packet=public.receive_native_media_datagram()=>{let p=rvoip_uctp::substrate::unpack_rtp_datagram(&packet.unwrap()).unwrap();assert!(p.rtp.payload.iter().all(|b|matches!(*b,0xff|0x7f)),"provider speech escaped during an unacknowledged context update");}
             }
         }
         assert_eq!(
@@ -484,7 +484,7 @@ async fn quiet(public: &mut CanonicalClient) {
                 assert!(tokio::time::Instant::now()<until,"old public audio queue did not settle");
                 if quiet_since.elapsed()>=Duration::from_millis(250){break;}
             },
-            packet=public.receive_native_rtp_datagram()=>{
+            packet=public.receive_native_media_datagram()=>{
                 let packet=rvoip_uctp::substrate::unpack_rtp_datagram(&packet.unwrap()).unwrap();
                 if packet.rtp.payload.iter().any(|b|!matches!(*b,0xff|0x7f)){quiet_since=tokio::time::Instant::now();}
             }
@@ -516,9 +516,9 @@ async fn duplex(
             _=ticker.tick()=>{
                 use rvoip_uctp::substrate::{pack_rtp_datagram,RtpDatagram,RtpMediaPayload};
                 let audio=(0..160).map(|n|if n%16<8{0x80}else{0x00}).collect::<Vec<_>>();
-                public.send_native_rtp_datagram(&pack_rtp_datagram(&RtpDatagram{flags:0,stream_local_id:handle,seq,rtp:RtpMediaPayload{payload:audio.into(),payload_type:0,sequence_number:seq as u16,timestamp:(clock.elapsed().as_micros()*8/1000)as u32,ssrc:0x4736_0001}}).unwrap()).unwrap();seq+=1;
+                public.send_native_media_datagram(&pack_rtp_datagram(&RtpDatagram{flags:0,stream_local_id:handle,seq,rtp:RtpMediaPayload{payload:audio.into(),payload_type:0,sequence_number:seq as u16,timestamp:(clock.elapsed().as_micros()*8/1000)as u32,ssrc:0x4736_0001}}).unwrap()).unwrap();seq+=1;
             },
-            packet=public.receive_native_rtp_datagram()=>{let packet=rvoip_uctp::substrate::unpack_rtp_datagram(&packet.unwrap()).unwrap();if packet.rtp.payload.iter().any(|b|!matches!(*b,0xff|0x7f)){received+=1;}}
+            packet=public.receive_native_media_datagram()=>{let packet=rvoip_uctp::substrate::unpack_rtp_datagram(&packet.unwrap()).unwrap();if packet.rtp.payload.iter().any(|b|!matches!(*b,0xff|0x7f)){received+=1;}}
         }
     }
     *sequence = seq;

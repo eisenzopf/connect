@@ -1,0 +1,157 @@
+{
+  "schema": "connect-gate6-native-clock-sdk/1",
+  "task": "G6-050",
+  "status": "Clock-aware native SDK and current consumers implemented/unit-verified; actual interoperability pending",
+  "source": {
+    "crates/connect-client/src/canonical.rs": "00875e0f85598a0079bb2e967189a137906da556a889ac1ab151fc05eb31477e",
+    "crates/connect-client/src/canonical/native.rs": "f6317390ba7286da79a08d3aa6de656b8248d4dac84c38c39cad6dbb38722b52",
+    "crates/connect-client/src/canonical/private_audio.rs": "c917d5d3769a7cbb1bc1608b497bc13463af03c7e9b779d2e8368688295f134c",
+    "crates/connect-client/src/canonical/tests.rs": "b9f843e8fa3ed327c96c6dc85934114938402b5ec1c647e5d7dcbf73536f400e",
+    "crates/connect-server/tests/gate4_codex_call_intent.rs": "948ab64cde1bf316fd91288353a27d4a511bd848ee9cb8011cd35214ea15d37b",
+    "crates/connect-server/tests/gate4_mcp_auth_deadline.rs": "ea2e2f9b11694e0ba7a692dff85a647c08543982fbb8f7597c14e4b3b755e13e",
+    "crates/connect-server/tests/gate4_mcp_deadline.rs": "2a31ac9dc193c14a91d08ad4e9cf792e73aee34e750b1e0ac01a8dd93de681a0",
+    "crates/connect-server/tests/gate4_mcp_streaming.rs": "90ed470590da13c47a55a56e126a36abd272b105ced8394ded28bdb313c641b9",
+    "crates/connect-server/tests/support/canonical_native_connections.rs": "a6e78768afa59bdfc082eb7745a1fabc70353e2001c269bbab15e6c1227ac6d9",
+    "crates/connect-server/tests/support/canonical_native_connections/codecs.rs": "4e660046e377de61fa79ec7144a368367ca852cb1fbf64510de0fc613300b900",
+    "crates/connect-server/tests/support/canonical_native_connections/consultation/groups.rs": "e4628887a6398e8b7df377ad9ad87f782650589085701b724daf6b906a6457eb",
+    "crates/connect-server/tests/support/canonical_native_connections/consultation/groups/preparation.rs": "e07126574dd544fb07c33722550ce3482f9f08024888ffb164fec30c0cf68032",
+    "crates/connect-server/tests/support/canonical_native_connections/consultation/groups/replacement.rs": "10a9d34afb60b8ebaf6da3d1cc6c138b99b49521c47cf26d89ed51019588f41c",
+    "crates/connect-server/tests/support/canonical_native_connections/consultation/groups/replacement/telephone.rs": "0a9ec308d7d68bf57c42c310e41089818fbe7cb3136486a590d9c65eb33af8ea",
+    "crates/connect-server/tests/support/canonical_native_connections/consultation/groups/replacement/telephone/initial/private_candidate.rs": "6175d2af51b373837b88e32f6b93caab022f5f76eb5d8dd7a36b0a6689a26e5e",
+    "crates/connect-server/tests/support/canonical_native_connections/consultation/groups/replacement/telephone/initial/received/authority.rs": "6779f6306a5e8457bc5802ca8cb8b359a76bd4b1b3294517f88c461d75eb6b77",
+    "crates/connect-server/tests/support/canonical_native_connections/consultation/groups/replacement/telephone/private_primary.rs": "7699092fcdb5df86f2bef81a9954c9e159d832a7ba80a30a424dcfcc9d2e946b",
+    "crates/connect-server/tests/support/canonical_native_connections/consultation/groups/replacement/telephone/received.rs": "f2e8bafc81efd81ec8ab115c759fd9559770f75d1a13f5a7f54aff22f781db4c",
+    "crates/connect-server/tests/support/canonical_native_connections/consultation/groups/replacement/telephone/return_native.rs": "816f912b1a19895cd1ba9ca5f823acfd1a91e272dd2207561f9a9b2ad2c0836a",
+    "crates/connect-server/tests/support/canonical_native_connections/consultation/provider.rs": "f07c5a89cea7ebd9918e3470b82323d75a7753497f5ffc7f58236094508c3228",
+    "crates/connect-server/tests/support/canonical_native_connections/consultation/provider/primary_survivors.rs": "cb3672e2ea0bfa2cb25387fce43ea8ab2251b3740d46ec0584a486ab65f907f2",
+    "crates/connect-server/tests/support/canonical_native_connections/consultation/provider/public_audio.rs": "691e3a2bb087776f702c1543a6727f341372e78e177bafc3e09cb8e5005fa47d",
+    "crates/connect-server/tests/support/canonical_native_connections/dtmf.rs": "680a1ce0d0a8eb2a63b86c12ee22ef0ee3706d01cf6920c111824fcc5bcc7bc8",
+    "crates/connect-server/tests/support/canonical_native_connections/future.rs": "48117ae4ce8757c1777566dd8c7edec98e2be09dbd379849b1282b6f097363aa",
+    "crates/connect-server/tests/support/canonical_native_connections/gates.rs": "9d4cc053f505f19ed3e013e3d2650155ca0fd9f550f418a6c897a298ab694933",
+    "crates/connect-server/tests/support/canonical_native_connections/handles.rs": "ef2a05ffe38e68715a9bdbb7612d4a238e297bae08b5cc4ee0426c9867961c2b",
+    "crates/connect-server/tests/support/canonical_native_connections/lifecycle.rs": "283d02ffc24f3a8d642aeaed53003981e2e88e5337900bb89bf3e54d8e746f45",
+    "crates/connect-server/tests/support/canonical_native_connections/multiparty/media.rs": "32f90f86653d69b0386dd609c8cfba59960f5f5bc3165afaa16f423666ab5cd2",
+    "crates/connect-server/tests/support/canonical_native_connections/participants.rs": "1f4082ee377812645daf8966cb4a2444cce750aabf179e163d02b50633d7532f",
+    "crates/connect-server/tests/support/canonical_native_connections/public_assistant.rs": "bfc3047ed06272bbc7bd4417c76f1ee3cd04c9a9f62ff36bd51b92e15f04d550",
+    "crates/connect-server/tests/support/canonical_native_connections/solo.rs": "8e8b0074209c31d7758ed75001f2b92663809e7c2cf8ce0c1ebf86fa912aeedf",
+    "crates/connect-server/tests/support/canonical_webtransport_browser_native.rs": "b2b6c026460e0af7daa069af9396060d4ed1fb374233ce9f23594e94f58ab49b",
+    "crates/connect-server/tests/support/canonical_webtransport_mixed.rs": "44e9874c8958e5aca6250dc2bbce4268cacbe59f918574c524c7869857fa3c04",
+    "crates/connect-client/src/canonical/tests/native_media.rs": "7e88085a4ead0b8a511396e4bd8ef48e3743e25deca9aedf5d7798703249142a"
+  },
+  "verification": {
+    "report": ".local/gate-6/native-sdk-clock203/client003/summary.json",
+    "sha256": "04ec08eeb0cf9470da65c8575cfae58192667afb587dfd9181e890cfe05cf4e5",
+    "passed": true,
+    "library_methods": 88,
+    "new_wire_wiring_methods": 2,
+    "new_controlled_quic_methods": 2,
+    "inputs_unchanged": true,
+    "original_and_sealed_executable_unchanged": true,
+    "all_server_test_consumers_compile": true,
+    "steps": [
+      {
+        "name": "dependencies",
+        "command": [
+          "bash",
+          "scripts/prepare-dependencies.sh"
+        ],
+        "exit_code": 0,
+        "seconds": 0.11624716687947512,
+        "log_sha256": "1093da5a89cb3a48536e09fcf6739ec78936602cafa1afc80cd118d2cf3338aa"
+      },
+      {
+        "name": "format",
+        "command": [
+          "bash",
+          "scripts/format.sh",
+          "--check"
+        ],
+        "exit_code": 0,
+        "seconds": 2.130166750168428,
+        "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "name": "build",
+        "command": [
+          "cargo",
+          "test",
+          "-p",
+          "connect-client",
+          "--lib",
+          "--no-run",
+          "--release",
+          "--locked",
+          "--offline",
+          "-j2",
+          "--target-dir",
+          "/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024",
+          "--message-format=json"
+        ],
+        "exit_code": 0,
+        "seconds": 0.16884579206816852,
+        "log_sha256": "c9ef3b68d69664e1d157e575848e4f6146e26ad39b9aa75897123cb92d2ce4bd"
+      },
+      {
+        "name": "tests",
+        "command": [
+          "/Users/jonathaneisenzopf/.codex/worktrees/private-sip-lifetime/Connect/.local/gate-6/native-sdk-clock203/client003/connect-client",
+          "--test-threads=1",
+          "--nocapture"
+        ],
+        "exit_code": 0,
+        "seconds": 7.566620166879147,
+        "log_sha256": "ff77e76e5a2017118dd48c2459c245da34a5536688f58f15471f066b8213f666"
+      },
+      {
+        "name": "server-consumers",
+        "command": [
+          "cargo",
+          "check",
+          "-p",
+          "connect-server",
+          "--tests",
+          "--release",
+          "--locked",
+          "--offline",
+          "-j2",
+          "--target-dir",
+          "/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024"
+        ],
+        "exit_code": 0,
+        "seconds": 52.66866554203443,
+        "log_sha256": "6f544d51a44652a2a2ea6777987c6376e76bf2f06238bcec41e2b7ef482bdd3b"
+      },
+      {
+        "name": "dependencies-after",
+        "command": [
+          "bash",
+          "scripts/prepare-dependencies.sh"
+        ],
+        "exit_code": 0,
+        "seconds": 0.12404945795424283,
+        "log_sha256": "1093da5a89cb3a48536e09fcf6739ec78936602cafa1afc80cd118d2cf3338aa"
+      }
+    ],
+    "scope": "Current Connect public native SDK library unit methods plus compilation of all server test consumers after RTP-only API removal. Root release profile, isolated fixtures/state. No actual Connect native/browser clock interoperability, live AV or operating qualification from compilation or unit methods."
+  },
+  "behavior": [
+    "Public CanonicalClient send_native_media_datagram/receive_native_media_datagram accept bounded RTP or clock-only SR/SDES and preserve original wire bytes. The former RTP-only names are removed; every SDK/server fixture caller is migrated without compatibility aliases. Public canonical wire helper reexports avoid direct upstream IO in examples.",
+    "The audio-only private PCMU reader checks the exact owned handle, consumes clock metadata separately and returns only160-byte PT0frames. One original absolute deadline survives continuous metadata; timeout/cancellation does not close the signed physical peer. It does not implement native AV presentation.",
+    "Two actual local TLS QUIC methods use controlled post-auth clients and signed control replies, current private-audio handle fixtures and fully joined owned endpoints. Clock metadata precedes actual PCM; foreign-handle metadata refuses while the peer remains open. At least three clock-only datagrams are emitted before an80msread; continuing reports cannot extend that original deadline past the external300msguard. These are client-boundary tests, not service enrollment/authentication/current engine admission or full runtime profiles.",
+    "The browser/native functional actor now declares the clock profile, emits common-CNAME/NTP audio/video reports only after successful actual RTP submissions and counts real RTP payload packets/octets. Both tracks sample the same monotonic epoch; reports have no idle timer. Received current-binding reports are bounded and kept separate from decoded media/readiness. This fixture compiles but its new runtime journey has not yet been rehearsed. It remains preencoded/offline-decoded, not live native encoding/playout."
+  ],
+  "attempts": [
+    {
+      "report": ".local/gate-6/native-sdk-clock203/client001/summary.json",
+      "library_methods_passed": 86,
+      "consumer_check": "Fails E0275 in historic Gate4 MCP authentication-deadline test on the deeper SIP ExactResponseObligation Send bound; no complete pass."
+    },
+    {
+      "report": ".local/gate-6/native-sdk-clock203/client002/summary.json",
+      "library_methods_passed": 88,
+      "consumer_check": "Fails the same compiler-depth bound in historic Gate4 MCP streaming wrapper; no complete pass."
+    }
+  ],
+  "compiler_allowances": "Four test-crate roots wrapping concrete FixedBindingAuth now use the compiler-recommended recursion_limit256 (authentication deadline,streaming,request deadline andCodex barrier intent). This allows proving the same Send constraints; it changes no authenticator behavior/assertion/timeout and is not a historic Gate4 runtime pass. All server test consumers now compile.",
+  "remaining": "Run current Source203/SDK244 actual browser/native and browser/browser cohorts; source202clean0728/8 remains historical. Public wire/Core/driver109 and SDK88 have separate scopes and are not added into a whole-task pass. Native live codec/presenter/independent sources/impairment/permissions/background/other profiles and all remaining105tasks stay required. G6-050/acceptance remain open."
+}

@@ -123,7 +123,7 @@ async fn silent_format(s: &mut Running, source_index: usize, sequence: u32, sour
     let sending = async {
         for seq in sequence..sequence + 60 {
             sender
-                .send_native_rtp_datagram(
+                .send_native_media_datagram(
                     &pack_rtp_datagram(&RtpDatagram {
                         flags: 0,
                         stream_local_id: sh,
@@ -162,7 +162,7 @@ async fn silent_format(s: &mut Running, source_index: usize, sequence: u32, sour
         while start.elapsed() < Duration::from_millis(1300) {
             match tokio::time::timeout(
                 Duration::from_millis(40),
-                receiver.receive_native_rtp_datagram(),
+                receiver.receive_native_media_datagram(),
             )
             .await
             {

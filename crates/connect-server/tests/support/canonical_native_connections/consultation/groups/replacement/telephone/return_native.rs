@@ -308,8 +308,8 @@ async fn old_duplex(
     while tokio::time::Instant::now() < until {
         let event = tokio::select! {
             _=tick.tick()=>Event::Tick,
-            packet=native.client.receive_native_rtp_datagram()=>Event::Native(packet.unwrap()),
-            packet=candidate.receive_native_rtp_datagram()=>Event::Private(packet.unwrap()),
+            packet=native.client.receive_native_media_datagram()=>Event::Native(packet.unwrap()),
+            packet=candidate.receive_native_media_datagram()=>Event::Private(packet.unwrap()),
             packet=phone.media.recv_from(&mut buffer)=>{let(n,_)=packet.unwrap();Event::Phone(buffer[..n].to_vec())},
         };
         match event {
@@ -331,7 +331,7 @@ async fn old_duplex(
                     },
                 })
                 .unwrap();
-                native.client.send_native_rtp_datagram(&packet).unwrap();
+                native.client.send_native_media_datagram(&packet).unwrap();
                 let seq = phone
                     .rtp_sequence
                     .fetch_add(1, std::sync::atomic::Ordering::Relaxed);

@@ -42,7 +42,7 @@ async fn observe_marked(clients: &mut [Peer], duration: Duration) -> Vec<usize> 
             .iter_mut()
             .enumerate()
             .map(|(i, p)| {
-                Box::pin(async move { (i, p.client.receive_native_rtp_datagram().await) })
+                Box::pin(async move { (i, p.client.receive_native_media_datagram().await) })
             })
             .collect::<Vec<_>>();
         let Ok(((i, bytes), _, _)) = tokio::time::timeout_at(until, select_all(reads)).await else {

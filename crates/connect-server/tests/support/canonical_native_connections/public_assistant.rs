@@ -599,7 +599,7 @@ async fn case(mode: Case, http: bool) {
         for seq in 0..400u32 {
             tick.tick().await;
             clients[1]
-                .send_native_rtp_datagram(
+                .send_native_media_datagram(
                     &pack_rtp_datagram(&RtpDatagram {
                         flags: 0,
                         stream_local_id: th,

@@ -1,4 +1,5 @@
 //! Shutdown cancels admitted body decoding before a tool context exists.
+#![recursion_limit = "256"]
 #![allow(clippy::unwrap_used)]
 #[path = "support/mcp_fixture.rs"]
 mod fixture;

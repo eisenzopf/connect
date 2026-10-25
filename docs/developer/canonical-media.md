@@ -36,6 +36,40 @@ There is no idle report worker or retained permission. The exact framing and
 component verification scope are in `contracts/native-media-profile.md` and
 `docs/evidence/gate-6/browser-client-source-clock.json`.
 
+The public Rust SDK uses `CanonicalClient::send_native_media_datagram` and
+`receive_native_media_datagram` for both RTP and clock-only datagrams. The
+pre-alpha RTP-only method names are removed. The SDK preserves the original
+wire bytes and authenticates the physical lifetime on each operation; successful
+submission does not prove server admission or recipient presentation.
+
+Use `connect_client::canonical::observe_native_media_datagram` to distinguish
+`ObservedNativeMediaDatagram::Rtp` from `Clock`. Clock observations preserve the
+original physical handle/sequence and exact sender SSRC, NTP/RTP values, counters
+and CNAME. They are metadata rather than decoded media or readiness. Consumers
+must check the current negotiated receive binding and retire old mappings with
+that binding. Malformed claimed clocks fail rather than being retried as RTP.
+The audio-only private PCMU reader consumes clock-only metadata under one
+original bounded read deadline, checks its own handle and returns only actual
+160-byte PCMU frames. It does not qualify AV clock presentation.
+
+`pack_sender_clock_datagram`, `SenderClockDatagram` and `SenderClockReport` are
+also available through `connect_client::canonical`. A sender samples both tracks
+from one source clock/CNAME and supplies counters from actual successful RTP
+submissions. Reports belong to those media submissions; an idle report worker
+cannot retain media permission. The public builder validates framing and identity,
+without inventing a capture clock, sender statistics or authorization.
+
+The browser/native functional fixture now uses these public APIs to send a
+common audio/video clock and observe actual current-binding reports separately
+from its decoded frames. Its sources remain preencoded and native received
+packets are decoded offline. All88client library methods and every server test consumer compile/check pass,
+including two controlled QUIC clock/PCM/deadline cases; see
+`docs/evidence/gate-6/browser-client-native-clock-sdk.json`. These checks are
+separate from actual interoperability and from live native encoder/presenter,
+60-second, impairment and recovery qualification. Current browser/browser clean evidence is
+in `docs/evidence/gate-6/browser-client-fixed-playout-deadline.json`; prepared
+wire API evidence is in `docs/evidence/gate-6/browser-client-public-native-clock-wire.json`.
+
 `CanonicalNativeAdapter::configure_rtp` installs a `StagedRtpMedia` backend and
 one persistent `StreamController` on an existing Core-issued route. This is a
 trusted server SPI, not a wire command or a readiness grant. Configuration checks

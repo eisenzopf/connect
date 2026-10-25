@@ -592,14 +592,14 @@ async fn assert_audio_reaches_other_participant(
                 },
             };
             source[0]
-                .send_native_rtp_datagram(&pack_rtp_datagram(&packet).unwrap())
+                .send_native_media_datagram(&pack_rtp_datagram(&packet).unwrap())
                 .unwrap();
             tokio::time::sleep(Duration::from_millis(20)).await;
         }
     };
     let receiver = tokio::time::timeout(Duration::from_secs(3), async {
         loop {
-            let bytes = others[0].receive_native_rtp_datagram().await.unwrap();
+            let bytes = others[0].receive_native_media_datagram().await.unwrap();
             let packet = unpack_rtp_datagram(&bytes).unwrap();
             if packet.rtp.payload_type != 0 {
                 continue;
@@ -1912,7 +1912,7 @@ async fn assert_audio_is_silent_after_unsubscribe(
     let sending = async {
         for seq in 9200..9300u32 {
             source[0]
-                .send_native_rtp_datagram(
+                .send_native_media_datagram(
                     &pack_rtp_datagram(&RtpDatagram {
                         flags: 0,
                         stream_local_id: source_handle,
@@ -1938,7 +1938,7 @@ async fn assert_audio_is_silent_after_unsubscribe(
             // datagram timeouts preserve the physical connection.
             match tokio::time::timeout(
                 Duration::from_millis(50),
-                receivers[0].receive_native_rtp_datagram(),
+                receivers[0].receive_native_media_datagram(),
             )
             .await
             {
@@ -2115,7 +2115,7 @@ async fn assert_vp8_routes_from(
             rtp.push(0x10);
             rtp.extend_from_slice(frame);
             source
-                .send_native_rtp_datagram(&pack(&MediaDatagram {
+                .send_native_media_datagram(&pack(&MediaDatagram {
                     flags: 0,
                     stream_local_id: source_handle,
                     seq: u32::from(sequence),
@@ -2128,7 +2128,7 @@ async fn assert_vp8_routes_from(
     let receiving = tokio::time::timeout(Duration::from_secs(3), async {
         let mut assembler = connect_client::VideoFrameAssembler::default();
         loop {
-            let bytes = target.receive_native_rtp_datagram().await.unwrap();
+            let bytes = target.receive_native_media_datagram().await.unwrap();
             let packet = observe_rtp_datagram(&bytes).unwrap();
             if packet.stream_local_id != target_handle {
                 continue;

@@ -1303,7 +1303,7 @@ async fn production_native_refresh_retains_actual_decoded_rtp_after_original_exp
         for _ in 0..256 {
             if tokio::time::timeout(
                 Duration::from_millis(5),
-                s.clients[1].receive_native_rtp_datagram(),
+                s.clients[1].receive_native_media_datagram(),
             )
             .await
             .is_err()

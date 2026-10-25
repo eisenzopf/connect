@@ -6,6 +6,11 @@ use rvoip_auth_core::sig9421::{
     ResolvedVerificationKey, Sig9421Signer, Sig9421Verifier, SignatureVerificationContext,
     StaticKeyResolver,
 };
+/// Canonical native RTP and clock-only wire helpers; metadata is not admission.
+pub use rvoip_uctp::substrate::{
+    observe_native_media_datagram, pack_sender_clock_datagram, ObservedNativeMediaDatagram,
+    SenderClockDatagram, SenderClockReport,
+};
 pub use rvoip_uctp::v2::{payloads, Envelope, Identifier, Payload, Scope};
 use rvoip_uctp::v2::{MAX_ENVELOPE_BYTES, RAW_QUIC_ALPN};
 use serde::{Deserialize, Serialize};

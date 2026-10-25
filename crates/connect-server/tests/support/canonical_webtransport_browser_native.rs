@@ -1,7 +1,13 @@
 //! Public native-client actor for the browser/native functional lane.
 //! This is not a live encoder, native presenter or operating-profile witness.
 use super::*;
-use connect_client::{canonical::CommandScope, NativeVideoPacket, VideoFrameAssembler};
+use connect_client::{
+    canonical::{
+        observe_native_media_datagram, pack_sender_clock_datagram, CommandScope,
+        ObservedNativeMediaDatagram, SenderClockDatagram, SenderClockReport,
+    },
+    NativeVideoPacket, VideoFrameAssembler,
+};
 use std::{collections::HashMap, sync::Mutex, time::Instant};
 
 #[derive(Default)]
@@ -55,7 +61,7 @@ fn capabilities() -> Value {
     json!({"audio_codecs":[{"name":"opus","params":{"sample_rate":48000,"channels":1}}],
         "video_codecs":[{"name":"vp8","params":{"sample_rate":90000,"channels":0}}],
         "data_protocols":["text","json","binary"],"max_streams_per_connection":32,
-        "identity_assurance_offered":"identified"})
+        "identity_assurance_offered":"identified","source_clock":"rtcp-sr-sdes/1"})
 }
 #[derive(Clone)]
 struct Binding {
@@ -64,6 +70,13 @@ struct Binding {
     send: bool,
     receive: bool,
     kind: String,
+}
+#[derive(Default)]
+struct SentClock {
+    packets: u32,
+    octets: u32,
+    last: Option<Instant>,
+    reports: u32,
 }
 struct Source {
     audio: Vec<Vec<u8>>,
@@ -74,6 +87,10 @@ struct Source {
     audio_sequence: u16,
     video_sequence: u16,
     datagram_sequence: u32,
+    ntp_epoch: u64,
+    cname: String,
+    sent_audio: SentClock,
+    sent_video: SentClock,
 }
 impl Source {
     fn read(directory: &Path) -> Self {
@@ -111,10 +128,19 @@ impl Source {
         assert!((0..120)
             .filter(|i| video[*i][0] & 1 == 0)
             .eq([0, 30, 60, 90]));
+        let now = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap();
+        let ntp_epoch = ((now.as_secs() + 2208988800) << 32)
+            | ((u64::from(now.subsec_nanos()) << 32) / 1000000000);
         Self {
             audio,
             video,
             epoch: Instant::now(),
+            ntp_epoch,
+            cname: format!("native-{}", uuid::Uuid::new_v4()),
+            sent_audio: SentClock::default(),
+            sent_video: SentClock::default(),
             next_audio: 0,
             next_video: 0,
             audio_sequence: 1000,
@@ -156,6 +182,39 @@ impl Source {
         rvoip_uctp::substrate::observe_rtp_datagram(&packet).unwrap();
         packet
     }
+    fn report(&mut self, client: &CanonicalClient, binding: &Binding, video: bool) {
+        let sent = if video {
+            &mut self.sent_video
+        } else {
+            &mut self.sent_audio
+        };
+        if sent
+            .last
+            .is_some_and(|last| last.elapsed() < Duration::from_secs(1))
+        {
+            return;
+        }
+        let elapsed = self.epoch.elapsed();
+        let report = SenderClockDatagram {
+            stream_local_id: binding.handle,
+            seq: self.datagram_sequence,
+            report: SenderClockReport {
+                ssrc: if video { 0x56503801 } else { 0x4f505501 },
+                ntp: self
+                    .ntp_epoch
+                    .wrapping_add(((elapsed.as_nanos() << 32) / 1000000000) as u64),
+                rtp: ((elapsed.as_nanos() * if video { 90000 } else { 48000 }) / 1000000000) as u32,
+                packets: sent.packets,
+                octets: sent.octets,
+                cname: self.cname.clone(),
+            },
+        };
+        let wire = pack_sender_clock_datagram(&report).unwrap();
+        client.send_native_media_datagram(&wire).unwrap();
+        self.datagram_sequence = self.datagram_sequence.wrapping_add(1);
+        sent.last = Some(Instant::now());
+        sent.reports += 1;
+    }
     fn pump(&mut self, client: &CanonicalClient, bindings: &HashMap<String, Binding>) {
         let elapsed = self.epoch.elapsed().as_micros();
         let audio_index = (elapsed / 20000) as usize;
@@ -173,7 +232,13 @@ impl Source {
                     false,
                     None,
                 );
-                client.send_native_rtp_datagram(&packet).unwrap();
+                client.send_native_media_datagram(&packet).unwrap();
+                self.sent_audio.packets = self.sent_audio.packets.wrapping_add(1);
+                self.sent_audio.octets = self
+                    .sent_audio
+                    .octets
+                    .wrapping_add((packet.len() - 20) as u32);
+                self.report(client, binding, false);
                 self.audio_sequence = self.audio_sequence.wrapping_add(1);
                 self.next_audio = audio_index + 1;
             }
@@ -200,9 +265,15 @@ impl Source {
                         i + 1 == fragments,
                         Some(i == 0),
                     );
-                    client.send_native_rtp_datagram(&packet).unwrap();
+                    client.send_native_media_datagram(&packet).unwrap();
+                    self.sent_video.packets = self.sent_video.packets.wrapping_add(1);
+                    self.sent_video.octets = self
+                        .sent_video
+                        .octets
+                        .wrapping_add((packet.len() - 20) as u32);
                     self.video_sequence = self.video_sequence.wrapping_add(1);
                 }
+                self.report(client, binding, true);
                 self.next_video = video_index + 1;
             }
         }
@@ -223,6 +294,8 @@ struct Actor {
     data: Vec<Value>,
     audio: Vec<u8>,
     audio_events: Vec<Value>,
+    clock_reports: Vec<Value>,
+    clock_cname: Option<String>,
     video: Vec<u8>,
     video_events: Vec<Value>,
     video_arrivals: Vec<Value>,
@@ -382,7 +455,24 @@ impl Actor {
         }
     }
     fn datagram(&mut self, bytes: Vec<u8>) {
-        let datagram = rvoip_uctp::substrate::observe_rtp_datagram(&bytes).unwrap();
+        let datagram = match observe_native_media_datagram(&bytes).unwrap() {
+            ObservedNativeMediaDatagram::Rtp(packet) => packet,
+            ObservedNativeMediaDatagram::Clock(clock) => {
+                let binding = self
+                    .bindings
+                    .values()
+                    .find(|b| b.handle == clock.stream_local_id && b.receive)
+                    .unwrap();
+                if let Some(cname) = &self.clock_cname {
+                    assert_eq!(cname, &clock.report.cname);
+                } else {
+                    self.clock_cname = Some(clock.report.cname.clone());
+                }
+                assert!(self.clock_reports.len() < 256);
+                self.clock_reports.push(json!({"kind":binding.kind,"handle":clock.stream_local_id,"ssrc":clock.report.ssrc,"ntp":clock.report.ntp.to_string(),"rtp":clock.report.rtp,"packets":clock.report.packets,"octets":clock.report.octets,"arrival_ms":self.started.elapsed().as_secs_f64()*1000.}));
+                return;
+            }
+        };
         let binding = self
             .bindings
             .values()
@@ -454,7 +544,7 @@ impl Actor {
         }
         if let Ok(packet) = tokio::time::timeout(
             Duration::from_millis(1),
-            self.client.receive_native_rtp_datagram(),
+            self.client.receive_native_media_datagram(),
         )
         .await
         {
@@ -541,6 +631,8 @@ pub(super) async fn run(
         data: Vec::new(),
         audio: Vec::new(),
         audio_events: Vec::new(),
+        clock_reports: Vec::new(),
+        clock_cname: None,
         video: Vec::new(),
         video_events: Vec::new(),
         video_arrivals: Vec::new(),
@@ -646,7 +738,14 @@ pub(super) async fn run(
     header.extend_from_slice(&0u32.to_le_bytes());
     header.extend_from_slice(&actor.video);
     std::fs::write(output.join("received.ivf"), header).unwrap();
-    let result = json!({"window_start_ms":start,"window_end_ms":end,"audio_events":actor.audio_events,"video_events":actor.video_events,"video_arrivals":actor.video_arrivals,"video_sequence_gaps":actor.gaps,"assembly":actor.assembler.diagnostics(),"data_messages":3,"canonical_public_native_client":true,"native_transport":"quic","native_live_encode_playout_qualified":false});
+    assert!(actor.source.sent_audio.reports > 0 && actor.source.sent_video.reports > 0);
+    for kind in ["audio", "video"] {
+        assert!(
+            actor.clock_reports.iter().any(|r| r["kind"] == kind),
+            "no actual native received clock for {kind}"
+        );
+    }
+    let result = json!({"clock_reports":actor.clock_reports,"sent_audio_reports":actor.source.sent_audio.reports,"sent_video_reports":actor.source.sent_video.reports,"window_start_ms":start,"window_end_ms":end,"audio_events":actor.audio_events,"video_events":actor.video_events,"video_arrivals":actor.video_arrivals,"video_sequence_gaps":actor.gaps,"assembly":actor.assembler.diagnostics(),"data_messages":3,"canonical_public_native_client":true,"native_transport":"quic","native_live_encode_playout_qualified":false});
     std::fs::write(
         output.join("received.json"),
         serde_json::to_vec(&result).unwrap(),

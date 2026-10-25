@@ -17,7 +17,7 @@ pub(super) async fn prove(
     loop {
         tokio::select! {
             _=&mut deadline=>break,
-            packet=peers[1].receive_native_rtp_datagram()=>{
+            packet=peers[1].receive_native_media_datagram()=>{
                 let p=rvoip_uctp::substrate::unpack_rtp_datagram(&packet.unwrap()).unwrap();
                 assert!(p.rtp.payload.iter().all(|b|matches!(*b,0xff|0x7f)),"departed private source leaked during restoration");
             }

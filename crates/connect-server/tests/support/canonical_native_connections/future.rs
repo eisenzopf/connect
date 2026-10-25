@@ -335,7 +335,7 @@ async fn assert_vp8_absent(
             rtp.push(0x10);
             rtp.extend_from_slice(frame);
             source
-                .send_native_rtp_datagram(&pack(&MediaDatagram {
+                .send_native_media_datagram(&pack(&MediaDatagram {
                     flags: 0,
                     stream_local_id: sh,
                     seq: u32::from(sequence),
@@ -350,7 +350,7 @@ async fn assert_vp8_absent(
         while start.elapsed() < Duration::from_millis(1100) {
             match tokio::time::timeout(
                 Duration::from_millis(40),
-                target.receive_native_rtp_datagram(),
+                target.receive_native_media_datagram(),
             )
             .await
             {

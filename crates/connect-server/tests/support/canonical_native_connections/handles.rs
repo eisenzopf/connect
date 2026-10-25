@@ -15,7 +15,7 @@ async fn publish(client: &CanonicalClient, handles: &[u16], sequence: u32) {
     for seq in sequence..sequence + 60 {
         for &stream_local_id in handles {
             client
-                .send_native_rtp_datagram(
+                .send_native_media_datagram(
                     &pack_rtp_datagram(&RtpDatagram {
                         flags: 0,
                         stream_local_id,
@@ -86,7 +86,7 @@ async fn flow(
             .map(|&h| (h, Vec::new()))
             .collect::<BTreeMap<_, _>>();
         while counts.values().any(|n| *n <= 10) {
-            let bytes = target.receive_native_rtp_datagram().await.unwrap();
+            let bytes = target.receive_native_media_datagram().await.unwrap();
             let packet = unpack_rtp_datagram(&bytes).unwrap();
             assert_eq!(packet.rtp.payload_type, 0);
             assert!(receiving.contains(&packet.stream_local_id));
@@ -234,7 +234,7 @@ async fn production_native_stream_handles_keep_same_peer_connections_distinct_an
             publish(&source, &foreign_input, 80000),
             tokio::time::timeout(
                 Duration::from_millis(900),
-                target.receive_native_rtp_datagram()
+                target.receive_native_media_datagram()
             )
         );
         assert!(empty.is_err(), "foreign physical handle emitted a datagram");

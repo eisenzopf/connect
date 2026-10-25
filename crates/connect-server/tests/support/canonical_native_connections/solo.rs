@@ -107,7 +107,7 @@ async fn solo_session(fail_flow_storage: bool) {
         }
         for seq in 1..=30 {
             native
-                .send_native_rtp_datagram(
+                .send_native_media_datagram(
                     &pack_rtp_datagram(&RtpDatagram {
                         flags: 0,
                         stream_local_id: handle,
@@ -356,7 +356,7 @@ async fn production_session_started_multicasts_original_snapshot_without_recipie
         );
         for seq in 1..=30 {
             source
-                .send_native_rtp_datagram(
+                .send_native_media_datagram(
                     &pack_rtp_datagram(&RtpDatagram {
                         flags: 0,
                         stream_local_id: handle,

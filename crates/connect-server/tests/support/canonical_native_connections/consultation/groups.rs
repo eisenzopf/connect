@@ -502,7 +502,7 @@ async fn probe(peers: &mut [Peer], source: usize, allowed: &[usize], name: &str)
                 .enumerate()
                 .filter(|(_, p)| p.live && p.handle != 0)
                 .map(|(i, p)| {
-                    Box::pin(async move { (i, p.client.receive_native_rtp_datagram().await) })
+                    Box::pin(async move { (i, p.client.receive_native_media_datagram().await) })
                 })
                 .collect::<Vec<_>>();
             tokio::select! {
@@ -530,7 +530,7 @@ async fn probe(peers: &mut [Peer], source: usize, allowed: &[usize], name: &str)
                     },
                 })
                 .unwrap();
-                p.client.send_native_rtp_datagram(&packet).unwrap();
+                p.client.send_native_media_datagram(&packet).unwrap();
             }
             Event::Packet(i, bytes) => {
                 let packet = unpack_rtp_datagram(&bytes.unwrap()).unwrap();

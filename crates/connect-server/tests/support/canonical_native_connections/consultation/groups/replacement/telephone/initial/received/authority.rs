@@ -174,13 +174,14 @@ pub(in super::super) async fn exercise(
     while let Ok(Ok(_)) = tokio::time::timeout_at(end, peer.media.recv_from(&mut bytes)).await {}
     let drain = tokio::time::Instant::now() + Duration::from_millis(200);
     while let Ok(Ok(_)) =
-        tokio::time::timeout_at(drain, native[0].client.receive_native_rtp_datagram()).await
+        tokio::time::timeout_at(drain, native[0].client.receive_native_media_datagram()).await
     {}
     let receive = async {
         let deadline = tokio::time::Instant::now() + Duration::from_millis(900);
         let mut marked = 0;
         while let Ok(Ok(bytes)) =
-            tokio::time::timeout_at(deadline, native[0].client.receive_native_rtp_datagram()).await
+            tokio::time::timeout_at(deadline, native[0].client.receive_native_media_datagram())
+                .await
         {
             let packet = rvoip_uctp::substrate::unpack_rtp_datagram(&bytes).unwrap();
             if packet
