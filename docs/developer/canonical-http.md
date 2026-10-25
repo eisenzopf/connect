@@ -140,3 +140,9 @@ retains current source authority and exact record custody through actual socket
 IO. See [http-record-retrieval.md](http-record-retrieval.md) for bounds, expiry,
 cancellation and current reference-delivery limits. Native retrieval is documented
 in [native-record-retrieval.md](native-record-retrieval.md).
+
+When an original physical effect remains uncertain, operator reconciliation returns
+HTTP 409 with category `state` and reason `reconciliation_required`. Preserve the
+original target and decision IDs, inspect the retained evidence and obtain
+attributed settlement. This is distinct from an invalid command or permission
+denial; declared completion cannot create physical evidence.

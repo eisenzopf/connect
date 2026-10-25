@@ -1419,5 +1419,15 @@
     "fix_report": "docs/evidence/gate-6/provider-host-guard-repair.json"
   },
   "requirement_audit": "docs/evidence/gate-6/crash-recovery-audit.json",
-  "operator_reference": "docs/developer/crash-recovery.md"
+  "operator_reference": "docs/developer/crash-recovery.md",
+  "public_operator_mapping": {
+    "status": "candidate-fix-runtime-pending",
+    "problem": "Problem::from_error had no reconciliation-required arm; known unresolved physical custody fell through to400 state/operation_rejected rather than explicit uncertainty.",
+    "implementation": "Map to409 state/reconciliation_required; both actual SIP SIGKILL public-operator parents assert the exact bounded reason, correlated SDK batch/HTTP status and409 ACK classification. Protected completion refusal and no-redial assertions remain.",
+    "failed_attempts": [
+      "Native remote runtime003 expected request() to return Err instead of inspecting the parsed batch terminator.",
+      "Native remote runtime005 corrected ACK inspection but exposed missing public mapping. Whole wrappers remain failures; no task completion claimed."
+    ],
+    "pending": "Exact guarded rerun building on native remote branch a3e529e; same mapper and SIP test bytes copied here."
+  }
 }
