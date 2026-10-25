@@ -82,7 +82,7 @@ export async function run(config){
         await wait(Math.max(0,start+(n+1)*1000/30-performance.now()));
       }})(),
     ]);void pumping.catch(()=>{});
-    let readiness_ms,measurement;const playback=renderers.map(()=>({peakRms:0,maxPending:0,maxQueuedSeconds:0}));
+    let readiness_ms,measurement;const playback=renderers.map(()=>({peakRms:0,maxPending:0,maxQueuedSeconds:0,queueSamples:0,queueSecondsTotal:0,meanQueuedAudioSeconds:0}));
     try{
       const readyUntil=performance.now()+5000;
       while(!audio.every(a=>a.identified>=5)||!video.every(v=>v.identified>=3)){
@@ -97,9 +97,9 @@ export async function run(config){
       for(const a of audio){a.decoded=0;a.identified=0;}for(const v of video){v.decoded=0;v.identified=0;v.motion.clear();}
       const before=renderers.map(r=>r.diagnostics);
       const measured=performance.now();minimumMarker=Math.floor((measured-markerStart)/1000)+2;measuring=true;
-      while(performance.now()-measured<duration){for(let i=0;i<renderers.length;i++){const d=renderers[i].diagnostics,p=playback[i];p.peakRms=Math.max(p.peakRms,d.audioRms);p.maxPending=Math.max(p.maxPending,d.pendingAudio);p.maxQueuedSeconds=Math.max(p.maxQueuedSeconds,d.queuedAudioSeconds);}if(clean60)observeAudioMarkers();await wait(clean60?5:20);}
+      while(performance.now()-measured<duration){for(let i=0;i<renderers.length;i++){const d=renderers[i].diagnostics,p=playback[i];p.peakRms=Math.max(p.peakRms,d.audioRms);p.maxPending=Math.max(p.maxPending,d.pendingAudio);p.maxQueuedSeconds=Math.max(p.maxQueuedSeconds,d.queuedAudioSeconds);p.queueSamples++;p.queueSecondsTotal+=d.queuedAudioSeconds;}if(clean60)observeAudioMarkers();await wait(clean60?5:20);}
       measuring=false;measurement={elapsed_ms:performance.now()-measured,opus:audio.map(a=>({...a})),vp8:video.map(v=>({...v,motion:v.motion.size}))};
-      for(let i=0;i<renderers.length;i++){const after=renderers[i].diagnostics;playback[i].audio=after.audio-before[i].audio;playback[i].video=after.video-before[i].video;}
+      for(let i=0;i<renderers.length;i++){const after=renderers[i].diagnostics;playback[i].meanQueuedAudioSeconds=playback[i].queueSamples?playback[i].queueSecondsTotal/playback[i].queueSamples:0;playback[i].audio=after.audio-before[i].audio;playback[i].video=after.video-before[i].video;}
     }finally{stop=true;await pumping;}
     check(errors.length===0,'actual SDK media failure: '+errors.join('; '));
     const observedAudio=measurement.opus,observedVideo=measurement.vp8,minimumAudio=clean60?Math.ceil(measurement.elapsed_ms*.0375):150,minimumVideo=clean60?Math.ceil(measurement.elapsed_ms*.024):90;
@@ -123,7 +123,7 @@ export async function run(config){
       const pairs=[...state.video].filter(([id])=>state.audio.has(id)).map(([id,at])=>({id,skew_ms:state.audio.get(id)-at})),absolute=pairs.map(p=>Math.abs(p.skew_ms)).sort((a,b)=>a-b);
       const middle=Math.floor(absolute.length*.5);return{pairs,paired_markers:pairs.length,audio_markers:state.audio.size,video_markers:state.video.size,median_abs_skew_ms:absolute.length?(absolute.length%2?absolute[middle]:(absolute[middle-1]+absolute[middle])/2):null,p95_abs_skew_ms:absolute.length?absolute[Math.ceil(absolute.length*.95)-1]:null};
     });
-    if(clean60)for(const result of alignment)check(result.paired_markers>=42&&result.median_abs_skew_ms<=80&&result.p95_abs_skew_ms<=120,'frozen clean A/V marker alignment '+JSON.stringify(alignment));
+    if(clean60)for(const result of alignment)check(result.paired_markers>=42&&result.median_abs_skew_ms<=80&&result.p95_abs_skew_ms<=120,'frozen clean A/V marker alignment '+JSON.stringify(alignment)+' media_context='+JSON.stringify({opus:observedAudio,vp8:observedVideo,playback,metrics,readiness_ms,measured_ms:measurement.elapsed_ms}));
     const retiring=performance.now();
     for(let i=0;i<2;i++){
       const operation='browser-end-'+i,revision=connections[i].revision;

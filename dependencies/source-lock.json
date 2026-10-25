@@ -1068,6 +1068,11 @@
       "path": "patches/rvoip/gate6-contiguous-audio-burst-regression.patch",
       "sha256": "5454dcf4a0b275cbcc6266fe6ea775fd5544525bac4e71b223b5728ce1de9745",
       "source": "G6-050 tests-only negative for distinct contiguous original audio packets decoded within one mixer tick. Manual real guarded scene at8kHz/48kHz, negotiated G711 source clock and RTP wrap, ordered once-only decoded output, idle writer access, pause/resume discard and unchanged port budget. Existing overlapping/superseded packet semantics remain required."
+    },
+    {
+      "path": "patches/rvoip/gate6-preserve-contiguous-original-pcm.patch",
+      "sha256": "9a867dfe6462799b5e4d584e82ad555f1469688f5ce6fee88eb018eaa3c3de71",
+      "source": "G6-050 preserve distinct contiguous original PCM clock intervals across one mixer tick instead of discarding all but newest. Measure negotiated source clock span before resampling, support RTP wrap; keep existing overlap/discontinuity supersession. Queue only exact original metadata/PCM, at most10chunks/200ms, no idle authority; take() retains original age/current source/scene/consumer/route admission. Add capacity/expiry/fresh recovery test; original pause/resume and overlap tests remain required."
     }
   ]
 }

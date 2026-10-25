@@ -1,0 +1,255 @@
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/guarded_audio.rs b/crates/foundation/rvoip-core/src/staged_streams/guarded_audio.rs
+--- a/crates/foundation/rvoip-core/src/staged_streams/guarded_audio.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/guarded_audio.rs
+@@ -7,6 +7,11 @@
+     codec::factory::CodecFactory, processing::format::resampler::Resampler, AudioFrame,
+ };
+ use std::collections::{HashMap, VecDeque};
++
++pub(super) struct DecodedAudio {
++    pub(super) samples: Vec<i16>,
++    clock_samples: u32,
++}
+ 
+ pub(super) struct Codecs {
+     info: CodecInfo,
+@@ -91,7 +96,7 @@
+             from_mix: resample(mix_rate, *clock_rate_hz)?,
+         })
+     }
+-    pub(super) fn decode(&mut self, frame: &MediaFrame) -> ControlResult<Vec<i16>> {
++    pub(super) fn decode(&mut self, frame: &MediaFrame) -> ControlResult<DecodedAudio> {
+         let decoded = self
+             .decoder
+             .decode(&frame.payload)
+@@ -104,6 +109,8 @@
+         {
+             return Err(StreamControlError::NotReady);
+         }
++        let clock_samples = u32::try_from(decoded.samples.len() / channels)
++            .map_err(|_| StreamControlError::NotReady)?;
+         let mono = decoded
+             .samples
+             .chunks_exact(channels)
+@@ -111,12 +118,16 @@
+                 (frame.iter().map(|v| i64::from(*v)).sum::<i64>() / channels as i64) as i16
+             })
+             .collect::<Vec<_>>();
+-        match &mut self.to_mix {
++        let samples = match &mut self.to_mix {
+             Some(resample) => resample
+                 .resample(&mono)
+-                .map_err(|_| StreamControlError::NotReady),
+-            None => Ok(mono),
+-        }
++                .map_err(|_| StreamControlError::NotReady)?,
++            None => mono,
++        };
++        Ok(DecodedAudio {
++            samples,
++            clock_samples,
++        })
+     }
+     pub(super) fn encode(&mut self, mono: Vec<i16>, timestamp: u32) -> ControlResult<MediaFrame> {
+         let samples = match &mut self.from_mix {
+@@ -176,6 +187,7 @@
+     waiting: Option<MediaPacket>,
+     codecs: Codecs,
+     pending: VecDeque<Chunk>,
++    next_input_timestamp: Option<u32>,
+     ticks: u64,
+     target_started: Instant,
+     previous_sources: Vec<Contribution>,
+@@ -230,6 +242,7 @@
+             self.stamp = stamp;
+             self.codecs = codecs;
+             self.pending.clear();
++            self.next_input_timestamp = None;
+             self.waiting = None;
+             self.previous_sources.clear();
+             self.target_started = self
+@@ -281,40 +294,70 @@
+                 }
+                 Err(_) => continue,
+             };
+-            let Ok(samples) = self.codecs.decode(&packet.frame) else {
++            let Ok(decoded) = self.codecs.decode(&packet.frame) else {
+                 continue;
+             };
+             if tokio::time::Instant::now() >= deadline {
+                 continue;
+             }
+-            if !samples.is_empty() {
++            if !decoded.samples.is_empty() {
+                 self.consumer.observed_decoded(&packet);
+-                // Decode every accepted input in order, including unselected
+-                // inputs used by private preparation. Playback follows the
+-                // newest complete decoded packet instead of carrying an older
+-                // backlog toward the original 200 ms authority deadline.
+-                // A longer packet keeps its unconsumed samples until newer
+-                // decoded input supersedes it. Only metadata and PCM live here.
+-                self.pending.clear();
+-                self.pending.push_back(Chunk {
+-                    packet,
+-                    samples: samples.into(),
+-                });
+-            }
+-        }
++                self.retain_decoded(packet, decoded);
++            }
++        }
++    }
++    fn retain_decoded(&mut self, packet: MediaPacket, decoded: DecodedAudio) {
++        // Distinct contiguous source-clock intervals are original audio, not
++        // a replay. Preserve their order when multiple packets arrive in one
++        // tick. Overlapping/discontinuous input keeps the existing newest-input
++        // rule, including replacement of an older packet's remaining samples.
++        if self.next_input_timestamp != Some(packet.frame.timestamp_rtp) {
++            self.pending.clear();
++        }
++        self.next_input_timestamp = Some(
++            packet
++                .frame
++                .timestamp_rtp
++                .wrapping_add(decoded.clock_samples),
++        );
++        let mut samples = decoded.samples;
++        // Keep at most ten chunks and200ms of PCM before inserting. Source RTP
++        // duration is measured before resampling, so fractional sample conversion
++        // and timestamp wrap cannot turn a contiguous packet into a false gap.
++        let maximum = self.consumer.mix_rate as usize / 5;
++        if samples.len() > maximum {
++            samples.drain(..samples.len() - maximum);
++        }
++        let budget = maximum - samples.len();
+         let mut count = self
+             .pending
+             .iter()
+             .map(|chunk| chunk.samples.len())
+             .sum::<usize>();
+-        while count > 8000 {
+-            let first = self.pending.front_mut().unwrap();
+-            let remove = (count - 8000).min(first.samples.len());
++        while self.pending.len() >= 10 || count > budget {
++            let whole = self.pending.len() >= 10;
++            let Some(first) = self.pending.front_mut() else {
++                break;
++            };
++            let remove = if whole {
++                first.samples.len()
++            } else {
++                (count - budget).min(first.samples.len())
++            };
+             first.samples.drain(..remove);
+             count -= remove;
+             if first.samples.is_empty() {
+                 self.pending.pop_front();
+             }
++        }
++        if !samples.is_empty() {
++            // Only PCM and exact original packet metadata remain between ticks.
++            // take() still reacquires current authority and enforces the original
++            // packet age, scene, consumer and route stamps before every output.
++            self.pending.push_back(Chunk {
++                packet,
++                samples: samples.into(),
++            });
+         }
+     }
+     fn take(
+@@ -460,6 +503,7 @@
+             waiting: None,
+             codecs,
+             pending: VecDeque::new(),
++            next_input_timestamp: None,
+             ticks: 0,
+             previous_sources: Vec::new(),
+         })
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/endpoint_preparation.rs b/crates/foundation/rvoip-core/src/staged_streams/endpoint_preparation.rs
+--- a/crates/foundation/rvoip-core/src/staged_streams/endpoint_preparation.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/endpoint_preparation.rs
+@@ -166,7 +166,8 @@
+             .decoder
+             .try_lock()
+             .map_err(|_| MediaTransitionError::Conflict)?
+-            .decode(frame)?;
++            .decode(frame)?
++            .samples;
+         if samples.is_empty()
+             || tokio::time::Instant::now() >= deadline
+             || self.cancel.is_cancelled()
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/tests/guarded_mixer.rs b/crates/foundation/rvoip-core/src/staged_streams/tests/guarded_mixer.rs
+--- a/crates/foundation/rvoip-core/src/staged_streams/tests/guarded_mixer.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/guarded_mixer.rs
+@@ -166,6 +166,9 @@
+         self.publish_at(index, value, 0);
+     }
+     fn publish_at(&self, index: usize, value: i16, timestamp: u32) {
++        self.publish_duration(index, value, timestamp, 1);
++    }
++    fn publish_duration(&self, index: usize, value: i16, timestamp: u32, frames: u32) {
+         let port = self.port(index);
+         let MediaFormat::Encoded {
+             name,
+@@ -191,10 +194,15 @@
+         .unwrap();
+         let payload = codec
+             .encode(&rvoip_media_core::AudioFrame {
+-                samples: vec![value; (*clock_rate_hz / 50) as usize * usize::from(*channels)],
++                samples: vec![
++                    value;
++                    (*clock_rate_hz / 50) as usize
++                        * usize::from(*channels)
++                        * frames as usize
++                ],
+                 sample_rate: *clock_rate_hz,
+                 channels: *channels,
+-                duration: Duration::from_millis(20),
++                duration: Duration::from_millis(20 * u64::from(frames)),
+                 timestamp,
+             })
+             .unwrap();
+@@ -906,3 +914,43 @@
+         assert_eq!(budget, c.stream_open_budget());
+     }
+ }
++
++#[tokio::test]
++async fn guarded_mixer_contiguous_pcm_is_bounded_and_expired_original_samples_do_not_play() {
++    let s = Scene::new(&four()[..2], 8000).await;
++    s.bind(0, true).await;
++    s.bind(1, true).await;
++    let mut out = s.port(1).take_egress().unwrap();
++    // Three valid100msG711 packets arrive together. Retain at most200ms:
++    // exactly ten20ms outputs, beginning with the second original packet.
++    s.publish_duration(0, 1000, 0, 5);
++    s.publish_duration(0, 3000, 800, 5);
++    s.publish_duration(0, 7000, 1600, 5);
++    for expected in [3000, 3000, 3000, 3000, 3000, 7000, 7000, 7000, 7000, 7000] {
++        s.mixer.tick();
++        heard(out.try_recv().unwrap(), expected).await;
++    }
++    s.mixer.tick();
++    assert!(
++        out.try_recv().is_err(),
++        "PCM exceeded its200msbound or repeated original samples"
++    );
++    s.publish_at(0, 1000, 2400);
++    s.publish_at(0, 7000, 2560);
++    s.mixer.tick();
++    heard(out.try_recv().unwrap(), 1000).await;
++    drop(
++        s.policy
++            .0
++            .try_write()
++            .expect("idle pending PCM retained current authority"),
++    );
++    tokio::time::sleep(Duration::from_millis(210)).await;
++    s.mixer.tick();
++    assert!(out.try_recv().is_err(), "expired original PCM reached IO");
++    s.publish_at(0, 7000, 2720);
++    s.mixer.tick();
++    heard(out.try_recv().unwrap(), 7000).await;
++    s.mixer.tick();
++    assert!(out.try_recv().is_err(), "fresh recovery audio repeated");
++}

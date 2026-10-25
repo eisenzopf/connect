@@ -1,7 +1,7 @@
 {
   "schema": "connect-gate6-original-pcm/1",
   "task": "G6-050",
-  "status": "Controlled actualCore negative verified; production correction not yet applied",
+  "status": "Production patch192 passes71focused Core methods; actual host throughput/alignment remains pending",
   "negative_before": {
     "report": ".local/gate-6/audio-pcm/negative001/summary.json",
     "sha256": "7a91b92098ba5e357c1e529e6514ece785bfd10b1e99a5693c01f1413f9800d4",
@@ -37,6 +37,57 @@
   },
   "mechanism": "Two distinct G711 original packets cover consecutive negotiated8kHz RTP intervals and are published before one real guarded scene tick. Current collect() decodes both but clears the first PCM when the second arrives. First actualdecoded output is6908 (the7000secondpacket) rather than1000firstpacket. Failure stops initial8kHzcase;48kHz/wrap/pause checks await the positive run. This is a failing regression, not a passing test.",
   "distinction": "Existing burst/supersession tests use the same RTP timestamp for replacement packets. Those semantics remain required; this regression adds nonoverlapping original clock intervals.",
-  "next": "Retain only contiguous original decodedPCM in order, using source clock sample count before resampling and wrapping timestamps. Keep overlapping/discontinuous newest-input behavior, original packet age/current authority, ten20msframes/200ms bounds, pause/revocation safety, no idle reader and no repeatedIO. Positive allguarded_mixer+media_scene tests then actualhost/browser/native/transport and frozenalignment remain required.",
-  "scope": "ActualCore functional negative only. Does not explain all observed skew/video loss, qualify actual host throughput, completeG6-050/Gate6 acceptance, or authorize publication."
+  "next": "Rebuild current production host then full12browser/native, frozen8browser includingboth60secondcapture algorithms, and28transport methods. Record actual audio delivery/alignment. This controlled fix does not establish that every observed skew/video loss is resolved. Frozen thresholds and marker definitions stay unchanged.",
+  "scope": "ActualCore functional negative only. Does not explain all observed skew/video loss, qualify actual host throughput, completeG6-050/Gate6 acceptance, or authorize publication.",
+  "implementation": {
+    "patch": "patches/rvoip/gate6-preserve-contiguous-original-pcm.patch",
+    "patch_sha256": "9a867dfe6462799b5e4d584e82ad555f1469688f5ce6fee88eb018eaa3c3de71",
+    "patch_count": 192,
+    "source_lock_sha256": "883c14b2d674223f0c29f4d79764068641c114a6f0e322e23c0ff1fee8a64877",
+    "behavior": [
+      "Measure original negotiated source-clock duration before resampling. Append distinct contiguous original intervals, including RTP wrap. Overlap/discontinuity retains existing newest-input behavior.",
+      "Retain only exact original packet metadata and PCM between ticks, with at most10chunks and200ms of samples before insertion; no idle authority or unbounded backlog.",
+      "Every take/delivery retains current original authority, age, route, scene and consumer checks; no accepted IO retry or changed logical identity.",
+      "Discard-only endpoint preparation uses the same decoded samples; clock duration metadata creates no permission."
+    ]
+  },
+  "positive_after": {
+    "report": ".local/gate-6/audio-pcm/positive001/summary.json",
+    "sha256": "c2f619ec2a4f1488bbb0989d7017deff1fe0093b1ab0bcca8e28c02d637be6ae",
+    "passed": true,
+    "source_inputs_unchanged": true,
+    "executable_unchanged": true,
+    "passed_methods": 71,
+    "groups": [
+      {
+        "selection": "staged_streams::tests::guarded_mixer::",
+        "exit_code": 0,
+        "passed": true,
+        "expected_failure": false,
+        "counts": [
+          42,
+          0,
+          0
+        ],
+        "log": ".local/gate-6/audio-pcm/positive001/case-0.log",
+        "log_sha256": "ed75d54b3814852c271ad5603dcb3cad9664ebb71279b3e9dcba903bc0bd17a9",
+        "elapsed_seconds": 1.670046417042613
+      },
+      {
+        "selection": "staged_streams::tests::media_scene::",
+        "exit_code": 0,
+        "passed": true,
+        "expected_failure": false,
+        "counts": [
+          29,
+          0,
+          0
+        ],
+        "log": ".local/gate-6/audio-pcm/positive001/case-1.log",
+        "log_sha256": "940a54f3e6a337cbebc036a71e401081596be38a3318f20572fb4b50960b2706",
+        "elapsed_seconds": 0.2647079590242356
+      }
+    ],
+    "verification": "New regression passes8kHz,48kHz andRTPwrap: correct ordered first/second original output once, writer access while laterPCM waits, pause/resume invalidation and fresh recovery with unchanged port budget. Capacity test receives exactly ten20ms outputs from retained200ms, expires remaining original PCM after210ms, and accepts one fresh recovery without repetition. Existing same-timestamp burst supersession and long/partial packet behavior still pass."
+  }
 }
