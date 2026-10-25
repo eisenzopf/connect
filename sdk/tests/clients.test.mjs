@@ -4,6 +4,7 @@ import './browser_rtp.test.mjs';
 import './browser_codecs.test.mjs';
 import './browser_media.test.mjs';
 import './browser_capture_media.test.mjs';
+import './browser_renderer.test.mjs';
 import './tasks.test.mjs';
 import './record_context.test.mjs';
 import './contacts.test.mjs';

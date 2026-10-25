@@ -37,6 +37,7 @@ export declare class BrowserVp8Codec {
     private stopped;
     private lastKey;
     private lastFrame;
+    private readonly frameTimes;
     private forceKey;
     private dropUntilKey;
     private suspendedUntil;

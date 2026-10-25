@@ -75,7 +75,8 @@ configurations. `BrowserOpusCodec` consumes 960 mono float PCM samples per 20 ms
 frame at 48 kHz and targets 32 kbit/s. `BrowserVp8Codec` consumes and closes
 `VideoFrame` inputs, targets 640x360/30 fps and 500 kbit/s, caps emitted video
 at 1 Mbit per sliding second and requests a keyframe at least every second of
-submitted media. Queues drop excess work; a receiver waits for a fresh keyframe
+submitted media. A rolling window permits at most 30 input frames per second
+while accepting ordinary capture timestamp jitter. Queues drop excess work; a receiver waits for a fresh keyframe
 after declared loss. `requestKeyFrame()` lets the owning media path request
 recovery after dropping output. Decoded callbacks borrow the frame synchronously;
 the codec always closes it, including on callback failure. `RtpClock` unwraps
@@ -114,9 +115,23 @@ callbacks at 640x360. The helper stops late permission grants after cancellation
 or the startup deadline, pauses locally when hidden, and requires explicit
 `resume()` from a visible page. Connection closure stops all owned tracks, frame
 callbacks, graph nodes and worklet ports. Device IDs stay local to capture.
-These ownership paths have controlled SDK tests; real browser capture and
-audio playback qualification remain pending. Callback delivery alone does not
-establish that the user sees or hears the media.
+These ownership paths have controlled SDK tests and a separate real-Chrome
+checkpoint using identifiable supplied streams, fake devices and permission
+denial. Real tab visibility pauses capture; visible-page resume restores it.
+The short fixture uses a mock Connection, so connected capture and native
+interoperation still require their own evidence.
+
+`BrowserMediaRenderer.open(connection, { video: { [streamId]: canvas } })`
+creates a Connection-owned Web Audio graph and uses application canvases for
+named receive Streams. Forward decoded callbacks to `renderer.audio(binding,
+frame)` and `renderer.video(binding, frame)`. Both borrow synchronously; the
+renderer copies PCM and never retains decoded frames. Playback holds at most
+ten 20 ms sources and 200 ms of scheduled audio. Hidden pages pause and discard
+pending output; call `resume()` from a visible page. `close()` stops buffers and
+closes the graph; await `finished` to observe completion or graph-close failure.
+Diagnostics expose bounded counts, audio graph state and aggregate RMS, without
+raw samples. This checkpoint verifies actual canvas/audio-graph rendering;
+full cross-stream synchronization remains unqualified.
 
 `connection.sendData(operationId, messageId, streamId, body)` uses signed,
 reliable ordered canonical publication with original logical IDs and at most

@@ -201,6 +201,7 @@ export class BrowserVp8Codec {
     private stopped = false;
     private lastKey = -Infinity;
     private lastFrame = -Infinity;
+    private readonly frameTimes: number[] = [];
     private forceKey = false;
     private dropUntilKey = false;
     private suspendedUntil = -Infinity;
@@ -285,14 +286,21 @@ export class BrowserVp8Codec {
     /** Consumes and closes the caller's VideoFrame on every path. */
     encode(frame: VideoFrame): boolean {
         try {
+            while (
+                this.frameTimes.length &&
+                frame.timestamp - this.frameTimes[0] >= 1000000
+            )
+                this.frameTimes.shift();
             if (
                 this.stopped ||
                 this.encoder.encodeQueueSize >= 2 ||
-                frame.timestamp - this.lastFrame < 33333 ||
+                frame.timestamp <= this.lastFrame ||
+                this.frameTimes.length >= 30 ||
                 frame.timestamp < this.suspendedUntil
             )
                 return false;
             this.lastFrame = frame.timestamp;
+            this.frameTimes.push(frame.timestamp);
             const keyFrame =
                 this.forceKey || frame.timestamp - this.lastKey >= 1000000;
             if (keyFrame) this.lastKey = frame.timestamp;

@@ -1,0 +1,288 @@
+{
+  "task": "G6-050",
+  "status": "in-progress",
+  "scope": "Local Chrome actual capture/worklet/WebCodecs/canvas/audio graph ownership checkpoint. Supplied identifiable streams and actual fake camera/microphone getUserMedia plus denial. Mock Connection, separate from connected SDK regression; no connected capture/native/full60s/A-V alignment/impairment/screen permission claim.",
+  "implementation": [
+    "Connection-owned bounded audio renderer copies borrowed PCM into at most ten 20ms scheduled sources, with at most200ms queued audio; canvas rendering borrows VideoFrames synchronously",
+    "Hidden-page pause drops pending audio and disables capture tracks; explicit visible resume starts fresh worklet epoch",
+    "Connection closure stops actual owned tracks, RFVC, worklet and audio graphs; renderer.finished rejects graph close failure",
+    "VP8 admission limits30frames per rolling second rather than rejecting ordinary capture interval jitter; bitrate, MTU and codec queue limits remain unchanged"
+  ],
+  "sdk_suite": {
+    "passed": 189,
+    "failed": 0,
+    "skipped": 0,
+    "log": ".local/gate-6/browser-sdk-renderer-final-tests.log",
+    "sha256": "5699984b02b9b00d807b89057a8247e40fabceb849cf8524fd29f5981120cb8d"
+  },
+  "negative_jitter_regression": {
+    "log": ".local/gate-6/browser-sdk-capture-jitter-before.log",
+    "sha256": "b0280cb5401ba537b7634cbe5ded2f5a9b1ffab8a5d15d8ce582691a9cb471da",
+    "expected_failure": "capture timestamp2 rejected by rigid33333us spacing"
+  },
+  "positive_jitter_regression": {
+    "log": ".local/gate-6/browser-sdk-capture-jitter-after.log",
+    "sha256": "9f9d9fb55b7e92974c703ad58d226591bcda858f6bed90c43a188d9889bacd46",
+    "passed": 188
+  },
+  "chrome_capture": {
+    "summary": ".local/gate-6/browser-sdk/capture024/summary.json",
+    "sha256": "289806ab13b4940f9338a739a317411e797b11a19906ca673b85eb2f7015ee50",
+    "passed": true,
+    "source_inputs_unchanged": true,
+    "browser": {
+      "product": "Chrome/155.0.8059.85",
+      "protocol_version": "1.3",
+      "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36",
+      "js_version": "15.5.35.25"
+    },
+    "cases": [
+      {
+        "passed": true,
+        "mode": "provided",
+        "measured": {
+          "duration_ms": 4019.5999999046326,
+          "opus": {
+            "decoded": 201,
+            "identified": 200
+          },
+          "vp8": {
+            "decoded": 117,
+            "identified": 117,
+            "motion": 116
+          }
+        },
+        "opus": {
+          "decoded": 222,
+          "identified": 219
+        },
+        "vp8": {
+          "decoded": 128,
+          "identified": 128,
+          "motion": 127
+        },
+        "encoded": {
+          "audio": 222,
+          "video": 131
+        },
+        "renderer": {
+          "audio": 222,
+          "video": 128,
+          "endedAudio": 218,
+          "droppedAudio": 0,
+          "droppedVideo": 0,
+          "closed": true,
+          "paused": false,
+          "pendingAudio": 0,
+          "queuedAudioSeconds": 0,
+          "audioState": "closed",
+          "audioRms": 0
+        },
+        "max_pending_audio": 2,
+        "max_queued_audio_seconds": 0.03400000000000292,
+        "peak_render_rms": 0.17762060810487568,
+        "states": [
+          "active",
+          "paused",
+          "active",
+          "closed"
+        ],
+        "actual_hidden_pause": true,
+        "explicit_visible_resume": true,
+        "owned_cleanup_ms": 154.30000019073486,
+        "owned_context_states": [
+          "closed",
+          "closed"
+        ],
+        "owned_track_states": [
+          {
+            "kind": "audio",
+            "state": "ended"
+          },
+          {
+            "kind": "video",
+            "state": "ended"
+          }
+        ],
+        "scope": "short actual capture/worklet/WebCodecs/canvas/audio-graph ownership checkpoint with mock Connection; no WT/native/full60s/sync/impairment/screen permission qualification"
+      },
+      {
+        "passed": true,
+        "mode": "device",
+        "measured": {
+          "duration_ms": 4013.399999856949,
+          "opus": {
+            "decoded": 201,
+            "identified": 7
+          },
+          "vp8": {
+            "decoded": 117,
+            "identified": 0,
+            "motion": 1
+          }
+        },
+        "opus": {
+          "decoded": 224,
+          "identified": 7
+        },
+        "vp8": {
+          "decoded": 130,
+          "identified": 0,
+          "motion": 1
+        },
+        "encoded": {
+          "audio": 224,
+          "video": 133
+        },
+        "renderer": {
+          "audio": 224,
+          "video": 130,
+          "endedAudio": 220,
+          "droppedAudio": 0,
+          "droppedVideo": 0,
+          "closed": true,
+          "paused": false,
+          "pendingAudio": 0,
+          "queuedAudioSeconds": 0,
+          "audioState": "closed",
+          "audioRms": 0
+        },
+        "max_pending_audio": 2,
+        "max_queued_audio_seconds": 0.03933333333333655,
+        "peak_render_rms": 0.3289510285546158,
+        "states": [
+          "active",
+          "paused",
+          "active",
+          "closed"
+        ],
+        "actual_hidden_pause": true,
+        "explicit_visible_resume": true,
+        "owned_cleanup_ms": 153.29999995231628,
+        "owned_context_states": [
+          "closed",
+          "closed"
+        ],
+        "owned_track_states": [
+          {
+            "kind": "audio",
+            "state": "ended"
+          },
+          {
+            "kind": "video",
+            "state": "ended"
+          }
+        ],
+        "scope": "short actual capture/worklet/WebCodecs/canvas/audio-graph ownership checkpoint with mock Connection; no WT/native/full60s/sync/impairment/screen permission qualification"
+      },
+      {
+        "passed": true,
+        "mode": "denied",
+        "permission_denied": true,
+        "graph_count": 0,
+        "scope": "owned Chrome permission denial with fake device endpoint; no network/native qualification"
+      }
+    ]
+  },
+  "connected_sdk_regression": {
+    "summary": ".local/gate-6/browser-sdk/render025/summary.json",
+    "sha256": "b49c4d4c851cfedfec2ede7aae650fd1d9b3fe187b8bd4fbd873e7ffeb1bac44",
+    "passed": true,
+    "source_inputs_unchanged": true,
+    "executable_unchanged": true,
+    "cases": [
+      {
+        "case": "canonical_webtransport_browser::installed_chrome_production_sdk_signed_control_receipts_and_refusals_eddsa",
+        "passed": true,
+        "exit_code": 0,
+        "elapsed_seconds": 0.9350572091061622,
+        "log": ".local/gate-6/browser-sdk/render025/case-0.log",
+        "log_sha256": "60bb0487175b851b0a75654b37a4fe0794af7172ad16c317b125e9101edb2589"
+      },
+      {
+        "case": "canonical_webtransport_browser::installed_chrome_production_sdk_signed_control_receipts_and_refusals_es256",
+        "passed": true,
+        "exit_code": 0,
+        "elapsed_seconds": 0.7977642919868231,
+        "log": ".local/gate-6/browser-sdk/render025/case-1.log",
+        "log_sha256": "00839dc556d82f484ea420b38b674e19c822803636c254e81c07341ffbb3118b"
+      },
+      {
+        "case": "canonical_webtransport_browser::installed_chrome_signed_control_reconnect_and_independently_decoded_duplex_eddsa",
+        "passed": true,
+        "exit_code": 0,
+        "elapsed_seconds": 4.371644125087187,
+        "log": ".local/gate-6/browser-sdk/render025/case-2.log",
+        "log_sha256": "8a7aee62be1d9f348d3efb486aeaecca89af228d7c50b8670fd5c21c6d376f68"
+      },
+      {
+        "case": "canonical_webtransport_browser::installed_chrome_signed_control_reconnect_and_independently_decoded_duplex_es256",
+        "passed": true,
+        "exit_code": 0,
+        "elapsed_seconds": 4.406894917134196,
+        "log": ".local/gate-6/browser-sdk/render025/case-3.log",
+        "log_sha256": "a0377bc4b9b052ee630002ce66056f34df4e5b5e022334ad88d68838fa3123df"
+      },
+      {
+        "case": "canonical_webtransport_browser::installed_chrome_production_sdk_negotiated_duplex_opus_vp8_and_reliable_data_eddsa",
+        "passed": true,
+        "exit_code": 0,
+        "elapsed_seconds": 5.482568041188642,
+        "log": ".local/gate-6/browser-sdk/render025/case-4.log",
+        "log_sha256": "d124548b59b34710c7e61adbf4a4eaf30c6d8d8fb7e45e20548b107bd0af8552"
+      },
+      {
+        "case": "canonical_webtransport_browser::installed_chrome_production_sdk_negotiated_duplex_opus_vp8_and_reliable_data_es256",
+        "passed": true,
+        "exit_code": 0,
+        "elapsed_seconds": 5.541490875184536,
+        "log": ".local/gate-6/browser-sdk/render025/case-5.log",
+        "log_sha256": "8a25e32e89e314f241460688f6df03a5792e7decc4383f0836f74c937485abe7"
+      }
+    ]
+  },
+  "retained_runs": [
+    {
+      "summary": ".local/gate-6/browser-sdk/capture020/summary.json",
+      "sha256": "d69cdb07678e67aebe5b1f6e03c3a3d49addb188d2d9ee8d4e25673bfed86343",
+      "passed": false,
+      "observation": "Harness uses incorrect CDP permission descriptor names; no media check ran."
+    },
+    {
+      "summary": ".local/gate-6/browser-sdk/capture021/summary.json",
+      "sha256": "68c8ee698450b27c24a31a1b6cdb8c328b485401d90cb0ced3a8d143c62c694c",
+      "passed": false,
+      "observation": "Supplied source121 capture callbacks/72 decodedVP8 demonstrates real pacing gap. Fake camera defaults20fps; no threshold lowered."
+    },
+    {
+      "summary": ".local/gate-6/browser-sdk/capture022/summary.json",
+      "sha256": "d255331359fe3f5594ef0083708925302b22d861048caa7606eb25e1d3ff6988",
+      "passed": true,
+      "observation": "All3 supplied/device/denial methods pass after pacing fix and explicit30fps fake device; manual pause only."
+    },
+    {
+      "summary": ".local/gate-6/browser-sdk/capture023/summary.json",
+      "sha256": "042a4bbd633c47c3eb407f27c93bee4ad6ec0b4ba9d5421f48c164710c6fd907",
+      "passed": true,
+      "observation": "All3 pass including actual tab visibility and all actual tracks ended."
+    }
+  ],
+  "fake_camera_configuration": {
+    "argument": "--use-fake-device-for-media-stream=fps=30",
+    "reference": "https://raw.githubusercontent.com/chromium/chromium/main/media/capture/video/fake_video_capture_device_factory.cc",
+    "scope": "Pinned fixture configuration before current run; default20fps cannot test frozen30fps input. No personal camera/microphone opened."
+  },
+  "source_sha256": {
+    "sdk/typescript/src/browser_media_renderer.ts": "372e3ecd3742e574801c65dbad780bdeb6a97cf7dd73d1480a456d4f6a8aca4d",
+    "sdk/typescript/dist/browser_media_renderer.js": "9899e1e7ecb86801b3022c475575fb938a55855582932a929b22b608fd080f3d",
+    "sdk/typescript/src/browser_codecs.ts": "9983e25b7ce1c96954190979b40ebcbd85b404d360481370dc4c24600d0b0d48",
+    "sdk/typescript/dist/browser_codecs.js": "27708b8acf08cefa49d763d980c1be015c33dd14711caf9ce759e4f9760ffa6a",
+    "sdk/tests/browser_renderer.test.mjs": "2aaa76fd33a4a1ca9ac12200ad346b299f6c93d5fe756d43fcc5fb9840b723ff",
+    "sdk/tests/browser_codecs.test.mjs": "54d89252620ac63e8dd29410dbe5a33cfca391d0a39a7f43f3e066012be08bea",
+    "scripts/rehearse-gate6-browser-capture.mjs": "35c68172961658e287280c472087a92fbe1a9719451d11055fe2730a52de881f",
+    "crates/connect-server/tests/fixtures/gate6-webtransport-browser/sdk-capture.mjs": "f3d9b51180f3952e32e0dd796cd1bed87c257bb86eb278135499f6bba375012c",
+    "crates/connect-server/tests/fixtures/gate6-webtransport-browser/run-browser.mjs": "663c2d98e5c6166cf79a32926adc580a5fd76992b9776cbb8a9103aee7a54cb6"
+  },
+  "acceptance_qualified": false,
+  "remaining": "Connected capture/render over actual WT; identified browser/native Opus/VP8/data; full60s decoded fps/uniquely paired A-V alignment, impairment recovery, permission/screen/API/codec and teardown qualification."
+}

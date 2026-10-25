@@ -1,5 +1,9 @@
 /** Browser-only Connect surface. This entry point imports no Node modules. */
 export {
+    BrowserMediaRenderer,
+    type BrowserMediaRendererOptions,
+} from "./browser_media_renderer.js";
+export {
     BrowserMediaCapture,
     browserCaptureSupport,
     type BrowserMediaCaptureOptions,

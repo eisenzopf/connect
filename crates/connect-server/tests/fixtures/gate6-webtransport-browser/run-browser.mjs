@@ -12,17 +12,32 @@ await new Promise((resolve,reject)=>{socket.onopen=resolve;socket.onerror=()=>re
 let serial=0;const pending=new Map();
 socket.onmessage=event=>{const message=JSON.parse(event.data);if(!message.id)return;const request=pending.get(message.id);if(!request)return;pending.delete(message.id);clearTimeout(request.timer);message.error?request.reject(Error('CDP '+request.method+' refused')):request.resolve(message.result);};
 function send(method,params={},sessionId){return new Promise((resolve,reject)=>{const id=++serial;const timer=setTimeout(()=>{pending.delete(id);reject(Error('CDP '+method+' deadline'));},70000);pending.set(id,{resolve,reject,timer,method});socket.send(JSON.stringify({id,method,params,...(sessionId?{sessionId}:{})}));});}
-let target;
+let target,cover;
 try {
   const browser=await send('Browser.getVersion');target=(await send('Target.createTarget',{url:config.page_url})).targetId;
   const session=(await send('Target.attachToTarget',{targetId:target,flatten:true})).sessionId;
+  if(config.capture_permissions!==undefined){
+    if(!['granted','denied'].includes(config.capture_permissions))throw Error('bounded fixture permission setting');
+    for(const name of ['microphone','camera'])await send('Browser.setPermission',{permission:{name},setting:config.capture_permissions,origin:new URL(config.page_url).origin});
+  }
   await send('Runtime.enable',{},session);
   const until=Date.now()+8000;
   for(;;){const ready=await send('Runtime.evaluate',{expression:"typeof globalThis.runBrowserFixture === 'function'",returnByValue:true},session);if(ready.result.value)break;if(Date.now()>until)throw Error('browser fixture page readiness deadline');await new Promise(r=>setTimeout(r,50));}
-  const result=await send('Runtime.evaluate',{expression:'globalThis.runBrowserFixture('+JSON.stringify(config.run)+')',awaitPromise:true,returnByValue:true},session);
+  const evaluation=send('Runtime.evaluate',{expression:'globalThis.runBrowserFixture('+JSON.stringify(config.run)+')',awaitPromise:true,returnByValue:true,...(config.user_gesture===true?{userGesture:true}:{})},session);
+  void evaluation.catch(()=>{});
+  if(config.visibility_probe===true){
+    const phase=async expected=>{
+      const until=Date.now()+10000;
+      for(;;){const current=await send('Runtime.evaluate',{expression:'globalThis.captureVisibilityPhase',returnByValue:true},session);if(current.result.value===expected)return;if(Date.now()>until)throw Error('actual page visibility phase '+expected+' deadline');await new Promise(r=>setTimeout(r,25));}
+    };
+    await phase('hide');cover=(await send('Target.createTarget',{url:'about:blank',background:false})).targetId;
+    await send('Target.activateTarget',{targetId:cover});await phase('hidden');await send('Target.activateTarget',{targetId:target});
+  }
+  const result=await evaluation;
   if(result.exceptionDetails||!result.result?.value?.passed)throw Error(result.exceptionDetails?.exception?.description||'browser fixture returned no success');
   console.log(JSON.stringify({browser:{product:browser.product,protocol_version:browser.protocolVersion,user_agent:browser.userAgent,js_version:browser.jsVersion},result:result.result.value}));
 } finally {
+  if(cover)await send('Target.closeTarget',{targetId:cover}).catch(()=>{});
   if(target)await send('Target.closeTarget',{targetId:target}).catch(()=>{});
   for(const item of pending.values()){clearTimeout(item.timer);item.reject(Error('owned CDP closed'));}pending.clear();socket.close();
 }
