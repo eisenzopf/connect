@@ -486,7 +486,7 @@
             "bearerAuth": []
           }
         ],
-        "description": "Configured canonical transport metadata through the loopback application listener. Requires a current bearer before bounded body collection. GET body must be empty. Response names the configured WebTransport HTTPS mount or null when disabled, mandatory Origin enforcement, and per-session datagram negotiation. It installs no TLS/signing trust, endpoint verification, authorization, session or media grant. An unrelated HTTP or webhook-only listener cannot advertise a canonical listener. Read-only, no automatic retries, no-store; SDK transport_discovery uses the existing cancellation/deadline/response bounds.",
+        "description": "Configured canonical transport metadata through the loopback application listener. Requires a current bearer before bounded body collection. GET body must be empty. Response names configured WebTransport HTTPS and TLS WebSocket WSS mounts or null when disabled, mandatory Origin enforcement, and WebTransport per-session datagram negotiation. WSS control metadata does not assert WebRTC media support. It installs no TLS/signing trust, endpoint verification, authorization, session or media grant. An unrelated HTTP or webhook-only listener cannot advertise a canonical listener. Read-only, no automatic retries, no-store; SDK transport_discovery uses the existing cancellation/deadline/response bounds.",
         "responses": {
           "200": {
             "description": "Configured metadata; at most8192 UTF-8 JSON bytes.",
@@ -5457,6 +5457,26 @@
         ],
         "additionalProperties": false
       },
+      "WebSocketEndpoint": {
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string",
+            "format": "uri",
+            "maxLength": 2048,
+            "pattern": "^wss://[^\\s]+$",
+            "description": "Configured exact TLS WebSocket contact. Install TLS and server-signing trust separately; this advertises control only, not WebRTC media readiness."
+          },
+          "origin_required": {
+            "const": true
+          }
+        },
+        "required": [
+          "url",
+          "origin_required"
+        ],
+        "additionalProperties": false
+      },
       "TransportDiscovery": {
         "type": "object",
         "properties": {
@@ -5482,13 +5502,24 @@
                 "type": "null"
               }
             ]
+          },
+          "websocket": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/WebSocketEndpoint"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "required": [
           "profile",
           "max_control_envelope_bytes",
           "max_physical_peers",
-          "webtransport"
+          "webtransport",
+          "websocket"
         ],
         "additionalProperties": false
       },
@@ -5671,6 +5702,19 @@
         "additionalProperties": false
       }
     }
+  },
+  "x-connect-canonical-websocket": {
+    "enabled": "Optional protected canonical server websocket configuration; disabled by default.",
+    "configuration": {
+      "bind": "Explicit bounded network-profile TCP listener; separate from the UDP QUIC/WebTransport address.",
+      "mount_path": "Exact absolute path, at most256 ASCII bytes without dot segments or double slashes.",
+      "allowed_origins": "Between1 and32 unique exact HTTPS origins; explicit loopback HTTP only for Local development. Missing, repeated or different Origin is refused.",
+      "advertised_url": "Exact WSS mount; required for Remote. Local omission derives actual bound TCP IPv4/bracketed IPv6 contact."
+    },
+    "authority": "The same canonical identity, signed control protocol, current Store authentication/authorization, operation ledger and global physical peer budget as QUIC/WebTransport.",
+    "lifetime": "Owned bounded intake and TLS/authentication; server key expiry, shutdown or drop retires active physical peers. WSS and QUIC/WebTransport intake failure retire linked transports.",
+    "media": "Control hosting only. WebRTC SDP/ICE/media integration and forced-browser fallback qualification remain G6-051 work.",
+    "recovery": "Keep original mutation IDs across uncertainty; observe status using current authority. No automatic mutation retry or transport migration."
   },
   "x-connect-canonical-webtransport": {
     "enabled": "Optional protected canonical server webtransport config; disabled by default.",

@@ -129,6 +129,7 @@ fn populate(
     let server = CanonicalServerConfig {
         network_profile: Default::default(),
         webtransport: None,
+        websocket: None,
         session_reconnect_grace_seconds: 30,
         bind,
         database: "state.sqlite3".into(),

@@ -448,3 +448,6 @@ mod canonical_webtransport_lifecycle;
 
 #[path = "support/canonical_webtransport_mixed.rs"]
 mod canonical_webtransport_mixed;
+
+#[path = "support/canonical_websocket_control.rs"]
+mod canonical_websocket_control;

@@ -27,7 +27,7 @@ telnyx.workspace = true
 rvoip-quic.workspace = true
 rvoip-uctp.workspace = true
 rvoip-vapi.workspace = true
-rvoip-websocket.workspace = true
+rvoip-websocket = { workspace = true, features = ["wss"] }
 rvoip-webtransport.workspace = true
 rvoip-sip.workspace = true
 rvoip-webrtc.workspace = true

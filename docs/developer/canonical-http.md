@@ -157,8 +157,10 @@ loopback; native Remote configuration does not expose it.
 `CanonicalHttpClient::transport_discovery` reads authenticated
 `GET /v2/discovery` on the canonical application listener. It returns the
 `connect/2` profile, control-envelope and physical-peer limits, and the configured
-WebTransport HTTPS contact (or `null` when disabled). The contact requires an
-exact allowed Origin; datagram availability is negotiated per session. Install
+WebTransport HTTPS and TLS WebSocket WSS contacts (each `null` when disabled).
+Each contact requires an exact allowed Origin; WebTransport datagram availability
+is negotiated per session. WSS discovery describes control hosting; it does not
+assert WebRTC media readiness. Install
 TLS trust and the enrolled server signing pin separately before opening it.
 
 The GET body must be empty. Current bearer authentication and the shared HTTP
@@ -173,4 +175,5 @@ See the [HTTP/OpenAPI reference](../../contracts/openapi-canonical-http.json).
 In Local mode, an omitted advertised WebTransport URL preserves the actual bound
 IPv4 or bracketed IPv6 address. Fresh Local certificates cover localhost and both
 loopback IP identities. Remote mode still requires an explicit HTTPS contact.
-See [WebTransport composition and rehearsal](canonical-webtransport.md).
+See [WebTransport composition and rehearsal](canonical-webtransport.md) and
+[WSS control hosting](canonical-websocket.md).

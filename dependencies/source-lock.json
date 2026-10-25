@@ -1089,6 +1089,11 @@
     {
       "path": "patches/rvoip/gate6-bound-waiting-audio-originals.patch",
       "sha256": "931502f7a27f65d739710a81ad036c1d738f32f6579fb1aa7eea8874e3baf48a"
+    },
+    {
+      "path": "patches/rvoip/gate6-owned-profile-retirement.patch",
+      "sha256": "583e10a6c38db72f94167786359fc4d0d941e44a003c6bda1de89e41fd8b52b0",
+      "source": "G6-051 synchronous physical lifetime retirement for owned TLS WebSocket intake shutdown/drop. Admission drain remains distinct, and asynchronous shutdown retains the original shared owned join. Includes active-peer cancellation versus drain regressions."
     }
   ]
 }

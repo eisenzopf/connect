@@ -11,6 +11,7 @@ pub struct TransportDiscovery {
     pub max_control_envelope_bytes: u32,
     pub max_physical_peers: u32,
     pub webtransport: Option<WebTransportEndpoint>,
+    pub websocket: Option<WebSocketEndpoint>,
 }
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -18,6 +19,12 @@ pub struct WebTransportEndpoint {
     pub url: String,
     pub origin_required: bool,
     pub datagrams: DatagramNegotiation,
+}
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct WebSocketEndpoint {
+    pub url: String,
+    pub origin_required: bool,
 }
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
@@ -47,6 +54,29 @@ impl TransportDiscovery {
             }
             let url = url::Url::parse(&wt.url).map_err(|_| invalid())?;
             if url.scheme() != "https"
+                || url.host_str().is_none()
+                || !url.username().is_empty()
+                || url.password().is_some()
+                || url.query().is_some()
+                || url.fragment().is_some()
+                || url.port() == Some(0)
+            {
+                return Err(invalid());
+            }
+        }
+        if let Some(ws) = &self.websocket {
+            if !ws.origin_required
+                || ws.url.len() > 2048
+                || !ws.url.is_ascii()
+                || ws
+                    .url
+                    .bytes()
+                    .any(|b| b.is_ascii_control() || b.is_ascii_whitespace())
+            {
+                return Err(invalid());
+            }
+            let url = url::Url::parse(&ws.url).map_err(|_| invalid())?;
+            if url.scheme() != "wss"
                 || url.host_str().is_none()
                 || !url.username().is_empty()
                 || url.password().is_some()

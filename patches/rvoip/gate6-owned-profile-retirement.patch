@@ -1,0 +1,108 @@
+--- a/crates/uctp/rvoip-uctp/src/v2/server.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/server.rs
+@@ -275,9 +275,14 @@
+     pub fn is_draining(&self) -> bool {
+         self.inner.drain.is_cancelled()
+     }
+-    pub async fn shutdown(&self) -> Result<(), DispatchError> {
++    /// Stop admission and synchronously cancel every active peer lifetime.
++    /// Retirement grants no IO. Call shutdown() to observe the original owned join.
++    pub fn begin_shutdown(&self) {
+         self.inner.drain.cancel();
+         self.inner.shutdown.cancel();
++    }
++    pub async fn shutdown(&self) -> Result<(), DispatchError> {
++        self.begin_shutdown();
+         self.inner.join.clone().await
+     }
+     pub fn stats(&self) -> ServerStats {
+@@ -301,3 +306,89 @@
+     let mut origins = origins.into_iter();
+     matches!(origins.next(),Some(origin) if allowed.contains(origin)) && origins.next().is_none()
+ }
++
++#[cfg(test)]
++mod retirement_tests {
++    use super::*;
++    #[tokio::test]
++    async fn beginning_shutdown_cancels_active_peer_lifetime_before_awaiting_join() {
++        let (sender, receiver) = tokio::sync::mpsc::channel::<()>(1);
++        let (observed, received) = tokio::sync::oneshot::channel();
++        let observed = Arc::new(std::sync::Mutex::new(Some(observed)));
++        let profile = ProfileServer::spawn(
++            receiver,
++            1,
++            move |_, lifetime| {
++                let observed = observed.clone();
++                async move {
++                    observed
++                        .lock()
++                        .unwrap()
++                        .take()
++                        .unwrap()
++                        .send(lifetime.clone())
++                        .unwrap();
++                    lifetime.cancelled().await;
++                    Ok(())
++                }
++            },
++            drop,
++        )
++        .unwrap();
++        sender.send(()).await.unwrap();
++        let lifetime = received.await.unwrap();
++        assert!(!lifetime.is_cancelled());
++        profile.begin_shutdown();
++        assert!(profile.is_draining());
++        assert!(
++            lifetime.is_cancelled(),
++            "retirement waited for an async shutdown poll"
++        );
++        tokio::time::timeout(std::time::Duration::from_secs(1), profile.shutdown())
++            .await
++            .unwrap()
++            .unwrap();
++        assert_eq!(profile.stats().active_physical, 0);
++    }
++    #[tokio::test]
++    async fn admission_drain_retains_active_peer_until_explicit_retirement() {
++        let (sender, receiver) = tokio::sync::mpsc::channel::<()>(1);
++        let (observed, received) = tokio::sync::oneshot::channel();
++        let observed = Arc::new(std::sync::Mutex::new(Some(observed)));
++        let profile = ProfileServer::spawn(
++            receiver,
++            1,
++            move |_, lifetime| {
++                let observed = observed.clone();
++                async move {
++                    observed
++                        .lock()
++                        .unwrap()
++                        .take()
++                        .unwrap()
++                        .send(lifetime.clone())
++                        .unwrap();
++                    lifetime.cancelled().await;
++                    Ok(())
++                }
++            },
++            drop,
++        )
++        .unwrap();
++        sender.send(()).await.unwrap();
++        let lifetime = received.await.unwrap();
++        profile.begin_drain();
++        assert!(profile.is_draining());
++        assert!(
++            !lifetime.is_cancelled(),
++            "drain unexpectedly retired the existing peer"
++        );
++        profile.begin_shutdown();
++        assert!(lifetime.is_cancelled());
++        tokio::time::timeout(std::time::Duration::from_secs(1), profile.shutdown())
++            .await
++            .unwrap()
++            .unwrap();
++        assert_eq!(profile.stats().active_physical, 0);
++    }
++}

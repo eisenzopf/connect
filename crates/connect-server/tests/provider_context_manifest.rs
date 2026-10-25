@@ -47,6 +47,7 @@ impl Harness {
         let server = RunningCanonicalServer::start(CanonicalServerConfig {
             network_profile: Default::default(),
             webtransport: None,
+            websocket: None,
             session_reconnect_grace_seconds: 30,
             bind: old.bind,
             database: old.database,

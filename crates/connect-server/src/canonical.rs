@@ -30,6 +30,8 @@ pub struct CanonicalServerConfig {
     pub network_profile: connect_protocol::native_network::NativeNetworkProfile,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub webtransport: Option<crate::canonical_webtransport::CanonicalWebTransportConfig>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub websocket: Option<crate::canonical_websocket::CanonicalWebSocketConfig>,
     pub bind: SocketAddr,
     pub database: PathBuf,
     pub certificate: PathBuf,
@@ -95,6 +97,9 @@ impl CanonicalServerConfig {
         if let Some(webtransport) = &self.webtransport {
             webtransport.validate(self.network_profile)?;
         }
+        if let Some(websocket) = &self.websocket {
+            websocket.validate(self.network_profile)?;
+        }
         anyhow::ensure!(
             self.session_reconnect_grace_seconds <= 300,
             "Invalid Session reconnect grace"
@@ -147,6 +152,7 @@ pub struct RunningCanonicalServer {
     endpoint: Arc<quinn::Endpoint>,
     profile: ProfileServer,
     webtransport: Option<ProfileServer>,
+    websocket: Option<crate::canonical_websocket_listener::Listener>,
     maximum_rtt_ms: Arc<AtomicU64>,
     stop: CancellationToken,
     intake: Option<JoinHandle<Result<()>>>,
@@ -162,6 +168,8 @@ pub struct RunningCanonicalServer {
     pub address: SocketAddr,
     pub http_address: Option<SocketAddr>,
     pub webtransport_url: Option<String>,
+    pub websocket_address: Option<SocketAddr>,
+    pub websocket_url: Option<String>,
     pub record_https_address: Option<SocketAddr>,
     pub store: Arc<Store>,
     pub service: Arc<Service>,
@@ -185,6 +193,9 @@ impl RunningCanonicalServer {
         // All key/TLS validation precedes installation recovery and binding.
         let mut tls =
             (*crate::tls::server_config(&config.certificate, &config.private_key)?).clone();
+        let mut websocket_tls = tls.clone();
+        websocket_tls.alpn_protocols = vec![b"http/1.1".to_vec()];
+        let websocket_tls = Arc::new(websocket_tls);
         tls.alpn_protocols = vec![RAW_QUIC_ALPN.to_vec()];
         if config.webtransport.is_some() {
             tls.alpn_protocols.push(b"h3".to_vec());
@@ -350,26 +361,6 @@ impl RunningCanonicalServer {
         if public_assistants.is_none() {
             service.readiness.unconfigured("public-assistant-host");
         }
-        let discovery = connect_protocol::canonical_discovery::TransportDiscovery {
-            profile: connect_protocol::canonical_http::PROFILE.into(),
-            max_control_envelope_bytes: rvoip_uctp::v2::MAX_ENVELOPE_BYTES as u32,
-            max_physical_peers: config.limits.connections as u32,
-            webtransport: config.webtransport.as_ref().map(|wt| {
-                connect_protocol::canonical_discovery::WebTransportEndpoint {
-                    url: wt.contact(address),
-                    origin_required: true,
-                    datagrams:
-                        connect_protocol::canonical_discovery::DatagramNegotiation::PerSession,
-                }
-            }),
-        };
-        let http = match config.http_bind {
-            Some(address) => Some(
-                crate::HttpListener::bind_canonical(address, service.clone(), discovery).await?,
-            ),
-            None => None,
-        };
-        let http_address = http.as_ref().map(|h| h.address);
         let (sender, receiver) = tokio::sync::mpsc::channel(config.limits.connections);
         let (wt_sender, wt_receiver) = tokio::sync::mpsc::channel(config.limits.connections);
         let webtransport_url = config.webtransport.as_ref().map(|c| c.contact(address));
@@ -389,6 +380,7 @@ impl RunningCanonicalServer {
                 None
             }
         };
+        let websocket_profile = profile.clone();
         let profile = rvoip_quic::canonical::start(
             receiver,
             profile,
@@ -404,6 +396,60 @@ impl RunningCanonicalServer {
             + (config.signing_key_expires_at - chrono::Utc::now())
                 .to_std()
                 .context("Canonical signing key expired during startup")?;
+        let linked_endpoint = endpoint.clone();
+        let linked_native = profile.clone();
+        let linked_wt = webtransport.clone();
+        let stop_other_transports: Arc<dyn Fn() + Send + Sync> = Arc::new(move || {
+            linked_native.begin_shutdown();
+            if let Some(wt) = &linked_wt {
+                wt.begin_shutdown();
+            }
+            linked_endpoint.close(0u32.into(), b"canonical linked intake stopped");
+        });
+        let websocket = match &config.websocket {
+            Some(ws) => Some(
+                crate::canonical_websocket_listener::Listener::start(
+                    ws,
+                    websocket_tls,
+                    websocket_profile,
+                    stop.clone(),
+                    key_deadline,
+                    &service,
+                    stop_other_transports,
+                )
+                .await?,
+            ),
+            None => None,
+        };
+        let websocket_address = websocket.as_ref().map(|ws| ws.address);
+        let websocket_url = websocket.as_ref().map(|ws| ws.contact.clone());
+        let ws_peers = websocket.as_ref().map(|ws| ws.control());
+        let discovery = connect_protocol::canonical_discovery::TransportDiscovery {
+            profile: connect_protocol::canonical_http::PROFILE.into(),
+            max_control_envelope_bytes: rvoip_uctp::v2::MAX_ENVELOPE_BYTES as u32,
+            max_physical_peers: config.limits.connections as u32,
+            webtransport: config.webtransport.as_ref().map(|wt| {
+                connect_protocol::canonical_discovery::WebTransportEndpoint {
+                    url: wt.contact(address),
+                    origin_required: true,
+                    datagrams:
+                        connect_protocol::canonical_discovery::DatagramNegotiation::PerSession,
+                }
+            }),
+            websocket: websocket_url.clone().map(|url| {
+                connect_protocol::canonical_discovery::WebSocketEndpoint {
+                    url,
+                    origin_required: true,
+                }
+            }),
+        };
+        let http = match config.http_bind {
+            Some(address) => Some(
+                crate::HttpListener::bind_canonical(address, service.clone(), discovery).await?,
+            ),
+            None => None,
+        };
+        let http_address = http.as_ref().map(|h| h.address);
         let maximum_rtt_ms = Arc::new(AtomicU64::new(0));
         let observed_rtt = maximum_rtt_ms.clone();
         let readiness = service.readiness.clone();
@@ -412,17 +458,30 @@ impl RunningCanonicalServer {
             "canonical-intake",
             stop.clone(),
             async move {
-                struct Intake(Arc<quinn::Endpoint>, ProfileServer, Option<ProfileServer>);
+                struct Intake(
+                    Arc<quinn::Endpoint>,
+                    ProfileServer,
+                    Option<ProfileServer>,
+                    Option<ProfileServer>,
+                );
                 impl Drop for Intake {
                     fn drop(&mut self) {
                         self.1.begin_drain();
                         if let Some(wt) = &self.2 {
                             wt.begin_drain();
                         }
+                        if let Some(ws) = &self.3 {
+                            ws.begin_shutdown();
+                        }
                         self.0.close(0u32.into(), b"canonical intake stopped");
                     }
                 }
-                let _owned = Intake(accepted.clone(), peers.clone(), wt_peers.clone());
+                let _owned = Intake(
+                    accepted.clone(),
+                    peers.clone(),
+                    wt_peers.clone(),
+                    ws_peers.clone(),
+                );
                 let mut handshakes = JoinSet::new();
                 loop {
                     tokio::select! {biased;
@@ -459,6 +518,9 @@ impl RunningCanonicalServer {
             endpoint,
             profile,
             webtransport,
+            websocket,
+            websocket_address,
+            websocket_url,
             webtransport_url,
             maximum_rtt_ms,
             stop,
@@ -495,6 +557,9 @@ impl RunningCanonicalServer {
         if let Some(records) = &self.record_https {
             records.begin_shutdown()
         }
+        if let Some(ws) = &self.websocket {
+            ws.begin_shutdown();
+        }
         self.profile.begin_drain();
         if let Some(wt) = &self.webtransport {
             wt.begin_drain();
@@ -526,6 +591,11 @@ impl RunningCanonicalServer {
         if let Some(wt) = &self.webtransport {
             if wt.shutdown().await.is_err() {
                 failures.push("WebTransport peers");
+            }
+        }
+        if let Some(ws) = self.websocket.take() {
+            if ws.shutdown().await.is_err() {
+                failures.push("WebSocket peers/intake");
             }
         }
         if let Some(voice) = self.provider_voice.take() {
@@ -608,6 +678,9 @@ impl Drop for RunningCanonicalServer {
         self.service.cancel_consultation_initialization();
         self.installation.retire();
         self.stop.cancel();
+        if let Some(ws) = &self.websocket {
+            ws.begin_shutdown();
+        }
         self.profile.begin_drain();
         if let Some(wt) = &self.webtransport {
             wt.begin_drain();

@@ -136,17 +136,36 @@ async fn disabled_webtransport_and_unrelated_http_listener_do_not_invent_transpo
 async fn discovery_sdk_refuses_incompatible_and_oversized_responses_during_collection() {
     use tokio::io::{AsyncReadExt, AsyncWriteExt};
     let f = fixture("EdDSA").await;
-    let good = json!({"profile":"connect/2","max_control_envelope_bytes":1048576,"max_physical_peers":8,"webtransport":null});
+    let good = json!({"profile":"connect/2","max_control_envelope_bytes":1048576,"max_physical_peers":8,"webtransport":null,"websocket":null});
     let mut wrong_profile = good.clone();
     wrong_profile["profile"] = json!("connect/3");
     let mut unknown = good.clone();
     unknown["trust"] = json!({"automatic":true});
     let mut bad_url = good.clone();
     bad_url["webtransport"] = json!({"url":"https://user:secret@server.fixture.invalid/connect","origin_required":true,"datagrams":"per-session"});
+    let mut wss = good.clone();
+    wss["websocket"] = json!({"url":"wss://server.fixture.invalid/connect","origin_required":true});
+    let mut insecure_wss = wss.clone();
+    insecure_wss["websocket"]["url"] = json!("ws://server.fixture.invalid/connect");
+    let mut no_origin_wss = wss.clone();
+    no_origin_wss["websocket"]["origin_required"] = json!(false);
+    let mut credentials_wss = wss.clone();
+    credentials_wss["websocket"]["url"] = json!("wss://user:secret@server.fixture.invalid/connect");
+    let mut query_wss = wss.clone();
+    query_wss["websocket"]["url"] = json!("wss://server.fixture.invalid/connect?credential=secret");
     let mut padded = serde_json::to_string(&good).unwrap();
     padded.extend(std::iter::repeat_n(' ', 8193 - padded.len()));
     let cases = [
         (serde_json::to_string(&good).unwrap(), false, true),
+        (serde_json::to_string(&wss).unwrap(), false, true),
+        (serde_json::to_string(&insecure_wss).unwrap(), false, false),
+        (serde_json::to_string(&no_origin_wss).unwrap(), false, false),
+        (
+            serde_json::to_string(&credentials_wss).unwrap(),
+            false,
+            false,
+        ),
+        (serde_json::to_string(&query_wss).unwrap(), false, false),
         (serde_json::to_string(&wrong_profile).unwrap(), false, false),
         (serde_json::to_string(&unknown).unwrap(), false, false),
         (serde_json::to_string(&bad_url).unwrap(), false, false),
