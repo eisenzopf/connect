@@ -145,3 +145,9 @@ Native QUIC listener and client address selection are configured separately thro
 the [native network profiles](native-network.md). The explicit native Remote
 profile preserves this loopback HTTP boundary; hosted HTTPS and origin/proxy
 policy require their declared hosting profile.
+
+When an original physical effect remains uncertain, operator reconciliation returns
+HTTP 409 with category `state` and reason `reconciliation_required`. Preserve the
+original target and decision IDs, inspect the retained evidence and obtain
+attributed settlement. This is distinct from an invalid command or permission
+denial; declared completion cannot create physical evidence.

@@ -276,6 +276,10 @@ async fn submitted(algorithm: &str) {
             session_id:Some(prepared.invitation.session_id.clone()), connection_id:Some(original.2.clone()),
             ..Default::default()},
     ).await.unwrap();
+    assert_eq!(
+        refusal.frames.last().unwrap().original()["payload"]["reason"],
+        "reconciliation_required"
+    );
     let refusal = refusal.ack();
     assert!(
         matches!(refusal,Err(ClientError::Application(error)) if error.code=="conflict"),

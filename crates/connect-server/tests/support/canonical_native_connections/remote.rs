@@ -307,7 +307,8 @@ async fn production_remote_profile_requires_its_complete_intermediate_chain() {
     f.server.shutdown().await.unwrap();
 }
 
-fn fixture_endpoint(tls: rustls::ServerConfig) -> quinn::Endpoint {
+fn fixture_endpoint(mut tls: rustls::ServerConfig) -> quinn::Endpoint {
+    tls.alpn_protocols = vec![rvoip_uctp::v2::RAW_QUIC_ALPN.to_vec()];
     quinn::Endpoint::server(
         quinn::ServerConfig::with_crypto(Arc::new(
             quinn::crypto::rustls::QuicServerConfig::try_from(tls).unwrap(),

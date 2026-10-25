@@ -28,6 +28,7 @@ impl Problem {
                 (501, "unsupported", "unsupported_feature")
             }
             "resync-required" => (409, "state", "resync_required"),
+            "reconciliation-required" => (409, "state", "reconciliation_required"),
             "storage-unavailable" => (503, "storage", "storage_unavailable"),
             "authority-busy" | "authority-unavailable" => {
                 (503, "authorization", "authority_unavailable")

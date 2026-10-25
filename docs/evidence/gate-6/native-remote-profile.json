@@ -3,7 +3,7 @@
   "status": "implementation-and-isolated-runtime-fixtures-under-qualification",
   "full_task_complete": false,
   "full_goal_complete": false,
-  "recorded_at": "2026-10-25T02:20:02.629669+00:00",
+  "recorded_at": "2026-10-25T02:26:25.904127+00:00",
   "source_revision": "a068a96bf39fb0141f14438609443698fc41685a",
   "draft_implementation": [
     "Shared explicit native Local/Remote configuration policy; local remains the default, while concrete remote endpoints and routable client UDP binding require Remote.",
@@ -350,5 +350,119 @@
       }
     ],
     "failure_analysis": "Two new SIP operator fixtures asserted request() itself would return an error. The public SDK correctly returns a correlated ReplyBatch for parsed command refusals; ack() classifies its terminal error and verifies matching HTTP status. Corrected fixture now inspects ack(); no product authorization or uncertainty behavior changed. Rerun pending."
+  },
+  "isolated_runtime005": {
+    "summary": ".local/gate-6/native-remote/runtime005/summary.json",
+    "summary_sha256": "28725def714ca19b003d529282f3be44203a1155ce091751896d465b91e92c67",
+    "source_revision": "06f0790557f4d31cd989ca8456ba69cad583da59",
+    "executable_sha256": "cbf0f545fb2c00d5ea96ac815fca00b8bfe911e18573897710f63540a37c3f85",
+    "source_inputs_unchanged": true,
+    "executable_unchanged": true,
+    "whole_driver_passed": false,
+    "qualified_cases": [
+      {
+        "name": "migration-eddsa",
+        "case": "canonical_native_connections::remote::production_remote_profile_ca_chain_and_native_duplex_survive_real_nat_rebinding_eddsa",
+        "runtime_exit_code": 0,
+        "log_sha256": "f3c59611ba603738337192ebb12742fa98d8dc835817e4f67b5a747c317043b4",
+        "passed": true,
+        "witness": {
+          "algorithm": "EdDSA",
+          "decoded_directions_before_and_after": 4,
+          "logical_bindings_preserved": true,
+          "nat_paths": 4
+        }
+      },
+      {
+        "name": "migration-es256",
+        "case": "canonical_native_connections::remote::production_remote_profile_ca_chain_and_native_duplex_survive_real_nat_rebinding_es256",
+        "runtime_exit_code": 0,
+        "log_sha256": "9d5d926461874b8907dca3334d52821dc2cc2071036033ff0f5bc009eec37496",
+        "passed": true,
+        "witness": {
+          "algorithm": "ES256",
+          "decoded_directions_before_and_after": 4,
+          "logical_bindings_preserved": true,
+          "nat_paths": 4
+        }
+      },
+      {
+        "name": "identity-and-root",
+        "case": "canonical_native_connections::remote::production_remote_profile_refuses_wrong_host_and_unconfigured_roots_before_commands",
+        "runtime_exit_code": 0,
+        "log_sha256": "ab93488b939aeebc150bd737fd394e3c65e8e5bb5bb2c2941fc74c19567650c3",
+        "passed": true
+      },
+      {
+        "name": "missing-chain",
+        "case": "canonical_native_connections::remote::production_remote_profile_requires_its_complete_intermediate_chain",
+        "runtime_exit_code": 0,
+        "log_sha256": "22db34e24066dbab97fa890f0184d6ada744004dd407b8136e81d3f31028c91c",
+        "passed": true
+      },
+      {
+        "name": "trust-assets",
+        "case": "canonical_native_connections::remote::production_remote_profile_missing_invalid_and_oversized_trust_never_opens_commands",
+        "runtime_exit_code": 0,
+        "log_sha256": "a453a1bc326107bc7cf19ea2274af9a8886cc5c8835063846869e507351efe40",
+        "passed": true
+      },
+      {
+        "name": "credentials",
+        "case": "canonical_native_connections::remote::production_remote_profile_refuses_expired_and_revoked_credentials_without_media",
+        "runtime_exit_code": 0,
+        "log_sha256": "54df239b11e0d381c89f9e459b2b2382a476dc7e380bc100b2927389503af8ac",
+        "passed": true
+      },
+      {
+        "name": "expired-tls",
+        "case": "canonical_native_connections::remote::production_remote_profile_expired_tls_is_refused_by_server_and_actual_client_verifier",
+        "runtime_exit_code": 0,
+        "log_sha256": "6888f2e2eb7f1da12039b302f38066b86f09d36a76951d7e5613abf66e7a007e",
+        "passed": true
+      }
+    ],
+    "failed_cases": [
+      {
+        "name": "sip-operator-eddsa",
+        "case": "canonical_native_connections::consultation::groups::replacement::telephone::initial::crash::production_sigkill_sip_submission_keeps_external_uncertainty_without_redial_eddsa",
+        "runtime_exit_code": 101,
+        "log_sha256": "8d82a60f9e980b576cc2728d9d89bba6a3de44fd73540b12a95e8a426ffb9c52",
+        "passed": false
+      },
+      {
+        "name": "sip-operator-es256",
+        "case": "canonical_native_connections::consultation::groups::replacement::telephone::initial::crash::production_sigkill_sip_submission_keeps_external_uncertainty_without_redial_es256",
+        "runtime_exit_code": 101,
+        "log_sha256": "1d7108638d2241408fc8fd42851c518199e8c4db54b6e1b63ed1fe289effceb5",
+        "passed": false
+      },
+      {
+        "name": "total-open-deadline",
+        "case": "canonical_native_connections::remote::production_remote_profile_one_open_deadline_spans_delayed_challenge_and_stalled_auth",
+        "runtime_exit_code": 101,
+        "log_sha256": "38ac73716ff169ed9580e951479b3044387336e12f1c319cfa4baaf839dacac6",
+        "passed": false
+      },
+      {
+        "name": "owned-http-shutdown",
+        "case": "canonical_record_http::actual_http_shutdown_cancels_stalled_record_io_before_runtime_retirement",
+        "runtime_exit_code": 0,
+        "log_sha256": "9d2743f23e26c8ba69180de81dc1394c555bcd4b3663e775f076321b7c51b3df",
+        "passed": false
+      },
+      {
+        "name": "owned-https-shutdown",
+        "case": "canonical_record_http::actual_https_reference_expiry_and_shutdown_abort_stalled_tls_and_release_guards",
+        "runtime_exit_code": 0,
+        "log_sha256": "9d2743f23e26c8ba69180de81dc1394c555bcd4b3663e775f076321b7c51b3df",
+        "passed": false
+      }
+    ],
+    "failure_analysis": [
+      "Public operator request() batch classification correction was necessary, but the actual canonical Problem::from_error mapper still drops reconciliation-required into generic400 operation_rejected. Candidate fix explicitly emits409 state/reconciliation_required; exact public reason now asserted. Pending execution.",
+      "Controlled stalled-auth endpoint used legacy server TLS ALPN rather than canonical RAW_QUIC_ALPN, failing before auth. Corrected fixture installs canonical ALPN explicitly; total deadline assertion unchanged. Pending execution.",
+      "Two HTTP/HTTPS drain filters belonged to gate6_auxiliary, not gate6_canonical_runtime. Both matched zero methods and are explicitly failed qualification, not passes. Correct-target build/run pending."
+    ]
   }
 }
