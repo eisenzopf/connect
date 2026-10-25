@@ -1,0 +1,693 @@
+{
+  "schema": "connect-gate6-cadence-host/1",
+  "task": "G6-050",
+  "candidate_code_revision": "8305e1856cf8e8c85e095a1c901e87485dfb1df6",
+  "source_lock_sha256": "b0c25e428f806ebd738946399491d44fe894a484f4ac524e2b97781aa23e4b6e",
+  "patch_count": 194,
+  "status": "12short browser/native and28transport methods pass. Both60secondcapturemethods fail: EdDSAalignment, ES256sustainedaudio.",
+  "browser_native": {
+    "report": ".local/gate-6/browser-sdk/cadence062/summary.json",
+    "sha256": "8952486250fd8d41abc99a02f12a186af8eccb913a1c9bf48eddfd70c2163107",
+    "passed": true,
+    "source_inputs_unchanged": true,
+    "executables_unchanged": true,
+    "passed_methods": 12,
+    "selected_methods": 12
+  },
+  "clean60": {
+    "report": ".local/gate-6/browser-sdk/clean60-cadence061/summary.json",
+    "sha256": "2f06993b9264527ca2614ebb46add7a287382f1bfb249dfcc98d54d31172b4e7",
+    "passed": false,
+    "source_inputs_unchanged": true,
+    "executables_unchanged": true,
+    "passed_methods": 6,
+    "selected_methods": 8,
+    "capture_failures": [
+      {
+        "case": "canonical_webtransport_browser::installed_chrome_production_sdk_captured_duplex_opus_vp8_and_reliable_data_eddsa",
+        "passed": false,
+        "log_sha256": "9fdb8da3552b3e7d7a9a638619bfa3bcafb06c0cf3d0fcf8e3563c4feda32e09",
+        "resources": {
+          "valid": true,
+          "sample_count": 61,
+          "groups": {
+            "server_test_host": {
+              "observed_cumulative_cpu_seconds": 35.13,
+              "peak_observed_rss_bytes": 72630272,
+              "observed_process_count": 1
+            },
+            "browser": {
+              "observed_cumulative_cpu_seconds": 18.95,
+              "peak_observed_rss_bytes": 2383036416,
+              "observed_process_count": 13
+            },
+            "control_driver_or_other_owned_child": {
+              "observed_cumulative_cpu_seconds": 0.08,
+              "peak_observed_rss_bytes": 91406336,
+              "observed_process_count": 3
+            }
+          },
+          "errors": [],
+          "log": ".local/gate-6/browser-sdk/clean60-cadence061/case-6-resources.json",
+          "log_sha256": "16ad70b7e0527a132c3564661de9cdba2e54a49ae699276efbc7aef5753d7eaf"
+        },
+        "failure": "80ms median/120ms p95 absolute alignment limits",
+        "alignment": [
+          {
+            "pairs": [
+              {
+                "id": 3,
+                "skew_ms": 208
+              },
+              {
+                "id": 4,
+                "skew_ms": 200.09999990463257
+              },
+              {
+                "id": 5,
+                "skew_ms": 216.90000009536743
+              },
+              {
+                "id": 6,
+                "skew_ms": 212.29999995231628
+              },
+              {
+                "id": 7,
+                "skew_ms": 247.29999995231628
+              },
+              {
+                "id": 8,
+                "skew_ms": 247.10000014305115
+              },
+              {
+                "id": 9,
+                "skew_ms": 93.10000014305115
+              },
+              {
+                "id": 10,
+                "skew_ms": 100
+              },
+              {
+                "id": 11,
+                "skew_ms": 126
+              },
+              {
+                "id": 12,
+                "skew_ms": 156.5
+              },
+              {
+                "id": 13,
+                "skew_ms": 161.79999995231628
+              },
+              {
+                "id": 14,
+                "skew_ms": 182.79999995231628
+              },
+              {
+                "id": 15,
+                "skew_ms": 205.20000004768372
+              },
+              {
+                "id": 16,
+                "skew_ms": 214.89999985694885
+              },
+              {
+                "id": 17,
+                "skew_ms": 204.29999995231628
+              },
+              {
+                "id": 18,
+                "skew_ms": 198.09999990463257
+              },
+              {
+                "id": 19,
+                "skew_ms": 205.39999985694885
+              },
+              {
+                "id": 20,
+                "skew_ms": 260.30000019073486
+              },
+              {
+                "id": 21,
+                "skew_ms": 342.7999999523163
+              },
+              {
+                "id": 22,
+                "skew_ms": 357.59999990463257
+              },
+              {
+                "id": 23,
+                "skew_ms": 247
+              },
+              {
+                "id": 24,
+                "skew_ms": 263.39999985694885
+              },
+              {
+                "id": 25,
+                "skew_ms": 254.09999990463257
+              },
+              {
+                "id": 26,
+                "skew_ms": 250.89999985694885
+              },
+              {
+                "id": 27,
+                "skew_ms": 261.7999999523163
+              },
+              {
+                "id": 28,
+                "skew_ms": 246.20000004768372
+              },
+              {
+                "id": 29,
+                "skew_ms": 319.90000009536743
+              },
+              {
+                "id": 30,
+                "skew_ms": 280.89999985694885
+              },
+              {
+                "id": 31,
+                "skew_ms": 243.5
+              },
+              {
+                "id": 32,
+                "skew_ms": 222
+              },
+              {
+                "id": 33,
+                "skew_ms": 235.79999995231628
+              },
+              {
+                "id": 34,
+                "skew_ms": 245.59999990463257
+              },
+              {
+                "id": 35,
+                "skew_ms": 242.79999995231628
+              },
+              {
+                "id": 36,
+                "skew_ms": 259.59999990463257
+              },
+              {
+                "id": 37,
+                "skew_ms": 275
+              },
+              {
+                "id": 38,
+                "skew_ms": 245.40000009536743
+              },
+              {
+                "id": 39,
+                "skew_ms": 242.79999995231628
+              },
+              {
+                "id": 40,
+                "skew_ms": 244.5
+              },
+              {
+                "id": 41,
+                "skew_ms": 236.20000004768372
+              },
+              {
+                "id": 42,
+                "skew_ms": 240
+              },
+              {
+                "id": 43,
+                "skew_ms": 257.7000000476837
+              },
+              {
+                "id": 44,
+                "skew_ms": 258
+              },
+              {
+                "id": 45,
+                "skew_ms": 257.5
+              },
+              {
+                "id": 46,
+                "skew_ms": 257
+              },
+              {
+                "id": 47,
+                "skew_ms": 264.7999999523163
+              },
+              {
+                "id": 48,
+                "skew_ms": 256.30000019073486
+              },
+              {
+                "id": 49,
+                "skew_ms": 238
+              },
+              {
+                "id": 50,
+                "skew_ms": 249.10000014305115
+              },
+              {
+                "id": 51,
+                "skew_ms": 244.70000004768372
+              },
+              {
+                "id": 52,
+                "skew_ms": 262.09999990463257
+              },
+              {
+                "id": 53,
+                "skew_ms": 275.2999999523163
+              },
+              {
+                "id": 54,
+                "skew_ms": 274
+              },
+              {
+                "id": 55,
+                "skew_ms": 306
+              },
+              {
+                "id": 56,
+                "skew_ms": 255.20000004768372
+              },
+              {
+                "id": 57,
+                "skew_ms": 256.59999990463257
+              },
+              {
+                "id": 58,
+                "skew_ms": 269.60000014305115
+              },
+              {
+                "id": 59,
+                "skew_ms": 261.2999999523163
+              },
+              {
+                "id": 60,
+                "skew_ms": 293.10000014305115
+              },
+              {
+                "id": 61,
+                "skew_ms": 258
+              }
+            ],
+            "paired_markers": 59,
+            "audio_markers": 59,
+            "video_markers": 60,
+            "median_abs_skew_ms": 247.10000014305115,
+            "p95_abs_skew_ms": 319.90000009536743,
+            "signed_median_skew_ms": 247.10000014305115
+          },
+          {
+            "pairs": [
+              {
+                "id": 3,
+                "skew_ms": 283.7999999523163
+              },
+              {
+                "id": 4,
+                "skew_ms": 269.5
+              },
+              {
+                "id": 5,
+                "skew_ms": 232.29999995231628
+              },
+              {
+                "id": 6,
+                "skew_ms": 275
+              },
+              {
+                "id": 7,
+                "skew_ms": 291
+              },
+              {
+                "id": 8,
+                "skew_ms": 262
+              },
+              {
+                "id": 9,
+                "skew_ms": 289.10000014305115
+              },
+              {
+                "id": 10,
+                "skew_ms": 265.10000014305115
+              },
+              {
+                "id": 11,
+                "skew_ms": 267.2999999523163
+              },
+              {
+                "id": 12,
+                "skew_ms": 287.7000000476837
+              },
+              {
+                "id": 13,
+                "skew_ms": 267.59999990463257
+              },
+              {
+                "id": 14,
+                "skew_ms": 276.5
+              },
+              {
+                "id": 15,
+                "skew_ms": 272.5
+              },
+              {
+                "id": 16,
+                "skew_ms": 265.7000000476837
+              },
+              {
+                "id": 17,
+                "skew_ms": 275.40000009536743
+              },
+              {
+                "id": 18,
+                "skew_ms": 275.39999985694885
+              },
+              {
+                "id": 19,
+                "skew_ms": 267.2000000476837
+              },
+              {
+                "id": 20,
+                "skew_ms": 317.09999990463257
+              },
+              {
+                "id": 21,
+                "skew_ms": 270.80000019073486
+              },
+              {
+                "id": 22,
+                "skew_ms": -217
+              },
+              {
+                "id": 23,
+                "skew_ms": 285.89999985694885
+              },
+              {
+                "id": 24,
+                "skew_ms": 256.5
+              },
+              {
+                "id": 25,
+                "skew_ms": 274.2000000476837
+              },
+              {
+                "id": 26,
+                "skew_ms": 271.7999999523163
+              },
+              {
+                "id": 27,
+                "skew_ms": 266.60000014305115
+              },
+              {
+                "id": 28,
+                "skew_ms": 260.7000000476837
+              },
+              {
+                "id": 29,
+                "skew_ms": 283.19999980926514
+              },
+              {
+                "id": 30,
+                "skew_ms": 291.2000000476837
+              },
+              {
+                "id": 31,
+                "skew_ms": 269.80000019073486
+              },
+              {
+                "id": 32,
+                "skew_ms": 226.70000004768372
+              },
+              {
+                "id": 33,
+                "skew_ms": 250.30000019073486
+              },
+              {
+                "id": 34,
+                "skew_ms": 265.19999980926514
+              },
+              {
+                "id": 35,
+                "skew_ms": 275.09999990463257
+              },
+              {
+                "id": 36,
+                "skew_ms": 265.69999980926514
+              },
+              {
+                "id": 37,
+                "skew_ms": 288.7999999523163
+              },
+              {
+                "id": 38,
+                "skew_ms": 260.39999985694885
+              },
+              {
+                "id": 39,
+                "skew_ms": 268.7999999523163
+              },
+              {
+                "id": 40,
+                "skew_ms": 270.7999999523163
+              },
+              {
+                "id": 41,
+                "skew_ms": 251.5
+              },
+              {
+                "id": 42,
+                "skew_ms": 266.7999999523163
+              },
+              {
+                "id": 43,
+                "skew_ms": 268.2999999523163
+              },
+              {
+                "id": 44,
+                "skew_ms": 263.2000000476837
+              },
+              {
+                "id": 45,
+                "skew_ms": 281.19999980926514
+              },
+              {
+                "id": 46,
+                "skew_ms": 287.90000009536743
+              },
+              {
+                "id": 47,
+                "skew_ms": 284
+              },
+              {
+                "id": 48,
+                "skew_ms": 271.7999999523163
+              },
+              {
+                "id": 49,
+                "skew_ms": 277.39999985694885
+              },
+              {
+                "id": 50,
+                "skew_ms": 280.60000014305115
+              },
+              {
+                "id": 51,
+                "skew_ms": 282.7999999523163
+              },
+              {
+                "id": 52,
+                "skew_ms": 285.10000014305115
+              },
+              {
+                "id": 53,
+                "skew_ms": 285.69999980926514
+              },
+              {
+                "id": 54,
+                "skew_ms": 278.09999990463257
+              },
+              {
+                "id": 55,
+                "skew_ms": 255
+              },
+              {
+                "id": 56,
+                "skew_ms": 287.5
+              },
+              {
+                "id": 57,
+                "skew_ms": 271.7000000476837
+              },
+              {
+                "id": 58,
+                "skew_ms": 258.2000000476837
+              },
+              {
+                "id": 59,
+                "skew_ms": 254.20000004768372
+              },
+              {
+                "id": 60,
+                "skew_ms": 302.7999999523163
+              },
+              {
+                "id": 61,
+                "skew_ms": 286.2999999523163
+              }
+            ],
+            "paired_markers": 59,
+            "audio_markers": 59,
+            "video_markers": 60,
+            "median_abs_skew_ms": 271.7999999523163,
+            "p95_abs_skew_ms": 291.2000000476837,
+            "signed_median_skew_ms": 271.7999999523163
+          }
+        ],
+        "measurement": {
+          "opus": [
+            {
+              "decoded": 2810,
+              "identified": 2772
+            },
+            {
+              "decoded": 2704,
+              "identified": 2704
+            }
+          ],
+          "vp8": [
+            {
+              "decoded": 1742,
+              "identified": 1742,
+              "motion": 608
+            },
+            {
+              "decoded": 1690,
+              "identified": 1690,
+              "motion": 606
+            }
+          ],
+          "playback": [
+            {
+              "peakRms": 0.9416127542994842,
+              "maxPending": 4,
+              "maxQueuedSeconds": 0.07933333333333348,
+              "queueSamples": 9883,
+              "queueSecondsTotal": 265.09533333353954,
+              "meanQueuedAudioSeconds": 0.026823366724025046,
+              "audio": 2810,
+              "video": 1742
+            },
+            {
+              "peakRms": 0.839053463102866,
+              "maxPending": 4,
+              "maxQueuedSeconds": 0.06466666666666687,
+              "queueSamples": 9883,
+              "queueSecondsTotal": 215.1006666669096,
+              "meanQueuedAudioSeconds": 0.021764713818365842,
+              "audio": 2704,
+              "video": 1690
+            }
+          ],
+          "measured_ms": 60001.200000047684
+        }
+      },
+      {
+        "case": "canonical_webtransport_browser::installed_chrome_production_sdk_captured_duplex_opus_vp8_and_reliable_data_es256",
+        "passed": false,
+        "log_sha256": "84197ce546517aa41ee07302835cefd60ac19634c59277da69f801cbf6af99e0",
+        "resources": {
+          "valid": true,
+          "sample_count": 61,
+          "groups": {
+            "server_test_host": {
+              "observed_cumulative_cpu_seconds": 41.02,
+              "peak_observed_rss_bytes": 72138752,
+              "observed_process_count": 1
+            },
+            "browser": {
+              "observed_cumulative_cpu_seconds": 18.13,
+              "peak_observed_rss_bytes": 2331508736,
+              "observed_process_count": 14
+            },
+            "control_driver_or_other_owned_child": {
+              "observed_cumulative_cpu_seconds": 0.08,
+              "peak_observed_rss_bytes": 91389952,
+              "observed_process_count": 3
+            }
+          },
+          "errors": [],
+          "log": ".local/gate-6/browser-sdk/clean60-cadence061/case-7-resources.json",
+          "log_sha256": "6bcd84700885031af36d5ad06117bb3ce430a77f0c8e959001e406431a63002f"
+        },
+        "failure": "Unchanged37.5identified audioframes/second minimum; alignment and terminal checks not reached",
+        "measurement": {
+          "audio": [
+            {
+              "decoded": 1910,
+              "identified": 1901
+            },
+            {
+              "decoded": 2462,
+              "identified": 2451
+            }
+          ],
+          "video": [
+            {
+              "decoded": 1680,
+              "identified": 1680,
+              "motion": 608
+            },
+            {
+              "decoded": 1745,
+              "identified": 1745,
+              "motion": 608
+            }
+          ],
+          "playback": [
+            {
+              "peakRms": 0.932193172206886,
+              "maxPending": 4,
+              "maxQueuedSeconds": 0.06066666666666687,
+              "queueSamples": 9903,
+              "queueSecondsTotal": 137.1140000000041,
+              "meanQueuedAudioSeconds": 0.013845703322226002,
+              "audio": 1910,
+              "video": 1680
+            },
+            {
+              "peakRms": 0.9168799792482681,
+              "maxPending": 5,
+              "maxQueuedSeconds": 0.08600000000000052,
+              "queueSamples": 9903,
+              "queueSecondsTotal": 241.74133333365418,
+              "meanQueuedAudioSeconds": 0.024410919250091305,
+              "audio": 2462,
+              "video": 1745
+            }
+          ],
+          "measured_ms": 60000.5
+        }
+      }
+    ]
+  },
+  "transport": {
+    "report": ".local/gate-6/webtransport/cadence034/summary.json",
+    "sha256": "bedccd67e2f06d7bef36e2a287067aa85b61fe6a97c473ae3ec132464f6b95c1",
+    "passed": true,
+    "source_inputs_unchanged": true,
+    "executables_unchanged": true,
+    "passed_methods": 28,
+    "selected_methods": 28
+  },
+  "interpretation": [
+    "Controlled74Core methods prove missed-tick catch-up and retained authority/expiry/recovery behavior; this connected run does not prove the sustained audio failure is resolved.",
+    "EdDSA passes measured audio2772/2704 and video1742/1690, with59paired markers perreceiver, but audio arrives later than matching video by median247.1/271.8ms and p95319.9/291.2ms.",
+    "ES256 identifies1901/2451audio and1680/1745video. The firstreceiver fails the unchanged minimum before alignment is checked.",
+    "Browser meanaudioqueues remain13.85\u201326.82ms; end-to-end marker delay cannot be assigned to browser playback queues alone. Prior source192 age diagnostic is historical and must not be treated as current194 ages.",
+    "Next measure current194serverqueued/IOages with the existing bounded summary mode. No constant synchronization offset, quality threshold, expiry or authorization change."
+  ],
+  "scope": "Actual local macOS arm64 Chrome155.0.8059.85 browser/browser and short publicnativeQUIC functional topology. No frozen clean, native full operating, actual impairment, remote/provider, acceptance or publication qualification."
+}

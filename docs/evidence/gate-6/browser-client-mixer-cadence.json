@@ -1,7 +1,7 @@
 {
   "schema": "connect-gate6-mixer-cadence/1",
   "task": "G6-050",
-  "status": "Controlled catch-up correction passes all 74 selected Core methods; connected qualification pending",
+  "status": "Source194current12browser/native and28transport pass; frozen60alignment/audio remain failed",
   "negative": {
     "report": ".local/gate-6/audio-cadence/negative001/summary.json",
     "sha256": "9e89a1b7e3f3b89a2f3a7a85db75f33d67f5048a7469a4f8dbe849f71a9a1e17",
@@ -182,5 +182,13 @@
       "The selected existing expiry, pause/resume, source/scene/route/consumer authorization and scene regression cases pass.",
       "Two clock tests verify original phase, a long gap and fractional delays without permanent accumulation."
     ]
+  },
+  "host_runtime": {
+    "evidence": "docs/evidence/gate-6/browser-client-cadence-host.json",
+    "sha256": "2d5663d9b78bd30654d0dff8f81416b36faab4f6b9f83f3f93fe7489eadc9f4d",
+    "browser_native": "12/12pass",
+    "transport": "28/28pass",
+    "clean60": "6/8; EdDSAalignmentfailed,ES256audiofailed",
+    "scope": "Current194actualruntime; controlledfix valid, sustained/sync qualification remains open."
   }
 }
