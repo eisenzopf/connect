@@ -266,3 +266,11 @@ events. It includes setup and teardown and cannot prove complete IO or cleanup.
 The current diagnostic reproduces sustained audio failure with queued server
 audio near its original 200 ms expiry; browser queues average 11–30 ms. See
 `docs/evidence/gate-6/browser-client-audio-age.json`.
+
+After a scheduler stall, the managed mixer advances its 20 ms cadence and RTP
+clock by the elapsed intervals. It discards only the corresponding missed PCM
+quanta while preserving the newest available quantum after an idle gap. Each
+output retains the existing original-age and current-authority checks. The
+controlled stall, recovery and regression evidence is in
+`docs/evidence/gate-6/browser-client-mixer-cadence.json`; connected sustained
+audio and alignment still require their own measurements.

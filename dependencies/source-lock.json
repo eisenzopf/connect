@@ -1077,6 +1077,10 @@
     {
       "path": "patches/rvoip/gate6-missed-audio-tick-regression.patch",
       "sha256": "4a51240b1e3abfac85d9106d70b8fa3141f12b77b16e48e643c9c4153f91bb67"
+    },
+    {
+      "path": "patches/rvoip/gate6-catch-up-missed-audio-quanta.patch",
+      "sha256": "8295a4f7857c3d410333854553301f6b0f46fbabaf47ce6b1143f798161b7423"
     }
   ]
 }

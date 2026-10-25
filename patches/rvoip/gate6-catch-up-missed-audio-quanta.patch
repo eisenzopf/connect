@@ -1,0 +1,131 @@
+--- a/crates/foundation/rvoip-core/src/staged_streams/guarded_audio.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/guarded_audio.rs
+@@ -358,6 +358,32 @@
+                 packet,
+                 samples: samples.into(),
+             });
++        }
++    }
++    fn skip_missed_quanta(&mut self, quanta: u64, size: usize) {
++        let count = self
++            .pending
++            .iter()
++            .map(|chunk| chunk.samples.len())
++            .sum::<usize>();
++        // Drop only elapsed quanta, bounded by the existing PCM budget. Always
++        // keep the newest available quantum: a long idle gap must not consume
++        // a sole fresh original packet. take() still checks its current source,
++        // scene, route and original packet age before any output.
++        let mut skip = quanta
++            .saturating_sub(1)
++            .saturating_mul(size as u64)
++            .min(count.saturating_sub(size) as u64) as usize;
++        while skip > 0 {
++            let Some(chunk) = self.pending.front_mut() else {
++                break;
++            };
++            let amount = skip.min(chunk.samples.len());
++            chunk.samples.drain(..amount);
++            skip -= amount;
++            if chunk.samples.is_empty() {
++                self.pending.pop_front();
++            }
+         }
+     }
+     fn take(
+@@ -443,7 +469,29 @@
+         segments
+     }
+ }
++// This clock owns no media or authority. Keep the original20ms phase when
++// the executor misses ticks; replaying one old quantum per wake would leave
++// every subsequent input permanently behind the realtime schedule.
++#[derive(Default)]
++struct MixerCadence {
++    next: Option<Instant>,
++}
++impl MixerCadence {
++    fn advance(&mut self, now: Instant) -> u64 {
++        let next = self.next.unwrap_or(now);
++        let late = now.saturating_duration_since(next).as_millis() / 20;
++        let quanta = u64::try_from(late)
++            .unwrap_or(u64::MAX - 1)
++            .saturating_add(1);
++        self.next = Some(
++            next.checked_add(Duration::from_millis(quanta.saturating_mul(20)))
++                .unwrap_or(now + Duration::from_millis(20)),
++        );
++        quanta
++    }
++}
+ pub(crate) struct GuardedAudioMixer {
++    cadence: Mutex<MixerCadence>,
+     rate: u32,
+     pub(super) members: Mutex<HashMap<ConnectionId, AudioMember>>,
+ }
+@@ -451,6 +499,7 @@
+     pub(crate) fn new(rate: u32) -> Arc<Self> {
+         Arc::new(Self {
+             rate,
++            cadence: Mutex::new(MixerCadence::default()),
+             members: Mutex::new(HashMap::new()),
+         })
+     }
+@@ -528,18 +577,25 @@
+     }
+     pub(crate) fn tick(&self) {
+         let mut members = self.members.lock().unwrap_or_else(|p| p.into_inner());
++        let quanta = self
++            .cadence
++            .lock()
++            .unwrap_or_else(|p| p.into_inner())
++            .advance(Instant::now());
++        let size = (self.rate / 50) as usize;
+         let mut leases = Vec::new();
+         let mut admissions = Vec::new();
+         let mut inputs = HashMap::new();
+         for (id, member) in &mut *members {
+-            member.ticks = member.ticks.wrapping_add(1);
++            member.ticks = member.ticks.wrapping_add(quanta);
+             if member.refresh().is_err() {
+                 member.pending.clear();
+                 member.waiting = None;
+                 continue;
+             }
+             member.collect();
+-            let segments = member.take((self.rate / 50) as usize, &mut leases, &mut admissions);
++            member.skip_missed_quanta(quanta, size);
++            let segments = member.take(size, &mut leases, &mut admissions);
+             inputs.insert(id.clone(), (member.participant.clone(), segments));
+         }
+         let mut subscription_guards = Vec::new();
+@@ -759,3 +815,29 @@
+ pub(super) fn supports_format(format: &MediaFormat, rate: u32) -> bool {
+     Codecs::new(format, 96, rate).is_ok()
+ }
++
++#[cfg(test)]
++mod cadence_tests {
++    use super::*;
++    #[test]
++    fn missed_ticks_preserve_the_original_phase() {
++        let start = Instant::now();
++        let mut cadence = MixerCadence::default();
++        assert_eq!(cadence.advance(start), 1);
++        assert_eq!(cadence.advance(start + Duration::from_millis(20)), 1);
++        assert_eq!(cadence.advance(start + Duration::from_millis(85)), 3);
++        assert_eq!(cadence.advance(start + Duration::from_millis(100)), 1);
++        assert_eq!(cadence.advance(start + Duration::from_secs(60)), 2995);
++        assert_eq!(cadence.advance(start + Duration::from_millis(60020)), 1);
++    }
++    #[test]
++    fn fractional_delays_do_not_accumulate_permanent_backlog() {
++        let start = Instant::now();
++        let mut cadence = MixerCadence::default();
++        let mut quanta = cadence.advance(start);
++        for i in 1..=40 {
++            quanta += cadence.advance(start + Duration::from_millis(i * 21));
++            assert_eq!(quanta, i * 21 / 20 + 1);
++        }
++    }
++}

@@ -1,7 +1,7 @@
 {
   "schema": "connect-gate6-mixer-cadence/1",
   "task": "G6-050",
-  "status": "Controlled missed-tick failure reproduced; correction and host qualification pending",
+  "status": "Controlled catch-up correction passes all 74 selected Core methods; connected qualification pending",
   "negative": {
     "report": ".local/gate-6/audio-cadence/negative001/summary.json",
     "sha256": "9e89a1b7e3f3b89a2f3a7a85db75f33d67f5048a7469a4f8dbe849f71a9a1e17",
@@ -36,7 +36,151 @@
   "required_correction": [
     "Advance the mixer RTP clock by elapsed20ms quanta without accumulating fractional scheduling drift.",
     "Discard only missed PCM quanta within the existing ten-chunk/200ms budget, preserve the newest available quantum after an idle gap, and retain original source/scene/consumer/route/age checks at output.",
-    "Verify the complete guarded mixer/scene groups and actual connected host; this controlled witness does not prove the sustained runtime profile passes."
+    "All 74 focused mixer/scene/cadence methods pass. Actual connected sustained audio and alignment must be measured on this new candidate."
   ],
-  "scope": "Actual local Core mixer behavior with isolated policy/adapter fixtures; no connected throughput, full task/acceptance or publication claim."
+  "scope": "Actual local Core mixer behavior with isolated policy/adapter fixtures; no connected throughput, full task/acceptance or publication claim.",
+  "positive": {
+    "report": ".local/gate-6/audio-cadence/positive001/summary.json",
+    "sha256": "fa645676e36b0863077ca444639765947eb40865a043f29551752bfdbad0d264",
+    "candidate_revision": "048c2adbe965d8be7937a05a460549c42e3319b5",
+    "passed": true,
+    "source_inputs_unchanged": true,
+    "executable_unchanged": true,
+    "passed_methods": 74,
+    "groups": [
+      {
+        "selection": "staged_streams::tests::guarded_mixer::",
+        "selected": [
+          "staged_streams::tests::guarded_mixer::guarded_mixer_admission_excludes_old_packets_and_inactive_candidate_cannot_publish",
+          "staged_streams::tests::guarded_mixer::guarded_mixer_burst_plays_newest_decoded_packet_without_replaying_backlog",
+          "staged_streams::tests::guarded_mixer::guarded_mixer_closed_scene_never_falls_back_to_unmanaged_forwarding",
+          "staged_streams::tests::guarded_mixer::guarded_mixer_contiguous_original_packets_remain_ordered_across_one_tick",
+          "staged_streams::tests::guarded_mixer::guarded_mixer_contiguous_pcm_is_bounded_and_expired_original_samples_do_not_play",
+          "staged_streams::tests::guarded_mixer::guarded_mixer_decodes_four_people_five_devices_and_excludes_all_own_devices",
+          "staged_streams::tests::guarded_mixer::guarded_mixer_departure_cancels_admitted_send_and_preserves_other_members",
+          "staged_streams::tests::guarded_mixer::guarded_mixer_dynamic_payload_names_and_stereo_resampling_use_negotiated_codec",
+          "staged_streams::tests::guarded_mixer::guarded_mixer_failed_role_drain_restores_original_authority_and_queue",
+          "staged_streams::tests::guarded_mixer::guarded_mixer_long_original_packet_keeps_remaining_samples_without_new_input",
+          "staged_streams::tests::guarded_mixer::guarded_mixer_missed_ticks_catch_up_without_delayed_original_playback",
+          "staged_streams::tests::guarded_mixer::guarded_mixer_new_decoded_packet_supersedes_older_partial_audio",
+          "staged_streams::tests::guarded_mixer::guarded_mixer_pause_resume_discards_pending_and_queued_audio_without_reopening_ports",
+          "staged_streams::tests::guarded_mixer::guarded_mixer_queued_policy_writer_drops_tick_without_reentering_owned_reader",
+          "staged_streams::tests::guarded_mixer::guarded_mixer_rechecks_every_contributor_and_audience_after_dequeue",
+          "staged_streams::tests::guarded_mixer::guarded_mixer_replacement_keeps_logical_id_and_discards_old_decoded_samples",
+          "staged_streams::tests::guarded_mixer::guarded_mixer_role_change_drains_send_and_invalidates_queued_old_voice",
+          "staged_streams::tests::guarded_mixer::guarded_mixer_unknown_codec_replacement_rejected_before_adapter_open_preserves_audio",
+          "staged_streams::tests::guarded_mixer::guarded_mixer_wrong_static_payload_replacement_keeps_old_ready_port",
+          "staged_streams::tests::guarded_mixer::packet_context::concurrent_fresh_child_cannot_hide_older_live_packet_custody_behind_a_queued_writer",
+          "staged_streams::tests::guarded_mixer::packet_context::guarded_mixer_and_egress_use_only_their_active_source_packet_context",
+          "staged_streams::tests::guarded_mixer::packet_context::guarded_packet_context_keeps_no_queued_reader_and_cannot_borrow_recipient_permission",
+          "staged_streams::tests::guarded_mixer::packet_context::ready_audio_batch_checks_each_recipient_and_preserves_other_authorized_sends",
+          "staged_streams::tests::guarded_mixer::packet_context::ready_audio_batch_never_extends_original_age_for_later_recipients",
+          "staged_streams::tests::guarded_mixer::packet_context::ready_audio_batch_rejects_other_original_packets_before_any_io",
+          "staged_streams::tests::guarded_mixer::packet_context::ready_audio_batch_returns_busy_metadata_but_consumes_a_submitted_transport_error",
+          "staged_streams::tests::guarded_mixer::packet_context::ready_audio_batch_reuses_only_live_original_source_and_releases_before_waiting_writer",
+          "staged_streams::tests::guarded_mixer::packet_context::same_original_packet_shares_only_active_custody_and_never_a_different_packet",
+          "staged_streams::tests::guarded_mixer::packet_context::same_packet_live_custody_preserves_current_recipient_and_original_age",
+          "staged_streams::tests::guarded_mixer::source_contention::guarded_mixer_busy_collect_and_take_expire_original_then_accept_fresh_input",
+          "staged_streams::tests::guarded_mixer::source_contention::guarded_mixer_busy_collect_and_take_keep_original_frame_without_idle_grants",
+          "staged_streams::tests::guarded_mixer::source_contention::guarded_mixer_busy_collect_and_take_recheck_revocation_and_never_replay",
+          "staged_streams::tests::guarded_mixer::source_contention::guarded_mixer_busy_original_does_not_cross_pause_resume_epoch",
+          "staged_streams::tests::guarded_mixer::subscriptions::canceled_subscription_drain_restores_old_generation_and_current_policy_can_remove_revoked_source",
+          "staged_streams::tests::guarded_mixer::subscriptions::explicit_subscriptions_default_deny_then_select_one_logical_source_or_all_person_devices",
+          "staged_streams::tests::guarded_mixer::subscriptions::held_future_participant_selection_uses_exact_owner_guard_under_a_queued_writer",
+          "staged_streams::tests::guarded_mixer::subscriptions::held_subscription_control_reuses_exact_guard_with_queued_writer_then_fresh_media_denies",
+          "staged_streams::tests::guarded_mixer::subscriptions::logical_subscription_survives_transport_replacement_without_resetting_port_budget",
+          "staged_streams::tests::guarded_mixer::subscriptions::retained_participant_selector_cannot_inherit_removed_and_readmitted_membership_epoch",
+          "staged_streams::tests::guarded_mixer::subscriptions::selection_change_uses_connection_revision_is_atomic_on_unknown_source_and_excludes_old_buffers",
+          "staged_streams::tests::guarded_mixer::subscriptions::subscription_controls_refuse_denied_audience_wrong_revision_and_unsupported_held_hook",
+          "staged_streams::tests::guarded_mixer::subscriptions::unsubscribe_drains_admitted_send_invalidates_old_mix_and_preserves_other_listeners",
+          "staged_streams::tests::guarded_mixer::subscriptions::wildcard_intent_tracks_future_same_owner_devices_but_unsubscribe_exception_stays_removed"
+        ],
+        "exit_code": 0,
+        "passed": true,
+        "expected_failure": false,
+        "counts": [
+          43,
+          0,
+          0
+        ],
+        "log": ".local/gate-6/audio-cadence/positive001/case-0.log",
+        "log_sha256": "b579a50c88c6d0cfdc3eb32ea88e163f14a9c49cd82e33e994fbf06829fd81e4",
+        "elapsed_seconds": 1.9436128330416977
+      },
+      {
+        "selection": "staged_streams::tests::media_scene::",
+        "selected": [
+          "staged_streams::tests::media_scene::owned_scene_adds_removes_and_reselects_audio_without_resetting_receiver_intent",
+          "staged_streams::tests::media_scene::owned_scene_admission_drains_non_audio_io_before_activating_its_input_owner",
+          "staged_streams::tests::media_scene::owned_scene_admits_video_screen_and_data_without_audio_and_fans_out_only_explicit_routes",
+          "staged_streams::tests::media_scene::owned_scene_adopts_replacement_inputs_and_preserves_direct_logical_selection",
+          "staged_streams::tests::media_scene::owned_scene_audio_accepts_one_way_ports_and_rejects_reversed_subscription_directions",
+          "staged_streams::tests::media_scene::owned_scene_cancelled_audio_selection_drain_preserves_old_stream_and_intent",
+          "staged_streams::tests::media_scene::owned_scene_data_backpressure_preserves_order_while_video_keeps_flowing",
+          "staged_streams::tests::media_scene::owned_scene_data_retry_never_duplicates_delivery_to_an_unblocked_listener",
+          "staged_streams::tests::media_scene::owned_scene_holds_no_idle_authority_reader_and_retries_data_after_contention",
+          "staged_streams::tests::media_scene::owned_scene_refuses_pre_admission_data_and_keeps_processing_new_publications",
+          "staged_streams::tests::media_scene::owned_scene_removal_cancels_admitted_data_and_refuses_remaining_publication",
+          "staged_streams::tests::media_scene::subscriptions::catalog_probe_yields_while_the_actual_mixer_owns_scene_members",
+          "staged_streams::tests::media_scene::subscriptions::catalog_probe_yields_while_the_actual_target_owns_its_state",
+          "staged_streams::tests::media_scene::subscriptions::mixed_subscriptions_cancelled_drain_preserves_both_programs_and_retry_drains_once",
+          "staged_streams::tests::media_scene::subscriptions::mixed_subscriptions_commit_one_revision_and_clear_all_fences_without_reopening_ports",
+          "staged_streams::tests::media_scene::subscriptions::mixed_subscriptions_held_exact_intent_avoids_storage_reentry_behind_queued_writer",
+          "staged_streams::tests::media_scene::subscriptions::mixed_subscriptions_revalidate_current_audience_after_drain_without_partial_removal",
+          "staged_streams::tests::media_scene::subscriptions::mixed_subscriptions_validate_entire_audio_and_direct_request_before_changing_either",
+          "staged_streams::tests::media_scene::subscriptions::named_audio_reselection_clears_guarded_exclusion_under_retained_participant_intent",
+          "staged_streams::tests::media_scene::subscriptions::participant_future_materialization_and_sticky_exclusion_survive_reconciliation",
+          "staged_streams::tests::media_scene::subscriptions::participant_future_selection_commits_without_ports_and_revalidates_before_materializing_video",
+          "staged_streams::tests::media_scene::subscriptions::participant_future_selection_uses_same_held_reader_with_queued_writer",
+          "staged_streams::tests::media_scene::subscriptions::retained_participant_selector_does_not_follow_readmitted_epoch_or_another_scene",
+          "staged_streams::tests::media_scene::subscriptions::subscription_catalog_contention_preserves_original_revision_and_has_no_effect",
+          "staged_streams::tests::media_scene::subscriptions::subscription_catalog_poison_and_missing_target_are_not_retryable_contention",
+          "staged_streams::tests::media_scene::subscriptions::subscription_receiver_preparation_failure_preserves_old_audio_and_retry_burns_handles",
+          "staged_streams::tests::media_scene::subscriptions::subscription_receiver_resources_and_mixed_programs_commit_once_after_actual_preparation",
+          "staged_streams::tests::media_scene::subscriptions::wildcard_participant_defers_unsupported_kind_but_preserves_future_intent",
+          "staged_streams::tests::media_scene::subscriptions::wildcard_participant_never_skips_authority_or_accepts_zero_compatible_kinds"
+        ],
+        "exit_code": 0,
+        "passed": true,
+        "expected_failure": false,
+        "counts": [
+          29,
+          0,
+          0
+        ],
+        "log": ".local/gate-6/audio-cadence/positive001/case-1.log",
+        "log_sha256": "9c1ed0834c0212e065fd36e68a117c0135b11a7ad92d9f519870940051342607",
+        "elapsed_seconds": 0.25786358304321766
+      },
+      {
+        "selection": "staged_streams::guarded_audio::cadence_tests::",
+        "selected": [
+          "staged_streams::guarded_audio::cadence_tests::fractional_delays_do_not_accumulate_permanent_backlog",
+          "staged_streams::guarded_audio::cadence_tests::missed_ticks_preserve_the_original_phase"
+        ],
+        "exit_code": 0,
+        "passed": true,
+        "expected_failure": false,
+        "counts": [
+          2,
+          0,
+          0
+        ],
+        "log": ".local/gate-6/audio-cadence/positive001/case-2.log",
+        "log_sha256": "322397c840af6d4ad71ef717bd5806143f70149bc8efc958dbcf86a46ac09afe",
+        "elapsed_seconds": 0.017622833140194416
+      }
+    ],
+    "production_patch": {
+      "path": "patches/rvoip/gate6-catch-up-missed-audio-quanta.patch",
+      "sha256": "8295a4f7857c3d410333854553301f6b0f46fbabaf47ce6b1143f798161b7423"
+    },
+    "behavior": [
+      "The mixer maintains its original 20 ms cadence and advances RTP timestamps by elapsed quanta after a stall.",
+      "Only missed PCM quanta are discarded, within the existing ten-chunk/200 ms bound; the newest available quantum survives an idle gap.",
+      "Actual 65 ms stall recovery passes at 8 kHz and 48 kHz with RTP wrap, ordered once-only output, sole fresh-packet recovery, idle writer access and stable stream budget.",
+      "The selected existing expiry, pause/resume, source/scene/route/consumer authorization and scene regression cases pass.",
+      "Two clock tests verify original phase, a long gap and fractional delays without permanent accumulation."
+    ]
+  }
 }

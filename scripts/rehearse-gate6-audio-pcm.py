@@ -18,7 +18,7 @@ REGRESSION = 'staged_streams::tests::guarded_mixer::guarded_mixer_contiguous_ori
 ASSERTION = 'contiguous original audio frame was discarded by newer input'
 CADENCE_REGRESSION = 'staged_streams::tests::guarded_mixer::guarded_mixer_missed_ticks_catch_up_without_delayed_original_playback'
 CADENCE_ASSERTION = 'missed mixer ticks left original PCM behind the current quantum'
-GROUPS = ('staged_streams::tests::guarded_mixer::', 'staged_streams::tests::media_scene::')
+GROUPS = ('staged_streams::tests::guarded_mixer::', 'staged_streams::tests::media_scene::', 'staged_streams::guarded_audio::cadence_tests::')
 
 
 def digest(path):
