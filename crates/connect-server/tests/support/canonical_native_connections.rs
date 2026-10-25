@@ -9,6 +9,9 @@ mod cleanup;
 mod codecs;
 #[path = "canonical_native_connections/consultation.rs"]
 mod consultation;
+#[cfg(unix)]
+#[path = "canonical_native_connections/crash_recovery.rs"]
+mod crash_recovery;
 #[path = "canonical_native_connections/data.rs"]
 mod data;
 #[path = "canonical_native_connections/dtmf.rs"]

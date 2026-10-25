@@ -1,0 +1,95 @@
+{
+  "task": "G6-047",
+  "recorded_at": "2026-10-25T00:42:48.339997+00:00",
+  "status": "native-ready-commit-actual-sigkill-slice-passes-full-task-open",
+  "full_task_complete": false,
+  "full_goal_complete": false,
+  "approved_work": "Reconcile accepted operations and external effects after crashes; mark interrupted live sessions honestly, query supported provider state and expose bounded operator reconciliation when certainty is unavailable. Prevent duplicate redial, stale bridge resurrection or database-only completion. Drain or terminate resources on shutdown.",
+  "approved_verification": "Kill/restart around submit, answer, ready, commit and retirement. The recovered journal, provider state and actual media agree or explicitly report uncertainty; subsequent operations cannot bypass unresolved conflicting effects.",
+  "initial_findings": [
+    "Canonical startup obtains exclusive installation ownership, fences prior Connection observations, recovers operation work and installs actual native adapter absence recovery before intake.",
+    "Graceful shutdown drains initialization, native peers, provider/telephone workers and record/HTTP listeners before installation retirement. These code paths alone do not prove abrupt process behavior.",
+    "Earlier DTMF successor/restart cases and controlled Store recovery reports retain their narrower scopes. They are not relabeled as abrupt full operation recovery."
+  ],
+  "current_implementation": {
+    "source": "crates/connect-server/tests/support/canonical_native_connections/crash_recovery.rs",
+    "scope": "Actual subprocess native ready/committed bridge; independent decoded duplex before parent SIGKILL, exclusive successor with same installation/new epoch, cleared old physical readiness/lifetimes, bounded grace end, public snapshot and stale native signal refusal, fresh non-media request. EdDSA and ES256.",
+    "entrypoint_policy": "One explicitly ignored child-only entry point is invoked by the two parent tests using --ignored. It is not counted as a skipped qualification or a standalone pass.",
+    "verification": "Both actual parent cases pass with source/executable guards. One child-only ignored entry point is invoked explicitly and killed, never counted as a skipped qualification."
+  },
+  "remaining": [
+    "Add and qualify native accepted/answer and retirement boundaries; current ready/committed SIGKILL behavior alone is not complete G6-047 coverage.",
+    "Cover submit/answer and retirement boundaries for actual native/SIP/provider effects, including still-live external fixtures.",
+    "Verify supported provider queries, bounded authorized operator reconciliation, no duplicate external effects and unresolved-conflict exclusion.",
+    "Verify actual owned drain/termination and recovery failure cases across approved operation classes, then audit the complete G6-047 scope."
+  ],
+  "verification": {
+    "native_ready_commit": {
+      "summary": ".local/gate-6/crash-recovery/native-ready001-runtime-001/summary.json",
+      "summary_sha256": "2cb7ee69ea8961187a4a92f45d1aabe235bca87ab9dcc1962fd09a7a8a1482c3",
+      "source_revision": "eb6fd7f30f74dff31979f34f2503616491fd5f38",
+      "executable_sha256": "1a2486146e0c77eb4750d0beb06b1f12c254c4504468d3268b75d9bc1202f6a9",
+      "source_inputs_unchanged": true,
+      "executable_unchanged": true,
+      "passed": true,
+      "profiles": [
+        {
+          "algorithm": "EdDSA",
+          "case": "canonical_native_connections::crash_recovery::production_sigkill_native_ready_bridge_recovers_without_resurrection_eddsa",
+          "runtime_exit_code": 0,
+          "capture_sha256": "2f634e5980bad53ff67a95e1150cc7e676349d14bec010f6c0b316048346ad3f",
+          "killed_signal": 9,
+          "decoded_duplex_before_kill": true,
+          "physical_after_restart": [
+            [
+              "codec-source",
+              "retired",
+              3,
+              null,
+              null
+            ],
+            [
+              "codec-target",
+              "retired",
+              3,
+              null,
+              null
+            ]
+          ],
+          "public_session_state": "ended",
+          "public_ended_reason": "reconnect-grace-expired",
+          "old_lifetimes_retired": true,
+          "stale_native_signal_refused_without_io": true
+        },
+        {
+          "algorithm": "ES256",
+          "case": "canonical_native_connections::crash_recovery::production_sigkill_native_ready_bridge_recovers_without_resurrection_es256",
+          "runtime_exit_code": 0,
+          "capture_sha256": "ea621ecda210ec7228f4d47b1fe570aded15fc6de8dbf0ab72b17d897e684e60",
+          "killed_signal": 9,
+          "decoded_duplex_before_kill": true,
+          "physical_after_restart": [
+            [
+              "codec-source",
+              "retired",
+              3,
+              null,
+              null
+            ],
+            [
+              "codec-target",
+              "retired",
+              3,
+              null,
+              null
+            ]
+          ],
+          "public_session_state": "ended",
+          "public_ended_reason": "reconnect-grace-expired",
+          "old_lifetimes_retired": true,
+          "stale_native_signal_refused_without_io": true
+        }
+      ]
+    }
+  }
+}
