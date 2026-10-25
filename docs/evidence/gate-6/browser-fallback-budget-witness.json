@@ -1,0 +1,102 @@
+{
+  "schema": "connect-gate6-wss-budget-witness/1",
+  "task": "G6-051",
+  "status": "13/14 hosting methods pass; budget fixture positive Core-view count times out",
+  "report": {
+    "path": ".local/gate-6/fallback/wss-host002/summary.json",
+    "sha256": "740b8f5e18e2a189cf2e5adc17879a835e90218ec0275c69c5ae9969234c645d",
+    "source_inputs_unchanged": true,
+    "executables_unchanged": true,
+    "passed_methods": 13,
+    "selected_methods": 14
+  },
+  "cases": [
+    {
+      "case": "canonical_websocket::tests::bind_policy_allows_remote_wildcards_but_never_multicast_or_broadcast",
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "d457d17a6a99cc4a14e70225bf72483cbef1660175627f18f9c2f1b05c5addbb"
+    },
+    {
+      "case": "canonical_websocket::tests::derived_local_contact_preserves_bound_ipv4_and_ipv6_address_family",
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "e66ae8d09c3ebfe42c988ea1639c99d767cf60d41776f2b5a0788cbe49d3f252"
+    },
+    {
+      "case": "canonical_websocket::tests::exact_origins_mount_and_remote_contact_are_required_before_startup",
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "0693631ed03af452d619b936684915048d5472c3cbaa01dac8a93102cea59346"
+    },
+    {
+      "case": "canonical_websocket::tests::advertised_contact_refuses_parser_normalization_of_whitespace_and_controls",
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "dd24efff2910f9f970c7bcf0526d2cac9c53ed9331efb90036a25e305e594a4d"
+    },
+    {
+      "case": "canonical_websocket_control::cancelling_host_shutdown_keeps_wss_and_pending_tls_owned",
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "c43058ac9494db0d249016e0238c64a0bbdf9560adc0818b93f265d4d2cdf93e"
+    },
+    {
+      "case": "canonical_webtransport_discovery::discovery_sdk_refuses_incompatible_and_oversized_responses_during_collection",
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "43bbdf371877b242fbaf3764c436c01ded897aab534b15763cccafbf80e43db6"
+    },
+    {
+      "case": "canonical_websocket_control::tls_wss_signed_control_reconnect_and_native_original_receipt_eddsa",
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "f5bdb1c1f122086788a4422b6123dec6a8f25ed49a77dafc3fea54f8e70206c2"
+    },
+    {
+      "case": "canonical_websocket_control::tls_wss_signed_control_reconnect_and_native_original_receipt_es256",
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "5fb1004ea3c6f354387fe56f6c32fc97623141995392aa57b883590002e92b86"
+    },
+    {
+      "case": "canonical_websocket_control::tls_origin_mount_refusals_do_not_consume_canonical_slots",
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "20721a78953496c8325fc98309fba8431c7685a25ce907414eaa49955e7fb07e"
+    },
+    {
+      "case": "canonical_websocket_control::physical_budget_is_shared_across_wss_http3_and_native_and_reuses_retired_slots",
+      "passed": false,
+      "exit_code": 101,
+      "log_sha256": "61c7c397cd3fa47138667f1e9a061efd58ed577ce80d6f7f4bebca9d1eacd161"
+    },
+    {
+      "case": "canonical_websocket_control::dropping_host_closes_live_wss_and_releases_tcp_listener",
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "89b1bb14b5b12dafdca0d2a93fecc858f95831fe60450c4b11862705715bf155"
+    },
+    {
+      "case": "canonical_websocket_control::signing_expiry_retires_wss_and_linked_native_and_http3",
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "d73f6d960502abbb401d71352466730aaf74a35dd3c763cab75a6a9a7b5a6357"
+    },
+    {
+      "case": "canonical_websocket_control::production_sdk_uses_actual_tls_wss_and_recovers_original_receipt_eddsa",
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "dac04ce95512b5fa0eda485034990192d1803f57be5311ded1782cbc9ca8ae71"
+    },
+    {
+      "case": "canonical_websocket_control::production_sdk_uses_actual_tls_wss_and_recovers_original_receipt_es256",
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "0ee45c7ca073d4b563885a1c69883d4a3eef4bdb206454fd273d185d06472bbb"
+    }
+  ],
+  "finding": "The budget method uses canonical_runtime_snapshot.physical_peers as if it counted all authenticated transports. Those Core views are bound lazily. Its generic timeout log does not identify the requested/observed positive count, so it does not prove a production admission failure or a budget pass.",
+  "correction": "Keep the same WSS+HTTP3 held peers, excess native admission refusal and retirement/replacement admission assertions. Establish actual live peers with signed WSS command and HTTP3 original-operation status round trips, before and after refusal, instead of positive Core-view counts. This proves the actual shared physical budget through its public transport behavior.",
+  "remaining": "Corrected14-method cohort003 must pass. Native media/WebRTC/installed-browser fallback qualification remains separate."
+}

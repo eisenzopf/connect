@@ -330,18 +330,47 @@ async fn tls_origin_mount_refusals_do_not_consume_canonical_slots() {
     f.server.shutdown().await.unwrap();
     peer.closed().await;
 }
+async fn http3_original_status(peer: &mut Http3Peer, cid: &str) {
+    let mut request = envelope(
+        "operation.get",
+        json!({"operation_id":"wss-original-create"}),
+    );
+    request["cid"] = json!(cid);
+    let id = peer.send(request, true).await;
+    let mut observed = false;
+    for _ in 0..128 {
+        let frame = peer.read().await;
+        assert_eq!(frame.original()["in_reply_to"], id);
+        assert_ne!(frame.kind(), "error", "{:?}", frame.original());
+        if frame.kind() == "operation.updated" {
+            assert_eq!(
+                frame.original()["payload"]["operation_id"],
+                "wss-original-create"
+            );
+            assert_eq!(frame.original()["payload"]["state"], "completed");
+            observed = true;
+        }
+        if frame.kind() == "ack" {
+            assert!(observed);
+            return;
+        }
+    }
+    panic!("HTTP3 original status reply exceeded bound");
+}
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
 async fn physical_budget_is_shared_across_wss_http3_and_native_and_reuses_retired_slots() {
     let f = configured("EdDSA", 2, None).await;
     let mut ws = Peer::open(&f).await;
     let cid = ws.create(&f).await;
-    let http3 = Http3Peer::open(&f).await;
-    count(&f, 2).await;
+    let mut http3 = Http3Peer::open(&f).await;
+    // Core peer views are lazy. Establish held authenticated transports through
+    // real signed round trips, then prove the shared limit at actual admission.
+    http3_original_status(&mut http3, &cid).await;
     assert!(CanonicalClient::open(f.client.clone()).await.is_err());
     assert_eq!(ws.create(&f).await, cid);
+    http3_original_status(&mut http3, &cid).await;
     http3.close().await;
     drop(http3);
-    count(&f, 1).await;
     let mut native = CanonicalClient::open(f.client.clone()).await.unwrap();
     assert_eq!(
         native
