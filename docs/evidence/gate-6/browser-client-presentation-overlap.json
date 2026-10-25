@@ -1,7 +1,7 @@
 {
   "schema": "connect-gate6-presentation-overlap/1",
   "task": "G6-050",
-  "status": "Overlapping audio clock phases refused before scheduling; current connected qualification pending",
+  "status": "SDK242 verified; actual frozen ES256 capture passes, full current cohort6/8 with EdDSA failures retained",
   "source": {
     "sdk/typescript/src/browser_media_renderer.ts": "0e34e7f88929e2390f62be2b8e0f0878957d7e16c99566bee6ffe3817b563a10",
     "sdk/typescript/dist/browser_media_renderer.js": "a77f4a89a3475934ba3eea5fee1daf16c14f237cce28845e3c09a0834e5c3303",
@@ -61,5 +61,616 @@
     "A600-step/12second controlled sequence includes60backward5msphase adjustments. They refuse without origin accumulation, maintain at most two pending audio nodes, and permit fresh source-aligned video. One-sample rounding remains admissible; a200us overlap refuses while a later40mscapture gap remains40ms.",
     "Original queue/age/current-binding bounds, borrowed/owned resource rules and common audio/video timing remain unchanged. No per-stream offset or source/observer/quality threshold change."
   ],
-  "remaining": "Rerun current SDK242 unchanged installed-Chrome capture profile. Native clock-aware public SDK, intermittent audio, independent sources, impairment, permissions/background/owned teardown and all remaining Gate6 tasks remain required. No acceptance qualification."
+  "remaining": "Current ES256 passes one full local browser/browser supplied-stream60second case with unchanged limits and actual rendered rates; full current cohort is6/8 and remains failed. Investigate retained EdDSA audio/reverse-video failures with bounded SDK242 timing diagnostic. Native clock-aware public SDK, independent sources, impairment, permissions/background and all remaining Gate6 profiles/tasks remain required. No full G6-050/acceptance qualification.",
+  "actual_current": {
+    "report": ".local/gate-6/browser-sdk/clean60-overlap071/summary.json",
+    "sha256": "7d2087d088c3f5adfb50405f0e805c3caba23ae5cbca613bbff3f67356b1e0da",
+    "source_revision": "6f5bf09f7bf779b7f699288ce232bd490cc8674c",
+    "passed": false,
+    "methods": 8,
+    "passed_methods": 6,
+    "source_inputs_unchanged": true,
+    "executable_unchanged": true,
+    "scope": "Actual production TypeScript canonical control in owned Chrome. Exact selected methods are recorded; a single diagnostic method does not qualify the omitted matrix. Optional media selects short synthetic source over SDK/WT/Store/Core with identified Opus/VP8/data and durable teardown. Optional capture selects supplied-stream capture/worklet and decoded audio/canvas rendering. Explicit clean60 applies frozen fps/paired graph-canvas marker limits and resource observations only to capture methods. Packet tracing and diagnostic60 are diagnostic only and never qualify the frozen clean profile. Optional native cases use public CanonicalClient QUIC and independently decode actual native received packets. No native live encoder/realtime presenter/full60second-native/impairment/remote/provider/complete G6-050/acceptance/publication claim.",
+    "es256_capture": {
+      "passed": true,
+      "log": ".local/gate-6/browser-sdk/clean60-overlap071/case-7.log",
+      "log_sha256": "fbe2c7326f6b1954fc51793165015db1d78553af69f3bec87c47ab763c8ceea7",
+      "measured_ms": 60001.799999952316,
+      "actual_rendered_fps": [
+        28.18248785871997,
+        28.965797692758905
+      ],
+      "actual_playback": [
+        {
+          "audio": 2944,
+          "maxPending": 9,
+          "maxQueuedSeconds": 0.163333333333334,
+          "meanQueuedAudioSeconds": 0.12662625542500758,
+          "peakRms": 0.33970061536615376,
+          "queueSamples": 9879,
+          "queueSecondsTotal": 1250.9407773436499,
+          "video": 1691
+        },
+        {
+          "audio": 2569,
+          "maxPending": 8,
+          "maxQueuedSeconds": 0.16082166666917885,
+          "meanQueuedAudioSeconds": 0.12330677831830489,
+          "peakRms": 0.9112546257785217,
+          "queueSamples": 9879,
+          "queueSecondsTotal": 1218.147663006534,
+          "video": 1738
+        }
+      ],
+      "identified_audio": [
+        {
+          "decoded": 2948,
+          "identified": 2948
+        },
+        {
+          "decoded": 2581,
+          "identified": 2569
+        }
+      ],
+      "identified_video": [
+        {
+          "decoded": 1691,
+          "identified": 1691,
+          "motion": 608
+        },
+        {
+          "decoded": 1743,
+          "identified": 1743,
+          "motion": 602
+        }
+      ],
+      "alignment": [
+        {
+          "audio_markers": 59,
+          "median_abs_skew_ms": 49.200000047683716,
+          "p95_abs_skew_ms": 61.40000009536743,
+          "paired_markers": 59,
+          "pairs": [
+            {
+              "id": 3,
+              "skew_ms": 36.200000047683716
+            },
+            {
+              "id": 4,
+              "skew_ms": 56.700000047683716
+            },
+            {
+              "id": 5,
+              "skew_ms": 50.10000014305115
+            },
+            {
+              "id": 6,
+              "skew_ms": 35.700000047683716
+            },
+            {
+              "id": 7,
+              "skew_ms": 42.30000019073486
+            },
+            {
+              "id": 8,
+              "skew_ms": 58.5
+            },
+            {
+              "id": 9,
+              "skew_ms": 15.200000047683716
+            },
+            {
+              "id": 10,
+              "skew_ms": 56.30000019073486
+            },
+            {
+              "id": 11,
+              "skew_ms": 52.5
+            },
+            {
+              "id": 12,
+              "skew_ms": 53.69999980926514
+            },
+            {
+              "id": 13,
+              "skew_ms": 51.700000047683716
+            },
+            {
+              "id": 14,
+              "skew_ms": 48.40000009536743
+            },
+            {
+              "id": 15,
+              "skew_ms": 55.09999990463257
+            },
+            {
+              "id": 16,
+              "skew_ms": 18.5
+            },
+            {
+              "id": 17,
+              "skew_ms": 51
+            },
+            {
+              "id": 18,
+              "skew_ms": 57.5
+            },
+            {
+              "id": 19,
+              "skew_ms": -299.90000009536743
+            },
+            {
+              "id": 20,
+              "skew_ms": 57.09999990463257
+            },
+            {
+              "id": 21,
+              "skew_ms": 42.799999952316284
+            },
+            {
+              "id": 22,
+              "skew_ms": 50.90000009536743
+            },
+            {
+              "id": 23,
+              "skew_ms": 44.700000047683716
+            },
+            {
+              "id": 24,
+              "skew_ms": 52.69999980926514
+            },
+            {
+              "id": 25,
+              "skew_ms": 49.200000047683716
+            },
+            {
+              "id": 26,
+              "skew_ms": 53
+            },
+            {
+              "id": 27,
+              "skew_ms": 50.89999985694885
+            },
+            {
+              "id": 28,
+              "skew_ms": 50.700000047683716
+            },
+            {
+              "id": 29,
+              "skew_ms": 31.399999856948853
+            },
+            {
+              "id": 30,
+              "skew_ms": 57.799999952316284
+            },
+            {
+              "id": 31,
+              "skew_ms": 58.299999952316284
+            },
+            {
+              "id": 32,
+              "skew_ms": 42
+            },
+            {
+              "id": 33,
+              "skew_ms": 9.299999952316284
+            },
+            {
+              "id": 34,
+              "skew_ms": 42.299999952316284
+            },
+            {
+              "id": 35,
+              "skew_ms": 46.40000009536743
+            },
+            {
+              "id": 36,
+              "skew_ms": 27.799999952316284
+            },
+            {
+              "id": 37,
+              "skew_ms": 44.700000047683716
+            },
+            {
+              "id": 38,
+              "skew_ms": 45.60000014305115
+            },
+            {
+              "id": 39,
+              "skew_ms": 45.200000047683716
+            },
+            {
+              "id": 40,
+              "skew_ms": 23.100000143051147
+            },
+            {
+              "id": 41,
+              "skew_ms": 43.90000009536743
+            },
+            {
+              "id": 42,
+              "skew_ms": 43.200000047683716
+            },
+            {
+              "id": 43,
+              "skew_ms": 45.60000014305115
+            },
+            {
+              "id": 44,
+              "skew_ms": 26.90000009536743
+            },
+            {
+              "id": 45,
+              "skew_ms": 26.200000047683716
+            },
+            {
+              "id": 46,
+              "skew_ms": 44.40000009536743
+            },
+            {
+              "id": 47,
+              "skew_ms": 50
+            },
+            {
+              "id": 48,
+              "skew_ms": 43.700000047683716
+            },
+            {
+              "id": 49,
+              "skew_ms": 51.799999952316284
+            },
+            {
+              "id": 50,
+              "skew_ms": 38.5
+            },
+            {
+              "id": 51,
+              "skew_ms": 45.59999990463257
+            },
+            {
+              "id": 52,
+              "skew_ms": 56.799999952316284
+            },
+            {
+              "id": 53,
+              "skew_ms": 60.200000047683716
+            },
+            {
+              "id": 54,
+              "skew_ms": 59
+            },
+            {
+              "id": 55,
+              "skew_ms": 61.40000009536743
+            },
+            {
+              "id": 56,
+              "skew_ms": 56
+            },
+            {
+              "id": 57,
+              "skew_ms": 35.700000047683716
+            },
+            {
+              "id": 58,
+              "skew_ms": 57.59999990463257
+            },
+            {
+              "id": 59,
+              "skew_ms": 39.700000047683716
+            },
+            {
+              "id": 60,
+              "skew_ms": 79.29999995231628
+            },
+            {
+              "id": 61,
+              "skew_ms": 57.40000009536743
+            }
+          ],
+          "video_markers": 59
+        },
+        {
+          "audio_markers": 60,
+          "median_abs_skew_ms": 36.5,
+          "p95_abs_skew_ms": 110.39999985694885,
+          "paired_markers": 59,
+          "pairs": [
+            {
+              "id": 3,
+              "skew_ms": 36.09999990463257
+            },
+            {
+              "id": 4,
+              "skew_ms": -0.3000001907348633
+            },
+            {
+              "id": 5,
+              "skew_ms": 8.800000190734863
+            },
+            {
+              "id": 6,
+              "skew_ms": 37.299999952316284
+            },
+            {
+              "id": 7,
+              "skew_ms": 27.799999952316284
+            },
+            {
+              "id": 8,
+              "skew_ms": 35.89999985694885
+            },
+            {
+              "id": 9,
+              "skew_ms": 20.40000009536743
+            },
+            {
+              "id": 10,
+              "skew_ms": 44.39999985694885
+            },
+            {
+              "id": 11,
+              "skew_ms": 38.60000014305115
+            },
+            {
+              "id": 12,
+              "skew_ms": 57.40000009536743
+            },
+            {
+              "id": 13,
+              "skew_ms": 19.09999990463257
+            },
+            {
+              "id": 14,
+              "skew_ms": 36.200000047683716
+            },
+            {
+              "id": 15,
+              "skew_ms": 35.799999952316284
+            },
+            {
+              "id": 16,
+              "skew_ms": 38.60000014305115
+            },
+            {
+              "id": 17,
+              "skew_ms": 39.89999985694885
+            },
+            {
+              "id": 18,
+              "skew_ms": 7.099999904632568
+            },
+            {
+              "id": 19,
+              "skew_ms": -1.5999999046325684
+            },
+            {
+              "id": 20,
+              "skew_ms": 44.39999985694885
+            },
+            {
+              "id": 21,
+              "skew_ms": 22.40000009536743
+            },
+            {
+              "id": 22,
+              "skew_ms": 38.90000009536743
+            },
+            {
+              "id": 23,
+              "skew_ms": 47.799999952316284
+            },
+            {
+              "id": 24,
+              "skew_ms": 40.299999952316284
+            },
+            {
+              "id": 25,
+              "skew_ms": 38.09999990463257
+            },
+            {
+              "id": 26,
+              "skew_ms": 40
+            },
+            {
+              "id": 27,
+              "skew_ms": 31.899999856948853
+            },
+            {
+              "id": 28,
+              "skew_ms": -9.200000047683716
+            },
+            {
+              "id": 29,
+              "skew_ms": 39.200000047683716
+            },
+            {
+              "id": 30,
+              "skew_ms": 40.700000047683716
+            },
+            {
+              "id": 31,
+              "skew_ms": 96.59999990463257
+            },
+            {
+              "id": 32,
+              "skew_ms": 30.199999809265137
+            },
+            {
+              "id": 33,
+              "skew_ms": 73.80000019073486
+            },
+            {
+              "id": 34,
+              "skew_ms": 49.799999952316284
+            },
+            {
+              "id": 35,
+              "skew_ms": 54.700000047683716
+            },
+            {
+              "id": 36,
+              "skew_ms": 55.09999990463257
+            },
+            {
+              "id": 37,
+              "skew_ms": 110.39999985694885
+            },
+            {
+              "id": 38,
+              "skew_ms": 30
+            },
+            {
+              "id": 39,
+              "skew_ms": 13.200000047683716
+            },
+            {
+              "id": 40,
+              "skew_ms": 13.599999904632568
+            },
+            {
+              "id": 41,
+              "skew_ms": 24.5
+            },
+            {
+              "id": 42,
+              "skew_ms": 58.09999990463257
+            },
+            {
+              "id": 43,
+              "skew_ms": 36.5
+            },
+            {
+              "id": 44,
+              "skew_ms": 81.20000004768372
+            },
+            {
+              "id": 45,
+              "skew_ms": 34.200000047683716
+            },
+            {
+              "id": 46,
+              "skew_ms": 82.60000014305115
+            },
+            {
+              "id": 47,
+              "skew_ms": -8.599999904632568
+            },
+            {
+              "id": 48,
+              "skew_ms": 9.700000047683716
+            },
+            {
+              "id": 49,
+              "skew_ms": 31.299999952316284
+            },
+            {
+              "id": 50,
+              "skew_ms": 50.5
+            },
+            {
+              "id": 51,
+              "skew_ms": 35.90000009536743
+            },
+            {
+              "id": 52,
+              "skew_ms": -7.099999904632568
+            },
+            {
+              "id": 53,
+              "skew_ms": 0
+            },
+            {
+              "id": 54,
+              "skew_ms": 42.299999952316284
+            },
+            {
+              "id": 55,
+              "skew_ms": 96.20000004768372
+            },
+            {
+              "id": 56,
+              "skew_ms": 8.799999952316284
+            },
+            {
+              "id": 57,
+              "skew_ms": 34.799999952316284
+            },
+            {
+              "id": 58,
+              "skew_ms": 31.800000190734863
+            },
+            {
+              "id": 59,
+              "skew_ms": 74.5
+            },
+            {
+              "id": 60,
+              "skew_ms": 126.70000004768372
+            },
+            {
+              "id": 61,
+              "skew_ms": -627.5999999046326
+            }
+          ],
+          "video_markers": 59
+        }
+      ],
+      "owned_cleanup": true,
+      "owned_graph_states": [
+        "closed",
+        "closed",
+        "closed",
+        "closed"
+      ],
+      "owned_track_states": [
+        {
+          "kind": "audio",
+          "state": "ended"
+        },
+        {
+          "kind": "video",
+          "state": "ended"
+        },
+        {
+          "kind": "audio",
+          "state": "ended"
+        },
+        {
+          "kind": "video",
+          "state": "ended"
+        }
+      ],
+      "teardown_ms": 67.80000019073486,
+      "resources": {
+        "valid": true,
+        "sample_count": 61,
+        "groups": {
+          "server_test_host": {
+            "observed_cumulative_cpu_seconds": 36.59,
+            "peak_observed_rss_bytes": 73662464,
+            "observed_process_count": 1
+          },
+          "browser": {
+            "observed_cumulative_cpu_seconds": 19.25,
+            "peak_observed_rss_bytes": 2313289728,
+            "observed_process_count": 13
+          },
+          "control_driver_or_other_owned_child": {
+            "observed_cumulative_cpu_seconds": 0.08,
+            "peak_observed_rss_bytes": 91308032,
+            "observed_process_count": 3
+          }
+        },
+        "errors": [],
+        "log": ".local/gate-6/browser-sdk/clean60-overlap071/case-7-resources.json",
+        "log_sha256": "ce115cfee4fecac0f97a4f52d59db2440f087fd285b6551aa50f1188711d1b2d"
+      }
+    },
+    "retained_failures": [
+      "Short EdDSA synthetic audio137/185 against150minimum.",
+      "Long EdDSA decodes1700/1743video and identifies1700/965 with600/521motion positions; reverse remains below unchanged24fps requirement. Earlier motion assertion omits actual renderer counts; alignment/original terminal/owned teardown assertions remain unexecuted."
+    ]
+  }
 }
