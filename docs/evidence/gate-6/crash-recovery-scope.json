@@ -1,6 +1,6 @@
 {
   "task": "G6-047",
-  "recorded_at": "2026-10-25T01:04:59.245623+00:00",
+  "recorded_at": "2026-10-25T01:19:40.395708+00:00",
   "status": "native-answer-ready-and-surviving-sip-submission-crash-slices-pass-full-task-open",
   "full_task_complete": false,
   "full_goal_complete": false,
@@ -15,11 +15,11 @@
     "source": "crates/connect-server/tests/support/canonical_native_connections/crash_recovery.rs",
     "scope": "Actual subprocess native ready/committed decoded bridge and actual server answer before callback confirmation; parent SIGKILL, successor ownership, old physical readiness/lifetime fencing, honest failed unconfirmed offer, immutable replay/no duplicate admission, public snapshot and stale signal refusal. EdDSA and ES256. Actual submitted SIP call remains external after server SIGKILL: successor reports Unknown at original attempt1, clears readiness, preserves receipt, refuses operator-declared completion, and replay/conflicting invitation cause no redial. Store process-exit boundaries separately cover local transactions with a synthetic effect counter.",
     "entrypoint_policy": "One explicitly ignored child-only entry point is invoked by four parent tests using --ignored; never counted as a skipped qualification or standalone pass.",
-    "verification": "Four native SIGKILL parents and two surviving-peer SIP SIGKILL parents pass, plus two Store parents/27 controlled process-exit boundaries. SIP constructor answer/end regressions pass. Every run retains source/executable guards; failed first SIP authorization fixture is retained separately. Both native retirement parents now also pass with source/executable guards: six native SIGKILL parents total across answer, ready and metadata retirement; two SIP submission SIGKILL parents separately pass."
+    "verification": "Four native SIGKILL parents and two surviving-peer SIP SIGKILL parents pass, plus two Store parents/27 controlled process-exit boundaries. SIP constructor answer/end regressions pass. Every run retains source/executable guards; failed first SIP authorization fixture is retained separately. Both native retirement parents now also pass with source/executable guards: six native SIGKILL parents total across answer, ready and metadata retirement; two SIP submission SIGKILL parents separately pass. Schema110 actual Vapi-SDK external-provider SIGKILL recovery passes both algorithms; three existing creation/quarantine/public-end regressions also pass. Same original effect at attempt1, original immutable receipt, authenticated list/Get settlement of original externally ended call, no second POST or fabricated local media."
   },
   "remaining": [
     "Qualify SIP answered/ready/committed and retirement crash boundaries with still-live external peers; native answer/ready/retirement and SIP submission are scoped passes.",
-    "Complete current schema110 provider actual process-death/query and existing regressions, then native/SIP regressions; full Store suite is running.",
+    "Finish current schema110 native/SIP rerun, resolve incomplete full Store suite, and perform the complete G6-047 requirements audit.",
     "Verify bounded authorized operator reconciliation for uncertainty and unresolved-conflict exclusion across required operation classes.",
     "Verify actual owned drain/termination, retained original consultation/handoff/replacement effects and recovery failure cases, then audit complete G6-047 coverage."
   ],
@@ -753,6 +753,90 @@
       "summary": ".local/gate-6/crash-recovery/native-retiring009-runtime-009/summary.json",
       "summary_sha256": "9fa3b0207024523b5b692cee924d40c3666891f51476b37db29e6f5b81f745fc",
       "scope": "Two native retirement SIGKILL parents; decoded actual duplex, both physical peers closed while Conversation writer blocks old lifetime metadata settlement, actual process kill, successor absence recovery/grace/public snapshot/stale refusal. EdDSA and ES256. Raw wrapper inherited prose is superseded by exact case IDs and captures."
+    },
+    "provider_external_creation": {
+      "scope": "Actual provider creation SIGKILL with still-live loopback HTTP provider and real Vapi SDK, exclusive successor worker authenticated correlation/status query, original resource/attempt/receipt, no repeat POST or local media. Both algorithms plus three provider regressions. Not complete G6-047.",
+      "source_revision": "abf49d5a4e187942169dc32c378278be04092f74",
+      "source_lock_sha256": "2d4f2eff9286f03ae7bc09b8ad9e6ae73b54e04dfcfed17eeff3eb4e086188be",
+      "executable_sha256": "d08e181a8fd6d6ba0c1f7740db42de70ac66f7d6d880bdcba613f4082e2f5c6f",
+      "source_inputs_unchanged": true,
+      "executable_unchanged": true,
+      "profiles": [
+        {
+          "phase": "provider-create",
+          "algorithm": "EdDSA",
+          "case": "canonical_provider_voice::crash::production_sigkill_provider_create_reconciles_original_external_call_once_eddsa",
+          "runtime_exit_code": 0,
+          "passed": true,
+          "capture_sha256": "da5413a50ab97573c4c319a085eb43715daf24c79ecd72d7ecf56e8bb8f4b450",
+          "observations": {
+            "actual_vapi_sdk": true,
+            "algorithm": "EdDSA",
+            "connections": 0,
+            "create_posts": 1,
+            "external_http_provider_survived": true,
+            "killed_signal": 9,
+            "local_media": false,
+            "original_call_reconciled_by_authenticated_list_and_get": true,
+            "original_effect_attempt": 1,
+            "phase": "submitted",
+            "public_state": "ended",
+            "replay_preserved_original_receipt": true,
+            "session_started_facts": 0,
+            "status_gets": 1,
+            "worker_and_server_drained": true
+          }
+        },
+        {
+          "phase": "provider-create",
+          "algorithm": "ES256",
+          "case": "canonical_provider_voice::crash::production_sigkill_provider_create_reconciles_original_external_call_once_es256",
+          "runtime_exit_code": 0,
+          "passed": true,
+          "capture_sha256": "5b8ca4ae191992cd2abfcf739b7a40c2190c779be914ee9b49b4ab515e3b1612",
+          "observations": {
+            "actual_vapi_sdk": true,
+            "algorithm": "ES256",
+            "connections": 0,
+            "create_posts": 1,
+            "external_http_provider_survived": true,
+            "killed_signal": 9,
+            "local_media": false,
+            "original_call_reconciled_by_authenticated_list_and_get": true,
+            "original_effect_attempt": 1,
+            "phase": "submitted",
+            "public_state": "ended",
+            "replay_preserved_original_receipt": true,
+            "session_started_facts": 0,
+            "status_gets": 1,
+            "worker_and_server_drained": true
+          }
+        },
+        {
+          "phase": null,
+          "algorithm": null,
+          "case": "canonical_provider_voice::actual_vapi_sdk_reconciles_lost_creation_after_restart_without_another_post_or_invented_session_acceptance",
+          "runtime_exit_code": 0,
+          "passed": true
+        },
+        {
+          "phase": null,
+          "algorithm": null,
+          "case": "canonical_provider_voice::actual_vapi_correlated_quarantine_resolution_preserves_the_foreign_call_and_original_receipt",
+          "runtime_exit_code": 0,
+          "passed": true
+        },
+        {
+          "phase": null,
+          "algorithm": null,
+          "case": "canonical_provider_voice::quic_http_replay_starts_once_and_end_reaches_journal",
+          "runtime_exit_code": 0,
+          "passed": true
+        }
+      ],
+      "passed": true,
+      "summary": ".local/gate-6/crash-recovery/schema110-provider011-runtime-011/summary.json",
+      "summary_sha256": "5e29de6412e8921072fed000e4e6a9f13ad7defb2d04395f024f8e323056476b"
     }
   },
   "provider_trigger_regression": {
@@ -771,7 +855,7 @@
     "failed_runtime_summary": ".local/gate-6/crash-recovery/provider-submitted007-runtime-007/summary.json",
     "diagnostic_runtime_summary": ".local/gate-6/crash-recovery/provider-diagnostic008-runtime-008/summary.json",
     "compile_correction": "voice_flow now uses recursion_limit256, matching the native runtime test target; first build failure retained in provider-submitted005.",
-    "fix_scope": "Schema110 Store guard and four schema checks pass; actual runtime regression qualification pending.",
+    "fix_scope": "Schema110 two-order host guard and four schema checks pass; all five actual provider crash/regression methods now pass with stable source/executable guards.",
     "fix_report": "docs/evidence/gate-6/provider-host-guard-repair.json"
   }
 }
