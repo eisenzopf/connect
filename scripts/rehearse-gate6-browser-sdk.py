@@ -45,7 +45,7 @@ def main():
     parser.add_argument('--native', action='store_true', help='Also run actual public CanonicalClient QUIC/browser WT duplex Opus/VP8/reliable data with independently decoded native received packets. Native live encode/playout/full operating qualification remains separate.')
     parser.add_argument('--clean60', action='store_true', help='Capture cases use the frozen60second clean profile with>=24decoded/rendered fps,>=42uniquely paired audio-graph/video markers, median<=80ms/p95<=120ms and separate owned-process observations.')
     parser.add_argument('--case', choices=CASES + MEDIA + CAPTURE + NATIVE, help='Explicit single-method diagnostic scope; does not qualify the omitted matrix.')
-    parser.add_argument('--packet-trace', action='store_true', help='Record scoped per-packet policy metadata under private raw logs; diagnostic overhead is not performance qualification.')
+    parser.add_argument('--packet-trace', nargs='?', const='all', choices=('all', 'policy', 'audio'), help='Record scoped all/policy/audio packet metadata under private raw logs; diagnostic overhead is not performance qualification. The default all scope includes SQL custody.')
     args = parser.parse_args()
     if args.clean60 and (args.native or args.packet_trace or args.case and args.case not in CAPTURE):
         parser.error('Select clean60 capture methods without diagnostic packet tracing')
@@ -61,7 +61,7 @@ def main():
     for flag in ('CONNECT_GATE6_PACKET_TRACE', 'CONNECT_GATE6_BROWSER_CLEAN60', 'CONNECT_GATE6_NATIVE_FIXTURES'):
         env.pop(flag, None)
     if args.packet_trace:
-        env['CONNECT_GATE6_PACKET_TRACE'] = '1'
+        env['CONNECT_GATE6_PACKET_TRACE'] = args.packet_trace
     if args.clean60:
         env['CONNECT_GATE6_BROWSER_CLEAN60'] = '1'
     report = dict(passed=False, started_at=datetime.datetime.now(datetime.timezone.utc).isoformat(), host=platform.platform(),

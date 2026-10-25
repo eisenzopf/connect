@@ -280,8 +280,13 @@ async fn browser_profile_mode(
     native_media: bool,
 ) {
     if media && std::env::var_os("CONNECT_GATE6_PACKET_TRACE").is_some() {
+        let filter = match std::env::var("CONNECT_GATE6_PACKET_TRACE").as_deref() {
+            Ok("audio") => "rvoip_core::audio_path=trace,connect_service::canonical_native_streams=debug",
+            Ok("policy") => "connect_service::canonical_packet=trace,connect_service::canonical_native_streams=debug",
+            _ => "connect_service::canonical_packet=trace,connect_service::canonical_native_streams=debug,connect_store::sql_custody=trace",
+        };
         let _ = tracing_subscriber::fmt()
-            .with_env_filter("connect_service::canonical_packet=trace,connect_service::canonical_native_streams=debug,connect_store::sql_custody=trace")
+            .with_env_filter(filter)
             .without_time()
             .with_ansi(false)
             .with_test_writer()

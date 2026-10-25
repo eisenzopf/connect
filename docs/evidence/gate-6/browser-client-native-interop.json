@@ -203,5 +203,31 @@
     "trace050": "1916packet-policy callbacks, no recorded policy error. Browser request deadline occurred before independent native decoding; diagnostic overhead does not qualify performance or explain049video failure.",
     "bounded051": "Added at most600numeric completed-frame arrival records (RTP range/timestamp/keyframe, gap, late/waiting-key/delivered) and preserved successful browser result before independent decoder. No decoder continuity behavior or threshold changed. CapturedES256 native156identified audio/116video/101motion,3data,0sequence gaps; browser197audio/120video, cleanup167.6ms. This passing diagnostic does not resolve original intermittent049failure.",
     "next": "Collect the full current12method matrix with bounded arrival records. Classify actual gaps before changing behavior; preserve049failure. Full60/impairment and complete task remain open."
+  },
+  "followup_matrix": {
+    "reports": [
+      {
+        "report": ".local/gate-6/browser-sdk/native-matrix052/summary.json",
+        "sha256": "8df90b85472ddd8022b87d4ef2d5838a2789f4198a6433c09c4c4a294b98c76e",
+        "passed": false,
+        "passed_methods": 10,
+        "selected_methods": 12,
+        "source_inputs_unchanged": true,
+        "executable_unchanged": true
+      },
+      {
+        "report": ".local/gate-6/browser-sdk/audio-admission053/summary.json",
+        "sha256": "ad8752254171b607f4e16b1ed28b52101b2d67b55f0d43bc2f139f89b3a8f14e",
+        "passed": true,
+        "passed_methods": 1,
+        "selected_methods": 1,
+        "source_inputs_unchanged": true,
+        "executable_unchanged": true
+      }
+    ],
+    "native_matrix052": "10of12pass. Captured browser-browser EdDSA audio145<150, video112/119. Native directES256 independently decoded101audio<150,105video/96motion,3data. Other3native methods pass. All6messages and bothends complete in nativefailedstate; browseraudiofailureoccursbeforeterminalintent. Observed completed video ranges miss sequences entirely, no late arrivals in these observations; do not presume reordering or weaken keyframe continuity.",
+    "audio_admission053": "Scoped audio trace avoids per-SQL output. Actual source-egress174/target-egress102/mixer-target1NotReady refusals. Both destinations retry; final IO ages under200ms (direct maxima178.7/173.1ms,batched145.5/152.3ms). This diagnostic passes; no root-cause or short-failure resolution claim.",
+    "instrumentation": "--packet-trace optionally selects all(default preserves SQL custody), policy, or audio. Private guarded diagnostics only, no performance qualification.",
+    "next": "Run already frozen browser clean60 profile to measure sustained delivery, alignment and owned server/browser resource use. Current short failures remain unresolved. Native live encoder/presenter/full operating, impairment and complete task/acceptance remain open."
   }
 }
