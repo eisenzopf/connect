@@ -1,0 +1,160 @@
+--- a/crates/uctp/rvoip-uctp/src/staged_media.rs
++++ b/crates/uctp/rvoip-uctp/src/staged_media.rs
+@@ -568,15 +568,31 @@
+         let clock_origin = clock
+             .as_ref()
+             .map(|c| (c.source_id, c.generation, c.supported, c.anchor.is_some()));
+-        if self.clock_origin != clock_origin {
++        let reset_clock = match (self.clock_origin, clock_origin) {
++            (
++                Some((source, generation, supported, anchored)),
++                Some((next, next_generation, next_supported, next_anchored)),
++            ) => {
++                source != next
++                    || generation != next_generation
++                    || supported != next_supported
++                    || anchored && !next_anchored
++            }
++            (None, None) => false,
++            _ => true,
++        };
++        // Acquiring the first anchor adds metadata to an existing RTP source;
++        // it cannot interrupt a VP8 frame. Losing a published mapping still
++        // retires the SSRC so receivers cannot reuse their preceding anchor.
++        if reset_clock {
+             self.ssrc = self.ssrc.wrapping_add(1);
+             self.video = Default::default();
+             self.previous_video = None;
+             self.packets = 0;
+             self.octets = 0;
+             self.last_report = None;
+-            self.clock_origin = clock_origin;
+-        }
++        }
++        self.clock_origin = clock_origin;
+         let maximum = transport
+             .maximum_datagram_bytes()
+             .ok_or(StreamControlError::NotReady)?;
+@@ -1295,3 +1311,6 @@
+         assert_eq!(observed, 4);
+     }
+ }
++
++#[cfg(test)]
++mod clock_acquisition_tests;
+--- /dev/null
++++ b/crates/uctp/rvoip-uctp/src/staged_media/clock_acquisition_tests.rs
+@@ -0,0 +1,113 @@
++use super::*;
++use crate::substrate::observe_rtp_datagram;
++use rvoip_core::stream::{MediaClockAnchor, MediaSourceClock};
++use rvoip_core::stream_lifecycle::{DesiredStream, NegotiatedStream};
++struct Wire(Mutex<Vec<Bytes>>);
++impl StagedDatagramTransport for Wire {
++    fn maximum_datagram_bytes(&self) -> Option<usize> {
++        Some(1200)
++    }
++    fn is_closed(&self) -> bool {
++        false
++    }
++    fn send_datagram(&self, b: Bytes) -> ControlResult<()> {
++        self.0.lock().unwrap().push(b);
++        Ok(())
++    }
++}
++#[test]
++fn acquiring_first_clock_keeps_in_progress_vp8_ssrc_sequence_and_sender_counts() {
++    let binding = ReadyMediaBinding {
++        negotiated: NegotiatedStream {
++            requested: DesiredStream {
++                logical_id: StreamId::new(),
++                medium: Medium::Video,
++                direction: StreamDirection::Both,
++            },
++            format: MediaFormat::Encoded {
++                name: "vp8".into(),
++                clock_rate_hz: 90000,
++                channels: 0,
++                fmtp: None,
++            },
++        },
++        transport_id: StreamId::new(),
++        stream_local_id: 7,
++        generation: 1,
++        connection_generation: 1,
++        source_ready: true,
++        sink_ready: true,
++    };
++    let mut p = Packetizer {
++        outer: 0,
++        rtp: 0,
++        ssrc: 1,
++        video: Default::default(),
++        previous_video: None,
++        clock_origin: None,
++        cname: "video-clock".into(),
++        packets: 0,
++        octets: 0,
++        last_report: None,
++    };
++    let wire = Wire(Mutex::new(Vec::new()));
++    let ntp = rtcp::now_ntp();
++    for (n, body) in [vec![0x10, 0, 1, 2], vec![0, 3, 4]].into_iter().enumerate() {
++        let mut header = rvoip_rtp_core::RtpHeader::new(96, n as u16, 3000, 70);
++        header.marker = n == 1;
++        let payload = rvoip_rtp_core::RtpPacket::new(header, Bytes::from(body))
++            .serialize()
++            .unwrap();
++        let frame = MediaFrame {
++            stream_id: binding.transport_id.clone(),
++            kind: StreamKind::Video,
++            payload,
++            timestamp_rtp: 3000,
++            captured_at: chrono::Utc::now(),
++            payload_type: Some(96),
++            source_clock: Some(MediaSourceClock {
++                source_id: 42,
++                generation: 1,
++                supported: true,
++                rtp_offset: 0,
++                anchor: (n == 1).then_some(MediaClockAnchor {
++                    ntp_time: ntp,
++                    rtp_time: 3000,
++                    clock_rate: 90000,
++                }),
++                is_current: Arc::new(|| true),
++            }),
++        };
++        assert_eq!(
++            p.send(frame, None, &binding, 96, &wire, |_| {}).unwrap(),
++            1,
++            "initial clock acquisition discarded an in-progress frame"
++        );
++    }
++    let packets = wire.0.lock().unwrap();
++    let media = packets
++        .iter()
++        .filter(|b| !rtcp::is_rtcp(b))
++        .map(|b| observe_rtp_datagram(b).unwrap())
++        .collect::<Vec<_>>();
++    assert_eq!(media.len(), 2);
++    assert_eq!(
++        media[0].rtp.packet().header.ssrc,
++        media[1].rtp.packet().header.ssrc,
++        "initial clock acquisition retired a still-current SSRC"
++    );
++    assert_eq!(
++        media[1].rtp.packet().header.sequence_number,
++        media[0].rtp.packet().header.sequence_number.wrapping_add(1)
++    );
++    assert!(!media[0].rtp.packet().header.marker);
++    assert!(media[1].rtp.packet().header.marker);
++    let reports = packets
++        .iter()
++        .filter_map(|b| rtcp::parse(b))
++        .collect::<Vec<_>>();
++    assert_eq!(reports.len(), 1);
++    assert_eq!(reports[0].1.ssrc, media[1].rtp.packet().header.ssrc);
++    assert_eq!(reports[0].1.packets, 2);
++    assert_eq!(reports[0].1.octets, 7);
++}

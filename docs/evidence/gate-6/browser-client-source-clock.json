@@ -32,40 +32,40 @@
   ],
   "peer_wiring": "One production BrowserMediaPeer method uses controlled WebCodecs and datagram streams: incoming RTCP maps audio without increasing RTP counts; outgoing report follows the actual media write and contains its SSRC/packet/octet counts; retired handle rejects; no idle metadata write; unknown source-clock profile refuses. This is in-process wiring, not a network/browser/Core/Store qualification.",
   "host_fixture": "Browser fixture allowlist serves browser_rtcp.js; Root host compilation and actual browser profile have not been rerun.",
-  "remaining": "Implement bounded shared receiver presentation, update public native consumers for the RTP/RTCP clock profile, compile/rehearse the actual Connect host and installed browser/native clients, and rerun unchanged full capture/impairment/permission/background/owned teardown profiles. Independently phased multiple mixer contributors still require alignment. No whole G6-050, operating, acceptance or publication qualification.",
+  "remaining": "Shared presentation is implemented with236scoped SDK passes. Actual current Connect host/installed-browser60second/native/impairment/permission/background/owned teardown qualification remains open; public native consumers need RTP/RTCP clock support. Independently phased multiple mixer contributors still need alignment. No whole task/operating/acceptance/publication qualification.",
   "standards": [
     "https://www.rfc-editor.org/rfc/rfc3550.html#section-6.4.1",
     "https://www.rfc-editor.org/rfc/rfc3550.html#section-6.5.1"
   ],
   "native": {
-    "report": ".local/gate-6/native-clock/positive004/summary.json",
-    "sha256": "a32473f36714289b08b0ddd1952e172778de859d6d022d1dc23a63c08aae2fcf",
+    "report": ".local/gate-6/clock-acquisition/positive001/summary.json",
+    "sha256": "6cd2c4d3f4eea380cc7dacb2b48c4dc2a1709c370d9c13407127a1811df00a6e",
     "passed": true,
-    "methods": 103,
+    "methods": 104,
     "core_methods": 85,
-    "media_unit_methods": 16,
+    "media_unit_methods": 17,
     "actual_network_methods": 2,
     "scope": "Focused Core admission/mixer and UCTP unit plus controlled actual signed QUIC/WT source-clock transmission. No production Connect Store/browser capture/render/full synchronization or operating profile qualification.",
     "inputs_unchanged": true,
     "executables_unchanged": true,
-    "source_lock_sha256": "81a89bb76ec3b1648e878874c8af98d7632397c0f530dd6e9f53f63d6f931845",
-    "patch_count": 201,
-    "patch": {
-      "path": "patches/rvoip/gate6-canonical-source-clock-transport.patch",
-      "sha256": "738ae88aaf48fef386d805bc130c79fa1fb3a682722d54be58781a9af4da550a"
+    "source_lock_sha256": "0cd755e913faae68e83b230096be683b8d3983a854d02cb450e50c930ecb517b",
+    "patch_count": 202,
+    "patches": {
+      "patches/rvoip/gate6-canonical-source-clock-transport.patch": "738ae88aaf48fef386d805bc130c79fa1fb3a682722d54be58781a9af4da550a",
+      "patches/rvoip/gate6-preserve-rtp-on-initial-clock-acquisition.patch": "8781ea76452902333654c55e9dfcb2d07f07ffed61df81c34b771abcdbb26625"
     },
     "case_log_sha256": [
-      "95dfc564345fc512f5314a14c763ba414fd8eec825a9ac1142494ddf88535d9f",
-      "62aa9a80b2a035537a26d275783b2ce0ee7e899785492ff2be0973e9e20b93b1",
+      "d04009971a58bac62c6e1388f93fc107bd2447b2be9eaeb77e6117efbb78f679",
+      "b49b03d9d90c9fffc69ba9cb700ba7b8ba2284b355923a0b48afca00383f59ae",
       "1c880380b37d34bc970b552dbc4ee5d5a9c488aeeafc5d6bce573c3c6ddf3190",
-      "efb061987e0326f47132d6b9a973f4497eef50a4d160274fd7502f1f534bd7ca",
+      "6231c6d9871de94fa9e6f77f8f73c7f737926234890df4fbba6ccad6492f54eb",
       "ec14507ccbf262b5734f2e9463aa15bb67a60f449fd727596793d6ec5e04b836",
       "260463201ab1058a80d9261368aba87f6b5f0df8f1d22f06f34626a91c9caee0"
     ],
     "executable_sha256": {
       "rvoip_core": "b7dec3dca93c89747c1786049ac328767f45208264304e23cb65ed22681a530c",
-      "rvoip_uctp": "966cd7cae511870855bf8cc9053b1f7688dc6a9a09b551c1c2a31d493ca68516",
-      "v2_peer_admission": "4e65779484e15939f4e365f499caf09ee496e7d3a98aa93a4df38124b2e58fc9"
+      "rvoip_uctp": "24eaa6937156cff6716a64e11ef83fda41f9cc5cad030feaae5b72779c68f404",
+      "v2_peer_admission": "4e44fdb0cb90226fdbe3f1569833c782af2703454233d206b9c4097e2f5ed68d"
     }
   },
   "native_behavior": [
@@ -97,5 +97,40 @@
       "runtime_passes": 103,
       "reason": "Initial actual network assertion had a broad timestamp bound; final fixture preserves an intentional100ms phase and asserts the measured report-admission interval. Production source bytes unchanged."
     }
-  ]
+  ],
+  "previous_native": [
+    {
+      "report": ".local/gate-6/native-clock/positive004/summary.json",
+      "sha256": "a32473f36714289b08b0ddd1952e172778de859d6d022d1dc23a63c08aae2fcf",
+      "passed": true,
+      "methods": 103,
+      "core_methods": 85,
+      "media_unit_methods": 16,
+      "actual_network_methods": 2,
+      "scope": "Focused Core admission/mixer and UCTP unit plus controlled actual signed QUIC/WT source-clock transmission. No production Connect Store/browser capture/render/full synchronization or operating profile qualification.",
+      "inputs_unchanged": true,
+      "executables_unchanged": true,
+      "source_lock_sha256": "81a89bb76ec3b1648e878874c8af98d7632397c0f530dd6e9f53f63d6f931845",
+      "patch_count": 201,
+      "patch": {
+        "path": "patches/rvoip/gate6-canonical-source-clock-transport.patch",
+        "sha256": "738ae88aaf48fef386d805bc130c79fa1fb3a682722d54be58781a9af4da550a"
+      },
+      "case_log_sha256": [
+        "95dfc564345fc512f5314a14c763ba414fd8eec825a9ac1142494ddf88535d9f",
+        "62aa9a80b2a035537a26d275783b2ce0ee7e899785492ff2be0973e9e20b93b1",
+        "1c880380b37d34bc970b552dbc4ee5d5a9c488aeeafc5d6bce573c3c6ddf3190",
+        "efb061987e0326f47132d6b9a973f4497eef50a4d160274fd7502f1f534bd7ca",
+        "ec14507ccbf262b5734f2e9463aa15bb67a60f449fd727596793d6ec5e04b836",
+        "260463201ab1058a80d9261368aba87f6b5f0df8f1d22f06f34626a91c9caee0"
+      ],
+      "executable_sha256": {
+        "rvoip_core": "b7dec3dca93c89747c1786049ac328767f45208264304e23cb65ed22681a530c",
+        "rvoip_uctp": "966cd7cae511870855bf8cc9053b1f7688dc6a9a09b551c1c2a31d493ca68516",
+        "v2_peer_admission": "4e65779484e15939f4e365f499caf09ee496e7d3a98aa93a4df38124b2e58fc9"
+      }
+    }
+  ],
+  "clock_acquisition": "Initial anchor acquisition preserves an in-progress VP8 SSRC/sequence and cumulative sender counts. The split-frame regression acquires the report between two actual RTP fragments and verifies one SSRC, sequential RTP, final marker and a report accounting for both submissions. Identity/generation/support changes and loss of an available anchor still retire old mappings.",
+  "current_presentation": "docs/evidence/gate-6/browser-client-shared-presentation.json"
 }

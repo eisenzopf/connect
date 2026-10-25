@@ -143,9 +143,10 @@ Sender reports sample send time and the corresponding RTP clock value, with
 packet/octet counts from actual successful RTP submissions. Destination streams
 share one CNAME; report writes do not count as RTP or media flow. The native
 packetizer emits reports only during an actual guarded media send, at most once
-per second. No idle reporting task exists. Clock identity, support or anchor
-availability changes retire the old egress SSRC, so an unavailable mapping cannot
-inherit its receiver's earlier anchor. Frame slicing and nominal resampling
+per second. No idle reporting task exists. Clock identity/generation/support changes and loss of an available anchor
+retire the old egress SSRC, so an unavailable mapping cannot inherit its
+receiver's earlier anchor. Acquiring the first anchor preserves the current
+SSRC/sequence and accumulated sender counts, including an in-progress VP8 frame. Frame slicing and nominal resampling
 preserve truthful source timing; unknown or unaligned mixes stay explicit.
 
 The timing correspondence and CNAME roles follow
