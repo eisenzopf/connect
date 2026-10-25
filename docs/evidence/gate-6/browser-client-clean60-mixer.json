@@ -1,7 +1,7 @@
 {
   "schema": "connect-gate6-browser-clean60-mixer/1",
   "task": "G6-050",
-  "status": "First frozen60second run fails both capture algorithms; explicit48kHz host mixer correction awaits runtime verification",
+  "status": "Explicit48kHz mixer restores59pairedmarkers in all4receiver observations; both frozen alignment checks still fail; no clean profile qualification",
   "frozen_profile": "docs/evidence/gate-6/browser-client-clean60-profile.json",
   "frozen_profile_sha256": "73d03408e355cd4f56be7db1d4274dca847ca84d2c64028ac541dcff5d956bc3",
   "negative_before": {
@@ -380,5 +380,116 @@
     "Both frozen60second browser capture algorithms with exact markers and separate owned-process resources",
     "Full12browser/native and28transport matrix including telephone boundary resampling"
   ],
-  "scope": "Actual frozen local Chrome/macOS browser-browser failure evidence. No clean-profile/native/impairment/fulltask/acceptance/publication pass."
+  "scope": "Actual frozen local Chrome/macOS browser-browser failure evidence. No clean-profile/native/impairment/fulltask/acceptance/publication pass.",
+  "after_48khz": {
+    "report": ".local/gate-6/browser-sdk/clean60-mixer055/summary.json",
+    "sha256": "189c929e2a1fc61b2f3025b1d09fafa7a104cad1911ef29430bfc266260137d7",
+    "passed": false,
+    "source_inputs_unchanged": true,
+    "executable_unchanged": true,
+    "passed_methods": 5,
+    "selected_methods": 8,
+    "capture_cases": [
+      {
+        "case": "canonical_webtransport_browser::installed_chrome_production_sdk_captured_duplex_opus_vp8_and_reliable_data_eddsa",
+        "passed": false,
+        "log_sha256": "45ac170df646cd5e87369b6953391f1814cc7ddbb6f341ad63ceaa537375a4b0",
+        "alignment": [
+          {
+            "paired_markers": 59,
+            "audio_markers": 59,
+            "video_markers": 59,
+            "median_abs_skew_ms": 110.20000004768372,
+            "p95_abs_skew_ms": 153.59999990463257,
+            "first_marker_id": 3,
+            "last_marker_id": 61
+          },
+          {
+            "paired_markers": 59,
+            "audio_markers": 59,
+            "video_markers": 59,
+            "median_abs_skew_ms": 96.10000014305115,
+            "p95_abs_skew_ms": 152.90000009536743,
+            "first_marker_id": 3,
+            "last_marker_id": 61
+          }
+        ],
+        "resources": {
+          "valid": true,
+          "sample_count": 61,
+          "groups": {
+            "server_test_host": {
+              "observed_cumulative_cpu_seconds": 34.95,
+              "peak_observed_rss_bytes": 73154560,
+              "observed_process_count": 1
+            },
+            "browser": {
+              "observed_cumulative_cpu_seconds": 18.7,
+              "peak_observed_rss_bytes": 2352676864,
+              "observed_process_count": 13
+            },
+            "control_driver_or_other_owned_child": {
+              "observed_cumulative_cpu_seconds": 0.08,
+              "peak_observed_rss_bytes": 91127808,
+              "observed_process_count": 3
+            }
+          },
+          "errors": [],
+          "log": ".local/gate-6/browser-sdk/clean60-mixer055/case-6-resources.json",
+          "log_sha256": "985cba0ca0dc28d2d5061f4ce84ff27f6d32118c3dc1627a7bb5367247496561"
+        }
+      },
+      {
+        "case": "canonical_webtransport_browser::installed_chrome_production_sdk_captured_duplex_opus_vp8_and_reliable_data_es256",
+        "passed": false,
+        "log_sha256": "ce3b94cc05fc15fb5a84c636e723117ddf98de2866da9693042ac4b9b745804a",
+        "alignment": [
+          {
+            "paired_markers": 59,
+            "audio_markers": 59,
+            "video_markers": 59,
+            "median_abs_skew_ms": 111.5,
+            "p95_abs_skew_ms": 121.90000009536743,
+            "first_marker_id": 3,
+            "last_marker_id": 61
+          },
+          {
+            "paired_markers": 59,
+            "audio_markers": 59,
+            "video_markers": 60,
+            "median_abs_skew_ms": 118.20000004768372,
+            "p95_abs_skew_ms": 139.60000014305115,
+            "first_marker_id": 3,
+            "last_marker_id": 61
+          }
+        ],
+        "resources": {
+          "valid": true,
+          "sample_count": 61,
+          "groups": {
+            "server_test_host": {
+              "observed_cumulative_cpu_seconds": 44.74,
+              "peak_observed_rss_bytes": 72630272,
+              "observed_process_count": 1
+            },
+            "browser": {
+              "observed_cumulative_cpu_seconds": 18.35,
+              "peak_observed_rss_bytes": 2362621952,
+              "observed_process_count": 15
+            },
+            "control_driver_or_other_owned_child": {
+              "observed_cumulative_cpu_seconds": 0.08,
+              "peak_observed_rss_bytes": 91193344,
+              "observed_process_count": 3
+            }
+          },
+          "errors": [],
+          "log": ".local/gate-6/browser-sdk/clean60-mixer055/case-7-resources.json",
+          "log_sha256": "070de2b926241016cb633538fba0becb7802c01095f4521604813ee728012bca"
+        }
+      }
+    ],
+    "remaining": "Both60secondcapturecases have59pairedmarkers perreceiver, but median96.1\u2013118.2ms/p95121.9\u2013153.6ms fail unchanged80/120ms limits. Short syntheticEdDSA stillfailsaudio147/115<150 withvideo119/112. Marker bandwidth mismatch is corrected; audio delivery and alignment remain unresolved."
+  },
+  "next": "Controlled Core regression for distinct contiguous original PCM packets decoded within one mixer tick. Current collect() unconditionally clears prior PCM; distinguish contiguous timestamps from existing overlapping/superseded-packet behavior. Prove negative before production change, retain current authorization/age/queue bounds. No claimed cause for all skew or video loss."
 }
