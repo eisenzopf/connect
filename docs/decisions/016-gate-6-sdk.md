@@ -1,6 +1,9 @@
 # 016 — Public SDK and server HTTP design
 
-2026-10-15; G6-012. Syntax below is the target design and becomes runnable in M4.
+2026-10-15; G6-012. The October 25 G6-059 refinement in
+[SDK_COMPATIBILITY.md](../SDK_COMPATIBILITY.md) resolves the illustrative syntax
+below: mutation awaiting returns an Operation; explicit bounded wait yields its
+typed completion. Contract proofs are not yet runtime SDK implementations.
 
 ## Public objects
 

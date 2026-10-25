@@ -1,0 +1,270 @@
+{
+  "schema": "connect-gate6-sdk-contract-final/1",
+  "task": "G6-059",
+  "status": "complete for shared contract; runtime implementation/parity remains assigned to G6-060 through G6-070",
+  "checked_at": "2026-10-25T21:05:56.581714+00:00",
+  "scope": "Frozen shared public SDK API and compile-only application proofs. No SDK runtime/media/package or Gate6 acceptance qualification.",
+  "contract": {
+    "schema": "connect-gate6-sdk-contract/1",
+    "task": "G6-059",
+    "scope": "Frozen shared public contract, current canonical schema/refusal vectors, per-language target Session fields and 22 operation-kind witnesses, current source review. Declaration compilation is recorded separately. No SDK runtime/parity/package ownership or Gate6 acceptance qualification.",
+    "passed": true,
+    "candidate_finalized": true,
+    "handles": 7,
+    "mapped_methods": 25,
+    "approved_runtime_minima": {
+      "rust": "1.97.1",
+      "node": "22",
+      "python": "3.12"
+    },
+    "operation_kind_witnesses": 22,
+    "mapped_method_paths_and_returns_verified": 25,
+    "vectors": [
+      {
+        "id": "SDK-APP-PRIVATE-SEND",
+        "schema_valid": true,
+        "contract_valid": true
+      },
+      {
+        "id": "SDK-APP-CONSULTATION",
+        "schema_valid": true,
+        "contract_valid": true
+      },
+      {
+        "id": "SDK-APP-HANDOFF",
+        "schema_valid": true,
+        "contract_valid": true
+      },
+      {
+        "id": "SDK-APP-DEVICE-MOVE",
+        "schema_valid": true,
+        "contract_valid": true
+      },
+      {
+        "id": "SDK-APP-RECOVERY",
+        "schema_valid": true,
+        "contract_valid": true
+      },
+      {
+        "id": "SDK-APP-INCOMING-INVITATION",
+        "schema_valid": true,
+        "contract_valid": true
+      },
+      {
+        "id": "SDK-APP-INVITATION-REJECT",
+        "schema_valid": true,
+        "contract_valid": true
+      },
+      {
+        "id": "SDK-APP-CANCEL-OPERATION",
+        "schema_valid": true,
+        "contract_valid": true
+      },
+      {
+        "id": "SDK-REFUSE-PRIVATE-ALL",
+        "schema_valid": true,
+        "contract_valid": false
+      },
+      {
+        "id": "SDK-REFUSE-MISSING-LOGICAL-ID",
+        "schema_valid": false,
+        "contract_valid": false
+      },
+      {
+        "id": "SDK-REFUSE-CONSULT-WITHOUT-RETAINED",
+        "schema_valid": false,
+        "contract_valid": false
+      },
+      {
+        "id": "SDK-REFUSE-MOVE-TWO-TARGETS",
+        "schema_valid": false,
+        "contract_valid": false
+      },
+      {
+        "id": "SDK-REFUSE-CANCEL-ID-CONFLATION",
+        "schema_valid": true,
+        "contract_valid": false
+      },
+      {
+        "id": "SDK-REFUSE-RECOVERY-REDIAL",
+        "schema_valid": true,
+        "contract_valid": false
+      },
+      {
+        "id": "SDK-APP-UNSCOPED-RECOVERY",
+        "schema_valid": true,
+        "contract_valid": true
+      },
+      {
+        "id": "SDK-REFUSE-SESSION-CONNECTION-SCOPE",
+        "schema_valid": true,
+        "contract_valid": false
+      },
+      {
+        "id": "SDK-REFUSE-SESSION-AUDIO-MEDIUM",
+        "schema_valid": true,
+        "contract_valid": false
+      }
+    ],
+    "session_view_fields": [
+      "id",
+      "conversation_id",
+      "state",
+      "media",
+      "intent",
+      "capabilities_offer",
+      "codec_preferences",
+      "is_main",
+      "revision",
+      "topology_revision",
+      "created_at",
+      "updated_at",
+      "ended_reason"
+    ],
+    "target_session_fields_match_all_languages": true,
+    "current_typescript_snapshot_matches": true,
+    "current_python_event_snapshot_matches": true,
+    "legacy_python_generic_session_result_still_differs": true,
+    "inputs_unchanged": true,
+    "python": "3.14.7",
+    "jsonschema": "4.26.0"
+  },
+  "outlines": {
+    "schema": "connect-gate6-sdk-contract-outlines/1",
+    "task": "G6-059",
+    "passed": true,
+    "scope": "Declaration-only target contract; Rust, browser/Node TypeScript, Python static outlines and six negative constraints per compiler target. No SDK runtime, package, media, transport or acceptance qualification.",
+    "candidate_finalized": true,
+    "versions": {
+      "typescript": "Version 7.0.2",
+      "rustc": "rustc 1.97.1 (8bab26f4f 2026-07-14)",
+      "python": "3.14.7",
+      "python_typecheck_target": "3.12",
+      "mypy": "2.4.0"
+    },
+    "negative_diagnostics": {
+      "browser": [
+        "TS2322",
+        "TS2322",
+        "TS2322",
+        "TS2741",
+        "TS2339",
+        "TS2322"
+      ],
+      "node": [
+        "TS2322",
+        "TS2322",
+        "TS2322",
+        "TS2741",
+        "TS2339",
+        "TS2322"
+      ],
+      "python": [
+        "assignment",
+        "assignment",
+        "call-arg",
+        "call-arg",
+        "attr-defined",
+        "arg-type"
+      ],
+      "rust": [
+        "E0308",
+        "E0308",
+        "E0061",
+        "E0063",
+        "E0599",
+        "E0277"
+      ]
+    },
+    "inputs_unchanged": true
+  },
+  "reports": {
+    "contract": {
+      "path": ".local/gate-6/sdk-contract/freeze-final-03/summary.json",
+      "sha256": "75f0da5be1fdc5c7c36687f3c0768a8d4db37d6b1763dc0b85a0f83734a3da91"
+    },
+    "outlines": {
+      "path": ".local/gate-6/sdk-contract/outlines-final-01/summary.json",
+      "sha256": "6b1fdb3a4c87296e61ee6f26ad3bbab071ea5ae75baa06bdf19b482902b9c43d"
+    }
+  },
+  "inputs_sha256": {
+    "contracts/sdk-gate-6-api.json": "f580aad601b5845bd3604e94cf38459c9285cd3967db91aec8ffc563650e6153",
+    "contracts/uctp-vectors/gate6-sdk-api.json": "98836f5e65e79abac13c84dfeadbec93a338bdf3a4dcdf6dcd869d64f590efac",
+    "contracts/schemas/uctp-envelope-2.schema.json": "8d3d5a1098c8eebafe30960b8b35d83e11f9c8ac09453ab7e528251368d11c32",
+    "contracts/uctp-vectors/gate6-envelope.json": "303b7ac0180131a249033527d936794585929b93e330e8cb13ad1c523cabfb57",
+    "crates/connect-protocol/src/session_control.rs": "85285f3c32391d6198d50a7f2b33cb07733a09b7e5dbdc6e411eff0a14bc80c6",
+    "crates/connect-protocol/src/transitions.rs": "01af8ab0a94ed5c65b025fc57002d8a37037f8db95e9b1a16d6b7f70eccf13b0",
+    "sdk/typescript/src/events.ts": "3f319291db6b733eaf8f8abcf74b33eec1f795f790d5bf3bbc2b7a1ee05d3545",
+    "sdk/python/connect_sdk/event_validation.py": "d231550124f3f128bcde39579cbc29857e2eba00281b83645f518740fd7aabbb",
+    "sdk/python/connect_sdk/protocol.py": "dd182d3dc039b042d21cac5ffda624a0088eba3270d932ea75994e66a6b077d2",
+    "docs/SDK_COMPATIBILITY.md": "8e616951c9965da7c1dc411cdf5fc2b292e832c21f35c733bfee37023dd5b671",
+    "scripts/check-gate6-sdk-contract.py": "2561a2606b409a7ee114165157b6d3e03aa72e2bc78e371d88053e9cea097d81",
+    "sdk/typescript/package-lock.json": "35956072de727d1e262cd6ac07428ebafb75f1c32b5b16969cf640a11122d1af",
+    "docs/decisions/016-gate-6-sdk.md": "234750ee204a9eb77e7e74c857ad7ac0a1cc9c79a8de89b91fbd118b29ac868c",
+    "docs/decisions/015-gate-6-operating-profile.md": "14621ae41e7ceff8a12af0425a0e71756b1df805a0b74d6fdfae439c466ad28d",
+    "crates/connect-service/src/canonical_sessions.rs": "16dfa7dec317734982520ad79496fb497f982354253a51e331549d9cdbf5b230",
+    "crates/connect-protocol/src/membership.rs": "160565f2d95f43c6bf725f7f8ffd50ab73469cddb8da7a1359865741ef7f9938",
+    "crates/connect-protocol/src/events.rs": "9fb0b80a3dbac824b724ec6397267fa6833c6c9c6352507963078753dd1cf5db",
+    "crates/connect-service/src/canonical_membership.rs": "1f73e879f8ac130e37c1b2cc3fa82c76f9b4a78fd25d693cddf3d827e1f731dd",
+    "crates/connect-service/src/canonical.rs": "02be2581923f49ae6145f147e23e2d30a1cd866ef44dae6ae3ee0b32d55b633d",
+    "crates/connect-protocol/src/conversations.rs": "3190352458459b9cb228adfd3a2ed0da0e53c9e2b11d0978f745330e251a9878",
+    "crates/connect-store/src/transitions/native_consultations.rs": "0b36532abad6fe162054e7e51ccfaf24c24bbfe2bb5415c30bd669623709b9f6",
+    "contracts/sdk-api/README.md": "0ccba45fd75beff2d609fe3b25e3c206d774cce28f757b18fbf18c35772db836",
+    "contracts/sdk-api/python/contract.py": "b043656aaf768339c869f25481a2921460e258d0cb9926d295a6673f5fa5f210",
+    "contracts/sdk-api/python/negative.py": "1d532cadbf1738c5aed643ac2dcacf60914f60f6abcaf715b75c6543e367c5d0",
+    "contracts/sdk-api/python/outline.py": "7e0fa6ce1888118c50a53b4b0be70bc42aef01aac89841f128d5b67ee6e758da",
+    "contracts/sdk-api/rust/contract.rs": "2ecdabe340e7b520ce98b0ff10668c6717d2aa2e564baae6e4653dc5e54aa5a8",
+    "contracts/sdk-api/rust/negative.rs": "26f949a3401e53c25d9a649df79559e99e705e4ed3c8bea14dd7fbfa2bc7f97c",
+    "contracts/sdk-api/rust/outline.rs": "9df44f108afeba8ad8cd5a0428b9a113188cfce01eb99c59b72f1f213737fe19",
+    "contracts/sdk-api/typescript/browser.tsconfig.json": "0bbb4b46d4a74fbd787a13c85e60459e6054db4f261ad62a97c39fae4e7bcc37",
+    "contracts/sdk-api/typescript/contract.ts": "7c0cba9af19bd88b8db6db68ceab2f210d9e88526fe4cd3e55dfaee8072800b2",
+    "contracts/sdk-api/typescript/negative.ts": "284001c2bf193ae72ee1713d541a7a29d8d740df13ce9eda4681ce78d80f156f",
+    "contracts/sdk-api/typescript/node.tsconfig.json": "8758e6bdb14d4ba1f11ee54d05a28c29047347fcb5e1fd152e7073fbde5f14b5",
+    "contracts/sdk-api/typescript/outline.ts": "c9cae199e8881ca9bf9f12fc6823c7e82ddc84d0bd96ce7dcb7b34f202da9854",
+    "scripts/check-gate6-sdk-outlines.py": "1ae545b61df68278deaede31053c4561d0494214d06c86faa92bfff4a170bf1a",
+    "scripts/format.sh": "23e20b1cdaa1eee1546aee02bcf81102e4d608a524f0fc59f8f7c4c65d7c1209"
+  },
+  "review": [
+    {
+      "requirement": "Freeze seven public handle families and stable identity/authority boundaries",
+      "result": "IDs and parent scope stay public; snapshots/from-ID construction grant no authority; Operation scopes support unscoped create/admin receipts."
+    },
+    {
+      "requirement": "Freeze async Operation and ergonomic waiting",
+      "result": "Mutation await returns observable Operation; bounded explicit wait yields typed completion; readiness observes state only. Decision016 illustrative syntax is explicitly refined."
+    },
+    {
+      "requirement": "Freeze uncertainty, cancellation and errors",
+      "result": "Saved reference JSON validates against 22 typed command-kind witnesses before local status-first recovery. Original logical IDs survive uncertainty. Wait cancellation differs from durable decisions; decision own scope and state/disposition/evidence preserved. Canonical problems and stored operation problem data remain distinct."
+    },
+    {
+      "requirement": "Freeze inputs/results, events and capabilities",
+      "result": "All25 mapped TypeScript method paths/returns are parsed from actual declarations. Session13 fields and operation9 states match current source; all22 witness names match across languages. Distinct revision families and complete retained/admitted/retired topology outcomes are explicit. Journal source/actor/audience/cursors and specialized invitation handles remain attributed; unknown advanced payloads stay structured data. Capability require/refusal does not manufacture media readiness."
+    },
+    {
+      "requirement": "Freeze Stream and runtime ownership boundaries",
+      "result": "Scoped Stream refresh declares available negotiated format, direction, lossless source clock and local/observation ownership. Unknown metadata stays absent. Native frame IO, browser capture/render and managed helper runtime behavior remain their assigned implementation tasks. Readers/client cleanup is explicit in every outline; native pending journey satisfies Send."
+    },
+    {
+      "requirement": "Separate trusted server provisioning",
+      "result": "Validated provisioning command capability is absent from ordinary participant clients. Current protocol ProvisioningCommand remains authoritative; provisioning uses no participant/provider secret bypass. Package publication and namespace ownership remain separate."
+    },
+    {
+      "requirement": "Same complete small application in every language",
+      "result": "Rust, browser/Node TypeScript and Python3.12 typing pass private send, consultation/return, handoff, device move, live/saved-reference recovery, invitation decisions, local/durable cancellation, journal cursor resumption, capability refusal and owned cleanup. Public handle/context inputs require no Store, internal route ID or provider calls."
+    }
+  ],
+  "corrections": [
+    "Session lifecycle vectors omit connid and use voice medium; ordinary Conversation sends omit sid/connid.",
+    "Schema-valid invalid medium and Connection-scope cases are refused by contract rules; unscoped original status is accepted.",
+    "Participant admission includes kind; mutations use Conversation revision. Invitations permit canonical solo Sessions; inactive offered directions are explicit.",
+    "Topology outputs preserve all outcome arrays and optional Conversation revision. Negotiated stream revision remains absent when only a journal resource revision is known."
+  ],
+  "remaining": [
+    "G6-050 and G6-051 runtime failures/qualification remain open with their existing evidence.",
+    "Rust, TypeScript, Python runtime implementation, migrations, conformance, fresh external crate/installed archives and all acceptance criteria remain unqualified until their assigned checks pass.",
+    "Python legacy generic Session validator still differs; do not restore a compatibility/downgrade path.",
+    "Namespace lookup is not ownership. Publisher credentials/version/packaging G6-069 and separate publication approval remain required."
+  ]
+}

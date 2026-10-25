@@ -139,6 +139,8 @@ pub struct DecisionReceipt {
     pub decision: OperationKey,
     pub target: OperationKey,
     pub observed_state: OperationState,
+    pub disposition: String,
+    pub evidence_id: Option<String>,
 }
 pub enum ReconcileOutcome {
     Completed,
@@ -146,6 +148,7 @@ pub enum ReconcileOutcome {
     Failed,
 }
 pub trait Operation<T>: Send + Sync {
+    fn reference_json(&self) -> Json;
     fn reference(&self) -> OperationReference<T>;
     fn status(
         &self,
@@ -193,6 +196,8 @@ pub struct ParticipantSnapshot {
     pub id: ParticipantId,
     pub conversation_id: ConversationId,
     pub identity_id: IdentityId,
+    pub kind: IdentityKind,
+    pub removal_reason: Option<String>,
     pub membership_epoch: u64,
     pub active: bool,
     pub role: String,
@@ -208,7 +213,7 @@ pub struct ConnectionSnapshot {
     pub conversation_id: ConversationId,
     pub session_id: SessionId,
     pub generation: u64,
-    pub stream_revision: StreamRevision,
+    pub stream_revision: Option<StreamRevision>,
     pub state: String,
 }
 pub struct StreamSelection<S> {
@@ -240,21 +245,23 @@ pub struct DeliveryObservation {
     pub provenance: String,
     pub observed_at: i64,
 }
-pub struct ConsultationResult<S, C> {
-    pub session: S,
-    pub retained: C,
-}
-pub struct HandoffResult<C> {
-    pub retained: C,
+pub struct TopologyChange<C> {
+    pub retained: Vec<C>,
     pub admitted: Vec<C>,
     pub retired: Vec<ConnectionId>,
     pub topology_revision: TopologyRevision,
+    pub conversation_revision: Option<ConversationRevision>,
+}
+pub struct ConsultationResult<S, C> {
+    pub session: S,
+    pub topology: TopologyChange<C>,
+}
+pub struct HandoffResult<C> {
+    pub topology: TopologyChange<C>,
 }
 pub struct MoveResult<C> {
     pub connection: C,
-    pub retained: C,
-    pub retired: Vec<ConnectionId>,
-    pub topology_revision: TopologyRevision,
+    pub topology: TopologyChange<C>,
 }
 pub struct SessionDecision<S> {
     pub session: S,
@@ -265,6 +272,10 @@ pub struct EventSource {
     pub kind: String,
     pub correlation_id: String,
 }
+pub struct AudienceMember {
+    pub participant_id: ParticipantId,
+    pub membership_epoch: u64,
+}
 pub struct JournalEvent {
     pub event_id: String,
     pub cursor: Cursor,
@@ -272,6 +283,8 @@ pub struct JournalEvent {
     pub session_id: Option<SessionId>,
     pub connection_id: Option<ConnectionId>,
     pub operation_id: Option<OperationId>,
+    pub participant_id: Option<ParticipantId>,
+    pub audience: Vec<AudienceMember>,
     pub kind: String,
     pub revision: u64,
     pub source: EventSource,
@@ -413,6 +426,7 @@ pub trait ConsultationOperation<A: Api>:
     ) -> impl Future<Output = Result<impl Operation<A::Session>>> + Send;
 }
 pub enum Direction {
+    Inactive,
     Sendonly,
     Recvonly,
     Sendrecv,
@@ -554,7 +568,42 @@ pub trait Connection<A: Api>: Clone + Send + Sync {
         options: MutationOptions,
     ) -> impl Future<Output = Result<impl Operation<StreamSelection<A::Stream>>>> + Send;
 }
+pub struct MediaFormat {
+    pub codec: String,
+    pub clock_rate: u32,
+    pub channels: Option<u16>,
+    pub width: Option<u32>,
+    pub height: Option<u32>,
+}
+pub struct SourceClock {
+    pub source_id: String,
+    pub generation: u64,
+    pub units_per_second: u64,
+    pub synchronized: bool,
+}
+pub enum MediaOwnership {
+    Observation,
+    LocalSource,
+    LocalSink,
+    LocalDuplex,
+}
+pub struct StreamSnapshot {
+    pub id: StreamId,
+    pub conversation_id: ConversationId,
+    pub session_id: SessionId,
+    pub connection_id: ConnectionId,
+    pub medium: Medium,
+    pub state: String,
+    pub direction: Option<Direction>,
+    pub format: Option<MediaFormat>,
+    pub clock: Option<SourceClock>,
+    pub ownership: MediaOwnership,
+}
 pub trait Stream: Clone + Send + Sync {
+    fn refresh(
+        &self,
+        options: RequestOptions,
+    ) -> impl Future<Output = Result<StreamSnapshot>> + Send;
     fn id(&self) -> &StreamId;
     fn connection_id(&self) -> &ConnectionId;
     fn session_id(&self) -> &SessionId;
@@ -602,14 +651,44 @@ pub trait Conversation<A: Api>: Clone + Send + Sync {
     fn invite(
         &self,
         session_id: SessionId,
-        to: NonEmpty<ParticipantId>,
+        to: Vec<ParticipantId>,
         medium: SessionMedium,
         intent: String,
         capabilities: Json,
         options: MutationOptions,
     ) -> impl Future<Output = Result<impl Operation<A::Session>>> + Send;
 }
+pub struct OperationKind<T> {
+    command: String,
+    output: PhantomData<fn(T) -> T>,
+}
+pub struct OperationKinds<A: Api> {
+    pub conversation_create: OperationKind<A::Conversation>,
+    pub message_send: OperationKind<MessageAcceptance>,
+    pub conversation_participant_add: OperationKind<A::Participant>,
+    pub conversation_participant_update: OperationKind<A::Participant>,
+    pub conversation_participant_remove: OperationKind<A::Participant>,
+    pub session_invite: OperationKind<A::Session>,
+    pub session_accept: OperationKind<A::Session>,
+    pub session_reject: OperationKind<SessionDecision<A::Session>>,
+    pub session_cancel: OperationKind<SessionDecision<A::Session>>,
+    pub session_consult: OperationKind<ConsultationResult<A::Session, A::Connection>>,
+    pub session_consult_return: OperationKind<A::Session>,
+    pub session_handoff: OperationKind<HandoffResult<A::Connection>>,
+    pub session_update: OperationKind<A::Session>,
+    pub session_end: OperationKind<A::Session>,
+    pub connection_offer: OperationKind<A::Connection>,
+    pub connection_update: OperationKind<A::Connection>,
+    pub connection_replace: OperationKind<MoveResult<A::Connection>>,
+    pub connection_end: OperationKind<A::Connection>,
+    pub stream_subscribe: OperationKind<StreamSelection<A::Stream>>,
+    pub stream_unsubscribe: OperationKind<StreamSelection<A::Stream>>,
+    pub operation_cancel: OperationKind<DecisionReceipt>,
+    pub operation_reconcile: OperationKind<DecisionReceipt>,
+}
 pub trait ParticipantClient<A: Api>: Send + Sync {
+    fn operation_kinds(&self) -> OperationKinds<A>;
+    fn restore<T>(&self, saved: Json, kind: OperationKind<T>) -> Result<impl Operation<T>>;
     fn conversation_by_id(&self, id: ConversationId) -> A::Conversation;
     fn create_conversation(
         &self,

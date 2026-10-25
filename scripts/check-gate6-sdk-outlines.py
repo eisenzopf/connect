@@ -31,7 +31,7 @@ def main():
     assert output.is_relative_to((ROOT / '.local').resolve()), 'Use ignored .local output'
     output.mkdir(parents=True, exist_ok=False)
     names = sorted(str(p.relative_to(ROOT)) for p in (ROOT / 'contracts/sdk-api').rglob('*') if p.is_file())
-    names += ['scripts/check-gate6-sdk-outlines.py', 'scripts/format.sh', 'sdk/typescript/package-lock.json']
+    names += ['contracts/sdk-gate-6-api.json', 'scripts/check-gate6-sdk-outlines.py', 'scripts/format.sh', 'sdk/typescript/package-lock.json']
     before = {n: digest(ROOT / n) for n in names}
     checks = []
 
@@ -94,15 +94,16 @@ def main():
     diagnostics['rust'] = codes
     unchanged = all(digest(ROOT / name) == value for name, value in before.items())
     assert unchanged, 'Inputs changed during checking'
+    finalized = json.loads((ROOT / 'contracts/sdk-gate-6-api.json').read_text())['status'] == 'frozen'
     report = {
         'schema': 'connect-gate6-sdk-contract-outlines/1', 'task': 'G6-059', 'passed': True,
         'scope': 'Declaration-only target contract; Rust, browser/Node TypeScript, Python static outlines and six negative constraints per compiler target. No SDK runtime, package, media, transport or acceptance qualification.',
-        'candidate_finalized': False, 'versions': versions, 'checks': checks, 'negative_diagnostics': diagnostics,
+        'candidate_finalized': finalized, 'versions': versions, 'checks': checks, 'negative_diagnostics': diagnostics,
         'inputs_sha256': before, 'inputs_unchanged': unchanged,
         'checked_at': datetime.datetime.now(datetime.timezone.utc).isoformat(),
     }
     (output / 'summary.json').write_text(json.dumps(report, indent=2) + '\n')
-    print(json.dumps({'passed': True, 'candidate_finalized': False, 'compiler_targets': len(diagnostics), 'negative_cases_per_target': 6, 'inputs_unchanged': unchanged}))
+    print(json.dumps({'passed': True, 'candidate_finalized': finalized, 'compiler_targets': len(diagnostics), 'negative_cases_per_target': 6, 'inputs_unchanged': unchanged}))
 
 
 if __name__ == '__main__':

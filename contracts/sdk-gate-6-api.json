@@ -1,7 +1,7 @@
 {
-  "schema": "connect-gate6-sdk-contract-candidate/1",
+  "schema": "connect-gate6-sdk-contract/1",
   "task": "G6-059",
-  "status": "candidate-under-review",
+  "status": "frozen",
   "basis": "docs/decisions/016-gate-6-sdk.md",
   "protocol_profile": "connect/2",
   "handles": [
@@ -61,9 +61,7 @@
     {
       "name": "Operation",
       "id_field": "operation_id",
-      "parent_scope": [
-        "conversation_id"
-      ],
+      "parent_scope": [],
       "snapshot_grants_authority": false,
       "from_id_grants_authority": false
     }
@@ -75,15 +73,17 @@
       "canonical_type": "conversation.create",
       "result": "Conversation",
       "logical_operation_id_required": true,
-      "implementation_qualified": false
+      "implementation_qualified": false,
+      "await_result": "Operation<Conversation>"
     },
     {
       "id": "message.private",
       "target_typescript": "Conversation.send",
       "canonical_type": "message.send",
-      "result": "MessageReceipt",
+      "result": "MessageAcceptance",
       "logical_operation_id_required": true,
-      "implementation_qualified": false
+      "implementation_qualified": false,
+      "await_result": "Operation<MessageAcceptance>"
     },
     {
       "id": "conversation.snapshot",
@@ -91,7 +91,8 @@
       "canonical_type": "conversation.get",
       "result": "ConversationSnapshot",
       "logical_operation_id_required": false,
-      "implementation_qualified": false
+      "implementation_qualified": false,
+      "await_result": "ConversationSnapshot"
     },
     {
       "id": "participant.add",
@@ -99,7 +100,8 @@
       "canonical_type": "conversation.participant.add",
       "result": "Participant",
       "logical_operation_id_required": true,
-      "implementation_qualified": false
+      "implementation_qualified": false,
+      "await_result": "Operation<Participant>"
     },
     {
       "id": "participant.update",
@@ -107,7 +109,8 @@
       "canonical_type": "conversation.participant.update",
       "result": "Participant",
       "logical_operation_id_required": true,
-      "implementation_qualified": false
+      "implementation_qualified": false,
+      "await_result": "Operation<Participant>"
     },
     {
       "id": "participant.remove",
@@ -115,7 +118,8 @@
       "canonical_type": "conversation.participant.remove",
       "result": "Participant",
       "logical_operation_id_required": true,
-      "implementation_qualified": false
+      "implementation_qualified": false,
+      "await_result": "Operation<Participant>"
     },
     {
       "id": "session.invite",
@@ -123,7 +127,8 @@
       "canonical_type": "session.invite",
       "result": "Session",
       "logical_operation_id_required": true,
-      "implementation_qualified": false
+      "implementation_qualified": false,
+      "await_result": "Operation<Session>"
     },
     {
       "id": "session.accept",
@@ -131,7 +136,8 @@
       "canonical_type": "session.accept",
       "result": "Session",
       "logical_operation_id_required": true,
-      "implementation_qualified": false
+      "implementation_qualified": false,
+      "await_result": "Operation<Session>"
     },
     {
       "id": "session.reject",
@@ -139,7 +145,8 @@
       "canonical_type": "session.reject",
       "result": "SessionDecision",
       "logical_operation_id_required": true,
-      "implementation_qualified": false
+      "implementation_qualified": false,
+      "await_result": "Operation<SessionDecision>"
     },
     {
       "id": "session.cancel",
@@ -147,23 +154,26 @@
       "canonical_type": "session.cancel",
       "result": "SessionDecision",
       "logical_operation_id_required": true,
-      "implementation_qualified": false
+      "implementation_qualified": false,
+      "await_result": "Operation<SessionDecision>"
     },
     {
       "id": "session.consult",
       "target_typescript": "Session.consult",
       "canonical_type": "session.consult",
-      "result": "Consultation",
+      "result": "ConsultationResult",
       "logical_operation_id_required": true,
-      "implementation_qualified": false
+      "implementation_qualified": false,
+      "await_result": "Operation<ConsultationResult>"
     },
     {
       "id": "session.consult.return",
-      "target_typescript": "Consultation.returnToRetained",
+      "target_typescript": "ConsultationOperation.returnToRetained",
       "canonical_type": "session.consult.return",
       "result": "Session",
       "logical_operation_id_required": true,
-      "implementation_qualified": false
+      "implementation_qualified": false,
+      "await_result": "Operation<Session>"
     },
     {
       "id": "session.handoff",
@@ -171,7 +181,8 @@
       "canonical_type": "session.handoff",
       "result": "HandoffResult",
       "logical_operation_id_required": true,
-      "implementation_qualified": false
+      "implementation_qualified": false,
+      "await_result": "Operation<HandoffResult>"
     },
     {
       "id": "session.update",
@@ -179,7 +190,8 @@
       "canonical_type": "session.update",
       "result": "Session",
       "logical_operation_id_required": true,
-      "implementation_qualified": false
+      "implementation_qualified": false,
+      "await_result": "Operation<Session>"
     },
     {
       "id": "session.end",
@@ -187,7 +199,8 @@
       "canonical_type": "session.end",
       "result": "Session",
       "logical_operation_id_required": true,
-      "implementation_qualified": false
+      "implementation_qualified": false,
+      "await_result": "Operation<Session>"
     },
     {
       "id": "connection.offer",
@@ -195,7 +208,8 @@
       "canonical_type": "connection.offer",
       "result": "Connection",
       "logical_operation_id_required": true,
-      "implementation_qualified": false
+      "implementation_qualified": false,
+      "await_result": "Operation<Connection>"
     },
     {
       "id": "connection.update",
@@ -203,15 +217,17 @@
       "canonical_type": "connection.update",
       "result": "Connection",
       "logical_operation_id_required": true,
-      "implementation_qualified": false
+      "implementation_qualified": false,
+      "await_result": "Operation<Connection>"
     },
     {
       "id": "connection.replace",
       "target_typescript": "Connection.replaceDevice",
       "canonical_type": "connection.replace",
-      "result": "Connection",
+      "result": "MoveResult",
       "logical_operation_id_required": true,
-      "implementation_qualified": false
+      "implementation_qualified": false,
+      "await_result": "Operation<MoveResult>"
     },
     {
       "id": "connection.end",
@@ -219,7 +235,8 @@
       "canonical_type": "connection.end",
       "result": "Connection",
       "logical_operation_id_required": true,
-      "implementation_qualified": false
+      "implementation_qualified": false,
+      "await_result": "Operation<Connection>"
     },
     {
       "id": "stream.subscribe",
@@ -227,7 +244,8 @@
       "canonical_type": "stream.subscribe",
       "result": "StreamSelection",
       "logical_operation_id_required": true,
-      "implementation_qualified": false
+      "implementation_qualified": false,
+      "await_result": "Operation<StreamSelection>"
     },
     {
       "id": "stream.unsubscribe",
@@ -235,7 +253,8 @@
       "canonical_type": "stream.unsubscribe",
       "result": "StreamSelection",
       "logical_operation_id_required": true,
-      "implementation_qualified": false
+      "implementation_qualified": false,
+      "await_result": "Operation<StreamSelection>"
     },
     {
       "id": "operation.status",
@@ -243,7 +262,8 @@
       "canonical_type": "operation.get",
       "result": "OperationSnapshot",
       "logical_operation_id_required": false,
-      "implementation_qualified": false
+      "implementation_qualified": false,
+      "await_result": "OperationSnapshot"
     },
     {
       "id": "operation.cancel",
@@ -251,7 +271,8 @@
       "canonical_type": "operation.cancel",
       "result": "DecisionReceipt",
       "logical_operation_id_required": true,
-      "implementation_qualified": false
+      "implementation_qualified": false,
+      "await_result": "Operation<DecisionReceipt>"
     },
     {
       "id": "operation.reconcile",
@@ -259,7 +280,8 @@
       "canonical_type": "operation.reconcile",
       "result": "DecisionReceipt",
       "logical_operation_id_required": true,
-      "implementation_qualified": false
+      "implementation_qualified": false,
+      "await_result": "Operation<DecisionReceipt>"
     },
     {
       "id": "events",
@@ -267,7 +289,8 @@
       "canonical_type": "conversation.subscribe",
       "result": "EventStream",
       "logical_operation_id_required": false,
-      "implementation_qualified": false
+      "implementation_qualified": false,
+      "await_result": "EventStream"
     }
   ],
   "operation_states": [
@@ -359,10 +382,64 @@
     "unsupported-capability"
   ],
   "remaining": [
-    "Resolve ergonomic mutation/Operation await syntax against decision016; every language outline must express the same full scenarios.",
-    "Type-check Rust, browser/Node TypeScript and Python contract outlines; these are contract proof, not SDK runtime implementations.",
-    "Complete method/input/result and transport-role contract review; isolate trusted provisioning and ordinary participant APIs.",
-    "Use current SessionView snapshots; audit remaining legacy generic result/facade debt for G6-060/062/063 without compatibility aliases.",
-    "Recheck publisher identity, package manifests and release version in G6-069; lookup404 is neither reservation nor ownership."
-  ]
+    "Runtime implementation, complete per-language event/result validation, migration, conformance and exact installed-package exercises remain assigned G6-060 through G6-070.",
+    "Publisher identity, package manifests and release version require G6-069 checks; registry lookup is neither reservation nor ownership. Publication remains separately authorized."
+  ],
+  "finalized_at": "2026-10-25",
+  "operation_scope": {
+    "conversation_id": "optional original assertion",
+    "session_id": "optional original assertion",
+    "connection_id": "optional original assertion",
+    "unscoped_create_and_admin_receipts_supported": true,
+    "record_id": "opaque SDK-managed correlation, never a public authority"
+  },
+  "operation_semantics": {
+    "mutation_await": "Returns an observable Operation; does not wait for workflow completion.",
+    "completion": "Explicit wait with finite timeout returns Completion<T>.",
+    "ready": "Explicit waitUntilReady observes state only; no decoded-media assertion.",
+    "reference": "referenceJson emits versioned JSON containing original logical ID, command and scope; no secrets. Restore checks schema, command-kind witness, scope and bounded IDs before creating a local status-only handle. Expected command is saved intent, not an invented server echo.",
+    "restoration": "SDK-owned OperationKinds cover all 22 mapped mutation commands; a foreign kind or mismatched saved command refuses. recover accepts an existing typed reference. Neither restore nor recover submits a mutation or performs network I/O.",
+    "status_fields": "Current canonical operation.updated sends operation_id, optional record_id, state, revision, optional result/problem. Cancellation/expiry observations stay absent unless authoritative data actually supplies them.",
+    "scope": "Creating conversations and trusted provisioning may be unscoped. Retain only original asserted scopes; do not invent a Conversation parent.",
+    "decision_receipts": "Preserve target_operation_id, state_at_decision, disposition and optional evidence_id. Target submission assertions and the separate decision receipt scope differ: the current decision record carries original cid/sid but no connid. Its status reference must use the decision receipt scope, not copy the target Connection assertion."
+  },
+  "revision_families": {
+    "session": "Session accept/reject/cancel/update/end",
+    "topology": "consultation/handoff/consultation return/device move; current TransitionCompletion.session_revision is this family",
+    "conversation": "Participant add/update/remove and conversation-scoped handoff role assertion",
+    "stream": "current native stream controls/subscriptions; absent from a journal Connection observation until negotiated/confirmed, never guessed from its resource revision"
+  },
+  "wire_rules": {
+    "private_send": "message.send with cid only, nonempty Participant audience and original message ID",
+    "session_lifecycle": "cid and sid, no connid; invite medium uses voice/video/voice+video/screen-share/text-chat/mixed, not audio",
+    "session_invite": "an empty to list permits the canonical single-Participant Session; private sends remain nonempty",
+    "participant_admission": "explicit identity_id, kind and role; expected Conversation revision",
+    "topology": "all retained/admitted/retired outcomes are preserved; optional Conversation revision preserved",
+    "create": "uses configured tenant; convenience identity list maps to initial_participants with participant role and current canonical policy defaults"
+  },
+  "contract_proofs": {
+    "root": "contracts/sdk-api/",
+    "checker": "scripts/check-gate6-sdk-outlines.py",
+    "runtime_implementation": false,
+    "typed_event_boundary": "Journal envelope retains source, actor, original audience and scoped IDs. Specialized incoming invitations carry public Session handles. Kind-specific payload validation follows current protocol events and the shared event matrix; advanced payload/extension data is Json.",
+    "media_boundary": "Stream refresh exposes current owned negotiated format/direction/clock and ownership when available; missing metadata cannot be synthesized from capability advertisement. Platform frame IO/capture/renderer implementations remain G6-050/G6-061/062/063."
+  },
+  "saved_reference": {
+    "schema": "connect-operation-reference/1",
+    "fields": [
+      "schema",
+      "operation_id",
+      "command",
+      "scope"
+    ],
+    "scope_fields": [
+      "conversation_id",
+      "session_id",
+      "connection_id"
+    ],
+    "contains_credentials": false,
+    "contains_authority": false,
+    "command_kind_must_match": true,
+    "restore_performs_io": false
+  }
 }

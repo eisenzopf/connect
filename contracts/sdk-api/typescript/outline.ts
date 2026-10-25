@@ -15,6 +15,7 @@ import {
     type MoveResult,
     type WaitOptions,
     type Cursor,
+    type Json,
 } from "./contract.js";
 export interface SavedJourney {
     // Already committed by the application's intent adapter before any call.
@@ -256,4 +257,19 @@ export async function managedLifetime(
     } finally {
         await client.close(wait);
     }
+}
+
+export async function recoverSaved(
+    client: ParticipantClient,
+    saved: Json,
+    wait: WaitOptions,
+): Promise<void> {
+    const original = client.operations.restore(
+        saved,
+        client.operationKinds.connection_replace,
+    );
+    const observed = await original.status(wait);
+    if (observed.state === "unknown" || observed.state === "interrupted")
+        return;
+    if (observed.state === "completed") await original.wait(wait);
 }

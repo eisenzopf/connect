@@ -287,3 +287,33 @@ pub async fn managed_lifetime<A: Api>(
     result?;
     cleanup
 }
+
+pub async fn recover_saved<A: Api>(
+    client: &impl ParticipantClient<A>,
+    saved: Json,
+    wait: RequestOptions,
+) -> Result<()> {
+    let original = client.restore(saved, client.operation_kinds().connection_replace)?;
+    let observed = original.status(wait.clone()).await?;
+    if matches!(
+        observed.state,
+        OperationState::Unknown | OperationState::Interrupted
+    ) {
+        return Ok(());
+    }
+    if observed.state == OperationState::Completed {
+        original.wait(wait).await?;
+    }
+    Ok(())
+}
+
+// Native callers may move the pending public workflow onto a task executor.
+pub fn assert_send_journey<A: Api>(
+    client: &impl ParticipantClient<A>,
+    context: &Context<A>,
+    saved: &SavedJourney,
+    wait: RequestOptions,
+) {
+    fn require_send(_: impl std::future::Future + Send) {}
+    require_send(journey(client, context, saved, wait));
+}

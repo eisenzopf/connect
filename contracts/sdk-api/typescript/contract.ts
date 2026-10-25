@@ -99,9 +99,12 @@ export interface DecisionReceipt {
     readonly decision: OperationKey;
     readonly target: OperationKey;
     readonly observedState: OperationState;
+    readonly disposition: string;
+    readonly evidenceId?: string;
 }
 export interface Operation<T> {
     readonly reference: OperationReference<T>;
+    referenceJson(): Json;
     status(options: RequestOptions): Promise<OperationSnapshot>;
     wait(options: WaitOptions): Promise<Completion<T>>;
     waitUntilReady(options: WaitOptions): Promise<OperationSnapshot>;
@@ -135,6 +138,8 @@ export interface ParticipantSnapshot {
     readonly id: ParticipantId;
     readonly conversationId: ConversationId;
     readonly identityId: IdentityId;
+    readonly kind: IdentityKind;
+    readonly removalReason: string | null;
     readonly membershipEpoch: number;
     readonly active: boolean;
     readonly role: string;
@@ -150,7 +155,7 @@ export interface ConnectionSnapshot {
     readonly conversationId: ConversationId;
     readonly sessionId: SessionId;
     readonly generation: number;
-    readonly streamRevision: Revision<"stream">;
+    readonly streamRevision?: Revision<"stream">;
     readonly state: string;
 }
 export interface StreamSelection {
@@ -172,21 +177,19 @@ export interface DeliveryObservation {
     readonly provenance: string;
     readonly observedAt: number;
 }
-export interface ConsultationResult {
-    readonly session: Session;
-    readonly retained: Connection;
-}
-export interface HandoffResult {
-    readonly retained: Connection;
+export interface TopologyChange {
+    readonly retained: readonly Connection[];
     readonly admitted: readonly Connection[];
     readonly retired: readonly ConnectionId[];
     readonly topologyRevision: Revision<"topology">;
+    readonly conversationRevision?: Revision<"conversation">;
 }
-export interface MoveResult {
+export interface ConsultationResult extends TopologyChange {
+    readonly session: Session;
+}
+export interface HandoffResult extends TopologyChange {}
+export interface MoveResult extends TopologyChange {
     readonly connection: Connection;
-    readonly retained: Connection;
-    readonly retired: readonly ConnectionId[];
-    readonly topologyRevision: Revision<"topology">;
 }
 export interface SessionDecision {
     readonly session: Session;
@@ -204,6 +207,11 @@ export interface JournalEvent {
     readonly sessionId?: SessionId;
     readonly connectionId?: ConnectionId;
     readonly operationId?: OperationId;
+    readonly participantId?: ParticipantId;
+    readonly audience: readonly {
+        readonly participantId: ParticipantId;
+        readonly membershipEpoch: number;
+    }[];
     readonly kind: string;
     readonly revision: number;
     readonly source: EventSource;
@@ -383,7 +391,8 @@ export interface Session {
                 streams: NonEmpty<{
                     id: StreamId;
                     kind: Medium;
-                    direction: "sendonly" | "recvonly" | "sendrecv";
+                    direction:
+                        "sendonly" | "recvonly" | "sendrecv" | "inactive";
                     codecs: NonEmpty<string>;
                 }>;
             },
@@ -425,11 +434,38 @@ export interface Connection {
         ): Promise<Operation<StreamSelection>>;
     };
 }
+export interface MediaFormat {
+    readonly codec: string;
+    readonly clockRate: number;
+    readonly channels?: number;
+    readonly width?: number;
+    readonly height?: number;
+}
+export interface SourceClock {
+    readonly sourceId: string;
+    readonly generation: number;
+    readonly unitsPerSecond: bigint;
+    readonly synchronized: boolean;
+}
+export interface StreamSnapshot {
+    readonly id: StreamId;
+    readonly conversationId: ConversationId;
+    readonly sessionId: SessionId;
+    readonly connectionId: ConnectionId;
+    readonly medium: Medium;
+    readonly state: string;
+    readonly direction?: "sendonly" | "recvonly" | "sendrecv" | "inactive";
+    readonly format?: MediaFormat;
+    readonly clock?: SourceClock;
+    readonly ownership:
+        "observation" | "local-source" | "local-sink" | "local-duplex";
+}
 export interface Stream {
     readonly id: StreamId;
     readonly connectionId: ConnectionId;
     readonly sessionId: SessionId;
     readonly conversationId: ConversationId;
+    refresh(options: RequestOptions): Promise<StreamSnapshot>;
 }
 export interface Conversation {
     readonly id: ConversationId;
@@ -467,7 +503,7 @@ export interface Conversation {
         invite(
             input: {
                 sessionId: SessionId;
-                to: NonEmpty<ParticipantId>;
+                to: readonly ParticipantId[];
                 medium:
                     | "voice"
                     | "video"
@@ -482,6 +518,34 @@ export interface Conversation {
         ): Promise<Operation<Session>>;
     };
 }
+export interface OperationKind<T> {
+    readonly command: string;
+    readonly [resultType]: (result: T) => T;
+}
+export interface OperationKinds {
+    readonly conversation_create: OperationKind<Conversation>;
+    readonly message_send: OperationKind<MessageAcceptance>;
+    readonly conversation_participant_add: OperationKind<Participant>;
+    readonly conversation_participant_update: OperationKind<Participant>;
+    readonly conversation_participant_remove: OperationKind<Participant>;
+    readonly session_invite: OperationKind<Session>;
+    readonly session_accept: OperationKind<Session>;
+    readonly session_reject: OperationKind<SessionDecision>;
+    readonly session_cancel: OperationKind<SessionDecision>;
+    readonly session_consult: OperationKind<ConsultationResult>;
+    readonly session_consult_return: OperationKind<Session>;
+    readonly session_handoff: OperationKind<HandoffResult>;
+    readonly session_update: OperationKind<Session>;
+    readonly session_end: OperationKind<Session>;
+    readonly connection_offer: OperationKind<Connection>;
+    readonly connection_update: OperationKind<Connection>;
+    readonly connection_replace: OperationKind<MoveResult>;
+    readonly connection_end: OperationKind<Connection>;
+    readonly stream_subscribe: OperationKind<StreamSelection>;
+    readonly stream_unsubscribe: OperationKind<StreamSelection>;
+    readonly operation_cancel: OperationKind<DecisionReceipt>;
+    readonly operation_reconcile: OperationKind<DecisionReceipt>;
+}
 export interface ParticipantClient {
     readonly conversations: {
         byId(id: ConversationId): Conversation;
@@ -493,7 +557,9 @@ export interface ParticipantClient {
             options: MutationOptions,
         ): Promise<Operation<Conversation>>;
     };
+    readonly operationKinds: OperationKinds;
     readonly operations: {
+        restore<T>(saved: Json, kind: OperationKind<T>): Operation<T>;
         recover<T>(reference: OperationReference<T>): Operation<T>;
     };
     readonly capabilities: Capabilities;

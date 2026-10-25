@@ -90,8 +90,11 @@ class DecisionReceipt:
     decision: OperationKey
     target: OperationKey
     observed_state: OperationState
+    disposition: str
+    evidence_id: str | None
 
 class Operation(Protocol[T]):
+    def reference_json(self) -> Json: ...
     @property
     def reference(self) -> OperationReference[T]: ...
     async def status(self, options: RequestOptions) -> OperationSnapshot: ...
@@ -121,6 +124,8 @@ class ParticipantSnapshot:
     id: ParticipantId
     conversation_id: ConversationId
     identity_id: IdentityId
+    kind: Literal["human", "ai", "system", "external"]
+    removal_reason: str | None
     membership_epoch: int
     active: bool
     role: str
@@ -138,7 +143,7 @@ class ConnectionSnapshot:
     conversation_id: ConversationId
     session_id: SessionId
     generation: int
-    stream_revision: StreamRevision
+    stream_revision: StreamRevision | None
     state: str
 
 @dataclass(frozen=True)
@@ -163,23 +168,24 @@ class DeliveryObservation:
     observed_at: int
 
 @dataclass(frozen=True)
-class ConsultationResult:
-    session: Session
-    retained: Connection
-
-@dataclass(frozen=True)
-class HandoffResult:
-    retained: Connection
+class TopologyChange:
+    retained: Sequence[Connection]
     admitted: Sequence[Connection]
     retired: Sequence[ConnectionId]
     topology_revision: TopologyRevision
+    conversation_revision: ConversationRevision | None
 
 @dataclass(frozen=True)
-class MoveResult:
+class ConsultationResult(TopologyChange):
+    session: Session
+
+@dataclass(frozen=True)
+class HandoffResult(TopologyChange):
+    pass
+
+@dataclass(frozen=True)
+class MoveResult(TopologyChange):
     connection: Connection
-    retained: Connection
-    retired: Sequence[ConnectionId]
-    topology_revision: TopologyRevision
 
 @dataclass(frozen=True)
 class SessionDecision:
@@ -193,6 +199,11 @@ class EventSource:
     correlation_id: str
 
 @dataclass(frozen=True)
+class AudienceMember:
+    participant_id: ParticipantId
+    membership_epoch: int
+
+@dataclass(frozen=True)
 class JournalEvent:
     event_id: str
     cursor: Cursor
@@ -200,6 +211,8 @@ class JournalEvent:
     session_id: SessionId | None
     connection_id: ConnectionId | None
     operation_id: OperationId | None
+    participant_id: ParticipantId | None
+    audience: Sequence[AudienceMember]
     kind: str
     revision: int
     source: EventSource
@@ -339,7 +352,7 @@ class Connections(Protocol):
 class OfferedStream:
     id: StreamId
     kind: Medium
-    direction: Literal['sendonly', 'recvonly', 'sendrecv']
+    direction: Literal['sendonly', 'recvonly', 'sendrecv', 'inactive']
     codecs: NonEmpty[str]
 
 class Session(Protocol):
@@ -377,7 +390,36 @@ class Connection(Protocol):
     async def replace_device(self, input: MoveInput, options: MutationOptions) -> Operation[MoveResult]: ...
     async def end(self, options: MutationOptions) -> Operation[Connection]: ...
 
+@dataclass(frozen=True)
+class MediaFormat:
+    codec: str
+    clock_rate: int
+    channels: int | None
+    width: int | None
+    height: int | None
+
+@dataclass(frozen=True)
+class SourceClock:
+    source_id: str
+    generation: int
+    units_per_second: int
+    synchronized: bool
+
+@dataclass(frozen=True)
+class StreamSnapshot:
+    id: StreamId
+    conversation_id: ConversationId
+    session_id: SessionId
+    connection_id: ConnectionId
+    medium: Medium
+    state: str
+    direction: Literal["sendonly", "recvonly", "sendrecv", "inactive"] | None
+    format: MediaFormat | None
+    clock: SourceClock | None
+    ownership: Literal["observation", "local-source", "local-sink", "local-duplex"]
+
 class Stream(Protocol):
+    async def refresh(self, options: RequestOptions) -> StreamSnapshot: ...
     @property
     def id(self) -> StreamId: ...
     @property
@@ -393,7 +435,7 @@ class Participants(Protocol):
 
 class Sessions(Protocol):
     def by_id(self, id: SessionId) -> Session: ...
-    async def invite(self, session_id: SessionId, to: NonEmpty[ParticipantId], medium: Literal['voice', 'video', 'voice+video', 'screen-share', 'text-chat', 'mixed'], intent: str, capabilities: Json, options: MutationOptions) -> Operation[Session]: ...
+    async def invite(self, session_id: SessionId, to: Sequence[ParticipantId], medium: Literal['voice', 'video', 'voice+video', 'screen-share', 'text-chat', 'mixed'], intent: str, capabilities: Json, options: MutationOptions) -> Operation[Session]: ...
 
 class Conversation(Protocol):
     @property
@@ -411,7 +453,60 @@ class Conversations(Protocol):
     def by_id(self, id: ConversationId) -> Conversation: ...
     async def create(self, participants: Sequence[IdentityId], policy: Literal['persistent', 'ephemeral'], options: MutationOptions) -> Operation[Conversation]: ...
 
+class OperationKind(Protocol[T]):
+    """SDK-created command-kind witness; implementations reject foreign witnesses."""
+    @property
+    def command(self) -> str: ...
+    def _result_type(self, value: T) -> T: ...
+
+class OperationKinds(Protocol):
+    @property
+    def conversation_create(self) -> OperationKind[Conversation]: ...
+    @property
+    def message_send(self) -> OperationKind[MessageAcceptance]: ...
+    @property
+    def conversation_participant_add(self) -> OperationKind[Participant]: ...
+    @property
+    def conversation_participant_update(self) -> OperationKind[Participant]: ...
+    @property
+    def conversation_participant_remove(self) -> OperationKind[Participant]: ...
+    @property
+    def session_invite(self) -> OperationKind[Session]: ...
+    @property
+    def session_accept(self) -> OperationKind[Session]: ...
+    @property
+    def session_reject(self) -> OperationKind[SessionDecision]: ...
+    @property
+    def session_cancel(self) -> OperationKind[SessionDecision]: ...
+    @property
+    def session_consult(self) -> OperationKind[ConsultationResult]: ...
+    @property
+    def session_consult_return(self) -> OperationKind[Session]: ...
+    @property
+    def session_handoff(self) -> OperationKind[HandoffResult]: ...
+    @property
+    def session_update(self) -> OperationKind[Session]: ...
+    @property
+    def session_end(self) -> OperationKind[Session]: ...
+    @property
+    def connection_offer(self) -> OperationKind[Connection]: ...
+    @property
+    def connection_update(self) -> OperationKind[Connection]: ...
+    @property
+    def connection_replace(self) -> OperationKind[MoveResult]: ...
+    @property
+    def connection_end(self) -> OperationKind[Connection]: ...
+    @property
+    def stream_subscribe(self) -> OperationKind[StreamSelection]: ...
+    @property
+    def stream_unsubscribe(self) -> OperationKind[StreamSelection]: ...
+    @property
+    def operation_cancel(self) -> OperationKind[DecisionReceipt]: ...
+    @property
+    def operation_reconcile(self) -> OperationKind[DecisionReceipt]: ...
+
 class Operations(Protocol):
+    def restore[S](self, saved: Json, kind: OperationKind[S]) -> Operation[S]: ...
     def recover[S](self, reference: OperationReference[S]) -> Operation[S]: ...
 
 class InvitationStream(Protocol):
@@ -419,6 +514,8 @@ class InvitationStream(Protocol):
     async def close(self) -> None: ...
 
 class ParticipantClient(Protocol):
+    @property
+    def operation_kinds(self) -> OperationKinds: ...
     @property
     def conversations(self) -> Conversations: ...
     @property

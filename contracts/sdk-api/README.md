@@ -2,8 +2,8 @@
 
 These declarations and complete application outlines describe the target public
 SDK surface. They are compile-only contract proofs, not transports, mock clients,
-installed packages, or evidence of SDK runtime parity. The final method/result
-review remains in progress in `contracts/sdk-gate-6-api.json` and
+installed packages, or evidence of SDK runtime parity. The frozen method/result
+contract is recorded in `contracts/sdk-gate-6-api.json` and
 `docs/SDK_COMPATIBILITY.md`.
 
 Each language expresses private send with separate delivery observations,
@@ -26,6 +26,8 @@ Python with `mypy==2.4.0` installed:
 ```sh
 python scripts/check-gate6-sdk-outlines.py --output .local/gate-6/sdk-contract/outlines-new
 ```
+
+Saved-reference restoration also validates original command kind before any I/O.
 
 The checker uses the repository's TypeScript compiler and Rust compiler, checks
 browser and Node environments separately, targets Python 3.12, and requires six

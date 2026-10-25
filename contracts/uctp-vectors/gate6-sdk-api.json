@@ -11,8 +11,6 @@
         "id": "sdk_private_send",
         "ts": "2026-10-25T12:00:00Z",
         "cid": "conv_example",
-        "sid": "sess_example",
-        "connid": "conn_example",
         "payload": {
           "msg_id": "saved_message_001",
           "to": [
@@ -124,16 +122,16 @@
         "ts": "2026-10-25T12:00:00Z",
         "cid": "conv_example",
         "sid": "sess_example",
-        "connid": "conn_example",
         "payload": {
           "to": [
             "part_owner"
           ],
-          "medium": "audio",
+          "medium": "voice",
           "intent": "consult",
           "capabilities_offer": {}
         },
-        "operation_id": "op_vector_12"
+        "operation_id": "op_vector_12",
+        "expected_revision": 0
       },
       "schema_valid": true,
       "contract_valid": true
@@ -148,12 +146,12 @@
         "ts": "2026-10-25T12:00:00Z",
         "cid": "conv_example",
         "sid": "sess_example",
-        "connid": "conn_example",
         "payload": {
           "reason_code": 0,
           "reason": "example"
         },
-        "operation_id": "op_vector_14"
+        "operation_id": "op_vector_14",
+        "expected_revision": 1
       },
       "schema_valid": true,
       "contract_valid": true
@@ -186,8 +184,6 @@
         "id": "sdk_private_send",
         "ts": "2026-10-25T12:00:00Z",
         "cid": "conv_example",
-        "sid": "sess_example",
-        "connid": "conn_example",
         "payload": {
           "msg_id": "saved_message_001",
           "to": "all",
@@ -209,8 +205,6 @@
         "id": "sdk_private_send",
         "ts": "2026-10-25T12:00:00Z",
         "cid": "conv_example",
-        "sid": "sess_example",
-        "connid": "conn_example",
         "payload": {
           "msg_id": "saved_message_001",
           "to": [
@@ -313,6 +307,73 @@
       "schema_valid": true,
       "contract_valid": false,
       "rule": "recovery-query-only"
+    },
+    {
+      "id": "SDK-APP-UNSCOPED-RECOVERY",
+      "scenario": "recovery",
+      "envelope": {
+        "v": 2,
+        "type": "operation.get",
+        "id": "sdk_app_unscoped_recovery",
+        "ts": "2026-10-25T12:00:00Z",
+        "payload": {
+          "operation_id": "op_vector_59"
+        }
+      },
+      "schema_valid": true,
+      "contract_valid": true,
+      "rule": "recovery-query-only"
+    },
+    {
+      "id": "SDK-REFUSE-SESSION-CONNECTION-SCOPE",
+      "scenario": "incoming-invitation",
+      "envelope": {
+        "v": 2,
+        "type": "session.invite",
+        "id": "sdk_refuse_session_connection_scope",
+        "ts": "2026-10-25T12:00:00Z",
+        "cid": "conv_example",
+        "sid": "sess_example",
+        "payload": {
+          "to": [
+            "part_owner"
+          ],
+          "medium": "voice",
+          "intent": "consult",
+          "capabilities_offer": {}
+        },
+        "operation_id": "op_vector_12",
+        "expected_revision": 0,
+        "connid": "conn_example"
+      },
+      "schema_valid": true,
+      "contract_valid": false,
+      "rule": "session-resource-and-medium"
+    },
+    {
+      "id": "SDK-REFUSE-SESSION-AUDIO-MEDIUM",
+      "scenario": "incoming-invitation",
+      "envelope": {
+        "v": 2,
+        "type": "session.invite",
+        "id": "sdk_refuse_session_audio_medium",
+        "ts": "2026-10-25T12:00:00Z",
+        "cid": "conv_example",
+        "sid": "sess_example",
+        "payload": {
+          "to": [
+            "part_owner"
+          ],
+          "medium": "audio",
+          "intent": "consult",
+          "capabilities_offer": {}
+        },
+        "operation_id": "op_vector_12",
+        "expected_revision": 0
+      },
+      "schema_valid": true,
+      "contract_valid": false,
+      "rule": "session-resource-and-medium"
     }
   ]
 }

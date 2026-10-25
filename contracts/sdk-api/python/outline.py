@@ -1,6 +1,7 @@
 """Compile-only shared contract outline; this does not execute an SDK."""
 from dataclasses import dataclass
 from contract import (
+    Json,
     ParticipantClient, Conversation, Session, Connection, Participant, EndpointId,
     OperationId, MessageId, Cursor, OperationReference, MoveResult, RequestOptions,
     MutationOptions, NonEmpty, ConsultInput, HandoffInput, SessionRole, MoveInput,
@@ -115,3 +116,11 @@ async def return_consultation(context: Context, saved: SavedJourney, wait: Reque
 async def managed_lifetime(client: ParticipantClient, context: Context, saved: SavedJourney, wait: RequestOptions) -> None:
     async with client as owned:
         await journey(owned, context, saved, wait)
+
+async def recover_saved(client: ParticipantClient, saved: Json, wait: RequestOptions) -> None:
+    original = client.operations.restore(saved, client.operation_kinds.connection_replace)
+    observed = await original.status(wait)
+    if observed.state in ('unknown', 'interrupted'):
+        return
+    if observed.state == 'completed':
+        await original.wait(wait)

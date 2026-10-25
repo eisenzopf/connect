@@ -1,12 +1,12 @@
 # Gate 6 public SDK contract
 
-This is the G6-059 contract candidate. It refines decision 016 using the current
-canonical service. The handle/method inventory and refusal vectors are in
-`contracts/sdk-gate-6-api.json` and `contracts/uctp-vectors/gate6-sdk-api.json`.
-They define a target for G6-060 through G6-070; they do not certify current SDK
-implementations or installed-package parity. G6-059 stays in progress until the
-same complete application outlines are checked in every language and the final
-surface review is complete.
+G6-059 freezes the shared public contract on October 25, 2026. The inventory
+and current canonical boundary vectors are in `contracts/sdk-gate-6-api.json`
+and `contracts/uctp-vectors/gate6-sdk-api.json`. Declaration-only Rust,
+browser/Node TypeScript and Python proofs are in `contracts/sdk-api/`.
+They define the implementation target for G6-060 through G6-070. Compilation
+qualifies contract usability; SDK runtime behavior, packages and Gate 6
+acceptance require their own evidence.
 
 ## Handles and authority
 
@@ -55,9 +55,39 @@ A retryable error is not permission to repeat a possible effect. Original
 receipt expiry and tombstones survive reconnect; refreshing credentials does not
 renew old authority.
 
-The final ergonomic await syntax remains under review. The target must retain
-both the Operation reference and bounded convenience waiting; an example must
-not silently return an unobservable completed value or wait forever.
+Awaiting a mutation returns its observable `Operation<T>`, after submission or
+an authoritative receipt. It does not wait for the workflow to finish. Explicit
+`wait` returns `Completion<T>` with the current snapshot and typed value.
+`waitUntilReady` returns an observed Operation snapshot, without asserting decoded
+media. Every request/wait has a finite timeout and optional local cancellation.
+This resolves decision 016's illustrative chained-await shorthand:
+
+```typescript
+const creation = await client.conversations.create(input, savedMutationOptions);
+const { value: conversation } = await creation.wait(boundedWait);
+const sending = await conversation.send(privateMessage, savedSendOptions);
+const acceptance = await sending.wait(boundedWait);
+```
+
+`referenceJson()` produces `connect-operation-reference/1` JSON with the original
+`operation_id`, expected `command` and original optional `scope`. It contains no
+credential or authority. `operations.restore(saved, client.operationKinds.<kind>)`
+validates that schema, IDs, scopes and command-kind match before producing the
+typed local Operation. SDK-owned kind witnesses cover all 22 mapped mutations;
+foreign witnesses refuse. `recover` accepts an already typed reference. Neither
+restoration method performs I/O or submits work. The first application action is
+`status`, with current authorization. A saved expected command is intent context,
+not a claim that the current status response echoes command type.
+
+A canonical `operation.updated` supplies ID, state and revision with optional
+result/problem and opaque record correlation. Optional expiry/cancellation
+observations remain absent unless the authoritative source actually supplies
+them. Stored operation problems are preserved structured JSON; canonical command
+errors separately preserve their numeric code/category/reason. Cancellation and
+reconciliation receipts preserve target ID, state at decision, disposition and
+optional evidence. The decision reference uses its own recorded scope: current
+Store decisions retain cid/sid but omit the target connid. A cancellation receipt
+is not proof that every possible effect was rolled back.
 
 ## Required application outlines
 
@@ -74,11 +104,41 @@ Every language must express the same following workflows through public handles:
 | Cancellation | Demonstrate local wait cancellation separately from a durable cancellation decision |
 | Capability refusal | Unsupported control/media/runtime roles return a structured refusal without fabricated readiness or a legacy downgrade |
 
-The shared wire vectors exercise the corresponding current canonical shapes.
-They are contract boundary fixtures. Type-checked Rust, browser/Node TypeScript
-and Python application outlines and their result/error declarations remain
-required before this candidate is finalized; executing installed packages is
-separate G6-070 work.
+The 17 shared wire vectors exercise the corresponding current canonical shapes.
+They are contract boundary fixtures. Rust, browser/Node TypeScript and Python application outlines and their
+result/error declarations type-check. Six unsuppressed negative cases per compiler
+target reject mixed IDs, wrong revision families, ambiguous move targets, empty
+private audiences, participant provisioning and wrong recovery result types.
+Executing installed packages is separate G6-070 work.
+
+## Command inputs and outcomes
+
+Private Conversation sends carry only cid, original message ID and explicit
+nonempty Participant audience. Session lifecycle commands carry cid/sid and
+exclude connid. Invitation `medium` is `voice`, `video`, `voice+video`,
+`screen-share`, `text-chat` or `mixed`; Stream media kinds remain audio/video/
+screen/data. Empty invitation targets permit the canonical single-Participant
+Session. Conversation creation uses the configured tenant and canonical policy;
+the identity-list convenience assigns the ordinary participant role. Advanced
+canonical requests retain all supported explicit fields.
+
+Participant admission requires explicit identity, kind and role. Participant
+mutations compare the Conversation revision; Session decisions/update/end compare
+Session revision. Consultation, return, handoff and device move compare topology
+revision. Native stream controls/subscriptions compare the negotiated Stream
+revision. A journal Connection resource revision cannot stand in for it.
+
+Consultation/handoff/move results retain every retained, admitted and retired
+Connection, plus topology revision and any Conversation revision. The current
+`TransitionCompletion.session_revision` wire field is a topology revision. The
+SDK adapts public IDs into scoped handles without granting authority. A move also
+identifies its resulting Connection; consultation retains the original Session
+and SDK-managed return correlation. Physical route IDs stay internal.
+
+Session update includes participant leave, role change, medium upgrade and codec
+renegotiation. Connection update includes mute/unmute, hold with explicit
+direction, resume, quality interval and codec renegotiation. Unsupported actions
+refuse; local capture pause remains a separate media lifecycle operation.
 
 ## Snapshots, events and errors
 
@@ -97,7 +157,7 @@ paths. Python's generic legacy `session` result validator still uses the older
 shape; the remaining facade migration must be handled in G6-060/G6-062/G6-063,
 without a compatibility alias. Schema agreement here is not complete SDK parity.
 
-Events are attributed hints with audience-bound resumable cursors. Actions use
+Events preserve original actor, source, audience and scoped IDs with audience-bound resumable cursors. Specialized incoming invitation events carry public Session handles; kind-specific payload validation follows the current protocol event models and shared event matrix. Advanced/extension payload data remains JSON. Notifications are hints. Actions use
 current snapshots/status and authority, not cached presence, caller ID or a
 notification. Cursor loss/refusal and resubscription are explicit. Closed or
 foreign cursors must not silently select a broader audience.
@@ -112,7 +172,7 @@ must not expose credentials, provider keys or raw private payloads.
 
 Media frames are bounded ephemeral I/O rather than journal mutations. A Stream
 handle carries declared format, direction, source timing/provenance and ownership
-rules. Codec support, negotiated transport, current source clocks and observed
+rules. `Stream.refresh` returns available owned/negotiated format, direction and source clock metadata; unknown metadata stays absent. Source clock units are lossless (`bigint` in TypeScript, integer in Python/u64 in Rust). The handle distinguishes observation, local source, local sink and local duplex ownership. Codec support, negotiated transport, current source clocks and observed
 readiness remain separate facts. Slow consumers, helper death, clock loss and
 source replacement must be explicit and bounded. Local close/pause cannot become
 a claim of confirmed remote termination.
@@ -152,3 +212,20 @@ A 404 is not reservation or namespace ownership. Publisher credentials and the
 release version remain unverified and must be checked in G6-069 before packaging
 or any separately authorized publication. Current npm/Python manifest names are
 migration work, not an alternative compatibility promise.
+
+## Verification and implementation handoff
+
+`check-gate6-sdk-contract.py` checks canonical schema/refusal vectors, current
+source boundaries, all 13 Session fields and 22 command-kind witnesses across
+languages. `check-gate6-sdk-outlines.py` checks the same full application outline
+in Rust, browser TypeScript, Node TypeScript and Python 3.12 typing, including
+unsuppressed negative compilations. Reports bind inputs and logs by SHA256.
+The evidence is `docs/evidence/gate-6/sdk-contract-final.json`.
+
+G6-060 implements the Rust handles, async Operations and current typed event/result
+mapping; G6-061 implements native programmatic I/O. G6-062/063 implement the
+TypeScript/Python contracts and managed helper ownership; G6-065 migrates control
+consumers. Transport connect/trust/configuration and platform capture/frame APIs
+compose through their existing approved profiles. None of this contract proof
+claims current runtime parity, receipt availability after expiry, media readiness,
+Linux/remote/provider qualification, package ownership or publication.
