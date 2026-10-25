@@ -1,7 +1,7 @@
 {
   "task": "G6-047",
-  "recorded_at": "2026-10-25T00:42:48.339997+00:00",
-  "status": "native-ready-commit-actual-sigkill-slice-passes-full-task-open",
+  "recorded_at": "2026-10-25T00:51:41.135985+00:00",
+  "status": "native-answer-and-ready-actual-sigkill-slices-pass-full-task-open",
   "full_task_complete": false,
   "full_goal_complete": false,
   "approved_work": "Reconcile accepted operations and external effects after crashes; mark interrupted live sessions honestly, query supported provider state and expose bounded operator reconciliation when certainty is unavailable. Prevent duplicate redial, stale bridge resurrection or database-only completion. Drain or terminate resources on shutdown.",
@@ -13,12 +13,12 @@
   ],
   "current_implementation": {
     "source": "crates/connect-server/tests/support/canonical_native_connections/crash_recovery.rs",
-    "scope": "Actual subprocess native ready/committed bridge; independent decoded duplex before parent SIGKILL, exclusive successor with same installation/new epoch, cleared old physical readiness/lifetimes, bounded grace end, public snapshot and stale native signal refusal, fresh non-media request. EdDSA and ES256.",
-    "entrypoint_policy": "One explicitly ignored child-only entry point is invoked by the two parent tests using --ignored. It is not counted as a skipped qualification or a standalone pass.",
-    "verification": "Both actual parent cases pass with source/executable guards. One child-only ignored entry point is invoked explicitly and killed, never counted as a skipped qualification."
+    "scope": "Actual subprocess native ready/committed decoded bridge and actual server answer before callback confirmation; parent SIGKILL, successor ownership, old physical readiness/lifetime fencing, honest failed unconfirmed offer, immutable replay/no duplicate admission, public snapshot and stale signal refusal. EdDSA and ES256.",
+    "entrypoint_policy": "One explicitly ignored child-only entry point is invoked by four parent tests using --ignored; never counted as a skipped qualification or standalone pass.",
+    "verification": "All four actual parent cases pass with source/executable guards."
   },
   "remaining": [
-    "Add and qualify native accepted/answer and retirement boundaries; current ready/committed SIGKILL behavior alone is not complete G6-047 coverage.",
+    "Add and qualify native pre-admission and retirement boundaries; current answered-before-confirmation and ready/committed SIGKILL behavior is not complete G6-047 coverage.",
     "Cover submit/answer and retirement boundaries for actual native/SIP/provider effects, including still-live external fixtures.",
     "Verify supported provider queries, bounded authorized operator reconciliation, no duplicate external effects and unresolved-conflict exclusion.",
     "Verify actual owned drain/termination and recovery failure cases across approved operation classes, then audit the complete G6-047 scope."
@@ -88,6 +88,129 @@
           "public_ended_reason": "reconnect-grace-expired",
           "old_lifetimes_retired": true,
           "stale_native_signal_refused_without_io": true
+        }
+      ]
+    },
+    "native_answer_and_ready": {
+      "summary": ".local/gate-6/crash-recovery/native-answer002-runtime-002/summary.json",
+      "summary_sha256": "b337bbce6bdc30c840359b2fc78267cb21a9ccc7444d252540639e1e1ae085fc",
+      "source_revision": "e372d8042aaddb284ebf52446e5a05bda543c598",
+      "executable_sha256": "5a5bbb49410031ce01ec8b8fc6913968fffba9d51c1198a8abf51ba87f793f92",
+      "source_inputs_unchanged": true,
+      "executable_unchanged": true,
+      "passed": true,
+      "profiles": [
+        {
+          "phase": "ready",
+          "algorithm": "EdDSA",
+          "case": "canonical_native_connections::crash_recovery::production_sigkill_native_ready_bridge_recovers_without_resurrection_eddsa",
+          "runtime_exit_code": 0,
+          "capture_sha256": "5395264d013999814e4eef8c980411f0b4debb21ff5273a894b4c004a65802bc",
+          "killed_signal": 9,
+          "decoded_duplex_before_kill": true,
+          "physical_after_restart": [
+            [
+              "codec-source",
+              "retired",
+              3,
+              null,
+              null
+            ],
+            [
+              "codec-target",
+              "retired",
+              3,
+              null,
+              null
+            ]
+          ],
+          "answer_recovery": null,
+          "stale_native_signal_refused_without_source_or_io": true
+        },
+        {
+          "phase": "ready",
+          "algorithm": "ES256",
+          "case": "canonical_native_connections::crash_recovery::production_sigkill_native_ready_bridge_recovers_without_resurrection_es256",
+          "runtime_exit_code": 0,
+          "capture_sha256": "415ba066c71562c1ff0b14019e4b448562960817f5a752be0b6bc6ec0b10d6f9",
+          "killed_signal": 9,
+          "decoded_duplex_before_kill": true,
+          "physical_after_restart": [
+            [
+              "codec-source",
+              "retired",
+              3,
+              null,
+              null
+            ],
+            [
+              "codec-target",
+              "retired",
+              3,
+              null,
+              null
+            ]
+          ],
+          "answer_recovery": null,
+          "stale_native_signal_refused_without_source_or_io": true
+        },
+        {
+          "phase": "answered",
+          "algorithm": "EdDSA",
+          "case": "canonical_native_connections::crash_recovery::production_sigkill_native_answer_before_confirmation_never_becomes_ready_eddsa",
+          "runtime_exit_code": 0,
+          "capture_sha256": "62c4f312b04562f453cb5606705015eaa1334fbeb274c7c42cfd1e271394caa6",
+          "killed_signal": 9,
+          "decoded_duplex_before_kill": false,
+          "physical_after_restart": [
+            [
+              "crash-answer-connection",
+              "retired",
+              3,
+              null,
+              null
+            ]
+          ],
+          "answer_recovery": {
+            "answered_before_confirmation": true,
+            "new_runtime_admissions": 0,
+            "original_effect_attempt": 1,
+            "original_effect_state": "failed",
+            "original_operation_state": "failed",
+            "ready_or_started_before_or_after": false,
+            "replay_disposition": "historical-outcome-only",
+            "replay_preserved_original_record": true
+          },
+          "stale_native_signal_refused_without_source_or_io": true
+        },
+        {
+          "phase": "answered",
+          "algorithm": "ES256",
+          "case": "canonical_native_connections::crash_recovery::production_sigkill_native_answer_before_confirmation_never_becomes_ready_es256",
+          "runtime_exit_code": 0,
+          "capture_sha256": "bec552d68c03b030e943762d484032db25b9a3f9f10c0e2f226f4405430e61e5",
+          "killed_signal": 9,
+          "decoded_duplex_before_kill": false,
+          "physical_after_restart": [
+            [
+              "crash-answer-connection",
+              "retired",
+              3,
+              null,
+              null
+            ]
+          ],
+          "answer_recovery": {
+            "answered_before_confirmation": true,
+            "new_runtime_admissions": 0,
+            "original_effect_attempt": 1,
+            "original_effect_state": "failed",
+            "original_operation_state": "failed",
+            "ready_or_started_before_or_after": false,
+            "replay_disposition": "historical-outcome-only",
+            "replay_preserved_original_record": true
+          },
+          "stale_native_signal_refused_without_source_or_io": true
         }
       ]
     }

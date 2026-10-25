@@ -6,6 +6,24 @@ use std::{fs::File, os::unix::process::ExitStatusExt, process::Stdio};
 const CHILD: &str = "canonical_native_connections::crash_recovery::native_ready_child";
 const ROOT_ENV: &str = "CONNECT_G6_CRASH_ROOT";
 const ALGORITHM_ENV: &str = "CONNECT_G6_CRASH_ALGORITHM";
+const PHASE_ENV: &str = "CONNECT_G6_CRASH_PHASE";
+#[path = "crash_recovery/answered.rs"]
+mod answered;
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+enum Phase {
+    Ready,
+    Answered,
+}
+impl Phase {
+    fn name(self) -> &'static str {
+        match self {
+            Self::Ready => "ready",
+            Self::Answered => "answered",
+        }
+    }
+}
 
 #[derive(Serialize, Deserialize)]
 struct Ready {
@@ -14,6 +32,9 @@ struct Ready {
     conversation: String,
     epoch: String,
     installation: String,
+    phase: Phase,
+    connections: Vec<String>,
+    offer: Option<Value>,
 }
 
 // This is a subprocess entry point, never a skipped qualification case. Parent
@@ -23,6 +44,12 @@ struct Ready {
 async fn native_ready_child() {
     let root = std::path::PathBuf::from(std::env::var_os(ROOT_ENV).unwrap());
     let algorithm = std::env::var(ALGORITHM_ENV).unwrap();
+    let phase = std::env::var(PHASE_ENV).unwrap();
+    if phase == "answered" {
+        answered::child(&root, &algorithm).await;
+        return;
+    }
+    assert_eq!(phase, "ready");
     let mut f = Fixture::with_native_dtmf_scope(&algorithm, 12).await;
     assert!(f.config.database.starts_with(&root));
     f.server.store.configure_session_reconnect_grace(1).unwrap();
@@ -49,22 +76,43 @@ async fn native_ready_child() {
         .unwrap(),
         "active"
     );
-    let mut config = scene.f.config.clone();
-    config.bind = scene.f.server.address;
-    let ready = Ready {
-        config,
-        client: scene.f.client.clone(),
-        conversation: scene.cid.clone(),
-        epoch,
-        installation: scene.f.server.store.installation_id().unwrap(),
-    };
-    let pending = root.join("ready.pending");
-    std::fs::write(&pending, serde_json::to_vec(&ready).unwrap()).unwrap();
-    std::fs::rename(pending, root.join("ready.json")).unwrap();
+    checkpoint(
+        &scene.f,
+        &root,
+        &scene.cid,
+        Phase::Ready,
+        vec!["codec-source".into(), "codec-target".into()],
+        None,
+    );
     // Keep the actual peers, installation lock and native engine alive. The
     // parent must kill this process; no destructor/shutdown can qualify death.
     std::future::pending::<()>().await;
     drop(scene);
+}
+
+fn checkpoint(
+    f: &Fixture,
+    root: &Path,
+    cid: &str,
+    phase: Phase,
+    connections: Vec<String>,
+    offer: Option<Value>,
+) {
+    let mut config = f.config.clone();
+    config.bind = f.server.address;
+    let ready = Ready {
+        config,
+        client: f.client.clone(),
+        conversation: cid.into(),
+        phase,
+        connections,
+        offer,
+        epoch: f.server.store.runtime_epoch().into(),
+        installation: f.server.store.installation_id().unwrap(),
+    };
+    let pending = root.join("ready.pending");
+    std::fs::write(&pending, serde_json::to_vec(&ready).unwrap()).unwrap();
+    std::fs::rename(pending, root.join("ready.json")).unwrap();
 }
 
 struct Child(std::process::Child);
@@ -93,14 +141,23 @@ impl Drop for Scratch {
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
 async fn production_sigkill_native_ready_bridge_recovers_without_resurrection_eddsa() {
-    native_crash("EdDSA").await;
+    native_crash("EdDSA", Phase::Ready).await;
 }
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
 async fn production_sigkill_native_ready_bridge_recovers_without_resurrection_es256() {
-    native_crash("ES256").await;
+    native_crash("ES256", Phase::Ready).await;
 }
 
-async fn native_crash(algorithm: &str) {
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn production_sigkill_native_answer_before_confirmation_never_becomes_ready_eddsa() {
+    native_crash("EdDSA", Phase::Answered).await;
+}
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn production_sigkill_native_answer_before_confirmation_never_becomes_ready_es256() {
+    native_crash("ES256", Phase::Answered).await;
+}
+
+async fn native_crash(algorithm: &str, phase: Phase) {
     let workspace = Path::new(env!("CARGO_MANIFEST_DIR"))
         .parent()
         .unwrap()
@@ -122,6 +179,7 @@ async fn native_crash(algorithm: &str) {
             ])
             .env(ROOT_ENV, temp.path())
             .env(ALGORITHM_ENV, algorithm)
+            .env(PHASE_ENV, phase.name())
             .env("TMPDIR", temp.path())
             .stdout(Stdio::from(output.try_clone().unwrap()))
             .stderr(Stdio::from(output))
@@ -144,6 +202,7 @@ async fn native_crash(algorithm: &str) {
         tokio::time::sleep(Duration::from_millis(10)).await;
     }
     let ready: Ready = serde_json::from_slice(&std::fs::read(ready).unwrap()).unwrap();
+    assert_eq!(ready.phase, phase);
     child.0.kill().unwrap();
     let death = child.0.wait().unwrap();
     assert_eq!(death.signal(), Some(9), "test requires actual SIGKILL");
@@ -157,8 +216,11 @@ async fn native_crash(algorithm: &str) {
         rusqlite::OpenFlags::SQLITE_OPEN_READ_ONLY,
     )
     .unwrap();
-    let physical: Vec<(String,String,u64,Option<String>,Option<String>)> = db.prepare("SELECT id,state,generation,observed_runtime_id,readiness_json FROM connections WHERE id IN ('codec-source','codec-target') ORDER BY id").unwrap().query_map([],|r|Ok((r.get(0)?,r.get(1)?,r.get(2)?,r.get(3)?,r.get(4)?))).unwrap().collect::<rusqlite::Result<_>>().unwrap();
-    assert_eq!(physical.len(), 2);
+    let physical: Vec<(String,String,u64,Option<String>,Option<String>)> = db.prepare("SELECT id,state,generation,observed_runtime_id,readiness_json FROM connections WHERE session_id='native-session' ORDER BY id").unwrap().query_map([],|r|Ok((r.get(0)?,r.get(1)?,r.get(2)?,r.get(3)?,r.get(4)?))).unwrap().collect::<rusqlite::Result<_>>().unwrap();
+    assert_eq!(
+        physical.iter().map(|p| p.0.clone()).collect::<Vec<_>>(),
+        ready.connections
+    );
     assert!(
         physical
             .iter()
@@ -179,25 +241,27 @@ async fn native_crash(algorithm: &str) {
         .unwrap(),
         0
     );
-    let until = tokio::time::Instant::now() + Duration::from_secs(5);
-    loop {
-        let state: String = db
-            .query_row(
-                "SELECT state FROM sessions WHERE id='native-session'",
-                [],
-                |r| r.get(0),
-            )
-            .unwrap();
-        if state == "ended" {
-            break;
+    if phase == Phase::Ready {
+        let until = tokio::time::Instant::now() + Duration::from_secs(5);
+        loop {
+            let state: String = db
+                .query_row(
+                    "SELECT state FROM sessions WHERE id='native-session'",
+                    [],
+                    |r| r.get(0),
+                )
+                .unwrap();
+            if state == "ended" {
+                break;
+            }
+            assert!(
+                tokio::time::Instant::now() < until,
+                "dead bridge remained active beyond configured reconnect grace"
+            );
+            tokio::time::sleep(Duration::from_millis(20)).await;
         }
-        assert!(
-            tokio::time::Instant::now() < until,
-            "dead bridge remained active beyond configured reconnect grace"
-        );
-        tokio::time::sleep(Duration::from_millis(20)).await;
     }
-    let mut client_config = ready.client;
+    let mut client_config = ready.client.clone();
     client_config.endpoint = server.address;
     let mut client = CanonicalClient::open(client_config).await.unwrap();
     let snapshot = client
@@ -213,14 +277,21 @@ async fn native_crash(algorithm: &str) {
         .iter()
         .find(|item| item["kind"] == "session" && item["data"]["id"] == "native-session")
         .unwrap();
-    assert_eq!(ended["data"]["state"], "ended");
-    assert_eq!(ended["data"]["ended_reason"], "reconnect-grace-expired");
+    let answer_recovery = if phase == Phase::Ready {
+        assert_eq!(ended["data"]["state"], "ended");
+        assert_eq!(ended["data"]["ended_reason"], "reconnect-grace-expired");
+        Value::Null
+    } else {
+        assert_eq!(ended["data"]["state"], "accepted");
+        assert!(ended["data"]["ended_reason"].is_null());
+        answered::verify(&server, &mut client, &ready, &db).await
+    };
     let stale = client
         .send_native_dtmf(
             CommandScope {
                 conversation_id: Some(ready.conversation.clone()),
                 session_id: Some("native-session".into()),
-                connection_id: Some("codec-target".into()),
+                connection_id: Some(ready.connections.last().unwrap().clone()),
                 operation_id: Some("after-crash-stale-native-signal".into()),
                 ..Default::default()
             },
@@ -259,7 +330,7 @@ async fn native_crash(algorithm: &str) {
     if let Some(path) = std::env::var_os("CONNECT_G6_CRASH_CAPTURE") {
         let path = std::path::PathBuf::from(path);
         assert!(path.is_absolute() && path.starts_with(workspace.join(".local/gate-6")));
-        std::fs::write(path.with_extension(format!("{algorithm}.json")),serde_json::to_vec_pretty(&json!({"algorithm":algorithm,"killed_signal":death.signal(),"decoded_duplex_before_kill":true,"new_runtime_epoch":true,"installation_preserved":true,"physical_after_restart":physical,"unretired_old_lifetimes":0,"session_ended_after_grace":true,"public_session_after_crash":ended,"stale_native_signal_refused_without_source_or_io":true,"fresh_conversation_without_physical_resurrection":true})).unwrap()).unwrap();
+        std::fs::write(path.with_extension(format!("{algorithm}.json")),serde_json::to_vec_pretty(&json!({"algorithm":algorithm,"phase":phase,"killed_signal":death.signal(),"decoded_duplex_before_kill":phase==Phase::Ready,"new_runtime_epoch":true,"installation_preserved":true,"physical_after_restart":physical,"unretired_old_lifetimes":0,"session_ended_after_grace":phase==Phase::Ready,"public_session_after_crash":ended,"answer_recovery":answer_recovery,"stale_native_signal_refused_without_source_or_io":true,"fresh_conversation_without_physical_resurrection":true})).unwrap()).unwrap();
     }
     client.close();
     drop(db);
