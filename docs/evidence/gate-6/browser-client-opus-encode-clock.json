@@ -1,6 +1,6 @@
 {
   "task": "G6-050",
-  "status": "SDK251timestamp fix passes all8original clean60browser/browser methods and recorded connected boundaries; current native cohort still running, fullG6-050 remains open",
+  "status": "SDK251original clean60browser/browser8/8 and all4nativejourneys pass; complete short/native088cohort is11/12 with one synthetic149/150audiofailure",
   "recorded_at": "2026-10-25T20:24:04.337514+00:00",
   "behavior": "Keep at most ten original accepted20msPCM capture timestamps until matching Opus encoder outputs. Packetization uses each original timestamp, preserving capture gaps and suspended-graph intervals when WebCodecs emits a continuous sample clock. Output without an original refuses; synchronous encode failure removes only its own metadata; close clears pending metadata and fences late output. Existing decoder restoration/packet/queue/authority/source-clock/renderer bounds remain. No arbitrary AVoffset or source/observer/threshold change.",
   "source": {
@@ -193,7 +193,7 @@
       "finding": "Current251bounded denial diagnostic passes without reproducing084audio failure. Renderers admit208/213 and200/205audio calls; both have one late refusal. A diagnostic pass neither explains nor erases084133audiofailure."
     }
   ],
-  "remaining": "Run current default clean60 and short/native cohorts after encoder change. Denial084133audio and historical subscriptionunknown need their own robust failure/recovery evidence. Independent sources/actual3percentloss/100msvariation/two250msbursts/native live/other assigned profiles and all105tasks/acceptance remain required.",
+  "remaining": "FullG6-050 remains in progress. Current088shortsynthetic149/150audio, current084denial133/150audio and historical073/074subscriptionunknown remain unresolved, even though later individual scopes pass. Actual3percentloss/100msvariation/two250msbursts/independent phases/live native/other assigned profiles and all105tasks/acceptance remain required. Source203/SDK2470778/8and07812/12are historical after the current251encoder change.",
   "connected_checks": [
     {
       "report": ".local/gate-6/browser-sdk/capture-boundary084-0/summary.json",
@@ -1662,6 +1662,355 @@
           "log_sha256": "6b376e3f17aa229b29c0b1bddb0099743377e2243bd563b25709b33ccd384b5a"
         },
         "log_sha256": "5ba24b31d3f4ec3d9ccfd2cafe141fefb39591e485ee4728dbfe5a8bd43cf772"
+      }
+    ]
+  },
+  "actual_short_native": {
+    "report": ".local/gate-6/browser-sdk/native-encode088/summary.json",
+    "report_sha256": "f8d8bd5c7f84f41fb41d9c29c8bd77208f4a014ab55c2c84add9ed5aa6695c14",
+    "source_revision": "b44d0820e500b1b83852c14d9a414cbdd9776eb0",
+    "passed": false,
+    "passed_cases": 11,
+    "total_cases": 12,
+    "source_inputs_unchanged": true,
+    "executable_unchanged": true,
+    "executable_sha256": "62e5d83be6ce16561faf42af3b9d461f6fab86d588e1636e46d4ee712930ce47",
+    "scope": "Actual production TypeScript canonical control in owned Chrome. Exact selected methods are recorded; a single diagnostic method does not qualify the omitted matrix. Optional media selects short synthetic source over SDK/WT/Store/Core with identified Opus/VP8/data and durable teardown. Optional capture selects supplied-stream capture/worklet and decoded audio/canvas rendering. Explicit clean60 applies frozen fps/paired graph-canvas marker limits and resource observations only to capture methods. Packet tracing and diagnostic60 are diagnostic only and never qualify the frozen clean profile. Explicit capture-boundary cases retain original short connected media/data/teardown checks after permission or feature refusals or actual page hide/resume. API/codec absence is injected in the owned browser; personal devices are never captured. Optional native cases use public CanonicalClient QUIC and independently decode actual native received packets. No native live encoder/realtime presenter/full60second-native/impairment/remote/provider/complete G6-050/acceptance/publication claim.",
+    "cases": [
+      {
+        "case": "canonical_webtransport_browser::installed_chrome_production_sdk_signed_control_receipts_and_refusals_eddsa",
+        "passed": true,
+        "exit_code": 0,
+        "elapsed_seconds": 0.9647242501378059,
+        "log": ".local/gate-6/browser-sdk/native-encode088/case-0.log",
+        "log_sha256": "ef8b52d4e6c66dd941c281c12ed02a659341fa2df768b4b7427c23663eebc7ac"
+      },
+      {
+        "case": "canonical_webtransport_browser::installed_chrome_production_sdk_signed_control_receipts_and_refusals_es256",
+        "passed": true,
+        "exit_code": 0,
+        "elapsed_seconds": 0.8146614169236273,
+        "log": ".local/gate-6/browser-sdk/native-encode088/case-1.log",
+        "log_sha256": "77f2b24b7cdec29a2d234b42b45a63dabc27dc0a97141399a896908432abe1ea"
+      },
+      {
+        "case": "canonical_webtransport_browser::installed_chrome_signed_control_reconnect_and_independently_decoded_duplex_eddsa",
+        "passed": true,
+        "exit_code": 0,
+        "elapsed_seconds": 4.429835167014971,
+        "log": ".local/gate-6/browser-sdk/native-encode088/case-2.log",
+        "log_sha256": "249eb7fbd972b522152b6a8297f6f364e58f223e3d2b20ed738b3c99e3c9614a"
+      },
+      {
+        "case": "canonical_webtransport_browser::installed_chrome_signed_control_reconnect_and_independently_decoded_duplex_es256",
+        "passed": true,
+        "exit_code": 0,
+        "elapsed_seconds": 4.494637249968946,
+        "log": ".local/gate-6/browser-sdk/native-encode088/case-3.log",
+        "log_sha256": "4509dc5e66a4d8bb0df25ef11f51e65d8108d282fa01ec30cec6dd5abfbf0b89"
+      },
+      {
+        "case": "canonical_webtransport_browser::installed_chrome_production_sdk_negotiated_duplex_opus_vp8_and_reliable_data_eddsa",
+        "passed": false,
+        "exit_code": 101,
+        "elapsed_seconds": 5.8710045830812305,
+        "log": ".local/gate-6/browser-sdk/native-encode088/case-4.log",
+        "log_sha256": "450a9feda7dad98b2dfb5931cab102676516d84ad27e939ebee6a92dbb8bd2af"
+      },
+      {
+        "case": "canonical_webtransport_browser::installed_chrome_production_sdk_negotiated_duplex_opus_vp8_and_reliable_data_es256",
+        "passed": true,
+        "exit_code": 0,
+        "elapsed_seconds": 6.036160917021334,
+        "log": ".local/gate-6/browser-sdk/native-encode088/case-5.log",
+        "log_sha256": "672833f59980e0bb6abb38a6a8437173ab669087a6663df8e859deb920fb2350"
+      },
+      {
+        "case": "canonical_webtransport_browser::installed_chrome_production_sdk_captured_duplex_opus_vp8_and_reliable_data_eddsa",
+        "passed": true,
+        "exit_code": 0,
+        "elapsed_seconds": 6.501659041969106,
+        "log": ".local/gate-6/browser-sdk/native-encode088/case-6.log",
+        "log_sha256": "cff9fdb13554ff41598a1454f1e2d8ac603856b3cfa45d90e12d862230bb8f7f"
+      },
+      {
+        "case": "canonical_webtransport_browser::installed_chrome_production_sdk_captured_duplex_opus_vp8_and_reliable_data_es256",
+        "passed": true,
+        "exit_code": 0,
+        "elapsed_seconds": 6.460560708073899,
+        "log": ".local/gate-6/browser-sdk/native-encode088/case-7.log",
+        "log_sha256": "2c8c719caed354b0e478fdd39fa93300255e2f7a7154ced885bcd22707e5cf2a"
+      },
+      {
+        "case": "canonical_webtransport_browser::installed_chrome_production_sdk_browser_native_opus_vp8_and_reliable_data_eddsa",
+        "passed": true,
+        "exit_code": 0,
+        "elapsed_seconds": 6.833700957940891,
+        "log": ".local/gate-6/browser-sdk/native-encode088/case-8.log",
+        "log_sha256": "ea1487f5fb53e500399c840e344c9f4bbc26220fc22d7cac79a43b1d57ef5323"
+      },
+      {
+        "case": "canonical_webtransport_browser::installed_chrome_production_sdk_browser_native_opus_vp8_and_reliable_data_es256",
+        "passed": true,
+        "exit_code": 0,
+        "elapsed_seconds": 7.078945458168164,
+        "log": ".local/gate-6/browser-sdk/native-encode088/case-9.log",
+        "log_sha256": "17fd34b9697aee19965dc7fb6eb3166d851742ecfe537e263cff234645587b84"
+      },
+      {
+        "case": "canonical_webtransport_browser::installed_chrome_production_sdk_captured_browser_native_opus_vp8_and_reliable_data_eddsa",
+        "passed": true,
+        "exit_code": 0,
+        "elapsed_seconds": 7.109824457904324,
+        "log": ".local/gate-6/browser-sdk/native-encode088/case-10.log",
+        "log_sha256": "f0e0264f1fb75b80c91d50a5ce1383a949cc9a8e8f8d1fe21967ebc584e158d4"
+      },
+      {
+        "case": "canonical_webtransport_browser::installed_chrome_production_sdk_captured_browser_native_opus_vp8_and_reliable_data_es256",
+        "passed": true,
+        "exit_code": 0,
+        "elapsed_seconds": 7.0998638342134655,
+        "log": ".local/gate-6/browser-sdk/native-encode088/case-11.log",
+        "log_sha256": "445c2255c98d195a11bfbde488608fea9909b90601296497c886263f9380e4ec"
+      }
+    ],
+    "actual": [
+      {
+        "case_index": 6,
+        "algorithm": "EdDSA",
+        "owned_cleanup": true,
+        "teardown_ms": 97.40000009536743,
+        "playback": [
+          {
+            "audio": 194,
+            "maxPending": 7,
+            "maxQueuedSeconds": 0.13053766666666755,
+            "meanQueuedAudioSeconds": 0.10074240314136126,
+            "peakRms": 0.18008514701024672,
+            "queueSamples": 191,
+            "queueSecondsTotal": 19.241799,
+            "video": 113
+          },
+          {
+            "audio": 195,
+            "maxPending": 7,
+            "maxQueuedSeconds": 0.1310926666666672,
+            "meanQueuedAudioSeconds": 0.10556461780104719,
+            "peakRms": 0.1796654463506402,
+            "queueSamples": 191,
+            "queueSecondsTotal": 20.162842000000012,
+            "video": 118
+          }
+        ]
+      },
+      {
+        "case_index": 7,
+        "algorithm": "ES256",
+        "owned_cleanup": true,
+        "teardown_ms": 56.799999952316284,
+        "playback": [
+          {
+            "audio": 197,
+            "maxPending": 7,
+            "maxQueuedSeconds": 0.12701133333333514,
+            "meanQueuedAudioSeconds": 0.10753327050610853,
+            "peakRms": 0.1802463511868624,
+            "queueSamples": 191,
+            "queueSecondsTotal": 20.53885466666673,
+            "video": 105
+          },
+          {
+            "audio": 155,
+            "maxPending": 7,
+            "maxQueuedSeconds": 0.1363523333333332,
+            "meanQueuedAudioSeconds": 0.08547428621291427,
+            "peakRms": 0.17697579743904518,
+            "queueSamples": 191,
+            "queueSecondsTotal": 16.325588666666626,
+            "video": 106
+          }
+        ]
+      },
+      {
+        "case_index": 8,
+        "algorithm": "EdDSA",
+        "owned_cleanup": true,
+        "teardown_ms": 191.70000004768372,
+        "native_received": {
+          "audio": {
+            "decoded": 199,
+            "decoded_sha256": "7b93934900d67e378d335d56939fabd7c0b04a49da5e4b6097f0dac358350446",
+            "identified": 199,
+            "input_sha256": "6c6061b658148cb639b3dda632ab0e1e7b4e1c0d711565f3f09d95c471786371"
+          },
+          "ffmpeg_version": "ffmpeg version 9.0.2 Copyright (c) 2000-2026 the FFmpeg developers",
+          "measured_ms": 4003.2979170000003,
+          "passed": true,
+          "reliable_data_messages": 3,
+          "scope": "Independent decoding of actual public native QUIC received packets with original arrival-window mapping and decoder pre-roll; software source fixtures. No live native encoder, realtime native presenter, sync or operating-profile qualification.",
+          "video": {
+            "decoded": 121,
+            "decoded_sha256": "6a5c5ede9b25de08fec683e6da07f3c44555036388b724d53d2e6c469ecd4093",
+            "distinct_motion": 104,
+            "identified": 121,
+            "input_sha256": "d0a79a12d2d38e32230c9f60d9fea2b28cfa5ed2589242ecc899dcb66f053481"
+          },
+          "video_sequence_gaps": 0
+        },
+        "clock_reports": {
+          "sent_audio": 6,
+          "sent_video": 6,
+          "received": 11,
+          "received_kinds": [
+            "audio",
+            "video"
+          ],
+          "raw_sha256": "e382c8b9e333cb9979870dc79dfbd16e65143dda83ff3368791c5383c59050eb"
+        }
+      },
+      {
+        "case_index": 9,
+        "algorithm": "ES256",
+        "owned_cleanup": true,
+        "teardown_ms": 187.60000014305115,
+        "native_received": {
+          "audio": {
+            "decoded": 197,
+            "decoded_sha256": "3a772c77549a095bbc30d895401ba29c4a020594579f1b62c3b16cd830f21eaa",
+            "identified": 197,
+            "input_sha256": "e8de0b5526f7590d640b90fd231dff3a4ddb8ee66cb8658a4412ebd84a5fe242"
+          },
+          "ffmpeg_version": "ffmpeg version 9.0.2 Copyright (c) 2000-2026 the FFmpeg developers",
+          "measured_ms": 4008.4802090000003,
+          "passed": true,
+          "reliable_data_messages": 3,
+          "scope": "Independent decoding of actual public native QUIC received packets with original arrival-window mapping and decoder pre-roll; software source fixtures. No live native encoder, realtime native presenter, sync or operating-profile qualification.",
+          "video": {
+            "decoded": 121,
+            "decoded_sha256": "9b9a491cf620cf66cecaf5a4a3a2794c06d915f29e3b4031b54e96775f88e68d",
+            "distinct_motion": 104,
+            "identified": 121,
+            "input_sha256": "65e705572d6cc400c8de7b296fd2ae3d64331df226ba47d48ce163cb053fd61b"
+          },
+          "video_sequence_gaps": 1
+        },
+        "clock_reports": {
+          "sent_audio": 7,
+          "sent_video": 7,
+          "received": 12,
+          "received_kinds": [
+            "audio",
+            "video"
+          ],
+          "raw_sha256": "0dd8e0652e3fa7e2c052313b4786ce687b6628ce73e6d563c2c966438e659604"
+        }
+      },
+      {
+        "case_index": 10,
+        "algorithm": "EdDSA",
+        "owned_cleanup": true,
+        "teardown_ms": 153.5,
+        "playback": {
+          "audio": 186,
+          "maxPending": 8,
+          "maxQueuedSeconds": 0.1448893333333332,
+          "peakRms": 0.1896101404690923,
+          "video": 103
+        },
+        "native_received": {
+          "audio": {
+            "decoded": 199,
+            "decoded_sha256": "a2fd30059c41954c0ea1300ccd90e31d18b475042811c50d97a7d6d9fed46309",
+            "identified": 199,
+            "input_sha256": "19228a5fbac6d0e62c98f521a73682c0169cb503969e47afe89cd0dbc4644c96"
+          },
+          "ffmpeg_version": "ffmpeg version 9.0.2 Copyright (c) 2000-2026 the FFmpeg developers",
+          "measured_ms": 4008.3129580000004,
+          "passed": true,
+          "reliable_data_messages": 3,
+          "scope": "Independent decoding of actual public native QUIC received packets with original arrival-window mapping and decoder pre-roll; software source fixtures. No live native encoder, realtime native presenter, sync or operating-profile qualification.",
+          "video": {
+            "decoded": 99,
+            "decoded_sha256": "167939166e583c8aaa55de5f2f5c3048654f3b45a5c9986ac1d686a811a8b013",
+            "distinct_motion": 93,
+            "identified": 99,
+            "input_sha256": "a96938c80c9117e63b543452c444a977a9082f41421be6aff81f2d58c6a26400"
+          },
+          "video_sequence_gaps": 2
+        },
+        "clock_reports": {
+          "sent_audio": 7,
+          "sent_video": 7,
+          "received": 11,
+          "received_kinds": [
+            "audio",
+            "video"
+          ],
+          "raw_sha256": "4560d89dccf35a503a057bed01e42722ec9e42b8c2b529e3c4610ca0e278651b"
+        }
+      },
+      {
+        "case_index": 11,
+        "algorithm": "ES256",
+        "owned_cleanup": true,
+        "teardown_ms": 198,
+        "playback": {
+          "audio": 198,
+          "maxPending": 7,
+          "maxQueuedSeconds": 0.13876033333333382,
+          "peakRms": 0.17959743483719962,
+          "video": 120
+        },
+        "native_received": {
+          "audio": {
+            "decoded": 198,
+            "decoded_sha256": "9ef8f63f516685e7e64ff7891ccbe8e6cedc03a27bff3d78f88d77918627e500",
+            "identified": 198,
+            "input_sha256": "9bb581c803bd52456614987fb55506009d6372f0c0e669dd33b45e52dc2e6f26"
+          },
+          "ffmpeg_version": "ffmpeg version 9.0.2 Copyright (c) 2000-2026 the FFmpeg developers",
+          "measured_ms": 4010.0988339999994,
+          "passed": true,
+          "reliable_data_messages": 3,
+          "scope": "Independent decoding of actual public native QUIC received packets with original arrival-window mapping and decoder pre-roll; software source fixtures. No live native encoder, realtime native presenter, sync or operating-profile qualification.",
+          "video": {
+            "decoded": 98,
+            "decoded_sha256": "c74b099a41de73ec58f0e17271cd3fc34635656d5efea26585065f1c7f35b4c5",
+            "distinct_motion": 92,
+            "identified": 98,
+            "input_sha256": "6ce5ff63accdec103328eb1a584252beedb9c6cd95f529b43149fb20acd1d3f7"
+          },
+          "video_sequence_gaps": 2
+        },
+        "clock_reports": {
+          "sent_audio": 7,
+          "sent_video": 7,
+          "received": 11,
+          "received_kinds": [
+            "audio",
+            "video"
+          ],
+          "raw_sha256": "83316abcdb798da61798dae19090c22c8fbf87dc9a74bb152211c4741c7a39fa"
+        }
+      }
+    ],
+    "failures": [
+      {
+        "case_index": 4,
+        "kind": "Original independently decoded short synthetic browser/browser Opus minimum",
+        "opus": [
+          {
+            "decoded": 183,
+            "identified": 183
+          },
+          {
+            "decoded": 143,
+            "identified": 143
+          }
+        ],
+        "measured_ms": 4021.5,
+        "required_audio_frames": 150,
+        "limitation": "Synthetic case has no renderer. One direction identifies149against150required; no full12methodpass. Original decoded-video/data/terminal assertions after this failure are not qualified."
       }
     ]
   }
