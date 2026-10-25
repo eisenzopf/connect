@@ -1,5 +1,6 @@
-import { BrowserOpusCodec, BrowserVp8Codec, browserCodecSupport, RtpClock, } from "./browser_codecs.js";
+import { BrowserOpusCodec, BrowserVp8Codec, browserCodecSupport, } from "./browser_codecs.js";
 import { MediaBindings, MediaSendQueue, RtpSender, Vp8Assembler, decodeRtpDatagram, MEDIA_LIMITS, } from "./browser_rtp.js";
+import { decodeRtcpSenderReport, isRtcpDatagram, wrapRtcpSenderReport, RtcpCaptureClock, RtcpReceiveClock, rtpTimestampFromMicroseconds, } from "./browser_rtcp.js";
 import { ConnectError } from "./errors.js";
 import { canonicalJson, jsonObject, parseCanonicalJson, } from "./uctp_json.js";
 import { identifier } from "./uctp_wire.js";
@@ -79,6 +80,7 @@ export class BrowserMediaPeer {
             direction: r.binding.direction,
             kind: r.binding.kind,
             counters: { ...r.observed },
+            clockProfile: r.clockProfile,
             incompleteFrames: r.assembler?.queuedFrames ?? 0,
             fragments: r.assembler?.queuedFragments ?? 0,
             recovery: r.vp8?.decodeDiagnostics,
@@ -283,7 +285,18 @@ export class BrowserMediaPeer {
         for (const id of state.allowed.keys())
             if (!ids.has(id))
                 return fail("Server omitted a requested local Stream");
-        return { media, data, revision: Number(setup.revision), received };
+        const declaredClock = jsonObject(frame.payload.capabilities)
+            ? frame.payload.capabilities.source_clock
+            : undefined;
+        if (declaredClock !== undefined && declaredClock !== "rtcp-sr-sdes/1")
+            return fail("Unsupported source clock profile");
+        return {
+            media,
+            data,
+            revision: Number(setup.revision),
+            received,
+            clockProfile: declaredClock === "rtcp-sr-sdes/1",
+        };
     }
     install(state, plan) {
         const retained = new Set(plan.media.map((b) => b.handle));
@@ -291,16 +304,22 @@ export class BrowserMediaPeer {
         for (const binding of plan.media) {
             let route = this.routes.get(binding.handle);
             if (route) {
+                if (route.clockProfile !== plan.clockProfile)
+                    fail("Current media clock profile changed");
                 if (canonicalJson(route.binding) !==
                     canonicalJson(binding))
                     fail("Physical handle changed its binding");
             }
             else {
                 this.registry.register(binding);
-                const clock = new RtpClock(binding.kind === "audio" ? 48000 : 90000);
+                const clock = state.receiveClock;
+                clock.register(binding.handle, binding.kind === "audio" ? 48000 : 90000);
                 route = {
                     binding: Object.freeze({ ...binding }),
                     clock,
+                    captureClock: state.captureClock,
+                    lastReport: -Infinity,
+                    clockProfile: plan.clockProfile,
                     observed: {
                         encoded: 0,
                         keys: 0,
@@ -310,6 +329,9 @@ export class BrowserMediaPeer {
                         skipped: 0,
                         decoded: 0,
                         expired: 0,
+                        clockReports: 0,
+                        synchronized: 0,
+                        unsynchronized: 0,
                     },
                 };
                 this.routes.set(binding.handle, route);
@@ -325,11 +347,7 @@ export class BrowserMediaPeer {
                     if (frame.key)
                         route.observed.keys++;
                     const before = this.queue.droppedPackets;
-                    const accepted = this.queue.push(route.sender.packetize(frame.bytes, Math.round((frame.timestampUs *
-                        (binding.kind === "audio"
-                            ? 48000
-                            : 90000)) /
-                        1000000) >>> 0), binding.kind === "audio");
+                    const accepted = this.queue.push(route.sender.packetize(frame.bytes, rtpTimestampFromMicroseconds(frame.timestampUs, binding.kind === "audio" ? 48000 : 90000)), binding.kind === "audio");
                     if (!accepted || before !== this.queue.droppedPackets)
                         for (const r of this.routes.values())
                             r.vp8?.requestKeyFrame();
@@ -383,6 +401,7 @@ export class BrowserMediaPeer {
                 catch {
                     continue;
                 }
+                const started = performance.now();
                 let timer;
                 try {
                     await Promise.race([
@@ -392,6 +411,34 @@ export class BrowserMediaPeer {
                         }),
                     ]);
                     this.counters.sent++;
+                    const handle = new DataView(bytes.buffer, bytes.byteOffset).getUint16(2);
+                    const route = this.routes.get(handle);
+                    if (route?.sender && route.clockProfile && !this.stopped) {
+                        const stats = route.sender.submitted(bytes);
+                        const now = performance.now();
+                        const sample = route.captureClock.sample(route.binding.kind === "audio" ? 48000 : 90000);
+                        if (sample && now - route.lastReport >= 1000) {
+                            this.registry.require(handle, "send");
+                            const report = wrapRtcpSenderReport(handle, route.sender.nextDatagramSequence(), {
+                                ...stats,
+                                ...sample,
+                                cname: route.captureClock.cname,
+                            });
+                            if (report.length <= this.mtu) {
+                                clearTimeout(timer);
+                                const remaining = 200 - (performance.now() - started);
+                                if (remaining <= 0)
+                                    throw new ConnectError("timeout", "Media submission age expired");
+                                await Promise.race([
+                                    this.writer.write(report),
+                                    new Promise((_, reject) => {
+                                        timer = setTimeout(() => reject(new ConnectError("timeout", "Clock datagram writer stalled")), remaining);
+                                    }),
+                                ]);
+                                route.lastReport = now;
+                            }
+                        }
+                    }
                 }
                 finally {
                     clearTimeout(timer);
@@ -420,6 +467,22 @@ export class BrowserMediaPeer {
                 if (this.stopped)
                     return;
             }
+            if (isRtcpDatagram(value)) {
+                try {
+                    const handle = new DataView(value.buffer, value.byteOffset).getUint16(2);
+                    this.registry.require(handle, "receive");
+                    const route = this.routes.get(handle);
+                    if (!route.clockProfile)
+                        throw new ConnectError("unsupported-media-profile", "Sender clock profile was not negotiated");
+                    if (!route.clock.report(handle, decodeRtcpSenderReport(value.subarray(8))))
+                        throw new ConnectError("protocol", "Unusable sender clock");
+                    route.observed.clockReports++;
+                }
+                catch {
+                    this.counters.rejected++;
+                }
+                continue;
+            }
             let packet, route;
             try {
                 packet = decodeRtpDatagram(value);
@@ -432,8 +495,13 @@ export class BrowserMediaPeer {
             }
             this.counters.received++;
             route.observed.received++;
+            const timing = route.clock.timestamp(packet.handle, packet.ssrc, packet.timestamp);
+            if (timing.synchronized)
+                route.observed.synchronized++;
+            else
+                route.observed.unsynchronized++;
             if (route.opus)
-                route.opus.decode(packet.payload, route.clock.timestamp(packet.timestamp));
+                route.opus.decode(packet.payload, timing.timestampUs);
             else {
                 let complete;
                 try {
@@ -446,7 +514,7 @@ export class BrowserMediaPeer {
                 }
                 if (complete) {
                     route.observed.complete++;
-                    if (route.vp8.decode(complete, route.clock.timestamp(packet.timestamp)))
+                    if (route.vp8.decode(complete, timing.timestampUs))
                         route.observed.submitted++;
                     else
                         route.observed.skipped++;
@@ -512,6 +580,7 @@ export class BrowserMediaPeer {
             // Retain local publishers plus independently named subscriber ports.
             max_streams_per_connection: 32,
             identity_assurance_offered: "identified",
+            source_clock: "rtcp-sr-sdes/1",
         };
         const state = {
             scope: {
@@ -521,6 +590,8 @@ export class BrowserMediaPeer {
             },
             revision: 0,
             caps,
+            captureClock: new RtcpCaptureClock("connect-" + crypto.randomUUID()),
+            receiveClock: new RtcpReceiveClock(),
             routes: new Map(),
             data: new Map(),
             allowed: new Map(streams.map((s) => [
@@ -717,7 +788,10 @@ export class BrowserMediaPeer {
         const route = this.state(id).routes.get(streamId);
         if (!route?.opus || !route.sender)
             throw new ConnectError("unsupported-media-profile", "No negotiated audio sender for this Stream");
-        return route.opus.encode(samples, timestampUs);
+        const accepted = route.opus.encode(samples, timestampUs);
+        if (accepted)
+            route.captureClock.observe(timestampUs);
+        return accepted;
     }
     encodeVideo(id, streamId, frame) {
         let route;
@@ -732,7 +806,15 @@ export class BrowserMediaPeer {
             frame.close();
             throw new ConnectError("unsupported-media-profile", "No negotiated video sender for this Stream");
         }
-        return route.vp8.encode(frame);
+        const timestamp = frame.timestamp;
+        if (!Number.isSafeInteger(timestamp) || timestamp < 0) {
+            frame.close();
+            throw new ConnectError("protocol", "Invalid capture timestamp");
+        }
+        const accepted = route.vp8.encode(frame);
+        if (accepted)
+            route.captureClock.observe(timestamp);
+        return accepted;
     }
     async sendData(id, operationId, messageId, streamId, body, options) {
         const state = this.state(id);
@@ -840,6 +922,7 @@ export class BrowserMediaPeer {
         this.retire(id);
     }
     remove(route) {
+        route.clock.retire(route.binding.handle);
         this.registry.retire(route.binding.handle);
         this.routes.delete(route.binding.handle);
         route.opus?.close();

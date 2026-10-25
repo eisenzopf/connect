@@ -1,6 +1,7 @@
 import { BrowserClient, type RequestOptions } from "./browser_client.js";
-import { BrowserOpusCodec, BrowserVp8Codec, RtpClock } from "./browser_codecs.js";
+import { BrowserOpusCodec, BrowserVp8Codec } from "./browser_codecs.js";
 import { RtpSender, Vp8Assembler, type MediaBinding } from "./browser_rtp.js";
+import { RtcpCaptureClock, RtcpReceiveClock } from "./browser_rtcp.js";
 import { type Json } from "./uctp_json.js";
 export type BrowserDataProtocol = "text" | "json" | "binary";
 export type BrowserDataBody = {
@@ -47,7 +48,10 @@ interface Route {
     sender?: RtpSender;
     opus?: BrowserOpusCodec;
     vp8?: BrowserVp8Codec;
-    clock: RtpClock;
+    clock: RtcpReceiveClock;
+    captureClock: RtcpCaptureClock;
+    lastReport: number;
+    clockProfile: boolean;
     assembler?: Vp8Assembler;
     observed: {
         encoded: number;
@@ -58,6 +62,9 @@ interface Route {
         skipped: number;
         decoded: number;
         expired: number;
+        clockReports: number;
+        synchronized: number;
+        unsynchronized: number;
     };
 }
 /** One datagram owner per authenticated physical client; protocol/media state has no UI. */
@@ -90,6 +97,7 @@ export declare class BrowserMediaPeer {
         direction: MediaBinding["direction"];
         kind: MediaBinding["kind"];
         counters: Readonly<Route["observed"]>;
+        clockProfile: boolean;
         incompleteFrames: number;
         fragments: number;
         recovery?: BrowserVp8Codec["decodeDiagnostics"];

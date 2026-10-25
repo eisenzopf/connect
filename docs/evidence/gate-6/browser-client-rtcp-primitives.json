@@ -1,7 +1,7 @@
 {
   "schema": "connect-gate6-browser-rtcp-primitives/1",
   "task": "G6-050",
-  "status": "Verified internal SR/SDES primitives; transport and shared presentation clock integration pending",
+  "status": "Historical219-method primitive proof retained; current228-method SDK transport integration recorded separately",
   "source": {
     "sdk/typescript/src/browser_rtcp.ts": "a28dcc4490e93b9685fbfb63f381f3fcf5ec154acc89a5ae766c9b5b5287722f",
     "sdk/typescript/dist/browser_rtcp.js": "918d020040a5cbb9978357ce2b37b6b58849fa961e23eb8645a97cdb864256b0",
@@ -30,5 +30,6 @@
     "https://www.rfc-editor.org/rfc/rfc3550.html#section-6.5.1",
     "https://www.rfc-editor.org/rfc/rfc5761.html#section-4"
   ],
-  "remaining": "Internal module only: not yet admitted/emitted by BrowserMediaPeer or canonical native transport, not yet negotiated or bound to current SSRC/handle/generation, and no common capture or receiver presentation clock. No connected profile, AV synchronization, whole task or acceptance qualification."
+  "remaining": "Internal module only: not yet admitted/emitted by BrowserMediaPeer or canonical native transport, not yet negotiated or bound to current SSRC/handle/generation, and no common capture or receiver presentation clock. No connected profile, AV synchronization, whole task or acceptance qualification.",
+  "current_sdk_integration": "docs/evidence/gate-6/browser-client-source-clock.json"
 }

@@ -177,6 +177,8 @@ export class RtpSender {
     private sequence: number;
     private datagramSequence = 0;
     private readonly ssrc: number;
+    private packets = 0;
+    private octets = 0;
     constructor(
         private readonly binding: Readonly<MediaBinding>,
         private readonly maxDatagramBytes = MEDIA_LIMITS.rtpBytes + 8,
@@ -197,6 +199,26 @@ export class RtpSender {
                 "unsupported-media-profile",
                 "Invalid negotiated datagram MTU",
             );
+    }
+    /** Record only a successful local RTP writer submission, never packetization. */
+    submitted(bytes: Uint8Array): {
+        ssrc: number;
+        packets: number;
+        octets: number;
+    } {
+        const packet = decodeRtpDatagram(bytes);
+        if (
+            packet.handle !== this.binding.handle ||
+            packet.ssrc !== this.ssrc ||
+            packet.payloadType !== this.binding.payloadType
+        )
+            return invalid();
+        this.packets = (this.packets + 1) >>> 0;
+        this.octets = (this.octets + packet.payload.length) >>> 0;
+        return { ssrc: this.ssrc, packets: this.packets, octets: this.octets };
+    }
+    nextDatagramSequence(): number {
+        return this.datagramSequence++ >>> 0;
     }
     packetize(encoded: Uint8Array, timestamp: number): Uint8Array[] {
         if (

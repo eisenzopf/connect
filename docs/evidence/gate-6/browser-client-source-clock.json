@@ -1,0 +1,40 @@
+{
+  "schema": "connect-gate6-browser-source-clock/1",
+  "task": "G6-050",
+  "status": "SDK shared source-clock transport integrated; native and shared presentation qualification pending",
+  "source": {
+    "sdk/typescript/src/browser_rtcp.ts": "6fe02225cac0970c5eb83d89c8880000f6aa58ae71d4c35dc445c886029cf942",
+    "sdk/typescript/src/browser_rtp.ts": "54e68c5869a88f64da0f0237cd25d23960c1f8babdc59916636c6024e3b73898",
+    "sdk/typescript/src/browser_media.ts": "f310cc07eeeaf44d4a83259c35789bf8ea8aa56bc112c0c758c4cdb5742164cd",
+    "sdk/typescript/dist/browser_rtcp.js": "d7ce14e2cf42679b344c1a6cbfaf67858078350b6861dcb52739f8a2aa9065ed",
+    "sdk/typescript/dist/browser_rtp.js": "1efcb0d7d9266d770b90a79c378ecbf8142129210093046c8d49221136e6f0c8",
+    "sdk/typescript/dist/browser_media.js": "721cdc15a07bf641cc4f9bf37d4eb2372fd08e3362bc9f5124ace8073ec6f9ad",
+    "sdk/tests/browser_source_clock.test.mjs": "be1eb8f3847d5e86951b7f255ff8fe255ea4d41bed3ac6f9d2cad2bffb43668b",
+    "sdk/tests/browser_media.test.mjs": "819a0d499044ce27ad21a8b8809413fff50885940d9daf304733d14feb888126",
+    "crates/connect-server/tests/support/canonical_webtransport_browser.rs": "f3adaf3f0f99763cf0fbf85117de3eab85bc26e80435e6d76f7a6b4a72dd5212"
+  },
+  "sdk": {
+    "report": ".local/gate-6/native-clock/sdk-guard003/summary.json",
+    "sha256": "adffd4a3f55112ed674e990a9fbd3013bfbefa1b9bea3347816b16b9912bff98",
+    "passed": true,
+    "methods": 228,
+    "new_methods": 9,
+    "inputs_unchanged": true,
+    "modules_unchanged": true,
+    "scope": "Production SDK shared capture and receive clock integration, SR/SDES reports after actual RTP writes, bounded current-handle report routing, separate timing/RTP counters and retirement.228source/module guarded SDK methods only; mock peer wiring is not actual browser/native or Connect Store/host qualification. Shared receiver presentation remains pending."
+  },
+  "behavior": [
+    "One capture timeline and CNAME per Connection maps accepted capture timestamps to a shared monotonic clock. Audio/video sampling rates use exact integer RTP conversion. Reports sample send time rather than copying an adjacent packet timestamp.",
+    "The signed server parameter offer must select source_clock rtcp-sr-sdes/1 before the peer accepts or emits reports. Unsupported profiles refuse; profile changes cannot alter an installed route. Unclocked media remains explicitly unsynchronized in route diagnostics.",
+    "Count actual successful RTP writer submissions and payload octets. Send a bounded SR/SDES compound at most once per second during current media writes, within their original 200ms submission bound. Packetization, rejected queues, report writes and idle timers cannot count as RTP or manufacture readiness.",
+    "Bind reports to current receive handles and SSRCs with one common CNAME/NTP reference. Preserve cross-rate offsets despite later per-track arrival variation; zero, old, conflicting, missing or expired reports do not fabricate synchronization. Retired handles reject reports.",
+    "Decoded timestamps use the shared receive timeline when mapped. Original Opus timestamp preservation remains in place. The current renderer still needs shared presentation scheduling; metadata alignment alone is not physical AV synchronization."
+  ],
+  "peer_wiring": "One production BrowserMediaPeer method uses controlled WebCodecs and datagram streams: incoming RTCP maps audio without increasing RTP counts; outgoing report follows the actual media write and contains its SSRC/packet/octet counts; retired handle rejects; no idle metadata write; unknown source-clock profile refuses. This is in-process wiring, not a network/browser/Core/Store qualification.",
+  "host_fixture": "Browser fixture allowlist serves browser_rtcp.js; Root host compilation and actual browser profile have not been rerun.",
+  "remaining": "Verify native checked ingress/egress and scoped clock lifetimes over actual signed QUIC/WT, then implement bounded shared receiver presentation and rerun the unchanged full capture/native/impairment/teardown profiles. G6-050 stays in progress.",
+  "standards": [
+    "https://www.rfc-editor.org/rfc/rfc3550.html#section-6.4.1",
+    "https://www.rfc-editor.org/rfc/rfc3550.html#section-6.5.1"
+  ]
+}

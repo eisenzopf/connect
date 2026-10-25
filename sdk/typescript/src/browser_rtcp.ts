@@ -239,3 +239,166 @@ export function ntpAtRtpTimestamp(
     if (numerator < 0n && numerator % rate) increment--;
     return BigInt.asUintN(64, report.ntp + increment);
 }
+
+/** One caller-supplied capture timeline for all senders in one Connection. */
+export class RtcpCaptureClock {
+    private origin?: { source: number; local: number };
+    constructor(
+        readonly cname: string,
+        private readonly nowUs: () => number = () =>
+            Math.round(performance.now() * 1000),
+        private readonly unixOriginUs = Math.round(
+            performance.timeOrigin * 1000,
+        ),
+    ) {
+        cnameBytes(cname);
+        if (!Number.isSafeInteger(unixOriginUs) || unixOriginUs < 0) invalid();
+    }
+    observe(timestampUs: number): void {
+        if (!Number.isSafeInteger(timestampUs) || timestampUs < 0) invalid();
+        this.origin ??= { source: timestampUs, local: this.nowUs() };
+    }
+    sample(
+        rate: 8000 | 48000 | 90000,
+    ): { ntp: bigint; rtpTimestamp: number } | undefined {
+        if (!this.origin) return undefined;
+        const now = this.nowUs();
+        const source = this.origin.source + now - this.origin.local;
+        if (!Number.isSafeInteger(source) || source < 0) return undefined;
+        return {
+            ntp: unixMicrosecondsToNtp(BigInt(this.unixOriginUs + now)),
+            rtpTimestamp: rtpTimestampFromMicroseconds(source, rate),
+        };
+    }
+}
+export function rtpTimestampFromMicroseconds(
+    timestampUs: number,
+    rate: 8000 | 48000 | 90000,
+): number {
+    if (
+        !Number.isSafeInteger(timestampUs) ||
+        timestampUs < 0 ||
+        ![8000, 48000, 90000].includes(rate)
+    )
+        return invalid();
+    return Number(
+        BigInt.asUintN(
+            32,
+            (BigInt(timestampUs) * BigInt(rate) + 500000n) / 1000000n,
+        ),
+    );
+}
+interface ReceiveTrack {
+    rate: 48000 | 90000;
+    ssrc?: number;
+    report?: RtcpSenderReport;
+    pending?: RtcpSenderReport;
+    receivedAt: number;
+    first?: number;
+    newest?: number;
+    start?: number;
+}
+/** Timing metadata only. Callers still check the exact live receive binding. */
+export class RtcpReceiveClock {
+    private readonly tracks = new Map<number, ReceiveTrack>();
+    private base?: { ntp: bigint; local: number };
+    private cname?: string;
+    private conflict = false;
+    constructor(
+        private readonly nowUs: () => number = () =>
+            Math.round(performance.now() * 1000),
+    ) {}
+    register(handle: number, rate: 48000 | 90000): void {
+        if (
+            !Number.isInteger(handle) ||
+            handle < 1 ||
+            handle > 65535 ||
+            this.tracks.has(handle) ||
+            this.tracks.size >= 256 ||
+            ![48000, 90000].includes(rate)
+        )
+            return invalid();
+        this.tracks.set(handle, { rate, receivedAt: 0 });
+    }
+    retire(handle: number): void {
+        this.tracks.delete(handle);
+    }
+    report(handle: number, report: RtcpSenderReport): boolean {
+        const track = this.tracks.get(handle);
+        if (!track || this.conflict) return false;
+        if (track.ssrc !== report.ssrc) {
+            track.pending = { ...report };
+            return true;
+        }
+        if (report.ntp === 0n) {
+            track.report = undefined;
+            return true;
+        }
+        if (
+            !report.packets ||
+            (track.report &&
+                BigInt.asIntN(64, report.ntp - track.report.ntp) <= 0n)
+        )
+            return false;
+        if (this.cname !== undefined && this.cname !== report.cname) {
+            this.conflict = true;
+            for (const t of this.tracks.values()) {
+                t.report = t.pending = undefined;
+            }
+            return false;
+        }
+        this.cname ??= report.cname;
+        const now = this.nowUs();
+        this.base ??= { ntp: report.ntp, local: now };
+        track.report = { ...report };
+        track.receivedAt = now;
+        return true;
+    }
+    timestamp(
+        handle: number,
+        ssrc: number,
+        timestamp: number,
+    ): { timestampUs: number; synchronized: boolean } {
+        const track = this.tracks.get(handle);
+        if (!track || !u32(ssrc) || !u32(timestamp)) return invalid();
+        const now = this.nowUs();
+        if (track.ssrc !== ssrc) {
+            track.ssrc = ssrc;
+            track.report = undefined;
+            track.first = track.newest = timestamp;
+            track.start = now;
+            const pending = track.pending;
+            track.pending = undefined;
+            if (pending?.ssrc === ssrc) this.report(handle, pending);
+        }
+        const extended =
+            track.newest! + ((timestamp - (track.newest! >>> 0)) | 0);
+        track.newest = Math.max(track.newest!, extended);
+        const fallback =
+            track.start! +
+            Math.round(((extended - track.first!) * 1000000) / track.rate);
+        if (
+            !this.conflict &&
+            track.report &&
+            this.base &&
+            now - track.receivedAt <= 3000000
+        ) {
+            const capture = ntpAtRtpTimestamp(
+                track.report,
+                timestamp,
+                track.rate,
+            );
+            if (capture !== undefined) {
+                const delta = BigInt.asIntN(64, capture - this.base.ntp);
+                const value =
+                    this.base.local + Number((delta * 1000000n) / (1n << 32n));
+                if (
+                    Number.isSafeInteger(value) &&
+                    Math.abs(value - now) <= 10000000
+                )
+                    return { timestampUs: value, synchronized: true };
+            }
+        }
+        return { timestampUs: fallback, synchronized: false };
+    }
+}

@@ -91,6 +91,22 @@ SDK closes original and replacement borrowed frames after the callback and clear
 pending metadata on retirement. This preserves one stream's timeline; it does not
 establish a common audio/video source clock.
 
+The Connection-level `source_clock: "rtcp-sr-sdes/1"` capability selects bounded
+SR/SDES timing on the existing allocated-handle datagram wrapper. The SDK uses
+one accepted capture timeline and CNAME across its audio/video senders. Reports
+sample the shared clock at send time and count only successful RTP submissions.
+They are sent during an owned media write, at most once per second, and share
+its 200 ms submission bound. No idle reporting worker or readiness grant exists.
+
+Current receive handles and SSRCs bind reports to one CNAME/NTP reference.
+Mapped decoded timestamps retain intertrack offsets despite different report
+arrival times. Missing, stale, conflicting or unavailable clocks remain explicit
+in route diagnostics. Report writes and receives do not increase RTP counters.
+Clock selection cannot change an installed route, and retired handles reject
+reports. These are source-clock metadata rules; shared renderer scheduling and
+actual physical audio/video synchronization still require qualification. See
+`docs/evidence/gate-6/browser-client-source-clock.json` for the current scope.
+
 `BrowserMediaPeer` owns one authenticated client's datagram reader/writer,
 bounded send queue, codec routes and expiry timer. `offerConnection` takes
 stable Conversation, Session, Connection and operation IDs, named Opus/VP8

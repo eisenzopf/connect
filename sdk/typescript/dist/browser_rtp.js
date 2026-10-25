@@ -139,6 +139,8 @@ export class RtpSender {
     sequence;
     datagramSequence = 0;
     ssrc;
+    packets = 0;
+    octets = 0;
     constructor(binding, maxDatagramBytes = MEDIA_LIMITS.rtpBytes + 8) {
         this.binding = binding;
         this.maxDatagramBytes = maxDatagramBytes;
@@ -153,6 +155,20 @@ export class RtpSender {
             maxDatagramBytes < 64 ||
             maxDatagramBytes > MEDIA_LIMITS.rtpBytes + 8)
             throw new ConnectError("unsupported-media-profile", "Invalid negotiated datagram MTU");
+    }
+    /** Record only a successful local RTP writer submission, never packetization. */
+    submitted(bytes) {
+        const packet = decodeRtpDatagram(bytes);
+        if (packet.handle !== this.binding.handle ||
+            packet.ssrc !== this.ssrc ||
+            packet.payloadType !== this.binding.payloadType)
+            return invalid();
+        this.packets = (this.packets + 1) >>> 0;
+        this.octets = (this.octets + packet.payload.length) >>> 0;
+        return { ssrc: this.ssrc, packets: this.packets, octets: this.octets };
+    }
+    nextDatagramSequence() {
+        return this.datagramSequence++ >>> 0;
     }
     packetize(encoded, timestamp) {
         if (!encoded.length ||

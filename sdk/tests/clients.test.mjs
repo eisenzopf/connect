@@ -135,3 +135,5 @@ test('health readiness validates observations and still accepts older servers',(
 import "./browser_opus_clock.test.mjs";
 
 import "./browser_rtcp.test.mjs";
+
+import "./browser_source_clock.test.mjs";

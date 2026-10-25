@@ -18,6 +18,7 @@ class Control {
       const changed=this.mode==='scope'?{...scope,connid:'foreign'}:scope;
       const frame=envelope('connection.offer',{by_participant:'participant_test',substrate:'webtransport',substrate_setup:{kind:'native-prepared/1',revision:scope.expected_revision+1,offer_id:this.mode==='offer'?'foreign':id,streams:[{strm_id:'data',kind:'data',direction:'sendrecv',stream_local_id:scope.expected_revision+1,codec:{name:'binary',params:{reliability:'reliable_ordered'}}}]}},changed);
       if(this.mode==='receiver'&&type==='stream.subscribe')frame.payload.substrate_setup.streams.push({strm_id:'remote_data',kind:'data',direction:'sendonly',stream_local_id:9,codec:{name:'binary',params:{reliability:'reliable_ordered'}}});
+      if(this.clockProfile)frame.payload.capabilities={source_clock:this.clockProfile===true?'rtcp-sr-sdes/1':this.clockProfile};
       if(this.mode==='audio')frame.payload.substrate_setup.streams=[{strm_id:'audio',kind:'audio',direction:'sendrecv',stream_local_id:1,codec:{name:'opus',params:{sample_rate:48000,channels:1,payload_type:111}}}];
       this.confirm=()=>finish?.([envelope('ack',{}, {...scope,in_reply_to:id})]);
       for(const fn of this.events)fn(frame);
@@ -116,4 +117,32 @@ test('bounded media read bursts yield to codec output tasks before dropping deco
     await Promise.race([done,new Promise((_,reject)=>{timeout=setTimeout(()=>reject(Error('codec tasks received '+decoded+' of 64 burst frames')),500);})]);
     assert.equal(decoded,64);assert.equal(closed,64);assert.equal(peer.diagnostics.received,64);
   }finally{clearTimeout(timeout);peer.close();for(const[n,d]of old)if(d)Object.defineProperty(globalThis,n,d);else delete globalThis[n];}
+});
+
+test('media peer sends current capture reports only after RTP writes and receives clocks without media readiness counts',async()=>{
+  const {wrapRtcpSenderReport,isRtcpDatagram,decodeRtcpSenderReport}=await import('../typescript/dist/browser_rtcp.js');
+  const names=['AudioEncoder','AudioDecoder','AudioData','EncodedAudioChunk'];const old=names.map(n=>[n,Object.getOwnPropertyDescriptor(globalThis,n)]);
+  class Encoder {static async isConfigSupported(){return{supported:true};} state='configured';encodeQueueSize=0;constructor(c){this.c=c;}configure(){}close(){this.state='closed';}encode(frame){queueMicrotask(()=>this.c.output({timestamp:frame.timestamp,type:'key',byteLength:1,copyTo:b=>b.set([9])}));}}
+  class Decoder extends Encoder {decodeQueueSize=0;decode(chunk){queueMicrotask(()=>this.c.output({timestamp:chunk.timestamp,sampleRate:48000,numberOfChannels:1,numberOfFrames:960,close(){}}));}}
+  for(const [i,value] of [Encoder,Decoder,class{constructor(x){Object.assign(this,x);}close(){}},class{constructor(x){Object.assign(this,x);}}].entries())Object.defineProperty(globalThis,names[i],{configurable:true,value});
+  const client=new Control('audio');client.clockProfile=true;let ingress;const writes=[];
+  client.datagrams.readable=new ReadableStream({start:c=>{ingress=c;}});
+  client.datagrams.writable=new WritableStream({write:b=>{writes.push(b.slice());}});
+  let decoded;const audio=new Promise(r=>{decoded=r;});const peer=new BrowserMediaPeer(client,{audio:frame=>decoded(frame.timestamp)});
+  try{
+    const connection=await peer.offerConnection({...input,data:undefined,audio:'audio'});
+    const sender=new RtpSender({handle:1,streamId:'audio',connectionId:'connection',sessionId:'session',generation:1,kind:'audio',codec:'opus',payloadType:111,direction:'sendrecv'});
+    const packet=sender.packetize(new Uint8Array([1]),0)[0];const parsed=decodeRtpDatagram(packet);
+    const report=wrapRtcpSenderReport(1,7,{ssrc:parsed.ssrc,ntp:100n<<32n,rtpTimestamp:0,packets:1,octets:1,cname:'server-common-clock'});
+    ingress.enqueue(report);ingress.enqueue(packet);
+    await Promise.race([audio,new Promise((_,reject)=>setTimeout(()=>reject(Error('clocked audio not decoded')),500))]);
+    assert.equal(peer.diagnostics.received,1);assert.equal(peer.routeDiagnostics[0].counters.clockReports,1);assert.equal(peer.routeDiagnostics[0].counters.synchronized,1);
+    assert.equal(connection.encodeAudio('audio',new Float32Array(960),0),true);
+    for(let n=0;n<100&&writes.length<2;n++)await new Promise(r=>setTimeout(r,1));
+    assert.equal(writes.length,2);assert.equal(isRtcpDatagram(writes[0]),false);assert.equal(isRtcpDatagram(writes[1]),true);
+    const sr=decodeRtcpSenderReport(writes[1].subarray(8));assert.equal(sr.packets,1);assert.equal(sr.octets,1);assert.equal(sr.ssrc,decodeRtpDatagram(writes[0]).ssrc);assert.match(sr.cname,/^connect-/);
+    await connection.end('clock-end');const before=peer.diagnostics.rejected;ingress.enqueue(report);
+    await new Promise(r=>setTimeout(r,10));assert.equal(peer.diagnostics.rejected,before+1);assert.equal(writes.length,2,'retired clock timer sent idle metadata');
+    const bad=new Control('audio');bad.clockProfile='foreign-clock/2';const badPeer=new BrowserMediaPeer(bad);try{await assert.rejects(()=>badPeer.offerConnection({...input,data:undefined,audio:'audio'}),{code:'protocol'});}finally{badPeer.close();}
+  }finally{peer.close();for(const[n,d]of old)if(d)Object.defineProperty(globalThis,n,d);else delete globalThis[n];}
 });

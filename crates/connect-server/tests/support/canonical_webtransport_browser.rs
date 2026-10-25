@@ -44,6 +44,7 @@ async fn page(sdk: bool, media: bool, native: Option<Arc<native_actor::Coordinat
             "browser_media_renderer.js",
             "browser_codecs.js",
             "browser_rtp.js",
+            "browser_rtcp.js",
             "uctp_json.js",
             "uctp_signing.js",
             "uctp_wire.js",

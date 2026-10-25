@@ -52,7 +52,16 @@ export declare class RtpSender {
     private sequence;
     private datagramSequence;
     private readonly ssrc;
+    private packets;
+    private octets;
     constructor(binding: Readonly<MediaBinding>, maxDatagramBytes?: number);
+    /** Record only a successful local RTP writer submission, never packetization. */
+    submitted(bytes: Uint8Array): {
+        ssrc: number;
+        packets: number;
+        octets: number;
+    };
+    nextDatagramSequence(): number;
     packetize(encoded: Uint8Array, timestamp: number): Uint8Array[];
 }
 export interface Vp8Frame {
