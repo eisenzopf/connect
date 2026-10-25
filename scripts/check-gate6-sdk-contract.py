@@ -25,13 +25,21 @@ def main():
              'crates/connect-protocol/src/session_control.rs', 'crates/connect-protocol/src/transitions.rs',
              'sdk/typescript/src/events.ts', 'sdk/python/connect_sdk/event_validation.py',
              'sdk/python/connect_sdk/protocol.py', 'docs/SDK_COMPATIBILITY.md',
-             'scripts/check-gate6-sdk-contract.py']
+             'scripts/check-gate6-sdk-contract.py', 'docs/decisions/015-gate-6-operating-profile.md']
     digest = lambda p: hashlib.sha256(p.read_bytes()).hexdigest()
     before = {n: digest(ROOT / n) for n in names}
     contract = json.loads((ROOT / names[0]).read_text())
     assert contract['status'] == 'candidate-under-review'
     assert {h['name'] for h in contract['handles']} == {'Client','Conversation','Participant','Session','Connection','Stream','Operation'}
     assert all(not h['snapshot_grants_authority'] and not h['from_id_grants_authority'] for h in contract['handles'])
+    profile = (ROOT / names[-1]).read_text()
+    approved_minima = {
+        'rust': re.search(r'Rust/MSRV.*?(\d+\.\d+\.\d+)', profile, re.S)[1],
+        'node': re.search(r'Node minimum is (\d+)', profile)[1],
+        'python': re.search(r'Python minimum is (\d+\.\d+)', profile)[1],
+    }
+    assert all(contract['runtime_targets'][language]['minimum'] == minimum
+               for language, minimum in approved_minima.items()), 'Runtime targets differ from approved decision 015'
     methods = contract['methods']; assert len({m['id'] for m in methods}) == len(methods)
     available = {v['envelope']['type'] for v in json.loads((ROOT / names[3]).read_text())['vectors'] if v['valid']}
     assert all(m['canonical_type'] in available and m['implementation_qualified'] is False for m in methods)
@@ -65,6 +73,7 @@ def main():
     report = {'schema':'connect-gate6-sdk-contract-preparation/1','task':'G6-059',
               'scope':'Candidate contract inventory, canonical schema/refusal vectors and current snapshot source audit only. Final language outlines/type checking/review remain pending. No SDK runtime/parity/package ownership or whole-task qualification.',
               'passed':True,'candidate_finalized':False,'handles':len(contract['handles']),'mapped_methods':len(methods),
+              'approved_runtime_minima':approved_minima,
               'vectors':checked,'session_view_fields':fields,'current_typescript_snapshot_matches':True,
               'current_python_event_snapshot_matches':True,'legacy_python_generic_session_result_still_differs':legacy_generic,
               'inputs_sha256':before,'inputs_unchanged':all(digest(ROOT/n)==v for n,v in before.items()),

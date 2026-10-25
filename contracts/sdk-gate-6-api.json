@@ -330,8 +330,9 @@
       "role": "managed helper or explicit HTTP control; bounded programmatic media through helper"
     },
     "python": {
-      "minimum": "3.11",
-      "role": "async context-managed client; separately named optional sync adapter, managed helper or explicit HTTP control"
+      "minimum": "3.12",
+      "role": "async context-managed client; separately named optional sync adapter, managed helper or explicit HTTP control",
+      "minimum_basis": "docs/decisions/015-gate-6-operating-profile.md"
     },
     "browser": {
       "role": "canonical WT or WSS/WebRTC, capability detection, separate device capture/render",

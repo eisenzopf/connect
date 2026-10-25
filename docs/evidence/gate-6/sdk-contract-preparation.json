@@ -75,5 +75,27 @@
       }
     ]
   },
-  "remaining": "Freeze final await/Operation syntax, full input/result/error and role matrices, type-check the same complete Rust/browser+NodeTS/Python application outlines, and finish current-interface review. Current candidates are not SDK execution, installed parity, publisher credentials, namespace ownership or publication. G6-059 stays in progress; all105task scope remains unchanged."
+  "remaining": "Freeze final await/Operation syntax, full input/result/error and role matrices, type-check the same complete Rust/browser+NodeTS/Python application outlines, and finish current-interface review. Current candidates are not SDK execution, installed parity, publisher credentials, namespace ownership or publication. G6-059 stays in progress; all105task scope remains unchanged.",
+  "runtime_target_audit": {
+    "positive": {
+      "report": ".local/gate-6/sdk-contract/runtime-target002/summary.json",
+      "sha256": "6d37b225cd5bbb3514f9a63c814230b06a70ea3e64e6a4b1bf928b4f8080fe13",
+      "passed": true,
+      "candidate_finalized": false,
+      "approved_runtime_minima": {
+        "rust": "1.97.1",
+        "node": "22",
+        "python": "3.12"
+      },
+      "inputs_unchanged": true
+    },
+    "negative": {
+      "report": ".local/gate-6/sdk-contract/runtime-target-negative001/summary.json",
+      "sha256": "eb8ed0c7d10e19c1706a61014c5efda3f0dcc26f3dd13f08f5540c71b8f60959",
+      "negative_valid": true,
+      "exit_code": 1,
+      "scope": "Read-only checker seam supplies byte-exact prior candidate declaringPython3.11 against unchanged approved decision015; no source mutation."
+    },
+    "change": "Correct shared contract Python minimum from the old manifest3.11 to the approved Gate6target3.12. The verifier now derives all three minima from decision015; Python package manifest/rehearsal migration staysG6-063. Contract remains candidate pending final review/language outlines."
+  }
 }

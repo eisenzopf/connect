@@ -132,7 +132,9 @@ remote HTTP control facade. HTTP/CLI/MCP are control/status surfaces; media fram
 do not appear in their control responses. A transport switch after accepted or
 uncertain work starts with original-ID status recovery.
 
-The current minimum declarations are Rust 1.97.1, Node 22 and Python 3.11.
+The approved Gate 6 minimum targets are Rust 1.97.1, Node 22 and Python 3.12.
+The Python package currently declares 3.11; G6-063 must reconcile its manifest
+and qualification with the approved 3.12 target.
 Qualification pins and browser/media roles come from decision 015, not from a
 claim that every newer runtime is already qualified. Helper/server/profile
 mismatches fail explicitly; helper assets must be managed compatible package
