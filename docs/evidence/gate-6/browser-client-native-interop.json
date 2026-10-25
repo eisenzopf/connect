@@ -182,5 +182,26 @@
     "native_passed": "3/4",
     "transport_passed": "28/28",
     "scope": "Captured ES256 native video failed65<90; task remains in progress."
+  },
+  "receive_diagnostics": {
+    "reports": [
+      {
+        "report": ".local/gate-6/browser-sdk/native-receive-trace050/summary.json",
+        "sha256": "808831422649dd0de9def0dc7d1b4b5f2aa18445b710ffc0d8da414251e7f83d",
+        "passed": false,
+        "source_inputs_unchanged": true,
+        "executable_unchanged": true
+      },
+      {
+        "report": ".local/gate-6/browser-sdk/native-arrivals051/summary.json",
+        "sha256": "09dc00c11bdbc15c6aa18a1022d593f14058b766675b3ed25f75ffae9de072b3",
+        "passed": true,
+        "source_inputs_unchanged": true,
+        "executable_unchanged": true
+      }
+    ],
+    "trace050": "1916packet-policy callbacks, no recorded policy error. Browser request deadline occurred before independent native decoding; diagnostic overhead does not qualify performance or explain049video failure.",
+    "bounded051": "Added at most600numeric completed-frame arrival records (RTP range/timestamp/keyframe, gap, late/waiting-key/delivered) and preserved successful browser result before independent decoder. No decoder continuity behavior or threshold changed. CapturedES256 native156identified audio/116video/101motion,3data,0sequence gaps; browser197audio/120video, cleanup167.6ms. This passing diagnostic does not resolve original intermittent049failure.",
+    "next": "Collect the full current12method matrix with bounded arrival records. Classify actual gaps before changing behavior; preserve049failure. Full60/impairment and complete task remain open."
   }
 }

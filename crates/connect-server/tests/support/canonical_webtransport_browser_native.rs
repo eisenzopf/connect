@@ -225,6 +225,7 @@ struct Actor {
     audio_events: Vec<Value>,
     video: Vec<u8>,
     video_events: Vec<Value>,
+    video_arrivals: Vec<Value>,
     assembler: VideoFrameAssembler,
     continuity: Option<(u32, u32, u16)>,
     waiting_key: bool,
@@ -401,15 +402,20 @@ impl Actor {
             let packet = NativeVideoPacket::parse(bytes[8..].to_vec()).unwrap();
             if let Some(frame) = self.assembler.push(&packet).unwrap() {
                 let range = self.assembler.completed_sequence_range().unwrap();
+                assert!(self.video_arrivals.len() < 600);
+                let mut arrival = json!({"arrival_ms":at,"ssrc":range.ssrc,"first":range.first,"last":range.last,"pts":frame.timestamp_rtp,"keyframe":frame.keyframe,"gap":false});
                 if let Some((ssrc, timestamp, last)) = self.continuity {
                     if range.ssrc == ssrc
                         && (frame.timestamp_rtp.wrapping_sub(timestamp) as i32) <= 0
                     {
+                        arrival["disposition"] = json!("late");
+                        self.video_arrivals.push(arrival);
                         return;
                     }
                     if range.ssrc != ssrc || range.first != last.wrapping_add(1) {
                         self.waiting_key = true;
                         self.gaps += 1;
+                        arrival["gap"] = json!(true);
                     }
                 }
                 self.continuity = Some((range.ssrc, frame.timestamp_rtp, range.last));
@@ -417,8 +423,12 @@ impl Actor {
                     self.waiting_key = false;
                 }
                 if self.waiting_key {
+                    arrival["disposition"] = json!("waiting-key");
+                    self.video_arrivals.push(arrival);
                     return;
                 }
+                arrival["disposition"] = json!("delivered");
+                self.video_arrivals.push(arrival);
                 assert!(self.video_events.len() < 600);
                 self.video
                     .extend_from_slice(&(frame.encoded.len() as u32).to_le_bytes());
@@ -533,6 +543,7 @@ pub(super) async fn run(
         audio_events: Vec::new(),
         video: Vec::new(),
         video_events: Vec::new(),
+        video_arrivals: Vec::new(),
         assembler: VideoFrameAssembler::default(),
         continuity: None,
         waiting_key: true,
@@ -635,7 +646,7 @@ pub(super) async fn run(
     header.extend_from_slice(&0u32.to_le_bytes());
     header.extend_from_slice(&actor.video);
     std::fs::write(output.join("received.ivf"), header).unwrap();
-    let result = json!({"window_start_ms":start,"window_end_ms":end,"audio_events":actor.audio_events,"video_events":actor.video_events,"video_sequence_gaps":actor.gaps,"assembly":actor.assembler.diagnostics(),"data_messages":3,"canonical_public_native_client":true,"native_transport":"quic","native_live_encode_playout_qualified":false});
+    let result = json!({"window_start_ms":start,"window_end_ms":end,"audio_events":actor.audio_events,"video_events":actor.video_events,"video_arrivals":actor.video_arrivals,"video_sequence_gaps":actor.gaps,"assembly":actor.assembler.diagnostics(),"data_messages":3,"canonical_public_native_client":true,"native_transport":"quic","native_live_encode_playout_qualified":false});
     std::fs::write(
         output.join("received.json"),
         serde_json::to_vec(&result).unwrap(),

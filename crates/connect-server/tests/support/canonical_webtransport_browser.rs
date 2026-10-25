@@ -212,7 +212,11 @@ fn capture(f: &Fixture, algorithm: &str) {
     if let Some(destination) = std::env::var_os("CONNECT_GATE6_BROWSER_ARTIFACTS") {
         let directory = std::path::PathBuf::from(destination).join(algorithm);
         std::fs::create_dir_all(&directory).unwrap();
-        for name in ["chrome-stderr.log", "chrome-stderr.netlog.json"] {
+        for name in [
+            "chrome-stderr.log",
+            "chrome-stderr.netlog.json",
+            "browser-result.json",
+        ] {
             let source = f.temp.path().join(name);
             if source.is_file() {
                 std::fs::copy(source, directory.join(name)).unwrap();
@@ -428,6 +432,7 @@ async fn browser_profile_mode(
         );
     }
     let mut result: Value = serde_json::from_slice(&output.stdout).unwrap();
+    std::fs::write(f.temp.path().join("browser-result.json"), &output.stdout).unwrap();
     if let Some(task) = native_task.0.as_mut() {
         let received = tokio::time::timeout(Duration::from_secs(5), task)
             .await
