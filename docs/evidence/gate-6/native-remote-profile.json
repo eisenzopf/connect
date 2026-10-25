@@ -1,9 +1,9 @@
 {
   "task": "G6-048",
-  "status": "implementation-and-isolated-runtime-fixtures-under-qualification",
+  "status": "eight-isolated-remote-runtime-methods-qualified-distinct-host-pending",
   "full_task_complete": false,
   "full_goal_complete": false,
-  "recorded_at": "2026-10-25T02:26:25.904127+00:00",
+  "recorded_at": "2026-10-25T02:42:32.927634+00:00",
   "source_revision": "a068a96bf39fb0141f14438609443698fc41685a",
   "draft_implementation": [
     "Shared explicit native Local/Remote configuration policy; local remains the default, while concrete remote endpoints and routable client UDP binding require Remote.",
@@ -35,11 +35,10 @@
     "log_sha256": "f2753db4acc065cf01b759db8538685e59e8358a9c51fe3df6058fee019c8e1a"
   },
   "remaining": [
-    "Build and execute the newly drafted runtime fixtures and follow-up mapped-address changes; initial client/server library typecheck passed separately.",
-    "Qualify default local operation and explicit remote profile with trusted CA/leaf chains, untrusted root, wrong hostname, expired certificate, missing/invalid trust and bounded stalled negotiation.",
-    "Qualify expired/revoked credentials, same-peer migration with real native datagrams, interrupted/reconnected operation identity and media authority.",
-    "Run the approved distinct-host fixture and record actual hosting/platform scope; named remote/provider lanes require concrete G6-093 configuration.",
-    "Update the server/native HTTP/reference/setup documentation and complete requirement-level audit before task credit."
+    "Finish owned isolated Ubuntu24.04 x86_64 guest SDK compilation and actual distinct-host control/reconnection verification. Linux/amd64 is emulated on the local aarch64 Lima VM; this is not a native x86_64 performance qualification.",
+    "Publish a reusable versioned fixture runner/container definition and complete requirement audit using actual results.",
+    "Current record HTTP/HTTPS shutdown methods are compiling separately for G6-047.",
+    "Named host/provider rehearsal, Linux hosted-server/container/systemd/performance and browser profiles retain separate approved tasks; no publication."
   ],
   "publication": "Separate; not performed.",
   "initial_library_typecheck": {
@@ -464,5 +463,150 @@
       "Controlled stalled-auth endpoint used legacy server TLS ALPN rather than canonical RAW_QUIC_ALPN, failing before auth. Corrected fixture installs canonical ALPN explicitly; total deadline assertion unchanged. Pending execution.",
       "Two HTTP/HTTPS drain filters belonged to gate6_auxiliary, not gate6_canonical_runtime. Both matched zero methods and are explicitly failed qualification, not passes. Correct-target build/run pending."
     ]
+  },
+  "isolated_runtime006": {
+    "summary": ".local/gate-6/native-remote/runtime006/summary.json",
+    "summary_sha256": "a0bde64003a7d84ebfdddd58118181ddf0aa0bd927f97f6757a5ea5d5c7235a9",
+    "source_revision": "a3e529ef3345671535e424bdbdcc541a2649a7d3",
+    "executable_sha256": "38079a3fade70d63b87291bf5040c943c48e8f8237e957b3fc9e58f42d5642e7",
+    "source_lock_sha256": "2d4f2eff9286f03ae7bc09b8ad9e6ae73b54e04dfcfed17eeff3eb4e086188be",
+    "source_inputs_unchanged": true,
+    "executable_unchanged": true,
+    "passed": true,
+    "qualified_remote_cases": [
+      {
+        "name": "migration-eddsa",
+        "case": "canonical_native_connections::remote::production_remote_profile_ca_chain_and_native_duplex_survive_real_nat_rebinding_eddsa",
+        "runtime_exit_code": 0,
+        "log_sha256": "ac15581b67ea1dcd9b0500b2eed766c3cdf52adf9ccaa5b0e24f2d91a927cb01",
+        "passed": true,
+        "witness": {
+          "algorithm": "EdDSA",
+          "decoded_directions_before_and_after": 4,
+          "logical_bindings_preserved": true,
+          "nat_paths": 4
+        }
+      },
+      {
+        "name": "migration-es256",
+        "case": "canonical_native_connections::remote::production_remote_profile_ca_chain_and_native_duplex_survive_real_nat_rebinding_es256",
+        "runtime_exit_code": 0,
+        "log_sha256": "29b8d7d78ff11f6f01d1b86cfc94750ce7eb6cca6f50bd3b4ba9432d737aa95a",
+        "passed": true,
+        "witness": {
+          "algorithm": "ES256",
+          "decoded_directions_before_and_after": 4,
+          "logical_bindings_preserved": true,
+          "nat_paths": 4
+        }
+      },
+      {
+        "name": "identity-and-root",
+        "case": "canonical_native_connections::remote::production_remote_profile_refuses_wrong_host_and_unconfigured_roots_before_commands",
+        "runtime_exit_code": 0,
+        "log_sha256": "734834c23f66bca895ed9f878fcf4cbe60b9f2a003a62eecd613560c306a35f3",
+        "passed": true
+      },
+      {
+        "name": "missing-chain",
+        "case": "canonical_native_connections::remote::production_remote_profile_requires_its_complete_intermediate_chain",
+        "runtime_exit_code": 0,
+        "log_sha256": "18799e9b8bc7b627ec65b7f96e74abba653a7e9474a8cbb34494151ffda2e5b2",
+        "passed": true
+      },
+      {
+        "name": "trust-assets",
+        "case": "canonical_native_connections::remote::production_remote_profile_missing_invalid_and_oversized_trust_never_opens_commands",
+        "runtime_exit_code": 0,
+        "log_sha256": "577f55aa5e0239555be6f4850ce3a2998843fa72212188fab47cd086495874cd",
+        "passed": true
+      },
+      {
+        "name": "credentials",
+        "case": "canonical_native_connections::remote::production_remote_profile_refuses_expired_and_revoked_credentials_without_media",
+        "runtime_exit_code": 0,
+        "log_sha256": "504ebf38e7ce4f40d7851281995d77934c80d77892ab8d1e0c99d7089bb9d990",
+        "passed": true
+      },
+      {
+        "name": "total-open-deadline",
+        "case": "canonical_native_connections::remote::production_remote_profile_one_open_deadline_spans_delayed_challenge_and_stalled_auth",
+        "runtime_exit_code": 0,
+        "log_sha256": "a909e50517f3b145a836351d7b227379c0ffe3eeab6d2e4a0233c24385d16f8c",
+        "passed": true
+      },
+      {
+        "name": "expired-tls",
+        "case": "canonical_native_connections::remote::production_remote_profile_expired_tls_is_refused_by_server_and_actual_client_verifier",
+        "runtime_exit_code": 0,
+        "log_sha256": "0f2720df1482321ef4b5c50920e4ca274f502e9947022bb0290e8d30fd511b3e",
+        "passed": true
+      }
+    ],
+    "qualified_g6_047_public_operator_cases": [
+      {
+        "name": "sip-operator-eddsa",
+        "case": "canonical_native_connections::consultation::groups::replacement::telephone::initial::crash::production_sigkill_sip_submission_keeps_external_uncertainty_without_redial_eddsa",
+        "runtime_exit_code": 0,
+        "log_sha256": "4b0b7b7974878d05a5c81dc68d1747a93513078f1bf7cccc974b16389d2c6a97",
+        "passed": true,
+        "capture_sha256": "afaaa0faaf6986583d7497319985da44c088f991085827a07013543fbbcefa95",
+        "observations": {
+          "algorithm": "EdDSA",
+          "caller_declared_completion_refused": true,
+          "external_peer_still_live": true,
+          "killed_signal": 9,
+          "new_epoch_same_installation": true,
+          "operation_state": "unknown",
+          "original_effect_attempt": 1,
+          "original_effect_state": "unknown",
+          "phase": "submitted",
+          "physical_after_restart": [
+            "unknown",
+            2,
+            null,
+            null
+          ],
+          "replay_preserved_receipt_and_original_operation": true,
+          "runtime_connections": 0,
+          "runtime_media_readers": 0,
+          "session_started_facts": 0,
+          "unique_external_calls": 1,
+          "unresolved_conflict_did_not_redial": true
+        }
+      },
+      {
+        "name": "sip-operator-es256",
+        "case": "canonical_native_connections::consultation::groups::replacement::telephone::initial::crash::production_sigkill_sip_submission_keeps_external_uncertainty_without_redial_es256",
+        "runtime_exit_code": 0,
+        "log_sha256": "fb9e8e0421b5285fe5f51a98885eca1ab0189e1e7a4e560bd85928a361c2f59e",
+        "passed": true,
+        "capture_sha256": "a6cb44c71aa6d3cce66cb2ab52d65403d067c50ed4179867f231c0af43cfb4e4",
+        "observations": {
+          "algorithm": "ES256",
+          "caller_declared_completion_refused": true,
+          "external_peer_still_live": true,
+          "killed_signal": 9,
+          "new_epoch_same_installation": true,
+          "operation_state": "unknown",
+          "original_effect_attempt": 1,
+          "original_effect_state": "unknown",
+          "phase": "submitted",
+          "physical_after_restart": [
+            "unknown",
+            2,
+            null,
+            null
+          ],
+          "replay_preserved_receipt_and_original_operation": true,
+          "runtime_connections": 0,
+          "runtime_media_readers": 0,
+          "session_started_facts": 0,
+          "unique_external_calls": 1,
+          "unresolved_conflict_did_not_redial": true
+        }
+      }
+    ],
+    "scope": "Eight isolated Remote methods and two actual SIP SIGKILL public operator methods. Exact uncertainty reason/HTTP409 preserved; no distinct-host or complete G6-048 claim."
   }
 }
