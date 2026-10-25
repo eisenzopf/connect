@@ -1,13 +1,11 @@
 {
   "schema": "connect-gate6-mixer-source-clock/1",
   "task": "G6-050",
-  "status": "Verified original source clock is lost by guarded audio mixing; correction pending",
+  "status": "Guarded audio mixing preserves bounded original capture-clock metadata; shared browser/native transport and AV presentation remain open",
   "test_patch": {
     "path": "patches/rvoip/gate6-mixer-source-clock-regression.patch",
     "sha256": "aee95bd1a288102a315fb389b8d6e1e9e6d3886edc0ee4a6dbd086f96c1e7db2"
   },
-  "source_lock_sha256": "36fdbeb32c7496c7e0d09ad730ce03ad32d3cff989f77c5951fd8e6526ea6d1e",
-  "patch_count": 198,
   "negative": {
     "report": ".local/gate-6/mixer-clock/negative002/summary.json",
     "sha256": "271401597fe06d1e751d38ffd4eaffa753ece27c1f31fcbf25ec4568fabe8a3e",
@@ -28,5 +26,81 @@
     "report": ".local/gate-6/mixer-clock/negative001/summary.json",
     "scope": "Zero runtime cases; new fixture called nonexistent detach instead of scene remove. Corrected fixture is prepared separately; invalid source/patch/lock snapshots and build logs remain private."
   },
-  "scope": "One expected Core behavior failure only. No browser/native clock transport, common AVclock, throughput, operating/task/acceptance or publication qualification."
+  "scope": "83 actual focused Core methods only (76 retained plus 7 source-clock methods), not connected browser/native RTCP, full AV synchronization, physical audible DSP delay, host throughput, operating/task/acceptance or publication qualification.",
+  "historical_test_source_lock_sha256": "36fdbeb32c7496c7e0d09ad730ce03ad32d3cff989f77c5951fd8e6526ea6d1e",
+  "historical_test_patch_count": 198,
+  "source_lock_sha256": "f7c87338bb50690e4615df47ec512faa77fc2d2d0b161a02fc259381e2c647a7",
+  "patch_count": 200,
+  "production_patches": {
+    "patches/rvoip/gate6-preserve-mixed-source-clock.patch": "bd893a45541e97c77682085b428ff7ab6c0c288429d630697ba236d33c56b058",
+    "patches/rvoip/gate6-mixer-clock-rebind-fixture.patch": "28549e6d13b08923a84c8d454f0e009244de1c20028d3e27fb7fa3d70e6278e5"
+  },
+  "positive": {
+    "report": ".local/gate-6/mixer-clock/positive004/summary.json",
+    "sha256": "f104deadee31d4e4b85548c5f70b5cc30d9416f1cef33dedd7fa4d136dd3cb94",
+    "passed": true,
+    "tests": 83,
+    "counts": [
+      [
+        52,
+        0,
+        0
+      ],
+      [
+        29,
+        0,
+        0
+      ],
+      [
+        2,
+        0,
+        0
+      ]
+    ],
+    "source_inputs_unchanged": true,
+    "executable_unchanged": true,
+    "executable_sha256": "81f963f81911c5bc2524ba510d61cbfa12507ae864fb758647a4c7e38a5bf52c",
+    "case_log_sha256": [
+      "6118c35dfe607b4803108ff1faad14778d178428b7f0a27b0c36d1df3ef41d7b",
+      "ab8f7a942cafec5cd29279991510849f43fb74455c42daa245a0ba9b75c50c94",
+      "e9f57036414ba4fcac9b251a504140678e090732d032dd94b5d3e0395605333f"
+    ]
+  },
+  "behavior": [
+    "Track original decoded PCM sample offsets through initial truncation, queue trimming, partial quanta, missed ticks and nominal rate conversion. Preserve signed RTP wrap and original RTP translation offsets.",
+    "Reanchor a truthful source timeline into each destination RTP clock. Aligned contributors retain a shared anchor and all source liveness predicates. Waiting clocks remain explicit; unknown, unsupported or unaligned contributors cannot fabricate an anchor.",
+    "Retire clock metadata with actual target route, source, consumer or subscription lifetime. A fresh controller with matching public IDs uses the shared non-reusing allocator and delivers fresh media without reviving held old clock metadata.",
+    "Clock records contain only anchors and liveness metadata. Current packet/source/target/scene/consumer/route authorization, original age, bounded PCM and once-only output rules remain independent."
+  ],
+  "positive_attempts": [
+    {
+      "report": ".local/gate-6/mixer-clock/positive001/summary.json",
+      "sha256": "2ad41138e6975da4cc306e229399a798339fa648fb82dc341f6d5f9a1d5c05e3",
+      "passed": false,
+      "counts": [
+        82,
+        1,
+        0
+      ],
+      "reason": "New fixture attempted to rebind a retired target route; Conflict before recovery assertion."
+    },
+    {
+      "report": ".local/gate-6/mixer-clock/positive002/summary.json",
+      "sha256": "ea45e87c4342ce7ae1a2bab802a0350fd7e0534108f4d4fe5e4be6807e96ff50",
+      "passed": false,
+      "counts": [
+        82,
+        1,
+        0
+      ],
+      "reason": "Replacing a port on the departed controller refuses NotReady. Departure permanently retires its scene consumers. Final fixture constructs a fresh controller via normal APIs and shared allocator."
+    }
+  ],
+  "unqualified_positive003": {
+    "report": ".local/gate-6/mixer-clock/positive003/summary.json",
+    "sha256": "afa2fafa9e5d8fdb7a982ffbbc7125e654919374d3c079f4d398510a324603d2",
+    "runtime_cases": 0,
+    "reason": "Fresh-controller fixture passed an Arc principal to a value-taking constructor. Corrected clone of the referenced principal; production mixer unchanged."
+  },
+  "remaining": "Admit and emit negotiated clocks along actual current authorized native/browser media; preserve one shared capture timeline, align independent mixer contributors and implement bounded receiver presentation. Rehearse the unchanged full operating profile."
 }

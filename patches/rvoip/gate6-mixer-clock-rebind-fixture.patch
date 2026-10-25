@@ -1,0 +1,64 @@
+--- a/crates/foundation/rvoip-core/src/staged_streams/tests/guarded_mixer.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/guarded_mixer.rs
+@@ -1332,7 +1332,7 @@
+ }
+ #[tokio::test]
+ async fn guarded_mixer_retired_target_never_revives_queued_clock_on_rebind() {
+-    let s = Scene::new(&four()[..2], 8000).await;
++    let mut s = Scene::new(&four()[..2], 8000).await;
+     s.bind(0, true).await;
+     s.bind(1, false).await;
+     let mut out = s.port(1).take_egress().unwrap();
+@@ -1350,7 +1350,52 @@
+     assert!((clock.is_current)());
+     s.mixer.remove(&s.controllers[1].connection);
+     assert!(!(clock.is_current)());
++    // Scene departure permanently retires this controller's consumers. A new
++    // owner may reuse public IDs, but shares the non-reusing physical allocator.
++    let old = s.controllers[1].clone();
++    let old_transport = s.port(1).binding().transport_id.clone();
++    let fresh = StreamController::new(
++        old.conversation.clone(),
++        old.session.clone(),
++        old.connection.clone(),
++        old.credential_snapshot().principal.as_ref().clone(),
++        old.policy.clone(),
++        old.adapter.clone(),
++        old.handles.clone(),
++        16,
++    )
++    .unwrap();
++    fresh
++        .change(
++            0,
++            &[desired(Medium::Audio)],
++            &BTreeSet::new(),
++            deadline(),
++            CancellationToken::new(),
++        )
++        .await
++        .unwrap();
++    s.controllers[1] = fresh;
++    assert_ne!(old_transport, s.port(1).binding().transport_id);
+     s.bind(1, false).await;
++    assert!(!(clock.is_current)());
++    let mut fresh_out = s.port(1).take_egress().unwrap();
++    s.publish_clocked_ms(
++        0,
++        2000,
++        160,
++        20,
++        Some(source_clock(
++            25,
++            8000,
++            0,
++            100u64 << 32,
++            Arc::new(std::sync::atomic::AtomicBool::new(true)),
++        )),
++    );
++    s.mixer.tick();
++    let fresh = mixed_frame(fresh_out.try_recv().unwrap()).await;
++    assert!((fresh.source_clock.unwrap().is_current)());
+     assert!(!(clock.is_current)());
+     drop(
+         s.policy

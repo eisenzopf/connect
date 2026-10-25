@@ -1099,6 +1099,16 @@
       "path": "patches/rvoip/gate6-mixer-source-clock-regression.patch",
       "sha256": "aee95bd1a288102a315fb389b8d6e1e9e6d3886edc0ee4a6dbd086f96c1e7db2",
       "source": "G6-050 controlled original capture-clock loss in guarded mixing; tests cover partial PCM, rate conversion, skipped/truncated samples, aligned/unaligned multiple sources, waiting reports and route retirement. Test-only phase."
+    },
+    {
+      "path": "patches/rvoip/gate6-preserve-mixed-source-clock.patch",
+      "sha256": "bd893a45541e97c77682085b428ff7ab6c0c288429d630697ba236d33c56b058",
+      "source": "G6-050 retain original RTP/NTP provenance through guarded PCM slicing, trimming, skipped quanta and nominal rate conversion. Preserve truthful aligned source timing in destination clock; waiting/unknown/unaligned mixes remain explicit. Weak route and all contributor liveness guard queued mappings; packet age and current authorization stay independent."
+    },
+    {
+      "path": "patches/rvoip/gate6-mixer-clock-rebind-fixture.patch",
+      "sha256": "28549e6d13b08923a84c8d454f0e009244de1c20028d3e27fb7fa3d70e6278e5",
+      "source": "G6-050 correct retired-target regression fixture: departure permanently retires its controller. Rebind a fresh controller with the same public IDs and non-reusing physical allocator, verify fresh clock delivery and nonrevival of held old metadata."
     }
   ]
 }

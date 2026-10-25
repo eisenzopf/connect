@@ -1,0 +1,261 @@
+--- a/crates/foundation/rvoip-core/src/staged_streams/guarded_audio.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/guarded_audio.rs
+@@ -161,15 +161,128 @@
+         })
+     }
+ }
++
++#[derive(Clone)]
++struct ClockPoint {
++    clock: Option<crate::stream::MediaSourceClock>,
++    start: Option<u64>,
++    supported: bool,
++}
++impl ClockPoint {
++    fn new(
++        frame: &MediaFrame,
++        consumed: usize,
++        source_rate: u32,
++        mix_rate: u32,
++        offset: usize,
++    ) -> Self {
++        let clock = frame.source_clock.clone();
++        let mut supported = clock.as_ref().is_some_and(|c| c.supported);
++        let start = clock.as_ref().and_then(|c| c.anchor).and_then(|anchor| {
++            if !supported || anchor.clock_rate != source_rate || source_rate == 0 || mix_rate == 0 {
++                supported = false;
++                return None;
++            }
++            let delta = frame
++                .timestamp_rtp
++                .wrapping_sub(clock.as_ref().unwrap().rtp_offset)
++                .wrapping_sub(anchor.rtp_time) as i32;
++            if delta == i32::MIN {
++                supported = false;
++                return None;
++            }
++            // Signed RTP wrap and rational PCM offsets use the original capture
++            // clock; wall time and packet age are intentionally unrelated.
++            let source = ((i128::from(delta) << 32).div_euclid(i128::from(source_rate))) as i64;
++            let samples =
++                ((consumed as i128 - offset as i128) << 32).div_euclid(i128::from(mix_rate));
++            let Ok(samples) = i64::try_from(samples) else {
++                supported = false;
++                return None;
++            };
++            Some(
++                anchor
++                    .ntp_time
++                    .wrapping_add_signed(source)
++                    .wrapping_add_signed(samples),
++            )
++        });
++        Self {
++            clock,
++            start,
++            supported,
++        }
++    }
++}
++fn mixed_clock(
++    points: Vec<ClockPoint>,
++    mix_rate: u32,
++    output_rate: u32,
++    timestamp: u32,
++    mixed_source: u128,
++    route: Arc<dyn Fn() -> bool + Send + Sync>,
++) -> Option<crate::stream::MediaSourceClock> {
++    let clocks = points
++        .iter()
++        .filter_map(|p| p.clock.clone())
++        .collect::<Vec<_>>();
++    let first = clocks.first()?.clone();
++    let one_source = points.len() == clocks.len()
++        && clocks
++            .iter()
++            .all(|c| c.source_id == first.source_id && c.generation == first.generation);
++    let mut supported = mix_rate > 0 && output_rate > 0 && points.iter().all(|p| p.supported);
++    let waiting = points.iter().any(|p| p.start.is_none());
++    let anchor = if supported && !waiting {
++        let base = points[0].start.unwrap();
++        let mut low = 0i64;
++        let mut high = 0i64;
++        for point in &points {
++            let delta = point.start.unwrap().wrapping_sub(base) as i64;
++            low = low.min(delta);
++            high = high.max(delta);
++        }
++        // Only source samples aligned within one mix sample have one truthful
++        // capture time. An unaligned/unknown mix retains provenance but cannot
++        // manufacture a sender report. Input alignment is a separate operation.
++        let tolerance = (1u64 << 32).div_ceil(u64::from(mix_rate));
++        if i128::from(high) - i128::from(low) > i128::from(tolerance) {
++            supported = false;
++            None
++        } else {
++            Some(crate::stream::MediaClockAnchor {
++                ntp_time: base.wrapping_add_signed(low),
++                rtp_time: timestamp,
++                clock_rate: output_rate,
++            })
++        }
++    } else {
++        None
++    };
++    Some(crate::stream::MediaSourceClock {
++        source_id: if one_source {
++            first.source_id
++        } else {
++            mixed_source
++        },
++        generation: if one_source { first.generation } else { 1 },
++        anchor,
++        supported,
++        rtp_offset: 0,
++        is_current: Arc::new(move || route() && clocks.iter().all(|c| (c.is_current)())),
++    })
++}
+ struct Chunk {
+     packet: MediaPacket,
+     started: bool,
++    consumed: usize,
+     samples: VecDeque<i16>,
+ }
+ struct Segment {
+     lease_index: usize,
+     offset: usize,
+     samples: Vec<i16>,
++    clock: ClockPoint,
+     origin: Contribution,
+     admitted_at: Instant,
+     deadline: tokio::time::Instant,
+@@ -192,6 +305,8 @@
+     ticks: u64,
+     target_started: Instant,
+     previous_sources: Vec<Contribution>,
++    clock_route: crate::clock_route::ClockRouteLease,
++    clock_source: u128,
+ }
+ impl AudioMember {
+     pub(crate) fn activate(&mut self, speaks: bool) {
+@@ -223,6 +338,8 @@
+         let changed = !Arc::ptr_eq(&port, &self.port);
+         let epoch = !self.ticket.is_current() || !self.stamp.is_current();
+         if changed || epoch {
++            self.clock_route = crate::clock_route::ClockRouteLease::new();
++            self.clock_source = uuid::Uuid::new_v4().as_u128();
+             let pt = port
+                 .state
+                 .lock()
+@@ -322,12 +439,14 @@
+                 .wrapping_add(decoded.clock_samples),
+         );
+         let mut samples = decoded.samples;
++        let mut consumed = 0;
+         // Keep at most ten chunks and200ms of PCM before inserting. Source RTP
+         // duration is measured before resampling, so fractional sample conversion
+         // and timestamp wrap cannot turn a contiguous packet into a false gap.
+         let maximum = self.consumer.mix_rate as usize / 5;
+         if samples.len() > maximum {
+-            samples.drain(..samples.len() - maximum);
++            consumed = samples.len() - maximum;
++            samples.drain(..consumed);
+         }
+         let budget = maximum - samples.len();
+         let mut count = self
+@@ -346,6 +465,7 @@
+                 (count - budget).min(first.samples.len())
+             };
+             first.samples.drain(..remove);
++            first.consumed += remove;
+             count -= remove;
+             if first.samples.is_empty() {
+                 self.pending.pop_front();
+@@ -358,6 +478,7 @@
+             self.pending.push_back(Chunk {
+                 packet,
+                 started: false,
++                consumed,
+                 samples: samples.into(),
+             });
+         }
+@@ -400,6 +521,7 @@
+             };
+             let amount = skip.min(chunk.samples.len());
+             chunk.samples.drain(..amount);
++            chunk.consumed += amount;
+             skip -= amount;
+             if chunk.samples.is_empty() {
+                 self.pending.pop_front();
+@@ -464,11 +586,20 @@
+             };
+             let amount = (size - offset).min(chunk.samples.len());
+             chunk.started = true;
++            let clock = ClockPoint::new(
++                &chunk.packet.frame,
++                chunk.consumed,
++                self.codecs.info.clock_rate_hz,
++                self.consumer.mix_rate,
++                offset,
++            );
++            chunk.consumed += amount;
+             let samples = chunk.samples.drain(..amount).collect();
+             segments.push(Segment {
+                 lease_index: leases.len(),
+                 offset,
+                 samples,
++                clock,
+                 origin: Contribution {
+                     source: chunk.packet.source.clone(),
+                     ticket: chunk.packet.ticket.clone(),
+@@ -576,6 +707,8 @@
+             next_input_timestamp: None,
+             ticks: 0,
+             previous_sources: Vec::new(),
++            clock_route: crate::clock_route::ClockRouteLease::new(),
++            clock_source: uuid::Uuid::new_v4().as_u128(),
+         })
+     }
+     pub(super) fn insert_registered(&self, id: ConnectionId, member: AudioMember) {
+@@ -627,6 +760,7 @@
+             let subscription = member.subscriptions.stamp();
+             let mut total = vec![0i32; (self.rate / 50) as usize];
+             let mut provenance = Vec::new();
++            let mut clocks = Vec::new();
+             let mut oldest = Instant::now();
+             let target_ticket = member.port.ticket();
+             let mut target_consumer = None;
+@@ -677,6 +811,7 @@
+                     for (index, sample) in segment.samples.iter().enumerate() {
+                         total[segment.offset + index] += i32::from(*sample);
+                     }
++                    clocks.push(segment.clock.clone());
+                     oldest = oldest.min(segment.admitted_at);
+                     // All retained source guards stay live through this tick,
+                     // so one current port/scene generation covers its chunks.
+@@ -742,6 +877,25 @@
+             ) else {
+                 continue;
+             };
++            let route = member.clock_route.predicate();
++            let clock_ticket = target_ticket.clone();
++            let clock_consumer = target_consumer.clone();
++            let clock_subscription = subscription.clone();
++            frame.source_clock = mixed_clock(
++                clocks,
++                self.rate,
++                member.codecs.info.clock_rate_hz,
++                timestamp,
++                member.clock_source,
++                Arc::new(move || {
++                    route()
++                        && clock_ticket.is_current()
++                        && clock_consumer
++                            .as_ref()
++                            .is_none_or(ConsumerStamp::is_current)
++                        && clock_subscription.is_current()
++                }),
++            );
+             frame.stream_id = member.port.binding.transport_id.clone();
+             if tokio::time::Instant::now() >= bound {
+                 continue;
