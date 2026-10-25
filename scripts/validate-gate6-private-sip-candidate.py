@@ -12,6 +12,7 @@ ROOT = Path(__file__).resolve().parents[1]
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('captures', nargs=2, type=Path)
+    parser.add_argument('--require-pending-return', action='store_true')
     args = parser.parse_args()
     rows = []
     digests = {}
@@ -100,6 +101,37 @@ def main():
         assert set(returned['result']['retained_connection_ids']) == {native['connection_id'], remote}
         assert returned['result']['retired_connection_ids'] == [row['connection']]
         assert len(returned['effects']) == 1 and returned['effects'][0]['attempt'] == 1
+        assert ('pending_return' in row) == args.require_pending_return
+        if args.require_pending_return:
+            tail = row['pending_return']
+            stopped = tail['stopped']
+            operation.validate(stopped)
+            assert stopped['state'] == 'unknown' and tail['replay_preserved'] is True
+            summary = stopped['problem']['signal']
+            assert summary['local_work_complete'] is True
+            assert len(summary['recipients']) == 1
+            assert summary['recipients'][0]['connection_id'] == row['connection']
+            assert summary['recipients'][0]['disposition'] == 'outcome_unknown'
+            assert tail['original_target_rows'] == 1
+            assert 0 < tail['private_info_prefix_count'] < tail['scheduled_digits'] == 16
+            assert tail['tail_quiet_ms'] == 2200 and tail['post_return_private_or_public_tail_count'] == 0
+            assert len(tail['private_prefix_call_ids']) == tail['private_info_prefix_count']
+            assert set(tail['private_prefix_call_ids']) == {row['call']}
+            fresh = tail['fresh']
+            operation.validate(fresh)
+            assert fresh['state'] == 'completed'
+            assert {r['connection_id'] for r in fresh['result']['recipients']} == {remote, row['public'][0]}
+            assert all(r['disposition'] == 'local_submitted' for r in fresh['result']['recipients'])
+            assert tail['fresh_info_call_id'] == row['public'][2]
+            frame = tail['fresh_frame']
+            envelope.validate(frame)
+            assert frame['type'] == 'dtmf.received' and frame['signature']['alg'] == row['algorithm']
+            assert frame['cid'] == row['conversation_id'] and frame['sid'] == 'native-session'
+            assert frame['connid'] == remote and frame['operation_id'] == fresh['operation_id']
+            assert frame['payload']['digits'] == '6' and frame['id'] not in seen
+            assert frame['payload']['source'] == 'uctp-native' and frame['payload']['duration_ms'] == 100
+            seen.add(frame['id'])
+            actual_frames += 1
         restored = row['restored_status']
         operation.validate(restored)
         assert restored['state'] == 'completed'
@@ -117,7 +149,7 @@ def main():
             actual_frames += 1
         assert {f['connid'] for f in row['restored_frames']} == {native['connection_id'], remote}
     print(json.dumps({'passed': True, 'scenes': 2, 'actual_frames': actual_frames,
-                      'captures_sha256': digests, 'schema_sha256': hashlib.sha256(schema_path.read_bytes()).hexdigest(),
+                      'pending_return_profiles': args.require_pending_return, 'captures_sha256': digests, 'schema_sha256': hashlib.sha256(schema_path.read_bytes()).hexdigest(),
                       'scope': 'Actual isolated local Human SIP candidate and native primary; SDK verifies signatures, runtime checks decoded duplex media, physical public sibling privacy, named signal rights/recovery/replay, expired admission/revoked controller continuity and original call return/absence. Other roles and provider profiles remain separate.'}))
 
 

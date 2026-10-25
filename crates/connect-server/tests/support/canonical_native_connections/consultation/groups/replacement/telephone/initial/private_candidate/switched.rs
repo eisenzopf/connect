@@ -3,6 +3,8 @@ use super::super::super::received::privacy::{settled, signal};
 use super::super::super::received::{send_info, send_rfc};
 use super::*;
 use rvoip_uctp::v2::Scope as WireScope;
+#[path = "return_tail.rs"]
+mod return_tail;
 
 pub(super) async fn exercise(
     f: &Fixture,
@@ -14,6 +16,7 @@ pub(super) async fn exercise(
     mut observed: Value,
     public_media: Option<std::net::SocketAddr>,
     public_dialog: Option<Dialog>,
+    pending_signal: bool,
 ) {
     let db = rusqlite::Connection::open_with_flags(
         &f.config.database,
@@ -273,6 +276,22 @@ pub(super) async fn exercise(
     let mut cfg = canonical_http_config(f);
     cfg.credential = key.token;
     let mut returning = CanonicalHttpClient::open(cfg).await.unwrap();
+    let pending = if pending_signal {
+        Some(
+            return_tail::begin(
+                f,
+                peer,
+                clients,
+                &cid,
+                &phone,
+                observed["call"].as_str().unwrap(),
+                public_dialog.clone().unwrap(),
+            )
+            .await,
+        )
+    } else {
+        None
+    };
     let return_command = TransitionCommand {
         operation_id: "return-original-private-sip-candidate".into(),
         conversation_id: cid.clone(),
@@ -299,6 +318,21 @@ pub(super) async fn exercise(
     );
     assert!(db.query_row("SELECT a.retired_at IS NOT NULL AND c.state='retired' FROM initial_telephone_answers a JOIN operations o ON o.record_id=a.operation_record_id JOIN connections c ON c.id=o.connection_id WHERE o.record_id=?1",[&child],|r|r.get::<_,bool>(0)).unwrap());
     assert!(db.query_row("SELECT a.retired_at IS NULL AND c.state IN ('ready','active') FROM initial_telephone_answers a JOIN operations o ON o.record_id=a.operation_record_id JOIN connections c ON c.id=o.connection_id WHERE c.id=?1",[&public],|r|r.get::<_,bool>(0)).unwrap());
+    if let Some(pending) = pending {
+        observed["pending_return"] = return_tail::finish(
+            f,
+            peer,
+            clients,
+            &mut primary_status,
+            &cid,
+            &phone,
+            &public,
+            observed["call"].as_str().unwrap(),
+            observed["public"][2].as_str().unwrap(),
+            pending,
+        )
+        .await;
+    }
     let before_replay: u64 = db
         .query_row("SELECT count(*) FROM received_dtmf_sources", [], |r| {
             r.get(0)

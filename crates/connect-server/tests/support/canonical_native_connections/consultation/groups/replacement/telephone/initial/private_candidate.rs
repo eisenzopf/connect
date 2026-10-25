@@ -25,6 +25,15 @@ async fn production_private_sip_candidate_switch_preserves_original_call_and_pub
     exercise("ES256", true).await;
 }
 
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn production_private_sip_candidate_return_stops_pending_info_tail_eddsa() {
+    exercise_profile("EdDSA", true, true).await;
+}
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn production_private_sip_candidate_return_stops_pending_info_tail_es256() {
+    exercise_profile("ES256", true, true).await;
+}
+
 async fn observe_marked(clients: &mut [Peer], duration: Duration) -> Vec<usize> {
     let until = tokio::time::Instant::now() + duration;
     let mut counts = vec![0; clients.len()];
@@ -83,6 +92,10 @@ async fn marked(peer: &PeerSip, clients: &mut [Peer]) -> Vec<usize> {
 }
 
 async fn exercise(algorithm: &str, complete: bool) {
+    exercise_profile(algorithm, complete, false).await;
+}
+
+async fn exercise_profile(algorithm: &str, complete: bool, pending_signal: bool) {
     let ConfiguredInitial { f, peer, .. } = if complete {
         configured_initial_human(algorithm).await
     } else {
@@ -293,6 +306,7 @@ async fn exercise(algorithm: &str, complete: bool) {
             observed,
             public_media,
             public_dialog,
+            pending_signal,
         )
         .await;
         drop(db);

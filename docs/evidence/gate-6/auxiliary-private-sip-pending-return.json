@@ -1,0 +1,213 @@
+{
+  "task": "G6-046",
+  "recorded_at": "2026-10-25T00:06:29.900140+00:00",
+  "status": "new-pending-private-info-return-es256-runtime-passes-eddsa-media-setup-fails",
+  "full_task_complete": false,
+  "full_goal_complete": false,
+  "newly_qualified_case_ids": [],
+  "scope": "Actual original private SIP candidate/native primary with unfinished INFO schedule at return; complete existing Human media/rights/replay/expiry/revoked-controller checks retained. No product behavior changed.",
+  "implementation": {
+    "cases": [
+      "production_private_sip_candidate_return_stops_pending_info_tail_eddsa",
+      "production_private_sip_candidate_return_stops_pending_info_tail_es256"
+    ],
+    "source": "crates/connect-server/tests/support/canonical_native_connections/consultation/groups/replacement/telephone/initial/private_candidate/return_tail.rs",
+    "validator": "scripts/validate-gate6-private-sip-candidate.py --require-pending-return",
+    "behavior": "Observe an actual INFO prefix of a legal16-digit1000ms sequence and its attempted/unsettled exact original SIP target. Return captures original private absence; stopped schedule keeps Unknown original target and exact replay. Cross2200ms with no suffix/native/public leak, then fresh signal reaches only original public SIP sibling and retained native peer. Restore saved public dialog before its actual recovery INFO response."
+  },
+  "verification": {
+    "attempts": {
+      "025": {
+        "summary": ".local/gate-6/private-sip-primary/private-tail128-runtime-025/summary.json",
+        "summary_sha256": "931067aa1f99d727e5f3e3ec326352da2167d318a2175d4782d7e9549c472f84",
+        "passed": false,
+        "source_inputs_unchanged": true,
+        "executable_unchanged": true,
+        "profiles": [
+          {
+            "source_kind": "private-initial-sip",
+            "algorithm": "EdDSA",
+            "runtime_exit_code": 101,
+            "passed": false
+          },
+          {
+            "source_kind": "private-initial-sip",
+            "algorithm": "ES256",
+            "runtime_exit_code": 101,
+            "passed": false
+          }
+        ]
+      },
+      "026": {
+        "summary": ".local/gate-6/private-sip-primary/private-tail128-runtime-026/summary.json",
+        "summary_sha256": "7ed0463c2de5b09ff9555c3bf0b0533754d171381c1cc510b47299a547834ef2",
+        "passed": false,
+        "source_inputs_unchanged": true,
+        "executable_unchanged": true,
+        "profiles": [
+          {
+            "source_kind": "private-initial-sip",
+            "algorithm": "EdDSA",
+            "runtime_exit_code": 101,
+            "passed": false
+          },
+          {
+            "source_kind": "private-initial-sip",
+            "algorithm": "ES256",
+            "runtime_exit_code": 101,
+            "passed": false
+          }
+        ]
+      },
+      "027": {
+        "summary": ".local/gate-6/private-sip-primary/private-tail128-runtime-027/summary.json",
+        "summary_sha256": "6e6edaa4e59eb0bca7405c68b05de17bd56854bff2ff41f7f9f4c71a4dd8c9e2",
+        "passed": false,
+        "source_inputs_unchanged": true,
+        "executable_unchanged": null,
+        "profiles": []
+      },
+      "028": {
+        "summary": ".local/gate-6/private-sip-primary/private-tail128-runtime-028/summary.json",
+        "summary_sha256": "dfdc422983ff7736d1ba99d7f20e7c8d18daf6a7e345cf2591c373211b2a6c1e",
+        "passed": false,
+        "source_inputs_unchanged": true,
+        "executable_unchanged": true,
+        "profiles": [
+          {
+            "source_kind": "private-initial-sip",
+            "algorithm": "EdDSA",
+            "runtime_exit_code": 101,
+            "passed": false
+          },
+          {
+            "source_kind": "private-initial-sip",
+            "algorithm": "ES256",
+            "runtime_exit_code": 0,
+            "passed": true,
+            "capture_sha256": "d9ef8c789647ce36e7ee08bdefe6d3ed47524bc1e69f67f8b9a49853897cd5fa"
+          }
+        ]
+      }
+    },
+    "es256_runtime_observation": {
+      "capture_sha256": "d9ef8c789647ce36e7ee08bdefe6d3ed47524bc1e69f67f8b9a49853897cd5fa",
+      "pending_return": {
+        "fresh": {
+          "operation_id": "private-sip-fresh-public-after-stopped-tail",
+          "record_id": "opr_e85db320-e496-4ad8-a20e-8871022d7f1e",
+          "result": {
+            "connection_id": "private-primary",
+            "local_submission_only": true,
+            "local_work_complete": true,
+            "received_at": "2026-10-25T00:05:54.730161Z",
+            "recipients": [
+              {
+                "connection_id": "private-held",
+                "disposition": "local_submitted",
+                "frame_id": "dtmf_d72214adf61740bda2387437cc588e3c",
+                "generation": 1,
+                "membership_epoch": 1,
+                "participant_id": "part_cd8f1f49-6624-4e85-a56b-39cb64a2798b"
+              },
+              {
+                "connection_id": "conn_aa35f902-8c6b-44ac-987b-143d73a5be54",
+                "disposition": "local_submitted",
+                "frame_id": "dtmfg_41198e7e1506411e914dfcc724718e52",
+                "generation": 1,
+                "membership_epoch": 1,
+                "participant_id": "part_340c590c89fa6a0c6d1c9f7401627be2"
+              }
+            ],
+            "resources_changed": false,
+            "signal_source": "uctp-native",
+            "source_observation_id": "env_e2b0ff5a2f2d433ab1e5928278c05bdb",
+            "stream_revision": 4
+          },
+          "revision": 5,
+          "state": "completed"
+        },
+        "fresh_frame": {
+          "cid": "conv_e2cf737d69044f33a75155ccb6a10424",
+          "connid": "private-held",
+          "id": "dtmf_d72214adf61740bda2387437cc588e3c",
+          "operation_id": "private-sip-fresh-public-after-stopped-tail",
+          "payload": {
+            "digits": "6",
+            "duration_ms": 100,
+            "received_at": "2026-10-25T00:05:54.730161Z",
+            "source": "uctp-native"
+          },
+          "sid": "native-session",
+          "signature": {
+            "alg": "ES256",
+            "keyid": "canonical-server",
+            "sig": "TalidI3OXbI3ZdApCuH5GhUZmZVmWcmRRVNho06zBFxv_n5fddHcEFHTSW4Gjc5cVIDvex6myfvnbptBYz4zpg"
+          },
+          "ts": "2026-10-25T00:05:54.745708Z",
+          "type": "dtmf.received",
+          "v": 2
+        },
+        "fresh_info_call_id": "session-4029362b-d76a-4f95-b877-c8d4dd4b2190@rvoip-sip",
+        "original_target_rows": 1,
+        "post_return_private_or_public_tail_count": 0,
+        "private_info_prefix_count": 1,
+        "private_prefix_call_ids": [
+          "session-05a5e2e2-9c0e-427f-97a6-e27b7f8f56ef@rvoip-sip"
+        ],
+        "replay_preserved": true,
+        "scheduled_digits": 16,
+        "stopped": {
+          "operation_id": "private-sip-pending-at-return",
+          "problem": {
+            "code": "signal-outcome-unknown",
+            "message": "DTMF local submission outcome is uncertain",
+            "signal": {
+              "connection_id": "private-primary",
+              "local_submission_only": true,
+              "local_work_complete": true,
+              "received_at": "2026-10-25T00:05:51.806970Z",
+              "recipients": [
+                {
+                  "connection_id": "conn_3c7150f1-cd9e-477c-81cb-0c274e4bfcc4",
+                  "disposition": "outcome_unknown",
+                  "frame_id": "dtmfg_1b23780e67fe4cd19569a318712ae50b",
+                  "generation": 1,
+                  "membership_epoch": 1,
+                  "participant_id": "part_340c590c89fa6a0c6d1c9f7401627be2"
+                }
+              ],
+              "resources_changed": false,
+              "signal_source": "uctp-native",
+              "source_observation_id": "env_c34f2b5d97a64f4885a5c4e6b0cf5934",
+              "stream_revision": 3
+            }
+          },
+          "record_id": "opr_1e7de7b4-830a-4e8d-8044-caa889acf2a0",
+          "revision": 3,
+          "state": "unknown"
+        },
+        "tail_quiet_ms": 2200
+      },
+      "admission_expired": true,
+      "controller_revoked": true,
+      "distinct_sip_calls": 2
+    },
+    "combined_validator": "not-run; requires both actual successful captures",
+    "validator_baseline": {
+      "path": ".local/gate-6/received-dtmf-runtime/private-tail128-validator-baseline.log",
+      "sha256": "2a448ade2a7029b58c30e5227999bcd165fa88b1b473c8caa25f15e18c95d421"
+    }
+  },
+  "attempt_findings": {
+    "025": "Fixture32x1000ms+gaps exceeds existing30sec bound, rejected locally before IO; corrected to16 without changing product limits.",
+    "026": "Private schedule actually stops OutcomeUnknown at return and2200ms quiet passes. Later fresh-public recovery fails because the single peer still expects private Call-ID; corrected by restoring saved public dialog at recovery, not changing routing.",
+    "027": "Compile-only failed attempt while adding the explicit saved dialog argument; corrected call site. No runtime pass.",
+    "028": "ES256 entire new profile passes. EdDSA stops before pending signal at existing private_counts[1]>10 media setup assertion. No media threshold/duration changed; actual counts were not in that panic. Full current integration plus packet capture is next."
+  },
+  "remaining": [
+    "Run current complete default-feature native/SIP DTMF cases and captured schema validators serially. Diagnose any current media/IO failures with actual packet observations.",
+    "Require both pending-return algorithm captures and validation before qualifying the new combined profile.",
+    "Close G6-046 only after all61 assigned service behaviors have evidence; later browser/remote/independent-conformance tasks retain the approved dependency graph and overall105-task goal."
+  ]
+}
