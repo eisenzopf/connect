@@ -1,0 +1,132 @@
+{
+  "schema": "connect-gate6-sdk-contract-outlines/1",
+  "task": "G6-059",
+  "passed": true,
+  "scope": "Declaration-only target contract; Rust, browser/Node TypeScript, Python static outlines and six negative constraints per compiler target. No SDK runtime, package, media, transport or acceptance qualification.",
+  "candidate_finalized": false,
+  "versions": {
+    "typescript": "Version 7.0.2",
+    "rustc": "rustc 1.97.1 (8bab26f4f 2026-07-14)",
+    "python": "3.14.7",
+    "python_typecheck_target": "3.12",
+    "mypy": "2.4.0"
+  },
+  "negative_diagnostics": {
+    "browser": [
+      "TS2322",
+      "TS2322",
+      "TS2322",
+      "TS2741",
+      "TS2339",
+      "TS2322"
+    ],
+    "node": [
+      "TS2322",
+      "TS2322",
+      "TS2322",
+      "TS2741",
+      "TS2339",
+      "TS2322"
+    ],
+    "python": [
+      "assignment",
+      "assignment",
+      "call-arg",
+      "call-arg",
+      "attr-defined",
+      "arg-type"
+    ],
+    "rust": [
+      "E0308",
+      "E0308",
+      "E0061",
+      "E0063",
+      "E0599",
+      "E0277"
+    ]
+  },
+  "inputs_sha256": {
+    "contracts/sdk-api/README.md": "763c089464e7e90f378a4918d701a16bfd3ae73d1c05801c3daf9d425e0019cf",
+    "contracts/sdk-api/python/contract.py": "e8f184c216417ee944c38816fb9962b78cfba392243428c08024080a4dc53fe8",
+    "contracts/sdk-api/python/negative.py": "1d532cadbf1738c5aed643ac2dcacf60914f60f6abcaf715b75c6543e367c5d0",
+    "contracts/sdk-api/python/outline.py": "34c8daa357acaa46df01529c360ef872da6220a7c9bd3b4d34530875d9e66731",
+    "contracts/sdk-api/rust/contract.rs": "be9959ec1119f1a3854355d8ff3536f887e5bcabea1a6bf7dd254a6ade944f37",
+    "contracts/sdk-api/rust/negative.rs": "26f949a3401e53c25d9a649df79559e99e705e4ed3c8bea14dd7fbfa2bc7f97c",
+    "contracts/sdk-api/rust/outline.rs": "00815e2a36114a7285413dd7a36c3a6f097ccc957d5f5f537894589f5ff3d5c0",
+    "contracts/sdk-api/typescript/browser.tsconfig.json": "0bbb4b46d4a74fbd787a13c85e60459e6054db4f261ad62a97c39fae4e7bcc37",
+    "contracts/sdk-api/typescript/contract.ts": "d2d227edb0ed7b64ad16afee461fa421228f6fd9780b900fa302269ca2060f27",
+    "contracts/sdk-api/typescript/negative.ts": "284001c2bf193ae72ee1713d541a7a29d8d740df13ce9eda4681ce78d80f156f",
+    "contracts/sdk-api/typescript/node.tsconfig.json": "8758e6bdb14d4ba1f11ee54d05a28c29047347fcb5e1fd152e7073fbde5f14b5",
+    "contracts/sdk-api/typescript/outline.ts": "4406c01ff2e9eba3621302817de832808f49bafe8aaf71656d72daaad7f8db0b",
+    "scripts/check-gate6-sdk-outlines.py": "81ba901fceb7abb65c6953b817be991c96a045e9b20783aa1a8433ab51578d0a",
+    "scripts/format.sh": "23e20b1cdaa1eee1546aee02bcf81102e4d608a524f0fc59f8f7c4c65d7c1209",
+    "sdk/typescript/package-lock.json": "35956072de727d1e262cd6ac07428ebafb75f1c32b5b16969cf640a11122d1af"
+  },
+  "inputs_unchanged": true,
+  "checked_at": "2026-10-25T20:58:10.607978+00:00",
+  "verification": {
+    "report": ".local/gate-6/sdk-contract/outlines-03/summary.json",
+    "sha256": "69b2d6d4ea10cfb18b678f289b21598fe954b872316a93ad87c97352707e26f7",
+    "checks": [
+      {
+        "name": "tsc-version",
+        "exit": 0,
+        "log_sha256": "41024334022fa58f9c7337359517de307cbcfc6055c19f2b734245eacc2fe97a"
+      },
+      {
+        "name": "rustc-version",
+        "exit": 0,
+        "log_sha256": "4ad84f16acc2f3bdcfbc7b0788f1e74a4e649b962154a585b8f8d0b28eb0dd06"
+      },
+      {
+        "name": "format",
+        "exit": 0,
+        "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "name": "browser-positive",
+        "exit": 0,
+        "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "name": "node-positive",
+        "exit": 0,
+        "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "name": "python-positive",
+        "exit": 0,
+        "log_sha256": "8228fcc5ce46d42d01caf3cd941f4e9c5f2bcc372bb5b147a2f0572d2dd675a8"
+      },
+      {
+        "name": "rust-positive",
+        "exit": 0,
+        "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "name": "browser-negative",
+        "exit": 1,
+        "log_sha256": "42c1eeab9ced9909e3dd11c3fd854878580e297ceff476d597419edd87953fbc"
+      },
+      {
+        "name": "node-negative",
+        "exit": 1,
+        "log_sha256": "42c1eeab9ced9909e3dd11c3fd854878580e297ceff476d597419edd87953fbc"
+      },
+      {
+        "name": "python-negative",
+        "exit": 1,
+        "log_sha256": "46a86e6b454f7ae8f64363ec0a6d7204ab09b9bdebc2f041595d8fcaa3bbe92f"
+      },
+      {
+        "name": "rust-negative",
+        "exit": 1,
+        "log_sha256": "506553317eb72f3b768c7dfbbca93aab8c237093b4b319806d3e5d7d201b0327"
+      }
+    ]
+  },
+  "remaining": [
+    "Final authoritative inventory, method/input/result, current wire-scope and role review; contract stays candidate-under-review.",
+    "SDK runtime implementation/parity and all acceptance qualification remain separate."
+  ]
+}

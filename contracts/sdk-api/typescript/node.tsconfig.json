@@ -1,0 +1,15 @@
+{
+  "compilerOptions": {
+    "target": "ES2023",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "strict": true,
+    "exactOptionalPropertyTypes": true,
+    "noEmit": true,
+    "lib": ["ES2023"],
+    "types": ["node"],
+    "typeRoots": ["../../../sdk/typescript/node_modules/@types"],
+    "skipLibCheck": false
+  },
+  "files": ["contract.ts", "outline.ts", "negative.ts"]
+}
