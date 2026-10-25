@@ -255,4 +255,14 @@ The explicit `--native` option adds four short browser/public `CanonicalClient` 
 
 Retained-selector reconciliation preserves the exact engine error as well as success while journal recording retries. A metadata-only observer cannot reenter the engine. For an unchanged-resource atomic routing failure, the adapter can issue an opaque proof of no graph commit, bound to the original scope, operation and error. The host records that original failed attempt before freeing its pending parent; later work requires fresh current authority. Possible native-resource IO failures retain uncertainty and their original logical identity. Operation status, including the canonical HTTP operation query, reports the captured failed/unknown outcome; neither status nor this historical proof authorizes media. The isolated six-method/239-Store evidence is in `docs/evidence/gate-6/browser-client-reconciliation-outcomes.json`; current host checks pass all eight short browser baseline, four native and 28 transport methods. Sustained audio delivery, A/V alignment and impairment remain unresolved.
 
-Managed audio mixes at 48 kHz and preserves consecutive original RTP intervals when packets arrive together. Its decoded PCM queue holds at most 200 ms in ten chunks. Each output still checks current source permission and the original packet age and route; pauses and expired inputs cannot become delayed playback. Overlapping replacement packets keep the existing newest-input behavior. The 71 focused mixer and scene tests is in `docs/evidence/gate-6/browser-client-original-pcm.json`; current host delivery and A/V alignment require their separate runtime checks.
+Managed audio mixes at 48 kHz and preserves consecutive original RTP intervals when packets arrive together. Its decoded PCM queue holds at most 200 ms in ten chunks. Each output still checks current source permission and the original packet age and route; pauses and expired inputs cannot become delayed playback. Overlapping replacement packets keep the existing newest-input behavior. Evidence from the 71 focused mixer and scene tests is in `docs/evidence/gate-6/browser-client-original-pcm.json`; current host delivery and A/V alignment require their separate runtime checks.
+
+For bounded server packet-age diagnostics, select one capture method with
+`--diagnostic60 --packet-trace summary --case <capture-method>`. This uses the
+same 60-second source and observer, but records a diagnostic result separately
+from `--clean60`. The summary caps metadata buckets at 128, seconds at 121 and
+age histograms at 21 bins; it writes once on test-guard drop and reports dropped
+events. It includes setup and teardown and cannot prove complete IO or cleanup.
+The current diagnostic reproduces sustained audio failure with queued server
+audio near its original 200 ms expiry; browser queues average 11–30 ms. See
+`docs/evidence/gate-6/browser-client-audio-age.json`.

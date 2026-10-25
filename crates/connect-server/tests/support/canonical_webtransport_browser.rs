@@ -10,6 +10,8 @@ use tokio_util::sync::CancellationToken;
 
 #[path = "canonical_webtransport_browser_native.rs"]
 mod native_actor;
+#[path = "canonical_webtransport_browser_trace.rs"]
+mod packet_trace;
 struct OwnedNative(Option<tokio::task::JoinHandle<Value>>);
 impl Drop for OwnedNative {
     fn drop(&mut self) {
@@ -279,7 +281,10 @@ async fn browser_profile_mode(
     capture_media: bool,
     native_media: bool,
 ) {
-    if media && std::env::var_os("CONNECT_GATE6_PACKET_TRACE").is_some() {
+    let trace_mode = std::env::var("CONNECT_GATE6_PACKET_TRACE").ok();
+    let _summary = (media && trace_mode.as_deref() == Some("summary"))
+        .then(|| packet_trace::Summary::install(algorithm));
+    if media && trace_mode.is_some() && trace_mode.as_deref() != Some("summary") {
         let filter = match std::env::var("CONNECT_GATE6_PACKET_TRACE").as_deref() {
             Ok("audio") => "rvoip_core::audio_path=trace,connect_service::canonical_native_streams=debug",
             Ok("policy") => "connect_service::canonical_packet=trace,connect_service::canonical_native_streams=debug",

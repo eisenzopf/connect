@@ -44,12 +44,15 @@ def main():
     parser.add_argument('--capture', action='store_true', help='Also run actual supplied-stream capture/worklet and decoded audio/canvas rendering over WT, alongside the media cases. No personal devices are opened.')
     parser.add_argument('--native', action='store_true', help='Also run actual public CanonicalClient QUIC/browser WT duplex Opus/VP8/reliable data with independently decoded native received packets. Native live encode/playout/full operating qualification remains separate.')
     parser.add_argument('--clean60', action='store_true', help='Capture cases use the frozen60second clean profile with>=24decoded/rendered fps,>=42uniquely paired audio-graph/video markers, median<=80ms/p95<=120ms and separate owned-process observations.')
+    parser.add_argument('--diagnostic60', action='store_true', help='Single capture method uses the same60second source/observer with bounded packet summaries; diagnostic only, never frozen clean qualification. Requires --packet-trace summary.')
     parser.add_argument('--case', choices=CASES + MEDIA + CAPTURE + NATIVE, help='Explicit single-method diagnostic scope; does not qualify the omitted matrix.')
-    parser.add_argument('--packet-trace', nargs='?', const='all', choices=('all', 'policy', 'audio'), help='Record scoped all/policy/audio packet metadata under private raw logs; diagnostic overhead is not performance qualification. The default all scope includes SQL custody.')
+    parser.add_argument('--packet-trace', nargs='?', const='all', choices=('all', 'policy', 'audio', 'summary'), help='Record scoped all/policy/audio metadata or bounded summary counters under private raw logs; diagnostic overhead is not performance qualification. The default all scope includes SQL custody; summary avoids per-packet log IO.')
     args = parser.parse_args()
+    if args.diagnostic60 and (args.clean60 or args.native or args.case not in CAPTURE or args.packet_trace != 'summary'):
+        parser.error('Select one capture method with --packet-trace summary and no clean60/native qualification flags')
     if args.clean60 and (args.native or args.packet_trace or args.case and args.case not in CAPTURE):
         parser.error('Select clean60 capture methods without diagnostic packet tracing')
-    args.capture = args.capture or args.clean60
+    args.capture = args.capture or args.clean60 or args.diagnostic60
     args.native = args.native or args.case in NATIVE
     selected = [args.case] if args.case else CASES + (MEDIA if args.media or args.capture else []) + (CAPTURE if args.capture else []) + (NATIVE if args.native else [])
     directory = args.output.resolve()
@@ -62,11 +65,11 @@ def main():
         env.pop(flag, None)
     if args.packet_trace:
         env['CONNECT_GATE6_PACKET_TRACE'] = args.packet_trace
-    if args.clean60:
+    if args.clean60 or args.diagnostic60:
         env['CONNECT_GATE6_BROWSER_CLEAN60'] = '1'
     report = dict(passed=False, started_at=datetime.datetime.now(datetime.timezone.utc).isoformat(), host=platform.platform(),
                   source_revision=subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=ROOT, text=True).strip(),
-                  scope='Actual production TypeScript canonical control in owned Chrome. Exact selected methods are recorded; a single diagnostic method does not qualify the omitted matrix. Optional media selects short synthetic source over SDK/WT/Store/Core with identified Opus/VP8/data and durable teardown. Optional capture selects supplied-stream capture/worklet and decoded audio/canvas rendering. Explicit clean60 applies frozen fps/paired graph-canvas marker limits and resource observations only to capture methods. Packet tracing is diagnostic. Optional native cases use public CanonicalClient QUIC and independently decode actual native received packets. No native live encoder/realtime presenter/full60second-native/impairment/remote/provider/complete G6-050/acceptance/publication claim.', media_selected=args.media or args.capture, capture_selected=args.capture, native_selected=args.native, clean60_selected=args.clean60, selected=selected, packet_trace=args.packet_trace, steps=[], cases=[])
+                  scope='Actual production TypeScript canonical control in owned Chrome. Exact selected methods are recorded; a single diagnostic method does not qualify the omitted matrix. Optional media selects short synthetic source over SDK/WT/Store/Core with identified Opus/VP8/data and durable teardown. Optional capture selects supplied-stream capture/worklet and decoded audio/canvas rendering. Explicit clean60 applies frozen fps/paired graph-canvas marker limits and resource observations only to capture methods. Packet tracing and diagnostic60 are diagnostic only and never qualify the frozen clean profile. Optional native cases use public CanonicalClient QUIC and independently decode actual native received packets. No native live encoder/realtime presenter/full60second-native/impairment/remote/provider/complete G6-050/acceptance/publication claim.', media_selected=args.media or args.capture, capture_selected=args.capture, native_selected=args.native, clean60_selected=args.clean60, diagnostic60_selected=args.diagnostic60, selected=selected, packet_trace=args.packet_trace, steps=[], cases=[])
 
     def step(name, command, json_output=False):
         start = time.monotonic()
@@ -110,7 +113,7 @@ def main():
             resources = None
             with logpath.open('w') as log:
                 process = subprocess.Popen([str(sealed), case, '--exact', '--ignored', '--test-threads=1', '--nocapture'], cwd=ROOT, env=env, stdout=log, stderr=subprocess.STDOUT, start_new_session=True)
-                sampler = ResourceSampler(process.pid) if args.clean60 and case in CAPTURE else None
+                sampler = ResourceSampler(process.pid) if (args.clean60 or args.diagnostic60) and case in CAPTURE else None
                 try:
                     code = process.wait(timeout=120)
                 except subprocess.TimeoutExpired:

@@ -104,7 +104,7 @@ export async function run(config){
     check(errors.length===0,'actual SDK media failure: '+errors.join('; '));
     const observedAudio=measurement.opus,observedVideo=measurement.vp8,minimumAudio=clean60?Math.ceil(measurement.elapsed_ms*.0375):150,minimumVideo=clean60?Math.ceil(measurement.elapsed_ms*.024):90;
     for(let i=0;i<2;i++){
-      check(observedAudio[i].identified>=minimumAudio,'actual decoded Opus insufficient '+JSON.stringify({audio:observedAudio,video:observedVideo,metrics:peers.map(p=>({aggregate:p.diagnostics,routes:p.routeDiagnostics})),accepted,readiness_ms}));
+      check(observedAudio[i].identified>=minimumAudio,'actual decoded Opus insufficient '+JSON.stringify({audio:observedAudio,video:observedVideo,metrics:peers.map(p=>({aggregate:p.diagnostics,routes:p.routeDiagnostics})),accepted,readiness_ms,playback,measured_ms:measurement.elapsed_ms}));
       check(observedVideo[i].identified>=minimumVideo&&observedVideo[i].motion>=40,'actual rendered VP8 motion insufficient '+JSON.stringify({video:observedVideo,metrics:peers.map(p=>({aggregate:p.diagnostics,routes:p.routeDiagnostics})),readiness_ms}));
       check(data[i].length===3,'actual reliable data count');
       const other=1-i;for(const message of data[i]){

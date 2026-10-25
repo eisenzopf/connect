@@ -1,0 +1,587 @@
+{
+  "schema": "connect-gate6-audio-age/1",
+  "task": "G6-050",
+  "status": "Diagnostic reproduces sustained audio failure; server queued audio approaches original expiry",
+  "candidate_revision": "6cfb24b4ac789628f56a71c9318c4ba2820cdbdd",
+  "report": {
+    "path": ".local/gate-6/browser-sdk/audio-summary058/summary.json",
+    "sha256": "00464d2264f1557891a499d68e88fe279f467e27e3ed090e6d9a1fd9771fbbb9",
+    "passed": false,
+    "source_inputs_unchanged": true,
+    "executable_unchanged": true,
+    "case": "canonical_webtransport_browser::installed_chrome_production_sdk_captured_duplex_opus_vp8_and_reliable_data_eddsa",
+    "exit_code": 101,
+    "log_sha256": "3ca027fc5f2deb0a2f178a796c7708049fc31db38fa8322e831ed98f6a05a616"
+  },
+  "measurement": {
+    "audio": [
+      {
+        "decoded": 1518,
+        "identified": 1487
+      },
+      {
+        "decoded": 2974,
+        "identified": 2961
+      }
+    ],
+    "video": [
+      {
+        "decoded": 1730,
+        "identified": 1730,
+        "motion": 608
+      },
+      {
+        "decoded": 1747,
+        "identified": 1747,
+        "motion": 608
+      }
+    ],
+    "playback": [
+      {
+        "peakRms": 0.9005889067431415,
+        "maxPending": 3,
+        "maxQueuedSeconds": 0.04466666666666663,
+        "queueSamples": 9868,
+        "queueSecondsTotal": 111.79666666668862,
+        "meanQueuedAudioSeconds": 0.011329212268614575,
+        "audio": 1518,
+        "video": 1730
+      },
+      {
+        "peakRms": 0.8924394706916856,
+        "maxPending": 4,
+        "maxQueuedSeconds": 0.06200000000006156,
+        "queueSamples": 9868,
+        "queueSecondsTotal": 298.61400000095165,
+        "meanQueuedAudioSeconds": 0.03026084312940329,
+        "audio": 2974,
+        "video": 1747
+      }
+    ],
+    "measured_ms": 60004
+  },
+  "summary": {
+    "path": ".local/gate-6/browser-sdk/audio-summary058/browser-artifacts/0/EdDSA/packet-trace-summary.json",
+    "sha256": "cc6a706d38691ffc0551679826cf6535f3793b0a479af1d83bac817b9b684753",
+    "elapsed_ms": 62276.646166,
+    "dropped_events": 5,
+    "observed_buckets": 22,
+    "maximum_buckets": 128,
+    "maximum_seconds": 121,
+    "age_bin_width_us": 10000,
+    "final_bin": "all values >=200000us",
+    "rows": [
+      {
+        "key": {
+          "batched": null,
+          "connection": "",
+          "message": "Guarded audio delivery refused",
+          "owned_file_custody": null,
+          "pipeline": "rvoip_core::audio_path",
+          "problem": "NotReady",
+          "publishing": null,
+          "receiving": null,
+          "source": "peer-3",
+          "stage": "mixer-target",
+          "target": "peer-4"
+        },
+        "events": 1,
+        "age": {
+          "bins": [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "count": 0,
+          "maximum_us": 0,
+          "total_us": 0,
+          "mean_us": null
+        }
+      },
+      {
+        "key": {
+          "batched": null,
+          "connection": "",
+          "message": "Guarded audio delivery refused",
+          "owned_file_custody": null,
+          "pipeline": "rvoip_core::audio_path",
+          "problem": "NotReady",
+          "publishing": null,
+          "receiving": null,
+          "source": "peer-3",
+          "stage": "source-egress",
+          "target": "peer-4"
+        },
+        "events": 182,
+        "age": {
+          "bins": [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "count": 0,
+          "maximum_us": 0,
+          "total_us": 0,
+          "mean_us": null
+        }
+      },
+      {
+        "key": {
+          "batched": null,
+          "connection": "",
+          "message": "Guarded audio delivery refused",
+          "owned_file_custody": null,
+          "pipeline": "rvoip_core::audio_path",
+          "problem": "NotReady",
+          "publishing": null,
+          "receiving": null,
+          "source": "peer-3",
+          "stage": "target-egress",
+          "target": "peer-4"
+        },
+        "events": 274,
+        "age": {
+          "bins": [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "count": 0,
+          "maximum_us": 0,
+          "total_us": 0,
+          "mean_us": null
+        }
+      },
+      {
+        "key": {
+          "batched": null,
+          "connection": "",
+          "message": "Guarded audio delivery refused",
+          "owned_file_custody": null,
+          "pipeline": "rvoip_core::audio_path",
+          "problem": "NotReady",
+          "publishing": null,
+          "receiving": null,
+          "source": "peer-4",
+          "stage": "source-egress",
+          "target": "peer-3"
+        },
+        "events": 633,
+        "age": {
+          "bins": [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "count": 0,
+          "maximum_us": 0,
+          "total_us": 0,
+          "mean_us": null
+        }
+      },
+      {
+        "key": {
+          "batched": null,
+          "connection": "",
+          "message": "Guarded audio delivery refused",
+          "owned_file_custody": null,
+          "pipeline": "rvoip_core::audio_path",
+          "problem": "NotReady",
+          "publishing": null,
+          "receiving": null,
+          "source": "peer-4",
+          "stage": "target-egress",
+          "target": "peer-3"
+        },
+        "events": 260,
+        "age": {
+          "bins": [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "count": 0,
+          "maximum_us": 0,
+          "total_us": 0,
+          "mean_us": null
+        }
+      },
+      {
+        "key": {
+          "batched": null,
+          "connection": "",
+          "message": "Guarded audio entering IO",
+          "owned_file_custody": null,
+          "pipeline": "rvoip_core::audio_path",
+          "problem": "",
+          "publishing": null,
+          "receiving": null,
+          "source": "",
+          "stage": "",
+          "target": "peer-3"
+        },
+        "events": 1773,
+        "age": {
+          "bins": [
+            670,
+            892,
+            188,
+            6,
+            3,
+            3,
+            2,
+            3,
+            4,
+            0,
+            1,
+            1,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "count": 1773,
+          "maximum_us": 113106,
+          "total_us": 22887373,
+          "mean_us": 12908.839819514946
+        }
+      },
+      {
+        "key": {
+          "batched": true,
+          "connection": "",
+          "message": "Guarded audio entering IO",
+          "owned_file_custody": null,
+          "pipeline": "rvoip_core::audio_path",
+          "problem": "",
+          "publishing": null,
+          "receiving": null,
+          "source": "",
+          "stage": "",
+          "target": "peer-3"
+        },
+        "events": 2983,
+        "age": {
+          "bins": [
+            7,
+            3,
+            150,
+            42,
+            38,
+            7,
+            283,
+            55,
+            35,
+            6,
+            71,
+            22,
+            104,
+            21,
+            350,
+            367,
+            44,
+            71,
+            723,
+            584,
+            0
+          ],
+          "count": 2983,
+          "maximum_us": 199347,
+          "total_us": 434713966,
+          "mean_us": 145730.46128059
+        }
+      },
+      {
+        "key": {
+          "batched": null,
+          "connection": "",
+          "message": "Guarded audio entering IO",
+          "owned_file_custody": null,
+          "pipeline": "rvoip_core::audio_path",
+          "problem": "",
+          "publishing": null,
+          "receiving": null,
+          "source": "",
+          "stage": "",
+          "target": "peer-4"
+        },
+        "events": 1767,
+        "age": {
+          "bins": [
+            885,
+            782,
+            81,
+            2,
+            3,
+            6,
+            2,
+            2,
+            2,
+            1,
+            0,
+            0,
+            0,
+            1,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "count": 1767,
+          "maximum_us": 133066,
+          "total_us": 18517789,
+          "mean_us": 10479.790039615167
+        }
+      },
+      {
+        "key": {
+          "batched": true,
+          "connection": "",
+          "message": "Guarded audio entering IO",
+          "owned_file_custody": null,
+          "pipeline": "rvoip_core::audio_path",
+          "problem": "",
+          "publishing": null,
+          "receiving": null,
+          "source": "",
+          "stage": "",
+          "target": "peer-4"
+        },
+        "events": 1526,
+        "age": {
+          "bins": [
+            0,
+            1,
+            3,
+            1,
+            13,
+            2,
+            0,
+            0,
+            1,
+            1,
+            2,
+            1,
+            3,
+            0,
+            0,
+            0,
+            4,
+            42,
+            1105,
+            347,
+            0
+          ],
+          "count": 1526,
+          "maximum_us": 199999,
+          "total_us": 282420626,
+          "mean_us": 185072.49410222805
+        }
+      },
+      {
+        "key": {
+          "batched": null,
+          "connection": "",
+          "message": "Guarded audio queued",
+          "owned_file_custody": null,
+          "pipeline": "rvoip_core::audio_path",
+          "problem": "",
+          "publishing": null,
+          "receiving": null,
+          "source": "",
+          "stage": "",
+          "target": "peer-3"
+        },
+        "events": 3002,
+        "age": {
+          "bins": [
+            12,
+            5,
+            189,
+            1,
+            43,
+            7,
+            332,
+            3,
+            37,
+            2,
+            92,
+            1,
+            123,
+            7,
+            696,
+            29,
+            97,
+            12,
+            1270,
+            42,
+            2
+          ],
+          "count": 3002,
+          "maximum_us": 201671,
+          "total_us": 425122447,
+          "mean_us": 141613.07361758826
+        }
+      },
+      {
+        "key": {
+          "batched": null,
+          "connection": "",
+          "message": "Guarded audio queued",
+          "owned_file_custody": null,
+          "pipeline": "rvoip_core::audio_path",
+          "problem": "",
+          "publishing": null,
+          "receiving": null,
+          "source": "",
+          "stage": "",
+          "target": "peer-4"
+        },
+        "events": 2526,
+        "age": {
+          "bins": [
+            0,
+            1,
+            3,
+            8,
+            11,
+            0,
+            0,
+            0,
+            1,
+            2,
+            3,
+            2,
+            2,
+            0,
+            0,
+            1,
+            5,
+            336,
+            933,
+            1125,
+            93
+          ],
+          "count": 2526,
+          "maximum_us": 217584,
+          "total_us": 474445167,
+          "mean_us": 187824.69002375298
+        }
+      }
+    ]
+  },
+  "guard_checks": {
+    "path": ".local/gate-6/audio-pcm/diagnostic-mode-guards.json",
+    "sha256": "8ba701d563588ec703db787eaeea0b938125e5a2154264a0bbfe226f988663cc",
+    "passed": true,
+    "rejected_configurations": 3,
+    "outputs_created": false
+  },
+  "interpretation": [
+    "The 60004ms window fails the unchanged identified audio minimum; video identifies1730/1747 frames. Alignment and terminal timing checks are not reached.",
+    "Mean browser queue depths11.33/30.26ms are much smaller than observed server batched-audio ages. Mixer FIFO scheduling and missed-tick recovery warrant a controlled regression.",
+    "The generic Guarded audio entering IO event without batched=true can include video. Generic guarded-source/target refusals can also include video; they are not audio-only counters.",
+    "Five events were dropped by try_lock/capacity safeguards; all counts are incomplete observations, not proof of absent refusals. Setup and teardown are included in the summary, not just the browser measurement window.",
+    "Original final-IO age remains below200ms in recorded batched audio events. The data does not prove expired audio bypasses authority or age checks.",
+    "No buffer/expiry/quality threshold or synchronization offset was changed. Diagnostic tracing cannot qualify the frozen clean profile."
+  ],
+  "scope": "Actual local macOS arm64 Chrome155.0.8059.85 supplied-stream browser/browser diagnostic using the same60second sources and observers. No frozen clean qualification, impairment, native operating profile, remote/provider, acceptance or publication claim."
+}
