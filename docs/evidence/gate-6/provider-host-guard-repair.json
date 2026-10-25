@@ -39,6 +39,17 @@
       "log": ".local/gate-6/crash-recovery/schema110-store010-runtime-010/gate6_schema.log",
       "log_sha256": "fb6f7e87cf6c766de1e82b56a6ac81524eb9e179d356d045806e7c6123c551fc",
       "observed": "Backup/IDs/audiences/unknown effects, epoch fencing, constraints, complete snapshot metadata and incompatible old-state refusal pass."
+    },
+    {
+      "name": "actual provider crash and regressions",
+      "passed": 5,
+      "failed": 0,
+      "ignored": 0,
+      "summary": ".local/gate-6/crash-recovery/schema110-provider011-runtime-011/summary.json",
+      "summary_sha256": "5e29de6412e8921072fed000e4e6a9f13ad7defb2d04395f024f8e323056476b",
+      "source_inputs_unchanged": true,
+      "executable_unchanged": true,
+      "observed": "External loopback HTTP provider survives actual server child SIGKILL; real Vapi SDK queries the original correlated resource and never repeats creation; existing uncertain-creation, quarantine and public-end behavior passes."
     }
   ],
   "source_sha256": {
@@ -48,9 +59,9 @@
     "crates/connect-server/tests/voice_flow.rs": "6739ac985da647b25a2e7aa0b458e9cc6240dbeb1c1a8ab4fcf9c40d1848ca23"
   },
   "pending": [
-    "Full Store library suite schema110-store010-runtime-010 is running.",
-    "Actual provider lost-creation SIGKILL/query pair and existing regressions schema110-provider011-runtime-011 are building.",
-    "Ten native/SIP crash and initial-answer/end regression methods schema110-native012-runtime-012 follow the provider build."
+    "Current schema110 native/SIP ten-case rerun is building.",
+    "Full Store serial run reached wrapper600sec deadline with no failed test result before interruption. It remains incomplete, not a pass; exact last-case diagnostic is running before the replacement full qualification.",
+    "Full G6-047 requirements audit and other operation/drain scope remain open."
   ],
   "publication": "Separate; not performed."
 }

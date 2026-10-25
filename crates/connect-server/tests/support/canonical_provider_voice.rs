@@ -10,6 +10,9 @@ use std::sync::{
     atomic::{AtomicBool, AtomicUsize, Ordering},
     Arc,
 };
+#[cfg(unix)]
+#[path = "canonical_provider_voice/crash.rs"]
+mod crash;
 const ASSISTANT: &str = "12345678-1234-1234-1234-123456789012";
 const PHONE: &str = "12345678-1234-1234-1234-123456789013";
 const REMOTE: &str = "12345678-1234-1234-1234-123456789015";
@@ -149,7 +152,14 @@ fn endpoint(
     endpoint_id
 }
 async fn setup() -> (Fixture, ProviderSessionVoicePolicy) {
-    let mut f = Fixture::with_membership_scope("EdDSA", 12, true).await;
+    setup_for("EdDSA").await
+}
+async fn setup_for(algorithm: &str) -> (Fixture, ProviderSessionVoicePolicy) {
+    let _ = tracing_subscriber::fmt()
+        .with_env_filter("connect_server::canonical_provider_voice=debug")
+        .with_test_writer()
+        .try_init();
+    let mut f = Fixture::with_membership_scope(algorithm, 12, true).await;
     let store = &f.server.store;
     let admin = store.authenticate(&f.admin).unwrap().credential_id;
     let ProvisioningOutcome::Identity {
@@ -209,7 +219,7 @@ async fn setup() -> (Fixture, ProviderSessionVoicePolicy) {
         false,
     );
     let private = f.temp.path().join("provider-ai.der");
-    let public = signing(&private, "EdDSA");
+    let public = signing(&private, algorithm);
     store
         .execute_provisioning(
             &key.id,
@@ -219,7 +229,11 @@ async fn setup() -> (Fixture, ProviderSessionVoicePolicy) {
                 credential_id: key.id.clone(),
                 device_id: "provider-native-device".into(),
                 key_id: "provider-ai-key".into(),
-                algorithm: SigningAlgorithm::EdDSA,
+                algorithm: if algorithm == "ES256" {
+                    SigningAlgorithm::ES256
+                } else {
+                    SigningAlgorithm::EdDSA
+                },
                 public_key: URL_SAFE_NO_PAD.encode(public),
                 not_before: chrono::Utc::now().timestamp() - 1,
                 expires_at: chrono::Utc::now().timestamp() + 600,
