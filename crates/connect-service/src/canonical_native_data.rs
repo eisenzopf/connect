@@ -197,14 +197,13 @@ impl Runtime {
                 return;
             }
         };
-        let accepted =
-            match proof(&a).and_then(|p| store.accept_native_stream_with_peer(&credential, p)) {
-                Ok(v) => v,
-                Err(e) => {
-                    let _ = tx.send(Err(e));
-                    return;
-                }
-            };
+        let accepted = match self.accept_after_managed(&a, &physical, &credential).await {
+            Ok(v) => v,
+            Err(e) => {
+                let _ = tx.send(Err(e));
+                return;
+            }
+        };
         if accepted.state != OperationState::Accepted {
             let _ = tx.send(Ok(reply(accepted)));
             return;

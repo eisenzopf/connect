@@ -329,14 +329,15 @@ impl Store {
     }
     /// None is a read-only refusal before admission: only an internal managed
     /// reconciliation occupies the original connection. The caller may wait
-    /// within its original deadline, retaining this exact terminal intent.
-    /// Errors and accepted operations must never be retried by this mechanism.
-    pub fn try_accept_native_end_with_peer(
+    /// within its original deadline, retaining this exact terminal or data intent.
+    /// Only End/Data use this wait; revision-sensitive controls keep their
+    /// ordinary admission. Errors and accepted operations leave this mechanism.
+    pub fn try_accept_native_control_with_peer(
         &self,
         credential: &str,
         proof: &PeerAuthorityGuard,
     ) -> Result<Option<OperationRecord>> {
-        if intent(proof)?.command != Command::End {
+        if !matches!(intent(proof)?.command, Command::End | Command::Data) {
             return Err(Error::forbidden());
         }
         self.accept_native_stream_at(credential, proof, true)

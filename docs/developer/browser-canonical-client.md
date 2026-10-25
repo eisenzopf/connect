@@ -142,12 +142,12 @@ operation status and retires local routes. Normal clearing names the exact
 Connection and original operation ID without conditioning terminal intent on a
 stream revision that server reconciliation may advance. Current credential,
 Connection generation and physical ownership checks still apply. Before admitting
-a new terminal operation, the service may wait up to one second for an
+a new terminal or reliable data operation, the service may wait up to one second for an
 internal managed reconciliation to settle. Each wait releases SQL custody and
-rechecks the original authority and physical lifetime. No terminal ledger or
+rechecks the original authority and physical lifetime. No new operation ledger, durable message or
 engine effect exists during that wait. Competing client controls remain
 conflicts; a bounded wait that does not settle returns `busy`. Accepted or
-uncertain terminal effects are never resubmitted by this wait.
+uncertain effects are never resubmitted by this wait.
 Physical client closure retires all
 owned media codecs, readers, writers, timers and queued datagrams.
 
@@ -230,3 +230,10 @@ timestamp wrap remains valid. The explicit codec rehearsal option
 `--whole-frame-loss` checks this recovery with actual Chrome WebCodecs and
 independently identified canvas output. Connected throughput and the full
 impairment profile require their separate runtime evidence.
+
+Current packet authority reads allow a ten-millisecond retry window for
+transient SQL or file-admission contention. Every attempt resolves current
+authority, and the engine checks the original gate/scene stamps afterward.
+The window bounds retry admission; it does not claim a hard bound on an
+individual SQL projection. Full operating latency remains subject to the
+frozen marker and queue measurements.

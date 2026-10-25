@@ -155,7 +155,7 @@ fn proof(a: &AuthorizedEnvelope) -> Result<&connect_store::PeerAuthorityGuard> {
         .ok_or_else(Error::forbidden)
 }
 impl Runtime {
-    async fn accept_terminal_stream(
+    pub(crate) async fn accept_after_managed(
         &self,
         a: &AuthorizedEnvelope,
         physical: &Physical,
@@ -173,7 +173,7 @@ impl Runtime {
             if Instant::now() >= deadline {
                 return Err(Error::new(
                     "busy",
-                    "Managed reconciliation has not settled before terminal admission",
+                    "Managed reconciliation has not settled before control admission",
                 ));
             }
             physical.validate(
@@ -187,7 +187,7 @@ impl Runtime {
             if let Some(record) = self
                 .media
                 .store
-                .try_accept_native_end_with_peer(credential, proof(a)?)?
+                .try_accept_native_control_with_peer(credential, proof(a)?)?
             {
                 return Ok(record);
             }
@@ -196,7 +196,7 @@ impl Runtime {
                 _ = self.stop.cancelled() => return Err(Error::forbidden()),
                 _ = cancelled.cancelled() => return Err(Error::forbidden()),
                 _ = physical.lifetime.cancelled() => return Err(Error::forbidden()),
-                _ = tokio::time::sleep_until(deadline) => return Err(Error::new("busy", "Managed reconciliation has not settled before terminal admission")),
+                _ = tokio::time::sleep_until(deadline) => return Err(Error::new("busy", "Managed reconciliation has not settled before control admission")),
                 _ = tokio::time::sleep(Duration::from_millis(5)) => {},
             }
         }
@@ -279,8 +279,7 @@ impl Runtime {
         }
         let ending = a.envelope().kind() == "connection.end";
         let admission = if ending {
-            self.accept_terminal_stream(&a, &physical, &credential)
-                .await
+            self.accept_after_managed(&a, &physical, &credential).await
         } else {
             proof(&a).and_then(|p| store.accept_native_stream_with_peer(&credential, p))
         };

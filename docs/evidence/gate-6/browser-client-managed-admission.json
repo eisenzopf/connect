@@ -1,0 +1,75 @@
+{
+  "task": "G6-050",
+  "status": "in-progress; controlled Store checks pass, connected rebuild active",
+  "scope": "Current packet retry admission window and effect-free original data admission while internal managed reconciliation is pending. No media throughput or full task qualification.",
+  "changes": [
+    "End/Data may wait before admission only when the exact original connection is occupied exclusively by internal stream.reconcile. Revision-sensitive controls and competing client controls keep ordinary conflict handling.",
+    "Reliable data uses the same one-second bounded wait as terminal clearing. Every None proves no operation/message/event/effect write. Original signed intent and IDs remain unchanged, physical/current authority is rechecked and stop/cancellation/physical closure ends the wait. Every accepted record or error leaves it without resubmission.",
+    "Current per-packet metadata reads now have a10millisecond retry admission window for authority-busy, replacing2milliseconds. No positive grant/SQL lock/partial file reader survives a failed attempt; original Core gate/scene checks still run. The window bounds retry admission, not an individual Store projection. The operating profile thresholds remain unchanged."
+  ],
+  "before": {
+    "matrix_report": ".local/gate-6/browser-sdk/continuity038/summary.json",
+    "sha256": "f9a32397991190b2b813447b33bc626d538110dccfa7d1142edce6c46d53b0e7",
+    "observed": "4/8: short decoded media throughput remains below thresholds after correct VP8 reference-chain refusal; message.send can fail operation_conflict during internal managed reconciliation.",
+    "diagnostic_report": ".local/gate-6/browser-sdk/data-trace037/summary.json",
+    "diagnostic_sha256": "bd195b2f2a3c8bd25a32e77e27d5572d86e71a3ec37a93f7cb70a46f31428814",
+    "diagnostic": "A passing traced single case still records105 SQL-busy and8 authority-busy callbacks. Current packet projection SQL units reach13537us and rechecks7846us. This supports a bounded recovery window change, not a claim that it resolves runtime loss."
+  },
+  "controlled_store": {
+    "report": ".local/gate-6/browser-managed-read-store/summary.json",
+    "sha256": "a3b2feaa5fd383d2e4bb300d90a2b3b422320d1d6892314762065d80253c1137",
+    "passed_default_methods": 235,
+    "ignored_helpers": 1,
+    "source_inputs_unchanged": true,
+    "executable_unchanged": true,
+    "groups": [
+      {
+        "name": "native-authority",
+        "selection": "connection_control::tests::native_stream_authority::",
+        "exit_code": 0,
+        "log": ".local/gate-6/browser-managed-read-store/native-authority.log",
+        "sha256": "b894c564a92b228c025a9e5c86b96a96732eac6e61dea6e560f3a5431161411b",
+        "passed_methods": 176,
+        "failed_methods": 0,
+        "ignored_helpers": 0,
+        "elapsed_seconds": 102.76882825000212
+      },
+      {
+        "name": "snapshot",
+        "selection": "peer_authority::connection_media::snapshot::tests::",
+        "exit_code": 0,
+        "log": ".local/gate-6/browser-managed-read-store/snapshot.log",
+        "sha256": "386ebf03ef2952966c609b8617473c89b9fecb6523fe209a233ed6ac0481783b",
+        "passed_methods": 17,
+        "failed_methods": 0,
+        "ignored_helpers": 0,
+        "elapsed_seconds": 5.960258375154808
+      },
+      {
+        "name": "file-fences",
+        "selection": "authority_fences::tests::",
+        "exit_code": 0,
+        "log": ".local/gate-6/browser-managed-read-store/file-fences.log",
+        "sha256": "f32396c25e26485421e2437df9d483d362cac74d0359142af87f1cb16e3ddb8c",
+        "passed_methods": 42,
+        "failed_methods": 0,
+        "ignored_helpers": 1,
+        "elapsed_seconds": 28.264436000026762
+      }
+    ],
+    "counting": "176 native authority +17 snapshots +42 file fences are disjoint selections; the single ignored process_worker helper is invoked by parent process cases and is not a passing method."
+  },
+  "runtime": {
+    "report": ".local/gate-6/browser-sdk/managed039/summary.json",
+    "status": "optimized build live;8 connected methods and28 transport regressions not yet qualified on this source"
+  },
+  "source_sha256": {
+    "crates/connect-service/src/canonical_media/packets.rs": "dee4d53c51db6347c0db42c17464ceb184bd8edc856b5a5d1342ac14407cc999",
+    "crates/connect-service/src/canonical_native_data.rs": "b3713d0891379ebef1a4ee8832fffbcba6b631f701c91d65e168180d56c3ef48",
+    "crates/connect-service/src/canonical_native_streams.rs": "d280500e87afa42cd3952c128b43ba8d02421d15e7e45029591a7f904ce14f91",
+    "crates/connect-store/src/transitions/native_streams.rs": "0dee31081ecfb85fa9daa93ad4ed97ce3466c126b1e4bed4b74e56b925afd91b",
+    "crates/connect-store/src/connection_control/tests/native_stream_authority/reconciliation.rs": "c790bd3f50050867fb04aad1e051c47c8935e9a3332df3bdc94c01bfeab81b51"
+  },
+  "acceptance_qualified": false,
+  "remaining": "Collect complete8case matrix and28transport regressions, resolve any failures, then frozen60second, actual browser/native, impairment/failure and remaining approved operating profiles."
+}

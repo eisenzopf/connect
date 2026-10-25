@@ -51,7 +51,24 @@ fn selected_with_end(
     PeerAuthorityRequest,
     std::sync::Arc<crate::NativeMediaOrigin>,
 ) {
-    let (f, request, _, origin) = parent_permissions_origin(true, true, end, false, true);
+    selected_with_profile(end, false)
+}
+fn selected_with_profile(
+    end: bool,
+    data: bool,
+) -> (
+    Fixture,
+    PeerAuthorityRequest,
+    std::sync::Arc<crate::NativeMediaOrigin>,
+) {
+    let (f, mut request, _, origin) = parent_permissions_origin(true, true, end, data, true);
+    if data {
+        let PeerCommand::NativeStream(wire) = &mut request.command else {
+            panic!()
+        };
+        wire.operation_id = "select-data".into();
+        wire.payload = json!({"subscriptions":[{"from_participant":f.pids[1],"kinds":["data"]}]});
+    }
     assert!(f.store.try_native_reconciliation_read(&origin).is_err());
     let proof = admit(&f, &request).unwrap();
     f.store
@@ -102,7 +119,7 @@ fn terminal_admission_waits_only_for_managed_reconciliation_without_creating_an_
     for _ in 0..3 {
         assert!(f
             .store
-            .try_accept_native_end_with_peer(&f.keys[0], &proof)
+            .try_accept_native_control_with_peer(&f.keys[0], &proof)
             .unwrap()
             .is_none());
         assert_eq!(
@@ -123,7 +140,7 @@ fn terminal_admission_waits_only_for_managed_reconciliation_without_creating_an_
         .unwrap();
     let accepted = f
         .store
-        .try_accept_native_end_with_peer(&f.keys[0], &proof)
+        .try_accept_native_control_with_peer(&f.keys[0], &proof)
         .unwrap()
         .unwrap();
     assert_eq!(accepted.state, OperationState::Accepted);
@@ -131,7 +148,7 @@ fn terminal_admission_waits_only_for_managed_reconciliation_without_creating_an_
     assert_eq!(f.count("operations"), before.0 + 1);
     let replay = f
         .store
-        .try_accept_native_end_with_peer(&f.keys[0], &proof)
+        .try_accept_native_control_with_peer(&f.keys[0], &proof)
         .unwrap()
         .unwrap();
     assert_eq!(replay.record_id, accepted.record_id);
@@ -171,7 +188,7 @@ fn terminal_admission_keeps_competing_peer_controls_and_changed_intents_as_confl
     let end = admit(&f, &request).unwrap();
     assert_eq!(
         f.store
-            .try_accept_native_end_with_peer(&f.keys[0], &end)
+            .try_accept_native_control_with_peer(&f.keys[0], &end)
             .unwrap_err()
             .code,
         "conflict"
@@ -402,4 +419,74 @@ fn native_reconciliation_fresh_source_keeps_subscription_permission_separate_and
         "forbidden"
     );
     assert_eq!(f.count("operation_effects"), 2);
+}
+
+#[test]
+fn data_admission_waits_without_a_message_or_effect_then_accepts_the_original_audience_once() {
+    let (f, mut request, origin) = selected_with_profile(false, true);
+    let selection = admit(&f, &request).unwrap();
+    assert_eq!(
+        f.store
+            .try_accept_native_control_with_peer(&f.keys[0], &selection)
+            .unwrap_err()
+            .code,
+        "forbidden",
+        "Managed waiting cannot admit arbitrary revision-sensitive controls"
+    );
+    drop(selection);
+    let source = f.store.try_native_reconciliation_read(&origin).unwrap();
+    let managed = f
+        .store
+        .begin_native_reconciliation(&source, "managed-before-data", json!({"streams":[]}))
+        .unwrap();
+    let PeerCommand::NativeStream(wire) = &mut request.command else {
+        panic!()
+    };
+    wire.command = Command::Data;
+    wire.operation_id = "same-data-intent".into();
+    wire.expected_revision = None;
+    wire.by_participant = Some(f.pids[0].clone());
+    wire.payload = json!({"from":f.pids[0],"msg_id":"same-data-message","label":"application","to":[f.pids[1]],"content_type":"application/json","body":"{\"marker\":true}"});
+    let proof = admit(&f, &request).unwrap();
+    let before = (
+        f.count("operations"),
+        f.count("operation_effects"),
+        f.count("journal"),
+        f.count("native_data_messages"),
+    );
+    for _ in 0..3 {
+        assert!(f
+            .store
+            .try_accept_native_control_with_peer(&f.keys[0], &proof)
+            .unwrap()
+            .is_none());
+        assert_eq!(
+            (
+                f.count("operations"),
+                f.count("operation_effects"),
+                f.count("journal"),
+                f.count("native_data_messages")
+            ),
+            before
+        );
+    }
+    f.store
+        .complete_native_stream(&managed.committed(3, true).unwrap())
+        .unwrap();
+    let accepted = f
+        .store
+        .try_accept_native_control_with_peer(&f.keys[0], &proof)
+        .unwrap()
+        .unwrap();
+    let replay = f
+        .store
+        .try_accept_native_control_with_peer(&f.keys[0], &proof)
+        .unwrap()
+        .unwrap();
+    assert_eq!(accepted.record_id, replay.record_id);
+    assert_eq!(accepted.operation_id, "same-data-intent");
+    assert_eq!(f.count("operations"), before.0 + 1);
+    assert_eq!(f.count("native_data_messages"), before.3 + 1);
+    assert_eq!(f.count("operation_effects"), before.1);
+    assert_eq!(f.count("native_data_writes"), 0);
 }

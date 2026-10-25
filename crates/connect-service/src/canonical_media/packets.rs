@@ -5,10 +5,13 @@ use super::*;
 /// admission callback. No positive grant, SQL lock or partial reader survives a
 /// failed attempt. The engine still checks its original gate/scene stamps after
 /// this callback, so a mute/retirement during contention cannot become a replay.
+/// The ten-millisecond retry window accommodates current metadata derivation at
+/// a policy-clock edge, while remaining below one twenty-millisecond audio frame.
+/// It bounds retry admission, not the duration of an individual Store read.
 fn packet_read<T>(
     mut read: impl FnMut() -> connect_protocol::Result<T>,
 ) -> connect_protocol::Result<T> {
-    let until = std::time::Instant::now() + std::time::Duration::from_millis(2);
+    let until = std::time::Instant::now() + std::time::Duration::from_millis(10);
     packet_read_until(until, &mut read)
 }
 fn packet_read_until<T>(
