@@ -138,3 +138,83 @@ fn configured_join_rejects_foreign_kernel_wrong_endpoint_and_revoked_delegate() 
     assert!(join(&f, &origin).is_err());
     assert_eq!(f.count("native_consultation_joins"), 1);
 }
+
+#[test]
+fn configured_webtransport_join_requires_verified_native_endpoint_and_retains_current_delegate_authority(
+) {
+    let (f, origin) = fixture();
+    let identity = f.store.revalidate(&f.keys[2]).unwrap().identity_id;
+    let provision = |transport, name: &str| {
+        let ProvisioningOutcome::Endpoint { endpoint_id, .. } = f
+            .store
+            .execute_provisioning(
+                &f.admin,
+                ProvisioningCommand::Endpoint {
+                    operation_id: format!("provision-{name}"),
+                    identity_id: identity.clone(),
+                    device: DeviceSpec {
+                        id: format!("device-{name}"),
+                        kind: "desktop".into(),
+                        platform: "controlled-store-test".into(),
+                    },
+                    transport,
+                    address: format!("https://consultant.fixture.invalid/{name}"),
+                    capabilities: vec!["audio".into()],
+                    secret_ref: None,
+                },
+            )
+            .unwrap()
+        else {
+            panic!()
+        };
+        endpoint_id
+    };
+    let endpoint = provision(EndpointTransport::Webtransport, "wt");
+    let before = (f.count("operations"), f.count("journal"));
+    assert!(f
+        .store
+        .join_configured_native_consultant(&origin, &f.keys[2], &endpoint)
+        .is_err());
+    assert_eq!((f.count("operations"), f.count("journal")), before);
+    let verify = |endpoint: &str, name: &str| {
+        f.store
+            .execute_provisioning(
+                &f.admin,
+                ProvisioningCommand::VerifyEndpoint {
+                    operation_id: format!("verify-{name}"),
+                    endpoint_id: endpoint.into(),
+                    expected_revision: 0,
+                    evidence_ref: "controlled-store-verified-transport".into(),
+                },
+            )
+            .unwrap();
+    };
+    verify(&endpoint, "wt");
+    let browser = provision(EndpointTransport::Webrtc, "webrtc");
+    verify(&browser, "webrtc");
+    let before = (f.count("operations"), f.count("journal"));
+    assert!(f
+        .store
+        .join_configured_native_consultant(&origin, &f.keys[2], &browser)
+        .is_err());
+    assert_eq!((f.count("operations"), f.count("journal")), before);
+    assert_eq!(f.count("native_consultation_joins"), 0);
+    assert!(f
+        .store
+        .join_configured_native_consultant(&origin, &f.keys[2], &endpoint)
+        .unwrap());
+    assert_eq!(f.count("operations"), before.0 + 2);
+    assert!(!f
+        .store
+        .join_configured_native_consultant(&origin, &f.keys[2], &endpoint)
+        .unwrap());
+    assert_eq!(f.count("operations"), before.0 + 2);
+    assert_eq!(f.count("native_consultation_joins"), 1);
+    let admin = f.store.revalidate(&f.admin).unwrap();
+    f.store.revoke(&admin, &f.keys[2]).unwrap();
+    assert!(f
+        .store
+        .join_configured_native_consultant(&origin, &f.keys[2], &endpoint)
+        .is_err());
+    assert_eq!(f.count("native_consultation_joins"), 1);
+}

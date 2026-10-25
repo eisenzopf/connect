@@ -106,7 +106,7 @@ impl Store {
         {
             return Err(Error::forbidden());
         }
-        let revision:u64=tx.query_row("SELECT e.revision FROM endpoints e JOIN devices d ON d.id=e.device_id AND d.identity_id=e.identity_id AND d.revoked=0 JOIN identities i ON i.id=e.identity_id AND i.kind='ai' AND i.revoked=0 WHERE e.id=?1 AND e.identity_id=?2 AND e.transport='quic' AND e.verification_state='verified'",params![endpoint,actor.identity_id],|r|r.get(0)).optional().map_err(|_|Error::storage())?.ok_or_else(Error::forbidden)?;
+        let revision:u64=tx.query_row("SELECT e.revision FROM endpoints e JOIN devices d ON d.id=e.device_id AND d.identity_id=e.identity_id AND d.revoked=0 JOIN identities i ON i.id=e.identity_id AND i.kind='ai' AND i.revoked=0 WHERE e.id=?1 AND e.identity_id=?2 AND e.transport IN ('quic','webtransport') AND e.verification_state='verified'",params![endpoint,actor.identity_id],|r|r.get(0)).optional().map_err(|_|Error::storage())?.ok_or_else(Error::forbidden)?;
         let present:bool=tx.query_row("SELECT EXISTS(SELECT 1 FROM session_participants WHERE session_id=?1 AND participant_id=?2 AND membership_epoch=?3 AND state='present')",params![origin.request.session_id,target.participant_id,target.membership_epoch],|r|r.get(0)).map_err(|_|Error::storage())?;
         let prior:Option<(String,String,u64)>=tx.query_row("SELECT delegate_credential_id,endpoint_id,endpoint_revision FROM native_consultation_joins WHERE operation_record_id=?1",[&origin.record],|r|Ok((r.get(0)?,r.get(1)?,r.get(2)?))).optional().map_err(|_|Error::storage())?;
         if let Some(old) = prior {
