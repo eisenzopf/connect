@@ -1,6 +1,6 @@
 {
   "task": "G6-047",
-  "status": "requirement-audit-public-operator-wire-check-pending",
+  "status": "public-operator-qualified-record-drains-pending",
   "full_task_complete": false,
   "full_goal_complete": false,
   "recorded_at": "2026-10-25T02:06:29.089447+00:00",
@@ -59,6 +59,85 @@
       "executable_sha256": "ac884878685b7227dfae5a3db7cc6a2292f56c3b92a76fe6b589ed65e1f3b486",
       "cases": [],
       "all_source_inputs_matched_at_audit": true
+    },
+    "public_operator_wire": {
+      "summary": ".local/gate-6/native-remote/runtime006/summary.json",
+      "artifact_workspace": "/Users/jonathaneisenzopf/.codex/worktrees/private-sip-lifetime/Connect",
+      "summary_sha256": "a0bde64003a7d84ebfdddd58118181ddf0aa0bd927f97f6757a5ea5d5c7235a9",
+      "source_revision": "a3e529ef3345671535e424bdbdcc541a2649a7d3",
+      "executable_sha256": "38079a3fade70d63b87291bf5040c943c48e8f8237e957b3fc9e58f42d5642e7",
+      "source_inputs_unchanged": true,
+      "executable_unchanged": true,
+      "qualified_cases": [
+        {
+          "name": "sip-operator-eddsa",
+          "case": "canonical_native_connections::consultation::groups::replacement::telephone::initial::crash::production_sigkill_sip_submission_keeps_external_uncertainty_without_redial_eddsa",
+          "runtime_exit_code": 0,
+          "log_sha256": "4b0b7b7974878d05a5c81dc68d1747a93513078f1bf7cccc974b16389d2c6a97",
+          "passed": true,
+          "capture_sha256": "afaaa0faaf6986583d7497319985da44c088f991085827a07013543fbbcefa95",
+          "observations": {
+            "algorithm": "EdDSA",
+            "caller_declared_completion_refused": true,
+            "external_peer_still_live": true,
+            "killed_signal": 9,
+            "new_epoch_same_installation": true,
+            "operation_state": "unknown",
+            "original_effect_attempt": 1,
+            "original_effect_state": "unknown",
+            "phase": "submitted",
+            "physical_after_restart": [
+              "unknown",
+              2,
+              null,
+              null
+            ],
+            "replay_preserved_receipt_and_original_operation": true,
+            "runtime_connections": 0,
+            "runtime_media_readers": 0,
+            "session_started_facts": 0,
+            "unique_external_calls": 1,
+            "unresolved_conflict_did_not_redial": true
+          }
+        },
+        {
+          "name": "sip-operator-es256",
+          "case": "canonical_native_connections::consultation::groups::replacement::telephone::initial::crash::production_sigkill_sip_submission_keeps_external_uncertainty_without_redial_es256",
+          "runtime_exit_code": 0,
+          "log_sha256": "fb9e8e0421b5285fe5f51a98885eca1ab0189e1e7a4e560bd85928a361c2f59e",
+          "passed": true,
+          "capture_sha256": "a6cb44c71aa6d3cce66cb2ab52d65403d067c50ed4179867f231c0af43cfb4e4",
+          "observations": {
+            "algorithm": "ES256",
+            "caller_declared_completion_refused": true,
+            "external_peer_still_live": true,
+            "killed_signal": 9,
+            "new_epoch_same_installation": true,
+            "operation_state": "unknown",
+            "original_effect_attempt": 1,
+            "original_effect_state": "unknown",
+            "phase": "submitted",
+            "physical_after_restart": [
+              "unknown",
+              2,
+              null,
+              null
+            ],
+            "replay_preserved_receipt_and_original_operation": true,
+            "runtime_connections": 0,
+            "runtime_media_readers": 0,
+            "session_started_facts": 0,
+            "unique_external_calls": 1,
+            "unresolved_conflict_did_not_redial": true
+          }
+        }
+      ],
+      "public_mapping_and_fixture_match_main_sha256": {
+        "crates/connect-protocol/src/canonical_http.rs": "26b5af8655f9207fba0a1a3598bab11a97802712f25f2a2ce4213760baf39082",
+        "crates/connect-server/tests/support/canonical_native_connections/consultation/groups/replacement/telephone/initial/crash.rs": "5b7ca2009b6cb56b561d7d03c71ee991275a8e1332b4c8b9e1b1ed5948e58977"
+      },
+      "passed": true,
+      "scope": "Both actual SIP submission SIGKILL parents now also require a current authorized public HTTP operator response409 state/reconciliation_required, still-live external peer, original Unknown attempt1/receipt and no redial. Whole ten-method remote driver passes; eight Remote profile cases remain assigned G6-048."
     }
   },
   "store_recovery_authority_methods": [
@@ -103,10 +182,11 @@
     {
       "requirement": "Bounded current-authority operator reconciliation",
       "proof": [
-        "schema110-store-remainder016"
+        "schema110-store-remainder016",
+        "public_operator_wire"
       ],
-      "observed": "Current permission/original scopes, attributed evidence, revision/generation, separate stable decisions and replay, bounded recovery/source traversal and protected cleanup after original-owner revocation. Public HTTP refusal after actual SIP SIGKILL is building separately and is not yet passed.",
-      "pending": true
+      "observed": "Current permission, original resource assertions and immutable attempt1 after real SIGKILL reach explicit409 state/reconciliation_required. Both algorithms pass with still-live SIP peer, original Unknown receipt and no duplicate external call. Store evidence separately verifies revision/generation, scope and bounded decision traversal/cleanup.",
+      "pending": false
     },
     {
       "requirement": "Drain or terminate owned resources on shutdown",
@@ -117,8 +197,8 @@
     }
   ],
   "pending": [
-    "Complete public HTTP operator uncertainty test after actual SIP process death.",
-    "Check current owned record/HTTP shutdown cases before closure; preserve the distinction between resource drains and protocol-close waits."
+    "Two actual record HTTP/HTTPS owned-drain cases are building in their correct gate6_auxiliary target.",
+    "Close requirement audit and task progress after those results."
   ],
   "unqualified_variants": [
     "No claim of a separately executed SIP answered/committed SIGKILL matrix. The approved phase coverage above identifies its actual adapters and boundaries.",

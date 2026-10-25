@@ -1,6 +1,6 @@
 {
   "task": "G6-047",
-  "recorded_at": "2026-10-25T02:03:34.656948+00:00",
+  "recorded_at": "2026-10-25T02:42:34.072764+00:00",
   "status": "schema110-native-sip-provider-crash-and-owned-teardown-runtime-passes-task-audit-open",
   "full_task_complete": false,
   "full_goal_complete": false,
@@ -18,8 +18,8 @@
     "verification": "Current schema110:19 exact runtime methods pass with source/executable guards (10 native/SIP SIGKILL and answer/end methods,5 provider death/query and regression methods,4 actual configured shutdown/Drop/lost-command-reply methods). Ten actual SIGKILL parents cover native answer/ready/metadata retirement, still-live SIP submission and still-live HTTP provider creation, each both algorithms. Drop/orderly/reply-loss vectors remain separately labeled. Focused two-order host guard and four schema tests pass. All1193 required current default-feature Store methods now covered with unchanged source/executable guards:685 individually completed methods from retained interrupted runs plus all508 disjoint remaining methods in one successful process. Original interrupted whole commands remain incomplete; three child-only helper entrypoints are invoked by parent tests."
   },
   "remaining": [
-    "Audit every G6-047 work/verification requirement against current and source-bound evidence: accepted operations, journal/runtime agreement, supported provider queries, bounded authorized operator reconciliation, unresolved conflict exclusion and owned shutdown.",
-    "Identify and execute any missing required operation/phase/failure vectors found by that audit. Unexecuted SIP answered/committed SIGKILL variations remain unqualified, not silently equivalent to existing Drop/cleanup cases."
+    "Finish the two actual record HTTP/HTTPS owned-drain methods in their correct gate6_auxiliary target. Their earlier wrong-target zero-method runs are failures, not passes.",
+    "Complete requirement audit and progress credit after the remaining actual drain results."
   ],
   "verification": {
     "native_ready_commit": {
@@ -1421,13 +1421,91 @@
   "requirement_audit": "docs/evidence/gate-6/crash-recovery-audit.json",
   "operator_reference": "docs/developer/crash-recovery.md",
   "public_operator_mapping": {
-    "status": "candidate-fix-runtime-pending",
+    "status": "qualified-both-algorithms",
     "problem": "Problem::from_error had no reconciliation-required arm; known unresolved physical custody fell through to400 state/operation_rejected rather than explicit uncertainty.",
     "implementation": "Map to409 state/reconciliation_required; both actual SIP SIGKILL public-operator parents assert the exact bounded reason, correlated SDK batch/HTTP status and409 ACK classification. Protected completion refusal and no-redial assertions remain.",
     "failed_attempts": [
       "Native remote runtime003 expected request() to return Err instead of inspecting the parsed batch terminator.",
       "Native remote runtime005 corrected ACK inspection but exposed missing public mapping. Whole wrappers remain failures; no task completion claimed."
     ],
-    "pending": "Exact guarded rerun building on native remote branch a3e529e; same mapper and SIP test bytes copied here."
+    "verification": {
+      "summary": ".local/gate-6/native-remote/runtime006/summary.json",
+      "artifact_workspace": "/Users/jonathaneisenzopf/.codex/worktrees/private-sip-lifetime/Connect",
+      "summary_sha256": "a0bde64003a7d84ebfdddd58118181ddf0aa0bd927f97f6757a5ea5d5c7235a9",
+      "source_revision": "a3e529ef3345671535e424bdbdcc541a2649a7d3",
+      "executable_sha256": "38079a3fade70d63b87291bf5040c943c48e8f8237e957b3fc9e58f42d5642e7",
+      "source_inputs_unchanged": true,
+      "executable_unchanged": true,
+      "qualified_cases": [
+        {
+          "name": "sip-operator-eddsa",
+          "case": "canonical_native_connections::consultation::groups::replacement::telephone::initial::crash::production_sigkill_sip_submission_keeps_external_uncertainty_without_redial_eddsa",
+          "runtime_exit_code": 0,
+          "log_sha256": "4b0b7b7974878d05a5c81dc68d1747a93513078f1bf7cccc974b16389d2c6a97",
+          "passed": true,
+          "capture_sha256": "afaaa0faaf6986583d7497319985da44c088f991085827a07013543fbbcefa95",
+          "observations": {
+            "algorithm": "EdDSA",
+            "caller_declared_completion_refused": true,
+            "external_peer_still_live": true,
+            "killed_signal": 9,
+            "new_epoch_same_installation": true,
+            "operation_state": "unknown",
+            "original_effect_attempt": 1,
+            "original_effect_state": "unknown",
+            "phase": "submitted",
+            "physical_after_restart": [
+              "unknown",
+              2,
+              null,
+              null
+            ],
+            "replay_preserved_receipt_and_original_operation": true,
+            "runtime_connections": 0,
+            "runtime_media_readers": 0,
+            "session_started_facts": 0,
+            "unique_external_calls": 1,
+            "unresolved_conflict_did_not_redial": true
+          }
+        },
+        {
+          "name": "sip-operator-es256",
+          "case": "canonical_native_connections::consultation::groups::replacement::telephone::initial::crash::production_sigkill_sip_submission_keeps_external_uncertainty_without_redial_es256",
+          "runtime_exit_code": 0,
+          "log_sha256": "fb9e8e0421b5285fe5f51a98885eca1ab0189e1e7a4e560bd85928a361c2f59e",
+          "passed": true,
+          "capture_sha256": "a6cb44c71aa6d3cce66cb2ab52d65403d067c50ed4179867f231c0af43cfb4e4",
+          "observations": {
+            "algorithm": "ES256",
+            "caller_declared_completion_refused": true,
+            "external_peer_still_live": true,
+            "killed_signal": 9,
+            "new_epoch_same_installation": true,
+            "operation_state": "unknown",
+            "original_effect_attempt": 1,
+            "original_effect_state": "unknown",
+            "phase": "submitted",
+            "physical_after_restart": [
+              "unknown",
+              2,
+              null,
+              null
+            ],
+            "replay_preserved_receipt_and_original_operation": true,
+            "runtime_connections": 0,
+            "runtime_media_readers": 0,
+            "session_started_facts": 0,
+            "unique_external_calls": 1,
+            "unresolved_conflict_did_not_redial": true
+          }
+        }
+      ],
+      "public_mapping_and_fixture_match_main_sha256": {
+        "crates/connect-protocol/src/canonical_http.rs": "26b5af8655f9207fba0a1a3598bab11a97802712f25f2a2ce4213760baf39082",
+        "crates/connect-server/tests/support/canonical_native_connections/consultation/groups/replacement/telephone/initial/crash.rs": "5b7ca2009b6cb56b561d7d03c71ee991275a8e1332b4c8b9e1b1ed5948e58977"
+      },
+      "passed": true,
+      "scope": "Both actual SIP submission SIGKILL parents now also require a current authorized public HTTP operator response409 state/reconciliation_required, still-live external peer, original Unknown attempt1/receipt and no redial. Whole ten-method remote driver passes; eight Remote profile cases remain assigned G6-048."
+    }
   }
 }
