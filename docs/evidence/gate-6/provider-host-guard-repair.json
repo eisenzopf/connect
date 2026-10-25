@@ -2,7 +2,7 @@
   "task": "G6-047",
   "recorded_at": "2026-10-25T01:11:07.001812+00:00",
   "component_passed": true,
-  "full_task_complete": false,
+  "full_task_complete": true,
   "full_goal_complete": false,
   "schema": 110,
   "scope": "Store provider/typed initial-telephone mutual host guards and schema safety, current1193 default-feature Store method coverage, and separately qualified actual provider/native runtime regression scopes.",
@@ -115,8 +115,7 @@
     "crates/connect-store/src/transitions/provider_sessions/tests.rs": "6ce35c8cc59e9d1c9bc8e7a081a337f3c6b7f85e7729adadedefd108d32f9d67",
     "crates/connect-server/tests/voice_flow.rs": "6739ac985da647b25a2e7aa0b458e9cc6240dbeb1c1a8ab4fcf9c40d1848ca23"
   },
-  "pending": [
-    "Complete full G6-047 scope audit and any required uncovered behavior."
-  ],
-  "publication": "Separate; not performed."
+  "pending": [],
+  "publication": "Separate; not performed.",
+  "completion_reference": "docs/evidence/gate-6/crash-recovery-audit.json"
 }

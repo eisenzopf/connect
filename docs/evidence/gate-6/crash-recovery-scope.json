@@ -1,8 +1,8 @@
 {
   "task": "G6-047",
-  "recorded_at": "2026-10-25T02:42:34.072764+00:00",
-  "status": "schema110-native-sip-provider-crash-and-owned-teardown-runtime-passes-task-audit-open",
-  "full_task_complete": false,
+  "recorded_at": "2026-10-25T02:44:12.458500+00:00",
+  "status": "complete-assigned-recovery-scope",
+  "full_task_complete": true,
   "full_goal_complete": false,
   "approved_work": "Reconcile accepted operations and external effects after crashes; mark interrupted live sessions honestly, query supported provider state and expose bounded operator reconciliation when certainty is unavailable. Prevent duplicate redial, stale bridge resurrection or database-only completion. Drain or terminate resources on shutdown.",
   "approved_verification": "Kill/restart around submit, answer, ready, commit and retirement. The recovered journal, provider state and actual media agree or explicitly report uncertainty; subsequent operations cannot bypass unresolved conflicting effects.",
@@ -15,12 +15,9 @@
     "source": "crates/connect-server/tests/support/canonical_native_connections/crash_recovery.rs",
     "scope": "Actual subprocess native ready/committed decoded bridge and actual server answer before callback confirmation; parent SIGKILL, successor ownership, old physical readiness/lifetime fencing, honest failed unconfirmed offer, immutable replay/no duplicate admission, public snapshot and stale signal refusal. EdDSA and ES256. Actual submitted SIP call remains external after server SIGKILL: successor reports Unknown at original attempt1, clears readiness, preserves receipt, refuses operator-declared completion, and replay/conflicting invitation cause no redial. Store process-exit boundaries separately cover local transactions with a synthetic effect counter.",
     "entrypoint_policy": "One explicitly ignored child-only entry point is invoked by four parent tests using --ignored; never counted as a skipped qualification or standalone pass.",
-    "verification": "Current schema110:19 exact runtime methods pass with source/executable guards (10 native/SIP SIGKILL and answer/end methods,5 provider death/query and regression methods,4 actual configured shutdown/Drop/lost-command-reply methods). Ten actual SIGKILL parents cover native answer/ready/metadata retirement, still-live SIP submission and still-live HTTP provider creation, each both algorithms. Drop/orderly/reply-loss vectors remain separately labeled. Focused two-order host guard and four schema tests pass. All1193 required current default-feature Store methods now covered with unchanged source/executable guards:685 individually completed methods from retained interrupted runs plus all508 disjoint remaining methods in one successful process. Original interrupted whole commands remain incomplete; three child-only helper entrypoints are invoked by parent tests."
+    "verification": "Assigned G6-047 audit complete.21 distinct executed runtime methods across preserved native/SIP/provider/owned scopes, with the two existing SIP parents additionally qualified through exact public HTTP409 state/reconciliation_required after real SIGKILL. Ten abrupt-death parents cover required submit/answer/ready/commit/retirement boundaries, both algorithms.1193 required default-feature Store methods covered on unchanged Store source;27 controlled durable crash boundaries remain distinct from real network/media proof. See crash-recovery-audit.json for exact witnesses and scope."
   },
-  "remaining": [
-    "Finish the two actual record HTTP/HTTPS owned-drain methods in their correct gate6_auxiliary target. Their earlier wrong-target zero-method runs are failures, not passes.",
-    "Complete requirement audit and progress credit after the remaining actual drain results."
-  ],
+  "remaining": [],
   "verification": {
     "native_ready_commit": {
       "summary": ".local/gate-6/crash-recovery/native-ready001-runtime-001/summary.json",
@@ -1397,6 +1394,34 @@
           "log_sha256": "1423264bcc2bb11d8817c1ef90056f5164e130a699da79be6a39b4faedba97c4"
         }
       ]
+    },
+    "owned_record_drains": {
+      "summary": ".local/gate-6/native-remote/owned-record007/summary.json",
+      "artifact_workspace": "/Users/jonathaneisenzopf/.codex/worktrees/private-sip-lifetime/Connect",
+      "summary_sha256": "21cbb1cf507f8e9b28dcdd7c117adfa73c9da18aa29620924edba7ffb7aaebe6",
+      "source_revision": "a3e529ef3345671535e424bdbdcc541a2649a7d3",
+      "executable_sha256": "b8a909bd7361be9263a3d200650d13a966830d396e43a5118bee882a0819e9a6",
+      "source_inputs_unchanged": true,
+      "executable_unchanged": true,
+      "fixture_matches_main_sha256": "86c765d010384b41c3b5126a0e636a533b690aa8a0db4349c5745e629faa122e",
+      "passed": true,
+      "cases": [
+        {
+          "name": "http-drain",
+          "case": "canonical_record_http::actual_http_shutdown_cancels_stalled_record_io_before_runtime_retirement",
+          "exit_code": 0,
+          "passed": true,
+          "log_sha256": "e0dc077ffce6b8b7091800cb0b92199146be344bb65b882e65e48f5afd143253"
+        },
+        {
+          "name": "https-expiry-drain",
+          "case": "canonical_record_http::actual_https_reference_expiry_and_shutdown_abort_stalled_tls_and_release_guards",
+          "exit_code": 0,
+          "passed": true,
+          "log_sha256": "8fe4053fce47731a96b2c31c4fee04f8509aa4de6ca0ee54ecf1c2278979002e"
+        }
+      ],
+      "observed": "Actual stalled HTTP record body is aborted by bounded server shutdown. Actual HTTPS record write is aborted on both reference expiry and shutdown; reopening current administration can delete the record, proving old socket guards were released."
     }
   },
   "provider_trigger_regression": {

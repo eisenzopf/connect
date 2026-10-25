@@ -58,5 +58,6 @@ fixtures are isolated on macOS arm64. They include actual server SIGKILL with
 surviving external fixtures and independently decoded native audio. Controlled
 Store process exits separately cover local transaction boundaries and a synthetic
 effect counter. Neither scope qualifies Linux hosting or named live-provider
-rehearsals. G6-047 remains under requirement audit until its recorded pending
-checks are resolved.
+rehearsals. The assigned G6-047 recovery audit is complete; the evidence records
+its actual phase, authority and shutdown witnesses and keeps later operating
+profiles and Gate 6 acceptance separate.

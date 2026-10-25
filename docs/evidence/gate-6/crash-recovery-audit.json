@@ -1,9 +1,9 @@
 {
   "task": "G6-047",
-  "status": "public-operator-qualified-record-drains-pending",
-  "full_task_complete": false,
+  "status": "complete-assigned-recovery-scope",
+  "full_task_complete": true,
   "full_goal_complete": false,
-  "recorded_at": "2026-10-25T02:06:29.089447+00:00",
+  "recorded_at": "2026-10-25T02:44:12.325781+00:00",
   "scope": "Current schema110 macOS arm64 isolated recovery evidence. No Linux/distinct-host/named provider or full acceptance claim.",
   "proofs": {
     "schema110-native012-runtime-012": {
@@ -138,6 +138,34 @@
       },
       "passed": true,
       "scope": "Both actual SIP submission SIGKILL parents now also require a current authorized public HTTP operator response409 state/reconciliation_required, still-live external peer, original Unknown attempt1/receipt and no redial. Whole ten-method remote driver passes; eight Remote profile cases remain assigned G6-048."
+    },
+    "owned_record_drains": {
+      "summary": ".local/gate-6/native-remote/owned-record007/summary.json",
+      "artifact_workspace": "/Users/jonathaneisenzopf/.codex/worktrees/private-sip-lifetime/Connect",
+      "summary_sha256": "21cbb1cf507f8e9b28dcdd7c117adfa73c9da18aa29620924edba7ffb7aaebe6",
+      "source_revision": "a3e529ef3345671535e424bdbdcc541a2649a7d3",
+      "executable_sha256": "b8a909bd7361be9263a3d200650d13a966830d396e43a5118bee882a0819e9a6",
+      "source_inputs_unchanged": true,
+      "executable_unchanged": true,
+      "fixture_matches_main_sha256": "86c765d010384b41c3b5126a0e636a533b690aa8a0db4349c5745e629faa122e",
+      "passed": true,
+      "cases": [
+        {
+          "name": "http-drain",
+          "case": "canonical_record_http::actual_http_shutdown_cancels_stalled_record_io_before_runtime_retirement",
+          "exit_code": 0,
+          "passed": true,
+          "log_sha256": "e0dc077ffce6b8b7091800cb0b92199146be344bb65b882e65e48f5afd143253"
+        },
+        {
+          "name": "https-expiry-drain",
+          "case": "canonical_record_http::actual_https_reference_expiry_and_shutdown_abort_stalled_tls_and_release_guards",
+          "exit_code": 0,
+          "passed": true,
+          "log_sha256": "8fe4053fce47731a96b2c31c4fee04f8509aa4de6ca0ee54ecf1c2278979002e"
+        }
+      ],
+      "observed": "Actual stalled HTTP record body is aborted by bounded server shutdown. Actual HTTPS record write is aborted on both reference expiry and shutdown; reopening current administration can delete the record, proving old socket guards were released."
     }
   },
   "store_recovery_authority_methods": [
@@ -191,19 +219,27 @@
     {
       "requirement": "Drain or terminate owned resources on shutdown",
       "proof": [
-        "schema110-owned-recovery015"
+        "schema110-owned-recovery015",
+        "owned_record_drains"
       ],
-      "observed": "Actual ringing CANCEL on configured shutdown, private and completed owner Drop with captured media/custody, and lost reply reusing original attempt. These are explicitly orderly/Drop/reply-loss methods, not SIGKILL."
+      "observed": "Actual ringing CANCEL on configured shutdown, private and completed owner Drop with captured media/custody, and lost reply reusing original attempt. These are explicitly orderly/Drop/reply-loss methods, not SIGKILL. Actual stalled HTTP/HTTPS record bodies are aborted before successful shutdown; HTTPS expiry/shutdown release record guards, checked by current administration mutation."
     }
   ],
-  "pending": [
-    "Two actual record HTTP/HTTPS owned-drain cases are building in their correct gate6_auxiliary target.",
-    "Close requirement audit and task progress after those results."
-  ],
+  "pending": [],
   "unqualified_variants": [
     "No claim of a separately executed SIP answered/committed SIGKILL matrix. The approved phase coverage above identifies its actual adapters and boundaries.",
     "No named provider account, Linux x86_64, remote/native distinct-host or browser qualification."
   ],
   "audit_revision": "d61765ef",
-  "source_binding_note": "The four earlier report source maps matched the whole main source tree at d61765ef audit. New canonical HTTP uncertainty classification and its SIP wire assertion are under fresh guarded verification; Store/schema and durable recovery implementations are unchanged."
+  "source_binding_note": "The four earlier report source maps matched the whole main source tree at d61765ef audit. New canonical HTTP uncertainty classification and its SIP wire assertion are under fresh guarded verification; Store/schema and durable recovery implementations are unchanged.",
+  "completion_audit": {
+    "requirements_mapped": 5,
+    "all_mapped_requirements_have_executed_evidence": true,
+    "store_source_bytes_unchanged_from_1193_method_coverage": true,
+    "selected_store_authority_recovery_methods": 13,
+    "runtime_distinct_methods": 21,
+    "runtime_count_explanation": "19 original native/SIP/provider/owned methods plus2 actual record drain methods. Both existing SIP parents were extended and rerun with public HTTP assertions; those reruns are not counted as new distinct methods.",
+    "approved_phase_coverage": "Actual parent-confirmed SIGKILL submit (surviving SIP/provider), answer (native before confirmation), ready/commit (decoded native bridge), retirement (actual physical close with blocked lifetime settlement), both algorithms. Controlled Store process exits separately cover27 local durable boundaries.",
+    "scope_boundary": "Assigned recovery implementation and isolated local macOS arm64 fixtures. Extended distinct-host/Linux/browser/named provider/performance/conformance/release and acceptance retain their separate approved tasks. No publication."
+  }
 }
