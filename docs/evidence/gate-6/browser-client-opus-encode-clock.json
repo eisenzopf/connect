@@ -1,6 +1,6 @@
 {
   "task": "G6-050",
-  "status": "Original capture-timestamp encoding correction passes251SDKmethods; current connected/default/native runtime pending",
+  "status": "SDK251 original-timestamp encoding verified; connected API/codec and actual background/resume pass, denial086passes but earlier current084denialaudio133failure remains unresolved",
   "recorded_at": "2026-10-25T20:24:04.337514+00:00",
   "behavior": "Keep at most ten original accepted20msPCM capture timestamps until matching Opus encoder outputs. Packetization uses each original timestamp, preserving capture gaps and suspended-graph intervals when WebCodecs emits a continuous sample clock. Output without an original refuses; synchronous encode failure removes only its own metadata; close clears pending metadata and fences late output. Existing decoder restoration/packet/queue/authority/source-clock/renderer bounds remain. No arbitrary AVoffset or source/observer/threshold change.",
   "source": {
@@ -8,7 +8,7 @@
     "sdk/typescript/dist/browser_codecs.js": "56306513b0d1a59e71873efea7136fe94e897fc121e246c7e22d64915c05cb8e",
     "sdk/typescript/dist/browser_codecs.d.ts": "fd185c2e3f68ddbda916e0531dfc91b619c349bf1a092368a139f1c94cad435a",
     "sdk/tests/browser_opus_clock.test.mjs": "17c2715eb1ea1300275bca823e8d56247b8b7c04bd9d446c191b1d7b7f491e1f",
-    "crates/connect-server/tests/fixtures/gate6-webtransport-browser/sdk-media.mjs": "2b031fc22d49a94bf685c8c03e7e60d2a2639adac5f6a60ca28c4d89dd69ffa5",
+    "crates/connect-server/tests/fixtures/gate6-webtransport-browser/sdk-media.mjs": "4b9cb24f1808bb080ae090f00ff1ce91fd16520f5298b2c165bf030421f5e880",
     "crates/connect-server/tests/fixtures/gate6-webtransport-browser/run-browser.mjs": "f8d0a1186d252597ca9048071c873183a4c7868994babe3d48cf55d444721a11",
     "scripts/rehearse-gate6-browser-sdk.py": "1902b92a860f7690b72b84fc17d8b8a7f3c80bd4af27461faf93965c79bf36d9"
   },
@@ -182,7 +182,275 @@
         }
       ],
       "finding": "Original AudioEncoder output compresses resumed capture gaps by2799934/2810734microseconds. BrowserOpusCodec previously packetized chunk.timestamp while RTCP sampled original capture time, making current audio appear seconds late. This directly motivates original-timestamp encoding metadata."
+    },
+    {
+      "report": ".local/gate-6/presentation-diagnostic/boundary085/summary.json",
+      "sha256": "92018a1b30e4f4bc0a168273d351fdf8db8738d6b9dd7fc322eb30cb76ab8e82",
+      "exit_code": 0,
+      "diagnostic_valid": true,
+      "source_inputs_unchanged": true,
+      "sealed_executable_unchanged": true,
+      "finding": "Current251bounded denial diagnostic passes without reproducing084audio failure. Renderers admit208/213 and200/205audio calls; both have one late refusal. A diagnostic pass neither explains nor erases084133audiofailure."
     }
   ],
-  "remaining": "Rerun all three connected boundaries, then current default clean60 and short/native cohorts. Historical subscriptionunknown requires its own failure/recovery proof. Actual impairment/independent sources/native live/other assigned profiles and all105tasks/acceptance remain required."
+  "remaining": "Run current default clean60 and short/native cohorts after encoder change. Denial084133audio and historical subscriptionunknown need their own robust failure/recovery evidence. Independent sources/actual3percentloss/100msvariation/two250msbursts/native live/other assigned profiles and all105tasks/acceptance remain required.",
+  "connected_checks": [
+    {
+      "report": ".local/gate-6/browser-sdk/capture-boundary084-0/summary.json",
+      "sha256": "25fc1147cbc51c5d19aa48e99aa8dc7a1104e8aba7720d2637dab8bd07a03e95",
+      "mode": "permission-denied",
+      "passed": false,
+      "source_inputs_unchanged": true,
+      "executable_unchanged": true,
+      "source_revision": "34360e91dada2f440793b08094333afc3e6f12dd",
+      "case": {
+        "case": "canonical_webtransport_browser::installed_chrome_production_sdk_captured_duplex_opus_vp8_and_reliable_data_eddsa",
+        "passed": false,
+        "exit_code": 101,
+        "elapsed_seconds": 6.631976749980822,
+        "log": ".local/gate-6/browser-sdk/capture-boundary084-0/case-0.log",
+        "log_sha256": "8801e530eac5670474c75ce99a34506cce3fc8b66fb7df5be46f7fe1a5538e38"
+      },
+      "failure": "Original retained post-denial playback assertion fails133/150audio in one direction. Permission preflight alone is not a full profile pass; this current251failure remains unresolved."
+    },
+    {
+      "report": ".local/gate-6/browser-sdk/capture-boundary084-1/summary.json",
+      "sha256": "75fc946bd9025e639294ce2dd3a5423abe56c5f5fb214aefc595d80914e10c6c",
+      "mode": "unsupported-api-codec",
+      "passed": true,
+      "source_inputs_unchanged": true,
+      "executable_unchanged": true,
+      "source_revision": "34360e91dada2f440793b08094333afc3e6f12dd",
+      "case": {
+        "case": "canonical_webtransport_browser::installed_chrome_production_sdk_captured_duplex_opus_vp8_and_reliable_data_eddsa",
+        "passed": true,
+        "exit_code": 0,
+        "elapsed_seconds": 7.501064957818016,
+        "log": ".local/gate-6/browser-sdk/capture-boundary084-1/case-0.log",
+        "log_sha256": "f13327fa681a006bbe31ae243a4752205ae4f46ad6ee420cd79d589fe46fb547"
+      },
+      "actual": {
+        "capture_boundary": {
+          "control_requests": 0,
+          "device_requests": 0,
+          "injected_missing_api_refused": true,
+          "injected_unsupported_codec_refused": true,
+          "mode": "unsupported-api-codec",
+          "passed": true
+        },
+        "playback": [
+          {
+            "audio": 193,
+            "maxPending": 7,
+            "maxQueuedSeconds": 0.1262989999999986,
+            "meanQueuedAudioSeconds": 0.09583987609074551,
+            "peakRms": 0.17886974027746683,
+            "queueSamples": 191,
+            "queueSecondsTotal": 18.305416333332392,
+            "video": 112
+          },
+          {
+            "audio": 193,
+            "maxPending": 7,
+            "maxQueuedSeconds": 0.12749933333333408,
+            "meanQueuedAudioSeconds": 0.10580955322862134,
+            "peakRms": 0.17860832030998847,
+            "queueSamples": 191,
+            "queueSecondsTotal": 20.209624666666677,
+            "video": 112
+          }
+        ],
+        "owned_cleanup": true,
+        "owned_graph_states": [
+          "closed",
+          "closed",
+          "closed",
+          "closed"
+        ],
+        "owned_track_states": [
+          {
+            "kind": "audio",
+            "state": "ended"
+          },
+          {
+            "kind": "video",
+            "state": "ended"
+          },
+          {
+            "kind": "audio",
+            "state": "ended"
+          },
+          {
+            "kind": "video",
+            "state": "ended"
+          }
+        ],
+        "teardown_ms": 66.09999990463257
+      }
+    },
+    {
+      "report": ".local/gate-6/browser-sdk/capture-boundary084-2/summary.json",
+      "sha256": "d05e7b7b8f230cc2ebfc5acc91d75aa02f60abd99a85a585103772e42da10b08",
+      "mode": "background-resume",
+      "passed": true,
+      "source_inputs_unchanged": true,
+      "executable_unchanged": true,
+      "source_revision": "34360e91dada2f440793b08094333afc3e6f12dd",
+      "case": {
+        "case": "canonical_webtransport_browser::installed_chrome_production_sdk_captured_duplex_opus_vp8_and_reliable_data_eddsa",
+        "passed": true,
+        "exit_code": 0,
+        "elapsed_seconds": 9.44133629091084,
+        "log": ".local/gate-6/browser-sdk/capture-boundary084-2/case-0.log",
+        "log_sha256": "81d71bae666fde3ba0cc7ff49625e317e6689a93b7d34dcb57854301a94306a9"
+      },
+      "actual": {
+        "capture_boundary": {
+          "actual_hidden_pause": true,
+          "explicit_visible_resume": true,
+          "fresh_capture_recovery_ms": 146.70000004768372,
+          "hidden_encoded_after": [
+            89,
+            88
+          ],
+          "hidden_encoded_before": [
+            89,
+            88
+          ],
+          "mode": "background-resume",
+          "passed": true
+        },
+        "playback": [
+          {
+            "audio": 197,
+            "maxPending": 7,
+            "maxQueuedSeconds": 0.1304040000000004,
+            "meanQueuedAudioSeconds": 0.10092748167539256,
+            "peakRms": 0.17922550121543981,
+            "queueSamples": 191,
+            "queueSecondsTotal": 19.27714899999998,
+            "video": 116
+          },
+          {
+            "audio": 194,
+            "maxPending": 7,
+            "maxQueuedSeconds": 0.13460599999999978,
+            "meanQueuedAudioSeconds": 0.10435810645724249,
+            "peakRms": 0.17904872938585645,
+            "queueSamples": 191,
+            "queueSecondsTotal": 19.932398333333314,
+            "video": 102
+          }
+        ],
+        "owned_cleanup": true,
+        "owned_graph_states": [
+          "closed",
+          "closed",
+          "closed",
+          "closed"
+        ],
+        "owned_track_states": [
+          {
+            "kind": "audio",
+            "state": "ended"
+          },
+          {
+            "kind": "video",
+            "state": "ended"
+          },
+          {
+            "kind": "audio",
+            "state": "ended"
+          },
+          {
+            "kind": "video",
+            "state": "ended"
+          }
+        ],
+        "teardown_ms": 59.60000014305115
+      }
+    },
+    {
+      "report": ".local/gate-6/browser-sdk/capture-denial086/summary.json",
+      "sha256": "b617fe9fdd1de242295e9bd3d74e61fb7c9c97d66ee595b5cf919c21179a3187",
+      "mode": "permission-denied",
+      "passed": true,
+      "source_inputs_unchanged": true,
+      "executable_unchanged": true,
+      "source_revision": "34360e91dada2f440793b08094333afc3e6f12dd",
+      "case": {
+        "case": "canonical_webtransport_browser::installed_chrome_production_sdk_captured_duplex_opus_vp8_and_reliable_data_eddsa",
+        "passed": true,
+        "exit_code": 0,
+        "elapsed_seconds": 6.336889792000875,
+        "log": ".local/gate-6/browser-sdk/capture-denial086/case-0.log",
+        "log_sha256": "41c2c737e49a7fc72c903ac24691e76e598c769b0f02e0c9f1a756403e0ca1d4"
+      },
+      "actual": {
+        "capture_boundary": {
+          "graphs_created_on_denial": 0,
+          "mode": "permission-denied",
+          "passed": true,
+          "permission_denied": true
+        },
+        "playback": [
+          {
+            "audio": 190,
+            "audio_refusal_observations": {
+              "nonmonotonic": 2,
+              "overlap": 1
+            },
+            "maxPending": 6,
+            "maxQueuedSeconds": 0.11772500000000097,
+            "meanQueuedAudioSeconds": 0.08852560175438622,
+            "peakRms": 0.17796536115791473,
+            "queueSamples": 190,
+            "queueSecondsTotal": 16.81986433333338,
+            "video": 117
+          },
+          {
+            "audio": 189,
+            "audio_refusal_observations": {
+              "late": 1,
+              "nonmonotonic": 3
+            },
+            "maxPending": 6,
+            "maxQueuedSeconds": 0.11703300000000105,
+            "meanQueuedAudioSeconds": 0.08772210175438407,
+            "peakRms": 0.17774282353517584,
+            "queueSamples": 190,
+            "queueSecondsTotal": 16.667199333332974,
+            "video": 116
+          }
+        ],
+        "owned_cleanup": true,
+        "owned_graph_states": [
+          "closed",
+          "closed",
+          "closed",
+          "closed"
+        ],
+        "owned_track_states": [
+          {
+            "kind": "audio",
+            "state": "ended"
+          },
+          {
+            "kind": "video",
+            "state": "ended"
+          },
+          {
+            "kind": "audio",
+            "state": "ended"
+          },
+          {
+            "kind": "video",
+            "state": "ended"
+          }
+        ],
+        "teardown_ms": 56.10000014305115
+      }
+    }
+  ],
+  "refusal_observations": "The explicit boundary fixture now keeps bounded numeric pre-call refusal counts and includes them in playback observations, retaining no frames/PCM. The original renderer alone decides admission and all original quality/teardown assertions remain. These pre-call classifications are diagnostics, not current authority or exact renderer counters. Original clean60 paths do not collect these counts."
 }

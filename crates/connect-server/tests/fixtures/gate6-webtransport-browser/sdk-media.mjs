@@ -70,6 +70,15 @@ async function captureVisibilityBoundary(result,captures,renderers,streams,peers
 export async function run(config){
   const clean60=config.clean60===true;check(!clean60||config.capture===true,'clean60 requires actual capture/render');
   let captureBoundary;
+  const audioRefusals=[{},{}];
+  const presentAudio=(i,binding,frame)=>{
+    const r=renderers[i];if(!r)return;if(!config.captureBoundary){r.audio(binding,frame);return;}
+    // Bounded numeric pre-call classification for explicit failure profiles.
+    // Frames remain borrowed; the original renderer still makes every decision.
+    const clock=r.clock,now=r.now(),due=clock?clock.local+(frame.timestamp-clock.source)/1000000:undefined;
+    const reason=!r.current(binding)?'inactive':r.sources.size>=10?'full':frame.timestamp<=r.lastAudio?'nonmonotonic':due!==undefined&&due+1/48000<r.nextAudio?'overlap':due!==undefined&&due+1/48000<now?'late':due!==undefined&&Math.max(now,r.nextAudio,due)+.02-now>.2?'future':'other';
+    if(!r.audio(binding,frame))audioRefusals[i][reason]=(audioRefusals[i][reason]??0)+1;
+  };
   const clients=[],peers=[],connections=[],errors=[],audio=[{decoded:0,identified:0},{decoded:0,identified:0}],video=[{decoded:0,identified:0,motion:new Set()},{decoded:0,identified:0,motion:new Set()}],data=[[],[]];
   const source=[document.createElement('canvas'),document.createElement('canvas')],render=[document.createElement('canvas'),document.createElement('canvas')];
   for(const c of [...source,...render]){c.width=640;c.height=360;}
@@ -95,7 +104,7 @@ export async function run(config){
       const client=await BrowserClient.open(await options(config.actors[i]));clients.push(client);
       if(i===0)created=await client.createConversation('browser-create',{participants:[config.actors[1].identity_id]});
       const peer=new BrowserMediaPeer(client,{
-        audio:(binding,frame)=>{audio[i].decoded++;if(tone(frame,i===0?250:500))audio[i].identified++;renderers[i]?.audio(binding,frame);},
+        audio:(binding,frame)=>{audio[i].decoded++;if(tone(frame,i===0?250:500))audio[i].identified++;presentAudio(i,binding,frame);},
         video:(binding,frame)=>{
           video[i].decoded++;const out=render[i].getContext('2d',{willReadFrequently:true});if(config.capture){if(!renderers[i]?.video(binding,frame))return;}else out.drawImage(frame,0,0,640,360);const pixel=out.getImageData(0,0,1,1).data;
           if(i===0?pixel[2]>150&&pixel[0]<80:pixel[0]>150&&pixel[2]<80)video[i].identified++;
@@ -147,10 +156,11 @@ export async function run(config){
       if(captureBoundary?.mode==='background-resume')await captureVisibilityBoundary(captureBoundary,captures,renderers,streams,peers);
       for(const a of audio){a.decoded=0;a.identified=0;}for(const v of video){v.decoded=0;v.identified=0;v.motion.clear();}
       const before=renderers.map(r=>r.diagnostics);
+      const refusalBefore=audioRefusals.map(r=>({...r}));
       const measured=performance.now();minimumMarker=Math.floor((measured-markerStart)/1000)+2;measuring=true;
       while(performance.now()-measured<duration){for(let i=0;i<renderers.length;i++){const d=renderers[i].diagnostics,p=playback[i];p.peakRms=Math.max(p.peakRms,d.audioRms);p.maxPending=Math.max(p.maxPending,d.pendingAudio);p.maxQueuedSeconds=Math.max(p.maxQueuedSeconds,d.queuedAudioSeconds);p.queueSamples++;p.queueSecondsTotal+=d.queuedAudioSeconds;}if(clean60)observeAudioMarkers();await wait(clean60?5:20);}
       measuring=false;measurement={elapsed_ms:performance.now()-measured,opus:audio.map(a=>({...a})),vp8:video.map(v=>({...v,motion:v.motion.size}))};
-      for(let i=0;i<renderers.length;i++){const after=renderers[i].diagnostics;playback[i].meanQueuedAudioSeconds=playback[i].queueSamples?playback[i].queueSecondsTotal/playback[i].queueSamples:0;playback[i].audio=after.audio-before[i].audio;playback[i].video=after.video-before[i].video;}
+      for(let i=0;i<renderers.length;i++){const after=renderers[i].diagnostics;playback[i].meanQueuedAudioSeconds=playback[i].queueSamples?playback[i].queueSecondsTotal/playback[i].queueSamples:0;playback[i].audio=after.audio-before[i].audio;playback[i].video=after.video-before[i].video;if(config.captureBoundary)playback[i].audio_refusal_observations=Object.fromEntries(Object.entries(audioRefusals[i]).map(([reason,n])=>[reason,n-(refusalBefore[i][reason]??0)]));}
     }finally{stop=true;await pumping;}
     check(errors.length===0,'actual SDK media failure: '+errors.join('; '));
     const observedAudio=measurement.opus,observedVideo=measurement.vp8,minimumAudio=clean60?Math.ceil(measurement.elapsed_ms*.0375):150,minimumVideo=clean60?Math.ceil(measurement.elapsed_ms*.024):90;
