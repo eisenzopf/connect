@@ -96,6 +96,365 @@
     "scope": "The new controlled method completes both QUIC/WT branches, including same catalog/no new reconciliation, metadata-only reader release, same-port fresh camera forwarding and genuine later camera/screen negotiation/delivery. Other methods retain missed authorization-hint recovery, denial, bad confirmation/queued-writer identity and supported physical data profiles. Unit classifier preserves unavailable versus absent/stale/quota distinctions. This is not full host/media qualification."
   },
   "host_runtime": {
-    "status": "not yet verified on source188; full8 browser and28transport checks next"
+    "status": "Current source188 transport28 passes; browser SDK matrix4/8 passes. Opus/VP8 media and data admission remain unresolved.",
+    "browser": {
+      "report": ".local/gate-6/browser-sdk/catalog043/summary.json",
+      "sha256": "c71bb1dfe67d9ada57e84228347baf78c9fd264112592144fa4e56dbb437ed60",
+      "passed": false,
+      "source_inputs_unchanged": true,
+      "executables_unchanged": true,
+      "passed_methods": 4,
+      "selected_methods": 8,
+      "cases": [
+        {
+          "case": "canonical_webtransport_browser::installed_chrome_production_sdk_signed_control_receipts_and_refusals_eddsa",
+          "passed": true,
+          "exit_code": 0,
+          "elapsed_seconds": 1.5337179999332875,
+          "log": ".local/gate-6/browser-sdk/catalog043/case-0.log",
+          "log_sha256": "53e769d4fdc262c3d919afd38a681719d14d696fecd96d19d0b7bcd7df20c01f"
+        },
+        {
+          "case": "canonical_webtransport_browser::installed_chrome_production_sdk_signed_control_receipts_and_refusals_es256",
+          "passed": true,
+          "exit_code": 0,
+          "elapsed_seconds": 0.7708534169942141,
+          "log": ".local/gate-6/browser-sdk/catalog043/case-1.log",
+          "log_sha256": "7cf08e6a047c88356e1c00fdd2b100f979cb7515ee4a233ad95a00635feb388e"
+        },
+        {
+          "case": "canonical_webtransport_browser::installed_chrome_signed_control_reconnect_and_independently_decoded_duplex_eddsa",
+          "passed": true,
+          "exit_code": 0,
+          "elapsed_seconds": 4.442371832905337,
+          "log": ".local/gate-6/browser-sdk/catalog043/case-2.log",
+          "log_sha256": "60d505401d193faeadac9edf2fee8c0b91b4e1e1d808a718f8cd3ee4caffab83"
+        },
+        {
+          "case": "canonical_webtransport_browser::installed_chrome_signed_control_reconnect_and_independently_decoded_duplex_es256",
+          "passed": true,
+          "exit_code": 0,
+          "elapsed_seconds": 4.40360620780848,
+          "log": ".local/gate-6/browser-sdk/catalog043/case-3.log",
+          "log_sha256": "468644295e440abaec16f968684426ce141ef40c5d50bf2f8af45b0fe4e785d0"
+        },
+        {
+          "case": "canonical_webtransport_browser::installed_chrome_production_sdk_negotiated_duplex_opus_vp8_and_reliable_data_eddsa",
+          "passed": false,
+          "exit_code": 101,
+          "elapsed_seconds": 6.469211207935587,
+          "log": ".local/gate-6/browser-sdk/catalog043/case-4.log",
+          "log_sha256": "0e20fb5ebcf28d0fe1a69c848bf66893c61e157b01c3cba0251933bec04696ff"
+        },
+        {
+          "case": "canonical_webtransport_browser::installed_chrome_production_sdk_negotiated_duplex_opus_vp8_and_reliable_data_es256",
+          "passed": false,
+          "exit_code": 101,
+          "elapsed_seconds": 3.1212565838359296,
+          "log": ".local/gate-6/browser-sdk/catalog043/case-5.log",
+          "log_sha256": "b6fde24ca09e12bcad31279717084eee01885a64d23d189f535e307eb0df6191"
+        },
+        {
+          "case": "canonical_webtransport_browser::installed_chrome_production_sdk_captured_duplex_opus_vp8_and_reliable_data_eddsa",
+          "passed": false,
+          "exit_code": 101,
+          "elapsed_seconds": 5.797395416069776,
+          "log": ".local/gate-6/browser-sdk/catalog043/case-6.log",
+          "log_sha256": "b35e228420038a1437891922c4ab5075028d5c89f8ccfea123340a053a8c7aac"
+        },
+        {
+          "case": "canonical_webtransport_browser::installed_chrome_production_sdk_captured_duplex_opus_vp8_and_reliable_data_es256",
+          "passed": false,
+          "exit_code": 101,
+          "elapsed_seconds": 5.781606249976903,
+          "log": ".local/gate-6/browser-sdk/catalog043/case-7.log",
+          "log_sha256": "e925631256a1083ef85ada19a4d657aac3604065103623db253f825c7ecac786"
+        }
+      ]
+    },
+    "transport": {
+      "report": ".local/gate-6/webtransport/catalog029/summary.json",
+      "sha256": "842234cf454d3eb6854273e2d556c3bd92c838af9911328edd51469e9a2f9676",
+      "passed": true,
+      "source_inputs_unchanged": true,
+      "executables_unchanged": true,
+      "passed_methods": 28,
+      "selected_methods": 28,
+      "cases": [
+        {
+          "case": "independent_http3_signed_control_and_reconnect_share_native_receipt_eddsa",
+          "passed": true,
+          "exit_code": 0,
+          "elapsed_seconds": 0.6088696250226349,
+          "log": ".local/gate-6/webtransport/catalog029/case-0.log",
+          "log_sha256": "dd5b41b256d6eabb866955bbcbf8e56d7c301938575924b99af2256a8312eda5"
+        },
+        {
+          "case": "independent_http3_signed_control_and_reconnect_share_native_receipt_es256",
+          "passed": true,
+          "exit_code": 0,
+          "elapsed_seconds": 0.5589961670339108,
+          "log": ".local/gate-6/webtransport/catalog029/case-1.log",
+          "log_sha256": "0633041a08be4b58f5d84be079f4694159d459a5ae5e2689ba2d00721e42193b"
+        },
+        {
+          "case": "wrong_missing_duplicate_origin_and_wrong_mount_refuse_before_authority",
+          "passed": true,
+          "exit_code": 0,
+          "elapsed_seconds": 0.568329666974023,
+          "log": ".local/gate-6/webtransport/catalog029/case-2.log",
+          "log_sha256": "bd2ccf820ef23aacf63b0ee09edc8cd686a7e89f0afe1cfb2e43a3658b4237f9"
+        },
+        {
+          "case": "canonical_webtransport_media::independent_http3_actual_decoded_duplex_uses_webtransport_bindings_eddsa",
+          "passed": true,
+          "exit_code": 0,
+          "elapsed_seconds": 4.294193958863616,
+          "log": ".local/gate-6/webtransport/catalog029/case-3.log",
+          "log_sha256": "920be9ff4a73ec2380664674695cbc5b729636979779e3772cdea5687d21400d"
+        },
+        {
+          "case": "canonical_webtransport_media::independent_http3_actual_decoded_duplex_uses_webtransport_bindings_es256",
+          "passed": true,
+          "exit_code": 0,
+          "elapsed_seconds": 4.322878791950643,
+          "log": ".local/gate-6/webtransport/catalog029/case-4.log",
+          "log_sha256": "bae5a761c6ce2d26414e0f4b52fc863322cafbf3a858c8a5adb4bdd38628dcf7"
+        },
+        {
+          "case": "canonical_webtransport_discovery::configured_webtransport_discovery_is_bounded_authenticated_current_and_read_only",
+          "passed": true,
+          "exit_code": 0,
+          "elapsed_seconds": 0.26815712498500943,
+          "log": ".local/gate-6/webtransport/catalog029/case-5.log",
+          "log_sha256": "9e25d60476719b0facc700fa74898543890ec4091dac40e68bc466a0b525854c"
+        },
+        {
+          "case": "canonical_webtransport_discovery::disabled_webtransport_and_unrelated_http_listener_do_not_invent_transport_discovery",
+          "passed": true,
+          "exit_code": 0,
+          "elapsed_seconds": 0.20351716713048518,
+          "log": ".local/gate-6/webtransport/catalog029/case-6.log",
+          "log_sha256": "163f0e078720cc6329df4fda86840ec1d2359b5db4f6571ce124272e7c50aa29"
+        },
+        {
+          "case": "canonical_webtransport_discovery::discovery_sdk_refuses_incompatible_and_oversized_responses_during_collection",
+          "passed": true,
+          "exit_code": 0,
+          "elapsed_seconds": 0.210960750002414,
+          "log": ".local/gate-6/webtransport/catalog029/case-7.log",
+          "log_sha256": "c3d13cf4dfee2a611939578a966f741734ad7e6cf1cad877422558d5a66d11e8"
+        },
+        {
+          "case": "canonical_webtransport_lifecycle::missing_quic_datagram_capability_is_refused_before_auth_and_keeps_other_peers_alive",
+          "passed": true,
+          "exit_code": 0,
+          "elapsed_seconds": 0.535371458157897,
+          "log": ".local/gate-6/webtransport/catalog029/case-8.log",
+          "log_sha256": "5b849db787f79ea3f941a8aa3202ee056d45b2c039350d3d47d377db22ae7fb2"
+        },
+        {
+          "case": "canonical_webtransport_media::server_shutdown_with_live_decoded_webtransport_media_retires_all_physical_bindings",
+          "passed": true,
+          "exit_code": 0,
+          "elapsed_seconds": 3.966518667060882,
+          "log": ".local/gate-6/webtransport/catalog029/case-9.log",
+          "log_sha256": "a56ad9dae7dcd169abfe97bf4b802b8879b55c912c61a962f34875e8f60cb00d"
+        },
+        {
+          "case": "canonical_webtransport_media::server_drop_with_live_decoded_webtransport_media_retires_all_physical_bindings",
+          "passed": true,
+          "exit_code": 0,
+          "elapsed_seconds": 3.9648808329366148,
+          "log": ".local/gate-6/webtransport/catalog029/case-10.log",
+          "log_sha256": "0994723f40862fd282936c4fb85eea6f94215e22a662ccb8b1bb421d0d363ef2"
+        },
+        {
+          "case": "canonical_webtransport_lifecycle::shared_native_and_http3_physical_budget_refuses_excess_and_reuses_only_retired_slots",
+          "passed": true,
+          "exit_code": 0,
+          "elapsed_seconds": 1.2362865409813821,
+          "log": ".local/gate-6/webtransport/catalog029/case-11.log",
+          "log_sha256": "bff4ceccc16edf98063d9a8a4e70304fd0ce0b76a42c70bd4caca3af997ca96a"
+        },
+        {
+          "case": "canonical_webtransport_lifecycle::current_credential_and_key_revocation_retire_http3_without_replaying_durable_mutation",
+          "passed": true,
+          "exit_code": 0,
+          "elapsed_seconds": 1.5892174169421196,
+          "log": ".local/gate-6/webtransport/catalog029/case-12.log",
+          "log_sha256": "8f03aa3ac5bbfa5f03f2e1bf031dbb2cec5cc5ba5e571723944808008ecf103f"
+        },
+        {
+          "case": "canonical_webtransport_lifecycle::server_signing_expiry_closes_http3_and_native_intake_and_releases_owned_runtime",
+          "passed": true,
+          "exit_code": 0,
+          "elapsed_seconds": 3.322427999926731,
+          "log": ".local/gate-6/webtransport/catalog029/case-13.log",
+          "log_sha256": "4e77efe88af64a043a324bc07a80dded364dae5d98aca7a8b34eab3e85528555"
+        },
+        {
+          "case": "canonical_webtransport_lifecycle::owned_http3_shutdown_and_drop_restart_preserve_original_receipt_and_fence_old_peers",
+          "passed": true,
+          "exit_code": 0,
+          "elapsed_seconds": 1.896508292062208,
+          "log": ".local/gate-6/webtransport/catalog029/case-14.log",
+          "log_sha256": "f19eed787a4a91d855b481ab443089481f902d94164ad6ce2f332d50ab2d73db"
+        },
+        {
+          "case": "canonical_webtransport_lifecycle::malformed_and_unallocated_datagrams_are_observed_rejected_before_and_after_auth_without_allocation",
+          "passed": true,
+          "exit_code": 0,
+          "elapsed_seconds": 0.6856196669396013,
+          "log": ".local/gate-6/webtransport/catalog029/case-15.log",
+          "log_sha256": "928e99301de6ea3868523270f4e8d6cc199ce44398bfd8a64934498331b8567b"
+        },
+        {
+          "case": "canonical_webtransport_lifecycle::authenticated_control_only_endpoint_keeps_commands_but_refuses_audio_without_slots",
+          "passed": true,
+          "exit_code": 0,
+          "elapsed_seconds": 0.8426687500905246,
+          "log": ".local/gate-6/webtransport/catalog029/case-16.log",
+          "log_sha256": "b617864a46504ce5e3c5d13f34357a26c55ac2a73e7de0d88f819c6e20f95453"
+        },
+        {
+          "case": "canonical_webtransport_lifecycle::http3_session_budget_is_shared_with_native_commands_and_refusal_leaves_no_connection",
+          "passed": true,
+          "exit_code": 0,
+          "elapsed_seconds": 0.4285829581785947,
+          "log": ".local/gate-6/webtransport/catalog029/case-17.log",
+          "log_sha256": "bdb0fbe38e65bf878041899d7d596c5827dfa06c02c111a10e219b6957bcc872"
+        },
+        {
+          "case": "canonical_webtransport_lifecycle::client_credential_and_signing_key_expiry_retire_http3_without_extending_each_other",
+          "passed": true,
+          "exit_code": 0,
+          "elapsed_seconds": 11.692212209105492,
+          "log": ".local/gate-6/webtransport/catalog029/case-18.log",
+          "log_sha256": "2f3cecf943529a4de784d7ff6f75cf1a772cc0637426964aeab81450bdca4756"
+        },
+        {
+          "case": "canonical_webtransport_lifecycle::disabled_webtransport_retains_native_tls_commands_and_refuses_h3_without_authority",
+          "passed": true,
+          "exit_code": 0,
+          "elapsed_seconds": 0.32911104103550315,
+          "log": ".local/gate-6/webtransport/catalog029/case-19.log",
+          "log_sha256": "0ac6b86c48e0b12efe1b79da8c9740386e2d51c4d69591cc738eca9367394211"
+        },
+        {
+          "case": "canonical_webtransport_mixed::actual_mixed_webtransport_and_native_duplex_survives_foreign_physical_handle_rejection_eddsa",
+          "passed": true,
+          "exit_code": 0,
+          "elapsed_seconds": 7.661198541987687,
+          "log": ".local/gate-6/webtransport/catalog029/case-20.log",
+          "log_sha256": "17116735afc227321b62c3165fc8e9316ca663821b2da09b053a156c2e786217"
+        },
+        {
+          "case": "canonical_webtransport_mixed::actual_mixed_webtransport_and_native_duplex_survives_foreign_physical_handle_rejection_es256",
+          "passed": true,
+          "exit_code": 0,
+          "elapsed_seconds": 7.663226000033319,
+          "log": ".local/gate-6/webtransport/catalog029/case-21.log",
+          "log_sha256": "051e21a984692e2e485e9e65ea97f17dcabfb24823b449a5f8085914b1423829"
+        },
+        {
+          "case": "canonical_webtransport_browser::installed_chrome_signed_control_reconnect_and_independently_decoded_duplex_eddsa",
+          "passed": true,
+          "exit_code": 0,
+          "elapsed_seconds": 4.912371667101979,
+          "log": ".local/gate-6/webtransport/catalog029/case-22.log",
+          "log_sha256": "ec4ce90e4ae22bbc407bc45c6efb23bb10c382624b1022b2718c5f22af16bab4"
+        },
+        {
+          "case": "canonical_webtransport_browser::installed_chrome_signed_control_reconnect_and_independently_decoded_duplex_es256",
+          "passed": true,
+          "exit_code": 0,
+          "elapsed_seconds": 4.396248291945085,
+          "log": ".local/gate-6/webtransport/catalog029/case-23.log",
+          "log_sha256": "873f99900f3fb3736e58f8ef434401197af9ad3838071b69a530f44433097186"
+        },
+        {
+          "case": "canonical_webtransport::tests::exact_origins_mount_and_remote_contact_are_required_before_startup",
+          "passed": true,
+          "exit_code": 0,
+          "elapsed_seconds": 0.01336837513372302,
+          "log": ".local/gate-6/webtransport/catalog029/case-24.log",
+          "log_sha256": "aa4bd31f276d8513a98a37b2a66456e112cc45ee72626a94b5e697dacf81eb3a"
+        },
+        {
+          "case": "canonical_webtransport::tests::advertised_contact_refuses_parser_normalization_of_whitespace_and_controls",
+          "passed": true,
+          "exit_code": 0,
+          "elapsed_seconds": 0.01242524990811944,
+          "log": ".local/gate-6/webtransport/catalog029/case-25.log",
+          "log_sha256": "28ae8738ae5e46ffc27dfc9e38043174307f173eee61aefaf73ec15f4c3e8413"
+        },
+        {
+          "case": "canonical_webtransport::tests::derived_local_contact_preserves_bound_ipv4_and_ipv6_address_family",
+          "passed": true,
+          "exit_code": 0,
+          "elapsed_seconds": 0.012423542095348239,
+          "log": ".local/gate-6/webtransport/catalog029/case-26.log",
+          "log_sha256": "3543bf639ebf98159e7ee5f3c9161caa87aec727dc6e66275f62ef2ed0cfcbc7"
+        },
+        {
+          "case": "tls::tests::generated_local_certificate_verifies_loopback_names_and_refuses_other_hosts",
+          "passed": true,
+          "exit_code": 0,
+          "elapsed_seconds": 0.012103916145861149,
+          "log": ".local/gate-6/webtransport/catalog029/case-27.log",
+          "log_sha256": "589668653ee303f544835b9e0e6d38406686e9c9a6f7d8f36b3751ddc6ba1b92"
+        }
+      ]
+    },
+    "diagnostic": {
+      "report": ".local/gate-6/browser-sdk/catalog-trace044/summary.json",
+      "sha256": "56555e74c3c93f7076640c2641fbf7f928d2005b823a82e36241b9fb609e9351",
+      "passed": false,
+      "source_inputs_unchanged": true,
+      "executables_unchanged": true,
+      "passed_methods": 0,
+      "selected_methods": 1,
+      "cases": [
+        {
+          "case": "canonical_webtransport_browser::installed_chrome_production_sdk_negotiated_duplex_opus_vp8_and_reliable_data_es256",
+          "passed": false,
+          "exit_code": 101,
+          "elapsed_seconds": 5.675167625071481,
+          "log": ".local/gate-6/browser-sdk/catalog-trace044/case-0.log",
+          "log_sha256": "e4e914bc2700d1342148c82645df552a5560680cff02a92aaa868fb31bc750fa"
+        }
+      ]
+    },
+    "observations": {
+      "direct_eddsa_identified_video": [
+        105,
+        84
+      ],
+      "captured_eddsa_identified_audio": [
+        137,
+        178
+      ],
+      "captured_eddsa_identified_video": [
+        93,
+        62
+      ],
+      "captured_es256_identified_video": [
+        74,
+        75
+      ],
+      "direct_es256": "message.send operation_rejected; private journal has1 completed and1 unknown internal reconciliation, no accepted message.send operation",
+      "diagnostic_es256_identified_video": [
+        80,
+        79
+      ],
+      "diagnostic_policy_callbacks": 3687,
+      "diagnostic_policy_failures": 120,
+      "diagnostic_sql_mutex_busy": 93,
+      "diagnostic_authority_busy": 27,
+      "diagnostic_failures_after_last_observed_data_write_custody": 65
+    },
+    "limits": "Tracing is diagnostic, not performance evidence. No clean60/native/impairment qualification; frozen thresholds remain unchanged. Completed stored descriptor equality is weaker than full Core catalog equality. The five focused upstream regressions prove the catalog fix, not resolution of all host contention.",
+    "next": "Controlled negative-before regression for fresh current packet metadata while unrelated primary SQL custody is held; consider bounded read-only WAL observation connections with original authority admission, SQL/source/schema/clock seals and current owner checks. No cached positive permission."
   }
 }
