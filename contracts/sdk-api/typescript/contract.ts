@@ -194,7 +194,7 @@ export interface MoveResult extends TopologyChange {
 export interface SessionDecision {
     readonly session: Session;
     readonly state: string;
-    readonly revision: Revision<"session">;
+    readonly topologyRevision: Revision<"topology">;
 }
 export interface EventSource {
     readonly kind: string;
@@ -343,14 +343,17 @@ export interface Session {
     readonly conversationId: ConversationId;
     refresh(options: RequestOptions): Promise<SessionSnapshot>;
     accept(
-        input: { capabilities: Json; expectedRevision: Revision<"session"> },
+        input: {
+            capabilities: Json;
+            expectedTopologyRevision: Revision<"topology">;
+        },
         options: MutationOptions,
     ): Promise<Operation<Session>>;
     reject(
         input: {
             reasonCode: number;
             reason: string;
-            expectedRevision: Revision<"session">;
+            expectedTopologyRevision: Revision<"topology">;
         },
         options: MutationOptions,
     ): Promise<Operation<SessionDecision>>;
@@ -358,7 +361,7 @@ export interface Session {
         input: {
             reasonCode: number;
             reason: string;
-            expectedRevision: Revision<"session">;
+            expectedTopologyRevision: Revision<"topology">;
         },
         options: MutationOptions,
     ): Promise<Operation<SessionDecision>>;
@@ -372,14 +375,14 @@ export interface Session {
     ): Promise<Operation<HandoffResult>>;
     update(
         input: SessionUpdate,
-        expectedRevision: Revision<"session">,
+        expectedTopologyRevision: Revision<"topology">,
         options: MutationOptions,
     ): Promise<Operation<Session>>;
     end(
         input: {
             reasonCode: number;
             reason: string;
-            expectedRevision: Revision<"session">;
+            expectedTopologyRevision: Revision<"topology">;
         },
         options: MutationOptions,
     ): Promise<Operation<Session>>;

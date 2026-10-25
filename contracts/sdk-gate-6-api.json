@@ -404,8 +404,8 @@
     "decision_receipts": "Preserve target_operation_id, state_at_decision, disposition and optional evidence_id. Target submission assertions and the separate decision receipt scope differ: the current decision record carries original cid/sid but no connid. Its status reference must use the decision receipt scope, not copy the target Connection assertion."
   },
   "revision_families": {
-    "session": "Session accept/reject/cancel/update/end",
-    "topology": "consultation/handoff/consultation return/device move; current TransitionCompletion.session_revision is this family",
+    "session": "SessionSnapshot.revision is the observed state_revision, not a command precondition.",
+    "topology": "Session accept/reject/cancel/update/end and existing-Session invite, plus consultation/handoff/return/device move. SessionDecision.topology_revision adapts DecisionOutcome.revision. Current TransitionCompletion.session_revision is also this family.",
     "conversation": "Participant add/update/remove and conversation-scoped handoff role assertion",
     "stream": "current native stream controls/subscriptions; absent from a journal Connection observation until negotiated/confirmed, never guessed from its resource revision"
   },
@@ -441,5 +441,9 @@
     "contains_authority": false,
     "command_kind_must_match": true,
     "restore_performs_io": false
-  }
+  },
+  "revision": 2,
+  "review_corrections": [
+    "Revision2: G6-060 Store-source audit corrects the revision1 assignment of Session command preconditions. Both general Session control and pending invitation decisions compare/increment sessions.topology_revision, independently of state_revision. No server compatibility/downgrade or alternate revision acceptance is added."
+  ]
 }

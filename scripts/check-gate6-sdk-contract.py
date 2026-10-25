@@ -31,7 +31,8 @@ def main():
              'crates/connect-service/src/canonical_sessions.rs', 'crates/connect-protocol/src/membership.rs',
              'crates/connect-protocol/src/events.rs', 'crates/connect-service/src/canonical_membership.rs',
              'crates/connect-service/src/canonical.rs', 'crates/connect-protocol/src/conversations.rs',
-             'crates/connect-store/src/transitions/native_consultations.rs']
+             'crates/connect-store/src/transitions/native_consultations.rs',
+             'crates/connect-store/src/session_control.rs', 'crates/connect-store/src/session_decisions.rs']
     names += sorted(str(p.relative_to(ROOT)) for p in (ROOT/'contracts/sdk-api').rglob('*') if p.is_file())
     digest = lambda p: hashlib.sha256(p.read_bytes()).hexdigest()
     before = {n: digest(ROOT / n) for n in names}
@@ -59,13 +60,15 @@ import fs from 'node:fs';
 const source=fs.readFileSync('contracts/sdk-api/typescript/contract.ts','utf8');
 const ast=await parsers.typescript.parse(source,{});
 const paths={};
+const sessionSignatures={};
 function visit(members,prefix){ for(const member of members){
  const name=member.key?.name;if(!name)continue;
  const path=prefix+'.'+name;
- if(member.type==='TSMethodSignature')paths[path]=source.slice(...member.returnType.typeAnnotation.range).replace(/\s+/g,'');
+ if(member.type==='TSMethodSignature'){paths[path]=source.slice(...member.returnType.typeAnnotation.range).replace(/\s+/g,'');if(prefix==='Session')sessionSignatures[name]=source.slice(...member.range).replace(/\s+/g,'');}
  else if(member.typeAnnotation?.typeAnnotation.type==='TSTypeLiteral')visit(member.typeAnnotation.typeAnnotation.members,path);
 }}
 for(const wrapper of ast.body){const node=wrapper.declaration;if(node?.type==='TSInterfaceDeclaration')visit(node.body.body,node.id.name==='ParticipantClient'?'Client':node.id.name);}
+paths.__session_signatures=sessionSignatures;
 process.stdout.write(JSON.stringify(paths));
 """
     paths = json.loads(subprocess.check_output(['node','--input-type=module','-e',ast_script],cwd=ROOT,text=True))
@@ -136,11 +139,30 @@ process.stdout.write(JSON.stringify(paths));
     assert completion == ['retained_connection_ids','admitted_connection_ids','retired_connection_ids','session_revision','conversation_revision']
     native_consult = (ROOT/'crates/connect-store/src/transitions/native_consultations.rs').read_text()
     assert 'SET topology_revision=?2' in native_consult and 'session_revision,' in native_consult
+    controls = ['accept','reject','cancel_invitation','update','end']
+    for name in controls:
+        method = next(n for n in classes['Session'].body if isinstance(n,ast.AsyncFunctionDef) and n.name == name)
+        parameter = next(n for n in method.args.args if n.arg == 'expected_topology_revision')
+        assert isinstance(parameter.annotation,ast.Name) and parameter.annotation.id == 'TopologyRevision'
+        ts_name = 'cancelInvitation' if name == 'cancel_invitation' else name
+        signature = paths['__session_signatures'][ts_name]
+        assert 'expectedTopologyRevision:Revision<"topology">' in signature and 'Revision<"session">' not in signature
+    rust_session = re.search(r'pub trait Session<A: Api>.*?\n\}',target_rust,re.S)[0]
+    assert rust_session.count('expected_topology_revision: TopologyRevision') == 5
+    assert 'expected_revision: SessionRevision' not in rust_session
+    source_control = (ROOT/'crates/connect-store/src/session_control.rs').read_text()
+    source_decision = (ROOT/'crates/connect-store/src/session_decisions.rs').read_text()
+    assert '.is_some_and(|v| v != old.topology_revision)' in source_control
+    assert 'SET topology_revision=topology_revision+1' in source_control
+    assert 'SELECT state,topology_revision FROM sessions' in source_decision
+    assert 'r.expected_revision.is_some_and(|v| v != revision)' in source_decision
+    assert contract['revision'] >= 2 and 'Session accept/reject/cancel/update/end' in contract['revision_families']['topology']
     report = {'schema':'connect-gate6-sdk-contract/1','task':'G6-059',
               'scope':'Frozen shared public contract, current canonical schema/refusal vectors, per-language target Session fields and 22 operation-kind witnesses, current source review. Declaration compilation is recorded separately. No SDK runtime/parity/package ownership or Gate6 acceptance qualification.',
               'passed':True,'candidate_finalized':True,'handles':len(contract['handles']),'mapped_methods':len(methods),
               'approved_runtime_minima':approved_minima,'operation_kind_witnesses':len(expected_kinds),
               'mapped_method_paths_and_returns_verified':len(methods),
+              'session_control_precondition':'topology_revision; audited against both Store paths and all three declarations',
               'vectors':checked,'session_view_fields':fields,'target_session_fields_match_all_languages':True,
               'current_typescript_snapshot_matches':True,'current_python_event_snapshot_matches':True,
               'legacy_python_generic_session_result_still_differs':legacy_generic,

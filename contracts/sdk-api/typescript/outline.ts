@@ -155,7 +155,7 @@ export async function invitations(
                     await invitation.session.accept(
                         {
                             capabilities: { audio: ["opus"] },
-                            expectedRevision: current.revision,
+                            expectedTopologyRevision: current.topologyRevision,
                         },
                         options,
                     )
@@ -166,7 +166,7 @@ export async function invitations(
                         {
                             reasonCode: 486,
                             reason: "Unavailable",
-                            expectedRevision: current.revision,
+                            expectedTopologyRevision: current.topologyRevision,
                         },
                         options,
                     )

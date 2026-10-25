@@ -266,7 +266,7 @@ pub struct MoveResult<C> {
 pub struct SessionDecision<S> {
     pub session: S,
     pub state: String,
-    pub revision: SessionRevision,
+    pub topology_revision: TopologyRevision,
 }
 pub struct EventSource {
     pub kind: String,
@@ -482,21 +482,21 @@ pub trait Session<A: Api>: Clone + Send + Sync {
     fn accept(
         &self,
         capabilities: Json,
-        expected_revision: SessionRevision,
+        expected_topology_revision: TopologyRevision,
         options: MutationOptions,
     ) -> impl Future<Output = Result<impl Operation<A::Session>>> + Send;
     fn reject(
         &self,
         reason_code: u16,
         reason: String,
-        expected_revision: SessionRevision,
+        expected_topology_revision: TopologyRevision,
         options: MutationOptions,
     ) -> impl Future<Output = Result<impl Operation<SessionDecision<A::Session>>>> + Send;
     fn cancel_invitation(
         &self,
         reason_code: u16,
         reason: String,
-        expected_revision: SessionRevision,
+        expected_topology_revision: TopologyRevision,
         options: MutationOptions,
     ) -> impl Future<Output = Result<impl Operation<SessionDecision<A::Session>>>> + Send;
     fn consult(
@@ -512,14 +512,14 @@ pub trait Session<A: Api>: Clone + Send + Sync {
     fn update(
         &self,
         input: SessionUpdate,
-        expected_revision: SessionRevision,
+        expected_topology_revision: TopologyRevision,
         options: MutationOptions,
     ) -> impl Future<Output = Result<impl Operation<A::Session>>> + Send;
     fn end(
         &self,
         reason_code: u16,
         reason: String,
-        expected_revision: SessionRevision,
+        expected_topology_revision: TopologyRevision,
         options: MutationOptions,
     ) -> impl Future<Output = Result<impl Operation<A::Session>>> + Send;
     fn connection_by_id(&self, id: ConnectionId) -> A::Connection;

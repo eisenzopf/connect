@@ -179,7 +179,7 @@ pub async fn invitations<A: Api>(
                     .session
                     .accept(
                         capabilities,
-                        current.revision,
+                        current.topology_revision,
                         mutation(&saved.accept, &wait),
                     )
                     .await?;
@@ -190,7 +190,7 @@ pub async fn invitations<A: Api>(
                     .reject(
                         486,
                         "Unavailable".into(),
-                        current.revision,
+                        current.topology_revision,
                         mutation(&saved.reject, &wait),
                     )
                     .await?;

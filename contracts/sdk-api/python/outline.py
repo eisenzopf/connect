@@ -80,9 +80,9 @@ async def invitations(client: ParticipantClient, saved: SavedJourney, wait: Requ
             if current.state != 'invited':
                 continue
             if accept:
-                await (await invitation.session.accept({'audio': ['opus']}, current.revision, MutationOptions(saved.accept, wait))).wait(wait)
+                await (await invitation.session.accept({'audio': ['opus']}, current.topology_revision, MutationOptions(saved.accept, wait))).wait(wait)
             else:
-                await (await invitation.session.reject(486, 'Unavailable', current.revision, MutationOptions(saved.reject, wait))).wait(wait)
+                await (await invitation.session.reject(486, 'Unavailable', current.topology_revision, MutationOptions(saved.reject, wait))).wait(wait)
             break
     finally:
         await stream.close()

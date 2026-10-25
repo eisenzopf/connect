@@ -123,9 +123,11 @@ the identity-list convenience assigns the ordinary participant role. Advanced
 canonical requests retain all supported explicit fields.
 
 Participant admission requires explicit identity, kind and role. Participant
-mutations compare the Conversation revision; Session decisions/update/end compare
-Session revision. Consultation, return, handoff and device move compare topology
-revision. Native stream controls/subscriptions compare the negotiated Stream
+mutations compare the Conversation revision. Session controls and invitation
+decisions compare topology revision, as do consultation, return, handoff and
+device move. `SessionSnapshot.revision` observes state_revision and cannot
+authorize a Session control command. Session decision results expose
+`topologyRevision`/`topology_revision` for the wire DecisionOutcome.revision. Native stream controls/subscriptions compare the negotiated Stream
 revision. A journal Connection resource revision cannot stand in for it.
 
 Consultation/handoff/move results retain every retained, admitted and retired
@@ -229,3 +231,10 @@ consumers. Transport connect/trust/configuration and platform capture/frame APIs
 compose through their existing approved profiles. None of this contract proof
 claims current runtime parity, receipt availability after expiry, media readiness,
 Linux/remote/provider qualification, package ownership or publication.
+
+The revision 2 Store-source audit corrects the original contract's assignment of
+Session command preconditions to the state revision. Both `session_control.rs`
+and `session_decisions.rs` compare and increment `topology_revision`. Declaration
+proofs retain distinct state/topology types and use the latter for these calls.
+The original freeze evidence remains historical; the correction and new evidence
+are recorded in `docs/evidence/gate-6/sdk-session-revision-contract.json`.
