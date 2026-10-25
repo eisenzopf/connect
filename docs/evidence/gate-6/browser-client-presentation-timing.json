@@ -1,0 +1,863 @@
+{
+  "schema": "connect-gate6-browser-presentation-timing/1",
+  "task": "G6-050",
+  "status": "Full diagnostic still fails alignment; packet-to-decoded audio timestamp matching is incomplete",
+  "report": {
+    "path": ".local/gate-6/presentation-timing/probe002/summary.json",
+    "sha256": "fcb28a57212ce1efe9d922b05652bbdbd8f071c6121bd574531ef3fe2c4a3068",
+    "exit_code": 101,
+    "inputs_unchanged": true,
+    "executable_unchanged": true
+  },
+  "production_binary": {
+    "parent_report": ".local/gate-6/browser-sdk/audio-summary067/summary.json",
+    "parent_report_sha256": "8a5b3d8948de2decae399e837d4b75ee7b599970b6aa9244aa882a09a1c66a78",
+    "sha256": "6c3310dbb71a3fded174ba70e5c744c0f495264dd8cfebbb852554bdc64fba28",
+    "scope": "Previously sealed source196 executable from diagnostic067; current SDK bytes match that original report. Not current197 WSS hosting verification."
+  },
+  "procedure": "Before invoking the unmodified supplied-stream fixture, a private CDP runner installs bounded metadata-only API wrappers around worklet messages, codec submission/output and AudioBufferSource scheduling. Original PCM, pixels, source, observer, gains, marker selection and thresholds are unchanged. Per-codec timestamp maps retain at most16 entries. Counters include setup/teardown. Policy tracing and concurrent optimized compilation make this diagnostic only.",
+  "measurement": {
+    "opus": [
+      {
+        "decoded": 2914,
+        "identified": 2914
+      },
+      {
+        "decoded": 2945,
+        "identified": 2943
+      }
+    ],
+    "vp8": [
+      {
+        "decoded": 1709,
+        "identified": 1709,
+        "motion": 608
+      },
+      {
+        "decoded": 1739,
+        "identified": 1739,
+        "motion": 608
+      }
+    ],
+    "playback": [
+      {
+        "peakRms": 0.36938836504079126,
+        "maxPending": 5,
+        "maxQueuedSeconds": 0.09800000000000009,
+        "queueSamples": 9887,
+        "queueSecondsTotal": 328.5346666667358,
+        "meanQueuedAudioSeconds": 0.03322895384512348,
+        "audio": 2914,
+        "video": 1709
+      },
+      {
+        "peakRms": 0.9433952443466367,
+        "maxPending": 5,
+        "maxQueuedSeconds": 0.08600000000000252,
+        "queueSamples": 9887,
+        "queueSecondsTotal": 340.2020000002189,
+        "meanQueuedAudioSeconds": 0.03440902194803468,
+        "audio": 2945,
+        "video": 1739
+      }
+    ],
+    "measured_ms": 60001
+  },
+  "alignment": [
+    {
+      "pairs": [
+        {
+          "id": 2,
+          "skew_ms": 110.09999990463257
+        },
+        {
+          "id": 3,
+          "skew_ms": 145.20000004768372
+        },
+        {
+          "id": 4,
+          "skew_ms": 140.5
+        },
+        {
+          "id": 5,
+          "skew_ms": 143.59999990463257
+        },
+        {
+          "id": 6,
+          "skew_ms": 144.79999995231628
+        },
+        {
+          "id": 7,
+          "skew_ms": 126.40000009536743
+        },
+        {
+          "id": 8,
+          "skew_ms": 128.70000004768372
+        },
+        {
+          "id": 9,
+          "skew_ms": 133.90000009536743
+        },
+        {
+          "id": 10,
+          "skew_ms": 128.30000019073486
+        },
+        {
+          "id": 11,
+          "skew_ms": 134.29999995231628
+        },
+        {
+          "id": 12,
+          "skew_ms": 125.29999995231628
+        },
+        {
+          "id": 13,
+          "skew_ms": 107.10000014305115
+        },
+        {
+          "id": 14,
+          "skew_ms": 113.5
+        },
+        {
+          "id": 15,
+          "skew_ms": 117.70000004768372
+        },
+        {
+          "id": 16,
+          "skew_ms": 116.29999995231628
+        },
+        {
+          "id": 17,
+          "skew_ms": 121
+        },
+        {
+          "id": 18,
+          "skew_ms": 119.89999985694885
+        },
+        {
+          "id": 19,
+          "skew_ms": 116.5
+        },
+        {
+          "id": 20,
+          "skew_ms": 117
+        },
+        {
+          "id": 21,
+          "skew_ms": 110.29999995231628
+        },
+        {
+          "id": 22,
+          "skew_ms": 107.20000004768372
+        },
+        {
+          "id": 23,
+          "skew_ms": 111.60000014305115
+        },
+        {
+          "id": 24,
+          "skew_ms": 118.69999980926514
+        },
+        {
+          "id": 25,
+          "skew_ms": 114.40000009536743
+        },
+        {
+          "id": 26,
+          "skew_ms": 118.79999995231628
+        },
+        {
+          "id": 27,
+          "skew_ms": 116.70000004768372
+        },
+        {
+          "id": 28,
+          "skew_ms": 118.09999990463257
+        },
+        {
+          "id": 29,
+          "skew_ms": 112.89999985694885
+        },
+        {
+          "id": 30,
+          "skew_ms": 114
+        },
+        {
+          "id": 31,
+          "skew_ms": 116.80000019073486
+        },
+        {
+          "id": 32,
+          "skew_ms": 113.5
+        },
+        {
+          "id": 33,
+          "skew_ms": 105.5
+        },
+        {
+          "id": 34,
+          "skew_ms": 105.09999990463257
+        },
+        {
+          "id": 35,
+          "skew_ms": 95.70000004768372
+        },
+        {
+          "id": 36,
+          "skew_ms": 104.70000004768372
+        },
+        {
+          "id": 37,
+          "skew_ms": 109
+        },
+        {
+          "id": 38,
+          "skew_ms": 108.90000009536743
+        },
+        {
+          "id": 39,
+          "skew_ms": 104.40000009536743
+        },
+        {
+          "id": 40,
+          "skew_ms": 125
+        },
+        {
+          "id": 41,
+          "skew_ms": 156.79999995231628
+        },
+        {
+          "id": 42,
+          "skew_ms": 104.20000004768372
+        },
+        {
+          "id": 43,
+          "skew_ms": 117.70000004768372
+        },
+        {
+          "id": 44,
+          "skew_ms": 133.5
+        },
+        {
+          "id": 45,
+          "skew_ms": 114.70000004768372
+        },
+        {
+          "id": 46,
+          "skew_ms": 109.69999980926514
+        },
+        {
+          "id": 47,
+          "skew_ms": 129.10000014305115
+        },
+        {
+          "id": 48,
+          "skew_ms": 118.80000019073486
+        },
+        {
+          "id": 49,
+          "skew_ms": 118.39999985694885
+        },
+        {
+          "id": 50,
+          "skew_ms": 121.59999990463257
+        },
+        {
+          "id": 51,
+          "skew_ms": 121.59999990463257
+        },
+        {
+          "id": 52,
+          "skew_ms": 109.90000009536743
+        },
+        {
+          "id": 53,
+          "skew_ms": 103.5
+        },
+        {
+          "id": 54,
+          "skew_ms": 121
+        },
+        {
+          "id": 55,
+          "skew_ms": 111.40000009536743
+        },
+        {
+          "id": 56,
+          "skew_ms": 116.70000004768372
+        },
+        {
+          "id": 57,
+          "skew_ms": 131.60000014305115
+        },
+        {
+          "id": 58,
+          "skew_ms": 120
+        },
+        {
+          "id": 59,
+          "skew_ms": 122.60000014305115
+        },
+        {
+          "id": 60,
+          "skew_ms": 122.39999985694885
+        },
+        {
+          "id": 61,
+          "skew_ms": 119.70000004768372
+        }
+      ],
+      "paired_markers": 60,
+      "audio_markers": 60,
+      "video_markers": 60,
+      "median_abs_skew_ms": 117.70000004768372,
+      "p95_abs_skew_ms": 143.59999990463257
+    },
+    {
+      "pairs": [
+        {
+          "id": 2,
+          "skew_ms": 116.5
+        },
+        {
+          "id": 3,
+          "skew_ms": 158.09999990463257
+        },
+        {
+          "id": 4,
+          "skew_ms": 154.5
+        },
+        {
+          "id": 5,
+          "skew_ms": 157.5
+        },
+        {
+          "id": 6,
+          "skew_ms": 161.90000009536743
+        },
+        {
+          "id": 7,
+          "skew_ms": 120.79999995231628
+        },
+        {
+          "id": 8,
+          "skew_ms": 124
+        },
+        {
+          "id": 9,
+          "skew_ms": 119.70000004768372
+        },
+        {
+          "id": 10,
+          "skew_ms": 122.79999995231628
+        },
+        {
+          "id": 11,
+          "skew_ms": 142.19999980926514
+        },
+        {
+          "id": 12,
+          "skew_ms": 114.89999985694885
+        },
+        {
+          "id": 13,
+          "skew_ms": 134.19999980926514
+        },
+        {
+          "id": 14,
+          "skew_ms": 120.90000009536743
+        },
+        {
+          "id": 15,
+          "skew_ms": 123.20000004768372
+        },
+        {
+          "id": 16,
+          "skew_ms": 123.90000009536743
+        },
+        {
+          "id": 17,
+          "skew_ms": 122.20000004768372
+        },
+        {
+          "id": 18,
+          "skew_ms": 118.70000004768372
+        },
+        {
+          "id": 19,
+          "skew_ms": 123.79999995231628
+        },
+        {
+          "id": 20,
+          "skew_ms": 122.29999995231628
+        },
+        {
+          "id": 21,
+          "skew_ms": 116.80000019073486
+        },
+        {
+          "id": 22,
+          "skew_ms": 125.90000009536743
+        },
+        {
+          "id": 23,
+          "skew_ms": 121.20000004768372
+        },
+        {
+          "id": 24,
+          "skew_ms": 108.79999995231628
+        },
+        {
+          "id": 25,
+          "skew_ms": 120.60000014305115
+        },
+        {
+          "id": 26,
+          "skew_ms": 120
+        },
+        {
+          "id": 27,
+          "skew_ms": 127.5
+        },
+        {
+          "id": 28,
+          "skew_ms": 131.20000004768372
+        },
+        {
+          "id": 29,
+          "skew_ms": 125.80000019073486
+        },
+        {
+          "id": 30,
+          "skew_ms": 118.39999985694885
+        },
+        {
+          "id": 31,
+          "skew_ms": 100.29999995231628
+        },
+        {
+          "id": 32,
+          "skew_ms": 96.89999985694885
+        },
+        {
+          "id": 33,
+          "skew_ms": 94.29999995231628
+        },
+        {
+          "id": 34,
+          "skew_ms": 100.90000009536743
+        },
+        {
+          "id": 35,
+          "skew_ms": 102.20000004768372
+        },
+        {
+          "id": 36,
+          "skew_ms": 98.90000009536743
+        },
+        {
+          "id": 37,
+          "skew_ms": 105.20000004768372
+        },
+        {
+          "id": 38,
+          "skew_ms": 98
+        },
+        {
+          "id": 39,
+          "skew_ms": 93.79999995231628
+        },
+        {
+          "id": 40,
+          "skew_ms": 113.20000004768372
+        },
+        {
+          "id": 41,
+          "skew_ms": 100.5
+        },
+        {
+          "id": 42,
+          "skew_ms": 100.5
+        },
+        {
+          "id": 43,
+          "skew_ms": 102
+        },
+        {
+          "id": 44,
+          "skew_ms": 96.89999985694885
+        },
+        {
+          "id": 45,
+          "skew_ms": 97.90000009536743
+        },
+        {
+          "id": 46,
+          "skew_ms": 88.90000009536743
+        },
+        {
+          "id": 47,
+          "skew_ms": 85.20000004768372
+        },
+        {
+          "id": 48,
+          "skew_ms": 95.80000019073486
+        },
+        {
+          "id": 49,
+          "skew_ms": 128.90000009536743
+        },
+        {
+          "id": 50,
+          "skew_ms": 104.20000004768372
+        },
+        {
+          "id": 51,
+          "skew_ms": 99.19999980926514
+        },
+        {
+          "id": 52,
+          "skew_ms": 106.5
+        },
+        {
+          "id": 53,
+          "skew_ms": 117.89999985694885
+        },
+        {
+          "id": 54,
+          "skew_ms": 122.79999995231628
+        },
+        {
+          "id": 55,
+          "skew_ms": 119.09999990463257
+        },
+        {
+          "id": 56,
+          "skew_ms": 110.10000014305115
+        },
+        {
+          "id": 57,
+          "skew_ms": 112.80000019073486
+        },
+        {
+          "id": 58,
+          "skew_ms": 99.59999990463257
+        },
+        {
+          "id": 59,
+          "skew_ms": 166.70000004768372
+        },
+        {
+          "id": 60,
+          "skew_ms": 107
+        },
+        {
+          "id": 61,
+          "skew_ms": 124.09999990463257
+        }
+      ],
+      "paired_markers": 60,
+      "audio_markers": 60,
+      "video_markers": 60,
+      "median_abs_skew_ms": 118.14999985694885,
+      "p95_abs_skew_ms": 157.5
+    }
+  ],
+  "timing": {
+    "units": "milliseconds except unmatched callback event counts",
+    "bins_upper_bounds": [
+      0,
+      2,
+      5,
+      10,
+      20,
+      40,
+      80,
+      120,
+      200,
+      null
+    ],
+    "stats": {
+      "worklet.capture_to_main_ms": {
+        "count": 6093,
+        "total": 97047.89939731576,
+        "min": 8.999999856947397,
+        "max": 23.199999856948807,
+        "bins": [
+          0,
+          0,
+          0,
+          195,
+          5147,
+          751,
+          0,
+          0,
+          0,
+          0
+        ],
+        "mean": 15.927769472725384
+      },
+      "AudioEncoder.input_capture_age_ms": {
+        "count": 6093,
+        "total": 97149.79939955687,
+        "min": 8.999999856947397,
+        "max": 23.199999856948807,
+        "bins": [
+          0,
+          0,
+          0,
+          194,
+          5148,
+          751,
+          0,
+          0,
+          0,
+          0
+        ],
+        "mean": 15.944493582727207
+      },
+      "AudioEncoder.callback_ms": {
+        "count": 5937,
+        "total": 597.5000138282776,
+        "min": 0,
+        "max": 1.5999999046325684,
+        "bins": [
+          1148,
+          4789,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "mean": 0.10064005622844494
+      },
+      "AudioEncoder.capture_age_ms": {
+        "count": 6093,
+        "total": 97765.85541324202,
+        "min": 9.099999999998545,
+        "max": 23.699999856948807,
+        "bins": [
+          0,
+          0,
+          0,
+          178,
+          5164,
+          751,
+          0,
+          0,
+          0,
+          0
+        ],
+        "mean": 16.04560239836567
+      },
+      "AudioDecoder.callback_ms": {
+        "count": 17,
+        "total": 2.0999999046325684,
+        "min": 0,
+        "max": 0.40000009536743164,
+        "bins": [
+          5,
+          12,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "mean": 0.12352940615485697
+      },
+      "renderer.schedule_ahead_ms": {
+        "count": 5881,
+        "total": 150339.33333341067,
+        "min": 4.6666666666652645,
+        "max": 79.3333333333337,
+        "bins": [
+          0,
+          0,
+          5,
+          355,
+          1685,
+          3141,
+          695,
+          0,
+          0,
+          0
+        ],
+        "mean": 25.563566286925806
+      },
+      "renderer.base_latency_ms": {
+        "count": 5881,
+        "total": 31365.33333333067,
+        "min": 5.333333333333333,
+        "max": 5.333333333333333,
+        "bins": [
+          0,
+          0,
+          0,
+          5881,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "mean": 5.33333333333288
+      },
+      "renderer.output_latency_ms": {
+        "count": 5881,
+        "total": 94096,
+        "min": 16,
+        "max": 16,
+        "bins": [
+          0,
+          0,
+          0,
+          0,
+          5881,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "mean": 16.0
+      },
+      "VideoEncoder.input_capture_age_ms": {
+        "count": 3539,
+        "total": -12587.476335931682,
+        "min": -8.873000190734729,
+        "max": 3.9659998569495656,
+        "bins": [
+          2194,
+          1032,
+          313,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "mean": -3.556789018347466
+      },
+      "VideoEncoder.callback_ms": {
+        "count": 3539,
+        "total": 10988.999997854233,
+        "min": 0.7000000476837158,
+        "max": 4.700000047683716,
+        "bins": [
+          0,
+          5,
+          3534,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "mean": 3.105114438500772
+      },
+      "VideoEncoder.capture_age_ms": {
+        "count": 3539,
+        "total": -1594.0763382204996,
+        "min": -6.014000047683794,
+        "max": 7.551000000000386,
+        "bins": [
+          1727,
+          155,
+          1303,
+          354,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "mean": -0.45043129082240735
+      },
+      "VideoDecoder.callback_ms": {
+        "count": 3472,
+        "total": 534.9999961853027,
+        "min": 0,
+        "max": 3.5999999046325684,
+        "bins": [
+          196,
+          3272,
+          4,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "mean": 0.15408986065244895
+      },
+      "AudioEncoder.unmatched_callback": {
+        "count": 156,
+        "total": 156,
+        "min": 1,
+        "max": 1,
+        "bins": [
+          0,
+          156,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "mean": 1.0
+      },
+      "AudioDecoder.unmatched_callback": {
+        "count": 5864,
+        "total": 5864,
+        "min": 1,
+        "max": 1,
+        "bins": [
+          0,
+          5864,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "mean": 1.0
+      }
+    }
+  },
+  "interpretation": [
+    "60001ms identifies2914/2943audio and1709/1739video, with60pairedmarkers each. Median absolute skew117.7/118.15ms andp95143.6/157.5ms still fail80/120ms.",
+    "Worklet-to-main timestamp age averages15.928ms. Audio encode input age15.944ms and emitted chunk age16.046ms use the SDK capture timestamp, not an independently established physical capture clock.5937exact audio encoder timestamp matches average0.101ms callback delay.3539video encoder callbacks average3.105ms.",
+    "The renderer schedules5881audio outputs an average25.564ms ahead of its AudioContext time, maximum79.333ms. These are submission observations, not a measurement of device-audible end-to-end latency. Reported graph base/output latencies are descriptive and must not simply be added to the graph-based marker skew.",
+    "Only17of5881audio decoder outputs match a pending original chunk timestamp exactly;5864are unmatched. The17matched callback delays cannot establish latency for the whole decoder. Next measure bounded ordered submission/output correlation and original RTP/decoded timestamp differences before choosing a clock or presentation fix.",
+    "Video capture timestamp ages can be negative because the SDK derives its clock from the video element media timeline. They are signed observations, not proof of negative physical latency.",
+    "No constant A/V offset, quality threshold change or whole-decoder latency claim follows from this probe. Full cross-stream source/presentation timing remains unresolved."
+  ],
+  "earlier_failure": {
+    "log": ".local/gate-6/presentation-timing/probe001/runtime.log",
+    "sha256": "358c19b82e00e0b73145f7d1fc6ab828bd49a09172e99e3bb5be318cbfe70768",
+    "scope": "Probe001 stops before the measurement when the original reliable binary data operation is forbidden. It is not a60secondresult and the later diagnostic does not erase that failure."
+  },
+  "scope": "Local macOS arm64 Chrome metadata diagnostic on source196. No frozen clean, native operating, impairment, WSS/WebRTC, remote/provider, task completion, acceptance or publication qualification."
+}
