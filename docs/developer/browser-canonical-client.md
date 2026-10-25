@@ -181,8 +181,12 @@ page. `close()` stops buffers, closes clones and retires the graph; await
 `finished` to observe completion, presentation errors or graph-close failure.
 Diagnostics expose bounded counts, audio graph state and aggregate RMS without
 raw samples. Earlier renderer/component and ES256 operating evidence remains
-historical in its recorded scope. The current fixed-deadline operating profile
-still requires measurement.
+historical in its recorded scope. Current SDK244/source202 passes all eight
+selected local Chrome control/independent/synthetic/capture methods, including
+both EdDSA/ES256 60-second browser/browser capture cases with actual rendered
+rates, all paired markers and original owned teardown. Native, impairment,
+connected permission/background and other required profiles remain open;
+see `docs/evidence/gate-6/browser-client-fixed-playout-deadline.json`.
 
 `connection.sendData(operationId, messageId, streamId, body)` uses signed,
 reliable ordered canonical publication with original logical IDs and at most
