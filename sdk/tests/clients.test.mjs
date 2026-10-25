@@ -131,3 +131,5 @@ test('health readiness validates observations and still accepts older servers',(
  for(const invalid of [null,42,{state:'healthy',components:[]},{state:'ready',components:[{component:'x',state:'ready',reason:'bound',observed_at:'yesterday'}]}])
   assert.throws(()=>decodeResponse(wrap({...health,readiness:invalid}),'health'),rejects('protocol'));
 });
+
+import "./browser_opus_clock.test.mjs";

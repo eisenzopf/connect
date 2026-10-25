@@ -1,0 +1,123 @@
+{
+  "schema": "connect-gate6-browser-opus-timeline/1",
+  "task": "G6-050",
+  "status": "Production SDK preserves original Opus timestamps across decoder clock compression; connected synchronization remains open",
+  "source": {
+    "sdk/typescript/src/browser_codecs.ts": "848af63242456a09d475dc12cfae5a1ec3eb199440575708f90bc97cd93cf538",
+    "sdk/typescript/dist/browser_codecs.js": "7a05d1c554b0933b32db1be7d6c182fee399df35dfeb043cd480f6adde35de90",
+    "sdk/typescript/dist/browser_codecs.d.ts": "53d4a640138efaf4d685010c47bd5af1d8c14b0bc9937e9402b835773a11f500",
+    "sdk/tests/browser_opus_clock.test.mjs": "fca154dca22bc98bb4cede3776d0c3ce031cb507facc5fd8e8ebd1105fd77f05"
+  },
+  "controlled_negative": {
+    "report": ".local/gate-6/audio-pts/negative.json",
+    "sha256": "5c4bfa01e4280c8b10dc8eb59983f0ab714768d01c6758805470ddf5ef223236",
+    "expected_failure_methods": 5,
+    "actual_failure_methods": 5,
+    "scope": "Private copied SDK with original production codec bytes and new controlled regression methods; no before/after runtime source guard was captured for this initial negative.",
+    "production_codec_sha256": "cae5cd11cf1575ab4aa3477015471f1e53609981470494a88d97e9eafb017981"
+  },
+  "root_sdk": {
+    "report": ".local/gate-6/audio-pts/root001/summary.json",
+    "sha256": "8e985ce023a1cb2f5ffc619a79c1f9cfe9e4f31e11e01f0ef604a29126ecf52d",
+    "passed": true,
+    "methods": 211,
+    "inputs_unchanged": true,
+    "modules_unchanged": true,
+    "scope": "206 existing methods plus5 new original-timestamp/queue/profile/ownership methods. No connected profile pass."
+  },
+  "actual_clock_witness": {
+    "report": ".local/gate-6/presentation-timing/probe004/summary.json",
+    "sha256": "c272e220515d27db48ea62030638b3a142d8f85cedcff5e56efb89e93c642744",
+    "runtime_passed": true,
+    "inputs_unchanged": true,
+    "executable_unchanged": true,
+    "scope": "Metadata API wrappers on previously sealed source196 executable, SDK bytes identical to diagnostic067. Not current197/WSS or frozen clean qualification. Short4second supplied-capture diagnostic with ordered per-decoder metadata. No clean60 environment flag, markers or sync qualification. Preserve prior probe001 reliable-data failure separately. Concurrent optimized compilation may perturb timing. Capture/source/observer unchanged; no new threshold or offset.",
+    "ordered_outputs": [
+      {
+        "decoder": "AudioDecoder#1",
+        "outputs": 199,
+        "mean_callback_ms": 0.053768851649222064,
+        "examples": [
+          {
+            "input_us": 120000,
+            "output_us": 120000,
+            "wait_ms": 0.10000014305114746
+          },
+          {
+            "input_us": 140000,
+            "output_us": 140000,
+            "wait_ms": 0.10000014305114746
+          },
+          {
+            "input_us": 220000,
+            "output_us": 160000,
+            "wait_ms": 0.09999990463256836
+          },
+          {
+            "input_us": 940000,
+            "output_us": 180000,
+            "wait_ms": 0.40000009536743164
+          },
+          {
+            "input_us": 1020000,
+            "output_us": 200000,
+            "wait_ms": 0
+          },
+          {
+            "input_us": 1120000,
+            "output_us": 220000,
+            "wait_ms": 0.10000014305114746
+          }
+        ]
+      },
+      {
+        "decoder": "AudioDecoder#2",
+        "outputs": 168,
+        "mean_callback_ms": 0.04702381434894744,
+        "examples": [
+          {
+            "input_us": 160000,
+            "output_us": 120000,
+            "wait_ms": 0
+          },
+          {
+            "input_us": 860000,
+            "output_us": 140000,
+            "wait_ms": 0.09999990463256836
+          },
+          {
+            "input_us": 960000,
+            "output_us": 160000,
+            "wait_ms": 0
+          },
+          {
+            "input_us": 1140000,
+            "output_us": 180000,
+            "wait_ms": 0.10000014305114746
+          },
+          {
+            "input_us": 1160000,
+            "output_us": 200000,
+            "wait_ms": 0
+          },
+          {
+            "input_us": 1220000,
+            "output_us": 220000,
+            "wait_ms": 0
+          }
+        ]
+      }
+    ],
+    "ordered_metadata_limit": 16,
+    "overflow_events": 0,
+    "outputs_without_pending_input": 0,
+    "interpretation": "Short actual source196 capture before the correction. Input RTP timestamp gaps persist while decoded sample timestamps continue in20ms steps. Ordered latency is only this bounded fixed20ms observation; it is not end-to-end sync or a corrected-client profile pass."
+  },
+  "behavior": [
+    "Retain at most10original input timestamp records independently of native decodeQueueSize. Refuse new decode admission when either budget is full.",
+    "Associate each required mono48kHz/960sample output with its original timestamp; copy exact PCM into a borrowed replacement AudioData only when the decoder changed that timestamp. Gaps, late and duplicate timestamps remain visible to the renderer.",
+    "Close both original and replacement frames after the borrowed callback, including failures. Refuse unmatched/non20ms output before callback, remove a failed synchronous submission stamp and clear metadata on close.",
+    "Preserve existing capture/network/current-authorization rules, bounded queues, original mutation IDs, source/observer/thresholds. No constant A/V offset or cross-stream synchronization claim."
+  ],
+  "connected_result": "Pending actual corrected-client capture/render rehearsal; G6-050 remains in progress."
+}

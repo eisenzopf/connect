@@ -82,6 +82,15 @@ recovery after dropping output. Decoded callbacks borrow the frame synchronously
 the codec always closes it, including on callback failure. `RtpClock` unwraps
 RTP timestamps; it alone does not establish cross-stream A/V synchronization.
 
+For fixed mono 48 kHz/20 ms Opus, decoded audio retains the originally submitted
+RTP-derived timestamp. A decoder may produce a continuous sample timeline across
+missing packets; the codec restores the original timestamp without changing PCM.
+At most ten pending timestamp records are retained, independently of the native
+decode queue. Late and duplicate timestamps remain visible to the renderer. The
+SDK closes original and replacement borrowed frames after the callback and clears
+pending metadata on retirement. This preserves one stream's timeline; it does not
+establish a common audio/video source clock.
+
 `BrowserMediaPeer` owns one authenticated client's datagram reader/writer,
 bounded send queue, codec routes and expiry timer. `offerConnection` takes
 stable Conversation, Session, Connection and operation IDs, named Opus/VP8

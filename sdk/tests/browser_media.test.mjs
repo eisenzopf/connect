@@ -103,7 +103,7 @@ test('bounded media read bursts yield to codec output tasks before dropping deco
   class Encoder {static async isConfigSupported(){return{supported:true};}state='unconfigured';encodeQueueSize=0;configure(){this.state='configured';}close(){this.state='closed';}}
   class Decoder extends Encoder {
     decodeQueueSize=0;constructor(callbacks){super();this.callbacks=callbacks;}
-    decode(chunk){this.decodeQueueSize++;setTimeout(()=>{this.decodeQueueSize--;if(this.state!=='closed')this.callbacks.output({timestamp:chunk.timestamp,close(){closed++;}});},0);}
+    decode(chunk){this.decodeQueueSize++;setTimeout(()=>{this.decodeQueueSize--;if(this.state!=='closed')this.callbacks.output({timestamp:chunk.timestamp,sampleRate:48000,numberOfChannels:1,numberOfFrames:960,close(){closed++;}});},0);}
   }
   const values=[Encoder,Decoder,class{},class{constructor(init){Object.assign(this,init);}}];
   for(let i=0;i<names.length;i++)Object.defineProperty(globalThis,names[i],{configurable:true,value:values[i]});

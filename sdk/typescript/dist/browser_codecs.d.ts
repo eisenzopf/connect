@@ -24,6 +24,7 @@ export declare class BrowserOpusCodec {
     private readonly encoder;
     private readonly decoder;
     private stopped;
+    private readonly pendingDecode;
     constructor(callbacks: CodecCallbacks<AudioData>);
     encode(samples: Float32Array, timestampUs: number): boolean;
     decode(bytes: Uint8Array, timestampUs: number): boolean;

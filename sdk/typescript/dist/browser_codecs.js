@@ -62,6 +62,7 @@ export class BrowserOpusCodec {
     encoder;
     decoder;
     stopped = false;
+    pendingDecode = [];
     constructor(callbacks) {
         this.callbacks = callbacks;
         if (typeof AudioEncoder !== "function" ||
@@ -90,14 +91,32 @@ export class BrowserOpusCodec {
         });
         this.decoder = new AudioDecoder({
             output: (frame) => {
+                let restored;
                 try {
-                    if (!this.stopped)
-                        callbacks.decoded(frame);
+                    if (this.stopped)
+                        return;
+                    const original = this.pendingDecode.shift();
+                    if (!original)
+                        throw new ConnectError("media", "Unmatched Opus decoder output");
+                    if (frame.sampleRate !== 48000 || frame.numberOfChannels !== 1 || frame.numberOfFrames !== 960)
+                        throw new ConnectError("unsupported-media-profile", "Decoded Opus requires mono 20 ms at 48 kHz");
+                    // WebCodecs may emit a continuous sample clock across missing
+                    // RTP packets. Keep the caller's original timeline so gaps,
+                    // late packets and duplicates do not acquire invented times.
+                    if (frame.timestamp !== original.timestampUs) {
+                        const samples = new Float32Array(960);
+                        frame.copyTo(samples, { planeIndex: 0, format: "f32-planar" });
+                        restored = new AudioData({ format: "f32-planar", sampleRate: 48000,
+                            numberOfFrames: 960, numberOfChannels: 1,
+                            timestamp: original.timestampUs, data: samples });
+                    }
+                    callbacks.decoded(restored ?? frame);
                 }
                 catch (e) {
                     this.fail(e);
                 }
                 finally {
+                    restored?.close();
                     frame.close();
                 }
             },
@@ -140,16 +159,24 @@ export class BrowserOpusCodec {
     }
     decode(bytes, timestampUs) {
         if (this.stopped ||
-            this.decoder.decodeQueueSize >= MEDIA_LIMITS.audioPackets)
+            this.decoder.decodeQueueSize >= MEDIA_LIMITS.audioPackets ||
+            this.pendingDecode.length >= MEDIA_LIMITS.audioPackets)
             return false;
-        if (!bytes.length || bytes.length > 1160)
-            throw new ConnectError("media", "Invalid Opus RTP payload");
-        this.decoder.decode(new EncodedAudioChunk({
-            type: "key",
-            timestamp: timestampUs,
-            duration: 20000,
-            data: bytes,
-        }));
+        if (!bytes.length || bytes.length > 1160 || !Number.isSafeInteger(timestampUs))
+            throw new ConnectError("media", "Invalid Opus RTP payload or timestamp");
+        const original = { timestampUs };
+        this.pendingDecode.push(original);
+        try {
+            this.decoder.decode(new EncodedAudioChunk({
+                type: "key", timestamp: timestampUs, duration: 20000, data: bytes,
+            }));
+        }
+        catch (e) {
+            const index = this.pendingDecode.indexOf(original);
+            if (index >= 0)
+                this.pendingDecode.splice(index, 1);
+            throw e;
+        }
         return true;
     }
     fail(value) {
@@ -162,6 +189,7 @@ export class BrowserOpusCodec {
         if (this.stopped)
             return;
         this.stopped = true;
+        this.pendingDecode.length = 0;
         if (this.encoder.state !== "closed")
             this.encoder.close();
         if (this.decoder.state !== "closed")
