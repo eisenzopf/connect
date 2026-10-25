@@ -1,8 +1,9 @@
 # Native local and remote network profiles
 
-G6-048 implementation is being qualified. The
-[source-bound report](../evidence/gate-6/native-remote-profile.json) records the
-checks actually completed. Named remote and provider rehearsals use the bounded
+The assigned G6-048 native profile is qualified in its recorded scopes. The
+[source-bound report](../evidence/gate-6/native-remote-profile.json) and
+[requirement audit](../evidence/gate-6/native-remote-audit.json) record the actual
+checks and operating limits. Named remote and provider rehearsals use the bounded
 configuration and designated endpoints recorded by G6-093.
 
 `CanonicalClientConfig` and `CanonicalServerConfig` select `network_profile`.
@@ -68,3 +69,12 @@ After an actual disconnection, open a fresh authenticated client and retain the
 original logical mutation IDs when recovering status or replaying requests.
 Previously recorded readiness cannot recreate a physical connection. A configured
 Session reconnect grace and explicit operation uncertainty remain authoritative.
+
+Reproduce the isolated checks with the
+[versioned runner](../../scripts/rehearse-gate6-native-remote.py) and
+[owned Ubuntu guest setup](../../scripts/fixtures/native-remote/README.md). The
+qualified graph passes17 exact Rust methods and both guest signing profiles,
+including five actual local CLI/bootstrap methods. The guest is a separate local
+Ubuntu24.04.5 Linux/amd64 process under x86 emulation; its control/reconnect proof
+is separate from the independently decoded NAT media proof. Hosted-server and
+performance qualification remain separately assigned.

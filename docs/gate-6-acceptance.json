@@ -4061,7 +4061,7 @@
         "G6-095",
         "G6-098"
       ],
-      "observation": "5/16 mapped implementation tasks complete. Acceptance remains unqualified until its full required evidence passes.",
+      "observation": "6/16 mapped implementation tasks complete. Acceptance remains unqualified until its full required evidence passes.",
       "requirements": [
         "R6-12"
       ],
@@ -4079,10 +4079,12 @@
         "contracts/native-requests-profile.md",
         "contracts/native-signals-profile.md",
         "contracts/openapi-events.json",
+        "crates/connect-client/examples/native_remote_probe.rs",
         "crates/connect-client/src/canonical/native.rs",
         "crates/connect-client/src/canonical/tests.rs",
         "crates/connect-protocol/src/events.rs",
         "crates/connect-protocol/src/native_data.rs",
+        "crates/connect-protocol/src/native_network.rs",
         "crates/connect-protocol/src/native_streams.rs",
         "crates/connect-protocol/src/session_control.rs",
         "crates/connect-server/tests/fixtures/gate6-vp8-black-640x360.txt",
@@ -4091,6 +4093,7 @@
         "crates/connect-server/tests/support/canonical_native_connections/codecs.rs",
         "crates/connect-server/tests/support/canonical_native_connections/data.rs",
         "crates/connect-server/tests/support/canonical_native_connections/future.rs",
+        "crates/connect-server/tests/support/canonical_native_connections/remote.rs",
         "crates/connect-service/src/canonical_media.rs",
         "crates/connect-service/src/canonical_media/data.rs",
         "crates/connect-service/src/canonical_media/data_writes.rs",
@@ -4161,6 +4164,7 @@
         "docs/developer/media-scene.md",
         "docs/developer/native-codecs.md",
         "docs/developer/native-dtmf-route.md",
+        "docs/developer/native-network.md",
         "docs/developer/native-reliable-data.md",
         "docs/developer/native-session-roles.md",
         "docs/developer/native-subscriptions.md",
@@ -4208,6 +4212,8 @@
         "docs/evidence/gate-6/native-dtmf-route.json",
         "docs/evidence/gate-6/native-lifecycle.json",
         "docs/evidence/gate-6/native-offer.json",
+        "docs/evidence/gate-6/native-remote-audit.json",
+        "docs/evidence/gate-6/native-remote-profile.json",
         "docs/evidence/gate-6/native-requests.json",
         "docs/evidence/gate-6/offer-answer.json",
         "docs/evidence/gate-6/participant-control.json",
@@ -4313,6 +4319,8 @@
         "scripts/check-gate6-staged-rtp.py",
         "scripts/check-gate6-stream-model.py",
         "scripts/check-gate6-websocket-media.py",
+        "scripts/fixtures/native-remote/README.md",
+        "scripts/rehearse-gate6-native-remote.py",
         "sdk/python/connect_sdk/event_validation.py",
         "sdk/tests/events_matrix.json",
         "sdk/typescript/src/event_validation.ts"
@@ -4626,17 +4634,25 @@
         "G6-098",
         "G6-100"
       ],
-      "observation": "2/18 mapped implementation tasks complete. Acceptance remains unqualified until its full required evidence passes.",
+      "observation": "3/18 mapped implementation tasks complete. Acceptance remains unqualified until its full required evidence passes.",
       "requirements": [
         "R6-12"
       ],
       "implementation_evidence": [
         "contracts/connect-media-v2.md",
         "contracts/openapi-provisioning.json",
+        "crates/connect-client/examples/native_remote_probe.rs",
+        "crates/connect-protocol/src/native_network.rs",
+        "crates/connect-server/tests/support/canonical_native_connections/remote.rs",
         "docs/decisions/015-gate-6-operating-profile.md",
+        "docs/developer/native-network.md",
         "docs/developer/provisioning.md",
         "docs/evidence/gate-6/contract-checks.json",
-        "docs/evidence/gate-6/provisioning.json"
+        "docs/evidence/gate-6/native-remote-audit.json",
+        "docs/evidence/gate-6/native-remote-profile.json",
+        "docs/evidence/gate-6/provisioning.json",
+        "scripts/fixtures/native-remote/README.md",
+        "scripts/rehearse-gate6-native-remote.py"
       ]
     },
     {
@@ -4915,7 +4931,7 @@
         "G6-096",
         "G6-103"
       ],
-      "observation": "11/20 mapped implementation tasks complete. Acceptance remains unqualified until its full required evidence passes.",
+      "observation": "12/20 mapped implementation tasks complete. Acceptance remains unqualified until its full required evidence passes.",
       "requirements": [
         "R6-02",
         "R6-16"
@@ -4950,6 +4966,7 @@
         "contracts/uctp-gate-6-requirements.json",
         "contracts/uctp-vectors/",
         "contracts/uctp-vectors/gate6-envelope.json",
+        "crates/connect-client/examples/native_remote_probe.rs",
         "crates/connect-client/src/application.rs",
         "crates/connect-client/src/application/administration.rs",
         "crates/connect-client/src/application/tests.rs",
@@ -4971,6 +4988,7 @@
         "crates/connect-protocol/src/events.rs",
         "crates/connect-protocol/src/native_dtmf.rs",
         "crates/connect-protocol/src/native_gates.rs",
+        "crates/connect-protocol/src/native_network.rs",
         "crates/connect-protocol/src/provisioning.rs",
         "crates/connect-protocol/src/session_codecs.rs",
         "crates/connect-protocol/src/transitions.rs",
@@ -5016,6 +5034,7 @@
         "crates/connect-server/tests/support/canonical_native_connections/multiparty.rs",
         "crates/connect-server/tests/support/canonical_native_connections/negotiation.rs",
         "crates/connect-server/tests/support/canonical_native_connections/participants.rs",
+        "crates/connect-server/tests/support/canonical_native_connections/remote.rs",
         "crates/connect-server/tests/support/canonical_native_connections/selector_policy.rs",
         "crates/connect-server/tests/support/canonical_native_connections/session_activation.rs",
         "crates/connect-server/tests/support/canonical_native_connections/session_codecs.rs",
@@ -5209,6 +5228,7 @@
         "docs/developer/native-dtmf-route.md",
         "docs/developer/native-fifty-participants.md",
         "docs/developer/native-lifecycle-events.md",
+        "docs/developer/native-network.md",
         "docs/developer/native-owned-signaling.md",
         "docs/developer/native-packet-policy.md",
         "docs/developer/native-quality.md",
@@ -5450,6 +5470,8 @@
         "docs/evidence/gate-6/native-lifecycle.json",
         "docs/evidence/gate-6/native-media-step-up.json",
         "docs/evidence/gate-6/native-offer.json",
+        "docs/evidence/gate-6/native-remote-audit.json",
+        "docs/evidence/gate-6/native-remote-profile.json",
         "docs/evidence/gate-6/native-replacement-lifetime.json",
         "docs/evidence/gate-6/native-replacement-movement.json",
         "docs/evidence/gate-6/native-replacement-private-readiness.json",
@@ -5673,11 +5695,13 @@
         "scripts/check-gate6-store-peer-authority.py",
         "scripts/check-gate6-stream-model.py",
         "scripts/check-gate6-websocket-media.py",
+        "scripts/fixtures/native-remote/README.md",
         "scripts/generate-canonical-http-openapi.py",
         "scripts/generate-gate6-conversation-reference.py",
         "scripts/generate-gate6-membership-reference.py",
         "scripts/generate-gate6-rust.py",
         "scripts/rehearse-gate6-fifty-participants.py",
+        "scripts/rehearse-gate6-native-remote.py",
         "scripts/validate-gate6-auxiliary-dtmf-events.py",
         "scripts/validate-gate6-auxiliary-stream-events.py",
         "scripts/validate-gate6-dtmf-gateway-results.py",
