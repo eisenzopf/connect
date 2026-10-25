@@ -1,8 +1,8 @@
 {
   "task": "G6-046",
   "recorded_at": "2026-10-25T00:06:29.900140+00:00",
-  "status": "new-pending-private-info-return-es256-runtime-passes-eddsa-media-setup-fails",
-  "full_task_complete": false,
+  "status": "current-both-algorithm-pending-return-runtime-and-capture-validation-pass",
+  "full_task_complete": true,
   "full_goal_complete": false,
   "newly_qualified_case_ids": [],
   "scope": "Actual original private SIP candidate/native primary with unfinished INFO schedule at return; complete existing Human media/rights/replay/expiry/revoked-controller checks retained. No product behavior changed.",
@@ -197,6 +197,13 @@
     "validator_baseline": {
       "path": ".local/gate-6/received-dtmf-runtime/private-tail128-validator-baseline.log",
       "sha256": "2a448ade2a7029b58c30e5227999bcd165fa88b1b473c8caa25f15e18c95d421"
+    },
+    "current_full_integration": {
+      "evidence": "docs/evidence/gate-6/auxiliary-dtmf-clauses.json",
+      "actual_runtime_case_count": 48,
+      "capture_validators": 21,
+      "both_pending_return_profiles_passed": true,
+      "scope": "Full current method run passes; previous media failures remain historical, not retroactively reclassified as passes."
     }
   },
   "attempt_findings": {
@@ -206,8 +213,6 @@
     "028": "ES256 entire new profile passes. EdDSA stops before pending signal at existing private_counts[1]>10 media setup assertion. No media threshold/duration changed; actual counts were not in that panic. Full current integration plus packet capture is next."
   },
   "remaining": [
-    "Run current complete default-feature native/SIP DTMF cases and captured schema validators serially. Diagnose any current media/IO failures with actual packet observations.",
-    "Require both pending-return algorithm captures and validation before qualifying the new combined profile.",
-    "Close G6-046 only after all61 assigned service behaviors have evidence; later browser/remote/independent-conformance tasks retain the approved dependency graph and overall105-task goal."
+    "Continue later approved Gate6 tasks; no remaining G6-046 assigned service behavior. Historical attempts and profile limits remain preserved."
   ]
 }

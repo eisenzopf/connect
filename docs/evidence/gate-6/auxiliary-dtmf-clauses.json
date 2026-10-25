@@ -1,0 +1,579 @@
+{
+  "task": "G6-046",
+  "recorded_at": "2026-10-25T00:28:51.478182+00:00",
+  "status": "assigned-local-service-integration-complete",
+  "full_task_complete": true,
+  "full_goal_complete": false,
+  "acceptance_qualified": false,
+  "qualified_clause_count_before": 59,
+  "qualified_clause_count": 61,
+  "assigned_clause_count": 61,
+  "newly_qualified_case_ids": [
+    "u6-req-0112",
+    "u6-req-0113"
+  ],
+  "remaining_case_ids": [],
+  "qualified_cases": {
+    "u6-req-0112": {
+      "source_heading": "7.5 DTMF",
+      "source_lines": [
+        908,
+        918
+      ],
+      "source_excerpt_sha256": "431b1168b4d4463b8c6b73207e8a365bf71dffe6382b6ad6462940d22d25a695",
+      "profile": "Actual local macOS arm64 canonical native QUIC, HTTP status/authorization and isolated configured UDP SIP; public Rust SDK EdDSA/ES256. Independent-conformance ledger remains separate.",
+      "assertions": [
+        "Actual signed native dtmf.send freezes original source, logical ID, method, duration and physical recipients. HTTP cannot borrow native custody.",
+        "Native and initial/established SIP output use actual original frames/calls and negotiated RFC4733 profile. The exact30-second sequence retains terminal packets. Long fanout schedules overlap and settle partial refusal honestly.",
+        "Named source-send/recipient-receive grants are independent of RTP/subscription. Current withdrawal, cancellation, partial writes, unknown outcomes, writer fact outage and restart never redeliver original work.",
+        "Private native, retained SIP, SIP-primary and fresh SIP-candidate roles exclude held/public physical siblings, survive captured lifetime changes and preserve current permission checks. An unfinished private INFO prefix cannot lend its tail to original return or public recovery."
+      ]
+    },
+    "u6-req-0113": {
+      "source_heading": "7.5 DTMF",
+      "source_lines": [
+        920,
+        920
+      ],
+      "source_excerpt_sha256": "b95edf630f51f32e1062d5abcf9e6704fb61fce838f29693229f9b4617c645f8",
+      "profile": "Actual local macOS arm64 canonical native QUIC, HTTP status/authorization and isolated configured UDP SIP; public Rust SDK EdDSA/ES256. Independent-conformance ledger remains separate.",
+      "assertions": [
+        "Native and SIP INFO/RFC4733 inputs produce actual signed dtmf.received envelopes for eligible current physical native recipients. Source attribution and source-owner HTTP outcome retain original observed facts.",
+        "Fractional/missing-start RTP facts do not synthesize native tones; a fresh representable observation recovers. Fanout keeps same-Participant connections distinct and revocation local.",
+        "Independent directional permissions, source custody, original/current audience floors, private/public restoration and retired-call replay exclusion hold through actual IO. Captured outcomes settle after revocation without another write.",
+        "Received restart retains attempted output as unknown; owned readers, command queuing, credential refresh and current user step-up preserve source lineage, signal delivery and logical outcomes."
+      ]
+    }
+  },
+  "scope": "Assigned Connect auxiliary service integration, retaining each recorded local source/platform/profile. This completes G6-046, not the later browser/remote/Linux/provider/independent qualification or overall105-task goal.",
+  "retained59_audit": {
+    "evidence": "docs/evidence/gate-6/auxiliary-service-completion-audit.json",
+    "summary": ".local/gate-6/auxiliary-service-audit/recorded59-audit.json",
+    "summary_sha256": "90316373177fc9a167cc108b49cb135316287cfefca68798a7a7da218c79c466",
+    "clauses": 59,
+    "explicit_source_reports": 25,
+    "retained_proof_file_digests_verified": 334,
+    "missing_ids_or_proof_mismatches": 0
+  },
+  "required_additional_work_evidence": {
+    "records_and_content_audiences": [
+      {
+        "path": "docs/evidence/gate-6/auxiliary-session-record-journey.json",
+        "sha256": "486ce0e52986689121a50074e2b9fc39f5c73058d4d22ade4c16042cd3a8bd03"
+      },
+      {
+        "path": "docs/evidence/gate-6/auxiliary-record-retention.json",
+        "sha256": "e027e21b6255cd8cade3e018073464b39fff182bb6e42fb49d1bad5d61ae6121"
+      },
+      {
+        "path": "docs/evidence/gate-6/auxiliary-record-private-links.json",
+        "sha256": "8c7ff8d4633ec7a68712fce53ad9a87152f59597189665ae1a990ec3fc2fdbad"
+      },
+      {
+        "path": "docs/evidence/gate-6/auxiliary-record-private-erasure.json",
+        "sha256": "e59abadaaf052546250a15bb93d26824889ede71dddc7d2e0050d8157843c9fd"
+      },
+      {
+        "path": "docs/evidence/gate-6/record-context-private-provider.json",
+        "sha256": "c853b47adae2c077a81cb8c4dd30375f840f3d57fc983c57a17b209ee3d88eca"
+      }
+    ],
+    "auth_refresh_assurance_and_step_up": [
+      {
+        "path": "docs/evidence/gate-6/auxiliary-auth-refresh.json",
+        "sha256": "ff78ed9596fd43bce1a51009844d5c65ccdecd9ab2f5ccf40c141ade6b683d4c"
+      },
+      {
+        "path": "docs/evidence/gate-6/auxiliary-user-assurance.json",
+        "sha256": "001efbef90f762a53c5d3261afa5e2192d6d164b0e03ed623163bef4109cdf12"
+      },
+      {
+        "path": "docs/evidence/gate-6/auxiliary-owned-step-up.json",
+        "sha256": "3920c900a479ebdb992f7731825bd67c9e96d333fc4662949e347c321b68f5f3"
+      },
+      {
+        "path": "docs/evidence/gate-6/native-media-step-up.json",
+        "sha256": "5e37ece984258e96e7a032a59c90799bbd5922abddd5fff33b113bb4cae91a7a"
+      }
+    ],
+    "quality_capability_and_lifecycle_events": [
+      {
+        "path": "docs/evidence/gate-6/auxiliary-native-quality.json",
+        "sha256": "44f063d040b0bb5df73da9550dbcbf980a6cbc2a36fca292a6da280ae0d28610"
+      },
+      {
+        "path": "docs/evidence/gate-6/auxiliary-native-capability-delivery.json",
+        "sha256": "f4a0dc0cc5ab65c2c3915c698b7672e6dd07a88221c067e07f2a72c471b47040"
+      },
+      {
+        "path": "docs/evidence/gate-6/auxiliary-native-lifecycle.json",
+        "sha256": "d24b3e1e93b2ca8f9866fdc7f5d1d75f95f468dc3cf14732cb53b503b88eb44f"
+      }
+    ]
+  },
+  "current_runtime": {
+    "source_revision": "b96501e71a8def2f3bb4ed4bdf9241767768c7b6",
+    "source_lock_sha256": "2d4f2eff9286f03ae7bc09b8ad9e6ae73b54e04dfcfed17eeff3eb4e086188be",
+    "prepared_patch_count": 185,
+    "store_schema": 109,
+    "summary": ".local/gate-6/dtmf-integration/current128-runtime-001/summary.json",
+    "summary_sha256": "7488055696c434cf69c6b29cae8aa43f20baf79429b56d189edce41dafbc59a7",
+    "runtime_cases_passed": 48,
+    "runtime_cases_ignored": 0,
+    "runtime_cases_failed": 0,
+    "executable_sha256": "3266f72a3278add1b64ed02adabc13951f6dcf10f7de0e32d3e5822c64192f16",
+    "source_inputs_unchanged": true,
+    "executable_unchanged": true,
+    "raw_wrapper_passed": false,
+    "raw_capture_validators_passed": 20,
+    "raw_capture_validators_failed": 1,
+    "raw_wrapper_failure": "All runtime assertions pass. Original aggregate validator expected4 standard rows but received6 because the named receive-permission recovery test also appends2 positive INFO rows. Original raw wrapper failure remains recorded."
+  },
+  "capture_validation": {
+    "summary": ".local/gate-6/dtmf-integration/current128-runtime-001/post-validation-sealed/summary.json",
+    "summary_sha256": "4d777fd0921a5ebaa00f89bfc14b5ea67485ac3f45fdd7d5be15e262ba9e6ab4",
+    "passed": true,
+    "validator": "scripts/validate-gate6-dtmf-integration.py",
+    "validator_sha256": "84a1467c51dd088ca99abb1f2a207480c41d1009d986f115e0270c2f85389bfa",
+    "capture_validators_passed": 21,
+    "all_initial_output_rows_schema_checked": 6,
+    "quarantine_profiles_checked": 2,
+    "post_validation_sources_unchanged": true,
+    "captured_inputs_unchanged": true,
+    "executable_unchanged": true,
+    "grouping": "Original six-row file stays intact. Standard row indexes0,1,4,5 are bound to their serialized producer methods and validated by the existing strict4-row validator. All six original rows, including recovery rows2,3, are schema/identity/outcome checked. No observations discarded or rewritten.",
+    "validations": [
+      {
+        "name": "native-http",
+        "passed": true,
+        "log": ".local/gate-6/dtmf-integration/current128-runtime-001/post-validation-sealed/native-http.log",
+        "log_sha256": "75a199736a59526ac77b95dde890f18689d10a7d974ebd979fbad143a95d99ab",
+        "validator_sha256": "6aa391bdf8f6dc4a1c141acc0f012270a6893ee39ed7f648b891747f0b100707",
+        "result": {
+          "case_id": "u6-req-0114",
+          "passed": true,
+          "observations": 2,
+          "algorithms": [
+            "EdDSA",
+            "ES256"
+          ],
+          "source": "uctp-native",
+          "scope": "Actual local native QUIC SDK events with exact scope, digits/duration, original source receive time, native provenance and matching immutable HTTP local-submission facts.",
+          "signature_verification": "The producing public signed Rust SDK verifies the wire. This validator checks recorded fields and receipt identity; it does not reverify signatures.",
+          "limits": "No SIP/WebRTC source, remote playback, hosting profile, full DTMF group, full G6-046 task or acceptance qualification."
+        }
+      },
+      {
+        "name": "initial-output",
+        "passed": true,
+        "log": ".local/gate-6/dtmf-integration/current128-runtime-001/post-validation-sealed/initial-output.log",
+        "log_sha256": "b7370d16a49a51b48a1e3ca740e0b3c981a08c26f4d4720039b1b7c8d94c2c04",
+        "validator_sha256": "b9016b4b4709c079314590f7a7384f20c9783d00f4e1f8b4b0844bb2a3421676",
+        "result": {
+          "passed": true,
+          "actual_sdk_summaries": 4,
+          "actual_uncertain_sdk_summaries": 2,
+          "actual_cancelled_or_revoked_summaries": 4,
+          "maximum_sequence_profile": false,
+          "algorithms": [
+            "EdDSA",
+            "ES256"
+          ],
+          "methods": [
+            "info",
+            "rfc4733"
+          ],
+          "scope": "Local macOS arm64 native-to-initial-SIP positive summaries and actual UDP observations.",
+          "signature_verification": "The producing SDK verifies signatures; this validator checks recorded DTOs and HTTP/OpenAPI schema.",
+          "full_dtmf_clause_qualification": false
+        }
+      },
+      {
+        "name": "initial-output-maximum",
+        "passed": true,
+        "log": ".local/gate-6/dtmf-integration/current128-runtime-001/post-validation-sealed/initial-output-maximum.log",
+        "log_sha256": "b4116a1c02c76d054ef67bd9efcdad60f355b9632fa90e2bb12157f65cd7f661",
+        "validator_sha256": "b9016b4b4709c079314590f7a7384f20c9783d00f4e1f8b4b0844bb2a3421676",
+        "result": {
+          "passed": true,
+          "actual_sdk_summaries": 2,
+          "actual_uncertain_sdk_summaries": 0,
+          "actual_cancelled_or_revoked_summaries": 0,
+          "maximum_sequence_profile": true,
+          "algorithms": [
+            "EdDSA",
+            "ES256"
+          ],
+          "methods": [
+            "rfc4733"
+          ],
+          "scope": "Local macOS arm64 native-to-initial-SIP positive summaries and actual UDP observations.",
+          "signature_verification": "The producing SDK verifies signatures; this validator checks recorded DTOs and HTTP/OpenAPI schema.",
+          "full_dtmf_clause_qualification": false
+        }
+      },
+      {
+        "name": "initial-output-signal-only",
+        "passed": true,
+        "log": ".local/gate-6/dtmf-integration/current128-runtime-001/post-validation-sealed/initial-output-signal-only.log",
+        "log_sha256": "fcdef5eaa60258e640484a1ddca2e212f3ac639800b7ad88b9749936cd0b62bb",
+        "validator_sha256": "b9016b4b4709c079314590f7a7384f20c9783d00f4e1f8b4b0844bb2a3421676",
+        "result": {
+          "passed": true,
+          "actual_sdk_summaries": 4,
+          "actual_uncertain_sdk_summaries": 0,
+          "actual_cancelled_or_revoked_summaries": 0,
+          "maximum_sequence_profile": false,
+          "algorithms": [
+            "EdDSA",
+            "ES256"
+          ],
+          "methods": [
+            "info",
+            "rfc4733"
+          ],
+          "scope": "Local macOS arm64 native-to-initial-SIP positive summaries and actual UDP observations.",
+          "signature_verification": "The producing SDK verifies signatures; this validator checks recorded DTOs and HTTP/OpenAPI schema.",
+          "full_dtmf_clause_qualification": false
+        }
+      },
+      {
+        "name": "initial-output-fanout",
+        "passed": true,
+        "log": ".local/gate-6/dtmf-integration/current128-runtime-001/post-validation-sealed/initial-output-fanout.log",
+        "log_sha256": "5c1fa5832ba143f8701c6723743f557106fde2568905a3ce92964fc65cb8057b",
+        "validator_sha256": "80d233dd061a82f9200a4a10b684fb6c200c3ef31dc216577c69a9c32960d9da",
+        "result": {
+          "passed": true,
+          "actual_sdk_summaries": 4,
+          "distinct_schedules": 8,
+          "scope": "Two actual initial SIP recipients; overlapping long RFC4733 schedules and partial INFO refusal for EdDSA/ES256.",
+          "signature_verification": "Producing SDK verifies signatures; this validator checks captured DTOs and HTTP/OpenAPI schema.",
+          "full_dtmf_clause_qualification": false
+        }
+      },
+      {
+        "name": "received-delivery",
+        "passed": true,
+        "log": ".local/gate-6/dtmf-integration/current128-runtime-001/post-validation-sealed/received-delivery.log",
+        "log_sha256": "49a67694e5c8064b1328a094b1ab64b7f21e7e8cd52b07892a0a3b616d7e7980",
+        "validator_sha256": "bdac07b1126342a34b37ffe3ce51579ff3defe4c03f4fbdb468759163d41476f",
+        "result": {
+          "passed": true,
+          "installed_scenes": 2,
+          "received_signals": 4,
+          "http_summaries": 4,
+          "signed_native_frames": 4,
+          "unforwardable_failure_summaries": 4,
+          "scope": "Local configured initial SIP INFO/RFC4733 to native output with source-owner HTTP status. SDK verifies signatures; validator checks schemas and captured identity. No remote playback, other legs or complete Gate6 qualification."
+        }
+      },
+      {
+        "name": "received-authority",
+        "passed": true,
+        "log": ".local/gate-6/dtmf-integration/current128-runtime-001/post-validation-sealed/received-authority.log",
+        "log_sha256": "980eeb88fa5f8a25cb3585b676ad92731a7e6e7675cab20cb8a021a642942932",
+        "validator_sha256": "503920cfc362fff839ece03b160029bad5106a8b07d4a7e114d27d986b4c13e3",
+        "result": {
+          "passed": true,
+          "algorithms": [
+            "EdDSA",
+            "ES256"
+          ],
+          "installed_scenes": 2,
+          "captured_signed_frames": 8,
+          "captured_http_summaries": 10,
+          "calls": 2,
+          "scope": "Actual initial SIP signal-only INFO/RFC4733, missing source-send and recipient-receive refusal, same-call recovery, and no marked audio after media withdrawal. Fenced credential edits are controlled fault setup, not a public credential-edit API pass. Native metadata protocol floors remain granted."
+        }
+      },
+      {
+        "name": "received-outcome",
+        "passed": true,
+        "log": ".local/gate-6/dtmf-integration/current128-runtime-001/post-validation-sealed/received-outcome.log",
+        "log_sha256": "aaae18ef06df7ef172aa77870fac488e018286092f4a92f62df0015c37ca4f4e",
+        "validator_sha256": "5a6ae02d101ada3ef55dae265fdd77b78387d1c765b7d530234b50fc679691de",
+        "result": {
+          "passed": true,
+          "algorithms": [
+            "EdDSA",
+            "ES256"
+          ],
+          "captured_signed_frames": 2,
+          "http_summaries": 4,
+          "scope": "Actual initial SIP INFO to native output, forced outcome-storage failure, public Store source revocation and physical call retirement, captured settlement under a fresh same-owner HTTP credential, unchanged expiry/one attempt and no replay. No process-restart or broad recovery qualification."
+        }
+      },
+      {
+        "name": "received-fanout",
+        "passed": true,
+        "log": ".local/gate-6/dtmf-integration/current128-runtime-001/post-validation-sealed/received-fanout.log",
+        "log_sha256": "69eb6dcf7513a8a27ab0763aae6f61670df9bfca1e1e2875abcd09b0d806433f",
+        "validator_sha256": "469180b2b6d901241c4f3ebc365bb307173199e4293e44035244768ef84bea7a",
+        "result": {
+          "passed": true,
+          "installed_scenes": 2,
+          "received_operations": 4,
+          "signed_native_frames": 6,
+          "scope": "Local initial SIP input to two native Connections of one Participant; revoking only one credential retires only that recipient, replay does not redeliver, fresh input reaches the survivor. SDK verifies signatures. No broader transport, privacy, crash, capacity or Gate6 completion claim."
+        }
+      },
+      {
+        "name": "received-restart",
+        "passed": true,
+        "log": ".local/gate-6/dtmf-integration/current128-runtime-001/post-validation-sealed/received-restart.log",
+        "log_sha256": "4bb8cfbf467fd1943e55a99b206fd516c7338a58efdba541ec0880e411c8d0c5",
+        "validator_sha256": "b71a5d1374d8be13c251692564c3a5983a924b317df82e0a7f4aeb4b447d8992",
+        "result": {
+          "passed": true,
+          "algorithms": [
+            "EdDSA",
+            "ES256"
+          ],
+          "before_restart_signed_frames": 2,
+          "http_summaries": 4,
+          "scope": "Actual received initial SIP INFO output with deliberately unrecorded outcome; successor retains original unknown reservation/expiry/one attempt, and a fresh native connection receives no redelivery. No remote playback, abrupt process crash or full recovery qualification."
+        }
+      },
+      {
+        "name": "refresh",
+        "passed": true,
+        "log": ".local/gate-6/dtmf-integration/current128-runtime-001/post-validation-sealed/refresh.log",
+        "log_sha256": "a1b17863ab1b8a139b954881dfc9805164b590a74b568b18e7710a79e4ca7923",
+        "validator_sha256": "436605a568be538f9dc634a1fb0053a67749d7fbff4e7e959c2cd709e40249c1",
+        "result": {
+          "passed": true,
+          "signing_scenes": 2,
+          "queued_epoch_refusals": 2,
+          "fresh_signed_received_frames": 4,
+          "received_http_summaries": 6,
+          "native_outgoing_http_summaries": 2,
+          "connection_stream_lineage_preserved": true,
+          "scope": "Local actual moved SIP/native refresh; SDK verifies signatures and validator checks captured wire/status facts. No whole-task or gate qualification."
+        }
+      },
+      {
+        "name": "moved-output",
+        "passed": true,
+        "log": ".local/gate-6/dtmf-integration/current128-runtime-001/post-validation-sealed/moved-output.log",
+        "log_sha256": "933487405061c8611d69e385f47545b44ca33373ccbd5d34acbcb1e07fcccb82",
+        "validator_sha256": "150747131d22da2c3caaf51d8e6f2db3439fd275ac5cb63e1dd018bf4905416e",
+        "result": {
+          "passed": true,
+          "signing_scenes": 2,
+          "actual_completed_schedules": 4,
+          "named_receive_refusals": 2,
+          "http_summaries_validated": 4,
+          "remote_playback_qualified": false
+        }
+      },
+      {
+        "name": "moved-received",
+        "passed": true,
+        "log": ".local/gate-6/dtmf-integration/current128-runtime-001/post-validation-sealed/moved-received.log",
+        "log_sha256": "cacb9235518c31c28147cbc89d6d1c58ecd2266438c7a4363791de7a4cca89dd",
+        "validator_sha256": "7df4fe5366face01836e489255b4f65a28a046069ff6c37b1c5e60df9755c766",
+        "result": {
+          "passed": true,
+          "installed_moved_scenes": 2,
+          "source_permission_refusals": 2,
+          "received_signals": 6,
+          "http_summaries": 6,
+          "signed_native_frames": 6,
+          "scope": "Local native QUIC and actual moved loopback SIP. SDK verifies signatures; validator checks captured wire and HTTP schemas. No full task or gate qualification."
+        }
+      },
+      {
+        "name": "private-primary-initial-sip",
+        "passed": true,
+        "log": ".local/gate-6/dtmf-integration/current128-runtime-001/post-validation-sealed/private-primary-initial-sip.log",
+        "log_sha256": "7a24ad52511cefd1fd2b3db9bd56bca166f34516542a9bd1b2db43499c95ceb3",
+        "validator_sha256": "19595a309e3ba67608e5a46573df4e524ac4ddf4365a6db1641cae13460db50b",
+        "result": {
+          "passed": true,
+          "scenes": 2,
+          "actual_frames": 12,
+          "source_kind": "initial-sip",
+          "observations_sha256": "9f4afae9992b407e815449db4f0f4bcdf7b6943b224df549eced8f91e6738ab9",
+          "schema_sha256": "8d3d5a1098c8eebafe30960b8b35d83e11f9c8ac09453ab7e528251368d11c32",
+          "scope": "Actual isolated local selected SIP-primary state, shape and correlations; SDK verifies signatures and runtime asserts decoded media/privacy, actual DTMF and independent signal-rights withdrawal/recovery/replay, original return/replay and cleanup. Other roles/profiles remain separate."
+        }
+      },
+      {
+        "name": "retained-initial-sip",
+        "passed": true,
+        "log": ".local/gate-6/dtmf-integration/current128-runtime-001/post-validation-sealed/retained-initial-sip.log",
+        "log_sha256": "6eb2a198971fe774e31b99403b687e1bb2b00570655eae229dd52a5e6482016f",
+        "validator_sha256": "5196c10e7147719930c6aa3820e614c9b4f20add5de9bae2769568b624ca49e1",
+        "result": {
+          "passed": true,
+          "scenes": 2,
+          "actual_frames": 6,
+          "source_kind": "initial-sip",
+          "observations_sha256": "e62df9f3384ca83e3913293645fda691ccfd980f360b2aba24dee2468800957e",
+          "schema_sha256": "8d3d5a1098c8eebafe30960b8b35d83e11f9c8ac09453ab7e528251368d11c32",
+          "scope": "Actual local retained initial-sip state, shape and correlations. SDK verifies signatures; runtime checks decoded media, private exclusion, source settlement, return/replay and cleanup. Not independent cryptography or other profiles."
+        }
+      },
+      {
+        "name": "received-private-initial",
+        "passed": true,
+        "log": ".local/gate-6/dtmf-integration/current128-runtime-001/post-validation-sealed/received-private-initial.log",
+        "log_sha256": "b84f88a42cc9508f88d7513e723cba43ab23c4be9f2f662ac9be7726fe79d8e9",
+        "validator_sha256": "a0e0e9205053e7cc8780b23c6252564765e4edacf1afb1ccfe07d965b9c97c4d",
+        "result": {
+          "passed": true,
+          "installed_scenes": 2,
+          "received_operations": 6,
+          "signed_native_frames": 10,
+          "source_kind": "initial-sip",
+          "scope": "Local selected SIP source outside an actual native private pair. Store excludes both active private physical slots before recipient freeze; current Core audience remains independently authoritative. A public Device of the same consultant Participant receives. Return/replay/fresh-input recovery and owned cleanup are tested by the production fixture. No private SIP slots, WebRTC, crash, capacity or complete Gate6 claim."
+        }
+      },
+      {
+        "name": "private-primary-established-sip",
+        "passed": true,
+        "log": ".local/gate-6/dtmf-integration/current128-runtime-001/post-validation-sealed/private-primary-established-sip.log",
+        "log_sha256": "58fcd0957cc5de59d8616a8386e0cb523ca11917f5f237bad191092ad1d3e5f5",
+        "validator_sha256": "19595a309e3ba67608e5a46573df4e524ac4ddf4365a6db1641cae13460db50b",
+        "result": {
+          "passed": true,
+          "scenes": 2,
+          "actual_frames": 12,
+          "source_kind": "established-sip",
+          "observations_sha256": "86b69788bcb36cb0a2fc939df333cfa3f7e092a0506c89444b8873cb3de02978",
+          "schema_sha256": "8d3d5a1098c8eebafe30960b8b35d83e11f9c8ac09453ab7e528251368d11c32",
+          "scope": "Actual isolated local selected SIP-primary state, shape and correlations; SDK verifies signatures and runtime asserts decoded media/privacy, actual DTMF and independent signal-rights withdrawal/recovery/replay, original return/replay and cleanup. Other roles/profiles remain separate."
+        }
+      },
+      {
+        "name": "retained-established-sip",
+        "passed": true,
+        "log": ".local/gate-6/dtmf-integration/current128-runtime-001/post-validation-sealed/retained-established-sip.log",
+        "log_sha256": "9b8a3b53dffba253761d23fa45fba44465a502c395b6a7a05511fd0b44ae8ec9",
+        "validator_sha256": "5196c10e7147719930c6aa3820e614c9b4f20add5de9bae2769568b624ca49e1",
+        "result": {
+          "passed": true,
+          "scenes": 2,
+          "actual_frames": 6,
+          "source_kind": "established-sip",
+          "observations_sha256": "d3972a43c8e1d8a2fb6ec757c0f89580bfbea7076f38e882ca3fdb2b18d0c251",
+          "schema_sha256": "8d3d5a1098c8eebafe30960b8b35d83e11f9c8ac09453ab7e528251368d11c32",
+          "scope": "Actual local retained established-sip state, shape and correlations. SDK verifies signatures; runtime checks decoded media, private exclusion, source settlement, return/replay and cleanup. Not independent cryptography or other profiles."
+        }
+      },
+      {
+        "name": "received-private-established",
+        "passed": true,
+        "log": ".local/gate-6/dtmf-integration/current128-runtime-001/post-validation-sealed/received-private-established.log",
+        "log_sha256": "27761849a448fd7f2bf80fce8bc51a485294281579775d1799e1880ba04020b8",
+        "validator_sha256": "a0e0e9205053e7cc8780b23c6252564765e4edacf1afb1ccfe07d965b9c97c4d",
+        "result": {
+          "passed": true,
+          "installed_scenes": 2,
+          "received_operations": 6,
+          "signed_native_frames": 10,
+          "source_kind": "established-sip",
+          "scope": "Local selected SIP source outside an actual native private pair. Store excludes both active private physical slots before recipient freeze; current Core audience remains independently authoritative. A public Device of the same consultant Participant receives. Return/replay/fresh-input recovery and owned cleanup are tested by the production fixture. No private SIP slots, WebRTC, crash, capacity or complete Gate6 claim."
+        }
+      },
+      {
+        "name": "candidate-switch",
+        "passed": true,
+        "log": ".local/gate-6/dtmf-integration/current128-runtime-001/post-validation-sealed/candidate-switch.log",
+        "log_sha256": "bdcd7709018855bc07b4e4d2c64177edbf0af679e06fa5b11c096f8b1bc7af12",
+        "validator_sha256": "b83738ed5ddcd3b3d18b5b53a465bcee2ef6f909392a2021147cdaa34d19c433",
+        "result": {
+          "passed": true,
+          "scenes": 2,
+          "actual_frames": 12,
+          "pending_return_profiles": false,
+          "captures_sha256": {
+            "candidate-switch.EdDSA.json": "191204df987939a08bdccd3554584de4b1abd6f777da911c91537ac87710fe7b",
+            "candidate-switch.ES256.json": "ddd6138888d97e4fa45b0a0e8479d839afdf88d6544f798cf6130dead815a703"
+          },
+          "schema_sha256": "8d3d5a1098c8eebafe30960b8b35d83e11f9c8ac09453ab7e528251368d11c32",
+          "scope": "Actual isolated local Human SIP candidate and native primary; SDK verifies signatures, runtime checks decoded duplex media, physical public sibling privacy, named signal rights/recovery/replay, expired admission/revoked controller continuity and original call return/absence. Other roles and provider profiles remain separate."
+        }
+      },
+      {
+        "name": "candidate-tail",
+        "passed": true,
+        "log": ".local/gate-6/dtmf-integration/current128-runtime-001/post-validation-sealed/candidate-tail.log",
+        "log_sha256": "0941586946f09970c98d783a9890e6c7cdf6c7dcbc10a1ce93822a570b809c19",
+        "validator_sha256": "b83738ed5ddcd3b3d18b5b53a465bcee2ef6f909392a2021147cdaa34d19c433",
+        "result": {
+          "passed": true,
+          "scenes": 2,
+          "actual_frames": 14,
+          "pending_return_profiles": true,
+          "captures_sha256": {
+            "candidate-tail.EdDSA.json": "16e2262410ec0a3e2c40923377219651cc1a2e52cb54a1560463d5130cd0fa36",
+            "candidate-tail.ES256.json": "710d17eeba4cc1046fd7cd7ef6648acd23032cebff1d39e2b9aeaea14f593015"
+          },
+          "schema_sha256": "8d3d5a1098c8eebafe30960b8b35d83e11f9c8ac09453ab7e528251368d11c32",
+          "scope": "Actual isolated local Human SIP candidate and native primary; SDK verifies signatures, runtime checks decoded duplex media, physical public sibling privacy, named signal rights/recovery/replay, expired admission/revoked controller continuity and original call return/absence. Other roles and provider profiles remain separate."
+        }
+      }
+    ]
+  },
+  "production_methods": [
+    "canonical_native_connections::consultation::groups::replacement::telephone::dtmf::production_native_to_moved_sip_preserves_actual_generation_call_and_original_schedule",
+    "canonical_native_connections::consultation::groups::replacement::telephone::initial::dtmf::fanout::production_native_dtmf_two_initial_sip_recipients_overlap_long_schedules_without_replay",
+    "canonical_native_connections::consultation::groups::replacement::telephone::initial::dtmf::fanout::production_native_dtmf_two_initial_sip_recipients_settle_partial_refusal_after_other_finishes",
+    "canonical_native_connections::consultation::groups::replacement::telephone::initial::dtmf::production_native_to_initial_sip_info_failure_keeps_uncertainty_without_replay_and_preserves_call",
+    "canonical_native_connections::consultation::groups::replacement::telephone::initial::dtmf::production_native_to_initial_sip_info_uses_original_call_and_never_replays",
+    "canonical_native_connections::consultation::groups::replacement::telephone::initial::dtmf::production_native_to_initial_sip_maximum_rfc4733_sequence_keeps_exact_duration_and_all_terminal_packets",
+    "canonical_native_connections::consultation::groups::replacement::telephone::initial::dtmf::production_native_to_initial_sip_requires_independent_named_receive_permission",
+    "canonical_native_connections::consultation::groups::replacement::telephone::initial::dtmf::production_native_to_initial_sip_rfc4733_uses_actual_negotiated_event_profile",
+    "canonical_native_connections::consultation::groups::replacement::telephone::initial::dtmf::stops::production_native_to_initial_sip_cancel_after_actual_info_stops_suffix_and_never_replays",
+    "canonical_native_connections::consultation::groups::replacement::telephone::initial::dtmf::stops::production_native_to_initial_sip_signal_only_authority_keeps_call_and_dtmf_without_rtp",
+    "canonical_native_connections::consultation::groups::replacement::telephone::initial::dtmf::stops::production_native_to_initial_sip_source_revocation_stops_next_digit_with_original_uncertainty",
+    "canonical_native_connections::consultation::groups::replacement::telephone::initial::private_candidate::production_private_sip_candidate_owns_fresh_muted_call_and_original_cleanup_eddsa",
+    "canonical_native_connections::consultation::groups::replacement::telephone::initial::private_candidate::production_private_sip_candidate_owns_fresh_muted_call_and_original_cleanup_es256",
+    "canonical_native_connections::consultation::groups::replacement::telephone::initial::private_candidate::production_private_sip_candidate_return_stops_pending_info_tail_eddsa",
+    "canonical_native_connections::consultation::groups::replacement::telephone::initial::private_candidate::production_private_sip_candidate_return_stops_pending_info_tail_es256",
+    "canonical_native_connections::consultation::groups::replacement::telephone::initial::private_candidate::production_private_sip_candidate_switch_preserves_original_call_and_public_sibling_eddsa",
+    "canonical_native_connections::consultation::groups::replacement::telephone::initial::private_candidate::production_private_sip_candidate_switch_preserves_original_call_and_public_sibling_es256",
+    "canonical_native_connections::consultation::groups::replacement::telephone::initial::received::authority::production_initial_sip_received_signal_only_and_current_direction_permissions_preserve_call_without_media",
+    "canonical_native_connections::consultation::groups::replacement::telephone::initial::received::fanout::production_initial_sip_received_fanout_keeps_sibling_connections_distinct_and_revocation_local",
+    "canonical_native_connections::consultation::groups::replacement::telephone::initial::received::outcomes::production_initial_sip_received_captured_output_settles_after_source_revocation_without_replay",
+    "canonical_native_connections::consultation::groups::replacement::telephone::initial::received::privacy::production_initial_sip_received_respects_private_physical_audience_and_return_does_not_replay",
+    "canonical_native_connections::consultation::groups::replacement::telephone::initial::received::private_primary::production_initial_sip_primary_private_consultation_routes_only_its_registered_pair",
+    "canonical_native_connections::consultation::groups::replacement::telephone::initial::received::production_initial_sip_received_incomplete_and_fractional_rtp_never_synthesize_native_tones_and_fresh_input_recovers",
+    "canonical_native_connections::consultation::groups::replacement::telephone::initial::received::production_initial_sip_received_info_and_rfc4733_keep_actual_provenance_and_sealed_audience",
+    "canonical_native_connections::consultation::groups::replacement::telephone::initial::received::restart::production_initial_sip_received_restart_preserves_attempted_output_as_unknown_without_redelivery",
+    "canonical_native_connections::consultation::groups::replacement::telephone::initial::received::retained::production_initial_sip_retained_consultation_fences_dtmf_and_restores_original_call",
+    "canonical_native_connections::consultation::groups::replacement::telephone::received::privacy::production_moved_sip_received_private_audience_and_return_keep_actual_lifetime",
+    "canonical_native_connections::consultation::groups::replacement::telephone::received::private_primary::production_moved_sip_primary_private_consultation_routes_only_its_registered_pair",
+    "canonical_native_connections::consultation::groups::replacement::telephone::received::production_moved_sip_received_info_and_rfc4733_preserve_actual_source_and_current_authority",
+    "canonical_native_connections::consultation::groups::replacement::telephone::received::refresh::production_moved_sip_dtmf_refresh_preserves_queued_epoch_and_fresh_bidirectional_delivery",
+    "canonical_native_connections::consultation::groups::replacement::telephone::received::retained::production_moved_sip_retained_consultation_fences_dtmf_and_restores_original_call",
+    "canonical_native_connections::consultation::production_private_dtmf_excludes_remote_and_same_participant_public_peer_and_replay_cannot_publish_after_return",
+    "canonical_native_connections::dtmf::production_native_dtmf_cancel_after_partial_io_preserves_uncertainty_and_stops_remaining_work",
+    "canonical_native_connections::dtmf::production_native_dtmf_http_cannot_borrow_native_source_custody",
+    "canonical_native_connections::dtmf::production_native_dtmf_http_status_projects_actual_local_frame_summary",
+    "canonical_native_connections::dtmf::production_native_dtmf_partial_credit_write_records_unknown_without_replay_and_releases_control",
+    "canonical_native_connections::dtmf::production_native_dtmf_queued_during_another_sdk_command_keeps_actual_provenance_and_order",
+    "canonical_native_connections::dtmf::production_native_dtmf_recipient_revoke_waits_for_partial_io_and_preserves_other_recipient",
+    "canonical_native_connections::dtmf::production_native_dtmf_requires_named_receive_permission_without_borrowing_subscription",
+    "canonical_native_connections::dtmf::production_native_dtmf_restart_keeps_unrecorded_actual_submission_unknown_and_never_redelivers",
+    "canonical_native_connections::dtmf::production_native_dtmf_signed_sdk_delivery_and_replay_preserve_original_effects",
+    "canonical_native_connections::dtmf::production_native_dtmf_source_revoke_waits_for_partial_io_and_never_revives_original_work",
+    "canonical_native_connections::dtmf::production_native_dtmf_writer_fact_storage_failure_recovers_without_another_delivery",
+    "canonical_native_connections::dtmf::production_native_refresh_retains_actual_decoded_rtp_after_original_expiry",
+    "canonical_native_connections::dtmf::production_owned_audio_dtmf_uses_its_exact_source_and_preserves_queued_received_signals",
+    "canonical_native_connections::dtmf::production_owned_audio_refresh_keeps_signed_reader_and_current_signal_authority",
+    "canonical_native_connections::dtmf::production_owned_audio_signaling_refresh_survives_original_credential_expiry",
+    "canonical_native_connections::step_up::production_owned_native_step_up_resumes_original_dtmf_after_current_user_consent_and_media_rotation"
+  ],
+  "historical_attempts": [
+    "docs/evidence/gate-6/auxiliary-private-sip-pending-return.json",
+    "docs/evidence/gate-6/auxiliary-private-sip-quarantine-precondition.json"
+  ],
+  "limits": [
+    "Recorded59 clauses retain their earlier executed source/profile scope; provenance checks do not relabel them as newly executed in this48-method run.",
+    "The source-bound generated independent-conformance ledger remains not-run until its assigned G6-094 work. Later transport/hosting/SDK/provider qualification tasks remain required in the original dependency graph.",
+    "No remote tone playback, abrupt-process crash, browser/remote/Linux acceptance, full Gate6 acceptance or publication is claimed. Abrupt startup/crash/shutdown reconciliation is the next G6-047 task."
+  ]
+}

@@ -41,6 +41,11 @@ and recorded before retirement or return completion.
 Controlled Store tests and default service compilation are recorded separately
 from runtime behavior. Typed SIP-candidate selection and independent sealed
 private groups are described in [private SIP scenes](private-sip-scene-selection.md).
-Actual reverse candidate media, INFO/RFC4733, return and the remaining role/provider
-matrix require their own socket evidence. Passing host quarantine checks does not
-close G6-046. Public commands use the existing [server HTTP reference](canonical-http.md).
+Current reverse-candidate socket evidence covers duplex media, INFO/RFC4733,
+independent signal permissions, original return, public-sibling isolation and
+an unfinished private INFO tail. Both signing algorithms and the explicit
+unready-AI quarantine profiles pass in the
+[completed service integration](../evidence/gate-6/auxiliary-dtmf-clauses.json).
+Those runtime checks are separate from the controlled host checks. Later
+transport/provider/independent qualification remains in the Gate 6 plan.
+Public commands use the existing [server HTTP reference](canonical-http.md).

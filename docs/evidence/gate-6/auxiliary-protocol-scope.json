@@ -1,10 +1,10 @@
 {
   "task": "G6-046",
   "title": "Wire vCon and supporting UCTP behavior into Connect",
-  "status": "in-progress",
+  "status": "complete-assigned-local-service-integration",
   "created_at": "2026-10-21T13:01:09.664427+00:00",
-  "full_task_complete": false,
-  "runtime_qualification": false,
+  "full_task_complete": true,
+  "runtime_qualification": true,
   "approved_work": "Expose required vCon retrieval/outcomes, auth refresh and assurance, step-up, DTMF, quality and capability events through the same service authority and SDK-facing contract. Ensure redaction, retention and link access use actual content audiences, including consultations.",
   "approved_verify": "Execute every assigned auxiliary-protocol vector through Connect rather than only upstream unit tests. Session records remain useful after media ends, and partial captures or unavailable records have truthful status.",
   "dependencies": [
@@ -2876,7 +2876,7 @@
       "classification": "wire-example",
       "applicability": "mandatory-behavior",
       "case_id": "u6-req-0112",
-      "runtime_status": "not-run",
+      "runtime_status": "passed-local-native-http-and-loopback-sip",
       "shared_implementation_items": [
         "G6-004",
         "G6-006",
@@ -2895,7 +2895,7 @@
         "G6-094"
       ],
       "connect_integration_audit": {
-        "status": "local-initial-and-established-sip-native-dtmf-installed; composed-profiles-open",
+        "status": "qualified-current-local-native-http-sip",
         "historical_component_reports": [
           "docs/evidence/gate-6/auxiliary-native-dtmf-service.json",
           "docs/evidence/gate-6/auxiliary-native-dtmf-recovery.json"
@@ -2909,7 +2909,7 @@
           "crates/connect-store/migrations/100_native_dtmf_gateways.sql",
           "crates/connect-store/src/transitions/native_streams/dtmf/gateways.rs"
         ],
-        "remaining": "Actual initial and committed retained SIP with native private endpoints pass both signing algorithms, including current original-call lineage after old source/controller revocation and preparation expiry, media/DTMF exclusion, return/replay, fresh-input recovery and cleanup. Complete selected/private SIP roles and remaining receiver-rights/current-authority/retirement compositions before whole-clause credit. Other substrate/hosting/remote and independent profiles retain their assigned scope.",
+        "remaining": "No remaining assigned G6-046 service clause behavior. Later transport/hosting/provider and independent-conformance tasks keep their original scope.",
         "current_sip_signal_authority_evidence": "docs/evidence/gate-6/auxiliary-sip-signal-authority.json",
         "current_gateway_custody_evidence": "docs/evidence/gate-6/auxiliary-native-dtmf-gateway-custody.json",
         "current_moved_sip_outgoing_evidence": "docs/evidence/gate-6/auxiliary-moved-sip-dtmf.json",
@@ -2922,7 +2922,9 @@
         "current_private_sip_primary_store_evidence": "docs/evidence/gate-6/auxiliary-private-sip-primary-store.json",
         "current_private_sip_primary_signal_evidence": "docs/evidence/gate-6/auxiliary-private-sip-primary-signal.json",
         "current_private_sip_primary_runtime_evidence": "docs/evidence/gate-6/auxiliary-private-sip-primary-runtime.json",
-        "current_private_sip_primary_authority_evidence": "docs/evidence/gate-6/auxiliary-private-sip-primary-authority.json"
+        "current_private_sip_primary_authority_evidence": "docs/evidence/gate-6/auxiliary-private-sip-primary-authority.json",
+        "historical_remaining_before_current_integration": "Actual initial and committed retained SIP with native private endpoints pass both signing algorithms, including current original-call lineage after old source/controller revocation and preparation expiry, media/DTMF exclusion, return/replay, fresh-input recovery and cleanup. Complete selected/private SIP roles and remaining receiver-rights/current-authority/retirement compositions before whole-clause credit. Other substrate/hosting/remote and independent profiles retain their assigned scope.",
+        "current_evidence": "docs/evidence/gate-6/auxiliary-dtmf-clauses.json"
       }
     },
     {
@@ -2932,7 +2934,7 @@
       "classification": "behavior-or-context",
       "applicability": "mandatory-behavior",
       "case_id": "u6-req-0113",
-      "runtime_status": "not-run",
+      "runtime_status": "passed-local-native-http-and-loopback-sip",
       "shared_implementation_items": [
         "G6-004",
         "G6-006",
@@ -2951,7 +2953,7 @@
         "G6-094"
       ],
       "connect_integration_audit": {
-        "status": "local-initial-and-established-sip-native-dtmf-installed; composed-profiles-open",
+        "status": "qualified-current-local-native-http-sip",
         "historical_component_reports": [
           "docs/evidence/gate-6/auxiliary-native-dtmf-service.json",
           "docs/evidence/gate-6/auxiliary-native-dtmf-recovery.json"
@@ -2965,7 +2967,7 @@
           "crates/connect-store/migrations/100_native_dtmf_gateways.sql",
           "crates/connect-store/src/transitions/native_streams/dtmf/gateways.rs"
         ],
-        "remaining": "Actual initial and committed retained SIP with native private endpoints pass both signing algorithms, including current original-call lineage after old source/controller revocation and preparation expiry, media/DTMF exclusion, return/replay, fresh-input recovery and cleanup. Complete selected/private SIP roles and remaining receiver-rights/current-authority/retirement compositions before whole-clause credit. Other substrate/hosting/remote and independent profiles retain their assigned scope.",
+        "remaining": "No remaining assigned G6-046 service clause behavior. Later transport/hosting/provider and independent-conformance tasks keep their original scope.",
         "current_sip_signal_authority_evidence": "docs/evidence/gate-6/auxiliary-sip-signal-authority.json",
         "current_gateway_custody_evidence": "docs/evidence/gate-6/auxiliary-native-dtmf-gateway-custody.json",
         "current_moved_sip_outgoing_evidence": "docs/evidence/gate-6/auxiliary-moved-sip-dtmf.json",
@@ -2978,7 +2980,9 @@
         "current_private_sip_primary_store_evidence": "docs/evidence/gate-6/auxiliary-private-sip-primary-store.json",
         "current_private_sip_primary_signal_evidence": "docs/evidence/gate-6/auxiliary-private-sip-primary-signal.json",
         "current_private_sip_primary_runtime_evidence": "docs/evidence/gate-6/auxiliary-private-sip-primary-runtime.json",
-        "current_private_sip_primary_authority_evidence": "docs/evidence/gate-6/auxiliary-private-sip-primary-authority.json"
+        "current_private_sip_primary_authority_evidence": "docs/evidence/gate-6/auxiliary-private-sip-primary-authority.json",
+        "historical_remaining_before_current_integration": "Actual initial and committed retained SIP with native private endpoints pass both signing algorithms, including current original-call lineage after old source/controller revocation and preparation expiry, media/DTMF exclusion, return/replay, fresh-input recovery and cleanup. Complete selected/private SIP roles and remaining receiver-rights/current-authority/retirement compositions before whole-clause credit. Other substrate/hosting/remote and independent profiles retain their assigned scope.",
+        "current_evidence": "docs/evidence/gate-6/auxiliary-dtmf-clauses.json"
       }
     },
     {
@@ -3913,17 +3917,17 @@
   ],
   "initial_observation": "Focused text search of these entrypoints/current native client modules found no direct recording.vcon/auth.refresh/auth.assurance/step-up/connection.quality/capabilities event strings. This is discovery context, not proof that behavior is absent or complete; indirect handlers/upstream runtime hooks must be inspected and exercised before classification.",
   "next_actions": [
-    "Complete remaining G6-046 clauses0112,0113 and0123 against their full approved behavior/profile scope; preserve independent failures and source-bound evidence.",
-    "Extend received-source private/current-audience and IO-boundary cancellation/revocation/uncertainty cases, retention/redaction, other SIP/WebRTC legs and full50member/mixed-substrate profiles. Current initial SIP-to-native attribution, signal-only/current named permission, late captured outcome and orderly successor uncertainty cases are recorded; no full gateway delivery credit.",
-    "Continue all105 tasks in approved dependency order. G6-047 depends on complete G6-046; task-scoped enrollment and step-up0061\u20130066 remain G6-055.",
-    "Linux/browser/remote/provider, G6-094 and acceptance remain unqualified; named rehearsals require G6-093 bounded configuration and publication stays separate."
+    "Continue G6-047 startup/crash/shutdown reconciliation, now that its G6-046 dependency is complete.",
+    "Complete all remaining tasks in the approved graph, including transport/hosting, public SDKs, example, documentation, independent qualification, owner acceptance and separate publication."
   ],
   "limits": [
-    "This inventory preserves all61 original clause assignments and applicability. Referenced component reports qualify only their recorded source/profile/checks; they do not establish exact individual vector, full-task or Gate6 acceptance passes."
+    "Recorded59 clauses retain their earlier executed source/profile scope; provenance checks do not relabel them as newly executed in this48-method run.",
+    "The source-bound generated independent-conformance ledger remains not-run until its assigned G6-094 work. Later transport/hosting/SDK/provider qualification tasks remain required in the original dependency graph.",
+    "No remote tone playback, abrupt-process crash, browser/remote/Linux acceptance, full Gate6 acceptance or publication is claimed. Abrupt startup/crash/shutdown reconciliation is the next G6-047 task."
   ],
   "integration_audit": {
     "recorded_date": "2026-10-21",
-    "status": "26 exact clauses locally qualified, including native DTMF received shape0114 and single/multiple Participant behavior0122; remaining35 and full auxiliary integration open",
+    "status": "All61 assigned local service clauses qualified; original component histories retained, later task/profile obligations remain open.",
     "additional_approved_work": [
       {
         "behavior": "auth refresh",
@@ -4292,12 +4296,14 @@
       "distinct_methods_passed": 107,
       "new_methods": 4,
       "qualified_case_ids": []
-    }
+    },
+    "historical_status_before_completion": "26 exact clauses locally qualified, including native DTMF received shape0114 and single/multiple Participant behavior0122; remaining35 and full auxiliary integration open",
+    "completion_evidence": "docs/evidence/gate-6/auxiliary-dtmf-clauses.json"
   },
-  "qualified_clause_count": 59,
-  "remaining_clause_count": 2,
+  "qualified_clause_count": 61,
+  "remaining_clause_count": 0,
   "clause_qualification": {
-    "status": "partial-local-native-http-and-loopback-sip",
+    "status": "complete-assigned-local-service-integration",
     "evidence": "docs/evidence/gate-6/auxiliary-conversation-clauses.json",
     "qualified_case_ids": [
       "u6-req-0069",
@@ -4343,6 +4349,8 @@
       "u6-req-0109",
       "u6-req-0110",
       "u6-req-0111",
+      "u6-req-0112",
+      "u6-req-0113",
       "u6-req-0114",
       "u6-req-0115",
       "u6-req-0116",
@@ -4360,10 +4368,15 @@
       "u6-req-0128",
       "u6-req-0129"
     ],
-    "full_task_complete": false,
+    "full_task_complete": true,
     "continuation_evidence": "docs/evidence/gate-6/auxiliary-session-identity-targets.json",
-    "latest_evidence": "docs/evidence/gate-6/auxiliary-multiparty-clause.json",
-    "latest_component_evidence": "docs/evidence/gate-6/auxiliary-native-ready-audio.json",
+    "latest_evidence": "docs/evidence/gate-6/auxiliary-dtmf-clauses.json",
+    "latest_component_evidence": "docs/evidence/gate-6/auxiliary-dtmf-clauses.json",
     "status_reconciliation_evidence": "docs/evidence/gate-6/auxiliary-clause-reconciliation.json"
-  }
+  },
+  "full_goal_complete": false,
+  "runtime_qualification_scope": "Recorded local Connect service integration; later transport and independent-conformance work remain assigned to subsequent tasks.",
+  "historical_initial_limits": [
+    "This inventory preserves all61 original clause assignments and applicability. Referenced component reports qualify only their recorded source/profile/checks; they do not establish exact individual vector, full-task or Gate6 acceptance passes."
+  ]
 }

@@ -1,16 +1,13 @@
 {
   "task": "G6-046",
   "recorded_at": "2026-10-25T00:09:55.494350+00:00",
-  "status": "recorded59-local-clause-proof-provenance-verified-dtmf-integration-live",
-  "full_task_complete": false,
+  "status": "recorded59-provenance-and-current-dtmf-service-integration-complete",
+  "full_task_complete": true,
   "full_goal_complete": false,
-  "qualification_count_changed": false,
-  "qualified_clause_count": 59,
-  "remaining_case_ids": [
-    "u6-req-0112",
-    "u6-req-0113"
-  ],
-  "scope": "Provenance audit of previously recorded local service evidence. This does not rerun or broaden those profiles and does not qualify either DTMF clause.",
+  "qualification_count_changed": true,
+  "qualified_clause_count": 61,
+  "remaining_case_ids": [],
+  "scope": "Earlier59 local service clauses retain the exact recorded provenance audit. The current DTMF report separately qualifies0112/0113 and completes the assigned61-clause service integration. No later transport or overall acceptance qualification.",
   "audit": {
     "summary": ".local/gate-6/auxiliary-service-audit/recorded59-audit.json",
     "summary_sha256": "90316373177fc9a167cc108b49cb135316287cfefca68798a7a7da218c79c466",
@@ -443,15 +440,17 @@
     ]
   },
   "current_dtmf_run": {
-    "status": "live-not-qualified",
+    "status": "48-runtime-methods-and21-capture-validators-pass",
     "summary": ".local/gate-6/dtmf-integration/current128-runtime-001/summary.json",
     "source_commit": "b96501e7",
     "selected_runtime_test_methods": 48,
-    "planned_capture_validators": 21
+    "planned_capture_validators": 21,
+    "completion_evidence": "docs/evidence/gate-6/auxiliary-dtmf-clauses.json"
   },
   "dependency_scope": {
     "current_task": "Integrate and execute assigned auxiliary service behaviors through actual Connect. Each service clause needs exact behavior evidence.",
     "later_tasks": "G6-048\u2013058 compose/qualify the remote native, browser and fallback hosting matrix. G6-094 executes independent full-contract conformance after G6-047, which itself depends on complete G6-046. These later requirements remain part of the unchanged105-task goal.",
     "limits": "No transport, role, authority, privacy or recovery behavior in G6-046 is waived. Later task assignment is not a new qualification or overall acceptance."
-  }
+  },
+  "audited_recorded_clause_count": 59
 }

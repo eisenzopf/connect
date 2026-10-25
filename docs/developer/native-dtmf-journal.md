@@ -218,3 +218,16 @@ Native source flow/controller contention also preserves `NotReady` during
 metadata preparation. A passive source liveness hint may wait on that state;
 it is never an IO grant. Actual source polls retain every physical guard around
 IO, and cancelled/retired/stale source epochs continue to refuse.
+
+
+## Current service qualification
+
+G6-046's assigned service integration is complete for its recorded local
+profiles. The [DTMF clause evidence](../evidence/gate-6/auxiliary-dtmf-clauses.json)
+records 48 current native/HTTP/SIP runtime methods, both signing algorithms,
+21 capture validators, and the original/current authority and failure cases.
+An unfinished private SIP INFO prefix retains its original uncertain outcome
+through return; replay emits no tail, and a fresh signal uses the restored
+public call and native recipient. The earlier component notes describe their
+historical checkpoints. Later transport, hosting and independent conformance
+remain assigned to the subsequent Gate 6 tasks.
