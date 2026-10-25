@@ -29,6 +29,21 @@ class Control {
   async operationStatus(cid,op){return{operation_id:op,state:this.mode==='failure'?'failed':'completed'};}
 }
 const input={conversationId:'room',sessionId:'session',connectionId:'connection',operationId:'offer',data:[{id:'data',protocol:'binary'}]};
+test('video ownership ends exactly once on missing sender and retired Connection',async()=>{
+  const client=new Control(),peer=new BrowserMediaPeer(client);let closed=0;
+  const frame=()=>({close(){closed++;}});
+  try{
+    const connection=await peer.offerConnection(input);
+    assert.throws(()=>connection.encodeVideo('missing',frame()),{code:'unsupported-media-profile'});
+    assert.equal(closed,1);
+    await connection.end('end-video-owner');
+    assert.throws(()=>connection.encodeVideo('missing',frame()),{code:'closed'});
+    assert.equal(closed,2);
+    peer.close();
+    assert.throws(()=>connection.encodeVideo('missing',frame()),{code:'closed'});
+    assert.equal(closed,3);
+  }finally{peer.close();}
+});
 test('media control binds native parameters, confirms once and completes from status without imaginary root ACK',async()=>{
   const client=new Control(),received=[];const peer=new BrowserMediaPeer(client,{data:m=>received.push(m)});
   try{

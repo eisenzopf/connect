@@ -110,6 +110,7 @@ export declare class BrowserMediaPeer {
     private state;
     streams(id: string): Readonly<MediaBinding>[];
     revision(id: string): number;
+    onConnectionClose(id: string, callback: () => void): () => void;
     subscribe(id: string, operationId: string, participantId: string, kinds: ("audio" | "video" | "screen" | "data")[], options: RequestOptions): Promise<void>;
     encodeAudio(id: string, streamId: string, samples: Float32Array, timestampUs: number): boolean;
     encodeVideo(id: string, streamId: string, frame: VideoFrame): boolean;
@@ -126,6 +127,7 @@ export declare class BrowserMediaConnection {
     constructor(peer: BrowserMediaPeer, id: string);
     get streams(): Readonly<MediaBinding>[];
     get revision(): number;
+    onClose(callback: () => void): () => void;
     subscribe(operationId: string, participantId: string, kinds: ("audio" | "video" | "screen" | "data")[], options?: RequestOptions): Promise<void>;
     encodeAudio(streamId: string, samples: Float32Array, timestampUs: number): boolean;
     encodeVideo(streamId: string, frame: VideoFrame): boolean;

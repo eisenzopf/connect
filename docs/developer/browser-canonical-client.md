@@ -105,8 +105,18 @@ are tracked per media peer.
 `connection.encodeAudio` takes a named local Stream, 960 float samples and a
 microsecond capture timestamp. `encodeVideo` consumes/closes a `VideoFrame` for
 the named local video/screen Stream. Decoded media callbacks carry the negotiated
-binding. Capture and audio playback helpers are still pending; callback delivery
-does not itself establish that the user sees or hears the media.
+binding. `BrowserMediaCapture.open(connection, options)` captures into named
+negotiated senders using an owned microphone/camera/screen or an explicitly
+transferred `MediaStream`. `browserCaptureSupport()` detects required primitives
+before permission. The audio worklet holds at most ten 20 ms mono frames and
+discards partial samples and stale credits on pause/resume. Video uses frame
+callbacks at 640x360. The helper stops late permission grants after cancellation
+or the startup deadline, pauses locally when hidden, and requires explicit
+`resume()` from a visible page. Connection closure stops all owned tracks, frame
+callbacks, graph nodes and worklet ports. Device IDs stay local to capture.
+These ownership paths have controlled SDK tests; real browser capture and
+audio playback qualification remain pending. Callback delivery alone does not
+establish that the user sees or hears the media.
 
 `connection.sendData(operationId, messageId, streamId, body)` uses signed,
 reliable ordered canonical publication with original logical IDs and at most

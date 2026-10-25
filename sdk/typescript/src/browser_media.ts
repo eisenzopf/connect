@@ -85,6 +85,7 @@ interface ConnectionState {
     selectedKinds: Set<string>;
     reconciling?: Promise<void>;
     pendingServer?: Envelope;
+    closed: Set<() => void>;
 }
 interface Transition {
     scope: Scope;
@@ -748,6 +749,7 @@ export class BrowserMediaPeer {
             ),
             received: new Set(),
             selectedKinds: new Set(),
+            closed: new Set(),
         };
         this.connections.set(input.connectionId, state);
         try {
@@ -968,6 +970,18 @@ export class BrowserMediaPeer {
     revision(id: string): number {
         return this.state(id).revision;
     }
+    onConnectionClose(id: string, callback: () => void): () => void {
+        const state = this.state(id);
+        if (state.closed.size >= 16)
+            throw new ConnectError(
+                "backpressure",
+                "Too many Connection resource owners",
+            );
+        state.closed.add(callback);
+        return () => {
+            state.closed.delete(callback);
+        };
+    }
     async subscribe(
         id: string,
         operationId: string,
@@ -1007,7 +1021,13 @@ export class BrowserMediaPeer {
         return route.opus.encode(samples, timestampUs);
     }
     encodeVideo(id: string, streamId: string, frame: VideoFrame): boolean {
-        const route = this.state(id).routes.get(streamId);
+        let route: Route | undefined;
+        try {
+            route = this.state(id).routes.get(streamId);
+        } catch (error) {
+            frame.close();
+            throw error;
+        }
         if (!route?.vp8 || !route.sender) {
             frame.close();
             throw new ConnectError(
@@ -1187,6 +1207,14 @@ export class BrowserMediaPeer {
         if (!state) return;
         for (const route of state.routes.values()) this.remove(route);
         this.connections.delete(id);
+        for (const callback of state.closed) {
+            try {
+                callback();
+            } catch {
+                /* Retire every resource owner. */
+            }
+        }
+        state.closed.clear();
     }
     close(): void {
         if (this.stopped) return;
@@ -1199,8 +1227,8 @@ export class BrowserMediaPeer {
                 new ConnectError("closed", "Physical media peer retired"),
             );
         this.transitions.clear();
+        for (const id of this.connections.keys()) this.retire(id);
         for (const route of this.routes.values()) this.remove(route);
-        this.connections.clear();
         this.registry.clear();
         this.queue.clear();
         void this.reader.cancel().catch(() => {});
@@ -1219,6 +1247,9 @@ export class BrowserMediaConnection {
     }
     get revision(): number {
         return this.peer.revision(this.id);
+    }
+    onClose(callback: () => void): () => void {
+        return this.peer.onConnectionClose(this.id, callback);
     }
     subscribe(
         operationId: string,

@@ -1,4 +1,5 @@
 /** Browser-only Connect surface. This entry point imports no Node modules. */
+export { BrowserMediaCapture, browserCaptureSupport, } from "./browser_media_capture.js";
 export { BrowserMediaPeer, BrowserMediaConnection, } from "./browser_media.js";
 export { BrowserClient, browserTransportSupport, } from "./browser_client.js";
 export { BrowserOpusCodec, BrowserVp8Codec, browserCodecSupport, RtpClock, OPUS_CONFIG, VP8_CONFIG, } from "./browser_codecs.js";

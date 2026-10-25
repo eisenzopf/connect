@@ -1,0 +1,36 @@
+{
+  "task": "G6-050",
+  "status": "in-progress",
+  "scope": "Browser capture ownership and bounded AudioWorklet implementation; controlled SDK tests only. No actual device, screen, browser capture or playback qualification.",
+  "implemented": [
+    "Negotiated sender validation and feature detection before permission",
+    "Owned camera/microphone/screen or explicitly transferred MediaStream; late grants stopped after cancellation or deadline",
+    "48kHz mono 20ms worklet with ten outstanding frames and epoch-isolated credit/reset",
+    "640x360 video frame callbacks and owned frame consumption including retired Connection refusal",
+    "Hidden-page local pause, explicit resume, Connection/track/physical lifetime cleanup"
+  ],
+  "sdk_suite": {
+    "passed": 184,
+    "failed": 0,
+    "skipped": 0,
+    "log": ".local/gate-6/browser-sdk/contention017/sdk-suite.log",
+    "sha256": "3965fbd05aebb714d0cdabdd62c55242e3abb0d6cab2c9b53d23ba44cf934e6f"
+  },
+  "controlled_cases": [
+    "unsupported primitives before permission",
+    "denied permission removes Connection observer",
+    "deadline and late grant stop",
+    "Connection closure and late grant stop",
+    "bounded PCM credits and stale epoch refusal",
+    "VideoFrame closed once on missing sender, retired Connection and physical peer"
+  ],
+  "source_sha256": {
+    "sdk/typescript/src/browser_media_capture.ts": "e49ff4e5ec595b02e4c2407693202fb25ce73228e57be6fb608cdf4a99e4a116",
+    "sdk/typescript/src/browser_audio_worklet.ts": "bfd8571d9bb7376bb6a70f49442fd40a8cbfe1ffefd0341d9fe8dea2ce82bafa",
+    "sdk/typescript/src/browser_media.ts": "fe54780fb5d309f3d8c7de241a0c52b7106e84d452fadfc574e5df247ecd16a9",
+    "sdk/tests/browser_capture_media.test.mjs": "af6bf8d2c83060269212c2f1929b0ad8a0b9a3b78994908e8b61d4599fa93681",
+    "sdk/tests/browser_media.test.mjs": "b0104dfec644ba80b5fd71ff52b9ab135d2f9eee1290c00e0d1225e1e386ae22"
+  },
+  "remaining": "Actual Chrome capture/render, native interoperation, permissions/background/loss/teardown and full frozen operating measurement. Complete connected media is being rerun separately.",
+  "acceptance_qualified": false
+}
