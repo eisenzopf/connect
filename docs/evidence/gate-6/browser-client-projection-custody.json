@@ -1,6 +1,6 @@
 {
   "task": "G6-050",
-  "status": "in-progress; optimized runtime pending",
+  "status": "in-progress; Store proofs pass, runtime browser matrix fails",
   "scope": "Controlled proof for unchanged packet metadata copying outside SQL, followed by a fresh exact file interval and current SQL/clock/source version sealing. No runtime audio-resolution or full task claim.",
   "change": [
     "An unchanged metadata entry may supply scope names for a disposable new file admission; it never supplies an IO grant.",
@@ -37,8 +37,45 @@
   },
   "runtime_build": {
     "log": ".local/gate-6/browser-sdk-projection-build.log",
-    "status": "live; not qualified"
+    "status": "completed successfully; current source optimized executable"
   },
   "acceptance_qualified": false,
-  "remaining": "Repeat complete connected8-case and existing28authorization/lifecycle runtime checks, then frozen60second and native/impairment/failure profiles. Preserve all earlier failures."
+  "remaining": "Resolve browser matrix failures and teardown conflict; repeat all8 connected cases with unchanged source/binary guards before frozen60second, native/impairment/failure profiles. Full task remains open.",
+  "runtime_checks": [
+    {
+      "lane": "browser-matrix",
+      "report": ".local/gate-6/browser-sdk/projection034/summary.json",
+      "sha256": "5978b75dd4fe37e553cbbafcfcbc7fb9ef2951a124eba1e0331ff9a382ed2d14",
+      "passed": false,
+      "passed_cases": 6,
+      "total_cases": 8,
+      "source_inputs_unchanged": true,
+      "executable_unchanged": true
+    },
+    {
+      "lane": "transport-regressions",
+      "report": ".local/gate-6/webtransport/projection028/summary.json",
+      "sha256": "48cdb950d49301c819eb05ba18a708550a1ba1f4a5b6d34164d136a7c14a40c8",
+      "passed": true,
+      "passed_cases": 28,
+      "total_cases": 28,
+      "source_inputs_unchanged": true,
+      "executable_unchanged": true
+    },
+    {
+      "lane": "diagnostic-custody",
+      "report": ".local/gate-6/browser-sdk/custody035/summary.json",
+      "sha256": "e91de9165e5e45e1aa98f48cfff20ff80746db4987c5d01981e12b9754c68020",
+      "passed": false,
+      "passed_cases": 0,
+      "total_cases": 1,
+      "source_inputs_unchanged": true,
+      "executable_unchanged": true
+    }
+  ],
+  "runtime_findings": [
+    "Browser matrix034 fails 2/8: direct ES256 identified VP8 55/109 versus minimum90; captured EdDSA Opus184/130 versus minimum150. All189 SDK tests and28 transport regressions pass. No media-resolution claim.",
+    "Trace035 is diagnostic and fails terminal connection.end with operation_conflict followed by forbidden original-operation status. Its media counters pass the short thresholds, which does not repair the failure or qualify performance.",
+    "Trace-only slow SQL events identify repeated complete data-message authority projections at data_reads.rs:200/204, alongside current packet snapshot derivation. Investigate duplicate derivation with exact version sealing; retain fresh file intervals, current original-message/audience checks and all hard thresholds."
+  ]
 }
