@@ -152,7 +152,7 @@ impl Grant {
         }
         let p = &proposal.original()["payload"];
         let setup = &p["substrate_setup"];
-        if p["substrate"] != "quic"
+        if p["substrate"].as_str() != Some(self.source.media().target().endpoint_transport.as_str())
             || p["by_participant"] != self.connection.origin.participant_id()
             || setup["kind"] != "native-prepared/1"
             || setup["revision"].as_u64() != scope.stream_revision.checked_add(1)

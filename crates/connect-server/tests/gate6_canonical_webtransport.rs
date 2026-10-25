@@ -149,27 +149,30 @@ fn envelope(kind: &str, payload: Value) -> Value {
 }
 impl Http3Peer {
     async fn open(f: &Fixture) -> Self {
+        Self::open_config(f, &f.client).await
+    }
+    async fn open_config(f: &Fixture, config: &CanonicalClientConfig) -> Self {
         let (endpoint, connection, session) = transport(f, MOUNT, &[ORIGIN]).await.unwrap();
         let (writer, reader) = session.open_bi().await.unwrap();
-        let secret = std::fs::read(&f.client.signing_private_key).unwrap();
-        let signer = if f.client.signing_algorithm == "ES256" {
-            Sig9421Signer::es256(&f.client.signing_key_id, &secret)
+        let secret = std::fs::read(&config.signing_private_key).unwrap();
+        let signer = if config.signing_algorithm == "ES256" {
+            Sig9421Signer::es256(&config.signing_key_id, &secret)
         } else {
-            Sig9421Signer::ed25519(&f.client.signing_key_id, &secret)
+            Sig9421Signer::ed25519(&config.signing_key_id, &secret)
         }
         .unwrap();
         let context =
-            SignatureVerificationContext::new("connect-server", f.client.server_key_id.clone())
+            SignatureVerificationContext::new("connect-server", config.server_key_id.clone())
                 .unwrap();
         let mut resolver = StaticKeyResolver::new();
         resolver.insert_contextual(
             &context,
-            &f.client.server_key_id,
+            &config.server_key_id,
             ResolvedVerificationKey {
-                public_key: std::fs::read(&f.client.server_public_key).unwrap(),
-                algorithm: f.client.server_algorithm.clone(),
-                not_before: Some(f.client.server_key_not_before),
-                expires_at: Some(f.client.server_key_expires_at),
+                public_key: std::fs::read(&config.server_public_key).unwrap(),
+                algorithm: config.server_algorithm.clone(),
+                not_before: Some(config.server_key_not_before),
+                expires_at: Some(config.server_key_expires_at),
                 revoked: false,
             },
         );
@@ -186,7 +189,7 @@ impl Http3Peer {
         };
         let hello = envelope(
             "auth.hello",
-            json!({"device":{"id":f.client.device_id,"kind":f.client.device_kind,"platform":f.client.device_platform,"sdk_version":"independent-http3-fixture"},"auth_methods":["bearer"],"application_profiles":["connect/2"]}),
+            json!({"device":{"id":config.device_id,"kind":config.device_kind,"platform":config.device_platform,"sdk_version":"independent-http3-fixture"},"auth_methods":["bearer"],"application_profiles":["connect/2"]}),
         );
         let id = peer.send(hello, false).await;
         let challenge = peer.read().await;
@@ -200,7 +203,7 @@ impl Http3Peer {
         );
         let mut response = envelope(
             "auth.response",
-            json!({"method":"bearer","credential":f.client.credential}),
+            json!({"method":"bearer","credential":config.credential}),
         );
         response["in_reply_to"] = json!(challenge.id());
         let id = peer.send(response, true).await;
@@ -209,7 +212,7 @@ impl Http3Peer {
         assert_eq!(authenticated.original()["in_reply_to"], id);
         assert_eq!(
             authenticated.original()["payload"]["identity_id"],
-            f.client.identity_id
+            config.identity_id
         );
         assert_eq!(
             authenticated.original()["payload"]["application_profile"],
@@ -280,7 +283,7 @@ impl Http3Peer {
             if frame.kind() == "conversation.created" {
                 cid = Some(frame.original()["cid"].as_str().unwrap().to_owned());
             }
-            assert_ne!(frame.kind(), "error");
+            assert_ne!(frame.kind(), "error", "{:?}", frame.original());
             if frame.kind() == "ack" {
                 return cid.expect("missing durable conversation projection");
             }
@@ -353,7 +356,10 @@ async fn wrong_missing_duplicate_origin_and_wrong_mount_refuse_before_authority(
         (MOUNT, vec![ORIGIN, ORIGIN]),
         ("/wrong", vec![ORIGIN]),
     ] {
-        assert!(transport(&f, path, &origins).await.is_err());
+        assert!(
+            transport(&f, path, &origins).await.is_err(),
+            "accepted mount {path:?}, origins {origins:?}"
+        );
     }
     tokio::time::timeout(Duration::from_secs(3), async {
         while f
@@ -378,3 +384,6 @@ async fn wrong_missing_duplicate_origin_and_wrong_mount_refuse_before_authority(
     assert_eq!(snapshot.media_readers, 0);
     f.server.shutdown().await.unwrap();
 }
+
+#[path = "support/canonical_webtransport_media.rs"]
+mod canonical_webtransport_media;

@@ -41,7 +41,11 @@ pub(super) fn candidate_named(
     };
     let proof = f.admit(&signed);
     f.store
-        .prepare_native_offer_with_peer(&f.keys[2], &proof)
+        .prepare_native_offer_with_peer(
+            &f.keys[2],
+            &proof,
+            Some(connect_protocol::provisioning::EndpointTransport::Quic),
+        )
         .unwrap();
     let (lease, _) = f
         .store

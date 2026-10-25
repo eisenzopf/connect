@@ -139,7 +139,7 @@ impl Store {
                 "Native private preparation currently requires two private Participants",
             ));
         }
-        let (owner,endpoint_revision,device):(String,u64,String) = tx.query_row("SELECT e.identity_id,e.revision,e.device_id FROM endpoints e JOIN devices d ON d.id=e.device_id AND d.identity_id=e.identity_id AND d.revoked=0 WHERE e.id=?1 AND e.transport='quic' AND e.verification_state='verified'",[endpoint],|r|Ok((r.get(0)?,r.get(1)?,r.get(2)?))).optional().map_err(|_|Error::storage())?.ok_or_else(Error::forbidden)?;
+        let (owner,endpoint_revision,device):(String,u64,String) = tx.query_row("SELECT e.identity_id,e.revision,e.device_id FROM endpoints e JOIN devices d ON d.id=e.device_id AND d.identity_id=e.identity_id AND d.revoked=0 WHERE e.id=?1 AND e.transport IN ('quic','webtransport') AND e.verification_state='verified'",[endpoint],|r|Ok((r.get(0)?,r.get(1)?,r.get(2)?))).optional().map_err(|_|Error::storage())?.ok_or_else(Error::forbidden)?;
         let target = crate::audience::member(&tx, &owner, &intent.conversation_id, true)?;
         let primary_pid: String = tx
             .query_row(

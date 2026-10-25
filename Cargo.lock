@@ -5509,8 +5509,6 @@ dependencies = [
 [[package]]
 name = "web-transport-proto"
 version = "0.6.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1a81bcc79bf48ad0b819bfa51ec28524ee7c356056d43c316727d6b505dcc71e"
 dependencies = [
  "bytes",
  "http",

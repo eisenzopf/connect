@@ -8,7 +8,7 @@ use rvoip_core::{
     relationships::{EndpointBinding, IdentityBinding},
     staged_streams::*,
     stream_lifecycle::{Medium, StreamGateAction},
-    AuthenticatedPrincipal, Transport,
+    AuthenticatedPrincipal,
 };
 use rvoip_uctp::v2::{
     auth_dispatch::AuthorizedEnvelope,
@@ -83,7 +83,7 @@ impl TargetPolicy {
             identity.clone(),
             EndpointId::from_string(target.connection.endpoint_id.clone()),
             DeviceId::from_string(target.device_id.clone()),
-            Transport::Quic,
+            crate::canonical_runtime::core_transport(&target.endpoint_transport).map_err(deny)?,
             target.endpoint_address.clone(),
         )
         .map_err(deny)?;

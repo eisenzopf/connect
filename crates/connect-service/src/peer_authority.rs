@@ -39,7 +39,7 @@ pub(crate) struct Grant {
     pub(crate) proof: PeerAuthorityGuard,
     request: PeerAuthorityRequest,
     credential: ValidatedBearer,
-    native_stream_plan: Mutex<Option<rvoip_uctp::v2::native_negotiation::NativeOfferPlan>>,
+    native_stream_plan: Mutex<Option<native_streams::Planned>>,
     native_data: Mutex<Weak<crate::canonical_media::data::DataInvocation>>,
 }
 mod credential_refresh;
@@ -672,7 +672,7 @@ impl PeerAuthority for StorePeerAuthority {
             || reply.kind() != "connection.answer"
             || reply.scope(Scope::Reply) != Some(request.id())
             || p["substrate_setup"] != *setup
-            || p["substrate"] != "quic"
+            || p["substrate"] != request.original()["payload"]["substrate"]
             || p["by_participant"].as_str() != grant.proof.native_member().map(|v| v.0)
             || setup["offer_id"] != grant.invocation_id
             || reply.original()["signature"]["keyid"] != grant.request.key_id
@@ -909,7 +909,7 @@ impl StorePeerAuthority {
                 "connection.offer"
             }
             || frame.scope(Scope::Reply) != if answer { Some(offer.id()) } else { None }
-            || p["substrate"] != "quic"
+            || p["substrate"] != intent.offer["substrate"]
             || p["by_participant"].as_str() != grant.proof.native_member().map(|v| v.0)
             || setup["kind"] != "native-prepared/1"
             || setup["offer_id"] != offer.id()

@@ -1,9 +1,9 @@
 {
   "task": "G6-049",
-  "status": "implementation-started-unqualified",
+  "status": "media-implementation-in-progress-unqualified",
   "full_task_complete": false,
   "full_goal_complete": false,
-  "recorded_at": "2026-10-25T03:32:44.964904+00:00",
+  "recorded_at": "2026-10-25T03:52:58.412530+00:00",
   "approved_work": "Integrate HTTP3/WebTransport control and datagrams with the same identity, canonical handlers, operation store and media bindings. Validate browser origins, token lifetime, session limits and transport capabilities; expose discovery suitable for the SDK.",
   "approved_verification": "Browser and independent HTTP3 clients authenticate, exchange canonical commands and negotiated media, and recover retained state. Cross-origin, malformed and unauthorized datagrams fail without allocating leaked resources.",
   "reuse": "Pinned rvoip-webtransport canonical supervisor already accepts canonical profiles, exact Origin sets, bounded authentication, native datagram transport and owned ProfileServer lifetime; no stock legacy adapter/fallback is selected.",
@@ -11,13 +11,16 @@
     "Optional protected WebTransport config: bounded exact serialized Origin allowlist, secure origins, exact HTTPS mount/contact and explicit remote advertised URL. Defaults remain disabled.",
     "Shared configured TLS endpoint negotiates RAW_QUIC_ALPN orh3 and dispatches to distinct canonical supervisors using the same PeerConfig, handler factory, Store and global physical handshake slot budget.",
     "Configured HTTP3 adds bounded8 bidi/uni streams and64KiB per-stream/512KiB connection receive credit; unconfigured native-only behavior retains1 bidi/0 uni.",
-    "Both profiles participate in intake/key-expiry cancellation and owned shutdown/drop."
+    "Both profiles participate in intake/key-expiry cancellation and owned shutdown/drop.",
+    "Register separate QUIC and WebTransport native adapters on the same Core. Select by sealed physical transport or actual Core Connection ownership for controls, data, DTMF, capabilities, refresh and mixed audience/replacement work; retain both adapters for absence/recovery observations.",
+    "Select this Device's exact verified transport-specific endpoint, retain actual Endpoint transport in current projections and Core intent/bindings, and refuse new mismatched/control-only media before slot/effect allocation while preserving immutable existing receipt reads.",
+    "Fresh schema111 permits verified native WebTransport consultation endpoints under the same original source, credential, membership and paired receipt constraints. Earlier schema states retain the explicit incompatible-state refusal policy.",
+    "Independent HTTP3 negotiated duplex fixture uses distinct enrolled identities, both signing algorithms, actual media datagrams, independent G.711 output decoding, persisted WebTransport binding checks and owned EOF drains. These new runtime methods are not yet qualified."
   ],
   "known_remaining": [
-    "Initial library typecheck passed. Exercise actual independent HTTP3/control handshake and Origin refusal next; no runtime, media or browser claim.",
-    "Current service Physical.validate, Core adapter registry, PeerNativeIntent and media EndpointBinding still explicitly assume QUIC. Bind actual WebTransport media/Endpoint transport under current authority before task credit.",
-    "Serve explicit SDK discovery, validate negotiated datagram/control-only capability and aggregate limits, and qualify current token/key expiry/revocation and durable reconnect.",
-    "Actual browser and independent HTTP3 commands/negotiated media, malformed/unauthorized datagram isolation and all owned cleanup/recovery cases remain required."
+    "Final optimized actual HTTP3 runtime build/qualification of source186 and media bindings, including the three earlier failing controls/refusals and both independent decoded duplex methods. Initial typecheck003 was superseded after the concrete Store failure and is not credited. All51 protocol unit methods,21 distinct Store methods and all four schema safety methods pass in their recorded scopes.",
+    "Serve explicit protocol-owned SDK discovery; qualify actual browser commands/media, negotiated control-only capability, token/key expiry/revocation and aggregate admission limits.",
+    "Qualify malformed/unauthorized datagram isolation, reconnect/recovery and all owned cleanup cases. Native regressions and fresh-schema authority cases remain required."
   ],
   "lock_update": {
     "existing_package_versions_unchanged": true,
@@ -31,17 +34,23 @@
       "web-transport-quinn",
       "web-transport-trait"
     ],
-    "cargo_lock_sha256": "4331c5e1687f0b00d71192ae2878233b27d5e696748ff51d96a0458b214fb987"
+    "cargo_lock_sha256": "6a559cab7bdd01789de8f80bbe88312635e3e051d65ddb127187cacb8918bea0",
+    "prepared_patch_count": 186
   },
   "source_sha256": {
-    "crates/connect-server/src/canonical_webtransport.rs": "aec39f08a5f561f9e24ccceb056e007502f14fdee413e0e0648fead607a3e9ed",
+    "crates/connect-server/src/canonical_webtransport.rs": "8433999dcba4060d64cf855f1cb1c91864e93378bd3cb395cb3b17cf3b34777a",
     "crates/connect-server/src/canonical.rs": "8c2b02beb6baeda79380ce34619fb54026fa0c8e05bd88d970f28502da416166",
-    "crates/connect-service/src/canonical_runtime.rs": "f9eacdb899a259bd1630510fe9ae21e0f5cd096248920ee8d356c49d6e51322e",
-    "crates/connect-service/src/canonical_media.rs": "61031ecbefd2a813184cb3669b6de80b6b113978ab87c68544c7e800df9da4f4",
-    "crates/connect-service/src/canonical_native.rs": "c6f176f619b02a82d490337979c6597fb2379acb5a75a6db2f1ba911386612f0",
-    ".deps/rvoip/crates/uctp/rvoip-webtransport/src/canonical.rs": "b96cd46c04e8e7e74bd32329b83ea86f8f49c3b547290b09c8a7a52494ec8014"
+    "crates/connect-service/src/canonical_runtime.rs": "eb8e31ac925c24105b419f6d8e7d2f8ed215f4067047a578bb96acc743e56edd",
+    "crates/connect-service/src/canonical_media.rs": "67a27b7c7c34c4c870298b26ac7ab72574fdfaf6ecdc23d7779a947b6a9f29e7",
+    "crates/connect-service/src/canonical_native.rs": "d529225317c2efe29734dbd5121f8e7befce98495293a043da9e57796fcf025a",
+    ".deps/rvoip/crates/uctp/rvoip-webtransport/src/canonical.rs": "b96cd46c04e8e7e74bd32329b83ea86f8f49c3b547290b09c8a7a52494ec8014",
+    "crates/connect-protocol/src/connection_control.rs": "01a08e8ad9e551a344cdff2db11e2cc0e3939daf1252feeddeb5da8e2186975e",
+    "crates/connect-store/src/peer_authority/native_endpoint.rs": "3a27b8dbb03fb562bb7566ebd1f8d43d37dd278c5fc034fe343f28d4f5a46c0a",
+    "crates/connect-store/src/peer_authority/connection_projection.rs": "48ddb1c2f05f84b37241ba25f6d56f343d74342e05f96cfd1e9d32c961a1240c",
+    "crates/connect-store/migrations/111_native_webtransport.sql": "3938fe30481e9a2744c03281e618effb6fddcdd848dfe54ca8ad2efffaefdd19",
+    "crates/connect-server/tests/support/canonical_webtransport_media.rs": "84acb8e76eb0c773b0aad2341073d971d606453ff20f5047dd85245bcc2f1be7"
   },
-  "source_lock_sha256": "2d4f2eff9286f03ae7bc09b8ad9e6ae73b54e04dfcfed17eeff3eb4e086188be",
+  "source_lock_sha256": "808e1fc326f1fab0680276c9daf0c4ea3ee6ff829c376a08c2e3dc3106f8baee",
   "runtime_qualification": null,
   "publication": "Separate; not performed.",
   "library_typecheck001": {
@@ -62,12 +71,121 @@
   "artifact_workspace": "/Users/jonathaneisenzopf/.codex/worktrees/private-sip-lifetime/Connect",
   "implementation_branch": "codex/gate6-webtransport",
   "implementation_on_main": false,
-  "implementation_revision": "d6034cb7",
-  "independent_http3_fixture": {
+  "implementation_revision": null,
+  "independent_http3_control002": {
+    "passed": false,
+    "source_revision": "d6034cb7a55c4259cf4e4eeacce01619c7ba6dc4",
+    "source_lock_sha256": "2d4f2eff9286f03ae7bc09b8ad9e6ae73b54e04dfcfed17eeff3eb4e086188be",
+    "build_exit_code": 0,
+    "build_elapsed_seconds": 786.0017067079898,
+    "source_inputs_unchanged": true,
+    "executable_sha256": "93da08ddb99c69417ca9701b932f9fb5bb820cff89a0c119825f63dacc052e80",
+    "executable_unchanged": true,
+    "methods": [
+      {
+        "case": "independent_http3_signed_control_and_reconnect_share_native_receipt_eddsa",
+        "exit_code": 101,
+        "elapsed_seconds": 0.26781770889647305,
+        "passed": false,
+        "log_sha256": "118c15acd9e891fb1f50e44ef3caf3a11a172985366857e596330395531187ff"
+      },
+      {
+        "case": "independent_http3_signed_control_and_reconnect_share_native_receipt_es256",
+        "exit_code": 101,
+        "elapsed_seconds": 0.20567579194903374,
+        "passed": false,
+        "log_sha256": "d61b9a59266a8eea2891b6993c959cc3fe210e2a77c6493e2c240d20c1d63acc"
+      },
+      {
+        "case": "wrong_missing_duplicate_origin_and_wrong_mount_refuse_before_authority",
+        "exit_code": 101,
+        "elapsed_seconds": 0.4315605841111392,
+        "passed": false,
+        "log_sha256": "7505350ed8f3e524cdfea279f043c30cc58e8f80e4adb783ff10ab4c3f19cc27"
+      }
+    ],
+    "finding": "Both algorithms completed signed canonical authentication, then conversation.create returned error because Physical.validate only allowed QUIC. The Origin refusal method also failed: upstream QPACK encoding and decoding collapsed repeated header fields. All three methods remain failures; no runtime pass is inferred."
+  },
+  "qpack_repeated_headers_repair": {
+    "patch": "patches/web-transport-proto/preserve-repeated-origin-headers.patch",
+    "patch_sha256": "2ac5629488c239cbf7e507e8924768cd784103e29d43979bb5ada953b0eb3ca1",
+    "scope": "Prepared web-transport-proto0.6.2 complete51 unit methods, including repeated Origin preservation and duplicate pseudo-header refusal. Standalone crate test executable; no Connect runtime qualification. Prior exact module filter matched0 and is not credited.",
+    "unit_methods": 51,
+    "passed": true,
+    "executable_sha256": "ff5fe3f0b801ac0314c77928a3ded7cdb1e16cf1777597b9b58b079f242a37c8",
+    "executable_unchanged": true,
+    "raw_summary_sha256": "90d79aa9da1074171c2c06660fc5bbdda9bee511b8a15327fb7cbeae1c00a2c2",
+    "repair": "Preserve every repeated regular header through QPACK/HTTP header encoding and decoding. Canonical allowlist then requires exactly one Origin. Reject repeated pseudo-headers. Existing prepared185 tree preserved; new186 tree reproduced and verified."
+  },
+  "implementation_base_revision": "9146026a",
+  "implementation_commit_note": "Current source changes accompany this report. The source file/lock digests identify the implementation; runtime qualification remains incomplete.",
+  "initial_independent_http3_fixture": {
     "source_revision": "d6034cb7",
     "path": "crates/connect-server/tests/gate6_canonical_webtransport.rs",
     "methods": 3,
     "scope": "Signed HTTP3 auth/control/reconnect with native durable receipt parity for EdDSA/ES256, plus wrong/missing/duplicate Origin and wrong mount refusal/cleanup. Actual optimized build in progress; no runtime pass claimed.",
     "raw_directory": ".local/gate-6/webtransport/control002"
+  },
+  "store_runtime006": {
+    "passed": true,
+    "scope": "Actual Store schema111 metadata/authority/receipt methods; no physical WT media qualification.",
+    "source_lock_sha256": "808e1fc326f1fab0680276c9daf0c4ea3ee6ff829c376a08c2e3dc3106f8baee",
+    "executable_sha256": "a3d8c770ec46113c188cce5918a180b8b118d05a3d38c19bfaeda63f4040115b",
+    "cases": [
+      {
+        "name": "wt-selection",
+        "methods": 1,
+        "exit_code": 0,
+        "elapsed_seconds": 0.3803953751921654,
+        "passed": true,
+        "log_sha256": "708662b8d4c9d6fe9fc917443e6d703e16bafb0afa6582696aa18a0d57a3f99e"
+      },
+      {
+        "name": "native-wire",
+        "methods": 14,
+        "exit_code": 0,
+        "elapsed_seconds": 7.6965840419288725,
+        "passed": true,
+        "log_sha256": "5d129f76a8b74cb884dc64c5f1bc07e7ae88e8d810c3541dd7bfcb59f6d9fd18"
+      },
+      {
+        "name": "native-rejections",
+        "methods": 7,
+        "exit_code": 0,
+        "elapsed_seconds": 2.762832541950047,
+        "passed": true,
+        "log_sha256": "b5a9784061974a7bcec4e432e10a99ab70261964bf763420461a4aa1f0679c8f"
+      }
+    ],
+    "source_inputs_unchanged": true,
+    "executable_unchanged": true,
+    "distinct_methods": 21,
+    "duplicate_method": "The explicit WT selection case is also included in the14 native-wire methods; count21 distinct methods, not22.",
+    "raw_summary_sha256": "2188452224ff000c103ba087e14c45d3e190055b530fe707e30746f17c9912db"
+  },
+  "store_runtime004": {
+    "passed": false,
+    "finding": "Initial typed WT case was refused by the pre-existing protocol OfferIntent normalizer because it only accepted quic. No new WT pass was inferred; extend the closed canonical substrate allowlist and bind outgoing/reply substrate to actual held transport. store-runtime006 then passes21 distinct methods."
+  },
+  "schema007": {
+    "passed": true,
+    "exit_code": 0,
+    "elapsed_seconds": 64.12345008319244,
+    "methods": [
+      "gate6_backup_preserves_ids_audiences_unknown_effects_and_fences_live_claims",
+      "gate6_incompatible_state_refusal_preserves_files_and_requires_explicit_new_path",
+      "gate6_constraints_reject_rebinding_stale_epoch_cross_owner_and_false_completion",
+      "gate6_snapshot_digest_covers_new_private_and_effect_metadata"
+    ],
+    "scope": "All four actual schema safety methods under current schema111. Earlier version states are refused/preserved; no compatibility migration or media qualification.",
+    "source_inputs_unchanged": true,
+    "source_lock_sha256": "808e1fc326f1fab0680276c9daf0c4ea3ee6ff829c376a08c2e3dc3106f8baee",
+    "log_sha256": "4279f56ec875de8c6b702b342a4eed0a58f3837fa57cb5df7fec526d4591d41c",
+    "schema": 111
+  },
+  "media_typecheck003": {
+    "passed": false,
+    "exit_code": 130,
+    "disposition": "Superseded after actual Store failure required additional canonical substrate/held transport changes; deliberately interrupted, not credited. Final optimized actual HTTP3 runtime build is next."
   }
 }

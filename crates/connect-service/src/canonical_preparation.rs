@@ -53,7 +53,10 @@ impl Runtime {
             let Ok(preparation) = entry.preparation() else {
                 return;
             };
-            let Some(controller) = runtime.native.staged_controller(&id) else {
+            let Ok(native) = runtime.connection_native_adapter(&id) else {
+                return;
+            };
+            let Some(controller) = native.staged_controller(&id) else {
                 return;
             };
             let bindings = controller.active_bindings();

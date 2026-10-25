@@ -56,8 +56,7 @@ impl Runtime {
             {
                 Ok(Some(())) => true,
                 Ok(None) => self
-                    .native
-                    .observe_audio_audience_commit(connection, commit)
+                    .observe_native_audio_audience_commit(connection, commit)
                     .is_ok(),
                 Err(_) => false,
             };

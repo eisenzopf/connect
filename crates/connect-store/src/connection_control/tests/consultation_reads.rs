@@ -17,7 +17,11 @@ pub(super) fn ready_request(
 ) -> Arc<NativeMediaOrigin> {
     let proof = f.admit(&request);
     f.store
-        .prepare_native_offer_with_peer(&f.keys[actor], &proof)
+        .prepare_native_offer_with_peer(
+            &f.keys[actor],
+            &proof,
+            Some(connect_protocol::provisioning::EndpointTransport::Quic),
+        )
         .unwrap();
     let (lease, _) = f
         .store

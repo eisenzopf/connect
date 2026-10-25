@@ -12,7 +12,7 @@ use connect_store::{
     PrivateProviderContext, PrivateProviderMediaRead, SessionObservationActivity,
     SessionObservationSource,
 };
-use rvoip_core::{ids::ConnectionId, ConnectionAdapter};
+use rvoip_core::ids::ConnectionId;
 use std::sync::{
     atomic::{AtomicBool, Ordering},
     Arc, Weak,
@@ -48,12 +48,9 @@ impl SessionObservationActivity for Activity {
         // The adapter's bool also covers internal contention. Do not convert an
         // ambiguous check into permanent removal/cursor advancement. The owning
         // job explicitly closes before asynchronous provider cleanup.
-        if !runtime
-            .native
-            .is_connection_live(&ConnectionId::from_string(
-                self.entry.origin.runtime_connection_id().to_owned(),
-            ))
-        {
+        if !runtime.native_connection_live(&ConnectionId::from_string(
+            self.entry.origin.runtime_connection_id().to_owned(),
+        )) {
             return Err(Error::new(
                 "authority-busy",
                 "Provider native source is unavailable",

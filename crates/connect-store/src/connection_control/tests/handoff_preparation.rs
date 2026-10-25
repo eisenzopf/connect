@@ -29,7 +29,11 @@ fn handoff_preparation_uses_its_own_immutable_signed_offer_and_no_caller_operati
     let proof = f.admit(&r);
     let first = f
         .store
-        .prepare_native_offer_with_peer(&f.keys[0], &proof)
+        .prepare_native_offer_with_peer(
+            &f.keys[0],
+            &proof,
+            Some(connect_protocol::provisioning::EndpointTransport::Quic),
+        )
         .unwrap();
     assert!(first.effects.is_empty());
     let projection = f
@@ -41,7 +45,11 @@ fn handoff_preparation_uses_its_own_immutable_signed_offer_and_no_caller_operati
     assert_eq!(projection.endpoint_capabilities, vec!["audio"]);
     assert_eq!(
         f.store
-            .prepare_native_offer_with_peer(&f.keys[0], &proof)
+            .prepare_native_offer_with_peer(
+                &f.keys[0],
+                &proof,
+                Some(connect_protocol::provisioning::EndpointTransport::Quic)
+            )
             .unwrap(),
         first
     );
@@ -98,7 +106,13 @@ fn handoff_preparation_requires_named_current_target_permission_and_rejects_forg
                 &r,
                 &crate::AuthorityWait::new(std::time::Duration::from_secs(1)),
             )
-            .and_then(|proof| f.store.prepare_native_offer_with_peer(&f.keys[0], &proof));
+            .and_then(|proof| {
+                f.store.prepare_native_offer_with_peer(
+                    &f.keys[0],
+                    &proof,
+                    Some(connect_protocol::provisioning::EndpointTransport::Quic),
+                )
+            });
         assert!(
             result.is_err()
                 || result.unwrap().state == connect_protocol::transitions::OperationState::Failed,

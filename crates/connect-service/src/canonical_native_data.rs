@@ -53,6 +53,7 @@ impl Runtime {
         physical: &Physical,
         credential: &str,
     ) -> Result<ConnectionId> {
+        let native = self.native_adapter(physical.binding.transport())?;
         let authority = a
             .authority::<StoreInvocationAuthority>()
             .ok_or_else(Error::forbidden)?;
@@ -65,15 +66,13 @@ impl Runtime {
             .store
             .project_native_data_with_peer(credential, proof(a)?)?;
         let id = ConnectionId::from_string(data.source.connection.runtime_connection_id);
-        let bound = self
-            .native
+        let bound = native
             .physical_source(&id)
             .map_err(|_| Error::forbidden())?;
         if !Arc::ptr_eq(&bound, &physical.binding) {
             return Err(Error::forbidden());
         }
-        let controller = self
-            .native
+        let controller = native
             .media_controller(&id)
             .map_err(|_| Error::forbidden())?;
         let bindings = controller.active_bindings();
@@ -117,6 +116,13 @@ impl Runtime {
         credential: String,
         tx: tokio::sync::oneshot::Sender<Result<crate::canonical_native::Reply>>,
     ) {
+        let native = match self.native_adapter(physical.binding.transport()) {
+            Ok(native) => native,
+            Err(error) => {
+                let _ = tx.send(Err(error));
+                return;
+            }
+        };
         let store = &self.media.store;
         match proof(&a).and_then(|p| store.native_stream_record_with_peer(&credential, p)) {
             Ok(Some(record)) if record.state != OperationState::Accepted => {
@@ -181,7 +187,7 @@ impl Runtime {
             }
         };
         // One Core call only. Its success is queue admission, not a writer ACK.
-        let outcome = self.native.publish_data(&id, &a);
+        let outcome = native.publish_data(&id, &a);
         drop(invocation);
         if let Err(error) = outcome {
             tracing::debug!(?error, "Native data queue admission remains uncertain");

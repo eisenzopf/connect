@@ -128,7 +128,7 @@ pub(crate) fn apply(
     let accepted:Option<String>=c.query_row("SELECT cap.capabilities_json FROM session_participants sp JOIN session_presence_capabilities cap ON cap.session_id=sp.session_id AND cap.participant_id=sp.participant_id AND cap.membership_epoch=sp.membership_epoch WHERE sp.session_id=?1 AND sp.participant_id=?2 AND sp.membership_epoch=?3 AND sp.state='present'",params![r.intent.session_id,member.participant_id,member.membership_epoch],|row|row.get(0)).optional().map_err(|_|Error::storage())?;
     let accepted: Value = serde_json::from_str(&accepted.ok_or_else(Error::forbidden)?)
         .map_err(|_| Error::storage())?;
-    let endpoint:Option<(String,String)>=c.query_row("SELECT e.tenant_id,e.capabilities_json FROM endpoints e JOIN devices d ON d.id=e.device_id AND d.identity_id=e.identity_id AND d.tenant_id=e.tenant_id AND d.revoked=0 WHERE e.id=?1 AND e.identity_id=?2 AND e.transport='quic' AND e.verification_state='verified'",params![r.endpoint_id,actor.identity_id],|row|Ok((row.get(0)?,row.get(1)?))).optional().map_err(|_|Error::storage())?;
+    let endpoint:Option<(String,String)>=c.query_row("SELECT e.tenant_id,e.capabilities_json FROM endpoints e JOIN devices d ON d.id=e.device_id AND d.identity_id=e.identity_id AND d.tenant_id=e.tenant_id AND d.revoked=0 WHERE e.id=?1 AND e.identity_id=?2 AND e.transport IN ('quic','webtransport') AND e.verification_state='verified'",params![r.endpoint_id,actor.identity_id],|row|Ok((row.get(0)?,row.get(1)?))).optional().map_err(|_|Error::storage())?;
     let (tenant, endpoint_caps) = endpoint.ok_or_else(Error::forbidden)?;
     let endpoint_caps: Vec<String> =
         serde_json::from_str(&endpoint_caps).map_err(|_| Error::storage())?;

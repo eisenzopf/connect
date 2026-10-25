@@ -64,6 +64,16 @@
       "repository": "https://github.com/quinn-rs/quinn",
       "revision": "8192ed399a26a6e8f0aba43d10ec8badaa5b905e",
       "repository_path": "quinn-proto"
+    },
+    "web-transport-proto": {
+      "kind": "crate",
+      "version": "0.6.2",
+      "url": "https://static.crates.io/crates/web-transport-proto/web-transport-proto-0.6.2.crate",
+      "sha256": "1a81bcc79bf48ad0b819bfa51ec28524ee7c356056d43c316727d6b505dcc71e",
+      "license": "MIT OR Apache-2.0",
+      "repository": "https://github.com/moq-dev/web-transport",
+      "revision": "7dcaac76c40f5228f1e973cc4256818e0c887271",
+      "repository_path": "rs/web-transport-proto"
     }
   },
   "patches": [
@@ -1027,6 +1037,12 @@
       "path": "patches/rvoip/gate6-owned-input-mute-without-output-grant.patch",
       "sha256": "9c6f48b4b815beca597555c35d27d512aececbaec065e5d846ab41a1cd6f987e",
       "source": "G6-046 owned duplex input mute does not require an outbound media grant; preserve current binding/control/input permission and all Unmute/Pause/Resume checks. Model regression preserves port IDs, rejects reopening without output permission and rejects missing control. Trace-only exact guarded SIP/Core source admission fields support unresolved private quarantine failure diagnosis; no authorization fallback."
+    },
+    {
+      "path": "patches/web-transport-proto/preserve-repeated-origin-headers.patch",
+      "sha256": "2ac5629488c239cbf7e507e8924768cd784103e29d43979bb5ada953b0eb3ca1",
+      "target": "web-transport-proto",
+      "source": "Preserve repeated HTTP3 regular headers through QPACK encoding and decoding so canonical exact Origin validation can reject multiple Origins. Refuse duplicate pseudo-headers instead of last-wins normalization. Round-trip and malformed pseudo-header regressions."
     }
   ]
 }

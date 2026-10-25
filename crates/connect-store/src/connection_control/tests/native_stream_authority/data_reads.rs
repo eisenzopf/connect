@@ -26,7 +26,11 @@ fn fixture(actor: usize, receive: bool) -> Data {
     offer.offer = json!({"substrate":"quic","capabilities":{"data_protocols":["json"],"max_streams_per_connection":8,"identity_assurance_offered":"identified"},"streams_offered":[{"id":"application-in","kind":"data","direction":"recvonly","codec_preferences":["json"]}]});
     let proof = f.admit(&target);
     f.store
-        .prepare_native_offer_with_peer(&f.keys[actor], &proof)
+        .prepare_native_offer_with_peer(
+            &f.keys[actor],
+            &proof,
+            Some(connect_protocol::provisioning::EndpointTransport::Quic),
+        )
         .unwrap();
     let (lease, _) = f
         .store

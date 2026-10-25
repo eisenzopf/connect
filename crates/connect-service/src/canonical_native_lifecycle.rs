@@ -131,7 +131,7 @@ impl Runtime {
             .entry(id)
             .map_err(|error| crate::canonical_native::registration_error(error.into()))?;
         let registration = self
-            .native
+            .connection_native_adapter(id)?
             .native_lifecycle_registration(
                 id,
                 a,

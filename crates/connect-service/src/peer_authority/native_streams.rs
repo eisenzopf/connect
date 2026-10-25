@@ -5,9 +5,14 @@ use rvoip_core::stream_lifecycle::{MediaFormat, Medium, StreamDirection};
 use rvoip_uctp::v2::{auth_dispatch::AuthorizedEnvelope, native_negotiation::NativeOfferPlan};
 use serde_json::{json, Value};
 
+pub(super) struct Planned {
+    plan: NativeOfferPlan,
+    substrate: &'static str,
+}
 pub(crate) fn bind_plan(
     a: &AuthorizedEnvelope,
     plan: &NativeOfferPlan,
+    transport: rvoip_core::Transport,
 ) -> connect_protocol::Result<()> {
     let authority = a
         .authority::<StoreInvocationAuthority>()
@@ -34,7 +39,11 @@ pub(crate) fn bind_plan(
             "Native stream negotiation already planned",
         ));
     }
-    *saved = Some(plan.clone());
+    let endpoint = crate::canonical_runtime::endpoint_transport(transport)?;
+    *saved = Some(Planned {
+        plan: plan.clone(),
+        substrate: endpoint.as_str(),
+    });
     Ok(())
 }
 pub(crate) fn codec(format: &MediaFormat) -> Result<Value, DispatchError> {
@@ -91,12 +100,13 @@ impl StorePeerAuthority {
             .native_stream_plan
             .try_lock()
             .map_err(|_| DispatchError::Authority)?;
-        let plan = plan.as_ref().ok_or(DispatchError::Authority)?;
+        let saved = plan.as_ref().ok_or(DispatchError::Authority)?;
+        let plan = &saved.plan;
         let p = &frame.original()["payload"];
         let setup = &p["substrate_setup"];
         if frame.kind() != "connection.offer"
             || frame.scope(Scope::Reply).is_some()
-            || p["substrate"] != "quic"
+            || p["substrate"].as_str() != Some(saved.substrate)
             || p["by_participant"].as_str() != grant.proof.native_member().map(|v| v.0)
             || setup["kind"] != "native-prepared/1"
             || setup["offer_id"] != original.id()

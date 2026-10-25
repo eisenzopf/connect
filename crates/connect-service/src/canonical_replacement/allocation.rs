@@ -9,7 +9,6 @@ use rvoip_core::{
     ids::IdentityId,
     orchestrator::peer_native::{PeerNativeAuthority, PeerNativeAuthorityLease},
     relationships::{EndpointBinding, IdentityBinding},
-    Transport,
 };
 use rvoip_uctp::v2::auth_dispatch::AuthorizedEnvelope;
 use std::sync::Weak;
@@ -116,6 +115,15 @@ impl Runtime {
             })
         })
         .await?;
+        if physical.binding.media().is_none()
+            || crate::canonical_runtime::core_transport(&read.source().context().target_transport)?
+                != physical.binding.transport()
+        {
+            return Err(Error::new(
+                "unsupported-media-profile",
+                "Replacement target transport differs from the negotiated physical media transport",
+            ));
+        }
         // Only the preflight read is retried. Durable begin and Core allocation
         // each execute once, even when recording or the response is lost.
         let (attempt, read) = {
@@ -145,7 +153,7 @@ impl Runtime {
             identity.clone(),
             EndpointId::from_string(context.target_endpoint_id.clone()),
             DeviceId::from_string(context.target_device_id.clone()),
-            Transport::Quic,
+            crate::canonical_runtime::core_transport(&context.target_transport)?,
             context.target_address.clone(),
         )
         .map_err(|_| Error::forbidden())?;
@@ -181,9 +189,7 @@ impl Runtime {
             .and_then(|prepared|prepared.retain(a.principal(),&target).map_err(|_|rvoip_core::orchestrator::participant_control::ParticipantControlError::Authority));
         let valid = allocated.is_ok()
             && target._read.current()
-            && self
-                .native
-                .is_connection_live(&saved.handle.intent().replacement)
+            && self.native_connection_live(&saved.handle.intent().replacement)
             && self
                 .core
                 .connection_principal(&saved.handle.intent().replacement)

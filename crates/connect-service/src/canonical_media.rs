@@ -301,7 +301,7 @@ impl Connection {
             binding.clone(),
             EndpointId::from_string(view.connection.endpoint_id.clone()),
             DeviceId::from_string(view.device_id.clone()),
-            Transport::Quic,
+            crate::canonical_runtime::core_transport(&view.endpoint_transport).map_err(denied)?,
             view.endpoint_address.clone(),
         )
         .map_err(denied)?;

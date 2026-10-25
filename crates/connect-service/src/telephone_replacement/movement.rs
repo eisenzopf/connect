@@ -115,10 +115,9 @@ impl Runtime {
         for id in handle.audience().commit().connections() {
             if id != &outcome.replaced
                 && id != &outcome.admitted
-                && self.native.is_connection_live(id)
+                && self.native_connection_live(id)
                 && self
-                    .native
-                    .observe_audio_audience_commit(id, handle.audience().commit())
+                    .observe_native_audio_audience_commit(id, handle.audience().commit())
                     .is_err()
             {
                 confirmed = false;

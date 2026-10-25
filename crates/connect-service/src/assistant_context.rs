@@ -2,7 +2,7 @@
 use crate::{canonical_media::Connection, canonical_runtime::Runtime, Service};
 use connect_protocol::{Error, Result};
 use connect_store::{NativeAssistantContextRead, Store};
-use rvoip_core::{ids::ConnectionId, ConnectionAdapter};
+use rvoip_core::ids::ConnectionId;
 use std::sync::{Arc, Weak};
 
 /// This bounded reader owns current Store authority and checks the actual
@@ -119,11 +119,9 @@ fn source_current(
         return false;
     };
     if runtime.stop.is_cancelled()
-        || !runtime
-            .native
-            .is_connection_live(&ConnectionId::from_string(
-                entry.origin.runtime_connection_id().to_owned(),
-            ))
+        || !runtime.native_connection_live(&ConnectionId::from_string(
+            entry.origin.runtime_connection_id().to_owned(),
+        ))
     {
         return false;
     }

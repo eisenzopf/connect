@@ -187,7 +187,7 @@ impl Runtime {
             .entry(id)
             .map_err(|error| crate::canonical_native::registration_error(error.into()))?;
         let registration = self
-            .native
+            .connection_native_adapter(id)?
             .native_dtmf_registration(id, a)
             .map_err(crate::canonical_native::registration_error)?;
         self.install_native_dtmf(id, entry, registration, physical)
@@ -266,6 +266,13 @@ impl Runtime {
         credential: String,
         tx: tokio::sync::oneshot::Sender<Result<crate::canonical_native::Reply>>,
     ) {
+        let native = match self.native_adapter(physical.binding.transport()) {
+            Ok(native) => native,
+            Err(error) => {
+                let _ = tx.send(Err(error));
+                return;
+            }
+        };
         let store = &self.media.store;
         match proof(&a).and_then(|p| store.native_stream_record_with_peer(&credential, p)) {
             Ok(Some(record)) if record.state != OperationState::Accepted => {
@@ -289,8 +296,7 @@ impl Runtime {
             }
             let projected = store.project_native_stream_with_peer(&credential, proof(&a)?)?;
             let id = ConnectionId::from_string(projected.connection.runtime_connection_id);
-            let actual = self
-                .native
+            let actual = native
                 .physical_source(&id)
                 .map_err(|_| Error::forbidden())?;
             if !Arc::ptr_eq(&actual, &physical.binding) {
@@ -466,7 +472,7 @@ impl Runtime {
         };
         let observed = match self
             .native_preflight(&a, preparation_deadline, || {
-                self.native
+                native
                     .receive_managed_native_dtmf(&self.core, &id, &a, &capture, &capture)
                     .map_err(|error| {
                         tracing::debug!(

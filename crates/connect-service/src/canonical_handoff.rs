@@ -345,8 +345,7 @@ impl Runtime {
         for id in handle.audience().commit().connections() {
             if !outcome.retiring.contains(id)
                 && self
-                    .native
-                    .observe_audio_audience_commit(id, handle.audience().commit())
+                    .observe_native_audio_audience_commit(id, handle.audience().commit())
                     .is_err()
             {
                 carry_failed = true;

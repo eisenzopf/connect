@@ -17,7 +17,6 @@ use rvoip_core::{
     participant_transitions::{ParticipantChange, ParticipantMutation},
     staged_streams::{MediaOwner, StreamController},
     stream_lifecycle::{EndpointMediaCapabilities, MediaCapability, MediaFormat, Medium},
-    Transport,
 };
 use rvoip_uctp::{
     staged_media::StagedRtpScope,
@@ -171,24 +170,33 @@ impl NativeOfferRuntimeObservation for Ready {
     }
 }
 pub(crate) struct Absent {
-    pub(crate) native: Arc<rvoip_uctp::v2::native::CanonicalNativeAdapter>,
+    pub(crate) natives: [Arc<rvoip_uctp::v2::native::CanonicalNativeAdapter>; 2],
     pub(crate) id: ConnectionId,
     pub(crate) generation: u64,
 }
-pub(crate) struct Recovery(pub(crate) Arc<rvoip_uctp::v2::native::CanonicalNativeAdapter>);
+pub(crate) struct Recovery(pub(crate) [Arc<rvoip_uctp::v2::native::CanonicalNativeAdapter>; 2]);
 impl connect_store::NativeOfferRecoveryObservation for Recovery {
     fn observe_retired(&self, id: &str, generation: u64) -> Result<NativeOfferObservation> {
-        let observation = Absent {
-            native: self.0.clone(),
-            id: ConnectionId::from_string(id.to_owned()),
+        let id = ConnectionId::from_string(id.to_owned());
+        if self.0.iter().any(|native| native.is_connection_live(&id)) {
+            return Err(Error::new(
+                "reconciliation-required",
+                "Native route cleanup is not confirmed",
+            ));
+        }
+        Ok(NativeOfferObservation::Retired {
+            runtime_connection_id: id.as_str().into(),
             generation,
-        };
-        observation.observe()
+        })
     }
 }
 impl NativeOfferRuntimeObservation for Absent {
     fn observe(&self) -> Result<NativeOfferObservation> {
-        if self.native.is_connection_live(&self.id) {
+        if self
+            .natives
+            .iter()
+            .any(|native| native.is_connection_live(&self.id))
+        {
             return Err(Error::new(
                 "reconciliation-required",
                 "Native route cleanup is not confirmed",
@@ -237,6 +245,13 @@ impl Runtime {
         credential: String,
         tx: tokio::sync::oneshot::Sender<Result<Reply>>,
     ) {
+        let native = match self.native_adapter(physical.binding.transport()) {
+            Ok(native) => native,
+            Err(error) => {
+                let _ = tx.send(Err(error));
+                return;
+            }
+        };
         let mut lease = None;
         let mut stage = "source";
         let outcome = self
@@ -264,7 +279,7 @@ impl Runtime {
                 tokio::time::sleep(Duration::from_millis(100)).await;
                 if self.stop.is_cancelled()
                     || physical.lifetime.is_cancelled()
-                    || !self.native.is_connection_live(&id)
+                    || !native.is_connection_live(&id)
                 {
                     break;
                 }
@@ -285,7 +300,7 @@ impl Runtime {
         // Actual end is scoped to this Core route. An unconfirmed drain keeps
         // custody/quota; no other Connection or the physical peer is closed.
         loop {
-            if self.native.is_connection_live(&id) {
+            if native.is_connection_live(&id) {
                 let _ = self
                     .core
                     .end_connection(id.clone(), rvoip_core::adapter::EndReason::Normal)
@@ -297,12 +312,12 @@ impl Runtime {
             // The tracked native worker awaits each bounded Store attempt and
             // retains its exact opaque lease until actual cleanup is settled.
             let store = self.media.store.clone();
-            let native = self.native.clone();
+            let natives = self.native_adapters();
             let retired = id.clone();
             let attempt = lease.clone();
             let settled = tokio::task::spawn_blocking(move || {
                 let absent = Absent {
-                    native,
+                    natives,
                     id: retired,
                     generation: attempt.generation(),
                 };
@@ -397,22 +412,35 @@ impl Runtime {
             .ok_or_else(Error::forbidden)?;
         physical.validate(&a, authority)?;
 
+        let transport = physical.binding.transport();
+        let native = self.native_adapter(transport)?;
+        let endpoint_transport = crate::canonical_runtime::endpoint_transport(transport)?;
         *stage = "prepare-status";
-        let record = self
-            .media
-            .store
-            .prepare_native_offer_with_peer(credential, proof(&a)?)?;
+        let record = self.media.store.prepare_native_offer_with_peer(
+            credential,
+            proof(&a)?,
+            physical.binding.media().map(|_| endpoint_transport.clone()),
+        )?;
         if record.state != OperationState::Accepted {
             return Ok(Reply {
                 record,
                 answered: false,
             });
         }
+        if physical.binding.media().is_none() {
+            return Err(Error::new(
+                "unsupported-media-profile",
+                "This physical transport negotiated canonical control only",
+            ));
+        }
         *stage = "profile";
         let projection = self
             .media
             .store
             .project_connection_with_peer(credential, proof(&a)?)?;
+        if projection.endpoint_transport != endpoint_transport {
+            return Err(Error::forbidden());
+        }
         let base = base_profile()?;
         if crate::canonical_media::offer_plan(&projection, &base, a.principal()).is_err() {
             let record = self
@@ -435,10 +463,11 @@ impl Runtime {
             .begin_native_offer_with_peer(credential, proof(&a)?)?
         else {
             return Ok(Reply {
-                record: self
-                    .media
-                    .store
-                    .prepare_native_offer_with_peer(credential, proof(&a)?)?,
+                record: self.media.store.prepare_native_offer_with_peer(
+                    credential,
+                    proof(&a)?,
+                    physical.binding.media().map(|_| endpoint_transport.clone()),
+                )?,
                 answered: false,
             });
         };
@@ -492,7 +521,7 @@ impl Runtime {
                 PeerNativeIntent {
                     session: sid.clone(),
                     connection: id.clone(),
-                    transport: Transport::Quic,
+                    transport,
                 },
                 &view,
                 physical.binding.clone(),
@@ -527,8 +556,7 @@ impl Runtime {
             })
             .await?,
         );
-        let controller = self
-            .native
+        let controller = native
             .configure_negotiated_media_with_held(
                 &id,
                 &a,
@@ -541,14 +569,10 @@ impl Runtime {
                 invocation.as_ref(),
             )
             .map_err(denied)?;
-        let activation = self
-            .native
-            .native_media_activation(&id, &a)
-            .map_err(denied)?;
+        let activation = native.native_media_activation(&id, &a).map_err(denied)?;
         entry.set_activation(activation.clone()).map_err(denied)?;
         *stage = "negotiate";
-        let outcome = self
-            .native
+        let outcome = native
             .negotiate_native_offer(&id, a.clone(), invocation.clone(), deadline)
             .await
             .map_err(|error| {
@@ -568,7 +592,7 @@ impl Runtime {
         };
         if isolated {
             *stage = "isolated-mute";
-            self.native
+            native
                 .mute_native_audio_for_private_admission(&id, &a, invocation.clone(), deadline)
                 .await
                 .map_err(denied)?;

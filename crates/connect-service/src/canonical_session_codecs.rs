@@ -229,7 +229,7 @@ async fn execute(
                 .clone();
             let id = origin.request_scope(0).origin.media.connection.clone();
             let entry = host.media.entry(&id).ok()?;
-            Some((host.native.clone(), origin, id, entry))
+            Some((host.connection_native_adapter(&id).ok()?, origin, id, entry))
         });
         if let Some((native, origin, id, entry)) = parts {
             match native.plan_native_session_codecs(&id, &origin, &target.codec_preferences) {

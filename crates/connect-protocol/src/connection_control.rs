@@ -42,7 +42,10 @@ impl OfferIntent {
         {
             return Err(invalid());
         }
-        if self.offer.get("substrate").and_then(Value::as_str) != Some("quic") {
+        if !matches!(
+            self.offer.get("substrate").and_then(Value::as_str),
+            Some("quic" | "webtransport")
+        ) {
             return Err(Error::new(
                 "unsupported-media-profile",
                 "Native Connection substrate is unavailable",

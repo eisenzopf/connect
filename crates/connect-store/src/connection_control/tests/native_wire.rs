@@ -44,7 +44,11 @@ fn native_effect_correlations_preserve_owner_scoped_offer_and_stream_operation_i
         let connection = offer.connection_id.clone();
         let proof = f.admit(&request);
         f.store
-            .prepare_native_offer_with_peer(&f.keys[actor], &proof)
+            .prepare_native_offer_with_peer(
+                &f.keys[actor],
+                &proof,
+                Some(connect_protocol::provisioning::EndpointTransport::Quic),
+            )
             .unwrap();
         let (lease, _) = f
             .store
@@ -102,7 +106,11 @@ fn native_wire_acceptance_is_separate_from_private_completion_and_can_be_read_un
     let (_, proof) = prepared(&f, 600);
     assert_eq!(
         f.store
-            .select_native_endpoint_with_peer(&f.keys[0], &proof)
+            .select_native_endpoint_with_peer(
+                &f.keys[0],
+                &proof,
+                connect_protocol::provisioning::EndpointTransport::Quic
+            )
             .unwrap(),
         f.endpoints[0]
     );
@@ -492,21 +500,28 @@ fn native_wire_concurrent_claims_issue_one_attempt_and_one_stable_effect() {
 }
 
 fn extra_endpoint(f: &Fixture) -> String {
+    extra_endpoint_for_transport(f, EndpointTransport::Quic)
+}
+fn extra_endpoint_for_transport(f: &Fixture, transport: EndpointTransport) -> String {
     let identity = f.store.revalidate(&f.keys[0]).unwrap().identity_id;
     let ProvisioningOutcome::Endpoint { endpoint_id, .. } = f
         .store
         .execute_provisioning(
             &f.admin,
             ProvisioningCommand::Endpoint {
-                operation_id: "extra-native-endpoint".into(),
+                operation_id: format!("extra-{}-endpoint", transport.as_str()),
                 identity_id: identity,
                 device: DeviceSpec {
                     id: "device-0".into(),
                     kind: "desktop".into(),
                     platform: "isolated-store-fixture".into(),
                 },
-                transport: EndpointTransport::Quic,
-                address: "quic://localhost:4451".into(),
+                address: if transport == EndpointTransport::Quic {
+                    "quic://localhost:4451".into()
+                } else {
+                    "https://localhost:4451/connect".into()
+                },
+                transport,
                 capabilities: vec!["audio".into()],
                 secret_ref: None,
             },
@@ -550,7 +565,11 @@ fn native_endpoint_selection_refuses_missing_and_ambiguous_profiles_without_crea
         let proof = f.admit(&request);
         assert_eq!(
             f.store
-                .select_native_endpoint_with_peer(&f.keys[0], &proof)
+                .select_native_endpoint_with_peer(
+                    &f.keys[0],
+                    &proof,
+                    connect_protocol::provisioning::EndpointTransport::Quic
+                )
                 .unwrap_err()
                 .code,
             if ambiguous { "conflict" } else { "not-ready" }
@@ -567,7 +586,11 @@ fn native_endpoint_replay_preserves_saved_selection_instead_of_switching_to_anot
     let proof = f.admit(&request);
     assert_eq!(
         f.store
-            .select_native_endpoint_with_peer(&f.keys[0], &proof)
+            .select_native_endpoint_with_peer(
+                &f.keys[0],
+                &proof,
+                connect_protocol::provisioning::EndpointTransport::Quic
+            )
             .unwrap(),
         f.endpoints[0]
     );
@@ -594,7 +617,11 @@ fn native_endpoint_replay_preserves_saved_selection_instead_of_switching_to_anot
     let proof = f.admit(&request);
     assert_eq!(
         f.store
-            .select_native_endpoint_with_peer(&f.keys[0], &proof)
+            .select_native_endpoint_with_peer(
+                &f.keys[0],
+                &proof,
+                connect_protocol::provisioning::EndpointTransport::Quic
+            )
             .unwrap(),
         f.endpoints[0]
     );
@@ -901,4 +928,148 @@ fn controlled_native_successor_cleanup_rejects_wrong_observation_and_rolls_back_
         0
     );
     assert_eq!(snapshot(), after);
+}
+
+#[test]
+fn native_transport_selection_preserves_verified_endpoint_and_refuses_cross_transport_replay() {
+    let f = Fixture::new();
+    let mut request = f.native_request(600);
+    let crate::PeerCommand::NativeConnectionOffer(intent) = &mut request.command else {
+        panic!()
+    };
+    intent.offer["substrate"] = json!("webtransport");
+    let wt = extra_endpoint_for_transport(&f, EndpointTransport::Webtransport);
+    let proof = f.admit(&request);
+    assert_eq!(
+        f.store
+            .select_native_endpoint_with_peer(&f.keys[0], &proof, EndpointTransport::Webtransport)
+            .unwrap_err()
+            .code,
+        "not-ready"
+    );
+    assert_eq!(
+        f.store
+            .select_native_endpoint_with_peer(&f.keys[0], &proof, EndpointTransport::Quic)
+            .unwrap(),
+        f.endpoints[0]
+    );
+    assert_eq!(f.count("connections"), 0);
+    drop(proof);
+    f.store
+        .execute_provisioning(
+            &f.admin,
+            ProvisioningCommand::VerifyEndpoint {
+                operation_id: "verify-webtransport".into(),
+                endpoint_id: wt.clone(),
+                expected_revision: 0,
+                evidence_ref: "controlled-store-fixture-not-physical-media".into(),
+            },
+        )
+        .unwrap();
+    let proof = f.admit(&request);
+    assert_eq!(
+        f.store
+            .select_native_endpoint_with_peer(&f.keys[0], &proof, EndpointTransport::Webtransport)
+            .unwrap(),
+        wt
+    );
+    assert_eq!(
+        f.store
+            .select_native_endpoint_with_peer(&f.keys[0], &proof, EndpointTransport::Quic)
+            .unwrap(),
+        f.endpoints[0]
+    );
+    assert_eq!(
+        f.store
+            .select_native_endpoint_with_peer(&f.keys[0], &proof, EndpointTransport::Webrtc)
+            .unwrap_err()
+            .code,
+        "forbidden"
+    );
+    assert_eq!(
+        f.store
+            .prepare_native_offer_with_peer(&f.keys[0], &proof, None)
+            .unwrap_err()
+            .code,
+        "unsupported-media-profile"
+    );
+    assert_eq!(f.count("connections"), 0);
+    assert_eq!(
+        f.store
+            .prepare_native_offer_with_peer(&f.keys[0], &proof, Some(EndpointTransport::Quic))
+            .unwrap_err()
+            .code,
+        "unsupported-media-profile"
+    );
+    assert_eq!(f.count("connections"), 0);
+    let record = f
+        .store
+        .prepare_native_offer_with_peer(&f.keys[0], &proof, Some(EndpointTransport::Webtransport))
+        .unwrap();
+    assert_eq!(record.state, OperationState::Accepted);
+    assert_eq!(
+        f.store
+            .prepare_native_offer_with_peer(&f.keys[0], &proof, None)
+            .unwrap(),
+        record
+    );
+    let projected = f
+        .store
+        .project_connection_with_peer(&f.keys[0], &proof)
+        .unwrap();
+    assert_eq!(projected.connection.endpoint_id, wt);
+    assert_eq!(
+        projected.endpoint_transport,
+        EndpointTransport::Webtransport
+    );
+    assert_eq!(projected.endpoint_address, "https://localhost:4451/connect");
+    assert_eq!(
+        f.store
+            .select_native_endpoint_with_peer(&f.keys[0], &proof, EndpointTransport::Quic)
+            .unwrap_err()
+            .code,
+        "forbidden"
+    );
+    assert_eq!(
+        f.store
+            .prepare_native_offer_with_peer(
+                &f.keys[0],
+                &proof,
+                Some(EndpointTransport::Webtransport)
+            )
+            .unwrap(),
+        record
+    );
+    assert_eq!(f.count("connections"), 1);
+    assert_eq!(f.count("native_offer_operations"), 1);
+    assert_eq!(f.count("operation_effects"), 0);
+    drop(proof);
+    f.store
+        .execute_provisioning(
+            &f.admin,
+            ProvisioningCommand::RevokeEndpoint {
+                operation_id: "revoke-webtransport".into(),
+                endpoint_id: wt,
+                expected_revision: 1,
+            },
+        )
+        .unwrap();
+    let proof = f.admit(&request);
+    assert_eq!(
+        f.store
+            .project_connection_with_peer(&f.keys[0], &proof)
+            .err()
+            .unwrap()
+            .code,
+        "forbidden"
+    );
+    assert_eq!(
+        f.store
+            .select_native_endpoint_with_peer(&f.keys[0], &proof, EndpointTransport::Webtransport)
+            .unwrap_err()
+            .code,
+        "forbidden"
+    );
+    assert_eq!(f.count("connections"), 1);
+    assert_eq!(f.count("operation_effects"), 0);
 }

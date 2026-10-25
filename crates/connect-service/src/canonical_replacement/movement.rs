@@ -129,16 +129,15 @@ impl Runtime {
         let mut confirmed = true;
         for id in handle.audience().commit().connections() {
             if id != &outcome.replaced
-                && self.native.is_connection_live(id)
+                && self.native_connection_live(id)
                 && self
-                    .native
-                    .observe_audio_audience_commit(id, handle.audience().commit())
+                    .observe_native_audio_audience_commit(id, handle.audience().commit())
                     .is_err()
             {
                 confirmed = false;
             }
         }
-        if !confirmed || !self.native.is_connection_live(&outcome.admitted) {
+        if !confirmed || !self.native_connection_live(&outcome.admitted) {
             drop(_roles);
             self.retire_moved_replacement(origin).await;
             return Err(Error::new(
@@ -178,7 +177,7 @@ impl Runtime {
         let id = ConnectionId::from_string(origin.runtime_connection_id());
         loop {
             tokio::time::sleep(Duration::from_millis(100)).await;
-            if self.stop.is_cancelled() || !self.native.is_connection_live(&id) {
+            if self.stop.is_cancelled() || !self.native_connection_live(&id) {
                 break;
             }
             let Some(current) = self.media.origin(&id) else {
@@ -197,7 +196,7 @@ impl Runtime {
     async fn retire_moved_replacement(&self, origin: Arc<connect_store::NativeMediaOrigin>) {
         let id = ConnectionId::from_string(origin.runtime_connection_id());
         loop {
-            if self.native.is_connection_live(&id) {
+            if self.native_connection_live(&id) {
                 let _ = self
                     .core
                     .end_connection(id.clone(), EndReason::Normal)
@@ -206,7 +205,7 @@ impl Runtime {
             let store = self.media.store.clone();
             let origin = origin.clone();
             let absent = crate::canonical_native::Absent {
-                native: self.native.clone(),
+                natives: self.native_adapters(),
                 id: id.clone(),
                 generation: origin.generation(),
             };

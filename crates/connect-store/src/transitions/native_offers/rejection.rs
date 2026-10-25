@@ -97,6 +97,7 @@ impl Store {
         &self,
         credential: &str,
         proof: &PeerAuthorityGuard,
+        transport: Option<connect_protocol::provisioning::EndpointTransport>,
     ) -> Result<OperationRecord> {
         let wire = intent(proof)?;
         let preparation = connect_protocol::connection_control::PrepareRequest::new(
@@ -112,7 +113,21 @@ impl Store {
         if exists {
             return self.accept_native_offer_with_peer(credential, proof);
         }
-        let endpoint = self.select_native_endpoint_with_peer(credential, proof)?;
+        // A control-only peer may inspect an existing immutable receipt. It
+        // cannot create a new media slot or manufacture negotiated datagrams.
+        let transport = transport.ok_or_else(|| {
+            Error::new(
+                "unsupported-media-profile",
+                "This physical transport negotiated canonical control only",
+            )
+        })?;
+        if wire.offer["substrate"].as_str() != Some(transport.as_str()) {
+            return Err(Error::new(
+                "unsupported-media-profile",
+                "Offer substrate differs from the negotiated physical transport",
+            ));
+        }
+        let endpoint = self.select_native_endpoint_with_peer(credential, proof, transport)?;
         let local = self.prepare_connection_with_peer(credential, wire.clone(), endpoint, proof);
         if let Err(problem) = local {
             // A storage/authority failure may leave no retained business receipt.

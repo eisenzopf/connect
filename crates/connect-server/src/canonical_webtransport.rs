@@ -72,7 +72,11 @@ impl CanonicalWebTransportConfig {
         );
         if let Some(value) = &self.advertised_url {
             ensure!(
-                value.len() <= 2048 && value.is_ascii(),
+                value.len() <= 2048
+                    && value.is_ascii()
+                    && !value
+                        .bytes()
+                        .any(|b| b.is_ascii_control() || b.is_ascii_whitespace()),
                 "Invalid advertised WebTransport URL"
             );
             let url = Url::parse(value)?;
@@ -108,5 +112,108 @@ impl CanonicalWebTransportConfig {
         self.advertised_url
             .clone()
             .unwrap_or_else(|| format!("https://localhost:{}{}", address.port(), self.mount_path))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    fn config() -> CanonicalWebTransportConfig {
+        CanonicalWebTransportConfig {
+            mount_path: "/connect".into(),
+            allowed_origins: vec!["https://browser.fixture.invalid".into()],
+            advertised_url: Some("https://server.fixture.invalid/connect".into()),
+        }
+    }
+    #[test]
+    fn exact_origins_mount_and_remote_contact_are_required_before_startup() {
+        let good = config();
+        good.validate(NativeNetworkProfile::Remote).unwrap();
+        assert_eq!(
+            good.contact("127.0.0.1:1234".parse().unwrap()),
+            "https://server.fixture.invalid/connect"
+        );
+        let mut value = config();
+        value.advertised_url = None;
+        assert!(value.validate(NativeNetworkProfile::Remote).is_err());
+        value.validate(NativeNetworkProfile::Local).unwrap();
+        for path in [
+            "",
+            "connect",
+            "/../connect",
+            "/a/./connect",
+            "//connect",
+            "/connect?x=1",
+            "/%63onnect",
+        ] {
+            let mut value = config();
+            value.mount_path = path.into();
+            assert!(
+                value.validate(NativeNetworkProfile::Remote).is_err(),
+                "accepted mount {path:?}"
+            );
+        }
+        for origin in [
+            "null",
+            "*",
+            "https://*.fixture.invalid",
+            "https://browser.fixture.invalid/",
+            "https://browser.fixture.invalid/path",
+            "https://user@browser.fixture.invalid",
+            "https://browser.fixture.invalid?x=1",
+            "https://browser.fixture.invalid#fragment",
+            "https://browser.fixture.invalid\n",
+            "http://browser.fixture.invalid",
+        ] {
+            let mut value = config();
+            value.allowed_origins = vec![origin.into()];
+            assert!(
+                value.validate(NativeNetworkProfile::Remote).is_err(),
+                "accepted origin {origin:?}"
+            );
+        }
+        for origins in [
+            vec![],
+            vec![good.allowed_origins[0].clone(); 2],
+            vec![good.allowed_origins[0].clone(); 33],
+        ] {
+            let mut value = config();
+            value.allowed_origins = origins;
+            assert!(value.validate(NativeNetworkProfile::Remote).is_err());
+        }
+        for origin in [
+            "http://localhost:8080",
+            "http://127.0.0.1:8080",
+            "http://[::1]:8080",
+        ] {
+            let mut value = config();
+            value.allowed_origins = vec![origin.into()];
+            value.validate(NativeNetworkProfile::Local).unwrap();
+            assert!(value.validate(NativeNetworkProfile::Remote).is_err());
+        }
+    }
+    #[test]
+    fn advertised_contact_refuses_parser_normalization_of_whitespace_and_controls() {
+        for url in [
+            " https://server.fixture.invalid/connect",
+            "https://server.fixture.invalid/connect ",
+            "https://server.fixture.invalid/connect\n",
+            "https://ser\tver.fixture.invalid/connect",
+            "https://server.fixture.invalid/co\rnnect",
+            "https://user:secret@server.fixture.invalid/connect",
+            "http://server.fixture.invalid/connect",
+            "https://server.fixture.invalid/wrong",
+            "https://server.fixture.invalid/connect?x=1",
+            "https://server.fixture.invalid/connect#fragment",
+            "https://server.fixture.invalid:0/connect",
+            "https://0.0.0.0/connect",
+        ] {
+            let mut value = config();
+            value.advertised_url = Some(url.into());
+            assert!(
+                value.validate(NativeNetworkProfile::Remote).is_err(),
+                "accepted contact {url:?}"
+            );
+        }
     }
 }

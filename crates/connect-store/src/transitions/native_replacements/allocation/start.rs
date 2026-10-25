@@ -153,6 +153,7 @@ fn projection(
             .into(),
         device_id: ctx.target_device_id.clone(),
         endpoint_address: ctx.target_address.clone(),
+        endpoint_transport: ctx.target_transport.clone(),
         endpoint_capabilities: ctx
             .target_capabilities
             .iter()

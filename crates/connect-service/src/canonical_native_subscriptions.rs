@@ -60,13 +60,16 @@ impl Runtime {
         result: &rvoip_uctp::v2::native::RefreshedNativeMedia,
     ) -> Result<(), DispatchError> {
         let entry = self.media.entry(id).map_err(|_| DispatchError::Authority)?;
-        let origin = result.request_origin(&self.native)?;
+        let native = self
+            .connection_native_adapter(id)
+            .map_err(|_| DispatchError::Authority)?;
+        let origin = result.request_origin(&native)?;
         self.codec_origins
             .lock()
             .map_err(|_| DispatchError::Capacity)?
             .insert(entry.origin.connection_id().into(), origin);
         result.enable_subscriptions(
-            &self.native,
+            &native,
             &self.core,
             Arc::new(Policy {
                 runtime: Arc::downgrade(self),
@@ -86,7 +89,7 @@ impl Runtime {
             .entry(id)
             .map_err(|error| crate::canonical_native::registration_error(error.into()))?;
         let origin = self
-            .native
+            .connection_native_adapter(id)?
             .native_request_origin(id, a)
             .map_err(crate::canonical_native::registration_error)?;
         self.codec_origins
@@ -100,7 +103,7 @@ impl Runtime {
             domain: Arc::new(()),
             attempt: Mutex::new(None),
         });
-        self.native
+        self.connection_native_adapter(id)?
             .enable_native_subscriptions(&self.core, id, a, policy)
             .map_err(crate::canonical_native::registration_error)
     }
@@ -351,7 +354,8 @@ pub(crate) fn reply(
         }
         let p = &response.original()["payload"];
         let setup = &request.original()["payload"]["substrate_setup"];
-        if p["substrate"] != "quic"
+        if p["substrate"].as_str() != Some(source.media().target().endpoint_transport.as_str())
+            || p["substrate"] != request.original()["payload"]["substrate"]
             || p["by_participant"] != grant.connection.origin.participant_id()
             || p["substrate_setup"] != *setup
         {

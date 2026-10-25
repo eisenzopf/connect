@@ -139,7 +139,11 @@ fn parent_permissions_origin_filtered(
 
     let proof = f.admit(&request);
     f.store
-        .prepare_native_offer_with_peer(&f.keys[0], &proof)
+        .prepare_native_offer_with_peer(
+            &f.keys[0],
+            &proof,
+            Some(connect_protocol::provisioning::EndpointTransport::Quic),
+        )
         .unwrap();
     let (lease, _) = f
         .store

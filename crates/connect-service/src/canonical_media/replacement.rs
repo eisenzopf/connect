@@ -70,7 +70,11 @@ impl ParticipantReplacementLease for ReplacementPreparationInvocation {
                 may_receive_audio: old.send_media.contains(&Medium::Audio),
             });
         }
-        if ctx.target_transport != connect_protocol::provisioning::EndpointTransport::Quic {
+        if !matches!(
+            ctx.target_transport,
+            connect_protocol::provisioning::EndpointTransport::Quic
+                | connect_protocol::provisioning::EndpointTransport::Webtransport
+        ) {
             return Err(ParticipantControlError::Unsupported);
         }
         let principal = self.policy.replacement_source_principal(&self.read)?;
@@ -84,7 +88,7 @@ impl ParticipantReplacementLease for ReplacementPreparationInvocation {
             binding.clone(),
             EndpointId::from_string(ctx.target_endpoint_id.clone()),
             DeviceId::from_string(ctx.target_device_id.clone()),
-            Transport::Quic,
+            crate::canonical_runtime::core_transport(&ctx.target_transport).map_err(|_| deny())?,
             ctx.target_address.clone(),
         )
         .map_err(|_| deny())?;

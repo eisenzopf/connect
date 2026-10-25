@@ -23,7 +23,11 @@ fn native_preparation_refusals_keep_wire_failure_and_never_bind_or_allocate_a_co
         let (request, proof) = rejected(&f, stale);
         let record = f
             .store
-            .prepare_native_offer_with_peer(&f.keys[0], &proof)
+            .prepare_native_offer_with_peer(
+                &f.keys[0],
+                &proof,
+                Some(connect_protocol::provisioning::EndpointTransport::Quic),
+            )
             .unwrap();
         assert_eq!(
             (
@@ -40,7 +44,11 @@ fn native_preparation_refusals_keep_wire_failure_and_never_bind_or_allocate_a_co
         assert_eq!(record.expected_revision, Some(if stale { 1 } else { 0 }));
         assert_eq!(
             f.store
-                .prepare_native_offer_with_peer(&f.keys[0], &proof)
+                .prepare_native_offer_with_peer(
+                    &f.keys[0],
+                    &proof,
+                    Some(connect_protocol::provisioning::EndpointTransport::Quic)
+                )
                 .unwrap(),
             record
         );
@@ -94,7 +102,11 @@ fn native_preparation_refusals_keep_wire_failure_and_never_bind_or_allocate_a_co
         let changed = f.admit(&changed);
         assert_eq!(
             f.store
-                .prepare_native_offer_with_peer(&f.keys[0], &changed)
+                .prepare_native_offer_with_peer(
+                    &f.keys[0],
+                    &changed,
+                    Some(connect_protocol::provisioning::EndpointTransport::Quic)
+                )
                 .unwrap_err()
                 .code,
             "conflict"
@@ -109,7 +121,11 @@ fn native_rejection_storage_failure_rolls_back_wire_state_then_original_id_recov
     f.store.connection().unwrap().execute_batch("CREATE TRIGGER fixture_wire_rejection_outage BEFORE INSERT ON journal WHEN EXISTS(SELECT 1 FROM native_offer_rejections n WHERE n.operation_record_id=NEW.operation_record_id) BEGIN SELECT RAISE(ABORT,'controlled wire rejection outage'); END;").unwrap();
     assert_eq!(
         f.store
-            .prepare_native_offer_with_peer(&f.keys[0], &proof)
+            .prepare_native_offer_with_peer(
+                &f.keys[0],
+                &proof,
+                Some(connect_protocol::provisioning::EndpointTransport::Quic)
+            )
             .unwrap_err()
             .code,
         "storage-unavailable"
@@ -134,12 +150,20 @@ fn native_rejection_storage_failure_rolls_back_wire_state_then_original_id_recov
         .unwrap();
     let record = f
         .store
-        .prepare_native_offer_with_peer(&f.keys[0], &proof)
+        .prepare_native_offer_with_peer(
+            &f.keys[0],
+            &proof,
+            Some(connect_protocol::provisioning::EndpointTransport::Quic),
+        )
         .unwrap();
     assert_eq!(record.state, OperationState::Failed);
     assert_eq!(
         f.store
-            .prepare_native_offer_with_peer(&f.keys[0], &proof)
+            .prepare_native_offer_with_peer(
+                &f.keys[0],
+                &proof,
+                Some(connect_protocol::provisioning::EndpointTransport::Quic)
+            )
             .unwrap(),
         record
     );
@@ -151,7 +175,11 @@ fn failed_wire_target_does_not_retarget_a_later_valid_slot_and_survives_reopen()
     let (request, proof) = rejected(&f, false);
     let original = f
         .store
-        .prepare_native_offer_with_peer(&f.keys[0], &proof)
+        .prepare_native_offer_with_peer(
+            &f.keys[0],
+            &proof,
+            Some(connect_protocol::provisioning::EndpointTransport::Quic),
+        )
         .unwrap();
     let mut valid = request.clone();
     let PeerCommand::NativeConnectionOffer(wire) = &mut valid.command else {
@@ -163,13 +191,21 @@ fn failed_wire_target_does_not_retarget_a_later_valid_slot_and_survives_reopen()
     let next = f.admit(&valid);
     let accepted = f
         .store
-        .prepare_native_offer_with_peer(&f.keys[0], &next)
+        .prepare_native_offer_with_peer(
+            &f.keys[0],
+            &next,
+            Some(connect_protocol::provisioning::EndpointTransport::Quic),
+        )
         .unwrap();
     assert_eq!(accepted.state, OperationState::Accepted);
     assert_eq!(accepted.connection_id.as_deref(), Some("connection-native"));
     assert_eq!(
         f.store
-            .prepare_native_offer_with_peer(&f.keys[0], &proof)
+            .prepare_native_offer_with_peer(
+                &f.keys[0],
+                &proof,
+                Some(connect_protocol::provisioning::EndpointTransport::Quic)
+            )
             .unwrap(),
         original
     );
@@ -193,7 +229,11 @@ fn failed_wire_target_does_not_retarget_a_later_valid_slot_and_survives_reopen()
         .unwrap();
     assert_eq!(
         store
-            .prepare_native_offer_with_peer(&credential, &proof)
+            .prepare_native_offer_with_peer(
+                &credential,
+                &proof,
+                Some(connect_protocol::provisioning::EndpointTransport::Quic)
+            )
             .unwrap(),
         original
     );
@@ -223,7 +263,11 @@ fn native_failed_preparation_recovers_after_endpoint_retirement_without_expandin
     f.store.connection().unwrap().execute_batch("CREATE TRIGGER fixture_rejection_outage BEFORE INSERT ON native_offer_rejections BEGIN SELECT RAISE(ABORT,'controlled outage'); END;").unwrap();
     assert_eq!(
         f.store
-            .prepare_native_offer_with_peer(&f.keys[0], &proof)
+            .prepare_native_offer_with_peer(
+                &f.keys[0],
+                &proof,
+                Some(connect_protocol::provisioning::EndpointTransport::Quic)
+            )
             .unwrap_err()
             .code,
         "storage-unavailable"
@@ -247,7 +291,11 @@ fn native_failed_preparation_recovers_after_endpoint_retirement_without_expandin
     let fresh = f.admit(&request);
     let failed = f
         .store
-        .prepare_native_offer_with_peer(&f.keys[0], &fresh)
+        .prepare_native_offer_with_peer(
+            &f.keys[0],
+            &fresh,
+            Some(connect_protocol::provisioning::EndpointTransport::Quic),
+        )
         .unwrap();
     assert_eq!(failed.state, OperationState::Failed);
     assert!(failed.connection_id.is_none());
@@ -291,8 +339,20 @@ fn concurrent_native_refusals_have_one_private_receipt_and_one_wire_failure() {
     let results = std::thread::scope(|scope| {
         let store = &f.store;
         let credential = &f.keys[0];
-        let a = scope.spawn(move || store.prepare_native_offer_with_peer(credential, &first));
-        let b = scope.spawn(move || store.prepare_native_offer_with_peer(credential, &second));
+        let a = scope.spawn(move || {
+            store.prepare_native_offer_with_peer(
+                credential,
+                &first,
+                Some(connect_protocol::provisioning::EndpointTransport::Quic),
+            )
+        });
+        let b = scope.spawn(move || {
+            store.prepare_native_offer_with_peer(
+                credential,
+                &second,
+                Some(connect_protocol::provisioning::EndpointTransport::Quic),
+            )
+        });
         [a.join().unwrap().unwrap(), b.join().unwrap().unwrap()]
     });
     assert_eq!(results[0], results[1]);
@@ -309,7 +369,11 @@ fn conflicting_native_creation_does_not_bind_a_failure_to_another_participants_e
     let proof = f.admit(&request);
     let other = f
         .store
-        .prepare_native_offer_with_peer(&f.keys[1], &proof)
+        .prepare_native_offer_with_peer(
+            &f.keys[1],
+            &proof,
+            Some(connect_protocol::provisioning::EndpointTransport::Quic),
+        )
         .unwrap();
     assert_eq!(other.state, OperationState::Accepted);
     drop(proof);
@@ -317,7 +381,11 @@ fn conflicting_native_creation_does_not_bind_a_failure_to_another_participants_e
     let proof = f.admit(&request);
     let failed = f
         .store
-        .prepare_native_offer_with_peer(&f.keys[0], &proof)
+        .prepare_native_offer_with_peer(
+            &f.keys[0],
+            &proof,
+            Some(connect_protocol::provisioning::EndpointTransport::Quic),
+        )
         .unwrap();
     assert_eq!(failed.state, OperationState::Failed);
     assert!(failed.connection_id.is_none());
@@ -348,7 +416,11 @@ fn trusted_native_planner_can_refuse_only_an_unattempted_offer_and_rolls_back_fa
         let request = f.native_request(600);
         let proof = f.admit(&request);
         f.store
-            .prepare_native_offer_with_peer(&f.keys[0], &proof)
+            .prepare_native_offer_with_peer(
+                &f.keys[0],
+                &proof,
+                Some(connect_protocol::provisioning::EndpointTransport::Quic),
+            )
             .unwrap();
         if attempted {
             f.store

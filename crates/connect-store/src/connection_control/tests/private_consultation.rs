@@ -152,7 +152,11 @@ fn private_native_leg_fences_signed_candidate_and_physical_context_receive_views
     };
     let proof = f.admit(&signed);
     f.store
-        .prepare_native_offer_with_peer(&f.keys[2], &proof)
+        .prepare_native_offer_with_peer(
+            &f.keys[2],
+            &proof,
+            Some(connect_protocol::provisioning::EndpointTransport::Quic),
+        )
         .unwrap();
     let (lease, _) = f
         .store
@@ -281,7 +285,11 @@ fn private_native_leg_owned_intervals_cannot_outlive_the_original_consultation_s
     let proof = f.admit(&signed);
     assert_eq!(proof.expires_at(), expiry);
     f.store
-        .prepare_native_offer_with_peer(&f.keys[2], &proof)
+        .prepare_native_offer_with_peer(
+            &f.keys[2],
+            &proof,
+            Some(connect_protocol::provisioning::EndpointTransport::Quic),
+        )
         .unwrap();
     let (lease, _) = f
         .store

@@ -444,7 +444,11 @@ fn pending_offer(f: &Fixture, request: &crate::PeerAuthorityRequest) -> String {
     let proof = f.admit(&request);
     let record = f
         .store
-        .prepare_native_offer_with_peer(&f.keys[0], &proof)
+        .prepare_native_offer_with_peer(
+            &f.keys[0],
+            &proof,
+            Some(connect_protocol::provisioning::EndpointTransport::Quic),
+        )
         .unwrap();
     record.record_id
 }
@@ -773,7 +777,11 @@ fn reconnect_expired_before_timer_reconciliation_refuses_preparation_without_a_d
     let before = (f.count("connections"), f.count("operation_effects"));
     let failed = f
         .store
-        .prepare_native_offer_with_peer(&f.keys[0], &proof)
+        .prepare_native_offer_with_peer(
+            &f.keys[0],
+            &proof,
+            Some(connect_protocol::provisioning::EndpointTransport::Quic),
+        )
         .unwrap();
     assert_eq!(
         failed.state,
@@ -790,7 +798,11 @@ fn reconnect_expired_before_timer_reconciliation_refuses_preparation_without_a_d
     );
     assert_eq!(
         f.store
-            .prepare_native_offer_with_peer(&f.keys[0], &proof)
+            .prepare_native_offer_with_peer(
+                &f.keys[0],
+                &proof,
+                Some(connect_protocol::provisioning::EndpointTransport::Quic)
+            )
             .unwrap(),
         failed
     );

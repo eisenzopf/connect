@@ -55,9 +55,10 @@ pub(crate) struct Runtime {
     pub(crate) stop: tokio_util::sync::CancellationToken,
     _retirement: Arc<dyn connect_store::RuntimeRetirementSignal>,
     pub(crate) core: Arc<Orchestrator>,
-    // Retain the one registered adapter. Media negotiation must use this same
-    // instance and the physical binding, never a detached test/channel adapter.
-    pub(crate) native: Arc<CanonicalNativeAdapter>,
+    // Retain both registered instances. Media negotiation selects the actual
+    // physical/Core transport and never a detached test/channel adapter.
+    quic_native: Arc<CanonicalNativeAdapter>,
+    pub(crate) webtransport_native: Arc<CanonicalNativeAdapter>,
     pub(crate) capability_listeners: Mutex<
         std::collections::BTreeMap<String, Weak<crate::canonical_capability_delivery::Listener>>,
     >,
@@ -90,6 +91,44 @@ impl connect_store::RuntimeRetirementSignal for Retirement {
     }
 }
 impl Runtime {
+    /// Select only a registered canonical transport. The caller supplies sealed
+    /// physical context or Core ownership, never a transport from a wire payload.
+    pub(crate) fn native_adapter(
+        &self,
+        transport: Transport,
+    ) -> Result<Arc<CanonicalNativeAdapter>> {
+        match transport {
+            Transport::Quic => Ok(self.quic_native.clone()),
+            Transport::WebTransport => Ok(self.webtransport_native.clone()),
+            _ => Err(Error::forbidden()),
+        }
+    }
+    pub(crate) fn connection_native_adapter(
+        &self,
+        id: &rvoip_core::ids::ConnectionId,
+    ) -> Result<Arc<CanonicalNativeAdapter>> {
+        let transport = self
+            .core
+            .connection_transport(id)
+            .map_err(|_| Error::forbidden())?;
+        self.native_adapter(transport)
+    }
+    pub(crate) fn native_adapters(&self) -> [Arc<CanonicalNativeAdapter>; 2] {
+        [self.quic_native.clone(), self.webtransport_native.clone()]
+    }
+    pub(crate) fn observe_native_audio_audience_commit(
+        &self,
+        id: &rvoip_core::ids::ConnectionId,
+        commit: &rvoip_core::staged_streams::audience::AudioAudienceCommit,
+    ) -> Result<()> {
+        self.connection_native_adapter(id)?
+            .observe_audio_audience_commit(id, commit)
+            .map_err(|_| Error::forbidden())
+    }
+    pub(crate) fn native_connection_live(&self, id: &rvoip_core::ids::ConnectionId) -> bool {
+        use rvoip_core::adapter::ConnectionAdapter;
+        self.quic_native.is_connection_live(id) || self.webtransport_native.is_connection_live(id)
+    }
     pub(crate) fn new(store: Arc<connect_store::Store>) -> Result<Arc<Self>> {
         let limits = store.limits();
         if limits.participants > 256 || limits.connections > 512 {
@@ -107,7 +146,14 @@ impl Runtime {
         let native = CanonicalNativeAdapter::new(Transport::Quic).map_err(|_| Error::storage())?;
         core.register(native.clone())
             .map_err(|_| Error::storage())?;
-        store.recover_native_offer_cleanup(&crate::canonical_native::Recovery(native.clone()))?;
+        let webtransport_native =
+            CanonicalNativeAdapter::new(Transport::WebTransport).map_err(|_| Error::storage())?;
+        core.register(webtransport_native.clone())
+            .map_err(|_| Error::storage())?;
+        store.recover_native_offer_cleanup(&crate::canonical_native::Recovery([
+            native.clone(),
+            webtransport_native.clone(),
+        ]))?;
         for _ in 0..limits.connections.div_ceil(256) {
             if store.recover_native_streams(256)? < 256 {
                 break;
@@ -146,7 +192,8 @@ impl Runtime {
             stop,
             _retirement: retirement,
             core,
-            native,
+            quic_native: native,
+            webtransport_native,
             capability_listeners: Mutex::new(Default::default()),
             dtmf_listeners: Mutex::new(Default::default()),
             telephone: Mutex::new(None),
@@ -212,7 +259,10 @@ impl Physical {
             return Err(Error::forbidden());
         }
         *bound = Some(Arc::downgrade(peer));
-        if self.binding.transport() != Transport::Quic {
+        if !matches!(
+            self.binding.transport(),
+            Transport::Quic | Transport::WebTransport
+        ) {
             return Err(Error::forbidden());
         }
         Ok(())
@@ -444,5 +494,28 @@ impl Drop for Runtime {
                 worker.abort();
             }
         }
+    }
+}
+
+pub(crate) fn endpoint_transport(
+    transport: Transport,
+) -> Result<connect_protocol::provisioning::EndpointTransport> {
+    match transport {
+        Transport::Quic => Ok(connect_protocol::provisioning::EndpointTransport::Quic),
+        Transport::WebTransport => {
+            Ok(connect_protocol::provisioning::EndpointTransport::Webtransport)
+        }
+        _ => Err(Error::forbidden()),
+    }
+}
+pub(crate) fn core_transport(
+    transport: &connect_protocol::provisioning::EndpointTransport,
+) -> Result<Transport> {
+    match transport {
+        connect_protocol::provisioning::EndpointTransport::Quic => Ok(Transport::Quic),
+        connect_protocol::provisioning::EndpointTransport::Webtransport => {
+            Ok(Transport::WebTransport)
+        }
+        _ => Err(Error::forbidden()),
     }
 }

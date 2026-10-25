@@ -55,7 +55,8 @@ pub(super) async fn refresh(
     {
         let id = ConnectionId::from_string(entry.origin.runtime_connection_id());
         if runtime
-            .native
+            .native_adapter(physical.binding.transport())
+            .map_err(|_| DispatchError::Authority)?
             .physical_source(&id)
             .is_ok_and(|p| Arc::ptr_eq(&p, &physical.binding))
         {
@@ -80,7 +81,8 @@ pub(super) async fn refresh(
         for entry in entries {
             let id = ConnectionId::from_string(entry.origin.runtime_connection_id());
             let result = runtime
-                .native
+                .native_adapter(physical.binding.transport())
+                .map_err(|_| DispatchError::Authority)?
                 .refresh_unchanged_credential(&id, refresh.clone(), &held)
                 .map_err(|_| DispatchError::Authority)?;
             result.install_data_origin()?;
@@ -227,11 +229,13 @@ async fn worker(
             .ok_or(DispatchError::Authority)?;
         let id = ConnectionId::from_string(old.origin.runtime_connection_id());
         let source = runtime
-            .native
+            .native_adapter(physical.binding.transport())
+            .map_err(|_| DispatchError::Authority)?
             .physical_source(&id)
             .map_err(|_| DispatchError::Authority)?;
         let controller = runtime
-            .native
+            .native_adapter(physical.binding.transport())
+            .map_err(|_| DispatchError::Authority)?
             .media_controller(&id)
             .map_err(|_| DispatchError::Authority)?;
         if !Arc::ptr_eq(&source, &physical.binding)
@@ -303,7 +307,8 @@ async fn worker(
         let target = &plan.targets()[invocation.index];
         let id = ConnectionId::from_string(target.original().runtime_connection_id());
         match runtime
-            .native
+            .native_adapter(physical.binding.transport())
+            .map_err(|_| DispatchError::Authority)?
             .rebind_verified_credential_with_held(
                 &id,
                 refresh.clone(),

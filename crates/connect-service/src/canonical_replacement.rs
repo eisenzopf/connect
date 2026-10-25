@@ -179,7 +179,8 @@ impl Runtime {
         })
         .await?;
         let telephone_route = match ctx.target_transport {
-            connect_protocol::provisioning::EndpointTransport::Quic => None,
+            connect_protocol::provisioning::EndpointTransport::Quic
+            | connect_protocol::provisioning::EndpointTransport::Webtransport => None,
             connect_protocol::provisioning::EndpointTransport::Telephone => {
                 let reference = ctx
                     .target_secret_ref
@@ -518,9 +519,7 @@ impl Runtime {
                         .physical
                         .upgrade()
                         .is_none_or(|p| p.lifetime.is_cancelled())
-                    || !self
-                        .native
-                        .is_connection_live(&saved.handle.intent().replacement);
+                    || !self.native_connection_live(&saved.handle.intent().replacement);
                 let store = self.media.store.clone();
                 let receipt = allocated.receipt.clone();
                 let current =
@@ -570,9 +569,7 @@ impl Runtime {
                     if let Some(allocated) = allocated {
                         let _ = self.record_allocated_replacement(&allocated).await;
                         let until = tokio::time::Instant::now() + Duration::from_secs(5);
-                        while self
-                            .native
-                            .is_connection_live(&saved.handle.intent().replacement)
+                        while self.native_connection_live(&saved.handle.intent().replacement)
                             && !self.stop.is_cancelled()
                             && tokio::time::Instant::now() < until
                         {
@@ -598,7 +595,7 @@ impl Runtime {
                                 let store = self.media.store.clone();
                                 let receipt = started.receipt.clone();
                                 let absent = crate::canonical_native::Absent {
-                                    native: self.native.clone(),
+                                    natives: self.native_adapters(),
                                     id: saved.handle.intent().replacement.clone(),
                                     generation: saved.handle.prepared_binding().generation(),
                                 };
@@ -622,7 +619,7 @@ impl Runtime {
                                 let store = self.media.store.clone();
                                 let uncertain = uncertain.clone();
                                 let absent = crate::canonical_native::Absent {
-                                    native: self.native.clone(),
+                                    natives: self.native_adapters(),
                                     id: saved.handle.intent().replacement.clone(),
                                     generation: saved.handle.prepared_binding().generation(),
                                 };
@@ -638,7 +635,7 @@ impl Runtime {
                                 let store = self.media.store.clone();
                                 let receipt = allocated.receipt.clone();
                                 let absent = crate::canonical_native::Absent {
-                                    native: self.native.clone(),
+                                    natives: self.native_adapters(),
                                     id: saved.handle.intent().replacement.clone(),
                                     generation: saved.handle.prepared_binding().generation(),
                                 };

@@ -61,7 +61,7 @@ impl Received {
             .ok_or_else(Error::forbidden)?;
         let id = ConnectionId::from_string(lease.runtime_connection_id());
         let bound = runtime
-            .native
+            .connection_native_adapter(&id)?
             .physical_source(&id)
             .map_err(|_| Error::forbidden())?;
         if !Arc::ptr_eq(&bound, &physical.binding) {
@@ -84,7 +84,7 @@ impl Received {
             .current(owner)
             .map_err(|_| Error::forbidden())?;
         let controller = runtime
-            .native
+            .connection_native_adapter(&id)?
             .media_controller(&id)
             .map_err(|_| Error::forbidden())?;
         if wire.connection_id != lease.connection_id()

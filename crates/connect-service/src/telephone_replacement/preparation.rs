@@ -119,7 +119,7 @@ impl Runtime {
                         let controller = if id == &root.handle.intent().replacement {
                             started.controller.clone()
                         } else {
-                            self.native
+                            self.connection_native_adapter(id)?
                                 .media_controller(id)
                                 .map_err(|_| Error::forbidden())?
                         };
@@ -141,8 +141,7 @@ impl Runtime {
         };
         for id in context.commit().connections() {
             if id != &root.handle.intent().replacement {
-                self.native
-                    .observe_audio_audience_commit(id, context.commit())
+                self.observe_native_audio_audience_commit(id, context.commit())
                     .map_err(|_| Error::forbidden())?;
             }
         }

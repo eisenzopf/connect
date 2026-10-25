@@ -143,6 +143,7 @@ fn actor() -> AuthenticatedPrincipal {
 }
 fn view() -> PeerConnectionProjection {
     PeerConnectionProjection {
+        endpoint_transport: connect_protocol::provisioning::EndpointTransport::Quic,
         private_consultation: None,
         handoff_preparation: false,
         publication_suspended: false,

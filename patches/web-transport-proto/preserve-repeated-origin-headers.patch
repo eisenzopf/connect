@@ -1,0 +1,121 @@
+--- a/src/qpack.rs
++++ b/src/qpack.rs
+@@ -2,8 +2,6 @@
+ // By refusing to acknowledge the QPACK encoder, we can avoid implementing the dynamic table altogether.
+ // This is not recommended for a full HTTP/3 implementation but it's literally more efficient for handling a single WebTransport CONNECT request.
+ 
+-use std::collections::HashMap;
+-
+ use bytes::{Buf, BufMut};
+ 
+ use super::huffman::{self, HpackStringDecode};
+@@ -11,6 +9,9 @@
+ 
+ #[derive(Error, Debug, Clone)]
+ pub enum DecodeError {
++    #[error("duplicate HTTP pseudo-header")]
++    DuplicatePseudoHeader,
++
+     #[error("unexpected end of input")]
+     UnexpectedEnd,
+ 
+@@ -39,16 +40,24 @@
+ // Simple QPACK implementation that ONLY supports the static table and literals.
+ #[derive(Debug, Default)]
+ pub struct Headers {
+-    pub fields: HashMap<String, String>,
++    pub fields: Vec<(String, String)>,
+ }
+ 
+ impl Headers {
+     pub fn get(&self, name: &str) -> Option<&str> {
+-        self.fields.get(name).map(|v| v.as_str())
++        self.fields.iter().find(|(key, _)| key == name).map(|(_, value)| value.as_str())
+     }
+ 
+     pub fn set(&mut self, name: &str, value: &str) {
+-        self.fields.insert(name.to_string(), value.to_string());
++        if let Some((_, old)) = self.fields.iter_mut().find(|(key, _)| key == name) {
++            *old = value.to_owned();
++        } else {
++            self.append(name, value);
++        }
++    }
++
++    pub fn append(&mut self, name: &str, value: &str) {
++        self.fields.push((name.to_owned(), value.to_owned()));
+     }
+ 
+     pub fn decode<B: Buf>(mut buf: &mut B) -> Result<Self, DecodeError> {
+@@ -56,7 +65,7 @@
+         let (_, _insert_count) = decode_prefix(buf, 8)?;
+         let (_sign, _delta_base) = decode_prefix(buf, 7)?;
+ 
+-        let mut fields = HashMap::new();
++        let mut fields: Vec<(String, String)> = Vec::new();
+         while buf.has_remaining() {
+             // Read the first byte;
+             let peek = buf.get_u8();
+@@ -97,7 +106,10 @@
+                 },
+             };
+ 
+-            fields.insert(name, value);
++            if name.starts_with(':') && fields.iter().any(|(old, _)| old == &name) {
++                return Err(DecodeError::DuplicatePseudoHeader);
++            }
++            fields.push((name, value));
+ 
+             // Get the buffer back.
+             (_, buf) = chain.into_inner();
+@@ -625,3 +637,17 @@
+     ("x-frame-options", "deny"),
+     ("x-frame-options", "sameorigin"),
+ ];
++
++#[cfg(test)]
++mod duplicate_pseudo_header_tests {
++    use super::*;
++    #[test]
++    fn repeated_pseudo_headers_are_rejected_instead_of_overwritten() {
++        let mut headers = Headers::default();
++        headers.append(":method", "CONNECT");
++        headers.append(":method", "GET");
++        let mut bytes = Vec::new();
++        headers.encode(&mut bytes);
++        assert!(matches!(Headers::decode(&mut bytes.as_slice()), Err(DecodeError::DuplicatePseudoHeader)));
++    }
++}
+--- a/src/connect.rs
++++ b/src/connect.rs
+@@ -214,7 +214,7 @@
+             let item_header_value_str = item_header_value
+                 .to_str()
+                 .map_err(|_| ConnectError::InvalidHttpHeaderValue)?;
+-            headers.set(item_header_name.as_str(), item_header_value_str);
++            headers.append(item_header_name.as_str(), item_header_value_str);
+         }
+         headers.set(":method", "CONNECT");
+         headers.set(":scheme", self.url.scheme());
+@@ -691,3 +691,21 @@
+         assert!(matches!(err, ConnectError::UnexpectedEnd));
+     }
+ }
++
++#[cfg(test)]
++mod repeated_header_tests {
++    use super::*;
++    #[test]
++    fn connect_round_trip_preserves_each_origin_for_exact_origin_validation() {
++        let mut request = ConnectRequest::from(url::Url::parse("https://localhost:4443/connect").unwrap());
++        request.headers.append("origin", "https://browser.fixture.invalid".parse().unwrap());
++        request.headers.append("origin", "https://browser.fixture.invalid".parse().unwrap());
++        request.headers.append("x-test", "first".parse().unwrap());
++        request.headers.append("x-test", "second".parse().unwrap());
++        let mut bytes = Vec::new();
++        request.encode(&mut bytes).unwrap();
++        let decoded = ConnectRequest::decode(&mut bytes.as_slice()).unwrap();
++        assert_eq!(decoded.headers.get_all("origin").iter().count(), 2);
++        assert_eq!(decoded.headers.get_all("x-test").iter().count(), 2);
++    }
++}

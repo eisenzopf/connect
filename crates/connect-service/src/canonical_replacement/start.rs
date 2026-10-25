@@ -33,6 +33,7 @@ impl Runtime {
             .authority::<StoreInvocationAuthority>()
             .ok_or_else(Error::forbidden)?;
         physical.validate(&a, authority)?;
+        let native = self.native_adapter(physical.binding.transport())?;
         let intent = crate::canonical_native::intent(a.envelope())?;
         let record = intent.offer["replacement_preparation"]["operation_record_id"]
             .as_str()
@@ -112,6 +113,11 @@ impl Runtime {
             })
         })
         .await?;
+        if crate::canonical_runtime::core_transport(&read.target().endpoint_transport)?
+            != physical.binding.transport()
+        {
+            return Err(Error::forbidden());
+        }
         let base = crate::canonical_native::base_profile()?;
         let (profile, plan) =
             crate::canonical_media::offer_plan(read.target(), &base, a.principal()).map_err(
@@ -166,14 +172,14 @@ impl Runtime {
         let result=async {
             self.media.register_replacement_target(&policy).map_err(|_|Error::forbidden())?;
             tracing::debug!(target:"connect_service::canonical_replacement",stage="configure","Replacement resource start");
-            let controller=self.native.configure_negotiated_media_with_held(&id,&a,ConversationId::from_string(intent.conversation_id.clone()),scope,self.media.clone(),policy.profile.clone(),None,8,invocation.as_ref()).map_err(|_|Error::forbidden())?;
-            let activation=self.native.native_media_activation(&id,&a).map_err(|_|Error::forbidden())?;
+            let controller=native.configure_negotiated_media_with_held(&id,&a,ConversationId::from_string(intent.conversation_id.clone()),scope,self.media.clone(),policy.profile.clone(),None,8,invocation.as_ref()).map_err(|_|Error::forbidden())?;
+            let activation=native.native_media_activation(&id,&a).map_err(|_|Error::forbidden())?;
             policy.activation.set(activation.clone()).map_err(|_|Error::forbidden())?;
             tracing::debug!(target:"connect_service::canonical_replacement",stage="negotiate","Replacement resource start");
-            let outcome=self.native.negotiate_native_offer(&id,a.clone(),invocation.clone(),deadline).await.map_err(|e|{tracing::debug!(target:"connect_service::canonical_replacement",?e,"Replacement native negotiation refused");Error::forbidden()})?;
+            let outcome=native.negotiate_native_offer(&id,a.clone(),invocation.clone(),deadline).await.map_err(|e|{tracing::debug!(target:"connect_service::canonical_replacement",?e,"Replacement native negotiation refused");Error::forbidden()})?;
             tracing::debug!(target:"connect_service::canonical_replacement",stage="mute","Replacement resource start");
-            self.native.mute_native_audio_for_private_admission(&id,&a,invocation.clone(),deadline).await.map_err(|_|Error::forbidden())?;
-            if !invocation.read.current() || activation.confirmed_generation()!=Some(policy.pending.generation()) || controller.revision()!=2 || !self.native.is_connection_live(&id) {return Err(Error::forbidden());}
+            native.mute_native_audio_for_private_admission(&id,&a,invocation.clone(),deadline).await.map_err(|_|Error::forbidden())?;
+            if !invocation.read.current() || activation.confirmed_generation()!=Some(policy.pending.generation()) || controller.revision()!=2 || !native.is_connection_live(&id) {return Err(Error::forbidden());}
             let observation=serde_json::json!({"candidate":id.as_str(),"generation":policy.pending.generation(),"stream_revision":controller.revision(),"streams":outcome.accepted.iter().map(|s|s.as_str()).collect::<Vec<_>>(),"resources_prepared":true,"prepared_muted":true,"media_ready":false});
             Ok((controller,observation))
         }.await;

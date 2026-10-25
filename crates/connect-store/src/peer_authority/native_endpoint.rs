@@ -8,7 +8,15 @@ impl Store {
         &self,
         credential: &str,
         proof: &PeerAuthorityGuard,
+        transport: connect_protocol::provisioning::EndpointTransport,
     ) -> Result<String> {
+        if !matches!(
+            transport,
+            connect_protocol::provisioning::EndpointTransport::Quic
+                | connect_protocol::provisioning::EndpointTransport::Webtransport
+        ) {
+            return Err(Error::forbidden());
+        }
         let PeerCommand::NativeConnectionOffer(intent) = &proof.request.command else {
             return Err(Error::forbidden());
         };
@@ -30,17 +38,28 @@ impl Store {
                 return Err(Error::new("conflict", "Connection offer intent conflicts"));
             }
             self.require_peer_control(&c, proof, credential, &saved.operation)?;
+            let matches: bool = c
+                .query_row(
+                    "SELECT transport=?2 FROM endpoints WHERE id=?1",
+                    params![request.endpoint_id, transport.as_str()],
+                    |r| r.get(0),
+                )
+                .map_err(|_| Error::storage())?;
+            if !matches {
+                return Err(Error::forbidden());
+            }
             return Ok(request.endpoint_id.clone());
         }
         let resources = crate::connection_control::intent_resources(&c, &actor, intent)?;
         if resources.iter().any(|id| !actor.permits_recipient(id)) {
             return Err(Error::forbidden());
         }
-        let mut statement=c.prepare("SELECT e.id FROM endpoints e JOIN devices d ON d.id=e.device_id AND d.identity_id=e.identity_id AND d.tenant_id=e.tenant_id AND d.revoked=0 WHERE e.identity_id=?1 AND e.device_id=?2 AND e.transport='quic' AND e.verification_state='verified' ORDER BY e.id LIMIT 2").map_err(|_|Error::storage())?;
+        let mut statement=c.prepare("SELECT e.id FROM endpoints e JOIN devices d ON d.id=e.device_id AND d.identity_id=e.identity_id AND d.tenant_id=e.tenant_id AND d.revoked=0 WHERE e.identity_id=?1 AND e.device_id=?2 AND e.transport=?3 AND e.verification_state='verified' ORDER BY e.id LIMIT 2").map_err(|_|Error::storage())?;
         let ids = statement
-            .query_map(params![actor.identity_id, proof.key.device_id], |r| {
-                r.get::<_, String>(0)
-            })
+            .query_map(
+                params![actor.identity_id, proof.key.device_id, transport.as_str()],
+                |r| r.get::<_, String>(0),
+            )
             .map_err(|_| Error::storage())?
             .collect::<rusqlite::Result<Vec<_>>>()
             .map_err(|_| Error::storage())?;

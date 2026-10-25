@@ -184,6 +184,13 @@ impl Runtime {
         credential: String,
         tx: tokio::sync::oneshot::Sender<Result<crate::canonical_native::Reply>>,
     ) {
+        let native = match self.native_adapter(physical.binding.transport()) {
+            Ok(native) => native,
+            Err(error) => {
+                let _ = tx.send(Err(error));
+                return;
+            }
+        };
         let store = &self.media.store;
         match proof(&a).and_then(|p| store.native_stream_record_with_peer(&credential, p)) {
             Ok(Some(record)) if record.state != OperationState::Accepted => {
@@ -212,8 +219,7 @@ impl Runtime {
             }
             let source = store.project_native_stream_with_peer(&credential, proof(&a)?)?;
             let id = ConnectionId::from_string(source.connection.runtime_connection_id);
-            let bound = self
-                .native
+            let bound = native
                 .physical_source(&id)
                 .map_err(|_| Error::forbidden())?;
             if !Arc::ptr_eq(&bound, &physical.binding) {
@@ -272,8 +278,7 @@ impl Runtime {
             }
             let source = store.project_native_stream_with_peer(&credential, p)?;
             let id = ConnectionId::from_string(source.connection.runtime_connection_id.clone());
-            let bound = self
-                .native
+            let bound = native
                 .physical_source(&id)
                 .map_err(|_| Error::forbidden())?;
             if !Arc::ptr_eq(&bound, &physical.binding) {
@@ -284,18 +289,18 @@ impl Runtime {
             }
             preflight_stage = "engine-plan";
             let plan = if codecs {
-                self.native
+                native
                     .plan_native_codec_update(&id, &a)
                     .map(Plan::Codecs)
             } else if gates {
-                self.native.plan_native_control(&id, &a).map(Plan::Gates)
+                native.plan_native_control(&id, &a).map(Plan::Gates)
             } else {
-                self.native
+                native
                     .plan_native_subscriptions(&self.core, &id, &a)
                     .map(Plan::Subscriptions)
             }
             .map_err(|e| {
-                tracing::debug!(?e, requested_revision=?a.envelope().expected_revision(), actual_revision=?self.native.media_controller(&id).ok().map(|c| c.revision()), "Native stream plan refused");
+                tracing::debug!(?e, requested_revision=?a.envelope().expected_revision(), actual_revision=?native.media_controller(&id).ok().map(|c| c.revision()), "Native stream plan refused");
                 match e {
                     rvoip_uctp::v2::native_negotiation::NativeOfferError::Conflict => {
                         Error::new("conflict", "Native stream revision or catalog conflicts")
@@ -344,7 +349,7 @@ impl Runtime {
             }
             if let Some(media) = plan.media() {
                 preflight_stage = "bind-plan";
-                crate::peer_authority::bind_native_stream_plan(&a, media)?;
+                crate::peer_authority::bind_native_stream_plan(&a, media, physical.binding.transport())?;
             }
             Ok((id, Some(plan)))
         }).await;
@@ -457,10 +462,7 @@ impl Runtime {
                 let _ = tx.send(result);
                 return;
             }
-            match self
-                .native
-                .declare_native_capabilities(&self.core, &id, &a, received)
-            {
+            match native.declare_native_capabilities(&self.core, &id, &a, received) {
                 Ok(observed) => {
                     capability = Some((
                         Arc::new(observed),
@@ -499,7 +501,7 @@ impl Runtime {
             }
             lease.advertisement_received()
         } else if let Some(invocation) = quality_invocation {
-            match self.native.configure_native_quality(&id, &a, &invocation) {
+            match native.configure_native_quality(&id, &a, &invocation) {
                 Ok(interval_ms) => lease.quality_configured(interval_ms),
                 Err(error) => {
                     // Returned errors precede this synchronous local setter's
@@ -525,9 +527,9 @@ impl Runtime {
         } else if let Some(invocation) = invocation {
             let outcome = tokio::select! {
                 r=async {
-                    if gates {self.native.control_native_media(&id,a.clone(),invocation.clone(),deadline).await.map(Observed::Gates)}
-                    else if codecs {self.native.renegotiate_native_codecs(&id,a.clone(),invocation.clone(),deadline).await.map(Observed::Codecs)}
-                    else {self.native.subscribe_native_media(&self.core,&id,a.clone(),invocation.clone(),deadline).await.map(Observed::Streams)}
+                    if gates {native.control_native_media(&id,a.clone(),invocation.clone(),deadline).await.map(Observed::Gates)}
+                    else if codecs {native.renegotiate_native_codecs(&id,a.clone(),invocation.clone(),deadline).await.map(Observed::Codecs)}
+                    else {native.subscribe_native_media(&self.core,&id,a.clone(),invocation.clone(),deadline).await.map(Observed::Streams)}
                 }=>r,
                 _=self.stop.cancelled()=>Err(rvoip_uctp::v2::native_negotiation::NativeOfferError::Cancelled),
             };
@@ -575,7 +577,7 @@ impl Runtime {
                 _=self.stop.cancelled()=>Err(Error::forbidden()),
                 _=tokio::time::sleep_until(deadline)=>Err(Error::new("reconciliation-required", "Native termination is uncertain")),
             };
-            if outcome.is_err() || self.native.is_connection_live(&id) {
+            if outcome.is_err() || native.is_connection_live(&id) {
                 let result = store.native_stream_attempt_uncertain(&lease).map(|record| {
                     crate::canonical_native::Reply {
                         record,
@@ -586,7 +588,7 @@ impl Runtime {
                 return;
             }
             let absent = crate::canonical_native::Absent {
-                native: self.native.clone(),
+                natives: self.native_adapters(),
                 id,
                 generation: lease.generation(),
             };
