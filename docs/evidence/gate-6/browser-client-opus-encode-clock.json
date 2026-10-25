@@ -1,6 +1,6 @@
 {
   "task": "G6-050",
-  "status": "SDK251original clean60browser/browser8/8 and all4nativejourneys pass; complete short/native088cohort is11/12 with one synthetic149/150audiofailure",
+  "status": "SDK251original clean60browser/browser8/8 and all4nativejourneys pass; complete short/native088cohort is11/12 with one synthetic143/150audiofailure",
   "recorded_at": "2026-10-25T20:24:04.337514+00:00",
   "behavior": "Keep at most ten original accepted20msPCM capture timestamps until matching Opus encoder outputs. Packetization uses each original timestamp, preserving capture gaps and suspended-graph intervals when WebCodecs emits a continuous sample clock. Output without an original refuses; synchronous encode failure removes only its own metadata; close clears pending metadata and fences late output. Existing decoder restoration/packet/queue/authority/source-clock/renderer bounds remain. No arbitrary AVoffset or source/observer/threshold change.",
   "source": {
@@ -193,7 +193,7 @@
       "finding": "Current251bounded denial diagnostic passes without reproducing084audio failure. Renderers admit208/213 and200/205audio calls; both have one late refusal. A diagnostic pass neither explains nor erases084133audiofailure."
     }
   ],
-  "remaining": "FullG6-050 remains in progress. Current088shortsynthetic149/150audio, current084denial133/150audio and historical073/074subscriptionunknown remain unresolved, even though later individual scopes pass. Actual3percentloss/100msvariation/two250msbursts/independent phases/live native/other assigned profiles and all105tasks/acceptance remain required. Source203/SDK2470778/8and07812/12are historical after the current251encoder change.",
+  "remaining": "FullG6-050 remains in progress. Current088shortsynthetic143/150audio, current084denial133/150audio and historical073/074subscriptionunknown remain unresolved, even though later individual scopes pass. Actual3percentloss/100msvariation/two250msbursts/independent phases/live native/other assigned profiles and all105tasks/acceptance remain required. Source203/SDK2470778/8and07812/12are historical after the current251encoder change.",
   "connected_checks": [
     {
       "report": ".local/gate-6/browser-sdk/capture-boundary084-0/summary.json",
@@ -2010,7 +2010,9 @@
         ],
         "measured_ms": 4021.5,
         "required_audio_frames": 150,
-        "limitation": "Synthetic case has no renderer. One direction identifies149against150required; no full12methodpass. Original decoded-video/data/terminal assertions after this failure are not qualified."
+        "limitation": "Synthetic case has no renderer. One direction identifies143against150required; no full12methodpass. Original decoded-video/data/terminal assertions after this failure are not qualified.",
+        "aggregate_including_readiness_audio_frames": 149,
+        "measurement_distinction": "Original measurement resets counters after readiness; failure is143identified/decodedframes during4021.5ms, not aggregate149."
       }
     ]
   }
