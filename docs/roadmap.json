@@ -427,7 +427,7 @@
           "depends_on": [
             "G6-B"
           ],
-          "status": "in-progress"
+          "status": "done"
         },
         {
           "id": "G6-D",
@@ -481,8 +481,8 @@
         }
       ],
       "authorization": "evidence/gate-6/authorization.json",
-      "completed_task_count": 46,
-      "in_progress_task_count": 1
+      "completed_task_count": 47,
+      "in_progress_task_count": 0
     }
   ],
   "source_of_truth": {
